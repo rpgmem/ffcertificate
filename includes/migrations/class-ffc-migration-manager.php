@@ -7,7 +7,7 @@
  * - MigrationStatusCalculator (status calculation with strategies)
  *
  * @package FreeFormCertificate\Migrations
- * @since 2.9.13
+ * @since 2.10.0
  * @version 5.0.0 - Retired 10 completed migrations; removed encrypt/cleanup/drop methods
  * @version 3.3.0 - Added strict types and type hints for better code safety
  * @version 3.2.0 - Migrated to namespace (Phase 2)

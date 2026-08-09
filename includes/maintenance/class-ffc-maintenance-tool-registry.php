@@ -11,7 +11,7 @@
  * so call sites don't have to know which tools ship with the plugin.
  *
  * @package FreeFormCertificate\Maintenance
- * @since 6.7.x
+ * @since 6.8.0
  */
 
 declare(strict_types=1);

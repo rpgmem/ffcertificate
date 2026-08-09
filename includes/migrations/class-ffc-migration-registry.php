@@ -93,7 +93,7 @@ class MigrationRegistry {
 			'requires_column' => false,
 		);
 
-		// v6.20.0 (#865): import certificate layouts left in the legacy `html/`
+		// v6.18.0 (#865): import certificate layouts left in the legacy `html/`
 		// drop-folder into the database-backed template pool, then retire the glob.
 		$this->migrations['import_legacy_templates'] = array(
 			'name'            => __( 'Import Legacy Certificate Templates', 'ffcertificate' ),
@@ -104,7 +104,7 @@ class MigrationRegistry {
 			'requires_column' => false,
 		);
 
-		// v6.20.0 (#865): move images referenced from the legacy `html/` folder
+		// v6.18.0 (#865): move images referenced from the legacy `html/` folder
 		// into the Media Library and rewrite stored form layouts / backgrounds /
 		// pool templates to point at the new attachments.
 		$this->migrations['rewrite_html_image_refs'] = array(

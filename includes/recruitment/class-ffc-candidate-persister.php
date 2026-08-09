@@ -14,7 +14,7 @@
  * need before they can map a row's `adjutancy` column to a foreign key.
  *
  * @package FreeFormCertificate\Recruitment
- * @since   6.11.3
+ * @since   6.12.0
  */
 
 declare(strict_types=1);

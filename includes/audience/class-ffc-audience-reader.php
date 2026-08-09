@@ -7,7 +7,7 @@
  * live in {@see AudienceWriter}. Callers depend on this reader (reads) and the
  * writer (writes) directly; the delegating façade was retired in #563 B3-A.
  *
- * @since   6.11.3
+ * @since   6.12.0
  * @package FreeFormCertificate\Audience
  */
 
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Read queries for audience records.
  *
- * @since 6.11.3
+ * @since 6.12.0
  *
  * @phpstan-type AudienceRow \stdClass&object{id: numeric-string, name: string, color: string, parent_id: numeric-string|null, status: string, created_by: numeric-string, created_at: string, updated_at: string, allow_self_join?: numeric-string, children?: list<\stdClass>, depth?: int<0, 2>}
  */

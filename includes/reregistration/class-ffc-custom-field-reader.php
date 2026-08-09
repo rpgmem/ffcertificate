@@ -8,7 +8,7 @@
  * and the writer (writes) directly; the delegating façade was retired in
  * #563 B3-A. The canonical field-definition constants live here.
  *
- * @since   6.11.3
+ * @since   6.12.0
  * @package FreeFormCertificate\Reregistration
  */
 
@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Read queries for audience-specific custom field definitions.
  *
- * @since 6.11.3
+ * @since 6.12.0
  *
  * @phpstan-type CustomFieldRow \stdClass&object{id: string, audience_id: string, field_key: string, field_label: string, field_type: string, field_group: string, field_source: string, field_profile_key: string|null, field_mask: string|null, is_sensitive: string, field_options: string|null, validation_rules: string|null, sort_order: string, is_required: string, is_active: string, created_at: string, updated_at: string, source_audience_id?: string, source_audience_name?: string}
  */

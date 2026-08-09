@@ -7,7 +7,20 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.18.0] (2026-08-08)
+## [6.19.0] (2026-08-09)
+
+### Fixed
+- **Certificate preview resolves the `{{logo_gov}}` / `{{logo_org}}` branding tokens** (#903): the client-side previews (form-editor live preview + public CSV-download preview) now substitute the two branding keys from `CertificatePreviewSamples`, which lacked them (logos showed as raw `{{…}}`); mirrors the URLs the real generators inject (the server-side template preview already resolved them via `PdfHtmlRenderer`).
+- Internal — **`@since` docblock audit** against the published-release history (#905): corrected **166 tags across 104 files** that cited never-published "phantom" patch numbers or vague `X.Y.x` placeholders to the release each symbol actually first shipped in, plus forward-dated tags mistakenly set to `6.20.0`/`6.19.0` (#865, #897). Docs only; no runtime change.
+
+### Added
+- **Client-IP resolution epic — trusted-proxy + Cloudflare auto-detection + diagnostics** (#899): consolidated all client-IP resolution into one Core `ClientIpResolver` (#900) that owns the historical `legacy` header-walk and a new `secure` trusted-proxy strategy (Cloudflare `CF-Connecting-IP` at a CF edge, right→left `X-Forwarded-For` for configured proxies, else the direct TCP peer); added a read-only *IP Diagnostics* settings tab with trusted-proxy config (`auto`/`cloudflare`/`custom`/`direct`), daily Cloudflare-CIDR refresh (`CloudflareCidrRefresh` cron + bundled fallback) and a header-injection self-test (#901), plus a notice recommending `secure`+Cloudflare (#902). **The effective default stays `legacy` — behaviour is unchanged; the flip to `secure` is deliberately deferred** (gated on shadow-mode telemetry, #902). Opt-in via the `ffc_ip_resolver_mode` / `ffc_trusted_proxies` / `ffc_ip_shadow_logging` filters. Non-breaking; no new cross-module edge.
+
+### Changed
+- Internal (#809) — **quality & coverage batch**: PHP line coverage raised to **90.38%** (piso **84 → 86**) — every remaining `api/` REST controller and `self-scheduling/` handler taken to ≥90%, the pcov-mis-attributed `AbstractDismissibleNotice`/`EmailTemplateDefaults` and `UserDashboardActivator` fixed (#910, #912, #913, #914); the `tests/Integration/` layer grew from 1 to 3 wiring smokes (`PluginActivationSmokeTest` + `ModuleWiringSmokeTest`, #911); and the JS tail (`ffc-email-model` + the two `ffc-csv-*` stragglers) went to 100% (#916). Tests only; no runtime change.
+- **IP Diagnostics `shadow_logging` is an inline autosave toggle** (#901, #907): the shadow-divergence-logging control became a `.ffc-toggle` that saves on flip (`ffc_update_setting`), kept as a named in-form field so autosave and the form Save never clobber each other (invariant also documented in CLAUDE.md).
+
+## [6.18.0] (2026-08-08) — `cffec5f`
 
 ### Fixed
 - **Short URLs of posts/pages now follow the current permalink** (#888): a post's short URL stored the permalink captured at creation, so changing the slug (or the site's permalink structure) stranded it; the redirect, the admin *Destination* column and the CSV export now resolve a post-linked short URL from the post's **current** permalink (falling back to the stored target only if the post is gone). Manual links keep their stored destination. Self-healing, no migration.
@@ -61,11 +74,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Changed
 - Internal (#809) — CI coverage-job hardening: the shard partitioner now weights test files by test-method count and LPT-packs the four shards (isolated-method spread across shards ~31% → ~0%), and the coveralls.io upload step is `continue-on-error` so a 503 outage can't block merge — the line-coverage floor stays enforced by its own separate step.
 - Internal (#809) — WPCS suppression audit (comment-only): removed a superfluous `EscapeOutput` ignore, swapped eight silent `FormCache` cache-purge catches for a gated `Debug::log_form` breadcrumb (off by default), and narrowed the file-wide `phpcs:disable` blocks across 46 files (28 no-op/redundant dropped, 18 trimmed to their load-bearing sniff).
-- Internal (#809 Fase 1) — recruitment coverage push (tests only, no product change): reader tests for `RecruitmentCallReader` (~35% → ~96%) and `RecruitmentNoticeReader` (~25% → ~94%) (#812), plus the two heaviest renderers `RecruitmentPublicShortcodeRenderer` (~46% → ~99%) and `RecruitmentAdminPage` (~39% → ~99%).
+- Internal (#809) — recruitment coverage push (tests only, no product change): reader tests for `RecruitmentCallReader` (~35% → ~96%) and `RecruitmentNoticeReader` (~25% → ~94%) (#812), plus the two heaviest renderers `RecruitmentPublicShortcodeRenderer` (~46% → ~99%) and `RecruitmentAdminPage` (~39% → ~99%).
 - Internal (#807 follow-up) — raised unit coverage on three under-tested logic classes (tests only, no product change): recruitment `CsvParser` `parse()`/`normalise_id()` (~14% → ~96%), `ScheduleExceptionGuard`'s live-token contract (~13% → ~87%), and the per-email rate limiter's week/month/allowed branches (~40% → ~98%).
 - Internal (#807) — extracted inline HTML from four markup-heavy renderers into `templates/` partials (outside the coverage scope), keeping all logic in the class: `RecruitmentPublicShortcodeRenderer`, `ReregistrationFormRenderer`, `AudienceAdminSettings`, `RecruitmentCandidateEditPage`. Behaviour-preserving; adds a first render test for the candidate-edit page.
-- **⚠ Activity Log moved into Settings** (#804, #802 Phase B): it is now a Settings tab (`page=ffc-settings&tab=activity_log`) gated by its own `ffc_view_activity_log` / `ffc_export_activity_log` caps, replacing the standalone Activity Log submenu. Audit-only operators (e.g. the read-only role) reach the Settings page via the computed page-entry meta-cap and see only this tab. **Breaking:** old `page=ffc-activity-log` bookmarks/deep links no longer resolve.
-- Internal (#803) — Settings now uses a **per-tab capability model** (#802 Phase A): each tab declares its own view/manage cap (defaulting to `ffc_view_settings` / `ffc_manage_settings`), the page renders only the tabs a user can view, and the read-only lock keys on the active tab's manage cap. The menu registers under a computed `ffc_view_settings_page` meta-cap so it appears iff ≥1 tab is visible.
+- **⚠ Activity Log moved into Settings** (#804, #802): it is now a Settings tab (`page=ffc-settings&tab=activity_log`) gated by its own `ffc_view_activity_log` / `ffc_export_activity_log` caps, replacing the standalone Activity Log submenu. Audit-only operators (e.g. the read-only role) reach the Settings page via the computed page-entry meta-cap and see only this tab. **Breaking:** old `page=ffc-activity-log` bookmarks/deep links no longer resolve.
+- Internal (#803) — Settings now uses a **per-tab capability model** (#802): each tab declares its own view/manage cap (defaulting to `ffc_view_settings` / `ffc_manage_settings`), the page renders only the tabs a user can view, and the read-only lock keys on the active tab's manage cap. The menu registers under a computed `ffc_view_settings_page` meta-cap so it appears iff ≥1 tab is visible.
 - Internal (#800) — decoupled `Settings` from `AdminLoader` (the orchestrator wires it directly as an always-on cross-cutting service) and relocated the Recruitment schema/role lifecycle out of `RecruitmentLoader` into the orchestrator, so the new module toggles can skip a feature bootstrap without disabling the Settings screen or dropping recruitment tables/roles.
 - **Settings moved to a dedicated top-level admin menu** (`admin.php?page=ffc-settings`) instead of hanging under the Certificate CPT menu, so the new Modules tab has a module-agnostic home. ⚠ The page URL changed from `edit.php?post_type=ffc_form&page=ffc-settings`; old bookmarks won't resolve. All in-app links and post-save redirects updated (#799).
 - The dashboard **"Join Groups"** list now follows the per-node self-join model (#791 follow-up): a group shows a Join/Leave button whenever its own self-join is on — child, top-level, or a parent that also has joinable children — and a non-self-join parent still appears as a header when it has joinable descendants; unrelated groups are hidden.
@@ -1191,7 +1204,7 @@ Full-page cache compatibility, per-form captcha isolation, and CI pipeline impro
 - Re-introduce coverage with pcov, scoped to `includes/`, uploaded to Coveralls
 - Auto-fix ~83k PHPCS violations via PHPCBF
 - Annotate 223 PreparedSQL + NonceVerification false positives
-- Phase 3 PHPCS mechanical fixes + PSR-4 suppressions
+- PHPCS mechanical fixes + PSR-4 suppressions
 - Resolve remaining WPCS errors in cache-related files (file docblocks, class docblocks, short ternary operators, missing `@param` tags)
 
 ### Fixed
@@ -1449,7 +1462,7 @@ Performance optimizations for URL shortener and QR code generation, new admin co
 ### Removed
 
 - Removed 27 unnecessary `!important` declarations
-- Removed unused CSS classes and stale Phase 3 comments
+- Removed unused CSS classes and stale internal comments
 
 ---
 

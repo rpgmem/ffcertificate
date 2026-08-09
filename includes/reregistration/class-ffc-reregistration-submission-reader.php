@@ -8,7 +8,7 @@
  * Callers depend on this reader (reads) and the writer (writes) directly; the
  * delegating façade was retired in #563 B3-A.
  *
- * @since   6.11.3
+ * @since   6.12.0
  * @package FreeFormCertificate\Reregistration
  */
 
@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Read queries for reregistration submission records.
  *
- * @since 6.11.3
+ * @since 6.12.0
  *
  * @phpstan-type ReregistrationSubmissionRow \stdClass&object{id: string, reregistration_id: string, user_id: string, status: string, submitted_at: numeric-string|int|null, reviewed_at: numeric-string|int|null, reviewed_by: string|null, notes: string|null, auth_code: string|null, magic_token: string|null, created_at: string, updated_at: string, data?: string|null}
  */

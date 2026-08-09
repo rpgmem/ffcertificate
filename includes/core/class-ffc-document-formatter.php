@@ -27,28 +27,28 @@ class DocumentFormatter {
 	/**
 	 * Virtual prefix for certificates (ffc_submissions).
 	 *
-	 * @since 4.13.0
+	 * @since 5.0.0
 	 */
 	public const PREFIX_CERTIFICATE = 'C';
 
 	/**
 	 * Virtual prefix for reregistrations (ffc_reregistration_submissions).
 	 *
-	 * @since 4.13.0
+	 * @since 5.0.0
 	 */
 	public const PREFIX_REREGISTRATION = 'R';
 
 	/**
 	 * Virtual prefix for appointments (ffc_self_scheduling_appointments).
 	 *
-	 * @since 4.13.0
+	 * @since 5.0.0
 	 */
 	public const PREFIX_APPOINTMENT = 'A';
 
 	/**
 	 * Valid auth code prefixes.
 	 *
-	 * @since 4.13.0
+	 * @since 5.0.0
 	 */
 	private const VALID_PREFIXES = array( 'C', 'R', 'A' );
 
@@ -145,7 +145,7 @@ class DocumentFormatter {
 	/**
 	 * Format authentication code with optional virtual prefix.
 	 *
-	 * @since 4.13.0 Added $prefix parameter.
+	 * @since 5.0.0 Added $prefix parameter.
 	 * @param string $code Auth code to format (raw 12-char or already formatted).
 	 * @param string $prefix Virtual prefix letter (C, R, A) — not stored in DB.
 	 * @return string Formatted code: P-XXXX-XXXX-XXXX (with prefix) or XXXX-XXXX-XXXX (without).
@@ -202,7 +202,7 @@ class DocumentFormatter {
 	/**
 	 * Mask CPF/RF for privacy
 	 *
-	 * @since 2.9.17
+	 * @since 2.10.0
 	 * @param string $value CPF or RF to mask.
 	 * @return string Masked document
 	 */
@@ -320,7 +320,7 @@ class DocumentFormatter {
 	 * Accepts: "C-XXXX-XXXX-XXXX", "CXXXXXXXXXXXX", "XXXX-XXXX-XXXX", "XXXXXXXXXXXX".
 	 * Returns: ['prefix' => 'C'|'R'|'A'|'', 'code' => 'XXXXXXXXXXXX']
 	 *
-	 * @since 4.13.0
+	 * @since 5.0.0
 	 * @param string $input Raw user input (with or without prefix/dashes).
 	 * @return array{prefix: string, code: string}
 	 */

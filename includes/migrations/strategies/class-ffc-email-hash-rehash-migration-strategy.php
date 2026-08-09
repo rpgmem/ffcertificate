@@ -21,7 +21,7 @@
  * id. Migration completes when the cursor reaches MAX(id) in both tables.
  *
  * @package FreeFormCertificate\Migrations\Strategies
- * @since 5.3.1
+ * @since 5.4.0
  */
 
 declare(strict_types=1);

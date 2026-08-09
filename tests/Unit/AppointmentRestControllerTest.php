@@ -32,6 +32,9 @@ class AppointmentRestControllerTest extends TestCase {
     /** @var \Mockery\MockInterface Mock for AppointmentHandler (overload) */
     private $appointment_handler_mock;
 
+    /** @var \Mockery\MockInterface Mock for RateLimiter (alias) */
+    private $rate_limiter_mock;
+
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
@@ -81,8 +84,9 @@ class AppointmentRestControllerTest extends TestCase {
         })->byDefault();
 
         // RateLimiter alias
-        $rate_limiter_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
-        $rate_limiter_mock->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
+        $this->rate_limiter_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
+        $this->rate_limiter_mock->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
+        Functions\when( 'get_option' )->justReturn( array() );
     }
 
     protected function tearDown(): void {
@@ -384,5 +388,108 @@ class AppointmentRestControllerTest extends TestCase {
         $request = $this->make_request( array( 'id' => '10' ) );
 
         $this->assertFalse( $ctrl->check_appointment_access( $request ) );
+    }
+
+    // ------------------------------------------------------------------
+    // create_appointment — rate limit / logged-in / error / catch (#910)
+    // ------------------------------------------------------------------
+
+    /** @return array<string, mixed> */
+    private function valid_booking(): array {
+        return array( 'date' => '2026-05-20', 'time' => '10:00', 'name' => 'Ana', 'email' => 'ana@example.com', 'consent' => 1 );
+    }
+
+    public function test_create_appointment_rate_limited(): void {
+        $this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( array( 'scheduling_visibility' => 'public' ) );
+        $this->rate_limiter_mock->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => false ) );
+
+        $result = ( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
+            $this->make_request( array( 'id' => '3' ), $this->valid_booking() )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'rate_limit_exceeded', $result->get_error_code() );
+    }
+
+    public function test_create_appointment_attaches_user_id_when_logged_in(): void {
+        Functions\when( 'is_user_logged_in' )->justReturn( true );
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        $this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( array( 'scheduling_visibility' => 'public' ) );
+        $captured = null;
+        $this->appointment_handler_mock->shouldReceive( 'process_appointment' )->andReturnUsing(
+            function ( $data ) use ( &$captured ) {
+                $captured = $data;
+                return array( 'appointment_id' => 9, 'requires_approval' => false );
+            }
+        );
+
+        $result = ( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
+            $this->make_request( array( 'id' => '3' ), $this->valid_booking() )
+        );
+
+        $this->assertIsArray( $result );
+        $this->assertTrue( $result['success'] );
+        $this->assertSame( 5, $captured['user_id'] );
+    }
+
+    public function test_create_appointment_bubbles_handler_wp_error(): void {
+        $this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( array( 'scheduling_visibility' => 'public' ) );
+        $this->appointment_handler_mock->shouldReceive( 'process_appointment' )->andReturn(
+            new \WP_Error( 'slot_full', 'full' )
+        );
+
+        $result = ( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
+            $this->make_request( array( 'id' => '3' ), $this->valid_booking() )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'slot_full', $result->get_error_code() );
+    }
+
+    public function test_create_appointment_wraps_exception(): void {
+        $this->calendar_repo_mock->shouldReceive( 'findById' )->andReturn( array( 'scheduling_visibility' => 'public' ) );
+        $this->appointment_handler_mock->shouldReceive( 'process_appointment' )->andThrow( new \RuntimeException( 'boom' ) );
+        Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )->shouldReceive( 'log_rest_api' )->byDefault();
+
+        $result = ( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
+            $this->make_request( array( 'id' => '3' ), $this->valid_booking() )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_internal_error', $result->get_error_code() );
+    }
+
+    public function test_get_appointment_wraps_exception(): void {
+        $this->appointment_repo_mock->shouldReceive( 'findById' )->andThrow( new \RuntimeException( 'boom' ) );
+        Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )->shouldReceive( 'log_rest_api' )->byDefault();
+
+        $result = ( new AppointmentRestController( 'ffc/v1' ) )->get_appointment(
+            $this->make_request( array( 'id' => '5' ) )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_internal_error', $result->get_error_code() );
+    }
+
+    public function test_cancel_appointment_wraps_exception(): void {
+        $this->appointment_handler_mock->shouldReceive( 'cancel_appointment' )->andThrow( new \RuntimeException( 'boom' ) );
+        Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )->shouldReceive( 'log_rest_api' )->byDefault();
+
+        $result = ( new AppointmentRestController( 'ffc/v1' ) )->cancel_appointment(
+            $this->make_request( array( 'id' => '5' ) )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_internal_error', $result->get_error_code() );
+    }
+
+    public function test_check_appointment_access_false_when_appointment_missing(): void {
+        Functions\when( 'is_user_logged_in' )->justReturn( true );
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        $this->appointment_repo_mock->shouldReceive( 'findById' )->andReturn( null );
+
+        $this->assertFalse(
+            ( new AppointmentRestController( 'ffc/v1' ) )->check_appointment_access( $this->make_request( array( 'id' => '5' ) ) )
+        );
     }
 }

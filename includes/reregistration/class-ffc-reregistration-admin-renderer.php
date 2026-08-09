@@ -8,7 +8,7 @@
  * never reaches back through controller state.
  *
  * @package FreeFormCertificate\Reregistration
- * @since 6.7.x  Extracted from ReregistrationAdmin (#589 phase-2, Sprint E1)
+ * @since 6.12.0  Extracted from ReregistrationAdmin (#589 phase-2, Sprint E1)
  */
 
 declare(strict_types=1);

@@ -183,7 +183,7 @@ class UserManager {
 	 * Intended to be called from the dynamic reregistration data processor
 	 * when syncing approved submission values back onto the user profile.
 	 *
-	 * @since 4.13.0
+	 * @since 5.0.0
 	 * @param int                  $user_id        WordPress user ID.
 	 * @param array<string, mixed> $data           profile_key => value pairs.
 	 * @param array<int, string>   $sensitive_keys profile_keys whose values must be encrypted.
@@ -239,7 +239,7 @@ class UserManager {
 	 * and from wp_usermeta (for everything else). Sensitive keys are
 	 * transparently decrypted.
 	 *
-	 * @since 4.13.0
+	 * @since 5.0.0
 	 * @param int                $user_id        WordPress user ID.
 	 * @param array<int, string> $extra_keys     Non-table keys to fetch from usermeta.
 	 * @param array<int, string> $sensitive_keys Keys whose stored values are encrypted.
@@ -302,7 +302,7 @@ class UserManager {
 	/**
 	 * Get user's identifiers (CPFs and RFs) masked and typed
 	 *
-	 * @since 4.13.0
+	 * @since 5.0.0
 	 * @param int $user_id WordPress user ID.
 	 * @return array{cpfs: array<int, string>, rfs: array<int, string>}
 	 */

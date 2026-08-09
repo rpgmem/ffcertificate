@@ -10,7 +10,7 @@
  * in #563 B3-A.
  *
  * @package FreeFormCertificate\Audience
- * @since 6.11.3
+ * @since 6.12.0
  */
 
 declare(strict_types=1);
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Write operations for audience booking records.
  *
- * @since 6.11.3
+ * @since 6.12.0
  */
 class AudienceBookingWriter {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;

@@ -170,4 +170,61 @@ class SelfSchedulingAdminTest extends TestCase {
         $this->expectException( \RuntimeException::class );
         $admin->render_appointments_page();
     }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_render_appointments_page_renders_view_and_registers_shutdown_handler(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Debug' )
+            ->shouldReceive( 'log_self_scheduling' )->andReturnNull()->byDefault();
+        class_exists( '\FreeFormCertificate\Core\Utils' ); // so the shutdown guard's class_exists(...,false) is true.
+
+        // Point plugin_dir_path at a scratch dir holding a benign stub view.
+        $dir = sys_get_temp_dir() . '/ffc_ss_ok_' . uniqid();
+        mkdir( $dir . '/views', 0777, true );
+        file_put_contents( $dir . '/views/appointments-list.php', "<?php /* stub view */\n" );
+        Functions\when( 'plugin_dir_path' )->justReturn( $dir . '/' );
+
+        $shutdown = null;
+        Functions\when( 'register_shutdown_function' )->alias( function ( $cb ) use ( &$shutdown ) {
+            $shutdown = $cb;
+        } );
+
+        ( new SelfSchedulingAdmin() )->render_appointments_page();
+
+        $this->assertIsCallable( $shutdown );
+
+        // Invoke the registered shutdown closure — error_get_last() is a PHP
+        // internal Patchwork can't redefine, so it returns the real last error
+        // (none pending), exercising the guard's no-fatal path without a stub.
+        $shutdown();
+
+        $this->assertTrue( true );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_render_appointments_page_catches_view_throwable(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+        Functions\when( 'register_shutdown_function' )->justReturn( null );
+        Mockery::mock( 'alias:FreeFormCertificate\Core\Debug' )
+            ->shouldReceive( 'log_self_scheduling' )->andReturnNull()->byDefault();
+
+        // A view that throws → the catch renders an error notice and logs it.
+        $dir = sys_get_temp_dir() . '/ffc_ss_err_' . uniqid();
+        mkdir( $dir . '/views', 0777, true );
+        file_put_contents( $dir . '/views/appointments-list.php', "<?php throw new \\RuntimeException( 'view boom' );\n" );
+        Functions\when( 'plugin_dir_path' )->justReturn( $dir . '/' );
+
+        ob_start();
+        ( new SelfSchedulingAdmin() )->render_appointments_page();
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString( 'Error:', $html );
+        $this->assertStringContainsString( 'view boom', $html );
+    }
 }

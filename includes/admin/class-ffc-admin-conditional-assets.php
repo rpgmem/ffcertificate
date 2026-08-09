@@ -12,7 +12,7 @@
  * the pre-split manager.
  *
  * @package FreeFormCertificate\Admin
- * @since 6.7.x (Extracted from AdminAssetsManager — #591 phase-3, Sprint E5e)
+ * @since 6.12.0 (Extracted from AdminAssetsManager — #591 phase-3, Sprint E5e)
  */
 
 declare(strict_types=1);

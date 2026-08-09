@@ -8,7 +8,7 @@
  * general-purpose `Core\Utils` hub.
  *
  * @package FreeFormCertificate\Core
- * @since   6.11.3
+ * @since   6.12.0
  */
 
 declare(strict_types=1);
@@ -42,7 +42,7 @@ final class AssetHelper {
 	 *
 	 * Shared between admin and frontend to avoid duplicate logic.
 	 *
-	 * @since 4.6.17
+	 * @since 4.7.0
 	 */
 	public static function enqueue_dark_mode(): void {
 		$dark_mode = \FreeFormCertificate\Settings\SettingsReader::get( 'dark_mode', 'off' );

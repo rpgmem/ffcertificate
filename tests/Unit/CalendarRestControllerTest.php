@@ -402,4 +402,73 @@ class CalendarRestControllerTest extends TestCase {
         $this->assertInstanceOf( \WP_Error::class, $result );
         $this->assertSame( 'no_slots', $result->get_error_code() );
     }
+
+    public function test_get_calendar_returns_429_when_rate_limit_blocks(): void {
+        $this->rate_limiter_mock->shouldReceive( 'check_read_limit' )
+            ->with( Mockery::any(), 'calendar_detail' )
+            ->once()
+            ->andReturn( array( 'allowed' => false, 'reason' => 'read_hour_limit', 'message' => 'Slow down.' ) );
+
+        $result = ( new CalendarRestController( 'ffc/v1' ) )->get_calendar( $this->make_request( array( 'id' => '3' ) ) );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'rate_limit_exceeded', $result->get_error_code() );
+    }
+
+    public function test_route_validate_callbacks_accept_and_reject(): void {
+        $ctrl = new CalendarRestController( 'ffc/v1' );
+        $ctrl->register_routes();
+
+        $detail_id = $this->registered_routes[1]['args']['args']['id']['validate_callback'];
+        $this->assertTrue( $detail_id( '5' ) );
+        $this->assertFalse( (bool) $detail_id( 'abc' ) );
+
+        $slots = $this->registered_routes[2]['args']['args'];
+        $this->assertTrue( $slots['id']['validate_callback']( '7' ) );
+        $this->assertTrue( (bool) $slots['date']['validate_callback']( '2026-04-01' ) );
+        $this->assertFalse( (bool) $slots['date']['validate_callback']( 'not-a-date' ) );
+    }
+
+    // ------------------------------------------------------------------
+    // catch blocks → ffc_internal_error (+ log_rest_error)
+    // ------------------------------------------------------------------
+
+    public function test_get_calendars_wraps_unexpected_exception(): void {
+        Functions\when( 'is_user_logged_in' )->justReturn( false );
+        $this->calendar_repo_mock->shouldReceive( 'getPublicActiveCalendars' )
+            ->andThrow( new \RuntimeException( 'boom' ) );
+        Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )
+            ->shouldReceive( 'log_rest_api' )->byDefault();
+
+        $result = ( new CalendarRestController( 'ffc/v1' ) )->get_calendars( $this->make_request() );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_internal_error', $result->get_error_code() );
+    }
+
+    public function test_get_calendar_wraps_unexpected_exception(): void {
+        $this->calendar_repo_mock->shouldReceive( 'getWithWorkingHours' )
+            ->andThrow( new \RuntimeException( 'boom' ) );
+        Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )
+            ->shouldReceive( 'log_rest_api' )->byDefault();
+
+        $result = ( new CalendarRestController( 'ffc/v1' ) )->get_calendar( $this->make_request( array( 'id' => '3' ) ) );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_internal_error', $result->get_error_code() );
+    }
+
+    public function test_get_calendar_slots_wraps_unexpected_exception(): void {
+        $this->appointment_handler_mock->shouldReceive( 'get_available_slots' )
+            ->andThrow( new \RuntimeException( 'boom' ) );
+        Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )
+            ->shouldReceive( 'log_rest_api' )->byDefault();
+
+        $result = ( new CalendarRestController( 'ffc/v1' ) )->get_calendar_slots(
+            $this->make_request( array( 'id' => '3', 'date' => '2026-04-01' ) )
+        );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'ffc_internal_error', $result->get_error_code() );
+    }
 }

@@ -10,7 +10,7 @@
  * The public API is preserved so that existing call sites in
  * {@see FormEditor::add_custom_metaboxes()} continue to work unchanged.
  *
- * @since   3.1.1
+ * @since   3.2.0
  * @package FreeFormCertificate\Admin
  */
 
@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Renders all metaboxes for the Form Editor screen.
  *
- * @since 3.1.1
+ * @since 3.2.0
  */
 class FormEditorMetaboxRenderer {
 

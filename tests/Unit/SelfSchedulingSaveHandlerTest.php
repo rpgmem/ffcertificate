@@ -5,6 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingSaveHandler;
@@ -241,5 +242,68 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
     public function test_email_config_no_post_data_skips_save(): void {
         $this->invoke( 'save_email_config', array( 100 ) );
         $this->assertArrayNotHasKey( '_ffc_self_scheduling_email_config', $this->saved_meta );
+    }
+
+    // ==================================================================
+    // save_calendar_data() — security guards + orchestration
+    // ==================================================================
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_save_calendar_data_skips_on_autosave(): void {
+        define( 'DOING_AUTOSAVE', true );
+        $nonce_checked = false;
+        Functions\when( 'wp_verify_nonce' )->alias( function () use ( &$nonce_checked ) {
+            $nonce_checked = true;
+            return true;
+        } );
+
+        $this->handler->save_calendar_data( 1, new \stdClass(), false );
+
+        $this->assertFalse( $nonce_checked, 'autosave returns before the nonce check' );
+    }
+
+    public function test_save_calendar_data_skips_on_invalid_nonce(): void {
+        Functions\when( 'wp_verify_nonce' )->justReturn( false );
+        $cap_checked = false;
+        Functions\when( 'current_user_can' )->alias( function () use ( &$cap_checked ) {
+            $cap_checked = true;
+            return true;
+        } );
+
+        $this->handler->save_calendar_data( 1, new \stdClass(), false );
+
+        $this->assertFalse( $cap_checked, 'invalid nonce returns before the capability check' );
+    }
+
+    public function test_save_calendar_data_skips_without_capability(): void {
+        Functions\when( 'wp_verify_nonce' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( false );
+
+        $this->handler->save_calendar_data( 1, new \stdClass(), false );
+
+        $this->assertEmpty( $this->saved_meta, 'no writes when the capability is missing' );
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_save_calendar_data_orchestrates_saves_and_purges_cache(): void {
+        Functions\when( 'wp_verify_nonce' )->justReturn( true );
+        Functions\when( 'current_user_can' )->justReturn( true );
+        $purged = false;
+        Mockery::mock( 'alias:\FreeFormCertificate\Submissions\FormCache' )
+            ->shouldReceive( 'purge_page_cache' )->andReturnUsing( function () use ( &$purged ) {
+                $purged = true;
+            } );
+
+        // No $_POST config → the three save_* helpers skip their writes; the
+        // orchestration still runs through to the cache purge.
+        $this->handler->save_calendar_data( 1, new \stdClass(), false );
+
+        $this->assertTrue( $purged );
     }
 }

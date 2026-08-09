@@ -173,18 +173,19 @@ class Settings {
 		// Tab classes with proper namespaces.
 		// v4.6.16: Reorganized tabs for better UX.
 		$tab_classes = array(
-			'general'       => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeneral',
-			'modulos'       => '\\FreeFormCertificate\\Settings\\Tabs\\TabModulos',
-			'smtp'          => '\\FreeFormCertificate\\Settings\\Tabs\\TabSMTP',
-			'cache'         => '\\FreeFormCertificate\\Settings\\Tabs\\TabCache',
-			'url_shortener' => '\\FreeFormCertificate\\Settings\\Tabs\\TabUrlShortener',
-			'rate_limit'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabRateLimit',
-			'geolocation'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeolocation',
-			'user_access'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabUserAccess',
-			'activity_log'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabActivityLog',
-			'advanced'      => '\\FreeFormCertificate\\Settings\\Tabs\\TabAdvanced',
-			'migrations'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabMigrations',
-			'documentation' => '\\FreeFormCertificate\\Settings\\Tabs\\TabDocumentation',
+			'general'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeneral',
+			'modulos'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabModulos',
+			'smtp'           => '\\FreeFormCertificate\\Settings\\Tabs\\TabSMTP',
+			'cache'          => '\\FreeFormCertificate\\Settings\\Tabs\\TabCache',
+			'url_shortener'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabUrlShortener',
+			'rate_limit'     => '\\FreeFormCertificate\\Settings\\Tabs\\TabRateLimit',
+			'geolocation'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeolocation',
+			'ip_diagnostics' => '\\FreeFormCertificate\\Settings\\Tabs\\TabIpDiagnostics',
+			'user_access'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabUserAccess',
+			'activity_log'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabActivityLog',
+			'advanced'       => '\\FreeFormCertificate\\Settings\\Tabs\\TabAdvanced',
+			'migrations'     => '\\FreeFormCertificate\\Settings\\Tabs\\TabMigrations',
+			'documentation'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabDocumentation',
 		);
 
 		// Instantiate each tab.
@@ -748,7 +749,7 @@ class Settings {
 	 *  - `apply`   (GET) : refuse unless a recent preview exists, then run the
 	 *    destructive pass using the persisted options.
 	 *
-	 * @since 6.7.x
+	 * @since 6.8.0
 	 */
 	public function handle_url_shortener_cleanup(): void {
 		$this->action_handler->handle_url_shortener_cleanup();
@@ -766,7 +767,7 @@ class Settings {
 	 *  - `apply`   (GET) : refuse unless a recent preview exists, then run the
 	 *    destructive pass using the persisted grace window.
 	 *
-	 * @since 6.7.x
+	 * @since 6.8.0
 	 */
 	public function handle_public_access_disabler(): void {
 		$this->action_handler->handle_public_access_disabler();
@@ -779,7 +780,7 @@ class Settings {
 	 * `ffc_manage_settings`) runs the read-only {@see SubmissionLinkAuditor}
 	 * and stores the report in a transient. Nothing is mutated.
 	 *
-	 * @since 6.7.x
+	 * @since 6.8.0
 	 */
 	public function handle_submission_link_audit(): void {
 		$this->action_handler->handle_submission_link_audit();

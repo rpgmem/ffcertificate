@@ -20,7 +20,7 @@
  * checks, redirects, option writes and phpcs:ignore annotations.
  *
  * @package FreeFormCertificate\Admin
- * @since   6.7.x
+ * @since   6.12.0
  */
 
 declare(strict_types=1);
@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Settings action / maintenance request handlers.
  *
- * @since 6.7.x
+ * @since 6.12.0
  */
 class SettingsActionHandler {
 
@@ -316,7 +316,7 @@ class SettingsActionHandler {
 	 *  - `apply`   (GET) : refuse unless a recent preview exists, then run the
 	 *    destructive pass using the persisted options.
 	 *
-	 * @since 6.7.x
+	 * @since 6.8.0
 	 */
 	public function handle_url_shortener_cleanup(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below.
@@ -450,7 +450,7 @@ class SettingsActionHandler {
 	 *  - `apply`   (GET) : refuse unless a recent preview exists, then run the
 	 *    destructive pass using the persisted grace window.
 	 *
-	 * @since 6.7.x
+	 * @since 6.8.0
 	 */
 	public function handle_public_access_disabler(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below.
@@ -558,7 +558,7 @@ class SettingsActionHandler {
 	 * `ffc_manage_settings`) runs the read-only {@see SubmissionLinkAuditor}
 	 * and stores the report in a transient. Nothing is mutated.
 	 *
-	 * @since 6.7.x
+	 * @since 6.8.0
 	 */
 	public function handle_submission_link_audit(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below.
@@ -712,7 +712,7 @@ class SettingsActionHandler {
 	 * email) / `failed` (transport returned false), rendered as a notice by the
 	 * SMTP tab view.
 	 *
-	 * @since 6.15.x
+	 * @since 6.14.0
 	 */
 	public function handle_send_test_email(): void {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Presence check only; nonce verified below via check_admin_referer.

@@ -16,7 +16,7 @@
  * everything else originates here.
  *
  * @package FreeFormCertificate\Core
- * @since   6.7.8
+ * @since   6.8.0
  */
 
 declare(strict_types=1);
@@ -115,6 +115,15 @@ class CertificatePreviewSamples {
 			// Form / submission metadata.
 			'form_title'               => 'Título do Certificado',
 			'site_name'                => get_bloginfo( 'name' ),
+
+			// Site branding logos (#865 / #903): mirror the URLs the real
+			// generators inject (PdfHtmlRenderer / FichaGenerator) so the
+			// client-side previews (form-editor + public download) substitute
+			// {{logo_gov}} / {{logo_org}} instead of leaving them raw. The
+			// server-side cert-template preview already resolves them via the
+			// renderer; this closes the JS-preview gap.
+			'logo_gov'                 => BrandingTokens::logo_gov_url(),
+			'logo_org'                 => BrandingTokens::logo_org_url(),
 			'submission_id'            => '1234',
 			'submission_date'          => $today,
 			'submitted_at'             => $now_full,

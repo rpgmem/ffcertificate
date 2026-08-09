@@ -4,7 +4,7 @@
  * Displays activity logs with filtering and pagination
  *
  * @package FreeFormCertificate\Admin
- * @since 3.1.1
+ * @since 3.2.0
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  */

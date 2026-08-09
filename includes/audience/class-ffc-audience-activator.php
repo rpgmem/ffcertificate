@@ -556,7 +556,7 @@ class AudienceActivator {
 	 * When enabled, the schedule ignores audience and user conflicts from
 	 * other schedules — only conflicts within the same schedule are checked.
 	 *
-	 * @since 4.14.0
+	 * @since 5.0.0
 	 * @return void
 	 */
 	private static function migrate_schedule_isolated_column(): void {

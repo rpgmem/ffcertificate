@@ -7,7 +7,7 @@
  * area-text format consumed by Geofence::parse_areas().
  *
  * @package FreeFormCertificate\Security
- * @since   4.10.0
+ * @since   4.11.0
  */
 
 declare(strict_types=1);

@@ -10,7 +10,7 @@
  *
  * @package FreeFormCertificate
  * @since 3.1.0
- * @since 3.4.0 - Restructured layout: code → captcha → button. Generic "Document" text.
+ * @since 4.0.0 - Restructured layout: code → captcha → button. Generic "Document" text.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

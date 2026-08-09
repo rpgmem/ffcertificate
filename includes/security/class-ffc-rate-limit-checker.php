@@ -33,7 +33,7 @@ final class RateLimitChecker {
 	 * are identical across whole fleets of same-model devices) can no
 	 * longer trigger a block on its own. Fixed in code by design.
 	 *
-	 * @since 6.7.8
+	 * @since 6.8.0
 	 * @var string[]
 	 */
 	public const STRONG_SIGNALS = array( 'canvas', 'webgl', 'audio', 'fonts', 'plugins', 'permissions' );
@@ -45,7 +45,7 @@ final class RateLimitChecker {
 	 * Listed for documentation + the admin grouping UI; the matcher derives
 	 * "weak" as "present non-cookie signal that is not in STRONG_SIGNALS".
 	 *
-	 * @since 6.7.8
+	 * @since 6.8.0
 	 * @var string[]
 	 */
 	public const WEAK_SIGNALS = array( 'ua', 'screen', 'tz', 'concurrency', 'memory', 'mediaqueries', 'math' );
@@ -582,6 +582,12 @@ final class RateLimitChecker {
 
 	/**
 	 * Get user ip.
+	 *
+	 * NOTE (#899 phase 1): this already-secure resolver (REMOTE_ADDR-first,
+	 * forwarded headers gated behind `ffc_trust_forwarded_headers`) is left in
+	 * place on purpose. It is folded into the shared `ClientIpResolver` secure
+	 * strategy only at the phase-3 flip (#902) — delegating it to the canonical
+	 * `legacy`-default resolver now would regress it to trust-all-headers.
 	 *
 	 * @return string
 	 */

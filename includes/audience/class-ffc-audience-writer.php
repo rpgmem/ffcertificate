@@ -7,7 +7,7 @@
  * {@see AudienceReader}. Callers depend on the reader (reads) and this writer
  * (writes) directly; the delegating façade was retired in #563 B3-A.
  *
- * @since   6.11.3
+ * @since   6.12.0
  * @package FreeFormCertificate\Audience
  */
 
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Write operations for audience records.
  *
- * @since 6.11.3
+ * @since 6.12.0
  */
 class AudienceWriter {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -119,7 +119,7 @@ class AudienceWriter {
 		 * Subscribers can perform secondary provisioning such as seeding
 		 * reregistration standard fields for the new audience.
 		 *
-		 * @since 4.13.0
+		 * @since 5.0.0
 		 * @param int                  $audience_id New audience ID.
 		 * @param array<string, mixed> $data        Normalized creation data.
 		 */

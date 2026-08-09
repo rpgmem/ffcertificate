@@ -15,7 +15,7 @@
  * exactly as WordPress core keeps `wp_insert_post()` auth-agnostic.
  *
  * @package FreeFormCertificate\Admin
- * @since   6.20.0
+ * @since   6.18.0
  */
 
 declare(strict_types=1);

@@ -267,4 +267,20 @@ class UserSummaryRestControllerTest extends TestCase {
         $this->assertIsArray( $result );
         $this->assertNull( $result['next_appointment'] );
     }
+
+    public function test_get_user_summary_counts_group_events_when_capability_granted(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'current_user_can' )->alias( function ( $cap ) {
+            return 'ffc_view_own_audience_bookings' === $cap;
+        } );
+        Functions\when( 'current_time' )->justReturn( '2026-08-09' );
+        // table_exists(ffc_audience_bookings) → true.
+        $this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_audience_bookings' );
+        Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceQueryService' )
+            ->shouldReceive( 'count_user_bookings' )->andReturn( 3 );
+
+        $result = ( new UserSummaryRestController( 'ffc/v1' ) )->get_user_summary( $this->make_request() );
+
+        $this->assertSame( 3, $result['upcoming_group_events'] );
+    }
 }

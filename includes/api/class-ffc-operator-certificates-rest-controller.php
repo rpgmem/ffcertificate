@@ -21,7 +21,7 @@
  * issued certificate is byte-for-byte a normal submission.
  *
  * @package FreeFormCertificate\API
- * @since 6.19.0
+ * @since 6.18.0
  */
 
 declare(strict_types=1);

@@ -8,7 +8,7 @@
  * reader (reads) and this writer (writes) directly; the delegating façade was
  * retired in #563 B3-A.
  *
- * @since   6.11.3
+ * @since   6.12.0
  * @package FreeFormCertificate\Reregistration
  */
 
@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Write operations for audience-specific custom field definitions.
  *
- * @since 6.11.3
+ * @since 6.12.0
  */
 class CustomFieldWriter {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;

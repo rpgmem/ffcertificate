@@ -36,6 +36,7 @@ function installDom() {
 				<input type="number" data-ffc-model-field="wrapper_padding" value="32">
 				<input type="text" data-ffc-model-field="header_logo_url" value="https://x/logo.png">
 				<textarea data-ffc-model-field="footer_text">Sent by {{site_title}}</textarea>
+				<button type="button" class="ffc-email-model-logo-select">select</button>
 				<button type="button" class="ffc-email-model-logo-clear">clear</button>
 				<button type="button" class="ffc-email-model-restore">restore</button>
 			</form>
@@ -68,7 +69,44 @@ beforeEach(() => {
 afterEach(() => {
 	delete window.ffcEmailModel;
 	delete window.confirm;
+	delete window.wp;
+	// wp-color-picker is an optional jQuery plugin: some tests define a stub of
+	// it on the shared jsdom `$.fn`. Remove it so it never leaks into the tests
+	// that assert the plain-`.val()` fallback path.
+	if (window.$ && window.$.fn) {
+		delete window.$.fn.wpColorPicker;
+	}
 });
+
+// Minimal wp-color-picker stub: enough for the init call and the
+// `wpColorPicker('color', value)` restore call, mirroring the field value so
+// the restore assertions can read it back through `.val()`.
+function stubColorPicker() {
+	window.$.fn.wpColorPicker = function (arg, value) {
+		if (arg === 'color' && typeof value !== 'undefined') {
+			return this.val(value);
+		}
+		return this;
+	};
+}
+
+// Minimal wp.media stub: `wp.media(opts)` returns a frame that invokes the
+// registered `select` handler when `.open()` is called, exposing one chosen
+// attachment.
+function stubWpMedia(url) {
+	window.wp = {
+		media() {
+			var handlers = {};
+			return {
+				on(evt, cb) { handlers[evt] = cb; return this; },
+				state() {
+					return { get() { return { first() { return { toJSON() { return { url: url }; } }; } }; } };
+				},
+				open() { if (handlers.select) { handlers.select(); } },
+			};
+		},
+	};
+}
 
 describe('ffc-email-model', () => {
 	it('no-ops when the box is absent', async () => {
@@ -117,5 +155,38 @@ describe('ffc-email-model', () => {
 		await loadOnReady();
 		window.$('.ffc-email-model-logo-clear').trigger('click');
 		expect(window.$('[data-ffc-model-field="header_logo_url"]').val()).toBe('');
+	});
+
+	it('initializes wp-color-picker when available and restores colors through it', async () => {
+		stubColorPicker();
+		installDom();
+		await loadOnReady();
+
+		// The restore path goes through wpColorPicker('color', …) for color fields
+		// (not a plain .val()); the stub mirrors the value so it reads back.
+		window.$('[data-ffc-model-field="header_bg"]').val('#000000');
+		window.$('.ffc-email-model-restore').trigger('click');
+		expect(window.$('[data-ffc-model-field="header_bg"]').val()).toBe('#2271b1');
+	});
+
+	it('does nothing on logo-select when wp.media is unavailable', async () => {
+		installDom();
+		await loadOnReady();
+		// No window.wp → the handler guards and returns without changing the field.
+		window.$('.ffc-email-model-logo-select').trigger('click');
+		expect(window.$('[data-ffc-model-field="header_logo_url"]').val()).toBe('https://x/logo.png');
+	});
+
+	it('sets the logo field from the media frame selection', async () => {
+		stubWpMedia('https://cdn/new-logo.png');
+		installDom();
+		await loadOnReady();
+
+		window.$('.ffc-email-model-logo-select').trigger('click');
+
+		expect(window.$('[data-ffc-model-field="header_logo_url"]').val()).toBe('https://cdn/new-logo.png');
+		// The change propagated to the live preview.
+		const html = document.querySelector('.ffc-email-model-preview-frame').srcdoc;
+		expect(html).toContain('https://cdn/new-logo.png');
 	});
 });

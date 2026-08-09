@@ -14,7 +14,7 @@
  * row.
  *
  * @package FreeFormCertificate\Recruitment
- * @since   6.11.3
+ * @since   6.12.0
  */
 
 declare(strict_types=1);
@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Write operations for `ffc_recruitment_call` rows.
  *
- * @since 6.11.3
+ * @since 6.12.0
  */
 class RecruitmentCallWriter {
 

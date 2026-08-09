@@ -7,7 +7,7 @@
  * its own `create_tables()` installer; the core Activator orchestrates them.
  *
  * @package FreeFormCertificate\Reregistration
- * @since   6.11.3
+ * @since   6.12.0
  */
 
 declare(strict_types=1);
@@ -84,7 +84,7 @@ class ReregistrationActivator {
 	/**
 	 * Create reregistration ↔ audiences junction table.
 	 *
-	 * @since 4.13.0
+	 * @since 5.0.0
 	 */
 	private static function create_reregistration_audiences_table(): void {
 		global $wpdb;
@@ -111,7 +111,7 @@ class ReregistrationActivator {
 	/**
 	 * Migrate existing audience_id column data into the junction table.
 	 *
-	 * @since 4.13.0
+	 * @since 5.0.0
 	 */
 	private static function migrate_reregistration_audience_to_junction(): void {
 		global $wpdb;
