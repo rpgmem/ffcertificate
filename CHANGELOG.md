@@ -7,7 +7,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.19.0] (2026-08-09)
+## [6.19.0] (2026-08-09) — `d93c277`
 
 ### Fixed
 - **Certificate preview resolves the `{{logo_gov}}` / `{{logo_org}}` branding tokens** (#903): the client-side previews (form-editor live preview + public CSV-download preview) now substitute the two branding keys from `CertificatePreviewSamples`, which lacked them (logos showed as raw `{{…}}`); mirrors the URLs the real generators inject (the server-side template preview already resolved them via `PdfHtmlRenderer`).
