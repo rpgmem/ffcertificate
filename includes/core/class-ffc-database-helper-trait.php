@@ -13,7 +13,7 @@
  * - Composite index creation
  *
  * @package FreeFormCertificate\Core
- * @since 4.11.2
+ * @since 4.12.0
  */
 
 declare(strict_types=1);

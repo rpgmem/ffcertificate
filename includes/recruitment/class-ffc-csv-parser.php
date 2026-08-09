@@ -13,7 +13,7 @@
  * slice of the importer and the easiest to unit-test in isolation.
  *
  * @package FreeFormCertificate\Recruitment
- * @since   6.11.3
+ * @since   6.12.0
  */
 
 declare(strict_types=1);

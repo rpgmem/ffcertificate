@@ -68,7 +68,7 @@ class SubmissionRepository extends AbstractRepository {
 	 * relocation target for the former `Core\Utils::get_submissions_table()`
 	 * (#563 Sprint 5 phase 2). Works correctly on Multisite (per-site prefix).
 	 *
-	 * @since 6.11.3
+	 * @since 6.12.0
 	 * @return string Fully-prefixed table name.
 	 */
 	public static function get_submissions_table(): string {

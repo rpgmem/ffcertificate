@@ -16,7 +16,7 @@
  * everything else originates here.
  *
  * @package FreeFormCertificate\Core
- * @since   6.7.8
+ * @since   6.8.0
  */
 
 declare(strict_types=1);

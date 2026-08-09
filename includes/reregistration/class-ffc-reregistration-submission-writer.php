@@ -9,7 +9,7 @@
  * and this writer (writes) directly; the delegating façade was retired in
  * #563 B3-A.
  *
- * @since   6.11.3
+ * @since   6.12.0
  * @package FreeFormCertificate\Reregistration
  *
  * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Write operations for reregistration submission records.
  *
- * @since 6.11.3
+ * @since 6.12.0
  *
  * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
  */

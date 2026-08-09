@@ -12,7 +12,7 @@
  * and DB queries are unchanged.
  *
  * @package FreeFormCertificate\Privacy
- * @since 6.7.x
+ * @since 6.12.0
  */
 
 declare(strict_types=1);

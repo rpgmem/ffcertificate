@@ -7,7 +7,7 @@
  *
  * @package FreeFormCertificate\Reregistration
  * @since 4.11.0
- * @since 4.13.0 Multi-audience support via junction table.
+ * @since 5.0.0 Multi-audience support via junction table.
  */
 
 declare(strict_types=1);

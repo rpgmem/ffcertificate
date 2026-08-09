@@ -15,7 +15,7 @@
  * pre-extraction implementation.
  *
  * @package FreeFormCertificate\Frontend\Csv
- * @since   6.7.x
+ * @since   6.12.0
  */
 
 declare(strict_types=1);
@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Read-only audit-log summary + CPF decryption for the public CSV feature.
  *
- * @since 6.7.x
+ * @since 6.12.0
  */
 class CsvDownloadAuditLog {
 

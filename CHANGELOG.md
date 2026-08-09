@@ -9,6 +9,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 - **Certificate preview now resolves the `{{logo_gov}}` / `{{logo_org}}` branding tokens** (#903): the client-side previews (form-editor live preview and public CSV-download preview) substitute placeholders from `CertificatePreviewSamples`, which lacked the two branding keys, so the logos showed as raw `{{…}}`; the sample map now mirrors the URLs the real generators inject (the server-side template preview already resolved them via `PdfHtmlRenderer`).
+- Internal — full `@since` docblock audit against the published-release history (git `Version:`-header timeline + CHANGELOG): corrected **166 tags across 104 files** that cited never-published "phantom" patch numbers (e.g. `6.11.3`→`6.12.0`, `4.13.0`→`5.0.0`, `3.1.1`→`3.2.0`) to the release the code actually first shipped in, and resolved the vague `X.Y.x` placeholders (`6.7.x`/`6.8.x`/`6.15.x`) to concrete versions. Docs only; no runtime change.
 - Internal (#865, #897) — corrected forward-dated `@since` tags to their real ship version `6.18.0`: the certificate-template pool, branding-token and legacy-`html/` migration classes (mistaken `6.20.0`), and the operator-certificates REST controller + key-rotation migration strategy (mistaken `6.19.0`). Docs only.
 
 ### Added

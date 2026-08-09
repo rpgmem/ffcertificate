@@ -145,7 +145,7 @@ class RequestInput {
 	 * Reads from `$_SERVER` (the request envelope), which is why the accessor
 	 * lives on the request-input reader.
 	 *
-	 * @since 6.11.3
+	 * @since 6.12.0
 	 * @return string IP address, or `'0.0.0.0'` when none could be resolved.
 	 */
 	public static function get_user_ip(): string {

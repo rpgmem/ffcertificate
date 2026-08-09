@@ -33,7 +33,7 @@ final class RateLimitChecker {
 	 * are identical across whole fleets of same-model devices) can no
 	 * longer trigger a block on its own. Fixed in code by design.
 	 *
-	 * @since 6.7.8
+	 * @since 6.8.0
 	 * @var string[]
 	 */
 	public const STRONG_SIGNALS = array( 'canvas', 'webgl', 'audio', 'fonts', 'plugins', 'permissions' );
@@ -45,7 +45,7 @@ final class RateLimitChecker {
 	 * Listed for documentation + the admin grouping UI; the matcher derives
 	 * "weak" as "present non-cookie signal that is not in STRONG_SIGNALS".
 	 *
-	 * @since 6.7.8
+	 * @since 6.8.0
 	 * @var string[]
 	 */
 	public const WEAK_SIGNALS = array( 'ua', 'screen', 'tz', 'concurrency', 'memory', 'mediaqueries', 'math' );

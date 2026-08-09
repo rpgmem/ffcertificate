@@ -22,7 +22,7 @@
  * admin review UI.
  *
  * @package FreeFormCertificate\Reregistration
- * @since 4.13.0  Unified dynamic field system
+ * @since 5.0.0  Unified dynamic field system
  * @since 4.12.8  Extracted from ReregistrationFrontend
  */
 

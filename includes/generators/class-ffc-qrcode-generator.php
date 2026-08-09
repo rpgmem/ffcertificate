@@ -13,7 +13,7 @@
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace (Phase 2)
  * @since 2.9.0
- * @since 2.9.2 OPTIMIZED to use FFC_Utils functions
+ * @since 2.10.0 OPTIMIZED to use FFC_Utils functions
  */
 
 declare(strict_types=1);
@@ -508,7 +508,7 @@ class QRCodeGenerator {
 	 *
 	 * Uses FFC_Magic_Link_Helper to generate the link
 	 *
-	 * @since 2.9.16
+	 * @since 2.10.0
 	 * @param int $submission_id Submission ID.
 	 * @param int $size QR code size (default: 200).
 	 * @return string Base64 QR code or empty string
