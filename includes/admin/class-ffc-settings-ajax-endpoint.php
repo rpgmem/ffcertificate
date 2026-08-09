@@ -193,6 +193,14 @@ class SettingsAjaxEndpoint {
 				'type'   => 'bool',
 				'cap'    => 'ffc_manage_settings_dangerzone',
 			),
+			// IP Diagnostics tab (#901) — shadow-divergence logging flag in its
+			// own option. The tab keeps this toggle a named field in its save
+			// form, so autosave and the form-save stay consistent (no clobber).
+			'shadow_logging'                => array(
+				'option' => 'ffc_ip_diagnostics_settings',
+				'type'   => 'bool',
+				'cap'    => 'ffc_manage_settings',
+			),
 		);
 
 		// Recruitment Settings tab (`page=ffc-recruitment&tab=settings`) —
