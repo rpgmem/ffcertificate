@@ -356,4 +356,16 @@ class UserCertificatesRestControllerTest extends TestCase {
         $this->assertIsArray( $result );
         $this->assertSame( 2, $result['total'] );
     }
+
+    public function test_get_user_certificates_wraps_exception(): void {
+        Functions\when( 'get_current_user_id' )->justReturn( 5 );
+        Functions\when( 'current_user_can' )->justReturn( true );
+        $this->wpdb->shouldReceive( 'get_results' )->andThrow( new \RuntimeException( 'boom' ) );
+        Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )->shouldReceive( 'log_rest_api' )->byDefault();
+
+        $result = ( new UserCertificatesRestController( 'ffc/v1' ) )->get_user_certificates( $this->make_request() );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'get_certificates_error', $result->get_error_code() );
+    }
 }
