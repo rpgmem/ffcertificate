@@ -31,6 +31,7 @@ class Deactivator {
 		wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
 		wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::unschedule();
+		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::unschedule();
 
 		flush_rewrite_rules();
 	}
@@ -69,6 +70,7 @@ class Deactivator {
 		wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
 		wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::unschedule();
+		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::unschedule();
 
 		// 4. Delete all Custom Post Type 'ffc_form' entries.
 		$args = array(

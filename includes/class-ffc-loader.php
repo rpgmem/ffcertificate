@@ -256,6 +256,13 @@ class Loader {
 		UserCleanup::init();
 		PrivacyHandler::init();
 
+		// Client-IP resolution (#899 phase 2): feed ClientIpResolver's filters
+		// from stored config, and keep Cloudflare's published CIDR list fresh.
+		// Registered unconditionally — IP resolution and WP-Cron both run
+		// outside is_admin(), so this must not sit behind an admin-only gate.
+		\FreeFormCertificate\Settings\IpResolverSettingsBridge::init();
+		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::init();
+
 		// #739 §3.2 read-only viewer gate: forms/calendars list-read primitives
 		// map to the view caps, so this forces the per-post write meta-caps back
 		// to the manage cap (viewing must never imply editing). Permanent.
@@ -308,6 +315,9 @@ class Loader {
 		if ( ! wp_next_scheduled( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK ) ) {
 			wp_schedule_event( time(), 'hourly', \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK );
 		}
+
+		// Ensure the daily Cloudflare CIDR refresh cron is scheduled (#901).
+		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::schedule();
 
 		$this->ensure_admin_capabilities();
 		$this->ensure_admin_role_assigned();

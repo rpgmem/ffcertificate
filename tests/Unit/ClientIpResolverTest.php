@@ -263,4 +263,43 @@ class ClientIpResolverTest extends TestCase {
 		$this->assertStringNotContainsString( '8.8.8.8', $captured );
 		$this->assertStringNotContainsString( '198.51.100.7', $captured );
 	}
+
+	// ---- classify() — environment verdict (#901 phase 2) --------------------
+
+	public function test_classify_direct_when_peer_is_public_non_cdn(): void {
+		$this->stub_request_funcs();
+		$this->stub_filters_passthrough();
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+		$this->assertSame( ClientIpResolver::VERDICT_DIRECT, ClientIpResolver::classify() );
+	}
+
+	public function test_classify_cloudflare_when_peer_in_cf_range(): void {
+		$this->stub_request_funcs();
+		$this->stub_filters_passthrough();
+		$_SERVER['REMOTE_ADDR'] = '104.16.0.1'; // ∈ 104.16.0.0/13 (bundled CF).
+		$this->assertSame( ClientIpResolver::VERDICT_CLOUDFLARE, ClientIpResolver::classify() );
+	}
+
+	public function test_classify_trusted_proxy_when_peer_in_configured_range(): void {
+		$this->stub_request_funcs();
+		Functions\when( 'apply_filters' )->alias(
+			static function ( $hook, $value = null ) {
+				return 'ffc_trusted_proxies' === $hook ? array( '192.0.2.0/24' ) : $value;
+			}
+		);
+		$_SERVER['REMOTE_ADDR'] = '192.0.2.10';
+		$this->assertSame( ClientIpResolver::VERDICT_TRUSTED_PROXY, ClientIpResolver::classify() );
+	}
+
+	public function test_classify_direct_when_remote_addr_invalid(): void {
+		$this->stub_request_funcs();
+		$this->stub_filters_passthrough();
+		$_SERVER['REMOTE_ADDR'] = 'not-an-ip';
+		$this->assertSame( ClientIpResolver::VERDICT_DIRECT, ClientIpResolver::classify() );
+	}
+
+	public function test_classify_accepts_explicit_remote_argument(): void {
+		$this->stub_filters_passthrough();
+		$this->assertSame( ClientIpResolver::VERDICT_CLOUDFLARE, ClientIpResolver::classify( '2400:cb00::1' ) );
+	}
 }

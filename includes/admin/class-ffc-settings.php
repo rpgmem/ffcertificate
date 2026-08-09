@@ -180,6 +180,7 @@ class Settings {
 			'url_shortener' => '\\FreeFormCertificate\\Settings\\Tabs\\TabUrlShortener',
 			'rate_limit'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabRateLimit',
 			'geolocation'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeolocation',
+			'ip_diagnostics' => '\\FreeFormCertificate\\Settings\\Tabs\\TabIpDiagnostics',
 			'user_access'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabUserAccess',
 			'activity_log'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabActivityLog',
 			'advanced'      => '\\FreeFormCertificate\\Settings\\Tabs\\TabAdvanced',

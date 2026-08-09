@@ -94,6 +94,7 @@ class Activator {
 
 		// Schedule the per-form ticket-pool sweep for ended forms.
 		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::schedule();
+		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::schedule();
 
 		flush_rewrite_rules();
 	}

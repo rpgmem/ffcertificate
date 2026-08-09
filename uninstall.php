@@ -47,6 +47,7 @@ if ( ! $ffcertificate_purge ) {
 	wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
 	wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
 	wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
+	wp_clear_scheduled_hook( 'ffc_cloudflare_cidr_refresh' );
 	return;
 }
 
@@ -150,6 +151,8 @@ $ffcertificate_options = array(
 	'ffc_recruitment_settings',
 	'ffc_recruitment_schema_version',
 	'ffc_recruitment_public_cache_version',
+	'ffc_ip_diagnostics_settings',
+	'ffc_cloudflare_cidr_cache',
 );
 
 foreach ( $ffcertificate_options as $ffcertificate_option ) {
@@ -178,6 +181,7 @@ wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
+wp_clear_scheduled_hook( 'ffc_cloudflare_cidr_refresh' );
 
 // Clear legacy cron hooks from pre-4.6.15 versions.
 wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
