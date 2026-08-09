@@ -38,6 +38,9 @@ class OperatorCertificatesRestControllerTest extends TestCase {
 	/** @var \Mockery\MockInterface */
 	private $caps;
 
+	/** @var \Mockery\MockInterface */
+	private $generator;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -80,8 +83,8 @@ class OperatorCertificatesRestControllerTest extends TestCase {
 			)
 		)->byDefault();
 
-		Mockery::mock( 'overload:\FreeFormCertificate\Generators\PdfGenerator' )
-			->shouldReceive( 'generate_pdf_data' )->andReturn( array( 'html' => '<div>cert</div>' ) )->byDefault();
+		$this->generator = Mockery::mock( 'overload:\FreeFormCertificate\Generators\PdfGenerator' );
+		$this->generator->shouldReceive( 'generate_pdf_data' )->andReturn( array( 'html' => '<div>cert</div>' ) )->byDefault();
 
 		// Per-user rate limit (the only limiter the operator path uses).
 		$this->rate_limiter = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
@@ -181,6 +184,74 @@ class OperatorCertificatesRestControllerTest extends TestCase {
 		$this->assertStringContainsString( '/operator/certificates/5/pdf', $resp['pdf_endpoint'] );
 	}
 
+	public function test_issue_certificate_rejects_empty_body(): void {
+		$resp = $this->controller()->issue_certificate( $this->request( array() ) );
+		$this->assertInstanceOf( \WP_Error::class, $resp );
+		$this->assertSame( 'no_data', $resp->get_error_code() );
+	}
+
+	public function test_issue_certificate_form_repo_unavailable(): void {
+		Functions\when( 'get_post' )->justReturn( $this->publishedForm() );
+		// Constructed without a form repository → the null-repo guard trips.
+		$ctrl = new OperatorCertificatesRestController( 'ffc/v1', null );
+		$resp = $ctrl->issue_certificate( $this->request( array( 'form_id' => 10 ) ) );
+		$this->assertInstanceOf( \WP_Error::class, $resp );
+		$this->assertSame( 'form_repo_unavailable', $resp->get_error_code() );
+	}
+
+	public function test_issue_certificate_validation_failed_for_missing_required_field(): void {
+		Functions\when( 'get_post' )->justReturn( $this->publishedForm() );
+		$this->form_repo->shouldReceive( 'getFields' )->andReturn(
+			array( array( 'name' => 'documento', 'required' => true, 'label' => 'Documento' ) )
+		);
+
+		$resp = $this->controller()->issue_certificate( $this->request( array( 'form_id' => 10, 'name' => 'Maria' ) ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $resp );
+		$this->assertSame( 'validation_failed', $resp->get_error_code() );
+	}
+
+	public function test_issue_certificate_wrong_length_cpf_rf(): void {
+		Functions\when( 'get_post' )->justReturn( $this->publishedForm() );
+		$resp = $this->controller()->issue_certificate(
+			$this->request( array( 'form_id' => 10, 'cpf_rf' => '123' ) )
+		);
+		$this->assertInstanceOf( \WP_Error::class, $resp );
+		$this->assertSame( 'invalid_cpf_rf', $resp->get_error_code() );
+	}
+
+	public function test_issue_certificate_accepts_valid_cpf(): void {
+		Functions\when( 'get_post' )->justReturn( $this->publishedForm() );
+		// 52998224725 is a checksum-valid CPF.
+		$resp = $this->controller()->issue_certificate(
+			$this->request( array( 'form_id' => 10, 'cpf_rf' => '529.982.247-25' ) )
+		);
+		$this->assertIsArray( $resp );
+		$this->assertTrue( $resp['success'] );
+	}
+
+	public function test_issue_certificate_bubbles_process_submission_error(): void {
+		Functions\when( 'get_post' )->justReturn( $this->publishedForm() );
+		$this->handler->shouldReceive( 'process_submission' )->andReturn(
+			new \WP_Error( 'dup', 'duplicate' )
+		);
+
+		$resp = $this->controller()->issue_certificate( $this->request( array( 'form_id' => 10 ) ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $resp );
+		$this->assertSame( 'dup', $resp->get_error_code() );
+	}
+
+	public function test_issue_certificate_wraps_unexpected_exception(): void {
+		Functions\when( 'get_post' )->justReturn( $this->publishedForm() );
+		$this->handler->shouldReceive( 'process_submission' )->andThrow( new \RuntimeException( 'kaboom' ) );
+
+		$resp = $this->controller()->issue_certificate( $this->request( array( 'form_id' => 10 ) ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $resp );
+		$this->assertSame( 'ffc_internal_error', $resp->get_error_code() );
+	}
+
 	public function test_issue_certificate_rejects_missing_form_id(): void {
 		$resp = $this->controller()->issue_certificate( $this->request( array( 'name' => 'x' ) ) );
 		$this->assertInstanceOf( \WP_Error::class, $resp );
@@ -266,5 +337,27 @@ class OperatorCertificatesRestControllerTest extends TestCase {
 		$resp = $this->controller()->get_certificate_pdf( $this->request( array(), array( 'id' => 5 ) ) );
 		$this->assertInstanceOf( \WP_Error::class, $resp );
 		$this->assertSame( 'certificate_not_found', $resp->get_error_code() );
+	}
+
+	public function test_pdf_rejects_invalid_id(): void {
+		$resp = $this->controller()->get_certificate_pdf( $this->request( array(), array( 'id' => 0 ) ) );
+		$this->assertInstanceOf( \WP_Error::class, $resp );
+		$this->assertSame( 'invalid_id', $resp->get_error_code() );
+	}
+
+	public function test_pdf_bubbles_generator_error(): void {
+		$this->generator->shouldReceive( 'generate_pdf_data' )->andReturn(
+			new \WP_Error( 'render_failed', 'boom' )
+		);
+		$resp = $this->controller()->get_certificate_pdf( $this->request( array(), array( 'id' => 5 ) ) );
+		$this->assertInstanceOf( \WP_Error::class, $resp );
+		$this->assertSame( 'render_failed', $resp->get_error_code() );
+	}
+
+	public function test_pdf_wraps_unexpected_exception(): void {
+		$this->handler->shouldReceive( 'get_submission' )->andThrow( new \RuntimeException( 'kaboom' ) );
+		$resp = $this->controller()->get_certificate_pdf( $this->request( array(), array( 'id' => 5 ) ) );
+		$this->assertInstanceOf( \WP_Error::class, $resp );
+		$this->assertSame( 'ffc_internal_error', $resp->get_error_code() );
 	}
 }
