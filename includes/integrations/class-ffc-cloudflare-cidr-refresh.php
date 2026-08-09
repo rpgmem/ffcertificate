@@ -50,15 +50,17 @@ final class CloudflareCidrRefresh {
 	 * injector. Called unconditionally at orchestrator boot.
 	 */
 	public static function init(): void {
-		// Void closures: run() returns a count, but an action callback must not
-		// return anything (PHPStan return.void).
-		add_action( self::CRON_HOOK, static function (): void {
-			self::run();
-		} );
-		add_action( self::REFRESH_ACTION, static function (): void {
-			self::run();
-		} );
+		add_action( self::CRON_HOOK, array( self::class, 'run_cron' ) );
+		add_action( self::REFRESH_ACTION, array( self::class, 'run_cron' ) );
 		add_filter( 'ffc_cloudflare_ip_ranges', array( self::class, 'inject_ranges' ), 10 );
+	}
+
+	/**
+	 * Void wrapper for the cron/action callback: run() returns a count, but an
+	 * action callback must not return anything (PHPStan return.void).
+	 */
+	public static function run_cron(): void {
+		self::run();
 	}
 
 	/**
