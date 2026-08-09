@@ -74,11 +74,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Changed
 - Internal (#809) — CI coverage-job hardening: the shard partitioner now weights test files by test-method count and LPT-packs the four shards (isolated-method spread across shards ~31% → ~0%), and the coveralls.io upload step is `continue-on-error` so a 503 outage can't block merge — the line-coverage floor stays enforced by its own separate step.
 - Internal (#809) — WPCS suppression audit (comment-only): removed a superfluous `EscapeOutput` ignore, swapped eight silent `FormCache` cache-purge catches for a gated `Debug::log_form` breadcrumb (off by default), and narrowed the file-wide `phpcs:disable` blocks across 46 files (28 no-op/redundant dropped, 18 trimmed to their load-bearing sniff).
-- Internal (#809 Fase 1) — recruitment coverage push (tests only, no product change): reader tests for `RecruitmentCallReader` (~35% → ~96%) and `RecruitmentNoticeReader` (~25% → ~94%) (#812), plus the two heaviest renderers `RecruitmentPublicShortcodeRenderer` (~46% → ~99%) and `RecruitmentAdminPage` (~39% → ~99%).
+- Internal (#809) — recruitment coverage push (tests only, no product change): reader tests for `RecruitmentCallReader` (~35% → ~96%) and `RecruitmentNoticeReader` (~25% → ~94%) (#812), plus the two heaviest renderers `RecruitmentPublicShortcodeRenderer` (~46% → ~99%) and `RecruitmentAdminPage` (~39% → ~99%).
 - Internal (#807 follow-up) — raised unit coverage on three under-tested logic classes (tests only, no product change): recruitment `CsvParser` `parse()`/`normalise_id()` (~14% → ~96%), `ScheduleExceptionGuard`'s live-token contract (~13% → ~87%), and the per-email rate limiter's week/month/allowed branches (~40% → ~98%).
 - Internal (#807) — extracted inline HTML from four markup-heavy renderers into `templates/` partials (outside the coverage scope), keeping all logic in the class: `RecruitmentPublicShortcodeRenderer`, `ReregistrationFormRenderer`, `AudienceAdminSettings`, `RecruitmentCandidateEditPage`. Behaviour-preserving; adds a first render test for the candidate-edit page.
-- **⚠ Activity Log moved into Settings** (#804, #802 Phase B): it is now a Settings tab (`page=ffc-settings&tab=activity_log`) gated by its own `ffc_view_activity_log` / `ffc_export_activity_log` caps, replacing the standalone Activity Log submenu. Audit-only operators (e.g. the read-only role) reach the Settings page via the computed page-entry meta-cap and see only this tab. **Breaking:** old `page=ffc-activity-log` bookmarks/deep links no longer resolve.
-- Internal (#803) — Settings now uses a **per-tab capability model** (#802 Phase A): each tab declares its own view/manage cap (defaulting to `ffc_view_settings` / `ffc_manage_settings`), the page renders only the tabs a user can view, and the read-only lock keys on the active tab's manage cap. The menu registers under a computed `ffc_view_settings_page` meta-cap so it appears iff ≥1 tab is visible.
+- **⚠ Activity Log moved into Settings** (#804, #802): it is now a Settings tab (`page=ffc-settings&tab=activity_log`) gated by its own `ffc_view_activity_log` / `ffc_export_activity_log` caps, replacing the standalone Activity Log submenu. Audit-only operators (e.g. the read-only role) reach the Settings page via the computed page-entry meta-cap and see only this tab. **Breaking:** old `page=ffc-activity-log` bookmarks/deep links no longer resolve.
+- Internal (#803) — Settings now uses a **per-tab capability model** (#802): each tab declares its own view/manage cap (defaulting to `ffc_view_settings` / `ffc_manage_settings`), the page renders only the tabs a user can view, and the read-only lock keys on the active tab's manage cap. The menu registers under a computed `ffc_view_settings_page` meta-cap so it appears iff ≥1 tab is visible.
 - Internal (#800) — decoupled `Settings` from `AdminLoader` (the orchestrator wires it directly as an always-on cross-cutting service) and relocated the Recruitment schema/role lifecycle out of `RecruitmentLoader` into the orchestrator, so the new module toggles can skip a feature bootstrap without disabling the Settings screen or dropping recruitment tables/roles.
 - **Settings moved to a dedicated top-level admin menu** (`admin.php?page=ffc-settings`) instead of hanging under the Certificate CPT menu, so the new Modules tab has a module-agnostic home. ⚠ The page URL changed from `edit.php?post_type=ffc_form&page=ffc-settings`; old bookmarks won't resolve. All in-app links and post-save redirects updated (#799).
 - The dashboard **"Join Groups"** list now follows the per-node self-join model (#791 follow-up): a group shows a Join/Leave button whenever its own self-join is on — child, top-level, or a parent that also has joinable children — and a non-self-join parent still appears as a header when it has joinable descendants; unrelated groups are hidden.
@@ -1204,7 +1204,7 @@ Full-page cache compatibility, per-form captcha isolation, and CI pipeline impro
 - Re-introduce coverage with pcov, scoped to `includes/`, uploaded to Coveralls
 - Auto-fix ~83k PHPCS violations via PHPCBF
 - Annotate 223 PreparedSQL + NonceVerification false positives
-- Phase 3 PHPCS mechanical fixes + PSR-4 suppressions
+- PHPCS mechanical fixes + PSR-4 suppressions
 - Resolve remaining WPCS errors in cache-related files (file docblocks, class docblocks, short ternary operators, missing `@param` tags)
 
 ### Fixed
@@ -1462,7 +1462,7 @@ Performance optimizations for URL shortener and QR code generation, new admin co
 ### Removed
 
 - Removed 27 unnecessary `!important` declarations
-- Removed unused CSS classes and stale Phase 3 comments
+- Removed unused CSS classes and stale internal comments
 
 ---
 
