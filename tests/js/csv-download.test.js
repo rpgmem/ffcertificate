@@ -336,10 +336,16 @@ describe('csv-download — download flow', () => {
 		vi.useFakeTimers();
 		try {
 			window.$('.ffc-btn-download-csv').trigger('click');
-			// MIN_DISPLAY (1ms) + the 2000ms cleanup timer.
-			vi.advanceTimersByTime(2100);
-			// Cleanup callback ran: the hidden download iframe was removed.
+			// The AJAX chain resolves via microtasks; the *async* advance flushes
+			// them between timer runs so onExportComplete actually schedules — and
+			// then fires — the MIN_DISPLAY (1ms) outer timer + the 2000ms cleanup.
+			// (A plain advanceTimersByTime never lets the promise chain resolve, so
+			// the iframe is never created and the assertion passes vacuously.)
+			await vi.advanceTimersByTimeAsync(2200);
+			// The cleanup callback removed the hidden download iframe and
+			// re-enabled the button.
 			expect(window.$('iframe[src*="ffc_export_download"]').length).toBe(0);
+			expect(window.$('.ffc-btn-download-csv').prop('disabled')).toBe(false);
 		} finally {
 			vi.useRealTimers();
 		}
@@ -492,6 +498,39 @@ describe('csv-download — cert preview', () => {
 		expect(body).toContain('Sample Site');
 		expect(body).toContain('Curso de Exemplo');
 		expect(body).not.toContain('{{course_name}}');
+	});
+
+	it('scales the preview iframe to fit the modal body (fitPreview)', async () => {
+		const postSpy = await reachInfoScreen();
+		postSpy.mockImplementation(() => postChain({ done: { success: true, data: { html: '<p>hi</p>', fields: [] } } }));
+
+		// jsdom has no layout, so clientWidth/clientHeight are 0 and fitPreview()
+		// early-returns before the scaling math. Stub positive dimensions on the
+		// element prototype so the scale branch actually runs, then restore.
+		const wDesc = Object.getOwnPropertyDescriptor(window.HTMLElement.prototype, 'clientWidth');
+		const hDesc = Object.getOwnPropertyDescriptor(window.HTMLElement.prototype, 'clientHeight');
+		Object.defineProperty(window.HTMLElement.prototype, 'clientWidth', { configurable: true, get: () => 800 });
+		Object.defineProperty(window.HTMLElement.prototype, 'clientHeight', { configurable: true, get: () => 600 });
+		try {
+			window.$('.ffc-btn-cert-preview').trigger('click');
+			await flush();
+			expect(window.$('#ffc-preview-modal').length).toBe(1);
+
+			// fitPreview is also bound to window 'resize' — fire it synchronously
+			// (no rAF wait) so the scaling branch runs with the stubbed dimensions.
+			window.$(window).trigger('resize');
+
+			const iframe = document.querySelector('#ffc-preview-iframe');
+			// Landscape A4 (1123×794) scaled to fit 776×576 avail → scale < 1.
+			expect(iframe.style.transform).toContain('scale(');
+			expect(iframe.style.width).toBe('1123px');
+			const stage = document.querySelector('.ffc-preview-stage');
+			expect(stage.style.width).not.toBe('');
+			expect(stage.style.height).not.toBe('');
+		} finally {
+			if (wDesc) { Object.defineProperty(window.HTMLElement.prototype, 'clientWidth', wDesc); } else { delete window.HTMLElement.prototype.clientWidth; }
+			if (hDesc) { Object.defineProperty(window.HTMLElement.prototype, 'clientHeight', hDesc); } else { delete window.HTMLElement.prototype.clientHeight; }
+		}
 	});
 
 	it('shows alert on preview failure', async () => {
