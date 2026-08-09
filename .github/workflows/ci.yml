@@ -190,8 +190,17 @@ jobs:
     # single-process). Bump to 84 keeps a ~4.4pp buffer under the measured
     # number (≤5pp policy); the sharded phpcov merge still runs ~0.2pp under,
     # so 84 stays comfortably clear.
+    #
+    # 84 → 85 — coverage tail (#910, #809 Fase 3): fixed the pcov mis-attribution
+    # of AbstractDismissibleNotice (0→full) + covered EmailTemplateDefaults, and
+    # took the CertificatesCalendarRestController (~50→~100%) and the
+    # self-scheduling AppointmentHandler (~55→~95%) error-branches (cancellation
+    # auth/policy, email fan-out, CPF/RF user-linking WP_Error/exception paths).
+    # Overall line coverage 89.38% (43381/48537, single-process). Bump to 85 keeps
+    # a ~4.4pp buffer under the measured number (≤5pp policy); the sharded phpcov
+    # merge still runs ~0.2pp under, so 85 stays comfortably clear.
     env:
-      COVERAGE_FLOOR_LINES: '84'
+      COVERAGE_FLOOR_LINES: '85'
     steps:
       - name: Fail if any coverage shard did not succeed
         if: needs.coverage-shard.result != 'success'

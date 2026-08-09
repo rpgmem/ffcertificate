@@ -5,6 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\API\CertificatesCalendarRestController;
@@ -36,6 +37,7 @@ class CertificatesCalendarRestControllerTest extends TestCase {
     }
 
     protected function tearDown(): void {
+        unset( $GLOBALS['ffc_test_wp_query_queue'], $GLOBALS['ffc_test_wp_query_calls'] );
         Monkey\tearDown();
         parent::tearDown();
     }
@@ -193,9 +195,125 @@ class CertificatesCalendarRestControllerTest extends TestCase {
         $this->assertNull( $result );
     }
 
+    public function test_resolve_date_returns_null_when_post_date_is_not_a_real_calendar_date(): void {
+        // No geofence config, and the post_date's Y-m-d prefix matches the shape
+        // but fails checkdate() (month 13 / day 45) → the fallback is rejected.
+        Functions\when( 'get_post_meta' )->justReturn( '' );
+
+        $post = $this->make_post( 42, '2026-13-45 00:00:00' );
+
+        $this->assertNull( $this->invoke_resolve_date( $post ) );
+    }
+
+    // ------------------------------------------------------------------
+    // get_calendar() payload
+    // ------------------------------------------------------------------
+
+    public function test_get_calendar_returns_empty_response_when_no_forms(): void {
+        $GLOBALS['ffc_test_wp_query_queue'] = array( array() ); // WP_Query->posts = [].
+
+        $response = ( new CertificatesCalendarRestController( 'ffc/v1' ) )->get_calendar(
+            $this->make_request( array( 'year' => 2026, 'month' => 5 ) )
+        );
+
+        $this->assertSame( array(), $response->get_data() );
+        $this->assertSame( 200, $response->get_status() );
+    }
+
+    public function test_get_calendar_builds_events_and_filters_by_month(): void {
+        // Four form ids: 10 (geofence in-month), 20 (geofence out-of-month →
+        // filtered), 30 (get_post returns null → skipped), 40 (no resolvable
+        // date → build_entry_for_post returns null).
+        $GLOBALS['ffc_test_wp_query_queue'] = array( array( 10, 20, 30, 40 ) );
+
+        Functions\when( 'update_meta_cache' )->justReturn( true );
+        Functions\when( 'get_post' )->alias(
+            function ( $id ) {
+                if ( 30 === $id ) {
+                    return null;
+                }
+                $post              = new \WP_Post();
+                $post->ID          = (int) $id;
+                $post->post_date   = 40 === $id ? '' : '2026-01-01 00:00:00';
+                $post->post_status = 'publish';
+                return $post;
+            }
+        );
+        Functions\when( 'get_post_meta' )->alias(
+            function ( $id ) {
+                if ( 10 === $id ) {
+                    return array( 'date_start' => '2026-05-15' );
+                }
+                if ( 40 === $id ) {
+                    return ''; // no geofence + empty post_date → unresolvable.
+                }
+                return array( 'date_start' => '2026-08-01' );
+            }
+        );
+        Functions\when( 'get_the_title' )->justReturn( 'My Form &amp; Co' );
+        Functions\when( 'get_edit_post_link' )->justReturn( 'https://example.test/edit' );
+
+        $response = ( new CertificatesCalendarRestController( 'ffc/v1' ) )->get_calendar(
+            $this->make_request( array( 'year' => 2026, 'month' => 5 ) )
+        );
+
+        $data = $response->get_data();
+        $this->assertSame( 200, $response->get_status() );
+        $this->assertCount( 1, $data );
+        $this->assertSame( 10, $data[0]['id'] );
+        $this->assertSame( '2026-05-15', $data[0]['date'] );
+        $this->assertSame( 'geofence', $data[0]['source'] );
+        $this->assertSame( 'publish', $data[0]['status'] );
+        $this->assertSame( 'https://example.test/edit', $data[0]['edit_url'] );
+        // html_entity_decode() unescapes the WP-encoded title.
+        $this->assertSame( 'My Form & Co', $data[0]['title'] );
+    }
+
+    public function test_get_calendar_falls_back_to_post_date_source(): void {
+        $GLOBALS['ffc_test_wp_query_queue'] = array( array( 7 ) );
+
+        Functions\when( 'update_meta_cache' )->justReturn( true );
+        Functions\when( 'get_post' )->alias(
+            function ( $id ) {
+                $post              = new \WP_Post();
+                $post->ID          = (int) $id;
+                $post->post_date   = '2026-05-09 08:00:00';
+                $post->post_status = 'private';
+                return $post;
+            }
+        );
+        Functions\when( 'get_post_meta' )->justReturn( '' ); // no geofence → post_date fallback.
+        Functions\when( 'get_the_title' )->justReturn( 'Plain title' );
+        Functions\when( 'get_edit_post_link' )->justReturn( 'https://example.test/edit/7' );
+
+        $response = ( new CertificatesCalendarRestController( 'ffc/v1' ) )->get_calendar(
+            $this->make_request( array( 'year' => 2026, 'month' => 5 ) )
+        );
+
+        $data = $response->get_data();
+        $this->assertCount( 1, $data );
+        $this->assertSame( '2026-05-09', $data[0]['date'] );
+        $this->assertSame( 'post_date', $data[0]['source'] );
+    }
+
     // ------------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------------
+
+    /**
+     * Mock WP_REST_Request returning the given params.
+     *
+     * @param array<string, mixed> $params Param map.
+     */
+    private function make_request( array $params ): object {
+        $req = Mockery::mock( 'WP_REST_Request' );
+        $req->shouldReceive( 'get_param' )->andReturnUsing(
+            function ( $key ) use ( $params ) {
+                return $params[ $key ] ?? null;
+            }
+        );
+        return $req;
+    }
 
     private function make_post( int $id, string $post_date ): \WP_Post {
         $post            = new \WP_Post();
