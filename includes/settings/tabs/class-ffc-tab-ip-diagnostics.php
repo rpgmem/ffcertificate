@@ -41,9 +41,6 @@ class TabIpDiagnostics extends SettingsTab {
 	 */
 	private const CF_CACHE_OPTION = 'ffc_cloudflare_cidr_cache';
 
-	/** On-demand Cloudflare refresh action (fired by the "refresh now" button). */
-	private const CF_REFRESH_ACTION = 'ffc_cloudflare_cidr_refresh_now';
-
 	/**
 	 * Init.
 	 */
@@ -69,8 +66,11 @@ class TabIpDiagnostics extends SettingsTab {
 				 * Integrations refresh class listens for this; using the action
 				 * (not a class call) keeps this tab free of a module edge.
 				 */
-				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- CF_REFRESH_ACTION is the ffc_-prefixed 'ffc_cloudflare_cidr_refresh_now'.
-				do_action( self::CF_REFRESH_ACTION );
+				// Literal hook string (not a constant) so WPCS sees the ffc_
+				// prefix; firing the action instead of calling the Integrations
+				// class keeps this tab free of a Settings→Integrations edge.
+				// Matches CloudflareCidrRefresh::REFRESH_ACTION.
+				do_action( 'ffc_cloudflare_cidr_refresh_now' );
 				$this->render_notice( __( 'Cloudflare IP ranges refresh requested.', 'ffcertificate' ), 'success' );
 			} else {
 				$this->save_settings();
