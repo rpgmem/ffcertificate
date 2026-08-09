@@ -95,6 +95,39 @@ class TabIpDiagnosticsTest extends TestCase {
 		$this->assertStringNotContainsString( 'developers.cloudflare.com', $html );
 	}
 
+	public function test_guide_hidden_when_cloudflare_via_proxy(): void {
+		// Private LB peer + CF edge as first public XFF hop → cloudflare_via_proxy.
+		$_SERVER['REMOTE_ADDR']          = '10.0.0.5';
+		$_SERVER['HTTP_X_FORWARDED_FOR'] = '203.0.113.77, 104.16.0.1';
+		$html                            = $this->render_to_string();
+		// The misleading "put Cloudflare in front" guide must NOT appear...
+		$this->assertStringNotContainsString( 'ffc-cf-guide', $html );
+		$this->assertStringNotContainsString( 'developers.cloudflare.com', $html );
+		// ...and the behind-host-proxy context note must.
+		$this->assertStringContainsString( 'reverse proxy', $html );
+	}
+
+	public function test_custom_cidr_field_warns_against_cloudflare_ranges(): void {
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+		$html                   = $this->render_to_string();
+		$this->assertStringContainsString( 'Do not paste Cloudflare ranges here', $html );
+	}
+
+	public function test_headers_table_has_situation_column_and_cf_ray(): void {
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+		$html                   = $this->render_to_string();
+		$this->assertStringContainsString( 'Situation', $html );
+		$this->assertStringContainsString( 'CF-Ray', $html );
+	}
+
+	public function test_unified_strategy_comparison_table_present(): void {
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+		$html                   = $this->render_to_string();
+		$this->assertStringContainsString( 'Scenario', $html );
+		$this->assertStringContainsString( 'Legacy →', $html );
+		$this->assertStringContainsString( 'Secure →', $html );
+	}
+
 	public function test_renders_the_config_form_controls(): void {
 		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
 		$html = $this->render_to_string();

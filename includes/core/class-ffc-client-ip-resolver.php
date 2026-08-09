@@ -67,6 +67,18 @@ class ClientIpResolver {
 	public const VERDICT_CLOUDFLARE = 'cloudflare';
 
 	/**
+	 * Environment verdict: Cloudflare sits upstream but the TCP peer is a
+	 * private/reserved host proxy (a managed-hosting load balancer), NOT a CF
+	 * edge (#920). Detected when `REMOTE_ADDR` is private/reserved — which an
+	 * external client cannot forge — and a Cloudflare edge is the first public
+	 * hop in `X-Forwarded-For`. The `secure` strategy trusts `CF-Connecting-IP`
+	 * for this topology without the admin having to register the LB manually.
+	 *
+	 * @var string
+	 */
+	public const VERDICT_CLOUDFLARE_VIA_PROXY = 'cloudflare_via_proxy';
+
+	/**
 	 * Environment verdict: the TCP peer is a configured trusted proxy.
 	 *
 	 * @var string
@@ -208,7 +220,33 @@ class ClientIpResolver {
 			return self::VERDICT_TRUSTED_PROXY;
 		}
 
+		// Cloudflare upstream of a non-CF, non-trusted TCP peer — the common
+		// managed-hosting topology CF → host LB → PHP (#920). Only trust this
+		// when the peer is private/reserved (a client cannot forge its own TCP
+		// peer address) AND a Cloudflare edge is the first public hop in XFF.
+		// In `direct` proxy-mode the CF range set is cleared upstream, so this
+		// never fires there and the verdict correctly falls through to `direct`.
+		if ( self::is_private_or_reserved( $remote ) ) {
+			$boundary = self::first_public_xff_hop();
+			if ( null !== $boundary && self::ip_in_any_range( $boundary, self::cloudflare_ranges() ) ) {
+				return self::VERDICT_CLOUDFLARE_VIA_PROXY;
+			}
+		}
+
 		return self::VERDICT_DIRECT;
+	}
+
+	/**
+	 * True when the current request reached PHP through Cloudflare — either the
+	 * TCP peer is a CF edge ({@see self::VERDICT_CLOUDFLARE}) or CF sits upstream
+	 * of the host's reverse proxy ({@see self::VERDICT_CLOUDFLARE_VIA_PROXY}).
+	 *
+	 * Shared detection helper (#920): the IP-diagnostics surface and the
+	 * Cloudflare page-cache safety card (#921) both gate on it.
+	 */
+	public static function is_behind_cloudflare(): bool {
+		$verdict = self::classify();
+		return self::VERDICT_CLOUDFLARE === $verdict || self::VERDICT_CLOUDFLARE_VIA_PROXY === $verdict;
 	}
 
 	/**
@@ -242,7 +280,11 @@ class ClientIpResolver {
 	 * 2. Else if `REMOTE_ADDR` is a configured trusted proxy, walk
 	 *    `X-Forwarded-For` right→left, discarding trusted hops; the first
 	 *    untrusted address is the real client.
-	 * 3. Else the connection is direct — `REMOTE_ADDR` IS the client; every
+	 * 3. Else if `REMOTE_ADDR` is private/reserved (a host load balancer) and a
+	 *    Cloudflare edge is the first public hop in `X-Forwarded-For`, trust
+	 *    `CF-Connecting-IP` — the CF → host-LB → PHP topology (#920). Safe
+	 *    because the client cannot forge a private TCP peer.
+	 * 4. Else the connection is direct — `REMOTE_ADDR` IS the client; every
 	 *    forwarded header is ignored (cannot be spoofed into the result).
 	 *
 	 * @return string IP address, or {@see self::UNKNOWN} when unresolved.
@@ -273,7 +315,22 @@ class ClientIpResolver {
 			}
 		}
 
-		// 3. Direct connection → the TCP peer is the client.
+		// 3. Host-proxy topology (#920): a private/reserved TCP peer (managed-
+		// hosting LB) with a Cloudflare edge as the first public XFF hop. The
+		// client cannot forge a private REMOTE_ADDR, so CF-Connecting-IP is
+		// trustworthy here without the admin registering the LB by hand. Skipped
+		// automatically in `direct` mode (the CF range set is cleared upstream).
+		if ( self::is_private_or_reserved( $remote ) ) {
+			$boundary = self::first_public_xff_hop();
+			if ( null !== $boundary && self::ip_in_any_range( $boundary, $cloudflare ) ) {
+				$cf = self::server_string( 'HTTP_CF_CONNECTING_IP' );
+				if ( '' !== $cf && filter_var( $cf, FILTER_VALIDATE_IP ) ) {
+					return $cf;
+				}
+			}
+		}
+
+		// 4. Direct connection → the TCP peer is the client.
 		return $remote;
 	}
 
@@ -304,6 +361,55 @@ class ClientIpResolver {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Walk `X-Forwarded-For` right→left and return the first PUBLIC address —
+	 * i.e. the boundary between the host's own infrastructure (private/reserved
+	 * hops, skipped) and the upstream internet. For the CF → host-LB → PHP
+	 * topology this boundary hop is the Cloudflare edge, which is how the
+	 * {@see self::VERDICT_CLOUDFLARE_VIA_PROXY} detection and the resolve_secure
+	 * step 3 prove Cloudflare is genuinely upstream (#920).
+	 *
+	 * @return string|null First public hop scanning right→left, or null when the
+	 *                     header is absent or holds no public address.
+	 */
+	private static function first_public_xff_hop(): ?string {
+		$raw = self::server_string( 'HTTP_X_FORWARDED_FOR' );
+		if ( '' === $raw ) {
+			return null;
+		}
+
+		$hops = array_map( 'trim', explode( ',', $raw ) );
+
+		for ( $i = count( $hops ) - 1; $i >= 0; $i-- ) {
+			$hop = $hops[ $i ];
+			if ( '' === $hop || ! filter_var( $hop, FILTER_VALIDATE_IP ) ) {
+				continue;
+			}
+			if ( self::is_private_or_reserved( $hop ) ) {
+				continue;
+			}
+			return $hop;
+		}
+
+		return null;
+	}
+
+	/**
+	 * True when `$ip` is a valid address that is NOT a public, non-reserved one
+	 * — i.e. an RFC 1918 / unique-local / loopback / link-local / reserved
+	 * address. A host load balancer in front of PHP virtually always presents
+	 * such an address as `REMOTE_ADDR`, and a remote client cannot forge its own
+	 * TCP peer into this space — which is what makes the step-3 CF trust safe.
+	 *
+	 * @param string $ip Candidate IP.
+	 */
+	private static function is_private_or_reserved( string $ip ): bool {
+		if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+			return false;
+		}
+		return ! filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE );
 	}
 
 	/**

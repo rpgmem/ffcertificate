@@ -221,6 +221,70 @@ class ClientIpResolverTest extends TestCase {
 		$this->assertSame( '203.0.113.88', ClientIpResolver::resolve() );
 	}
 
+	// ---- secure strategy: Cloudflare via host proxy (#920) ------------------
+
+	public function test_secure_trusts_cf_header_behind_private_lb_with_cf_boundary(): void {
+		$this->stub_request_funcs();
+		$this->stub_filters_secure_mode();
+		// Topology: client → Cloudflare edge → private host LB → PHP.
+		$_SERVER['REMOTE_ADDR']           = '10.0.0.5';                 // private LB peer.
+		$_SERVER['HTTP_X_FORWARDED_FOR']  = '203.0.113.77, 104.16.0.1'; // client, CF edge.
+		$_SERVER['HTTP_CF_CONNECTING_IP'] = '203.0.113.77';
+		$this->assertSame( '203.0.113.77', ClientIpResolver::resolve() );
+	}
+
+	public function test_secure_via_proxy_when_lb_appends_its_own_private_hop(): void {
+		$this->stub_request_funcs();
+		$this->stub_filters_secure_mode();
+		// LB appends itself → the CF edge is no longer the rightmost hop, but it
+		// is still the first PUBLIC hop scanning right→left.
+		$_SERVER['REMOTE_ADDR']           = '10.0.0.5';
+		$_SERVER['HTTP_X_FORWARDED_FOR']  = '203.0.113.77, 104.16.0.1, 10.0.0.5';
+		$_SERVER['HTTP_CF_CONNECTING_IP'] = '203.0.113.77';
+		$this->assertSame( '203.0.113.77', ClientIpResolver::resolve() );
+	}
+
+	public function test_secure_no_via_proxy_trust_when_boundary_hop_not_cloudflare(): void {
+		$this->stub_request_funcs();
+		$this->stub_filters_secure_mode();
+		// Private peer but the first public XFF hop is NOT a CF edge → no proof
+		// CF is upstream → the CF header is not trusted; peer is returned.
+		$_SERVER['REMOTE_ADDR']           = '10.0.0.5';
+		$_SERVER['HTTP_X_FORWARDED_FOR']  = '203.0.113.77, 8.8.8.8';
+		$_SERVER['HTTP_CF_CONNECTING_IP'] = '203.0.113.77';
+		$this->assertSame( '10.0.0.5', ClientIpResolver::resolve() );
+	}
+
+	public function test_secure_via_proxy_needs_cf_connecting_ip_present(): void {
+		$this->stub_request_funcs();
+		$this->stub_filters_secure_mode();
+		// CF boundary proven, but no CF-Connecting-IP to trust → fall to peer.
+		$_SERVER['REMOTE_ADDR']          = '10.0.0.5';
+		$_SERVER['HTTP_X_FORWARDED_FOR'] = '203.0.113.77, 104.16.0.1';
+		$this->assertSame( '10.0.0.5', ClientIpResolver::resolve() );
+	}
+
+	public function test_secure_via_proxy_disabled_when_cf_ranges_cleared_direct_mode(): void {
+		$this->stub_request_funcs();
+		// `direct` proxy-mode clears the CF range set upstream → the boundary hop
+		// matches no CF range → step 3 never fires and the peer is returned.
+		Functions\when( 'apply_filters' )->alias(
+			static function ( $hook, $value = null ) {
+				if ( 'ffc_ip_resolver_mode' === $hook ) {
+					return ClientIpResolver::MODE_SECURE;
+				}
+				if ( 'ffc_cloudflare_ip_ranges' === $hook ) {
+					return array();
+				}
+				return $value;
+			}
+		);
+		$_SERVER['REMOTE_ADDR']           = '10.0.0.5';
+		$_SERVER['HTTP_X_FORWARDED_FOR']  = '203.0.113.77, 104.16.0.1';
+		$_SERVER['HTTP_CF_CONNECTING_IP'] = '203.0.113.77';
+		$this->assertSame( '10.0.0.5', ClientIpResolver::resolve() );
+	}
+
 	// ---- shadow logging (dormant by default) --------------------------------
 
 	public function test_shadow_logging_off_by_default_stays_silent(): void {
@@ -301,5 +365,30 @@ class ClientIpResolverTest extends TestCase {
 	public function test_classify_accepts_explicit_remote_argument(): void {
 		$this->stub_filters_passthrough();
 		$this->assertSame( ClientIpResolver::VERDICT_CLOUDFLARE, ClientIpResolver::classify( '2400:cb00::1' ) );
+	}
+
+	public function test_classify_cloudflare_via_proxy_when_private_peer_and_cf_boundary(): void {
+		$this->stub_request_funcs();
+		$this->stub_filters_passthrough();
+		// Private LB peer + CF edge as first public XFF hop → the CF-behind-proxy
+		// topology that must NOT surface the "put Cloudflare in front" guide.
+		$_SERVER['REMOTE_ADDR']          = '10.0.0.5';
+		$_SERVER['HTTP_X_FORWARDED_FOR'] = '203.0.113.77, 104.16.0.1';
+		$this->assertSame( ClientIpResolver::VERDICT_CLOUDFLARE_VIA_PROXY, ClientIpResolver::classify() );
+	}
+
+	public function test_classify_direct_when_private_peer_but_no_cf_boundary(): void {
+		$this->stub_request_funcs();
+		$this->stub_filters_passthrough();
+		$_SERVER['REMOTE_ADDR']          = '10.0.0.5';
+		$_SERVER['HTTP_X_FORWARDED_FOR'] = '203.0.113.77, 8.8.8.8';
+		$this->assertSame( ClientIpResolver::VERDICT_DIRECT, ClientIpResolver::classify() );
+	}
+
+	public function test_classify_direct_when_private_peer_without_forwarded_for(): void {
+		$this->stub_request_funcs();
+		$this->stub_filters_passthrough();
+		$_SERVER['REMOTE_ADDR'] = '10.0.0.5';
+		$this->assertSame( ClientIpResolver::VERDICT_DIRECT, ClientIpResolver::classify() );
 	}
 }
