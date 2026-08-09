@@ -65,6 +65,16 @@ class SettingsAjaxEndpointTest extends TestCase {
         $this->assertSame( 'ffc_manage_settings', $list['admin_bypass_datetime']['cap'] );
     }
 
+    public function test_allowlist_includes_ip_shadow_logging(): void {
+        // #901 — the IP Diagnostics shadow-logging toggle autosaves into its
+        // own option under the standard settings cap.
+        $list = SettingsAjaxEndpoint::allowlist();
+        $this->assertArrayHasKey( 'shadow_logging', $list );
+        $this->assertSame( 'ffc_ip_diagnostics_settings', $list['shadow_logging']['option'] );
+        $this->assertSame( 'bool', $list['shadow_logging']['type'] );
+        $this->assertSame( 'ffc_manage_settings', $list['shadow_logging']['cap'] );
+    }
+
     public function test_email_kill_switch_toggles_require_dangerzone(): void {
         // #739 §4.4 — both the inverted "enable emails" toggle and the raw
         // kill-switch slot carry the dangerzone sub-cap.

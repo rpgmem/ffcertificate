@@ -31,6 +31,7 @@ class TabIpDiagnosticsTest extends TestCase {
 		$this->stub_wp();
 		class_exists( '\FreeFormCertificate\Settings\Tabs\TabIpDiagnostics' );
 		class_exists( '\FreeFormCertificate\Core\Capabilities' );
+		class_exists( '\FreeFormCertificate\Admin\AdminUI' );
 		$this->server_backup = $_SERVER;
 		foreach ( array( 'HTTP_X_FORWARDED_FOR', 'HTTP_CF_CONNECTING_IP', 'REMOTE_ADDR' ) as $k ) {
 			unset( $_SERVER[ $k ] );
@@ -96,6 +97,9 @@ class TabIpDiagnosticsTest extends TestCase {
 		$this->assertStringContainsString( 'name="ffc_ip_strategy"', $html );
 		$this->assertStringContainsString( 'name="ffc_ip_trusted_proxy_mode"', $html );
 		$this->assertStringContainsString( 'name="ffc_ip_custom_proxies"', $html );
+		// shadow_logging is a .ffc-toggle autosave switch (kept in-form).
+		$this->assertStringContainsString( 'data-ffc-autosave-key="shadow_logging"', $html );
+		$this->assertStringContainsString( 'name="ffc_ip_shadow_logging"', $html );
 	}
 
 	public function test_save_persists_sanitized_settings(): void {

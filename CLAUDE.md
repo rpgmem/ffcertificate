@@ -382,6 +382,16 @@ The 14 debug-area toggles continue to be read via `Debug::is_enabled($area)` —
 
 Classes that already encapsulate `get_option('ffc_settings')` in their own private helper (e.g. `UrlShortenerService::get_settings()`) do NOT need to migrate — they're already centralized.
 
+### Settings writes — autosave toggles (the no-clobber invariant)
+
+On/off **toggle switches** (`.ffc-toggle`, rendered via `AdminUI::render_toggle()`) auto-save on flip: mark the input `data-ffc-autosave-key="<key>"`, add the key to `SettingsAjaxEndpoint::allowlist()` (`{option, path?, type, cap}`), and have the tab call `enqueue_autosave_infra()`. This is the standard for atomic, side-effect-free boolean settings. **Two autosave endpoints exist and stay separate on purpose** (do NOT unify — bad-façade trap): `SettingsAjaxEndpoint` (`ffc_update_setting`) writes WP **options** under a global cap; `FormMetaAjaxEndpoint` (`ffc_update_form_meta`, attribute `data-ffc-autosave-form-key`) writes per-post **meta** gated on `edit_post` of that exact form. The JS widget (`autoSaveField`) is already shared; only the endpoint + attribute differ.
+
+**Invariant that keeps autosave and the form Save from clobbering each other — hold it whenever you add an autosave toggle:**
+
+- The autosave toggle must ALSO be a **named field inside its tab's `<form>`**, so the form's rebuild-save writes the toggle's *current* (auto-saved) state, not a stale/absent one. An autosave-only key that a rebuild-save omits gets silently reset on the next Save.
+- Tabs that share `ffc_settings` save through the central `SettingsSaveHandler`, which is **merge-based** (`$clean = get_option(...)`) and gates each section on the hidden `_ffc_tab` marker — so saving tab X only rebuilds tab X's toggles, preserving every other tab's auto-saved keys. Keep both properties (merge base + `_ffc_tab` guard) when touching that handler.
+- Tabs with their own option (geolocation, rate-limit, user-access, ip-diagnostics) full-rebuild that option from their own form; every toggle in the option must be read back from `$_POST` there.
+
 ### Capability naming
 
 All FFC capabilities follow one grammar (ratified in #488, applied plugin-wide):
