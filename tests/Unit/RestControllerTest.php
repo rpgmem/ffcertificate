@@ -51,6 +51,7 @@ class RestControllerTest extends TestCase {
     }
 
     protected function tearDown(): void {
+        unset( $_SERVER['REMOTE_ADDR'] ); // don't leak the header into ClientIpResolver-driven tests.
         Monkey\tearDown();
         parent::tearDown();
     }

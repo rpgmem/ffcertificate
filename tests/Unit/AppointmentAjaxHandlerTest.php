@@ -121,7 +121,8 @@ class AppointmentAjaxHandlerTest extends TestCase {
             $_POST['ffc_honeypot_trap'],
             $_POST['ffc_captcha_ans'],
             $_POST['ffc_captcha_hash'],
-            $_SERVER['HTTP_USER_AGENT']
+            $_SERVER['HTTP_USER_AGENT'],
+            $_SERVER['REMOTE_ADDR']
         );
         Monkey\tearDown();
         parent::tearDown();
