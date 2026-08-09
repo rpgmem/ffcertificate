@@ -24,7 +24,7 @@
  * operator (`ffc_view_forms`) sees the columns read-only with no toggle link.
  *
  * @package FreeFormCertificate\Admin
- * @since   6.20.0
+ * @since   6.18.0
  */
 
 declare(strict_types=1);

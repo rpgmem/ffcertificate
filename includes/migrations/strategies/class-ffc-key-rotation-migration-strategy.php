@@ -39,7 +39,7 @@
  * do not drop the WordPress salts until those are rotated too.
  *
  * @package FreeFormCertificate\Migrations\Strategies
- * @since 6.19.0
+ * @since 6.18.0
  */
 
 declare(strict_types=1);

@@ -138,38 +138,17 @@ class RequestInput {
 	/**
 	 * Get the client IP address, with proxy / CDN support.
 	 *
-	 * Walks the usual forwarded-for header chain and returns the first
-	 * public, non-reserved IP. Falls back to `'0.0.0.0'` when none validates.
-	 * Reads from `$_SERVER` (the request envelope), which is why it lives on
-	 * the request-input reader.
+	 * Thin delegate to {@see ClientIpResolver::resolve()} — the single home for
+	 * IP resolution since #899. During phase 1 the resolver's effective strategy
+	 * is `legacy`, so this returns exactly what the historical inline header walk
+	 * returned (first public, non-reserved IP; `'0.0.0.0'` when none validates).
+	 * Reads from `$_SERVER` (the request envelope), which is why the accessor
+	 * lives on the request-input reader.
 	 *
 	 * @since 6.11.3
 	 * @return string IP address, or `'0.0.0.0'` when none could be resolved.
 	 */
 	public static function get_user_ip(): string {
-		$ip_keys = array(
-			'HTTP_CLIENT_IP',
-			'HTTP_X_FORWARDED_FOR',
-			'HTTP_X_FORWARDED',
-			'HTTP_X_CLUSTER_CLIENT_IP',
-			'HTTP_FORWARDED_FOR',
-			'HTTP_FORWARDED',
-			'REMOTE_ADDR',
-		);
-
-		foreach ( $ip_keys as $key ) {
-			if ( array_key_exists( $key, $_SERVER ) ) {
-				foreach ( explode( ',', sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) ) ) as $ip ) {
-					$ip = trim( $ip );
-
-					// Validate IP (exclude private/reserved ranges).
-					if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
-						return $ip;
-					}
-				}
-			}
-		}
-
-		return '0.0.0.0';
+		return ClientIpResolver::resolve();
 	}
 }

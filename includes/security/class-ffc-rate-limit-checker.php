@@ -583,6 +583,12 @@ final class RateLimitChecker {
 	/**
 	 * Get user ip.
 	 *
+	 * NOTE (#899 phase 1): this already-secure resolver (REMOTE_ADDR-first,
+	 * forwarded headers gated behind `ffc_trust_forwarded_headers`) is left in
+	 * place on purpose. It is folded into the shared `ClientIpResolver` secure
+	 * strategy only at the phase-3 flip (#902) — delegating it to the canonical
+	 * `legacy`-default resolver now would regress it to trust-all-headers.
+	 *
 	 * @return string
 	 */
 	public static function get_user_ip(): string {
