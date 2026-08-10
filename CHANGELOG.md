@@ -13,6 +13,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Security
 - **Per-user dashboard kept off the Cloudflare edge cache** (#921): the `[user_dashboard_personal]` page now also emits `Cloudflare-CDN-Cache-Control: no-store` / `CDN-Cache-Control: no-store` — Cloudflare ignores `DONOTCACHEPAGE` / `X-LiteSpeed-Cache-Control`, so these edge-specific directives keep per-user HTML from being shared across visitors under CDN cache rules that honour them.
+- **Recruitment public listing throttle is now fail-closed** (#927): the per-IP rate limit on `[ffc_recruitment_queue]` resolves the client IP via the shared `ClientIpResolver::resolve_secure()` (trusted-proxy, unspoofable) instead of a bespoke `CF-Connecting-IP`/`X-Forwarded-For`/`REMOTE_ADDR` walk, and no longer waves through a caller whose IP can't be identified — they now share the `0.0.0.0` bucket. Closes the fail-open gap (D3) and makes header-rotation throttle evasion ineffective.
 
 ### Changed
 - Internal (#927) — **public CSV-download audit log records the client IP via the consolidated resolver**: the two `audit_meta['ip']` sites in `PublicCsvDownload` now use `RequestInput::get_user_ip()` (→ `ClientIpResolver`) instead of a raw `$_SERVER['REMOTE_ADDR']` read, so the audited IP matches every other FFC log and honours the trusted-proxy/Cloudflare resolution. Unresolvable IPs now log as `0.0.0.0` rather than empty.
