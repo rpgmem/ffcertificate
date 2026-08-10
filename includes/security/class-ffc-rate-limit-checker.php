@@ -581,40 +581,37 @@ final class RateLimitChecker {
 	}
 
 	/**
-	 * Get user ip.
+	 * Get user ip for rate limiting.
 	 *
-	 * NOTE (#899 phase 1): this already-secure resolver (REMOTE_ADDR-first,
-	 * forwarded headers gated behind `ffc_trust_forwarded_headers`) is left in
-	 * place on purpose. It is folded into the shared `ClientIpResolver` secure
-	 * strategy only at the phase-3 flip (#902) — delegating it to the canonical
-	 * `legacy`-default resolver now would regress it to trust-all-headers.
+	 * Consolidated onto the shared {@see \FreeFormCertificate\Core\ClientIpResolver}
+	 * (#927). Rate limiting is a security control, so the IP source is one of two
+	 * unspoofable options, chosen by the `ffc_rate_limit_ip_source` filter
+	 * (produced from the IP-Diagnostics setting by `IpResolverSettingsBridge`):
+	 *
+	 * - `remote_addr` (default, no behaviour change on upgrade) — the raw TCP
+	 *   peer, ignoring every forwarded header.
+	 * - `resolver` — the trusted-proxy `secure` strategy, which yields the real
+	 *   client behind Cloudflare / a configured proxy. Always `secure` (never the
+	 *   spoofable `legacy` walk), independent of the global `ffc_ip_resolver_mode`.
+	 *
+	 * The former `ffc_trust_forwarded_headers` filter (trust-ALL-headers, client
+	 * spoofable) is retired — a breaking change for integrations that set it; use
+	 * the `resolver` source + a configured trusted proxy instead.
 	 *
 	 * @return string
 	 */
 	public static function get_user_ip(): string {
-		// By default we only trust REMOTE_ADDR, which is set by the web server and cannot be spoofed by clients.
-		// When the site sits behind a known reverse proxy (Cloudflare, AWS ALB, nginx), administrators can opt in
-		// to forwarded headers via the 'ffc_trust_forwarded_headers' filter. Returning true enables the legacy
-		// behavior that consults HTTP_X_FORWARDED_FOR and friends.
-		$trust_forwarded = (bool) apply_filters( 'ffc_trust_forwarded_headers', false );
+		/**
+		 * Filter the IP source used for rate limiting.
+		 *
+		 * @since 6.20.0
+		 * @param string $source `remote_addr` (default) or `resolver`.
+		 */
+		$source = (string) apply_filters( 'ffc_rate_limit_ip_source', 'remote_addr' );
 
-		$candidates = $trust_forwarded
-			? array( 'HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR' )
-			: array( 'REMOTE_ADDR' );
-
-		foreach ( $candidates as $key ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Value unslashed and sanitized on next line.
-			if ( ! empty( $_SERVER[ $key ] ) ) {
-				$ip = sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) );
-				if ( strpos( $ip, ',' ) !== false ) {
-					$ip = trim( explode( ',', $ip )[0] );
-				}
-				if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
-					return $ip;
-				}
-			}
-		}
-		return '0.0.0.0';
+		return 'resolver' === $source
+			? \FreeFormCertificate\Core\ClientIpResolver::resolve_secure()
+			: \FreeFormCertificate\Core\ClientIpResolver::remote_addr();
 	}
 
 	/**

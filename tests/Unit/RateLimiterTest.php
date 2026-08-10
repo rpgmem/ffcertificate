@@ -1038,8 +1038,9 @@ class RateLimiterTest extends TestCase {
     }
 
     // ------------------------------------------------------------------
-    // get_user_ip() — REMOTE_ADDR by default; HTTP_X_FORWARDED_FOR
-    // consulted only when ffc_trust_forwarded_headers is true.
+    // get_user_ip() — REMOTE_ADDR by default (raw TCP peer via
+    // ClientIpResolver::remote_addr); the trusted-proxy secure resolver
+    // when ffc_rate_limit_ip_source is 'resolver' (#927).
     // ------------------------------------------------------------------
 
     public function test_get_user_ip_returns_remote_addr_by_default(): void {
@@ -1069,15 +1070,16 @@ class RateLimiterTest extends TestCase {
         $this->assertSame( '0.0.0.0', RateLimitChecker::get_user_ip() );
     }
 
-    public function test_get_user_ip_honours_trusted_forwarded_header_filter(): void {
-        unset( $_SERVER['REMOTE_ADDR'] );
-        // Comma-separated list: the function takes the first valid IP.
-        $_SERVER['HTTP_X_FORWARDED_FOR'] = '203.0.113.5, 10.0.0.1';
+    public function test_get_user_ip_uses_secure_resolver_when_source_is_resolver(): void {
+        // 'resolver' source → ClientIpResolver::resolve_secure(). Behind
+        // Cloudflare (peer ∈ bundled CF range) the CF-Connecting-IP is the client.
+        $_SERVER['REMOTE_ADDR']           = '104.16.0.1';
+        $_SERVER['HTTP_CF_CONNECTING_IP'] = '203.0.113.5';
 
-        // apply_filters('ffc_trust_forwarded_headers', false) → true now.
         Functions\when( 'apply_filters' )->alias(
-            static function ( $hook, $default ) {
-                return 'ffc_trust_forwarded_headers' === $hook ? true : $default;
+            static function ( $hook, $value = null ) {
+                // Select the resolver source; every other hook keeps its default.
+                return 'ffc_rate_limit_ip_source' === $hook ? 'resolver' : $value;
             }
         );
         Functions\when( 'sanitize_text_field' )->returnArg();
@@ -1085,6 +1087,19 @@ class RateLimiterTest extends TestCase {
 
         $this->assertSame( '203.0.113.5', RateLimitChecker::get_user_ip() );
 
-        unset( $_SERVER['HTTP_X_FORWARDED_FOR'] );
+        unset( $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_CF_CONNECTING_IP'] );
+    }
+
+    public function test_get_user_ip_remote_addr_source_ignores_forwarded_headers(): void {
+        // Default 'remote_addr' source must NOT honour a forged X-Forwarded-For.
+        $_SERVER['REMOTE_ADDR']          = '198.51.100.7';
+        $_SERVER['HTTP_X_FORWARDED_FOR'] = '203.0.113.5';
+        Functions\when( 'apply_filters' )->returnArg( 2 ); // source default = remote_addr.
+        Functions\when( 'sanitize_text_field' )->returnArg();
+        Functions\when( 'wp_unslash' )->returnArg();
+
+        $this->assertSame( '198.51.100.7', RateLimitChecker::get_user_ip() );
+
+        unset( $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_X_FORWARDED_FOR'] );
     }
 }
