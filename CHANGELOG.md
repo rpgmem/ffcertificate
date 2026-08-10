@@ -14,6 +14,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Security
 - **Per-user dashboard kept off the Cloudflare edge cache** (#921): the `[user_dashboard_personal]` page now also emits `Cloudflare-CDN-Cache-Control: no-store` / `CDN-Cache-Control: no-store` — Cloudflare ignores `DONOTCACHEPAGE` / `X-LiteSpeed-Cache-Control`, so these edge-specific directives keep per-user HTML from being shared across visitors under CDN cache rules that honour them.
 
+### Changed
+- Internal (#927) — **public CSV-download audit log records the client IP via the consolidated resolver**: the two `audit_meta['ip']` sites in `PublicCsvDownload` now use `RequestInput::get_user_ip()` (→ `ClientIpResolver`) instead of a raw `$_SERVER['REMOTE_ADDR']` read, so the audited IP matches every other FFC log and honours the trusted-proxy/Cloudflare resolution. Unresolvable IPs now log as `0.0.0.0` rather than empty.
+
 ## [6.19.0] (2026-08-09) — `d93c277`
 
 ### Fixed

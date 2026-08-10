@@ -550,7 +550,7 @@ class PublicCsvDownload {
 
 		$audit_meta = array(
 			'user_id' => get_current_user_id(),
-			'ip'      => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
+			'ip'      => RequestInput::get_user_ip(),
 			'ua'      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
 		);
 
@@ -627,7 +627,7 @@ class PublicCsvDownload {
 
 		$audit_meta = array(
 			'user_id' => get_current_user_id(),
-			'ip'      => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
+			'ip'      => RequestInput::get_user_ip(),
 			'ua'      => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
 		);
 
