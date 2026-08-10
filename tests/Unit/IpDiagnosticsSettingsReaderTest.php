@@ -88,4 +88,19 @@ class IpDiagnosticsSettingsReaderTest extends TestCase {
 		$this->with_option( array( 'custom_proxies' => array( ' 172.16.0.0/12 ', '' ) ) );
 		$this->assertSame( array( '172.16.0.0/12' ), IpDiagnosticsSettingsReader::custom_proxies() );
 	}
+
+	public function test_rate_limit_ip_source_defaults_to_remote_addr(): void {
+		Functions\when( 'get_option' )->justReturn( array() );
+		$this->assertSame( 'remote_addr', IpDiagnosticsSettingsReader::rate_limit_ip_source() );
+	}
+
+	public function test_rate_limit_ip_source_accepts_resolver(): void {
+		$this->with_option( array( 'rate_limit_ip_source' => 'resolver' ) );
+		$this->assertSame( 'resolver', IpDiagnosticsSettingsReader::rate_limit_ip_source() );
+	}
+
+	public function test_rate_limit_ip_source_unknown_falls_back_to_remote_addr(): void {
+		$this->with_option( array( 'rate_limit_ip_source' => 'bogus' ) );
+		$this->assertSame( 'remote_addr', IpDiagnosticsSettingsReader::rate_limit_ip_source() );
+	}
 }

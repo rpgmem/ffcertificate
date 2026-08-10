@@ -237,6 +237,20 @@ class ClientIpResolver {
 	}
 
 	/**
+	 * The validated TCP peer (`REMOTE_ADDR`) with every forwarded header
+	 * ignored — the most conservative, unspoofable client signal. For security
+	 * controls that opt to bucket by the raw peer (e.g. the rate limiter's
+	 * "REMOTE_ADDR-only" mode) instead of the trusted-proxy resolution — and so
+	 * nothing outside this class needs to read `$_SERVER` directly.
+	 *
+	 * @return string Validated peer IP, or {@see self::UNKNOWN} when absent/invalid.
+	 */
+	public static function remote_addr(): string {
+		$remote = self::server_string( 'REMOTE_ADDR' );
+		return '' !== $remote && filter_var( $remote, FILTER_VALIDATE_IP ) ? $remote : self::UNKNOWN;
+	}
+
+	/**
 	 * True when the current request reached PHP through Cloudflare — either the
 	 * TCP peer is a CF edge ({@see self::VERDICT_CLOUDFLARE}) or CF sits upstream
 	 * of the host's reverse proxy ({@see self::VERDICT_CLOUDFLARE_VIA_PROXY}).

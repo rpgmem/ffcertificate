@@ -57,6 +57,12 @@ final class IpDiagnosticsSettingsReader {
 	/** Trusted-proxy config: ignore all forwarded headers (REMOTE_ADDR only). */
 	public const PROXY_DIRECT = 'direct';
 
+	/** Rate-limit IP source: the raw TCP peer (default — no upgrade behaviour change). */
+	public const RATE_LIMIT_IP_REMOTE = 'remote_addr';
+
+	/** Rate-limit IP source: the shared trusted-proxy resolver (`secure`). */
+	public const RATE_LIMIT_IP_RESOLVER = 'resolver';
+
 	/**
 	 * Read a value from `ffc_ip_diagnostics_settings`.
 	 *
@@ -155,5 +161,20 @@ final class IpDiagnosticsSettingsReader {
 	 */
 	public static function shadow_logging_enabled(): bool {
 		return ! empty( self::all()['shadow_logging'] );
+	}
+
+	/**
+	 * IP source used by the rate limiter (feeds the `ffc_rate_limit_ip_source`
+	 * filter). `remote_addr` (default — preserves the pre-6.20 raw-peer
+	 * behaviour on upgrade) or `resolver` (the shared trusted-proxy strategy).
+	 * An unrecognised value falls back to `remote_addr`.
+	 *
+	 * @return string One of self::RATE_LIMIT_IP_*.
+	 */
+	public static function rate_limit_ip_source(): string {
+		$value = (string) ( self::all()['rate_limit_ip_source'] ?? self::RATE_LIMIT_IP_REMOTE );
+		return in_array( $value, array( self::RATE_LIMIT_IP_REMOTE, self::RATE_LIMIT_IP_RESOLVER ), true )
+			? $value
+			: self::RATE_LIMIT_IP_REMOTE;
 	}
 }

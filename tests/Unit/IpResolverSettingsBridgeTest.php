@@ -34,7 +34,7 @@ class IpResolverSettingsBridgeTest extends TestCase {
 		Functions\when( 'get_option' )->justReturn( $option );
 	}
 
-	public function test_init_registers_four_filters(): void {
+	public function test_init_registers_five_filters(): void {
 		$hooks = array();
 		Functions\when( 'add_filter' )->alias(
 			static function ( $hook ) use ( &$hooks ) {
@@ -47,6 +47,17 @@ class IpResolverSettingsBridgeTest extends TestCase {
 		$this->assertContains( 'ffc_trusted_proxies', $hooks );
 		$this->assertContains( 'ffc_cloudflare_ip_ranges', $hooks );
 		$this->assertContains( 'ffc_ip_shadow_logging', $hooks );
+		$this->assertContains( 'ffc_rate_limit_ip_source', $hooks );
+	}
+
+	public function test_filter_rate_limit_ip_source_defaults_remote_addr(): void {
+		$this->with_option( array() );
+		$this->assertSame( 'remote_addr', IpResolverSettingsBridge::filter_rate_limit_ip_source( 'resolver' ) );
+	}
+
+	public function test_filter_rate_limit_ip_source_returns_stored_resolver(): void {
+		$this->with_option( array( 'rate_limit_ip_source' => 'resolver' ) );
+		$this->assertSame( 'resolver', IpResolverSettingsBridge::filter_rate_limit_ip_source( 'remote_addr' ) );
 	}
 
 	public function test_filter_mode_returns_stored_strategy(): void {

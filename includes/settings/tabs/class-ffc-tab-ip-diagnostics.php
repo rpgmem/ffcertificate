@@ -158,11 +158,19 @@ class TabIpDiagnostics extends SettingsTab {
 
 		$custom = $this->sanitize_cidr_list( $custom_raw );
 
+		$rate_source = isset( $_POST['ffc_ip_rate_limit_source'] )
+			? sanitize_key( wp_unslash( $_POST['ffc_ip_rate_limit_source'] ) )
+			: IpDiagnosticsSettingsReader::RATE_LIMIT_IP_REMOTE;
+		if ( ! in_array( $rate_source, array( IpDiagnosticsSettingsReader::RATE_LIMIT_IP_REMOTE, IpDiagnosticsSettingsReader::RATE_LIMIT_IP_RESOLVER ), true ) ) {
+			$rate_source = IpDiagnosticsSettingsReader::RATE_LIMIT_IP_REMOTE;
+		}
+
 		$settings = array(
-			'strategy'           => $strategy,
-			'trusted_proxy_mode' => $proxy_mode,
-			'custom_proxies'     => implode( "\n", $custom ),
-			'shadow_logging'     => isset( $_POST['ffc_ip_shadow_logging'] ) ? 1 : 0,
+			'strategy'             => $strategy,
+			'trusted_proxy_mode'   => $proxy_mode,
+			'custom_proxies'       => implode( "\n", $custom ),
+			'shadow_logging'       => isset( $_POST['ffc_ip_shadow_logging'] ) ? 1 : 0,
+			'rate_limit_ip_source' => $rate_source,
 		);
 
 		update_option( self::OPTION_KEY, $settings, false );
@@ -580,10 +588,11 @@ class TabIpDiagnostics extends SettingsTab {
 	 * Render the strategy + trusted-proxy configuration form.
 	 */
 	private function render_config_form(): void {
-		$strategy   = IpDiagnosticsSettingsReader::strategy();
-		$proxy_mode = IpDiagnosticsSettingsReader::trusted_proxy_mode();
-		$custom     = implode( "\n", IpDiagnosticsSettingsReader::custom_proxies() );
-		$shadow     = IpDiagnosticsSettingsReader::shadow_logging_enabled();
+		$strategy    = IpDiagnosticsSettingsReader::strategy();
+		$proxy_mode  = IpDiagnosticsSettingsReader::trusted_proxy_mode();
+		$custom      = implode( "\n", IpDiagnosticsSettingsReader::custom_proxies() );
+		$shadow      = IpDiagnosticsSettingsReader::shadow_logging_enabled();
+		$rate_source = IpDiagnosticsSettingsReader::rate_limit_ip_source();
 
 		$this->render_section_header(
 			__( 'Resolution strategy', 'ffcertificate' ),
@@ -624,6 +633,17 @@ class TabIpDiagnostics extends SettingsTab {
 		echo '<strong>' . esc_html__( 'Do not paste Cloudflare ranges here.', 'ffcertificate' ) . '</strong> ';
 		echo esc_html__( 'They are already detected and kept up to date automatically (official ips-v4/ips-v6 lists, daily refresh) via the Auto or Cloudflare modes. This field is only for your own reverse proxy — nginx, HAProxy or another CDN.', 'ffcertificate' );
 		echo '</p></div>';
+		echo '</td></tr>';
+
+		// Rate-limit IP source (#927). Independent of the effective strategy
+		// above: rate limiting is a security control, so its source is always one
+		// of two unspoofable options. Default stays REMOTE_ADDR-only (no upgrade
+		// behaviour change); `resolver` is recommended behind Cloudflare / a proxy.
+		echo '<tr><th scope="row">' . esc_html__( 'Rate-limit IP source', 'ffcertificate' ) . '</th><td>';
+		$this->echo_radio( 'ffc_ip_rate_limit_source', IpDiagnosticsSettingsReader::RATE_LIMIT_IP_REMOTE, $rate_source, __( 'REMOTE_ADDR only — the raw TCP peer, ignoring every header (most conservative)', 'ffcertificate' ) );
+		echo '<br>';
+		$this->echo_radio( 'ffc_ip_rate_limit_source', IpDiagnosticsSettingsReader::RATE_LIMIT_IP_RESOLVER, $rate_source, __( 'Follow the resolver (Secure) — real client behind Cloudflare / a configured proxy (recommended when proxied)', 'ffcertificate' ) );
+		echo '<p class="description">' . esc_html__( 'The rate limiter always uses the trusted-proxy (Secure) model here — never the spoofable header walk — regardless of the effective strategy above.', 'ffcertificate' ) . '</p>';
 		echo '</td></tr>';
 
 		// Shadow logging — a `.ffc-toggle` with autosave (allowlisted key

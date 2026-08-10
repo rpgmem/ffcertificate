@@ -285,6 +285,26 @@ class ClientIpResolverTest extends TestCase {
 		$this->assertSame( '10.0.0.5', ClientIpResolver::resolve() );
 	}
 
+	// ---- remote_addr() — raw TCP peer, headers ignored (#927) ---------------
+
+	public function test_remote_addr_returns_validated_peer(): void {
+		$this->stub_request_funcs();
+		$_SERVER['REMOTE_ADDR']          = '198.51.100.7';
+		$_SERVER['HTTP_X_FORWARDED_FOR'] = '203.0.113.5'; // must be ignored.
+		$this->assertSame( '198.51.100.7', ClientIpResolver::remote_addr() );
+	}
+
+	public function test_remote_addr_returns_unknown_when_absent(): void {
+		$this->stub_request_funcs();
+		$this->assertSame( ClientIpResolver::UNKNOWN, ClientIpResolver::remote_addr() );
+	}
+
+	public function test_remote_addr_returns_unknown_when_invalid(): void {
+		$this->stub_request_funcs();
+		$_SERVER['REMOTE_ADDR'] = 'not-an-ip';
+		$this->assertSame( ClientIpResolver::UNKNOWN, ClientIpResolver::remote_addr() );
+	}
+
 	// ---- shadow logging (dormant by default) --------------------------------
 
 	public function test_shadow_logging_off_by_default_stays_silent(): void {

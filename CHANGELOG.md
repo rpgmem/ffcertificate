@@ -16,6 +16,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 - Internal (#927) — **public CSV-download audit log records the client IP via the consolidated resolver**: the two `audit_meta['ip']` sites in `PublicCsvDownload` now use `RequestInput::get_user_ip()` (→ `ClientIpResolver`) instead of a raw `$_SERVER['REMOTE_ADDR']` read, so the audited IP matches every other FFC log and honours the trusted-proxy/Cloudflare resolution. Unresolvable IPs now log as `0.0.0.0` rather than empty.
+- **Rate-limiter client IP consolidated onto `ClientIpResolver`** (#927): `RateLimitChecker::get_user_ip()` (and the rate-limit log that reads it) now resolves through the shared resolver, driven by a new **Rate-limit IP source** control on the IP Diagnostics tab — `REMOTE_ADDR only` (default, no upgrade change) or `Follow the resolver (Secure)` (real client behind Cloudflare / a configured proxy). The rate limiter always uses the trusted-proxy `secure` model here, never the spoofable header walk, independent of the global effective strategy. ⚠️ **Breaking:** the `ffc_trust_forwarded_headers` filter (trust-all-headers, client-spoofable) is **removed** — integrations that set it should switch to the `resolver` source plus a configured trusted proxy.
 
 ## [6.19.0] (2026-08-09) — `d93c277`
 
