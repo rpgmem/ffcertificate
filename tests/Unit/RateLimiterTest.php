@@ -1100,6 +1100,6 @@ class RateLimiterTest extends TestCase {
 
         $this->assertSame( '198.51.100.7', RateLimitChecker::get_user_ip() );
 
-        unset( $_SERVER['HTTP_X_FORWARDED_FOR'] );
+        unset( $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_X_FORWARDED_FOR'] );
     }
 }
