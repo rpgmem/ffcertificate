@@ -435,10 +435,15 @@ final class RecruitmentPublicShortcode {
 			return true;
 		}
 
-		$ip = self::client_ip();
-		if ( '' === $ip ) {
-			return true;
-		}
+		// Consolidated onto the shared resolver (#927). Rate limiting is a
+		// security control, so this always uses the trusted-proxy `secure`
+		// strategy — never the spoofable header walk — so a caller can't dodge
+		// the throttle by rotating forged X-Forwarded-For / CF-Connecting-IP
+		// values. `resolve_secure()` never returns '' (the sentinel is
+		// `'0.0.0.0'`), so an unidentifiable caller now shares one aggressive
+		// bucket (fail-closed) instead of being waved through (the former
+		// fail-open, #927 D3).
+		$ip = \FreeFormCertificate\Core\ClientIpResolver::resolve_secure();
 
 		$bucket = gmdate( 'Y-m-d-H-i' );
 		$key    = self::RATE_PREFIX . md5( $ip . '|' . $bucket );
@@ -452,29 +457,5 @@ final class RecruitmentPublicShortcode {
 
 		set_transient( $key, $count + 1, MINUTE_IN_SECONDS );
 		return true;
-	}
-
-	/**
-	 * Best-effort client-IP detection. Returns '' when we can't identify
-	 * the caller (rate-limit then falls open per `check_rate_limit`).
-	 *
-	 * NOTE (#899 phase 1): kept bespoke on purpose. Its empty-string fail-open
-	 * contract differs from `ClientIpResolver`'s `'0.0.0.0'` sentinel, so it is
-	 * reconciled into the shared secure resolver at the phase-3 flip (#902),
-	 * not now — swapping it today would change the fail-open behaviour.
-	 *
-	 * @return string
-	 */
-	private static function client_ip(): string {
-		foreach ( array( 'HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR' ) as $key ) {
-			if ( ! empty( $_SERVER[ $key ] ) && is_string( $_SERVER[ $key ] ) ) {
-				$raw       = sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) );
-				$candidate = trim( explode( ',', $raw )[0] );
-				if ( '' !== $candidate ) {
-					return $candidate;
-				}
-			}
-		}
-		return '';
 	}
 }
