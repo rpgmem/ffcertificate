@@ -212,16 +212,19 @@ class TabIpDiagnostics extends SettingsTab {
 	 *
 	 * @return array{
 	 *   remote:string, verdict:string, headers:array<string,string>,
-	 *   legacy:string, secure:string, mode:string,
+	 *   authoritative:string, legacy:string, secure:string, mode:string,
 	 *   forged_legacy:string, forged_secure:string, forged_sentinel:string
 	 * }
 	 */
 	private function diagnostics(): array {
 		$remote = $this->server_value( 'REMOTE_ADDR' );
 
+		// CF-Ray is display-only evidence (not an IP): its presence corroborates
+		// that a Cloudflare edge injected the request (#920).
 		$header_keys = array(
 			'X-Forwarded-For'  => 'HTTP_X_FORWARDED_FOR',
 			'CF-Connecting-IP' => 'HTTP_CF_CONNECTING_IP',
+			'CF-Ray'           => 'HTTP_CF_RAY',
 			'X-Real-IP'        => 'HTTP_X_REAL_IP',
 			'Client-IP'        => 'HTTP_CLIENT_IP',
 			'X-Forwarded'      => 'HTTP_X_FORWARDED',
@@ -233,12 +236,15 @@ class TabIpDiagnostics extends SettingsTab {
 			$headers[ $label ] = $this->server_value( $server_key );
 		}
 
+		$verdict = ClientIpResolver::classify();
+
 		list( $forged_legacy, $forged_secure, $sentinel ) = $this->injection_test();
 
 		return array(
 			'remote'          => $remote,
-			'verdict'         => ClientIpResolver::classify(),
+			'verdict'         => $verdict,
 			'headers'         => $headers,
+			'authoritative'   => $this->authoritative_header( $verdict, $headers ),
 			'legacy'          => ClientIpResolver::resolve_legacy(),
 			'secure'          => ClientIpResolver::resolve_secure(),
 			'mode'            => ClientIpResolver::mode(),
@@ -246,6 +252,29 @@ class TabIpDiagnostics extends SettingsTab {
 			'forged_secure'   => $forged_secure,
 			'forged_sentinel' => $sentinel,
 		);
+	}
+
+	/**
+	 * Which received header the secure strategy treats as authoritative for the
+	 * current verdict — the "✓ autoritativa" marker in the headers table. Empty
+	 * when no forwarded header is trusted (direct connection).
+	 *
+	 * @param string                $verdict Environment verdict.
+	 * @param array<string, string> $headers Received header label → value map.
+	 * @return string Header label, or '' when none is authoritative.
+	 */
+	private function authoritative_header( string $verdict, array $headers ): string {
+		$cf_verdicts = array(
+			ClientIpResolver::VERDICT_CLOUDFLARE,
+			ClientIpResolver::VERDICT_CLOUDFLARE_VIA_PROXY,
+		);
+		if ( in_array( $verdict, $cf_verdicts, true ) && '' !== ( $headers['CF-Connecting-IP'] ?? '' ) ) {
+			return 'CF-Connecting-IP';
+		}
+		if ( ClientIpResolver::VERDICT_TRUSTED_PROXY === $verdict && '' !== ( $headers['X-Forwarded-For'] ?? '' ) ) {
+			return 'X-Forwarded-For';
+		}
+		return '';
 	}
 
 	/**
@@ -325,10 +354,30 @@ class TabIpDiagnostics extends SettingsTab {
 		switch ( $verdict ) {
 			case ClientIpResolver::VERDICT_CLOUDFLARE:
 				return __( 'Cloudflare detected — CF-Connecting-IP is authoritative.', 'ffcertificate' );
+			case ClientIpResolver::VERDICT_CLOUDFLARE_VIA_PROXY:
+				return __( 'Cloudflare detected (behind your host\'s proxy) — CF-Connecting-IP is authoritative.', 'ffcertificate' );
 			case ClientIpResolver::VERDICT_TRUSTED_PROXY:
 				return __( 'Behind a configured trusted proxy — X-Forwarded-For is honoured.', 'ffcertificate' );
 			default:
 				return __( 'Direct connection — REMOTE_ADDR is already the client.', 'ffcertificate' );
+		}
+	}
+
+	/**
+	 * CSS status class for a verdict badge — greens for a trusted CDN/proxy
+	 * topology, amber for a plain direct connection (spoofable in legacy mode).
+	 *
+	 * @param string $verdict Environment verdict.
+	 * @return string One of the shared `ffc-text-*` helper classes.
+	 */
+	private function verdict_status_class( string $verdict ): string {
+		switch ( $verdict ) {
+			case ClientIpResolver::VERDICT_CLOUDFLARE:
+			case ClientIpResolver::VERDICT_CLOUDFLARE_VIA_PROXY:
+			case ClientIpResolver::VERDICT_TRUSTED_PROXY:
+				return 'ffc-text-success ffc-icon-checkmark';
+			default:
+				return 'ffc-text-warning ffc-icon-warning';
 		}
 	}
 
@@ -343,64 +392,161 @@ class TabIpDiagnostics extends SettingsTab {
 			__( 'How this very request would be resolved. IPs are masked unless you are a full administrator.', 'ffcertificate' )
 		);
 
+		$verdict = (string) $d['verdict'];
+
 		echo '<table class="form-table" role="presentation"><tbody>';
 
 		$this->render_field_row(
 			esc_html__( 'REMOTE_ADDR (TCP peer)', 'ffcertificate' ),
-			'<code>' . esc_html( $this->mask_ip( (string) $d['remote'] ) ) . '</code>'
+			'<code>' . esc_html( $this->mask_ip( (string) $d['remote'] ) ) . '</code> '
+			. '<span class="description">' . esc_html( $this->peer_note( $verdict ) ) . '</span>'
 		);
 
 		$this->render_field_row(
 			esc_html__( 'Environment verdict', 'ffcertificate' ),
-			'<strong>' . esc_html( $this->verdict_label( (string) $d['verdict'] ) ) . '</strong>'
-		);
-
-		$rows = '';
-		foreach ( (array) $d['headers'] as $label => $value ) {
-			$shown = '' === $value ? '—' : $this->mask_ip( $value );
-			if ( '—' === $shown && '' !== $value ) {
-				// Present but not a bare IP (e.g. a list): show it masked-safe.
-				$shown = esc_html( mb_substr( $value, 0, 60 ) );
-			} else {
-				$shown = esc_html( $shown );
-			}
-			$rows .= '<tr><td><code>' . esc_html( $label ) . '</code></td><td><code>' . $shown . '</code></td></tr>';
-		}
-		$this->render_field_row(
-			esc_html__( 'Proxy headers received', 'ffcertificate' ),
-			'<table class="widefat striped" style="max-width:520px"><tbody>' . $rows . '</tbody></table>'
-		);
-
-		$mode_note = ClientIpResolver::MODE_SECURE === $d['mode']
-			? esc_html__( '(secure is currently effective)', 'ffcertificate' )
-			: esc_html__( '(legacy is currently effective)', 'ffcertificate' );
-		$this->render_field_row(
-			esc_html__( 'Resolved IP by strategy', 'ffcertificate' ),
-			'<code>legacy → ' . esc_html( $this->mask_ip( (string) $d['legacy'] ) ) . '</code><br>'
-			. '<code>secure → ' . esc_html( $this->mask_ip( (string) $d['secure'] ) ) . '</code> '
-			. '<em>' . $mode_note . '</em>'
-		);
-
-		$leaks   = ( (string) $d['forged_legacy'] === (string) $d['forged_sentinel'] );
-		$immune  = ( (string) $d['forged_secure'] !== (string) $d['forged_sentinel'] );
-		$verdict = $leaks && $immune
-			? __( '⚠️ The legacy strategy would trust a forged X-Forwarded-For; the secure strategy ignores it.', 'ffcertificate' )
-			: __( 'The secure strategy does not trust the forged header for this request.', 'ffcertificate' );
-		$this->render_field_row(
-			esc_html__( 'Header-injection self-test', 'ffcertificate' ),
-			'<p>' . sprintf(
-				/* translators: %s: forged sentinel IP */
-				esc_html__( 'With a forged %s:', 'ffcertificate' ),
-				'<code>X-Forwarded-For: ' . esc_html( (string) $d['forged_sentinel'] ) . '</code>'
-			) . '</p>'
-			. '<code>legacy → ' . esc_html( $this->mask_ip( (string) $d['forged_legacy'] ) ) . '</code><br>'
-			. '<code>secure → ' . esc_html( $this->mask_ip( (string) $d['forged_secure'] ) ) . '</code>'
-			. '<p class="description">' . esc_html( $verdict ) . '</p>'
+			'<span class="' . esc_attr( $this->verdict_status_class( $verdict ) ) . '"><strong>'
+			. esc_html( $this->verdict_label( $verdict ) ) . '</strong></span>'
+			. $this->verdict_context( $verdict )
 		);
 
 		echo '</tbody></table>';
 
+		$this->render_headers_table( $d );
+		$this->render_strategy_comparison_table( $d );
 		$this->render_cloudflare_cache_status();
+	}
+
+	/**
+	 * Short parenthetical describing the TCP peer, next to REMOTE_ADDR.
+	 *
+	 * @param string $verdict Environment verdict.
+	 * @return string Plain-text note.
+	 */
+	private function peer_note( string $verdict ): string {
+		switch ( $verdict ) {
+			case ClientIpResolver::VERDICT_CLOUDFLARE:
+				return __( '(a Cloudflare edge address)', 'ffcertificate' );
+			case ClientIpResolver::VERDICT_CLOUDFLARE_VIA_PROXY:
+				return __( '(your host\'s reverse proxy — a private/reserved address)', 'ffcertificate' );
+			case ClientIpResolver::VERDICT_TRUSTED_PROXY:
+				return __( '(a configured trusted proxy)', 'ffcertificate' );
+			default:
+				return __( '(connecting directly to this server)', 'ffcertificate' );
+		}
+	}
+
+	/**
+	 * Contextual guidance shown right under the verdict badge. For the
+	 * Cloudflare-behind-host-proxy topology it explains that secure mode already
+	 * trusts CF automatically (so the misleading "put Cloudflare in front" guide
+	 * stays hidden), with the manual custom-CIDR route as an advanced fallback.
+	 *
+	 * @param string $verdict Environment verdict.
+	 * @return string Escaped HTML (empty for verdicts needing no note).
+	 */
+	private function verdict_context( string $verdict ): string {
+		if ( ClientIpResolver::VERDICT_CLOUDFLARE_VIA_PROXY !== $verdict ) {
+			return '';
+		}
+		return '<p class="description">' . esc_html__(
+			'Cloudflare is in front of this site, reaching PHP through your host\'s reverse proxy. With the Secure strategy the real client IP is taken from CF-Connecting-IP automatically — no extra configuration is needed. (Advanced: to also trust a non-Cloudflare proxy, add its address under Custom below.)',
+			'ffcertificate'
+		) . '</p>';
+	}
+
+	/**
+	 * (#920 ③) Received proxy headers with a Situation column — absent /
+	 * present / authoritative — so the admin sees at a glance which header the
+	 * secure strategy actually trusts.
+	 *
+	 * @param array<string, mixed> $d Diagnostics.
+	 */
+	private function render_headers_table( array $d ): void {
+		$authoritative = (string) $d['authoritative'];
+
+		$rows = '';
+		foreach ( (array) $d['headers'] as $label => $value ) {
+			$label = (string) $label;
+			$value = (string) $value;
+			if ( '' === $value ) {
+				$shown     = '<span class="description">—</span>';
+				$situation = '<span class="description">' . esc_html__( 'absent', 'ffcertificate' ) . '</span>';
+			} else {
+				$masked = $this->mask_ip( $value );
+				// Non-IP header (a list, or the CF-Ray token): show a safe prefix.
+				$display = '—' === $masked ? mb_substr( $value, 0, 60 ) : $masked;
+				$shown   = '<code>' . esc_html( $display ) . '</code>';
+				if ( $label === $authoritative ) {
+					$situation = '<span class="ffc-text-success ffc-icon-checkmark">'
+						. esc_html__( '✓ authoritative', 'ffcertificate' ) . '</span>';
+				} else {
+					$situation = esc_html__( 'present', 'ffcertificate' );
+				}
+			}
+			$rows .= '<tr><td><code>' . esc_html( $label ) . '</code></td><td>' . $shown . '</td><td>' . $situation . '</td></tr>';
+		}
+
+		echo '<table class="widefat striped" style="max-width:640px;margin:8px 0 4px">';
+		echo '<thead><tr>'
+			. '<th>' . esc_html__( 'Header', 'ffcertificate' ) . '</th>'
+			. '<th>' . esc_html__( 'Value received', 'ffcertificate' ) . '</th>'
+			. '<th>' . esc_html__( 'Situation', 'ffcertificate' ) . '</th>'
+			. '</tr></thead>';
+		echo '<tbody>' . $rows . '</tbody></table>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $rows assembled from esc_html()/esc_attr() parts above.
+	}
+
+	/**
+	 * (#920 ②) Unified Legacy × Secure comparison — folds the former "resolved
+	 * IP by strategy" and "header-injection self-test" blocks into one table:
+	 * a row for the real request and a row for a forged X-Forwarded-For.
+	 *
+	 * @param array<string, mixed> $d Diagnostics.
+	 */
+	private function render_strategy_comparison_table( array $d ): void {
+		$leaks  = ( (string) $d['forged_legacy'] === (string) $d['forged_sentinel'] );
+		$immune = ( (string) $d['forged_secure'] !== (string) $d['forged_sentinel'] );
+
+		$leak_chip = $leaks
+			? ' <span class="ffc-text-warning ffc-icon-warning">' . esc_html__( 'trusts the forgery', 'ffcertificate' ) . '</span>'
+			: '';
+		$safe_chip = $immune
+			? ' <span class="ffc-text-success ffc-icon-checkmark">' . esc_html__( 'ignores it', 'ffcertificate' ) . '</span>'
+			: '';
+
+		$forged_label = sprintf(
+			/* translators: %s: forged sentinel IP address */
+			esc_html__( 'With a forged X-Forwarded-For (%s)', 'ffcertificate' ),
+			'<code>' . esc_html( (string) $d['forged_sentinel'] ) . '</code>'
+		);
+
+		echo '<table class="widefat striped" style="max-width:640px;margin:14px 0 4px">';
+		echo '<thead><tr>'
+			. '<th>' . esc_html__( 'Scenario', 'ffcertificate' ) . '</th>'
+			. '<th>' . esc_html__( 'Legacy →', 'ffcertificate' ) . '</th>'
+			. '<th>' . esc_html__( 'Secure →', 'ffcertificate' ) . '</th>'
+			. '</tr></thead><tbody>';
+
+		$current_row = '<tr><td>' . esc_html__( 'Current request (real headers)', 'ffcertificate' ) . '</td>'
+			. '<td><code>' . esc_html( $this->mask_ip( (string) $d['legacy'] ) ) . '</code></td>'
+			. '<td><code>' . esc_html( $this->mask_ip( (string) $d['secure'] ) ) . '</code></td></tr>';
+
+		$forged_row = '<tr><td>' . $forged_label . '</td>'
+			. '<td><code>' . esc_html( $this->mask_ip( (string) $d['forged_legacy'] ) ) . '</code>' . $leak_chip . '</td>'
+			. '<td><code>' . esc_html( $this->mask_ip( (string) $d['forged_secure'] ) ) . '</code>' . $safe_chip . '</td></tr>';
+
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- rows assembled from esc_html()/esc_html__() parts above.
+		echo $current_row . $forged_row . '</tbody></table>';
+
+		$mode_secure = ClientIpResolver::MODE_SECURE === $d['mode'];
+		$mode_badge  = $mode_secure
+			? '<span class="ffc-text-success ffc-icon-checkmark">' . esc_html__( 'Effective strategy: Secure', 'ffcertificate' ) . '</span>'
+			: '<span class="ffc-text-warning ffc-icon-warning">' . esc_html__( 'Effective strategy: Legacy', 'ffcertificate' ) . '</span>';
+
+		$explain = ( $leaks && $immune )
+			? esc_html__( 'A forged X-Forwarded-For would fool the Legacy strategy (rate-limit, geofence, activity log). Secure discards it.', 'ffcertificate' )
+			: esc_html__( 'Secure does not trust the forged header for this request.', 'ffcertificate' );
+
+		echo '<p class="description">' . $mode_badge . ' — ' . $explain . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- both parts pre-escaped above.
 	}
 
 	/**
@@ -472,6 +618,12 @@ class TabIpDiagnostics extends SettingsTab {
 		echo '<tr><th scope="row">' . esc_html__( 'Custom proxy CIDRs', 'ffcertificate' ) . '</th><td>';
 		echo '<textarea name="ffc_ip_custom_proxies" rows="4" cols="40" class="large-text code" placeholder="10.0.0.0/8">' . esc_textarea( $custom ) . '</textarea>';
 		echo '<p class="description">' . esc_html__( 'One CIDR or IP per line. Used only with the Custom mode above.', 'ffcertificate' ) . '</p>';
+		// (#920 ①) Steer admins away from the common mistake of pasting the
+		// Cloudflare ranges here — they are detected and refreshed automatically.
+		echo '<div class="notice notice-warning inline" style="margin:8px 0 0;max-width:560px"><p>';
+		echo '<strong>' . esc_html__( 'Do not paste Cloudflare ranges here.', 'ffcertificate' ) . '</strong> ';
+		echo esc_html__( 'They are already detected and kept up to date automatically (official ips-v4/ips-v6 lists, daily refresh) via the Auto or Cloudflare modes. This field is only for your own reverse proxy — nginx, HAProxy or another CDN.', 'ffcertificate' );
+		echo '</p></div>';
 		echo '</td></tr>';
 
 		// Shadow logging — a `.ffc-toggle` with autosave (allowlisted key
