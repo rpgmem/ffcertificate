@@ -40,7 +40,6 @@ final class IpResolverSettingsBridge {
 		// range injection (priority 10) — the cleared CF set must be final.
 		add_filter( 'ffc_cloudflare_ip_ranges', array( self::class, 'filter_cloudflare_ranges' ), 20 );
 		add_filter( 'ffc_ip_shadow_logging', array( self::class, 'filter_shadow_logging' ) );
-		add_filter( 'ffc_rate_limit_ip_source', array( self::class, 'filter_rate_limit_ip_source' ) );
 	}
 
 	/**
@@ -98,17 +97,5 @@ final class IpResolverSettingsBridge {
 	 */
 	public static function filter_shadow_logging( $enabled ): bool {
 		return IpDiagnosticsSettingsReader::shadow_logging_enabled() ? true : (bool) $enabled;
-	}
-
-	/**
-	 * Rate-limit IP source — the stored setting is authoritative (`remote_addr`
-	 * default or `resolver`), already validated by the reader.
-	 *
-	 * @param mixed $source Incoming filter value (ignored; config is authoritative).
-	 * @return string `remote_addr` or `resolver`.
-	 */
-	public static function filter_rate_limit_ip_source( $source ): string {
-		unset( $source );
-		return IpDiagnosticsSettingsReader::rate_limit_ip_source();
 	}
 }

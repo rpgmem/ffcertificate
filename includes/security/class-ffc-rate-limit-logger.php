@@ -50,7 +50,13 @@ final class RateLimitLogger {
 				'form_id'       => $form_id,
 				'action'        => $action,
 				'reason'        => $reason,
-				'ip_address'    => RateLimitChecker::get_user_ip(),
+				// Log the request IP through the same resolver the enforcement
+				// path uses (`RequestInput::get_user_ip()` → the global
+				// `ffc_ip_resolver_mode` toggle), so the logged IP matches the
+				// bucket that was actually rate-limited (#931). For `ip`-type
+				// rows this equals `$identifier`; for other types it records the
+				// requester behind that identifier.
+				'ip_address'    => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 				'user_agent'    => substr( isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '', 0, 255 ),
 				'current_count' => 0,
 				'max_allowed'   => 0,

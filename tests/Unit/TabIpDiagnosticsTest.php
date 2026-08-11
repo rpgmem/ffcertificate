@@ -139,58 +139,6 @@ class TabIpDiagnosticsTest extends TestCase {
 		$this->assertStringContainsString( 'name="ffc_ip_shadow_logging"', $html );
 	}
 
-	public function test_renders_rate_limit_ip_source_control(): void {
-		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
-		$html                   = $this->render_to_string();
-		$this->assertStringContainsString( 'name="ffc_ip_rate_limit_source"', $html );
-		$this->assertStringContainsString( 'Rate-limit IP source', $html );
-	}
-
-	public function test_save_persists_rate_limit_ip_source(): void {
-		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( true );
-		$captured = null;
-		Functions\when( 'update_option' )->alias(
-			static function ( $key, $value ) use ( &$captured ) {
-				$captured = $value;
-				return true;
-			}
-		);
-
-		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
-		$_POST                  = array(
-			'ffc_save_ip_diagnostics'  => '1',
-			'ffc_ip_rate_limit_source' => 'resolver',
-		);
-
-		$this->render_to_string();
-
-		$this->assertIsArray( $captured );
-		$this->assertSame( 'resolver', $captured['rate_limit_ip_source'] );
-	}
-
-	public function test_save_rate_limit_ip_source_rejects_unknown(): void {
-		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'check_admin_referer' )->justReturn( true );
-		$captured = null;
-		Functions\when( 'update_option' )->alias(
-			static function ( $key, $value ) use ( &$captured ) {
-				$captured = $value;
-				return true;
-			}
-		);
-
-		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
-		$_POST                  = array(
-			'ffc_save_ip_diagnostics'  => '1',
-			'ffc_ip_rate_limit_source' => 'bogus',
-		);
-
-		$this->render_to_string();
-
-		$this->assertSame( 'remote_addr', $captured['rate_limit_ip_source'] );
-	}
-
 	public function test_save_persists_sanitized_settings(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->justReturn( true );

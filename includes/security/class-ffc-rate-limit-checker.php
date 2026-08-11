@@ -581,40 +581,6 @@ final class RateLimitChecker {
 	}
 
 	/**
-	 * Get user ip for rate limiting.
-	 *
-	 * Consolidated onto the shared {@see \FreeFormCertificate\Core\ClientIpResolver}
-	 * (#927). Rate limiting is a security control, so the IP source is one of two
-	 * unspoofable options, chosen by the `ffc_rate_limit_ip_source` filter
-	 * (produced from the IP-Diagnostics setting by `IpResolverSettingsBridge`):
-	 *
-	 * - `remote_addr` (default, no behaviour change on upgrade) — the raw TCP
-	 *   peer, ignoring every forwarded header.
-	 * - `resolver` — the trusted-proxy `secure` strategy, which yields the real
-	 *   client behind Cloudflare / a configured proxy. Always `secure` (never the
-	 *   spoofable `legacy` walk), independent of the global `ffc_ip_resolver_mode`.
-	 *
-	 * The former `ffc_trust_forwarded_headers` filter (trust-ALL-headers, client
-	 * spoofable) is retired — a breaking change for integrations that set it; use
-	 * the `resolver` source + a configured trusted proxy instead.
-	 *
-	 * @return string
-	 */
-	public static function get_user_ip(): string {
-		/**
-		 * Filter the IP source used for rate limiting.
-		 *
-		 * @since 6.20.0
-		 * @param string $source `remote_addr` (default) or `resolver`.
-		 */
-		$source = (string) apply_filters( 'ffc_rate_limit_ip_source', 'remote_addr' );
-
-		return 'resolver' === $source
-			? \FreeFormCertificate\Core\ClientIpResolver::resolve_secure()
-			: \FreeFormCertificate\Core\ClientIpResolver::remote_addr();
-	}
-
-	/**
 	 * Check rate limit for authenticated user actions (password change, privacy request)
 	 *
 	 * @since 4.9.9

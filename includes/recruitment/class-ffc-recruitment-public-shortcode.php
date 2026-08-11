@@ -435,15 +435,15 @@ final class RecruitmentPublicShortcode {
 			return true;
 		}
 
-		// Consolidated onto the shared resolver (#927). Rate limiting is a
-		// security control, so this always uses the trusted-proxy `secure`
-		// strategy — never the spoofable header walk — so a caller can't dodge
-		// the throttle by rotating forged X-Forwarded-For / CF-Connecting-IP
-		// values. `resolve_secure()` never returns '' (the sentinel is
-		// `'0.0.0.0'`), so an unidentifiable caller now shares one aggressive
-		// bucket (fail-closed) instead of being waved through (the former
-		// fail-open, #927 D3).
-		$ip = \FreeFormCertificate\Core\ClientIpResolver::resolve_secure();
+		// Consolidated onto the shared resolver (#927 / #931). Resolves through
+		// `RequestInput::get_user_ip()` so this throttle follows the one global
+		// IP-resolution policy (the `legacy`/`secure` admin toggle, secure
+		// recommended) exactly like every other public entry point — no bespoke
+		// per-module IP handling. The resolver never returns '' (its sentinel is
+		// `'0.0.0.0'`), so an unidentifiable caller shares one bucket
+		// (fail-closed) instead of being waved through (the former fail-open,
+		// #927 D3).
+		$ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 
 		$bucket = gmdate( 'Y-m-d-H-i' );
 		$key    = self::RATE_PREFIX . md5( $ip . '|' . $bucket );
