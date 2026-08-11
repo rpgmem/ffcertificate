@@ -368,17 +368,7 @@ class Geofence {
 
 		// Get user location (IP-based or provided).
 		if ( null === $user_location && ! empty( $config['geo_ip_enabled'] ) ) {
-			// #931 — the geofence deny-decision is deliberately pinned to the
-			// trusted-proxy `secure` resolver, NOT the global legacy/secure
-			// toggle every other IP read follows. Rationale: a geofence is the
-			// one IP-based *hard deny* with no secondary defence layer (no
-			// nonce / user_id / device-fingerprint fallback carries the load
-			// if the IP is wrong), so a spoofable `legacy` read here would let
-			// a forged CF-Connecting-IP bypass the country block outright.
-			// Trade-off: behind a non-Cloudflare reverse proxy the admin has
-			// NOT declared trusted, `secure` resolves the proxy IP — declare it
-			// on the IP Diagnostics tab so the real client is geolocated.
-			$user_location = \FreeFormCertificate\Integrations\IpGeolocation::get_location( \FreeFormCertificate\Core\ClientIpResolver::resolve_secure() );
+			$user_location = \FreeFormCertificate\Integrations\IpGeolocation::get_location();
 
 			if ( is_wp_error( $user_location ) ) {
 				// IP API failed - apply fallback.
@@ -855,9 +845,7 @@ class Geofence {
 			return;
 		}
 
-		// Match the deny-decision's IP source (pinned to `secure`; see the
-		// geofence check) so the audit row records the IP actually evaluated.
-		\FreeFormCertificate\Core\ActivityLog::log_access_denied( $reason, \FreeFormCertificate\Core\ClientIpResolver::resolve_secure() );
+		\FreeFormCertificate\Core\ActivityLog::log_access_denied( $reason, \FreeFormCertificate\Core\RequestInput::get_user_ip() );
 
 		// Use centralized debug system.
 		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
