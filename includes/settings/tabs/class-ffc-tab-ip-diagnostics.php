@@ -587,7 +587,7 @@ class TabIpDiagnostics extends SettingsTab {
 
 		$this->render_section_header(
 			__( 'Resolution strategy', 'ffcertificate' ),
-			__( 'Legacy stays effective by default (no behaviour change). Opt into secure to apply the trusted-proxy model now; otherwise it becomes the default in a later release.', 'ffcertificate' )
+			__( 'This single choice governs every IP read in the plugin — logging, geolocation, and the security controls (rate limiting, geofence, and the public listing throttle) alike. Secure is recommended: it yields the real client behind Cloudflare / a configured proxy and cannot be spoofed. Legacy stays effective by default (no behaviour change) and is safe, but trusts forwarded headers, so it can be spoofed.', 'ffcertificate' )
 		);
 
 		echo '<form method="post" action="">';
@@ -597,9 +597,9 @@ class TabIpDiagnostics extends SettingsTab {
 		// Effective strategy. Inputs are echoed directly (never through
 		// render_field_row, whose wp_kses_post strips form controls).
 		echo '<tr><th scope="row">' . esc_html__( 'Effective strategy', 'ffcertificate' ) . '</th><td>';
-		$this->echo_radio( 'ffc_ip_strategy', IpDiagnosticsSettingsReader::STRATEGY_LEGACY, $strategy, __( 'Legacy (current behaviour, spoofable) — recommended until a trusted proxy is configured', 'ffcertificate' ) );
+		$this->echo_radio( 'ffc_ip_strategy', IpDiagnosticsSettingsReader::STRATEGY_SECURE, $strategy, __( 'Secure (trusted-proxy model) — real client behind Cloudflare / a configured proxy, unspoofable (recommended)', 'ffcertificate' ) );
 		echo '<br>';
-		$this->echo_radio( 'ffc_ip_strategy', IpDiagnosticsSettingsReader::STRATEGY_SECURE, $strategy, __( 'Secure (trusted-proxy model)', 'ffcertificate' ) );
+		$this->echo_radio( 'ffc_ip_strategy', IpDiagnosticsSettingsReader::STRATEGY_LEGACY, $strategy, __( 'Legacy (current behaviour, spoofable) — the effective default until you switch', 'ffcertificate' ) );
 		echo '</td></tr>';
 
 		// Trusted-proxy configuration.

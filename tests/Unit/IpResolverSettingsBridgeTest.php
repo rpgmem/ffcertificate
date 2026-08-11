@@ -34,7 +34,7 @@ class IpResolverSettingsBridgeTest extends TestCase {
 		Functions\when( 'get_option' )->justReturn( $option );
 	}
 
-	public function test_init_registers_four_filters(): void {
+	public function test_init_registers_five_filters(): void {
 		$hooks = array();
 		Functions\when( 'add_filter' )->alias(
 			static function ( $hook ) use ( &$hooks ) {

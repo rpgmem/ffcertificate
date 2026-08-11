@@ -13,6 +13,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Security
 - **Per-user dashboard kept off the Cloudflare edge cache** (#921): the `[user_dashboard_personal]` page now also emits `Cloudflare-CDN-Cache-Control: no-store` / `CDN-Cache-Control: no-store` — Cloudflare ignores `DONOTCACHEPAGE` / `X-LiteSpeed-Cache-Control`, so these edge-specific directives keep per-user HTML from being shared across visitors under CDN cache rules that honour them.
+- **Recruitment public listing throttle is now fail-closed** (#927, #931): the per-IP rate limit on `[ffc_recruitment_queue]` resolves the client IP via the shared resolver (`RequestInput::get_user_ip()`, following the global legacy/secure strategy) instead of a bespoke `CF-Connecting-IP`/`X-Forwarded-For`/`REMOTE_ADDR` walk, and no longer waves through a caller whose IP can't be identified — they now share the `0.0.0.0` bucket. Closes the fail-open gap (D3); header-rotation evasion is ineffective once the secure strategy is enabled.
+
+### Changed
+- Internal (#927) — **public CSV-download audit log records the client IP via the consolidated resolver**: the two `audit_meta['ip']` sites in `PublicCsvDownload` now use `RequestInput::get_user_ip()` (→ `ClientIpResolver`) instead of a raw `$_SERVER['REMOTE_ADDR']` read, so the audited IP matches every other FFC log and honours the trusted-proxy/Cloudflare resolution. Unresolvable IPs now log as `0.0.0.0` rather than empty.
+- **IP reads unified on one global strategy toggle** (#927, #931): rate-limiting, geofencing, the public listing throttle, and logging now resolve the client IP through the shared `ClientIpResolver` following the **single** `legacy`/`secure` strategy on the IP Diagnostics tab — one admin choice governs every IP read, with `secure` (unspoofable, real client behind Cloudflare / a configured proxy) recommended. The rate-limit attempt log's `ip_address` now records the IP that was actually enforced, so log and enforcement never diverge. ⚠️ **Breaking:** the client-spoofable `ffc_trust_forwarded_headers` filter and the interim `ffc_rate_limit_ip_source` filter/control are **removed** — set the effective strategy to `secure` (with Cloudflare or a trusted proxy) instead.
 
 ## [6.19.0] (2026-08-09) — `d93c277`
 

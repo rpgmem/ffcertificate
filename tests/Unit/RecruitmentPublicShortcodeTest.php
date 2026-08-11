@@ -203,4 +203,30 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 
 		$_SERVER = $server_backup;
 	}
+
+	public function test_render_throttles_unidentifiable_caller_fail_closed(): void {
+		// #927 D3: with no identifiable client IP, the resolver returns the
+		// '0.0.0.0' sentinel — a real bucket — so an unidentifiable caller is
+		// now throttled (fail-closed) instead of waved through (former fail-open).
+		Functions\when( 'get_option' )->justReturn(
+			array(
+				'public_rate_limit_per_minute' => 5,
+				'public_cache_seconds'         => 0,
+			)
+		);
+
+		$server_backup = $_SERVER;
+		unset( $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_CF_CONNECTING_IP'], $_SERVER['HTTP_X_FORWARDED_FOR'] );
+		Functions\when( 'get_transient' )->alias(
+			static function ( $key ) {
+				return false !== strpos( (string) $key, 'ffc_recruitment_public_rate_' ) ? 999 : false;
+			}
+		);
+
+		$html = RecruitmentPublicShortcode::render( array( 'notice' => 'EDITAL-2026-01' ) );
+
+		$this->assertStringContainsString( 'Too many requests', $html );
+
+		$_SERVER = $server_backup;
+	}
 }

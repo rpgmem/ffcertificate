@@ -581,43 +581,6 @@ final class RateLimitChecker {
 	}
 
 	/**
-	 * Get user ip.
-	 *
-	 * NOTE (#899 phase 1): this already-secure resolver (REMOTE_ADDR-first,
-	 * forwarded headers gated behind `ffc_trust_forwarded_headers`) is left in
-	 * place on purpose. It is folded into the shared `ClientIpResolver` secure
-	 * strategy only at the phase-3 flip (#902) — delegating it to the canonical
-	 * `legacy`-default resolver now would regress it to trust-all-headers.
-	 *
-	 * @return string
-	 */
-	public static function get_user_ip(): string {
-		// By default we only trust REMOTE_ADDR, which is set by the web server and cannot be spoofed by clients.
-		// When the site sits behind a known reverse proxy (Cloudflare, AWS ALB, nginx), administrators can opt in
-		// to forwarded headers via the 'ffc_trust_forwarded_headers' filter. Returning true enables the legacy
-		// behavior that consults HTTP_X_FORWARDED_FOR and friends.
-		$trust_forwarded = (bool) apply_filters( 'ffc_trust_forwarded_headers', false );
-
-		$candidates = $trust_forwarded
-			? array( 'HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR' )
-			: array( 'REMOTE_ADDR' );
-
-		foreach ( $candidates as $key ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Value unslashed and sanitized on next line.
-			if ( ! empty( $_SERVER[ $key ] ) ) {
-				$ip = sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) );
-				if ( strpos( $ip, ',' ) !== false ) {
-					$ip = trim( explode( ',', $ip )[0] );
-				}
-				if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
-					return $ip;
-				}
-			}
-		}
-		return '0.0.0.0';
-	}
-
-	/**
 	 * Check rate limit for authenticated user actions (password change, privacy request)
 	 *
 	 * @since 4.9.9
