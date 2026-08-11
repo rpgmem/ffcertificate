@@ -39,7 +39,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-note">
 		<p>
 			<strong class="ffc-icon-info"><?php esc_html_e( 'Admin bypass.', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'Geofencing can be set to ignore administrators so they can test a form from anywhere (Settings → Geofence).', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Geofencing can be set to ignore administrators so they can test a form from anywhere (Settings → Geolocation).', 'ffcertificate' ); ?>
 		</p>
 	</div>
 </div>

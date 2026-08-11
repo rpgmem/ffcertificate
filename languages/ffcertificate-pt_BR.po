@@ -5099,8 +5099,8 @@ msgid "Date Range"
 msgstr "Intervalo de Datas"
 
 #: includes/settings/views/documentation/reference-tokens.php:111
-msgid "Date the certificate is generated (alias of {{print_date}})"
-msgstr "Data de geração do certificado (alias de {{print_date}})"
+msgid "Date when the submission was created (alias of {{submission_date}}) — note this is the submission date, not the PDF generation date"
+msgstr "Data em que o envio foi criado (alias de {{submission_date}}) — atenção: é a data do envio, não a data de geração do PDF"
 
 #: includes/recruitment/class-ffc-recruitment-dashboard-section.php:284 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:173 templates/public/recruitment/section-open.php:63 templates/admin/recruitment/candidate-edit/classifications-section.php:77
 msgid "Date to assume"
@@ -8261,8 +8261,8 @@ msgid "Geofencing (GPS + IP):"
 msgstr "Geocerca (GPS + IP):"
 
 #: includes/settings/views/documentation/forms-geolocation.php:42
-msgid "Geofencing can be set to ignore administrators so they can test a form from anywhere (Settings → Geofence)."
-msgstr "O geofencing pode ser configurado para ignorar administradores, permitindo que testem um formulário de qualquer lugar (Configurações → Georeferenciamento)."
+msgid "Geofencing can be set to ignore administrators so they can test a form from anywhere (Settings → Geolocation)."
+msgstr "O geofencing pode ser configurado para ignorar administradores, permitindo que testem um formulário de qualquer lugar (Configurações → Geolocalização)."
 
 #: includes/settings/views/documentation/forms-geolocation.php:20
 msgid "Geofencing restricts where a form may be submitted. It is configured in the form editor's Geofence box, \"Geolocation\" tab, and can validate by GPS position, by IP geolocation, or both."
@@ -11501,8 +11501,8 @@ msgid "Number"
 msgstr "Número"
 
 #: includes/settings/views/documentation/feature-quiz.php:31
-msgid "Number of correct answers"
-msgstr "Número de respostas corretas"
+msgid "Points earned — sum of the point values of the options the participant selected"
+msgstr "Pontos obtidos — soma dos valores de pontos das opções que o participante selecionou"
 
 #: includes/settings/views/documentation/feature-audiences.php:38
 msgid "Numeric input"
@@ -17627,8 +17627,8 @@ msgid "Total Links"
 msgstr "Total de Links"
 
 #: includes/settings/views/documentation/feature-quiz.php:36
-msgid "Total number of questions"
-msgstr "Número total de perguntas"
+msgid "Maximum points available — sum of each scored field's highest option value"
+msgstr "Pontuação máxima disponível — soma do maior valor de opção de cada campo pontuado"
 
 #: includes/settings/views/ffc-tab-migrations.php:180
 msgid "Total Records"

@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</thead>
 		<tbody>
 			<tr>
-				<td><code>{{name}}</code><br><code>{{nome}}</code></td>
+				<td><code>{{name}}</code></td>
 				<td><?php esc_html_e( 'Full name of the participant', 'ffcertificate' ); ?></td>
 				<td><em>John Doe</em></td>
 			</tr>
@@ -108,8 +108,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 			<tr>
 				<td><code>{{fill_date}}</code><br><code>{{date}}</code></td>
-				<td><?php esc_html_e( 'Date the certificate is generated (alias of {{print_date}})', 'ffcertificate' ); ?></td>
-				<td><em>20/01/2026</em></td>
+				<td><?php esc_html_e( 'Date when the submission was created (alias of {{submission_date}}) — note this is the submission date, not the PDF generation date', 'ffcertificate' ); ?></td>
+				<td><em>29/12/2025</em></td>
 			</tr>
 			<tr>
 				<td><code>{{schedule}}</code></td>
