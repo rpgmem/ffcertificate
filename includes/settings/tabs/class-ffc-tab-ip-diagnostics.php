@@ -158,19 +158,11 @@ class TabIpDiagnostics extends SettingsTab {
 
 		$custom = $this->sanitize_cidr_list( $custom_raw );
 
-		$rate_source = isset( $_POST['ffc_ip_rate_limit_source'] )
-			? sanitize_key( wp_unslash( $_POST['ffc_ip_rate_limit_source'] ) )
-			: IpDiagnosticsSettingsReader::RATE_LIMIT_IP_REMOTE;
-		if ( ! in_array( $rate_source, array( IpDiagnosticsSettingsReader::RATE_LIMIT_IP_REMOTE, IpDiagnosticsSettingsReader::RATE_LIMIT_IP_RESOLVER ), true ) ) {
-			$rate_source = IpDiagnosticsSettingsReader::RATE_LIMIT_IP_REMOTE;
-		}
-
 		$settings = array(
-			'strategy'             => $strategy,
-			'trusted_proxy_mode'   => $proxy_mode,
-			'custom_proxies'       => implode( "\n", $custom ),
-			'shadow_logging'       => isset( $_POST['ffc_ip_shadow_logging'] ) ? 1 : 0,
-			'rate_limit_ip_source' => $rate_source,
+			'strategy'           => $strategy,
+			'trusted_proxy_mode' => $proxy_mode,
+			'custom_proxies'     => implode( "\n", $custom ),
+			'shadow_logging'     => isset( $_POST['ffc_ip_shadow_logging'] ) ? 1 : 0,
 		);
 
 		update_option( self::OPTION_KEY, $settings, false );
@@ -588,15 +580,14 @@ class TabIpDiagnostics extends SettingsTab {
 	 * Render the strategy + trusted-proxy configuration form.
 	 */
 	private function render_config_form(): void {
-		$strategy    = IpDiagnosticsSettingsReader::strategy();
-		$proxy_mode  = IpDiagnosticsSettingsReader::trusted_proxy_mode();
-		$custom      = implode( "\n", IpDiagnosticsSettingsReader::custom_proxies() );
-		$shadow      = IpDiagnosticsSettingsReader::shadow_logging_enabled();
-		$rate_source = IpDiagnosticsSettingsReader::rate_limit_ip_source();
+		$strategy   = IpDiagnosticsSettingsReader::strategy();
+		$proxy_mode = IpDiagnosticsSettingsReader::trusted_proxy_mode();
+		$custom     = implode( "\n", IpDiagnosticsSettingsReader::custom_proxies() );
+		$shadow     = IpDiagnosticsSettingsReader::shadow_logging_enabled();
 
 		$this->render_section_header(
 			__( 'Resolution strategy', 'ffcertificate' ),
-			__( 'Legacy stays effective by default (no behaviour change). Opt into secure to apply the trusted-proxy model now; otherwise it becomes the default in a later release.', 'ffcertificate' )
+			__( 'This single choice governs every IP read in the plugin — logging, geolocation, and the security controls (rate limiting, geofence, and the public listing throttle) alike. Secure is recommended: it yields the real client behind Cloudflare / a configured proxy and cannot be spoofed. Legacy stays effective by default (no behaviour change) and is safe, but trusts forwarded headers, so it can be spoofed.', 'ffcertificate' )
 		);
 
 		echo '<form method="post" action="">';
@@ -606,9 +597,9 @@ class TabIpDiagnostics extends SettingsTab {
 		// Effective strategy. Inputs are echoed directly (never through
 		// render_field_row, whose wp_kses_post strips form controls).
 		echo '<tr><th scope="row">' . esc_html__( 'Effective strategy', 'ffcertificate' ) . '</th><td>';
-		$this->echo_radio( 'ffc_ip_strategy', IpDiagnosticsSettingsReader::STRATEGY_LEGACY, $strategy, __( 'Legacy (current behaviour, spoofable) — recommended until a trusted proxy is configured', 'ffcertificate' ) );
+		$this->echo_radio( 'ffc_ip_strategy', IpDiagnosticsSettingsReader::STRATEGY_SECURE, $strategy, __( 'Secure (trusted-proxy model) — real client behind Cloudflare / a configured proxy, unspoofable (recommended)', 'ffcertificate' ) );
 		echo '<br>';
-		$this->echo_radio( 'ffc_ip_strategy', IpDiagnosticsSettingsReader::STRATEGY_SECURE, $strategy, __( 'Secure (trusted-proxy model)', 'ffcertificate' ) );
+		$this->echo_radio( 'ffc_ip_strategy', IpDiagnosticsSettingsReader::STRATEGY_LEGACY, $strategy, __( 'Legacy (current behaviour, spoofable) — the effective default until you switch', 'ffcertificate' ) );
 		echo '</td></tr>';
 
 		// Trusted-proxy configuration.
@@ -633,17 +624,6 @@ class TabIpDiagnostics extends SettingsTab {
 		echo '<strong>' . esc_html__( 'Do not paste Cloudflare ranges here.', 'ffcertificate' ) . '</strong> ';
 		echo esc_html__( 'They are already detected and kept up to date automatically (official ips-v4/ips-v6 lists, daily refresh) via the Auto or Cloudflare modes. This field is only for your own reverse proxy — nginx, HAProxy or another CDN.', 'ffcertificate' );
 		echo '</p></div>';
-		echo '</td></tr>';
-
-		// Rate-limit IP source (#927). Independent of the effective strategy
-		// above: rate limiting is a security control, so its source is always one
-		// of two unspoofable options. Default stays REMOTE_ADDR-only (no upgrade
-		// behaviour change); `resolver` is recommended behind Cloudflare / a proxy.
-		echo '<tr><th scope="row">' . esc_html__( 'Rate-limit IP source', 'ffcertificate' ) . '</th><td>';
-		$this->echo_radio( 'ffc_ip_rate_limit_source', IpDiagnosticsSettingsReader::RATE_LIMIT_IP_REMOTE, $rate_source, __( 'REMOTE_ADDR only — the raw TCP peer, ignoring every header (most conservative)', 'ffcertificate' ) );
-		echo '<br>';
-		$this->echo_radio( 'ffc_ip_rate_limit_source', IpDiagnosticsSettingsReader::RATE_LIMIT_IP_RESOLVER, $rate_source, __( 'Follow the resolver (Secure) — real client behind Cloudflare / a configured proxy (recommended when proxied)', 'ffcertificate' ) );
-		echo '<p class="description">' . esc_html__( 'The rate limiter always uses the trusted-proxy (Secure) model here — never the spoofable header walk — regardless of the effective strategy above.', 'ffcertificate' ) . '</p>';
 		echo '</td></tr>';
 
 		// Shadow logging — a `.ffc-toggle` with autosave (allowlisted key
