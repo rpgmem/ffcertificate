@@ -5082,7 +5082,7 @@ msgid "Date Range"
 msgstr ""
 
 #: includes/settings/views/documentation/reference-tokens.php:111
-msgid "Date the certificate is generated (alias of {{print_date}})"
+msgid "Date when the submission was created (alias of {{submission_date}}) — note this is the submission date, not the PDF generation date"
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-dashboard-section.php:284 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:173 templates/public/recruitment/section-open.php:63 templates/admin/recruitment/candidate-edit/classifications-section.php:77
@@ -8233,7 +8233,7 @@ msgid "Geofencing (GPS + IP):"
 msgstr ""
 
 #: includes/settings/views/documentation/forms-geolocation.php:42
-msgid "Geofencing can be set to ignore administrators so they can test a form from anywhere (Settings → Geofence)."
+msgid "Geofencing can be set to ignore administrators so they can test a form from anywhere (Settings → Geolocation)."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-geolocation.php:20
@@ -11453,7 +11453,7 @@ msgid "Number"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-quiz.php:31
-msgid "Number of correct answers"
+msgid "Points earned — sum of the point values of the options the participant selected"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-audiences.php:38
@@ -17542,7 +17542,7 @@ msgid "Total Links"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-quiz.php:36
-msgid "Total number of questions"
+msgid "Maximum points available — sum of each scored field's highest option value"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:180

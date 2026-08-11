@@ -28,12 +28,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<tbody>
 			<tr>
 				<td><code>{{score}}</code></td>
-				<td><?php esc_html_e( 'Number of correct answers', 'ffcertificate' ); ?></td>
+				<td><?php esc_html_e( 'Points earned — sum of the point values of the options the participant selected', 'ffcertificate' ); ?></td>
 				<td><em>8</em></td>
 			</tr>
 			<tr>
 				<td><code>{{max_score}}</code></td>
-				<td><?php esc_html_e( 'Total number of questions', 'ffcertificate' ); ?></td>
+				<td><?php esc_html_e( 'Maximum points available — sum of each scored field\'s highest option value', 'ffcertificate' ); ?></td>
 				<td><em>10</em></td>
 			</tr>
 			<tr>

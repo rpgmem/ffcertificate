@@ -19,6 +19,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Internal (#927) — **public CSV-download audit log records the client IP via the consolidated resolver**: the two `audit_meta['ip']` sites in `PublicCsvDownload` now use `RequestInput::get_user_ip()` (→ `ClientIpResolver`) instead of a raw `$_SERVER['REMOTE_ADDR']` read, so the audited IP matches every other FFC log and honours the trusted-proxy/Cloudflare resolution. Unresolvable IPs now log as `0.0.0.0` rather than empty.
 - **IP reads unified on one global strategy toggle** (#927, #931): rate-limiting, geofencing, the public listing throttle, and logging now resolve the client IP through the shared `ClientIpResolver` following the **single** `legacy`/`secure` strategy on the IP Diagnostics tab — one admin choice governs every IP read, with `secure` (unspoofable, real client behind Cloudflare / a configured proxy) recommended. The rate-limit attempt log's `ip_address` now records the IP that was actually enforced, so log and enforcement never diverge. ⚠️ **Breaking:** the client-spoofable `ffc_trust_forwarded_headers` filter and the interim `ffc_rate_limit_ip_source` filter/control are **removed** — set the effective strategy to `secure` (with Cloudflare or a trusted proxy) instead.
 
+### Fixed
+- **In-admin Documentation tab accuracy** (#934): the Template Variables reference now describes `{{date}}` / `{{fill_date}}` as the submission date (alias of `{{submission_date}}`), not the PDF generation date, and drops `{{nome}}` (only satisfies save-time validation, never renders); Quiz `{{score}}` / `{{max_score}}` are documented as point sums, not answer/question counts; and a stale "Settings → Geofence" cross-reference now points to "Settings → Geolocation". pt_BR translations updated to match.
+
 ## [6.19.0] (2026-08-09) — `d93c277`
 
 ### Fixed
