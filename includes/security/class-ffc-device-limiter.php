@@ -11,7 +11,7 @@
  * Unlike the IP/email/CPF limiters it is keyed by (form_id, signals[]) rather
  * than a single string identifier, so it does not implement RateLimitStrategy.
  * Shared settings come from the injected {@see RateLimitSupport}; the
- * STRONG_SIGNALS / WEAK_SIGNALS registry stays on {@see RateLimitChecker}.
+ * STRONG_SIGNALS registry stays on {@see RateLimitChecker}.
  *
  * @package FreeFormCertificate\Security
  */

@@ -107,7 +107,7 @@ class DocumentFormatter {
 	 */
 	public static function validate_phone( string $phone ): bool {
 		$phone = preg_replace( '/\s+/', '', $phone ) ?? '';
-		return (bool) preg_match( '/^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/', $phone );
+		return (bool) preg_match( '/' . self::PHONE_REGEX . '/', $phone );
 	}
 
 	/**
