@@ -112,10 +112,23 @@ class AppointmentHandler {
 			return new \WP_Error( 'calendar_inactive', __( 'This calendar is not accepting bookings.', 'ffcertificate' ) );
 		}
 
-		// Calculate end time based on slot duration.
-		$start_datetime   = $data['appointment_date'] . ' ' . $data['start_time'];
-		$end_timestamp    = strtotime( $start_datetime ) + ( $calendar['slot_duration'] * 60 );
-		$data['end_time'] = gmdate( 'H:i:s', $end_timestamp );
+		// Calculate end time. Custom mode (#941): the chosen block carries its own
+		// explicit end; regular mode derives it from the calendar slot duration.
+		if ( 'custom' === ( $calendar['schedule_type'] ?? 'regular' ) ) {
+			$block = \FreeFormCertificate\SelfScheduling\CustomSlots::find(
+				$calendar['custom_slots'] ?? '',
+				$data['appointment_date'],
+				$data['start_time']
+			);
+			if ( null === $block ) {
+				return new \WP_Error( 'invalid_slot', __( 'The selected time block is no longer available.', 'ffcertificate' ) );
+			}
+			$data['end_time'] = \FreeFormCertificate\SelfScheduling\CustomSlots::hm( $block['end'] ) . ':00';
+		} else {
+			$start_datetime   = $data['appointment_date'] . ' ' . $data['start_time'];
+			$end_timestamp    = strtotime( $start_datetime ) + ( $calendar['slot_duration'] * 60 );
+			$data['end_time'] = gmdate( 'H:i:s', $end_timestamp );
+		}
 
 		// Check LGPD consent (outside transaction — no DB needed).
 		if ( empty( $data['consent_given'] ) ) {
@@ -245,6 +258,13 @@ class AppointmentHandler {
 			}
 		}
 
+		// Custom mode (#941): explicit date/time blocks instead of the weekly
+		// working-hours pattern. Holiday / blocked-date subtraction above still
+		// applies (holiday wins over a block).
+		if ( 'custom' === ( $calendar['schedule_type'] ?? 'regular' ) ) {
+			return $this->get_custom_slots_for_date( $calendar, $calendar_id, $date, $has_bypass );
+		}
+
 		// Get day of week.
 		$date_ts     = strtotime( $date );
 		$day_of_week = \FreeFormCertificate\Core\Utils::get_day_of_week_number( $date_ts ? $date_ts : null );
@@ -331,6 +351,63 @@ class AppointmentHandler {
 		 * @param string $date         Date string (Y-m-d).
 		 * @param array<string, mixed>  $calendar     Calendar configuration.
 		 */
+		return apply_filters( 'ffcertificate_available_slots', $slots, $calendar_id, $date, $calendar );
+	}
+
+	/**
+	 * Build the available slots for a custom-mode calendar (#941).
+	 *
+	 * Each configured block for the date becomes one slot. Unlike the regular
+	 * grid, full blocks ARE emitted (with `available = 0`) so the frontend can
+	 * render them as "esgotado" rather than hiding them. Capacity is the block's
+	 * own value; `end` is the block's explicit end.
+	 *
+	 * @param array<string, mixed> $calendar    Calendar row (carries custom_slots).
+	 * @param int                  $calendar_id Calendar id.
+	 * @param string               $date        Date (Y-m-d).
+	 * @param bool                 $has_bypass  Whether the current user bypasses blocked-date checks.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function get_custom_slots_for_date( array $calendar, int $calendar_id, string $date, bool $has_bypass ): array {
+		$blocks = \FreeFormCertificate\SelfScheduling\CustomSlots::for_date( $calendar['custom_slots'] ?? '', $date );
+		if ( empty( $blocks ) ) {
+			return array();
+		}
+
+		$existing = $this->appointment_repository->getAppointmentsByDate( $calendar_id, $date );
+		$slots    = array();
+
+		foreach ( $blocks as $block ) {
+			$start_hm  = \FreeFormCertificate\SelfScheduling\CustomSlots::hm( $block['start'] );
+			$end_hm    = \FreeFormCertificate\SelfScheduling\CustomSlots::hm( $block['end'] );
+			$slot_time = $start_hm . ':00';
+
+			// Time-range blocked-date subtraction still applies (bypass skips it).
+			if ( ! $has_bypass && $this->blocked_date_repository->isDateBlocked( $calendar_id, $date, $slot_time ) ) {
+				continue;
+			}
+
+			$count = 0;
+			foreach ( $existing as $apt ) {
+				if ( \FreeFormCertificate\SelfScheduling\CustomSlots::hm( (string) $apt['start_time'] ) === $start_hm ) {
+					++$count;
+				}
+			}
+
+			$capacity = (int) $block['capacity'];
+			$range    = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $slot_time )
+				. ' – ' . \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $end_hm . ':00' );
+
+			$slots[] = array(
+				'time'      => $slot_time,
+				'end'       => $end_hm . ':00',
+				'display'   => '' !== $block['label'] ? $block['label'] . ' · ' . $range : $range,
+				'available' => max( 0, $capacity - $count ),
+				'total'     => $capacity,
+			);
+		}
+
+		/** This filter is documented in self::get_available_slots(). */
 		return apply_filters( 'ffcertificate_available_slots', $slots, $calendar_id, $date, $calendar );
 	}
 
