@@ -277,3 +277,54 @@ describe('appointment cleanup (.ffc-cleanup-btn click)', () => {
 		expect(alertSpy).toHaveBeenCalledWith('Error communicating with server');
 	});
 });
+
+// ----------------------------------------------------------------------
+// Custom scheduling mode (#941)
+// ----------------------------------------------------------------------
+
+describe('custom scheduling mode (#941)', () => {
+	beforeEach(() => {
+		window.$.fx.off = true;
+		document.getElementById('ffc-scheduling-section').innerHTML = `
+			<div class="ffc-regular-only" id="reg-section">regular</div>
+			<div class="ffc-custom-only" id="cust-section">
+				<table><tbody id="ffc-custom-slots-list"></tbody></table>
+				<button id="ffc-add-custom-slot">Add Block</button>
+			</div>
+			<label><input type="radio" class="ffc-schedule-type-radio" name="m" value="regular" checked /></label>
+			<label><input type="radio" class="ffc-schedule-type-radio" name="m" value="custom" /></label>
+		`;
+	});
+
+	it('shows regular and hides custom when the regular radio is active', () => {
+		window.$('.ffc-schedule-type-radio[value="regular"]').prop('checked', true).trigger('change');
+		expect(window.$('#reg-section').css('display')).not.toBe('none');
+		expect(window.$('#cust-section').css('display')).toBe('none');
+	});
+
+	it('shows custom and hides regular when the custom radio is selected', () => {
+		window.$('.ffc-schedule-type-radio[value="custom"]').prop('checked', true).trigger('change');
+		expect(window.$('#cust-section').css('display')).not.toBe('none');
+		expect(window.$('#reg-section').css('display')).toBe('none');
+	});
+
+	it('appends a block row with the custom_slots field names', () => {
+		const before = document.querySelectorAll('#ffc-custom-slots-list tr').length;
+		document.getElementById('ffc-add-custom-slot').click();
+		const rows = document.querySelectorAll('#ffc-custom-slots-list tr');
+		expect(rows.length).toBe(before + 1);
+		const dateInput = rows[rows.length - 1].querySelector('input[type="date"]');
+		expect(dateInput.name).toMatch(/ffc_self_scheduling_custom_slots\[\d+\]\[date\]/);
+		// capacity defaults to 1
+		expect(rows[rows.length - 1].querySelector('input[type="number"]').value).toBe('1');
+	});
+
+	it('removes a block row on the remove button', async () => {
+		document.getElementById('ffc-add-custom-slot').click();
+		document.getElementById('ffc-add-custom-slot').click();
+		expect(document.querySelectorAll('#ffc-custom-slots-list tr').length).toBe(2);
+		document.querySelector('.ffc-remove-slot').click();
+		await new Promise((r) => setTimeout(r, 300));
+		expect(document.querySelectorAll('#ffc-custom-slots-list tr').length).toBe(1);
+	});
+});
