@@ -74,6 +74,20 @@ class CertTemplateAdminScreenTest extends TestCase {
 		$this->assertSame( 'Custom', $this->capture( fn() => $screen->render_column( 'ffc_type', 2 ) ) );
 	}
 
+	public function test_render_column_category_reports_kind(): void {
+		// #945: the Category column reports the template kind.
+		Functions\when( 'get_post_meta' )->alias(
+			static fn( $id, $key ) => ( CertTemplateCpt::META_KIND === $key && 1 === $id )
+				? CertTemplateCpt::KIND_APPOINTMENT_RECEIPT
+				: ''
+		);
+		$screen = new CertTemplateAdminScreen();
+
+		$this->assertSame( 'Appointment receipt', $this->capture( fn() => $screen->render_column( 'ffc_category', 1 ) ) );
+		// Absent kind meta reports the certificate category.
+		$this->assertSame( 'Certificate', $this->capture( fn() => $screen->render_column( 'ffc_category', 2 ) ) );
+	}
+
 	public function test_render_column_visible_reflects_meta(): void {
 		Functions\when( 'get_post_meta' )->alias(
 			static fn( $id, $key ) => ( CertTemplateCpt::META_VISIBLE === $key && 1 === $id ) ? '1' : ''

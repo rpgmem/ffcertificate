@@ -119,9 +119,9 @@ class CertTemplateReceiptSettings {
 	/**
 	 * Render one template <select> (with a "Shipped default" zero option).
 	 *
-	 * @param string                                                     $name      Field name/id.
-	 * @param array<int, array{id:int, label:string, is_default:bool}>   $templates Pool templates of the receipt kind.
-	 * @param int                                                        $selected  Currently selected id.
+	 * @param string                                                   $name      Field name/id.
+	 * @param array<int, array{id:int, label:string, is_default:bool}> $templates Pool templates of the receipt kind.
+	 * @param int                                                      $selected  Currently selected id.
 	 * @return void
 	 */
 	private function render_select( string $name, array $templates, int $selected ): void {

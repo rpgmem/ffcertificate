@@ -117,7 +117,7 @@ class CertTemplateSeeder {
 				continue;
 			}
 
-			self::insert_default( $slug, $def['title'], $html, self::bg_url( $def['bg'] ), $def['kind'] ?? CertTemplateCpt::KIND_CERTIFICATE );
+			self::insert_default( $slug, $def['title'], $html, self::bg_url( $def['bg'] ), $def['kind'] );
 		}
 	}
 
@@ -139,7 +139,7 @@ class CertTemplateSeeder {
 				continue;
 			}
 
-			$kind = $def['kind'] ?? CertTemplateCpt::KIND_CERTIFICATE;
+			$kind = $def['kind'];
 
 			if ( isset( $existing_map[ $slug ] ) ) {
 				// Refresh the shipped body + background field only — leave
@@ -191,25 +191,26 @@ class CertTemplateSeeder {
 	/**
 	 * The shipped default templates: stable slug → title + seed filename + the
 	 * background-image basename (under {@see self::BG_DIR}) lifted out of the body
-	 * into `META_BG_IMAGE` since seed v3.
+	 * into `META_BG_IMAGE` since seed v3. Each entry also carries its `kind`
+	 * (#945) and, optionally, a `dir` overriding {@see self::SEED_DIR}.
 	 *
-	 * @return array<string, array{title:string, file:string, bg:string}>
+	 * @return array<string, array{title:string, file:string, bg:string, kind:string, dir?:string}>
 	 */
 	private static function definitions(): array {
 		return array(
-			'default_certificate_1'         => array(
+			'default_certificate_1'               => array(
 				'title' => __( 'Certificate model 1', 'ffcertificate' ),
 				'file'  => 'default_certificate_1.html',
 				'bg'    => 'default_background_certificate_1.png',
 				'kind'  => CertTemplateCpt::KIND_CERTIFICATE,
 			),
-			'default_certificate_2'         => array(
+			'default_certificate_2'               => array(
 				'title' => __( 'Certificate model 2', 'ffcertificate' ),
 				'file'  => 'default_certificate_2.html',
 				'bg'    => 'default_background_certificate_2.png',
 				'kind'  => CertTemplateCpt::KIND_CERTIFICATE,
 			),
-			'default_certificate_3'         => array(
+			'default_certificate_3'               => array(
 				'title' => __( 'Certificate model 3', 'ffcertificate' ),
 				'file'  => 'default_certificate_3.html',
 				'bg'    => 'default_background_certificate_3.png',

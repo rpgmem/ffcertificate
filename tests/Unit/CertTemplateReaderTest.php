@@ -61,6 +61,56 @@ class CertTemplateReaderTest extends TestCase {
 		$this->assertSame( 1, $list[1]['id'] );
 	}
 
+	public function test_list_for_editor_certificate_kind_allows_absent_meta(): void {
+		$captured = null;
+		Functions\when( 'get_posts' )->alias(
+			static function ( $args ) use ( &$captured ) {
+				$captured = $args;
+				return array();
+			}
+		);
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+
+		CertTemplateReader::list_for_editor(); // default kind = certificate
+
+		// The kind clause must match `certificate` OR a missing meta (#945 retrocompat).
+		$kind_clause = $captured['meta_query'][1];
+		$this->assertSame( 'OR', $kind_clause['relation'] );
+		$this->assertSame( CertTemplateCpt::KIND_CERTIFICATE, $kind_clause[0]['value'] );
+		$this->assertSame( 'NOT EXISTS', $kind_clause[1]['compare'] );
+	}
+
+	public function test_list_for_editor_receipt_kind_is_exact_match(): void {
+		$captured = null;
+		Functions\when( 'get_posts' )->alias(
+			static function ( $args ) use ( &$captured ) {
+				$captured = $args;
+				return array();
+			}
+		);
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+
+		CertTemplateReader::list_for_editor( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT );
+
+		$kind_clause = $captured['meta_query'][1];
+		$this->assertSame( CertTemplateCpt::META_KIND, $kind_clause['key'] );
+		$this->assertSame( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT, $kind_clause['value'] );
+	}
+
+	public function test_get_kind_absent_meta_defaults_to_certificate(): void {
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+		$this->assertSame( CertTemplateCpt::KIND_CERTIFICATE, CertTemplateReader::get_kind( 5 ) );
+	}
+
+	public function test_get_kind_returns_stored_meta(): void {
+		Functions\when( 'get_post_meta' )->justReturn( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT );
+		$this->assertSame( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT, CertTemplateReader::get_kind( 5 ) );
+	}
+
+	public function test_get_kind_nonpositive_id_defaults_to_certificate(): void {
+		$this->assertSame( CertTemplateCpt::KIND_CERTIFICATE, CertTemplateReader::get_kind( 0 ) );
+	}
+
 	public function test_get_html_returns_meta_for_pool_post(): void {
 		Functions\when( 'get_post' )->justReturn( $this->fake_post( 5, 'X' ) );
 		Functions\when( 'get_post_meta' )->justReturn( '<div>hi</div>' );

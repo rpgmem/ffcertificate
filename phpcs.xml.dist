@@ -107,6 +107,8 @@
                 <element value="ffc_view_activity_log"/>
                 <element value="ffc_view_as_user"/>
                 <element value="ffc_manage_settings"/>
+                <element value="ffc_manage_forms"/>
+                <element value="ffc_view_forms"/>
                 <element value="ffc_view_forms_api"/>
                 <!-- Admin module caps — view (só vê) tier of the 3-state model. -->
                 <element value="ffc_view_certificates"/>
