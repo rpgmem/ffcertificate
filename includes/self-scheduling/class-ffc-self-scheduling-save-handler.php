@@ -95,6 +95,9 @@ class SelfSchedulingSaveHandler {
 		$config['waitlist_enabled']  = isset( $config['waitlist_enabled'] ) ? 1 : 0;
 		$config['waitlist_capacity'] = absint( $config['waitlist_capacity'] ?? 0 );
 
+		// Per-user block cap (#941 phase 3): custom mode only; 0 = disabled.
+		$config['max_blocks_per_user'] = absint( $config['max_blocks_per_user'] ?? 0 );
+
 		// Scheduling mode (#941): 'regular' (weekly working hours) or 'custom'
 		// (explicit date/time blocks). Unknown values fall back to 'regular'.
 		$config['schedule_type'] = ( 'custom' === ( $config['schedule_type'] ?? 'regular' ) ) ? 'custom' : 'regular';

@@ -405,6 +405,41 @@ class AppointmentReader extends AbstractRepository {
 	}
 
 	/**
+	 * Per-slot occupancy counts for a calendar (#941 phase 3).
+	 *
+	 * Returns one row per booked `(date, start_time)` with the active count
+	 * (`confirmed` + `pending`) and the waitlisted count, for the custom-mode
+	 * occupancy report. Slots with no bookings simply don't appear (the caller
+	 * pairs these against the configured blocks).
+	 *
+	 * @param int $calendar_id Calendar ID.
+	 * @return array<int, array<string, mixed>> Rows: date, start, booked, waitlisted.
+	 */
+	public function getOccupancyCounts( int $calendar_id ): array {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $this->wpdb->get_results(
+			$this->wpdb->prepare(
+				"SELECT appointment_date AS date, start_time AS start,
+                        SUM( CASE WHEN status IN ('confirmed','pending') THEN 1 ELSE 0 END ) AS booked,
+                        SUM( CASE WHEN status = 'waitlist' THEN 1 ELSE 0 END ) AS waitlisted
+                 FROM %i
+                 WHERE calendar_id = %d
+                 GROUP BY appointment_date, start_time",
+				$this->table,
+				$calendar_id
+			),
+			ARRAY_A
+		);
+
+		/**
+		 * Cast wpdb result to expected shape.
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
 	 * Get upcoming appointments for reminders
 	 *
 	 * @param int $hours_before Hours before appointment.

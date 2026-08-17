@@ -164,6 +164,30 @@ class AppointmentValidator {
 			$slot_capacity = (int) $calendar['max_appointments_per_slot'];
 		}
 
+		// 8b. Per-user block cap (#941 phase 3) — custom mode only. Counts the
+		// user's active + waitlisted bookings in this calendar; bypass skips.
+		if ( $is_custom && ! $has_bypass ) {
+			$block_cap = (int) ( $calendar['max_blocks_per_user'] ?? 0 );
+			if ( $block_cap > 0 ) {
+				$identifier = $this->resolve_user_identifier( $data );
+				if ( null !== $identifier && $this->count_user_blocks( $identifier, (int) $data['calendar_id'] ) >= $block_cap ) {
+					return new \WP_Error(
+						'block_limit',
+						sprintf(
+							/* translators: %d: maximum number of bookings */
+							_n(
+								'You have reached the maximum of %d booking for this calendar.',
+								'You have reached the maximum of %d bookings for this calendar.',
+								$block_cap,
+								'ffcertificate'
+							),
+							$block_cap
+						)
+					);
+				}
+			}
+		}
+
 		// 9. Check slot/block capacity. Enforced for everyone EXCEPT holders of the
 		// dedicated overbook capability (#941) — the one manual override.
 		if ( ! current_user_can( 'ffc_bypass_appointment_capacity' ) ) {
@@ -319,6 +343,59 @@ class AppointmentValidator {
 		);
 
 		return $waiting < $capacity;
+	}
+
+	/**
+	 * Resolve the booking user's identifier for per-user checks (#941 phase 3).
+	 *
+	 * Prefers the WP user id, then email, then CPF/RF — mirroring the
+	 * minimum-interval check's precedence.
+	 *
+	 * @param array<string, mixed> $data Appointment data.
+	 * @return int|string|null
+	 */
+	private function resolve_user_identifier( array $data ) {
+		if ( ! empty( $data['user_id'] ) ) {
+			return (int) $data['user_id'];
+		}
+		if ( ! empty( $data['email'] ) ) {
+			return $data['email'];
+		}
+		if ( ! empty( $data['cpf_rf'] ) ) {
+			return $data['cpf_rf'];
+		}
+		return null;
+	}
+
+	/**
+	 * Count a user's active (+ waitlisted) bookings in a calendar (#941 phase 3).
+	 *
+	 * Used to enforce the per-user block cap. `cancelled`/`completed`/`no_show`
+	 * rows don't count; `waitlist` does (queuing counts toward the cap).
+	 *
+	 * @param int|string $user_identifier User id, email, or CPF/RF.
+	 * @param int        $calendar_id Calendar ID.
+	 * @return int
+	 */
+	private function count_user_blocks( $user_identifier, int $calendar_id ): int {
+		if ( is_int( $user_identifier ) ) {
+			$appointments = $this->appointment_repository->findByUserId( $user_identifier );
+		} elseif ( filter_var( $user_identifier, FILTER_VALIDATE_EMAIL ) ) {
+			$appointments = $this->appointment_repository->findByEmail( $user_identifier );
+		} else {
+			$appointments = $this->appointment_repository->findByCpfRf( $user_identifier );
+		}
+
+		$count = 0;
+		foreach ( $appointments as $appointment ) {
+			if ( (int) $appointment['calendar_id'] !== $calendar_id ) {
+				continue;
+			}
+			if ( in_array( $appointment['status'], array( 'pending', 'confirmed', 'waitlist' ), true ) ) {
+				++$count;
+			}
+		}
+		return $count;
 	}
 
 	/**
