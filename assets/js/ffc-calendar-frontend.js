@@ -112,6 +112,8 @@
             $slot.addClass('selected').attr('aria-selected', 'true');
 
             this.selectedTime = time;
+            // Whether the chosen slot is a waitlist join (full slot, queue open).
+            this.selectedWaitlist = !!$slot.data('waitlist');
             this.showBookingForm();
         },
 
@@ -245,13 +247,25 @@
             }
 
             $.each(slots, function(index, slot) {
-                var availableText = slot.available + ' / ' + slot.total;
                 var isFull = slot.available === 0;
-                var fullClass = isFull ? ' ffc-timeslot-full' : '';
-                var tabIdx = isFull ? '' : ' tabindex="0"';
-                var ariaDisabled = isFull ? ' aria-disabled="true"' : '';
+                // A full slot with a waitlist stays selectable (joins the queue);
+                // a full slot without one is disabled (#941 phase 2).
+                var canWaitlist = isFull && !!slot.waitlist_available;
+                var selectable = !isFull || canWaitlist;
 
-                html += '<div class="ffc-timeslot' + fullClass + '" role="option" aria-selected="false"' + tabIdx + ariaDisabled + ' data-time="' + slot.time + '">';
+                var availableText = canWaitlist
+                    ? (ffcCalendar.strings.joinWaitlist || 'Join waitlist')
+                    : (slot.available + ' / ' + slot.total);
+
+                var stateClass = '';
+                if (isFull) {
+                    stateClass = canWaitlist ? ' ffc-timeslot-waitlist' : ' ffc-timeslot-full';
+                }
+                var tabIdx = selectable ? ' tabindex="0"' : '';
+                var ariaDisabled = selectable ? '' : ' aria-disabled="true"';
+                var waitAttr = canWaitlist ? ' data-waitlist="1"' : '';
+
+                html += '<div class="ffc-timeslot' + stateClass + '" role="option" aria-selected="false"' + tabIdx + ariaDisabled + waitAttr + ' data-time="' + slot.time + '">';
                 html += '<span class="ffc-timeslot-time">' + slot.display + '</span>';
                 html += '<span class="ffc-timeslot-available">' + availableText + '</span>';
                 html += '</div>';
@@ -271,6 +285,23 @@
             // Switch modal view: hide time slots, show form
             $('.ffc-timeslots-wrapper').hide();
             $('.ffc-booking-form-wrapper').show();
+
+            // Waitlist notice (#941 phase 2): this slot is full, so the booking
+            // joins the queue. Show/hide a banner atop the form accordingly.
+            var $formWrapper = $('.ffc-booking-form-wrapper');
+            var $notice = $formWrapper.find('.ffc-waitlist-notice');
+            if (this.selectedWaitlist) {
+                if (!$notice.length) {
+                    $notice = $('<div class="ffc-waitlist-notice" role="status"></div>');
+                    $formWrapper.prepend($notice);
+                }
+                $notice.text(
+                    ffcCalendar.strings.waitlistNotice ||
+                    'This time is full. Submitting adds you to the waitlist — you will be notified automatically if a spot opens up.'
+                ).show();
+            } else if ($notice.length) {
+                $notice.hide();
+            }
 
             // Update modal title
             $('#ffc-self-scheduling-modal .ffc-modal-title').text(
@@ -411,7 +442,10 @@
             detailsHtml += '<p><strong>' + esc(ffcCalendar.strings.name) + ':</strong> ' + esc($('#ffc-booking-name').val()) + '</p>';
             detailsHtml += '<p><strong>' + esc(ffcCalendar.strings.email) + ':</strong> ' + esc($('#ffc-booking-email').val()) + '</p>';
 
-            if (data.requires_approval) {
+            if (data.waitlisted) {
+                // Full slot → queued (#941 phase 2).
+                detailsHtml += '<p><strong>' + ffcCalendar.strings.status + ':</strong> ' + (ffcCalendar.strings.waitlistStatus || 'On waitlist') + '</p>';
+            } else if (data.requires_approval) {
                 detailsHtml += '<p><strong>' + ffcCalendar.strings.status + ':</strong> ' + ffcCalendar.strings.pendingApproval + '</p>';
             } else {
                 detailsHtml += '<p><strong>' + ffcCalendar.strings.status + ':</strong> ' + ffcCalendar.strings.confirmed + '</p>';
