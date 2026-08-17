@@ -37,16 +37,6 @@ class UrlShortenerQrHandler {
 	/**
 	 * Constructor.
 	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
 	 * @param UrlShortenerService $service Service.
 	 */
 	public function __construct( UrlShortenerService $service ) {

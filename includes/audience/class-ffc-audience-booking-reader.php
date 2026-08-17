@@ -292,16 +292,6 @@ class AudienceBookingReader {
 	/**
 	 * Get booking by ID
 	 *
-	 * Get by id.
-	 *
-	 * Get by id.
-	 *
-	 * Get by id.
-	 *
-	 * Get by id.
-	 *
-	 * Get by id.
-	 *
 	 * @param int $id Booking ID.
 	 * @return BookingRow|null
 	 */
@@ -587,20 +577,6 @@ class AudienceBookingReader {
 	/**
 	 * Check for user conflicts across environments
 	 *
-	 * Returns bookings that would affect the same users at the same time.
-	 * When $scope_schedule_id is provided, only bookings in that schedule
-	 * are considered (isolated-calendar mode).
-	 *
-	 * Get user conflicts.
-	 *
-	 * Get user conflicts.
-	 *
-	 * Get user conflicts.
-	 *
-	 * Get user conflicts.
-	 *
-	 * Get user conflicts.
-	 *
 	 * @param string     $date Date (Y-m-d).
 	 * @param string     $start_time Start time (H:i).
 	 * @param string     $end_time End time (H:i).
@@ -711,21 +687,6 @@ class AudienceBookingReader {
 	/**
 	 * Find bookings on the same date that include any of the given audience groups
 	 *
-	 * This is a "soft conflict" check — same audience group booked multiple times
-	 * on the same day (regardless of time overlap).
-	 * When $scope_schedule_id is provided, only bookings in that schedule
-	 * are considered (isolated-calendar mode).
-	 *
-	 * Get audience same day bookings.
-	 *
-	 * Get audience same day bookings.
-	 *
-	 * Get audience same day bookings.
-	 *
-	 * Get audience same day bookings.
-	 *
-	 * Get audience same day bookings.
-	 *
 	 * @param string     $date Date (Y-m-d).
 	 * @param array<int> $audience_ids Audience IDs to check.
 	 * @param int|null   $exclude_booking_id Booking ID to exclude (for updates).
@@ -798,16 +759,6 @@ class AudienceBookingReader {
 
 	/**
 	 * Count bookings
-	 *
-	 * Count.
-	 *
-	 * Count.
-	 *
-	 * Count.
-	 *
-	 * Count.
-	 *
-	 * Count.
 	 *
 	 * @param array<string, mixed> $args Query arguments.
 	 * @return int

@@ -200,26 +200,6 @@ abstract class AbstractRepository {
 	/**
 	 * Count rows
 	 *
-	 * Count.
-	 *
-	 * Count.
-	 *
-	 * Count.
-	 *
-	 * Count.
-	 *
-	 * Count.
-	 *
-	 * Count.
-	 *
-	 * Count.
-	 *
-	 * Count.
-	 *
-	 * Count.
-	 *
-	 * Count.
-	 *
 	 * @param array<string, mixed> $conditions Conditions.
 	 * @return int
 	 */
@@ -236,16 +216,6 @@ abstract class AbstractRepository {
 
 	/**
 	 * Insert
-	 *
-	 * Insert.
-	 *
-	 * Insert.
-	 *
-	 * Insert.
-	 *
-	 * Insert.
-	 *
-	 * Insert.
 	 *
 	 * @param array<string, mixed> $data Data.
 	 * @return int|false Insert ID on success, false on failure

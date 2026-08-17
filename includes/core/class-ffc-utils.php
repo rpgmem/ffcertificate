@@ -46,36 +46,6 @@ class Utils {
 	/**
 	 * Truncate string to specific length
 	 *
-	 * Truncate.
-	 *
-	 * Truncate.
-	 *
-	 * Truncate.
-	 *
-	 * Truncate.
-	 *
-	 * Truncate.
-	 *
-	 * Truncate.
-	 *
-	 * Truncate.
-	 *
-	 * Truncate.
-	 *
-	 * Truncate.
-	 *
-	 * Truncate.
-	 *
-	 * Truncate.
-	 *
-	 * Truncate.
-	 *
-	 * Truncate.
-	 *
-	 * Truncate.
-	 *
-	 * Truncate.
-	 *
 	 * @param string $text Text to truncate.
 	 * @param int    $length Maximum length.
 	 * @param string $suffix Suffix to add (default: '...').

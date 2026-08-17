@@ -52,16 +52,6 @@ class VerificationHandler {
 	/**
 	 * Constructor
 	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
 	 * @param SubmissionHandler|null $submission_handler Submission handler dependency.
 	 */
 	public function __construct( ?SubmissionHandler $submission_handler = null ) {

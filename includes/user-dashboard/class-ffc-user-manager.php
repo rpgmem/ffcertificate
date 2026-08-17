@@ -81,16 +81,6 @@ class UserManager {
 	/**
 	 * Get user profile from ffc_user_profiles
 	 *
-	 * Get profile.
-	 *
-	 * Get profile.
-	 *
-	 * Get profile.
-	 *
-	 * Get profile.
-	 *
-	 * Get profile.
-	 *
 	 * @since 4.9.4
 	 * @param int $user_id WordPress user ID.
 	 * @return array<string, mixed> Profile data

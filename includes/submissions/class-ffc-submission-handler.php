@@ -458,16 +458,6 @@ class SubmissionHandler {
 	/**
 	 * Restore submission
 	 *
-	 * Restore submission.
-	 *
-	 * Restore submission.
-	 *
-	 * Restore submission.
-	 *
-	 * Restore submission.
-	 *
-	 * Restore submission.
-	 *
 	 * @uses Repository::updateStatus()
 	 * @param int $id ID.
 	 */
@@ -478,16 +468,6 @@ class SubmissionHandler {
 	/**
 	 * Permanently delete submission
 	 *
-	 * Delete submission.
-	 *
-	 * Delete submission.
-	 *
-	 * Delete submission.
-	 *
-	 * Delete submission.
-	 *
-	 * Delete submission.
-	 *
 	 * @uses Repository::delete()
 	 * @param int $id ID.
 	 */
@@ -497,26 +477,6 @@ class SubmissionHandler {
 
 	/**
 	 * Bulk trash submissions (optimized)
-	 *
-	 * Bulk trash submissions.
-	 *
-	 * Bulk trash submissions.
-	 *
-	 * Bulk trash submissions.
-	 *
-	 * Bulk trash submissions.
-	 *
-	 * Bulk trash submissions.
-	 *
-	 * Bulk trash submissions.
-	 *
-	 * Bulk trash submissions.
-	 *
-	 * Bulk trash submissions.
-	 *
-	 * Bulk trash submissions.
-	 *
-	 * Bulk trash submissions.
 	 *
 	 * @uses Repository::bulkUpdateStatus()
 	 *
