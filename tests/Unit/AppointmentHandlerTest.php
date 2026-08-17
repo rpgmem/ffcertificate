@@ -110,6 +110,8 @@ class AppointmentHandlerTest extends TestCase {
         $this->appointmentRepo = Mockery::mock( 'FreeFormCertificate\Repositories\AppointmentRepository' );
         $this->blockedDateRepo = Mockery::mock( 'FreeFormCertificate\Repositories\BlockedDateRepository' );
         $this->validator = Mockery::mock( 'FreeFormCertificate\SelfScheduling\AppointmentValidator' );
+        // Default: no waitlist diversion (#941 phase 2). Waitlist-specific tests override.
+        $this->validator->shouldReceive( 'is_waitlist_requested' )->andReturn( false )->byDefault();
 
         $this->setPrivate( 'calendar_repository', $this->calendarRepo );
         $this->setPrivate( 'appointment_repository', $this->appointmentRepo );

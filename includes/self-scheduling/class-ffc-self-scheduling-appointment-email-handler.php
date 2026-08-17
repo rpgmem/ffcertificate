@@ -35,6 +35,9 @@ class AppointmentEmailHandler {
 		add_action( 'ffcertificate_self_scheduling_appointment_confirmed_email', array( $this, 'send_approval_notification' ), 10, 2 );
 		add_action( 'ffcertificate_self_scheduling_appointment_cancelled_email', array( $this, 'send_cancellation_notification' ), 10, 2 );
 		add_action( 'ffcertificate_self_scheduling_appointment_reminder_email', array( $this, 'send_reminder' ), 10, 2 );
+		// Waitlist lifecycle (#941 phase 2).
+		add_action( 'ffcertificate_self_scheduling_appointment_waitlisted_email', array( $this, 'send_waitlist_notification' ), 10, 2 );
+		add_action( 'ffcertificate_self_scheduling_appointment_promoted_email', array( $this, 'send_promotion_notification' ), 10, 2 );
 	}
 
 	/**
@@ -305,6 +308,101 @@ class AppointmentEmailHandler {
 
 		// Send email.
 		$this->send_mail( $email, $subject, self::ffc_email_document( $content ) );
+	}
+
+	/**
+	 * Send "you're on the waitlist" notification to the user (#941 phase 2).
+	 *
+	 * Fired when a booking for a full slot is queued instead of confirmed. The
+	 * user keeps their cancellation link (leaving the queue) and is told they'll
+	 * be notified automatically if a spot opens.
+	 *
+	 * @param array<string, mixed> $appointment Appointment data.
+	 * @param array<string, mixed> $calendar Calendar data.
+	 * @return void
+	 */
+	public function send_waitlist_notification( array $appointment, array $calendar ): void {
+		if ( $this->are_emails_disabled() ) {
+			return;
+		}
+
+		$email = $this->get_appointment_email( $appointment );
+		if ( empty( $email ) || ! is_email( $email ) ) {
+			return;
+		}
+
+		$subject = sprintf(
+			/* translators: %s: calendar title */
+			__( 'Added to Waitlist: %s', 'ffcertificate' ),
+			$calendar['title']
+		);
+
+		$content = self::ffc_render_email_partial(
+			'appointment-waitlisted',
+			array(
+				'calendar_title' => $calendar['title'],
+				'date_formatted' => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] ),
+				'time_formatted' => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] ),
+				'cancel_url'     => $calendar['allow_cancellation'] ? $this->get_cancellation_url( $appointment ) : '',
+			)
+		);
+
+		$this->send_mail( $email, $subject, self::ffc_email_document( $content, array( 'recipient' => $email ) ) );
+	}
+
+	/**
+	 * Send "a spot opened — you're in" notification to a promoted user (#941 phase 2).
+	 *
+	 * Fired when the FIFO promoter moves a waitlisted booking into the active
+	 * pool. The message reflects whether the promoted booking is now confirmed or
+	 * still pending admin approval.
+	 *
+	 * @param array<string, mixed> $appointment Appointment data (post-promotion).
+	 * @param array<string, mixed> $calendar Calendar data.
+	 * @return void
+	 */
+	public function send_promotion_notification( array $appointment, array $calendar ): void {
+		if ( $this->are_emails_disabled() ) {
+			return;
+		}
+
+		$email = $this->get_appointment_email( $appointment );
+		if ( empty( $email ) || ! is_email( $email ) ) {
+			return;
+		}
+
+		$subject = sprintf(
+			/* translators: %s: calendar title */
+			__( 'A Spot Opened Up: %s', 'ffcertificate' ),
+			$calendar['title']
+		);
+
+		$is_pending     = 'pending' === ( $appointment['status'] ?? '' );
+		$status_message = $is_pending
+			? __( 'A spot opened up and you have moved off the waitlist. Your booking is now pending approval — you will receive a confirmation once it is approved.', 'ffcertificate' )
+			: __( 'A spot opened up and your booking is now confirmed!', 'ffcertificate' );
+
+		$receipt_url = '';
+		if ( class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler' ) ) {
+			$receipt_url = AppointmentReceiptHandler::get_receipt_url(
+				$appointment['id'],
+				$appointment['confirmation_token'] ?? ''
+			);
+		}
+
+		$content = self::ffc_render_email_partial(
+			'appointment-promoted',
+			array(
+				'calendar_title' => $calendar['title'],
+				'status_message' => $status_message,
+				'date_formatted' => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] ),
+				'time_formatted' => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] ),
+				'receipt_url'    => $receipt_url,
+				'cancel_url'     => $calendar['allow_cancellation'] ? $this->get_cancellation_url( $appointment ) : '',
+			)
+		);
+
+		$this->send_mail( $email, $subject, self::ffc_email_document( $content, array( 'recipient' => $email ) ) );
 	}
 
 	/**

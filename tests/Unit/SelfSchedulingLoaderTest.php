@@ -65,6 +65,9 @@ class SelfSchedulingLoaderTest extends TestCase {
 		foreach ( self::CLASSES as $cls ) {
 			Mockery::mock( 'overload:FreeFormCertificate\SelfScheduling\\' . $cls );
 		}
+		// The waitlist promoter is constructed and then ->register()ed (#941 phase 2).
+		Mockery::mock( 'overload:FreeFormCertificate\SelfScheduling\WaitlistPromoter' )
+			->shouldReceive( 'register' )->andReturnNull()->getMock();
 	}
 
 	public function test_init_wires_full_module_in_admin(): void {
