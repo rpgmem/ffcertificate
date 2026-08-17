@@ -134,9 +134,13 @@ class SettingsSaveHandler {
 			$clean['dark_mode'] = in_array( $new['dark_mode'], $allowed_modes, true ) ? $new['dark_mode'] : 'off';
 		}
 
-		// Cleanup Days.
+		// Submission auto-delete (#936). The enable toggle is a checkbox, so an
+		// unchecked switch is simply absent from POST — rebuild it every general
+		// save (no-clobber) from presence. The day window is clamped to >= 1;
+		// the toggle, not a 0-day value, is what disables the cleanup.
+		$clean['cleanup_enabled'] = ! empty( $new['cleanup_enabled'] );
 		if ( isset( $new['cleanup_days'] ) ) {
-			$clean['cleanup_days'] = absint( $new['cleanup_days'] );
+			$clean['cleanup_days'] = max( 1, absint( $new['cleanup_days'] ) );
 		}
 
 		// Main Address.
