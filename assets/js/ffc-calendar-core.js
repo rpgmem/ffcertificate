@@ -39,6 +39,7 @@
             minDate: null, // null = no limit
             maxDate: null, // null = no limit
             disabledDays: [], // Array of weekday numbers (0=Sun, 6=Sat)
+            enabledDates: [], // Custom mode (#941): allowlist of 'Y-m-d' — when non-empty, only these dates are bookable
             holidays: {}, // { 'YYYY-MM-DD': 'Holiday Name' }
 
             // Strings
@@ -251,6 +252,13 @@
                     // Check disabled days (weekdays)
                     var weekday = cellDate.getDay();
                     if (this.options.disabledDays.indexOf(weekday) !== -1) {
+                        classes.push('ffc-closed');
+                        classes.push('ffc-disabled');
+                    }
+
+                    // Custom mode (#941): only dates in the allowlist are bookable.
+                    if (this.options.enabledDates && this.options.enabledDates.length &&
+                        this.options.enabledDates.indexOf(dateStr) === -1) {
                         classes.push('ffc-closed');
                         classes.push('ffc-disabled');
                     }

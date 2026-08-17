@@ -215,28 +215,33 @@ final class CapabilityCatalog {
 				'label' => __( 'Appointments', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
-					'ffc_view_appointments'     => array(
+					'ffc_view_appointments'           => array(
 						'label'       => __( 'View appointments', 'ffcertificate' ),
 						'description' => __( 'Read-only access to all scheduled appointments.', 'ffcertificate' ),
 					),
-					'ffc_manage_appointments'   => array(
+					'ffc_manage_appointments'         => array(
 						'label'       => __( 'Manage self-scheduling', 'ffcertificate' ),
 						'description' => __( 'Configure personal calendars and self-scheduling windows.', 'ffcertificate' ),
 					),
-					'ffc_bypass_appointments'   => array(
+					'ffc_bypass_appointments'         => array(
 						'label'       => __( 'Scheduling bypass', 'ffcertificate' ),
 						'description' => __( 'Private calendars, past dates, out-of-hours and blocked dates.', 'ffcertificate' ),
 						'surface'     => 'frontend',
 					),
-					'ffc_export_appointments'   => array(
+					'ffc_bypass_appointment_capacity' => array(
+						'label'       => __( 'Overbook capacity', 'ffcertificate' ),
+						'description' => __( 'Book a slot or custom block that is already full — the only manual override of the always-enforced per-slot/per-block capacity (#941).', 'ffcertificate' ),
+						'surface'     => 'frontend',
+					),
+					'ffc_export_appointments'         => array(
 						'label'       => __( 'Export appointments', 'ffcertificate' ),
 						'description' => __( 'Download the bulk appointments CSV.', 'ffcertificate' ),
 					),
-					'ffc_delete_appointments'   => array(
+					'ffc_delete_appointments'         => array(
 						'label'       => __( 'Delete appointments', 'ffcertificate' ),
 						'description' => __( 'Permanently delete appointments and calendar cleanup purges.', 'ffcertificate' ),
 					),
-					'ffc_view_appointments_pii' => array(
+					'ffc_view_appointments_pii'       => array(
 						'label'       => __( 'Reveal appointment PII', 'ffcertificate' ),
 						'description' => __( 'Reveal the decrypted CPF / RF / email on an appointment (audited). Without it the values stay masked (#739).', 'ffcertificate' ),
 					),

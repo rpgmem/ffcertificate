@@ -342,6 +342,37 @@ class AppointmentHandlerTest extends TestCase {
         $this->assertSame( 2, $result[0]['available'] );
     }
 
+    public function test_available_slots_custom_returns_blocks_with_per_block_capacity(): void {
+        $calendar = $this->makeCalendar( array(
+            'schedule_type' => 'custom',
+            'custom_slots'  => array(
+                array( 'date' => '2026-09-03', 'start' => '08:00', 'end' => '13:00', 'capacity' => 40, 'label' => 'Manha' ),
+                array( 'date' => '2026-09-03', 'start' => '14:00', 'end' => '18:00', 'capacity' => 40, 'label' => '' ),
+                array( 'date' => '2026-09-04', 'start' => '08:00', 'end' => '13:00', 'capacity' => 20, 'label' => '' ),
+            ),
+        ) );
+
+        $this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
+        // One booking already sits in the 08:00 block on 2026-09-03.
+        $this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array(
+            array( 'start_time' => '08:00:00' ),
+        ) );
+        $this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+
+        $result = $this->handler->get_available_slots( 1, '2026-09-03' );
+
+        // Only the two 2026-09-03 blocks; the block IS the slot.
+        $this->assertCount( 2, $result );
+        $this->assertSame( '08:00:00', $result[0]['time'] );
+        $this->assertSame( '13:00:00', $result[0]['end'] );
+        $this->assertSame( 40, $result[0]['total'] );
+        $this->assertSame( 39, $result[0]['available'] ); // 40 capacity − 1 booking
+        $this->assertStringContainsString( 'Manha', $result[0]['display'] );
+        // Second block untouched.
+        $this->assertSame( '14:00:00', $result[1]['time'] );
+        $this->assertSame( 40, $result[1]['available'] );
+    }
+
     public function test_available_slots_reduces_by_existing_appointments(): void {
         $calendar = $this->makeCalendar( array(
             'slot_duration'            => 30,

@@ -103,6 +103,10 @@ class CapabilityManager {
 		'ffc_manage_certificates',
 		'ffc_export_certificates',
 		'ffc_manage_appointments',
+		// Capacity overbook (#941). The one manual override of the always-enforced
+		// per-slot / per-block capacity: a holder can book a full slot. Distinct
+		// from `ffc_bypass_appointments` (which never bypasses capacity).
+		'ffc_bypass_appointment_capacity',
 		'ffc_manage_audiences',
 		'ffc_view_activity_log',
 		'ffc_manage_custom_fields',

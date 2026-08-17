@@ -568,12 +568,18 @@
         var workingDays = config.workingDays || [];
         var minDateHours = config.minDateHours || 0;
         var maxDateDays = config.maxDateDays || 30;
+        var scheduleType = config.scheduleType || 'regular';
+        var enabledDates = config.enabledDates || [];
 
-        // Calculate disabled days (weekdays not in workingDays)
+        // Calculate disabled days (weekdays not in workingDays). In custom mode
+        // (#941) the weekly pattern doesn't apply — the enabledDates allowlist
+        // drives which days are bookable — so no weekday is disabled.
         var disabledDays = [];
-        for (var i = 0; i < 7; i++) {
-            if (workingDays.indexOf(i) === -1) {
-                disabledDays.push(i);
+        if (scheduleType !== 'custom') {
+            for (var i = 0; i < 7; i++) {
+                if (workingDays.indexOf(i) === -1) {
+                    disabledDays.push(i);
+                }
             }
         }
 
@@ -587,6 +593,16 @@
         var maxDate = new Date();
         maxDate.setDate(maxDate.getDate() + maxDateDays);
         maxDate.setHours(23, 59, 59, 999);
+
+        // Custom mode (#941): the bookable dates are explicit, so extend the
+        // navigable range to the last configured date rather than capping it
+        // at advance_booking_max (which does not apply in custom mode).
+        if (scheduleType === 'custom' && enabledDates.length) {
+            var lastDate = new Date(enabledDates[enabledDates.length - 1] + 'T23:59:59');
+            if (!isNaN(lastDate.getTime())) {
+                maxDate = lastDate;
+            }
+        }
 
         // Store booking counts, holidays and tracking
         var bookingCounts = {};
@@ -634,6 +650,7 @@
             minDate: minDate,
             maxDate: maxDate,
             disabledDays: disabledDays,
+            enabledDates: enabledDates,
             strings: ffcCalendar.strings,
             legendItems: [
                 { 'class': 'ffc-available', label: ffcCalendar.strings.available || 'Available' },

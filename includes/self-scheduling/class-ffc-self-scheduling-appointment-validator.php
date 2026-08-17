@@ -64,6 +64,7 @@ class AppointmentValidator {
 	public function validate( array $data, array $calendar, bool $use_lock = false ) {
 		$calendar_post_id = isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;
 		$has_bypass       = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, $calendar_post_id );
+		$is_custom        = 'custom' === ( $calendar['schedule_type'] ?? 'regular' );
 
 		// 1. Validate required fields.
 		if ( empty( $data['appointment_date'] ) || empty( $data['start_time'] ) ) {
@@ -105,8 +106,9 @@ class AppointmentValidator {
 			}
 		}
 
-		// 6. Validate advance booking window (maximum) - bypass skips.
-		if ( ! $has_bypass && $calendar['advance_booking_max'] > 0 ) {
+		// 6. Validate advance booking window (maximum) - bypass skips. Not applied
+		// in custom mode (#941): the bookable dates are explicit by construction.
+		if ( ! $has_bypass && ! $is_custom && $calendar['advance_booking_max'] > 0 ) {
 			$max_advance = $now + ( $calendar['advance_booking_max'] * 86400 );
 			if ( $appointment_timestamp > $max_advance ) {
 				return new \WP_Error(
@@ -130,26 +132,45 @@ class AppointmentValidator {
 			}
 		}
 
-		// 8. Check working hours (bypass skips)
-		if ( ! $has_bypass && ! $this->is_within_working_hours( $data['appointment_date'], $data['start_time'], $calendar ) ) {
-			return new \WP_Error( 'outside_hours', __( 'Selected time is outside working hours.', 'ffcertificate' ) );
+		// 8. Resolve the slot capacity per mode. Custom (#941): the (date, start)
+		// must match a defined block, and that block's capacity applies; working
+		// hours don't. Regular: the working-hours gate + the calendar-wide cap.
+		if ( $is_custom ) {
+			$block = \FreeFormCertificate\SelfScheduling\CustomSlots::find(
+				$calendar['custom_slots'] ?? '',
+				$data['appointment_date'],
+				$data['start_time']
+			);
+			if ( null === $block ) {
+				return new \WP_Error( 'invalid_slot', __( 'The selected time block is not available.', 'ffcertificate' ) );
+			}
+			$slot_capacity = (int) $block['capacity'];
+		} else {
+			if ( ! $has_bypass && ! $this->is_within_working_hours( $data['appointment_date'], $data['start_time'], $calendar ) ) {
+				return new \WP_Error( 'outside_hours', __( 'Selected time is outside working hours.', 'ffcertificate' ) );
+			}
+			$slot_capacity = (int) $calendar['max_appointments_per_slot'];
 		}
 
-		// 9. Check slot availability — NEVER bypassed (spec: above limit = not allowed)
-		$is_available = $this->appointment_repository->isSlotAvailable(
-			$data['calendar_id'],
-			$data['appointment_date'],
-			$data['start_time'],
-			(int) $calendar['max_appointments_per_slot'],
-			$use_lock
-		);
+		// 9. Check slot/block capacity. Enforced for everyone EXCEPT holders of the
+		// dedicated overbook capability (#941) — the one manual override.
+		if ( ! current_user_can( 'ffc_bypass_appointment_capacity' ) ) {
+			$is_available = $this->appointment_repository->isSlotAvailable(
+				$data['calendar_id'],
+				$data['appointment_date'],
+				$data['start_time'],
+				$slot_capacity,
+				$use_lock
+			);
 
-		if ( ! $is_available ) {
-			return new \WP_Error( 'slot_full', __( 'This time slot is fully booked.', 'ffcertificate' ) );
+			if ( ! $is_available ) {
+				return new \WP_Error( 'slot_full', __( 'This time slot is fully booked.', 'ffcertificate' ) );
+			}
 		}
 
-		// 10. Check daily limit — bypass skips.
-		if ( ! $has_bypass && $calendar['slots_per_day'] > 0 ) {
+		// 10. Check daily limit — bypass skips. Not applied in custom mode (#941):
+		// per-block capacity is the control, not a per-date total.
+		if ( ! $has_bypass && ! $is_custom && $calendar['slots_per_day'] > 0 ) {
 			$daily_count = $this->get_daily_appointment_count( $data['calendar_id'], $data['appointment_date'], $use_lock );
 			if ( $daily_count >= $calendar['slots_per_day'] ) {
 				return new \WP_Error( 'daily_limit', __( 'Daily booking limit reached for this date.', 'ffcertificate' ) );

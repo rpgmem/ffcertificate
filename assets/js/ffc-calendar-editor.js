@@ -16,11 +16,18 @@
         rowCounter: 0,
 
         /**
+         * Counter for custom block rows (#941)
+         */
+        slotCounter: 0,
+
+        /**
          * Initialize editor
          */
         init: function() {
             this.bindEvents();
             this.initRowCounter();
+            this.slotCounter = $('#ffc-custom-slots-list tr').length;
+            this.applyMode();
         },
 
         /**
@@ -46,6 +53,58 @@
 
             // Toggle scheduling visibility based on visibility setting
             $(document).on('change', '#ffc_visibility', this.toggleSchedulingVisibility);
+
+            // Custom scheduling mode (#941): show/hide the regular vs custom
+            // sections and add/remove block rows.
+            $(document).on('change', '.ffc-schedule-type-radio', this.applyMode);
+            $(document).on('click', '#ffc-add-custom-slot', this.addCustomSlot.bind(this));
+            $(document).on('click', '.ffc-remove-slot', this.removeCustomSlot);
+        },
+
+        /**
+         * Show the section that matches the selected scheduling mode (#941).
+         */
+        applyMode: function() {
+            var mode = $('.ffc-schedule-type-radio:checked').val() || 'regular';
+            if (mode === 'custom') {
+                $('.ffc-regular-only').hide();
+                $('.ffc-custom-only').show();
+            } else {
+                $('.ffc-regular-only').show();
+                $('.ffc-custom-only').hide();
+            }
+        },
+
+        /**
+         * Add a new custom block row (#941).
+         */
+        addCustomSlot: function(e) {
+            e.preventDefault();
+            var index = this.slotCounter++;
+            var editorStrings = (typeof ffcSelfSchedulingEditor !== 'undefined' && ffcSelfSchedulingEditor.strings) ? ffcSelfSchedulingEditor.strings : {};
+            var removeLabel = $('<div>').text(editorStrings.remove || 'Remove').html();
+            var n = 'ffc_self_scheduling_custom_slots[' + index + ']';
+            var rowHtml =
+                '<tr>' +
+                '<td><input type="date" name="' + n + '[date]" /></td>' +
+                '<td><input type="time" name="' + n + '[start]" /></td>' +
+                '<td><input type="time" name="' + n + '[end]" /></td>' +
+                '<td><input type="number" name="' + n + '[capacity]" value="1" min="1" max="10000" /></td>' +
+                '<td><input type="text" name="' + n + '[label]" class="regular-text" /></td>' +
+                '<td><button type="button" class="button ffc-remove-slot">' + removeLabel + '</button></td>' +
+                '</tr>';
+            $('#ffc-custom-slots-list').append(rowHtml);
+        },
+
+        /**
+         * Remove a custom block row (#941). Custom calendars may legitimately
+         * have zero blocks, so there is no "keep the last row" guard.
+         */
+        removeCustomSlot: function(e) {
+            e.preventDefault();
+            $(e.currentTarget).closest('tr').fadeOut(200, function() {
+                $(this).remove();
+            });
         },
 
         /**

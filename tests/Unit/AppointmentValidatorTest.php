@@ -118,6 +118,70 @@ class AppointmentValidatorTest extends TestCase {
         );
     }
 
+    /**
+     * Custom-mode calendar (#941) with a single block matching valid_data()
+     * (2030-01-15 @ 10:00), capacity 40. advance_booking_max is set to prove
+     * it is skipped in custom mode.
+     *
+     * @param int $capacity Block capacity.
+     * @return array<string, mixed>
+     */
+    private function custom_calendar( int $capacity = 40 ): array {
+        return array_merge(
+            $this->permissive_calendar(),
+            array(
+                'schedule_type'       => 'custom',
+                'advance_booking_max' => 30, // would reject 2030 in regular mode
+                'custom_slots'        => array(
+                    array( 'date' => '2030-01-15', 'start' => '10:00', 'end' => '13:00', 'capacity' => $capacity, 'label' => '' ),
+                ),
+            )
+        );
+    }
+
+    // ==================================================================
+    // validate() — custom mode (#941)
+    // ==================================================================
+
+    public function test_validate_custom_unknown_block_returns_error(): void {
+        $data                = $this->valid_data();
+        $data['start_time']  = '09:00'; // no block at 09:00
+        $result              = $this->validator->validate( $data, $this->custom_calendar() );
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'invalid_slot', $result->get_error_code() );
+    }
+
+    public function test_validate_custom_uses_block_capacity(): void {
+        // The block capacity (40), not the calendar max (10), must be passed.
+        $this->appointmentRepo->shouldReceive( 'isSlotAvailable' )
+            ->once()
+            ->with( 1, '2030-01-15', '10:00', 40, false )
+            ->andReturn( true );
+
+        $result = $this->validator->validate( $this->valid_data(), $this->custom_calendar( 40 ) );
+        $this->assertTrue( $result );
+    }
+
+    public function test_validate_custom_skips_advance_max(): void {
+        // 2030 is well beyond advance_booking_max=30 days; custom must not reject.
+        $result = $this->validator->validate( $this->valid_data(), $this->custom_calendar() );
+        $this->assertTrue( $result );
+    }
+
+    public function test_validate_custom_overbook_capability_bypasses_full_block(): void {
+        // Block is full…
+        $this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->andReturn( false );
+        // …but the caller holds the overbook capability.
+        Functions\when( 'current_user_can' )->alias( function ( $cap ) {
+            if ( $cap === 'ffc_bypass_appointment_capacity' ) return true;
+            if ( $cap === 'ffc_book_own_appointments' ) return true;
+            return false;
+        } );
+
+        $result = $this->validator->validate( $this->valid_data(), $this->custom_calendar() );
+        $this->assertTrue( $result, 'Overbook capability skips the capacity gate' );
+    }
+
     // ==================================================================
     // validate() — field and format validation
     // ==================================================================

@@ -710,9 +710,17 @@ class SelfSchedulingShortcode {
 			}
 		}
 
+		// Custom mode (#941): only the dates that carry a block are bookable.
+		$schedule_type = ( 'custom' === ( $calendar['schedule_type'] ?? 'regular' ) ) ? 'custom' : 'regular';
+		$enabled_dates = 'custom' === $schedule_type
+			? \FreeFormCertificate\SelfScheduling\CustomSlots::dates( $calendar['custom_slots'] ?? '' )
+			: array();
+
 		$calendar_config = array(
 			'calendarId'    => (int) $calendar['id'],
 			'calendarTitle' => $calendar['title'] ?? '',
+			'scheduleType'  => $schedule_type,
+			'enabledDates'  => $enabled_dates,
 			'workingDays'   => $working_days_js,
 			'minDateHours'  => isset( $calendar['advance_booking_min'] ) ? (int) $calendar['advance_booking_min'] : 0,
 			'maxDateDays'   => isset( $calendar['advance_booking_max'] ) ? (int) $calendar['advance_booking_max'] : 30,
