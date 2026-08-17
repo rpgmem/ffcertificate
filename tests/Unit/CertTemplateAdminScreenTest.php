@@ -58,9 +58,9 @@ class CertTemplateAdminScreenTest extends TestCase {
 
 		$keys = array_keys( $out );
 		$this->assertSame(
-			array( 'cb', 'title', 'ffc_type', 'ffc_visible', 'date' ),
+			array( 'cb', 'title', 'ffc_category', 'ffc_type', 'ffc_visible', 'date' ),
 			$keys,
-			'Type + Visible columns sit immediately after the title, date stays last'
+			'Category + Type + Visible columns sit immediately after the title, date stays last'
 		);
 	}
 

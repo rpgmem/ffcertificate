@@ -71,6 +71,26 @@ class CertTemplateCpt {
 	public const META_BG_IMAGE = '_ffc_template_bg_image';
 
 	/**
+	 * Meta key discriminating which plugin surface a template serves (#945):
+	 * `certificate` (the original pool contents) or `appointment_receipt` (the
+	 * self-scheduling comprovante). An **absent** value counts as `certificate`,
+	 * so pre-#945 templates keep working unchanged. The value is a free-form
+	 * string on purpose — a future surface adds its own kind and filters the pool
+	 * by it, reusing this one storage instead of minting a parallel CPT.
+	 */
+	public const META_KIND = '_ffc_template_kind';
+
+	/**
+	 * Kind value: a certificate template (the pool's original, default contents).
+	 */
+	public const KIND_CERTIFICATE = 'certificate';
+
+	/**
+	 * Kind value: a self-scheduling appointment-receipt (comprovante) template (#945).
+	 */
+	public const KIND_APPOINTMENT_RECEIPT = 'appointment_receipt';
+
+	/**
 	 * Constructor — registers the post type on `init`.
 	 */
 	public function __construct() {

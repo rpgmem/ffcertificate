@@ -322,19 +322,26 @@ class PdfGenerator {
 			}
 		}
 
-		$formatted_time = __( 'N/A', 'ffcertificate' );
+		$formatted_time  = __( 'N/A', 'ffcertificate' );
+		$formatted_start = '';
+		$formatted_end   = '';
 		if ( ! empty( $appointment['start_time'] ) ) {
 			$ts = strtotime( $appointment['start_time'] );
 			if ( false !== $ts ) {
-				$formatted_time = \FreeFormCertificate\Core\DateFormatter::format_time( $ts, 'pdf' );
+				$formatted_start = \FreeFormCertificate\Core\DateFormatter::format_time( $ts, 'pdf' );
+				$formatted_time  = $formatted_start;
 			}
 			if ( ! empty( $appointment['end_time'] ) ) {
 				$ts2 = strtotime( $appointment['end_time'] );
 				if ( false !== $ts2 ) {
-					$formatted_time .= ' - ' . \FreeFormCertificate\Core\DateFormatter::format_time( $ts2, 'pdf' );
+					$formatted_end   = \FreeFormCertificate\Core\DateFormatter::format_time( $ts2, 'pdf' );
+					$formatted_time .= ' - ' . $formatted_end;
 				}
 			}
 		}
+		// #945: an explicit start–end range token, useful for custom-mode session
+		// receipts. Falls back to the start alone when no end is stored.
+		$formatted_range = '' !== $formatted_end ? $formatted_start . ' – ' . $formatted_end : $formatted_start;
 
 		$formatted_created = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['created_at'] ) ) {
@@ -366,21 +373,23 @@ class PdfGenerator {
 
 		// Build data array for placeholder replacement.
 		$data = array(
-			'name'             => $appointment['name'] ?? '',
-			'email'            => $email,
-			'cpf_rf'           => $cpf_rf,
-			'calendar_title'   => $calendar['title'] ?? __( 'N/A', 'ffcertificate' ),
-			'appointment_date' => $formatted_date,
-			'appointment_time' => $formatted_time,
-			'created_at'       => $formatted_created,
-			'status'           => $status_label,
-			'validation_code'  => ! empty( $appointment['validation_code'] )
+			'name'                   => $appointment['name'] ?? '',
+			'email'                  => $email,
+			'cpf_rf'                 => $cpf_rf,
+			'calendar_title'         => $calendar['title'] ?? __( 'N/A', 'ffcertificate' ),
+			'appointment_date'       => $formatted_date,
+			'appointment_time'       => $formatted_time,
+			'appointment_end'        => $formatted_end,
+			'appointment_time_range' => $formatted_range,
+			'created_at'             => $formatted_created,
+			'status'                 => $status_label,
+			'validation_code'        => ! empty( $appointment['validation_code'] )
 				? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT )
 				: '',
-			'auth_code'        => ! empty( $appointment['validation_code'] )
+			'auth_code'              => ! empty( $appointment['validation_code'] )
 				? $appointment['validation_code']
 				: '',
-			'site_name'        => get_bloginfo( 'name' ),
+			'site_name'              => get_bloginfo( 'name' ),
 		);
 
 		// Add magic_token (confirmation_token) for QR code / validation URL.
@@ -388,8 +397,11 @@ class PdfGenerator {
 			$data['magic_token'] = $appointment['confirmation_token'];
 		}
 
-		// Load receipt template.
-		$template = $this->html_renderer->get_appointment_receipt_template();
+		// Load receipt template, resolved per scheduling mode (#945): an
+		// admin-selected pool template for Regular vs Custom, falling back to the
+		// shipped default.
+		$schedule_type = (string) ( $calendar['schedule_type'] ?? 'regular' );
+		$template      = $this->html_renderer->get_appointment_receipt_template( $schedule_type );
 
 		// Build form_config-like structure for generate_html.
 		$form_config = array(
