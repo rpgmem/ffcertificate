@@ -86,7 +86,6 @@ class Settings {
 		add_action( 'admin_init', array( $this, 'handle_url_shortener_cleanup' ) );
 		add_action( 'admin_init', array( $this, 'handle_public_access_disabler' ) );
 		add_action( 'admin_init', array( $this, 'handle_submission_link_audit' ) );
-		add_action( 'wp_ajax_ffc_preview_date_format', array( $this, 'ajax_preview_date_format' ) );
 		add_action( 'admin_init', array( $this, 'handle_cache_actions' ) );
 
 		// Resolve the virtual `ffc_view_settings_page` menu cap dynamically:
@@ -784,15 +783,6 @@ class Settings {
 	 */
 	public function handle_submission_link_audit(): void {
 		$this->action_handler->handle_submission_link_audit();
-	}
-
-	/**
-	 * AJAX handler for date format preview
-	 *
-	 * @since 2.10.0
-	 */
-	public function ajax_preview_date_format(): void {
-		$this->action_handler->ajax_preview_date_format();
 	}
 
 	/**

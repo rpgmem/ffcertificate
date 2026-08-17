@@ -180,10 +180,6 @@ class SettingsTest extends TestCase {
 
         Functions\expect( 'add_action' )
             ->once()
-            ->with( 'wp_ajax_ffc_preview_date_format', Mockery::type( 'array' ) );
-
-        Functions\expect( 'add_action' )
-            ->once()
             ->with( 'admin_init', Mockery::on( function ( $cb ) {
                 return is_array( $cb ) && $cb[1] === 'handle_cache_actions';
             } ) );
@@ -365,37 +361,6 @@ class SettingsTest extends TestCase {
         $this->settings->handle_migration_execution();
     }
 
-    // ==================================================================
-    // ajax_preview_date_format()
-    // ==================================================================
-
-    public function test_ajax_preview_date_format_returns_formatted_date(): void {
-        $_POST['format'] = 'd/m/Y';
-        $_POST['custom_format'] = '';
-
-        Functions\when( 'check_ajax_referer' )->justReturn( true );
-        Functions\when( 'current_user_can' )->justReturn( true );
-        Functions\when( 'date_i18n' )->alias( function ( $format, $timestamp ) {
-            return date( $format, $timestamp );
-        } );
-
-        // Don't throw from wp_send_json_success — the source catches Exception
-        // and calls wp_send_json_error, which would complicate things.
-        $captured_data = null;
-        Functions\when( 'wp_send_json_success' )->alias( function ( $data ) use ( &$captured_data ) {
-            $captured_data = $data;
-        } );
-        Functions\when( 'wp_send_json_error' )->alias( function ( $data ) {
-            throw new \RuntimeException( 'unexpected wp_send_json_error' );
-        } );
-
-        $this->settings->ajax_preview_date_format();
-
-        $this->assertNotNull( $captured_data );
-        $this->assertArrayHasKey( 'formatted', $captured_data );
-        // Sample date is '2026-01-04 15:30:45' formatted as 'd/m/Y' = '04/01/2026'
-        $this->assertSame( '04/01/2026', $captured_data['formatted'] );
-    }
 
     // ==================================================================
     // handle_cache_actions()

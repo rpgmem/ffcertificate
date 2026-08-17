@@ -611,39 +611,6 @@ class SettingsActionHandler {
 	}
 
 	/**
-	 * AJAX handler for date format preview
-	 *
-	 * @since 2.10.0
-	 */
-	public function ajax_preview_date_format(): void {
-		check_ajax_referer( 'ffc_preview_date', 'nonce' );
-
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
-		}
-
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above via check_ajax_referer.
-		$format = \FreeFormCertificate\Core\RequestInput::get_post_string( 'format', 'F j, Y' );
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above via check_ajax_referer.
-		$custom_format = \FreeFormCertificate\Core\RequestInput::get_post_string( 'custom_format' );
-
-		// Sample date for preview.
-		$sample_date = '2026-01-04 15:30:45';
-
-		// Use custom format if selected.
-		if ( 'custom' === $format && ! empty( $custom_format ) ) {
-			$format = $custom_format;
-		}
-
-		try {
-			$formatted = date_i18n( $format, strtotime( $sample_date ) );
-			wp_send_json_success( array( 'formatted' => $formatted ) );
-		} catch ( Exception $e ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid date format', 'ffcertificate' ) ) );
-		}
-	}
-
-	/**
 	 * Handle cache actions.
 	 */
 	public function handle_cache_actions(): void {
