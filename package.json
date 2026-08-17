@@ -16,7 +16,7 @@
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.10",
     "clean-css-cli": "^5.6.3",
-    "eslint": "^10.8.0",
+    "eslint": "^10.8.1",
     "globals": "^17.9.0",
     "jquery": "^4.0.0",
     "jsdom": "^30.0.1",
