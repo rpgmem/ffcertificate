@@ -126,6 +126,9 @@ class SettingsAjaxEndpoint {
 			// matches the WooCommerce / EDD / Yoast convention so plugin
 			// deletion never wipes data unintentionally.
 			'delete_data_on_uninstall',
+			// General tab — submission auto-delete opt-in (#936). Default OFF;
+			// gates the day-window field so no site purges data unintentionally.
+			'cleanup_enabled',
 		);
 
 		$allowlist = array(
@@ -337,7 +340,7 @@ class SettingsAjaxEndpoint {
 			'cleanup_days'                => array(
 				'int',
 				array(
-					'min' => 0,
+					'min' => 1,
 					'max' => 3650,
 				),
 			),

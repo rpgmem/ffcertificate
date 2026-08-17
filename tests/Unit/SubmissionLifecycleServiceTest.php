@@ -81,13 +81,16 @@ class SubmissionLifecycleServiceTest extends TestCase {
      * activity_log_enabled() returns false. disable_logging/enable_logging are
      * pure static setters, safe to run for real.
      *
-     * @return void
+     * @return \Mockery\MockInterface The aliased SettingsReader mock, so callers
+     *                                can add further expectations (e.g. the
+     *                                cleanup gate) to the same alias.
      */
-    private function stubActivityLog(): void {
+    private function stubActivityLog(): \Mockery\MockInterface {
         $reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
         $reader->shouldReceive( 'activity_log_enabled' )->andReturn( false )->byDefault();
         $reader->shouldReceive( 'activity_log_min_level' )->andReturn( 'info' )->byDefault();
         $reader->shouldReceive( 'activity_log_category_enabled' )->andReturn( true )->byDefault();
+        return $reader;
     }
 
     // ==================================================================
@@ -289,15 +292,25 @@ class SubmissionLifecycleServiceTest extends TestCase {
     // run_data_cleanup()
     // ==================================================================
 
-    public function test_run_data_cleanup_returns_zero_when_disabled(): void {
-        Functions\when( 'get_option' )->justReturn( 0 );
+    public function test_run_data_cleanup_returns_zero_when_toggle_off(): void {
+        $reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
+        $reader->shouldReceive( 'get_bool' )->with( 'cleanup_enabled', false )->andReturn( false );
+
+        $this->assertSame( 0, $this->service->run_data_cleanup() );
+    }
+
+    public function test_run_data_cleanup_returns_zero_when_days_below_one(): void {
+        $reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
+        $reader->shouldReceive( 'get_bool' )->with( 'cleanup_enabled', false )->andReturn( true );
+        $reader->shouldReceive( 'get_int' )->with( 'cleanup_days', 365 )->andReturn( 0 );
 
         $this->assertSame( 0, $this->service->run_data_cleanup() );
     }
 
     public function test_run_data_cleanup_deletes_and_logs(): void {
-        $this->stubActivityLog();
-        Functions\when( 'get_option' )->justReturn( 30 );
+        $reader = $this->stubActivityLog();
+        $reader->shouldReceive( 'get_bool' )->with( 'cleanup_enabled', false )->andReturn( true );
+        $reader->shouldReceive( 'get_int' )->with( 'cleanup_days', 365 )->andReturn( 30 );
 
         global $wpdb;
         $wpdb->shouldReceive( 'query' )->once()->andReturn( 8 );
@@ -308,7 +321,9 @@ class SubmissionLifecycleServiceTest extends TestCase {
     }
 
     public function test_run_data_cleanup_query_false_returns_zero(): void {
-        Functions\when( 'get_option' )->justReturn( 30 );
+        $reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
+        $reader->shouldReceive( 'get_bool' )->with( 'cleanup_enabled', false )->andReturn( true );
+        $reader->shouldReceive( 'get_int' )->with( 'cleanup_days', 365 )->andReturn( 30 );
 
         global $wpdb;
         $wpdb->shouldReceive( 'query' )->once()->andReturn( false );
