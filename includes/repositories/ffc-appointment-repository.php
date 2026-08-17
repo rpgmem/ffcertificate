@@ -190,6 +190,32 @@ class AppointmentRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Count waitlisted entries for a slot (#941 phase 2).
+	 *
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $date Date.
+	 * @param string $start_time Start time.
+	 * @param bool   $use_lock Use FOR UPDATE lock (requires active transaction).
+	 * @return int
+	 */
+	public function countWaitlisted( int $calendar_id, string $date, string $start_time, bool $use_lock = false ): int {
+		return $this->reader->countWaitlisted( $calendar_id, $date, $start_time, $use_lock );
+	}
+
+	/**
+	 * Find the oldest waitlisted entry for a slot (#941 phase 2).
+	 *
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $date Date.
+	 * @param string $start_time Start time.
+	 * @param bool   $use_lock Use FOR UPDATE lock (requires active transaction).
+	 * @return array<string, mixed>|null
+	 */
+	public function findOldestWaitlisted( int $calendar_id, string $date, string $start_time, bool $use_lock = false ): ?array {
+		return $this->reader->findOldestWaitlisted( $calendar_id, $date, $start_time, $use_lock );
+	}
+
+	/**
 	 * Get upcoming appointments for reminders
 	 *
 	 * @param int $hours_before Hours before appointment.
@@ -365,6 +391,17 @@ class AppointmentRepository extends AbstractRepository {
 	 */
 	public function confirm( int $id, ?int $approved_by = null ) {
 		return $this->writer->confirm( $id, $approved_by );
+	}
+
+	/**
+	 * Promote a waitlisted appointment when a spot frees up (#941 phase 2).
+	 *
+	 * @param int  $id Record ID.
+	 * @param bool $requires_approval Whether the calendar requires manual approval.
+	 * @return int|false
+	 */
+	public function promoteFromWaitlist( int $id, bool $requires_approval ) {
+		return $this->writer->promoteFromWaitlist( $id, $requires_approval );
 	}
 
 	/**

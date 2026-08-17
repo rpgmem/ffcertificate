@@ -209,6 +209,10 @@ class SelfSchedulingShortcode {
 					'status'               => __( 'Status', 'ffcertificate' ),
 					'confirmed'            => __( 'Confirmed', 'ffcertificate' ),
 					'pendingApproval'      => __( 'Pending Approval', 'ffcertificate' ),
+					// Waitlist (#941 phase 2).
+					'joinWaitlist'         => __( 'Join waitlist', 'ffcertificate' ),
+					'waitlistStatus'       => __( 'On waitlist', 'ffcertificate' ),
+					'waitlistNotice'       => __( 'This time is full. Submitting adds you to the waitlist — you will be notified automatically if a spot opens up.', 'ffcertificate' ),
 					'confirmationCode'     => __( 'Confirmation Code', 'ffcertificate' ),
 					'confirmationCodeHelp' => __( 'Save this code to manage your appointment.', 'ffcertificate' ),
 					'downloadReceipt'      => __( 'Download Receipt', 'ffcertificate' ),

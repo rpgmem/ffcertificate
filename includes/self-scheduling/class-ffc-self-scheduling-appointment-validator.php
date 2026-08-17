@@ -40,6 +40,17 @@ class AppointmentValidator {
 	private $blocked_date_repository;
 
 	/**
+	 * Whether the last validate() diverted a full-slot booking to the waitlist.
+	 *
+	 * Set during the capacity step (#941 phase 2) when the slot is full but the
+	 * calendar offers a waitlist with room. The caller reads it after a
+	 * successful validate() to store the appointment as `waitlist`.
+	 *
+	 * @var bool
+	 */
+	private $waitlist_requested = false;
+
+	/**
 	 * Constructor
 	 *
 	 * @param \FreeFormCertificate\Repositories\AppointmentRepository $appointment_repository Appointment repository.
@@ -62,9 +73,10 @@ class AppointmentValidator {
 	 * @return true|\WP_Error
 	 */
 	public function validate( array $data, array $calendar, bool $use_lock = false ) {
-		$calendar_post_id = isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;
-		$has_bypass       = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, $calendar_post_id );
-		$is_custom        = 'custom' === ( $calendar['schedule_type'] ?? 'regular' );
+		$calendar_post_id         = isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;
+		$has_bypass               = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, $calendar_post_id );
+		$is_custom                = 'custom' === ( $calendar['schedule_type'] ?? 'regular' );
+		$this->waitlist_requested = false;
 
 		// 1. Validate required fields.
 		if ( empty( $data['appointment_date'] ) || empty( $data['start_time'] ) ) {
@@ -164,7 +176,13 @@ class AppointmentValidator {
 			);
 
 			if ( ! $is_available ) {
-				return new \WP_Error( 'slot_full', __( 'This time slot is fully booked.', 'ffcertificate' ) );
+				// Slot full. If the calendar offers a waitlist with room, divert
+				// this booking to the queue instead of rejecting it (#941 phase 2).
+				if ( $this->can_join_waitlist( $calendar, $data, $use_lock ) ) {
+					$this->waitlist_requested = true;
+				} else {
+					return new \WP_Error( 'slot_full', __( 'This time slot is fully booked.', 'ffcertificate' ) );
+				}
 			}
 		}
 
@@ -258,6 +276,49 @@ class AppointmentValidator {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Whether the last validate() diverted the booking to the waitlist (#941 phase 2).
+	 *
+	 * Only meaningful after validate() returned `true`. When true, the caller
+	 * stores the appointment with status `waitlist` instead of pending/confirmed.
+	 *
+	 * @return bool
+	 */
+	public function is_waitlist_requested(): bool {
+		return $this->waitlist_requested;
+	}
+
+	/**
+	 * Whether a full slot can accept another waitlist entry (#941 phase 2).
+	 *
+	 * True when the calendar has the waitlist enabled and the queue for this
+	 * exact (date, start) slot is below `waitlist_capacity` (0 = unlimited).
+	 *
+	 * @param array<string, mixed> $calendar Calendar configuration.
+	 * @param array<string, mixed> $data Appointment data.
+	 * @param bool                 $use_lock Use FOR UPDATE on the queue count.
+	 * @return bool
+	 */
+	private function can_join_waitlist( array $calendar, array $data, bool $use_lock ): bool {
+		if ( empty( $calendar['waitlist_enabled'] ) ) {
+			return false;
+		}
+
+		$capacity = (int) ( $calendar['waitlist_capacity'] ?? 0 );
+		if ( $capacity <= 0 ) {
+			return true; // Unlimited queue.
+		}
+
+		$waiting = $this->appointment_repository->countWaitlisted(
+			(int) $data['calendar_id'],
+			(string) $data['appointment_date'],
+			(string) $data['start_time'],
+			$use_lock
+		);
+
+		return $waiting < $capacity;
 	}
 
 	/**

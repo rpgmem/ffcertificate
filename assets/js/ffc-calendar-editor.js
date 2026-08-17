@@ -51,6 +51,9 @@
             // Toggle cancellation hours visibility
             $(document).on('change', '#allow_cancellation', this.toggleCancellationHours);
 
+            // Toggle waitlist capacity field visibility (#941 phase 2)
+            $(document).on('change', '#waitlist_enabled', this.toggleWaitlistCapacity);
+
             // Toggle scheduling visibility based on visibility setting
             $(document).on('change', '#ffc_visibility', this.toggleSchedulingVisibility);
 
@@ -179,6 +182,14 @@
         toggleCancellationHours: function() {
             const isChecked = $(this).is(':checked');
             $('.ffc-cancellation-hours').toggle(isChecked);
+        },
+
+        /**
+         * Toggle waitlist capacity field visibility (#941 phase 2)
+         */
+        toggleWaitlistCapacity: function() {
+            const isChecked = $(this).is(':checked');
+            $('.ffc-waitlist-capacity').toggle(isChecked);
         },
 
         /**

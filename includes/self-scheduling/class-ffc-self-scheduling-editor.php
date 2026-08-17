@@ -492,6 +492,8 @@ class SelfSchedulingEditor {
 			'cancellation_min_hours'            => 24,
 			'minimum_interval_between_bookings' => 24,
 			'requires_approval'                 => 0,
+			'waitlist_enabled'                  => 0,
+			'waitlist_capacity'                 => 0,
 			'visibility'                        => 'public',
 			'scheduling_visibility'             => 'public',
 			'restrict_viewing_to_hours'         => 0,
@@ -558,6 +560,29 @@ class SelfSchedulingEditor {
 						)
 					);
 					?>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="waitlist_enabled"><?php esc_html_e( 'Enable Waitlist', 'ffcertificate' ); ?></label></th>
+				<td>
+					<?php
+					AdminUI::render_toggle(
+						array(
+							'id'      => 'waitlist_enabled',
+							'name'    => 'ffc_self_scheduling_config[waitlist_enabled]',
+							'checked' => (bool) $config['waitlist_enabled'],
+							'label'   => __( 'When a slot is full, let users join a waitlist instead of being turned away', 'ffcertificate' ),
+						)
+					);
+					?>
+					<p class="description"><?php esc_html_e( 'Applies to both scheduling modes. When a spot frees up (a cancellation or a rejected approval), the next person in line is promoted automatically.', 'ffcertificate' ); ?></p>
+				</td>
+			</tr>
+			<tr class="ffc-waitlist-capacity" <?php echo esc_attr( $config['waitlist_enabled'] ? '' : 'style="display:none;"' ); ?>>
+				<th><label for="waitlist_capacity"><?php esc_html_e( 'Waitlist Capacity', 'ffcertificate' ); ?></label></th>
+				<td>
+					<input type="number" id="waitlist_capacity" name="ffc_self_scheduling_config[waitlist_capacity]" value="<?php echo esc_attr( $config['waitlist_capacity'] ); ?>" min="0" max="9999" /> <?php esc_html_e( 'per slot', 'ffcertificate' ); ?>
+					<p class="description"><?php esc_html_e( 'Maximum number of people who can wait per slot (0 = unlimited).', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 			<tr>

@@ -90,6 +90,11 @@ class SelfSchedulingSaveHandler {
 		$config['requires_approval']                 = isset( $config['requires_approval'] ) ? 1 : 0;
 		$config['status']                            = sanitize_text_field( $config['status'] ?? 'active' );
 
+		// Waitlist (#941 phase 2): both scheduling modes. When enabled, a full
+		// slot/block offers a queue instead of rejecting; capacity 0 = unlimited.
+		$config['waitlist_enabled']  = isset( $config['waitlist_enabled'] ) ? 1 : 0;
+		$config['waitlist_capacity'] = absint( $config['waitlist_capacity'] ?? 0 );
+
 		// Scheduling mode (#941): 'regular' (weekly working hours) or 'custom'
 		// (explicit date/time blocks). Unknown values fall back to 'regular'.
 		$config['schedule_type'] = ( 'custom' === ( $config['schedule_type'] ?? 'regular' ) ) ? 'custom' : 'regular';

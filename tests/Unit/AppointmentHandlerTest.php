@@ -110,6 +110,8 @@ class AppointmentHandlerTest extends TestCase {
         $this->appointmentRepo = Mockery::mock( 'FreeFormCertificate\Repositories\AppointmentRepository' );
         $this->blockedDateRepo = Mockery::mock( 'FreeFormCertificate\Repositories\BlockedDateRepository' );
         $this->validator = Mockery::mock( 'FreeFormCertificate\SelfScheduling\AppointmentValidator' );
+        // Default: no waitlist diversion (#941 phase 2). Waitlist-specific tests override.
+        $this->validator->shouldReceive( 'is_waitlist_requested' )->andReturn( false )->byDefault();
 
         $this->setPrivate( 'calendar_repository', $this->calendarRepo );
         $this->setPrivate( 'appointment_repository', $this->appointmentRepo );
@@ -371,6 +373,98 @@ class AppointmentHandlerTest extends TestCase {
         // Second block untouched.
         $this->assertSame( '14:00:00', $result[1]['time'] );
         $this->assertSame( 40, $result[1]['available'] );
+    }
+
+    public function test_available_slots_full_slot_emits_waitlist_available(): void {
+        // Regular mode, capacity 1, one booking at 09:00 → full; waitlist enabled
+        // and unbounded (#941 phase 2), so the full slot is still emitted.
+        $calendar = $this->makeCalendar( array(
+            'slot_duration'             => 30,
+            'slot_interval'             => 0,
+            'max_appointments_per_slot' => 1,
+            'waitlist_enabled'          => 1,
+            'waitlist_capacity'         => 0,
+            'working_hours'             => array(
+                array( 'day' => 1, 'start' => '09:00', 'end' => '09:30' ),
+            ),
+        ) );
+
+        $this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
+        $this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array(
+            array( 'start_time' => '09:00:00' ),
+        ) );
+        $this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+
+        $result = $this->handler->get_available_slots( 1, '2026-03-02' );
+
+        $this->assertCount( 1, $result );
+        $this->assertSame( '09:00:00', $result[0]['time'] );
+        $this->assertSame( 0, $result[0]['available'] );
+        $this->assertTrue( $result[0]['waitlist_available'] );
+    }
+
+    public function test_available_slots_full_slot_hidden_without_waitlist(): void {
+        // Same as above but waitlist disabled → the full slot is omitted (legacy).
+        $calendar = $this->makeCalendar( array(
+            'slot_duration'             => 30,
+            'slot_interval'             => 0,
+            'max_appointments_per_slot' => 1,
+            'waitlist_enabled'          => 0,
+            'working_hours'             => array(
+                array( 'day' => 1, 'start' => '09:00', 'end' => '09:30' ),
+            ),
+        ) );
+
+        $this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
+        $this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array(
+            array( 'start_time' => '09:00:00' ),
+        ) );
+        $this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+
+        $result = $this->handler->get_available_slots( 1, '2026-03-02' );
+
+        $this->assertCount( 0, $result );
+    }
+
+    public function test_process_stores_waitlist_status_when_validator_diverts(): void {
+        $fired = array();
+        Functions\when( 'do_action' )->alias( function ( $hook ) use ( &$fired ) {
+            $fired[] = $hook;
+        } );
+
+        $this->calendarRepo->shouldReceive( 'findById' )->andReturn(
+            $this->makeCalendar( array(
+                'requires_approval' => 0,
+                'email_config'      => wp_json_encode( array( 'send_user_confirmation' => 1 ) ),
+            ) )
+        );
+
+        $this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+        $this->validator->shouldReceive( 'validate' )->andReturn( true );
+        // The validator diverted this booking to the waitlist.
+        $this->validator->shouldReceive( 'is_waitlist_requested' )->andReturn( true );
+        $this->appointmentRepo->shouldReceive( 'createAppointment' )->once()
+            ->with( Mockery::on( function ( $data ) {
+                return 'waitlist' === $data['status'] && ! isset( $data['approved_at'] );
+            } ) )
+            ->andReturn( 300 );
+        $this->appointmentRepo->shouldReceive( 'commit' )->once();
+        $this->appointmentRepo->shouldReceive( 'findById' )->with( 300 )->andReturn( array(
+            'id' => 300, 'confirmation_token' => 'tok300', 'status' => 'waitlist',
+        ) );
+
+        $result = $this->handler->process_appointment( array(
+            'calendar_id'      => 1,
+            'appointment_date' => '2026-03-01',
+            'start_time'       => '09:00',
+            'consent_given'    => '1',
+        ) );
+
+        $this->assertIsArray( $result );
+        $this->assertTrue( $result['waitlisted'] );
+        // The waitlist email fired, not the standard booking confirmation.
+        $this->assertContains( 'ffcertificate_self_scheduling_appointment_waitlisted_email', $fired );
+        $this->assertNotContains( 'ffcertificate_self_scheduling_appointment_created_email', $fired );
     }
 
     public function test_available_slots_reduces_by_existing_appointments(): void {

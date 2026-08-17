@@ -129,6 +129,31 @@ describe('ffc-calendar-frontend.js — renderTimeSlots', () => {
 		expect(slots[1].classList.contains('ffc-timeslot-full')).toBe(true);
 		expect(slots[1].getAttribute('aria-disabled')).toBe('true');
 	});
+
+	it('renders a full slot with waitlist_available as a selectable waitlist option (#941)', () => {
+		window.ffcCalendarFrontend.renderTimeSlots([
+			{ time: '09:00', display: '09:00', available: 0, total: 5, waitlist_available: true },
+		]);
+
+		const slot = document.querySelector('#ffc-timeslots-container .ffc-timeslot');
+		expect(slot.classList.contains('ffc-timeslot-waitlist')).toBe(true);
+		expect(slot.classList.contains('ffc-timeslot-full')).toBe(false);
+		// Selectable: keyboard-focusable, not aria-disabled, flagged as waitlist.
+		expect(slot.getAttribute('tabindex')).toBe('0');
+		expect(slot.getAttribute('aria-disabled')).toBeNull();
+		expect(slot.getAttribute('data-waitlist')).toBe('1');
+	});
+
+	it('renders a full slot without a waitlist as a disabled full cell (#941)', () => {
+		window.ffcCalendarFrontend.renderTimeSlots([
+			{ time: '09:00', display: '09:00', available: 0, total: 5, waitlist_available: false },
+		]);
+
+		const slot = document.querySelector('#ffc-timeslots-container .ffc-timeslot');
+		expect(slot.classList.contains('ffc-timeslot-full')).toBe(true);
+		expect(slot.classList.contains('ffc-timeslot-waitlist')).toBe(false);
+		expect(slot.getAttribute('data-waitlist')).toBeNull();
+	});
 });
 
 describe('ffc-calendar-frontend.js — selectTimeSlot', () => {

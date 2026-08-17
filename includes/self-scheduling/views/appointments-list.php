@@ -81,9 +81,18 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 		check_admin_referer( 'ffc_cancel_appointment_' . $ffc_self_scheduling_appointment_id );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$ffcertificate_cancel_reason = isset( $_GET['reason'] ) ? sanitize_textarea_field( wp_unslash( $_GET['reason'] ) ) : __( 'Cancelled by admin', 'ffcertificate' );
-		$ffcertificate_result        = $ffcertificate_repo->cancel( $ffc_self_scheduling_appointment_id, get_current_user_id(), $ffcertificate_cancel_reason );
+		// Snapshot the row before cancelling so the waitlist promoter sees the
+		// pre-cancel status/slot (#941 phase 2).
+		$ffcertificate_pre_cancel = $ffcertificate_repo->findById( $ffc_self_scheduling_appointment_id );
+		$ffcertificate_result     = $ffcertificate_repo->cancel( $ffc_self_scheduling_appointment_id, get_current_user_id(), $ffcertificate_cancel_reason );
 
 		if ( $ffcertificate_result ) {
+			// Fire the shared cancellation action so the waitlist FIFO promotion
+			// runs on admin cancellations (an admin "rejection") too.
+			if ( is_array( $ffcertificate_pre_cancel ) ) {
+				do_action( 'ffcertificate_appointment_cancelled', $ffc_self_scheduling_appointment_id, $ffcertificate_pre_cancel, $ffcertificate_cancel_reason, get_current_user_id() );
+			}
+
 			set_transient(
 				'ffc_admin_notice_' . get_current_user_id(),
 				array(

@@ -93,6 +93,23 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
         $this->assertSame( 45, $this->saved_meta['_ffc_self_scheduling_config']['slot_duration'] );
     }
 
+    public function test_config_waitlist_enabled_and_capacity_parsed(): void {
+        $_POST['ffc_self_scheduling_config'] = array(
+            'waitlist_enabled'  => 'on',
+            'waitlist_capacity' => '5',
+        );
+        $this->invoke( 'save_config', array( 100 ) );
+        $this->assertSame( 1, $this->saved_meta['_ffc_self_scheduling_config']['waitlist_enabled'] );
+        $this->assertSame( 5, $this->saved_meta['_ffc_self_scheduling_config']['waitlist_capacity'] );
+    }
+
+    public function test_config_waitlist_defaults_off_when_absent(): void {
+        $_POST['ffc_self_scheduling_config'] = array( 'slot_duration' => '30' );
+        $this->invoke( 'save_config', array( 100 ) );
+        $this->assertSame( 0, $this->saved_meta['_ffc_self_scheduling_config']['waitlist_enabled'] );
+        $this->assertSame( 0, $this->saved_meta['_ffc_self_scheduling_config']['waitlist_capacity'] );
+    }
+
     // ==================================================================
     // schedule_type + save_custom_slots() (#941)
     // ==================================================================

@@ -99,6 +99,10 @@ class SelfSchedulingActivator {
             -- Capacity
             max_appointments_per_slot int unsigned DEFAULT 1,
 
+            -- Waitlist (#941 phase 2): when a slot/block is full, allow joining a queue
+            waitlist_enabled tinyint(1) DEFAULT 0 COMMENT '1 = full slots offer a waitlist instead of rejecting',
+            waitlist_capacity int unsigned DEFAULT 0 COMMENT 'Max queue length per slot (0 = unlimited)',
+
             -- Visibility & access control
             visibility enum('public','private') DEFAULT 'public' COMMENT 'Calendar visibility: public or private',
             scheduling_visibility enum('public','private') DEFAULT 'public' COMMENT 'Booking access: public or private',
@@ -173,7 +177,7 @@ class SelfSchedulingActivator {
             admin_notes text DEFAULT NULL,
 
             -- Status workflow
-            status varchar(20) DEFAULT 'pending' COMMENT 'pending, confirmed, cancelled, completed, no_show',
+            status varchar(20) DEFAULT 'pending' COMMENT 'pending, confirmed, cancelled, completed, no_show, waitlist',
 
             -- Approval (if calendar requires approval). Category A instant since 6.6.0 (#249).
             approved_at bigint(20) unsigned DEFAULT NULL,
@@ -356,7 +360,38 @@ class SelfSchedulingActivator {
 			self::migrate_business_hours_restriction_columns();
 			// Run migration to add custom-scheduling columns (#941).
 			self::migrate_custom_scheduling_columns();
+			// Run migration to add waitlist columns (#941 phase 2).
+			self::migrate_waitlist_columns();
 		}
+	}
+
+	/**
+	 * Migrate calendars table to add the waitlist columns (#941 phase 2).
+	 *
+	 * `waitlist_enabled` turns the per-calendar waitlist on; `waitlist_capacity`
+	 * caps the queue length per slot (0 = unlimited). Both default off/unbounded,
+	 * so existing calendars keep the current "full slot → reject" behaviour on
+	 * upgrade. Applies to both scheduling modes.
+	 *
+	 * @since 6.20.0
+	 * @return void
+	 */
+	private static function migrate_waitlist_columns(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+
+		self::add_column_if_missing(
+			$table_name,
+			'waitlist_enabled',
+			"tinyint(1) DEFAULT 0 COMMENT '1 = full slots offer a waitlist instead of rejecting'",
+			'max_appointments_per_slot'
+		);
+		self::add_column_if_missing(
+			$table_name,
+			'waitlist_capacity',
+			"int unsigned DEFAULT 0 COMMENT 'Max queue length per slot (0 = unlimited)'",
+			'waitlist_enabled'
+		);
 	}
 
 	/**
