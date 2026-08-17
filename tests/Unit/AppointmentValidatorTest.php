@@ -72,6 +72,10 @@ class AppointmentValidatorTest extends TestCase {
         } );
         // Scheduling namespace (DateBlockingService).
 
+        Functions\when( '_n' )->alias( function ( $single, $plural, $number ) {
+            return 1 === (int) $number ? $single : $plural;
+        } );
+
         $this->appointmentRepo = Mockery::mock( 'FreeFormCertificate\Repositories\AppointmentRepository' );
         $this->blockedDateRepo = Mockery::mock( 'FreeFormCertificate\Repositories\BlockedDateRepository' );
 
@@ -334,6 +338,59 @@ class AppointmentValidatorTest extends TestCase {
 
         $this->assertTrue( $result );
         $this->assertTrue( $this->validator->is_waitlist_requested() );
+    }
+
+    // ==================================================================
+    // validate() — per-user block cap (#941 phase 3, custom mode)
+    // ==================================================================
+
+    public function test_validate_block_cap_rejects_user_at_limit(): void {
+        $calendar = array_merge( $this->custom_calendar(), array( 'max_blocks_per_user' => 2 ) );
+        // The user (user_id=1) already holds two blocks in this calendar — one
+        // confirmed, one waitlisted (waitlist counts toward the cap).
+        $this->appointmentRepo->shouldReceive( 'findByUserId' )->with( 1 )->andReturn( array(
+            array( 'calendar_id' => 1, 'status' => 'confirmed' ),
+            array( 'calendar_id' => 1, 'status' => 'waitlist' ),
+        ) );
+
+        $result = $this->validator->validate( $this->valid_data(), $calendar );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'block_limit', $result->get_error_code() );
+    }
+
+    public function test_validate_block_cap_allows_user_below_limit(): void {
+        $calendar = array_merge( $this->custom_calendar(), array( 'max_blocks_per_user' => 2 ) );
+        $this->appointmentRepo->shouldReceive( 'findByUserId' )->with( 1 )->andReturn( array(
+            array( 'calendar_id' => 1, 'status' => 'confirmed' ),
+        ) );
+
+        $result = $this->validator->validate( $this->valid_data(), $calendar );
+
+        $this->assertTrue( $result );
+    }
+
+    public function test_validate_block_cap_ignores_cancelled_and_other_calendars(): void {
+        $calendar = array_merge( $this->custom_calendar(), array( 'max_blocks_per_user' => 1 ) );
+        // Cancelled/completed don't count; a booking in another calendar doesn't count.
+        $this->appointmentRepo->shouldReceive( 'findByUserId' )->with( 1 )->andReturn( array(
+            array( 'calendar_id' => 1, 'status' => 'cancelled' ),
+            array( 'calendar_id' => 1, 'status' => 'completed' ),
+            array( 'calendar_id' => 2, 'status' => 'confirmed' ),
+        ) );
+
+        $result = $this->validator->validate( $this->valid_data(), $calendar );
+
+        $this->assertTrue( $result );
+    }
+
+    public function test_validate_block_cap_disabled_skips_user_lookup(): void {
+        // max_blocks_per_user absent/0 → the cap check never queries the user's bookings.
+        $this->appointmentRepo->shouldReceive( 'findByUserId' )->never();
+
+        $result = $this->validator->validate( $this->valid_data(), $this->custom_calendar() );
+
+        $this->assertTrue( $result );
     }
 
     public function test_validate_daily_limit_reached_returns_error(): void {

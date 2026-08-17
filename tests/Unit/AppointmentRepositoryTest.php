@@ -165,6 +165,35 @@ class AppointmentRepositoryTest extends TestCase {
         $this->assertSame('confirmed', $result[1]['status']);
     }
 
+    public function test_get_occupancy_counts_returns_grouped_rows(): void {
+        // #941 phase 3 — grouped booked/waitlisted counts per (date, start).
+        $rows = [
+            ['date' => '2026-09-03', 'start' => '08:00:00', 'booked' => '39', 'waitlisted' => '2'],
+            ['date' => '2026-09-03', 'start' => '14:00:00', 'booked' => '40', 'waitlisted' => '0'],
+        ];
+
+        $this->wpdb->shouldReceive('prepare')->andReturnUsing(function() {
+            return func_get_args()[0];
+        });
+        $this->wpdb->shouldReceive('get_results')->once()->andReturn($rows);
+
+        $result = $this->repo->getOccupancyCounts(5);
+
+        $this->assertCount(2, $result);
+        $this->assertSame('08:00:00', $result[0]['start']);
+        $this->assertSame('39', $result[0]['booked']);
+        $this->assertSame('2', $result[0]['waitlisted']);
+    }
+
+    public function test_get_occupancy_counts_returns_empty_array_when_no_rows(): void {
+        $this->wpdb->shouldReceive('prepare')->andReturnUsing(function() {
+            return func_get_args()[0];
+        });
+        $this->wpdb->shouldReceive('get_results')->once()->andReturn(null);
+
+        $this->assertSame([], $this->repo->getOccupancyCounts(5));
+    }
+
     // ==================================================================
     // findAll (inherited from AbstractRepository)
     // ==================================================================

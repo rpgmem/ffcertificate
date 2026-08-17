@@ -233,6 +233,57 @@ class SelfSchedulingEditorTest extends TestCase {
     }
 
     // ==================================================================
+    // render_box_occupancy() — #941 phase 3
+    // ==================================================================
+
+    public function test_render_box_occupancy_empty_blocks_shows_hint(): void {
+        // get_post_meta returns '' (setUp default) → no configured blocks.
+        $post     = (object) array( 'ID' => 10 );
+        $editor   = new SelfSchedulingEditor();
+        ob_start();
+        $editor->render_box_occupancy( $post );
+        $output = ob_get_clean();
+
+        $this->assertStringContainsString( 'Add custom blocks', $output );
+    }
+
+    public function test_render_box_occupancy_renders_table_with_counts(): void {
+        Functions\when( 'get_post_meta' )->alias(
+            static function ( $id, $key ) {
+                if ( '_ffc_self_scheduling_custom_slots' === $key ) {
+                    return array(
+                        array( 'date' => '2026-09-03', 'start' => '08:00', 'end' => '13:00', 'capacity' => 40, 'label' => 'Manha' ),
+                    );
+                }
+                return '';
+            }
+        );
+        Functions\when( 'wp_cache_get' )->justReturn( false );
+        Functions\when( 'wp_cache_set' )->justReturn( true );
+
+        global $wpdb;
+        // CalendarRepository::findByPostId → the calendar row.
+        $wpdb->shouldReceive( 'get_row' )->andReturn( array( 'id' => 5, 'post_id' => 10 ) );
+        // AppointmentReader::getOccupancyCounts → grouped counts (39 booked / 2 waiting).
+        $wpdb->shouldReceive( 'get_results' )->andReturn( array(
+            array( 'date' => '2026-09-03', 'start' => '08:00:00', 'booked' => '39', 'waitlisted' => '2' ),
+        ) );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )
+            ->shouldReceive( 'format_wallclock_date' )->andReturnUsing( static fn( $d ) => $d );
+
+        $editor = new SelfSchedulingEditor();
+        ob_start();
+        $editor->render_box_occupancy( (object) array( 'ID' => 10 ) );
+        $output = ob_get_clean();
+
+        $this->assertStringContainsString( '39 / 40', $output );
+        $this->assertStringContainsString( 'Manha', $output );
+        $this->assertStringContainsString( '98%', $output ); // round(100 * 39 / 40)
+        $this->assertStringContainsString( '08:00–13:00', $output );
+    }
+
+    // ==================================================================
     // render_shortcode_metabox() — published
     // ==================================================================
 
