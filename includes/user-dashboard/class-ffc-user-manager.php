@@ -11,7 +11,7 @@
  * @package FreeFormCertificate\UserDashboard
  * @version 4.12.2 - Split into UserManager + CapabilityManager + UserCreator
  * @version 3.3.0 - Added strict types and type hints
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @version 3.2.0 - Migrated to namespace
  * @since 3.1.0
  */
 

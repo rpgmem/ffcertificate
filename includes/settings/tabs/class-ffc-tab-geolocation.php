@@ -8,7 +8,7 @@
  * @since 3.0.0
  * @version 4.6.16 - Added main_geo_areas (moved from General tab)
  * @version 3.3.0 - Added strict types and type hints
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @version 3.2.0 - Migrated to namespace
  */
 
 declare(strict_types=1);

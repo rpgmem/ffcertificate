@@ -37,7 +37,7 @@ define( 'FFC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FFC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 /**
- * ✅ PSR-4 Autoloader (Phase 1-4: Namespace Migration Complete)
+ * PSR-4 Autoloader — namespace migration complete.
  *
  * Load the PSR-4 autoloader to enable namespace support.
  * All classes use FreeFormCertificate\* namespace.
@@ -45,8 +45,8 @@ define( 'FFC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
  * ⚠️ BREAKING CHANGE (v4.0.0): Old class names (FFC_*) removed.
  * Use namespaced classes: FreeFormCertificate\Core\Utils, etc.
  *
- * @since 3.2.0 (Phase 1-2)
- * @since 4.0.0 (Phase 4 - BC aliases removed)
+ * @since 3.2.0
+ * @since 4.0.0 BC aliases removed
  */
 require_once FFC_PLUGIN_DIR . 'includes/class-ffc-autoloader.php';
 

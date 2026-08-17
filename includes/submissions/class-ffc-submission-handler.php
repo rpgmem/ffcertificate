@@ -5,7 +5,7 @@
  *
  * @package FreeFormCertificate\Submissions
  * @version 3.3.0 - Added strict types and type hints
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @version 3.2.0 - Migrated to namespace
  * @since 3.1.0 Optimized bulk operations (single query + suspended logging)
  * @since 3.0.0 Repository Pattern integration
  * @since 2.10.0 Encryption & LGPD support

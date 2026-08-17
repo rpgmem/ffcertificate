@@ -8,7 +8,7 @@
  * v2.9.2: Unified PDF generation with FFC_PDF_Generator, removed prepare_pdf_data()
  * v2.10.0: ENCRYPTION - Auto-decryption via Submission Handler + Access logging
  * v3.3.0: Added strict types and type hints
- * v3.2.0: Migrated to namespace (Phase 2)
+ * v3.2.0: Migrated to namespace
  * v4.6.8: Extracted rendering to VerificationResponseRenderer (M7 refactoring)
  *
  * @package FreeFormCertificate\Frontend

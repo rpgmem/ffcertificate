@@ -25,7 +25,7 @@
  * @version 4.12.2 - Split query/stats/cleanup to ActivityLogQuery
  * @version 4.6.9 - Batch writes, auto-cleanup, stats caching
  * @version 3.3.0 - Added strict types and type hints
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @version 3.2.0 - Migrated to namespace
  * @since 2.9.1
  */
 

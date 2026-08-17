@@ -6,7 +6,7 @@
  *
  * @package FFC
  * @since 2.10.0
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @version 3.2.0 - Migrated to namespace
  */
 
 declare(strict_types=1);

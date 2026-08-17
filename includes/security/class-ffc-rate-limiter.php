@@ -4,7 +4,7 @@
  * Advanced rate limiting system with WordPress Object Cache API
  *
  * V3.3.0: Added strict types and type hints
- * v3.2.0: Migrated to namespace (Phase 2)
+ * v3.2.0: Migrated to namespace
  *         Migrated from transients to WordPress Object Cache API
  *         - Automatically uses Redis/Memcached if available (via LiteSpeed Cache, etc.)
  *         - Falls back to transients if no object cache plugin is installed

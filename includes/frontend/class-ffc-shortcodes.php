@@ -7,7 +7,7 @@
  * v2.9.0: Added hash-based token support (#token=)
  * v2.9.2: OPTIMIZED to use FFC_Utils functions
  * v3.3.0: Added strict types and type hints
- * v3.2.0: Migrated to namespace (Phase 2)
+ * v3.2.0: Migrated to namespace
  *
  * @package FreeFormCertificate\Frontend
  */
