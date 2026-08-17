@@ -161,6 +161,28 @@ describe('toggle cancellation hours (#allow_cancellation change)', () => {
 });
 
 // ----------------------------------------------------------------------
+// toggleWaitlistCapacity (#waitlist_enabled change) — #941 phase 2
+// ----------------------------------------------------------------------
+
+describe('toggle waitlist capacity (#waitlist_enabled change)', () => {
+	beforeEach(() => {
+		window.$.fx.off = true;
+		// The handler (delegated on document) toggles .ffc-waitlist-capacity.
+		window.$('body').append(
+			'<input type="checkbox" id="waitlist_enabled" />' +
+			'<div class="ffc-waitlist-capacity" style="display:none"></div>'
+		);
+	});
+
+	it('shows the capacity row when checked, hides it when unchecked', () => {
+		window.$('#waitlist_enabled').prop('checked', true).trigger('change');
+		expect(window.$('.ffc-waitlist-capacity').css('display')).not.toBe('none');
+		window.$('#waitlist_enabled').prop('checked', false).trigger('change');
+		expect(window.$('.ffc-waitlist-capacity').css('display')).toBe('none');
+	});
+});
+
+// ----------------------------------------------------------------------
 // toggleSchedulingVisibility (#ffc_visibility change)
 // ----------------------------------------------------------------------
 

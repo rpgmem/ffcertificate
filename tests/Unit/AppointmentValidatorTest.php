@@ -284,6 +284,56 @@ class AppointmentValidatorTest extends TestCase {
         $result = $this->validator->validate( $this->valid_data(), $this->permissive_calendar() );
         $this->assertInstanceOf( \WP_Error::class, $result );
         $this->assertSame( 'slot_full', $result->get_error_code() );
+        $this->assertFalse( $this->validator->is_waitlist_requested() );
+    }
+
+    // ==================================================================
+    // validate() — waitlist diversion (#941 phase 2)
+    // ==================================================================
+
+    public function test_validate_full_slot_with_open_waitlist_is_accepted(): void {
+        // Slot full, but the calendar's waitlist is enabled and unbounded.
+        $this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->andReturn( false );
+
+        $calendar                     = $this->permissive_calendar();
+        $calendar['waitlist_enabled'] = 1;
+        $calendar['waitlist_capacity'] = 0; // unlimited
+
+        $result = $this->validator->validate( $this->valid_data(), $calendar );
+
+        $this->assertTrue( $result );
+        $this->assertTrue( $this->validator->is_waitlist_requested() );
+    }
+
+    public function test_validate_full_slot_with_full_waitlist_is_rejected(): void {
+        $this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->andReturn( false );
+        // Queue already at capacity (2 waiting, cap 2).
+        $this->appointmentRepo->shouldReceive( 'countWaitlisted' )->andReturn( 2 );
+
+        $calendar                      = $this->permissive_calendar();
+        $calendar['waitlist_enabled']  = 1;
+        $calendar['waitlist_capacity'] = 2;
+
+        $result = $this->validator->validate( $this->valid_data(), $calendar );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'slot_full', $result->get_error_code() );
+        $this->assertFalse( $this->validator->is_waitlist_requested() );
+    }
+
+    public function test_validate_full_slot_with_room_left_in_waitlist_is_accepted(): void {
+        $this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->andReturn( false );
+        // Only 1 waiting against a cap of 3 → room.
+        $this->appointmentRepo->shouldReceive( 'countWaitlisted' )->andReturn( 1 );
+
+        $calendar                      = $this->permissive_calendar();
+        $calendar['waitlist_enabled']  = 1;
+        $calendar['waitlist_capacity'] = 3;
+
+        $result = $this->validator->validate( $this->valid_data(), $calendar );
+
+        $this->assertTrue( $result );
+        $this->assertTrue( $this->validator->is_waitlist_requested() );
     }
 
     public function test_validate_daily_limit_reached_returns_error(): void {

@@ -161,7 +161,14 @@ class AppointmentsListViewTest extends TestCase {
         Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
             ->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'cancel' : '' );
 
+        Functions\when( 'do_action' )->justReturn( null );
+
         $appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
+        // The waitlist promoter (#941 phase 2) snapshots the row before cancel and
+        // fires ffcertificate_appointment_cancelled with it.
+        $appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn(
+            array( 'status' => 'confirmed', 'calendar_id' => 1, 'appointment_date' => '2026-01-01', 'start_time' => '09:00:00' )
+        );
         $appt_repo->shouldReceive( 'cancel' )->with( 5, 1, 'Admin closed slot' )->andReturn( true );
         Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
 
