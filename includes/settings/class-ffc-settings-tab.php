@@ -224,15 +224,6 @@ abstract class SettingsTab {
 	}
 
 	/**
-	 * Get tab URL
-	 *
-	 * @return string
-	 */
-	protected function get_tab_url() {
-		return admin_url( 'admin.php?page=ffc-settings&tab=' . $this->tab_id );
-	}
-
-	/**
 	 * Enqueue the FFC auto-save infrastructure (ffc-core + the
 	 * autosave widget) on this tab. Idempotent — safe to call from
 	 * multiple tabs that each enqueue on `admin_enqueue_scripts`.

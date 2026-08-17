@@ -14,7 +14,7 @@ use FreeFormCertificate\Settings\SettingsTab;
  * Tests for SettingsTab: abstract base class for settings tabs.
  *
  * Uses an anonymous concrete subclass to test non-abstract functionality
- * (getters, render helpers, is_active, get_tab_url, get_option,
+ * (getters, render helpers, is_active, get_option,
  * enqueue_autosave_infra).
  *
  * @covers \FreeFormCertificate\Settings\SettingsTab
@@ -78,9 +78,6 @@ class SettingsTabTest extends TestCase {
                 return $this->is_active();
             }
 
-            public function public_get_tab_url(): string {
-                return $this->get_tab_url();
-            }
         };
     }
 
@@ -297,23 +294,6 @@ class SettingsTabTest extends TestCase {
         unset( $_GET['tab'] );
 
         $this->assertFalse( $this->tab->public_is_active() );
-    }
-
-    // ==================================================================
-    // get_tab_url()
-    // ==================================================================
-
-    public function test_get_tab_url_returns_admin_url_with_tab_id(): void {
-        Functions\when( 'admin_url' )->alias( function ( $path = '' ) {
-            return 'https://example.com/wp-admin/' . $path;
-        } );
-
-        $url = $this->tab->public_get_tab_url();
-
-        $this->assertSame(
-            'https://example.com/wp-admin/admin.php?page=ffc-settings&tab=test_tab',
-            $url
-        );
     }
 
     // ==================================================================
