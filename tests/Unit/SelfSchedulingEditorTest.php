@@ -252,14 +252,4 @@ class SelfSchedulingEditorTest extends TestCase {
 
         $this->assertStringContainsString( 'Publish this calendar', $output );
     }
-
-    // ==================================================================
-    // display_save_errors()
-    // ==================================================================
-
-    public function test_display_save_errors_is_noop(): void {
-        $editor = new SelfSchedulingEditor();
-        $editor->display_save_errors();
-        $this->assertTrue( true );
-    }
 }

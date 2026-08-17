@@ -6,7 +6,7 @@
  *
  * @package FFC
  * @since 2.10.0
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @version 3.2.0 - Migrated to namespace
  */
 
 declare(strict_types=1);
@@ -221,15 +221,6 @@ abstract class SettingsTab {
 	protected function is_active() {
 		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for display only.
 		return $active_tab === $this->tab_id;
-	}
-
-	/**
-	 * Get tab URL
-	 *
-	 * @return string
-	 */
-	protected function get_tab_url() {
-		return admin_url( 'admin.php?page=ffc-settings&tab=' . $this->tab_id );
 	}
 
 	/**

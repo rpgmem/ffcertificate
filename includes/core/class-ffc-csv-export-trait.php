@@ -12,7 +12,6 @@
  *   - extract_dynamic_keys: union of all field keys across rows
  *   - decode_json_field: encrypted-first decrypt with plaintext fallback
  *   - build_dynamic_headers: snake_case → Title Case header labels
- *   - extract_dynamic_values: pluck values for one row in a fixed key order
  *
  * @package FreeFormCertificate\Core
  * @since 4.12.0
@@ -94,29 +93,5 @@ trait CsvExportTrait {
 			},
 			$keys
 		);
-	}
-
-	/**
-	 * Extract dynamic column values from a row's JSON data.
-	 *
-	 * @param array<string, mixed> $row            Database row.
-	 * @param array<string>        $dynamic_keys   Ordered keys to extract.
-	 * @param string               $plain_key      Plain-text column name.
-	 * @param string               $encrypted_key  Encrypted column name.
-	 * @return array<string> Values in the same order as $dynamic_keys.
-	 */
-	protected function extract_dynamic_values( array $row, array $dynamic_keys, string $plain_key = 'data', string $encrypted_key = 'data_encrypted' ): array {
-		$data   = $this->decode_json_field( $row, $plain_key, $encrypted_key );
-		$values = array();
-
-		foreach ( $dynamic_keys as $key ) {
-			$value = $data[ $key ] ?? '';
-			if ( is_array( $value ) ) {
-				$value = implode( ', ', $value );
-			}
-			$values[] = $value;
-		}
-
-		return $values;
 	}
 }

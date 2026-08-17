@@ -35,16 +35,6 @@ class UrlShortenerAdminPage {
 	/**
 	 * Constructor.
 	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
 	 * @param UrlShortenerService $service Service.
 	 */
 	public function __construct( UrlShortenerService $service ) {
@@ -60,11 +50,6 @@ class UrlShortenerAdminPage {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'wp_ajax_ffc_create_short_url', array( $this, 'ajax_create' ) );
 		add_action( 'wp_ajax_ffc_edit_short_url', array( $this, 'ajax_edit_short_url' ) );
-		add_action( 'wp_ajax_ffc_delete_short_url', array( $this, 'ajax_delete' ) );
-		add_action( 'wp_ajax_ffc_toggle_short_url', array( $this, 'ajax_toggle' ) );
-		add_action( 'wp_ajax_ffc_trash_short_url', array( $this, 'ajax_trash' ) );
-		add_action( 'wp_ajax_ffc_restore_short_url', array( $this, 'ajax_restore' ) );
-		add_action( 'wp_ajax_ffc_empty_trash_short_urls', array( $this, 'ajax_empty_trash' ) );
 	}
 
 	/**
@@ -319,94 +304,6 @@ class UrlShortenerAdminPage {
 		}
 
 		wp_send_json_error( array( 'message' => __( 'Failed to update short URL.', 'ffcertificate' ) ) );
-	}
-
-	/**
-	 * AJAX: Delete a short URL.
-	 */
-	public function ajax_delete(): void {
-		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission( 'ffc_delete_url_shortener' );
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
-		$id = (int) ( $_POST['id'] ?? 0 );
-		if ( $id <= 0 ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid ID.', 'ffcertificate' ) ) );
-		}
-
-		$this->service->delete_short_url( $id );
-		wp_send_json_success();
-	}
-
-	/**
-	 * AJAX: Trash a short URL (soft delete).
-	 */
-	public function ajax_trash(): void {
-		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission( 'ffc_delete_url_shortener' );
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
-		$id = (int) ( $_POST['id'] ?? 0 );
-		if ( $id <= 0 ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid ID.', 'ffcertificate' ) ) );
-		}
-
-		$this->service->trash_short_url( $id );
-		wp_send_json_success();
-	}
-
-	/**
-	 * AJAX: Restore a short URL from trash.
-	 */
-	public function ajax_restore(): void {
-		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission( 'ffc_delete_url_shortener' );
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
-		$id = (int) ( $_POST['id'] ?? 0 );
-		if ( $id <= 0 ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid ID.', 'ffcertificate' ) ) );
-		}
-
-		$this->service->restore_short_url( $id );
-		wp_send_json_success();
-	}
-
-	/**
-	 * AJAX: Empty trash — permanently delete all trashed short URLs.
-	 */
-	public function ajax_empty_trash(): void {
-		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission( 'ffc_delete_url_shortener' );
-
-		$trashed = $this->service->get_repository()->findPaginated(
-			array(
-				'status'   => 'trashed',
-				'per_page' => 1000,
-			)
-		);
-		foreach ( $trashed['items'] as $item ) {
-			$this->service->delete_short_url( (int) $item['id'] );
-		}
-
-		wp_send_json_success();
-	}
-
-	/**
-	 * AJAX: Toggle short URL status.
-	 */
-	public function ajax_toggle(): void {
-		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
-		$this->check_ajax_permission( 'ffc_manage_url_shortener' );
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
-		$id = (int) ( $_POST['id'] ?? 0 );
-		if ( $id <= 0 ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid ID.', 'ffcertificate' ) ) );
-		}
-
-		$this->service->toggle_status( $id );
-		wp_send_json_success();
 	}
 
 	/**

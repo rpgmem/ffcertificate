@@ -5,7 +5,7 @@
  *
  * @package FreeFormCertificate\Admin
  * @version 3.3.0 - Added strict types and type hints
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @version 3.2.0 - Migrated to namespace
  */
 
 declare(strict_types=1);
@@ -28,7 +28,6 @@ class AdminAjax {
 	 */
 	public function __construct() {
 		// Register AJAX handlers (ffc_load_template is handled by FormEditor).
-		add_action( 'wp_ajax_ffc_generate_tickets', array( $this, 'generate_tickets' ) );
 		add_action( 'wp_ajax_ffc_search_user', array( $this, 'search_user' ) );
 		add_action( 'wp_ajax_ffc_reveal_pii', array( $this, 'reveal_pii' ) );
 	}
@@ -172,115 +171,6 @@ class AdminAjax {
 				'value' => $display,
 			)
 		);
-	}
-
-	/**
-	 * Generate tickets/codes
-	 */
-	public function generate_tickets(): void {
-		$this->verify_ajax_nonce( 'ffc_admin_nonce' );
-		// #739 §4.3 — gate on the certificates domain cap (admin or delegate),
-		// not the generic `edit_posts` any WP author holds.
-		$this->check_ajax_admin_or( 'ffc_manage_certificates' );
-
-		$quantity = $this->get_post_int( 'quantity' );
-		$form_id  = $this->get_post_int( 'form_id' );
-
-		if ( $quantity < 1 || $quantity > 1000 ) {
-			wp_send_json_error( array( 'message' => __( 'Quantity must be between 1 and 1000.', 'ffcertificate' ) ) );
-		}
-
-		if ( ! $form_id ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid form ID.', 'ffcertificate' ) ) );
-		}
-
-		// Generate unique codes.
-		$codes          = array();
-		$existing_codes = $this->get_existing_codes( $form_id );
-
-		for ( $i = 0; $i < $quantity; $i++ ) {
-			$attempts = 0;
-			do {
-				$code = $this->generate_unique_code();
-				++$attempts;
-
-				// Prevent infinite loop.
-				if ( $attempts > 100 ) {
-					wp_send_json_error( array( 'message' => __( 'Error generating unique codes. Please try a smaller quantity.', 'ffcertificate' ) ) );
-				}
-			} while ( in_array( $code, $existing_codes, true ) || in_array( $code, $codes, true ) );
-
-			$codes[] = $code;
-		}
-
-		wp_send_json_success(
-			array(
-				'codes'    => implode( "\n", $codes ),
-				'quantity' => $quantity,
-			)
-		);
-	}
-
-	/**
-	 * Get existing codes for a form
-	 *
-	 * @param int $form_id Form ID.
-	 * @return array<int, string>
-	 */
-	private function get_existing_codes( int $form_id ): array {
-		$form_config = get_post_meta( $form_id, '_ffc_form_config', true );
-
-		if ( ! is_array( $form_config ) || empty( $form_config['generated_codes_list'] ) ) {
-			return array();
-		}
-
-		$codes_raw = $form_config['generated_codes_list'];
-		$codes     = array_filter( array_map( 'trim', explode( "\n", $codes_raw ) ) );
-
-		return $codes;
-	}
-
-	/**
-	 * Generate a unique code
-	 * Format: ABC-DEF-123 (3 letters - 3 letters - 3 numbers)
-	 */
-	private function generate_unique_code(): string {
-		$part1 = $this->random_letters( 3 );
-		$part2 = $this->random_letters( 3 );
-		$part3 = $this->random_numbers( 3 );
-
-		return strtoupper( $part1 . '-' . $part2 . '-' . $part3 );
-	}
-
-	/**
-	 * Generate random letters
-	 *
-	 * @param int $length Length.
-	 */
-	private function random_letters( int $length ): string {
-		$letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Removed I and O to avoid confusion.
-		$result  = '';
-
-		for ( $i = 0; $i < $length; $i++ ) {
-			$result .= $letters[ wp_rand( 0, strlen( $letters ) - 1 ) ];
-		}
-
-		return $result;
-	}
-
-	/**
-	 * Generate random numbers
-	 *
-	 * @param int $length Length.
-	 */
-	private function random_numbers( int $length ): string {
-		$result = '';
-
-		for ( $i = 0; $i < $length; $i++ ) {
-			$result .= wp_rand( 0, 9 );
-		}
-
-		return $result;
 	}
 
 	/**

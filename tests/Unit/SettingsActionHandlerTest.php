@@ -600,38 +600,6 @@ class SettingsActionHandlerTest extends TestCase {
 	}
 
 	// ==================================================================
-	// ajax_preview_date_format()
-	// ==================================================================
-
-	public function test_ajax_preview_denies_without_capability(): void {
-		Functions\when( 'check_ajax_referer' )->justReturn( true );
-		$this->mock_capabilities( false );
-		$this->expectException( \Error::class );
-		$this->expectExceptionMessage( 'json_error' );
-		$this->handler->ajax_preview_date_format();
-	}
-
-	public function test_ajax_preview_success(): void {
-		Functions\when( 'check_ajax_referer' )->justReturn( true );
-		$this->mock_capabilities( true );
-		$this->mock_request_input( array(), array( 'format' => 'F j, Y', 'custom_format' => '' ) );
-
-		$this->expectException( \Error::class );
-		$this->expectExceptionMessage( 'json_success' );
-		$this->handler->ajax_preview_date_format();
-	}
-
-	public function test_ajax_preview_custom_format(): void {
-		Functions\when( 'check_ajax_referer' )->justReturn( true );
-		$this->mock_capabilities( true );
-		$this->mock_request_input( array(), array( 'format' => 'custom', 'custom_format' => 'Y-m-d' ) );
-
-		$this->expectException( \Error::class );
-		$this->expectExceptionMessage( 'json_success' );
-		$this->handler->ajax_preview_date_format();
-	}
-
-	// ==================================================================
 	// handle_cache_actions()
 	// ==================================================================
 

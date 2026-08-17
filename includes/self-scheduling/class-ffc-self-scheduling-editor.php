@@ -39,7 +39,6 @@ class SelfSchedulingEditor {
 	 */
 	public function __construct() {
 		add_action( 'add_meta_boxes', array( $this, 'add_custom_metaboxes' ), 20 );
-		add_action( 'admin_notices', array( $this, 'display_save_errors' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 
 		// Delegated handlers.
@@ -716,15 +715,5 @@ class SelfSchedulingEditor {
 			<?php endif; ?>
 		</div>
 		<?php
-	}
-
-	/**
-	 * Display save errors
-	 *
-	 * @return void
-	 */
-	public function display_save_errors(): void {
-		// Placeholder for error display.
-		// Can be expanded as needed.
 	}
 }

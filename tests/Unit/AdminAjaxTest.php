@@ -11,8 +11,8 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\AdminAjax;
 
 /**
- * Tests for AdminAjax: constructor hook registration, generate_tickets,
- * and search_user AJAX handlers.
+ * Tests for AdminAjax: constructor hook registration and the search_user
+ * AJAX handler.
  *
  * @covers \FreeFormCertificate\Admin\AdminAjax
  * @runTestsInSeparateProcesses
@@ -123,15 +123,6 @@ class AdminAjaxTest extends TestCase {
     }
 
     /**
-     * Helper: set up POST data for a valid generate_tickets request.
-     */
-    private function setup_valid_generate_tickets( int $quantity = 3, int $form_id = 10 ): void {
-        $_POST['nonce'] = 'valid_nonce';
-        $_POST['quantity'] = (string) $quantity;
-        $_POST['form_id'] = (string) $form_id;
-    }
-
-    /**
      * Helper: set up POST data for a valid search_user request.
      */
     private function setup_valid_search_user( string $term = 'john' ): void {
@@ -151,123 +142,7 @@ class AdminAjaxTest extends TestCase {
 
         $ajax = new AdminAjax();
 
-        $this->assertContains( 'wp_ajax_ffc_generate_tickets', $registered );
         $this->assertContains( 'wp_ajax_ffc_search_user', $registered );
-    }
-
-    // ==================================================================
-    // generate_tickets()
-    // ==================================================================
-
-    public function test_generate_tickets_sends_error_without_nonce(): void {
-        // No $_POST['nonce'] — verify_ajax_nonce should fire wp_send_json_error
-        $ajax = new AdminAjax();
-
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessageMatches( '/wp_send_json_error/' );
-
-        $ajax->generate_tickets();
-    }
-
-    public function test_generate_tickets_sends_error_without_permission(): void {
-        $_POST['nonce'] = 'valid_nonce';
-
-        // Permission denied — neither the certificates manage cap (#739 §4.3)
-        // nor manage_options.
-        $this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_manage_certificates' )->andReturn( false );
-        Functions\when( 'current_user_can' )->justReturn( false );
-
-        $ajax = new AdminAjax();
-
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessageMatches( '/Permission denied/' );
-
-        $ajax->generate_tickets();
-    }
-
-    public function test_generate_tickets_sends_error_for_invalid_quantity(): void {
-        $this->setup_valid_generate_tickets( 0, 10 );
-
-        $ajax = new AdminAjax();
-
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessageMatches( '/Quantity must be between/' );
-
-        $ajax->generate_tickets();
-    }
-
-    public function test_generate_tickets_sends_error_for_quantity_over_1000(): void {
-        $this->setup_valid_generate_tickets( 1001, 10 );
-
-        $ajax = new AdminAjax();
-
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessageMatches( '/Quantity must be between/' );
-
-        $ajax->generate_tickets();
-    }
-
-    public function test_generate_tickets_sends_error_for_missing_form_id(): void {
-        $_POST['nonce'] = 'valid_nonce';
-        $_POST['quantity'] = '5';
-        $_POST['form_id'] = '0';
-
-        $ajax = new AdminAjax();
-
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessageMatches( '/Invalid form ID/' );
-
-        $ajax->generate_tickets();
-    }
-
-    public function test_generate_tickets_returns_correct_quantity(): void {
-        $this->setup_valid_generate_tickets( 3, 10 );
-
-        // No existing codes
-        Functions\when( 'get_post_meta' )->justReturn( array() );
-
-        $ajax = new AdminAjax();
-
-        try {
-            $ajax->generate_tickets();
-            $this->fail( 'Expected AdminAjaxSuccessException to be thrown' );
-        } catch ( AdminAjaxSuccessException $e ) {
-            $data = $e->getData();
-            $this->assertArrayHasKey( 'codes', $data );
-            $this->assertArrayHasKey( 'quantity', $data );
-            $this->assertSame( 3, $data['quantity'] );
-
-            // codes is a newline-separated string
-            $codes = array_filter( explode( "\n", $data['codes'] ) );
-            $this->assertCount( 3, $codes );
-        }
-    }
-
-    public function test_generate_tickets_codes_format(): void {
-        $this->setup_valid_generate_tickets( 1, 10 );
-
-        // Use varied wp_rand to produce different characters
-        $rand_counter = 0;
-        Functions\when( 'wp_rand' )->alias( function ( $min, $max ) use ( &$rand_counter ) {
-            $rand_counter++;
-            return $rand_counter % ( $max - $min + 1 );
-        } );
-
-        Functions\when( 'get_post_meta' )->justReturn( array() );
-
-        $ajax = new AdminAjax();
-
-        try {
-            $ajax->generate_tickets();
-            $this->fail( 'Expected AdminAjaxSuccessException to be thrown' );
-        } catch ( AdminAjaxSuccessException $e ) {
-            $data = $e->getData();
-            $codes = array_filter( explode( "\n", $data['codes'] ) );
-            $code = $codes[0];
-
-            // Format: ABC-DEF-123 (3 uppercase letters, dash, 3 uppercase letters, dash, 3 digits)
-            $this->assertMatchesRegularExpression( '/^[A-Z]{3}-[A-Z]{3}-[0-9]{3}$/', $code );
-        }
     }
 
     // ==================================================================

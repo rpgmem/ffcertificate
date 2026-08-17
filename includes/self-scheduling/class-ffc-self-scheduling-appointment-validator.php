@@ -42,26 +42,6 @@ class AppointmentValidator {
 	/**
 	 * Constructor
 	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
 	 * @param \FreeFormCertificate\Repositories\AppointmentRepository $appointment_repository Appointment repository.
 	 * @param \FreeFormCertificate\Repositories\BlockedDateRepository $blocked_date_repository Blocked date repository.
 	 */

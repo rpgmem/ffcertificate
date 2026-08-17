@@ -8,7 +8,7 @@
  * v2.9.13: Optimized detect_reprint() to use cpf_rf column with fallback
  * v2.10.0: LGPD - Validates consent checkbox (mandatory)
  * v3.3.0: Added strict types and type hints
- * v3.2.0: Migrated to namespace (Phase 2)
+ * v3.2.0: Migrated to namespace
  * v4.12.17: Extracted AccessRestrictionChecker and ReprintDetector for SRP compliance.
  *
  * @package FreeFormCertificate\Frontend

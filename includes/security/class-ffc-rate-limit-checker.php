@@ -39,18 +39,6 @@ final class RateLimitChecker {
 	public const STRONG_SIGNALS = array( 'canvas', 'webgl', 'audio', 'fonts', 'plugins', 'permissions' );
 
 	/**
-	 * Weak device signals — low-entropy probes that are commonly identical
-	 * across many devices of the same model / OS / browser / locale, so a
-	 * match among these alone does not indicate the same physical device.
-	 * Listed for documentation + the admin grouping UI; the matcher derives
-	 * "weak" as "present non-cookie signal that is not in STRONG_SIGNALS".
-	 *
-	 * @since 6.8.0
-	 * @var string[]
-	 */
-	public const WEAK_SIGNALS = array( 'ua', 'screen', 'tz', 'concurrency', 'memory', 'mediaqueries', 'math' );
-
-	/**
 	 * Cached settings for the current request
 	 *
 	 * @since 4.6.13

@@ -8,7 +8,7 @@
  * - PDF Generator: Generates certificate HTML/PDF (single source of truth)
  *
  * v3.3.0: Added strict types and type hints
- * v3.2.0: Migrated to namespace (Phase 2)
+ * v3.2.0: Migrated to namespace
  * v3.1.0: Added send_wp_user_notification for WordPress user creation emails
  * v3.0.0: REFACTORED - Removed HTML generation logic (now uses FFC_PDF_Generator)
  *         Simplified emails to send only magic link (no certificate preview)

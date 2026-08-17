@@ -8,7 +8,7 @@
  * @package FreeFormCertificate\Migrations\Strategies
  * @since 3.1.0 (Migration Manager refactor)
  * @version 3.3.0 - Added type hints
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @version 3.2.0 - Migrated to namespace
  */
 
 namespace FreeFormCertificate\Migrations\Strategies;

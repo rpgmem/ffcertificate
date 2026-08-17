@@ -9,7 +9,7 @@
  * @since 3.1.0 (Extracted from FFC_Migration_Manager v3.1.0 refactor)
  * @version 5.0.0 - Retired 10 completed migrations, kept only split_cpf_rf
  * @version 3.3.0 - Added strict types and type hints
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @version 3.2.0 - Migrated to namespace
  */
 
 declare(strict_types=1);

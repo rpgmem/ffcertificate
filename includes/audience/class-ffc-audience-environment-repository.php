@@ -136,16 +136,6 @@ class AudienceEnvironmentRepository {
 	/**
 	 * Get environment by ID
 	 *
-	 * Get by id.
-	 *
-	 * Get by id.
-	 *
-	 * Get by id.
-	 *
-	 * Get by id.
-	 *
-	 * Get by id.
-	 *
 	 * @param int $id Environment ID.
 	 * @return EnvironmentRow|null
 	 */

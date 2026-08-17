@@ -18,7 +18,7 @@
  * reader/writer call sites.
  *
  * V3.3.0: Added strict types and type hints for better code safety
- * v3.2.0: Migrated to namespace (Phase 2)
+ * v3.2.0: Migrated to namespace
  * v3.0.2: Fixed search to work with encrypted data (removed data_encrypted LIKE, added auth_code/magic_token search)
  * v3.0.1: Added methods for CSV export
  *

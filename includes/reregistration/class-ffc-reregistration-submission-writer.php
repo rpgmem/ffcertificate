@@ -75,16 +75,6 @@ class ReregistrationSubmissionWriter {
 	/**
 	 * Create a submission record.
 	 *
-	 * Create.
-	 *
-	 * Create.
-	 *
-	 * Create.
-	 *
-	 * Create.
-	 *
-	 * Create.
-	 *
 	 * @param array<string, mixed> $data Submission data.
 	 * @return int|false Submission ID or false.
 	 */

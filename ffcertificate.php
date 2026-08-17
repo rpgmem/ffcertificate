@@ -28,16 +28,13 @@ define( 'FFC_VERSION', '6.19.0' );                 // Plugin version (WordPress 
 // External libraries versions.
 define( 'FFC_HTML2CANVAS_VERSION', '1.4.1' );   // html2canvas - https://html2canvas.hertzen.com/.
 define( 'FFC_JSPDF_VERSION', '4.2.1' );         // jsPDF - https://github.com/parallax/jsPDF.
-define( 'FFC_JQUERY_UI_VERSION', '1.14.2' );    // jQuery UI theme (CDN) - https://code.jquery.com/ui/.
 define( 'FFC_THUMBMARK_VERSION', '1.10.1' );    // thumbmarkjs - https://github.com/thumbmarkjs/thumbmarkjs (MIT, vendored at libs/js/).
 
-define( 'FFC_MIN_WP_VERSION', '6.2' );          // Minimum WordPress (required for %i identifier placeholder).
-define( 'FFC_MIN_PHP_VERSION', '8.3' );         // Minimum PHP.
 define( 'FFC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FFC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 /**
- * ✅ PSR-4 Autoloader (Phase 1-4: Namespace Migration Complete)
+ * PSR-4 Autoloader — namespace migration complete.
  *
  * Load the PSR-4 autoloader to enable namespace support.
  * All classes use FreeFormCertificate\* namespace.
@@ -45,8 +42,8 @@ define( 'FFC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
  * ⚠️ BREAKING CHANGE (v4.0.0): Old class names (FFC_*) removed.
  * Use namespaced classes: FreeFormCertificate\Core\Utils, etc.
  *
- * @since 3.2.0 (Phase 1-2)
- * @since 4.0.0 (Phase 4 - BC aliases removed)
+ * @since 3.2.0
+ * @since 4.0.0 BC aliases removed
  */
 require_once FFC_PLUGIN_DIR . 'includes/class-ffc-autoloader.php';
 

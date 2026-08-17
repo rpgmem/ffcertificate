@@ -7,7 +7,7 @@
  *
  * @package FreeFormCertificate
  * @version 3.3.0 - Added strict types and type hints
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @version 3.2.0 - Migrated to namespace
  * @since   3.0.0
  */
 
