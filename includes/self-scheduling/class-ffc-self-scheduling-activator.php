@@ -68,6 +68,9 @@ class SelfSchedulingActivator {
             title varchar(255) NOT NULL,
             description text DEFAULT NULL,
 
+            -- Scheduling mode: 'regular' = weekly working hours; 'custom' = explicit date/time blocks (#941)
+            schedule_type enum('regular','custom') NOT NULL DEFAULT 'regular' COMMENT 'regular = weekly working_hours; custom = explicit custom_slots',
+
             -- Time slot configuration
             slot_duration int unsigned DEFAULT 30 COMMENT 'Duration in minutes',
             slot_interval int unsigned DEFAULT 0 COMMENT 'Break between slots in minutes',
@@ -75,6 +78,9 @@ class SelfSchedulingActivator {
 
             -- Working hours (JSON: [{day: 0-6, start: '09:00', end: '17:00'}])
             working_hours longtext DEFAULT NULL,
+
+            -- Custom blocks (JSON: [{date:'Y-m-d', start:'H:i', end:'H:i', capacity:int, label?:string}]) — used when schedule_type='custom' (#941)
+            custom_slots longtext DEFAULT NULL,
 
             -- Booking window
             advance_booking_min int unsigned DEFAULT 0 COMMENT 'Minimum hours in advance',
@@ -348,7 +354,38 @@ class SelfSchedulingActivator {
 			self::migrate_visibility_columns();
 			// Run migration to add business hours restriction columns.
 			self::migrate_business_hours_restriction_columns();
+			// Run migration to add custom-scheduling columns (#941).
+			self::migrate_custom_scheduling_columns();
 		}
+	}
+
+	/**
+	 * Migrate calendars table to add the custom-scheduling columns (#941).
+	 *
+	 * `schedule_type` selects between the regular weekly working-hours model
+	 * (default, unchanged behaviour) and the custom explicit-blocks model;
+	 * `custom_slots` holds the blocks JSON for the latter. Existing calendars
+	 * default to `regular`, so no behaviour changes on upgrade.
+	 *
+	 * @since 6.20.0
+	 * @return void
+	 */
+	private static function migrate_custom_scheduling_columns(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+
+		self::add_column_if_missing(
+			$table_name,
+			'schedule_type',
+			"enum('regular','custom') NOT NULL DEFAULT 'regular' COMMENT 'regular = weekly working_hours; custom = explicit custom_slots'",
+			'description'
+		);
+		self::add_column_if_missing(
+			$table_name,
+			'custom_slots',
+			'longtext DEFAULT NULL',
+			'working_hours'
+		);
 	}
 
 	/**

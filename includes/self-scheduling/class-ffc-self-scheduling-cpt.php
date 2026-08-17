@@ -314,6 +314,7 @@ class SelfSchedulingCPT {
 		// Get metadata.
 		$config        = get_post_meta( $post_id, '_ffc_self_scheduling_config', true );
 		$working_hours = get_post_meta( $post_id, '_ffc_self_scheduling_working_hours', true );
+		$custom_slots  = get_post_meta( $post_id, '_ffc_self_scheduling_custom_slots', true );
 		$email_config  = get_post_meta( $post_id, '_ffc_self_scheduling_email_config', true );
 
 		// Parse config into database fields.
@@ -321,6 +322,7 @@ class SelfSchedulingCPT {
 		$data['title']         = $post->post_title;
 		$data['post_id']       = $post_id;
 		$data['working_hours'] = is_array( $working_hours ) ? wp_json_encode( $working_hours ) : $working_hours;
+		$data['custom_slots']  = is_array( $custom_slots ) ? wp_json_encode( $custom_slots ) : $custom_slots;
 		$data['email_config']  = is_array( $email_config ) ? wp_json_encode( $email_config ) : $email_config;
 		$data['updated_at']    = current_time( 'mysql' );
 		$data['updated_by']    = get_current_user_id();
@@ -367,6 +369,7 @@ class SelfSchedulingCPT {
 			'scheduling_visibility'             => $config['scheduling_visibility'] ?? 'public',
 			'restrict_viewing_to_hours'         => $config['restrict_viewing_to_hours'] ?? 0,
 			'restrict_booking_to_hours'         => $config['restrict_booking_to_hours'] ?? 0,
+			'schedule_type'                     => ( 'custom' === ( $config['schedule_type'] ?? 'regular' ) ) ? 'custom' : 'regular',
 			'status'                            => $config['status'] ?? 'active',
 		);
 	}
