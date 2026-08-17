@@ -94,6 +94,14 @@ class SelfSchedulingSaveHandler {
 		// (explicit date/time blocks). Unknown values fall back to 'regular'.
 		$config['schedule_type'] = ( 'custom' === ( $config['schedule_type'] ?? 'regular' ) ) ? 'custom' : 'regular';
 
+		// Lock the mode once the calendar has bookings — switching would orphan them.
+		if ( $this->calendar_has_appointments( $post_id ) ) {
+			$stored = get_post_meta( $post_id, '_ffc_self_scheduling_config', true );
+			if ( is_array( $stored ) && ! empty( $stored['schedule_type'] ) ) {
+				$config['schedule_type'] = ( 'custom' === $stored['schedule_type'] ) ? 'custom' : 'regular';
+			}
+		}
+
 		// Visibility controls.
 		$config['visibility']            = in_array( ( $config['visibility'] ?? '' ), array( 'public', 'private' ), true ) ? $config['visibility'] : 'public';
 		$config['scheduling_visibility'] = in_array( ( $config['scheduling_visibility'] ?? '' ), array( 'public', 'private' ), true ) ? $config['scheduling_visibility'] : 'public';
@@ -186,6 +194,11 @@ class SelfSchedulingSaveHandler {
 			);
 		}
 
+		// Once bookings exist, a booked block cannot be removed or retimed (#941).
+		if ( $this->calendar_has_appointments( $post_id ) ) {
+			$blocks = $this->preserve_booked_blocks( $post_id, $blocks );
+		}
+
 		usort(
 			$blocks,
 			static function ( $a, $b ) {
@@ -194,6 +207,90 @@ class SelfSchedulingSaveHandler {
 		);
 
 		update_post_meta( $post_id, '_ffc_self_scheduling_custom_slots', $blocks );
+	}
+
+	/**
+	 * Whether the calendar (by post id) already has at least one appointment.
+	 *
+	 * @param int $post_id Calendar post id.
+	 * @return bool
+	 */
+	private function calendar_has_appointments( int $post_id ): bool {
+		if ( $post_id <= 0 ) {
+			return false;
+		}
+		global $wpdb;
+		$calendars    = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+		$appointments = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$count = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(a.id) FROM %i a INNER JOIN %i c ON c.id = a.calendar_id WHERE c.post_id = %d',
+				$appointments,
+				$calendars,
+				$post_id
+			)
+		);
+		return (int) $count > 0;
+	}
+
+	/**
+	 * Protect blocks that already carry bookings (#941): a booked (date, start)
+	 * cannot be removed or retimed. The admin may still change a booked block's
+	 * capacity/label and freely edit unbooked blocks. Removed booked blocks are
+	 * re-added with their original window; retimed ones keep their original end.
+	 *
+	 * @param int                              $post_id  Calendar post id.
+	 * @param array<int, array<string, mixed>> $incoming Parsed incoming blocks.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function preserve_booked_blocks( int $post_id, array $incoming ): array {
+		global $wpdb;
+		$calendars    = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+		$appointments = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT DISTINCT a.appointment_date AS d, a.start_time AS s FROM %i a INNER JOIN %i c ON c.id = a.calendar_id WHERE c.post_id = %d AND a.status IN ('confirmed','pending')",
+				$appointments,
+				$calendars,
+				$post_id
+			),
+			ARRAY_A
+		);
+		if ( empty( $rows ) ) {
+			return $incoming;
+		}
+
+		$booked = array();
+		foreach ( $rows as $row ) {
+			$booked[ $row['d'] . '|' . substr( (string) $row['s'], 0, 5 ) ] = true;
+		}
+
+		$old = array();
+		foreach ( \FreeFormCertificate\SelfScheduling\CustomSlots::decode( get_post_meta( $post_id, '_ffc_self_scheduling_custom_slots', true ) ) as $block ) {
+			$old[ $block['date'] . '|' . \FreeFormCertificate\SelfScheduling\CustomSlots::hm( $block['start'] ) ] = $block;
+		}
+
+		$by_key = array();
+		foreach ( $incoming as $block ) {
+			$by_key[ $block['date'] . '|' . $block['start'] ] = $block;
+		}
+
+		foreach ( array_keys( $booked ) as $key ) {
+			if ( ! isset( $old[ $key ] ) ) {
+				continue;
+			}
+			if ( isset( $by_key[ $key ] ) ) {
+				// Present: allow capacity/label change, but no retime.
+				$by_key[ $key ]['end'] = $old[ $key ]['end'];
+			} else {
+				// Removed: restore the original block.
+				$by_key[ $key ] = $old[ $key ];
+			}
+		}
+
+		return array_values( $by_key );
 	}
 
 	/**

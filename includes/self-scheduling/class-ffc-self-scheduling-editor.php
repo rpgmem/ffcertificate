@@ -221,6 +221,7 @@ class SelfSchedulingEditor {
 
 		$defaults = array(
 			'description'               => '',
+			'schedule_type'             => 'regular',
 			'slot_duration'             => 30,
 			'slot_interval'             => 0,
 			'slots_per_day'             => 0,
@@ -229,6 +230,10 @@ class SelfSchedulingEditor {
 		);
 
 		$config = array_merge( $defaults, $config );
+
+		// Mode is locked once the calendar has bookings (#941): switching would
+		// orphan existing appointments.
+		$mode_locked = $this->calendar_has_appointments( (int) $post->ID );
 
 		wp_nonce_field( 'ffc_self_scheduling_config_nonce', 'ffc_self_scheduling_config_nonce' );
 		?>
@@ -241,27 +246,40 @@ class SelfSchedulingEditor {
 				</td>
 			</tr>
 			<tr>
+				<th><?php esc_html_e( 'Scheduling mode', 'ffcertificate' ); ?></th>
+				<td>
+					<label><input type="radio" name="ffc_self_scheduling_config[schedule_type]" value="regular" class="ffc-schedule-type-radio" <?php checked( $config['schedule_type'], 'regular' ); ?> <?php disabled( $mode_locked ); ?> /> <?php esc_html_e( 'Regular — weekly working hours', 'ffcertificate' ); ?></label><br />
+					<label><input type="radio" name="ffc_self_scheduling_config[schedule_type]" value="custom" class="ffc-schedule-type-radio" <?php checked( $config['schedule_type'], 'custom' ); ?> <?php disabled( $mode_locked ); ?> /> <?php esc_html_e( 'Custom — specific date/time blocks, each with its own number of vacancies', 'ffcertificate' ); ?></label>
+					<?php if ( $mode_locked ) : ?>
+						<input type="hidden" name="ffc_self_scheduling_config[schedule_type]" value="<?php echo esc_attr( $config['schedule_type'] ); ?>" />
+						<p class="description" style="color:#b32d2e;"><?php esc_html_e( 'This calendar already has bookings — the scheduling mode is locked.', 'ffcertificate' ); ?></p>
+					<?php else : ?>
+						<p class="description"><?php esc_html_e( 'Regular repeats weekly. Custom lets you list exact dates and times below, each with its own capacity.', 'ffcertificate' ); ?></p>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr class="ffc-regular-only">
 				<th><label for="slot_duration"><?php esc_html_e( 'Appointment Duration', 'ffcertificate' ); ?></label></th>
 				<td>
 					<input type="number" id="slot_duration" name="ffc_self_scheduling_config[slot_duration]" value="<?php echo esc_attr( $config['slot_duration'] ); ?>" min="5" max="480" step="5" /> <?php esc_html_e( 'minutes', 'ffcertificate' ); ?>
 					<p class="description"><?php esc_html_e( 'Duration of each appointment slot', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
-			<tr>
+			<tr class="ffc-regular-only">
 				<th><label for="slot_interval"><?php esc_html_e( 'Break Between Appointments', 'ffcertificate' ); ?></label></th>
 				<td>
 					<input type="number" id="slot_interval" name="ffc_self_scheduling_config[slot_interval]" value="<?php echo esc_attr( $config['slot_interval'] ); ?>" min="0" max="120" step="5" /> <?php esc_html_e( 'minutes', 'ffcertificate' ); ?>
 					<p class="description"><?php esc_html_e( 'Buffer time between appointments (0 = no break)', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
-			<tr>
+			<tr class="ffc-regular-only">
 				<th><label for="max_appointments_per_slot"><?php esc_html_e( 'Max Bookings Per Slot', 'ffcertificate' ); ?></label></th>
 				<td>
 					<input type="number" id="max_appointments_per_slot" name="ffc_self_scheduling_config[max_appointments_per_slot]" value="<?php echo esc_attr( $config['max_appointments_per_slot'] ); ?>" min="1" max="100" />
 					<p class="description"><?php esc_html_e( 'Maximum number of people per time slot (1 = exclusive)', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
-			<tr>
+			<tr class="ffc-regular-only">
 				<th><label for="slots_per_day"><?php esc_html_e( 'Daily Booking Limit', 'ffcertificate' ); ?></label></th>
 				<td>
 					<input type="number" id="slots_per_day" name="ffc_self_scheduling_config[slots_per_day]" value="<?php echo esc_attr( $config['slots_per_day'] ); ?>" min="0" max="200" />
@@ -281,6 +299,35 @@ class SelfSchedulingEditor {
 			</tr>
 		</table>
 		<?php
+	}
+
+	/**
+	 * Whether the calendar (by post id) already has at least one appointment.
+	 *
+	 * Used to lock the scheduling mode and block-structure edits (#941): once
+	 * bookings exist, switching mode or removing/retiming a block would orphan
+	 * them.
+	 *
+	 * @param int $post_id Calendar post id.
+	 * @return bool
+	 */
+	private function calendar_has_appointments( int $post_id ): bool {
+		if ( $post_id <= 0 ) {
+			return false;
+		}
+		global $wpdb;
+		$calendars    = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+		$appointments = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$count = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(a.id) FROM %i a INNER JOIN %i c ON c.id = a.calendar_id WHERE c.post_id = %d',
+				$appointments,
+				$calendars,
+				$post_id
+			)
+		);
+		return (int) $count > 0;
 	}
 
 	/**
@@ -332,8 +379,15 @@ class SelfSchedulingEditor {
 			6 => __( 'Saturday', 'ffcertificate' ),
 		);
 
+		// Custom blocks (#941).
+		$custom_slots = get_post_meta( $post->ID, '_ffc_self_scheduling_custom_slots', true );
+		if ( ! is_array( $custom_slots ) ) {
+			$custom_slots = array();
+		}
+		$mode_locked = $this->calendar_has_appointments( (int) $post->ID );
+
 		?>
-		<div id="ffc-working-hours-wrapper">
+		<div id="ffc-working-hours-wrapper" class="ffc-regular-only">
 			<p><?php esc_html_e( 'Define which days and times appointments can be booked:', 'ffcertificate' ); ?></p>
 
 			<table class="widefat ffc-working-hours-table">
@@ -372,6 +426,42 @@ class SelfSchedulingEditor {
 			<p>
 				<button type="button" class="button" id="ffc-add-working-hour"><?php esc_html_e( '+ Add Working Hours', 'ffcertificate' ); ?></button>
 			</p>
+		</div>
+
+		<div id="ffc-custom-slots-wrapper" class="ffc-custom-only">
+			<p><?php esc_html_e( 'Define the exact date/time blocks and how many vacancies each has. Each block is one bookable session.', 'ffcertificate' ); ?></p>
+
+			<table class="widefat ffc-custom-slots-table">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th>
+						<th><?php esc_html_e( 'Start', 'ffcertificate' ); ?></th>
+						<th><?php esc_html_e( 'End', 'ffcertificate' ); ?></th>
+						<th><?php esc_html_e( 'Vacancies', 'ffcertificate' ); ?></th>
+						<th><?php esc_html_e( 'Label (optional)', 'ffcertificate' ); ?></th>
+						<th><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
+					</tr>
+				</thead>
+				<tbody id="ffc-custom-slots-list">
+					<?php foreach ( $custom_slots as $index => $block ) : ?>
+						<tr>
+							<td><input type="date" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][date]" value="<?php echo esc_attr( $block['date'] ?? '' ); ?>" /></td>
+							<td><input type="time" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][start]" value="<?php echo esc_attr( $block['start'] ?? '' ); ?>" /></td>
+							<td><input type="time" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][end]" value="<?php echo esc_attr( $block['end'] ?? '' ); ?>" /></td>
+							<td><input type="number" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][capacity]" value="<?php echo esc_attr( (string) ( $block['capacity'] ?? 1 ) ); ?>" min="1" max="10000" /></td>
+							<td><input type="text" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][label]" value="<?php echo esc_attr( $block['label'] ?? '' ); ?>" class="regular-text" /></td>
+							<td><button type="button" class="button ffc-remove-slot"><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button></td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+
+			<p>
+				<button type="button" class="button" id="ffc-add-custom-slot"><?php esc_html_e( '+ Add Block', 'ffcertificate' ); ?></button>
+			</p>
+			<?php if ( $mode_locked ) : ?>
+				<p class="description" style="color:#b32d2e;"><?php esc_html_e( 'This calendar has bookings — blocks with existing bookings cannot be removed or retimed on save; you may still add blocks or raise capacity.', 'ffcertificate' ); ?></p>
+			<?php endif; ?>
 		</div>
 		<?php
 	}

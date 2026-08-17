@@ -42,6 +42,19 @@ class SelfSchedulingEditorTest extends TestCase {
         Functions\when( 'get_the_ID' )->justReturn( 10 );
         Functions\when( 'checked' )->justReturn( '' );
         Functions\when( 'selected' )->justReturn( '' );
+        Functions\when( 'disabled' )->justReturn( '' );
+
+        // $wpdb mock — no appointments, so the #941 mode/block locks stay off.
+        global $wpdb;
+        $wpdb         = \Mockery::mock();
+        $wpdb->prefix = 'wp_';
+        $wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+            function ( $query ) {
+                return $query;
+            }
+        );
+        $wpdb->shouldReceive( 'get_var' )->andReturn( 0 );
+        $GLOBALS['wpdb'] = $wpdb;
         Functions\when( 'add_query_arg' )->justReturn( '/' );
         Functions\when( 'home_url' )->justReturn( 'https://example.com' );
         Functions\when( 'check_ajax_referer' )->justReturn( true );

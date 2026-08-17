@@ -43,6 +43,21 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
             $saved[ $key ] = $value;
             return true;
         } );
+        Functions\when( 'get_post_meta' )->justReturn( false );
+
+        // $wpdb mock — no appointments by default, so the #941 booking locks
+        // stay inactive for the plain parse tests.
+        global $wpdb;
+        $wpdb         = Mockery::mock();
+        $wpdb->prefix = 'wp_';
+        $wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+            function ( $query ) {
+                return $query;
+            }
+        );
+        $wpdb->shouldReceive( 'get_var' )->andReturn( 0 )->byDefault();
+        $wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
+        $GLOBALS['wpdb'] = $wpdb;
 
         $this->handler = new SelfSchedulingSaveHandler();
     }
@@ -139,6 +154,45 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
     public function test_custom_slots_absent_field_is_noop(): void {
         $this->invoke( 'save_custom_slots', array( 100 ) );
         $this->assertArrayNotHasKey( '_ffc_self_scheduling_custom_slots', $this->saved_meta );
+    }
+
+    public function test_schedule_type_locked_to_stored_when_bookings_exist(): void {
+        global $wpdb;
+        $wpdb->shouldReceive( 'get_var' )->andReturn( 3 ); // calendar has bookings
+        Functions\when( 'get_post_meta' )->justReturn( array( 'schedule_type' => 'regular' ) );
+
+        $_POST['ffc_self_scheduling_config'] = array( 'schedule_type' => 'custom' ); // attempt to switch
+        $this->invoke( 'save_config', array( 100 ) );
+
+        $this->assertSame( 'regular', $this->saved_meta['_ffc_self_scheduling_config']['schedule_type'] );
+    }
+
+    public function test_booked_block_is_preserved_when_removed(): void {
+        global $wpdb;
+        $wpdb->shouldReceive( 'get_var' )->andReturn( 1 );
+        $wpdb->shouldReceive( 'get_results' )->andReturn(
+            array( array( 'd' => '2026-09-03', 's' => '08:00:00' ) ) // a booked (date, start)
+        );
+        Functions\when( 'get_post_meta' )->justReturn(
+            array(
+                array( 'date' => '2026-09-03', 'start' => '08:00', 'end' => '13:00', 'capacity' => 40, 'label' => 'orig' ),
+            )
+        );
+
+        // Incoming tries to drop the booked block and add a different one.
+        $_POST['ffc_self_scheduling_custom_slots'] = array(
+            array( 'date' => '2026-09-10', 'start' => '09:00', 'end' => '12:00', 'capacity' => '10' ),
+        );
+        $this->invoke( 'save_custom_slots', array( 100 ) );
+
+        $keys = array_map(
+            static function ( $b ) {
+                return $b['date'] . ' ' . $b['start'];
+            },
+            $this->saved_meta['_ffc_self_scheduling_custom_slots']
+        );
+        $this->assertContains( '2026-09-03 08:00', $keys, 'the booked block is restored' );
+        $this->assertContains( '2026-09-10 09:00', $keys, 'the new block is kept' );
     }
 
     public function test_config_defaults_for_missing_fields(): void {
