@@ -89,6 +89,40 @@ class AppointmentWriter extends AbstractRepository {
 	}
 
 	/**
+	 * Promote a waitlisted appointment when a spot frees up (#941 phase 2).
+	 *
+	 * Moves a `waitlist` row into the active pool: `confirmed` when the calendar
+	 * auto-confirms, or `pending` when it requires manual approval (so the admin
+	 * still reviews the promoted booking). Only the confirmed path stamps
+	 * `approved_at`.
+	 *
+	 * @param int  $id Record ID.
+	 * @param bool $requires_approval Whether the calendar requires manual approval.
+	 * @return int|false
+	 */
+	public function promoteFromWaitlist( int $id, bool $requires_approval ) {
+		if ( $requires_approval ) {
+			return $this->update(
+				$id,
+				array(
+					'status'     => 'pending',
+					'updated_at' => current_time( 'mysql' ),
+				)
+			);
+		}
+
+		return $this->update(
+			$id,
+			array(
+				'status'      => 'confirmed',
+				// `approved_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+				'approved_at' => time(),
+				'updated_at'  => current_time( 'mysql' ),
+			)
+		);
+	}
+
+	/**
 	 * Mark as completed
 	 *
 	 * @param int $id Record ID.
