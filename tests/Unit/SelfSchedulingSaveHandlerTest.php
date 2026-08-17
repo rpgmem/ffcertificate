@@ -51,6 +51,7 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
         unset(
             $_POST['ffc_self_scheduling_config'],
             $_POST['ffc_self_scheduling_working_hours'],
+            $_POST['ffc_self_scheduling_custom_slots'],
             $_POST['ffc_self_scheduling_email_config']
         );
         $this->saved_meta = array();
@@ -75,6 +76,69 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
         $_POST['ffc_self_scheduling_config'] = array( 'slot_duration' => '45' );
         $this->invoke( 'save_config', array( 100 ) );
         $this->assertSame( 45, $this->saved_meta['_ffc_self_scheduling_config']['slot_duration'] );
+    }
+
+    // ==================================================================
+    // schedule_type + save_custom_slots() (#941)
+    // ==================================================================
+
+    public function test_config_schedule_type_custom_accepted(): void {
+        $_POST['ffc_self_scheduling_config'] = array( 'schedule_type' => 'custom' );
+        $this->invoke( 'save_config', array( 100 ) );
+        $this->assertSame( 'custom', $this->saved_meta['_ffc_self_scheduling_config']['schedule_type'] );
+    }
+
+    public function test_config_schedule_type_unknown_defaults_regular(): void {
+        $_POST['ffc_self_scheduling_config'] = array( 'schedule_type' => 'bogus' );
+        $this->invoke( 'save_config', array( 100 ) );
+        $this->assertSame( 'regular', $this->saved_meta['_ffc_self_scheduling_config']['schedule_type'] );
+    }
+
+    public function test_custom_slots_parsed_normalized_and_sorted(): void {
+        $_POST['ffc_self_scheduling_custom_slots'] = array(
+            array( 'date' => '2026-09-05', 'start' => '8:00', 'end' => '13:00', 'capacity' => '20', 'label' => 'B' ),
+            array( 'date' => '2026-09-03', 'start' => '14:00', 'end' => '18:00', 'capacity' => '40' ),
+            array( 'date' => '2026-09-03', 'start' => '08:00', 'end' => '13:00', 'capacity' => '40', 'label' => 'A' ),
+        );
+        $this->invoke( 'save_custom_slots', array( 100 ) );
+        $blocks = $this->saved_meta['_ffc_self_scheduling_custom_slots'];
+
+        $this->assertCount( 3, $blocks );
+        // Sorted by (date, start); '8:00' normalized to '08:00'.
+        $this->assertSame( array( '2026-09-03', '08:00', 'A' ), array( $blocks[0]['date'], $blocks[0]['start'], $blocks[0]['label'] ) );
+        $this->assertSame( array( '2026-09-03', '14:00' ), array( $blocks[1]['date'], $blocks[1]['start'] ) );
+        $this->assertSame( array( '2026-09-05', '08:00', 20 ), array( $blocks[2]['date'], $blocks[2]['start'], $blocks[2]['capacity'] ) );
+    }
+
+    public function test_custom_slots_drops_invalid_and_clamps_capacity(): void {
+        $_POST['ffc_self_scheduling_custom_slots'] = array(
+            array( 'date' => '2026-13-01', 'start' => '08:00', 'end' => '13:00', 'capacity' => '5' ), // bad month
+            array( 'date' => '2026-09-03', 'start' => '13:00', 'end' => '08:00', 'capacity' => '5' ), // start >= end
+            array( 'date' => '2026-09-03', 'start' => '08:00', 'end' => '13:00', 'capacity' => '0' ), // capacity clamps to 1
+            'scalar-row',
+        );
+        $this->invoke( 'save_custom_slots', array( 100 ) );
+        $blocks = $this->saved_meta['_ffc_self_scheduling_custom_slots'];
+
+        $this->assertCount( 1, $blocks );
+        $this->assertSame( 1, $blocks[0]['capacity'] );
+    }
+
+    public function test_custom_slots_dedupes_date_start_keeping_first(): void {
+        $_POST['ffc_self_scheduling_custom_slots'] = array(
+            array( 'date' => '2026-09-03', 'start' => '08:00', 'end' => '13:00', 'capacity' => '40', 'label' => 'first' ),
+            array( 'date' => '2026-09-03', 'start' => '08:00', 'end' => '18:00', 'capacity' => '99', 'label' => 'dup' ),
+        );
+        $this->invoke( 'save_custom_slots', array( 100 ) );
+        $blocks = $this->saved_meta['_ffc_self_scheduling_custom_slots'];
+
+        $this->assertCount( 1, $blocks );
+        $this->assertSame( 'first', $blocks[0]['label'] );
+    }
+
+    public function test_custom_slots_absent_field_is_noop(): void {
+        $this->invoke( 'save_custom_slots', array( 100 ) );
+        $this->assertArrayNotHasKey( '_ffc_self_scheduling_custom_slots', $this->saved_meta );
     }
 
     public function test_config_defaults_for_missing_fields(): void {
