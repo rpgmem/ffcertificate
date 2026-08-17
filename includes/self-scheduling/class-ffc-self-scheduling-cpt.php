@@ -367,6 +367,7 @@ class SelfSchedulingCPT {
 			'max_appointments_per_slot'         => $config['max_appointments_per_slot'] ?? 1,
 			'waitlist_enabled'                  => $config['waitlist_enabled'] ?? 0,
 			'waitlist_capacity'                 => $config['waitlist_capacity'] ?? 0,
+			'max_blocks_per_user'               => $config['max_blocks_per_user'] ?? 0,
 			'visibility'                        => $config['visibility'] ?? 'public',
 			'scheduling_visibility'             => $config['scheduling_visibility'] ?? 'public',
 			'restrict_viewing_to_hours'         => $config['restrict_viewing_to_hours'] ?? 0,

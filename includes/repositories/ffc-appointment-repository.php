@@ -216,6 +216,16 @@ class AppointmentRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Per-slot occupancy counts for a calendar (#941 phase 3).
+	 *
+	 * @param int $calendar_id Calendar ID.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getOccupancyCounts( int $calendar_id ): array {
+		return $this->reader->getOccupancyCounts( $calendar_id );
+	}
+
+	/**
 	 * Get upcoming appointments for reminders
 	 *
 	 * @param int $hours_before Hours before appointment.

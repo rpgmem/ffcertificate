@@ -103,6 +103,9 @@ class SelfSchedulingActivator {
             waitlist_enabled tinyint(1) DEFAULT 0 COMMENT '1 = full slots offer a waitlist instead of rejecting',
             waitlist_capacity int unsigned DEFAULT 0 COMMENT 'Max queue length per slot (0 = unlimited)',
 
+            -- Per-user block cap (#941 phase 3): custom mode only; max distinct blocks one user may hold (0 = disabled)
+            max_blocks_per_user int unsigned DEFAULT 0 COMMENT 'Custom mode: max blocks a single user may book in this calendar (0 = disabled)',
+
             -- Visibility & access control
             visibility enum('public','private') DEFAULT 'public' COMMENT 'Calendar visibility: public or private',
             scheduling_visibility enum('public','private') DEFAULT 'public' COMMENT 'Booking access: public or private',
@@ -362,7 +365,31 @@ class SelfSchedulingActivator {
 			self::migrate_custom_scheduling_columns();
 			// Run migration to add waitlist columns (#941 phase 2).
 			self::migrate_waitlist_columns();
+			// Run migration to add the per-user block cap column (#941 phase 3).
+			self::migrate_block_cap_column();
 		}
+	}
+
+	/**
+	 * Migrate calendars table to add the per-user block cap column (#941 phase 3).
+	 *
+	 * `max_blocks_per_user` caps how many distinct blocks a single user may hold
+	 * in a custom calendar (0 = disabled). Defaults off, so existing calendars
+	 * are unchanged on upgrade. Custom mode only.
+	 *
+	 * @since 6.20.0
+	 * @return void
+	 */
+	private static function migrate_block_cap_column(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+
+		self::add_column_if_missing(
+			$table_name,
+			'max_blocks_per_user',
+			"int unsigned DEFAULT 0 COMMENT 'Custom mode: max blocks a single user may book in this calendar (0 = disabled)'",
+			'waitlist_capacity'
+		);
 	}
 
 	/**
