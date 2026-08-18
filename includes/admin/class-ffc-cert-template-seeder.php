@@ -49,8 +49,14 @@ class CertTemplateSeeder {
 	 * uses the same background mechanism as any user template — the field shows the
 	 * image, and Load carries it into the form's `_ffc_form_bg`. The bump refreshes
 	 * existing installs' bodies (background `<img>` removed) and populates the field.
+	 *
+	 * Version 4 seeds the two **appointment-receipt** defaults (#945) — Regular and
+	 * Custom — tagged `META_KIND = appointment_receipt`, so the self-scheduling
+	 * comprovante can be chosen from the pool per mode. Non-destructive: the bump's
+	 * restore() adds the two missing receipt defaults without touching user
+	 * templates (and re-tags any existing default with its kind).
 	 */
-	private const SEED_VERSION = 3;
+	private const SEED_VERSION = 4;
 
 	/**
 	 * Directory (relative to the plugin root) holding the default background
@@ -59,7 +65,9 @@ class CertTemplateSeeder {
 	private const BG_DIR = 'assets/img/certificate-defaults/';
 
 	/**
-	 * Directory (relative to the plugin root) holding the seed HTML files.
+	 * Default seed-HTML directory (certificate defaults). A definition may
+	 * override it via its `dir` key (e.g. the appointment-receipt defaults live
+	 * under `templates/documents/`).
 	 */
 	private const SEED_DIR = 'templates/certificate-defaults/';
 
@@ -104,12 +112,12 @@ class CertTemplateSeeder {
 				continue; // Non-destructive: never overwrite an existing default.
 			}
 
-			$html = self::read_seed_file( $def['file'] );
+			$html = self::read_seed_file( $def['file'], $def['dir'] ?? self::SEED_DIR );
 			if ( '' === $html ) {
 				continue;
 			}
 
-			self::insert_default( $slug, $def['title'], $html, self::bg_url( $def['bg'] ) );
+			self::insert_default( $slug, $def['title'], $html, self::bg_url( $def['bg'] ), $def['kind'] );
 		}
 	}
 
@@ -126,20 +134,24 @@ class CertTemplateSeeder {
 		$existing_map = self::existing_default_map();
 
 		foreach ( self::definitions() as $slug => $def ) {
-			$html = self::read_seed_file( $def['file'] );
+			$html = self::read_seed_file( $def['file'], $def['dir'] ?? self::SEED_DIR );
 			if ( '' === $html ) {
 				continue;
 			}
 
+			$kind = $def['kind'];
+
 			if ( isset( $existing_map[ $slug ] ) ) {
 				// Refresh the shipped body + background field only — leave
-				// visibility as the admin set it (#865 decision #13).
+				// visibility as the admin set it (#865 decision #13). Also (re)tag
+				// the kind so defaults seeded before #945 report the right surface.
 				update_post_meta( $existing_map[ $slug ], CertTemplateCpt::META_HTML, $html );
 				update_post_meta( $existing_map[ $slug ], CertTemplateCpt::META_BG_IMAGE, self::bg_url( $def['bg'] ) );
+				update_post_meta( $existing_map[ $slug ], CertTemplateCpt::META_KIND, $kind );
 				continue;
 			}
 
-			self::insert_default( $slug, $def['title'], $html, self::bg_url( $def['bg'] ) );
+			self::insert_default( $slug, $def['title'], $html, self::bg_url( $def['bg'] ), $kind );
 		}
 	}
 
@@ -150,9 +162,10 @@ class CertTemplateSeeder {
 	 * @param string $title Template title.
 	 * @param string $html  Seed HTML body.
 	 * @param string $bg    Background-image URL for the dedicated field. Default ''.
+	 * @param string $kind  Template kind (#945). Default `certificate`.
 	 * @return void
 	 */
-	private static function insert_default( string $slug, string $title, string $html, string $bg = '' ): void {
+	private static function insert_default( string $slug, string $title, string $html, string $bg = '', string $kind = CertTemplateCpt::KIND_CERTIFICATE ): void {
 		$id = wp_insert_post(
 			array(
 				'post_type'   => CertTemplateCpt::POST_TYPE,
@@ -172,31 +185,52 @@ class CertTemplateSeeder {
 		update_post_meta( $id, CertTemplateCpt::META_VISIBLE, '1' );
 		update_post_meta( $id, CertTemplateCpt::META_HTML, $html );
 		update_post_meta( $id, CertTemplateCpt::META_BG_IMAGE, $bg );
+		update_post_meta( $id, CertTemplateCpt::META_KIND, $kind );
 	}
 
 	/**
 	 * The shipped default templates: stable slug → title + seed filename + the
 	 * background-image basename (under {@see self::BG_DIR}) lifted out of the body
-	 * into `META_BG_IMAGE` since seed v3.
+	 * into `META_BG_IMAGE` since seed v3. Each entry also carries its `kind`
+	 * (#945) and, optionally, a `dir` overriding {@see self::SEED_DIR}.
 	 *
-	 * @return array<string, array{title:string, file:string, bg:string}>
+	 * @return array<string, array{title:string, file:string, bg:string, kind:string, dir?:string}>
 	 */
 	private static function definitions(): array {
 		return array(
-			'default_certificate_1' => array(
+			'default_certificate_1'               => array(
 				'title' => __( 'Certificate model 1', 'ffcertificate' ),
 				'file'  => 'default_certificate_1.html',
 				'bg'    => 'default_background_certificate_1.png',
+				'kind'  => CertTemplateCpt::KIND_CERTIFICATE,
 			),
-			'default_certificate_2' => array(
+			'default_certificate_2'               => array(
 				'title' => __( 'Certificate model 2', 'ffcertificate' ),
 				'file'  => 'default_certificate_2.html',
 				'bg'    => 'default_background_certificate_2.png',
+				'kind'  => CertTemplateCpt::KIND_CERTIFICATE,
 			),
-			'default_certificate_3' => array(
+			'default_certificate_3'               => array(
 				'title' => __( 'Certificate model 3', 'ffcertificate' ),
 				'file'  => 'default_certificate_3.html',
 				'bg'    => 'default_background_certificate_3.png',
+				'kind'  => CertTemplateCpt::KIND_CERTIFICATE,
+			),
+			// Appointment-receipt defaults (#945) — HTML under templates/documents/,
+			// no background image, tagged with the appointment_receipt kind.
+			'default_appointment_receipt_regular' => array(
+				'title' => __( 'Appointment receipt — Regular', 'ffcertificate' ),
+				'file'  => 'default_appointment_receipt_1.html',
+				'bg'    => '',
+				'kind'  => CertTemplateCpt::KIND_APPOINTMENT_RECEIPT,
+				'dir'   => 'templates/documents/',
+			),
+			'default_appointment_receipt_custom'  => array(
+				'title' => __( 'Appointment receipt — Custom', 'ffcertificate' ),
+				'file'  => 'default_appointment_receipt_custom.html',
+				'bg'    => '',
+				'kind'  => CertTemplateCpt::KIND_APPOINTMENT_RECEIPT,
+				'dir'   => 'templates/documents/',
 			),
 		);
 	}
@@ -252,10 +286,12 @@ class CertTemplateSeeder {
 	 * Read a seed HTML file from the plugin's seed directory.
 	 *
 	 * @param string $file Basename of the seed file.
+	 * @param string $dir  Directory (relative to plugin root) holding the file.
+	 *                     Default {@see self::SEED_DIR} (certificate defaults).
 	 * @return string File contents, or an empty string when unreadable.
 	 */
-	private static function read_seed_file( string $file ): string {
-		$path = FFC_PLUGIN_DIR . self::SEED_DIR . $file;
+	private static function read_seed_file( string $file, string $dir = self::SEED_DIR ): string {
+		$path = FFC_PLUGIN_DIR . $dir . $file;
 		if ( ! is_readable( $path ) ) {
 			return '';
 		}

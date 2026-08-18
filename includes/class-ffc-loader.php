@@ -197,10 +197,17 @@ class Loader {
 			// non-destructive, versioned seed of the shipped defaults (admin
 			// only — the pool is authored/consumed in wp-admin).
 			new \FreeFormCertificate\Admin\CertTemplateCpt();
+			// Appointment-receipt template resolution (#945): when a comprovante
+			// PDF is generated (frontend/AJAX included), pick the admin-selected
+			// pool template for the calendar's mode. Harmless when unconfigured
+			// (falls back to the shipped default file).
+			( new \FreeFormCertificate\Admin\CertTemplateReceiptResolver() )->register();
 			if ( is_admin() ) {
 				add_action( 'admin_init', array( \FreeFormCertificate\Admin\CertTemplateSeeder::class, 'maybe_seed' ) );
 				// Management UI: list-table columns + visibility toggle (#865).
 				new \FreeFormCertificate\Admin\CertTemplateAdminScreen();
+				// Global per-mode appointment-receipt template selection (#945).
+				new \FreeFormCertificate\Admin\CertTemplateReceiptSettings();
 			}
 		}
 

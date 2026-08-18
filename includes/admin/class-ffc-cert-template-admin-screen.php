@@ -107,6 +107,10 @@ class CertTemplateAdminScreen {
 		add_action( 'admin_action_' . self::EXPORT_ACTION, array( $this, 'handle_export' ) );
 		add_action( 'admin_action_' . self::RESTORE_ACTION, array( $this, 'handle_restore_defaults' ) );
 		add_action( 'restrict_manage_posts', array( $this, 'render_restore_button' ) );
+		// Category (kind) list filter (#945): a dropdown in the list toolbar +
+		// the matching main-query meta_query.
+		add_action( 'restrict_manage_posts', array( $this, 'render_kind_filter' ) );
+		add_action( 'pre_get_posts', array( $this, 'filter_by_kind' ) );
 		// Sample-data preview (#865 decision #13): a read-only preview page a
 		// "Preview" row action opens in an overlay iframe (graceful no-JS: the
 		// link navigates to the page directly).
@@ -139,14 +143,16 @@ class CertTemplateAdminScreen {
 		foreach ( $columns as $key => $label ) {
 			$out[ $key ] = $label;
 			if ( 'title' === $key ) {
-				$out['ffc_type']    = __( 'Type', 'ffcertificate' );
-				$out['ffc_visible'] = __( 'Visible', 'ffcertificate' );
+				$out['ffc_category'] = __( 'Category', 'ffcertificate' );
+				$out['ffc_type']     = __( 'Type', 'ffcertificate' );
+				$out['ffc_visible']  = __( 'Visible', 'ffcertificate' );
 			}
 		}
 		// Fallback if the title column is absent for any reason.
 		if ( ! isset( $out['ffc_type'] ) ) {
-			$out['ffc_type']    = __( 'Type', 'ffcertificate' );
-			$out['ffc_visible'] = __( 'Visible', 'ffcertificate' );
+			$out['ffc_category'] = __( 'Category', 'ffcertificate' );
+			$out['ffc_type']     = __( 'Type', 'ffcertificate' );
+			$out['ffc_visible']  = __( 'Visible', 'ffcertificate' );
 		}
 		return $out;
 	}
@@ -159,6 +165,11 @@ class CertTemplateAdminScreen {
 	 * @return void
 	 */
 	public function render_column( string $column, int $post_id ): void {
+		if ( 'ffc_category' === $column ) {
+			echo esc_html( self::kind_label( CertTemplateReader::get_kind( $post_id ) ) );
+			return;
+		}
+
 		if ( 'ffc_type' === $column ) {
 			echo CertTemplateReader::is_default( $post_id )
 				? esc_html__( 'Default', 'ffcertificate' )
@@ -311,9 +322,13 @@ class CertTemplateAdminScreen {
 		}
 
 		$html = (string) get_post_meta( $post_id, CertTemplateCpt::META_HTML, true );
+		$bg   = (string) get_post_meta( $post_id, CertTemplateCpt::META_BG_IMAGE, true );
+		$kind = CertTemplateReader::get_kind( $post_id );
 		/* translators: %s: source template title */
-		$title  = sprintf( __( '%s (copy)', 'ffcertificate' ), (string) $post->post_title );
-		$new_id = CertTemplateWriter::create( $title, $html, true );
+		$title = sprintf( __( '%s (copy)', 'ffcertificate' ), (string) $post->post_title );
+		// Preserve the source's kind + background so a duplicated receipt stays a
+		// receipt (#945) and a duplicated certificate keeps its background.
+		$new_id = CertTemplateWriter::create( $title, $html, true, $bg, $kind );
 
 		// Open the new copy for editing; fall back to the list on failure.
 		$redirect = $new_id > 0
@@ -407,6 +422,94 @@ class CertTemplateAdminScreen {
 			self::RESTORE_ACTION
 		);
 		echo '<a href="' . esc_url( $url ) . '" class="button">' . esc_html__( 'Restore defaults', 'ffcertificate' ) . '</a>';
+	}
+
+	/**
+	 * Human label for a template kind (#945).
+	 *
+	 * @param string $kind One of the `CertTemplateCpt::KIND_*` values.
+	 * @return string
+	 */
+	private static function kind_label( string $kind ): string {
+		if ( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT === $kind ) {
+			return __( 'Appointment receipt', 'ffcertificate' );
+		}
+		return __( 'Certificate', 'ffcertificate' );
+	}
+
+	/**
+	 * Render the Category (kind) filter dropdown in the list-table toolbar (#945).
+	 *
+	 * @param string $post_type Current list-table post type.
+	 * @return void
+	 */
+	public function render_kind_filter( string $post_type ): void {
+		if ( CertTemplateCpt::POST_TYPE !== $post_type ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list filter (GET); no state change.
+		$current = isset( $_GET['ffc_kind'] ) ? sanitize_key( wp_unslash( $_GET['ffc_kind'] ) ) : '';
+		$options = array(
+			''                                        => __( 'All categories', 'ffcertificate' ),
+			CertTemplateCpt::KIND_CERTIFICATE         => self::kind_label( CertTemplateCpt::KIND_CERTIFICATE ),
+			CertTemplateCpt::KIND_APPOINTMENT_RECEIPT => self::kind_label( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT ),
+		);
+
+		echo '<select name="ffc_kind">';
+		foreach ( $options as $value => $label ) {
+			echo '<option value="' . esc_attr( $value ) . '"' . selected( $current, $value, false ) . '>' . esc_html( $label ) . '</option>';
+		}
+		echo '</select>';
+	}
+
+	/**
+	 * Constrain the pool list to the selected Category (kind) (#945).
+	 *
+	 * @param \WP_Query $query The query being prepared.
+	 * @return void
+	 */
+	public function filter_by_kind( \WP_Query $query ): void {
+		if ( ! is_admin() || ! $query->is_main_query() ) {
+			return;
+		}
+		if ( CertTemplateCpt::POST_TYPE !== $query->get( 'post_type' ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list filter (GET); no state change.
+		$kind = isset( $_GET['ffc_kind'] ) ? sanitize_key( wp_unslash( $_GET['ffc_kind'] ) ) : '';
+		if ( '' === $kind ) {
+			return;
+		}
+
+		if ( CertTemplateCpt::KIND_CERTIFICATE === $kind ) {
+			// Absent meta counts as certificate (retrocompat).
+			$query->set(
+				'meta_query',
+				array(
+					'relation' => 'OR',
+					array(
+						'key'   => CertTemplateCpt::META_KIND,
+						'value' => CertTemplateCpt::KIND_CERTIFICATE,
+					),
+					array(
+						'key'     => CertTemplateCpt::META_KIND,
+						'compare' => 'NOT EXISTS',
+					),
+				)
+			);
+		} else {
+			$query->set(
+				'meta_query',
+				array(
+					array(
+						'key'   => CertTemplateCpt::META_KIND,
+						'value' => $kind,
+					),
+				)
+			);
+		}
 	}
 
 	/**
@@ -608,6 +711,7 @@ class CertTemplateAdminScreen {
 		$html       = (string) get_post_meta( $post->ID, CertTemplateCpt::META_HTML, true );
 		$bg_image   = (string) get_post_meta( $post->ID, CertTemplateCpt::META_BG_IMAGE, true );
 		$is_default = CertTemplateReader::is_default( (int) $post->ID );
+		$is_receipt = CertTemplateCpt::KIND_APPOINTMENT_RECEIPT === CertTemplateReader::get_kind( (int) $post->ID );
 
 		wp_nonce_field( self::SAVE_NONCE, 'ffc_cert_template_nonce' );
 
@@ -635,12 +739,18 @@ class CertTemplateAdminScreen {
 			<?php
 		}
 		?>
-		<label class="ffc-block-label" for="ffc_template_html"><strong><?php esc_html_e( 'Certificate HTML', 'ffcertificate' ); ?></strong></label>
+		<label class="ffc-block-label" for="ffc_template_html"><strong>
+			<?php echo $is_receipt ? esc_html__( 'Receipt HTML', 'ffcertificate' ) : esc_html__( 'Certificate HTML', 'ffcertificate' ); ?>
+		</strong></label>
 		<div class="ffc-code-editor-wrapper">
 			<textarea name="ffc_template_html" id="ffc_template_html" class="ffc-w100" rows="16" <?php wp_readonly( $is_default, true ); ?>><?php echo esc_textarea( $html ); ?></textarea>
 		</div>
 		<p class="description">
-			<?php esc_html_e( 'Mandatory Tags:', 'ffcertificate' ); ?> <code>{{auth_code}}</code>, <code>{{name}}</code>, <code>{{cpf_rf}}</code>.
+			<?php if ( $is_receipt ) : ?>
+				<?php esc_html_e( 'Common tags:', 'ffcertificate' ); ?> <code>{{name}}</code>, <code>{{cpf_rf}}</code>, <code>{{calendar_title}}</code>, <code>{{appointment_date}}</code>, <code>{{appointment_time}}</code>, <code>{{appointment_time_range}}</code>, <code>{{validation_code}}</code>, <code>{{qr_code:size=140}}</code>, <code>{{validation_url}}</code>.
+			<?php else : ?>
+				<?php esc_html_e( 'Mandatory Tags:', 'ffcertificate' ); ?> <code>{{auth_code}}</code>, <code>{{name}}</code>, <code>{{cpf_rf}}</code>.
+			<?php endif; ?>
 		</p>
 
 		<div class="ffc-input-group ffc-mt-15">
@@ -664,15 +774,23 @@ class CertTemplateAdminScreen {
 		$visible = 'auto-draft' === $post->post_status
 			? true
 			: '1' === (string) get_post_meta( $post->ID, CertTemplateCpt::META_VISIBLE, true );
+
+		$is_receipt   = CertTemplateCpt::KIND_APPOINTMENT_RECEIPT === CertTemplateReader::get_kind( (int) $post->ID );
+		$toggle_label = $is_receipt
+			? __( 'Show in the appointment-receipt selection', 'ffcertificate' )
+			: __( 'Show in the form editor’s “Load” list', 'ffcertificate' );
+		$toggle_help  = $is_receipt
+			? __( 'When on, this template can be chosen as the appointment receipt in Self-scheduling settings.', 'ffcertificate' )
+			: __( 'When on, this template appears in the certificate form editor’s “Load” dropdown.', 'ffcertificate' );
 		?>
 		<label class="ffc-toggle">
 			<input type="checkbox" id="ffc_template_visible" name="ffc_template_visible" value="1" <?php checked( $visible ); ?>>
 			<span class="ffc-toggle-track" aria-hidden="true"></span>
-			<span class="ffc-toggle-label"><?php esc_html_e( 'Show in the form editor’s “Load” list', 'ffcertificate' ); ?></span>
+			<span class="ffc-toggle-label"><?php echo esc_html( $toggle_label ); ?></span>
 		</label>
 		<span id="ffc_template_visible_status" class="ffc-autosave-status" role="status" aria-live="polite"></span>
 		<p class="description">
-			<?php esc_html_e( 'When on, this template appears in the certificate form editor’s “Load” dropdown.', 'ffcertificate' ); ?>
+			<?php echo esc_html( $toggle_help ); ?>
 		</p>
 		<?php
 	}

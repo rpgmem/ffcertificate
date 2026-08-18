@@ -73,6 +73,16 @@ class CertTemplateWriterTest extends TestCase {
 		$this->assertSame( '1', $this->written( CertTemplateCpt::META_VISIBLE ) );
 		// A user template is never a shipped default.
 		$this->assertSame( '0', $this->written( CertTemplateCpt::META_IS_DEFAULT ) );
+		// Defaults to the certificate kind when not specified (#945).
+		$this->assertSame( CertTemplateCpt::KIND_CERTIFICATE, $this->written( CertTemplateCpt::META_KIND ) );
+	}
+
+	public function test_create_stores_the_given_kind(): void {
+		Functions\when( 'wp_insert_post' )->justReturn( 79 );
+
+		CertTemplateWriter::create( 'Receipt', '<div>r</div>', true, '', CertTemplateCpt::KIND_APPOINTMENT_RECEIPT );
+
+		$this->assertSame( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT, $this->written( CertTemplateCpt::META_KIND ) );
 	}
 
 	public function test_create_honours_visible_false(): void {

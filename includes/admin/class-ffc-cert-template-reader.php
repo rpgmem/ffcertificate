@@ -25,12 +25,42 @@ if ( ! defined( 'ABSPATH' ) ) {
 class CertTemplateReader {
 
 	/**
-	 * List the templates that should appear in the form editor's "Load" control:
-	 * only the visible ones, plugin defaults first then user templates.
+	 * List the visible templates of one kind for a "Load" / selection control:
+	 * plugin defaults first, then user templates.
 	 *
+	 * @param string $kind Which surface's templates to list (#945). Defaults to
+	 *                     `certificate`; an absent `_ffc_template_kind` counts as
+	 *                     `certificate` so pre-#945 templates still appear.
 	 * @return array<int, array{id:int, label:string, is_default:bool}>
 	 */
-	public static function list_for_editor(): array {
+	public static function list_for_editor( string $kind = CertTemplateCpt::KIND_CERTIFICATE ): array {
+		// Visible flag is always required; the kind clause treats a missing meta as
+		// `certificate` (retrocompat) and matches the exact value for other kinds.
+		$meta_query = array(
+			array(
+				'key'   => CertTemplateCpt::META_VISIBLE,
+				'value' => '1',
+			),
+		);
+		if ( CertTemplateCpt::KIND_CERTIFICATE === $kind ) {
+			$meta_query[] = array(
+				'relation' => 'OR',
+				array(
+					'key'   => CertTemplateCpt::META_KIND,
+					'value' => CertTemplateCpt::KIND_CERTIFICATE,
+				),
+				array(
+					'key'     => CertTemplateCpt::META_KIND,
+					'compare' => 'NOT EXISTS',
+				),
+			);
+		} else {
+			$meta_query[] = array(
+				'key'   => CertTemplateCpt::META_KIND,
+				'value' => $kind,
+			);
+		}
+
 		$posts = get_posts(
 			array(
 				'post_type'        => CertTemplateCpt::POST_TYPE,
@@ -38,8 +68,7 @@ class CertTemplateReader {
 				'numberposts'      => -1,
 				'orderby'          => 'title',
 				'order'            => 'ASC',
-				'meta_key'         => CertTemplateCpt::META_VISIBLE, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Small, admin-only pool; the visible flag is the intended filter.
-				'meta_value'       => '1', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- See above.
+				'meta_query'       => $meta_query, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Small, admin-only pool; visibility + kind are the intended filters.
 				'suppress_filters' => false,
 			)
 		);
@@ -111,5 +140,20 @@ class CertTemplateReader {
 			return false;
 		}
 		return '1' === (string) get_post_meta( $id, CertTemplateCpt::META_IS_DEFAULT, true );
+	}
+
+	/**
+	 * The template's kind (#945). An absent meta counts as `certificate` so
+	 * pre-#945 templates report the original kind.
+	 *
+	 * @param int $id Template post id.
+	 * @return string One of the `CertTemplateCpt::KIND_*` values.
+	 */
+	public static function get_kind( int $id ): string {
+		if ( $id <= 0 ) {
+			return CertTemplateCpt::KIND_CERTIFICATE;
+		}
+		$kind = (string) get_post_meta( $id, CertTemplateCpt::META_KIND, true );
+		return '' !== $kind ? $kind : CertTemplateCpt::KIND_CERTIFICATE;
 	}
 }
