@@ -139,5 +139,85 @@
 		$textarea.after( $notice );
 	}
 
-	window.FFCCodeEditor = { init: init };
+	/**
+	 * Resolve the live CodeMirror instance mounted on a textarea, if any.
+	 *
+	 * WordPress's `wp.codeEditor` inserts a `.CodeMirror` element as the
+	 * textarea's next sibling and hangs the instance off `el.CodeMirror`. These
+	 * DOM helpers reach it by traversal (rather than a retained reference) so
+	 * screens that only hold the textarea — the form-editor layout box and the
+	 * cert-template edit screen — can flush/write through the one editor without
+	 * threading the instance around.
+	 *
+	 * @param {Object} $textarea jQuery-wrapped textarea.
+	 * @return {Object|null} CodeMirror instance, or null when none is mounted.
+	 */
+	function instanceOf( $textarea ) {
+		var $cm = $textarea.nextAll( '.CodeMirror' ).first();
+		return $cm.length && $cm[0].CodeMirror ? $cm[0].CodeMirror : null;
+	}
+
+	/**
+	 * Flush the mounted CodeMirror buffer into its textarea so a following
+	 * `.val()` read sees the latest edits. No-op when no editor is mounted (the
+	 * textarea already carries its own value).
+	 *
+	 * @param {Object} $textarea jQuery-wrapped textarea.
+	 * @return {void}
+	 */
+	function flush( $textarea ) {
+		var cm = instanceOf( $textarea );
+		if ( cm && 'function' === typeof cm.save ) {
+			cm.save();
+		}
+	}
+
+	/**
+	 * Write content into the editor (and its textarea). Routes through the
+	 * CodeMirror API when mounted — a direct `$textarea.val()` write is NOT
+	 * reflected by the visible editor — and falls back to the plain textarea
+	 * otherwise. Fires `change` either way.
+	 *
+	 * @param {Object} $textarea jQuery-wrapped textarea.
+	 * @param {string} content   New content.
+	 * @return {void}
+	 */
+	function setContent( $textarea, content ) {
+		var cm = instanceOf( $textarea );
+		if ( cm && 'function' === typeof cm.setValue ) {
+			cm.setValue( content );
+			cm.save();
+		} else {
+			$textarea.val( content );
+		}
+		$textarea.trigger( 'change' );
+	}
+
+	/**
+	 * Insert a snippet at the editor's cursor (so it lands where the user is
+	 * typing) via CodeMirror, or append to the plain textarea when no editor is
+	 * mounted (JS-lite / tests).
+	 *
+	 * @param {Object} $textarea jQuery-wrapped textarea.
+	 * @param {string} snippet   HTML to insert.
+	 * @return {void}
+	 */
+	function insertAtCursor( $textarea, snippet ) {
+		var cm = instanceOf( $textarea );
+		if ( cm && 'function' === typeof cm.replaceSelection ) {
+			cm.replaceSelection( snippet );
+			cm.save();
+			$textarea.trigger( 'change' );
+			cm.focus();
+			return;
+		}
+		setContent( $textarea, ( $textarea.val() || '' ) + snippet );
+	}
+
+	window.FFCCodeEditor = {
+		init: init,
+		flush: flush,
+		setContent: setContent,
+		insertAtCursor: insertAtCursor,
+	};
 } )( jQuery );

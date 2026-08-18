@@ -606,11 +606,7 @@ class SettingsAjaxEndpoint {
 	public static function sanitize_value( $raw, string $type, array $entry = array() ) {
 		switch ( $type ) {
 			case 'bool':
-				if ( is_array( $raw ) ) {
-					return false;
-				}
-				$str = strtolower( (string) $raw );
-				return in_array( $str, array( '1', 'true', 'on', 'yes' ), true );
+				return \FreeFormCertificate\Core\RequestInput::is_truthy( $raw );
 
 			case 'int':
 				if ( is_array( $raw ) ) {

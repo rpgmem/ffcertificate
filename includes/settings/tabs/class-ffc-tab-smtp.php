@@ -42,56 +42,53 @@ class TabSMTP extends SettingsTab {
 	 * @param string $hook Hook name.
 	 */
 	public function enqueue_scripts( string $hook ): void {
-		// Only load on settings page with this tab active.
-		if ( 'toplevel_page_ffc-settings' !== $hook ) {
+		// Only load on the FFC Settings page with this tab active.
+		if ( ! $this->should_enqueue_on( $hook ) ) {
 			return;
 		}
 
-		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for conditional script loading.
-		if ( 'smtp' === $active_tab ) {
-			$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-			wp_enqueue_script(
-				'ffc-smtp-settings',
-				FFC_PLUGIN_URL . "assets/js/ffc-smtp-settings{$s}.js",
-				array( 'jquery' ),
-				FFC_VERSION,
-				true
-			);
-			// Powers the `.ffc-toggle` switch on `disable_all_emails`.
-			$this->enqueue_autosave_infra();
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_script(
+			'ffc-smtp-settings',
+			FFC_PLUGIN_URL . "assets/js/ffc-smtp-settings{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		// Powers the `.ffc-toggle` switch on `disable_all_emails`.
+		$this->enqueue_autosave_infra();
 
-			// "Email Model" box: color pickers, media uploader, live preview.
-			wp_enqueue_media();
-			wp_enqueue_style( 'wp-color-picker' );
-			wp_enqueue_style(
-				'ffc-email-model',
-				FFC_PLUGIN_URL . "assets/css/ffc-email-model{$s}.css",
-				array(),
-				FFC_VERSION
-			);
-			wp_enqueue_script(
-				'ffc-email-model',
-				FFC_PLUGIN_URL . "assets/js/ffc-email-model{$s}.js",
-				array( 'jquery', 'wp-color-picker' ),
-				FFC_VERSION,
-				true
-			);
-			wp_localize_script(
-				'ffc-email-model',
-				'ffcEmailModel',
-				array(
-					'defaults'       => \FreeFormCertificate\Core\EmailTemplateOptions::defaults(),
-					'fontStacks'     => \FreeFormCertificate\Core\EmailTemplateOptions::font_stacks(),
-					'tokens'         => \FreeFormCertificate\Core\EmailTemplateOptions::footer_tokens( array( 'recipient' => 'user@example.com' ) ),
-					'siteName'       => get_bloginfo( 'name' ),
-					'sampleTitle'    => __( 'Sample email', 'ffcertificate' ),
-					'sampleBody'     => __( 'This is how your plugin emails will look with the current model.', 'ffcertificate' ),
-					'sampleLink'     => __( 'A sample link', 'ffcertificate' ),
-					'chooseLogo'     => __( 'Select image', 'ffcertificate' ),
-					'confirmRestore' => __( 'Restore all Email Model fields to their defaults? Unsaved changes will be lost.', 'ffcertificate' ),
-				)
-			);
-		}
+		// "Email Model" box: color pickers, media uploader, live preview.
+		wp_enqueue_media();
+		wp_enqueue_style( 'wp-color-picker' );
+		wp_enqueue_style(
+			'ffc-email-model',
+			FFC_PLUGIN_URL . "assets/css/ffc-email-model{$s}.css",
+			array(),
+			FFC_VERSION
+		);
+		wp_enqueue_script(
+			'ffc-email-model',
+			FFC_PLUGIN_URL . "assets/js/ffc-email-model{$s}.js",
+			array( 'jquery', 'wp-color-picker' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-email-model',
+			'ffcEmailModel',
+			array(
+				'defaults'       => \FreeFormCertificate\Core\EmailTemplateOptions::defaults(),
+				'fontStacks'     => \FreeFormCertificate\Core\EmailTemplateOptions::font_stacks(),
+				'tokens'         => \FreeFormCertificate\Core\EmailTemplateOptions::footer_tokens( array( 'recipient' => 'user@example.com' ) ),
+				'siteName'       => get_bloginfo( 'name' ),
+				'sampleTitle'    => __( 'Sample email', 'ffcertificate' ),
+				'sampleBody'     => __( 'This is how your plugin emails will look with the current model.', 'ffcertificate' ),
+				'sampleLink'     => __( 'A sample link', 'ffcertificate' ),
+				'chooseLogo'     => __( 'Select image', 'ffcertificate' ),
+				'confirmRestore' => __( 'Restore all Email Model fields to their defaults? Unsaved changes will be lost.', 'ffcertificate' ),
+			)
+		);
 	}
 
 	/**

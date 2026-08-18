@@ -50,12 +50,7 @@ class TabGeolocation extends SettingsTab {
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_scripts( string $hook ): void {
-		if ( 'toplevel_page_ffc-settings' !== $hook ) {
-			return;
-		}
-
-		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for conditional script loading.
-		if ( 'geolocation' !== $active_tab ) {
+		if ( ! $this->should_enqueue_on( $hook ) ) {
 			return;
 		}
 

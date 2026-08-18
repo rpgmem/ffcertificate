@@ -78,6 +78,10 @@ class SettingsTabTest extends TestCase {
                 return $this->is_active();
             }
 
+            public function public_should_enqueue_on( string $hook ): bool {
+                return $this->should_enqueue_on( $hook );
+            }
+
         };
     }
 
@@ -294,6 +298,43 @@ class SettingsTabTest extends TestCase {
         unset( $_GET['tab'] );
 
         $this->assertFalse( $this->tab->public_is_active() );
+    }
+
+    // ==================================================================
+    // should_enqueue_on()
+    // ==================================================================
+
+    public function test_should_enqueue_on_true_on_settings_hook_and_active_tab(): void {
+        Functions\when( 'sanitize_key' )->alias( function ( $key ) {
+            return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $key ) );
+        } );
+        Functions\when( 'wp_unslash' )->returnArg();
+
+        $_GET['tab'] = 'test_tab';
+
+        $this->assertTrue( $this->tab->public_should_enqueue_on( 'toplevel_page_ffc-settings' ) );
+    }
+
+    public function test_should_enqueue_on_false_on_wrong_hook(): void {
+        Functions\when( 'sanitize_key' )->alias( function ( $key ) {
+            return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $key ) );
+        } );
+        Functions\when( 'wp_unslash' )->returnArg();
+
+        $_GET['tab'] = 'test_tab';
+
+        $this->assertFalse( $this->tab->public_should_enqueue_on( 'edit.php' ) );
+    }
+
+    public function test_should_enqueue_on_false_on_wrong_tab(): void {
+        Functions\when( 'sanitize_key' )->alias( function ( $key ) {
+            return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $key ) );
+        } );
+        Functions\when( 'wp_unslash' )->returnArg();
+
+        $_GET['tab'] = 'other_tab';
+
+        $this->assertFalse( $this->tab->public_should_enqueue_on( 'toplevel_page_ffc-settings' ) );
     }
 
     // ==================================================================
