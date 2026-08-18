@@ -168,7 +168,7 @@ class CertTemplateReceiptSettings {
 		wp_enqueue_script(
 			'ffc-receipt-templates',
 			FFC_PLUGIN_URL . "assets/js/ffc-receipt-templates{$s}.js",
-			array( 'jquery', 'ffc-code-editor-core' ),
+			array( 'jquery', 'ffc-core', 'ffc-code-editor-core' ),
 			FFC_VERSION,
 			true
 		);

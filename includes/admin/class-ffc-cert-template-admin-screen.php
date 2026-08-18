@@ -644,7 +644,7 @@ class CertTemplateAdminScreen {
 		wp_enqueue_script(
 			self::EDIT_HANDLE,
 			FFC_PLUGIN_URL . "assets/js/ffc-cert-template-admin{$suffix}.js",
-			array( 'jquery' ),
+			array( 'jquery', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);

@@ -51,7 +51,7 @@ class TabUrlShortener extends SettingsTab {
 		wp_enqueue_script(
 			'ffc-url-shortener-settings',
 			FFC_PLUGIN_URL . "assets/js/ffc-url-shortener-settings{$suffix}.js",
-			array( 'jquery' ),
+			array( 'jquery', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);

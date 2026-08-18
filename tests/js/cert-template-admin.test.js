@@ -1,19 +1,30 @@
 // Tests for ffc-cert-template-admin.js — the certificate-template edit-screen
 // behaviours: (1) lock the core title on shipped defaults, (2) autosave the
 // sidebar visibility toggle over AJAX (so the removed Publish box isn't needed).
+//
+// The toggle autosave goes through the shared window.FFC.request (ffc-core);
+// these tests inject a mock FFC so no real transport runs.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
-// Mock $.post and return a .done/.fail chain, mirroring the file's usage.
-function postChain(spec) {
-	const chain = { done: () => chain, fail: () => chain };
-	if (spec && 'done' in spec) chain.done = (cb) => { cb(spec.done); return chain; };
-	if (spec && spec.fail) chain.fail = (cb) => { cb(spec.fail === true ? undefined : spec.fail); return chain; };
-	return chain;
+// Install a mock window.FFC.request. Pass { reject: true } to simulate an
+// AJAX failure; otherwise it resolves with the given `resolve` data.
+function installFFC(result) {
+	const request = vi.fn(() =>
+		result && result.reject
+			? Promise.reject(new Error('fail'))
+			: Promise.resolve(result ? result.resolve : undefined)
+	);
+	window.FFC = { request };
+	return request;
 }
 
-function flush() { return Promise.resolve().then(() => Promise.resolve()); }
+function flush() {
+	return Promise.resolve()
+		.then(() => Promise.resolve())
+		.then(() => Promise.resolve());
+}
 
 function config(overrides) {
 	return Object.assign({
@@ -46,38 +57,37 @@ beforeEach(() => {
 
 afterEach(() => {
 	delete window.ffcCertTemplateAdmin;
+	delete window.FFC;
 	vi.restoreAllMocks();
 });
 
 describe('ffc-cert-template-admin', () => {
-	it('POSTs the toggle state to the configured endpoint on change', async () => {
-		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { visible: false } } }));
+	it('calls FFC.request with the toggle state on change', async () => {
+		const request = installFFC({ resolve: {} });
 
 		mount(config(), { checked: true });
 		window.$('#ffc_template_visible').prop('checked', false).trigger('change');
 		await flush();
 
-		expect(postSpy).toHaveBeenCalledTimes(1);
-		const [url, payload] = postSpy.mock.calls[0];
-		expect(url).toBe('/wp-admin/admin-ajax.php');
-		expect(payload.action).toBe('ffc_cert_template_toggle_visibility');
-		expect(payload.nonce).toBe('tpl-nonce');
-		expect(payload.post_id).toBe(9);
-		expect(payload.visible).toBe('0');
+		expect(request).toHaveBeenCalledTimes(1);
+		const [action, data, options] = request.mock.calls[0];
+		expect(action).toBe('ffc_cert_template_toggle_visibility');
+		expect(data).toEqual({ post_id: 9, visible: '0' });
+		expect(options).toEqual({ nonce: 'tpl-nonce', ajaxUrl: '/wp-admin/admin-ajax.php' });
 	});
 
 	it('sends "1" when the toggle is checked on', async () => {
-		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+		const request = installFFC({ resolve: {} });
 
 		mount(config(), { checked: false });
 		window.$('#ffc_template_visible').prop('checked', true).trigger('change');
 		await flush();
 
-		expect(postSpy.mock.calls[0][1].visible).toBe('1');
+		expect(request.mock.calls[0][1].visible).toBe('1');
 	});
 
 	it('shows the "Saved" status on success', async () => {
-		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: {} } }));
+		installFFC({ resolve: {} });
 
 		mount(config(), { checked: false });
 		window.$('#ffc_template_visible').prop('checked', true).trigger('change');
@@ -89,7 +99,7 @@ describe('ffc-cert-template-admin', () => {
 	});
 
 	it('shows the "Save failed" status on AJAX failure', async () => {
-		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
+		installFFC({ reject: true });
 
 		mount(config(), { checked: false });
 		window.$('#ffc_template_visible').prop('checked', true).trigger('change');
@@ -112,10 +122,10 @@ describe('ffc-cert-template-admin', () => {
 	});
 
 	it('does not bind the toggle when there is no post id (new auto-draft)', async () => {
-		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+		const request = installFFC({ resolve: {} });
 		mount(config({ postId: 0 }), { checked: false });
 		window.$('#ffc_template_visible').prop('checked', true).trigger('change');
 		await flush();
-		expect(postSpy).not.toHaveBeenCalled();
+		expect(request).not.toHaveBeenCalled();
 	});
 });

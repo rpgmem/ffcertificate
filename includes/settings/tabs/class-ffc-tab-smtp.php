@@ -85,7 +85,6 @@ class TabSMTP extends SettingsTab {
 				'sampleTitle'    => __( 'Sample email', 'ffcertificate' ),
 				'sampleBody'     => __( 'This is how your plugin emails will look with the current model.', 'ffcertificate' ),
 				'sampleLink'     => __( 'A sample link', 'ffcertificate' ),
-				'chooseLogo'     => __( 'Select image', 'ffcertificate' ),
 				'confirmRestore' => __( 'Restore all Email Model fields to their defaults? Unsaved changes will be lost.', 'ffcertificate' ),
 			)
 		);
