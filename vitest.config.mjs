@@ -25,6 +25,7 @@ export default defineConfig({
 				// with the current Vitest + jsdom setup. Revisit if the
 				// underlying dependency stops being the blocker.
 				'assets/js/ffc-admin-migrations.js',     // DB-mutating; manual testing only.
+				'assets/js/ffc-code-editor-core.js',     // Shared CodeMirror initializer; jsdom lacks CodeMirror.
 				'assets/js/ffc-admin-code-editor.js',    // Thin CodeMirror wrapper.
 				'assets/js/ffc-receipt-templates.js',    // CodeMirror (wp.codeEditor) + AJAX wrapper; jsdom lacks CodeMirror.
 				'assets/js/ffc-admin-pdf.js',            // Coupled to html2canvas + jsPDF.
