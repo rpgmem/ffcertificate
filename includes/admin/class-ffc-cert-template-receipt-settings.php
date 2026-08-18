@@ -122,12 +122,9 @@ class CertTemplateReceiptSettings {
 	 * @return string
 	 */
 	private function shipped_default_html(): string {
-		$path = FFC_PLUGIN_DIR . 'templates/documents/default_appointment_receipt_1.html';
-		if ( ! is_readable( $path ) ) {
-			return '';
-		}
-		$html = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Bundled plugin asset.
-		return is_string( $html ) ? $html : '';
+		return \FreeFormCertificate\Core\Utils::read_file_contents(
+			FFC_PLUGIN_DIR . 'templates/documents/default_appointment_receipt_1.html'
+		);
 	}
 
 	/**
