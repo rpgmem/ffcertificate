@@ -84,20 +84,18 @@ class AppointmentValidator {
 		}
 
 		// 2. Validate date format.
-		$date_obj = \DateTime::createFromFormat( 'Y-m-d', $data['appointment_date'] );
-		if ( ! $date_obj || $date_obj->format( 'Y-m-d' ) !== $data['appointment_date'] ) {
+		if ( ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $data['appointment_date'] ) ) {
 			return new \WP_Error( 'invalid_date', __( 'Invalid date format.', 'ffcertificate' ) );
 		}
 
 		// 3. Validate time format.
-		if ( ! preg_match( '/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/', $data['start_time'] ) ) {
+		if ( ! \FreeFormCertificate\Core\DateFormatter::is_valid_time( $data['start_time'] ) ) {
 			return new \WP_Error( 'invalid_time', __( 'Invalid time format.', 'ffcertificate' ) );
 		}
 
 		// 4. Check if date is in the past (bypass allowed)
 		$now                   = time();
-		$tz                    = wp_timezone();
-		$appointment_timestamp = ( new \DateTimeImmutable( $data['appointment_date'] . ' ' . $data['start_time'], $tz ) )->getTimestamp();
+		$appointment_timestamp = self::wall_clock_to_timestamp( $data['appointment_date'], $data['start_time'] );
 
 		if ( $appointment_timestamp < $now && ! $has_bypass ) {
 			return new \WP_Error( 'past_date', __( 'Cannot book appointments in the past.', 'ffcertificate' ) );
@@ -429,7 +427,7 @@ class AppointmentValidator {
 				continue;
 			}
 
-			$apt_timestamp = ( new \DateTimeImmutable( $appointment['appointment_date'] . ' ' . $appointment['start_time'], wp_timezone() ) )->getTimestamp();
+			$apt_timestamp = self::wall_clock_to_timestamp( $appointment['appointment_date'], $appointment['start_time'] );
 
 			if ( $apt_timestamp >= $now && $apt_timestamp <= $cutoff_time ) {
 				$next_available = \FreeFormCertificate\Core\DateFormatter::format_datetime( $apt_timestamp + ( $interval_hours * 3600 ) );
@@ -476,5 +474,19 @@ class AppointmentValidator {
 	public function get_daily_appointment_count( int $calendar_id, string $date, bool $use_lock = false ): int {
 		$appointments = $this->appointment_repository->getAppointmentsByDate( $calendar_id, $date, array( 'confirmed', 'pending' ), $use_lock );
 		return count( $appointments );
+	}
+
+	/**
+	 * Combine a wall-clock `Y-m-d` date and `H:i(:s)` time in the site timezone
+	 * and return the Unix timestamp — for comparing an appointment moment
+	 * against `time()` (a computation, not a display, so it stays out of the
+	 * DateFormatter display path).
+	 *
+	 * @param string $date Wall-clock date (`Y-m-d`).
+	 * @param string $time Wall-clock time (`H:i` or `H:i:s`).
+	 * @return int Unix timestamp.
+	 */
+	private static function wall_clock_to_timestamp( string $date, string $time ): int {
+		return ( new \DateTimeImmutable( $date . ' ' . $time, wp_timezone() ) )->getTimestamp();
 	}
 }

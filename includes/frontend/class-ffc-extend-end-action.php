@@ -262,7 +262,7 @@ final class ExtendEndAction {
 	 */
 	private static function validate_new_time_end( string $new_time_end, string $current_time_end, string $date_end ): array {
 		// Strict HH:MM with values in range. Reject anything else outright.
-		if ( 1 !== preg_match( '/^(?:[01]\d|2[0-3]):[0-5]\d$/', $new_time_end ) ) {
+		if ( ! \FreeFormCertificate\Core\DateFormatter::is_valid_time( $new_time_end, false ) ) {
 			return array(
 				'ok'     => false,
 				'reason' => 'bad_time_format',

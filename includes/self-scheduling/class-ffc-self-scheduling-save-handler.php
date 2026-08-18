@@ -183,7 +183,7 @@ class SelfSchedulingSaveHandler {
 			$start = self::normalize_block_time( sanitize_text_field( $row['start'] ?? '' ) );
 			$end   = self::normalize_block_time( sanitize_text_field( $row['end'] ?? '' ) );
 
-			if ( ! self::is_valid_block_date( $date ) || '' === $start || '' === $end || $start >= $end ) {
+			if ( ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $date ) || '' === $start || '' === $end || $start >= $end ) {
 				continue;
 			}
 
@@ -312,19 +312,6 @@ class SelfSchedulingSaveHandler {
 			return '';
 		}
 		return sprintf( '%02d:%s', (int) $m[1], $m[2] );
-	}
-
-	/**
-	 * Validate a block date in `Y-m-d` (returns false if not a real calendar date).
-	 *
-	 * @param string $date Raw date string.
-	 * @return bool
-	 */
-	private static function is_valid_block_date( string $date ): bool {
-		if ( 1 !== preg_match( '/^(\d{4})-(\d{2})-(\d{2})$/', $date, $m ) ) {
-			return false;
-		}
-		return checkdate( (int) $m[2], (int) $m[3], (int) $m[1] );
 	}
 
 	/**
