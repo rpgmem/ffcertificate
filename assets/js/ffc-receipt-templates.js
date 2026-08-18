@@ -25,7 +25,13 @@
 				return;
 			}
 
-			var cm = initEditor( editorId );
+			var cm = window.FFCCodeEditor.init( editorId, cfg.editorSettings, {
+				theme: cfg.theme,
+				notice: {
+					strings: cfg.strings,
+					profileUrl: cfg.profileUrl,
+				},
+			} );
 			if ( cm ) {
 				editors[ mode ] = cm;
 				// The server rendered `readonly` for non-editable selections.
@@ -42,40 +48,7 @@
 				duplicateTemplate( mode, editors );
 			} );
 		} );
-
-		// Sync every editor back to its textarea on submit.
-		$( '.ffc-receipt-form' ).on( 'submit', function () {
-			Object.keys( editors ).forEach( function ( mode ) {
-				editors[ mode ].save();
-			} );
-		} );
 	} );
-
-	/**
-	 * Initialize CodeMirror on a textarea; returns the CodeMirror instance or null.
-	 *
-	 * @param {string} textareaId Textarea element id.
-	 * @return {Object|null} CodeMirror instance.
-	 */
-	function initEditor( textareaId ) {
-		if ( ! cfg.editorSettings || 'undefined' === typeof window.wp || ! window.wp.codeEditor ) {
-			return null;
-		}
-		var editor;
-		try {
-			editor = window.wp.codeEditor.initialize( textareaId, cfg.editorSettings );
-		} catch ( err ) {
-			return null;
-		}
-		if ( ! editor || ! editor.codemirror ) {
-			return null;
-		}
-		var cm = editor.codemirror;
-		cm.on( 'change', function () {
-			cm.save();
-		} );
-		return cm;
-	}
 
 	/**
 	 * Toggle a CodeMirror instance's read-only state.

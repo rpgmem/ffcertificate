@@ -159,24 +159,16 @@ class CertTemplateReceiptSettings {
 			return;
 		}
 
-		// One code-editor settings blob drives both textareas (client-side init).
-		$editor_settings = wp_enqueue_code_editor(
-			array(
-				'type'       => 'text/html',
-				'codemirror' => array(
-					'lineNumbers'  => true,
-					'lineWrapping' => true,
-					'indentUnit'   => 2,
-					'tabSize'      => 2,
-				),
-			)
-		);
+		// Shared CodeMirror foundation (base styles + theme + wp_enqueue_code_editor
+		// + the `ffc-code-editor-core` initializer). One settings blob drives both
+		// textareas client-side via `window.FFCCodeEditor.init()`.
+		$base = AdminAssetsManager::enqueue_code_editor_base();
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_script(
 			'ffc-receipt-templates',
 			FFC_PLUGIN_URL . "assets/js/ffc-receipt-templates{$s}.js",
-			array( 'jquery' ),
+			array( 'jquery', 'ffc-code-editor-core' ),
 			FFC_VERSION,
 			true
 		);
@@ -188,13 +180,18 @@ class CertTemplateReceiptSettings {
 				'nonce'          => wp_create_nonce( self::NONCE ),
 				'loadAction'     => self::AJAX_LOAD,
 				'dupAction'      => self::AJAX_DUPLICATE,
-				'editorSettings' => false !== $editor_settings ? $editor_settings : null,
+				'editorSettings' => $base['settings'],
+				'theme'          => $base['theme'],
+				'profileUrl'     => admin_url( 'profile.php#syntax_highlighting' ),
 				'modes'          => array( 'regular', 'custom' ),
-				'strings'        => array(
-					'readonlyNote' => __( 'This is a shipped/default template — its HTML is read-only. Use “Duplicate to edit” to create an editable copy.', 'ffcertificate' ),
-					'editableNote' => __( 'Editing this template’s HTML. Changes save with the form below.', 'ffcertificate' ),
-					'dupFailed'    => __( 'Could not duplicate the template.', 'ffcertificate' ),
-					'loadFailed'   => __( 'Could not load the template.', 'ffcertificate' ),
+				'strings'        => array_merge(
+					AdminAssetsManager::code_editor_notice_strings(),
+					array(
+						'readonlyNote' => __( 'This is a shipped/default template — its HTML is read-only. Use “Duplicate to edit” to create an editable copy.', 'ffcertificate' ),
+						'editableNote' => __( 'Editing this template’s HTML. Changes save with the form below.', 'ffcertificate' ),
+						'dupFailed'    => __( 'Could not duplicate the template.', 'ffcertificate' ),
+						'loadFailed'   => __( 'Could not load the template.', 'ffcertificate' ),
+					)
 				),
 			)
 		);
@@ -290,13 +287,15 @@ class CertTemplateReceiptSettings {
 				);
 				?>
 			</p>
-			<textarea
-				name="<?php echo esc_attr( $html_name ); ?>"
-				id="<?php echo esc_attr( $editor_id ); ?>"
-				class="ffc-receipt-editor ffc-w100"
-				data-mode="<?php echo esc_attr( $mode ); ?>"
-				rows="16"
-				<?php echo $editable ? '' : 'readonly'; ?>><?php echo esc_textarea( $html ); ?></textarea>
+			<div class="ffc-code-editor-wrapper">
+				<textarea
+					name="<?php echo esc_attr( $html_name ); ?>"
+					id="<?php echo esc_attr( $editor_id ); ?>"
+					class="ffc-receipt-editor ffc-w100"
+					data-mode="<?php echo esc_attr( $mode ); ?>"
+					rows="16"
+					<?php echo $editable ? '' : 'readonly'; ?>><?php echo esc_textarea( $html ); ?></textarea>
+			</div>
 		</div>
 		<?php
 	}

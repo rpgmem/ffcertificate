@@ -1,4 +1,7 @@
-// Tests for `assets/js/ffc-admin-code-editor.js`.
+// Tests for `assets/js/ffc-admin-code-editor.js` — the thin wrapper that
+// delegates to the shared `window.FFCCodeEditor.init()`
+// (`assets/js/ffc-code-editor-core.js`), loaded here alongside it so the
+// end-to-end behaviour is exercised through the wrapper.
 //
 // Wraps the WordPress code-editor (CodeMirror) around #ffc_pdf_layout
 // when wp_enqueue_code_editor() provided settings. Falls back to a
@@ -16,10 +19,13 @@ import { loadScript } from './helpers.js';
 function reset() {
 	document.body.innerHTML = '';
 	delete window.ffcCodeEditor;
+	delete window.FFCCodeEditor;
 	delete window.wp;
 }
 
 async function loadOnReady() {
+	// The core defines window.FFCCodeEditor; the wrapper calls it.
+	loadScript('assets/js/ffc-code-editor-core.js');
 	loadScript('assets/js/ffc-admin-code-editor.js');
 	// $( handler ) defers to a microtask in jQuery 4 even when ready.
 	await new Promise((r) => setTimeout(r, 0));
