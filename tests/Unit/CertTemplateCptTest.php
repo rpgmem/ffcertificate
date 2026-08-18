@@ -61,10 +61,10 @@ class CertTemplateCptTest extends TestCase {
 		$this->assertSame( 'ffc_cert_template', $captured_type );
 		$this->assertSame( 'ffc_cert_template', CertTemplateCpt::POST_TYPE );
 		$this->assertFalse( $captured_args['public'] );
-		// #865 management UI: native list table + edit screen, surfaced as a
-		// "Templates" submenu under the Certificate (ffc_form) menu.
+		// #865 management UI: native list table + edit screen, surfaced as the
+		// "Document Templates" hub submenu under the FFC Settings menu (#951).
 		$this->assertTrue( $captured_args['show_ui'] );
-		$this->assertSame( 'edit.php?post_type=ffc_form', $captured_args['show_in_menu'] );
+		$this->assertSame( 'ffc-settings', $captured_args['show_in_menu'] );
 		$this->assertTrue( $captured_args['map_meta_cap'] );
 		$this->assertSame( 'ffc_cert_template', $captured_args['capability_type'] );
 		$this->assertSame( array( 'title' ), $captured_args['supports'] );
