@@ -8,7 +8,6 @@
  * Config is injected via wp_localize_script as `ffcEmailModel`:
  *   { defaults, fontStacks, siteName, tokens }.
  */
-/* global ffcEmailModel */
 jQuery(function ($) {
 	'use strict';
 
@@ -96,26 +95,12 @@ jQuery(function ($) {
 		$box.find('.ffc-email-model-color').wpColorPicker({ change: refreshPreview, clear: refreshPreview });
 	}
 
-	// Live preview on any field change.
+	// Live preview on any field change. The header-logo media picker is the
+	// shared `.ffc-media-select` / `.ffc-media-clear` handler
+	// (assets/js/ffc-branding-media.js); it writes the chosen URL into the
+	// `header_logo_url` input and fires `change`, so this same listener
+	// refreshes the preview — no bespoke logo handler needed here.
 	$box.on('change keyup', '[data-ffc-model-field]', refreshPreview);
-
-	// Header logo media uploader.
-	$box.on('click', '.ffc-email-model-logo-select', function (e) {
-		e.preventDefault();
-		if (!window.wp || !window.wp.media) {
-			return;
-		}
-		var frame = wp.media({ title: cfg.chooseLogo || 'Select image', multiple: false, library: { type: 'image' } });
-		frame.on('select', function () {
-			var att = frame.state().get('selection').first().toJSON();
-			$box.find('[data-ffc-model-field="header_logo_url"]').val(att.url).trigger('change');
-		});
-		frame.open();
-	});
-	$box.on('click', '.ffc-email-model-logo-clear', function (e) {
-		e.preventDefault();
-		$box.find('[data-ffc-model-field="header_logo_url"]').val('').trigger('change');
-	});
 
 	// Restore defaults (fills the fields; the user still clicks Save to persist).
 	$box.on('click', '.ffc-email-model-restore', function (e) {

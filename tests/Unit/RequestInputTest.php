@@ -82,4 +82,33 @@ class RequestInputTest extends TestCase {
 		$this->stub_request_funcs();
 		$this->assertSame( '0.0.0.0', RequestInput::get_user_ip() );
 	}
+
+	/**
+	 * @dataProvider truthy_provider
+	 * @param mixed $raw      Input value.
+	 * @param bool  $expected Expected coercion.
+	 */
+	public function test_is_truthy_coerces_via_allowlist( $raw, bool $expected ): void {
+		$this->assertSame( $expected, RequestInput::is_truthy( $raw ) );
+	}
+
+	/**
+	 * @return array<string, array{0: mixed, 1: bool}>
+	 */
+	public function truthy_provider(): array {
+		return array(
+			'string 1'       => array( '1', true ),
+			'true'           => array( 'true', true ),
+			'on'             => array( 'on', true ),
+			'yes'            => array( 'yes', true ),
+			'uppercase TRUE' => array( 'TRUE', true ),
+			'mixed On'       => array( 'On', true ),
+			'string 0'       => array( '0', false ),
+			'false'          => array( 'false', false ),
+			'off'            => array( 'off', false ),
+			'empty string'   => array( '', false ),
+			'other'          => array( 'banana', false ),
+			'array rejected' => array( array( '1' ), false ),
+		);
+	}
 }

@@ -136,6 +136,28 @@ class RequestInput {
 	}
 
 	/**
+	 * Coerce an already-read raw value to bool using the `1` / `true` / `on` /
+	 * `yes` allowlist (case-insensitive); anything else — including an array —
+	 * is false.
+	 *
+	 * This is the stricter sibling of {@see self::get_post_bool()} (which uses
+	 * `! empty()` semantics): it is for values that carry an explicit truthy
+	 * token, such as a checkbox `value="on"` or a JSON `"true"`, where a bare
+	 * non-empty string like `"0"` must read as false. Takes the raw value (not
+	 * a `$_POST` key) so it composes with a caller's own read/unslash.
+	 *
+	 * @since 6.20.0
+	 * @param mixed $raw Raw value (already read; may be any type).
+	 * @return bool
+	 */
+	public static function is_truthy( $raw ): bool {
+		if ( is_array( $raw ) ) {
+			return false;
+		}
+		return in_array( strtolower( (string) $raw ), array( '1', 'true', 'on', 'yes' ), true );
+	}
+
+	/**
 	 * Get the client IP address, with proxy / CDN support.
 	 *
 	 * Thin delegate to {@see ClientIpResolver::resolve()} — the single home for

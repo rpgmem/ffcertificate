@@ -57,18 +57,18 @@
      * @param {number} total    Backlog total (0 until the first response fills it).
      */
     function runBatch($button, $status, cursor, created, total) {
-        $.post(settings.ajaxUrl || window.ajaxurl, {
-            action: 'ffc_url_shortener_backfill',
+        window.FFC.request('ffc_url_shortener_backfill', { cursor: cursor }, {
             nonce: $('#ffc_url_shortener_backfill_nonce').val(),
-            cursor: cursor
-        }).done(function (response) {
-            if (!response || !response.success || !response.data) {
+            ajaxUrl: settings.ajaxUrl || window.ajaxurl
+        }).then(function (data) {
+            // FFC.request rejects on !success; a resolved-but-empty payload
+            // (success with null data) still counts as an error here.
+            if (!data) {
                 $status.text(t('error', 'An error occurred.'));
                 $button.prop('disabled', false);
                 return;
             }
 
-            var data = response.data;
             created += (data.created || 0);
             if (typeof data.total !== 'undefined') {
                 total = data.total;
@@ -89,7 +89,7 @@
             $status.text(t('working', 'Generating…') + ' ' + progress);
 
             runBatch($button, $status, data.next_cursor || 0, created, total);
-        }).fail(function () {
+        }).catch(function () {
             $status.text(t('error', 'An error occurred.'));
             $button.prop('disabled', false);
         });

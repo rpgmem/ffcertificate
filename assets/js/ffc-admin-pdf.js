@@ -19,49 +19,32 @@
     /**
      * Write content into the certificate-layout textarea.
      *
-     * The textarea (#ffc_pdf_layout) is wrapped by WordPress CodeMirror via
-     * ffc-admin-code-editor.js. CodeMirror mirrors its own buffer onto the
-     * textarea on save / submit, but it does NOT pick up direct
-     * `$textarea.val()` writes — the visible editor stays empty even though
-     * a sneaky later read of `.val()` would return the new content. Always
-     * route writes through the CodeMirror API when an instance is mounted.
+     * Thin wrapper over the shared `window.FFCCodeEditor.setContent()`
+     * (assets/js/ffc-code-editor-core.js): the #ffc_pdf_layout textarea is
+     * wrapped by WordPress CodeMirror, which does NOT pick up direct
+     * `$textarea.val()` writes, so the write is routed through the editor API
+     * when an instance is mounted (falls back to the plain textarea otherwise).
      *
      * @param {jQuery} $textarea The #ffc_pdf_layout jQuery node.
      * @param {string} content   New textarea content.
      */
     function setLayoutContent($textarea, content) {
-        var $cm = $textarea.nextAll('.CodeMirror').first();
-        if ($cm.length && $cm[0].CodeMirror && typeof $cm[0].CodeMirror.setValue === 'function') {
-            $cm[0].CodeMirror.setValue(content);
-            $cm[0].CodeMirror.save();
-        } else {
-            $textarea.val(content);
-        }
-        $textarea.trigger('change');
+        window.FFCCodeEditor.setContent($textarea, content);
     }
 
     /**
      * Insert an HTML snippet at the cursor of the certificate-layout editor.
      *
-     * Prefers the CodeMirror instance (replaceSelection at the caret so the
-     * image lands where the user is typing); falls back to appending to the raw
-     * textarea via setLayoutContent when CodeMirror hasn't mounted (JS-lite,
-     * tests) so the value still updates.
+     * Thin wrapper over the shared `window.FFCCodeEditor.insertAtCursor()`:
+     * prefers the CodeMirror caret (so the image lands where the user is
+     * typing) and falls back to appending to the raw textarea when CodeMirror
+     * hasn't mounted (JS-lite, tests).
      *
      * @param {jQuery} $textarea The #ffc_pdf_layout jQuery node.
      * @param {string} snippet   HTML to insert.
      */
     function insertAtCursor($textarea, snippet) {
-        var $cm = $textarea.nextAll('.CodeMirror').first();
-        if ($cm.length && $cm[0].CodeMirror && typeof $cm[0].CodeMirror.replaceSelection === 'function') {
-            var cm = $cm[0].CodeMirror;
-            cm.replaceSelection(snippet);
-            cm.save();
-            $textarea.trigger('change');
-            cm.focus();
-            return;
-        }
-        setLayoutContent($textarea, ($textarea.val() || '') + snippet);
+        window.FFCCodeEditor.insertAtCursor($textarea, snippet);
     }
 
     // ==========================================================================
@@ -254,10 +237,7 @@
 
         // Flush CodeMirror into the textarea before reading (mirrors preview).
         var $layout = $('#ffc_pdf_layout');
-        var $cm = $layout.nextAll('.CodeMirror').first();
-        if ($cm.length && $cm[0].CodeMirror && typeof $cm[0].CodeMirror.save === 'function') {
-            $cm[0].CodeMirror.save();
-        }
+        window.FFCCodeEditor.flush($layout);
         var html = $layout.val();
         if (!html || !html.trim()) {
             alert(strings.previewEmpty || 'The HTML editor is empty. Add a template first.');
@@ -441,10 +421,7 @@
         // the preview reflects the latest edits (otherwise the textarea
         // still carries the page-load value).
         var $layout = $('#ffc_pdf_layout');
-        var $cm     = $layout.nextAll('.CodeMirror').first();
-        if ($cm.length && $cm[0].CodeMirror && typeof $cm[0].CodeMirror.save === 'function') {
-            $cm[0].CodeMirror.save();
-        }
+        window.FFCCodeEditor.flush($layout);
         var htmlContent = $layout.val();
         var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
 

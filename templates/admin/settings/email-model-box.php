@@ -110,8 +110,9 @@ $ffc_font_options  = array(
 							<?php elseif ( 'logo' === $ffc_type ) : ?>
 								<span class="ffc-email-model-logo">
 									<input type="text" class="regular-text" id="<?php echo esc_attr( $ffc_id ); ?>" name="<?php echo esc_attr( $ffc_name ); ?>" value="<?php echo esc_attr( $ffc_value ); ?>" data-ffc-model-field="<?php echo esc_attr( $ffc_key ); ?>" placeholder="https://…">
-									<button type="button" class="button ffc-email-model-logo-select"><?php esc_html_e( 'Select image', 'ffcertificate' ); ?></button>
-									<button type="button" class="button-link ffc-email-model-logo-clear"><?php esc_html_e( 'Clear', 'ffcertificate' ); ?></button>
+									<?php // Shared media picker (assets/js/ffc-branding-media.js), enqueued page-wide on the settings screen; writes the chosen URL into this input and fires `change`, which refreshes the live preview. ?>
+									<button type="button" class="button ffc-media-select" data-ffc-media-target="#<?php echo esc_attr( $ffc_id ); ?>"><?php esc_html_e( 'Select image', 'ffcertificate' ); ?></button>
+									<button type="button" class="button-link ffc-media-clear" data-ffc-media-target="#<?php echo esc_attr( $ffc_id ); ?>"><?php esc_html_e( 'Clear', 'ffcertificate' ); ?></button>
 								</span>
 							<?php elseif ( 'textarea' === $ffc_type ) : ?>
 								<textarea class="large-text" rows="2" id="<?php echo esc_attr( $ffc_id ); ?>" name="<?php echo esc_attr( $ffc_name ); ?>" data-ffc-model-field="<?php echo esc_attr( $ffc_key ); ?>"><?php echo esc_textarea( $ffc_value ); ?></textarea>

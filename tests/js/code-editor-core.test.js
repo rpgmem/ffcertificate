@@ -156,3 +156,84 @@ describe('ffc-code-editor-core.js — init()', () => {
 		expect(document.querySelector('.ffc-code-editor-notice')).toBeNull();
 	});
 });
+
+describe('ffc-code-editor-core.js — DOM helpers (flush/setContent/insertAtCursor)', () => {
+	beforeEach(reset);
+
+	// Insert a fake `.CodeMirror` sibling after the textarea, mimicking what
+	// wp.codeEditor mounts, exposing the CodeMirror instance on `el.CodeMirror`.
+	function mountFakeCm($ta, instance) {
+		const el = document.createElement('div');
+		el.className = 'CodeMirror';
+		el.CodeMirror = instance;
+		$ta[0].after(el);
+	}
+
+	it('flush() saves the mounted CodeMirror buffer', () => {
+		document.body.innerHTML = '<form><textarea id="ta">x</textarea></form>';
+		loadCore();
+		const save = vi.fn();
+		mountFakeCm(window.$('#ta'), { save });
+
+		window.FFCCodeEditor.flush(window.$('#ta'));
+		expect(save).toHaveBeenCalledTimes(1);
+	});
+
+	it('flush() is a no-op when no editor is mounted', () => {
+		document.body.innerHTML = '<form><textarea id="ta">x</textarea></form>';
+		loadCore();
+		expect(() => window.FFCCodeEditor.flush(window.$('#ta'))).not.toThrow();
+	});
+
+	it('setContent() writes through CodeMirror when mounted', () => {
+		document.body.innerHTML = '<form><textarea id="ta"></textarea></form>';
+		loadCore();
+		const setValue = vi.fn();
+		const save = vi.fn();
+		const $ta = window.$('#ta');
+		mountFakeCm($ta, { setValue, save });
+		const changed = vi.fn();
+		$ta.on('change', changed);
+
+		window.FFCCodeEditor.setContent($ta, '<h1>hi</h1>');
+
+		expect(setValue).toHaveBeenCalledWith('<h1>hi</h1>');
+		expect(save).toHaveBeenCalled();
+		expect(changed).toHaveBeenCalled();
+	});
+
+	it('setContent() falls back to the plain textarea when no editor is mounted', () => {
+		document.body.innerHTML = '<form><textarea id="ta">old</textarea></form>';
+		loadCore();
+		const $ta = window.$('#ta');
+
+		window.FFCCodeEditor.setContent($ta, 'new');
+
+		expect($ta.val()).toBe('new');
+	});
+
+	it('insertAtCursor() replaces the selection via CodeMirror when mounted', () => {
+		document.body.innerHTML = '<form><textarea id="ta">x</textarea></form>';
+		loadCore();
+		const replaceSelection = vi.fn();
+		const save = vi.fn();
+		const focus = vi.fn();
+		mountFakeCm(window.$('#ta'), { replaceSelection, save, focus });
+
+		window.FFCCodeEditor.insertAtCursor(window.$('#ta'), '<img>');
+
+		expect(replaceSelection).toHaveBeenCalledWith('<img>');
+		expect(save).toHaveBeenCalled();
+		expect(focus).toHaveBeenCalled();
+	});
+
+	it('insertAtCursor() appends to the textarea when no editor is mounted', () => {
+		document.body.innerHTML = '<form><textarea id="ta">start</textarea></form>';
+		loadCore();
+		const $ta = window.$('#ta');
+
+		window.FFCCodeEditor.insertAtCursor($ta, '-end');
+
+		expect($ta.val()).toBe('start-end');
+	});
+});

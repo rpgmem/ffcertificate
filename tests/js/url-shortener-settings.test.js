@@ -3,13 +3,26 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
-// jQuery $.post(...).done(...).fail(...) chain double. `done` fires the
-// provided response synchronously; `fail` fires when spec.fail is set.
-function postChain(spec) {
-	const chain = { done: () => chain, fail: () => chain };
-	if (spec && 'done' in spec) chain.done = (cb) => { cb(spec.done); return chain; };
-	if (spec && spec.fail) chain.fail = (cb) => { cb(spec.fail === true ? undefined : spec.fail); return chain; };
-	return chain;
+// Mock window.FFC.request (ffc-core): resolve with each step's `resolve`
+// payload in sequence, or reject when `reject` is set. The backfill driver
+// awaits these, so tests flush microtasks between recursion steps.
+function installFFC(sequence) {
+	let i = 0;
+	const request = vi.fn(() => {
+		const step = sequence[Math.min(i++, sequence.length - 1)];
+		return step.reject
+			? Promise.reject(new Error('fail'))
+			: Promise.resolve(step.resolve);
+	});
+	window.FFC = { request };
+	return request;
+}
+
+// Flush enough microtask rounds for the recursive promise chain to settle.
+function flush() {
+	let p = Promise.resolve();
+	for (let n = 0; n < 6; n++) { p = p.then(() => Promise.resolve()); }
+	return p;
 }
 
 beforeAll(() => {
@@ -34,7 +47,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	vi.restoreAllMocks();
-	delete window.$.post;
+	delete window.FFC;
 });
 
 async function loadSettings() {
@@ -96,17 +109,19 @@ describe('url-shortener settings — backfill', () => {
 		renderBackfill();
 		await loadSettings();
 
-		window.$.post = vi.fn()
-			.mockImplementationOnce(() => postChain({ done: { success: true, data: { created: 2, total: 5, done: false, next_cursor: 8 } } }))
-			.mockImplementationOnce(() => postChain({ done: { success: true, data: { created: 3, done: true, next_cursor: 0 } } }));
+		const request = installFFC([
+			{ resolve: { created: 2, total: 5, done: false, next_cursor: 8 } },
+			{ resolve: { created: 3, done: true, next_cursor: 0 } },
+		]);
 
 		window.$('#ffc-url-shortener-backfill').trigger('click');
+		await flush();
 
 		// Two batches: first page (cursor 0) then the continuation (cursor 8).
-		expect(window.$.post).toHaveBeenCalledTimes(2);
-		expect(window.$.post.mock.calls[0][1].cursor).toBe(0);
-		expect(window.$.post.mock.calls[0][1].nonce).toBe('bf-nonce');
-		expect(window.$.post.mock.calls[1][1].cursor).toBe(8);
+		expect(request).toHaveBeenCalledTimes(2);
+		expect(request.mock.calls[0][1].cursor).toBe(0);
+		expect(request.mock.calls[0][2].nonce).toBe('bf-nonce');
+		expect(request.mock.calls[1][1].cursor).toBe(8);
 
 		const status = window.$('#ffc-url-shortener-backfill-status').text();
 		expect(status).toContain('Done.');
@@ -118,9 +133,10 @@ describe('url-shortener settings — backfill', () => {
 		renderBackfill();
 		await loadSettings();
 
-		window.$.post = vi.fn(() => postChain({ fail: true }));
+		installFFC([{ reject: true }]);
 
 		window.$('#ffc-url-shortener-backfill').trigger('click');
+		await flush();
 
 		expect(window.$('#ffc-url-shortener-backfill-status').text()).toContain('An error occurred.');
 		expect(window.$('#ffc-url-shortener-backfill').prop('disabled')).toBe(false);

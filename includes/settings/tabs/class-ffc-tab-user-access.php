@@ -43,13 +43,10 @@ class TabUserAccess extends SettingsTab {
 	 * @param string $hook Hook name.
 	 */
 	public function enqueue_styles( string $hook ): void {
-		if ( 'toplevel_page_ffc-settings' !== $hook ) {
+		if ( ! $this->should_enqueue_on( $hook ) ) {
 			return;
 		}
-		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for conditional script loading.
-		if ( 'user_access' === $active_tab ) {
-			$this->enqueue_autosave_infra();
-		}
+		$this->enqueue_autosave_infra();
 	}
 
 	/**

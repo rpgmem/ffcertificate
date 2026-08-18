@@ -88,4 +88,23 @@ class Utils {
 		$slug = preg_replace( '/[-_.]+/', '.', $slug ) ?? '';
 		return trim( $slug, '.' );
 	}
+
+	/**
+	 * Read a bundled/site-local file's contents, returning an empty string when
+	 * it is unreadable or the read fails. For plugin-shipped or otherwise
+	 * trusted local paths only (seed HTML, bundled template defaults) — never a
+	 * remote or user-supplied URL.
+	 *
+	 * @since 6.20.0
+	 * @param string $path Absolute filesystem path.
+	 * @return string File contents, or `''` when unreadable.
+	 */
+	public static function read_file_contents( string $path ): string {
+		if ( ! is_readable( $path ) ) {
+			return '';
+		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a bundled/site-local plugin asset, not a remote/user URL.
+		$contents = file_get_contents( $path );
+		return is_string( $contents ) ? $contents : '';
+	}
 }

@@ -1043,4 +1043,20 @@ class UtilsTest extends TestCase {
         $this->assertFalse( RequestInput::get_post_bool( 'b' ) );
         $this->assertFalse( RequestInput::get_post_bool( 'c' ) );
     }
+
+    public function test_read_file_contents_returns_contents_of_a_readable_file(): void {
+        $path = tempnam( sys_get_temp_dir(), 'ffc' );
+        file_put_contents( $path, '<h1>hello</h1>' );
+
+        $this->assertSame( '<h1>hello</h1>', Utils::read_file_contents( $path ) );
+
+        unlink( $path );
+    }
+
+    public function test_read_file_contents_returns_empty_string_when_unreadable(): void {
+        $this->assertSame(
+            '',
+            Utils::read_file_contents( sys_get_temp_dir() . '/ffc-does-not-exist-' . uniqid() . '.html' )
+        );
+    }
 }

@@ -1,15 +1,17 @@
 // Tests for `assets/js/ffc-email-model.js`.
 //
-// The Email Model box wires a client-side live preview (into an <iframe>),
-// a restore-to-defaults button and a logo clear button. wp-color-picker and
-// wp.media are optional (guarded), so these tests run without them.
+// The Email Model box wires a client-side live preview (into an <iframe>) and
+// a restore-to-defaults button. The header-logo picker is the shared
+// `.ffc-media-select` / `.ffc-media-clear` handler (ffc-branding-media.js),
+// loaded here too so the logo → preview integration is exercised. wp-color-picker
+// and wp.media are optional (guarded), so these tests run without them.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { loadScript } from './helpers.js';
 
-const SCRIPT = 'assets/js/ffc-email-model.js';
-
 async function loadOnReady() {
-	loadScript(SCRIPT);
+	// The shared media picker owns the logo Select/Clear buttons.
+	loadScript('assets/js/ffc-branding-media.js');
+	loadScript('assets/js/ffc-email-model.js');
 	await new Promise((r) => setTimeout(r, 0));
 }
 
@@ -34,10 +36,10 @@ function installDom() {
 				<input type="number" data-ffc-model-field="body_max_width" value="600">
 				<input type="number" data-ffc-model-field="wrapper_border_radius" value="6">
 				<input type="number" data-ffc-model-field="wrapper_padding" value="32">
-				<input type="text" data-ffc-model-field="header_logo_url" value="https://x/logo.png">
+				<input type="text" id="ffc-email-model-header_logo_url" data-ffc-model-field="header_logo_url" value="https://x/logo.png">
 				<textarea data-ffc-model-field="footer_text">Sent by {{site_title}}</textarea>
-				<button type="button" class="ffc-email-model-logo-select">select</button>
-				<button type="button" class="ffc-email-model-logo-clear">clear</button>
+				<button type="button" class="ffc-media-select" data-ffc-media-target="#ffc-email-model-header_logo_url">select</button>
+				<button type="button" class="ffc-media-clear" data-ffc-media-target="#ffc-email-model-header_logo_url">clear</button>
 				<button type="button" class="ffc-email-model-restore">restore</button>
 			</form>
 			<iframe class="ffc-email-model-preview-frame"></iframe>
@@ -150,10 +152,10 @@ describe('ffc-email-model', () => {
 		expect(window.$('[data-ffc-model-field="header_bg"]').val()).toBe('#000000');
 	});
 
-	it('clears the logo field', async () => {
+	it('clears the logo field via the shared media picker', async () => {
 		installDom();
 		await loadOnReady();
-		window.$('.ffc-email-model-logo-clear').trigger('click');
+		window.$('.ffc-media-clear').trigger('click');
 		expect(window.$('[data-ffc-model-field="header_logo_url"]').val()).toBe('');
 	});
 
@@ -169,23 +171,15 @@ describe('ffc-email-model', () => {
 		expect(window.$('[data-ffc-model-field="header_bg"]').val()).toBe('#2271b1');
 	});
 
-	it('does nothing on logo-select when wp.media is unavailable', async () => {
-		installDom();
-		await loadOnReady();
-		// No window.wp → the handler guards and returns without changing the field.
-		window.$('.ffc-email-model-logo-select').trigger('click');
-		expect(window.$('[data-ffc-model-field="header_logo_url"]').val()).toBe('https://x/logo.png');
-	});
-
-	it('sets the logo field from the media frame selection', async () => {
+	it('sets the logo via the shared media picker and refreshes the preview', async () => {
 		stubWpMedia('https://cdn/new-logo.png');
 		installDom();
 		await loadOnReady();
 
-		window.$('.ffc-email-model-logo-select').trigger('click');
+		window.$('.ffc-media-select').trigger('click');
 
 		expect(window.$('[data-ffc-model-field="header_logo_url"]').val()).toBe('https://cdn/new-logo.png');
-		// The change propagated to the live preview.
+		// The picker's `change` propagated to the live preview.
 		const html = document.querySelector('.ffc-email-model-preview-frame').srcdoc;
 		expect(html).toContain('https://cdn/new-logo.png');
 	});

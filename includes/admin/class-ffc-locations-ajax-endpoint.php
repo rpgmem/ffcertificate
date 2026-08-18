@@ -70,8 +70,8 @@ class LocationsAjaxEndpoint {
 			'lat'         => isset( $_POST['lat'] ) ? floatval( wp_unslash( $_POST['lat'] ) ) : 0.0,
 			'lng'         => isset( $_POST['lng'] ) ? floatval( wp_unslash( $_POST['lng'] ) ) : 0.0,
 			'radius'      => isset( $_POST['radius'] ) ? floatval( wp_unslash( $_POST['radius'] ) ) : 1000.0,
-			'default_gps' => self::truthy( $_POST['default_gps'] ?? null ),
-			'default_ip'  => self::truthy( $_POST['default_ip'] ?? null ),
+			'default_gps' => \FreeFormCertificate\Core\RequestInput::is_truthy( $_POST['default_gps'] ?? null ),
+			'default_ip'  => \FreeFormCertificate\Core\RequestInput::is_truthy( $_POST['default_ip'] ?? null ),
 		);
 
 		$id = isset( $_POST['id'] ) ? sanitize_key( wp_unslash( $_POST['id'] ) ) : '';
@@ -114,21 +114,5 @@ class LocationsAjaxEndpoint {
 		}
 
 		wp_send_json_success( array( 'id' => $id ) );
-	}
-
-	/**
-	 * Coerce a POST field value to bool.
-	 *
-	 * Accepts '1' / 'true' / 'on' / 'yes' (case-insensitive) as truthy.
-	 *
-	 * @param mixed $raw Raw POST value.
-	 * @return bool
-	 */
-	private static function truthy( $raw ): bool {
-		if ( is_array( $raw ) ) {
-			return false;
-		}
-		$str = strtolower( (string) $raw );
-		return in_array( $str, array( '1', 'true', 'on', 'yes' ), true );
 	}
 }

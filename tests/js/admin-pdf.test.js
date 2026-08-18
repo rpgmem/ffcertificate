@@ -30,6 +30,7 @@ describe('ffc-admin-pdf.js — module shape', () => {
 	beforeEach(() => {
 		reset();
 		installFFC();
+		loadScript('assets/js/ffc-code-editor-core.js');
 		loadScript('assets/js/ffc-admin-pdf.js');
 	});
 
@@ -66,6 +67,7 @@ describe('ffc-admin-pdf.js — load-template button', () => {
 				{ id: 20, label: 'My Certificate Template', is_default: false, file: '' },
 			],
 		};
+		loadScript('assets/js/ffc-code-editor-core.js');
 		loadScript('assets/js/ffc-admin-pdf.js');
 	});
 
@@ -110,6 +112,7 @@ describe('ffc-admin-pdf.js — loadTemplate (ajax path)', () => {
 				templateFileNotFound: 'Template file not found.',
 			},
 		};
+		loadScript('assets/js/ffc-code-editor-core.js');
 		loadScript('assets/js/ffc-admin-pdf.js');
 	});
 
@@ -224,6 +227,7 @@ describe('ffc-admin-pdf.js — save as model', () => {
 			nonce: 'test-nonce',
 			strings: { saveModelPrompt: 'Name?', templateSaved: 'Saved!' },
 		};
+		loadScript('assets/js/ffc-code-editor-core.js');
 		loadScript('assets/js/ffc-admin-pdf.js');
 	});
 
@@ -320,6 +324,7 @@ describe('ffc-admin-pdf.js — inline image insert', () => {
 				wpMediaNotAvailable: 'Media unavailable',
 			},
 		};
+		loadScript('assets/js/ffc-code-editor-core.js');
 		loadScript('assets/js/ffc-admin-pdf.js');
 	});
 
@@ -408,6 +413,7 @@ describe('ffc-admin-pdf.js — preview button', () => {
 				site_name: 'Sample Site',
 			},
 		};
+		loadScript('assets/js/ffc-code-editor-core.js');
 		loadScript('assets/js/ffc-admin-pdf.js');
 	});
 

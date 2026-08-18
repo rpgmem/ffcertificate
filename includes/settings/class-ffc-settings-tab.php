@@ -224,6 +224,30 @@ abstract class SettingsTab {
 	}
 
 	/**
+	 * The `admin_enqueue_scripts` hook suffix of the FFC Settings page — the
+	 * top-level menu whose slug is `ffc-settings`. All tab assets gate on this.
+	 *
+	 * @var string
+	 */
+	protected const SETTINGS_PAGE_HOOK = 'toplevel_page_ffc-settings';
+
+	/**
+	 * Whether this tab should enqueue its assets on the current request: we are
+	 * on the FFC Settings page hook AND this tab is the active one. Centralizes
+	 * the `toplevel_page_ffc-settings` + {@see self::is_active()} gate every
+	 * tab's `enqueue_scripts()` otherwise repeats (and normalizes the split
+	 * between tabs that inlined the `$_GET['tab']` read and those that already
+	 * called `is_active()`).
+	 *
+	 * @since 6.20.0
+	 * @param string $hook Current admin page hook suffix.
+	 * @return bool
+	 */
+	protected function should_enqueue_on( string $hook ): bool {
+		return self::SETTINGS_PAGE_HOOK === $hook && $this->is_active();
+	}
+
+	/**
 	 * Enqueue the FFC auto-save infrastructure (ffc-core + the
 	 * autosave widget) on this tab. Idempotent — safe to call from
 	 * multiple tabs that each enqueue on `admin_enqueue_scripts`.

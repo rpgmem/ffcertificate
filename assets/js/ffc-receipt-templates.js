@@ -94,18 +94,15 @@
 		if ( ! cm ) {
 			return;
 		}
-		$.post( cfg.ajaxUrl, {
-			action: cfg.loadAction,
-			nonce: cfg.nonce,
-			id: id,
-		} )
-			.done( function ( res ) {
-				if ( res && res.success && res.data ) {
-					cm.setValue( res.data.html || '' );
+		window.FFC.request( cfg.loadAction, { id: id }, { nonce: cfg.nonce, ajaxUrl: cfg.ajaxUrl } )
+			.then( function ( data ) {
+				if ( data ) {
+					cm.setValue( data.html || '' );
 					cm.save();
-					applyEditable( mode, cm, !! res.data.editable );
+					applyEditable( mode, cm, !! data.editable );
 				}
-			} );
+			} )
+			.catch( function () {} );
 	}
 
 	/**
@@ -119,32 +116,28 @@
 		var $select = $( '#ffc_receipt_' + mode );
 		var id      = parseInt( $select.val(), 10 ) || 0;
 
-		$.post( cfg.ajaxUrl, {
-			action: cfg.dupAction,
-			nonce: cfg.nonce,
-			id: id,
-		} )
-			.done( function ( res ) {
-				if ( ! res || ! res.success || ! res.data ) {
+		window.FFC.request( cfg.dupAction, { id: id }, { nonce: cfg.nonce, ajaxUrl: cfg.ajaxUrl } )
+			.then( function ( data ) {
+				if ( ! data ) {
 					window.alert( ( cfg.strings && cfg.strings.dupFailed ) || 'Error' );
 					return;
 				}
 				// Add + select the new editable copy.
 				$( '<option>' )
-					.attr( 'value', res.data.id )
+					.attr( 'value', data.id )
 					.attr( 'data-default', '0' )
-					.text( res.data.label )
+					.text( data.label )
 					.appendTo( $select );
-				$select.val( String( res.data.id ) );
+				$select.val( String( data.id ) );
 
 				var cm = editors[ mode ];
 				if ( cm ) {
-					cm.setValue( res.data.html || '' );
+					cm.setValue( data.html || '' );
 					cm.save();
 					applyEditable( mode, cm, true );
 				}
 			} )
-			.fail( function () {
+			.catch( function () {
 				window.alert( ( cfg.strings && cfg.strings.dupFailed ) || 'Error' );
 			} );
 	}

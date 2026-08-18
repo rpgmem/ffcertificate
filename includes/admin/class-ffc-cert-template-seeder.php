@@ -291,11 +291,6 @@ class CertTemplateSeeder {
 	 * @return string File contents, or an empty string when unreadable.
 	 */
 	private static function read_seed_file( string $file, string $dir = self::SEED_DIR ): string {
-		$path = FFC_PLUGIN_DIR . $dir . $file;
-		if ( ! is_readable( $path ) ) {
-			return '';
-		}
-		$html = file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a bundled plugin asset, not a remote/user file.
-		return is_string( $html ) ? $html : '';
+		return \FreeFormCertificate\Core\Utils::read_file_contents( FFC_PLUGIN_DIR . $dir . $file );
 	}
 }

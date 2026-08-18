@@ -138,7 +138,7 @@ class ImportLegacyTemplatesMigrationStrategy implements MigrationStrategyInterfa
 			// terminates on is_complete). The failure is reported in $errors.
 			$handled[] = $basename;
 
-			$html = $this->read_file( $path );
+			$html = \FreeFormCertificate\Core\Utils::read_file_contents( $path );
 			if ( '' === $html ) {
 				/* translators: %s: template filename */
 				$errors[] = sprintf( __( 'Could not read legacy template file: %s', 'ffcertificate' ), $basename );
@@ -251,20 +251,5 @@ class ImportLegacyTemplatesMigrationStrategy implements MigrationStrategyInterfa
 	private function title_from_basename( string $basename ): string {
 		$stem = (string) preg_replace( '/\.html$/i', '', $basename );
 		return ucwords( str_replace( '_', ' ', $stem ) );
-	}
-
-	/**
-	 * Read a legacy template file's contents.
-	 *
-	 * @param string $path Absolute file path.
-	 * @return string Contents, or an empty string when unreadable.
-	 */
-	private function read_file( string $path ): string {
-		if ( ! is_readable( $path ) ) {
-			return '';
-		}
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a bundled/site-local plugin asset, not a remote/user URL.
-		$html = file_get_contents( $path );
-		return is_string( $html ) ? $html : '';
 	}
 }
