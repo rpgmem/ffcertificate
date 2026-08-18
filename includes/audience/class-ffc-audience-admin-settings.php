@@ -63,27 +63,40 @@ class AudienceAdminSettings {
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$active_tab = RequestInput::get_get_string( 'tab', 'general' );
 
-		// General pinned first; the remaining tabs read A→Z by translated
-		// label via the shared LabelSorter.
-		$tabs = LabelSorter::sort(
-			array(
-				'general'         => array(
-					'label' => __( 'General', 'ffcertificate' ),
-					'icon'  => 'admin-generic',
-				),
-				'self-scheduling' => array(
-					'label' => __( 'Self-Scheduling', 'ffcertificate' ),
-					'icon'  => 'calendar-alt',
-				),
-				'audience'        => array(
-					'label' => __( 'Audience', 'ffcertificate' ),
-					'icon'  => 'groups',
-				),
-				'import'          => array(
-					'label' => __( 'Import & Export', 'ffcertificate' ),
-					'icon'  => 'database-import',
-				),
+		// Base tabs; modules may contribute more via the filter below (e.g. the
+		// appointment-receipt tab, #945). General pinned first; the rest read A→Z
+		// by translated label via the shared LabelSorter.
+		$base_tabs = array(
+			'general'         => array(
+				'label' => __( 'General', 'ffcertificate' ),
+				'icon'  => 'admin-generic',
 			),
+			'self-scheduling' => array(
+				'label' => __( 'Self-Scheduling', 'ffcertificate' ),
+				'icon'  => 'calendar-alt',
+			),
+			'audience'        => array(
+				'label' => __( 'Audience', 'ffcertificate' ),
+				'icon'  => 'groups',
+			),
+			'import'          => array(
+				'label' => __( 'Import & Export', 'ffcertificate' ),
+				'icon'  => 'database-import',
+			),
+		);
+
+		/**
+		 * Filters the Scheduling Settings tabs. A contributor adds
+		 * `['<id>' => ['label' => …, 'icon' => …]]` and renders its panel on the
+		 * `ffc_scheduling_settings_render_tab_<id>` action.
+		 *
+		 * @since 6.20.0
+		 * @param array<string, array{label:string, icon:string}> $base_tabs Tab definitions.
+		 */
+		$base_tabs = apply_filters( 'ffc_scheduling_settings_tabs', $base_tabs );
+
+		$tabs = LabelSorter::sort(
+			$base_tabs,
 			static function ( array $tab ): string {
 				return (string) $tab['label'];
 			},
@@ -127,8 +140,18 @@ class AudienceAdminSettings {
 						case 'import':
 							$this->import->render_content();
 							break;
-						default:
+						case 'general':
 							$this->render_general_tab();
+							break;
+						default:
+							/**
+							 * Render a filter-contributed extension tab's panel
+							 * (e.g. the appointment-receipt tab, #945). The tab id
+							 * was validated against $tabs above.
+							 *
+							 * @since 6.20.0
+							 */
+							do_action( "ffc_scheduling_settings_render_tab_{$active_tab}" );
 							break;
 					}
 					?>
