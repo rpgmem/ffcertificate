@@ -104,10 +104,13 @@ class CertTemplateCpt {
 	 */
 	public function register(): void {
 		$labels = array(
-			'name'          => _x( 'Certificate Templates', 'Post Type General Name', 'ffcertificate' ),
-			'singular_name' => _x( 'Certificate Template', 'Post Type Singular Name', 'ffcertificate' ),
-			'menu_name'     => __( 'Templates', 'ffcertificate' ),
-			'all_items'     => __( 'Templates', 'ffcertificate' ),
+			// Kind-neutral: the pool holds certificate AND appointment-receipt
+			// templates (and future kinds), so the labels no longer say
+			// "Certificate" (#951).
+			'name'          => _x( 'Document Templates', 'Post Type General Name', 'ffcertificate' ),
+			'singular_name' => _x( 'Document Template', 'Post Type Singular Name', 'ffcertificate' ),
+			'menu_name'     => __( 'Document Templates', 'ffcertificate' ),
+			'all_items'     => __( 'Document Templates', 'ffcertificate' ),
 			'add_new'       => __( 'Add New Template', 'ffcertificate' ),
 			'add_new_item'  => __( 'Add New Template', 'ffcertificate' ),
 			'edit_item'     => __( 'Edit Template', 'ffcertificate' ),
@@ -119,12 +122,14 @@ class CertTemplateCpt {
 		$args = array(
 			'labels'          => $labels,
 			'public'          => false,
-			// Management UI (#865): the native list table + edit screen are
-			// exposed as a "Templates" submenu under the Certificate (ffc_form)
-			// menu, gated by the same forms caps below. Visibility, columns and
-			// the HTML-editing metabox are wired by CertTemplateAdminScreen.
+			// Management UI (#865): the native list table + edit screen are the
+			// single hub for every document model (#951 Direction 1), surfaced as
+			// a "Document Templates" submenu under the FFC Settings menu — a
+			// kind-neutral home, since the pool is no longer certificate-only.
+			// Gated by the same forms caps below. Visibility, columns and the
+			// HTML-editing metabox are wired by CertTemplateAdminScreen.
 			'show_ui'         => true,
-			'show_in_menu'    => 'edit.php?post_type=ffc_form',
+			'show_in_menu'    => 'ffc-settings',
 			'query_var'       => false,
 			// Same #739 decoupling as `ffc_form`: gate by the FFC forms caps, not
 			// native post caps. List/read primitives map to the read-only

@@ -2,10 +2,11 @@
 /**
  * CertTemplateAdminScreen
  *
- * Management UI for the certificate-template pool (issue #865): the columns,
+ * Management UI for the document-template pool (issue #865): the columns,
  * row actions and visibility toggle layered onto the native `ffc_cert_template`
- * list table (the CPT is registered with `show_ui => true` as a "Templates"
- * submenu under the Certificate menu — see {@see CertTemplateCpt}).
+ * list table (the CPT is registered with `show_ui => true` as the "Document
+ * Templates" hub submenu under the FFC Settings menu — #951, see
+ * {@see CertTemplateCpt}).
  *
  * Adds two columns — **Type** (Default vs Custom) and **Visible** (whether the
  * template appears in the form editor's "Load" list) — plus a nonce-protected
