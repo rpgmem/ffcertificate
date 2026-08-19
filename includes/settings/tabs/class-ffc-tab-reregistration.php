@@ -45,7 +45,9 @@ class TabReregistration extends SettingsTab {
 	protected function init(): void {
 		$this->tab_id    = 'reregistration';
 		$this->tab_title = __( 'Reregistration', 'ffcertificate' );
-		$this->tab_icon  = 'ffc-icon-id';
+		// Mono glyph (person), consistent with the other Settings-nav tabs; the
+		// `ffc-icon-id` badge (🆔) renders as a solid colour, breaking that row.
+		$this->tab_icon  = 'ffc-icon-user';
 		$this->tab_order = 55;
 
 		add_action( 'admin_post_' . self::SAVE_ACTION, array( $this, 'handle_save' ) );
