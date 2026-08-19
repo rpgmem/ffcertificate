@@ -4,9 +4,8 @@
  * One place owns the CodeMirror wiring that every FFC template editor needs:
  * the `{{placeholder}}` token overlay, the theme wrapper class, the
  * change/submit → textarea sync, and the "enable Syntax Highlighting" fallback
- * notice. Callers (the single-textarea form-editor / cert-template wrapper in
- * `ffc-admin-code-editor.js`, and the multi-editor receipt tab in
- * `ffc-receipt-templates.js`) init one *or many* textareas through
+ * notice. Callers — the single-textarea form-editor / cert-template wrapper in
+ * `ffc-admin-code-editor.js` — init one *or many* textareas through
  * `window.FFCCodeEditor.init()` instead of each hand-rolling the same setup.
  *
  * The underlying textarea is preserved and kept in sync on every change, so

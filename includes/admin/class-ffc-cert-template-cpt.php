@@ -91,6 +91,18 @@ class CertTemplateCpt {
 	public const KIND_APPOINTMENT_RECEIPT = 'appointment_receipt';
 
 	/**
+	 * Whether a string is one of the known template kinds. Guards a
+	 * request-supplied kind (e.g. the `?ffc_kind=` "Add New" preset, #951)
+	 * before it is written to `META_KIND`.
+	 *
+	 * @param string $kind Candidate kind value.
+	 * @return bool
+	 */
+	public static function is_valid_kind( string $kind ): bool {
+		return in_array( $kind, array( self::KIND_CERTIFICATE, self::KIND_APPOINTMENT_RECEIPT ), true );
+	}
+
+	/**
 	 * Constructor — registers the post type on `init`.
 	 */
 	public function __construct() {

@@ -81,6 +81,24 @@ class CertTemplateWriter {
 	}
 
 	/**
+	 * Set a template's kind (`certificate` / `appointment_receipt`). Used by the
+	 * "Add New" `?ffc_kind=` preset (#951) so a template created from a feature's
+	 * "+ New" link is born the right kind.
+	 *
+	 * @param int    $id   Template post id.
+	 * @param string $kind One of the {@see CertTemplateCpt}::KIND_* values.
+	 * @return bool True when applied, false when the id is not a pool template or
+	 *              the kind is unknown.
+	 */
+	public static function set_kind( int $id, string $kind ): bool {
+		if ( ! self::is_pool_post( $id ) || ! CertTemplateCpt::is_valid_kind( $kind ) ) {
+			return false;
+		}
+		update_post_meta( $id, CertTemplateCpt::META_KIND, $kind );
+		return true;
+	}
+
+	/**
 	 * Replace a template's stored HTML body.
 	 *
 	 * @param int    $id   Template post id.
