@@ -716,6 +716,17 @@ class CertTemplateAdminScreen {
 
 		wp_nonce_field( self::SAVE_NONCE, 'ffc_cert_template_nonce' );
 
+		// "Add New" kind preset (#951): a feature's "+ New template" link opens
+		// this screen with `?ffc_kind=<kind>`; carry it in a hidden field on the
+		// new auto-draft so save_edit_metabox() can stamp META_KIND (a plain
+		// "Add New" otherwise defaults to certificate). Only for new posts, so an
+		// ordinary edit never resubmits — and re-types — an existing kind.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only routing default; the value is validated + gated by the SAVE_NONCE on save.
+		$requested_kind = isset( $_GET['ffc_kind'] ) ? sanitize_key( wp_unslash( $_GET['ffc_kind'] ) ) : '';
+		if ( 'auto-draft' === $post->post_status && CertTemplateCpt::is_valid_kind( $requested_kind ) ) {
+			echo '<input type="hidden" name="ffc_template_kind" value="' . esc_attr( $requested_kind ) . '">';
+		}
+
 		if ( $is_default ) {
 			echo '<p class="description">' .
 				esc_html__( 'This is a shipped default template — its HTML is read-only. Duplicate it to create an editable copy; you can still show/hide it in Template options.', 'ffcertificate' ) .
@@ -843,6 +854,14 @@ class CertTemplateAdminScreen {
 		// Visibility is togglable for every template, defaults included
 		// (decision #10/#11: a default can be hidden, just not edited/deleted).
 		CertTemplateWriter::set_visibility( $post_id, isset( $_POST['ffc_template_visible'] ) );
+
+		// "Add New" kind preset (#951): a new template created from a feature's
+		// "+ New" link carries the intended kind in a hidden field (rendered only
+		// on the auto-draft); stamp it so the template is born the right kind.
+		$requested_kind = isset( $_POST['ffc_template_kind'] ) ? sanitize_key( wp_unslash( $_POST['ffc_template_kind'] ) ) : '';
+		if ( CertTemplateCpt::is_valid_kind( $requested_kind ) ) {
+			CertTemplateWriter::set_kind( $post_id, $requested_kind );
+		}
 	}
 
 	/**

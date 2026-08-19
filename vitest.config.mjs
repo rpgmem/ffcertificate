@@ -27,7 +27,6 @@ export default defineConfig({
 				'assets/js/ffc-admin-migrations.js',     // DB-mutating; manual testing only.
 				'assets/js/ffc-code-editor-core.js',     // Shared CodeMirror initializer; jsdom lacks CodeMirror.
 				'assets/js/ffc-admin-code-editor.js',    // Thin CodeMirror wrapper.
-				'assets/js/ffc-receipt-templates.js',    // CodeMirror (wp.codeEditor) + AJAX wrapper; jsdom lacks CodeMirror.
 				'assets/js/ffc-admin-pdf.js',            // Coupled to html2canvas + jsPDF.
 				'assets/js/ffc-pdf-generator.js',        // Coupled to html2canvas + jsPDF.
 				'assets/js/ffc-calendar-frontend.js',    // Built on FullCalendar plugin API.

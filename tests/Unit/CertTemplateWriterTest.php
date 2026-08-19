@@ -126,6 +126,30 @@ class CertTemplateWriterTest extends TestCase {
 		$this->assertSame( array(), $this->meta_writes );
 	}
 
+	public function test_set_kind_updates_pool_post(): void {
+		Functions\when( 'get_post' )->justReturn( $this->pool_post( 5 ) );
+
+		$this->assertTrue( CertTemplateWriter::set_kind( 5, CertTemplateCpt::KIND_APPOINTMENT_RECEIPT ) );
+		$this->assertSame( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT, $this->written( CertTemplateCpt::META_KIND ) );
+	}
+
+	public function test_set_kind_rejects_unknown_kind(): void {
+		Functions\when( 'get_post' )->justReturn( $this->pool_post( 5 ) );
+
+		$this->assertFalse( CertTemplateWriter::set_kind( 5, 'bogus' ) );
+		$this->assertSame( array(), $this->meta_writes );
+	}
+
+	public function test_set_kind_rejects_non_pool_post(): void {
+		$other            = new \WP_Post();
+		$other->ID        = 9;
+		$other->post_type = 'page';
+		Functions\when( 'get_post' )->justReturn( $other );
+
+		$this->assertFalse( CertTemplateWriter::set_kind( 9, CertTemplateCpt::KIND_CERTIFICATE ) );
+		$this->assertSame( array(), $this->meta_writes );
+	}
+
 	public function test_update_html_updates_pool_post(): void {
 		Functions\when( 'get_post' )->justReturn( $this->pool_post( 12 ) );
 

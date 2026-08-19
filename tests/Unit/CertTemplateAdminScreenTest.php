@@ -379,6 +379,64 @@ class CertTemplateAdminScreenTest extends TestCase {
 		$this->assertContains( array( 5, CertTemplateCpt::META_BG_IMAGE, 'https://example.com/bg.png' ), $written );
 	}
 
+	public function test_save_edit_metabox_stamps_the_add_new_kind_preset(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'wp_kses' )->alias( static fn( $html ) => $html );
+		Functions\when( 'get_post' )->justReturn( $this->pool_post( 5 ) );
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+
+		$written = array();
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( $id, $key, $value ) use ( &$written ) {
+				$written[] = array( $id, $key, $value );
+				return true;
+			}
+		);
+
+		$_POST['ffc_cert_template_nonce'] = 'n';
+		$_POST['ffc_template_html']       = '<div>Body</div>';
+		$_POST['ffc_template_kind']       = CertTemplateCpt::KIND_APPOINTMENT_RECEIPT;
+
+		( new CertTemplateAdminScreen() )->save_edit_metabox( 5, $this->pool_post( 5 ) );
+
+		$this->assertContains( array( 5, CertTemplateCpt::META_KIND, CertTemplateCpt::KIND_APPOINTMENT_RECEIPT ), $written );
+
+		unset( $_POST['ffc_template_kind'] );
+	}
+
+	public function test_save_edit_metabox_ignores_an_unknown_kind_preset(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'wp_kses' )->alias( static fn( $html ) => $html );
+		Functions\when( 'get_post' )->justReturn( $this->pool_post( 5 ) );
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+
+		$written = array();
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( $id, $key, $value ) use ( &$written ) {
+				$written[] = array( $id, $key, $value );
+				return true;
+			}
+		);
+
+		$_POST['ffc_cert_template_nonce'] = 'n';
+		$_POST['ffc_template_html']       = '<div>Body</div>';
+		$_POST['ffc_template_kind']       = 'bogus';
+
+		( new CertTemplateAdminScreen() )->save_edit_metabox( 5, $this->pool_post( 5 ) );
+
+		foreach ( $written as $w ) {
+			$this->assertNotSame( CertTemplateCpt::META_KIND, $w[1] );
+		}
+
+		unset( $_POST['ffc_template_kind'] );
+	}
+
 	public function test_save_edit_metabox_bails_on_bad_nonce(): void {
 		Functions\when( 'sanitize_key' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
