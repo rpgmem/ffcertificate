@@ -135,13 +135,15 @@ class CertTemplateCpt {
 			'labels'          => $labels,
 			'public'          => false,
 			// Management UI (#865): the native list table + edit screen are the
-			// single hub for every document model (#951 Direction 1), surfaced as
-			// a "Document Templates" submenu under the FFC Settings menu — a
-			// kind-neutral home, since the pool is no longer certificate-only.
-			// Gated by the same forms caps below. Visibility, columns and the
+			// single hub for every document model (#951 Direction 1). The screens
+			// stay registered (`show_ui`) but carry NO menu item of their own
+			// (`show_in_menu = false`) — the entry point is the "Document
+			// Templates" launcher tab inside FFC Settings (TabTemplates), which
+			// keeps you within the Settings tabbed UI instead of a standalone
+			// submenu. Gated by the forms caps below; visibility, columns and the
 			// HTML-editing metabox are wired by CertTemplateAdminScreen.
 			'show_ui'         => true,
-			'show_in_menu'    => 'ffc-settings',
+			'show_in_menu'    => false,
 			'query_var'       => false,
 			// Same #739 decoupling as `ffc_form`: gate by the FFC forms caps, not
 			// native post caps. List/read primitives map to the read-only

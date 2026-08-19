@@ -173,6 +173,7 @@ class Settings {
 		// v4.6.16: Reorganized tabs for better UX.
 		$tab_classes = array(
 			'general'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeneral',
+			'templates'      => '\\FreeFormCertificate\\Settings\\Tabs\\TabTemplates',
 			'modulos'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabModulos',
 			'smtp'           => '\\FreeFormCertificate\\Settings\\Tabs\\TabSMTP',
 			'cache'          => '\\FreeFormCertificate\\Settings\\Tabs\\TabCache',
