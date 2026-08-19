@@ -19635,3 +19635,307 @@ msgstr "✓ com autoridade"
 #: templates/emails/certificate-user.php:24
 msgid "⬇️ Download document (PDF)"
 msgstr "⬇️ Baixar documento (PDF)"
+
+#: includes/admin/class-ffc-cert-template-admin-screen.php:436
+msgid "Appointment receipt"
+msgstr "Comprovante de agendamento"
+
+#: includes/admin/class-ffc-cert-template-admin-screen.php:455
+msgid "All categories"
+msgstr "Todas as categorias"
+
+#: includes/admin/class-ffc-cert-template-admin-screen.php:755
+msgid "Receipt HTML"
+msgstr "HTML do comprovante"
+
+#: includes/admin/class-ffc-cert-template-admin-screen.php:762
+msgid "Common tags:"
+msgstr "Tags comuns:"
+
+#: includes/admin/class-ffc-cert-template-admin-screen.php:792
+msgid "Show in the appointment-receipt selection"
+msgstr "Exibir na seleção de comprovante de agendamento"
+
+#: includes/admin/class-ffc-cert-template-admin-screen.php:795
+msgid "When on, this template can be chosen as the appointment receipt in Self-scheduling settings."
+msgstr "Quando ativado, este modelo pode ser escolhido como comprovante de agendamento nas configurações de Autoagendamento."
+
+#: includes/admin/class-ffc-cert-template-cpt.php:122
+msgctxt "Post Type General Name"
+msgid "Document Templates"
+msgstr "Modelos de documento"
+
+#: includes/admin/class-ffc-cert-template-cpt.php:123
+msgctxt "Post Type Singular Name"
+msgid "Document Template"
+msgstr "Modelo de documento"
+
+#: includes/admin/class-ffc-cert-template-cpt.php:124 includes/admin/class-ffc-cert-template-cpt.php:125 includes/settings/tabs/class-ffc-tab-templates.php:37 includes/settings/tabs/class-ffc-tab-templates.php:90
+msgid "Document Templates"
+msgstr "Modelos de documento"
+
+#: includes/admin/class-ffc-cert-template-receipt-settings.php:89
+msgid "Receipt"
+msgstr "Comprovante"
+
+#: includes/admin/class-ffc-cert-template-receipt-settings.php:131 includes/admin/class-ffc-cert-template-receipt-settings.php:225
+msgid "You do not have permission to manage these settings."
+msgstr "Você não tem permissão para gerenciar estas configurações."
+
+#: includes/admin/class-ffc-cert-template-receipt-settings.php:140
+msgid "Appointment receipt templates saved."
+msgstr "Modelos de comprovante de agendamento salvos."
+
+#: includes/admin/class-ffc-cert-template-receipt-settings.php:148
+msgid "Appointment Receipt Templates"
+msgstr "Modelos de comprovante de agendamento"
+
+#: includes/admin/class-ffc-cert-template-receipt-settings.php:150
+msgid "Choose which template the appointment receipt (comprovante) PDF uses, separately for Regular and Custom calendars. Create, edit and duplicate templates in the Document Templates hub."
+msgstr "Escolha qual modelo o PDF do comprovante de agendamento usa, separadamente para calendários Regulares e Personalizados. Crie, edite e duplique modelos na central de Modelos de Documentos."
+
+#: includes/admin/class-ffc-cert-template-receipt-settings.php:154 includes/settings/tabs/class-ffc-tab-templates.php:116
+msgid "Manage receipt templates"
+msgstr "Gerenciar modelos de comprovante"
+
+#: includes/admin/class-ffc-cert-template-receipt-settings.php:157
+msgid "+ New template"
+msgstr "+ Novo modelo"
+
+#: includes/admin/class-ffc-cert-template-receipt-settings.php:164
+msgid "Regular calendars"
+msgstr "Calendários regulares"
+
+#: includes/admin/class-ffc-cert-template-receipt-settings.php:165
+msgid "Custom calendars"
+msgstr "Calendários personalizados"
+
+#: includes/admin/class-ffc-cert-template-receipt-settings.php:192
+msgid "Template:"
+msgstr "Modelo:"
+
+#: includes/admin/class-ffc-cert-template-receipt-settings.php:194
+msgid "Shipped default"
+msgstr "Padrão do plugin"
+
+#. translators: %s: template title
+#: includes/admin/class-ffc-cert-template-receipt-settings.php:201
+#, php-format
+msgid "%s (default)"
+msgstr "%s (padrão)"
+
+#: includes/admin/class-ffc-cert-template-receipt-settings.php:210
+msgid "Edit this template →"
+msgstr "Editar este modelo →"
+
+#: includes/admin/class-ffc-cert-template-seeder.php:222
+msgid "Appointment receipt — Regular"
+msgstr "Comprovante de agendamento — Regular"
+
+#: includes/admin/class-ffc-cert-template-seeder.php:229
+msgid "Appointment receipt — Custom"
+msgstr "Comprovante de agendamento — Personalizado"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:169
+msgid "You have been added to the waitlist. We will notify you if a spot opens up."
+msgstr "Você foi adicionado à lista de espera. Avisaremos se uma vaga for liberada."
+
+#. translators: %s: calendar title
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:336
+#, php-format
+msgid "Added to Waitlist: %s"
+msgstr "Adicionado à lista de espera: %s"
+
+#. translators: %s: calendar title
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:376
+#, php-format
+msgid "A Spot Opened Up: %s"
+msgstr "Uma vaga foi liberada: %s"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:382
+msgid "A spot opened up and you have moved off the waitlist. Your booking is now pending approval — you will receive a confirmation once it is approved."
+msgstr "Uma vaga foi liberada e você saiu da lista de espera. Sua reserva está agora pendente de aprovação — você receberá uma confirmação assim que for aprovada."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:383
+msgid "A spot opened up and your booking is now confirmed!"
+msgstr "Uma vaga foi liberada e sua reserva está confirmada!"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php:124
+msgid "The selected time block is no longer available."
+msgstr "O bloco de horário selecionado não está mais disponível."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:155
+msgid "The selected time block is not available."
+msgstr "O bloco de horário selecionado não está disponível."
+
+#. translators: %d: maximum number of bookings
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-validator.php:176
+#, php-format
+msgid "You have reached the maximum of %d booking for this calendar."
+msgid_plural "You have reached the maximum of %d bookings for this calendar."
+msgstr[0] "Você atingiu o máximo de %d reserva para este calendário."
+msgstr[1] "Você atingiu o máximo de %d reservas para este calendário."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:212
+msgid "5. Occupancy Report"
+msgstr "5. Relatório de ocupação"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:235
+msgid "Add custom blocks to see the occupancy report."
+msgstr "Adicione blocos personalizados para ver o relatório de ocupação."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:260
+msgid "Booked / Capacity"
+msgstr "Reservado / Capacidade"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:261
+msgid "Occupancy"
+msgstr "Ocupação"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:262
+msgid "Waitlist"
+msgstr "Lista de espera"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:332
+msgid "Scheduling mode"
+msgstr "Modo de agendamento"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:334
+msgid "Regular — weekly working hours"
+msgstr "Regular — horário de funcionamento semanal"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:335
+msgid "Custom — specific date/time blocks, each with its own number of vacancies"
+msgstr "Personalizado — blocos específicos de data/hora, cada um com seu próprio número de vagas"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:338
+msgid "This calendar already has bookings — the scheduling mode is locked."
+msgstr "Este calendário já tem reservas — o modo de agendamento está bloqueado."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:340
+msgid "Regular repeats weekly. Custom lets you list exact dates and times below, each with its own capacity."
+msgstr "O Regular se repete semanalmente. O Personalizado permite listar datas e horários exatos abaixo, cada um com sua própria capacidade."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:515
+msgid "Define the exact date/time blocks and how many vacancies each has. Each block is one bookable session."
+msgstr "Defina os blocos exatos de data/hora e quantas vagas cada um tem. Cada bloco é uma sessão reservável."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:523
+msgid "Vacancies"
+msgstr "Vagas"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:524
+msgid "Label (optional)"
+msgstr "Rótulo (opcional)"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:543
+msgid "+ Add Block"
+msgstr "+ Adicionar bloco"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:546
+msgid "This calendar has bookings — blocks with existing bookings cannot be removed or retimed on save; you may still add blocks or raise capacity."
+msgstr "Este calendário tem reservas — blocos com reservas existentes não podem ser removidos nem ter o horário alterado ao salvar; você ainda pode adicionar blocos ou aumentar a capacidade."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:650
+msgid "Enable Waitlist"
+msgstr "Ativar lista de espera"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:658
+msgid "When a slot is full, let users join a waitlist instead of being turned away"
+msgstr "Quando um horário está cheio, permita que os usuários entrem em uma lista de espera em vez de serem recusados"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:662
+msgid "Applies to both scheduling modes. When a spot frees up (a cancellation or a rejected approval), the next person in line is promoted automatically."
+msgstr "Aplica-se aos dois modos de agendamento. Quando uma vaga é liberada (um cancelamento ou uma aprovação recusada), a próxima pessoa da fila é promovida automaticamente."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:666
+msgid "Waitlist Capacity"
+msgstr "Capacidade da lista de espera"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:668
+msgid "per slot"
+msgstr "por horário"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:669
+msgid "Maximum number of people who can wait per slot (0 = unlimited)."
+msgstr "Número máximo de pessoas que podem aguardar por horário (0 = ilimitado)."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:673
+msgid "Blocks per User (Custom mode)"
+msgstr "Blocos por usuário (modo Personalizado)"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:676
+msgid "Maximum number of blocks a single user may book in this custom calendar (0 = no limit). Waitlisted bookings count toward the limit."
+msgstr "Número máximo de blocos que um único usuário pode reservar neste calendário personalizado (0 = sem limite). Reservas na lista de espera contam para o limite."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:213
+msgid "Join waitlist"
+msgstr "Entrar na lista de espera"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:214
+msgid "On waitlist"
+msgstr "Na lista de espera"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:215
+msgid "This time is full. Submitting adds you to the waitlist — you will be notified automatically if a spot opens up."
+msgstr "Este horário está cheio. Ao enviar, você entra na lista de espera — será notificado automaticamente se uma vaga for liberada."
+
+#: includes/settings/tabs/class-ffc-tab-templates.php:92
+msgid "Create, edit and duplicate the HTML templates for your certificates and appointment receipts. They all live in one pool — use the buttons below to open the full management screen."
+msgstr "Crie, edite e duplique os modelos HTML dos seus certificados e comprovantes de agendamento. Todos ficam em um único conjunto — use os botões abaixo para abrir a tela de gerenciamento completa."
+
+#: includes/settings/tabs/class-ffc-tab-templates.php:97
+msgid "Manage all templates"
+msgstr "Gerenciar todos os modelos"
+
+#: includes/settings/tabs/class-ffc-tab-templates.php:104
+msgid "Manage certificate templates"
+msgstr "Gerenciar modelos de certificado"
+
+#: includes/settings/tabs/class-ffc-tab-templates.php:108
+msgid "+ New certificate template"
+msgstr "+ Novo modelo de certificado"
+
+#: includes/settings/tabs/class-ffc-tab-templates.php:113
+msgid "Appointment receipts"
+msgstr "Comprovantes de agendamento"
+
+#: includes/settings/tabs/class-ffc-tab-templates.php:120
+msgid "+ New receipt template"
+msgstr "+ Novo modelo de comprovante"
+
+#: includes/settings/tabs/class-ffc-tab-templates.php:125
+msgid "Which receipt template each scheduling mode uses is chosen in Scheduling → Settings → Receipt."
+msgstr "Qual modelo de comprovante cada modo de agendamento usa é definido em Agendamento → Configurações → Comprovante."
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:232
+msgid "Overbook capacity"
+msgstr "Exceder a capacidade"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:233
+msgid "Book a slot or custom block that is already full — the only manual override of the always-enforced per-slot/per-block capacity (#941)."
+msgstr "Reservar um horário ou bloco personalizado que já está cheio — a única exceção manual à capacidade por horário/por bloco, sempre aplicada (#941)."
+
+#: templates/emails/appointment-promoted.php:23
+msgid "A Spot Opened Up!"
+msgstr "Uma vaga foi liberada!"
+
+#: templates/emails/appointment-promoted.php:37
+msgid "Can no longer make it?"
+msgstr "Não pode mais comparecer?"
+
+#: templates/emails/appointment-waitlisted.php:20
+msgid "You're on the Waitlist"
+msgstr "Você está na lista de espera"
+
+#: templates/emails/appointment-waitlisted.php:21
+msgid "This time was full, so you have been added to the waitlist. If a spot opens up, the next person in line is promoted automatically and you will be notified by email."
+msgstr "Este horário estava cheio, então você foi adicionado à lista de espera. Se uma vaga for liberada, a próxima pessoa da fila é promovida automaticamente e você será notificado por e-mail."
+
+#: templates/emails/appointment-waitlisted.php:29
+msgid "Changed your mind?"
+msgstr "Mudou de ideia?"
+
+#: templates/emails/appointment-waitlisted.php:30
+msgid "Leave Waitlist"
+msgstr "Sair da lista de espera"
