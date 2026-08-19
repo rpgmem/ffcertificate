@@ -435,6 +435,9 @@ class CertTemplateAdminScreen {
 		if ( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT === $kind ) {
 			return __( 'Appointment receipt', 'ffcertificate' );
 		}
+		if ( CertTemplateCpt::KIND_FICHA === $kind ) {
+			return __( 'Ficha', 'ffcertificate' );
+		}
 		return __( 'Certificate', 'ffcertificate' );
 	}
 
@@ -455,6 +458,7 @@ class CertTemplateAdminScreen {
 			''                                        => __( 'All categories', 'ffcertificate' ),
 			CertTemplateCpt::KIND_CERTIFICATE         => self::kind_label( CertTemplateCpt::KIND_CERTIFICATE ),
 			CertTemplateCpt::KIND_APPOINTMENT_RECEIPT => self::kind_label( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT ),
+			CertTemplateCpt::KIND_FICHA               => self::kind_label( CertTemplateCpt::KIND_FICHA ),
 		);
 
 		echo '<select name="ffc_kind">';
@@ -712,7 +716,9 @@ class CertTemplateAdminScreen {
 		$html       = (string) get_post_meta( $post->ID, CertTemplateCpt::META_HTML, true );
 		$bg_image   = (string) get_post_meta( $post->ID, CertTemplateCpt::META_BG_IMAGE, true );
 		$is_default = CertTemplateReader::is_default( (int) $post->ID );
-		$is_receipt = CertTemplateCpt::KIND_APPOINTMENT_RECEIPT === CertTemplateReader::get_kind( (int) $post->ID );
+		$kind       = CertTemplateReader::get_kind( (int) $post->ID );
+		$is_receipt = CertTemplateCpt::KIND_APPOINTMENT_RECEIPT === $kind;
+		$is_ficha   = CertTemplateCpt::KIND_FICHA === $kind;
 
 		wp_nonce_field( self::SAVE_NONCE, 'ffc_cert_template_nonce' );
 
@@ -752,7 +758,15 @@ class CertTemplateAdminScreen {
 		}
 		?>
 		<label class="ffc-block-label" for="ffc_template_html"><strong>
-			<?php echo $is_receipt ? esc_html__( 'Receipt HTML', 'ffcertificate' ) : esc_html__( 'Certificate HTML', 'ffcertificate' ); ?>
+			<?php
+			if ( $is_receipt ) {
+				esc_html_e( 'Receipt HTML', 'ffcertificate' );
+			} elseif ( $is_ficha ) {
+				esc_html_e( 'Ficha HTML', 'ffcertificate' );
+			} else {
+				esc_html_e( 'Certificate HTML', 'ffcertificate' );
+			}
+			?>
 		</strong></label>
 		<div class="ffc-code-editor-wrapper">
 			<textarea name="ffc_template_html" id="ffc_template_html" class="ffc-w100" rows="16" <?php wp_readonly( $is_default, true ); ?>><?php echo esc_textarea( $html ); ?></textarea>
@@ -760,6 +774,8 @@ class CertTemplateAdminScreen {
 		<p class="description">
 			<?php if ( $is_receipt ) : ?>
 				<?php esc_html_e( 'Common tags:', 'ffcertificate' ); ?> <code>{{name}}</code>, <code>{{cpf_rf}}</code>, <code>{{calendar_title}}</code>, <code>{{appointment_date}}</code>, <code>{{appointment_time}}</code>, <code>{{appointment_time_range}}</code>, <code>{{validation_code}}</code>, <code>{{qr_code:size=140}}</code>, <code>{{validation_url}}</code>.
+			<?php elseif ( $is_ficha ) : ?>
+				<?php esc_html_e( 'Common tags:', 'ffcertificate' ); ?> <code>{{name}}</code>, <code>{{cpf_rf}}</code>, <code>{{custom_fields_section}}</code>, <code>{{termo_ciencia}}</code>, <code>{{submitted_at}}</code>.
 			<?php else : ?>
 				<?php esc_html_e( 'Mandatory Tags:', 'ffcertificate' ); ?> <code>{{auth_code}}</code>, <code>{{name}}</code>, <code>{{cpf_rf}}</code>.
 			<?php endif; ?>
@@ -787,13 +803,17 @@ class CertTemplateAdminScreen {
 			? true
 			: '1' === (string) get_post_meta( $post->ID, CertTemplateCpt::META_VISIBLE, true );
 
-		$is_receipt   = CertTemplateCpt::KIND_APPOINTMENT_RECEIPT === CertTemplateReader::get_kind( (int) $post->ID );
-		$toggle_label = $is_receipt
-			? __( 'Show in the appointment-receipt selection', 'ffcertificate' )
-			: __( 'Show in the form editor’s “Load” list', 'ffcertificate' );
-		$toggle_help  = $is_receipt
-			? __( 'When on, this template can be chosen as the appointment receipt in Self-scheduling settings.', 'ffcertificate' )
-			: __( 'When on, this template appears in the certificate form editor’s “Load” dropdown.', 'ffcertificate' );
+		$kind = CertTemplateReader::get_kind( (int) $post->ID );
+		if ( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT === $kind ) {
+			$toggle_label = __( 'Show in the appointment-receipt selection', 'ffcertificate' );
+			$toggle_help  = __( 'When on, this template can be chosen as the appointment receipt in Self-scheduling settings.', 'ffcertificate' );
+		} elseif ( CertTemplateCpt::KIND_FICHA === $kind ) {
+			$toggle_label = __( 'Show in the ficha selection', 'ffcertificate' );
+			$toggle_help  = __( 'When on, this template can be chosen as the ficha in Reregistration settings.', 'ffcertificate' );
+		} else {
+			$toggle_label = __( 'Show in the form editor’s “Load” list', 'ffcertificate' );
+			$toggle_help  = __( 'When on, this template appears in the certificate form editor’s “Load” dropdown.', 'ffcertificate' );
+		}
 		?>
 		<label class="ffc-toggle">
 			<input type="checkbox" id="ffc_template_visible" name="ffc_template_visible" value="1" <?php checked( $visible ); ?>>

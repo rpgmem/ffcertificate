@@ -125,6 +125,22 @@ class TabTemplates extends SettingsTab {
 				<?php esc_html_e( 'Which receipt template each scheduling mode uses is chosen in Scheduling → Settings → Receipt.', 'ffcertificate' ); ?>
 			</span>
 		</p>
+
+		<h3><?php esc_html_e( 'Fichas (reregistration)', 'ffcertificate' ); ?></h3>
+		<p>
+			<a class="button" href="<?php echo esc_url( self::hub_url( CertTemplateCpt::KIND_FICHA ) ); ?>">
+				<?php esc_html_e( 'Manage ficha templates', 'ffcertificate' ); ?>
+			</a>
+			<?php if ( $can_manage ) : ?>
+				<a class="button" href="<?php echo esc_url( self::new_url( CertTemplateCpt::KIND_FICHA ) ); ?>">
+					<?php esc_html_e( '+ New ficha template', 'ffcertificate' ); ?>
+				</a>
+			<?php endif; ?>
+			<br>
+			<span class="description">
+				<?php esc_html_e( 'Which ficha template the reregistration PDF uses is chosen in Settings → Reregistration.', 'ffcertificate' ); ?>
+			</span>
+		</p>
 		<?php
 	}
 }

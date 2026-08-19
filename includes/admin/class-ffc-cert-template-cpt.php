@@ -91,6 +91,11 @@ class CertTemplateCpt {
 	public const KIND_APPOINTMENT_RECEIPT = 'appointment_receipt';
 
 	/**
+	 * Kind value: a reregistration ficha template (#951 phase 2).
+	 */
+	public const KIND_FICHA = 'ficha';
+
+	/**
 	 * Whether a string is one of the known template kinds. Guards a
 	 * request-supplied kind (e.g. the `?ffc_kind=` "Add New" preset, #951)
 	 * before it is written to `META_KIND`.
@@ -99,7 +104,7 @@ class CertTemplateCpt {
 	 * @return bool
 	 */
 	public static function is_valid_kind( string $kind ): bool {
-		return in_array( $kind, array( self::KIND_CERTIFICATE, self::KIND_APPOINTMENT_RECEIPT ), true );
+		return in_array( $kind, array( self::KIND_CERTIFICATE, self::KIND_APPOINTMENT_RECEIPT, self::KIND_FICHA ), true );
 	}
 
 	/**
