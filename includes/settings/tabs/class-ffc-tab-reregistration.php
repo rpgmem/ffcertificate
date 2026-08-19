@@ -45,9 +45,11 @@ class TabReregistration extends SettingsTab {
 	protected function init(): void {
 		$this->tab_id    = 'reregistration';
 		$this->tab_title = __( 'Reregistration', 'ffcertificate' );
-		// Mono glyph (person), consistent with the other Settings-nav tabs; the
-		// `ffc-icon-id` badge (🆔) renders as a solid colour, breaking that row.
-		$this->tab_icon  = 'ffc-icon-user';
+		// Clipboard glyph — one of the emoji that the admin emoji font renders
+		// monochrome (as the Activity-Log tab already does), matching the flat
+		// icon row. The `ffc-icon-id` (🆔) and `ffc-icon-user` (👤) glyphs both
+		// render as a solid colour in that font, so they break the row.
+		$this->tab_icon  = 'ffc-icon-clipboard';
 		$this->tab_order = 55;
 
 		add_action( 'admin_post_' . self::SAVE_ACTION, array( $this, 'handle_save' ) );
