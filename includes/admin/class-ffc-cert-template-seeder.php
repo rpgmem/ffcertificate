@@ -55,8 +55,12 @@ class CertTemplateSeeder {
 	 * comprovante can be chosen from the pool per mode. Non-destructive: the bump's
 	 * restore() adds the two missing receipt defaults without touching user
 	 * templates (and re-tags any existing default with its kind).
+	 *
+	 * Version 5 seeds the **ficha** default (#951 phase 2) — tagged
+	 * `META_KIND = ficha`, so the reregistration ficha can be chosen from the
+	 * pool. Same non-destructive bump: adds the one missing ficha default.
 	 */
-	private const SEED_VERSION = 4;
+	private const SEED_VERSION = 5;
 
 	/**
 	 * Directory (relative to the plugin root) holding the default background
@@ -230,6 +234,15 @@ class CertTemplateSeeder {
 				'file'  => 'default_appointment_receipt_custom.html',
 				'bg'    => '',
 				'kind'  => CertTemplateCpt::KIND_APPOINTMENT_RECEIPT,
+				'dir'   => 'templates/documents/',
+			),
+			// Reregistration ficha default (#951 phase 2) — HTML under
+			// templates/documents/, no background image, tagged `ficha`.
+			'default_ficha'                       => array(
+				'title' => __( 'Ficha', 'ffcertificate' ),
+				'file'  => 'default_ficha_template.html',
+				'bg'    => '',
+				'kind'  => CertTemplateCpt::KIND_FICHA,
 				'dir'   => 'templates/documents/',
 			),
 		);

@@ -174,6 +174,7 @@ class Settings {
 		$tab_classes = array(
 			'general'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeneral',
 			'templates'      => '\\FreeFormCertificate\\Settings\\Tabs\\TabTemplates',
+			'reregistration' => '\\FreeFormCertificate\\Settings\\Tabs\\TabReregistration',
 			'modulos'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabModulos',
 			'smtp'           => '\\FreeFormCertificate\\Settings\\Tabs\\TabSMTP',
 			'cache'          => '\\FreeFormCertificate\\Settings\\Tabs\\TabCache',

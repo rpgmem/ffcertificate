@@ -459,6 +459,21 @@ class FichaGenerator {
 	 * @return string HTML template with placeholders.
 	 */
 	private static function load_template(): string {
+		/**
+		 * Filters the ficha template HTML directly, before the bundled file is
+		 * read. A listener — the template-pool resolver (#951 phase 2) — can
+		 * supply the admin-selected ficha template's HTML; returning '' (the
+		 * default) falls through to the `ffcertificate_ficha_template_file`
+		 * path + the bundled default, so nothing changes when unconfigured.
+		 *
+		 * @since 6.20.0
+		 * @param string $html Ficha template HTML ('' = use the file below).
+		 */
+		$pool_html = (string) apply_filters( 'ffcertificate_ficha_template_html', '' );
+		if ( '' !== $pool_html ) {
+			return $pool_html;
+		}
+
 		$template_file = FFC_PLUGIN_DIR . 'templates/documents/default_ficha_template.html';
 
 		/**

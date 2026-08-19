@@ -202,6 +202,11 @@ class Loader {
 			// pool template for the calendar's mode. Harmless when unconfigured
 			// (falls back to the shipped default file).
 			( new \FreeFormCertificate\Admin\CertTemplateReceiptResolver() )->register();
+			// Ficha template resolution (#951 phase 2): the reregistration ficha
+			// PDF (frontend verification + admin AJAX) picks the admin-selected
+			// pool template. Harmless when unconfigured (falls back to the bundled
+			// default file).
+			( new \FreeFormCertificate\Admin\CertTemplateFichaResolver() )->register();
 			if ( is_admin() ) {
 				add_action( 'admin_init', array( \FreeFormCertificate\Admin\CertTemplateSeeder::class, 'maybe_seed' ) );
 				// Management UI: list-table columns + visibility toggle (#865).

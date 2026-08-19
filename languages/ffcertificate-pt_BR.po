@@ -19939,3 +19939,43 @@ msgstr "Mudou de ideia?"
 #: templates/emails/appointment-waitlisted.php:30
 msgid "Leave Waitlist"
 msgstr "Sair da lista de espera"
+
+#: includes/admin/class-ffc-cert-template-admin-screen.php:765
+msgid "Ficha HTML"
+msgstr "HTML da ficha"
+
+#: includes/admin/class-ffc-cert-template-admin-screen.php:811
+msgid "Show in the ficha selection"
+msgstr "Exibir na seleção de ficha"
+
+#: includes/admin/class-ffc-cert-template-admin-screen.php:812
+msgid "When on, this template can be chosen as the ficha in Reregistration settings."
+msgstr "Quando ativado, este modelo pode ser escolhido como ficha nas configurações de Recadastramento."
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php:117
+msgid "Ficha Template"
+msgstr "Modelo de ficha"
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php:109
+msgid "Ficha template saved."
+msgstr "Modelo de ficha salvo."
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php:119
+msgid "Choose which template the reregistration ficha PDF uses. Create, edit and duplicate ficha templates in the Document Templates hub."
+msgstr "Escolha qual modelo o PDF da ficha de recadastramento usa. Crie, edite e duplique modelos de ficha no hub de Modelos de Documento."
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php:152
+msgid "Manage ficha templates"
+msgstr "Gerenciar modelos de ficha"
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php:155
+msgid "+ New ficha template"
+msgstr "+ Novo modelo de ficha"
+
+#: includes/settings/tabs/class-ffc-tab-templates.php:129
+msgid "Fichas (reregistration)"
+msgstr "Fichas (recadastramento)"
+
+#: includes/settings/tabs/class-ffc-tab-templates.php:141
+msgid "Which ficha template the reregistration PDF uses is chosen in Settings → Reregistration."
+msgstr "Qual modelo de ficha o PDF de recadastramento usa é definido em Configurações → Recadastramento."

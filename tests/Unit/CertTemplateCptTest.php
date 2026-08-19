@@ -96,6 +96,7 @@ class CertTemplateCptTest extends TestCase {
 	public function test_is_valid_kind_accepts_only_known_kinds(): void {
 		$this->assertTrue( CertTemplateCpt::is_valid_kind( CertTemplateCpt::KIND_CERTIFICATE ) );
 		$this->assertTrue( CertTemplateCpt::is_valid_kind( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT ) );
+		$this->assertTrue( CertTemplateCpt::is_valid_kind( CertTemplateCpt::KIND_FICHA ) );
 		$this->assertFalse( CertTemplateCpt::is_valid_kind( 'bogus' ) );
 		$this->assertFalse( CertTemplateCpt::is_valid_kind( '' ) );
 	}
