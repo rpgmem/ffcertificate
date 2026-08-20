@@ -179,6 +179,18 @@ class FrontendShortcodesTest extends TestCase {
         $this->assertStringContainsString( 'ffc_captcha_ans', $html );
         $this->assertStringContainsString( 'ffc_captcha_hash', $html );
         $this->assertStringContainsString( 'testhash123', $html );
+
+        // #951 a11y: the honeypot input must be wrapped by its <label> so it
+        // carries an accessible name. Off-screen (not display:none), the field
+        // is still in the a11y tree, so an unlabeled input is announced to
+        // screen readers — a blind user could fill the "invisible" trap and be
+        // rejected as a bot. The tempered-dot regex asserts the input sits
+        // inside a single <label>…</label> with no closing tag in between.
+        $this->assertMatchesRegularExpression(
+            '#<label[^>]*>(?:(?!</label>).)*name="ffc_honeypot_trap"(?:(?!</label>).)*</label>#s',
+            $html,
+            'honeypot input must be inside its <label> for an accessible association'
+        );
     }
 
     // ==================================================================
