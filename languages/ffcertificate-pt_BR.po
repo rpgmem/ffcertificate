@@ -19979,3 +19979,7 @@ msgstr "Fichas (recadastramento)"
 #: includes/settings/tabs/class-ffc-tab-templates.php:141
 msgid "Which ficha template the reregistration PDF uses is chosen in Settings → Reregistration."
 msgstr "Qual modelo de ficha o PDF de recadastramento usa é definido em Configurações → Recadastramento."
+
+#: includes/audience/class-ffc-audience-shortcode.php:266
+msgid "Filter by %s"
+msgstr "Filtrar por %s"

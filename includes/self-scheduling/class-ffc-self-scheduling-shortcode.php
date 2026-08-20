@@ -626,8 +626,9 @@ class SelfSchedulingShortcode {
 								<div class="ffc-security-container">
 									<!-- Honeypot Field -->
 									<div class="ffc-honeypot-field">
-										<label><?php esc_html_e( 'Do not fill this field if you are human:', 'ffcertificate' ); ?></label>
-										<input type="text" name="ffc_honeypot_trap" value="" tabindex="-1" autocomplete="off">
+										<label><?php esc_html_e( 'Do not fill this field if you are human:', 'ffcertificate' ); ?>
+											<input type="text" name="ffc_honeypot_trap" value="" tabindex="-1" autocomplete="off">
+										</label>
 									</div>
 
 									<!-- Math Captcha -->

@@ -263,7 +263,7 @@ class AudienceShortcode {
 						? AudienceScheduleRepository::get_environment_label( $schedules[0], true )
 						: AudienceScheduleRepository::get_environment_label( null, true );
 					?>
-					<select class="ffc-environment-select" id="ffc-environment-select">
+					<select class="ffc-environment-select" id="ffc-environment-select" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: environment label (singular) */ __( 'Filter by %s', 'ffcertificate' ), $first_env_label_singular ) ); ?>">
 						<option value="">
 							<?php
 							/* translators: %s: environment label (plural) */
