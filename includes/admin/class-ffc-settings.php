@@ -640,7 +640,7 @@ class Settings {
 						<li class="ffc-settings-tabs__group" role="presentation">
 							<span class="ffc-settings-tabs__group-label"><?php echo esc_html( $ffc_glabel ); ?></span>
 						</li>
-						<?php foreach ( ( $ffc_buckets[ $ffc_gkey ] ?? array() ) as $tab_id => $tab_obj ) : ?>
+						<?php foreach ( $ffc_buckets[ $ffc_gkey ] as $tab_id => $tab_obj ) : ?>
 							<?php $is_active = ( $active_tab === $tab_id ); ?>
 							<li class="ffc-settings-tabs__nav-item" role="presentation">
 								<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=' . $tab_id ) ); ?>"
