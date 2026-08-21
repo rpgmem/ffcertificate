@@ -919,6 +919,13 @@ pre code {
     justify-content: center;
     width: 20px;
     height: 20px;
+    /* The nav glyphs are emoji (`.ffc-icon-*` ::before). Some codepoints
+       render in colour in the visitor's emoji font (e.g. 🆔, 👤) while most
+       render flat, so the icon row looks inconsistent — and it can't be fixed
+       per-glyph without playing whack-a-mole. grayscale(1) desaturates every
+       icon uniformly, so any glyph (present or future) renders monochrome
+       regardless of the platform emoji font. No-op on already-flat glyphs. */
+    filter: grayscale(1);
 }
 
 /* Cancel the right-margin the global .ffc-icon-* helpers apply via
