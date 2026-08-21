@@ -20003,3 +20003,23 @@ msgstr "Ferramentas"
 #: includes/admin/class-ffc-settings.php
 msgid "Go to"
 msgstr "Ir para"
+
+#: includes/settings/tabs/class-ffc-tab-templates.php
+msgid "Current assignments"
+msgstr "Atribuições atuais"
+
+#: includes/settings/tabs/class-ffc-tab-templates.php
+msgid "Which template each feature is using right now. Templates are edited here; the assignment is chosen in each feature's own settings."
+msgstr "Qual modelo cada recurso está usando agora. Os modelos são editados aqui; a atribuição é escolhida nas configurações de cada recurso."
+
+#: includes/settings/tabs/class-ffc-tab-templates.php
+msgid "Used for"
+msgstr "Usado em"
+
+#: includes/settings/tabs/class-ffc-tab-templates.php
+msgid "Change →"
+msgstr "Alterar →"
+
+#: includes/settings/tabs/class-ffc-tab-templates.php
+msgid "Reregistration ficha"
+msgstr "Ficha de recadastramento"

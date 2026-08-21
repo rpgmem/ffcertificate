@@ -19,6 +19,9 @@ namespace FreeFormCertificate\Settings\Tabs;
 
 use FreeFormCertificate\Settings\SettingsTab;
 use FreeFormCertificate\Admin\CertTemplateCpt;
+use FreeFormCertificate\Admin\CertTemplateFichaResolver;
+use FreeFormCertificate\Admin\CertTemplateReceiptResolver;
+use FreeFormCertificate\Core\Capabilities;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -81,6 +84,83 @@ class TabTemplates extends SettingsTab {
 	}
 
 	/**
+	 * Display label for an assigned template id (0 / missing → shipped default).
+	 *
+	 * @param int $id Pool template post id, or 0 for the shipped default.
+	 * @return string
+	 */
+	private static function assigned_label( int $id ): string {
+		if ( $id <= 0 ) {
+			return __( 'Shipped default', 'ffcertificate' );
+		}
+		$title = get_the_title( $id );
+		return '' !== $title ? $title : __( 'Shipped default', 'ffcertificate' );
+	}
+
+	/**
+	 * Render the read-only "Current assignments" overview: which pool template
+	 * each feature currently uses, with a link to the feature's own settings
+	 * where the assignment is changed.
+	 *
+	 * This is display-only — the selection controls (and their capabilities)
+	 * stay in each feature's settings (Settings → Reregistration for the ficha;
+	 * Scheduling → Settings → Receipt for the per-mode receipt). Each row is
+	 * gated by that feature's own view cap, so a row appears only for a feature
+	 * the current user can actually see; the whole panel is suppressed when no
+	 * row is visible.
+	 *
+	 * @return void
+	 */
+	private function render_current_assignments(): void {
+		$can_reregistration = Capabilities::current_user_can_admin_or( 'ffc_view_reregistration' );
+		$can_scheduling     = Capabilities::current_user_can_admin_or( 'ffc_view_audiences' );
+
+		if ( ! $can_reregistration && ! $can_scheduling ) {
+			return;
+		}
+
+		$reregistration_url = admin_url( 'admin.php?page=ffc-settings&tab=reregistration' );
+		$receipt_url        = admin_url( 'admin.php?page=ffc-scheduling-settings&tab=receipt' );
+		$change_label       = __( 'Change →', 'ffcertificate' );
+		?>
+		<h3><?php esc_html_e( 'Current assignments', 'ffcertificate' ); ?></h3>
+		<p class="description">
+			<?php esc_html_e( 'Which template each feature is using right now. Templates are edited here; the assignment is chosen in each feature\'s own settings.', 'ffcertificate' ); ?>
+		</p>
+		<table class="widefat striped ffc-template-assignments" style="max-width:640px;">
+			<thead>
+				<tr>
+					<th scope="col"><?php esc_html_e( 'Used for', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Template', 'ffcertificate' ); ?></th>
+					<th scope="col"><span class="screen-reader-text"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></span></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php if ( $can_scheduling ) : ?>
+					<tr>
+						<td><?php esc_html_e( 'Appointment receipt — Regular', 'ffcertificate' ); ?></td>
+						<td><?php echo esc_html( self::assigned_label( CertTemplateReceiptResolver::selected_id( 'regular' ) ) ); ?></td>
+						<td><a href="<?php echo esc_url( $receipt_url ); ?>"><?php echo esc_html( $change_label ); ?></a></td>
+					</tr>
+					<tr>
+						<td><?php esc_html_e( 'Appointment receipt — Custom', 'ffcertificate' ); ?></td>
+						<td><?php echo esc_html( self::assigned_label( CertTemplateReceiptResolver::selected_id( 'custom' ) ) ); ?></td>
+						<td><a href="<?php echo esc_url( $receipt_url ); ?>"><?php echo esc_html( $change_label ); ?></a></td>
+					</tr>
+				<?php endif; ?>
+				<?php if ( $can_reregistration ) : ?>
+					<tr>
+						<td><?php esc_html_e( 'Reregistration ficha', 'ffcertificate' ); ?></td>
+						<td><?php echo esc_html( self::assigned_label( CertTemplateFichaResolver::selected_id() ) ); ?></td>
+						<td><a href="<?php echo esc_url( $reregistration_url ); ?>"><?php echo esc_html( $change_label ); ?></a></td>
+					</tr>
+				<?php endif; ?>
+			</tbody>
+		</table>
+		<?php
+	}
+
+	/**
 	 * Render the launcher: a short explainer + buttons into the hub.
 	 *
 	 * @return void
@@ -98,6 +178,8 @@ class TabTemplates extends SettingsTab {
 				<?php esc_html_e( 'Manage all templates', 'ffcertificate' ); ?>
 			</a>
 		</p>
+
+		<?php $this->render_current_assignments(); ?>
 
 		<h3><?php esc_html_e( 'Certificates', 'ffcertificate' ); ?></h3>
 		<p>
