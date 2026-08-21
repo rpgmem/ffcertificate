@@ -895,7 +895,7 @@ pre code {
 
 .ffc-settings-tabs__tab:hover,
 .ffc-settings-tabs__tab:focus {
-    background: var(--ffc-bg-card);
+    background: var(--ffc-primary-light);
     color: var(--ffc-primary);
     box-shadow: none;
 }
