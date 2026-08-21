@@ -26,6 +26,7 @@ class TabUrlShortener extends SettingsTab {
 	 */
 	protected function init(): void {
 		$this->tab_id    = 'url_shortener';
+		$this->tab_group = 'tools';
 		$this->tab_title = __( 'URL Shortener', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-link';
 		$this->tab_order = 35;

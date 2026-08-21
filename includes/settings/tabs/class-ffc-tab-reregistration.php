@@ -44,6 +44,7 @@ class TabReregistration extends SettingsTab {
 	 */
 	protected function init(): void {
 		$this->tab_id    = 'reregistration';
+		$this->tab_group = 'content';
 		$this->tab_title = __( 'Reregistration', 'ffcertificate' );
 		// Clipboard glyph — one of the emoji that the admin emoji font renders
 		// monochrome (as the Activity-Log tab already does), matching the flat

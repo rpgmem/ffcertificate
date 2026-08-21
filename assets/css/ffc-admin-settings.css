@@ -939,6 +939,27 @@ pre code {
     flex: 1 1 auto;
 }
 
+/* Grouped-nav subheadings (#951): a small, muted, uppercase domain label
+   above each cluster of tabs. Tabs stay alphabetical within their group. */
+.ffc-settings-tabs__group {
+    list-style: none;
+}
+
+.ffc-settings-tabs__group-label {
+    display: block;
+    padding: 14px 12px 5px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ffc-text-muted, #646970);
+}
+
+/* The first group sits flush with the nav top — no extra lead space. */
+.ffc-settings-tabs__nav > .ffc-settings-tabs__group:first-child .ffc-settings-tabs__group-label {
+    padding-top: 6px;
+}
+
 /* Module-settings links (#711) — nav items that navigate away to a module's
    own settings page. Same look as the tabs; the only differentiator is the
    external-link marker after the label. */

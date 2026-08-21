@@ -19983,3 +19983,23 @@ msgstr "Qual modelo de ficha o PDF de recadastramento usa é definido em Configu
 #: includes/audience/class-ffc-audience-shortcode.php:266
 msgid "Filter by %s"
 msgstr "Filtrar por %s"
+
+#: includes/admin/class-ffc-settings.php
+msgid "Content"
+msgstr "Conteúdo"
+
+#: includes/admin/class-ffc-settings.php
+msgid "Communication"
+msgstr "Comunicação"
+
+#: includes/admin/class-ffc-settings.php
+msgid "Security & Access"
+msgstr "Segurança e Acesso"
+
+#: includes/admin/class-ffc-settings.php
+msgid "Tools"
+msgstr "Ferramentas"
+
+#: includes/admin/class-ffc-settings.php
+msgid "Go to"
+msgstr "Ir para"

@@ -32,6 +32,7 @@ class TabGeolocation extends SettingsTab {
 	 */
 	protected function init(): void {
 		$this->tab_id    = 'geolocation';
+		$this->tab_group = 'security';
 		$this->tab_title = __( 'Geolocation', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-globe';
 		$this->tab_order = 50;

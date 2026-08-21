@@ -29,6 +29,7 @@ class TabGeneral extends SettingsTab {
 	 */
 	protected function init(): void {
 		$this->tab_id    = 'general';
+		$this->tab_group = 'general';
 		$this->tab_title = __( 'General', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-settings';
 		$this->tab_order = 10;

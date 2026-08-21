@@ -28,6 +28,7 @@ class TabAdvanced extends SettingsTab {
 	 */
 	protected function init(): void {
 		$this->tab_id    = 'advanced';
+		$this->tab_group = 'system';
 		$this->tab_title = __( 'Advanced', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-settings';
 		$this->tab_order = 70;
