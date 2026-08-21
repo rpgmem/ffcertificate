@@ -261,4 +261,45 @@ class TabSmtpTest extends TestCase {
 
         $this->assertSame( 'wp', $this->tab->get_option( 'smtp_mode', 'wp' ) );
     }
+
+    // ==================================================================
+    // render_email_index() — the read-only "All plugin emails" directory
+    // ==================================================================
+
+    public function test_render_email_index_lists_features_with_deeplinks(): void {
+        Functions\when( 'current_user_can' )->justReturn( true ); // reaches every feature.
+        Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } );
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
+
+        ob_start();
+        $this->tab->render_email_index();
+        $out = (string) ob_get_clean();
+
+        $this->assertStringContainsString( 'All plugin emails', $out );
+        $this->assertStringContainsString( 'ffc-email-index', $out );
+        // Each feature deep-links to its own screen (display-only; no editing here).
+        $this->assertStringContainsString( 'post_type=ffc_form', $out );
+        $this->assertStringContainsString( 'post_type=ffc_self_scheduling', $out );
+        $this->assertStringContainsString( 'page=ffc-recruitment&tab=settings', $out );
+        $this->assertStringContainsString( 'page=ffc-reregistration', $out );
+        $this->assertStringContainsString( 'page=ffc-scheduling-calendars', $out );
+        // The three personalisation states are labelled.
+        $this->assertStringContainsString( 'Editable text', $out );
+        $this->assertStringContainsString( 'On/off only', $out );
+        $this->assertStringContainsString( 'System default', $out );
+    }
+
+    public function test_render_email_index_hidden_without_any_feature_cap(): void {
+        Functions\when( 'current_user_can' )->justReturn( false ); // no feature reachable.
+        Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } );
+        Functions\when( 'esc_url' )->returnArg();
+        Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
+
+        ob_start();
+        $this->tab->render_email_index();
+        $out = (string) ob_get_clean();
+
+        $this->assertSame( '', trim( $out ) );
+    }
 }
