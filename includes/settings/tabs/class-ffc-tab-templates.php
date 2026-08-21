@@ -34,6 +34,7 @@ class TabTemplates extends SettingsTab {
 	 */
 	protected function init(): void {
 		$this->tab_id    = 'templates';
+		$this->tab_group = 'content';
 		$this->tab_title = __( 'Document Templates', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-doc';
 		$this->tab_order = 15;

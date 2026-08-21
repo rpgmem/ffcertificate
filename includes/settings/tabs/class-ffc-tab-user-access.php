@@ -28,6 +28,7 @@ class TabUserAccess extends SettingsTab {
 	 */
 	protected function init(): void {
 		$this->tab_id    = 'user_access';
+		$this->tab_group = 'security';
 		$this->tab_title = __( 'User Access', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-users';
 		$this->tab_order = 60;

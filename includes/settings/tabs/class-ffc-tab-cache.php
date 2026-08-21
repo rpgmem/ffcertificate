@@ -28,6 +28,7 @@ class TabCache extends SettingsTab {
 	 */
 	protected function init(): void {
 		$this->tab_id    = 'cache';
+		$this->tab_group = 'tools';
 		$this->tab_title = __( 'Cache', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-package';
 		$this->tab_order = 30;

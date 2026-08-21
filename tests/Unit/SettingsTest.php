@@ -689,6 +689,23 @@ class SettingsTest extends TestCase {
                     return $this->id; }
                 public function get_icon(): string {
                     return 'dashicons-admin-generic'; }
+                public function get_group(): string {
+                    $map = array(
+                        'templates'      => 'content',
+                        'reregistration' => 'content',
+                        'smtp'           => 'communication',
+                        'user_access'    => 'security',
+                        'rate_limit'     => 'security',
+                        'geolocation'    => 'security',
+                        'ip_diagnostics' => 'security',
+                        'activity_log'   => 'security',
+                        'url_shortener'  => 'tools',
+                        'cache'          => 'tools',
+                        'advanced'       => 'system',
+                        'migrations'     => 'system',
+                        'documentation'  => 'system',
+                    );
+                    return $map[ $this->id ] ?? 'general'; }
                 public function get_title(): string {
                     return ucfirst( $this->id ); }
                 public function render(): void {
@@ -800,6 +817,8 @@ class SettingsTest extends TestCase {
                 return 'general'; }
             public function get_icon(): string {
                 return 'i'; }
+            public function get_group(): string {
+                return 'general'; }
             public function get_title(): string {
                 return 'General'; }
             public function get_view_cap(): string {
@@ -814,6 +833,8 @@ class SettingsTest extends TestCase {
                 return 'activity_log'; }
             public function get_icon(): string {
                 return 'i'; }
+            public function get_group(): string {
+                return 'general'; }
             public function get_title(): string {
                 return 'Activity Log'; }
             public function get_view_cap(): string {
@@ -899,6 +920,32 @@ class SettingsTest extends TestCase {
         $this->assertNotFalse( $user );
         $this->assertGreaterThan( $user, $scheduling, 'Module links must render after the User Access tab.' );
         $this->assertLessThan( $advanced, $scheduling, 'Module links must render above the Advanced tab.' );
+    }
+
+    public function test_display_settings_page_renders_grouped_nav_headings_in_order(): void {
+        Functions\when( 'current_user_can' )->justReturn( true );
+
+        // One tab from four distinct groups (security / tools / system / general).
+        $html = $this->render_settings_page_html( array( 'general', 'user_access', 'cache', 'advanced' ) );
+
+        // Each group emits a subheading.
+        $this->assertStringContainsString( 'ffc-settings-tabs__group-label', $html );
+
+        // Group headings appear in the canonical order Security → Tools → System.
+        $security = strpos( $html, '>Security & Access<' );
+        $tools    = strpos( $html, '>Tools<' );
+        $system   = strpos( $html, '>System<' );
+        $this->assertNotFalse( $security );
+        $this->assertNotFalse( $tools );
+        $this->assertNotFalse( $system );
+        $this->assertLessThan( $tools, $security, 'Security group precedes Tools.' );
+        $this->assertLessThan( $system, $tools, 'Tools group precedes System.' );
+
+        // A tab sits under its own group's heading: user_access (security) after
+        // the Security heading and before the Tools heading.
+        $user_access = strpos( $html, 'ffc-settings-tabnav-user_access' );
+        $this->assertGreaterThan( $security, $user_access, 'User Access renders under the Security heading.' );
+        $this->assertLessThan( $tools, $user_access, 'User Access renders before the Tools group.' );
     }
 
     // ==================================================================
@@ -1015,6 +1062,8 @@ class SettingsTest extends TestCase {
                 return $this->id; }
             public function get_icon(): string {
                 return 'dashicons-admin-generic'; }
+            public function get_group(): string {
+                return 'general'; }
             public function get_title(): string {
                 return 'Tab'; }
             public function render(): void {
@@ -1095,6 +1144,8 @@ class SettingsTest extends TestCase {
                 return 'general'; }
             public function get_icon(): string {
                 return 'dashicons-admin-generic'; }
+            public function get_group(): string {
+                return 'general'; }
             public function get_title(): string {
                 return 'General'; }
             public function render(): void {
@@ -1123,6 +1174,8 @@ class SettingsTest extends TestCase {
                 return 'general'; }
             public function get_icon(): string {
                 return 'dashicons-admin-generic'; }
+            public function get_group(): string {
+                return 'general'; }
             public function get_title(): string {
                 return 'General'; }
             public function get_order(): int {

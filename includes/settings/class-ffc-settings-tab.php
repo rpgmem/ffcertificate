@@ -63,6 +63,20 @@ abstract class SettingsTab {
 	protected $tab_order = 10;
 
 	/**
+	 * The Settings-nav group this tab belongs to.
+	 *
+	 * The nav renders tabs under domain subheadings (Content / Security &
+	 * Access / Tools / System …); this key selects the group, and the group
+	 * order + labels live centrally in {@see \FreeFormCertificate\Admin\Settings}.
+	 * Tabs stay alphabetical WITHIN their group. Defaults to `tools` so a tab
+	 * that doesn't set a group (e.g. a third-party tab) lands in the neutral
+	 * "Tools" bucket rather than breaking the grouped nav.
+	 *
+	 * @var string
+	 */
+	protected $tab_group = 'tools';
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -121,6 +135,16 @@ abstract class SettingsTab {
 	 */
 	public function get_order() {
 		return $this->tab_order;
+	}
+
+	/**
+	 * Get the Settings-nav group key for this tab.
+	 *
+	 * @return string One of the group keys defined in
+	 *                {@see \FreeFormCertificate\Admin\Settings::nav_group_labels()}.
+	 */
+	public function get_group(): string {
+		return (string) $this->tab_group;
 	}
 
 	/**

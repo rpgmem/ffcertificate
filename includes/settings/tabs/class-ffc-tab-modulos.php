@@ -33,6 +33,7 @@ class TabModulos extends SettingsTab {
 	 */
 	protected function init(): void {
 		$this->tab_id    = 'modulos';
+		$this->tab_group = 'general';
 		$this->tab_title = __( 'Modules', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-package';
 		$this->tab_order = 10;

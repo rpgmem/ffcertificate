@@ -142,6 +142,38 @@ class SettingsTabTest extends TestCase {
         $this->assertSame( 'ffc_manage_settings', $this->tab->get_manage_cap() );
     }
 
+    public function test_get_group_defaults_to_tools_when_not_set(): void {
+        // A tab that doesn't set a group lands in the neutral "tools" bucket so
+        // the grouped nav never drops it.
+        $tab = new class() extends SettingsTab {
+            protected function init(): void {
+                $this->tab_id    = 'no_group';
+                $this->tab_title = 'No Group';
+                $this->tab_icon  = '';
+                // tab_group intentionally NOT set
+            }
+
+            public function render(): void {}
+        };
+
+        $this->assertSame( 'tools', $tab->get_group() );
+    }
+
+    public function test_get_group_returns_configured_group(): void {
+        $tab = new class() extends SettingsTab {
+            protected function init(): void {
+                $this->tab_id    = 'sec';
+                $this->tab_title = 'Sec';
+                $this->tab_icon  = '';
+                $this->tab_group = 'security';
+            }
+
+            public function render(): void {}
+        };
+
+        $this->assertSame( 'security', $tab->get_group() );
+    }
+
     public function test_get_order_defaults_to_ten_when_not_set(): void {
         $tab = new class() extends SettingsTab {
             protected function init(): void {

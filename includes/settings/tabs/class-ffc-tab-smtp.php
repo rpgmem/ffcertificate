@@ -28,6 +28,7 @@ class TabSMTP extends SettingsTab {
 	 */
 	protected function init(): void {
 		$this->tab_id    = 'smtp';
+		$this->tab_group = 'communication';
 		$this->tab_title = __( 'SMTP', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-email';
 		$this->tab_order = 20;
