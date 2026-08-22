@@ -286,6 +286,8 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 
 <?php require FFC_PLUGIN_DIR . 'templates/admin/settings/email-model-box.php'; ?>
 
+<?php $settings->render_email_body_hub(); ?>
+
 <?php $settings->render_email_index(); ?>
 
 </div><!-- .ffc-settings-wrap -->

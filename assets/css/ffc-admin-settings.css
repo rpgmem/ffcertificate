@@ -1297,3 +1297,19 @@ html:has(.ffc-settings-back-to-top) {
     margin: 6px 0 0 18px;
     list-style: disc;
 }
+
+/* Email-body hub (#964): give each email's subject + editor block breathing
+   room and a light separator so the seven editors don't run together. */
+.ffc-email-body-hub__item {
+    padding: 16px 0;
+    border-top: 1px solid #e2e4e7;
+}
+
+.ffc-email-body-hub__item:first-of-type {
+    border-top: 0;
+    padding-top: 4px;
+}
+
+.ffc-email-body-hub__item h3 {
+    margin: 0 0 10px;
+}
