@@ -21,6 +21,33 @@ class EmailTemplatesTest extends TestCase {
 		Monkey\setUp();
 		\class_exists( '\FreeFormCertificate\Core\EmailTemplates' );
 		Functions\when( '__' )->returnArg();
+		// No global overrides by default → every reader falls back to the file.
+		Functions\when( 'get_option' )->justReturn( array() );
+	}
+
+	/**
+	 * Back the global-override option with an in-memory store so save/clear and
+	 * their effect on body() can be exercised.
+	 *
+	 * @param array<string, array<string, string>> $seed Initial option value.
+	 * @return array{0: callable} A holder whose [0]() returns the live store.
+	 */
+	private function fake_option_store( array $seed = array() ): array {
+		$store = $seed;
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) use ( &$store ) {
+				return 'ffc_email_bodies' === $key ? $store : $default;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$store ) {
+				if ( 'ffc_email_bodies' === $key ) {
+					$store = $value;
+				}
+				return true;
+			}
+		);
+		return array( static function () use ( &$store ) { return $store; } );
 	}
 
 	protected function tearDown(): void {
@@ -71,5 +98,76 @@ class EmailTemplatesTest extends TestCase {
 			'recruitment'  => array( 'recruitment-convocation', '{{notice_code}}' ),
 			'confirmation' => array( 'selfscheduling-confirmation', '{{calendar_title}}' ),
 		);
+	}
+
+	// ==================================================================
+	// Global override layer (#964 phase 1)
+	// ==================================================================
+
+	public function test_body_ignores_the_global_override(): void {
+		$this->fake_option_store( array( 'audience-booking' => array( 'body' => 'GLOBAL' ) ) );
+
+		// body() is the shipped file default regardless of any stored override
+		// (unchanged behaviour — existing callers stay byte-for-byte the same).
+		$this->assertStringContainsString( '{{schedule_name}}', EmailTemplates::body( 'audience-booking' ) );
+	}
+
+	public function test_global_body_reads_the_stored_override(): void {
+		$this->fake_option_store( array( 'audience-booking' => array( 'body' => 'GLOBAL BODY', 'subject' => 'GLOBAL SUBJECT' ) ) );
+
+		$this->assertSame( 'GLOBAL BODY', EmailTemplates::global_body( 'audience-booking' ) );
+		$this->assertSame( 'GLOBAL SUBJECT', EmailTemplates::global_body( 'audience-booking', 'subject' ) );
+	}
+
+	public function test_global_body_is_empty_when_unset_or_not_allowlisted(): void {
+		$this->fake_option_store();
+
+		$this->assertSame( '', EmailTemplates::global_body( 'audience-booking' ) );
+		$this->assertSame( '', EmailTemplates::global_body( 'not-a-template' ) );
+	}
+
+	public function test_effective_body_prefers_global_over_file_then_falls_back(): void {
+		// With an override, effective_body() returns it…
+		$this->fake_option_store( array( 'audience-booking' => array( 'body' => 'GLOBAL BODY' ) ) );
+		$this->assertSame( 'GLOBAL BODY', EmailTemplates::effective_body( 'audience-booking' ) );
+
+		// …and with none, it falls back to the shipped file default.
+		$this->fake_option_store();
+		$this->assertStringContainsString( '{{schedule_name}}', EmailTemplates::effective_body( 'audience-booking' ) );
+	}
+
+	public function test_save_global_stores_body_and_subject(): void {
+		$holder = $this->fake_option_store();
+
+		$this->assertTrue( EmailTemplates::save_global( 'audience-booking', array( 'body' => 'B', 'subject' => 'S' ) ) );
+
+		$store = $holder[0]();
+		$this->assertSame( 'B', $store['audience-booking']['body'] );
+		$this->assertSame( 'S', $store['audience-booking']['subject'] );
+	}
+
+	public function test_save_global_drops_empty_values_and_removes_empty_entry(): void {
+		$holder = $this->fake_option_store( array( 'audience-booking' => array( 'body' => 'old' ) ) );
+
+		// Saving only empty values removes the whole entry → back to file default.
+		EmailTemplates::save_global( 'audience-booking', array( 'body' => '', 'subject' => '' ) );
+
+		$this->assertArrayNotHasKey( 'audience-booking', $holder[0]() );
+	}
+
+	public function test_save_global_rejects_a_non_allowlisted_name(): void {
+		$this->fake_option_store();
+
+		$this->assertFalse( EmailTemplates::save_global( 'not-a-template', array( 'body' => 'x' ) ) );
+	}
+
+	public function test_clear_global_removes_the_override(): void {
+		$holder = $this->fake_option_store( array( 'audience-booking' => array( 'body' => 'GLOBAL' ) ) );
+
+		$this->assertTrue( EmailTemplates::clear_global( 'audience-booking' ) );
+		$this->assertArrayNotHasKey( 'audience-booking', $holder[0]() );
+
+		// effective_body() now resolves back to the file default.
+		$this->assertStringContainsString( '{{schedule_name}}', EmailTemplates::effective_body( 'audience-booking' ) );
 	}
 }
