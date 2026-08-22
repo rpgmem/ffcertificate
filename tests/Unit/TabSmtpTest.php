@@ -288,14 +288,13 @@ class TabSmtpTest extends TestCase {
 
         $this->assertStringContainsString( 'All plugin emails', $out );
         $this->assertStringContainsString( 'ffc-email-index', $out );
-        // Each feature deep-links to its own screen (display-only; no editing here).
-        $this->assertStringContainsString( 'post_type=ffc_form', $out );
+        // Toggle/system rows still deep-link to their feature's own screen.
+        $this->assertStringContainsString( 'post_type=ffc_form', $out ); // admin-notification toggle row.
         $this->assertStringContainsString( 'post_type=ffc_self_scheduling', $out );
-        $this->assertStringContainsString( 'page=ffc-recruitment&tab=settings', $out );
-        $this->assertStringContainsString( 'page=ffc-reregistration', $out );
-        $this->assertStringContainsString( 'page=ffc-scheduling-calendars', $out );
-        // The three personalisation states are labelled.
-        $this->assertStringContainsString( 'Editable text', $out );
+        // The hub-editable (global) rows point to the Email texts hub instead (#964).
+        $this->assertStringContainsString( 'page=ffc-settings&tab=smtp', $out );
+        // The personalisation states are labelled, including the new "global".
+        $this->assertStringContainsString( 'Editable text (global)', $out );
         $this->assertStringContainsString( 'On/off only', $out );
         $this->assertStringContainsString( 'System default', $out );
     }
