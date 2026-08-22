@@ -170,4 +170,56 @@ class EmailTemplatesTest extends TestCase {
 		// effective_body() now resolves back to the file default.
 		$this->assertStringContainsString( '{{schedule_name}}', EmailTemplates::effective_body( 'audience-booking' ) );
 	}
+
+	// ==================================================================
+	// overrides_global() — the Global/Custom heuristic (#964)
+	// ==================================================================
+
+	public function test_overrides_global_is_false_for_empty_or_blank(): void {
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => (string) preg_replace( '/<[^>]*>/', '', (string) $s ) );
+
+		$this->assertFalse( EmailTemplates::overrides_global( 'certificate-user', '', 'body' ) );
+		$this->assertFalse( EmailTemplates::overrides_global( 'certificate-user', '<p></p>', 'body' ) );
+	}
+
+	public function test_overrides_global_is_false_when_equal_to_file_default(): void {
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => (string) preg_replace( '/<[^>]*>/', '', (string) $s ) );
+
+		$file = EmailTemplates::body( 'certificate-user', 'body' );
+		$this->assertNotSame( '', $file );
+		// Byte-identical → Global.
+		$this->assertFalse( EmailTemplates::overrides_global( 'certificate-user', $file, 'body' ) );
+		// Same visible text, extra wrapping markup → still Global (normalised compare).
+		$this->assertFalse( EmailTemplates::overrides_global( 'certificate-user', '<div>' . $file . '</div>', 'body' ) );
+	}
+
+	public function test_overrides_global_is_true_for_a_real_custom_body(): void {
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => (string) preg_replace( '/<[^>]*>/', '', (string) $s ) );
+
+		$this->assertTrue(
+			EmailTemplates::overrides_global( 'certificate-user', '<p>A completely different message for this one form.</p>', 'body' )
+		);
+	}
+
+	public function test_overrides_global_baseline_is_the_file_default_not_the_override(): void {
+		// A global override is set, but the heuristic still compares against the
+		// shipped FILE default — so a form carrying the file default keeps
+		// resolving as Global and will follow the newly-set override.
+		$this->fake_option_store( array( 'certificate-user' => array( 'body' => '<p>New global copy</p>' ) ) );
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => (string) preg_replace( '/<[^>]*>/', '', (string) $s ) );
+
+		$file = EmailTemplates::body( 'certificate-user', 'body' );
+		$this->assertFalse( EmailTemplates::overrides_global( 'certificate-user', $file, 'body' ) );
+		// A body equal to the override (but not the file) is a real customisation.
+		$this->assertTrue( EmailTemplates::overrides_global( 'certificate-user', 'New global copy', 'body' ) );
+	}
+
+	public function test_overrides_global_compares_subject_key(): void {
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => (string) preg_replace( '/<[^>]*>/', '', (string) $s ) );
+
+		$file_subject = EmailTemplates::body( 'certificate-user', 'subject' );
+		$this->assertNotSame( '', $file_subject );
+		$this->assertFalse( EmailTemplates::overrides_global( 'certificate-user', $file_subject, 'subject' ) );
+		$this->assertTrue( EmailTemplates::overrides_global( 'certificate-user', 'A custom subject line', 'subject' ) );
+	}
 }

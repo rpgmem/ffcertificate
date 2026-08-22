@@ -186,6 +186,49 @@ final class EmailTemplates {
 	}
 
 	/**
+	 * Whether a per-entity stored value is a real **Custom** override — i.e. it
+	 * diverges from the shipped default and should win over the global. This is
+	 * the migration-free "Global vs Custom" heuristic (#964): a stored value is
+	 * treated as Global (⇒ tracks the effective global, this returns `false`)
+	 * when it is empty OR, once normalised to visible text, equal to the shipped
+	 * **file** default; otherwise it is a Custom override (returns `true`).
+	 *
+	 * The baseline is the shipped FILE default (not the effective global) on
+	 * purpose: legacy entities that merely carry the old pre-seeded file default
+	 * then keep resolving as Global, so a global override set *later* in the hub
+	 * still reaches them (maximal reach, no data migration). Only a value the
+	 * operator actually changed away from the shipped text is a Custom. Comparison
+	 * is on normalised visible text (tags stripped, entities decoded, whitespace
+	 * collapsed), so trivial markup drift does not force a false "Custom".
+	 *
+	 * @param string $name   Allowlisted template basename.
+	 * @param string $stored The entity's stored value (e.g. a form's email body).
+	 * @param string $key    Array key to compare (default 'body').
+	 * @return bool True when `$stored` is a genuine Custom override.
+	 */
+	public static function overrides_global( string $name, string $stored, string $key = 'body' ): bool {
+		$stored_norm = self::normalize_for_compare( $stored );
+		if ( '' === $stored_norm ) {
+			return false;
+		}
+		return self::normalize_for_compare( self::body( $name, $key ) ) !== $stored_norm;
+	}
+
+	/**
+	 * Normalise an email value to its visible text for the Global/Custom compare
+	 * ({@see self::overrides_global()}): strip tags, decode entities, collapse all
+	 * whitespace to single spaces, trim.
+	 *
+	 * @param string $html Raw stored/default value.
+	 * @return string Normalised visible text.
+	 */
+	private static function normalize_for_compare( string $html ): string {
+		$text = wp_strip_all_tags( $html );
+		$text = html_entity_decode( $text, ENT_QUOTES, 'UTF-8' );
+		return trim( (string) preg_replace( '/\s+/', ' ', $text ) );
+	}
+
+	/**
 	 * Remove an email's global override so it falls back to the shipped file
 	 * default (the hub's "restore to shipped default").
 	 *

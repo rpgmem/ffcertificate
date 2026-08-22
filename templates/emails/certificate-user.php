@@ -16,7 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 return array(
-	'body' => '<p>' . __( 'Hello {{name}},', 'ffcertificate' ) . '</p>'
+	'subject' => __( 'Your document is ready — {{form_title}}', 'ffcertificate' ),
+	'body'    => '<p>' . __( 'Hello {{name}},', 'ffcertificate' ) . '</p>'
 		. '<p>' . __( 'Your document for {{form_title}} was issued on {{date}} ✅', 'ffcertificate' ) . '</p>'
 		. '<p>' . __( 'Click the button below to download it.', 'ffcertificate' ) . '</p>'
 		. '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;"><tr>'
