@@ -179,13 +179,26 @@ class TabSMTP extends SettingsTab {
 						'url'     => admin_url( 'admin.php?page=ffc-settings&tab=smtp' ),
 					),
 					array(
-						'label'   => __( 'Approval / cancellation / reminder / admin notice', 'ffcertificate' ),
-						'purpose' => __( 'Booking lifecycle emails — each on/off per calendar; fixed body.', 'ffcertificate' ),
-						'type'    => 'toggle',
+						'label'   => __( 'Approval, cancellation & reminder', 'ffcertificate' ),
+						'purpose' => __( 'Booking lifecycle emails to the user — text edited globally in the hub above.', 'ffcertificate' ),
+						'type'    => 'global',
+						'url'     => admin_url( 'admin.php?page=ffc-settings&tab=smtp' ),
 					),
 					array(
 						'label'   => __( 'Waitlist & promotion notices', 'ffcertificate' ),
-						'purpose' => __( 'Sent automatically when a full slot queues or frees up; fixed body.', 'ffcertificate' ),
+						'purpose' => __( 'Sent automatically when a full slot queues or frees up — text edited globally in the hub above.', 'ffcertificate' ),
+						'type'    => 'global',
+						'url'     => admin_url( 'admin.php?page=ffc-settings&tab=smtp' ),
+					),
+					array(
+						'label'   => __( 'Calendar-deletion cancellation', 'ffcertificate' ),
+						'purpose' => __( 'Notifies booked users when an admin deletes a calendar — text edited globally in the hub above.', 'ffcertificate' ),
+						'type'    => 'global',
+						'url'     => admin_url( 'admin.php?page=ffc-settings&tab=smtp' ),
+					),
+					array(
+						'label'   => __( 'New-appointment admin notification', 'ffcertificate' ),
+						'purpose' => __( 'Alerts the admin of a new booking; fixed body.', 'ffcertificate' ),
 						'type'    => 'system',
 					),
 				),
@@ -224,6 +237,19 @@ class TabSMTP extends SettingsTab {
 					array(
 						'label'   => __( 'Booking & cancellation notices', 'ffcertificate' ),
 						'purpose' => __( 'Audience booking lifecycle — default text edited globally in the hub above; a schedule may still set its own.', 'ffcertificate' ),
+						'type'    => 'global',
+						'url'     => admin_url( 'admin.php?page=ffc-settings&tab=smtp' ),
+					),
+				),
+			),
+			array(
+				'cap'   => 'ffc_view_settings',
+				'title' => __( 'Account access', 'ffcertificate' ),
+				'url'   => admin_url( 'admin.php?page=ffc-settings&tab=smtp' ),
+				'rows'  => array(
+					array(
+						'label'   => __( 'Access granted to a user', 'ffcertificate' ),
+						'purpose' => __( 'Tells a user they were granted plugin access — text edited globally in the hub above.', 'ffcertificate' ),
 						'type'    => 'global',
 						'url'     => admin_url( 'admin.php?page=ffc-settings&tab=smtp' ),
 					),
@@ -323,57 +349,65 @@ class TabSMTP extends SettingsTab {
 	 */
 	private static function email_body_hub_catalog(): array {
 		return array(
-			'certificate-user'            => array(
+			'certificate-user'              => array(
 				'label'  => __( 'Certificate email to the user', 'ffcertificate' ),
 				'tokens' => array( 'name', 'form_title', 'date', 'auth_code', 'validation_url' ),
 			),
-			'selfscheduling-confirmation' => array(
+			'selfscheduling-confirmation'   => array(
 				'label'  => __( 'Appointment booking confirmation', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'appointment_date', 'appointment_time', 'status_message', 'status_label', 'user_notes_block', 'receipt_button', 'cancel_button' ),
 			),
-			'appointment-approval'        => array(
+			'appointment-approval'          => array(
 				'label'  => __( 'Appointment approved', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'appointment_date', 'appointment_time', 'receipt_button' ),
 			),
-			'appointment-cancellation'    => array(
+			'appointment-cancellation'      => array(
 				'label'  => __( 'Appointment cancelled', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'appointment_date', 'appointment_time', 'cancellation_reason_block' ),
 			),
-			'appointment-reminder'        => array(
+			'appointment-reminder'          => array(
 				'label'  => __( 'Appointment reminder', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'appointment_date', 'appointment_time', 'cancel_button' ),
 			),
-			'appointment-promoted'        => array(
+			'appointment-promoted'          => array(
 				'label'  => __( 'Waitlist spot opened (promotion)', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'appointment_date', 'appointment_time', 'status_message', 'receipt_button', 'cancel_button' ),
 			),
-			'appointment-waitlisted'      => array(
+			'appointment-waitlisted'        => array(
 				'label'  => __( 'Added to waitlist', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'appointment_date', 'appointment_time', 'waitlist_button' ),
 			),
-			'recruitment-convocation'     => array(
+			'recruitment-convocation'       => array(
 				'label'  => __( 'Recruitment convocation', 'ffcertificate' ),
 				'tokens' => array( 'name', 'cpf_masked', 'rf_masked', 'email_masked', 'adjutancy', 'notice_code', 'notice_name', 'rank', 'score', 'is_pcd', 'date_to_assume', 'time_to_assume', 'called_at', 'site_name', 'site_url', 'notes' ),
 			),
-			'reregistration-invitation'   => array(
+			'reregistration-invitation'     => array(
 				'label'  => __( 'Reregistration invitation', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'start_date', 'end_date', 'dashboard_url', 'site_name' ),
 			),
-			'reregistration-reminder'     => array(
+			'reregistration-reminder'       => array(
 				'label'  => __( 'Reregistration reminder', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'start_date', 'end_date', 'days_left', 'dashboard_url', 'site_name' ),
 			),
-			'reregistration-confirmation' => array(
+			'reregistration-confirmation'   => array(
 				'label'  => __( 'Reregistration confirmation', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'submission_status', 'auth_code', 'magic_link_url', 'dashboard_url', 'site_name' ),
 			),
-			'audience-booking'            => array(
+			'audience-booking'              => array(
 				'label'  => __( 'Audience booking confirmation', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'user_email', 'environment_name', 'environment_label', 'schedule_name', 'booking_date', 'start_time', 'end_time', 'description', 'audiences', 'creator_name', 'site_name', 'site_url' ),
 			),
-			'audience-cancellation'       => array(
+			'audience-cancellation'         => array(
 				'label'  => __( 'Audience booking cancellation', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'user_email', 'environment_name', 'environment_label', 'schedule_name', 'booking_date', 'start_time', 'end_time', 'description', 'audiences', 'cancelled_by_name', 'cancellation_reason', 'site_name', 'site_url' ),
+			),
+			'access-granted'                => array(
+				'label'  => __( 'Access granted to a user', 'ffcertificate' ),
+				'tokens' => array( 'user_name', 'context_label', 'site_name', 'dashboard_button' ),
+			),
+			'calendar-deleted-cancellation' => array(
+				'label'  => __( 'Appointment cancelled (calendar deleted)', 'ffcertificate' ),
+				'tokens' => array( 'site_name', 'calendar_title', 'appointment_date', 'appointment_time' ),
 			),
 		);
 	}

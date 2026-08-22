@@ -50,6 +50,8 @@ final class EmailTemplates {
 		'appointment-reminder',
 		'appointment-promoted',
 		'appointment-waitlisted',
+		'access-granted',
+		'calendar-deleted-cancellation',
 	);
 
 	/**
