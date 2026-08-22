@@ -314,6 +314,7 @@ abstract class IntegrationTestCase extends TestCase {
 				'ffc_taxonomy_caps_renamed_v1',
 				'ffc_delete_caps_granted_v1',
 				'ffc_settings_split_caps_v1',
+				'ffc_email_templates_cap_v1',
 				'ffc_activity_log_export_cap_v1',
 				'ffc_url_shortener_export_cap_v1',
 				'ffc_export_caps_granted_v1',
