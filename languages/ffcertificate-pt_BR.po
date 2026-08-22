@@ -20267,3 +20267,40 @@ msgstr "Confirma um agendamento ao usuário — texto padrão (incl. botões de 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php
 msgid "Include {{receipt_button}} / {{cancel_button}} to show the receipt and cancel buttons (each empty when unavailable). Leave the whole body empty to use the global default from Settings → SMTP → Email texts."
 msgstr "Inclua {{receipt_button}} / {{cancel_button}} para exibir os botões de comprovante e cancelamento (cada um vazio quando indisponível). Deixe o corpo inteiro vazio para usar o padrão global em Configurações → SMTP → Textos dos e-mails."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php
+#: templates/emails/appointment-approval.php
+msgid "Appointment Approved: {{calendar_title}}"
+msgstr "Agendamento Aprovado: {{calendar_title}}"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php
+#: templates/emails/appointment-cancellation.php
+msgid "Appointment Cancelled: {{calendar_title}}"
+msgstr "Agendamento Cancelado: {{calendar_title}}"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php
+#: templates/emails/appointment-reminder.php
+msgid "Reminder: Appointment Tomorrow - {{calendar_title}}"
+msgstr "Lembrete: Agendamento Amanhã - {{calendar_title}}"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php
+#: templates/emails/appointment-promoted.php
+msgid "A Spot Opened Up: {{calendar_title}}"
+msgstr "Uma vaga foi liberada: {{calendar_title}}"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php
+#: templates/emails/appointment-waitlisted.php
+msgid "Added to Waitlist: {{calendar_title}}"
+msgstr "Adicionado à lista de espera: {{calendar_title}}"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Appointment approved"
+msgstr "Agendamento aprovado"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Waitlist spot opened (promotion)"
+msgstr "Vaga liberada na lista de espera (promoção)"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Added to waitlist"
+msgstr "Adicionado à lista de espera"

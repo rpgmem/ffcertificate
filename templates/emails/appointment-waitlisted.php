@@ -1,32 +1,26 @@
 <?php
 /**
- * Appointment waitlist-joined email body (#941 phase 2).
+ * Appointment waitlisted email — default subject + body (editable via the hub, #965).
  *
- * Wrapped by layout.php. Rendered by AppointmentEmailHandler.
+ * Tokens: {{calendar_title}}, {{appointment_date}}, {{appointment_time}}, and the
+ * pre-rendered {{waitlist_button}} — the "Leave Waitlist" link, empty when
+ * cancellation isn't allowed.
  *
- * @var array<string, mixed> $args {
- *     @type string $calendar_title Calendar title.
- *     @type string $date_formatted Formatted appointment date.
- *     @type string $time_formatted Formatted appointment time.
- *     @type string $cancel_url     Cancellation URL (empty when not allowed).
- * }
  * @package FreeFormCertificate\SelfScheduling
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-?>
-	<h2 style="margin: 0 0 20px 0; color: #6c5ce7; font-size: 24px;">📋 <?php echo esc_html__( "You're on the Waitlist", 'ffcertificate' ); ?></h2>
-	<p style="margin: 0 0 15px 0; font-size: 16px;"><?php echo esc_html__( 'This time was full, so you have been added to the waitlist. If a spot opens up, the next person in line is promoted automatically and you will be notified by email.', 'ffcertificate' ); ?></p>
-	<div style="background: #eeecfb; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #d6d0f5;">
-		<p style="margin: 0 0 10px 0;"><strong><?php echo esc_html__( 'Calendar:', 'ffcertificate' ); ?></strong> <?php echo esc_html( $args['calendar_title'] ); ?></p>
-		<p style="margin: 0 0 10px 0;"><strong><?php echo esc_html__( 'Date:', 'ffcertificate' ); ?></strong> <?php echo esc_html( $args['date_formatted'] ); ?></p>
-		<p style="margin: 0;"><strong><?php echo esc_html__( 'Time:', 'ffcertificate' ); ?></strong> <?php echo esc_html( $args['time_formatted'] ); ?></p>
-	</div>
-	<?php if ( ! empty( $args['cancel_url'] ) ) : ?>
-	<div style="text-align: center; margin: 20px 0;">
-		<p style="margin: 0 0 10px 0; font-size: 14px; color: #666;"><?php echo esc_html__( 'Changed your mind?', 'ffcertificate' ); ?></p>
-		<a href="<?php echo esc_url( $args['cancel_url'] ); ?>" style="display: inline-block; background: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-size: 14px;"><?php echo esc_html__( 'Leave Waitlist', 'ffcertificate' ); ?></a>
-	</div>
-	<?php endif; ?>
+
+return array(
+	'subject' => __( 'Added to Waitlist: {{calendar_title}}', 'ffcertificate' ),
+	'body'    => '<h2 style="margin: 0 0 20px 0; color: #6c5ce7; font-size: 24px;">📋 ' . __( "You're on the Waitlist", 'ffcertificate' ) . '</h2>'
+		. '<p style="margin: 0 0 15px 0; font-size: 16px;">' . __( 'This time was full, so you have been added to the waitlist. If a spot opens up, the next person in line is promoted automatically and you will be notified by email.', 'ffcertificate' ) . '</p>'
+		. '<div style="background: #eeecfb; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #d6d0f5;">'
+		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Calendar:', 'ffcertificate' ) . '</strong> {{calendar_title}}</p>'
+		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Date:', 'ffcertificate' ) . '</strong> {{appointment_date}}</p>'
+		. '<p style="margin: 0;"><strong>' . __( 'Time:', 'ffcertificate' ) . '</strong> {{appointment_time}}</p>'
+		. '</div>'
+		. '{{waitlist_button}}',
+);

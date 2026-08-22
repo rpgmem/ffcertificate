@@ -310,12 +310,14 @@ class TabSMTP extends SettingsTab {
 	}
 
 	/**
-	 * The seven phase-1 emails the global email-body hub (#964) can edit. Each key
-	 * is an allowlisted {@see \FreeFormCertificate\Core\EmailTemplates} template
-	 * whose real send default IS its token file. The self-scheduling confirmation
-	 * is intentionally ABSENT — its true empty-body default is the rich echo
-	 * partial (receipt/cancel buttons), so it waits for phase 2. `label` names the
-	 * email; `tokens` is the per-email `{{token}}` help list shown under the editor.
+	 * The emails the global email-body hub (#964, #965) can edit. Each key is an
+	 * allowlisted {@see \FreeFormCertificate\Core\EmailTemplates} template whose
+	 * real send default IS its token file. The self-scheduling booking confirmation
+	 * plus the five appointment lifecycle emails (approval / cancellation / reminder
+	 * / promotion / waitlist) were tokenized in phase 2 (#965) — their conditional
+	 * buttons are now pre-rendered `{{…_button}}` tokens, so an admin can move or
+	 * drop them from the body. `label` names the email; `tokens` is the per-email
+	 * `{{token}}` help list shown under the editor.
 	 *
 	 * @return array<string, array{label:string, tokens:array<int, string>}>
 	 */
@@ -328,6 +330,26 @@ class TabSMTP extends SettingsTab {
 			'selfscheduling-confirmation' => array(
 				'label'  => __( 'Appointment booking confirmation', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'appointment_date', 'appointment_time', 'status_message', 'status_label', 'user_notes_block', 'receipt_button', 'cancel_button' ),
+			),
+			'appointment-approval'        => array(
+				'label'  => __( 'Appointment approved', 'ffcertificate' ),
+				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'appointment_date', 'appointment_time', 'receipt_button' ),
+			),
+			'appointment-cancellation'    => array(
+				'label'  => __( 'Appointment cancelled', 'ffcertificate' ),
+				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'appointment_date', 'appointment_time', 'cancellation_reason_block' ),
+			),
+			'appointment-reminder'        => array(
+				'label'  => __( 'Appointment reminder', 'ffcertificate' ),
+				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'appointment_date', 'appointment_time', 'cancel_button' ),
+			),
+			'appointment-promoted'        => array(
+				'label'  => __( 'Waitlist spot opened (promotion)', 'ffcertificate' ),
+				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'appointment_date', 'appointment_time', 'status_message', 'receipt_button', 'cancel_button' ),
+			),
+			'appointment-waitlisted'      => array(
+				'label'  => __( 'Added to waitlist', 'ffcertificate' ),
+				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'appointment_date', 'appointment_time', 'waitlist_button' ),
 			),
 			'recruitment-convocation'     => array(
 				'label'  => __( 'Recruitment convocation', 'ffcertificate' ),
@@ -362,7 +384,7 @@ class TabSMTP extends SettingsTab {
 	 * `ffc_manage_email_templates` cap (a view-only user can still POST the nonce
 	 * directly, so the capability is enforced here, not only in the hidden UI).
 	 *
-	 * Each of the seven phase-1 emails is written via
+	 * Each catalogued email is written via
 	 * {@see \FreeFormCertificate\Core\EmailTemplates::save_global()}; a subject +
 	 * body that both equal the shipped file default clear the override instead
 	 * (⇒ the email falls back to its file default and tracks future changes).
