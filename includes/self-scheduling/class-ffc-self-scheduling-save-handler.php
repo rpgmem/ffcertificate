@@ -336,7 +336,11 @@ class SelfSchedulingSaveHandler {
 		$email_config['reminder_hours_before']          = absint( $email_config['reminder_hours_before'] ?? 24 );
 		$email_config['admin_emails']                   = sanitize_text_field( $email_config['admin_emails'] ?? '' );
 		$email_config['user_confirmation_subject']      = sanitize_text_field( $email_config['user_confirmation_subject'] ?? '' );
-		$email_config['user_confirmation_body']         = sanitize_textarea_field( $email_config['user_confirmation_body'] ?? '' );
+		// The confirmation body is now rich HTML authored in the teeny wp_editor
+		// (details box + {{receipt_button}} / {{cancel_button}} tokens), so it is
+		// sanitised with wp_kses_post like every other editable email body (#965)
+		// rather than the tag-stripping sanitize_textarea_field.
+		$email_config['user_confirmation_body'] = wp_kses_post( $email_config['user_confirmation_body'] ?? '' );
 
 		update_post_meta( $post_id, '_ffc_self_scheduling_email_config', $email_config );
 	}

@@ -326,7 +326,7 @@ class TabSmtpTest extends TestCase {
         $this->assertSame( '', trim( $out ) );
     }
 
-    public function test_render_hub_shows_seven_phase1_emails_excluding_selfscheduling(): void {
+    public function test_render_hub_shows_the_hub_emails_including_selfscheduling(): void {
         Functions\when( 'current_user_can' )->justReturn( true ); // hub cap held.
         Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } );
         Functions\when( 'wp_kses' )->returnArg();
@@ -352,8 +352,9 @@ class TabSmtpTest extends TestCase {
         $this->assertStringContainsString( 'ffc_email_bodies[reregistration-confirmation][body]', $out );
         $this->assertStringContainsString( 'ffc_email_bodies[audience-booking][body]', $out );
         $this->assertStringContainsString( 'ffc_email_bodies[audience-cancellation][body]', $out );
-        // Self-scheduling confirmation is deferred to phase 2 — must NOT appear.
-        $this->assertStringNotContainsString( 'selfscheduling-confirmation', $out );
+        // Self-scheduling confirmation joined the hub in phase 2 (#965).
+        $this->assertStringContainsString( 'ffc_email_bodies[selfscheduling-confirmation][body]', $out );
+        $this->assertStringContainsString( 'receipt_button', $out ); // its token help.
         // The save form carries its presence flag and per-email token help.
         $this->assertStringContainsString( 'ffc_save_email_bodies', $out );
         $this->assertStringContainsString( 'validation_url', $out );

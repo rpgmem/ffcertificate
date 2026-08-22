@@ -225,6 +225,36 @@ class AppointmentEmailHandlerTest extends TestCase {
         $this->assertStringContainsString( 'pending approval', $this->last_mail['body'] );
     }
 
+    public function test_booking_confirmation_default_body_tracks_the_hub_override(): void {
+        // A calendar with no custom body now resolves the effective GLOBAL, so an
+        // SMTP email-body-hub override for `selfscheduling-confirmation` controls
+        // the default confirmation text — buttons still resolve via their tokens (#965).
+        Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
+            if ( 'ffc_settings' === $key ) {
+                return array();
+            }
+            if ( 'ffc_email_bodies' === $key ) {
+                return array(
+                    'selfscheduling-confirmation' => array(
+                        'body' => '<p>Custom global confirmation for {{calendar_title}}.</p>{{cancel_button}}',
+                    ),
+                );
+            }
+            if ( 'date_format' === $key ) {
+                return 'Y-m-d';
+            }
+            return $default;
+        } );
+
+        $this->handler->send_booking_confirmation( $this->makeAppointment(), $this->makeCalendar() );
+
+        $this->assertTrue( $this->mail_sent );
+        $this->assertStringContainsString( 'Custom global confirmation for Test Calendar.', $this->last_mail['body'] );
+        $this->assertStringContainsString( 'Cancel Appointment', $this->last_mail['body'], 'cancel button token still resolves in the override' );
+        // The shipped default box is gone — the override replaced it.
+        $this->assertStringNotContainsString( 'Appointment Booked!', $this->last_mail['body'] );
+    }
+
     public function test_booking_confirmation_includes_user_notes_when_provided(): void {
         $this->handler->send_booking_confirmation(
             $this->makeAppointment( array( 'user_notes' => 'Please call ahead' ) ),
