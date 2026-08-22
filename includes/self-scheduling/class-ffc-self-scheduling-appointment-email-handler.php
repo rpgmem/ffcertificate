@@ -189,6 +189,98 @@ class AppointmentEmailHandler {
 	}
 
 	/**
+	 * Pre-rendered `{{cancellation_reason_block}}` value: the "Cancellation Reason"
+	 * box (escaped), or `''` when no reason was recorded — mirrors the former
+	 * conditional in the cancellation echo partial.
+	 *
+	 * @param string $reason Raw cancellation reason.
+	 * @return string Reason box HTML, or ''.
+	 */
+	private function build_reason_block( string $reason ): string {
+		if ( '' === trim( $reason ) ) {
+			return '';
+		}
+		return '<div style="margin: 20px 0;">'
+			. '<p style="margin: 0 0 5px 0; font-weight: bold; color: #666;">' . esc_html__( 'Cancellation Reason:', 'ffcertificate' ) . '</p>'
+			. '<p style="margin: 0; color: #333;">' . esc_html( $reason ) . '</p>'
+			. '</div>';
+	}
+
+	/**
+	 * Pre-rendered `{{receipt_button}}` value: the "View/Print Receipt" call to
+	 * action, or `''` when no receipt URL is available.
+	 *
+	 * @param string $receipt_url Receipt URL (may be empty).
+	 * @return string Button HTML, or ''.
+	 */
+	private static function build_receipt_button( string $receipt_url ): string {
+		return self::ffc_email_button(
+			$receipt_url,
+			'📄 ' . __( 'View/Print Receipt', 'ffcertificate' ),
+			array(
+				'bg'        => '#0073aa',
+				'padding'   => '12px 24px',
+				'font_size' => '16px',
+				'bold'      => true,
+			)
+		);
+	}
+
+	/**
+	 * Pre-rendered cancel/leave call-to-action (the `{{cancel_button}}` /
+	 * `{{waitlist_button}}` tokens), or `''` when cancellation isn't offered.
+	 *
+	 * @param string $cancel_url Cancellation URL (empty ⇒ button hidden).
+	 * @param string $label      Button label.
+	 * @param string $lead_in    Small prompt shown above the button.
+	 * @return string Button HTML, or ''.
+	 */
+	private static function build_cancel_button( string $cancel_url, string $label, string $lead_in ): string {
+		return self::ffc_email_button(
+			$cancel_url,
+			$label,
+			array(
+				'bg'        => '#dc3545',
+				'padding'   => '10px 20px',
+				'font_size' => '14px',
+				'lead_in'   => $lead_in,
+			)
+		);
+	}
+
+	/**
+	 * Resolve + send one of the GLOBAL-only lifecycle emails (approval,
+	 * cancellation, reminder, promotion, waitlist). Subject + body come from the
+	 * effective global (hub override → shipped file default) and flow through the
+	 * one token resolver together with the pre-rendered button/block tokens the
+	 * caller supplies. Unlike the booking confirmation, these carry no per-calendar
+	 * custom body — they are edited only in the global hub (#965).
+	 *
+	 * @param string                $name        Allowlisted template basename.
+	 * @param string                $email       Recipient (already validated).
+	 * @param array<string, mixed>  $appointment Appointment data.
+	 * @param array<string, mixed>  $calendar    Calendar data.
+	 * @param array<string, string> $extra       Pre-rendered HTML tokens.
+	 * @return void
+	 */
+	private function send_lifecycle_email( string $name, string $email, array $appointment, array $calendar, array $extra ): void {
+		$subject = $this->render_confirmation_template(
+			\FreeFormCertificate\Core\EmailTemplates::effective_body( $name, 'subject' ),
+			$appointment,
+			$calendar,
+			$extra
+		);
+		$content = $this->render_confirmation_template(
+			\FreeFormCertificate\Core\EmailTemplates::effective_body( $name, 'body' ),
+			$appointment,
+			$calendar,
+			$extra
+		);
+
+		$this->send_mail( $email, $subject, self::ffc_email_document( $content, array( 'recipient' => $email ) ) );
+	}
+
+	/**
 	 * Default confirmation-email body seeded by the editor's "Restore Default
 	 * Text" button — the effective GLOBAL (hub override → shipped file default,
 	 * #965), so Restore mirrors what an empty per-calendar body actually sends
@@ -276,16 +368,6 @@ class AppointmentEmailHandler {
 			return;
 		}
 
-		// Email subject.
-		$subject = sprintf(
-			/* translators: %s: calendar title */
-			__( 'Appointment Approved: %s', 'ffcertificate' ),
-			$calendar['title']
-		);
-
-		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] );
-		$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] );
-
 		$receipt_url = '';
 		if ( class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler' ) ) {
 			$receipt_url = AppointmentReceiptHandler::get_receipt_url(
@@ -294,18 +376,11 @@ class AppointmentEmailHandler {
 			);
 		}
 
-		$content = self::ffc_render_email_partial(
-			'appointment-approval',
-			array(
-				'calendar_title' => $calendar['title'],
-				'date_formatted' => $date_formatted,
-				'time_formatted' => $time_formatted,
-				'receipt_url'    => $receipt_url,
-			)
+		$extra = array(
+			'{{receipt_button}}' => self::build_receipt_button( $receipt_url ),
 		);
 
-		// Send email.
-		$this->send_mail( $email, $subject, self::ffc_email_document( $content ) );
+		$this->send_lifecycle_email( 'appointment-approval', $email, $appointment, $calendar, $extra );
 	}
 
 	/**
@@ -325,28 +400,11 @@ class AppointmentEmailHandler {
 			return;
 		}
 
-		// Email subject.
-		$subject = sprintf(
-			/* translators: %s: calendar title */
-			__( 'Appointment Cancelled: %s', 'ffcertificate' ),
-			$calendar['title']
+		$extra = array(
+			'{{cancellation_reason_block}}' => $this->build_reason_block( (string) ( $appointment['cancellation_reason'] ?? '' ) ),
 		);
 
-		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] );
-		$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] );
-
-		$content = self::ffc_render_email_partial(
-			'appointment-cancellation',
-			array(
-				'calendar_title'      => $calendar['title'],
-				'date_formatted'      => $date_formatted,
-				'time_formatted'      => $time_formatted,
-				'cancellation_reason' => $appointment['cancellation_reason'] ?? '',
-			)
-		);
-
-		// Send email.
-		$this->send_mail( $email, $subject, self::ffc_email_document( $content ) );
+		$this->send_lifecycle_email( 'appointment-cancellation', $email, $appointment, $calendar, $extra );
 	}
 
 	/**
@@ -370,23 +428,16 @@ class AppointmentEmailHandler {
 			return;
 		}
 
-		$subject = sprintf(
-			/* translators: %s: calendar title */
-			__( 'Added to Waitlist: %s', 'ffcertificate' ),
-			$calendar['title']
+		$cancel_url = $calendar['allow_cancellation'] ? $this->get_cancellation_url( $appointment ) : '';
+		$extra      = array(
+			'{{waitlist_button}}' => self::build_cancel_button(
+				$cancel_url,
+				__( 'Leave Waitlist', 'ffcertificate' ),
+				__( 'Changed your mind?', 'ffcertificate' )
+			),
 		);
 
-		$content = self::ffc_render_email_partial(
-			'appointment-waitlisted',
-			array(
-				'calendar_title' => $calendar['title'],
-				'date_formatted' => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] ),
-				'time_formatted' => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] ),
-				'cancel_url'     => $calendar['allow_cancellation'] ? $this->get_cancellation_url( $appointment ) : '',
-			)
-		);
-
-		$this->send_mail( $email, $subject, self::ffc_email_document( $content, array( 'recipient' => $email ) ) );
+		$this->send_lifecycle_email( 'appointment-waitlisted', $email, $appointment, $calendar, $extra );
 	}
 
 	/**
@@ -410,12 +461,6 @@ class AppointmentEmailHandler {
 			return;
 		}
 
-		$subject = sprintf(
-			/* translators: %s: calendar title */
-			__( 'A Spot Opened Up: %s', 'ffcertificate' ),
-			$calendar['title']
-		);
-
 		$is_pending     = 'pending' === ( $appointment['status'] ?? '' );
 		$status_message = $is_pending
 			? __( 'A spot opened up and you have moved off the waitlist. Your booking is now pending approval — you will receive a confirmation once it is approved.', 'ffcertificate' )
@@ -428,20 +473,19 @@ class AppointmentEmailHandler {
 				$appointment['confirmation_token'] ?? ''
 			);
 		}
+		$cancel_url = $calendar['allow_cancellation'] ? $this->get_cancellation_url( $appointment ) : '';
 
-		$content = self::ffc_render_email_partial(
-			'appointment-promoted',
-			array(
-				'calendar_title' => $calendar['title'],
-				'status_message' => $status_message,
-				'date_formatted' => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] ),
-				'time_formatted' => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] ),
-				'receipt_url'    => $receipt_url,
-				'cancel_url'     => $calendar['allow_cancellation'] ? $this->get_cancellation_url( $appointment ) : '',
-			)
+		$extra = array(
+			'{{status_message}}' => esc_html( $status_message ),
+			'{{receipt_button}}' => self::build_receipt_button( $receipt_url ),
+			'{{cancel_button}}'  => self::build_cancel_button(
+				$cancel_url,
+				__( 'Cancel Appointment', 'ffcertificate' ),
+				__( 'Can no longer make it?', 'ffcertificate' )
+			),
 		);
 
-		$this->send_mail( $email, $subject, self::ffc_email_document( $content, array( 'recipient' => $email ) ) );
+		$this->send_lifecycle_email( 'appointment-promoted', $email, $appointment, $calendar, $extra );
 	}
 
 	/**
@@ -461,30 +505,16 @@ class AppointmentEmailHandler {
 			return;
 		}
 
-		// Email subject.
-		$subject = sprintf(
-			/* translators: %s: calendar title */
-			__( 'Reminder: Appointment Tomorrow - %s', 'ffcertificate' ),
-			$calendar['title']
-		);
-
-		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] );
-		$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] );
-
 		$cancel_url = $calendar['allow_cancellation'] ? $this->get_cancellation_url( $appointment ) : '';
-
-		$content = self::ffc_render_email_partial(
-			'appointment-reminder',
-			array(
-				'calendar_title' => $calendar['title'],
-				'date_formatted' => $date_formatted,
-				'time_formatted' => $time_formatted,
-				'cancel_url'     => $cancel_url,
-			)
+		$extra      = array(
+			'{{cancel_button}}' => self::build_cancel_button(
+				$cancel_url,
+				__( 'Cancel Appointment', 'ffcertificate' ),
+				__( 'Need to cancel?', 'ffcertificate' )
+			),
 		);
 
-		// Send email.
-		$this->send_mail( $email, $subject, self::ffc_email_document( $content ) );
+		$this->send_lifecycle_email( 'appointment-reminder', $email, $appointment, $calendar, $extra );
 	}
 
 	/**

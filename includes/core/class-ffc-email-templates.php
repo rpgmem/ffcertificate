@@ -45,6 +45,11 @@ final class EmailTemplates {
 		'certificate-user',
 		'recruitment-convocation',
 		'selfscheduling-confirmation',
+		'appointment-approval',
+		'appointment-cancellation',
+		'appointment-reminder',
+		'appointment-promoted',
+		'appointment-waitlisted',
 	);
 
 	/**
