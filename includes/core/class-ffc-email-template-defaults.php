@@ -34,10 +34,15 @@ final class EmailTemplateDefaults {
 	/**
 	 * Default email subject (with `{{form_title}}` placeholder).
 	 *
+	 * Reads the shipped subject from the same `certificate-user` template file as
+	 * the body, so the SMTP email-body hub (#964) and the send path share one
+	 * source of truth for both fields (a hub global-subject override then applies
+	 * uniformly, exactly like the body).
+	 *
 	 * @return string
 	 */
 	public static function user_email_subject(): string {
-		return __( 'Your document is ready — {{form_title}}', 'ffcertificate' );
+		return \FreeFormCertificate\Core\EmailTemplates::body( 'certificate-user', 'subject' );
 	}
 
 	/**
