@@ -20191,3 +20191,27 @@ msgstr "Confirmação de agendamento de público-alvo"
 #: includes/settings/tabs/class-ffc-tab-smtp.php
 msgid "Audience booking cancellation"
 msgstr "Cancelamento de agendamento de público-alvo"
+
+#: includes/admin/class-ffc-form-editor-email-metabox.php
+msgid "Email content"
+msgstr "Conteúdo do e-mail"
+
+#: includes/admin/class-ffc-form-editor-email-metabox.php
+msgid "Write a custom email for this form (instead of the shared global default)."
+msgstr "Escrever um e-mail personalizado para este formulário (em vez do padrão global compartilhado)."
+
+#: includes/admin/class-ffc-form-editor-email-metabox.php
+msgid "This form uses the shared global email text. Turn on the toggle above to write a version just for this form."
+msgstr "Este formulário usa o texto de e-mail global compartilhado. Ative a opção acima para escrever uma versão só para este formulário."
+
+#: includes/admin/class-ffc-form-editor-email-metabox.php
+msgid "Edit the global text"
+msgstr "Editar o texto global"
+
+#: includes/admin/class-ffc-form-editor-email-metabox.php
+msgid "Replace the current message with the global default text? Your changes will be lost."
+msgstr "Substituir a mensagem atual pelo texto padrão global? Suas alterações serão perdidas."
+
+#: includes/admin/class-ffc-form-editor-email-metabox.php
+msgid "Discard this form’s custom email text and use the shared global default instead?"
+msgstr "Descartar o texto de e-mail personalizado deste formulário e usar o padrão global compartilhado?"
