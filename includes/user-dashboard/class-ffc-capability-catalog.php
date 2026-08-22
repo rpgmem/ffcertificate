@@ -375,6 +375,10 @@ final class CapabilityCatalog {
 						'label'       => __( 'Run destructive maintenance', 'ffcertificate' ),
 						'description' => __( 'Execute the Settings danger-zone actions: data deletion, cleanup and migrations.', 'ffcertificate' ),
 					),
+					'ffc_manage_email_templates'     => array(
+						'label'       => __( 'Manage email templates', 'ffcertificate' ),
+						'description' => __( 'Edit the global default body and subject of the plugin emails.', 'ffcertificate' ),
+					),
 				),
 			),
 			array(
