@@ -20023,3 +20023,115 @@ msgstr "Alterar →"
 #: includes/settings/tabs/class-ffc-tab-templates.php
 msgid "Reregistration ficha"
 msgstr "Ficha de recadastramento"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Shared"
+msgstr "Compartilhado"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Email Model (shared header/footer)"
+msgstr "Modelo de E-mail (cabeçalho/rodapé compartilhado)"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "The chrome wrapped around every plugin email — colours, logo, footer."
+msgstr "A moldura em volta de todo e-mail do plugin — cores, logo, rodapé."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Certificates & forms"
+msgstr "Certificados e formulários"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Certificate email to the user"
+msgstr "E-mail de certificado ao usuário"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Sent to the person after they submit a form (per form)."
+msgstr "Enviado à pessoa após ela enviar um formulário (por formulário)."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "New-submission admin notification"
+msgstr "Notificação ao admin de novo envio"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Alerts the admin of a new submission — on/off per form; fixed body."
+msgstr "Avisa o admin de um novo envio — ativa/desativa por formulário; corpo fixo."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Self-scheduling"
+msgstr "Autoagendamento"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Confirms a booking to the user (editable body/subject per calendar)."
+msgstr "Confirma a reserva ao usuário (corpo/assunto editável por calendário)."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Approval / cancellation / reminder / admin notice"
+msgstr "Aprovação / cancelamento / lembrete / aviso ao admin"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Booking lifecycle emails — each on/off per calendar; fixed body."
+msgstr "E-mails do ciclo da reserva — cada um ativa/desativa por calendário; corpo fixo."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Waitlist & promotion notices"
+msgstr "Avisos de lista de espera e promoção"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Sent automatically when a full slot queues or frees up; fixed body."
+msgstr "Enviados automaticamente quando um horário cheio enfileira ou libera vaga; corpo fixo."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Invitation, reminder & confirmation"
+msgstr "Convite, lembrete e confirmação"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Campaign lifecycle emails — each on/off per campaign; fixed body."
+msgstr "E-mails do ciclo da campanha — cada um ativa/desativa por campanha; corpo fixo."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Convocation email"
+msgstr "E-mail de convocação"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Sent when a candidate is called (editable body/subject)."
+msgstr "Enviado quando um candidato é convocado (corpo/assunto editável)."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Booking & cancellation notices"
+msgstr "Avisos de reserva e cancelamento"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Audience booking lifecycle — each on/off per schedule; fixed body."
+msgstr "Ciclo da reserva de audiência — cada um ativa/desativa por agenda; corpo fixo."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Editable text"
+msgstr "Texto editável"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "On/off only"
+msgstr "Apenas ativar/desativar"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "System default"
+msgstr "Padrão do sistema"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Open →"
+msgstr "Abrir →"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "All plugin emails"
+msgstr "Todos os e-mails do plugin"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Every email the plugin can send, and where each one is configured. They all share the Email Model above; a few have editable text, the rest ship a fixed default body you can only turn on or off."
+msgstr "Todo e-mail que o plugin pode enviar, e onde cada um é configurado. Todos usam o Modelo de E-mail acima; alguns têm texto editável, o resto traz um corpo padrão fixo que você só pode ativar ou desativar."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Personalisation"
+msgstr "Personalização"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Where"
+msgstr "Onde"
