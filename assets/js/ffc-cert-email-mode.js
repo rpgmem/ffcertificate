@@ -39,10 +39,16 @@
 		$( '#' + EDITOR_ID ).val( html || '' );
 	}
 
-	// True when the value is visually empty (blank, whitespace, or an empty
-	// TinyMCE paragraph) — mirrors the server-side heuristic's "empty" test.
+	// True when the value is visually empty — a blank string, or the bare
+	// paragraph / line-break a cleared wp_editor leaves behind. This is only a
+	// "should I seed the field?" test (its result is never written to the DOM),
+	// so it matches the known empty shapes rather than stripping tags.
 	function isBlank( value ) {
-		return '' === String( value || '' ).replace( /<[^>]*>|&nbsp;|\s+/g, '' );
+		var s = String( value == null ? '' : value ).trim();
+		if ( '' === s ) {
+			return true;
+		}
+		return /^<p>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>$/i.test( s );
 	}
 
 	$( function () {
