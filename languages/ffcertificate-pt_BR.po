@@ -20143,3 +20143,51 @@ msgstr "Gerenciar modelos de e-mail"
 #: includes/user-dashboard/class-ffc-capability-catalog.php
 msgid "Edit the global default body and subject of the plugin emails."
 msgstr "Editar o corpo e o assunto padrão global dos e-mails do plugin."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Email texts"
+msgstr "Textos dos e-mails"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Email texts saved."
+msgstr "Textos dos e-mails salvos."
+
+#: templates/admin/settings/email-body-hub.php
+msgid "Edit the default text of each plugin email once, globally. These are the message bodies only — the shared Email Model above wraps every one with the same header and footer. Leave an email untouched (or use \"Restore Default Text\") to keep its shipped wording."
+msgstr "Edite o texto padrão de cada e-mail do plugin uma vez, de forma global. Estes são apenas os corpos das mensagens — o Modelo de E-mail compartilhado acima envolve cada um com o mesmo cabeçalho e rodapé. Deixe um e-mail intacto (ou use \"Restaurar Texto Padrão\") para manter o texto original."
+
+#: templates/admin/settings/email-body-hub.php
+msgid "Available variables:"
+msgstr "Variáveis disponíveis:"
+
+#: templates/admin/settings/email-body-hub.php
+msgid "Save email texts"
+msgstr "Salvar textos dos e-mails"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Replace this email with its shipped default text? Your changes to it will be lost when you save."
+msgstr "Substituir este e-mail pelo texto padrão original? Suas alterações nele serão perdidas ao salvar."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Recruitment convocation"
+msgstr "Convocação de recrutamento"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Reregistration invitation"
+msgstr "Convite de recadastramento"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Reregistration reminder"
+msgstr "Lembrete de recadastramento"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Reregistration confirmation"
+msgstr "Confirmação de recadastramento"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Audience booking confirmation"
+msgstr "Confirmação de agendamento de público-alvo"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Audience booking cancellation"
+msgstr "Cancelamento de agendamento de público-alvo"
