@@ -29,6 +29,10 @@ class AudienceNotificationHandlerTest extends TestCase {
         Functions\when( 'esc_url' )->returnArg();
         Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
         Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+        // The default-template helpers now resolve the effective global via
+        // EmailTemplates::effective_body() (#964) → reads ffc_email_bodies; no
+        // override → the shipped file default.
+        Functions\when( 'get_option' )->justReturn( array() );
     }
 
     protected function tearDown(): void {

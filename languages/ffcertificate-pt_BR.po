@@ -20227,3 +20227,27 @@ msgstr "O assunto e o corpo do e-mail de convocação agora são editados uma ve
 #: templates/admin/recruitment/admin-page/settings-tab.php
 msgid "Edit the email texts"
 msgstr "Editar os textos dos e-mails"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Editable text (global)"
+msgstr "Texto editável (global)"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Every email the plugin can send, and where each one is configured. They all share the Email Model above; the ones marked \"Editable text (global)\" have their wording edited in the Email texts box above, and the rest ship a fixed default body you can only turn on or off."
+msgstr "Todos os e-mails que o plugin pode enviar e onde cada um é configurado. Todos compartilham o Modelo de E-mail acima; os marcados como \"Texto editável (global)\" têm seu texto editado na caixa Textos dos e-mails acima, e os demais trazem um corpo padrão fixo que você só pode ligar ou desligar."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Sent to the person after they submit a form — global text in the hub above, with an optional per-form custom version."
+msgstr "Enviado à pessoa após o envio de um formulário — texto global na caixa acima, com uma versão personalizada opcional por formulário."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Campaign lifecycle emails — text edited globally in the hub above; each still on/off per campaign."
+msgstr "E-mails do ciclo da campanha — texto editado globalmente na caixa acima; cada um ainda liga/desliga por campanha."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Sent when a candidate is called — subject/body edited globally in the hub above."
+msgstr "Enviado quando um candidato é convocado — assunto/corpo editados globalmente na caixa acima."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Audience booking lifecycle — default text edited globally in the hub above; a schedule may still set its own."
+msgstr "Ciclo de agendamento de público-alvo — texto padrão editado globalmente na caixa acima; um cronograma ainda pode definir o seu próprio."

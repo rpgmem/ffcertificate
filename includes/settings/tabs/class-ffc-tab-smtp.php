@@ -126,11 +126,14 @@ class TabSMTP extends SettingsTab {
 	 * strings). Each group is gated by its feature's view cap, and the whole
 	 * panel is suppressed when the user can reach none of them.
 	 *
-	 * Personalisation reality (verified): only a few emails expose an editable
-	 * body — the rest ship fixed default bodies with (at most) an on/off toggle.
-	 * The `type` column tells them apart: `editable` / `toggle` / `system`.
+	 * Personalisation reality (verified): the token-based emails now have their
+	 * text edited **globally** in the Email texts hub above (#964); the rest ship
+	 * fixed default bodies with (at most) an on/off toggle. The `type` column
+	 * tells them apart: `global` (edit in the hub) / `editable` / `toggle` /
+	 * `system`. A row may carry its own `url` (the hub) overriding the group's
+	 * feature-screen link.
 	 *
-	 * @return array<int, array{cap:string, title:string, url:string, rows:array<int, array{label:string, purpose:string, type:string}>}>
+	 * @return array<int, array{cap:string, title:string, url:string, rows:array<int, array{label:string, purpose:string, type:string, url?:string}>}>
 	 */
 	private static function email_index_groups(): array {
 		return array(
@@ -153,8 +156,9 @@ class TabSMTP extends SettingsTab {
 				'rows'  => array(
 					array(
 						'label'   => __( 'Certificate email to the user', 'ffcertificate' ),
-						'purpose' => __( 'Sent to the person after they submit a form (per form).', 'ffcertificate' ),
-						'type'    => 'editable',
+						'purpose' => __( 'Sent to the person after they submit a form — global text in the hub above, with an optional per-form custom version.', 'ffcertificate' ),
+						'type'    => 'global',
+						'url'     => admin_url( 'admin.php?page=ffc-settings&tab=smtp' ),
 					),
 					array(
 						'label'   => __( 'New-submission admin notification', 'ffcertificate' ),
@@ -192,8 +196,9 @@ class TabSMTP extends SettingsTab {
 				'rows'  => array(
 					array(
 						'label'   => __( 'Invitation, reminder & confirmation', 'ffcertificate' ),
-						'purpose' => __( 'Campaign lifecycle emails — each on/off per campaign; fixed body.', 'ffcertificate' ),
-						'type'    => 'toggle',
+						'purpose' => __( 'Campaign lifecycle emails — text edited globally in the hub above; each still on/off per campaign.', 'ffcertificate' ),
+						'type'    => 'global',
+						'url'     => admin_url( 'admin.php?page=ffc-settings&tab=smtp' ),
 					),
 				),
 			),
@@ -204,8 +209,9 @@ class TabSMTP extends SettingsTab {
 				'rows'  => array(
 					array(
 						'label'   => __( 'Convocation email', 'ffcertificate' ),
-						'purpose' => __( 'Sent when a candidate is called (editable body/subject).', 'ffcertificate' ),
-						'type'    => 'editable',
+						'purpose' => __( 'Sent when a candidate is called — subject/body edited globally in the hub above.', 'ffcertificate' ),
+						'type'    => 'global',
+						'url'     => admin_url( 'admin.php?page=ffc-settings&tab=smtp' ),
 					),
 				),
 			),
@@ -216,8 +222,9 @@ class TabSMTP extends SettingsTab {
 				'rows'  => array(
 					array(
 						'label'   => __( 'Booking & cancellation notices', 'ffcertificate' ),
-						'purpose' => __( 'Audience booking lifecycle — each on/off per schedule; fixed body.', 'ffcertificate' ),
-						'type'    => 'toggle',
+						'purpose' => __( 'Audience booking lifecycle — default text edited globally in the hub above; a schedule may still set its own.', 'ffcertificate' ),
+						'type'    => 'global',
+						'url'     => admin_url( 'admin.php?page=ffc-settings&tab=smtp' ),
 					),
 				),
 			),
@@ -227,10 +234,13 @@ class TabSMTP extends SettingsTab {
 	/**
 	 * Label for a personalisation type.
 	 *
-	 * @param string $type One of editable / toggle / system.
+	 * @param string $type One of global / editable / toggle / system.
 	 * @return string
 	 */
 	private static function email_type_label( string $type ): string {
+		if ( 'global' === $type ) {
+			return __( 'Editable text (global)', 'ffcertificate' );
+		}
 		if ( 'editable' === $type ) {
 			return __( 'Editable text', 'ffcertificate' );
 		}
@@ -260,7 +270,7 @@ class TabSMTP extends SettingsTab {
 		?>
 		<h2 class="ffc-icon-email"><?php esc_html_e( 'All plugin emails', 'ffcertificate' ); ?></h2>
 		<p class="description">
-			<?php esc_html_e( 'Every email the plugin can send, and where each one is configured. They all share the Email Model above; a few have editable text, the rest ship a fixed default body you can only turn on or off.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Every email the plugin can send, and where each one is configured. They all share the Email Model above; the ones marked "Editable text (global)" have their wording edited in the Email texts box above, and the rest ship a fixed default body you can only turn on or off.', 'ffcertificate' ); ?>
 		</p>
 		<table class="widefat striped ffc-email-index" style="max-width:820px;">
 			<thead>
@@ -284,7 +294,12 @@ class TabSMTP extends SettingsTab {
 								<span class="description"><?php echo esc_html( $row['purpose'] ); ?></span>
 							</td>
 							<td><?php echo esc_html( self::email_type_label( $row['type'] ) ); ?></td>
-							<td><a href="<?php echo esc_url( $group['url'] ); ?>"><?php echo esc_html( $open_label ); ?></a></td>
+							<?php
+							// A `global` row links to the Email texts hub above; the
+							// rest deep-link to their feature's own screen (#964).
+							$ffc_row_url = isset( $row['url'] ) ? $row['url'] : $group['url'];
+							?>
+							<td><a href="<?php echo esc_url( $ffc_row_url ); ?>"><?php echo esc_html( $open_label ); ?></a></td>
 						</tr>
 					<?php endforeach; ?>
 				<?php endforeach; ?>

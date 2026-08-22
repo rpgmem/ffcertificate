@@ -331,27 +331,27 @@ class AudienceNotificationHandler {
 	}
 
 	/**
-	 * Get default booking-created email body.
-	 *
-	 * Loaded from `templates/emails/audience-booking.php` via the shared
-	 * {@see \FreeFormCertificate\Core\EmailTemplates} loader (#662).
+	 * Get default booking-created email body — the effective GLOBAL: the admin's
+	 * SMTP email-body-hub override when set, else the shipped
+	 * `templates/emails/audience-booking.php` default (#662, hub #964). A schedule
+	 * with its own custom body still overrides this.
 	 *
 	 * @return string Template HTML
 	 */
 	private static function get_default_booking_template(): string {
-		return \FreeFormCertificate\Core\EmailTemplates::body( 'audience-booking' );
+		return \FreeFormCertificate\Core\EmailTemplates::effective_body( 'audience-booking' );
 	}
 
 	/**
-	 * Get default booking-cancelled email body.
-	 *
-	 * Loaded from `templates/emails/audience-cancellation.php` via the shared
-	 * {@see \FreeFormCertificate\Core\EmailTemplates} loader (#662).
+	 * Get default booking-cancelled email body — the effective GLOBAL: the admin's
+	 * SMTP email-body-hub override when set, else the shipped
+	 * `templates/emails/audience-cancellation.php` default (#662, hub #964). A
+	 * schedule with its own custom body still overrides this.
 	 *
 	 * @return string Template HTML
 	 */
 	private static function get_default_cancellation_template(): string {
-		return \FreeFormCertificate\Core\EmailTemplates::body( 'audience-cancellation' );
+		return \FreeFormCertificate\Core\EmailTemplates::effective_body( 'audience-cancellation' );
 	}
 
 	/**

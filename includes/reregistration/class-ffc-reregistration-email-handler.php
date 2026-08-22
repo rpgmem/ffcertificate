@@ -53,7 +53,7 @@ class ReregistrationEmailHandler {
 			)
 		);
 
-		$template = \FreeFormCertificate\Core\EmailTemplates::load( 'reregistration-invitation' );
+		$template = self::effective_template( 'reregistration-invitation' );
 		if ( ! $template ) {
 			return 0;
 		}
@@ -95,7 +95,7 @@ class ReregistrationEmailHandler {
 			return 0;
 		}
 
-		$template = \FreeFormCertificate\Core\EmailTemplates::load( 'reregistration-reminder' );
+		$template = self::effective_template( 'reregistration-reminder' );
 		if ( ! $template ) {
 			return 0;
 		}
@@ -157,7 +157,7 @@ class ReregistrationEmailHandler {
 			return false;
 		}
 
-		$template = \FreeFormCertificate\Core\EmailTemplates::load( 'reregistration-confirmation' );
+		$template = self::effective_template( 'reregistration-confirmation' );
 		if ( ! $template ) {
 			return false;
 		}
@@ -224,6 +224,26 @@ class ReregistrationEmailHandler {
 		foreach ( $campaigns as $campaign ) {
 			self::send_reminders( (int) $campaign->id );
 		}
+	}
+
+	/**
+	 * The effective subject + body for a reregistration email — the admin's SMTP
+	 * email-body-hub override when set, else the shipped file default (#662, hub
+	 * #964). Returns null (⇒ callers skip the send) when the body is unavailable,
+	 * matching the previous `EmailTemplates::load()` null-guard.
+	 *
+	 * @param string $name Allowlisted template basename.
+	 * @return array{subject:string, body:string}|null
+	 */
+	private static function effective_template( string $name ): ?array {
+		$body = \FreeFormCertificate\Core\EmailTemplates::effective_body( $name, 'body' );
+		if ( '' === $body ) {
+			return null;
+		}
+		return array(
+			'subject' => \FreeFormCertificate\Core\EmailTemplates::effective_body( $name, 'subject' ),
+			'body'    => $body,
+		);
 	}
 
 	/**
