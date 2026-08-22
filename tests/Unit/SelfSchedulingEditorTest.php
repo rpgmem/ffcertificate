@@ -39,6 +39,9 @@ class SelfSchedulingEditorTest extends TestCase {
         Functions\when( 'wp_create_nonce' )->justReturn( 'test_nonce' );
         Functions\when( 'wp_nonce_field' )->justReturn( '' );
         Functions\when( 'get_post_meta' )->justReturn( '' );
+        // default_confirmation_body() now resolves the effective global (#965) →
+        // reads ffc_email_bodies; no override → the shipped file default.
+        Functions\when( 'get_option' )->justReturn( array() );
         Functions\when( 'get_the_ID' )->justReturn( 10 );
         Functions\when( 'checked' )->justReturn( '' );
         Functions\when( 'selected' )->justReturn( '' );

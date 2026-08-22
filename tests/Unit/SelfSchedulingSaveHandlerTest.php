@@ -31,6 +31,8 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
 
         Functions\when( 'sanitize_text_field' )->returnArg();
         Functions\when( 'sanitize_textarea_field' )->returnArg();
+        // The confirmation body is now sanitised with wp_kses_post (#965).
+        Functions\when( 'wp_kses_post' )->returnArg();
         Functions\when( 'absint' )->alias( function ( $val ) {
             return abs( (int) $val );
         } );

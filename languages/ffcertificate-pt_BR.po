@@ -20251,3 +20251,19 @@ msgstr "Enviado quando um candidato é convocado — assunto/corpo editados glob
 #: includes/settings/tabs/class-ffc-tab-smtp.php
 msgid "Audience booking lifecycle — default text edited globally in the hub above; a schedule may still set its own."
 msgstr "Ciclo de agendamento de público-alvo — texto padrão editado globalmente na caixa acima; um cronograma ainda pode definir o seu próprio."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Appointment booking confirmation"
+msgstr "Confirmação de agendamento"
+
+#: templates/emails/selfscheduling-confirmation.php
+msgid "Appointment Confirmation: {{calendar_title}}"
+msgstr "Confirmação de agendamento: {{calendar_title}}"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Confirms a booking to the user — default text (incl. receipt/cancel buttons) edited globally in the hub above; a calendar may still set its own."
+msgstr "Confirma um agendamento ao usuário — texto padrão (incl. botões de comprovante/cancelamento) editado globalmente na caixa acima; um calendário ainda pode definir o seu próprio."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Include {{receipt_button}} / {{cancel_button}} to show the receipt and cancel buttons (each empty when unavailable). Leave the whole body empty to use the global default from Settings → SMTP → Email texts."
+msgstr "Inclua {{receipt_button}} / {{cancel_button}} para exibir os botões de comprovante e cancelamento (cada um vazio quando indisponível). Deixe o corpo inteiro vazio para usar o padrão global em Configurações → SMTP → Textos dos e-mails."

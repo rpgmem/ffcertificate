@@ -174,8 +174,9 @@ class TabSMTP extends SettingsTab {
 				'rows'  => array(
 					array(
 						'label'   => __( 'Appointment confirmation', 'ffcertificate' ),
-						'purpose' => __( 'Confirms a booking to the user (editable body/subject per calendar).', 'ffcertificate' ),
-						'type'    => 'editable',
+						'purpose' => __( 'Confirms a booking to the user — default text (incl. receipt/cancel buttons) edited globally in the hub above; a calendar may still set its own.', 'ffcertificate' ),
+						'type'    => 'global',
+						'url'     => admin_url( 'admin.php?page=ffc-settings&tab=smtp' ),
 					),
 					array(
 						'label'   => __( 'Approval / cancellation / reminder / admin notice', 'ffcertificate' ),
@@ -323,6 +324,10 @@ class TabSMTP extends SettingsTab {
 			'certificate-user'            => array(
 				'label'  => __( 'Certificate email to the user', 'ffcertificate' ),
 				'tokens' => array( 'name', 'form_title', 'date', 'auth_code', 'validation_url' ),
+			),
+			'selfscheduling-confirmation' => array(
+				'label'  => __( 'Appointment booking confirmation', 'ffcertificate' ),
+				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'appointment_date', 'appointment_time', 'status_message', 'status_label', 'user_notes_block', 'receipt_button', 'cancel_button' ),
 			),
 			'recruitment-convocation'     => array(
 				'label'  => __( 'Recruitment convocation', 'ffcertificate' ),

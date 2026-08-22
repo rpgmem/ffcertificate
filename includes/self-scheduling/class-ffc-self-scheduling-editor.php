@@ -889,9 +889,14 @@ class SelfSchedulingEditor {
 						<code>{{user_email}}</code>,
 						<code>{{calendar_title}}</code>,
 						<code>{{appointment_date}}</code>,
-						<code>{{appointment_time}}</code>
+						<code>{{appointment_time}}</code>,
+						<code>{{status_message}}</code>,
+						<code>{{status_label}}</code>,
+						<code>{{user_notes_block}}</code>,
+						<code>{{receipt_button}}</code>,
+						<code>{{cancel_button}}</code>
 					</p>
-					<p class="description"><em><?php esc_html_e( 'Leave empty to use the built-in confirmation (with receipt / cancel buttons).', 'ffcertificate' ); ?></em></p>
+					<p class="description"><em><?php esc_html_e( 'Include {{receipt_button}} / {{cancel_button}} to show the receipt and cancel buttons (each empty when unavailable). Leave the whole body empty to use the global default from Settings → SMTP → Email texts.', 'ffcertificate' ); ?></em></p>
 					<p><button type="button" class="button ffc-email-restore-default" data-editor="user_confirmation_body" data-default-key="selfsched_confirmation_body"><?php esc_html_e( 'Restore Default Text', 'ffcertificate' ); ?></button></p>
 				</td>
 			</tr>
