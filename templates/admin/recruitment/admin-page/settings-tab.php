@@ -60,9 +60,9 @@ echo '</fieldset>';
 echo '<p class="description">' . esc_html__( 'Controls whether calling a candidate sends the convocation email. The global "disable all emails" switch always wins.', 'ffcertificate' ) . '</p>';
 echo '</td></tr>';
 
-echo '<tr><th><label for="ffc-rs-subject">' . esc_html__( 'Subject', 'ffcertificate' ) . '</label></th><td>';
-echo '<input id="ffc-rs-subject" type="text" class="large-text" name="' . esc_attr( $opt ) . '[email_subject]" value="' . esc_attr( (string) $settings['email_subject'] ) . '">';
-echo '<p class="description">' . esc_html__( 'Placeholders: {{notice_code}}, {{notice_name}}, {{adjutancy}}, {{name}}, {{rank}}, {{score}}, {{date_to_assume}}, {{time_to_assume}}, {{is_pcd}}, {{site_name}}, {{site_url}}, {{notes}}, and the masked variants {{cpf_masked}}, {{rf_masked}}, {{email_masked}}.', 'ffcertificate' ) . '</p>';
+echo '<tr><th>' . esc_html__( 'Subject & body', 'ffcertificate' ) . '</th><td>';
+echo '<p class="description">' . esc_html__( 'The convocation email subject and body are now edited once, with every other plugin email, in Settings → SMTP → Email texts.', 'ffcertificate' ) . ' ';
+echo '<a href="' . esc_url( admin_url( 'admin.php?page=ffc-settings&tab=smtp' ) ) . '">' . esc_html__( 'Edit the email texts', 'ffcertificate' ) . '</a></p>';
 echo '</td></tr>';
 
 echo '<tr><th><label for="ffc-rs-from-address">' . esc_html__( 'From address', 'ffcertificate' ) . '</label></th><td>';
@@ -73,25 +73,6 @@ echo '<tr><th><label for="ffc-rs-from-name">' . esc_html__( 'From name', 'ffcert
 echo '<input id="ffc-rs-from-name" type="text" class="regular-text" name="' . esc_attr( $opt ) . '[email_from_name]" value="' . esc_attr( (string) $settings['email_from_name'] ) . '" placeholder="(falls back to site name)">';
 echo '</td></tr>';
 
-echo '<tr><th><label for="ffc_rs_body">' . esc_html__( 'Body (HTML)', 'ffcertificate' ) . '</label></th><td>';
-wp_editor(
-	(string) $settings['email_body_html'],
-	'ffc_rs_body',
-	array(
-		'textarea_name' => $opt . '[email_body_html]',
-		'textarea_rows' => 12,
-		'media_buttons' => false,
-		'teeny'         => true,
-		'tinymce'       => array(
-			'toolbar1' => 'bold,italic,underline,bullist,numlist,link,unlink,undo,redo',
-			'toolbar2' => '',
-		),
-		'quicktags'     => array( 'buttons' => 'strong,em,link,ul,ol,li,close' ),
-	)
-);
-echo '<p class="description">' . esc_html__( 'The message content ("email body") only — the shared Email Model chrome (header/footer) is added automatically. Same placeholder set as the subject; the text/plain alternative is auto-derived.', 'ffcertificate' ) . '</p>';
-echo '<p><button type="button" class="button ffc-email-restore-default" data-editor="ffc_rs_body" data-default-key="recruitment_body">' . esc_html__( 'Restore Default Text', 'ffcertificate' ) . '</button></p>';
-echo '</td></tr>';
 echo '</tbody></table>';
 echo '</div>';
 

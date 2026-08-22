@@ -42,10 +42,13 @@ class RecruitmentSettingsTest extends TestCase {
 	public function test_defaults_include_every_documented_subkey(): void {
 		$defaults = RecruitmentSettings::defaults();
 
-		$this->assertArrayHasKey( 'email_subject', $defaults );
+		// Subject + body moved to the global email-body hub (#964) — no longer
+		// keys of this option; From/send-mode stay.
+		$this->assertArrayNotHasKey( 'email_subject', $defaults );
+		$this->assertArrayNotHasKey( 'email_body_html', $defaults );
 		$this->assertArrayHasKey( 'email_from_address', $defaults );
 		$this->assertArrayHasKey( 'email_from_name', $defaults );
-		$this->assertArrayHasKey( 'email_body_html', $defaults );
+		$this->assertArrayHasKey( 'email_mode', $defaults );
 		$this->assertArrayHasKey( 'public_cache_seconds', $defaults );
 		$this->assertArrayHasKey( 'public_rate_limit_per_minute', $defaults );
 		$this->assertArrayHasKey( 'public_default_page_size', $defaults );
@@ -137,18 +140,23 @@ class RecruitmentSettingsTest extends TestCase {
 		$this->assertSame( 86_400, $out['public_cache_seconds'], 'Above-max input is capped at the documented ceiling.' );
 	}
 
-	public function test_sanitize_keeps_admin_html_in_body_template(): void {
+	public function test_sanitize_drops_the_migrated_email_body_and_subject(): void {
 		Functions\when( 'sanitize_text_field' )->returnArg();
 
-		// Admins are trusted to write the body HTML; sanitize MUST NOT strip
-		// tags, otherwise the email-body editor becomes unusable.
-		$html = '<p>Hello <strong>{{name}}</strong>, click <a href="{{site_url}}">here</a>.</p>';
-		$out  = RecruitmentSettings::sanitize( array( 'email_body_html' => $html ) );
+		// The subject + body are no longer this option's concern (#964) — sanitize
+		// keeps only the surviving email keys (From / send mode).
+		$out = RecruitmentSettings::sanitize(
+			array(
+				'email_body_html' => '<p>stale custom body</p>',
+				'email_subject'   => 'stale subject',
+			)
+		);
 
-		$this->assertSame( $html, $out['email_body_html'] );
+		$this->assertArrayNotHasKey( 'email_body_html', $out );
+		$this->assertArrayNotHasKey( 'email_subject', $out );
 	}
 
-	public function test_sanitize_text_field_runs_on_subject_and_from(): void {
+	public function test_sanitize_text_field_runs_on_from_fields(): void {
 		$captured = array();
 		Functions\when( 'sanitize_text_field' )->alias(
 			static function ( $input ) use ( &$captured ): string {
@@ -159,14 +167,90 @@ class RecruitmentSettingsTest extends TestCase {
 
 		RecruitmentSettings::sanitize(
 			array(
-				'email_subject'      => '  Subject  ',
 				'email_from_address' => '  noreply@example.com  ',
 				'email_from_name'    => '  Recruiter  ',
 			)
 		);
 
-		$this->assertContains( '  Subject  ', $captured );
 		$this->assertContains( '  noreply@example.com  ', $captured );
 		$this->assertContains( '  Recruiter  ', $captured );
+	}
+
+	// ==================================================================
+	// migrate_email_to_hub() — one-shot move into ffc_email_bodies (#964)
+	// ==================================================================
+
+	public function test_migrate_email_to_hub_moves_a_custom_body_and_subject(): void {
+		$recruitment = array(
+			'email_body_html' => '<p>custom convocation body</p>',
+			'email_subject'   => 'Custom subject',
+		);
+		$hub = array();
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) use ( $recruitment, &$hub ) {
+				if ( 'ffc_recruitment_settings' === $key ) {
+					return $recruitment;
+				}
+				if ( 'ffc_email_bodies' === $key ) {
+					return $hub;
+				}
+				return $default;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$hub ) {
+				if ( 'ffc_email_bodies' === $key ) {
+					$hub = $value;
+				}
+				return true;
+			}
+		);
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => trim( (string) strip_tags( (string) $s ) ) );
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+
+		RecruitmentSettings::migrate_email_to_hub();
+
+		$this->assertArrayHasKey( 'recruitment-convocation', $hub );
+		$this->assertSame( '<p>custom convocation body</p>', $hub['recruitment-convocation']['body'] );
+		$this->assertSame( 'Custom subject', $hub['recruitment-convocation']['subject'] );
+	}
+
+	public function test_migrate_email_to_hub_skips_unchanged_defaults(): void {
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => trim( (string) strip_tags( (string) $s ) ) );
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+
+		// A recruitment option carrying exactly the shipped default migrates
+		// nothing — the hub stays empty and effective_body() keeps resolving to
+		// the same file default.
+		$recruitment = array(
+			'email_body_html' => \FreeFormCertificate\Core\EmailTemplates::body( 'recruitment-convocation', 'body' ),
+			'email_subject'   => \FreeFormCertificate\Core\EmailTemplates::body( 'recruitment-convocation', 'subject' ),
+		);
+		$saved = false;
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) use ( $recruitment ) {
+				if ( 'ffc_recruitment_settings' === $key ) {
+					return $recruitment;
+				}
+				if ( 'ffc_email_bodies' === $key ) {
+					return array();
+				}
+				return $default;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$saved ) {
+				if ( 'ffc_email_bodies' === $key ) {
+					$saved = true;
+				}
+				return true;
+			}
+		);
+
+		RecruitmentSettings::migrate_email_to_hub();
+
+		$this->assertFalse( $saved, 'a default recruitment email migrates nothing into the hub' );
 	}
 }

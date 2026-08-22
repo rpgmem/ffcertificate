@@ -20215,3 +20215,15 @@ msgstr "Substituir a mensagem atual pelo texto padrão global? Suas alterações
 #: includes/admin/class-ffc-form-editor-email-metabox.php
 msgid "Discard this form’s custom email text and use the shared global default instead?"
 msgstr "Descartar o texto de e-mail personalizado deste formulário e usar o padrão global compartilhado?"
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Subject & body"
+msgstr "Assunto e corpo"
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "The convocation email subject and body are now edited once, with every other plugin email, in Settings → SMTP → Email texts."
+msgstr "O assunto e o corpo do e-mail de convocação agora são editados uma vez, junto com todos os outros e-mails do plugin, em Configurações → SMTP → Textos dos e-mails."
+
+#: templates/admin/recruitment/admin-page/settings-tab.php
+msgid "Edit the email texts"
+msgstr "Editar os textos dos e-mails"

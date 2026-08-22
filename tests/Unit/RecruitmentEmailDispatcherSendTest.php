@@ -165,6 +165,17 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 
 		$settings_mock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentSettings' );
 		$settings_mock->shouldReceive( 'all' )->andReturn( $settings );
+
+		// The convocation subject + body now resolve through the global email-body
+		// hub (#964); map the test's custom values onto effective_body(). The chrome
+		// wrapper uses EmailTemplateOptions, not EmailTemplates, so this alias is safe.
+		$templates_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\EmailTemplates' );
+		$templates_mock->shouldReceive( 'effective_body' )
+			->with( 'recruitment-convocation', 'subject' )
+			->andReturn( isset( $settings['email_subject'] ) ? (string) $settings['email_subject'] : '' );
+		$templates_mock->shouldReceive( 'effective_body' )
+			->with( 'recruitment-convocation', 'body' )
+			->andReturn( isset( $settings['email_body_html'] ) ? (string) $settings['email_body_html'] : '' );
 	}
 
 	public function test_sends_email_with_resolved_tokens_and_from_header(): void {

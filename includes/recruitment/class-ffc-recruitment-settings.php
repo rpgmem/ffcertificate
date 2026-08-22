@@ -10,10 +10,9 @@
  *
  * Sub-keys:
  *
- *   - email_subject              Subject template (placeholder-supporting).
  *   - email_from_address         Override; falls back to `wp_mail` default.
  *   - email_from_name            Override; falls back to site name.
- *   - email_body_html            Body template (free-form HTML).
+ *   - email_mode                 Convocation send mode (always/never/ask).
  *   - public_cache_seconds       TTL for the public shortcode transient
  *                                cache (default 60).
  *   - public_rate_limit_per_minute
@@ -46,10 +45,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Single source of truth for the recruitment module's configuration.
  *
  * @phpstan-type SettingsArray array{
- *   email_subject:               string,
  *   email_from_address:          string,
  *   email_from_name:             string,
- *   email_body_html:             string,
  *   email_mode:                  string,
  *   public_cache_seconds:        int,
  *   public_rate_limit_per_minute: int,
@@ -133,10 +130,11 @@ final class RecruitmentSettings {
 	 */
 	public static function defaults(): array {
 		return array(
-			'email_subject'                          => __( 'Call - {{notice_code}} - {{adjutancy}}', 'ffcertificate' ),
+			// The convocation subject + body live in the global email-body hub
+			// (option `ffc_email_bodies`, edited in Settings → SMTP → Email texts)
+			// since #964 — no longer keys of this option. From/send-mode stay here.
 			'email_from_address'                     => '',
 			'email_from_name'                        => '',
-			'email_body_html'                        => self::default_body_template(),
 			// Convocation-email send mode: 'always' (default — send on every
 			// call), 'never' (never send), or 'ask' (per-call opt-in via a
 			// "Notify by email" checkbox on the call forms). Issue #794.
@@ -251,21 +249,12 @@ final class RecruitmentSettings {
 		$defaults = self::defaults();
 		$out      = array();
 
-		$out['email_subject']      = isset( $value['email_subject'] ) && is_string( $value['email_subject'] )
-			? sanitize_text_field( $value['email_subject'] )
-			: $defaults['email_subject'];
 		$out['email_from_address'] = isset( $value['email_from_address'] ) && is_string( $value['email_from_address'] )
 			? sanitize_text_field( $value['email_from_address'] )
 			: $defaults['email_from_address'];
 		$out['email_from_name']    = isset( $value['email_from_name'] ) && is_string( $value['email_from_name'] )
 			? sanitize_text_field( $value['email_from_name'] )
 			: $defaults['email_from_name'];
-
-		// Body HTML: admin-trusted; preserve all tags admins typed. The
-		// rendering path (`wp_mail`) accepts arbitrary HTML.
-		$out['email_body_html'] = isset( $value['email_body_html'] ) && is_string( $value['email_body_html'] )
-			? $value['email_body_html']
-			: $defaults['email_body_html'];
 
 		// Convocation send mode — allowlist to the three known values (#794).
 		$out['email_mode'] = isset( $value['email_mode'] ) && in_array( $value['email_mode'], RecruitmentEmailDispatcher::valid_modes(), true )
@@ -362,10 +351,8 @@ final class RecruitmentSettings {
 	private static function shape( array $value ): array {
 		$defaults = self::defaults();
 		return array(
-			'email_subject'                          => is_string( $value['email_subject'] ?? null ) ? $value['email_subject'] : $defaults['email_subject'],
 			'email_from_address'                     => is_string( $value['email_from_address'] ?? null ) ? $value['email_from_address'] : $defaults['email_from_address'],
 			'email_from_name'                        => is_string( $value['email_from_name'] ?? null ) ? $value['email_from_name'] : $defaults['email_from_name'],
-			'email_body_html'                        => is_string( $value['email_body_html'] ?? null ) ? $value['email_body_html'] : $defaults['email_body_html'],
 			'email_mode'                             => in_array( $value['email_mode'] ?? null, RecruitmentEmailDispatcher::valid_modes(), true ) ? $value['email_mode'] : $defaults['email_mode'],
 			'public_cache_seconds'                   => is_int( $value['public_cache_seconds'] ?? null ) ? $value['public_cache_seconds'] : $defaults['public_cache_seconds'],
 			'public_rate_limit_per_minute'           => is_int( $value['public_rate_limit_per_minute'] ?? null ) ? $value['public_rate_limit_per_minute'] : $defaults['public_rate_limit_per_minute'],
@@ -395,15 +382,40 @@ final class RecruitmentSettings {
 	}
 
 	/**
-	 * Default email body template — minimal, edit-friendly HTML.
+	 * One-shot migration (#964): move a customised convocation subject/body out of
+	 * this option and into the global email-body hub (`ffc_email_bodies`), so the
+	 * single hub UI now owns the text. Only a genuine customisation is migrated —
+	 * a value equal to the shipped default is left untouched (the hub stays empty
+	 * and `effective_body()` resolves to the same file default, so a default
+	 * install is unchanged). The body is normalised through `wp_kses_post` on the
+	 * way in (recruitment loses its former raw-HTML freedom — an accepted, admin-
+	 * cap-gated delta). Idempotent: re-running finds the keys already absent (or
+	 * the hub already populated) and does nothing new.
 	 *
-	 * Translatable via `__()` so pt-BR `.po` files can ship a localized
-	 * default. All `{{placeholder}}` markers documented in §11 of the plan
-	 * resolve at send time.
+	 * Invoked once via {@see \FreeFormCertificate\Loader}, flagged by the
+	 * `ffc_recruitment_email_hub_v1` option.
 	 *
-	 * @return string
+	 * @return void
 	 */
-	private static function default_body_template(): string {
-		return \FreeFormCertificate\Core\EmailTemplates::body( 'recruitment-convocation' );
+	public static function migrate_email_to_hub(): void {
+		$opt = get_option( self::OPTION_NAME, array() );
+		if ( ! is_array( $opt ) ) {
+			return;
+		}
+
+		$values  = array();
+		$body    = isset( $opt['email_body_html'] ) ? (string) $opt['email_body_html'] : '';
+		$subject = isset( $opt['email_subject'] ) ? (string) $opt['email_subject'] : '';
+
+		if ( '' !== $body && \FreeFormCertificate\Core\EmailTemplates::overrides_global( 'recruitment-convocation', $body, 'body' ) ) {
+			$values['body'] = wp_kses_post( $body );
+		}
+		if ( '' !== $subject && \FreeFormCertificate\Core\EmailTemplates::overrides_global( 'recruitment-convocation', $subject, 'subject' ) ) {
+			$values['subject'] = sanitize_text_field( $subject );
+		}
+
+		if ( array() !== $values ) {
+			\FreeFormCertificate\Core\EmailTemplates::save_global( 'recruitment-convocation', $values );
+		}
 	}
 }

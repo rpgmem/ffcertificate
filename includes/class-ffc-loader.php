@@ -340,6 +340,7 @@ class Loader {
 		$this->ensure_reasons_caps_wired();
 		$this->ensure_settings_split_caps_granted();
 		$this->ensure_email_templates_cap_granted();
+		$this->ensure_recruitment_email_migrated();
 		$this->ensure_activity_log_export_cap_granted();
 		$this->ensure_url_shortener_export_cap_granted();
 		$this->ensure_rbac_caps_renamed();
@@ -497,6 +498,26 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_email_templates_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration (#964) that moves a customised recruitment convocation
+	 * subject/body out of `ffc_recruitment_settings` and into the global
+	 * email-body hub (`ffc_email_bodies`), so the hub UI now owns that text. A
+	 * default (unchanged) email migrates nothing — the hub stays empty and the
+	 * shipped file default still applies. Flagged by `ffc_recruitment_email_hub_v1`.
+	 *
+	 * @return void
+	 */
+	private function ensure_recruitment_email_migrated(): void {
+		$flag = 'ffc_recruitment_email_hub_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\Recruitment\RecruitmentSettings' ) ) {
+			\FreeFormCertificate\Recruitment\RecruitmentSettings::migrate_email_to_hub();
 		}
 		update_option( $flag, '1', true );
 	}
