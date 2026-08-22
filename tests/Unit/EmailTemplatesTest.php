@@ -104,11 +104,12 @@ class EmailTemplatesTest extends TestCase {
 	// Global override layer (#964 phase 1)
 	// ==================================================================
 
-	public function test_shipped_body_ignores_the_global_override(): void {
+	public function test_body_ignores_the_global_override(): void {
 		$this->fake_option_store( array( 'audience-booking' => array( 'body' => 'GLOBAL' ) ) );
 
-		// shipped_body is the file default regardless of the stored override.
-		$this->assertStringContainsString( '{{schedule_name}}', EmailTemplates::shipped_body( 'audience-booking' ) );
+		// body() is the shipped file default regardless of any stored override
+		// (unchanged behaviour — existing callers stay byte-for-byte the same).
+		$this->assertStringContainsString( '{{schedule_name}}', EmailTemplates::body( 'audience-booking' ) );
 	}
 
 	public function test_global_body_reads_the_stored_override(): void {
@@ -125,14 +126,14 @@ class EmailTemplatesTest extends TestCase {
 		$this->assertSame( '', EmailTemplates::global_body( 'not-a-template' ) );
 	}
 
-	public function test_body_prefers_global_over_file_then_falls_back(): void {
-		// With an override, body() returns it…
+	public function test_effective_body_prefers_global_over_file_then_falls_back(): void {
+		// With an override, effective_body() returns it…
 		$this->fake_option_store( array( 'audience-booking' => array( 'body' => 'GLOBAL BODY' ) ) );
-		$this->assertSame( 'GLOBAL BODY', EmailTemplates::body( 'audience-booking' ) );
+		$this->assertSame( 'GLOBAL BODY', EmailTemplates::effective_body( 'audience-booking' ) );
 
 		// …and with none, it falls back to the shipped file default.
 		$this->fake_option_store();
-		$this->assertStringContainsString( '{{schedule_name}}', EmailTemplates::body( 'audience-booking' ) );
+		$this->assertStringContainsString( '{{schedule_name}}', EmailTemplates::effective_body( 'audience-booking' ) );
 	}
 
 	public function test_save_global_stores_body_and_subject(): void {
@@ -166,7 +167,7 @@ class EmailTemplatesTest extends TestCase {
 		$this->assertTrue( EmailTemplates::clear_global( 'audience-booking' ) );
 		$this->assertArrayNotHasKey( 'audience-booking', $holder[0]() );
 
-		// body() now resolves back to the file default.
-		$this->assertStringContainsString( '{{schedule_name}}', EmailTemplates::body( 'audience-booking' ) );
+		// effective_body() now resolves back to the file default.
+		$this->assertStringContainsString( '{{schedule_name}}', EmailTemplates::effective_body( 'audience-booking' ) );
 	}
 }

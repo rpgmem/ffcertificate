@@ -87,15 +87,16 @@ final class EmailTemplates {
 	}
 
 	/**
-	 * The SHIPPED file default for a single key (the pre-6.x behaviour of
-	 * {@see self::body()}), ignoring any global override. This is the base of
-	 * the cascade — used by the hub's "restore to shipped default".
+	 * Convenience reader for a single key of the SHIPPED file default (e.g. the
+	 * audience body-only templates), ignoring any global override. This is the
+	 * base of the cascade and the historical behaviour every existing caller
+	 * relies on — it never reads options, so it is safe in any context.
 	 *
 	 * @param string $name Allowlisted template basename.
 	 * @param string $key  Array key to read (default 'body').
 	 * @return string The file value, or '' when unavailable.
 	 */
-	public static function shipped_body( string $name, string $key = 'body' ): string {
+	public static function body( string $name, string $key = 'body' ): string {
 		$data = self::load( $name );
 		return ( null !== $data && isset( $data[ $key ] ) ) ? $data[ $key ] : '';
 	}
@@ -133,19 +134,21 @@ final class EmailTemplates {
 
 	/**
 	 * The EFFECTIVE default for a single key: the admin's global override when
-	 * set, otherwise the shipped file default. Every send path and every
-	 * "Restore Default Text" button resolves through here, so setting a global
-	 * body transparently becomes the new fallback for all consumers — and a
-	 * fresh install (empty {@see self::OPTION}) is byte-for-byte the old
-	 * file-only behaviour.
+	 * set, otherwise the shipped file default ({@see self::body()}). This is the
+	 * opt-in cascade — a send path (or a "Restore Default" button) that wants to
+	 * honour the global override calls this instead of {@see self::body()}. It
+	 * reads {@see self::OPTION}, so callers run where WordPress options are
+	 * available (i.e. not during option registration); with the option empty it
+	 * is byte-for-byte the file-only {@see self::body()}. Send sites migrate
+	 * from `body()` to `effective_body()` per feature increment (#964).
 	 *
 	 * @param string $name Allowlisted template basename.
 	 * @param string $key  Array key to read (default 'body').
 	 * @return string The value, or '' when unavailable.
 	 */
-	public static function body( string $name, string $key = 'body' ): string {
+	public static function effective_body( string $name, string $key = 'body' ): string {
 		$global = self::global_body( $name, $key );
-		return '' !== $global ? $global : self::shipped_body( $name, $key );
+		return '' !== $global ? $global : self::body( $name, $key );
 	}
 
 	/**
