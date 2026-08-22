@@ -20304,3 +20304,47 @@ msgstr "Vaga liberada na lista de espera (promoção)"
 #: includes/settings/tabs/class-ffc-tab-smtp.php
 msgid "Added to waitlist"
 msgstr "Adicionado à lista de espera"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Access granted to a user"
+msgstr "Acesso concedido a um usuário"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Appointment cancelled (calendar deleted)"
+msgstr "Agendamento cancelado (calendário excluído)"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Account access"
+msgstr "Acesso à conta"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Approval, cancellation & reminder"
+msgstr "Aprovação, cancelamento e lembrete"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Calendar-deletion cancellation"
+msgstr "Cancelamento por exclusão de calendário"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "New-appointment admin notification"
+msgstr "Notificação ao administrador de novo agendamento"
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Booking lifecycle emails to the user — text edited globally in the hub above."
+msgstr "E-mails do ciclo de vida do agendamento para o usuário — texto editado globalmente no hub acima."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Sent automatically when a full slot queues or frees up — text edited globally in the hub above."
+msgstr "Enviado automaticamente quando um horário lotado entra na fila ou é liberado — texto editado globalmente no hub acima."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Notifies booked users when an admin deletes a calendar — text edited globally in the hub above."
+msgstr "Notifica os usuários agendados quando um administrador exclui um calendário — texto editado globalmente no hub acima."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Alerts the admin of a new booking; fixed body."
+msgstr "Alerta o administrador sobre um novo agendamento; corpo fixo."
+
+#: includes/settings/tabs/class-ffc-tab-smtp.php
+msgid "Tells a user they were granted plugin access — text edited globally in the hub above."
+msgstr "Informa a um usuário que recebeu acesso ao plugin — texto editado globalmente no hub acima."

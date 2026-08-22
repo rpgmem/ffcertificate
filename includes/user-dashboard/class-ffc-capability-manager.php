@@ -485,17 +485,35 @@ class CapabilityManager {
 		);
 		$context_label  = $context_labels[ $context ] ?? $context;
 
-		/* translators: %1$s: site name, %2$s: feature name */
-		$subject = sprintf( __( '[%1$s] Access granted: %2$s', 'ffcertificate' ), $site_name, $context_label );
-
-		// Email body → shared configurable chrome (#662 PR-8), like every other email.
-		$content = self::ffc_render_email_partial(
-			'access-granted',
+		// Subject + body: the effective global (hub override → shipped file default,
+		// #965), resolved through the one token map. The dashboard link is a
+		// pre-rendered {{dashboard_button}} token (empty when no URL), so an admin
+		// can move or drop it from the body. Subject tokens are plain text (a mail
+		// header), body scalars are esc_html'd at substitution.
+		$dashboard_button = self::ffc_email_button(
+			$dashboard_url ? (string) $dashboard_url : '',
+			__( 'Go to your dashboard', 'ffcertificate' ),
 			array(
-				'user_name'     => $user->display_name,
-				'context_label' => $context_label,
-				'site_name'     => $site_name,
-				'dashboard_url' => $dashboard_url ? $dashboard_url : '',
+				'bg'      => '#2271b1',
+				'padding' => '12px 24px',
+				'bold'    => true,
+			)
+		);
+
+		$subject = \FreeFormCertificate\Core\TokenResolver::resolve(
+			\FreeFormCertificate\Core\EmailTemplates::effective_body( 'access-granted', 'subject' ),
+			array(
+				'{{site_name}}'     => $site_name,
+				'{{context_label}}' => $context_label,
+			)
+		);
+		$content = \FreeFormCertificate\Core\TokenResolver::resolve(
+			\FreeFormCertificate\Core\EmailTemplates::effective_body( 'access-granted', 'body' ),
+			array(
+				'{{user_name}}'        => esc_html( (string) $user->display_name ),
+				'{{context_label}}'    => esc_html( $context_label ),
+				'{{site_name}}'        => esc_html( $site_name ),
+				'{{dashboard_button}}' => $dashboard_button,
 			)
 		);
 

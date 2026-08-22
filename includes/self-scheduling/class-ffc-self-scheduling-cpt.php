@@ -494,28 +494,27 @@ class SelfSchedulingCPT {
 			return;
 		}
 
-		// Prepare email.
-		$subject = sprintf(
-			/* translators: %s: site name */
-			__( '[%s] Appointment Cancelled - Calendar No Longer Available', 'ffcertificate' ),
-			get_bloginfo( 'name' )
-		);
-
 		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] );
 		$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] );
 
-		// Email body → shared configurable chrome (#662), like every other email.
-		$body = self::ffc_email_document(
-			self::ffc_render_email_partial(
-				'calendar-deleted-cancellation',
-				array(
-					'calendar_title' => $calendar_title,
-					'date_formatted' => $date_formatted,
-					'time_formatted' => $time_formatted,
-				)
-			),
-			array( 'recipient' => $email )
+		// Subject + body: the effective global (hub override → shipped file default,
+		// #965), resolved through the one token map. Subject token is plain text (a
+		// mail header); body scalars are esc_html'd at substitution.
+		$subject = \FreeFormCertificate\Core\TokenResolver::resolve(
+			\FreeFormCertificate\Core\EmailTemplates::effective_body( 'calendar-deleted-cancellation', 'subject' ),
+			array( '{{site_name}}' => get_bloginfo( 'name' ) )
 		);
+		$content = \FreeFormCertificate\Core\TokenResolver::resolve(
+			\FreeFormCertificate\Core\EmailTemplates::effective_body( 'calendar-deleted-cancellation', 'body' ),
+			array(
+				'{{calendar_title}}'   => esc_html( $calendar_title ),
+				'{{appointment_date}}' => esc_html( $date_formatted ),
+				'{{appointment_time}}' => esc_html( $time_formatted ),
+			)
+		);
+
+		// Email body → shared configurable chrome (#662), like every other email.
+		$body = self::ffc_email_document( $content, array( 'recipient' => $email ) );
 
 		// Send email.
 		self::ffc_send_mail( $email, $subject, $body, array(), \FreeFormCertificate\Core\EmailSource::SCHEDULING );
