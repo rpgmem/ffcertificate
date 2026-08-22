@@ -97,13 +97,15 @@ final class EmailTemplates {
 	 */
 	public static function shipped_body( string $name, string $key = 'body' ): string {
 		$data = self::load( $name );
-		return ( null !== $data && isset( $data[ $key ] ) && is_string( $data[ $key ] ) ) ? $data[ $key ] : '';
+		return ( null !== $data && isset( $data[ $key ] ) ) ? $data[ $key ] : '';
 	}
 
 	/**
-	 * All stored global overrides.
+	 * All stored global overrides — the raw option, treated as untrusted (an
+	 * admin/DB-authored blob), hence the `mixed` value type: readers guard each
+	 * value with `is_string()` before use.
 	 *
-	 * @return array<string, array<string, string>>
+	 * @return array<string, mixed>
 	 */
 	public static function global_overrides(): array {
 		$opt = get_option( self::OPTION, array() );
@@ -122,6 +124,9 @@ final class EmailTemplates {
 			return '';
 		}
 		$all = self::global_overrides();
+		if ( ! isset( $all[ $name ] ) || ! is_array( $all[ $name ] ) ) {
+			return '';
+		}
 		$val = $all[ $name ][ $key ] ?? '';
 		return is_string( $val ) ? $val : '';
 	}
@@ -150,8 +155,9 @@ final class EmailTemplates {
 	 * caller (the hub) is responsible for per-field sanitisation
 	 * (`wp_kses_post` on the body, `sanitize_text_field` on the subject).
 	 *
-	 * @param string                                         $name   Allowlisted template basename.
-	 * @param array{subject?:string|null, body?:string|null} $values Override values.
+	 * @param string               $name   Allowlisted template basename.
+	 * @param array<string, mixed> $values Override values (subject / body); each
+	 *                                     is used only when a non-empty string.
 	 * @return bool True when the option was updated (or already matched).
 	 */
 	public static function save_global( string $name, array $values ): bool {
