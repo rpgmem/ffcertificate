@@ -265,6 +265,84 @@ class CapabilityMigrator {
 	}
 
 	/**
+	 * Map of the source cap => the email-template cap it seeds on upgrade (#964).
+	 *
+	 * The one-shot migration {@see self::migrate_email_templates_cap_grant()}
+	 * grants `ffc_manage_email_templates` to every user/role already holding
+	 * `ffc_manage_settings`, so existing settings managers keep editing email
+	 * copy after the email-template hub is carved out of the blanket cap. To
+	 * withhold it from a manager, remove the sub-cap from that role/user after
+	 * the migration has run.
+	 *
+	 * @since 6.21.0
+	 * @return array<string, array<int, string>>
+	 */
+	public static function email_templates_cap_grant_map(): array {
+		return array(
+			'ffc_manage_settings' => array(
+				'ffc_manage_email_templates',
+			),
+		);
+	}
+
+	/**
+	 * Idempotent migration seeding `ffc_manage_email_templates` (#964) onto every
+	 * user and role that already holds `ffc_manage_settings`. Preserves current
+	 * behavior when the email-template hub cap is split out of the blanket cap;
+	 * never removes the source cap.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_email_templates_cap_v1` option.
+	 *
+	 * @since 6.21.0
+	 * @return array<string, int> Per-target-cap count of users seeded.
+	 */
+	public static function migrate_email_templates_cap_grant(): array {
+		$map    = self::email_templates_cap_grant_map();
+		$counts = array();
+
+		// 1. User-meta grants.
+		$users = get_users( array( 'fields' => 'ID' ) );
+		foreach ( $map as $source => $targets ) {
+			foreach ( $targets as $target ) {
+				if ( ! isset( $counts[ $target ] ) ) {
+					$counts[ $target ] = 0;
+				}
+				foreach ( $users as $user_id ) {
+					$user = get_userdata( (int) $user_id );
+					if ( ! $user ) {
+						continue;
+					}
+					if ( isset( $user->caps[ $source ] ) && true === $user->caps[ $source ]
+						&& ! isset( $user->caps[ $target ] ) ) {
+						$user->add_cap( $target, true );
+						++$counts[ $target ];
+					}
+				}
+			}
+		}
+
+		// 2. Role definitions — administrator + every FFC/custom role.
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $map as $source => $targets ) {
+				foreach ( $targets as $target ) {
+					if ( isset( $role->capabilities[ $source ] ) && true === $role->capabilities[ $source ]
+						&& ! isset( $role->capabilities[ $target ] ) ) {
+						$role->add_cap( $target, true );
+					}
+				}
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
 	 * Map of `manage` cap => the `export` cap it seeds on upgrade (GAP G).
 	 *
 	 * The one-shot migration {@see self::migrate_export_caps_grant()} grants the

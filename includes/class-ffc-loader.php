@@ -339,6 +339,7 @@ class Loader {
 		$this->ensure_import_caps_granted();
 		$this->ensure_reasons_caps_wired();
 		$this->ensure_settings_split_caps_granted();
+		$this->ensure_email_templates_cap_granted();
 		$this->ensure_activity_log_export_cap_granted();
 		$this->ensure_url_shortener_export_cap_granted();
 		$this->ensure_rbac_caps_renamed();
@@ -477,6 +478,25 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_settings_split_caps_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration that seeds the dedicated `ffc_manage_email_templates`
+	 * cap (#964) onto every user/role already holding `ffc_manage_settings`, so
+	 * existing settings managers keep editing email copy after the email-template
+	 * hub is carved out of the blanket cap. Flagged by `ffc_email_templates_cap_v1`.
+	 *
+	 * @return void
+	 */
+	private function ensure_email_templates_cap_granted(): void {
+		$flag = 'ffc_email_templates_cap_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_email_templates_cap_grant();
 		}
 		update_option( $flag, '1', true );
 	}

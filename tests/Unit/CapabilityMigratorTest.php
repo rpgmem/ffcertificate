@@ -34,6 +34,19 @@ class CapabilityMigratorTest extends TestCase {
 		parent::tearDown();
 	}
 
+	public function test_email_templates_cap_grant_map_seeds_from_manage_settings(): void {
+		// #964: the email-template hub cap is seeded onto ffc_manage_settings
+		// holders so existing settings managers keep editing email copy.
+		$map = CapabilityMigrator::email_templates_cap_grant_map();
+
+		$this->assertSame(
+			array( 'ffc_manage_settings' => array( 'ffc_manage_email_templates' ) ),
+			$map
+		);
+		// The target cap is a registered admin capability.
+		$this->assertContains( 'ffc_manage_email_templates', CapabilityManager::ADMIN_CAPABILITIES );
+	}
+
 	public function test_admin_role_assignment_backfills_role_and_strips_caps(): void {
 		$strip_cap = CapabilityManager::ADMIN_CAPABILITIES[0];
 

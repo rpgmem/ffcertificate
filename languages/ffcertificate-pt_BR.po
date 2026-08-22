@@ -20135,3 +20135,11 @@ msgstr "Personalização"
 #: includes/settings/tabs/class-ffc-tab-smtp.php
 msgid "Where"
 msgstr "Onde"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Manage email templates"
+msgstr "Gerenciar modelos de e-mail"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Edit the global default body and subject of the plugin emails."
+msgstr "Editar o corpo e o assunto padrão global dos e-mails do plugin."

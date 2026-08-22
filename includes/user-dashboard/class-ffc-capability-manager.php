@@ -240,6 +240,16 @@ class CapabilityManager {
 		'ffc_manage_settings_smtp',
 		'ffc_manage_settings_dangerzone',
 
+		// Email-template hub cap (#964). Gates editing the GLOBAL default body /
+		// subject of the plugin's emails (Settings → SMTP → "All plugin emails"),
+		// carved out so email-copy editing can be delegated — or withheld —
+		// independently of the blanket `ffc_manage_settings`. The one-shot
+		// `migrate_email_templates_cap_grant()` seeds it onto every current
+		// `ffc_manage_settings` holder, preserving current behavior on upgrade;
+		// admins restrict by removing it from a role. See
+		// `email_templates_cap_grant_map()`.
+		'ffc_manage_email_templates',
+
 		// Form / calendar structure management (#739). These decouple the
 		// `ffc_form` and `ffc_self_scheduling` CPTs from WordPress's native
 		// post capabilities: the CPTs register a custom `capability_type` +
