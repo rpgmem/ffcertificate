@@ -118,7 +118,7 @@ class FormEditorEmailMetabox {
 
 		<p class="description ffc-cert-email-global-note"<?php echo $is_custom ? ' style="display:none;"' : ''; ?>>
 			<?php esc_html_e( 'This form uses the shared global email text. Turn on the toggle above to write a version just for this form.', 'ffcertificate' ); ?>
-			<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=smtp' ) ); ?>"><?php esc_html_e( 'Edit the global text', 'ffcertificate' ); ?></a>
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=email_texts' ) ); ?>"><?php esc_html_e( 'Edit the global text', 'ffcertificate' ); ?></a>
 		</p>
 
 		<div class="ffc-cert-email-custom-fields"<?php echo $is_custom ? '' : ' style="display:none;"'; ?>>

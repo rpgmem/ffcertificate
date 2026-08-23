@@ -17,7 +17,7 @@
  * entirely (⇒ the email tracks the shipped wording again).
  *
  * Expects `$ffc_email_hub_catalog` — key => array{label:string, tokens:array<int,string>}.
- * Rendered by {@see \FreeFormCertificate\Settings\Tabs\TabSMTP::render_email_body_hub()},
+ * Rendered by {@see \FreeFormCertificate\Settings\Tabs\TabEmailTexts::render_email_body_hub()},
  * which has already confirmed the `ffc_manage_email_templates` capability.
  *
  * @package FreeFormCertificate\Settings\Views

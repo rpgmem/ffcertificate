@@ -32,30 +32,6 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 <div class="card">
 	<h2 class="ffc-icon-email"><?php esc_html_e( 'Email Configuration', 'ffcertificate' ); ?></h2>
 	<?php \FreeFormCertificate\Core\EmailDisabledNotice::render(); ?>
-	<?php
-	// Flash notice for the "Send a test email" action (Email Model box). This is
-	// a display-only read after a nonce-checked POST → redirect (PRG); the value
-	// is a fixed allowlisted flag, so no nonce is needed on this GET render.
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only flash after a nonce-checked POST; value allowlisted below.
-	$ffcertificate_test_email_flag = isset( $_GET['ffc_test_email'] ) ? sanitize_key( wp_unslash( $_GET['ffc_test_email'] ) ) : '';
-	if ( '' !== $ffcertificate_test_email_flag ) {
-		$ffcertificate_test_email_notices = array(
-			'sent'       => array( 'success', __( 'Test email sent to your account.', 'ffcertificate' ) ),
-			'disabled'   => array( 'warning', __( 'Emails are globally disabled, so the test email was not sent. Enable email sending above and try again.', 'ffcertificate' ) ),
-			'no_address' => array( 'error', __( 'Your account has no email address, so the test email could not be sent.', 'ffcertificate' ) ),
-			'failed'     => array( 'error', __( 'The test email could not be sent. Check your SMTP settings and try again.', 'ffcertificate' ) ),
-		);
-		if ( isset( $ffcertificate_test_email_notices[ $ffcertificate_test_email_flag ] ) ) {
-			wp_admin_notice(
-				esc_html( $ffcertificate_test_email_notices[ $ffcertificate_test_email_flag ][1] ),
-				array(
-					'type'               => $ffcertificate_test_email_notices[ $ffcertificate_test_email_flag ][0],
-					'additional_classes' => array( 'inline' ),
-				)
-			);
-		}
-	}
-	?>
 
 	<form method="post">
 		<?php wp_nonce_field( 'ffc_settings_action', 'ffc_settings_nonce' ); ?>
@@ -283,11 +259,5 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 	</p>
 </div>
 <?php endif; ?>
-
-<?php require FFC_PLUGIN_DIR . 'templates/admin/settings/email-model-box.php'; ?>
-
-<?php $settings->render_email_body_hub(); ?>
-
-<?php $settings->render_email_index(); ?>
 
 </div><!-- .ffc-settings-wrap -->

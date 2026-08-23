@@ -177,6 +177,8 @@ class Settings {
 			'reregistration' => '\\FreeFormCertificate\\Settings\\Tabs\\TabReregistration',
 			'modulos'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabModulos',
 			'smtp'           => '\\FreeFormCertificate\\Settings\\Tabs\\TabSMTP',
+			'email_model'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabEmailModel',
+			'email_texts'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabEmailTexts',
 			'cache'          => '\\FreeFormCertificate\\Settings\\Tabs\\TabCache',
 			'url_shortener'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabUrlShortener',
 			'rate_limit'     => '\\FreeFormCertificate\\Settings\\Tabs\\TabRateLimit',
@@ -620,6 +622,25 @@ class Settings {
 						$ffc_buckets[ $ffc_g ][ $ffc_tid ] = $ffc_tobj;
 					}
 
+					// Explicit intra-group order (#976): a group may pin a leading
+					// sequence of tabs (e.g. the email family SMTP → Email Model →
+					// Email texts) that should read as a unit instead of the default
+					// alphabetical order; tabs not named stay after them in their
+					// alphabetical order.
+					foreach ( self::nav_group_order() as $ffc_ordk => $ffc_seq ) {
+						if ( empty( $ffc_buckets[ $ffc_ordk ] ) ) {
+							continue;
+						}
+						$ffc_pinned = array();
+						foreach ( $ffc_seq as $ffc_pid ) {
+							if ( isset( $ffc_buckets[ $ffc_ordk ][ $ffc_pid ] ) ) {
+								$ffc_pinned[ $ffc_pid ] = $ffc_buckets[ $ffc_ordk ][ $ffc_pid ];
+								unset( $ffc_buckets[ $ffc_ordk ][ $ffc_pid ] );
+							}
+						}
+						$ffc_buckets[ $ffc_ordk ] = $ffc_pinned + $ffc_buckets[ $ffc_ordk ];
+					}
+
 					foreach ( $ffc_groups as $ffc_gkey => $ffc_glabel ) :
 						if ( 'external' === $ffc_gkey ) {
 							if ( empty( $ffc_links ) ) {
@@ -707,6 +728,23 @@ class Settings {
 			'tools'         => __( 'Tools', 'ffcertificate' ),
 			'external'      => __( 'Go to', 'ffcertificate' ),
 			'system'        => __( 'System', 'ffcertificate' ),
+		);
+	}
+
+	/**
+	 * Per-group explicit tab order (#976). Most groups sort alphabetically by
+	 * translated title ({@see \FreeFormCertificate\Core\LabelSorter}); a group
+	 * listed here pins a *leading* sequence of tab ids that should read as a
+	 * deliberate unit, with any unnamed tabs following in alphabetical order.
+	 *
+	 * The email family (SMTP transport → Email Model chrome → Email texts bodies)
+	 * is a workflow, not an alphabetical list, so it is pinned in that order.
+	 *
+	 * @return array<string, array<int, string>> Group key => ordered tab ids.
+	 */
+	public static function nav_group_order(): array {
+		return array(
+			'communication' => array( 'smtp', 'email_model', 'email_texts' ),
 		);
 	}
 
