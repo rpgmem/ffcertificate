@@ -347,7 +347,7 @@ class AppointmentEmailHandlerTest extends TestCase {
         );
 
         $this->assertTrue( $this->mail_sent );
-        $this->assertStringContainsString( 'Reminder', $this->last_mail['subject'] );
+        $this->assertStringContainsString( 'Appointment reminder', $this->last_mail['subject'] );
     }
 
     public function test_reminder_includes_cancel_link_when_allowed(): void {
