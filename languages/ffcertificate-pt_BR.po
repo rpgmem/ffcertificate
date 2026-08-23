@@ -20474,3 +20474,12 @@ msgstr "Os e-mails estão desativados globalmente, então o e-mail de teste não
 msgid "Every email the plugin can send, and where each one is configured. They all share the Email Model (its own tab); the ones marked \"Editable text (global)\" have their wording edited in the box above on this tab, and the rest ship a fixed default body you can only turn on or off."
 msgstr "Todos os e-mails que o plugin pode enviar e onde cada um é configurado. Todos compartilham o Modelo de E-mail (aba própria); os marcados como \"Texto editável (global)\" têm o texto editado na caixa acima nesta aba, e os demais têm um corpo padrão fixo que você só pode ligar ou desligar."
 
+
+#: includes/settings/tabs/
+msgid "Select an email to edit"
+msgstr "Selecione um e-mail para editar"
+
+#: includes/settings/tabs/
+msgid "Edit the default text of each plugin email once, globally. These are the message bodies only — the shared Email Model wraps every one with the same header and footer. Pick an email below to edit it; leave one untouched (or use \"Restore Default Text\") to keep its shipped wording."
+msgstr "Edite o texto padrão de cada e-mail do plugin uma vez, globalmente. Estes são apenas os corpos das mensagens — o Modelo de E-mail compartilhado envolve cada um com o mesmo cabeçalho e rodapé. Escolha um e-mail abaixo para editá-lo; deixe um intocado (ou use \"Restaurar Texto Padrão\") para manter o texto original."
+
