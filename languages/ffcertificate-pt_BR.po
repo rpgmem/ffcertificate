@@ -20348,3 +20348,120 @@ msgstr "Alerta o administrador sobre um novo agendamento; corpo fixo."
 #: includes/settings/tabs/class-ffc-tab-smtp.php
 msgid "Tells a user they were granted plugin access — text edited globally in the hub above."
 msgstr "Informa a um usuário que recebeu acesso ao plugin — texto editado globalmente no hub acima."
+
+#: templates/emails/
+msgid "Access granted"
+msgstr "Acesso concedido"
+
+#: templates/emails/
+msgid "Access to:"
+msgstr "Acesso a:"
+
+#: templates/emails/
+msgid "New appointment booking"
+msgstr "Novo agendamento"
+
+#: templates/emails/
+msgid "Appointment confirmed"
+msgstr "Agendamento confirmado"
+
+#: templates/emails/
+msgid "A spot opened up"
+msgstr "Uma vaga foi liberada"
+
+#: templates/emails/
+msgid "You are on the waitlist"
+msgstr "Você está na lista de espera"
+
+#: templates/emails/
+msgid "New scheduled activity"
+msgstr "Nova atividade agendada"
+
+#: templates/emails/
+msgid "You have been included in a new scheduled activity."
+msgstr "Você foi incluído(a) em uma nova atividade agendada."
+
+#: templates/emails/
+msgid "Activity cancelled"
+msgstr "Atividade cancelada"
+
+#: templates/emails/
+msgid "A scheduled activity you were included in has been cancelled."
+msgstr "Uma atividade agendada em que você estava incluído(a) foi cancelada."
+
+#: templates/emails/
+msgid "Your appointment has been cancelled because the calendar \"{{calendar_title}}\" is no longer available."
+msgstr "Seu agendamento foi cancelado porque o calendário \"{{calendar_title}}\" não está mais disponível."
+
+#: templates/emails/
+msgid "Your document is ready"
+msgstr "Seu documento está pronto"
+
+#: templates/emails/
+msgid "Your document for {{form_title}} was issued on {{date}}."
+msgstr "Seu documento de {{form_title}} foi emitido em {{date}}."
+
+#: templates/emails/
+msgid "Document:"
+msgstr "Documento:"
+
+#: templates/emails/
+msgid "Authentication code:"
+msgstr "Código de autenticação:"
+
+#: templates/emails/
+msgid "Download document (PDF)"
+msgstr "Baixar documento (PDF)"
+
+#: templates/emails/
+msgid "You can verify this document anytime at"
+msgstr "Você pode verificar este documento a qualquer momento em"
+
+#: templates/emails/
+msgid "Recruitment call"
+msgstr "Convocação"
+
+#: templates/emails/
+msgid "You have been called for notice {{notice_code}} — {{notice_name}} in adjutancy {{adjutancy}}."
+msgstr "Você foi convocado(a) para o edital {{notice_code}} — {{notice_name}} na adjutância {{adjutancy}}."
+
+#: templates/emails/
+msgid "Rank:"
+msgstr "Classificação:"
+
+#: templates/emails/
+msgid "Score:"
+msgstr "Pontuação:"
+
+#: templates/emails/
+msgid "Date to assume:"
+msgstr "Data para assumir:"
+
+#: templates/emails/
+msgid "Reregistration received"
+msgstr "Rerregistro recebido"
+
+#: templates/emails/
+msgid "Click the button above to verify and download your reregistration record (PDF). You can also review your submission details in your dashboard at any time."
+msgstr "Clique no botão acima para verificar e baixar o seu comprovante de rerregistro (PDF). Você também pode consultar os detalhes do seu envio no painel a qualquer momento."
+
+#: templates/emails/
+msgid "Reregistration open"
+msgstr "Rerregistro aberto"
+
+#: templates/emails/
+msgid "A new reregistration campaign has been opened for your group."
+msgstr "Uma nova campanha de rerregistro foi aberta para o seu grupo."
+
+#: templates/emails/
+msgid "This is a friendly reminder that the following reregistration campaign is still pending."
+msgstr "Este é um lembrete de que a seguinte campanha de rerregistro ainda está pendente."
+
+#: templates/emails/
+msgid "Appointment booked"
+msgstr "Agendamento realizado"
+
+#: templates/emails/
+msgid "New form submission"
+msgstr "Novo envio de formulário"
+

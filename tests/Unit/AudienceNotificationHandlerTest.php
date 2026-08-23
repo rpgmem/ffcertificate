@@ -233,7 +233,8 @@ class AudienceNotificationHandlerTest extends TestCase {
             '{{description}}',
             '{{audiences}}',
             '{{creator_name}}',
-            '{{site_name}}',
+            // {{site_name}} moved to the shared Email Model footer (#976 standard) —
+            // no longer duplicated as a body-level "Best regards, {{site_name}}" sign-off.
         );
 
         foreach ( $expected_placeholders as $placeholder ) {
@@ -254,7 +255,7 @@ class AudienceNotificationHandlerTest extends TestCase {
             '{{description}}',
             '{{cancelled_by_name}}',
             '{{cancellation_reason}}',
-            '{{site_name}}',
+            // {{site_name}} moved to the shared Email Model footer (#976 standard).
         );
 
         foreach ( $expected_placeholders as $placeholder ) {
