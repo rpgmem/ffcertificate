@@ -127,26 +127,30 @@ class TabEmailTextsTest extends TestCase {
     public function test_render_hub_shows_the_hub_emails(): void {
         Functions\when( 'current_user_can' )->justReturn( true );
         Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } );
+        Functions\when( 'esc_textarea' )->returnArg();
         Functions\when( 'wp_kses' )->returnArg();
         Functions\when( 'wp_nonce_field' )->justReturn( '' );
         Functions\when( 'submit_button' )->alias( static function ( $t = '' ) { echo '<submit>'; } );
         Functions\when( 'get_option' )->justReturn( array() );
-        Functions\when( 'wp_editor' )->alias(
-            static function ( $content, $id, $settings = array() ) {
-                echo '<textarea name="' . ( $settings['textarea_name'] ?? '' ) . '"></textarea>';
-            }
-        );
 
         ob_start();
         $this->tab->render_email_body_hub();
         $out = (string) ob_get_clean();
 
+        // Each email renders a plain <textarea> keyed by template (TinyMCE is
+        // initialized on demand client-side, #976 B2).
         $this->assertStringContainsString( 'ffc_email_bodies[certificate-user][body]', $out );
         $this->assertStringContainsString( 'ffc_email_bodies[recruitment-convocation][body]', $out );
         $this->assertStringContainsString( 'ffc_email_bodies[selfscheduling-confirmation][body]', $out );
         $this->assertStringContainsString( 'ffc_email_bodies[access-granted][body]', $out );
         $this->assertStringContainsString( 'ffc_save_email_bodies', $out );
         $this->assertStringContainsString( 'validation_url', $out );
+        // The picker + its feature optgroups drive which editor is shown.
+        $this->assertStringContainsString( 'id="ffc-email-texts-select"', $out );
+        $this->assertStringContainsString( '<optgroup label="Self-scheduling">', $out );
+        $this->assertStringContainsString( '<optgroup label="Account access">', $out );
+        // Only the first item is visible on load; the rest are hidden for the JS.
+        $this->assertStringContainsString( 'style="display:none;"', $out );
     }
 
     public function test_maybe_save_persists_edited_override(): void {
@@ -219,5 +223,42 @@ class TabEmailTextsTest extends TestCase {
         $ref = new \ReflectionMethod( TabEmailTexts::class, 'maybe_save_email_bodies' );
         $ref->setAccessible( true );
         $this->assertFalse( $ref->invoke( $this->tab ) );
+    }
+
+    // ==================================================================
+    // enqueue_scripts() — the selector JS + editor API (#976 B2)
+    // ==================================================================
+
+    public function test_enqueue_scripts_loads_editor_and_selector_when_cap_held(): void {
+        $_GET['tab'] = 'email_texts';
+        Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'current_user_can' )->justReturn( true ); // hub cap held.
+
+        $utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
+        $utils_mock->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
+        $tpl = Mockery::mock( 'alias:FreeFormCertificate\Core\EmailTemplates' );
+        $tpl->shouldReceive( 'body' )->andReturn( '' );
+
+        Functions\when( 'wp_localize_script' )->justReturn( null );
+        Functions\expect( 'wp_enqueue_editor' )->atLeast()->once();
+        Functions\expect( 'wp_enqueue_script' )
+            ->with( 'ffc-email-restore-default', Mockery::type( 'string' ), array( 'jquery' ), Mockery::type( 'string' ), true )
+            ->once();
+        Functions\expect( 'wp_enqueue_script' )
+            ->with( 'ffc-email-texts', Mockery::type( 'string' ), array( 'jquery', 'editor', 'quicktags' ), Mockery::type( 'string' ), true )
+            ->once();
+
+        $this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
+    }
+
+    public function test_enqueue_scripts_noop_without_cap(): void {
+        $_GET['tab'] = 'email_texts';
+        Functions\when( 'wp_unslash' )->returnArg();
+        Functions\when( 'current_user_can' )->justReturn( false ); // hub cap not held.
+
+        Functions\expect( 'wp_enqueue_editor' )->never();
+        Functions\expect( 'wp_enqueue_script' )->never();
+
+        $this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
     }
 }

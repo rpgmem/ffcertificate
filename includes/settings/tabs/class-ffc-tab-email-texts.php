@@ -85,6 +85,36 @@ class TabEmailTexts extends SettingsTab {
 			true
 		);
 		wp_localize_script( 'ffc-email-restore-default', 'ffcEmailRestoreDefaults', $ffc_restore_defaults );
+
+		// Per-email selector (#976 B2): the hub renders one plain <textarea> per
+		// email but shows only the selected one and initializes TinyMCE on demand
+		// (wp.editor.initialize / .remove), so the 15 editors no longer all boot at
+		// once. wp_enqueue_editor() loads the TinyMCE + Quicktags assets the runtime
+		// initializer needs.
+		wp_enqueue_editor();
+		wp_enqueue_script(
+			'ffc-email-texts',
+			FFC_PLUGIN_URL . "assets/js/ffc-email-texts{$s}.js",
+			array( 'jquery', 'editor', 'quicktags' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-email-texts',
+			'ffcEmailTexts',
+			array(
+				'editorSettings' => array(
+					'mediaButtons' => false,
+					'tinymce'      => array(
+						'toolbar1' => 'bold,italic,underline,bullist,numlist,link,unlink,undo,redo',
+						'toolbar2' => '',
+						'wpautop'  => true,
+						'height'   => 220,
+					),
+					'quicktags'    => array( 'buttons' => 'strong,em,link,ul,ol,li,close' ),
+				),
+			)
+		);
 	}
 
 	/**
@@ -246,7 +276,39 @@ class TabEmailTexts extends SettingsTab {
 			return;
 		}
 		$ffc_email_hub_catalog = self::email_body_hub_catalog();
+		$ffc_email_hub_groups  = self::email_hub_groups();
 		require FFC_PLUGIN_DIR . 'templates/admin/settings/email-body-hub.php';
+	}
+
+	/**
+	 * Feature grouping for the hub's email selector (#976 B2): an ordered map of
+	 * group label => the catalogued template keys in that group. Drives the
+	 * `<optgroup>`s of the "select an email" picker and the render order of the
+	 * per-email editors (only the selected one is shown, TinyMCE on demand).
+	 *
+	 * @return array<string, array<int, string>>
+	 */
+	private static function email_hub_groups(): array {
+		return array(
+			__( 'Certificates & forms', 'ffcertificate' ) => array( 'certificate-user' ),
+			__( 'Self-scheduling', 'ffcertificate' )      => array(
+				'selfscheduling-confirmation',
+				'appointment-approval',
+				'appointment-cancellation',
+				'appointment-reminder',
+				'appointment-promoted',
+				'appointment-waitlisted',
+				'calendar-deleted-cancellation',
+			),
+			__( 'Recruitment', 'ffcertificate' )          => array( 'recruitment-convocation' ),
+			__( 'Reregistration', 'ffcertificate' )       => array(
+				'reregistration-invitation',
+				'reregistration-reminder',
+				'reregistration-confirmation',
+			),
+			__( 'Audiences', 'ffcertificate' )            => array( 'audience-booking', 'audience-cancellation' ),
+			__( 'Account access', 'ffcertificate' )       => array( 'access-granted' ),
+		);
 	}
 
 	/**
@@ -273,7 +335,7 @@ class TabEmailTexts extends SettingsTab {
 		<p class="description">
 			<?php esc_html_e( 'Every email the plugin can send, and where each one is configured. They all share the Email Model (its own tab); the ones marked "Editable text (global)" have their wording edited in the box above on this tab, and the rest ship a fixed default body you can only turn on or off.', 'ffcertificate' ); ?>
 		</p>
-		<table class="widefat striped ffc-email-index" style="max-width:820px;">
+		<table class="widefat striped ffc-email-index">
 			<thead>
 				<tr>
 					<th scope="col"><?php esc_html_e( 'Email', 'ffcertificate' ); ?></th>
