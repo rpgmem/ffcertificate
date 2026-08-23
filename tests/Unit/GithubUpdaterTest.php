@@ -67,6 +67,7 @@ class GithubUpdaterTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		unset( $_GET['force-check'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -152,6 +153,44 @@ class GithubUpdaterTest extends TestCase {
 		$out        = GithubUpdater::check_for_update( $t );
 
 		$this->assertObjectNotHasProperty( 'response', $out );
+	}
+
+	public function test_force_check_busts_the_release_cache(): void {
+		$_GET['force-check'] = '1';
+		$this->seed_cache( $this->release( '6.17.0' ) );
+
+		$deleted = array();
+		Functions\when( 'delete_site_transient' )->alias(
+			static function ( $key ) use ( &$deleted ) {
+				$deleted[] = $key;
+				return true;
+			}
+		);
+
+		$out = GithubUpdater::check_for_update( $this->transient( '6.16.0' ) );
+
+		// The forced check drops our cached payload so the scan re-fetches GitHub
+		// (and clears any persistent object-cache copy).
+		$this->assertContains( 'ffc_github_update', $deleted );
+		$this->assertArrayHasKey( self::PLUGIN_FILE, $out->response );
+	}
+
+	public function test_normal_check_does_not_bust_the_release_cache(): void {
+		$this->seed_cache( $this->release( '6.17.0' ) );
+
+		$deleted = array();
+		Functions\when( 'delete_site_transient' )->alias(
+			static function ( $key ) use ( &$deleted ) {
+				$deleted[] = $key;
+				return true;
+			}
+		);
+
+		$out = GithubUpdater::check_for_update( $this->transient( '6.16.0' ) );
+
+		// Without force-check, the 12h cache is respected — no delete.
+		$this->assertSame( array(), $deleted );
+		$this->assertArrayHasKey( self::PLUGIN_FILE, $out->response );
 	}
 
 	public function test_no_op_when_release_unavailable(): void {
