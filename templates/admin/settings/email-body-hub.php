@@ -58,7 +58,11 @@ $ffc_first_editor = true;
 				<?php foreach ( $ffc_email_hub_groups as $ffc_group_label => $ffc_group_keys ) : ?>
 					<optgroup label="<?php echo esc_attr( $ffc_group_label ); ?>">
 						<?php foreach ( $ffc_group_keys as $ffc_key ) : ?>
-							<?php if ( ! isset( $ffc_email_hub_catalog[ $ffc_key ] ) ) { continue; } ?>
+							<?php
+							if ( ! isset( $ffc_email_hub_catalog[ $ffc_key ] ) ) {
+								continue;
+							}
+							?>
 							<option value="<?php echo esc_attr( 'ffc_email_body_' . str_replace( '-', '_', (string) $ffc_key ) ); ?>">
 								<?php echo esc_html( $ffc_email_hub_catalog[ $ffc_key ]['label'] ); ?>
 							</option>
