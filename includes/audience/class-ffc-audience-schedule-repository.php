@@ -117,16 +117,6 @@ class AudienceScheduleRepository {
 	/**
 	 * Get schedule by ID
 	 *
-	 * Get by id.
-	 *
-	 * Get by id.
-	 *
-	 * Get by id.
-	 *
-	 * Get by id.
-	 *
-	 * Get by id.
-	 *
 	 * @param int $id Schedule ID.
 	 * @return ScheduleRow|null
 	 */

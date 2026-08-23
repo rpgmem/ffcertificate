@@ -72,6 +72,10 @@ class AppointmentValidatorTest extends TestCase {
         } );
         // Scheduling namespace (DateBlockingService).
 
+        Functions\when( '_n' )->alias( function ( $single, $plural, $number ) {
+            return 1 === (int) $number ? $single : $plural;
+        } );
+
         $this->appointmentRepo = Mockery::mock( 'FreeFormCertificate\Repositories\AppointmentRepository' );
         $this->blockedDateRepo = Mockery::mock( 'FreeFormCertificate\Repositories\BlockedDateRepository' );
 
@@ -116,6 +120,70 @@ class AppointmentValidatorTest extends TestCase {
             'scheduling_visibility'             => 'public',
             'restrict_booking_to_hours'         => false,
         );
+    }
+
+    /**
+     * Custom-mode calendar (#941) with a single block matching valid_data()
+     * (2030-01-15 @ 10:00), capacity 40. advance_booking_max is set to prove
+     * it is skipped in custom mode.
+     *
+     * @param int $capacity Block capacity.
+     * @return array<string, mixed>
+     */
+    private function custom_calendar( int $capacity = 40 ): array {
+        return array_merge(
+            $this->permissive_calendar(),
+            array(
+                'schedule_type'       => 'custom',
+                'advance_booking_max' => 30, // would reject 2030 in regular mode
+                'custom_slots'        => array(
+                    array( 'date' => '2030-01-15', 'start' => '10:00', 'end' => '13:00', 'capacity' => $capacity, 'label' => '' ),
+                ),
+            )
+        );
+    }
+
+    // ==================================================================
+    // validate() — custom mode (#941)
+    // ==================================================================
+
+    public function test_validate_custom_unknown_block_returns_error(): void {
+        $data                = $this->valid_data();
+        $data['start_time']  = '09:00'; // no block at 09:00
+        $result              = $this->validator->validate( $data, $this->custom_calendar() );
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'invalid_slot', $result->get_error_code() );
+    }
+
+    public function test_validate_custom_uses_block_capacity(): void {
+        // The block capacity (40), not the calendar max (10), must be passed.
+        $this->appointmentRepo->shouldReceive( 'isSlotAvailable' )
+            ->once()
+            ->with( 1, '2030-01-15', '10:00', 40, false )
+            ->andReturn( true );
+
+        $result = $this->validator->validate( $this->valid_data(), $this->custom_calendar( 40 ) );
+        $this->assertTrue( $result );
+    }
+
+    public function test_validate_custom_skips_advance_max(): void {
+        // 2030 is well beyond advance_booking_max=30 days; custom must not reject.
+        $result = $this->validator->validate( $this->valid_data(), $this->custom_calendar() );
+        $this->assertTrue( $result );
+    }
+
+    public function test_validate_custom_overbook_capability_bypasses_full_block(): void {
+        // Block is full…
+        $this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->andReturn( false );
+        // …but the caller holds the overbook capability.
+        Functions\when( 'current_user_can' )->alias( function ( $cap ) {
+            if ( $cap === 'ffc_bypass_appointment_capacity' ) return true;
+            if ( $cap === 'ffc_book_own_appointments' ) return true;
+            return false;
+        } );
+
+        $result = $this->validator->validate( $this->valid_data(), $this->custom_calendar() );
+        $this->assertTrue( $result, 'Overbook capability skips the capacity gate' );
     }
 
     // ==================================================================
@@ -220,6 +288,109 @@ class AppointmentValidatorTest extends TestCase {
         $result = $this->validator->validate( $this->valid_data(), $this->permissive_calendar() );
         $this->assertInstanceOf( \WP_Error::class, $result );
         $this->assertSame( 'slot_full', $result->get_error_code() );
+        $this->assertFalse( $this->validator->is_waitlist_requested() );
+    }
+
+    // ==================================================================
+    // validate() — waitlist diversion (#941 phase 2)
+    // ==================================================================
+
+    public function test_validate_full_slot_with_open_waitlist_is_accepted(): void {
+        // Slot full, but the calendar's waitlist is enabled and unbounded.
+        $this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->andReturn( false );
+
+        $calendar                     = $this->permissive_calendar();
+        $calendar['waitlist_enabled'] = 1;
+        $calendar['waitlist_capacity'] = 0; // unlimited
+
+        $result = $this->validator->validate( $this->valid_data(), $calendar );
+
+        $this->assertTrue( $result );
+        $this->assertTrue( $this->validator->is_waitlist_requested() );
+    }
+
+    public function test_validate_full_slot_with_full_waitlist_is_rejected(): void {
+        $this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->andReturn( false );
+        // Queue already at capacity (2 waiting, cap 2).
+        $this->appointmentRepo->shouldReceive( 'countWaitlisted' )->andReturn( 2 );
+
+        $calendar                      = $this->permissive_calendar();
+        $calendar['waitlist_enabled']  = 1;
+        $calendar['waitlist_capacity'] = 2;
+
+        $result = $this->validator->validate( $this->valid_data(), $calendar );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'slot_full', $result->get_error_code() );
+        $this->assertFalse( $this->validator->is_waitlist_requested() );
+    }
+
+    public function test_validate_full_slot_with_room_left_in_waitlist_is_accepted(): void {
+        $this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->andReturn( false );
+        // Only 1 waiting against a cap of 3 → room.
+        $this->appointmentRepo->shouldReceive( 'countWaitlisted' )->andReturn( 1 );
+
+        $calendar                      = $this->permissive_calendar();
+        $calendar['waitlist_enabled']  = 1;
+        $calendar['waitlist_capacity'] = 3;
+
+        $result = $this->validator->validate( $this->valid_data(), $calendar );
+
+        $this->assertTrue( $result );
+        $this->assertTrue( $this->validator->is_waitlist_requested() );
+    }
+
+    // ==================================================================
+    // validate() — per-user block cap (#941 phase 3, custom mode)
+    // ==================================================================
+
+    public function test_validate_block_cap_rejects_user_at_limit(): void {
+        $calendar = array_merge( $this->custom_calendar(), array( 'max_blocks_per_user' => 2 ) );
+        // The user (user_id=1) already holds two blocks in this calendar — one
+        // confirmed, one waitlisted (waitlist counts toward the cap).
+        $this->appointmentRepo->shouldReceive( 'findByUserId' )->with( 1 )->andReturn( array(
+            array( 'calendar_id' => 1, 'status' => 'confirmed' ),
+            array( 'calendar_id' => 1, 'status' => 'waitlist' ),
+        ) );
+
+        $result = $this->validator->validate( $this->valid_data(), $calendar );
+
+        $this->assertInstanceOf( \WP_Error::class, $result );
+        $this->assertSame( 'block_limit', $result->get_error_code() );
+    }
+
+    public function test_validate_block_cap_allows_user_below_limit(): void {
+        $calendar = array_merge( $this->custom_calendar(), array( 'max_blocks_per_user' => 2 ) );
+        $this->appointmentRepo->shouldReceive( 'findByUserId' )->with( 1 )->andReturn( array(
+            array( 'calendar_id' => 1, 'status' => 'confirmed' ),
+        ) );
+
+        $result = $this->validator->validate( $this->valid_data(), $calendar );
+
+        $this->assertTrue( $result );
+    }
+
+    public function test_validate_block_cap_ignores_cancelled_and_other_calendars(): void {
+        $calendar = array_merge( $this->custom_calendar(), array( 'max_blocks_per_user' => 1 ) );
+        // Cancelled/completed don't count; a booking in another calendar doesn't count.
+        $this->appointmentRepo->shouldReceive( 'findByUserId' )->with( 1 )->andReturn( array(
+            array( 'calendar_id' => 1, 'status' => 'cancelled' ),
+            array( 'calendar_id' => 1, 'status' => 'completed' ),
+            array( 'calendar_id' => 2, 'status' => 'confirmed' ),
+        ) );
+
+        $result = $this->validator->validate( $this->valid_data(), $calendar );
+
+        $this->assertTrue( $result );
+    }
+
+    public function test_validate_block_cap_disabled_skips_user_lookup(): void {
+        // max_blocks_per_user absent/0 → the cap check never queries the user's bookings.
+        $this->appointmentRepo->shouldReceive( 'findByUserId' )->never();
+
+        $result = $this->validator->validate( $this->valid_data(), $this->custom_calendar() );
+
+        $this->assertTrue( $result );
     }
 
     public function test_validate_daily_limit_reached_returns_error(): void {

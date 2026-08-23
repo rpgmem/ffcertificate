@@ -1,9 +1,9 @@
 <?php
 /**
- * Documentation partial — Section 9: Audience Custom Fields.
+ * Documentation partial — Feature: Audience Custom Fields.
  *
- * Extracted from `ffc-tab-documentation.php` per S8 of the
- * god-object refactor (rpgmem/ffcertificate#141).
+ * Documents the per-audience custom data fields and their supported field
+ * types, reused during reregistration and on the WordPress user profile.
  *
  * @package FreeFormCertificate\Settings
  */

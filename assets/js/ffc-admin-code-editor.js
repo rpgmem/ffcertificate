@@ -1,111 +1,36 @@
 /**
- * FFC — CodeMirror initializer for the certificate HTML template textarea.
+ * FFC — CodeMirror initializer for the single certificate HTML template textarea.
  *
- * Wraps a certificate-HTML textarea (id supplied via `ffcCodeEditor.textareaId`
- * — the form editor's `ffc_pdf_layout` or the cert-template CPT edit screen's
- * `ffc_template_html`) with WordPress's bundled CodeMirror so admins get HTML
- * syntax highlighting plus a custom overlay that paints `{{placeholder}}` tokens
- * in a distinct color.
- *
- * The underlying textarea is preserved and its value continues to be synced on
- * every change, so form submission behaviour is byte-for-byte identical to the
- * plain-textarea path. If `wp_enqueue_code_editor()` returned false (the user
- * disabled Syntax Highlighting in their profile) we render a subtle inline
- * notice and do nothing else — the textarea remains fully functional.
+ * Thin caller over the shared `window.FFCCodeEditor.init()`
+ * ({@see assets/js/ffc-code-editor-core.js}): mounts CodeMirror on the textarea
+ * whose id is supplied via `ffcCodeEditor.textareaId` (the form editor's
+ * `ffc_pdf_layout` or the cert-template CPT edit screen's `ffc_template_html`),
+ * with the `{{placeholder}}` overlay, the theme wrapper class and the
+ * change/submit sync all owned by the core. When Syntax Highlighting is
+ * disabled, the core renders the fallback notice and the plain textarea keeps
+ * working.
  *
  * @since 5.4.1
  */
-( function ( $ ) {
+( function () {
 	'use strict';
 
-	$( function () {
+	jQuery( function () {
 		var config = window.ffcCodeEditor || {};
 
 		// The textarea id is supplied by the enqueuing screen (the form editor
 		// uses `ffc_pdf_layout`; the cert-template CPT edit screen uses
 		// `ffc_template_html`). Fall back to the form-editor id for safety.
-		var textareaId = config.textareaId || 'ffc_pdf_layout';
-		var $textarea  = $( '#' + textareaId );
-		if ( ! $textarea.length ) {
-			return;
-		}
-
-		if ( ! config.enabled || ! config.settings || 'undefined' === typeof window.wp || ! window.wp.codeEditor ) {
-			renderDisabledNotice( $textarea, config );
-			return;
-		}
-
-		var placeholderOverlay = {
-			token: function ( stream ) {
-				if ( stream.match( /\{\{[^}]+\}\}/ ) ) {
-					return 'ffc-placeholder-token';
-				}
-				while ( stream.next() != null ) {
-					if ( stream.eol() ) {
-						break;
-					}
-					if ( stream.peek() === '{' ) {
-						break;
-					}
-				}
-				return null;
-			},
-		};
-
-		var editor;
-		try {
-			editor = window.wp.codeEditor.initialize( textareaId, config.settings );
-		} catch ( err ) {
-			renderDisabledNotice( $textarea, config );
-			return;
-		}
-
-		if ( ! editor || ! editor.codemirror ) {
-			return;
-		}
-
-		var cm = editor.codemirror;
-		cm.addOverlay( placeholderOverlay );
-
-		// Flag the wrapper so theme-dependent selectors (e.g. the dark-border
-		// override) can target only the active theme.
-		var $wrapper = $textarea.closest( '.ffc-code-editor-wrapper' );
-		if ( $wrapper.length ) {
-			$wrapper.addClass( 'ffc-code-editor-theme-' + ( config.theme || 'light' ) );
-		}
-
-		// Keep the underlying textarea value in sync so the form submit carries
-		// the current editor content even if the browser skips CodeMirror's own
-		// save hook.
-		cm.on( 'change', function () {
-			cm.save();
-		} );
-
-		$textarea.closest( 'form' ).on( 'submit', function () {
-			cm.save();
-		} );
+		window.FFCCodeEditor.init(
+			config.textareaId || 'ffc_pdf_layout',
+			config.enabled ? config.settings : null,
+			{
+				theme: config.theme,
+				notice: {
+					strings: config.strings,
+					profileUrl: config.profileUrl,
+				},
+			}
+		);
 	} );
-
-	function renderDisabledNotice( $textarea, config ) {
-		if ( $textarea.data( 'ffc-syntax-notice-rendered' ) ) {
-			return;
-		}
-		$textarea.data( 'ffc-syntax-notice-rendered', true );
-
-		var strings    = ( config && config.strings ) || {};
-		var profileUrl = ( config && config.profileUrl ) || '';
-		var notice     = $( '<p class="description ffc-code-editor-notice"></p>' );
-
-		notice.text( strings.syntaxDisabledNotice || '' );
-		if ( profileUrl ) {
-			notice
-				.append( document.createTextNode( ' ' ) )
-				.append(
-					$( '<a>' )
-						.attr( 'href', profileUrl )
-						.text( strings.openProfile || profileUrl )
-				);
-		}
-		$textarea.after( notice );
-	}
-} )( jQuery );
+} )();

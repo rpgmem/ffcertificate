@@ -38,9 +38,10 @@ class CertTemplateWriter {
 	 * @param string $html     Template HTML body.
 	 * @param bool   $visible  Whether it appears in the editor "Load" list. Default true.
 	 * @param string $bg_image Background-image URL (already sanitized by the caller). Default ''.
+	 * @param string $kind     Which surface the template serves (#945). Default `certificate`.
 	 * @return int The new post id, or 0 on failure.
 	 */
-	public static function create( string $title, string $html, bool $visible = true, string $bg_image = '' ): int {
+	public static function create( string $title, string $html, bool $visible = true, string $bg_image = '', string $kind = CertTemplateCpt::KIND_CERTIFICATE ): int {
 		$id = wp_insert_post(
 			array(
 				'post_type'   => CertTemplateCpt::POST_TYPE,
@@ -57,6 +58,7 @@ class CertTemplateWriter {
 		update_post_meta( $id, CertTemplateCpt::META_HTML, $html );
 		update_post_meta( $id, CertTemplateCpt::META_VISIBLE, $visible ? '1' : '0' );
 		update_post_meta( $id, CertTemplateCpt::META_BG_IMAGE, $bg_image );
+		update_post_meta( $id, CertTemplateCpt::META_KIND, $kind );
 		// User templates are never plugin-shipped defaults.
 		update_post_meta( $id, CertTemplateCpt::META_IS_DEFAULT, '0' );
 
@@ -75,6 +77,24 @@ class CertTemplateWriter {
 			return false;
 		}
 		update_post_meta( $id, CertTemplateCpt::META_VISIBLE, $visible ? '1' : '0' );
+		return true;
+	}
+
+	/**
+	 * Set a template's kind (`certificate` / `appointment_receipt`). Used by the
+	 * "Add New" `?ffc_kind=` preset (#951) so a template created from a feature's
+	 * "+ New" link is born the right kind.
+	 *
+	 * @param int    $id   Template post id.
+	 * @param string $kind One of the {@see CertTemplateCpt}::KIND_* values.
+	 * @return bool True when applied, false when the id is not a pool template or
+	 *              the kind is unknown.
+	 */
+	public static function set_kind( int $id, string $kind ): bool {
+		if ( ! self::is_pool_post( $id ) || ! CertTemplateCpt::is_valid_kind( $kind ) ) {
+			return false;
+		}
+		update_post_meta( $id, CertTemplateCpt::META_KIND, $kind );
 		return true;
 	}
 

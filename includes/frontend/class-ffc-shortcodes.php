@@ -7,7 +7,7 @@
  * v2.9.0: Added hash-based token support (#token=)
  * v2.9.2: OPTIMIZED to use FFC_Utils functions
  * v3.3.0: Added strict types and type hints
- * v3.2.0: Migrated to namespace (Phase 2)
+ * v3.2.0: Migrated to namespace
  *
  * @package FreeFormCertificate\Frontend
  */
@@ -55,8 +55,9 @@ class Shortcodes {
 		?>
 		<div class="ffc-security-container">
 			<div class="ffc-honeypot-field">
-				<label><?php esc_html_e( 'Do not fill this field if you are human:', 'ffcertificate' ); ?></label>
-				<input type="text" name="ffc_honeypot_trap" value="" tabindex="-1" autocomplete="off">
+				<label><?php esc_html_e( 'Do not fill this field if you are human:', 'ffcertificate' ); ?>
+					<input type="text" name="ffc_honeypot_trap" value="" tabindex="-1" autocomplete="off">
+				</label>
 			</div>
 
 			<div class="ffc-captcha-row">

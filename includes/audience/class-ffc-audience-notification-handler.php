@@ -125,7 +125,7 @@ class AudienceNotificationHandler {
 
 			self::send_email(
 				$user->user_email,
-				self::get_booking_subject( $booking_data ),
+				self::render_subject( \FreeFormCertificate\Core\EmailTemplates::effective_body( 'audience-booking', 'subject' ), $booking_data ),
 				self::render_template( $template, $booking_data, $user ),
 				$ics_content
 			);
@@ -220,7 +220,7 @@ class AudienceNotificationHandler {
 
 			self::send_email(
 				$user->user_email,
-				self::get_cancellation_subject( $booking_data ),
+				self::render_subject( \FreeFormCertificate\Core\EmailTemplates::effective_body( 'audience-cancellation', 'subject' ), $booking_data ),
 				self::render_template( $template, $booking_data, $user ),
 				$ics_content
 			);
@@ -331,56 +331,49 @@ class AudienceNotificationHandler {
 	}
 
 	/**
-	 * Get default booking-created email body.
-	 *
-	 * Loaded from `templates/emails/audience-booking.php` via the shared
-	 * {@see \FreeFormCertificate\Core\EmailTemplates} loader (#662).
+	 * Get default booking-created email body — the effective GLOBAL: the admin's
+	 * SMTP email-body-hub override when set, else the shipped
+	 * `templates/emails/audience-booking.php` default (#662, hub #964). A schedule
+	 * with its own custom body still overrides this.
 	 *
 	 * @return string Template HTML
 	 */
 	private static function get_default_booking_template(): string {
-		return \FreeFormCertificate\Core\EmailTemplates::body( 'audience-booking' );
+		return \FreeFormCertificate\Core\EmailTemplates::effective_body( 'audience-booking' );
 	}
 
 	/**
-	 * Get default booking-cancelled email body.
-	 *
-	 * Loaded from `templates/emails/audience-cancellation.php` via the shared
-	 * {@see \FreeFormCertificate\Core\EmailTemplates} loader (#662).
+	 * Get default booking-cancelled email body — the effective GLOBAL: the admin's
+	 * SMTP email-body-hub override when set, else the shipped
+	 * `templates/emails/audience-cancellation.php` default (#662, hub #964). A
+	 * schedule with its own custom body still overrides this.
 	 *
 	 * @return string Template HTML
 	 */
 	private static function get_default_cancellation_template(): string {
-		return \FreeFormCertificate\Core\EmailTemplates::body( 'audience-cancellation' );
+		return \FreeFormCertificate\Core\EmailTemplates::effective_body( 'audience-cancellation' );
 	}
 
 	/**
-	 * Get booking created email subject
+	 * Resolve a hub-editable email SUBJECT template's tokens (#976). Unlike
+	 * {@see self::render_template()} (which `esc_html`s for an HTML body), the
+	 * subject is a plain-text mail header, so values are substituted raw. The
+	 * subject is global-hub-only (a schedule customises the body, not the subject).
 	 *
+	 * @param string               $template     Subject template (with {{tokens}}).
 	 * @param array<string, mixed> $booking_data Booking data.
-	 * @return string Email subject
+	 * @return string Resolved subject.
 	 */
-	private static function get_booking_subject( array $booking_data ): string {
-		return sprintf(
-			/* translators: 1: Environment name, 2: Date */
-			__( '[%1$s] New Scheduled Activity - %2$s', 'ffcertificate' ),
-			$booking_data['environment_name'],
-			$booking_data['booking_date']
-		);
-	}
-
-	/**
-	 * Get booking cancelled email subject
-	 *
-	 * @param array<string, mixed> $booking_data Booking data.
-	 * @return string Email subject
-	 */
-	private static function get_cancellation_subject( array $booking_data ): string {
-		return sprintf(
-			/* translators: 1: Environment name, 2: Date */
-			__( '[%1$s] Activity Cancelled - %2$s', 'ffcertificate' ),
-			$booking_data['environment_name'],
-			$booking_data['booking_date']
+	private static function render_subject( string $template, array $booking_data ): string {
+		return \FreeFormCertificate\Core\TokenResolver::resolve(
+			$template,
+			array(
+				'{{schedule_name}}'     => (string) ( $booking_data['schedule_name'] ?? '' ),
+				'{{environment_name}}'  => (string) ( $booking_data['environment_name'] ?? '' ),
+				'{{environment_label}}' => (string) ( $booking_data['environment_label'] ?? '' ),
+				'{{booking_date}}'      => (string) ( $booking_data['booking_date'] ?? '' ),
+				'{{site_name}}'         => (string) get_bloginfo( 'name' ),
+			)
 		);
 	}
 

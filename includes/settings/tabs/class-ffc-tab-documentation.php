@@ -5,7 +5,7 @@
  * @package FreeFormCertificate\Settings\Tabs
  * @since 2.10.0
  * @version 3.3.0 - Added strict types and type hints
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @version 3.2.0 - Migrated to namespace
  */
 
 declare(strict_types=1);
@@ -28,6 +28,7 @@ class TabDocumentation extends SettingsTab {
 	 */
 	protected function init(): void {
 		$this->tab_id    = 'documentation';
+		$this->tab_group = 'system';
 		$this->tab_title = __( 'Documentation', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-doc';
 		$this->tab_order = 90;

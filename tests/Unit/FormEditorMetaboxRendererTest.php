@@ -48,6 +48,11 @@ class FormEditorMetaboxRendererTest extends TestCase {
         );
         Functions\when( 'wp_kses' )->returnArg();
         Functions\when( 'wp_kses_post' )->returnArg();
+        // The email metabox's Global/Custom heuristic (#964) normalises via
+        // wp_strip_all_tags when deciding whether a form has a custom email.
+        Functions\when( 'wp_strip_all_tags' )->alias( static function ( $s ) {
+            return trim( (string) strip_tags( (string) $s ) );
+        } );
         Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );
         Functions\when( 'sanitize_text_field' )->returnArg();
         Functions\when( 'sanitize_key' )->returnArg();

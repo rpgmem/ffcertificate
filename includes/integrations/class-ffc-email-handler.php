@@ -8,7 +8,7 @@
  * - PDF Generator: Generates certificate HTML/PDF (single source of truth)
  *
  * v3.3.0: Added strict types and type hints
- * v3.2.0: Migrated to namespace (Phase 2)
+ * v3.2.0: Migrated to namespace
  * v3.1.0: Added send_wp_user_notification for WordPress user creation emails
  * v3.0.0: REFACTORED - Removed HTML generation logic (now uses FFC_PDF_Generator)
  *         Simplified emails to send only magic link (no certificate preview)
@@ -149,11 +149,14 @@ class EmailHandler {
 			'{{date}}'       => \FreeFormCertificate\Core\DateFormatter::format_date( time() ),
 		);
 
-		// Subject: default carries {{form_title}}; substitute then filter.
-		$subject = ! empty( $form_config['email_subject'] )
-			? (string) $form_config['email_subject']
-			: \FreeFormCertificate\Core\EmailTemplateDefaults::user_email_subject();
-		$subject = \FreeFormCertificate\Core\TokenResolver::resolve( $subject, $replacements );
+		// Subject: a real per-form Custom override wins; otherwise track the
+		// effective GLOBAL (hub override → shipped default), so an admin's SMTP
+		// email-body-hub edit reaches every form that hasn't customised it (#964).
+		$stored_subject = isset( $form_config['email_subject'] ) ? (string) $form_config['email_subject'] : '';
+		$subject        = \FreeFormCertificate\Core\EmailTemplates::overrides_global( 'certificate-user', $stored_subject, 'subject' )
+			? $stored_subject
+			: \FreeFormCertificate\Core\EmailTemplates::effective_body( 'certificate-user', 'subject' );
+		$subject        = \FreeFormCertificate\Core\TokenResolver::resolve( $subject, $replacements );
 
 		/**
 		 * Filters the user email subject.
@@ -176,11 +179,13 @@ class EmailHandler {
 		$to = apply_filters( 'ffcertificate_user_email_recipients', $to, $form_title, $submission_data );
 
 		// The editable body is the "email body" (translatable, per-form editable);
-		// the shared chrome is wrapped around it below. Fall back to the
-		// shipped default when empty.
-		$body = ( isset( $form_config['email_body'] ) && '' !== trim( (string) $form_config['email_body'] ) )
-			? (string) $form_config['email_body']
-			: \FreeFormCertificate\Core\EmailTemplateDefaults::user_email_body();
+		// the shared chrome is wrapped around it below. A real per-form Custom
+		// override wins; otherwise track the effective GLOBAL (hub override →
+		// shipped default) so a hub edit reaches every form on the global (#964).
+		$stored_body = isset( $form_config['email_body'] ) ? (string) $form_config['email_body'] : '';
+		$body        = \FreeFormCertificate\Core\EmailTemplates::overrides_global( 'certificate-user', $stored_body, 'body' )
+			? $stored_body
+			: \FreeFormCertificate\Core\EmailTemplates::effective_body( 'certificate-user', 'body' );
 
 		// Normalise TinyMCE-encoded braces so placeholders authored in the
 		// Visual editor (which may percent-encode `{{`/`}}`) still substitute.

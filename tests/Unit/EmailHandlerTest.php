@@ -243,6 +243,41 @@ class EmailHandlerTest extends TestCase {
         $this->assertStringNotContainsString( '{{validation_url', $body, 'DSL token consumed' );
     }
 
+    public function test_user_email_on_the_global_tracks_the_hub_override(): void {
+        // A form with no per-form subject/body is on the Global — the send path
+        // resolves the effective global (the SMTP email-body-hub override), #964.
+        Functions\when( 'is_email' )->justReturn( true );
+        Functions\when( 'home_url' )->alias( fn( $p = '' ) => 'https://ex' . (string) $p );
+        Functions\when( 'trailingslashit' )->alias( fn( $u ) => rtrim( (string) $u, '/' ) . '/' );
+        Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
+            if ( 'ffc_email_bodies' === $key ) {
+                return array(
+                    'certificate-user' => array(
+                        'subject' => 'Global subject for {{form_title}}',
+                        'body'    => '<p>Global hub body for {{name}}.</p>',
+                    ),
+                );
+            }
+            return $default;
+        } );
+
+        $handler = new EmailHandler();
+        $handler->async_process_submission(
+            1,
+            10,
+            'My Form',
+            array( 'auth_code' => 'ABC123', 'name' => 'Ana' ),
+            'ana@example.com',
+            array(),
+            array( 'send_user_email' => '1' ), // No per-form subject/body → Global.
+            'tok9'
+        );
+
+        $this->assertNotEmpty( $this->sent_emails );
+        $this->assertSame( 'Global subject for My Form', $this->sent_emails[0]['subject'], 'global subject applied + token substituted' );
+        $this->assertStringContainsString( 'Global hub body for Ana.', $this->sent_emails[0]['body'], 'global body applied + token substituted' );
+    }
+
     // ==================================================================
     // async_process_submission() — skips user email when disabled
     // ==================================================================

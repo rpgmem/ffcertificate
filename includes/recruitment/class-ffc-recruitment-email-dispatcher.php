@@ -144,11 +144,22 @@ final class RecruitmentEmailDispatcher {
 		$tokens   = self::build_token_map( $candidate, $classification, $notice, $adjutancy, $call );
 		$settings = RecruitmentSettings::all();
 
-		$subject = self::render( $settings['email_subject'], $tokens );
-		// The editable body is now the "email body": wrap it in the single
-		// configurable chrome ("Email Model") like every other plugin email
-		// (#662 PR-5). The text/plain alternative stays derived from the email body.
-		$email_body = self::render( $settings['email_body_html'], $tokens );
+		// Subject + body now come from the global email-body hub (#964): the
+		// admin edits them once in Settings → SMTP → Email texts. effective_body()
+		// returns the hub override when set, else the shipped file default — which
+		// is the same text this email always used, so a default install is
+		// unchanged. Tokens then substitute as before.
+		$subject = self::render(
+			\FreeFormCertificate\Core\EmailTemplates::effective_body( 'recruitment-convocation', 'subject' ),
+			$tokens
+		);
+		// The editable body is the "email body": wrap it in the single configurable
+		// chrome ("Email Model") like every other plugin email (#662 PR-5). The
+		// text/plain alternative stays derived from the email body.
+		$email_body = self::render(
+			\FreeFormCertificate\Core\EmailTemplates::effective_body( 'recruitment-convocation', 'body' ),
+			$tokens
+		);
 		$plain      = wp_strip_all_tags( $email_body );
 		$body       = self::ffc_email_document( $email_body, array( 'recipient' => $email_plain ) );
 		$headers    = array( 'Content-Type: text/html; charset=UTF-8' );

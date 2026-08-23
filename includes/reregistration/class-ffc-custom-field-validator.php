@@ -327,7 +327,6 @@ class CustomFieldValidator {
 	 * @return bool
 	 */
 	public static function is_valid_date( string $date ): bool {
-		$d = \DateTime::createFromFormat( 'Y-m-d', $date );
-		return $d && $d->format( 'Y-m-d' ) === $date;
+		return \FreeFormCertificate\Core\DateFormatter::is_valid_date( $date );
 	}
 }

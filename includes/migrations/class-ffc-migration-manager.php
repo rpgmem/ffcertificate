@@ -10,7 +10,7 @@
  * @since 2.10.0
  * @version 5.0.0 - Retired 10 completed migrations; removed encrypt/cleanup/drop methods
  * @version 3.3.0 - Added strict types and type hints for better code safety
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @version 3.2.0 - Migrated to namespace
  * @version 3.1.0 (Refactored)
  */
 

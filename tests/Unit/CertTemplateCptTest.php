@@ -61,10 +61,11 @@ class CertTemplateCptTest extends TestCase {
 		$this->assertSame( 'ffc_cert_template', $captured_type );
 		$this->assertSame( 'ffc_cert_template', CertTemplateCpt::POST_TYPE );
 		$this->assertFalse( $captured_args['public'] );
-		// #865 management UI: native list table + edit screen, surfaced as a
-		// "Templates" submenu under the Certificate (ffc_form) menu.
+		// #865/#951 management UI: native list table + edit screen stay registered
+		// (show_ui) but carry no menu item of their own — the entry point is the
+		// "Document Templates" launcher tab inside FFC Settings (TabTemplates).
 		$this->assertTrue( $captured_args['show_ui'] );
-		$this->assertSame( 'edit.php?post_type=ffc_form', $captured_args['show_in_menu'] );
+		$this->assertFalse( $captured_args['show_in_menu'] );
 		$this->assertTrue( $captured_args['map_meta_cap'] );
 		$this->assertSame( 'ffc_cert_template', $captured_args['capability_type'] );
 		$this->assertSame( array( 'title' ), $captured_args['supports'] );
@@ -90,5 +91,13 @@ class CertTemplateCptTest extends TestCase {
 		$this->assertSame( '_ffc_is_default', CertTemplateCpt::META_IS_DEFAULT );
 		$this->assertSame( '_ffc_default_slug', CertTemplateCpt::META_DEFAULT_SLUG );
 		$this->assertSame( '_ffc_template_visible', CertTemplateCpt::META_VISIBLE );
+	}
+
+	public function test_is_valid_kind_accepts_only_known_kinds(): void {
+		$this->assertTrue( CertTemplateCpt::is_valid_kind( CertTemplateCpt::KIND_CERTIFICATE ) );
+		$this->assertTrue( CertTemplateCpt::is_valid_kind( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT ) );
+		$this->assertTrue( CertTemplateCpt::is_valid_kind( CertTemplateCpt::KIND_FICHA ) );
+		$this->assertFalse( CertTemplateCpt::is_valid_kind( 'bogus' ) );
+		$this->assertFalse( CertTemplateCpt::is_valid_kind( '' ) );
 	}
 }

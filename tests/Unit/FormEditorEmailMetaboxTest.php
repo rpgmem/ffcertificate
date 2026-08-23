@@ -32,6 +32,10 @@ class FormEditorEmailMetaboxTest extends TestCase {
         Functions\when( 'admin_url' )->alias( function ( $p = '' ) { return '/wp-admin/' . $p; } );
         Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
         Functions\when( 'wp_kses_post' )->returnArg();
+        // The Global/Custom heuristic (#964) normalises via wp_strip_all_tags.
+        Functions\when( 'wp_strip_all_tags' )->alias( static function ( $s ) {
+            return trim( (string) strip_tags( (string) $s ) );
+        } );
         Functions\when( 'wp_editor' )->alias( function ( $content, $id ) {
             echo '<textarea id="' . $id . '">' . $content . '</textarea>';
         } );
@@ -106,34 +110,33 @@ class FormEditorEmailMetaboxTest extends TestCase {
         $this->assertStringContainsString( 'ffc-collapsed', $html );
     }
 
-    public function test_render_uses_default_subject_when_meta_empty(): void {
-        $html = $this->render();
-
-        $this->assertStringContainsString( 'Your document is ready', $html );
+    public function test_default_email_body_delegates_to_the_shipped_template(): void {
+        // Retained BC helper — the shipped certificate body (file default).
+        $this->assertStringContainsString( 'Hello {{name}},', FormEditorEmailMetabox::default_email_body() );
     }
 
-    public function test_render_seeds_default_body_when_email_body_empty(): void {
-        // Email enabled, no custom body yet → editor is pre-filled with the
-        // default intro instead of a blank field.
+    public function test_render_exposes_the_global_custom_toggle(): void {
         $html = $this->render( array( 'send_user_email' => '1' ) );
 
-        $this->assertStringContainsString( FormEditorEmailMetabox::default_email_body(), $html );
-        $this->assertStringContainsString( 'Hello {{name}},', $html );
+        $this->assertStringContainsString( 'ffc_email_custom_mode', $html );
     }
 
-    public function test_render_includes_restore_default_button(): void {
+    public function test_render_global_mode_when_no_custom_text(): void {
+        // Email enabled, no custom subject/body → the form is on the Global: the
+        // per-form fields are hidden and the "uses the global default" note shows.
+        // No pre-seed of the shipped body into the editor (#964).
         $html = $this->render( array( 'send_user_email' => '1' ) );
 
-        // Uses the shared generic restore button (#673): class + data-attrs,
-        // wired by assets/js/ffc-email-restore-default.js.
-        $this->assertStringContainsString( 'ffc-email-restore-default', $html );
-        $this->assertStringContainsString( 'data-editor="ffc_email_body"', $html );
-        $this->assertStringContainsString( 'data-default-key="certificate_body"', $html );
-        $this->assertStringContainsString( 'Restore Default Text', $html );
+        $this->assertStringContainsString( 'ffc-cert-email-custom-fields" style="display:none', $html );
+        $this->assertStringContainsString( 'ffc-cert-email-global-note', $html );
+        $this->assertStringContainsString( 'shared global email text', $html );
+        // The shipped default body is NOT dumped into the editor any more.
+        $this->assertStringNotContainsString( 'Hello {{name}},', $html );
     }
 
-    public function test_render_keeps_custom_body_over_default(): void {
-        // A real custom body is preserved (not overwritten by the default).
+    public function test_render_custom_mode_when_a_custom_body_is_stored(): void {
+        // A body edited away from the shipped default → the form is Custom: the
+        // fields are shown (no display:none) and the stored body is preserved.
         $html = $this->render(
             array(
                 'send_user_email' => '1',
@@ -141,7 +144,24 @@ class FormEditorEmailMetaboxTest extends TestCase {
             )
         );
 
+        $this->assertStringContainsString( 'ffc-cert-email-custom-fields">', $html );
+        $this->assertStringNotContainsString( 'ffc-cert-email-custom-fields" style="display:none', $html );
         $this->assertStringContainsString( '<p>My own message</p>', $html );
-        $this->assertStringNotContainsString( 'Use the button below to view and download it', $html );
+    }
+
+    public function test_render_includes_restore_default_button(): void {
+        $html = $this->render(
+            array(
+                'send_user_email' => '1',
+                'email_body'      => '<p>My own message</p>', // Custom → fields visible.
+            )
+        );
+
+        // Uses the shared generic restore button (#673): class + data-attrs,
+        // wired by assets/js/ffc-email-restore-default.js.
+        $this->assertStringContainsString( 'ffc-email-restore-default', $html );
+        $this->assertStringContainsString( 'data-editor="ffc_email_body"', $html );
+        $this->assertStringContainsString( 'data-default-key="certificate_body"', $html );
+        $this->assertStringContainsString( 'Restore Default Text', $html );
     }
 }

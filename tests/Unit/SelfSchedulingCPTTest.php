@@ -412,7 +412,13 @@ class SelfSchedulingCPTTest extends TestCase {
         } );
         Functions\when( 'is_email' )->justReturn( true );
         Functions\when( 'get_bloginfo' )->justReturn( 'Site' );
-        Functions\when( 'wp_mail' )->justReturn( true );
+        $captured_mail = null;
+        Functions\when( 'wp_mail' )->alias(
+            static function ( $to, $subj, $body ) use ( &$captured_mail ) {
+                $captured_mail = compact( 'to', 'subj', 'body' );
+                return true;
+            }
+        );
         // EmailService::send() reads the global kill-switch via SettingsReader
         // (#662); ffc_settings / ffc_email_template resolve to arrays (emails
         // enabled + chrome defaults), any other key (admin_email) to a string.
@@ -463,7 +469,15 @@ class SelfSchedulingCPTTest extends TestCase {
         $post = (object) array( 'post_type' => 'ffc_self_scheduling' );
         $cpt->cleanup_calendar_data( 20, $post );
 
-        $this->assertTrue( true );
+        // The deletion email is now the tokenized global default (#965): its body
+        // carries the calendar title + wall-clock date/time resolved through the
+        // token map, and its subject the calendar-title token (#976 standard —
+        // "Event: {{ref}}", no bracketed site-name prefix).
+        $this->assertNotNull( $captured_mail, 'calendar-deletion email should be sent' );
+        $this->assertSame( 'user@example.com', $captured_mail['to'] );
+        $this->assertStringContainsString( 'Cal A', $captured_mail['body'] );
+        $this->assertStringContainsString( '01/02/2026', $captured_mail['body'] );
+        $this->assertSame( 'Appointment cancelled: Cal A', $captured_mail['subj'] );
     }
 
     // ==================================================================

@@ -173,19 +173,6 @@ class ObsoleteShortcodeCleaner implements MaintenanceToolInterface {
 
 	/**
 	 * Scan configured post types for posts whose `post_content` embeds any
-	 * of the given expired form IDs.
-	 *
-	 * Does NOT write to the database — safe to call in preview/dry-run mode.
-	 *
-	 * Scan posts for expired forms.
-	 *
-	 * Scan posts for expired forms.
-	 *
-	 * Scan posts for expired forms.
-	 *
-	 * Scan posts for expired forms.
-	 *
-	 * Scan posts for expired forms.
 	 *
 	 * @param array<int, int> $expired_ids List of form IDs to look for.
 	 * @return array{
@@ -273,19 +260,6 @@ class ObsoleteShortcodeCleaner implements MaintenanceToolInterface {
 
 	/**
 	 * Extract every `[ffc_form id="N"]` numeric ID from a chunk of content.
-	 *
-	 * Only the classic regex is used here because every Gutenberg-wrapped
-	 * shortcode also contains the bare shortcode inside it.
-	 *
-	 * Extract form ids.
-	 *
-	 * Extract form ids.
-	 *
-	 * Extract form ids.
-	 *
-	 * Extract form ids.
-	 *
-	 * Extract form ids.
 	 *
 	 * @param string $content Raw post_content.
 	 * @return array<int, int> Zero-indexed list of form IDs (may contain duplicates).

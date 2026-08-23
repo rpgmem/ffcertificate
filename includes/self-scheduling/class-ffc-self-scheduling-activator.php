@@ -68,6 +68,9 @@ class SelfSchedulingActivator {
             title varchar(255) NOT NULL,
             description text DEFAULT NULL,
 
+            -- Scheduling mode: 'regular' = weekly working hours; 'custom' = explicit date/time blocks (#941)
+            schedule_type enum('regular','custom') NOT NULL DEFAULT 'regular' COMMENT 'regular = weekly working_hours; custom = explicit custom_slots',
+
             -- Time slot configuration
             slot_duration int unsigned DEFAULT 30 COMMENT 'Duration in minutes',
             slot_interval int unsigned DEFAULT 0 COMMENT 'Break between slots in minutes',
@@ -75,6 +78,9 @@ class SelfSchedulingActivator {
 
             -- Working hours (JSON: [{day: 0-6, start: '09:00', end: '17:00'}])
             working_hours longtext DEFAULT NULL,
+
+            -- Custom blocks (JSON: [{date:'Y-m-d', start:'H:i', end:'H:i', capacity:int, label?:string}]) — used when schedule_type='custom' (#941)
+            custom_slots longtext DEFAULT NULL,
 
             -- Booking window
             advance_booking_min int unsigned DEFAULT 0 COMMENT 'Minimum hours in advance',
@@ -92,6 +98,13 @@ class SelfSchedulingActivator {
 
             -- Capacity
             max_appointments_per_slot int unsigned DEFAULT 1,
+
+            -- Waitlist (#941 phase 2): when a slot/block is full, allow joining a queue
+            waitlist_enabled tinyint(1) DEFAULT 0 COMMENT '1 = full slots offer a waitlist instead of rejecting',
+            waitlist_capacity int unsigned DEFAULT 0 COMMENT 'Max queue length per slot (0 = unlimited)',
+
+            -- Per-user block cap (#941 phase 3): custom mode only; max distinct blocks one user may hold (0 = disabled)
+            max_blocks_per_user int unsigned DEFAULT 0 COMMENT 'Custom mode: max blocks a single user may book in this calendar (0 = disabled)',
 
             -- Visibility & access control
             visibility enum('public','private') DEFAULT 'public' COMMENT 'Calendar visibility: public or private',
@@ -167,7 +180,7 @@ class SelfSchedulingActivator {
             admin_notes text DEFAULT NULL,
 
             -- Status workflow
-            status varchar(20) DEFAULT 'pending' COMMENT 'pending, confirmed, cancelled, completed, no_show',
+            status varchar(20) DEFAULT 'pending' COMMENT 'pending, confirmed, cancelled, completed, no_show, waitlist',
 
             -- Approval (if calendar requires approval). Category A instant since 6.6.0 (#249).
             approved_at bigint(20) unsigned DEFAULT NULL,
@@ -348,7 +361,93 @@ class SelfSchedulingActivator {
 			self::migrate_visibility_columns();
 			// Run migration to add business hours restriction columns.
 			self::migrate_business_hours_restriction_columns();
+			// Run migration to add custom-scheduling columns (#941).
+			self::migrate_custom_scheduling_columns();
+			// Run migration to add waitlist columns (#941 phase 2).
+			self::migrate_waitlist_columns();
+			// Run migration to add the per-user block cap column (#941 phase 3).
+			self::migrate_block_cap_column();
 		}
+	}
+
+	/**
+	 * Migrate calendars table to add the per-user block cap column (#941 phase 3).
+	 *
+	 * `max_blocks_per_user` caps how many distinct blocks a single user may hold
+	 * in a custom calendar (0 = disabled). Defaults off, so existing calendars
+	 * are unchanged on upgrade. Custom mode only.
+	 *
+	 * @since 6.20.0
+	 * @return void
+	 */
+	private static function migrate_block_cap_column(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+
+		self::add_column_if_missing(
+			$table_name,
+			'max_blocks_per_user',
+			"int unsigned DEFAULT 0 COMMENT 'Custom mode: max blocks a single user may book in this calendar (0 = disabled)'",
+			'waitlist_capacity'
+		);
+	}
+
+	/**
+	 * Migrate calendars table to add the waitlist columns (#941 phase 2).
+	 *
+	 * `waitlist_enabled` turns the per-calendar waitlist on; `waitlist_capacity`
+	 * caps the queue length per slot (0 = unlimited). Both default off/unbounded,
+	 * so existing calendars keep the current "full slot → reject" behaviour on
+	 * upgrade. Applies to both scheduling modes.
+	 *
+	 * @since 6.20.0
+	 * @return void
+	 */
+	private static function migrate_waitlist_columns(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+
+		self::add_column_if_missing(
+			$table_name,
+			'waitlist_enabled',
+			"tinyint(1) DEFAULT 0 COMMENT '1 = full slots offer a waitlist instead of rejecting'",
+			'max_appointments_per_slot'
+		);
+		self::add_column_if_missing(
+			$table_name,
+			'waitlist_capacity',
+			"int unsigned DEFAULT 0 COMMENT 'Max queue length per slot (0 = unlimited)'",
+			'waitlist_enabled'
+		);
+	}
+
+	/**
+	 * Migrate calendars table to add the custom-scheduling columns (#941).
+	 *
+	 * `schedule_type` selects between the regular weekly working-hours model
+	 * (default, unchanged behaviour) and the custom explicit-blocks model;
+	 * `custom_slots` holds the blocks JSON for the latter. Existing calendars
+	 * default to `regular`, so no behaviour changes on upgrade.
+	 *
+	 * @since 6.20.0
+	 * @return void
+	 */
+	private static function migrate_custom_scheduling_columns(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+
+		self::add_column_if_missing(
+			$table_name,
+			'schedule_type',
+			"enum('regular','custom') NOT NULL DEFAULT 'regular' COMMENT 'regular = weekly working_hours; custom = explicit custom_slots'",
+			'description'
+		);
+		self::add_column_if_missing(
+			$table_name,
+			'custom_slots',
+			'longtext DEFAULT NULL',
+			'working_hours'
+		);
 	}
 
 	/**

@@ -477,18 +477,6 @@ class SubmissionReader extends AbstractRepository {
 	/**
 	 * Get only JSON data columns in batches for dynamic-key discovery.
 	 *
-	 * Much lighter than SELECT * — skips all encrypted/heavy columns.
-	 *
-	 * Get export keys batch.
-	 *
-	 * Get export keys batch.
-	 *
-	 * Get export keys batch.
-	 *
-	 * Get export keys batch.
-	 *
-	 * Get export keys batch.
-	 *
 	 * @since 5.0.0
 	 * @param array<int, int>|null $form_ids  Form IDs filter.
 	 * @param string|null          $status    Status filter.
@@ -531,16 +519,6 @@ class SubmissionReader extends AbstractRepository {
 	/**
 	 * Count total matching rows for export progress reporting.
 	 *
-	 * Count for export.
-	 *
-	 * Count for export.
-	 *
-	 * Count for export.
-	 *
-	 * Count for export.
-	 *
-	 * Count for export.
-	 *
 	 * @since 5.0.0
 	 * @param array<int, int>|null $form_ids Form IDs filter.
 	 * @param string|null          $status   Status filter.
@@ -565,16 +543,6 @@ class SubmissionReader extends AbstractRepository {
 
 	/**
 	 * ✅ NEW v3.0.1: Check if any submission has edit information
-	 *
-	 * Check whether the record has edit info.
-	 *
-	 * Check whether the record has edit info.
-	 *
-	 * Check whether the record has edit info.
-	 *
-	 * Check whether the record has edit info.
-	 *
-	 * Check whether the record has edit info.
 	 *
 	 * @return bool True if edited_at column exists and has data
 	 */
@@ -708,31 +676,6 @@ class SubmissionReader extends AbstractRepository {
 
 	/**
 	 * Count by status
-	 *
-	 * Count by status.
-	 *
-	 * Count by status.
-	 *
-	 * Count by status.
-	 *
-	 * Count by status.
-	 *
-	 * Count by status.
-	 *
-	 * Count by status.
-	 *
-	 * Count by status.
-	 *
-	 * Count by status.
-	 *
-	 * Count by status.
-	 *
-	 * Count by status.
-	 *
-	 * Backed by a short-lived transient so the tabs above the submissions
-	 * list don't trigger a full `COUNT(*) ... GROUP BY status` scan on
-	 * every admin page load. Writers call `invalidate_count_cache()` to
-	 * drop the transient as soon as any row moves between statuses.
 	 *
 	 * @return array<string, int>
 	 */

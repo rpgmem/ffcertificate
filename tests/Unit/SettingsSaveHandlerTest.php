@@ -86,6 +86,23 @@ class SettingsSaveHandlerTest extends TestCase {
         $this->assertSame( 90, $result['cleanup_days'] );
     }
 
+    public function test_general_cleanup_days_clamped_to_minimum_one(): void {
+        $result = $this->invoke( 'save_general_settings', array( array(), array( 'cleanup_days' => '0' ) ) );
+        $this->assertSame( 1, $result['cleanup_days'] );
+    }
+
+    public function test_general_cleanup_enabled_true_when_checkbox_present(): void {
+        $result = $this->invoke( 'save_general_settings', array( array(), array( 'cleanup_enabled' => '1' ) ) );
+        $this->assertTrue( $result['cleanup_enabled'] );
+    }
+
+    public function test_general_cleanup_enabled_false_when_checkbox_absent(): void {
+        // An unchecked toggle is simply absent from POST; the rebuild must
+        // record it as off (no-clobber) rather than leave a stale true.
+        $result = $this->invoke( 'save_general_settings', array( array( 'cleanup_enabled' => true ), array() ) );
+        $this->assertFalse( $result['cleanup_enabled'] );
+    }
+
     public function test_general_main_address_preserved(): void {
         $result = $this->invoke( 'save_general_settings', array( array(), array( 'main_address' => '123 Main St' ) ) );
         $this->assertSame( '123 Main St', $result['main_address'] );

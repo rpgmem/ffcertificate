@@ -333,6 +333,113 @@ class AppointmentReader extends AbstractRepository {
 	}
 
 	/**
+	 * Count waitlisted entries for a slot (#941 phase 2).
+	 *
+	 * Waitlist rows carry status `waitlist` and are excluded from every capacity
+	 * query, so they never occupy a spot. This counts them to enforce
+	 * `waitlist_capacity` (queue length) and to tell the front-end whether the
+	 * queue has room.
+	 *
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $date Date in Y-m-d.
+	 * @param string $start_time Slot start time.
+	 * @param bool   $use_lock Use FOR UPDATE lock (requires active transaction).
+	 * @return int
+	 */
+	public function countWaitlisted( int $calendar_id, string $date, string $start_time, bool $use_lock = false ): int {
+		$lock_clause = $use_lock ? ' FOR UPDATE' : '';
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$count = $this->wpdb->get_var(
+			$this->wpdb->prepare(
+				"SELECT COUNT(*) FROM %i
+                 WHERE calendar_id = %d
+                 AND appointment_date = %s
+                 AND start_time = %s
+                 AND status = 'waitlist'{$lock_clause}",
+				$this->table,
+				$calendar_id,
+				$date,
+				$start_time
+			)
+		);
+
+		return (int) $count;
+	}
+
+	/**
+	 * Find the oldest waitlisted entry for a slot (#941 phase 2).
+	 *
+	 * FIFO by insertion order (`id ASC`, monotonic). Used by promotion when a
+	 * spot frees up. Pass `$use_lock` from inside a transaction so the promoted
+	 * row is locked against a concurrent booking/promotion.
+	 *
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $date Date in Y-m-d.
+	 * @param string $start_time Slot start time.
+	 * @param bool   $use_lock Use FOR UPDATE lock (requires active transaction).
+	 * @return array<string, mixed>|null
+	 */
+	public function findOldestWaitlisted( int $calendar_id, string $date, string $start_time, bool $use_lock = false ): ?array {
+		$lock_clause = $use_lock ? ' FOR UPDATE' : '';
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$row = $this->wpdb->get_row(
+			$this->wpdb->prepare(
+				"SELECT * FROM %i
+                 WHERE calendar_id = %d
+                 AND appointment_date = %s
+                 AND start_time = %s
+                 AND status = 'waitlist'
+                 ORDER BY id ASC
+                 LIMIT 1{$lock_clause}",
+				$this->table,
+				$calendar_id,
+				$date,
+				$start_time
+			),
+			ARRAY_A
+		);
+
+		return is_array( $row ) ? $row : null;
+	}
+
+	/**
+	 * Per-slot occupancy counts for a calendar (#941 phase 3).
+	 *
+	 * Returns one row per booked `(date, start_time)` with the active count
+	 * (`confirmed` + `pending`) and the waitlisted count, for the custom-mode
+	 * occupancy report. Slots with no bookings simply don't appear (the caller
+	 * pairs these against the configured blocks).
+	 *
+	 * @param int $calendar_id Calendar ID.
+	 * @return array<int, array<string, mixed>> Rows: date, start, booked, waitlisted.
+	 */
+	public function getOccupancyCounts( int $calendar_id ): array {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $this->wpdb->get_results(
+			$this->wpdb->prepare(
+				"SELECT appointment_date AS date, start_time AS start,
+                        SUM( CASE WHEN status IN ('confirmed','pending') THEN 1 ELSE 0 END ) AS booked,
+                        SUM( CASE WHEN status = 'waitlist' THEN 1 ELSE 0 END ) AS waitlisted
+                 FROM %i
+                 WHERE calendar_id = %d
+                 GROUP BY appointment_date, start_time",
+				$this->table,
+				$calendar_id
+			),
+			ARRAY_A
+		);
+
+		/**
+		 * Cast wpdb result to expected shape.
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
 	 * Get upcoming appointments for reminders
 	 *
 	 * @param int $hours_before Hours before appointment.

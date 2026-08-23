@@ -40,27 +40,18 @@ class AppointmentValidator {
 	private $blocked_date_repository;
 
 	/**
+	 * Whether the last validate() diverted a full-slot booking to the waitlist.
+	 *
+	 * Set during the capacity step (#941 phase 2) when the slot is full but the
+	 * calendar offers a waitlist with room. The caller reads it after a
+	 * successful validate() to store the appointment as `waitlist`.
+	 *
+	 * @var bool
+	 */
+	private $waitlist_requested = false;
+
+	/**
 	 * Constructor
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
-	 *
-	 * Constructor.
 	 *
 	 * @param \FreeFormCertificate\Repositories\AppointmentRepository $appointment_repository Appointment repository.
 	 * @param \FreeFormCertificate\Repositories\BlockedDateRepository $blocked_date_repository Blocked date repository.
@@ -82,8 +73,10 @@ class AppointmentValidator {
 	 * @return true|\WP_Error
 	 */
 	public function validate( array $data, array $calendar, bool $use_lock = false ) {
-		$calendar_post_id = isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;
-		$has_bypass       = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, $calendar_post_id );
+		$calendar_post_id         = isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;
+		$has_bypass               = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, $calendar_post_id );
+		$is_custom                = 'custom' === ( $calendar['schedule_type'] ?? 'regular' );
+		$this->waitlist_requested = false;
 
 		// 1. Validate required fields.
 		if ( empty( $data['appointment_date'] ) || empty( $data['start_time'] ) ) {
@@ -91,20 +84,18 @@ class AppointmentValidator {
 		}
 
 		// 2. Validate date format.
-		$date_obj = \DateTime::createFromFormat( 'Y-m-d', $data['appointment_date'] );
-		if ( ! $date_obj || $date_obj->format( 'Y-m-d' ) !== $data['appointment_date'] ) {
+		if ( ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $data['appointment_date'] ) ) {
 			return new \WP_Error( 'invalid_date', __( 'Invalid date format.', 'ffcertificate' ) );
 		}
 
 		// 3. Validate time format.
-		if ( ! preg_match( '/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/', $data['start_time'] ) ) {
+		if ( ! \FreeFormCertificate\Core\DateFormatter::is_valid_time( $data['start_time'] ) ) {
 			return new \WP_Error( 'invalid_time', __( 'Invalid time format.', 'ffcertificate' ) );
 		}
 
 		// 4. Check if date is in the past (bypass allowed)
 		$now                   = time();
-		$tz                    = wp_timezone();
-		$appointment_timestamp = ( new \DateTimeImmutable( $data['appointment_date'] . ' ' . $data['start_time'], $tz ) )->getTimestamp();
+		$appointment_timestamp = self::wall_clock_to_timestamp( $data['appointment_date'], $data['start_time'] );
 
 		if ( $appointment_timestamp < $now && ! $has_bypass ) {
 			return new \WP_Error( 'past_date', __( 'Cannot book appointments in the past.', 'ffcertificate' ) );
@@ -125,8 +116,9 @@ class AppointmentValidator {
 			}
 		}
 
-		// 6. Validate advance booking window (maximum) - bypass skips.
-		if ( ! $has_bypass && $calendar['advance_booking_max'] > 0 ) {
+		// 6. Validate advance booking window (maximum) - bypass skips. Not applied
+		// in custom mode (#941): the bookable dates are explicit by construction.
+		if ( ! $has_bypass && ! $is_custom && $calendar['advance_booking_max'] > 0 ) {
 			$max_advance = $now + ( $calendar['advance_booking_max'] * 86400 );
 			if ( $appointment_timestamp > $max_advance ) {
 				return new \WP_Error(
@@ -150,26 +142,75 @@ class AppointmentValidator {
 			}
 		}
 
-		// 8. Check working hours (bypass skips)
-		if ( ! $has_bypass && ! $this->is_within_working_hours( $data['appointment_date'], $data['start_time'], $calendar ) ) {
-			return new \WP_Error( 'outside_hours', __( 'Selected time is outside working hours.', 'ffcertificate' ) );
+		// 8. Resolve the slot capacity per mode. Custom (#941): the (date, start)
+		// must match a defined block, and that block's capacity applies; working
+		// hours don't. Regular: the working-hours gate + the calendar-wide cap.
+		if ( $is_custom ) {
+			$block = \FreeFormCertificate\SelfScheduling\CustomSlots::find(
+				$calendar['custom_slots'] ?? '',
+				$data['appointment_date'],
+				$data['start_time']
+			);
+			if ( null === $block ) {
+				return new \WP_Error( 'invalid_slot', __( 'The selected time block is not available.', 'ffcertificate' ) );
+			}
+			$slot_capacity = (int) $block['capacity'];
+		} else {
+			if ( ! $has_bypass && ! $this->is_within_working_hours( $data['appointment_date'], $data['start_time'], $calendar ) ) {
+				return new \WP_Error( 'outside_hours', __( 'Selected time is outside working hours.', 'ffcertificate' ) );
+			}
+			$slot_capacity = (int) $calendar['max_appointments_per_slot'];
 		}
 
-		// 9. Check slot availability — NEVER bypassed (spec: above limit = not allowed)
-		$is_available = $this->appointment_repository->isSlotAvailable(
-			$data['calendar_id'],
-			$data['appointment_date'],
-			$data['start_time'],
-			(int) $calendar['max_appointments_per_slot'],
-			$use_lock
-		);
-
-		if ( ! $is_available ) {
-			return new \WP_Error( 'slot_full', __( 'This time slot is fully booked.', 'ffcertificate' ) );
+		// 8b. Per-user block cap (#941 phase 3) — custom mode only. Counts the
+		// user's active + waitlisted bookings in this calendar; bypass skips.
+		if ( $is_custom && ! $has_bypass ) {
+			$block_cap = (int) ( $calendar['max_blocks_per_user'] ?? 0 );
+			if ( $block_cap > 0 ) {
+				$identifier = $this->resolve_user_identifier( $data );
+				if ( null !== $identifier && $this->count_user_blocks( $identifier, (int) $data['calendar_id'] ) >= $block_cap ) {
+					return new \WP_Error(
+						'block_limit',
+						sprintf(
+							/* translators: %d: maximum number of bookings */
+							_n(
+								'You have reached the maximum of %d booking for this calendar.',
+								'You have reached the maximum of %d bookings for this calendar.',
+								$block_cap,
+								'ffcertificate'
+							),
+							$block_cap
+						)
+					);
+				}
+			}
 		}
 
-		// 10. Check daily limit — bypass skips.
-		if ( ! $has_bypass && $calendar['slots_per_day'] > 0 ) {
+		// 9. Check slot/block capacity. Enforced for everyone EXCEPT holders of the
+		// dedicated overbook capability (#941) — the one manual override.
+		if ( ! current_user_can( 'ffc_bypass_appointment_capacity' ) ) {
+			$is_available = $this->appointment_repository->isSlotAvailable(
+				$data['calendar_id'],
+				$data['appointment_date'],
+				$data['start_time'],
+				$slot_capacity,
+				$use_lock
+			);
+
+			if ( ! $is_available ) {
+				// Slot full. If the calendar offers a waitlist with room, divert
+				// this booking to the queue instead of rejecting it (#941 phase 2).
+				if ( $this->can_join_waitlist( $calendar, $data, $use_lock ) ) {
+					$this->waitlist_requested = true;
+				} else {
+					return new \WP_Error( 'slot_full', __( 'This time slot is fully booked.', 'ffcertificate' ) );
+				}
+			}
+		}
+
+		// 10. Check daily limit — bypass skips. Not applied in custom mode (#941):
+		// per-block capacity is the control, not a per-date total.
+		if ( ! $has_bypass && ! $is_custom && $calendar['slots_per_day'] > 0 ) {
 			$daily_count = $this->get_daily_appointment_count( $data['calendar_id'], $data['appointment_date'], $use_lock );
 			if ( $daily_count >= $calendar['slots_per_day'] ) {
 				return new \WP_Error( 'daily_limit', __( 'Daily booking limit reached for this date.', 'ffcertificate' ) );
@@ -260,6 +301,102 @@ class AppointmentValidator {
 	}
 
 	/**
+	 * Whether the last validate() diverted the booking to the waitlist (#941 phase 2).
+	 *
+	 * Only meaningful after validate() returned `true`. When true, the caller
+	 * stores the appointment with status `waitlist` instead of pending/confirmed.
+	 *
+	 * @return bool
+	 */
+	public function is_waitlist_requested(): bool {
+		return $this->waitlist_requested;
+	}
+
+	/**
+	 * Whether a full slot can accept another waitlist entry (#941 phase 2).
+	 *
+	 * True when the calendar has the waitlist enabled and the queue for this
+	 * exact (date, start) slot is below `waitlist_capacity` (0 = unlimited).
+	 *
+	 * @param array<string, mixed> $calendar Calendar configuration.
+	 * @param array<string, mixed> $data Appointment data.
+	 * @param bool                 $use_lock Use FOR UPDATE on the queue count.
+	 * @return bool
+	 */
+	private function can_join_waitlist( array $calendar, array $data, bool $use_lock ): bool {
+		if ( empty( $calendar['waitlist_enabled'] ) ) {
+			return false;
+		}
+
+		$capacity = (int) ( $calendar['waitlist_capacity'] ?? 0 );
+		if ( $capacity <= 0 ) {
+			return true; // Unlimited queue.
+		}
+
+		$waiting = $this->appointment_repository->countWaitlisted(
+			(int) $data['calendar_id'],
+			(string) $data['appointment_date'],
+			(string) $data['start_time'],
+			$use_lock
+		);
+
+		return $waiting < $capacity;
+	}
+
+	/**
+	 * Resolve the booking user's identifier for per-user checks (#941 phase 3).
+	 *
+	 * Prefers the WP user id, then email, then CPF/RF — mirroring the
+	 * minimum-interval check's precedence.
+	 *
+	 * @param array<string, mixed> $data Appointment data.
+	 * @return int|string|null
+	 */
+	private function resolve_user_identifier( array $data ) {
+		if ( ! empty( $data['user_id'] ) ) {
+			return (int) $data['user_id'];
+		}
+		if ( ! empty( $data['email'] ) ) {
+			return $data['email'];
+		}
+		if ( ! empty( $data['cpf_rf'] ) ) {
+			return $data['cpf_rf'];
+		}
+		return null;
+	}
+
+	/**
+	 * Count a user's active (+ waitlisted) bookings in a calendar (#941 phase 3).
+	 *
+	 * Used to enforce the per-user block cap. `cancelled`/`completed`/`no_show`
+	 * rows don't count; `waitlist` does (queuing counts toward the cap).
+	 *
+	 * @param int|string $user_identifier User id, email, or CPF/RF.
+	 * @param int        $calendar_id Calendar ID.
+	 * @return int
+	 */
+	private function count_user_blocks( $user_identifier, int $calendar_id ): int {
+		if ( is_int( $user_identifier ) ) {
+			$appointments = $this->appointment_repository->findByUserId( $user_identifier );
+		} elseif ( filter_var( $user_identifier, FILTER_VALIDATE_EMAIL ) ) {
+			$appointments = $this->appointment_repository->findByEmail( $user_identifier );
+		} else {
+			$appointments = $this->appointment_repository->findByCpfRf( $user_identifier );
+		}
+
+		$count = 0;
+		foreach ( $appointments as $appointment ) {
+			if ( (int) $appointment['calendar_id'] !== $calendar_id ) {
+				continue;
+			}
+			if ( in_array( $appointment['status'], array( 'pending', 'confirmed', 'waitlist' ), true ) ) {
+				++$count;
+			}
+		}
+		return $count;
+	}
+
+	/**
 	 * Check minimum interval between bookings for a user
 	 *
 	 * @param mixed $user_identifier User ID, email, or CPF/RF.
@@ -290,7 +427,7 @@ class AppointmentValidator {
 				continue;
 			}
 
-			$apt_timestamp = ( new \DateTimeImmutable( $appointment['appointment_date'] . ' ' . $appointment['start_time'], wp_timezone() ) )->getTimestamp();
+			$apt_timestamp = self::wall_clock_to_timestamp( $appointment['appointment_date'], $appointment['start_time'] );
 
 			if ( $apt_timestamp >= $now && $apt_timestamp <= $cutoff_time ) {
 				$next_available = \FreeFormCertificate\Core\DateFormatter::format_datetime( $apt_timestamp + ( $interval_hours * 3600 ) );
@@ -337,5 +474,19 @@ class AppointmentValidator {
 	public function get_daily_appointment_count( int $calendar_id, string $date, bool $use_lock = false ): int {
 		$appointments = $this->appointment_repository->getAppointmentsByDate( $calendar_id, $date, array( 'confirmed', 'pending' ), $use_lock );
 		return count( $appointments );
+	}
+
+	/**
+	 * Combine a wall-clock `Y-m-d` date and `H:i(:s)` time in the site timezone
+	 * and return the Unix timestamp — for comparing an appointment moment
+	 * against `time()` (a computation, not a display, so it stays out of the
+	 * DateFormatter display path).
+	 *
+	 * @param string $date Wall-clock date (`Y-m-d`).
+	 * @param string $time Wall-clock time (`H:i` or `H:i:s`).
+	 * @return int Unix timestamp.
+	 */
+	private static function wall_clock_to_timestamp( string $date, string $time ): int {
+		return ( new \DateTimeImmutable( $date . ' ' . $time, wp_timezone() ) )->getTimestamp();
 	}
 }

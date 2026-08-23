@@ -89,11 +89,8 @@ class AudienceLoaderTest extends TestCase {
 
         // We expect add_action to be called with various hooks
         Actions\expectAdded('init');
-        Actions\expectAdded('wp_ajax_ffc_audience_check_conflicts');
-        Actions\expectAdded('wp_ajax_ffc_audience_create_booking');
         Actions\expectAdded('wp_ajax_ffc_audience_cancel_booking');
         Actions\expectAdded('wp_ajax_ffc_audience_get_booking');
-        Actions\expectAdded('wp_ajax_ffc_audience_get_schedule_slots');
         Actions\expectAdded('wp_ajax_ffc_search_users');
         Actions\expectAdded('wp_ajax_ffc_audience_get_environments');
         Actions\expectAdded('wp_ajax_ffc_audience_add_user_permission');

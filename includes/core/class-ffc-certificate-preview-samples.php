@@ -138,6 +138,9 @@ class CertificatePreviewSamples {
 			'calendar_title'           => 'Atendimento de Exemplo',
 			'appointment_date'         => $today,
 			'appointment_time'         => '09:00',
+			// Custom-mode session window (#945): end + a start–end range token.
+			'appointment_end'          => '13:00',
+			'appointment_time_range'   => '09:00 – 13:00',
 
 			// Effective wall-clock schedule (resolved by PdfGenerator via
 			// per-submission "Schedule Exception" → form-level Class

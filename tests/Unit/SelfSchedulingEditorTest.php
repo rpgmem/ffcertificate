@@ -39,9 +39,25 @@ class SelfSchedulingEditorTest extends TestCase {
         Functions\when( 'wp_create_nonce' )->justReturn( 'test_nonce' );
         Functions\when( 'wp_nonce_field' )->justReturn( '' );
         Functions\when( 'get_post_meta' )->justReturn( '' );
+        // default_confirmation_body() now resolves the effective global (#965) →
+        // reads ffc_email_bodies; no override → the shipped file default.
+        Functions\when( 'get_option' )->justReturn( array() );
         Functions\when( 'get_the_ID' )->justReturn( 10 );
         Functions\when( 'checked' )->justReturn( '' );
         Functions\when( 'selected' )->justReturn( '' );
+        Functions\when( 'disabled' )->justReturn( '' );
+
+        // $wpdb mock — no appointments, so the #941 mode/block locks stay off.
+        global $wpdb;
+        $wpdb         = \Mockery::mock();
+        $wpdb->prefix = 'wp_';
+        $wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+            function ( $query ) {
+                return $query;
+            }
+        );
+        $wpdb->shouldReceive( 'get_var' )->andReturn( 0 );
+        $GLOBALS['wpdb'] = $wpdb;
         Functions\when( 'add_query_arg' )->justReturn( '/' );
         Functions\when( 'home_url' )->justReturn( 'https://example.com' );
         Functions\when( 'check_ajax_referer' )->justReturn( true );
@@ -220,6 +236,57 @@ class SelfSchedulingEditorTest extends TestCase {
     }
 
     // ==================================================================
+    // render_box_occupancy() — #941 phase 3
+    // ==================================================================
+
+    public function test_render_box_occupancy_empty_blocks_shows_hint(): void {
+        // get_post_meta returns '' (setUp default) → no configured blocks.
+        $post     = (object) array( 'ID' => 10 );
+        $editor   = new SelfSchedulingEditor();
+        ob_start();
+        $editor->render_box_occupancy( $post );
+        $output = ob_get_clean();
+
+        $this->assertStringContainsString( 'Add custom blocks', $output );
+    }
+
+    public function test_render_box_occupancy_renders_table_with_counts(): void {
+        Functions\when( 'get_post_meta' )->alias(
+            static function ( $id, $key ) {
+                if ( '_ffc_self_scheduling_custom_slots' === $key ) {
+                    return array(
+                        array( 'date' => '2026-09-03', 'start' => '08:00', 'end' => '13:00', 'capacity' => 40, 'label' => 'Manha' ),
+                    );
+                }
+                return '';
+            }
+        );
+        Functions\when( 'wp_cache_get' )->justReturn( false );
+        Functions\when( 'wp_cache_set' )->justReturn( true );
+
+        global $wpdb;
+        // CalendarRepository::findByPostId → the calendar row.
+        $wpdb->shouldReceive( 'get_row' )->andReturn( array( 'id' => 5, 'post_id' => 10 ) );
+        // AppointmentReader::getOccupancyCounts → grouped counts (39 booked / 2 waiting).
+        $wpdb->shouldReceive( 'get_results' )->andReturn( array(
+            array( 'date' => '2026-09-03', 'start' => '08:00:00', 'booked' => '39', 'waitlisted' => '2' ),
+        ) );
+
+        Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )
+            ->shouldReceive( 'format_wallclock_date' )->andReturnUsing( static fn( $d ) => $d );
+
+        $editor = new SelfSchedulingEditor();
+        ob_start();
+        $editor->render_box_occupancy( (object) array( 'ID' => 10 ) );
+        $output = ob_get_clean();
+
+        $this->assertStringContainsString( '39 / 40', $output );
+        $this->assertStringContainsString( 'Manha', $output );
+        $this->assertStringContainsString( '98%', $output ); // round(100 * 39 / 40)
+        $this->assertStringContainsString( '08:00–13:00', $output );
+    }
+
+    // ==================================================================
     // render_shortcode_metabox() — published
     // ==================================================================
 
@@ -251,15 +318,5 @@ class SelfSchedulingEditorTest extends TestCase {
         $output = ob_get_clean();
 
         $this->assertStringContainsString( 'Publish this calendar', $output );
-    }
-
-    // ==================================================================
-    // display_save_errors()
-    // ==================================================================
-
-    public function test_display_save_errors_is_noop(): void {
-        $editor = new SelfSchedulingEditor();
-        $editor->display_save_errors();
-        $this->assertTrue( true );
     }
 }

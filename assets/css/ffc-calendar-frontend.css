@@ -126,6 +126,26 @@
     box-shadow: none;
 }
 
+/* Waitlist slot (#941 phase 2): full, but joinable — distinct but selectable. */
+.ffc-shortcode .ffc-timeslot.ffc-timeslot-waitlist {
+    border-style: dashed;
+    border-color: var(--ffc-gray-400);
+}
+
+.ffc-shortcode .ffc-timeslot.ffc-timeslot-waitlist .ffc-timeslot-available {
+    font-style: italic;
+}
+
+.ffc-shortcode .ffc-waitlist-notice {
+    margin: 0 0 16px;
+    padding: 12px 14px;
+    border-radius: 6px;
+    background: var(--ffc-gray-100);
+    border: 1px solid var(--ffc-gray-200);
+    font-size: 14px;
+    color: var(--ffc-gray-700);
+}
+
 .ffc-shortcode .ffc-no-slots {
     text-align: center;
     padding: 40px 20px;

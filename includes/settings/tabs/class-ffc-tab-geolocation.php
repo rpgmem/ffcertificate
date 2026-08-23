@@ -8,7 +8,7 @@
  * @since 3.0.0
  * @version 4.6.16 - Added main_geo_areas (moved from General tab)
  * @version 3.3.0 - Added strict types and type hints
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @version 3.2.0 - Migrated to namespace
  */
 
 declare(strict_types=1);
@@ -32,6 +32,7 @@ class TabGeolocation extends SettingsTab {
 	 */
 	protected function init(): void {
 		$this->tab_id    = 'geolocation';
+		$this->tab_group = 'security';
 		$this->tab_title = __( 'Geolocation', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-globe';
 		$this->tab_order = 50;
@@ -50,12 +51,7 @@ class TabGeolocation extends SettingsTab {
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_scripts( string $hook ): void {
-		if ( 'toplevel_page_ffc-settings' !== $hook ) {
-			return;
-		}
-
-		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for conditional script loading.
-		if ( 'geolocation' !== $active_tab ) {
+		if ( ! $this->should_enqueue_on( $hook ) ) {
 			return;
 		}
 

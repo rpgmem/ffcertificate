@@ -314,6 +314,10 @@ class AudienceShortcodeTest extends TestCase {
         $this->assertStringContainsString('ffc-calendar-grid', $result);
         // Read-only: no booking modal
         $this->assertStringNotContainsString('ffc-booking-modal', $result);
+        // #951 a11y: the environment filter <select> carries an accessible name
+        // (it has no visible <label>), so screen-reader users know its purpose.
+        $this->assertStringContainsString('ffc-environment-select', $result);
+        $this->assertStringContainsString('aria-label="Filter by', $result);
     }
 
     // ==================================================================

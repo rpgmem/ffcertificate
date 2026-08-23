@@ -28,6 +28,7 @@ class TabCache extends SettingsTab {
 	 */
 	protected function init(): void {
 		$this->tab_id    = 'cache';
+		$this->tab_group = 'tools';
 		$this->tab_title = __( 'Cache', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-package';
 		$this->tab_order = 30;
@@ -43,10 +44,7 @@ class TabCache extends SettingsTab {
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_scripts( string $hook ): void {
-		if ( 'toplevel_page_ffc-settings' !== $hook ) {
-			return;
-		}
-		if ( ! $this->is_active() ) {
+		if ( ! $this->should_enqueue_on( $hook ) ) {
 			return;
 		}
 		$this->enqueue_autosave_infra();

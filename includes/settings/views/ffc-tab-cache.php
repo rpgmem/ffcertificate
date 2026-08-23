@@ -101,6 +101,68 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 	</table>
 </div>
 
+<?php
+// Cloudflare page-cache safety (#921). Only relevant — and only shown — when
+// this request reached PHP through Cloudflare (shared detection helper, #920).
+$ffcertificate_cf_behind = class_exists( '\FreeFormCertificate\Core\ClientIpResolver' )
+	&& \FreeFormCertificate\Core\ClientIpResolver::is_behind_cloudflare();
+
+if ( $ffcertificate_cf_behind ) :
+	$ffcertificate_cf_probe  = \FreeFormCertificate\Integrations\CloudflareCacheProbe::get();
+	$ffcertificate_cf_status = isset( $ffcertificate_cf_probe['status'] ) ? (string) $ffcertificate_cf_probe['status'] : '';
+	$ffcertificate_cf_raw    = isset( $ffcertificate_cf_probe['raw'] ) ? (string) $ffcertificate_cf_probe['raw'] : '';
+
+	if ( \FreeFormCertificate\Integrations\CloudflareCacheProbe::STATUS_CACHING === $ffcertificate_cf_status ) {
+		$ffcertificate_cf_cls = 'ffc-text-error ffc-icon-warning';
+		$ffcertificate_cf_msg = sprintf(
+			/* translators: %s: raw cf-cache-status value */
+			__( 'A Cloudflare rule is caching HTML (cf-cache-status: %s). Exclude FFC form and dashboard URLs from that rule — otherwise pages may be served stale or, for the personal dashboard, to the wrong user.', 'ffcertificate' ),
+			$ffcertificate_cf_raw
+		);
+	} elseif ( \FreeFormCertificate\Integrations\CloudflareCacheProbe::STATUS_SAFE === $ffcertificate_cf_status ) {
+		$ffcertificate_cf_cls = 'ffc-text-success ffc-icon-checkmark';
+		$ffcertificate_cf_msg = sprintf(
+			/* translators: %s: raw cf-cache-status value */
+			__( 'Cloudflare is not caching HTML (cf-cache-status: %s) — the safe default.', 'ffcertificate' ),
+			$ffcertificate_cf_raw
+		);
+	} elseif ( \FreeFormCertificate\Integrations\CloudflareCacheProbe::STATUS_ERROR === $ffcertificate_cf_status ) {
+		$ffcertificate_cf_cls = 'ffc-text-warning ffc-icon-warning';
+		$ffcertificate_cf_msg = __( 'The automatic cache check could not run (loopback request failed). Verify manually: the cf-cache-status response header on a form page should read DYNAMIC or BYPASS, never HIT.', 'ffcertificate' );
+	} else {
+		$ffcertificate_cf_cls = 'ffc-text-warning ffc-icon-info';
+		$ffcertificate_cf_msg = __( 'The automatic check could not observe a Cloudflare cache status (the loopback may not have traversed Cloudflare). Verify manually: cf-cache-status on a form page should read DYNAMIC or BYPASS, never HIT.', 'ffcertificate' );
+	}
+	?>
+	<div class="card">
+		<h2 class="ffc-icon-shield"><?php esc_html_e( 'Cloudflare Page Cache', 'ffcertificate' ); ?></h2>
+		<p class="description">
+			<?php esc_html_e( 'Cloudflare is in front of this site. Its default (caching static assets only, HTML bypassed) is safe. Do NOT enable "Cache Everything", APO, or a Cache Rule that caches HTML for pages containing FFC forms or the personal dashboard.', 'ffcertificate' ); ?>
+		</p>
+		<table class="form-table" role="presentation">
+			<tbody>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Automatic check', 'ffcertificate' ); ?></th>
+					<td>
+						<span class="<?php echo esc_attr( $ffcertificate_cf_cls ); ?>"><?php echo esc_html( $ffcertificate_cf_msg ); ?></span>
+						<p class="description">
+							<?php esc_html_e( 'Best-effort: a loopback request to the front page reads the edge cf-cache-status header. Cached up to 6 hours.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr class="alternate">
+					<th scope="row"><?php esc_html_e( 'If you use APO or a Cache Rule', 'ffcertificate' ); ?></th>
+					<td>
+						<p class="description">
+							<?php esc_html_e( 'Add a bypass for the FFC form and dashboard URLs, or bypass on the wordpress_logged_in cookie. Forms stay functional even if cached (nonces and captcha refresh via AJAX), but per-user dashboard HTML must never be cached at the edge.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+<?php endif; ?>
+
 <form method="post">
 	<?php wp_nonce_field( 'ffc_settings_action', 'ffc_settings_nonce' ); ?>
 	<input type="hidden" name="_ffc_tab" value="cache">

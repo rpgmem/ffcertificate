@@ -38,20 +38,15 @@
 
 		$status.removeClass('ffc-saved ffc-error').text(cfg.savingText || '');
 
-		$.post(cfg.ajaxUrl, {
-			action: cfg.toggleAction,
-			nonce: cfg.nonce,
-			post_id: postId,
-			visible: visible
-		})
-			.done(function (res) {
-				if (res && res.success) {
-					$status.removeClass('ffc-error').addClass('ffc-saved').text(cfg.savedText || '');
-				} else {
-					$status.removeClass('ffc-saved').addClass('ffc-error').text(cfg.errorText || '');
-				}
+		window.FFC.request(
+			cfg.toggleAction,
+			{ post_id: postId, visible: visible },
+			{ nonce: cfg.nonce, ajaxUrl: cfg.ajaxUrl }
+		)
+			.then(function () {
+				$status.removeClass('ffc-error').addClass('ffc-saved').text(cfg.savedText || '');
 			})
-			.fail(function () {
+			.catch(function () {
 				$status.removeClass('ffc-saved').addClass('ffc-error').text(cfg.errorText || '');
 			});
 	});

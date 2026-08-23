@@ -130,10 +130,14 @@ class AppointmentAjaxHandler {
 			$appointment       = null;
 			$calendar          = null;
 			$requires_approval = $result['requires_approval'] ?? false;
+			// A waitlisted booking (#941 phase 2) is queued, not an active spot:
+			// no receipt PDF and no "confirmed" messaging.
+			$is_waitlist = ! empty( $result['waitlisted'] );
+			$is_active   = ! $requires_approval && ! $is_waitlist;
 			try {
 				$appointment = $this->handler->get_appointment_repository()->findById( $result['appointment_id'] );
 				$calendar    = $this->handler->get_calendar_repository()->findById( $calendar_id );
-				if ( $appointment && $calendar && ! $requires_approval ) {
+				if ( $appointment && $calendar && $is_active ) {
 					$pdf_generator = new \FreeFormCertificate\Generators\PdfGenerator();
 					$pdf_data      = $pdf_generator->generate_appointment_pdf_data( $appointment, $calendar );
 				}
@@ -150,26 +154,35 @@ class AppointmentAjaxHandler {
 				}
 			}
 
-			// Determine if a confirmation email was actually sent.
+			// Determine if a confirmation email was actually sent. A waitlisted
+			// booking sends its own "you're on the waitlist" email under the same
+			// send_user_confirmation toggle (#941 phase 2).
 			$email_sent = false;
-			if ( ! $requires_approval ) {
+			if ( $is_active || $is_waitlist ) {
 				if ( ! \FreeFormCertificate\Settings\SettingsReader::emails_disabled() && $calendar ) {
 					$email_config = json_decode( $calendar['email_config'] ?? '{}', true );
 					$email_sent   = ! empty( $email_config['send_user_confirmation'] );
 				}
 			}
 
+			if ( $is_waitlist ) {
+				$message = __( 'You have been added to the waitlist. We will notify you if a spot opens up.', 'ffcertificate' );
+			} elseif ( $requires_approval ) {
+				$message = __( 'Appointment booked successfully! Awaiting admin approval.', 'ffcertificate' );
+			} else {
+				$message = __( 'Appointment booked successfully!', 'ffcertificate' );
+			}
+
 			$response = array(
-				'message'            => $requires_approval
-					? __( 'Appointment booked successfully! Awaiting admin approval.', 'ffcertificate' )
-					: __( 'Appointment booked successfully!', 'ffcertificate' ),
+				'message'            => $message,
 				'appointment_id'     => $result['appointment_id'],
 				'confirmation_token' => $result['confirmation_token'] ?? null,
 				'validation_code'    => $appointment && ! empty( $appointment['validation_code'] )
 					? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $appointment['validation_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_APPOINTMENT )
 					: null,
-				'receipt_url'        => $requires_approval ? '' : ( $result['receipt_url'] ?? '' ),
+				'receipt_url'        => $is_active ? ( $result['receipt_url'] ?? '' ) : '',
 				'requires_approval'  => $requires_approval,
+				'waitlisted'         => $is_waitlist,
 				'email_sent'         => $email_sent,
 			);
 

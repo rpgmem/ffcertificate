@@ -288,16 +288,6 @@ class ReregistrationRepository {
 	/**
 	 * Count reregistrations with filters.
 	 *
-	 * Count.
-	 *
-	 * Count.
-	 *
-	 * Count.
-	 *
-	 * Count.
-	 *
-	 * Count.
-	 *
 	 * @param array<string, mixed> $filters Same filters as get_all.
 	 * @return int
 	 */

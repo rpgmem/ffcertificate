@@ -96,6 +96,7 @@
                 <element value="ffc_view_own_audience_bookings"/>
                 <!-- Admin module caps — manage (vê e edita). -->
                 <element value="ffc_bypass_appointments"/>
+                <element value="ffc_bypass_appointment_capacity"/>
                 <element value="ffc_manage_certificates"/>
                 <element value="ffc_export_certificates"/>
                 <element value="ffc_edit_certificates"/>
@@ -106,6 +107,8 @@
                 <element value="ffc_view_activity_log"/>
                 <element value="ffc_view_as_user"/>
                 <element value="ffc_manage_settings"/>
+                <element value="ffc_manage_forms"/>
+                <element value="ffc_view_forms"/>
                 <element value="ffc_view_forms_api"/>
                 <!-- Admin module caps — view (só vê) tier of the 3-state model. -->
                 <element value="ffc_view_certificates"/>

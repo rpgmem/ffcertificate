@@ -53,9 +53,6 @@ class SelfSchedulingAdminTest extends TestCase {
         if ( ! defined( 'FFC_VERSION' ) ) {
             define( 'FFC_VERSION', '4.12.0' );
         }
-        if ( ! defined( 'FFC_JQUERY_UI_VERSION' ) ) {
-            define( 'FFC_JQUERY_UI_VERSION', '1.13.2' );
-        }
     }
 
     protected function tearDown(): void {

@@ -240,10 +240,11 @@
 					return;
 				}
 				// Flush CodeMirror into the textarea first — its own submit
-				// sync may not have run yet depending on handler order.
-				var $cm = $layout.nextAll( '.CodeMirror' ).first();
-				if ( $cm.length && $cm[0].CodeMirror && typeof $cm[0].CodeMirror.save === 'function' ) {
-					$cm[0].CodeMirror.save();
+				// sync may not have run yet depending on handler order. Guarded
+				// so this progressive-enhancement guard never itself blocks the
+				// submit if the shared editor helper isn't present.
+				if ( window.FFCCodeEditor ) {
+					window.FFCCodeEditor.flush( $layout );
 				}
 				var content = String( $layout.val() || '' );
 				var missing = cfg.tags.filter( function ( tag ) {

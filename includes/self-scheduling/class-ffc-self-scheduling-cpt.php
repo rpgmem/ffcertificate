@@ -314,6 +314,7 @@ class SelfSchedulingCPT {
 		// Get metadata.
 		$config        = get_post_meta( $post_id, '_ffc_self_scheduling_config', true );
 		$working_hours = get_post_meta( $post_id, '_ffc_self_scheduling_working_hours', true );
+		$custom_slots  = get_post_meta( $post_id, '_ffc_self_scheduling_custom_slots', true );
 		$email_config  = get_post_meta( $post_id, '_ffc_self_scheduling_email_config', true );
 
 		// Parse config into database fields.
@@ -321,6 +322,7 @@ class SelfSchedulingCPT {
 		$data['title']         = $post->post_title;
 		$data['post_id']       = $post_id;
 		$data['working_hours'] = is_array( $working_hours ) ? wp_json_encode( $working_hours ) : $working_hours;
+		$data['custom_slots']  = is_array( $custom_slots ) ? wp_json_encode( $custom_slots ) : $custom_slots;
 		$data['email_config']  = is_array( $email_config ) ? wp_json_encode( $email_config ) : $email_config;
 		$data['updated_at']    = current_time( 'mysql' );
 		$data['updated_by']    = get_current_user_id();
@@ -363,10 +365,14 @@ class SelfSchedulingCPT {
 			'minimum_interval_between_bookings' => $config['minimum_interval_between_bookings'] ?? 24,
 			'requires_approval'                 => $config['requires_approval'] ?? 0,
 			'max_appointments_per_slot'         => $config['max_appointments_per_slot'] ?? 1,
+			'waitlist_enabled'                  => $config['waitlist_enabled'] ?? 0,
+			'waitlist_capacity'                 => $config['waitlist_capacity'] ?? 0,
+			'max_blocks_per_user'               => $config['max_blocks_per_user'] ?? 0,
 			'visibility'                        => $config['visibility'] ?? 'public',
 			'scheduling_visibility'             => $config['scheduling_visibility'] ?? 'public',
 			'restrict_viewing_to_hours'         => $config['restrict_viewing_to_hours'] ?? 0,
 			'restrict_booking_to_hours'         => $config['restrict_booking_to_hours'] ?? 0,
+			'schedule_type'                     => ( 'custom' === ( $config['schedule_type'] ?? 'regular' ) ) ? 'custom' : 'regular',
 			'status'                            => $config['status'] ?? 'active',
 		);
 	}
@@ -488,28 +494,27 @@ class SelfSchedulingCPT {
 			return;
 		}
 
-		// Prepare email.
-		$subject = sprintf(
-			/* translators: %s: site name */
-			__( '[%s] Appointment Cancelled - Calendar No Longer Available', 'ffcertificate' ),
-			get_bloginfo( 'name' )
-		);
-
 		$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] );
 		$time_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] );
 
-		// Email body → shared configurable chrome (#662), like every other email.
-		$body = self::ffc_email_document(
-			self::ffc_render_email_partial(
-				'calendar-deleted-cancellation',
-				array(
-					'calendar_title' => $calendar_title,
-					'date_formatted' => $date_formatted,
-					'time_formatted' => $time_formatted,
-				)
-			),
-			array( 'recipient' => $email )
+		// Subject + body: the effective global (hub override → shipped file default,
+		// #965), resolved through the one token map. Subject token is plain text (a
+		// mail header); body scalars are esc_html'd at substitution.
+		$subject = \FreeFormCertificate\Core\TokenResolver::resolve(
+			\FreeFormCertificate\Core\EmailTemplates::effective_body( 'calendar-deleted-cancellation', 'subject' ),
+			array( '{{calendar_title}}' => $calendar_title )
 		);
+		$content = \FreeFormCertificate\Core\TokenResolver::resolve(
+			\FreeFormCertificate\Core\EmailTemplates::effective_body( 'calendar-deleted-cancellation', 'body' ),
+			array(
+				'{{calendar_title}}'   => esc_html( $calendar_title ),
+				'{{appointment_date}}' => esc_html( $date_formatted ),
+				'{{appointment_time}}' => esc_html( $time_formatted ),
+			)
+		);
+
+		// Email body → shared configurable chrome (#662), like every other email.
+		$body = self::ffc_email_document( $content, array( 'recipient' => $email ) );
 
 		// Send email.
 		self::ffc_send_mail( $email, $subject, $body, array(), \FreeFormCertificate\Core\EmailSource::SCHEDULING );

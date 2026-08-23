@@ -4,7 +4,7 @@
  *
  * @package FreeFormCertificate\Settings\Tabs
  * @version 3.3.0 - Added strict types and type hints
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @version 3.2.0 - Migrated to namespace
  */
 
 declare(strict_types=1);
@@ -27,6 +27,7 @@ class TabRateLimit extends SettingsTab {
 	 */
 	protected function init(): void {
 		$this->tab_id    = 'rate_limit';
+		$this->tab_group = 'security';
 		$this->tab_title = __( 'Rate Limit', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-shield';
 		$this->tab_order = 40;
@@ -42,10 +43,7 @@ class TabRateLimit extends SettingsTab {
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_scripts( string $hook ): void {
-		if ( 'toplevel_page_ffc-settings' !== $hook ) {
-			return;
-		}
-		if ( ! $this->is_active() ) {
+		if ( ! $this->should_enqueue_on( $hook ) ) {
 			return;
 		}
 		$this->enqueue_autosave_infra();

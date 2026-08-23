@@ -225,6 +225,36 @@ class AppointmentEmailHandlerTest extends TestCase {
         $this->assertStringContainsString( 'pending approval', $this->last_mail['body'] );
     }
 
+    public function test_booking_confirmation_default_body_tracks_the_hub_override(): void {
+        // A calendar with no custom body now resolves the effective GLOBAL, so an
+        // SMTP email-body-hub override for `selfscheduling-confirmation` controls
+        // the default confirmation text — buttons still resolve via their tokens (#965).
+        Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
+            if ( 'ffc_settings' === $key ) {
+                return array();
+            }
+            if ( 'ffc_email_bodies' === $key ) {
+                return array(
+                    'selfscheduling-confirmation' => array(
+                        'body' => '<p>Custom global confirmation for {{calendar_title}}.</p>{{cancel_button}}',
+                    ),
+                );
+            }
+            if ( 'date_format' === $key ) {
+                return 'Y-m-d';
+            }
+            return $default;
+        } );
+
+        $this->handler->send_booking_confirmation( $this->makeAppointment(), $this->makeCalendar() );
+
+        $this->assertTrue( $this->mail_sent );
+        $this->assertStringContainsString( 'Custom global confirmation for Test Calendar.', $this->last_mail['body'] );
+        $this->assertStringContainsString( 'Cancel Appointment', $this->last_mail['body'], 'cancel button token still resolves in the override' );
+        // The shipped default box is gone — the override replaced it.
+        $this->assertStringNotContainsString( 'Appointment Booked!', $this->last_mail['body'] );
+    }
+
     public function test_booking_confirmation_includes_user_notes_when_provided(): void {
         $this->handler->send_booking_confirmation(
             $this->makeAppointment( array( 'user_notes' => 'Please call ahead' ) ),
@@ -317,7 +347,7 @@ class AppointmentEmailHandlerTest extends TestCase {
         );
 
         $this->assertTrue( $this->mail_sent );
-        $this->assertStringContainsString( 'Reminder', $this->last_mail['subject'] );
+        $this->assertStringContainsString( 'Appointment reminder', $this->last_mail['subject'] );
     }
 
     public function test_reminder_includes_cancel_link_when_allowed(): void {
@@ -338,5 +368,105 @@ class AppointmentEmailHandlerTest extends TestCase {
 
         $this->assertTrue( $this->mail_sent );
         $this->assertStringNotContainsString( 'Cancel Appointment', $this->last_mail['body'] );
+    }
+
+    // ==================================================================
+    // send_waitlist_notification()
+    // ==================================================================
+
+    public function test_waitlist_notification_sends_email(): void {
+        $this->handler->send_waitlist_notification(
+            $this->makeAppointment( array( 'status' => 'waitlisted' ) ),
+            $this->makeCalendar()
+        );
+
+        $this->assertTrue( $this->mail_sent );
+        $this->assertStringContainsString( 'Waitlist', $this->last_mail['subject'] );
+        $this->assertStringContainsString( 'Test Calendar', $this->last_mail['subject'] );
+    }
+
+    public function test_waitlist_includes_leave_button_when_cancellation_allowed(): void {
+        $this->handler->send_waitlist_notification(
+            $this->makeAppointment( array( 'status' => 'waitlisted' ) ),
+            $this->makeCalendar( array( 'allow_cancellation' => 1 ) )
+        );
+
+        $this->assertTrue( $this->mail_sent );
+        $this->assertStringContainsString( 'Leave Waitlist', $this->last_mail['body'] );
+    }
+
+    public function test_waitlist_excludes_leave_button_when_cancellation_not_allowed(): void {
+        $this->handler->send_waitlist_notification(
+            $this->makeAppointment( array( 'status' => 'waitlisted' ) ),
+            $this->makeCalendar( array( 'allow_cancellation' => 0 ) )
+        );
+
+        $this->assertTrue( $this->mail_sent );
+        $this->assertStringNotContainsString( 'Leave Waitlist', $this->last_mail['body'] );
+    }
+
+    // ==================================================================
+    // send_promotion_notification()
+    // ==================================================================
+
+    public function test_promotion_notification_sends_email(): void {
+        $this->handler->send_promotion_notification(
+            $this->makeAppointment( array( 'status' => 'confirmed' ) ),
+            $this->makeCalendar()
+        );
+
+        $this->assertTrue( $this->mail_sent );
+        $this->assertStringContainsString( 'Spot Opened Up', $this->last_mail['subject'] );
+    }
+
+    public function test_promotion_confirmed_status_message(): void {
+        $this->handler->send_promotion_notification(
+            $this->makeAppointment( array( 'status' => 'confirmed' ) ),
+            $this->makeCalendar()
+        );
+
+        $this->assertTrue( $this->mail_sent );
+        $this->assertStringContainsString( 'now confirmed', $this->last_mail['body'] );
+    }
+
+    public function test_promotion_pending_status_message(): void {
+        $this->handler->send_promotion_notification(
+            $this->makeAppointment( array( 'status' => 'pending' ) ),
+            $this->makeCalendar( array( 'requires_approval' => 1 ) )
+        );
+
+        $this->assertTrue( $this->mail_sent );
+        $this->assertStringContainsString( 'pending approval', $this->last_mail['body'] );
+    }
+
+    // ==================================================================
+    // Hub-override parity (#965): a lifecycle email tracks the global body
+    // ==================================================================
+
+    public function test_reminder_body_tracks_the_hub_override(): void {
+        Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
+            if ( 'ffc_settings' === $key ) {
+                return array();
+            }
+            if ( 'ffc_email_bodies' === $key ) {
+                return array(
+                    'appointment-reminder' => array(
+                        'body' => '<p>Global reminder for {{calendar_title}}.</p>{{cancel_button}}',
+                    ),
+                );
+            }
+            if ( 'date_format' === $key ) {
+                return 'Y-m-d';
+            }
+            return $default;
+        } );
+
+        $this->handler->send_reminder( $this->makeAppointment(), $this->makeCalendar() );
+
+        $this->assertTrue( $this->mail_sent );
+        $this->assertStringContainsString( 'Global reminder for Test Calendar.', $this->last_mail['body'] );
+        $this->assertStringContainsString( 'Cancel Appointment', $this->last_mail['body'], 'cancel button token still resolves in the override' );
+        // The shipped default heading is gone — the override replaced the body.
+        $this->assertStringNotContainsString( 'Appointment Reminder', $this->last_mail['body'] );
     }
 }

@@ -14,7 +14,7 @@ use FreeFormCertificate\Settings\SettingsTab;
  * Tests for SettingsTab: abstract base class for settings tabs.
  *
  * Uses an anonymous concrete subclass to test non-abstract functionality
- * (getters, render helpers, is_active, get_tab_url, get_option,
+ * (getters, render helpers, is_active, get_option,
  * enqueue_autosave_infra).
  *
  * @covers \FreeFormCertificate\Settings\SettingsTab
@@ -78,9 +78,10 @@ class SettingsTabTest extends TestCase {
                 return $this->is_active();
             }
 
-            public function public_get_tab_url(): string {
-                return $this->get_tab_url();
+            public function public_should_enqueue_on( string $hook ): bool {
+                return $this->should_enqueue_on( $hook );
             }
+
         };
     }
 
@@ -139,6 +140,38 @@ class SettingsTabTest extends TestCase {
 
     public function test_get_manage_cap_defaults_to_ffc_manage_settings(): void {
         $this->assertSame( 'ffc_manage_settings', $this->tab->get_manage_cap() );
+    }
+
+    public function test_get_group_defaults_to_tools_when_not_set(): void {
+        // A tab that doesn't set a group lands in the neutral "tools" bucket so
+        // the grouped nav never drops it.
+        $tab = new class() extends SettingsTab {
+            protected function init(): void {
+                $this->tab_id    = 'no_group';
+                $this->tab_title = 'No Group';
+                $this->tab_icon  = '';
+                // tab_group intentionally NOT set
+            }
+
+            public function render(): void {}
+        };
+
+        $this->assertSame( 'tools', $tab->get_group() );
+    }
+
+    public function test_get_group_returns_configured_group(): void {
+        $tab = new class() extends SettingsTab {
+            protected function init(): void {
+                $this->tab_id    = 'sec';
+                $this->tab_title = 'Sec';
+                $this->tab_icon  = '';
+                $this->tab_group = 'security';
+            }
+
+            public function render(): void {}
+        };
+
+        $this->assertSame( 'security', $tab->get_group() );
     }
 
     public function test_get_order_defaults_to_ten_when_not_set(): void {
@@ -300,20 +333,40 @@ class SettingsTabTest extends TestCase {
     }
 
     // ==================================================================
-    // get_tab_url()
+    // should_enqueue_on()
     // ==================================================================
 
-    public function test_get_tab_url_returns_admin_url_with_tab_id(): void {
-        Functions\when( 'admin_url' )->alias( function ( $path = '' ) {
-            return 'https://example.com/wp-admin/' . $path;
+    public function test_should_enqueue_on_true_on_settings_hook_and_active_tab(): void {
+        Functions\when( 'sanitize_key' )->alias( function ( $key ) {
+            return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $key ) );
         } );
+        Functions\when( 'wp_unslash' )->returnArg();
 
-        $url = $this->tab->public_get_tab_url();
+        $_GET['tab'] = 'test_tab';
 
-        $this->assertSame(
-            'https://example.com/wp-admin/admin.php?page=ffc-settings&tab=test_tab',
-            $url
-        );
+        $this->assertTrue( $this->tab->public_should_enqueue_on( 'toplevel_page_ffc-settings' ) );
+    }
+
+    public function test_should_enqueue_on_false_on_wrong_hook(): void {
+        Functions\when( 'sanitize_key' )->alias( function ( $key ) {
+            return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $key ) );
+        } );
+        Functions\when( 'wp_unslash' )->returnArg();
+
+        $_GET['tab'] = 'test_tab';
+
+        $this->assertFalse( $this->tab->public_should_enqueue_on( 'edit.php' ) );
+    }
+
+    public function test_should_enqueue_on_false_on_wrong_tab(): void {
+        Functions\when( 'sanitize_key' )->alias( function ( $key ) {
+            return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $key ) );
+        } );
+        Functions\when( 'wp_unslash' )->returnArg();
+
+        $_GET['tab'] = 'other_tab';
+
+        $this->assertFalse( $this->tab->public_should_enqueue_on( 'toplevel_page_ffc-settings' ) );
     }
 
     // ==================================================================

@@ -58,6 +58,9 @@ class TabUrlShortenerTest extends TestCase {
         Functions\when( 'sanitize_key' )->alias( function ( $key ) {
             return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $key ) );
         } );
+        // The enqueue gate now routes through SettingsTab::is_active(), which
+        // wp_unslash()es the tab param before sanitize_key().
+        Functions\when( 'wp_unslash' )->returnArg();
 
         $this->tab = new TabUrlShortener();
     }

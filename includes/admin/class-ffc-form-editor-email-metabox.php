@@ -33,19 +33,24 @@ class FormEditorEmailMetabox {
 	public function render( WP_Post $post ): void {
 		$this->enqueue_restore_default_script();
 
-		$config     = get_post_meta( $post->ID, '_ffc_form_config', true );
-		$send_email = isset( $config['send_user_email'] ) ? $config['send_user_email'] : '0';
-		$subject    = isset( $config['email_subject'] ) ? $config['email_subject'] : \FreeFormCertificate\Core\EmailTemplateDefaults::user_email_subject();
-		$body       = isset( $config['email_body'] ) ? (string) $config['email_body'] : '';
-		// When the email is enabled but no custom message was written yet, seed
-		// the editor with a sensible default so the operator starts from a ready
-		// template instead of a blank field. Strip tags / &nbsp; / whitespace
-		// with a native preg_replace (no WP function dependency, so every test
-		// that renders this metabox doesn't need to stub one) so a cleared
-		// TinyMCE body (`<p></p>`) also counts as empty.
-		if ( '' === (string) preg_replace( '/<[^>]*>|&nbsp;|\s+/', '', $body ) ) {
-			$body = self::default_email_body();
+		$config = get_post_meta( $post->ID, '_ffc_form_config', true );
+		if ( ! is_array( $config ) ) {
+			$config = array();
 		}
+		$send_email = isset( $config['send_user_email'] ) ? $config['send_user_email'] : '0';
+		// No pre-seed (#964): the subject + body show the stored value as-is. A
+		// form that has not written its own copy stays empty and rides the GLOBAL
+		// default (Settings → SMTP → Email texts); the operator opts into a
+		// per-form Custom copy with the toggle below, which seeds the editor with
+		// the current global to edit from.
+		$subject = isset( $config['email_subject'] ) ? (string) $config['email_subject'] : '';
+		$body    = isset( $config['email_body'] ) ? (string) $config['email_body'] : '';
+		// Global vs Custom (migration-free heuristic, #964): a genuinely edited
+		// subject OR body (≠ the shipped default) marks this form as a per-form
+		// Custom; otherwise it is on the Global and follows the hub. Legacy forms
+		// that merely carry the old pre-seeded default therefore open as Global.
+		$is_custom = \FreeFormCertificate\Core\EmailTemplates::overrides_global( 'certificate-user', $body, 'body' )
+			|| \FreeFormCertificate\Core\EmailTemplates::overrides_global( 'certificate-user', $subject, 'subject' );
 		$collapsed = ( '1' !== (string) $send_email );
 
 		$send_admin      = isset( $config['send_admin_email'] ) ? $config['send_admin_email'] : '0';
@@ -92,6 +97,33 @@ class FormEditorEmailMetabox {
 			aria-hidden="<?php echo $collapsed ? 'true' : 'false'; ?>">
 		<table class="form-table">
 			<tr>
+				<th><label><?php esc_html_e( 'Email content', 'ffcertificate' ); ?></label></th>
+				<td>
+					<?php
+					// UI-only toggle (not persisted; the save handler ignores it).
+					// The effective mode is re-derived from the stored text on each
+					// load via the same heuristic — see $is_custom above (#964).
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'    => 'ffc_email_custom_mode',
+							'id'      => 'ffc_email_custom_mode',
+							'checked' => $is_custom,
+							'label'   => __( 'Write a custom email for this form (instead of the shared global default).', 'ffcertificate' ),
+						)
+					);
+					?>
+				</td>
+			</tr>
+		</table>
+
+		<p class="description ffc-cert-email-global-note"<?php echo $is_custom ? ' style="display:none;"' : ''; ?>>
+			<?php esc_html_e( 'This form uses the shared global email text. Turn on the toggle above to write a version just for this form.', 'ffcertificate' ); ?>
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=email_texts' ) ); ?>"><?php esc_html_e( 'Edit the global text', 'ffcertificate' ); ?></a>
+		</p>
+
+		<div class="ffc-cert-email-custom-fields"<?php echo $is_custom ? '' : ' style="display:none;"'; ?>>
+		<table class="form-table">
+			<tr>
 				<th><label><?php esc_html_e( 'Subject', 'ffcertificate' ); ?></label></th>
 				<td><input type="text" name="ffc_config[email_subject]" value="<?php echo esc_attr( $subject ); ?>" class="ffc-w100"></td>
 			</tr>
@@ -133,6 +165,7 @@ class FormEditorEmailMetabox {
 				</td>
 			</tr>
 		</table>
+		</div><!-- /.ffc-cert-email-custom-fields -->
 		</div><!-- /.ffc-collapsed-target -->
 
 		<table class="form-table">
@@ -185,6 +218,14 @@ class FormEditorEmailMetabox {
 	 */
 	private function enqueue_restore_default_script(): void {
 		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+
+		// Resolve the EFFECTIVE global (hub override → shipped default) once — the
+		// "Restore Default Text" button and the flip-to-Custom seed both work off
+		// the global, so a per-form Custom always starts from what the email would
+		// otherwise send (#964).
+		$global_body    = \FreeFormCertificate\Core\EmailTemplates::effective_body( 'certificate-user', 'body' );
+		$global_subject = \FreeFormCertificate\Core\EmailTemplates::effective_body( 'certificate-user', 'subject' );
+
 		wp_enqueue_script(
 			'ffc-email-restore-default',
 			FFC_PLUGIN_URL . "assets/js/ffc-email-restore-default{$suffix}.js",
@@ -197,9 +238,27 @@ class FormEditorEmailMetabox {
 			'ffcEmailRestoreDefaults',
 			array(
 				'certificate_body' => array(
-					'body'    => self::default_email_body(),
-					'confirm' => __( 'Replace the current message with the default template? Your changes will be lost.', 'ffcertificate' ),
+					'body'    => $global_body,
+					'confirm' => __( 'Replace the current message with the global default text? Your changes will be lost.', 'ffcertificate' ),
 				),
+			)
+		);
+
+		// Global/Custom toggle behaviour for the certificate email (#964).
+		wp_enqueue_script(
+			'ffc-cert-email-mode',
+			FFC_PLUGIN_URL . "assets/js/ffc-cert-email-mode{$suffix}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-cert-email-mode',
+			'ffcCertEmailGlobal',
+			array(
+				'subject'      => $global_subject,
+				'body'         => $global_body,
+				'confirmReset' => __( 'Discard this form’s custom email text and use the shared global default instead?', 'ffcertificate' ),
 			)
 		);
 	}

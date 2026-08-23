@@ -390,9 +390,17 @@ class SubmissionLifecycleService {
 		global $wpdb;
 		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
-		$cleanup_days = absint( get_option( 'ffc_cleanup_days', 0 ) );
+		// Retention is opt-in (#936): an explicit enable toggle plus a positive
+		// day count, both stored in ffc_settings. The legacy standalone
+		// `ffc_cleanup_days` option was never written, so this cleanup never
+		// actually ran; the double gate keeps it off unless the admin turns it
+		// on with a sane window.
+		if ( ! \FreeFormCertificate\Settings\SettingsReader::get_bool( 'cleanup_enabled', false ) ) {
+			return 0;
+		}
 
-		if ( $cleanup_days <= 0 ) {
+		$cleanup_days = \FreeFormCertificate\Settings\SettingsReader::get_int( 'cleanup_days', 365 );
+		if ( $cleanup_days < 1 ) {
 			return 0;
 		}
 

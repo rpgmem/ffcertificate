@@ -52,7 +52,7 @@ class TabSmtpTest extends TestCase {
     }
 
     protected function tearDown(): void {
-        unset( $_GET['tab'] );
+        unset( $_GET['tab'], $_POST['ffc_save_email_bodies'], $_POST['ffc_email_bodies'] );
         Monkey\tearDown();
         parent::tearDown();
     }
@@ -120,10 +120,11 @@ class TabSmtpTest extends TestCase {
         $_GET['tab'] = 'smtp';
         Functions\when( 'wp_unslash' )->returnArg();
 
-        // AssetHelper::asset_suffix() is now called twice (once on this tab + once
-        // inside enqueue_autosave_infra), and the autosave helper enqueues
-        // four scripts: ffc-core, ffc-admin-autosave, ffc-section-collapse,
-        // plus this tab's own ffc-smtp-settings.
+        // Since the #976 split the SMTP tab is transport only: it enqueues its own
+        // ffc-smtp-settings plus the autosave infra (ffc-core, ffc-admin-autosave,
+        // ffc-section-collapse) for the "enable email sending" toggle. The Email
+        // Model + Restore-Default assets moved to their own tabs. asset_suffix()
+        // is called once here + once inside enqueue_autosave_infra = twice.
         $utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
         $utils_mock->shouldReceive( 'asset_suffix' )
             ->twice()
@@ -147,21 +148,8 @@ class TabSmtpTest extends TestCase {
             } ) )
             ->once();
         Functions\when( 'wp_create_nonce' )->justReturn( 'autosave-nonce' );
-
-        // "Email Model" box assets (color picker, media, live preview).
-        Functions\when( 'wp_enqueue_media' )->justReturn( null );
-        Functions\when( 'wp_enqueue_style' )->justReturn( null );
-        Functions\when( 'get_bloginfo' )->justReturn( 'Site' );
-        Functions\when( 'home_url' )->justReturn( 'https://site.test' );
-        Functions\when( 'get_option' )->justReturn( '' );
-        Functions\when( 'wp_date' )->justReturn( '2026' );
-        Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
-        Functions\expect( 'wp_enqueue_script' )
-            ->with( 'ffc-email-model', Mockery::type( 'string' ), array( 'jquery', 'wp-color-picker' ), Mockery::type( 'string' ), true )
-            ->once();
-        Functions\expect( 'wp_localize_script' )
-            ->with( 'ffc-email-model', 'ffcEmailModel', Mockery::type( 'array' ) )
-            ->once();
+        // The Email Model + Restore-Default assets are NOT enqueued by this tab.
+        Functions\expect( 'wp_enqueue_media' )->never();
 
         $this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
     }

@@ -73,6 +73,16 @@ class CertTemplateWriterTest extends TestCase {
 		$this->assertSame( '1', $this->written( CertTemplateCpt::META_VISIBLE ) );
 		// A user template is never a shipped default.
 		$this->assertSame( '0', $this->written( CertTemplateCpt::META_IS_DEFAULT ) );
+		// Defaults to the certificate kind when not specified (#945).
+		$this->assertSame( CertTemplateCpt::KIND_CERTIFICATE, $this->written( CertTemplateCpt::META_KIND ) );
+	}
+
+	public function test_create_stores_the_given_kind(): void {
+		Functions\when( 'wp_insert_post' )->justReturn( 79 );
+
+		CertTemplateWriter::create( 'Receipt', '<div>r</div>', true, '', CertTemplateCpt::KIND_APPOINTMENT_RECEIPT );
+
+		$this->assertSame( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT, $this->written( CertTemplateCpt::META_KIND ) );
 	}
 
 	public function test_create_honours_visible_false(): void {
@@ -113,6 +123,30 @@ class CertTemplateWriterTest extends TestCase {
 
 	public function test_set_visibility_rejects_nonpositive_id(): void {
 		$this->assertFalse( CertTemplateWriter::set_visibility( 0, true ) );
+		$this->assertSame( array(), $this->meta_writes );
+	}
+
+	public function test_set_kind_updates_pool_post(): void {
+		Functions\when( 'get_post' )->justReturn( $this->pool_post( 5 ) );
+
+		$this->assertTrue( CertTemplateWriter::set_kind( 5, CertTemplateCpt::KIND_APPOINTMENT_RECEIPT ) );
+		$this->assertSame( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT, $this->written( CertTemplateCpt::META_KIND ) );
+	}
+
+	public function test_set_kind_rejects_unknown_kind(): void {
+		Functions\when( 'get_post' )->justReturn( $this->pool_post( 5 ) );
+
+		$this->assertFalse( CertTemplateWriter::set_kind( 5, 'bogus' ) );
+		$this->assertSame( array(), $this->meta_writes );
+	}
+
+	public function test_set_kind_rejects_non_pool_post(): void {
+		$other            = new \WP_Post();
+		$other->ID        = 9;
+		$other->post_type = 'page';
+		Functions\when( 'get_post' )->justReturn( $other );
+
+		$this->assertFalse( CertTemplateWriter::set_kind( 9, CertTemplateCpt::KIND_CERTIFICATE ) );
 		$this->assertSame( array(), $this->meta_writes );
 	}
 

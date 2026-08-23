@@ -91,11 +91,8 @@ class AudienceAjaxControllerTest extends TestCase {
 
 	public function test_register_adds_every_ajax_hook(): void {
 		$hooks = array(
-			'wp_ajax_ffc_audience_check_conflicts',
-			'wp_ajax_ffc_audience_create_booking',
 			'wp_ajax_ffc_audience_cancel_booking',
 			'wp_ajax_ffc_audience_get_booking',
-			'wp_ajax_ffc_audience_get_schedule_slots',
 			'wp_ajax_ffc_search_users',
 			'wp_ajax_ffc_audience_get_environments',
 			'wp_ajax_ffc_audience_add_user_permission',
@@ -110,70 +107,6 @@ class AudienceAjaxControllerTest extends TestCase {
 		}
 
 		( new AudienceAjaxController() )->register();
-	}
-
-	public function test_create_booking_reports_not_implemented(): void {
-		$this->mockUtils();
-		$_POST = array( 'nonce' => 'n' );
-
-		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_create_booking() );
-
-		$this->assertFalse( $this->responses[0]['ok'] );
-		$this->assertStringContainsString( 'Not implemented', $this->responses[0]['data']['message'] );
-	}
-
-	public function test_check_conflicts_rejects_missing_params(): void {
-		$this->mockUtils();
-		$_POST = array( 'nonce' => 'n' ); // no environment_id / date / times.
-
-		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_check_conflicts() );
-
-		$this->assertFalse( $this->responses[0]['ok'] );
-		$this->assertStringContainsString( 'Missing required parameters', $this->responses[0]['data']['message'] );
-	}
-
-	public function test_check_conflicts_returns_conflicts_from_service(): void {
-		$this->mockUtils();
-		$_POST = array(
-			'nonce'          => 'n',
-			'environment_id' => '5',
-			'booking_date'   => '2026-05-20',
-			'start_time'     => '09:00',
-			'end_time'       => '10:00',
-			'audience_ids'   => array( '2', '3' ),
-			'user_ids'       => array( '7' ),
-		);
-
-		$service = Mockery::mock( 'overload:FreeFormCertificate\Audience\AudienceConflictService' );
-		$service->shouldReceive( 'check_conflicts' )
-			->once()
-			->with( 5, '2026-05-20', '09:00', '10:00', array( 2, 3 ), array( 7 ) )
-			->andReturn( array( 'overlap' ) );
-
-		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_check_conflicts() );
-
-		$this->assertTrue( $this->responses[0]['ok'] );
-		$this->assertSame( array( 'overlap' ), $this->responses[0]['data']['conflicts'] );
-	}
-
-	public function test_check_conflicts_handles_exception(): void {
-		$this->mockUtils();
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Debug' )->shouldIgnoreMissing();
-		$_POST = array(
-			'nonce'          => 'n',
-			'environment_id' => '5',
-			'booking_date'   => '2026-05-20',
-			'start_time'     => '09:00',
-			'end_time'       => '10:00',
-		);
-
-		$service = Mockery::mock( 'overload:FreeFormCertificate\Audience\AudienceConflictService' );
-		$service->shouldReceive( 'check_conflicts' )->andThrow( new \RuntimeException( 'boom' ) );
-
-		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_check_conflicts() );
-
-		$this->assertFalse( $this->responses[0]['ok'] );
-		$this->assertSame( 'ffc_internal_error', $this->responses[0]['data']['code'] );
 	}
 
 	// ── cancel_booking ─────────────────────────────────────────────────
@@ -357,18 +290,6 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertSame( 0, $data['is_all_day'] );
 		$this->assertSame( array(), $data['audiences'] );
 		$this->assertSame( array(), $data['users'] );
-	}
-
-	// ── get_schedule_slots ─────────────────────────────────────────────
-
-	public function test_get_schedule_slots_reports_not_implemented(): void {
-		$this->mockUtils();
-		$_POST = array( 'nonce' => 'n' );
-
-		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_get_schedule_slots() );
-
-		$this->assertFalse( $this->responses[0]['ok'] );
-		$this->assertStringContainsString( 'Not implemented', $this->responses[0]['data']['message'] );
 	}
 
 	// ── search_users ───────────────────────────────────────────────────

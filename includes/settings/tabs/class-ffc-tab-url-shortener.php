@@ -26,6 +26,7 @@ class TabUrlShortener extends SettingsTab {
 	 */
 	protected function init(): void {
 		$this->tab_id    = 'url_shortener';
+		$this->tab_group = 'tools';
 		$this->tab_title = __( 'URL Shortener', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-link';
 		$this->tab_order = 35;
@@ -41,35 +42,33 @@ class TabUrlShortener extends SettingsTab {
 	 * @param string $hook Hook name.
 	 */
 	public function enqueue_scripts( string $hook ): void {
-		if ( 'toplevel_page_ffc-settings' !== $hook ) {
+		if ( ! $this->should_enqueue_on( $hook ) ) {
 			return;
 		}
-		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for conditional script loading.
-		if ( 'url_shortener' === $active_tab ) {
-			$this->enqueue_autosave_infra();
 
-			$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-			wp_enqueue_script(
-				'ffc-url-shortener-settings',
-				FFC_PLUGIN_URL . "assets/js/ffc-url-shortener-settings{$suffix}.js",
-				array( 'jquery' ),
-				FFC_VERSION,
-				true
-			);
-			wp_localize_script(
-				'ffc-url-shortener-settings',
-				'ffcUrlShortenerSettings',
-				array(
-					'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-					'i18n'    => array(
-						'working'       => __( 'Generating…', 'ffcertificate' ),
-						'done'          => __( 'Done.', 'ffcertificate' ),
-						'createdSuffix' => __( 'short URLs created.', 'ffcertificate' ),
-						'error'         => __( 'An error occurred.', 'ffcertificate' ),
-					),
-				)
-			);
-		}
+		$this->enqueue_autosave_infra();
+
+		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_script(
+			'ffc-url-shortener-settings',
+			FFC_PLUGIN_URL . "assets/js/ffc-url-shortener-settings{$suffix}.js",
+			array( 'jquery', 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-url-shortener-settings',
+			'ffcUrlShortenerSettings',
+			array(
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'i18n'    => array(
+					'working'       => __( 'Generating…', 'ffcertificate' ),
+					'done'          => __( 'Done.', 'ffcertificate' ),
+					'createdSuffix' => __( 'short URLs created.', 'ffcertificate' ),
+					'error'         => __( 'An error occurred.', 'ffcertificate' ),
+				),
+			)
+		);
 	}
 
 	/**

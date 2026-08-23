@@ -26,9 +26,6 @@ class CsvExportTraitStub {
         return $this->build_dynamic_headers( $keys );
     }
 
-    public function pub_extract_dynamic_values( array $row, array $keys, string $plain = 'data', string $encrypted = 'data_encrypted' ): array {
-        return $this->extract_dynamic_values( $row, $keys, $plain, $encrypted );
-    }
 }
 
 /**
@@ -157,30 +154,4 @@ class CsvExportTraitTest extends TestCase {
         $this->assertSame( array(), $this->stub->pub_extract_dynamic_keys( $rows ) );
     }
 
-    // ==================================================================
-    // extract_dynamic_values() — ordered value extraction
-    // ==================================================================
-
-    public function test_values_in_key_order(): void {
-        $row = array( 'data' => '{"b":"second","a":"first","c":"third"}' );
-        $keys = array( 'a', 'b', 'c' );
-        $this->assertSame( array( 'first', 'second', 'third' ), $this->stub->pub_extract_dynamic_values( $row, $keys ) );
-    }
-
-    public function test_values_missing_key_returns_empty_string(): void {
-        $row = array( 'data' => '{"a":"1"}' );
-        $keys = array( 'a', 'missing' );
-        $this->assertSame( array( '1', '' ), $this->stub->pub_extract_dynamic_values( $row, $keys ) );
-    }
-
-    public function test_values_array_flattened(): void {
-        $row = array( 'data' => '{"tags":["red","blue"]}' );
-        $keys = array( 'tags' );
-        $this->assertSame( array( 'red, blue' ), $this->stub->pub_extract_dynamic_values( $row, $keys ) );
-    }
-
-    public function test_values_empty_keys(): void {
-        $row = array( 'data' => '{"a":"1"}' );
-        $this->assertSame( array(), $this->stub->pub_extract_dynamic_values( $row, array() ) );
-    }
 }

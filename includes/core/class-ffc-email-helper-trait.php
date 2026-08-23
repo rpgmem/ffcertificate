@@ -108,6 +108,45 @@ trait EmailHelperTrait {
 	}
 
 	/**
+	 * Render a centered call-to-action button, or `''` when the URL is empty.
+	 *
+	 * The pre-rendered value for the `{{…_button}}` tokens that let an otherwise
+	 * code-built email (receipt / cancel / dashboard buttons, whose show-or-hide
+	 * depends on a URL) become a single editable body string in the email-body
+	 * hub (#965): the handler builds the button HTML here and passes it as a
+	 * token, so the admin's template only carries `{{receipt_button}}` etc. The
+	 * href, label and lead-in are escaped here (trusted, non-editable markup);
+	 * an empty URL yields `''` so the button simply disappears.
+	 *
+	 * @param string               $url   Destination URL. Empty ⇒ returns ''.
+	 * @param string               $label Button label (plain text; may include an emoji).
+	 * @param array<string, mixed> $args  Optional: bg, padding, font_size, bold, lead_in.
+	 * @return string Button HTML, or '' when `$url` is empty.
+	 */
+	protected static function ffc_email_button( string $url, string $label, array $args = array() ): string {
+		if ( '' === trim( $url ) ) {
+			return '';
+		}
+
+		$bg        = isset( $args['bg'] ) ? (string) $args['bg'] : '#0073aa';
+		$padding   = isset( $args['padding'] ) ? (string) $args['padding'] : '12px 24px';
+		$font_size = isset( $args['font_size'] ) ? (string) $args['font_size'] : '16px';
+		$weight    = empty( $args['bold'] ) ? '' : ' font-weight: bold;';
+		$lead_in   = isset( $args['lead_in'] ) ? (string) $args['lead_in'] : '';
+
+		$html = '<div style="text-align: center; margin: 30px 0;">';
+		if ( '' !== $lead_in ) {
+			$html .= '<p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">' . esc_html( $lead_in ) . '</p>';
+		}
+		$html .= '<a href="' . esc_url( $url ) . '" style="display: inline-block; background: ' . esc_attr( $bg )
+			. '; color: white; padding: ' . esc_attr( $padding ) . '; text-decoration: none; border-radius: 5px; font-size: '
+			. esc_attr( $font_size ) . ';' . $weight . '">' . esc_html( $label ) . '</a>';
+		$html .= '</div>';
+
+		return $html;
+	}
+
+	/**
 	 * Build an admin notification table from key-value pairs.
 	 *
 	 * Matches the format used in EmailHandler::send_admin_notification()

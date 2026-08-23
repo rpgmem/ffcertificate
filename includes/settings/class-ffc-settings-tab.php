@@ -6,7 +6,7 @@
  *
  * @package FFC
  * @since 2.10.0
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @version 3.2.0 - Migrated to namespace
  */
 
 declare(strict_types=1);
@@ -61,6 +61,20 @@ abstract class SettingsTab {
 	 * @var int
 	 */
 	protected $tab_order = 10;
+
+	/**
+	 * The Settings-nav group this tab belongs to.
+	 *
+	 * The nav renders tabs under domain subheadings (Content / Security &
+	 * Access / Tools / System …); this key selects the group, and the group
+	 * order + labels live centrally in {@see \FreeFormCertificate\Admin\Settings}.
+	 * Tabs stay alphabetical WITHIN their group. Defaults to `tools` so a tab
+	 * that doesn't set a group (e.g. a third-party tab) lands in the neutral
+	 * "Tools" bucket rather than breaking the grouped nav.
+	 *
+	 * @var string
+	 */
+	protected $tab_group = 'tools';
 
 	/**
 	 * Constructor
@@ -121,6 +135,16 @@ abstract class SettingsTab {
 	 */
 	public function get_order() {
 		return $this->tab_order;
+	}
+
+	/**
+	 * Get the Settings-nav group key for this tab.
+	 *
+	 * @return string One of the group keys defined in
+	 *                {@see \FreeFormCertificate\Admin\Settings::nav_group_labels()}.
+	 */
+	public function get_group(): string {
+		return (string) $this->tab_group;
 	}
 
 	/**
@@ -224,12 +248,27 @@ abstract class SettingsTab {
 	}
 
 	/**
-	 * Get tab URL
+	 * The `admin_enqueue_scripts` hook suffix of the FFC Settings page — the
+	 * top-level menu whose slug is `ffc-settings`. All tab assets gate on this.
 	 *
-	 * @return string
+	 * @var string
 	 */
-	protected function get_tab_url() {
-		return admin_url( 'admin.php?page=ffc-settings&tab=' . $this->tab_id );
+	protected const SETTINGS_PAGE_HOOK = 'toplevel_page_ffc-settings';
+
+	/**
+	 * Whether this tab should enqueue its assets on the current request: we are
+	 * on the FFC Settings page hook AND this tab is the active one. Centralizes
+	 * the `toplevel_page_ffc-settings` + {@see self::is_active()} gate every
+	 * tab's `enqueue_scripts()` otherwise repeats (and normalizes the split
+	 * between tabs that inlined the `$_GET['tab']` read and those that already
+	 * called `is_active()`).
+	 *
+	 * @since 6.20.0
+	 * @param string $hook Current admin page hook suffix.
+	 * @return bool
+	 */
+	protected function should_enqueue_on( string $hook ): bool {
+		return self::SETTINGS_PAGE_HOOK === $hook && $this->is_active();
 	}
 
 	/**

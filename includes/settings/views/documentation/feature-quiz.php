@@ -1,9 +1,10 @@
 <?php
 /**
- * Documentation partial — Section 3: Quiz / Evaluation Variables.
+ * Documentation partial — Feature: Quiz / Evaluation.
  *
- * Extracted from `ffc-tab-documentation.php` per S8 of the
- * god-object refactor (rpgmem/ffcertificate#141).
+ * Documents the additional PDF template variables ({{score}}, {{max_score}},
+ * {{score_percent}}, …) that become available when a form runs in quiz /
+ * evaluation mode.
  *
  * @package FreeFormCertificate\Settings
  */
@@ -28,12 +29,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<tbody>
 			<tr>
 				<td><code>{{score}}</code></td>
-				<td><?php esc_html_e( 'Number of correct answers', 'ffcertificate' ); ?></td>
+				<td><?php esc_html_e( 'Points earned — sum of the point values of the options the participant selected', 'ffcertificate' ); ?></td>
 				<td><em>8</em></td>
 			</tr>
 			<tr>
 				<td><code>{{max_score}}</code></td>
-				<td><?php esc_html_e( 'Total number of questions', 'ffcertificate' ); ?></td>
+				<td><?php esc_html_e( 'Maximum points available — sum of each scored field\'s highest option value', 'ffcertificate' ); ?></td>
 				<td><em>10</em></td>
 			</tr>
 			<tr>

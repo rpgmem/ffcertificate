@@ -79,6 +79,13 @@ class SelfSchedulingLoader {
 	protected ?SelfSchedulingShortcode $shortcode = null;
 
 	/**
+	 * Waitlist promoter — held to keep the cancellation listener alive (#941 phase 2).
+	 *
+	 * @var WaitlistPromoter|null
+	 */
+	protected ?WaitlistPromoter $waitlist_promoter = null;
+
+	/**
 	 * Wire the module's admin + frontend surface.
 	 *
 	 * Order matches the previous inline sequence in `Loader::init_plugin()`:
@@ -117,5 +124,10 @@ class SelfSchedulingLoader {
 		// appointment e-mails; delegates the actual cancel to the handler.
 		new AppointmentCancellationHandler( $this->appointment_handler );
 		$this->shortcode = new SelfSchedulingShortcode();
+
+		// Waitlist FIFO promotion (#941 phase 2): listens for cancellations and
+		// promotes the next queued booking when a spot frees up.
+		$this->waitlist_promoter = new WaitlistPromoter();
+		$this->waitlist_promoter->register();
 	}
 }

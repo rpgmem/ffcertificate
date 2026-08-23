@@ -229,6 +229,19 @@ describe('FFCCalendarCore renderDays', () => {
 		expect(window.$('#cal .ffc-day[data-date="2026-06-25"]').hasClass('ffc-disabled')).toBe(true);
 	});
 
+	it('custom mode: only enabledDates are bookable, others disabled (#941)', () => {
+		const inst = build({
+			minDate: new Date(2026, 5, 1),
+			maxDate: new Date(2026, 5, 30),
+			enabledDates: ['2026-06-15', '2026-06-20'],
+		});
+		inst.goToDate('2026-06-15');
+		expect(window.$('#cal .ffc-day[data-date="2026-06-15"]').hasClass('ffc-disabled')).toBe(false);
+		expect(window.$('#cal .ffc-day[data-date="2026-06-20"]').hasClass('ffc-disabled')).toBe(false);
+		// A date not in the allowlist is disabled/closed.
+		expect(window.$('#cal .ffc-day[data-date="2026-06-16"]').hasClass('ffc-disabled')).toBe(true);
+	});
+
 	it('applies custom classes from getDayClasses and content from getDayContent', () => {
 		const inst = build({
 			getDayClasses: (dateStr) => (dateStr === '2026-06-15' ? ['ffc-mark'] : []),

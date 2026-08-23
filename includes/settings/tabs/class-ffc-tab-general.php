@@ -6,7 +6,7 @@
  * @since 2.10.0
  * @version 4.6.16 - Simplified: debug/activity/danger/cache moved to dedicated tabs
  * @version 3.3.0 - Added strict types and type hints
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @version 3.2.0 - Migrated to namespace
  */
 
 declare(strict_types=1);
@@ -29,6 +29,7 @@ class TabGeneral extends SettingsTab {
 	 */
 	protected function init(): void {
 		$this->tab_id    = 'general';
+		$this->tab_group = 'general';
 		$this->tab_title = __( 'General', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-settings';
 		$this->tab_order = 10;
@@ -44,10 +45,7 @@ class TabGeneral extends SettingsTab {
 	 * @param string $hook Current admin page hook.
 	 */
 	public function enqueue_scripts( string $hook ): void {
-		if ( 'toplevel_page_ffc-settings' !== $hook ) {
-			return;
-		}
-		if ( ! $this->is_active() ) {
+		if ( ! $this->should_enqueue_on( $hook ) ) {
 			return;
 		}
 		$this->enqueue_autosave_infra();

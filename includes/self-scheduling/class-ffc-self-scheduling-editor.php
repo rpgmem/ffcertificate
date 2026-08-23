@@ -39,7 +39,6 @@ class SelfSchedulingEditor {
 	 */
 	public function __construct() {
 		add_action( 'add_meta_boxes', array( $this, 'add_custom_metaboxes' ), 20 );
-		add_action( 'admin_notices', array( $this, 'display_save_errors' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 
 		// Delegated handlers.
@@ -204,7 +203,90 @@ class SelfSchedulingEditor {
 				'side',
 				'default'
 			);
+
+			// Occupancy report (#941 phase 3) — custom-mode calendars only.
+			$occupancy_config = get_post_meta( $post_id, '_ffc_self_scheduling_config', true );
+			if ( is_array( $occupancy_config ) && 'custom' === ( $occupancy_config['schedule_type'] ?? 'regular' ) ) {
+				add_meta_box(
+					'ffc_self_scheduling_occupancy',
+					__( '5. Occupancy Report', 'ffcertificate' ),
+					array( $this, 'render_box_occupancy' ),
+					'ffc_self_scheduling',
+					'normal',
+					'default'
+				);
+			}
 		}
+	}
+
+	/**
+	 * Render the custom-mode occupancy report (#941 phase 3).
+	 *
+	 * Read-only table pairing each configured block with its live booked/capacity
+	 * counts, occupancy percentage and waitlist length.
+	 *
+	 * @param object $post Post object.
+	 * @phpstan-param \WP_Post $post
+	 * @return void
+	 */
+	public function render_box_occupancy( object $post ): void {
+		$blocks = CustomSlots::decode( get_post_meta( $post->ID, '_ffc_self_scheduling_custom_slots', true ) );
+		if ( empty( $blocks ) ) {
+			echo '<p>' . esc_html__( 'Add custom blocks to see the occupancy report.', 'ffcertificate' ) . '</p>';
+			return;
+		}
+
+		// Map post → calendar row, then pull per-slot counts keyed by date|H:i.
+		$counts        = array();
+		$calendar_repo = new \FreeFormCertificate\Repositories\CalendarRepository();
+		$calendar      = $calendar_repo->findByPostId( (int) $post->ID );
+		if ( is_array( $calendar ) && ! empty( $calendar['id'] ) ) {
+			$appt_repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
+			foreach ( $appt_repo->getOccupancyCounts( (int) $calendar['id'] ) as $row ) {
+				$key            = $row['date'] . '|' . CustomSlots::hm( (string) $row['start'] );
+				$counts[ $key ] = array(
+					'booked'     => (int) $row['booked'],
+					'waitlisted' => (int) $row['waitlisted'],
+				);
+			}
+		}
+		?>
+		<table class="widefat striped">
+			<thead>
+				<tr>
+					<th><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th>
+					<th><?php esc_html_e( 'Time', 'ffcertificate' ); ?></th>
+					<th><?php esc_html_e( 'Label', 'ffcertificate' ); ?></th>
+					<th><?php esc_html_e( 'Booked / Capacity', 'ffcertificate' ); ?></th>
+					<th><?php esc_html_e( 'Occupancy', 'ffcertificate' ); ?></th>
+					<th><?php esc_html_e( 'Waitlist', 'ffcertificate' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php
+				foreach ( $blocks as $block ) {
+					$start_hm = CustomSlots::hm( $block['start'] );
+					$end_hm   = CustomSlots::hm( $block['end'] );
+					$capacity = (int) $block['capacity'];
+					$key      = $block['date'] . '|' . $start_hm;
+					$booked   = $counts[ $key ]['booked'] ?? 0;
+					$waiting  = $counts[ $key ]['waitlisted'] ?? 0;
+					$pct      = $capacity > 0 ? (int) round( 100 * $booked / $capacity ) : 0;
+					?>
+					<tr>
+						<td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $block['date'] ) ); ?></td>
+						<td><?php echo esc_html( $start_hm . '–' . $end_hm ); ?></td>
+						<td><?php echo esc_html( '' !== $block['label'] ? $block['label'] : '—' ); ?></td>
+						<td><?php echo esc_html( $booked . ' / ' . $capacity ); ?></td>
+						<td><?php echo esc_html( $pct . '%' ); ?></td>
+						<td><?php echo esc_html( (string) $waiting ); ?></td>
+					</tr>
+					<?php
+				}
+				?>
+			</tbody>
+		</table>
+		<?php
 	}
 
 	/**
@@ -222,6 +304,7 @@ class SelfSchedulingEditor {
 
 		$defaults = array(
 			'description'               => '',
+			'schedule_type'             => 'regular',
 			'slot_duration'             => 30,
 			'slot_interval'             => 0,
 			'slots_per_day'             => 0,
@@ -230,6 +313,10 @@ class SelfSchedulingEditor {
 		);
 
 		$config = array_merge( $defaults, $config );
+
+		// Mode is locked once the calendar has bookings (#941): switching would
+		// orphan existing appointments.
+		$mode_locked = $this->calendar_has_appointments( (int) $post->ID );
 
 		wp_nonce_field( 'ffc_self_scheduling_config_nonce', 'ffc_self_scheduling_config_nonce' );
 		?>
@@ -242,27 +329,40 @@ class SelfSchedulingEditor {
 				</td>
 			</tr>
 			<tr>
+				<th><?php esc_html_e( 'Scheduling mode', 'ffcertificate' ); ?></th>
+				<td>
+					<label><input type="radio" name="ffc_self_scheduling_config[schedule_type]" value="regular" class="ffc-schedule-type-radio" <?php checked( $config['schedule_type'], 'regular' ); ?> <?php disabled( $mode_locked ); ?> /> <?php esc_html_e( 'Regular — weekly working hours', 'ffcertificate' ); ?></label><br />
+					<label><input type="radio" name="ffc_self_scheduling_config[schedule_type]" value="custom" class="ffc-schedule-type-radio" <?php checked( $config['schedule_type'], 'custom' ); ?> <?php disabled( $mode_locked ); ?> /> <?php esc_html_e( 'Custom — specific date/time blocks, each with its own number of vacancies', 'ffcertificate' ); ?></label>
+					<?php if ( $mode_locked ) : ?>
+						<input type="hidden" name="ffc_self_scheduling_config[schedule_type]" value="<?php echo esc_attr( $config['schedule_type'] ); ?>" />
+						<p class="description" style="color:#b32d2e;"><?php esc_html_e( 'This calendar already has bookings — the scheduling mode is locked.', 'ffcertificate' ); ?></p>
+					<?php else : ?>
+						<p class="description"><?php esc_html_e( 'Regular repeats weekly. Custom lets you list exact dates and times below, each with its own capacity.', 'ffcertificate' ); ?></p>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr class="ffc-regular-only">
 				<th><label for="slot_duration"><?php esc_html_e( 'Appointment Duration', 'ffcertificate' ); ?></label></th>
 				<td>
 					<input type="number" id="slot_duration" name="ffc_self_scheduling_config[slot_duration]" value="<?php echo esc_attr( $config['slot_duration'] ); ?>" min="5" max="480" step="5" /> <?php esc_html_e( 'minutes', 'ffcertificate' ); ?>
 					<p class="description"><?php esc_html_e( 'Duration of each appointment slot', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
-			<tr>
+			<tr class="ffc-regular-only">
 				<th><label for="slot_interval"><?php esc_html_e( 'Break Between Appointments', 'ffcertificate' ); ?></label></th>
 				<td>
 					<input type="number" id="slot_interval" name="ffc_self_scheduling_config[slot_interval]" value="<?php echo esc_attr( $config['slot_interval'] ); ?>" min="0" max="120" step="5" /> <?php esc_html_e( 'minutes', 'ffcertificate' ); ?>
 					<p class="description"><?php esc_html_e( 'Buffer time between appointments (0 = no break)', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
-			<tr>
+			<tr class="ffc-regular-only">
 				<th><label for="max_appointments_per_slot"><?php esc_html_e( 'Max Bookings Per Slot', 'ffcertificate' ); ?></label></th>
 				<td>
 					<input type="number" id="max_appointments_per_slot" name="ffc_self_scheduling_config[max_appointments_per_slot]" value="<?php echo esc_attr( $config['max_appointments_per_slot'] ); ?>" min="1" max="100" />
 					<p class="description"><?php esc_html_e( 'Maximum number of people per time slot (1 = exclusive)', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
-			<tr>
+			<tr class="ffc-regular-only">
 				<th><label for="slots_per_day"><?php esc_html_e( 'Daily Booking Limit', 'ffcertificate' ); ?></label></th>
 				<td>
 					<input type="number" id="slots_per_day" name="ffc_self_scheduling_config[slots_per_day]" value="<?php echo esc_attr( $config['slots_per_day'] ); ?>" min="0" max="200" />
@@ -282,6 +382,35 @@ class SelfSchedulingEditor {
 			</tr>
 		</table>
 		<?php
+	}
+
+	/**
+	 * Whether the calendar (by post id) already has at least one appointment.
+	 *
+	 * Used to lock the scheduling mode and block-structure edits (#941): once
+	 * bookings exist, switching mode or removing/retiming a block would orphan
+	 * them.
+	 *
+	 * @param int $post_id Calendar post id.
+	 * @return bool
+	 */
+	private function calendar_has_appointments( int $post_id ): bool {
+		if ( $post_id <= 0 ) {
+			return false;
+		}
+		global $wpdb;
+		$calendars    = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+		$appointments = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$count = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(a.id) FROM %i a INNER JOIN %i c ON c.id = a.calendar_id WHERE c.post_id = %d',
+				$appointments,
+				$calendars,
+				$post_id
+			)
+		);
+		return (int) $count > 0;
 	}
 
 	/**
@@ -333,8 +462,15 @@ class SelfSchedulingEditor {
 			6 => __( 'Saturday', 'ffcertificate' ),
 		);
 
+		// Custom blocks (#941).
+		$custom_slots = get_post_meta( $post->ID, '_ffc_self_scheduling_custom_slots', true );
+		if ( ! is_array( $custom_slots ) ) {
+			$custom_slots = array();
+		}
+		$mode_locked = $this->calendar_has_appointments( (int) $post->ID );
+
 		?>
-		<div id="ffc-working-hours-wrapper">
+		<div id="ffc-working-hours-wrapper" class="ffc-regular-only">
 			<p><?php esc_html_e( 'Define which days and times appointments can be booked:', 'ffcertificate' ); ?></p>
 
 			<table class="widefat ffc-working-hours-table">
@@ -374,6 +510,42 @@ class SelfSchedulingEditor {
 				<button type="button" class="button" id="ffc-add-working-hour"><?php esc_html_e( '+ Add Working Hours', 'ffcertificate' ); ?></button>
 			</p>
 		</div>
+
+		<div id="ffc-custom-slots-wrapper" class="ffc-custom-only">
+			<p><?php esc_html_e( 'Define the exact date/time blocks and how many vacancies each has. Each block is one bookable session.', 'ffcertificate' ); ?></p>
+
+			<table class="widefat ffc-custom-slots-table">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th>
+						<th><?php esc_html_e( 'Start', 'ffcertificate' ); ?></th>
+						<th><?php esc_html_e( 'End', 'ffcertificate' ); ?></th>
+						<th><?php esc_html_e( 'Vacancies', 'ffcertificate' ); ?></th>
+						<th><?php esc_html_e( 'Label (optional)', 'ffcertificate' ); ?></th>
+						<th><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
+					</tr>
+				</thead>
+				<tbody id="ffc-custom-slots-list">
+					<?php foreach ( $custom_slots as $index => $block ) : ?>
+						<tr>
+							<td><input type="date" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][date]" value="<?php echo esc_attr( $block['date'] ?? '' ); ?>" /></td>
+							<td><input type="time" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][start]" value="<?php echo esc_attr( $block['start'] ?? '' ); ?>" /></td>
+							<td><input type="time" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][end]" value="<?php echo esc_attr( $block['end'] ?? '' ); ?>" /></td>
+							<td><input type="number" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][capacity]" value="<?php echo esc_attr( (string) ( $block['capacity'] ?? 1 ) ); ?>" min="1" max="10000" /></td>
+							<td><input type="text" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][label]" value="<?php echo esc_attr( $block['label'] ?? '' ); ?>" class="regular-text" /></td>
+							<td><button type="button" class="button ffc-remove-slot"><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button></td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+
+			<p>
+				<button type="button" class="button" id="ffc-add-custom-slot"><?php esc_html_e( '+ Add Block', 'ffcertificate' ); ?></button>
+			</p>
+			<?php if ( $mode_locked ) : ?>
+				<p class="description" style="color:#b32d2e;"><?php esc_html_e( 'This calendar has bookings — blocks with existing bookings cannot be removed or retimed on save; you may still add blocks or raise capacity.', 'ffcertificate' ); ?></p>
+			<?php endif; ?>
+		</div>
 		<?php
 	}
 
@@ -403,6 +575,9 @@ class SelfSchedulingEditor {
 			'cancellation_min_hours'            => 24,
 			'minimum_interval_between_bookings' => 24,
 			'requires_approval'                 => 0,
+			'waitlist_enabled'                  => 0,
+			'waitlist_capacity'                 => 0,
+			'max_blocks_per_user'               => 0,
 			'visibility'                        => 'public',
 			'scheduling_visibility'             => 'public',
 			'restrict_viewing_to_hours'         => 0,
@@ -469,6 +644,36 @@ class SelfSchedulingEditor {
 						)
 					);
 					?>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="waitlist_enabled"><?php esc_html_e( 'Enable Waitlist', 'ffcertificate' ); ?></label></th>
+				<td>
+					<?php
+					AdminUI::render_toggle(
+						array(
+							'id'      => 'waitlist_enabled',
+							'name'    => 'ffc_self_scheduling_config[waitlist_enabled]',
+							'checked' => (bool) $config['waitlist_enabled'],
+							'label'   => __( 'When a slot is full, let users join a waitlist instead of being turned away', 'ffcertificate' ),
+						)
+					);
+					?>
+					<p class="description"><?php esc_html_e( 'Applies to both scheduling modes. When a spot frees up (a cancellation or a rejected approval), the next person in line is promoted automatically.', 'ffcertificate' ); ?></p>
+				</td>
+			</tr>
+			<tr class="ffc-waitlist-capacity" <?php echo esc_attr( $config['waitlist_enabled'] ? '' : 'style="display:none;"' ); ?>>
+				<th><label for="waitlist_capacity"><?php esc_html_e( 'Waitlist Capacity', 'ffcertificate' ); ?></label></th>
+				<td>
+					<input type="number" id="waitlist_capacity" name="ffc_self_scheduling_config[waitlist_capacity]" value="<?php echo esc_attr( $config['waitlist_capacity'] ); ?>" min="0" max="9999" /> <?php esc_html_e( 'per slot', 'ffcertificate' ); ?>
+					<p class="description"><?php esc_html_e( 'Maximum number of people who can wait per slot (0 = unlimited).', 'ffcertificate' ); ?></p>
+				</td>
+			</tr>
+			<tr class="ffc-custom-only">
+				<th><label for="max_blocks_per_user"><?php esc_html_e( 'Blocks per User (Custom mode)', 'ffcertificate' ); ?></label></th>
+				<td>
+					<input type="number" id="max_blocks_per_user" name="ffc_self_scheduling_config[max_blocks_per_user]" value="<?php echo esc_attr( $config['max_blocks_per_user'] ); ?>" min="0" max="9999" />
+					<p class="description"><?php esc_html_e( 'Maximum number of blocks a single user may book in this custom calendar (0 = no limit). Waitlisted bookings count toward the limit.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 			<tr>
@@ -684,9 +889,14 @@ class SelfSchedulingEditor {
 						<code>{{user_email}}</code>,
 						<code>{{calendar_title}}</code>,
 						<code>{{appointment_date}}</code>,
-						<code>{{appointment_time}}</code>
+						<code>{{appointment_time}}</code>,
+						<code>{{status_message}}</code>,
+						<code>{{status_label}}</code>,
+						<code>{{user_notes_block}}</code>,
+						<code>{{receipt_button}}</code>,
+						<code>{{cancel_button}}</code>
 					</p>
-					<p class="description"><em><?php esc_html_e( 'Leave empty to use the built-in confirmation (with receipt / cancel buttons).', 'ffcertificate' ); ?></em></p>
+					<p class="description"><em><?php esc_html_e( 'Include {{receipt_button}} / {{cancel_button}} to show the receipt and cancel buttons (each empty when unavailable). Leave the whole body empty to use the global default from Settings → SMTP → Email texts.', 'ffcertificate' ); ?></em></p>
 					<p><button type="button" class="button ffc-email-restore-default" data-editor="user_confirmation_body" data-default-key="selfsched_confirmation_body"><?php esc_html_e( 'Restore Default Text', 'ffcertificate' ); ?></button></p>
 				</td>
 			</tr>
@@ -716,15 +926,5 @@ class SelfSchedulingEditor {
 			<?php endif; ?>
 		</div>
 		<?php
-	}
-
-	/**
-	 * Display save errors
-	 *
-	 * @return void
-	 */
-	public function display_save_errors(): void {
-		// Placeholder for error display.
-		// Can be expanded as needed.
 	}
 }

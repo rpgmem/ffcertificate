@@ -16,7 +16,7 @@
  * @package FreeFormCertificate\Admin
  * @since 1.0.0
  * @version 3.3.0 - Added strict types and type hints
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @version 3.2.0 - Migrated to namespace
  */
 
 declare(strict_types=1);
@@ -86,7 +86,6 @@ class Settings {
 		add_action( 'admin_init', array( $this, 'handle_url_shortener_cleanup' ) );
 		add_action( 'admin_init', array( $this, 'handle_public_access_disabler' ) );
 		add_action( 'admin_init', array( $this, 'handle_submission_link_audit' ) );
-		add_action( 'wp_ajax_ffc_preview_date_format', array( $this, 'ajax_preview_date_format' ) );
 		add_action( 'admin_init', array( $this, 'handle_cache_actions' ) );
 
 		// Resolve the virtual `ffc_view_settings_page` menu cap dynamically:
@@ -174,8 +173,12 @@ class Settings {
 		// v4.6.16: Reorganized tabs for better UX.
 		$tab_classes = array(
 			'general'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeneral',
+			'templates'      => '\\FreeFormCertificate\\Settings\\Tabs\\TabTemplates',
+			'reregistration' => '\\FreeFormCertificate\\Settings\\Tabs\\TabReregistration',
 			'modulos'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabModulos',
 			'smtp'           => '\\FreeFormCertificate\\Settings\\Tabs\\TabSMTP',
+			'email_model'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabEmailModel',
+			'email_texts'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabEmailTexts',
 			'cache'          => '\\FreeFormCertificate\\Settings\\Tabs\\TabCache',
 			'url_shortener'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabUrlShortener',
 			'rate_limit'     => '\\FreeFormCertificate\\Settings\\Tabs\\TabRateLimit',
@@ -270,6 +273,7 @@ class Settings {
 	 */
 	public function get_default_settings(): array {
 		return array(
+			'cleanup_enabled'            => false,
 			'cleanup_days'               => 365,
 			'smtp_mode'                  => 'wp',
 			'smtp_host'                  => '',
@@ -602,35 +606,77 @@ class Settings {
 			
 			<div class="ffc-settings-tabs" data-ffc-settings-tabs>
 				<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">
-					<?php $ffc_module_links_rendered = false; ?>
-					<?php foreach ( $visible_tabs as $tab_id => $tab_obj ) : ?>
-						<?php
-						// Module-settings links sit above the Advanced tab so
-						// module pages read as part of the settings nav.
-						if ( 'advanced' === $tab_id && ! $ffc_module_links_rendered ) {
-							$this->render_module_settings_links();
-							$ffc_module_links_rendered = true;
-						}
-						$is_active = ( $active_tab === $tab_id );
-						?>
-						<li class="ffc-settings-tabs__nav-item" role="presentation">
-							<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=' . $tab_id ) ); ?>"
-								id="ffc-settings-tabnav-<?php echo esc_attr( $tab_id ); ?>"
-								class="ffc-settings-tabs__tab<?php echo $is_active ? ' is-active' : ''; ?>"
-								role="tab"
-								aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>"
-								aria-controls="ffc-settings-tabpanel-<?php echo esc_attr( $tab_id ); ?>"
-								tabindex="<?php echo $is_active ? '0' : '-1'; ?>">
-								<span class="ffc-settings-tabs__icon <?php echo esc_attr( $tab_obj->get_icon() ); ?>" aria-hidden="true"></span>
-								<span class="ffc-settings-tabs__label"><?php echo esc_html( $tab_obj->get_title() ); ?></span>
-							</a>
-						</li>
-					<?php endforeach; ?>
 					<?php
-					if ( ! $ffc_module_links_rendered ) {
-						$this->render_module_settings_links();
+					// Grouped nav (#951): tabs render under domain subheadings,
+					// staying alphabetical within each group. Bucket the already
+					// alphabetically-sorted visible tabs by their group; the
+					// `external` group is the module-settings links.
+					$ffc_groups  = self::nav_group_labels();
+					$ffc_links   = $this->module_settings_links();
+					$ffc_buckets = array();
+					foreach ( $visible_tabs as $ffc_tid => $ffc_tobj ) {
+						$ffc_g = $ffc_tobj->get_group();
+						if ( ! isset( $ffc_groups[ $ffc_g ] ) || 'external' === $ffc_g ) {
+							$ffc_g = 'tools'; // Unknown/reserved group → neutral bucket.
+						}
+						$ffc_buckets[ $ffc_g ][ $ffc_tid ] = $ffc_tobj;
 					}
-					?>
+
+					// Explicit intra-group order (#976): a group may pin a leading
+					// sequence of tabs (e.g. the email family SMTP → Email Model →
+					// Email texts) that should read as a unit instead of the default
+					// alphabetical order; tabs not named stay after them in their
+					// alphabetical order.
+					foreach ( self::nav_group_order() as $ffc_ordk => $ffc_seq ) {
+						if ( empty( $ffc_buckets[ $ffc_ordk ] ) ) {
+							continue;
+						}
+						$ffc_pinned = array();
+						foreach ( $ffc_seq as $ffc_pid ) {
+							if ( isset( $ffc_buckets[ $ffc_ordk ][ $ffc_pid ] ) ) {
+								$ffc_pinned[ $ffc_pid ] = $ffc_buckets[ $ffc_ordk ][ $ffc_pid ];
+								unset( $ffc_buckets[ $ffc_ordk ][ $ffc_pid ] );
+							}
+						}
+						$ffc_buckets[ $ffc_ordk ] = $ffc_pinned + $ffc_buckets[ $ffc_ordk ];
+					}
+
+					foreach ( $ffc_groups as $ffc_gkey => $ffc_glabel ) :
+						if ( 'external' === $ffc_gkey ) {
+							if ( empty( $ffc_links ) ) {
+								continue;
+							}
+							?>
+							<li class="ffc-settings-tabs__group" role="presentation">
+								<span class="ffc-settings-tabs__group-label"><?php echo esc_html( $ffc_glabel ); ?></span>
+							</li>
+							<?php
+							$this->render_module_settings_links();
+							continue;
+						}
+						if ( empty( $ffc_buckets[ $ffc_gkey ] ) ) {
+							continue;
+						}
+						?>
+						<li class="ffc-settings-tabs__group" role="presentation">
+							<span class="ffc-settings-tabs__group-label"><?php echo esc_html( $ffc_glabel ); ?></span>
+						</li>
+						<?php foreach ( $ffc_buckets[ $ffc_gkey ] as $tab_id => $tab_obj ) : ?>
+							<?php $is_active = ( $active_tab === $tab_id ); ?>
+							<li class="ffc-settings-tabs__nav-item" role="presentation">
+								<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=' . $tab_id ) ); ?>"
+									id="ffc-settings-tabnav-<?php echo esc_attr( $tab_id ); ?>"
+									class="ffc-settings-tabs__tab<?php echo $is_active ? ' is-active' : ''; ?>"
+									role="tab"
+									aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>"
+									aria-controls="ffc-settings-tabpanel-<?php echo esc_attr( $tab_id ); ?>"
+									tabindex="<?php echo $is_active ? '0' : '-1'; ?>">
+									<span class="ffc-settings-tabs__icon <?php echo esc_attr( $tab_obj->get_icon() ); ?>" aria-hidden="true"></span>
+									<span class="ffc-settings-tabs__label"><?php echo esc_html( $tab_obj->get_title() ); ?></span>
+								</a>
+							</li>
+						<?php endforeach; ?>
+					<?php endforeach; ?>
 				</ul>
 
 				<div id="ffc-settings-tabpanel-<?php echo esc_attr( $active_tab ); ?>" class="ffc-settings-tabs__panel" role="tabpanel" aria-labelledby="ffc-settings-tabnav-<?php echo esc_attr( $active_tab ); ?>" tabindex="0">
@@ -662,17 +708,54 @@ class Settings {
 	}
 
 	/**
-	 * Render the module-settings links as items of the settings nav.
+	 * Ordered Settings-nav groups: group key => translated label.
 	 *
-	 * A few modules keep their own settings next to the module rather than on
-	 * this page (rpgmem/ffcertificate#711 — discoverability). Each link is
-	 * gated by that module's own view cap so a user only sees links they can
-	 * actually open, and navigates away from this page — hence a plain link
-	 * (no `role="tab"`) with an external-link marker instead of a tab.
+	 * The nav renders tabs under these domain subheadings (tabs stay
+	 * alphabetical WITHIN a group; each tab picks its group via
+	 * {@see \FreeFormCertificate\Settings\SettingsTab::get_group()}). The order
+	 * of this map IS the display order. The `external` key is reserved for the
+	 * module-settings links (Scheduling / Recruitment) that leave this page —
+	 * no tab uses it — and its heading is suppressed when no link is visible.
 	 *
-	 * @return void
+	 * @return array<string, string>
 	 */
-	protected function render_module_settings_links(): void {
+	public static function nav_group_labels(): array {
+		return array(
+			'general'       => __( 'General', 'ffcertificate' ),
+			'content'       => __( 'Content', 'ffcertificate' ),
+			'communication' => __( 'Communication', 'ffcertificate' ),
+			'security'      => __( 'Security & Access', 'ffcertificate' ),
+			'tools'         => __( 'Tools', 'ffcertificate' ),
+			'external'      => __( 'Go to', 'ffcertificate' ),
+			'system'        => __( 'System', 'ffcertificate' ),
+		);
+	}
+
+	/**
+	 * Per-group explicit tab order (#976). Most groups sort alphabetically by
+	 * translated title ({@see \FreeFormCertificate\Core\LabelSorter}); a group
+	 * listed here pins a *leading* sequence of tab ids that should read as a
+	 * deliberate unit, with any unnamed tabs following in alphabetical order.
+	 *
+	 * The email family (SMTP transport → Email Model chrome → Email texts bodies)
+	 * is a workflow, not an alphabetical list, so it is pinned in that order.
+	 *
+	 * @return array<string, array<int, string>> Group key => ordered tab ids.
+	 */
+	public static function nav_group_order(): array {
+		return array(
+			'communication' => array( 'smtp', 'email_model', 'email_texts' ),
+		);
+	}
+
+	/**
+	 * Build the module-settings links the current user may open. Split from the
+	 * renderer so the grouped nav can gate the "Go to" group heading on whether
+	 * any link exists (the heading is suppressed when the list is empty).
+	 *
+	 * @return array<int, array{url:string, icon:string, label:string, title:string}>
+	 */
+	protected function module_settings_links(): array {
 		$links = array();
 
 		if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_audiences' ) ) {
@@ -693,7 +776,22 @@ class Settings {
 			);
 		}
 
-		foreach ( $links as $link ) :
+		return $links;
+	}
+
+	/**
+	 * Render the module-settings links as items of the settings nav.
+	 *
+	 * A few modules keep their own settings next to the module rather than on
+	 * this page (rpgmem/ffcertificate#711 — discoverability). Each link is
+	 * gated by that module's own view cap so a user only sees links they can
+	 * actually open, and navigates away from this page — hence a plain link
+	 * (no `role="tab"`) with an external-link marker instead of a tab.
+	 *
+	 * @return void
+	 */
+	protected function render_module_settings_links(): void {
+		foreach ( $this->module_settings_links() as $link ) :
 			?>
 			<li class="ffc-settings-tabs__nav-item" role="presentation">
 				<a href="<?php echo esc_url( $link['url'] ); ?>"
@@ -784,15 +882,6 @@ class Settings {
 	 */
 	public function handle_submission_link_audit(): void {
 		$this->action_handler->handle_submission_link_audit();
-	}
-
-	/**
-	 * AJAX handler for date format preview
-	 *
-	 * @since 2.10.0
-	 */
-	public function ajax_preview_date_format(): void {
-		$this->action_handler->ajax_preview_date_format();
 	}
 
 	/**

@@ -29,6 +29,10 @@ class AudienceNotificationHandlerTest extends TestCase {
         Functions\when( 'esc_url' )->returnArg();
         Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
         Functions\when( 'home_url' )->justReturn( 'https://example.com' );
+        // The default-template helpers now resolve the effective global via
+        // EmailTemplates::effective_body() (#964) → reads ffc_email_bodies; no
+        // override → the shipped file default.
+        Functions\when( 'get_option' )->justReturn( array() );
     }
 
     protected function tearDown(): void {
@@ -181,35 +185,31 @@ class AudienceNotificationHandlerTest extends TestCase {
     }
 
     // ==================================================================
-    // get_booking_subject()
+    // render_subject()
     // ==================================================================
 
-    public function test_get_booking_subject_format(): void {
+    public function test_render_subject_resolves_tokens_raw(): void {
         $booking_data = array(
+            'schedule_name'    => 'Morning Shift',
             'environment_name' => 'Lab 2',
             'booking_date'     => '10/03/2026',
         );
 
-        $result = $this->invoke_private( 'get_booking_subject', [ $booking_data ] );
-
-        $this->assertStringContainsString( 'Lab 2', $result );
-        $this->assertStringContainsString( '10/03/2026', $result );
-    }
-
-    // ==================================================================
-    // get_cancellation_subject()
-    // ==================================================================
-
-    public function test_get_cancellation_subject_format(): void {
-        $booking_data = array(
-            'environment_name' => 'Room 5',
-            'booking_date'     => '15/03/2026',
+        $result = $this->invoke_private(
+            'render_subject',
+            [ 'Activity: {{schedule_name}} — {{environment_name}} ({{booking_date}})', $booking_data ]
         );
 
-        $result = $this->invoke_private( 'get_cancellation_subject', [ $booking_data ] );
+        $this->assertSame( 'Activity: Morning Shift — Lab 2 (10/03/2026)', $result );
+    }
 
-        $this->assertStringContainsString( 'Room 5', $result );
-        $this->assertStringContainsString( '15/03/2026', $result );
+    public function test_render_subject_defaults_missing_tokens_to_empty(): void {
+        $result = $this->invoke_private(
+            'render_subject',
+            [ '{{schedule_name}}|{{environment_name}}|{{booking_date}}', array() ]
+        );
+
+        $this->assertSame( '||', $result );
     }
 
     // ==================================================================
@@ -229,7 +229,8 @@ class AudienceNotificationHandlerTest extends TestCase {
             '{{description}}',
             '{{audiences}}',
             '{{creator_name}}',
-            '{{site_name}}',
+            // {{site_name}} moved to the shared Email Model footer (#976 standard) —
+            // no longer duplicated as a body-level "Best regards, {{site_name}}" sign-off.
         );
 
         foreach ( $expected_placeholders as $placeholder ) {
@@ -250,7 +251,7 @@ class AudienceNotificationHandlerTest extends TestCase {
             '{{description}}',
             '{{cancelled_by_name}}',
             '{{cancellation_reason}}',
-            '{{site_name}}',
+            // {{site_name}} moved to the shared Email Model footer (#976 standard).
         );
 
         foreach ( $expected_placeholders as $placeholder ) {

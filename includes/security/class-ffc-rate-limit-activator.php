@@ -4,7 +4,7 @@
  * Creates database tables - dbDelta compatible
  *
  * V3.3.0 - Added strict types and type hints
- * v3.2.0 - Migrated to namespace (Phase 2)
+ * v3.2.0 - Migrated to namespace
  *
  * @package FreeFormCertificate\Security
  */

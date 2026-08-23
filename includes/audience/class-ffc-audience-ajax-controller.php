@@ -3,8 +3,8 @@
  * AudienceAjaxController
  *
  * The admin-ajax endpoints for the audience booking system (bookings,
- * conflicts, schedule slots, user search, per-user permissions, and the
- * custom-fields editor). Split out of {@see AudienceLoader} in the
+ * conflicts, user search, per-user permissions, and the custom-fields
+ * editor). Split out of {@see AudienceLoader} in the
  * frontend-audit Item 3 fragmentation so the loader handles bootstrap/hooks/
  * enqueue while this controller owns the request handlers. Pure code
  * movement — no behavior change. Uses the shared AjaxTrait for nonce,
@@ -36,11 +36,8 @@ final class AudienceAjaxController {
 	 */
 	public function register(): void {
 		// AJAX handlers.
-		add_action( 'wp_ajax_ffc_audience_check_conflicts', array( $this, 'ajax_check_conflicts' ) );
-		add_action( 'wp_ajax_ffc_audience_create_booking', array( $this, 'ajax_create_booking' ) );
 		add_action( 'wp_ajax_ffc_audience_cancel_booking', array( $this, 'ajax_cancel_booking' ) );
 		add_action( 'wp_ajax_ffc_audience_get_booking', array( $this, 'ajax_get_booking' ) );
-		add_action( 'wp_ajax_ffc_audience_get_schedule_slots', array( $this, 'ajax_get_schedule_slots' ) );
 		add_action( 'wp_ajax_ffc_search_users', array( $this, 'ajax_search_users' ) );
 		add_action( 'wp_ajax_ffc_audience_get_environments', array( $this, 'ajax_get_environments' ) );
 		add_action( 'wp_ajax_ffc_audience_add_user_permission', array( $this, 'ajax_add_user_permission' ) );
@@ -51,54 +48,6 @@ final class AudienceAjaxController {
 		add_action( 'wp_ajax_ffc_save_custom_fields', array( $this, 'ajax_save_custom_fields' ) );
 		add_action( 'wp_ajax_ffc_delete_custom_field', array( $this, 'ajax_delete_custom_field' ) );
 		add_action( 'wp_ajax_ffc_replicate_field_options', array( $this, 'ajax_replicate_field_options' ) );
-	}
-
-	/**
-	 * AJAX: Check for conflicts
-	 *
-	 * @return void
-	 */
-	public function ajax_check_conflicts(): void {
-		try {
-			$this->verify_ajax_nonce( 'ffc_admin_nonce' );
-			$this->check_ajax_admin_or( 'ffc_manage_audiences' );
-
-			$environment_id = $this->get_post_int( 'environment_id' );
-			$booking_date   = $this->get_post_param( 'booking_date' );
-			$start_time     = $this->get_post_param( 'start_time' );
-			$end_time       = $this->get_post_param( 'end_time' );
-			$audience_ids   = array_map( 'absint', $this->get_post_array( 'audience_ids' ) );
-			$user_ids       = array_map( 'absint', $this->get_post_array( 'user_ids' ) );
-
-			if ( ! $environment_id || ! $booking_date || ! $start_time || ! $end_time ) {
-				wp_send_json_error( array( 'message' => __( 'Missing required parameters.', 'ffcertificate' ) ) );
-			}
-
-			// Check conflicts using service.
-			if ( class_exists( '\FreeFormCertificate\Audience\AudienceConflictService' ) ) {
-				$service   = new AudienceConflictService();
-				$conflicts = $service->check_conflicts( $environment_id, $booking_date, $start_time, $end_time, $audience_ids, $user_ids );
-				wp_send_json_success( array( 'conflicts' => $conflicts ) );
-			}
-
-			wp_send_json_error( array( 'message' => __( 'Service not available.', 'ffcertificate' ) ) );
-		} catch ( \Throwable $e ) {
-			$this->handle_ajax_exception( $e );
-		}
-	}
-
-	/**
-	 * AJAX: Create booking
-	 *
-	 * @return void
-	 */
-	public function ajax_create_booking(): void {
-		$this->verify_ajax_nonce( 'ffc_admin_nonce' );
-		$this->check_ajax_admin_or( 'ffc_manage_audiences' );
-
-		// Booking creation is handled by AudienceBookingService.
-		// This is a placeholder - actual implementation in Phase 6.
-		wp_send_json_error( array( 'message' => __( 'Not implemented yet.', 'ffcertificate' ) ) );
 	}
 
 	/**
@@ -212,20 +161,6 @@ final class AudienceAjaxController {
 		} catch ( \Throwable $e ) {
 			$this->handle_ajax_exception( $e );
 		}
-	}
-
-	/**
-	 * AJAX: Get schedule slots for a date range
-	 *
-	 * @return void
-	 */
-	public function ajax_get_schedule_slots(): void {
-		$this->verify_ajax_nonce( 'ffc_admin_nonce' );
-		$this->check_ajax_admin_or( 'ffc_manage_audiences' );
-
-		// Slot retrieval is handled by AudienceScheduleService.
-		// This is a placeholder - actual implementation in Phase 5.
-		wp_send_json_error( array( 'message' => __( 'Not implemented yet.', 'ffcertificate' ) ) );
 	}
 
 	/**

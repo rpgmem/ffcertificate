@@ -1,9 +1,10 @@
 <?php
 /**
- * Documentation partial — Section 11: Ficha PDF.
+ * Documentation partial — Feature: Ficha PDF.
  *
- * Extracted from `ffc-tab-documentation.php` per S8 of the
- * god-object refactor (rpgmem/ffcertificate#141).
+ * The reregistration ficha PDF: where to download it, its template
+ * placeholders, and how the layout is edited (now pool-backed via the
+ * Document Templates hub + the Reregistration settings tab).
  *
  * @package FreeFormCertificate\Settings
  */
@@ -28,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Template Variables:', 'ffcertificate' ); ?></h4>
-		<p><?php esc_html_e( 'The ficha template (templates/documents/default_ficha_template.html) supports these variables:', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'The ficha template supports these variables:', 'ffcertificate' ); ?></p>
 
 		<h5><?php esc_html_e( 'System Variables', 'ffcertificate' ); ?></h5>
 		<table class="widefat striped">
@@ -149,8 +150,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Customization:', 'ffcertificate' ); ?></h4>
 		<p>
-			<?php esc_html_e( 'The ficha template can be customized using the filter:', 'ffcertificate' ); ?>
-			<code>ffcertificate_ficha_template_file</code>
+			<?php esc_html_e( 'The ficha layout draws from the shared certificate template pool (a "ficha" template kind) — edit or duplicate it in the Document Templates hub instead of shipping a bundled file. A shipped default seeds automatically. The Reregistration settings tab selects, globally, which ficha template the PDF uses (falling back to the shipped default when unset).', 'ffcertificate' ); ?>
+			<a href="#document-templates-hub"><?php esc_html_e( 'See the Document Templates hub.', 'ffcertificate' ); ?></a>
+		</p>
+		<p>
+			<?php esc_html_e( 'Developers can also override the resolved HTML via the filter', 'ffcertificate' ); ?>
+			<code>ffcertificate_ficha_template_html</code>.
 		</p>
 	</div>
 </div>

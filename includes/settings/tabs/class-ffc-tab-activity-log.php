@@ -46,6 +46,7 @@ class TabActivityLog extends SettingsTab {
 	 */
 	protected function init(): void {
 		$this->tab_id    = 'activity_log';
+		$this->tab_group = 'security';
 		$this->tab_title = __( 'Activity Log', 'ffcertificate' );
 		$this->tab_icon  = 'ffc-icon-clipboard';
 		$this->tab_order = 10;

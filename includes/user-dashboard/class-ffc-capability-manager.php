@@ -103,6 +103,10 @@ class CapabilityManager {
 		'ffc_manage_certificates',
 		'ffc_export_certificates',
 		'ffc_manage_appointments',
+		// Capacity overbook (#941). The one manual override of the always-enforced
+		// per-slot / per-block capacity: a holder can book a full slot. Distinct
+		// from `ffc_bypass_appointments` (which never bypasses capacity).
+		'ffc_bypass_appointment_capacity',
 		'ffc_manage_audiences',
 		'ffc_view_activity_log',
 		'ffc_manage_custom_fields',
@@ -235,6 +239,16 @@ class CapabilityManager {
 		// `settings_split_cap_grant_map()`.
 		'ffc_manage_settings_smtp',
 		'ffc_manage_settings_dangerzone',
+
+		// Email-template hub cap (#964). Gates editing the GLOBAL default body /
+		// subject of the plugin's emails (Settings → SMTP → "All plugin emails"),
+		// carved out so email-copy editing can be delegated — or withheld —
+		// independently of the blanket `ffc_manage_settings`. The one-shot
+		// `migrate_email_templates_cap_grant()` seeds it onto every current
+		// `ffc_manage_settings` holder, preserving current behavior on upgrade;
+		// admins restrict by removing it from a role. See
+		// `email_templates_cap_grant_map()`.
+		'ffc_manage_email_templates',
 
 		// Form / calendar structure management (#739). These decouple the
 		// `ffc_form` and `ffc_self_scheduling` CPTs from WordPress's native
@@ -471,17 +485,35 @@ class CapabilityManager {
 		);
 		$context_label  = $context_labels[ $context ] ?? $context;
 
-		/* translators: %1$s: site name, %2$s: feature name */
-		$subject = sprintf( __( '[%1$s] Access granted: %2$s', 'ffcertificate' ), $site_name, $context_label );
-
-		// Email body → shared configurable chrome (#662 PR-8), like every other email.
-		$content = self::ffc_render_email_partial(
-			'access-granted',
+		// Subject + body: the effective global (hub override → shipped file default,
+		// #965), resolved through the one token map. The dashboard link is a
+		// pre-rendered {{dashboard_button}} token (empty when no URL), so an admin
+		// can move or drop it from the body. Subject tokens are plain text (a mail
+		// header), body scalars are esc_html'd at substitution.
+		$dashboard_button = self::ffc_email_button(
+			$dashboard_url ? (string) $dashboard_url : '',
+			__( 'Go to your dashboard', 'ffcertificate' ),
 			array(
-				'user_name'     => $user->display_name,
-				'context_label' => $context_label,
-				'site_name'     => $site_name,
-				'dashboard_url' => $dashboard_url ? $dashboard_url : '',
+				'bg'      => '#2271b1',
+				'padding' => '12px 24px',
+				'bold'    => true,
+			)
+		);
+
+		$subject = \FreeFormCertificate\Core\TokenResolver::resolve(
+			\FreeFormCertificate\Core\EmailTemplates::effective_body( 'access-granted', 'subject' ),
+			array(
+				'{{site_name}}'     => $site_name,
+				'{{context_label}}' => $context_label,
+			)
+		);
+		$content = \FreeFormCertificate\Core\TokenResolver::resolve(
+			\FreeFormCertificate\Core\EmailTemplates::effective_body( 'access-granted', 'body' ),
+			array(
+				'{{user_name}}'        => esc_html( (string) $user->display_name ),
+				'{{context_label}}'    => esc_html( $context_label ),
+				'{{site_name}}'        => esc_html( $site_name ),
+				'{{dashboard_button}}' => $dashboard_button,
 			)
 		);
 

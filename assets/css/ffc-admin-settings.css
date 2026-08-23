@@ -895,7 +895,7 @@ pre code {
 
 .ffc-settings-tabs__tab:hover,
 .ffc-settings-tabs__tab:focus {
-    background: var(--ffc-bg-card);
+    background: var(--ffc-primary-light);
     color: var(--ffc-primary);
     box-shadow: none;
 }
@@ -919,6 +919,13 @@ pre code {
     justify-content: center;
     width: 20px;
     height: 20px;
+    /* The nav glyphs are emoji (`.ffc-icon-*` ::before). Some codepoints
+       render in colour in the visitor's emoji font (e.g. 🆔, 👤) while most
+       render flat, so the icon row looks inconsistent — and it can't be fixed
+       per-glyph without playing whack-a-mole. grayscale(1) desaturates every
+       icon uniformly, so any glyph (present or future) renders monochrome
+       regardless of the platform emoji font. No-op on already-flat glyphs. */
+    filter: grayscale(1);
 }
 
 /* Cancel the right-margin the global .ffc-icon-* helpers apply via
@@ -930,6 +937,27 @@ pre code {
 
 .ffc-settings-tabs__label {
     flex: 1 1 auto;
+}
+
+/* Grouped-nav subheadings (#951): a small, muted, uppercase domain label
+   above each cluster of tabs. Tabs stay alphabetical within their group. */
+.ffc-settings-tabs__group {
+    list-style: none;
+}
+
+.ffc-settings-tabs__group-label {
+    display: block;
+    padding: 14px 12px 5px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ffc-text-muted, #646970);
+}
+
+/* The first group sits flush with the nav top — no extra lead space. */
+.ffc-settings-tabs__nav > .ffc-settings-tabs__group:first-child .ffc-settings-tabs__group-label {
+    padding-top: 6px;
 }
 
 /* Module-settings links (#711) — nav items that navigate away to a module's
@@ -1268,4 +1296,20 @@ html:has(.ffc-settings-back-to-top) {
 .ffc-settings-divergence-notice ul {
     margin: 6px 0 0 18px;
     list-style: disc;
+}
+
+/* Email-body hub (#964): give each email's subject + editor block breathing
+   room and a light separator so the seven editors don't run together. */
+.ffc-email-body-hub__item {
+    padding: 16px 0;
+    border-top: 1px solid #e2e4e7;
+}
+
+.ffc-email-body-hub__item:first-of-type {
+    border-top: 0;
+    padding-top: 4px;
+}
+
+.ffc-email-body-hub__item h3 {
+    margin: 0 0 10px;
 }

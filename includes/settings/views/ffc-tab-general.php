@@ -204,11 +204,27 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 				</tr>
 				<tr>
 					<th scope="row">
-						<label for="cleanup_days"><?php esc_html_e( 'Auto-delete (days)', 'ffcertificate' ); ?></label>
+						<label><?php esc_html_e( 'Auto-delete old submissions', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<input type="number" name="ffc_settings[cleanup_days]" id="cleanup_days" value="<?php echo esc_attr( $ffcertificate_get_option( 'cleanup_days' ) ); ?>" class="small-text" min="0" data-ffc-autosave-key="cleanup_days">
-						<p class="description"><?php esc_html_e( 'Files removed after X days. Set to 0 to disable.', 'ffcertificate' ); ?></p>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ffc_settings[cleanup_enabled]',
+								'id'      => 'cleanup_enabled',
+								'checked' => (bool) $ffcertificate_get_option( 'cleanup_enabled', false ),
+								'label'   => __( 'Enable automatic deletion', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'cleanup_enabled' ),
+							)
+						);
+						?>
+						<p style="margin-top:.6em;">
+							<label for="cleanup_days"><?php esc_html_e( 'Delete after (days):', 'ffcertificate' ); ?></label>
+							<input type="number" name="ffc_settings[cleanup_days]" id="cleanup_days" value="<?php echo esc_attr( $ffcertificate_get_option( 'cleanup_days', 365 ) ); ?>" class="small-text" min="1" max="3650" data-ffc-autosave-key="cleanup_days">
+						</p>
+						<p class="description">
+							<?php esc_html_e( 'When enabled, published submissions older than this many days are permanently deleted by the daily cleanup. Off by default — turning it on will delete existing submissions older than the window on the next run.', 'ffcertificate' ); ?>
+						</p>
 					</td>
 				</tr>
 

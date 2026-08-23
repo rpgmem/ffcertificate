@@ -71,6 +71,43 @@ class CertTemplateCpt {
 	public const META_BG_IMAGE = '_ffc_template_bg_image';
 
 	/**
+	 * Meta key discriminating which plugin surface a template serves (#945):
+	 * `certificate` (the original pool contents) or `appointment_receipt` (the
+	 * self-scheduling comprovante). An **absent** value counts as `certificate`,
+	 * so pre-#945 templates keep working unchanged. The value is a free-form
+	 * string on purpose — a future surface adds its own kind and filters the pool
+	 * by it, reusing this one storage instead of minting a parallel CPT.
+	 */
+	public const META_KIND = '_ffc_template_kind';
+
+	/**
+	 * Kind value: a certificate template (the pool's original, default contents).
+	 */
+	public const KIND_CERTIFICATE = 'certificate';
+
+	/**
+	 * Kind value: a self-scheduling appointment-receipt (comprovante) template (#945).
+	 */
+	public const KIND_APPOINTMENT_RECEIPT = 'appointment_receipt';
+
+	/**
+	 * Kind value: a reregistration ficha template (#951 phase 2).
+	 */
+	public const KIND_FICHA = 'ficha';
+
+	/**
+	 * Whether a string is one of the known template kinds. Guards a
+	 * request-supplied kind (e.g. the `?ffc_kind=` "Add New" preset, #951)
+	 * before it is written to `META_KIND`.
+	 *
+	 * @param string $kind Candidate kind value.
+	 * @return bool
+	 */
+	public static function is_valid_kind( string $kind ): bool {
+		return in_array( $kind, array( self::KIND_CERTIFICATE, self::KIND_APPOINTMENT_RECEIPT, self::KIND_FICHA ), true );
+	}
+
+	/**
 	 * Constructor — registers the post type on `init`.
 	 */
 	public function __construct() {
@@ -84,10 +121,13 @@ class CertTemplateCpt {
 	 */
 	public function register(): void {
 		$labels = array(
-			'name'          => _x( 'Certificate Templates', 'Post Type General Name', 'ffcertificate' ),
-			'singular_name' => _x( 'Certificate Template', 'Post Type Singular Name', 'ffcertificate' ),
-			'menu_name'     => __( 'Templates', 'ffcertificate' ),
-			'all_items'     => __( 'Templates', 'ffcertificate' ),
+			// Kind-neutral: the pool holds certificate AND appointment-receipt
+			// templates (and future kinds), so the labels no longer say
+			// "Certificate" (#951).
+			'name'          => _x( 'Document Templates', 'Post Type General Name', 'ffcertificate' ),
+			'singular_name' => _x( 'Document Template', 'Post Type Singular Name', 'ffcertificate' ),
+			'menu_name'     => __( 'Document Templates', 'ffcertificate' ),
+			'all_items'     => __( 'Document Templates', 'ffcertificate' ),
 			'add_new'       => __( 'Add New Template', 'ffcertificate' ),
 			'add_new_item'  => __( 'Add New Template', 'ffcertificate' ),
 			'edit_item'     => __( 'Edit Template', 'ffcertificate' ),
@@ -99,12 +139,16 @@ class CertTemplateCpt {
 		$args = array(
 			'labels'          => $labels,
 			'public'          => false,
-			// Management UI (#865): the native list table + edit screen are
-			// exposed as a "Templates" submenu under the Certificate (ffc_form)
-			// menu, gated by the same forms caps below. Visibility, columns and
-			// the HTML-editing metabox are wired by CertTemplateAdminScreen.
+			// Management UI (#865): the native list table + edit screen are the
+			// single hub for every document model (#951 Direction 1). The screens
+			// stay registered (`show_ui`) but carry NO menu item of their own
+			// (`show_in_menu = false`) — the entry point is the "Document
+			// Templates" launcher tab inside FFC Settings (TabTemplates), which
+			// keeps you within the Settings tabbed UI instead of a standalone
+			// submenu. Gated by the forms caps below; visibility, columns and the
+			// HTML-editing metabox are wired by CertTemplateAdminScreen.
 			'show_ui'         => true,
-			'show_in_menu'    => 'edit.php?post_type=ffc_form',
+			'show_in_menu'    => false,
 			'query_var'       => false,
 			// Same #739 decoupling as `ffc_form`: gate by the FFC forms caps, not
 			// native post caps. List/read primitives map to the read-only

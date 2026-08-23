@@ -385,15 +385,11 @@ final class DateFormatter {
 	 * @param string|null $time HH:MM or HH:MM:SS, may be empty/null.
 	 */
 	private static function format_compact_time( ?string $time ): string {
-		if ( null === $time || '' === $time ) {
+		$parts = self::time_parts( $time );
+		if ( null === $parts ) {
 			return '';
 		}
-		// Match HH:MM with an optional ':SS' tail; reject anything else.
-		if ( 1 !== preg_match( '/^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/', $time, $m ) ) {
-			return '';
-		}
-		$h  = (int) $m[1];
-		$mn = (int) $m[2];
+		list( $h, $mn ) = $parts;
 		if ( 0 === $mn ) {
 			return $h . 'h';
 		}
@@ -407,13 +403,60 @@ final class DateFormatter {
 	 * @return int|null
 	 */
 	private static function parse_minutes( ?string $time ): ?int {
+		$parts = self::time_parts( $time );
+		if ( null === $parts ) {
+			return null;
+		}
+		return $parts[0] * 60 + $parts[1];
+	}
+
+	/**
+	 * Parse an `HH:MM` (optionally `HH:MM:SS`) wall-clock time-of-day string
+	 * into `[hour, minute]`, or `null` when malformed. The single source of the
+	 * time-of-day regex shared by {@see self::is_valid_time()} and the compact /
+	 * minutes formatters.
+	 *
+	 * @param string|null $time          Wall-clock time string.
+	 * @param bool        $allow_seconds Accept an optional `:SS` tail (default true).
+	 * @return array{0:int,1:int}|null `[hour, minute]`, or null when invalid.
+	 */
+	private static function time_parts( ?string $time, bool $allow_seconds = true ): ?array {
 		if ( null === $time || '' === $time ) {
 			return null;
 		}
-		if ( 1 !== preg_match( '/^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/', $time, $m ) ) {
+		$pattern = $allow_seconds
+			? '/^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/'
+			: '/^([01]\d|2[0-3]):([0-5]\d)$/';
+		if ( 1 !== preg_match( $pattern, $time, $m ) ) {
 			return null;
 		}
-		return ( (int) $m[1] ) * 60 + (int) $m[2];
+		return array( (int) $m[1], (int) $m[2] );
+	}
+
+	/**
+	 * Validate a wall-clock time-of-day string (`HH:MM`, hours `00`–`23`,
+	 * minutes `00`–`59`). Validation only — does not format.
+	 *
+	 * @since 6.20.0
+	 * @param string $time          Candidate time string.
+	 * @param bool   $allow_seconds Accept an optional `:SS` tail (default true).
+	 * @return bool
+	 */
+	public static function is_valid_time( string $time, bool $allow_seconds = true ): bool {
+		return null !== self::time_parts( $time, $allow_seconds );
+	}
+
+	/**
+	 * Validate a wall-clock date string in strict `Y-m-d` form — a real calendar
+	 * date, so `2026-02-30` is rejected. Validation only — does not format.
+	 *
+	 * @since 6.20.0
+	 * @param string $date Candidate date string.
+	 * @return bool
+	 */
+	public static function is_valid_date( string $date ): bool {
+		$d = \DateTime::createFromFormat( '!Y-m-d', $date );
+		return $d && $d->format( 'Y-m-d' ) === $date;
 	}
 
 	/**

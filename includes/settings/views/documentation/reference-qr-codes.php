@@ -1,9 +1,9 @@
 <?php
 /**
- * Documentation partial — Section 5: QR Code Options & Attributes.
+ * Documentation partial — Reference: QR Codes.
  *
- * Extracted from `ffc-tab-documentation.php` per S8 of the
- * god-object refactor (rpgmem/ffcertificate#141).
+ * Documents the {{qr_code}} token and its attributes (size, and other
+ * customization options) for embedding QR codes in a certificate.
  *
  * @package FreeFormCertificate\Settings
  */

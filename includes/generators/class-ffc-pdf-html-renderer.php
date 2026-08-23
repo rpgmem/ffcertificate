@@ -283,12 +283,25 @@ class PdfHtmlRenderer {
 	/**
 	 * Get appointment receipt HTML template
 	 *
-	 * Loads from plugin default file. Can be overridden via filter.
+	 * Resolution order: an admin-selected pool template for this scheduling mode
+	 * (#945, supplied by a listener on the `_html` filter) → the shipped default
+	 * file (overridable via the `_file` filter) → a minimal inline fallback.
 	 *
 	 * @since 4.2.0
+	 * @param string $schedule_type Calendar scheduling mode ('regular'|'custom'),
+	 *                              so a listener can pick the per-mode pool template.
 	 * @return string HTML template with placeholders
 	 */
-	public function get_appointment_receipt_template(): string {
+	public function get_appointment_receipt_template( string $schedule_type = 'regular' ): string {
+		// #945: allow a pool-backed template selected globally per mode. A listener
+		// (the self-scheduling receipt-template resolver) may return HTML; an empty
+		// string means "not configured" and we fall through to the shipped file.
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
+		$pool_override = apply_filters( 'ffcertificate_appointment_receipt_template_html', '', $schedule_type );
+		if ( is_string( $pool_override ) && '' !== $pool_override ) {
+			return $pool_override;
+		}
+
 		$default_file = FFC_PLUGIN_DIR . 'templates/documents/default_appointment_receipt_1.html';
 
 		// Allow override via filter.

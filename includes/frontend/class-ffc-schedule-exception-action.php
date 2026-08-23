@@ -243,7 +243,7 @@ final class ScheduleExceptionAction {
 		// Empty strings are allowed (means "no override on that end").
 		// Non-empty must be strict HH:MM.
 		foreach ( array( $start_override, $end_override ) as $candidate ) {
-			if ( '' !== $candidate && 1 !== preg_match( '/^(?:[01]\d|2[0-3]):[0-5]\d$/', $candidate ) ) {
+			if ( '' !== $candidate && ! \FreeFormCertificate\Core\DateFormatter::is_valid_time( $candidate, false ) ) {
 				return array(
 					'ok'     => false,
 					'reason' => 'bad_time_format',

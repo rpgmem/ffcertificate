@@ -8,7 +8,7 @@
  * @package FreeFormCertificate\Admin
  * @since 3.2.0 (Extracted from FFC_Admin)
  * @version 3.3.0 - Added strict types and type hints
- * @version 3.2.0 - Migrated to namespace (Phase 2)
+ * @version 3.2.0 - Migrated to namespace
  */
 
 declare(strict_types=1);
@@ -109,6 +109,45 @@ class AdminAssetsManager {
 	 * @return void
 	 */
 	public static function enqueue_code_editor_for( string $textarea_id, bool $read_only = false ): void {
+		$base = self::enqueue_code_editor_base( $read_only );
+
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_script(
+			'ffc-admin-code-editor',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin-code-editor{$s}.js",
+			array( 'jquery', 'ffc-code-editor-core' ),
+			FFC_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'ffc-admin-code-editor',
+			'ffcCodeEditor',
+			array(
+				'enabled'    => $base['enabled'],
+				'settings'   => $base['settings'],
+				'textareaId' => $textarea_id,
+				'profileUrl' => admin_url( 'profile.php#syntax_highlighting' ),
+				'theme'      => $base['theme'],
+				'strings'    => self::code_editor_notice_strings(),
+			)
+		);
+	}
+
+	/**
+	 * Enqueue the CodeMirror foundation shared by every FFC HTML editor: the base
+	 * admin styles, the dark-theme CSS (when chosen), `wp_enqueue_code_editor()`
+	 * and the shared initializer script {@see assets/js/ffc-code-editor-core.js}
+	 * (which owns the `{{placeholder}}` overlay + change/submit sync). Returns the
+	 * resolved editor settings so a caller can init one *or many* textareas via
+	 * `window.FFCCodeEditor.init()` — the single-textarea path
+	 * ({@see self::enqueue_code_editor_for()}) and the multi-editor receipt tab
+	 * (#945) both build on this, so the CodeMirror wiring lives in one place.
+	 *
+	 * @param bool $read_only Bake a read-only editor (shipped defaults).
+	 * @return array{enabled:bool, settings:array<string,mixed>|null, theme:string}
+	 */
+	public static function enqueue_code_editor_base( bool $read_only = false ): array {
 		self::enqueue_admin_base_styles();
 
 		$theme_choice = self::resolve_code_editor_theme();
@@ -148,27 +187,30 @@ class AdminAssetsManager {
 		);
 
 		wp_enqueue_script(
-			'ffc-admin-code-editor',
-			FFC_PLUGIN_URL . "assets/js/ffc-admin-code-editor{$s}.js",
+			'ffc-code-editor-core',
+			FFC_PLUGIN_URL . "assets/js/ffc-code-editor-core{$s}.js",
 			array( 'jquery' ),
 			FFC_VERSION,
 			true
 		);
 
-		wp_localize_script(
-			'ffc-admin-code-editor',
-			'ffcCodeEditor',
-			array(
-				'enabled'    => false !== $editor_settings,
-				'settings'   => false !== $editor_settings ? $editor_settings : null,
-				'textareaId' => $textarea_id,
-				'profileUrl' => admin_url( 'profile.php#syntax_highlighting' ),
-				'theme'      => $theme_choice,
-				'strings'    => array(
-					'syntaxDisabledNotice' => __( 'For the best HTML template experience, enable "Syntax Highlighting" in your profile.', 'ffcertificate' ),
-					'openProfile'          => __( 'Open profile', 'ffcertificate' ),
-				),
-			)
+		return array(
+			'enabled'  => false !== $editor_settings,
+			'settings' => false !== $editor_settings ? $editor_settings : null,
+			'theme'    => $theme_choice,
+		);
+	}
+
+	/**
+	 * The "enable Syntax Highlighting" fallback-notice strings shared by every
+	 * editor screen.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function code_editor_notice_strings(): array {
+		return array(
+			'syntaxDisabledNotice' => __( 'For the best HTML template experience, enable "Syntax Highlighting" in your profile.', 'ffcertificate' ),
+			'openProfile'          => __( 'Open profile', 'ffcertificate' ),
 		);
 	}
 

@@ -208,7 +208,7 @@ class CertificatesCalendarRestController {
 		$config = get_post_meta( $post->ID, self::META_KEY, true );
 		if ( is_array( $config ) ) {
 			$start = isset( $config['date_start'] ) ? trim( (string) $config['date_start'] ) : '';
-			if ( '' !== $start && $this->is_valid_date( $start ) ) {
+			if ( '' !== $start && \FreeFormCertificate\Core\DateFormatter::is_valid_date( $start ) ) {
 				return array( $start, 'geofence' );
 			}
 		}
@@ -219,24 +219,10 @@ class CertificatesCalendarRestController {
 		}
 
 		$fallback = substr( $post_date, 0, 10 );
-		if ( ! $this->is_valid_date( $fallback ) ) {
+		if ( ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $fallback ) ) {
 			return null;
 		}
 
 		return array( $fallback, 'post_date' );
-	}
-
-	/**
-	 * Validate a Y-m-d date string against the calendar.
-	 *
-	 * @param string $date Date string in Y-m-d.
-	 * @return bool True when the string is a real calendar date.
-	 */
-	private function is_valid_date( string $date ): bool {
-		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
-			return false;
-		}
-		$parts = explode( '-', $date );
-		return checkdate( (int) $parts[1], (int) $parts[2], (int) $parts[0] );
 	}
 }

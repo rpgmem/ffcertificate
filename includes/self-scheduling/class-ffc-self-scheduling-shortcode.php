@@ -209,6 +209,10 @@ class SelfSchedulingShortcode {
 					'status'               => __( 'Status', 'ffcertificate' ),
 					'confirmed'            => __( 'Confirmed', 'ffcertificate' ),
 					'pendingApproval'      => __( 'Pending Approval', 'ffcertificate' ),
+					// Waitlist (#941 phase 2).
+					'joinWaitlist'         => __( 'Join waitlist', 'ffcertificate' ),
+					'waitlistStatus'       => __( 'On waitlist', 'ffcertificate' ),
+					'waitlistNotice'       => __( 'This time is full. Submitting adds you to the waitlist — you will be notified automatically if a spot opens up.', 'ffcertificate' ),
 					'confirmationCode'     => __( 'Confirmation Code', 'ffcertificate' ),
 					'confirmationCodeHelp' => __( 'Save this code to manage your appointment.', 'ffcertificate' ),
 					'downloadReceipt'      => __( 'Download Receipt', 'ffcertificate' ),
@@ -622,8 +626,9 @@ class SelfSchedulingShortcode {
 								<div class="ffc-security-container">
 									<!-- Honeypot Field -->
 									<div class="ffc-honeypot-field">
-										<label><?php esc_html_e( 'Do not fill this field if you are human:', 'ffcertificate' ); ?></label>
-										<input type="text" name="ffc_honeypot_trap" value="" tabindex="-1" autocomplete="off">
+										<label><?php esc_html_e( 'Do not fill this field if you are human:', 'ffcertificate' ); ?>
+											<input type="text" name="ffc_honeypot_trap" value="" tabindex="-1" autocomplete="off">
+										</label>
 									</div>
 
 									<!-- Math Captcha -->
@@ -710,9 +715,17 @@ class SelfSchedulingShortcode {
 			}
 		}
 
+		// Custom mode (#941): only the dates that carry a block are bookable.
+		$schedule_type = ( 'custom' === ( $calendar['schedule_type'] ?? 'regular' ) ) ? 'custom' : 'regular';
+		$enabled_dates = 'custom' === $schedule_type
+			? \FreeFormCertificate\SelfScheduling\CustomSlots::dates( $calendar['custom_slots'] ?? '' )
+			: array();
+
 		$calendar_config = array(
 			'calendarId'    => (int) $calendar['id'],
 			'calendarTitle' => $calendar['title'] ?? '',
+			'scheduleType'  => $schedule_type,
+			'enabledDates'  => $enabled_dates,
 			'workingDays'   => $working_days_js,
 			'minDateHours'  => isset( $calendar['advance_booking_min'] ) ? (int) $calendar['advance_booking_min'] : 0,
 			'maxDateDays'   => isset( $calendar['advance_booking_max'] ) ? (int) $calendar['advance_booking_max'] : 30,

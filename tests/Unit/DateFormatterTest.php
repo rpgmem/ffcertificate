@@ -444,4 +444,37 @@ class DateFormatterTest extends TestCase {
 		$this->assertSame( '', DateFormatter::format_schedule_total( null, '19:00' ) );
 		$this->assertSame( '', DateFormatter::format_schedule_total( 'oops', '19:00' ) );
 	}
+
+	public function test_is_valid_time_accepts_hh_mm_and_optional_seconds(): void {
+		$this->assertTrue( DateFormatter::is_valid_time( '00:00' ) );
+		$this->assertTrue( DateFormatter::is_valid_time( '09:30' ) );
+		$this->assertTrue( DateFormatter::is_valid_time( '23:59' ) );
+		$this->assertTrue( DateFormatter::is_valid_time( '08:15:00' ) );
+	}
+
+	public function test_is_valid_time_rejects_out_of_range_and_malformed(): void {
+		$this->assertFalse( DateFormatter::is_valid_time( '24:00' ) );
+		$this->assertFalse( DateFormatter::is_valid_time( '08:60' ) );
+		$this->assertFalse( DateFormatter::is_valid_time( '8:00' ) );   // single-digit hour.
+		$this->assertFalse( DateFormatter::is_valid_time( '' ) );
+		$this->assertFalse( DateFormatter::is_valid_time( 'oops' ) );
+	}
+
+	public function test_is_valid_time_can_forbid_the_seconds_tail(): void {
+		$this->assertTrue( DateFormatter::is_valid_time( '08:15', false ) );
+		$this->assertFalse( DateFormatter::is_valid_time( '08:15:00', false ) );
+	}
+
+	public function test_is_valid_date_accepts_real_calendar_dates(): void {
+		$this->assertTrue( DateFormatter::is_valid_date( '2026-08-18' ) );
+		$this->assertTrue( DateFormatter::is_valid_date( '2024-02-29' ) ); // leap day.
+	}
+
+	public function test_is_valid_date_rejects_impossible_or_malformed_dates(): void {
+		$this->assertFalse( DateFormatter::is_valid_date( '2026-02-30' ) );
+		$this->assertFalse( DateFormatter::is_valid_date( '2026-13-01' ) );
+		$this->assertFalse( DateFormatter::is_valid_date( '2026-8-1' ) ); // not zero-padded.
+		$this->assertFalse( DateFormatter::is_valid_date( '18/08/2026' ) );
+		$this->assertFalse( DateFormatter::is_valid_date( '' ) );
+	}
 }

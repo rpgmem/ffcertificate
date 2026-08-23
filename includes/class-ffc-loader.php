@@ -4,9 +4,9 @@
  * Fixed textdomain loading + REST API integration
  *
  * @package FreeFormCertificate
- * @version 4.0.0 - Removed alias usage (Phase 4)
+ * @version 4.0.0 - Removed alias usage
  * @version 3.3.0 - Added strict types and type hints
- * @version 3.2.0 - Migrated to namespace (Phase 2) - Removed require_once (autoloader handles)
+ * @version 3.2.0 - Migrated to namespace - Removed require_once (autoloader handles)
  */
 
 declare(strict_types=1);
@@ -197,10 +197,22 @@ class Loader {
 			// non-destructive, versioned seed of the shipped defaults (admin
 			// only — the pool is authored/consumed in wp-admin).
 			new \FreeFormCertificate\Admin\CertTemplateCpt();
+			// Appointment-receipt template resolution (#945): when a comprovante
+			// PDF is generated (frontend/AJAX included), pick the admin-selected
+			// pool template for the calendar's mode. Harmless when unconfigured
+			// (falls back to the shipped default file).
+			( new \FreeFormCertificate\Admin\CertTemplateReceiptResolver() )->register();
+			// Ficha template resolution (#951 phase 2): the reregistration ficha
+			// PDF (frontend verification + admin AJAX) picks the admin-selected
+			// pool template. Harmless when unconfigured (falls back to the bundled
+			// default file).
+			( new \FreeFormCertificate\Admin\CertTemplateFichaResolver() )->register();
 			if ( is_admin() ) {
 				add_action( 'admin_init', array( \FreeFormCertificate\Admin\CertTemplateSeeder::class, 'maybe_seed' ) );
 				// Management UI: list-table columns + visibility toggle (#865).
 				new \FreeFormCertificate\Admin\CertTemplateAdminScreen();
+				// Global per-mode appointment-receipt template selection (#945).
+				new \FreeFormCertificate\Admin\CertTemplateReceiptSettings();
 			}
 		}
 
@@ -327,6 +339,8 @@ class Loader {
 		$this->ensure_import_caps_granted();
 		$this->ensure_reasons_caps_wired();
 		$this->ensure_settings_split_caps_granted();
+		$this->ensure_email_templates_cap_granted();
+		$this->ensure_recruitment_email_migrated();
 		$this->ensure_activity_log_export_cap_granted();
 		$this->ensure_url_shortener_export_cap_granted();
 		$this->ensure_rbac_caps_renamed();
@@ -465,6 +479,45 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_settings_split_caps_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration that seeds the dedicated `ffc_manage_email_templates`
+	 * cap (#964) onto every user/role already holding `ffc_manage_settings`, so
+	 * existing settings managers keep editing email copy after the email-template
+	 * hub is carved out of the blanket cap. Flagged by `ffc_email_templates_cap_v1`.
+	 *
+	 * @return void
+	 */
+	private function ensure_email_templates_cap_granted(): void {
+		$flag = 'ffc_email_templates_cap_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_email_templates_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration (#964) that moves a customised recruitment convocation
+	 * subject/body out of `ffc_recruitment_settings` and into the global
+	 * email-body hub (`ffc_email_bodies`), so the hub UI now owns that text. A
+	 * default (unchanged) email migrates nothing — the hub stays empty and the
+	 * shipped file default still applies. Flagged by `ffc_recruitment_email_hub_v1`.
+	 *
+	 * @return void
+	 */
+	private function ensure_recruitment_email_migrated(): void {
+		$flag = 'ffc_recruitment_email_hub_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\Recruitment\RecruitmentSettings' ) ) {
+			\FreeFormCertificate\Recruitment\RecruitmentSettings::migrate_email_to_hub();
 		}
 		update_option( $flag, '1', true );
 	}

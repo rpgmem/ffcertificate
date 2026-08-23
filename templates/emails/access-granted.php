@@ -1,16 +1,16 @@
 <?php
 /**
- * Capability "access granted" email body.
+ * Capability "access granted" email — default subject + body (editable via the hub, #965).
  *
  * Wrapped by the configurable chrome (layout.php) at send. Rendered by
  * CapabilityManager when a user is granted plugin access.
  *
- * @var array<string, mixed> $args {
- *     @type string $user_name     Recipient display name.
- *     @type string $context_label Feature label (Certificates / Appointments / …).
- *     @type string $site_name     Site name.
- *     @type string $dashboard_url Dashboard URL (may be empty).
- * }
+ * Standard layout (#976): h2 event title (no emoji, semantic colour) + greeting +
+ * one context line + a semantic details box.
+ *
+ * Tokens: {{user_name}}, {{context_label}} (feature name), {{site_name}}, and the
+ * pre-rendered {{dashboard_button}} (empty when no dashboard URL is configured).
+ *
  * @package FreeFormCertificate\UserDashboard
  */
 
@@ -18,14 +18,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$ffc_user = isset( $args['user_name'] ) ? (string) $args['user_name'] : '';
-$ffc_ctx  = isset( $args['context_label'] ) ? (string) $args['context_label'] : '';
-$ffc_site = isset( $args['site_name'] ) ? (string) $args['site_name'] : '';
-$ffc_dash = isset( $args['dashboard_url'] ) ? (string) $args['dashboard_url'] : '';
-?>
-<p><?php echo esc_html( sprintf( /* translators: %s: user display name */ __( 'Hello %s,', 'ffcertificate' ), $ffc_user ) ); ?></p>
-<p><?php echo esc_html( sprintf( /* translators: %1$s: feature name, %2$s: site name */ __( 'You now have access to %1$s on %2$s.', 'ffcertificate' ), $ffc_ctx, $ffc_site ) ); ?></p>
-<?php if ( '' !== $ffc_dash ) : ?>
-<p style="margin:24px 0;"><a href="<?php echo esc_url( $ffc_dash ); ?>" style="display:inline-block;background:#2271b1;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:600;"><?php echo esc_html__( 'Go to your dashboard', 'ffcertificate' ); ?></a></p>
-<?php endif; ?>
-<p style="color:#666666;font-size:13px;"><?php echo esc_html__( 'This is an automated message.', 'ffcertificate' ); ?></p>
+return array(
+	'subject' => __( 'Access granted: {{context_label}}', 'ffcertificate' ),
+	'body'    => '<h2 style="margin: 0 0 20px 0; font-size: 24px; color: #2271b1;">' . __( 'Access granted', 'ffcertificate' ) . '</h2>'
+		. '<p style="margin: 0 0 15px 0;">' . sprintf( /* translators: %s: user display name */ __( 'Hello %s,', 'ffcertificate' ), '{{user_name}}' ) . '</p>'
+		. '<p style="margin: 0 0 15px 0;">' . sprintf( /* translators: %1$s: feature name, %2$s: site name */ __( 'You now have access to %1$s on %2$s.', 'ffcertificate' ), '{{context_label}}', '{{site_name}}' ) . '</p>'
+		. '<div style="background: #eaf2fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2271b1;">'
+		. '<p style="margin: 0;"><strong>' . __( 'Access to:', 'ffcertificate' ) . '</strong> {{context_label}}</p>'
+		. '</div>'
+		. '{{dashboard_button}}',
+);
