@@ -120,10 +120,11 @@ class TabSmtpTest extends TestCase {
         $_GET['tab'] = 'smtp';
         Functions\when( 'wp_unslash' )->returnArg();
 
-        // AssetHelper::asset_suffix() is now called twice (once on this tab + once
-        // inside enqueue_autosave_infra), and the autosave helper enqueues
-        // four scripts: ffc-core, ffc-admin-autosave, ffc-section-collapse,
-        // plus this tab's own ffc-smtp-settings.
+        // Since the #976 split the SMTP tab is transport only: it enqueues its own
+        // ffc-smtp-settings plus the autosave infra (ffc-core, ffc-admin-autosave,
+        // ffc-section-collapse) for the "enable email sending" toggle. The Email
+        // Model + Restore-Default assets moved to their own tabs. asset_suffix()
+        // is called once here + once inside enqueue_autosave_infra = twice.
         $utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
         $utils_mock->shouldReceive( 'asset_suffix' )
             ->twice()
@@ -147,31 +148,8 @@ class TabSmtpTest extends TestCase {
             } ) )
             ->once();
         Functions\when( 'wp_create_nonce' )->justReturn( 'autosave-nonce' );
-
-        // "Email Model" box assets (color picker, media, live preview).
-        Functions\when( 'wp_enqueue_media' )->justReturn( null );
-        Functions\when( 'wp_enqueue_style' )->justReturn( null );
-        Functions\when( 'get_bloginfo' )->justReturn( 'Site' );
-        Functions\when( 'home_url' )->justReturn( 'https://site.test' );
-        Functions\when( 'get_option' )->justReturn( '' );
-        Functions\when( 'wp_date' )->justReturn( '2026' );
-        Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
-        Functions\expect( 'wp_enqueue_script' )
-            ->with( 'ffc-email-model', Mockery::type( 'string' ), array( 'jquery', 'wp-color-picker' ), Mockery::type( 'string' ), true )
-            ->once();
-        Functions\expect( 'wp_localize_script' )
-            ->with( 'ffc-email-model', 'ffcEmailModel', Mockery::type( 'array' ) )
-            ->once();
-
-        // Hub cap held ⇒ the shared "Restore Default Text" script is enqueued and
-        // localized with the seven shipped file defaults (#964).
-        Functions\when( 'current_user_can' )->justReturn( true );
-        Functions\expect( 'wp_enqueue_script' )
-            ->with( 'ffc-email-restore-default', Mockery::type( 'string' ), array( 'jquery' ), Mockery::type( 'string' ), true )
-            ->once();
-        Functions\expect( 'wp_localize_script' )
-            ->with( 'ffc-email-restore-default', 'ffcEmailRestoreDefaults', Mockery::type( 'array' ) )
-            ->once();
+        // The Email Model + Restore-Default assets are NOT enqueued by this tab.
+        Functions\expect( 'wp_enqueue_media' )->never();
 
         $this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
     }
@@ -270,169 +248,5 @@ class TabSmtpTest extends TestCase {
         Functions\when( 'get_option' )->justReturn( array() );
 
         $this->assertSame( 'wp', $this->tab->get_option( 'smtp_mode', 'wp' ) );
-    }
-
-    // ==================================================================
-    // render_email_index() — the read-only "All plugin emails" directory
-    // ==================================================================
-
-    public function test_render_email_index_lists_features_with_deeplinks(): void {
-        Functions\when( 'current_user_can' )->justReturn( true ); // reaches every feature.
-        Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } );
-        Functions\when( 'esc_url' )->returnArg();
-        Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
-
-        ob_start();
-        $this->tab->render_email_index();
-        $out = (string) ob_get_clean();
-
-        $this->assertStringContainsString( 'All plugin emails', $out );
-        $this->assertStringContainsString( 'ffc-email-index', $out );
-        // Toggle/system rows still deep-link to their feature's own screen.
-        $this->assertStringContainsString( 'post_type=ffc_form', $out ); // admin-notification toggle row.
-        $this->assertStringContainsString( 'post_type=ffc_self_scheduling', $out );
-        // The hub-editable (global) rows point to the Email texts hub instead (#964).
-        $this->assertStringContainsString( 'page=ffc-settings&tab=smtp', $out );
-        // The personalisation states are labelled, including the new "global".
-        $this->assertStringContainsString( 'Editable text (global)', $out );
-        $this->assertStringContainsString( 'On/off only', $out );
-        $this->assertStringContainsString( 'System default', $out );
-    }
-
-    public function test_render_email_index_hidden_without_any_feature_cap(): void {
-        Functions\when( 'current_user_can' )->justReturn( false ); // no feature reachable.
-        Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } );
-        Functions\when( 'esc_url' )->returnArg();
-        Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
-
-        ob_start();
-        $this->tab->render_email_index();
-        $out = (string) ob_get_clean();
-
-        $this->assertSame( '', trim( $out ) );
-    }
-
-    // ==================================================================
-    // render_email_body_hub() — the global email-body hub (#964)
-    // ==================================================================
-
-    public function test_render_hub_hidden_without_cap(): void {
-        Functions\when( 'current_user_can' )->justReturn( false ); // hub cap not held.
-
-        ob_start();
-        $this->tab->render_email_body_hub();
-        $out = (string) ob_get_clean();
-
-        $this->assertSame( '', trim( $out ) );
-    }
-
-    public function test_render_hub_shows_the_hub_emails_including_selfscheduling(): void {
-        Functions\when( 'current_user_can' )->justReturn( true ); // hub cap held.
-        Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } );
-        Functions\when( 'wp_kses' )->returnArg();
-        Functions\when( 'wp_nonce_field' )->justReturn( '' );
-        Functions\when( 'submit_button' )->alias( static function ( $t = '' ) { echo '<submit>'; } );
-        // No stored overrides ⇒ effective_body falls back to the shipped file default.
-        Functions\when( 'get_option' )->justReturn( array() );
-        Functions\when( 'wp_editor' )->alias(
-            static function ( $content, $id, $settings = array() ) {
-                echo '<textarea name="' . ( $settings['textarea_name'] ?? '' ) . '"></textarea>';
-            }
-        );
-
-        ob_start();
-        $this->tab->render_email_body_hub();
-        $out = (string) ob_get_clean();
-
-        // The seven phase-1 emails each render a body editor keyed by template.
-        $this->assertStringContainsString( 'ffc_email_bodies[certificate-user][body]', $out );
-        $this->assertStringContainsString( 'ffc_email_bodies[recruitment-convocation][body]', $out );
-        $this->assertStringContainsString( 'ffc_email_bodies[reregistration-invitation][body]', $out );
-        $this->assertStringContainsString( 'ffc_email_bodies[reregistration-reminder][body]', $out );
-        $this->assertStringContainsString( 'ffc_email_bodies[reregistration-confirmation][body]', $out );
-        $this->assertStringContainsString( 'ffc_email_bodies[audience-booking][body]', $out );
-        $this->assertStringContainsString( 'ffc_email_bodies[audience-cancellation][body]', $out );
-        // Self-scheduling confirmation joined the hub in phase 2 (#965).
-        $this->assertStringContainsString( 'ffc_email_bodies[selfscheduling-confirmation][body]', $out );
-        $this->assertStringContainsString( 'receipt_button', $out ); // its token help.
-        // The save form carries its presence flag and per-email token help.
-        $this->assertStringContainsString( 'ffc_save_email_bodies', $out );
-        $this->assertStringContainsString( 'validation_url', $out );
-    }
-
-    public function test_maybe_save_persists_edited_override(): void {
-        $_POST['ffc_save_email_bodies'] = '1';
-        $_POST['ffc_email_bodies']      = array(
-            'certificate-user' => array(
-                'subject' => 'Your certificate',
-                'body'    => '<p>Custom body</p>',
-            ),
-        );
-        Functions\when( 'check_admin_referer' )->justReturn( true );
-        Functions\when( 'current_user_can' )->justReturn( true );
-        Functions\when( 'wp_unslash' )->returnArg();
-        Functions\when( 'sanitize_text_field' )->returnArg();
-        Functions\when( 'wp_kses_post' )->returnArg();
-
-        $email_templates = Mockery::mock( 'alias:FreeFormCertificate\Core\EmailTemplates' );
-        // Shipped file default is empty for every key here, so certificate-user's
-        // non-empty override diverges → save_global; the other six stay empty → clear.
-        $email_templates->shouldReceive( 'body' )->andReturn( '' );
-        $email_templates->shouldReceive( 'clear_global' )->andReturn( true );
-        $email_templates->shouldReceive( 'save_global' )
-            ->with(
-                'certificate-user',
-                array(
-                    'subject' => 'Your certificate',
-                    'body'    => '<p>Custom body</p>',
-                )
-            )
-            ->once()
-            ->andReturn( true );
-
-        $ref = new \ReflectionMethod( TabSMTP::class, 'maybe_save_email_bodies' );
-        $ref->setAccessible( true );
-        $this->assertTrue( $ref->invoke( $this->tab ) );
-    }
-
-    public function test_maybe_save_clears_override_when_equal_to_file_default(): void {
-        $_POST['ffc_save_email_bodies'] = '1';
-        $_POST['ffc_email_bodies']      = array(
-            'certificate-user' => array(
-                'subject' => 'Shipped subject',
-                'body'    => 'Shipped body',
-            ),
-        );
-        Functions\when( 'check_admin_referer' )->justReturn( true );
-        Functions\when( 'current_user_can' )->justReturn( true );
-        Functions\when( 'wp_unslash' )->returnArg();
-        Functions\when( 'sanitize_text_field' )->returnArg();
-        Functions\when( 'wp_kses_post' )->returnArg();
-
-        $email_templates = Mockery::mock( 'alias:FreeFormCertificate\Core\EmailTemplates' );
-        // File default equals exactly what was posted for certificate-user, so the
-        // override is cleared rather than stored; every other key is empty=empty too.
-        $email_templates->shouldReceive( 'body' )->andReturnUsing(
-            static function ( $name, $key = 'body' ) {
-                if ( 'certificate-user' === $name ) {
-                    return 'subject' === $key ? 'Shipped subject' : 'Shipped body';
-                }
-                return '';
-            }
-        );
-        $email_templates->shouldReceive( 'clear_global' )->andReturn( true );
-        $email_templates->shouldReceive( 'save_global' )->never();
-
-        $ref = new \ReflectionMethod( TabSMTP::class, 'maybe_save_email_bodies' );
-        $ref->setAccessible( true );
-        $this->assertTrue( $ref->invoke( $this->tab ) );
-    }
-
-    public function test_maybe_save_ignored_without_presence_flag(): void {
-        unset( $_POST['ffc_save_email_bodies'] );
-
-        $ref = new \ReflectionMethod( TabSMTP::class, 'maybe_save_email_bodies' );
-        $ref->setAccessible( true );
-        $this->assertFalse( $ref->invoke( $this->tab ) );
     }
 }

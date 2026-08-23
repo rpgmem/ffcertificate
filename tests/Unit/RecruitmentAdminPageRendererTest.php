@@ -228,12 +228,12 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'Status badge colors', $out );
 		$this->assertStringContainsString( '<button>save</button>', $out );
 		// Send-mode + From fields stay; the subject/body editor moved to the hub
-		// (#964), replaced by a deep-link to Settings → SMTP → Email texts.
+		// (#964), replaced by a deep-link to Settings → Email texts (#976 split).
 		$this->assertStringContainsString( 'name="ffc_recruitment_settings[email_mode]"', $out );
 		$this->assertStringContainsString( 'name="ffc_recruitment_settings[email_from_address]"', $out );
 		$this->assertStringNotContainsString( 'id="ffc_rs_body"', $out );
 		$this->assertStringNotContainsString( 'ffc-email-restore-default', $out );
-		$this->assertStringContainsString( 'page=ffc-settings&tab=smtp', $out );
+		$this->assertStringContainsString( 'page=ffc-settings&tab=email_texts', $out );
 	}
 
 	public function test_render_settings_tab_read_only(): void {

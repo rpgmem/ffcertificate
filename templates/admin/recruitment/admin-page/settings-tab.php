@@ -62,7 +62,7 @@ echo '</td></tr>';
 
 echo '<tr><th>' . esc_html__( 'Subject & body', 'ffcertificate' ) . '</th><td>';
 echo '<p class="description">' . esc_html__( 'The convocation email subject and body are now edited once, with every other plugin email, in Settings → SMTP → Email texts.', 'ffcertificate' ) . ' ';
-echo '<a href="' . esc_url( admin_url( 'admin.php?page=ffc-settings&tab=smtp' ) ) . '">' . esc_html__( 'Edit the email texts', 'ffcertificate' ) . '</a></p>';
+echo '<a href="' . esc_url( admin_url( 'admin.php?page=ffc-settings&tab=email_texts' ) ) . '">' . esc_html__( 'Edit the email texts', 'ffcertificate' ) . '</a></p>';
 echo '</td></tr>';
 
 echo '<tr><th><label for="ffc-rs-from-address">' . esc_html__( 'From address', 'ffcertificate' ) . '</label></th><td>';
