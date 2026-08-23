@@ -125,7 +125,7 @@ class AudienceNotificationHandler {
 
 			self::send_email(
 				$user->user_email,
-				self::get_booking_subject( $booking_data ),
+				self::render_subject( \FreeFormCertificate\Core\EmailTemplates::effective_body( 'audience-booking', 'subject' ), $booking_data ),
 				self::render_template( $template, $booking_data, $user ),
 				$ics_content
 			);
@@ -220,7 +220,7 @@ class AudienceNotificationHandler {
 
 			self::send_email(
 				$user->user_email,
-				self::get_cancellation_subject( $booking_data ),
+				self::render_subject( \FreeFormCertificate\Core\EmailTemplates::effective_body( 'audience-cancellation', 'subject' ), $booking_data ),
 				self::render_template( $template, $booking_data, $user ),
 				$ics_content
 			);
@@ -355,32 +355,25 @@ class AudienceNotificationHandler {
 	}
 
 	/**
-	 * Get booking created email subject
+	 * Resolve a hub-editable email SUBJECT template's tokens (#976). Unlike
+	 * {@see self::render_template()} (which `esc_html`s for an HTML body), the
+	 * subject is a plain-text mail header, so values are substituted raw. The
+	 * subject is global-hub-only (a schedule customises the body, not the subject).
 	 *
+	 * @param string               $template     Subject template (with {{tokens}}).
 	 * @param array<string, mixed> $booking_data Booking data.
-	 * @return string Email subject
+	 * @return string Resolved subject.
 	 */
-	private static function get_booking_subject( array $booking_data ): string {
-		return sprintf(
-			/* translators: 1: Environment name, 2: Date */
-			__( '[%1$s] New Scheduled Activity - %2$s', 'ffcertificate' ),
-			$booking_data['environment_name'],
-			$booking_data['booking_date']
-		);
-	}
-
-	/**
-	 * Get booking cancelled email subject
-	 *
-	 * @param array<string, mixed> $booking_data Booking data.
-	 * @return string Email subject
-	 */
-	private static function get_cancellation_subject( array $booking_data ): string {
-		return sprintf(
-			/* translators: 1: Environment name, 2: Date */
-			__( '[%1$s] Activity Cancelled - %2$s', 'ffcertificate' ),
-			$booking_data['environment_name'],
-			$booking_data['booking_date']
+	private static function render_subject( string $template, array $booking_data ): string {
+		return \FreeFormCertificate\Core\TokenResolver::resolve(
+			$template,
+			array(
+				'{{schedule_name}}'     => (string) ( $booking_data['schedule_name'] ?? '' ),
+				'{{environment_name}}'  => (string) ( $booking_data['environment_name'] ?? '' ),
+				'{{environment_label}}' => (string) ( $booking_data['environment_label'] ?? '' ),
+				'{{booking_date}}'      => (string) ( $booking_data['booking_date'] ?? '' ),
+				'{{site_name}}'         => (string) get_bloginfo( 'name' ),
+			)
 		);
 	}
 

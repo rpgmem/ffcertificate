@@ -19,12 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 return array(
-	'subject' => sprintf(
-		/* translators: %1$s: site name, %2$s: feature name */
-		__( '[%1$s] Access granted: %2$s', 'ffcertificate' ),
-		'{{site_name}}',
-		'{{context_label}}'
-	),
+	'subject' => __( 'Access granted: {{context_label}}', 'ffcertificate' ),
 	'body'    => '<h2 style="margin: 0 0 20px 0; font-size: 24px; color: #2271b1;">' . __( 'Access granted', 'ffcertificate' ) . '</h2>'
 		. '<p style="margin: 0 0 15px 0;">' . sprintf( /* translators: %s: user display name */ __( 'Hello %s,', 'ffcertificate' ), '{{user_name}}' ) . '</p>'
 		. '<p style="margin: 0 0 15px 0;">' . sprintf( /* translators: %1$s: feature name, %2$s: site name */ __( 'You now have access to %1$s on %2$s.', 'ffcertificate' ), '{{context_label}}', '{{site_name}}' ) . '</p>'
