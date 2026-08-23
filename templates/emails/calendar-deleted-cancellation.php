@@ -7,6 +7,9 @@
  * Wrapped by the configurable chrome (layout.php) at send. Rendered by
  * SelfSchedulingCPT::send_calendar_deletion_notification.
  *
+ * Standard layout (#976): h2 event title (no emoji, semantic colour) + greeting +
+ * one context line + a semantic details box.
+ *
  * Tokens: {{site_name}} (subject only), {{calendar_title}}, {{appointment_date}},
  * {{appointment_time}}.
  *
@@ -23,12 +26,13 @@ return array(
 		__( '[%s] Appointment Cancelled - Calendar No Longer Available', 'ffcertificate' ),
 		'{{site_name}}'
 	),
-	'body'    => '<p>' . __( 'Hello,', 'ffcertificate' ) . '</p>'
-		. '<p>' . sprintf( /* translators: %s: calendar title */ __( 'We regret to inform you that your appointment has been cancelled because the calendar "%s" is no longer available.', 'ffcertificate' ), '{{calendar_title}}' ) . '</p>'
-		. '<div style="background:#fef2f2;padding:15px;border-radius:4px;margin:20px 0;border-left:4px solid #dc3545;">'
-		. '<div style="margin:8px 0;"><span style="font-weight:600;">' . __( 'Date:', 'ffcertificate' ) . '</span> {{appointment_date}}</div>'
-		. '<div style="margin:8px 0;"><span style="font-weight:600;">' . __( 'Time:', 'ffcertificate' ) . '</span> {{appointment_time}}</div>'
-		. '<div style="margin:8px 0;"><span style="font-weight:600;">' . __( 'Calendar:', 'ffcertificate' ) . '</span> {{calendar_title}}</div>'
+	'body'    => '<h2 style="margin: 0 0 20px 0; font-size: 24px; color: #b3261e;">' . __( 'Appointment cancelled', 'ffcertificate' ) . '</h2>'
+		. '<p style="margin: 0 0 15px 0;">' . __( 'Hello,', 'ffcertificate' ) . '</p>'
+		. '<p style="margin: 0 0 15px 0;">' . __( 'Your appointment has been cancelled because the calendar "{{calendar_title}}" is no longer available.', 'ffcertificate' ) . '</p>'
+		. '<div style="background: #fdecea; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #b3261e;">'
+		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Calendar:', 'ffcertificate' ) . '</strong> {{calendar_title}}</p>'
+		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Date:', 'ffcertificate' ) . '</strong> {{appointment_date}}</p>'
+		. '<p style="margin: 0;"><strong>' . __( 'Time:', 'ffcertificate' ) . '</strong> {{appointment_time}}</p>'
 		. '</div>'
-		. '<p>' . __( 'We apologize for any inconvenience this may cause.', 'ffcertificate' ) . '</p>',
+		. '<p style="margin: 15px 0 0 0;">' . __( 'We apologize for any inconvenience this may cause.', 'ffcertificate' ) . '</p>',
 );

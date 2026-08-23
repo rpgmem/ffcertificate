@@ -16,6 +16,9 @@
  * are empty when their URL / value is absent, so the button/notes simply
  * disappear. All resolve via AppointmentEmailHandler::render_confirmation_template().
  *
+ * Standard layout (#976): h2 event title (no emoji, semantic colour) + greeting +
+ * one context line + a semantic details box.
+ *
  * @package FreeFormCertificate\SelfScheduling
  * @since   6.14.0
  */
@@ -26,9 +29,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 return array(
 	'subject' => __( 'Appointment Confirmation: {{calendar_title}}', 'ffcertificate' ),
-	'body'    => '<h2 style="margin: 0 0 20px 0; color: #0073aa; font-size: 24px;">📅 ' . __( 'Appointment Booked!', 'ffcertificate' ) . '</h2>'
-		. '<p style="margin: 0 0 15px 0; font-size: 16px;">{{status_message}}</p>'
-		. '<div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">'
+	'body'    => '<h2 style="margin: 0 0 20px 0; font-size: 24px; color: #1a7f4b;">' . __( 'Appointment booked', 'ffcertificate' ) . '</h2>'
+		. '<p style="margin: 0 0 15px 0;">' . __( 'Hello {{user_name}},', 'ffcertificate' ) . '</p>'
+		. '<p style="margin: 0 0 15px 0;">{{status_message}}</p>'
+		. '<div style="background: #e6f4ec; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #1a7f4b;">'
 		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Calendar:', 'ffcertificate' ) . '</strong> {{calendar_title}}</p>'
 		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Date:', 'ffcertificate' ) . '</strong> {{appointment_date}}</p>'
 		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Time:', 'ffcertificate' ) . '</strong> {{appointment_time}}</p>'
