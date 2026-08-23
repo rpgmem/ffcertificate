@@ -335,7 +335,7 @@ class TabEmailTexts extends SettingsTab {
 		<p class="description">
 			<?php esc_html_e( 'Every email the plugin can send, and where each one is configured. They all share the Email Model (its own tab); the ones marked "Editable text (global)" have their wording edited in the box above on this tab, and the rest ship a fixed default body you can only turn on or off.', 'ffcertificate' ); ?>
 		</p>
-		<table class="widefat striped ffc-email-index" style="max-width:820px;">
+		<table class="widefat striped ffc-email-index">
 			<thead>
 				<tr>
 					<th scope="col"><?php esc_html_e( 'Email', 'ffcertificate' ); ?></th>

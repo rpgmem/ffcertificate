@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 return array(
-	'subject' => __( 'Call - {{notice_code}} - {{adjutancy}}', 'ffcertificate' ),
+	'subject' => __( 'Recruitment Call: {{notice_name}}', 'ffcertificate' ),
 	'body'    => '<h2 style="margin: 0 0 20px 0; font-size: 24px; color: #2271b1;">' . __( 'Recruitment call', 'ffcertificate' ) . '</h2>'
 		. '<p style="margin: 0 0 15px 0;">' . __( 'Hello {{name}},', 'ffcertificate' ) . '</p>'
 		. '<p style="margin: 0 0 15px 0;">' . __( 'You have been called for notice {{notice_code}} — {{notice_name}} in adjutancy {{adjutancy}}.', 'ffcertificate' ) . '</p>'

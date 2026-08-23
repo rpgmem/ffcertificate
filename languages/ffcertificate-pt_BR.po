@@ -20439,23 +20439,23 @@ msgstr "Data para assumir:"
 
 #: templates/emails/
 msgid "Reregistration received"
-msgstr "Rerregistro recebido"
+msgstr "Recadastramento recebido"
 
 #: templates/emails/
 msgid "Click the button above to verify and download your reregistration record (PDF). You can also review your submission details in your dashboard at any time."
-msgstr "Clique no botão acima para verificar e baixar o seu comprovante de rerregistro (PDF). Você também pode consultar os detalhes do seu envio no painel a qualquer momento."
+msgstr "Clique no botão acima para verificar e baixar o seu comprovante de recadastramento (PDF). Você também pode consultar os detalhes do seu envio no painel a qualquer momento."
 
 #: templates/emails/
 msgid "Reregistration open"
-msgstr "Rerregistro aberto"
+msgstr "Recadastramento aberto"
 
 #: templates/emails/
 msgid "A new reregistration campaign has been opened for your group."
-msgstr "Uma nova campanha de rerregistro foi aberta para o seu grupo."
+msgstr "Uma nova campanha de recadastramento foi aberta para o seu grupo."
 
 #: templates/emails/
 msgid "This is a friendly reminder that the following reregistration campaign is still pending."
-msgstr "Este é um lembrete de que a seguinte campanha de rerregistro ainda está pendente."
+msgstr "Este é um lembrete de que a seguinte campanha de recadastramento ainda está pendente."
 
 #: templates/emails/
 msgid "Appointment booked"
@@ -20483,3 +20483,7 @@ msgstr "Selecione um e-mail para editar"
 msgid "Edit the default text of each plugin email once, globally. These are the message bodies only — the shared Email Model wraps every one with the same header and footer. Pick an email below to edit it; leave one untouched (or use \"Restore Default Text\") to keep its shipped wording."
 msgstr "Edite o texto padrão de cada e-mail do plugin uma vez, globalmente. Estes são apenas os corpos das mensagens — o Modelo de E-mail compartilhado envolve cada um com o mesmo cabeçalho e rodapé. Escolha um e-mail abaixo para editá-lo; deixe um intocado (ou use \"Restaurar Texto Padrão\") para manter o texto original."
 
+
+#: templates/emails/recruitment-convocation.php
+msgid "Recruitment Call: {{notice_name}}"
+msgstr "Convocação: {{notice_name}}"
