@@ -1,9 +1,9 @@
 <?php
 /**
- * Documentation partial — Section 6: Validation URL.
+ * Documentation partial — Reference: Validation URL.
  *
- * Extracted from `ffc-tab-documentation.php` per S8 of the
- * god-object refactor (rpgmem/ffcertificate#141).
+ * Documents the {{validation_url}} token and its link/text attributes for
+ * pointing certificate verification links at the magic or /valid endpoint.
  *
  * @package FreeFormCertificate\Settings
  */

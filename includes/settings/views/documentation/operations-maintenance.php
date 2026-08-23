@@ -1,6 +1,10 @@
 <?php
 /**
- * Documentation partial — Section 21: Maintenance Tools.
+ * Documentation partial — Operations: Maintenance Tools.
+ *
+ * Documents the one-off maintenance tools under Settings → Data Migrations
+ * (shortcode cleanup, short URL cleanup, public-access disabler, link audits),
+ * each of which previews its effect before any destructive action.
  *
  * @package FreeFormCertificate\Settings
  */

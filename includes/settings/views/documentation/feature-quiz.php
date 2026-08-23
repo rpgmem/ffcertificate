@@ -1,9 +1,10 @@
 <?php
 /**
- * Documentation partial — Section 3: Quiz / Evaluation Variables.
+ * Documentation partial — Feature: Quiz / Evaluation.
  *
- * Extracted from `ffc-tab-documentation.php` per S8 of the
- * god-object refactor (rpgmem/ffcertificate#141).
+ * Documents the additional PDF template variables ({{score}}, {{max_score}},
+ * {{score_percent}}, …) that become available when a form runs in quiz /
+ * evaluation mode.
  *
  * @package FreeFormCertificate\Settings
  */

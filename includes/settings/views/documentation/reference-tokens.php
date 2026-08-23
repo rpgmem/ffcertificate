@@ -1,9 +1,9 @@
 <?php
 /**
- * Documentation partial — Section 2: PDF Template Variables.
+ * Documentation partial — Reference: Template Variables / Tokens.
  *
- * Extracted from `ffc-tab-documentation.php` per S8 of the
- * god-object refactor (rpgmem/ffcertificate#141).
+ * Lists the {{token}} variables available in the PDF template and the user
+ * data each one is replaced with when a certificate is generated.
  *
  * @package FreeFormCertificate\Settings
  */
