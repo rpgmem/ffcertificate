@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.4
 Tested up to: 7.0
-Stable tag: 6.19.0
+Stable tag: 6.20.0
 Requires PHP: 8.3
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -213,6 +213,9 @@ two changelogs in sync was creating drift — the canonical record is
 now CHANGELOG.md alone.
 
 == Upgrade Notice ==
+
+= 6.20.0 =
+Unified "Email texts" hub (edit every email in one place), a single visual + subject standard for all emails, self-scheduling custom calendars + waitlist, and pool-backed certificate/ficha/receipt templates. ⚠️ Breaking: the spoofable `ffc_trust_forwarded_headers` and interim `ffc_rate_limit_ip_source` filters are removed — set the IP strategy to `secure` (Settings → IP Diagnostics) if you relied on them. Because the shipped email defaults changed, a per-form/schedule/calendar body still holding an old default now shows as Custom until you click "Restore Default Text"; blank (Global-tracking) bodies update automatically. No data migrations; otherwise a safe upgrade.
 
 = 6.11.0 =
 Privacy Policy Guide integration (Settings → Privacy → Policy Guide), a reorganized Public Operator Access info screen, and the schedule-exception flow now previews the participant-form URL at validation time. Completes full namespace compliance (every plugin class now lives under `FreeFormCertificate\`). No data migrations; safe upgrade.
