@@ -10,8 +10,7 @@
  * Standard layout (#976): h2 event title (no emoji, semantic colour) + greeting +
  * one context line + a semantic details box.
  *
- * Tokens: {{site_name}} (subject only), {{calendar_title}}, {{appointment_date}},
- * {{appointment_time}}.
+ * Tokens: {{calendar_title}}, {{appointment_date}}, {{appointment_time}}.
  *
  * @package FreeFormCertificate\SelfScheduling
  */
@@ -21,11 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 return array(
-	'subject' => sprintf(
-		/* translators: %s: site name */
-		__( '[%s] Appointment Cancelled - Calendar No Longer Available', 'ffcertificate' ),
-		'{{site_name}}'
-	),
+	'subject' => __( 'Appointment cancelled: {{calendar_title}}', 'ffcertificate' ),
 	'body'    => '<h2 style="margin: 0 0 20px 0; font-size: 24px; color: #b3261e;">' . __( 'Appointment cancelled', 'ffcertificate' ) . '</h2>'
 		. '<p style="margin: 0 0 15px 0;">' . __( 'Hello,', 'ffcertificate' ) . '</p>'
 		. '<p style="margin: 0 0 15px 0;">' . __( 'Your appointment has been cancelled because the calendar "{{calendar_title}}" is no longer available.', 'ffcertificate' ) . '</p>'

@@ -471,12 +471,13 @@ class SelfSchedulingCPTTest extends TestCase {
 
         // The deletion email is now the tokenized global default (#965): its body
         // carries the calendar title + wall-clock date/time resolved through the
-        // token map, and its subject the site-name token.
+        // token map, and its subject the calendar-title token (#976 standard —
+        // "Event: {{ref}}", no bracketed site-name prefix).
         $this->assertNotNull( $captured_mail, 'calendar-deletion email should be sent' );
         $this->assertSame( 'user@example.com', $captured_mail['to'] );
         $this->assertStringContainsString( 'Cal A', $captured_mail['body'] );
         $this->assertStringContainsString( '01/02/2026', $captured_mail['body'] );
-        $this->assertStringContainsString( '[Site]', $captured_mail['subj'] );
+        $this->assertSame( 'Appointment cancelled: Cal A', $captured_mail['subj'] );
     }
 
     // ==================================================================

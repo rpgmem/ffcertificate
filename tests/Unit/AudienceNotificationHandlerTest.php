@@ -185,35 +185,31 @@ class AudienceNotificationHandlerTest extends TestCase {
     }
 
     // ==================================================================
-    // get_booking_subject()
+    // render_subject()
     // ==================================================================
 
-    public function test_get_booking_subject_format(): void {
+    public function test_render_subject_resolves_tokens_raw(): void {
         $booking_data = array(
+            'schedule_name'    => 'Morning Shift',
             'environment_name' => 'Lab 2',
             'booking_date'     => '10/03/2026',
         );
 
-        $result = $this->invoke_private( 'get_booking_subject', [ $booking_data ] );
-
-        $this->assertStringContainsString( 'Lab 2', $result );
-        $this->assertStringContainsString( '10/03/2026', $result );
-    }
-
-    // ==================================================================
-    // get_cancellation_subject()
-    // ==================================================================
-
-    public function test_get_cancellation_subject_format(): void {
-        $booking_data = array(
-            'environment_name' => 'Room 5',
-            'booking_date'     => '15/03/2026',
+        $result = $this->invoke_private(
+            'render_subject',
+            [ 'Activity: {{schedule_name}} — {{environment_name}} ({{booking_date}})', $booking_data ]
         );
 
-        $result = $this->invoke_private( 'get_cancellation_subject', [ $booking_data ] );
+        $this->assertSame( 'Activity: Morning Shift — Lab 2 (10/03/2026)', $result );
+    }
 
-        $this->assertStringContainsString( 'Room 5', $result );
-        $this->assertStringContainsString( '15/03/2026', $result );
+    public function test_render_subject_defaults_missing_tokens_to_empty(): void {
+        $result = $this->invoke_private(
+            'render_subject',
+            [ '{{schedule_name}}|{{environment_name}}|{{booking_date}}', array() ]
+        );
+
+        $this->assertSame( '||', $result );
     }
 
     // ==================================================================

@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 return array(
-	'subject' => __( 'Your document is ready — {{form_title}}', 'ffcertificate' ),
+	'subject' => __( 'Your document is ready: {{form_title}}', 'ffcertificate' ),
 	'body'    => '<h2 style="margin: 0 0 20px 0; font-size: 24px; color: #2271b1;">' . __( 'Your document is ready', 'ffcertificate' ) . '</h2>'
 		. '<p style="margin: 0 0 15px 0;">' . __( 'Hello {{name}},', 'ffcertificate' ) . '</p>'
 		. '<p style="margin: 0 0 15px 0;">' . __( 'Your document for {{form_title}} was issued on {{date}}.', 'ffcertificate' ) . '</p>'

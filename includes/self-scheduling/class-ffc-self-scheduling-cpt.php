@@ -502,7 +502,7 @@ class SelfSchedulingCPT {
 		// mail header); body scalars are esc_html'd at substitution.
 		$subject = \FreeFormCertificate\Core\TokenResolver::resolve(
 			\FreeFormCertificate\Core\EmailTemplates::effective_body( 'calendar-deleted-cancellation', 'subject' ),
-			array( '{{site_name}}' => get_bloginfo( 'name' ) )
+			array( '{{calendar_title}}' => $calendar_title )
 		);
 		$content = \FreeFormCertificate\Core\TokenResolver::resolve(
 			\FreeFormCertificate\Core\EmailTemplates::effective_body( 'calendar-deleted-cancellation', 'body' ),

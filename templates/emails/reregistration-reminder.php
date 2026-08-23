@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 return array(
-	'subject' => __( 'Reminder: {{reregistration_title}} — {{days_left}} days left', 'ffcertificate' ),
+	'subject' => __( 'Reregistration reminder: {{reregistration_title}}', 'ffcertificate' ),
 	'body'    => '<h2 style="margin: 0 0 20px 0; font-size: 24px; color: #8a6d00;">' . __( 'Reregistration reminder', 'ffcertificate' ) . '</h2>'
 		. '<p style="margin: 0 0 15px 0;">' . __( 'Hello {{user_name}},', 'ffcertificate' ) . '</p>'
 		. '<p style="margin: 0 0 15px 0;">' . __( 'This is a friendly reminder that the following reregistration campaign is still pending.', 'ffcertificate' ) . '</p>'

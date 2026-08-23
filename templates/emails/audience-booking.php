@@ -20,7 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 return array(
-	'body' => '<h2 style="margin: 0 0 20px 0; font-size: 24px; color: #1a7f4b;">' . __( 'New scheduled activity', 'ffcertificate' ) . '</h2>'
+	'subject' => __( 'New scheduled activity: {{schedule_name}}', 'ffcertificate' ),
+	'body'    => '<h2 style="margin: 0 0 20px 0; font-size: 24px; color: #1a7f4b;">' . __( 'New scheduled activity', 'ffcertificate' ) . '</h2>'
 		. '<p style="margin: 0 0 15px 0;">' . __( 'Hello {{user_name}},', 'ffcertificate' ) . '</p>'
 		. '<p style="margin: 0 0 15px 0;">' . __( 'You have been included in a new scheduled activity.', 'ffcertificate' ) . '</p>'
 		. '<div style="background: #e6f4ec; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #1a7f4b;">'

@@ -20487,3 +20487,32 @@ msgstr "Edite o texto padrão de cada e-mail do plugin uma vez, globalmente. Est
 #: templates/emails/recruitment-convocation.php
 msgid "Recruitment Call: {{notice_name}}"
 msgstr "Convocação: {{notice_name}}"
+
+
+#: templates/emails/audience-booking.php
+msgid "New scheduled activity: {{schedule_name}}"
+msgstr "Nova atividade agendada: {{schedule_name}}"
+
+#: templates/emails/audience-cancellation.php
+msgid "Activity cancelled: {{schedule_name}}"
+msgstr "Atividade cancelada: {{schedule_name}}"
+
+#: templates/emails/certificate-user.php
+msgid "Your document is ready: {{form_title}}"
+msgstr "Seu documento está pronto: {{form_title}}"
+
+#: templates/emails/appointment-reminder.php
+msgid "Appointment reminder: {{calendar_title}}"
+msgstr "Lembrete de agendamento: {{calendar_title}}"
+
+#: templates/emails/reregistration-reminder.php
+msgid "Reregistration reminder: {{reregistration_title}}"
+msgstr "Lembrete de recadastramento: {{reregistration_title}}"
+
+#: templates/emails/access-granted.php
+msgid "Access granted: {{context_label}}"
+msgstr "Acesso concedido: {{context_label}}"
+
+#: templates/emails/calendar-deleted-cancellation.php
+msgid "Appointment cancelled: {{calendar_title}}"
+msgstr "Agendamento cancelado: {{calendar_title}}"
