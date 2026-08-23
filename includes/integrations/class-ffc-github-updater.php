@@ -117,6 +117,15 @@ class GithubUpdater {
 			return $transient;
 		}
 
+		// An admin-initiated "Check again" (Dashboard → Updates → force-check)
+		// drops our 12h release cache so the scan re-fetches GitHub instead of
+		// serving a stale payload. delete_site_transient() also clears the value
+		// from a persistent object cache (Redis / Memcached / LiteSpeed LSMCD),
+		// so one "Check again" refreshes it there too — no separate cache purge.
+		if ( self::is_forced_check() ) {
+			delete_site_transient( self::CACHE_KEY );
+		}
+
 		$release = self::get_latest_release();
 		if ( null === $release ) {
 			return $transient;
@@ -259,6 +268,22 @@ class GithubUpdater {
 		$obj->tested       = self::WP_TESTED;
 		$obj->requires_php = self::PHP_REQUIRES;
 		return $obj;
+	}
+
+	/**
+	 * Is this transient scan an admin-initiated "Check again" (force-check)?
+	 *
+	 * WordPress's Dashboard → Updates "Check again" loads
+	 * `update-core.php?force-check=1`, which re-runs `wp_update_plugins()`. On
+	 * that request the caller drops our release cache so the scan re-fetches
+	 * GitHub. A read-only GET presence check — WP core sets `force-check` on its
+	 * own (nonce-protected) "Check again" link and nothing is mutated here.
+	 *
+	 * @return bool
+	 */
+	private static function is_forced_check(): bool {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cache-freshness hint; WP core sets force-check on its own "Check again" link and no state is changed here.
+		return isset( $_GET['force-check'] );
 	}
 
 	/**
