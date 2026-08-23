@@ -1,9 +1,9 @@
 <?php
 /**
- * Documentation partial — Section 7: HTML & Styling.
+ * Documentation partial — Reference: HTML & Styling.
  *
- * Extracted from `ffc-tab-documentation.php` per S8 of the
- * god-object refactor (rpgmem/ffcertificate#141).
+ * Lists the HTML tags and inline CSS supported in the certificate template
+ * for styling the generated PDF.
  *
  * @package FreeFormCertificate\Settings
  */

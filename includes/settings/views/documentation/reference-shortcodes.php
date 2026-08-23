@@ -1,9 +1,9 @@
 <?php
 /**
- * Documentation partial — Section 1: Shortcodes.
+ * Documentation partial — Reference: Shortcodes.
  *
- * Extracted from `ffc-tab-documentation.php` per S8 of the
- * god-object refactor (rpgmem/ffcertificate#141).
+ * Documents the plugin's public shortcodes ([ffc_form], [ffc_verification], …)
+ * and how to place them on a page.
  *
  * @package FreeFormCertificate\Settings
  */

@@ -35,7 +35,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><code>ffcertificate_certificate_html</code></td><td><?php esc_html_e( 'Rewrite the certificate HTML before it is rendered to PDF.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_allowed_html_tags</code></td><td><?php esc_html_e( 'Adjust the allowed HTML tags in certificate templates.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_qrcode_url</code></td><td><?php esc_html_e( 'Change the URL a certificate QR code encodes.', 'ffcertificate' ); ?></td></tr>
-				<tr><td><code>ffcertificate_ficha_data</code> / <code>ffcertificate_ficha_html</code> / <code>ffcertificate_ficha_template_file</code></td><td><?php esc_html_e( 'Filter the Ficha PDF tokens, final HTML, or template file.', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffcertificate_ficha_data</code> / <code>ffcertificate_ficha_html</code> / <code>ffcertificate_ficha_template_html</code> / <code>ffcertificate_ficha_template_file</code></td><td><?php esc_html_e( 'Filter the Ficha PDF tokens, final HTML, the pool-resolved template HTML, or the legacy template file.', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffc_ip_resolver_mode</code></td><td><?php esc_html_e( 'Client-IP resolution strategy for ClientIpResolver — "legacy" (default) or "secure" (trusted-proxy + Cloudflare autodetect). Normally set from the IP Diagnostics tab.', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffc_trusted_proxies</code> / <code>ffc_cloudflare_ip_ranges</code></td><td><?php esc_html_e( 'Extend the trusted reverse-proxy CIDRs, or the Cloudflare edge ranges, the secure strategy honours when walking X-Forwarded-For / CF-Connecting-IP.', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffc_ip_shadow_logging</code></td><td><?php esc_html_e( 'Opt in (off by default) to log where the legacy and secure IP strategies diverge, to validate a switch before flipping.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_rest_form_schema</code></td><td><?php esc_html_e( 'Filter the payload of GET /forms/{id}/schema.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_settings_tabs</code></td><td><?php esc_html_e( 'Register a custom settings tab.', 'ffcertificate' ); ?></td></tr>
 			</tbody>
@@ -61,6 +64,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tbody>
 		</table>
 		<p class="description"><?php esc_html_e( 'Signatures vary — check the source for the exact argument list before hooking.', 'ffcertificate' ); ?></p>
+	</div>
+
+	<div class="ffc-doc-example">
+		<h4><?php esc_html_e( 'CSV exports (shared batched engine)', 'ffcertificate' ); ?></h4>
+		<p><?php esc_html_e( 'Every data export in the plugin (submissions, public forms, url-shortener, activity log, audience bookings, appointments, reregistration) flows through one shared, timeout-safe engine rather than a bespoke exporter. A source implements the export contract (auth, columns, filename, and a keyset-paged fetch), and one AJAX trio (start → batch × N → download) drives it over a temp file — safe for large datasets on shared hosts where the request time limit cannot be raised.', 'ffcertificate' ); ?></p>
+		<ul>
+			<li><?php esc_html_e( 'Rows are fetched by keyset (id-descending), so a long export is stable across concurrent inserts — the order is by id, not the on-screen sort.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'The completion action', 'ffcertificate' ); ?> <code>ffc_export_completed</code> <?php esc_html_e( 'fires when an export finishes.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Exports that decrypt PII write their temp file under a protected uploads directory (Deny-from-all on Apache), with random filenames, unlinked after download and swept daily. On nginx that path must be denied at the server block.', 'ffcertificate' ); ?></li>
+		</ul>
 	</div>
 
 	<div class="ffc-doc-example">

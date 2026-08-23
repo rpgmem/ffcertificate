@@ -169,6 +169,18 @@ $ffc_doc_tree = array(
 						'file'   => 'reference-emails.php',
 					),
 					array(
+						'anchor' => 'email-texts-hub',
+						'icon'   => 'dashicons-email-alt2',
+						'title'  => __( 'Email texts hub', 'ffcertificate' ),
+						'file'   => 'email-texts-hub.php',
+					),
+					array(
+						'anchor' => 'document-templates-hub',
+						'icon'   => 'dashicons-media-document',
+						'title'  => __( 'Document Templates hub', 'ffcertificate' ),
+						'file'   => 'document-templates-hub.php',
+					),
+					array(
 						'anchor' => 'config-cache',
 						'icon'   => 'dashicons-performance',
 						'title'  => __( 'Cache', 'ffcertificate' ),
