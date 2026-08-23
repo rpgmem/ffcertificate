@@ -7,6 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- **`Tested up to: 7.1`** (#984): verified WordPress 7.1 compatibility, clearing the Plugins-screen "hasn't been tested with your version" notice. `readme.txt` metadata only; `Requires at least` stays 6.4 (an audit confirmed 6.4 is the real floor — `wp_admin_notice()`, with no newer core API in use).
+
 ## [6.20.0] (2026-08-23) — `e01ed47`
 
 ### Added
