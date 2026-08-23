@@ -7,7 +7,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.20.0] (2026-08-23)
+## [6.20.0] (2026-08-23) — `e01ed47`
 
 ### Added
 - **Email texts hub — every plugin email editable in one place** (#964, #965): a new **Email texts** hub lets an admin edit the **global default subject + body** of every token-based plugin email — the certificate email, recruitment convocation, the three reregistration emails, audience booking/cancellation, and (tokenized from former echo-partials) the self-scheduling booking confirmation, the five appointment lifecycle emails (approval, cancellation, reminder, waitlist-promotion, waitlisted) and the access-granted + calendar-deletion notices. Each is a `wp_editor` with `{{token}}` help, pre-rendered button/block tokens (`{{receipt_button}}`, `{{cancel_button}}`, `{{waitlist_button}}`, `{{dashboard_button}}`, `{{cancellation_reason_block}}`, …) and a "Restore Default Text" button. Built on a global-override store (`ffc_email_bodies` + `EmailTemplates::effective_body()` cascade, dormant when empty) and gated by a dedicated **`ffc_manage_email_templates`** capability (one-shot migration seeds it onto current Settings holders). Forms and per-calendar/audience bodies can still override; a **per-form Global/Custom toggle** decides whether a form follows the hub. Unconfigured installs render identically.
