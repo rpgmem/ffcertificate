@@ -7,6 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- Internal (#988) — **AJAX/option wiring guard**: a dependency-free `AjaxWiringTest` that statically cross-checks every registered `wp_ajax_*` handler against its client callers in both directions (accepting `admin_post_*` / `admin_action_*` too) and flags any `get_option( 'ffc_*' )` key nothing ever writes. Targets the "built but never wired" class — the ten caller-less handlers swept in #935 and the dormant `ffc_cleanup_days` read in #936. Green on the current tree; each check verified to fail by injecting the defect. Tests + docs only.
+
 ### Changed
 - **"Check again" now busts the GitHub-updater cache** (#820): the self-hosted updater cached the latest-release lookup for 12h, so a freshly-published release could stay invisible until the cache expired — worse under a persistent object cache (Redis / Memcached / LiteSpeed LSMCD), where the stale value survived until the cache was purged. Dashboard → Updates → **"Check again"** (`force-check`) now drops the updater's `ffc_github_update` transient before the scan, forcing a fresh GitHub fetch; because `delete_site_transient()` also clears the object-cache copy, one "Check again" refreshes it there too — no separate cache purge needed. Automatic (cron) checks still respect the 12h cache to stay within GitHub's rate limit.
 - **`Tested up to: 7.1`** (#984): verified WordPress 7.1 compatibility, clearing the Plugins-screen "hasn't been tested with your version" notice. `readme.txt` metadata only; `Requires at least` stays 6.4 (an audit confirmed 6.4 is the real floor — `wp_admin_notice()`, with no newer core API in use).
