@@ -91,6 +91,14 @@ class TabEmailTexts extends SettingsTab {
 		// (wp.editor.initialize / .remove), so the 15 editors no longer all boot at
 		// once. wp_enqueue_editor() loads the TinyMCE + Quicktags assets the runtime
 		// initializer needs.
+		//
+		// The `editor` dependency below buys the wp.editor API, NOT the TinyMCE
+		// runtime — wp_enqueue_editor() prints that from a later footer hook than
+		// the one printing enqueued scripts. ffc-email-texts.js therefore defers
+		// its work to DOM ready, by which point every footer script has run.
+		// `wp-tinymce` is deliberately NOT listed here: it would order things
+		// correctly too, but a site that dequeues that handle would then drop this
+		// script entirely and lose the picker altogether.
 		wp_enqueue_editor();
 		wp_enqueue_script(
 			'ffc-email-texts',

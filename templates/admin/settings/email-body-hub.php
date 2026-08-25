@@ -9,10 +9,10 @@
  * {@see \FreeFormCertificate\Core\EmailTemplates::clear_global()} from the tab's
  * POST handler.
  *
- * A feature-grouped `<select>` chooses which email to edit: only the selected
- * email's editor is shown, and its TinyMCE is initialized on demand by
- * `ffc-email-texts.js` (wp.editor.initialize / .remove), so the 15 editors no
- * longer all boot at once. Every email's `<textarea>` is still present in the
+ * A feature-grouped `<select>` chooses which email to edit: the tab opens on a
+ * placeholder option with every editor hidden, and the chosen one's TinyMCE is
+ * initialized on demand by `ffc-email-texts.js` (wp.editor.initialize /
+ * .remove), so the 15 editors no longer all boot at once. Every email's `<textarea>` is still present in the
  * one form, so a single save persists them all; untouched emails post their
  * effective text unchanged (⇒ no-op / cleared when equal to the file default).
  *
@@ -38,7 +38,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // $ffc_email_hub_catalog / $ffc_email_hub_groups are provided by the caller.
-$ffc_first_editor = true;
 ?>
 <div class="card ffc-email-body-hub">
 	<h2 class="ffc-icon-email"><?php esc_html_e( 'Email texts', 'ffcertificate' ); ?></h2>
@@ -55,6 +54,7 @@ $ffc_first_editor = true;
 				<strong><?php esc_html_e( 'Select an email to edit', 'ffcertificate' ); ?></strong>
 			</label><br>
 			<select id="ffc-email-texts-select" class="regular-text">
+				<option value=""><?php esc_html_e( '— Choose an email —', 'ffcertificate' ); ?></option>
 				<?php foreach ( $ffc_email_hub_groups as $ffc_group_label => $ffc_group_keys ) : ?>
 					<optgroup label="<?php echo esc_attr( $ffc_group_label ); ?>">
 						<?php foreach ( $ffc_group_keys as $ffc_key ) : ?>
@@ -72,6 +72,15 @@ $ffc_first_editor = true;
 			</select>
 		</p>
 
+		<?php // With JS off nothing can pick an email, so reveal every editor as a plain textarea — all of them stay editable and one save still posts the lot. ?>
+		<noscript>
+			<style>.ffc-email-body-hub__item{display:block !important}.ffc-email-texts-empty,.ffc-email-texts-picker{display:none}</style>
+		</noscript>
+
+		<p class="description ffc-email-texts-empty">
+			<?php esc_html_e( 'Choose an email above to edit its subject and body. Every email keeps its shipped wording until you change it here.', 'ffcertificate' ); ?>
+		</p>
+
 		<?php foreach ( $ffc_email_hub_groups as $ffc_group_keys ) : ?>
 			<?php foreach ( $ffc_group_keys as $ffc_key ) : ?>
 				<?php
@@ -86,7 +95,7 @@ $ffc_first_editor = true;
 				<div class="ffc-email-body-hub__item"
 					id="<?php echo esc_attr( $ffc_editor_id . '_item' ); ?>"
 					data-editor="<?php echo esc_attr( $ffc_editor_id ); ?>"
-					<?php echo $ffc_first_editor ? '' : ' style="display:none;"'; ?>>
+					style="display:none;">
 					<h3><?php echo esc_html( $ffc_meta['label'] ); ?></h3>
 
 					<p>
@@ -131,7 +140,6 @@ $ffc_first_editor = true;
 						</button>
 					</p>
 				</div>
-				<?php $ffc_first_editor = false; ?>
 			<?php endforeach; ?>
 		<?php endforeach; ?>
 
