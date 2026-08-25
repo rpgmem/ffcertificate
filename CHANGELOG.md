@@ -14,6 +14,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **"Check again" now busts the GitHub-updater cache** (#820): the self-hosted updater cached the latest-release lookup for 12h, so a freshly-published release could stay invisible until the cache expired — worse under a persistent object cache (Redis / Memcached / LiteSpeed LSMCD), where the stale value survived until the cache was purged. Dashboard → Updates → **"Check again"** (`force-check`) now drops the updater's `ffc_github_update` transient before the scan, forcing a fresh GitHub fetch; because `delete_site_transient()` also clears the object-cache copy, one "Check again" refreshes it there too — no separate cache purge needed. Automatic (cron) checks still respect the 12h cache to stay within GitHub's rate limit.
 - **`Tested up to: 7.1`** (#984): verified WordPress 7.1 compatibility, clearing the Plugins-screen "hasn't been tested with your version" notice. `readme.txt` metadata only; `Requires at least` stays 6.4 (an audit confirmed 6.4 is the real floor — `wp_admin_notice()`, with no newer core API in use).
 
+### Fixed
+- **Email texts hub: the editor opened as raw HTML until you switched emails** (#989): the hub called `wp.editor.initialize()` at script-parse time, but its `editor` dependency only guarantees the wp.editor API — `wp_enqueue_editor()` prints the TinyMCE runtime from a later footer hook — so the first email rendered as a plain `<textarea>` of visible markup. Initialization now waits for DOM ready, and the tab opens on a "Choose an email" placeholder with every editor hidden (a `<noscript>` rule keeps them all editable with JS off).
+
 ## [6.20.0] (2026-08-23) — `e01ed47`
 
 ### Added
