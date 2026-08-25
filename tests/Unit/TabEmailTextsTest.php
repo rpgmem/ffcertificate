@@ -149,8 +149,17 @@ class TabEmailTextsTest extends TestCase {
         $this->assertStringContainsString( 'id="ffc-email-texts-select"', $out );
         $this->assertStringContainsString( '<optgroup label="Self-scheduling">', $out );
         $this->assertStringContainsString( '<optgroup label="Account access">', $out );
-        // Only the first item is visible on load; the rest are hidden for the JS.
-        $this->assertStringContainsString( 'style="display:none;"', $out );
+        // The tab opens on the placeholder with EVERY editor hidden — nothing is
+        // initialized until an email is picked, so TinyMCE is never asked to boot
+        // before wp_enqueue_editor() has printed its runtime.
+        $this->assertStringContainsString( '<option value=""', $out );
+        $this->assertSame(
+            substr_count( $out, 'class="ffc-email-body-hub__item"' ),
+            substr_count( $out, 'style="display:none;"' ),
+            'Every hub item must start hidden.'
+        );
+        // With JS off the picker cannot run, so a <noscript> rule reveals them all.
+        $this->assertStringContainsString( '<noscript>', $out );
     }
 
     public function test_maybe_save_persists_edited_override(): void {
