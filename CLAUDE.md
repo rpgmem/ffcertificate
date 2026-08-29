@@ -173,7 +173,7 @@ This exists because the host is the only place with the provider's real MariaDB,
 
 Two constraints to keep in mind before extending it. **It can never be a merge gate** — this workflow fires on push to `develop`, so the merge already happened; gating belongs in CI, against a MySQL service. And it runs against an **established install**, so the table check proves the tables are there, not that a fresh activation would create them; catching a regression in the `CREATE` of an existing table needs a throwaway *WordPress install* (not merely an empty database — `Activator::activate()` reads and writes options).
 
-The step is `continue-on-error: true` while it proves itself against the host's PHP CLI; drop the flag once it has been stable over several deploys. If the host's CLI is older than the plugin's PHP floor the script **skips** with an explanation rather than failing forever — point the workflow at the host's newer binary (often `php83`) to enable it.
+The step is `continue-on-error: true` while it proves itself against the host's PHP CLI. **Drop the flag after 10 consecutive green smokes** (#992) — an evidence gate, not the release-cycle deprecation, which exists for surfaces whose consumers a code scan cannot see; here every deploy is evidence. Note that a failing smoke still shows the deploy job as green while the flag is on, so read the step's own output (`SMOKE PASSED`), not the job conclusion. If the host's CLI is older than the plugin's PHP floor the script **skips** with an explanation rather than failing forever — point the workflow at the host's newer binary (often `php83`) to enable it.
 
 ### Versioning
 

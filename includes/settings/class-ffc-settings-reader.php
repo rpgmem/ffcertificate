@@ -302,7 +302,7 @@ final class SettingsReader {
 	 * surfaces a warning in the admin notices stream.
 	 */
 	public static function obsolete_shortcode_days(): int {
-		return self::get_int( 'obsolete_shortcode_days', 30 );
+		return self::get_int( 'obsolete_shortcode_days', 90 );
 	}
 
 	/** TTL for cached GPS-resolved locations. */
@@ -317,7 +317,7 @@ final class SettingsReader {
 
 	/** Default row count returned by the public CSV download endpoint. */
 	public static function public_csv_default_limit(): int {
-		return self::get_int( 'public_csv_default_limit', 100 );
+		return self::get_int( 'public_csv_default_limit', 1 );
 	}
 
 	/** Hard ceiling on rows the synchronous CSV export will emit. */
@@ -327,7 +327,7 @@ final class SettingsReader {
 
 	/** Default pixel size for generated QR codes. */
 	public static function qr_default_size(): int {
-		return self::get_int( 'qr_default_size', 256 );
+		return self::get_int( 'qr_default_size', 200 );
 	}
 
 	/** Length (characters) of generated short-URL slugs. */
