@@ -289,12 +289,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
-      # Pinned to MariaDB rather than MySQL, and to an LTS line, because the
-      # point of the job is to reproduce the provider's dbDelta behaviour. The
-      # post-deploy smoke prints the host's real `VERSION()` and `@@sql_mode` on
-      # every deploy — when those drift from what is pinned here, move the pin.
+      # Pinned to MariaDB rather than MySQL, and to the line the testes host
+      # actually runs, because the point of the job is to reproduce the
+      # provider's dbDelta behaviour. The post-deploy smoke prints the host's
+      # real `VERSION()` and `@@sql_mode` on every deploy — when those drift
+      # from what is pinned here, move the pin.
+      #
+      # Host, as reported by the smoke on deploy #527:
+      #   11.8.8-MariaDB-log  sql_mode=NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
+      # Note the sql_mode difference from the 10.11 image this was first pinned
+      # to, which adds ERROR_FOR_DIVISION_BY_ZERO — the reason to match the host
+      # rather than pick a familiar LTS.
       mariadb:
-        image: mariadb:10.11
+        image: mariadb:11.8
         env:
           MARIADB_ROOT_PASSWORD: wordpress
           MARIADB_DATABASE: wordpress
