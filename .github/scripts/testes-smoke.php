@@ -158,8 +158,13 @@ if ( array() === $expected_tables ) {
 	exit( 1 );
 }
 
+// The resolved path is deliberately NOT printed: it carries the site's
+// hostname, and the workflow log is not the place for it. GitHub masks the
+// configured secrets, but this path is derived rather than a secret, so it
+// would come through in full. On failure the abort message below says what to
+// do, which is the part an operator actually needs.
 $wp_load = ffc_smoke_find_wp_load( $plugin_dir );
-$failed  = ! ffc_smoke_check( null !== $wp_load, 'wp-load.php located', (string) $wp_load ) || $failed;
+$failed  = ! ffc_smoke_check( null !== $wp_load, 'wp-load.php located', null !== $wp_load ? 'found' : 'not found' ) || $failed;
 
 if ( null === $wp_load ) {
 	echo "\nAborting: no WordPress install found above the plugin directory.\n";
