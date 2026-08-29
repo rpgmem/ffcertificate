@@ -68,8 +68,12 @@ class SelfSchedulingActivator {
             title varchar(255) NOT NULL,
             description text DEFAULT NULL,
 
-            -- Scheduling mode: 'regular' = weekly working hours; 'custom' = explicit date/time blocks (#941)
-            schedule_type enum('regular','custom') NOT NULL DEFAULT 'regular' COMMENT 'regular = weekly working_hours; custom = explicit custom_slots',
+            -- Scheduling mode. 'regular' = weekly working hours, 'custom' = explicit date/time blocks (#941).
+            -- No semicolon may appear anywhere in this statement before its final one, in a
+            -- comment or inside a quoted COMMENT string alike. dbDelta() splits its input on
+            -- the semicolon character before executing, so an interior one truncates the
+            -- CREATE mid-column and the table is never created (this table, until #994).
+            schedule_type enum('regular','custom') NOT NULL DEFAULT 'regular' COMMENT 'regular = weekly working_hours, custom = explicit custom_slots',
 
             -- Time slot configuration
             slot_duration int unsigned DEFAULT 30 COMMENT 'Duration in minutes',
@@ -103,7 +107,7 @@ class SelfSchedulingActivator {
             waitlist_enabled tinyint(1) DEFAULT 0 COMMENT '1 = full slots offer a waitlist instead of rejecting',
             waitlist_capacity int unsigned DEFAULT 0 COMMENT 'Max queue length per slot (0 = unlimited)',
 
-            -- Per-user block cap (#941 phase 3): custom mode only; max distinct blocks one user may hold (0 = disabled)
+            -- Per-user block cap (#941 phase 3). Custom mode only, max distinct blocks one user may hold (0 = disabled).
             max_blocks_per_user int unsigned DEFAULT 0 COMMENT 'Custom mode: max blocks a single user may book in this calendar (0 = disabled)',
 
             -- Visibility & access control

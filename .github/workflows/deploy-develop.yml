@@ -185,20 +185,24 @@ jobs:
             exit 1
           fi
 
-          # The script is scp'd to a scratch path and removed afterwards: it is
-          # CI tooling, and the plugin directory on a runtime host stays clean
-          # (the rsync excludes .github/ for the same reason).
-          REMOTE_SCRIPT="/tmp/ffc-smoke-${GITHUB_RUN_ID}.php"
+          # The scripts are scp'd to a scratch directory and removed afterwards:
+          # they are CI tooling, and the plugin directory on a runtime host
+          # stays clean (the rsync excludes .github/ for the same reason). Both
+          # files go together and keep their names — the smoke `require`s the
+          # shared manifest reader from its own directory.
+          REMOTE_DIR="/tmp/ffc-smoke-${GITHUB_RUN_ID}"
+          $SSH_CMD "${SSH_USER}@${SSH_HOST}" "mkdir -p ${REMOTE_DIR}"
           scp -i ~/.ssh/deploy_key -P "$PORT" -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
-            .github/scripts/testes-smoke.php "${SSH_USER}@${SSH_HOST}:${REMOTE_SCRIPT}"
+            .github/scripts/testes-smoke.php .github/scripts/ffc-uninstall-manifest.php \
+            "${SSH_USER}@${SSH_HOST}:${REMOTE_DIR}/"
 
           set +e
           timeout 120 $SSH_CMD "${SSH_USER}@${SSH_HOST}" \
-            "php ${REMOTE_SCRIPT} '${REMOTE_PATH}' '${VERSION}'"
+            "php ${REMOTE_DIR}/testes-smoke.php '${REMOTE_PATH}' '${VERSION}'"
           STATUS=$?
           set -e
 
-          $SSH_CMD "${SSH_USER}@${SSH_HOST}" "rm -f ${REMOTE_SCRIPT}" || true
+          $SSH_CMD "${SSH_USER}@${SSH_HOST}" "rm -rf ${REMOTE_DIR}" || true
 
           if [ "$STATUS" -eq 124 ]; then
             echo "::warning::smoke timed out after 120s — the host may be slow or unreachable; the deploy itself succeeded."
