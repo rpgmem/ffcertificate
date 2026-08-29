@@ -319,16 +319,48 @@ jobs:
           php-version: '8.3'
           extensions: mysqli, zip, gd
           coverage: none
+      # The two downloads below are retried for the same reason `composer audit`
+      # above is: raw.githubusercontent.com and wordpress.org intermittently
+      # time out or cut a transfer short from Actions runners, and this job is a
+      # required check — so a transient CDN blip would block merging rather than
+      # merely fail a report. Both are read-only fetches, so retrying is safe.
+      #
+      # The MariaDB image pull is NOT covered: that happens during the runner's
+      # service provisioning, before any step runs, so the workflow cannot wrap
+      # it.
       - name: Install WP-CLI
         run: |
-          curl -fsSL -o wp-cli.phar \
-            https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          for attempt in 1 2 3; do
+            if curl -fsSL --connect-timeout 20 -o wp-cli.phar \
+              https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar; then
+              break
+            fi
+            if [ "$attempt" = 3 ]; then
+              echo "::error::could not download the wp-cli phar after 3 attempts"
+              exit 1
+            fi
+            echo "::warning::wp-cli download attempt $attempt failed; retrying in 10s"
+            sleep 10
+          done
           chmod +x wp-cli.phar
           sudo mv wp-cli.phar /usr/local/bin/wp
           wp --info
       - name: Install a throwaway WordPress
         run: |
-          wp core download --path="$HOME/wp"
+          for attempt in 1 2 3; do
+            # A cut-short tarball leaves a partial tree behind, which the next
+            # attempt would refuse to write into — so start each from nothing.
+            rm -rf "$HOME/wp"
+            if wp core download --path="$HOME/wp"; then
+              break
+            fi
+            if [ "$attempt" = 3 ]; then
+              echo "::error::could not download WordPress core after 3 attempts"
+              exit 1
+            fi
+            echo "::warning::WordPress download attempt $attempt failed; retrying in 10s"
+            sleep 10
+          done
           wp config create --path="$HOME/wp" \
             --dbname=wordpress --dbuser=root --dbpass=wordpress --dbhost=127.0.0.1
           wp core install --path="$HOME/wp" \
