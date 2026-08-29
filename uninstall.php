@@ -130,6 +130,9 @@ $ffcertificate_options = array(
 	'ffc_migration_user_profiles_last_run',
 	// Schema-version markers (audited gap — were never on the list).
 	'ffc_activity_log_db_version',
+	// Written by MigrationForeignKeys since 6.18.0, i.e. after the audit that
+	// added its five siblings here — so it was the only one left behind.
+	'ffc_foreign_keys_db_version',
 	'ffc_perf_indexes_db_version',
 	'ffc_submissions_db_version',
 	// Per-feature migration completion markers (audited gap).

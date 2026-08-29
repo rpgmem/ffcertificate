@@ -16,6 +16,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **`Tested up to: 7.1`** (#984): verified WordPress 7.1 compatibility, clearing the Plugins-screen "hasn't been tested with your version" notice. `readme.txt` metadata only; `Requires at least` stays 6.4 (an audit confirmed 6.4 is the real floor — `wp_admin_notice()`, with no newer core API in use).
 
 ### Fixed
+- **Uninstall left one option behind** (#991): `ffc_foreign_keys_db_version` was not removed on plugin deletion. Its five sibling schema-version markers are all cleaned; this one is written by the foreign-key migration since 6.18.0, i.e. after the audit that added the others, so it was missed.
 - **Email texts hub: the editor opened as raw HTML until you switched emails** (#989): the hub called `wp.editor.initialize()` at script-parse time, but its `editor` dependency only guarantees the wp.editor API — `wp_enqueue_editor()` prints the TinyMCE runtime from a later footer hook — so the first email rendered as a plain `<textarea>` of visible markup. Initialization now waits for DOM ready, and the tab opens on a "Choose an email" placeholder with every editor hidden (a `<noscript>` rule keeps them all editable with JS off).
 
 ## [6.20.0] (2026-08-23) — `e01ed47`
