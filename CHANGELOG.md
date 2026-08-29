@@ -8,6 +8,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Internal (#990) — **post-deploy smoke on the testes host**: after each `develop` rsync, `deploy-develop.yml` boots the real WordPress over SSH and checks the plugin is active, that the host's live `FFC_VERSION` matches the deployed commit (the #628 silent-stale-deploy case) and that every table `uninstall.php` knows about exists — the dbDelta class CI's MySQL can't reproduce on the provider's MariaDB. An alarm, not a gate (the deploy runs post-merge); non-blocking until proven on the host. CI only.
 - Internal (#988) — **AJAX/option wiring guard**: a dependency-free `AjaxWiringTest` that statically cross-checks every registered `wp_ajax_*` handler against its client callers in both directions (accepting `admin_post_*` / `admin_action_*` too) and flags any `get_option( 'ffc_*' )` key nothing ever writes. Targets the "built but never wired" class — the ten caller-less handlers swept in #935 and the dormant `ffc_cleanup_days` read in #936. Green on the current tree; each check verified to fail by injecting the defect. Tests + docs only.
 
 ### Changed

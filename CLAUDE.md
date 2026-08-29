@@ -161,6 +161,20 @@ The rsync uses `--delete`, so anything in the remote path that isn't in the deve
 
 The testes server should have `SCRIPT_DEBUG=true` in `wp-config.php` so non-minified assets load and `?ver=…` cache aggressiveness stays low while iterating.
 
+#### Post-deploy smoke (alarm, not a gate)
+
+After the rsync, `deploy-develop.yml` scp's `.github/scripts/testes-smoke.php` to the host, runs it over SSH and deletes it. It boots the real WordPress and asserts three things, then reports the scheduled `ffc*` crons without judging them (which crons should exist depends on the per-module toggles, so a strict expectation would fail on a deliberate configuration):
+
+1. **The plugin is active** — a deploy that lands files onto a deactivated plugin looks healthy from the filesystem and does nothing.
+2. **The host's live `FFC_VERSION` equals the version in the commit being deployed.** This is the #628 check: the rsync backoff was once shorter than a managed-hosting restart, so every attempt fell inside the same outage and the site quietly stayed on a stale version while the workflow reported success.
+3. **Every table `uninstall.php` knows about exists.** The expected list is *parsed out of `uninstall.php`* rather than duplicated — that file is already obliged to know every table, so a new one is covered the moment it is added there. It is read as text and never included (including it would run the uninstaller). If the parse yields nothing the smoke **fails loudly** instead of passing on an empty list.
+
+This exists because the host is the only place with the provider's real MariaDB, PHP SAPI and wp-config — the stack that produced the dbDelta failures CI cannot reproduce (#358 backtick comments read as columns, #822 a migration pointing at a table that never existed, 6.0.1 `COMMENT` clauses leaving four recruitment tables uncreated).
+
+Two constraints to keep in mind before extending it. **It can never be a merge gate** — this workflow fires on push to `develop`, so the merge already happened; gating belongs in CI, against a MySQL service. And it runs against an **established install**, so the table check proves the tables are there, not that a fresh activation would create them; catching a regression in the `CREATE` of an existing table needs a throwaway *WordPress install* (not merely an empty database — `Activator::activate()` reads and writes options).
+
+The step is `continue-on-error: true` while it proves itself against the host's PHP CLI; drop the flag once it has been stable over several deploys. If the host's CLI is older than the plugin's PHP floor the script **skips** with an explanation rather than failing forever — point the workflow at the host's newer binary (often `php83`) to enable it.
+
 ### Versioning
 
 Three places carry the plugin version and must stay in sync:
