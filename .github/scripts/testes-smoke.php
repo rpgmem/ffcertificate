@@ -21,23 +21,25 @@
  *      four recruitment tables uncreated on activation (6.0.1). CI's MySQL is
  *      not the host's MariaDB, so only the host can answer this.
  *
- * The expected table list is PARSED out of `uninstall.php`, never duplicated
- * here. That file is already obliged to know every table (it drops them), so a
- * new table is covered the moment it is added there — and a hand-maintained
- * copy that silently drifts is exactly the failure this script is meant to
- * catch. `uninstall.php` is read as text and never included: including it would
- * run the uninstaller.
+ * The expected table list is PARSED out of `uninstall.php` (see
+ * `ffc-uninstall-manifest.php`, shared with the CI fresh-install check), never
+ * duplicated here. That file is already obliged to know every table (it drops
+ * them), so a new table is covered the moment it is added there — and a
+ * hand-maintained copy that silently drifts is exactly the failure this script
+ * is meant to catch. `uninstall.php` is read as text and never included:
+ * including it would run the uninstaller.
  *
  * KNOWN LIMIT — this runs against an ESTABLISHED install, so the table check
  * proves the tables are there, not that a fresh activation would create them.
  * It catches a table added in this release that failed to appear (activation
  * re-runs dbDelta on upgrade), but not a regression in the CREATE statement of
- * a table that already exists. Closing that gap needs a fresh-install
- * activation against a throwaway database, which is a bigger piece of work than
- * it sounds: `Activator::activate()` reads and writes options, so it cannot run
- * against a bare schema — the target needs a real WordPress install, not an
- * empty database. Tracked as a possible follow-up, deliberately out of scope
- * here.
+ * a table that already exists. That gap is covered separately by
+ * `fresh-install-check.php`, which installs a throwaway WordPress in CI and
+ * activates into an empty database — a real install, because
+ * `Activator::activate()` reads and writes options and so cannot run against a
+ * bare schema. What stays here alone is the provider's actual stack: its
+ * MariaDB, its PHP SAPI, its wp-config. The two are complements — the CI check
+ * gates a merge, this one raises an alarm after a deploy.
  *
  * Usage (from the deploy workflow):
  *   php testes-smoke.php <absolute-plugin-dir> <expected-FFC_VERSION>
@@ -91,21 +93,10 @@ function ffc_smoke_find_wp_load( string $plugin_dir ): ?string {
 	return null;
 }
 
-/**
- * The canonical table list, read out of uninstall.php as text.
- *
- * @param string $uninstall_file Absolute path to uninstall.php.
- * @return array<int, string> Unprefixed table names, e.g. `ffc_submissions`.
- */
-function ffc_smoke_expected_tables( string $uninstall_file ): array {
-	$text = (string) file_get_contents( $uninstall_file );
-	if ( ! preg_match_all( "/\\\$wpdb->prefix\s*\.\s*'(ffc_[a-z0-9_]+)'/", $text, $m ) ) {
-		return array();
-	}
-	$tables = array_values( array_unique( $m[1] ) );
-	sort( $tables );
-	return $tables;
-}
+// The expected table list is parsed out of `uninstall.php` by the shared
+// manifest reader, which `fresh-install-check.php` also uses — one parser, so
+// the two checks cannot disagree about what the plugin's footprint is.
+require_once __DIR__ . '/ffc-uninstall-manifest.php';
 
 // ---------------------------------------------------------------- arguments
 
@@ -145,7 +136,7 @@ if ( $failed ) {
 	exit( 1 );
 }
 
-$expected_tables = ffc_smoke_expected_tables( $uninstall );
+$expected_tables = ffc_manifest_tables( $uninstall );
 $failed          = ! ffc_smoke_check(
 	array() !== $expected_tables,
 	'table list parsed',
@@ -225,7 +216,18 @@ $failed = ! ffc_smoke_check(
 		: count( $missing ) . ' missing: ' . implode( ', ', $missing )
 ) || $failed;
 
-// 4. Scheduled events, reported only. Which crons should exist depends on the
+// 4. Which database server actually answered, reported only. CI's fresh-install
+//    check runs against a MySQL/MariaDB service image; these two values are how
+//    that image gets pinned to what the host really runs, so the dbDelta
+//    behaviour CI observes is the behaviour production will get.
+ffc_smoke_check(
+	true,
+	'database server',
+	(string) $wpdb->get_var( 'SELECT VERSION()' ) . '  sql_mode=' . (string) $wpdb->get_var( 'SELECT @@sql_mode' ),
+	false
+);
+
+// 5. Scheduled events, reported only. Which crons should exist depends on the
 //    per-module toggles (#800), so a strict expectation here would fail for a
 //    deliberate configuration rather than a defect.
 $scheduled = array();
