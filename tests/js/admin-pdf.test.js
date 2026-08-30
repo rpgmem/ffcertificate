@@ -315,6 +315,7 @@ describe('ffc-admin-pdf.js — inline image insert', () => {
 		installFFC();
 		document.body.innerHTML =
 			'<button id="ffc_btn_insert_image">Insert Image</button>' +
+			'<button id="ffc_btn_media_lib">Media Library</button>' +
 			'<textarea id="ffc_pdf_layout"><p>{{name}}</p></textarea>';
 		window.ffc_ajax = {
 			strings: {
@@ -362,6 +363,20 @@ describe('ffc-admin-pdf.js — inline image insert', () => {
 		expect(value).toContain(
 			'<img src="https://example.com/a.png" alt="Some &quot;quoted&quot; logo" />'
 		);
+	});
+
+	// ffc-admin-pdf.js guards wp.media at TWO click handlers with the same check:
+	// #ffc_btn_insert_image (below) and #ffc_btn_media_lib, the background-image
+	// picker. Only the first was covered, so the second could have lost its guard
+	// and thrown a ReferenceError on any screen where wp_enqueue_media() did not
+	// run, with the suite still green.
+	it('warns instead of throwing when the media library button is clicked without wp.media', () => {
+		expect(window.wp).toBeUndefined();
+
+		expect(() => window.$('#ffc_btn_media_lib').trigger('click')).not.toThrow();
+
+		const calls = window.FFC.Admin.showNotification.mock.calls;
+		expect(calls.some((c) => c[1] === 'error')).toBe(true);
 	});
 
 	it('warns and inserts nothing when wp.media is unavailable', () => {
