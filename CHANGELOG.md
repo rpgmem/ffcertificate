@@ -7,7 +7,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.20.1] (2026-08-30)
+## [6.20.1] (2026-08-30) — `f1e4134`
 
 ### Added
 - Internal (#994) — **fresh-install CI gate**: a job installs a throwaway WordPress on MariaDB, activates into an empty database and compares the result against `uninstall.php` **both ways** — every declared object must exist, and every existing one must be declared — then deletes the plugin and asserts a zero footprint.
