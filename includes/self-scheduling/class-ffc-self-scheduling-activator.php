@@ -197,7 +197,7 @@ class SelfSchedulingActivator {
             KEY cpf_hash (cpf_hash),
             KEY rf_hash (rf_hash),
             KEY confirmation_token (confirmation_token),
-            KEY validation_code (validation_code),
+            UNIQUE KEY validation_code (validation_code),
             KEY idx_calendar_date (calendar_id, appointment_date),
             KEY idx_calendar_datetime (calendar_id, appointment_date, start_time)
         ) {$charset_collate};";
