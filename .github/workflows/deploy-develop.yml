@@ -162,12 +162,14 @@ jobs:
       # only the real host can: did the deploy actually land, and does the
       # provider's own MariaDB hold the schema the code expects.
       #
-      # `continue-on-error` on purpose: the check is new and depends on the
-      # host's PHP CLI, so it reports before it blocks. Once it has proven
-      # stable over a few deploys, drop the flag to make a red smoke a red
-      # deploy. Same posture as any new gate — report first, enforce later.
+      # It now blocks. `continue-on-error` was on while the check proved
+      # itself against the host's PHP CLI, and #992 set the bar at 10
+      # consecutive green smokes; runs 525-537 delivered 13, every one
+      # `SMOKE PASSED` with zero [FAIL] lines and no skip (the host's CLI is
+      # 8.5.7, above the plugin's floor). The flag is what made a failing
+      # smoke show up as a green deploy, so removing it is the whole point of
+      # having run the evidence period.
       - name: Smoke test the deployed site
-        continue-on-error: true
         env:
           SSH_HOST: ${{ secrets.TESTES_SSH_HOST }}
           SSH_USER: ${{ secrets.TESTES_SSH_USER }}
@@ -204,9 +206,18 @@ jobs:
 
           $SSH_CMD "${SSH_USER}@${SSH_HOST}" "rm -rf ${REMOTE_DIR}" || true
 
+          # The timeout stays a warning even now that the step blocks. 124 means
+          # the host did not answer in 120s — the rsync above already succeeded,
+          # so this is host latency, not a plugin defect, and reddening the
+          # deploy for it is how an alarm becomes noise people learn to skip.
+          # Every other non-zero is the smoke's own verdict and fails the job:
+          # a stale version, a missing table, a fatal in the plugin. A host
+          # whose PHP CLI is below the plugin's floor exits 0 with SKIPPED.
           if [ "$STATUS" -eq 124 ]; then
             echo "::warning::smoke timed out after 120s — the host may be slow or unreachable; the deploy itself succeeded."
-          elif [ "$STATUS" -ne 0 ]; then
+            exit 0
+          fi
+          if [ "$STATUS" -ne 0 ]; then
             echo "::error::post-deploy smoke failed on the testes host (exit ${STATUS}). See the report above."
           fi
           exit "$STATUS"
