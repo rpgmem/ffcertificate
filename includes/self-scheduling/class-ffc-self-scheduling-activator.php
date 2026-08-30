@@ -67,20 +67,20 @@ class SelfSchedulingActivator {
 		// which fails on a comment, a blank line or an interior semicolon inside a
 		// CREATE literal (#994, #997).
 		// - Scheduling mode. 'regular' = weekly working hours, 'custom' = explicit date/time blocks (#941).
-		// - Time slot configuration
-		// - Working hours (JSON: [{day: 0-6, start: '09:00', end: '17:00'}])
-		// - Custom blocks (JSON: [{date:'Y-m-d', start:'H:i', end:'H:i', capacity:int, label?:string}]) — used when schedule_type='custom' (#941)
-		// - Booking window
-		// - Cancellation policy
-		// - Minimum interval between bookings
-		// - Approval workflow
-		// - Capacity
-		// - Waitlist (#941 phase 2): when a slot/block is full, allow joining a queue
+		// - Time slot configuration.
+		// - Working hours (JSON: [{day: 0-6, start: '09:00', end: '17:00'}]).
+		// - Custom blocks (JSON: [{date:'Y-m-d', start:'H:i', end:'H:i', capacity:int, label?:string}]) — used when schedule_type='custom' (#941).
+		// - Booking window.
+		// - Cancellation policy.
+		// - Minimum interval between bookings.
+		// - Approval workflow.
+		// - Capacity.
+		// - Waitlist (#941 phase 2): when a slot/block is full, allow joining a queue.
 		// - Per-user block cap (#941 phase 3). Custom mode only, max distinct blocks one user may hold (0 = disabled).
-		// - Visibility & access control
-		// - Email notifications (JSON config)
-		// - Status
-		// - Metadata
+		// - Visibility & access control.
+		// - Email notifications (JSON config).
+		// - Status.
+		// - Metadata.
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             post_id bigint(20) unsigned NOT NULL COMMENT 'Reference to wp_posts (CPT)',
@@ -144,15 +144,15 @@ class SelfSchedulingActivator {
 		// line of the field list as a column definition — see ActivatorSqlTest,
 		// which fails on a comment, a blank line or an interior semicolon inside a
 		// CREATE literal (#994, #997).
-		// - Appointment details
-		// - Contact information (for non-logged users or additional info)
-		// - Additional data (JSON: custom fields)
-		// - Notes
-		// - Status workflow
+		// - Appointment details.
+		// - Contact information (for non-logged users or additional info).
+		// - Additional data (JSON: custom fields).
+		// - Notes.
+		// - Status workflow.
 		// - Approval (if calendar requires approval). Category A instant since 6.6.0 (#249).
-		// - Verification token for guest users
-		// - Validation code (user-friendly code for verification, like certificates)
-		// - Metadata
+		// - Verification token for guest users.
+		// - Validation code (user-friendly code for verification, like certificates).
+		// - Metadata.
 		// - Reminder sent tracking. Category A instant since 6.6.0.
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -561,12 +561,12 @@ class SelfSchedulingActivator {
 		// line of the field list as a column definition — see ActivatorSqlTest,
 		// which fails on a comment, a blank line or an interior semicolon inside a
 		// CREATE literal (#994, #997).
-		// - Block type
-		// - Date range
-		// - Time range (for partial day blocks)
-		// - Recurring pattern (JSON: {type: 'weekly', days: [0,6], etc})
-		// - Description
-		// - Metadata
+		// - Block type.
+		// - Date range.
+		// - Time range (for partial day blocks).
+		// - Recurring pattern (JSON: {type: 'weekly', days: [0,6], etc}).
+		// - Description.
+		// - Metadata.
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             calendar_id bigint(20) unsigned DEFAULT NULL COMMENT 'NULL = applies to all calendars',
