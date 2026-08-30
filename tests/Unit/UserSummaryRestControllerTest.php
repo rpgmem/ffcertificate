@@ -18,269 +18,269 @@ use FreeFormCertificate\API\UserSummaryRestController;
  */
 class UserSummaryRestControllerTest extends TestCase {
 
-    use MockeryPHPUnitIntegration;
+	use MockeryPHPUnitIntegration;
 
-    /** @var array Captured route registrations */
-    private array $registered_routes = [];
+	/** @var array Captured route registrations */
+	private array $registered_routes = [];
 
-    /** @var object Mock $wpdb */
-    private $wpdb;
+	/** @var object Mock $wpdb */
+	private $wpdb;
 
-    protected function setUp(): void {
-        parent::setUp();
-        Monkey\setUp();
+	protected function setUp(): void {
+		parent::setUp();
+		Monkey\setUp();
 
-        $this->registered_routes = [];
+		$this->registered_routes = [];
 
-        Functions\when( 'register_rest_route' )->alias( function( $namespace, $route, $args ) {
-            $this->registered_routes[] = array(
-                'namespace' => $namespace,
-                'route'     => $route,
-                'args'      => $args,
-            );
-        });
+		Functions\when( 'register_rest_route' )->alias( function( $namespace, $route, $args ) {
+			$this->registered_routes[] = array(
+				'namespace' => $namespace,
+				'route'     => $route,
+				'args'      => $args,
+			);
+		});
 
-        Functions\when( '__' )->returnArg();
-        // sprintf is a PHP internal — no need to stub it
-        Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
-        Functions\when( 'rest_ensure_response' )->alias( function( $data ) { return $data; } );
-        Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
-        Functions\when( 'get_option' )->justReturn( array() );
-        Functions\when( 'date_i18n' )->alias( function( $format, $timestamp = false ) {
-            return date( $format, $timestamp ?: time() );
-        });
-        Functions\when( 'wp_date' )->alias( function( $format, $timestamp = null, $tz = null ) {
-            return date( $format, $timestamp ?? time() );
-        });
-        Functions\when( 'wp_timezone' )->alias( function() {
-            return new \DateTimeZone( 'UTC' );
-        });
+		Functions\when( '__' )->returnArg();
+		// sprintf is a PHP internal — no need to stub it
+		Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
+		Functions\when( 'rest_ensure_response' )->alias( function( $data ) { return $data; } );
+		Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'date_i18n' )->alias( function( $format, $timestamp = false ) {
+			return date( $format, $timestamp ?: time() );
+		});
+		Functions\when( 'wp_date' )->alias( function( $format, $timestamp = null, $tz = null ) {
+			return date( $format, $timestamp ?? time() );
+		});
+		Functions\when( 'wp_timezone' )->alias( function() {
+			return new \DateTimeZone( 'UTC' );
+		});
 
-        // Alias mocks for static-only dependencies
-        $utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
-        $utils_mock->shouldReceive( 'debug_log' )->byDefault();
+		// Alias mocks for static-only dependencies
+		$utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
+		$utils_mock->shouldReceive( 'debug_log' )->byDefault();
 
-        $rereg_mock = Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationFrontend' );
-        $rereg_mock->shouldReceive( 'get_user_reregistrations' )->andReturn( array() )->byDefault();
+		$rereg_mock = Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationFrontend' );
+		$rereg_mock->shouldReceive( 'get_user_reregistrations' )->andReturn( array() )->byDefault();
 
-        // Global $wpdb mock
-        $this->wpdb = Mockery::mock( 'wpdb' )->makePartial();
-        $this->wpdb->prefix = 'wp_';
-        $this->wpdb->shouldReceive( 'prepare' )->andReturn( '' )->byDefault();
-        $this->wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
-        $this->wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();
-        $this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' )->byDefault();
-        $GLOBALS['wpdb'] = $this->wpdb;
-    }
+		// Global $wpdb mock
+		$this->wpdb = Mockery::mock( 'wpdb' )->makePartial();
+		$this->wpdb->prefix = 'wp_';
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( '' )->byDefault();
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' )->byDefault();
+		$GLOBALS['wpdb'] = $this->wpdb;
+	}
 
-    protected function tearDown(): void {
-        Monkey\tearDown();
-        unset( $GLOBALS['wpdb'] );
-        parent::tearDown();
-    }
+	protected function tearDown(): void {
+		Monkey\tearDown();
+		unset( $GLOBALS['wpdb'] );
+		parent::tearDown();
+	}
 
-    /**
-     * Helper: create a mock WP_REST_Request with given params.
-     */
-    private function make_request( array $params = [] ): object {
-        $request = Mockery::mock( 'WP_REST_Request' );
-        $request->shouldReceive( 'get_param' )->andReturnUsing( function( $key ) use ( $params ) {
-            return $params[ $key ] ?? null;
-        });
-        return $request;
-    }
+	/**
+	 * Helper: create a mock WP_REST_Request with given params.
+	 */
+	private function make_request( array $params = [] ): object {
+		$request = Mockery::mock( 'WP_REST_Request' );
+		$request->shouldReceive( 'get_param' )->andReturnUsing( function( $key ) use ( $params ) {
+			return $params[ $key ] ?? null;
+		});
+		return $request;
+	}
 
-    // ------------------------------------------------------------------
-    // Route registration
-    // ------------------------------------------------------------------
+	// ------------------------------------------------------------------
+	// Route registration
+	// ------------------------------------------------------------------
 
-    public function test_register_routes_creates_one_endpoint(): void {
-        $ctrl = new UserSummaryRestController( 'ffc/v1' );
-        $ctrl->register_routes();
+	public function test_register_routes_creates_one_endpoint(): void {
+		$ctrl = new UserSummaryRestController( 'ffc/v1' );
+		$ctrl->register_routes();
 
-        $this->assertCount( 1, $this->registered_routes );
-    }
+		$this->assertCount( 1, $this->registered_routes );
+	}
 
-    public function test_summary_route_registered(): void {
-        $ctrl = new UserSummaryRestController( 'ffc/v1' );
-        $ctrl->register_routes();
+	public function test_summary_route_registered(): void {
+		$ctrl = new UserSummaryRestController( 'ffc/v1' );
+		$ctrl->register_routes();
 
-        $this->assertSame( '/user/summary', $this->registered_routes[0]['route'] );
-    }
+		$this->assertSame( '/user/summary', $this->registered_routes[0]['route'] );
+	}
 
-    public function test_summary_route_requires_authentication(): void {
-        $ctrl = new UserSummaryRestController( 'ffc/v1' );
-        $ctrl->register_routes();
+	public function test_summary_route_requires_authentication(): void {
+		$ctrl = new UserSummaryRestController( 'ffc/v1' );
+		$ctrl->register_routes();
 
-        $this->assertSame(
-            'is_user_logged_in',
-            $this->registered_routes[0]['args']['permission_callback']
-        );
-    }
+		$this->assertSame(
+			'is_user_logged_in',
+			$this->registered_routes[0]['args']['permission_callback']
+		);
+	}
 
-    // ------------------------------------------------------------------
-    // get_user_summary() — no capabilities
-    // ------------------------------------------------------------------
+	// ------------------------------------------------------------------
+	// get_user_summary() — no capabilities
+	// ------------------------------------------------------------------
 
-    public function test_get_user_summary_returns_all_zeros_when_no_capabilities(): void {
-        Functions\when( 'get_current_user_id' )->justReturn( 5 );
-        Functions\when( 'current_user_can' )->justReturn( false );
-        Functions\when( 'user_can' )->justReturn( false );
+	public function test_get_user_summary_returns_all_zeros_when_no_capabilities(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'user_can' )->justReturn( false );
 
-        $ctrl    = new UserSummaryRestController( 'ffc/v1' );
-        $request = $this->make_request();
-        $result  = $ctrl->get_user_summary( $request );
+		$ctrl    = new UserSummaryRestController( 'ffc/v1' );
+		$request = $this->make_request();
+		$result  = $ctrl->get_user_summary( $request );
 
-        $this->assertIsArray( $result );
-        $this->assertSame( 0, $result['total_certificates'] );
-        $this->assertNull( $result['next_appointment'] );
-        $this->assertSame( 0, $result['upcoming_group_events'] );
-        $this->assertSame( 0, $result['pending_reregistrations'] );
-    }
+		$this->assertIsArray( $result );
+		$this->assertSame( 0, $result['total_certificates'] );
+		$this->assertNull( $result['next_appointment'] );
+		$this->assertSame( 0, $result['upcoming_group_events'] );
+		$this->assertSame( 0, $result['pending_reregistrations'] );
+	}
 
-    public function test_get_user_summary_returns_zeros_even_when_user_id_is_zero(): void {
-        Functions\when( 'get_current_user_id' )->justReturn( 0 );
-        Functions\when( 'current_user_can' )->justReturn( false );
+	public function test_get_user_summary_returns_zeros_even_when_user_id_is_zero(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		Functions\when( 'current_user_can' )->justReturn( false );
 
-        $ctrl    = new UserSummaryRestController( 'ffc/v1' );
-        $request = $this->make_request();
-        $result  = $ctrl->get_user_summary( $request );
+		$ctrl    = new UserSummaryRestController( 'ffc/v1' );
+		$request = $this->make_request();
+		$result  = $ctrl->get_user_summary( $request );
 
-        // The method does NOT return WP_Error for user_id=0; it proceeds with defaults
-        $this->assertIsArray( $result );
-        $this->assertSame( 0, $result['total_certificates'] );
-        $this->assertNull( $result['next_appointment'] );
-    }
+		// The method does NOT return WP_Error for user_id=0; it proceeds with defaults
+		$this->assertIsArray( $result );
+		$this->assertSame( 0, $result['total_certificates'] );
+		$this->assertNull( $result['next_appointment'] );
+	}
 
-    // ------------------------------------------------------------------
-    // get_user_summary() — exception path
-    // ------------------------------------------------------------------
+	// ------------------------------------------------------------------
+	// get_user_summary() — exception path
+	// ------------------------------------------------------------------
 
-    public function test_get_user_summary_returns_defaults_on_exception(): void {
-        // Make get_current_user_id throw to trigger the catch block
-        Functions\when( 'get_current_user_id' )->alias( function() {
-            throw new \Exception( 'Simulated failure' );
-        });
+	public function test_get_user_summary_returns_defaults_on_exception(): void {
+		// Make get_current_user_id throw to trigger the catch block
+		Functions\when( 'get_current_user_id' )->alias( function() {
+			throw new \Exception( 'Simulated failure' );
+		});
 
-        $ctrl    = new UserSummaryRestController( 'ffc/v1' );
-        $request = $this->make_request();
-        $result  = $ctrl->get_user_summary( $request );
+		$ctrl    = new UserSummaryRestController( 'ffc/v1' );
+		$request = $this->make_request();
+		$result  = $ctrl->get_user_summary( $request );
 
-        // On exception, returns defaults (NOT WP_Error)
-        $this->assertIsArray( $result );
-        $this->assertSame( 0, $result['total_certificates'] );
-        $this->assertNull( $result['next_appointment'] );
-        $this->assertSame( 0, $result['upcoming_group_events'] );
-        $this->assertSame( 0, $result['pending_reregistrations'] );
-    }
+		// On exception, returns defaults (NOT WP_Error)
+		$this->assertIsArray( $result );
+		$this->assertSame( 0, $result['total_certificates'] );
+		$this->assertNull( $result['next_appointment'] );
+		$this->assertSame( 0, $result['upcoming_group_events'] );
+		$this->assertSame( 0, $result['pending_reregistrations'] );
+	}
 
-    // ------------------------------------------------------------------
-    // get_user_summary() — certificates count with manage_options
-    // ------------------------------------------------------------------
+	// ------------------------------------------------------------------
+	// get_user_summary() — certificates count with manage_options
+	// ------------------------------------------------------------------
 
-    public function test_get_user_summary_counts_certificates_when_manage_options(): void {
-        Functions\when( 'get_current_user_id' )->justReturn( 5 );
-        Functions\when( 'current_user_can' )->alias( function( $cap ) {
-            // manage_options grants view_own_certificates via user_has_capability
-            return $cap === 'manage_options';
-        });
+	public function test_get_user_summary_counts_certificates_when_manage_options(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->alias( function( $cap ) {
+			// manage_options grants view_own_certificates via user_has_capability
+			return $cap === 'manage_options';
+		});
 
-        // The DB query for certificates count
-        $this->wpdb->shouldReceive( 'get_var' )->andReturn( '7' );
+		// The DB query for certificates count
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '7' );
 
-        // table_exists check for audience bookings
-        // wpdb->get_var for SHOW TABLES LIKE returns table name (truthy)
-        // but we've already set default to '7', so table_exists will see a string — that's fine
-        // The audience bookings count will also return '7', but that's acceptable.
+		// table_exists check for audience bookings
+		// wpdb->get_var for SHOW TABLES LIKE returns table name (truthy)
+		// but we've already set default to '7', so table_exists will see a string — that's fine
+		// The audience bookings count will also return '7', but that's acceptable.
 
-        $ctrl    = new UserSummaryRestController( 'ffc/v1' );
-        $request = $this->make_request();
-        $result  = $ctrl->get_user_summary( $request );
+		$ctrl    = new UserSummaryRestController( 'ffc/v1' );
+		$request = $this->make_request();
+		$result  = $ctrl->get_user_summary( $request );
 
-        $this->assertIsArray( $result );
-        $this->assertSame( 7, $result['total_certificates'] );
-    }
+		$this->assertIsArray( $result );
+		$this->assertSame( 7, $result['total_certificates'] );
+	}
 
-    // ------------------------------------------------------------------
-    // get_user_summary() — next appointment when capability granted
-    // ------------------------------------------------------------------
+	// ------------------------------------------------------------------
+	// get_user_summary() — next appointment when capability granted
+	// ------------------------------------------------------------------
 
-    public function test_get_user_summary_includes_next_appointment_when_capability_granted(): void {
-        Functions\when( 'get_current_user_id' )->justReturn( 5 );
-        Functions\when( 'current_user_can' )->alias( function( $cap ) {
-            return $cap === 'manage_options';
-        });
-        Functions\when( 'wp_cache_get' )->justReturn( false );
-        Functions\when( 'wp_cache_set' )->justReturn( true );
+	public function test_get_user_summary_includes_next_appointment_when_capability_granted(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->alias( function( $cap ) {
+			return $cap === 'manage_options';
+		});
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
 
-        // Certificates count
-        $this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
+		// Certificates count
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
 
-        // The next-appointment lookup now goes through
-        // AppointmentRepository::findNextUpcomingForUser() and the
-        // calendar title is fetched separately via CalendarRepository
-        // (issue #340 centralization). Two get_row() returns: first the
-        // appointment row, then the calendar row.
-        $this->wpdb->shouldReceive( 'get_row' )->andReturn(
-            array(
-                'id'               => 1,
-                'appointment_date' => '2026-06-15',
-                'start_time'       => '10:30:00',
-                'calendar_id'      => 42,
-            ),
-            array(
-                'id'    => 42,
-                'title' => 'Main Calendar',
-            )
-        );
+		// The next-appointment lookup now goes through
+		// AppointmentRepository::findNextUpcomingForUser() and the
+		// calendar title is fetched separately via CalendarRepository
+		// (issue #340 centralization). Two get_row() returns: first the
+		// appointment row, then the calendar row.
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
+			array(
+				'id'               => 1,
+				'appointment_date' => '2026-06-15',
+				'start_time'       => '10:30:00',
+				'calendar_id'      => 42,
+			),
+			array(
+				'id'    => 42,
+				'title' => 'Main Calendar',
+			)
+		);
 
-        Functions\when( 'get_option' )->alias( function( $key, $default = false ) {
-            if ( $key === 'ffc_settings' ) {
-                return array( 'date_format' => 'Y-m-d' );
-            }
-            return $default;
-        });
+		Functions\when( 'get_option' )->alias( function( $key, $default = false ) {
+			if ( $key === 'ffc_settings' ) {
+				return array( 'date_format' => 'Y-m-d' );
+			}
+			return $default;
+		});
 
-        $ctrl    = new UserSummaryRestController( 'ffc/v1' );
-        $request = $this->make_request();
-        $result  = $ctrl->get_user_summary( $request );
+		$ctrl    = new UserSummaryRestController( 'ffc/v1' );
+		$request = $this->make_request();
+		$result  = $ctrl->get_user_summary( $request );
 
-        $this->assertIsArray( $result );
-        $this->assertNotNull( $result['next_appointment'] );
-        $this->assertSame( 'Main Calendar', $result['next_appointment']['title'] );
-        $this->assertSame( '10:30', $result['next_appointment']['time'] );
-    }
+		$this->assertIsArray( $result );
+		$this->assertNotNull( $result['next_appointment'] );
+		$this->assertSame( 'Main Calendar', $result['next_appointment']['title'] );
+		$this->assertSame( '10:30', $result['next_appointment']['time'] );
+	}
 
-    public function test_get_user_summary_next_appointment_null_when_no_upcoming(): void {
-        Functions\when( 'get_current_user_id' )->justReturn( 5 );
-        Functions\when( 'current_user_can' )->alias( function( $cap ) {
-            return $cap === 'manage_options';
-        });
+	public function test_get_user_summary_next_appointment_null_when_no_upcoming(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->alias( function( $cap ) {
+			return $cap === 'manage_options';
+		});
 
-        $this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
-        $this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
 
-        $ctrl    = new UserSummaryRestController( 'ffc/v1' );
-        $request = $this->make_request();
-        $result  = $ctrl->get_user_summary( $request );
+		$ctrl    = new UserSummaryRestController( 'ffc/v1' );
+		$request = $this->make_request();
+		$result  = $ctrl->get_user_summary( $request );
 
-        $this->assertIsArray( $result );
-        $this->assertNull( $result['next_appointment'] );
-    }
+		$this->assertIsArray( $result );
+		$this->assertNull( $result['next_appointment'] );
+	}
 
-    public function test_get_user_summary_counts_group_events_when_capability_granted(): void {
-        Functions\when( 'get_current_user_id' )->justReturn( 5 );
-        Functions\when( 'current_user_can' )->alias( function ( $cap ) {
-            return 'ffc_view_own_audience_bookings' === $cap;
-        } );
-        Functions\when( 'current_time' )->justReturn( '2026-08-09' );
-        // table_exists(ffc_audience_bookings) → true.
-        $this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_audience_bookings' );
-        Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceQueryService' )
-            ->shouldReceive( 'count_user_bookings' )->andReturn( 3 );
+	public function test_get_user_summary_counts_group_events_when_capability_granted(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->alias( function ( $cap ) {
+			return 'ffc_view_own_audience_bookings' === $cap;
+		} );
+		Functions\when( 'current_time' )->justReturn( '2026-08-09' );
+		// table_exists(ffc_audience_bookings) → true.
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_audience_bookings' );
+		Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceQueryService' )
+			->shouldReceive( 'count_user_bookings' )->andReturn( 3 );
 
-        $result = ( new UserSummaryRestController( 'ffc/v1' ) )->get_user_summary( $this->make_request() );
+		$result = ( new UserSummaryRestController( 'ffc/v1' ) )->get_user_summary( $this->make_request() );
 
-        $this->assertSame( 3, $result['upcoming_group_events'] );
-    }
+		$this->assertSame( 3, $result['upcoming_group_events'] );
+	}
 }

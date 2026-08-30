@@ -45,3 +45,12 @@ jobs:
         if: steps.changed.outputs.files != ''
         run: |
           vendor/bin/phpcs -q --report=checkstyle ${{ steps.changed.outputs.files }} | cs2pr
+
+      # tests/ is excluded from the main ruleset on purpose (WordPress-Docs
+      # would demand docblocks across 420 files). Indentation is the one thing
+      # that is enforced there, over the whole directory rather than only
+      # changed files — it is fast, and an invariant that only holds for files
+      # a PR happens to touch is not an invariant.
+      - name: Run PHPCS indentation check on tests/
+        run: |
+          vendor/bin/phpcs -q --report=checkstyle --standard=phpcs-tests.xml.dist | cs2pr

@@ -18,140 +18,140 @@ use FreeFormCertificate\UrlShortener\UrlShortenerActivator;
  */
 class UrlShortenerActivatorTest extends TestCase {
 
-    use MockeryPHPUnitIntegration;
+	use MockeryPHPUnitIntegration;
 
-    /** @var Mockery\MockInterface */
-    private $wpdb;
+	/** @var Mockery\MockInterface */
+	private $wpdb;
 
-    protected function setUp(): void {
-        parent::setUp();
-        Monkey\setUp();
+	protected function setUp(): void {
+		parent::setUp();
+		Monkey\setUp();
 
-        global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
-        $wpdb->prefix = 'wp_';
-        $wpdb->last_error = '';
+		global $wpdb;
+		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
+		$wpdb->prefix = 'wp_';
+		$wpdb->last_error = '';
 
-        $this->wpdb = $wpdb;
+		$this->wpdb = $wpdb;
 
-        // Ensure the upgrade.php stub file exists for require_once in create_tables()
-        if ( ! defined( 'ABSPATH' ) ) {
-            define( 'ABSPATH', '/tmp/wordpress/' );
-        }
-        $upgrade_dir = ABSPATH . 'wp-admin/includes';
-        if ( ! is_dir( $upgrade_dir ) ) {
-            mkdir( $upgrade_dir, 0755, true );
-        }
-        $upgrade_file = $upgrade_dir . '/upgrade.php';
-        if ( ! file_exists( $upgrade_file ) ) {
-            file_put_contents( $upgrade_file, "<?php\n// Stub for unit tests.\n" );
-        }
-    }
+		// Ensure the upgrade.php stub file exists for require_once in create_tables()
+		if ( ! defined( 'ABSPATH' ) ) {
+			define( 'ABSPATH', '/tmp/wordpress/' );
+		}
+		$upgrade_dir = ABSPATH . 'wp-admin/includes';
+		if ( ! is_dir( $upgrade_dir ) ) {
+			mkdir( $upgrade_dir, 0755, true );
+		}
+		$upgrade_file = $upgrade_dir . '/upgrade.php';
+		if ( ! file_exists( $upgrade_file ) ) {
+			file_put_contents( $upgrade_file, "<?php\n// Stub for unit tests.\n" );
+		}
+	}
 
-    protected function tearDown(): void {
-        Monkey\tearDown();
-        parent::tearDown();
-    }
+	protected function tearDown(): void {
+		Monkey\tearDown();
+		parent::tearDown();
+	}
 
-    // ==================================================================
-    // get_table_name()
-    // ==================================================================
+	// ==================================================================
+	// get_table_name()
+	// ==================================================================
 
-    public function test_get_table_name_uses_prefix(): void {
-        $this->assertSame( 'wp_ffc_short_urls', UrlShortenerActivator::get_table_name() );
-    }
+	public function test_get_table_name_uses_prefix(): void {
+		$this->assertSame( 'wp_ffc_short_urls', UrlShortenerActivator::get_table_name() );
+	}
 
-    public function test_get_table_name_custom_prefix(): void {
-        global $wpdb;
-        $wpdb->prefix = 'custom_';
+	public function test_get_table_name_custom_prefix(): void {
+		global $wpdb;
+		$wpdb->prefix = 'custom_';
 
-        $this->assertSame( 'custom_ffc_short_urls', UrlShortenerActivator::get_table_name() );
+		$this->assertSame( 'custom_ffc_short_urls', UrlShortenerActivator::get_table_name() );
 
-        // Restore
-        $wpdb->prefix = 'wp_';
-    }
+		// Restore
+		$wpdb->prefix = 'wp_';
+	}
 
-    // ==================================================================
-    // create_tables()
-    // ==================================================================
+	// ==================================================================
+	// create_tables()
+	// ==================================================================
 
-    public function test_create_tables_skips_if_table_exists(): void {
-        $this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
-        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SHOW TABLES LIKE "wp_ffc_short_urls"' );
-        $this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_short_urls' );
+	public function test_create_tables_skips_if_table_exists(): void {
+		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SHOW TABLES LIKE "wp_ffc_short_urls"' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_short_urls' );
 
-        $delta_called = false;
-        Functions\when( 'dbDelta' )->alias( function () use ( &$delta_called ) {
-            $delta_called = true;
-        } );
+		$delta_called = false;
+		Functions\when( 'dbDelta' )->alias( function () use ( &$delta_called ) {
+			$delta_called = true;
+		} );
 
-        UrlShortenerActivator::create_tables();
+		UrlShortenerActivator::create_tables();
 
-        $this->assertFalse( $delta_called, 'dbDelta should not be called when table already exists' );
-    }
+		$this->assertFalse( $delta_called, 'dbDelta should not be called when table already exists' );
+	}
 
-    public function test_create_tables_calls_db_delta_when_missing(): void {
-        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
-        $this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
+	public function test_create_tables_calls_db_delta_when_missing(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
 
-        $delta_called = false;
-        $delta_sql    = '';
-        Functions\when( 'dbDelta' )->alias( function ( $sql ) use ( &$delta_called, &$delta_sql ) {
-            $delta_called = true;
-            $delta_sql    = $sql;
-        } );
+		$delta_called = false;
+		$delta_sql    = '';
+		Functions\when( 'dbDelta' )->alias( function ( $sql ) use ( &$delta_called, &$delta_sql ) {
+			$delta_called = true;
+			$delta_sql    = $sql;
+		} );
 
-        UrlShortenerActivator::create_tables();
+		UrlShortenerActivator::create_tables();
 
-        $this->assertTrue( $delta_called );
-        $this->assertStringContainsString( 'ffc_short_urls', $delta_sql );
-        $this->assertStringContainsString( 'short_code', $delta_sql );
-        $this->assertStringContainsString( 'target_url', $delta_sql );
-        $this->assertStringContainsString( 'click_count', $delta_sql );
-        $this->assertStringContainsString( 'PRIMARY KEY', $delta_sql );
-    }
+		$this->assertTrue( $delta_called );
+		$this->assertStringContainsString( 'ffc_short_urls', $delta_sql );
+		$this->assertStringContainsString( 'short_code', $delta_sql );
+		$this->assertStringContainsString( 'target_url', $delta_sql );
+		$this->assertStringContainsString( 'click_count', $delta_sql );
+		$this->assertStringContainsString( 'PRIMARY KEY', $delta_sql );
+	}
 
-    // ==================================================================
-    // maybe_migrate()
-    // ==================================================================
+	// ==================================================================
+	// maybe_migrate()
+	// ==================================================================
 
-    public function test_maybe_migrate_creates_table_if_missing(): void {
-        // First call: table_exists returns false
-        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
-        $this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
-        // maybe_migrate() also calls add_column_if_missing() which uses
-        // DatabaseHelperTrait::column_exists() → $wpdb->get_results().
-        // Return empty array so the column is considered missing and then
-        // stub the resulting ALTER TABLE via $wpdb->query.
-        $this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
-        $this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
+	public function test_maybe_migrate_creates_table_if_missing(): void {
+		// First call: table_exists returns false
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
+		// maybe_migrate() also calls add_column_if_missing() which uses
+		// DatabaseHelperTrait::column_exists() → $wpdb->get_results().
+		// Return empty array so the column is considered missing and then
+		// stub the resulting ALTER TABLE via $wpdb->query.
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
 
-        $delta_called = false;
-        Functions\when( 'dbDelta' )->alias( function () use ( &$delta_called ) {
-            $delta_called = true;
-        } );
+		$delta_called = false;
+		Functions\when( 'dbDelta' )->alias( function () use ( &$delta_called ) {
+			$delta_called = true;
+		} );
 
-        UrlShortenerActivator::maybe_migrate();
+		UrlShortenerActivator::maybe_migrate();
 
-        $this->assertTrue( $delta_called );
-    }
+		$this->assertTrue( $delta_called );
+	}
 
-    public function test_maybe_migrate_skips_if_table_exists(): void {
-        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_short_urls' );
-        // add_column_if_missing() runs even when table exists.
-        $this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'qr_cache' ) ) );
-        $this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
+	public function test_maybe_migrate_skips_if_table_exists(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_short_urls' );
+		// add_column_if_missing() runs even when table exists.
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'qr_cache' ) ) );
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
 
-        $delta_called = false;
-        Functions\when( 'dbDelta' )->alias( function () use ( &$delta_called ) {
-            $delta_called = true;
-        } );
+		$delta_called = false;
+		Functions\when( 'dbDelta' )->alias( function () use ( &$delta_called ) {
+			$delta_called = true;
+		} );
 
-        UrlShortenerActivator::maybe_migrate();
+		UrlShortenerActivator::maybe_migrate();
 
-        $this->assertFalse( $delta_called );
-    }
+		$this->assertFalse( $delta_called );
+	}
 }

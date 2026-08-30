@@ -7,6 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- Internal (#1005) — **`tests/` is tab-indented, and now enforced**: 250 space-indented files against 170 tab-indented ones, with nothing checking either, so a reformat alone would have drifted back. Reindented, plus a two-sniff `phpcs-tests.xml.dist` over the whole directory. No test logic changed.
+
 ## [6.20.1] (2026-08-30) — `f1e4134`
 
 ### Added

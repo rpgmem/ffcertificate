@@ -23,265 +23,265 @@ use FreeFormCertificate\Loader;
  */
 class LoaderTest extends TestCase {
 
-    use MockeryPHPUnitIntegration;
+	use MockeryPHPUnitIntegration;
 
-    /** @var Mockery\MockInterface */
-    private $utils_mock;
+	/** @var Mockery\MockInterface */
+	private $utils_mock;
 
-    protected function setUp(): void {
-        parent::setUp();
-        Monkey\setUp();
-    }
+	protected function setUp(): void {
+		parent::setUp();
+		Monkey\setUp();
+	}
 
-    protected function tearDown(): void {
-        Monkey\tearDown();
-        parent::tearDown();
-    }
+	protected function tearDown(): void {
+		Monkey\tearDown();
+		parent::tearDown();
+	}
 
-    /**
-     * Helper: stub the WP functions called by the constructor so it can
-     * be instantiated without side-effect failures.
-     */
-    private function stub_constructor_functions(): void {
-        Functions\when( 'add_action' )->justReturn( true );
-        Functions\when( 'register_activation_hook' )->justReturn( true );
-        Functions\when( 'register_deactivation_hook' )->justReturn( true );
-    }
+	/**
+	 * Helper: stub the WP functions called by the constructor so it can
+	 * be instantiated without side-effect failures.
+	 */
+	private function stub_constructor_functions(): void {
+		Functions\when( 'add_action' )->justReturn( true );
+		Functions\when( 'register_activation_hook' )->justReturn( true );
+		Functions\when( 'register_deactivation_hook' )->justReturn( true );
+	}
 
-    // ==================================================================
-    // Constructor — hook registration
-    // ==================================================================
+	// ==================================================================
+	// Constructor — hook registration
+	// ==================================================================
 
-    public function test_constructor_registers_plugins_loaded_hook(): void {
-        $actions_added = [];
-        Functions\when( 'add_action' )->alias( function ( $hook, $callback, $priority = 10 ) use ( &$actions_added ) {
-            $actions_added[] = [
-                'hook'     => $hook,
-                'callback' => $callback,
-                'priority' => $priority,
-            ];
-        } );
-        Functions\when( 'register_activation_hook' )->justReturn( true );
-        Functions\when( 'register_deactivation_hook' )->justReturn( true );
+	public function test_constructor_registers_plugins_loaded_hook(): void {
+		$actions_added = [];
+		Functions\when( 'add_action' )->alias( function ( $hook, $callback, $priority = 10 ) use ( &$actions_added ) {
+			$actions_added[] = [
+				'hook'     => $hook,
+				'callback' => $callback,
+				'priority' => $priority,
+			];
+		} );
+		Functions\when( 'register_activation_hook' )->justReturn( true );
+		Functions\when( 'register_deactivation_hook' )->justReturn( true );
 
-        $loader = new Loader();
+		$loader = new Loader();
 
-        $plugins_loaded = array_filter( $actions_added, function ( $entry ) {
-            return $entry['hook'] === 'plugins_loaded';
-        } );
+		$plugins_loaded = array_filter( $actions_added, function ( $entry ) {
+			return $entry['hook'] === 'plugins_loaded';
+		} );
 
-        $this->assertNotEmpty( $plugins_loaded, 'Constructor should register a plugins_loaded action' );
-        $match = reset( $plugins_loaded );
-        $this->assertSame( 10, $match['priority'], 'plugins_loaded priority should be 10' );
-        $this->assertIsArray( $match['callback'] );
-        $this->assertSame( $loader, $match['callback'][0] );
-        $this->assertSame( 'init_plugin', $match['callback'][1] );
-    }
+		$this->assertNotEmpty( $plugins_loaded, 'Constructor should register a plugins_loaded action' );
+		$match = reset( $plugins_loaded );
+		$this->assertSame( 10, $match['priority'], 'plugins_loaded priority should be 10' );
+		$this->assertIsArray( $match['callback'] );
+		$this->assertSame( $loader, $match['callback'][0] );
+		$this->assertSame( 'init_plugin', $match['callback'][1] );
+	}
 
-    public function test_constructor_registers_enqueue_scripts_hook(): void {
-        $actions_added = [];
-        Functions\when( 'add_action' )->alias( function ( $hook, $callback, $priority = 10 ) use ( &$actions_added ) {
-            $actions_added[] = [
-                'hook'     => $hook,
-                'callback' => $callback,
-            ];
-        } );
-        Functions\when( 'register_activation_hook' )->justReturn( true );
-        Functions\when( 'register_deactivation_hook' )->justReturn( true );
+	public function test_constructor_registers_enqueue_scripts_hook(): void {
+		$actions_added = [];
+		Functions\when( 'add_action' )->alias( function ( $hook, $callback, $priority = 10 ) use ( &$actions_added ) {
+			$actions_added[] = [
+				'hook'     => $hook,
+				'callback' => $callback,
+			];
+		} );
+		Functions\when( 'register_activation_hook' )->justReturn( true );
+		Functions\when( 'register_deactivation_hook' )->justReturn( true );
 
-        $loader = new Loader();
+		$loader = new Loader();
 
-        $enqueue = array_filter( $actions_added, function ( $entry ) {
-            return $entry['hook'] === 'wp_enqueue_scripts';
-        } );
+		$enqueue = array_filter( $actions_added, function ( $entry ) {
+			return $entry['hook'] === 'wp_enqueue_scripts';
+		} );
 
-        $this->assertNotEmpty( $enqueue, 'Constructor should register a wp_enqueue_scripts action' );
-        $match = reset( $enqueue );
-        $this->assertIsArray( $match['callback'] );
-        $this->assertSame( $loader, $match['callback'][0] );
-        $this->assertSame( 'register_frontend_assets', $match['callback'][1] );
-    }
+		$this->assertNotEmpty( $enqueue, 'Constructor should register a wp_enqueue_scripts action' );
+		$match = reset( $enqueue );
+		$this->assertIsArray( $match['callback'] );
+		$this->assertSame( $loader, $match['callback'][0] );
+		$this->assertSame( 'register_frontend_assets', $match['callback'][1] );
+	}
 
-    public function test_constructor_registers_activation_hooks(): void {
-        Functions\when( 'add_action' )->justReturn( true );
+	public function test_constructor_registers_activation_hooks(): void {
+		Functions\when( 'add_action' )->justReturn( true );
 
-        $activation_called   = false;
-        $deactivation_called = false;
+		$activation_called   = false;
+		$deactivation_called = false;
 
-        Functions\when( 'register_activation_hook' )->alias( function ( $file, $callback ) use ( &$activation_called ) {
-            $activation_called = true;
-            $this->assertStringContainsString( 'ffcertificate.php', $file );
-            $this->assertSame( '\\FreeFormCertificate\Activator', $callback[0] );
-            $this->assertSame( 'activate', $callback[1] );
-        } );
+		Functions\when( 'register_activation_hook' )->alias( function ( $file, $callback ) use ( &$activation_called ) {
+			$activation_called = true;
+			$this->assertStringContainsString( 'ffcertificate.php', $file );
+			$this->assertSame( '\\FreeFormCertificate\Activator', $callback[0] );
+			$this->assertSame( 'activate', $callback[1] );
+		} );
 
-        Functions\when( 'register_deactivation_hook' )->alias( function ( $file, $callback ) use ( &$deactivation_called ) {
-            $deactivation_called = true;
-            $this->assertStringContainsString( 'ffcertificate.php', $file );
-            $this->assertSame( '\\FreeFormCertificate\Deactivator', $callback[0] );
-            $this->assertSame( 'deactivate', $callback[1] );
-        } );
+		Functions\when( 'register_deactivation_hook' )->alias( function ( $file, $callback ) use ( &$deactivation_called ) {
+			$deactivation_called = true;
+			$this->assertStringContainsString( 'ffcertificate.php', $file );
+			$this->assertSame( '\\FreeFormCertificate\Deactivator', $callback[0] );
+			$this->assertSame( 'deactivate', $callback[1] );
+		} );
 
-        new Loader();
+		new Loader();
 
-        $this->assertTrue( $activation_called, 'Constructor should call register_activation_hook' );
-        $this->assertTrue( $deactivation_called, 'Constructor should call register_deactivation_hook' );
-    }
+		$this->assertTrue( $activation_called, 'Constructor should call register_activation_hook' );
+		$this->assertTrue( $deactivation_called, 'Constructor should call register_deactivation_hook' );
+	}
 
-    // ==================================================================
-    // register_frontend_assets()
-    // ==================================================================
+	// ==================================================================
+	// register_frontend_assets()
+	// ==================================================================
 
-    /**
-     * Helper: create a Loader instance with constructor stubs, then set up
-     * mocks for the WP asset functions used by register_frontend_assets().
-     *
-     * @return array{loader: Loader, registered_scripts: array, localized_scripts: array}
-     */
-    private function build_loader_and_asset_spies(): array {
-        $this->stub_constructor_functions();
-        $loader = new Loader();
+	/**
+	 * Helper: create a Loader instance with constructor stubs, then set up
+	 * mocks for the WP asset functions used by register_frontend_assets().
+	 *
+	 * @return array{loader: Loader, registered_scripts: array, localized_scripts: array}
+	 */
+	private function build_loader_and_asset_spies(): array {
+		$this->stub_constructor_functions();
+		$loader = new Loader();
 
-        // Mock AssetHelper::asset_suffix() — alias mock works because
-        // @runTestsInSeparateProcesses gives us a fresh process.
-        $this->utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
-        $this->utils_mock->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
+		// Mock AssetHelper::asset_suffix() — alias mock works because
+		// @runTestsInSeparateProcesses gives us a fresh process.
+		$this->utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
+		$this->utils_mock->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
 
-        $registered_scripts = [];
-        $localized_scripts  = [];
+		$registered_scripts = [];
+		$localized_scripts  = [];
 
-        Functions\when( 'wp_register_script' )->alias(
-            function ( $handle, $src, $deps = [], $ver = false, $in_footer = false ) use ( &$registered_scripts ) {
-                $registered_scripts[] = [
-                    'handle'    => $handle,
-                    'src'       => $src,
-                    'deps'      => $deps,
-                    'ver'       => $ver,
-                    'in_footer' => $in_footer,
-                ];
-            }
-        );
+		Functions\when( 'wp_register_script' )->alias(
+			function ( $handle, $src, $deps = [], $ver = false, $in_footer = false ) use ( &$registered_scripts ) {
+				$registered_scripts[] = [
+					'handle'    => $handle,
+					'src'       => $src,
+					'deps'      => $deps,
+					'ver'       => $ver,
+					'in_footer' => $in_footer,
+				];
+			}
+		);
 
-        Functions\when( 'wp_localize_script' )->alias(
-            function ( $handle, $object_name, $l10n ) use ( &$localized_scripts ) {
-                $localized_scripts[] = [
-                    'handle'      => $handle,
-                    'object_name' => $object_name,
-                    'l10n'        => $l10n,
-                ];
-            }
-        );
+		Functions\when( 'wp_localize_script' )->alias(
+			function ( $handle, $object_name, $l10n ) use ( &$localized_scripts ) {
+				$localized_scripts[] = [
+					'handle'      => $handle,
+					'object_name' => $object_name,
+					'l10n'        => $l10n,
+				];
+			}
+		);
 
-        Functions\when( 'admin_url' )->alias( function ( $path = '' ) {
-            return 'https://example.com/wp-admin/' . ltrim( $path, '/' );
-        } );
+		Functions\when( 'admin_url' )->alias( function ( $path = '' ) {
+			return 'https://example.com/wp-admin/' . ltrim( $path, '/' );
+		} );
 
-        return [
-            'loader'              => $loader,
-            'registered_scripts'  => &$registered_scripts,
-            'localized_scripts'   => &$localized_scripts,
-        ];
-    }
+		return [
+			'loader'              => $loader,
+			'registered_scripts'  => &$registered_scripts,
+			'localized_scripts'   => &$localized_scripts,
+		];
+	}
 
-    public function test_register_frontend_assets_registers_rate_limit_script(): void {
-        $spies = $this->build_loader_and_asset_spies();
-        $spies['loader']->register_frontend_assets();
+	public function test_register_frontend_assets_registers_rate_limit_script(): void {
+		$spies = $this->build_loader_and_asset_spies();
+		$spies['loader']->register_frontend_assets();
 
-        $rate_limit = array_filter( $spies['registered_scripts'], function ( $entry ) {
-            return $entry['handle'] === 'ffc-rate-limit';
-        } );
+		$rate_limit = array_filter( $spies['registered_scripts'], function ( $entry ) {
+			return $entry['handle'] === 'ffc-rate-limit';
+		} );
 
-        $this->assertNotEmpty( $rate_limit, 'Should register the ffc-rate-limit script' );
-        $match = reset( $rate_limit );
-        $this->assertStringContainsString( 'ffc-frontend-helpers.min.js', $match['src'] );
-        $this->assertContains( 'jquery', $match['deps'] );
-        $this->assertTrue( $match['in_footer'], 'ffc-rate-limit should be loaded in footer' );
-    }
+		$this->assertNotEmpty( $rate_limit, 'Should register the ffc-rate-limit script' );
+		$match = reset( $rate_limit );
+		$this->assertStringContainsString( 'ffc-frontend-helpers.min.js', $match['src'] );
+		$this->assertContains( 'jquery', $match['deps'] );
+		$this->assertTrue( $match['in_footer'], 'ffc-rate-limit should be loaded in footer' );
+	}
 
-    public function test_register_frontend_assets_registers_dynamic_fragments_script(): void {
-        $spies = $this->build_loader_and_asset_spies();
-        $spies['loader']->register_frontend_assets();
+	public function test_register_frontend_assets_registers_dynamic_fragments_script(): void {
+		$spies = $this->build_loader_and_asset_spies();
+		$spies['loader']->register_frontend_assets();
 
-        $dynamic = array_filter( $spies['registered_scripts'], function ( $entry ) {
-            return $entry['handle'] === 'ffc-dynamic-fragments';
-        } );
+		$dynamic = array_filter( $spies['registered_scripts'], function ( $entry ) {
+			return $entry['handle'] === 'ffc-dynamic-fragments';
+		} );
 
-        $this->assertNotEmpty( $dynamic, 'Should register the ffc-dynamic-fragments script' );
-        $match = reset( $dynamic );
-        $this->assertStringContainsString( 'ffc-dynamic-fragments.min.js', $match['src'] );
-        $this->assertSame( [], $match['deps'], 'ffc-dynamic-fragments should have no dependencies' );
-        $this->assertTrue( $match['in_footer'], 'ffc-dynamic-fragments should be loaded in footer' );
-    }
+		$this->assertNotEmpty( $dynamic, 'Should register the ffc-dynamic-fragments script' );
+		$match = reset( $dynamic );
+		$this->assertStringContainsString( 'ffc-dynamic-fragments.min.js', $match['src'] );
+		$this->assertSame( [], $match['deps'], 'ffc-dynamic-fragments should have no dependencies' );
+		$this->assertTrue( $match['in_footer'], 'ffc-dynamic-fragments should be loaded in footer' );
+	}
 
-    public function test_register_frontend_assets_localizes_dynamic_fragments(): void {
-        $spies = $this->build_loader_and_asset_spies();
-        $spies['loader']->register_frontend_assets();
+	public function test_register_frontend_assets_localizes_dynamic_fragments(): void {
+		$spies = $this->build_loader_and_asset_spies();
+		$spies['loader']->register_frontend_assets();
 
-        $localized = array_filter( $spies['localized_scripts'], function ( $entry ) {
-            return $entry['handle'] === 'ffc-dynamic-fragments';
-        } );
+		$localized = array_filter( $spies['localized_scripts'], function ( $entry ) {
+			return $entry['handle'] === 'ffc-dynamic-fragments';
+		} );
 
-        $this->assertNotEmpty( $localized, 'Should localize the ffc-dynamic-fragments script' );
-        $match = reset( $localized );
-        $this->assertSame( 'ffcDynamic', $match['object_name'] );
-        $this->assertArrayHasKey( 'ajaxUrl', $match['l10n'] );
-        $this->assertStringContainsString( 'admin-ajax.php', $match['l10n']['ajaxUrl'] );
-    }
+		$this->assertNotEmpty( $localized, 'Should localize the ffc-dynamic-fragments script' );
+		$match = reset( $localized );
+		$this->assertSame( 'ffcDynamic', $match['object_name'] );
+		$this->assertArrayHasKey( 'ajaxUrl', $match['l10n'] );
+		$this->assertStringContainsString( 'admin-ajax.php', $match['l10n']['ajaxUrl'] );
+	}
 
-    // ==================================================================
-    // register_admin_core_assets() — 6.6.9
-    // ==================================================================
+	// ==================================================================
+	// register_admin_core_assets() — 6.6.9
+	// ==================================================================
 
-    public function test_constructor_registers_admin_enqueue_scripts_hook(): void {
-        $actions_added = [];
-        Functions\when( 'add_action' )->alias( function ( $hook, $callback, $priority = 10 ) use ( &$actions_added ) {
-            $actions_added[] = [ 'hook' => $hook, 'callback' => $callback, 'priority' => $priority ];
-        } );
-        Functions\when( 'register_activation_hook' )->justReturn( true );
-        Functions\when( 'register_deactivation_hook' )->justReturn( true );
+	public function test_constructor_registers_admin_enqueue_scripts_hook(): void {
+		$actions_added = [];
+		Functions\when( 'add_action' )->alias( function ( $hook, $callback, $priority = 10 ) use ( &$actions_added ) {
+			$actions_added[] = [ 'hook' => $hook, 'callback' => $callback, 'priority' => $priority ];
+		} );
+		Functions\when( 'register_activation_hook' )->justReturn( true );
+		Functions\when( 'register_deactivation_hook' )->justReturn( true );
 
-        new Loader();
+		new Loader();
 
-        $admin_hooks = array_filter( $actions_added, function ( $entry ) {
-            return $entry['hook'] === 'admin_enqueue_scripts'
-                && is_array( $entry['callback'] )
-                && $entry['callback'][1] === 'register_admin_core_assets';
-        } );
+		$admin_hooks = array_filter( $actions_added, function ( $entry ) {
+			return $entry['hook'] === 'admin_enqueue_scripts'
+				&& is_array( $entry['callback'] )
+				&& $entry['callback'][1] === 'register_admin_core_assets';
+		} );
 
-        $this->assertNotEmpty( $admin_hooks, '6.6.9 fix: ffc-core must register on every admin request.' );
-        $match = reset( $admin_hooks );
-        $this->assertSame( 1, $match['priority'], 'Priority 1 so dep is resolvable before module enqueues run at default priority 10.' );
-    }
+		$this->assertNotEmpty( $admin_hooks, '6.6.9 fix: ffc-core must register on every admin request.' );
+		$match = reset( $admin_hooks );
+		$this->assertSame( 1, $match['priority'], 'Priority 1 so dep is resolvable before module enqueues run at default priority 10.' );
+	}
 
-    public function test_register_admin_core_assets_registers_ffc_core(): void {
-        $spies = $this->build_loader_and_asset_spies();
-        // First call: handle not yet registered.
-        Functions\when( 'wp_script_is' )->justReturn( false );
+	public function test_register_admin_core_assets_registers_ffc_core(): void {
+		$spies = $this->build_loader_and_asset_spies();
+		// First call: handle not yet registered.
+		Functions\when( 'wp_script_is' )->justReturn( false );
 
-        $spies['loader']->register_admin_core_assets();
+		$spies['loader']->register_admin_core_assets();
 
-        $core = array_filter( $spies['registered_scripts'], function ( $entry ) {
-            return $entry['handle'] === 'ffc-core';
-        } );
+		$core = array_filter( $spies['registered_scripts'], function ( $entry ) {
+			return $entry['handle'] === 'ffc-core';
+		} );
 
-        $this->assertNotEmpty( $core, 'Should register ffc-core on admin pages.' );
-        $match = reset( $core );
-        $this->assertStringContainsString( 'ffc-core.min.js', $match['src'] );
-        $this->assertContains( 'jquery', $match['deps'] );
-        $this->assertTrue( $match['in_footer'] );
-    }
+		$this->assertNotEmpty( $core, 'Should register ffc-core on admin pages.' );
+		$match = reset( $core );
+		$this->assertStringContainsString( 'ffc-core.min.js', $match['src'] );
+		$this->assertContains( 'jquery', $match['deps'] );
+		$this->assertTrue( $match['in_footer'] );
+	}
 
-    public function test_register_admin_core_assets_is_noop_when_already_registered(): void {
-        $spies = $this->build_loader_and_asset_spies();
-        // AdminAssetsManager already enqueued ffc-core earlier in the request.
-        Functions\when( 'wp_script_is' )->justReturn( true );
+	public function test_register_admin_core_assets_is_noop_when_already_registered(): void {
+		$spies = $this->build_loader_and_asset_spies();
+		// AdminAssetsManager already enqueued ffc-core earlier in the request.
+		Functions\when( 'wp_script_is' )->justReturn( true );
 
-        $spies['loader']->register_admin_core_assets();
+		$spies['loader']->register_admin_core_assets();
 
-        $core = array_filter( $spies['registered_scripts'], function ( $entry ) {
-            return $entry['handle'] === 'ffc-core';
-        } );
+		$core = array_filter( $spies['registered_scripts'], function ( $entry ) {
+			return $entry['handle'] === 'ffc-core';
+		} );
 
-        $this->assertEmpty( $core, 'Must not re-register when AdminAssetsManager already did it.' );
-    }
+		$this->assertEmpty( $core, 'Must not re-register when AdminAssetsManager already did it.' );
+	}
 }
