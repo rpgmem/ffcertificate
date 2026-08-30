@@ -20,1309 +20,1309 @@ use FreeFormCertificate\UserDashboard\UserManager;
  */
 class UserManagerTest extends TestCase {
 
-    use MockeryPHPUnitIntegration;
-
-    /** @var Mockery\MockInterface */
-    private $wpdb;
-
-    protected function setUp(): void {
-        parent::setUp();
-        Monkey\setUp();
-
-        global $wpdb;
-        $wpdb         = Mockery::mock( 'wpdb' )->makePartial();
-        $wpdb->prefix = 'wp_';
-        $wpdb->last_error = '';
-        $this->wpdb   = $wpdb;
-
-        Functions\when( 'wp_cache_get' )->justReturn( false );
-        Functions\when( 'wp_cache_set' )->justReturn( true );
-        Functions\when( 'wp_cache_delete' )->justReturn( true );
-        Functions\when( 'wp_cache_flush' )->justReturn( true );
-        Functions\when( 'wp_cache_flush_group' )->justReturn( true );
-        Functions\when( '__' )->returnArg();
-        Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults = array() ) {
-            return array_merge( $defaults, $args );
-        } );
-        Functions\when( 'sanitize_text_field' )->alias( 'trim' );
-        Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
-        Functions\when( 'absint' )->alias( function ( $val ) {
-            return abs( intval( $val ) );
-        } );
-        Functions\when( 'current_time' )->justReturn( '2026-03-01 12:00:00' );
-        Functions\when( 'is_email' )->alias( function ( $email ) {
-            return (bool) filter_var( $email, FILTER_VALIDATE_EMAIL ) ? $email : false;
-        } );
-        Functions\when( 'get_option' )->justReturn( array() );
-
-        $this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () {
-            return func_get_args()[0];
-        } )->byDefault();
-    }
-
-    protected function tearDown(): void {
-        Monkey\tearDown();
-        parent::tearDown();
-    }
-
-    // ==================================================================
-    // Helper: make table_exists return true or false
-    // ==================================================================
-
-    /**
-     * Configure the wpdb mock so that table_exists() returns $exists.
-     *
-     * table_exists uses: $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name))
-     * When it returns the table name string, table_exists() === true.
-     * When it returns null, table_exists() === false.
-     */
-    private function mock_table_exists( string $table_name, bool $exists ): void {
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( 'SHOW TABLES LIKE %s' )
-            ->andReturn( $exists ? $table_name : null )
-            ->byDefault();
-    }
-
-    // ==================================================================
-    // get_profile()
-    // ==================================================================
-
-    public function test_get_profile_returns_profile_from_custom_table(): void {
-        $profile_row = array(
-            'id'           => 1,
-            'user_id'      => 42,
-            'display_name' => 'Alice Smith',
-            'phone'        => '+5511999999999',
-            'department'   => 'Engineering',
-            'organization' => 'ACME',
-            'notes'        => 'VIP user',
-            'preferences'  => '{"theme":"dark"}',
-            'created_at'   => '2025-01-01 00:00:00',
-            'updated_at'   => '2025-06-01 00:00:00',
-        );
-
-        // table_exists returns true
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( 'SHOW TABLES LIKE %s' )
-            ->once()
-            ->andReturn( 'wp_ffc_user_profiles' );
-
-        // get_row returns the profile
-        $this->wpdb->shouldReceive( 'get_row' )
-            ->once()
-            ->andReturn( $profile_row );
-
-        $result = UserManager::get_profile( 42 );
-
-        $this->assertSame( $profile_row, $result );
-    }
-
-    public function test_get_profile_falls_back_to_userdata_when_table_exists_but_no_row(): void {
-        // table_exists returns true
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( 'SHOW TABLES LIKE %s' )
-            ->once()
-            ->andReturn( 'wp_ffc_user_profiles' );
-
-        // get_row returns null (no profile in custom table)
-        $this->wpdb->shouldReceive( 'get_row' )
-            ->once()
-            ->andReturn( null );
-
-        $mock_user                  = new \stdClass();
-        $mock_user->display_name    = 'Bob Jones';
-        $mock_user->user_registered = '2024-12-15 10:30:00';
-
-        Functions\expect( 'get_userdata' )
-            ->once()
-            ->with( 99 )
-            ->andReturn( $mock_user );
-
-        $result = UserManager::get_profile( 99 );
-
-        $this->assertSame( 99, $result['user_id'] );
-        $this->assertSame( 'Bob Jones', $result['display_name'] );
-        $this->assertSame( '', $result['phone'] );
-        $this->assertSame( '', $result['department'] );
-        $this->assertSame( '', $result['organization'] );
-        $this->assertSame( '', $result['notes'] );
-        $this->assertNull( $result['preferences'] );
-        $this->assertSame( '2024-12-15 10:30:00', $result['created_at'] );
-        $this->assertSame( '2024-12-15 10:30:00', $result['updated_at'] );
-    }
-
-    public function test_get_profile_falls_back_to_userdata_when_table_not_exists(): void {
-        // table_exists returns false
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( 'SHOW TABLES LIKE %s' )
-            ->once()
-            ->andReturn( null );
-
-        $mock_user                  = new \stdClass();
-        $mock_user->display_name    = 'Carol';
-        $mock_user->user_registered = '2025-03-10 08:00:00';
-
-        Functions\expect( 'get_userdata' )
-            ->once()
-            ->with( 7 )
-            ->andReturn( $mock_user );
-
-        $result = UserManager::get_profile( 7 );
-
-        $this->assertSame( 7, $result['user_id'] );
-        $this->assertSame( 'Carol', $result['display_name'] );
-    }
-
-    public function test_get_profile_returns_empty_array_when_no_table_and_no_user(): void {
-        // table_exists returns false
-        $this->wpdb->shouldReceive( 'get_var' )
-            ->with( 'SHOW TABLES LIKE %s' )
-            ->once()
-            ->andReturn( null );
-
-        Functions\expect( 'get_userdata' )
-            ->once()
-            ->with( 999 )
-            ->andReturn( false );
-
-        $result = UserManager::get_profile( 999 );
-
-        $this->assertSame( array(), $result );
-    }
-
-    // ==================================================================
-    // update_profile()
-    // ==================================================================
-
-    public function test_update_profile_returns_false_when_no_allowed_fields(): void {
-        // The facade drops unknown keys before delegating to the service.
-        $result = UserManager::update_profile( 42, array( 'unknown_field' => 'value' ) );
-
-        $this->assertFalse( $result );
-    }
-
-    public function test_update_profile_updates_existing_row(): void {
-        // Row already exists — service takes the UPDATE branch.
-        $this->wpdb->shouldReceive( 'get_var' )->andReturn( '5' );
-        $this->wpdb->shouldReceive( 'update' )
-            ->once()
-            ->andReturn( 1 );
-
-        Functions\expect( 'wp_update_user' )
-            ->once()
-            ->andReturn( 42 );
-
-        $result = UserManager::update_profile( 42, array(
-            'display_name' => 'Updated Name',
-            'phone'        => '+5511888888888',
-        ) );
-
-        $this->assertTrue( $result );
-    }
-
-    public function test_update_profile_inserts_new_row_when_not_exists(): void {
-        // Row does NOT exist — service takes the INSERT branch.
-        $this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
-        $this->wpdb->shouldReceive( 'insert' )
-            ->once()
-            ->andReturn( 1 );
-
-        $result = UserManager::update_profile( 42, array(
-            'department'   => 'HR',
-            'organization' => 'ACME Corp',
-        ) );
-
-        $this->assertTrue( $result );
-    }
-
-    public function test_update_profile_handles_preferences_json(): void {
-        $this->wpdb->shouldReceive( 'get_var' )->andReturn( '3' );
-        $this->wpdb->shouldReceive( 'update' )
-            ->once()
-            ->withArgs( function ( $table, $data ) {
-                return isset( $data['preferences'] )
-                    && is_string( $data['preferences'] )
-                    && json_decode( $data['preferences'], true ) === array( 'theme' => 'dark', 'lang' => 'pt-BR' );
-            } )
-            ->andReturn( 1 );
-
-        $result = UserManager::update_profile( 10, array(
-            'preferences' => array( 'theme' => 'dark', 'lang' => 'pt-BR' ),
-        ) );
-
-        $this->assertTrue( $result );
-    }
-
-    public function test_update_profile_also_calls_wp_update_user_for_display_name(): void {
-        $this->wpdb->shouldReceive( 'get_var' )->andReturn( '1' );
-        $this->wpdb->shouldReceive( 'update' )->andReturn( 1 );
-
-        // display_name mirrors to wp_users via the UserProfileService
-        // mirror mechanism. We only assert the mirror call fires with
-        // the expected value — the field map wiring is covered separately.
-        $captured_args = null;
-        Functions\when( 'wp_update_user' )->alias( function ( $args ) use ( &$captured_args ) {
-            if ( isset( $args['display_name'] ) ) {
-                $captured_args = $args;
-            }
-            return 42;
-        } );
-
-        $result = UserManager::update_profile( 42, array( 'display_name' => 'New Display Name' ) );
-
-        $this->assertTrue( $result );
-        $this->assertIsArray( $captured_args );
-        $this->assertSame( 42, $captured_args['ID'] );
-        $this->assertSame( 'New Display Name', $captured_args['display_name'] );
-    }
-
-    public function test_update_profile_returns_false_on_db_failure(): void {
-        $this->wpdb->shouldReceive( 'get_var' )->andReturn( '1' );
-        // Service's wpdb->update returns false → write() returns false → facade returns false.
-        $this->wpdb->shouldReceive( 'update' )
-            ->once()
-            ->andReturn( false );
-
-        $result = UserManager::update_profile( 42, array( 'phone' => '123' ) );
-
-        $this->assertFalse( $result );
-    }
-
-    public function test_update_profile_sanitizes_allowed_fields_only(): void {
-        // Row does not exist → service takes the INSERT branch.
-        $this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
-
-        $this->wpdb->shouldReceive( 'insert' )
-            ->once()
-            ->withArgs( function ( $table, $data ) {
-                // Only the allowed 'notes' field plus the service's user_id
-                // should reach the insert; 'evil_field' must be stripped.
-                return ! isset( $data['evil_field'] )
-                    && isset( $data['notes'] )
-                    && $data['notes'] === 'Some notes'
-                    && isset( $data['user_id'] )
-                    && $data['user_id'] === 5;
-            } )
-            ->andReturn( 1 );
-
-        $result = UserManager::update_profile( 5, array(
-            'notes'      => 'Some notes',
-            'evil_field' => 'should be ignored',
-        ) );
-
-        $this->assertTrue( $result );
-    }
-
-    // ==================================================================
-    // get_user_cpf_masked()
-    // ==================================================================
-
-    public function test_get_user_cpf_masked_returns_null_when_no_cpfs(): void {
-        // get_user_cpfs_masked will query $wpdb. Make get_results return empty.
-        $this->wpdb->shouldReceive( 'get_results' )
-            ->once()
-            ->andReturn( array() );
-
-        $result = UserManager::get_user_cpf_masked( 42 );
-
-        $this->assertNull( $result );
-    }
-
-    // ==================================================================
-    // get_user_cpfs_masked() — empty results path
-    // ==================================================================
-
-    public function test_get_user_cpfs_masked_returns_empty_when_no_rows(): void {
-        $this->wpdb->shouldReceive( 'get_results' )
-            ->once()
-            ->andReturn( array() );
-
-        $result = UserManager::get_user_cpfs_masked( 42 );
-
-        $this->assertSame( array(), $result );
-    }
-
-    public function test_get_user_cpfs_masked_returns_empty_when_null_results(): void {
-        $this->wpdb->shouldReceive( 'get_results' )
-            ->once()
-            ->andReturn( null );
-
-        $result = UserManager::get_user_cpfs_masked( 42 );
-
-        $this->assertSame( array(), $result );
-    }
-
-    // ==================================================================
-    // get_user_cpfs_masked() — with decryption (runInSeparateProcess)
-    // ==================================================================
-
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function test_get_user_cpfs_masked_decrypts_and_masks_cpf(): void {
-        // Alias mock for Encryption::decrypt
-        $encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-        $encMock->shouldReceive( 'decrypt' )
-            ->with( 'enc_cpf_123' )
-            ->once()
-            ->andReturn( '12345678901' );
-
-        // Alias mock for DocumentFormatter::mask_cpf
-        $fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-        $fmtMock->shouldReceive( 'mask_cpf' )
-            ->with( '12345678901' )
-            ->once()
-            ->andReturn( '123.***.***-01' );
-
-        // Alias mock for Utils::get_submissions_table
-        $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
-        $this->wpdb->shouldReceive( 'get_results' )
-            ->once()
-            ->andReturn( array(
-                array( 'cpf_encrypted' => 'enc_cpf_123', 'rf_encrypted' => null ),
-            ) );
-
-        $result = UserManager::get_user_cpfs_masked( 42 );
-
-        $this->assertSame( array( '123.***.***-01' ), $result );
-    }
-
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function test_get_user_cpfs_masked_handles_decrypt_exception(): void {
-        $encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-        $encMock->shouldReceive( 'decrypt' )
-            ->andThrow( new \Exception( 'Decryption failed' ) );
-
-        $fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-        $fmtMock->shouldReceive( 'mask_cpf' )->never();
-
-        $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
-        $this->wpdb->shouldReceive( 'get_results' )
-            ->once()
-            ->andReturn( array(
-                array( 'cpf_encrypted' => 'bad_data', 'rf_encrypted' => null ),
-            ) );
-
-        $result = UserManager::get_user_cpfs_masked( 42 );
-
-        $this->assertSame( array(), $result );
-    }
-
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function test_get_user_cpfs_masked_deduplicates_results(): void {
-        $encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-        $encMock->shouldReceive( 'decrypt' )
-            ->andReturn( '12345678901' );
-
-        $fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-        $fmtMock->shouldReceive( 'mask_cpf' )
-            ->andReturn( '123.***.***-01' );
-
-        $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
-        // Two rows with the same CPF → should deduplicate
-        $this->wpdb->shouldReceive( 'get_results' )
-            ->once()
-            ->andReturn( array(
-                array( 'cpf_encrypted' => 'enc_cpf', 'rf_encrypted' => null ),
-                array( 'cpf_encrypted' => 'enc_cpf', 'rf_encrypted' => null ),
-            ) );
-
-        $result = UserManager::get_user_cpfs_masked( 42 );
-
-        $this->assertCount( 1, $result );
-        $this->assertSame( '123.***.***-01', $result[0] );
-    }
-
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function test_get_user_cpfs_masked_uses_rf_when_cpf_empty(): void {
-        $encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-        $encMock->shouldReceive( 'decrypt' )
-            ->with( 'enc_rf_456' )
-            ->once()
-            ->andReturn( 'RF12345' );
-
-        $fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-        $fmtMock->shouldReceive( 'mask_cpf' )
-            ->with( 'RF12345' )
-            ->once()
-            ->andReturn( 'RF1***5' );
-
-        $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
-        $this->wpdb->shouldReceive( 'get_results' )
-            ->once()
-            ->andReturn( array(
-                array( 'cpf_encrypted' => null, 'rf_encrypted' => 'enc_rf_456' ),
-            ) );
-
-        $result = UserManager::get_user_cpfs_masked( 42 );
-
-        $this->assertSame( array( 'RF1***5' ), $result );
-    }
-
-    // ==================================================================
-    // get_user_cpf_masked() — with decryption (runInSeparateProcess)
-    // ==================================================================
-
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function test_get_user_cpf_masked_returns_first_cpf(): void {
-        $encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-        $encMock->shouldReceive( 'decrypt' )
-            ->andReturnUsing( function ( $val ) {
-                return $val === 'enc1' ? '11111111111' : '22222222222';
-            } );
-
-        $fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-        $fmtMock->shouldReceive( 'mask_cpf' )
-            ->andReturnUsing( function ( $val ) {
-                return $val === '11111111111' ? '111.***.***-11' : '222.***.***-22';
-            } );
-
-        $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
-        $this->wpdb->shouldReceive( 'get_results' )
-            ->once()
-            ->andReturn( array(
-                array( 'cpf_encrypted' => 'enc1', 'rf_encrypted' => null ),
-                array( 'cpf_encrypted' => 'enc2', 'rf_encrypted' => null ),
-            ) );
-
-        $result = UserManager::get_user_cpf_masked( 42 );
-
-        $this->assertSame( '111.***.***-11', $result );
-    }
-
-    // ==================================================================
-    // get_user_identifiers_masked() — empty results path
-    // ==================================================================
-
-    public function test_get_user_identifiers_masked_returns_empty_arrays_when_no_rows(): void {
-        $this->wpdb->shouldReceive( 'get_results' )
-            ->once()
-            ->andReturn( array() );
-
-        $result = UserManager::get_user_identifiers_masked( 42 );
-
-        $this->assertSame( array( 'cpfs' => array(), 'rfs' => array() ), $result );
-    }
-
-    public function test_get_user_identifiers_masked_returns_empty_arrays_when_null(): void {
-        $this->wpdb->shouldReceive( 'get_results' )
-            ->once()
-            ->andReturn( null );
-
-        $result = UserManager::get_user_identifiers_masked( 42 );
-
-        $this->assertSame( array( 'cpfs' => array(), 'rfs' => array() ), $result );
-    }
-
-    // ==================================================================
-    // get_user_identifiers_masked() — with decryption
-    // ==================================================================
-
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function test_get_user_identifiers_masked_separates_cpfs_and_rfs(): void {
-        $encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-        $encMock->shouldReceive( 'decrypt' )
-            ->andReturnUsing( function ( $val ) {
-                $map = array(
-                    'enc_cpf' => '12345678901',
-                    'enc_rf'  => 'RF999',
-                );
-                return $map[ $val ] ?? '';
-            } );
-
-        $fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-        $fmtMock->shouldReceive( 'mask_cpf' )
-            ->andReturnUsing( function ( $val ) {
-                $map = array(
-                    '12345678901' => '123.***.***-01',
-                    'RF999'       => 'RF***9',
-                );
-                return $map[ $val ] ?? '';
-            } );
-
-        $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
-        $this->wpdb->shouldReceive( 'get_results' )
-            ->once()
-            ->andReturn( array(
-                array( 'cpf_encrypted' => 'enc_cpf', 'rf_encrypted' => null ),
-                array( 'cpf_encrypted' => null, 'rf_encrypted' => 'enc_rf' ),
-            ) );
-
-        $result = UserManager::get_user_identifiers_masked( 42 );
-
-        $this->assertSame( array( '123.***.***-01' ), $result['cpfs'] );
-        $this->assertSame( array( 'RF***9' ), $result['rfs'] );
-    }
-
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function test_get_user_identifiers_masked_handles_exception(): void {
-        $encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-        $encMock->shouldReceive( 'decrypt' )
-            ->andThrow( new \Exception( 'Decryption error' ) );
-
-        $fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-        $fmtMock->shouldReceive( 'mask_cpf' )->never();
-
-        $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
-        $this->wpdb->shouldReceive( 'get_results' )
-            ->once()
-            ->andReturn( array(
-                array( 'cpf_encrypted' => 'bad', 'rf_encrypted' => null ),
-            ) );
-
-        $result = UserManager::get_user_identifiers_masked( 42 );
-
-        $this->assertSame( array( 'cpfs' => array(), 'rfs' => array() ), $result );
-    }
-
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function test_get_user_identifiers_masked_deduplicates(): void {
-        $encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-        $encMock->shouldReceive( 'decrypt' )
-            ->andReturn( '12345678901' );
-
-        $fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-        $fmtMock->shouldReceive( 'mask_cpf' )
-            ->andReturn( '123.***.***-01' );
-
-        $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
-        // Same CPF in two rows
-        $this->wpdb->shouldReceive( 'get_results' )
-            ->once()
-            ->andReturn( array(
-                array( 'cpf_encrypted' => 'enc_cpf', 'rf_encrypted' => null ),
-                array( 'cpf_encrypted' => 'enc_cpf', 'rf_encrypted' => null ),
-            ) );
-
-        $result = UserManager::get_user_identifiers_masked( 42 );
-
-        $this->assertCount( 1, $result['cpfs'] );
-        $this->assertEmpty( $result['rfs'] );
-    }
-
-    // ==================================================================
-    // get_user_emails() — empty results path
-    // ==================================================================
-
-    public function test_get_user_emails_falls_back_to_user_email_when_no_encrypted(): void {
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array() );
-
-        $mock_user             = new \stdClass();
-        $mock_user->user_email = 'fallback@example.com';
-
-        Functions\expect( 'get_user_by' )
-            ->once()
-            ->with( 'id', 42 )
-            ->andReturn( $mock_user );
-
-        $result = UserManager::get_user_emails( 42 );
-
-        $this->assertSame( array( 'fallback@example.com' ), $result );
-    }
-
-    public function test_get_user_emails_returns_empty_when_no_encrypted_and_no_user(): void {
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array() );
-
-        Functions\expect( 'get_user_by' )
-            ->once()
-            ->with( 'id', 999 )
-            ->andReturn( false );
-
-        $result = UserManager::get_user_emails( 999 );
-
-        $this->assertSame( array(), $result );
-    }
-
-    public function test_get_user_emails_returns_empty_when_null_results_and_no_user(): void {
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( null );
-
-        Functions\expect( 'get_user_by' )
-            ->once()
-            ->with( 'id', 42 )
-            ->andReturn( false );
-
-        $result = UserManager::get_user_emails( 42 );
-
-        $this->assertSame( array(), $result );
-    }
-
-    // ==================================================================
-    // get_user_emails() — with decryption (runInSeparateProcess)
-    // ==================================================================
-
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function test_get_user_emails_decrypts_and_validates_emails(): void {
-        $encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-        $encMock->shouldReceive( 'decrypt' )
-            ->andReturnUsing( function ( $val ) {
-                $map = array(
-                    'enc_email_1' => 'alice@example.com',
-                    'enc_email_2' => 'bob@example.com',
-                );
-                return $map[ $val ] ?? '';
-            } );
-
-        $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array( 'enc_email_1', 'enc_email_2' ) );
-
-        $mock_user             = new \stdClass();
-        $mock_user->user_email = 'alice@example.com';
-
-        Functions\expect( 'get_user_by' )
-            ->once()
-            ->with( 'id', 42 )
-            ->andReturn( $mock_user );
-
-        $result = UserManager::get_user_emails( 42 );
-
-        // alice@example.com should be deduplicated (from encrypted + from user_email)
-        $this->assertContains( 'alice@example.com', $result );
-        $this->assertContains( 'bob@example.com', $result );
-        $this->assertCount( 2, $result );
-    }
-
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function test_get_user_emails_skips_invalid_emails(): void {
-        $encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-        $encMock->shouldReceive( 'decrypt' )
-            ->andReturn( 'not-an-email' );
-
-        $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array( 'enc_bad' ) );
-
-        $mock_user             = new \stdClass();
-        $mock_user->user_email = 'valid@example.com';
-
-        Functions\expect( 'get_user_by' )
-            ->once()
-            ->with( 'id', 42 )
-            ->andReturn( $mock_user );
-
-        $result = UserManager::get_user_emails( 42 );
-
-        // Only the user_email should be included; the decrypted value is invalid
-        $this->assertSame( array( 'valid@example.com' ), $result );
-    }
-
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function test_get_user_emails_handles_decrypt_exception(): void {
-        $encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-        $encMock->shouldReceive( 'decrypt' )
-            ->andThrow( new \Exception( 'Key missing' ) );
-
-        $utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array( 'enc_fail' ) );
-
-        $mock_user             = new \stdClass();
-        $mock_user->user_email = 'user@example.com';
-
-        Functions\expect( 'get_user_by' )
-            ->once()
-            ->with( 'id', 42 )
-            ->andReturn( $mock_user );
-
-        $result = UserManager::get_user_emails( 42 );
-
-        // Only the WP user email should remain
-        $this->assertSame( array( 'user@example.com' ), $result );
-    }
-
-    // ==================================================================
-    // get_user_names()
-    // ==================================================================
-
-    public function test_get_user_names_falls_back_to_display_name_when_no_submissions(): void {
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array() );
-
-        $mock_user               = new \stdClass();
-        $mock_user->display_name = 'Fallback User';
-
-        Functions\expect( 'get_user_by' )
-            ->once()
-            ->with( 'id', 42 )
-            ->andReturn( $mock_user );
-
-        $result = UserManager::get_user_names( 42 );
-
-        $this->assertSame( array( 'Fallback User' ), $result );
-    }
-
-    public function test_get_user_names_returns_empty_when_no_submissions_and_no_user(): void {
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array() );
-
-        Functions\expect( 'get_user_by' )
-            ->once()
-            ->with( 'id', 999 )
-            ->andReturn( false );
-
-        $result = UserManager::get_user_names( 999 );
-
-        $this->assertSame( array(), $result );
-    }
-
-    public function test_get_user_names_extracts_nome_completo_from_json(): void {
-        $submission_data = json_encode( array( 'nome_completo' => 'Maria Silva' ) );
-
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array( $submission_data ) );
-
-        $result = UserManager::get_user_names( 42 );
-
-        $this->assertSame( array( 'Maria Silva' ), $result );
-    }
-
-    public function test_get_user_names_extracts_nome_field(): void {
-        $submission_data = json_encode( array( 'nome' => 'Joao Santos' ) );
-
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array( $submission_data ) );
-
-        $result = UserManager::get_user_names( 42 );
-
-        $this->assertSame( array( 'Joao Santos' ), $result );
-    }
-
-    public function test_get_user_names_extracts_name_field(): void {
-        $submission_data = json_encode( array( 'name' => 'John Doe' ) );
-
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array( $submission_data ) );
-
-        $result = UserManager::get_user_names( 42 );
-
-        $this->assertSame( array( 'John Doe' ), $result );
-    }
-
-    public function test_get_user_names_extracts_full_name_field(): void {
-        $submission_data = json_encode( array( 'full_name' => 'Jane Roe' ) );
-
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array( $submission_data ) );
-
-        $result = UserManager::get_user_names( 42 );
-
-        $this->assertSame( array( 'Jane Roe' ), $result );
-    }
-
-    public function test_get_user_names_extracts_ffc_nome_field(): void {
-        $submission_data = json_encode( array( 'ffc_nome' => 'Pedro Almeida' ) );
-
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array( $submission_data ) );
-
-        $result = UserManager::get_user_names( 42 );
-
-        $this->assertSame( array( 'Pedro Almeida' ), $result );
-    }
-
-    public function test_get_user_names_extracts_participante_field(): void {
-        $submission_data = json_encode( array( 'participante' => 'Ana Costa' ) );
-
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array( $submission_data ) );
-
-        $result = UserManager::get_user_names( 42 );
-
-        $this->assertSame( array( 'Ana Costa' ), $result );
-    }
-
-    public function test_get_user_names_deduplicates_names(): void {
-        $sub1 = json_encode( array( 'nome_completo' => 'Maria Silva' ) );
-        $sub2 = json_encode( array( 'nome_completo' => 'Maria Silva' ) );
-
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array( $sub1, $sub2 ) );
-
-        $result = UserManager::get_user_names( 42 );
-
-        $this->assertCount( 1, $result );
-        $this->assertSame( 'Maria Silva', $result[0] );
-    }
-
-    public function test_get_user_names_collects_multiple_distinct_names(): void {
-        $sub1 = json_encode( array( 'nome_completo' => 'Maria Silva' ) );
-        $sub2 = json_encode( array( 'nome_completo' => 'Maria Santos' ) );
-
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array( $sub1, $sub2 ) );
-
-        $result = UserManager::get_user_names( 42 );
-
-        $this->assertCount( 2, $result );
-        $this->assertContains( 'Maria Silva', $result );
-        $this->assertContains( 'Maria Santos', $result );
-    }
-
-    public function test_get_user_names_skips_invalid_json(): void {
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array( 'not-valid-json', '{"also": "no name field"}' ) );
-
-        $mock_user               = new \stdClass();
-        $mock_user->display_name = 'Fallback Name';
-
-        Functions\expect( 'get_user_by' )
-            ->once()
-            ->with( 'id', 42 )
-            ->andReturn( $mock_user );
-
-        $result = UserManager::get_user_names( 42 );
-
-        // Invalid JSON is skipped, second has no name field, falls back to display_name
-        $this->assertSame( array( 'Fallback Name' ), $result );
-    }
-
-    public function test_get_user_names_falls_back_when_submissions_have_no_name_fields(): void {
-        $sub = json_encode( array( 'email' => 'test@test.com', 'cpf' => '123' ) );
-
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array( $sub ) );
-
-        $mock_user               = new \stdClass();
-        $mock_user->display_name = 'WP Display Name';
-
-        Functions\expect( 'get_user_by' )
-            ->once()
-            ->with( 'id', 42 )
-            ->andReturn( $mock_user );
-
-        $result = UserManager::get_user_names( 42 );
-
-        $this->assertSame( array( 'WP Display Name' ), $result );
-    }
-
-    public function test_get_user_names_prefers_nome_completo_over_other_fields(): void {
-        // nome_completo should be used even if other name fields exist
-        $sub = json_encode( array(
-            'nome_completo' => 'Priority Name',
-            'nome'          => 'Secondary Name',
-            'name'          => 'Tertiary Name',
-        ) );
-
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array( $sub ) );
-
-        $result = UserManager::get_user_names( 42 );
-
-        $this->assertSame( array( 'Priority Name' ), $result );
-    }
-
-    public function test_get_user_names_trims_whitespace(): void {
-        $sub = json_encode( array( 'nome_completo' => '  Trimmed Name  ' ) );
-
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array( $sub ) );
-
-        $result = UserManager::get_user_names( 42 );
-
-        $this->assertSame( array( 'Trimmed Name' ), $result );
-    }
-
-    public function test_get_user_names_skips_empty_name_values(): void {
-        $sub = json_encode( array( 'nome_completo' => '' ) );
-
-        $this->wpdb->shouldReceive( 'get_col' )
-            ->once()
-            ->andReturn( array( $sub ) );
-
-        $mock_user               = new \stdClass();
-        $mock_user->display_name = 'WP Name';
-
-        Functions\expect( 'get_user_by' )
-            ->once()
-            ->with( 'id', 42 )
-            ->andReturn( $mock_user );
-
-        $result = UserManager::get_user_names( 42 );
-
-        $this->assertSame( array( 'WP Name' ), $result );
-    }
-
-    // ==================================================================
-    // Delegation methods — verify they exist as static methods
-    // ==================================================================
-
-    public function test_delegation_methods_exist(): void {
-        $delegation_methods = array(
-            'get_or_create_user',
-            'get_or_create_user_dual',
-            'generate_username',
-        );
-
-        foreach ( $delegation_methods as $method ) {
-            $this->assertTrue(
-                method_exists( UserManager::class, $method ),
-                "UserManager should have static method {$method}()"
-            );
-
-            $reflection = new \ReflectionMethod( UserManager::class, $method );
-            $this->assertTrue(
-                $reflection->isStatic(),
-                "UserManager::{$method}() should be static"
-            );
-            $this->assertTrue(
-                $reflection->isPublic(),
-                "UserManager::{$method}() should be public"
-            );
-        }
-    }
-
-
-
-
-    // ==================================================================
-    // Own methods — verify signatures
-    // ==================================================================
-
-    public function test_get_profile_signature(): void {
-        $ref = new \ReflectionMethod( UserManager::class, 'get_profile' );
-        $this->assertTrue( $ref->isStatic() );
-        $this->assertTrue( $ref->isPublic() );
-        $this->assertCount( 1, $ref->getParameters() );
-        $this->assertSame( 'array', $ref->getReturnType()->getName() );
-    }
-
-    public function test_update_profile_signature(): void {
-        $ref = new \ReflectionMethod( UserManager::class, 'update_profile' );
-        $this->assertTrue( $ref->isStatic() );
-        $this->assertTrue( $ref->isPublic() );
-        $this->assertCount( 2, $ref->getParameters() );
-        $this->assertSame( 'bool', $ref->getReturnType()->getName() );
-    }
-
-    public function test_get_user_cpf_masked_signature(): void {
-        $ref = new \ReflectionMethod( UserManager::class, 'get_user_cpf_masked' );
-        $this->assertTrue( $ref->isStatic() );
-        $this->assertTrue( $ref->isPublic() );
-        $this->assertCount( 1, $ref->getParameters() );
-        $this->assertTrue( $ref->getReturnType()->allowsNull() );
-    }
-
-    public function test_get_user_cpfs_masked_signature(): void {
-        $ref = new \ReflectionMethod( UserManager::class, 'get_user_cpfs_masked' );
-        $this->assertTrue( $ref->isStatic() );
-        $this->assertTrue( $ref->isPublic() );
-        $this->assertCount( 1, $ref->getParameters() );
-        $this->assertSame( 'array', $ref->getReturnType()->getName() );
-    }
-
-    public function test_get_user_identifiers_masked_signature(): void {
-        $ref = new \ReflectionMethod( UserManager::class, 'get_user_identifiers_masked' );
-        $this->assertTrue( $ref->isStatic() );
-        $this->assertTrue( $ref->isPublic() );
-        $this->assertCount( 1, $ref->getParameters() );
-        $this->assertSame( 'array', $ref->getReturnType()->getName() );
-    }
-
-    public function test_get_user_emails_signature(): void {
-        $ref = new \ReflectionMethod( UserManager::class, 'get_user_emails' );
-        $this->assertTrue( $ref->isStatic() );
-        $this->assertTrue( $ref->isPublic() );
-        $this->assertCount( 1, $ref->getParameters() );
-        $this->assertSame( 'array', $ref->getReturnType()->getName() );
-    }
-
-    public function test_get_user_names_signature(): void {
-        $ref = new \ReflectionMethod( UserManager::class, 'get_user_names' );
-        $this->assertTrue( $ref->isStatic() );
-        $this->assertTrue( $ref->isPublic() );
-        $this->assertCount( 1, $ref->getParameters() );
-        $this->assertSame( 'array', $ref->getReturnType()->getName() );
-    }
-
-    // ==================================================================
-    // update_extended_profile() — splits between ffc_user_profiles table
-    // and wp_usermeta['ffc_user_*'], encrypts sensitive keys, stores a
-    // lookup hash alongside. Pins the contract that the future
-    // UserProfileService must preserve.
-    // ==================================================================
-
-    public function test_update_extended_profile_returns_false_on_empty_payload(): void {
-        $this->assertFalse( UserManager::update_extended_profile( 42, array() ) );
-    }
-
-    public function test_update_extended_profile_routes_table_keys_to_update_profile(): void {
-        // display_name and phone are table-backed (PROFILE_TABLE_KEYS).
-        // The extended method must delegate them to update_profile so the
-        // ffc_user_profiles row is updated — not dropped into usermeta.
-        $this->wpdb->shouldReceive( 'get_var' )->andReturnUsing( function ( $sql ) {
-            if ( is_string( $sql ) && false !== strpos( $sql, 'SHOW TABLES' ) ) {
-                return 'wp_ffc_user_profiles';
-            }
-            return 1; // pretend the user row already exists
-        } );
-        $captured_update = null;
-        $this->wpdb->shouldReceive( 'update' )
-            ->once()
-            ->andReturnUsing( function ( $table, $data ) use ( &$captured_update ) {
-                $captured_update = $data;
-                return 1;
-            } );
-
-        Functions\when( 'sanitize_key' )->returnArg();
-        Functions\when( 'update_user_meta' )->justReturn( true );
-        Functions\when( 'wp_update_user' )->justReturn( 42 );
-
-        $result = UserManager::update_extended_profile( 42, array(
-            'display_name' => 'Alice',
-            'phone'        => '555-0100',
-        ) );
-
-        $this->assertTrue( $result );
-        $this->assertIsArray( $captured_update );
-        $this->assertSame( 'Alice', $captured_update['display_name'] );
-        $this->assertSame( '555-0100', $captured_update['phone'] );
-    }
-
-    public function test_update_extended_profile_stores_non_sensitive_key_as_plain_usermeta(): void {
-        $this->mock_table_exists( 'wp_ffc_user_profiles', false );
-
-        Functions\when( 'sanitize_key' )->returnArg();
-
-        $captured = array();
-        Functions\when( 'update_user_meta' )->alias( function ( $uid, $key, $value ) use ( &$captured ) {
-            $captured[ $key ] = $value;
-            return true;
-        } );
-
-        $result = UserManager::update_extended_profile( 42, array(
-            'custom_color' => 'blue',
-        ) );
-
-        $this->assertTrue( $result );
-        // Non-sensitive key lands verbatim under the ffc_user_ prefix.
-        $this->assertArrayHasKey( 'ffc_user_custom_color', $captured );
-        $this->assertSame( 'blue', $captured['ffc_user_custom_color'] );
-        // No encrypted variant and no hash column for non-sensitive keys.
-        $this->assertArrayNotHasKey( 'ffc_user_custom_color_hash', $captured );
-    }
-
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function test_update_extended_profile_encrypts_sensitive_key_and_stores_hash(): void {
-        $enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-        $enc->shouldReceive( 'encrypt' )->with( '12345678901' )->once()->andReturn( 'ENC' );
-        $enc->shouldReceive( 'hash' )->with( '12345678901' )->once()->andReturn( 'HASH' );
-
-        $this->mock_table_exists( 'wp_ffc_user_profiles', false );
-        Functions\when( 'sanitize_key' )->returnArg();
-
-        $captured = array();
-        Functions\when( 'update_user_meta' )->alias( function ( $uid, $key, $value ) use ( &$captured ) {
-            $captured[ $key ] = $value;
-            return true;
-        } );
-
-        $result = UserManager::update_extended_profile(
-            42,
-            array( 'cpf' => '12345678901' ),
-            array( 'cpf' )
-        );
-
-        $this->assertTrue( $result );
-        // Sensitive key: ciphertext stored under ffc_user_<key>, hash under ffc_user_<key>_hash.
-        $this->assertSame( 'ENC', $captured['ffc_user_cpf'] );
-        $this->assertSame( 'HASH', $captured['ffc_user_cpf_hash'] );
-    }
-
-    public function test_update_extended_profile_deletes_usermeta_when_sensitive_value_empty(): void {
-        $this->mock_table_exists( 'wp_ffc_user_profiles', false );
-        Functions\when( 'sanitize_key' )->returnArg();
-
-        $deleted_keys = array();
-        Functions\when( 'delete_user_meta' )->alias( function ( $uid, $key ) use ( &$deleted_keys ) {
-            $deleted_keys[] = $key;
-            return true;
-        } );
-        Functions\when( 'update_user_meta' )->justReturn( true );
-
-        UserManager::update_extended_profile(
-            42,
-            array( 'cpf' => '' ),
-            array( 'cpf' )
-        );
-
-        // Empty sensitive value must delete BOTH the ciphertext meta and
-        // its lookup hash so a stale hash never survives the field being
-        // cleared.
-        $this->assertContains( 'ffc_user_cpf', $deleted_keys );
-        $this->assertContains( 'ffc_user_cpf_hash', $deleted_keys );
-    }
-
-    // ==================================================================
-    // get_extended_profile() — merges table columns and extra usermeta
-    // entries, decrypting values flagged sensitive.
-    // ==================================================================
-
-    public function test_get_extended_profile_reads_table_keys_and_plain_extra_meta(): void {
-        $this->mock_table_exists( 'wp_ffc_user_profiles', true );
-        $this->wpdb->shouldReceive( 'get_row' )
-            ->andReturn( array(
-                'display_name' => 'Alice',
-                'phone'        => '555-0100',
-                'department'   => 'Sales',
-                'organization' => 'Acme',
-                'notes'        => '',
-            ) );
-
-        Functions\when( 'sanitize_key' )->returnArg();
-        Functions\when( 'get_user_meta' )->alias( function ( $uid, $key ) {
-            return 'blue' === 'blue' && 'ffc_user_custom_color' === $key ? 'blue' : '';
-        } );
-
-        $profile = UserManager::get_extended_profile(
-            42,
-            array( 'custom_color' ),
-            array() // none sensitive
-        );
-
-        // Table-backed profile keys come back.
-        $this->assertSame( 'Alice', $profile['display_name'] );
-        $this->assertSame( '555-0100', $profile['phone'] );
-        // Extra non-sensitive key is merged in as-is.
-        $this->assertSame( 'blue', $profile['custom_color'] );
-    }
-
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
-    public function test_get_extended_profile_decrypts_sensitive_extra_meta(): void {
-        $enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-        $enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( '12345678901' );
-
-        $this->mock_table_exists( 'wp_ffc_user_profiles', true );
-        // get_row returning a non-empty row keeps get_profile on the fast
-        // path and avoids its get_userdata() fallback (not mocked here).
-        $this->wpdb->shouldReceive( 'get_row' )->andReturn( array(
-            'display_name' => 'Alice',
-            'phone'        => '',
-            'department'   => '',
-            'organization' => '',
-            'notes'        => '',
-        ) );
-
-        Functions\when( 'sanitize_key' )->returnArg();
-        Functions\when( 'get_user_meta' )->alias( function ( $uid, $key ) {
-            return 'ffc_user_cpf' === $key ? 'ENC_CPF' : '';
-        } );
-
-        $profile = UserManager::get_extended_profile(
-            42,
-            array( 'cpf' ),
-            array( 'cpf' )
-        );
-
-        $this->assertSame( '12345678901', $profile['cpf'] );
-    }
-
-    public function test_get_extended_profile_ignores_profile_table_keys_listed_in_extras(): void {
-        // display_name is already in the table-backed profile; passing it as
-        // an extra key must be a no-op, not a duplicate meta read.
-        $this->mock_table_exists( 'wp_ffc_user_profiles', true );
-        $this->wpdb->shouldReceive( 'get_row' )
-            ->andReturn( array(
-                'display_name' => 'Alice',
-                'phone'        => '',
-                'department'   => '',
-                'organization' => '',
-                'notes'        => '',
-            ) );
-
-        Functions\when( 'sanitize_key' )->returnArg();
-        Functions\when( 'get_user_meta' )->justReturn( 'WRONG' );
-
-        $profile = UserManager::get_extended_profile( 42, array( 'display_name' ) );
-
-        $this->assertSame( 'Alice', $profile['display_name'] );
-        // Should NOT have been overwritten by the get_user_meta stub.
-        $this->assertNotSame( 'WRONG', $profile['display_name'] );
-    }
-
-    public function test_update_extended_profile_signature(): void {
-        $ref = new \ReflectionMethod( UserManager::class, 'update_extended_profile' );
-        $this->assertTrue( $ref->isStatic() );
-        $this->assertTrue( $ref->isPublic() );
-        $this->assertCount( 3, $ref->getParameters() );
-        $this->assertSame( 'bool', $ref->getReturnType()->getName() );
-    }
-
-    public function test_get_extended_profile_signature(): void {
-        $ref = new \ReflectionMethod( UserManager::class, 'get_extended_profile' );
-        $this->assertTrue( $ref->isStatic() );
-        $this->assertTrue( $ref->isPublic() );
-        $this->assertCount( 3, $ref->getParameters() );
-        $this->assertSame( 'array', $ref->getReturnType()->getName() );
-    }
+	use MockeryPHPUnitIntegration;
+
+	/** @var Mockery\MockInterface */
+	private $wpdb;
+
+	protected function setUp(): void {
+		parent::setUp();
+		Monkey\setUp();
+
+		global $wpdb;
+		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();
+		$wpdb->prefix = 'wp_';
+		$wpdb->last_error = '';
+		$this->wpdb   = $wpdb;
+
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		Functions\when( 'wp_cache_flush_group' )->justReturn( true );
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults = array() ) {
+			return array_merge( $defaults, $args );
+		} );
+		Functions\when( 'sanitize_text_field' )->alias( 'trim' );
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'absint' )->alias( function ( $val ) {
+			return abs( intval( $val ) );
+		} );
+		Functions\when( 'current_time' )->justReturn( '2026-03-01 12:00:00' );
+		Functions\when( 'is_email' )->alias( function ( $email ) {
+			return (bool) filter_var( $email, FILTER_VALIDATE_EMAIL ) ? $email : false;
+		} );
+		Functions\when( 'get_option' )->justReturn( array() );
+
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () {
+			return func_get_args()[0];
+		} )->byDefault();
+	}
+
+	protected function tearDown(): void {
+		Monkey\tearDown();
+		parent::tearDown();
+	}
+
+	// ==================================================================
+	// Helper: make table_exists return true or false
+	// ==================================================================
+
+	/**
+	 * Configure the wpdb mock so that table_exists() returns $exists.
+	 *
+	 * table_exists uses: $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name))
+	 * When it returns the table name string, table_exists() === true.
+	 * When it returns null, table_exists() === false.
+	 */
+	private function mock_table_exists( string $table_name, bool $exists ): void {
+		$this->wpdb->shouldReceive( 'get_var' )
+			->with( 'SHOW TABLES LIKE %s' )
+			->andReturn( $exists ? $table_name : null )
+			->byDefault();
+	}
+
+	// ==================================================================
+	// get_profile()
+	// ==================================================================
+
+	public function test_get_profile_returns_profile_from_custom_table(): void {
+		$profile_row = array(
+			'id'           => 1,
+			'user_id'      => 42,
+			'display_name' => 'Alice Smith',
+			'phone'        => '+5511999999999',
+			'department'   => 'Engineering',
+			'organization' => 'ACME',
+			'notes'        => 'VIP user',
+			'preferences'  => '{"theme":"dark"}',
+			'created_at'   => '2025-01-01 00:00:00',
+			'updated_at'   => '2025-06-01 00:00:00',
+		);
+
+		// table_exists returns true
+		$this->wpdb->shouldReceive( 'get_var' )
+			->with( 'SHOW TABLES LIKE %s' )
+			->once()
+			->andReturn( 'wp_ffc_user_profiles' );
+
+		// get_row returns the profile
+		$this->wpdb->shouldReceive( 'get_row' )
+			->once()
+			->andReturn( $profile_row );
+
+		$result = UserManager::get_profile( 42 );
+
+		$this->assertSame( $profile_row, $result );
+	}
+
+	public function test_get_profile_falls_back_to_userdata_when_table_exists_but_no_row(): void {
+		// table_exists returns true
+		$this->wpdb->shouldReceive( 'get_var' )
+			->with( 'SHOW TABLES LIKE %s' )
+			->once()
+			->andReturn( 'wp_ffc_user_profiles' );
+
+		// get_row returns null (no profile in custom table)
+		$this->wpdb->shouldReceive( 'get_row' )
+			->once()
+			->andReturn( null );
+
+		$mock_user                  = new \stdClass();
+		$mock_user->display_name    = 'Bob Jones';
+		$mock_user->user_registered = '2024-12-15 10:30:00';
+
+		Functions\expect( 'get_userdata' )
+			->once()
+			->with( 99 )
+			->andReturn( $mock_user );
+
+		$result = UserManager::get_profile( 99 );
+
+		$this->assertSame( 99, $result['user_id'] );
+		$this->assertSame( 'Bob Jones', $result['display_name'] );
+		$this->assertSame( '', $result['phone'] );
+		$this->assertSame( '', $result['department'] );
+		$this->assertSame( '', $result['organization'] );
+		$this->assertSame( '', $result['notes'] );
+		$this->assertNull( $result['preferences'] );
+		$this->assertSame( '2024-12-15 10:30:00', $result['created_at'] );
+		$this->assertSame( '2024-12-15 10:30:00', $result['updated_at'] );
+	}
+
+	public function test_get_profile_falls_back_to_userdata_when_table_not_exists(): void {
+		// table_exists returns false
+		$this->wpdb->shouldReceive( 'get_var' )
+			->with( 'SHOW TABLES LIKE %s' )
+			->once()
+			->andReturn( null );
+
+		$mock_user                  = new \stdClass();
+		$mock_user->display_name    = 'Carol';
+		$mock_user->user_registered = '2025-03-10 08:00:00';
+
+		Functions\expect( 'get_userdata' )
+			->once()
+			->with( 7 )
+			->andReturn( $mock_user );
+
+		$result = UserManager::get_profile( 7 );
+
+		$this->assertSame( 7, $result['user_id'] );
+		$this->assertSame( 'Carol', $result['display_name'] );
+	}
+
+	public function test_get_profile_returns_empty_array_when_no_table_and_no_user(): void {
+		// table_exists returns false
+		$this->wpdb->shouldReceive( 'get_var' )
+			->with( 'SHOW TABLES LIKE %s' )
+			->once()
+			->andReturn( null );
+
+		Functions\expect( 'get_userdata' )
+			->once()
+			->with( 999 )
+			->andReturn( false );
+
+		$result = UserManager::get_profile( 999 );
+
+		$this->assertSame( array(), $result );
+	}
+
+	// ==================================================================
+	// update_profile()
+	// ==================================================================
+
+	public function test_update_profile_returns_false_when_no_allowed_fields(): void {
+		// The facade drops unknown keys before delegating to the service.
+		$result = UserManager::update_profile( 42, array( 'unknown_field' => 'value' ) );
+
+		$this->assertFalse( $result );
+	}
+
+	public function test_update_profile_updates_existing_row(): void {
+		// Row already exists — service takes the UPDATE branch.
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '5' );
+		$this->wpdb->shouldReceive( 'update' )
+			->once()
+			->andReturn( 1 );
+
+		Functions\expect( 'wp_update_user' )
+			->once()
+			->andReturn( 42 );
+
+		$result = UserManager::update_profile( 42, array(
+			'display_name' => 'Updated Name',
+			'phone'        => '+5511888888888',
+		) );
+
+		$this->assertTrue( $result );
+	}
+
+	public function test_update_profile_inserts_new_row_when_not_exists(): void {
+		// Row does NOT exist — service takes the INSERT branch.
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$this->wpdb->shouldReceive( 'insert' )
+			->once()
+			->andReturn( 1 );
+
+		$result = UserManager::update_profile( 42, array(
+			'department'   => 'HR',
+			'organization' => 'ACME Corp',
+		) );
+
+		$this->assertTrue( $result );
+	}
+
+	public function test_update_profile_handles_preferences_json(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '3' );
+		$this->wpdb->shouldReceive( 'update' )
+			->once()
+			->withArgs( function ( $table, $data ) {
+				return isset( $data['preferences'] )
+					&& is_string( $data['preferences'] )
+					&& json_decode( $data['preferences'], true ) === array( 'theme' => 'dark', 'lang' => 'pt-BR' );
+			} )
+			->andReturn( 1 );
+
+		$result = UserManager::update_profile( 10, array(
+			'preferences' => array( 'theme' => 'dark', 'lang' => 'pt-BR' ),
+		) );
+
+		$this->assertTrue( $result );
+	}
+
+	public function test_update_profile_also_calls_wp_update_user_for_display_name(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '1' );
+		$this->wpdb->shouldReceive( 'update' )->andReturn( 1 );
+
+		// display_name mirrors to wp_users via the UserProfileService
+		// mirror mechanism. We only assert the mirror call fires with
+		// the expected value — the field map wiring is covered separately.
+		$captured_args = null;
+		Functions\when( 'wp_update_user' )->alias( function ( $args ) use ( &$captured_args ) {
+			if ( isset( $args['display_name'] ) ) {
+				$captured_args = $args;
+			}
+			return 42;
+		} );
+
+		$result = UserManager::update_profile( 42, array( 'display_name' => 'New Display Name' ) );
+
+		$this->assertTrue( $result );
+		$this->assertIsArray( $captured_args );
+		$this->assertSame( 42, $captured_args['ID'] );
+		$this->assertSame( 'New Display Name', $captured_args['display_name'] );
+	}
+
+	public function test_update_profile_returns_false_on_db_failure(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '1' );
+		// Service's wpdb->update returns false → write() returns false → facade returns false.
+		$this->wpdb->shouldReceive( 'update' )
+			->once()
+			->andReturn( false );
+
+		$result = UserManager::update_profile( 42, array( 'phone' => '123' ) );
+
+		$this->assertFalse( $result );
+	}
+
+	public function test_update_profile_sanitizes_allowed_fields_only(): void {
+		// Row does not exist → service takes the INSERT branch.
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+
+		$this->wpdb->shouldReceive( 'insert' )
+			->once()
+			->withArgs( function ( $table, $data ) {
+				// Only the allowed 'notes' field plus the service's user_id
+				// should reach the insert; 'evil_field' must be stripped.
+				return ! isset( $data['evil_field'] )
+					&& isset( $data['notes'] )
+					&& $data['notes'] === 'Some notes'
+					&& isset( $data['user_id'] )
+					&& $data['user_id'] === 5;
+			} )
+			->andReturn( 1 );
+
+		$result = UserManager::update_profile( 5, array(
+			'notes'      => 'Some notes',
+			'evil_field' => 'should be ignored',
+		) );
+
+		$this->assertTrue( $result );
+	}
+
+	// ==================================================================
+	// get_user_cpf_masked()
+	// ==================================================================
+
+	public function test_get_user_cpf_masked_returns_null_when_no_cpfs(): void {
+		// get_user_cpfs_masked will query $wpdb. Make get_results return empty.
+		$this->wpdb->shouldReceive( 'get_results' )
+			->once()
+			->andReturn( array() );
+
+		$result = UserManager::get_user_cpf_masked( 42 );
+
+		$this->assertNull( $result );
+	}
+
+	// ==================================================================
+	// get_user_cpfs_masked() — empty results path
+	// ==================================================================
+
+	public function test_get_user_cpfs_masked_returns_empty_when_no_rows(): void {
+		$this->wpdb->shouldReceive( 'get_results' )
+			->once()
+			->andReturn( array() );
+
+		$result = UserManager::get_user_cpfs_masked( 42 );
+
+		$this->assertSame( array(), $result );
+	}
+
+	public function test_get_user_cpfs_masked_returns_empty_when_null_results(): void {
+		$this->wpdb->shouldReceive( 'get_results' )
+			->once()
+			->andReturn( null );
+
+		$result = UserManager::get_user_cpfs_masked( 42 );
+
+		$this->assertSame( array(), $result );
+	}
+
+	// ==================================================================
+	// get_user_cpfs_masked() — with decryption (runInSeparateProcess)
+	// ==================================================================
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_get_user_cpfs_masked_decrypts_and_masks_cpf(): void {
+		// Alias mock for Encryption::decrypt
+		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$encMock->shouldReceive( 'decrypt' )
+			->with( 'enc_cpf_123' )
+			->once()
+			->andReturn( '12345678901' );
+
+		// Alias mock for DocumentFormatter::mask_cpf
+		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
+		$fmtMock->shouldReceive( 'mask_cpf' )
+			->with( '12345678901' )
+			->once()
+			->andReturn( '123.***.***-01' );
+
+		// Alias mock for Utils::get_submissions_table
+		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
+
+		$this->wpdb->shouldReceive( 'get_results' )
+			->once()
+			->andReturn( array(
+				array( 'cpf_encrypted' => 'enc_cpf_123', 'rf_encrypted' => null ),
+			) );
+
+		$result = UserManager::get_user_cpfs_masked( 42 );
+
+		$this->assertSame( array( '123.***.***-01' ), $result );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_get_user_cpfs_masked_handles_decrypt_exception(): void {
+		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$encMock->shouldReceive( 'decrypt' )
+			->andThrow( new \Exception( 'Decryption failed' ) );
+
+		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
+		$fmtMock->shouldReceive( 'mask_cpf' )->never();
+
+		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
+
+		$this->wpdb->shouldReceive( 'get_results' )
+			->once()
+			->andReturn( array(
+				array( 'cpf_encrypted' => 'bad_data', 'rf_encrypted' => null ),
+			) );
+
+		$result = UserManager::get_user_cpfs_masked( 42 );
+
+		$this->assertSame( array(), $result );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_get_user_cpfs_masked_deduplicates_results(): void {
+		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$encMock->shouldReceive( 'decrypt' )
+			->andReturn( '12345678901' );
+
+		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
+		$fmtMock->shouldReceive( 'mask_cpf' )
+			->andReturn( '123.***.***-01' );
+
+		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
+
+		// Two rows with the same CPF → should deduplicate
+		$this->wpdb->shouldReceive( 'get_results' )
+			->once()
+			->andReturn( array(
+				array( 'cpf_encrypted' => 'enc_cpf', 'rf_encrypted' => null ),
+				array( 'cpf_encrypted' => 'enc_cpf', 'rf_encrypted' => null ),
+			) );
+
+		$result = UserManager::get_user_cpfs_masked( 42 );
+
+		$this->assertCount( 1, $result );
+		$this->assertSame( '123.***.***-01', $result[0] );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_get_user_cpfs_masked_uses_rf_when_cpf_empty(): void {
+		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$encMock->shouldReceive( 'decrypt' )
+			->with( 'enc_rf_456' )
+			->once()
+			->andReturn( 'RF12345' );
+
+		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
+		$fmtMock->shouldReceive( 'mask_cpf' )
+			->with( 'RF12345' )
+			->once()
+			->andReturn( 'RF1***5' );
+
+		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
+
+		$this->wpdb->shouldReceive( 'get_results' )
+			->once()
+			->andReturn( array(
+				array( 'cpf_encrypted' => null, 'rf_encrypted' => 'enc_rf_456' ),
+			) );
+
+		$result = UserManager::get_user_cpfs_masked( 42 );
+
+		$this->assertSame( array( 'RF1***5' ), $result );
+	}
+
+	// ==================================================================
+	// get_user_cpf_masked() — with decryption (runInSeparateProcess)
+	// ==================================================================
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_get_user_cpf_masked_returns_first_cpf(): void {
+		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$encMock->shouldReceive( 'decrypt' )
+			->andReturnUsing( function ( $val ) {
+				return $val === 'enc1' ? '11111111111' : '22222222222';
+			} );
+
+		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
+		$fmtMock->shouldReceive( 'mask_cpf' )
+			->andReturnUsing( function ( $val ) {
+				return $val === '11111111111' ? '111.***.***-11' : '222.***.***-22';
+			} );
+
+		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
+
+		$this->wpdb->shouldReceive( 'get_results' )
+			->once()
+			->andReturn( array(
+				array( 'cpf_encrypted' => 'enc1', 'rf_encrypted' => null ),
+				array( 'cpf_encrypted' => 'enc2', 'rf_encrypted' => null ),
+			) );
+
+		$result = UserManager::get_user_cpf_masked( 42 );
+
+		$this->assertSame( '111.***.***-11', $result );
+	}
+
+	// ==================================================================
+	// get_user_identifiers_masked() — empty results path
+	// ==================================================================
+
+	public function test_get_user_identifiers_masked_returns_empty_arrays_when_no_rows(): void {
+		$this->wpdb->shouldReceive( 'get_results' )
+			->once()
+			->andReturn( array() );
+
+		$result = UserManager::get_user_identifiers_masked( 42 );
+
+		$this->assertSame( array( 'cpfs' => array(), 'rfs' => array() ), $result );
+	}
+
+	public function test_get_user_identifiers_masked_returns_empty_arrays_when_null(): void {
+		$this->wpdb->shouldReceive( 'get_results' )
+			->once()
+			->andReturn( null );
+
+		$result = UserManager::get_user_identifiers_masked( 42 );
+
+		$this->assertSame( array( 'cpfs' => array(), 'rfs' => array() ), $result );
+	}
+
+	// ==================================================================
+	// get_user_identifiers_masked() — with decryption
+	// ==================================================================
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_get_user_identifiers_masked_separates_cpfs_and_rfs(): void {
+		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$encMock->shouldReceive( 'decrypt' )
+			->andReturnUsing( function ( $val ) {
+				$map = array(
+					'enc_cpf' => '12345678901',
+					'enc_rf'  => 'RF999',
+				);
+				return $map[ $val ] ?? '';
+			} );
+
+		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
+		$fmtMock->shouldReceive( 'mask_cpf' )
+			->andReturnUsing( function ( $val ) {
+				$map = array(
+					'12345678901' => '123.***.***-01',
+					'RF999'       => 'RF***9',
+				);
+				return $map[ $val ] ?? '';
+			} );
+
+		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
+
+		$this->wpdb->shouldReceive( 'get_results' )
+			->once()
+			->andReturn( array(
+				array( 'cpf_encrypted' => 'enc_cpf', 'rf_encrypted' => null ),
+				array( 'cpf_encrypted' => null, 'rf_encrypted' => 'enc_rf' ),
+			) );
+
+		$result = UserManager::get_user_identifiers_masked( 42 );
+
+		$this->assertSame( array( '123.***.***-01' ), $result['cpfs'] );
+		$this->assertSame( array( 'RF***9' ), $result['rfs'] );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_get_user_identifiers_masked_handles_exception(): void {
+		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$encMock->shouldReceive( 'decrypt' )
+			->andThrow( new \Exception( 'Decryption error' ) );
+
+		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
+		$fmtMock->shouldReceive( 'mask_cpf' )->never();
+
+		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
+
+		$this->wpdb->shouldReceive( 'get_results' )
+			->once()
+			->andReturn( array(
+				array( 'cpf_encrypted' => 'bad', 'rf_encrypted' => null ),
+			) );
+
+		$result = UserManager::get_user_identifiers_masked( 42 );
+
+		$this->assertSame( array( 'cpfs' => array(), 'rfs' => array() ), $result );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_get_user_identifiers_masked_deduplicates(): void {
+		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$encMock->shouldReceive( 'decrypt' )
+			->andReturn( '12345678901' );
+
+		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
+		$fmtMock->shouldReceive( 'mask_cpf' )
+			->andReturn( '123.***.***-01' );
+
+		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
+
+		// Same CPF in two rows
+		$this->wpdb->shouldReceive( 'get_results' )
+			->once()
+			->andReturn( array(
+				array( 'cpf_encrypted' => 'enc_cpf', 'rf_encrypted' => null ),
+				array( 'cpf_encrypted' => 'enc_cpf', 'rf_encrypted' => null ),
+			) );
+
+		$result = UserManager::get_user_identifiers_masked( 42 );
+
+		$this->assertCount( 1, $result['cpfs'] );
+		$this->assertEmpty( $result['rfs'] );
+	}
+
+	// ==================================================================
+	// get_user_emails() — empty results path
+	// ==================================================================
+
+	public function test_get_user_emails_falls_back_to_user_email_when_no_encrypted(): void {
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array() );
+
+		$mock_user             = new \stdClass();
+		$mock_user->user_email = 'fallback@example.com';
+
+		Functions\expect( 'get_user_by' )
+			->once()
+			->with( 'id', 42 )
+			->andReturn( $mock_user );
+
+		$result = UserManager::get_user_emails( 42 );
+
+		$this->assertSame( array( 'fallback@example.com' ), $result );
+	}
+
+	public function test_get_user_emails_returns_empty_when_no_encrypted_and_no_user(): void {
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array() );
+
+		Functions\expect( 'get_user_by' )
+			->once()
+			->with( 'id', 999 )
+			->andReturn( false );
+
+		$result = UserManager::get_user_emails( 999 );
+
+		$this->assertSame( array(), $result );
+	}
+
+	public function test_get_user_emails_returns_empty_when_null_results_and_no_user(): void {
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( null );
+
+		Functions\expect( 'get_user_by' )
+			->once()
+			->with( 'id', 42 )
+			->andReturn( false );
+
+		$result = UserManager::get_user_emails( 42 );
+
+		$this->assertSame( array(), $result );
+	}
+
+	// ==================================================================
+	// get_user_emails() — with decryption (runInSeparateProcess)
+	// ==================================================================
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_get_user_emails_decrypts_and_validates_emails(): void {
+		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$encMock->shouldReceive( 'decrypt' )
+			->andReturnUsing( function ( $val ) {
+				$map = array(
+					'enc_email_1' => 'alice@example.com',
+					'enc_email_2' => 'bob@example.com',
+				);
+				return $map[ $val ] ?? '';
+			} );
+
+		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
+
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array( 'enc_email_1', 'enc_email_2' ) );
+
+		$mock_user             = new \stdClass();
+		$mock_user->user_email = 'alice@example.com';
+
+		Functions\expect( 'get_user_by' )
+			->once()
+			->with( 'id', 42 )
+			->andReturn( $mock_user );
+
+		$result = UserManager::get_user_emails( 42 );
+
+		// alice@example.com should be deduplicated (from encrypted + from user_email)
+		$this->assertContains( 'alice@example.com', $result );
+		$this->assertContains( 'bob@example.com', $result );
+		$this->assertCount( 2, $result );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_get_user_emails_skips_invalid_emails(): void {
+		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$encMock->shouldReceive( 'decrypt' )
+			->andReturn( 'not-an-email' );
+
+		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
+
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array( 'enc_bad' ) );
+
+		$mock_user             = new \stdClass();
+		$mock_user->user_email = 'valid@example.com';
+
+		Functions\expect( 'get_user_by' )
+			->once()
+			->with( 'id', 42 )
+			->andReturn( $mock_user );
+
+		$result = UserManager::get_user_emails( 42 );
+
+		// Only the user_email should be included; the decrypted value is invalid
+		$this->assertSame( array( 'valid@example.com' ), $result );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_get_user_emails_handles_decrypt_exception(): void {
+		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$encMock->shouldReceive( 'decrypt' )
+			->andThrow( new \Exception( 'Key missing' ) );
+
+		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
+
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array( 'enc_fail' ) );
+
+		$mock_user             = new \stdClass();
+		$mock_user->user_email = 'user@example.com';
+
+		Functions\expect( 'get_user_by' )
+			->once()
+			->with( 'id', 42 )
+			->andReturn( $mock_user );
+
+		$result = UserManager::get_user_emails( 42 );
+
+		// Only the WP user email should remain
+		$this->assertSame( array( 'user@example.com' ), $result );
+	}
+
+	// ==================================================================
+	// get_user_names()
+	// ==================================================================
+
+	public function test_get_user_names_falls_back_to_display_name_when_no_submissions(): void {
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array() );
+
+		$mock_user               = new \stdClass();
+		$mock_user->display_name = 'Fallback User';
+
+		Functions\expect( 'get_user_by' )
+			->once()
+			->with( 'id', 42 )
+			->andReturn( $mock_user );
+
+		$result = UserManager::get_user_names( 42 );
+
+		$this->assertSame( array( 'Fallback User' ), $result );
+	}
+
+	public function test_get_user_names_returns_empty_when_no_submissions_and_no_user(): void {
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array() );
+
+		Functions\expect( 'get_user_by' )
+			->once()
+			->with( 'id', 999 )
+			->andReturn( false );
+
+		$result = UserManager::get_user_names( 999 );
+
+		$this->assertSame( array(), $result );
+	}
+
+	public function test_get_user_names_extracts_nome_completo_from_json(): void {
+		$submission_data = json_encode( array( 'nome_completo' => 'Maria Silva' ) );
+
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array( $submission_data ) );
+
+		$result = UserManager::get_user_names( 42 );
+
+		$this->assertSame( array( 'Maria Silva' ), $result );
+	}
+
+	public function test_get_user_names_extracts_nome_field(): void {
+		$submission_data = json_encode( array( 'nome' => 'Joao Santos' ) );
+
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array( $submission_data ) );
+
+		$result = UserManager::get_user_names( 42 );
+
+		$this->assertSame( array( 'Joao Santos' ), $result );
+	}
+
+	public function test_get_user_names_extracts_name_field(): void {
+		$submission_data = json_encode( array( 'name' => 'John Doe' ) );
+
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array( $submission_data ) );
+
+		$result = UserManager::get_user_names( 42 );
+
+		$this->assertSame( array( 'John Doe' ), $result );
+	}
+
+	public function test_get_user_names_extracts_full_name_field(): void {
+		$submission_data = json_encode( array( 'full_name' => 'Jane Roe' ) );
+
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array( $submission_data ) );
+
+		$result = UserManager::get_user_names( 42 );
+
+		$this->assertSame( array( 'Jane Roe' ), $result );
+	}
+
+	public function test_get_user_names_extracts_ffc_nome_field(): void {
+		$submission_data = json_encode( array( 'ffc_nome' => 'Pedro Almeida' ) );
+
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array( $submission_data ) );
+
+		$result = UserManager::get_user_names( 42 );
+
+		$this->assertSame( array( 'Pedro Almeida' ), $result );
+	}
+
+	public function test_get_user_names_extracts_participante_field(): void {
+		$submission_data = json_encode( array( 'participante' => 'Ana Costa' ) );
+
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array( $submission_data ) );
+
+		$result = UserManager::get_user_names( 42 );
+
+		$this->assertSame( array( 'Ana Costa' ), $result );
+	}
+
+	public function test_get_user_names_deduplicates_names(): void {
+		$sub1 = json_encode( array( 'nome_completo' => 'Maria Silva' ) );
+		$sub2 = json_encode( array( 'nome_completo' => 'Maria Silva' ) );
+
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array( $sub1, $sub2 ) );
+
+		$result = UserManager::get_user_names( 42 );
+
+		$this->assertCount( 1, $result );
+		$this->assertSame( 'Maria Silva', $result[0] );
+	}
+
+	public function test_get_user_names_collects_multiple_distinct_names(): void {
+		$sub1 = json_encode( array( 'nome_completo' => 'Maria Silva' ) );
+		$sub2 = json_encode( array( 'nome_completo' => 'Maria Santos' ) );
+
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array( $sub1, $sub2 ) );
+
+		$result = UserManager::get_user_names( 42 );
+
+		$this->assertCount( 2, $result );
+		$this->assertContains( 'Maria Silva', $result );
+		$this->assertContains( 'Maria Santos', $result );
+	}
+
+	public function test_get_user_names_skips_invalid_json(): void {
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array( 'not-valid-json', '{"also": "no name field"}' ) );
+
+		$mock_user               = new \stdClass();
+		$mock_user->display_name = 'Fallback Name';
+
+		Functions\expect( 'get_user_by' )
+			->once()
+			->with( 'id', 42 )
+			->andReturn( $mock_user );
+
+		$result = UserManager::get_user_names( 42 );
+
+		// Invalid JSON is skipped, second has no name field, falls back to display_name
+		$this->assertSame( array( 'Fallback Name' ), $result );
+	}
+
+	public function test_get_user_names_falls_back_when_submissions_have_no_name_fields(): void {
+		$sub = json_encode( array( 'email' => 'test@test.com', 'cpf' => '123' ) );
+
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array( $sub ) );
+
+		$mock_user               = new \stdClass();
+		$mock_user->display_name = 'WP Display Name';
+
+		Functions\expect( 'get_user_by' )
+			->once()
+			->with( 'id', 42 )
+			->andReturn( $mock_user );
+
+		$result = UserManager::get_user_names( 42 );
+
+		$this->assertSame( array( 'WP Display Name' ), $result );
+	}
+
+	public function test_get_user_names_prefers_nome_completo_over_other_fields(): void {
+		// nome_completo should be used even if other name fields exist
+		$sub = json_encode( array(
+			'nome_completo' => 'Priority Name',
+			'nome'          => 'Secondary Name',
+			'name'          => 'Tertiary Name',
+		) );
+
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array( $sub ) );
+
+		$result = UserManager::get_user_names( 42 );
+
+		$this->assertSame( array( 'Priority Name' ), $result );
+	}
+
+	public function test_get_user_names_trims_whitespace(): void {
+		$sub = json_encode( array( 'nome_completo' => '  Trimmed Name  ' ) );
+
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array( $sub ) );
+
+		$result = UserManager::get_user_names( 42 );
+
+		$this->assertSame( array( 'Trimmed Name' ), $result );
+	}
+
+	public function test_get_user_names_skips_empty_name_values(): void {
+		$sub = json_encode( array( 'nome_completo' => '' ) );
+
+		$this->wpdb->shouldReceive( 'get_col' )
+			->once()
+			->andReturn( array( $sub ) );
+
+		$mock_user               = new \stdClass();
+		$mock_user->display_name = 'WP Name';
+
+		Functions\expect( 'get_user_by' )
+			->once()
+			->with( 'id', 42 )
+			->andReturn( $mock_user );
+
+		$result = UserManager::get_user_names( 42 );
+
+		$this->assertSame( array( 'WP Name' ), $result );
+	}
+
+	// ==================================================================
+	// Delegation methods — verify they exist as static methods
+	// ==================================================================
+
+	public function test_delegation_methods_exist(): void {
+		$delegation_methods = array(
+			'get_or_create_user',
+			'get_or_create_user_dual',
+			'generate_username',
+		);
+
+		foreach ( $delegation_methods as $method ) {
+			$this->assertTrue(
+				method_exists( UserManager::class, $method ),
+				"UserManager should have static method {$method}()"
+			);
+
+			$reflection = new \ReflectionMethod( UserManager::class, $method );
+			$this->assertTrue(
+				$reflection->isStatic(),
+				"UserManager::{$method}() should be static"
+			);
+			$this->assertTrue(
+				$reflection->isPublic(),
+				"UserManager::{$method}() should be public"
+			);
+		}
+	}
+
+
+
+
+	// ==================================================================
+	// Own methods — verify signatures
+	// ==================================================================
+
+	public function test_get_profile_signature(): void {
+		$ref = new \ReflectionMethod( UserManager::class, 'get_profile' );
+		$this->assertTrue( $ref->isStatic() );
+		$this->assertTrue( $ref->isPublic() );
+		$this->assertCount( 1, $ref->getParameters() );
+		$this->assertSame( 'array', $ref->getReturnType()->getName() );
+	}
+
+	public function test_update_profile_signature(): void {
+		$ref = new \ReflectionMethod( UserManager::class, 'update_profile' );
+		$this->assertTrue( $ref->isStatic() );
+		$this->assertTrue( $ref->isPublic() );
+		$this->assertCount( 2, $ref->getParameters() );
+		$this->assertSame( 'bool', $ref->getReturnType()->getName() );
+	}
+
+	public function test_get_user_cpf_masked_signature(): void {
+		$ref = new \ReflectionMethod( UserManager::class, 'get_user_cpf_masked' );
+		$this->assertTrue( $ref->isStatic() );
+		$this->assertTrue( $ref->isPublic() );
+		$this->assertCount( 1, $ref->getParameters() );
+		$this->assertTrue( $ref->getReturnType()->allowsNull() );
+	}
+
+	public function test_get_user_cpfs_masked_signature(): void {
+		$ref = new \ReflectionMethod( UserManager::class, 'get_user_cpfs_masked' );
+		$this->assertTrue( $ref->isStatic() );
+		$this->assertTrue( $ref->isPublic() );
+		$this->assertCount( 1, $ref->getParameters() );
+		$this->assertSame( 'array', $ref->getReturnType()->getName() );
+	}
+
+	public function test_get_user_identifiers_masked_signature(): void {
+		$ref = new \ReflectionMethod( UserManager::class, 'get_user_identifiers_masked' );
+		$this->assertTrue( $ref->isStatic() );
+		$this->assertTrue( $ref->isPublic() );
+		$this->assertCount( 1, $ref->getParameters() );
+		$this->assertSame( 'array', $ref->getReturnType()->getName() );
+	}
+
+	public function test_get_user_emails_signature(): void {
+		$ref = new \ReflectionMethod( UserManager::class, 'get_user_emails' );
+		$this->assertTrue( $ref->isStatic() );
+		$this->assertTrue( $ref->isPublic() );
+		$this->assertCount( 1, $ref->getParameters() );
+		$this->assertSame( 'array', $ref->getReturnType()->getName() );
+	}
+
+	public function test_get_user_names_signature(): void {
+		$ref = new \ReflectionMethod( UserManager::class, 'get_user_names' );
+		$this->assertTrue( $ref->isStatic() );
+		$this->assertTrue( $ref->isPublic() );
+		$this->assertCount( 1, $ref->getParameters() );
+		$this->assertSame( 'array', $ref->getReturnType()->getName() );
+	}
+
+	// ==================================================================
+	// update_extended_profile() — splits between ffc_user_profiles table
+	// and wp_usermeta['ffc_user_*'], encrypts sensitive keys, stores a
+	// lookup hash alongside. Pins the contract that the future
+	// UserProfileService must preserve.
+	// ==================================================================
+
+	public function test_update_extended_profile_returns_false_on_empty_payload(): void {
+		$this->assertFalse( UserManager::update_extended_profile( 42, array() ) );
+	}
+
+	public function test_update_extended_profile_routes_table_keys_to_update_profile(): void {
+		// display_name and phone are table-backed (PROFILE_TABLE_KEYS).
+		// The extended method must delegate them to update_profile so the
+		// ffc_user_profiles row is updated — not dropped into usermeta.
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing( function ( $sql ) {
+			if ( is_string( $sql ) && false !== strpos( $sql, 'SHOW TABLES' ) ) {
+				return 'wp_ffc_user_profiles';
+			}
+			return 1; // pretend the user row already exists
+		} );
+		$captured_update = null;
+		$this->wpdb->shouldReceive( 'update' )
+			->once()
+			->andReturnUsing( function ( $table, $data ) use ( &$captured_update ) {
+				$captured_update = $data;
+				return 1;
+			} );
+
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'update_user_meta' )->justReturn( true );
+		Functions\when( 'wp_update_user' )->justReturn( 42 );
+
+		$result = UserManager::update_extended_profile( 42, array(
+			'display_name' => 'Alice',
+			'phone'        => '555-0100',
+		) );
+
+		$this->assertTrue( $result );
+		$this->assertIsArray( $captured_update );
+		$this->assertSame( 'Alice', $captured_update['display_name'] );
+		$this->assertSame( '555-0100', $captured_update['phone'] );
+	}
+
+	public function test_update_extended_profile_stores_non_sensitive_key_as_plain_usermeta(): void {
+		$this->mock_table_exists( 'wp_ffc_user_profiles', false );
+
+		Functions\when( 'sanitize_key' )->returnArg();
+
+		$captured = array();
+		Functions\when( 'update_user_meta' )->alias( function ( $uid, $key, $value ) use ( &$captured ) {
+			$captured[ $key ] = $value;
+			return true;
+		} );
+
+		$result = UserManager::update_extended_profile( 42, array(
+			'custom_color' => 'blue',
+		) );
+
+		$this->assertTrue( $result );
+		// Non-sensitive key lands verbatim under the ffc_user_ prefix.
+		$this->assertArrayHasKey( 'ffc_user_custom_color', $captured );
+		$this->assertSame( 'blue', $captured['ffc_user_custom_color'] );
+		// No encrypted variant and no hash column for non-sensitive keys.
+		$this->assertArrayNotHasKey( 'ffc_user_custom_color_hash', $captured );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_update_extended_profile_encrypts_sensitive_key_and_stores_hash(): void {
+		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$enc->shouldReceive( 'encrypt' )->with( '12345678901' )->once()->andReturn( 'ENC' );
+		$enc->shouldReceive( 'hash' )->with( '12345678901' )->once()->andReturn( 'HASH' );
+
+		$this->mock_table_exists( 'wp_ffc_user_profiles', false );
+		Functions\when( 'sanitize_key' )->returnArg();
+
+		$captured = array();
+		Functions\when( 'update_user_meta' )->alias( function ( $uid, $key, $value ) use ( &$captured ) {
+			$captured[ $key ] = $value;
+			return true;
+		} );
+
+		$result = UserManager::update_extended_profile(
+			42,
+			array( 'cpf' => '12345678901' ),
+			array( 'cpf' )
+		);
+
+		$this->assertTrue( $result );
+		// Sensitive key: ciphertext stored under ffc_user_<key>, hash under ffc_user_<key>_hash.
+		$this->assertSame( 'ENC', $captured['ffc_user_cpf'] );
+		$this->assertSame( 'HASH', $captured['ffc_user_cpf_hash'] );
+	}
+
+	public function test_update_extended_profile_deletes_usermeta_when_sensitive_value_empty(): void {
+		$this->mock_table_exists( 'wp_ffc_user_profiles', false );
+		Functions\when( 'sanitize_key' )->returnArg();
+
+		$deleted_keys = array();
+		Functions\when( 'delete_user_meta' )->alias( function ( $uid, $key ) use ( &$deleted_keys ) {
+			$deleted_keys[] = $key;
+			return true;
+		} );
+		Functions\when( 'update_user_meta' )->justReturn( true );
+
+		UserManager::update_extended_profile(
+			42,
+			array( 'cpf' => '' ),
+			array( 'cpf' )
+		);
+
+		// Empty sensitive value must delete BOTH the ciphertext meta and
+		// its lookup hash so a stale hash never survives the field being
+		// cleared.
+		$this->assertContains( 'ffc_user_cpf', $deleted_keys );
+		$this->assertContains( 'ffc_user_cpf_hash', $deleted_keys );
+	}
+
+	// ==================================================================
+	// get_extended_profile() — merges table columns and extra usermeta
+	// entries, decrypting values flagged sensitive.
+	// ==================================================================
+
+	public function test_get_extended_profile_reads_table_keys_and_plain_extra_meta(): void {
+		$this->mock_table_exists( 'wp_ffc_user_profiles', true );
+		$this->wpdb->shouldReceive( 'get_row' )
+			->andReturn( array(
+				'display_name' => 'Alice',
+				'phone'        => '555-0100',
+				'department'   => 'Sales',
+				'organization' => 'Acme',
+				'notes'        => '',
+			) );
+
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'get_user_meta' )->alias( function ( $uid, $key ) {
+			return 'blue' === 'blue' && 'ffc_user_custom_color' === $key ? 'blue' : '';
+		} );
+
+		$profile = UserManager::get_extended_profile(
+			42,
+			array( 'custom_color' ),
+			array() // none sensitive
+		);
+
+		// Table-backed profile keys come back.
+		$this->assertSame( 'Alice', $profile['display_name'] );
+		$this->assertSame( '555-0100', $profile['phone'] );
+		// Extra non-sensitive key is merged in as-is.
+		$this->assertSame( 'blue', $profile['custom_color'] );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_get_extended_profile_decrypts_sensitive_extra_meta(): void {
+		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( '12345678901' );
+
+		$this->mock_table_exists( 'wp_ffc_user_profiles', true );
+		// get_row returning a non-empty row keeps get_profile on the fast
+		// path and avoids its get_userdata() fallback (not mocked here).
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( array(
+			'display_name' => 'Alice',
+			'phone'        => '',
+			'department'   => '',
+			'organization' => '',
+			'notes'        => '',
+		) );
+
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'get_user_meta' )->alias( function ( $uid, $key ) {
+			return 'ffc_user_cpf' === $key ? 'ENC_CPF' : '';
+		} );
+
+		$profile = UserManager::get_extended_profile(
+			42,
+			array( 'cpf' ),
+			array( 'cpf' )
+		);
+
+		$this->assertSame( '12345678901', $profile['cpf'] );
+	}
+
+	public function test_get_extended_profile_ignores_profile_table_keys_listed_in_extras(): void {
+		// display_name is already in the table-backed profile; passing it as
+		// an extra key must be a no-op, not a duplicate meta read.
+		$this->mock_table_exists( 'wp_ffc_user_profiles', true );
+		$this->wpdb->shouldReceive( 'get_row' )
+			->andReturn( array(
+				'display_name' => 'Alice',
+				'phone'        => '',
+				'department'   => '',
+				'organization' => '',
+				'notes'        => '',
+			) );
+
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'get_user_meta' )->justReturn( 'WRONG' );
+
+		$profile = UserManager::get_extended_profile( 42, array( 'display_name' ) );
+
+		$this->assertSame( 'Alice', $profile['display_name'] );
+		// Should NOT have been overwritten by the get_user_meta stub.
+		$this->assertNotSame( 'WRONG', $profile['display_name'] );
+	}
+
+	public function test_update_extended_profile_signature(): void {
+		$ref = new \ReflectionMethod( UserManager::class, 'update_extended_profile' );
+		$this->assertTrue( $ref->isStatic() );
+		$this->assertTrue( $ref->isPublic() );
+		$this->assertCount( 3, $ref->getParameters() );
+		$this->assertSame( 'bool', $ref->getReturnType()->getName() );
+	}
+
+	public function test_get_extended_profile_signature(): void {
+		$ref = new \ReflectionMethod( UserManager::class, 'get_extended_profile' );
+		$this->assertTrue( $ref->isStatic() );
+		$this->assertTrue( $ref->isPublic() );
+		$this->assertCount( 3, $ref->getParameters() );
+		$this->assertSame( 'array', $ref->getReturnType()->getName() );
+	}
 }

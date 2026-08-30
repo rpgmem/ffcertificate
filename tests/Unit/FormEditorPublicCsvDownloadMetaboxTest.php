@@ -15,114 +15,114 @@ use FreeFormCertificate\Admin\FormEditorPublicCsvDownloadMetabox;
  */
 class FormEditorPublicCsvDownloadMetaboxTest extends TestCase {
 
-    use MockeryPHPUnitIntegration;
+	use MockeryPHPUnitIntegration;
 
-    private FormEditorPublicCsvDownloadMetabox $metabox;
+	private FormEditorPublicCsvDownloadMetabox $metabox;
 
-    /** @var array<string, mixed> */
-    private array $meta_values = array();
+	/** @var array<string, mixed> */
+	private array $meta_values = array();
 
-    protected function setUp(): void {
-        parent::setUp();
-        Monkey\setUp();
+	protected function setUp(): void {
+		parent::setUp();
+		Monkey\setUp();
 
-        Functions\when( '__' )->returnArg();
-        Functions\when( 'esc_html__' )->returnArg();
-        Functions\when( 'esc_attr__' )->returnArg();
-        Functions\when( 'esc_html' )->returnArg();
-        Functions\when( 'esc_attr' )->returnArg();
-        Functions\when( 'esc_url' )->returnArg();
-        Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
-        Functions\when( 'esc_attr_e' )->alias( function ( $text ) { echo $text; } );
-        Functions\when( 'wp_kses_post' )->returnArg();
-        Functions\when( 'wp_kses' )->returnArg();
-        Functions\when( 'checked' )->justReturn( '' );
-        Functions\when( 'selected' )->justReturn( '' );
-        Functions\when( 'get_option' )->justReturn( array() );
-        Functions\when( 'admin_url' )->alias( function ( $path = '' ) { return '/wp-admin/' . $path; } );
-        Functions\when( 'wp_nonce_url' )->returnArg();
-        Functions\when( 'site_url' )->alias( function ( $path = '' ) { return 'https://example.com' . $path; } );
-        Functions\when( 'home_url' )->alias( function ( $path = '' ) { return 'https://example.com' . $path; } );
-        Functions\when( 'esc_textarea' )->returnArg();
-        Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
+		Functions\when( 'esc_attr_e' )->alias( function ( $text ) { echo $text; } );
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'wp_kses' )->returnArg();
+		Functions\when( 'checked' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'admin_url' )->alias( function ( $path = '' ) { return '/wp-admin/' . $path; } );
+		Functions\when( 'wp_nonce_url' )->returnArg();
+		Functions\when( 'site_url' )->alias( function ( $path = '' ) { return 'https://example.com' . $path; } );
+		Functions\when( 'home_url' )->alias( function ( $path = '' ) { return 'https://example.com' . $path; } );
+		Functions\when( 'esc_textarea' )->returnArg();
+		Functions\when( 'apply_filters' )->returnArg( 2 );
 
-        Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key ) {
-            return $this->meta_values[ $key ] ?? '';
-        } );
+		Functions\when( 'get_post_meta' )->alias( function ( $post_id, $key ) {
+			return $this->meta_values[ $key ] ?? '';
+		} );
 
-        $this->metabox = new FormEditorPublicCsvDownloadMetabox();
-    }
+		$this->metabox = new FormEditorPublicCsvDownloadMetabox();
+	}
 
-    protected function tearDown(): void {
-        Monkey\tearDown();
-        parent::tearDown();
-    }
+	protected function tearDown(): void {
+		Monkey\tearDown();
+		parent::tearDown();
+	}
 
-    private function render(): string {
-        $post     = Mockery::mock( 'WP_Post' );
-        $post->ID = 88;
-        ob_start();
-        $this->metabox->render( $post );
-        return (string) ob_get_clean();
-    }
+	private function render(): string {
+		$post     = Mockery::mock( 'WP_Post' );
+		$post->ID = 88;
+		ob_start();
+		$this->metabox->render( $post );
+		return (string) ob_get_clean();
+	}
 
-    public function test_render_shows_inherit_hint_when_download_limit_blank(): void {
-        // No per-form limit → field empty (placeholder) + a hint showing the
-        // inherited global default in the subtle highlight chip.
-        $html = $this->render();
+	public function test_render_shows_inherit_hint_when_download_limit_blank(): void {
+		// No per-form limit → field empty (placeholder) + a hint showing the
+		// inherited global default in the subtle highlight chip.
+		$html = $this->render();
 
-        $this->assertStringContainsString( 'ffc-global-default', $html );
-        $this->assertStringContainsString( 'inherit the global default', $html );
-        $this->assertStringContainsString( 'placeholder="Inherit from global"', $html );
-    }
+		$this->assertStringContainsString( 'ffc-global-default', $html );
+		$this->assertStringContainsString( 'inherit the global default', $html );
+		$this->assertStringContainsString( 'placeholder="Inherit from global"', $html );
+	}
 
-    public function test_render_no_inherit_hint_when_download_limit_set(): void {
-        $this->meta_values['_ffc_csv_public_limit'] = '5';
+	public function test_render_no_inherit_hint_when_download_limit_set(): void {
+		$this->meta_values['_ffc_csv_public_limit'] = '5';
 
-        $html = $this->render();
+		$html = $this->render();
 
-        $this->assertStringContainsString( 'value="5"', $html );
-        $this->assertStringNotContainsString( 'ffc-global-default', $html );
-        $this->assertStringNotContainsString( 'inherit the global default', $html );
-    }
+		$this->assertStringContainsString( 'value="5"', $html );
+		$this->assertStringNotContainsString( 'ffc-global-default', $html );
+		$this->assertStringNotContainsString( 'inherit the global default', $html );
+	}
 
-    public function test_render_emits_three_operator_sub_toggles(): void {
-        $html = $this->render();
+	public function test_render_emits_three_operator_sub_toggles(): void {
+		$html = $this->render();
 
-        // The 3 sibling sub-features gated under the master, named via
-        // bracket notation on the ffc_csv_public form group.
-        $this->assertStringContainsString( 'ffc_csv_public[download_enabled]', $html );
-        $this->assertStringContainsString( 'ffc_csv_public[start_early_enabled]', $html );
-        $this->assertStringContainsString( 'ffc_csv_public[extend_end_enabled]', $html );
-    }
+		// The 3 sibling sub-features gated under the master, named via
+		// bracket notation on the ffc_csv_public form group.
+		$this->assertStringContainsString( 'ffc_csv_public[download_enabled]', $html );
+		$this->assertStringContainsString( 'ffc_csv_public[start_early_enabled]', $html );
+		$this->assertStringContainsString( 'ffc_csv_public[extend_end_enabled]', $html );
+	}
 
-    public function test_render_emits_the_master_present_sentinel(): void {
-        $html = $this->render();
+	public function test_render_emits_the_master_present_sentinel(): void {
+		$html = $this->render();
 
-        // Hidden sentinel that guarantees the group is present in $_POST even
-        // when every toggle is off — required by the save handler.
-        $this->assertStringContainsString( 'ffc_csv_public[present]', $html );
-    }
+		// Hidden sentinel that guarantees the group is present in $_POST even
+		// when every toggle is off — required by the save handler.
+		$this->assertStringContainsString( 'ffc_csv_public[present]', $html );
+	}
 
-    public function test_render_pre_populates_limit_from_meta(): void {
-        $this->meta_values['_ffc_csv_public_enabled'] = '1';
-        $this->meta_values['_ffc_csv_public_limit']   = 250;
+	public function test_render_pre_populates_limit_from_meta(): void {
+		$this->meta_values['_ffc_csv_public_enabled'] = '1';
+		$this->meta_values['_ffc_csv_public_limit']   = 250;
 
-        $html = $this->render();
+		$html = $this->render();
 
-        $this->assertStringContainsString( '250', $html );
-    }
+		$this->assertStringContainsString( '250', $html );
+	}
 
-    public function test_render_pre_populates_count_from_meta(): void {
-        $this->meta_values['_ffc_csv_public_count'] = 17;
+	public function test_render_pre_populates_count_from_meta(): void {
+		$this->meta_values['_ffc_csv_public_count'] = 17;
 
-        $html = $this->render();
+		$html = $this->render();
 
-        $this->assertStringContainsString( '17', $html );
-    }
+		$this->assertStringContainsString( '17', $html );
+	}
 
-    public function test_render_does_not_throw_with_no_meta(): void {
-        $html = $this->render();
-        $this->assertNotSame( '', $html );
-    }
+	public function test_render_does_not_throw_with_no_meta(): void {
+		$html = $this->render();
+		$this->assertNotSame( '', $html );
+	}
 }

@@ -23,81 +23,81 @@ use FreeFormCertificate\Settings\Tabs\TabActivityLog;
  */
 class TabActivityLogTest extends TestCase {
 
-    use MockeryPHPUnitIntegration;
+	use MockeryPHPUnitIntegration;
 
-    /** @var TabActivityLog */
-    private $tab;
+	/** @var TabActivityLog */
+	private $tab;
 
-    protected function setUp(): void {
-        parent::setUp();
-        Monkey\setUp();
-        Functions\when( 'wp_admin_notice' )->alias(
-            static function ( $message, $args = array() ) {
-                $ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
-                $ffc_cls  = 'notice notice-' . $ffc_type;
-                if ( ! empty( $args['dismissible'] ) ) { $ffc_cls .= ' is-dismissible'; }
-                if ( ! empty( $args['additional_classes'] ) ) { $ffc_cls .= ' ' . implode( ' ', $args['additional_classes'] ); }
-                $ffc_wrap = ! array_key_exists( 'paragraph_wrap', $args ) || $args['paragraph_wrap'];
-                echo '<div class="' . $ffc_cls . '">' . ( $ffc_wrap ? '<p>' . $message . '</p>' : $message ) . '</div>';
-            }
-        );
+	protected function setUp(): void {
+		parent::setUp();
+		Monkey\setUp();
+		Functions\when( 'wp_admin_notice' )->alias(
+			static function ( $message, $args = array() ) {
+				$ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
+				$ffc_cls  = 'notice notice-' . $ffc_type;
+				if ( ! empty( $args['dismissible'] ) ) { $ffc_cls .= ' is-dismissible'; }
+				if ( ! empty( $args['additional_classes'] ) ) { $ffc_cls .= ' ' . implode( ' ', $args['additional_classes'] ); }
+				$ffc_wrap = ! array_key_exists( 'paragraph_wrap', $args ) || $args['paragraph_wrap'];
+				echo '<div class="' . $ffc_cls . '">' . ( $ffc_wrap ? '<p>' . $message . '</p>' : $message ) . '</div>';
+			}
+		);
 
-        Functions\when( 'wp_kses_post' )->returnArg();
-        class_exists( '\\FreeFormCertificate\\Settings\\Tabs\\TabActivityLog' );
+		Functions\when( 'wp_kses_post' )->returnArg();
+		class_exists( '\\FreeFormCertificate\\Settings\\Tabs\\TabActivityLog' );
 
-        Functions\when( '__' )->returnArg();
-        Functions\when( 'esc_html__' )->returnArg();
-        Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
-        Functions\when( 'esc_html' )->returnArg();
-        Functions\when( 'esc_attr' )->returnArg();
-        Functions\when( 'esc_url' )->returnArg();
-        Functions\when( 'admin_url' )->returnArg();
-        Functions\when( 'add_action' )->justReturn( true );
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'add_action' )->justReturn( true );
 
-        $this->tab = new TabActivityLog();
-    }
+		$this->tab = new TabActivityLog();
+	}
 
-    protected function tearDown(): void {
-        Monkey\tearDown();
-        parent::tearDown();
-    }
+	protected function tearDown(): void {
+		Monkey\tearDown();
+		parent::tearDown();
+	}
 
-    public function test_tab_id_is_activity_log(): void {
-        $this->assertSame( 'activity_log', $this->tab->get_id() );
-    }
+	public function test_tab_id_is_activity_log(): void {
+		$this->assertSame( 'activity_log', $this->tab->get_id() );
+	}
 
-    public function test_tab_title_is_activity_log(): void {
-        $this->assertSame( 'Activity Log', $this->tab->get_title() );
-    }
+	public function test_tab_title_is_activity_log(): void {
+		$this->assertSame( 'Activity Log', $this->tab->get_title() );
+	}
 
-    public function test_tab_icon_is_clipboard(): void {
-        $this->assertSame( 'ffc-icon-clipboard', $this->tab->get_icon() );
-    }
+	public function test_tab_icon_is_clipboard(): void {
+		$this->assertSame( 'ffc-icon-clipboard', $this->tab->get_icon() );
+	}
 
-    public function test_extends_settings_tab(): void {
-        $this->assertInstanceOf( \FreeFormCertificate\Settings\SettingsTab::class, $this->tab );
-    }
+	public function test_extends_settings_tab(): void {
+		$this->assertInstanceOf( \FreeFormCertificate\Settings\SettingsTab::class, $this->tab );
+	}
 
-    public function test_view_cap_is_activity_log_view(): void {
-        $this->assertSame( 'ffc_view_activity_log', $this->tab->get_view_cap() );
-    }
+	public function test_view_cap_is_activity_log_view(): void {
+		$this->assertSame( 'ffc_view_activity_log', $this->tab->get_view_cap() );
+	}
 
-    public function test_manage_cap_is_activity_log_export(): void {
-        // Off the settings manage cap so the read-only fieldset lock never
-        // disables the log's export/filter controls for a legitimate viewer.
-        $this->assertSame( 'ffc_export_activity_log', $this->tab->get_manage_cap() );
-    }
+	public function test_manage_cap_is_activity_log_export(): void {
+		// Off the settings manage cap so the read-only fieldset lock never
+		// disables the log's export/filter controls for a legitimate viewer.
+		$this->assertSame( 'ffc_export_activity_log', $this->tab->get_manage_cap() );
+	}
 
-    public function test_render_delegates_to_activity_log_page(): void {
-        // With the log disabled, render_page() emits the disabled notice — a
-        // cheap way to prove the tab delegates to AdminActivityLogPage.
-        Mockery::mock( 'alias:\FreeFormCertificate\Settings\SettingsReader' )
-            ->shouldReceive( 'activity_log_enabled' )->andReturn( false );
+	public function test_render_delegates_to_activity_log_page(): void {
+		// With the log disabled, render_page() emits the disabled notice — a
+		// cheap way to prove the tab delegates to AdminActivityLogPage.
+		Mockery::mock( 'alias:\FreeFormCertificate\Settings\SettingsReader' )
+			->shouldReceive( 'activity_log_enabled' )->andReturn( false );
 
-        ob_start();
-        $this->tab->render();
-        $output = (string) ob_get_clean();
+		ob_start();
+		$this->tab->render();
+		$output = (string) ob_get_clean();
 
-        $this->assertStringContainsString( 'Activity Log is currently disabled.', $output );
-    }
+		$this->assertStringContainsString( 'Activity Log is currently disabled.', $output );
+	}
 }

@@ -14,101 +14,101 @@ use FreeFormCertificate\Integrations\EmailHandler;
  */
 class EmailHandlerContextTest extends TestCase {
 
-    use MockeryPHPUnitIntegration;
+	use MockeryPHPUnitIntegration;
 
-    protected function setUp(): void {
-        parent::setUp();
-        Monkey\setUp();
+	protected function setUp(): void {
+		parent::setUp();
+		Monkey\setUp();
 
-        // Namespaced stub: prevent "is not defined" error when Sprint 27 tests run first.
-        // Core\Debug calls get_option from the Core namespace.
-    }
+		// Namespaced stub: prevent "is not defined" error when Sprint 27 tests run first.
+		// Core\Debug calls get_option from the Core namespace.
+	}
 
-    protected function tearDown(): void {
-        Monkey\tearDown();
-        parent::tearDown();
-    }
+	protected function tearDown(): void {
+		Monkey\tearDown();
+		parent::tearDown();
+	}
 
-    /**
-     * Global disable prevents all contexts from sending.
-     */
-    public function test_global_disable_prevents_all_emails(): void {
-        Functions\when( 'get_option' )->justReturn( array( 'disable_all_emails' => 1 ) );
+	/**
+	 * Global disable prevents all contexts from sending.
+	 */
+	public function test_global_disable_prevents_all_emails(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'disable_all_emails' => 1 ) );
 
-        $handler = new EmailHandler();
-        $this->assertFalse( $handler->send_wp_user_notification( 1, 'submission' ) );
-        $this->assertFalse( $handler->send_wp_user_notification( 1, 'appointment' ) );
-        $this->assertFalse( $handler->send_wp_user_notification( 1, 'csv_import' ) );
-        $this->assertFalse( $handler->send_wp_user_notification( 1, 'migration' ) );
-    }
+		$handler = new EmailHandler();
+		$this->assertFalse( $handler->send_wp_user_notification( 1, 'submission' ) );
+		$this->assertFalse( $handler->send_wp_user_notification( 1, 'appointment' ) );
+		$this->assertFalse( $handler->send_wp_user_notification( 1, 'csv_import' ) );
+		$this->assertFalse( $handler->send_wp_user_notification( 1, 'migration' ) );
+	}
 
-    /**
-     * Submission context defaults to enabled.
-     */
-    public function test_submission_enabled_by_default(): void {
-        Functions\when( 'get_option' )->justReturn( array() );
-        Functions\expect( 'wp_new_user_notification' )->once()->with( 1, null, 'user' );
+	/**
+	 * Submission context defaults to enabled.
+	 */
+	public function test_submission_enabled_by_default(): void {
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\expect( 'wp_new_user_notification' )->once()->with( 1, null, 'user' );
 
-        $handler = new EmailHandler();
-        $result = $handler->send_wp_user_notification( 1, 'submission' );
+		$handler = new EmailHandler();
+		$result = $handler->send_wp_user_notification( 1, 'submission' );
 
-        $this->assertTrue( $result );
-    }
+		$this->assertTrue( $result );
+	}
 
-    /**
-     * Appointment context defaults to enabled.
-     */
-    public function test_appointment_enabled_by_default(): void {
-        Functions\when( 'get_option' )->justReturn( array() );
-        Functions\expect( 'wp_new_user_notification' )->once();
+	/**
+	 * Appointment context defaults to enabled.
+	 */
+	public function test_appointment_enabled_by_default(): void {
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\expect( 'wp_new_user_notification' )->once();
 
-        $handler = new EmailHandler();
-        $result = $handler->send_wp_user_notification( 1, 'appointment' );
+		$handler = new EmailHandler();
+		$result = $handler->send_wp_user_notification( 1, 'appointment' );
 
-        $this->assertTrue( $result );
-    }
+		$this->assertTrue( $result );
+	}
 
-    /**
-     * CSV import context defaults to disabled.
-     */
-    public function test_csv_import_disabled_by_default(): void {
-        Functions\when( 'get_option' )->justReturn( array() );
+	/**
+	 * CSV import context defaults to disabled.
+	 */
+	public function test_csv_import_disabled_by_default(): void {
+		Functions\when( 'get_option' )->justReturn( array() );
 
-        $handler = new EmailHandler();
-        $result = $handler->send_wp_user_notification( 1, 'csv_import' );
+		$handler = new EmailHandler();
+		$result = $handler->send_wp_user_notification( 1, 'csv_import' );
 
-        $this->assertFalse( $result );
-    }
+		$this->assertFalse( $result );
+	}
 
-    /**
-     * Migration context defaults to disabled.
-     */
-    public function test_migration_disabled_by_default(): void {
-        Functions\when( 'get_option' )->justReturn( array() );
+	/**
+	 * Migration context defaults to disabled.
+	 */
+	public function test_migration_disabled_by_default(): void {
+		Functions\when( 'get_option' )->justReturn( array() );
 
-        $handler = new EmailHandler();
-        $result = $handler->send_wp_user_notification( 1, 'migration' );
+		$handler = new EmailHandler();
+		$result = $handler->send_wp_user_notification( 1, 'migration' );
 
-        $this->assertFalse( $result );
-    }
+		$this->assertFalse( $result );
+	}
 
-    /**
-     * Explicit setting overrides default.
-     */
-    public function test_explicit_setting_overrides_default(): void {
-        Functions\when( 'get_option' )->justReturn( array(
-            'send_wp_user_email_submission' => '0',
-            'send_wp_user_email_csv_import' => '1',
-        ) );
-        Functions\when( 'absint' )->alias( 'intval' );
-        Functions\when( 'wp_new_user_notification' )->justReturn();
+	/**
+	 * Explicit setting overrides default.
+	 */
+	public function test_explicit_setting_overrides_default(): void {
+		Functions\when( 'get_option' )->justReturn( array(
+			'send_wp_user_email_submission' => '0',
+			'send_wp_user_email_csv_import' => '1',
+		) );
+		Functions\when( 'absint' )->alias( 'intval' );
+		Functions\when( 'wp_new_user_notification' )->justReturn();
 
-        $handler = new EmailHandler();
+		$handler = new EmailHandler();
 
-        // Submission forced off.
-        $this->assertFalse( $handler->send_wp_user_notification( 1, 'submission' ) );
+		// Submission forced off.
+		$this->assertFalse( $handler->send_wp_user_notification( 1, 'submission' ) );
 
-        // CSV import forced on.
-        $this->assertTrue( $handler->send_wp_user_notification( 1, 'csv_import' ) );
-    }
+		// CSV import forced on.
+		$this->assertTrue( $handler->send_wp_user_notification( 1, 'csv_import' ) );
+	}
 }

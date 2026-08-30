@@ -14,80 +14,80 @@ use FreeFormCertificate\Settings\Tabs\TabDocumentation;
  */
 class TabDocumentationTest extends TestCase {
 
-    use MockeryPHPUnitIntegration;
+	use MockeryPHPUnitIntegration;
 
-    private TabDocumentation $tab;
+	private TabDocumentation $tab;
 
-    protected function setUp(): void {
-        parent::setUp();
-        Monkey\setUp();
-        Functions\when( 'wp_admin_notice' )->alias(
-            static function ( $message, $args = array() ) {
-                $ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
-                $ffc_cls  = 'notice notice-' . $ffc_type;
-                if ( ! empty( $args['dismissible'] ) ) { $ffc_cls .= ' is-dismissible'; }
-                if ( ! empty( $args['additional_classes'] ) ) { $ffc_cls .= ' ' . implode( ' ', $args['additional_classes'] ); }
-                $ffc_wrap = ! array_key_exists( 'paragraph_wrap', $args ) || $args['paragraph_wrap'];
-                echo '<div class="' . $ffc_cls . '">' . ( $ffc_wrap ? '<p>' . $message . '</p>' : $message ) . '</div>';
-            }
-        );
+	protected function setUp(): void {
+		parent::setUp();
+		Monkey\setUp();
+		Functions\when( 'wp_admin_notice' )->alias(
+			static function ( $message, $args = array() ) {
+				$ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
+				$ffc_cls  = 'notice notice-' . $ffc_type;
+				if ( ! empty( $args['dismissible'] ) ) { $ffc_cls .= ' is-dismissible'; }
+				if ( ! empty( $args['additional_classes'] ) ) { $ffc_cls .= ' ' . implode( ' ', $args['additional_classes'] ); }
+				$ffc_wrap = ! array_key_exists( 'paragraph_wrap', $args ) || $args['paragraph_wrap'];
+				echo '<div class="' . $ffc_cls . '">' . ( $ffc_wrap ? '<p>' . $message . '</p>' : $message ) . '</div>';
+			}
+		);
 
-        Functions\when( '__' )->returnArg();
-        Functions\when( 'esc_html__' )->returnArg();
-        Functions\when( 'esc_html' )->returnArg();
-        Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
 
-        $this->tab = new TabDocumentation();
-    }
+		$this->tab = new TabDocumentation();
+	}
 
-    protected function tearDown(): void {
-        Monkey\tearDown();
-        parent::tearDown();
-    }
+	protected function tearDown(): void {
+		Monkey\tearDown();
+		parent::tearDown();
+	}
 
-    public function test_tab_id(): void {
-        $this->assertSame( 'documentation', $this->tab->get_id() );
-    }
+	public function test_tab_id(): void {
+		$this->assertSame( 'documentation', $this->tab->get_id() );
+	}
 
-    public function test_tab_title(): void {
-        $this->assertSame( 'Documentation', $this->tab->get_title() );
-    }
+	public function test_tab_title(): void {
+		$this->assertSame( 'Documentation', $this->tab->get_title() );
+	}
 
-    public function test_tab_icon(): void {
-        $this->assertSame( 'ffc-icon-doc', $this->tab->get_icon() );
-    }
+	public function test_tab_icon(): void {
+		$this->assertSame( 'ffc-icon-doc', $this->tab->get_icon() );
+	}
 
-    public function test_tab_order(): void {
-        $this->assertSame( 90, $this->tab->get_order() );
-    }
+	public function test_tab_order(): void {
+		$this->assertSame( 90, $this->tab->get_order() );
+	}
 
-    public function test_render_error_when_view_missing(): void {
-        $tab = new class() extends TabDocumentation {
-            public function render(): void {
-                $view_file = '/tmp/nonexistent_ffc/ffc-tab-documentation.php';
-                if ( file_exists( $view_file ) ) {
-                    include $view_file;
-                } else {
-                    echo '<div class="notice notice-error"><p>';
-                    echo esc_html__( 'Documentation view file not found.', 'ffcertificate' );
-                    echo '</p></div>';
-                }
-            }
-        };
+	public function test_render_error_when_view_missing(): void {
+		$tab = new class() extends TabDocumentation {
+			public function render(): void {
+				$view_file = '/tmp/nonexistent_ffc/ffc-tab-documentation.php';
+				if ( file_exists( $view_file ) ) {
+					include $view_file;
+				} else {
+					echo '<div class="notice notice-error"><p>';
+					echo esc_html__( 'Documentation view file not found.', 'ffcertificate' );
+					echo '</p></div>';
+				}
+			}
+		};
 
-        ob_start();
-        $tab->render();
-        $output = ob_get_clean();
+		ob_start();
+		$tab->render();
+		$output = ob_get_clean();
 
-        $this->assertStringContainsString( 'not found', $output );
-    }
+		$this->assertStringContainsString( 'not found', $output );
+	}
 
-    public function test_extends_settings_tab(): void {
-        $this->assertInstanceOf( \FreeFormCertificate\Settings\SettingsTab::class, $this->tab );
-    }
+	public function test_extends_settings_tab(): void {
+		$this->assertInstanceOf( \FreeFormCertificate\Settings\SettingsTab::class, $this->tab );
+	}
 
-    public function test_get_option_returns_default(): void {
-        Functions\when( 'get_option' )->justReturn( array() );
-        $this->assertSame( 'x', $this->tab->get_option( 'missing_key', 'x' ) );
-    }
+	public function test_get_option_returns_default(): void {
+		Functions\when( 'get_option' )->justReturn( array() );
+		$this->assertSame( 'x', $this->tab->get_option( 'missing_key', 'x' ) );
+	}
 }
