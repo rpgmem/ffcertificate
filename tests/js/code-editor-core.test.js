@@ -78,6 +78,38 @@ describe('ffc-code-editor-core.js — init()', () => {
 		expect(document.querySelectorAll('.ffc-code-editor-notice').length).toBe(1);
 	});
 
+	// The guard is `!settings || typeof window.wp === 'undefined' || !wp.codeEditor`.
+	// Only the first disjunct was covered, and it short-circuits before the other
+	// two are ever evaluated — so a regression in the wp probe would not have been
+	// noticed. These pass settings that ARE valid, which is what forces the probe
+	// to run. Same class as the #989 email-editor bug: a test that supplies the
+	// global can never see the code fail without it.
+	it('renders the disabled notice when wp is absent despite valid settings', () => {
+		document.body.innerHTML = '<form><textarea id="ta">x</textarea></form>';
+		loadCore();
+		expect(window.wp).toBeUndefined();
+
+		const cm = window.FFCCodeEditor.init('ta', { codemirror: { lineNumbers: true } }, {
+			notice: { strings: { syntaxDisabledNotice: 'Disabled.' } },
+		});
+
+		expect(cm).toBeNull();
+		expect(document.querySelector('.ffc-code-editor-notice').textContent).toContain('Disabled.');
+	});
+
+	it('renders the disabled notice when wp exists without codeEditor', () => {
+		document.body.innerHTML = '<form><textarea id="ta">x</textarea></form>';
+		window.wp = {};
+		loadCore();
+
+		const cm = window.FFCCodeEditor.init('ta', { codemirror: {} }, {
+			notice: { strings: { syntaxDisabledNotice: 'Disabled.' } },
+		});
+
+		expect(cm).toBeNull();
+		expect(document.querySelector('.ffc-code-editor-notice').textContent).toContain('Disabled.');
+	});
+
 	it('adds the placeholder overlay and theme wrapper class on the happy path', () => {
 		document.body.innerHTML =
 			'<form><div class="ffc-code-editor-wrapper"><textarea id="ta">x</textarea></div></form>';
