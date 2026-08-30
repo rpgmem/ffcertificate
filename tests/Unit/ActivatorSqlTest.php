@@ -1,7 +1,12 @@
 <?php
 /**
- * dbDelta CREATE-statement guard (#994).
+ * dbDelta CREATE-statement guard (#994, #997).
  *
+ * Two ways to write a `CREATE TABLE` that `dbDelta()` mishandles silently. Both
+ * were live in this plugin, and neither is visible to a test that stubs
+ * `dbDelta` — which every activator test does.
+ *
+ * RULE 1 — no semicolon before the final one.
  * `dbDelta()` splits the string it is given on the semicolon character before
  * executing anything. A semicolon anywhere inside a CREATE statement therefore
  * truncates it mid-column — and because the truncated fragment is still valid
@@ -17,11 +22,41 @@
  * It is the same family as #358 (backtick comments read as columns) and the
  * 6.0.1 COMMENT-clause failure that left four recruitment tables uncreated.
  *
- * The CI fresh-install job (`.github/workflows/ci.yml`) catches this class by
+ * RULE 2 — every line must be a column or key definition.
+ * `dbDelta()` splits the field list on newlines and reads each line as a column
+ * definition. Anything that is not one becomes a malformed ALTER, issued every
+ * time it runs against a table that already exists:
+ *
+ *   a blank line   →  `ALTER TABLE … ADD  `` (``)`
+ *   an SQL comment →  `ALTER TABLE … ADD COLUMN -- <text>`
+ *
+ * Both were measured against a real MariaDB rather than reasoned about. Running
+ * `dbDelta()` over the three self-scheduling tables as shipped produced **41**
+ * database errors: 37 from the 37 blank lines (exactly 1:1), 3 from the comment
+ * blocks (one per statement — `dbDelta` keys fields by name, so the repeated
+ * `--` collapses), and 1 unrelated duplicate-key attempt. Removing the blank
+ * lines took it to 4, removing the comments as well to 1.
+ *
+ * An earlier reading of this — that comments were harmless — came from grepping
+ * for the blank-line ALTER shape only, which could not see the comment shape.
+ * Hence the rule is stated as what a line must BE, not as a list of things it
+ * must not be.
+ *
+ * Column-group documentation moves to a PHP comment immediately above the
+ * statement, which loses nothing.
+ *
+ * Both were latent rather than live, because every activator that owns an
+ * affected table guards its `dbDelta` call on `table_exists()` — verified, not
+ * assumed: of the 35 `dbDelta` call sites, the 8 unguarded ones were executed
+ * against a real database and issued zero ALTERs. They would fire the day
+ * someone adds a column the normal WordPress way.
+ *
+ * The CI fresh-install job (`.github/workflows/ci.yml`) catches rule 1 by
  * actually activating into an empty database, which is the stronger check. This
  * guard is the cheap half: it needs no database, runs in the normal PHPUnit
  * gate, and names the offending line instead of leaving one to read a MariaDB
- * syntax error.
+ * syntax error — and it is the only check that sees rule 2 at all, since a
+ * fresh install never re-runs `dbDelta` on an existing table.
  *
  * Dependency-free on purpose — no WordPress, no Brain\Monkey — like the module
  * boundary, AJAX wiring and settings-default guards. It reads source text only.
@@ -131,6 +166,42 @@ final class ActivatorSqlTest extends TestCase {
 			. "\n\ndbDelta() splits its input on the semicolon character before executing, so"
 			. "\nthis truncates the statement mid-column and the table is never created."
 			. "\nRewrite the comment or COMMENT string without a semicolon."
+		);
+	}
+
+	/**
+	 * Every line of a CREATE statement must be a column or key definition.
+	 *
+	 * `dbDelta()` reads them all as one, so a blank line and an SQL comment each
+	 * become a malformed ALTER — see the file docblock for the measurement.
+	 */
+	public function test_no_create_statement_contains_a_non_definition_line(): void {
+		$offenders = array();
+
+		foreach ( self::create_statements() as $statement ) {
+			foreach ( explode( "\n", $statement['sql'] ) as $offset => $line ) {
+				$trimmed = trim( $line );
+				if ( '' === $trimmed ) {
+					$kind = 'blank line';
+				} elseif ( strpos( $trimmed, '--' ) === 0 ) {
+					$kind = 'SQL comment';
+				} else {
+					continue;
+				}
+				$offenders[] = sprintf( '%s:%d  (%s)', $statement['file'], $statement['line'] + $offset, $kind );
+			}
+		}
+
+		sort( $offenders );
+
+		$this->assertSame(
+			array(),
+			$offenders,
+			"A CREATE TABLE statement contains a line that is not a column or key definition:\n  "
+			. implode( "\n  ", $offenders )
+			. "\n\ndbDelta() reads every line of the field list as a column definition, so each"
+			. "\nof these becomes a malformed ALTER issued on every run against an existing"
+			. "\ntable. Move the documentation to a PHP comment above the statement."
 		);
 	}
 }
