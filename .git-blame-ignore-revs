@@ -1,0 +1,20 @@
+# Commits that moved lines without changing them. `git blame` skips these so it
+# keeps pointing at whoever wrote the code, not at whoever reformatted it.
+#
+# GitHub reads this file automatically in its blame view. Locally it is opt-in,
+# once per clone:
+#
+#     git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# Add a commit here only when it is genuinely whitespace-only. A commit that
+# also changed behaviour must never be listed — blame would then skip real work.
+
+# style(tests): reindent tests/ to tabs, and enforce it (#1005)
+# 250 test files, four spaces -> tabs. Verified reversible: re-expanding the
+# tabs reproduced every original file byte for byte.
+#
+# The squash also carried four non-whitespace files (CHANGELOG.md, CLAUDE.md,
+# .github/workflows/phpcs.yml, phpcs-tests.xml.dist). Ignoring a commit is
+# all-or-nothing, so blame on those four skips this commit too — accepted, as
+# the alternative is losing authorship across the whole test suite.
+e7e2e3c16ea58c298813fecf8caab9f96200d2c3
