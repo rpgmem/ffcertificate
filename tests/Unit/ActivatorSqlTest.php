@@ -46,10 +46,19 @@
  * statement, which loses nothing.
  *
  * Both were latent rather than live, because every activator that owns an
- * affected table guards its `dbDelta` call on `table_exists()` — verified, not
- * assumed: of the 35 `dbDelta` call sites, the 8 unguarded ones were executed
- * against a real database and issued zero ALTERs. They would fire the day
- * someone adds a column the normal WordPress way.
+ * affected table guards its `dbDelta` call on `table_exists()`. That was
+ * measured, not assumed: of the 35 `dbDelta` call sites, 8 have no such guard,
+ * and executing them against a real database showed 6 convergent (zero ALTERs
+ * on a second run) and 2 — `MigrationDynamicReregFields` — issuing three valid
+ * but non-convergent `CHANGE COLUMN`s, because their `json` columns are
+ * reported by MariaDB as `longtext`. Those two are unreachable in the steady
+ * state anyway: `run()` returns early once its completion flag is set. The
+ * malformed ALTERs would fire the day someone adds a column the normal
+ * WordPress way.
+ *
+ * A first pass reported those two as issuing zero queries. That was the
+ * instrument, not the code — `$wpdb->queries` stays empty unless `SAVEQUERIES`
+ * is defined before the query runs.
  *
  * The CI fresh-install job (`.github/workflows/ci.yml`) catches rule 1 by
  * actually activating into an empty database, which is the stronger check. This
@@ -118,11 +127,35 @@ final class ActivatorSqlTest extends TestCase {
 	/**
 	 * The guard's own input must be readable, or it proves nothing.
 	 */
-	public function test_the_guard_can_see_the_create_statements(): void {
-		$this->assertGreaterThan(
-			20,
-			count( self::create_statements() ),
-			'Found almost no CREATE TABLE literals under includes/ — the pattern probably stopped matching.'
+	public function test_the_guard_sees_every_create_statement(): void {
+		$captured = count( self::create_statements() );
+
+		// Every `CREATE TABLE` occurrence in a string, however it is quoted. The
+		// pattern above only sees double-quoted literals, which is all the plugin
+		// uses today — a heredoc would be silently uncovered, so compare counts
+		// rather than asserting a floor.
+		$present = 0;
+		$iter    = new \RecursiveIteratorIterator(
+			new \RecursiveDirectoryIterator( self::root() . '/includes', \FilesystemIterator::SKIP_DOTS )
+		);
+		foreach ( $iter as $file ) {
+			$path = $file->getPathname();
+			if ( substr( $path, -4 ) !== '.php' ) {
+				continue;
+			}
+			$present += preg_match_all( '/[\'"<]\s*CREATE TABLE/i', (string) file_get_contents( $path ) );
+		}
+
+		$this->assertSame(
+			$present,
+			$captured,
+			sprintf(
+				'The guard captured %d CREATE TABLE statements but %d are present. A statement '
+				. 'written in a shape the pattern cannot see (a heredoc, a single-quoted string) '
+				. 'would be silently exempt from both rules — widen create_statements().',
+				$captured,
+				$present
+			)
 		);
 	}
 
