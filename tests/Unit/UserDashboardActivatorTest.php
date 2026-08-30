@@ -204,9 +204,21 @@ class UserDashboardActivatorTest extends TestCase {
 		Functions\when( 'get_role' )->justReturn( null ); // no admin role → cap loop skipped.
 		Functions\when( 'get_page_by_path' )->justReturn( null );
 
+		$consulted = array();
+		Functions\when( 'get_role' )->alias(
+			static function ( $slug ) use ( &$consulted ) {
+				$consulted[] = (string) $slug;
+				return null;
+			}
+		);
+
 		UserDashboardActivator::create_tables();
 
-		$this->assertTrue( true, 'activation completes without an administrator role' );
+		$this->assertContains(
+			'administrator',
+			$consulted,
+			'The cap block must be reached and skipped, not bypassed before it.'
+		);
 	}
 
 	public function test_dashboard_page_insert_error_skips_meta(): void {

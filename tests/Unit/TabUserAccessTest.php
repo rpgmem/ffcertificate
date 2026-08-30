@@ -94,10 +94,19 @@ class TabUserAccessTest extends TestCase {
     // ==================================================================
 
     public function test_enqueue_styles_returns_early_for_wrong_hook(): void {
-        // The method should return early and not process anything
-        // We verify it runs without error
+        // Returning early means enqueueing nothing — that is the observable
+        // effect, and shipping the autosave bundle on every admin screen is the
+        // regression this guards against.
+        $enqueued = array();
+        Functions\when( 'wp_enqueue_script' )->alias(
+            static function ( $handle ) use ( &$enqueued ) {
+                $enqueued[] = (string) $handle;
+            }
+        );
+
         $this->tab->enqueue_styles( 'edit.php' );
-        $this->assertTrue( true ); // Reached without error
+
+        $this->assertSame( array(), $enqueued );
     }
 
     // ==================================================================
@@ -112,9 +121,18 @@ class TabUserAccessTest extends TestCase {
         Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
         Functions\when( 'admin_url' )->justReturn( '' );
 
-        // Method runs without error; enqueues the autosave infra (jQuery + ffc-core + ffc-admin-autosave).
+        // The comment below stated what this does; assert it. Without the
+        // autosave bundle every toggle on the tab silently stops saving.
+        $enqueued = array();
+        Functions\when( 'wp_enqueue_script' )->alias(
+            static function ( $handle ) use ( &$enqueued ) {
+                $enqueued[] = (string) $handle;
+            }
+        );
+
         $this->tab->enqueue_styles( 'toplevel_page_ffc-settings' );
-        $this->assertTrue( true );
+
+        $this->assertContains( 'ffc-admin-autosave', $enqueued );
     }
 
     // ==================================================================
