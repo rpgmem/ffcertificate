@@ -4,7 +4,7 @@
  *
  * A test that verifies nothing still runs, still counts toward coverage and
  * still shows green — it only fails to notice when the code breaks. The suite
- * has 108 such methods today, out of 7,285. Every one is the same shape: its
+ * has 95 such methods today, out of 7,285. Every one is the same shape: its
  * only assertion is a literal `assertTrue( true )`, with no mock expectation to
  * carry the meaning. `ActivatorMigrationsTest` is the clearest case — it calls
  * a migration and asserts `true`, so it proves the call did not fatal and
@@ -12,11 +12,12 @@
  * measurement suggesting otherwise was an artefact of a checker that could not
  * see `Functions\expect()`.)
  *
- * A sweep of all 108 was measured and deliberately NOT done: 94 sit in
+ * A sweep of all of them was measured and deliberately NOT done: 94 sit in
  * admin/render tests, where "it rendered without fatal" is close to all a
  * mocked WordPress can honestly assert, and the yield does not justify the
- * churn. The 13 in schema/activation and security are worth fixing, and that is
- * tracked as stage 2 of #997.
+ * churn. The 13 that sat in schema/activation and security were worth fixing
+ * and were fixed in stage 2 of #997, which is why the baseline reads 95 rather
+ * than the 108 it was generated with.
  *
  * So this guard does not sweep — it stops the bleeding. The current 131 are
  * frozen in a baseline; a NEW vacuous test fails CI. Same ratchet shape as

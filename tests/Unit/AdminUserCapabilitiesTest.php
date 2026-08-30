@@ -934,7 +934,11 @@ class AdminUserCapabilitiesTest extends TestCase {
         AdminUserCapabilities::snapshot_ffc_roles( 999 );
         AdminUserCapabilities::restore_ffc_roles( 999 );
 
-        // No snapshot recorded, no fatal — nothing to assert beyond reaching here.
-        $this->assertTrue( true );
+        // "No snapshot recorded" was the claim; read the store and check it.
+        // A snapshot for a user that does not exist would later re-grant roles
+        // from stale data.
+        $store = new \ReflectionProperty( AdminUserCapabilities::class, 'ffc_role_snapshot' );
+        $store->setAccessible( true );
+        $this->assertArrayNotHasKey( 999, (array) $store->getValue() );
     }
 }

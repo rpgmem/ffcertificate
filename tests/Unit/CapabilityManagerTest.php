@@ -789,12 +789,20 @@ class CapabilityManagerTest extends TestCase {
 
     public function test_strip_false_ffc_caps_skips_missing_roles(): void {
         // A managed role that doesn't exist on the site (get_role → null) is
-        // skipped without fataling.
-        Functions\when( 'get_role' )->justReturn( null );
+        // skipped. Assert the loop actually ran over the managed roles: an empty
+        // consult list would mean the sweep quietly stopped sweeping.
+        $consulted = array();
+        Functions\when( 'get_role' )->alias(
+            static function ( $slug ) use ( &$consulted ) {
+                $consulted[] = (string) $slug;
+                return null;
+            }
+        );
 
         RoleRegistrar::strip_false_ffc_caps();
 
-        $this->assertTrue( true, 'No fatal when a managed role is absent.' );
+        $this->assertNotEmpty( $consulted, 'The sweep must visit the managed roles.' );
+        $this->assertContains( 'ffc_end_user', $consulted );
     }
 
     public function test_remove_role_calls_wp_remove_role(): void {

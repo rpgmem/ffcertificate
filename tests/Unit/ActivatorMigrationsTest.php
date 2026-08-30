@@ -89,6 +89,38 @@ class ActivatorMigrationsTest extends TestCase {
 		parent::tearDown();
 	}
 
+	/**
+	 * Record every option this test's subject writes.
+	 *
+	 * `Functions\when()->alias()` rather than `Functions\expect()`: setUp
+	 * already defines `update_option` with `when()`, and redefining the same
+	 * function through the other API is not a supported mix.
+	 *
+	 * @param array<string, mixed> $written Filled by reference.
+	 */
+	private function capture_option_writes( array &$written ): void {
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value = null, $autoload = null ) use ( &$written ) {
+				$written[ (string) $key ] = $value;
+				return true;
+			}
+		);
+	}
+
+	/**
+	 * Record every SQL statement the subject sends to $wpdb::query().
+	 *
+	 * @param array<int, string> $statements Filled by reference.
+	 */
+	private function capture_queries( array &$statements ): void {
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $sql ) use ( &$statements ) {
+				$statements[] = (string) $sql;
+				return 1;
+			}
+		);
+	}
+
 	private function invoke_private( string $method, array $args = array() ) {
 		$m = new \ReflectionMethod( Activator::class, $method );
 		$m->setAccessible( true );
@@ -99,8 +131,33 @@ class ActivatorMigrationsTest extends TestCase {
 
 	public function test_perf_indexes_runs_when_version_differs(): void {
 		// get_option('ffc_perf_indexes_db_version') → '' (≠ FFC_VERSION) → run.
+		// The contract is a pair: index each table that exists, then pin the
+		// version so the next activation short-circuits. Pinning is what makes
+		// the sibling "skips when version matches" test mean anything, so it is
+		// asserted here rather than assumed.
+		$written    = array();
+		$statements = array();
+		$this->capture_option_writes( $written );
+		$this->capture_queries( $statements );
+
 		Activator::maybe_add_perf_indexes();
-		$this->assertTrue( true );
+
+		$indexed = array();
+		foreach ( $statements as $sql ) {
+			if ( preg_match( "/ALTER TABLE '?([a-z_]+)'? ADD INDEX/", $sql, $m ) ) {
+				$indexed[] = $m[1];
+			}
+		}
+		$this->assertSame(
+			array( 'wp_ffc_recruitment_candidate', 'wp_ffc_recruitment_notice', 'wp_ffc_reregistration_submissions' ),
+			$indexed,
+			'Every table that carries idx_created should have been indexed.'
+		);
+		$this->assertSame(
+			FFC_VERSION,
+			$written['ffc_perf_indexes_db_version'] ?? null,
+			'The version marker must be pinned, or this runs again on every activation.'
+		);
 	}
 
 	public function test_perf_indexes_skips_when_version_matches(): void {
@@ -114,8 +171,14 @@ class ActivatorMigrationsTest extends TestCase {
 
 	public function test_migrate_submission_date_runs_to_completion(): void {
 		// Default: table present, columns absent → fresh-table completion path.
+		// Reaching completion means writing the one-shot flag; without it the
+		// migration re-runs on every activation forever.
+		$written = array();
+		$this->capture_option_writes( $written );
+
 		Activator::maybe_migrate_submission_date_to_unix();
-		$this->assertTrue( true );
+
+		$this->assertSame( '1', $written['ffc_submission_date_unix_migrated'] ?? null );
 	}
 
 	public function test_migrate_submission_date_skips_when_flag_set(): void {
@@ -150,8 +213,12 @@ class ActivatorMigrationsTest extends TestCase {
 	// ───────────── maybe_migrate_submitted_at_to_unix ─────────────
 
 	public function test_migrate_submitted_at_runs_to_completion(): void {
+		$written = array();
+		$this->capture_option_writes( $written );
+
 		Activator::maybe_migrate_submitted_at_to_unix();
-		$this->assertTrue( true );
+
+		$this->assertSame( '1', $written['ffc_submitted_at_unix_migrated'] ?? null );
 	}
 
 	public function test_migrate_submitted_at_skips_when_flag_set(): void {
@@ -166,22 +233,48 @@ class ActivatorMigrationsTest extends TestCase {
 	public function test_migrate_sibling_instants_runs_to_completion(): void {
 		// Exercises the orchestration + migrate_datetime_column_to_unix guard
 		// for each (table, column) pair (all columns absent → per-column no-op).
+		// Every pair being a no-op must still end in the flag being written.
+		$written = array();
+		$this->capture_option_writes( $written );
+
 		Activator::maybe_migrate_sibling_instants_to_unix();
-		$this->assertTrue( true );
+
+		$this->assertSame( '1', $written['ffc_sibling_instants_unix_migrated'] ?? null );
 	}
 
 	public function test_migrate_sibling_instants_skips_when_flag_set(): void {
 		Functions\when( 'get_option' )->justReturn( '1' );
+		// Short-circuit: no schema inspection, and no second write of the flag —
+		// the routine must be completely inert once it has completed.
+		$written = array();
+		$this->capture_option_writes( $written );
+		$this->wpdb->shouldNotReceive( 'query' );
+
 		Activator::maybe_migrate_sibling_instants_to_unix();
-		$this->assertTrue( true );
+
+		$this->assertSame( array(), $written );
 	}
 
 	// ───────────── upgrade_auth_code_unique_constraints (private) ─────────────
 
 	public function test_upgrade_auth_code_adds_unique_when_absent(): void {
 		// No existing index (get_results []) → dedup + add UNIQUE path runs.
+		// The point of the routine is the UNIQUE constraint, so assert the
+		// statement that creates it rather than that nothing fatalled.
+		$statements = array();
+		$this->capture_queries( $statements );
+
 		$this->invoke_private( 'upgrade_auth_code_unique_constraints' );
-		$this->assertTrue( true );
+
+		$unique = array_values(
+			array_filter(
+				$statements,
+				static function ( $sql ) {
+					return strpos( $sql, 'ADD UNIQUE INDEX' ) !== false;
+				}
+			)
+		);
+		$this->assertNotEmpty( $unique, 'The routine must add the UNIQUE index when none exists.' );
 	}
 
 	public function test_upgrade_auth_code_skips_when_unique_present(): void {

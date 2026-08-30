@@ -195,14 +195,24 @@ class AudienceActivatorTest extends TestCase {
     // ==================================================================
 
     public function test_register_capabilities_handles_missing_roles(): void {
-        // get_role returns null for all roles (default)
-        Functions\when( 'get_role' )->justReturn( null );
+        // Every managed role is absent on this site. The guard must hold, and
+        // the routine must still have consulted each role it manages — an empty
+        // consult list would mean the grant silently stopped happening.
+        $consulted = array();
+        Functions\when( 'get_role' )->alias(
+            static function ( $slug ) use ( &$consulted ) {
+                $consulted[] = (string) $slug;
+                return null;
+            }
+        );
 
-        // Should not throw any exception
         AudienceActivator::register_capabilities();
 
-        // If we got here without error, the test passes
-        $this->assertTrue( true, 'register_capabilities should handle null roles gracefully' );
+        $this->assertSame(
+            array( 'ffc_end_user', 'subscriber' ),
+            $consulted,
+            'The booking cap is granted to exactly these two roles.'
+        );
     }
 
     // ==================================================================
