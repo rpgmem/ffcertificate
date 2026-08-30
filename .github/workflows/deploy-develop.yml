@@ -157,6 +157,60 @@ jobs:
             attempt=$((attempt + 1))
           done
 
+      # Post-deploy alarm, not a gate — this workflow runs on push to `develop`,
+      # so the merge already happened. Its job is to answer the two questions
+      # only the real host can: did the deploy actually land, and does the
+      # provider's own MariaDB hold the schema the code expects.
+      #
+      # `continue-on-error` on purpose: the check is new and depends on the
+      # host's PHP CLI, so it reports before it blocks. Once it has proven
+      # stable over a few deploys, drop the flag to make a red smoke a red
+      # deploy. Same posture as any new gate — report first, enforce later.
+      - name: Smoke test the deployed site
+        continue-on-error: true
+        env:
+          SSH_HOST: ${{ secrets.TESTES_SSH_HOST }}
+          SSH_USER: ${{ secrets.TESTES_SSH_USER }}
+          SSH_PORT: ${{ secrets.TESTES_SSH_PORT }}
+          REMOTE_PATH: ${{ secrets.TESTES_REMOTE_PATH }}
+        run: |
+          PORT="${SSH_PORT:-22}"
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -p $PORT -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=30"
+
+          # The version the workflow believes it just deployed, read from the
+          # commit rather than the host — that is the whole point of the check.
+          VERSION=$(grep -oE "define\( 'FFC_VERSION', '[^']+'" ffcertificate.php | grep -oE "'[^']+'$" | tr -d "'")
+          if [ -z "$VERSION" ]; then
+            echo "::error::could not read FFC_VERSION from ffcertificate.php"
+            exit 1
+          fi
+
+          # The scripts are scp'd to a scratch directory and removed afterwards:
+          # they are CI tooling, and the plugin directory on a runtime host
+          # stays clean (the rsync excludes .github/ for the same reason). Both
+          # files go together and keep their names — the smoke `require`s the
+          # shared manifest reader from its own directory.
+          REMOTE_DIR="/tmp/ffc-smoke-${GITHUB_RUN_ID}"
+          $SSH_CMD "${SSH_USER}@${SSH_HOST}" "mkdir -p ${REMOTE_DIR}"
+          scp -i ~/.ssh/deploy_key -P "$PORT" -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+            .github/scripts/testes-smoke.php .github/scripts/ffc-uninstall-manifest.php \
+            "${SSH_USER}@${SSH_HOST}:${REMOTE_DIR}/"
+
+          set +e
+          timeout 120 $SSH_CMD "${SSH_USER}@${SSH_HOST}" \
+            "php ${REMOTE_DIR}/testes-smoke.php '${REMOTE_PATH}' '${VERSION}'"
+          STATUS=$?
+          set -e
+
+          $SSH_CMD "${SSH_USER}@${SSH_HOST}" "rm -rf ${REMOTE_DIR}" || true
+
+          if [ "$STATUS" -eq 124 ]; then
+            echo "::warning::smoke timed out after 120s — the host may be slow or unreachable; the deploy itself succeeded."
+          elif [ "$STATUS" -ne 0 ]; then
+            echo "::error::post-deploy smoke failed on the testes host (exit ${STATUS}). See the report above."
+          fi
+          exit "$STATUS"
+
       - name: Cleanup SSH key
         if: always()
         run: rm -f ~/.ssh/deploy_key

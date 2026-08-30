@@ -267,3 +267,129 @@ jobs:
           file: coverage.xml
           format: clover
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  # Installs a throwaway WordPress onto an empty database and activates the
+  # plugin into it for real. This is the only gate that sees a FRESH activation:
+  # `deploy-develop.yml`'s post-deploy smoke runs against the established testes
+  # install, where every table already exists from an earlier release, so it
+  # cannot see a CREATE statement that stopped working. That is the defect class
+  # that shipped in 6.0.1 — column-level COMMENT clauses made dbDelta fail
+  # silently and four recruitment tables were never created on activation.
+  #
+  # It also runs the uninstaller with the Danger Zone opt-in on and asserts the
+  # footprint is gone, which makes `uninstall.php` an enforced manifest rather
+  # than a list nothing checks (the #991 ffc_foreign_keys_db_version case: an
+  # option added after the audit that enumerated its siblings, left behind on
+  # every deletion).
+  #
+  # No Composer step: the plugin ships its own PSR-4 autoloader and needs no
+  # vendor/ at runtime, so this installs exactly what a user would.
+  fresh-install:
+    name: Fresh install (PHP 8.3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      # Pinned to MariaDB rather than MySQL, and to the line the testes host
+      # actually runs, because the point of the job is to reproduce the
+      # provider's dbDelta behaviour. The post-deploy smoke prints the host's
+      # real `VERSION()` and `@@sql_mode` on every deploy — when those drift
+      # from what is pinned here, move the pin.
+      #
+      # Host, as reported by the smoke on deploy #527:
+      #   11.8.8-MariaDB-log  sql_mode=NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
+      # Note the sql_mode difference from the 10.11 image this was first pinned
+      # to, which adds ERROR_FOR_DIVISION_BY_ZERO — the reason to match the host
+      # rather than pick a familiar LTS.
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: wordpress
+          MARIADB_DATABASE: wordpress
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mysqli, zip, gd
+          coverage: none
+      # The two downloads below are retried for the same reason `composer audit`
+      # above is: raw.githubusercontent.com and wordpress.org intermittently
+      # time out or cut a transfer short from Actions runners, and this job is a
+      # required check — so a transient CDN blip would block merging rather than
+      # merely fail a report. Both are read-only fetches, so retrying is safe.
+      #
+      # The MariaDB image pull is NOT covered: that happens during the runner's
+      # service provisioning, before any step runs, so the workflow cannot wrap
+      # it.
+      - name: Install WP-CLI
+        run: |
+          for attempt in 1 2 3; do
+            if curl -fsSL --connect-timeout 20 -o wp-cli.phar \
+              https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar; then
+              break
+            fi
+            if [ "$attempt" = 3 ]; then
+              echo "::error::could not download the wp-cli phar after 3 attempts"
+              exit 1
+            fi
+            echo "::warning::wp-cli download attempt $attempt failed; retrying in 10s"
+            sleep 10
+          done
+          chmod +x wp-cli.phar
+          sudo mv wp-cli.phar /usr/local/bin/wp
+          wp --info
+      - name: Install a throwaway WordPress
+        run: |
+          for attempt in 1 2 3; do
+            # A cut-short tarball leaves a partial tree behind, which the next
+            # attempt would refuse to write into — so start each from nothing.
+            rm -rf "$HOME/wp"
+            if wp core download --path="$HOME/wp"; then
+              break
+            fi
+            if [ "$attempt" = 3 ]; then
+              echo "::error::could not download WordPress core after 3 attempts"
+              exit 1
+            fi
+            echo "::warning::WordPress download attempt $attempt failed; retrying in 10s"
+            sleep 10
+          done
+          wp config create --path="$HOME/wp" \
+            --dbname=wordpress --dbuser=root --dbpass=wordpress --dbhost=127.0.0.1
+          wp core install --path="$HOME/wp" \
+            --url=http://localhost --title="FFC fresh install" \
+            --admin_user=admin --admin_password=admin \
+            --admin_email=ci@example.invalid --skip-email
+      - name: Activate the plugin into an empty database
+        run: |
+          mkdir -p "$HOME/wp/wp-content/plugins/ffcertificate"
+          rsync -a --exclude '.git' ./ "$HOME/wp/wp-content/plugins/ffcertificate/"
+          wp plugin activate ffcertificate --path="$HOME/wp"
+      - name: Check what the activation created
+        run: php .github/scripts/fresh-install-check.php "$HOME/wp" uninstall.php activate
+      - name: Delete the plugin with the Danger Zone opt-in on
+        run: |
+          # `wp plugin uninstall` removes the plugin directory, and these scripts
+          # live inside it — so copy them out before pulling the floor up.
+          mkdir -p "$HOME/checks"
+          cp .github/scripts/fresh-install-check.php \
+             .github/scripts/ffc-uninstall-manifest.php \
+             uninstall.php "$HOME/checks/"
+          # Default OFF by design (the WooCommerce/EDD convention), so the heavy
+          # cleanup only runs when an admin opted in. Opt in here — leaving it
+          # off would make the next step assert nothing.
+          wp eval --path="$HOME/wp" '
+            $s = (array) get_option( "ffc_settings", array() );
+            $s["delete_data_on_uninstall"] = "1";
+            update_option( "ffc_settings", $s );
+          '
+          wp plugin uninstall ffcertificate --deactivate --path="$HOME/wp"
+      - name: Check nothing was left behind
+        run: php "$HOME/checks/fresh-install-check.php" "$HOME/wp" "$HOME/checks/uninstall.php" uninstall

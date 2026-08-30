@@ -113,7 +113,6 @@ class AudienceActivator {
             created_by bigint(20) unsigned NOT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
             PRIMARY KEY (id),
             KEY idx_status (status),
             KEY idx_created_by (created_by)
@@ -147,7 +146,6 @@ class AudienceActivator {
             can_cancel_others tinyint(1) DEFAULT 0,
             can_override_conflicts tinyint(1) DEFAULT 0,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
-
             PRIMARY KEY (id),
             UNIQUE KEY unique_schedule_user (schedule_id, user_id),
             KEY idx_user (user_id)
@@ -182,7 +180,6 @@ class AudienceActivator {
             status enum('active','inactive') DEFAULT 'active',
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
             PRIMARY KEY (id),
             KEY idx_schedule (schedule_id),
             KEY idx_status (status)
@@ -215,7 +212,6 @@ class AudienceActivator {
             description varchar(255) DEFAULT NULL,
             created_by bigint(20) unsigned NOT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
-
             PRIMARY KEY (id),
             UNIQUE KEY unique_schedule_date (schedule_id, holiday_date),
             KEY idx_date (holiday_date)
@@ -250,7 +246,6 @@ class AudienceActivator {
             created_by bigint(20) unsigned NOT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
             PRIMARY KEY (id),
             KEY idx_parent (parent_id),
             KEY idx_status (status)
@@ -281,7 +276,6 @@ class AudienceActivator {
             audience_id bigint(20) unsigned NOT NULL,
             user_id bigint(20) unsigned NOT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
-
             PRIMARY KEY (id),
             UNIQUE KEY unique_audience_user (audience_id, user_id),
             KEY idx_user (user_id)
@@ -321,7 +315,6 @@ class AudienceActivator {
             cancelled_by bigint(20) unsigned DEFAULT NULL,
             cancelled_at datetime DEFAULT NULL,
             cancellation_reason varchar(500) DEFAULT NULL COMMENT 'Required when cancelling',
-
             PRIMARY KEY (id),
             KEY idx_environment (environment_id),
             KEY idx_date (booking_date),
@@ -354,7 +347,6 @@ class AudienceActivator {
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             booking_id bigint(20) unsigned NOT NULL,
             audience_id bigint(20) unsigned NOT NULL,
-
             PRIMARY KEY (id),
             UNIQUE KEY unique_booking_audience (booking_id, audience_id),
             KEY idx_audience (audience_id)
@@ -384,7 +376,6 @@ class AudienceActivator {
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             booking_id bigint(20) unsigned NOT NULL,
             user_id bigint(20) unsigned NOT NULL,
-
             PRIMARY KEY (id),
             UNIQUE KEY unique_booking_user (booking_id, user_id),
             KEY idx_user (user_id)

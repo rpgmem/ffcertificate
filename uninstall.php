@@ -57,6 +57,11 @@ if ( ! $ffcertificate_purge ) {
 // ──────────────────────────────────────
 $ffcertificate_tables = array(
 	// Recruitment (children first).
+	// The two CSV-import tables were never on this list: they are created by
+	// RecruitmentActivator like the rest, so deleting the plugin left them
+	// behind on every install (found by the CI fresh-install check, #994).
+	$wpdb->prefix . 'ffc_recruitment_import_staging',
+	$wpdb->prefix . 'ffc_recruitment_import_jobs',
 	$wpdb->prefix . 'ffc_recruitment_call',
 	$wpdb->prefix . 'ffc_recruitment_classification',
 	$wpdb->prefix . 'ffc_recruitment_notice_adjutancy',
@@ -130,6 +135,9 @@ $ffcertificate_options = array(
 	'ffc_migration_user_profiles_last_run',
 	// Schema-version markers (audited gap — were never on the list).
 	'ffc_activity_log_db_version',
+	// Written by MigrationForeignKeys since 6.18.0, i.e. after the audit that
+	// added its five siblings here — so it was the only one left behind.
+	'ffc_foreign_keys_db_version',
 	'ffc_perf_indexes_db_version',
 	'ffc_submissions_db_version',
 	// Per-feature migration completion markers (audited gap).
@@ -153,6 +161,32 @@ $ffcertificate_options = array(
 	'ffc_recruitment_public_cache_version',
 	'ffc_ip_diagnostics_settings',
 	'ffc_cloudflare_cidr_cache',
+	// One-shot capability / role / migration markers, all written during
+	// activation and none of them previously listed here (found by the CI
+	// fresh-install check, #994 — it compares what activation actually writes
+	// against this list, which a static grep cannot do because most of these
+	// are written through a constant or a variable rather than a literal).
+	'ffc_activity_log_export_cap_v1',
+	'ffc_admin_caps_version_v6',
+	'ffc_admin_role_assigned_v1',
+	'ffc_audience_email_tokens_migrated_v1',
+	'ffc_delete_caps_granted_v1',
+	'ffc_email_templates_cap_v1',
+	'ffc_export_caps_granted_v1',
+	'ffc_false_caps_stripped_v1',
+	'ffc_import_caps_granted_v1',
+	'ffc_migration_custom_fields_tables_completed',
+	'ffc_migration_dynamic_rereg_fields_completed',
+	'ffc_migration_rename_capabilities_completed',
+	'ffc_migration_self_scheduling_tables_completed',
+	'ffc_rbac_caps_renamed_v1',
+	'ffc_rbac_roles_renamed_v1',
+	'ffc_reasons_caps_wired_v1',
+	'ffc_recruitment_email_hub_v1',
+	'ffc_settings_split_caps_v1',
+	'ffc_taxonomy_caps_renamed_v1',
+	'ffc_url_shortener_export_cap_v1',
+	'ffc_url_shortener_rewrite_version',
 );
 
 foreach ( $ffcertificate_options as $ffcertificate_option ) {

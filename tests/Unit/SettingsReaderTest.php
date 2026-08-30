@@ -249,18 +249,26 @@ class SettingsReaderTest extends TestCase {
 	}
 
 	/**
+	 * Accessor => option key => expected default.
+	 *
+	 * Three of these (obsolete_shortcode_days, public_csv_default_limit,
+	 * qr_default_size) once mirrored a default that disagreed with
+	 * Settings::get_default_settings(), which meant this test locked the
+	 * divergence in rather than catching it. They now carry the declared
+	 * value, and SettingsDefaultsTest keeps the two sides in step (#993).
+	 *
 	 * @return array<string, array{string, string, int}>
 	 */
 	public static function provider_int_accessors(): array {
 		return array(
 			'activity_log_retention_days' => array( 'activity_log_retention_days', 'activity_log_retention_days', 90 ),
 			'cache_expiration_seconds'    => array( 'cache_expiration_seconds', 'cache_expiration', 3600 ),
-			'obsolete_shortcode_days'     => array( 'obsolete_shortcode_days', 'obsolete_shortcode_days', 30 ),
+			'obsolete_shortcode_days'     => array( 'obsolete_shortcode_days', 'obsolete_shortcode_days', 90 ),
 			'gps_cache_ttl'               => array( 'gps_cache_ttl', 'gps_cache_ttl', 600 ),
 			'ip_cache_ttl'                => array( 'ip_cache_ttl', 'ip_cache_ttl', 600 ),
-			'public_csv_default_limit'    => array( 'public_csv_default_limit', 'public_csv_default_limit', 100 ),
+			'public_csv_default_limit'    => array( 'public_csv_default_limit', 'public_csv_default_limit', 1 ),
 			'public_csv_sync_max_rows'    => array( 'public_csv_sync_max_rows', 'public_csv_sync_max_rows', 5000 ),
-			'qr_default_size'             => array( 'qr_default_size', 'qr_default_size', 256 ),
+			'qr_default_size'             => array( 'qr_default_size', 'qr_default_size', 200 ),
 			'url_shortener_code_length'   => array( 'url_shortener_code_length', 'url_shortener_code_length', 6 ),
 		);
 	}

@@ -7,7 +7,26 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.20.0] (2026-08-23)
+## [6.20.1] (2026-08-30)
+
+### Added
+- Internal (#994) — **fresh-install CI gate**: a job installs a throwaway WordPress on MariaDB, activates into an empty database and compares the result against `uninstall.php` **both ways** — every declared object must exist, and every existing one must be declared — then deletes the plugin and asserts a zero footprint.
+- Internal (#990) — **post-deploy smoke on the testes host**: after each `develop` rsync it boots the real WordPress over SSH and checks the plugin is active, that the host's live `FFC_VERSION` matches the deployed commit (the #628 stale-deploy case) and that every declared table exists. An alarm, not a gate.
+- Internal (#988, #997) — **static guards**: `AjaxWiringTest` cross-checks every registered `wp_ajax_*` handler against its callers in both directions and flags `ffc_*` options nothing writes (#935, #936); `AssertionCoverageTest` fails CI when a *new* test verifies nothing, freezing the 95 existing cases in a ratchet that can only shrink.
+
+### Changed
+- **"Check again" now busts the GitHub-updater cache** (#820): the updater cached the latest-release lookup for 12h, so a fresh release could stay invisible — worse under a persistent object cache. Dashboard → Updates → "Check again" now drops the `ffc_github_update` transient first. Automatic checks still respect the 12h cache.
+- **`Tested up to: 7.1`** (#984): verified WordPress 7.1 compatibility. `readme.txt` metadata only; `Requires at least` stays 6.4.
+
+### Fixed
+- **Self-scheduling had no calendars table on a fresh install** (#994): an SQL comment and a column `COMMENT` inside the `ffc_self_scheduling_calendars` CREATE each held a semicolon, and `dbDelta()` splits its input on that character — so the statement was truncated and the table never created. Sites upgrading from an earlier release were unaffected, which is why it went unseen. Same family as #358.
+- **Email texts hub: the editor opened as raw HTML until you switched emails** (#989): `wp.editor.initialize()` ran at script-parse time, but the `editor` dependency only guarantees the API — `wp_enqueue_editor()` prints the TinyMCE runtime from a later hook. Initialization now waits for DOM ready, and the tab opens on a placeholder with every editor hidden.
+- **Uninstall left data behind** (#991, #994): `ffc_foreign_keys_db_version`, the two recruitment CSV-import tables and 21 one-shot capability/migration markers were absent from `uninstall.php`, so deleting the plugin never removed them. Most are written through a constant or variable, so no static scan could have found them — the fresh-install gate did.
+- Internal (#993) — **settings defaults that disagreed with themselves**: `obsolete_shortcode_days` (90 declared / 30 read), `qr_default_size` (200 / 256) and `public_csv_default_limit` (1 / 100, plus 0 twice) restated different defaults at their read sites. Three lived in the `SettingsReader` typed accessors and were caller-less, so nothing broke in practice. Aligned, with `SettingsDefaultsTest` guarding against drift.
+- Internal (#997) — **dbDelta hygiene in the activators**: `dbDelta()` reads every line of a field list as a column definition, so the 46 blank lines and 35 SQL comments inside twelve `CREATE TABLE` statements were each issued as a malformed `ALTER` against an existing table. Measured on a real MariaDB: 41 database errors before, 0 after — including declaring `validation_code` UNIQUE, which two code paths already treated as the intent. Latent (every activator guards on `table_exists()`), but it would fire on the next column added the normal way.
+- Internal (#997) — **tests that verified nothing now do**: the thirteen vacuous methods in schema/activation and security asserted only `assertTrue( true )`; each now pins its real contract — a migration's one-shot flag, the exact roles a grant touches, the autosave bundle a tab must enqueue. Three JS degraded paths where a probed global is absent gained coverage too, the class behind #989.
+
+## [6.20.0] (2026-08-23) — `e01ed47`
 
 ### Added
 - **Email texts hub — every plugin email editable in one place** (#964, #965): a new **Email texts** hub lets an admin edit the **global default subject + body** of every token-based plugin email — the certificate email, recruitment convocation, the three reregistration emails, audience booking/cancellation, and (tokenized from former echo-partials) the self-scheduling booking confirmation, the five appointment lifecycle emails (approval, cancellation, reminder, waitlist-promotion, waitlisted) and the access-granted + calendar-deletion notices. Each is a `wp_editor` with `{{token}}` help, pre-rendered button/block tokens (`{{receipt_button}}`, `{{cancel_button}}`, `{{waitlist_button}}`, `{{dashboard_button}}`, `{{cancellation_reason_block}}`, …) and a "Restore Default Text" button. Built on a global-override store (`ffc_email_bodies` + `EmailTemplates::effective_body()` cascade, dormant when empty) and gated by a dedicated **`ffc_manage_email_templates`** capability (one-shot migration seeds it onto current Settings holders). Forms and per-calendar/audience bodies can still override; a **per-form Global/Custom toggle** decides whether a form follows the hub. Unconfigured installs render identically.
