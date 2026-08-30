@@ -62,70 +62,54 @@ class SelfSchedulingActivator {
 			return;
 		}
 
+		// Column groups. Kept out of the statement because dbDelta() reads every
+		// line of the field list as a column definition — see ActivatorSqlTest,
+		// which fails on a comment, a blank line or an interior semicolon inside a
+		// CREATE literal (#994, #997).
+		// - Scheduling mode. 'regular' = weekly working hours, 'custom' = explicit date/time blocks (#941).
+		// - Time slot configuration.
+		// - Working hours (JSON: [{day: 0-6, start: '09:00', end: '17:00'}]).
+		// - Custom blocks (JSON: [{date:'Y-m-d', start:'H:i', end:'H:i', capacity:int, label?:string}]) — used when schedule_type='custom' (#941).
+		// - Booking window.
+		// - Cancellation policy.
+		// - Minimum interval between bookings.
+		// - Approval workflow.
+		// - Capacity.
+		// - Waitlist (#941 phase 2): when a slot/block is full, allow joining a queue.
+		// - Per-user block cap (#941 phase 3). Custom mode only, max distinct blocks one user may hold (0 = disabled).
+		// - Visibility & access control.
+		// - Email notifications (JSON config).
+		// - Status.
+		// - Metadata.
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             post_id bigint(20) unsigned NOT NULL COMMENT 'Reference to wp_posts (CPT)',
             title varchar(255) NOT NULL,
             description text DEFAULT NULL,
-
-            -- Scheduling mode. 'regular' = weekly working hours, 'custom' = explicit date/time blocks (#941).
-            -- No semicolon may appear anywhere in this statement before its final one, in a
-            -- comment or inside a quoted COMMENT string alike. dbDelta() splits its input on
-            -- the semicolon character before executing, so an interior one truncates the
-            -- CREATE mid-column and the table is never created (this table, until #994).
             schedule_type enum('regular','custom') NOT NULL DEFAULT 'regular' COMMENT 'regular = weekly working_hours, custom = explicit custom_slots',
-
-            -- Time slot configuration
             slot_duration int unsigned DEFAULT 30 COMMENT 'Duration in minutes',
             slot_interval int unsigned DEFAULT 0 COMMENT 'Break between slots in minutes',
             slots_per_day int unsigned DEFAULT 0 COMMENT '0 = unlimited',
-
-            -- Working hours (JSON: [{day: 0-6, start: '09:00', end: '17:00'}])
             working_hours longtext DEFAULT NULL,
-
-            -- Custom blocks (JSON: [{date:'Y-m-d', start:'H:i', end:'H:i', capacity:int, label?:string}]) — used when schedule_type='custom' (#941)
             custom_slots longtext DEFAULT NULL,
-
-            -- Booking window
             advance_booking_min int unsigned DEFAULT 0 COMMENT 'Minimum hours in advance',
             advance_booking_max int unsigned DEFAULT 30 COMMENT 'Maximum days in advance',
-
-            -- Cancellation policy
             allow_cancellation tinyint(1) DEFAULT 1,
             cancellation_min_hours int unsigned DEFAULT 24 COMMENT 'Minimum hours before appointment',
-
-            -- Minimum interval between bookings
             minimum_interval_between_bookings int unsigned DEFAULT 24 COMMENT 'Minimum hours between user bookings (0 = disabled)',
-
-            -- Approval workflow
             requires_approval tinyint(1) DEFAULT 0,
-
-            -- Capacity
             max_appointments_per_slot int unsigned DEFAULT 1,
-
-            -- Waitlist (#941 phase 2): when a slot/block is full, allow joining a queue
             waitlist_enabled tinyint(1) DEFAULT 0 COMMENT '1 = full slots offer a waitlist instead of rejecting',
             waitlist_capacity int unsigned DEFAULT 0 COMMENT 'Max queue length per slot (0 = unlimited)',
-
-            -- Per-user block cap (#941 phase 3). Custom mode only, max distinct blocks one user may hold (0 = disabled).
             max_blocks_per_user int unsigned DEFAULT 0 COMMENT 'Custom mode: max blocks a single user may book in this calendar (0 = disabled)',
-
-            -- Visibility & access control
             visibility enum('public','private') DEFAULT 'public' COMMENT 'Calendar visibility: public or private',
             scheduling_visibility enum('public','private') DEFAULT 'public' COMMENT 'Booking access: public or private',
-
-            -- Email notifications (JSON config)
             email_config longtext DEFAULT NULL,
-
-            -- Status
             status varchar(20) DEFAULT 'active' COMMENT 'active, inactive, archived',
-
-            -- Metadata
             created_at datetime NOT NULL,
             created_by bigint(20) unsigned DEFAULT NULL,
             updated_at datetime DEFAULT NULL,
             updated_by bigint(20) unsigned DEFAULT NULL,
-
             PRIMARY KEY (id),
             KEY post_id (post_id),
             KEY status (status),
@@ -156,17 +140,27 @@ class SelfSchedulingActivator {
 			return;
 		}
 
+		// Column groups. Kept out of the statement because dbDelta() reads every
+		// line of the field list as a column definition — see ActivatorSqlTest,
+		// which fails on a comment, a blank line or an interior semicolon inside a
+		// CREATE literal (#994, #997).
+		// - Appointment details.
+		// - Contact information (for non-logged users or additional info).
+		// - Additional data (JSON: custom fields).
+		// - Notes.
+		// - Status workflow.
+		// - Approval (if calendar requires approval). Category A instant since 6.6.0 (#249).
+		// - Verification token for guest users.
+		// - Validation code (user-friendly code for verification, like certificates).
+		// - Metadata.
+		// - Reminder sent tracking. Category A instant since 6.6.0.
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             calendar_id bigint(20) unsigned NOT NULL,
             user_id bigint(20) unsigned DEFAULT NULL COMMENT 'WordPress user (if logged in)',
-
-            -- Appointment details
             appointment_date date NOT NULL,
             start_time time NOT NULL,
             end_time time NOT NULL,
-
-            -- Contact information (for non-logged users or additional info)
             name varchar(255) DEFAULT NULL,
             email_encrypted text DEFAULT NULL,
             email_hash varchar(64) DEFAULT NULL,
@@ -175,45 +169,25 @@ class SelfSchedulingActivator {
             rf_encrypted text DEFAULT NULL,
             rf_hash varchar(64) DEFAULT NULL,
             phone_encrypted text DEFAULT NULL,
-
-            -- Additional data (JSON: custom fields)
             custom_data_encrypted longtext DEFAULT NULL,
-
-            -- Notes
             user_notes text DEFAULT NULL,
             admin_notes text DEFAULT NULL,
-
-            -- Status workflow
             status varchar(20) DEFAULT 'pending' COMMENT 'pending, confirmed, cancelled, completed, no_show, waitlist',
-
-            -- Approval (if calendar requires approval). Category A instant since 6.6.0 (#249).
             approved_at bigint(20) unsigned DEFAULT NULL,
             approved_by bigint(20) unsigned DEFAULT NULL,
-
             cancelled_at bigint(20) unsigned DEFAULT NULL,
             cancelled_by bigint(20) unsigned DEFAULT NULL,
             cancellation_reason text DEFAULT NULL,
-
-            -- Verification token for guest users
             confirmation_token varchar(64) DEFAULT NULL,
-
-            -- Validation code (user-friendly code for verification, like certificates)
             validation_code varchar(20) DEFAULT NULL,
-
             consent_given tinyint(1) DEFAULT 0,
             consent_date bigint(20) unsigned DEFAULT NULL,
             consent_text text DEFAULT NULL,
-
-            -- Metadata
             user_ip_encrypted text DEFAULT NULL,
             user_agent varchar(255) DEFAULT NULL,
-
             created_at datetime NOT NULL,
             updated_at datetime DEFAULT NULL,
-
-            -- Reminder sent tracking. Category A instant since 6.6.0.
             reminder_sent_at bigint(20) unsigned DEFAULT NULL,
-
             PRIMARY KEY (id),
             KEY calendar_id (calendar_id),
             KEY user_id (user_id),
@@ -223,7 +197,7 @@ class SelfSchedulingActivator {
             KEY cpf_hash (cpf_hash),
             KEY rf_hash (rf_hash),
             KEY confirmation_token (confirmation_token),
-            KEY validation_code (validation_code),
+            UNIQUE KEY validation_code (validation_code),
             KEY idx_calendar_date (calendar_id, appointment_date),
             KEY idx_calendar_datetime (calendar_id, appointment_date, start_time)
         ) {$charset_collate};";
@@ -583,31 +557,28 @@ class SelfSchedulingActivator {
 			return;
 		}
 
+		// Column groups. Kept out of the statement because dbDelta() reads every
+		// line of the field list as a column definition — see ActivatorSqlTest,
+		// which fails on a comment, a blank line or an interior semicolon inside a
+		// CREATE literal (#994, #997).
+		// - Block type.
+		// - Date range.
+		// - Time range (for partial day blocks).
+		// - Recurring pattern (JSON: {type: 'weekly', days: [0,6], etc}).
+		// - Description.
+		// - Metadata.
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             calendar_id bigint(20) unsigned DEFAULT NULL COMMENT 'NULL = applies to all calendars',
-
-            -- Block type
             block_type varchar(20) DEFAULT 'full_day' COMMENT 'full_day, time_range, recurring',
-
-            -- Date range
             start_date date NOT NULL,
             end_date date DEFAULT NULL COMMENT 'For multi-day blocks',
-
-            -- Time range (for partial day blocks)
             start_time time DEFAULT NULL,
             end_time time DEFAULT NULL,
-
-            -- Recurring pattern (JSON: {type: 'weekly', days: [0,6], etc})
             recurring_pattern longtext DEFAULT NULL,
-
-            -- Description
             reason varchar(255) DEFAULT NULL COMMENT 'Holiday, maintenance, etc',
-
-            -- Metadata
             created_at datetime NOT NULL,
             created_by bigint(20) unsigned DEFAULT NULL,
-
             PRIMARY KEY (id),
             KEY calendar_id (calendar_id),
             KEY start_date (start_date),
