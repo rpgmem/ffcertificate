@@ -76,7 +76,7 @@ Free Form Certificate is a complete WordPress solution for creating dynamic form
 * **SMTP Configuration** - Built-in SMTP settings for reliable email delivery.
 * **REST API** - Full REST API for external integrations.
 * **Capabilities & Roles** - Granular, delegable permission system with a 3-state model (none / view-only / manage) per domain, dedicated roles, and per-user and per-role editors — delegate the whole plugin without WordPress super-admin.
-* **URL Shortener** - Built-in short-link domain for plugin-generated URLs.
+* **URL Shortener** - Built-in short-link domain for plugin-generated URLs, exposed as the WordPress shortlink and as an `ffc_shortlink` REST field on the opted-in post types.
 
 == Installation ==
 

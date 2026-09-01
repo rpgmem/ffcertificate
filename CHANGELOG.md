@@ -7,6 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- **URL Shortener: the short URL is now readable over REST** (#1012): the opted-in post types gain a read-only `ffc_shortlink` field. `pre_get_shortlink` never reached REST — `WP_REST_Posts_Controller` does not call `wp_get_shortlink()` — so external consumers had no way to read it.
+
 ### Changed
 - Internal (#992, #1007) — **the post-deploy smoke now blocks**: it shipped non-blocking while it proved itself against the testes host, and 13 consecutive green runs closed that evidence gate. A failing smoke is now a failing deploy; a 120s timeout stays a warning, since the rsync has already landed.
 - Internal (#1005) — **`tests/` is tab-indented, and now enforced**: 250 space-indented files against 170 tab-indented ones, with nothing checking either, so a reformat alone would have drifted back. Reindented, plus a two-sniff `phpcs-tests.xml.dist` over the whole directory. No test logic changed.
