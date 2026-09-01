@@ -22,827 +22,827 @@ use FreeFormCertificate\Settings\Tabs\TabGeolocation;
  */
 class TabGeolocationTest extends TestCase {
 
-    use MockeryPHPUnitIntegration;
-
-    /** @var TabGeolocation */
-    private $tab;
-
-    protected function setUp(): void {
-        parent::setUp();
-        Monkey\setUp();
-        Functions\when( 'wp_admin_notice' )->alias(
-            static function ( $message, $args = array() ) {
-                $ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
-                $ffc_cls  = 'notice notice-' . $ffc_type;
-                if ( ! empty( $args['dismissible'] ) ) { $ffc_cls .= ' is-dismissible'; }
-                if ( ! empty( $args['additional_classes'] ) ) { $ffc_cls .= ' ' . implode( ' ', $args['additional_classes'] ); }
-                $ffc_wrap = ! array_key_exists( 'paragraph_wrap', $args ) || $args['paragraph_wrap'];
-                echo '<div class="' . $ffc_cls . '">' . ( $ffc_wrap ? '<p>' . $message . '</p>' : $message ) . '</div>';
-            }
-        );
-
-        Functions\when( '__' )->returnArg();
-        Functions\when( 'esc_html__' )->returnArg();
-        Functions\when( 'esc_html' )->returnArg();
-        Functions\when( 'esc_attr' )->returnArg();
-        Functions\when( 'wp_kses_post' )->returnArg();
-        Functions\when( 'sanitize_key' )->alias( function ( $key ) {
-            return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $key ) );
-        } );
-        Functions\when( 'sanitize_text_field' )->returnArg();
-        Functions\when( 'sanitize_textarea_field' )->returnArg();
-        Functions\when( 'wp_unslash' )->returnArg();
-        Functions\when( 'sanitize_text_field' )->returnArg();
-        Functions\when( 'wp_unslash' )->returnArg();
-        Functions\when( 'absint' )->alias( function ( $val ) {
-            return abs( (int) $val );
-        } );
-
-        // The tab's init() registers an admin_enqueue_scripts hook;
-        // Brain\Monkey's hook layer rejects anonymous-class callbacks
-        // (used by test_render_processes_post_submission_and_shows_success),
-        // so neutralise add_action for the whole suite.
-        Functions\when( 'add_action' )->justReturn( true );
-
-        $this->tab = new TabGeolocation();
-    }
-
-    protected function tearDown(): void {
-        unset( $_POST['ffc_save_geolocation'] );
-        unset( $_POST['ip_api_service'], $_POST['api_fallback'] );
-        unset( $_POST['gps_fallback'], $_POST['gps_fallback_preset'], $_POST['gps_fallback_cases'] );
-        unset( $_POST['both_fail_fallback'], $_POST['ip_api_enabled'], $_POST['ip_api_cascade'] );
-        unset( $_POST['ipinfo_api_key'], $_POST['ip_cache_enabled'], $_POST['ip_cache_ttl'] );
-        unset( $_POST['gps_cache_ttl'], $_POST['admin_bypass_datetime'], $_POST['admin_bypass_geo'] );
-        unset( $_POST['main_geo_areas'] );
-        Monkey\tearDown();
-        parent::tearDown();
-    }
-
-    // ==================================================================
-    // init() — tab properties
-    // ==================================================================
-
-    public function test_tab_id_is_geolocation(): void {
-        $this->assertSame( 'geolocation', $this->tab->get_id() );
-    }
-
-    public function test_tab_title_is_geolocation(): void {
-        $this->assertSame( 'Geolocation', $this->tab->get_title() );
-    }
-
-    public function test_tab_icon_is_globe(): void {
-        $this->assertSame( 'ffc-icon-globe', $this->tab->get_icon() );
-    }
-
-    public function test_tab_order_is_50(): void {
-        $this->assertSame( 50, $this->tab->get_order() );
-    }
-
-    // ==================================================================
-    // Inheritance
-    // ==================================================================
-
-    public function test_extends_settings_tab(): void {
-        $this->assertInstanceOf(
-            \FreeFormCertificate\Settings\SettingsTab::class,
-            $this->tab
-        );
-    }
-
-    // ==================================================================
-    // get_default_settings() — via Reflection
-    // ==================================================================
-
-    public function test_get_default_settings_returns_expected_keys(): void {
-        $ref = new \ReflectionMethod( TabGeolocation::class, 'get_default_settings' );
-        $ref->setAccessible( true );
-        $defaults = $ref->invoke( $this->tab );
-
-        $this->assertIsArray( $defaults );
-        $this->assertArrayHasKey( 'ip_api_enabled', $defaults );
-        $this->assertArrayHasKey( 'ip_api_service', $defaults );
-        $this->assertArrayHasKey( 'ip_api_cascade', $defaults );
-        $this->assertArrayHasKey( 'ipinfo_api_key', $defaults );
-        $this->assertArrayHasKey( 'ip_cache_enabled', $defaults );
-        $this->assertArrayHasKey( 'ip_cache_ttl', $defaults );
-        $this->assertArrayHasKey( 'gps_cache_ttl', $defaults );
-        $this->assertArrayHasKey( 'api_fallback', $defaults );
-        $this->assertArrayHasKey( 'gps_fallback_preset', $defaults );
-        $this->assertArrayHasKey( 'gps_fallback_cases', $defaults );
-        $this->assertArrayHasKey( 'both_fail_fallback', $defaults );
-        $this->assertArrayHasKey( 'admin_bypass_datetime', $defaults );
-        $this->assertArrayHasKey( 'admin_bypass_geo', $defaults );
-        $this->assertArrayNotHasKey( 'debug_enabled', $defaults );
-    }
-
-    public function test_get_default_settings_has_correct_default_values(): void {
-        $ref = new \ReflectionMethod( TabGeolocation::class, 'get_default_settings' );
-        $ref->setAccessible( true );
-        $defaults = $ref->invoke( $this->tab );
-
-        $this->assertFalse( $defaults['ip_api_enabled'] );
-        $this->assertSame( 'ip-api', $defaults['ip_api_service'] );
-        $this->assertFalse( $defaults['ip_api_cascade'] );
-        $this->assertSame( '', $defaults['ipinfo_api_key'] );
-        $this->assertTrue( $defaults['ip_cache_enabled'] );
-        $this->assertSame( 600, $defaults['ip_cache_ttl'] );
-        $this->assertSame( 600, $defaults['gps_cache_ttl'] );
-        $this->assertSame( 'gps_only', $defaults['api_fallback'] );
-        // New installs default to hybrid: user-driven failures allow,
-        // technical failures block. Cases are derived from the preset.
-        $this->assertSame( 'hybrid', $defaults['gps_fallback_preset'] );
-        $this->assertSame(
-            array(
-                'permission_denied'    => 'allow',
-                'no_api'               => 'allow',
-                'position_unavailable' => 'block',
-                'timeout'              => 'block',
-                'safety_timer'         => 'block',
-            ),
-            $defaults['gps_fallback_cases']
-        );
-        $this->assertSame( 'block', $defaults['both_fail_fallback'] );
-        $this->assertFalse( $defaults['admin_bypass_datetime'] );
-        $this->assertFalse( $defaults['admin_bypass_geo'] );
-    }
-
-    // ==================================================================
-    // get_settings() — via Reflection
-    // ==================================================================
-
-    public function test_get_settings_merges_saved_with_defaults(): void {
-        Functions\when( 'get_option' )->justReturn( array( 'ip_api_enabled' => true ) );
-        Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
-            return array_merge( $defaults, $args );
-        } );
-
-        $ref = new \ReflectionMethod( TabGeolocation::class, 'get_settings' );
-        $ref->setAccessible( true );
-        $settings = $ref->invoke( $this->tab );
-
-        $this->assertTrue( $settings['ip_api_enabled'] );
-        // Defaults should be present for keys not in saved settings
-        $this->assertSame( 'ip-api', $settings['ip_api_service'] );
-    }
-
-    public function test_get_settings_returns_defaults_when_no_saved_settings(): void {
-        Functions\when( 'get_option' )->justReturn( array() );
-        Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
-            return array_merge( $defaults, $args );
-        } );
-
-        $ref = new \ReflectionMethod( TabGeolocation::class, 'get_settings' );
-        $ref->setAccessible( true );
-        $settings = $ref->invoke( $this->tab );
-
-        $this->assertFalse( $settings['ip_api_enabled'] );
-        $this->assertSame( 'gps_only', $settings['api_fallback'] );
-    }
-
-    // ==================================================================
-    // save_settings() — via Reflection
-    // ==================================================================
-
-    public function test_save_settings_stores_correct_values(): void {
-        $_POST['ip_api_enabled']      = '1';
-        $_POST['ip_api_service']      = 'ipinfo';
-        $_POST['ip_api_cascade']      = '1';
-        $_POST['ipinfo_api_key']      = 'test_key_123';
-        $_POST['ip_cache_enabled']    = '1';
-        $_POST['ip_cache_ttl']        = '900';
-        $_POST['gps_cache_ttl']       = '300';
-        $_POST['api_fallback']        = 'allow';
-        $_POST['gps_fallback_preset'] = 'strict';
-        $_POST['both_fail_fallback']  = 'allow';
-        $_POST['admin_bypass_datetime'] = '1';
-        $_POST['admin_bypass_geo']    = '1';
-
-        $captured_settings = null;
-        Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured_settings ) {
-            if ( $key === 'ffc_geolocation_settings' ) {
-                $captured_settings = $value;
-            }
-        } );
-        Functions\when( 'get_option' )->justReturn( array() );
-        Functions\when( 'get_current_user_id' )->justReturn( 1 );
-
-        $ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
-        $ref->setAccessible( true );
-        $ref->invoke( $this->tab );
-
-        $this->assertNotNull( $captured_settings );
-        $this->assertTrue( $captured_settings['ip_api_enabled'] );
-        $this->assertSame( 'ipinfo', $captured_settings['ip_api_service'] );
-        $this->assertTrue( $captured_settings['ip_api_cascade'] );
-        $this->assertSame( 'test_key_123', $captured_settings['ipinfo_api_key'] );
-        $this->assertTrue( $captured_settings['ip_cache_enabled'] );
-        $this->assertSame( 900, $captured_settings['ip_cache_ttl'] );
-        $this->assertSame( 300, $captured_settings['gps_cache_ttl'] );
-        $this->assertSame( 'allow', $captured_settings['api_fallback'] );
-        // Strict preset persists + the cases get filled with all-block.
-        $this->assertSame( 'strict', $captured_settings['gps_fallback_preset'] );
-        $this->assertSame(
-            array(
-                'permission_denied'    => 'block',
-                'no_api'               => 'block',
-                'position_unavailable' => 'block',
-                'timeout'              => 'block',
-                'safety_timer'         => 'block',
-            ),
-            $captured_settings['gps_fallback_cases']
-        );
-        $this->assertSame( 'allow', $captured_settings['both_fail_fallback'] );
-        $this->assertTrue( $captured_settings['admin_bypass_datetime'] );
-        $this->assertTrue( $captured_settings['admin_bypass_geo'] );
-        $this->assertArrayNotHasKey( 'debug_enabled', $captured_settings );
-        $this->assertArrayNotHasKey( 'gps_fallback', $captured_settings );
-    }
-
-    public function test_save_settings_custom_preset_reads_per_case_radios(): void {
-        $_POST['ip_api_service']     = 'ip-api';
-        $_POST['api_fallback']       = 'gps_only';
-        $_POST['both_fail_fallback'] = 'block';
-        $_POST['gps_fallback_preset'] = 'custom';
-        $_POST['gps_fallback_cases']  = array(
-            'permission_denied'    => 'allow',
-            'no_api'               => 'block',
-            'position_unavailable' => 'allow',
-            'timeout'              => 'block',
-            'safety_timer'         => 'allow',
-            'bogus_key'            => 'allow', // ignored by the sanitizer
-        );
-
-        $captured_settings = null;
-        Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured_settings ) {
-            if ( $key === 'ffc_geolocation_settings' ) {
-                $captured_settings = $value;
-            }
-        } );
-        Functions\when( 'get_option' )->justReturn( array() );
-        Functions\when( 'get_current_user_id' )->justReturn( 1 );
-
-        $ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
-        $ref->setAccessible( true );
-        $ref->invoke( $this->tab );
-
-        $this->assertSame( 'custom', $captured_settings['gps_fallback_preset'] );
-        // The 5 canonical cases land as posted; the bogus key is dropped.
-        $this->assertSame(
-            array(
-                'permission_denied'    => 'allow',
-                'no_api'               => 'block',
-                'position_unavailable' => 'allow',
-                'timeout'              => 'block',
-                'safety_timer'         => 'allow',
-            ),
-            $captured_settings['gps_fallback_cases']
-        );
-    }
-
-    public function test_save_settings_invalid_preset_falls_back_to_hybrid(): void {
-        $_POST['ip_api_service']     = 'ip-api';
-        $_POST['api_fallback']       = 'gps_only';
-        $_POST['both_fail_fallback'] = 'block';
-        $_POST['gps_fallback_preset'] = 'not_a_preset';
-
-        $captured_settings = null;
-        Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured_settings ) {
-            if ( $key === 'ffc_geolocation_settings' ) {
-                $captured_settings = $value;
-            }
-        } );
-        Functions\when( 'get_option' )->justReturn( array() );
-        Functions\when( 'get_current_user_id' )->justReturn( 1 );
-
-        $ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
-        $ref->setAccessible( true );
-        $ref->invoke( $this->tab );
-
-        $this->assertSame( 'hybrid', $captured_settings['gps_fallback_preset'] );
-        $this->assertSame( 'allow', $captured_settings['gps_fallback_cases']['permission_denied'] );
-        $this->assertSame( 'block', $captured_settings['gps_fallback_cases']['timeout'] );
-    }
-
-    public function test_get_settings_migrates_legacy_gps_fallback_string(): void {
-        Functions\when( 'get_option' )->justReturn( array( 'gps_fallback' => 'block' ) );
-        Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
-            return array_merge( $defaults, $args );
-        } );
-
-        $ref = new \ReflectionMethod( TabGeolocation::class, 'get_settings' );
-        $ref->setAccessible( true );
-        $settings = $ref->invoke( $this->tab );
-
-        // Legacy 'block' → strict preset + all-block cases. Legacy key
-        // disappears from the resolved settings.
-        $this->assertSame( 'strict', $settings['gps_fallback_preset'] );
-        $this->assertSame( 'block', $settings['gps_fallback_cases']['permission_denied'] );
-        $this->assertSame( 'block', $settings['gps_fallback_cases']['timeout'] );
-        $this->assertArrayNotHasKey( 'gps_fallback', $settings );
-    }
-
-    public function test_preset_to_cases_hybrid_matches_spec(): void {
-        $cases = TabGeolocation::preset_to_cases( 'hybrid' );
-        $this->assertSame( 'allow', $cases['permission_denied'] );
-        $this->assertSame( 'allow', $cases['no_api'] );
-        $this->assertSame( 'block', $cases['position_unavailable'] );
-        $this->assertSame( 'block', $cases['timeout'] );
-        $this->assertSame( 'block', $cases['safety_timer'] );
-    }
-
-    public function test_cases_to_preset_round_trip_for_named_presets(): void {
-        $this->assertSame( 'tolerant', TabGeolocation::cases_to_preset( TabGeolocation::preset_to_cases( 'tolerant' ) ) );
-        $this->assertSame( 'hybrid', TabGeolocation::cases_to_preset( TabGeolocation::preset_to_cases( 'hybrid' ) ) );
-        $this->assertSame( 'strict', TabGeolocation::cases_to_preset( TabGeolocation::preset_to_cases( 'strict' ) ) );
-    }
-
-    public function test_cases_to_preset_returns_custom_for_mixed_matrix(): void {
-        $mixed = TabGeolocation::preset_to_cases( 'hybrid' );
-        $mixed['timeout'] = 'allow'; // any deviation makes it custom
-        $this->assertSame( 'custom', TabGeolocation::cases_to_preset( $mixed ) );
-    }
-
-    public function test_save_settings_defaults_invalid_service_to_ip_api(): void {
-        $_POST['ip_api_service'] = 'invalid_service';
-        $_POST['api_fallback']   = 'gps_only';
-        $_POST['gps_fallback_preset'] = 'tolerant';
-        $_POST['both_fail_fallback'] = 'block';
-
-        $captured_settings = null;
-        Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured_settings ) {
-            if ( $key === 'ffc_geolocation_settings' ) {
-                $captured_settings = $value;
-            }
-        } );
-        Functions\when( 'get_option' )->justReturn( array() );
-        Functions\when( 'get_current_user_id' )->justReturn( 1 );
-
-        $ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
-        $ref->setAccessible( true );
-        $ref->invoke( $this->tab );
-
-        $this->assertSame( 'ip-api', $captured_settings['ip_api_service'] );
-    }
-
-    public function test_save_settings_clamps_ip_cache_ttl(): void {
-        $_POST['ip_api_service']     = 'ip-api';
-        $_POST['api_fallback']       = 'gps_only';
-        $_POST['gps_fallback_preset'] = 'tolerant';
-        $_POST['both_fail_fallback'] = 'block';
-        $_POST['ip_cache_ttl']       = '100'; // Below minimum of 300
-        $_POST['gps_cache_ttl']      = '30';  // Below minimum of 60
-
-        $captured_settings = null;
-        Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured_settings ) {
-            if ( $key === 'ffc_geolocation_settings' ) {
-                $captured_settings = $value;
-            }
-        } );
-        Functions\when( 'get_option' )->justReturn( array() );
-        Functions\when( 'get_current_user_id' )->justReturn( 1 );
-
-        $ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
-        $ref->setAccessible( true );
-        $ref->invoke( $this->tab );
-
-        $this->assertSame( 300, $captured_settings['ip_cache_ttl'] );
-        $this->assertSame( 60, $captured_settings['gps_cache_ttl'] );
-    }
-
-    public function test_save_settings_calls_save_locations(): void {
-        $_POST['ip_api_service']     = 'ip-api';
-        $_POST['api_fallback']       = 'gps_only';
-        $_POST['gps_fallback_preset'] = 'tolerant';
-        $_POST['both_fail_fallback'] = 'block';
-
-        Functions\when( 'update_option' )->justReturn( true );
-        Functions\when( 'get_option' )->justReturn( array() );
-        Functions\when( 'get_current_user_id' )->justReturn( 1 );
-
-        $ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
-        $ref->setAccessible( true );
-        $ref->invoke( $this->tab );
-
-        // save_settings no longer saves main_geo_areas; it delegates to save_locations().
-        // Verify it completes without error — location CRUD is tested separately.
-        $this->assertTrue( true );
-    }
-
-    // ==================================================================
-    // render() — POST submission (form save)
-    // ==================================================================
-
-    public function test_render_processes_post_submission_and_shows_success(): void {
-        $_POST['ffc_save_geolocation'] = '1';
-        $_POST['ip_api_service']       = 'ip-api';
-        $_POST['api_fallback']         = 'gps_only';
-        $_POST['gps_fallback_preset']  = 'hybrid';
-        $_POST['both_fail_fallback']   = 'block';
-
-        Functions\when( 'check_admin_referer' )->justReturn( true );
-        Functions\when( 'update_option' )->justReturn( true );
-        Functions\when( 'get_option' )->justReturn( array() );
-        Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
-            return array_merge( $defaults, $args );
-        } );
-        Functions\when( 'get_current_user_id' )->justReturn( 1 );
-
-        // The render() includes a view file — stub it with a temp file
-        $tmp_dir = sys_get_temp_dir() . '/ffc_test_geo_' . getmypid();
-        @mkdir( $tmp_dir, 0777, true );
-        file_put_contents(
-            $tmp_dir . '/ffc-tab-geolocation.php',
-            '<?php echo "geo-view"; ?>'
-        );
-
-        // Use subclass to override the view path
-        $tab = new class( $tmp_dir ) extends TabGeolocation {
-            private $view_dir;
-            public function __construct( string $dir ) {
-                $this->view_dir = $dir;
-                parent::__construct();
-            }
-            public function render(): void {
-                // phpcs:ignore WordPress.Security.NonceVerification.Missing
-                if ( $_POST && isset( $_POST['ffc_save_geolocation'] ) ) {
-                    check_admin_referer( 'ffc_geolocation_nonce' );
-                    $ref = new \ReflectionMethod( parent::class, 'save_settings' );
-                    $ref->setAccessible( true );
-                    $ref->invoke( $this );
-                    echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Geolocation settings saved successfully!', 'ffcertificate' ) . '</p></div>';
-                }
-                $ref = new \ReflectionMethod( parent::class, 'get_settings' );
-                $ref->setAccessible( true );
-                $settings = $ref->invoke( $this );
-                include $this->view_dir . '/ffc-tab-geolocation.php';
-            }
-        };
-
-        ob_start();
-        $tab->render();
-        $output = ob_get_clean();
-
-        $this->assertStringContainsString( 'Geolocation settings saved successfully!', $output );
-        $this->assertStringContainsString( 'geo-view', $output );
-
-        @unlink( $tmp_dir . '/ffc-tab-geolocation.php' );
-        @rmdir( $tmp_dir );
-    }
-    // ==================================================================
-    // enqueue_scripts() + handle_location_delete()
-    // ==================================================================
-
-    public function test_enqueue_scripts_skips_on_wrong_hook(): void {
-        Functions\when( 'wp_enqueue_script' )->alias( function () { throw new \RuntimeException( 'enqueued' ); } );
-        $this->tab->enqueue_scripts( 'some-other-hook' );
-        $this->assertTrue( true );
-    }
-
-    public function test_enqueue_scripts_skips_on_wrong_tab(): void {
-        $_GET['tab'] = 'datetime';
-        Functions\when( 'wp_enqueue_script' )->alias( function () { throw new \RuntimeException( 'enqueued' ); } );
-        $this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
-        unset( $_GET['tab'] );
-        $this->assertTrue( true );
-    }
-
-    public function test_enqueue_scripts_enqueues_on_geolocation_tab(): void {
-        $_GET['tab'] = 'geolocation';
-        $handles = array();
-        Functions\when( 'wp_enqueue_script' )->alias( function ( $h ) use ( &$handles ) { $handles[] = $h; } );
-        Functions\when( 'wp_enqueue_style' )->justReturn( null );
-        Functions\when( 'wp_register_script' )->justReturn( true );
-        Functions\when( 'wp_localize_script' )->justReturn( true );
-        Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
-        Functions\when( 'admin_url' )->returnArg();
-
-        $this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
-        unset( $_GET['tab'] );
-
-        $this->assertContains( 'ffc-geolocation-settings', $handles );
-        $this->assertContains( 'ffc-locations-crud', $handles );
-    }
-
-    public function test_handle_location_delete_noop_without_param(): void {
-        $ref = new \ReflectionMethod( TabGeolocation::class, 'handle_location_delete' );
-        $ref->setAccessible( true );
-        $ref->invoke( $this->tab );
-        $this->assertTrue( true );
-    }
-
-    public function test_handle_location_delete_dies_on_bad_nonce(): void {
-        $_GET['ffc_delete_location'] = 'loc1';
-        $_GET['_wpnonce']            = 'bad';
-        Functions\when( 'wp_verify_nonce' )->justReturn( false );
-        Functions\when( 'wp_die' )->alias( function () { throw new \RuntimeException( 'wp_die' ); } );
-
-        $ref = new \ReflectionMethod( TabGeolocation::class, 'handle_location_delete' );
-        $ref->setAccessible( true );
-
-        try {
-            $ref->invoke( $this->tab );
-            $this->fail( 'expected wp_die' );
-        } catch ( \RuntimeException $e ) {
-            $this->assertSame( 'wp_die', $e->getMessage() );
-        }
-        unset( $_GET['ffc_delete_location'], $_GET['_wpnonce'] );
-    }
-
-    public function test_handle_location_delete_deletes_and_redirects_on_valid_nonce(): void {
-        $_GET['ffc_delete_location'] = 'loc1';
-        $_GET['_wpnonce']            = 'good';
-
-        Functions\when( 'wp_verify_nonce' )->justReturn( true );
-        Functions\when( 'current_user_can' )->justReturn( true );
-        Functions\when( 'remove_query_arg' )->justReturn( 'https://example.com/settings' );
-        Functions\when( 'wp_safe_redirect' )->justReturn( true );
-
-        $registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
-        $registry->shouldReceive( 'delete' )->once()->with( 'loc1' )->andReturn( true );
-
-        // The real method calls exit; after the redirect. Intercept it so the
-        // test process survives and we can assert the redirect happened.
-        Functions\when( 'wp_safe_redirect' )->alias( function () {
-            throw new \RuntimeException( 'redirected' );
-        } );
-
-        $ref = new \ReflectionMethod( TabGeolocation::class, 'handle_location_delete' );
-        $ref->setAccessible( true );
-
-        try {
-            $ref->invoke( $this->tab );
-            $this->fail( 'expected redirect' );
-        } catch ( \RuntimeException $e ) {
-            $this->assertSame( 'redirected', $e->getMessage() );
-        }
-        unset( $_GET['ffc_delete_location'], $_GET['_wpnonce'] );
-    }
-
-    public function test_handle_location_delete_blocks_view_only_user(): void {
-        // A valid nonce but no manage capability (view-only user): the delete
-        // must wp_die before touching the registry.
-        $_GET['ffc_delete_location'] = 'loc1';
-        $_GET['_wpnonce']            = 'good';
-
-        Functions\when( 'wp_verify_nonce' )->justReturn( true );
-        Functions\when( 'current_user_can' )->justReturn( false );
-        Functions\when( 'wp_die' )->alias( function () { throw new \RuntimeException( 'wp_die' ); } );
-
-        $registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
-        $registry->shouldReceive( 'delete' )->never();
-
-        $ref = new \ReflectionMethod( TabGeolocation::class, 'handle_location_delete' );
-        $ref->setAccessible( true );
-
-        try {
-            $ref->invoke( $this->tab );
-            $this->fail( 'expected wp_die' );
-        } catch ( \RuntimeException $e ) {
-            $this->assertSame( 'wp_die', $e->getMessage() );
-        }
-        unset( $_GET['ffc_delete_location'], $_GET['_wpnonce'] );
-    }
-
-    // ==================================================================
-    // save_locations() — new + existing location CRUD
-    // ==================================================================
-
-    public function test_save_locations_saves_new_and_updates_existing(): void {
-        $_POST['ffc_location_new'] = array(
-            'name'   => 'HQ',
-            'lat'    => '10.5',
-            'lng'    => '20.5',
-            'radius' => '500',
-        );
-        $_POST['ffc_locations'] = array(
-            'loc1' => array(
-                'name'   => 'Branch',
-                'lat'    => '1',
-                'lng'    => '2',
-                'radius' => '300',
-            ),
-            'ghost' => array( 'name' => 'Gone' ),
-        );
-        $_POST['ffc_location_default_gps'] = 'loc1';
-        $_POST['ffc_location_default_ip']  = 'loc1';
-
-        Functions\when( 'sanitize_text_field' )->returnArg();
-
-        $registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
-        $saved = array();
-        $registry->shouldReceive( 'save' )->andReturnUsing( function ( $loc ) use ( &$saved ) {
-            $saved[] = $loc;
-            return $loc['id'] ?? 'new-id';
-        } );
-        // Known id resolves; the "ghost" id returns null → skipped.
-        $registry->shouldReceive( 'get_by_id' )->with( 'loc1' )->andReturn( array( 'id' => 'loc1' ) );
-        $registry->shouldReceive( 'get_by_id' )->with( 'ghost' )->andReturnNull();
-
-        $ref = new \ReflectionMethod( TabGeolocation::class, 'save_locations' );
-        $ref->setAccessible( true );
-        $ref->invoke( $this->tab );
-
-        // One new save + one existing update (ghost skipped) = 2 saves.
-        $this->assertCount( 2, $saved );
-        $this->assertSame( 'HQ', $saved[0]['name'] );
-        $this->assertFalse( $saved[0]['default_gps'] );
-        $this->assertSame( 'loc1', $saved[1]['id'] );
-        $this->assertTrue( $saved[1]['default_gps'] );
-        $this->assertTrue( $saved[1]['default_ip'] );
-
-        unset(
-            $_POST['ffc_location_new'],
-            $_POST['ffc_locations'],
-            $_POST['ffc_location_default_gps'],
-            $_POST['ffc_location_default_ip']
-        );
-    }
-
-    public function test_save_locations_skips_blank_new_name(): void {
-        $_POST['ffc_location_new'] = array( 'name' => '   ' );
-        Functions\when( 'sanitize_text_field' )->returnArg();
-
-        $registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
-        $registry->shouldReceive( 'save' )->never();
-
-        $ref = new \ReflectionMethod( TabGeolocation::class, 'save_locations' );
-        $ref->setAccessible( true );
-        $ref->invoke( $this->tab );
-
-        $this->assertTrue( true );
-        unset( $_POST['ffc_location_new'] );
-    }
-
-    // ==================================================================
-    // render() — no POST (plain render path)
-    // ==================================================================
-
-    public function test_save_settings_custom_preset_non_array_cases_defaults_block(): void {
-        $_POST['ip_api_service']      = 'ip-api';
-        $_POST['api_fallback']        = 'gps_only';
-        $_POST['both_fail_fallback']  = 'block';
-        $_POST['gps_fallback_preset'] = 'custom';
-        // Non-array cases → normalised to array(), every case falls back to 'block'.
-        $_POST['gps_fallback_cases']  = 'not-an-array';
-
-        $captured = null;
-        Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured ) {
-            if ( 'ffc_geolocation_settings' === $key ) {
-                $captured = $value;
-            }
-        } );
-        Functions\when( 'get_option' )->justReturn( array() );
-        Functions\when( 'get_current_user_id' )->justReturn( 1 );
-
-        $ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
-        $ref->setAccessible( true );
-        $ref->invoke( $this->tab );
-
-        $this->assertSame( 'custom', $captured['gps_fallback_preset'] );
-        foreach ( array( 'permission_denied', 'no_api', 'position_unavailable', 'timeout', 'safety_timer' ) as $k ) {
-            $this->assertSame( 'block', $captured['gps_fallback_cases'][ $k ] );
-        }
-    }
-
-    // ==================================================================
-    // render() — POST submission through the REAL render()
-    // ==================================================================
-
-    public function test_render_real_post_submission_saves_and_shows_notice(): void {
-        $_POST['ffc_save_geolocation'] = '1';
-        $_POST['ip_api_service']       = 'ip-api';
-        $_POST['api_fallback']         = 'gps_only';
-        $_POST['gps_fallback_preset']  = 'hybrid';
-        $_POST['both_fail_fallback']   = 'block';
-
-        Functions\when( 'check_admin_referer' )->justReturn( true );
-        Functions\when( 'current_user_can' )->justReturn( true );
-        Functions\when( 'update_option' )->justReturn( true );
-        Functions\when( 'get_option' )->justReturn( array() );
-        Functions\when( 'get_current_user_id' )->justReturn( 1 );
-        Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
-            return array_merge( $defaults, $args );
-        } );
-
-        Functions\when( 'wp_nonce_field' )->justReturn( '' );
-        Functions\when( 'selected' )->justReturn( '' );
-        Functions\when( 'checked' )->justReturn( '' );
-        Functions\when( 'submit_button' )->justReturn( null );
-        Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
-        Functions\when( 'esc_url' )->returnArg();
-        Functions\when( 'esc_attr_e' )->alias( function ( $t ) { echo $t; } );
-        Functions\when( 'wp_nonce_url' )->justReturn( 'nonce-url' );
-        Functions\when( 'admin_url' )->returnArg();
-        Functions\when( 'add_query_arg' )->justReturn( 'q' );
-        Functions\when( 'number_format_i18n' )->returnArg();
-
-        $registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
-        $registry->shouldReceive( 'get_all' )->andReturn( array() );
-        $registry->shouldReceive( 'get_default_gps' )->andReturnNull();
-        $registry->shouldReceive( 'get_default_ip' )->andReturnNull();
-        $registry->shouldReceive( 'save' )->andReturn( 'id' );
-        $registry->shouldReceive( 'get_by_id' )->andReturnNull();
-
-        ob_start();
-        try {
-            $this->tab->render();
-        } finally {
-            $output = ob_get_clean();
-        }
-
-        $this->assertStringContainsString( 'Geolocation settings saved successfully!', $output );
-    }
-
-    public function test_render_does_not_save_for_view_only_user(): void {
-        // A view-only user (ffc_view_settings, no ffc_manage_settings) POSTs
-        // the form nonce directly; render() must NOT persist and must NOT show
-        // the success notice.
-        $_POST['ffc_save_geolocation'] = '1';
-        $_POST['ip_api_service']       = 'ip-api';
-        $_POST['api_fallback']         = 'gps_only';
-        $_POST['gps_fallback_preset']  = 'hybrid';
-        $_POST['both_fail_fallback']   = 'block';
-
-        Functions\when( 'check_admin_referer' )->justReturn( true );
-        Functions\when( 'current_user_can' )->justReturn( false );
-        Functions\when( 'get_option' )->justReturn( array() );
-        Functions\when( 'get_current_user_id' )->justReturn( 2 );
-        Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
-            return array_merge( $defaults, $args );
-        } );
-
-        $save_called = false;
-        Functions\when( 'update_option' )->alias( function ( $key ) use ( &$save_called ) {
-            if ( 'ffc_geolocation_settings' === $key ) {
-                $save_called = true;
-            }
-            return true;
-        } );
-
-        Functions\when( 'wp_nonce_field' )->justReturn( '' );
-        Functions\when( 'selected' )->justReturn( '' );
-        Functions\when( 'checked' )->justReturn( '' );
-        Functions\when( 'submit_button' )->justReturn( null );
-        Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
-        Functions\when( 'esc_url' )->returnArg();
-        Functions\when( 'esc_attr_e' )->alias( function ( $t ) { echo $t; } );
-        Functions\when( 'wp_nonce_url' )->justReturn( 'nonce-url' );
-        Functions\when( 'admin_url' )->returnArg();
-        Functions\when( 'add_query_arg' )->justReturn( 'q' );
-        Functions\when( 'number_format_i18n' )->returnArg();
-
-        $registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
-        $registry->shouldReceive( 'get_all' )->andReturn( array() );
-        $registry->shouldReceive( 'get_default_gps' )->andReturnNull();
-        $registry->shouldReceive( 'get_default_ip' )->andReturnNull();
-        $registry->shouldReceive( 'save' )->never();
-
-        ob_start();
-        try {
-            $this->tab->render();
-        } finally {
-            $output = ob_get_clean();
-        }
-
-        $this->assertFalse( $save_called, 'View-only user must not persist settings' );
-        $this->assertStringNotContainsString( 'Geolocation settings saved successfully!', $output );
-    }
-
-    public function test_render_without_post_includes_view(): void {
-        unset( $_POST['ffc_save_geolocation'] );
-
-        // handle_location_delete() no-ops without the GET param.
-        Functions\when( 'get_option' )->justReturn( array() );
-        Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
-            return array_merge( $defaults, $args );
-        } );
-
-        // Stub the collaborators the real geolocation view partial uses.
-        Functions\when( 'wp_nonce_field' )->justReturn( '' );
-        Functions\when( 'selected' )->justReturn( '' );
-        Functions\when( 'checked' )->justReturn( '' );
-        Functions\when( 'submit_button' )->justReturn( null );
-        Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
-        Functions\when( 'esc_url' )->returnArg();
-        Functions\when( 'esc_attr_e' )->alias( function ( $t ) { echo $t; } );
-        Functions\when( 'wp_nonce_url' )->justReturn( 'nonce-url' );
-        Functions\when( 'admin_url' )->returnArg();
-        Functions\when( 'add_query_arg' )->justReturn( 'q' );
-        Functions\when( 'number_format_i18n' )->returnArg();
-
-        $registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
-        $registry->shouldReceive( 'get_all' )->andReturn( array() );
-        $registry->shouldReceive( 'get_default_gps' )->andReturnNull();
-        $registry->shouldReceive( 'get_default_ip' )->andReturnNull();
-
-        ob_start();
-        try {
-            $this->tab->render();
-        } finally {
-            $output = ob_get_clean();
-        }
-
-        $this->assertIsString( $output );
-    }
+	use MockeryPHPUnitIntegration;
+
+	/** @var TabGeolocation */
+	private $tab;
+
+	protected function setUp(): void {
+		parent::setUp();
+		Monkey\setUp();
+		Functions\when( 'wp_admin_notice' )->alias(
+			static function ( $message, $args = array() ) {
+				$ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
+				$ffc_cls  = 'notice notice-' . $ffc_type;
+				if ( ! empty( $args['dismissible'] ) ) { $ffc_cls .= ' is-dismissible'; }
+				if ( ! empty( $args['additional_classes'] ) ) { $ffc_cls .= ' ' . implode( ' ', $args['additional_classes'] ); }
+				$ffc_wrap = ! array_key_exists( 'paragraph_wrap', $args ) || $args['paragraph_wrap'];
+				echo '<div class="' . $ffc_cls . '">' . ( $ffc_wrap ? '<p>' . $message . '</p>' : $message ) . '</div>';
+			}
+		);
+
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'sanitize_key' )->alias( function ( $key ) {
+			return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $key ) );
+		} );
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'sanitize_textarea_field' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'absint' )->alias( function ( $val ) {
+			return abs( (int) $val );
+		} );
+
+		// The tab's init() registers an admin_enqueue_scripts hook;
+		// Brain\Monkey's hook layer rejects anonymous-class callbacks
+		// (used by test_render_processes_post_submission_and_shows_success),
+		// so neutralise add_action for the whole suite.
+		Functions\when( 'add_action' )->justReturn( true );
+
+		$this->tab = new TabGeolocation();
+	}
+
+	protected function tearDown(): void {
+		unset( $_POST['ffc_save_geolocation'] );
+		unset( $_POST['ip_api_service'], $_POST['api_fallback'] );
+		unset( $_POST['gps_fallback'], $_POST['gps_fallback_preset'], $_POST['gps_fallback_cases'] );
+		unset( $_POST['both_fail_fallback'], $_POST['ip_api_enabled'], $_POST['ip_api_cascade'] );
+		unset( $_POST['ipinfo_api_key'], $_POST['ip_cache_enabled'], $_POST['ip_cache_ttl'] );
+		unset( $_POST['gps_cache_ttl'], $_POST['admin_bypass_datetime'], $_POST['admin_bypass_geo'] );
+		unset( $_POST['main_geo_areas'] );
+		Monkey\tearDown();
+		parent::tearDown();
+	}
+
+	// ==================================================================
+	// init() — tab properties
+	// ==================================================================
+
+	public function test_tab_id_is_geolocation(): void {
+		$this->assertSame( 'geolocation', $this->tab->get_id() );
+	}
+
+	public function test_tab_title_is_geolocation(): void {
+		$this->assertSame( 'Geolocation', $this->tab->get_title() );
+	}
+
+	public function test_tab_icon_is_globe(): void {
+		$this->assertSame( 'ffc-icon-globe', $this->tab->get_icon() );
+	}
+
+	public function test_tab_order_is_50(): void {
+		$this->assertSame( 50, $this->tab->get_order() );
+	}
+
+	// ==================================================================
+	// Inheritance
+	// ==================================================================
+
+	public function test_extends_settings_tab(): void {
+		$this->assertInstanceOf(
+			\FreeFormCertificate\Settings\SettingsTab::class,
+			$this->tab
+		);
+	}
+
+	// ==================================================================
+	// get_default_settings() — via Reflection
+	// ==================================================================
+
+	public function test_get_default_settings_returns_expected_keys(): void {
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'get_default_settings' );
+		$ref->setAccessible( true );
+		$defaults = $ref->invoke( $this->tab );
+
+		$this->assertIsArray( $defaults );
+		$this->assertArrayHasKey( 'ip_api_enabled', $defaults );
+		$this->assertArrayHasKey( 'ip_api_service', $defaults );
+		$this->assertArrayHasKey( 'ip_api_cascade', $defaults );
+		$this->assertArrayHasKey( 'ipinfo_api_key', $defaults );
+		$this->assertArrayHasKey( 'ip_cache_enabled', $defaults );
+		$this->assertArrayHasKey( 'ip_cache_ttl', $defaults );
+		$this->assertArrayHasKey( 'gps_cache_ttl', $defaults );
+		$this->assertArrayHasKey( 'api_fallback', $defaults );
+		$this->assertArrayHasKey( 'gps_fallback_preset', $defaults );
+		$this->assertArrayHasKey( 'gps_fallback_cases', $defaults );
+		$this->assertArrayHasKey( 'both_fail_fallback', $defaults );
+		$this->assertArrayHasKey( 'admin_bypass_datetime', $defaults );
+		$this->assertArrayHasKey( 'admin_bypass_geo', $defaults );
+		$this->assertArrayNotHasKey( 'debug_enabled', $defaults );
+	}
+
+	public function test_get_default_settings_has_correct_default_values(): void {
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'get_default_settings' );
+		$ref->setAccessible( true );
+		$defaults = $ref->invoke( $this->tab );
+
+		$this->assertFalse( $defaults['ip_api_enabled'] );
+		$this->assertSame( 'ip-api', $defaults['ip_api_service'] );
+		$this->assertFalse( $defaults['ip_api_cascade'] );
+		$this->assertSame( '', $defaults['ipinfo_api_key'] );
+		$this->assertTrue( $defaults['ip_cache_enabled'] );
+		$this->assertSame( 600, $defaults['ip_cache_ttl'] );
+		$this->assertSame( 600, $defaults['gps_cache_ttl'] );
+		$this->assertSame( 'gps_only', $defaults['api_fallback'] );
+		// New installs default to hybrid: user-driven failures allow,
+		// technical failures block. Cases are derived from the preset.
+		$this->assertSame( 'hybrid', $defaults['gps_fallback_preset'] );
+		$this->assertSame(
+			array(
+				'permission_denied'    => 'allow',
+				'no_api'               => 'allow',
+				'position_unavailable' => 'block',
+				'timeout'              => 'block',
+				'safety_timer'         => 'block',
+			),
+			$defaults['gps_fallback_cases']
+		);
+		$this->assertSame( 'block', $defaults['both_fail_fallback'] );
+		$this->assertFalse( $defaults['admin_bypass_datetime'] );
+		$this->assertFalse( $defaults['admin_bypass_geo'] );
+	}
+
+	// ==================================================================
+	// get_settings() — via Reflection
+	// ==================================================================
+
+	public function test_get_settings_merges_saved_with_defaults(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'ip_api_enabled' => true ) );
+		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
+			return array_merge( $defaults, $args );
+		} );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'get_settings' );
+		$ref->setAccessible( true );
+		$settings = $ref->invoke( $this->tab );
+
+		$this->assertTrue( $settings['ip_api_enabled'] );
+		// Defaults should be present for keys not in saved settings
+		$this->assertSame( 'ip-api', $settings['ip_api_service'] );
+	}
+
+	public function test_get_settings_returns_defaults_when_no_saved_settings(): void {
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
+			return array_merge( $defaults, $args );
+		} );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'get_settings' );
+		$ref->setAccessible( true );
+		$settings = $ref->invoke( $this->tab );
+
+		$this->assertFalse( $settings['ip_api_enabled'] );
+		$this->assertSame( 'gps_only', $settings['api_fallback'] );
+	}
+
+	// ==================================================================
+	// save_settings() — via Reflection
+	// ==================================================================
+
+	public function test_save_settings_stores_correct_values(): void {
+		$_POST['ip_api_enabled']      = '1';
+		$_POST['ip_api_service']      = 'ipinfo';
+		$_POST['ip_api_cascade']      = '1';
+		$_POST['ipinfo_api_key']      = 'test_key_123';
+		$_POST['ip_cache_enabled']    = '1';
+		$_POST['ip_cache_ttl']        = '900';
+		$_POST['gps_cache_ttl']       = '300';
+		$_POST['api_fallback']        = 'allow';
+		$_POST['gps_fallback_preset'] = 'strict';
+		$_POST['both_fail_fallback']  = 'allow';
+		$_POST['admin_bypass_datetime'] = '1';
+		$_POST['admin_bypass_geo']    = '1';
+
+		$captured_settings = null;
+		Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured_settings ) {
+			if ( $key === 'ffc_geolocation_settings' ) {
+				$captured_settings = $value;
+			}
+		} );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
+		$ref->setAccessible( true );
+		$ref->invoke( $this->tab );
+
+		$this->assertNotNull( $captured_settings );
+		$this->assertTrue( $captured_settings['ip_api_enabled'] );
+		$this->assertSame( 'ipinfo', $captured_settings['ip_api_service'] );
+		$this->assertTrue( $captured_settings['ip_api_cascade'] );
+		$this->assertSame( 'test_key_123', $captured_settings['ipinfo_api_key'] );
+		$this->assertTrue( $captured_settings['ip_cache_enabled'] );
+		$this->assertSame( 900, $captured_settings['ip_cache_ttl'] );
+		$this->assertSame( 300, $captured_settings['gps_cache_ttl'] );
+		$this->assertSame( 'allow', $captured_settings['api_fallback'] );
+		// Strict preset persists + the cases get filled with all-block.
+		$this->assertSame( 'strict', $captured_settings['gps_fallback_preset'] );
+		$this->assertSame(
+			array(
+				'permission_denied'    => 'block',
+				'no_api'               => 'block',
+				'position_unavailable' => 'block',
+				'timeout'              => 'block',
+				'safety_timer'         => 'block',
+			),
+			$captured_settings['gps_fallback_cases']
+		);
+		$this->assertSame( 'allow', $captured_settings['both_fail_fallback'] );
+		$this->assertTrue( $captured_settings['admin_bypass_datetime'] );
+		$this->assertTrue( $captured_settings['admin_bypass_geo'] );
+		$this->assertArrayNotHasKey( 'debug_enabled', $captured_settings );
+		$this->assertArrayNotHasKey( 'gps_fallback', $captured_settings );
+	}
+
+	public function test_save_settings_custom_preset_reads_per_case_radios(): void {
+		$_POST['ip_api_service']     = 'ip-api';
+		$_POST['api_fallback']       = 'gps_only';
+		$_POST['both_fail_fallback'] = 'block';
+		$_POST['gps_fallback_preset'] = 'custom';
+		$_POST['gps_fallback_cases']  = array(
+			'permission_denied'    => 'allow',
+			'no_api'               => 'block',
+			'position_unavailable' => 'allow',
+			'timeout'              => 'block',
+			'safety_timer'         => 'allow',
+			'bogus_key'            => 'allow', // ignored by the sanitizer
+		);
+
+		$captured_settings = null;
+		Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured_settings ) {
+			if ( $key === 'ffc_geolocation_settings' ) {
+				$captured_settings = $value;
+			}
+		} );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
+		$ref->setAccessible( true );
+		$ref->invoke( $this->tab );
+
+		$this->assertSame( 'custom', $captured_settings['gps_fallback_preset'] );
+		// The 5 canonical cases land as posted; the bogus key is dropped.
+		$this->assertSame(
+			array(
+				'permission_denied'    => 'allow',
+				'no_api'               => 'block',
+				'position_unavailable' => 'allow',
+				'timeout'              => 'block',
+				'safety_timer'         => 'allow',
+			),
+			$captured_settings['gps_fallback_cases']
+		);
+	}
+
+	public function test_save_settings_invalid_preset_falls_back_to_hybrid(): void {
+		$_POST['ip_api_service']     = 'ip-api';
+		$_POST['api_fallback']       = 'gps_only';
+		$_POST['both_fail_fallback'] = 'block';
+		$_POST['gps_fallback_preset'] = 'not_a_preset';
+
+		$captured_settings = null;
+		Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured_settings ) {
+			if ( $key === 'ffc_geolocation_settings' ) {
+				$captured_settings = $value;
+			}
+		} );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
+		$ref->setAccessible( true );
+		$ref->invoke( $this->tab );
+
+		$this->assertSame( 'hybrid', $captured_settings['gps_fallback_preset'] );
+		$this->assertSame( 'allow', $captured_settings['gps_fallback_cases']['permission_denied'] );
+		$this->assertSame( 'block', $captured_settings['gps_fallback_cases']['timeout'] );
+	}
+
+	public function test_get_settings_migrates_legacy_gps_fallback_string(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'gps_fallback' => 'block' ) );
+		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
+			return array_merge( $defaults, $args );
+		} );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'get_settings' );
+		$ref->setAccessible( true );
+		$settings = $ref->invoke( $this->tab );
+
+		// Legacy 'block' → strict preset + all-block cases. Legacy key
+		// disappears from the resolved settings.
+		$this->assertSame( 'strict', $settings['gps_fallback_preset'] );
+		$this->assertSame( 'block', $settings['gps_fallback_cases']['permission_denied'] );
+		$this->assertSame( 'block', $settings['gps_fallback_cases']['timeout'] );
+		$this->assertArrayNotHasKey( 'gps_fallback', $settings );
+	}
+
+	public function test_preset_to_cases_hybrid_matches_spec(): void {
+		$cases = TabGeolocation::preset_to_cases( 'hybrid' );
+		$this->assertSame( 'allow', $cases['permission_denied'] );
+		$this->assertSame( 'allow', $cases['no_api'] );
+		$this->assertSame( 'block', $cases['position_unavailable'] );
+		$this->assertSame( 'block', $cases['timeout'] );
+		$this->assertSame( 'block', $cases['safety_timer'] );
+	}
+
+	public function test_cases_to_preset_round_trip_for_named_presets(): void {
+		$this->assertSame( 'tolerant', TabGeolocation::cases_to_preset( TabGeolocation::preset_to_cases( 'tolerant' ) ) );
+		$this->assertSame( 'hybrid', TabGeolocation::cases_to_preset( TabGeolocation::preset_to_cases( 'hybrid' ) ) );
+		$this->assertSame( 'strict', TabGeolocation::cases_to_preset( TabGeolocation::preset_to_cases( 'strict' ) ) );
+	}
+
+	public function test_cases_to_preset_returns_custom_for_mixed_matrix(): void {
+		$mixed = TabGeolocation::preset_to_cases( 'hybrid' );
+		$mixed['timeout'] = 'allow'; // any deviation makes it custom
+		$this->assertSame( 'custom', TabGeolocation::cases_to_preset( $mixed ) );
+	}
+
+	public function test_save_settings_defaults_invalid_service_to_ip_api(): void {
+		$_POST['ip_api_service'] = 'invalid_service';
+		$_POST['api_fallback']   = 'gps_only';
+		$_POST['gps_fallback_preset'] = 'tolerant';
+		$_POST['both_fail_fallback'] = 'block';
+
+		$captured_settings = null;
+		Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured_settings ) {
+			if ( $key === 'ffc_geolocation_settings' ) {
+				$captured_settings = $value;
+			}
+		} );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
+		$ref->setAccessible( true );
+		$ref->invoke( $this->tab );
+
+		$this->assertSame( 'ip-api', $captured_settings['ip_api_service'] );
+	}
+
+	public function test_save_settings_clamps_ip_cache_ttl(): void {
+		$_POST['ip_api_service']     = 'ip-api';
+		$_POST['api_fallback']       = 'gps_only';
+		$_POST['gps_fallback_preset'] = 'tolerant';
+		$_POST['both_fail_fallback'] = 'block';
+		$_POST['ip_cache_ttl']       = '100'; // Below minimum of 300
+		$_POST['gps_cache_ttl']      = '30';  // Below minimum of 60
+
+		$captured_settings = null;
+		Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured_settings ) {
+			if ( $key === 'ffc_geolocation_settings' ) {
+				$captured_settings = $value;
+			}
+		} );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
+		$ref->setAccessible( true );
+		$ref->invoke( $this->tab );
+
+		$this->assertSame( 300, $captured_settings['ip_cache_ttl'] );
+		$this->assertSame( 60, $captured_settings['gps_cache_ttl'] );
+	}
+
+	public function test_save_settings_calls_save_locations(): void {
+		$_POST['ip_api_service']     = 'ip-api';
+		$_POST['api_fallback']       = 'gps_only';
+		$_POST['gps_fallback_preset'] = 'tolerant';
+		$_POST['both_fail_fallback'] = 'block';
+
+		Functions\when( 'update_option' )->justReturn( true );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
+		$ref->setAccessible( true );
+		$ref->invoke( $this->tab );
+
+		// save_settings no longer saves main_geo_areas; it delegates to save_locations().
+		// Verify it completes without error — location CRUD is tested separately.
+		$this->assertTrue( true );
+	}
+
+	// ==================================================================
+	// render() — POST submission (form save)
+	// ==================================================================
+
+	public function test_render_processes_post_submission_and_shows_success(): void {
+		$_POST['ffc_save_geolocation'] = '1';
+		$_POST['ip_api_service']       = 'ip-api';
+		$_POST['api_fallback']         = 'gps_only';
+		$_POST['gps_fallback_preset']  = 'hybrid';
+		$_POST['both_fail_fallback']   = 'block';
+
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'update_option' )->justReturn( true );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
+			return array_merge( $defaults, $args );
+		} );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		// The render() includes a view file — stub it with a temp file
+		$tmp_dir = sys_get_temp_dir() . '/ffc_test_geo_' . getmypid();
+		@mkdir( $tmp_dir, 0777, true );
+		file_put_contents(
+			$tmp_dir . '/ffc-tab-geolocation.php',
+			'<?php echo "geo-view"; ?>'
+		);
+
+		// Use subclass to override the view path
+		$tab = new class( $tmp_dir ) extends TabGeolocation {
+			private $view_dir;
+			public function __construct( string $dir ) {
+				$this->view_dir = $dir;
+				parent::__construct();
+			}
+			public function render(): void {
+				// phpcs:ignore WordPress.Security.NonceVerification.Missing
+				if ( $_POST && isset( $_POST['ffc_save_geolocation'] ) ) {
+					check_admin_referer( 'ffc_geolocation_nonce' );
+					$ref = new \ReflectionMethod( parent::class, 'save_settings' );
+					$ref->setAccessible( true );
+					$ref->invoke( $this );
+					echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Geolocation settings saved successfully!', 'ffcertificate' ) . '</p></div>';
+				}
+				$ref = new \ReflectionMethod( parent::class, 'get_settings' );
+				$ref->setAccessible( true );
+				$settings = $ref->invoke( $this );
+				include $this->view_dir . '/ffc-tab-geolocation.php';
+			}
+		};
+
+		ob_start();
+		$tab->render();
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'Geolocation settings saved successfully!', $output );
+		$this->assertStringContainsString( 'geo-view', $output );
+
+		@unlink( $tmp_dir . '/ffc-tab-geolocation.php' );
+		@rmdir( $tmp_dir );
+	}
+	// ==================================================================
+	// enqueue_scripts() + handle_location_delete()
+	// ==================================================================
+
+	public function test_enqueue_scripts_skips_on_wrong_hook(): void {
+		Functions\when( 'wp_enqueue_script' )->alias( function () { throw new \RuntimeException( 'enqueued' ); } );
+		$this->tab->enqueue_scripts( 'some-other-hook' );
+		$this->assertTrue( true );
+	}
+
+	public function test_enqueue_scripts_skips_on_wrong_tab(): void {
+		$_GET['tab'] = 'datetime';
+		Functions\when( 'wp_enqueue_script' )->alias( function () { throw new \RuntimeException( 'enqueued' ); } );
+		$this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
+		unset( $_GET['tab'] );
+		$this->assertTrue( true );
+	}
+
+	public function test_enqueue_scripts_enqueues_on_geolocation_tab(): void {
+		$_GET['tab'] = 'geolocation';
+		$handles = array();
+		Functions\when( 'wp_enqueue_script' )->alias( function ( $h ) use ( &$handles ) { $handles[] = $h; } );
+		Functions\when( 'wp_enqueue_style' )->justReturn( null );
+		Functions\when( 'wp_register_script' )->justReturn( true );
+		Functions\when( 'wp_localize_script' )->justReturn( true );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
+		Functions\when( 'admin_url' )->returnArg();
+
+		$this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
+		unset( $_GET['tab'] );
+
+		$this->assertContains( 'ffc-geolocation-settings', $handles );
+		$this->assertContains( 'ffc-locations-crud', $handles );
+	}
+
+	public function test_handle_location_delete_noop_without_param(): void {
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'handle_location_delete' );
+		$ref->setAccessible( true );
+		$ref->invoke( $this->tab );
+		$this->assertTrue( true );
+	}
+
+	public function test_handle_location_delete_dies_on_bad_nonce(): void {
+		$_GET['ffc_delete_location'] = 'loc1';
+		$_GET['_wpnonce']            = 'bad';
+		Functions\when( 'wp_verify_nonce' )->justReturn( false );
+		Functions\when( 'wp_die' )->alias( function () { throw new \RuntimeException( 'wp_die' ); } );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'handle_location_delete' );
+		$ref->setAccessible( true );
+
+		try {
+			$ref->invoke( $this->tab );
+			$this->fail( 'expected wp_die' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'wp_die', $e->getMessage() );
+		}
+		unset( $_GET['ffc_delete_location'], $_GET['_wpnonce'] );
+	}
+
+	public function test_handle_location_delete_deletes_and_redirects_on_valid_nonce(): void {
+		$_GET['ffc_delete_location'] = 'loc1';
+		$_GET['_wpnonce']            = 'good';
+
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'remove_query_arg' )->justReturn( 'https://example.com/settings' );
+		Functions\when( 'wp_safe_redirect' )->justReturn( true );
+
+		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
+		$registry->shouldReceive( 'delete' )->once()->with( 'loc1' )->andReturn( true );
+
+		// The real method calls exit; after the redirect. Intercept it so the
+		// test process survives and we can assert the redirect happened.
+		Functions\when( 'wp_safe_redirect' )->alias( function () {
+			throw new \RuntimeException( 'redirected' );
+		} );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'handle_location_delete' );
+		$ref->setAccessible( true );
+
+		try {
+			$ref->invoke( $this->tab );
+			$this->fail( 'expected redirect' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirected', $e->getMessage() );
+		}
+		unset( $_GET['ffc_delete_location'], $_GET['_wpnonce'] );
+	}
+
+	public function test_handle_location_delete_blocks_view_only_user(): void {
+		// A valid nonce but no manage capability (view-only user): the delete
+		// must wp_die before touching the registry.
+		$_GET['ffc_delete_location'] = 'loc1';
+		$_GET['_wpnonce']            = 'good';
+
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'wp_die' )->alias( function () { throw new \RuntimeException( 'wp_die' ); } );
+
+		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
+		$registry->shouldReceive( 'delete' )->never();
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'handle_location_delete' );
+		$ref->setAccessible( true );
+
+		try {
+			$ref->invoke( $this->tab );
+			$this->fail( 'expected wp_die' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'wp_die', $e->getMessage() );
+		}
+		unset( $_GET['ffc_delete_location'], $_GET['_wpnonce'] );
+	}
+
+	// ==================================================================
+	// save_locations() — new + existing location CRUD
+	// ==================================================================
+
+	public function test_save_locations_saves_new_and_updates_existing(): void {
+		$_POST['ffc_location_new'] = array(
+			'name'   => 'HQ',
+			'lat'    => '10.5',
+			'lng'    => '20.5',
+			'radius' => '500',
+		);
+		$_POST['ffc_locations'] = array(
+			'loc1' => array(
+				'name'   => 'Branch',
+				'lat'    => '1',
+				'lng'    => '2',
+				'radius' => '300',
+			),
+			'ghost' => array( 'name' => 'Gone' ),
+		);
+		$_POST['ffc_location_default_gps'] = 'loc1';
+		$_POST['ffc_location_default_ip']  = 'loc1';
+
+		Functions\when( 'sanitize_text_field' )->returnArg();
+
+		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
+		$saved = array();
+		$registry->shouldReceive( 'save' )->andReturnUsing( function ( $loc ) use ( &$saved ) {
+			$saved[] = $loc;
+			return $loc['id'] ?? 'new-id';
+		} );
+		// Known id resolves; the "ghost" id returns null → skipped.
+		$registry->shouldReceive( 'get_by_id' )->with( 'loc1' )->andReturn( array( 'id' => 'loc1' ) );
+		$registry->shouldReceive( 'get_by_id' )->with( 'ghost' )->andReturnNull();
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'save_locations' );
+		$ref->setAccessible( true );
+		$ref->invoke( $this->tab );
+
+		// One new save + one existing update (ghost skipped) = 2 saves.
+		$this->assertCount( 2, $saved );
+		$this->assertSame( 'HQ', $saved[0]['name'] );
+		$this->assertFalse( $saved[0]['default_gps'] );
+		$this->assertSame( 'loc1', $saved[1]['id'] );
+		$this->assertTrue( $saved[1]['default_gps'] );
+		$this->assertTrue( $saved[1]['default_ip'] );
+
+		unset(
+			$_POST['ffc_location_new'],
+			$_POST['ffc_locations'],
+			$_POST['ffc_location_default_gps'],
+			$_POST['ffc_location_default_ip']
+		);
+	}
+
+	public function test_save_locations_skips_blank_new_name(): void {
+		$_POST['ffc_location_new'] = array( 'name' => '   ' );
+		Functions\when( 'sanitize_text_field' )->returnArg();
+
+		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
+		$registry->shouldReceive( 'save' )->never();
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'save_locations' );
+		$ref->setAccessible( true );
+		$ref->invoke( $this->tab );
+
+		$this->assertTrue( true );
+		unset( $_POST['ffc_location_new'] );
+	}
+
+	// ==================================================================
+	// render() — no POST (plain render path)
+	// ==================================================================
+
+	public function test_save_settings_custom_preset_non_array_cases_defaults_block(): void {
+		$_POST['ip_api_service']      = 'ip-api';
+		$_POST['api_fallback']        = 'gps_only';
+		$_POST['both_fail_fallback']  = 'block';
+		$_POST['gps_fallback_preset'] = 'custom';
+		// Non-array cases → normalised to array(), every case falls back to 'block'.
+		$_POST['gps_fallback_cases']  = 'not-an-array';
+
+		$captured = null;
+		Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$captured ) {
+			if ( 'ffc_geolocation_settings' === $key ) {
+				$captured = $value;
+			}
+		} );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
+		$ref->setAccessible( true );
+		$ref->invoke( $this->tab );
+
+		$this->assertSame( 'custom', $captured['gps_fallback_preset'] );
+		foreach ( array( 'permission_denied', 'no_api', 'position_unavailable', 'timeout', 'safety_timer' ) as $k ) {
+			$this->assertSame( 'block', $captured['gps_fallback_cases'][ $k ] );
+		}
+	}
+
+	// ==================================================================
+	// render() — POST submission through the REAL render()
+	// ==================================================================
+
+	public function test_render_real_post_submission_saves_and_shows_notice(): void {
+		$_POST['ffc_save_geolocation'] = '1';
+		$_POST['ip_api_service']       = 'ip-api';
+		$_POST['api_fallback']         = 'gps_only';
+		$_POST['gps_fallback_preset']  = 'hybrid';
+		$_POST['both_fail_fallback']   = 'block';
+
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'update_option' )->justReturn( true );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
+			return array_merge( $defaults, $args );
+		} );
+
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'checked' )->justReturn( '' );
+		Functions\when( 'submit_button' )->justReturn( null );
+		Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_attr_e' )->alias( function ( $t ) { echo $t; } );
+		Functions\when( 'wp_nonce_url' )->justReturn( 'nonce-url' );
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'add_query_arg' )->justReturn( 'q' );
+		Functions\when( 'number_format_i18n' )->returnArg();
+
+		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
+		$registry->shouldReceive( 'get_all' )->andReturn( array() );
+		$registry->shouldReceive( 'get_default_gps' )->andReturnNull();
+		$registry->shouldReceive( 'get_default_ip' )->andReturnNull();
+		$registry->shouldReceive( 'save' )->andReturn( 'id' );
+		$registry->shouldReceive( 'get_by_id' )->andReturnNull();
+
+		ob_start();
+		try {
+			$this->tab->render();
+		} finally {
+			$output = ob_get_clean();
+		}
+
+		$this->assertStringContainsString( 'Geolocation settings saved successfully!', $output );
+	}
+
+	public function test_render_does_not_save_for_view_only_user(): void {
+		// A view-only user (ffc_view_settings, no ffc_manage_settings) POSTs
+		// the form nonce directly; render() must NOT persist and must NOT show
+		// the success notice.
+		$_POST['ffc_save_geolocation'] = '1';
+		$_POST['ip_api_service']       = 'ip-api';
+		$_POST['api_fallback']         = 'gps_only';
+		$_POST['gps_fallback_preset']  = 'hybrid';
+		$_POST['both_fail_fallback']   = 'block';
+
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_current_user_id' )->justReturn( 2 );
+		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
+			return array_merge( $defaults, $args );
+		} );
+
+		$save_called = false;
+		Functions\when( 'update_option' )->alias( function ( $key ) use ( &$save_called ) {
+			if ( 'ffc_geolocation_settings' === $key ) {
+				$save_called = true;
+			}
+			return true;
+		} );
+
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'checked' )->justReturn( '' );
+		Functions\when( 'submit_button' )->justReturn( null );
+		Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_attr_e' )->alias( function ( $t ) { echo $t; } );
+		Functions\when( 'wp_nonce_url' )->justReturn( 'nonce-url' );
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'add_query_arg' )->justReturn( 'q' );
+		Functions\when( 'number_format_i18n' )->returnArg();
+
+		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
+		$registry->shouldReceive( 'get_all' )->andReturn( array() );
+		$registry->shouldReceive( 'get_default_gps' )->andReturnNull();
+		$registry->shouldReceive( 'get_default_ip' )->andReturnNull();
+		$registry->shouldReceive( 'save' )->never();
+
+		ob_start();
+		try {
+			$this->tab->render();
+		} finally {
+			$output = ob_get_clean();
+		}
+
+		$this->assertFalse( $save_called, 'View-only user must not persist settings' );
+		$this->assertStringNotContainsString( 'Geolocation settings saved successfully!', $output );
+	}
+
+	public function test_render_without_post_includes_view(): void {
+		unset( $_POST['ffc_save_geolocation'] );
+
+		// handle_location_delete() no-ops without the GET param.
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
+			return array_merge( $defaults, $args );
+		} );
+
+		// Stub the collaborators the real geolocation view partial uses.
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'checked' )->justReturn( '' );
+		Functions\when( 'submit_button' )->justReturn( null );
+		Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_attr_e' )->alias( function ( $t ) { echo $t; } );
+		Functions\when( 'wp_nonce_url' )->justReturn( 'nonce-url' );
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'add_query_arg' )->justReturn( 'q' );
+		Functions\when( 'number_format_i18n' )->returnArg();
+
+		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
+		$registry->shouldReceive( 'get_all' )->andReturn( array() );
+		$registry->shouldReceive( 'get_default_gps' )->andReturnNull();
+		$registry->shouldReceive( 'get_default_ip' )->andReturnNull();
+
+		ob_start();
+		try {
+			$this->tab->render();
+		} finally {
+			$output = ob_get_clean();
+		}
+
+		$this->assertIsString( $output );
+	}
 }

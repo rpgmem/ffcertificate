@@ -30,185 +30,185 @@ use FreeFormCertificate\Recruitment\RecruitmentNoticeEditPageRenderer;
  */
 class RecruitmentEditPagesSmokeTest extends TestCase {
 
-    use MockeryPHPUnitIntegration;
+	use MockeryPHPUnitIntegration;
 
-    protected function setUp(): void {
-        parent::setUp();
-        Monkey\setUp();
-        Functions\when( 'wp_admin_notice' )->alias(
-            static function ( $message, $args = array() ) {
-                $ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
-                $ffc_cls  = 'notice notice-' . $ffc_type;
-                if ( ! empty( $args['dismissible'] ) ) { $ffc_cls .= ' is-dismissible'; }
-                if ( ! empty( $args['additional_classes'] ) ) { $ffc_cls .= ' ' . implode( ' ', $args['additional_classes'] ); }
-                $ffc_wrap = ! array_key_exists( 'paragraph_wrap', $args ) || $args['paragraph_wrap'];
-                echo '<div class="' . $ffc_cls . '">' . ( $ffc_wrap ? '<p>' . $message . '</p>' : $message ) . '</div>';
-            }
-        );
+	protected function setUp(): void {
+		parent::setUp();
+		Monkey\setUp();
+		Functions\when( 'wp_admin_notice' )->alias(
+			static function ( $message, $args = array() ) {
+				$ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
+				$ffc_cls  = 'notice notice-' . $ffc_type;
+				if ( ! empty( $args['dismissible'] ) ) { $ffc_cls .= ' is-dismissible'; }
+				if ( ! empty( $args['additional_classes'] ) ) { $ffc_cls .= ' ' . implode( ' ', $args['additional_classes'] ); }
+				$ffc_wrap = ! array_key_exists( 'paragraph_wrap', $args ) || $args['paragraph_wrap'];
+				echo '<div class="' . $ffc_cls . '">' . ( $ffc_wrap ? '<p>' . $message . '</p>' : $message ) . '</div>';
+			}
+		);
 
-        Functions\when( '__' )->returnArg();
-        Functions\when( 'esc_html__' )->returnArg();
-    }
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+	}
 
-    protected function tearDown(): void {
-        Monkey\tearDown();
-        parent::tearDown();
-    }
+	protected function tearDown(): void {
+		Monkey\tearDown();
+		parent::tearDown();
+	}
 
-    // ------------------------------------------------------------------
-    // register() — admin-post action wiring
-    // ------------------------------------------------------------------
+	// ------------------------------------------------------------------
+	// register() — admin-post action wiring
+	// ------------------------------------------------------------------
 
-    public function test_reason_edit_page_register_hooks_save_handler(): void {
-        Actions\expectAdded( 'admin_post_ffc_recruitment_save_reason' )
-            ->once()
-            ->with( array( RecruitmentReasonEditPage::class, 'handle_save' ), 10 );
+	public function test_reason_edit_page_register_hooks_save_handler(): void {
+		Actions\expectAdded( 'admin_post_ffc_recruitment_save_reason' )
+			->once()
+			->with( array( RecruitmentReasonEditPage::class, 'handle_save' ), 10 );
 
-        RecruitmentReasonEditPage::register();
-    }
+		RecruitmentReasonEditPage::register();
+	}
 
-    public function test_adjutancy_edit_page_register_hooks_save_handler(): void {
-        Actions\expectAdded( 'admin_post_ffc_recruitment_save_adjutancy' )
-            ->once()
-            ->with( array( RecruitmentAdjutancyEditPage::class, 'handle_save' ), 10 );
+	public function test_adjutancy_edit_page_register_hooks_save_handler(): void {
+		Actions\expectAdded( 'admin_post_ffc_recruitment_save_adjutancy' )
+			->once()
+			->with( array( RecruitmentAdjutancyEditPage::class, 'handle_save' ), 10 );
 
-        RecruitmentAdjutancyEditPage::register();
-    }
+		RecruitmentAdjutancyEditPage::register();
+	}
 
-    public function test_candidate_edit_page_register_hooks_all_admin_post_handlers(): void {
-        Actions\expectAdded( 'admin_post_ffc_recruitment_save_candidate' )->once();
-        Actions\expectAdded( 'admin_post_ffc_recruitment_delete_candidate' )->once();
-        Actions\expectAdded( 'admin_post_ffc_recruitment_link_candidate_user' )->once();
-        Actions\expectAdded( 'admin_post_ffc_recruitment_unlink_candidate_user' )->once();
+	public function test_candidate_edit_page_register_hooks_all_admin_post_handlers(): void {
+		Actions\expectAdded( 'admin_post_ffc_recruitment_save_candidate' )->once();
+		Actions\expectAdded( 'admin_post_ffc_recruitment_delete_candidate' )->once();
+		Actions\expectAdded( 'admin_post_ffc_recruitment_link_candidate_user' )->once();
+		Actions\expectAdded( 'admin_post_ffc_recruitment_unlink_candidate_user' )->once();
 
-        RecruitmentCandidateEditPage::register();
-    }
+		RecruitmentCandidateEditPage::register();
+	}
 
-    public function test_notice_edit_page_register_hooks_save_transition_and_csv_handlers(): void {
-        Actions\expectAdded( 'admin_post_ffc_recruitment_save_notice' )->once();
-        Actions\expectAdded( 'admin_post_ffc_recruitment_transition_notice' )->once();
-        Actions\expectAdded( 'admin_post_ffc_recruitment_download_csv_example' )->once();
+	public function test_notice_edit_page_register_hooks_save_transition_and_csv_handlers(): void {
+		Actions\expectAdded( 'admin_post_ffc_recruitment_save_notice' )->once();
+		Actions\expectAdded( 'admin_post_ffc_recruitment_transition_notice' )->once();
+		Actions\expectAdded( 'admin_post_ffc_recruitment_download_csv_example' )->once();
 
-        RecruitmentNoticeEditPage::register();
-    }
+		RecruitmentNoticeEditPage::register();
+	}
 
-    // ------------------------------------------------------------------
-    // RecruitmentNoticeEditPageRenderer — columns_label_map() helper
-    // ------------------------------------------------------------------
+	// ------------------------------------------------------------------
+	// RecruitmentNoticeEditPageRenderer — columns_label_map() helper
+	// ------------------------------------------------------------------
 
-    public function test_renderer_columns_label_map_covers_every_public_columns_key(): void {
-        $map = RecruitmentNoticeEditPageRenderer::columns_label_map();
+	public function test_renderer_columns_label_map_covers_every_public_columns_key(): void {
+		$map = RecruitmentNoticeEditPageRenderer::columns_label_map();
 
-        $expected_keys = array(
-            'rank', 'name', 'adjutancy', 'status', 'pcd_badge',
-            'date_to_assume', 'time_to_assume', 'score', 'time_points',
-            'hab_emebs', 'cpf_masked', 'rf_masked', 'email_masked',
-            'preview_reason',
-        );
-        foreach ( $expected_keys as $key ) {
-            $this->assertArrayHasKey( $key, $map, "label missing for column: $key" );
-        }
-    }
+		$expected_keys = array(
+			'rank', 'name', 'adjutancy', 'status', 'pcd_badge',
+			'date_to_assume', 'time_to_assume', 'score', 'time_points',
+			'hab_emebs', 'cpf_masked', 'rf_masked', 'email_masked',
+			'preview_reason',
+		);
+		foreach ( $expected_keys as $key ) {
+			$this->assertArrayHasKey( $key, $map, "label missing for column: $key" );
+		}
+	}
 
-    public function test_renderer_columns_label_map_labels_are_non_empty_strings(): void {
-        $map = RecruitmentNoticeEditPageRenderer::columns_label_map();
+	public function test_renderer_columns_label_map_labels_are_non_empty_strings(): void {
+		$map = RecruitmentNoticeEditPageRenderer::columns_label_map();
 
-        foreach ( $map as $key => $label ) {
-            $this->assertIsString( $label, "label for '$key' must be a string" );
-            $this->assertNotSame( '', $label, "label for '$key' must not be empty" );
-        }
-    }
+		foreach ( $map as $key => $label ) {
+			$this->assertIsString( $label, "label for '$key' must be a string" );
+			$this->assertNotSame( '', $label, "label for '$key' must not be empty" );
+		}
+	}
 
-    // ------------------------------------------------------------------
-    // RecruitmentCandidateEditPage::build_delete_consequences() — #331
-    // ------------------------------------------------------------------
+	// ------------------------------------------------------------------
+	// RecruitmentCandidateEditPage::build_delete_consequences() — #331
+	// ------------------------------------------------------------------
 
-    /**
-     * Reflect into the private static helper since it has no public
-     * surface and rendering the whole delete section pulls in repository
-     * + DateFormatter stubs that would clutter this smoke suite.
-     *
-     * @param object $candidate Candidate row stub.
-     * @return list<string>
-     */
-    private function invoke_build_delete_consequences( object $candidate ): array {
-        $ref = new \ReflectionMethod( RecruitmentCandidateEditPage::class, 'build_delete_consequences' );
-        $ref->setAccessible( true );
-        /** @var list<string> $out */
-        $out = $ref->invoke( null, $candidate );
-        return $out;
-    }
+	/**
+	 * Reflect into the private static helper since it has no public
+	 * surface and rendering the whole delete section pulls in repository
+	 * + DateFormatter stubs that would clutter this smoke suite.
+	 *
+	 * @param object $candidate Candidate row stub.
+	 * @return list<string>
+	 */
+	private function invoke_build_delete_consequences( object $candidate ): array {
+		$ref = new \ReflectionMethod( RecruitmentCandidateEditPage::class, 'build_delete_consequences' );
+		$ref->setAccessible( true );
+		/** @var list<string> $out */
+		$out = $ref->invoke( null, $candidate );
+		return $out;
+	}
 
-    public function test_build_delete_consequences_prepends_created_on_line(): void {
-        Functions\when( 'get_userdata' )->justReturn( false );
-        // DateFormatter is fully namespaced, but format_datetime is a
-        // static method on the helper class — stub the WordPress
-        // primitives it relies on so we exercise the formatter for
-        // real (it falls back to the input string when wp_date /
-        // wp_timezone are unavailable in test, which is fine for
-        // assertion purposes).
-        Functions\when( 'wp_date' )->returnArg();
-        Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
-        Functions\when( 'get_option' )->justReturn( array() );
+	public function test_build_delete_consequences_prepends_created_on_line(): void {
+		Functions\when( 'get_userdata' )->justReturn( false );
+		// DateFormatter is fully namespaced, but format_datetime is a
+		// static method on the helper class — stub the WordPress
+		// primitives it relies on so we exercise the formatter for
+		// real (it falls back to the input string when wp_date /
+		// wp_timezone are unavailable in test, which is fine for
+		// assertion purposes).
+		Functions\when( 'wp_date' )->returnArg();
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'get_option' )->justReturn( array() );
 
-        $candidate = (object) array(
-            'id'         => 5,
-            'user_id'    => null,
-            'created_at' => '2026-05-10 12:00:00',
-            'updated_at' => '2026-05-10 12:00:00',
-        );
+		$candidate = (object) array(
+			'id'         => 5,
+			'user_id'    => null,
+			'created_at' => '2026-05-10 12:00:00',
+			'updated_at' => '2026-05-10 12:00:00',
+		);
 
-        $lines = $this->invoke_build_delete_consequences( $candidate );
+		$lines = $this->invoke_build_delete_consequences( $candidate );
 
-        $this->assertNotEmpty( $lines );
-        $this->assertStringStartsWith( 'Created on ', $lines[0] );
-        $this->assertCount( 4, $lines, 'created + 3 standard consequences when updated_at == created_at' );
-    }
+		$this->assertNotEmpty( $lines );
+		$this->assertStringStartsWith( 'Created on ', $lines[0] );
+		$this->assertCount( 4, $lines, 'created + 3 standard consequences when updated_at == created_at' );
+	}
 
-    public function test_build_delete_consequences_separates_created_and_updated_when_different(): void {
-        Functions\when( 'get_userdata' )->justReturn( false );
-        Functions\when( 'wp_date' )->returnArg();
-        Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
-        Functions\when( 'get_option' )->justReturn( array() );
+	public function test_build_delete_consequences_separates_created_and_updated_when_different(): void {
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'wp_date' )->returnArg();
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'get_option' )->justReturn( array() );
 
-        $candidate = (object) array(
-            'id'         => 5,
-            'user_id'    => null,
-            'created_at' => '2026-05-10 12:00:00',
-            'updated_at' => '2026-05-12 09:30:00',
-        );
+		$candidate = (object) array(
+			'id'         => 5,
+			'user_id'    => null,
+			'created_at' => '2026-05-10 12:00:00',
+			'updated_at' => '2026-05-12 09:30:00',
+		);
 
-        $lines = $this->invoke_build_delete_consequences( $candidate );
+		$lines = $this->invoke_build_delete_consequences( $candidate );
 
-        $this->assertStringStartsWith( 'Created on ', $lines[0] );
-        $this->assertStringStartsWith( 'Last updated on ', $lines[1] );
-        $this->assertCount( 5, $lines, 'created + last-updated + 3 standard consequences' );
-    }
+		$this->assertStringStartsWith( 'Created on ', $lines[0] );
+		$this->assertStringStartsWith( 'Last updated on ', $lines[1] );
+		$this->assertCount( 5, $lines, 'created + last-updated + 3 standard consequences' );
+	}
 
-    public function test_build_delete_consequences_surfaces_linked_user_when_promoted(): void {
-        $wp_user             = new \stdClass();
-        $wp_user->user_login = 'alice';
-        Functions\when( 'get_userdata' )->justReturn( $wp_user );
-        Functions\when( 'wp_date' )->returnArg();
-        Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
-        Functions\when( 'get_option' )->justReturn( array() );
+	public function test_build_delete_consequences_surfaces_linked_user_when_promoted(): void {
+		$wp_user             = new \stdClass();
+		$wp_user->user_login = 'alice';
+		Functions\when( 'get_userdata' )->justReturn( $wp_user );
+		Functions\when( 'wp_date' )->returnArg();
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'get_option' )->justReturn( array() );
 
-        $candidate = (object) array(
-            'id'         => 5,
-            'user_id'    => 99,
-            'created_at' => '2026-05-10 12:00:00',
-            'updated_at' => '2026-05-10 12:00:00',
-        );
+		$candidate = (object) array(
+			'id'         => 5,
+			'user_id'    => 99,
+			'created_at' => '2026-05-10 12:00:00',
+			'updated_at' => '2026-05-10 12:00:00',
+		);
 
-        $lines = $this->invoke_build_delete_consequences( $candidate );
+		$lines = $this->invoke_build_delete_consequences( $candidate );
 
-        $found_user_line = false;
-        foreach ( $lines as $line ) {
-            if ( str_contains( $line, '@alice' ) ) {
-                $found_user_line = true;
-                break;
-            }
-        }
-        $this->assertTrue( $found_user_line, 'expected the linked user line to surface @alice' );
-    }
+		$found_user_line = false;
+		foreach ( $lines as $line ) {
+			if ( str_contains( $line, '@alice' ) ) {
+				$found_user_line = true;
+				break;
+			}
+		}
+		$this->assertTrue( $found_user_line, 'expected the linked user line to surface @alice' );
+	}
 }

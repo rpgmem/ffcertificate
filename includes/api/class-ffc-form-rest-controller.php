@@ -46,7 +46,7 @@ class FormRestController {
 	/**
 	 * API namespace
 	 *
-	 * @var string
+	 * @var non-falsy-string
 	 */
 	private string $namespace;
 
@@ -60,7 +60,7 @@ class FormRestController {
 	/**
 	 * Constructor
 	 *
-	 * @param string              $namespace       API namespace.
+	 * @param non-falsy-string    $namespace       API namespace.
 	 * @param FormRepository|null $form_repository Form repository instance.
 	 */
 	public function __construct( string $namespace, ?FormRepository $form_repository ) {

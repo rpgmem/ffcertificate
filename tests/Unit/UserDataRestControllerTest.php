@@ -16,185 +16,185 @@ use FreeFormCertificate\API\UserDataRestController;
  */
 class UserDataRestControllerTest extends TestCase {
 
-    use MockeryPHPUnitIntegration;
+	use MockeryPHPUnitIntegration;
 
-    /** @var array Captured route registrations */
-    private array $registered_routes = [];
+	/** @var array Captured route registrations */
+	private array $registered_routes = [];
 
-    protected function setUp(): void {
-        parent::setUp();
-        Monkey\setUp();
+	protected function setUp(): void {
+		parent::setUp();
+		Monkey\setUp();
 
-        $this->registered_routes = [];
+		$this->registered_routes = [];
 
-        Functions\when( 'register_rest_route' )->alias( function( $namespace, $route, $args ) {
-            $this->registered_routes[] = array(
-                'namespace' => $namespace,
-                'route'     => $route,
-                'args'      => $args,
-            );
-        });
+		Functions\when( 'register_rest_route' )->alias( function( $namespace, $route, $args ) {
+			$this->registered_routes[] = array(
+				'namespace' => $namespace,
+				'route'     => $route,
+				'args'      => $args,
+			);
+		});
 
-        Functions\when( '__' )->returnArg();
-        Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
 
-        // Stubs for RateLimiter (uses object cache)
-        Functions\when( 'wp_cache_get' )->justReturn( false );
-        Functions\when( 'wp_cache_set' )->justReturn( true );
-    }
+		// Stubs for RateLimiter (uses object cache)
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+	}
 
-    protected function tearDown(): void {
-        Monkey\tearDown();
-        parent::tearDown();
-    }
+	protected function tearDown(): void {
+		Monkey\tearDown();
+		parent::tearDown();
+	}
 
-    /**
-     * Helper: create a mock WP_REST_Request with given params.
-     */
-    private function make_request( array $params = array() ): object {
-        $request = Mockery::mock( 'WP_REST_Request' );
-        $request->shouldReceive( 'get_param' )->andReturnUsing( function( $key ) use ( $params ) {
-            return $params[ $key ] ?? null;
-        } );
-        return $request;
-    }
+	/**
+	 * Helper: create a mock WP_REST_Request with given params.
+	 */
+	private function make_request( array $params = array() ): object {
+		$request = Mockery::mock( 'WP_REST_Request' );
+		$request->shouldReceive( 'get_param' )->andReturnUsing( function( $key ) use ( $params ) {
+			return $params[ $key ] ?? null;
+		} );
+		return $request;
+	}
 
-    // ------------------------------------------------------------------
-    // Route registration
-    // ------------------------------------------------------------------
+	// ------------------------------------------------------------------
+	// Route registration
+	// ------------------------------------------------------------------
 
-    public function test_register_routes_creates_expected_endpoints(): void {
-        $ctrl = new UserDataRestController( 'ffc/v1' );
-        $ctrl->register_routes();
+	public function test_register_routes_creates_expected_endpoints(): void {
+		$ctrl = new UserDataRestController( 'ffc/v1' );
+		$ctrl->register_routes();
 
-        // Should register multiple routes
-        $this->assertGreaterThanOrEqual( 8, count( $this->registered_routes ) );
-    }
+		// Should register multiple routes
+		$this->assertGreaterThanOrEqual( 8, count( $this->registered_routes ) );
+	}
 
-    public function test_all_user_routes_require_authentication(): void {
-        $ctrl = new UserDataRestController( 'ffc/v1' );
-        $ctrl->register_routes();
+	public function test_all_user_routes_require_authentication(): void {
+		$ctrl = new UserDataRestController( 'ffc/v1' );
+		$ctrl->register_routes();
 
-        foreach ( $this->registered_routes as $route ) {
-            $route_path = $route['route'];
+		foreach ( $this->registered_routes as $route ) {
+			$route_path = $route['route'];
 
-            // If the route has sub-arrays (multiple methods), check each
-            if ( isset( $route['args'][0] ) ) {
-                foreach ( $route['args'] as $endpoint ) {
-                    $this->assertSame(
-                        'is_user_logged_in',
-                        $endpoint['permission_callback'],
-                        "Route {$route_path} should require authentication"
-                    );
-                }
-            } else {
-                $this->assertSame(
-                    'is_user_logged_in',
-                    $route['args']['permission_callback'],
-                    "Route {$route_path} should require authentication"
-                );
-            }
-        }
-    }
+			// If the route has sub-arrays (multiple methods), check each
+			if ( isset( $route['args'][0] ) ) {
+				foreach ( $route['args'] as $endpoint ) {
+					$this->assertSame(
+						'is_user_logged_in',
+						$endpoint['permission_callback'],
+						"Route {$route_path} should require authentication"
+					);
+				}
+			} else {
+				$this->assertSame(
+					'is_user_logged_in',
+					$route['args']['permission_callback'],
+					"Route {$route_path} should require authentication"
+				);
+			}
+		}
+	}
 
-    public function test_certificates_route_registered(): void {
-        $ctrl = new UserDataRestController( 'ffc/v1' );
-        $ctrl->register_routes();
+	public function test_certificates_route_registered(): void {
+		$ctrl = new UserDataRestController( 'ffc/v1' );
+		$ctrl->register_routes();
 
-        $paths = array_column( $this->registered_routes, 'route' );
-        $this->assertContains( '/user/certificates', $paths );
-    }
+		$paths = array_column( $this->registered_routes, 'route' );
+		$this->assertContains( '/user/certificates', $paths );
+	}
 
-    public function test_profile_route_registered(): void {
-        $ctrl = new UserDataRestController( 'ffc/v1' );
-        $ctrl->register_routes();
+	public function test_profile_route_registered(): void {
+		$ctrl = new UserDataRestController( 'ffc/v1' );
+		$ctrl->register_routes();
 
-        $paths = array_column( $this->registered_routes, 'route' );
-        $this->assertContains( '/user/profile', $paths );
-    }
+		$paths = array_column( $this->registered_routes, 'route' );
+		$this->assertContains( '/user/profile', $paths );
+	}
 
-    public function test_appointments_route_registered(): void {
-        $ctrl = new UserDataRestController( 'ffc/v1' );
-        $ctrl->register_routes();
+	public function test_appointments_route_registered(): void {
+		$ctrl = new UserDataRestController( 'ffc/v1' );
+		$ctrl->register_routes();
 
-        $paths = array_column( $this->registered_routes, 'route' );
-        $this->assertContains( '/user/appointments', $paths );
-    }
+		$paths = array_column( $this->registered_routes, 'route' );
+		$this->assertContains( '/user/appointments', $paths );
+	}
 
-    public function test_change_password_route_registered(): void {
-        $ctrl = new UserDataRestController( 'ffc/v1' );
-        $ctrl->register_routes();
+	public function test_change_password_route_registered(): void {
+		$ctrl = new UserDataRestController( 'ffc/v1' );
+		$ctrl->register_routes();
 
-        $paths = array_column( $this->registered_routes, 'route' );
-        $this->assertContains( '/user/change-password', $paths );
-    }
+		$paths = array_column( $this->registered_routes, 'route' );
+		$this->assertContains( '/user/change-password', $paths );
+	}
 
-    public function test_privacy_request_route_registered(): void {
-        $ctrl = new UserDataRestController( 'ffc/v1' );
-        $ctrl->register_routes();
+	public function test_privacy_request_route_registered(): void {
+		$ctrl = new UserDataRestController( 'ffc/v1' );
+		$ctrl->register_routes();
 
-        $paths = array_column( $this->registered_routes, 'route' );
-        $this->assertContains( '/user/privacy-request', $paths );
-    }
+		$paths = array_column( $this->registered_routes, 'route' );
+		$this->assertContains( '/user/privacy-request', $paths );
+	}
 
-    public function test_summary_route_registered(): void {
-        $ctrl = new UserDataRestController( 'ffc/v1' );
-        $ctrl->register_routes();
+	public function test_summary_route_registered(): void {
+		$ctrl = new UserDataRestController( 'ffc/v1' );
+		$ctrl->register_routes();
 
-        $paths = array_column( $this->registered_routes, 'route' );
-        $this->assertContains( '/user/summary', $paths );
-    }
+		$paths = array_column( $this->registered_routes, 'route' );
+		$this->assertContains( '/user/summary', $paths );
+	}
 
-    public function test_joinable_groups_route_registered(): void {
-        $ctrl = new UserDataRestController( 'ffc/v1' );
-        $ctrl->register_routes();
+	public function test_joinable_groups_route_registered(): void {
+		$ctrl = new UserDataRestController( 'ffc/v1' );
+		$ctrl->register_routes();
 
-        $paths = array_column( $this->registered_routes, 'route' );
-        $this->assertContains( '/user/joinable-groups', $paths );
-    }
+		$paths = array_column( $this->registered_routes, 'route' );
+		$this->assertContains( '/user/joinable-groups', $paths );
+	}
 
-    public function test_audience_group_join_route_registered(): void {
-        $ctrl = new UserDataRestController( 'ffc/v1' );
-        $ctrl->register_routes();
+	public function test_audience_group_join_route_registered(): void {
+		$ctrl = new UserDataRestController( 'ffc/v1' );
+		$ctrl->register_routes();
 
-        $paths = array_column( $this->registered_routes, 'route' );
-        $this->assertContains( '/user/audience-group/join', $paths );
-    }
+		$paths = array_column( $this->registered_routes, 'route' );
+		$this->assertContains( '/user/audience-group/join', $paths );
+	}
 
-    public function test_audience_group_leave_route_registered(): void {
-        $ctrl = new UserDataRestController( 'ffc/v1' );
-        $ctrl->register_routes();
+	public function test_audience_group_leave_route_registered(): void {
+		$ctrl = new UserDataRestController( 'ffc/v1' );
+		$ctrl->register_routes();
 
-        $paths = array_column( $this->registered_routes, 'route' );
-        $this->assertContains( '/user/audience-group/leave', $paths );
-    }
+		$paths = array_column( $this->registered_routes, 'route' );
+		$this->assertContains( '/user/audience-group/leave', $paths );
+	}
 
-    public function test_reregistrations_route_registered(): void {
-        $ctrl = new UserDataRestController( 'ffc/v1' );
-        $ctrl->register_routes();
+	public function test_reregistrations_route_registered(): void {
+		$ctrl = new UserDataRestController( 'ffc/v1' );
+		$ctrl->register_routes();
 
-        $paths = array_column( $this->registered_routes, 'route' );
-        $this->assertContains( '/user/reregistrations', $paths );
-    }
+		$paths = array_column( $this->registered_routes, 'route' );
+		$this->assertContains( '/user/reregistrations', $paths );
+	}
 
-    public function test_profile_route_supports_get_and_put(): void {
-        $ctrl = new UserDataRestController( 'ffc/v1' );
-        $ctrl->register_routes();
+	public function test_profile_route_supports_get_and_put(): void {
+		$ctrl = new UserDataRestController( 'ffc/v1' );
+		$ctrl->register_routes();
 
-        // Find /user/profile route
-        $profile = null;
-        foreach ( $this->registered_routes as $route ) {
-            if ( $route['route'] === '/user/profile' ) {
-                $profile = $route;
-                break;
-            }
-        }
+		// Find /user/profile route
+		$profile = null;
+		foreach ( $this->registered_routes as $route ) {
+			if ( $route['route'] === '/user/profile' ) {
+				$profile = $route;
+				break;
+			}
+		}
 
-        $this->assertNotNull( $profile, 'Profile route should exist' );
+		$this->assertNotNull( $profile, 'Profile route should exist' );
 
-        // Should have 2 methods (GET + PUT as array)
-        $this->assertIsArray( $profile['args'] );
-        $this->assertArrayHasKey( 0, $profile['args'] );
-        $this->assertArrayHasKey( 1, $profile['args'] );
-    }
+		// Should have 2 methods (GET + PUT as array)
+		$this->assertIsArray( $profile['args'] );
+		$this->assertArrayHasKey( 0, $profile['args'] );
+		$this->assertArrayHasKey( 1, $profile['args'] );
+	}
 }

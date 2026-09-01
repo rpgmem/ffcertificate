@@ -18,291 +18,291 @@ use FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder;
  */
 class ReregistrationStandardFieldsSeederTest extends TestCase {
 
-    use MockeryPHPUnitIntegration;
+	use MockeryPHPUnitIntegration;
 
-    private $wpdb;
+	private $wpdb;
 
-    protected function setUp(): void {
-        parent::setUp();
-        Monkey\setUp();
+	protected function setUp(): void {
+		parent::setUp();
+		Monkey\setUp();
 
-        global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
-        $wpdb->prefix     = 'wp_';
-        $wpdb->last_error  = '';
-        $wpdb->insert_id   = 0;
-        $wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () { return func_get_args()[0]; } )->byDefault();
-        $wpdb->shouldReceive( 'get_col' )->andReturn( array() )->byDefault();
-        $wpdb->shouldReceive( 'insert' )->andReturn( 1 )->byDefault();
+		global $wpdb;
+		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
+		$wpdb->prefix     = 'wp_';
+		$wpdb->last_error  = '';
+		$wpdb->insert_id   = 0;
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () { return func_get_args()[0]; } )->byDefault();
+		$wpdb->shouldReceive( 'get_col' )->andReturn( array() )->byDefault();
+		$wpdb->shouldReceive( 'insert' )->andReturn( 1 )->byDefault();
 
-        $this->wpdb = $wpdb;
+		$this->wpdb = $wpdb;
 
-        Functions\when( '__' )->returnArg();
-        Functions\when( 'wp_json_encode' )->alias( function ( $v ) { return json_encode( $v ); } );
-        Functions\when( 'add_action' )->justReturn( true );
-    }
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'wp_json_encode' )->alias( function ( $v ) { return json_encode( $v ); } );
+		Functions\when( 'add_action' )->justReturn( true );
+	}
 
-    protected function tearDown(): void {
-        Monkey\tearDown();
-        parent::tearDown();
-    }
+	protected function tearDown(): void {
+		Monkey\tearDown();
+		parent::tearDown();
+	}
 
-    // ==================================================================
-    // get_group_labels()
-    // ==================================================================
+	// ==================================================================
+	// get_group_labels()
+	// ==================================================================
 
-    public function test_get_group_labels_returns_all_groups(): void {
-        $labels = ReregistrationStandardFieldsSeeder::get_group_labels();
+	public function test_get_group_labels_returns_all_groups(): void {
+		$labels = ReregistrationStandardFieldsSeeder::get_group_labels();
 
-        $this->assertArrayHasKey( ReregistrationStandardFieldsSeeder::GROUP_PERSONAL, $labels );
-        $this->assertArrayHasKey( ReregistrationStandardFieldsSeeder::GROUP_CONTACT, $labels );
-        $this->assertArrayHasKey( ReregistrationStandardFieldsSeeder::GROUP_SCHEDULE, $labels );
-        $this->assertArrayHasKey( ReregistrationStandardFieldsSeeder::GROUP_ACCUMULATION, $labels );
-        $this->assertArrayHasKey( ReregistrationStandardFieldsSeeder::GROUP_UNION, $labels );
-    }
+		$this->assertArrayHasKey( ReregistrationStandardFieldsSeeder::GROUP_PERSONAL, $labels );
+		$this->assertArrayHasKey( ReregistrationStandardFieldsSeeder::GROUP_CONTACT, $labels );
+		$this->assertArrayHasKey( ReregistrationStandardFieldsSeeder::GROUP_SCHEDULE, $labels );
+		$this->assertArrayHasKey( ReregistrationStandardFieldsSeeder::GROUP_ACCUMULATION, $labels );
+		$this->assertArrayHasKey( ReregistrationStandardFieldsSeeder::GROUP_UNION, $labels );
+	}
 
-    public function test_group_constants_are_strings(): void {
-        $this->assertSame( 'personal', ReregistrationStandardFieldsSeeder::GROUP_PERSONAL );
-        $this->assertSame( 'contact', ReregistrationStandardFieldsSeeder::GROUP_CONTACT );
-        $this->assertSame( 'schedule', ReregistrationStandardFieldsSeeder::GROUP_SCHEDULE );
-        $this->assertSame( 'accumulation', ReregistrationStandardFieldsSeeder::GROUP_ACCUMULATION );
-        $this->assertSame( 'union', ReregistrationStandardFieldsSeeder::GROUP_UNION );
-    }
+	public function test_group_constants_are_strings(): void {
+		$this->assertSame( 'personal', ReregistrationStandardFieldsSeeder::GROUP_PERSONAL );
+		$this->assertSame( 'contact', ReregistrationStandardFieldsSeeder::GROUP_CONTACT );
+		$this->assertSame( 'schedule', ReregistrationStandardFieldsSeeder::GROUP_SCHEDULE );
+		$this->assertSame( 'accumulation', ReregistrationStandardFieldsSeeder::GROUP_ACCUMULATION );
+		$this->assertSame( 'union', ReregistrationStandardFieldsSeeder::GROUP_UNION );
+	}
 
-    // ==================================================================
-    // get_standard_fields_definition()
-    // ==================================================================
+	// ==================================================================
+	// get_standard_fields_definition()
+	// ==================================================================
 
-    public function test_standard_fields_definition_not_empty(): void {
-        $defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
-        $this->assertNotEmpty( $defs );
-        $this->assertGreaterThanOrEqual( 20, count( $defs ) );
-    }
+	public function test_standard_fields_definition_not_empty(): void {
+		$defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
+		$this->assertNotEmpty( $defs );
+		$this->assertGreaterThanOrEqual( 20, count( $defs ) );
+	}
 
-    public function test_standard_fields_have_required_keys(): void {
-        $defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
-        $required_keys = array( 'field_key', 'field_label', 'field_type', 'field_group', 'required' );
+	public function test_standard_fields_have_required_keys(): void {
+		$defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
+		$required_keys = array( 'field_key', 'field_label', 'field_type', 'field_group', 'required' );
 
-        foreach ( $defs as $i => $def ) {
-            foreach ( $required_keys as $key ) {
-                $this->assertArrayHasKey( $key, $def, "Definition at index {$i} missing key '{$key}'" );
-            }
-        }
-    }
+		foreach ( $defs as $i => $def ) {
+			foreach ( $required_keys as $key ) {
+				$this->assertArrayHasKey( $key, $def, "Definition at index {$i} missing key '{$key}'" );
+			}
+		}
+	}
 
-    public function test_standard_fields_have_unique_keys(): void {
-        $defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
-        $keys = array_column( $defs, 'field_key' );
+	public function test_standard_fields_have_unique_keys(): void {
+		$defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
+		$keys = array_column( $defs, 'field_key' );
 
-        $this->assertSame( count( $keys ), count( array_unique( $keys ) ), 'Duplicate field_keys found' );
-    }
+		$this->assertSame( count( $keys ), count( array_unique( $keys ) ), 'Duplicate field_keys found' );
+	}
 
-    public function test_standard_fields_use_valid_groups(): void {
-        $defs   = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
-        $labels = ReregistrationStandardFieldsSeeder::get_group_labels();
-        $valid  = array_keys( $labels );
+	public function test_standard_fields_use_valid_groups(): void {
+		$defs   = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
+		$labels = ReregistrationStandardFieldsSeeder::get_group_labels();
+		$valid  = array_keys( $labels );
 
-        foreach ( $defs as $def ) {
-            $this->assertContains( $def['field_group'], $valid, "Invalid group '{$def['field_group']}' for key '{$def['field_key']}'" );
-        }
-    }
+		foreach ( $defs as $def ) {
+			$this->assertContains( $def['field_group'], $valid, "Invalid group '{$def['field_group']}' for key '{$def['field_key']}'" );
+		}
+	}
 
-    public function test_standard_fields_use_valid_types(): void {
-        $valid_types = array( 'text', 'select', 'date', 'working_hours', 'dependent_select', 'acknowledgment' );
-        $defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
+	public function test_standard_fields_use_valid_types(): void {
+		$valid_types = array( 'text', 'select', 'date', 'working_hours', 'dependent_select', 'acknowledgment' );
+		$defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
 
-        foreach ( $defs as $def ) {
-            $this->assertContains( $def['field_type'], $valid_types, "Invalid type '{$def['field_type']}' for key '{$def['field_key']}'" );
-        }
-    }
+		foreach ( $defs as $def ) {
+			$this->assertContains( $def['field_type'], $valid_types, "Invalid type '{$def['field_type']}' for key '{$def['field_key']}'" );
+		}
+	}
 
-    public function test_acknowledgment_field_is_display_only_with_default_html(): void {
-        $defs  = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
-        $found = false;
-        foreach ( $defs as $def ) {
-            if ( 'acknowledgment' === $def['field_key'] ) {
-                $this->assertSame( 'acknowledgment', $def['field_type'] );
-                $this->assertSame( ReregistrationStandardFieldsSeeder::GROUP_ACKNOWLEDGMENT, $def['field_group'] );
-                $this->assertSame( 0, $def['required'] );
-                $this->assertSame( 0, $def['is_sensitive'] );
-                $this->assertNull( $def['profile_key'] );
-                $this->assertArrayHasKey( 'html', $def['options'] );
-                $this->assertNotEmpty( $def['options']['html'] );
-                $found = true;
-                break;
-            }
-        }
-        $this->assertTrue( $found, 'acknowledgment field not found' );
-    }
+	public function test_acknowledgment_field_is_display_only_with_default_html(): void {
+		$defs  = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
+		$found = false;
+		foreach ( $defs as $def ) {
+			if ( 'acknowledgment' === $def['field_key'] ) {
+				$this->assertSame( 'acknowledgment', $def['field_type'] );
+				$this->assertSame( ReregistrationStandardFieldsSeeder::GROUP_ACKNOWLEDGMENT, $def['field_group'] );
+				$this->assertSame( 0, $def['required'] );
+				$this->assertSame( 0, $def['is_sensitive'] );
+				$this->assertNull( $def['profile_key'] );
+				$this->assertArrayHasKey( 'html', $def['options'] );
+				$this->assertNotEmpty( $def['options']['html'] );
+				$found = true;
+				break;
+			}
+		}
+		$this->assertTrue( $found, 'acknowledgment field not found' );
+	}
 
-    public function test_acknowledgment_field_is_seeded_last(): void {
-        // Sort order = array index, so the acknowledgment block must render
-        // after every other group's fields.
-        $defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
-        $last = end( $defs );
-        $this->assertSame( 'acknowledgment', $last['field_key'] );
-    }
+	public function test_acknowledgment_field_is_seeded_last(): void {
+		// Sort order = array index, so the acknowledgment block must render
+		// after every other group's fields.
+		$defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
+		$last = end( $defs );
+		$this->assertSame( 'acknowledgment', $last['field_key'] );
+	}
 
-    public function test_cpf_field_has_validation_format(): void {
-        $defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
-        $cpf  = null;
-        foreach ( $defs as $def ) {
-            if ( 'cpf' === $def['field_key'] ) {
-                $cpf = $def;
-                break;
-            }
-        }
+	public function test_cpf_field_has_validation_format(): void {
+		$defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
+		$cpf  = null;
+		foreach ( $defs as $def ) {
+			if ( 'cpf' === $def['field_key'] ) {
+				$cpf = $def;
+				break;
+			}
+		}
 
-        $this->assertNotNull( $cpf, 'CPF field not found' );
-        $this->assertSame( 'cpf', $cpf['validation']['format'] );
-        $this->assertSame( 1, $cpf['is_sensitive'] );
-        $this->assertSame( 1, $cpf['required'] );
-    }
+		$this->assertNotNull( $cpf, 'CPF field not found' );
+		$this->assertSame( 'cpf', $cpf['validation']['format'] );
+		$this->assertSame( 1, $cpf['is_sensitive'] );
+		$this->assertSame( 1, $cpf['required'] );
+	}
 
-    public function test_divisao_setor_is_dependent_select(): void {
-        $defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
-        $found = false;
-        foreach ( $defs as $def ) {
-            if ( 'divisao_setor' === $def['field_key'] ) {
-                $this->assertSame( 'dependent_select', $def['field_type'] );
-                $this->assertArrayHasKey( 'groups', $def['options'] );
-                $found = true;
-                break;
-            }
-        }
-        $this->assertTrue( $found, 'divisao_setor field not found' );
-    }
+	public function test_divisao_setor_is_dependent_select(): void {
+		$defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
+		$found = false;
+		foreach ( $defs as $def ) {
+			if ( 'divisao_setor' === $def['field_key'] ) {
+				$this->assertSame( 'dependent_select', $def['field_type'] );
+				$this->assertArrayHasKey( 'groups', $def['options'] );
+				$found = true;
+				break;
+			}
+		}
+		$this->assertTrue( $found, 'divisao_setor field not found' );
+	}
 
-    // ==================================================================
-    // seed_for_audience()
-    // ==================================================================
+	// ==================================================================
+	// seed_for_audience()
+	// ==================================================================
 
-    public function test_seed_for_audience_returns_zero_for_invalid_id(): void {
-        $this->assertSame( 0, ReregistrationStandardFieldsSeeder::seed_for_audience( 0 ) );
-        $this->assertSame( 0, ReregistrationStandardFieldsSeeder::seed_for_audience( -1 ) );
-    }
+	public function test_seed_for_audience_returns_zero_for_invalid_id(): void {
+		$this->assertSame( 0, ReregistrationStandardFieldsSeeder::seed_for_audience( 0 ) );
+		$this->assertSame( 0, ReregistrationStandardFieldsSeeder::seed_for_audience( -1 ) );
+	}
 
-    public function test_seed_for_audience_inserts_all_fields(): void {
-        $defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
+	public function test_seed_for_audience_inserts_all_fields(): void {
+		$defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
 
-        $this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array() );
-        $this->wpdb->shouldReceive( 'insert' )->times( count( $defs ) )->andReturn( 1 );
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array() );
+		$this->wpdb->shouldReceive( 'insert' )->times( count( $defs ) )->andReturn( 1 );
 
-        $inserted = ReregistrationStandardFieldsSeeder::seed_for_audience( 1 );
+		$inserted = ReregistrationStandardFieldsSeeder::seed_for_audience( 1 );
 
-        $this->assertSame( count( $defs ), $inserted );
-    }
+		$this->assertSame( count( $defs ), $inserted );
+	}
 
-    public function test_seed_for_audience_skips_existing_keys(): void {
-        $this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( 'display_name', 'cpf' ) );
+	public function test_seed_for_audience_skips_existing_keys(): void {
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( 'display_name', 'cpf' ) );
 
-        $defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
-        $expected = count( $defs ) - 2;
+		$defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
+		$expected = count( $defs ) - 2;
 
-        $this->wpdb->shouldReceive( 'insert' )->times( $expected )->andReturn( 1 );
+		$this->wpdb->shouldReceive( 'insert' )->times( $expected )->andReturn( 1 );
 
-        $inserted = ReregistrationStandardFieldsSeeder::seed_for_audience( 1 );
+		$inserted = ReregistrationStandardFieldsSeeder::seed_for_audience( 1 );
 
-        $this->assertSame( $expected, $inserted );
-    }
+		$this->assertSame( $expected, $inserted );
+	}
 
-    public function test_seed_for_audience_handles_insert_failure(): void {
-        $this->wpdb->shouldReceive( 'get_col' )->andReturn( array() );
-        $this->wpdb->shouldReceive( 'insert' )->andReturn( false );
+	public function test_seed_for_audience_handles_insert_failure(): void {
+		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array() );
+		$this->wpdb->shouldReceive( 'insert' )->andReturn( false );
 
-        $inserted = ReregistrationStandardFieldsSeeder::seed_for_audience( 1 );
+		$inserted = ReregistrationStandardFieldsSeeder::seed_for_audience( 1 );
 
-        $this->assertSame( 0, $inserted );
-    }
+		$this->assertSame( 0, $inserted );
+	}
 
-    // ==================================================================
-    // on_audience_created()
-    // ==================================================================
+	// ==================================================================
+	// on_audience_created()
+	// ==================================================================
 
-    public function test_on_audience_created_skips_invalid_id(): void {
-        $this->wpdb->shouldNotReceive( 'get_col' );
-        ReregistrationStandardFieldsSeeder::on_audience_created( 0 );
-        $this->assertTrue( true );
-    }
+	public function test_on_audience_created_skips_invalid_id(): void {
+		$this->wpdb->shouldNotReceive( 'get_col' );
+		ReregistrationStandardFieldsSeeder::on_audience_created( 0 );
+		$this->assertTrue( true );
+	}
 
-    // ==================================================================
-    // register()
-    // ==================================================================
+	// ==================================================================
+	// register()
+	// ==================================================================
 
-    public function test_register_hooks_audience_created(): void {
-        $hooked = array();
-        Functions\when( 'add_action' )->alias( function ( $hook, $callback, $priority = 10, $args = 1 ) use ( &$hooked ) {
-            $hooked[] = array( 'hook' => $hook, 'callback' => $callback, 'priority' => $priority, 'args' => $args );
-            return true;
-        });
+	public function test_register_hooks_audience_created(): void {
+		$hooked = array();
+		Functions\when( 'add_action' )->alias( function ( $hook, $callback, $priority = 10, $args = 1 ) use ( &$hooked ) {
+			$hooked[] = array( 'hook' => $hook, 'callback' => $callback, 'priority' => $priority, 'args' => $args );
+			return true;
+		});
 
-        ReregistrationStandardFieldsSeeder::register();
+		ReregistrationStandardFieldsSeeder::register();
 
-        $match = array_filter( $hooked, function ( $h ) {
-            return 'ffc_audience_created' === $h['hook'];
-        });
-        $this->assertNotEmpty( $match, 'Expected add_action for ffc_audience_created' );
-    }
+		$match = array_filter( $hooked, function ( $h ) {
+			return 'ffc_audience_created' === $h['hook'];
+		});
+		$this->assertNotEmpty( $match, 'Expected add_action for ffc_audience_created' );
+	}
 
-    // ==================================================================
-    // replicate_field_options_to_descendants()
-    // ==================================================================
+	// ==================================================================
+	// replicate_field_options_to_descendants()
+	// ==================================================================
 
-    public function test_replicate_returns_zero_for_invalid_audience(): void {
-        $this->assertSame( 0, ReregistrationStandardFieldsSeeder::replicate_field_options_to_descendants( 0 ) );
-    }
+	public function test_replicate_returns_zero_for_invalid_audience(): void {
+		$this->assertSame( 0, ReregistrationStandardFieldsSeeder::replicate_field_options_to_descendants( 0 ) );
+	}
 
-    public function test_replicate_returns_zero_when_parent_has_no_standard_options(): void {
-        // get_by_audience(parent) → get_results returns no fields → no
-        // parent options to replicate → early return 0.
-        $this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+	public function test_replicate_returns_zero_when_parent_has_no_standard_options(): void {
+		// get_by_audience(parent) → get_results returns no fields → no
+		// parent options to replicate → early return 0.
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
 
-        $this->assertSame( 0, ReregistrationStandardFieldsSeeder::replicate_field_options_to_descendants( 5 ) );
-    }
+		$this->assertSame( 0, ReregistrationStandardFieldsSeeder::replicate_field_options_to_descendants( 5 ) );
+	}
 
-    public function test_replicate_copies_parent_options_to_descendant_fields(): void {
-        Functions\when( 'wp_cache_delete' )->justReturn( true );
-        Functions\when( 'wp_cache_get' )->justReturn( false );
-        Functions\when( 'wp_cache_set' )->justReturn( true );
-        Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults = array() ) {
-            return is_array( $args ) ? array_merge( $defaults, $args ) : $defaults;
-        } );
-        Functions\when( 'sanitize_sql_orderby' )->returnArg();
-        Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
+	public function test_replicate_copies_parent_options_to_descendant_fields(): void {
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults = array() ) {
+			return is_array( $args ) ? array_merge( $defaults, $args ) : $defaults;
+		} );
+		Functions\when( 'sanitize_sql_orderby' )->returnArg();
+		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 
-        $parent_field = (object) array(
-            'id'            => 10,
-            'field_key'     => 'divisao_setor',
-            'field_source'  => 'standard',
-            'field_options' => json_encode( array( 'groups' => array( 'D' => array( 'S' ) ), 'parent_label' => 'Division' ) ),
-        );
-        $child_audience = (object) array( 'id' => 99, 'parent_id' => '5' );
-        $child_field    = (object) array( 'id' => 77, 'field_key' => 'divisao_setor', 'field_source' => 'standard', 'field_options' => null );
+		$parent_field = (object) array(
+			'id'            => 10,
+			'field_key'     => 'divisao_setor',
+			'field_source'  => 'standard',
+			'field_options' => json_encode( array( 'groups' => array( 'D' => array( 'S' ) ), 'parent_label' => 'Division' ) ),
+		);
+		$child_audience = (object) array( 'id' => 99, 'parent_id' => '5' );
+		$child_field    = (object) array( 'id' => 77, 'field_key' => 'divisao_setor', 'field_source' => 'standard', 'field_options' => null );
 
-        // get_results: 1) parent fields, 2) children of parent, 3) children of child (none).
-        $this->wpdb->shouldReceive( 'get_results' )->andReturn(
-            array( $parent_field ),
-            array( $child_audience ),
-            array()
-        );
-        // get_by_key(99, 'divisao_setor') → child's field.
-        $this->wpdb->shouldReceive( 'get_row' )->andReturn( $child_field );
+		// get_results: 1) parent fields, 2) children of parent, 3) children of child (none).
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn(
+			array( $parent_field ),
+			array( $child_audience ),
+			array()
+		);
+		// get_by_key(99, 'divisao_setor') → child's field.
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( $child_field );
 
-        $captured = null;
-        $this->wpdb->shouldReceive( 'update' )->andReturnUsing(
-            function ( $table, $data, $where ) use ( &$captured ) {
-                $captured = array( 'data' => $data, 'where' => $where );
-                return 1;
-            }
-        );
+		$captured = null;
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) use ( &$captured ) {
+				$captured = array( 'data' => $data, 'where' => $where );
+				return 1;
+			}
+		);
 
-        $updated = ReregistrationStandardFieldsSeeder::replicate_field_options_to_descendants( 5 );
+		$updated = ReregistrationStandardFieldsSeeder::replicate_field_options_to_descendants( 5 );
 
-        $this->assertSame( 1, $updated );
-        $this->assertNotNull( $captured );
-        $this->assertSame( 77, $captured['where']['id'] );
-        $decoded = json_decode( $captured['data']['field_options'], true );
-        $this->assertArrayHasKey( 'groups', $decoded );
-        $this->assertSame( array( 'D' => array( 'S' ) ), $decoded['groups'] );
-    }
+		$this->assertSame( 1, $updated );
+		$this->assertNotNull( $captured );
+		$this->assertSame( 77, $captured['where']['id'] );
+		$decoded = json_decode( $captured['data']['field_options'], true );
+		$this->assertArrayHasKey( 'groups', $decoded );
+		$this->assertSame( array( 'D' => array( 'S' ) ), $decoded['groups'] );
+	}
 }

@@ -274,7 +274,7 @@ class CapabilityMigrator {
 	 * withhold it from a manager, remove the sub-cap from that role/user after
 	 * the migration has run.
 	 *
-	 * @since 6.21.0
+	 * @since 6.20.0
 	 * @return array<string, array<int, string>>
 	 */
 	public static function email_templates_cap_grant_map(): array {
@@ -294,7 +294,7 @@ class CapabilityMigrator {
 	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
 	 * `plugins_loaded`, flagged by the `ffc_email_templates_cap_v1` option.
 	 *
-	 * @since 6.21.0
+	 * @since 6.20.0
 	 * @return array<string, int> Per-target-cap count of users seeded.
 	 */
 	public static function migrate_email_templates_cap_grant(): array {

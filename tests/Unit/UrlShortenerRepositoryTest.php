@@ -20,487 +20,487 @@ use FreeFormCertificate\UrlShortener\UrlShortenerRepository;
  */
 class UrlShortenerRepositoryTest extends TestCase {
 
-    use MockeryPHPUnitIntegration;
+	use MockeryPHPUnitIntegration;
 
-    private UrlShortenerRepository $repo;
+	private UrlShortenerRepository $repo;
 
-    /** @var Mockery\MockInterface */
-    private $wpdb;
+	/** @var Mockery\MockInterface */
+	private $wpdb;
 
-    protected function setUp(): void {
-        parent::setUp();
-        Monkey\setUp();
+	protected function setUp(): void {
+		parent::setUp();
+		Monkey\setUp();
 
-        // pcov does not record lines for files first autoloaded mid-test-method,
-        // so the read/write split classes' coverage would attribute to nothing.
-        // Preload the extracted classes here so pcov attributes their lines to
-        // this test (the façade composes both via `new`).
-        class_exists( '\\FreeFormCertificate\\UrlShortener\\UrlShortenerReader' );
-        class_exists( '\\FreeFormCertificate\\UrlShortener\\UrlShortenerWriter' );
+		// pcov does not record lines for files first autoloaded mid-test-method,
+		// so the read/write split classes' coverage would attribute to nothing.
+		// Preload the extracted classes here so pcov attributes their lines to
+		// this test (the façade composes both via `new`).
+		class_exists( '\\FreeFormCertificate\\UrlShortener\\UrlShortenerReader' );
+		class_exists( '\\FreeFormCertificate\\UrlShortener\\UrlShortenerWriter' );
 
-        global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
-        $wpdb->prefix = 'wp_';
-        $wpdb->last_error = '';
+		global $wpdb;
+		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
+		$wpdb->prefix = 'wp_';
+		$wpdb->last_error = '';
 
-        $this->wpdb = $wpdb;
+		$this->wpdb = $wpdb;
 
-        // Stub WP cache functions
-        Functions\when( 'wp_cache_get' )->justReturn( false );
-        Functions\when( 'wp_cache_set' )->justReturn( true );
-        Functions\when( 'wp_cache_delete' )->justReturn( true );
-        Functions\when( 'wp_cache_flush' )->justReturn( true );
-        Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults = array() ) {
-            return array_merge( $defaults, $args );
-        } );
+		// Stub WP cache functions
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults = array() ) {
+			return array_merge( $defaults, $args );
+		} );
 
-        $this->repo = new UrlShortenerRepository();
-    }
+		$this->repo = new UrlShortenerRepository();
+	}
 
-    protected function tearDown(): void {
-        Monkey\tearDown();
-        parent::tearDown();
-    }
+	protected function tearDown(): void {
+		Monkey\tearDown();
+		parent::tearDown();
+	}
 
-    // ==================================================================
-    // Table name and cache group
-    // ==================================================================
+	// ==================================================================
+	// Table name and cache group
+	// ==================================================================
 
-    public function test_table_name_is_ffc_short_urls(): void {
-        $ref = new \ReflectionClass( $this->repo );
-        $table = $ref->getProperty( 'table' );
-        $table->setAccessible( true );
+	public function test_table_name_is_ffc_short_urls(): void {
+		$ref = new \ReflectionClass( $this->repo );
+		$table = $ref->getProperty( 'table' );
+		$table->setAccessible( true );
 
-        $this->assertSame( 'wp_ffc_short_urls', $table->getValue( $this->repo ) );
-    }
+		$this->assertSame( 'wp_ffc_short_urls', $table->getValue( $this->repo ) );
+	}
 
-    public function test_cache_group_is_ffc_short_urls(): void {
-        $ref = new \ReflectionClass( $this->repo );
-        $prop = $ref->getProperty( 'cache_group' );
-        $prop->setAccessible( true );
+	public function test_cache_group_is_ffc_short_urls(): void {
+		$ref = new \ReflectionClass( $this->repo );
+		$prop = $ref->getProperty( 'cache_group' );
+		$prop->setAccessible( true );
 
-        $this->assertSame( 'ffc_short_urls', $prop->getValue( $this->repo ) );
-    }
+		$this->assertSame( 'ffc_short_urls', $prop->getValue( $this->repo ) );
+	}
 
-    // ==================================================================
-    // findByShortCode()
-    // ==================================================================
+	// ==================================================================
+	// findByShortCode()
+	// ==================================================================
 
-    public function test_find_by_short_code_returns_record(): void {
-        $row = [ 'id' => '1', 'short_code' => 'abc123', 'target_url' => 'https://example.com' ];
+	public function test_find_by_short_code_returns_record(): void {
+		$row = [ 'id' => '1', 'short_code' => 'abc123', 'target_url' => 'https://example.com' ];
 
-        $this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'SELECT * FROM wp_ffc_short_urls WHERE short_code = "abc123"' );
-        $this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $row );
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'SELECT * FROM wp_ffc_short_urls WHERE short_code = "abc123"' );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $row );
 
-        $result = $this->repo->findByShortCode( 'abc123' );
+		$result = $this->repo->findByShortCode( 'abc123' );
 
-        $this->assertSame( 'abc123', $result['short_code'] );
-    }
+		$this->assertSame( 'abc123', $result['short_code'] );
+	}
 
-    public function test_find_by_short_code_returns_null_when_not_found(): void {
-        $this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
+	public function test_find_by_short_code_returns_null_when_not_found(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
 
-        $this->assertNull( $this->repo->findByShortCode( 'nonexistent' ) );
-    }
+		$this->assertNull( $this->repo->findByShortCode( 'nonexistent' ) );
+	}
 
-    public function test_find_by_short_code_returns_cached_result(): void {
-        $cached = [ 'id' => '1', 'short_code' => 'cached' ];
+	public function test_find_by_short_code_returns_cached_result(): void {
+		$cached = [ 'id' => '1', 'short_code' => 'cached' ];
 
-        // Override cache stub to return cached value for this key
-        Functions\when( 'wp_cache_get' )->alias( function ( $key ) use ( $cached ) {
-            return $key === 'code_cached' ? $cached : false;
-        } );
+		// Override cache stub to return cached value for this key
+		Functions\when( 'wp_cache_get' )->alias( function ( $key ) use ( $cached ) {
+			return $key === 'code_cached' ? $cached : false;
+		} );
 
-        // wpdb should NOT be called since cache hit
-        $this->wpdb->shouldNotReceive( 'prepare' );
-        $this->wpdb->shouldNotReceive( 'get_row' );
+		// wpdb should NOT be called since cache hit
+		$this->wpdb->shouldNotReceive( 'prepare' );
+		$this->wpdb->shouldNotReceive( 'get_row' );
 
-        $result = $this->repo->findByShortCode( 'cached' );
+		$result = $this->repo->findByShortCode( 'cached' );
 
-        $this->assertSame( 'cached', $result['short_code'] );
-    }
+		$this->assertSame( 'cached', $result['short_code'] );
+	}
 
-    // ==================================================================
-    // findByPostId()
-    // ==================================================================
+	// ==================================================================
+	// findByPostId()
+	// ==================================================================
 
-    public function test_find_by_post_id_returns_active_record(): void {
-        $row = [ 'id' => '5', 'post_id' => '42', 'status' => 'active' ];
+	public function test_find_by_post_id_returns_active_record(): void {
+		$row = [ 'id' => '5', 'post_id' => '42', 'status' => 'active' ];
 
-        $this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $row );
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $row );
 
-        $result = $this->repo->findByPostId( 42 );
+		$result = $this->repo->findByPostId( 42 );
 
-        $this->assertSame( '42', $result['post_id'] );
-    }
+		$this->assertSame( '42', $result['post_id'] );
+	}
 
-    public function test_find_by_post_id_returns_null_when_not_found(): void {
-        $this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
+	public function test_find_by_post_id_returns_null_when_not_found(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
 
-        $this->assertNull( $this->repo->findByPostId( 999 ) );
-    }
+		$this->assertNull( $this->repo->findByPostId( 999 ) );
+	}
 
-    public function test_find_by_post_id_uses_cache(): void {
-        $cached = [ 'id' => '5', 'post_id' => '42' ];
+	public function test_find_by_post_id_uses_cache(): void {
+		$cached = [ 'id' => '5', 'post_id' => '42' ];
 
-        Functions\when( 'wp_cache_get' )->alias( function ( $key ) use ( $cached ) {
-            return $key === 'post_42' ? $cached : false;
-        } );
+		Functions\when( 'wp_cache_get' )->alias( function ( $key ) use ( $cached ) {
+			return $key === 'post_42' ? $cached : false;
+		} );
 
-        $this->wpdb->shouldNotReceive( 'prepare' );
+		$this->wpdb->shouldNotReceive( 'prepare' );
 
-        $result = $this->repo->findByPostId( 42 );
+		$result = $this->repo->findByPostId( 42 );
 
-        $this->assertSame( '42', $result['post_id'] );
-    }
+		$this->assertSame( '42', $result['post_id'] );
+	}
 
-    // ==================================================================
-    // incrementClickCount()
-    // ==================================================================
+	// ==================================================================
+	// incrementClickCount()
+	// ==================================================================
 
-    public function test_increment_click_count_success(): void {
-        $this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'UPDATE ...' );
-        $this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
+	public function test_increment_click_count_success(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'UPDATE ...' );
+		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
 
-        $this->assertTrue( $this->repo->incrementClickCount( 1 ) );
-    }
+		$this->assertTrue( $this->repo->incrementClickCount( 1 ) );
+	}
 
-    public function test_increment_click_count_failure(): void {
-        $this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'UPDATE ...' );
-        $this->wpdb->shouldReceive( 'query' )->once()->andReturn( false );
+	public function test_increment_click_count_failure(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'UPDATE ...' );
+		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( false );
 
-        $this->assertFalse( $this->repo->incrementClickCount( 1 ) );
-    }
+		$this->assertFalse( $this->repo->incrementClickCount( 1 ) );
+	}
 
-    // ==================================================================
-    // codeExists()
-    // ==================================================================
+	// ==================================================================
+	// codeExists()
+	// ==================================================================
 
-    public function test_code_exists_returns_true_when_found(): void {
-        $this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '1' );
+	public function test_code_exists_returns_true_when_found(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '1' );
 
-        $this->assertTrue( $this->repo->codeExists( 'abc123' ) );
-    }
+		$this->assertTrue( $this->repo->codeExists( 'abc123' ) );
+	}
 
-    public function test_code_exists_returns_false_when_not_found(): void {
-        $this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '0' );
+	public function test_code_exists_returns_false_when_not_found(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '0' );
 
-        $this->assertFalse( $this->repo->codeExists( 'nonexistent' ) );
-    }
+		$this->assertFalse( $this->repo->codeExists( 'nonexistent' ) );
+	}
 
-    // ==================================================================
-    // findPaginated()
-    // ==================================================================
+	// ==================================================================
+	// findPaginated()
+	// ==================================================================
 
-    public function test_find_paginated_returns_items_and_total(): void {
-        $items = [
-            [ 'id' => '1', 'short_code' => 'aaa', 'status' => 'active' ],
-            [ 'id' => '2', 'short_code' => 'bbb', 'status' => 'active' ],
-        ];
+	public function test_find_paginated_returns_items_and_total(): void {
+		$items = [
+			[ 'id' => '1', 'short_code' => 'aaa', 'status' => 'active' ],
+			[ 'id' => '2', 'short_code' => 'bbb', 'status' => 'active' ],
+		];
 
-        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '2' );
-        $this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $items );
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '2' );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $items );
 
-        $result = $this->repo->findPaginated();
+		$result = $this->repo->findPaginated();
 
-        $this->assertSame( 2, $result['total'] );
-        $this->assertCount( 2, $result['items'] );
-    }
-
-    public function test_find_paginated_with_search_filter(): void {
-        $captured_query = '';
-        $this->wpdb->shouldReceive( 'esc_like' )->once()->andReturnUsing( function ( $v ) {
-            return $v;
-        } );
-        $this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$captured_query ) {
-            $captured_query = func_get_arg( 0 );
-            return 'QUERY';
-        } );
-        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '0' );
-        $this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( [] );
+		$this->assertSame( 2, $result['total'] );
+		$this->assertCount( 2, $result['items'] );
+	}
+
+	public function test_find_paginated_with_search_filter(): void {
+		$captured_query = '';
+		$this->wpdb->shouldReceive( 'esc_like' )->once()->andReturnUsing( function ( $v ) {
+			return $v;
+		} );
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$captured_query ) {
+			$captured_query = func_get_arg( 0 );
+			return 'QUERY';
+		} );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '0' );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( [] );
 
-        $this->repo->findPaginated( [ 'search' => 'test' ] );
-
-        $this->assertStringContainsString( 'LIKE', $captured_query );
-    }
-
-    public function test_find_paginated_with_status_filter(): void {
-        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '1' );
-        $this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( [
-            [ 'id' => '1', 'status' => 'active' ],
-        ] );
+		$this->repo->findPaginated( [ 'search' => 'test' ] );
+
+		$this->assertStringContainsString( 'LIKE', $captured_query );
+	}
+
+	public function test_find_paginated_with_status_filter(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '1' );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( [
+			[ 'id' => '1', 'status' => 'active' ],
+		] );
 
-        $result = $this->repo->findPaginated( [ 'status' => 'active' ] );
+		$result = $this->repo->findPaginated( [ 'status' => 'active' ] );
 
-        $this->assertSame( 1, $result['total'] );
-    }
+		$this->assertSame( 1, $result['total'] );
+	}
 
-    public function test_find_paginated_invalid_orderby_falls_back_to_created_at(): void {
-        $captured_query = '';
-        $this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$captured_query ) {
-            $args = func_get_args();
-            // Capture the items query (the one with ORDER BY)
-            if ( strpos( $args[0], 'ORDER BY' ) !== false ) {
-                $captured_query = $args[0];
-            }
-            return 'QUERY';
-        } );
-        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '0' );
-        $this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( [] );
+	public function test_find_paginated_invalid_orderby_falls_back_to_created_at(): void {
+		$captured_query = '';
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$captured_query ) {
+			$args = func_get_args();
+			// Capture the items query (the one with ORDER BY)
+			if ( strpos( $args[0], 'ORDER BY' ) !== false ) {
+				$captured_query = $args[0];
+			}
+			return 'QUERY';
+		} );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '0' );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( [] );
 
-        $this->repo->findPaginated( [ 'orderby' => 'malicious_column' ] );
+		$this->repo->findPaginated( [ 'orderby' => 'malicious_column' ] );
 
-        $this->assertStringContainsString( 'created_at', $captured_query );
-    }
+		$this->assertStringContainsString( 'created_at', $captured_query );
+	}
 
-    public function test_find_paginated_empty_results(): void {
-        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '0' );
-        $this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
+	public function test_find_paginated_empty_results(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '0' );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
 
-        $result = $this->repo->findPaginated();
+		$result = $this->repo->findPaginated();
 
-        $this->assertSame( 0, $result['total'] );
-        $this->assertSame( [], $result['items'] );
-    }
+		$this->assertSame( 0, $result['total'] );
+		$this->assertSame( [], $result['items'] );
+	}
 
-    // ==================================================================
-    // getStats()
-    // ==================================================================
+	// ==================================================================
+	// getStats()
+	// ==================================================================
 
-    public function test_get_stats_returns_aggregated_data(): void {
-        $this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( [
-            'total_links'   => '15',
-            'active_links'  => '10',
-            'total_clicks'  => '250',
-            'trashed_links' => '3',
-        ] );
+	public function test_get_stats_returns_aggregated_data(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( [
+			'total_links'   => '15',
+			'active_links'  => '10',
+			'total_clicks'  => '250',
+			'trashed_links' => '3',
+		] );
 
-        $stats = $this->repo->getStats();
-
-        $this->assertSame( 15, $stats['total_links'] );
-        $this->assertSame( 10, $stats['active_links'] );
-        $this->assertSame( 250, $stats['total_clicks'] );
-        $this->assertSame( 3, $stats['trashed_links'] );
-    }
-
-    public function test_get_stats_handles_null_row(): void {
-        $this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
-
-        $stats = $this->repo->getStats();
-
-        $this->assertSame( 0, $stats['total_links'] );
-        $this->assertSame( 0, $stats['active_links'] );
-        $this->assertSame( 0, $stats['total_clicks'] );
-        $this->assertSame( 0, $stats['trashed_links'] );
-    }
-
-    public function test_get_stats_handles_null_values_in_row(): void {
-        $this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( [
-            'total_links'   => null,
-            'active_links'  => null,
-            'total_clicks'  => null,
-            'trashed_links' => null,
-        ] );
-
-        $stats = $this->repo->getStats();
-
-        $this->assertSame( 0, $stats['total_links'] );
-        $this->assertSame( 0, $stats['total_clicks'] );
-    }
-
-    // ------------------------------------------------------------------
-    // findQrCacheByShortCode() / setQrCacheForShortCode() — issue #340
-    // ------------------------------------------------------------------
-
-    public function test_find_qr_cache_returns_payload_when_present(): void {
-        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( 'data:image/png;base64,abc' );
-
-        $this->assertSame( 'data:image/png;base64,abc', $this->repo->findQrCacheByShortCode( 'ABC123' ) );
-    }
-
-    public function test_find_qr_cache_returns_empty_on_null(): void {
-        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( null );
-
-        $this->assertSame( '', $this->repo->findQrCacheByShortCode( 'ABC123' ) );
-    }
-
-    public function test_find_qr_cache_short_circuits_on_empty_code(): void {
-        $this->wpdb->shouldNotReceive( 'get_var' );
-
-        $this->assertSame( '', $this->repo->findQrCacheByShortCode( '' ) );
-    }
-
-    public function test_set_qr_cache_returns_true_on_success(): void {
-        $this->wpdb->shouldReceive( 'update' )->once()->andReturn( 1 );
-
-        $this->assertTrue( $this->repo->setQrCacheForShortCode( 'ABC123', 'payload' ) );
-    }
-
-    public function test_set_qr_cache_returns_false_on_wpdb_error(): void {
-        $this->wpdb->shouldReceive( 'update' )->once()->andReturn( false );
-
-        $this->assertFalse( $this->repo->setQrCacheForShortCode( 'ABC123', 'payload' ) );
-    }
-
-    public function test_set_qr_cache_short_circuits_on_empty_code(): void {
-        $this->wpdb->shouldNotReceive( 'update' );
-
-        $this->assertFalse( $this->repo->setQrCacheForShortCode( '', 'payload' ) );
-    }
-
-    // ==================================================================
-    // find_cleanup_candidates
-    // ==================================================================
-
-    public function test_find_cleanup_candidates_returns_empty_without_criteria(): void {
-        $this->wpdb->shouldNotReceive( 'prepare' );
-        $this->wpdb->shouldNotReceive( 'get_results' );
-
-        $this->assertSame(
-            array(),
-            $this->repo->find_cleanup_candidates(
-                array(
-                    'orphaned'      => false,
-                    'never_clicked' => false,
-                    'trashed'       => false,
-                ),
-                90
-            )
-        );
-    }
-
-    public function test_find_cleanup_candidates_queries_and_returns_rows(): void {
-        $this->wpdb->posts = 'wp_posts';
-        $rows              = array(
-            array(
-                'id'               => 5,
-                'short_code'       => 'xyz',
-                'is_orphaned'      => 1,
-                'is_never_clicked' => 0,
-                'is_trashed'       => 0,
-            ),
-        );
-
-        $this->wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
-            function () {
-                return func_get_args()[0];
-            }
-        );
-        $this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
-
-        $result = $this->repo->find_cleanup_candidates(
-            array(
-                'orphaned'      => true,
-                'never_clicked' => true,
-                'trashed'       => false,
-            ),
-            45
-        );
-
-        $this->assertSame( $rows, $result );
-    }
-
-    // ==================================================================
-    // countForExport() / findByCursor() — batched CSV export (#772)
-    // ==================================================================
-
-    public function test_count_for_export_returns_int(): void {
-        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '7' );
-
-        $this->assertSame( 7, $this->repo->countForExport( array( 'status' => 'all', 'search' => '' ) ) );
-    }
-
-    public function test_find_by_cursor_builds_keyset_query(): void {
-        $captured_query = '';
-        $this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$captured_query ) {
-            $captured_query = func_get_arg( 0 );
-            return 'QUERY';
-        } );
-        $rows = array( array( 'id' => '5' ), array( 'id' => '4' ) );
-        $this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
-
-        $result = $this->repo->findByCursor( array( 'status' => 'all', 'search' => '' ), 10, 50 );
-
-        $this->assertSame( $rows, $result );
-        $this->assertStringContainsString( 'id < %d', $captured_query );
-        $this->assertStringContainsString( 'ORDER BY id DESC', $captured_query );
-        $this->assertStringContainsString( 'LIMIT %d', $captured_query );
-    }
-
-    public function test_find_by_cursor_returns_empty_array_when_no_rows(): void {
-        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
-
-        $this->assertSame( array(), $this->repo->findByCursor( array( 'status' => 'active', 'search' => 'x' ), 10, 50 ) );
-    }
-
-    // ==================================================================
-    // countBackfillCandidates() / findBackfillCandidates() — backfill (#886)
-    // ==================================================================
-
-    public function test_count_backfill_candidates_empty_types_returns_zero_without_query(): void {
-        $this->wpdb->shouldNotReceive( 'prepare' );
-
-        $this->assertSame( 0, $this->repo->countBackfillCandidates( array() ) );
-    }
-
-    public function test_count_backfill_candidates_returns_int(): void {
-        $this->wpdb->posts = 'wp_posts';
-        $captured_query    = '';
-        $this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$captured_query ) {
-            $captured_query = func_get_arg( 0 );
-            return 'QUERY';
-        } );
-        $this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '3' );
-
-        $this->assertSame( 3, $this->repo->countBackfillCandidates( array( 'post', 'page' ) ) );
-        $this->assertStringContainsString( 'LEFT JOIN', $captured_query );
-        $this->assertStringContainsString( 's.id IS NULL', $captured_query );
-    }
-
-    public function test_find_backfill_candidates_empty_types_returns_empty_without_query(): void {
-        $this->wpdb->shouldNotReceive( 'prepare' );
-
-        $this->assertSame( array(), $this->repo->findBackfillCandidates( array(), PHP_INT_MAX, 50 ) );
-    }
-
-    public function test_find_backfill_candidates_builds_keyset_query(): void {
-        $this->wpdb->posts = 'wp_posts';
-        $captured_query    = '';
-        $this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$captured_query ) {
-            $captured_query = func_get_arg( 0 );
-            return 'QUERY';
-        } );
-        $rows = array( array( 'ID' => '10', 'post_title' => 'A' ), array( 'ID' => '8', 'post_title' => 'B' ) );
-        $this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
-
-        $result = $this->repo->findBackfillCandidates( array( 'post' ), 20, 50 );
-
-        $this->assertSame( $rows, $result );
-        $this->assertStringContainsString( 'p.ID < %d', $captured_query );
-        $this->assertStringContainsString( 'ORDER BY p.ID DESC', $captured_query );
-        $this->assertStringContainsString( 'LIMIT %d', $captured_query );
-    }
-
-    public function test_find_backfill_candidates_returns_empty_array_when_no_rows(): void {
-        $this->wpdb->posts = 'wp_posts';
-        $this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-        $this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
-
-        $this->assertSame( array(), $this->repo->findBackfillCandidates( array( 'post' ), 20, 50 ) );
-    }
+		$stats = $this->repo->getStats();
+
+		$this->assertSame( 15, $stats['total_links'] );
+		$this->assertSame( 10, $stats['active_links'] );
+		$this->assertSame( 250, $stats['total_clicks'] );
+		$this->assertSame( 3, $stats['trashed_links'] );
+	}
+
+	public function test_get_stats_handles_null_row(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
+
+		$stats = $this->repo->getStats();
+
+		$this->assertSame( 0, $stats['total_links'] );
+		$this->assertSame( 0, $stats['active_links'] );
+		$this->assertSame( 0, $stats['total_clicks'] );
+		$this->assertSame( 0, $stats['trashed_links'] );
+	}
+
+	public function test_get_stats_handles_null_values_in_row(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( [
+			'total_links'   => null,
+			'active_links'  => null,
+			'total_clicks'  => null,
+			'trashed_links' => null,
+		] );
+
+		$stats = $this->repo->getStats();
+
+		$this->assertSame( 0, $stats['total_links'] );
+		$this->assertSame( 0, $stats['total_clicks'] );
+	}
+
+	// ------------------------------------------------------------------
+	// findQrCacheByShortCode() / setQrCacheForShortCode() — issue #340
+	// ------------------------------------------------------------------
+
+	public function test_find_qr_cache_returns_payload_when_present(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( 'data:image/png;base64,abc' );
+
+		$this->assertSame( 'data:image/png;base64,abc', $this->repo->findQrCacheByShortCode( 'ABC123' ) );
+	}
+
+	public function test_find_qr_cache_returns_empty_on_null(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( null );
+
+		$this->assertSame( '', $this->repo->findQrCacheByShortCode( 'ABC123' ) );
+	}
+
+	public function test_find_qr_cache_short_circuits_on_empty_code(): void {
+		$this->wpdb->shouldNotReceive( 'get_var' );
+
+		$this->assertSame( '', $this->repo->findQrCacheByShortCode( '' ) );
+	}
+
+	public function test_set_qr_cache_returns_true_on_success(): void {
+		$this->wpdb->shouldReceive( 'update' )->once()->andReturn( 1 );
+
+		$this->assertTrue( $this->repo->setQrCacheForShortCode( 'ABC123', 'payload' ) );
+	}
+
+	public function test_set_qr_cache_returns_false_on_wpdb_error(): void {
+		$this->wpdb->shouldReceive( 'update' )->once()->andReturn( false );
+
+		$this->assertFalse( $this->repo->setQrCacheForShortCode( 'ABC123', 'payload' ) );
+	}
+
+	public function test_set_qr_cache_short_circuits_on_empty_code(): void {
+		$this->wpdb->shouldNotReceive( 'update' );
+
+		$this->assertFalse( $this->repo->setQrCacheForShortCode( '', 'payload' ) );
+	}
+
+	// ==================================================================
+	// find_cleanup_candidates
+	// ==================================================================
+
+	public function test_find_cleanup_candidates_returns_empty_without_criteria(): void {
+		$this->wpdb->shouldNotReceive( 'prepare' );
+		$this->wpdb->shouldNotReceive( 'get_results' );
+
+		$this->assertSame(
+			array(),
+			$this->repo->find_cleanup_candidates(
+				array(
+					'orphaned'      => false,
+					'never_clicked' => false,
+					'trashed'       => false,
+				),
+				90
+			)
+		);
+	}
+
+	public function test_find_cleanup_candidates_queries_and_returns_rows(): void {
+		$this->wpdb->posts = 'wp_posts';
+		$rows              = array(
+			array(
+				'id'               => 5,
+				'short_code'       => 'xyz',
+				'is_orphaned'      => 1,
+				'is_never_clicked' => 0,
+				'is_trashed'       => 0,
+			),
+		);
+
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
+			function () {
+				return func_get_args()[0];
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
+
+		$result = $this->repo->find_cleanup_candidates(
+			array(
+				'orphaned'      => true,
+				'never_clicked' => true,
+				'trashed'       => false,
+			),
+			45
+		);
+
+		$this->assertSame( $rows, $result );
+	}
+
+	// ==================================================================
+	// countForExport() / findByCursor() — batched CSV export (#772)
+	// ==================================================================
+
+	public function test_count_for_export_returns_int(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '7' );
+
+		$this->assertSame( 7, $this->repo->countForExport( array( 'status' => 'all', 'search' => '' ) ) );
+	}
+
+	public function test_find_by_cursor_builds_keyset_query(): void {
+		$captured_query = '';
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$captured_query ) {
+			$captured_query = func_get_arg( 0 );
+			return 'QUERY';
+		} );
+		$rows = array( array( 'id' => '5' ), array( 'id' => '4' ) );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
+
+		$result = $this->repo->findByCursor( array( 'status' => 'all', 'search' => '' ), 10, 50 );
+
+		$this->assertSame( $rows, $result );
+		$this->assertStringContainsString( 'id < %d', $captured_query );
+		$this->assertStringContainsString( 'ORDER BY id DESC', $captured_query );
+		$this->assertStringContainsString( 'LIMIT %d', $captured_query );
+	}
+
+	public function test_find_by_cursor_returns_empty_array_when_no_rows(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
+
+		$this->assertSame( array(), $this->repo->findByCursor( array( 'status' => 'active', 'search' => 'x' ), 10, 50 ) );
+	}
+
+	// ==================================================================
+	// countBackfillCandidates() / findBackfillCandidates() — backfill (#886)
+	// ==================================================================
+
+	public function test_count_backfill_candidates_empty_types_returns_zero_without_query(): void {
+		$this->wpdb->shouldNotReceive( 'prepare' );
+
+		$this->assertSame( 0, $this->repo->countBackfillCandidates( array() ) );
+	}
+
+	public function test_count_backfill_candidates_returns_int(): void {
+		$this->wpdb->posts = 'wp_posts';
+		$captured_query    = '';
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$captured_query ) {
+			$captured_query = func_get_arg( 0 );
+			return 'QUERY';
+		} );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '3' );
+
+		$this->assertSame( 3, $this->repo->countBackfillCandidates( array( 'post', 'page' ) ) );
+		$this->assertStringContainsString( 'LEFT JOIN', $captured_query );
+		$this->assertStringContainsString( 's.id IS NULL', $captured_query );
+	}
+
+	public function test_find_backfill_candidates_empty_types_returns_empty_without_query(): void {
+		$this->wpdb->shouldNotReceive( 'prepare' );
+
+		$this->assertSame( array(), $this->repo->findBackfillCandidates( array(), PHP_INT_MAX, 50 ) );
+	}
+
+	public function test_find_backfill_candidates_builds_keyset_query(): void {
+		$this->wpdb->posts = 'wp_posts';
+		$captured_query    = '';
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$captured_query ) {
+			$captured_query = func_get_arg( 0 );
+			return 'QUERY';
+		} );
+		$rows = array( array( 'ID' => '10', 'post_title' => 'A' ), array( 'ID' => '8', 'post_title' => 'B' ) );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
+
+		$result = $this->repo->findBackfillCandidates( array( 'post' ), 20, 50 );
+
+		$this->assertSame( $rows, $result );
+		$this->assertStringContainsString( 'p.ID < %d', $captured_query );
+		$this->assertStringContainsString( 'ORDER BY p.ID DESC', $captured_query );
+		$this->assertStringContainsString( 'LIMIT %d', $captured_query );
+	}
+
+	public function test_find_backfill_candidates_returns_empty_array_when_no_rows(): void {
+		$this->wpdb->posts = 'wp_posts';
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
+
+		$this->assertSame( array(), $this->repo->findBackfillCandidates( array( 'post' ), 20, 50 ) );
+	}
 }

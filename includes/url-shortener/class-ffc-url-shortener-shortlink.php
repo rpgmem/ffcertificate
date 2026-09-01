@@ -8,7 +8,11 @@
  * (on `template_redirect`) — both calling `wp_get_shortlink()` — filtering
  * `pre_get_shortlink` alone emits the `<link rel="shortlink">` tag *and* the
  * `Link: …; rel=shortlink` HTTP header, and also feeds the admin "Get Shortlink"
- * button and REST. No manual echo.
+ * button. No manual echo.
+ *
+ * REST is **not** covered by that filter: `WP_REST_Posts_Controller` never calls
+ * `wp_get_shortlink()`, so the `ffc_shortlink` field is registered explicitly
+ * here for the same opted-in post types.
  *
  * Exposure is opt-in per post type (`url_shortener_expose_post_types`) and only
  * kicks in when an active short URL already exists for the post; otherwise the
@@ -32,6 +36,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 class UrlShortenerShortlink {
 
 	/**
+	 * REST field name. Prefixed to avoid colliding with core or another plugin
+	 * ever claiming the unqualified `shortlink` key on core post types.
+	 *
+	 * @since 6.21.0
+	 */
+	public const REST_FIELD = 'ffc_shortlink';
+
+	/**
 	 * Service.
 	 *
 	 * @var UrlShortenerService
@@ -48,11 +60,13 @@ class UrlShortenerShortlink {
 	}
 
 	/**
-	 * Register the shortlink filter (both front-end and admin contexts —
-	 * the `<head>`/header path is front-end, the "Get Shortlink" button is admin).
+	 * Register both exposure surfaces: the shortlink filter (front-end `<head>`/
+	 * HTTP header plus the admin "Get Shortlink" button) and the REST field,
+	 * which the filter does not reach.
 	 */
 	public function init(): void {
 		add_filter( 'pre_get_shortlink', array( $this, 'filter_shortlink' ), 10, 3 );
+		add_action( 'rest_api_init', array( $this, 'register_rest_field' ) );
 	}
 
 	/**
@@ -95,5 +109,60 @@ class UrlShortenerShortlink {
 		}
 
 		return $this->service->get_short_url( (string) $record['short_code'] );
+	}
+
+	/**
+	 * Register the read-only `ffc_shortlink` field on the REST responses of the
+	 * opted-in post types.
+	 *
+	 * Hook: `rest_api_init` / priority 10 (default). Fires after `init` — post
+	 * types registered, `ffc_settings` readable — and before route dispatch.
+	 * Registering on `init` instead would load REST-only cost into every
+	 * front-end request for nothing.
+	 *
+	 * @since 6.21.0
+	 */
+	public function register_rest_field(): void {
+		foreach ( $this->service->get_exposed_post_types() as $post_type ) {
+			register_rest_field(
+				$post_type,
+				self::REST_FIELD,
+				array(
+					'get_callback' => array( $this, 'get_rest_field' ),
+					'schema'       => array(
+						'description' => __( 'Short URL for this content, or an empty string when no active short URL exists.', 'ffcertificate' ),
+						'type'        => 'string',
+						'context'     => array( 'view', 'edit' ),
+						'readonly'    => true,
+					),
+				)
+			);
+		}
+	}
+
+	/**
+	 * Resolve the short URL for a REST response.
+	 *
+	 * Delegates to {@see filter_shortlink()} rather than calling
+	 * `wp_get_shortlink()`: going through core would round-trip back into this
+	 * same filter and, on passthrough, return core's `?p=ID` fallback — which is
+	 * not a short URL and is useless to the consumers this field exists for.
+	 * Here the contract is unambiguous: the FFC short URL, or an empty string.
+	 *
+	 * @since 6.21.0
+	 *
+	 * @param array<string, mixed> $post Post representation prepared by the REST API.
+	 * @return string Short URL, or '' when none is active.
+	 */
+	public function get_rest_field( array $post ): string {
+		$post_id = isset( $post['id'] ) ? (int) $post['id'] : 0;
+
+		if ( $post_id <= 0 ) {
+			return '';
+		}
+
+		$short_url = $this->filter_shortlink( false, $post_id, 'post' );
+
+		return is_string( $short_url ) ? $short_url : '';
 	}
 }

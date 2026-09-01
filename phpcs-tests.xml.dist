@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<ruleset name="ffcertificate-tests">
+    <description>
+        Indentation only, for tests/.
+
+        The main ruleset excludes tests/ (phpcs.xml.dist), and that exclusion
+        stays: WordPress-Docs would demand a file, class and method docblock in
+        every one of 420 test files, which is a project rather than a cleanup.
+
+        What it does not stay for is indentation. The suite was split 249 files
+        on four spaces against 170 on tabs, and nothing enforced either — so it
+        would have drifted back the week after any one-off reformat. These two
+        sniffs are the whole ruleset: pay the reindent once, then keep it.
+
+        Deliberately NOT added here: line length, docblocks, naming, Yoda
+        conditions, or anything else from WordPress-Extra. Widening this file is
+        how it stops being cheap.
+    </description>
+
+    <file>tests</file>
+
+    <arg name="basepath" value="."/>
+    <!--
+        Required: without it PHPCS measures a tab as a single column, so every
+        tab-indented line reports as "expected 1 tabs, found 1 spaces" and the
+        whole suite fails. The main ruleset never needed it explicitly: WPCS
+        sets it inside WordPress-Core. This one references only Generic
+        sniffs, so nothing sets it for us.
+    -->
+    <arg name="tab-width" value="4"/>
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg name="parallel" value="8"/>
+    <arg value="ps"/>
+
+    <!-- Tabs, not spaces. -->
+    <rule ref="Generic.WhiteSpace.DisallowSpaceIndent"/>
+
+    <!-- One tab per scope level, tabs counted as four columns. -->
+    <rule ref="Generic.WhiteSpace.ScopeIndent">
+        <properties>
+            <property name="indent" value="4"/>
+            <property name="tabIndent" value="true"/>
+        </properties>
+    </rule>
+</ruleset>

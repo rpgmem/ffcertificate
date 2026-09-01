@@ -22,589 +22,645 @@ use FreeFormCertificate\UrlShortener\UrlShortenerRepository;
  */
 class UrlShortenerLoaderTest extends TestCase {
 
-    use MockeryPHPUnitIntegration;
-
-    private UrlShortenerLoader $loader;
-
-    /** @var UrlShortenerService|Mockery\MockInterface */
-    private $service;
-
-    protected function setUp(): void {
-        parent::setUp();
-        Monkey\setUp();
-
-        // Mock global $wpdb (needed by UrlShortenerRepository created inside Service)
-        global $wpdb;
-        $wpdb = Mockery::mock( 'wpdb' )->makePartial();
-        $wpdb->prefix = 'wp_';
-        $wpdb->last_error = '';
-
-        // Stub common WP functions
-        Functions\when( '__' )->returnArg();
-        Functions\when( 'sanitize_text_field' )->returnArg();
-        Functions\when( 'esc_url_raw' )->returnArg();
-        Functions\when( 'wp_cache_get' )->justReturn( false );
-        Functions\when( 'wp_cache_set' )->justReturn( true );
-        Functions\when( 'wp_cache_delete' )->justReturn( true );
-        Functions\when( 'wp_cache_flush' )->justReturn( true );
-
-        // Namespaced stubs
-        Functions\when( 'get_option' )->justReturn( [] );
-        Functions\when( 'sanitize_text_field' )->returnArg();
-        Functions\when( 'sanitize_title' )->alias( function ( $title ) {
-            return strtolower( preg_replace( '/[^a-zA-Z0-9\-]/', '', $title ) );
-        } );
-        Functions\when( 'esc_url_raw' )->returnArg();
-        Functions\when( 'home_url' )->alias( function ( $path = '' ) {
-            return 'https://example.com' . $path;
-        } );
-        Functions\when( 'current_time' )->justReturn( '2026-02-22 12:00:00' );
-        Functions\when( 'get_current_user_id' )->justReturn( 1 );
-        Functions\when( '__' )->returnArg();
-        Functions\when( 'wp_unslash' )->returnArg();
-        Functions\when( 'wp_unslash' )->returnArg();
-        Functions\when( 'wp_parse_url' )->alias( function ( $url, $component = -1 ) {
-            return parse_url( $url, $component );
-        } );
-        Functions\when( 'wp_parse_url' )->alias( function ( $url, $component = -1 ) {
-            return parse_url( $url, $component );
-        } );
-
-        // Create loader and inject a mock service via reflection
-        $this->loader  = new UrlShortenerLoader();
-        $this->service = Mockery::mock( UrlShortenerService::class );
-
-        $ref = new \ReflectionClass( $this->loader );
-        $prop = $ref->getProperty( 'service' );
-        $prop->setAccessible( true );
-        $prop->setValue( $this->loader, $this->service );
-    }
-
-    protected function tearDown(): void {
-        Monkey\tearDown();
-        parent::tearDown();
-    }
-
-    /**
-     * do_redirect() wraps the click counter in add_action('shutdown', ...).
-     * PHPUnit never fires 'shutdown', so we install a local stub that runs
-     * the callback immediately, letting incrementClickCount expectations
-     * resolve. Only call from tests that do NOT assert hook registration
-     * via has_action(), since this override bypasses Brain/Monkey's internal
-     * action tracker.
-     */
-    private function run_shutdown_callbacks_immediately(): void {
-        Functions\when( 'add_action' )->alias( function ( $hook, $callback = null ) {
-            if ( $hook === 'shutdown' && is_callable( $callback ) ) {
-                $callback();
-            }
-        } );
-    }
-
-    // ==================================================================
-    // init()
-    // ==================================================================
-
-    public function test_init_registers_hooks_when_enabled(): void {
-        $this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
-
-        Functions\when( 'is_admin' )->justReturn( false );
-
-        $this->loader->init();
-
-        $this->assertTrue( has_action( 'init', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->register_rewrite_rules()' ) !== false );
-        $this->assertTrue( has_filter( 'query_vars', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->add_query_vars()' ) !== false );
-        $this->assertTrue( has_action( 'parse_request', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->intercept_short_url()' ) !== false );
-        $this->assertTrue( has_action( 'template_redirect', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->handle_redirect()' ) !== false );
-    }
-
-    public function test_init_registers_shortlink_filter_in_frontend(): void {
-        $this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
-        Functions\when( 'is_admin' )->justReturn( false );
-
-        $this->loader->init();
+	use MockeryPHPUnitIntegration;
+
+	private UrlShortenerLoader $loader;
+
+	/** @var UrlShortenerService|Mockery\MockInterface */
+	private $service;
+
+	protected function setUp(): void {
+		parent::setUp();
+		Monkey\setUp();
+
+		// Mock global $wpdb (needed by UrlShortenerRepository created inside Service)
+		global $wpdb;
+		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
+		$wpdb->prefix = 'wp_';
+		$wpdb->last_error = '';
+
+		// Stub common WP functions
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'esc_url_raw' )->returnArg();
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_cache_flush' )->justReturn( true );
+
+		// Namespaced stubs
+		Functions\when( 'get_option' )->justReturn( [] );
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'sanitize_title' )->alias( function ( $title ) {
+			return strtolower( preg_replace( '/[^a-zA-Z0-9\-]/', '', $title ) );
+		} );
+		Functions\when( 'esc_url_raw' )->returnArg();
+		Functions\when( 'home_url' )->alias( function ( $path = '' ) {
+			return 'https://example.com' . $path;
+		} );
+		Functions\when( 'current_time' )->justReturn( '2026-02-22 12:00:00' );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'wp_parse_url' )->alias( function ( $url, $component = -1 ) {
+			return parse_url( $url, $component );
+		} );
+		Functions\when( 'wp_parse_url' )->alias( function ( $url, $component = -1 ) {
+			return parse_url( $url, $component );
+		} );
+
+		// Create loader and inject a mock service via reflection
+		$this->loader  = new UrlShortenerLoader();
+		$this->service = Mockery::mock( UrlShortenerService::class );
+
+		$ref = new \ReflectionClass( $this->loader );
+		$prop = $ref->getProperty( 'service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $this->loader, $this->service );
+	}
+
+	protected function tearDown(): void {
+		Monkey\tearDown();
+		parent::tearDown();
+	}
+
+	/**
+	 * do_redirect() wraps the click counter in add_action('shutdown', ...).
+	 * PHPUnit never fires 'shutdown', so we install a local stub that runs
+	 * the callback immediately, letting incrementClickCount expectations
+	 * resolve. Only call from tests that do NOT assert hook registration
+	 * via has_action(), since this override bypasses Brain/Monkey's internal
+	 * action tracker.
+	 */
+	private function run_shutdown_callbacks_immediately(): void {
+		Functions\when( 'add_action' )->alias( function ( $hook, $callback = null ) {
+			if ( $hook === 'shutdown' && is_callable( $callback ) ) {
+				$callback();
+			}
+		} );
+	}
+
+	// ==================================================================
+	// init()
+	// ==================================================================
+
+	public function test_init_registers_hooks_when_enabled(): void {
+		$this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
+
+		Functions\when( 'is_admin' )->justReturn( false );
+
+		$this->loader->init();
+
+		$this->assertTrue( has_action( 'init', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->register_rewrite_rules()' ) !== false );
+		$this->assertTrue( has_filter( 'query_vars', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->add_query_vars()' ) !== false );
+		$this->assertTrue( has_action( 'parse_request', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->intercept_short_url()' ) !== false );
+		$this->assertTrue( has_action( 'template_redirect', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->handle_redirect()' ) !== false );
+	}
+
+	public function test_init_registers_shortlink_filter_in_frontend(): void {
+		$this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
+		Functions\when( 'is_admin' )->justReturn( false );
+
+		$this->loader->init();
+
+		// The shortlink exposer must wire even outside admin (the <head>/header path).
+		$this->assertNotFalse(
+			has_filter( 'pre_get_shortlink', 'FreeFormCertificate\UrlShortener\UrlShortenerShortlink->filter_shortlink()' )
+		);
+	}
 
-        // The shortlink exposer must wire even outside admin (the <head>/header path).
-        $this->assertNotFalse(
-            has_filter( 'pre_get_shortlink', 'FreeFormCertificate\UrlShortener\UrlShortenerShortlink->filter_shortlink()' )
-        );
-    }
+	public function test_init_registers_rest_route_hook(): void {
+		$this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
+		Functions\when( 'is_admin' )->justReturn( false );
 
-    public function test_init_registers_rest_route_hook(): void {
-        $this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
-        Functions\when( 'is_admin' )->justReturn( false );
+		$this->loader->init();
+
+		$this->assertNotFalse(
+			has_action( 'rest_api_init', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->register_rest_routes()' )
+		);
+	}
 
-        $this->loader->init();
+	public function test_register_rest_routes_registers_the_qr_controller(): void {
+		$registered = false;
+		Functions\when( 'register_rest_route' )->alias( function () use ( &$registered ) {
+			$registered = true;
+		} );
 
-        $this->assertNotFalse(
-            has_action( 'rest_api_init', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->register_rest_routes()' )
-        );
-    }
+		$this->loader->register_rest_routes();
 
-    public function test_register_rest_routes_registers_the_qr_controller(): void {
-        $registered = false;
-        Functions\when( 'register_rest_route' )->alias( function () use ( &$registered ) {
-            $registered = true;
-        } );
+		$this->assertTrue( $registered );
+	}
 
-        $this->loader->register_rest_routes();
+	public function test_init_registers_backfill_ajax_in_admin(): void {
+		$this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
+		Functions\when( 'is_admin' )->justReturn( true );
 
-        $this->assertTrue( $registered );
-    }
+		// Admin path composes the export source (needs the repository once) and
+		// the admin page / meta box (register add_action hooks only).
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
 
-    public function test_init_registers_backfill_ajax_in_admin(): void {
-        $this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
-        Functions\when( 'is_admin' )->justReturn( true );
+		$this->loader->init();
 
-        // Admin path composes the export source (needs the repository once) and
-        // the admin page / meta box (register add_action hooks only).
-        $repo = Mockery::mock( UrlShortenerRepository::class );
-        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->assertNotFalse(
+			has_action( 'wp_ajax_ffc_url_shortener_backfill', 'FreeFormCertificate\UrlShortener\UrlShortenerBackfillHandler->ajax_backfill()' )
+		);
+	}
 
-        $this->loader->init();
+	public function test_init_registers_auto_create_outside_admin(): void {
+		// The regression this pins (#1013): the block editor saves over REST,
+		// where is_admin() is false, so a save_post hook registered admin-only
+		// never fires for a Gutenberg publish.
+		$this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
+		Functions\when( 'is_admin' )->justReturn( false );
 
-        $this->assertNotFalse(
-            has_action( 'wp_ajax_ffc_url_shortener_backfill', 'FreeFormCertificate\UrlShortener\UrlShortenerBackfillHandler->ajax_backfill()' )
-        );
-    }
+		$this->loader->init();
 
-    public function test_init_skips_hooks_when_disabled(): void {
-        $this->service->shouldReceive( 'is_enabled' )->once()->andReturn( false );
+		$this->assertNotFalse(
+			has_action( 'save_post', 'FreeFormCertificate\UrlShortener\UrlShortenerMetaBox->on_save_post()' )
+		);
+	}
 
-        $this->loader->init();
+	public function test_init_keeps_meta_box_ui_admin_only(): void {
+		$this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
+		Functions\when( 'is_admin' )->justReturn( false );
 
-        $this->assertFalse( has_action( 'init', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->register_rewrite_rules()' ) );
-    }
+		$this->loader->init();
 
-    // ==================================================================
-    // maybe_flush_rewrite_rules()
-    // ==================================================================
+		// The UI half stays behind the gate — only the save_post hook crosses it.
+		$this->assertFalse(
+			has_action( 'add_meta_boxes', 'FreeFormCertificate\UrlShortener\UrlShortenerMetaBox->register_meta_box()' )
+		);
+		$this->assertFalse(
+			has_action( 'wp_ajax_ffc_regenerate_short_url', 'FreeFormCertificate\UrlShortener\UrlShortenerMetaBox->ajax_regenerate()' )
+		);
+	}
 
-    public function test_maybe_flush_flushes_on_first_install(): void {
-        $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
-        Functions\when( 'get_option' )->justReturn( '' );
+	public function test_init_registers_meta_box_ui_in_admin(): void {
+		$this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
+		Functions\when( 'is_admin' )->justReturn( true );
 
-        $flushed = false;
-        Functions\when( 'flush_rewrite_rules' )->alias( function () use ( &$flushed ) {
-            $flushed = true;
-        } );
-        Functions\when( 'update_option' )->justReturn( true );
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
 
-        $this->loader->maybe_flush_rewrite_rules();
+		$this->loader->init();
 
-        $this->assertTrue( $flushed );
-    }
+		$this->assertNotFalse(
+			has_action( 'add_meta_boxes', 'FreeFormCertificate\UrlShortener\UrlShortenerMetaBox->register_meta_box()' )
+		);
+		$this->assertNotFalse(
+			has_action( 'save_post', 'FreeFormCertificate\UrlShortener\UrlShortenerMetaBox->on_save_post()' )
+		);
+	}
 
-    public function test_maybe_flush_skips_when_version_matches(): void {
-        $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
-        Functions\when( 'get_option' )->justReturn( 'go:1' );
+	public function test_init_skips_auto_create_when_disabled(): void {
+		$this->service->shouldReceive( 'is_enabled' )->once()->andReturn( false );
 
-        $flushed = false;
-        Functions\when( 'flush_rewrite_rules' )->alias( function () use ( &$flushed ) {
-            $flushed = true;
-        } );
+		$this->loader->init();
 
-        $this->loader->maybe_flush_rewrite_rules();
+		$this->assertFalse(
+			has_action( 'save_post', 'FreeFormCertificate\UrlShortener\UrlShortenerMetaBox->on_save_post()' )
+		);
+	}
 
-        $this->assertFalse( $flushed );
-    }
+	public function test_init_skips_hooks_when_disabled(): void {
+		$this->service->shouldReceive( 'is_enabled' )->once()->andReturn( false );
 
-    public function test_maybe_flush_flushes_on_prefix_change(): void {
-        $this->service->shouldReceive( 'get_prefix' )->andReturn( 'link' );
-        Functions\when( 'get_option' )->justReturn( 'go:1' );
+		$this->loader->init();
 
-        $flushed = false;
-        Functions\when( 'flush_rewrite_rules' )->alias( function () use ( &$flushed ) {
-            $flushed = true;
-        } );
-        Functions\when( 'update_option' )->justReturn( true );
+		$this->assertFalse( has_action( 'init', 'FreeFormCertificate\UrlShortener\UrlShortenerLoader->register_rewrite_rules()' ) );
+	}
 
-        $this->loader->maybe_flush_rewrite_rules();
+	// ==================================================================
+	// maybe_flush_rewrite_rules()
+	// ==================================================================
 
-        $this->assertTrue( $flushed );
-    }
+	public function test_maybe_flush_flushes_on_first_install(): void {
+		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+		Functions\when( 'get_option' )->justReturn( '' );
 
-    // ==================================================================
-    // register_rewrite_rules()
-    // ==================================================================
+		$flushed = false;
+		Functions\when( 'flush_rewrite_rules' )->alias( function () use ( &$flushed ) {
+			$flushed = true;
+		} );
+		Functions\when( 'update_option' )->justReturn( true );
 
-    public function test_register_rewrite_rules_adds_rule_with_prefix(): void {
-        $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+		$this->loader->maybe_flush_rewrite_rules();
 
-        $captured_regex = '';
-        $captured_query = '';
-        Functions\when( 'add_rewrite_rule' )->alias( function ( $regex, $query, $position ) use ( &$captured_regex, &$captured_query ) {
-            $captured_regex = $regex;
-            $captured_query = $query;
-        } );
+		$this->assertTrue( $flushed );
+	}
 
-        $this->loader->register_rewrite_rules();
+	public function test_maybe_flush_skips_when_version_matches(): void {
+		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+		Functions\when( 'get_option' )->justReturn( 'go:1' );
 
-        $this->assertStringContainsString( 'go', $captured_regex );
-        $this->assertStringContainsString( 'ffc_short_code', $captured_query );
-    }
+		$flushed = false;
+		Functions\when( 'flush_rewrite_rules' )->alias( function () use ( &$flushed ) {
+			$flushed = true;
+		} );
 
-    public function test_register_rewrite_rules_regex_matches_alphanumeric(): void {
-        $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+		$this->loader->maybe_flush_rewrite_rules();
 
-        $captured_regex = '';
-        Functions\when( 'add_rewrite_rule' )->alias( function ( $regex ) use ( &$captured_regex ) {
-            $captured_regex = $regex;
-        } );
+		$this->assertFalse( $flushed );
+	}
 
-        $this->loader->register_rewrite_rules();
+	public function test_maybe_flush_flushes_on_prefix_change(): void {
+		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'link' );
+		Functions\when( 'get_option' )->justReturn( 'go:1' );
 
-        // Test that the regex matches valid short codes (use # delimiter to avoid conflict with /)
-        $this->assertSame( 1, preg_match( '#' . $captured_regex . '#', 'go/abc123' ) );
-        $this->assertSame( 1, preg_match( '#' . $captured_regex . '#', 'go/AbC123/' ) );
-        // Should not match codes with special chars
-        $this->assertSame( 0, preg_match( '#' . $captured_regex . '#', 'go/ab-c!' ) );
-    }
+		$flushed = false;
+		Functions\when( 'flush_rewrite_rules' )->alias( function () use ( &$flushed ) {
+			$flushed = true;
+		} );
+		Functions\when( 'update_option' )->justReturn( true );
 
-    // ==================================================================
-    // add_query_vars()
-    // ==================================================================
-
-    public function test_add_query_vars_appends_short_code(): void {
-        $vars = [ 'existing_var' ];
-        $result = $this->loader->add_query_vars( $vars );
-
-        $this->assertContains( 'ffc_short_code', $result );
-        $this->assertContains( 'existing_var', $result );
-    }
-
-    public function test_add_query_vars_preserves_existing(): void {
-        $vars = [ 'foo', 'bar' ];
-        $result = $this->loader->add_query_vars( $vars );
-
-        $this->assertCount( 3, $result );
-    }
-
-    // ==================================================================
-    // handle_redirect()
-    // ==================================================================
-
-    public function test_handle_redirect_skips_when_already_redirected(): void {
-        // Simulate that intercept_short_url already handled this request
-        $ref = new \ReflectionClass( $this->loader );
-        $prop = $ref->getProperty( 'redirected' );
-        $prop->setAccessible( true );
-        $prop->setValue( $this->loader, true );
-
-        $this->service->shouldNotReceive( 'get_repository' );
-
-        $this->loader->handle_redirect();
-    }
-
-    public function test_handle_redirect_returns_early_when_no_code(): void {
-        Functions\when( 'get_query_var' )->justReturn( '' );
-        $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
-        unset( $_SERVER['REQUEST_URI'] );
-
-        $this->service->shouldNotReceive( 'get_repository' );
-
-        $this->loader->handle_redirect();
-    }
-
-    public function test_handle_redirect_redirects_home_for_inactive_code(): void {
-        Functions\when( 'get_query_var' )->justReturn( 'abc123' );
-        Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
-
-        $repo = Mockery::mock( UrlShortenerRepository::class );
-        $repo->shouldReceive( 'findByShortCode' )->with( 'abc123' )->andReturn( null );
-        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
-
-        Functions\when( 'nocache_headers' )->justReturn( null );
-        Functions\when( 'wp_redirect' )->alias( function () {
-            throw new \RuntimeException( 'redirected_home' );
-        } );
-
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessage( 'redirected_home' );
-
-        $this->loader->handle_redirect();
-    }
-
-    public function test_handle_redirect_redirects_home_for_disabled_code(): void {
-        Functions\when( 'get_query_var' )->justReturn( 'xyz789' );
-        Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
-
-        $repo = Mockery::mock( UrlShortenerRepository::class );
-        $repo->shouldReceive( 'findByShortCode' )->with( 'xyz789' )->andReturn( [
-            'id'         => 5,
-            'short_code' => 'xyz789',
-            'target_url' => 'https://target.com',
-            'status'     => 'disabled',
-        ] );
-        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
-
-        Functions\when( 'nocache_headers' )->justReturn( null );
-        Functions\when( 'wp_redirect' )->alias( function () {
-            throw new \RuntimeException( 'redirected_home' );
-        } );
-
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessage( 'redirected_home' );
-
-        $this->loader->handle_redirect();
-    }
-
-    public function test_handle_redirect_increments_click_and_redirects(): void {
-        Functions\when( 'get_query_var' )->justReturn( 'abc123' );
-        Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
-        Functions\when( 'do_action' )->justReturn( null );
-        $this->run_shutdown_callbacks_immediately();
-
-        $repo = Mockery::mock( UrlShortenerRepository::class );
-        $repo->shouldReceive( 'findByShortCode' )->with( 'abc123' )->andReturn( [
-            'id'         => 1,
-            'short_code' => 'abc123',
-            'target_url' => 'https://target.com/page',
-            'status'     => 'active',
-        ] );
-        $repo->shouldReceive( 'incrementClickCount' )->with( 1 )->once();
-        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
-        $this->service->shouldReceive( 'get_redirect_type' )->andReturn( 302 );
-
-        Functions\when( 'wp_validate_redirect' )->justReturn( true );
-        Functions\when( 'wp_safe_redirect' )->alias( function ( $url, $code ) {
-            throw new \RuntimeException( "safe_redirect:{$url}:{$code}" );
-        } );
-
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessage( 'safe_redirect:https://target.com/page:302' );
-
-        $this->loader->handle_redirect();
-    }
-
-    public function test_handle_redirect_post_linked_follows_current_permalink(): void {
-        // A post-linked short URL (post_id set) must redirect to the post's
-        // CURRENT permalink, not the stale stored target_url (#888).
-        Functions\when( 'get_query_var' )->justReturn( 'plnk1' );
-        Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
-        Functions\when( 'do_action' )->justReturn( null );
-        Functions\when( 'get_permalink' )->justReturn( 'https://example.com/new-slug' );
-        $this->run_shutdown_callbacks_immediately();
-
-        $repo = Mockery::mock( UrlShortenerRepository::class );
-        $repo->shouldReceive( 'findByShortCode' )->with( 'plnk1' )->andReturn( [
-            'id'         => 30,
-            'short_code' => 'plnk1',
-            'target_url' => 'https://example.com/old-slug',
-            'post_id'    => 55,
-            'status'     => 'active',
-        ] );
-        $repo->shouldReceive( 'incrementClickCount' )->with( 30 )->once();
-        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
-        $this->service->shouldReceive( 'get_redirect_type' )->andReturn( 302 );
-
-        Functions\when( 'wp_validate_redirect' )->justReturn( true );
-        Functions\when( 'wp_safe_redirect' )->alias( function ( $url, $code ) {
-            throw new \RuntimeException( "safe_redirect:{$url}:{$code}" );
-        } );
-
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessage( 'safe_redirect:https://example.com/new-slug:302' );
-
-        $this->loader->handle_redirect();
-    }
-
-    public function test_handle_redirect_uses_wp_redirect_for_external_urls(): void {
-        Functions\when( 'get_query_var' )->justReturn( 'ext123' );
-        Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
-        Functions\when( 'do_action' )->justReturn( null );
-        $this->run_shutdown_callbacks_immediately();
-
-        $repo = Mockery::mock( UrlShortenerRepository::class );
-        $repo->shouldReceive( 'findByShortCode' )->with( 'ext123' )->andReturn( [
-            'id'         => 2,
-            'short_code' => 'ext123',
-            'target_url' => 'https://external.com/page',
-            'status'     => 'active',
-        ] );
-        $repo->shouldReceive( 'incrementClickCount' )->with( 2 )->once();
-        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
-        $this->service->shouldReceive( 'get_redirect_type' )->andReturn( 301 );
-
-        // wp_validate_redirect returns false for external URLs
-        Functions\when( 'wp_validate_redirect' )->justReturn( false );
-        Functions\when( 'wp_redirect' )->alias( function ( $url, $code ) {
-            throw new \RuntimeException( "wp_redirect:{$url}:{$code}" );
-        } );
-
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessage( 'wp_redirect:https://external.com/page:301' );
-
-        $this->loader->handle_redirect();
-    }
-
-    public function test_handle_redirect_empty_target_redirects_home(): void {
-        Functions\when( 'get_query_var' )->justReturn( 'empty1' );
-        Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
-        Functions\when( 'esc_url_raw' )->justReturn( '' );
-        $this->run_shutdown_callbacks_immediately();
-
-        $repo = Mockery::mock( UrlShortenerRepository::class );
-        $repo->shouldReceive( 'findByShortCode' )->with( 'empty1' )->andReturn( [
-            'id'         => 3,
-            'short_code' => 'empty1',
-            'target_url' => '',
-            'status'     => 'active',
-        ] );
-        $repo->shouldReceive( 'incrementClickCount' )->with( 3 )->once();
-        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
-        $this->service->shouldReceive( 'get_redirect_type' )->andReturn( 302 );
-
-        Functions\when( 'nocache_headers' )->justReturn( null );
-        Functions\when( 'wp_redirect' )->alias( function () {
-            throw new \RuntimeException( 'redirected_home_empty' );
-        } );
-
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessage( 'redirected_home_empty' );
-
-        $this->loader->handle_redirect();
-    }
-
-    // ==================================================================
-    // intercept_short_url() — parse_request handler
-    // ==================================================================
-
-    public function test_intercept_short_url_redirects_via_uri(): void {
-        $_SERVER['REQUEST_URI'] = '/go/abc123';
-        $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
-
-        Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
-        Functions\when( 'do_action' )->justReturn( null );
-        $this->run_shutdown_callbacks_immediately();
-
-        $repo = Mockery::mock( UrlShortenerRepository::class );
-        $repo->shouldReceive( 'findByShortCode' )->with( 'abc123' )->andReturn( [
-            'id'         => 10,
-            'short_code' => 'abc123',
-            'target_url' => 'https://target.com/page',
-            'status'     => 'active',
-        ] );
-        $repo->shouldReceive( 'incrementClickCount' )->with( 10 )->once();
-        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
-        $this->service->shouldReceive( 'get_redirect_type' )->andReturn( 302 );
-
-        Functions\when( 'wp_validate_redirect' )->justReturn( false );
-        Functions\when( 'wp_redirect' )->alias( function ( $url, $code ) {
-            throw new \RuntimeException( "wp_redirect:{$url}:{$code}" );
-        } );
-
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessage( 'wp_redirect:https://target.com/page:302' );
-
-        $wp = new \stdClass();
-        $this->loader->intercept_short_url( $wp );
-    }
-
-    public function test_intercept_short_url_returns_early_for_non_matching_uri(): void {
-        $_SERVER['REQUEST_URI'] = '/some-other-page/';
-        $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
-
-        $this->service->shouldNotReceive( 'get_repository' );
-
-        $wp = new \stdClass();
-        $this->loader->intercept_short_url( $wp );
-    }
-
-    public function test_intercept_short_url_handles_trailing_slash(): void {
-        $_SERVER['REQUEST_URI'] = '/go/TraiL1/';
-        $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
-
-        Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
-        Functions\when( 'do_action' )->justReturn( null );
-        $this->run_shutdown_callbacks_immediately();
-
-        $repo = Mockery::mock( UrlShortenerRepository::class );
-        $repo->shouldReceive( 'findByShortCode' )->with( 'TraiL1' )->andReturn( [
-            'id'         => 11,
-            'short_code' => 'TraiL1',
-            'target_url' => 'https://example.com/dest',
-            'status'     => 'active',
-        ] );
-        $repo->shouldReceive( 'incrementClickCount' )->with( 11 )->once();
-        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
-        $this->service->shouldReceive( 'get_redirect_type' )->andReturn( 301 );
-
-        Functions\when( 'wp_validate_redirect' )->justReturn( true );
-        Functions\when( 'wp_safe_redirect' )->alias( function ( $url, $code ) {
-            throw new \RuntimeException( "safe_redirect:{$url}:{$code}" );
-        } );
-
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessage( 'safe_redirect:https://example.com/dest:301' );
-
-        $wp = new \stdClass();
-        $this->loader->intercept_short_url( $wp );
-    }
-
-    public function test_intercept_short_url_works_with_subdirectory(): void {
-        $_SERVER['REQUEST_URI'] = '/blog/go/sub123';
-        $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
-
-        Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
-        Functions\when( 'do_action' )->justReturn( null );
-        $this->run_shutdown_callbacks_immediately();
-
-        $repo = Mockery::mock( UrlShortenerRepository::class );
-        $repo->shouldReceive( 'findByShortCode' )->with( 'sub123' )->andReturn( [
-            'id'         => 12,
-            'short_code' => 'sub123',
-            'target_url' => 'https://external.com/',
-            'status'     => 'active',
-        ] );
-        $repo->shouldReceive( 'incrementClickCount' )->with( 12 )->once();
-        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
-        $this->service->shouldReceive( 'get_redirect_type' )->andReturn( 302 );
-
-        Functions\when( 'wp_validate_redirect' )->justReturn( false );
-        Functions\when( 'wp_redirect' )->alias( function ( $url, $code ) {
-            throw new \RuntimeException( "wp_redirect:{$url}:{$code}" );
-        } );
-
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessage( 'wp_redirect:https://external.com/:302' );
-
-        $wp = new \stdClass();
-        $this->loader->intercept_short_url( $wp );
-    }
-
-    // ==================================================================
-    // handle_redirect() — URI fallback (when get_query_var is empty)
-    // ==================================================================
-
-    public function test_handle_redirect_falls_back_to_uri_when_query_var_empty(): void {
-        Functions\when( 'get_query_var' )->justReturn( '' );
-        $_SERVER['REQUEST_URI'] = '/go/fallback1';
-        $this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
-
-        Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
-        Functions\when( 'do_action' )->justReturn( null );
-        $this->run_shutdown_callbacks_immediately();
-
-        $repo = Mockery::mock( UrlShortenerRepository::class );
-        $repo->shouldReceive( 'findByShortCode' )->with( 'fallback1' )->andReturn( [
-            'id'         => 20,
-            'short_code' => 'fallback1',
-            'target_url' => 'https://example.com/target',
-            'status'     => 'active',
-        ] );
-        $repo->shouldReceive( 'incrementClickCount' )->with( 20 )->once();
-        $this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
-        $this->service->shouldReceive( 'get_redirect_type' )->andReturn( 302 );
-
-        Functions\when( 'wp_validate_redirect' )->justReturn( true );
-        Functions\when( 'wp_safe_redirect' )->alias( function ( $url, $code ) {
-            throw new \RuntimeException( "safe_redirect:{$url}:{$code}" );
-        } );
-
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessage( 'safe_redirect:https://example.com/target:302' );
-
-        $this->loader->handle_redirect();
-    }
+		$this->loader->maybe_flush_rewrite_rules();
+
+		$this->assertTrue( $flushed );
+	}
+
+	// ==================================================================
+	// register_rewrite_rules()
+	// ==================================================================
+
+	public function test_register_rewrite_rules_adds_rule_with_prefix(): void {
+		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+
+		$captured_regex = '';
+		$captured_query = '';
+		Functions\when( 'add_rewrite_rule' )->alias( function ( $regex, $query, $position ) use ( &$captured_regex, &$captured_query ) {
+			$captured_regex = $regex;
+			$captured_query = $query;
+		} );
+
+		$this->loader->register_rewrite_rules();
+
+		$this->assertStringContainsString( 'go', $captured_regex );
+		$this->assertStringContainsString( 'ffc_short_code', $captured_query );
+	}
+
+	public function test_register_rewrite_rules_regex_matches_alphanumeric(): void {
+		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+
+		$captured_regex = '';
+		Functions\when( 'add_rewrite_rule' )->alias( function ( $regex ) use ( &$captured_regex ) {
+			$captured_regex = $regex;
+		} );
+
+		$this->loader->register_rewrite_rules();
+
+		// Test that the regex matches valid short codes (use # delimiter to avoid conflict with /)
+		$this->assertSame( 1, preg_match( '#' . $captured_regex . '#', 'go/abc123' ) );
+		$this->assertSame( 1, preg_match( '#' . $captured_regex . '#', 'go/AbC123/' ) );
+		// Should not match codes with special chars
+		$this->assertSame( 0, preg_match( '#' . $captured_regex . '#', 'go/ab-c!' ) );
+	}
+
+	// ==================================================================
+	// add_query_vars()
+	// ==================================================================
+
+	public function test_add_query_vars_appends_short_code(): void {
+		$vars = [ 'existing_var' ];
+		$result = $this->loader->add_query_vars( $vars );
+
+		$this->assertContains( 'ffc_short_code', $result );
+		$this->assertContains( 'existing_var', $result );
+	}
+
+	public function test_add_query_vars_preserves_existing(): void {
+		$vars = [ 'foo', 'bar' ];
+		$result = $this->loader->add_query_vars( $vars );
+
+		$this->assertCount( 3, $result );
+	}
+
+	// ==================================================================
+	// handle_redirect()
+	// ==================================================================
+
+	public function test_handle_redirect_skips_when_already_redirected(): void {
+		// Simulate that intercept_short_url already handled this request
+		$ref = new \ReflectionClass( $this->loader );
+		$prop = $ref->getProperty( 'redirected' );
+		$prop->setAccessible( true );
+		$prop->setValue( $this->loader, true );
+
+		$this->service->shouldNotReceive( 'get_repository' );
+
+		$this->loader->handle_redirect();
+	}
+
+	public function test_handle_redirect_returns_early_when_no_code(): void {
+		Functions\when( 'get_query_var' )->justReturn( '' );
+		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+		unset( $_SERVER['REQUEST_URI'] );
+
+		$this->service->shouldNotReceive( 'get_repository' );
+
+		$this->loader->handle_redirect();
+	}
+
+	public function test_handle_redirect_redirects_home_for_inactive_code(): void {
+		Functions\when( 'get_query_var' )->justReturn( 'abc123' );
+		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByShortCode' )->with( 'abc123' )->andReturn( null );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+
+		Functions\when( 'nocache_headers' )->justReturn( null );
+		Functions\when( 'wp_redirect' )->alias( function () {
+			throw new \RuntimeException( 'redirected_home' );
+		} );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'redirected_home' );
+
+		$this->loader->handle_redirect();
+	}
+
+	public function test_handle_redirect_redirects_home_for_disabled_code(): void {
+		Functions\when( 'get_query_var' )->justReturn( 'xyz789' );
+		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByShortCode' )->with( 'xyz789' )->andReturn( [
+			'id'         => 5,
+			'short_code' => 'xyz789',
+			'target_url' => 'https://target.com',
+			'status'     => 'disabled',
+		] );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+
+		Functions\when( 'nocache_headers' )->justReturn( null );
+		Functions\when( 'wp_redirect' )->alias( function () {
+			throw new \RuntimeException( 'redirected_home' );
+		} );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'redirected_home' );
+
+		$this->loader->handle_redirect();
+	}
+
+	public function test_handle_redirect_increments_click_and_redirects(): void {
+		Functions\when( 'get_query_var' )->justReturn( 'abc123' );
+		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+		Functions\when( 'do_action' )->justReturn( null );
+		$this->run_shutdown_callbacks_immediately();
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByShortCode' )->with( 'abc123' )->andReturn( [
+			'id'         => 1,
+			'short_code' => 'abc123',
+			'target_url' => 'https://target.com/page',
+			'status'     => 'active',
+		] );
+		$repo->shouldReceive( 'incrementClickCount' )->with( 1 )->once();
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldReceive( 'get_redirect_type' )->andReturn( 302 );
+
+		Functions\when( 'wp_validate_redirect' )->justReturn( true );
+		Functions\when( 'wp_safe_redirect' )->alias( function ( $url, $code ) {
+			throw new \RuntimeException( "safe_redirect:{$url}:{$code}" );
+		} );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'safe_redirect:https://target.com/page:302' );
+
+		$this->loader->handle_redirect();
+	}
+
+	public function test_handle_redirect_post_linked_follows_current_permalink(): void {
+		// A post-linked short URL (post_id set) must redirect to the post's
+		// CURRENT permalink, not the stale stored target_url (#888).
+		Functions\when( 'get_query_var' )->justReturn( 'plnk1' );
+		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/new-slug' );
+		$this->run_shutdown_callbacks_immediately();
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByShortCode' )->with( 'plnk1' )->andReturn( [
+			'id'         => 30,
+			'short_code' => 'plnk1',
+			'target_url' => 'https://example.com/old-slug',
+			'post_id'    => 55,
+			'status'     => 'active',
+		] );
+		$repo->shouldReceive( 'incrementClickCount' )->with( 30 )->once();
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldReceive( 'get_redirect_type' )->andReturn( 302 );
+
+		Functions\when( 'wp_validate_redirect' )->justReturn( true );
+		Functions\when( 'wp_safe_redirect' )->alias( function ( $url, $code ) {
+			throw new \RuntimeException( "safe_redirect:{$url}:{$code}" );
+		} );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'safe_redirect:https://example.com/new-slug:302' );
+
+		$this->loader->handle_redirect();
+	}
+
+	public function test_handle_redirect_uses_wp_redirect_for_external_urls(): void {
+		Functions\when( 'get_query_var' )->justReturn( 'ext123' );
+		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+		Functions\when( 'do_action' )->justReturn( null );
+		$this->run_shutdown_callbacks_immediately();
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByShortCode' )->with( 'ext123' )->andReturn( [
+			'id'         => 2,
+			'short_code' => 'ext123',
+			'target_url' => 'https://external.com/page',
+			'status'     => 'active',
+		] );
+		$repo->shouldReceive( 'incrementClickCount' )->with( 2 )->once();
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldReceive( 'get_redirect_type' )->andReturn( 301 );
+
+		// wp_validate_redirect returns false for external URLs
+		Functions\when( 'wp_validate_redirect' )->justReturn( false );
+		Functions\when( 'wp_redirect' )->alias( function ( $url, $code ) {
+			throw new \RuntimeException( "wp_redirect:{$url}:{$code}" );
+		} );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_redirect:https://external.com/page:301' );
+
+		$this->loader->handle_redirect();
+	}
+
+	public function test_handle_redirect_empty_target_redirects_home(): void {
+		Functions\when( 'get_query_var' )->justReturn( 'empty1' );
+		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+		Functions\when( 'esc_url_raw' )->justReturn( '' );
+		$this->run_shutdown_callbacks_immediately();
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByShortCode' )->with( 'empty1' )->andReturn( [
+			'id'         => 3,
+			'short_code' => 'empty1',
+			'target_url' => '',
+			'status'     => 'active',
+		] );
+		$repo->shouldReceive( 'incrementClickCount' )->with( 3 )->once();
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldReceive( 'get_redirect_type' )->andReturn( 302 );
+
+		Functions\when( 'nocache_headers' )->justReturn( null );
+		Functions\when( 'wp_redirect' )->alias( function () {
+			throw new \RuntimeException( 'redirected_home_empty' );
+		} );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'redirected_home_empty' );
+
+		$this->loader->handle_redirect();
+	}
+
+	// ==================================================================
+	// intercept_short_url() — parse_request handler
+	// ==================================================================
+
+	public function test_intercept_short_url_redirects_via_uri(): void {
+		$_SERVER['REQUEST_URI'] = '/go/abc123';
+		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+
+		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+		Functions\when( 'do_action' )->justReturn( null );
+		$this->run_shutdown_callbacks_immediately();
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByShortCode' )->with( 'abc123' )->andReturn( [
+			'id'         => 10,
+			'short_code' => 'abc123',
+			'target_url' => 'https://target.com/page',
+			'status'     => 'active',
+		] );
+		$repo->shouldReceive( 'incrementClickCount' )->with( 10 )->once();
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldReceive( 'get_redirect_type' )->andReturn( 302 );
+
+		Functions\when( 'wp_validate_redirect' )->justReturn( false );
+		Functions\when( 'wp_redirect' )->alias( function ( $url, $code ) {
+			throw new \RuntimeException( "wp_redirect:{$url}:{$code}" );
+		} );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_redirect:https://target.com/page:302' );
+
+		$wp = new \stdClass();
+		$this->loader->intercept_short_url( $wp );
+	}
+
+	public function test_intercept_short_url_returns_early_for_non_matching_uri(): void {
+		$_SERVER['REQUEST_URI'] = '/some-other-page/';
+		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+
+		$this->service->shouldNotReceive( 'get_repository' );
+
+		$wp = new \stdClass();
+		$this->loader->intercept_short_url( $wp );
+	}
+
+	public function test_intercept_short_url_handles_trailing_slash(): void {
+		$_SERVER['REQUEST_URI'] = '/go/TraiL1/';
+		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+
+		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+		Functions\when( 'do_action' )->justReturn( null );
+		$this->run_shutdown_callbacks_immediately();
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByShortCode' )->with( 'TraiL1' )->andReturn( [
+			'id'         => 11,
+			'short_code' => 'TraiL1',
+			'target_url' => 'https://example.com/dest',
+			'status'     => 'active',
+		] );
+		$repo->shouldReceive( 'incrementClickCount' )->with( 11 )->once();
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldReceive( 'get_redirect_type' )->andReturn( 301 );
+
+		Functions\when( 'wp_validate_redirect' )->justReturn( true );
+		Functions\when( 'wp_safe_redirect' )->alias( function ( $url, $code ) {
+			throw new \RuntimeException( "safe_redirect:{$url}:{$code}" );
+		} );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'safe_redirect:https://example.com/dest:301' );
+
+		$wp = new \stdClass();
+		$this->loader->intercept_short_url( $wp );
+	}
+
+	public function test_intercept_short_url_works_with_subdirectory(): void {
+		$_SERVER['REQUEST_URI'] = '/blog/go/sub123';
+		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+
+		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+		Functions\when( 'do_action' )->justReturn( null );
+		$this->run_shutdown_callbacks_immediately();
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByShortCode' )->with( 'sub123' )->andReturn( [
+			'id'         => 12,
+			'short_code' => 'sub123',
+			'target_url' => 'https://external.com/',
+			'status'     => 'active',
+		] );
+		$repo->shouldReceive( 'incrementClickCount' )->with( 12 )->once();
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldReceive( 'get_redirect_type' )->andReturn( 302 );
+
+		Functions\when( 'wp_validate_redirect' )->justReturn( false );
+		Functions\when( 'wp_redirect' )->alias( function ( $url, $code ) {
+			throw new \RuntimeException( "wp_redirect:{$url}:{$code}" );
+		} );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_redirect:https://external.com/:302' );
+
+		$wp = new \stdClass();
+		$this->loader->intercept_short_url( $wp );
+	}
+
+	// ==================================================================
+	// handle_redirect() — URI fallback (when get_query_var is empty)
+	// ==================================================================
+
+	public function test_handle_redirect_falls_back_to_uri_when_query_var_empty(): void {
+		Functions\when( 'get_query_var' )->justReturn( '' );
+		$_SERVER['REQUEST_URI'] = '/go/fallback1';
+		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
+
+		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+		Functions\when( 'do_action' )->justReturn( null );
+		$this->run_shutdown_callbacks_immediately();
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByShortCode' )->with( 'fallback1' )->andReturn( [
+			'id'         => 20,
+			'short_code' => 'fallback1',
+			'target_url' => 'https://example.com/target',
+			'status'     => 'active',
+		] );
+		$repo->shouldReceive( 'incrementClickCount' )->with( 20 )->once();
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldReceive( 'get_redirect_type' )->andReturn( 302 );
+
+		Functions\when( 'wp_validate_redirect' )->justReturn( true );
+		Functions\when( 'wp_safe_redirect' )->alias( function ( $url, $code ) {
+			throw new \RuntimeException( "safe_redirect:{$url}:{$code}" );
+		} );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'safe_redirect:https://example.com/target:302' );
+
+		$this->loader->handle_redirect();
+	}
 }

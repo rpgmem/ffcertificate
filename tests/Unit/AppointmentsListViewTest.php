@@ -23,314 +23,314 @@ use PHPUnit\Framework\TestCase;
  */
 class AppointmentsListViewTest extends TestCase {
 
-    use MockeryPHPUnitIntegration;
+	use MockeryPHPUnitIntegration;
 
-    private const VIEW = '/includes/self-scheduling/views/appointments-list.php';
+	private const VIEW = '/includes/self-scheduling/views/appointments-list.php';
 
-    protected function setUp(): void {
-        parent::setUp();
-        Monkey\setUp();
-        Functions\when( 'wp_admin_notice' )->alias(
-            static function ( $message, $args = array() ) {
-                $ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
-                $ffc_cls  = 'notice notice-' . $ffc_type;
-                if ( ! empty( $args['dismissible'] ) ) { $ffc_cls .= ' is-dismissible'; }
-                if ( ! empty( $args['additional_classes'] ) ) { $ffc_cls .= ' ' . implode( ' ', $args['additional_classes'] ); }
-                $ffc_wrap = ! array_key_exists( 'paragraph_wrap', $args ) || $args['paragraph_wrap'];
-                echo '<div class="' . $ffc_cls . '">' . ( $ffc_wrap ? '<p>' . $message . '</p>' : $message ) . '</div>';
-            }
-        );
+	protected function setUp(): void {
+		parent::setUp();
+		Monkey\setUp();
+		Functions\when( 'wp_admin_notice' )->alias(
+			static function ( $message, $args = array() ) {
+				$ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
+				$ffc_cls  = 'notice notice-' . $ffc_type;
+				if ( ! empty( $args['dismissible'] ) ) { $ffc_cls .= ' is-dismissible'; }
+				if ( ! empty( $args['additional_classes'] ) ) { $ffc_cls .= ' ' . implode( ' ', $args['additional_classes'] ); }
+				$ffc_wrap = ! array_key_exists( 'paragraph_wrap', $args ) || $args['paragraph_wrap'];
+				echo '<div class="' . $ffc_cls . '">' . ( $ffc_wrap ? '<p>' . $message . '</p>' : $message ) . '</div>';
+			}
+		);
 
-        Functions\when( '__' )->returnArg();
-        Functions\when( 'esc_html' )->returnArg();
-        Functions\when( 'esc_attr' )->returnArg();
-        Functions\when( 'esc_url' )->returnArg();
-        Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
-        Functions\when( 'esc_html__' )->returnArg();
-        Functions\when( 'esc_attr__' )->returnArg();
-        Functions\when( 'admin_url' )->alias( fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
-        Functions\when( 'add_query_arg' )->justReturn( 'https://example.com/wp-admin/admin.php?page=ffc-appointments' );
-        Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );
-        Functions\when( 'wp_unslash' )->returnArg();
-        Functions\when( 'get_current_user_id' )->justReturn( 1 );
-        Functions\when( 'wp_create_nonce' )->justReturn( 'nonce123' );
-        Functions\when( 'wp_nonce_field' )->justReturn( '' );
-        Functions\when( 'get_transient' )->justReturn( false );
-        Functions\when( 'set_transient' )->justReturn( true );
-        Functions\when( 'delete_transient' )->justReturn( true );
-        Functions\when( 'do_action' )->justReturn( null );
-        Functions\when( 'selected' )->justReturn( '' );
-        Functions\when( 'submit_button' )->justReturn( null );
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'admin_url' )->alias( fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
+		Functions\when( 'add_query_arg' )->justReturn( 'https://example.com/wp-admin/admin.php?page=ffc-appointments' );
+		Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce123' );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'delete_transient' )->justReturn( true );
+		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'submit_button' )->justReturn( null );
 
-        if ( ! defined( 'ABSPATH' ) ) {
-            define( 'ABSPATH', '/tmp/' );
-        }
-    }
+		if ( ! defined( 'ABSPATH' ) ) {
+			define( 'ABSPATH', '/tmp/' );
+		}
+	}
 
-    protected function tearDown(): void {
-        unset( $_GET['appointment'], $_GET['ffc_action'], $_GET['reason'] );
-        Monkey\tearDown();
-        parent::tearDown();
-    }
+	protected function tearDown(): void {
+		unset( $_GET['appointment'], $_GET['ffc_action'], $_GET['reason'] );
+		Monkey\tearDown();
+		parent::tearDown();
+	}
 
-    private function include_view(): void {
-        include FFC_PLUGIN_DIR . self::VIEW;
-    }
+	private function include_view(): void {
+		include FFC_PLUGIN_DIR . self::VIEW;
+	}
 
-    // ==================================================================
-    // Permission gate
-    // ==================================================================
+	// ==================================================================
+	// Permission gate
+	// ==================================================================
 
-    public function test_view_dies_without_permission_on_specific_appointment(): void {
-        $_GET['appointment'] = '5';
-        Functions\when( 'wp_die' )->alias( fn( $msg ) => throw new \RuntimeException( $msg ) );
+	public function test_view_dies_without_permission_on_specific_appointment(): void {
+		$_GET['appointment'] = '5';
+		Functions\when( 'wp_die' )->alias( fn( $msg ) => throw new \RuntimeException( $msg ) );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
-        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-            ->shouldReceive( 'get_get_string' )->andReturn( '' );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+			->shouldReceive( 'get_get_string' )->andReturn( '' );
 
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessage( 'do not have permission' );
-        $this->include_view();
-    }
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'do not have permission' );
+		$this->include_view();
+	}
 
-    // ==================================================================
-    // Confirm mutation
-    // ==================================================================
+	// ==================================================================
+	// Confirm mutation
+	// ==================================================================
 
-    public function test_view_confirm_success_redirects(): void {
-        $_GET['appointment'] = '5';
-        $_GET['ffc_action']  = 'confirm';
-        Functions\when( 'check_admin_referer' )->justReturn( true );
-        Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+	public function test_view_confirm_success_redirects(): void {
+		$_GET['appointment'] = '5';
+		$_GET['ffc_action']  = 'confirm';
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-            ->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'confirm' : '' );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+			->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'confirm' : '' );
 
-        $appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
-        $appt_repo->shouldReceive( 'confirm' )->with( 5, 1 )->andReturn( true );
-        $appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn(
-            array( 'id' => 5, 'calendar_id' => 7 )
-        );
+		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
+		$appt_repo->shouldReceive( 'confirm' )->with( 5, 1 )->andReturn( true );
+		$appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn(
+			array( 'id' => 5, 'calendar_id' => 7 )
+		);
 
-        $cal_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
-        $cal_repo->shouldReceive( 'findById' )->with( 7 )->andReturn( array( 'id' => 7, 'title' => 'Cal' ) );
+		$cal_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
+		$cal_repo->shouldReceive( 'findById' )->with( 7 )->andReturn( array( 'id' => 7, 'title' => 'Cal' ) );
 
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessage( 'redirected' );
-        $this->include_view();
-    }
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'redirected' );
+		$this->include_view();
+	}
 
-    public function test_view_confirm_failure_redirects(): void {
-        $_GET['appointment'] = '5';
-        $_GET['ffc_action']  = 'confirm';
-        Functions\when( 'check_admin_referer' )->justReturn( true );
-        Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+	public function test_view_confirm_failure_redirects(): void {
+		$_GET['appointment'] = '5';
+		$_GET['ffc_action']  = 'confirm';
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-            ->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'confirm' : '' );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+			->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'confirm' : '' );
 
-        $appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
-        $appt_repo->shouldReceive( 'confirm' )->with( 5, 1 )->andReturn( false );
-        Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
+		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
+		$appt_repo->shouldReceive( 'confirm' )->with( 5, 1 )->andReturn( false );
+		Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
 
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessage( 'redirected' );
-        $this->include_view();
-    }
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'redirected' );
+		$this->include_view();
+	}
 
-    // ==================================================================
-    // Cancel mutation
-    // ==================================================================
+	// ==================================================================
+	// Cancel mutation
+	// ==================================================================
 
-    public function test_view_cancel_success_redirects(): void {
-        $_GET['appointment'] = '5';
-        $_GET['ffc_action']  = 'cancel';
-        $_GET['reason']      = 'Admin closed slot';
-        Functions\when( 'check_admin_referer' )->justReturn( true );
-        Functions\when( 'sanitize_textarea_field' )->returnArg();
-        Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+	public function test_view_cancel_success_redirects(): void {
+		$_GET['appointment'] = '5';
+		$_GET['ffc_action']  = 'cancel';
+		$_GET['reason']      = 'Admin closed slot';
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'sanitize_textarea_field' )->returnArg();
+		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-            ->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'cancel' : '' );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+			->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'cancel' : '' );
 
-        Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'do_action' )->justReturn( null );
 
-        $appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
-        // The waitlist promoter (#941 phase 2) snapshots the row before cancel and
-        // fires ffcertificate_appointment_cancelled with it.
-        $appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn(
-            array( 'status' => 'confirmed', 'calendar_id' => 1, 'appointment_date' => '2026-01-01', 'start_time' => '09:00:00' )
-        );
-        $appt_repo->shouldReceive( 'cancel' )->with( 5, 1, 'Admin closed slot' )->andReturn( true );
-        Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
+		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
+		// The waitlist promoter (#941 phase 2) snapshots the row before cancel and
+		// fires ffcertificate_appointment_cancelled with it.
+		$appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn(
+			array( 'status' => 'confirmed', 'calendar_id' => 1, 'appointment_date' => '2026-01-01', 'start_time' => '09:00:00' )
+		);
+		$appt_repo->shouldReceive( 'cancel' )->with( 5, 1, 'Admin closed slot' )->andReturn( true );
+		Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
 
-        $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessage( 'redirected' );
-        $this->include_view();
-    }
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'redirected' );
+		$this->include_view();
+	}
 
-    // ==================================================================
-    // Detail view
-    // ==================================================================
+	// ==================================================================
+	// Detail view
+	// ==================================================================
 
-    public function test_view_renders_appointment_detail(): void {
-        $_GET['appointment'] = '5';
-        Functions\when( 'get_user_by' )->justReturn( false );
+	public function test_view_renders_appointment_detail(): void {
+		$_GET['appointment'] = '5';
+		Functions\when( 'get_user_by' )->justReturn( false );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-            ->shouldReceive( 'get_get_string' )->andReturn( '' );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+			->shouldReceive( 'get_get_string' )->andReturn( '' );
 
-        // #739 §3.3 — the detail view resolves a PII tier; pin it unmasked.
-        Mockery::getConfiguration()->setConstantsMap(
-            array(
-                'FreeFormCertificate\Core\PiiAccessPolicy' => array(
-                    'TIER_UNMASKED' => 'unmasked',
-                    'TIER_REVEAL'   => 'reveal',
-                    'TIER_MASKED'   => 'masked',
-                ),
-            )
-        );
-        Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
-            ->shouldReceive( 'resolve' )->andReturn( 'unmasked' );
+		// #739 §3.3 — the detail view resolves a PII tier; pin it unmasked.
+		Mockery::getConfiguration()->setConstantsMap(
+			array(
+				'FreeFormCertificate\Core\PiiAccessPolicy' => array(
+					'TIER_UNMASKED' => 'unmasked',
+					'TIER_REVEAL'   => 'reveal',
+					'TIER_MASKED'   => 'masked',
+				),
+			)
+		);
+		Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
+			->shouldReceive( 'resolve' )->andReturn( 'unmasked' );
 
-        $appt = array(
-            'id'               => 5,
-            'status'           => 'confirmed',
-            'calendar_id'      => 7,
-            'appointment_date' => '2026-05-20',
-            'start_time'       => '09:00:00',
-            'end_time'         => '10:00:00',
-            'name'             => 'Alice',
-            'created_at'       => '2026-05-01',
-            'custom_data'      => '{"field_a":"v","field_b":["x","y"]}',
-        );
-        $appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
-        $appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn( $appt );
+		$appt = array(
+			'id'               => 5,
+			'status'           => 'confirmed',
+			'calendar_id'      => 7,
+			'appointment_date' => '2026-05-20',
+			'start_time'       => '09:00:00',
+			'end_time'         => '10:00:00',
+			'name'             => 'Alice',
+			'created_at'       => '2026-05-01',
+			'custom_data'      => '{"field_a":"v","field_b":["x","y"]}',
+		);
+		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
+		$appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn( $appt );
 
-        $cal_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
-        $cal_repo->shouldReceive( 'findById' )->with( 7 )->andReturn( array( 'id' => 7, 'title' => 'Clinic' ) );
+		$cal_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
+		$cal_repo->shouldReceive( 'findById' )->with( 7 )->andReturn( array( 'id' => 7, 'title' => 'Clinic' ) );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
-            ->shouldReceive( 'decrypt_appointment' )->andReturnUsing( fn( $a ) => $a );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
+			->shouldReceive( 'decrypt_appointment' )->andReturnUsing( fn( $a ) => $a );
 
-        ob_start();
-        $this->include_view();
-        $out = ob_get_clean();
+		ob_start();
+		$this->include_view();
+		$out = ob_get_clean();
 
-        $this->assertStringContainsString( 'Appointment Details', $out );
-        $this->assertStringContainsString( 'Clinic', $out );
-        $this->assertStringContainsString( 'Alice', $out );
-    }
+		$this->assertStringContainsString( 'Appointment Details', $out );
+		$this->assertStringContainsString( 'Clinic', $out );
+		$this->assertStringContainsString( 'Alice', $out );
+	}
 
-    public function test_view_appointment_detail_reveal_tier_masks_with_button(): void {
-        $_GET['appointment'] = '5';
-        Functions\when( 'get_user_by' )->justReturn( false );
+	public function test_view_appointment_detail_reveal_tier_masks_with_button(): void {
+		$_GET['appointment'] = '5';
+		Functions\when( 'get_user_by' )->justReturn( false );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-            ->shouldReceive( 'get_get_string' )->andReturn( '' );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+			->shouldReceive( 'get_get_string' )->andReturn( '' );
 
-        Mockery::getConfiguration()->setConstantsMap(
-            array(
-                'FreeFormCertificate\Core\PiiAccessPolicy' => array(
-                    'TIER_UNMASKED' => 'unmasked',
-                    'TIER_REVEAL'   => 'reveal',
-                    'TIER_MASKED'   => 'masked',
-                ),
-            )
-        );
-        Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
-            ->shouldReceive( 'resolve' )->andReturn( 'reveal' );
+		Mockery::getConfiguration()->setConstantsMap(
+			array(
+				'FreeFormCertificate\Core\PiiAccessPolicy' => array(
+					'TIER_UNMASKED' => 'unmasked',
+					'TIER_REVEAL'   => 'reveal',
+					'TIER_MASKED'   => 'masked',
+				),
+			)
+		);
+		Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' )
+			->shouldReceive( 'resolve' )->andReturn( 'reveal' );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' )
-            ->shouldReceive( 'mask_email' )->andReturn( 'm***@x.com' )
-            ->shouldReceive( 'mask_cpf' )->andReturn( '***.***.**1-01' )
-            ->shouldReceive( 'mask_rf' )->andReturn( '**.***.**8' )
-            ->shouldReceive( 'format_document' )->andReturn( 'PLAIN' );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' )
+			->shouldReceive( 'mask_email' )->andReturn( 'm***@x.com' )
+			->shouldReceive( 'mask_cpf' )->andReturn( '***.***.**1-01' )
+			->shouldReceive( 'mask_rf' )->andReturn( '**.***.**8' )
+			->shouldReceive( 'format_document' )->andReturn( 'PLAIN' );
 
-        $appt = array(
-            'id'               => 5,
-            'status'           => 'confirmed',
-            'calendar_id'      => 7,
-            'appointment_date' => '2026-05-20',
-            'start_time'       => '09:00:00',
-            'end_time'         => '10:00:00',
-            'name'             => 'Alice',
-            'created_at'       => '2026-05-01',
-            'email'            => 'alice@x.com',
-            'cpf'              => '12345678901',
-        );
-        $appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
-        $appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn( $appt );
+		$appt = array(
+			'id'               => 5,
+			'status'           => 'confirmed',
+			'calendar_id'      => 7,
+			'appointment_date' => '2026-05-20',
+			'start_time'       => '09:00:00',
+			'end_time'         => '10:00:00',
+			'name'             => 'Alice',
+			'created_at'       => '2026-05-01',
+			'email'            => 'alice@x.com',
+			'cpf'              => '12345678901',
+		);
+		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
+		$appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn( $appt );
 
-        $cal_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
-        $cal_repo->shouldReceive( 'findById' )->with( 7 )->andReturn( array( 'id' => 7, 'title' => 'Clinic' ) );
+		$cal_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
+		$cal_repo->shouldReceive( 'findById' )->with( 7 )->andReturn( array( 'id' => 7, 'title' => 'Clinic' ) );
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
-            ->shouldReceive( 'decrypt_appointment' )->andReturnUsing( fn( $a ) => $a );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
+			->shouldReceive( 'decrypt_appointment' )->andReturnUsing( fn( $a ) => $a );
 
-        ob_start();
-        $this->include_view();
-        $out = ob_get_clean();
+		ob_start();
+		$this->include_view();
+		$out = ob_get_clean();
 
-        $this->assertStringContainsString( 'ffc-reveal-pii', $out );
-        $this->assertStringContainsString( 'data-type="appointment"', $out );
-        $this->assertStringContainsString( 'ffc-pii-value', $out );
-        $this->assertStringContainsString( 'm***@x.com', $out );
-    }
+		$this->assertStringContainsString( 'ffc-reveal-pii', $out );
+		$this->assertStringContainsString( 'data-type="appointment"', $out );
+		$this->assertStringContainsString( 'ffc-pii-value', $out );
+		$this->assertStringContainsString( 'm***@x.com', $out );
+	}
 
-    public function test_view_detail_not_found_shows_notice(): void {
-        $_GET['appointment'] = '5';
+	public function test_view_detail_not_found_shows_notice(): void {
+		$_GET['appointment'] = '5';
 
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-            ->shouldReceive( 'get_get_string' )->andReturn( '' );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+			->shouldReceive( 'get_get_string' )->andReturn( '' );
 
-        $appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
-        $appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn( null );
-        Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
+		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
+		$appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn( null );
+		Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
 
-        ob_start();
-        $this->include_view();
-        $out = ob_get_clean();
+		ob_start();
+		$this->include_view();
+		$out = ob_get_clean();
 
-        $this->assertStringContainsString( 'Appointment not found.', $out );
-    }
+		$this->assertStringContainsString( 'Appointment not found.', $out );
+	}
 
-    // ==================================================================
-    // List view (default, no specific appointment)
-    // ==================================================================
+	// ==================================================================
+	// List view (default, no specific appointment)
+	// ==================================================================
 
-    public function test_view_renders_list_table_by_default(): void {
-        Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-            ->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-        Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-            ->shouldReceive( 'get_get_string' )->andReturn( '' );
+	public function test_view_renders_list_table_by_default(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+			->shouldReceive( 'get_get_string' )->andReturn( '' );
 
-        $appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
-        $appt_repo->shouldReceive( 'findAll' )->andReturn( array() );
-        $appt_repo->shouldReceive( 'count' )->andReturn( 0 );
+		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
+		$appt_repo->shouldReceive( 'findAll' )->andReturn( array() );
+		$appt_repo->shouldReceive( 'count' )->andReturn( 0 );
 
-        $cal_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
-        $cal_repo->shouldReceive( 'getActiveCalendars' )->andReturn( array() );
+		$cal_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\CalendarRepository' );
+		$cal_repo->shouldReceive( 'getActiveCalendars' )->andReturn( array() );
 
-        ob_start();
-        $this->include_view();
-        $out = ob_get_clean();
+		ob_start();
+		$this->include_view();
+		$out = ob_get_clean();
 
-        $this->assertStringContainsString( 'Appointments', $out );
-        $this->assertStringContainsString( 'Export CSV', $out );
-    }
+		$this->assertStringContainsString( 'Appointments', $out );
+		$this->assertStringContainsString( 'Export CSV', $out );
+	}
 }

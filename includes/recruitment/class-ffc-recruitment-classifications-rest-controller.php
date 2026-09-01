@@ -394,6 +394,12 @@ final class RecruitmentClassificationsRestController {
 		$id    = (int) $request->get_param( 'id' );
 		$files = $request->get_file_params();
 
+		/**
+		 * The stub types $_FILES tmp_name as string, but PHP makes it an array on
+		 * a multi-file upload field — the guard is real.
+		 *
+		 * @phpstan-ignore-next-line booleanNot.alwaysFalse
+		 */
 		if ( ! isset( $files['csv_file']['tmp_name'] ) || ! is_string( $files['csv_file']['tmp_name'] ) ) {
 			return new \WP_Error(
 				'recruitment_csv_file_missing',
@@ -442,6 +448,12 @@ final class RecruitmentClassificationsRestController {
 		$id    = (int) $request->get_param( 'id' );
 		$files = $request->get_file_params();
 
+		/**
+		 * The stub types $_FILES tmp_name as string, but PHP makes it an array on
+		 * a multi-file upload field — the guard is real.
+		 *
+		 * @phpstan-ignore-next-line booleanNot.alwaysFalse
+		 */
 		if ( ! isset( $files['csv_file']['tmp_name'] ) || ! is_string( $files['csv_file']['tmp_name'] ) ) {
 			return new \WP_Error(
 				'recruitment_csv_file_missing',
@@ -564,6 +576,12 @@ final class RecruitmentClassificationsRestController {
 
 		// definitive_import mode requires an uploaded CSV.
 		$files = $request->get_file_params();
+		/**
+		 * The stub types $_FILES tmp_name as string, but PHP makes it an array on
+		 * a multi-file upload field — the guard is real.
+		 *
+		 * @phpstan-ignore-next-line booleanNot.alwaysFalse
+		 */
 		if ( ! isset( $files['csv_file']['tmp_name'] ) || ! is_string( $files['csv_file']['tmp_name'] ) ) {
 			return new \WP_Error(
 				'recruitment_csv_file_missing',
