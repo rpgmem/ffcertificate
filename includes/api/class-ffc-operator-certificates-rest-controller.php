@@ -58,7 +58,7 @@ class OperatorCertificatesRestController {
 	/**
 	 * REST namespace (e.g. "ffc/v1").
 	 *
-	 * @var string
+	 * @var non-falsy-string
 	 */
 	private string $namespace;
 
@@ -72,7 +72,7 @@ class OperatorCertificatesRestController {
 	/**
 	 * Constructor.
 	 *
-	 * @param string              $namespace       REST namespace.
+	 * @param non-falsy-string    $namespace       REST namespace.
 	 * @param FormRepository|null $form_repository Shared form repository.
 	 */
 	public function __construct( string $namespace, ?FormRepository $form_repository = null ) {

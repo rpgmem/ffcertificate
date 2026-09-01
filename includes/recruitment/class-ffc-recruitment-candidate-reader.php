@@ -425,7 +425,7 @@ class RecruitmentCandidateReader {
 			$wpdb->prepare( 'SELECT id FROM %i WHERE email_hash = %s', $table, $email_hash )
 		);
 
-		return array_values( array_map( 'intval', $rows ) );
+		return array_map( 'intval', $rows );
 	}
 
 	/**

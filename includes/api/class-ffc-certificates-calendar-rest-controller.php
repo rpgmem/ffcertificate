@@ -34,14 +34,14 @@ class CertificatesCalendarRestController {
 	/**
 	 * API namespace.
 	 *
-	 * @var string
+	 * @var non-falsy-string
 	 */
 	private string $namespace;
 
 	/**
 	 * Constructor.
 	 *
-	 * @param string $namespace API namespace (e.g. ffc/v1).
+	 * @param non-falsy-string $namespace API namespace (e.g. ffc/v1).
 	 */
 	public function __construct( string $namespace ) {
 		$this->namespace = $namespace;

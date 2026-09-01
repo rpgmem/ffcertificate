@@ -11,6 +11,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **URL Shortener: the short URL is now readable over REST** (#1012): the opted-in post types gain a read-only `ffc_shortlink` field. `pre_get_shortlink` never reached REST — `WP_REST_Posts_Controller` does not call `wp_get_shortlink()` — so external consumers had no way to read it.
 
 ### Changed
+- Internal (#1008) — **PHPStan stays honest under WordPress stubs 7.1**: the bump types `register_rest_route()`'s namespace as `non-falsy-string`, so the REST namespace is now declared as such across the 14 controllers that thread it. Four genuinely dead checks were dropped; ten sites where the stub over-promises (`wpdb::get_var()` never `''`, `$_FILES` `tmp_name` never an array, `wp_localize_script()` never a list) keep their runtime guard behind a narrow `@phpstan-ignore` carrying the reason inline.
 - Internal (#992, #1007) — **the post-deploy smoke now blocks**: it shipped non-blocking while it proved itself against the testes host, and 13 consecutive green runs closed that evidence gate. A failing smoke is now a failing deploy; a 120s timeout stays a warning, since the rsync has already landed.
 - Internal (#1005) — **`tests/` is tab-indented, and now enforced**: 250 space-indented files against 170 tab-indented ones, with nothing checking either, so a reformat alone would have drifted back. Reindented, plus a two-sniff `phpcs-tests.xml.dist` over the whole directory. No test logic changed.
 
