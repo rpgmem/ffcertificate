@@ -67,8 +67,11 @@ class SettingsSaveHandler {
 		// destructive actions.
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only; nonce verified via check_admin_referer.
 		if ( isset( $_POST['ffc_delete_all_data'] )
-			&& \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' )
-			&& check_admin_referer( 'ffc_delete_all_data', 'ffc_critical_nonce' ) ) {
+			&& \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ) ) {
+			// check_admin_referer() wp_die()s on an invalid nonce, so it never
+			// returns a falsy value — call it as a statement rather than as a
+			// condition. Same behaviour, minus an operand that is always true.
+			check_admin_referer( 'ffc_delete_all_data', 'ffc_critical_nonce' );
 			$this->handle_danger_zone();
 		}
 	}

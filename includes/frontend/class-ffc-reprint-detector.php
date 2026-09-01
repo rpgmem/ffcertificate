@@ -120,7 +120,7 @@ class ReprintDetector {
 		$data_json = $existing_submission->data ?? '';
 
 		// Only decode if we have actual data (not null, not empty string).
-		if ( ! empty( $data_json ) && is_string( $data_json ) ) {
+		if ( ! empty( $data_json ) ) {
 			$decoded_data = json_decode( $data_json, true );
 			if ( ! is_array( $decoded_data ) ) {
 				$decoded_data = json_decode( wp_unslash( $data_json ), true );

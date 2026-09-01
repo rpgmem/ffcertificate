@@ -99,7 +99,7 @@ class AudienceReader {
 			$wpdb->prepare( 'SELECT id FROM %i', $table )
 		);
 
-		return array_values( array_map( 'intval', $ids ) );
+		return array_map( 'intval', $ids );
 	}
 
 	/**

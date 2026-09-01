@@ -719,6 +719,7 @@ class Frontend {
 		);
 
 		// Localize script with preserved array keys.
+		// @phpstan-ignore argument.type (keyed by form id, so PHP coerces the keys to int; array_combine() would coerce them straight back, and re-shaping would change the JSON the client reads).
 		wp_localize_script( 'ffc-geofence-frontend', 'ffcGeofenceConfig', $geofence_configs );
 	}
 }

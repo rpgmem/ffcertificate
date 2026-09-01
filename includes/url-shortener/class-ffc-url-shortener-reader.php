@@ -490,6 +490,7 @@ class UrlShortenerReader extends AbstractRepository {
 		$value = $this->wpdb->get_var(
 			$this->wpdb->prepare( 'SELECT qr_cache FROM %i WHERE short_code = %s', $this->table, $short_code )
 		);
+		// @phpstan-ignore notIdentical.alwaysTrue (the stub types wpdb::get_var() as non-empty-string, but a genuinely empty column returns '').
 		return is_string( $value ) && '' !== $value ? $value : '';
 	}
 }

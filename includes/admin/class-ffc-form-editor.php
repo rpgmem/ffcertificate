@@ -130,6 +130,7 @@ class FormEditor {
 		// itself — admin_enqueue_scripts runs first (head) and only reads.
 		$error_tabs = $this->get_error_tab_keys();
 		if ( ! empty( $error_tabs ) ) {
+			// @phpstan-ignore argument.type (the JS reads this payload as an array; re-keying it to satisfy the stub's array<string, mixed> would change the JSON shape).
 			wp_localize_script( 'ffc-form-editor-tabs', 'ffcFormTabsErrors', $error_tabs );
 		}
 

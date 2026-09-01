@@ -37,7 +37,7 @@ class RestController {
 	/**
 	 * API namespace
 	 *
-	 * @var string
+	 * @var non-falsy-string
 	 */
 	private string $namespace = 'ffc/v1';
 

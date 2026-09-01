@@ -29,7 +29,7 @@ class SubmissionRestController {
 	/**
 	 * API namespace
 	 *
-	 * @var string
+	 * @var non-falsy-string
 	 */
 	private string $namespace;
 
@@ -43,7 +43,7 @@ class SubmissionRestController {
 	/**
 	 * Constructor
 	 *
-	 * @param string                    $namespace             API namespace.
+	 * @param non-falsy-string          $namespace             API namespace.
 	 * @param SubmissionRepository|null $submission_repository Submission repository instance.
 	 */
 	public function __construct( string $namespace, ?SubmissionRepository $submission_repository ) {

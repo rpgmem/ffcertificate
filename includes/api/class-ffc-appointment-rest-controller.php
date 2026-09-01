@@ -27,14 +27,14 @@ class AppointmentRestController {
 	/**
 	 * API namespace
 	 *
-	 * @var string
+	 * @var non-falsy-string
 	 */
 	private string $namespace;
 
 	/**
 	 * Constructor
 	 *
-	 * @param string $namespace API namespace.
+	 * @param non-falsy-string $namespace API namespace.
 	 */
 	public function __construct( string $namespace ) {
 		$this->namespace = $namespace;
