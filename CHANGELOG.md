@@ -7,6 +7,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.21.0] (2026-09-01)
+
 ### Added
 - **URL Shortener: the short URL is now readable over REST** (#1012): the opted-in post types gain a read-only `ffc_shortlink` field. `pre_get_shortlink` never reached REST — `WP_REST_Posts_Controller` does not call `wp_get_shortlink()` — so external consumers had no way to read it.
 
