@@ -7,16 +7,16 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Fixed
-- **Posts published from the block editor got their short URL late** (#1013): the auto-create hook was registered only under `is_admin()`, but Gutenberg saves over the REST API, where that is false. The short URL appeared only when someone reopened the editor and the meta box created it on demand — so a freshly published post had none, which is exactly when an external consumer reads `ffc_shortlink` (#1012). The `save_post` hook now runs in both contexts; the meta box UI stays admin-only.
-
 ### Added
 - **URL Shortener: the short URL is now readable over REST** (#1012): the opted-in post types gain a read-only `ffc_shortlink` field. `pre_get_shortlink` never reached REST — `WP_REST_Posts_Controller` does not call `wp_get_shortlink()` — so external consumers had no way to read it.
 
 ### Changed
-- Internal (#1008) — **PHPStan stays honest under WordPress stubs 7.1**: the bump types `register_rest_route()`'s namespace as `non-falsy-string`, so the REST namespace is now declared as such across the 14 controllers that thread it. Four genuinely dead checks were dropped; ten sites where the stub over-promises (`wpdb::get_var()` never `''`, `$_FILES` `tmp_name` never an array, `wp_localize_script()` never a list) keep their runtime guard behind a narrow `@phpstan-ignore` carrying the reason inline.
+- Internal (#1008) — **PHPStan stays honest under WordPress stubs 7.1**: the bump types `register_rest_route()`'s namespace as `non-falsy-string`, now declared as such across the 14 controllers that thread it. Four dead checks were dropped; ten sites where the stub over-promises keep their runtime guard behind a narrow `@phpstan-ignore` with the reason inline.
 - Internal (#992, #1007) — **the post-deploy smoke now blocks**: it shipped non-blocking while it proved itself against the testes host, and 13 consecutive green runs closed that evidence gate. A failing smoke is now a failing deploy; a 120s timeout stays a warning, since the rsync has already landed.
 - Internal (#1005) — **`tests/` is tab-indented, and now enforced**: 250 space-indented files against 170 tab-indented ones, with nothing checking either, so a reformat alone would have drifted back. Reindented, plus a two-sniff `phpcs-tests.xml.dist` over the whole directory. No test logic changed.
+
+### Fixed
+- **Posts published from the block editor got their short URL late** (#1013): the auto-create hook was registered only under `is_admin()`, but Gutenberg saves over REST, where that is false. The short URL appeared only once someone reopened the editor — so a freshly published post had none, exactly when a consumer reads `ffc_shortlink` (#1012). `save_post` now runs in both contexts.
 
 ## [6.20.1] (2026-08-30) — `f1e4134`
 
