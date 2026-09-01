@@ -168,6 +168,62 @@ class UrlShortenerLoaderTest extends TestCase {
 		);
 	}
 
+	public function test_init_registers_auto_create_outside_admin(): void {
+		// The regression this pins (#1013): the block editor saves over REST,
+		// where is_admin() is false, so a save_post hook registered admin-only
+		// never fires for a Gutenberg publish.
+		$this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
+		Functions\when( 'is_admin' )->justReturn( false );
+
+		$this->loader->init();
+
+		$this->assertNotFalse(
+			has_action( 'save_post', 'FreeFormCertificate\UrlShortener\UrlShortenerMetaBox->on_save_post()' )
+		);
+	}
+
+	public function test_init_keeps_meta_box_ui_admin_only(): void {
+		$this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
+		Functions\when( 'is_admin' )->justReturn( false );
+
+		$this->loader->init();
+
+		// The UI half stays behind the gate — only the save_post hook crosses it.
+		$this->assertFalse(
+			has_action( 'add_meta_boxes', 'FreeFormCertificate\UrlShortener\UrlShortenerMetaBox->register_meta_box()' )
+		);
+		$this->assertFalse(
+			has_action( 'wp_ajax_ffc_regenerate_short_url', 'FreeFormCertificate\UrlShortener\UrlShortenerMetaBox->ajax_regenerate()' )
+		);
+	}
+
+	public function test_init_registers_meta_box_ui_in_admin(): void {
+		$this->service->shouldReceive( 'is_enabled' )->once()->andReturn( true );
+		Functions\when( 'is_admin' )->justReturn( true );
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+
+		$this->loader->init();
+
+		$this->assertNotFalse(
+			has_action( 'add_meta_boxes', 'FreeFormCertificate\UrlShortener\UrlShortenerMetaBox->register_meta_box()' )
+		);
+		$this->assertNotFalse(
+			has_action( 'save_post', 'FreeFormCertificate\UrlShortener\UrlShortenerMetaBox->on_save_post()' )
+		);
+	}
+
+	public function test_init_skips_auto_create_when_disabled(): void {
+		$this->service->shouldReceive( 'is_enabled' )->once()->andReturn( false );
+
+		$this->loader->init();
+
+		$this->assertFalse(
+			has_action( 'save_post', 'FreeFormCertificate\UrlShortener\UrlShortenerMetaBox->on_save_post()' )
+		);
+	}
+
 	public function test_init_skips_hooks_when_disabled(): void {
 		$this->service->shouldReceive( 'is_enabled' )->once()->andReturn( false );
 

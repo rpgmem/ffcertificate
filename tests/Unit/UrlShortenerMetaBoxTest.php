@@ -321,7 +321,13 @@ class UrlShortenerMetaBoxTest extends TestCase {
 	// init()
 	// ==================================================================
 
-	public function test_init_registers_hooks(): void {
+	/**
+	 * Capture the hook names a registration method passes to add_action().
+	 *
+	 * @param callable $register Registration method to run.
+	 * @return array<int, string> Hook names, in registration order.
+	 */
+	private function capture_hooks( callable $register ): array {
 		$hooks = array();
 		Functions\when( 'add_action' )->alias(
 			static function ( $hook ) use ( &$hooks ) {
@@ -329,12 +335,27 @@ class UrlShortenerMetaBoxTest extends TestCase {
 			}
 		);
 
-		$this->meta_box->init();
+		$register();
+
+		return $hooks;
+	}
+
+	public function test_init_registers_admin_ui_hooks_only(): void {
+		$hooks = $this->capture_hooks( fn () => $this->meta_box->init() );
 
 		$this->assertContains( 'add_meta_boxes', $hooks );
-		$this->assertContains( 'save_post', $hooks );
 		$this->assertContains( 'admin_enqueue_scripts', $hooks );
 		$this->assertContains( 'wp_ajax_ffc_regenerate_short_url', $hooks );
+
+		// save_post moved to init_auto_create(), which the loader calls outside
+		// its is_admin() gate — the block editor saves over REST (#1013).
+		$this->assertNotContains( 'save_post', $hooks );
+	}
+
+	public function test_init_auto_create_registers_only_save_post(): void {
+		$hooks = $this->capture_hooks( fn () => $this->meta_box->init_auto_create() );
+
+		$this->assertSame( array( 'save_post' ), $hooks );
 	}
 
 	// ==================================================================

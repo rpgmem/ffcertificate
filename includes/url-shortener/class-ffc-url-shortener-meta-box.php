@@ -43,11 +43,35 @@ class UrlShortenerMetaBox {
 	}
 
 	/**
-	 * Register hooks.
+	 * Register the auto-create-on-publish hook.
+	 *
+	 * Split out of {@see init()} and called from **outside** the loader's
+	 * `is_admin()` gate: the block editor saves over the REST API, where
+	 * `is_admin()` is false, so a `save_post` hook registered admin-only never
+	 * runs for a Gutenberg publish (#1013).
+	 *
+	 * Running outside admin is safe because {@see on_save_post()} defends
+	 * itself — autosave, revision and non-`publish` guards, the auto-create
+	 * toggle, the enabled-post-type allowlist, and a `findByPostId()` check
+	 * that makes it idempotent. It needs no capability check: it is not a
+	 * request handler but a `save_post` hook, which only fires once WordPress
+	 * has already authorised the save.
+	 *
+	 * @since 6.21.0
+	 */
+	public function init_auto_create(): void {
+		add_action( 'save_post', array( $this, 'on_save_post' ), 20, 2 );
+	}
+
+	/**
+	 * Register the admin-only UI hooks.
+	 *
+	 * The auto-create hook lives in {@see init_auto_create()} instead, because
+	 * it must also run in the REST context. `wp_ajax_*` stays here: `is_admin()`
+	 * is true on `admin-ajax.php`.
 	 */
 	public function init(): void {
 		add_action( 'add_meta_boxes', array( $this, 'register_meta_box' ) );
-		add_action( 'save_post', array( $this, 'on_save_post' ), 20, 2 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 
 		// AJAX: regenerate short code.

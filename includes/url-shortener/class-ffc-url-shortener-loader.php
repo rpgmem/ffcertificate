@@ -79,12 +79,20 @@ class UrlShortenerLoader {
 		// context, so this sits outside the is_admin() gate.
 		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
 
+		// Auto-create the short URL on publish. The block editor saves over the
+		// REST API, where is_admin() is false, so registering this inside the
+		// gate below meant a Gutenberg publish never created one — the short
+		// URL only appeared later, when someone reopened the editor and the
+		// meta box's render() created it on demand (#1013). The handler guards
+		// itself, so running it in both contexts is safe.
+		$meta_box = new UrlShortenerMetaBox( $this->service );
+		$meta_box->init_auto_create();
+
 		// Admin components.
 		if ( is_admin() ) {
 			$admin_page = new UrlShortenerAdminPage( $this->service );
 			$admin_page->init();
 
-			$meta_box = new UrlShortenerMetaBox( $this->service );
 			$meta_box->init();
 
 			$backfill = new UrlShortenerBackfillHandler( $this->service );

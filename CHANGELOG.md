@@ -7,6 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- **Posts published from the block editor got their short URL late** (#1013): the auto-create hook was registered only under `is_admin()`, but Gutenberg saves over the REST API, where that is false. The short URL appeared only when someone reopened the editor and the meta box created it on demand — so a freshly published post had none, which is exactly when an external consumer reads `ffc_shortlink` (#1012). The `save_post` hook now runs in both contexts; the meta box UI stays admin-only.
+
 ### Added
 - **URL Shortener: the short URL is now readable over REST** (#1012): the opted-in post types gain a read-only `ffc_shortlink` field. `pre_get_shortlink` never reached REST — `WP_REST_Posts_Controller` does not call `wp_get_shortlink()` — so external consumers had no way to read it.
 
