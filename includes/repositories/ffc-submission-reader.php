@@ -722,7 +722,12 @@ class SubmissionReader extends AbstractRepository {
 		$token = $this->wpdb->get_var(
 			$this->wpdb->prepare( 'SELECT magic_token FROM %i WHERE id = %d', $this->table, $submission_id )
 		);
-		// @phpstan-ignore identical.alwaysFalse (the stub types wpdb::get_var() as non-empty-string, but a genuinely empty column returns '').
+		/**
+		 * The stub types wpdb::get_var() as non-empty-string, but a genuinely
+		 * empty column returns ''.
+		 *
+		 * @phpstan-ignore-next-line identical.alwaysFalse
+		 */
 		if ( null === $token || '' === $token ) {
 			return null;
 		}

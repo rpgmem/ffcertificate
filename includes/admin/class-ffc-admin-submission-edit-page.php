@@ -548,7 +548,13 @@ class AdminSubmissionEditPage {
 			wp_die( esc_html__( 'You do not have permission to edit submissions.', 'ffcertificate' ) );
 		}
 
-		// @phpstan-ignore booleanNot.alwaysFalse (the stub types check_admin_referer() as always-truthy because it wp_die()s; the early return is defence-in-depth and is covered by test_handle_save_returns_on_bad_nonce).
+		/**
+		 * The stub types check_admin_referer() as always-truthy because it
+		 * wp_die()s; the early return is defence-in-depth and is covered by
+		 * test_handle_save_returns_on_bad_nonce.
+		 *
+		 * @phpstan-ignore-next-line booleanNot.alwaysFalse
+		 */
 		if ( ! check_admin_referer( 'ffc_edit_submission_nonce', 'ffc_edit_submission_action' ) ) {
 			return;
 		}

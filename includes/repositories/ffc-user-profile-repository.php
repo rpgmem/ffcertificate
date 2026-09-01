@@ -88,7 +88,12 @@ class UserProfileRepository extends AbstractRepository {
 		// `$id` is a string ("42") in real wpdb when the row exists,
 		// or null when missing. Mocks sometimes return 0 / "0" — treat
 		// any non-positive integer interpretation as "missing".
-		// @phpstan-ignore notIdentical.alwaysTrue (the stub types wpdb::get_var() as non-empty-string; the '' guard also covers the mocked values the docblock above describes).
+		/**
+		 * The stub types wpdb::get_var() as non-empty-string; the '' guard also
+		 * covers the mocked values the docblock above describes.
+		 *
+		 * @phpstan-ignore-next-line notIdentical.alwaysTrue
+		 */
 		return null !== $id && '' !== $id && (int) $id > 0;
 	}
 
