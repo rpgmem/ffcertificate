@@ -8,6 +8,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Fixed
+- **The activity log was mostly untranslatable** (#1024): `get_action_label()` fell back to `ucwords()` for any action it did not know, silently rendering untranslated English — 49 of the 64 action keys in use, including every recruitment, privacy and migration event, across the log table, the summary and the CSV export. All 49 now have translated labels, with a guard so a new action cannot rely on the fallback again.
+- **Linking a submission to a user logged the wrong action** (#1024): the call passed the action name where the level belongs, so every link and unlink recorded the generic `submission` while `user_linked`/`user_unlinked` landed in the level slot and was discarded by the level validation. Existing rows keep a label; new ones record the real action.
 - **The update screen said the plugin was untested on your WordPress** (#1022): `GitHubUpdater` hard-coded the compatibility fields WordPress actually reads, so raising `Tested up to` in `readme.txt` (#984) left the shipped value at 7.0 and every 7.1 site was told a verified release was untested; `Requires at least` had drifted the same way (6.2 vs 6.4). The values are now read from the plugin header and `readme.txt` at update-check time, removing the copy that drifted.
 
 ## [6.21.0] (2026-09-01) — `ae38302`
