@@ -7,6 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- **The update screen said the plugin was untested on your WordPress** (#1022): `GitHubUpdater` hard-coded the compatibility fields WordPress actually reads, so raising `Tested up to` in `readme.txt` (#984) left the shipped value at 7.0 and every 7.1 site was told a verified release was untested; `Requires at least` had drifted the same way (6.2 vs 6.4). The values are now read from the plugin header and `readme.txt` at update-check time, removing the copy that drifted.
+
 ## [6.21.0] (2026-09-01)
 
 ### Added
