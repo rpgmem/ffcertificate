@@ -61,15 +61,6 @@ class GithubUpdater {
 	private const CACHE_TTL = 43200;
 
 	/**
-	 * Compatibility fields surfaced in the update UI. Kept in sync with
-	 * `readme.txt` (Requires at least / Tested up to) and the plugin header
-	 * (Requires PHP); hard-coded to avoid a runtime filesystem read.
-	 */
-	private const WP_REQUIRES  = '6.2';
-	private const WP_TESTED    = '7.0';
-	private const PHP_REQUIRES = '8.3';
-
-	/**
 	 * Guard so the hooks register only once.
 	 *
 	 * @var bool
@@ -179,9 +170,10 @@ class GithubUpdater {
 		$info->version       = $release['version'];
 		$info->author        = '<a href="https://github.com/rpgmem">Alex Meusburger</a>';
 		$info->homepage      = $release['url'];
-		$info->requires      = self::WP_REQUIRES;
-		$info->tested        = self::WP_TESTED;
-		$info->requires_php  = self::PHP_REQUIRES;
+		$compat              = self::compat();
+		$info->requires      = $compat['requires'];
+		$info->tested        = $compat['tested'];
+		$info->requires_php  = $compat['requires_php'];
 		$info->last_updated  = $release['published_at'];
 		$info->download_link = $release['package'];
 		$info->sections      = array(
@@ -264,10 +256,60 @@ class GithubUpdater {
 		$obj->new_version  = $new_version;
 		$obj->url          = $release['url'];
 		$obj->package      = $release['package'];
-		$obj->requires     = self::WP_REQUIRES;
-		$obj->tested       = self::WP_TESTED;
-		$obj->requires_php = self::PHP_REQUIRES;
+		$compat            = self::compat();
+		$obj->requires     = $compat['requires'];
+		$obj->tested       = $compat['tested'];
+		$obj->requires_php = $compat['requires_php'];
 		return $obj;
+	}
+
+	/**
+	 * Read the compatibility fields from the files that own them.
+	 *
+	 * These used to be hard-coded constants, "to avoid a runtime filesystem
+	 * read" — a third copy of metadata that nothing kept in sync, and both WP
+	 * values had silently drifted (#1022): `tested` still said 7.0 after #984
+	 * raised `readme.txt` to 7.1, so every 7.1 site was told on the update
+	 * screen that a release verified against 7.1 was untested; `requires` said
+	 * 6.2 against an actual 6.4, offering the update to sites too old to run
+	 * it. WordPress reads these fields and never `readme.txt`, because the
+	 * plugin updates from GitHub rather than the WordPress.org directory, so
+	 * the stale copy was the one that counted.
+	 *
+	 * Two files rather than one, and that is the floor: both are parsed by
+	 * tooling **before** PHP runs — WordPress reads the plugin header to decide
+	 * whether the plugin may load at all, and WordPress.org reads `readme.txt`
+	 * — so neither can be derived from the other. `Tested up to` in particular
+	 * is not a plugin-header field at all; it exists only in `readme.txt`.
+	 *
+	 * The read costs one 8 KB `get_file_data()` pass per file and runs only on
+	 * an update check, a handful of times per request at most — deliberately
+	 * not memoised, since a static cache would be process-global mutable state
+	 * bought for nothing measurable. Values are trimmed but otherwise passed
+	 * through: a malformed header is WordPress's to interpret, not this
+	 * method's to guess at.
+	 *
+	 * @return array{requires: string, tested: string, requires_php: string}
+	 */
+	private static function compat(): array {
+		$plugin = get_file_data(
+			FFC_PLUGIN_DIR . 'ffcertificate.php',
+			array(
+				'requires'     => 'Requires at least',
+				'requires_php' => 'Requires PHP',
+			)
+		);
+
+		$readme = get_file_data(
+			FFC_PLUGIN_DIR . 'readme.txt',
+			array( 'tested' => 'Tested up to' )
+		);
+
+		return array(
+			'requires'     => trim( $plugin['requires'] ),
+			'tested'       => trim( $readme['tested'] ),
+			'requires_php' => trim( $plugin['requires_php'] ),
+		);
 	}
 
 	/**
