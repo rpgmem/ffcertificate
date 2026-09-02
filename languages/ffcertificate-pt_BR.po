@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Free Form Certificate\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-06 11:00+0000\n"
-"PO-Revision-Date: 2026-08-23 23:54+0000\n"
+"PO-Revision-Date: 2026-09-02 23:30+0000\n"
 "Last-Translator: Alex Meusburger\n"
 "Language-Team: Português do Brasil\n"
 "Language: pt_BR\n"
@@ -354,7 +354,7 @@ msgid "%s is required."
 msgstr "%s é obrigatório."
 
 #. %s: number of logs
-#: includes/admin/class-ffc-admin-activity-log-page.php:559
+#: includes/admin/class-ffc-admin-activity-log-page.php:634
 #, php-format
 msgid "%s log"
 msgid_plural "%s logs"
@@ -884,7 +884,7 @@ msgstr "Uma visão geral de \"Atribuições atuais\" (somente leitura), localiza
 msgid "A read-only index at the bottom of the tab lists every email the plugin can send, grouped by feature, each with a one-line purpose, a personalisation state (Editable text / On-off only / System default) and an \"Open →\" deep-link to where it is configured. It is discoverability only — it moves no controls."
 msgstr "Uma lista somente leitura na parte inferior da aba exibe todos os e-mails que o plugin pode enviar, agrupados por funcionalidade; cada item inclui uma breve descrição de sua finalidade, o status de personalização (Texto editável / Apenas ativar/desativar / Padrão do sistema) e um link direto (\"Abrir →\") para o local onde é configurado. Trata-se apenas de um recurso de descoberta — não há movimentação de controles."
 
-#: includes/recruitment/class-ffc-recruitment-error-messages.php:166 includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:796
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:166 includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:814
 msgid "A reason is required for this preliminary status."
 msgstr "É necessário apresentar uma justificativa para o status preliminar."
 
@@ -972,7 +972,7 @@ msgstr "uma chave seletora que determina a origem do texto do e-mail do certific
 msgid "A template with no kind marker is treated as a certificate, so installs that predate the pool render exactly as before. Developer filters still let code override the resolved HTML for the ficha and receipt where a bundled layout was used previously."
 msgstr "Um modelo sem marcador de tipo é tratado como um certificado; portanto, instalações anteriores à introdução do pool são renderizadas exatamente como antes. Filtros para desenvolvedores ainda permitem que o código substitua o HTML resolvido da ficha e do recibo nos casos em que, anteriormente, se utilizava um layout integrado."
 
-#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:843
+#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:861
 msgid "A valid adjutancy_id is required."
 msgstr "É necessário um adjutancy_id válido."
 
@@ -1030,7 +1030,7 @@ msgstr "Acesso negado. Verifique as permissões do arquivo."
 msgid "Access granted"
 msgstr "Acesso concedido"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:207 includes/settings/tabs/class-ffc-tab-email-texts.php:491
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:215 includes/settings/tabs/class-ffc-tab-email-texts.php:499
 msgid "Access granted to a user"
 msgstr "Acesso concedido a um usuário"
 
@@ -1070,7 +1070,7 @@ msgstr "Acesso a:"
 msgid "Access-granted notice (sent when a user gains plugin capabilities)"
 msgstr "Notificação de acesso concedido (enviada quando um usuário obtém recursos do plugin)"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:310 includes/settings/tabs/class-ffc-tab-email-texts.php:487 includes/settings/views/documentation/reference-emails.php:72
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:318 includes/settings/tabs/class-ffc-tab-email-texts.php:495 includes/settings/views/documentation/reference-emails.php:72
 msgid "Account access"
 msgstr "Acesso à conta"
 
@@ -1164,6 +1164,10 @@ msgstr "Registro de atividades"
 #: includes/admin/class-ffc-activity-log-ajax-endpoint.php:59 includes/admin/class-ffc-admin-activity-log-page.php:190
 msgid "Activity Log is currently disabled."
 msgstr "O registro de atividades está desativado no momento."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:316
+msgid "Activity Log Plaintext Cleanup Batch"
+msgstr "Atividade de Limpeza de Texto Simples"
 
 #: includes/migrations/strategies/class-ffc-activity-log-clear-plaintext-migration-strategy.php:168
 msgid "Activity log plaintext leak: nothing left to clear."
@@ -1313,7 +1317,7 @@ msgstr "Adicionar atributos de largura/altura"
 msgid "Add Working Hours"
 msgstr "Adicionar Horário de Funcionamento"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:179
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:187
 msgid "Added to waitlist"
 msgstr "Adicionado à lista de espera"
 
@@ -1380,6 +1384,10 @@ msgstr "Matéria"
 #: includes/recruitment/class-ffc-recruitment-adjutancies-rest-controller.php:208
 msgid "Adjutancy creation failed (duplicate slug?)."
 msgstr "A criação da matéria falhou (slug duplicado?)."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:298
+msgid "Adjutancy Deleted"
+msgstr "Matéria Excluída"
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:199
 msgid "Adjutancy is not linked to this notice."
@@ -1549,7 +1557,7 @@ msgstr "Arquivo de visualização das configurações avançadas não encontrado
 msgid "Affected users:"
 msgstr "Usuários afetados:"
 
-#: includes/admin/class-ffc-admin-activity-log-page.php:281
+#: includes/admin/class-ffc-admin-activity-log-page.php:356
 msgid "After"
 msgstr "Depois"
 
@@ -1569,11 +1577,11 @@ msgstr "Após o salvamento de um envio — args ( submission_id, form_id, submis
 msgid "AJAX Endpoints"
 msgstr "Pontos de extremidade AJAX"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:441
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:449
 msgid "Alerts the admin of a new booking; fixed body."
 msgstr "Alerta o administrador sobre um novo agendamento; corpo fixo."
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:405
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:413
 msgid "Alerts the admin of a new submission — on/off per form; fixed body."
 msgstr "Avisa o admin de um novo envio — ativa/desativa por formulário; corpo fixo."
 
@@ -1664,7 +1672,7 @@ msgstr "Todos os Níveis"
 msgid "All password fields are required"
 msgstr "Todos os campos de senha são obrigatórios."
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:334
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:342
 msgid "All plugin emails"
 msgstr "Todos os e-mails do plugin"
 
@@ -1866,7 +1874,7 @@ msgstr "Um registro de auditoria (útil para a LGPD). Quando está desativado, o
 msgid "An error occurred while booking. Please try again."
 msgstr "Ocorreu um erro ao efetuar a reserva. Por favor, tente novamente."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-admin.php:183 includes/reregistration/class-ffc-reregistration-admin.php:213 includes/url-shortener/class-ffc-url-shortener-admin-page.php:114 includes/url-shortener/class-ffc-url-shortener-meta-box.php:246 includes/settings/tabs/class-ffc-tab-url-shortener.php:68
+#: includes/self-scheduling/class-ffc-self-scheduling-admin.php:183 includes/reregistration/class-ffc-reregistration-admin.php:213 includes/url-shortener/class-ffc-url-shortener-admin-page.php:114 includes/url-shortener/class-ffc-url-shortener-meta-box.php:270 includes/settings/tabs/class-ffc-tab-url-shortener.php:68
 msgid "An error occurred."
 msgstr "Ocorreu um erro."
 
@@ -2010,7 +2018,7 @@ msgstr[1] "agendamentos"
 msgid "Appointment #%d"
 msgstr "Agendamento #%d"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:163
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:171
 msgid "Appointment approved"
 msgstr "Agendamento aprovado"
 
@@ -2030,15 +2038,19 @@ msgstr "Agendamento realizado com sucesso!"
 msgid "Appointment booked successfully! Awaiting admin approval."
 msgstr "Agendamento realizado com sucesso! Aguardando aprovação dos administradores."
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:159
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:167
 msgid "Appointment booking confirmation"
 msgstr "Confirmação de agendamento"
 
-#: templates/emails/appointment-cancellation.php:20 templates/emails/calendar-deleted-cancellation.php:24 includes/self-scheduling/class-ffc-self-scheduling-appointment-cancellation-handler.php:237 includes/settings/tabs/class-ffc-tab-email-texts.php:167
+#: includes/admin/class-ffc-admin-activity-log-page.php:277
+msgid "Appointment Cancelled"
+msgstr "Agendamento Cancelado"
+
+#: templates/emails/appointment-cancellation.php:20 templates/emails/calendar-deleted-cancellation.php:24 includes/self-scheduling/class-ffc-self-scheduling-appointment-cancellation-handler.php:237 includes/settings/tabs/class-ffc-tab-email-texts.php:175
 msgid "Appointment cancelled"
 msgstr "Consulta cancelada"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:211
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:219
 msgid "Appointment cancelled (calendar deleted)"
 msgstr "Agendamento cancelado (calendário excluído)"
 
@@ -2058,7 +2070,7 @@ msgstr "Agendamento Cancelado: {{calendar_title}}"
 msgid "Appointment cancelled: {{calendar_title}}"
 msgstr "Agendamento cancelado: {{calendar_title}}"
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:299 includes/settings/tabs/class-ffc-tab-email-texts.php:416
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:299 includes/settings/tabs/class-ffc-tab-email-texts.php:424
 msgid "Appointment confirmation"
 msgstr "Confirmação de agendamento"
 
@@ -2081,6 +2093,10 @@ msgstr "Agendamento confirmado com sucesso."
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:687
 msgid "Appointment Confirmed!"
 msgstr "Agendamento Confirmado!"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:276
+msgid "Appointment Created"
+msgstr "Agendamento Criado"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:374
 msgid "Appointment Date"
@@ -2155,7 +2171,7 @@ msgstr "Comprovante de agendamento:"
 msgid "Appointment receipts"
 msgstr "Comprovantes de agendamento"
 
-#: templates/emails/appointment-reminder.php:20 includes/shortcodes/class-ffc-dashboard-asset-manager.php:300 includes/settings/tabs/class-ffc-tab-email-texts.php:171
+#: templates/emails/appointment-reminder.php:20 includes/shortcodes/class-ffc-dashboard-asset-manager.php:300 includes/settings/tabs/class-ffc-tab-email-texts.php:179
 msgid "Appointment reminder"
 msgstr "Lembrete de agendamento"
 
@@ -2193,7 +2209,7 @@ msgstr "Agendamentos devem ser realizados com pelo menos %d horas de antecedênc
 msgid "Approval"
 msgstr "Aprovação"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:422
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:430
 msgid "Approval, cancellation & reminder"
 msgstr "Aprovação, cancelamento e lembrete"
 
@@ -2337,7 +2353,7 @@ msgstr "Unidade de Lotação"
 msgid "At least one audience must be selected."
 msgstr "Pelo menos um público-alvo deve ser selecionado."
 
-#: includes/admin/class-ffc-form-editor.php:172
+#: includes/admin/class-ffc-form-editor.php:178
 msgid "At least one geolocation method (GPS or IP) must be enabled when geolocation is active."
 msgstr "Pelo menos um método de geolocalização (GPS ou IP) deve estar ativado quando a geolocalização estiver ativa."
 
@@ -2373,7 +2389,7 @@ msgstr "Formato do Badge de Público-alvo"
 msgid "Audience booking / cancellation:"
 msgstr "Agendamento / cancelamento de audiência:"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:203
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:211
 msgid "Audience booking cancellation"
 msgstr "Cancelamento de agendamento de público-alvo"
 
@@ -2381,7 +2397,7 @@ msgstr "Cancelamento de agendamento de público-alvo"
 msgid "Audience booking cancelled"
 msgstr "Agendamento de audiência cancelado"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:199
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:207
 msgid "Audience booking confirmation"
 msgstr "Confirmação de agendamento de público-alvo"
 
@@ -2389,7 +2405,7 @@ msgstr "Confirmação de agendamento de público-alvo"
 msgid "Audience booking lifecycle ( booking_id )."
 msgstr "Ciclo de vida da reserva de audiência ( booking_id )."
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:479
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:487
 msgid "Audience booking lifecycle — default text edited globally in the hub above; a schedule may still set its own."
 msgstr "Ciclo de agendamento de público-alvo — texto padrão editado globalmente na caixa acima; um cronograma ainda pode definir o seu próprio."
 
@@ -2475,7 +2491,7 @@ msgstr "Configurações de visibilidade do público-alvo salvas."
 msgid "Audience:"
 msgstr "Público-alvo:"
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:240 includes/admin/class-ffc-admin-user-capabilities.php:320 includes/user-dashboard/class-ffc-capability-catalog.php:152 includes/user-dashboard/class-ffc-capability-catalog.php:267 includes/audience/class-ffc-audience-loader.php:422 includes/audience/class-ffc-audience-booking-export-source.php:203 includes/audience/class-ffc-audience-admin-page.php:196 includes/audience/class-ffc-audience-admin-page.php:197 includes/audience/class-ffc-audience-notification-handler.php:410 includes/audience/class-ffc-audience-notification-handler.php:446 includes/audience/class-ffc-audience-admin-audience-renderer.php:44 templates/admin/reregistration/form.php:37 templates/admin/audience/audience-tab.php:37 includes/settings/tabs/class-ffc-tab-email-texts.php:309 includes/settings/tabs/class-ffc-tab-email-texts.php:474 includes/settings/views/documentation/reference-emails.php:70
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:240 includes/admin/class-ffc-admin-user-capabilities.php:320 includes/user-dashboard/class-ffc-capability-catalog.php:152 includes/user-dashboard/class-ffc-capability-catalog.php:267 includes/audience/class-ffc-audience-loader.php:422 includes/audience/class-ffc-audience-booking-export-source.php:203 includes/audience/class-ffc-audience-admin-page.php:196 includes/audience/class-ffc-audience-admin-page.php:197 includes/audience/class-ffc-audience-notification-handler.php:410 includes/audience/class-ffc-audience-notification-handler.php:446 includes/audience/class-ffc-audience-admin-audience-renderer.php:44 templates/admin/reregistration/form.php:37 templates/admin/audience/audience-tab.php:37 includes/settings/tabs/class-ffc-tab-email-texts.php:317 includes/settings/tabs/class-ffc-tab-email-texts.php:482 includes/settings/views/documentation/reference-emails.php:70
 msgid "Audiences"
 msgstr "Públicos-alvo"
 
@@ -2676,7 +2692,7 @@ msgstr "Horários disponíveis"
 msgid "Available Times"
 msgstr "Horários Disponíveis"
 
-#: templates/admin/settings/email-body-hub.php:114
+#: templates/admin/settings/email-body-hub.php:123
 msgid "Available variables:"
 msgstr "Variáveis disponíveis:"
 
@@ -2830,7 +2846,7 @@ msgstr "horário padrão"
 msgid "become"
 msgstr "tornar-se"
 
-#: includes/admin/class-ffc-admin-activity-log-page.php:280
+#: includes/admin/class-ffc-admin-activity-log-page.php:355
 msgid "Before"
 msgstr "Antes"
 
@@ -2953,7 +2969,7 @@ msgstr "Bloqueado: este candidato é referenciado por %d classificação(ões). 
 msgid "Blocks per User (Custom mode)"
 msgstr "Blocos por usuário (modo Personalizado)"
 
-#: templates/admin/settings/email-model-box.php:36 templates/admin/settings/email-body-hub.php:104
+#: templates/admin/settings/email-model-box.php:36 templates/admin/settings/email-body-hub.php:113
 msgid "Body"
 msgstr "Corpo"
 
@@ -3009,7 +3025,7 @@ msgstr "Agendado em:"
 msgid "booking"
 msgstr "reserva"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:478
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:486
 msgid "Booking & cancellation notices"
 msgstr "Avisos de reserva e cancelamento"
 
@@ -3058,7 +3074,7 @@ msgstr "As reservas estão disponíveis apenas durante o horário comercial (%ho
 msgid "Booking is available only during business hours."
 msgstr "As reservas estão disponíveis apenas durante o horário comercial."
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:423
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:431
 msgid "Booking lifecycle emails to the user — text edited globally in the hub above."
 msgstr "E-mails do ciclo de vida do agendamento para o usuário — texto editado globalmente no hub acima."
 
@@ -3219,7 +3235,7 @@ msgstr "Ignorar para gerentes"
 msgid "Bypass Geolocation"
 msgstr "Ignorar Geolocalização"
 
-#: includes/admin/class-ffc-admin-activity-log-page.php:292
+#: includes/admin/class-ffc-admin-activity-log-page.php:367
 msgid "Bypassed IP"
 msgstr "IP bypassado"
 
@@ -3353,7 +3369,7 @@ msgstr "Calendário — Lista (GET /calendars)"
 msgid "Calendar — Slots (GET /calendars/{id}/slots)"
 msgstr "Calendário — Vagas (GET /calendars/{id}/slots)"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:434
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:442
 msgid "Calendar-deletion cancellation"
 msgstr "Cancelamento por exclusão de calendário"
 
@@ -3442,7 +3458,7 @@ msgstr "Campanha"
 msgid "Campaign invitation, reminder and confirmation"
 msgstr "Convite, lembrete e confirmação de campanha"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:453
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:461
 msgid "Campaign lifecycle emails — text edited globally in the hub above; each still on/off per campaign."
 msgstr "E-mails do ciclo da campanha — texto editado globalmente na caixa acima; cada um ainda liga/desliga por campanha."
 
@@ -3589,9 +3605,17 @@ msgstr "Cancelados:"
 msgid "Candidate"
 msgstr "Candidato"
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:291
+msgid "Candidate Deleted"
+msgstr "Candidato Excluído"
+
 #: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:156
 msgid "Candidate deleted."
 msgstr "Candidato excluído."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:292
+msgid "Candidate Fields Edited"
+msgstr "Campo de Candidato Editado"
 
 #: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:158
 msgid "Candidate linked to the WP user."
@@ -3604,6 +3628,14 @@ msgstr "A listagem de candidatos requer, por enquanto, um filtro cpf ou rf."
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:136 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:84
 msgid "Candidate not found."
 msgstr "Candidato não encontrado."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:293
+msgid "Candidate Personal Data Revealed"
+msgstr "Dados Pessoais de Candidato Revelado"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:290
+msgid "Candidate Promoted"
+msgstr "Candidato Promovido"
 
 #: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:160
 msgid "Candidate unlinked from the WP user. The wp_user account was not deleted."
@@ -3682,6 +3714,10 @@ msgstr "Capacidades e Funções"
 msgid "Capabilities follow one grammar:"
 msgstr "As capacidades seguem uma gramática:"
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:266
+msgid "Capabilities Granted"
+msgstr "Capacidades Concedidas"
+
 #: includes/settings/views/documentation/submissions-list.php:35 includes/settings/views/documentation/reference-capabilities.php:64 includes/settings/views/documentation/feature-recruitment.php:71
 msgid "Capability"
 msgstr "Capacidade"
@@ -3753,7 +3789,7 @@ msgstr "Detalhes do Certificado"
 msgid "Certificate editor preferences"
 msgstr "Preferências do editor de certificados"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:155 includes/settings/tabs/class-ffc-tab-email-texts.php:398
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:163 includes/settings/tabs/class-ffc-tab-email-texts.php:406
 msgid "Certificate email to the user"
 msgstr "E-mail de certificado ao usuário"
 
@@ -3765,7 +3801,7 @@ msgstr "E-mail do certificado:"
 msgid "Certificate Emailed"
 msgstr "Certificado Enviado por E-mail"
 
-#: includes/admin/class-ffc-form-editor.php:253
+#: includes/admin/class-ffc-form-editor.php:259
 msgid "Certificate Form Configuration"
 msgstr "Configuração do Formulário de Certificado"
 
@@ -3846,7 +3882,7 @@ msgstr "Certificados"
 msgid "Certificates & Forms"
 msgstr "Certificados e Formulários"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:293 includes/settings/tabs/class-ffc-tab-email-texts.php:394
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:301 includes/settings/tabs/class-ffc-tab-email-texts.php:402
 msgid "Certificates & forms"
 msgstr "Certificados e formulários"
 
@@ -3923,6 +3959,10 @@ msgstr "Caixa de seleção múltipla"
 msgid "Child audiences inherit fields from parent audiences"
 msgstr "Os públicos filhos herdam os campos dos públicos pais."
 
+#: templates/admin/settings/email-body-hub.php:81
+msgid "Choose an email above to edit its subject and body. Every email keeps its shipped wording until you change it here."
+msgstr "Escolha um e-mail acima para editar o assunto e o corpo da mensagem. Cada e-mail mantém o texto original até que você o altere aqui."
+
 #: includes/admin/class-ffc-admin-assets-manager.php:279 includes/admin/class-ffc-admin-assets-manager.php:664
 msgid "Choose Background Image"
 msgstr "Escolha a Imagem de Segundo Plano"
@@ -3992,13 +4032,29 @@ msgstr "Status da classificação #%1$d: %2$s → %3$s."
 msgid "Classification #%d deleted."
 msgstr "Classificação #%d excluída."
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:295
+msgid "Classification Adjutancy Changed"
+msgstr "Classificação de Matéria Alterada"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:296
+msgid "Classification Cleared"
+msgstr "Classificação Liberada"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:297
+msgid "Classification Deleted"
+msgstr "Classificação Excluída"
+
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:145
 msgid "Classification entry not found."
 msgstr "Classificação não encontrada."
 
-#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:848
+#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:866
 msgid "Classification not found."
 msgstr "Classificação não encontrada."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:294
+msgid "Classification Status Changed"
+msgstr "Status da Classificação Alterado"
 
 #: templates/admin/recruitment/notice-edit/classifications-section.php:31
 msgid "Classifications"
@@ -4106,7 +4162,7 @@ msgstr "Clique para copiar"
 msgid "Clicks"
 msgstr "Cliques"
 
-#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:131
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:155
 msgid "clicks"
 msgstr "cliques"
 
@@ -4416,7 +4472,7 @@ msgstr "Token de Confirmação"
 msgid "Confirmed"
 msgstr "Confirmado"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:417
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:425
 msgid "Confirms a booking to the user — default text (incl. receipt/cancel buttons) edited globally in the hub above; a calendar may still set its own."
 msgstr "Confirma um agendamento ao usuário — texto padrão (incl. botões de comprovante/cancelamento) editado globalmente na caixa acima; um calendário ainda pode definir o seu próprio."
 
@@ -4539,7 +4595,7 @@ msgstr "Controla a aparência do modo escuro para as páginas de administração
 msgid "Controls whether calling a candidate sends the convocation email. The global \"disable all emails\" switch always wins."
 msgstr "Controla se ligar para um candidato envia o e-mail de convocação. A configuração global de \"desativar todos os e-mails\" sempre prevalece."
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:465
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:473
 msgid "Convocation email"
 msgstr "E-mail de convocação"
 
@@ -4559,7 +4615,7 @@ msgstr "Cookie"
 msgid "cookie wall"
 msgstr "barreira de cookies"
 
-#: includes/admin/class-ffc-admin-activity-log-page.php:318
+#: includes/admin/class-ffc-admin-activity-log-page.php:393
 msgid "Cookie wall shown (browser blocked our probe cookie)"
 msgstr "Aviso de cookies exibido (o navegador bloqueou o cookie de sondagem)"
 
@@ -4579,11 +4635,11 @@ msgstr "Tempo de recarga (seg)"
 msgid "Copied to clipboard."
 msgstr "Copiado para a área de transferência."
 
-#: includes/admin/class-ffc-admin-assets-manager.php:590 includes/admin/class-ffc-admin-conditional-assets.php:419 includes/url-shortener/class-ffc-url-shortener-admin-page.php:112 includes/url-shortener/class-ffc-url-shortener-meta-box.php:243 includes/frontend/class-ffc-frontend.php:345
+#: includes/admin/class-ffc-admin-assets-manager.php:590 includes/admin/class-ffc-admin-conditional-assets.php:419 includes/url-shortener/class-ffc-url-shortener-admin-page.php:112 includes/url-shortener/class-ffc-url-shortener-meta-box.php:267 includes/frontend/class-ffc-frontend.php:345
 msgid "Copied!"
 msgstr "Copiado!"
 
-#: templates/submission-success.php:52 templates/submission-success.php:84 includes/generators/class-ffc-magic-link-helper.php:203 includes/url-shortener/class-ffc-url-shortener-admin-page.php:116 includes/url-shortener/class-ffc-url-shortener-meta-box.php:122 includes/url-shortener/class-ffc-url-shortener-meta-box.php:249 includes/frontend/class-ffc-frontend.php:344 includes/settings/views/ffc-tab-advanced.php:849 includes/settings/views/ffc-tab-advanced.php:905
+#: templates/submission-success.php:52 templates/submission-success.php:84 includes/generators/class-ffc-magic-link-helper.php:203 includes/url-shortener/class-ffc-url-shortener-admin-page.php:116 includes/url-shortener/class-ffc-url-shortener-meta-box.php:146 includes/url-shortener/class-ffc-url-shortener-meta-box.php:273 includes/frontend/class-ffc-frontend.php:344 includes/settings/views/ffc-tab-advanced.php:849 includes/settings/views/ffc-tab-advanced.php:905
 msgid "Copy"
 msgstr "Copiar"
 
@@ -4591,7 +4647,7 @@ msgstr "Copiar"
 msgid "Copy authentication code"
 msgstr "Copiar código de autenticação"
 
-#: includes/admin/class-ffc-admin-assets-manager.php:591 includes/url-shortener/class-ffc-url-shortener-admin-page.php:113 includes/url-shortener/class-ffc-url-shortener-meta-box.php:244
+#: includes/admin/class-ffc-admin-assets-manager.php:591 includes/url-shortener/class-ffc-url-shortener-admin-page.php:113 includes/url-shortener/class-ffc-url-shortener-meta-box.php:268
 msgid "Copy failed"
 msgstr "Falha na cópia"
 
@@ -4687,7 +4743,7 @@ msgstr "Não foi possível excluir o motivo. Tente novamente."
 msgid "Could not generate ficha."
 msgstr "Não foi possível gerar a ficha."
 
-#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:101
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:125
 msgid "Could not generate short URL."
 msgstr "Não foi possível gerar um URL curto."
 
@@ -4699,7 +4755,7 @@ msgstr "Não foi possível associar a matéria ao edital. Tente novamente."
 msgid "Could not open file."
 msgstr "Não foi possível abrir o arquivo."
 
-#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:415 includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:463 includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:585
+#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:421 includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:475 includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:603
 msgid "Could not read CSV file."
 msgstr "Não foi possível ler o arquivo CSV."
 
@@ -4743,7 +4799,7 @@ msgstr "Não foi possível atualizar a matéria. Tente novamente."
 msgid "Could not update the candidate. Please try again."
 msgstr "Não foi possível atualizar o candidato. Tente novamente."
 
-#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:866
+#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:884
 msgid "Could not update the classification."
 msgstr "Não foi possível atualizar a classificação."
 
@@ -4890,6 +4946,14 @@ msgstr "O CPF/RF deve ter exatamente 7 ou 11 dígitos."
 #: includes/migrations/strategies/class-ffc-cpf-rf-split-migration-strategy.php:190
 msgid "CPF/RF Split Migration"
 msgstr "Migração de Divisão CPF/RF"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:312
+msgid "CPF/RF Split Migration Batch"
+msgstr "Migração de Divisão de CPF/RF"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:313
+msgid "CPF/RF Split: Unknown Length"
+msgstr "Divisão CPF/RF: Comprimento Desconhecido"
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php:59
 msgid "CPF/RF validation is by field name, not by type."
@@ -5119,11 +5183,11 @@ msgstr "Arquivo CSV"
 msgid "CSV file"
 msgstr "Arquivo CSV"
 
-#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:570
+#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:588
 msgid "CSV file is required for definitive_import mode."
 msgstr "É necessário um arquivo CSV para o modo definitive_import."
 
-#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:400 includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:448
+#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:406 includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:460
 msgid "CSV file is required."
 msgstr "É necessário um arquivo CSV."
 
@@ -5369,11 +5433,11 @@ msgstr "Dados"
 msgid "Data Accessed"
 msgstr "Dados Acessados"
 
-#: includes/admin/class-ffc-settings-save-handler.php:529
+#: includes/admin/class-ffc-settings-save-handler.php:532
 msgid "Data deleted and counter reset successfully."
 msgstr "Dados apagados e contador reiniciado com sucesso."
 
-#: includes/admin/class-ffc-settings-save-handler.php:530
+#: includes/admin/class-ffc-settings-save-handler.php:533
 msgid "Data deleted successfully."
 msgstr "Dados excluídos com sucesso."
 
@@ -5547,6 +5611,10 @@ msgstr "desacoplado"
 #: includes/settings/views/documentation/config-advanced.php:50
 msgid "Decoupling (optional hardening)."
 msgstr "Desacoplamento (endurecimento opcional)."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:306
+msgid "Decryption Failure"
+msgstr "Falha na Descriptografia"
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:176 includes/settings/views/documentation/feature-url-shortener.php:60
 msgid "Default"
@@ -6585,7 +6653,7 @@ msgstr "Editar dados de submissão em certificados emitidos"
 msgid "Edit Template"
 msgstr "Editar Modelo"
 
-#: templates/admin/settings/email-body-hub.php:46
+#: templates/admin/settings/email-body-hub.php:45
 msgid "Edit the default text of each plugin email once, globally. These are the message bodies only — the shared Email Model wraps every one with the same header and footer. Pick an email below to edit it; leave one untouched (or use \"Restore Default Text\") to keep its shipped wording."
 msgstr "Edite o texto padrão de cada e-mail do plugin uma vez, globalmente. Estes são apenas os corpos das mensagens — o Modelo de E-mail compartilhado envolve cada um com o mesmo cabeçalho e rodapé. Escolha um e-mail abaixo para editá-lo; deixe um intocado (ou use \"Restaurar Texto Padrão\") para manter o texto original."
 
@@ -6605,11 +6673,11 @@ msgstr "Editar o texto global"
 msgid "Edit this template →"
 msgstr "Editar este modelo →"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:512
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:520
 msgid "Editable text"
 msgstr "Texto editável"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:509
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:517
 msgid "Editable text (global)"
 msgstr "Texto editável (global)"
 
@@ -6665,7 +6733,7 @@ msgstr "oito"
 msgid "elapsed"
 msgstr "decorrido"
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:217 includes/admin/class-ffc-submissions-list.php:79 includes/admin/class-ffc-form-editor-builder-metabox.php:77 includes/admin/class-ffc-form-editor-builder-metabox.php:142 includes/admin/class-ffc-admin-assets-manager.php:623 includes/admin/class-ffc-form-editor-metabox-renderer.php:309 includes/admin/class-ffc-admin-submission-edit-page.php:433 includes/privacy/class-ffc-privacy-exporters.php:81 includes/privacy/class-ffc-privacy-exporters.php:199 includes/privacy/class-ffc-privacy-exporters.php:307 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:330 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:74 includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:372 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:208 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:589 includes/reregistration/class-ffc-reregistration-export-source.php:180 includes/audience/class-ffc-audience-admin-audience-renderer.php:456 includes/audience/class-ffc-audience-admin-audience-renderer.php:641 includes/audience/class-ffc-audience-admin-audience-renderer.php:715 includes/frontend/class-ffc-verification-response-renderer.php:463 templates/admin/reregistration/submissions.php:94 includes/settings/views/ffc-tab-documentation.php:114 includes/settings/tabs/class-ffc-tab-email-texts.php:341 templates/admin/recruitment/candidate-edit/general-section.php:45 includes/settings/views/documentation/config-rate-limit.php:33
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:217 includes/admin/class-ffc-submissions-list.php:79 includes/admin/class-ffc-form-editor-builder-metabox.php:77 includes/admin/class-ffc-form-editor-builder-metabox.php:142 includes/admin/class-ffc-admin-assets-manager.php:623 includes/admin/class-ffc-form-editor-metabox-renderer.php:309 includes/admin/class-ffc-admin-submission-edit-page.php:433 includes/privacy/class-ffc-privacy-exporters.php:81 includes/privacy/class-ffc-privacy-exporters.php:199 includes/privacy/class-ffc-privacy-exporters.php:307 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:330 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:74 includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:372 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:208 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:589 includes/reregistration/class-ffc-reregistration-export-source.php:180 includes/audience/class-ffc-audience-admin-audience-renderer.php:456 includes/audience/class-ffc-audience-admin-audience-renderer.php:641 includes/audience/class-ffc-audience-admin-audience-renderer.php:715 includes/frontend/class-ffc-verification-response-renderer.php:463 templates/admin/reregistration/submissions.php:94 includes/settings/views/ffc-tab-documentation.php:114 includes/settings/tabs/class-ffc-tab-email-texts.php:349 templates/admin/recruitment/candidate-edit/general-section.php:45 includes/settings/views/documentation/config-rate-limit.php:33
 msgid "Email"
 msgstr "E-mail"
 
@@ -6729,15 +6797,19 @@ msgstr "Recalcular Hash de E-mail"
 msgid "Email hash rehash already completed."
 msgstr "O rehash do hash do e-mail já foi concluído."
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:314
+msgid "Email Hash Rehash Batch"
+msgstr "Re-hashing de E-mail"
+
 #: templates/admin/settings/email-model-box.php:71 includes/settings/tabs/class-ffc-tab-email-model.php:42 includes/settings/views/documentation/reference-emails.php:36
 msgid "Email Model"
 msgstr "Modelo de e-mail"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:386
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:394
 msgid "Email Model (shared header/footer)"
 msgstr "Modelo de E-mail (cabeçalho/rodapé compartilhado)"
 
-#: includes/admin/class-ffc-settings-save-handler.php:353
+#: includes/admin/class-ffc-settings-save-handler.php:356
 msgid "Email Model saved."
 msgstr "Modelo de e-mail salvo."
 
@@ -6761,7 +6833,7 @@ msgstr "Modelo de e-mail"
 msgid "Email templates and public shortcode tuning. Saved values populate the convocation email and the public shortcode cache/rate-limit/page-size knobs."
 msgstr "Modelos de e-mail e ajustes de shortcodes públicos. Os valores salvos são usados ​​no e-mail de convocação e nas configurações de cache, limite de taxa e tamanho da página dos shortcodes públicos."
 
-#: templates/admin/settings/email-body-hub.php:44 includes/settings/tabs/class-ffc-tab-email-texts.php:36 includes/settings/views/documentation/reference-emails.php:37
+#: templates/admin/settings/email-body-hub.php:43 includes/settings/tabs/class-ffc-tab-email-texts.php:36 includes/settings/views/documentation/reference-emails.php:37
 msgid "Email texts"
 msgstr "Textos dos e-mails"
 
@@ -6769,7 +6841,7 @@ msgstr "Textos dos e-mails"
 msgid "Email texts hub"
 msgstr "Central de textos de e-mail"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:129
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:137
 msgid "Email texts saved."
 msgstr "Textos dos e-mails salvos."
 
@@ -7076,6 +7148,10 @@ msgstr "Rotação de Chaves de Criptografia"
 #: includes/migrations/strategies/class-ffc-key-rotation-migration-strategy.php:211
 msgid "Encryption key rotation already completed."
 msgstr "A rotação da chave de criptografia já foi concluída."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:315
+msgid "Encryption Key Rotation Batch"
+msgstr "Processo de Rotação de Chaves de Criptografia"
 
 #: includes/settings/views/ffc-tab-advanced.php:694
 msgid "Encryption key source"
@@ -7498,7 +7574,7 @@ msgstr "Cada certificado contém um código QR e um link de validação; qualque
 msgid "Every data export in the plugin (submissions, public forms, url-shortener, activity log, audience bookings, appointments, reregistration) flows through one shared, timeout-safe engine rather than a bespoke exporter. A source implements the export contract (auth, columns, filename, and a keyset-paged fetch), and one AJAX trio (start → batch × N → download) drives it over a temp file — safe for large datasets on shared hosts where the request time limit cannot be raised."
 msgstr "Todas as exportações de dados do plugin (submissões, formulários públicos, encurtador de URL, registro de atividades, reservas de público, agendamentos, recadastramento) são processadas por um mecanismo compartilhado e resistente a *timeouts*, em vez de utilizarem exportadores específicos para cada caso. A fonte de dados implementa o contrato de exportação (autenticação, colunas, nome do arquivo e recuperação paginada via *keyset*), e um fluxo AJAX em três etapas (início → lote × N → download) gerencia o processo utilizando um arquivo temporário — uma abordagem segura para grandes volumes de dados em servidores compartilhados, onde não é possível aumentar o limite de tempo de execução das requisições."
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:336
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:344
 msgid "Every email the plugin can send, and where each one is configured. They all share the Email Model (its own tab); the ones marked \"Editable text (global)\" have their wording edited in the box above on this tab, and the rest ship a fixed default body you can only turn on or off."
 msgstr "Todos os e-mails que o plugin pode enviar e onde cada um é configurado. Todos compartilham o Modelo de E-mail (aba própria); os marcados como \"Texto editável (global)\" têm o texto editado na caixa acima nesta aba, e os demais têm um corpo padrão fixo que você só pode ligar ou desligar."
 
@@ -7838,7 +7914,7 @@ msgstr "Falha ao importar o arquivo html/ \"%1$s\" para a Biblioteca de Mídia (
 msgid "Failed to import legacy template: %s"
 msgstr "Falha ao importar modelo legado: %s"
 
-#: includes/url-shortener/class-ffc-url-shortener-admin-page.php:115 includes/url-shortener/class-ffc-url-shortener-meta-box.php:248
+#: includes/url-shortener/class-ffc-url-shortener-admin-page.php:115 includes/url-shortener/class-ffc-url-shortener-meta-box.php:272
 msgid "Failed to load QR Code"
 msgstr "Falha ao carregar o Código QR"
 
@@ -8383,6 +8459,10 @@ msgstr "para a sintaxe de placeholder."
 msgid "Forced to Private because Visibility is Private."
 msgstr "Forçado a manter o perfil privado porque a visibilidade é privada."
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:310
+msgid "Foreign Keys Migration"
+msgstr "Migração de Chaves Estrangeiras"
+
 #: includes/migrations/class-ffc-migration-foreign-keys.php:88
 msgid "Foreign keys require InnoDB engine. Migration skipped."
 msgstr "Chaves estrangeiras requerem o mecanismo InnoDB. Migração ignorada."
@@ -8435,7 +8515,7 @@ msgstr "O formulário não possui autor para validação."
 msgid "Form has no fields."
 msgstr "O formulário não possui campos."
 
-#: includes/admin/class-ffc-admin-activity-log-page.php:346 includes/frontend/class-ffc-public-csv-download.php:206
+#: includes/admin/class-ffc-admin-activity-log-page.php:421 includes/frontend/class-ffc-public-csv-download.php:206
 msgid "Form ID"
 msgstr "ID do Formulário"
 
@@ -8622,6 +8702,10 @@ msgstr "Nome Completo"
 msgid "Full name of the participant"
 msgstr "Nome completo do participante"
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:270
+msgid "Full Profile Viewed"
+msgstr "Perfil Completo Visualizado"
+
 #. %d: number of future appointments
 #: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:260
 msgid "Future (%d)"
@@ -8655,7 +8739,7 @@ msgstr "Configurações Gerais"
 msgid "General settings view file not found."
 msgstr "Arquivo de visualização das configurações gerais não encontrado."
 
-#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:247
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:271
 msgid "Generate a new short code? The old one will stop working."
 msgstr "Gerar um novo código curto? O antigo deixará de funcionar."
 
@@ -8894,11 +8978,11 @@ msgstr "A geolocalização por GPS está ativada, mas nenhum local foi seleciona
 msgid "GPS Locations"
 msgstr "Localizações GPS"
 
-#: includes/admin/class-ffc-admin-activity-log-page.php:319
+#: includes/admin/class-ffc-admin-activity-log-page.php:394
 msgid "GPS permission denied by the visitor"
 msgstr "Permissão de GPS negada ao visitante"
 
-#: includes/admin/class-ffc-admin-activity-log-page.php:320
+#: includes/admin/class-ffc-admin-activity-log-page.php:395
 msgid "GPS permission pre-explainer shown (before the browser prompt)"
 msgstr "Exibição prévia da permissão de GPS (antes da solicitação do navegador)"
 
@@ -9275,7 +9359,7 @@ msgstr "Como exibir o formulário quando a campanha estiver dentro do seu interv
 msgid "How to display the form when user is outside allowed areas."
 msgstr "Como exibir o formulário quando o usuário está fora das áreas permitidas."
 
-#: includes/admin/class-ffc-form-editor.php:269 includes/self-scheduling/class-ffc-self-scheduling-editor.php:188
+#: includes/admin/class-ffc-form-editor.php:275 includes/self-scheduling/class-ffc-self-scheduling-editor.php:188
 msgid "How to Use / Shortcode"
 msgstr "Como Usar / Código Curto"
 
@@ -9387,6 +9471,10 @@ msgstr "Imagem inserida no layout."
 #: includes/settings/views/documentation/operations-troubleshooting.php:36
 msgid "Image not showing in PDF"
 msgstr "A imagem não aparece no PDF."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:317
+msgid "Image Reference Rewrite Errors"
+msgstr "Erros de Reescrita de Imagem"
 
 #: includes/settings/views/documentation/reference-html-styling.php:59
 msgid "Images (logos, signatures, decorations)"
@@ -9754,7 +9842,7 @@ msgstr "Permissão inválida."
 msgid "Invalid phone number."
 msgstr "Número de telefone inválido."
 
-#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:266
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:290
 msgid "Invalid post ID."
 msgstr "ID da postagem inválido."
 
@@ -9827,7 +9915,7 @@ msgstr "Campo *honeypot* invisível e um desafio matemático básico para barrar
 msgid "Invitation email"
 msgstr "E-mail de convite"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:452
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:460
 msgid "Invitation, reminder & confirmation"
 msgstr "Convite, lembrete e confirmação"
 
@@ -9882,6 +9970,10 @@ msgstr "A API de geolocalização por IP está desativada."
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:472
 msgid "IP Geolocation Areas"
 msgstr "Áreas de Geolocalização de IP"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:307
+msgid "IP Geolocation Debug"
+msgstr "Depuração de Geolocalização de IP"
 
 #. %s: link to the global geolocation settings page
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:428
@@ -10183,6 +10275,10 @@ msgstr "Esquerda"
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:600
 msgid "Legacy (current behaviour, spoofable) — the effective default until you switch"
 msgstr "Legado (comportamento atual, sujeito a falsificação) — o padrão vigente até que você faça a alteração."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:311
+msgid "Legacy Columns Dropped"
+msgstr "Colunas Legadas Removidas"
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:523
 msgid "Legacy →"
@@ -11421,7 +11517,7 @@ msgstr "Nunca ativa o registro de dados reais, apenas o status de operação."
 msgid "Never — do not send automatically"
 msgstr "Nunca — não enviar automaticamente"
 
-#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:853
+#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:871
 msgid "New adjutancy is the same as the current one."
 msgstr "A nova matéria é a mesma que a atual."
 
@@ -11517,11 +11613,11 @@ msgstr "Nova entrada:"
 msgid "New Template"
 msgstr "Novo Modelo"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:440
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:448
 msgid "New-appointment admin notification"
 msgstr "Notificação ao administrador de novo agendamento"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:404
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:412
 msgid "New-submission admin notification"
 msgstr "Notificação ao admin de novo envio"
 
@@ -12017,7 +12113,7 @@ msgstr "Preferências de Notificação"
 msgid "Notifications"
 msgstr "Notificações"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:435
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:443
 msgid "Notifies booked users when an admin deletes a calendar — text edited globally in the hub above."
 msgstr "Notifica os usuários agendados quando um administrador exclui um calendário — texto editado globalmente no hub acima."
 
@@ -12129,6 +12225,10 @@ msgstr "OK"
 msgid "ok / weak / placeholder / missing, taken across the secrets that actually feed the key + salt."
 msgstr "ok / fraco / espaço reservado / ausente, aplicado aos segredos que efetivamente alimentam a chave + salt."
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:257
+msgid "Old Submissions Cleaned Up"
+msgstr "Submissões Antigas Limpas"
+
 #: includes/settings/views/ffc-tab-rate-limit.php:434
 msgid "Older signal rows are purged by the daily cleanup cron."
 msgstr "As linhas de sinal mais antigas são eliminadas pelo cron de limpeza diária."
@@ -12189,7 +12289,7 @@ msgstr "Além do limite mencionado, é necessário que pelo menos essa quantidad
 msgid "On waitlist"
 msgstr "Na lista de espera"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:515
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:523
 msgid "On/off only"
 msgstr "Apenas ativar/desativar"
 
@@ -12330,7 +12430,7 @@ msgstr "Abra o painel de controle a partir da perspectiva de outro usuário."
 msgid "Open the new notice and attach the relevant adjutancies + import the candidate CSV."
 msgstr "Abra o novo edital e anexe as matérias relevantes + importe o arquivo CSV de candidatos."
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:332
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:340
 msgid "Open →"
 msgstr "Abrir →"
 
@@ -12350,13 +12450,17 @@ msgstr "Registro de atividades operacionais/administrativas. Volume de dados men
 msgid "Operator"
 msgstr "Operador"
 
-#: includes/admin/class-ffc-admin-activity-log-page.php:282 includes/admin/class-ffc-admin-activity-log-page.php:293
+#: includes/admin/class-ffc-admin-activity-log-page.php:357 includes/admin/class-ffc-admin-activity-log-page.php:368
 msgid "Operator (masked)"
 msgstr "Operador (mascarado)"
 
 #: includes/settings/views/documentation/developer-hooks-api.php:114
 msgid "Operator API (authenticated issuance)"
 msgstr "API do Operador (emissão autenticada)"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:303
+msgid "Operator Certificate Issued"
+msgstr "Certificado de Operador Emitido"
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:133
 msgid "Operator features"
@@ -12589,7 +12693,7 @@ msgstr "Público-alvo Mãe"
 msgid "Parent: Name"
 msgstr "Mãe: Nome"
 
-#: includes/admin/class-ffc-admin-activity-log-page.php:283
+#: includes/admin/class-ffc-admin-activity-log-page.php:358
 msgid "Participant CPF hash"
 msgstr "Hash do CPF do participante"
 
@@ -12632,6 +12736,10 @@ msgstr "Nota de Aprovação (%)"
 #: includes/frontend/class-ffc-shortcodes.php:286 includes/settings/views/ffc-tab-smtp.php:177
 msgid "Password"
 msgstr "Senha"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:267
+msgid "Password Changed"
+msgstr "Senha Alterada"
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:263 includes/api/class-ffc-user-profile-rest-controller.php:373
 msgid "Password changed successfully!"
@@ -12917,7 +13025,7 @@ msgstr "Anotações pessoais..."
 msgid "Personal Schedule"
 msgstr "Agenda Pessoal"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:342
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:350
 msgid "Personalisation"
 msgstr "Personalização"
 
@@ -13330,7 +13438,7 @@ msgstr "Razões de lista preliminar"
 msgid "Preliminary status"
 msgstr "Estado preliminar"
 
-#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:777
+#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:795
 msgid "Preliminary status can only be set on classifications in the preview list."
 msgstr "O status preliminar só pode ser definido para classificações presentes na lista de pré-visualização."
 
@@ -13435,9 +13543,17 @@ msgstr "Privacidade e Dados (LGPD)"
 msgid "Privacy & LGPD"
 msgstr "Privacidade e LGPD"
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:273
+msgid "Privacy Data Erased"
+msgstr "Dados Privados Apagados"
+
 #: includes/frontend/class-ffc-shortcodes.php:339
 msgid "Privacy Policy"
 msgstr "Política de Privacidade"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:272
+msgid "Privacy Request Created"
+msgstr "Solicitação de Privacidade Criada"
 
 #: includes/settings/views/ffc-tab-geolocation.php:576 includes/settings/views/documentation/feature-recruitment.php:88
 msgid "Privacy:"
@@ -13482,6 +13598,10 @@ msgstr "Perfil"
 #: includes/settings/views/documentation/feature-user-dashboard.php:47
 msgid "Profile custom fields"
 msgstr "Campos personalizados do perfil"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:268
+msgid "Profile Updated"
+msgstr "Perfil Atualizado"
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:444 includes/audience/class-ffc-audience-admin-audience-renderer.php:605
 msgid "profile_key (optional)"
@@ -13656,7 +13776,7 @@ msgstr "Publicar lista preliminar?"
 msgid "Publish the calendar on any page with the shortcode:"
 msgstr "Publique o calendário em qualquer página com o shortcode:"
 
-#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:85
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:109
 msgid "Publish the post to generate a short URL."
 msgstr "Publique a postagem para gerar um URL curto."
 
@@ -13684,7 +13804,7 @@ msgstr "Propósito"
 msgid "QR Actions"
 msgstr "Ações QR"
 
-#: includes/generators/class-ffc-qrcode-generator.php:365 includes/url-shortener/class-ffc-url-shortener-meta-box.php:138 templates/admin/url-shortener/short-urls-page.php:342 includes/settings/views/ffc-tab-advanced.php:265
+#: includes/generators/class-ffc-qrcode-generator.php:365 includes/url-shortener/class-ffc-url-shortener-meta-box.php:162 templates/admin/url-shortener/short-urls-page.php:342 includes/settings/views/ffc-tab-advanced.php:265
 msgid "QR Code"
 msgstr "Código QR"
 
@@ -13960,7 +14080,7 @@ msgstr "Somente leitura — você não tem permissão para editar definições d
 msgid "Read-write"
 msgstr "Leitura e escrita"
 
-#: includes/admin/class-ffc-admin-activity-log-page.php:345 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:679 includes/audience/class-ffc-audience-notification-handler.php:448
+#: includes/admin/class-ffc-admin-activity-log-page.php:420 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:679 includes/audience/class-ffc-audience-notification-handler.php:448
 msgid "Reason"
 msgstr "Motivo"
 
@@ -14064,9 +14184,13 @@ msgstr "Registra o nível selecionado e todos os níveis abaixo dele (destacados
 msgid "records..."
 msgstr "registros..."
 
-#: includes/admin/class-ffc-settings.php:774 includes/user-dashboard/class-ffc-capability-catalog.php:410 includes/recruitment/class-ffc-recruitment-admin-page.php:189 includes/recruitment/class-ffc-recruitment-admin-page.php:190 includes/recruitment/class-ffc-recruitment-admin-page.php:304 includes/recruitment/class-ffc-recruitment-admin-page.php:344 includes/settings/views/ffc-tab-modulos.php:46 includes/settings/views/ffc-tab-advanced.php:121 includes/settings/views/ffc-tab-documentation.php:292 includes/settings/tabs/class-ffc-tab-email-texts.php:303 includes/settings/tabs/class-ffc-tab-email-texts.php:461 includes/settings/views/documentation/config-modules.php:37 includes/settings/views/documentation/reference-emails.php:71 includes/settings/views/documentation/feature-recruitment.php:19
+#: includes/admin/class-ffc-settings.php:774 includes/user-dashboard/class-ffc-capability-catalog.php:410 includes/recruitment/class-ffc-recruitment-admin-page.php:189 includes/recruitment/class-ffc-recruitment-admin-page.php:190 includes/recruitment/class-ffc-recruitment-admin-page.php:304 includes/recruitment/class-ffc-recruitment-admin-page.php:344 includes/settings/views/ffc-tab-modulos.php:46 includes/settings/views/ffc-tab-advanced.php:121 includes/settings/views/ffc-tab-documentation.php:292 includes/settings/tabs/class-ffc-tab-email-texts.php:311 includes/settings/tabs/class-ffc-tab-email-texts.php:469 includes/settings/views/documentation/config-modules.php:37 includes/settings/views/documentation/reference-emails.php:71 includes/settings/views/documentation/feature-recruitment.php:19
 msgid "Recruitment"
 msgstr "Recrutamento"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:288
+msgid "Recruitment Bulk Call Created"
+msgstr "Chamada em Massa de Recrutamento Criada"
 
 #: templates/emails/recruitment-convocation.php:22
 msgid "Recruitment call"
@@ -14075,6 +14199,14 @@ msgstr "Convocação"
 #: includes/settings/views/documentation/reference-emails.php:71
 msgid "Recruitment call (convocation)"
 msgstr "Chamada para recrutamento (convocação)"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:289
+msgid "Recruitment Call Cancelled"
+msgstr "Chamada de Recrutamento Cancelada"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:287
+msgid "Recruitment Call Created"
+msgstr "Chamada de Recrutamento Criada"
 
 #: templates/emails/recruitment-convocation.php:21
 msgid "Recruitment Call: {{notice_name}}"
@@ -14088,9 +14220,17 @@ msgstr "Chamadas de recrutamento, candidatos e a fila pública."
 msgid "Recruitment capabilities (manage / import / call / delete)."
 msgstr "Funcionalidades de recrutamento (gerenciar / importar / contatar / excluir)."
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:183
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:191
 msgid "Recruitment convocation"
 msgstr "Convocação de recrutamento"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:300
+msgid "Recruitment CSV Import Failed"
+msgstr "Falha na Importação de CSV de Recrutamento"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:299
+msgid "Recruitment CSV Imported"
+msgstr "CSV de Recrutamento Importado"
 
 #. 1: notice code, 2: notice name, 3: notice status
 #: templates/admin/recruitment/admin-page/candidates-csv-import-section.php:53
@@ -14098,6 +14238,14 @@ msgstr "Convocação de recrutamento"
 msgctxt "recruitment notice picker"
 msgid "%1$s — %2$s (%3$s)"
 msgstr "%1$s — %2$s (%3$s)"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:286
+msgid "Recruitment Notice Promoted"
+msgstr "Anúncio de Recrutamento Promovido"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:285
+msgid "Recruitment Notice Status Changed"
+msgstr "Anúncio de Recrutamento Alterado"
 
 #: includes/settings/views/ffc-tab-user-access.php:271
 msgid "Redirect Message"
@@ -14137,7 +14285,7 @@ msgstr "Atualizar intervalos da Cloudflare agora"
 msgid "refreshed %s ago"
 msgstr "atualizado há %s"
 
-#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:156
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:180
 msgid "Regenerate"
 msgstr "Re-gerado"
 
@@ -14436,7 +14584,7 @@ msgstr "Solicitar Exclusão de Dados"
 msgid "Request deletion of your personal data. An administrator will review your request."
 msgstr "Solicite a exclusão dos seus dados pessoais. Um administrador analisará sua solicitação."
 
-#: includes/url-shortener/class-ffc-url-shortener-admin-page.php:117 includes/url-shortener/class-ffc-url-shortener-meta-box.php:250
+#: includes/url-shortener/class-ffc-url-shortener-admin-page.php:117 includes/url-shortener/class-ffc-url-shortener-meta-box.php:274
 msgid "Request failed"
 msgstr "A solicitação falhou"
 
@@ -14516,7 +14664,7 @@ msgstr "Requer aprovação"
 msgid "Requires valid ticket (consumed after use)"
 msgstr "Requer ingresso válido (consumido após o uso)"
 
-#: includes/shortcodes/class-ffc-dashboard-shortcode.php:218 includes/user-dashboard/class-ffc-capability-catalog.php:294 includes/reregistration/class-ffc-reregistration-admin.php:100 includes/reregistration/class-ffc-reregistration-admin.php:101 templates/admin/reregistration/list.php:21 includes/settings/views/ffc-tab-modulos.php:38 includes/settings/views/ffc-tab-documentation.php:273 includes/settings/tabs/class-ffc-tab-email-texts.php:304 includes/settings/tabs/class-ffc-tab-email-texts.php:448 includes/settings/tabs/class-ffc-tab-reregistration.php:48 includes/settings/views/documentation/config-modules.php:35 includes/settings/views/documentation/reference-emails.php:69
+#: includes/shortcodes/class-ffc-dashboard-shortcode.php:218 includes/user-dashboard/class-ffc-capability-catalog.php:294 includes/reregistration/class-ffc-reregistration-admin.php:100 includes/reregistration/class-ffc-reregistration-admin.php:101 templates/admin/reregistration/list.php:21 includes/settings/views/ffc-tab-modulos.php:38 includes/settings/views/ffc-tab-documentation.php:273 includes/settings/tabs/class-ffc-tab-email-texts.php:312 includes/settings/tabs/class-ffc-tab-email-texts.php:456 includes/settings/tabs/class-ffc-tab-reregistration.php:48 includes/settings/views/documentation/config-modules.php:35 includes/settings/views/documentation/reference-emails.php:69
 #| msgid "Re-registration"
 msgid "Reregistration"
 msgstr "Recadastramento"
@@ -14526,7 +14674,7 @@ msgstr "Recadastramento"
 msgid "Reregistration Campaigns"
 msgstr "Campanhas de Recadastramento"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:195
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:203
 msgid "Reregistration confirmation"
 msgstr "Confirmação de recadastramento"
 
@@ -14551,9 +14699,13 @@ msgstr "Ficha de recadastramento"
 msgid "Reregistration Fields"
 msgstr "Campos de Recadastramento"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:187
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:195
 msgid "Reregistration invitation"
 msgstr "Convite de recadastramento"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:281
+msgid "Reregistration Invitations Sent"
+msgstr "Convites de Recadastramento Enviados"
 
 #: includes/audience/class-ffc-audience-ajax-controller.php:573
 msgid "Reregistration module unavailable."
@@ -14592,13 +14744,21 @@ msgstr "Registro de Recadastramento"
 msgid "Reregistration Record Valid"
 msgstr "Registro de Recadastramento Válido"
 
-#: templates/emails/reregistration-reminder.php:24 includes/settings/tabs/class-ffc-tab-email-texts.php:191
+#: templates/emails/reregistration-reminder.php:24 includes/settings/tabs/class-ffc-tab-email-texts.php:199
 msgid "Reregistration reminder"
 msgstr "Lembrete de recadastramento"
 
 #: templates/emails/reregistration-reminder.php:23
 msgid "Reregistration reminder: {{reregistration_title}}"
 msgstr "Lembrete de recadastramento: {{reregistration_title}}"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:282
+msgid "Reregistration Reminders Sent"
+msgstr "Lembretes de Recadastramento Enviados"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:280
+msgid "Reregistration Submitted"
+msgstr "Nova Submissão Enviada"
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:157 includes/reregistration/class-ffc-reregistration-frontend.php:126
 msgid "Reregistration submitted successfully!"
@@ -14656,7 +14816,7 @@ msgstr "Restaurar"
 msgid "Restore all Email Model fields to their defaults? Unsaved changes will be lost."
 msgstr "Restaurar todos os campos do modelo de e-mail para os valores padrão? As alterações não salvas serão perdidas."
 
-#: includes/admin/class-ffc-form-editor-email-metabox.php:154 includes/self-scheduling/class-ffc-self-scheduling-editor.php:900 templates/admin/settings/email-body-hub.php:130
+#: includes/admin/class-ffc-form-editor-email-metabox.php:154 includes/self-scheduling/class-ffc-self-scheduling-editor.php:900 templates/admin/settings/email-body-hub.php:139
 msgid "Restore Default Text"
 msgstr "Restaurar Texto Padrão"
 
@@ -15047,11 +15207,11 @@ msgstr "Salvar Rascunho"
 msgid "Save Email Model"
 msgstr "Salvar Modelo de E-mail"
 
-#: templates/admin/settings/email-body-hub.php:138
+#: templates/admin/settings/email-body-hub.php:146
 msgid "Save email texts"
 msgstr "Salvar textos dos e-mails"
 
-#: includes/admin/class-ffc-cert-template-admin-screen.php:667 includes/admin/class-ffc-form-list-columns.php:85 includes/admin/class-ffc-form-editor.php:195 includes/settings/tabs/class-ffc-tab-geolocation.php:91
+#: includes/admin/class-ffc-cert-template-admin-screen.php:667 includes/admin/class-ffc-form-list-columns.php:85 includes/admin/class-ffc-form-editor.php:201 includes/settings/tabs/class-ffc-tab-geolocation.php:91
 msgid "Save failed"
 msgstr "Falha ao salvar"
 
@@ -15095,7 +15255,7 @@ msgstr "Guarde este código — ele permite que você reemita seu certificado a 
 msgid "Save this link to download again later:"
 msgstr "Salve este link para baixar novamente mais tarde:"
 
-#: includes/admin/class-ffc-cert-template-admin-screen.php:666 includes/admin/class-ffc-form-list-columns.php:84 includes/admin/class-ffc-role-capability-editor.php:79 includes/admin/class-ffc-form-editor.php:194 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:147 includes/settings/tabs/class-ffc-tab-geolocation.php:89
+#: includes/admin/class-ffc-cert-template-admin-screen.php:666 includes/admin/class-ffc-form-list-columns.php:84 includes/admin/class-ffc-role-capability-editor.php:79 includes/admin/class-ffc-form-editor.php:200 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:147 includes/settings/tabs/class-ffc-tab-geolocation.php:89
 msgid "Saved"
 msgstr "Salvo"
 
@@ -15111,7 +15271,7 @@ msgstr "Salvo."
 msgid "Saving..."
 msgstr "Salvando..."
 
-#: includes/admin/class-ffc-cert-template-admin-screen.php:665 includes/admin/class-ffc-form-list-columns.php:83 includes/admin/class-ffc-form-editor.php:193 includes/settings/tabs/class-ffc-tab-geolocation.php:88
+#: includes/admin/class-ffc-cert-template-admin-screen.php:665 includes/admin/class-ffc-form-list-columns.php:83 includes/admin/class-ffc-form-editor.php:199 includes/settings/tabs/class-ffc-tab-geolocation.php:88
 msgid "Saving…"
 msgstr "Salvando…"
 
@@ -15539,7 +15699,7 @@ msgstr "Selecione um modelo…"
 msgid "Select all waiting rows on this page"
 msgstr "Selecione todas as filas de espera nesta página."
 
-#: templates/admin/settings/email-body-hub.php:55
+#: templates/admin/settings/email-body-hub.php:54
 msgid "Select an email to edit"
 msgstr "Selecione um e-mail para editar"
 
@@ -15636,7 +15796,7 @@ msgstr "Pessoal"
 msgid "Self-Scheduling"
 msgstr "Auto-Agendamento"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:294 includes/settings/tabs/class-ffc-tab-email-texts.php:412 includes/settings/views/documentation/reference-emails.php:68
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:302 includes/settings/tabs/class-ffc-tab-email-texts.php:420 includes/settings/views/documentation/reference-emails.php:68
 msgid "Self-scheduling"
 msgstr "Autoagendamento"
 
@@ -15806,7 +15966,7 @@ msgstr "Identificadores sensíveis — e-mail, CPF e RF — são criptografados 
 msgid "sent after a member submits; carries the Ficha magic link."
 msgstr "enviado após o envio pelo membro; contém o link de acesso direto (magic link) do formulário."
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:429
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:437
 msgid "Sent automatically when a full slot queues or frees up — text edited globally in the hub above."
 msgstr "Enviado automaticamente quando um horário lotado entra na fila ou é liberado — texto editado globalmente no hub acima."
 
@@ -15822,11 +15982,11 @@ msgstr "Enviado por {{site_title}}"
 msgid "sent to all members when the campaign is activated."
 msgstr "enviado a todos os membros quando a campanha for ativada."
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:399
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:407
 msgid "Sent to the person after they submit a form — global text in the hub above, with an optional per-form custom version."
 msgstr "Enviado à pessoa após o envio de um formulário — texto global na caixa acima, com uma versão personalizada opcional por formulário."
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:466
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:474
 msgid "Sent when a candidate is called — subject/body edited globally in the hub above."
 msgstr "Enviado quando um candidato é convocado — assunto/corpo editados globalmente na caixa acima."
 
@@ -15929,7 +16089,7 @@ msgstr "As configurações não estão sendo salvas entre as abas."
 msgid "Settings saved!"
 msgstr "Configurações salvas!"
 
-#: includes/admin/class-ffc-settings-save-handler.php:119
+#: includes/admin/class-ffc-settings-save-handler.php:122
 msgid "Settings saved."
 msgstr "Configurações salvas."
 
@@ -16005,7 +16165,7 @@ msgstr "Sexo"
 msgid "Shadow-divergence logging"
 msgstr "Registro por divergência de sombra"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:382
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:390
 msgid "Shared"
 msgstr "Compartilhado"
 
@@ -16029,17 +16189,21 @@ msgstr "Código Curto"
 msgid "Short code"
 msgstr "Código curto"
 
-#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:117 templates/admin/url-shortener/short-urls-page.php:184
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:141 templates/admin/url-shortener/short-urls-page.php:184
 msgid "Short URL"
 msgstr "URL Curta"
 
-#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:66
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:90
 msgid "Short URL & QR Code"
 msgstr "URL Curta e Código QR"
 
 #: includes/maintenance/class-ffc-url-shortener-cleaner.php:91 includes/settings/views/ffc-tab-migrations.php:539 includes/settings/views/documentation/operations-maintenance.php:35
 msgid "Short URL Cleanup"
 msgstr "Limpeza de URLs curtas"
+
+#: includes/url-shortener/class-ffc-url-shortener-shortlink.php:133
+msgid "Short URL for this content, or an empty string when no active short URL exists."
+msgstr "URL curta para este conteúdo, ou uma string vazia quando não houver uma URL curta ativa."
 
 #: templates/admin/url-shortener/short-urls-page.php:55
 msgid "Short URL moved to Trash."
@@ -16061,7 +16225,7 @@ msgstr "URL curta excluída permanentemente."
 msgid "Short URL QR Code (base64)"
 msgstr "Código QR de URL curta (base64)"
 
-#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:245
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:269
 msgid "Short URL regenerated!"
 msgstr "URL curta regenerada!"
 
@@ -16600,7 +16764,7 @@ msgstr "Estilo"
 msgid "Subcategory"
 msgstr "Subcategoria"
 
-#: includes/admin/class-ffc-form-editor-email-metabox.php:127 templates/admin/settings/email-body-hub.php:94
+#: includes/admin/class-ffc-form-editor-email-metabox.php:127 templates/admin/settings/email-body-hub.php:103
 msgid "Subject"
 msgstr "Assunto"
 
@@ -16656,7 +16820,7 @@ msgstr "Detalhes da submissão"
 msgid "Submission handler not available"
 msgstr "Manipulador de envio não disponível"
 
-#: includes/admin/class-ffc-admin-activity-log-page.php:284 includes/admin/class-ffc-admin-activity-log-page.php:294 includes/admin/class-ffc-admin-submission-edit-page.php:218
+#: includes/admin/class-ffc-admin-activity-log-page.php:359 includes/admin/class-ffc-admin-activity-log-page.php:369 includes/admin/class-ffc-admin-submission-edit-page.php:218
 msgid "Submission ID"
 msgstr "ID da Submissão"
 
@@ -16664,13 +16828,29 @@ msgstr "ID da Submissão"
 msgid "Submission limit reached. Please wait {time} and try again."
 msgstr "Limite de envios atingido. Aguarde {time} e tente novamente."
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:258
+msgid "Submission Linked to User"
+msgstr "Submissão Vinculada ao Usuário"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:252
+msgid "Submission Moved to Another Form"
+msgstr "Submissão Movida Para Outro Formulário"
+
 #: includes/admin/class-ffc-admin-submission-edit-page.php:99 includes/generators/class-ffc-pdf-generator.php:65 includes/reregistration/class-ffc-reregistration-ajax-handler.php:99
 msgid "Submission not found."
 msgstr "Envio não encontrado."
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:253
+msgid "Submission Personal Data Revealed"
+msgstr "Dados Pessoais da Submissão Reveledas"
+
 #: includes/reregistration/class-ffc-reregistration-admin.php:311
 msgid "Submission rejected."
 msgstr "Submissão rejeitada."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:251
+msgid "Submission Restored"
+msgstr "Submissão Restaurada"
 
 #: includes/reregistration/class-ffc-reregistration-admin.php:312
 msgid "Submission returned to draft for revision."
@@ -16680,6 +16860,14 @@ msgstr "A submissão foi devolvida à fase de rascunho para revisão."
 msgid "Submission status (publish, trash, etc)."
 msgstr "Status da submissão (publicado, lixo, etc.)."
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:250
+msgid "Submission Trashed"
+msgstr "Submissão Movida Para a Lixeira"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:259
+msgid "Submission Unlinked from User"
+msgstr "Submissão Desvinculada do Usuário"
+
 #: includes/admin/class-ffc-admin-activity-log-page.php:229
 msgid "Submission Updated"
 msgstr "Submissão Atualizada"
@@ -16687,6 +16875,10 @@ msgstr "Submissão Atualizada"
 #: includes/admin/class-ffc-admin.php:395
 msgid "Submission updated successfully."
 msgstr "Envio atualizado com sucesso."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:263
+msgid "Submission User Link Changed (legacy)"
+msgstr "Submissão Vinculada ao Usuário Modificada (legado)"
 
 #: includes/maintenance/class-ffc-submission-link-auditor.php:82 includes/settings/views/ffc-tab-migrations.php:910 includes/settings/views/documentation/operations-maintenance.php:43
 msgid "Submission ↔ user link audit"
@@ -16712,6 +16904,18 @@ msgstr "envios permitidos a partir de um dispositivo por formulário (padrão: 1
 #: includes/settings/views/documentation/feature-reregistration.php:38
 msgid "submissions are approved on submit instead of waiting for review."
 msgstr "as submissões são aprovadas no momento do envio, em vez de aguardarem revisão."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:256
+msgid "Submissions Bulk Deleted"
+msgstr "Submissões Excluídas em Massa"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:255
+msgid "Submissions Bulk Restored"
+msgstr "Submissões Restauradas em Massa"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:254
+msgid "Submissions Bulk Trashed"
+msgstr "Submissões Movidas Para a Lixeira em Massa"
 
 #: includes/settings/views/documentation/config-rate-limit.php:32
 msgid "Submissions per client IP, plus a cooldown between attempts."
@@ -16890,11 +17094,11 @@ msgstr "Sistema e Segurança"
 msgid "System & tools"
 msgstr "Sistema e ferramentas"
 
-#: includes/admin/class-ffc-admin-activity-log-page.php:483 includes/admin/class-ffc-activity-log-export-source.php:288
+#: includes/admin/class-ffc-admin-activity-log-page.php:558 includes/admin/class-ffc-activity-log-export-source.php:288
 msgid "System / Anonymous"
 msgstr "Sistema / Anônimo"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:517
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:525
 msgid "System default"
 msgstr "Padrão do sistema"
 
@@ -17004,7 +17208,7 @@ msgstr "IDs (CPFs/RFs)"
 msgid "Technical details: this form uses the open-source thumbmarkjs library (MIT) to produce an anonymized device identifier (browser, screen, GPU, fonts). Everything is processed locally; no data is sent to any third-party server."
 msgstr "Detalhes técnicos: este formulário utiliza a biblioteca thumbmarkjs (MIT, código aberto) para gerar um identificador de dispositivo. Todo o processamento é feito localmente e nenhum dado é enviado para terceiros."
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:492
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:500
 msgid "Tells a user they were granted plugin access — text edited globally in the hub above."
 msgstr "Informa a um usuário que recebeu acesso ao plugin — texto editado globalmente no hub acima."
 
@@ -17219,7 +17423,7 @@ msgstr "O certificado é um PDF gerado pelo formulário após o envio (o tipo pa
 msgid "the child half only (e.g. the Sector)."
 msgstr "apenas os filhos (por exemplo, o Setor)."
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:387
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:395
 msgid "The chrome wrapped around every plugin email — colours, logo, footer."
 msgstr "A moldura em volta de todo e-mail do plugin — cores, logo, rodapé."
 
@@ -17661,7 +17865,7 @@ msgstr "A rotação só está disponível quando tanto `FFC_ENCRYPTION_KEY` quan
 msgid "The same _parent / _child split is available for any dependent_select field by appending those suffixes to its field key."
 msgstr "A mesma divisão _parent / _child está disponível para qualquer campo dependent_select, adicionando esses sufixos à sua chave de campo."
 
-#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:860
+#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:878
 msgid "The selected adjutancy is not attached to this notice."
 msgstr "O cargo de matéria selecionado não está vinculado a este aviso."
 
@@ -17910,7 +18114,7 @@ msgstr "Esta ação não pode ser desfeita nesta página."
 msgid "This cannot be undone."
 msgstr "Isso não pode ser desfeito."
 
-#: includes/admin/class-ffc-form-editor.php:164
+#: includes/admin/class-ffc-form-editor.php:170
 msgid "This certificate layout is missing required tags:"
 msgstr "O layout de certificado não contém todas as tags obrigatórias:"
 
@@ -18107,7 +18311,7 @@ msgstr "Este plugin permite criar formulários de emissão de certificados, gera
 msgid "This plugin is not distributed through the WordPress.org directory, so it ships its own updater. It teaches WordPress's native update check to see the plugin's GitHub Releases: when a newer release exists, the update appears in Dashboard → Updates and on the Plugins screen exactly like any other plugin update — \"update now\", the \"View details\" changelog modal, and the per-plugin \"Enable auto-updates\" toggle all work as usual."
 msgstr "Este plugin não é distribuído pelo diretório do WordPress.org; por isso, ele inclui seu próprio sistema de atualização. Ele instrui a verificação nativa de atualizações do WordPress a reconhecer as *Releases* do plugin no GitHub: quando uma versão mais recente está disponível, a atualização aparece em Painel → Atualizações e na tela de Plugins exatamente como qualquer outra atualização de plugin — a opção \"atualizar agora\", o modal de detalhes (*changelog*) e a chave para \"Ativar atualizações automáticas\" de cada plugin funcionam normalmente."
 
-#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:807
+#: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:825
 msgid "This reason cannot be used with the chosen preliminary status."
 msgstr "Este motivo não pode ser utilizado com o estado preliminar."
 
@@ -18859,7 +19063,7 @@ msgstr "Atualizar Público-alvo"
 msgid "Update Calendar"
 msgstr "Atualizar Calendário"
 
-#: includes/integrations/class-ffc-github-updater.php:238
+#: includes/integrations/class-ffc-github-updater.php:230
 msgid "Update package integrity check (SHA-256) failed. Installation aborted."
 msgstr "A verificação de integridade do pacote de atualização (SHA-256) falhou. A instalação foi abortada."
 
@@ -19025,7 +19229,7 @@ msgstr "Usuário"
 
 #. %d: user ID
 #. %d — orphaned WP user id
-#: includes/admin/class-ffc-admin-activity-log-page.php:480 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:467
+#: includes/admin/class-ffc-admin-activity-log-page.php:555 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:467
 msgid "User #%d (deleted)"
 msgstr "Usuário #%d (excluído)"
 
@@ -19037,7 +19241,7 @@ msgstr "Acesso do Usuário"
 msgid "User Access & Permissions"
 msgstr "Acesso de Usuário & Permissões "
 
-#: includes/admin/class-ffc-settings-save-handler.php:498 includes/settings/tabs/class-ffc-tab-user-access.php:108
+#: includes/admin/class-ffc-settings-save-handler.php:501 includes/settings/tabs/class-ffc-tab-user-access.php:108
 msgid "User Access settings saved successfully."
 msgstr "Configurações de Acesso de Usuário salvas com sucesso."
 
@@ -19097,6 +19301,10 @@ msgstr "Painel do Usuário e Acesso"
 msgid "User Dashboard:"
 msgstr "Painel do Usuário:"
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:271
+msgid "User Data Anonymized"
+msgstr "Dados do Usuário Anonimizados"
+
 #: includes/settings/views/ffc-tab-geolocation.php:379
 msgid "User denied location permission"
 msgstr "Usuário negou permissão de localização"
@@ -19108,6 +19316,10 @@ msgstr "O usuário não tem acesso a este calendário."
 #: includes/settings/views/documentation/reference-tokens.php:41
 msgid "User email address"
 msgstr "Endereço de e-mail do usuário"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:269
+msgid "User Email Changed"
+msgstr "E-mail do Usuário Alterado"
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:376
 msgid "User explicitly agreed to data storage and privacy policy."
@@ -19149,7 +19361,7 @@ msgstr "Notas do Usuário"
 msgid "User profile deleted."
 msgstr "Perfil de usuário excluído."
 
-#: includes/admin/class-ffc-form-editor.php:282
+#: includes/admin/class-ffc-form-editor.php:288
 msgid "User-friction stats — last 30 days"
 msgstr "Estatísticas de atrito do usuário — últimos 30 dias"
 
@@ -19395,7 +19607,7 @@ msgstr "Visualizar Painel de Controle"
 msgid "View dashboard as this user"
 msgstr "Visualizar painel de controle como este usuário"
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:229 includes/admin/class-ffc-admin-activity-log-page.php:521 templates/admin/reregistration/submission-row.php:53
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:229 includes/admin/class-ffc-admin-activity-log-page.php:596 templates/admin/reregistration/submission-row.php:53
 msgid "View Details"
 msgstr "Ver Detalhes"
 
@@ -19507,7 +19719,7 @@ msgstr "Configurações de Visibilidade"
 msgid "Visible"
 msgstr "Visível"
 
-#: includes/admin/class-ffc-admin-activity-log-page.php:347
+#: includes/admin/class-ffc-admin-activity-log-page.php:422
 msgid "Visitor (IP hash)"
 msgstr "Visitante (hash de IP)"
 
@@ -19543,7 +19755,7 @@ msgstr "Lista de espera"
 msgid "Waitlist & automatic promotion"
 msgstr "Lista de espera e promoção automática"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:428
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:436
 msgid "Waitlist & promotion notices"
 msgstr "Avisos de lista de espera e promoção"
 
@@ -19551,7 +19763,7 @@ msgstr "Avisos de lista de espera e promoção"
 msgid "Waitlist Capacity"
 msgstr "Capacidade da lista de espera"
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:175
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:183
 msgid "Waitlist spot opened (promotion)"
 msgstr "Vaga liberada na lista de espera (promoção)"
 
@@ -19892,7 +20104,7 @@ msgstr "Quando desmarcada, a validação de IP usa as mesmas áreas que o GPS."
 msgid "When you submit a form, request a certificate, book an appointment, join an audience or take part in a re-registration or recruitment process through this site, we collect the personal data you provide. Depending on how each form is configured, this may include your name, e-mail address, telephone number, national identification numbers (such as CPF and RF), free-text answers and any custom fields defined by the administrator."
 msgstr "Ao enviar um formulário, solicitar um certificado, agendar um atendimento, participar de uma audiência ou integrar um processo de recadastramento ou recrutamento por meio deste site, coletamos os dados pessoais que você fornece. Dependendo da configuração de cada formulário, isso pode incluir seu nome, endereço de e-mail, número de telefone, números de identificação nacional (como CPF e RF), respostas em texto livre e quaisquer campos personalizados definidos pelo administrador."
 
-#: includes/settings/tabs/class-ffc-tab-email-texts.php:343
+#: includes/settings/tabs/class-ffc-tab-email-texts.php:351
 msgid "Where"
 msgstr "Onde"
 
@@ -20633,6 +20845,10 @@ msgstr "CEP"
 #: includes/admin/class-ffc-admin-user-capabilities.php:144 includes/admin/class-ffc-admin-user-capabilities.php:505
 msgid "—"
 msgstr "—"
+
+#: templates/admin/settings/email-body-hub.php:57
+msgid "— Choose an email —"
+msgstr "— Escolha um e-mail —"
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:849
 msgid "— none —"
