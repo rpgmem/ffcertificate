@@ -225,28 +225,103 @@ class AdminActivityLogPage {
 	 */
 	public static function get_action_label( string $action ): string {
 		$labels = array(
-			'submission_created'        => __( 'Submission Created', 'ffcertificate' ),
-			'submission_updated'        => __( 'Submission Updated', 'ffcertificate' ),
-			'submission_deleted'        => __( 'Submission Deleted', 'ffcertificate' ),
-			'data_accessed'             => __( 'Data Accessed', 'ffcertificate' ),
-			'access_denied'             => __( 'Access Denied', 'ffcertificate' ),
-			'settings_changed'          => __( 'Settings Changed', 'ffcertificate' ),
+			'submission_created'                           => __( 'Submission Created', 'ffcertificate' ),
+			'submission_updated'                           => __( 'Submission Updated', 'ffcertificate' ),
+			'submission_deleted'                           => __( 'Submission Deleted', 'ffcertificate' ),
+			'data_accessed'                                => __( 'Data Accessed', 'ffcertificate' ),
+			'access_denied'                                => __( 'Access Denied', 'ffcertificate' ),
+			'settings_changed'                             => __( 'Settings Changed', 'ffcertificate' ),
 			// Public Operator Access (#224) — early-open + ticket cleanup.
-			'early_open_executed'       => __( 'Form Started Early', 'ffcertificate' ),
-			'tickets_purged_expired'    => __( 'Expired Form Tickets Cleared', 'ffcertificate' ),
+			'early_open_executed'                          => __( 'Form Started Early', 'ffcertificate' ),
+			'tickets_purged_expired'                       => __( 'Expired Form Tickets Cleared', 'ffcertificate' ),
 			// Postpone close (6.5.12).
-			'end_postponed'             => __( 'Form Close Postponed', 'ffcertificate' ),
+			'end_postponed'                                => __( 'Form Close Postponed', 'ffcertificate' ),
 			// Schedule exception per submission (#366 Sprint 9).
-			'schedule_override_created' => __( 'Schedule Override Created', 'ffcertificate' ),
-			'operator_ip_bypass'        => __( 'Operator IP Bypass', 'ffcertificate' ),
+			'schedule_override_created'                    => __( 'Schedule Override Created', 'ffcertificate' ),
+			'operator_ip_bypass'                           => __( 'Operator IP Bypass', 'ffcertificate' ),
 			// Pre-flight telemetry (#356 follow-up).
-			'preflight_blocked'         => __( 'Pre-flight Banner Shown', 'ffcertificate' ),
+			'preflight_blocked'                            => __( 'Pre-flight Banner Shown', 'ffcertificate' ),
 			// Delivery audit.
-			'pdf_generated'             => __( 'PDF Generated', 'ffcertificate' ),
-			'certificate_emailed'       => __( 'Certificate Emailed', 'ffcertificate' ),
-			'csv_downloaded'            => __( 'CSV Downloaded', 'ffcertificate' ),
+			'pdf_generated'                                => __( 'PDF Generated', 'ffcertificate' ),
+			'certificate_emailed'                          => __( 'Certificate Emailed', 'ffcertificate' ),
+			'csv_downloaded'                               => __( 'CSV Downloaded', 'ffcertificate' ),
+
+			// Submission lifecycle.
+			'submission_trashed'                           => __( 'Submission Trashed', 'ffcertificate' ),
+			'submission_restored'                          => __( 'Submission Restored', 'ffcertificate' ),
+			'submission_moved'                             => __( 'Submission Moved to Another Form', 'ffcertificate' ),
+			'submission_pii_revealed'                      => __( 'Submission Personal Data Revealed', 'ffcertificate' ),
+			'bulk_trash'                                   => __( 'Submissions Bulk Trashed', 'ffcertificate' ),
+			'bulk_restore'                                 => __( 'Submissions Bulk Restored', 'ffcertificate' ),
+			'bulk_delete'                                  => __( 'Submissions Bulk Deleted', 'ffcertificate' ),
+			'data_cleanup'                                 => __( 'Old Submissions Cleaned Up', 'ffcertificate' ),
+			'user_linked'                                  => __( 'Submission Linked to User', 'ffcertificate' ),
+			'user_unlinked'                                => __( 'Submission Unlinked from User', 'ffcertificate' ),
+			// Legacy: link/unlink logged under this generic key until #1024
+			// corrected the swapped arguments. Kept so existing rows stay
+			// readable; nothing writes it any more.
+			'submission'                                   => __( 'Submission User Link Changed (legacy)', 'ffcertificate' ),
+
+			// Users & privacy.
+			'capabilities_granted'                         => __( 'Capabilities Granted', 'ffcertificate' ),
+			'password_changed'                             => __( 'Password Changed', 'ffcertificate' ),
+			'profile_updated'                              => __( 'Profile Updated', 'ffcertificate' ),
+			'user_email_changed'                           => __( 'User Email Changed', 'ffcertificate' ),
+			'user_profile_read_full'                       => __( 'Full Profile Viewed', 'ffcertificate' ),
+			'user_data_anonymized'                         => __( 'User Data Anonymized', 'ffcertificate' ),
+			'privacy_request_created'                      => __( 'Privacy Request Created', 'ffcertificate' ),
+			'privacy_data_erased'                          => __( 'Privacy Data Erased', 'ffcertificate' ),
+
+			// Scheduling.
+			'appointment_created'                          => __( 'Appointment Created', 'ffcertificate' ),
+			'appointment_cancelled'                        => __( 'Appointment Cancelled', 'ffcertificate' ),
+
+			// Reregistration.
+			'reregistration_submitted'                     => __( 'Reregistration Submitted', 'ffcertificate' ),
+			'reregistration_invitations_sent'              => __( 'Reregistration Invitations Sent', 'ffcertificate' ),
+			'reregistration_reminders_sent'                => __( 'Reregistration Reminders Sent', 'ffcertificate' ),
+
+			// Recruitment.
+			'recruitment_notice_status_changed'            => __( 'Recruitment Notice Status Changed', 'ffcertificate' ),
+			'recruitment_notice_promoted'                  => __( 'Recruitment Notice Promoted', 'ffcertificate' ),
+			'recruitment_call_created'                     => __( 'Recruitment Call Created', 'ffcertificate' ),
+			'recruitment_bulk_call_created'                => __( 'Recruitment Bulk Call Created', 'ffcertificate' ),
+			'recruitment_call_cancelled'                   => __( 'Recruitment Call Cancelled', 'ffcertificate' ),
+			'recruitment_candidate_promoted'               => __( 'Candidate Promoted', 'ffcertificate' ),
+			'recruitment_candidate_deleted'                => __( 'Candidate Deleted', 'ffcertificate' ),
+			'recruitment_candidate_fields_edited'          => __( 'Candidate Fields Edited', 'ffcertificate' ),
+			'recruitment_pii_revealed'                     => __( 'Candidate Personal Data Revealed', 'ffcertificate' ),
+			'recruitment_classification_status_changed'    => __( 'Classification Status Changed', 'ffcertificate' ),
+			'recruitment_classification_adjutancy_changed' => __( 'Classification Adjutancy Changed', 'ffcertificate' ),
+			'recruitment_classification_override_to_empty' => __( 'Classification Cleared', 'ffcertificate' ),
+			'recruitment_classification_deleted'           => __( 'Classification Deleted', 'ffcertificate' ),
+			'recruitment_adjutancy_deleted'                => __( 'Adjutancy Deleted', 'ffcertificate' ),
+			'recruitment_csv_imported'                     => __( 'Recruitment CSV Imported', 'ffcertificate' ),
+			'recruitment_csv_import_failed'                => __( 'Recruitment CSV Import Failed', 'ffcertificate' ),
+
+			// Certificates issued through the operator API.
+			'operator_certificate_issued'                  => __( 'Operator Certificate Issued', 'ffcertificate' ),
+
+			// System & security.
+			'decrypt_failure'                              => __( 'Decryption Failure', 'ffcertificate' ),
+			'ip_geolocation_debug'                         => __( 'IP Geolocation Debug', 'ffcertificate' ),
+
+			// Migrations.
+			'migration_foreign_keys'                       => __( 'Foreign Keys Migration', 'ffcertificate' ),
+			'legacy_columns_dropped'                       => __( 'Legacy Columns Dropped', 'ffcertificate' ),
+			'cpf_rf_split_migration_batch'                 => __( 'CPF/RF Split Migration Batch', 'ffcertificate' ),
+			'cpf_rf_split_unknown_length'                  => __( 'CPF/RF Split: Unknown Length', 'ffcertificate' ),
+			'email_hash_rehash_migration_batch'            => __( 'Email Hash Rehash Batch', 'ffcertificate' ),
+			'key_rotation_migration_batch'                 => __( 'Encryption Key Rotation Batch', 'ffcertificate' ),
+			'activity_log_clear_plaintext_batch'           => __( 'Activity Log Plaintext Cleanup Batch', 'ffcertificate' ),
+			'rewrite_html_image_refs_errors'               => __( 'Image Reference Rewrite Errors', 'ffcertificate' ),
 		);
 
+		// The fallback is deliberately kept for rows written by an older
+		// version whose action key has since been removed, and for anything a
+		// filter injects. It renders untranslated English, so a *current*
+		// action reaching it is a bug — `ActivityLogActionLabelsTest` fails CI
+		// when one does (#1024).
 		return isset( $labels[ $action ] ) ? $labels[ $action ] : ucwords( str_replace( '_', ' ', $action ) );
 	}
 
