@@ -346,7 +346,7 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 
 		$migrated = (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM %i WHERE id <= %d AND ( {$predicate} )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- see above.
+				"SELECT COUNT(*) FROM %i WHERE id <= %d AND ( {$predicate} )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$predicate} comes from non_empty_predicate(), which builds it from the strategy's own column allowlist; the table goes through %i and the cursor is bound.
 				$table,
 				$cursor
 			)
