@@ -18,6 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Reprint Detector.
  */
@@ -42,8 +43,7 @@ class ReprintDetector {
 		if ( ! empty( $val_ticket ) ) {
 			// Hash-based lookup (works with encrypted data).
 			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-				$ticket_hash = \FreeFormCertificate\Core\Encryption::hash( strtoupper( trim( $val_ticket ) ) );
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$ticket_hash         = \FreeFormCertificate\Core\Encryption::hash( strtoupper( trim( $val_ticket ) ) );
 				$existing_submission = $wpdb->get_row(
 					$wpdb->prepare(
 						'SELECT * FROM %i WHERE form_id = %d AND ticket_hash = %s ORDER BY id DESC LIMIT 1',
@@ -56,8 +56,7 @@ class ReprintDetector {
 
 			// Fallback: LIKE on plaintext data (legacy / non-encrypted).
 			if ( ! $existing_submission ) {
-				$like_query = '%' . $wpdb->esc_like( '"ticket":"' . $val_ticket . '"' ) . '%';
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$like_query          = '%' . $wpdb->esc_like( '"ticket":"' . $val_ticket . '"' ) . '%';
 				$existing_submission = $wpdb->get_row(
 					$wpdb->prepare(
 						'SELECT * FROM %i WHERE form_id = %d AND data LIKE %s ORDER BY id DESC LIMIT 1',
@@ -82,7 +81,6 @@ class ReprintDetector {
 				$id_hash     = \FreeFormCertificate\Core\Encryption::hash( $clean_cpf );
 				$hash_column = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
 
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$existing_submission = $wpdb->get_row(
 					$wpdb->prepare(
 						'SELECT * FROM %i WHERE form_id = %d AND %i = %s ORDER BY id DESC LIMIT 1',

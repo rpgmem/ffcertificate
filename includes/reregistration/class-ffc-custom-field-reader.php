@@ -24,6 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Read queries for audience-specific custom field definitions.
  *
@@ -140,7 +141,7 @@ class CustomFieldReader {
 		 *
 		 * @var CustomFieldRow|null $result
 		 */
-		$result = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- This is the cache-miss path — the hit is served by the cache_get() above and the result is stored below.
+		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $field_id )
 		);
 
@@ -169,7 +170,6 @@ class CustomFieldReader {
 			$where .= ' AND is_active = 1';
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The one read in #1034 still worth caching: six sibling accessors (_with_parents, _grouped, get_profile_fields, get_sensitive_fields, _keyed) all funnel through this query, so one render can repeat it for the same audience. That repeat is what a cache would remove, and it holds even without a persistent object-cache backend. Left uncached until a real render is measured — invalidation would have to cover CustomFieldWriter.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i {$where} ORDER BY sort_order ASC, id ASC",
@@ -276,7 +276,6 @@ class CustomFieldReader {
 			$where .= ' AND is_active = 1';
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): one caller, the custom-fields admin page, once per render.
 		return (int) $wpdb->get_var(
 			$wpdb->prepare( "SELECT COUNT(*) FROM %i {$where}", array_merge( array( $table ), $values ) )
 		);
@@ -419,7 +418,7 @@ class CustomFieldReader {
 		 *
 		 * @var CustomFieldRow|null $result
 		 */
-		$result = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): a single caller, the standard-fields seeder, which runs once per campaign setup.
+		$result = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE audience_id = %d AND field_key = %s LIMIT 1',
 				$table,
@@ -537,7 +536,6 @@ class CustomFieldReader {
 		global $wpdb;
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table-existence guard.
 		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 		if ( $exists !== $table ) {
 			return array();
@@ -549,13 +547,11 @@ class CustomFieldReader {
 		// writes long before that migration runs, so detect the older shape
 		// and degrade to an empty list rather than emit a "Unknown column"
 		// query into debug.log on every settings save.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'is_sensitive' ) );
 		if ( empty( $columns ) ) {
 			return array();
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Catalog read; caching handled at the caller (SensitiveFieldRegistry).
 		$rows = $wpdb->get_col(
 			$wpdb->prepare(
 				'SELECT DISTINCT field_key FROM %i WHERE is_sensitive = 1 AND is_active = 1',
@@ -593,7 +589,6 @@ class CustomFieldReader {
 		global $wpdb;
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed scan by audience_id.
 		$rows = $wpdb->get_col(
 			$wpdb->prepare( 'SELECT field_key FROM %i WHERE audience_id = %d', $table, $audience_id )
 		);

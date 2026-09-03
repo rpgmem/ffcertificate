@@ -25,6 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Write operations for `ffc_recruitment_call` rows.
  *
@@ -110,7 +111,6 @@ class RecruitmentCallWriter {
 		);
 		$format = array( '%d', '%d', '%s', '%s', '%d', '%s', '%s', '%d', '%s', '%s' );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Insert via wpdb helper.
 		$result = $wpdb->insert( $table, $insert, $format );
 
 		if ( ! $result ) {
@@ -160,7 +160,7 @@ class RecruitmentCallWriter {
 			return 0;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Conditional UPDATE via wpdb->query for affected-rows return; $prepared came from $wpdb->prepare() on the line above.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Conditional UPDATE via wpdb->query for affected-rows return; $prepared came from $wpdb->prepare() on the line above.
 		$affected = $wpdb->query( $prepared );
 
 		static::cache_delete( "id_{$id}" );
@@ -204,7 +204,6 @@ class RecruitmentCallWriter {
 		$update['updated_at'] = current_time( 'mysql' );
 		$format[]             = '%s';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Update via wpdb helper.
 		$result = $wpdb->update( $table, $update, array( 'id' => $id ), $format, array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );

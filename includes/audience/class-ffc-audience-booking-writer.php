@@ -21,6 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Write operations for audience booking records.
  *
@@ -105,7 +106,6 @@ class AudienceBookingWriter {
 		// matched range so the second transaction blocks until the first
 		// commits. The REST layer still calls `get_conflicts()` first for
 		// a friendly error, but this is the authoritative check.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( 'START TRANSACTION' );
 
 		$conflicts = self::get_conflicts_for_update(
@@ -115,12 +115,10 @@ class AudienceBookingWriter {
 			(string) $data['end_time']
 		);
 		if ( ! empty( $conflicts ) ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->query( 'ROLLBACK' );
 			return false;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->insert(
 			$table,
 			array(
@@ -138,14 +136,12 @@ class AudienceBookingWriter {
 		);
 
 		if ( ! $result ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->query( 'ROLLBACK' );
 			return false;
 		}
 
 		$booking_id = (int) $wpdb->insert_id;
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( 'COMMIT' );
 
 		// Add audience associations if provided.
@@ -184,7 +180,6 @@ class AudienceBookingWriter {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT id FROM %i
@@ -265,7 +260,6 @@ class AudienceBookingWriter {
 			}
 
 			if ( ! empty( $update_data ) ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$wpdb->update(
 					$table,
 					$update_data,
@@ -331,13 +325,10 @@ class AudienceBookingWriter {
 		$users_table     = self::get_booking_users_table_name();
 
 		// Delete associations first.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $audiences_table, array( 'booking_id' => $id ), array( '%d' ) );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $users_table, array( 'booking_id' => $id ), array( '%d' ) );
 
 		// Delete the booking.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
@@ -356,7 +347,6 @@ class AudienceBookingWriter {
 		$wpdb  = self::db();
 		$table = self::get_booking_audiences_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->insert(
 			$table,
 			array(
@@ -380,7 +370,6 @@ class AudienceBookingWriter {
 		$wpdb  = self::db();
 		$table = self::get_booking_audiences_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->delete(
 			$table,
 			array(
@@ -405,7 +394,6 @@ class AudienceBookingWriter {
 		$table = self::get_booking_audiences_table_name();
 
 		// Remove all existing.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $table, array( 'booking_id' => $booking_id ), array( '%d' ) );
 
 		// Add new ones.
@@ -427,7 +415,6 @@ class AudienceBookingWriter {
 		$wpdb  = self::db();
 		$table = self::get_booking_users_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->insert(
 			$table,
 			array(
@@ -451,7 +438,6 @@ class AudienceBookingWriter {
 		$wpdb  = self::db();
 		$table = self::get_booking_users_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->delete(
 			$table,
 			array(
@@ -476,7 +462,6 @@ class AudienceBookingWriter {
 		$table = self::get_booking_users_table_name();
 
 		// Remove all existing.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $table, array( 'booking_id' => $booking_id ), array( '%d' ) );
 
 		// Add new ones.

@@ -27,6 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Service class for user operations.
  */
@@ -120,8 +121,7 @@ class UserService {
 
 		// Certificate count.
 		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-			$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): this is NOT a render path. get_user_statistics() is reached only from export_personal_data() (a GDPR export) and user_has_ffc_data() (the deleted_user short-circuit) — both one-shot and cold, and caching the deletion read could serve a stale answer during cleanup.
+			$table                 = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 			$stats['certificates'] = (int) $wpdb->get_var(
 				$wpdb->prepare(
 					"SELECT COUNT(*) FROM %i WHERE user_id = %d AND status != 'trash'",
@@ -134,7 +134,6 @@ class UserService {
 		// Appointment count.
 		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 		if ( self::table_exists( $appointments_table ) ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): this is NOT a render path. get_user_statistics() is reached only from export_personal_data() (a GDPR export) and user_has_ffc_data() (the deleted_user short-circuit) — both one-shot and cold, and caching the deletion read could serve a stale answer during cleanup.
 			$stats['appointments'] = (int) $wpdb->get_var(
 				$wpdb->prepare(
 					"SELECT COUNT(*) FROM %i WHERE user_id = %d AND status != 'cancelled'",
@@ -147,7 +146,6 @@ class UserService {
 		// Audience group count.
 		$members_table = $wpdb->prefix . 'ffc_audience_members';
 		if ( self::table_exists( $members_table ) ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): this is NOT a render path. get_user_statistics() is reached only from export_personal_data() (a GDPR export) and user_has_ffc_data() (the deleted_user short-circuit) — both one-shot and cold, and caching the deletion read could serve a stale answer during cleanup.
 			$stats['audience_groups'] = (int) $wpdb->get_var(
 				$wpdb->prepare(
 					'SELECT COUNT(*) FROM %i WHERE user_id = %d',

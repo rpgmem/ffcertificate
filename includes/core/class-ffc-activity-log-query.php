@@ -18,6 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Activity Log Query.
  */
@@ -92,7 +93,6 @@ class ActivityLogQuery {
 		$offset          = absint( $args['offset'] );
 		$limit           = absint( $args['limit'] );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $where_clause, $orderby, $order are pre-validated above.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i WHERE {$where_clause} ORDER BY {$orderby} {$order} LIMIT %d, %d",
@@ -142,7 +142,6 @@ class ActivityLogQuery {
 
 		$where_clause = implode( ' AND ', $where );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $where_clause is built from prepared fragments above.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i WHERE {$where_clause} AND id < %d ORDER BY id DESC LIMIT %d",
@@ -180,7 +179,6 @@ class ActivityLogQuery {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'ffc_activity_log';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Catalog lookup; %i used for the table identifier.
 		$actions = $wpdb->get_col(
 			$wpdb->prepare( 'SELECT DISTINCT action FROM %i ORDER BY action ASC', $table_name )
 		);
@@ -219,13 +217,11 @@ class ActivityLogQuery {
 		// shape as DatabaseHelperTrait::table_exists() (SHOW TABLES
 		// LIKE %s; %s already handles LIKE-escape — the table name is
 		// internal, never operator-supplied).
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
 		if ( $exists !== $table_name ) {
 			return 0;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Privacy redaction; surface area kept narrow (single WHERE on user_id).
 		$rows = $wpdb->query(
 			$wpdb->prepare(
 				'UPDATE %i SET user_id = NULL WHERE user_id = %d',
@@ -316,7 +312,6 @@ class ActivityLogQuery {
 
 		$where_clause = implode( ' AND ', $where );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM %i WHERE {$where_clause}",
@@ -343,7 +338,6 @@ class ActivityLogQuery {
 		$date_from_ts = strtotime( "-{$days} days" );
 		$date_from    = gmdate( 'Y-m-d H:i:s', $date_from_ts ? $date_from_ts : time() );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$total = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(*) FROM %i WHERE created_at >= %s',
@@ -352,7 +346,6 @@ class ActivityLogQuery {
 			)
 		);
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$by_level = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT level, COUNT(*) as count FROM %i WHERE created_at >= %s GROUP BY level',
@@ -362,7 +355,6 @@ class ActivityLogQuery {
 			ARRAY_A
 		);
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$top_actions = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT action, COUNT(*) as count FROM %i WHERE created_at >= %s GROUP BY action ORDER BY count DESC LIMIT 10',
@@ -372,7 +364,6 @@ class ActivityLogQuery {
 			ARRAY_A
 		);
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$top_users = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT user_id, COUNT(*) as count FROM %i WHERE created_at >= %s AND user_id > 0 GROUP BY user_id ORDER BY count DESC LIMIT 10',
@@ -411,7 +402,6 @@ class ActivityLogQuery {
 			return array();
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$logs = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE submission_id = %d ORDER BY created_at DESC LIMIT %d',
@@ -455,7 +445,6 @@ class ActivityLogQuery {
 		$cutoff_date_ts = strtotime( "-{$days} days" );
 		$cutoff_date    = gmdate( 'Y-m-d H:i:s', $cutoff_date_ts ? $cutoff_date_ts : time() );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
 				'DELETE FROM %i WHERE created_at < %s',

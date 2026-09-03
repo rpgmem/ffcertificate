@@ -19,6 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Schema and data statements against the plugin's own ffc_* tables during activation/migration. WordPress exposes no API for them, and there is nothing to cache on this path.
 /**
  * Migration Self Scheduling Tables.
  */
@@ -106,7 +107,6 @@ class MigrationSelfSchedulingTables {
 		global $wpdb;
 
 		// Check if old table exists.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$old_exists = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = %s AND table_name = %s',
@@ -116,7 +116,6 @@ class MigrationSelfSchedulingTables {
 		);
 
 		// Check if new table already exists.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$new_exists = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = %s AND table_name = %s',
@@ -150,7 +149,6 @@ class MigrationSelfSchedulingTables {
 		}
 
 		// Rename the table.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->query( $wpdb->prepare( 'RENAME TABLE %i TO %i', $old_table, $new_table ) );
 
 		if ( false === $result ) {
@@ -229,7 +227,6 @@ class MigrationSelfSchedulingTables {
 			$old_table = $wpdb->prefix . $old_suffix;
 			$new_table = $wpdb->prefix . $new_suffix;
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$old_exists = (bool) $wpdb->get_var(
 				$wpdb->prepare(
 					'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = %s AND table_name = %s',
@@ -238,7 +235,6 @@ class MigrationSelfSchedulingTables {
 				)
 			);
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$new_exists = (bool) $wpdb->get_var(
 				$wpdb->prepare(
 					'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = %s AND table_name = %s',

@@ -21,6 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Read queries for audience booking records.
  *
@@ -166,7 +167,7 @@ class AudienceBookingReader {
 		 */
 		$sql = $wpdb->prepare( $sql, $prepare_args );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$results = $wpdb->get_results( $sql );
 		/**
 		 * Cast wpdb result to typed shape.
@@ -227,7 +228,6 @@ class AudienceBookingReader {
 		$prepare_args = array_merge( array( $table, $env_table ), $values );
 		$sql          = $wpdb->prepare( $sql, $prepare_args );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset pagination over an export; each page is read exactly once, so there is nothing a cache could serve twice.
 		return (int) $wpdb->get_var( $sql );
 	}
 
@@ -284,7 +284,6 @@ class AudienceBookingReader {
 		$prepare_args = array_merge( array( $table, $env_table ), $values, array( $size ) );
 		$sql          = $wpdb->prepare( $sql, $prepare_args );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset pagination over an export; each page is read exactly once, so there is nothing a cache could serve twice.
 		$results = $wpdb->get_results( $sql );
 		/**
 		 * Cast wpdb result to typed shape.
@@ -315,7 +314,7 @@ class AudienceBookingReader {
 		 *
 		 * @var BookingRow|null $booking
 		 */
-		$booking = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- This is the cache-miss path — the hit is served by the cache_get() above and the result is stored below.
+		$booking = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT b.*, e.name as environment_name, e.schedule_id
                 FROM %i b
@@ -429,7 +428,6 @@ class AudienceBookingReader {
 
 		$where_clause = ! empty( $where ) ? 'AND ' . implode( ' AND ', $where ) : '';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT DISTINCT b.*, e.name as environment_name, e.schedule_id
@@ -463,7 +461,6 @@ class AudienceBookingReader {
 		$table           = self::get_booking_audiences_table_name();
 		$audiences_table = AudienceReader::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT a.* FROM %i a
@@ -488,7 +485,6 @@ class AudienceBookingReader {
 		$wpdb  = self::db();
 		$table = self::get_booking_users_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_col(
 			$wpdb->prepare(
 				'SELECT user_id FROM %i WHERE booking_id = %d',
@@ -540,7 +536,6 @@ class AudienceBookingReader {
 
 		$exclude_clause = $exclude_booking_id ? $wpdb->prepare( 'AND id != %d', $exclude_booking_id ) : '';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				/**
@@ -644,7 +639,6 @@ class AudienceBookingReader {
 		$values = array( $date, $end_time, $start_time, $start_time, $end_time, $start_time, $end_time );
 		$values = array_merge( $values, $all_user_ids, $all_user_ids );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$conflicting_bookings_raw = $wpdb->get_results(
 			$wpdb->prepare(
 				/**
@@ -741,7 +735,6 @@ class AudienceBookingReader {
 		$values = array( $date );
 		$values = array_merge( $values, $audience_ids );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				/**
@@ -829,7 +822,7 @@ class AudienceBookingReader {
 		$prepare_args = array_merge( array( $table ), $values );
 		$sql          = $wpdb->prepare( $sql, $prepare_args );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		return (int) $wpdb->get_var( $sql );
 	}
 }

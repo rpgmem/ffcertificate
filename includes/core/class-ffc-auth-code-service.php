@@ -19,6 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Service class for auth code operations.
  */
@@ -76,8 +77,7 @@ class AuthCodeService {
 
 			// Check ffc_submissions.
 			$table_subs = $wpdb->prefix . 'ffc_submissions';
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uniqueness probe — serving this from cache would defeat the check it exists to perform.
-			$exists = $wpdb->get_var(
+			$exists     = $wpdb->get_var(
 				$wpdb->prepare(
 					'SELECT id FROM %i WHERE auth_code = %s LIMIT 1',
 					$table_subs,
@@ -91,8 +91,7 @@ class AuthCodeService {
 
 			// Check ffc_reregistration_submissions.
 			$table_rereg = $wpdb->prefix . 'ffc_reregistration_submissions';
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uniqueness probe — serving this from cache would defeat the check it exists to perform.
-			$exists = $wpdb->get_var(
+			$exists      = $wpdb->get_var(
 				$wpdb->prepare(
 					'SELECT id FROM %i WHERE auth_code = %s LIMIT 1',
 					$table_rereg,
@@ -106,8 +105,7 @@ class AuthCodeService {
 
 			// Check ffc_self_scheduling_appointments.
 			$table_apt = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uniqueness probe — serving this from cache would defeat the check it exists to perform.
-			$exists = $wpdb->get_var(
+			$exists    = $wpdb->get_var(
 				$wpdb->prepare(
 					'SELECT id FROM %i WHERE validation_code = %s LIMIT 1',
 					$table_apt,

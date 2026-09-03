@@ -23,6 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Read queries for `ffc_recruitment_call` rows.
  *
@@ -80,7 +81,6 @@ class RecruitmentCallReader {
 		 *
 		 * @var CallRow|null $result
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Object-cached.
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
@@ -113,7 +113,6 @@ class RecruitmentCallReader {
 		 *
 		 * @var CallRow|null $result
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Covered by INDEX (classification_id, cancelled_at).
 		$result = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE classification_id = %d AND cancelled_at IS NULL ORDER BY called_at DESC LIMIT 1',
@@ -143,7 +142,6 @@ class RecruitmentCallReader {
 		 *
 		 * @var list<CallRow>|null $results
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Covered by INDEX on classification_id.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE classification_id = %d ORDER BY called_at DESC',
@@ -191,7 +189,7 @@ class RecruitmentCallReader {
 		 *
 		 * @var list<CallRow>|null $results
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$results = $wpdb->get_results( $prepared );
 
 		return is_array( $results ) ? $results : array();
@@ -207,7 +205,6 @@ class RecruitmentCallReader {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Index range count.
 		$count = (int) $wpdb->get_var(
 			$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE classification_id = %d', $table, $classification_id )
 		);

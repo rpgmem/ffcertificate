@@ -25,6 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Write operations for `ffc_recruitment_notice` rows.
  *
@@ -79,7 +80,6 @@ class RecruitmentNoticeWriter {
 		$now    = current_time( 'mysql' );
 		$config = '' === $public_columns_config ? RecruitmentNoticeReader::DEFAULT_PUBLIC_COLUMNS_CONFIG : $public_columns_config;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Insert via wpdb helper; explicit formats.
 		$result = $wpdb->insert(
 			$table,
 			array(
@@ -145,7 +145,6 @@ class RecruitmentNoticeWriter {
 		$update['updated_at'] = current_time( 'mysql' );
 		$format[]             = '%s';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Update via wpdb helper.
 		$result = $wpdb->update( $table, $update, array( 'id' => $id ), $format, array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
@@ -187,7 +186,7 @@ class RecruitmentNoticeWriter {
 			return 0;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Atomic transition primitive; $prepared came from $wpdb->prepare() on the line above.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Atomic transition primitive; $prepared came from $wpdb->prepare() on the line above.
 		$affected = $wpdb->query( $prepared );
 
 		static::cache_delete( "id_{$id}" );
@@ -227,7 +226,7 @@ class RecruitmentNoticeWriter {
 			return 0;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- One-shot timestamp setter; $prepared came from $wpdb->prepare() on the line above.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- One-shot timestamp setter; $prepared came from $wpdb->prepare() on the line above.
 		$affected = $wpdb->query( $prepared );
 
 		static::cache_delete( "id_{$id}" );
@@ -258,7 +257,7 @@ class RecruitmentNoticeWriter {
 			return 0;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Timestamp setter; $prepared came from $wpdb->prepare() on the line above.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Timestamp setter; $prepared came from $wpdb->prepare() on the line above.
 		$affected = $wpdb->query( $prepared );
 
 		static::cache_delete( "id_{$id}" );
@@ -292,7 +291,7 @@ class RecruitmentNoticeWriter {
 			return 0;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- One-way flag flip; $prepared came from $wpdb->prepare() on the line above.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- One-way flag flip; $prepared came from $wpdb->prepare() on the line above.
 		$affected = $wpdb->query( $prepared );
 
 		static::cache_delete( "id_{$id}" );
@@ -314,7 +313,6 @@ class RecruitmentNoticeWriter {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Delete via wpdb helper.
 		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );

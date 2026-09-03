@@ -17,6 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Database repository for audience schedule records.
  *
@@ -109,7 +110,7 @@ class AudienceScheduleRepository {
 		 */
 		$sql = $wpdb->prepare( $sql, $prepare_args );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$results = $wpdb->get_results( $sql );
 		/**
 		 * Cast wpdb result to typed shape.
@@ -139,7 +140,7 @@ class AudienceScheduleRepository {
 		 *
 		 * @var ScheduleRow|null $result
 		 */
-		$result = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- This is the cache-miss path — the hit is served by the cache_get() above and the result is stored below.
+		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
 
@@ -163,7 +164,6 @@ class AudienceScheduleRepository {
 		$table       = self::get_table_name();
 		$perms_table = self::get_permissions_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT DISTINCT s.* FROM %i s
@@ -214,7 +214,6 @@ class AudienceScheduleRepository {
 		);
 		$data     = wp_parse_args( $data, $defaults );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->insert(
 			$table,
 			array(
@@ -293,7 +292,6 @@ class AudienceScheduleRepository {
 			}
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->update(
 			$table,
 			$update_data,
@@ -317,7 +315,6 @@ class AudienceScheduleRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
@@ -341,7 +338,7 @@ class AudienceScheduleRepository {
 		 *
 		 * @var SchedulePermissionRow|null $row
 		 */
-		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): six callers, each a distinct permission lookup rather than a repeat of the same one.
+		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE schedule_id = %d AND user_id = %d',
 				$table,
@@ -362,7 +359,6 @@ class AudienceScheduleRepository {
 		$wpdb  = self::db();
 		$table = self::get_permissions_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE schedule_id = %d', $table, $schedule_id )
 		);
@@ -397,7 +393,6 @@ class AudienceScheduleRepository {
 		$existing = self::get_user_permissions( $schedule_id, $user_id );
 
 		if ( $existing ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$result = $wpdb->update(
 				$table,
 				array(
@@ -410,7 +405,6 @@ class AudienceScheduleRepository {
 				array( '%d' )
 			);
 		} else {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 			$result = $wpdb->insert(
 				$table,
 				array(
@@ -438,7 +432,6 @@ class AudienceScheduleRepository {
 		$wpdb  = self::db();
 		$table = self::get_permissions_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->delete(
 			$table,
 			array(
@@ -567,7 +560,7 @@ class AudienceScheduleRepository {
 		$prepare_args = array_merge( array( $table ), $values );
 		$sql          = $wpdb->prepare( $sql, $prepare_args );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		return (int) $wpdb->get_var( $sql );
 	}
 }

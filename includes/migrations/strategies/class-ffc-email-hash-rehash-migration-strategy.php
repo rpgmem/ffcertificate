@@ -35,6 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Schema and data statements against the plugin's own ffc_* tables during activation/migration. WordPress exposes no API for them, and there is nothing to cache on this path.
 /**
  * Strategy implementation for rehashing legacy email_hash values.
  */
@@ -241,7 +242,6 @@ class EmailHashRehashMigrationStrategy implements MigrationStrategyInterface {
 			);
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
 		$total = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM %i WHERE email_encrypted IS NOT NULL AND email_encrypted <> ''",
@@ -251,7 +251,6 @@ class EmailHashRehashMigrationStrategy implements MigrationStrategyInterface {
 
 		$cursor = $this->get_cursor( $table );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
 		$migrated = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM %i WHERE id <= %d AND email_encrypted IS NOT NULL AND email_encrypted <> ''",
@@ -294,7 +293,6 @@ class EmailHashRehashMigrationStrategy implements MigrationStrategyInterface {
 
 		$cursor = $this->get_cursor( $table );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
 		$records = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT id, email_encrypted, email_hash FROM %i WHERE id > %d ORDER BY id ASC LIMIT %d',
@@ -307,7 +305,6 @@ class EmailHashRehashMigrationStrategy implements MigrationStrategyInterface {
 
 		if ( empty( $records ) ) {
 			// Nothing above cursor — mark as complete by advancing to MAX(id).
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
 			$max_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(MAX(id), 0) FROM %i', $table ) );
 			if ( $max_id > $cursor ) {
 				$this->set_cursor( $table, $max_id );
@@ -349,7 +346,6 @@ class EmailHashRehashMigrationStrategy implements MigrationStrategyInterface {
 					continue;
 				}
 
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 				$updated = $wpdb->update(
 					$table,
 					array( 'email_hash' => $correct_hash ),

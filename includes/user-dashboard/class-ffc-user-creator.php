@@ -17,6 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * User Creator.
  */
@@ -58,7 +59,6 @@ class UserCreator {
 		$hash_params = self::build_hash_params( $identifier_hash, $identifier_type );
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $hash_where and $hash_params built together in build_hash_* helpers with matching placeholder count.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uniqueness probe — serving this from cache would defeat the check it exists to perform.
 		$existing_user_id = $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT user_id FROM %i
@@ -161,7 +161,6 @@ class UserCreator {
 			$where = implode( ' OR ', $where_parts );
 
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $where built from hard-coded fragments above with matching placeholder count.
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uniqueness probe — serving this from cache would defeat the check it exists to perform.
 			$existing_user_id = $wpdb->get_var(
 				$wpdb->prepare(
 					"SELECT user_id FROM %i WHERE ({$where}) AND user_id IS NOT NULL LIMIT 1",
@@ -238,7 +237,6 @@ class UserCreator {
 		$submissions_table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where built from hard-coded fragments above with matching placeholder count.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$wpdb->query(
 			$wpdb->prepare(
 				"UPDATE %i SET user_id = %d WHERE ({$where}) AND user_id IS NULL",
@@ -387,7 +385,6 @@ class UserCreator {
 
 		$submissions_table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $hash_where and $hash_params built together in build_hash_* helpers with matching placeholder count.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$linked_submissions = $wpdb->query(
 			$wpdb->prepare(
 				"UPDATE %i SET user_id = %d WHERE ({$hash_where}) AND user_id IS NULL",

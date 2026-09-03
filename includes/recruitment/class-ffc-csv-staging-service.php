@@ -37,6 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Service: ingest → validate → promote → commit batched CSV imports.
  */
@@ -132,7 +133,7 @@ final class CsvStagingService {
 		// Job row first so a partially-ingested staging set without an
 		// owning job is impossible (FK-like invariant enforced in code,
 		// since the staging table has no real FK to jobs).
-		$inserted = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- ingest path; row is the source of truth from here on.
+		$inserted = $wpdb->insert(
 			$jobs_table,
 			array(
 				'job_id'          => $job_id,
@@ -202,12 +203,12 @@ final class CsvStagingService {
 
 			$sql = "INSERT INTO {$staging_table} (job_id, row_no, line_no, notice_id, name, cpf_normalized, rf_normalized, email, phone, adjutancy_slug, adjutancy_id, rank_value, score, time_points, hab_emebs, pcd) VALUES "
 				. implode( ', ', $placeholders );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- chunked multi-VALUES INSERT; table from $wpdb->prefix; every user-derived value passes through %s/%d placeholders.
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- chunked multi-VALUES INSERT; table from $wpdb->prefix; every user-derived value passes through %s/%d placeholders.
 			$result = $wpdb->query( $wpdb->prepare( $sql, $values ) );
 			if ( false === $result ) {
 				// Roll back the entire job — leaves no partial staging.
-				$wpdb->delete( $jobs_table, array( 'job_id' => $job_id ), array( '%s' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$wpdb->delete( $staging_table, array( 'job_id' => $job_id ), array( '%s' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->delete( $jobs_table, array( 'job_id' => $job_id ), array( '%s' ) );
+				$wpdb->delete( $staging_table, array( 'job_id' => $job_id ), array( '%s' ) );
 				return array(
 					'ok'     => false,
 					'errors' => array( 'recruitment_import_staging_insert_failed' ),
@@ -237,13 +238,13 @@ final class CsvStagingService {
 		$jobs_table    = $wpdb->prefix . 'ffc_recruitment_import_jobs';
 		$staging_table = $wpdb->prefix . 'ffc_recruitment_import_staging';
 
-		$deleted = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- maintenance sweep.
+		$deleted = $wpdb->query(
 			$wpdb->prepare(
 				"DELETE s FROM {$staging_table} s INNER JOIN {$jobs_table} j ON s.job_id = j.job_id WHERE j.created_at < (NOW() - INTERVAL %d SECOND)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from $wpdb->prefix.
 				self::STAGING_JOB_TTL_SECONDS
 			)
 		);
-		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- maintenance sweep.
+		$wpdb->query(
 			$wpdb->prepare(
 				"DELETE FROM {$jobs_table} WHERE created_at < (NOW() - INTERVAL %d SECOND)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
 				self::STAGING_JOB_TTL_SECONDS
@@ -290,7 +291,7 @@ final class CsvStagingService {
 		$jobs_table    = $wpdb->prefix . 'ffc_recruitment_import_jobs';
 		$staging_table = $wpdb->prefix . 'ffc_recruitment_import_staging';
 
-		$job = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- validate path; row is authoritative.
+		$job = $wpdb->get_row(
 			$wpdb->prepare( "SELECT job_id, status FROM {$jobs_table} WHERE job_id = %s", $job_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table from $wpdb->prefix.
 		);
 		if ( null === $job ) {
@@ -309,7 +310,7 @@ final class CsvStagingService {
 		$errors = array();
 
 		// Rule 1 — missing identifier (CPF and RF both empty).
-		$rows = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT line_no FROM {$staging_table} WHERE job_id = %s AND cpf_normalized = '' AND rf_normalized = '' ORDER BY row_no", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$job_id
@@ -320,7 +321,7 @@ final class CsvStagingService {
 		}
 
 		// Rule 2 — missing adjutancy slug.
-		$rows = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT line_no FROM {$staging_table} WHERE job_id = %s AND adjutancy_slug = '' ORDER BY row_no", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$job_id
@@ -333,7 +334,7 @@ final class CsvStagingService {
 		// Rule 3 — adjutancy slug present but not attached to the notice
 		// (adjutancy_id=0 is the sentinel ingest writes when the map
 		// lookup misses).
-		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT line_no, adjutancy_slug FROM {$staging_table} WHERE job_id = %s AND adjutancy_slug <> '' AND adjutancy_id = 0 ORDER BY row_no", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$job_id
@@ -349,7 +350,7 @@ final class CsvStagingService {
 		// the CSV lines that share it; we surface every line past the
 		// first as a duplicate of that first line.
 		foreach ( array( 'cpf_normalized', 'rf_normalized', 'email' ) as $id_col ) {
-			$dup_groups = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$dup_groups = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT GROUP_CONCAT(line_no ORDER BY row_no) AS csv_lines FROM {$staging_table} WHERE job_id = %s AND {$id_col} <> '' GROUP BY {$id_col}, adjutancy_id HAVING COUNT(*) > 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- id_col is hard-coded above; not user input.
 					$job_id
@@ -371,7 +372,7 @@ final class CsvStagingService {
 		// fields. `COUNT(DISTINCT …)` against each field in one pass.
 		// `%i` placeholder for the table name keeps WPCS happy without a
 		// sniff suppression.
-		$diverge_groups = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$diverge_groups = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT GROUP_CONCAT(line_no ORDER BY row_no) AS csv_lines,
 					COUNT(DISTINCT name)          AS d_name,
@@ -418,7 +419,7 @@ final class CsvStagingService {
 		// Transition the job. Status determines what /promote and
 		// /commit accept; staging rows stay put either way.
 		$next_status = empty( $errors ) ? 'validated' : 'invalid';
-		$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->update(
 			$jobs_table,
 			array(
 				'status'     => $next_status,
@@ -467,7 +468,7 @@ final class CsvStagingService {
 		$jobs_table    = $wpdb->prefix . 'ffc_recruitment_import_jobs';
 		$staging_table = $wpdb->prefix . 'ffc_recruitment_import_staging';
 
-		$job = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$job = $wpdb->get_row(
 			$wpdb->prepare( "SELECT * FROM {$jobs_table} WHERE job_id = %s", $job_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		);
 		if ( null === $job ) {
@@ -485,7 +486,7 @@ final class CsvStagingService {
 
 		$size = max( 10, min( 100, $size ) );
 
-		$batch = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$batch = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT id, name, cpf_normalized, rf_normalized, email, phone, pcd FROM {$staging_table} WHERE job_id = %s AND processed = 0 ORDER BY row_no LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$job_id,
@@ -508,7 +509,7 @@ final class CsvStagingService {
 		// Flip the job to 'promoting' on the first non-empty batch so
 		// subsequent /validate or /commit calls see the correct state.
 		if ( 'validated' === $job->status ) {
-			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->update(
 				$jobs_table,
 				array(
 					'status'     => 'promoting',
@@ -542,7 +543,7 @@ final class CsvStagingService {
 				);
 			}
 
-			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->update(
 				$staging_table,
 				array(
 					'candidate_id' => (int) $candidate_id,
@@ -558,7 +559,7 @@ final class CsvStagingService {
 		// Bump the per-job counter in a single statement. UPDATE … +N
 		// is atomic per row, but a SELECT-then-UPDATE pair would race
 		// with a concurrent retry from a frantic JS retry loop.
-		$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query(
 			$wpdb->prepare(
 				"UPDATE {$jobs_table} SET processed_count = processed_count + %d, updated_at = %s WHERE job_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$processed_now,
@@ -624,7 +625,7 @@ final class CsvStagingService {
 		$staging_table        = $wpdb->prefix . 'ffc_recruitment_import_staging';
 		$classification_table = $wpdb->prefix . 'ffc_recruitment_classification';
 
-		$job = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$job = $wpdb->get_row(
 			$wpdb->prepare( "SELECT * FROM {$jobs_table} WHERE job_id = %s", $job_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		);
 		if ( null === $job ) {
@@ -644,7 +645,7 @@ final class CsvStagingService {
 		// should already guarantee this, but a manual /commit POST
 		// without the preceding batches must not be able to swap a
 		// half-populated staging set.
-		$unpromoted = (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$unpromoted = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM {$staging_table} WHERE job_id = %s AND processed = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$job_id
@@ -657,12 +658,11 @@ final class CsvStagingService {
 			);
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 		$wpdb->query( 'START TRANSACTION' );
 		try {
 			RecruitmentClassificationRepository::delete_all_for_notice_list( (int) $job->notice_id, (string) $job->list_type );
 
-			$inserted = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$inserted = $wpdb->query(
 				$wpdb->prepare(
 					'INSERT INTO %i
 						(candidate_id, adjutancy_id, notice_id, list_type, `rank`, score, time_points, hab_emebs, status, created_at, updated_at)
@@ -680,7 +680,6 @@ final class CsvStagingService {
 				)
 			);
 			if ( false === $inserted ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 				$wpdb->query( 'ROLLBACK' );
 				return array(
 					'ok'     => false,
@@ -688,7 +687,7 @@ final class CsvStagingService {
 				);
 			}
 
-			$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->update(
 				$jobs_table,
 				array(
 					'status'     => 'committed',
@@ -699,10 +698,8 @@ final class CsvStagingService {
 				array( '%s' )
 			);
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 			$wpdb->query( 'COMMIT' );
 		} catch ( \Throwable $e ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 			$wpdb->query( 'ROLLBACK' );
 			return array(
 				'ok'     => false,
@@ -715,8 +712,8 @@ final class CsvStagingService {
 		// Post-commit cleanup. Outside the transaction so the swap is
 		// already durable; if these fail, the orphan reaper at the top
 		// of ingest_job handles it eventually.
-		$wpdb->delete( $staging_table, array( 'job_id' => $job_id ), array( '%s' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->delete( $jobs_table, array( 'job_id' => $job_id ), array( '%s' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->delete( $staging_table, array( 'job_id' => $job_id ), array( '%s' ) );
+		$wpdb->delete( $jobs_table, array( 'job_id' => $job_id ), array( '%s' ) );
 
 		return array(
 			'ok'       => true,

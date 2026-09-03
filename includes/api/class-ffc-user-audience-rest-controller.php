@@ -20,6 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * REST API controller for user audience endpoints.
  */
@@ -461,7 +462,6 @@ class UserAudienceRestController {
 			$members_table   = $wpdb->prefix . 'ffc_audience_members';
 
 			// Verify group is self-joinable (top-level or child — mirrors join()).
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$group = $wpdb->get_row(
 				$wpdb->prepare(
 					'SELECT id, name FROM %i WHERE id = %d AND allow_self_join = 1',
@@ -474,7 +474,6 @@ class UserAudienceRestController {
 				return new \WP_Error( 'invalid_group', __( 'Group not found or cannot be left by user', 'ffcertificate' ), array( 'status' => 404 ) );
 			}
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$deleted = $wpdb->delete(
 				$members_table,
 				array(
@@ -524,7 +523,6 @@ class UserAudienceRestController {
 			$members_table   = $wpdb->prefix . 'ffc_audience_members';
 
 			// Delete all memberships where the audience allows self-join.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$deleted = $wpdb->query(
 				$wpdb->prepare(
 					'DELETE m FROM %i m INNER JOIN %i a ON a.id = m.audience_id WHERE m.user_id = %d AND a.allow_self_join = 1',

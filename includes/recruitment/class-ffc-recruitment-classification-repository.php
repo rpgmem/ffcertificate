@@ -26,6 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Database repository for `ffc_recruitment_classification` rows.
  *
@@ -84,7 +85,6 @@ class RecruitmentClassificationRepository {
 		 *
 		 * @var ClassificationRow|null $result
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Object-cached.
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
@@ -141,7 +141,7 @@ class RecruitmentClassificationRepository {
 		 *
 		 * @var list<ClassificationRow>|null $results
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$results = $wpdb->get_results( $prepared );
 
 		return is_array( $results ) ? $results : array();
@@ -165,7 +165,6 @@ class RecruitmentClassificationRepository {
 		 *
 		 * @var list<ClassificationRow>|null $results
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed by candidate_id.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE candidate_id = %d ORDER BY notice_id ASC, adjutancy_id ASC',
@@ -187,7 +186,6 @@ class RecruitmentClassificationRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Index-only count.
 		$count = (int) $wpdb->get_var(
 			$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE candidate_id = %d', $table, $candidate_id )
 		);
@@ -206,7 +204,6 @@ class RecruitmentClassificationRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Index range scan covered by composite (notice, adjutancy, list_type, status, rank).
 		$count = (int) $wpdb->get_var(
 			$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE adjutancy_id = %d', $table, $adjutancy_id )
 		);
@@ -237,7 +234,6 @@ class RecruitmentClassificationRepository {
 		 *
 		 * @var ClassificationRow|null $result
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Hot path; covered by composite index.
 		$result = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT * FROM %i
@@ -272,7 +268,6 @@ class RecruitmentClassificationRepository {
 
 		$now = current_time( 'mysql' );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Insert via wpdb helper.
 		$result = $wpdb->insert(
 			$table,
 			array(
@@ -322,7 +317,6 @@ class RecruitmentClassificationRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Update via wpdb helper.
 		$result = $wpdb->update(
 			$table,
 			array(
@@ -376,7 +370,7 @@ class RecruitmentClassificationRepository {
 			return 0;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Atomic state transition; $prepared came from $wpdb->prepare() on the line above.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Atomic state transition; $prepared came from $wpdb->prepare() on the line above.
 		$affected = $wpdb->query( $prepared );
 
 		static::cache_delete( "id_{$id}" );
@@ -406,7 +400,6 @@ class RecruitmentClassificationRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk delete; bounded by the notice's classification count.
 		$result = $wpdb->delete(
 			$table,
 			array(
@@ -441,7 +434,6 @@ class RecruitmentClassificationRepository {
 		$candidates      = $wpdb->prefix . 'ffc_recruitment_candidate';
 		$classifications = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Batch aggregate for one admin-screen render; per-row caching wouldn't help.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT c.user_id AS user_id, COUNT(DISTINCT cl.notice_id) AS c
@@ -510,7 +502,6 @@ class RecruitmentClassificationRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single-row update keyed by PK.
 		$result = $wpdb->update(
 			$table,
 			array( 'adjutancy_id' => $new_adjutancy_id ),
@@ -542,7 +533,6 @@ class RecruitmentClassificationRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Delete via wpdb helper.
 		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
@@ -570,7 +560,6 @@ class RecruitmentClassificationRepository {
 		$table       = self::get_table_name();
 		$calls_table = self::db()->prefix . 'ffc_recruitment_call';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cross-table count for state-machine gate.
 		$count = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(*) FROM %i c

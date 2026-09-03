@@ -17,6 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Schema and data statements against the plugin's own ffc_* tables during activation/migration. WordPress exposes no API for them, and there is nothing to cache on this path.
 /**
  * Plugin activation tasks for rate limit.
  */
@@ -173,11 +174,8 @@ class RateLimitActivator {
 		$table_logs    = $wpdb->prefix . 'ffc_rate_limit_logs';
 		$table_signals = $wpdb->prefix . 'ffc_device_signals';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table_limits ) );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table_logs ) );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table_signals ) );
 
 		delete_option( 'ffc_rate_limit_db_version' );
