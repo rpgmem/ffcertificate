@@ -76,7 +76,7 @@ class UserDashboardActivator {
 		$table_name      = $wpdb->prefix . 'ffc_user_profiles';
 		$charset_collate = $wpdb->get_charset_collate();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema probe on an activation/migration path. The answer must reflect the live schema, so caching it is exactly what would be wrong, and WordPress exposes no API for it.
 		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
 			return;
 		}
@@ -113,7 +113,7 @@ class UserDashboardActivator {
 		$table_name      = $wpdb->prefix . 'ffc_custom_fields';
 		$charset_collate = $wpdb->get_charset_collate();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema probe on an activation/migration path. The answer must reflect the live schema, so caching it is exactly what would be wrong, and WordPress exposes no API for it.
 		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
 			return;
 		}

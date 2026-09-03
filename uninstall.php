@@ -103,7 +103,7 @@ $ffcertificate_tables = array(
 );
 
 foreach ( $ffcertificate_tables as $ffcertificate_table ) {
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Drops the plugin's own ffc_* tables; WordPress has no API for them and there is nothing left to cache once they are gone.
 	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $ffcertificate_table ) );
 }
 
@@ -302,9 +302,9 @@ foreach (
 // ──────────────────────────────────────
 // 7. Clean up user meta
 // ──────────────────────────────────────
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk statement over the plugin's own ffc_* user-meta keys, matched by prefix — the WordPress meta API cannot filter by key prefix, and doing it per user per key would be thousands of queries.
 $wpdb->delete( $wpdb->usermeta, array( 'meta_key' => 'ffc_registration_date' ) );
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk statement over the plugin's own ffc_* user-meta keys, matched by prefix — the WordPress meta API cannot filter by key prefix, and doing it per user per key would be thousands of queries.
 $wpdb->delete( $wpdb->usermeta, array( 'meta_key' => 'ffc_custom_fields_data' ) );
 
 // Remove FFC-specific capabilities from all users.
@@ -361,7 +361,7 @@ $ffcertificate_caps = array(
 	'ffc_reregistration',
 );
 
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk statement over the plugin's own ffc_* user-meta keys, matched by prefix — the WordPress meta API cannot filter by key prefix, and doing it per user per key would be thousands of queries.
 $ffcertificate_user_ids = $wpdb->get_col(
 	$wpdb->prepare(
 		'SELECT user_id FROM %i WHERE meta_key = %s AND meta_value LIKE %s',

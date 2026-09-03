@@ -206,12 +206,12 @@ class AudienceWriter {
 		$placeholders = implode( ',', array_fill( 0, count( $child_ids ), '%d' ) );
 
 		$update_sql = $wpdb->prepare(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$placeholders} is %d repeated to match count( $child_ids ); the table goes through %i and the ids are bound as a single array.
 			"UPDATE %i SET allow_self_join = %d WHERE id IN ({$placeholders})",
 			array_merge( array( $table, $value ), $child_ids )
 		);
 		if ( is_string( $update_sql ) ) {
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The argument is the string $wpdb->prepare() returned above; the sniff cannot follow a prepared string across an assignment.
 			$wpdb->query( $update_sql );
 		}
 

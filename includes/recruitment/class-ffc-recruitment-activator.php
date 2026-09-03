@@ -171,7 +171,7 @@ class RecruitmentActivator {
 	private static function migrate_recreate_staging_table_plaintext(): void {
 		global $wpdb;
 		$table = $wpdb->prefix . 'ffc_recruitment_import_staging';
-		$wpdb->query( "DROP TABLE IF EXISTS `{$table}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( "DROP TABLE IF EXISTS `{$table}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The table name is $wpdb->prefix . 'ffc_recruitment_import_staging' built on the line above; DROP TABLE takes no bound values.
 		self::create_import_staging_table();
 	}
 

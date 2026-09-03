@@ -312,7 +312,7 @@ final class CsvStagingService {
 		// Rule 1 — missing identifier (CPF and RF both empty).
 		$rows = $wpdb->get_col(
 			$wpdb->prepare(
-				"SELECT line_no FROM {$staging_table} WHERE job_id = %s AND cpf_normalized = '' AND rf_normalized = '' ORDER BY row_no", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT line_no FROM {$staging_table} WHERE job_id = %s AND cpf_normalized = '' AND rf_normalized = '' ORDER BY row_no", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} is $wpdb->prefix . 'ffc_…' built in this class; every value is bound through a %s/%d placeholder.
 				$job_id
 			)
 		);
@@ -323,7 +323,7 @@ final class CsvStagingService {
 		// Rule 2 — missing adjutancy slug.
 		$rows = $wpdb->get_col(
 			$wpdb->prepare(
-				"SELECT line_no FROM {$staging_table} WHERE job_id = %s AND adjutancy_slug = '' ORDER BY row_no", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT line_no FROM {$staging_table} WHERE job_id = %s AND adjutancy_slug = '' ORDER BY row_no", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} is $wpdb->prefix . 'ffc_…' built in this class; every value is bound through a %s/%d placeholder.
 				$job_id
 			)
 		);
@@ -336,7 +336,7 @@ final class CsvStagingService {
 		// lookup misses).
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT line_no, adjutancy_slug FROM {$staging_table} WHERE job_id = %s AND adjutancy_slug <> '' AND adjutancy_id = 0 ORDER BY row_no", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT line_no, adjutancy_slug FROM {$staging_table} WHERE job_id = %s AND adjutancy_slug <> '' AND adjutancy_id = 0 ORDER BY row_no", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} is $wpdb->prefix . 'ffc_…' built in this class; every value is bound through a %s/%d placeholder.
 				$job_id
 			)
 		);
@@ -469,7 +469,7 @@ final class CsvStagingService {
 		$staging_table = $wpdb->prefix . 'ffc_recruitment_import_staging';
 
 		$job = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$jobs_table} WHERE job_id = %s", $job_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->prepare( "SELECT * FROM {$jobs_table} WHERE job_id = %s", $job_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} is $wpdb->prefix . 'ffc_…' built in this class; every value is bound through a %s/%d placeholder.
 		);
 		if ( null === $job ) {
 			return array(
@@ -488,7 +488,7 @@ final class CsvStagingService {
 
 		$batch = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT id, name, cpf_normalized, rf_normalized, email, phone, pcd FROM {$staging_table} WHERE job_id = %s AND processed = 0 ORDER BY row_no LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT id, name, cpf_normalized, rf_normalized, email, phone, pcd FROM {$staging_table} WHERE job_id = %s AND processed = 0 ORDER BY row_no LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} is $wpdb->prefix . 'ffc_…' built in this class; every value is bound through a %s/%d placeholder.
 				$job_id,
 				$size
 			)
@@ -561,7 +561,7 @@ final class CsvStagingService {
 		// with a concurrent retry from a frantic JS retry loop.
 		$wpdb->query(
 			$wpdb->prepare(
-				"UPDATE {$jobs_table} SET processed_count = processed_count + %d, updated_at = %s WHERE job_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"UPDATE {$jobs_table} SET processed_count = processed_count + %d, updated_at = %s WHERE job_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} is $wpdb->prefix . 'ffc_…' built in this class; every value is bound through a %s/%d placeholder.
 				$processed_now,
 				current_time( 'mysql' ),
 				$job_id
@@ -626,7 +626,7 @@ final class CsvStagingService {
 		$classification_table = $wpdb->prefix . 'ffc_recruitment_classification';
 
 		$job = $wpdb->get_row(
-			$wpdb->prepare( "SELECT * FROM {$jobs_table} WHERE job_id = %s", $job_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->prepare( "SELECT * FROM {$jobs_table} WHERE job_id = %s", $job_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} is $wpdb->prefix . 'ffc_…' built in this class; every value is bound through a %s/%d placeholder.
 		);
 		if ( null === $job ) {
 			return array(
@@ -647,7 +647,7 @@ final class CsvStagingService {
 		// half-populated staging set.
 		$unpromoted = (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$staging_table} WHERE job_id = %s AND processed = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT COUNT(*) FROM {$staging_table} WHERE job_id = %s AND processed = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} is $wpdb->prefix . 'ffc_…' built in this class; every value is bound through a %s/%d placeholder.
 				$job_id
 			)
 		);

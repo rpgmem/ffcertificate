@@ -148,7 +148,7 @@ class DeviceLimiter {
 					$args      = array_merge( array( $table, $form_id ), $fuzzy_args );
 				}
 				$sql = "SELECT COUNT(*) FROM %i WHERE {$where_sql}";
-                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is assembled one line above from a %i table placeholder and {$where_sql}, a run of placeholders built here; both it and $args come from the same branch, and every value is bound.
 				$count = (int) $wpdb->get_var( $wpdb->prepare( $sql, $args ) );
 			} else {
 				// Lenient: too few strong signals present to corroborate a

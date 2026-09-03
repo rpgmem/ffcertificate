@@ -205,7 +205,7 @@ class ReregistrationEmailHandler {
 		$table = ReregistrationRepository::get_table_name();
 
 		// Get active campaigns where reminder is due.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cron sweep for campaigns whose reminder is due, over the plugin's own ffc_* table; a cached list is exactly what a due-date sweep must not read.
 		$campaigns = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i

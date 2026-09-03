@@ -189,7 +189,7 @@ class RecruitmentCallReader {
 		 *
 		 * @var list<CallRow>|null $results
 		 */
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The argument is the string $wpdb->prepare() returned above; the sniff cannot follow a prepared string across an assignment.
 		$results = $wpdb->get_results( $prepared );
 
 		return is_array( $results ) ? $results : array();

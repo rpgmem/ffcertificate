@@ -230,7 +230,7 @@ class SelfSchedulingSaveHandler {
 		global $wpdb;
 		$calendars    = $wpdb->prefix . 'ffc_self_scheduling_calendars';
 		$appointments = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Guard count joining the plugin's own calendar and appointment tables while the post is saved; a cached number would let a calendar be shrunk with live appointments in it.
 		$count = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(a.id) FROM %i a INNER JOIN %i c ON c.id = a.calendar_id WHERE c.post_id = %d',
@@ -256,7 +256,7 @@ class SelfSchedulingSaveHandler {
 		global $wpdb;
 		$calendars    = $wpdb->prefix . 'ffc_self_scheduling_calendars';
 		$appointments = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads the live appointment slots joined from the plugin's own tables while the post is saved, so the save can refuse to drop a slot that is already booked.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT DISTINCT a.appointment_date AS d, a.start_time AS s FROM %i a INNER JOIN %i c ON c.id = a.calendar_id WHERE c.post_id = %d AND a.status IN ('confirmed','pending')",

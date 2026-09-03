@@ -360,7 +360,7 @@ class AudienceCsvImporter {
 		global $wpdb;
 		$table = AudienceReader::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Name lookup against the plugin's own audiences table during an import; the import creates rows as it goes, so a cached miss would duplicate an audience.
 		$id = $wpdb->get_var(
 			$wpdb->prepare( 'SELECT id FROM %i WHERE name = %s LIMIT 1', $table, $name )
 		);

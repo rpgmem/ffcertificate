@@ -300,10 +300,10 @@ class SubmissionLifecycleService {
 
 			// Reset AUTO_INCREMENT if table is empty and requested.
 			if ( $reset_auto_increment ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Danger-zone maintenance on the plugin's own submissions table; nothing may be served from cache while the table is being emptied.
 				$count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) );
 				if ( 0 === $count ) {
-                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Danger-zone maintenance: resets AUTO_INCREMENT on the plugin's own submissions table once it is empty. WordPress has no API for an ALTER.
 					$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i AUTO_INCREMENT = 1', $table ) );
 				}
 			}
@@ -325,7 +325,7 @@ class SubmissionLifecycleService {
 			}
 		} else {
 			// DELETE keeps AUTO_INCREMENT.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Danger-zone maintenance: empties the plugin's own submissions table. WordPress has no API for it and there is nothing to cache.
 			$result = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $table ) );
 		}
 
@@ -342,7 +342,7 @@ class SubmissionLifecycleService {
 		global $wpdb;
 
 		// Delete all migration completion flags.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- LIKE sweep over the options table: WordPress exposes no API to enumerate or delete options by prefix.
 		$wpdb->query(
 			$wpdb->prepare(
 				'DELETE FROM %i WHERE option_name LIKE %s',
@@ -365,7 +365,7 @@ class SubmissionLifecycleService {
 		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		// Get current max ID.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads MAX(id) straight from the plugin's own submissions table to pick the next AUTO_INCREMENT; a cached value would hand out a colliding id.
 		$max_id = $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(id) FROM %i', $table ) );
 
 		if ( null === $max_id ) {
@@ -376,7 +376,7 @@ class SubmissionLifecycleService {
 			$next_id = intval( $max_id ) + 1;
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Danger-zone maintenance: sets AUTO_INCREMENT on the plugin's own submissions table. WordPress has no API for an ALTER.
 		return $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i AUTO_INCREMENT = %d', $table, $next_id ) );
 	}
 
@@ -408,7 +408,7 @@ class SubmissionLifecycleService {
 			$cutoff_ts = time();
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Retention cleanup over the plugin's own submissions table; WordPress has no API for it and a delete has no cache to read from.
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
 				// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
