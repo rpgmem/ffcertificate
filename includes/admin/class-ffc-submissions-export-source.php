@@ -149,7 +149,7 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 		// before this. NonceVerification can't see across methods, so disable it
 		// for this request-reading block; inputs are unslashed + sanitized
 		// (absint() per element / sanitize_key()).
-		// phpcs:disable WordPress.Security.NonceVerification.Missing
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in authorize_start(), which the export engine calls before this method; NonceVerification cannot see across methods. Values are unslashed and sanitized (absint per element, sanitize_key).
 		$form_ids = null;
 		if ( ! empty( $_POST['form_ids'] ) && is_array( $_POST['form_ids'] ) ) {
 			$form_ids = array_map( 'absint', wp_unslash( $_POST['form_ids'] ) );

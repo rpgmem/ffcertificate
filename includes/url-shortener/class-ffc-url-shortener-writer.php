@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- $sql is the return value of $this->wpdb->prepare() a few lines above, and the sniff cannot follow a prepared string across an assignment.
 /**
  * Write operations for url shortener records.
  */

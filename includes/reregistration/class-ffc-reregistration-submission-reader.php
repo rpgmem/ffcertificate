@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Table names go through %i and every request value through a placeholder. The interpolated fragments are built here: {$orderby}/{$order} from an in_array() allowlist, {$where_clause}/{$limit_clause} from fragments assembled in this class, {$id} from an int cast.
 
 /**
  * Read queries for reregistration submission records.
