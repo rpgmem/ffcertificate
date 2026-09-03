@@ -64,6 +64,26 @@ final class PhpcsSuppressionTest extends TestCase {
 	private const MIN_REASON_LENGTH = 15;
 
 	/**
+	 * WordPress core tables, by the `$wpdb` property that names each one.
+	 *
+	 * @var string
+	 */
+	private const CORE_TABLE_PROPERTIES = 'posts|users|usermeta|postmeta|options|comments|commentmeta|terms|termmeta|term_taxonomy|term_relationships|links|blogs|blogmeta|site|sitemeta|signups|registration_log|base_prefix';
+
+	/**
+	 * Files allowed a file-level DirectDatabaseQuery disable despite naming a core
+	 * table. Each entry states why the reference is unavoidable — a file that
+	 * merely grew one does not belong here; narrow the disable instead.
+	 *
+	 * @var array<string, string>
+	 */
+	private const CORE_TABLE_EXCEPTIONS = array(
+		// The foreign keys this migration creates all point at wp_users, so it has
+		// to read that table's storage engine and name it in the REFERENCES clause.
+		'includes/migrations/class-ffc-migration-foreign-keys.php' => 'creates the user_id -> wp_users foreign keys',
+	);
+
+	/**
 	 * Absolute path to the repository root.
 	 */
 	private static function root(): string {
@@ -252,6 +272,52 @@ final class PhpcsSuppressionTest extends TestCase {
 			. "sniff back on for the REST of the file, ending an enclosing disable early and leaving\n"
 			. "its tail uncovered while its comment still claims otherwise. Drop the sniff from the\n"
 			. "inner pair — the outer disable already covers it:\n\n  "
+			. implode( "\n  ", $offenders )
+		);
+	}
+
+	public function test_file_level_direct_query_disables_only_cover_plugin_tables(): void {
+		$offenders = array();
+		$core      = '/\\$wpdb->(' . self::CORE_TABLE_PROPERTIES . ')\\b'
+			. '|\\$wpdb->prefix\\s*\\.\\s*\'(?!ffc_)/';
+
+		foreach ( self::sources() as $file ) {
+			$source = (string) file_get_contents( $file );
+
+			$covers_family = false;
+			foreach ( self::annotations( $file ) as $annotation ) {
+				if ( 'disable' !== $annotation['kind'] ) {
+					continue;
+				}
+				foreach ( $annotation['sniffs'] as $sniff ) {
+					if ( self::related( $sniff, 'WordPress.DB.DirectDatabaseQuery' ) ) {
+						$covers_family = true;
+					}
+				}
+			}
+
+			if ( ! $covers_family ) {
+				continue;
+			}
+
+			$relative = self::relative( $file );
+			if ( isset( self::CORE_TABLE_EXCEPTIONS[ $relative ] ) ) {
+				continue;
+			}
+
+			if ( 1 === preg_match( $core, $source, $matches ) ) {
+				$offenders[] = $relative . ' — ' . trim( $matches[0] );
+			}
+		}
+
+		$this->assertSame(
+			array(),
+			$offenders,
+			"A file-level DirectDatabaseQuery disable is only justified while every query in the\n"
+			. "file runs against one of the plugin's own ffc_* tables — that is the exact test that\n"
+			. "chose the files carrying one (#1035). These name a WordPress core table, where the\n"
+			. "sniff has something real to say: use the WP API, or drop the file-level disable and\n"
+			. "annotate the plugin-table queries per line:\n\n  "
 			. implode( "\n  ", $offenders )
 		);
 	}
