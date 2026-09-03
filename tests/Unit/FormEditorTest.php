@@ -85,9 +85,19 @@ class FormEditorTest extends TestCase {
 	// ==================================================================
 
 	public function test_enqueue_scripts_returns_early_on_wrong_hook(): void {
+		// #1030: asserted nothing, so the guard could be deleted and it would
+		// still pass. Collect what gets enqueued and say nothing did.
+		$enqueued = array();
+		$collect  = static function ( $handle ) use ( &$enqueued ) {
+			$enqueued[] = $handle;
+		};
+		Functions\when( 'wp_enqueue_script' )->alias( $collect );
+		Functions\when( 'wp_enqueue_style' )->alias( $collect );
+
 		$editor = new FormEditor();
 		$editor->enqueue_scripts( 'edit.php' );
-		$this->assertTrue( true );
+
+		$this->assertSame( array(), $enqueued );
 	}
 
 	// ==================================================================
@@ -98,9 +108,19 @@ class FormEditorTest extends TestCase {
 		$screen = (object) array( 'post_type' => 'post' );
 		Functions\when( 'get_current_screen' )->justReturn( $screen );
 
+		// #1030: asserted nothing, so the guard could be deleted and it would
+		// still pass. Collect what gets enqueued and say nothing did.
+		$enqueued = array();
+		$collect  = static function ( $handle ) use ( &$enqueued ) {
+			$enqueued[] = $handle;
+		};
+		Functions\when( 'wp_enqueue_script' )->alias( $collect );
+		Functions\when( 'wp_enqueue_style' )->alias( $collect );
+
 		$editor = new FormEditor();
 		$editor->enqueue_scripts( 'post.php' );
-		$this->assertTrue( true );
+
+		$this->assertSame( array(), $enqueued );
 	}
 
 	// ==================================================================
@@ -212,9 +232,20 @@ class FormEditorTest extends TestCase {
 	// ==================================================================
 
 	public function test_add_custom_metaboxes_registers_boxes(): void {
+		// #1030: "no error means metaboxes registered" meant no such thing — a
+		// method that registered none would have passed.
+		$boxes = array();
+		Functions\when( 'add_meta_box' )->alias(
+			static function ( $id ) use ( &$boxes ) {
+				$boxes[] = $id;
+				return true;
+			}
+		);
+
 		$editor = new FormEditor();
 		$editor->add_custom_metaboxes();
-		$this->assertTrue( true ); // No error means metaboxes registered
+
+		$this->assertNotEmpty( $boxes, 'add_custom_metaboxes() registered no box' );
 	}
 
 	// ==================================================================

@@ -117,12 +117,21 @@ class FrontendTest extends TestCase {
 		global $post;
 		$post = null;
 
-		$handler = $this->makeSubmissionHandlerMock();
+		// #1030: asserted nothing, so the guard could be deleted and it would
+		// still pass. Collect what gets enqueued and say nothing did.
+		$enqueued = array();
+		$collect  = static function ( $handle ) use ( &$enqueued ) {
+			$enqueued[] = $handle;
+		};
+		Functions\when( 'wp_enqueue_script' )->alias( $collect );
+		Functions\when( 'wp_enqueue_style' )->alias( $collect );
+
+		$handler  = $this->makeSubmissionHandlerMock();
 		$frontend = new Frontend( $handler );
 
-		// Should not throw or enqueue anything
 		$frontend->frontend_assets();
-		$this->assertTrue( true ); // Reached without error
+
+		$this->assertSame( array(), $enqueued );
 	}
 
 	// ==================================================================
@@ -133,11 +142,21 @@ class FrontendTest extends TestCase {
 		global $post;
 		$post = 'not_a_post';
 
-		$handler = $this->makeSubmissionHandlerMock();
+		// #1030: asserted nothing, so the guard could be deleted and it would
+		// still pass. Collect what gets enqueued and say nothing did.
+		$enqueued = array();
+		$collect  = static function ( $handle ) use ( &$enqueued ) {
+			$enqueued[] = $handle;
+		};
+		Functions\when( 'wp_enqueue_script' )->alias( $collect );
+		Functions\when( 'wp_enqueue_style' )->alias( $collect );
+
+		$handler  = $this->makeSubmissionHandlerMock();
 		$frontend = new Frontend( $handler );
 
 		$frontend->frontend_assets();
-		$this->assertTrue( true );
+
+		$this->assertSame( array(), $enqueued );
 	}
 
 	// ==================================================================
@@ -151,11 +170,21 @@ class FrontendTest extends TestCase {
 
 		Functions\when( 'has_shortcode' )->justReturn( false );
 
-		$handler = $this->makeSubmissionHandlerMock();
+		// #1030: asserted nothing, so the guard could be deleted and it would
+		// still pass. Collect what gets enqueued and say nothing did.
+		$enqueued = array();
+		$collect  = static function ( $handle ) use ( &$enqueued ) {
+			$enqueued[] = $handle;
+		};
+		Functions\when( 'wp_enqueue_script' )->alias( $collect );
+		Functions\when( 'wp_enqueue_style' )->alias( $collect );
+
+		$handler  = $this->makeSubmissionHandlerMock();
 		$frontend = new Frontend( $handler );
 
 		$frontend->frontend_assets();
-		$this->assertTrue( true );
+
+		$this->assertSame( array(), $enqueued );
 	}
 
 	// ==================================================================

@@ -98,8 +98,14 @@ class DeviceLimiterTest extends TestCase {
 	}
 
 	public function test_record_signals_is_noop_when_disabled(): void {
-		// No global $wpdb set: a no-op return proves it never reaches the insert.
+		// #1030: "no global $wpdb: a no-op return proves it" leaned on an
+		// undefined global rather than on an assertion. Give it a $wpdb and
+		// state that the insert must not reach it.
+		global $wpdb;
+		$wpdb = \Mockery::mock( 'wpdb' );
+		$wpdb->shouldNotReceive( 'insert' );
+		$wpdb->shouldNotReceive( 'query' );
+
 		$this->limiter( array( 'enabled' => false ) )->record_signals( 5, 7, array( 'cookie' => 'abc' ) );
-		$this->assertTrue( true );
 	}
 }

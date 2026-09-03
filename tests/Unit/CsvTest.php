@@ -229,7 +229,13 @@ class CsvTest extends TestCase {
 		$w->row( array( 'a' ) );
 		$w->close();
 		$w->close(); // must not throw
-		$this->assertTrue( true );
+
+		// #1030: "must not throw" was the whole test. Writing a real assertion
+		// meant reading what close() promises, and my first guess was wrong:
+		// it fcloses only a handle the writer OWNS. Csv::writer( $h ) is handed
+		// an open handle it does not own, so the correct statement is that
+		// neither call closed it — the caller keeps what the caller opened.
+		$this->assertTrue( is_resource( $h ), 'close() released a handle the writer does not own' );
 	}
 
 	public function test_writer_throws_on_write_after_close(): void {
@@ -385,9 +391,14 @@ class CsvTest extends TestCase {
 
 	public function test_reader_from_string_close_idempotent(): void {
 		$r = Csv::reader_from_string( "h1;h2\na;b\n" );
-		$r->all();
+		$rows = $r->all();
 		$r->close();
 		$r->close();
-		$this->assertTrue( true );
+
+		// #1030: assert what all() actually returns — body rows as positional
+		// lists, the header consumed separately — rather than only that
+		// nothing threw. (My first attempt asserted header-keyed rows; the
+		// documented return is list<list<string>>.)
+		$this->assertSame( array( array( 'a', 'b' ) ), $rows );
 	}
 }

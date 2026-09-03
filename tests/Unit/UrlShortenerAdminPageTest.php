@@ -564,15 +564,17 @@ class UrlShortenerAdminPageTest extends TestCase {
 	public function test_enqueue_assets_skips_on_wrong_page(): void {
 		$_GET['page'] = 'some-other-page';
 
+		// #1030: the guarantee lived in a throwing stub, not in the test.
+		$enqueued = array();
 		Functions\when( 'wp_enqueue_style' )->alias(
-			static function () {
-				throw new \RuntimeException( 'should_not_enqueue' );
+			static function ( $handle ) use ( &$enqueued ) {
+				$enqueued[] = $handle;
 			}
 		);
 
-		// No exception thrown means the early return fired.
 		$this->page->enqueue_assets( 'anything' );
-		$this->assertTrue( true );
+
+		$this->assertSame( array(), $enqueued );
 	}
 
 	public function test_enqueue_assets_enqueues_on_short_urls_page(): void {

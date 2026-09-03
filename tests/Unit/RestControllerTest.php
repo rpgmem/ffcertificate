@@ -89,12 +89,12 @@ class RestControllerTest extends TestCase {
 	// ==================================================================
 
 	public function test_suppress_notices_noop_when_not_rest_request(): void {
-		// REST_REQUEST not defined => no ob_start or add_filter
-		$controller = new RestController();
+		// #1030: the comment named the two side effects and then checked
+		// neither. add_filter() is the observable one.
+		Functions\expect( 'add_filter' )->never();
 
-		// Should not throw
+		$controller = new RestController();
 		$controller->suppress_rest_api_notices();
-		$this->assertTrue( true );
 	}
 
 	// ==================================================================
