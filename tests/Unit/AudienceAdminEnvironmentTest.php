@@ -84,11 +84,21 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	// ==================================================================
 
 	public function test_handle_actions_returns_early_without_permission(): void {
+		// #1030: this asserted nothing, and with no action queued the method
+		// would have done nothing whether or not the guard existed. Queue the
+		// page's real save action so the capability is the only thing that can
+		// stop it, then assert the nonce — which every acting branch verifies
+		// immediately after matching the action — was never checked.
 		Functions\when( 'current_user_can' )->justReturn( false );
+		$_POST = array(
+			'ffc_action'   => 'save_environment',
+			'ffc_environment_nonce' => 'n',
+		);
+
+		Functions\expect( 'wp_verify_nonce' )->never();
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		$page->handle_actions();
-		$this->assertTrue( true );
 	}
 
 	// ==================================================================
@@ -99,11 +109,20 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$_GET['message'] = 'created';
 		$_GET['page'] = 'ffc-scheduling-environments';
 
-		Functions\when( 'add_settings_error' )->justReturn( true );
+		// #1030: the name claims a message is shown and nothing checked it —
+		// a handler that rendered no feedback at all would have passed.
+		$notices = array();
+		Functions\when( 'add_settings_error' )->alias(
+			static function ( $setting, $code, $message ) use ( &$notices ) {
+				$notices[] = $message;
+				return true;
+			}
+		);
 
 		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
 		$page->handle_actions();
-		$this->assertTrue( true );
+
+		$this->assertNotEmpty( $notices, 'handle_actions() surfaced no feedback message' );
 	}
 
 	// ==================================================================
