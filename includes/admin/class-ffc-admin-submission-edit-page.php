@@ -538,7 +538,6 @@ class AdminSubmissionEditPage {
 	 * Processes submission edit form POST request.
 	 */
 	public function handle_save(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified below via check_admin_referer.
 		if ( ! isset( $_POST['ffc_save_edit'] ) ) {
 			return;
 		}

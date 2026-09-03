@@ -85,7 +85,6 @@ abstract class AbstractRepository {
 			return $cached;
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->get_row(
 			$this->wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $this->table, $id ),
 			ARRAY_A
@@ -161,7 +160,6 @@ abstract class AbstractRepository {
 		$order_by = $this->sanitize_order_column( $order_by );
 		$order    = strtoupper( $order ) === 'ASC' ? 'ASC' : 'DESC';
 		if ( $limit ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$results = $this->wpdb->get_results(
 				/**
 				 * The query interpolates `{$where}` from `build_where_clause()`, so it is a
@@ -187,7 +185,6 @@ abstract class AbstractRepository {
 			return is_array( $results ) ? $results : array();
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$results = $this->wpdb->get_results(
 			/**
 			 * The query interpolates `{$where}` from `build_where_clause()`, so it is a
@@ -221,7 +218,6 @@ abstract class AbstractRepository {
 	 */
 	public function count( array $conditions = array() ): int {
 		$where = $this->build_where_clause( $conditions );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		/**
 		 * Same shape as `findAll()`: `{$where}` is a `build_where_clause()` result,
 		 * so it carries already-prepared conditions and cannot be `literal-string`.
@@ -240,7 +236,6 @@ abstract class AbstractRepository {
 	 * @return int|false Insert ID on success, false on failure
 	 */
 	public function insert( array $data ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$result = $this->wpdb->insert( $this->table, $data );
 
 		if ( $result ) {
@@ -260,7 +255,6 @@ abstract class AbstractRepository {
 	 * @return int|false Number of rows updated, or false on error
 	 */
 	public function update( int $id, array $data ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->update(
 			$this->table,
 			$data,
@@ -283,7 +277,6 @@ abstract class AbstractRepository {
 	 * @return int|false Number of rows deleted, or false on error
 	 */
 	public function delete( int $id ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->delete( $this->table, array( 'id' => $id ) );
 
 		if ( $result ) {
@@ -408,7 +401,6 @@ abstract class AbstractRepository {
 	 * @return bool
 	 */
 	public function begin_transaction(): bool {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $this->wpdb->query( 'START TRANSACTION' ) !== false;
 	}
 
@@ -419,7 +411,6 @@ abstract class AbstractRepository {
 	 * @return bool
 	 */
 	public function commit(): bool {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $this->wpdb->query( 'COMMIT' ) !== false;
 	}
 
@@ -430,7 +421,6 @@ abstract class AbstractRepository {
 	 * @return bool
 	 */
 	public function rollback(): bool {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $this->wpdb->query( 'ROLLBACK' ) !== false;
 	}
 

@@ -65,7 +65,6 @@ class SubmissionReader extends AbstractRepository {
 			return self::$column_exists_cache[ $cache_key ];
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = (bool) $this->wpdb->get_var(
 			$this->wpdb->prepare(
 				'SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
@@ -118,8 +117,7 @@ class SubmissionReader extends AbstractRepository {
 	 */
 	public function find_orphan_user_links( int $limit = 50 ): array {
 		$limit = max( 1, $limit );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$rows = $this->wpdb->get_results(
+		$rows  = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				'SELECT s.id, s.user_id, s.form_id FROM %i s LEFT JOIN %i u ON u.ID = s.user_id WHERE s.user_id IS NOT NULL AND s.user_id <> 0 AND u.ID IS NULL ORDER BY s.id DESC LIMIT %d',
 				$this->table,
@@ -143,8 +141,7 @@ class SubmissionReader extends AbstractRepository {
 	 */
 	public function find_users_with_multiple_identities( int $limit = 50 ): array {
 		$limit = max( 1, $limit );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$rows = $this->wpdb->get_results(
+		$rows  = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				'SELECT user_id, COUNT(DISTINCT cpf_hash) AS cpf_count, COUNT(DISTINCT rf_hash) AS rf_count FROM %i WHERE user_id IS NOT NULL AND user_id <> 0 GROUP BY user_id HAVING COUNT(DISTINCT cpf_hash) > 1 OR COUNT(DISTINCT rf_hash) > 1 ORDER BY user_id ASC LIMIT %d',
 				$this->table,
@@ -167,8 +164,7 @@ class SubmissionReader extends AbstractRepository {
 	 */
 	public function find_unlinked_with_matching_identity( int $limit = 50 ): array {
 		$limit = max( 1, $limit );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$rows = $this->wpdb->get_results(
+		$rows  = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				"SELECT s.id, s.form_id, s.cpf_hash FROM %i s WHERE ( s.user_id IS NULL OR s.user_id = 0 ) AND s.cpf_hash IS NOT NULL AND s.cpf_hash <> '' AND EXISTS ( SELECT 1 FROM %i s2 WHERE s2.cpf_hash = s.cpf_hash AND s2.user_id IS NOT NULL AND s2.user_id <> 0 ) ORDER BY s.id DESC LIMIT %d",
 				$this->table,
@@ -189,8 +185,7 @@ class SubmissionReader extends AbstractRepository {
 	 */
 	public function find_shared_identities( int $limit = 50 ): array {
 		$limit = max( 1, $limit );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$rows = $this->wpdb->get_results(
+		$rows  = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				"SELECT cpf_hash, COUNT(DISTINCT user_id) AS user_count FROM %i WHERE cpf_hash IS NOT NULL AND cpf_hash <> '' AND user_id IS NOT NULL AND user_id <> 0 GROUP BY cpf_hash HAVING COUNT(DISTINCT user_id) > 1 ORDER BY user_count DESC LIMIT %d",
 				$this->table,
@@ -215,7 +210,6 @@ class SubmissionReader extends AbstractRepository {
 			return $cached;
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->get_row(
 			$this->wpdb->prepare( 'SELECT * FROM %i WHERE auth_code = %s', $this->table, $auth_code ),
 			ARRAY_A
@@ -242,7 +236,6 @@ class SubmissionReader extends AbstractRepository {
 			return $cached;
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->get_row(
 			$this->wpdb->prepare( 'SELECT * FROM %i WHERE magic_token = %s', $this->table, $token ),
 			ARRAY_A
@@ -263,7 +256,6 @@ class SubmissionReader extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function findByEmail( string $email, int $limit = 10 ): array {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				'SELECT * FROM %i WHERE email_hash = %s ORDER BY id DESC LIMIT %d',
@@ -294,7 +286,6 @@ class SubmissionReader extends AbstractRepository {
 		$hash_column = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
 
 		// Search the specific split column based on digit count.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				"SELECT * FROM %i WHERE {$hash_column} = %s ORDER BY id DESC LIMIT %d",
@@ -322,7 +313,6 @@ class SubmissionReader extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function findByFormId( int $form_id, int $limit = 100, int $offset = 0 ): array {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				'SELECT * FROM %i WHERE form_id = %d ORDER BY id DESC LIMIT %d OFFSET %d',
@@ -372,10 +362,8 @@ class SubmissionReader extends AbstractRepository {
 			$prepare_args = array_merge( array( $this->table ), $prepare_args );
 			$query        = "SELECT * FROM %i {$where_clause} ORDER BY id DESC";
 
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$query = $this->wpdb->prepare( $query, ...$prepare_args );
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$results = $this->wpdb->get_results( $query, ARRAY_A );
 			/**
 			 * Cast wpdb result to expected shape.
@@ -464,10 +452,8 @@ class SubmissionReader extends AbstractRepository {
 
 		$query = "SELECT * FROM %i {$where_clause} ORDER BY id DESC LIMIT %d";
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$query = $this->wpdb->prepare( $query, ...$prepare_args );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $this->wpdb->get_results( $query, ARRAY_A );
 		/**
 		 * Cast wpdb result to expected shape.
@@ -501,10 +487,8 @@ class SubmissionReader extends AbstractRepository {
 
 		$query = "SELECT id, data, data_encrypted FROM %i {$where_clause} ORDER BY id DESC LIMIT %d";
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$query = $this->wpdb->prepare( $query, ...$prepare_args );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $this->wpdb->get_results( $query, ARRAY_A );
 		/**
 		 * Cast wpdb result to expected shape.
@@ -527,10 +511,8 @@ class SubmissionReader extends AbstractRepository {
 
 		$query = "SELECT COUNT(*) FROM %i {$where_clause}";
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$query = $this->wpdb->prepare( $query, ...$prepare_args );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $this->wpdb->get_var( $query );
 	}
 
@@ -546,7 +528,6 @@ class SubmissionReader extends AbstractRepository {
 		}
 
 		// Check if any row has edit data.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$has_data = $this->wpdb->get_var(
 			$this->wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE edited_at IS NOT NULL', $this->table )
 		);
@@ -636,7 +617,6 @@ class SubmissionReader extends AbstractRepository {
 		$orderby      = $this->sanitize_order_column( $args['orderby'] );
 		$order        = strtoupper( $args['order'] ) === 'ASC' ? 'ASC' : 'DESC';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$items = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				/**
@@ -657,7 +637,6 @@ class SubmissionReader extends AbstractRepository {
 			ARRAY_A
 		);
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		/**
 		 * The COUNT twin of the query above, interpolating the same runtime
 		 * `{$where_clause}`; the values behind its placeholders travel as prepare
@@ -685,7 +664,6 @@ class SubmissionReader extends AbstractRepository {
 			return $cached;
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $this->wpdb->get_results(
 			$this->wpdb->prepare( 'SELECT status, COUNT(*) as count FROM %i GROUP BY status', $this->table ),
 			OBJECT_K
@@ -718,7 +696,6 @@ class SubmissionReader extends AbstractRepository {
 		if ( $submission_id <= 0 ) {
 			return null;
 		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Narrow single-column read; caching skipped because magic_token is already cached at the full-row level when callers go through findById.
 		$token = $this->wpdb->get_var(
 			$this->wpdb->prepare( 'SELECT magic_token FROM %i WHERE id = %d', $this->table, $submission_id )
 		);
@@ -749,7 +726,6 @@ class SubmissionReader extends AbstractRepository {
 		if ( $form_id <= 0 || '' === $cpf_hash ) {
 			return 0;
 		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Existence-style count for download gating; instantaneous decision, no cache.
 		$count = $this->wpdb->get_var(
 			$this->wpdb->prepare(
 				'SELECT COUNT(*) FROM %i WHERE form_id = %d AND cpf_hash = %s',

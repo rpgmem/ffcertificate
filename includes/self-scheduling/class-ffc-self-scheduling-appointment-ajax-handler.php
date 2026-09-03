@@ -103,7 +103,6 @@ class AppointmentAjaxHandler {
 				'cpf_rf'           => $this->get_post_param( 'cpf_rf' ),
 				'user_notes'       => isset( $_POST['notes'] ) ? sanitize_textarea_field( wp_unslash( $_POST['notes'] ) ) : '',
 				'custom_data'      => $this->get_post_array( 'custom_data' ),
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- isset() used as boolean only.
 				'consent_given'    => isset( $_POST['consent'] ) ? 1 : 0,
 				'consent_text'     => isset( $_POST['consent_text'] ) ? sanitize_textarea_field( wp_unslash( $_POST['consent_text'] ) ) : '',
 				'user_ip'          => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
@@ -255,7 +254,7 @@ class AppointmentAjaxHandler {
 
 			$appointment_id = $this->get_post_int( 'appointment_id' );
 			$token          = $this->get_post_param( 'token' );
-			$reason         = isset( $_POST['reason'] ) ? sanitize_textarea_field( wp_unslash( $_POST['reason'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via verify_ajax_nonce() above.
+			$reason         = isset( $_POST['reason'] ) ? sanitize_textarea_field( wp_unslash( $_POST['reason'] ) ) : '';
 
 			if ( ! $appointment_id ) {
 				wp_send_json_error(

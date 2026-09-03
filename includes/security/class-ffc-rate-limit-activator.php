@@ -65,7 +65,6 @@ class RateLimitActivator {
                 UNIQUE KEY unique_tracking (type,identifier,form_id,window_type,window_start)
             ) $charset_collate;";
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 			dbDelta( $sql_limits );
 		}
 
@@ -92,7 +91,6 @@ class RateLimitActivator {
                 KEY idx_cleanup (created_at)
             ) $charset_collate;";
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 			dbDelta( $sql_logs );
 		}
 
@@ -131,7 +129,6 @@ class RateLimitActivator {
             KEY idx_created (created_at)
         ) $charset_collate;";
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		dbDelta( $sql_signals );
 
 		update_option( 'ffc_rate_limit_db_version', '1.2.0' );

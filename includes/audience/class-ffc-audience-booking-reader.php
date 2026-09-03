@@ -146,7 +146,6 @@ class AudienceBookingReader {
 		$orderby           = $orderby_sanitized ? $orderby_sanitized : 'b.booking_date ASC';
 		$limit_clause      = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$sql = "SELECT b.*, e.name as environment_name, e.schedule_id
                 FROM %i b
                 INNER JOIN %i e ON b.environment_id = e.id
@@ -155,7 +154,6 @@ class AudienceBookingReader {
                 {$limit_clause}";
 
 		$prepare_args = array_merge( array( $table, $env_table ), $values );
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		/**
 		 * Same shape as the other audience list readers: `{$where_clause}`,
 		 * `{$orderby}` and `{$limit_clause}` are assembled at runtime, so the query is
@@ -310,7 +308,6 @@ class AudienceBookingReader {
 		$table     = self::get_table_name();
 		$env_table = AudienceEnvironmentRepository::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		/**
 		 * Cast wpdb result to typed shape.
 		 *
@@ -825,12 +822,10 @@ class AudienceBookingReader {
 
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$sql = "SELECT COUNT(*) FROM %i {$where_clause}";
 
 		$prepare_args = array_merge( array( $table ), $values );
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$sql = $wpdb->prepare( $sql, $prepare_args );
+		$sql          = $wpdb->prepare( $sql, $prepare_args );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		return (int) $wpdb->get_var( $sql );

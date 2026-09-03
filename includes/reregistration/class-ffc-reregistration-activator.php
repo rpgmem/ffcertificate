@@ -77,7 +77,6 @@ class ReregistrationActivator {
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		dbDelta( $sql );
 	}
 
@@ -104,7 +103,6 @@ class ReregistrationActivator {
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		dbDelta( $sql );
 	}
 
@@ -203,7 +201,6 @@ class ReregistrationActivator {
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		dbDelta( $sql );
 	}
 

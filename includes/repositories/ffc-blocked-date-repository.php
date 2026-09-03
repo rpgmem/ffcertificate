@@ -65,7 +65,6 @@ class BlockedDateRepository extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function getGlobalBlocks(): array {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $this->wpdb->get_results(
 			$this->wpdb->prepare( 'SELECT * FROM %i WHERE calendar_id IS NULL ORDER BY start_date ASC', $this->table ),
 			ARRAY_A
@@ -88,7 +87,6 @@ class BlockedDateRepository extends AbstractRepository {
 	 */
 	public function isDateBlocked( int $calendar_id, string $date, ?string $time = null ): bool {
 		// Check calendar-specific and global blocks.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$blocks_raw = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				'SELECT * FROM %i
@@ -161,7 +159,6 @@ class BlockedDateRepository extends AbstractRepository {
 			$end_date
 		);
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $this->wpdb->get_results( $sql, ARRAY_A );
 		/**
 		 * Cast wpdb result to expected shape.
@@ -269,7 +266,6 @@ class BlockedDateRepository extends AbstractRepository {
 			return false;
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->query( $sql );
 		return false === $result ? false : (int) $result;
 	}

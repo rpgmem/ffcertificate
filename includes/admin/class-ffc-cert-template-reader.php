@@ -68,7 +68,7 @@ class CertTemplateReader {
 				'numberposts'      => -1,
 				'orderby'          => 'title',
 				'order'            => 'ASC',
-				'meta_query'       => $meta_query, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Small, admin-only pool; visibility + kind are the intended filters.
+				'meta_query'       => $meta_query,
 				'suppress_filters' => false,
 			)
 		);

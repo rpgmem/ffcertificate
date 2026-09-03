@@ -252,11 +252,9 @@ abstract class AbstractRecruitmentListTable extends \WP_List_Table {
 			return;
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- _wpnonce is checked below.
 		check_admin_referer( 'bulk-' . (string) $this->_args['plural'] );
 
 		$key = $this->ids_request_key();
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce verified above.
 		$ids = isset( $_REQUEST[ $key ] ) && is_array( $_REQUEST[ $key ] )
 			? array_map( 'absint', wp_unslash( $_REQUEST[ $key ] ) )
 			: array();

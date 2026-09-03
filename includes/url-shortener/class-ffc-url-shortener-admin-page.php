@@ -161,7 +161,6 @@ class UrlShortenerAdminPage {
 			return;
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Presence check only; nonce verified below via wp_verify_nonce.
 		if ( ! isset( $_GET['ffc_action'] ) ) {
 			return;
 		}

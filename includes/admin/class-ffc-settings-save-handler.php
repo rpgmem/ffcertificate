@@ -65,7 +65,6 @@ class SettingsSaveHandler {
 		// danger-zone sub-cap (#711) on top of the page's ffc_manage_settings —
 		// a settings manager without ffc_manage_settings_dangerzone cannot run
 		// destructive actions.
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only; nonce verified via check_admin_referer.
 		if ( isset( $_POST['ffc_delete_all_data'] )
 			&& \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ) ) {
 			// check_admin_referer() wp_die()s on an invalid nonce, so it never
@@ -445,7 +444,6 @@ class SettingsSaveHandler {
 
 		// Post types is an array of checkboxes - only process on URL Shortener tab.
 		if ( 'url_shortener' === $ffc_tab ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 			if ( isset( $_POST['ffc_settings']['url_shortener_post_types'] ) && is_array( $_POST['ffc_settings']['url_shortener_post_types'] ) ) {
 				$clean['url_shortener_post_types'] = array_map( 'sanitize_key', wp_unslash( $_POST['ffc_settings']['url_shortener_post_types'] ) );
 			} else {
@@ -456,7 +454,6 @@ class SettingsSaveHandler {
 			// intersect the submitted expose list with the (already-sanitized)
 			// post-types list so the stored value can never expose a type that
 			// is not also shortened, even if the coupling JS was bypassed.
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 			if ( isset( $_POST['ffc_settings']['url_shortener_expose_post_types'] ) && is_array( $_POST['ffc_settings']['url_shortener_expose_post_types'] ) ) {
 				$expose = array_map( 'sanitize_key', wp_unslash( $_POST['ffc_settings']['url_shortener_expose_post_types'] ) );
 			} else {

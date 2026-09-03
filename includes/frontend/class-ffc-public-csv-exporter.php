@@ -168,7 +168,6 @@ class PublicCsvExporter {
 		header( 'Pragma: no-cache' );
 		header( 'Expires: 0' );
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output; CsvWriter receives the borrowed handle.
 		$output = fopen( 'php://output', 'w' );
 		if ( ! $output ) {
 			exit;

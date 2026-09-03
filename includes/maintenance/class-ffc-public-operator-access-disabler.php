@@ -172,7 +172,7 @@ class PublicOperatorAccessDisabler implements MaintenanceToolInterface {
 				'no_found_rows'          => true,
 				'update_post_meta_cache' => false,
 				'update_post_term_cache' => false,
-				'meta_query'             => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- one-off admin maintenance action, not a hot path.
+				'meta_query'             => array(
 					array(
 						'key'   => '_ffc_csv_public_enabled',
 						'value' => '1',

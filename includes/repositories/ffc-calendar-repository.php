@@ -55,7 +55,6 @@ class CalendarRepository extends AbstractRepository {
 			return $cached;
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->get_row(
 			$this->wpdb->prepare( 'SELECT * FROM %i WHERE post_id = %d', $this->table, $post_id ),
 			ARRAY_A

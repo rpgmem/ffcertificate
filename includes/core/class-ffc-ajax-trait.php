@@ -42,7 +42,6 @@ trait AjaxTrait {
 	 * @return void Dies with JSON error if nonce is invalid.
 	 */
 	protected function verify_ajax_nonce( string $action, string $field = 'nonce' ): void {
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only; nonce verified immediately inside.
 		if ( ! isset( $_POST[ $field ] ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed. Please reload the page.', 'ffcertificate' ) ) );
 		}

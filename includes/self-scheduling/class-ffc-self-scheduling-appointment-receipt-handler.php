@@ -474,7 +474,7 @@ class AppointmentReceiptHandler {
 				<?php if ( ! empty( $appointment['user_notes'] ) ) : ?>
 				<div class="info-section">
 					<h2><?php echo esc_html__( 'Notes', 'ffcertificate' ); ?></h2>
-					<div class="info-value"><?php echo nl2br( esc_html( $appointment['user_notes'] ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- nl2br() on esc_html() output is safe ?></div>
+					<div class="info-value"><?php echo nl2br( esc_html( $appointment['user_notes'] ) ); ?></div>
 				</div>
 				<?php endif; ?>
 

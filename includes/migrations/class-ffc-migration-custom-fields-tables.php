@@ -144,7 +144,6 @@ class MigrationCustomFieldsTables {
             KEY idx_source (audience_id, field_source)
         ) {$charset_collate};";
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		dbDelta( $sql );
 
 		if ( self::table_exists( $table_name ) ) { // @phpstan-ignore if.alwaysFalse (dbDelta creates the table)
@@ -210,7 +209,6 @@ class MigrationCustomFieldsTables {
             KEY idx_dates (start_date, end_date)
         ) {$charset_collate};";
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		dbDelta( $sql );
 
 		if ( self::table_exists( $table_name ) ) { // @phpstan-ignore if.alwaysFalse (dbDelta creates the table)
@@ -277,7 +275,6 @@ class MigrationCustomFieldsTables {
             KEY idx_magic_token (magic_token)
         ) {$charset_collate};";
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		dbDelta( $sql );
 
 		if ( self::table_exists( $table_name ) ) { // @phpstan-ignore if.alwaysFalse (dbDelta creates the table)

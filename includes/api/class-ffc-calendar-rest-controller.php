@@ -63,7 +63,6 @@ class CalendarRestController {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_calendars' ),
-				// phpcs:ignore -- public-by-design: see register_routes() block comment above and #139.
 				'permission_callback' => '__return_true',
 			)
 		);
@@ -74,7 +73,6 @@ class CalendarRestController {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_calendar' ),
-				// phpcs:ignore -- public-by-design: see register_routes() block comment above and #139.
 				'permission_callback' => '__return_true',
 				'args'                => array(
 					'id' => array(
@@ -92,7 +90,6 @@ class CalendarRestController {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_calendar_slots' ),
-				// phpcs:ignore -- public-by-design: see register_routes() block comment above and #139.
 				'permission_callback' => '__return_true',
 				'args'                => array(
 					'id'   => array(

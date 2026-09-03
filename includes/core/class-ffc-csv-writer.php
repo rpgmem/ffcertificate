@@ -131,7 +131,6 @@ final class CsvWriter {
 			$row
 		);
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fputcsv -- canonical CSV writer; fputcsv is the documented WP-allowed exception for actual CSV output.
 		fputcsv( $this->handle, $row, $this->delimiter );
 	}
 

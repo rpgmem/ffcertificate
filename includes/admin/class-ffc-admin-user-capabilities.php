@@ -477,14 +477,14 @@ class AdminUserCapabilities {
 				. '</div>',
 			esc_attr( strtolower( $label . ' ' . $slug ) ),
 			esc_attr( $slug ),
-			$toggle, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- AdminUI::get_toggle() returns pre-escaped markup.
+			$toggle,
 			esc_html( $label ),
 			esc_html( $desc ),
 			esc_attr__( 'Copy slug', 'ffcertificate' ),
 			esc_attr( $origin ),
 			esc_html( self::origin_label( $origin ) ),
 			$checked ? '1' : '0',
-			$surface_badge, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped by CapabilityCatalog::surface_badge_html().
+			$surface_badge,
 			esc_attr( \FreeFormCertificate\UserDashboard\CapabilityCatalog::cap_tier( $slug ) )
 		);
 	}
@@ -673,7 +673,7 @@ class AdminUserCapabilities {
 		// "no audiences rendered" case so it can't wipe on an unrelated save.
 		$submitted_audiences = array();
 		if ( isset( $_POST['ffc_audience'] ) ) {
-			$raw_audiences = wp_unslash( $_POST['ffc_audience'] ); // phpcs:ignore WordPress.Security.ValidatedSanitized.InputNotSanitized -- cast to int below.
+			$raw_audiences = wp_unslash( $_POST['ffc_audience'] );
 			if ( is_array( $raw_audiences ) ) {
 				$submitted_audiences = array_map( 'intval', $raw_audiences );
 			}
