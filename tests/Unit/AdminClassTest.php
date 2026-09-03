@@ -252,9 +252,20 @@ class AdminClassTest extends TestCase {
 
 	public function test_maybe_register_tinymce_filter_handles_missing_function(): void {
 		// get_current_screen left undefined -> function_exists() guard returns.
+		// The only thing the method does past that guard is register the
+		// tiny_mce_before_init filter, so it must not be registered.
+		$filters = array();
+		Functions\when( 'add_filter' )->alias(
+			static function ( $hook ) use ( &$filters ) {
+				$filters[] = $hook;
+				return true;
+			}
+		);
+
 		list( $admin ) = $this->makeAdmin();
 		$admin->maybe_register_tinymce_placeholder_filter();
-		$this->assertTrue( true );
+
+		$this->assertNotContains( 'tiny_mce_before_init', $filters );
 	}
 
 	// ==================================================================
@@ -390,18 +401,32 @@ class AdminClassTest extends TestCase {
 	// ==================================================================
 
 	public function test_handle_submission_actions_returns_early_on_wrong_page(): void {
-		$_GET['page'] = 'other-page';
-		list( $admin ) = $this->makeAdmin();
+		// Ask for a real action so the page check is the only thing that can
+		// stop it — otherwise the test passes for the wrong reason.
+		$_GET['page']          = 'other-page';
+		$_GET['submission_id'] = '12';
+		$_GET['action']        = 'trash';
+		$_GET['_wpnonce']      = 'n';
+
+		list( $admin, $handler ) = $this->makeAdmin();
+		$handler->shouldNotReceive( 'trash_submission' );
+
 		$admin->handle_submission_actions();
-		$this->assertTrue( true );
 	}
 
 	public function test_handle_submission_actions_returns_when_lacking_manage_cap(): void {
-		$_GET['page'] = 'ffc-submissions';
+		// Right page and a real action queued, so only the capability check can
+		// stop the write — which is what this test is about.
+		$_GET['page']          = 'ffc-submissions';
+		$_GET['submission_id'] = '12';
+		$_GET['action']        = 'trash';
+		$_GET['_wpnonce']      = 'n';
 		Functions\when( 'current_user_can' )->justReturn( false );
-		list( $admin ) = $this->makeAdmin();
+
+		list( $admin, $handler ) = $this->makeAdmin();
+		$handler->shouldNotReceive( 'trash_submission' );
+
 		$admin->handle_submission_actions();
-		$this->assertTrue( true );
 	}
 
 	public function test_handle_submission_actions_trash(): void {
@@ -721,9 +746,14 @@ class AdminClassTest extends TestCase {
 
 	public function test_handle_migration_action_returns_early_without_param(): void {
 		unset( $_GET['ffc_migration'] );
+
+		// #1030: this asserted nothing. Past the param guard the method checks
+		// the capability and wp_die()s without it — see the sibling test — so a
+		// capability never consulted is the proof the guard returned.
+		Functions\expect( 'current_user_can' )->never();
+
 		list( $admin ) = $this->makeAdmin();
 		$admin->handle_migration_action();
-		$this->assertTrue( true );
 	}
 
 	public function test_handle_migration_action_dies_without_permission(): void {

@@ -416,7 +416,13 @@ class TabGeolocationTest extends TestCase {
 		$_POST['gps_fallback_preset'] = 'tolerant';
 		$_POST['both_fail_fallback'] = 'block';
 
-		Functions\when( 'update_option' )->justReturn( true );
+		$saved = array();
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) use ( &$saved ) {
+				$saved[ $key ] = $value;
+				return true;
+			}
+		);
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
@@ -424,9 +430,14 @@ class TabGeolocationTest extends TestCase {
 		$ref->setAccessible( true );
 		$ref->invoke( $this->tab );
 
-		// save_settings no longer saves main_geo_areas; it delegates to save_locations().
-		// Verify it completes without error — location CRUD is tested separately.
-		$this->assertTrue( true );
+		// #1030: "verify it completes without error" verified nothing. The
+		// claim the comment actually makes is that save_settings writes the
+		// settings but no longer owns main_geo_areas — it delegates the
+		// location list to save_locations(). Assert both halves.
+		$this->assertNotEmpty( $saved, 'save_settings() wrote no option at all' );
+		foreach ( $saved as $value ) {
+			$this->assertArrayNotHasKey( 'main_geo_areas', (array) $value );
+		}
 	}
 
 	// ==================================================================
@@ -494,17 +505,36 @@ class TabGeolocationTest extends TestCase {
 	// ==================================================================
 
 	public function test_enqueue_scripts_skips_on_wrong_hook(): void {
-		Functions\when( 'wp_enqueue_script' )->alias( function () { throw new \RuntimeException( 'enqueued' ); } );
+		// #1030: this relied on a throwing stub and then asserted nothing, so
+		// the guarantee lived in the stub rather than in the test. Collect the
+		// handles and state it, as the enqueues-on-the-right-tab test does.
+		$handles = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			function ( $h ) use ( &$handles ) {
+				$handles[] = $h;
+			}
+		);
+
 		$this->tab->enqueue_scripts( 'some-other-hook' );
-		$this->assertTrue( true );
+
+		$this->assertSame( array(), $handles );
 	}
 
 	public function test_enqueue_scripts_skips_on_wrong_tab(): void {
+		// Right hook, wrong tab — so the tab check is the only thing that can
+		// stop the enqueue.
 		$_GET['tab'] = 'datetime';
-		Functions\when( 'wp_enqueue_script' )->alias( function () { throw new \RuntimeException( 'enqueued' ); } );
+		$handles     = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			function ( $h ) use ( &$handles ) {
+				$handles[] = $h;
+			}
+		);
+
 		$this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
 		unset( $_GET['tab'] );
-		$this->assertTrue( true );
+
+		$this->assertSame( array(), $handles );
 	}
 
 	public function test_enqueue_scripts_enqueues_on_geolocation_tab(): void {
@@ -525,10 +555,14 @@ class TabGeolocationTest extends TestCase {
 	}
 
 	public function test_handle_location_delete_noop_without_param(): void {
+		// Past the param guard the method verifies a nonce and wp_die()s on a
+		// bad one — see the sibling test — so a nonce never verified is the
+		// proof that the guard returned.
+		Functions\expect( 'wp_verify_nonce' )->never();
+
 		$ref = new \ReflectionMethod( TabGeolocation::class, 'handle_location_delete' );
 		$ref->setAccessible( true );
 		$ref->invoke( $this->tab );
-		$this->assertTrue( true );
 	}
 
 	public function test_handle_location_delete_dies_on_bad_nonce(): void {
