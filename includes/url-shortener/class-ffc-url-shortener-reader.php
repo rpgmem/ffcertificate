@@ -263,7 +263,7 @@ class UrlShortenerReader extends AbstractRepository {
 		/**
 		 * The interpolated part is a literal WHERE from build_export_where().
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
 		$prepared = $this->wpdb->prepare( $query, ...$args );
 
@@ -291,7 +291,7 @@ class UrlShortenerReader extends AbstractRepository {
 		/**
 		 * The interpolated part is a literal WHERE from build_export_where().
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
 		$prepared = $this->wpdb->prepare( $query, ...$args );
 
@@ -494,7 +494,7 @@ class UrlShortenerReader extends AbstractRepository {
 		 * The stub types wpdb::get_var() as non-empty-string, but a genuinely
 		 * empty column returns ''.
 		 *
-		 * @phpstan-ignore-next-line notIdentical.alwaysTrue
+		 * @phpstan-ignore notIdentical.alwaysTrue
 		 */
 		return is_string( $value ) && '' !== $value ? $value : '';
 	}

@@ -117,9 +117,16 @@ class AudienceEnvironmentRepository {
 		$prepare_args = array_merge( array( $table ), $values );
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		/**
-		 * Description.
+		 * `$sql` interpolates `{$where_clause}`, `{$orderby}` and `{$limit_clause}`,
+		 * all assembled at runtime, so it is a plain string rather than the
+		 * `literal-string` the stub declares. It cannot become one: `$orderby` comes
+		 * from `sanitize_sql_orderby()`, whose return is a runtime value by
+		 * construction. That call is also what makes it safe — it rejects anything
+		 * that is not a column list with an optional ASC/DESC. The WHERE fragments are
+		 * literals carrying placeholders (values travel in `$prepare_args`), the LIMIT
+		 * clause is built from integers, and the table name is bound with `%i`.
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
 		$sql = $wpdb->prepare( $sql, $prepare_args );
 
