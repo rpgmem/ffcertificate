@@ -120,6 +120,7 @@ class AudienceBookingWriter {
 			return false;
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->insert(
 			$table,
 			array(
@@ -355,6 +356,7 @@ class AudienceBookingWriter {
 		$wpdb  = self::db();
 		$table = self::get_booking_audiences_table_name();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->insert(
 			$table,
 			array(
@@ -425,6 +427,7 @@ class AudienceBookingWriter {
 		$wpdb  = self::db();
 		$table = self::get_booking_users_table_name();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->insert(
 			$table,
 			array(

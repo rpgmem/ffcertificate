@@ -657,6 +657,7 @@ final class CsvStagingService {
 			);
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 		$wpdb->query( 'START TRANSACTION' );
 		try {
 			RecruitmentClassificationRepository::delete_all_for_notice_list( (int) $job->notice_id, (string) $job->list_type );
@@ -679,6 +680,7 @@ final class CsvStagingService {
 				)
 			);
 			if ( false === $inserted ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 				$wpdb->query( 'ROLLBACK' );
 				return array(
 					'ok'     => false,
@@ -697,8 +699,10 @@ final class CsvStagingService {
 				array( '%s' )
 			);
 
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 			$wpdb->query( 'COMMIT' );
 		} catch ( \Throwable $e ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 			$wpdb->query( 'ROLLBACK' );
 			return array(
 				'ok'     => false,

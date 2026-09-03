@@ -277,6 +277,7 @@ class RecruitmentCandidateReader {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = '' !== $name_search
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin list keyed on page, page size and a free-text search term; the key cardinality is effectively unbounded.
 			? $wpdb->get_results(
 				$wpdb->prepare(
 					'SELECT * FROM %i WHERE name LIKE %s ORDER BY created_at DESC LIMIT %d OFFSET %d',

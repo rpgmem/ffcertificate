@@ -103,6 +103,7 @@ class AudienceWriter {
 			$insert_format[]                = '%d';
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->insert( $table, $insert_data, $insert_format );
 
 		if ( ! $result ) {
@@ -270,6 +271,7 @@ class AudienceWriter {
 			return false;
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->insert(
 			$table,
 			array(

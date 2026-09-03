@@ -165,6 +165,7 @@ final class CandidatePersister {
 		$table = RecruitmentCandidateReader::get_table_name();
 		$hash  = RecruitmentPcdHasher::compute( $candidate_id, $is_pcd );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$wpdb->update(
 			$table,
 			array(

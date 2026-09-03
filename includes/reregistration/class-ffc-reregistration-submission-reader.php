@@ -105,7 +105,7 @@ class ReregistrationSubmissionReader {
 		 *
 		 * @var ReregistrationSubmissionRow|null $result
 		 */
-		$result = $wpdb->get_row(
+		$result = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- This is the cache-miss path — the hit is served by the cache_get() above and the result is stored below.
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
 
@@ -136,7 +136,7 @@ class ReregistrationSubmissionReader {
 		 *
 		 * @var ReregistrationSubmissionRow|null $row
 		 */
-		$row = $wpdb->get_row(
+		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Token lookup: a consumed or revoked auth code must never be served from cache, so this read is deliberately uncached.
 			// 6.7.4 — Include `expired` so a submission that was approved
 			// before the campaign closed still surfaces from its auth code.
 			// The status flip approved → expired happens for housekeeping
@@ -169,7 +169,7 @@ class ReregistrationSubmissionReader {
 		 *
 		 * @var ReregistrationSubmissionRow|null $row
 		 */
-		$row = $wpdb->get_row(
+		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Token lookup: a consumed or revoked magic token must never be served from cache, so this read is deliberately uncached.
 			// 6.7.4 — Same `expired` inclusion as get_by_auth_code() above.
 			// Magic links printed on (or emailed about) an approved ficha
 			// must keep working after the parent campaign ends.
@@ -194,7 +194,7 @@ class ReregistrationSubmissionReader {
 		 *
 		 * @var ReregistrationSubmissionRow|null $row
 		 */
-		$row = $wpdb->get_row(
+		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached per-(campaign, user) read; a candidate for the object cache, tracked in the caching follow-up.
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE reregistration_id = %d AND user_id = %d',
 				$table,
@@ -311,7 +311,7 @@ class ReregistrationSubmissionReader {
 		 *
 		 * @phpstan-ignore argument.type
 		 */
-		$results = $wpdb->get_results( $wpdb->prepare( $sql, $prepare_values ) );
+		$results = $wpdb->get_results( $wpdb->prepare( $sql, $prepare_values ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Filtered and sorted list keyed on the caller's arguments; the key cardinality is effectively unbounded.
 		/**
 		 * Cast wpdb result to the typed row shape. `get_results()` returns null
 		 * on a failed query, which this method's `: array` return type would
@@ -333,6 +333,7 @@ class ReregistrationSubmissionReader {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached per-campaign aggregate for the admin dashboard; a candidate for the object cache, tracked in the caching follow-up.
 		$results_raw = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT status, COUNT(*) as count FROM %i
@@ -428,6 +429,7 @@ class ReregistrationSubmissionReader {
 			$values[] = $status;
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached per-campaign count; a candidate for the object cache, tracked in the caching follow-up.
 		return (int) $wpdb->get_var(
 			$wpdb->prepare( "SELECT COUNT(*) FROM %i {$where}", array_merge( array( $table ), $values ) )
 		);
@@ -459,6 +461,7 @@ class ReregistrationSubmissionReader {
 
 		$prepare_values = array( $table, $wpdb->users, $reregistration_id, $cursor, $size );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset pagination over an export; each page is read exactly once, so there is nothing a cache could serve twice.
 		$results = $wpdb->get_results( $wpdb->prepare( $sql, $prepare_values ) );
 		/**
 		 * Cast wpdb result to the typed row shape.

@@ -241,7 +241,7 @@ class AudienceReader {
 		 *
 		 * @var AudienceRow|null $result
 		 */
-		$result = $wpdb->get_row(
+		$result = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- This is the cache-miss path — the hit is served by the cache_get() above and the result is stored below.
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
 

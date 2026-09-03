@@ -114,6 +114,7 @@ class CustomFieldWriter {
 			'is_active'         => (int) $data['is_active'],
 		);
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->insert(
 			$table,
 			$insert_data,
@@ -200,6 +201,7 @@ class CustomFieldWriter {
 			return false;
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->update(
 			$table,
 			$update_data,
@@ -241,6 +243,7 @@ class CustomFieldWriter {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->delete( $table, array( 'id' => $field_id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$field_id}" );
@@ -291,6 +294,7 @@ class CustomFieldWriter {
 		$table = self::get_table_name();
 
 		foreach ( $field_ids as $index => $field_id ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 			$wpdb->update(
 				$table,
 				array( 'sort_order' => $index ),
@@ -404,6 +408,7 @@ class CustomFieldWriter {
 				$values[] = $exclude_id;
 			}
 
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uniqueness probe — serving this from cache would defeat the check it exists to perform.
 			$exists = (int) $wpdb->get_var(
 				$wpdb->prepare( "SELECT COUNT(*) FROM %i {$where}", array_merge( array( $table ), $values ) )
 			);

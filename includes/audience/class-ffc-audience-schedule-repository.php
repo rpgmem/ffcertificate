@@ -139,7 +139,7 @@ class AudienceScheduleRepository {
 		 *
 		 * @var ScheduleRow|null $result
 		 */
-		$result = $wpdb->get_row(
+		$result = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- This is the cache-miss path — the hit is served by the cache_get() above and the result is stored below.
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
 
@@ -214,6 +214,7 @@ class AudienceScheduleRepository {
 		);
 		$data     = wp_parse_args( $data, $defaults );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->insert(
 			$table,
 			array(
@@ -340,7 +341,7 @@ class AudienceScheduleRepository {
 		 *
 		 * @var SchedulePermissionRow|null $row
 		 */
-		$row = $wpdb->get_row(
+		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached per-(schedule, user) read on a permission check; a candidate for the object cache, tracked in the caching follow-up.
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE schedule_id = %d AND user_id = %d',
 				$table,

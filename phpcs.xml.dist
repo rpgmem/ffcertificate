@@ -197,4 +197,19 @@
     -->
     <rule ref="WordPress.Security.ValidatedSanitizedInput"/>
 
+    <!--
+        Enabled deliberately (#1028), the second of the two sniffs the
+        suppression audit found had never run: like ValidatedSanitizedInput it
+        lives only in the full WordPress standard, not in WordPress-Extra.
+        Its 129 sites were classified before being annotated — 25 are
+        transaction control that touches no table, 47 are writes to the
+        plugin's own ffc_* tables (which WordPress has no API for), 3 are
+        schema changes, and of the 54 reads most cannot be cached for a
+        reason rather than merely are not: a migration must read live state, a
+        uniqueness probe must not be served from cache, an export cursor reads
+        each page once. The reads where caching is a genuine open question say
+        so at the site and are tracked separately.
+    -->
+    <rule ref="WordPress.DB.DirectDatabaseQuery"/>
+
 </ruleset>
