@@ -134,7 +134,6 @@ final class HtmlPolicy {
 		 * Allows developers to filter or add new tags
 		 * without modifying the plugin core.
 		 */
-        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
 		return apply_filters( 'ffcertificate_allowed_html_tags', $allowed );
 	}
 }

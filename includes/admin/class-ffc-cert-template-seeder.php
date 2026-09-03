@@ -333,7 +333,7 @@ class CertTemplateSeeder {
 				'post_status'      => 'any',
 				'numberposts'      => -1,
 				'fields'           => 'ids',
-				'meta_key'         => CertTemplateCpt::META_DEFAULT_SLUG, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One-shot seed guard over a tiny admin-only pool.
+				'meta_key'         => CertTemplateCpt::META_DEFAULT_SLUG,
 				'suppress_filters' => false,
 			)
 		);

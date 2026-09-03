@@ -260,10 +260,10 @@ final class RoleCapabilityEditor {
 						. '</div>',
 					esc_attr( strtolower( $label . ' ' . $slug ) ),
 					esc_attr( (string) $slug ),
-					$toggle, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- AdminUI::get_toggle() returns pre-escaped markup.
+					$toggle,
 					esc_html( $label ),
 					esc_html( $desc ),
-					$surface_badge, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from esc_* in surface_badge().
+					$surface_badge,
 					esc_attr( CapabilityCatalog::cap_tier( (string) $slug ) )
 				);
 			}

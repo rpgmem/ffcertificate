@@ -296,7 +296,6 @@ class PdfHtmlRenderer {
 		// #945: allow a pool-backed template selected globally per mode. A listener
 		// (the self-scheduling receipt-template resolver) may return HTML; an empty
 		// string means "not configured" and we fall through to the shipped file.
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
 		$pool_override = apply_filters( 'ffcertificate_appointment_receipt_template_html', '', $schedule_type );
 		if ( is_string( $pool_override ) && '' !== $pool_override ) {
 			return $pool_override;
@@ -305,7 +304,6 @@ class PdfHtmlRenderer {
 		$default_file = FFC_PLUGIN_DIR . 'templates/documents/default_appointment_receipt_1.html';
 
 		// Allow override via filter.
-        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
 		$template_file = apply_filters( 'ffcertificate_appointment_receipt_template_file', $default_file );
 
 		// Validate: only allow paths inside the plugin or theme directories to prevent path traversal.

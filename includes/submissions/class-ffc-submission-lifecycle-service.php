@@ -316,7 +316,6 @@ class SubmissionLifecycleService {
 
 		if ( $reset_auto_increment ) {
 			// TRUNCATE resets AUTO_INCREMENT automatically.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 			$result = $wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ) );
 
 			// Also reset migration counters when resetting auto increment.

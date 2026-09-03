@@ -62,7 +62,6 @@ class AppointmentRestController {
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'create_appointment' ),
-				// phpcs:ignore -- public-by-design: anonymous booking creation; see route docblock above and #139.
 				'permission_callback' => '__return_true',
 				'args'                => array(
 					'id' => array(

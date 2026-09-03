@@ -653,7 +653,6 @@ class AudienceRestController {
 		}
 
 		// Trigger notification hook.
-        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix.
 		do_action( 'ffcertificate_audience_booking_created', $booking_id );
 
 		return new \WP_REST_Response(
@@ -722,7 +721,6 @@ class AudienceRestController {
 		}
 
 		// Trigger notification hook.
-        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix.
 		do_action( 'ffcertificate_audience_booking_cancelled', $booking_id, $reason );
 
 		return new \WP_REST_Response(

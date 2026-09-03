@@ -174,7 +174,6 @@ class ActivityLogClearPlaintextMigrationStrategy implements MigrationStrategyInt
 		$last_id      = (int) end( $ids );
 		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $placeholders is a list of %d only.
 		$updated = $wpdb->query(
 			$wpdb->prepare(
 				"UPDATE %i SET context = NULL WHERE id IN ({$placeholders})",

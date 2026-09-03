@@ -267,7 +267,6 @@ class ReregistrationRepository {
                 ORDER BY r.{$orderby} {$order}
                 {$limit_clause}";
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		/**
 		 * `$sql` interpolates `{$joins}`, `{$where_clause}`, `{$orderby}`, `{$order}`
 		 * and `{$limit_clause}`, so it is a runtime string, not `literal-string`.
@@ -280,7 +279,6 @@ class ReregistrationRepository {
 		 */
 		$sql = $wpdb->prepare( $sql, $values );
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$results = $wpdb->get_results( $sql );
 		/**
 		 * Cast wpdb result to typed shape.
@@ -320,10 +318,8 @@ class ReregistrationRepository {
 
 		$sql = "SELECT COUNT(DISTINCT r.id) FROM %i r {$joins} {$where_clause}";
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$sql = $wpdb->prepare( $sql, $values );
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		return (int) $wpdb->get_var( $sql );
 	}
 

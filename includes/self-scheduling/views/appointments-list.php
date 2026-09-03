@@ -79,7 +79,6 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 
 	} elseif ( 'cancel' === $ffcertificate_action ) {
 		check_admin_referer( 'ffc_cancel_appointment_' . $ffc_self_scheduling_appointment_id );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$ffcertificate_cancel_reason = isset( $_GET['reason'] ) ? sanitize_textarea_field( wp_unslash( $_GET['reason'] ) ) : __( 'Cancelled by admin', 'ffcertificate' );
 		// Snapshot the row before cancelling so the waitlist promoter sees the
 		// pre-cancel status/slot (#941 phase 2).
@@ -354,7 +353,7 @@ $ffcertificate_table->prepare_items();
 	// but cannot bulk-extract the attendee dataset). The current calendar/status
 	// filters ride along via data-* so the export matches the on-screen query.
 	if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_appointments' ) ) :
-		$ffc_export_calendar_id = isset( $_GET['calendar_id'] ) ? absint( wp_unslash( $_GET['calendar_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter passthrough; the export itself is nonce-verified in the AJAX source.
+		$ffc_export_calendar_id = isset( $_GET['calendar_id'] ) ? absint( wp_unslash( $_GET['calendar_id'] ) ) : 0;
 		$ffc_export_status      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
 		?>
 		<button

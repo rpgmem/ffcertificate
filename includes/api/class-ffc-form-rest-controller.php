@@ -137,7 +137,6 @@ class FormRestController {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_form_schema' ),
-				// phpcs:ignore -- public-by-design: serves the curated schema; see route docblock above and #139.
 				'permission_callback' => '__return_true',
 				'args'                => array(
 					'id' => array(
@@ -167,7 +166,6 @@ class FormRestController {
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'submit_form' ),
-				// phpcs:ignore -- public-by-design: anonymous submission flow; see route docblock above and #139.
 				'permission_callback' => '__return_true',
 				'args'                => array(
 					'id' => array(

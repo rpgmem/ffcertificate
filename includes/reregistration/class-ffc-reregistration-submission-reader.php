@@ -300,7 +300,6 @@ class ReregistrationSubmissionReader {
 
 		$prepare_values = array_merge( array( $table, $wpdb->users ), $values );
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		/**
 		 * `$sql` interpolates `$where_clause`, `$orderby`, `$order` and
 		 * `$limit_clause`, so it is a runtime string rather than the

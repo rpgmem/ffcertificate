@@ -43,7 +43,6 @@ final class ReregistrationAdminRenderer {
 	 * @return void
 	 */
 	public static function render_list( string $menu_slug, bool $can_edit ): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$status_filter = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
 		if ( '' === $status_filter ) {
 			$status_filter = null;
@@ -142,12 +141,10 @@ final class ReregistrationAdminRenderer {
 			wp_die( esc_html__( 'Reregistration not found.', 'ffcertificate' ) );
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$status_filter = \FreeFormCertificate\Core\RequestInput::get_get_string( 'sub_status' );
 		if ( '' === $status_filter ) {
 			$status_filter = null;
 		}
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$search = \FreeFormCertificate\Core\RequestInput::get_get_string( 's' );
 		if ( '' === $search ) {
 			$search = null;

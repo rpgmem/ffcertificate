@@ -110,7 +110,6 @@ class Settings {
 		 * @since 6.16.0
 		 * @param array<int, string> $caps Capability slugs.
 		 */
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix.
 		return (array) apply_filters(
 			'ffcertificate_settings_page_entry_caps',
 			array(
@@ -214,7 +213,6 @@ class Settings {
 		);
 
 		// Allow plugins to add custom tabs.
-        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
 		$this->tabs = apply_filters( 'ffcertificate_settings_tabs', $this->tabs );
 	}
 

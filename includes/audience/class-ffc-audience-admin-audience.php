@@ -84,9 +84,7 @@ class AudienceAdminAudience {
 		}
 
 		// Show feedback for redirect-based actions.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['message'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-audiences' ) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			$msg      = RequestInput::get_get_string( 'message' );
 			$messages = array(
 				'created'        => __( 'Audience created successfully.', 'ffcertificate' ),
@@ -154,7 +152,6 @@ class AudienceAdminAudience {
 		}
 
 		// Handle remove member.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['remove_user'] ) && isset( $_GET['id'] ) ) {
 			$user_id     = absint( $_GET['remove_user'] );
 			$audience_id = absint( $_GET['id'] );
@@ -166,7 +163,6 @@ class AudienceAdminAudience {
 		}
 
 		// Handle deactivate (active items get deactivated instead of deleted).
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'deactivate' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-audiences' ) {
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( RequestInput::get_get_string( '_wpnonce' ), 'deactivate_audience_' . $id ) ) {
@@ -177,7 +173,6 @@ class AudienceAdminAudience {
 		}
 
 		// Handle delete (only inactive items can be permanently deleted).
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-audiences' ) {
 			if ( ! Capabilities::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
 				wp_die( esc_html__( 'You do not have permission to delete audiences.', 'ffcertificate' ) );

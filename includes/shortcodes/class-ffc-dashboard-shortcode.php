@@ -71,7 +71,6 @@ class DashboardShortcode {
 		header( 'CDN-Cache-Control: no-store' );
 
 		// LiteSpeed Cache: programmatic exclusion — hook name is defined by LiteSpeed Cache plugin.
-        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 		do_action( 'litespeed_control_set_nocache', 'FFC dashboard page requires user-specific content' );
 
 		// Generic header recognised by LiteSpeed and other reverse proxies.

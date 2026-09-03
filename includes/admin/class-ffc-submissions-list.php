@@ -426,9 +426,7 @@ class SubmissionsList extends \WP_List_Table {
 		$order   = \FreeFormCertificate\Core\RequestInput::get_get_string( 'order' ) === 'asc' ? 'ASC' : 'DESC';
 
 		$filter_form_ids = array();
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- empty() existence check only.
 		if ( ! empty( $_GET['filter_form_id'] ) ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- is_array() type check only.
 			if ( is_array( $_GET['filter_form_id'] ) ) {
 				$filter_form_ids = array_map( 'absint', wp_unslash( $_GET['filter_form_id'] ) );
 			} else {
@@ -584,9 +582,7 @@ class SubmissionsList extends \WP_List_Table {
 
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameter for form selection.
 		$selected_form_ids = array();
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- empty() existence check only.
 		if ( ! empty( $_GET['filter_form_id'] ) ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- is_array() type check only.
 			if ( is_array( $_GET['filter_form_id'] ) ) {
 				$selected_form_ids = array_map( 'absint', wp_unslash( $_GET['filter_form_id'] ) );
 			} else {

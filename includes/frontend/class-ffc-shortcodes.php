@@ -114,7 +114,6 @@ class Shortcodes {
 	 */
 	public function render_verification_page( array $atts ): string {
 		// Check for magic token in URL query string (?token=).
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Token is a display/routing parameter for verification page.
 		$magic_token = RequestInput::get_get_string( 'token' );
 
 		if ( ! empty( $magic_token ) ) {

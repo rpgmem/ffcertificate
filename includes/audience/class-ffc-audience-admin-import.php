@@ -279,7 +279,6 @@ class AudienceAdminImport {
 		}
 
 		// Handle sample download (import template — `manage` or `import`).
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( ( $can_manage || $can_import ) && isset( $_GET['download_sample'] ) && isset( $_GET['_wpnonce'] ) ) {
 			$type = \FreeFormCertificate\Core\RequestInput::get_get_string( 'download_sample' );
 			if ( wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'download_sample' ) ) {

@@ -517,7 +517,6 @@ class RewriteHtmlImageRefsMigrationStrategy implements MigrationStrategyInterfac
 		if ( ! $tmp ) {
 			return '';
 		}
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy -- Copying a bundled plugin file to a WP temp path for media_handle_sideload.
 		if ( ! @copy( $src_path, $tmp ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- copy failure is handled via the empty-return path below.
 			wp_delete_file( $tmp );
 			return '';

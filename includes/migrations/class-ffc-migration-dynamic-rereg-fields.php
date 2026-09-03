@@ -126,7 +126,6 @@ class MigrationDynamicReregFields {
             KEY idx_source (audience_id, field_source)
         ) {$charset_collate};";
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		dbDelta( $sql );
 
 		// Verify at least one of the new columns was added.
@@ -187,7 +186,6 @@ class MigrationDynamicReregFields {
             KEY idx_magic_token (magic_token)
         ) {$charset_collate};";
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		dbDelta( $sql );
 
 		if ( self::column_exists( $table_name, 'auth_code' ) && self::column_exists( $table_name, 'magic_token' ) ) {

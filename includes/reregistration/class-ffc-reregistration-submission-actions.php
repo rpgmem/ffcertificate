@@ -28,7 +28,6 @@ class ReregistrationSubmissionActions {
 	 * @return void
 	 */
 	public static function handle_approve(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( ! isset( $_GET['action'] ) || 'approve' !== $_GET['action'] || ! isset( $_GET['sub_id'] ) ) {
 			return;
 		}
@@ -51,7 +50,6 @@ class ReregistrationSubmissionActions {
 	 * @return void
 	 */
 	public static function handle_reject(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( ! isset( $_GET['action'] ) || 'reject' !== $_GET['action'] || ! isset( $_GET['sub_id'] ) ) {
 			return;
 		}
@@ -74,7 +72,6 @@ class ReregistrationSubmissionActions {
 	 * @return void
 	 */
 	public static function handle_return_to_draft(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( ! isset( $_GET['action'] ) || 'return_to_draft' !== $_GET['action'] || ! isset( $_GET['sub_id'] ) ) {
 			return;
 		}

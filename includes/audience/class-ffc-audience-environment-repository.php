@@ -111,11 +111,9 @@ class AudienceEnvironmentRepository {
 		$orderby           = $orderby_sanitized ? $orderby_sanitized : 'name ASC';
 		$limit_clause      = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$sql = "SELECT * FROM %i {$where_clause} ORDER BY {$orderby} {$limit_clause}";
 
 		$prepare_args = array_merge( array( $table ), $values );
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		/**
 		 * `$sql` interpolates `{$where_clause}`, `{$orderby}` and `{$limit_clause}`,
 		 * all assembled at runtime, so it is a plain string rather than the
@@ -155,7 +153,6 @@ class AudienceEnvironmentRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		/**
 		 * Cast wpdb result to typed shape.
 		 *

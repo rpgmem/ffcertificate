@@ -262,7 +262,6 @@ class CertTemplateAdminScreen {
 			wp_die( esc_html__( 'You do not have permission to manage certificate templates.', 'ffcertificate' ) );
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below via check_admin_referer.
 		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
 
 		check_admin_referer( self::TOGGLE_ACTION . '_' . $post_id );
@@ -313,7 +312,6 @@ class CertTemplateAdminScreen {
 			wp_die( esc_html__( 'You do not have permission to manage certificate templates.', 'ffcertificate' ) );
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below via check_admin_referer.
 		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
 		check_admin_referer( self::DUPLICATE_ACTION . '_' . $post_id );
 
@@ -350,7 +348,6 @@ class CertTemplateAdminScreen {
 			wp_die( esc_html__( 'You do not have permission to manage certificate templates.', 'ffcertificate' ) );
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below via check_admin_referer.
 		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
 		check_admin_referer( self::EXPORT_ACTION . '_' . $post_id );
 
@@ -528,7 +525,6 @@ class CertTemplateAdminScreen {
 			wp_die( esc_html__( 'You do not have permission to preview certificate templates.', 'ffcertificate' ) );
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below via check_admin_referer.
 		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
 		check_admin_referer( self::PREVIEW_ACTION . '_' . $post_id );
 

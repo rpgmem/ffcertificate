@@ -682,7 +682,6 @@ class VerificationHandler {
 		// No nonce check - magic token is the authentication.
 		// No captcha - token proves legitimacy.
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Magic token authentication; no nonce needed for this public endpoint.
 		$token   = RequestInput::get_post_string( 'token' );
 		$user_ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 

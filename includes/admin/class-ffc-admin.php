@@ -143,7 +143,6 @@ class Admin {
 			return;
 		}
 
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence checks only.
 		if ( isset( $_GET['submission_id'] ) && isset( $_GET['action'] ) ) {
 			$id                   = absint( wp_unslash( $_GET['submission_id'] ) );
 			$action               = sanitize_key( wp_unslash( $_GET['action'] ) );
@@ -169,7 +168,6 @@ class Admin {
 			}
 		}
 
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset()/is_array() existence and type checks only.
 		if ( isset( $_GET['action'] ) && isset( $_GET['submission'] ) && is_array( $_GET['submission'] ) ) {
 			$bulk_action = sanitize_key( wp_unslash( $_GET['action'] ) );
 			if ( '-1' === $bulk_action && isset( $_GET['action2'] ) ) {
@@ -231,9 +229,7 @@ class Admin {
                 // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameters for export button.
 				$export_status   = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
 				$filter_form_ids = array();
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- empty() existence check only.
 				if ( ! empty( $_GET['filter_form_id'] ) ) {
-                    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- is_array() type check only.
 					if ( is_array( $_GET['filter_form_id'] ) ) {
 						$filter_form_ids = array_map( 'absint', wp_unslash( $_GET['filter_form_id'] ) );
 					} else {
@@ -370,7 +366,6 @@ class Admin {
 	 */
 	private function display_admin_notices(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display-only URL parameters from admin redirects.
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only.
 		if ( ! isset( $_GET['msg'] ) ) {
 			return;
 		}
@@ -415,7 +410,6 @@ class Admin {
 				break;
 			case 'move_done':
 				$this->render_move_done_notice();
-				// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 				return;
 		}
 
@@ -541,7 +535,6 @@ class Admin {
 	 * @since 2.10.0
 	 */
 	public function handle_migration_action(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below via check_admin_referer.
 		if ( ! isset( $_GET['ffc_migration'] ) ) {
 			return;
 		}
@@ -553,7 +546,6 @@ class Admin {
 			wp_die( esc_html__( 'Insufficient permissions', 'ffcertificate' ) );
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below via check_admin_referer.
 		$migration_key = sanitize_key( wp_unslash( $_GET['ffc_migration'] ) );
 
 		// Verify nonce.

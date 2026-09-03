@@ -29,7 +29,6 @@ class DashboardViewMode {
 	 */
 	public static function get_view_as_user_id() {
 		// Check if admin is trying to view as another user.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified below via wp_verify_nonce; isset() check only.
 		if ( ! isset( $_GET['ffc_view_as_user'] ) || ! isset( $_GET['ffc_view_nonce'] ) ) {
 			return false;
 		}
@@ -41,7 +40,6 @@ class DashboardViewMode {
 			return false;
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below via wp_verify_nonce.
 		$target_user_id = absint( wp_unslash( $_GET['ffc_view_as_user'] ) );
 		$nonce          = \FreeFormCertificate\Core\RequestInput::get_get_string( 'ffc_view_nonce' );
 

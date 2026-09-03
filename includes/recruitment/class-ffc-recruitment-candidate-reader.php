@@ -286,7 +286,6 @@ class RecruitmentCandidateReader {
 					$offset
 				)
 			)
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			: $wpdb->get_results(
 				$wpdb->prepare(
 					'SELECT * FROM %i ORDER BY created_at DESC LIMIT %d OFFSET %d',
