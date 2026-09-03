@@ -97,6 +97,72 @@ class RequestInput {
 	}
 
 	/**
+	 * Read + `sanitize_key()` a `$_GET` value.
+	 *
+	 * The sibling of {@see self::get_get_string()} for the slug-shaped
+	 * parameters that make up most of a wp-admin URL — `page`, `tab`,
+	 * `action`, `status`, a flash-message key. `sanitize_key()` is the
+	 * WordPress idiom for those (lowercase alphanumerics, `_` and `-`);
+	 * `sanitize_text_field()` would let through characters that never
+	 * belong in a routing slug. Caller is responsible for nonce
+	 * verification BEFORE calling this helper.
+	 *
+	 * @since 6.22.0
+	 * @param string $key     `$_GET` key.
+	 * @param string $default Returned when the key is absent/non-scalar.
+	 * @return string Sanitized key.
+	 */
+	public static function get_get_key( string $key, string $default = '' ): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Caller responsibility.
+		if ( ! isset( $_GET[ $key ] ) ) {
+			return $default;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller responsibility. This IS the sanitiser: type-checked below, then sanitize_key().
+		$raw = wp_unslash( $_GET[ $key ] );
+		if ( ! is_scalar( $raw ) ) {
+			return $default;
+		}
+		return sanitize_key( (string) $raw );
+	}
+
+	/**
+	 * Read a non-negative integer `$_GET` value via `absint()`. Same
+	 * contract as {@see self::get_post_int()}, just for `$_GET`.
+	 *
+	 * @since 6.22.0
+	 * @param string $key     `$_GET` key.
+	 * @param int    $default Returned when the key is absent.
+	 * @return int Non-negative integer.
+	 */
+	public static function get_get_int( string $key, int $default = 0 ): int {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Caller responsibility.
+		if ( ! isset( $_GET[ $key ] ) ) {
+			return $default;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Caller responsibility.
+		return absint( wp_unslash( $_GET[ $key ] ) );
+	}
+
+	/**
+	 * Whether a `$_GET` key is present, without reading its value.
+	 *
+	 * For the parameters whose mere presence is the signal — a `?ffc_saved`
+	 * flash flag, WP core's `?force-check`, a routing guard that only needs
+	 * to know it is on the right screen. Reading the value through one of
+	 * the typed accessors above and comparing to `''` is not equivalent:
+	 * `?ffc_saved=` (present, empty) is a legitimate flag. Caller is
+	 * responsible for nonce verification BEFORE calling this helper.
+	 *
+	 * @since 6.22.0
+	 * @param string $key `$_GET` key.
+	 * @return bool
+	 */
+	public static function has_get( string $key ): bool {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Caller responsibility.
+		return isset( $_GET[ $key ] );
+	}
+
+	/**
 	 * Read a non-negative integer `$_POST` value via `absint()`.
 	 * Returns `$default` when the key is absent. Caller is responsible
 	 * for nonce verification BEFORE calling this helper.
