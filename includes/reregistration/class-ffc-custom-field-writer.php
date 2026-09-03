@@ -361,7 +361,7 @@ class CustomFieldWriter {
 		global $wpdb;
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single-row insert; format hints below kept in sync with the schema.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Single-row insert; format hints below kept in sync with the schema.
 		$result = $wpdb->insert(
 			$table,
 			$data,

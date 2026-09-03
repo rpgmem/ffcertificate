@@ -92,7 +92,7 @@ class ActivityLogQuery {
 		$offset          = absint( $args['offset'] );
 		$limit           = absint( $args['limit'] );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_clause, $orderby, $order are pre-validated above.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $where_clause, $orderby, $order are pre-validated above.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i WHERE {$where_clause} ORDER BY {$orderby} {$order} LIMIT %d, %d",
@@ -142,7 +142,7 @@ class ActivityLogQuery {
 
 		$where_clause = implode( ' AND ', $where );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_clause is built from prepared fragments above.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $where_clause is built from prepared fragments above.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i WHERE {$where_clause} AND id < %d ORDER BY id DESC LIMIT %d",
@@ -316,7 +316,7 @@ class ActivityLogQuery {
 
 		$where_clause = implode( ' AND ', $where );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM %i WHERE {$where_clause}",

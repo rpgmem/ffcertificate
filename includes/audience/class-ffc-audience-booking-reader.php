@@ -644,7 +644,7 @@ class AudienceBookingReader {
 		$values = array( $date, $end_time, $start_time, $start_time, $end_time, $start_time, $end_time );
 		$values = array_merge( $values, $all_user_ids, $all_user_ids );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$conflicting_bookings_raw = $wpdb->get_results(
 			$wpdb->prepare(
 				/**
@@ -741,7 +741,7 @@ class AudienceBookingReader {
 		$values = array( $date );
 		$values = array_merge( $values, $audience_ids );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				/**

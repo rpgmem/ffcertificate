@@ -252,7 +252,7 @@ class DeviceLimiter {
 		if ( ! $has_any ) {
 			return;
 		}
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$wpdb->insert( $wpdb->prefix . 'ffc_device_signals', $row );
 	}
 }

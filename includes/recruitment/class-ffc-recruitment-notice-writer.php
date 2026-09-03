@@ -79,7 +79,7 @@ class RecruitmentNoticeWriter {
 		$now    = current_time( 'mysql' );
 		$config = '' === $public_columns_config ? RecruitmentNoticeReader::DEFAULT_PUBLIC_COLUMNS_CONFIG : $public_columns_config;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Insert via wpdb helper; explicit formats.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Insert via wpdb helper; explicit formats.
 		$result = $wpdb->insert(
 			$table,
 			array(

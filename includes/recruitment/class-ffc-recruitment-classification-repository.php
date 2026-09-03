@@ -130,7 +130,7 @@ class RecruitmentClassificationRepository {
 
 		$prepare_args = array_merge( array( $table ), $values );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $where_sql is built from internal placeholders only.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $where_sql is built from internal placeholders only.
 		$prepared = $wpdb->prepare( $sql, $prepare_args );
 		if ( ! is_string( $prepared ) ) {
 			return array();
@@ -272,7 +272,7 @@ class RecruitmentClassificationRepository {
 
 		$now = current_time( 'mysql' );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Insert via wpdb helper.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Insert via wpdb helper.
 		$result = $wpdb->insert(
 			$table,
 			array(

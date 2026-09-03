@@ -418,7 +418,7 @@ class Settings {
 	 * @return string
 	 */
 	private function resolve_active_tab( array $visible_tabs ): string {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- display-only URL parameter; sanitize_key applied.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only URL parameter; sanitize_key applied.
 		$requested = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
 		if ( '' !== $requested && isset( $visible_tabs[ $requested ] ) ) {
 			return $requested;
@@ -458,13 +458,13 @@ class Settings {
 	 * @return void
 	 */
 	private function render_qr_cache_message(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- isset() existence check only.
 		if ( isset( $_GET['msg'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only URL parameter.
 			$msg = sanitize_key( wp_unslash( $_GET['msg'] ) );
 
 			if ( 'qr_cache_cleared' === $msg ) {
-				// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- display-only URL parameter.
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only URL parameter.
 				$cleared = isset( $_GET['cleared'] ) ? absint( wp_unslash( $_GET['cleared'] ) ) : 0;
 				wp_admin_notice(
 					esc_html(
@@ -492,13 +492,13 @@ class Settings {
 	 * @return void
 	 */
 	private function render_cache_messages(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- isset() existence check only.
 		if ( isset( $_GET['msg'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only URL parameter.
 			$msg = sanitize_key( wp_unslash( $_GET['msg'] ) );
 
 			if ( 'cache_warmed' === $msg ) {
-				// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- display-only URL parameter.
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only URL parameter.
 				$count = isset( $_GET['count'] ) ? absint( wp_unslash( $_GET['count'] ) ) : 0;
 				wp_admin_notice(
 					esc_html(

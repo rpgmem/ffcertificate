@@ -802,7 +802,7 @@ class PublicCsvDownload {
 	 * @return void Streams CSV and exits; never returns on success.
 	 */
 	public function handle_export_log_request( ?\FreeFormCertificate\Core\SyncCsvExport $exporter = null ): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- form_id sanitized via absint; nonce verified in the source's authorize().
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- form_id sanitized via absint; nonce verified in the source's authorize().
 		$form_id = isset( $_GET['form_id'] ) ? absint( wp_unslash( $_GET['form_id'] ) ) : 0;
 
 		// The nonce + form + capability gate, the column layout and the

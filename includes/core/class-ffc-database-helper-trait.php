@@ -280,7 +280,7 @@ trait DatabaseHelperTrait {
 			// see that, hence the targeted ignores on the prepare() call.
 			$select_sql = "SELECT id, {$column} AS legacy_value FROM %i WHERE {$where_unmigrated} LIMIT %d";
 			do {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $select_sql built from trusted internal column names; placeholders covered.
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $select_sql built from trusted internal column names; placeholders covered.
 				$rows      = $wpdb->get_results( $wpdb->prepare( $select_sql, $table_name, $batch_size ) );
 				$row_count = is_array( $rows ) ? count( $rows ) : 0;
 				if ( 0 === $row_count ) {

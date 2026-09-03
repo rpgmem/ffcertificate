@@ -38,7 +38,7 @@ class SecurityFieldsGuard {
 		\FreeFormCertificate\Core\Debug::log_form( 'Answer received', RequestInput::get_post_string( 'ffc_captcha_ans', 'NOT SET' ) );
 		\FreeFormCertificate\Core\Debug::log_form( 'Hash received', RequestInput::get_post_string( 'ffc_captcha_hash', 'NOT SET' ) );
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- isset() check only; values read via sanitized accessor below.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- isset() check only; values read via sanitized accessor below.
 		if ( isset( $_POST['ffc_captcha_ans'] ) && isset( $_POST['ffc_captcha_hash'] ) ) {
 			$test_answer    = trim( RequestInput::get_post_string( 'ffc_captcha_ans' ) );
 			$received_hash  = RequestInput::get_post_string( 'ffc_captcha_hash' );
@@ -56,7 +56,7 @@ class SecurityFieldsGuard {
 		// ===== END DEBUG =====.
 
 		// Validate security fields (CAPTCHA + honeypot).
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified by NonceGuard; SecurityService sanitizes internally.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by NonceGuard; SecurityService sanitizes internally.
 		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
 		if ( true !== $security_check ) {
 			// Generate new captcha for retry.

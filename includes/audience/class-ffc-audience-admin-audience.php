@@ -49,7 +49,6 @@ class AudienceAdminAudience {
 	 * @return void
 	 */
 	public function render_page(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$action = RequestInput::get_get_string( 'action', 'list' );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;

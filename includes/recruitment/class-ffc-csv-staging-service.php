@@ -132,7 +132,7 @@ final class CsvStagingService {
 		// Job row first so a partially-ingested staging set without an
 		// owning job is impossible (FK-like invariant enforced in code,
 		// since the staging table has no real FK to jobs).
-		$inserted = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- ingest path; row is the source of truth from here on.
+		$inserted = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- ingest path; row is the source of truth from here on.
 			$jobs_table,
 			array(
 				'job_id'          => $job_id,
@@ -202,7 +202,7 @@ final class CsvStagingService {
 
 			$sql = "INSERT INTO {$staging_table} (job_id, row_no, line_no, notice_id, name, cpf_normalized, rf_normalized, email, phone, adjutancy_slug, adjutancy_id, rank_value, score, time_points, hab_emebs, pcd) VALUES "
 				. implode( ', ', $placeholders );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- chunked multi-VALUES INSERT; table from $wpdb->prefix; every user-derived value passes through %s/%d placeholders.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- chunked multi-VALUES INSERT; table from $wpdb->prefix; every user-derived value passes through %s/%d placeholders.
 			$result = $wpdb->query( $wpdb->prepare( $sql, $values ) );
 			if ( false === $result ) {
 				// Roll back the entire job — leaves no partial staging.

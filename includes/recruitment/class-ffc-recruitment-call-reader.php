@@ -180,7 +180,7 @@ class RecruitmentCallReader {
 
 		$prepare_args = array_merge( array( $table ), $ids );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic IN() built from %d placeholders only.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Dynamic IN() built from %d placeholders only.
 		$prepared = $wpdb->prepare( $sql, $prepare_args );
 		if ( ! is_string( $prepared ) ) {
 			return array();

@@ -345,7 +345,7 @@ class ActivityLog {
 				$row_format[]                  = '%s';
 			}
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 			$wpdb->insert( $table_name, $row_data, $row_format );
 		}
 

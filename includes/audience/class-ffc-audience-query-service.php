@@ -330,7 +330,7 @@ final class AudienceQueryService {
 		$safe_ids = array_map( 'absint', $booking_ids );
 		$id_list  = implode( ',', $safe_ids );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $id_list built from absint() values; identifiers bound via %i.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $id_list built from absint() values; identifiers bound via %i.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT ba.booking_id, a.name, a.color

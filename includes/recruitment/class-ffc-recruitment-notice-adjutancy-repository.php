@@ -60,7 +60,7 @@ class RecruitmentNoticeAdjutancyRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Insert via wpdb helper; explicit formats.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Insert via wpdb helper; explicit formats.
 		$result = $wpdb->insert(
 			$table,
 			array(

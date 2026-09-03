@@ -110,7 +110,7 @@ class RecruitmentCallWriter {
 		);
 		$format = array( '%d', '%d', '%s', '%s', '%d', '%s', '%s', '%d', '%s', '%s' );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Insert via wpdb helper.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Insert via wpdb helper.
 		$result = $wpdb->insert( $table, $insert, $format );
 
 		if ( ! $result ) {

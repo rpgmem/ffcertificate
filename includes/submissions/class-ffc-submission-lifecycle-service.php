@@ -342,7 +342,7 @@ class SubmissionLifecycleService {
 		global $wpdb;
 
 		// Delete all migration completion flags.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$wpdb->query(
 			$wpdb->prepare(
 				'DELETE FROM %i WHERE option_name LIKE %s',

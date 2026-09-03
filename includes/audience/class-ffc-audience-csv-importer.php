@@ -51,7 +51,6 @@ class AudienceCsvImporter {
 			return $result;
 		}
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV import; CsvReader does not own this handle.
 		$handle = fopen( $file_path, 'r' );
 		if ( ! $handle ) {

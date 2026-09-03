@@ -97,7 +97,7 @@ final class RateLimitRepository {
 				array( '%d' )
 			);
 		} else {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 			$wpdb->insert(
 				$t,
 				array(
@@ -176,8 +176,7 @@ final class RateLimitRepository {
 	 */
 	public static function block_temporarily( string $type, string $identifier, ?int $form_id, int $hours ): void {
 		global $wpdb;
-		$identifier = self::storage_identifier( $type, $identifier );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
+		$identifier     = self::storage_identifier( $type, $identifier );
 		$blocked_ts_raw = strtotime( "+$hours hours" );
 		$blocked_ts     = $blocked_ts_raw ? $blocked_ts_raw : time();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.

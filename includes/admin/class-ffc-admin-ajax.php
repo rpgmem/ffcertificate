@@ -283,7 +283,6 @@ class AdminAjax {
 		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		// Search the specific split column.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Column name from internal config, not user input.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lookup keyed on a hashed identifier supplied per request — caching it would put PII-derived keys in the object cache for no reuse.
 		$user_id = $wpdb->get_var(

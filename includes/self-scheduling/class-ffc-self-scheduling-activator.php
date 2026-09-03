@@ -500,7 +500,7 @@ class SelfSchedulingActivator {
 			);
 
 			// Drop old columns.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->query(
 				$wpdb->prepare(
 					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema change on one of the plugin's own tables, guarded to run once — dbDelta cannot emit it.

@@ -21,7 +21,6 @@ $ffc_stub_loader = static function (): void {
 	);
 
 	foreach ( $matches as $match ) {
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.VariableConstantNameFound -- Constant name comes from the plugin's own define() statements.
 		if ( ! defined( $match[1] ) ) {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.VariableConstantNameFound
 			define( $match[1], $match[2] );

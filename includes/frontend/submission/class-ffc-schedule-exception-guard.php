@@ -37,7 +37,7 @@ class ScheduleExceptionGuard {
 	 * @param SubmissionContext $ctx Submission context.
 	 */
 	public function apply( SubmissionContext $ctx ): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput -- token verified via HMAC immediately below; form_id sanitized via absint.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- token verified via HMAC immediately below; form_id sanitized via absint.
 		if ( isset( $_POST['ffc_schedule_exception_token'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- HMAC verifies integrity.
 			$token_raw = (string) wp_unslash( $_POST['ffc_schedule_exception_token'] );

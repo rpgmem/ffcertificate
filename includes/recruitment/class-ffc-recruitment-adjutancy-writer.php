@@ -75,7 +75,7 @@ class RecruitmentAdjutancyWriter {
 
 		$now = current_time( 'mysql' );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Insert via wpdb helper; format array supplied.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Insert via wpdb helper; format array supplied.
 		$result = $wpdb->insert(
 			$table,
 			array(
