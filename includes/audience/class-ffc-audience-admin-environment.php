@@ -43,7 +43,7 @@ class AudienceAdminEnvironment {
 	 */
 	public function render_page(): void {
 		$action = \FreeFormCertificate\Core\RequestInput::get_get_string( 'action', 'list' );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read on a GET screen to choose which record to render; the screen itself is capability-gated by its menu registration, the value is absint()-cast and nothing is written.
 		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 
 		?>
@@ -68,7 +68,7 @@ class AudienceAdminEnvironment {
 	 * @return void
 	 */
 	private function render_list(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only list filter on a GET screen; absint()-cast and it only narrows the query.
 		$filter_schedule = isset( $_GET['schedule_id'] ) ? absint( $_GET['schedule_id'] ) : 0;
 
 		$args = array();
@@ -438,8 +438,8 @@ class AudienceAdminEnvironment {
 			// Process working hours.
 			$working_hours = array();
 			if ( isset( $_POST['working_hours'] ) && is_array( $_POST['working_hours'] ) ) {
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-				foreach ( wp_unslash( $_POST['working_hours'] ) as $day => $hours ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The array is iterated, not consumed: wp_unslash() is applied to the array and every leaf is sanitized inside the loop with sanitize_key()/sanitize_text_field().
+				foreach ( wp_unslash( $_POST['working_hours'] ) as $day => $hours ) {
 					$day                   = sanitize_key( $day );
 					$working_hours[ $day ] = array(
 						'closed' => isset( $hours['closed'] ) ? true : false,

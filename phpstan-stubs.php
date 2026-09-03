@@ -22,7 +22,7 @@ $ffc_stub_loader = static function (): void {
 
 	foreach ( $matches as $match ) {
 		if ( ! defined( $match[1] ) ) {
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.VariableConstantNameFound
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.VariableConstantNameFound -- define() with a variable name: the constant name is parsed out of the plugin's own ffcertificate.php define() statements above.
 			define( $match[1], $match[2] );
 		}
 	}

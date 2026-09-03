@@ -322,8 +322,8 @@ class Admin {
 	 * @return void
 	 */
 	private function redirect_with_extra_args( array $args ): void {
-		$page      = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$post_type = isset( $_GET['post_type'] ) ? sanitize_key( wp_unslash( $_GET['post_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$page      = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Rebuilds the redirect URL from the current admin screen; page/post_type go through sanitize_key( wp_unslash() ) and drive no state change.
+		$post_type = isset( $_GET['post_type'] ) ? sanitize_key( wp_unslash( $_GET['post_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Rebuilds the redirect URL from the current admin screen; page/post_type go through sanitize_key( wp_unslash() ) and drive no state change.
 		if ( $page ) {
 			$args['page'] = $page;
 		}
@@ -344,8 +344,8 @@ class Admin {
 	private function redirect_with_msg( string $msg ): void {
 		// Build the redirect target from the current admin screen instead of REQUEST_URI, so the URL
 		// path cannot be influenced by request-level input. Preserve the page and post_type context.
-		$page      = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$post_type = isset( $_GET['post_type'] ) ? sanitize_key( wp_unslash( $_GET['post_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$page      = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Rebuilds the redirect URL from the current admin screen; page/post_type go through sanitize_key( wp_unslash() ) and drive no state change.
+		$post_type = isset( $_GET['post_type'] ) ? sanitize_key( wp_unslash( $_GET['post_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Rebuilds the redirect URL from the current admin screen; page/post_type go through sanitize_key( wp_unslash() ) and drive no state change.
 
 		$args = array( 'msg' => $msg );
 		if ( $page ) {

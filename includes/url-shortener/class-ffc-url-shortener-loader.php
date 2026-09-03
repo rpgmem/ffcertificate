@@ -239,7 +239,7 @@ class UrlShortenerLoader {
 
 		if ( ! $record || 'active' !== $record['status'] ) {
 			nocache_headers();
-			wp_redirect( home_url( '/' ), 302 ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
+			wp_redirect( home_url( '/' ), 302 ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- The target is home_url(), a first-party constant — wp_safe_redirect() would add a host allowlist check with nothing request-derived to check.
 			exit;
 		}
 
@@ -261,7 +261,7 @@ class UrlShortenerLoader {
 		// Prevent redirect loops.
 		if ( empty( $target_url ) ) {
 			nocache_headers();
-			wp_redirect( home_url( '/' ), 302 ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
+			wp_redirect( home_url( '/' ), 302 ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- The target is home_url(), a first-party constant — wp_safe_redirect() would add a host allowlist check with nothing request-derived to check.
 			exit;
 		}
 

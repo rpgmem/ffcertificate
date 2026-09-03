@@ -134,7 +134,7 @@ class FormEditorGeofenceMetabox {
 						<td>
 							<label><?php esc_html_e( 'From:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[class_time_start]" value="<?php echo esc_attr( $class_time_start ); ?>"<?php echo $invalid_attr( 'class_time_start' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- closure returns pre-built class attribute. ?>></label>
 							&nbsp;&nbsp;
-							<label><?php esc_html_e( 'To:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[class_time_end]" value="<?php echo esc_attr( $class_time_end ); ?>"<?php echo $invalid_attr( 'class_time_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>></label>
+							<label><?php esc_html_e( 'To:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[class_time_end]" value="<?php echo esc_attr( $class_time_end ); ?>"<?php echo $invalid_attr( 'class_time_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $invalid_attr returns one of two literals — ' class="ffc-input-invalid"' or the empty string — so there is no dynamic value to escape. ?>></label>
 						</td>
 					</tr>
 				</tbody></table>
@@ -189,7 +189,7 @@ class FormEditorGeofenceMetabox {
 								data-ffc-master="ffc_geofence_multi_day"
 								aria-hidden="<?php echo esc_attr( $multi_day_aria ); ?>">
 								&nbsp;&nbsp;
-								<label><?php esc_html_e( 'End:', 'ffcertificate' ); ?> <input type="date" id="ffc_geofence_date_end" name="ffc_geofence[date_end]" value="<?php echo esc_attr( $date_end ); ?>" min="<?php echo esc_attr( $date_end_min ); ?>"<?php echo $invalid_attr( 'date_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>></label>
+								<label><?php esc_html_e( 'End:', 'ffcertificate' ); ?> <input type="date" id="ffc_geofence_date_end" name="ffc_geofence[date_end]" value="<?php echo esc_attr( $date_end ); ?>" min="<?php echo esc_attr( $date_end_min ); ?>"<?php echo $invalid_attr( 'date_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $invalid_attr returns one of two literals — ' class="ffc-input-invalid"' or the empty string — so there is no dynamic value to escape. ?>></label>
 							</span>
 							<p class="description"><?php esc_html_e( 'Leave empty for no date restriction. Format: YYYY-MM-DD', 'ffcertificate' ); ?></p>
 							<p class="description ffc-datetime-order-error"<?php echo $datetime_order_msg ? '' : ' style="display:none;"'; ?>>
@@ -200,9 +200,9 @@ class FormEditorGeofenceMetabox {
 					<tr>
 						<th><label><?php esc_html_e( 'Time Range', 'ffcertificate' ); ?></label></th>
 						<td>
-							<label><?php esc_html_e( 'From:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[time_start]" value="<?php echo esc_attr( $time_start ); ?>"<?php echo $invalid_attr( 'time_start' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>></label>
+							<label><?php esc_html_e( 'From:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[time_start]" value="<?php echo esc_attr( $time_start ); ?>"<?php echo $invalid_attr( 'time_start' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $invalid_attr returns one of two literals — ' class="ffc-input-invalid"' or the empty string — so there is no dynamic value to escape. ?>></label>
 							&nbsp;&nbsp;
-							<label><?php esc_html_e( 'To:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[time_end]" value="<?php echo esc_attr( $time_end ); ?>"<?php echo $invalid_attr( 'time_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>></label>
+							<label><?php esc_html_e( 'To:', 'ffcertificate' ); ?> <input type="time" name="ffc_geofence[time_end]" value="<?php echo esc_attr( $time_end ); ?>"<?php echo $invalid_attr( 'time_end' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $invalid_attr returns one of two literals — ' class="ffc-input-invalid"' or the empty string — so there is no dynamic value to escape. ?>></label>
 							<p class="description"><?php esc_html_e( 'Leave empty for 24/7 access. Default: 00:00 to 23:59', 'ffcertificate' ); ?></p>
 						</td>
 					</tr>

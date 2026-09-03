@@ -111,7 +111,7 @@ class CsvExporter {
 				// file the abandoned job left on disk.
 				$job = get_option( '_transient_' . $transient_key );
 				if ( is_array( $job ) && ! empty( $job['file'] ) && file_exists( $job['file'] ) ) {
-					// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+					// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Deletes the plugin's own temp export file by absolute path. WP_Filesystem would need credentials, and this runs on a cleanup path with no user present.
 					unlink( $job['file'] );
 				}
 
