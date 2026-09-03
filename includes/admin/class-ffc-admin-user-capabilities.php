@@ -673,6 +673,7 @@ class AdminUserCapabilities {
 		// "no audiences rendered" case so it can't wipe on an unrelated save.
 		$submitted_audiences = array();
 		if ( isset( $_POST['ffc_audience'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised on the next lines: is_array() then array_map( 'intval' ).
 			$raw_audiences = wp_unslash( $_POST['ffc_audience'] );
 			if ( is_array( $raw_audiences ) ) {
 				$submitted_audiences = array_map( 'intval', $raw_audiences );
@@ -774,7 +775,8 @@ class AdminUserCapabilities {
 
 		$user_id = isset( $_POST['user_id'] ) ? absint( wp_unslash( $_POST['user_id'] ) ) : 0;
 		$role    = isset( $_POST['role'] ) ? sanitize_key( wp_unslash( $_POST['role'] ) ) : '';
-		$assign  = isset( $_POST['assign'] ) && '1' === (string) wp_unslash( $_POST['assign'] );
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Strict comparison against '1' — the raw value never survives the expression.
+		$assign = isset( $_POST['assign'] ) && '1' === (string) wp_unslash( $_POST['assign'] );
 
 		$user = $user_id > 0 ? get_userdata( $user_id ) : false;
 		if ( ! $user instanceof \WP_User ) {

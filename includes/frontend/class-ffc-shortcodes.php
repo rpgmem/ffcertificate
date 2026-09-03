@@ -210,6 +210,7 @@ class Shortcodes {
 		$schedule_exception_cookie = '';
 		$cookie_name               = \FreeFormCertificate\Frontend\ScheduleExceptionSession::cookie_name( $form_id );
 		if ( ! empty( $_COOKIE[ $cookie_name ] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Cookie payload is only passed to ScheduleExceptionSession, which verifies its HMAC before use.
 			$schedule_exception_cookie = (string) wp_unslash( $_COOKIE[ $cookie_name ] );
 		}
 		$schedule_exception = \FreeFormCertificate\Frontend\ScheduleExceptionSession::read_from_cookie( $form_id );

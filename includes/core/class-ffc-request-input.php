@@ -41,7 +41,7 @@ class RequestInput {
 		if ( ! isset( $_POST[ $key ] ) ) {
 			return $default;
 		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller responsibility.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller responsibility. This IS the sanitiser: type-checked below, then every element through sanitize_text_field().
 		$raw = wp_unslash( $_POST[ $key ] );
 		if ( ! is_array( $raw ) ) {
 			return $default;
@@ -66,7 +66,7 @@ class RequestInput {
 		if ( ! isset( $_POST[ $key ] ) ) {
 			return $default;
 		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller responsibility.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller responsibility. This IS the sanitiser: type-checked below, then sanitize_text_field().
 		$raw = wp_unslash( $_POST[ $key ] );
 		if ( ! is_string( $raw ) ) {
 			return $default;
@@ -88,7 +88,7 @@ class RequestInput {
 		if ( ! isset( $_GET[ $key ] ) ) {
 			return $default;
 		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Caller responsibility.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller responsibility. This IS the sanitiser: type-checked below, then sanitize_text_field().
 		$raw = wp_unslash( $_GET[ $key ] );
 		if ( ! is_string( $raw ) ) {
 			return $default;

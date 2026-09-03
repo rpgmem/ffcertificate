@@ -64,9 +64,13 @@ class ActivityLogAjaxEndpoint {
 		$per_page = 50;
 
 		$params = array(
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised in AdminActivityLogPage::build_query_args(), shared with the page render — absint() on paged, sanitize_key() on level, sanitize_text_field() on the rest.
 			'level'      => isset( $_POST['level'] ) ? wp_unslash( $_POST['level'] ) : '',
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised in AdminActivityLogPage::build_query_args() (sanitize_text_field).
 			'log_action' => isset( $_POST['log_action'] ) ? wp_unslash( $_POST['log_action'] ) : '',
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised in AdminActivityLogPage::build_query_args() (sanitize_text_field).
 			'search'     => isset( $_POST['search'] ) ? wp_unslash( $_POST['search'] ) : '',
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised in AdminActivityLogPage::build_query_args() (absint).
 			'paged'      => isset( $_POST['paged'] ) ? wp_unslash( $_POST['paged'] ) : 1,
 		);
 

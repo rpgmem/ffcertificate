@@ -296,6 +296,7 @@ class CertTemplateAdminScreen {
 			wp_send_json_error( array( 'message' => __( 'Template not found.', 'ffcertificate' ) ), 404 );
 		}
 
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Strict comparison against '1' — the raw value never survives the expression.
 		$visible = isset( $_POST['visible'] ) && '1' === (string) wp_unslash( $_POST['visible'] );
 		CertTemplateWriter::set_visibility( $post_id, $visible );
 
@@ -855,6 +856,7 @@ class CertTemplateAdminScreen {
 			// Certificate HTML legitimately carries rich markup (tables, inline
 			// styles) — sanitize through the same allowlist the form-layout save
 			// uses, never a plain sanitize_text_field.
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Deliberately not sanitize_text_field: this is template HTML, filtered on the next line by wp_kses() with the HtmlPolicy allowlist.
 			$raw  = isset( $_POST['ffc_template_html'] ) ? (string) wp_unslash( $_POST['ffc_template_html'] ) : '';
 			$html = wp_kses( $raw, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
 			CertTemplateWriter::update_html( $post_id, $html );

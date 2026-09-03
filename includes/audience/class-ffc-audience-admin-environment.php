@@ -449,6 +449,7 @@ class AudienceAdminEnvironment {
 				}
 			}
 
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Normalised by ColorValidator::normalize(), which returns the default for anything that is not a hex colour.
 			$color = ColorValidator::normalize( isset( $_POST['environment_color'] ) ? wp_unslash( $_POST['environment_color'] ) : '', '#3788d8' );
 
 			$data = array(

@@ -94,6 +94,7 @@ class SubmissionsBulkActionsAjaxEndpoint {
 			);
 		}
 
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Shape-checked as an array below, then each element through absint().
 		$raw_ids = isset( $_POST['ids'] ) ? wp_unslash( $_POST['ids'] ) : array();
 		if ( ! is_array( $raw_ids ) ) {
 			$raw_ids = array();

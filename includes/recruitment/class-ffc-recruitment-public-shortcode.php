@@ -144,8 +144,8 @@ final class RecruitmentPublicShortcode {
 			return self::wrap_output( RecruitmentPublicShortcodeRenderer::msg( __( 'Too many requests. Please try again in a few seconds.', 'ffcertificate' ), 'warning' ) );
 		}
 
-		$page_top    = max( 1, (int) ( $_GET['page_top'] ?? 1 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$page_bottom = max( 1, (int) ( $_GET['page_bottom'] ?? 1 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$page_top    = max( 1, (int) ( $_GET['page_top'] ?? 1 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Cast to int, which sanitises; unslashing a value that becomes an int is a no-op.
+		$page_bottom = max( 1, (int) ( $_GET['page_bottom'] ?? 1 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Cast to int, which sanitises; unslashing a value that becomes an int is a no-op.
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only name filter.
 		$name_query = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['q'] ) ) : '';

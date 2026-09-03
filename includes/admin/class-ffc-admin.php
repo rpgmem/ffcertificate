@@ -284,6 +284,7 @@ class Admin {
 	 */
 	private function handle_bulk_move_to_form( array $ids ): void {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Already verified by check_admin_referer( 'bulk-submissions' ) in the caller.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Shape-checked as an array below, then each element through absint().
 		$filter_raw = isset( $_GET['filter_form_id'] ) ? wp_unslash( $_GET['filter_form_id'] ) : null;
 		$from_form  = 0;
 		if ( is_array( $filter_raw ) && 1 === count( $filter_raw ) ) {

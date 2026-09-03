@@ -267,7 +267,7 @@ class UrlShortenerAdminPage {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
 		$this->check_ajax_permission( 'ffc_manage_url_shortener' );
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Nonce verified in $this->verify_ajax_nonce() above. Cast to int, which sanitises; unslashing a value that becomes an int is a no-op.
 		$id = (int) ( $_POST['id'] ?? 0 );
 		if ( $id <= 0 ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid short URL.', 'ffcertificate' ) ) );
@@ -309,7 +309,7 @@ class UrlShortenerAdminPage {
 	 * Render the admin page.
 	 */
 	public function render_page(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only pagination parameter.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Display-only pagination parameter. Cast to int, which sanitises; unslashing a value that becomes an int is a no-op.
 		$page   = max( 1, (int) ( $_GET['paged'] ?? 1 ) );
 		$search = \FreeFormCertificate\Core\RequestInput::get_get_string( 's' );
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only sort parameter.

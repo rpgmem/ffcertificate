@@ -533,6 +533,7 @@ class SettingsAjaxEndpoint {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission to change this setting.', 'ffcertificate' ) ), 403 );
 		}
 
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised on the next line by self::sanitize_value() against the allowlisted type for this key.
 		$raw_value = wp_unslash( $_POST['value'] ?? '' );
 		$value     = self::sanitize_value( $raw_value, $entry['type'] ?? 'bool', $entry );
 

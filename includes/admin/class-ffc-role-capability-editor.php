@@ -304,7 +304,8 @@ final class RoleCapabilityEditor {
 
 		$role_slug = isset( $_POST['role'] ) ? sanitize_key( wp_unslash( $_POST['role'] ) ) : '';
 		$cap       = isset( $_POST['cap'] ) ? sanitize_key( wp_unslash( $_POST['cap'] ) ) : '';
-		$grant     = isset( $_POST['grant'] ) && '1' === (string) wp_unslash( $_POST['grant'] );
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Strict comparison against '1' — the raw value never survives the expression.
+		$grant = isset( $_POST['grant'] ) && '1' === (string) wp_unslash( $_POST['grant'] );
 
 		if ( ! array_key_exists( $role_slug, RoleRegistrar::ffc_managed_role_labels() ) ) {
 			wp_send_json_error( array( 'message' => 'role_not_editable' ), 400 );

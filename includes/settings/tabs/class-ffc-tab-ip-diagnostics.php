@@ -313,6 +313,7 @@ class TabIpDiagnostics extends SettingsTab {
 		if ( ! isset( $_SERVER[ $key ] ) ) {
 			return '';
 		}
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised on the next line: is_string() then sanitize_text_field().
 		$raw = wp_unslash( $_SERVER[ $key ] );
 		return is_string( $raw ) ? sanitize_text_field( $raw ) : '';
 	}

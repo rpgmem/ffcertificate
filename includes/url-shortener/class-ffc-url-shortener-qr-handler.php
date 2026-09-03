@@ -180,7 +180,7 @@ class UrlShortenerQrHandler {
 	 * @return array{url: string, prefix: string, code: string} Target URL, filename prefix and short code.
 	 */
 	private function resolve_qr_target(): array {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by the calling method.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Nonce verified by the calling method. Cast to int, which sanitises; unslashing a value that becomes an int is a no-op.
 		$post_id = (int) ( $_POST['post_id'] ?? 0 );
 		if ( $post_id > 0 ) {
 			$record = $this->service->get_repository()->findByPostId( $post_id );

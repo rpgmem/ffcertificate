@@ -169,7 +169,8 @@ class UrlShortenerLoader {
 	 * @return string Short code, or empty string if not a short URL request.
 	 */
 	private function extract_code_from_uri(): string {
-		$prefix  = $this->service->get_prefix();
+		$prefix = $this->service->get_prefix();
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Server-set REQUEST_URI, parsed by wp_parse_url() on the next line and matched against the code pattern.
 		$raw_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
 		$path    = trim( (string) wp_parse_url( $raw_uri, PHP_URL_PATH ), '/' );
 
