@@ -133,9 +133,19 @@ class SelfSchedulingShortcodeTest extends TestCase {
 		Functions\when( 'is_singular' )->justReturn( false );
 		Functions\when( 'is_page' )->justReturn( false );
 
+		// #1030: this asserted nothing, so the guard could be deleted and it
+		// would still pass. Collect what gets enqueued and state that nothing
+		// did — that is the whole claim in the test's name.
+		$enqueued = array();
+		$collect  = static function ( $handle ) use ( &$enqueued ) {
+			$enqueued[] = $handle;
+		};
+		Functions\when( 'wp_enqueue_script' )->alias( $collect );
+		Functions\when( 'wp_enqueue_style' )->alias( $collect );
+
 		$shortcode = new SelfSchedulingShortcode();
 		$shortcode->enqueue_assets();
-		$this->assertTrue( true );
+		$this->assertSame( array(), $enqueued );
 	}
 
 	// ==================================================================
@@ -148,9 +158,19 @@ class SelfSchedulingShortcodeTest extends TestCase {
 		global $post;
 		$post = null;
 
+		// #1030: this asserted nothing, so the guard could be deleted and it
+		// would still pass. Collect what gets enqueued and state that nothing
+		// did — that is the whole claim in the test's name.
+		$enqueued = array();
+		$collect  = static function ( $handle ) use ( &$enqueued ) {
+			$enqueued[] = $handle;
+		};
+		Functions\when( 'wp_enqueue_script' )->alias( $collect );
+		Functions\when( 'wp_enqueue_style' )->alias( $collect );
+
 		$shortcode = new SelfSchedulingShortcode();
 		$shortcode->enqueue_assets();
-		$this->assertTrue( true );
+		$this->assertSame( array(), $enqueued );
 	}
 
 	// ==================================================================
@@ -164,9 +184,19 @@ class SelfSchedulingShortcodeTest extends TestCase {
 		global $post;
 		$post = (object) array( 'post_content' => 'No shortcode here' );
 
+		// #1030: this asserted nothing, so the guard could be deleted and it
+		// would still pass. Collect what gets enqueued and state that nothing
+		// did — that is the whole claim in the test's name.
+		$enqueued = array();
+		$collect  = static function ( $handle ) use ( &$enqueued ) {
+			$enqueued[] = $handle;
+		};
+		Functions\when( 'wp_enqueue_script' )->alias( $collect );
+		Functions\when( 'wp_enqueue_style' )->alias( $collect );
+
 		$shortcode = new SelfSchedulingShortcode();
 		$shortcode->enqueue_assets();
-		$this->assertTrue( true );
+		$this->assertSame( array(), $enqueued );
 	}
 
 	// ==================================================================
