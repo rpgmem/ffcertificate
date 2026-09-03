@@ -341,7 +341,7 @@ class AudienceScheduleRepository {
 		 *
 		 * @var SchedulePermissionRow|null $row
 		 */
-		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached per-(schedule, user) read on a permission check; a candidate for the object cache, tracked in the caching follow-up.
+		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): six callers, each a distinct permission lookup rather than a repeat of the same one.
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE schedule_id = %d AND user_id = %d',
 				$table,
