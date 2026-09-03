@@ -553,7 +553,7 @@ class AdminSubmissionEditPage {
 		 * wp_die()s; the early return is defence-in-depth and is covered by
 		 * test_handle_save_returns_on_bad_nonce.
 		 *
-		 * @phpstan-ignore-next-line booleanNot.alwaysFalse
+		 * @phpstan-ignore booleanNot.alwaysFalse
 		 */
 		if ( ! check_admin_referer( 'ffc_edit_submission_nonce', 'ffc_edit_submission_action' ) ) {
 			return;

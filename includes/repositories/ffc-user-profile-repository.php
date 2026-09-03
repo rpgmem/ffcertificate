@@ -92,7 +92,7 @@ class UserProfileRepository extends AbstractRepository {
 		 * The stub types wpdb::get_var() as non-empty-string; the '' guard also
 		 * covers the mocked values the docblock above describes.
 		 *
-		 * @phpstan-ignore-next-line notIdentical.alwaysTrue
+		 * @phpstan-ignore notIdentical.alwaysTrue
 		 */
 		return null !== $id && '' !== $id && (int) $id > 0;
 	}

@@ -269,9 +269,14 @@ class ReregistrationRepository {
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		/**
-		 * Description.
+		 * `$sql` interpolates `{$joins}`, `{$where_clause}`, `{$orderby}`, `{$order}`
+		 * and `{$limit_clause}`, so it is a runtime string, not `literal-string`.
+		 * Nothing request-derived reaches the SQL text: the joins and WHERE fragments
+		 * are literals carrying placeholders (values travel in `$values`), `$orderby`
+		 * is allowlisted, `$order` collapses to ASC/DESC, and the table is bound
+		 * with `%i`.
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
 		$sql = $wpdb->prepare( $sql, $values );
 

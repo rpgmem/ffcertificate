@@ -724,7 +724,7 @@ class Frontend {
 		 * coerce them straight back, and re-shaping would change the JSON the
 		 * client reads.
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
 		wp_localize_script( 'ffc-geofence-frontend', 'ffcGeofenceConfig', $geofence_configs );
 	}

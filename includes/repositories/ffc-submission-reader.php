@@ -403,10 +403,18 @@ class SubmissionReader extends AbstractRepository {
 	/**
 	 * Build WHERE clause and prepare args for export queries.
 	 *
+	 * The clause is declared `literal-string` on purpose: every fragment added
+	 * to `$where` is a literal carrying placeholders (`%d` / `%s`) and every
+	 * value travels separately in `$prepare_args`, so nothing request-derived
+	 * ever reaches the SQL text. PHPStan verifies the claim rather than taking
+	 * it — an interpolated value here would fail this method's own return type.
+	 * That is what lets the three `prepare()` call sites downstream pass
+	 * `literal-string` without a suppression.
+	 *
 	 * @since 5.0.0
 	 * @param array<int, int>|null $form_ids Form IDs filter.
 	 * @param string|null          $status   Status filter.
-	 * @return array{string, array<int, mixed>} [where_clause, prepare_args] — args include table as first element.
+	 * @return array{literal-string, array<int, mixed>} [where_clause, prepare_args] — args include table as first element.
 	 */
 	private function build_export_where( ?array $form_ids, ?string $status ): array {
 		$where        = array();
@@ -457,11 +465,6 @@ class SubmissionReader extends AbstractRepository {
 		$query = "SELECT * FROM %i {$where_clause} ORDER BY id DESC LIMIT %d";
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		/**
-		 * Description.
-		 *
-		 * @phpstan-ignore-next-line argument.type
-		 */
 		$query = $this->wpdb->prepare( $query, ...$prepare_args );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -499,11 +502,6 @@ class SubmissionReader extends AbstractRepository {
 		$query = "SELECT id, data, data_encrypted FROM %i {$where_clause} ORDER BY id DESC LIMIT %d";
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		/**
-		 * Description.
-		 *
-		 * @phpstan-ignore-next-line argument.type
-		 */
 		$query = $this->wpdb->prepare( $query, ...$prepare_args );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -530,11 +528,6 @@ class SubmissionReader extends AbstractRepository {
 		$query = "SELECT COUNT(*) FROM %i {$where_clause}";
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		/**
-		 * Description.
-		 *
-		 * @phpstan-ignore-next-line argument.type
-		 */
 		$query = $this->wpdb->prepare( $query, ...$prepare_args );
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -647,9 +640,14 @@ class SubmissionReader extends AbstractRepository {
 		$items = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				/**
-				 * Description.
+				 * `{$where_clause}` is imploded at runtime from the caller's filters and
+				 * `{$orderby}` / `{$order}` are resolved from `sanitize_order_column()` and an
+				 * ASC/DESC collapse, so the query is not the `literal-string` the stub wants.
+				 * Nothing request-derived lands in the SQL text — the WHERE fragments are
+				 * literals carrying placeholders, their values travel as prepare arguments,
+				 * and the table name is bound with `%i`.
 				 *
-				 * @phpstan-ignore-next-line argument.type
+				 * @phpstan-ignore argument.type
 				 */
 				"SELECT * FROM %i {$where_clause} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d",
 				$this->table,
@@ -661,9 +659,11 @@ class SubmissionReader extends AbstractRepository {
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		/**
-		 * Description.
+		 * The COUNT twin of the query above, interpolating the same runtime
+		 * `{$where_clause}`; the values behind its placeholders travel as prepare
+		 * arguments and the table is bound with `%i`.
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
 		$total = $this->wpdb->get_var( $this->wpdb->prepare( "SELECT COUNT(*) FROM %i {$where_clause}", $this->table ) );
 
@@ -726,7 +726,7 @@ class SubmissionReader extends AbstractRepository {
 		 * The stub types wpdb::get_var() as non-empty-string, but a genuinely
 		 * empty column returns ''.
 		 *
-		 * @phpstan-ignore-next-line identical.alwaysFalse
+		 * @phpstan-ignore identical.alwaysFalse
 		 */
 		if ( null === $token || '' === $token ) {
 			return null;

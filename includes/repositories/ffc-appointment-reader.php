@@ -766,7 +766,7 @@ class AppointmentReader extends AbstractRepository {
 		/**
 		 * $args is a merged identifier + value list bound by wpdb->prepare.
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
 		$sql = $this->wpdb->prepare( $sql, ...$args );
 
@@ -800,7 +800,7 @@ class AppointmentReader extends AbstractRepository {
 		/**
 		 * $args is a merged identifier + value list bound by wpdb->prepare.
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
 		$sql = $this->wpdb->prepare( $sql, ...$args );
 
@@ -835,7 +835,7 @@ class AppointmentReader extends AbstractRepository {
 		/**
 		 * $args is a merged identifier + value list bound by wpdb->prepare.
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
 		$sql = $this->wpdb->prepare( $sql, ...$args );
 

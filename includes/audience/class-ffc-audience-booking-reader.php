@@ -157,9 +157,14 @@ class AudienceBookingReader {
 		$prepare_args = array_merge( array( $table, $env_table ), $values );
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		/**
-		 * Description.
+		 * Same shape as the other audience list readers: `{$where_clause}`,
+		 * `{$orderby}` and `{$limit_clause}` are assembled at runtime, so the query is
+		 * not `literal-string`. `$orderby` is a `sanitize_sql_orderby()` result — a
+		 * runtime value by construction, and the check that makes it safe — the WHERE
+		 * fragments are literals carrying placeholders, and both table names are bound
+		 * with `%i`.
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
 		$sql = $wpdb->prepare( $sql, $prepare_args );
 
@@ -540,9 +545,14 @@ class AudienceBookingReader {
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				/**
-				 * Description.
+				 * The SQL is a literal except for `{$exclude_clause}`, which is either '' or
+				 * the output of `prepare( 'AND id != %d', … )` — a runtime string, so the whole
+				 * query stops being `literal-string`. Interpolating an already-prepared
+				 * fragment is safe here specifically because the fragment contains no `%` once
+				 * prepared, so the outer `prepare()` finds no placeholder to re-process in it.
+				 * The table name is bound with `%i` and every value is a placeholder.
 				 *
-				 * @phpstan-ignore-next-line argument.type
+				 * @phpstan-ignore argument.type
 				 */
 				"SELECT * FROM %i
                 WHERE environment_id = %d
@@ -639,9 +649,14 @@ class AudienceBookingReader {
 		$conflicting_bookings_raw = $wpdb->get_results(
 			$wpdb->prepare(
 				/**
-				 * Description.
+				 * The query interpolates `{$env_join}` / `{$env_where}` (empty, or literals
+				 * selected by whether a schedule scope was given) plus the `%d` placeholder
+				 * lists built with `implode` + `array_fill`, so it is a runtime string rather
+				 * than `literal-string`. Every interpolated fragment is code-chosen — no
+				 * request value reaches the SQL text; the ids behind the placeholders travel
+				 * in `$values` and each table name is bound with `%i`.
 				 *
-				 * @phpstan-ignore-next-line argument.type
+				 * @phpstan-ignore argument.type
 				 */
 				"SELECT DISTINCT b.* FROM %i b
                 LEFT JOIN %i ba ON b.id = ba.booking_id
@@ -731,9 +746,14 @@ class AudienceBookingReader {
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				/**
-				 * Description.
+				 * The query interpolates `{$env_join}` / `{$env_where}` (empty, or literals
+				 * selected by whether a schedule scope was given) plus the `%d` placeholder
+				 * lists built with `implode` + `array_fill`, so it is a runtime string rather
+				 * than `literal-string`. Every interpolated fragment is code-chosen — no
+				 * request value reaches the SQL text; the ids behind the placeholders travel
+				 * in `$values` and each table name is bound with `%i`.
 				 *
-				 * @phpstan-ignore-next-line argument.type
+				 * @phpstan-ignore argument.type
 				 */
 				"SELECT b.id, b.start_time, b.end_time, b.description, a.name AS audience_name, ba.audience_id
                 FROM %i b

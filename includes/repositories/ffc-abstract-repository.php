@@ -164,9 +164,17 @@ abstract class AbstractRepository {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$results = $this->wpdb->get_results(
 				/**
-				 * Description.
+				 * The query interpolates `{$where}` from `build_where_clause()`, so it is a
+				 * runtime string, not the `literal-string` the `wpdb::prepare()` stub wants.
+				 * It cannot be one either, and that is the point: `build_where_clause()`
+				 * returns fragments already run through `prepare()`, so the escaped user
+				 * values are *inside* the clause. Safety comes from there — each condition is
+				 * built as `prepare( '%i = %s', $key, $value )` over a column allowlisted by
+				 * `get_allowed_where_columns()` — not from this call. `{$order_by}` is
+				 * allowlisted by `sanitize_order_column()` and `{$order}` collapses to
+				 * `ASC`/`DESC`; the table is bound with `%i`.
 				 *
-				 * @phpstan-ignore-next-line argument.type
+				 * @phpstan-ignore argument.type
 				 */
 				$this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by} {$order} LIMIT %d OFFSET %d", $this->table, $limit, $offset ),
 				ARRAY_A
@@ -182,9 +190,17 @@ abstract class AbstractRepository {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$results = $this->wpdb->get_results(
 			/**
-			 * Description.
+			 * The query interpolates `{$where}` from `build_where_clause()`, so it is a
+			 * runtime string, not the `literal-string` the `wpdb::prepare()` stub wants.
+			 * It cannot be one either, and that is the point: `build_where_clause()`
+			 * returns fragments already run through `prepare()`, so the escaped user
+			 * values are *inside* the clause. Safety comes from there — each condition is
+			 * built as `prepare( '%i = %s', $key, $value )` over a column allowlisted by
+			 * `get_allowed_where_columns()` — not from this call. `{$order_by}` is
+			 * allowlisted by `sanitize_order_column()` and `{$order}` collapses to
+			 * `ASC`/`DESC`; the table is bound with `%i`.
 			 *
-			 * @phpstan-ignore-next-line argument.type
+			 * @phpstan-ignore argument.type
 			 */
 			$this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by} {$order}", $this->table ),
 			ARRAY_A
@@ -207,9 +223,12 @@ abstract class AbstractRepository {
 		$where = $this->build_where_clause( $conditions );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		/**
-		 * Description.
+		 * Same shape as `findAll()`: `{$where}` is a `build_where_clause()` result,
+		 * so it carries already-prepared conditions and cannot be `literal-string`.
+		 * The column allowlist inside that helper is what makes it safe; the table
+		 * name is bound with `%i`.
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
 		return (int) $this->wpdb->get_var( $this->wpdb->prepare( "SELECT COUNT(*) FROM %i {$where}", $this->table ) );
 	}

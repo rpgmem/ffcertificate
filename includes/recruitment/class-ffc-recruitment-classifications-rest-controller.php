@@ -398,7 +398,7 @@ final class RecruitmentClassificationsRestController {
 		 * The stub types $_FILES tmp_name as string, but PHP makes it an array on
 		 * a multi-file upload field — the guard is real.
 		 *
-		 * @phpstan-ignore-next-line booleanNot.alwaysFalse
+		 * @phpstan-ignore booleanNot.alwaysFalse
 		 */
 		if ( ! isset( $files['csv_file']['tmp_name'] ) || ! is_string( $files['csv_file']['tmp_name'] ) ) {
 			return new \WP_Error(
@@ -452,7 +452,7 @@ final class RecruitmentClassificationsRestController {
 		 * The stub types $_FILES tmp_name as string, but PHP makes it an array on
 		 * a multi-file upload field — the guard is real.
 		 *
-		 * @phpstan-ignore-next-line booleanNot.alwaysFalse
+		 * @phpstan-ignore booleanNot.alwaysFalse
 		 */
 		if ( ! isset( $files['csv_file']['tmp_name'] ) || ! is_string( $files['csv_file']['tmp_name'] ) ) {
 			return new \WP_Error(
@@ -580,7 +580,7 @@ final class RecruitmentClassificationsRestController {
 		 * The stub types $_FILES tmp_name as string, but PHP makes it an array on
 		 * a multi-file upload field — the guard is real.
 		 *
-		 * @phpstan-ignore-next-line booleanNot.alwaysFalse
+		 * @phpstan-ignore booleanNot.alwaysFalse
 		 */
 		if ( ! isset( $files['csv_file']['tmp_name'] ) || ! is_string( $files['csv_file']['tmp_name'] ) ) {
 			return new \WP_Error(

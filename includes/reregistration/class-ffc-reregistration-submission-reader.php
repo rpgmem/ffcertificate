@@ -302,11 +302,26 @@ class ReregistrationSubmissionReader {
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		/**
-		 * Description.
+		 * `$sql` interpolates `$where_clause`, `$orderby`, `$order` and
+		 * `$limit_clause`, so it is a runtime string rather than the
+		 * `literal-string` the stub declares. Nothing request-derived reaches
+		 * the SQL text: the WHERE fragments are literals carrying `%d` / `%s`
+		 * (values travel in `$prepare_values`), `$orderby` is picked from
+		 * `$allowed_orderby`, `$order` collapses to `ASC`/`DESC`, and the two
+		 * table names are bound with `%i`.
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
-		return $wpdb->get_results( $wpdb->prepare( $sql, $prepare_values ) );
+		$results = $wpdb->get_results( $wpdb->prepare( $sql, $prepare_values ) );
+		/**
+		 * Cast wpdb result to the typed row shape. `get_results()` returns null
+		 * on a failed query, which this method's `: array` return type would
+		 * turn into a TypeError — the narrowed suppression above is what
+		 * surfaced that; the broad form had been hiding it.
+		 *
+		 * @var list<ReregistrationSubmissionRow>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
