@@ -10,7 +10,10 @@
  * hidden/edited defaults) are never clobbered.
  *
  * Runs once per seed version, guarded by the `ffc_cert_templates_seeded_version`
- * option; the option is bumped when new shipped defaults are added.
+ * option; the option is bumped when new shipped defaults are added — but only
+ * once the run has actually left a default in the pool, so a seed that read
+ * nothing retries instead of recording itself as done (see
+ * {@see self::pool_has_defaults()}).
  *
  * @package FreeFormCertificate\Admin
  * @since   6.18.0
@@ -78,6 +81,10 @@ class CertTemplateSeeder {
 	/**
 	 * Run the seeder once per seed version.
 	 *
+	 * The flag is written only when the pool actually ends up holding a shipped
+	 * default — see {@see self::pool_has_defaults()} for why an unconditional
+	 * write is a trap.
+	 *
 	 * @return void
 	 */
 	public static function maybe_seed(): void {
@@ -99,7 +106,53 @@ class CertTemplateSeeder {
 			self::seed();
 		}
 
+		if ( ! self::pool_has_defaults() ) {
+			\FreeFormCertificate\Core\Debug::log_admin(
+				'CertTemplateSeeder: seed run produced no default template; leaving the seed flag unwritten so the next admin request retries.',
+				array(
+					'seed_version' => self::SEED_VERSION,
+					'applied'      => $applied,
+					'seed_dir'     => FFC_PLUGIN_DIR . self::SEED_DIR,
+				)
+			);
+			return;
+		}
+
 		update_option( self::SEED_FLAG, self::SEED_VERSION );
+	}
+
+	/**
+	 * Whether the pool holds at least one shipped default after a seed run.
+	 *
+	 * This is the guard that keeps the seeder honest, and it exists because the
+	 * whole path fails silently: {@see \FreeFormCertificate\Core\Utils::read_file_contents()}
+	 * returns '' for a file it cannot read, {@see self::seed()} then `continue`s
+	 * past that definition without a word, and an unconditional
+	 * `update_option( SEED_FLAG, … )` would record the run as applied. On the
+	 * next request `maybe_seed()` returns early, so a first seed that read
+	 * nothing — a deploy that landed mid-rsync, a permissions problem, a
+	 * packaging slip that dropped the seed files — leaves the pool permanently
+	 * empty and never retries.
+	 *
+	 * That is not a cosmetic failure: an empty pool is exactly the condition
+	 * under which
+	 * {@see \FreeFormCertificate\Admin\AdminAssetsManager::discover_layout_templates()}
+	 * falls back to the deprecated legacy `html/` glob, so the fallback's stated
+	 * exit condition — "removed once the pool seeds on every install" — could
+	 * not be met while this hole existed (#865 phase-4).
+	 *
+	 * Deliberately narrow: it asks whether the pool is *empty*, not whether every
+	 * definition seeded. A partial seed still populates the picker and keeps the
+	 * fallback dormant, so recording it as applied is correct — and blocking the
+	 * flag on completeness would re-run restore()'s meta writes on every single
+	 * admin request for as long as one file stayed unreadable. Visibility is not
+	 * consulted either: hiding a default is the admin's choice, not a seed
+	 * failure.
+	 *
+	 * @return bool
+	 */
+	private static function pool_has_defaults(): bool {
+		return array() !== self::existing_default_map();
 	}
 
 	/**

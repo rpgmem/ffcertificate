@@ -480,9 +480,22 @@ A full security audit confirmed these hold plugin-wide — keep them that way (t
 
 Inventory of the legacy compatibility shims that remain in the code by design (snapshot — re-confirm the location in code before removing; paths and lines change with every refactor, so the table cites files/methods, never line numbers). Removing them requires evidence that no production installation depends on them.
 
-_The two shims previously tracked here — the `ensure_legacy_caps_renamed()` v1 pre-6.2.0 cap-rename migration and the pre-4.6.15 orphan-cron cleanup (activator + deactivator/uninstall) — were removed in 6.18.0 (#809) as scheduled; the inventory is currently empty._
+_The two shims previously tracked here — the `ensure_legacy_caps_renamed()` v1 pre-6.2.0 cap-rename migration and the pre-4.6.15 orphan-cron cleanup (activator + deactivator/uninstall) — were removed in 6.18.0 (#809) as scheduled._
+
+| Shim | Location | Risk if removed | Why it stays |
+| --- | --- | --- | --- |
+| **Legacy `html/` layout fallback** (#865 phase-4) | `AdminAssetsManager::discover_layout_templates()` → `discover_layout_templates_legacy_glob()` (the `html/*.html` glob when the pool is empty), and `FormEditor`'s by-filename load of `FFC_PLUGIN_DIR . 'html/'` for the `filename` param those entries post. Plus the `html/default_certificate_{1,2,3}.html` files that `.distignore` still ships. | **Medium.** An install whose template pool is empty loses the form editor's layout picker entirely — no defaults to choose, and the by-filename load path that the picker's own entries depend on disappears with it. | The pool is not yet guaranteed non-empty on every install. Until 6.22.0 a first seed that read nothing recorded itself as applied and never retried, permanently emptying the pool (fixed by `CertTemplateSeeder::pool_has_defaults()`); installs that hit it before the fix are repaired by the retry, but only after they take the update. |
 
 When a new shim is added, log it here (Shim · Location · Risk if removed · Why it stays), and when a new feature makes one unsafe or inadequate, open a specific sub-issue + a breaking-change banner in the CHANGELOG.
+
+#### Exit condition for the `html/` fallback — evidence, not a deprecation cycle
+
+Retiring it is **evidence-gated** (the `cpf_rf_encrypted` shape below), *not* a versioned deprecation cycle. The cycle exists for surfaces whose consumers a code scan cannot see — a public method an external integration might call. Both sites here are internal render paths with no hook, no filter and no external caller, so nothing invisible can depend on them; what they depend on is **install state**, which is observable. Two conditions, and note they are genuinely different — conflating them is the mistake that nearly retired this shim early:
+
+1. **The pool seeds on every install** — the fallback's own written condition, and the one that was *not* met before 6.22.0. The seeder fix is what makes it hold; verify on a real install that the layout picker is served from the pool.
+2. **Settings → Migrations → `import_legacy_templates` reads 0 pending** — every file an admin dropped into `html/` has been imported. This one has read 0 in production for some time, but it measures *imports*, not seeding, and on its own says nothing about condition 1.
+
+Ship the seeder fix and the removal in **different releases** (6.22.0 → 6.23.0): an install with an empty pool must receive the repair, and be observed to have taken it, before losing the safety net. The removal is ⚠ breaking for anyone still relying on a file in `html/`, so it carries a CHANGELOG banner.
 
 #### Gathering the evidence to remove a **High**-risk shim
 
