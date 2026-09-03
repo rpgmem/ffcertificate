@@ -170,8 +170,11 @@ class SettingsActionHandlerTest extends TestCase {
 	// ==================================================================
 
 	public function test_clear_qr_cache_returns_early_without_params(): void {
+		// The statement after the param guard verifies the nonce, so a nonce
+		// that is never verified is the proof that the guard returned.
+		Functions\expect( 'wp_verify_nonce' )->never();
+
 		$this->handler->handle_clear_qr_cache();
-		$this->assertTrue( true );
 	}
 
 	public function test_clear_qr_cache_invalid_nonce_returns(): void {
@@ -179,8 +182,13 @@ class SettingsActionHandlerTest extends TestCase {
 		$_GET['_wpnonce']           = 'bad';
 		$this->mock_request_input( array( '_wpnonce' => 'bad' ) );
 		Functions\when( 'wp_verify_nonce' )->justReturn( false );
+
+		// Past the nonce check the handler clears the QR cache through the
+		// repository — the same collaborator the success test asserts on.
+		Mockery::mock( 'overload:FreeFormCertificate\\Repositories\\SubmissionRepository' )
+			->shouldNotReceive( 'clearQrCodeCache' );
+
 		$this->handler->handle_clear_qr_cache();
-		$this->assertTrue( true );
 	}
 
 	public function test_clear_qr_cache_success_redirects(): void {
@@ -202,8 +210,13 @@ class SettingsActionHandlerTest extends TestCase {
 	// ==================================================================
 
 	public function test_migration_returns_early_without_param(): void {
+		// #1030: this asserted nothing. The statement immediately after the
+		// param guard is the destructive-capability check, so a capability
+		// that is never consulted is the proof that the guard returned.
+		Mockery::mock( 'alias:FreeFormCertificate\\Core\\Capabilities' )
+			->shouldNotReceive( 'current_user_can_admin_or' );
+
 		$this->handler->handle_migration_execution();
-		$this->assertTrue( true );
 	}
 
 	public function test_migration_denies_without_capability(): void {
@@ -265,8 +278,13 @@ class SettingsActionHandlerTest extends TestCase {
 	// ==================================================================
 
 	public function test_obsolete_returns_early_without_param(): void {
+		// #1030: this asserted nothing. The statement immediately after the
+		// param guard is the destructive-capability check, so a capability
+		// that is never consulted is the proof that the guard returned.
+		Mockery::mock( 'alias:FreeFormCertificate\\Core\\Capabilities' )
+			->shouldNotReceive( 'current_user_can_admin_or' );
+
 		$this->handler->handle_obsolete_shortcode_cleanup();
-		$this->assertTrue( true );
 	}
 
 	public function test_obsolete_denies_without_capability(): void {
@@ -361,8 +379,13 @@ class SettingsActionHandlerTest extends TestCase {
 	// ==================================================================
 
 	public function test_url_cleanup_returns_early_without_param(): void {
+		// #1030: this asserted nothing. The statement immediately after the
+		// param guard is the destructive-capability check, so a capability
+		// that is never consulted is the proof that the guard returned.
+		Mockery::mock( 'alias:FreeFormCertificate\\Core\\Capabilities' )
+			->shouldNotReceive( 'current_user_can_admin_or' );
+
 		$this->handler->handle_url_shortener_cleanup();
-		$this->assertTrue( true );
 	}
 
 	public function test_url_cleanup_denies_without_capability(): void {
@@ -458,8 +481,13 @@ class SettingsActionHandlerTest extends TestCase {
 	// ==================================================================
 
 	public function test_pubaccess_returns_early_without_param(): void {
+		// #1030: this asserted nothing. The statement immediately after the
+		// param guard is the destructive-capability check, so a capability
+		// that is never consulted is the proof that the guard returned.
+		Mockery::mock( 'alias:FreeFormCertificate\\Core\\Capabilities' )
+			->shouldNotReceive( 'current_user_can_admin_or' );
+
 		$this->handler->handle_public_access_disabler();
-		$this->assertTrue( true );
 	}
 
 	public function test_pubaccess_denies_without_capability(): void {
@@ -545,8 +573,13 @@ class SettingsActionHandlerTest extends TestCase {
 	// ==================================================================
 
 	public function test_submission_audit_returns_early_without_param(): void {
+		// #1030: this asserted nothing. The statement immediately after the
+		// param guard is the destructive-capability check, so a capability
+		// that is never consulted is the proof that the guard returned.
+		Mockery::mock( 'alias:FreeFormCertificate\\Core\\Capabilities' )
+			->shouldNotReceive( 'current_user_can_admin_or' );
+
 		$this->handler->handle_submission_link_audit();
-		$this->assertTrue( true );
 	}
 
 	public function test_submission_audit_denies_without_capability(): void {
@@ -604,15 +637,22 @@ class SettingsActionHandlerTest extends TestCase {
 	// ==================================================================
 
 	public function test_cache_actions_denies_without_capability(): void {
+		// Ask for a real action, so the capability check is the only thing that
+		// can stop it; check_admin_referer() is the first statement inside that
+		// branch, so it never running is what proves the denial.
+		$_GET['action'] = 'warm_cache';
 		$this->mock_capabilities( false );
+		Functions\expect( 'check_admin_referer' )->never();
+
 		$this->handler->handle_cache_actions();
-		$this->assertTrue( true );
 	}
 
 	public function test_cache_actions_no_action_does_nothing(): void {
+		// Capability granted, so only the missing action can stop it.
 		$this->mock_capabilities( true );
+		Functions\expect( 'check_admin_referer' )->never();
+
 		$this->handler->handle_cache_actions();
-		$this->assertTrue( true );
 	}
 
 	public function test_cache_actions_warm_cache_redirects(): void {
@@ -696,8 +736,13 @@ class SettingsActionHandlerTest extends TestCase {
 	}
 
 	public function test_send_test_email_returns_early_without_param(): void {
+		// #1030: this asserted nothing. The statement immediately after the
+		// param guard is the destructive-capability check, so a capability
+		// that is never consulted is the proof that the guard returned.
+		Mockery::mock( 'alias:FreeFormCertificate\\Core\\Capabilities' )
+			->shouldNotReceive( 'current_user_can_admin_or' );
+
 		$this->handler->handle_send_test_email();
-		$this->assertTrue( true );
 	}
 
 	public function test_send_test_email_denies_without_capability(): void {
