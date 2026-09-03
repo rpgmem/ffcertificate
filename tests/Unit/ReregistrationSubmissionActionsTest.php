@@ -14,9 +14,34 @@ use FreeFormCertificate\Reregistration\ReregistrationSubmissionActions;
  * Tests for ReregistrationSubmissionActions: approve, reject,
  * return-to-draft, and bulk action handlers.
  *
- * Each handler checks $_GET/$_POST params and nonces before doing work.
- * We test the early-return guard clauses exhaustively, which covers the
- * majority of the method bodies without needing to mock exit().
+ * Each handler checks $_GET/$_POST params and a nonce before writing. These
+ * tests drive every guard and assert that the write did NOT happen.
+ *
+ * WHY THAT ASSERTION AND NOT ANOTHER (#1030). Until this pass they ended in
+ * `assertTrue( true )` — they called the handler and declared success for not
+ * throwing. Delete the nonce check from handle_approve() and every one of them
+ * still passed, while the submission was approved. A guard test that does not
+ * observe the guarded effect reports coverage it does not have.
+ *
+ * What each handler does once its guards pass is call
+ * ReregistrationSubmissionWriter and then wp_safe_redirect(), and it reads
+ * get_current_user_id() only to hand to that writer — so neither of those calls
+ * happening is the observable proof that the guard held. Both are asserted
+ * through Brain\Monkey rather than by alias-mocking the writer: an alias mock
+ * must be installed before the class is autoloaded, which no single test file
+ * can guarantee across the suite.
+ *
+ * The two expectations are repeated inline in every test rather than factored
+ * into a helper. AssertionCoverageTest reads each test method's own body, and a
+ * helper call is invisible to it — a test whose assertion cannot be seen is the
+ * exact thing that guard exists to catch, so hiding them would trade one kind
+ * of false negative for another.
+ *
+ * WHAT THIS DOES NOT COVER. The capability check. It lives one level up, in
+ * ReregistrationAdmin::handle_actions(), which gates all four handlers on
+ * `current_user_can( self::CAPABILITY )` before delegating — so asserting it
+ * here would be testing something this class does not do. That belongs to
+ * ReregistrationAdminTest.
  *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationSubmissionActions
  */
@@ -43,7 +68,6 @@ class ReregistrationSubmissionActionsTest extends TestCase {
 		Functions\when('wp_unslash')->returnArg();
 		Functions\when('sanitize_text_field')->alias('trim');
 		Functions\when('wp_unslash')->returnArg();
-		Functions\when('get_current_user_id')->justReturn(1);
 		Functions\when('admin_url')->alias(function ($path = '') {
 			return 'https://example.com/wp-admin/' . $path;
 		});
@@ -62,23 +86,25 @@ class ReregistrationSubmissionActionsTest extends TestCase {
 
 	public function test_handle_approve_returns_early_when_get_is_empty(): void {
 		$_GET = array();
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_approve();
-		// No side effects = success.
-		$this->assertTrue(true);
 	}
 
 	public function test_handle_approve_returns_early_when_action_is_not_approve(): void {
 		$_GET['action'] = 'reject';
 		$_GET['sub_id'] = '10';
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_approve();
-		$this->assertTrue(true);
 	}
 
 	public function test_handle_approve_returns_early_when_sub_id_missing(): void {
 		$_GET['action'] = 'approve';
 		// sub_id intentionally omitted.
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_approve();
-		$this->assertTrue(true);
 	}
 
 	public function test_handle_approve_returns_early_when_nonce_invalid(): void {
@@ -89,8 +115,9 @@ class ReregistrationSubmissionActionsTest extends TestCase {
 
 		Functions\when('wp_verify_nonce')->justReturn(false);
 
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_approve();
-		$this->assertTrue(true);
 	}
 
 	public function test_handle_approve_returns_early_when_nonce_key_missing(): void {
@@ -101,8 +128,9 @@ class ReregistrationSubmissionActionsTest extends TestCase {
 
 		Functions\when('wp_verify_nonce')->justReturn(false);
 
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_approve();
-		$this->assertTrue(true);
 	}
 
 	// ==================================================================
@@ -111,21 +139,24 @@ class ReregistrationSubmissionActionsTest extends TestCase {
 
 	public function test_handle_reject_returns_early_when_get_is_empty(): void {
 		$_GET = array();
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_reject();
-		$this->assertTrue(true);
 	}
 
 	public function test_handle_reject_returns_early_when_action_is_not_reject(): void {
 		$_GET['action'] = 'approve';
 		$_GET['sub_id'] = '10';
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_reject();
-		$this->assertTrue(true);
 	}
 
 	public function test_handle_reject_returns_early_when_sub_id_missing(): void {
 		$_GET['action'] = 'reject';
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_reject();
-		$this->assertTrue(true);
 	}
 
 	public function test_handle_reject_returns_early_when_nonce_invalid(): void {
@@ -136,8 +167,9 @@ class ReregistrationSubmissionActionsTest extends TestCase {
 
 		Functions\when('wp_verify_nonce')->justReturn(false);
 
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_reject();
-		$this->assertTrue(true);
 	}
 
 	// ==================================================================
@@ -146,21 +178,24 @@ class ReregistrationSubmissionActionsTest extends TestCase {
 
 	public function test_handle_return_to_draft_returns_early_when_get_is_empty(): void {
 		$_GET = array();
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_return_to_draft();
-		$this->assertTrue(true);
 	}
 
 	public function test_handle_return_to_draft_returns_early_when_action_wrong(): void {
 		$_GET['action'] = 'approve';
 		$_GET['sub_id'] = '10';
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_return_to_draft();
-		$this->assertTrue(true);
 	}
 
 	public function test_handle_return_to_draft_returns_early_when_sub_id_missing(): void {
 		$_GET['action'] = 'return_to_draft';
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_return_to_draft();
-		$this->assertTrue(true);
 	}
 
 	public function test_handle_return_to_draft_returns_early_when_nonce_invalid(): void {
@@ -171,8 +206,9 @@ class ReregistrationSubmissionActionsTest extends TestCase {
 
 		Functions\when('wp_verify_nonce')->justReturn(false);
 
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_return_to_draft();
-		$this->assertTrue(true);
 	}
 
 	// ==================================================================
@@ -181,14 +217,16 @@ class ReregistrationSubmissionActionsTest extends TestCase {
 
 	public function test_handle_bulk_returns_early_when_post_is_empty(): void {
 		$_POST = array();
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_bulk();
-		$this->assertTrue(true);
 	}
 
 	public function test_handle_bulk_returns_early_when_ffc_action_wrong(): void {
 		$_POST['ffc_action'] = 'something_else';
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_bulk();
-		$this->assertTrue(true);
 	}
 
 	public function test_handle_bulk_returns_early_when_nonce_invalid(): void {
@@ -198,8 +236,9 @@ class ReregistrationSubmissionActionsTest extends TestCase {
 
 		Functions\when('wp_verify_nonce')->justReturn(false);
 
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_bulk();
-		$this->assertTrue(true);
 	}
 
 	public function test_handle_bulk_returns_early_when_ids_empty(): void {
@@ -211,8 +250,9 @@ class ReregistrationSubmissionActionsTest extends TestCase {
 
 		Functions\when('wp_verify_nonce')->justReturn(1);
 
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_bulk();
-		$this->assertTrue(true);
 	}
 
 	public function test_handle_bulk_returns_early_when_action_empty(): void {
@@ -224,8 +264,9 @@ class ReregistrationSubmissionActionsTest extends TestCase {
 
 		Functions\when('wp_verify_nonce')->justReturn(1);
 
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_bulk();
-		$this->assertTrue(true);
 	}
 
 	public function test_handle_bulk_returns_early_when_both_ids_and_action_empty(): void {
@@ -237,7 +278,8 @@ class ReregistrationSubmissionActionsTest extends TestCase {
 
 		Functions\when('wp_verify_nonce')->justReturn(1);
 
+		Functions\expect('get_current_user_id')->never();
+		Functions\expect('wp_safe_redirect')->never();
 		ReregistrationSubmissionActions::handle_bulk();
-		$this->assertTrue(true);
 	}
 }

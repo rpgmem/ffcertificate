@@ -111,10 +111,27 @@ class ReregistrationAdminTest extends TestCase {
 	// ==================================================================
 
 	public function test_add_menu_registers_menu_pages(): void {
+		// #1030: this asserted nothing and called that "the menus were
+		// registered" — it passed for an add_menu() that registered none.
+		$registered = array();
+		Functions\when( 'add_menu_page' )->alias(
+			function () use ( &$registered ) {
+				$registered[] = func_get_arg( 3 ); // menu slug
+				return 'toplevel_page_' . func_get_arg( 3 );
+			}
+		);
+		Functions\when( 'add_submenu_page' )->alias(
+			function () use ( &$registered ) {
+				$registered[] = func_get_arg( 4 ); // submenu slug
+				return 'admin_page_' . func_get_arg( 4 );
+			}
+		);
+
 		$admin = new ReregistrationAdmin();
 		$admin->add_menu();
-		// If we got here without error, the menus were registered
-		$this->assertTrue( true );
+
+		$this->assertNotEmpty( $registered, 'add_menu() registered no menu at all' );
+		$this->assertContains( ReregistrationAdmin::MENU_SLUG, $registered );
 	}
 
 	// ==================================================================
@@ -203,11 +220,18 @@ class ReregistrationAdminTest extends TestCase {
 	// ==================================================================
 
 	public function test_handle_actions_returns_early_without_capability(): void {
+		// #1030: asserting "no error" proved nothing — the guard could be
+		// deleted and this still passed. Put the request in a state where the
+		// method demonstrably WOULD act (right page, a message to render), so
+		// that nothing happening is evidence the capability check held.
 		Functions\when( 'current_user_can' )->justReturn( false );
+		$_GET['page']    = ReregistrationAdmin::MENU_SLUG;
+		$_GET['message'] = 'created';
+
+		Functions\expect( 'add_settings_error' )->never();
 
 		$admin = new ReregistrationAdmin();
 		$admin->handle_actions();
-		$this->assertTrue( true ); // No error means early return
 	}
 
 	// ==================================================================
@@ -215,12 +239,16 @@ class ReregistrationAdminTest extends TestCase {
 	// ==================================================================
 
 	public function test_handle_actions_returns_early_on_wrong_page(): void {
+		// The capability passes here, so only the page check can stop it — and
+		// a renderable message is queued so that acting would be visible.
 		Functions\when( 'current_user_can' )->justReturn( true );
-		$_GET['page'] = 'other-page';
+		$_GET['page']    = 'other-page';
+		$_GET['message'] = 'created';
+
+		Functions\expect( 'add_settings_error' )->never();
 
 		$admin = new ReregistrationAdmin();
 		$admin->handle_actions();
-		$this->assertTrue( true );
 	}
 
 	// ==================================================================
@@ -415,9 +443,13 @@ class ReregistrationAdminTest extends TestCase {
 
 	public function test_handle_save_returns_early_without_action(): void {
 		unset( $_POST['ffc_action'] );
+
+		// The statement immediately after the guard is the nonce check, so a
+		// nonce that is never verified is the proof that the guard returned.
+		Functions\expect( 'wp_verify_nonce' )->never();
+
 		$admin = new ReregistrationAdmin();
 		$this->invoke_private( $admin, 'handle_save' );
-		$this->assertTrue( true );
 	}
 
 	/**
@@ -437,9 +469,14 @@ class ReregistrationAdminTest extends TestCase {
 
 	public function test_handle_delete_returns_early_without_action(): void {
 		unset( $_GET['action'] );
+
+		// Past this guard the method reaches the destructive-capability check
+		// and wp_die()s without it, then verifies a nonce. Neither may happen.
+		Functions\expect( 'wp_die' )->never();
+		Functions\expect( 'wp_verify_nonce' )->never();
+
 		$admin = new ReregistrationAdmin();
 		$this->invoke_private( $admin, 'handle_delete' );
-		$this->assertTrue( true );
 	}
 
 	/**
