@@ -430,14 +430,14 @@ class AudienceEnvironmentRepository {
 
 		$where_clause = 'WHERE ' . implode( ' AND ', $where );
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic WHERE clause built from trusted conditions above.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic WHERE clause built from trusted conditions above.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i {$where_clause} ORDER BY holiday_date ASC",
 				array_merge( array( $table ), $values )
 			)
 		);
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		/**
 		 * Cast wpdb result to typed shape.
 		 *
@@ -468,9 +468,7 @@ class AudienceEnvironmentRepository {
 		$wpdb  = self::db();
 		$table = self::get_holidays_table_name();
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery -- Cached above via wp_cache_get.
 		$count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE schedule_id = %d AND holiday_date = %s', $table, $env->schedule_id, $date ) );
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery
 
 		$result = (int) $count > 0;
 		wp_cache_set( $cache_key, $result, self::QUERY_CACHE_GROUP );
@@ -513,11 +511,11 @@ class AudienceEnvironmentRepository {
 		// Build prepared query with %i for table name.
 		$prepare_args = array_merge( array( $table ), $values );
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic WHERE clause built from safe %s/%d placeholders; cached above.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic WHERE clause built from safe %s/%d placeholders; cached above.
 		$result = (int) $wpdb->get_var(
 			$wpdb->prepare( "SELECT COUNT(*) FROM %i {$where_clause}", $prepare_args )
 		);
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		wp_cache_set( $cache_key, $result, self::QUERY_CACHE_GROUP );
 
 		return $result;

@@ -348,9 +348,7 @@ class AudienceWriter {
 		$wpdb  = self::db();
 		$table = self::get_members_table_name();
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery -- Intentional delete-and-reinsert for member sync.
 		$wpdb->delete( $table, array( 'audience_id' => $audience_id ), array( '%d' ) );
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery
 
 		// Add new members.
 		foreach ( $user_ids as $user_id ) {

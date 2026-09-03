@@ -357,14 +357,14 @@ class AudienceReader {
 
 		$placeholders = implode( ',', array_fill( 0, count( $audience_ids ), '%d' ) );
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic IN() placeholders built from array_fill above.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic IN() placeholders built from array_fill above.
 		$results = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT DISTINCT user_id FROM %i WHERE audience_id IN ({$placeholders})",
 				array_merge( array( $table ), $audience_ids )
 			)
 		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return array_map( 'intval', $results );
 	}
@@ -392,7 +392,6 @@ class AudienceReader {
 		$table         = self::get_table_name();
 		$members_table = self::get_members_table_name();
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$audiences_raw = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT a.* FROM %i a
@@ -404,7 +403,6 @@ class AudienceReader {
 				$user_id
 			)
 		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery
 		/**
 		 * Cast wpdb result to typed shape.
 		 *
@@ -426,11 +424,11 @@ class AudienceReader {
 				$ancestor_ids = array_unique( array_map( 'absint', $ancestor_ids ) );
 				$placeholders = implode( ',', array_fill( 0, count( $ancestor_ids ), '%d' ) );
 
-				// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic IN() placeholders built from array_fill; cached below.
+				// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic IN() placeholders built from array_fill; cached below.
 				$parents_raw = $wpdb->get_results(
 					$wpdb->prepare( "SELECT * FROM %i WHERE id IN ({$placeholders}) AND status = 'active'", array_merge( array( $table ), $ancestor_ids ) )
 				);
-				// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				/**
 		 * Cast wpdb result to typed shape.
 		 *
@@ -511,11 +509,11 @@ class AudienceReader {
 		// Build prepared query with %i for table name.
 		$prepare_args = array_merge( array( $table ), $values );
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic WHERE clause built from safe %s/%d placeholders; cached below.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic WHERE clause built from safe %s/%d placeholders; cached below.
 		$result = (int) $wpdb->get_var(
 			$wpdb->prepare( "SELECT COUNT(*) FROM %i {$where_clause}", $prepare_args )
 		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		wp_cache_set( $cache_key, $result, self::QUERY_CACHE_GROUP );
 
 		return $result;
@@ -543,7 +541,6 @@ class AudienceReader {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$results_raw = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i
@@ -555,7 +552,6 @@ class AudienceReader {
 				$limit
 			)
 		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery
 		/**
 		 * Cast wpdb result to typed shape.
 		 *
