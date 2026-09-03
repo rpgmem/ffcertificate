@@ -231,15 +231,19 @@ class AudienceAdminPageTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 
+		// #1030: "nothing should be delegated" was a comment, not a check.
+		// Every delegate begins by asking Capabilities whether the user may
+		// act, so a capability never consulted is the proof the page guard
+		// returned before delegating to any of the six.
+		// Asserted through current_user_can(), which Capabilities delegates to,
+		// rather than by alias-mocking Capabilities: that class is already
+		// autoloaded by the time this test runs and Mockery cannot alias it.
+		Functions\expect( 'current_user_can' )->never();
+
 		$page = new AudienceAdminPage();
 
 		$page->init();
-
-		// Should not throw; nothing should be delegated
 		$page->handle_form_submissions();
-
-		// If we reach here without error, the test passes
-		$this->assertTrue( true );
 
 		unset( $_GET['page'] );
 	}

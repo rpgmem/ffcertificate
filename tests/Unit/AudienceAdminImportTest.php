@@ -109,9 +109,16 @@ class AudienceAdminImportTest extends TestCase {
 
 	public function test_handle_csv_import_does_nothing_without_action(): void {
 		unset( $_POST['ffc_import_action'] );
+
+		// #1030: handle_csv_import() reads its three capability tiers up front,
+		// before any action branch, so a capability check is NOT evidence of
+		// anything here. Every branch that acts verifies a nonce first — that
+		// is the marker for "no branch was entered".
+
+		Functions\expect( 'wp_verify_nonce' )->never();
+
 		$page = new AudienceAdminImport( 'ffc-scheduling' );
 		$page->handle_csv_import();
-		$this->assertTrue( true );
 	}
 
 	// ==================================================================
