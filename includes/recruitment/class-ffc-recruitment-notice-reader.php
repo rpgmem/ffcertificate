@@ -19,6 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Read queries for `ffc_recruitment_notice` rows.
  *
@@ -83,7 +84,6 @@ class RecruitmentNoticeReader {
 		 *
 		 * @var NoticeRow|null $result
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Object-cached above; %i for table identifier.
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
@@ -115,7 +115,6 @@ class RecruitmentNoticeReader {
 		 *
 		 * @var NoticeRow|null $result
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lookup by indexed UNIQUE column.
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE code = %s LIMIT 1', $table, $normalized )
 		);
@@ -139,7 +138,6 @@ class RecruitmentNoticeReader {
 			 *
 			 * @var list<NoticeRow>|null $results
 			 */
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin listing; status column is indexed.
 			$results = $wpdb->get_results(
 				$wpdb->prepare( 'SELECT * FROM %i WHERE status = %s ORDER BY created_at DESC', $table, $status )
 			);
@@ -149,7 +147,6 @@ class RecruitmentNoticeReader {
 			 *
 			 * @var list<NoticeRow>|null $results
 			 */
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin listing; small cardinality.
 			$results = $wpdb->get_results(
 				$wpdb->prepare( 'SELECT * FROM %i ORDER BY created_at DESC', $table )
 			);

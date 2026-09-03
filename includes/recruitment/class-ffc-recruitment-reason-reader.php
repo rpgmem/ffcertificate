@@ -20,6 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Read queries for `ffc_recruitment_reason` rows.
  *
@@ -87,7 +88,6 @@ class RecruitmentReasonReader {
 		 *
 		 * @var ReasonRow|null $result
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cached above and below; %i for table identifier.
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
@@ -113,7 +113,6 @@ class RecruitmentReasonReader {
 		 *
 		 * @var list<ReasonRow>|null $results
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin-only listing; small cardinality.
 		$results = $wpdb->get_results(
 			$wpdb->prepare( 'SELECT * FROM %i ORDER BY label ASC', $table )
 		);
@@ -156,7 +155,6 @@ class RecruitmentReasonReader {
 		global $wpdb;
 		$cls_table = $wpdb->prefix . 'ffc_recruitment_classification';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin-only deletion gate.
 		$count = $wpdb->get_var(
 			$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE preview_reason_id = %d', $cls_table, $id )
 		);

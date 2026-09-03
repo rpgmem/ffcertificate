@@ -26,6 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Generator for q r code output.
  */
@@ -393,7 +394,6 @@ class QRCodeGenerator {
 			return false;
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$qr_code = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT qr_code_cache FROM %i WHERE id = %d',
@@ -421,7 +421,6 @@ class QRCodeGenerator {
 			$this->create_cache_column();
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->update(
 			$table_name,
 			array( 'qr_code_cache' => $qr_base64 ),
@@ -476,7 +475,6 @@ class QRCodeGenerator {
 		);
 
 		if ( $submission_id ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$result  = $wpdb->update(
 				$table_name,
 				array( 'qr_code_cache' => null ),
@@ -486,7 +484,6 @@ class QRCodeGenerator {
 			);
 			$cleared = false !== $result ? 1 : 0;
 		} else {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$result  = $wpdb->query(
 				$wpdb->prepare( 'UPDATE %i SET qr_code_cache = NULL WHERE qr_code_cache IS NOT NULL', $table_name )
 			);
@@ -518,7 +515,6 @@ class QRCodeGenerator {
 		$table_name = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		// Get submission magic token.
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$submission = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT magic_token FROM %i WHERE id = %d', $table_name, $submission_id ),
 			ARRAY_A
@@ -584,9 +580,7 @@ class QRCodeGenerator {
 			);
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$total = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table_name ) );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$total  = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table_name ) );
 		$cached = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE qr_code_cache IS NOT NULL', $table_name ) );
 
 		$avg_size_bytes = 4096; // 4 KB per QR Code (estimate)

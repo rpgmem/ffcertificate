@@ -22,7 +22,7 @@ namespace FreeFormCertificate\Repositories;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $sql is the return value of $wpdb->prepare() a few lines above and the sniff cannot follow a prepared string across an assignment; {$hash_column} is a ternary over two literal column names.
 /**
  * Write operations for appointment records.
  */

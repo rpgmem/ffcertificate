@@ -24,6 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Device-fingerprint rate limit.
  */
@@ -123,7 +124,6 @@ class DeviceLimiter {
 		$count = 0;
 		if ( $cookie && empty( $sum_parts ) ) {
 			// Cookie-only fallback: count distinct submission rows with matching cookie.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE form_id = %d AND sig_cookie = %s', $table, $form_id, $cookie ) );
 		} elseif ( ! empty( $sum_parts ) ) {
 			$sum_sql         = implode( ' + ', $sum_parts );
@@ -148,14 +148,13 @@ class DeviceLimiter {
 					$args      = array_merge( array( $table, $form_id ), $fuzzy_args );
 				}
 				$sql = "SELECT COUNT(*) FROM %i WHERE {$where_sql}";
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is assembled one line above from a %i table placeholder and {$where_sql}, a run of placeholders built here; both it and $args come from the same branch, and every value is bound.
 				$count = (int) $wpdb->get_var( $wpdb->prepare( $sql, $args ) );
 			} else {
 				// Lenient: too few strong signals present to corroborate a
 				// fuzzy match. Rely on the cookie path only; never block on
 				// weak signals alone.
 				if ( $cookie ) {
-                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 					$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE form_id = %d AND sig_cookie = %s', $table, $form_id, $cookie ) );
 				}
 				// Visibility guard: weak signals alone would have crossed the
@@ -252,7 +251,6 @@ class DeviceLimiter {
 		if ( ! $has_any ) {
 			return;
 		}
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->insert( $wpdb->prefix . 'ffc_device_signals', $row );
 	}
 }

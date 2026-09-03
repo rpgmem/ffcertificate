@@ -14,7 +14,6 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file (aliased by the including renderer method).
 
 echo '<h3>' . esc_html__( 'Create new reason', 'ffcertificate' ) . '</h3>';
 echo '<form id="ffc-create-reason" method="post" data-ffc-create-endpoint="reasons">';

@@ -20,7 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- {$joins}/{$where_clause}/{$limit_clause}/{$placeholders} are fragments assembled here from literals, {$orderby}/{$order} come from an in_array() allowlist and {$id} from an int cast. Table names go through %i and every value through a placeholder.
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Database repository for reregistration records.
  *
@@ -100,7 +101,6 @@ class ReregistrationRepository {
 		$wpdb  = self::db();
 		$table = self::get_audiences_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): seven callers across distinct flows (renderer, ficha, export, verification), one call each per request.
 		$rows = $wpdb->get_col(
 			$wpdb->prepare(
 				'SELECT audience_id FROM %i WHERE reregistration_id = %d',
@@ -123,11 +123,9 @@ class ReregistrationRepository {
 		$wpdb  = self::db();
 		$table = self::get_audiences_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$wpdb->delete( $table, array( 'reregistration_id' => $reregistration_id ), array( '%d' ) );
 
 		foreach ( array_unique( array_filter( array_map( 'intval', $audience_ids ) ) ) as $aud_id ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 			$wpdb->insert(
 				$table,
 				array(
@@ -150,7 +148,6 @@ class ReregistrationRepository {
 		$junction  = self::get_audiences_table_name();
 		$audiences = AudienceReader::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): a single caller, the campaign admin renderer, once per render.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT a.id, a.name, a.color
@@ -195,7 +192,7 @@ class ReregistrationRepository {
 		 *
 		 * @var ReregistrationRow|null $result
 		 */
-		$result = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- This is the cache-miss path — the hit is served by the cache_get() above and the result is stored below.
+		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
 
@@ -283,7 +280,6 @@ class ReregistrationRepository {
 		 */
 		$sql = $wpdb->prepare( $sql, $values );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin list keyed on an arbitrary filter combination; the key cardinality is effectively unbounded.
 		$results = $wpdb->get_results( $sql );
 		/**
 		 * Cast wpdb result to typed shape.
@@ -325,7 +321,6 @@ class ReregistrationRepository {
 
 		$sql = $wpdb->prepare( $sql, $values );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Counts the same arbitrary filter combination as get_all(); same unbounded key.
 		return (int) $wpdb->get_var( $sql );
 	}
 
@@ -353,7 +348,6 @@ class ReregistrationRepository {
 		);
 		$data     = wp_parse_args( $data, $defaults );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->insert(
 			$table,
 			array(
@@ -421,7 +415,6 @@ class ReregistrationRepository {
 			return false;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->update(
 			$table,
 			$update_data,
@@ -448,15 +441,12 @@ class ReregistrationRepository {
 		$junction   = self::get_audiences_table_name();
 
 		// Delete submissions first.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$wpdb->delete( $subs_table, array( 'reregistration_id' => $id ), array( '%d' ) );
 
 		// Delete audience links.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$wpdb->delete( $junction, array( 'reregistration_id' => $id ), array( '%d' ) );
 
 		// Delete the campaign.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
@@ -501,7 +491,6 @@ class ReregistrationRepository {
 		$placeholders = implode( ',', array_fill( 0, count( $audience_ids ), '%d' ) );
 
         // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders is %d repeated to match count($audience_ids); $wpdb->prepare accepts a single array of args. Interpolated* and UnfinishedPrepare are file-disabled above.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyed on a variable-length audience-id list, so the cache key varies with the caller's set.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT DISTINCT r.* FROM %i r
@@ -568,7 +557,6 @@ class ReregistrationRepository {
 		$subs_table = ReregistrationSubmissionReader::get_table_name();
 
 		// Find active reregistrations past end date.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads the rows it is about to expire; a cached list would skip or double-process them.
 		$overdue = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT id FROM %i WHERE status = 'active' AND end_date < %s",
@@ -583,7 +571,6 @@ class ReregistrationRepository {
 
 		foreach ( $overdue as $row ) {
 			// Expire the campaign.
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 			$wpdb->update(
 				$table,
 				array( 'status' => 'expired' ),
@@ -601,7 +588,6 @@ class ReregistrationRepository {
 				(int) $row->id
 			);
 			if ( is_string( $update_sql ) ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 				$wpdb->query( $update_sql );
 			}
 		}

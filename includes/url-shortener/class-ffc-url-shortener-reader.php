@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- The sniff only recognises the global $wpdb->prepare(); this class binds wpdb as a property, so every $this->wpdb->prepare() call reads as unprepared SQL. Table names go through %i and every value through a placeholder; {$where_sql}/{$placeholders} are assembled here, {$orderby}/{$order} come from an in_array() allowlist and {$orphan_expr}/{$nevclk_expr}/{$trashed_expr} are literal SQL fragments.
 /**
  * Read queries for url shortener records.
  */

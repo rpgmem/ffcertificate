@@ -166,7 +166,7 @@ class PublicCsvDownload {
 		$shortcodes    = new Shortcodes();
 		$security_html = $shortcodes->generate_security_fields();
 
-		$prefill_form_id = isset( $_GET['form_id'] ) ? absint( wp_unslash( $_GET['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$prefill_form_id = isset( $_GET['form_id'] ) ? absint( wp_unslash( $_GET['form_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Prefills the public form from a shareable link; absint()-cast and used only as a default field value.
 		$prefill_hash    = RequestInput::get_get_string( 'hash' );
 
 		// CPF gate mode is per-form. We can't read it without a known form_id;
@@ -802,7 +802,7 @@ class PublicCsvDownload {
 	 * @return void Streams CSV and exits; never returns on success.
 	 */
 	public function handle_export_log_request( ?\FreeFormCertificate\Core\SyncCsvExport $exporter = null ): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- form_id sanitized via absint; nonce verified in the source's authorize().
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- form_id sanitized via absint; nonce verified in the source's authorize().
 		$form_id = isset( $_GET['form_id'] ) ? absint( wp_unslash( $_GET['form_id'] ) ) : 0;
 
 		// The nonce + form + capability gate, the column layout and the

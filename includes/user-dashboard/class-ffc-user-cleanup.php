@@ -17,6 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * User Cleanup.
  */
@@ -58,8 +59,7 @@ class UserCleanup {
 		if ( \FreeFormCertificate\Services\UserService::user_has_ffc_data( $user_id ) ) {
 			// 1. Submissions: SET user_id = NULL (preserve certificate records)
 			$submissions_table = $wpdb->prefix . 'ffc_submissions';
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
-			$rows = $wpdb->query(
+			$rows              = $wpdb->query(
 				$wpdb->prepare(
 					'UPDATE %i SET user_id = NULL WHERE user_id = %d',
 					$submissions_table,
@@ -73,7 +73,6 @@ class UserCleanup {
 			// 2. Self-scheduling appointments: SET user_id = NULL.
 			$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 			if ( self::table_exists( $appointments_table ) ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 				$rows = $wpdb->query(
 					$wpdb->prepare(
 						'UPDATE %i SET user_id = NULL WHERE user_id = %d',
@@ -95,7 +94,6 @@ class UserCleanup {
 			// 4. Audience members: DELETE.
 			$members_table = $wpdb->prefix . 'ffc_audience_members';
 			if ( self::table_exists( $members_table ) ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 				$rows = $wpdb->delete( $members_table, array( 'user_id' => $user_id ), array( '%d' ) );
 				if ( $rows > 0 ) {
 					$anonymized['audience_members'] = $rows;
@@ -105,7 +103,6 @@ class UserCleanup {
 			// 5. Audience booking users: DELETE.
 			$booking_users_table = $wpdb->prefix . 'ffc_audience_booking_users';
 			if ( self::table_exists( $booking_users_table ) ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 				$rows = $wpdb->delete( $booking_users_table, array( 'user_id' => $user_id ), array( '%d' ) );
 				if ( $rows > 0 ) {
 					$anonymized['booking_users'] = $rows;
@@ -115,7 +112,6 @@ class UserCleanup {
 			// 6. Audience schedule permissions: DELETE.
 			$permissions_table = $wpdb->prefix . 'ffc_audience_schedule_permissions';
 			if ( self::table_exists( $permissions_table ) ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 				$rows = $wpdb->delete( $permissions_table, array( 'user_id' => $user_id ), array( '%d' ) );
 				if ( $rows > 0 ) {
 					$anonymized['schedule_permissions'] = $rows;
@@ -125,7 +121,6 @@ class UserCleanup {
 			// 7. User profiles: DELETE.
 			$profiles_table = $wpdb->prefix . 'ffc_user_profiles';
 			if ( self::table_exists( $profiles_table ) ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 				$wpdb->delete( $profiles_table, array( 'user_id' => $user_id ), array( '%d' ) );
 				$anonymized['profile'] = 1;
 			}
@@ -208,7 +203,6 @@ class UserCleanup {
 				if ( ! self::column_exists( $table, $column ) ) {
 					continue;
 				}
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 				$rows = $wpdb->query(
 					$wpdb->prepare(
 						'UPDATE %i SET %i = NULL WHERE %i = %d',
@@ -262,7 +256,6 @@ class UserCleanup {
 		$new_email_hash = \FreeFormCertificate\Core\Encryption::hash( $new_email );
 
 		if ( null !== $new_email_hash ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 			$wpdb->query(
 				$wpdb->prepare(
 					'UPDATE %i SET email_hash = %s WHERE user_id = %d',
@@ -276,7 +269,6 @@ class UserCleanup {
 		// Update profile timestamp.
 		$profiles_table = $wpdb->prefix . 'ffc_user_profiles';
 		if ( self::table_exists( $profiles_table ) ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 			$wpdb->update(
 				$profiles_table,
 				array( 'updated_at' => current_time( 'mysql' ) ),

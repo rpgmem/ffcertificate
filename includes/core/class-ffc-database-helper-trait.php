@@ -24,6 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Schema-introspection helpers (table/column existence, index checks) shared by the activators, migrations and readers. They run SHOW/INFORMATION_SCHEMA statements against the plugin's own ffc_* tables, for which WordPress exposes no API, and the answer must reflect the live schema — caching it is what would be wrong.
 trait DatabaseHelperTrait {
 
 	/**
@@ -34,7 +35,6 @@ trait DatabaseHelperTrait {
 	 */
 	protected static function table_exists( string $table_name ): bool {
 		global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name;
 	}
 
@@ -52,8 +52,7 @@ trait DatabaseHelperTrait {
 	 */
 	protected static function column_exists( string $table_name, string $column_name ): bool {
 		global $wpdb;
-		$like = $wpdb->esc_like( $column_name );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$like   = $wpdb->esc_like( $column_name );
 		$result = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table_name, $like ) );
 		return ! empty( $result );
 	}
@@ -73,7 +72,6 @@ trait DatabaseHelperTrait {
 	protected static function column_type( string $table_name, string $column_name ): ?string {
 		global $wpdb;
 		$like = $wpdb->esc_like( $column_name );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table_name, $like ) );
 		if ( empty( $rows ) ) {
 			return null;
@@ -117,7 +115,7 @@ trait DatabaseHelperTrait {
 		global $wpdb;
 		$after_sql     = $after ? $wpdb->prepare( 'AFTER %i', $after ) : '';
 		$prev_suppress = $wpdb->suppress_errors( true );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $type is a SQL type definition from trusted internal config.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $type is a SQL type definition from trusted internal config.
 		$result = $wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD COLUMN %i {$type} {$after_sql}", $table_name, $column_name ) );
 		$error  = isset( $wpdb->last_error ) ? (string) $wpdb->last_error : '';
 		$wpdb->suppress_errors( $prev_suppress );
@@ -147,7 +145,6 @@ trait DatabaseHelperTrait {
 	 */
 	protected static function index_exists( string $table_name, string $index_name ): bool {
 		global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->get_results( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Key_name = %s', $table_name, $index_name ) );
 		return ! empty( $result );
 	}
@@ -166,7 +163,7 @@ trait DatabaseHelperTrait {
 		}
 
 		global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $columns is a column specification from trusted internal config.
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $columns is a column specification from trusted internal config.
 		$wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD INDEX %i {$columns}", $table_name, $index_name ) );
 		return true;
 	}
@@ -280,7 +277,7 @@ trait DatabaseHelperTrait {
 			// see that, hence the targeted ignores on the prepare() call.
 			$select_sql = "SELECT id, {$column} AS legacy_value FROM %i WHERE {$where_unmigrated} LIMIT %d";
 			do {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $select_sql built from trusted internal column names; placeholders covered.
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $select_sql built from trusted internal column names; placeholders covered.
 				$rows      = $wpdb->get_results( $wpdb->prepare( $select_sql, $table_name, $batch_size ) );
 				$row_count = is_array( $rows ) ? count( $rows ) : 0;
 				if ( 0 === $row_count ) {
@@ -289,7 +286,6 @@ trait DatabaseHelperTrait {
 				foreach ( $rows as $row ) {
 					try {
 						$dt = new \DateTimeImmutable( (string) $row->legacy_value, $tz );
-						// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 						$wpdb->update(
 							$table_name,
 							array( $staging_name => $dt->getTimestamp() ),
@@ -305,14 +301,12 @@ trait DatabaseHelperTrait {
 
 			foreach ( $drop_indexes as $idx ) {
 				if ( self::index_exists( $table_name, $idx ) ) {
-					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 					$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table_name, $idx ) );
 				}
 			}
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table_name, $column ) );
 			$rename_type = $nullable ? 'BIGINT UNSIGNED DEFAULT NULL' : 'BIGINT UNSIGNED NOT NULL';
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $rename_type is a SQL type definition from trusted internal config.
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $rename_type is a SQL type definition from trusted internal config.
 			$wpdb->query( $wpdb->prepare( "ALTER TABLE %i CHANGE %i %i {$rename_type}", $table_name, $staging_name, $column ) );
 
 			if ( ! empty( $recreate_indexes ) ) {

@@ -251,7 +251,7 @@ class ReregistrationAdmin {
 		if ( in_array( $view, array( 'new', 'edit' ), true ) && ! $this->can_edit() ) {
 			wp_die( esc_html__( 'Permission denied.', 'ffcertificate' ) );
 		}
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read on a GET screen to choose which record to render; can_edit() is checked immediately above, the value is absint()-cast and nothing is written.
 		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
 
 		$can_edit = $this->can_edit();
@@ -296,7 +296,7 @@ class ReregistrationAdmin {
 		}
 
 		// Show redirect messages.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only message key carried by the post-redirect URL; mapped through the literal array below and never used as data.
 		if ( isset( $_GET['message'] ) ) {
 			$msg      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'message' );
 			$messages = array(
@@ -352,7 +352,6 @@ class ReregistrationAdmin {
 			$prev_status = $existing ? $existing->status : null;
 		}
 
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above (line 707).
 		$data = array(
 			'title'                      => \FreeFormCertificate\Core\RequestInput::get_post_string( 'rereg_title' ),
 			'start_date'                 => \FreeFormCertificate\Core\RequestInput::get_post_string( 'rereg_start_date' ),
@@ -370,7 +369,6 @@ class ReregistrationAdmin {
 		if ( isset( $_POST['rereg_audience_ids'] ) && is_array( $_POST['rereg_audience_ids'] ) ) {
 			$audience_ids = array_map( 'absint', $_POST['rereg_audience_ids'] );
 		}
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		if ( $id > 0 ) {
 			ReregistrationRepository::update( $id, $data );

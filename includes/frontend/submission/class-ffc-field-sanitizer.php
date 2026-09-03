@@ -47,7 +47,7 @@ class FieldSanitizer {
 			}
 
 			$name = $field['name'];
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified upstream; value unslashed and sanitized below.
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified upstream; value unslashed and sanitized below.
 			if ( isset( $_POST[ $name ] ) ) {
 				$value = \FreeFormCertificate\Core\DataSanitizer::recursive_sanitize( wp_unslash( $_POST[ $name ] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via recursive_sanitize().
 

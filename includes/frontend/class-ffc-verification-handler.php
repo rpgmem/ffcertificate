@@ -782,8 +782,6 @@ class VerificationHandler {
 			);
 		}
 
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above via wp_verify_nonce.
-
 		// Validate honeypot + captcha via centralised service.
 		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
 		if ( true !== $security_check ) {
@@ -809,8 +807,7 @@ class VerificationHandler {
 		}
 
 		$auth_code = RequestInput::get_post_string( 'ffc_auth_code' );
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
-		$result = $this->search_certificate( $auth_code );
+		$result    = $this->search_certificate( $auth_code );
 
 		if ( ! $result['found'] ) {
 			$new_captcha = \FreeFormCertificate\Core\SecurityService::generate_simple_captcha();

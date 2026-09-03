@@ -37,11 +37,11 @@ class ScheduleExceptionGuard {
 	 * @param SubmissionContext $ctx Submission context.
 	 */
 	public function apply( SubmissionContext $ctx ): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput -- token verified via HMAC immediately below; form_id sanitized via absint.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- token verified via HMAC immediately below; form_id sanitized via absint.
 		if ( isset( $_POST['ffc_schedule_exception_token'] ) ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- HMAC verifies integrity.
 			$token_raw = (string) wp_unslash( $_POST['ffc_schedule_exception_token'] );
-			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Same POST block as the two annotations above: the token is verified by HMAC there, and form_id is absint()-cast here.
 			$token_form = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
 
 			$payload                         = self::live_exception_payload( $token_raw, $token_form );

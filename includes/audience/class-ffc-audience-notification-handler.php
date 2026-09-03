@@ -246,7 +246,7 @@ class AudienceNotificationHandler {
 				? wp_tempnam( 'ffc-ics-' )
 				: tempnam( sys_get_temp_dir(), 'ffc-ics-' );
 
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writes the generated .ics to a wp_tempnam() path for the mail attachment; WP_Filesystem would need credentials on a mail-send path.
 			if ( $ics_file && false !== file_put_contents( $ics_file, $ics_content ) ) {
 				$attachments[] = $ics_file;
 				$temp_files[]  = $ics_file;
@@ -260,7 +260,7 @@ class AudienceNotificationHandler {
 		} finally {
 			foreach ( $temp_files as $file ) {
 				if ( file_exists( $file ) ) {
-                    // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+                    // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Removes the temp .ics this method created, in its own finally block.
 					unlink( $file );
 				}
 			}

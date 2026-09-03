@@ -34,7 +34,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$id_list} is the absint()-mapped booking ids joined with commas; table names go through %i and every other value is bound through prepare().
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Stateless service. Public API mirrors what REST controllers used to
  * spell inline; the JOIN shape is the same — just centralized.
@@ -63,7 +64,6 @@ final class AudienceQueryService {
 		$audiences_table = $wpdb->prefix . 'ffc_audiences';
 		$members_table   = $wpdb->prefix . 'ffc_audience_members';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Existence-style count gating a user-initiated POST; instantaneous decision.
 		$count = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(*) FROM %i m
@@ -109,7 +109,6 @@ final class AudienceQueryService {
 		$audiences_table = $wpdb->prefix . 'ffc_audiences';
 		$members_table   = $wpdb->prefix . 'ffc_audience_members';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- LEFT JOIN per-user; bounded by the active audience set (small).
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT a.id, a.name, a.color, a.parent_id, a.allow_self_join,
@@ -208,7 +207,6 @@ final class AudienceQueryService {
 			$where_args
 		);
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Multi-table JOIN bounded by per-user filter on both sides.
 		$bookings = $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A );
 
 		if ( ! is_array( $bookings ) || empty( $bookings ) ) {
@@ -276,7 +274,6 @@ final class AudienceQueryService {
 			$where_args
 		);
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded count over the same JOIN find_user_bookings uses.
 		$count = $wpdb->get_var( $wpdb->prepare( $sql, $args ) );
 		return null === $count ? 0 : (int) $count;
 	}
@@ -330,7 +327,6 @@ final class AudienceQueryService {
 		$safe_ids = array_map( 'absint', $booking_ids );
 		$id_list  = implode( ',', $safe_ids );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $id_list built from absint() values; identifiers bound via %i.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT ba.booking_id, a.name, a.color

@@ -123,7 +123,7 @@ class FormEditorSaveHandler {
 	 * @param int $post_id The post ID.
 	 */
 	private function save_fields_meta( int $post_id ): void {
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.NonceVerification.Missing -- isset()/is_array() existence and type checks only; nonce verified in save_form_data() before dispatch.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- isset()/is_array() existence and type checks only; nonce verified in save_form_data() before dispatch.
 		if ( isset( $_POST['ffc_fields'] ) && is_array( $_POST['ffc_fields'] ) ) {
 			$clean_fields = array();
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Each field sanitized individually below; nonce verified in save_form_data() before dispatch.
@@ -155,7 +155,7 @@ class FormEditorSaveHandler {
 	 * @param int $post_id The post ID.
 	 */
 	private function save_config_meta( int $post_id ): void {
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.NonceVerification.Missing -- isset() existence check only; nonce verified in save_form_data() before dispatch.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- isset() existence check only; nonce verified in save_form_data() before dispatch.
 		if ( isset( $_POST['ffc_config'] ) ) {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Each field sanitized individually below; nonce verified in save_form_data() before dispatch.
 			$config       = wp_unslash( $_POST['ffc_config'] );
@@ -265,7 +265,7 @@ class FormEditorSaveHandler {
 	 * @param int $post_id The post ID.
 	 */
 	private function save_geofence_meta( int $post_id ): void {
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.NonceVerification.Missing -- isset() existence check only; nonce verified in save_form_data() before dispatch.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- isset() existence check only; nonce verified in save_form_data() before dispatch.
 		if ( isset( $_POST['ffc_geofence'] ) ) {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Each field sanitized individually below; nonce verified in save_form_data() before dispatch.
 			$geofence = wp_unslash( $_POST['ffc_geofence'] );
@@ -399,7 +399,7 @@ class FormEditorSaveHandler {
 	 * @param int $post_id The post ID.
 	 */
 	private function save_csv_public_meta( int $post_id ): void {
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.NonceVerification.Missing -- isset() existence check; values sanitized below; nonce verified in save_form_data() before dispatch.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- isset() existence check; values sanitized below; nonce verified in save_form_data() before dispatch.
 		if ( isset( $_POST['ffc_csv_public'] ) && is_array( $_POST['ffc_csv_public'] ) ) {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Each key sanitized individually; nonce verified in save_form_data() before dispatch.
 			$public_raw = wp_unslash( $_POST['ffc_csv_public'] );
@@ -525,7 +525,7 @@ class FormEditorSaveHandler {
 	 * @param int $post_id The post ID.
 	 */
 	private function save_device_limit_meta( int $post_id ): void {
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.NonceVerification.Missing -- isset() existence check; values sanitized below; nonce verified in save_form_data() before dispatch.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- isset() existence check; values sanitized below; nonce verified in save_form_data() before dispatch.
 		if ( isset( $_POST['ffc_device_limit'] ) && is_array( $_POST['ffc_device_limit'] ) ) {
             // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Each key sanitized individually; nonce verified in save_form_data() before dispatch.
 			$device_raw = wp_unslash( $_POST['ffc_device_limit'] );

@@ -386,7 +386,7 @@ class ScheduleExceptionSession {
 		if ( $pad ) {
 			$b64 .= str_repeat( '=', 4 - $pad );
 		}
-		$out = base64_decode( strtr( $b64, '-_', '+/' ), true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+		$out = base64_decode( strtr( $b64, '-_', '+/' ), true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- URL-safe base64 of the plugin's own signed session token, not obfuscation. Strict mode is on and the HMAC over the payload is verified by the caller.
 		if ( false === $out ) {
 			return null;
 		}

@@ -321,7 +321,7 @@ class UserManager {
 		global $wpdb;
 		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads one user's submission payloads from the plugin's own table; WordPress has no API for it and the caller needs the current rows.
 		$submissions = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT data FROM %i

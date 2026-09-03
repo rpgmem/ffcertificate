@@ -89,7 +89,7 @@ class CsvExporter {
 		$reclaimed = 0;
 
 		foreach ( $prefixes as $timeout_prefix ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- LIKE sweep over the options table: WordPress exposes no API to enumerate or delete options by prefix. Reaping abandoned export jobs, so a cached list would be the wrong answer by construction.
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
@@ -111,7 +111,7 @@ class CsvExporter {
 				// file the abandoned job left on disk.
 				$job = get_option( '_transient_' . $transient_key );
 				if ( is_array( $job ) && ! empty( $job['file'] ) && file_exists( $job['file'] ) ) {
-					// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+					// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Deletes the plugin's own temp export file by absolute path. WP_Filesystem would need credentials, and this runs on a cleanup path with no user present.
 					unlink( $job['file'] );
 				}
 

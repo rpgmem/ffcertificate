@@ -20,6 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Read queries for `ffc_recruitment_candidate` rows.
  *
@@ -77,7 +78,6 @@ class RecruitmentCandidateReader {
 		 *
 		 * @var CandidateRow|null $result
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Object-cached; %i for table identifier.
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
@@ -128,7 +128,7 @@ class RecruitmentCandidateReader {
 		 *
 		 * @var list<CandidateRow>|null $rows
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Placeholders are %i + N×%d, all generated literals; $ids items are intval-coerced above.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Placeholders are %i + N×%d, all generated literals; $ids items are intval-coerced above.
 		$rows = $wpdb->get_results( $wpdb->prepare( $sql, array_merge( array( $table ), $ids ) ) );
 		if ( ! is_array( $rows ) ) {
 			return array();
@@ -165,7 +165,6 @@ class RecruitmentCandidateReader {
 		 *
 		 * @var CandidateRow|null $result
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed by UNIQUE constraint.
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE cpf_hash = %s LIMIT 1', $table, $cpf_hash )
 		);
@@ -188,7 +187,6 @@ class RecruitmentCandidateReader {
 		 *
 		 * @var CandidateRow|null $result
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed by UNIQUE constraint (RF).
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE rf_hash = %s LIMIT 1', $table, $rf_hash )
 		);
@@ -217,7 +215,6 @@ class RecruitmentCandidateReader {
 		 *
 		 * @var CandidateRow|null $result
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed (non-unique) lookup.
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE email_hash = %s ORDER BY id ASC LIMIT 1', $table, $email_hash )
 		);
@@ -246,7 +243,6 @@ class RecruitmentCandidateReader {
 		 *
 		 * @var list<CandidateRow>|null $results
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed by user_id.
 		$results = $wpdb->get_results(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE user_id = %d', $table, $user_id )
 		);
@@ -275,9 +271,7 @@ class RecruitmentCandidateReader {
 		$limit  = max( 1, min( 200, $limit ) );
 		$offset = max( 0, $offset );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = '' !== $name_search
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin list keyed on page, page size and a free-text search term; the key cardinality is effectively unbounded.
 			? $wpdb->get_results(
 				$wpdb->prepare(
 					'SELECT * FROM %i WHERE name LIKE %s ORDER BY created_at DESC LIMIT %d OFFSET %d',
@@ -337,7 +331,7 @@ class RecruitmentCandidateReader {
 			? array( $table, $cls_table, $adjutancy_id, '%' . $wpdb->esc_like( $name_search ) . '%', $limit, $offset )
 			: array( $table, $cls_table, $adjutancy_id, $limit, $offset );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $sql is one of two literals selected immediately above; both placeholders match $args.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is one of two literals selected immediately above; both placeholders match $args.
 		$results = $wpdb->get_results( $wpdb->prepare( $sql, $args ) );
 
 		/**
@@ -368,7 +362,7 @@ class RecruitmentCandidateReader {
 			? array( $table, $cls_table, $adjutancy_id, '%' . $wpdb->esc_like( $name_search ) . '%' )
 			: array( $table, $cls_table, $adjutancy_id );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $sql is one of two literals selected immediately above; both placeholders match $args.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is one of two literals selected immediately above; both placeholders match $args.
 		$total = $wpdb->get_var( $wpdb->prepare( $sql, $args ) );
 
 		return null === $total ? 0 : (int) $total;
@@ -388,7 +382,6 @@ class RecruitmentCandidateReader {
 		$table = self::get_table_name();
 
 		if ( '' !== $name_search ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$total = $wpdb->get_var(
 				$wpdb->prepare(
 					'SELECT COUNT(*) FROM %i WHERE name LIKE %s',
@@ -397,7 +390,6 @@ class RecruitmentCandidateReader {
 				)
 			);
 		} else {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$total = $wpdb->get_var(
 				$wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table )
 			);
@@ -420,7 +412,6 @@ class RecruitmentCandidateReader {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed (non-unique) lookup.
 		$rows = $wpdb->get_col(
 			$wpdb->prepare( 'SELECT id FROM %i WHERE email_hash = %s', $table, $email_hash )
 		);
@@ -514,7 +505,7 @@ class RecruitmentCandidateReader {
 		$sql_args[] = $limit;
 		$sql_args[] = $offset;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $select is assembled from compile-time fragments with %s/%d placeholders matching $sql_args one-to-one.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $select is assembled from compile-time fragments with %s/%d placeholders matching $sql_args one-to-one.
 		$results = $wpdb->get_results( $wpdb->prepare( $select, $sql_args ) );
 
 		/**
@@ -583,7 +574,7 @@ class RecruitmentCandidateReader {
 			$sql_args = array_merge( $sql_args, $where_a );
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- $select assembled from compile-time fragments; placeholders match $sql_args.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $select assembled from compile-time fragments; placeholders match $sql_args.
 		$total = $wpdb->get_var( $wpdb->prepare( $select, $sql_args ) );
 
 		return null === $total ? 0 : (int) $total;

@@ -46,6 +46,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Service: orchestrate convocation creation and cancellation.
  *
@@ -83,7 +84,6 @@ final class RecruitmentCallService {
 		?bool $notify_email = null
 	): array {
 		global $wpdb;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 		$wpdb->query( 'START TRANSACTION' );
 
 		$result = self::call_one(
@@ -96,7 +96,6 @@ final class RecruitmentCallService {
 		);
 
 		if ( ! $result['success'] ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 			$wpdb->query( 'ROLLBACK' );
 			return array(
 				'success'  => false,
@@ -105,7 +104,6 @@ final class RecruitmentCallService {
 			);
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 		$wpdb->query( 'COMMIT' );
 
 		RecruitmentActivityLogger::call_created(
@@ -162,7 +160,6 @@ final class RecruitmentCallService {
 		}
 
 		global $wpdb;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 		$wpdb->query( 'START TRANSACTION' );
 
 		$call_ids = array();
@@ -180,7 +177,6 @@ final class RecruitmentCallService {
 			);
 
 			if ( ! $result['success'] ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 				$wpdb->query( 'ROLLBACK' );
 				return array(
 					'success'  => false,
@@ -195,7 +191,6 @@ final class RecruitmentCallService {
 			$call_ids[] = $result['call_id'];
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 		$wpdb->query( 'COMMIT' );
 
 		RecruitmentActivityLogger::bulk_call_created(
@@ -259,7 +254,6 @@ final class RecruitmentCallService {
 		}
 
 		global $wpdb;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 		$wpdb->query( 'START TRANSACTION' );
 
 		try {
@@ -269,7 +263,6 @@ final class RecruitmentCallService {
 				$reason
 			);
 			if ( ! $transition['success'] ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 				$wpdb->query( 'ROLLBACK' );
 				return array(
 					'success'  => false,
@@ -280,12 +273,10 @@ final class RecruitmentCallService {
 
 			$affected = RecruitmentCallWriter::mark_cancelled( $call_id, $reason, $cancelled_by );
 			if ( 1 !== $affected ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 				$wpdb->query( 'ROLLBACK' );
 				return self::failure( 'recruitment_call_cancel_race_lost' );
 			}
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 			$wpdb->query( 'COMMIT' );
 
 			RecruitmentActivityLogger::call_cancelled( $call_id, $classification_id, $reason );
@@ -296,7 +287,6 @@ final class RecruitmentCallService {
 				'errors'   => array(),
 			);
 		} catch ( \Throwable $e ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 			$wpdb->query( 'ROLLBACK' );
 			return self::failure( 'recruitment_cancel_unexpected_error: ' . $e->getMessage() );
 		}

@@ -18,7 +18,6 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file (aliased by the including renderer method).
 
 echo '<label class="ffc-recruitment-adjutancy-filter">';
 echo esc_html__( 'Filter by adjutancy:', 'ffcertificate' ) . ' ';

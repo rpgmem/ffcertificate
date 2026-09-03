@@ -128,14 +128,14 @@ class Debug {
 		if ( null !== $data ) {
 			if ( is_array( $data ) || is_object( $data ) ) {
 				$redacted = self::redact_sensitive_data( $data );
-                // phpcs:ignore WordPress.PHP.DevelopmentFunctions
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions -- Debug logging behind the off-by-default area toggles; the payload has already passed through redact_sensitive_data().
 				$log_message .= ' | Data: ' . print_r( $redacted, true );
 			} else {
 				$log_message .= ' | Data: ' . $data;
 			}
 		}
 
-        // phpcs:ignore WordPress.PHP.DevelopmentFunctions
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions -- Debug logging behind the off-by-default area toggles — this line is the log sink the whole class exists to reach.
 		error_log( $log_message );
 	}
 

@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Table names go through %i and every request value through a placeholder. The interpolated fragments are built here: {$orderby}/{$order} from an in_array() allowlist, {$where_clause}/{$limit_clause} from fragments assembled in this class, {$id} from an int cast.
 
 /**
  * Read queries for reregistration submission records.
@@ -219,7 +219,7 @@ class ReregistrationSubmissionReader {
 		$table       = self::get_table_name();
 		$rereg_table = ReregistrationRepository::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- JOIN across two of the plugin's own ffc_* tables, which WordPress has no API for; this reader's cache group is invalidated by the matching writer.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT s.*, r.title AS reregistration_title, r.start_date, r.end_date, r.status AS reregistration_status

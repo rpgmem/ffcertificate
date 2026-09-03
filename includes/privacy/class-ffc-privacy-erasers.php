@@ -170,7 +170,7 @@ class PrivacyErasers {
 		\FreeFormCertificate\Core\ActivityLogQuery::redact_user_id( $user_id );
 
 		// 8. ffc_* user meta: DELETE.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk statement over the plugin's own ffc_* user-meta keys, matched by prefix — the WordPress meta API cannot filter by key prefix, and doing it per user per key would be thousands of queries.
 		$meta_deleted = $wpdb->query(
 			$wpdb->prepare(
 				'DELETE FROM %i WHERE user_id = %d AND meta_key LIKE %s',

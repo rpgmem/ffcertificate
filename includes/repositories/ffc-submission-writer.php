@@ -23,7 +23,7 @@ namespace FreeFormCertificate\Repositories;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- {$placeholders}/{$move_placeholders} are %d repeated to match the bound id array — prepare() takes them as one array argument, which is what ReplacementsWrongNumber trips on. {$where_clause} is assembled here; table names go through %i and every value through a placeholder.
 /**
  * Write operations for submission records.
  */

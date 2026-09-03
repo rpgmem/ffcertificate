@@ -19,7 +19,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- {$placeholders} is %d repeated to match count() of the bound id array; $wpdb->prepare() takes them as a single array argument, which the sniff counts as one replacement.
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Write operations for audience records.
  *
@@ -103,7 +104,6 @@ class AudienceWriter {
 			$insert_format[]                = '%d';
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->insert( $table, $insert_data, $insert_format );
 
 		if ( ! $result ) {
@@ -166,7 +166,6 @@ class AudienceWriter {
 			}
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->update(
 			$table,
 			$update_data,
@@ -207,12 +206,12 @@ class AudienceWriter {
 		$placeholders = implode( ',', array_fill( 0, count( $child_ids ), '%d' ) );
 
 		$update_sql = $wpdb->prepare(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$placeholders} is %d repeated to match count( $child_ids ); the table goes through %i and the ids are bound as a single array.
 			"UPDATE %i SET allow_self_join = %d WHERE id IN ({$placeholders})",
 			array_merge( array( $table, $value ), $child_ids )
 		);
 		if ( is_string( $update_sql ) ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The argument is the string $wpdb->prepare() returned above; the sniff cannot follow a prepared string across an assignment.
 			$wpdb->query( $update_sql );
 		}
 
@@ -242,11 +241,9 @@ class AudienceWriter {
 		}
 
 		// Delete member associations.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $members_table, array( 'audience_id' => $id ), array( '%d' ) );
 
 		// Delete the audience.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
@@ -271,7 +268,6 @@ class AudienceWriter {
 			return false;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->insert(
 			$table,
 			array(
@@ -295,7 +291,6 @@ class AudienceWriter {
 		$wpdb  = self::db();
 		$table = self::get_members_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->delete(
 			$table,
 			array(
@@ -353,9 +348,7 @@ class AudienceWriter {
 		$wpdb  = self::db();
 		$table = self::get_members_table_name();
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Intentional delete-and-reinsert for member sync.
 		$wpdb->delete( $table, array( 'audience_id' => $audience_id ), array( '%d' ) );
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 		// Add new members.
 		foreach ( $user_ids as $user_id ) {

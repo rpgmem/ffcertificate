@@ -246,10 +246,10 @@ class BatchedCsvExport {
 		header( 'Pragma: no-cache' );
 		header( 'Expires: 0' );
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Streams the export temp file straight to the browser; WP_Filesystem reads the whole file into memory, which defeats the point of a batched export.
 		readfile( $file );
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Deletes the export temp file this class created, immediately after streaming it.
 		unlink( $file );
 		delete_transient( $this->transient_prefix . $job_id );
 
@@ -274,7 +274,7 @@ class BatchedCsvExport {
 		// short-lived even without the server rule.
 		$htaccess = $tmp_dir . '/.htaccess';
 		if ( ! file_exists( $htaccess ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writes the Deny-from-all guard into the plugin's own tmp dir as it is created; WP_Filesystem is not initialised on this path.
 			file_put_contents( $htaccess, "Deny from all\n" );
 		}
 

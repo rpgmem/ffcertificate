@@ -69,11 +69,9 @@ class SettingsActionHandler {
 	 * Handle QR Code cache clearing
 	 */
 	public function handle_clear_qr_cache(): void {
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified below via wp_verify_nonce.
 		if ( ! isset( $_GET['ffc_clear_qr_cache'] ) || ! isset( $_GET['_wpnonce'] ) ) {
 			return;
 		}
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'ffc_clear_qr_cache' ) ) {
 			return;

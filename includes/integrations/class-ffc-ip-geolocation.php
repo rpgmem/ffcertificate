@@ -412,7 +412,7 @@ class IpGeolocation {
 			return 1;
 		} else {
 			// Clear all IP geolocation transients.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- LIKE sweep over the options table: WordPress exposes no API to enumerate or delete options by prefix. This is the flush path for the geolocation transients.
 			$result = $wpdb->query(
 				$wpdb->prepare(
 					'DELETE FROM %i WHERE option_name LIKE %s OR option_name LIKE %s',

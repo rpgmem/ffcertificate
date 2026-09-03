@@ -48,7 +48,6 @@ define( 'FFC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 require_once FFC_PLUGIN_DIR . 'includes/class-ffc-autoloader.php';
 
 // Register the autoloader.
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Scoped to plugin bootstrap, not a public API.
 $ffc_autoloader = new FFC_Autoloader( FFC_PLUGIN_DIR . 'includes' );
 $ffc_autoloader->register();
 
@@ -64,8 +63,6 @@ register_activation_hook( __FILE__, array( '\FreeFormCertificate\Activator', 'ac
  * Bootstrap the plugin by instantiating the main Loader class.
  *
  * @return void
- *
- * phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Public API function
  */
 function ffcertificate_run(): void {
 	new \FreeFormCertificate\Loader();

@@ -26,6 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Schema and data statements against the plugin's own ffc_* tables during activation/migration. WordPress exposes no API for them, and there is nothing to cache on this path.
 /**
  * Strategy implementation for cpf rf split migration.
  */
@@ -213,7 +214,6 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 
 		// If cpf_rf_hash was already dropped, migration is complete for this table.
 		if ( ! self::column_exists( $table_name, 'cpf_rf_hash' ) ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$total = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table_name ) );
 			return array(
 				'total'    => $total,
@@ -231,7 +231,6 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 		}
 
 		// Total = all rows in the table.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$total = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(*) FROM %i',
@@ -240,7 +239,6 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 		);
 
 		// Pending = rows that still have cpf_rf_hash (legacy data not yet split).
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$pending = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM %i
@@ -278,7 +276,6 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 		$errors    = array();
 
 		// Get records that have cpf_rf data but haven't been split yet.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$records = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT id, cpf_rf, cpf_rf_encrypted, cpf_rf_hash
@@ -347,7 +344,6 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 					}
 				}
 
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$updated = $wpdb->update(
 					$table_name,
 					$update_data,
@@ -484,7 +480,6 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 
 		foreach ( $columns as $column ) {
 			if ( self::column_exists( $table, $column ) ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 				$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table, $column ) );
 			}
 		}
@@ -492,7 +487,6 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 		// Also drop indexes that reference these columns.
 		$indexes_to_drop = array( 'cpf_rf', 'cpf_rf_hash', 'email', 'idx_form_cpf' );
 		foreach ( $indexes_to_drop as $index_name ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$index_exists = $wpdb->get_var(
 				$wpdb->prepare(
 					'SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
@@ -504,7 +498,6 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 			);
 
 			if ( (int) $index_exists > 0 ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 				$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table, $index_name ) );
 			}
 		}

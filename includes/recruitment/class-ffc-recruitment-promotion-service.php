@@ -34,6 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Service: orchestrate the promote-preview snapshot path.
  *
@@ -86,7 +87,6 @@ final class RecruitmentPromotionService {
 		}
 
 		global $wpdb;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 		$wpdb->query( 'START TRANSACTION' );
 
 		try {
@@ -105,7 +105,6 @@ final class RecruitmentPromotionService {
 					)
 				);
 				if ( false === $new_id ) {
-					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 					$wpdb->query( 'ROLLBACK' );
 					return self::failure( 'recruitment_promotion_copy_failed' );
 				}
@@ -117,7 +116,6 @@ final class RecruitmentPromotionService {
 			// subsequent ones) and runs the race-safe conditional UPDATE.
 			$transition = RecruitmentNoticeStateMachine::transition_to( $notice_id, 'definitive' );
 			if ( ! $transition['success'] ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 				$wpdb->query( 'ROLLBACK' );
 				return array(
 					'success' => false,
@@ -126,7 +124,6 @@ final class RecruitmentPromotionService {
 				);
 			}
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 			$wpdb->query( 'COMMIT' );
 
 			RecruitmentActivityLogger::notice_promoted( $notice_id, 'snapshot', $copied );
@@ -137,7 +134,6 @@ final class RecruitmentPromotionService {
 				'errors'  => array(),
 			);
 		} catch ( \Throwable $e ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 			$wpdb->query( 'ROLLBACK' );
 			return self::failure( 'recruitment_promotion_unexpected_error: ' . $e->getMessage() );
 		}

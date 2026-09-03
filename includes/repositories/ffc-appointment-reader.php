@@ -22,7 +22,7 @@ namespace FreeFormCertificate\Repositories;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- {$status_placeholders}/{$placeholders} are %d repeated to match the bound array — prepare() takes them as one array argument, which is what ReplacementsWrongNumber trips on. {$lock_clause} is a literal FOR UPDATE, {$hash_column} a ternary over two literal column names, {$where_clause} is assembled here and {$hours_before} is an int.
 /**
  * Read queries for appointment records.
  */

@@ -41,6 +41,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Service: parse + validate + write recruitment CSV imports atomically.
  *
@@ -146,7 +147,6 @@ final class RecruitmentCsvImporter {
 
 		// Step 4: transactional write.
 		global $wpdb;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 		$wpdb->query( 'START TRANSACTION' );
 
 		try {
@@ -156,7 +156,6 @@ final class RecruitmentCsvImporter {
 			foreach ( $rows as $row ) {
 				$candidate_id = CandidatePersister::upsert_candidate( $row );
 				if ( false === $candidate_id ) {
-					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 					$wpdb->query( 'ROLLBACK' );
 					return self::failure( 'recruitment_candidate_upsert_failed' );
 				}
@@ -179,7 +178,6 @@ final class RecruitmentCsvImporter {
 					)
 				);
 				if ( false === $classification_id ) {
-					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 					$wpdb->query( 'ROLLBACK' );
 					return self::failure( 'recruitment_classification_insert_failed' );
 				}
@@ -187,7 +185,6 @@ final class RecruitmentCsvImporter {
 				++$inserted;
 			}
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 			$wpdb->query( 'COMMIT' );
 
 			RecruitmentActivityLogger::csv_imported( $notice_id, $list_type, $inserted );
@@ -198,7 +195,6 @@ final class RecruitmentCsvImporter {
 				'errors'   => array(),
 			);
 		} catch ( \Throwable $e ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control, not a table access — there is nothing to cache or invalidate.
 			$wpdb->query( 'ROLLBACK' );
 			return self::failure( 'recruitment_import_unexpected_error: ' . $e->getMessage() );
 		}

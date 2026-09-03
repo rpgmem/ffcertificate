@@ -23,7 +23,7 @@ namespace FreeFormCertificate\Repositories;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- {$where_clause}/{$form_ids_placeholders}/{$placeholders} are fragments and %d/%s runs assembled here, {$orderby}/{$order} come from sanitize_order_column() and a two-way ternary, and {$hash_column} is a ternary over two literal column names. Table names go through %i and every value through a placeholder.
 /**
  * Read queries for submission records.
  */

@@ -358,7 +358,7 @@ class AdminConditionalAssets {
 		if ( empty( $_GET['filter_form_id'] ) ) {
 			return 0;
 		}
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- type/length guards below.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- type/length guards below.
 		$raw = wp_unslash( $_GET['filter_form_id'] );
 		if ( is_array( $raw ) ) {
 			return 1 === count( $raw ) ? absint( reset( $raw ) ) : 0;
