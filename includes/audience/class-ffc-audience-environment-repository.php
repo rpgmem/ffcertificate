@@ -158,7 +158,7 @@ class AudienceEnvironmentRepository {
 		 *
 		 * @var EnvironmentRow|null $result
 		 */
-		$result = $wpdb->get_row(
+		$result = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- This is the cache-miss path — the hit is served by the cache_get() above and the result is stored below.
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
 
@@ -211,6 +211,7 @@ class AudienceEnvironmentRepository {
 			$working_hours = wp_json_encode( $working_hours );
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->insert(
 			$table,
 			array(
@@ -371,6 +372,7 @@ class AudienceEnvironmentRepository {
 		$wpdb  = self::db();
 		$table = self::get_holidays_table_name();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->insert(
 			$table,
 			array(

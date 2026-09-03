@@ -82,6 +82,7 @@ class ActivityLogClearPlaintextMigrationStrategy implements MigrationStrategyInt
 
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
 		$total = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM %i WHERE context_encrypted IS NOT NULL AND context_encrypted <> ''",
@@ -89,6 +90,7 @@ class ActivityLogClearPlaintextMigrationStrategy implements MigrationStrategyInt
 			)
 		);
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
 		$pending = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM %i
@@ -137,6 +139,7 @@ class ActivityLogClearPlaintextMigrationStrategy implements MigrationStrategyInt
 		global $wpdb;
 		$cursor = (int) get_option( self::CURSOR_OPTION, 0 );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
 		$ids = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT id FROM %i
@@ -155,6 +158,7 @@ class ActivityLogClearPlaintextMigrationStrategy implements MigrationStrategyInt
 			// Either we ran past the last matching row or there were never
 			// any. Either way, advance the cursor to MAX(id) so future
 			// status calls don't re-scan the whole table.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
 			$max_id = (int) $wpdb->get_var(
 				$wpdb->prepare( 'SELECT COALESCE(MAX(id), 0) FROM %i', $this->table )
 			);
@@ -174,6 +178,7 @@ class ActivityLogClearPlaintextMigrationStrategy implements MigrationStrategyInt
 		$last_id      = (int) end( $ids );
 		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$updated = $wpdb->query(
 			$wpdb->prepare(
 				"UPDATE %i SET context = NULL WHERE id IN ({$placeholders})",

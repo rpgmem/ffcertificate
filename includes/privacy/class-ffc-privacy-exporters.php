@@ -150,6 +150,7 @@ class PrivacyExporters {
 		$table  = $wpdb->prefix . 'ffc_submissions';
 		$offset = ( $page - 1 ) * self::ITEMS_PER_PAGE;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
 		$submissions = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT s.id, s.form_id, s.submission_date, s.auth_code, s.consent_given,
@@ -248,6 +249,7 @@ class PrivacyExporters {
 
 		$offset = ( $page - 1 ) * self::ITEMS_PER_PAGE;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
 		$appointments = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT a.id, a.appointment_date, a.start_time, a.end_time, a.status,
@@ -368,6 +370,7 @@ class PrivacyExporters {
 			);
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
 		$groups = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT a.name AS audience_name, a.color, m.created_at AS joined_date
@@ -440,6 +443,7 @@ class PrivacyExporters {
 
 		$offset = ( $page - 1 ) * self::ITEMS_PER_PAGE;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
 		$bookings = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT b.id, b.booking_date, b.start_time, b.end_time, b.description,

@@ -334,6 +334,7 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 
 		// $predicate is built only from an internal allow-list of column names
 		// (never request data) via non_empty_predicate(); table via %i.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
 		$total = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM %i WHERE {$predicate}", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $predicate is an allow-listed IS-NOT-NULL clause, no user input.
@@ -343,6 +344,7 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 
 		$cursor = $this->get_cursor( $table );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
 		$migrated = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM %i WHERE id <= %d AND ( {$predicate} )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- see above.
@@ -418,6 +420,7 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 			)
 		);
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
 		$records = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT id, {$select_cols} FROM %i WHERE id > %d AND ( {$predicate} ) ORDER BY id ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $select_cols/$predicate are allow-listed column identifiers, no user input.
@@ -430,6 +433,7 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 
 		if ( empty( $records ) ) {
 			// Nothing above cursor — advance to MAX(id) to latch completion.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
 			$max_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(MAX(id), 0) FROM %i', $table ) );
 			if ( $max_id > $cursor ) {
 				$this->set_cursor( $table, $max_id );
@@ -496,6 +500,7 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 					continue;
 				}
 
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 				$updated = $wpdb->update(
 					$table,
 					$update,

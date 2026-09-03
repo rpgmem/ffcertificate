@@ -141,9 +141,9 @@ class ReregistrationActivator {
 		);
 
 		// Drop the old column and its index.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema change on one of the plugin's own tables, guarded to run once — dbDelta cannot emit it.
 		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX idx_audience_id', $rereg_table ) );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema change on one of the plugin's own tables, guarded to run once — dbDelta cannot emit it.
 		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN audience_id', $rereg_table ) );
 	}
 

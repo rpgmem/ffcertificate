@@ -227,6 +227,7 @@ class AudienceBookingReader {
 		$prepare_args = array_merge( array( $table, $env_table ), $values );
 		$sql          = $wpdb->prepare( $sql, $prepare_args );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset pagination over an export; each page is read exactly once, so there is nothing a cache could serve twice.
 		return (int) $wpdb->get_var( $sql );
 	}
 
@@ -283,6 +284,7 @@ class AudienceBookingReader {
 		$prepare_args = array_merge( array( $table, $env_table ), $values, array( $size ) );
 		$sql          = $wpdb->prepare( $sql, $prepare_args );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset pagination over an export; each page is read exactly once, so there is nothing a cache could serve twice.
 		$results = $wpdb->get_results( $sql );
 		/**
 		 * Cast wpdb result to typed shape.
@@ -313,7 +315,7 @@ class AudienceBookingReader {
 		 *
 		 * @var BookingRow|null $booking
 		 */
-		$booking = $wpdb->get_row(
+		$booking = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- This is the cache-miss path — the hit is served by the cache_get() above and the result is stored below.
 			$wpdb->prepare(
 				'SELECT b.*, e.name as environment_name, e.schedule_id
                 FROM %i b

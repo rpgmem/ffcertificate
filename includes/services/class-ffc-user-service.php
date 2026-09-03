@@ -120,7 +120,8 @@ class UserService {
 
 		// Certificate count.
 		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-			$table                 = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
+			$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One of three uncached COUNT queries run on every user-dashboard render; the strongest caching candidate found, tracked in the caching follow-up.
 			$stats['certificates'] = (int) $wpdb->get_var(
 				$wpdb->prepare(
 					"SELECT COUNT(*) FROM %i WHERE user_id = %d AND status != 'trash'",
@@ -133,6 +134,7 @@ class UserService {
 		// Appointment count.
 		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 		if ( self::table_exists( $appointments_table ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One of three uncached COUNT queries run on every user-dashboard render; the strongest caching candidate found, tracked in the caching follow-up.
 			$stats['appointments'] = (int) $wpdb->get_var(
 				$wpdb->prepare(
 					"SELECT COUNT(*) FROM %i WHERE user_id = %d AND status != 'cancelled'",
@@ -145,6 +147,7 @@ class UserService {
 		// Audience group count.
 		$members_table = $wpdb->prefix . 'ffc_audience_members';
 		if ( self::table_exists( $members_table ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One of three uncached COUNT queries run on every user-dashboard render; the strongest caching candidate found, tracked in the caching follow-up.
 			$stats['audience_groups'] = (int) $wpdb->get_var(
 				$wpdb->prepare(
 					'SELECT COUNT(*) FROM %i WHERE user_id = %d',

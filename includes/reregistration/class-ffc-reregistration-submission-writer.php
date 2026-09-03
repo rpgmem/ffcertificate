@@ -116,6 +116,7 @@ class ReregistrationSubmissionWriter {
 			$insert_format[]      = '%s';
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->insert( $table, $insert_data, $insert_format );
 
 		return $result ? $wpdb->insert_id : false;
@@ -174,6 +175,7 @@ class ReregistrationSubmissionWriter {
 			return false;
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->update(
 			$table,
 			$update_data,
@@ -247,6 +249,7 @@ class ReregistrationSubmissionWriter {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 		$result = $wpdb->update(
 			$table,
 			array(
