@@ -329,9 +329,9 @@ abstract class AbstractRepository {
 
 			if ( is_array( $value ) ) {
 				$placeholders = implode( ',', array_fill( 0, count( $value ), '%s' ) );
-				// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders is %s repeated to match count($value).
+				// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders is %s repeated to match count($value).
 				$where_parts[] = $this->wpdb->prepare( "%i IN ({$placeholders})", $key, ...$value );
-				// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+				// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 			} else {
 				$where_parts[] = $this->wpdb->prepare( '%i = %s', $key, $value );
 			}
