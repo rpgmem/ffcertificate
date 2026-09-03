@@ -194,7 +194,7 @@ class ReregistrationSubmissionReader {
 		 *
 		 * @var ReregistrationSubmissionRow|null $row
 		 */
-		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached per-(campaign, user) read; a candidate for the object cache, tracked in the caching follow-up.
+		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): the three callers are separate AJAX entry points that read it once each, and the fourth is a loop keyed on a different campaign per iteration — so a cache would never be hit.
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE reregistration_id = %d AND user_id = %d',
 				$table,
@@ -333,7 +333,7 @@ class ReregistrationSubmissionReader {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached per-campaign aggregate for the admin dashboard; a candidate for the object cache, tracked in the caching follow-up.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): two callers, both in the campaign admin renderer. Marginal at best — one saved query on an admin screen.
 		$results_raw = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT status, COUNT(*) as count FROM %i
@@ -429,7 +429,7 @@ class ReregistrationSubmissionReader {
 			$values[] = $status;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached per-campaign count; a candidate for the object cache, tracked in the caching follow-up.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): a single caller, the export source, once per export job.
 		return (int) $wpdb->get_var(
 			$wpdb->prepare( "SELECT COUNT(*) FROM %i {$where}", array_merge( array( $table ), $values ) )
 		);

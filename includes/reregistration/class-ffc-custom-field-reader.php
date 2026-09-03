@@ -169,7 +169,7 @@ class CustomFieldReader {
 			$where .= ' AND is_active = 1';
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached read of field definitions that change rarely and are read on every form render; a candidate for the object cache, tracked in the caching follow-up.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The one read in #1034 still worth caching: six sibling accessors (_with_parents, _grouped, get_profile_fields, get_sensitive_fields, _keyed) all funnel through this query, so one render can repeat it for the same audience. That repeat is what a cache would remove, and it holds even without a persistent object-cache backend. Left uncached until a real render is measured — invalidation would have to cover CustomFieldWriter.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i {$where} ORDER BY sort_order ASC, id ASC",
@@ -276,7 +276,7 @@ class CustomFieldReader {
 			$where .= ' AND is_active = 1';
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached count over the same rarely-changing definitions; a candidate for the object cache, tracked in the caching follow-up.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): one caller, the custom-fields admin page, once per render.
 		return (int) $wpdb->get_var(
 			$wpdb->prepare( "SELECT COUNT(*) FROM %i {$where}", array_merge( array( $table ), $values ) )
 		);
@@ -419,7 +419,7 @@ class CustomFieldReader {
 		 *
 		 * @var CustomFieldRow|null $result
 		 */
-		$result = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached single-field lookup on a rarely-changing table; a candidate for the object cache, tracked in the caching follow-up.
+		$result = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): a single caller, the standard-fields seeder, which runs once per campaign setup.
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE audience_id = %d AND field_key = %s LIMIT 1',
 				$table,

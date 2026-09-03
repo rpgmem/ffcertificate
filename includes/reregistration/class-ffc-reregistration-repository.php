@@ -100,7 +100,7 @@ class ReregistrationRepository {
 		$wpdb  = self::db();
 		$table = self::get_audiences_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached per-campaign read; a candidate for the object cache, tracked in the caching follow-up.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): seven callers across distinct flows (renderer, ficha, export, verification), one call each per request.
 		$rows = $wpdb->get_col(
 			$wpdb->prepare(
 				'SELECT audience_id FROM %i WHERE reregistration_id = %d',
@@ -150,7 +150,7 @@ class ReregistrationRepository {
 		$junction  = self::get_audiences_table_name();
 		$audiences = AudienceReader::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached per-campaign join, read on render; a candidate for the object cache, tracked in the caching follow-up.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): a single caller, the campaign admin renderer, once per render.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT a.id, a.name, a.color
