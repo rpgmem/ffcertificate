@@ -380,7 +380,7 @@ class SubmissionsList extends \WP_List_Table {
 		// single source form — otherwise the source form is ambiguous and
 		// the conflict-detection scope (per-form duplicate identifier) is
 		// undefined.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- filter_form_id is a display-only filter.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- filter_form_id is a display-only filter. Shape-checked as an array below, then each element through absint().
 		$filter_raw = isset( $_GET['filter_form_id'] ) ? wp_unslash( $_GET['filter_form_id'] ) : null;
 		$single_id  = 0;
 		if ( is_array( $filter_raw ) && 1 === count( $filter_raw ) ) {

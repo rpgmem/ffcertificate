@@ -70,7 +70,9 @@ class LocationsAjaxEndpoint {
 			'lat'         => isset( $_POST['lat'] ) ? floatval( wp_unslash( $_POST['lat'] ) ) : 0.0,
 			'lng'         => isset( $_POST['lng'] ) ? floatval( wp_unslash( $_POST['lng'] ) ) : 0.0,
 			'radius'      => isset( $_POST['radius'] ) ? floatval( wp_unslash( $_POST['radius'] ) ) : 1000.0,
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Reduced to a bool by RequestInput::is_truthy().
 			'default_gps' => \FreeFormCertificate\Core\RequestInput::is_truthy( $_POST['default_gps'] ?? null ),
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Reduced to a bool by RequestInput::is_truthy().
 			'default_ip'  => \FreeFormCertificate\Core\RequestInput::is_truthy( $_POST['default_ip'] ?? null ),
 		);
 

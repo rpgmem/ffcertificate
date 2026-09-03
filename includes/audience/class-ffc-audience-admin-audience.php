@@ -106,6 +106,7 @@ class AudienceAdminAudience {
 			$id   = isset( $_POST['audience_id'] ) ? absint( $_POST['audience_id'] ) : 0;
 			$data = array(
 				'name'            => RequestInput::get_post_string( 'audience_name' ),
+				// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Normalised by ColorValidator::normalize(), which returns the default for anything that is not a hex colour.
 				'color'           => ColorValidator::normalize( isset( $_POST['audience_color'] ) ? wp_unslash( $_POST['audience_color'] ) : '', '#3788d8' ),
 				'parent_id'       => isset( $_POST['audience_parent'] ) && '' !== $_POST['audience_parent'] ? absint( $_POST['audience_parent'] ) : null,
 				'status'          => RequestInput::get_post_string( 'audience_status', 'active' ),

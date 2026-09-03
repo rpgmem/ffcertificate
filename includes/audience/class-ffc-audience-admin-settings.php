@@ -280,6 +280,7 @@ class AudienceAdminSettings {
 
             // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 			$ma_color = ColorValidator::normalize(
+				// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Normalised by ColorValidator::normalize(), which returns the default for anything that is not a hex colour.
 				isset( $_POST['ffc_aud_multiple_audiences_color'] ) ? wp_unslash( $_POST['ffc_aud_multiple_audiences_color'] ) : '',
 				''
 			);

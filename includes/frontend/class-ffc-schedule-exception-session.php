@@ -180,6 +180,7 @@ class ScheduleExceptionSession {
 			return null;
 		}
 
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Cookie payload verified cryptographically on the next line by self::verify_token(); an unsigned value yields null.
 		$raw     = (string) wp_unslash( $_COOKIE[ $name ] );
 		$payload = self::verify_token( $raw );
 		if ( null === $payload ) {

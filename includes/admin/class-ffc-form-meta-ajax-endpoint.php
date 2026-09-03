@@ -193,6 +193,7 @@ class FormMetaAjaxEndpoint {
 		// these toggles via `'1' === (string) $meta`, so we persist the
 		// canonical string form. `sanitize_value` returns a native bool;
 		// cast it to the canonical string here.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised on the next line by SettingsAjaxEndpoint::sanitize_value() against the allowlisted type.
 		$raw_value = isset( $_POST['value'] ) ? wp_unslash( $_POST['value'] ) : '';
 		$value     = SettingsAjaxEndpoint::sanitize_value( $raw_value, 'bool' ) ? '1' : '0';
 

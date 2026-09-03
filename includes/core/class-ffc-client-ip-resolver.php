@@ -526,6 +526,7 @@ class ClientIpResolver {
 		if ( ! isset( $_SERVER[ $key ] ) ) {
 			return '';
 		}
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Server-set header; type-checked on the next line and validated as an IP by the caller before any use.
 		$raw = wp_unslash( $_SERVER[ $key ] );
 		if ( ! is_string( $raw ) ) {
 			return '';

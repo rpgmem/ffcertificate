@@ -111,6 +111,7 @@ class FormFeaturesAjaxEndpoint {
 			);
 		}
 
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Reduced to a bool on the next line by RequestInput::is_truthy().
 		$raw       = wp_unslash( $_POST['value'] ?? '' );
 		$is_truthy = \FreeFormCertificate\Core\RequestInput::is_truthy( $raw );
 

@@ -113,6 +113,7 @@ class AppointmentCancellationHandler {
 			$appointment      = $appointment_repo->findById( $appointment_id );
 		}
 
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Server-set REQUEST_METHOD, compared against the literal 'POST' — the raw value never survives.
 		$is_post = isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === strtoupper( (string) wp_unslash( $_SERVER['REQUEST_METHOD'] ) );
 		$outcome = self::classify_request( $appointment_id, is_array( $appointment ) ? $appointment : null, $token, $is_post, $this->confirm_submitted() );
 

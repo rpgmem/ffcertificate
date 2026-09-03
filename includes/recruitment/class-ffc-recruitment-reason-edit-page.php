@@ -183,9 +183,10 @@ final class RecruitmentReasonEditPage {
 		$color = isset( $_POST['color'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['color'] ) ) : '';
 
 		$applies_raw = isset( $_POST['applies_to'] ) && is_array( $_POST['applies_to'] )
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Array-checked here, then each element validated against the allowed applies-to values below.
 			? wp_unslash( $_POST['applies_to'] )
 			: array();
-		$applies     = array();
+		$applies = array();
 		foreach ( $applies_raw as $candidate ) {
 			if ( is_string( $candidate ) ) {
 				$applies[] = $candidate;
