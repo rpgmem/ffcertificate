@@ -161,7 +161,20 @@ class PluginActivationSmokeTest extends IntegrationTestCase {
 
 		Activator::maybe_add_foreign_keys();
 
-		// No fatal reaching here; the guard let the migration run.
-		$this->assertTrue( true );
+		// #1030 — KEPT IN THE VACUOUS BASELINE ON PURPOSE, with the reason.
+		//
+		// Nothing stronger is assertable here without a real database. Two
+		// candidate observables were tried and neither distinguishes the two
+		// branches: the FK version stamp is not advanced in this environment
+		// (MigrationForeignKeys bails before stamping without a live $wpdb, so
+		// the stamp reads '0.0.0-old' whether the guard let it through or not),
+		// and $this->ddl records dbDelta() only, while the FK migration issues
+		// ALTER TABLE through $wpdb->query().
+		//
+		// What this test does establish is what its name says — that the stale
+		// branch composes over the real MigrationForeignKeys without a fatal.
+		// Proving the ALTER statements themselves belongs to the fresh-install
+		// job (#994), which has the database this does not.
+		$this->assertTrue( true, 'composition without a fatal is the assertion; see the note above' );
 	}
 }

@@ -123,8 +123,11 @@ class SubmissionGuardsTest extends TestCase {
 	public function test_nonce_guard_passes_when_valid(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		$_POST = array( 'nonce' => 'ok' );
-		( new NonceGuard() )->apply( $this->ctx() );
-		$this->assertTrue( true );
+
+		// #1030: a guard signals rejection by throwing SubmissionRejected, so
+		// "passes" means apply() returns instead. Assert the return contract
+		// and name the mechanism, rather than asserting a literal true.
+		$this->assertNull( ( new NonceGuard() )->apply( $this->ctx() ) );
 	}
 
 	// ===================== SecurityFieldsGuard =====================
@@ -217,8 +220,10 @@ class SubmissionGuardsTest extends TestCase {
 		$_POST              = array( 'ffc_lgpd_consent' => '1', 'email' => 'a@b.co' );
 		$ctx                = $this->ctx();
 		$ctx->fields_config = array( array( 'name' => 'email', 'type' => 'email' ) );
-		( new PreflightGuard() )->apply( $ctx );
-		$this->assertTrue( true );
+
+		// Same contract as the nonce guard: passing means apply() returns
+		// rather than throwing SubmissionRejected.
+		$this->assertNull( ( new PreflightGuard() )->apply( $ctx ) );
 	}
 
 	// ===================== FieldSanitizer =====================

@@ -166,8 +166,13 @@ class AutoloaderTest extends TestCase {
 	// ==================================================================
 
 	public function test_autoload_ignores_foreign_namespace(): void {
+		// #1030: there is genuinely no side effect to observe here — the point
+		// is that the autoloader declines. Assert the class was NOT declared,
+		// which is what "ignored" means and what a wrongly-greedy autoloader
+		// would break.
 		$this->autoloader->autoload( 'Some\\Other\\Namespace\\Class' );
-		$this->assertTrue( true );
+
+		$this->assertFalse( class_exists( 'Some\\Other\\Namespace\\Class', false ) );
 	}
 
 	// ==================================================================

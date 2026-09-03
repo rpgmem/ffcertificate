@@ -190,12 +190,13 @@ class AppointmentCancellationHandlerTest extends TestCase {
 	// ---- handle_cancellation_request no-op ---------------------------
 
 	public function test_handle_request_no_op_when_query_var_absent(): void {
-		Functions\when( 'get_query_var' )->justReturn( '' );
-		$handler = $this->make_handler();
+		// #1030: the guard reads the query var once and returns; past it the
+		// method reads it twice more (the id and the token). Exactly one read
+		// is therefore the proof that it stopped at the guard.
+		Functions\expect( 'get_query_var' )->once()->andReturn( '' );
 
-		// Should return without rendering / exiting.
+		$handler = $this->make_handler();
 		$handler->handle_cancellation_request();
-		$this->assertTrue( true );
 	}
 
 	// ---- handle_cancellation_request routing -------------------------

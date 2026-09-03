@@ -507,9 +507,12 @@ class PublicFormsExportSourceTest extends TestCase {
 	// ==================================================================
 
 	public function test_on_before_download_no_op_when_no_form_id(): void {
-		// No form_id → returns early, never constructs the validator.
+		// #1030: past the guard the method builds a CsvDownloadValidator and
+		// reads the form's CPF mode through get_post_meta(), so that read never
+		// happening is the proof it returned at the guard.
+		Functions\expect( 'get_post_meta' )->never();
+
 		$this->source->on_before_download( array() );
-		$this->assertTrue( true );
 	}
 
 	public function test_on_before_download_writes_delivery_audit_row(): void {
