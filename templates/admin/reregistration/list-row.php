@@ -16,7 +16,6 @@ use FreeFormCertificate\Reregistration\ReregistrationRepository;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- Template variables scoped to this file (the include runs in the including renderer method scope).
 ?>
 		<tr>
 			<td class="column-title">

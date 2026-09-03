@@ -16,7 +16,7 @@ use FreeFormCertificate\Recruitment\RecruitmentAdminPage;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- Template variables scoped to this file (the include runs in the including renderer method's function scope, not global).
+// phpcs:disable WordPress.WP.GlobalVariablesOverride.Prohibited -- Template variables scoped to this file (the include runs in the including renderer method's function scope, not global).
 
 echo '<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">';
 foreach ( $tabs as $slug => $tab ) {

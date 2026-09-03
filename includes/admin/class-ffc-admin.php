@@ -131,7 +131,6 @@ class Admin {
 	 * Handle submission actions.
 	 */
 	public function handle_submission_actions(): void {
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified per-action below via wp_verify_nonce and check_admin_referer.
 		if ( \FreeFormCertificate\Core\RequestInput::get_get_string( 'page' ) !== 'ffc-submissions' ) {
 			return;
 		}
@@ -197,7 +196,6 @@ class Admin {
 				}
 			}
 		}
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
 	}
 
 	/**

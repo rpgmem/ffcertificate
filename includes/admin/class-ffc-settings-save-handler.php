@@ -81,7 +81,6 @@ class SettingsSaveHandler {
 	 * @return void
 	 */
 	private function save_general_and_specific_settings(): void {
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
 		$current = get_option( 'ffc_settings', array() );
 		$new     = \FreeFormCertificate\Core\RequestInput::get_post_array( 'ffc_settings' );
 
@@ -117,7 +116,6 @@ class SettingsSaveHandler {
 		 */
 		do_action( 'ffcertificate_settings_saved', $clean );
 
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
 		add_settings_error( 'ffc_settings', 'ffc_settings_updated', __( 'Settings saved.', 'ffcertificate' ), 'updated' );
 	}
 
@@ -475,7 +473,6 @@ class SettingsSaveHandler {
 	 */
 	private function save_user_access_settings(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
-        // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset()/empty()/is_array() are existence and type checks; values are sanitized with wp_unslash + sanitize_text_field/esc_url_raw/sanitize_textarea_field.
 		$settings = array(
 			'block_wp_admin'    => isset( $_POST['block_wp_admin'] ),
 			'blocked_roles'     => \FreeFormCertificate\Core\RequestInput::get_post_array( 'blocked_roles', array( 'ffc_end_user' ) ),
@@ -489,7 +486,6 @@ class SettingsSaveHandler {
 			'bypass_for_admins' => isset( $_POST['bypass_for_admins'] ),
 		);
         // phpcs:enable WordPress.Security.NonceVerification.Missing
-        // phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 
 		update_option( 'ffc_user_access_settings', $settings );
 		add_settings_error(
@@ -506,10 +502,8 @@ class SettingsSaveHandler {
 	 * @return void
 	 */
 	private function handle_danger_zone(): void {
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via check_admin_referer.
 		$target        = \FreeFormCertificate\Core\RequestInput::get_post_string( 'delete_target', 'all' );
 		$reset_counter = \FreeFormCertificate\Core\RequestInput::get_post_string( 'reset_counter' ) === '1';
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		/**
 		 * Fires before bulk data deletion from the danger zone.

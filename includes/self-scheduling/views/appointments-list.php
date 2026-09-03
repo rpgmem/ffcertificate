@@ -17,7 +17,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 // (FreeFormCertificate\SelfScheduling\AppointmentsListTable) — it is
 // instantiated near the bottom of this view.
 
-// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified per-action below via check_admin_referer.
 
 // Appointments base URL (used for redirects and back links).
 $ffcertificate_appointments_url = add_query_arg( array( 'page' => 'ffc-appointments' ), admin_url( 'admin.php' ) );
@@ -28,7 +27,6 @@ $ffcertificate_appointments_url = add_query_arg( array( 'page' => 'ffc-appointme
 $ffc_self_scheduling_appointment_id = isset( $_GET['appointment'] ) ? absint( wp_unslash( $_GET['appointment'] ) ) : 0;
 $ffcertificate_action               = \FreeFormCertificate\Core\RequestInput::get_get_string( 'ffc_action' );
 
-// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 if ( $ffc_self_scheduling_appointment_id > 0 ) {
 

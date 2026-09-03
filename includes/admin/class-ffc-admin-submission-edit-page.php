@@ -558,7 +558,6 @@ class AdminSubmissionEditPage {
 			return;
 		}
 
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above via check_admin_referer.
 		$id = isset( $_POST['submission_id'] ) ? absint( wp_unslash( $_POST['submission_id'] ) ) : 0;
 		// Normalize email to lowercase for consistent storage and lookups.
 		$new_email = isset( $_POST['user_email'] ) ? strtolower( sanitize_email( wp_unslash( $_POST['user_email'] ) ) ) : '';
@@ -583,8 +582,6 @@ class AdminSubmissionEditPage {
 
 		// Process user link change (simplified: value is user ID, empty string, or __keep__).
 		$linked_user_id = \FreeFormCertificate\Core\RequestInput::get_post_string( 'linked_user_id', '__keep__' );
-
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		// Update submission data (email + custom fields).
 		$this->submission_handler->update_submission( $id, $new_email, $clean_data );

@@ -89,7 +89,6 @@ class TabUserAccess extends SettingsTab {
 			return;
 		}
 
-        // phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above via wp_verify_nonce. isset() checks used as boolean only.
 		$settings = array(
 			'block_wp_admin'    => isset( $_POST['block_wp_admin'] ),
 			'blocked_roles'     => \FreeFormCertificate\Core\RequestInput::get_post_array( 'blocked_roles', array( 'ffc_end_user' ) ),
@@ -98,7 +97,6 @@ class TabUserAccess extends SettingsTab {
 			'allow_admin_bar'   => isset( $_POST['allow_admin_bar'] ),
 			'bypass_for_admins' => isset( $_POST['bypass_for_admins'] ),
 		);
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		update_option( 'ffc_user_access_settings', $settings );
 

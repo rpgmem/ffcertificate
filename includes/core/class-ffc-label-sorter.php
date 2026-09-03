@@ -55,7 +55,6 @@ final class LabelSorter {
 	 *
 	 * @var array<string, string>
 	 */
-	// phpcs:disable WordPress.Arrays.MultipleStatementAlignment -- multibyte keys defeat the byte-based arrow-alignment sniff.
 	private const ACCENT_MAP = array(
 		'á' => 'a',
 		'à' => 'a',
@@ -111,7 +110,6 @@ final class LabelSorter {
 		'Ñ' => 'N',
 		'Ý' => 'Y',
 	);
-	// phpcs:enable WordPress.Arrays.MultipleStatementAlignment
 
 	/**
 	 * Compare two display labels for alphabetical ordering under the active

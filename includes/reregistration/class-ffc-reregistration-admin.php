@@ -352,7 +352,6 @@ class ReregistrationAdmin {
 			$prev_status = $existing ? $existing->status : null;
 		}
 
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above (line 707).
 		$data = array(
 			'title'                      => \FreeFormCertificate\Core\RequestInput::get_post_string( 'rereg_title' ),
 			'start_date'                 => \FreeFormCertificate\Core\RequestInput::get_post_string( 'rereg_start_date' ),
@@ -370,7 +369,6 @@ class ReregistrationAdmin {
 		if ( isset( $_POST['rereg_audience_ids'] ) && is_array( $_POST['rereg_audience_ids'] ) ) {
 			$audience_ids = array_map( 'absint', $_POST['rereg_audience_ids'] );
 		}
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		if ( $id > 0 ) {
 			ReregistrationRepository::update( $id, $data );

@@ -22,7 +22,6 @@ use FreeFormCertificate\Recruitment\RecruitmentSettings;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file (aliased by the including renderer method).
 
 echo '<h2>' . esc_html__( 'Settings', 'ffcertificate' ) . '</h2>';
 echo '<p>' . esc_html__( 'Email templates and public shortcode tuning. Saved values populate the convocation email and the public shortcode cache/rate-limit/page-size knobs.', 'ffcertificate' ) . '</p>';

@@ -69,12 +69,8 @@ class PreflightTelemetry {
 			);
 		}
 
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- verified above.
-
 		$form_id = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
 		$reason  = RequestInput::get_post_string( 'reason' );
-
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		if ( $form_id <= 0 ) {
 			wp_send_json_error( array( 'message' => 'invalid_form_id' ) );
