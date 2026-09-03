@@ -64,6 +64,9 @@ class AdminAjaxTest extends TestCase {
 		$this->utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
 		$this->caps_mock  = Mockery::mock( 'alias:\FreeFormCertificate\Core\Capabilities' );
 		$ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
+		$ri_mock->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
+		$ri_mock->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
+		$ri_mock->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		$this->caps_mock->shouldReceive( 'current_user_can_manage' )->andReturn( true )->byDefault();
 		$this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )->byDefault();
 		$this->utils_mock->shouldReceive( 'debug_log' )->byDefault();
