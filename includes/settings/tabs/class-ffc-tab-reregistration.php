@@ -19,6 +19,7 @@ use FreeFormCertificate\Settings\SettingsTab;
 use FreeFormCertificate\Admin\CertTemplateCpt;
 use FreeFormCertificate\Admin\CertTemplateReader;
 use FreeFormCertificate\Admin\CertTemplateFichaResolver;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -108,8 +109,7 @@ class TabReregistration extends SettingsTab {
 		$selected  = CertTemplateFichaResolver::selected_id();
 		$can_edit  = $selected > 0 && ! CertTemplateReader::is_default( $selected );
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only "saved" flash flag on the post-redirect-get.
-		if ( isset( $_GET['ffc_saved'] ) ) {
+		if ( RequestInput::has_get( 'ffc_saved' ) ) {
 			wp_admin_notice(
 				esc_html__( 'Ficha template saved.', 'ffcertificate' ),
 				array(

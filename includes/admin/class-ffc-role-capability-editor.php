@@ -27,6 +27,7 @@ namespace FreeFormCertificate\Admin;
 
 use FreeFormCertificate\UserDashboard\CapabilityCatalog;
 use FreeFormCertificate\UserDashboard\RoleRegistrar;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -57,8 +58,7 @@ final class RoleCapabilityEditor {
 		if ( 'toplevel_page_ffc-settings' !== $hook ) {
 			return;
 		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- tab read-only resolution for conditional asset loading.
-		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+		$tab = RequestInput::get_get_key( 'tab' );
 		if ( 'user_access' !== $tab ) {
 			return;
 		}

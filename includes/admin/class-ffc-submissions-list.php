@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Admin;
 
 use FreeFormCertificate\Repositories\SubmissionRepository;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -365,8 +366,7 @@ class SubmissionsList extends \WP_List_Table {
 			return array();
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Status is a display filter parameter.
-		$status = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
+		$status = RequestInput::get_get_key( 'status', 'publish' );
 		if ( 'trash' === $status ) {
 			return array(
 				'bulk_restore' => __( 'Restore', 'ffcertificate' ),
@@ -420,7 +420,7 @@ class SubmissionsList extends \WP_List_Table {
 		$per_page     = 20;
 		$current_page = $this->get_pagenum();
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- These are standard WP_List_Table filter/sort parameters.
-		$status  = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
+		$status  = RequestInput::get_get_key( 'status', 'publish' );
 		$search  = isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['s'] ) ) : '';
 		$orderby = ( ! empty( $_GET['orderby'] ) ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : 'id';
 		$order   = \FreeFormCertificate\Core\RequestInput::get_get_string( 'order' ) === 'asc' ? 'ASC' : 'DESC';
@@ -509,9 +509,8 @@ class SubmissionsList extends \WP_List_Table {
 	 * @return array<string, string>
 	 */
 	protected function get_views() {
-		$counts = $this->repository->countByStatus();
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display parameter for tab highlighting.
-		$current = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
+		$counts  = $this->repository->countByStatus();
+		$current = RequestInput::get_get_key( 'status', 'publish' );
 
 		return array(
 			'all'              => sprintf(

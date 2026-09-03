@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -52,8 +54,7 @@ class AdminActivityLogPage {
 		if ( 'toplevel_page_ffc-settings' !== $hook ) {
 			return;
 		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only tab param.
-		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+		$active_tab = RequestInput::get_get_key( 'tab' );
 		if ( 'activity_log' !== $active_tab ) {
 			return;
 		}
@@ -126,13 +127,11 @@ class AdminActivityLogPage {
 		}
 
 		// Get filter parameters.
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- These are standard admin page filter/pagination parameters.
-		$current_page = isset( $_GET['paged'] ) ? max( 1, absint( wp_unslash( $_GET['paged'] ) ) ) : 1;
+		$current_page = max( 1, RequestInput::get_get_int( 'paged', 1 ) );
 		$per_page     = 50;
-		$level        = isset( $_GET['level'] ) ? sanitize_key( wp_unslash( $_GET['level'] ) ) : '';
+		$level        = RequestInput::get_get_key( 'level' );
 		$action       = \FreeFormCertificate\Core\RequestInput::get_get_string( 'log_action' );
 		$search       = \FreeFormCertificate\Core\RequestInput::get_get_string( 's' );
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		// Get logs.
 		$args = array(

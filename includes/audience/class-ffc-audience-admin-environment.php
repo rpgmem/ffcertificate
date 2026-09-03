@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Audience;
 
 use FreeFormCertificate\Core\ColorValidator;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -43,8 +44,7 @@ class AudienceAdminEnvironment {
 	 */
 	public function render_page(): void {
 		$action = \FreeFormCertificate\Core\RequestInput::get_get_string( 'action', 'list' );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read on a GET screen to choose which record to render; the screen itself is capability-gated by its menu registration, the value is absint()-cast and nothing is written.
-		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+		$id     = RequestInput::get_get_int( 'id' );
 
 		?>
 		<div class="wrap">
@@ -68,8 +68,7 @@ class AudienceAdminEnvironment {
 	 * @return void
 	 */
 	private function render_list(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only list filter on a GET screen; absint()-cast and it only narrows the query.
-		$filter_schedule = isset( $_GET['schedule_id'] ) ? absint( $_GET['schedule_id'] ) : 0;
+		$filter_schedule = RequestInput::get_get_int( 'schedule_id' );
 
 		$args = array();
 		if ( $filter_schedule > 0 ) {

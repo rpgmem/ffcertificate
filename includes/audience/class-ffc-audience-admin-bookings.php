@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -44,13 +46,11 @@ class AudienceAdminBookings {
 	 */
 	public function render_page(): void {
 		// Get filter parameters.
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameters on admin page
-		$schedule_id    = isset( $_GET['schedule_id'] ) ? absint( $_GET['schedule_id'] ) : 0;
-		$environment_id = isset( $_GET['environment_id'] ) ? absint( $_GET['environment_id'] ) : 0;
+		$schedule_id    = RequestInput::get_get_int( 'schedule_id' );
+		$environment_id = RequestInput::get_get_int( 'environment_id' );
 		$status_filter  = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
 		$date_from      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'date_from' );
 		$date_to        = \FreeFormCertificate\Core\RequestInput::get_get_string( 'date_to' );
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		// Build query args.
 		$args = array(

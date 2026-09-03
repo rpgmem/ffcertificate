@@ -32,6 +32,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -262,7 +264,7 @@ class CertTemplateAdminScreen {
 			wp_die( esc_html__( 'You do not have permission to manage certificate templates.', 'ffcertificate' ) );
 		}
 
-		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+		$post_id = RequestInput::get_get_int( 'post' );
 
 		check_admin_referer( self::TOGGLE_ACTION . '_' . $post_id );
 
@@ -313,7 +315,7 @@ class CertTemplateAdminScreen {
 			wp_die( esc_html__( 'You do not have permission to manage certificate templates.', 'ffcertificate' ) );
 		}
 
-		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+		$post_id = RequestInput::get_get_int( 'post' );
 		check_admin_referer( self::DUPLICATE_ACTION . '_' . $post_id );
 
 		$post = get_post( $post_id );
@@ -349,7 +351,7 @@ class CertTemplateAdminScreen {
 			wp_die( esc_html__( 'You do not have permission to manage certificate templates.', 'ffcertificate' ) );
 		}
 
-		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+		$post_id = RequestInput::get_get_int( 'post' );
 		check_admin_referer( self::EXPORT_ACTION . '_' . $post_id );
 
 		$post = get_post( $post_id );
@@ -450,8 +452,7 @@ class CertTemplateAdminScreen {
 			return;
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list filter (GET); no state change.
-		$current = isset( $_GET['ffc_kind'] ) ? sanitize_key( wp_unslash( $_GET['ffc_kind'] ) ) : '';
+		$current = RequestInput::get_get_key( 'ffc_kind' );
 		$options = array(
 			''                                        => __( 'All categories', 'ffcertificate' ),
 			CertTemplateCpt::KIND_CERTIFICATE         => self::kind_label( CertTemplateCpt::KIND_CERTIFICATE ),
@@ -480,8 +481,7 @@ class CertTemplateAdminScreen {
 			return;
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list filter (GET); no state change.
-		$kind = isset( $_GET['ffc_kind'] ) ? sanitize_key( wp_unslash( $_GET['ffc_kind'] ) ) : '';
+		$kind = RequestInput::get_get_key( 'ffc_kind' );
 		if ( '' === $kind ) {
 			return;
 		}
@@ -526,7 +526,7 @@ class CertTemplateAdminScreen {
 			wp_die( esc_html__( 'You do not have permission to preview certificate templates.', 'ffcertificate' ) );
 		}
 
-		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+		$post_id = RequestInput::get_get_int( 'post' );
 		check_admin_referer( self::PREVIEW_ACTION . '_' . $post_id );
 
 		$post = get_post( $post_id );
@@ -628,8 +628,7 @@ class CertTemplateAdminScreen {
 			return;
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only routing: which post is being edited, to decide the read-only editor state. No state change; no nonce applies.
-		$post_id    = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+		$post_id    = RequestInput::get_get_int( 'post' );
 		$is_default = $post_id > 0 && CertTemplateReader::is_default( $post_id );
 
 		AdminAssetsManager::enqueue_code_editor_for( 'ffc_template_html', $is_default );
@@ -724,8 +723,7 @@ class CertTemplateAdminScreen {
 		// new auto-draft so save_edit_metabox() can stamp META_KIND (a plain
 		// "Add New" otherwise defaults to certificate). Only for new posts, so an
 		// ordinary edit never resubmits — and re-types — an existing kind.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only routing default; the value is validated + gated by the SAVE_NONCE on save.
-		$requested_kind = isset( $_GET['ffc_kind'] ) ? sanitize_key( wp_unslash( $_GET['ffc_kind'] ) ) : '';
+		$requested_kind = RequestInput::get_get_key( 'ffc_kind' );
 		if ( 'auto-draft' === $post->post_status && CertTemplateCpt::is_valid_kind( $requested_kind ) ) {
 			echo '<input type="hidden" name="ffc_template_kind" value="' . esc_attr( $requested_kind ) . '">';
 		}

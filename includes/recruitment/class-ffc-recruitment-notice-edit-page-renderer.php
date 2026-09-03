@@ -16,6 +16,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Recruitment;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -421,7 +423,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		// `ffc_cls_tab` is set by pagination links (so reload stays on
 		// the same tab) and by the JS tab-switch handler via
 		// `history.replaceState`. Falls back to the default-tab rule.
-		$tab_override = isset( $_GET['ffc_cls_tab'] ) ? sanitize_key( wp_unslash( (string) $_GET['ffc_cls_tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display preference.
+		$tab_override = RequestInput::get_get_key( 'ffc_cls_tab' );
 		$active_tab   = in_array( $tab_override, array( 'preliminary', 'definitive' ), true )
 			? $tab_override
 			: ( $has_definitive ? 'definitive' : 'preliminary' );
@@ -565,12 +567,11 @@ final class RecruitmentNoticeEditPageRenderer {
 	private static function prepare_classifications_table_data( array $rows, bool $with_actions, string $tab_key ): array {
 		// Pagination. Per-page matches the activity log helper so the
 		// admin viewport feels consistent across the plugin.
-		$per_page    = 50;
-		$page_param  = 'ffc_cls_paged_' . $tab_key;
-		$total       = count( $rows );
-		$total_pages = (int) max( 1, ceil( $total / $per_page ) );
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page preference.
-		$current_page = isset( $_GET[ $page_param ] ) ? max( 1, (int) $_GET[ $page_param ] ) : 1;
+		$per_page     = 50;
+		$page_param   = 'ffc_cls_paged_' . $tab_key;
+		$total        = count( $rows );
+		$total_pages  = (int) max( 1, ceil( $total / $per_page ) );
+		$current_page = max( 1, RequestInput::get_get_int( $page_param, 1 ) );
 		$current_page = min( $current_page, $total_pages );
 		$offset       = ( $current_page - 1 ) * $per_page;
 		$rows         = array_slice( $rows, $offset, $per_page );

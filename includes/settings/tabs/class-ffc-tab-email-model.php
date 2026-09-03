@@ -23,6 +23,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Settings\Tabs;
 
 use FreeFormCertificate\Settings\SettingsTab;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -106,8 +107,7 @@ class TabEmailModel extends SettingsTab {
 		// Flash notice for the "Send a test email" action. Display-only read after
 		// a nonce-checked POST → redirect (PRG); the value is a fixed allowlisted
 		// flag, so no nonce is needed on this GET render.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only flash after a nonce-checked POST; value allowlisted below.
-		$ffc_test_email_flag = isset( $_GET['ffc_test_email'] ) ? sanitize_key( wp_unslash( $_GET['ffc_test_email'] ) ) : '';
+		$ffc_test_email_flag = RequestInput::get_get_key( 'ffc_test_email' );
 		if ( '' !== $ffc_test_email_flag ) {
 			$ffc_test_email_notices = array(
 				'sent'       => array( 'success', __( 'Test email sent to your account.', 'ffcertificate' ) ),

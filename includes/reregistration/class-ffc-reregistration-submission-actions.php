@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -33,7 +35,7 @@ class ReregistrationSubmissionActions {
 		}
 
 		$sub_id   = absint( $_GET['sub_id'] );
-		$rereg_id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+		$rereg_id = RequestInput::get_get_int( 'id' );
 
 		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'approve_submission_' . $sub_id ) ) {
 			return;
@@ -55,7 +57,7 @@ class ReregistrationSubmissionActions {
 		}
 
 		$sub_id   = absint( $_GET['sub_id'] );
-		$rereg_id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+		$rereg_id = RequestInput::get_get_int( 'id' );
 
 		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'reject_submission_' . $sub_id ) ) {
 			return;
@@ -77,7 +79,7 @@ class ReregistrationSubmissionActions {
 		}
 
 		$sub_id   = absint( $_GET['sub_id'] );
-		$rereg_id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+		$rereg_id = RequestInput::get_get_int( 'id' );
 
 		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'return_to_draft_submission_' . $sub_id ) ) {
 			return;

@@ -17,7 +17,6 @@
  * - Handle cache warm / clear actions.
  *
  * Behavior is preserved verbatim from Settings: same nonce checks, capability
- * checks, redirects, option writes and phpcs:ignore annotations.
  *
  * @package FreeFormCertificate\Admin
  * @since   6.12.0
