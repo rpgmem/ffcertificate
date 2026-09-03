@@ -92,9 +92,19 @@ class SelfSchedulingEditorTest extends TestCase {
 	// ==================================================================
 
 	public function test_enqueue_scripts_returns_early_on_wrong_hook(): void {
+		// #1030: this asserted nothing, so the guard could be deleted and it
+		// would still pass. Collect what gets enqueued and state that nothing
+		// did — that is the whole claim in the test's name.
+		$enqueued = array();
+		$collect  = static function ( $handle ) use ( &$enqueued ) {
+			$enqueued[] = $handle;
+		};
+		Functions\when( 'wp_enqueue_script' )->alias( $collect );
+		Functions\when( 'wp_enqueue_style' )->alias( $collect );
+
 		$editor = new SelfSchedulingEditor();
 		$editor->enqueue_scripts( 'edit.php' );
-		$this->assertTrue( true );
+		$this->assertSame( array(), $enqueued );
 	}
 
 	// ==================================================================
@@ -105,9 +115,19 @@ class SelfSchedulingEditorTest extends TestCase {
 		$screen = (object) array( 'post_type' => 'post' );
 		Functions\when( 'get_current_screen' )->justReturn( $screen );
 
+		// #1030: this asserted nothing, so the guard could be deleted and it
+		// would still pass. Collect what gets enqueued and state that nothing
+		// did — that is the whole claim in the test's name.
+		$enqueued = array();
+		$collect  = static function ( $handle ) use ( &$enqueued ) {
+			$enqueued[] = $handle;
+		};
+		Functions\when( 'wp_enqueue_script' )->alias( $collect );
+		Functions\when( 'wp_enqueue_style' )->alias( $collect );
+
 		$editor = new SelfSchedulingEditor();
 		$editor->enqueue_scripts( 'post.php' );
-		$this->assertTrue( true );
+		$this->assertSame( array(), $enqueued );
 	}
 
 	// ==================================================================
@@ -117,9 +137,19 @@ class SelfSchedulingEditorTest extends TestCase {
 	public function test_enqueue_scripts_returns_early_without_screen(): void {
 		Functions\when( 'get_current_screen' )->justReturn( null );
 
+		// #1030: this asserted nothing, so the guard could be deleted and it
+		// would still pass. Collect what gets enqueued and state that nothing
+		// did — that is the whole claim in the test's name.
+		$enqueued = array();
+		$collect  = static function ( $handle ) use ( &$enqueued ) {
+			$enqueued[] = $handle;
+		};
+		Functions\when( 'wp_enqueue_script' )->alias( $collect );
+		Functions\when( 'wp_enqueue_style' )->alias( $collect );
+
 		$editor = new SelfSchedulingEditor();
 		$editor->enqueue_scripts( 'post.php' );
-		$this->assertTrue( true );
+		$this->assertSame( array(), $enqueued );
 	}
 
 	// ==================================================================
@@ -154,9 +184,19 @@ class SelfSchedulingEditorTest extends TestCase {
 	// ==================================================================
 
 	public function test_add_custom_metaboxes_registers_boxes(): void {
+		// #1030: the name claims metaboxes are registered; nothing checked it.
+		$boxes = array();
+		Functions\when( 'add_meta_box' )->alias(
+			static function ( $id ) use ( &$boxes ) {
+				$boxes[] = $id;
+				return true;
+			}
+		);
+
 		$editor = new SelfSchedulingEditor();
 		$editor->add_custom_metaboxes();
-		$this->assertTrue( true );
+
+		$this->assertNotEmpty( $boxes, 'add_custom_metaboxes() registered no box' );
 	}
 
 	// ==================================================================
