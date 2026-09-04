@@ -7,6 +7,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Deprecated
+- ⚠ **`check_verification()`'s `$token` argument** (#1048): `RateLimiter::check_verification()` and `RateLimitChecker::check_verification()` accept a token they have never read — verification throttling is keyed on the IP alone (10/hour, 30/day). No caller passes it. It will be **removed in 6.24.0**; call with `$ip` only. A per-token limit is not needed: the 12-character `[A-Z0-9]` auth code (~62 bits, globally unique) makes the distributed brute-force it would defend against unviable.
+
 ### Fixed
 - **A reregistration submission list could return null from a method declared `: array`** (#1027): `ReregistrationSubmissionReader::get_by_reregistration()` passed `get_results()` straight through, so a failed query fataled instead of returning an empty list. Surfaced by narrowing the PHPStan suppression that hid it.
 - **A failed first seed left the certificate-template pool permanently empty** (#865): `CertTemplateSeeder` recorded the seed version even when it created nothing, and that flag short-circuits every later run, so the layout picker fell back to the deprecated `html/` directory. The version is now recorded only once a default is in the pool.
