@@ -16,8 +16,12 @@ parameters:
 
     excludePaths:
         analyseAndScan:
-            - includes/libraries (?)
-            - includes/views (?)
+            # Markup-only partials included from a renderer's scope: no logic to
+            # type-check, and the variables they use are the caller's locals, which
+            # PHPStan cannot resolve across an include. Same carve-out as the
+            # coverage scope in phpunit.xml.dist — keep the two lists in step.
+            # NOTE: includes/self-scheduling/views is deliberately NOT here — it
+            # holds real logic and is analysed.
             - includes/admin/views (?)
             - includes/settings/views (?)
 

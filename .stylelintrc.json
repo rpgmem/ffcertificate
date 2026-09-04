@@ -22,8 +22,6 @@
     "color-function-notation": null,
     "no-duplicate-selectors": null,
     "shorthand-property-no-redundant-values": null,
-    "declaration-block-no-redundant-longhand-properties": null,
-    "declaration-block-no-shorthand-property-overrides": null,
     "no-empty-source": null,
     "media-feature-range-notation": "prefix",
     "font-family-no-missing-generic-family-keyword": [
