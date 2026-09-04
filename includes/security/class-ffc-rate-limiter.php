@@ -148,8 +148,12 @@ class RateLimiter {
 	/**
 	 * Forwards to {@see RateLimitChecker::check_verification()}.
 	 *
-	 * @param string      $ip IP address.
-	 * @param string|null $token Token.
+	 * @deprecated 6.22.0 The `$token` argument is ignored and will be removed in
+	 *             6.24.0 (#1048). Verification throttling is keyed on the IP only;
+	 *             a per-token limit was never implemented. Call with `$ip` alone.
+	 *
+	 * @param string      $ip    IP address.
+	 * @param string|null $token Ignored. Kept for signature compatibility until 6.24.0.
 	 * @return array{allowed: bool, message?: string, wait_seconds?: int}
 	 */
 	public static function check_verification( string $ip, ?string $token = null ): array {
