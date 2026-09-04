@@ -28,6 +28,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -313,8 +315,7 @@ final class AdminMenuVisibility {
 
 		// `admin.php?page=…` — check the page slug against the allow-list.
 		if ( 'admin.php' === $current_page ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only routing decision.
-			$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( (string) $_GET['page'] ) ) : '';
+			$page = RequestInput::get_get_key( 'page' );
 			foreach ( $policy['allowed_pages'] as $allowed ) {
 				if ( $page === $allowed || 'admin.php?page=' . $page === $allowed ) {
 					return;
@@ -329,7 +330,6 @@ final class AdminMenuVisibility {
 			// Non-`admin.php` filename (e.g. `edit.php`) — accept if the
 			// full filename (with optional query string) matches an allow-list
 			// entry; reject otherwise.
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only routing decision.
 			$query_string = isset( $_SERVER['QUERY_STRING'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['QUERY_STRING'] ) ) : '';
 			$candidate    = '' === $query_string ? $current_page : $current_page . '?' . $query_string;
 

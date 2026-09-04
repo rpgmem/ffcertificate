@@ -74,9 +74,19 @@ class SelfSchedulingAdminTest extends TestCase {
 	// ==================================================================
 
 	public function test_add_submenu_pages_registers_menu(): void {
+		// #1030: the name claims pages are registered; nothing checked it.
+		$slugs = array();
+		Functions\when( 'add_submenu_page' )->alias(
+			static function () use ( &$slugs ) {
+				$slugs[] = func_get_arg( 4 );
+				return 'admin_page_' . func_get_arg( 4 );
+			}
+		);
+
 		$admin = new SelfSchedulingAdmin();
 		$admin->add_submenu_pages();
-		$this->assertTrue( true );
+
+		$this->assertNotEmpty( $slugs, 'add_submenu_pages() registered no page' );
 	}
 
 	// ==================================================================
@@ -86,9 +96,19 @@ class SelfSchedulingAdminTest extends TestCase {
 	public function test_enqueue_admin_assets_returns_early_without_screen(): void {
 		Functions\when( 'get_current_screen' )->justReturn( null );
 
+		// #1030: this asserted nothing, so the guard could be deleted and it
+		// would still pass. Collect what gets enqueued and state that nothing
+		// did — that is the whole claim in the test's name.
+		$enqueued = array();
+		$collect  = static function ( $handle ) use ( &$enqueued ) {
+			$enqueued[] = $handle;
+		};
+		Functions\when( 'wp_enqueue_script' )->alias( $collect );
+		Functions\when( 'wp_enqueue_style' )->alias( $collect );
+
 		$admin = new SelfSchedulingAdmin();
 		$admin->enqueue_admin_assets( 'edit.php' );
-		$this->assertTrue( true );
+		$this->assertSame( array(), $enqueued );
 	}
 
 	// ==================================================================
@@ -99,9 +119,19 @@ class SelfSchedulingAdminTest extends TestCase {
 		$screen = (object) array( 'post_type' => 'post', 'id' => 'edit-post' );
 		Functions\when( 'get_current_screen' )->justReturn( $screen );
 
+		// #1030: this asserted nothing, so the guard could be deleted and it
+		// would still pass. Collect what gets enqueued and state that nothing
+		// did — that is the whole claim in the test's name.
+		$enqueued = array();
+		$collect  = static function ( $handle ) use ( &$enqueued ) {
+			$enqueued[] = $handle;
+		};
+		Functions\when( 'wp_enqueue_script' )->alias( $collect );
+		Functions\when( 'wp_enqueue_style' )->alias( $collect );
+
 		$admin = new SelfSchedulingAdmin();
 		$admin->enqueue_admin_assets( 'edit.php' );
-		$this->assertTrue( true );
+		$this->assertSame( array(), $enqueued );
 	}
 
 	// ==================================================================

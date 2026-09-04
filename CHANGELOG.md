@@ -7,7 +7,29 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.21.0] (2026-09-01)
+## [6.22.0] (2026-09-04)
+
+### Deprecated
+- ⚠ **`check_verification()`'s `$token` argument** (#1048): `RateLimiter::check_verification()` and `RateLimitChecker::check_verification()` accept a token they have never read — verification throttling is keyed on the IP alone (10/hour, 30/day). No caller passes it. It will be **removed in 6.24.0**; call with `$ip` only. A per-token limit is not needed: the 12-character `[A-Z0-9]` auth code (~62 bits, globally unique) makes the distributed brute-force it would defend against unviable.
+
+### Fixed
+- **A reregistration submission list could return null from a method declared `: array`** (#1027): `ReregistrationSubmissionReader::get_by_reregistration()` passed `get_results()` straight through, so a failed query fataled instead of returning an empty list. Surfaced by narrowing the PHPStan suppression that hid it.
+- **A failed first seed left the certificate-template pool permanently empty** (#865): `CertTemplateSeeder` recorded the seed version even when it created nothing, and that flag short-circuits every later run, so the layout picker fell back to the deprecated `html/` directory. The version is now recorded only once a default is in the pool.
+- **Two activity-log bugs** (#1024): unknown actions fell back to `ucwords()`, rendering untranslated English for 49 of the 64 action keys in use — all 49 now have translated labels, with a guard against the fallback. And submission link/unlink passed the action name where the level belongs, so both recorded the generic `submission`.
+- **The update screen said the plugin was untested on your WordPress** (#1022): `GitHubUpdater` hard-coded the compatibility fields WordPress reads, so raising `Tested up to` in `readme.txt` (#984) left the shipped value at 7.0, and `Requires at least` had drifted the same way. Both are now read at update-check time.
+
+### Changed
+- Internal (#1035) — audited the config-level exclusions, which are `phpcs:disable` with repo-wide reach and had never been reviewed. Two stylelint rules turned on (both measured 0 findings); `UnusedFunctionParameter` and `CommentedOutCode` stay off with the measurements recorded — 33 of 43 and 9 of 9 are structural false positives. Two PHPStan `excludePaths` that never existed removed.
+- Internal (#1035) — dropped three dead parameters the unused-parameter measurement surfaced (`return_to_draft`/`bulk_return_to_draft` took a reviewer id while nulling `reviewed_by`; `collect_form_data` took a user id it never read), and replaced the two `@ob_end_clean()` loops with a level-guarded form that cannot spin on an un-removable buffer.
+- Internal (#1035) — 80 admin-screen reads of `$_GET` now go through `Core\RequestInput`, which gains the int, key and presence readers it was missing. Each raw read had needed a `phpcs:ignore` — the reader was never the problem, its gaps were. Suppressions 557 → 484 lines; `NonceVerification` mentions 164 → 92. Deliberately GET-only: on a POST write path the sniff is doing real work and the annotation is the record that someone checked.
+- Internal (#1035) — the file-level `DirectDatabaseQuery` disables are now scope-gated: a guard fails CI when one of the ~50 classes carrying one grows a query against a WordPress core table, which is the exact condition that justified the disable and was until now only true by inspection. The audit's durable findings are recorded in CLAUDE.md.
+- Internal (#1035) — every PHPCS suppression now says why, and 361 are gone (964 → 603): 65 suppressed nothing, 72 named sniffs that never fire, and 375 `DirectDatabaseQuery` annotations became one file-level disable per class. Four classes had an inner `phpcs:enable` cancelling their own file-level `disable`. A guard fails CI on a bare, unexplained or self-cancelling annotation.
+- Internal (#1028) — enabled `WordPress.DB.DirectDatabaseQuery` and `WordPress.Security.ValidatedSanitizedInput`, neither of which is in the `WordPress-Extra` standard the ruleset uses, so neither had ever run — which is also why 333 `phpcs:ignore` annotations were inert and were removed. All 179 sites they report were read individually; no unsanitised input was found.
+- Internal (#1030) — the vacuous-test register closed: 94 tests that asserted nothing now assert something (tests only, no product change). Most drove a nonce or capability check and ended in `assertTrue( true )`, so deleting the guard left them green. Each was verified by deleting the check and confirming the test fails. Baseline 95 → 1.
+- Internal (#1027) — PHPStan suppressions now say what they silence and why. All 31 used `@phpstan-ignore-next-line <id>`, which ignores *every* error on the line, and now use the filtering `@phpstan-ignore <id>` form; 3 were dropped by typing the export WHERE-builder's return `literal-string`. A guard fails CI on a broad or unexplained suppression.
+- Internal (#1034) — recorded the caching decision for the twelve uncached repository reads the direct-query audit surfaced (comments only, no code change). Tracing the callers overturned the issue's own premise: `UserService::get_user_statistics()` is not on a render path at all. One read survives as worth caching; eleven say why they are not.
+
+## [6.21.0] (2026-09-01) — `ae38302`
 
 ### Added
 - **URL Shortener: the short URL is now readable over REST** (#1012): the opted-in post types gain a read-only `ffc_shortlink` field. `pre_get_shortlink` never reached REST — `WP_REST_Posts_Controller` does not call `wp_get_shortlink()` — so external consumers had no way to read it.

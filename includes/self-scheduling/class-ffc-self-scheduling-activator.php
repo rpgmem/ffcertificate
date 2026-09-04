@@ -23,6 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Schema and data statements against the plugin's own ffc_* tables during activation/migration. WordPress exposes no API for them, and there is nothing to cache on this path.
 /**
  * Plugin activation tasks for self scheduling.
  */
@@ -117,7 +118,6 @@ class SelfSchedulingActivator {
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		dbDelta( $sql );
 	}
 
@@ -203,7 +203,6 @@ class SelfSchedulingActivator {
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		dbDelta( $sql );
 	}
 
@@ -258,7 +257,6 @@ class SelfSchedulingActivator {
 		$table_name = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
 		// Get appointments without validation codes.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$appointments = $wpdb->get_results(
 			$wpdb->prepare( "SELECT id FROM %i WHERE validation_code IS NULL OR validation_code = ''", $table_name )
 		);
@@ -268,7 +266,6 @@ class SelfSchedulingActivator {
 			$validation_code = self::generate_unique_validation_code();
 
 			// Update appointment.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->update(
 				$table_name,
 				array( 'validation_code' => $validation_code ),
@@ -296,7 +293,6 @@ class SelfSchedulingActivator {
 			$code = \FreeFormCertificate\Core\AuthCodeService::generate_random_string( 12 );
 
 			// Check if code already exists.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$existing = $wpdb->get_var(
 				$wpdb->prepare(
 					'SELECT id FROM %i WHERE validation_code = %s',
@@ -484,7 +480,6 @@ class SelfSchedulingActivator {
 		// Migrate data from require_login if the old column exists.
 		if ( $require_login_exists ) {
 			// require_login=1 → private/private.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->query(
 				$wpdb->prepare(
 					"UPDATE %i SET visibility = 'private', scheduling_visibility = 'private' WHERE require_login = 1",
@@ -493,7 +488,6 @@ class SelfSchedulingActivator {
 			);
 
 			// require_login=0 → public/public (already default, but be explicit).
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->query(
 				$wpdb->prepare(
 					"UPDATE %i SET visibility = 'public', scheduling_visibility = 'public' WHERE require_login = 0",
@@ -502,7 +496,6 @@ class SelfSchedulingActivator {
 			);
 
 			// Drop old columns.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->query(
 				$wpdb->prepare(
 					'ALTER TABLE %i DROP COLUMN require_login, DROP COLUMN allowed_roles',
@@ -587,7 +580,6 @@ class SelfSchedulingActivator {
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		dbDelta( $sql );
 	}
 
@@ -606,7 +598,6 @@ class SelfSchedulingActivator {
 		);
 
 		foreach ( $tables as $table ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ) );
 		}
 	}
@@ -642,7 +633,6 @@ class SelfSchedulingActivator {
 
 		// Check if validation_code index exists and whether it's already unique.
 		if ( self::index_exists( $table_name, 'validation_code' ) ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$indexes = $wpdb->get_results( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Key_name = %s', $table_name, 'validation_code' ) );
 
 			// Check if Non_unique = 0 (already unique).
@@ -651,12 +641,10 @@ class SelfSchedulingActivator {
 			}
 
 			// Drop the non-unique index first.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table_name, 'validation_code' ) );
 		}
 
 		// Add UNIQUE index.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD UNIQUE KEY validation_code (validation_code)', $table_name ) );
 	}
 }

@@ -19,6 +19,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Recruitment;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -45,16 +47,11 @@ final class RecruitmentClassificationFilterManager {
 	 * @return array<string, mixed> Map of normalized filter values.
 	 */
 	public static function read_filters( int $notice_id ): array {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
-		$adj_id = isset( $_GET['ffc_cls_adj'] ) ? absint( wp_unslash( (string) $_GET['ffc_cls_adj'] ) ) : 0;
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
-		$query = isset( $_GET['ffc_cls_q'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['ffc_cls_q'] ) ) : '';
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
-		$cpf = isset( $_GET['ffc_cls_cpf'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['ffc_cls_cpf'] ) ) : '';
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
-		$rf = isset( $_GET['ffc_cls_rf'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['ffc_cls_rf'] ) ) : '';
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
-		$sub_raw = isset( $_GET['ffc_cls_sub'] ) ? sanitize_key( wp_unslash( (string) $_GET['ffc_cls_sub'] ) ) : '';
+		$adj_id  = RequestInput::get_get_int( 'ffc_cls_adj' );
+		$query   = RequestInput::get_get_string( 'ffc_cls_q' );
+		$cpf     = RequestInput::get_get_string( 'ffc_cls_cpf' );
+		$rf      = RequestInput::get_get_string( 'ffc_cls_rf' );
+		$sub_raw = RequestInput::get_get_key( 'ffc_cls_sub' );
 		$sub     = in_array( $sub_raw, array( 'pcd', 'geral' ), true ) ? $sub_raw : '';
 
 		// Resolve CPF / RF to a candidate id (or 0 = no match) via the

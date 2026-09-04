@@ -22,6 +22,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -225,7 +227,6 @@ class ReregistrationAdmin {
 		);
 
 		// Enqueue PDF libraries on submissions view.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$view = \FreeFormCertificate\Core\RequestInput::get_get_string( 'view' );
 		if ( 'submissions' === $view ) {
 			wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
@@ -246,15 +247,13 @@ class ReregistrationAdmin {
 			wp_die( esc_html__( 'Permission denied.', 'ffcertificate' ) );
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$view = \FreeFormCertificate\Core\RequestInput::get_get_string( 'view', 'list' );
 
 		// The editor form is a write surface — deny read-only viewers.
 		if ( in_array( $view, array( 'new', 'edit' ), true ) && ! $this->can_edit() ) {
 			wp_die( esc_html__( 'Permission denied.', 'ffcertificate' ) );
 		}
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+		$id = RequestInput::get_get_int( 'id' );
 
 		$can_edit = $this->can_edit();
 
@@ -292,16 +291,13 @@ class ReregistrationAdmin {
 			return;
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$page = \FreeFormCertificate\Core\RequestInput::get_get_string( 'page' );
 		if ( self::MENU_SLUG !== $page ) {
 			return;
 		}
 
 		// Show redirect messages.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( isset( $_GET['message'] ) ) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( RequestInput::has_get( 'message' ) ) {
 			$msg      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'message' );
 			$messages = array(
 				'created'                => __( 'Reregistration created successfully.', 'ffcertificate' ),
@@ -341,7 +337,6 @@ class ReregistrationAdmin {
 	 * @return void
 	 */
 	private function handle_save(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified immediately below.
 		if ( ! isset( $_POST['ffc_action'] ) || 'save_reregistration' !== $_POST['ffc_action'] ) {
 			return;
 		}
@@ -349,7 +344,6 @@ class ReregistrationAdmin {
 			return;
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$id          = isset( $_POST['reregistration_id'] ) ? absint( $_POST['reregistration_id'] ) : 0;
 		$prev_status = null;
 
@@ -358,7 +352,6 @@ class ReregistrationAdmin {
 			$prev_status = $existing ? $existing->status : null;
 		}
 
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above (line 707).
 		$data = array(
 			'title'                      => \FreeFormCertificate\Core\RequestInput::get_post_string( 'rereg_title' ),
 			'start_date'                 => \FreeFormCertificate\Core\RequestInput::get_post_string( 'rereg_start_date' ),
@@ -376,7 +369,6 @@ class ReregistrationAdmin {
 		if ( isset( $_POST['rereg_audience_ids'] ) && is_array( $_POST['rereg_audience_ids'] ) ) {
 			$audience_ids = array_map( 'absint', $_POST['rereg_audience_ids'] );
 		}
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		if ( $id > 0 ) {
 			ReregistrationRepository::update( $id, $data );
@@ -413,7 +405,6 @@ class ReregistrationAdmin {
 	 * @return void
 	 */
 	private function handle_delete(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( ! isset( $_GET['action'] ) || 'delete' !== $_GET['action'] || ! isset( $_GET['id'] ) ) {
 			return;
 		}

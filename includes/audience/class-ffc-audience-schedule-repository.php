@@ -16,7 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- {$where_clause}/{$limit_clause} are fragments assembled here, {$orderby} comes from sanitize_sql_orderby() and {$id} from an int cast. Table names go through %i and every value through a placeholder.
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Database repository for audience schedule records.
  *
@@ -92,19 +93,24 @@ class AudienceScheduleRepository {
 		$orderby           = $orderby_sanitized ? $orderby_sanitized : 'name ASC';
 		$limit_clause      = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$sql = "SELECT * FROM %i {$where_clause} ORDER BY {$orderby} {$limit_clause}";
 
 		$prepare_args = array_merge( array( $table ), $values );
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		/**
-		 * Description.
+		 * `$sql` interpolates `{$where_clause}`, `{$orderby}` and `{$limit_clause}`,
+		 * all assembled at runtime, so it is a plain string rather than the
+		 * `literal-string` the stub declares. It cannot become one: `$orderby` comes
+		 * from `sanitize_sql_orderby()`, whose return is a runtime value by
+		 * construction. That call is also what makes it safe — it rejects anything
+		 * that is not a column list with an optional ASC/DESC. The WHERE fragments are
+		 * literals carrying placeholders (values travel in `$prepare_args`), the LIMIT
+		 * clause is built from integers, and the table name is bound with `%i`.
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
 		$sql = $wpdb->prepare( $sql, $prepare_args );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The argument is the string $wpdb->prepare() returned above; the sniff cannot follow a prepared string across an assignment.
 		$results = $wpdb->get_results( $sql );
 		/**
 		 * Cast wpdb result to typed shape.
@@ -129,7 +135,6 @@ class AudienceScheduleRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		/**
 		 * Cast wpdb result to typed shape.
 		 *
@@ -159,7 +164,6 @@ class AudienceScheduleRepository {
 		$table       = self::get_table_name();
 		$perms_table = self::get_permissions_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT DISTINCT s.* FROM %i s
@@ -288,7 +292,6 @@ class AudienceScheduleRepository {
 			}
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->update(
 			$table,
 			$update_data,
@@ -312,7 +315,6 @@ class AudienceScheduleRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
@@ -331,7 +333,6 @@ class AudienceScheduleRepository {
 		$wpdb  = self::db();
 		$table = self::get_permissions_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		/**
 		 * Cast wpdb result to typed shape.
 		 *
@@ -358,7 +359,6 @@ class AudienceScheduleRepository {
 		$wpdb  = self::db();
 		$table = self::get_permissions_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE schedule_id = %d', $table, $schedule_id )
 		);
@@ -393,7 +393,6 @@ class AudienceScheduleRepository {
 		$existing = self::get_user_permissions( $schedule_id, $user_id );
 
 		if ( $existing ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$result = $wpdb->update(
 				$table,
 				array(
@@ -406,7 +405,6 @@ class AudienceScheduleRepository {
 				array( '%d' )
 			);
 		} else {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 			$result = $wpdb->insert(
 				$table,
 				array(
@@ -434,7 +432,6 @@ class AudienceScheduleRepository {
 		$wpdb  = self::db();
 		$table = self::get_permissions_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->delete(
 			$table,
 			array(
@@ -558,14 +555,12 @@ class AudienceScheduleRepository {
 
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$sql = "SELECT COUNT(*) FROM %i {$where_clause}";
 
 		$prepare_args = array_merge( array( $table ), $values );
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$sql = $wpdb->prepare( $sql, $prepare_args );
+		$sql          = $wpdb->prepare( $sql, $prepare_args );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The argument is the string $wpdb->prepare() returned above; the sniff cannot follow a prepared string across an assignment.
 		return (int) $wpdb->get_var( $sql );
 	}
 }

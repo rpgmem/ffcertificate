@@ -15,6 +15,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -322,8 +324,7 @@ class AdminAssetsManager {
 	 */
 	private function is_ffc_page(): bool {
 		$is_ffc_post_type = ( 'ffc_form' === $this->post_type );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Page routing check, no nonce needed.
-		$is_ffc_menu = strpos( \FreeFormCertificate\Core\RequestInput::get_get_string( 'page' ), 'ffc-' ) !== false;
+		$is_ffc_menu      = strpos( \FreeFormCertificate\Core\RequestInput::get_get_string( 'page' ), 'ffc-' ) !== false;
 
 		return $is_ffc_post_type || $is_ffc_menu;
 	}
@@ -508,12 +509,7 @@ class AdminAssetsManager {
 	 * @return bool
 	 */
 	public static function is_settings_page(): bool {
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Page routing check for asset loading, no data processing.
-		if ( ! isset( $_GET['page'] ) ) {
-			return false;
-		}
-		$page = sanitize_key( wp_unslash( $_GET['page'] ) );
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+		$page = RequestInput::get_get_key( 'page' );
 		return 'ffc-settings' === $page || 'ffc-scheduling-settings' === $page;
 	}
 

@@ -88,7 +88,10 @@ class AppointmentsListViewTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
 			->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( '' );
+			->shouldReceive( 'get_get_string' )->andReturn( '' )
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'do not have permission' );
@@ -108,7 +111,10 @@ class AppointmentsListViewTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
 			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'confirm' : '' );
+			->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'confirm' : '' )
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
 		$appt_repo->shouldReceive( 'confirm' )->with( 5, 1 )->andReturn( true );
@@ -133,7 +139,10 @@ class AppointmentsListViewTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
 			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'confirm' : '' );
+			->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'confirm' : '' )
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
 		$appt_repo->shouldReceive( 'confirm' )->with( 5, 1 )->andReturn( false );
@@ -159,7 +168,10 @@ class AppointmentsListViewTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
 			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'cancel' : '' );
+			->shouldReceive( 'get_get_string' )->andReturnUsing( fn( $k ) => 'ffc_action' === $k ? 'cancel' : '' )
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		Functions\when( 'do_action' )->justReturn( null );
 
@@ -188,7 +200,10 @@ class AppointmentsListViewTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
 			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( '' );
+			->shouldReceive( 'get_get_string' )->andReturn( '' )
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		// #739 §3.3 — the detail view resolves a PII tier; pin it unmasked.
 		Mockery::getConfiguration()->setConstantsMap(
@@ -239,7 +254,10 @@ class AppointmentsListViewTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
 			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( '' );
+			->shouldReceive( 'get_get_string' )->andReturn( '' )
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		Mockery::getConfiguration()->setConstantsMap(
 			array(
@@ -296,7 +314,10 @@ class AppointmentsListViewTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
 			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( '' );
+			->shouldReceive( 'get_get_string' )->andReturn( '' )
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
 		$appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn( null );
@@ -317,7 +338,10 @@ class AppointmentsListViewTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
 			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( '' );
+			->shouldReceive( 'get_get_string' )->andReturn( '' )
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
 		$appt_repo->shouldReceive( 'findAll' )->andReturn( array() );

@@ -25,6 +25,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Recruitment;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -62,8 +64,7 @@ final class RecruitmentReasonEditPage {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only render.
-		$reason_id = isset( $_GET['reason_id'] ) ? absint( wp_unslash( (string) $_GET['reason_id'] ) ) : 0;
+		$reason_id = RequestInput::get_get_int( 'reason_id' );
 		$reason    = $reason_id > 0 ? RecruitmentReasonReader::get_by_id( $reason_id ) : null;
 
 		if ( null === $reason ) {
@@ -183,9 +184,10 @@ final class RecruitmentReasonEditPage {
 		$color = isset( $_POST['color'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['color'] ) ) : '';
 
 		$applies_raw = isset( $_POST['applies_to'] ) && is_array( $_POST['applies_to'] )
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Array-checked here, then each element validated against the allowed applies-to values below.
 			? wp_unslash( $_POST['applies_to'] )
 			: array();
-		$applies     = array();
+		$applies = array();
 		foreach ( $applies_raw as $candidate ) {
 			if ( is_string( $candidate ) ) {
 				$applies[] = $candidate;

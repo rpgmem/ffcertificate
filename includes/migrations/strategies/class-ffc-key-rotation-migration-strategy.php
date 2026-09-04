@@ -53,6 +53,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Schema and data statements against the plugin's own ffc_* tables during activation/migration. WordPress exposes no API for them, and there is nothing to cache on this path.
 /**
  * Strategy implementation for the S7b encryption-key rotation.
  */
@@ -345,7 +346,7 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 
 		$migrated = (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM %i WHERE id <= %d AND ( {$predicate} )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- see above.
+				"SELECT COUNT(*) FROM %i WHERE id <= %d AND ( {$predicate} )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$predicate} comes from non_empty_predicate(), which builds it from the strategy's own column allowlist; the table goes through %i and the cursor is bound.
 				$table,
 				$cursor
 			)

@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- The sniff only recognises the global $wpdb->prepare(); this class binds wpdb as a property, so every $this->wpdb->prepare() call reads as unprepared SQL. Table names go through %i and every value through a placeholder; {$where_sql}/{$placeholders} are assembled here, {$orderby}/{$order} come from an in_array() allowlist and {$orphan_expr}/{$nevclk_expr}/{$trashed_expr} are literal SQL fragments.
 /**
  * Read queries for url shortener records.
  */
@@ -64,7 +64,6 @@ class UrlShortenerReader extends AbstractRepository {
 			return $cached;
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->get_row(
 			$this->wpdb->prepare( 'SELECT * FROM %i WHERE short_code = %s', $this->table, $code ),
 			ARRAY_A
@@ -91,7 +90,6 @@ class UrlShortenerReader extends AbstractRepository {
 			return $cached;
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->get_row(
 			$this->wpdb->prepare(
 				'SELECT * FROM %i WHERE post_id = %d AND status = %s ORDER BY id DESC LIMIT 1',
@@ -116,7 +114,6 @@ class UrlShortenerReader extends AbstractRepository {
 	 * @return bool
 	 */
 	public function codeExists( string $code ): bool {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$count = (int) $this->wpdb->get_var(
 			$this->wpdb->prepare(
 				'SELECT COUNT(*) FROM %i WHERE short_code = %s',
@@ -188,18 +185,16 @@ class UrlShortenerReader extends AbstractRepository {
 		$count_query = "SELECT COUNT(*) FROM %i {$where_sql}";
 		$count_args  = array_merge( array( $this->table ), $where_values );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$total = (int) $this->wpdb->get_var(
-			$this->wpdb->prepare( $count_query, ...$count_args ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$this->wpdb->prepare( $count_query, ...$count_args )
 		);
 
 		// Build items query.
 		$items_query = "SELECT * FROM %i {$where_sql} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d";
 		$items_args  = array_merge( array( $this->table ), $where_values, array( $per_page, $offset ) );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$items = $this->wpdb->get_results(
-			$this->wpdb->prepare( $items_query, ...$items_args ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$this->wpdb->prepare( $items_query, ...$items_args ),
 			ARRAY_A
 		);
 
@@ -259,15 +254,13 @@ class UrlShortenerReader extends AbstractRepository {
 		$query = "SELECT COUNT(*) FROM %i {$where_sql}";
 		$args  = array_merge( array( $this->table ), $where_values );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		/**
 		 * The interpolated part is a literal WHERE from build_export_where().
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
 		$prepared = $this->wpdb->prepare( $query, ...$args );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $this->wpdb->get_var( $prepared );
 	}
 
@@ -287,15 +280,13 @@ class UrlShortenerReader extends AbstractRepository {
 		$query = "SELECT * FROM %i {$where_sql} AND id < %d ORDER BY id DESC LIMIT %d";
 		$args  = array_merge( array( $this->table ), $where_values, array( $cursor, $size ) );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		/**
 		 * The interpolated part is a literal WHERE from build_export_where().
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
 		$prepared = $this->wpdb->prepare( $query, ...$args );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $this->wpdb->get_results( $prepared, ARRAY_A );
 
 		return $rows ? $rows : array();
@@ -329,10 +320,8 @@ class UrlShortenerReader extends AbstractRepository {
 		);
 
 		// The interpolated part is a literal `%s, %s, …` placeholder list.
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$prepared = $this->wpdb->prepare( $sql, ...$args );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $this->wpdb->get_var( $prepared );
 	}
 
@@ -372,10 +361,8 @@ class UrlShortenerReader extends AbstractRepository {
 		);
 
 		// The interpolated part is a literal `%s, %s, …` placeholder list.
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$prepared = $this->wpdb->prepare( $sql, ...$args );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $this->wpdb->get_results( $prepared, ARRAY_A );
 
 		return $rows ? $rows : array();
@@ -435,9 +422,8 @@ class UrlShortenerReader extends AbstractRepository {
 			$args[] = $days;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $this->wpdb->get_results(
-			$this->wpdb->prepare( $sql, ...$args ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$this->wpdb->prepare( $sql, ...$args ),
 			ARRAY_A
 		);
 
@@ -450,7 +436,6 @@ class UrlShortenerReader extends AbstractRepository {
 	 * @return array{total_links: int, active_links: int, total_clicks: int, trashed_links: int}
 	 */
 	public function getStats(): array {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$row = $this->wpdb->get_row(
 			$this->wpdb->prepare(
 				"SELECT
@@ -486,7 +471,6 @@ class UrlShortenerReader extends AbstractRepository {
 		if ( '' === $short_code ) {
 			return '';
 		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Narrow single-column lookup.
 		$value = $this->wpdb->get_var(
 			$this->wpdb->prepare( 'SELECT qr_cache FROM %i WHERE short_code = %s', $this->table, $short_code )
 		);
@@ -494,7 +478,7 @@ class UrlShortenerReader extends AbstractRepository {
 		 * The stub types wpdb::get_var() as non-empty-string, but a genuinely
 		 * empty column returns ''.
 		 *
-		 * @phpstan-ignore-next-line notIdentical.alwaysTrue
+		 * @phpstan-ignore notIdentical.alwaysTrue
 		 */
 		return is_string( $value ) && '' !== $value ? $value : '';
 	}

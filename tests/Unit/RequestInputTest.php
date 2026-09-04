@@ -28,10 +28,14 @@ class RequestInputTest extends TestCase {
 	/** @var array<string, mixed> */
 	private array $server_backup = array();
 
+	/** @var array<string, mixed> */
+	private array $get_backup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 		$this->server_backup = $_SERVER;
+		$this->get_backup    = $_GET;
 		// Start from a clean slate for the headers get_user_ip inspects.
 		foreach ( array( 'HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR' ) as $k ) {
 			unset( $_SERVER[ $k ] );
@@ -40,6 +44,7 @@ class RequestInputTest extends TestCase {
 
 	protected function tearDown(): void {
 		$_SERVER = $this->server_backup;
+		$_GET    = $this->get_backup;
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -110,5 +115,56 @@ class RequestInputTest extends TestCase {
 			'other'          => array( 'banana', false ),
 			'array rejected' => array( array( '1' ), false ),
 		);
+	}
+
+	/**
+	 * Stub the WordPress sanitisers the $_GET readers delegate to. `sanitize_key`
+	 * is stubbed with its real behaviour, not returnArg, because the whole point
+	 * of get_get_key over get_get_string is *which* characters survive.
+	 */
+	private function stub_get_readers(): void {
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_key' )->alias(
+			static fn( $v ): string => (string) preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $v ) )
+		);
+		Functions\when( 'absint' )->alias( static fn( $v ): int => abs( (int) $v ) );
+	}
+
+	public function test_get_get_key_lowercases_and_strips_disallowed_characters(): void {
+		$this->stub_get_readers();
+		$_GET['tab'] = 'Ffc<script>_Tab-1';
+		$this->assertSame( 'ffcscript_tab-1', RequestInput::get_get_key( 'tab' ) );
+	}
+
+	public function test_get_get_key_returns_default_when_absent(): void {
+		$this->stub_get_readers();
+		unset( $_GET['tab'] );
+		$this->assertSame( 'general', RequestInput::get_get_key( 'tab', 'general' ) );
+	}
+
+	public function test_get_get_key_returns_default_for_an_array_value(): void {
+		$this->stub_get_readers();
+		$_GET['tab'] = array( 'a', 'b' );
+		$this->assertSame( 'general', RequestInput::get_get_key( 'tab', 'general' ) );
+	}
+
+	public function test_get_get_int_casts_through_absint(): void {
+		$this->stub_get_readers();
+		$_GET['id'] = '-42abc';
+		$this->assertSame( 42, RequestInput::get_get_int( 'id' ) );
+	}
+
+	public function test_get_get_int_returns_default_when_absent(): void {
+		$this->stub_get_readers();
+		unset( $_GET['id'] );
+		$this->assertSame( 7, RequestInput::get_get_int( 'id', 7 ) );
+	}
+
+	public function test_has_get_is_presence_not_truthiness(): void {
+		$_GET['ffc_saved'] = '';
+		$this->assertTrue( RequestInput::has_get( 'ffc_saved' ) );
+
+		unset( $_GET['ffc_saved'] );
+		$this->assertFalse( RequestInput::has_get( 'ffc_saved' ) );
 	}
 }

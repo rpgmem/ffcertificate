@@ -54,6 +54,22 @@ class GithubUpdaterTest extends TestCase {
 		// Note: add_filter/add_action are intentionally NOT stubbed here — only
 		// init() calls them, and its test sets explicit Functions\expect()s (a
 		// when() stub would swallow the calls and make the count assertion fail).
+		// get_file_data() is core's, so Brain\Monkey leaves it undefined. Alias it
+		// to a real parse of the real files rather than a fixture: the whole point
+		// of #1022 is that the compatibility fields must track ffcertificate.php and
+		// readme.txt, and a fixture could happily agree with a stale value.
+		Functions\when( 'get_file_data' )->alias(
+			static function ( $file, array $headers ): array {
+				$chunk = (string) file_get_contents( $file, false, null, 0, 8192 );
+				$out   = array();
+				foreach ( $headers as $key => $label ) {
+					$matched   = preg_match( '/^[ \t\/*#@]*' . preg_quote( $label, '/' ) . ':(.*)$/mi', $chunk, $m );
+					$out[$key] = $matched ? trim( (string) preg_replace( '/\s*(?:\*\/|\?>).*/', '', $m[1] ) ) : '';
+				}
+				return $out;
+			}
+		);
+
 		Functions\when( 'get_site_transient' )->justReturn( false );
 		Functions\when( 'set_site_transient' )->justReturn( true );
 		Functions\when( 'delete_site_transient' )->justReturn( true );
@@ -282,6 +298,33 @@ class GithubUpdaterTest extends TestCase {
 		// The built asset is selected, never the source archive.
 		$this->assertStringContainsString( 'releases/download/v6.18.0/ffcertificate-6.18.0.zip', $item->package );
 		$this->assertStringNotContainsString( 'archive/refs', $item->package );
+	}
+
+	public function test_update_object_carries_the_declared_compatibility_fields(): void {
+		// The #1022 regression, at the level the user saw it: WordPress reads
+		// `tested` off this object — never readme.txt — to decide whether to print
+		// "Compatibility with WordPress X: Not tested". While it was a hard-coded
+		// constant it silently fell a minor behind readme.txt and said "untested"
+		// about a release that had been verified.
+		Functions\when( 'get_site_transient' )->justReturn( false );
+		$body = $this->release_json( '6.18.0' );
+		Functions\when( 'wp_remote_get' )->justReturn( array( 'body' => $body ) );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 200 );
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( $body );
+
+		$item = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) )->response[ self::PLUGIN_FILE ];
+
+		$root   = dirname( __DIR__, 2 );
+		$readme = (string) file_get_contents( $root . '/readme.txt' );
+		$plugin = (string) file_get_contents( $root . '/ffcertificate.php' );
+
+		preg_match( '/^Tested up to:\s*(.+)$/mi', $readme, $tested );
+		preg_match( '/^\s*\*\s*Requires at least:\s*(.+)$/mi', $plugin, $requires );
+		preg_match( '/^\s*\*\s*Requires PHP:\s*(.+)$/mi', $plugin, $php );
+
+		$this->assertSame( trim( $tested[1] ), $item->tested, 'tested must track readme.txt "Tested up to".' );
+		$this->assertSame( trim( $requires[1] ), $item->requires, 'requires must track the plugin header.' );
+		$this->assertSame( trim( $php[1] ), $item->requires_php, 'requires_php must track the plugin header.' );
 	}
 
 	public function test_fetch_skips_when_no_built_asset(): void {

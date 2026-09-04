@@ -91,7 +91,7 @@ class UserCertificatesRestController {
 
 			$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's own submissions table to wp_posts for one user's REST payload; the response is built once per request.
 			$submissions = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT s.*, p.post_title as form_title

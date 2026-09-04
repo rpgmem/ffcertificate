@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Table names go through %i and every request value through a placeholder. The interpolated fragments are built here: {$orderby}/{$order} from an in_array() allowlist, {$where_clause}/{$limit_clause} from fragments assembled in this class, {$id} from an int cast.
 
 /**
  * Read queries for reregistration submission records.
@@ -105,7 +105,7 @@ class ReregistrationSubmissionReader {
 		 *
 		 * @var ReregistrationSubmissionRow|null $result
 		 */
-		$result = $wpdb->get_row(
+		$result = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- This is the cache-miss path — the hit is served by the cache_get() above and the result is stored below.
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
 
@@ -136,7 +136,7 @@ class ReregistrationSubmissionReader {
 		 *
 		 * @var ReregistrationSubmissionRow|null $row
 		 */
-		$row = $wpdb->get_row(
+		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Token lookup: a consumed or revoked auth code must never be served from cache, so this read is deliberately uncached.
 			// 6.7.4 — Include `expired` so a submission that was approved
 			// before the campaign closed still surfaces from its auth code.
 			// The status flip approved → expired happens for housekeeping
@@ -169,7 +169,7 @@ class ReregistrationSubmissionReader {
 		 *
 		 * @var ReregistrationSubmissionRow|null $row
 		 */
-		$row = $wpdb->get_row(
+		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Token lookup: a consumed or revoked magic token must never be served from cache, so this read is deliberately uncached.
 			// 6.7.4 — Same `expired` inclusion as get_by_auth_code() above.
 			// Magic links printed on (or emailed about) an approved ficha
 			// must keep working after the parent campaign ends.
@@ -194,7 +194,7 @@ class ReregistrationSubmissionReader {
 		 *
 		 * @var ReregistrationSubmissionRow|null $row
 		 */
-		$row = $wpdb->get_row(
+		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): the three callers are separate AJAX entry points that read it once each, and the fourth is a loop keyed on a different campaign per iteration — so a cache would never be hit.
 			$wpdb->prepare(
 				'SELECT * FROM %i WHERE reregistration_id = %d AND user_id = %d',
 				$table,
@@ -219,7 +219,7 @@ class ReregistrationSubmissionReader {
 		$table       = self::get_table_name();
 		$rereg_table = ReregistrationRepository::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- JOIN across two of the plugin's own ffc_* tables, which WordPress has no API for; this reader's cache group is invalidated by the matching writer.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT s.*, r.title AS reregistration_title, r.start_date, r.end_date, r.status AS reregistration_status
@@ -300,13 +300,27 @@ class ReregistrationSubmissionReader {
 
 		$prepare_values = array_merge( array( $table, $wpdb->users ), $values );
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		/**
-		 * Description.
+		 * `$sql` interpolates `$where_clause`, `$orderby`, `$order` and
+		 * `$limit_clause`, so it is a runtime string rather than the
+		 * `literal-string` the stub declares. Nothing request-derived reaches
+		 * the SQL text: the WHERE fragments are literals carrying `%d` / `%s`
+		 * (values travel in `$prepare_values`), `$orderby` is picked from
+		 * `$allowed_orderby`, `$order` collapses to `ASC`/`DESC`, and the two
+		 * table names are bound with `%i`.
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
-		return $wpdb->get_results( $wpdb->prepare( $sql, $prepare_values ) );
+		$results = $wpdb->get_results( $wpdb->prepare( $sql, $prepare_values ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Filtered and sorted list keyed on the caller's arguments; the key cardinality is effectively unbounded.
+		/**
+		 * Cast wpdb result to the typed row shape. `get_results()` returns null
+		 * on a failed query, which this method's `: array` return type would
+		 * turn into a TypeError — the narrowed suppression above is what
+		 * surfaced that; the broad form had been hiding it.
+		 *
+		 * @var list<ReregistrationSubmissionRow>
+		 */
+		return is_array( $results ) ? $results : array();
 	}
 
 	/**
@@ -319,6 +333,7 @@ class ReregistrationSubmissionReader {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): two callers, both in the campaign admin renderer. Marginal at best — one saved query on an admin screen.
 		$results_raw = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT status, COUNT(*) as count FROM %i
@@ -414,6 +429,7 @@ class ReregistrationSubmissionReader {
 			$values[] = $status;
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uncached by decision (#1034): a single caller, the export source, once per export job.
 		return (int) $wpdb->get_var(
 			$wpdb->prepare( "SELECT COUNT(*) FROM %i {$where}", array_merge( array( $table ), $values ) )
 		);
@@ -445,6 +461,7 @@ class ReregistrationSubmissionReader {
 
 		$prepare_values = array( $table, $wpdb->users, $reregistration_id, $cursor, $size );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset pagination over an export; each page is read exactly once, so there is nothing a cache could serve twice.
 		$results = $wpdb->get_results( $wpdb->prepare( $sql, $prepare_values ) );
 		/**
 		 * Cast wpdb result to the typed row shape.

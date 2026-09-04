@@ -65,7 +65,10 @@ class CalendarRestControllerTest extends TestCase {
 		// Utils alias for log_rest_error + rate-limit guard's IP lookup.
 		$utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
 		$utils_mock->shouldReceive( 'debug_log' )->byDefault();
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' )->shouldReceive( 'get_user_ip' )->andReturn( '127.0.0.1' )->byDefault();
+		Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' )->shouldReceive( 'get_user_ip' )->andReturn( '127.0.0.1' )->byDefault()
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		// RateLimiter alias: every test gets a green light by default.
 		// Individual cases can re-stub `check_read_limit` via the property.

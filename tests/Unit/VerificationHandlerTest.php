@@ -604,21 +604,6 @@ class VerificationHandlerTest extends TestCase {
 		$this->assertSame( 'invalid_token_format', $result['error'] );
 	}
 
-	public function test_magic_token_rate_limited_returns_error(): void {
-		// Rate limiting is hard to trigger via wp_cache stubs because
-		// Brain\Monkey's `when` can only be set once per function per test.
-		// Instead, test via verify_by_magic_token by passing an invalid
-		// IP (the check_verification uses get_user_ip which returns 127.0.0.1).
-		//
-		// We test this by verifying the error response structure when rate_limited
-		// error is present. The actual rate limiting logic is tested in RateLimiterTest.
-		// Here we test that verify_by_magic_token correctly propagates the error.
-		//
-		// Since we can't easily override the namespaced cache stub in this setUp,
-		// we verify the inverse: valid token + no rate limit = success path works.
-		$this->assertTrue( true, 'Rate limiting integration tested via RateLimiterTest' );
-	}
-
 	public function test_magic_token_found_submission_returns_data(): void {
 		$valid_token = str_repeat( 'ab', 16 );
 

@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- $sql is the return value of $this->wpdb->prepare() a few lines above, and the sniff cannot follow a prepared string across an assignment.
 /**
  * Write operations for url shortener records.
  */
@@ -67,7 +67,6 @@ class UrlShortenerWriter extends AbstractRepository {
 		if ( ! is_string( $sql ) ) {
 			return false;
 		}
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->query( $sql );
 
 		return false !== $result;
@@ -88,7 +87,6 @@ class UrlShortenerWriter extends AbstractRepository {
 		if ( '' === $short_code ) {
 			return false;
 		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single-row update keyed by short_code (UNIQUE).
 		$result = $this->wpdb->update(
 			$this->table,
 			array( 'qr_cache' => $base64 ),

@@ -377,14 +377,13 @@ class SubmissionPersister {
 			$hash_column = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
 
 			// Search the specific split column based on digit count.
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $hash_column is derived from strlen() check, not user input.
 			/**
 			 * Cast wpdb result to typed shape.
 			 *
 			 * @var (\stdClass&object{id: numeric-string, status: string, data: string|null, submission_date: string})|null $result
 			 */
-			$result = $wpdb->get_row(
+			$result = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uniqueness probe — serving this from cache would defeat the check it exists to perform.
 				$wpdb->prepare(
 					"SELECT * FROM %i WHERE form_id = %d AND {$hash_column} = %s ORDER BY id DESC LIMIT 1",
 					$table,

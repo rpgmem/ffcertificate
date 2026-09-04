@@ -23,6 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Write operations for reregistration submission records.
  *
@@ -239,11 +240,10 @@ class ReregistrationSubmissionWriter {
 	 * Clears the review metadata and resets submitted_at so the user
 	 * sees it as an editable draft again.
 	 *
-	 * @param int $id          Submission ID.
-	 * @param int $reviewer_id Admin user ID performing the action.
+	 * @param int $id Submission ID.
 	 * @return bool
 	 */
-	public static function return_to_draft( int $id, int $reviewer_id ): bool {
+	public static function return_to_draft( int $id ): bool {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
@@ -269,14 +269,13 @@ class ReregistrationSubmissionWriter {
 	/**
 	 * Bulk return multiple submissions to draft.
 	 *
-	 * @param array<int> $ids         Submission IDs.
-	 * @param int        $reviewer_id Admin user ID performing the action.
+	 * @param array<int> $ids Submission IDs.
 	 * @return int Number of submissions returned to draft.
 	 */
-	public static function bulk_return_to_draft( array $ids, int $reviewer_id ): int {
+	public static function bulk_return_to_draft( array $ids ): int {
 		$count = 0;
 		foreach ( $ids as $id ) {
-			if ( self::return_to_draft( (int) $id, $reviewer_id ) ) {
+			if ( self::return_to_draft( (int) $id ) ) {
 				++$count;
 			}
 		}

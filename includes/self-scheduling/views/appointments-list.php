@@ -17,7 +17,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 // (FreeFormCertificate\SelfScheduling\AppointmentsListTable) — it is
 // instantiated near the bottom of this view.
 
-// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified per-action below via check_admin_referer.
 
 // Appointments base URL (used for redirects and back links).
 $ffcertificate_appointments_url = add_query_arg( array( 'page' => 'ffc-appointments' ), admin_url( 'admin.php' ) );
@@ -25,10 +24,9 @@ $ffcertificate_appointments_url = add_query_arg( array( 'page' => 'ffc-appointme
 // Determine if viewing a specific appointment:
 // - appointment=X alone → view.
 // - appointment=X + ffc_action=confirm|cancel → mutation.
-$ffc_self_scheduling_appointment_id = isset( $_GET['appointment'] ) ? absint( wp_unslash( $_GET['appointment'] ) ) : 0;
+$ffc_self_scheduling_appointment_id = \FreeFormCertificate\Core\RequestInput::get_get_int( 'appointment' );
 $ffcertificate_action               = \FreeFormCertificate\Core\RequestInput::get_get_string( 'ffc_action' );
 
-// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 if ( $ffc_self_scheduling_appointment_id > 0 ) {
 
@@ -79,7 +77,6 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 
 	} elseif ( 'cancel' === $ffcertificate_action ) {
 		check_admin_referer( 'ffc_cancel_appointment_' . $ffc_self_scheduling_appointment_id );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$ffcertificate_cancel_reason = isset( $_GET['reason'] ) ? sanitize_textarea_field( wp_unslash( $_GET['reason'] ) ) : __( 'Cancelled by admin', 'ffcertificate' );
 		// Snapshot the row before cancelling so the waitlist promoter sees the
 		// pre-cancel status/slot (#941 phase 2).
@@ -354,7 +351,7 @@ $ffcertificate_table->prepare_items();
 	// but cannot bulk-extract the attendee dataset). The current calendar/status
 	// filters ride along via data-* so the export matches the on-screen query.
 	if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_appointments' ) ) :
-		$ffc_export_calendar_id = isset( $_GET['calendar_id'] ) ? absint( wp_unslash( $_GET['calendar_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter passthrough; the export itself is nonce-verified in the AJAX source.
+		$ffc_export_calendar_id = \FreeFormCertificate\Core\RequestInput::get_get_int( 'calendar_id' );
 		$ffc_export_status      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
 		?>
 		<button

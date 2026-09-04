@@ -353,10 +353,22 @@ final class RateLimitChecker {
 	}
 
 	/**
-	 * Check rate limit for verification requests (magic links)
+	 * Check rate limit for verification requests (magic links).
 	 *
-	 * @param string      $ip IP address.
-	 * @param string|null $token Token.
+	 * Throttles by IP only — 10/hour and 30/day. The `$token` argument is accepted
+	 * and ignored: a per-token limit was never implemented, and it is not needed
+	 * here. The only thing keying on the token would add is defence against a
+	 * distributed brute-force of a single auth code, and the code space rules that
+	 * out — `AuthCodeService` emits 12 characters over `[A-Z0-9]` (36^12, ~62 bits)
+	 * with global uniqueness verified across the three tables that hold one.
+	 *
+	 * @deprecated 6.22.0 The `$token` argument is ignored and will be removed in
+	 *             6.24.0 (#1048). Call with `$ip` alone. Revisit the per-token limit
+	 *             only if the auth code shortens, or a flow appears that accepts a
+	 *             short human-typed code.
+	 *
+	 * @param string      $ip    IP address.
+	 * @param string|null $token Ignored. Kept for signature compatibility until 6.24.0.
 	 * @return array{allowed: bool, message?: string, wait_seconds?: int}
 	 */
 	public static function check_verification( string $ip, ?string $token = null ): array {

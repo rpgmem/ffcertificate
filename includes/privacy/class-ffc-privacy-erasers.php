@@ -69,7 +69,8 @@ class PrivacyErasers {
 
 		// 1. Submissions: anonymize (preserve certificate verification)
 		$submissions_table = $wpdb->prefix . 'ffc_submissions';
-		$rows              = $wpdb->query(
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
+		$rows = $wpdb->query(
 			$wpdb->prepare(
 				'UPDATE %i
              SET user_id = NULL, email_encrypted = NULL,
@@ -93,6 +94,7 @@ class PrivacyErasers {
 		// 2. Appointments: anonymize PII.
 		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 		if ( self::table_exists( $appointments_table ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 			$rows = $wpdb->query(
 				$wpdb->prepare(
 					'UPDATE %i
@@ -121,6 +123,7 @@ class PrivacyErasers {
 		// 3. Audience members: DELETE.
 		$members_table = $wpdb->prefix . 'ffc_audience_members';
 		if ( self::table_exists( $members_table ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 			$rows = $wpdb->delete( $members_table, array( 'user_id' => $user_id ), array( '%d' ) );
 			if ( $rows > 0 ) {
 				$items_removed += $rows;
@@ -135,6 +138,7 @@ class PrivacyErasers {
 		// 4. Audience booking users: DELETE.
 		$booking_users_table = $wpdb->prefix . 'ffc_audience_booking_users';
 		if ( self::table_exists( $booking_users_table ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 			$rows = $wpdb->delete( $booking_users_table, array( 'user_id' => $user_id ), array( '%d' ) );
 			if ( $rows > 0 ) {
 				$items_removed += $rows;
@@ -144,6 +148,7 @@ class PrivacyErasers {
 		// 5. Audience schedule permissions: DELETE.
 		$permissions_table = $wpdb->prefix . 'ffc_audience_schedule_permissions';
 		if ( self::table_exists( $permissions_table ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 			$rows = $wpdb->delete( $permissions_table, array( 'user_id' => $user_id ), array( '%d' ) );
 			if ( $rows > 0 ) {
 				$items_removed += $rows;
@@ -153,6 +158,7 @@ class PrivacyErasers {
 		// 6. User profiles: DELETE.
 		$profiles_table = $wpdb->prefix . 'ffc_user_profiles';
 		if ( self::table_exists( $profiles_table ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
 			$rows = $wpdb->delete( $profiles_table, array( 'user_id' => $user_id ), array( '%d' ) );
 			if ( $rows > 0 ) {
 				++$items_removed;
@@ -164,7 +170,7 @@ class PrivacyErasers {
 		\FreeFormCertificate\Core\ActivityLogQuery::redact_user_id( $user_id );
 
 		// 8. ffc_* user meta: DELETE.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk statement over the plugin's own ffc_* user-meta keys, matched by prefix — the WordPress meta API cannot filter by key prefix, and doing it per user per key would be thousands of queries.
 		$meta_deleted = $wpdb->query(
 			$wpdb->prepare(
 				'DELETE FROM %i WHERE user_id = %d AND meta_key LIKE %s',

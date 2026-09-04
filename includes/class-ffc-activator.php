@@ -16,6 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Schema and data statements against the plugin's own ffc_* tables during activation/migration. WordPress exposes no API for them, and there is nothing to cache on this path.
 /**
  * Plugin activation tasks for plugin.
  */
@@ -129,7 +130,6 @@ class Activator {
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		dbDelta( $sql );
 	}
 
@@ -282,7 +282,6 @@ class Activator {
 			$tz         = wp_timezone();
 			$batch_size = 500;
 			do {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$rows      = $wpdb->get_results(
 					$wpdb->prepare( 'SELECT id, submission_date FROM %i WHERE submission_date_ts = 0 LIMIT %d', $table, $batch_size )
 				);
@@ -293,7 +292,6 @@ class Activator {
 				foreach ( $rows as $row ) {
 					try {
 						$dt = new \DateTimeImmutable( (string) $row->submission_date, $tz );
-                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 						$wpdb->update(
 							$table,
 							array( 'submission_date_ts' => $dt->getTimestamp() ),
@@ -315,13 +313,10 @@ class Activator {
 			// drop the old DATETIME column, rename the staging column over it.
 			foreach ( array( 'idx_status_submission_date', 'idx_form_status_date' ) as $idx ) {
 				if ( self::index_exists( $table, $idx ) ) {
-                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 					$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table, $idx ) );
 				}
 			}
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table, 'submission_date' ) );
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i CHANGE %i %i BIGINT UNSIGNED NOT NULL', $table, 'submission_date_ts', 'submission_date' ) );
 		}
 
@@ -399,7 +394,6 @@ class Activator {
 			$tz         = wp_timezone();
 			$batch_size = 500;
 			do {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$rows      = $wpdb->get_results(
 					$wpdb->prepare( 'SELECT id, submitted_at FROM %i WHERE submitted_at IS NOT NULL AND submitted_at_ts IS NULL LIMIT %d', $table, $batch_size )
 				);
@@ -410,7 +404,6 @@ class Activator {
 				foreach ( $rows as $row ) {
 					try {
 						$dt = new \DateTimeImmutable( (string) $row->submitted_at, $tz );
-                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 						$wpdb->update(
 							$table,
 							array( 'submitted_at_ts' => $dt->getTimestamp() ),
@@ -424,9 +417,7 @@ class Activator {
 				}
 			} while ( $row_count === $batch_size );
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table, 'submitted_at' ) );
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i CHANGE %i %i BIGINT UNSIGNED DEFAULT NULL', $table, 'submitted_at_ts', 'submitted_at' ) );
 		}
 
@@ -747,7 +738,6 @@ class Activator {
 			}
 
 			// Check if a UNIQUE index already exists on this column.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$indexes         = $wpdb->get_results( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Column_name = %s', $table, $column ) );
 			$has_unique      = false;
 			$old_index_names = array();
@@ -765,7 +755,6 @@ class Activator {
 			}
 
 			// Remove duplicate auth_codes (keep the most recent) before adding constraint.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->query(
 				$wpdb->prepare(
 					"DELETE t1 FROM %i t1
@@ -785,12 +774,11 @@ class Activator {
 
 			// Drop old non-unique indexes.
 			foreach ( array_unique( $old_index_names ) as $name ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 				$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table, $name ) );
 			}
 
 			// Add UNIQUE constraint.
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic index name uq_{$column} from trusted internal config.
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic index name uq_{$column} from trusted internal config.
 			$wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD UNIQUE INDEX uq_{$column} (%i)", $table, $column ) );
 		}
 	}

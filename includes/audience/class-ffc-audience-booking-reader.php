@@ -20,7 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- {$where_clause}/{$exclude_clause}/{$env_join}/{$env_where}/{$limit_clause} are fragments assembled here and {$placeholders} is %d repeated to match the bound array — prepare() takes them as one argument, which is what ReplacementsWrongNumber trips on. {$orderby} comes from sanitize_sql_orderby() and {$id} from an int cast.
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Read queries for audience booking records.
  *
@@ -146,7 +147,6 @@ class AudienceBookingReader {
 		$orderby           = $orderby_sanitized ? $orderby_sanitized : 'b.booking_date ASC';
 		$limit_clause      = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$sql = "SELECT b.*, e.name as environment_name, e.schedule_id
                 FROM %i b
                 INNER JOIN %i e ON b.environment_id = e.id
@@ -155,15 +155,19 @@ class AudienceBookingReader {
                 {$limit_clause}";
 
 		$prepare_args = array_merge( array( $table, $env_table ), $values );
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		/**
-		 * Description.
+		 * Same shape as the other audience list readers: `{$where_clause}`,
+		 * `{$orderby}` and `{$limit_clause}` are assembled at runtime, so the query is
+		 * not `literal-string`. `$orderby` is a `sanitize_sql_orderby()` result — a
+		 * runtime value by construction, and the check that makes it safe — the WHERE
+		 * fragments are literals carrying placeholders, and both table names are bound
+		 * with `%i`.
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
 		$sql = $wpdb->prepare( $sql, $prepare_args );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The argument is the string $wpdb->prepare() returned above; the sniff cannot follow a prepared string across an assignment.
 		$results = $wpdb->get_results( $sql );
 		/**
 		 * Cast wpdb result to typed shape.
@@ -305,7 +309,6 @@ class AudienceBookingReader {
 		$table     = self::get_table_name();
 		$env_table = AudienceEnvironmentRepository::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		/**
 		 * Cast wpdb result to typed shape.
 		 *
@@ -425,7 +428,6 @@ class AudienceBookingReader {
 
 		$where_clause = ! empty( $where ) ? 'AND ' . implode( ' AND ', $where ) : '';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT DISTINCT b.*, e.name as environment_name, e.schedule_id
@@ -459,7 +461,6 @@ class AudienceBookingReader {
 		$table           = self::get_booking_audiences_table_name();
 		$audiences_table = AudienceReader::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT a.* FROM %i a
@@ -484,7 +485,6 @@ class AudienceBookingReader {
 		$wpdb  = self::db();
 		$table = self::get_booking_users_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_col(
 			$wpdb->prepare(
 				'SELECT user_id FROM %i WHERE booking_id = %d',
@@ -536,13 +536,17 @@ class AudienceBookingReader {
 
 		$exclude_clause = $exclude_booking_id ? $wpdb->prepare( 'AND id != %d', $exclude_booking_id ) : '';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				/**
-				 * Description.
+				 * The SQL is a literal except for `{$exclude_clause}`, which is either '' or
+				 * the output of `prepare( 'AND id != %d', … )` — a runtime string, so the whole
+				 * query stops being `literal-string`. Interpolating an already-prepared
+				 * fragment is safe here specifically because the fragment contains no `%` once
+				 * prepared, so the outer `prepare()` finds no placeholder to re-process in it.
+				 * The table name is bound with `%i` and every value is a placeholder.
 				 *
-				 * @phpstan-ignore-next-line argument.type
+				 * @phpstan-ignore argument.type
 				 */
 				"SELECT * FROM %i
                 WHERE environment_id = %d
@@ -635,13 +639,17 @@ class AudienceBookingReader {
 		$values = array( $date, $end_time, $start_time, $start_time, $end_time, $start_time, $end_time );
 		$values = array_merge( $values, $all_user_ids, $all_user_ids );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$conflicting_bookings_raw = $wpdb->get_results(
 			$wpdb->prepare(
 				/**
-				 * Description.
+				 * The query interpolates `{$env_join}` / `{$env_where}` (empty, or literals
+				 * selected by whether a schedule scope was given) plus the `%d` placeholder
+				 * lists built with `implode` + `array_fill`, so it is a runtime string rather
+				 * than `literal-string`. Every interpolated fragment is code-chosen — no
+				 * request value reaches the SQL text; the ids behind the placeholders travel
+				 * in `$values` and each table name is bound with `%i`.
 				 *
-				 * @phpstan-ignore-next-line argument.type
+				 * @phpstan-ignore argument.type
 				 */
 				"SELECT DISTINCT b.* FROM %i b
                 LEFT JOIN %i ba ON b.id = ba.booking_id
@@ -727,13 +735,17 @@ class AudienceBookingReader {
 		$values = array( $date );
 		$values = array_merge( $values, $audience_ids );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				/**
-				 * Description.
+				 * The query interpolates `{$env_join}` / `{$env_where}` (empty, or literals
+				 * selected by whether a schedule scope was given) plus the `%d` placeholder
+				 * lists built with `implode` + `array_fill`, so it is a runtime string rather
+				 * than `literal-string`. Every interpolated fragment is code-chosen — no
+				 * request value reaches the SQL text; the ids behind the placeholders travel
+				 * in `$values` and each table name is bound with `%i`.
 				 *
-				 * @phpstan-ignore-next-line argument.type
+				 * @phpstan-ignore argument.type
 				 */
 				"SELECT b.id, b.start_time, b.end_time, b.description, a.name AS audience_name, ba.audience_id
                 FROM %i b
@@ -805,14 +817,12 @@ class AudienceBookingReader {
 
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$sql = "SELECT COUNT(*) FROM %i {$where_clause}";
 
 		$prepare_args = array_merge( array( $table ), $values );
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$sql = $wpdb->prepare( $sql, $prepare_args );
+		$sql          = $wpdb->prepare( $sql, $prepare_args );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The argument is the string $wpdb->prepare() returned above; the sniff cannot follow a prepared string across an assignment.
 		return (int) $wpdb->get_var( $sql );
 	}
 }

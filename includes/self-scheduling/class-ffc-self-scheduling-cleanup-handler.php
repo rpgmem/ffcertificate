@@ -231,7 +231,7 @@ class SelfSchedulingCleanupHandler {
 							<span class="ffc-icon-delete"></span>
 							<?php
 							/* translators: %d: number of cancelled appointments */
-							printf( esc_html__( 'Cancelled (%d)', 'ffcertificate' ), intval( $count_cancelled ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format 
+							printf( esc_html__( 'Cancelled (%d)', 'ffcertificate' ), intval( $count_cancelled ) );
 							?>
 						</button>
 					<?php endif; ?>
@@ -244,7 +244,7 @@ class SelfSchedulingCleanupHandler {
 							<span class="dashicons dashicons-calendar"></span> 
 							<?php
 							/* translators: %d: number of past appointments */
-							printf( esc_html__( 'Past (%d)', 'ffcertificate' ), intval( $count_old ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format 
+							printf( esc_html__( 'Past (%d)', 'ffcertificate' ), intval( $count_old ) );
 							?>
 						</button>
 					<?php endif; ?>
@@ -257,7 +257,7 @@ class SelfSchedulingCleanupHandler {
 							<span class="ffc-icon-skip"></span>
 							<?php
 							/* translators: %d: number of future appointments */
-							printf( esc_html__( 'Future (%d)', 'ffcertificate' ), intval( $count_future ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format 
+							printf( esc_html__( 'Future (%d)', 'ffcertificate' ), intval( $count_future ) );
 							?>
 						</button>
 					<?php endif; ?>
@@ -268,7 +268,7 @@ class SelfSchedulingCleanupHandler {
 							data-calendar-id="<?php echo esc_attr( (string) $calendar_id ); ?>">
 						<?php
 						/* translators: %d: total number of appointments */
-						printf( esc_html__( 'All Appointments (%d)', 'ffcertificate' ), intval( $count_all ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- printf with esc_html__ and %d integer format
+						printf( esc_html__( 'All Appointments (%d)', 'ffcertificate' ), intval( $count_all ) );
 						?>
 					</button>
 				</div>

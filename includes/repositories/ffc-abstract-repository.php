@@ -17,7 +17,7 @@ namespace FreeFormCertificate\Repositories;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- The sniff only recognises the global $wpdb->prepare(); this class binds wpdb as a property, so every $this->wpdb->prepare() call reads as unprepared SQL. Table names go through %i and every value through a placeholder; {$where}/{$placeholders} are placeholder strings built from the conditions array, {$order_by} comes from sanitize_order_column() and {$order} from a two-way ternary.
 /**
  * Database repository for abstract records.
  */
@@ -85,7 +85,6 @@ abstract class AbstractRepository {
 			return $cached;
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->get_row(
 			$this->wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $this->table, $id ),
 			ARRAY_A
@@ -127,12 +126,12 @@ abstract class AbstractRepository {
 		if ( ! empty( $missing ) ) {
 			$safe_ids     = array_map( 'absint', $missing );
 			$placeholders = implode( ',', array_fill( 0, count( $safe_ids ), '%d' ) );
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders is %d repeated to match count($safe_ids); Interpolated* is file-disabled above.
+            // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders is %d repeated to match count($safe_ids); Interpolated* is file-disabled above.
 			$rows = $this->wpdb->get_results(
 				$this->wpdb->prepare( "SELECT * FROM %i WHERE id IN ({$placeholders})", $this->table, ...$safe_ids ),
 				ARRAY_A
 			);
-            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+            // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 			if ( is_array( $rows ) ) {
 				foreach ( $rows as $row ) {
@@ -161,12 +160,19 @@ abstract class AbstractRepository {
 		$order_by = $this->sanitize_order_column( $order_by );
 		$order    = strtoupper( $order ) === 'ASC' ? 'ASC' : 'DESC';
 		if ( $limit ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$results = $this->wpdb->get_results(
 				/**
-				 * Description.
+				 * The query interpolates `{$where}` from `build_where_clause()`, so it is a
+				 * runtime string, not the `literal-string` the `wpdb::prepare()` stub wants.
+				 * It cannot be one either, and that is the point: `build_where_clause()`
+				 * returns fragments already run through `prepare()`, so the escaped user
+				 * values are *inside* the clause. Safety comes from there — each condition is
+				 * built as `prepare( '%i = %s', $key, $value )` over a column allowlisted by
+				 * `get_allowed_where_columns()` — not from this call. `{$order_by}` is
+				 * allowlisted by `sanitize_order_column()` and `{$order}` collapses to
+				 * `ASC`/`DESC`; the table is bound with `%i`.
 				 *
-				 * @phpstan-ignore-next-line argument.type
+				 * @phpstan-ignore argument.type
 				 */
 				$this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by} {$order} LIMIT %d OFFSET %d", $this->table, $limit, $offset ),
 				ARRAY_A
@@ -179,12 +185,19 @@ abstract class AbstractRepository {
 			return is_array( $results ) ? $results : array();
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$results = $this->wpdb->get_results(
 			/**
-			 * Description.
+			 * The query interpolates `{$where}` from `build_where_clause()`, so it is a
+			 * runtime string, not the `literal-string` the `wpdb::prepare()` stub wants.
+			 * It cannot be one either, and that is the point: `build_where_clause()`
+			 * returns fragments already run through `prepare()`, so the escaped user
+			 * values are *inside* the clause. Safety comes from there — each condition is
+			 * built as `prepare( '%i = %s', $key, $value )` over a column allowlisted by
+			 * `get_allowed_where_columns()` — not from this call. `{$order_by}` is
+			 * allowlisted by `sanitize_order_column()` and `{$order}` collapses to
+			 * `ASC`/`DESC`; the table is bound with `%i`.
 			 *
-			 * @phpstan-ignore-next-line argument.type
+			 * @phpstan-ignore argument.type
 			 */
 			$this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by} {$order}", $this->table ),
 			ARRAY_A
@@ -205,11 +218,13 @@ abstract class AbstractRepository {
 	 */
 	public function count( array $conditions = array() ): int {
 		$where = $this->build_where_clause( $conditions );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		/**
-		 * Description.
+		 * Same shape as `findAll()`: `{$where}` is a `build_where_clause()` result,
+		 * so it carries already-prepared conditions and cannot be `literal-string`.
+		 * The column allowlist inside that helper is what makes it safe; the table
+		 * name is bound with `%i`.
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
 		return (int) $this->wpdb->get_var( $this->wpdb->prepare( "SELECT COUNT(*) FROM %i {$where}", $this->table ) );
 	}
@@ -221,7 +236,6 @@ abstract class AbstractRepository {
 	 * @return int|false Insert ID on success, false on failure
 	 */
 	public function insert( array $data ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$result = $this->wpdb->insert( $this->table, $data );
 
 		if ( $result ) {
@@ -241,7 +255,6 @@ abstract class AbstractRepository {
 	 * @return int|false Number of rows updated, or false on error
 	 */
 	public function update( int $id, array $data ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->update(
 			$this->table,
 			$data,
@@ -264,7 +277,6 @@ abstract class AbstractRepository {
 	 * @return int|false Number of rows deleted, or false on error
 	 */
 	public function delete( int $id ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->delete( $this->table, array( 'id' => $id ) );
 
 		if ( $result ) {
@@ -317,9 +329,9 @@ abstract class AbstractRepository {
 
 			if ( is_array( $value ) ) {
 				$placeholders = implode( ',', array_fill( 0, count( $value ), '%s' ) );
-				// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders is %s repeated to match count($value).
+				// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders is %s repeated to match count($value).
 				$where_parts[] = $this->wpdb->prepare( "%i IN ({$placeholders})", $key, ...$value );
-				// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+				// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 			} else {
 				$where_parts[] = $this->wpdb->prepare( '%i = %s', $key, $value );
 			}
@@ -389,7 +401,6 @@ abstract class AbstractRepository {
 	 * @return bool
 	 */
 	public function begin_transaction(): bool {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $this->wpdb->query( 'START TRANSACTION' ) !== false;
 	}
 
@@ -400,7 +411,6 @@ abstract class AbstractRepository {
 	 * @return bool
 	 */
 	public function commit(): bool {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $this->wpdb->query( 'COMMIT' ) !== false;
 	}
 
@@ -411,7 +421,6 @@ abstract class AbstractRepository {
 	 * @return bool
 	 */
 	public function rollback(): bool {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $this->wpdb->query( 'ROLLBACK' ) !== false;
 	}
 

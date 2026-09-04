@@ -82,7 +82,7 @@ class UserSummaryRestController {
 			// Count certificates.
 			if ( $this->user_has_capability( 'ffc_view_own_certificates', $user_id, $ctx['is_view_as'] ) ) {
 				$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Counts one user's rows in the plugin's own submissions table for the REST summary; the response is built once per request.
 				$summary['total_certificates'] = (int) $wpdb->get_var(
 					$wpdb->prepare(
 						"SELECT COUNT(*) FROM %i WHERE user_id = %d AND status != 'trash'",

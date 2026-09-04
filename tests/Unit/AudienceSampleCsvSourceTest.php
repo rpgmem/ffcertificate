@@ -47,8 +47,13 @@ class AudienceSampleCsvSourceTest extends TestCase {
 	}
 
 	public function test_authorize_is_noop(): void {
-		// No cap/nonce funcs are stubbed; a no-op authorize() must not call any.
-		( new AudienceSampleCsvSource( 'members' ) )->authorize();
-		$this->assertTrue( true );
+		// #1030: this is the weakest of the batch, and deliberately so. The
+		// contract is that authorize() gates nothing — the page handler does —
+		// and this file does not load Brain\Monkey, so NO WordPress function
+		// is defined here. A gate of any kind would fatal on the undefined
+		// current_user_can()/wp_verify_nonce(); reaching the assertion is what
+		// shows there is none. What is asserted is the return contract; the
+		// environment is what gives the test its teeth.
+		$this->assertNull( ( new AudienceSampleCsvSource( 'members' ) )->authorize() );
 	}
 }

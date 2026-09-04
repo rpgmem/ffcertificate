@@ -192,7 +192,10 @@ class AdminActivityLogPageTest extends TestCase {
 			->shouldReceive('activity_log_enabled')->andReturn(true);
 
 		Mockery::mock('alias:\FreeFormCertificate\Core\RequestInput')
-			->shouldReceive('get_get_string')->andReturn('');
+			->shouldReceive('get_get_string')->andReturn('')
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$query = Mockery::mock('alias:\FreeFormCertificate\Core\ActivityLogQuery');
 		$query->shouldReceive('get_activities')->andReturn([]);

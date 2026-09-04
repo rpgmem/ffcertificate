@@ -416,7 +416,6 @@ class TabGeolocation extends SettingsTab {
 	 * deletes the location, and redirects back to the settings page.
 	 */
 	private function handle_location_delete(): void {
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified below via wp_verify_nonce.
 		if ( empty( $_GET['ffc_delete_location'] ) ) {
 			return;
 		}
@@ -440,6 +439,5 @@ class TabGeolocation extends SettingsTab {
 		$redirect_url = remove_query_arg( array( 'ffc_delete_location', '_wpnonce' ) );
 		wp_safe_redirect( $redirect_url );
 		exit;
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 	}
 }

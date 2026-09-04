@@ -71,7 +71,6 @@ class MigrationStatusCalculator {
 		$this->try_create_strategy( 'email_hash_rehash' );
 
 		// Allow plugins to register custom strategies.
-        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
 		$this->strategies = apply_filters( 'ffcertificate_migration_strategies', $this->strategies );
 	}
 

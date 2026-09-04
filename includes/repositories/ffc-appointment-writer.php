@@ -22,7 +22,7 @@ namespace FreeFormCertificate\Repositories;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $sql is the return value of $wpdb->prepare() a few lines above and the sniff cannot follow a prepared string across an assignment; {$hash_column} is a ternary over two literal column names.
 /**
  * Write operations for appointment records.
  */
@@ -258,7 +258,6 @@ class AppointmentWriter extends AbstractRepository {
 		if ( ! is_string( $sql ) ) {
 			return 0;
 		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $this->wpdb->query( $sql );
 		$this->clear_cache();
 		return is_int( $rows ) ? $rows : 0;
@@ -286,7 +285,6 @@ class AppointmentWriter extends AbstractRepository {
 		if ( ! is_string( $sql ) ) {
 			return 0;
 		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $this->wpdb->query( $sql );
 		$this->clear_cache();
 		return is_int( $rows ) ? $rows : 0;
@@ -314,7 +312,6 @@ class AppointmentWriter extends AbstractRepository {
 		if ( ! is_string( $sql ) ) {
 			return 0;
 		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $this->wpdb->query( $sql );
 		$this->clear_cache();
 		return is_int( $rows ) ? $rows : 0;
@@ -342,7 +339,6 @@ class AppointmentWriter extends AbstractRepository {
 		if ( ! is_string( $sql ) ) {
 			return 0;
 		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $this->wpdb->query( $sql );
 		$this->clear_cache();
 		return is_int( $rows ) ? $rows : 0;
@@ -382,7 +378,6 @@ class AppointmentWriter extends AbstractRepository {
 		if ( ! is_string( $sql ) ) {
 			return 0;
 		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $hash_column is verified against a fixed allow-list above; values are bound through wpdb->prepare.
 		$rows = $this->wpdb->query( $sql );
 		$this->clear_cache();
 		return is_int( $rows ) ? $rows : 0;

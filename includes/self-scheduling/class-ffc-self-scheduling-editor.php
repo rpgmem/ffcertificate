@@ -401,7 +401,7 @@ class SelfSchedulingEditor {
 		global $wpdb;
 		$calendars    = $wpdb->prefix . 'ffc_self_scheduling_calendars';
 		$appointments = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Guard count joining the plugin's own calendar and appointment tables while the post is edited; a cached number would let a calendar be shrunk with live appointments in it.
 		$count = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(a.id) FROM %i a INNER JOIN %i c ON c.id = a.calendar_id WHERE c.post_id = %d',

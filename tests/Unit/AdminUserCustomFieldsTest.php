@@ -62,6 +62,9 @@ class AdminUserCustomFieldsTest extends TestCase {
 		// Utils alias mock
 		$this->utils_mock = Mockery::mock('alias:\FreeFormCertificate\Core\AssetHelper');
 		$ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
+		$ri_mock->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
+		$ri_mock->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
+		$ri_mock->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		$ri_mock->shouldReceive( 'get_post_string' )->andReturnUsing( function ( $key, $default = '' ) {
 			return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? $_POST[ $key ] : $default;
 		} )->byDefault();

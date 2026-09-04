@@ -170,7 +170,7 @@ class UrlShortenerLoader {
 	 */
 	private function extract_code_from_uri(): string {
 		$prefix = $this->service->get_prefix();
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated -- Existence checked by preg_match; sanitized by regex capture group (alphanumeric only).
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Server-set REQUEST_URI, parsed by wp_parse_url() on the next line and matched against the code pattern.
 		$raw_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
 		$path    = trim( (string) wp_parse_url( $raw_uri, PHP_URL_PATH ), '/' );
 
@@ -239,7 +239,7 @@ class UrlShortenerLoader {
 
 		if ( ! $record || 'active' !== $record['status'] ) {
 			nocache_headers();
-			wp_redirect( home_url( '/' ), 302 ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
+			wp_redirect( home_url( '/' ), 302 ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- The target is home_url(), a first-party constant — wp_safe_redirect() would add a host allowlist check with nothing request-derived to check.
 			exit;
 		}
 
@@ -261,7 +261,7 @@ class UrlShortenerLoader {
 		// Prevent redirect loops.
 		if ( empty( $target_url ) ) {
 			nocache_headers();
-			wp_redirect( home_url( '/' ), 302 ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
+			wp_redirect( home_url( '/' ), 302 ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- The target is home_url(), a first-party constant — wp_safe_redirect() would add a host allowlist check with nothing request-derived to check.
 			exit;
 		}
 

@@ -48,7 +48,6 @@ class Deactivator {
 
 		// Security check: Ensure this was a conscious post action with a nonce.
 		// Note: WordPress deactivation via the "Plugins" page doesn't send POST data by default.
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Deactivation hook; nonce handled by WordPress plugin deactivation flow.
 		if ( \FreeFormCertificate\Core\RequestInput::get_post_string( 'confirm_uninstall' ) !== 'yes' ) {
 			wp_die( esc_html__( 'Please confirm the uninstallation to proceed.', 'ffcertificate' ) );
 		}
@@ -57,7 +56,7 @@ class Deactivator {
 		$table_name = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		// 1. Drop the submissions table.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Drops the plugin's own ffc_* tables; WordPress has no API for them and there is nothing left to cache once they are gone.
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table_name ) );
 
 		// 2. Delete plugin options.

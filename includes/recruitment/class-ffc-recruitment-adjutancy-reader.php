@@ -19,6 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Read queries for `ffc_recruitment_adjutancy` rows.
  *
@@ -85,7 +86,6 @@ class RecruitmentAdjutancyReader {
 		 *
 		 * @var AdjutancyRow|null $result
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cached above and below; %i for table identifier.
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id )
 		);
@@ -116,7 +116,6 @@ class RecruitmentAdjutancyReader {
 		 *
 		 * @var AdjutancyRow|null $result
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Slug lookup is uncached intentionally; called rarely on CSV import / shortcode render.
 		$result = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE slug = %s LIMIT 1', $table, $slug )
 		);
@@ -138,7 +137,6 @@ class RecruitmentAdjutancyReader {
 		 *
 		 * @var list<AdjutancyRow>|null $results
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Admin-only listing; small cardinality (~ tens of rows).
 		$results = $wpdb->get_results(
 			$wpdb->prepare( 'SELECT * FROM %i ORDER BY name ASC', $table )
 		);

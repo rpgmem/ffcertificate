@@ -118,7 +118,6 @@ class SubmissionRestController {
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'verify_certificate' ),
-				// phpcs:ignore -- public-by-design: certificate verification flow; see route docblock above and #139.
 				'permission_callback' => '__return_true',
 				'args'                => array(
 					'auth_code' => array(

@@ -134,7 +134,7 @@ class FormEditor {
 			 * The JS reads this payload as an array; re-keying it to satisfy the
 			 * stub's array<string, mixed> would change the JSON shape.
 			 *
-			 * @phpstan-ignore-next-line argument.type
+			 * @phpstan-ignore argument.type
 			 */
 			wp_localize_script( 'ffc-form-editor-tabs', 'ffcFormTabsErrors', $error_tabs );
 		}
@@ -391,6 +391,7 @@ class FormEditor {
 			wp_send_json_error();
 		}
 
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Deliberately not sanitize_text_field: this is layout HTML, filtered on the next line by wp_kses() with the HtmlPolicy allowlist.
 		$raw  = isset( $_POST['html'] ) ? (string) wp_unslash( $_POST['html'] ) : '';
 		$html = wp_kses( $raw, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
 		if ( '' === trim( $html ) ) {

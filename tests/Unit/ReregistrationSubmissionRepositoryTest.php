@@ -855,7 +855,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 			)
 			->andReturn(1);
 
-		$result = ReregistrationSubmissionWriter::return_to_draft(8, 99);
+		$result = ReregistrationSubmissionWriter::return_to_draft(8);
 
 		$this->assertTrue($result);
 	}
@@ -863,7 +863,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	public function test_return_to_draft_returns_false_on_failure(): void {
 		$this->wpdb->shouldReceive('update')->once()->andReturn(false);
 
-		$result = ReregistrationSubmissionWriter::return_to_draft(8, 99);
+		$result = ReregistrationSubmissionWriter::return_to_draft(8);
 
 		$this->assertFalse($result);
 	}
@@ -872,7 +872,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		// wpdb->update returns 0 (int) when no rows match but no error occurred.
 		$this->wpdb->shouldReceive('update')->once()->andReturn(0);
 
-		$result = ReregistrationSubmissionWriter::return_to_draft(8, 99);
+		$result = ReregistrationSubmissionWriter::return_to_draft(8);
 
 		$this->assertTrue($result);
 	}
@@ -919,7 +919,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	public function test_bulk_return_to_draft_returns_count(): void {
 		$this->wpdb->shouldReceive('update')->times(2)->andReturn(1);
 
-		$count = ReregistrationSubmissionWriter::bulk_return_to_draft(array(10, 11), 99);
+		$count = ReregistrationSubmissionWriter::bulk_return_to_draft(array(10, 11));
 
 		$this->assertSame(2, $count);
 	}
@@ -928,13 +928,13 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive('update')
 			->andReturn(1, false);
 
-		$count = ReregistrationSubmissionWriter::bulk_return_to_draft(array(10, 11), 99);
+		$count = ReregistrationSubmissionWriter::bulk_return_to_draft(array(10, 11));
 
 		$this->assertSame(1, $count);
 	}
 
 	public function test_bulk_return_to_draft_returns_zero_for_empty_array(): void {
-		$count = ReregistrationSubmissionWriter::bulk_return_to_draft(array(), 99);
+		$count = ReregistrationSubmissionWriter::bulk_return_to_draft(array());
 
 		$this->assertSame(0, $count);
 	}

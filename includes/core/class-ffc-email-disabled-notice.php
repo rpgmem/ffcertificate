@@ -62,6 +62,6 @@ final class EmailDisabledNotice {
 
 		// $html is assembled entirely from esc_url() / esc_html__() output plus a
 		// single static <a> tag, so it is already output-safe.
-		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $html is assembled above entirely from esc_url()/esc_html__() output plus a static <a> tag, so it is already output-safe.
 	}
 }

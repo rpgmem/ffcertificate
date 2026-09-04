@@ -31,6 +31,10 @@ class SelfSchedulingCPTTest extends TestCase {
 		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'add_action' )->justReturn( true );
+		// RequestInput::get_get_int() runs for real here (no alias mock), so its
+		// WordPress dependencies need stubs.
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ): int => abs( (int) $v ) );
 		Functions\when( 'add_filter' )->justReturn( true );
 		// #673: EmailService::send derives a text/plain alternative for HTML
 		// messages — stub the WP glue that derivation touches.
@@ -72,9 +76,19 @@ class SelfSchedulingCPTTest extends TestCase {
 	// ==================================================================
 
 	public function test_register_calendar_cpt_registers_post_type(): void {
+		// #1030: the name claims a post type is registered; nothing checked it.
+		$registered = array();
+		Functions\when( 'register_post_type' )->alias(
+			static function ( $slug ) use ( &$registered ) {
+				$registered[] = $slug;
+				return (object) array( 'name' => $slug );
+			}
+		);
+
 		$cpt = new SelfSchedulingCPT();
 		$cpt->register_calendar_cpt();
-		$this->assertTrue( true );
+
+		$this->assertNotEmpty( $registered, 'register_calendar_cpt() registered no post type' );
 	}
 
 	// ==================================================================
@@ -154,11 +168,15 @@ class SelfSchedulingCPTTest extends TestCase {
 			define( 'DOING_AUTOSAVE', true );
 		}
 
+		// #1030: this asserted nothing. Past the guards sync_calendar_data()
+		// looks the calendar up by post id before creating or updating it, so
+		// a repository never consulted is the proof the guard returned.
+		Mockery::mock( 'overload:FreeFormCertificate\\Repositories\\CalendarRepository' )
+			->shouldNotReceive( 'findByPostId' );
+
 		$cpt = new SelfSchedulingCPT();
 		$post = (object) array( 'post_status' => 'publish', 'post_title' => 'Test' );
 		$cpt->sync_calendar_data( 1, $post, true );
-
-		$this->assertTrue( true );
 	}
 
 	// ==================================================================
@@ -166,11 +184,15 @@ class SelfSchedulingCPTTest extends TestCase {
 	// ==================================================================
 
 	public function test_cleanup_calendar_data_skips_wrong_post_type(): void {
+		// Past the post-type guard cleanup_calendar_data() looks the calendar up
+		// before deleting it — the sibling no-record test asserts on the same
+		// collaborator.
+		Mockery::mock( 'overload:FreeFormCertificate\\Repositories\\CalendarRepository' )
+			->shouldNotReceive( 'findByPostId' );
+
 		$cpt = new SelfSchedulingCPT();
 		$post = (object) array( 'post_type' => 'post' );
 		$cpt->cleanup_calendar_data( 1, $post );
-
-		$this->assertTrue( true );
 	}
 
 	// ==================================================================
@@ -297,11 +319,15 @@ class SelfSchedulingCPTTest extends TestCase {
 	public function test_sync_calendar_data_skips_revision(): void {
 		Functions\when( 'wp_is_post_revision' )->justReturn( true );
 
+		// #1030: this asserted nothing. Past the guards sync_calendar_data()
+		// looks the calendar up by post id before creating or updating it, so
+		// a repository never consulted is the proof the guard returned.
+		Mockery::mock( 'overload:FreeFormCertificate\\Repositories\\CalendarRepository' )
+			->shouldNotReceive( 'findByPostId' );
+
 		$cpt  = new SelfSchedulingCPT();
 		$post = (object) array( 'post_status' => 'publish', 'post_title' => 'X' );
 		$cpt->sync_calendar_data( 1, $post, true );
-
-		$this->assertTrue( true );
 	}
 
 	// ==================================================================
@@ -315,11 +341,15 @@ class SelfSchedulingCPTTest extends TestCase {
 	public function test_sync_calendar_data_skips_non_publish(): void {
 		Functions\when( 'wp_is_post_revision' )->justReturn( false );
 
+		// #1030: this asserted nothing. Past the guards sync_calendar_data()
+		// looks the calendar up by post id before creating or updating it, so
+		// a repository never consulted is the proof the guard returned.
+		Mockery::mock( 'overload:FreeFormCertificate\\Repositories\\CalendarRepository' )
+			->shouldNotReceive( 'findByPostId' );
+
 		$cpt  = new SelfSchedulingCPT();
 		$post = (object) array( 'post_status' => 'draft', 'post_title' => 'X' );
 		$cpt->sync_calendar_data( 1, $post, true );
-
-		$this->assertTrue( true );
 	}
 
 	// ==================================================================

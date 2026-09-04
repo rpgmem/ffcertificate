@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Admin;
 
 use FreeFormCertificate\Core\LabelSorter;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -110,7 +111,6 @@ class Settings {
 		 * @since 6.16.0
 		 * @param array<int, string> $caps Capability slugs.
 		 */
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix.
 		return (array) apply_filters(
 			'ffcertificate_settings_page_entry_caps',
 			array(
@@ -214,7 +214,6 @@ class Settings {
 		);
 
 		// Allow plugins to add custom tabs.
-        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
 		$this->tabs = apply_filters( 'ffcertificate_settings_tabs', $this->tabs );
 	}
 
@@ -420,8 +419,7 @@ class Settings {
 	 * @return string
 	 */
 	private function resolve_active_tab( array $visible_tabs ): string {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- display-only URL parameter; sanitize_key applied.
-		$requested = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+		$requested = RequestInput::get_get_key( 'tab' );
 		if ( '' !== $requested && isset( $visible_tabs[ $requested ] ) ) {
 			return $requested;
 		}
@@ -460,14 +458,11 @@ class Settings {
 	 * @return void
 	 */
 	private function render_qr_cache_message(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only.
-		if ( isset( $_GET['msg'] ) ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only URL parameter.
-			$msg = sanitize_key( wp_unslash( $_GET['msg'] ) );
+		if ( RequestInput::has_get( 'msg' ) ) {
+			$msg = RequestInput::get_get_key( 'msg' );
 
 			if ( 'qr_cache_cleared' === $msg ) {
-				// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- display-only URL parameter.
-				$cleared = isset( $_GET['cleared'] ) ? absint( wp_unslash( $_GET['cleared'] ) ) : 0;
+				$cleared = RequestInput::get_get_int( 'cleared' );
 				wp_admin_notice(
 					esc_html(
 						sprintf(
@@ -494,14 +489,11 @@ class Settings {
 	 * @return void
 	 */
 	private function render_cache_messages(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only.
-		if ( isset( $_GET['msg'] ) ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only URL parameter.
-			$msg = sanitize_key( wp_unslash( $_GET['msg'] ) );
+		if ( RequestInput::has_get( 'msg' ) ) {
+			$msg = RequestInput::get_get_key( 'msg' );
 
 			if ( 'cache_warmed' === $msg ) {
-				// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- display-only URL parameter.
-				$count = isset( $_GET['count'] ) ? absint( wp_unslash( $_GET['count'] ) ) : 0;
+				$count = RequestInput::get_get_int( 'count' );
 				wp_admin_notice(
 					esc_html(
 						sprintf(

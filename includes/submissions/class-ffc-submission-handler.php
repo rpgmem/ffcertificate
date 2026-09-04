@@ -393,10 +393,14 @@ class SubmissionHandler {
 		$result = $this->repository->update( $id, $update_data );
 
 		if ( false !== $result && class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
-			$action = $user_id ? 'user_linked' : 'user_unlinked';
+			// The action goes in the first argument; the second is the level.
+			// These were swapped, so every link/unlink logged as the generic
+			// `submission` while the real action name landed in the level slot
+			// and was discarded by the level validation (#1024).
+			$ffc_action = $user_id ? 'user_linked' : 'user_unlinked';
 			\FreeFormCertificate\Core\ActivityLog::log(
-				'submission',
-				$action,
+				$ffc_action,
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
 				array(
 					'submission_id' => $id,
 					'user_id'       => $user_id,

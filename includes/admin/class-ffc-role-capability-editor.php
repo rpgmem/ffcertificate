@@ -27,6 +27,7 @@ namespace FreeFormCertificate\Admin;
 
 use FreeFormCertificate\UserDashboard\CapabilityCatalog;
 use FreeFormCertificate\UserDashboard\RoleRegistrar;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -57,8 +58,7 @@ final class RoleCapabilityEditor {
 		if ( 'toplevel_page_ffc-settings' !== $hook ) {
 			return;
 		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- tab read-only resolution for conditional asset loading.
-		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+		$tab = RequestInput::get_get_key( 'tab' );
 		if ( 'user_access' !== $tab ) {
 			return;
 		}
@@ -260,10 +260,10 @@ final class RoleCapabilityEditor {
 						. '</div>',
 					esc_attr( strtolower( $label . ' ' . $slug ) ),
 					esc_attr( (string) $slug ),
-					$toggle, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- AdminUI::get_toggle() returns pre-escaped markup.
+					$toggle,
 					esc_html( $label ),
 					esc_html( $desc ),
-					$surface_badge, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from esc_* in surface_badge().
+					$surface_badge,
 					esc_attr( CapabilityCatalog::cap_tier( (string) $slug ) )
 				);
 			}
@@ -304,7 +304,8 @@ final class RoleCapabilityEditor {
 
 		$role_slug = isset( $_POST['role'] ) ? sanitize_key( wp_unslash( $_POST['role'] ) ) : '';
 		$cap       = isset( $_POST['cap'] ) ? sanitize_key( wp_unslash( $_POST['cap'] ) ) : '';
-		$grant     = isset( $_POST['grant'] ) && '1' === (string) wp_unslash( $_POST['grant'] );
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Strict comparison against '1' — the raw value never survives the expression.
+		$grant = isset( $_POST['grant'] ) && '1' === (string) wp_unslash( $_POST['grant'] );
 
 		if ( ! array_key_exists( $role_slug, RoleRegistrar::ffc_managed_role_labels() ) ) {
 			wp_send_json_error( array( 'message' => 'role_not_editable' ), 400 );

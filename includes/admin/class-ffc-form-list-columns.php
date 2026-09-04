@@ -286,7 +286,7 @@ class FormListColumns {
 		global $wpdb;
 		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One GROUP BY over the plugin's own submissions table for the whole list screen, instead of a count per row; a cached total would be stale the moment a form is submitted.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT form_id, COUNT(*) AS cnt FROM %i WHERE status != 'trash' GROUP BY form_id",

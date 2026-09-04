@@ -62,13 +62,14 @@ class AppointmentReceiptHandlerTest extends TestCase {
 	// ==================================================================
 
 	public function test_handle_receipt_request_returns_early_without_query_var(): void {
-		Functions\when( 'get_query_var' )->justReturn( '' );
+		// #1030: past the guard the method reads the query var twice more and
+		// then wp_die()s on the empty id, so one read and no wp_die is what
+		// shows it returned at the guard.
+		Functions\expect( 'get_query_var' )->once()->andReturn( '' );
+		Functions\expect( 'wp_die' )->never();
 
 		$handler = new AppointmentReceiptHandler();
 		$handler->handle_receipt_request();
-
-		// No exception = early return
-		$this->assertTrue( true );
 	}
 
 	// ==================================================================

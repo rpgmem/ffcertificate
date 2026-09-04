@@ -62,7 +62,6 @@ class CsvDownloadLogExportSource implements SyncSourceInterface {
 	 * @return void
 	 */
 	public function authorize(): void {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$nonce = RequestInput::get_get_string( '_wpnonce' );
 
 		if ( ! wp_verify_nonce( $nonce, PublicCsvDownload::EXPORT_LOG_NONCE . '_' . $this->form_id ) ) {

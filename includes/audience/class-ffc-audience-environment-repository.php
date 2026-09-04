@@ -16,7 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- {$where_clause}/{$limit_clause} are fragments assembled here, {$orderby} comes from sanitize_sql_orderby() and {$id} from an int cast. Table names go through %i and every value through a placeholder.
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Database repository for audience environment records.
  *
@@ -111,19 +112,24 @@ class AudienceEnvironmentRepository {
 		$orderby           = $orderby_sanitized ? $orderby_sanitized : 'name ASC';
 		$limit_clause      = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$sql = "SELECT * FROM %i {$where_clause} ORDER BY {$orderby} {$limit_clause}";
 
 		$prepare_args = array_merge( array( $table ), $values );
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		/**
-		 * Description.
+		 * `$sql` interpolates `{$where_clause}`, `{$orderby}` and `{$limit_clause}`,
+		 * all assembled at runtime, so it is a plain string rather than the
+		 * `literal-string` the stub declares. It cannot become one: `$orderby` comes
+		 * from `sanitize_sql_orderby()`, whose return is a runtime value by
+		 * construction. That call is also what makes it safe — it rejects anything
+		 * that is not a column list with an optional ASC/DESC. The WHERE fragments are
+		 * literals carrying placeholders (values travel in `$prepare_args`), the LIMIT
+		 * clause is built from integers, and the table name is bound with `%i`.
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
 		$sql = $wpdb->prepare( $sql, $prepare_args );
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The argument is the string $wpdb->prepare() returned above; the sniff cannot follow a prepared string across an assignment.
 		$results = $wpdb->get_results( $sql );
 		/**
 		 * Cast wpdb result to typed shape.
@@ -148,7 +154,6 @@ class AudienceEnvironmentRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		/**
 		 * Cast wpdb result to typed shape.
 		 *
@@ -268,7 +273,6 @@ class AudienceEnvironmentRepository {
 			}
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->update(
 			$table,
 			$update_data,
@@ -293,7 +297,6 @@ class AudienceEnvironmentRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
@@ -393,7 +396,6 @@ class AudienceEnvironmentRepository {
 		$wpdb  = self::db();
 		$table = self::get_holidays_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->delete( $table, array( 'id' => $holiday_id ), array( '%d' ) );
 
 		\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_DOMAIN );
@@ -428,14 +430,14 @@ class AudienceEnvironmentRepository {
 
 		$where_clause = 'WHERE ' . implode( ' AND ', $where );
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic WHERE clause built from trusted conditions above.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic WHERE clause built from trusted conditions above.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i {$where_clause} ORDER BY holiday_date ASC",
 				array_merge( array( $table ), $values )
 			)
 		);
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		/**
 		 * Cast wpdb result to typed shape.
 		 *
@@ -466,9 +468,7 @@ class AudienceEnvironmentRepository {
 		$wpdb  = self::db();
 		$table = self::get_holidays_table_name();
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cached above via wp_cache_get.
 		$count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE schedule_id = %d AND holiday_date = %s', $table, $env->schedule_id, $date ) );
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 		$result = (int) $count > 0;
 		wp_cache_set( $cache_key, $result, self::QUERY_CACHE_GROUP );
@@ -511,11 +511,11 @@ class AudienceEnvironmentRepository {
 		// Build prepared query with %i for table name.
 		$prepare_args = array_merge( array( $table ), $values );
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic WHERE clause built from safe %s/%d placeholders; cached above.
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic WHERE clause built from safe %s/%d placeholders; cached above.
 		$result = (int) $wpdb->get_var(
 			$wpdb->prepare( "SELECT COUNT(*) FROM %i {$where_clause}", $prepare_args )
 		);
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		wp_cache_set( $cache_key, $result, self::QUERY_CACHE_GROUP );
 
 		return $result;

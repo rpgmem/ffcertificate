@@ -16,6 +16,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Reregistration;
 
 use FreeFormCertificate\Audience\AudienceReader;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -43,13 +44,11 @@ final class ReregistrationAdminRenderer {
 	 * @return void
 	 */
 	public static function render_list( string $menu_slug, bool $can_edit ): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$status_filter = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
 		if ( '' === $status_filter ) {
 			$status_filter = null;
 		}
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$audience_filter = isset( $_GET['audience_id'] ) ? absint( $_GET['audience_id'] ) : 0;
+		$audience_filter = RequestInput::get_get_int( 'audience_id' );
 
 		$filters = array();
 		if ( $status_filter ) {
@@ -142,12 +141,10 @@ final class ReregistrationAdminRenderer {
 			wp_die( esc_html__( 'Reregistration not found.', 'ffcertificate' ) );
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$status_filter = \FreeFormCertificate\Core\RequestInput::get_get_string( 'sub_status' );
 		if ( '' === $status_filter ) {
 			$status_filter = null;
 		}
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$search = \FreeFormCertificate\Core\RequestInput::get_get_string( 's' );
 		if ( '' === $search ) {
 			$search = null;

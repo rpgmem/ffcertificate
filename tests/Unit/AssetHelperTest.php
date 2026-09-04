@@ -37,10 +37,19 @@ class AssetHelperTest extends TestCase {
 
 	public function test_enqueue_dark_mode_noop_when_off(): void {
 		Functions\when( 'get_option' )->justReturn( array( 'dark_mode' => 'off' ) );
-		// wp_enqueue_script must never fire on the off branch; leaving it
-		// unstubbed means any call throws an undefined-function error.
+
+		// #1030: the comment reasoned that an unstubbed call "throws", which is
+		// the environment's behaviour rather than the test's assertion. Say it.
+		$enqueued = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( $handle ) use ( &$enqueued ) {
+				$enqueued[] = $handle;
+			}
+		);
+
 		AssetHelper::enqueue_dark_mode();
-		$this->assertTrue( true );
+
+		$this->assertSame( array(), $enqueued );
 	}
 
 	public function test_enqueue_dark_mode_enqueues_when_enabled(): void {

@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\UrlShortener;
 
 use FreeFormCertificate\Core\AjaxTrait;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -161,7 +162,6 @@ class UrlShortenerAdminPage {
 			return;
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Presence check only; nonce verified below via wp_verify_nonce.
 		if ( ! isset( $_GET['ffc_action'] ) ) {
 			return;
 		}
@@ -268,7 +268,7 @@ class UrlShortenerAdminPage {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
 		$this->check_ajax_permission( 'ffc_manage_url_shortener' );
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in $this->verify_ajax_nonce() above.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Nonce verified in $this->verify_ajax_nonce() above. Cast to int, which sanitises; unslashing a value that becomes an int is a no-op.
 		$id = (int) ( $_POST['id'] ?? 0 );
 		if ( $id <= 0 ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid short URL.', 'ffcertificate' ) ) );
@@ -310,15 +310,11 @@ class UrlShortenerAdminPage {
 	 * Render the admin page.
 	 */
 	public function render_page(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only pagination parameter.
-		$page   = max( 1, (int) ( $_GET['paged'] ?? 1 ) );
-		$search = \FreeFormCertificate\Core\RequestInput::get_get_string( 's' );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only sort parameter.
-		$orderby = sanitize_key( $_GET['orderby'] ?? 'created_at' );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only sort direction parameter.
-		$order = strtoupper( sanitize_key( $_GET['order'] ?? 'DESC' ) );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only status filter parameter.
-		$status = sanitize_key( $_GET['status'] ?? 'all' );
+		$page    = max( 1, RequestInput::get_get_int( 'paged', 1 ) );
+		$search  = \FreeFormCertificate\Core\RequestInput::get_get_string( 's' );
+		$orderby = RequestInput::get_get_key( 'orderby', 'created_at' );
+		$order   = strtoupper( RequestInput::get_get_key( 'order', 'DESC' ) );
+		$status  = RequestInput::get_get_key( 'status', 'all' );
 
 		$per_page = 20;
 		$result   = $this->service->get_repository()->findPaginated(
@@ -336,8 +332,7 @@ class UrlShortenerAdminPage {
 		$total       = $result['total'];
 		$total_pages = (int) ceil( $total / $per_page );
 		$stats       = $this->service->get_stats();
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only flash message parameter.
-		$msg = sanitize_key( $_GET['msg'] ?? '' );
+		$msg         = RequestInput::get_get_key( 'msg' );
 
 		include FFC_PLUGIN_DIR . 'templates/admin/url-shortener/short-urls-page.php';
 	}

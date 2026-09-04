@@ -17,7 +17,7 @@ namespace FreeFormCertificate\Repositories;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
-// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- The sniff only recognises the global $wpdb->prepare(); this class binds wpdb as a property, so every $this->wpdb->prepare() call reads as unprepared SQL. Table names go through %i and every value through a placeholder; {$post_id} is an int-typed parameter.
 /**
  * Database repository for calendar records.
  */
@@ -55,7 +55,6 @@ class CalendarRepository extends AbstractRepository {
 			return $cached;
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->get_row(
 			$this->wpdb->prepare( 'SELECT * FROM %i WHERE post_id = %d', $this->table, $post_id ),
 			ARRAY_A

@@ -18,6 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Schema and data statements against the plugin's own ffc_* tables during activation/migration. WordPress exposes no API for them, and there is nothing to cache on this path.
 /**
  * Creates + migrates the reregistration tables on plugin activation.
  */
@@ -52,7 +53,6 @@ class ReregistrationActivator {
 		$table_name      = $wpdb->prefix . 'ffc_reregistrations';
 		$charset_collate = $wpdb->get_charset_collate();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
 			return;
 		}
@@ -77,7 +77,6 @@ class ReregistrationActivator {
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		dbDelta( $sql );
 	}
 
@@ -91,7 +90,6 @@ class ReregistrationActivator {
 		$table_name      = $wpdb->prefix . 'ffc_reregistration_audiences';
 		$charset_collate = $wpdb->get_charset_collate();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
 			return;
 		}
@@ -104,7 +102,6 @@ class ReregistrationActivator {
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		dbDelta( $sql );
 	}
 
@@ -118,7 +115,6 @@ class ReregistrationActivator {
 		$rereg_table    = $wpdb->prefix . 'ffc_reregistrations';
 		$junction_table = $wpdb->prefix . 'ffc_reregistration_audiences';
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$has_column = $wpdb->get_results(
 			$wpdb->prepare(
 				'SHOW COLUMNS FROM %i LIKE %s',
@@ -132,7 +128,6 @@ class ReregistrationActivator {
 		}
 
 		// Copy audience_id into junction table (skip if already migrated).
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query(
 			$wpdb->prepare(
 				'INSERT IGNORE INTO %i (reregistration_id, audience_id)
@@ -143,9 +138,7 @@ class ReregistrationActivator {
 		);
 
 		// Drop the old column and its index.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX idx_audience_id', $rereg_table ) );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN audience_id', $rereg_table ) );
 	}
 
@@ -161,7 +154,6 @@ class ReregistrationActivator {
 		$table_name      = $wpdb->prefix . 'ffc_reregistration_submissions';
 		$charset_collate = $wpdb->get_charset_collate();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) ) === $table_name ) {
 			return;
 		}
@@ -203,7 +195,6 @@ class ReregistrationActivator {
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		dbDelta( $sql );
 	}
 

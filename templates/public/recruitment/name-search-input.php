@@ -15,7 +15,6 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file (aliased by the including renderer method).
 
 // Inline magnifying-glass glyph — keeps the asset count flat and
 // avoids a font dependency. `aria-hidden` so screen readers fall

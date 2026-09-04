@@ -538,7 +538,6 @@ class AdminSubmissionEditPage {
 	 * Processes submission edit form POST request.
 	 */
 	public function handle_save(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified below via check_admin_referer.
 		if ( ! isset( $_POST['ffc_save_edit'] ) ) {
 			return;
 		}
@@ -553,13 +552,12 @@ class AdminSubmissionEditPage {
 		 * wp_die()s; the early return is defence-in-depth and is covered by
 		 * test_handle_save_returns_on_bad_nonce.
 		 *
-		 * @phpstan-ignore-next-line booleanNot.alwaysFalse
+		 * @phpstan-ignore booleanNot.alwaysFalse
 		 */
 		if ( ! check_admin_referer( 'ffc_edit_submission_nonce', 'ffc_edit_submission_action' ) ) {
 			return;
 		}
 
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above via check_admin_referer.
 		$id = isset( $_POST['submission_id'] ) ? absint( wp_unslash( $_POST['submission_id'] ) ) : 0;
 		// Normalize email to lowercase for consistent storage and lookups.
 		$new_email = isset( $_POST['user_email'] ) ? strtolower( sanitize_email( wp_unslash( $_POST['user_email'] ) ) ) : '';
@@ -584,8 +582,6 @@ class AdminSubmissionEditPage {
 
 		// Process user link change (simplified: value is user ID, empty string, or __keep__).
 		$linked_user_id = \FreeFormCertificate\Core\RequestInput::get_post_string( 'linked_user_id', '__keep__' );
-
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		// Update submission data (email + custom fields).
 		$this->submission_handler->update_submission( $id, $new_email, $clean_data );

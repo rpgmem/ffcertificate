@@ -20,7 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- {$joins}/{$where_clause}/{$limit_clause}/{$placeholders} are fragments assembled here from literals, {$orderby}/{$order} come from an in_array() allowlist and {$id} from an int cast. Table names go through %i and every value through a placeholder.
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Database repository for reregistration records.
  *
@@ -267,15 +268,18 @@ class ReregistrationRepository {
                 ORDER BY r.{$orderby} {$order}
                 {$limit_clause}";
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		/**
-		 * Description.
+		 * `$sql` interpolates `{$joins}`, `{$where_clause}`, `{$orderby}`, `{$order}`
+		 * and `{$limit_clause}`, so it is a runtime string, not `literal-string`.
+		 * Nothing request-derived reaches the SQL text: the joins and WHERE fragments
+		 * are literals carrying placeholders (values travel in `$values`), `$orderby`
+		 * is allowlisted, `$order` collapses to ASC/DESC, and the table is bound
+		 * with `%i`.
 		 *
-		 * @phpstan-ignore-next-line argument.type
+		 * @phpstan-ignore argument.type
 		 */
 		$sql = $wpdb->prepare( $sql, $values );
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$results = $wpdb->get_results( $sql );
 		/**
 		 * Cast wpdb result to typed shape.
@@ -315,10 +319,8 @@ class ReregistrationRepository {
 
 		$sql = "SELECT COUNT(DISTINCT r.id) FROM %i r {$joins} {$where_clause}";
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$sql = $wpdb->prepare( $sql, $values );
 
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		return (int) $wpdb->get_var( $sql );
 	}
 

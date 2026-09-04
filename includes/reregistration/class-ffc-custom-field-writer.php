@@ -20,8 +20,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$field_id} is an int cast and {$where} a fragment assembled in this class; table names go through %i and every value through a placeholder.
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Write operations for audience-specific custom field definitions.
  *
@@ -357,7 +358,6 @@ class CustomFieldWriter {
 		global $wpdb;
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single-row insert; format hints below kept in sync with the schema.
 		$result = $wpdb->insert(
 			$table,
 			$data,

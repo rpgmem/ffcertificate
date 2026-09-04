@@ -91,7 +91,14 @@ class SelfSchedulingLoaderTest extends TestCase {
 
 		( new SelfSchedulingLoader() )->init();
 
-		$this->assertTrue( true );
+		// The inverse of the admin test: wiring the admin trio is what
+		// registers the appointments export source, so on the frontend it must
+		// not be there. Asserting nothing left that claim unchecked.
+		$this->assertFalse(
+			\FreeFormCertificate\Core\SourceRegistry::has(
+				\FreeFormCertificate\SelfScheduling\AppointmentExportSource::TYPE
+			)
+		);
 	}
 
 	public function test_registered_export_source_factory_constructs_the_source(): void {

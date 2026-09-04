@@ -22,8 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$field_id} is an int cast and {$where} a fragment assembled in this class; table names go through %i and every value through a placeholder.
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Read queries for audience-specific custom field definitions.
  *
@@ -535,7 +536,6 @@ class CustomFieldReader {
 		global $wpdb;
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table-existence guard.
 		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 		if ( $exists !== $table ) {
 			return array();
@@ -547,13 +547,11 @@ class CustomFieldReader {
 		// writes long before that migration runs, so detect the older shape
 		// and degrade to an empty list rather than emit a "Unknown column"
 		// query into debug.log on every settings save.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'is_sensitive' ) );
 		if ( empty( $columns ) ) {
 			return array();
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Catalog read; caching handled at the caller (SensitiveFieldRegistry).
 		$rows = $wpdb->get_col(
 			$wpdb->prepare(
 				'SELECT DISTINCT field_key FROM %i WHERE is_sensitive = 1 AND is_active = 1',
@@ -591,7 +589,6 @@ class CustomFieldReader {
 		global $wpdb;
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed scan by audience_id.
 		$rows = $wpdb->get_col(
 			$wpdb->prepare( 'SELECT field_key FROM %i WHERE audience_id = %d', $table, $audience_id )
 		);

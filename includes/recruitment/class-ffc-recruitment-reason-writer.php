@@ -28,6 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Write operations for `ffc_recruitment_reason` rows.
  *
@@ -74,7 +75,6 @@ class RecruitmentReasonWriter {
 
 		$now = current_time( 'mysql' );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Insert via wpdb helper.
 		$result = $wpdb->insert(
 			$table,
 			array(
@@ -135,7 +135,6 @@ class RecruitmentReasonWriter {
 		$update['updated_at'] = current_time( 'mysql' );
 		$format[]             = '%s';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Update via wpdb helper.
 		$result = $wpdb->update( $table, $update, array( 'id' => $id ), $format, array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );
@@ -160,7 +159,6 @@ class RecruitmentReasonWriter {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Delete via wpdb helper.
 		$result = $wpdb->delete( $table, array( 'id' => $id ), array( '%d' ) );
 
 		static::cache_delete( "id_{$id}" );

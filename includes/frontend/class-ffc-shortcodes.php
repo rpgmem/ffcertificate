@@ -114,7 +114,6 @@ class Shortcodes {
 	 */
 	public function render_verification_page( array $atts ): string {
 		// Check for magic token in URL query string (?token=).
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Token is a display/routing parameter for verification page.
 		$magic_token = RequestInput::get_get_string( 'token' );
 
 		if ( ! empty( $magic_token ) ) {
@@ -211,6 +210,7 @@ class Shortcodes {
 		$schedule_exception_cookie = '';
 		$cookie_name               = \FreeFormCertificate\Frontend\ScheduleExceptionSession::cookie_name( $form_id );
 		if ( ! empty( $_COOKIE[ $cookie_name ] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Cookie payload is only passed to ScheduleExceptionSession, which verifies its HMAC before use.
 			$schedule_exception_cookie = (string) wp_unslash( $_COOKIE[ $cookie_name ] );
 		}
 		$schedule_exception = \FreeFormCertificate\Frontend\ScheduleExceptionSession::read_from_cookie( $form_id );

@@ -58,7 +58,6 @@ final class ReregistrationAjaxHandler {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via check_ajax_referer() above.
 		$submission_id = isset( $_POST['submission_id'] ) ? absint( $_POST['submission_id'] ) : 0;
 		if ( ! $submission_id ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'ffcertificate' ) ) );
@@ -88,7 +87,6 @@ final class ReregistrationAjaxHandler {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via check_ajax_referer() above.
 		$submission_id = isset( $_POST['submission_id'] ) ? absint( $_POST['submission_id'] ) : 0;
 		if ( ! $submission_id ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'ffcertificate' ) ) );
@@ -128,7 +126,6 @@ final class ReregistrationAjaxHandler {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$raw          = isset( $_POST['audience_ids'] ) ? array_map( 'absint', (array) $_POST['audience_ids'] ) : array();
 		$audience_ids = array_filter( $raw );
 

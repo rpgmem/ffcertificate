@@ -65,7 +65,6 @@ class SettingsSaveHandler {
 		// danger-zone sub-cap (#711) on top of the page's ffc_manage_settings —
 		// a settings manager without ffc_manage_settings_dangerzone cannot run
 		// destructive actions.
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence check only; nonce verified via check_admin_referer.
 		if ( isset( $_POST['ffc_delete_all_data'] )
 			&& \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ) ) {
 			// check_admin_referer() wp_die()s on an invalid nonce, so it never
@@ -82,7 +81,6 @@ class SettingsSaveHandler {
 	 * @return void
 	 */
 	private function save_general_and_specific_settings(): void {
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
 		$current = get_option( 'ffc_settings', array() );
 		$new     = \FreeFormCertificate\Core\RequestInput::get_post_array( 'ffc_settings' );
 
@@ -118,7 +116,6 @@ class SettingsSaveHandler {
 		 */
 		do_action( 'ffcertificate_settings_saved', $clean );
 
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
 		add_settings_error( 'ffc_settings', 'ffc_settings_updated', __( 'Settings saved.', 'ffcertificate' ), 'updated' );
 	}
 
@@ -445,7 +442,6 @@ class SettingsSaveHandler {
 
 		// Post types is an array of checkboxes - only process on URL Shortener tab.
 		if ( 'url_shortener' === $ffc_tab ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 			if ( isset( $_POST['ffc_settings']['url_shortener_post_types'] ) && is_array( $_POST['ffc_settings']['url_shortener_post_types'] ) ) {
 				$clean['url_shortener_post_types'] = array_map( 'sanitize_key', wp_unslash( $_POST['ffc_settings']['url_shortener_post_types'] ) );
 			} else {
@@ -456,7 +452,6 @@ class SettingsSaveHandler {
 			// intersect the submitted expose list with the (already-sanitized)
 			// post-types list so the stored value can never expose a type that
 			// is not also shortened, even if the coupling JS was bypassed.
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 			if ( isset( $_POST['ffc_settings']['url_shortener_expose_post_types'] ) && is_array( $_POST['ffc_settings']['url_shortener_expose_post_types'] ) ) {
 				$expose = array_map( 'sanitize_key', wp_unslash( $_POST['ffc_settings']['url_shortener_expose_post_types'] ) );
 			} else {
@@ -478,7 +473,6 @@ class SettingsSaveHandler {
 	 */
 	private function save_user_access_settings(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
-        // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset()/empty()/is_array() are existence and type checks; values are sanitized with wp_unslash + sanitize_text_field/esc_url_raw/sanitize_textarea_field.
 		$settings = array(
 			'block_wp_admin'    => isset( $_POST['block_wp_admin'] ),
 			'blocked_roles'     => \FreeFormCertificate\Core\RequestInput::get_post_array( 'blocked_roles', array( 'ffc_end_user' ) ),
@@ -492,7 +486,6 @@ class SettingsSaveHandler {
 			'bypass_for_admins' => isset( $_POST['bypass_for_admins'] ),
 		);
         // phpcs:enable WordPress.Security.NonceVerification.Missing
-        // phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 
 		update_option( 'ffc_user_access_settings', $settings );
 		add_settings_error(
@@ -509,10 +502,8 @@ class SettingsSaveHandler {
 	 * @return void
 	 */
 	private function handle_danger_zone(): void {
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via check_admin_referer.
 		$target        = \FreeFormCertificate\Core\RequestInput::get_post_string( 'delete_target', 'all' );
 		$reset_counter = \FreeFormCertificate\Core\RequestInput::get_post_string( 'reset_counter' ) === '1';
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		/**
 		 * Fires before bulk data deletion from the danger zone.

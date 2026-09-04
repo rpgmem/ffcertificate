@@ -23,7 +23,7 @@ namespace FreeFormCertificate\Repositories;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- {$placeholders}/{$move_placeholders} are %d repeated to match the bound id array — prepare() takes them as one array argument, which is what ReplacementsWrongNumber trips on. {$where_clause} is assembled here; table names go through %i and every value through a placeholder.
 /**
  * Write operations for submission records.
  */
@@ -60,7 +60,6 @@ class SubmissionWriter extends AbstractRepository {
 			return self::$column_exists_cache[ $cache_key ];
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = (bool) $this->wpdb->get_var(
 			$this->wpdb->prepare(
 				'SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
@@ -125,7 +124,6 @@ class SubmissionWriter extends AbstractRepository {
 		if ( ! is_string( $sql ) ) {
 			return 0;
 		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk maintenance write; per-row caches are flushed wholesale via clear_cache() below.
 		$rows = $this->wpdb->query( $sql );
 		$this->clear_cache();
 		return is_int( $rows ) ? $rows : 0;
@@ -185,8 +183,7 @@ class SubmissionWriter extends AbstractRepository {
 
 		$safe_ids     = array_map( 'absint', $ids );
 		$placeholders = implode( ', ', array_fill( 0, count( $safe_ids ), '%d' ) );
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholders generated via array_fill().
-		$query = $this->wpdb->prepare(
+		$query        = $this->wpdb->prepare(
 			"UPDATE %i SET status = %s WHERE id IN ({$placeholders})",
 			$this->table,
 			$status,
@@ -197,7 +194,6 @@ class SubmissionWriter extends AbstractRepository {
 			return false;
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->query( $query );
 
 		if ( $result ) {
@@ -221,8 +217,7 @@ class SubmissionWriter extends AbstractRepository {
 
 		$safe_ids     = array_map( 'absint', $ids );
 		$placeholders = implode( ', ', array_fill( 0, count( $safe_ids ), '%d' ) );
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholders generated via array_fill().
-		$query = $this->wpdb->prepare(
+		$query        = $this->wpdb->prepare(
 			"DELETE FROM %i WHERE id IN ({$placeholders})",
 			$this->table,
 			...$safe_ids
@@ -232,7 +227,6 @@ class SubmissionWriter extends AbstractRepository {
 			return false;
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->query( $query );
 
 		if ( $result ) {
@@ -278,8 +272,7 @@ class SubmissionWriter extends AbstractRepository {
 		}
 
 		$placeholders = implode( ', ', array_fill( 0, count( $safe_ids ), '%d' ) );
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholders generated via array_fill().
-		$select_sql = $this->wpdb->prepare(
+		$select_sql   = $this->wpdb->prepare(
 			"SELECT id, user_id, email_hash, cpf_hash, rf_hash
 			 FROM %i
 			 WHERE form_id = %d AND id IN ({$placeholders})",
@@ -292,7 +285,6 @@ class SubmissionWriter extends AbstractRepository {
 			);
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $this->wpdb->get_results( $select_sql, ARRAY_A );
 		if ( ! is_array( $rows ) ) {
 			return array(
@@ -313,13 +305,11 @@ class SubmissionWriter extends AbstractRepository {
 
 		if ( ! empty( $moved ) ) {
 			$move_placeholders = implode( ', ', array_fill( 0, count( $moved ), '%d' ) );
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholders generated via array_fill().
-			$update_sql = $this->wpdb->prepare(
+			$update_sql        = $this->wpdb->prepare(
 				"UPDATE %i SET form_id = %d WHERE id IN ({$move_placeholders})",
 				array_merge( array( $this->table, $to_form_id ), $moved )
 			);
 			if ( is_string( $update_sql ) ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$this->wpdb->query( $update_sql );
 				$this->clear_cache();
 				$this->invalidate_count_cache();
@@ -370,15 +360,13 @@ class SubmissionWriter extends AbstractRepository {
 		}
 
 		$where_clause = implode( ' OR ', $clauses );
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Clauses are pre-validated literal column names.
-		$sql = $this->wpdb->prepare(
+		$sql          = $this->wpdb->prepare(
 			"SELECT id FROM %i WHERE form_id = %d AND ({$where_clause}) LIMIT 1",
 			$values
 		);
 		if ( ! is_string( $sql ) ) {
 			return false;
 		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$existing = $this->wpdb->get_var( $sql );
 		return null !== $existing;
 	}
@@ -390,7 +378,6 @@ class SubmissionWriter extends AbstractRepository {
 	 * @return int|false
 	 */
 	public function deleteByFormId( int $form_id ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $this->wpdb->delete( $this->table, array( 'form_id' => $form_id ) );
 
 		if ( $result ) {

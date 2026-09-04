@@ -95,8 +95,20 @@ class CertTemplateSeederTest extends TestCase {
 
 	public function test_maybe_seed_seeds_all_defaults_and_bumps_flag(): void {
 		Functions\when( 'get_option' )->justReturn( 0 );
-		Functions\when( 'get_posts' )->justReturn( array() ); // no existing defaults
-		Functions\when( 'get_post_meta' )->justReturn( '' );
+
+		$meta = array();
+		// Stateful pool: empty when seed() looks, populated by the time the
+		// post-run guard checks whether anything was actually created.
+		Functions\when( 'get_posts' )->alias(
+			static function () use ( &$meta ) {
+				return array_keys( $meta );
+			}
+		);
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id ) use ( &$meta ) {
+				return $meta[ $id ][ CertTemplateCpt::META_DEFAULT_SLUG ] ?? '';
+			}
+		);
 
 		$inserted = 0;
 		Functions\when( 'wp_insert_post' )->alias(
@@ -104,7 +116,6 @@ class CertTemplateSeederTest extends TestCase {
 				return 100 + ( ++$inserted );
 			}
 		);
-		$meta = array();
 		Functions\when( 'update_post_meta' )->alias(
 			static function ( $id, $key, $value ) use ( &$meta ) {
 				$meta[ $id ][ $key ] = $value;
@@ -217,6 +228,125 @@ class CertTemplateSeederTest extends TestCase {
 		// The five missing defaults were (re)created (cert_2, cert_3, the two
 		// receipt defaults + the ficha default); the present one (#11) was not.
 		$this->assertSame( 5, $inserted, 'the five missing defaults are inserted' );
+	}
+
+	/**
+	 * The #865 phase-4 hole. `maybe_seed()` used to write the seed flag
+	 * unconditionally, so a first seed that created nothing still recorded
+	 * itself as applied — and because the flag short-circuits every later run,
+	 * the pool stayed empty forever. An empty pool is precisely what makes
+	 * `AdminAssetsManager::discover_layout_templates()` fall through to the
+	 * deprecated legacy `html/` glob, so the fallback could never meet its own
+	 * exit condition ("removed once the pool seeds on every install").
+	 *
+	 * Simulated here through a failing `wp_insert_post()`. The real-world cause
+	 * is usually the other one — `Utils::read_file_contents()` returning '' for
+	 * an unreadable seed file, which `seed()` silently `continue`s past — but
+	 * that path cannot be exercised from a unit test: it keys on
+	 * `FFC_PLUGIN_DIR`, a process-wide constant the suite defines once. Both
+	 * causes funnel into the same post-run check, which is what this pins.
+	 */
+	public function test_maybe_seed_does_not_mark_seeded_when_nothing_was_created(): void {
+		Functions\when( 'get_option' )->justReturn( 0 );
+		Functions\when( 'get_posts' )->justReturn( array() ); // pool stays empty
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+		Functions\when( 'update_post_meta' )->justReturn( true );
+		// wp_insert_post( …, true ) returning WP_Error is the failure shape.
+		Functions\when( 'wp_insert_post' )->justReturn( new \WP_Error( 'db_insert_error', 'nope' ) );
+
+		$written = null;
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$written ) {
+				$written = array( $key, $value );
+				return true;
+			}
+		);
+
+		CertTemplateSeeder::maybe_seed();
+
+		$this->assertNull(
+			$written,
+			'the seed flag must stay unwritten so the next admin request retries'
+		);
+	}
+
+	/**
+	 * Same guard on the version-bump branch: an already-seeded install whose
+	 * defaults were all deleted must not have the new seed version recorded
+	 * when restore() fails to put any of them back.
+	 */
+	public function test_maybe_seed_does_not_bump_the_version_when_restore_creates_nothing(): void {
+		Functions\when( 'get_option' )->justReturn( 1 ); // seeded under an older version
+		Functions\when( 'get_posts' )->justReturn( array() ); // …but the pool is empty now
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+		Functions\when( 'update_post_meta' )->justReturn( true );
+		Functions\when( 'wp_insert_post' )->justReturn( new \WP_Error( 'db_insert_error', 'nope' ) );
+
+		$written = null;
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$written ) {
+				$written = array( $key, $value );
+				return true;
+			}
+		);
+
+		CertTemplateSeeder::maybe_seed();
+
+		$this->assertNull(
+			$written,
+			'the seed flag must stay unwritten so the next admin request retries'
+		);
+	}
+
+	/**
+	 * The guard is deliberately narrow — "the pool is not empty", not "every
+	 * definition seeded". A partial seed still populates the layout picker and
+	 * keeps the legacy fallback dormant, so it counts as applied. Blocking the
+	 * flag on completeness instead would re-run the seeder on every admin
+	 * request for as long as a single seed file stayed unreadable.
+	 */
+	public function test_maybe_seed_marks_seeded_when_only_some_defaults_could_be_created(): void {
+		Functions\when( 'get_option' )->justReturn( 0 );
+
+		$meta = array();
+		Functions\when( 'get_posts' )->alias(
+			static function () use ( &$meta ) {
+				return array_keys( $meta );
+			}
+		);
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id ) use ( &$meta ) {
+				return $meta[ $id ][ CertTemplateCpt::META_DEFAULT_SLUG ] ?? '';
+			}
+		);
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( $id, $key, $value ) use ( &$meta ) {
+				$meta[ $id ][ $key ] = $value;
+				return true;
+			}
+		);
+
+		// Only the first insert succeeds; the other five fail.
+		$calls = 0;
+		Functions\when( 'wp_insert_post' )->alias(
+			static function () use ( &$calls ) {
+				++$calls;
+				return 1 === $calls ? 101 : new \WP_Error( 'db_insert_error', 'nope' );
+			}
+		);
+
+		$bumped = null;
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$bumped ) {
+				$bumped = array( $key, $value );
+				return true;
+			}
+		);
+
+		CertTemplateSeeder::maybe_seed();
+
+		$this->assertSame( 'ffc_cert_templates_seeded_version', $bumped[0] ?? null );
+		$this->assertSame( 5, $bumped[1] ?? null, 'a partial seed still counts as applied' );
 	}
 
 	public function test_seed_html_references_shipped_assets_not_html_folder(): void {

@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Audience;
 
 use FreeFormCertificate\Core\ColorValidator;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -43,8 +44,7 @@ class AudienceAdminEnvironment {
 	 */
 	public function render_page(): void {
 		$action = \FreeFormCertificate\Core\RequestInput::get_get_string( 'action', 'list' );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+		$id     = RequestInput::get_get_int( 'id' );
 
 		?>
 		<div class="wrap">
@@ -68,8 +68,7 @@ class AudienceAdminEnvironment {
 	 * @return void
 	 */
 	private function render_list(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$filter_schedule = isset( $_GET['schedule_id'] ) ? absint( $_GET['schedule_id'] ) : 0;
+		$filter_schedule = RequestInput::get_get_int( 'schedule_id' );
 
 		$args = array();
 		if ( $filter_schedule > 0 ) {
@@ -411,7 +410,6 @@ class AudienceAdminEnvironment {
 		}
 
 		// Show feedback for redirect-based actions.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['message'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-environments' ) {
 			$msg      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'message' );
 			$label    = AudienceScheduleRepository::get_environment_label( 0, true );
@@ -439,8 +437,8 @@ class AudienceAdminEnvironment {
 			// Process working hours.
 			$working_hours = array();
 			if ( isset( $_POST['working_hours'] ) && is_array( $_POST['working_hours'] ) ) {
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-				foreach ( wp_unslash( $_POST['working_hours'] ) as $day => $hours ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The array is iterated, not consumed: wp_unslash() is applied to the array and every leaf is sanitized inside the loop with sanitize_key()/sanitize_text_field().
+				foreach ( wp_unslash( $_POST['working_hours'] ) as $day => $hours ) {
 					$day                   = sanitize_key( $day );
 					$working_hours[ $day ] = array(
 						'closed' => isset( $hours['closed'] ) ? true : false,
@@ -450,6 +448,7 @@ class AudienceAdminEnvironment {
 				}
 			}
 
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Normalised by ColorValidator::normalize(), which returns the default for anything that is not a hex colour.
 			$color = ColorValidator::normalize( isset( $_POST['environment_color'] ) ? wp_unslash( $_POST['environment_color'] ) : '', '#3788d8' );
 
 			$data = array(
@@ -476,7 +475,6 @@ class AudienceAdminEnvironment {
 		}
 
 		// Handle deactivate (active items get deactivated instead of deleted).
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'deactivate' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-environments' ) {
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'deactivate_environment_' . $id ) ) {
@@ -487,7 +485,6 @@ class AudienceAdminEnvironment {
 		}
 
 		// Handle delete (only inactive items can be permanently deleted).
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-environments' ) {
 			if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
 				wp_die( esc_html__( 'You do not have permission to delete environments.', 'ffcertificate' ) );

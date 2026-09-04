@@ -207,18 +207,20 @@ class AudienceLoaderTest extends TestCase {
 	// ==================================================================
 
 	public function test_register_rest_routes_creates_controller(): void {
-		// AudienceRestController class exists (loaded by autoloader)
-		// We just verify it doesn't throw
+		// #1030: "we just verify it doesn't throw" is not what the name claims.
+		// A register_rest_routes() that registered nothing would have passed.
+		$routes = array();
+		Functions\when('register_rest_route')->alias(
+			static function ( $namespace, $route ) use ( &$routes ) {
+				$routes[] = $namespace . $route;
+				return true;
+			}
+		);
+
 		$loader = AudienceLoader::get_instance();
-
-		// Mock register_rest_route to accept any calls
-		Functions\when('register_rest_route')->justReturn(true);
-
-		// Should not throw
 		$loader->register_rest_routes();
 
-		// If we reached here without exception, the test passes
-		$this->assertTrue(true);
+		$this->assertNotEmpty( $routes, 'register_rest_routes() registered no route' );
 	}
 
 }

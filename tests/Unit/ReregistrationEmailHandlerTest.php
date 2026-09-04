@@ -223,9 +223,14 @@ class ReregistrationEmailHandlerTest extends TestCase {
 	public function test_run_automated_reminders_returns_early_when_emails_disabled(): void {
 		Functions\when('get_option')->justReturn(array('disable_all_emails' => 1));
 
-		// If any DB query were executed it would fail (no expectations set).
+		// #1030: the old comment reasoned that an unexpected query "would
+		// fail", which relies on the mock's strictness rather than saying so.
+		// State it: past the kill-switch the very next thing is the campaign
+		// query, so it must not be reached.
+		$this->wpdb->shouldNotReceive('get_results');
+		$this->wpdb->shouldNotReceive('prepare');
+
 		ReregistrationEmailHandler::run_automated_reminders();
-		$this->assertTrue(true);
 	}
 
 	public function test_run_automated_reminders_returns_early_when_no_campaigns(): void {

@@ -345,7 +345,7 @@ class ActivityLog {
 				$row_format[]                  = '%s';
 			}
 
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Insert into the plugin's own log table inside the batch loop; a write has no cache to read from.
 			$wpdb->insert( $table_name, $row_data, $row_format );
 		}
 
@@ -396,7 +396,6 @@ class ActivityLog {
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange
 		dbDelta( $sql );
 
 		return true;
@@ -636,7 +635,7 @@ class ActivityLog {
 		}
 
 		// Query columns and cache result.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- DESCRIBE of the plugin's own log table; the result is memoised in a static for the rest of the request, which is the caching the sniff is asking for.
 		self::$table_columns_cache = $wpdb->get_col( $wpdb->prepare( 'DESCRIBE %i', $table_name ), 0 );
 
 		return self::$table_columns_cache;

@@ -54,7 +54,6 @@ final class HttpCsvDownload implements CsvDownloadInterface {
 	 */
 	public function open_stream() {
 		if ( ! is_resource( $this->stream ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- streaming CSV download to php://output.
 			$handle = fopen( 'php://output', 'w' );
 			if ( false === $handle ) {
 				exit;

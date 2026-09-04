@@ -215,7 +215,7 @@ abstract class AbstractRecruitmentListTable extends \WP_List_Table {
 		// Sort.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only sort, no nonce per WP convention.
 		$orderby = isset( $_REQUEST['orderby'] ) ? sanitize_key( (string) $_REQUEST['orderby'] ) : 'created_at';
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Collapsed to the literal 'asc' or 'desc' by the comparison — the raw value never reaches the sort.
 		$order = isset( $_REQUEST['order'] ) && 'asc' === strtolower( (string) $_REQUEST['order'] ) ? 'asc' : 'desc';
 		$rows  = $this->sort_rows( $rows, $orderby, $order );
 
@@ -252,11 +252,9 @@ abstract class AbstractRecruitmentListTable extends \WP_List_Table {
 			return;
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- _wpnonce is checked below.
 		check_admin_referer( 'bulk-' . (string) $this->_args['plural'] );
 
 		$key = $this->ids_request_key();
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce verified above.
 		$ids = isset( $_REQUEST[ $key ] ) && is_array( $_REQUEST[ $key ] )
 			? array_map( 'absint', wp_unslash( $_REQUEST[ $key ] ) )
 			: array();

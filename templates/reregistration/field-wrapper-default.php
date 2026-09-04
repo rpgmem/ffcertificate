@@ -16,7 +16,6 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- Template variables scoped to this file (the include runs in the including renderer method scope).
 ?>
 		<div class="ffc-rereg-field" data-field-id="<?php echo esc_attr( (string) $field->id ); ?>"
 			data-field-key="<?php echo esc_attr( (string) $field->field_key ); ?>"

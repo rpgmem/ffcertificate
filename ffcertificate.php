@@ -4,7 +4,7 @@
  * Plugin URI:         https://github.com/rpgmem/ffcertificate
  * Update URI:         https://github.com/rpgmem/ffcertificate
  * Description:        Allows creation of dynamic forms, saves submissions, generates a PDF certificate, and enables CSV export.
- * Version:            6.21.0
+ * Version:            6.22.0
  * Requires at least:  6.4
  * Requires PHP:       8.3
  * Author:             Alex Meusburger
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Centralized version management
  */
-define( 'FFC_VERSION', '6.21.0' );                 // Plugin version (WordPress Plugin Check compliance)
+define( 'FFC_VERSION', '6.22.0' );                 // Plugin version (WordPress Plugin Check compliance)
 // External libraries versions.
 define( 'FFC_HTML2CANVAS_VERSION', '1.4.1' );   // html2canvas - https://html2canvas.hertzen.com/.
 define( 'FFC_JSPDF_VERSION', '4.2.1' );         // jsPDF - https://github.com/parallax/jsPDF.
@@ -48,7 +48,6 @@ define( 'FFC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 require_once FFC_PLUGIN_DIR . 'includes/class-ffc-autoloader.php';
 
 // Register the autoloader.
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Scoped to plugin bootstrap, not a public API.
 $ffc_autoloader = new FFC_Autoloader( FFC_PLUGIN_DIR . 'includes' );
 $ffc_autoloader->register();
 
@@ -64,8 +63,6 @@ register_activation_hook( __FILE__, array( '\FreeFormCertificate\Activator', 'ac
  * Bootstrap the plugin by instantiating the main Loader class.
  *
  * @return void
- *
- * phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Public API function
  */
 function ffcertificate_run(): void {
 	new \FreeFormCertificate\Loader();

@@ -111,7 +111,6 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 		}
 
 		// 3. Honeypot + CAPTCHA.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
 		if ( true !== $security_check ) {
 			wp_send_json_error( array( 'message' => (string) $security_check ) );
@@ -358,7 +357,7 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 	 * @return int
 	 */
 	private function request_form_id(): int {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- absint() sanitizes; nonce verified in authorize_start().
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- absint() sanitizes; nonce verified in authorize_start().
 		return isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
 	}
 }

@@ -44,6 +44,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Schema and data statements against the plugin's own ffc_* tables during activation/migration. WordPress exposes no API for them, and there is nothing to cache on this path.
 /**
  * Plugin activation tasks for the Recruitment module.
  *
@@ -170,7 +171,7 @@ class RecruitmentActivator {
 	private static function migrate_recreate_staging_table_plaintext(): void {
 		global $wpdb;
 		$table = $wpdb->prefix . 'ffc_recruitment_import_staging';
-		$wpdb->query( "DROP TABLE IF EXISTS `{$table}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
+		$wpdb->query( "DROP TABLE IF EXISTS `{$table}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The table name is $wpdb->prefix . 'ffc_recruitment_import_staging' built on the line above; DROP TABLE takes no bound values.
 		self::create_import_staging_table();
 	}
 
@@ -228,7 +229,6 @@ class RecruitmentActivator {
 			$tz         = wp_timezone();
 			$batch_size = 500;
 			do {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$rows      = $wpdb->get_results(
 					$wpdb->prepare( 'SELECT id, called_at FROM %i WHERE called_at_ts = 0 LIMIT %d', $table, $batch_size )
 				);
@@ -239,7 +239,6 @@ class RecruitmentActivator {
 				foreach ( $rows as $row ) {
 					try {
 						$dt = new \DateTimeImmutable( (string) $row->called_at, $tz );
-                        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 						$wpdb->update(
 							$table,
 							array( 'called_at_ts' => $dt->getTimestamp() ),
@@ -258,11 +257,9 @@ class RecruitmentActivator {
 			// reading) can't trigger "Can't DROP / Unknown column" noise
 			// in debug.log.
 			if ( self::column_exists( $table, 'called_at' ) ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 				$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table, 'called_at' ) );
 			}
 			if ( self::column_exists( $table, 'called_at_ts' ) && ! self::column_exists( $table, 'called_at' ) ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 				$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i CHANGE %i %i BIGINT UNSIGNED NOT NULL', $table, 'called_at_ts', 'called_at' ) );
 			}
 		}
@@ -288,17 +285,17 @@ class RecruitmentActivator {
 			return;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration; $table is built from $wpdb->prefix.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration; $table is built from $wpdb->prefix.
 		$has_time_points = $wpdb->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'time_points'" );
 		if ( null === $has_time_points || '' === (string) $has_time_points ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
 			$wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN time_points DECIMAL(10,4) NOT NULL DEFAULT 0 AFTER score" );
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
 		$has_hab_emebs = $wpdb->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'hab_emebs'" );
 		if ( null === $has_hab_emebs || '' === (string) $has_hab_emebs ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
 			$wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN hab_emebs TINYINT(1) NOT NULL DEFAULT 0 AFTER time_points" );
 		}
 	}
@@ -323,19 +320,19 @@ class RecruitmentActivator {
 			return;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration; $table is built from $wpdb->prefix.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration; $table is built from $wpdb->prefix.
 		$existing = $wpdb->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'preview_status'" );
 		if ( null === $existing || '' === (string) $existing ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
 			$wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN preview_status ENUM('empty','denied','granted','appeal_denied','appeal_granted') NOT NULL DEFAULT 'empty' AFTER status" );
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
 		$existing_reason = $wpdb->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'preview_reason_id'" );
 		if ( null === $existing_reason || '' === (string) $existing_reason ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
 			$wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN preview_reason_id BIGINT(20) UNSIGNED DEFAULT NULL AFTER preview_status" );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
 			$wpdb->query( "ALTER TABLE `{$table}` ADD INDEX idx_preview_reason_id (preview_reason_id)" );
 		}
 	}
@@ -357,13 +354,13 @@ class RecruitmentActivator {
 			return;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration; $table is built from $wpdb->prefix.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration; $table is built from $wpdb->prefix.
 		$existing = $wpdb->get_var( "SHOW COLUMNS FROM `{$table}` LIKE 'color'" );
 		if ( null !== $existing && '' !== (string) $existing ) {
 			return;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
 		$wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN color VARCHAR(9) NOT NULL DEFAULT '#e9ecef' AFTER name" );
 	}
 
@@ -387,15 +384,15 @@ class RecruitmentActivator {
 
 		// Step 1: widen the enum to include both legacy and new values
 		// so the UPDATE in step 2 doesn't violate any enum constraint.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration; $table is built from $wpdb->prefix.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration; $table is built from $wpdb->prefix.
 		$wpdb->query( "ALTER TABLE `{$table}` MODIFY status ENUM('draft','preliminary','active','definitive','closed') NOT NULL DEFAULT 'draft'" );
 
 		// Step 2: rename existing rows.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
 		$wpdb->query( $wpdb->prepare( "UPDATE `{$table}` SET status = %s WHERE status = %s", 'definitive', 'active' ) );
 
 		// Step 3: narrow the enum back to the canonical 6.1.0 set.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
 		$wpdb->query( "ALTER TABLE `{$table}` MODIFY status ENUM('draft','preliminary','definitive','closed') NOT NULL DEFAULT 'draft'" );
 	}
 
@@ -420,15 +417,15 @@ class RecruitmentActivator {
 
 		// Step 1: widen the enum to include both legacy `final` and the
 		// new `definitive` so the UPDATE doesn't choke.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
 		$wpdb->query( "ALTER TABLE `{$table}` MODIFY status ENUM('draft','preliminary','final','definitive','closed') NOT NULL DEFAULT 'draft'" );
 
 		// Step 2: flip every `final` row to `definitive`.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
 		$wpdb->query( $wpdb->prepare( "UPDATE `{$table}` SET status = %s WHERE status = %s", 'definitive', 'final' ) );
 
 		// Step 3: narrow the enum back to the canonical state.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
 		$wpdb->query( "ALTER TABLE `{$table}` MODIFY status ENUM('draft','preliminary','definitive','closed') NOT NULL DEFAULT 'draft'" );
 	}
 
@@ -448,7 +445,7 @@ class RecruitmentActivator {
 			return;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
 		$wpdb->query( "ALTER TABLE `{$table}` MODIFY status enum('empty','called','accepted','not_shown','hired','withdrew') NOT NULL DEFAULT 'empty'" );
 	}
 
@@ -490,16 +487,15 @@ class RecruitmentActivator {
 		// partial-restore or re-activation must not blow up).
 		if ( null !== $type && 0 === stripos( $type, 'varchar' ) ) {
 			// Still clean up legacy invalid-enum residue even on re-run.
-			$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE list_type NOT IN ('preview','definitive') AND list_type NOT LIKE %s", $table, '__staging\\_%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE list_type NOT IN ('preview','definitive') AND list_type NOT LIKE %s", $table, '__staging\\_%' ) );
 			return;
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Schema migration.
 		$wpdb->query( "ALTER TABLE `{$table}` MODIFY list_type VARCHAR(50) NOT NULL" );
 
 		// Purge the legacy `''` rows the broken staging strategy left
 		// behind (every staging marker pre-fix landed as empty string).
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE list_type NOT IN ('preview','definitive') AND list_type NOT LIKE %s", $table, '__staging\\_%' ) );
 	}
 

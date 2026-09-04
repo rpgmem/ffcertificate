@@ -15,6 +15,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -295,10 +297,8 @@ class AppointmentsListTable extends \WP_List_Table {
 		$offset       = ( $current_page - 1 ) * $per_page;
 
 		// Get filter parameters.
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Standard WP_List_Table filter parameters.
-		$calendar_id = isset( $_GET['calendar_id'] ) ? absint( wp_unslash( $_GET['calendar_id'] ) ) : 0;
+		$calendar_id = RequestInput::get_get_int( 'calendar_id' );
 		$status      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		// Build conditions.
 		$conditions = array();
@@ -340,10 +340,8 @@ class AppointmentsListTable extends \WP_List_Table {
 			return;
 		}
 
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameters for dropdown selection.
-		$calendar_id = isset( $_GET['calendar_id'] ) ? absint( wp_unslash( $_GET['calendar_id'] ) ) : 0;
+		$calendar_id = RequestInput::get_get_int( 'calendar_id' );
 		$status      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		// Get all calendars for filter.
 		$calendars = $this->calendar_repository->getActiveCalendars();

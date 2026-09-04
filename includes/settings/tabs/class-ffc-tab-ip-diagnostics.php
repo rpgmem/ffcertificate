@@ -73,7 +73,6 @@ class TabIpDiagnostics extends SettingsTab {
 	public function render(): void {
 		$can_edit = Capabilities::current_user_can_admin_or( 'ffc_manage_settings' );
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified below via check_admin_referer.
 		if ( $can_edit && isset( $_POST['ffc_save_ip_diagnostics'] ) ) {
 			check_admin_referer( 'ffc_ip_diagnostics_nonce' );
 			if ( isset( $_POST['ffc_ip_refresh_cloudflare'] ) ) {
@@ -314,6 +313,7 @@ class TabIpDiagnostics extends SettingsTab {
 		if ( ! isset( $_SERVER[ $key ] ) ) {
 			return '';
 		}
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised on the next line: is_string() then sanitize_text_field().
 		$raw = wp_unslash( $_SERVER[ $key ] );
 		return is_string( $raw ) ? sanitize_text_field( $raw ) : '';
 	}

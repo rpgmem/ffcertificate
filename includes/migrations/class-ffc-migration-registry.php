@@ -117,7 +117,6 @@ class MigrationRegistry {
 		);
 
 		// Allow plugins to add custom migrations.
-        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffcertificate is the plugin prefix
 		$this->migrations = apply_filters( 'ffcertificate_migrations_registry', $this->migrations );
 	}
 

@@ -447,7 +447,6 @@ class PdfGenerator {
 		$filename = (string) apply_filters( 'ffcertificate_appointment_receipt_filename', $filename, $calendar_id, $validation_code, $appointment );
 
 		// Allow background image customization via filter.
-        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- ffc_ is the plugin prefix
 		$bg_image = apply_filters( 'ffcertificate_appointment_receipt_bg_image', '', $appointment, $calendar );
 
 		return array(

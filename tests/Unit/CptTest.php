@@ -48,7 +48,10 @@ class CptTest extends TestCase {
 		$this->caps_mock  = Mockery::mock( 'alias:\FreeFormCertificate\Core\Capabilities' );
 		$this->caps_mock->shouldReceive( 'current_user_can_manage' )->andReturn( true )->byDefault();
 		$this->utils_mock->shouldReceive( 'debug_log' )->byDefault();
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' )->shouldReceive( 'get_user_ip' )->andReturn( '127.0.0.1' )->byDefault();
+		Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' )->shouldReceive( 'get_user_ip' )->andReturn( '127.0.0.1' )->byDefault()
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		$this->utils_mock->shouldReceive( 'truncate' )->andReturnUsing( function ( $str ) {
 			return $str;
 		} )->byDefault();

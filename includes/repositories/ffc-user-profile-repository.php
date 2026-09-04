@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- The sniff only recognises the global $wpdb->prepare(); this class binds wpdb as a property, so every $this->wpdb->prepare() call reads as unprepared SQL. Table names go through %i and every value through a placeholder; {$user_id} is an int-typed parameter.
 /**
  * Database repository for `ffc_user_profiles` rows.
  */
@@ -60,7 +60,6 @@ class UserProfileRepository extends AbstractRepository {
 		if ( $user_id <= 0 ) {
 			return null;
 		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single-row indexed lookup.
 		$row = $this->wpdb->get_row(
 			$this->wpdb->prepare( 'SELECT * FROM %i WHERE user_id = %d', $this->table, $user_id ),
 			ARRAY_A
@@ -81,7 +80,6 @@ class UserProfileRepository extends AbstractRepository {
 		if ( $user_id <= 0 ) {
 			return false;
 		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Existence-style lookup; pk-indexed.
 		$id = $this->wpdb->get_var(
 			$this->wpdb->prepare( 'SELECT id FROM %i WHERE user_id = %d', $this->table, $user_id )
 		);
@@ -92,7 +90,7 @@ class UserProfileRepository extends AbstractRepository {
 		 * The stub types wpdb::get_var() as non-empty-string; the '' guard also
 		 * covers the mocked values the docblock above describes.
 		 *
-		 * @phpstan-ignore-next-line notIdentical.alwaysTrue
+		 * @phpstan-ignore notIdentical.alwaysTrue
 		 */
 		return null !== $id && '' !== $id && (int) $id > 0;
 	}
@@ -116,8 +114,7 @@ class UserProfileRepository extends AbstractRepository {
 			return false;
 		}
 
-		$now = current_time( 'mysql' );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Insert via wpdb helper; cache invalidated below.
+		$now      = current_time( 'mysql' );
 		$inserted = $this->wpdb->insert(
 			$this->table,
 			array(
@@ -158,7 +155,6 @@ class UserProfileRepository extends AbstractRepository {
 		}
 
 		if ( $this->existsForUserId( $user_id ) ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single-row update keyed by user_id.
 			$affected = $this->wpdb->update( $this->table, $data, array( 'user_id' => $user_id ) );
 			if ( false === $affected ) {
 				return false;
@@ -168,8 +164,7 @@ class UserProfileRepository extends AbstractRepository {
 		}
 
 		$data['user_id'] = $user_id;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Insert via wpdb helper; cache invalidated below.
-		$inserted = $this->wpdb->insert( $this->table, $data );
+		$inserted        = $this->wpdb->insert( $this->table, $data );
 		if ( false === $inserted ) {
 			return false;
 		}

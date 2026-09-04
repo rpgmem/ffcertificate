@@ -19,6 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Database repository for the `ffc_recruitment_notice_adjutancy` junction.
  */
@@ -60,7 +61,6 @@ class RecruitmentNoticeAdjutancyRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Insert via wpdb helper; explicit formats.
 		$result = $wpdb->insert(
 			$table,
 			array(
@@ -94,7 +94,6 @@ class RecruitmentNoticeAdjutancyRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Delete via wpdb helper.
 		$result = $wpdb->delete(
 			$table,
 			array(
@@ -123,7 +122,6 @@ class RecruitmentNoticeAdjutancyRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- PK lookup; small cardinality.
 		$count = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(*) FROM %i WHERE notice_id = %d AND adjutancy_id = %d',
@@ -150,7 +148,6 @@ class RecruitmentNoticeAdjutancyRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed by composite PK.
 		$results = $wpdb->get_col(
 			$wpdb->prepare( 'SELECT adjutancy_id FROM %i WHERE notice_id = %d', $table, $notice_id )
 		);
@@ -171,7 +168,6 @@ class RecruitmentNoticeAdjutancyRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reverse-lookup index on adjutancy_id.
 		$results = $wpdb->get_col(
 			$wpdb->prepare( 'SELECT notice_id FROM %i WHERE adjutancy_id = %d', $table, $adjutancy_id )
 		);
@@ -192,7 +188,6 @@ class RecruitmentNoticeAdjutancyRepository {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk delete; bounded by per-notice cardinality.
 		$result = $wpdb->delete( $table, array( 'notice_id' => $notice_id ), array( '%d' ) );
 
 		$rows = is_int( $result ) ? $result : 0;

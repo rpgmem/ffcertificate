@@ -37,6 +37,7 @@ namespace FreeFormCertificate\Recruitment;
 use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -76,8 +77,7 @@ final class RecruitmentCandidateEditPage {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only render.
-		$candidate_id = isset( $_GET['candidate_id'] ) ? absint( wp_unslash( (string) $_GET['candidate_id'] ) ) : 0;
+		$candidate_id = RequestInput::get_get_int( 'candidate_id' );
 		$candidate    = $candidate_id > 0 ? RecruitmentCandidateReader::get_by_id( $candidate_id ) : null;
 		if ( null === $candidate ) {
 			wp_admin_notice(

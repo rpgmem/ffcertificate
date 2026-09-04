@@ -727,9 +727,14 @@ class SettingsSaveHandlerTest extends TestCase {
 
 	public function test_handle_all_submissions_bails_without_capability(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
-		// No nonce/save functions should be reached; absence of errors is the assertion.
+
+		// #1030: "absence of errors is the assertion" was not an assertion.
+		// Say what must not be reached — the nonce checks the capability guard
+		// stands in front of.
+		Functions\expect( 'check_admin_referer' )->never();
+		Functions\expect( 'wp_verify_nonce' )->never();
+
 		$this->handler->handle_all_submissions();
-		$this->assertTrue( true );
 	}
 
 	public function test_handle_all_submissions_runs_all_branches(): void {

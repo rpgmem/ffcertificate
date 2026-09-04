@@ -36,6 +36,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Recruitment;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -94,8 +96,7 @@ final class RecruitmentNoticeEditPage {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only render; mutating actions live on the dedicated handlers.
-		$notice_id = isset( $_GET['notice_id'] ) ? absint( wp_unslash( (string) $_GET['notice_id'] ) ) : 0;
+		$notice_id = RequestInput::get_get_int( 'notice_id' );
 		$notice    = $notice_id > 0 ? RecruitmentNoticeReader::get_by_id( $notice_id ) : null;
 		if ( null === $notice ) {
 			wp_admin_notice(
@@ -149,8 +150,8 @@ final class RecruitmentNoticeEditPage {
 		// columns_label_map() emits an entry; unchecked checkboxes don't
 		// POST so we treat them as `false`, while the mandatory columns
 		// (rank, name) ride on hidden value=1 inputs that always post.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified above via check_admin_referer.
 		$posted = isset( $_POST['public_columns'] ) && is_array( $_POST['public_columns'] )
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Array-checked here, then each element matched against the columns_label_map() allowlist below.
 			? wp_unslash( $_POST['public_columns'] )
 			: array();
 		$labels = RecruitmentNoticeEditPageRenderer::columns_label_map();

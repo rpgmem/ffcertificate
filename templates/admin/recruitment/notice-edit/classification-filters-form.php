@@ -29,7 +29,6 @@ use FreeFormCertificate\Recruitment\RecruitmentAdminPage;
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables scoped to this file (aliased by the including renderer method).
 
 echo '<form method="get" class="ffc-cls-filters ffc-rec-cls-filters">';
 echo '<input type="hidden" name="page" value="' . esc_attr( RecruitmentAdminPage::PAGE_SLUG ) . '">';

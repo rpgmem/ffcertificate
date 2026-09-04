@@ -92,9 +92,13 @@ class AudienceAdminSettingsTest extends TestCase {
 
 	public function test_handle_visibility_settings_does_nothing_without_post(): void {
 		unset( $_POST['ffc_visibility_action'] );
+
+		// Past the capability check the method saves through update_option(),
+		// so no option write is the proof nothing was persisted.
+		Functions\expect( 'update_option' )->never();
+
 		$page = new AudienceAdminSettings( 'ffc-scheduling', \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class )->shouldIgnoreMissing() );
 		$page->handle_visibility_settings();
-		$this->assertTrue( true );
 	}
 
 	// ==================================================================
@@ -102,11 +106,25 @@ class AudienceAdminSettingsTest extends TestCase {
 	// ==================================================================
 
 	public function test_handle_global_holiday_actions_returns_early_without_permission(): void {
+		// #1030 — this test did not exercise what its name says. The capability
+		// check in handle_global_holiday_actions() sits INSIDE the
+		// add_global_holiday branch, after the nonce, so with no ffc_action in
+		// $_POST the method returned for a completely different reason and the
+		// permission guard was never reached. Queue the action and a valid
+		// nonce so the capability really is the only thing left to stop it.
 		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		$_POST = array(
+			'ffc_action'                => 'add_global_holiday',
+			'ffc_global_holiday_nonce'  => 'n',
+			'global_holiday_date'       => '2026-12-25',
+		);
+
+		// The branch persists through update_option( 'ffc_global_holidays' ).
+		Functions\expect( 'update_option' )->never();
 
 		$page = new AudienceAdminSettings( 'ffc-scheduling', \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class )->shouldIgnoreMissing() );
 		$page->handle_global_holiday_actions();
-		$this->assertTrue( true );
 	}
 
 	// ==================================================================

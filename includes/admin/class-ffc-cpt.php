@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -195,8 +197,7 @@ class CPT {
 			wp_die( esc_html__( 'You do not have permission to duplicate this post.', 'ffcertificate' ) );
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below via check_admin_referer.
-		$post_id = ( isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0 );
+		$post_id = RequestInput::get_get_int( 'post' );
 
 		check_admin_referer( 'ffc_duplicate_form_nonce' );
 

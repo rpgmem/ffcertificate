@@ -180,6 +180,7 @@ class ScheduleExceptionSession {
 			return null;
 		}
 
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Cookie payload verified cryptographically on the next line by self::verify_token(); an unsigned value yields null.
 		$raw     = (string) wp_unslash( $_COOKIE[ $name ] );
 		$payload = self::verify_token( $raw );
 		if ( null === $payload ) {
@@ -385,7 +386,7 @@ class ScheduleExceptionSession {
 		if ( $pad ) {
 			$b64 .= str_repeat( '=', 4 - $pad );
 		}
-		$out = base64_decode( strtr( $b64, '-_', '+/' ), true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+		$out = base64_decode( strtr( $b64, '-_', '+/' ), true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- URL-safe base64 of the plugin's own signed session token, not obfuscation. Strict mode is on and the HMAC over the payload is verified by the caller.
 		if ( false === $out ) {
 			return null;
 		}

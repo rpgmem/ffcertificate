@@ -33,6 +33,7 @@ namespace FreeFormCertificate\Recruitment;
 
 use FreeFormCertificate\Core\BadgeHtml;
 use FreeFormCertificate\Core\LabelSorter;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -259,13 +260,11 @@ final class RecruitmentAdminPage {
 	 * @return string|null
 	 */
 	public static function highlight_active_tab( $submenu_file ) {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only menu-highlight routing.
-		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( (string) $_GET['page'] ) ) : '';
+		$page = RequestInput::get_get_key( 'page' );
 		if ( self::PAGE_SLUG !== $page ) {
 			return $submenu_file;
 		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only menu-highlight routing.
-		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( (string) $_GET['tab'] ) ) : 'notices';
+		$tab = RequestInput::get_get_key( 'tab', 'notices' );
 		if ( ! in_array( $tab, array( 'notices', 'adjutancies', 'reasons', 'candidates', 'settings' ), true ) ) {
 			$tab = 'notices';
 		}
@@ -291,8 +290,7 @@ final class RecruitmentAdminPage {
 		// before the default tab render runs. Each action validates its
 		// own nonce and short-circuits with `wp_safe_redirect` so the
 		// page reloads onto the canonical tab URL.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Each action runs `check_admin_referer`.
-		$action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( (string) $_GET['action'] ) ) : '';
+		$action = RequestInput::get_get_key( 'action' );
 
 		// Edit screens hijack the whole render — they have their own
 		// chrome (h1 + back link) and don't share the tab strip.
@@ -302,8 +300,7 @@ final class RecruitmentAdminPage {
 			}
 			echo '<div class="wrap ffc-recruitment-admin">';
 			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only flash.
-			$msg = isset( $_GET['ffc_msg'] ) ? sanitize_key( wp_unslash( (string) $_GET['ffc_msg'] ) ) : '';
+			$msg = RequestInput::get_get_key( 'ffc_msg' );
 			if ( '' !== $msg ) {
 				RecruitmentAdminPageRenderer::render_flash_notice( $msg );
 			}
@@ -324,8 +321,7 @@ final class RecruitmentAdminPage {
 			RecruitmentAdminActions::dispatch( $action );
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab switching is read-only.
-		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( (string) $_GET['tab'] ) ) : 'notices';
+		$tab = RequestInput::get_get_key( 'tab', 'notices' );
 		if ( ! in_array( $tab, array( 'notices', 'adjutancies', 'reasons', 'candidates', 'settings' ), true ) ) {
 			$tab = 'notices';
 		}

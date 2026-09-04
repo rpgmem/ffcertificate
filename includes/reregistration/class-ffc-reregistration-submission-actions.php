@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -28,13 +30,12 @@ class ReregistrationSubmissionActions {
 	 * @return void
 	 */
 	public static function handle_approve(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( ! isset( $_GET['action'] ) || 'approve' !== $_GET['action'] || ! isset( $_GET['sub_id'] ) ) {
 			return;
 		}
 
 		$sub_id   = absint( $_GET['sub_id'] );
-		$rereg_id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+		$rereg_id = RequestInput::get_get_int( 'id' );
 
 		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'approve_submission_' . $sub_id ) ) {
 			return;
@@ -51,13 +52,12 @@ class ReregistrationSubmissionActions {
 	 * @return void
 	 */
 	public static function handle_reject(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( ! isset( $_GET['action'] ) || 'reject' !== $_GET['action'] || ! isset( $_GET['sub_id'] ) ) {
 			return;
 		}
 
 		$sub_id   = absint( $_GET['sub_id'] );
-		$rereg_id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+		$rereg_id = RequestInput::get_get_int( 'id' );
 
 		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'reject_submission_' . $sub_id ) ) {
 			return;
@@ -74,19 +74,18 @@ class ReregistrationSubmissionActions {
 	 * @return void
 	 */
 	public static function handle_return_to_draft(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( ! isset( $_GET['action'] ) || 'return_to_draft' !== $_GET['action'] || ! isset( $_GET['sub_id'] ) ) {
 			return;
 		}
 
 		$sub_id   = absint( $_GET['sub_id'] );
-		$rereg_id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+		$rereg_id = RequestInput::get_get_int( 'id' );
 
 		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'return_to_draft_submission_' . $sub_id ) ) {
 			return;
 		}
 
-		ReregistrationSubmissionWriter::return_to_draft( $sub_id, get_current_user_id() );
+		ReregistrationSubmissionWriter::return_to_draft( $sub_id );
 		wp_safe_redirect( admin_url( 'admin.php?page=' . ReregistrationAdmin::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=returned_to_draft' ) );
 		exit;
 	}
@@ -120,7 +119,7 @@ class ReregistrationSubmissionActions {
 		}
 
 		if ( 'return_to_draft' === $action ) {
-			ReregistrationSubmissionWriter::bulk_return_to_draft( $ids, get_current_user_id() );
+			ReregistrationSubmissionWriter::bulk_return_to_draft( $ids );
 			wp_safe_redirect( admin_url( 'admin.php?page=' . ReregistrationAdmin::MENU_SLUG . '&view=submissions&id=' . $rereg_id . '&message=bulk_returned_to_draft' ) );
 			exit;
 		}

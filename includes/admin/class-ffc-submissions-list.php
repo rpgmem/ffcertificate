@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Admin;
 
 use FreeFormCertificate\Repositories\SubmissionRepository;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -365,8 +366,7 @@ class SubmissionsList extends \WP_List_Table {
 			return array();
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Status is a display filter parameter.
-		$status = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
+		$status = RequestInput::get_get_key( 'status', 'publish' );
 		if ( 'trash' === $status ) {
 			return array(
 				'bulk_restore' => __( 'Restore', 'ffcertificate' ),
@@ -380,7 +380,7 @@ class SubmissionsList extends \WP_List_Table {
 		// single source form — otherwise the source form is ambiguous and
 		// the conflict-detection scope (per-form duplicate identifier) is
 		// undefined.
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- filter_form_id is a display-only filter.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- filter_form_id is a display-only filter. Shape-checked as an array below, then each element through absint().
 		$filter_raw = isset( $_GET['filter_form_id'] ) ? wp_unslash( $_GET['filter_form_id'] ) : null;
 		$single_id  = 0;
 		if ( is_array( $filter_raw ) && 1 === count( $filter_raw ) ) {
@@ -420,15 +420,13 @@ class SubmissionsList extends \WP_List_Table {
 		$per_page     = 20;
 		$current_page = $this->get_pagenum();
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- These are standard WP_List_Table filter/sort parameters.
-		$status  = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
+		$status  = RequestInput::get_get_key( 'status', 'publish' );
 		$search  = isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['s'] ) ) : '';
 		$orderby = ( ! empty( $_GET['orderby'] ) ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : 'id';
 		$order   = \FreeFormCertificate\Core\RequestInput::get_get_string( 'order' ) === 'asc' ? 'ASC' : 'DESC';
 
 		$filter_form_ids = array();
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- empty() existence check only.
 		if ( ! empty( $_GET['filter_form_id'] ) ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- is_array() type check only.
 			if ( is_array( $_GET['filter_form_id'] ) ) {
 				$filter_form_ids = array_map( 'absint', wp_unslash( $_GET['filter_form_id'] ) );
 			} else {
@@ -511,9 +509,8 @@ class SubmissionsList extends \WP_List_Table {
 	 * @return array<string, string>
 	 */
 	protected function get_views() {
-		$counts = $this->repository->countByStatus();
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display parameter for tab highlighting.
-		$current = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : 'publish';
+		$counts  = $this->repository->countByStatus();
+		$current = RequestInput::get_get_key( 'status', 'publish' );
 
 		return array(
 			'all'              => sprintf(
@@ -584,9 +581,7 @@ class SubmissionsList extends \WP_List_Table {
 
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameter for form selection.
 		$selected_form_ids = array();
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- empty() existence check only.
 		if ( ! empty( $_GET['filter_form_id'] ) ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- is_array() type check only.
 			if ( is_array( $_GET['filter_form_id'] ) ) {
 				$selected_form_ids = array_map( 'absint', wp_unslash( $_GET['filter_form_id'] ) );
 			} else {

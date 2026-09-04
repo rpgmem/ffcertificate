@@ -44,8 +44,7 @@ class AudienceAdminCalendar {
 	 */
 	public function render_page(): void {
 		$action = RequestInput::get_get_string( 'action', 'list' );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+		$id     = RequestInput::get_get_int( 'id' );
 
 		?>
 		<div class="wrap">
@@ -620,7 +619,6 @@ class AudienceAdminCalendar {
 		}
 
 		// Show feedback for redirect-based actions.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['message'] ) ) {
 			$msg      = RequestInput::get_get_string( 'message' );
 			$messages = array(
@@ -683,7 +681,6 @@ class AudienceAdminCalendar {
 		}
 
 		// Handle deactivate (active items get deactivated instead of deleted).
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'deactivate' === $_GET['action'] && isset( $_GET['id'] ) ) {
 			$id = absint( $_GET['id'] );
 			if ( wp_verify_nonce( RequestInput::get_get_string( '_wpnonce' ), 'deactivate_schedule_' . $id ) ) {
@@ -694,7 +691,6 @@ class AudienceAdminCalendar {
 		}
 
 		// Handle delete (only inactive items can be permanently deleted).
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['action'] ) && 'delete' === $_GET['action'] && isset( $_GET['id'] ) ) {
 			if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
 				wp_die( esc_html__( 'You do not have permission to delete calendars.', 'ffcertificate' ) );
@@ -727,7 +723,6 @@ class AudienceAdminCalendar {
 		}
 
 		// Handle delete holiday.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['delete_holiday'] ) && isset( $_GET['id'] ) ) {
 			$holiday_id  = absint( $_GET['delete_holiday'] );
 			$schedule_id = absint( $_GET['id'] );

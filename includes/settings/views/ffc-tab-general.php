@@ -147,7 +147,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 						esc_html__( 'Date: plugin uses %1$s, WordPress uses %2$s.', 'ffcertificate' ),
 						'<code>' . esc_html( $ffcertificate_effective_date ) . '</code>',
 						'<code>' . esc_html( $ffcertificate_wp_date_format ) . '</code>'
-					); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped via esc_html inside printf args.
+					);
 					?>
 				</li>
 			<?php endif; ?>
@@ -159,7 +159,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 						esc_html__( 'Time: plugin uses %1$s, WordPress uses %2$s.', 'ffcertificate' ),
 						'<code>' . esc_html( $ffcertificate_effective_time ) . '</code>',
 						'<code>' . esc_html( $ffcertificate_wp_time_format ) . '</code>'
-					); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped via esc_html inside printf args.
+					);
 					?>
 				</li>
 			<?php endif; ?>

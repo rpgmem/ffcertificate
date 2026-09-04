@@ -60,7 +60,6 @@ class AudienceAdminSettings {
 	 * @return void
 	 */
 	public function render_page(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$active_tab = RequestInput::get_get_string( 'tab', 'general' );
 
 		// Base tabs; modules may contribute more via the filter below (e.g. the
@@ -230,14 +229,12 @@ class AudienceAdminSettings {
 		}
 
 		// Save Self-Scheduling visibility settings.
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
 		if ( isset( $_POST['ffc_action'] ) && 'save_ss_visibility_settings' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_ss_visibility_nonce'] ) ||
 				! wp_verify_nonce( RequestInput::get_post_string( 'ffc_ss_visibility_nonce' ), 'ffc_ss_visibility_settings' ) ) {
 				return;
 			}
 
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 			$display_mode = isset( $_POST['ffc_ss_private_display_mode'] )
 				? sanitize_text_field( wp_unslash( $_POST['ffc_ss_private_display_mode'] ) ) : 'show_message';
 			if ( ! in_array( $display_mode, array( 'show_message', 'show_title_message', 'hide' ), true ) ) {
@@ -245,39 +242,32 @@ class AudienceAdminSettings {
 			}
 
 			update_option( 'ffc_ss_private_display_mode', $display_mode );
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; wp_kses_post() sanitises.
 			update_option( 'ffc_ss_visibility_message', wp_kses_post( wp_unslash( $_POST['ffc_ss_visibility_message'] ?? '' ) ) );
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; wp_kses_post() sanitises.
 			update_option( 'ffc_ss_scheduling_message', wp_kses_post( wp_unslash( $_POST['ffc_ss_scheduling_message'] ?? '' ) ) );
 
 			add_settings_error( 'ffc_audience', 'ffc_message', __( 'Self-scheduling visibility settings saved.', 'ffcertificate' ), 'success' );
 		}
 
 		// Save Self-Scheduling business hours restriction messages.
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
 		if ( isset( $_POST['ffc_action'] ) && 'save_ss_business_hours_settings' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_ss_business_hours_nonce'] ) ||
 				! wp_verify_nonce( RequestInput::get_post_string( 'ffc_ss_business_hours_nonce' ), 'ffc_ss_business_hours_settings' ) ) {
 				return;
 			}
 
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; wp_kses_post() sanitises.
 			update_option( 'ffc_ss_business_hours_viewing_message', wp_kses_post( wp_unslash( $_POST['ffc_ss_business_hours_viewing_message'] ?? '' ) ) );
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; wp_kses_post() sanitises.
 			update_option( 'ffc_ss_business_hours_booking_message', wp_kses_post( wp_unslash( $_POST['ffc_ss_business_hours_booking_message'] ?? '' ) ) );
 
 			add_settings_error( 'ffc_audience', 'ffc_message', __( 'Business hours restriction messages saved.', 'ffcertificate' ), 'success' );
 		}
 
 		// Save Audience visibility settings.
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
 		if ( isset( $_POST['ffc_action'] ) && 'save_aud_visibility_settings' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_aud_visibility_nonce'] ) ||
 				! wp_verify_nonce( RequestInput::get_post_string( 'ffc_aud_visibility_nonce' ), 'ffc_aud_visibility_settings' ) ) {
 				return;
 			}
 
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 			$display_mode = isset( $_POST['ffc_aud_private_display_mode'] )
 				? sanitize_text_field( wp_unslash( $_POST['ffc_aud_private_display_mode'] ) ) : 'show_message';
 			if ( ! in_array( $display_mode, array( 'show_message', 'show_title_message', 'hide' ), true ) ) {
@@ -285,13 +275,11 @@ class AudienceAdminSettings {
 			}
 
 			update_option( 'ffc_aud_private_display_mode', $display_mode );
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; wp_kses_post() sanitises.
 			update_option( 'ffc_aud_visibility_message', wp_kses_post( wp_unslash( $_POST['ffc_aud_visibility_message'] ?? '' ) ) );
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; wp_kses_post() sanitises.
 			update_option( 'ffc_aud_scheduling_message', wp_kses_post( wp_unslash( $_POST['ffc_aud_scheduling_message'] ?? '' ) ) );
 
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 			$ma_color = ColorValidator::normalize(
+				// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Normalised by ColorValidator::normalize(), which returns the default for anything that is not a hex colour.
 				isset( $_POST['ffc_aud_multiple_audiences_color'] ) ? wp_unslash( $_POST['ffc_aud_multiple_audiences_color'] ) : '',
 				''
 			);
@@ -308,7 +296,6 @@ class AudienceAdminSettings {
 	 */
 	public function handle_global_holiday_actions(): void {
 		// Add global holiday (POST).
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified inside this block.
 		if ( isset( $_POST['ffc_action'] ) && 'add_global_holiday' === $_POST['ffc_action'] ) {
 			if ( ! isset( $_POST['ffc_global_holiday_nonce'] ) ||
 				! wp_verify_nonce( RequestInput::get_post_string( 'ffc_global_holiday_nonce' ), 'ffc_global_holiday_action' ) ) {
@@ -319,9 +306,7 @@ class AudienceAdminSettings {
 				return;
 			}
 
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-			$date = RequestInput::get_post_string( 'global_holiday_date' );
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
+			$date        = RequestInput::get_post_string( 'global_holiday_date' );
 			$description = RequestInput::get_post_string( 'global_holiday_description' );
 
 			if ( ! empty( $date ) ) {
@@ -350,7 +335,6 @@ class AudienceAdminSettings {
 		}
 
 		// Delete global holiday (GET).
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['ffc_action'] ) && 'delete_global_holiday' === $_GET['ffc_action'] ) {
 			$index = isset( $_GET['holiday_index'] ) ? absint( $_GET['holiday_index'] ) : -1;
 

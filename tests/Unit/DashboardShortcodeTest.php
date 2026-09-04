@@ -69,8 +69,27 @@ class DashboardShortcodeTest extends TestCase {
 	// ==================================================================
 
 	public function test_init_registers_shortcode_and_action(): void {
+		// #1030: "no exception = hooks registered" registered nothing of the
+		// sort. An init() that wired neither would have passed.
+		$shortcodes = array();
+		$actions    = array();
+		Functions\when( 'add_shortcode' )->alias(
+			static function ( $tag ) use ( &$shortcodes ) {
+				$shortcodes[] = $tag;
+				return true;
+			}
+		);
+		Functions\when( 'add_action' )->alias(
+			static function ( $hook ) use ( &$actions ) {
+				$actions[] = $hook;
+				return true;
+			}
+		);
+
 		DashboardShortcode::init();
-		$this->assertTrue( true ); // No exception = hooks registered
+
+		$this->assertContains( 'user_dashboard_personal', $shortcodes );
+		$this->assertContains( 'template_redirect', $actions );
 	}
 
 	// ==================================================================
@@ -100,6 +119,9 @@ class DashboardShortcodeTest extends TestCase {
 
 		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
 		$ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
+		$ri_mock->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
+		$ri_mock->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
+		$ri_mock->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		$utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
 		$utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
 		$ri_mock->shouldReceive( 'get_get_string' )->andReturnUsing( function ( $key, $default = '' ) {
@@ -135,9 +157,12 @@ class DashboardShortcodeTest extends TestCase {
 		global $post;
 		$post = null;
 
+		// Past both guards the method calls nocache_headers(); it never running
+		// is the proof the guard returned.
+		Functions\expect( 'nocache_headers' )->never();
+
 		// is_a(null, 'WP_Post') returns false — no mock needed
 		DashboardShortcode::send_nocache_headers();
-		$this->assertTrue( true );
 	}
 
 	// ==================================================================
@@ -152,8 +177,11 @@ class DashboardShortcodeTest extends TestCase {
 
 		Functions\when( 'has_shortcode' )->justReturn( false );
 
+		// A real WP_Post is present, so the shortcode check is the only thing
+		// that can stop it — and nocache_headers() is what it stops.
+		Functions\expect( 'nocache_headers' )->never();
+
 		DashboardShortcode::send_nocache_headers();
-		$this->assertTrue( true );
 	}
 
 	// ==================================================================
@@ -174,6 +202,9 @@ class DashboardShortcodeTest extends TestCase {
 		$utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
 		$utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
 		$ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
+		$ri_mock->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
+		$ri_mock->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
+		$ri_mock->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		$ri_mock->shouldReceive( 'get_get_string' )->andReturnUsing( function ( $key, $default = '' ) {
 			return isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ? $_GET[ $key ] : $default;
 		} )->byDefault();
@@ -276,6 +307,9 @@ class DashboardShortcodeTest extends TestCase {
 		$fmt->shouldReceive( 'format_date' )->andReturn( '01/01/2030' )->byDefault();
 
 		$ri = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
+		$ri->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
+		$ri->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
+		$ri->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		$ri->shouldReceive( 'get_get_string' )->andReturnUsing( function ( $key, $default = '' ) {
 			return isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ? $_GET[ $key ] : $default;
 		} )->byDefault();

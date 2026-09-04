@@ -17,7 +17,6 @@
  * - Handle cache warm / clear actions.
  *
  * Behavior is preserved verbatim from Settings: same nonce checks, capability
- * checks, redirects, option writes and phpcs:ignore annotations.
  *
  * @package FreeFormCertificate\Admin
  * @since   6.12.0
@@ -69,12 +68,9 @@ class SettingsActionHandler {
 	 * Handle QR Code cache clearing
 	 */
 	public function handle_clear_qr_cache(): void {
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Nonce verified below via wp_verify_nonce.
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- isset() existence checks only.
 		if ( ! isset( $_GET['ffc_clear_qr_cache'] ) || ! isset( $_GET['_wpnonce'] ) ) {
 			return;
 		}
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'ffc_clear_qr_cache' ) ) {
 			return;
@@ -100,7 +96,6 @@ class SettingsActionHandler {
 	 * Handle migration execution from settings page
 	 */
 	public function handle_migration_execution(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below after extracting migration key.
 		if ( ! isset( $_GET['ffc_run_migration'] ) ) {
 			return;
 		}
@@ -109,7 +104,6 @@ class SettingsActionHandler {
 			wp_die( esc_html__( 'You do not have permission to run migrations.', 'ffcertificate' ) );
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below.
 		$migration_key = sanitize_key( wp_unslash( $_GET['ffc_run_migration'] ) );
 
 		// Verify nonce.
@@ -168,7 +162,6 @@ class SettingsActionHandler {
 	 */
 	public function handle_obsolete_shortcode_cleanup(): void {
 		// Accept the trigger from GET (preview/apply links) OR POST (save_days form).
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below.
 		if ( ! isset( $_REQUEST['ffc_obsolete_cleanup'] ) ) {
 			return;
 		}
@@ -177,14 +170,12 @@ class SettingsActionHandler {
 			wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below.
 		$mode          = sanitize_key( wp_unslash( $_REQUEST['ffc_obsolete_cleanup'] ) );
 		$allowed_modes = array( 'preview', 'apply', 'save_days' );
 		if ( ! in_array( $mode, $allowed_modes, true ) ) {
 			wp_die( esc_html__( 'Invalid action.', 'ffcertificate' ) );
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified here.
 		$nonce = isset( $_REQUEST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ) : '';
 		if ( ! wp_verify_nonce( $nonce, 'ffc_obsolete_cleanup_' . $mode ) ) {
 			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
@@ -210,7 +201,6 @@ class SettingsActionHandler {
 
 		switch ( $mode ) {
 			case 'save_days':
-                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 				$posted_days = isset( $_POST['obsolete_shortcode_days'] )
 					? absint( wp_unslash( $_POST['obsolete_shortcode_days'] ) )
 					: 0;
@@ -319,7 +309,6 @@ class SettingsActionHandler {
 	 * @since 6.8.0
 	 */
 	public function handle_url_shortener_cleanup(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below.
 		if ( ! isset( $_REQUEST['ffc_url_cleanup'] ) ) {
 			return;
 		}
@@ -328,13 +317,11 @@ class SettingsActionHandler {
 			wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below.
 		$mode = sanitize_key( wp_unslash( $_REQUEST['ffc_url_cleanup'] ) );
 		if ( ! in_array( $mode, array( 'preview', 'apply' ), true ) ) {
 			wp_die( esc_html__( 'Invalid action.', 'ffcertificate' ) );
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified here.
 		$nonce = isset( $_REQUEST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ) : '';
 		if ( ! wp_verify_nonce( $nonce, 'ffc_url_cleanup_' . $mode ) ) {
 			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
@@ -365,15 +352,11 @@ class SettingsActionHandler {
 		}
 
 		if ( 'preview' === $mode ) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 			$posted_days = isset( $_POST['url_cleanup_days'] ) ? absint( wp_unslash( $_POST['url_cleanup_days'] ) ) : 90;
 			$days        = min( 3650, max( 1, $posted_days ) );
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-			$orphaned = empty( $_POST['url_cleanup_orphaned'] ) ? 0 : 1;
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-			$never = empty( $_POST['url_cleanup_never_clicked'] ) ? 0 : 1;
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-			$trashed = empty( $_POST['url_cleanup_trashed'] ) ? 0 : 1;
+			$orphaned    = empty( $_POST['url_cleanup_orphaned'] ) ? 0 : 1;
+			$never       = empty( $_POST['url_cleanup_never_clicked'] ) ? 0 : 1;
+			$trashed     = empty( $_POST['url_cleanup_trashed'] ) ? 0 : 1;
 
 			$settings['url_cleanup_days']          = $days;
 			$settings['url_cleanup_orphaned']      = $orphaned;
@@ -453,7 +436,6 @@ class SettingsActionHandler {
 	 * @since 6.8.0
 	 */
 	public function handle_public_access_disabler(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below.
 		if ( ! isset( $_REQUEST['ffc_pubaccess'] ) ) {
 			return;
 		}
@@ -462,13 +444,11 @@ class SettingsActionHandler {
 			wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below.
 		$mode = sanitize_key( wp_unslash( $_REQUEST['ffc_pubaccess'] ) );
 		if ( ! in_array( $mode, array( 'preview', 'apply' ), true ) ) {
 			wp_die( esc_html__( 'Invalid action.', 'ffcertificate' ) );
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified here.
 		$nonce = isset( $_REQUEST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ) : '';
 		if ( ! wp_verify_nonce( $nonce, 'ffc_pubaccess_' . $mode ) ) {
 			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
@@ -499,7 +479,6 @@ class SettingsActionHandler {
 		}
 
 		if ( 'preview' === $mode ) {
-            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
 			$posted_days                            = isset( $_POST['public_access_disable_days'] ) ? absint( wp_unslash( $_POST['public_access_disable_days'] ) ) : 90;
 			$days                                   = min( 3650, max( 1, $posted_days ) );
 			$settings['public_access_disable_days'] = $days;
@@ -561,7 +540,6 @@ class SettingsActionHandler {
 	 * @since 6.8.0
 	 */
 	public function handle_submission_link_audit(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below.
 		if ( ! isset( $_REQUEST['ffc_submission_audit'] ) ) {
 			return;
 		}
@@ -570,13 +548,11 @@ class SettingsActionHandler {
 			wp_die( esc_html__( 'You do not have permission to run this action.', 'ffcertificate' ) );
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified immediately below.
 		$mode = sanitize_key( wp_unslash( $_REQUEST['ffc_submission_audit'] ) );
 		if ( 'scan' !== $mode ) {
 			wp_die( esc_html__( 'Invalid action.', 'ffcertificate' ) );
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified here.
 		$nonce = isset( $_REQUEST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ) : '';
 		if ( ! wp_verify_nonce( $nonce, 'ffc_submission_audit_scan' ) ) {
 			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
@@ -619,7 +595,6 @@ class SettingsActionHandler {
 		}
 
 		// Warm Cache.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below via check_admin_referer.
 		if ( isset( $_GET['action'] ) && sanitize_key( wp_unslash( $_GET['action'] ) ) === 'warm_cache' ) {
 			check_admin_referer( 'ffc_warm_cache' );
 
@@ -641,7 +616,6 @@ class SettingsActionHandler {
 		}
 
 		// Clear Cache.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified below via check_admin_referer.
 		if ( isset( $_GET['action'] ) && sanitize_key( wp_unslash( $_GET['action'] ) ) === 'clear_cache' ) {
 			check_admin_referer( 'ffc_clear_cache' );
 
@@ -682,7 +656,6 @@ class SettingsActionHandler {
 	 * @since 6.14.0
 	 */
 	public function handle_send_test_email(): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Presence check only; nonce verified below via check_admin_referer.
 		if ( ! isset( $_POST['ffc_send_test_email'] ) ) {
 			return;
 		}

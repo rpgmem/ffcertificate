@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -105,7 +107,7 @@ class AdminUserCapabilities {
 		// The target user: own profile (profile.php) or another user
 		// (user-edit.php?user_id=N). Mirrors how core resolves it.
 		$target_id = 'user-edit.php' === $hook_suffix
-			? ( isset( $_GET['user_id'] ) ? absint( wp_unslash( $_GET['user_id'] ) ) : 0 ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen resolution, mirrors core user-edit.php.
+			? ( RequestInput::get_get_int( 'user_id' ) )
 			: get_current_user_id();
 
 		$presets  = self::ffc_preset_roles();
@@ -477,14 +479,14 @@ class AdminUserCapabilities {
 				. '</div>',
 			esc_attr( strtolower( $label . ' ' . $slug ) ),
 			esc_attr( $slug ),
-			$toggle, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- AdminUI::get_toggle() returns pre-escaped markup.
+			$toggle,
 			esc_html( $label ),
 			esc_html( $desc ),
 			esc_attr__( 'Copy slug', 'ffcertificate' ),
 			esc_attr( $origin ),
 			esc_html( self::origin_label( $origin ) ),
 			$checked ? '1' : '0',
-			$surface_badge, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-escaped by CapabilityCatalog::surface_badge_html().
+			$surface_badge,
 			esc_attr( \FreeFormCertificate\UserDashboard\CapabilityCatalog::cap_tier( $slug ) )
 		);
 	}
@@ -673,7 +675,8 @@ class AdminUserCapabilities {
 		// "no audiences rendered" case so it can't wipe on an unrelated save.
 		$submitted_audiences = array();
 		if ( isset( $_POST['ffc_audience'] ) ) {
-			$raw_audiences = wp_unslash( $_POST['ffc_audience'] ); // phpcs:ignore WordPress.Security.ValidatedSanitized.InputNotSanitized -- cast to int below.
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised on the next lines: is_array() then array_map( 'intval' ).
+			$raw_audiences = wp_unslash( $_POST['ffc_audience'] );
 			if ( is_array( $raw_audiences ) ) {
 				$submitted_audiences = array_map( 'intval', $raw_audiences );
 			}
@@ -774,7 +777,8 @@ class AdminUserCapabilities {
 
 		$user_id = isset( $_POST['user_id'] ) ? absint( wp_unslash( $_POST['user_id'] ) ) : 0;
 		$role    = isset( $_POST['role'] ) ? sanitize_key( wp_unslash( $_POST['role'] ) ) : '';
-		$assign  = isset( $_POST['assign'] ) && '1' === (string) wp_unslash( $_POST['assign'] );
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Strict comparison against '1' — the raw value never survives the expression.
+		$assign = isset( $_POST['assign'] ) && '1' === (string) wp_unslash( $_POST['assign'] );
 
 		$user = $user_id > 0 ? get_userdata( $user_id ) : false;
 		if ( ! $user instanceof \WP_User ) {

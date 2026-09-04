@@ -47,6 +47,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Recruitment;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -128,8 +130,7 @@ final class RecruitmentPublicShortcode {
 		// so visitors can switch back to "All" or pick a different one.
 		$filter_locked = '' !== $attr_filter;
 		if ( '' === $slug_filter ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter.
-			$get_filter  = isset( $_GET['adjutancy'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['adjutancy'] ) ) : '';
+			$get_filter  = RequestInput::get_get_string( 'adjutancy' );
 			$slug_filter = trim( $get_filter );
 		}
 
@@ -144,15 +145,13 @@ final class RecruitmentPublicShortcode {
 			return self::wrap_output( RecruitmentPublicShortcodeRenderer::msg( __( 'Too many requests. Please try again in a few seconds.', 'ffcertificate' ), 'warning' ) );
 		}
 
-		$page_top    = max( 1, (int) ( $_GET['page_top'] ?? 1 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$page_bottom = max( 1, (int) ( $_GET['page_bottom'] ?? 1 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$page_top    = max( 1, RequestInput::get_get_int( 'page_top', 1 ) );
+		$page_bottom = max( 1, RequestInput::get_get_int( 'page_bottom', 1 ) );
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only name filter.
-		$name_query = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['q'] ) ) : '';
+		$name_query = RequestInput::get_get_string( 'q' );
 		$name_query = trim( $name_query );
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only subscription filter.
-		$subscription_raw = isset( $_GET['subscription'] ) ? sanitize_key( wp_unslash( (string) $_GET['subscription'] ) ) : '';
+		$subscription_raw = RequestInput::get_get_key( 'subscription' );
 		$subscription     = in_array( $subscription_raw, array( 'pcd', 'geral' ), true ) ? $subscription_raw : '';
 
 		$cache_key = self::cache_key( $notice_code, $slug_filter, $page_top, $page_bottom, $filter_locked, $name_query, $subscription );
