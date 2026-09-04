@@ -7,6 +7,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.22.0] (2026-09-04)
+
 ### Deprecated
 - ⚠ **`check_verification()`'s `$token` argument** (#1048): `RateLimiter::check_verification()` and `RateLimitChecker::check_verification()` accept a token they have never read — verification throttling is keyed on the IP alone (10/hour, 30/day). No caller passes it. It will be **removed in 6.24.0**; call with `$ip` only. A per-token limit is not needed: the 12-character `[A-Z0-9]` auth code (~62 bits, globally unique) makes the distributed brute-force it would defend against unviable.
 
