@@ -105,7 +105,7 @@ class ReregistrationFrontend {
 		}
 
 		// Collect and validate fields.
-		$data   = ReregistrationDataProcessor::collect_form_data( $rereg, $user_id );
+		$data   = ReregistrationDataProcessor::collect_form_data( $rereg );
 		$errors = ReregistrationDataProcessor::validate_submission( $data, $rereg, $user_id );
 
 		if ( ! empty( $errors ) ) {
@@ -153,7 +153,7 @@ class ReregistrationFrontend {
 			wp_send_json_error( array( 'message' => __( 'Cannot save draft.', 'ffcertificate' ) ) );
 		}
 
-		$data = ReregistrationDataProcessor::collect_form_data( $rereg, $user_id );
+		$data = ReregistrationDataProcessor::collect_form_data( $rereg );
 
 		ReregistrationSubmissionWriter::update(
 			(int) $submission->id,

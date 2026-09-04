@@ -81,10 +81,9 @@ class ReregistrationDataProcessor {
 	 *
 	 * @param object $rereg   Reregistration object.
 	 * @phpstan-param ReregistrationRow $rereg
-	 * @param int    $user_id User ID.
 	 * @return array<string, mixed> Structured data { fields: { key => value } }.
 	 */
-	public static function collect_form_data( object $rereg, int $user_id ): array {
+	public static function collect_form_data( object $rereg ): array {
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Nonce verified in AJAX handler; sanitized per-field below.
 		$raw = isset( $_POST[ self::POST_ROOT ] ) ? (array) wp_unslash( $_POST[ self::POST_ROOT ] ) : array();
 

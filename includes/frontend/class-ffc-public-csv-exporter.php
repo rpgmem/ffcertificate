@@ -157,9 +157,12 @@ class PublicCsvExporter {
 		$filename = (string) apply_filters( 'ffc_export_filename', $filename, $form_ids, $status );
 
 		// Discard any buffered output so the CSV is the only payload on the wire.
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Generic.CodeAnalysis.EmptyStatement.DetectedWhile -- body intentionally empty; @ swallows the "no buffer" notice.
-		while ( @ob_end_clean() ) {
-			/* no-op */
+		// Guarded on the level so an un-removable buffer (zlib compression,
+		// a buffer PHP owns) ends the loop instead of spinning on a false.
+		while ( ob_get_level() > 0 ) {
+			if ( ! ob_end_clean() ) {
+				break;
+			}
 		}
 
 		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', $filename );

@@ -234,9 +234,12 @@ class BatchedCsvExport {
 		$source->on_before_download( $job );
 
 		// Drop any output buffers so readfile streams cleanly.
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Generic.CodeAnalysis.EmptyStatement.DetectedWhile -- body intentionally empty; @ swallows the "no buffer" notice.
-		while ( @ob_end_clean() ) {
-			/* no-op */
+		// Guarded on the level so an un-removable buffer (zlib compression,
+		// a buffer PHP owns) ends the loop instead of spinning on a false.
+		while ( ob_get_level() > 0 ) {
+			if ( ! ob_end_clean() ) {
+				break;
+			}
 		}
 
 		$safe_filename = str_replace( array( "\r", "\n", '"' ), '', (string) $job['filename'] );
