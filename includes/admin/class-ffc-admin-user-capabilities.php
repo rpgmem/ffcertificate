@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -105,7 +107,7 @@ class AdminUserCapabilities {
 		// The target user: own profile (profile.php) or another user
 		// (user-edit.php?user_id=N). Mirrors how core resolves it.
 		$target_id = 'user-edit.php' === $hook_suffix
-			? ( isset( $_GET['user_id'] ) ? absint( wp_unslash( $_GET['user_id'] ) ) : 0 ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen resolution, mirrors core user-edit.php.
+			? ( RequestInput::get_get_int( 'user_id' ) )
 			: get_current_user_id();
 
 		$presets  = self::ffc_preset_roles();

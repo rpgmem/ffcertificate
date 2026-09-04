@@ -19,6 +19,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -130,13 +132,8 @@ class AdminConditionalAssets {
 	 * @return bool
 	 */
 	private function is_documentation_tab(): bool {
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Page routing check for asset loading.
-		if ( ! isset( $_GET['page'], $_GET['tab'] ) ) {
-			return false;
-		}
-		return sanitize_key( wp_unslash( $_GET['page'] ) ) === 'ffc-settings'
-			&& sanitize_key( wp_unslash( $_GET['tab'] ) ) === 'documentation';
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+		return 'ffc-settings' === RequestInput::get_get_key( 'page' )
+			&& 'documentation' === RequestInput::get_get_key( 'tab' );
 	}
 
 	/**
@@ -145,10 +142,7 @@ class AdminConditionalAssets {
 	 * @return bool
 	 */
 	private function is_certificates_dashboard_page(): bool {
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Page routing check for asset loading.
-		return isset( $_GET['page'] )
-			&& sanitize_key( wp_unslash( $_GET['page'] ) ) === \FreeFormCertificate\Admin\CertificatesDashboard::MENU_SLUG;
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+		return \FreeFormCertificate\Admin\CertificatesDashboard::MENU_SLUG === RequestInput::get_get_key( 'page' );
 	}
 
 	/**
@@ -373,18 +367,13 @@ class AdminConditionalAssets {
 	 * @return bool
 	 */
 	private function is_submissions_list_page(): bool {
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Page routing check for asset loading.
-		if ( ! isset( $_GET['page'] ) ) {
-			return false;
-		}
-		if ( sanitize_key( wp_unslash( $_GET['page'] ) ) !== 'ffc-submissions' ) {
+		if ( 'ffc-submissions' !== RequestInput::get_get_key( 'page' ) ) {
 			return false;
 		}
 		// Skip the edit subpage (handled by is_submission_edit_page()).
-		if ( isset( $_GET['action'] ) && sanitize_key( wp_unslash( $_GET['action'] ) ) === 'edit' ) {
+		if ( 'edit' === RequestInput::get_get_key( 'action' ) ) {
 			return false;
 		}
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 		return true;
 	}
 
@@ -459,12 +448,8 @@ class AdminConditionalAssets {
 	 * @return bool
 	 */
 	private function is_submission_edit_page(): bool {
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Page routing check for asset loading.
-		return isset( $_GET['page'] )
-			&& sanitize_key( wp_unslash( $_GET['page'] ) ) === 'ffc-submissions'
-			&& isset( $_GET['action'] )
-			&& sanitize_key( wp_unslash( $_GET['action'] ) ) === 'edit';
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+		return 'ffc-submissions' === RequestInput::get_get_key( 'page' )
+			&& 'edit' === RequestInput::get_get_key( 'action' );
 	}
 
 	/**
@@ -474,10 +459,7 @@ class AdminConditionalAssets {
 	 * @return bool
 	 */
 	private function is_appointment_detail_page(): bool {
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Page routing check for asset loading.
-		return isset( $_GET['page'] )
-			&& sanitize_key( wp_unslash( $_GET['page'] ) ) === 'ffc-appointments'
-			&& isset( $_GET['appointment'] );
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+		return 'ffc-appointments' === RequestInput::get_get_key( 'page' )
+			&& RequestInput::has_get( 'appointment' );
 	}
 }

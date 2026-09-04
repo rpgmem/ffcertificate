@@ -25,6 +25,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Integrations;
 
 use WP_Error;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -324,8 +325,7 @@ class GithubUpdater {
 	 * @return bool
 	 */
 	private static function is_forced_check(): bool {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only cache-freshness hint; WP core sets force-check on its own "Check again" link and no state is changed here.
-		return isset( $_GET['force-check'] );
+		return RequestInput::has_get( 'force-check' );
 	}
 
 	/**

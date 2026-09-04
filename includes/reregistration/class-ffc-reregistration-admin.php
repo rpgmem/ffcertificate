@@ -22,6 +22,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -251,8 +253,7 @@ class ReregistrationAdmin {
 		if ( in_array( $view, array( 'new', 'edit' ), true ) && ! $this->can_edit() ) {
 			wp_die( esc_html__( 'Permission denied.', 'ffcertificate' ) );
 		}
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read on a GET screen to choose which record to render; can_edit() is checked immediately above, the value is absint()-cast and nothing is written.
-		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+		$id = RequestInput::get_get_int( 'id' );
 
 		$can_edit = $this->can_edit();
 
@@ -296,8 +297,7 @@ class ReregistrationAdmin {
 		}
 
 		// Show redirect messages.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only message key carried by the post-redirect URL; mapped through the literal array below and never used as data.
-		if ( isset( $_GET['message'] ) ) {
+		if ( RequestInput::has_get( 'message' ) ) {
 			$msg      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'message' );
 			$messages = array(
 				'created'                => __( 'Reregistration created successfully.', 'ffcertificate' ),

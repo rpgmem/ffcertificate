@@ -36,6 +36,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Recruitment;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -94,8 +96,7 @@ final class RecruitmentNoticeEditPage {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only render; mutating actions live on the dedicated handlers.
-		$notice_id = isset( $_GET['notice_id'] ) ? absint( wp_unslash( (string) $_GET['notice_id'] ) ) : 0;
+		$notice_id = RequestInput::get_get_int( 'notice_id' );
 		$notice    = $notice_id > 0 ? RecruitmentNoticeReader::get_by_id( $notice_id ) : null;
 		if ( null === $notice ) {
 			wp_admin_notice(

@@ -16,6 +16,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Reregistration;
 
 use FreeFormCertificate\Audience\AudienceReader;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -47,8 +48,7 @@ final class ReregistrationAdminRenderer {
 		if ( '' === $status_filter ) {
 			$status_filter = null;
 		}
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only list filter on a GET screen; absint()-cast and it only narrows the query.
-		$audience_filter = isset( $_GET['audience_id'] ) ? absint( $_GET['audience_id'] ) : 0;
+		$audience_filter = RequestInput::get_get_int( 'audience_id' );
 
 		$filters = array();
 		if ( $status_filter ) {

@@ -38,6 +38,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -236,11 +238,9 @@ class AudienceAdminPage {
 	 * @return void
 	 */
 	public function redirect_legacy_import_url(): void {
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Routing check; no data processing.
-		if ( ! isset( $_GET['page'] ) || self::MENU_SLUG . '-import' !== sanitize_key( wp_unslash( $_GET['page'] ) ) ) {
+		if ( self::MENU_SLUG . '-import' !== RequestInput::get_get_key( 'page' ) ) {
 			return;
 		}
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		wp_safe_redirect(
 			add_query_arg(

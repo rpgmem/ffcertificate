@@ -50,8 +50,7 @@ class AudienceAdminAudience {
 	 */
 	public function render_page(): void {
 		$action = RequestInput::get_get_string( 'action', 'list' );
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read on a GET screen to choose which record to render; the screen itself is capability-gated by its menu registration, the value is absint()-cast and nothing is written.
-		$id = isset( $_GET['id'] ) ? absint( $_GET['id'] ) : 0;
+		$id     = RequestInput::get_get_int( 'id' );
 
 		?>
 		<div class="wrap">

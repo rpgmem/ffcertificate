@@ -115,7 +115,10 @@ class SubmissionsListTest extends TestCase {
 
 		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
 			->shouldReceive( 'get_get_string' )
-			->andReturnUsing( fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
+			->andReturnUsing( fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		Mockery::mock( 'alias:FreeFormCertificate\Generators\MagicLinkHelper' )
 			->shouldReceive( 'generate_magic_link' )->andReturnUsing( fn( $token ) => 'https://magic/' . $token )

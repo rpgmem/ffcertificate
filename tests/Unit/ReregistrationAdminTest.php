@@ -385,7 +385,10 @@ class ReregistrationAdminTest extends TestCase {
 					);
 					return $map[ $key ] ?? $default;
 				}
-			);
+			)
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
 			->shouldReceive( 'create' )->once()->andReturn( 55 )
@@ -427,7 +430,10 @@ class ReregistrationAdminTest extends TestCase {
 					);
 					return $map[ $key ] ?? $default;
 				}
-			);
+			)
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		// Existing campaign already draft → no membership/invitation side effects.
 		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
@@ -460,7 +466,10 @@ class ReregistrationAdminTest extends TestCase {
 		$_POST['ffc_action'] = 'save_reregistration';
 		Functions\when( 'wp_verify_nonce' )->justReturn( false );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_post_string' )->andReturn( '' );
+			->shouldReceive( 'get_post_string' )->andReturn( '' )
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$admin = new ReregistrationAdmin();
 		$this->invoke_private( $admin, 'handle_save' );
@@ -511,7 +520,10 @@ class ReregistrationAdminTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
 			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( 'good' );
+			->shouldReceive( 'get_get_string' )->andReturn( 'good' )
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
 			->shouldReceive( 'delete' )->once()->with( 5 );
@@ -535,7 +547,10 @@ class ReregistrationAdminTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
 			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( 'bad' );
+			->shouldReceive( 'get_get_string' )->andReturn( 'bad' )
+			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
 			->shouldReceive( 'delete' )->never();

@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Settings;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -243,7 +245,7 @@ abstract class SettingsTab {
 	 * @return bool
 	 */
 	protected function is_active() {
-		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for display only.
+		$active_tab = RequestInput::get_get_key( 'tab' );
 		return $active_tab === $this->tab_id;
 	}
 

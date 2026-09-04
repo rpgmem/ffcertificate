@@ -18,6 +18,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Recruitment;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -59,7 +61,7 @@ final class RecruitmentAdminActions {
 
 		switch ( $action ) {
 			case 'delete-notice':
-				$id = isset( $_GET['notice_id'] ) ? absint( wp_unslash( (string) $_GET['notice_id'] ) ) : 0;
+				$id = RequestInput::get_get_int( 'notice_id' );
 				if ( $id > 0 ) {
 					check_admin_referer( 'ffc_recruitment_delete_notice_' . $id );
 					RecruitmentNoticeWriter::delete( $id );
@@ -76,7 +78,7 @@ final class RecruitmentAdminActions {
 				exit;
 
 			case 'delete-adjutancy':
-				$id = isset( $_GET['adjutancy_id'] ) ? absint( wp_unslash( (string) $_GET['adjutancy_id'] ) ) : 0;
+				$id = RequestInput::get_get_int( 'adjutancy_id' );
 				if ( $id > 0 ) {
 					check_admin_referer( 'ffc_recruitment_delete_adjutancy_' . $id );
 					// DeleteService gates on §14: rejects when notice_adjutancy
@@ -97,7 +99,7 @@ final class RecruitmentAdminActions {
 				exit;
 
 			case 'delete-reason':
-				$id = isset( $_GET['reason_id'] ) ? absint( wp_unslash( (string) $_GET['reason_id'] ) ) : 0;
+				$id = RequestInput::get_get_int( 'reason_id' );
 				if ( $id > 0 ) {
 					check_admin_referer( 'ffc_recruitment_delete_reason_' . $id );
 					// Reasons are referentially gated like adjutancies: a
@@ -122,7 +124,7 @@ final class RecruitmentAdminActions {
 				exit;
 
 			case 'delete-candidate':
-				$id = isset( $_GET['candidate_id'] ) ? absint( wp_unslash( (string) $_GET['candidate_id'] ) ) : 0;
+				$id = RequestInput::get_get_int( 'candidate_id' );
 				if ( $id > 0 ) {
 					check_admin_referer( 'ffc_recruitment_delete_candidate_' . $id );
 					// DeleteService gates on §7-bis: zero classifications.

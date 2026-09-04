@@ -120,7 +120,10 @@ class PublicFormsExportSourceTest extends TestCase {
 			->shouldReceive( 'check_ip_limit' )
 			->andReturn( array( 'allowed' => false, 'message' => 'slow down' ) );
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_user_ip' )->andReturn( '1.2.3.4' );
+			->shouldReceive( 'get_user_ip' )->andReturn( '1.2.3.4' )
+		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'json_error' );
@@ -134,7 +137,10 @@ class PublicFormsExportSourceTest extends TestCase {
 			->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) );
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
 			->shouldReceive( 'get_user_ip' )->andReturn( '1.2.3.4' )
-			->shouldReceive( 'get_post_string' )->andReturn( 'n' );
+			->shouldReceive( 'get_post_string' )->andReturn( 'n' )
+		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'json_error' );
@@ -148,7 +154,10 @@ class PublicFormsExportSourceTest extends TestCase {
 			->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) );
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
 			->shouldReceive( 'get_user_ip' )->andReturn( '1.2.3.4' )
-			->shouldReceive( 'get_post_string' )->andReturn( 'n' );
+			->shouldReceive( 'get_post_string' )->andReturn( 'n' )
+		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\SecurityService' )
 			->shouldReceive( 'validate_security_fields' )->andReturn( 'spam detected' );
 
@@ -171,7 +180,10 @@ class PublicFormsExportSourceTest extends TestCase {
 		// form_id present but hash empty → guard fires.
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
 			->shouldReceive( 'get_user_ip' )->andReturn( '1.2.3.4' )
-			->shouldReceive( 'get_post_string' )->andReturn( '' );
+			->shouldReceive( 'get_post_string' )->andReturn( '' )
+		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		$_POST['form_id'] = 5;
 
 		$this->expectException( \RuntimeException::class );
@@ -238,7 +250,10 @@ class PublicFormsExportSourceTest extends TestCase {
 					$map = array( 'hash' => 'abc', 'cpf' => '123.456.789-00', '_ffc_pcd_nonce' => 'n' );
 					return $map[ $key ] ?? '';
 				}
-			);
+			)
+		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		$_POST['form_id'] = 7;
 	}
 
@@ -251,7 +266,10 @@ class PublicFormsExportSourceTest extends TestCase {
 		Functions\when( 'FreeFormCertificate\Frontend\wp_verify_nonce' )->justReturn( false );
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
 			->shouldReceive( 'get_post_string' )->andReturn( 'jid' )
-			->shouldReceive( 'get_user_ip' )->andReturn( '1.2.3.4' );
+			->shouldReceive( 'get_user_ip' )->andReturn( '1.2.3.4' )
+		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'json_error' );
@@ -263,7 +281,10 @@ class PublicFormsExportSourceTest extends TestCase {
 		Functions\when( 'FreeFormCertificate\Frontend\wp_verify_nonce' )->justReturn( true );
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
 			->shouldReceive( 'get_post_string' )->andReturn( 'jid' )
-			->shouldReceive( 'get_user_ip' )->andReturn( '9.9.9.9' );
+			->shouldReceive( 'get_user_ip' )->andReturn( '9.9.9.9' )
+		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'json_error' );
@@ -275,7 +296,10 @@ class PublicFormsExportSourceTest extends TestCase {
 		Functions\when( 'FreeFormCertificate\Frontend\wp_verify_nonce' )->justReturn( true );
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
 			->shouldReceive( 'get_post_string' )->andReturn( 'jid' )
-			->shouldReceive( 'get_user_ip' )->andReturn( '203.0.113.7' );
+			->shouldReceive( 'get_user_ip' )->andReturn( '203.0.113.7' )
+		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		// No throw → passed.
 		$this->source->authorize_batch( array( 'ip_hash' => sha1( '203.0.113.7' ) ) );
@@ -291,7 +315,10 @@ class PublicFormsExportSourceTest extends TestCase {
 		Functions\when( 'FreeFormCertificate\Frontend\wp_verify_nonce' )->justReturn( false );
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
 			->shouldReceive( 'get_get_string' )->andReturn( 'jid' )
-			->shouldReceive( 'get_user_ip' )->andReturn( '1.2.3.4' );
+			->shouldReceive( 'get_user_ip' )->andReturn( '1.2.3.4' )
+		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'wp_die' );
@@ -303,7 +330,10 @@ class PublicFormsExportSourceTest extends TestCase {
 		Functions\when( 'FreeFormCertificate\Frontend\wp_verify_nonce' )->justReturn( true );
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
 			->shouldReceive( 'get_get_string' )->andReturn( 'jid' )
-			->shouldReceive( 'get_user_ip' )->andReturn( '9.9.9.9' );
+			->shouldReceive( 'get_user_ip' )->andReturn( '9.9.9.9' )
+		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'wp_die' );
@@ -321,7 +351,10 @@ class PublicFormsExportSourceTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
 			->shouldReceive( 'get_user_ip' )->andReturn( '203.0.113.7' )
-			->shouldReceive( 'get_post_string' )->with( 'cpf' )->andReturn( '123.456.789-00' );
+			->shouldReceive( 'get_post_string' )->with( 'cpf' )->andReturn( '123.456.789-00' )
+		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		$_POST['form_id'] = 12;
 
 		$fields = $this->source->job_owner_fields();

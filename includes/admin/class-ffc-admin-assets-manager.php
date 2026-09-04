@@ -15,6 +15,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -507,12 +509,7 @@ class AdminAssetsManager {
 	 * @return bool
 	 */
 	public static function is_settings_page(): bool {
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Page routing check for asset loading, no data processing.
-		if ( ! isset( $_GET['page'] ) ) {
-			return false;
-		}
-		$page = sanitize_key( wp_unslash( $_GET['page'] ) );
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+		$page = RequestInput::get_get_key( 'page' );
 		return 'ffc-settings' === $page || 'ffc-scheduling-settings' === $page;
 	}
 

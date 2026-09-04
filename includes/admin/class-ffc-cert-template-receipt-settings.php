@@ -24,6 +24,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -134,8 +136,7 @@ class CertTemplateReceiptSettings {
 
 		$templates = CertTemplateReader::list_for_editor( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT );
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only "saved" flash flag on the post-redirect-get.
-		if ( isset( $_GET['ffc_saved'] ) ) {
+		if ( RequestInput::has_get( 'ffc_saved' ) ) {
 			wp_admin_notice(
 				esc_html__( 'Appointment receipt templates saved.', 'ffcertificate' ),
 				array(

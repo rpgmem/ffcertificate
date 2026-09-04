@@ -31,6 +31,10 @@ class SelfSchedulingCPTTest extends TestCase {
 		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'add_action' )->justReturn( true );
+		// RequestInput::get_get_int() runs for real here (no alias mock), so its
+		// WordPress dependencies need stubs.
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ): int => abs( (int) $v ) );
 		Functions\when( 'add_filter' )->justReturn( true );
 		// #673: EmailService::send derives a text/plain alternative for HTML
 		// messages — stub the WP glue that derivation touches.

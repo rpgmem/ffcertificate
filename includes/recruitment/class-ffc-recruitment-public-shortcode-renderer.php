@@ -20,6 +20,7 @@ namespace FreeFormCertificate\Recruitment;
 use FreeFormCertificate\Core\BadgeHtml;
 use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -309,8 +310,7 @@ final class RecruitmentPublicShortcodeRenderer {
 			static fn( $a, $b ) => strcasecmp( (string) $a->name, (string) $b->name )
 		);
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only display state.
-		$selected = isset( $_GET['adjutancy'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['adjutancy'] ) ) : '';
+		$selected = RequestInput::get_get_string( 'adjutancy' );
 
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/public/recruitment/adjutancy-filter.php';

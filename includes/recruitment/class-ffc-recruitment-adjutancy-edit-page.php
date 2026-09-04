@@ -23,6 +23,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Recruitment;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -56,8 +58,7 @@ final class RecruitmentAdjutancyEditPage {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only render.
-		$adjutancy_id = isset( $_GET['adjutancy_id'] ) ? absint( wp_unslash( (string) $_GET['adjutancy_id'] ) ) : 0;
+		$adjutancy_id = RequestInput::get_get_int( 'adjutancy_id' );
 		$adjutancy    = $adjutancy_id > 0 ? RecruitmentAdjutancyReader::get_by_id( $adjutancy_id ) : null;
 
 		if ( null === $adjutancy ) {

@@ -81,6 +81,9 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 
 		// Alias RequestInput so get_user_ip is deterministic.
 		$utils = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
+		$utils->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
+		$utils->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
+		$utils->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		$utils->shouldReceive( 'get_user_ip' )->andReturn( '203.0.113.5' )->byDefault();
 	}
 

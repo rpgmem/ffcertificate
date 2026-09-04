@@ -122,7 +122,10 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$san = Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' );
 		$san->shouldReceive( 'normalize_brazilian_name' )->andReturnUsing( static fn ( $v ) => 'NORM:' . $v )->byDefault();
 
-		$this->ri = Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' );
+		$this->ri = Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		$this->ri->shouldReceive( 'get_post_string' )->andReturn( '__keep__' )->byDefault();
 
 		$dbg = Mockery::mock( 'alias:FreeFormCertificate\Core\Debug' );
