@@ -13,7 +13,12 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Internal (#1053) — o endpoint de fragmentos de página em cache passa a servir o desafio do provider configurado, via `CaptchaProvider::resolve()->challenge_payload()`, em vez de chamar o captcha matemático direto; o cliente despacha pelo campo `provider` do payload e ignora o que não reconhece, em vez de aplicar meio payload. É o quinto site de refresh, que a unificação do contrato não havia alcançado.
 - Internal (#1053) — o captcha passa a ter um contrato de estratégia (`CaptchaProviderInterface` + `CaptchaProvider::resolve()`), com o desafio matemático atrás dele. Os 6 sites de verificação e os 4 de retry não mudam: `validate_security_fields()` continua sendo o ponto único e agora delega a metade captcha. As duas cópias do bloco de segurança viraram uma, em `templates/`.
+
+### Removed
+
+- `Shortcodes::get_new_captcha_data()` (#1053): método público sem nenhum chamador em produção — o único consumidor era o próprio teste. A geração de desafio já é responsabilidade do contrato de captcha.
 
 ### Fixed
 

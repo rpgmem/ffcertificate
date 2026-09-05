@@ -64,6 +64,33 @@ class DynamicFragmentsTest extends TestCase {
 		}
 	}
 
+	/**
+	 * Alias-mock the captcha resolver so the endpoint's own wiring is what is
+	 * under test.
+	 *
+	 * The endpoint must not know what a challenge looks like — since #1053 PR2
+	 * it forwards whatever the configured strategy issues, so the assertions
+	 * below use a payload no real provider emits. Mocking
+	 * `SecurityService::generate_simple_captcha()` instead would pass just as
+	 * well with the endpoint calling the math challenge directly, which is
+	 * exactly the bypass this replaces.
+	 *
+	 * @param array<string, mixed> ...$payloads One per expected call, in order.
+	 */
+	private function mockProvider( array ...$payloads ): void {
+		$provider    = Mockery::mock( '\FreeFormCertificate\Core\Captcha\CaptchaProviderInterface' );
+		$expectation = $provider->shouldReceive( 'challenge_payload' );
+
+		if ( 1 === count( $payloads ) ) {
+			$expectation->andReturn( $payloads[0] );
+		} else {
+			$expectation->andReturnValues( $payloads );
+		}
+
+		$resolver = Mockery::mock( 'alias:\FreeFormCertificate\Core\Captcha\CaptchaProvider' );
+		$resolver->shouldReceive( 'resolve' )->andReturn( $provider );
+	}
+
 	// ==================================================================
 	// Constructor
 	// ==================================================================
@@ -79,10 +106,7 @@ class DynamicFragmentsTest extends TestCase {
 	// ==================================================================
 
 	public function test_handle_returns_captcha_and_nonces_for_anonymous(): void {
-		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' );
-		$utilsMock->shouldReceive( 'generate_simple_captcha' )
-			->once()
-			->andReturn( array( 'label' => '3 + 4', 'hash' => 'abc123' ) );
+		$this->mockProvider( array( 'provider' => 'math', 'new_label' => '3 + 4', 'new_hash' => 'abc123' ) );
 
 		Functions\when( 'wp_create_nonce' )->alias( function ( $action ) {
 			return 'nonce_' . $action;
@@ -97,8 +121,11 @@ class DynamicFragmentsTest extends TestCase {
 		$this->assertSame( 'success', $this->json_responses[0]['type'] );
 
 		// Captcha
-		$this->assertSame( '3 + 4', $data['captcha']['label'] );
-		$this->assertSame( 'abc123', $data['captcha']['hash'] );
+		$this->assertSame(
+			array( 'provider' => 'math', 'new_label' => '3 + 4', 'new_hash' => 'abc123' ),
+			$data['captcha'],
+			'The provider payload must be forwarded verbatim — the endpoint does not reshape it.'
+		);
 
 		// Nonces
 		$this->assertSame( 'nonce_ffc_frontend_nonce', $data['nonces']['ffc_frontend_nonce'] );
@@ -109,14 +136,74 @@ class DynamicFragmentsTest extends TestCase {
 	}
 
 	// ==================================================================
+	// handle() — per-form challenges
+	// ==================================================================
+
+	public function test_handle_issues_one_challenge_per_form_when_several_are_posted(): void {
+		// Two forms on one page must never share a token (#1056), so the
+		// endpoint asks the provider once per form and keys the answers by
+		// form id. Distinct payloads here are what prove they are separate
+		// calls rather than one reused value.
+		$this->mockProvider(
+			array( 'provider' => 'math', 'new_label' => 'a', 'new_hash' => 'a-hash' ),
+			array( 'provider' => 'math', 'new_label' => 'b', 'new_hash' => 'b-hash' ),
+			array( 'provider' => 'math', 'new_label' => 'c', 'new_hash' => 'c-hash' )
+		);
+
+		Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'wp_unslash' )->returnArg();
+		// The same `form_ids` also drive the geofence branch further down.
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+
+		$_POST['form_ids'] = array( '7', '8' );
+
+		$fragments = new DynamicFragments();
+		$this->callHandle( $fragments );
+
+		unset( $_POST['form_ids'] );
+
+		$data = $this->json_responses[0]['data'];
+
+		$this->assertArrayHasKey( 'captchas', $data );
+		$this->assertSame( array( 7, 8 ), array_keys( $data['captchas'] ) );
+		$this->assertNotSame(
+			$data['captchas'][7]['new_hash'],
+			$data['captchas'][8]['new_hash'],
+			'Each form must get its own token, or the second form submits one the first already spent.'
+		);
+	}
+
+	public function test_handle_omits_per_form_challenges_for_a_single_form(): void {
+		// One form needs no per-form branch — the default challenge already
+		// lands on it, and a `captchas` map of one would be a second token
+		// for the same block.
+		$this->mockProvider( array( 'provider' => 'math', 'new_label' => 'a', 'new_hash' => 'a-hash' ) );
+
+		Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'wp_unslash' )->returnArg();
+		// The same `form_ids` also drive the geofence branch further down.
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+
+		$_POST['form_ids'] = array( '7' );
+
+		$fragments = new DynamicFragments();
+		$this->callHandle( $fragments );
+
+		unset( $_POST['form_ids'] );
+
+		$this->assertArrayNotHasKey( 'captchas', $this->json_responses[0]['data'] );
+	}
+
+	// ==================================================================
 	// handle() — logged-in user
 	// ==================================================================
 
 	public function test_handle_includes_user_data_when_logged_in(): void {
-		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' );
-		$utilsMock->shouldReceive( 'generate_simple_captcha' )
-			->once()
-			->andReturn( array( 'label' => '5 + 2', 'hash' => 'def456' ) );
+		$this->mockProvider( array( 'provider' => 'math', 'new_label' => '5 + 2', 'new_hash' => 'def456' ) );
 
 		Functions\when( 'wp_create_nonce' )->justReturn( 'fresh_nonce' );
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
@@ -143,9 +230,7 @@ class DynamicFragmentsTest extends TestCase {
 	// ==================================================================
 
 	public function test_handle_always_returns_both_nonce_keys(): void {
-		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' );
-		$utilsMock->shouldReceive( 'generate_simple_captcha' )
-			->andReturn( array( 'label' => '1 + 1', 'hash' => 'h' ) );
+		$this->mockProvider( array( 'provider' => 'math', 'new_label' => '1 + 1', 'new_hash' => 'h' ) );
 
 		Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
@@ -163,9 +248,7 @@ class DynamicFragmentsTest extends TestCase {
 	// ==================================================================
 
 	public function test_handle_includes_public_csv_download_nonce(): void {
-		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' );
-		$utilsMock->shouldReceive( 'generate_simple_captcha' )
-			->andReturn( array( 'label' => 'x', 'hash' => 'y' ) );
+		$this->mockProvider( array( 'provider' => 'math', 'new_label' => 'x', 'new_hash' => 'y' ) );
 
 		Functions\when( 'wp_create_nonce' )->alias( function ( $action ) {
 			return 'nonce_' . $action;
@@ -185,9 +268,7 @@ class DynamicFragmentsTest extends TestCase {
 	// ==================================================================
 
 	public function test_handle_includes_audience_nonces(): void {
-		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' );
-		$utilsMock->shouldReceive( 'generate_simple_captcha' )
-			->andReturn( array( 'label' => 'x', 'hash' => 'y' ) );
+		$this->mockProvider( array( 'provider' => 'math', 'new_label' => 'x', 'new_hash' => 'y' ) );
 
 		Functions\when( 'wp_create_nonce' )->alias( function ( $action ) {
 			return 'nonce_' . $action;

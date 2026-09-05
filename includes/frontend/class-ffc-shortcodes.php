@@ -38,15 +38,6 @@ class Shortcodes {
 	}
 
 	/**
-	 * Generate new captcha data (math question + hash)
-	 *
-	 * @return array<string, mixed>
-	 */
-	public function get_new_captcha_data(): array {
-		return SecurityService::generate_simple_captcha();
-	}
-
-	/**
 	 * Generate HTML for security fields (honeypot + captcha)
 	 *
 	 * Thin delegate since 6.23.0: the markup is the shared

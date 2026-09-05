@@ -81,55 +81,86 @@
 	}
 
 	/**
+	 * Every security block on the page, in DOM order.
+	 *
+	 * `.ffc-security-container` is the provider-independent wrapper each
+	 * render site emits. A bare `.ffc-captcha-row` outside one is markup from
+	 * before that wrapper existed — and cached HTML is exactly this
+	 * endpoint's audience, so it is collected too rather than skipped.
+	 *
+	 * @returns {Element[]} Roots to patch, one per rendered challenge.
+	 */
+	function securityBlocks() {
+		var blocks = [];
+		var i;
+
+		var containers = document.querySelectorAll('.ffc-security-container');
+		for (i = 0; i < containers.length; i++) {
+			blocks.push(containers[i]);
+		}
+
+		var rows = document.querySelectorAll('.ffc-captcha-row');
+		for (i = 0; i < rows.length; i++) {
+			if (!rows[i].closest('.ffc-security-container')) {
+				blocks.push(rows[i]);
+			}
+		}
+
+		return blocks;
+	}
+
+	/**
+	 * Apply a challenge payload inside one security block.
+	 *
+	 * The payload is whatever the configured captcha strategy issued, and it
+	 * names itself in `provider`. Dispatching on that — rather than assuming
+	 * the math shape — is what keeps this honest once a strategy with
+	 * different fields exists: an unrecognised provider is left alone instead
+	 * of being half-applied, which would blank a challenge the visitor may
+	 * already have solved.
+	 *
+	 * @param {Element} root    Security block to patch within.
+	 * @param {Object}  payload Challenge payload from the server.
+	 * @returns {void}
+	 */
+	function applyChallenge(root, payload) {
+		if (!payload || payload.provider !== 'math') {
+			return;
+		}
+
+		var label = root.querySelector('.ffc-captcha-label-text');
+		var hash  = root.querySelector('input[name="ffc_captcha_hash"]');
+		var ans   = root.querySelector('input[name="ffc_captcha_ans"]');
+
+		if (label) { label.textContent = payload.new_label; }
+		if (hash)  { hash.value = payload.new_hash; }
+		// Clearing the answer matters as much as the token: a stale answer
+		// beside a fresh challenge submits a pair that cannot verify.
+		if (ans)   { ans.value = ''; }
+	}
+
+	/**
 	 * Patch the DOM with fresh captcha, nonce, and user values.
 	 */
 	function applyFragments(data) {
 		var i;
 
-		// --- Per-form captchas (multiple forms on one page) ---
-		var handledWrappers = {};
-		if (data.captchas) {
-			var formId;
-			for (formId in data.captchas) {
-				if (data.captchas.hasOwnProperty(formId)) {
-					var wrapper = document.getElementById('ffc-form-' + formId);
-					if (wrapper) {
-						var fc = data.captchas[formId];
-						var wLabel = wrapper.querySelector('.ffc-captcha-row .ffc-captcha-label-text');
-						var wHash  = wrapper.querySelector('input[name="ffc_captcha_hash"]');
-						var wAns   = wrapper.querySelector('input[name="ffc_captcha_ans"]');
-						if (wLabel) { wLabel.textContent = fc.label; }
-						if (wHash)  { wHash.value = fc.hash; }
-						if (wAns)   { wAns.value = ''; }
-						handledWrappers['ffc-form-' + formId] = true;
-					}
-				}
-			}
-		}
+		// --- Captchas ---
+		// One pass over the security blocks. A block inside a form wrapper
+		// takes that form's own payload when the server sent one (several
+		// forms on a page must never share a challenge — #1056); everything
+		// else takes the default. Scoping by block rather than by document
+		// is what keeps two challenges on one page independent.
+		if (data.captcha || data.captchas) {
+			var blocks = securityBlocks();
+			for (i = 0; i < blocks.length; i++) {
+				var wrapper = blocks[i].closest('.ffc-form-wrapper');
+				var formId  = wrapper ? wrapper.id.replace('ffc-form-', '') : '';
+				var payload = (data.captchas && formId && data.captchas[formId])
+					? data.captchas[formId]
+					: data.captcha;
 
-		// --- Default captcha (single form or self-scheduling) ---
-		if (data.captcha) {
-			var labelTexts = document.querySelectorAll('.ffc-captcha-row .ffc-captcha-label-text');
-			var hashes     = document.querySelectorAll('input[name="ffc_captcha_hash"]');
-			var answers    = document.querySelectorAll('input[name="ffc_captcha_ans"]');
-
-			for (i = 0; i < labelTexts.length; i++) {
-				var el = labelTexts[i];
-				var parent = el.closest('.ffc-form-wrapper');
-				if (parent && handledWrappers[parent.id]) { continue; }
-				el.textContent = data.captcha.label;
-			}
-			for (i = 0; i < hashes.length; i++) {
-				var hEl = hashes[i];
-				var hParent = hEl.closest('.ffc-form-wrapper');
-				if (hParent && handledWrappers[hParent.id]) { continue; }
-				hEl.value = data.captcha.hash;
-			}
-			for (i = 0; i < answers.length; i++) {
-				var aEl = answers[i];
-				var aParent = aEl.closest('.ffc-form-wrapper');
-				if (aParent && handledWrappers[aParent.id]) { continue; }
-				aEl.value = '';
+				applyChallenge(blocks[i], payload);
 			}
 		}
 
