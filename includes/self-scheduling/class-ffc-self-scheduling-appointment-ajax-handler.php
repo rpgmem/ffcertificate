@@ -58,6 +58,9 @@ class AppointmentAjaxHandler {
 	 * AJAX: Book appointment
 	 */
 	public function ajax_book_appointment(): void {
+		// Set once the appointment row is committed; read by the catch below.
+		$booked = null;
+
 		try {
 			check_ajax_referer( 'ffc_self_scheduling_nonce', 'nonce' );
 
@@ -112,6 +115,12 @@ class AppointmentAjaxHandler {
 			}
 
 			$result = $this->handler->process_appointment( $appointment_data );
+
+			// From here the booking is committed. The catch at the bottom reads
+			// this to know it must not report a failure for it.
+			if ( ! is_wp_error( $result ) ) {
+				$booked = $result;
+			}
 
 			if ( is_wp_error( $result ) ) {
 				wp_send_json_error(
@@ -190,17 +199,44 @@ class AppointmentAjaxHandler {
 			}
 
 			wp_send_json_success( $response );
-		} catch ( \Exception $e ) {
-			if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
-				\FreeFormCertificate\Core\Debug::log_self_scheduling(
-					'Appointment AJAX error',
+		} catch ( \Throwable $e ) {
+			// `\Throwable`, not `\Exception`: a TypeError or a call on null is an
+			// `\Error`, which the narrower catch let escape as an uncaught fatal —
+			// a 500 with no JSON body, which the client can only render as its
+			// generic "an error occurred" while the booking sits in the database.
+			\FreeFormCertificate\Core\Debug::log_self_scheduling(
+				'Appointment AJAX error',
+				array(
+					'booked'  => null !== $booked ? ( $booked['appointment_id'] ?? 'yes' ) : 'no',
+					'message' => $e->getMessage(),
+					'file'    => $e->getFile(),
+					'line'    => $e->getLine(),
+				)
+			);
+
+			// The booking committed before this threw. Reporting failure would
+			// send the visitor to book again — duplicating the appointment or
+			// colliding with the duplicate guard — so answer with what is true:
+			// it worked, and the parts that did not are flagged rather than
+			// silently claimed.
+			if ( null !== $booked ) {
+				wp_send_json_success(
 					array(
-						'message' => $e->getMessage(),
-						'file'    => $e->getFile(),
-						'line'    => $e->getLine(),
+						'message'            => __( 'Appointment booked successfully!', 'ffcertificate' ),
+						'appointment_id'     => $booked['appointment_id'],
+						'confirmation_token' => $booked['confirmation_token'] ?? null,
+						'validation_code'    => null,
+						'receipt_url'        => $booked['receipt_url'] ?? '',
+						'requires_approval'  => $booked['requires_approval'] ?? false,
+						'waitlisted'         => ! empty( $booked['waitlisted'] ),
+						'email_sent'         => false,
+						'degraded'           => true,
 					)
 				);
 			}
+
+			// Nothing was committed: a real failure, and retrying is the right
+			// advice — so this is the one path that still hands back a challenge.
 			wp_send_json_error(
 				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
 					array(

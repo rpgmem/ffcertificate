@@ -153,7 +153,12 @@ class ActivityLogSubscriber {
 				'user_id'        => $data['user_id'] ?? null,
 				'ip'             => $data['user_ip'] ?? '',
 			),
-			$appointment_id
+			// 4th argument is $user_id, not the appointment. Passing the
+			// appointment id here attributed every booking to whichever user
+			// happened to hold that id — and once MigrationForeignKeys added
+			// `fk_ffc_activity_log_user`, the insert was rejected outright, so
+			// the row was silently lost instead of merely wrong.
+			(int) ( $data['user_id'] ?? 0 )
 		);
 	}
 
