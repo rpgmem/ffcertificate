@@ -32,6 +32,7 @@
  * @var array<string, string> $ffc_altcha_attributes    The two configurable attributes.
  * @var string               $ffc_altcha_configuration Widget configuration, JSON.
  * @var string               $ffc_altcha_language      Language key registered in the i18n store.
+ * @var bool                 $ffc_altcha_noscript_notice Whether to say the form needs JavaScript.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -47,9 +48,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 		type="<?php echo esc_attr( $ffc_altcha_attributes['type'] ); ?>"
 		auto="<?php echo esc_attr( $ffc_altcha_attributes['auto'] ); ?>"
 	></altcha-widget>
-	<noscript>
-		<p class="ffc-altcha-noscript">
-			<?php esc_html_e( 'This form requires JavaScript to verify that you are not a robot.', 'ffcertificate' ); ?>
-		</p>
-	</noscript>
+	<?php if ( $ffc_altcha_noscript_notice ) : ?>
+		<noscript>
+			<p class="ffc-altcha-noscript">
+				<?php esc_html_e( 'This form requires JavaScript to verify that you are not a robot.', 'ffcertificate' ); ?>
+			</p>
+		</noscript>
+	<?php endif; ?>
 </div>

@@ -449,7 +449,7 @@ details.ffc-consent-description > p {
  * Shares the math row's framing so the two strategies read as the same block
  * — a visitor switching between them should not see the form change shape.
  * The widget itself renders in a shadow root, so only the surround is styled
- * from here; its internals are addressed by the `theme` attribute instead.
+ * from here; its internals are reached by the custom properties below.
  */
 .ffc-shortcode .ffc-altcha-row {
     margin-bottom: 20px;
@@ -460,11 +460,6 @@ details.ffc-consent-description > p {
     box-shadow: 0 2px 8px var(--ffc-focus-ring);
     width: 100%;
     box-sizing: border-box;
-
-    /* The widget renders at its natural width, so without this it sits
-       flush left inside a full-width panel and reads as misaligned. */
-    display: flex;
-    justify-content: center;
 }
 
 /*
@@ -478,6 +473,19 @@ details.ffc-consent-description > p {
  * `.ffc-dark-mode` for free, because the tokens on the right already do.
  */
 .ffc-shortcode .ffc-altcha-row altcha-widget {
+    /*
+     * The widget is 320px wide by default — `--altcha-max-width` names a
+     * maximum but is applied as `width` on its inner wrapper, so it is the
+     * whole story. At 320px inside a wider panel the label crowds the logo,
+     * which the footer pushes to the right edge with `justify-content:
+     * flex-end` and therefore has nowhere to go. Filling the panel gives
+     * both the room the layout already assumes.
+     */
+    --altcha-max-width: 100%;
+
+    display: block;
+    width: 100%;
+
     --altcha-border-color: var(--ffc-border);
     --altcha-border-radius: var(--ffc-radius);
     --altcha-checkbox-border-color: var(--ffc-border);

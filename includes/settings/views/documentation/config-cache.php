@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h4><?php esc_html_e( 'Page-cache compatibility (detection only)', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The tab detects common external caches and reports whether the plugin stays compatible — nothing to configure here. It recognizes LiteSpeed Cache, WP Rocket, W3 Total Cache and WP Super Cache (page caches) and a Redis/persistent object cache.', 'ffcertificate' ); ?></p>
 	<ul>
-		<li><strong><?php esc_html_e( 'Dynamic fragments:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'the captcha/nonce are refreshed by AJAX so a cached page stays valid.', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Dynamic fragments:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'the captcha/nonce are refreshed by AJAX so a cached page stays valid. The ALTCHA widget fetches its own challenge, so in its modes there is nothing to refresh.', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Dashboard exclusion:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'the personal dashboard page is flagged not-to-cache so users never see each other\'s data.', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Object cache (Redis):', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'used automatically when a persistent object cache is present.', 'ffcertificate' ); ?></li>
 	</ul>
