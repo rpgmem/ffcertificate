@@ -209,9 +209,28 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 	/**
 	 * {@inheritDoc}
 	 *
+	 * On its own the widget is the only way through, so a visitor without
+	 * JavaScript is told so.
+	 *
 	 * @return string Escaped HTML.
 	 */
 	public function render_fields(): string {
+		return $this->render_widget( true );
+	}
+
+	/**
+	 * Render the widget, with or without the no-JavaScript notice.
+	 *
+	 * The notice is a property of the *mode*, not of the widget: it is true
+	 * in ALTCHA-only mode and false in the composite one, where a math
+	 * challenge sits right below it. Rendered there anyway it contradicts the
+	 * field the visitor is about to answer — telling them in red that the
+	 * form cannot be submitted, immediately above the thing that submits it.
+	 *
+	 * @param bool $ffc_altcha_noscript_notice Whether to emit the notice.
+	 * @return string Escaped HTML.
+	 */
+	public function render_widget( bool $ffc_altcha_noscript_notice ): string {
 		// Enqueued here rather than from a page-type branch, so the scripts
 		// follow the widget onto every surface that renders it. Shortcodes
 		// render during `the_content`, well before `wp_footer`, and both
@@ -227,8 +246,9 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 		 * Only nine attributes exist on the 3.x element — auto, challenge,
 		 * configuration, display, language, name, theme, type, workers — so
 		 * everything an administrator can set is split accordingly:
-		 * `CaptchaSettings::widget_attributes()` returns the four that ARE
-		 * attributes, and `widget_configuration()` the rest, as JSON. Written
+		 * `CaptchaSettings::widget_attributes()` returns the two that ARE
+		 * attributes here, and `widget_configuration()` the rest, as JSON.
+		 * Written
 		 * the other way round they are ignored in silence.
 		 */
 		$ffc_altcha_attributes    = CaptchaSettings::widget_attributes();

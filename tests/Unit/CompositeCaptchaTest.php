@@ -211,6 +211,43 @@ class CompositeCaptchaTest extends TestCase {
 		);
 	}
 
+	public function test_render_omits_the_widget_no_javascript_notice(): void {
+		/*
+		 * The regression this pins: the ALTCHA template's own notice — "This
+		 * form requires JavaScript to verify that you are not a robot" — was
+		 * rendered here too, in red, directly above the math field that a
+		 * visitor without JavaScript is meant to answer. The message is true
+		 * in ALTCHA-only mode and false in this one; a visitor reading it
+		 * would reasonably stop.
+		 */
+		$html = ( new CompositeCaptcha() )->render_fields();
+
+		$this->assertStringNotContainsString( 'requires JavaScript', $html );
+	}
+
+	public function test_render_hides_the_empty_widget_panel_without_javascript(): void {
+		// Without JavaScript the widget's panel is an empty box: the custom
+		// element is never defined, so nothing fills it. A stylesheet cannot
+		// express "scripting is disabled", so the rule rides in <noscript>.
+		$html = ( new CompositeCaptcha() )->render_fields();
+
+		$this->assertStringContainsString( '.ffc-altcha-row{display:none;}', $html );
+		$this->assertLessThan(
+			strpos( $html, 'ffc_captcha_ans' ),
+			strpos( $html, '.ffc-altcha-row{display:none;}' ),
+			'The rule must be inside the same <noscript> that carries the math half.'
+		);
+	}
+
+	public function test_altcha_only_keeps_the_notice_the_composite_drops(): void {
+		// The two modes differ on exactly this: alone, the widget is the only
+		// way through, so a visitor without JavaScript has to be told.
+		$this->assertStringContainsString(
+			'requires JavaScript',
+			( new AltchaCaptcha() )->render_fields()
+		);
+	}
+
 	public function test_challenge_payload_is_the_altcha_half(): void {
 		// The refresh path only reaches pages that run JavaScript, and those
 		// are using the widget.

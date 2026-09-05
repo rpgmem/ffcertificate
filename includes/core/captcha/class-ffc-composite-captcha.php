@@ -77,11 +77,21 @@ class CompositeCaptcha implements CaptchaProviderInterface {
 	 * the math inputs at all, because the markup inside `<noscript>` is not
 	 * parsed into the DOM.
 	 *
+	 * The same `<noscript>` also hides the widget's own panel and suppresses
+	 * its no-JavaScript notice, because without JavaScript the panel is an
+	 * empty box and the notice is false here: it says the form cannot be
+	 * submitted, directly above the field that submits it. A stylesheet
+	 * cannot express "scripting is disabled", so the rule rides in the one
+	 * element that can.
+	 *
 	 * @return string Escaped HTML.
 	 */
 	public function render_fields(): string {
-		return $this->altcha->render_fields()
-			. '<noscript>' . $this->math->render_fields() . '</noscript>';
+		return $this->altcha->render_widget( false )
+			. '<noscript>'
+			. '<style>.ffc-altcha-row{display:none;}</style>'
+			. $this->math->render_fields()
+			. '</noscript>';
 	}
 
 	/**
