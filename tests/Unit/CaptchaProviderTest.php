@@ -238,6 +238,74 @@ class CaptchaProviderTest extends TestCase {
 		$this->assertIsString( $provider->verify( $request ) );
 	}
 
+	// ------------------------------------------------------------------
+	// peek() — the two-request flow (public CSV download: info, then export).
+	// ------------------------------------------------------------------
+
+	public function test_math_peek_accepts_a_matching_answer(): void {
+		$challenge = SecurityService::generate_simple_captcha();
+
+		$result = ( new MathCaptcha() )->peek(
+			array(
+				'ffc_captcha_ans'  => (string) $challenge['answer'],
+				'ffc_captcha_hash' => $challenge['hash'],
+			)
+		);
+
+		$this->assertTrue( $result );
+	}
+
+	public function test_math_peek_rejects_a_wrong_answer(): void {
+		$challenge = SecurityService::generate_simple_captcha();
+
+		$result = ( new MathCaptcha() )->peek(
+			array(
+				'ffc_captcha_ans'  => (string) ( $challenge['answer'] + 1 ),
+				'ffc_captcha_hash' => $challenge['hash'],
+			)
+		);
+
+		$this->assertIsString( $result );
+		$this->assertStringContainsString( 'incorrect', $result );
+	}
+
+	public function test_math_peek_leaves_the_challenge_spendable(): void {
+		// The regression this exists for: the CSV info screen checked the
+		// answer and burned the token, so the download that followed rejected
+		// the very answer the visitor had just been told was correct.
+		$challenge = SecurityService::generate_simple_captcha();
+		$request   = array(
+			'ffc_captcha_ans'  => (string) $challenge['answer'],
+			'ffc_captcha_hash' => $challenge['hash'],
+		);
+		$provider  = new MathCaptcha();
+
+		$this->assertTrue( $provider->peek( $request ) );
+		$this->assertTrue( $provider->peek( $request ), 'peeking twice must still not spend it' );
+		$this->assertTrue( $provider->verify( $request ), 'the action that follows must still be able to spend it' );
+	}
+
+	public function test_math_peek_rejects_an_already_spent_challenge(): void {
+		// Reporting a spent token as valid would only move the contradiction
+		// downstream — the visitor would pass this screen and fail the next.
+		$challenge = SecurityService::generate_simple_captcha();
+		$request   = array(
+			'ffc_captcha_ans'  => (string) $challenge['answer'],
+			'ffc_captcha_hash' => $challenge['hash'],
+		);
+		$provider  = new MathCaptcha();
+
+		$this->assertTrue( $provider->verify( $request ) );
+		$this->assertIsString( $provider->peek( $request ) );
+	}
+
+	public function test_math_peek_rejects_a_missing_challenge(): void {
+		$result = ( new MathCaptcha() )->peek( array() );
+
+		$this->assertIsString( $result );
+		$this->assertStringContainsString( 'security question', $result );
+	}
+
 	public function test_math_challenge_payload_keeps_the_legacy_keys(): void {
 		// The frontend has read new_label / new_hash since long before this
 		// contract existed; `provider` is additive.
@@ -279,6 +347,37 @@ class CaptchaProviderTest extends TestCase {
 				)
 			)
 		);
+	}
+
+	public function test_peek_security_fields_still_gates_the_honeypot(): void {
+		$result = SecurityService::peek_security_fields( array( 'ffc_honeypot_trap' => 'bot' ) );
+
+		$this->assertIsString( $result );
+		$this->assertStringContainsString( 'Honeypot', $result );
+	}
+
+	public function test_peek_security_fields_does_not_spend_the_challenge(): void {
+		$challenge = SecurityService::generate_simple_captcha();
+		$fields    = array(
+			'ffc_honeypot_trap' => '',
+			'ffc_captcha_ans'   => (string) $challenge['answer'],
+			'ffc_captcha_hash'  => $challenge['hash'],
+		);
+
+		$this->assertTrue( SecurityService::peek_security_fields( $fields ) );
+		$this->assertTrue( SecurityService::validate_security_fields( $fields ) );
+	}
+
+	public function test_validate_security_fields_still_spends_the_challenge(): void {
+		$challenge = SecurityService::generate_simple_captcha();
+		$fields    = array(
+			'ffc_honeypot_trap' => '',
+			'ffc_captcha_ans'   => (string) $challenge['answer'],
+			'ffc_captcha_hash'  => $challenge['hash'],
+		);
+
+		$this->assertTrue( SecurityService::validate_security_fields( $fields ) );
+		$this->assertIsString( SecurityService::validate_security_fields( $fields ) );
 	}
 
 	public function test_with_fresh_challenge_carries_the_provider_id(): void {

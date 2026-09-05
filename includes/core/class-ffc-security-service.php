@@ -175,11 +175,58 @@ class SecurityService {
 	 * @return bool True if correct, false otherwise
 	 */
 	public static function verify_simple_captcha( string $answer, string $hash ): bool {
+		$proof = self::authenticate_token( $answer, $hash );
+		if ( null === $proof ) {
+			return false;
+		}
+
+		// Burn the token last: an unauthentic or expired proof must not be
+		// able to evict a legitimate one from the ledger.
+		return Captcha\ChallengeStore::redeem( $proof['signature'], $proof['ttl'] );
+	}
+
+	/**
+	 * Check a captcha answer without spending the challenge.
+	 *
+	 * The read-only sibling of {@see verify_simple_captcha()}, for a flow that
+	 * validates on one request and acts on a later one. The public CSV
+	 * download is the case: its info screen checks the answer, and the
+	 * download that follows carries the same token and is what actually
+	 * consumes it. Consuming on the check instead would reject, one screen
+	 * later, a challenge the visitor had just been told was correct.
+	 *
+	 * A challenge already in the ledger fails here too — reporting a spent
+	 * token as valid would only move the contradiction downstream.
+	 *
+	 * @since 6.23.0
+	 * @param string $answer User's answer.
+	 * @param string $hash   Token issued with the challenge.
+	 * @return bool True when the answer is correct and the token is unspent.
+	 */
+	public static function peek_simple_captcha( string $answer, string $hash ): bool {
+		$proof = self::authenticate_token( $answer, $hash );
+
+		return null !== $proof && ! Captcha\ChallengeStore::is_spent( $proof['signature'] );
+	}
+
+	/**
+	 * Authenticate a token against an answer, without touching the ledger.
+	 *
+	 * Everything {@see verify_simple_captcha()} and {@see peek_simple_captcha()}
+	 * agree on: shape, expiry and signature. Redemption is deliberately left
+	 * to the callers, because that is the only thing they differ on.
+	 *
+	 * @param string $answer User's answer.
+	 * @param string $hash   Token issued with the challenge.
+	 * @return array{signature: string, ttl: int}|null Null when the token
+	 *                                                 does not authenticate.
+	 */
+	private static function authenticate_token( string $answer, string $hash ): ?array {
 		// Note: '' === trim() handles both empty and whitespace-only, and — unlike empty() —
 		// does not reject a valid answer of "0" (which can happen for n - n subtraction).
 		$answer = trim( $answer );
 		if ( '' === $answer || '' === $hash ) {
-			return false;
+			return null;
 		}
 
 		$parts = explode( '.', $hash );
@@ -187,7 +234,7 @@ class SecurityService {
 			|| 1 !== preg_match( '/^\d+$/', $parts[0] )
 			|| 1 !== preg_match( '/^[0-9a-f]{16}$/', $parts[1] )
 		) {
-			return false;
+			return null;
 		}
 
 		$expires   = (int) $parts[0];
@@ -195,16 +242,17 @@ class SecurityService {
 		$signature = $parts[2];
 
 		if ( $expires <= time() ) {
-			return false;
+			return null;
 		}
 
 		if ( ! Captcha\ChallengeSigner::matches( self::payload( $answer, $expires, $nonce ), $signature ) ) {
-			return false;
+			return null;
 		}
 
-		// Burn the token last: an unauthentic or expired proof must not be
-		// able to evict a legitimate one from the ledger.
-		return Captcha\ChallengeStore::redeem( $signature, $expires - time() );
+		return array(
+			'signature' => $signature,
+			'ttl'       => $expires - time(),
+		);
 	}
 
 	/**
@@ -215,6 +263,35 @@ class SecurityService {
 	 * @return bool|string True if valid, error message string if invalid
 	 */
 	public static function validate_security_fields( array $data ) {
+		return self::run_security_gate( $data, true );
+	}
+
+	/**
+	 * Run the security gate without spending the challenge.
+	 *
+	 * For the first leg of a multi-request flow: it answers "would this pass?"
+	 * so the visitor is told about a wrong answer immediately, while leaving
+	 * the challenge for the request that actually performs the action. Use
+	 * {@see validate_security_fields()} everywhere else — a single-request
+	 * surface that only peeks never spends the challenge at all, which is the
+	 * replay hole this gate exists to close.
+	 *
+	 * @since 6.23.0
+	 * @param array<string, mixed> $data Form data containing security fields.
+	 * @return bool|string True if valid, error message string if invalid.
+	 */
+	public static function peek_security_fields( array $data ) {
+		return self::run_security_gate( $data, false );
+	}
+
+	/**
+	 * Shared body of the two security gates.
+	 *
+	 * @param array<string, mixed> $data    Form data containing security fields.
+	 * @param bool                 $consume Whether to spend the challenge.
+	 * @return bool|string True if valid, error message string if invalid.
+	 */
+	private static function run_security_gate( array $data, bool $consume ) {
 		// Check honeypot.
 		if ( ! empty( $data['ffc_honeypot_trap'] ) ) {
 			return \__( 'Security Error: Request blocked (Honeypot).', 'ffcertificate' );
@@ -222,7 +299,9 @@ class SecurityService {
 
 		// The captcha half belongs to whichever strategy is configured; the
 		// honeypot above is provider-independent, which is why it stays here.
-		return Captcha\CaptchaProvider::resolve()->verify( $data );
+		$provider = Captcha\CaptchaProvider::resolve();
+
+		return $consume ? $provider->verify( $data ) : $provider->peek( $data );
 	}
 
 	/**
