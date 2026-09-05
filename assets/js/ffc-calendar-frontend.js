@@ -371,7 +371,7 @@
                     $submitBtn.data('submitting', false);
                     if (err && err.fromServer) {
                         if (err.data && err.data.refresh_captcha) {
-                            self.refreshCaptcha(err.data.new_label, err.data.new_hash);
+                            self.refreshCaptcha($form, err.data.new_label, err.data.new_hash);
                         }
                         self.showError(err.message || ffcCalendar.strings.error);
                     } else {
@@ -507,16 +507,29 @@
         },
 
         /**
-         * Refresh captcha with new question
+         * Refresh captcha with new question, scoped to the submitted form.
+         *
+         * Was page-global (#1056): it rewrote the question in *every* captcha
+         * row on the page but, matching by id, updated only the *first* hidden
+         * token. With two forms on one page — a configuration the plugin
+         * supports on purpose — the second ended up showing the new question
+         * while holding the old token, so answering what was on screen failed
+         * with "the math answer is incorrect", which is true and useless.
+         *
+         * Now scoped to $form and matched by name, like ffc-frontend-helpers.
+         *
+         * @param {Object} $form    jQuery object for the form being refreshed.
+         * @param {string} newLabel New challenge question.
+         * @param {string} newHash  New challenge token.
          */
-        refreshCaptcha: function(newLabel, newHash) {
-            if (!newLabel || !newHash) {
+        refreshCaptcha: function($form, newLabel, newHash) {
+            if (!$form || !$form.length || !newLabel || !newHash) {
                 return;
             }
 
-            $('.ffc-captcha-row .ffc-captcha-label-text').text(newLabel);
-            $('#ffc_captcha_hash').val(newHash);
-            $('#ffc_captcha_ans').val('').focus();
+            $form.find('.ffc-captcha-row .ffc-captcha-label-text').text(newLabel);
+            $form.find('input[name="ffc_captcha_hash"]').val(newHash);
+            $form.find('input[name="ffc_captcha_ans"]').val('').focus();
         },
 
         /**

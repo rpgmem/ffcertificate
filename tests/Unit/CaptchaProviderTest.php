@@ -17,6 +17,7 @@ use FreeFormCertificate\Core\SecurityService;
  *
  * @covers \FreeFormCertificate\Core\Captcha\CaptchaProvider
  * @covers \FreeFormCertificate\Core\Captcha\MathCaptcha
+ * @covers \FreeFormCertificate\Core\SecurityService
  */
 class CaptchaProviderTest extends TestCase {
 
@@ -44,8 +45,10 @@ class CaptchaProviderTest extends TestCase {
 		// a test method.
 		class_exists( '\FreeFormCertificate\Core\Captcha\CaptchaProvider' );
 		class_exists( '\FreeFormCertificate\Core\Captcha\MathCaptcha' );
+		class_exists( '\FreeFormCertificate\Core\SecurityService' );
 
 		CaptchaProvider::reset();
+		MathCaptcha::reset_instances();
 
 		$this->settings   = array();
 		$this->transients = array();
@@ -85,6 +88,7 @@ class CaptchaProviderTest extends TestCase {
 
 	protected function tearDown(): void {
 		CaptchaProvider::reset();
+		MathCaptcha::reset_instances();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -143,9 +147,44 @@ class CaptchaProviderTest extends TestCase {
 		$html = ( new MathCaptcha() )->render_fields();
 
 		$this->assertStringContainsString( 'ffc-captcha-row', $html );
-		$this->assertStringContainsString( 'ffc_captcha_ans', $html );
-		$this->assertStringContainsString( 'ffc_captcha_hash', $html );
+		$this->assertStringContainsString( 'name="ffc_captcha_ans"', $html );
+		$this->assertStringContainsString( 'name="ffc_captcha_hash"', $html );
 		$this->assertMatchesRegularExpression( '/value="\d+\.[0-9a-f]{16}\.[0-9a-f]{64}"/', $html );
+	}
+
+	public function test_math_render_fields_gives_each_instance_distinct_ids(): void {
+		// The plugin supports several forms on one page (DynamicFragments has a
+		// branch for it). Fixed ids duplicated across them and broke the
+		// `<label for>` association a screen reader needs (#1056).
+		$provider = new MathCaptcha();
+
+		$first  = $provider->render_fields();
+		$second = $provider->render_fields();
+
+		preg_match_all( '/id="(ffc_captcha_(?:ans|hash)_\d+)"/', $first . $second, $m );
+
+		$this->assertCount( 4, $m[1], 'expected two ids per render' );
+		$this->assertSame( $m[1], array_unique( $m[1] ), 'ids must not repeat across renders' );
+	}
+
+	public function test_math_render_fields_points_the_label_at_its_own_input(): void {
+		$provider = new MathCaptcha();
+		$provider->render_fields();
+		$html = $provider->render_fields();
+
+		preg_match( '/<label for="([^"]+)"/', $html, $label );
+		preg_match( '/name="ffc_captcha_ans" id="([^"]+)"/', $html, $input );
+
+		$this->assertNotEmpty( $label[1] );
+		$this->assertSame( $label[1], $input[1], 'label must reference the input in the same render' );
+	}
+
+	public function test_math_render_fields_keeps_the_name_attributes_stable(): void {
+		// The names are the contract with the server; only the ids vary.
+		$html = ( new MathCaptcha() )->render_fields();
+
+		$this->assertStringContainsString( 'name="ffc_captcha_ans"', $html );
+		$this->assertStringContainsString( 'name="ffc_captcha_hash"', $html );
 	}
 
 	public function test_math_render_fields_omits_the_honeypot(): void {

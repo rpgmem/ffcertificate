@@ -15,6 +15,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - Internal (#1053) — o captcha passa a ter um contrato de estratégia (`CaptchaProviderInterface` + `CaptchaProvider::resolve()`), com o desafio matemático atrás dele. Os 6 sites de verificação e os 4 de retry não mudam: `validate_security_fields()` continua sendo o ponto único e agora delega a metade captcha. As duas cópias do bloco de segurança viraram uma, em `templates/`.
 
+### Fixed
+
+- **O captcha se atrapalhava com dois formulários na mesma página** (#1056): o refresh do agendamento reescrevia a pergunta em *todos* os formulários mas, casando por id, trocava o token só do primeiro — o segundo passava a exibir uma pergunta que seu token não respondia. Agora é escopado ao formulário e casa por `name`. Os ids do captcha passam a ser únicos por render, corrigindo também a associação `<label for>` para leitores de tela.
+
 ## [6.22.0] (2026-09-04) — `aa5ba5b`
 
 ### Deprecated
