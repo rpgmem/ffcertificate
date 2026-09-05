@@ -189,6 +189,22 @@ describe('ffc-dynamic-fragments — applyFragments via XHR onload', () => {
 		expect(document.querySelector('input[name="ffc_captcha_ans"]').value).toBe('');
 	});
 
+	it('leaves the block alone for a proof-of-work provider', () => {
+		// The widget fetches its own challenge from an endpoint, so nothing in
+		// the cached HTML is stale and there is nothing here to patch. This is
+		// a different answer from "provider I do not recognise", and the
+		// script says so explicitly rather than letting it fall through.
+		setupAndDeliver(
+			`<div class="ffc-form-container">${securityBlock('keep-me', 'keep-hash', '4')}</div>`,
+			{
+				success: true,
+				data: { captcha: { provider: 'altcha' } },
+			}
+		);
+		expect(document.querySelector('.ffc-captcha-label-text').textContent).toBe('keep-me');
+		expect(document.querySelector('input[name="ffc_captcha_hash"]').value).toBe('keep-hash');
+	});
+
 	it('ignores a payload from an unrecognised provider', () => {
 		// A provider the cached script does not know about must be left
 		// alone: half-applying it would blank a challenge the visitor may
@@ -197,7 +213,7 @@ describe('ffc-dynamic-fragments — applyFragments via XHR onload', () => {
 			`<div class="ffc-form-container">${securityBlock('keep-me', 'keep-hash', '4')}</div>`,
 			{
 				success: true,
-				data: { captcha: { provider: 'altcha', challengeurl: '/challenge' } },
+				data: { captcha: { provider: 'some-future-thing', token: 'x' } },
 			}
 		);
 		expect(document.querySelector('.ffc-captcha-label-text').textContent).toBe('keep-me');

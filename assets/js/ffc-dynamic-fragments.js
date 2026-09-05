@@ -124,7 +124,20 @@
 	 * @returns {void}
 	 */
 	function applyChallenge(root, payload) {
-		if (!payload || payload.provider !== 'math') {
+		if (!payload) {
+			return;
+		}
+
+		// A proof-of-work widget fetches its own challenge from an endpoint
+		// whenever it needs one, which is why that endpoint exists — there is
+		// nothing in the cached HTML to go stale, so nothing here to patch.
+		// Named rather than left to the fallback below, because "no work to
+		// do" and "provider I do not recognise" are different answers.
+		if (payload.provider === 'altcha') {
+			return;
+		}
+
+		if (payload.provider !== 'math') {
 			return;
 		}
 
