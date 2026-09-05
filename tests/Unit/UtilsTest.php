@@ -31,6 +31,9 @@ class UtilsTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		// CaptchaProvider::resolve() reads ffc_settings.
+		Functions\when( 'get_option' )->justReturn( array() );
 	}
 
 	protected function tearDown(): void {

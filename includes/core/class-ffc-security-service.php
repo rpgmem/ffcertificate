@@ -220,17 +220,28 @@ class SecurityService {
 			return \__( 'Security Error: Request blocked (Honeypot).', 'ffcertificate' );
 		}
 
-		// Check captcha presence.
-		if ( ! isset( $data['ffc_captcha_ans'] ) || ! isset( $data['ffc_captcha_hash'] ) ) {
-			return \__( 'Error: Please answer the security question.', 'ffcertificate' );
-		}
+		// The captcha half belongs to whichever strategy is configured; the
+		// honeypot above is provider-independent, which is why it stays here.
+		return Captcha\CaptchaProvider::resolve()->verify( $data );
+	}
 
-		// Validate captcha answer.
-		if ( ! self::verify_simple_captcha( $data['ffc_captcha_ans'], $data['ffc_captcha_hash'] ) ) {
-			return \__( 'Error: The math answer is incorrect.', 'ffcertificate' );
-		}
+	/**
+	 * Render the security fields: honeypot plus the active challenge.
+	 *
+	 * The canonical source of that block. It used to exist twice — once here
+	 * (via `Shortcodes`) and once inline in the self-scheduling booking form —
+	 * and the copies had already drifted apart.
+	 *
+	 * @return string Escaped HTML.
+	 */
+	public static function render_security_fields(): string {
+		$ffc_captcha_fields = Captcha\CaptchaProvider::resolve()->render_fields();
 
-		return true;
+		ob_start();
+		include FFC_PLUGIN_DIR . 'templates/security-fields.php';
+		$html = ob_get_clean();
+
+		return false === $html ? '' : $html;
 	}
 
 	/**
@@ -254,12 +265,8 @@ class SecurityService {
 			return $payload;
 		}
 
-		$captcha = self::generate_simple_captcha();
-
 		$payload['refresh_captcha'] = true;
-		$payload['new_label']       = $captcha['label'];
-		$payload['new_hash']        = $captcha['hash'];
 
-		return $payload;
+		return array_merge( $payload, Captcha\CaptchaProvider::resolve()->challenge_payload() );
 	}
 }

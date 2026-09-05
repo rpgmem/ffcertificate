@@ -181,9 +181,12 @@ class FrontendShortcodesTest extends TestCase {
 		$this->assertStringContainsString( 'ffc_captcha_ans', $html );
 		$this->assertStringContainsString( 'ffc_captcha_hash', $html );
 
-		// The hidden field carries the signed, expiring token (6.23.0).
+		// The hidden field carries the signed, expiring token (6.23.0). It also
+		// carries an id since PR2 unified the two drifted copies of this block
+		// on the self-scheduling variant — `ffc-calendar-frontend.js` refreshes
+		// the token through `#ffc_captcha_hash`, so the id has to stay.
 		$this->assertMatchesRegularExpression(
-			'/name="ffc_captcha_hash" value="\d+\.[0-9a-f]{16}\.[0-9a-f]{64}"/',
+			'/name="ffc_captcha_hash" id="ffc_captcha_hash" value="\d+\.[0-9a-f]{16}\.[0-9a-f]{64}"/',
 			$html
 		);
 

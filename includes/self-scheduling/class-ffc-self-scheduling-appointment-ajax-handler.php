@@ -71,13 +71,9 @@ class AppointmentAjaxHandler {
 
 			$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
 			if ( true !== $security_check ) {
-				$new_captcha = \FreeFormCertificate\Core\SecurityService::generate_simple_captcha();
 				wp_send_json_error(
-					array(
-						'message'         => $security_check,
-						'refresh_captcha' => true,
-						'new_label'       => $new_captcha['label'],
-						'new_hash'        => $new_captcha['hash'],
+					\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+						array( 'message' => $security_check )
 					)
 				);
 			}

@@ -159,7 +159,9 @@ class PublicFormsExportSourceTest extends TestCase {
 		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
 		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\SecurityService' )
-			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array { return $p; } )
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array {
+				return $p + array( 'refresh_captcha' => true, 'new_label' => '1+1', 'new_hash' => 'fresh-token' );
+			} )
 			->shouldReceive( 'validate_security_fields' )->andReturn( 'spam detected' );
 
 		$this->expectException( \RuntimeException::class );
@@ -177,7 +179,9 @@ class PublicFormsExportSourceTest extends TestCase {
 		\Mockery::mock( 'alias:FreeFormCertificate\Security\RateLimiter' )
 			->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) );
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\SecurityService' )
-			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array { return $p; } )
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array {
+				return $p + array( 'refresh_captcha' => true, 'new_label' => '1+1', 'new_hash' => 'fresh-token' );
+			} )
 			->shouldReceive( 'validate_security_fields' )->andReturn( true );
 		// form_id present but hash empty → guard fires.
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
@@ -244,7 +248,9 @@ class PublicFormsExportSourceTest extends TestCase {
 		\Mockery::mock( 'alias:FreeFormCertificate\Security\RateLimiter' )
 			->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) );
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\SecurityService' )
-			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array { return $p; } )
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array {
+				return $p + array( 'refresh_captcha' => true, 'new_label' => '1+1', 'new_hash' => 'fresh-token' );
+			} )
 			->shouldReceive( 'validate_security_fields' )->andReturn( true );
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
 			->shouldReceive( 'get_user_ip' )->andReturn( '203.0.113.9' )

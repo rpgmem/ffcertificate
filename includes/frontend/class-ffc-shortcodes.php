@@ -48,29 +48,14 @@ class Shortcodes {
 
 	/**
 	 * Generate HTML for security fields (honeypot + captcha)
+	 *
+	 * Thin delegate since 6.23.0: the markup is the shared
+	 * `templates/security-fields.php`, and the challenge inside it comes from
+	 * whichever provider is configured. Kept as a method because the public
+	 * CSV download shortcode renders through it.
 	 */
 	public function generate_security_fields(): string {
-		$captcha = $this->get_new_captcha_data();
-		ob_start();
-		?>
-		<div class="ffc-security-container">
-			<div class="ffc-honeypot-field">
-				<label><?php esc_html_e( 'Do not fill this field if you are human:', 'ffcertificate' ); ?>
-					<input type="text" name="ffc_honeypot_trap" value="" tabindex="-1" autocomplete="off">
-				</label>
-			</div>
-
-			<div class="ffc-captcha-row">
-				<label for="ffc_captcha_ans">
-					<span class="ffc-captcha-label-text"><?php echo esc_html( $captcha['label'] ); ?></span> <span class="required">*</span>
-				</label>
-				<input type="number" name="ffc_captcha_ans" id="ffc_captcha_ans" class="ffc-input" required aria-required="true">
-				<input type="hidden" name="ffc_captcha_hash" value="<?php echo esc_attr( $captcha['hash'] ); ?>">
-			</div>
-		</div>
-		<?php
-		$captcha_html = ob_get_clean();
-		return $captcha_html ? $captcha_html : '';
+		return SecurityService::render_security_fields();
 	}
 
 	/**
