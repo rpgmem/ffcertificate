@@ -110,18 +110,14 @@ class CaptchaSettingsTest extends TestCase {
 		// value is not rejected by the element, it is simply ignored, so the
 		// safe default has to be substituted here.
 		$this->settings = array(
-			'captcha_altcha_type'    => 'radio',
-			'captcha_altcha_auto'    => 'sometimes',
-			'captcha_altcha_display' => 'sideways',
-			'captcha_altcha_theme'   => 'neon',
+			'captcha_altcha_type' => 'radio',
+			'captcha_altcha_auto' => 'sometimes',
 		);
 
 		$this->assertSame(
 			array(
-				'type'    => 'checkbox',
-				'auto'    => 'off',
-				'display' => 'standard',
-				'theme'   => '',
+				'type' => 'checkbox',
+				'auto' => 'off',
 			),
 			CaptchaSettings::widget_attributes()
 		);
@@ -129,21 +125,43 @@ class CaptchaSettingsTest extends TestCase {
 
 	public function test_configured_attribute_values_are_honoured(): void {
 		$this->settings = array(
-			'captcha_altcha_type'    => 'switch',
-			'captcha_altcha_auto'    => 'onfocus',
-			'captcha_altcha_display' => 'bar',
-			'captcha_altcha_theme'   => 'dark',
+			'captcha_altcha_type' => 'switch',
+			'captcha_altcha_auto' => 'onfocus',
 		);
 
 		$this->assertSame(
 			array(
-				'type'    => 'switch',
-				'auto'    => 'onfocus',
-				'display' => 'bar',
-				'theme'   => 'dark',
+				'type' => 'switch',
+				'auto' => 'onfocus',
 			),
 			CaptchaSettings::widget_attributes()
 		);
+	}
+
+	public function test_layout_and_theme_are_not_offered_as_attributes(): void {
+		/*
+		 * Both were exposed and neither worked, which the smoke test caught.
+		 * Verified against the bundle's own CSS: `display: bar` is
+		 * `position: fixed; bottom: -100%` and `floating` is `display: none`
+		 * — parked off-screen for an anchored, submit-driven flow, so inline
+		 * they vanish. And the bundle carries no `[theme=…]`, `:host(`,
+		 * `prefers-color-scheme` or `color-scheme` rule at all: the attribute
+		 * is written and nothing consumes it. Theming is `--altcha-*` custom
+		 * properties, which `ffc-frontend.css` maps onto the plugin's tokens.
+		 *
+		 * This guard exists so neither comes back as a selector without
+		 * someone first making it work.
+		 */
+		$this->settings = array(
+			'captcha_altcha_display' => 'bar',
+			'captcha_altcha_theme'   => 'dark',
+		);
+
+		$attributes = CaptchaSettings::widget_attributes();
+
+		$this->assertArrayNotHasKey( 'display', $attributes );
+		$this->assertArrayNotHasKey( 'theme', $attributes );
+		$this->assertSame( array( 'type', 'auto' ), array_keys( $attributes ) );
 	}
 
 	public function test_the_privacy_choices_are_not_configurable(): void {

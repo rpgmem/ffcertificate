@@ -56,7 +56,7 @@ $ffc_modes = array(
 <div class="ffc-settings-wrap">
 
 <div class="card">
-	<h2 class="ffc-icon-shield"><?php esc_html_e( 'Captcha', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-robot"><?php esc_html_e( 'Captcha', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'The challenge that guards public forms: certificate submissions, certificate verification, appointment booking and the public CSV download. It applies to all of them at once.', 'ffcertificate' ); ?>
 	</p>
@@ -106,10 +106,22 @@ $ffc_modes = array(
 			</tbody>
 		</table>
 
-		<h3><?php esc_html_e( 'ALTCHA widget', 'ffcertificate' ); ?></h3>
-		<p class="description">
-			<?php esc_html_e( 'These apply to the two modes that show the widget. They have no effect while the math challenge is the only one in use.', 'ffcertificate' ); ?>
-		</p>
+		<?php
+		/*
+		 * Its own panel, and hidden entirely under the math-only mode: these
+		 * settings have no effect there, and a disabled-looking block of
+		 * inapplicable controls is harder to read past than no block at all.
+		 * The initial state is rendered server-side so it is correct without
+		 * JavaScript; the radio group toggles it live from there.
+		 */
+		?>
+		<div class="ffc-captcha-widget-panel card"
+			id="ffc-captcha-widget-panel"
+			<?php echo MathCaptcha::ID === $ffc_provider ? 'hidden' : ''; ?>>
+			<h3><?php esc_html_e( 'ALTCHA widget', 'ffcertificate' ); ?></h3>
+			<p class="description">
+				<?php esc_html_e( 'How the proof-of-work challenge behaves and how hard it is. Applies to the two modes that show the widget.', 'ffcertificate' ); ?>
+			</p>
 
 		<table class="form-table" role="presentation">
 			<tbody>
@@ -186,32 +198,6 @@ $ffc_modes = array(
 			</tr>
 
 			<tr>
-				<th scope="row">
-					<label for="captcha_altcha_display"><?php esc_html_e( 'Layout', 'ffcertificate' ); ?></label>
-				</th>
-				<td>
-					<select name="ffc_settings[captcha_altcha_display]" id="captcha_altcha_display">
-						<option value="standard" <?php selected( $ffc_attributes['display'], 'standard' ); ?>><?php esc_html_e( 'Standard', 'ffcertificate' ); ?></option>
-						<option value="bar" <?php selected( $ffc_attributes['display'], 'bar' ); ?>><?php esc_html_e( 'Bar', 'ffcertificate' ); ?></option>
-						<option value="floating" <?php selected( $ffc_attributes['display'], 'floating' ); ?>><?php esc_html_e( 'Floating', 'ffcertificate' ); ?></option>
-					</select>
-				</td>
-			</tr>
-
-			<tr>
-				<th scope="row">
-					<label for="captcha_altcha_theme"><?php esc_html_e( 'Theme', 'ffcertificate' ); ?></label>
-				</th>
-				<td>
-					<select name="ffc_settings[captcha_altcha_theme]" id="captcha_altcha_theme">
-						<option value="" <?php selected( $ffc_attributes['theme'], '' ); ?>><?php esc_html_e( 'Follow the visitor\'s system preference', 'ffcertificate' ); ?></option>
-						<option value="light" <?php selected( $ffc_attributes['theme'], 'light' ); ?>><?php esc_html_e( 'Light', 'ffcertificate' ); ?></option>
-						<option value="dark" <?php selected( $ffc_attributes['theme'], 'dark' ); ?>><?php esc_html_e( 'Dark', 'ffcertificate' ); ?></option>
-					</select>
-				</td>
-			</tr>
-
-			<tr>
 				<th scope="row"><?php esc_html_e( 'Attribution', 'ffcertificate' ); ?></th>
 				<td>
 					<fieldset>
@@ -229,6 +215,7 @@ $ffc_modes = array(
 			</tr>
 			</tbody>
 		</table>
+		</div>
 
 		<?php submit_button(); ?>
 	</form>

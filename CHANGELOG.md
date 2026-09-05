@@ -27,6 +27,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Widget do captcha aparecia em inglês, e dois controles não faziam nada** (#1053): o widget resolve o idioma quando inicializa, antes de o plugin registrar as traduções, e não voltava a olhar — agora é reaplicado pelo `configure()` do próprio elemento. Os seletores de layout e tema saíram: `bar` e `floating` são posicionados fora da tela por construção e só funcionam num fluxo ancorado, e o bundle não tem uma única regra que consuma `theme`. O tema agora vem das variáveis `--altcha-*` mapeadas nos tokens do plugin, então o widget acompanha o modo claro/escuro do site.
+
 - **O widget do captcha não carregava no download público de CSV nem no agendamento** (#1053): o `wp_enqueue_script` estava dentro de um ramo por tipo de página que só cobria o formulário de certificado e a verificação, então nos outros dois o container renderizava vazio — sem erro no console, porque um custom element que não sobe não reclama. Agora quem renderiza o widget é quem o enfileira, no momento do render, e a lista de superfícies deixa de existir.
 
 - **Um agendamento era criado mas reportado como falha** (#1058): `$appointment['id']` chega do `$wpdb` como string e `AppointmentReceiptHandler::get_receipt_url()` declara `int` sob `strict_types` — o `TypeError` fatalava no e-mail de confirmação, *depois* do commit da reserva, e o visitante recebia HTTP 500 para um agendamento que existia. O `catch` do handler passou a `\Throwable` e o bloco pós-commit foi isolado por etapa: uma reserva commitada nunca mais é reportada como falha.

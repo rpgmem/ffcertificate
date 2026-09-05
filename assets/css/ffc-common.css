@@ -353,6 +353,7 @@
 .ffc-icon-palette::before { content: "\1F3A8 "; }
 .ffc-icon-lock::before { content: "\1F512 "; }
 .ffc-icon-shield::before { content: "\1F6E1\FE0F "; }
+.ffc-icon-robot::before { content: "\1F916 "; }
 .ffc-icon-download::before { content: "\2B07\FE0F "; }
 .ffc-icon-bulb::before { content: "\1F4A1 "; }
 .ffc-icon-checkmark::before { content: "\2713 "; }

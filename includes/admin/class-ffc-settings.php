@@ -328,8 +328,6 @@ class Settings {
 			'captcha_altcha_ttl'         => 600,  // Seconds a challenge stays valid.
 			'captcha_altcha_type'        => 'checkbox', // 'checkbox' | 'switch'.
 			'captcha_altcha_auto'        => 'off', // 'off' | 'onfocus' | 'onload' | 'onsubmit'.
-			'captcha_altcha_display'     => 'standard', // 'standard' | 'bar' | 'floating'.
-			'captcha_altcha_theme'       => '', // '' follows the visitor's system preference.
 			'captcha_altcha_hide_logo'   => 0,
 			'captcha_altcha_hide_footer' => 0,
 		);
