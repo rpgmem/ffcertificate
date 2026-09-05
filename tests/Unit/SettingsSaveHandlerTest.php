@@ -65,6 +65,119 @@ class SettingsSaveHandlerTest extends TestCase {
 		return $ref->invokeArgs( $this->handler, $args );
 	}
 
+	/**
+	 * Drive the captcha section with a POST that names the captcha tab.
+	 *
+	 * @param array<string, mixed> $new     Posted values.
+	 * @param array<string, mixed> $current Values already stored.
+	 * @return array<string, mixed>
+	 */
+	private function save_captcha( array $new, array $current = array() ): array {
+		$_POST['_ffc_tab'] = 'captcha';
+
+		return $this->invoke( 'save_captcha_settings', array( $current, $new ) );
+	}
+
+	// ==================================================================
+	// save_captcha_settings() — #1053 PR4
+	// ==================================================================
+
+	public function test_captcha_section_is_untouched_when_another_tab_is_saved(): void {
+		// Every section here is gated on the tab marker for the same reason:
+		// a POST from another tab never carried these fields, so rebuilding
+		// them from it would reset settings the administrator did not touch.
+		$_POST['_ffc_tab'] = 'general';
+
+		$current = array( 'captcha_provider' => 'both', 'captcha_altcha_type' => 'switch' );
+		$result  = $this->invoke( 'save_captcha_settings', array( $current, array() ) );
+
+		$this->assertSame( $current, $result );
+	}
+
+	public function test_a_known_mode_is_saved(): void {
+		Functions\when( 'is_ssl' )->justReturn( true );
+
+		$this->assertSame( 'both', $this->save_captcha( array( 'captcha_provider' => 'both' ) )['captcha_provider'] );
+		$this->assertSame( 'altcha', $this->save_captcha( array( 'captcha_provider' => 'altcha' ) )['captcha_provider'] );
+	}
+
+	public function test_an_unknown_mode_falls_back_to_the_math_challenge(): void {
+		Functions\when( 'is_ssl' )->justReturn( true );
+
+		$this->assertSame( 'math', $this->save_captcha( array( 'captcha_provider' => 'nonsense' ) )['captcha_provider'] );
+	}
+
+	public function test_the_altcha_only_mode_is_refused_without_https(): void {
+		// The widget throws "Secure context (HTTPS) required" rather than
+		// degrading, so accepting this would hand every visitor a form they
+		// cannot submit. The previous value has to survive.
+		Functions\when( 'is_ssl' )->justReturn( false );
+		$errors = array();
+		Functions\when( 'add_settings_error' )->alias(
+			function ( $slug, $code ) use ( &$errors ): void {
+				$errors[] = $code;
+			}
+		);
+
+		$result = $this->save_captcha(
+			array( 'captcha_provider' => 'altcha' ),
+			array( 'captcha_provider' => 'both' )
+		);
+
+		$this->assertSame( 'both', $result['captcha_provider'], 'The refused save must not silently change the mode.' );
+		$this->assertContains( 'ffc_captcha_requires_https', $errors, 'Refusing silently would read as a save that worked.' );
+	}
+
+	public function test_the_fallback_mode_is_allowed_without_https(): void {
+		// Its <noscript> half still works, which is exactly what it is for.
+		Functions\when( 'is_ssl' )->justReturn( false );
+
+		$this->assertSame( 'both', $this->save_captcha( array( 'captcha_provider' => 'both' ) )['captcha_provider'] );
+	}
+
+	public function test_the_work_factor_is_clamped_on_save(): void {
+		Functions\when( 'is_ssl' )->justReturn( true );
+
+		$low  = $this->save_captcha( array( 'captcha_provider' => 'math', 'captcha_altcha_complexity' => 1 ) );
+		$high = $this->save_captcha( array( 'captcha_provider' => 'math', 'captcha_altcha_complexity' => 99999999 ) );
+
+		$this->assertSame( 10000, $low['captcha_altcha_complexity'] );
+		$this->assertSame( 1000000, $high['captcha_altcha_complexity'] );
+	}
+
+	public function test_unchecked_attribution_boxes_read_as_off(): void {
+		// A checkbox absent from the POST is unchecked, not unchanged — the
+		// only way to turn one off is for its absence to mean zero.
+		Functions\when( 'is_ssl' )->justReturn( true );
+
+		$result = $this->save_captcha(
+			array( 'captcha_provider' => 'math' ),
+			array( 'captcha_altcha_hide_logo' => 1, 'captcha_altcha_hide_footer' => 1 )
+		);
+
+		$this->assertSame( 0, $result['captcha_altcha_hide_logo'] );
+		$this->assertSame( 0, $result['captcha_altcha_hide_footer'] );
+	}
+
+	public function test_widget_attributes_are_validated_against_the_allowed_sets(): void {
+		Functions\when( 'is_ssl' )->justReturn( true );
+
+		$result = $this->save_captcha(
+			array(
+				'captcha_provider'        => 'math',
+				'captcha_altcha_type'     => 'radio',
+				'captcha_altcha_auto'     => 'onfocus',
+				'captcha_altcha_display'  => 'sideways',
+				'captcha_altcha_theme'    => 'dark',
+			)
+		);
+
+		$this->assertSame( 'checkbox', $result['captcha_altcha_type'] );
+		$this->assertSame( 'onfocus', $result['captcha_altcha_auto'] );
+		$this->assertSame( 'standard', $result['captcha_altcha_display'] );
+		$this->assertSame( 'dark', $result['captcha_altcha_theme'] );
+	}
+
 	// ==================================================================
 	// save_general_settings()
 	// ==================================================================

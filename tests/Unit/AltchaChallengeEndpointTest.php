@@ -52,6 +52,7 @@ class AltchaChallengeEndpointTest extends TestCase {
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'add_action' )->alias(
 			function ( string $hook ): bool {
 				$this->hooks[] = $hook;

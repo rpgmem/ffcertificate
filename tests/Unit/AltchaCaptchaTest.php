@@ -37,6 +37,10 @@ class AltchaCaptchaTest extends TestCase {
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'wp_salt' )->justReturn( 'unit-test-salt' );
+		// The work factor and the lifetime are settings now, read through
+		// CaptchaSettings; with no stored option they fall to the declared
+		// defaults, which is the configuration these tests mean to exercise.
+		Functions\when( 'get_option' )->justReturn( array() );
 
 		$this->transients = array();
 		$store            = &$this->transients;
@@ -72,7 +76,10 @@ class AltchaCaptchaTest extends TestCase {
 	private function solve( array $challenge ): string {
 		$salt = (string) $challenge['salt'];
 
-		for ( $n = 0; $n <= AltchaCaptcha::COMPLEXITY; $n++ ) {
+		// Bounded by the challenge's own published ceiling rather than a
+		// constant, so the loop still terminates if the default work factor
+		// changes underneath it.
+		for ( $n = 0; $n <= (int) $challenge['maxnumber']; $n++ ) {
 			if ( hash( 'sha256', $salt . (string) $n ) === $challenge['challenge'] ) {
 				return $this->encode(
 					array(

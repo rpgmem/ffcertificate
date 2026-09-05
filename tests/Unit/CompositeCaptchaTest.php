@@ -80,7 +80,7 @@ class CompositeCaptchaTest extends TestCase {
 		$challenge = AltchaCaptcha::create_challenge();
 		$salt      = (string) $challenge['salt'];
 
-		for ( $n = 0; $n <= AltchaCaptcha::COMPLEXITY; $n++ ) {
+		for ( $n = 0; $n <= (int) $challenge['maxnumber']; $n++ ) {
 			if ( hash( 'sha256', $salt . (string) $n ) === $challenge['challenge'] ) {
 				return base64_encode(
 					(string) json_encode(

@@ -13,6 +13,10 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\Captcha\AltchaCaptcha;
+use FreeFormCertificate\Core\Captcha\CaptchaProvider;
+use FreeFormCertificate\Core\Captcha\CaptchaSettings;
+use FreeFormCertificate\Core\Captcha\MathCaptcha;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -92,6 +96,7 @@ class SettingsSaveHandler {
 		$clean = $this->save_qrcode_settings( $clean, $new );
 		$clean = $this->save_date_format_settings( $clean, $new );
 		$clean = $this->save_url_shortener_settings( $clean, $new );
+		$clean = $this->save_captcha_settings( $clean, $new );
 
 		// "Email Model" chrome lives in its own option (`ffc_email_template`),
 		// posted from its own form in the SMTP tab.
@@ -397,6 +402,79 @@ class SettingsSaveHandler {
 		if ( isset( $new['date_format_custom'] ) ) {
 			$clean['date_format_custom'] = sanitize_text_field( $new['date_format_custom'] );
 		}
+
+		return $clean;
+	}
+
+	/**
+	 * Save the captcha strategy and its widget options (#1053).
+	 *
+	 * Gated on the tab marker, like every other section here, so saving any
+	 * other tab preserves these keys rather than rebuilding them from a POST
+	 * that never carried them.
+	 *
+	 * @param array<string, mixed> $clean Current settings.
+	 * @param array<string, mixed> $new   New settings from POST.
+	 * @return array<string, mixed> Updated settings.
+	 */
+	private function save_captcha_settings( array $clean, array $new ): array {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions().
+		$ffc_tab = isset( $_POST['_ffc_tab'] ) ? sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		if ( 'captcha' !== $ffc_tab ) {
+			return $clean;
+		}
+
+		$requested = CaptchaSettings::one_of(
+			$new['captcha_provider'] ?? '',
+			CaptchaProvider::available(),
+			MathCaptcha::ID
+		);
+
+		/*
+		 * The ALTCHA widget refuses to run outside a secure context — it
+		 * throws "Secure context (HTTPS) required" rather than degrading — so
+		 * a mode with no arithmetic fallback would leave every visitor on a
+		 * plain-HTTP site with a form they cannot submit. Refuse the save and
+		 * keep whatever was configured before, rather than accepting a value
+		 * that produces a broken public page.
+		 *
+		 * The composite mode is allowed: its `<noscript>` half still works,
+		 * which is exactly what it is for.
+		 */
+		if ( AltchaCaptcha::ID === $requested && ! is_ssl() ) {
+			add_settings_error(
+				'ffc_settings',
+				'ffc_captcha_requires_https',
+				__( 'The ALTCHA-only mode was not saved: the widget refuses to run on a page that is not served over HTTPS, which would leave every visitor unable to submit. Serve the site over HTTPS, or choose the mode that keeps the math challenge as a fallback.', 'ffcertificate' ),
+				'error'
+			);
+
+			$requested = CaptchaSettings::one_of(
+				$clean['captcha_provider'] ?? '',
+				CaptchaProvider::available(),
+				MathCaptcha::ID
+			);
+		}
+
+		$clean['captcha_provider'] = $requested;
+
+		if ( isset( $new['captcha_altcha_complexity'] ) ) {
+			$clean['captcha_altcha_complexity'] = CaptchaSettings::clamp_complexity( $new['captcha_altcha_complexity'] );
+		}
+		if ( isset( $new['captcha_altcha_ttl'] ) ) {
+			$clean['captcha_altcha_ttl'] = CaptchaSettings::clamp_ttl( $new['captcha_altcha_ttl'] );
+		}
+
+		$clean['captcha_altcha_type']    = CaptchaSettings::one_of( $new['captcha_altcha_type'] ?? '', CaptchaSettings::types(), 'checkbox' );
+		$clean['captcha_altcha_auto']    = CaptchaSettings::one_of( $new['captcha_altcha_auto'] ?? '', CaptchaSettings::auto_modes(), 'off' );
+		$clean['captcha_altcha_display'] = CaptchaSettings::one_of( $new['captcha_altcha_display'] ?? '', CaptchaSettings::displays(), 'standard' );
+		$clean['captcha_altcha_theme']   = CaptchaSettings::one_of( $new['captcha_altcha_theme'] ?? '', CaptchaSettings::themes(), '' );
+
+		// Checkboxes: absent from the POST means unchecked.
+		$clean['captcha_altcha_hide_logo']   = empty( $new['captcha_altcha_hide_logo'] ) ? 0 : 1;
+		$clean['captcha_altcha_hide_footer'] = empty( $new['captcha_altcha_hide_footer'] ) ? 0 : 1;
 
 		return $clean;
 	}

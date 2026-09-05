@@ -181,6 +181,7 @@ class Settings {
 			'email_texts'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabEmailTexts',
 			'cache'          => '\\FreeFormCertificate\\Settings\\Tabs\\TabCache',
 			'url_shortener'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabUrlShortener',
+			'captcha'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabCaptcha',
 			'rate_limit'     => '\\FreeFormCertificate\\Settings\\Tabs\\TabRateLimit',
 			'geolocation'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeolocation',
 			'ip_diagnostics' => '\\FreeFormCertificate\\Settings\\Tabs\\TabIpDiagnostics',
@@ -315,6 +316,22 @@ class Settings {
 			'url_cleanup_trashed'        => 1,    // Short-URL cleanup: status = 'trashed'.
 			'public_access_disable_days' => 90, // Grace window (days) for disabling Public Operator Access on old forms.
 			'code_editor_theme'          => 'dark', // 'dark' | 'light' | 'auto' (auto follows dark_mode).
+			// Captcha (#1053). `math` on upgrade and on a fresh install: the
+			// arithmetic challenge is the only one that runs without
+			// JavaScript and without a secure context, so it is the choice
+			// that cannot lock anyone out of a form they could use before.
+			'captcha_provider'           => 'math', // 'math' | 'altcha' | 'both'.
+			// Work factor for the ALTCHA proof of work — the upper bound of
+			// the secret number the solver has to find, so expected work is
+			// about half of it. Bounded by CaptchaSettings, not here.
+			'captcha_altcha_complexity'  => 200000,
+			'captcha_altcha_ttl'         => 600,  // Seconds a challenge stays valid.
+			'captcha_altcha_type'        => 'checkbox', // 'checkbox' | 'switch'.
+			'captcha_altcha_auto'        => 'off', // 'off' | 'onfocus' | 'onload' | 'onsubmit'.
+			'captcha_altcha_display'     => 'standard', // 'standard' | 'bar' | 'floating'.
+			'captcha_altcha_theme'       => '', // '' follows the visitor's system preference.
+			'captcha_altcha_hide_logo'   => 0,
+			'captcha_altcha_hide_footer' => 0,
 		);
 	}
 

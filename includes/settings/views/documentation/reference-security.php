@@ -60,8 +60,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h4><?php esc_html_e( 'Other protections', 'ffcertificate' ); ?></h4>
 	<ul class="ffc-doc-list">
 		<li>
-			<strong><?php esc_html_e( 'Honeypot & Math CAPTCHA:', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'Invisible honeypot field plus a basic math challenge to stop bots.', 'ffcertificate' ); ?>
+			<strong><?php esc_html_e( 'Honeypot & CAPTCHA:', 'ffcertificate' ); ?></strong><br>
+			<?php esc_html_e( 'An invisible honeypot field plus a challenge the visitor has to pass. Two are available: an arithmetic question that works without JavaScript, and ALTCHA, a proof of work solved in the browser and served entirely from this site. Either way the token is signed, expires and can only be used once. Choose the mode in Settings → Captcha.', 'ffcertificate' ); ?>
 		</li>
 		<li>
 			<strong><?php esc_html_e( 'Rate limiting:', 'ffcertificate' ); ?></strong><br>
