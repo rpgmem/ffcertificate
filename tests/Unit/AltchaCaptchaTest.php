@@ -271,6 +271,71 @@ class AltchaCaptchaTest extends TestCase {
 	}
 
 	// ==================================================================
+	// render_fields() — asset wiring
+	// ==================================================================
+
+	public function test_rendering_the_widget_enqueues_its_script(): void {
+		/*
+		 * The regression this pins: the enqueue used to live in a page-type
+		 * branch in `Frontend::enqueue_scripts()`, gated on the certificate
+		 * form or the verification page. The public CSV download is neither,
+		 * so it rendered the widget's container with nothing to fill it — an
+		 * empty box and no console error. The self-scheduling booking form
+		 * would have been the same, since a different class enqueues it.
+		 *
+		 * Tying the enqueue to the render is what makes the surface list
+		 * irrelevant, and this asserts that binding rather than the list.
+		 */
+		$enqueued = array();
+
+		Functions\when( 'wp_enqueue_script' )->alias(
+			function ( string $handle ) use ( &$enqueued ): void {
+				$enqueued[] = $handle;
+			}
+		);
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( static function ( string $text ): void { echo $text; } );
+		Functions\when( 'get_locale' )->justReturn( 'pt_BR' );
+		Functions\when( 'admin_url' )->alias( static fn( string $p = '' ): string => 'https://example.test/wp-admin/' . $p );
+		Functions\when( 'add_query_arg' )->alias( static fn( array $a, string $u ): string => $u . '?' . http_build_query( $a ) );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $d ) => json_encode( $d ) );
+
+		$html = ( new AltchaCaptcha() )->render_fields();
+
+		$this->assertContains( 'ffc-captcha', $enqueued );
+		$this->assertStringContainsString( '<altcha-widget', $html );
+	}
+
+	public function test_the_rendered_language_matches_the_one_the_glue_registers(): void {
+		// The widget selects its strings by the `language` attribute. If the
+		// attribute and the registered i18n key disagree, it falls back to
+		// English — silently, with nothing in the console.
+		Functions\when( 'wp_enqueue_script' )->justReturn( true );
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( static function ( string $text ): void { echo $text; } );
+		Functions\when( 'get_locale' )->justReturn( 'pt_BR' );
+		Functions\when( 'admin_url' )->alias( static fn( string $p = '' ): string => 'https://example.test/wp-admin/' . $p );
+		Functions\when( 'add_query_arg' )->alias( static fn( array $a, string $u ): string => $u . '?' . http_build_query( $a ) );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $d ) => json_encode( $d ) );
+
+		$localized = array();
+		Functions\when( 'wp_register_script' )->justReturn( true );
+		Functions\when( 'wp_localize_script' )->alias(
+			function ( string $handle, string $object, array $data ) use ( &$localized ): void {
+				$localized = $data;
+			}
+		);
+
+		AltchaCaptcha::register_assets();
+		$html = ( new AltchaCaptcha() )->render_fields();
+
+		$this->assertSame( 'pt-br', $localized['language'] );
+		$this->assertStringContainsString( 'language="pt-br"', $html );
+	}
+
+	// ==================================================================
 	// challenge_payload()
 	// ==================================================================
 
