@@ -17,6 +17,7 @@ use FreeFormCertificate\Core\SecurityService;
  *
  * @covers \FreeFormCertificate\Core\Captcha\CaptchaProvider
  * @covers \FreeFormCertificate\Core\Captcha\MathCaptcha
+ * @covers \FreeFormCertificate\Core\SecurityService
  */
 class CaptchaProviderTest extends TestCase {
 
@@ -44,6 +45,7 @@ class CaptchaProviderTest extends TestCase {
 		// a test method.
 		class_exists( '\FreeFormCertificate\Core\Captcha\CaptchaProvider' );
 		class_exists( '\FreeFormCertificate\Core\Captcha\MathCaptcha' );
+		class_exists( '\FreeFormCertificate\Core\SecurityService' );
 
 		CaptchaProvider::reset();
 
