@@ -164,18 +164,32 @@ class SettingsSaveHandlerTest extends TestCase {
 
 		$result = $this->save_captcha(
 			array(
-				'captcha_provider'        => 'math',
-				'captcha_altcha_type'     => 'radio',
-				'captcha_altcha_auto'     => 'onfocus',
-				'captcha_altcha_display'  => 'sideways',
-				'captcha_altcha_theme'    => 'dark',
+				'captcha_provider'    => 'math',
+				'captcha_altcha_type' => 'radio',
+				'captcha_altcha_auto' => 'onfocus',
 			)
 		);
 
 		$this->assertSame( 'checkbox', $result['captcha_altcha_type'] );
 		$this->assertSame( 'onfocus', $result['captcha_altcha_auto'] );
-		$this->assertSame( 'standard', $result['captcha_altcha_display'] );
-		$this->assertSame( 'dark', $result['captcha_altcha_theme'] );
+	}
+
+	public function test_the_removed_layout_and_theme_keys_are_not_persisted(): void {
+		// Neither worked in an inline placement, so they stopped being
+		// offered; a POST that still carries them (a stale page, a bot) must
+		// not resurrect a key nothing reads.
+		Functions\when( 'is_ssl' )->justReturn( true );
+
+		$result = $this->save_captcha(
+			array(
+				'captcha_provider'       => 'math',
+				'captcha_altcha_display' => 'bar',
+				'captcha_altcha_theme'   => 'dark',
+			)
+		);
+
+		$this->assertArrayNotHasKey( 'captcha_altcha_display', $result );
+		$this->assertArrayNotHasKey( 'captcha_altcha_theme', $result );
 	}
 
 	// ==================================================================

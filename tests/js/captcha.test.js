@@ -21,6 +21,7 @@ beforeAll(() => {
 function makeWidget() {
 	const el = document.createElement('altcha-widget');
 	el.reset = vi.fn();
+	el.configure = vi.fn();
 	return el;
 }
 
@@ -57,6 +58,36 @@ describe('ffc-captcha — i18n registration', () => {
 		window.ffcCaptcha = { language: 'pt-br', strings: { label: 'x' } };
 
 		expect(() => window.FFCCaptcha.registerStrings()).not.toThrow();
+	});
+
+	it('re-applies the language so the widget resolves it again', () => {
+		// The bundle loads first — it has to, since it creates the store this
+		// writes to — so each widget has already resolved its language against
+		// a store without our entry and fallen back to English. Registering
+		// the strings is not enough; the widget has to be told to look again.
+		// This is the smoke-test finding: payload, attribute and bundle were
+		// all correct and the widget was still in English.
+		const el = makeWidget();
+		document.body.append(el);
+		window.$altcha = { i18n: { set: vi.fn() } };
+		window.ffcCaptcha = { language: 'pt-br', strings: { label: 'Não sou um robô' } };
+
+		window.FFCCaptcha.registerStrings();
+
+		expect(el.configure).toHaveBeenCalledWith({ language: 'pt-br' });
+	});
+
+	it('does not re-apply when the strings could not be registered', () => {
+		// Nothing was added to the store, so asking the widget to resolve
+		// again would only make it fall back a second time.
+		const el = makeWidget();
+		document.body.append(el);
+		window.$altcha = { i18n: { set: () => { throw new Error('nope'); } } };
+		window.ffcCaptcha = { language: 'pt-br', strings: { label: 'x' } };
+
+		window.FFCCaptcha.registerStrings();
+
+		expect(el.configure).not.toHaveBeenCalled();
 	});
 
 	it('does nothing when no strings were localised', () => {

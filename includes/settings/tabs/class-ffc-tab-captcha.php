@@ -33,8 +33,39 @@ class TabCaptcha extends SettingsTab {
 		$this->tab_id    = 'captcha';
 		$this->tab_group = 'security';
 		$this->tab_title = __( 'Captcha', 'ffcertificate' );
-		$this->tab_icon  = 'ffc-icon-shield';
+		// Not the shield: Rate Limit already uses it, and two identical icons
+		// in the same group make the sidebar harder to scan than a plain list.
+		// The robot is the one glyph that reads as "captcha" rather than as
+		// security in general — it is the challenge's own idiom.
+		$this->tab_icon  = 'ffc-icon-robot';
 		$this->tab_order = 35;
+
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+	}
+
+	/**
+	 * Show or hide the widget panel as the mode changes.
+	 *
+	 * Enhancement only — the panel's initial state is rendered server-side,
+	 * so the screen is correct before this runs and if it never does.
+	 *
+	 * @param string $hook Current admin page hook.
+	 * @return void
+	 */
+	public function enqueue_scripts( string $hook ): void {
+		if ( ! $this->should_enqueue_on( $hook ) ) {
+			return;
+		}
+
+		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+
+		wp_enqueue_script(
+			'ffc-admin-captcha-settings',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin-captcha-settings{$suffix}.js",
+			array(),
+			FFC_VERSION,
+			true
+		);
 	}
 
 	/**

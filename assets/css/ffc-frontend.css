@@ -460,6 +460,33 @@ details.ffc-consent-description > p {
     box-shadow: 0 2px 8px var(--ffc-focus-ring);
     width: 100%;
     box-sizing: border-box;
+
+    /* The widget renders at its natural width, so without this it sits
+       flush left inside a full-width panel and reads as misaligned. */
+    display: flex;
+    justify-content: center;
+}
+
+/*
+ * Widget theming.
+ *
+ * ALTCHA has no theme rules of its own in the bundled build — the `theme`
+ * attribute is written to the host and nothing consumes it, which is why a
+ * theme selector could never have worked. Theming is done entirely through
+ * these custom properties, so mapping them onto the plugin's own tokens is
+ * what makes the widget follow the site: it inherits light/dark from
+ * `.ffc-dark-mode` for free, because the tokens on the right already do.
+ */
+.ffc-shortcode .ffc-altcha-row altcha-widget {
+    --altcha-border-color: var(--ffc-border);
+    --altcha-border-radius: var(--ffc-radius);
+    --altcha-checkbox-border-color: var(--ffc-border);
+    --altcha-color-base: var(--ffc-bg-input);
+    --altcha-color-base-content: var(--ffc-text);
+    --altcha-color-error: var(--ffc-danger, #b32d2e);
+    --altcha-color-primary: var(--ffc-primary);
+    --altcha-color-success: var(--ffc-success, #00a32a);
+    --altcha-spinner-color: var(--ffc-primary);
 }
 
 /* The widget's own fallback text when JavaScript is off, and the message the

@@ -53,6 +53,35 @@
 			altcha.i18n.set(config.language, config.strings);
 		} catch (e) {
 			// A widget in English beats a form that does not load.
+			return;
+		}
+
+		// The bundle loads first — it has to, since it creates the store this
+		// writes to — so by now each widget has already resolved its language
+		// against a store that did not yet contain ours, and fallen back to
+		// English. Re-applying `language` through the element's own
+		// `configure()` is what makes it resolve again, now that the entry
+		// exists. Cheap, and idempotent when the strings were already in
+		// place.
+		reapplyLanguage(config.language);
+	}
+
+	/**
+	 * Push the language through each widget's published configure() method.
+	 *
+	 * @param {string} language Key registered in the i18n store.
+	 */
+	function reapplyLanguage(language) {
+		var found = widgets();
+		for (var i = 0; i < found.length; i++) {
+			if (typeof found[i].configure === 'function') {
+				try {
+					found[i].configure({ language: language });
+				} catch (e) {
+					// An element that has not upgraded yet gets the language
+					// from its own attribute anyway; nothing to recover.
+				}
+			}
 		}
 	}
 
@@ -150,6 +179,16 @@
 
 	registerStrings();
 	watchStates();
+
+	// A widget that upgrades after this module ran resolves its language on
+	// its own, against a store that already carries our entry — but a page
+	// where the elements are not in the DOM yet would have had nothing to
+	// re-configure above, so try once more when it is.
+	if ('loading' === document.readyState) {
+		document.addEventListener('DOMContentLoaded', function () {
+			reapplyLanguage(cfg().language);
+		});
+	}
 
 	// The single wire from FFC.request — see ffc-core.js. Every server-side
 	// rejection resets, regardless of which endpoint refused or why.

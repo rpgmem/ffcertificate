@@ -88,28 +88,6 @@ class CaptchaSettings {
 	}
 
 	/**
-	 * Values the element accepts for `display`.
-	 *
-	 * @return array<int, string>
-	 */
-	public static function displays(): array {
-		return array( 'standard', 'bar', 'floating' );
-	}
-
-	/**
-	 * Values the element accepts for `theme`, plus the empty default.
-	 *
-	 * Empty means "no attribute", which leaves the widget following the
-	 * visitor's own system preference — the right default for a form the
-	 * plugin does not control the surrounding page of.
-	 *
-	 * @return array<int, string>
-	 */
-	public static function themes(): array {
-		return array( '', 'light', 'dark' );
-	}
-
-	/**
 	 * Clamp a work factor into the allowed range.
 	 *
 	 * @param mixed $value Raw value.
@@ -154,14 +132,31 @@ class CaptchaSettings {
 	/**
 	 * The configured widget attributes, each already validated.
 	 *
-	 * @return array{type: string, auto: string, display: string, theme: string}
+	 * Two attributes the element accepts are deliberately NOT configurable,
+	 * because neither works in an inline placement — verified against the
+	 * bundle's own CSS rather than assumed:
+	 *
+	 * `display` — `bar` is `position: fixed; bottom: -100%` and `floating` is
+	 * `display: none; left/top: -100%`. Both are parked off-screen by design
+	 * and only surface once the widget is activated in an anchored,
+	 * submit-driven flow. Rendered inline they simply vanish, which is what a
+	 * "Layout" selector offering them produced. Only `standard` applies here,
+	 * and a one-item selector is noise.
+	 *
+	 * `theme` — the bundle contains no `[theme=…]`, `:host(`,
+	 * `prefers-color-scheme` or `color-scheme` rule at all. The attribute is
+	 * written to the host and nothing consumes it; theming is done entirely
+	 * through `--altcha-*` custom properties, which `ffc-frontend.css` now
+	 * maps onto the plugin's own tokens. That makes the widget follow the
+	 * site's light/dark automatically — a better answer than a selector, and
+	 * the only one that could have worked.
+	 *
+	 * @return array{type: string, auto: string}
 	 */
 	public static function widget_attributes(): array {
 		return array(
-			'type'    => self::one_of( SettingsReader::get( 'captcha_altcha_type', 'checkbox' ), self::types(), 'checkbox' ),
-			'auto'    => self::one_of( SettingsReader::get( 'captcha_altcha_auto', 'off' ), self::auto_modes(), 'off' ),
-			'display' => self::one_of( SettingsReader::get( 'captcha_altcha_display', 'standard' ), self::displays(), 'standard' ),
-			'theme'   => self::one_of( SettingsReader::get( 'captcha_altcha_theme', '' ), self::themes(), '' ),
+			'type' => self::one_of( SettingsReader::get( 'captcha_altcha_type', 'checkbox' ), self::types(), 'checkbox' ),
+			'auto' => self::one_of( SettingsReader::get( 'captcha_altcha_auto', 'off' ), self::auto_modes(), 'off' ),
 		);
 	}
 
