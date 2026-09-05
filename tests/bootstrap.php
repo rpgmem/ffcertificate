@@ -38,6 +38,18 @@ if ( ! defined( 'FFC_VERSION' ) ) {
 		define( 'FFC_VERSION', 'dev' );
 	}
 }
+
+if ( ! defined( 'FFC_ALTCHA_VERSION' ) ) {
+	// Same single-source-of-truth read as FFC_VERSION above: the vendored
+	// widget's version is part of its asset URL, so a test that renders the
+	// widget needs it defined.
+	$plugin_contents = $plugin_contents ?? file_get_contents( dirname( __DIR__ ) . '/ffcertificate.php' );
+	if ( preg_match( "/define\(\s*'FFC_ALTCHA_VERSION',\s*'([^']+)'/", $plugin_contents, $altcha_match ) ) {
+		define( 'FFC_ALTCHA_VERSION', $altcha_match[1] );
+	} else {
+		define( 'FFC_ALTCHA_VERSION', 'dev' );
+	}
+}
 if ( ! defined( 'DB_NAME' ) ) {
 	define( 'DB_NAME', 'test_db' );
 }

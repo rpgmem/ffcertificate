@@ -242,18 +242,6 @@ class Frontend {
 			// Pass geofence configurations to frontend.
 			$this->localize_geofence_config();
 
-			// ALTCHA widget, only for the strategies that render one. A site
-			// on the math challenge never ships the 111 KB bundle.
-			//
-			// `ffc-captcha` depends on the widget so the i18n store it writes
-			// to exists by then, and on `ffc-core` because it listens for the
-			// rejection event that module dispatches.
-			if ( \FreeFormCertificate\Core\Captcha\CaptchaProvider::needs_altcha_widget() ) {
-				wp_enqueue_script( 'ffc-altcha', FFC_PLUGIN_URL . 'libs/js/altcha-' . FFC_ALTCHA_VERSION . '.umd.js', array(), FFC_ALTCHA_VERSION, true );
-				wp_enqueue_script( 'ffc-captcha', FFC_PLUGIN_URL . "assets/js/ffc-captcha{$s}.js", array( 'ffc-altcha', 'ffc-core' ), FFC_VERSION, true );
-				wp_localize_script( 'ffc-captcha', 'ffcCaptcha', $this->altcha_localization() );
-			}
-
 			// Device fingerprint signals collector (only when globally enabled).
 			//
 			// thumbmarkjs (vendored at libs/js/) provides the raw component
@@ -598,40 +586,6 @@ class Frontend {
 				)
 			);
 		}
-	}
-
-	/**
-	 * Data the ALTCHA glue script needs.
-	 *
-	 * The strings go through the plugin's own translation catalogue rather
-	 * than the widget's 52 KB i18n bundle: the widget reads whatever is put
-	 * in its store, so shipping a second catalogue for a handful of labels
-	 * would be pure weight. Keys are the widget's, spelled its way.
-	 *
-	 * @return array<string, mixed>
-	 */
-	private function altcha_localization(): array {
-		return array(
-			// Must match the `language` attribute the provider renders, or
-			// the widget falls back to English without saying so.
-			'language'        => strtolower( str_replace( '_', '-', get_locale() ) ),
-			'strings'         => array(
-				'ariaLinkLabel' => __( 'Altcha (official website)', 'ffcertificate' ),
-				'error'         => __( 'Verification failed. Try again later.', 'ffcertificate' ),
-				'expired'       => __( 'Verification expired. Try again.', 'ffcertificate' ),
-				'footer'        => __( 'Protected by ALTCHA', 'ffcertificate' ),
-				'label'         => __( 'I am not a robot', 'ffcertificate' ),
-				'verified'      => __( 'Verified', 'ffcertificate' ),
-				'verifying'     => __( 'Verifying…', 'ffcertificate' ),
-				'waitAlert'     => __( 'Verifying… please wait.', 'ffcertificate' ),
-			),
-			// Shown beside a widget that reported an error. The insecure-context
-			// case is called out separately because it is not transient: the
-			// widget refuses to run outside a secure context, so "try again"
-			// would be advice that can never work.
-			'errorMessage'    => __( 'Could not verify that you are human. Reload the page and try again.', 'ffcertificate' ),
-			'insecureMessage' => __( 'Verification is unavailable because this page is not served over a secure connection (HTTPS). Please contact the site administrator.', 'ffcertificate' ),
-		);
 	}
 
 	/**

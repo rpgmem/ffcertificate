@@ -123,11 +123,101 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 	}
 
 	/**
+	 * Register the widget bundle and its glue, without enqueueing either.
+	 *
+	 * Registration is cheap and unconditional; the enqueue happens in
+	 * {@see render_fields()}, so the scripts load exactly where the widget
+	 * renders. Tying them to a list of page types instead is what put an
+	 * empty widget on the public CSV download: that page is neither a
+	 * certificate form nor a verification page, and the self-scheduling
+	 * booking form is enqueued by a different class entirely. A list of
+	 * surfaces drifts; following the render cannot.
+	 *
+	 * @return void
+	 */
+	public static function register_assets(): void {
+		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+
+		\wp_register_script(
+			'ffc-altcha',
+			FFC_PLUGIN_URL . 'libs/js/altcha-' . FFC_ALTCHA_VERSION . '.umd.js',
+			array(),
+			FFC_ALTCHA_VERSION,
+			true
+		);
+
+		// Depends on the bundle so the i18n store exists before the glue
+		// writes to it, and on `ffc-core` because it listens for the
+		// rejection event that module dispatches.
+		\wp_register_script(
+			'ffc-captcha',
+			FFC_PLUGIN_URL . "assets/js/ffc-captcha{$suffix}.js",
+			array( 'ffc-altcha', 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+
+		\wp_localize_script( 'ffc-captcha', 'ffcCaptcha', self::localization() );
+	}
+
+	/**
+	 * Data the glue script needs.
+	 *
+	 * The strings go through the plugin's own catalogue rather than the
+	 * widget's 52 KB i18n bundle: the widget reads whatever is put in its
+	 * store, so shipping a second catalogue for a handful of labels would be
+	 * pure weight. Keys are the widget's, spelled its way.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function localization(): array {
+		return array(
+			// Must match the `language` attribute rendered below, or the
+			// widget falls back to English without saying so.
+			'language'        => self::language(),
+			'strings'         => array(
+				'ariaLinkLabel' => \__( 'Altcha (official website)', 'ffcertificate' ),
+				'error'         => \__( 'Verification failed. Try again later.', 'ffcertificate' ),
+				'expired'       => \__( 'Verification expired. Try again.', 'ffcertificate' ),
+				'footer'        => \__( 'Protected by ALTCHA', 'ffcertificate' ),
+				'label'         => \__( 'I am not a robot', 'ffcertificate' ),
+				'verified'      => \__( 'Verified', 'ffcertificate' ),
+				'verifying'     => \__( 'Verifying…', 'ffcertificate' ),
+				'waitAlert'     => \__( 'Verifying… please wait.', 'ffcertificate' ),
+			),
+			// Shown beside a widget that reported an error. The insecure-context
+			// case is named separately because it is not transient: the widget
+			// refuses to run outside a secure context, so "try again" would be
+			// advice that can never work.
+			'errorMessage'    => \__( 'Could not verify that you are human. Reload the page and try again.', 'ffcertificate' ),
+			'insecureMessage' => \__( 'Verification is unavailable because this page is not served over a secure connection (HTTPS). Please contact the site administrator.', 'ffcertificate' ),
+		);
+	}
+
+	/**
+	 * Language key shared by the element attribute and the i18n store.
+	 *
+	 * Lowercased with a hyphen because that is the shape the widget's own
+	 * lookup normalises to.
+	 *
+	 * @return string
+	 */
+	private static function language(): string {
+		return strtolower( str_replace( '_', '-', (string) \get_locale() ) );
+	}
+
+	/**
 	 * {@inheritDoc}
 	 *
 	 * @return string Escaped HTML.
 	 */
 	public function render_fields(): string {
+		// Enqueued here rather than from a page-type branch, so the scripts
+		// follow the widget onto every surface that renders it. Shortcodes
+		// render during `the_content`, well before `wp_footer`, and both
+		// scripts are footer scripts — so this lands in time.
+		\wp_enqueue_script( 'ffc-captcha' );
+
 		$ffc_altcha_challenge_url = \add_query_arg(
 			array( 'action' => AltchaChallengeEndpoint::AJAX_ACTION ),
 			\admin_url( 'admin-ajax.php' )
@@ -145,9 +235,8 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 		$ffc_altcha_configuration = (string) \wp_json_encode( CaptchaSettings::widget_configuration() );
 
 		// Selects the entry `assets/js/ffc-captcha.js` registers in the
-		// widget's i18n store. Lowercased with a hyphen because that is the
-		// shape the widget's own lookup normalises to.
-		$ffc_altcha_language = strtolower( str_replace( '_', '-', \get_locale() ) );
+		// widget's i18n store — the same value the localisation carries.
+		$ffc_altcha_language = self::language();
 
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/captcha/altcha-fields.php';

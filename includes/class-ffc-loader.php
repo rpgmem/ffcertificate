@@ -847,6 +847,14 @@ class Loader {
 			)
 		);
 
+		// Captcha widget + glue (#1053). Registered on every frontend request
+		// and enqueued by the provider at render time, so it follows the
+		// widget onto whichever surface renders it — the certificate form,
+		// the verification page, the public CSV download and the
+		// self-scheduling booking form, the last of which is enqueued by a
+		// different class entirely.
+		\FreeFormCertificate\Core\Captcha\AltchaCaptcha::register_assets();
+
 		// Dynamic fragments: refresh captcha + nonces on cached pages (v4.12.0).
 		wp_register_script( 'ffc-dynamic-fragments', FFC_PLUGIN_URL . "assets/js/ffc-dynamic-fragments{$s}.js", array(), FFC_VERSION, true );
 		wp_localize_script(

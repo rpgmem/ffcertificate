@@ -52,6 +52,9 @@ class CompositeCaptchaTest extends TestCase {
 			static fn( array $args, string $url ): string => $url . '?' . http_build_query( $args )
 		);
 		Functions\when( 'wp_json_encode' )->alias( static fn( $data ) => json_encode( $data ) );
+		// The ALTCHA half enqueues its own script at render time (#1053), so
+		// the widget follows onto every surface rather than a list of them.
+		Functions\when( 'wp_enqueue_script' )->justReturn( true );
 		Functions\when( 'wp_rand' )->alias( static fn( int $min = 0, int $max = 0 ): int => random_int( $min, $max ) );
 		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
 		Functions\when( 'get_option' )->alias(

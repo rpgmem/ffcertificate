@@ -26,6 +26,13 @@ class CapabilityCatalogTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		// `LabelSorter::locale()` is guarded by `function_exists( 'get_locale' )`,
+		// so this used to take the no-WordPress branch only because nothing in
+		// the process had defined that function yet — an accident of file
+		// ordering, not a property this test asserts. Pin it to the same locale
+		// the fallback produced, so the behaviour under test is chosen.
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
