@@ -17,6 +17,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Um agendamento era criado mas reportado como falha** (#1058): `$appointment['id']` chega do `$wpdb` como string e `AppointmentReceiptHandler::get_receipt_url()` declara `int` sob `strict_types` — o `TypeError` fatalava no e-mail de confirmação, *depois* do commit da reserva, e o visitante recebia HTTP 500 para um agendamento que existia. O `catch` do handler passou a `\Throwable` e o bloco pós-commit foi isolado por etapa: uma reserva commitada nunca mais é reportada como falha.
+- **Toda linha de activity log de agendamento criado era perdida** (#1058): `on_appointment_created()` passava o id do agendamento no 4º argumento de `ActivityLog::log()`, que é `$user_id` — com `fk_ffc_activity_log_user` ativa o MySQL rejeitava o insert.
+
 - **O captcha se atrapalhava com dois formulários na mesma página** (#1056): o refresh do agendamento reescrevia a pergunta em *todos* os formulários mas, casando por id, trocava o token só do primeiro — o segundo passava a exibir uma pergunta que seu token não respondia. Agora é escopado ao formulário e casa por `name`. Os ids do captcha passam a ser únicos por render, corrigindo também a associação `<label for>` para leitores de tela.
 
 ## [6.22.0] (2026-09-04) — `aa5ba5b`
