@@ -95,7 +95,13 @@ class CompositeCaptcha implements CaptchaProviderInterface {
 	 * @return true|string
 	 */
 	public function verify( array $request ) {
-		return $this->half_for( $request )->verify( $request );
+		$half = $this->half_for( $request );
+
+		if ( $half instanceof MathCaptcha ) {
+			self::log_fallback();
+		}
+
+		return $half->verify( $request );
 	}
 
 	/**
@@ -119,6 +125,49 @@ class CompositeCaptcha implements CaptchaProviderInterface {
 	 */
 	public function challenge_payload(): array {
 		return $this->altcha->challenge_payload();
+	}
+
+	/**
+	 * Pick the half that matches the proof in the request.
+	 *
+	 * Absent an ALTCHA solution the math half answers, which also produces
+	 * the right message for an empty submission: "please answer the security
+	 * question" is actionable for a no-JavaScript visitor, while a visitor
+	 * whose widget failed to load gets that from the widget itself.
+	 *
+	 * @param array<string, mixed> $request Request data.
+	 * @return CaptchaProviderInterface
+	 */
+	/**
+	 * Record that a submission arrived without a proof of work.
+	 *
+	 * This mode's whole justification is reach, so an operator deciding
+	 * whether to move to ALTCHA-only needs to know whether anyone is actually
+	 * using the fallback — the alternative is switching and finding out from
+	 * the people who can no longer submit.
+	 *
+	 * The address is hashed and truncated, never stored raw: an activity-log
+	 * row is exportable, and a visitor IP is personal data under the LGPD.
+	 * Sixteen hex characters are enough to tell two visitors apart within a
+	 * retention window without being an identifier on their own.
+	 *
+	 * @return void
+	 */
+	private static function log_fallback(): void {
+		if ( ! class_exists( '\\FreeFormCertificate\\Core\\ActivityLog' ) ) {
+			return;
+		}
+
+		$ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
+
+		\FreeFormCertificate\Core\ActivityLog::log(
+			'captcha_fallback_used',
+			\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+			array(
+				'provider' => MathCaptcha::ID,
+				'ip_hash'  => '' === $ip ? '' : substr( hash( 'sha256', $ip ), 0, 16 ),
+			)
+		);
 	}
 
 	/**

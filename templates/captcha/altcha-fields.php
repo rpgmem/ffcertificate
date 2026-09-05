@@ -28,9 +28,10 @@
  * registers the plugin's own strings there, which is what keeps the 52 KB
  * upstream i18n bundle out of the page.
  *
- * @var string $ffc_altcha_challenge_url Endpoint that issues challenges.
- * @var string $ffc_altcha_configuration Widget configuration, JSON.
- * @var string $ffc_altcha_language      Language key registered in the i18n store.
+ * @var string               $ffc_altcha_challenge_url Endpoint that issues challenges.
+ * @var array<string, string> $ffc_altcha_attributes    The four configurable attributes.
+ * @var string               $ffc_altcha_configuration Widget configuration, JSON.
+ * @var string               $ffc_altcha_language      Language key registered in the i18n store.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -43,8 +44,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 		challenge="<?php echo esc_url( $ffc_altcha_challenge_url ); ?>"
 		configuration="<?php echo esc_attr( $ffc_altcha_configuration ); ?>"
 		language="<?php echo esc_attr( $ffc_altcha_language ); ?>"
-		type="checkbox"
-		auto="off"
+		type="<?php echo esc_attr( $ffc_altcha_attributes['type'] ); ?>"
+		auto="<?php echo esc_attr( $ffc_altcha_attributes['auto'] ); ?>"
+		display="<?php echo esc_attr( $ffc_altcha_attributes['display'] ); ?>"
+		<?php if ( '' !== $ffc_altcha_attributes['theme'] ) : ?>
+			<?php // Omitted when empty, which leaves the widget following the visitor's own system preference. ?>
+			theme="<?php echo esc_attr( $ffc_altcha_attributes['theme'] ); ?>"
+		<?php endif; ?>
 	></altcha-widget>
 	<noscript>
 		<p class="ffc-altcha-noscript">

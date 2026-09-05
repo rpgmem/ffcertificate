@@ -690,3 +690,31 @@
     transition: opacity 0.15s ease;
 }
 
+/* ── Captcha settings: mode chooser (#1053) ─────────────────────────
+   Each mode carries a consequence rather than a preference, so the note
+   sits with its option instead of in a paragraph above the group. */
+.ffc-captcha-mode {
+    margin: 0 0 18px;
+    max-width: 46em;
+}
+
+.ffc-captcha-mode-summary,
+.ffc-captcha-mode-note {
+    display: block;
+    /* Indented under the radio so the note reads as belonging to its option. */
+    margin-left: 24px;
+}
+
+.ffc-captcha-mode-note {
+    margin-top: 4px;
+    padding-left: 10px;
+    border-left: 3px solid transparent;
+}
+
+.ffc-captcha-mode-note--warning {
+    border-left-color: #dba617;
+}
+
+.ffc-captcha-mode-note--info {
+    border-left-color: #72aee6;
+}

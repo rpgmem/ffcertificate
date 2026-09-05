@@ -68,21 +68,11 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 	public const ALGORITHM = 'SHA-256';
 
 	/**
-	 * Seconds an issued challenge stays valid.
+	 * Fallback work factor, used only where no settings read is possible.
 	 *
-	 * Matches the math challenge so both strategies age the same way.
-	 *
-	 * @var int
-	 */
-	public const CHALLENGE_TTL = 600;
-
-	/**
-	 * Upper bound of the secret number, i.e. the work factor.
-	 *
-	 * Expected work is half this many hashes. 200k lands well under a second
-	 * on a phone across the widget's worker pool, while still costing an
-	 * attacker real CPU per attempt. PR4 makes this configurable behind a
-	 * guardrail; until then it is the only value in play.
+	 * The live value comes from {@see CaptchaSettings::complexity()}, which
+	 * bounds whatever the option holds — a work factor is the one setting
+	 * here that can make a public form unusable when it is wrong.
 	 *
 	 * @var int
 	 */
@@ -113,8 +103,10 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 	 * @return array<string, mixed> Challenge in ALTCHA's v1 wire format.
 	 */
 	public static function create_challenge(): array {
-		$expires = time() + self::CHALLENGE_TTL;
-		$secret  = random_int( 0, self::COMPLEXITY );
+		$complexity = CaptchaSettings::complexity();
+
+		$expires = time() + CaptchaSettings::ttl();
+		$secret  = random_int( 0, $complexity );
 		$salt    = bin2hex( random_bytes( 12 ) ) . '?expires=' . $expires;
 		$hash    = hash( 'sha256', $salt . $secret );
 
@@ -124,7 +116,7 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 			// Ignored by the 3.x widget, which counts up without a ceiling.
 			// Kept because it is part of the published format and other
 			// ALTCHA clients still read it.
-			'maxnumber' => self::COMPLEXITY,
+			'maxnumber' => $complexity,
 			'salt'      => $salt,
 			'signature' => ChallengeSigner::sign( $hash ),
 		);
@@ -144,23 +136,13 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 		/*
 		 * Only nine attributes exist on the 3.x element — auto, challenge,
 		 * configuration, display, language, name, theme, type, workers — so
-		 * everything else travels as JSON in `configuration`. Two settings
-		 * there are deliberate rather than cosmetic:
-		 *
-		 * `humanInteractionSignature` defaults to TRUE and collects pointer
-		 * and keyboard timings. This plugin serves public-sector forms under
-		 * the LGPD, and the proof-of-work already carries the anti-automation
-		 * load, so the extra behavioural signal is not worth its privacy cost.
-		 *
-		 * `setCookie` stays null: a captcha that sets a cookie changes what
-		 * the site has to disclose, for a convenience nobody asked for.
+		 * everything an administrator can set is split accordingly:
+		 * `CaptchaSettings::widget_attributes()` returns the four that ARE
+		 * attributes, and `widget_configuration()` the rest, as JSON. Written
+		 * the other way round they are ignored in silence.
 		 */
-		$ffc_altcha_configuration = (string) \wp_json_encode(
-			array(
-				'humanInteractionSignature' => false,
-				'setCookie'                 => null,
-			)
-		);
+		$ffc_altcha_attributes    = CaptchaSettings::widget_attributes();
+		$ffc_altcha_configuration = (string) \wp_json_encode( CaptchaSettings::widget_configuration() );
 
 		// Selects the entry `assets/js/ffc-captcha.js` registers in the
 		// widget's i18n store. Lowercased with a hyphen because that is the
