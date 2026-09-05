@@ -162,18 +162,10 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 			)
 		);
 
-		$ffc_altcha_strings = (string) \wp_json_encode(
-			array(
-				'label'         => \__( 'I am not a robot', 'ffcertificate' ),
-				'verifying'     => \__( 'Verifying…', 'ffcertificate' ),
-				'verified'      => \__( 'Verified', 'ffcertificate' ),
-				'expired'       => \__( 'Verification expired. Try again.', 'ffcertificate' ),
-				'error'         => \__( 'Verification failed. Try again.', 'ffcertificate' ),
-				'waitAlert'     => \__( 'Verification in progress — please wait.', 'ffcertificate' ),
-				'footer'        => '',
-				'ariaLinkLabel' => \__( 'Visit Altcha.org', 'ffcertificate' ),
-			)
-		);
+		// Selects the entry `assets/js/ffc-captcha.js` registers in the
+		// widget's i18n store. Lowercased with a hyphen because that is the
+		// shape the widget's own lookup normalises to.
+		$ffc_altcha_language = strtolower( str_replace( '_', '-', \get_locale() ) );
 
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/captcha/altcha-fields.php';
@@ -284,6 +276,7 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 			return null;
 		}
 
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- decoding the widget's own base64 solution payload, which ALTCHA's wire format defines; strict mode on, and the result is shape-checked below before any of it is used.
 		$json = base64_decode( $raw, true );
 		if ( false === $json ) {
 			return null;
