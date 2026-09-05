@@ -49,6 +49,13 @@ class PublicCsvDownloadTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
+		// Captcha challenges are signed + single-use since 6.23.0.
+		Functions\when( 'wp_salt' )->alias( function ( string $scheme = 'auth' ): string {
+			return 'test-salt-' . $scheme;
+		} );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+
 		$this->meta_store   = array();
 		$this->meta_updates = array();
 
@@ -209,7 +216,7 @@ class PublicCsvDownloadTest extends TestCase {
 			'hash'              => $cfg['posted_hash'],
 			'ffc_honeypot_trap' => '',
 			'ffc_captcha_ans'   => '6',
-			'ffc_captcha_hash'  => 'captcha_hash',
+			'ffc_captcha_hash'  => self::issueCaptchaToken( '6' ),
 		);
 	}
 
@@ -683,6 +690,22 @@ class PublicCsvDownloadTest extends TestCase {
 		} );
 
 		$this->assertArrayNotHasKey( '42:_ffc_csv_public_count', $this->meta_updates );
+	}
+
+	/**
+	 * Mint a real challenge token.
+	 *
+	 * Since 6.23.0 the token is signed and expiring, so a test cannot spell
+	 * one out; it is minted through the service instead.
+	 *
+	 * @param string $answer Answer the request will post.
+	 * @return string Token for the `ffc_captcha_hash` field.
+	 */
+	private static function issueCaptchaToken( string $answer ): string {
+		$method = new \ReflectionMethod( \FreeFormCertificate\Core\SecurityService::class, 'issue_token' );
+		$method->setAccessible( true );
+
+		return (string) $method->invoke( null, $answer, time() + 600 );
 	}
 
 	// ==================================================================

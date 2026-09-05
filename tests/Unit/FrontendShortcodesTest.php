@@ -158,8 +158,11 @@ class FrontendShortcodesTest extends TestCase {
 		$this->assertArrayHasKey( 'answer', $captcha );
 		$this->assertIsInt( $captcha['answer'] );
 		$this->assertGreaterThanOrEqual( 0, $captcha['answer'] );
-		$this->assertSame(
-			hash( 'sha256', $captcha['answer'] . 'ffc_math_salt' ),
+
+		// Since 6.23.0 the token is `<expires>.<nonce>.<signature>` rather than
+		// a digest of the answer, so it expires and can only be redeemed once.
+		$this->assertMatchesRegularExpression(
+			'/^\d+\.[0-9a-f]{16}\.[0-9a-f]{64}$/',
 			$captcha['hash']
 		);
 	}
@@ -170,7 +173,6 @@ class FrontendShortcodesTest extends TestCase {
 
 	public function test_generate_security_fields_contains_honeypot_and_captcha(): void {
 		Functions\when( 'wp_rand' )->justReturn( 3 );
-		Functions\when( 'wp_hash' )->justReturn( 'testhash123' );
 
 		$html = $this->shortcodes->generate_security_fields();
 
@@ -178,7 +180,12 @@ class FrontendShortcodesTest extends TestCase {
 		$this->assertStringContainsString( 'ffc_honeypot_trap', $html );
 		$this->assertStringContainsString( 'ffc_captcha_ans', $html );
 		$this->assertStringContainsString( 'ffc_captcha_hash', $html );
-		$this->assertStringContainsString( 'testhash123', $html );
+
+		// The hidden field carries the signed, expiring token (6.23.0).
+		$this->assertMatchesRegularExpression(
+			'/name="ffc_captcha_hash" value="\d+\.[0-9a-f]{16}\.[0-9a-f]{64}"/',
+			$html
+		);
 
 		// #951 a11y: the honeypot input must be wrapped by its <label> so it
 		// carries an accessible name. Off-screen (not display:none), the field

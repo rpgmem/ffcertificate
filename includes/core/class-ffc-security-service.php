@@ -25,6 +25,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SecurityService {
 
 	/**
+	 * How long an issued challenge stays valid, in seconds.
+	 *
+	 * @var int
+	 */
+	public const CHALLENGE_TTL = 600;
+
+	/**
 	 * Generate a math captcha with random operator and mixed display.
 	 *
 	 * Operands are randomly shown as digits or translatable words, and
@@ -42,10 +49,12 @@ class SecurityService {
 		$display2   = \wp_rand( 0, 1 ) ? self::number_to_word( $n2 ) : (string) $n2;
 		$display_op = \wp_rand( 0, 1 ) ? self::operator_to_word( $operator_symbol ) : $operator_symbol;
 
+		$expires = time() + self::CHALLENGE_TTL;
+
 		return array(
 			/* translators: 1: first operand (digit or word), 2: operator (symbol or word), 3: second operand (digit or word) */
 			'label'  => sprintf( \esc_html__( 'Security: How much is %1$s %2$s %3$s?', 'ffcertificate' ), $display1, $display_op, $display2 ),
-			'hash'   => \wp_hash( $answer . 'ffc_math_salt' ),
+			'hash'   => self::issue_token( (string) $answer, $expires ),
 			'answer' => $answer,
 		);
 	}
@@ -118,21 +127,84 @@ class SecurityService {
 	}
 
 	/**
-	 * Verify simple captcha answer
+	 * Build the token handed to the client alongside a challenge.
+	 *
+	 * Shape: `<expires>.<nonce>.<signature>`. It travels in the single existing
+	 * `ffc_captcha_hash` field, so renderers and the JS refresh path need no
+	 * change — the expiry rides inside the value instead of in a new input
+	 * that four render sites and three scripts would have to learn about.
+	 *
+	 * @param string $answer  Expected answer.
+	 * @param int    $expires Unix UTC timestamp the challenge dies at.
+	 * @return string Opaque token.
+	 */
+	private static function issue_token( string $answer, int $expires ): string {
+		// The nonce is what makes every issued challenge distinct. Without it
+		// two visitors drawing the same answer in the same second would share
+		// a token, and the first to submit would burn the other's challenge.
+		$nonce = bin2hex( random_bytes( 8 ) );
+
+		return $expires . '.' . $nonce . '.' . Captcha\ChallengeSigner::sign( self::payload( $answer, $expires, $nonce ) );
+	}
+
+	/**
+	 * Canonical string a challenge signature covers.
+	 *
+	 * @param string $answer  Expected answer.
+	 * @param int    $expires Unix UTC timestamp the challenge dies at.
+	 * @param string $nonce   Per-challenge random value.
+	 * @return string Canonical payload.
+	 */
+	private static function payload( string $answer, int $expires, string $nonce ): string {
+		return 'math|' . $answer . '|' . $expires . '|' . $nonce;
+	}
+
+	/**
+	 * Verify a captcha answer against the token issued with it.
+	 *
+	 * Before 6.23.0 the token was `wp_hash( $answer . $fixed_salt )`, which
+	 * derived from the answer alone: it carried no expiry, was bound to no
+	 * request, and was never spent. One captured pair therefore authenticated
+	 * every later submission, on any form, indefinitely — and with 46 possible
+	 * answers the pair did not even need capturing. Three properties close
+	 * that: the token is signed with a site-derived key, it carries an expiry
+	 * inside the signed payload, and redeeming it burns it.
 	 *
 	 * @param string $answer User's answer.
-	 * @param string $hash Expected hash.
+	 * @param string $hash   Token issued with the challenge.
 	 * @return bool True if correct, false otherwise
 	 */
 	public static function verify_simple_captcha( string $answer, string $hash ): bool {
 		// Note: '' === trim() handles both empty and whitespace-only, and — unlike empty() —
 		// does not reject a valid answer of "0" (which can happen for n - n subtraction).
-		if ( '' === trim( $answer ) || '' === $hash ) {
+		$answer = trim( $answer );
+		if ( '' === $answer || '' === $hash ) {
 			return false;
 		}
 
-		$check_hash = \wp_hash( trim( $answer ) . 'ffc_math_salt' );
-		return hash_equals( $hash, $check_hash );
+		$parts = explode( '.', $hash );
+		if ( 3 !== count( $parts )
+			|| 1 !== preg_match( '/^\d+$/', $parts[0] )
+			|| 1 !== preg_match( '/^[0-9a-f]{16}$/', $parts[1] )
+		) {
+			return false;
+		}
+
+		$expires   = (int) $parts[0];
+		$nonce     = $parts[1];
+		$signature = $parts[2];
+
+		if ( $expires <= time() ) {
+			return false;
+		}
+
+		if ( ! Captcha\ChallengeSigner::matches( self::payload( $answer, $expires, $nonce ), $signature ) ) {
+			return false;
+		}
+
+		// Burn the token last: an unauthentic or expired proof must not be
+		// able to evict a legitimate one from the ledger.
+		return Captcha\ChallengeStore::redeem( $signature, $expires - time() );
 	}
 
 	/**
@@ -159,5 +231,35 @@ class SecurityService {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Attach a freshly issued challenge to an error payload.
+	 *
+	 * Since 6.23.0 a redeemed challenge is spent, so any rejection raised
+	 * *after* the security-fields gate leaves the client holding a token that
+	 * will never verify again. Without a replacement the visitor's next
+	 * attempt fails on the captcha rather than on whatever actually rejected
+	 * them — a wrong and unactionable message. Every error response on a
+	 * surface that gates on the captcha therefore routes through here.
+	 *
+	 * A payload that already carries a challenge (the security-fields gate
+	 * mints its own) is returned untouched.
+	 *
+	 * @param array<string, mixed> $payload Error payload for wp_send_json_error().
+	 * @return array<string, mixed> Payload with a usable challenge attached.
+	 */
+	public static function with_fresh_challenge( array $payload ): array {
+		if ( ! empty( $payload['refresh_captcha'] ) ) {
+			return $payload;
+		}
+
+		$captcha = self::generate_simple_captcha();
+
+		$payload['refresh_captcha'] = true;
+		$payload['new_label']       = $captcha['label'];
+		$payload['new_hash']        = $captcha['hash'];
+
+		return $payload;
 	}
 }

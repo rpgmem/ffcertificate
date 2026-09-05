@@ -123,7 +123,8 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		$this->rate_limiter->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
 
 		// SecurityService — honeypot/captcha passes by default.
-		$this->security = Mockery::mock( 'alias:FreeFormCertificate\Core\SecurityService' );
+		$this->security = Mockery::mock( 'alias:FreeFormCertificate\Core\SecurityService' )
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array { return $p; } );
 		$this->security->shouldReceive( 'validate_security_fields' )->andReturn( true )->byDefault();
 	}
 

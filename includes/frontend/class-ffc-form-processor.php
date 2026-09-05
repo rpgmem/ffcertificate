@@ -77,7 +77,13 @@ class FormProcessor {
 			( new Submission\PdfStage( $this->submission_handler ) )->apply( $ctx );
 			( new Submission\SuccessResponder( $this->submission_handler ) )->apply( $ctx );
 		} catch ( Submission\SubmissionRejected $rejected ) {
-			wp_send_json_error( $rejected->get_payload() );
+			// Every rejection carries a usable challenge: SecurityFieldsGuard
+			// redeems (and thereby spends) the one the client submitted, so a
+			// later guard's rejection would otherwise leave the visitor unable
+			// to retry. See SecurityService::with_fresh_challenge().
+			wp_send_json_error(
+				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge( $rejected->get_payload() )
+			);
 		}
 
 		wp_send_json_success( $ctx->response );

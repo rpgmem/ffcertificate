@@ -60,7 +60,8 @@ class FormProcessorGeofenceBeforeRateLimitTest extends TestCase {
 
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 
-		$security_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' );
+		$security_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' )
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array { return $p; } );
 		$security_mock->shouldReceive( 'validate_security_fields' )->andReturn( true )->byDefault();
 
 		// Geofence: rejects.

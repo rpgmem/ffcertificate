@@ -637,20 +637,44 @@ class UtilsTest extends TestCase {
 	// verify_simple_captcha() — Group B (WordPress mock)
 	// ==================================================================
 
-	public function test_verify_captcha_correct_answer(): void {
-		Functions\when( 'wp_hash' )->alias( function( $data ) {
-			return md5( $data );
+	/**
+	 * Stub the challenge-signing key and an in-memory redemption ledger.
+	 *
+	 * Since 6.23.0 a challenge is HMAC'd with a key derived from wp_salt()
+	 * and can be redeemed once, so a round trip needs both.
+	 */
+	private function stubChallengeInfrastructure(): void {
+		Functions\when( 'wp_salt' )->alias( function ( string $scheme = 'auth' ): string {
+			return 'test-salt-' . $scheme;
 		} );
-		$hash = md5( '5ffc_math_salt' );
-		$this->assertTrue( SecurityService::verify_simple_captcha( '5', $hash ) );
+
+		$store = new \ArrayObject();
+		Functions\when( 'get_transient' )->alias( function ( string $key ) use ( $store ) {
+			return $store->offsetExists( $key ) ? $store->offsetGet( $key ) : false;
+		} );
+		Functions\when( 'set_transient' )->alias( function ( string $key, $value ) use ( $store ): bool {
+			$store->offsetSet( $key, $value );
+			return true;
+		} );
+	}
+
+	private function issueCaptcha(): array {
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'wp_rand' )->alias( function ( int $min = 0, int $max = 0 ) { return random_int( $min, $max ); } );
+		$this->stubChallengeInfrastructure();
+
+		return SecurityService::generate_simple_captcha();
+	}
+
+	public function test_verify_captcha_correct_answer(): void {
+		$captcha = $this->issueCaptcha();
+		$this->assertTrue( SecurityService::verify_simple_captcha( (string) $captcha['answer'], $captcha['hash'] ) );
 	}
 
 	public function test_verify_captcha_wrong_answer(): void {
-		Functions\when( 'wp_hash' )->alias( function( $data ) {
-			return md5( $data );
-		} );
-		$hash = md5( '5ffc_math_salt' );
-		$this->assertFalse( SecurityService::verify_simple_captcha( '99', $hash ) );
+		$captcha = $this->issueCaptcha();
+		$this->assertFalse( SecurityService::verify_simple_captcha( (string) ( $captcha['answer'] + 1 ), $captcha['hash'] ) );
 	}
 
 	public function test_verify_captcha_empty_answer(): void {
@@ -662,11 +686,40 @@ class UtilsTest extends TestCase {
 	}
 
 	public function test_verify_captcha_trims_answer(): void {
-		Functions\when( 'wp_hash' )->alias( function( $data ) {
-			return md5( $data );
-		} );
-		$hash = md5( '5ffc_math_salt' );
-		$this->assertTrue( SecurityService::verify_simple_captcha( ' 5 ', $hash ) );
+		$captcha = $this->issueCaptcha();
+		$this->assertTrue( SecurityService::verify_simple_captcha( '  ' . $captcha['answer'] . '  ', $captcha['hash'] ) );
+	}
+
+	public function test_verify_captcha_rejects_a_replayed_token(): void {
+		// The 6.23.0 regression guard: before it, a captured (answer, token)
+		// pair verified indefinitely.
+		$captcha = $this->issueCaptcha();
+		$answer  = (string) $captcha['answer'];
+
+		$this->assertTrue( SecurityService::verify_simple_captcha( $answer, $captcha['hash'] ) );
+		$this->assertFalse( SecurityService::verify_simple_captcha( $answer, $captcha['hash'] ) );
+	}
+
+	public function test_verify_captcha_rejects_a_legacy_answer_only_digest(): void {
+		Functions\when( 'wp_hash' )->alias( function ( $data ) { return md5( $data ); } );
+		$this->stubChallengeInfrastructure();
+
+		$this->assertFalse( SecurityService::verify_simple_captcha( '5', md5( '5ffc_math_salt' ) ) );
+	}
+
+	public function test_verify_captcha_rejects_an_expired_token(): void {
+		$this->stubChallengeInfrastructure();
+
+		$expired = ( time() - 1 ) . '.' . str_repeat( 'a', 16 ) . '.' . str_repeat( 'b', 64 );
+		$this->assertFalse( SecurityService::verify_simple_captcha( '5', $expired ) );
+	}
+
+	public function test_verify_captcha_rejects_a_malformed_token(): void {
+		$this->stubChallengeInfrastructure();
+
+		foreach ( array( 'nodots', '123.abc', '.' . str_repeat( 'a', 16 ) . '.x', 'abc.def.ghi' ) as $bad ) {
+			$this->assertFalse( SecurityService::verify_simple_captcha( '5', $bad ), "should reject: {$bad}" );
+		}
 	}
 
 	// ==================================================================
@@ -690,13 +743,10 @@ class UtilsTest extends TestCase {
 	}
 
 	public function test_security_fields_wrong_captcha(): void {
-		Functions\when( '__' )->returnArg();
-		Functions\when( 'wp_hash' )->alias( function( $data ) {
-			return md5( $data );
-		} );
+		$captcha = $this->issueCaptcha();
 		$data = array(
-			'ffc_captcha_ans'  => '99',
-			'ffc_captcha_hash' => md5( '5ffc_math_salt' ),
+			'ffc_captcha_ans'  => (string) ( $captcha['answer'] + 1 ),
+			'ffc_captcha_hash' => $captcha['hash'],
 		);
 		$result = SecurityService::validate_security_fields( $data );
 		$this->assertIsString( $result );
@@ -704,16 +754,32 @@ class UtilsTest extends TestCase {
 	}
 
 	public function test_security_fields_valid(): void {
-		Functions\when( '__' )->returnArg();
-		Functions\when( 'wp_hash' )->alias( function( $data ) {
-			return md5( $data );
-		} );
-		$hash = md5( '5ffc_math_salt' );
+		$captcha = $this->issueCaptcha();
 		$data = array(
-			'ffc_captcha_ans'  => '5',
-			'ffc_captcha_hash' => $hash,
+			'ffc_captcha_ans'  => (string) $captcha['answer'],
+			'ffc_captcha_hash' => $captcha['hash'],
 		);
 		$this->assertTrue( SecurityService::validate_security_fields( $data ) );
+	}
+
+	public function test_with_fresh_challenge_attaches_a_usable_token(): void {
+		$this->issueCaptcha();
+
+		$payload = SecurityService::with_fresh_challenge( array( 'message' => 'rate limited' ) );
+
+		$this->assertSame( 'rate limited', $payload['message'] );
+		$this->assertTrue( $payload['refresh_captcha'] );
+		$this->assertMatchesRegularExpression( '/^\d+\.[0-9a-f]{16}\.[0-9a-f]{64}$/', $payload['new_hash'] );
+	}
+
+	public function test_with_fresh_challenge_leaves_an_existing_one_alone(): void {
+		$this->issueCaptcha();
+
+		$payload = SecurityService::with_fresh_challenge(
+			array( 'message' => 'bad captcha', 'refresh_captcha' => true, 'new_hash' => 'already-there' )
+		);
+
+		$this->assertSame( 'already-there', $payload['new_hash'] );
 	}
 
 	// ==================================================================
@@ -721,6 +787,7 @@ class UtilsTest extends TestCase {
 	// ==================================================================
 
 	public function test_generate_captcha_structure(): void {
+		$this->stubChallengeInfrastructure();
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'wp_rand' )->alias( function ( int $min = 0, int $max = 0 ) { return random_int( $min, $max ); } );
 		Functions\when( 'esc_html__' )->returnArg();
