@@ -11,6 +11,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **O captcha matemático era contornável por replay** (#1053): o token derivava apenas da resposta, sem expiração nem uso único, então um par `(resposta, token)` capturado uma vez autenticava qualquer envio posterior, em qualquer formulário. Agora é assinado com chave derivada do site, expira em 10 minutos e é consumido no resgate.
 
+### Added
+
+- **Captcha ALTCHA, proof-of-work, servido inteiramente pelo próprio site** (#1053): o desafio sai de um endpoint do plugin (`ffc_altcha_challenge`), o trabalho acontece no navegador do visitante e a verificação é PHP puro — nenhuma requisição sai do servidor. Widget MIT vendorizado em `libs/js/`, sem CDN. Três modos: só matemático (padrão, inalterado no upgrade), só ALTCHA, e ALTCHA com o matemático em `<noscript>`. A tela de configuração chega na sequência; até lá o padrão é o único valor em jogo.
+
 ### Changed
 
 - Internal (#1053) — o endpoint de fragmentos de página em cache passa a servir o desafio do provider configurado, via `CaptchaProvider::resolve()->challenge_payload()`, em vez de chamar o captcha matemático direto; o cliente despacha pelo campo `provider` do payload e ignora o que não reconhece, em vez de aplicar meio payload. É o quinto site de refresh, que a unificação do contrato não havia alcançado.

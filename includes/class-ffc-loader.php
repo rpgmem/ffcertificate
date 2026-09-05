@@ -252,6 +252,12 @@ class Loader {
 		// is_admin(): the update scan runs in cron, outside the admin context.
 		\FreeFormCertificate\Integrations\GithubUpdater::init();
 
+		// Challenge endpoint for the ALTCHA strategy. Registered
+		// unconditionally: the strategy can be switched at any moment, and a
+		// handler that only exists while its provider is selected leaves the
+		// widget on an already-rendered page fetching a 400.
+		\FreeFormCertificate\Core\Captcha\AltchaChallengeEndpoint::init();
+
 		DashboardShortcode::init();
 		// Reregistration module — single bootstrap entry point (#563 B3).
 		// Toggleable via the Modules tab (default on).

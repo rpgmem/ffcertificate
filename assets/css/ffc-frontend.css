@@ -443,6 +443,34 @@ details.ffc-consent-description > p {
 
 /* .ffc-honeypot-field defined in ffc-common.css */
 
+/*
+ * ALTCHA widget row.
+ *
+ * Shares the math row's framing so the two strategies read as the same block
+ * — a visitor switching between them should not see the form change shape.
+ * The widget itself renders in a shadow root, so only the surround is styled
+ * from here; its internals are addressed by the `theme` attribute instead.
+ */
+.ffc-shortcode .ffc-altcha-row {
+    margin-bottom: 20px;
+    padding: 20px;
+    background: var(--ffc-primary-light);
+    border: 2px solid var(--ffc-primary);
+    border-radius: var(--ffc-radius-lg);
+    box-shadow: 0 2px 8px var(--ffc-focus-ring);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* The widget's own fallback text when JavaScript is off, and the message the
+   glue script writes when the widget reports an error. */
+.ffc-shortcode .ffc-altcha-noscript,
+.ffc-shortcode .ffc-altcha-error {
+    margin: 10px 0 0;
+    color: var(--ffc-danger, #b32d2e);
+    font-weight: 600;
+}
+
 .ffc-shortcode .ffc-captcha-row {
     margin-bottom: 20px;
     padding: 20px; /* ← Padding confortável */

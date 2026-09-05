@@ -29,8 +29,9 @@ class CaptchaProvider {
 	 * Settings key naming the active strategy.
 	 *
 	 * Not declared in `Settings::get_default_settings()` yet — the admin
-	 * surface arrives with the ALTCHA provider. Until then the default below
-	 * is the only value in play, which is why this reads as a no-op today.
+	 * surface arrives in the next step. Until then the default below is the
+	 * only value in play, so an existing install keeps the math challenge on
+	 * upgrade without anything being written.
 	 *
 	 * @var string
 	 */
@@ -78,7 +79,7 @@ class CaptchaProvider {
 	 * @return array<int, string>
 	 */
 	public static function available(): array {
-		return array( MathCaptcha::ID );
+		return array( MathCaptcha::ID, AltchaCaptcha::ID, CompositeCaptcha::ID );
 	}
 
 	/**
@@ -101,9 +102,32 @@ class CaptchaProvider {
 	 */
 	private static function make( string $id ): CaptchaProviderInterface {
 		if ( ! isset( self::$instances[ $id ] ) ) {
-			self::$instances[ $id ] = new MathCaptcha();
+			switch ( $id ) {
+				case AltchaCaptcha::ID:
+					self::$instances[ $id ] = new AltchaCaptcha();
+					break;
+				case CompositeCaptcha::ID:
+					self::$instances[ $id ] = new CompositeCaptcha();
+					break;
+				default:
+					self::$instances[ $id ] = new MathCaptcha();
+			}
 		}
 
 		return self::$instances[ $id ];
+	}
+
+	/**
+	 * Whether the configured strategy needs the ALTCHA widget on the page.
+	 *
+	 * Asked by the enqueue site, so a site on the math challenge never ships
+	 * 111 KB it cannot use.
+	 *
+	 * @return bool
+	 */
+	public static function needs_altcha_widget(): bool {
+		$id = self::resolve()->id();
+
+		return AltchaCaptcha::ID === $id || CompositeCaptcha::ID === $id;
 	}
 }

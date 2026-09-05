@@ -187,6 +187,16 @@ final class AjaxWiringTest extends TestCase {
 		return self::$code_cache[ $path ];
 	}
 
+	/**
+	 * Action name => `Class::CONSTANT`, for actions registered through one.
+	 *
+	 * Filled by {@see registered_ajax_actions()}, which is what parses the
+	 * registration in the first place.
+	 *
+	 * @var array<string, string>
+	 */
+	private static array $constant_aliases = array();
+
 	// ------------------------------------------------------------- collectors
 
 	/**
@@ -201,7 +211,16 @@ final class AjaxWiringTest extends TestCase {
 			$code = self::code_of( $path );
 
 			// Idiom 1 — literal: add_action( 'wp_ajax_ffc_x', … ).
-			if ( preg_match_all( "/add_action\(\s*'wp_ajax_(?:nopriv_)?([a-z0-9_]+)'/", $code, $matches ) ) {
+			//
+			// The prefix quantifier is possessive on purpose. Greedy, against
+			// the endpoint-class form `'wp_ajax_nopriv_' . self::ACTION` the
+			// engine gives `nopriv_` back, captures it as the action name and
+			// registers a handler called `nopriv_` that nothing can ever call.
+			// (An atomic group is not enough here: it forbids backtracking
+			// *inside* the group, while the `?` may still discard it whole.)
+			// Possessive, the capture fails and idiom 2 below takes the line —
+			// which is what it is for.
+			if ( preg_match_all( "/add_action\(\s*'wp_ajax_(?:nopriv_)?+([a-z0-9_]+)'/", $code, $matches ) ) {
 				foreach ( $matches[1] as $action ) {
 					$actions[ $action ] = $path;
 				}
@@ -214,6 +233,15 @@ final class AjaxWiringTest extends TestCase {
 				foreach ( $matches[1] as $constant ) {
 					if ( preg_match( "/const\s+" . preg_quote( $constant, '/' ) . "\s*=\s*'([a-z0-9_]+)'/", $code, $value ) ) {
 						$actions[ $value[1] ] = $path;
+
+						// An endpoint class that holds its action in a constant
+						// is normally called through that constant, never
+						// through the literal — so direction A has to look for
+						// `TheClass::THE_CONST` as well, or every such handler
+						// reads as an orphan.
+						if ( preg_match( '/\bclass\s+([A-Za-z0-9_]+)/', $code, $class ) ) {
+							self::$constant_aliases[ $value[1] ] = $class[1] . '::' . $constant;
+						}
 					}
 				}
 			}
@@ -408,6 +436,10 @@ final class AjaxWiringTest extends TestCase {
 				continue;
 			}
 			if ( self::registrar_wires_a_client( $action, $registrar ) ) {
+				continue;
+			}
+			$alias = self::$constant_aliases[ $action ] ?? null;
+			if ( null !== $alias && array() !== self::files_mentioning( $alias, $registrar ) ) {
 				continue;
 			}
 			if ( array() === self::files_mentioning( $action, $registrar ) ) {
