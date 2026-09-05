@@ -114,18 +114,35 @@ describe('ffc-dynamic-fragments — applyFragments via XHR onload', () => {
 		MockXHR.lastInstance.deliver(response);
 	}
 
+	// The markup below mirrors `templates/captcha/math-fields.php`: the label
+	// and BOTH inputs live inside `.ffc-captcha-row`, itself inside the
+	// provider-independent `.ffc-security-container`. Earlier fixtures put the
+	// inputs outside the row, which no real render site does — and the script
+	// now scopes per security block, so an unfaithful fixture would test a
+	// DOM the plugin never emits.
+	// `answer` must be numeric: the real input is `type="number"`, and a
+	// non-numeric value reads back as '' — which would make every
+	// "blanks the answer" assertion below pass without proving anything.
+	function securityBlock(label, hash, answer) {
+		return `<div class="ffc-security-container">
+			<div class="ffc-captcha-row">
+				<span class="ffc-captcha-label-text">${label}</span>
+				<input type="number" name="ffc_captcha_ans" value="${answer}" />
+				<input type="hidden" name="ffc_captcha_hash" value="${hash}" />
+			</div>
+		</div>`;
+	}
+
 	it('updates the per-form captcha (label, hash, blanks the answer)', () => {
 		setupAndDeliver(
 			`<div class="ffc-form-wrapper" id="ffc-form-7">
-				<div class="ffc-captcha-row"><span class="ffc-captcha-label-text">old-label</span></div>
-				<input type="hidden" name="ffc_captcha_hash" value="old-hash" />
-				<input type="text" name="ffc_captcha_ans" value="123" />
+				${securityBlock('old-label', 'old-hash', '123')}
 			</div>`,
 			{
 				success: true,
 				data: {
 					captchas: {
-						'7': { label: 'new-label', hash: 'new-hash' },
+						'7': { provider: 'math', new_label: 'new-label', new_hash: 'new-hash' },
 					},
 				},
 			}
@@ -137,21 +154,81 @@ describe('ffc-dynamic-fragments — applyFragments via XHR onload', () => {
 
 	it('updates the default captcha when no per-form captchas matched', () => {
 		setupAndDeliver(
-			`<div class="ffc-form-container">
-				<div class="ffc-captcha-row"><span class="ffc-captcha-label-text">stale</span></div>
-				<input type="hidden" name="ffc_captcha_hash" value="stale-hash" />
-				<input type="text" name="ffc_captcha_ans" value="abc" />
-			</div>`,
+			`<div class="ffc-form-container">${securityBlock('stale', 'stale-hash', '9')}</div>`,
 			{
 				success: true,
 				data: {
-					captcha: { label: 'fresh', hash: 'fresh-hash' },
+					captcha: { provider: 'math', new_label: 'fresh', new_hash: 'fresh-hash' },
 				},
 			}
 		);
 		expect(document.querySelector('.ffc-captcha-label-text').textContent).toBe('fresh');
 		expect(document.querySelector('input[name="ffc_captcha_hash"]').value).toBe('fresh-hash');
 		expect(document.querySelector('input[name="ffc_captcha_ans"]').value).toBe('');
+	});
+
+	it('leaves a legacy security block — no .ffc-security-container — patched', () => {
+		// Cached HTML rendered before the wrapper existed. Cached pages are
+		// this endpoint's whole reason to exist, so the bare row is collected
+		// rather than skipped.
+		setupAndDeliver(
+			`<div class="ffc-form-container">
+				<div class="ffc-captcha-row">
+					<span class="ffc-captcha-label-text">stale</span>
+					<input type="number" name="ffc_captcha_ans" value="7" />
+					<input type="hidden" name="ffc_captcha_hash" value="stale-hash" />
+				</div>
+			</div>`,
+			{
+				success: true,
+				data: { captcha: { provider: 'math', new_label: 'fresh', new_hash: 'fresh-hash' } },
+			}
+		);
+		expect(document.querySelector('.ffc-captcha-label-text').textContent).toBe('fresh');
+		expect(document.querySelector('input[name="ffc_captcha_hash"]').value).toBe('fresh-hash');
+		expect(document.querySelector('input[name="ffc_captcha_ans"]').value).toBe('');
+	});
+
+	it('ignores a payload from an unrecognised provider', () => {
+		// A provider the cached script does not know about must be left
+		// alone: half-applying it would blank a challenge the visitor may
+		// already have solved, which is worse than not refreshing at all.
+		setupAndDeliver(
+			`<div class="ffc-form-container">${securityBlock('keep-me', 'keep-hash', '4')}</div>`,
+			{
+				success: true,
+				data: { captcha: { provider: 'altcha', challengeurl: '/challenge' } },
+			}
+		);
+		expect(document.querySelector('.ffc-captcha-label-text').textContent).toBe('keep-me');
+		expect(document.querySelector('input[name="ffc_captcha_hash"]').value).toBe('keep-hash');
+		expect(document.querySelector('input[name="ffc_captcha_ans"]').value).toBe('4');
+	});
+
+	it('gives each form on the page its own challenge', () => {
+		// The #1056 property, enforced at the fragment-refresh level: two
+		// forms must never end up sharing a token. Scoping per security block
+		// is what makes this hold — a document-wide query would write the
+		// same values into both.
+		setupAndDeliver(
+			`<div class="ffc-form-wrapper" id="ffc-form-7">${securityBlock('a-old', 'a-old-hash', '1')}</div>
+			 <div class="ffc-form-wrapper" id="ffc-form-8">${securityBlock('b-old', 'b-old-hash', '2')}</div>`,
+			{
+				success: true,
+				data: {
+					captchas: {
+						'7': { provider: 'math', new_label: 'a-new', new_hash: 'a-new-hash' },
+						'8': { provider: 'math', new_label: 'b-new', new_hash: 'b-new-hash' },
+					},
+				},
+			}
+		);
+		const labels = document.querySelectorAll('.ffc-captcha-label-text');
+		const hashes = document.querySelectorAll('input[name="ffc_captcha_hash"]');
+		expect(labels[0].textContent).toBe('a-new');
+		expect(labels[1].textContent).toBe('b-new');
+		expect(hashes[0].value).toBe('a-new-hash');
+		expect(hashes[1].value).toBe('b-new-hash');
 	});
 
 	it('refreshes ffcGeofenceConfig and triggers FFCGeofence.recheck()', () => {
@@ -175,7 +252,7 @@ describe('ffc-dynamic-fragments — applyFragments via XHR onload', () => {
 			`<div class="ffc-form-wrapper" id="ffc-form-9">
 				<div class="ffc-captcha-row"><span class="ffc-captcha-label-text">stale</span></div>
 			</div>`,
-			{ success: false, data: { captchas: { 9: { label: 'x', hash: 'y' } } } }
+			{ success: false, data: { captchas: { 9: { provider: 'math', new_label: 'x', new_hash: 'y' } } } }
 		);
 		expect(document.querySelector('.ffc-captcha-label-text').textContent).toBe('stale');
 	});
@@ -184,7 +261,7 @@ describe('ffc-dynamic-fragments — applyFragments via XHR onload', () => {
 		document.body.innerHTML = '<div class="ffc-form-wrapper" id="ffc-form-1"><div class="ffc-captcha-row"><span class="ffc-captcha-label-text">stale</span></div></div>';
 		window.ffcDynamic = { ajaxUrl: '/x' };
 		loadScript('assets/js/ffc-dynamic-fragments.js');
-		MockXHR.lastInstance.deliver({ success: true, data: { captcha: { label: 'fresh', hash: 'h' } } }, 500);
+		MockXHR.lastInstance.deliver({ success: true, data: { captcha: { provider: 'math', new_label: 'fresh', new_hash: 'h' } } }, 500);
 		expect(document.querySelector('.ffc-captcha-label-text').textContent).toBe('stale');
 	});
 
@@ -250,25 +327,17 @@ describe('ffc-dynamic-fragments — applyFragments via XHR onload', () => {
 		expect(email.getAttribute('readonly')).toBe('readonly');
 	});
 
-	it('default-captcha loop skips wrappers already handled by per-form captchas', () => {
-		// Both per-form (captchas[7]) and default (captcha) payloads, with the
-		// captcha fields living inside the handled wrapper. The default loop
-		// must `continue` over them, leaving the per-form values intact.
+	it('prefers a form\'s own payload over the default one', () => {
 		setupAndDeliver(
-			`<div class="ffc-form-wrapper" id="ffc-form-7">
-				<div class="ffc-captcha-row"><span class="ffc-captcha-label-text">old</span></div>
-				<input type="hidden" name="ffc_captcha_hash" value="old-hash" />
-				<input type="text" name="ffc_captcha_ans" value="seed" />
-			</div>`,
+			`<div class="ffc-form-wrapper" id="ffc-form-7">${securityBlock('old', 'old-hash', '5')}</div>`,
 			{
 				success: true,
 				data: {
-					captchas: { '7': { label: 'per-form-label', hash: 'per-form-hash' } },
-					captcha: { label: 'default-label', hash: 'default-hash' },
+					captchas: { '7': { provider: 'math', new_label: 'per-form-label', new_hash: 'per-form-hash' } },
+					captcha: { provider: 'math', new_label: 'default-label', new_hash: 'default-hash' },
 				},
 			}
 		);
-		// Per-form values win; the default loop's continue prevented overwrite.
 		expect(document.querySelector('.ffc-captcha-label-text').textContent).toBe('per-form-label');
 		expect(document.querySelector('input[name="ffc_captcha_hash"]').value).toBe('per-form-hash');
 		expect(document.querySelector('input[name="ffc_captcha_ans"]').value).toBe('');

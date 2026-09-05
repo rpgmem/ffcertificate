@@ -15,6 +15,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
+use FreeFormCertificate\Core\Captcha;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -43,13 +45,13 @@ class DynamicFragments {
 	 * (tied to the visitor's cookies) and safe to expose.
 	 */
 	public function handle(): void {
-		$captcha = \FreeFormCertificate\Core\SecurityService::generate_simple_captcha();
-
 		$fragments = array(
-			'captcha' => array(
-				'label' => $captcha['label'],
-				'hash'  => $captcha['hash'],
-			),
+			// Forwarded verbatim from whichever strategy is configured. The
+			// endpoint deliberately does not name the fields: a proof-of-work
+			// challenge has no label and no answer hash, so any mapping here
+			// would only hold for the math one. The client dispatches on the
+			// payload's own `provider` key.
+			'captcha' => Captcha\CaptchaProvider::resolve()->challenge_payload(),
 			'nonces'  => array(
 				'ffc_frontend_nonce'        => wp_create_nonce( 'ffc_frontend_nonce' ),
 				'ffc_self_scheduling_nonce' => wp_create_nonce( 'ffc_self_scheduling_nonce' ),
@@ -82,17 +84,14 @@ class DynamicFragments {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Intentionally nonce-free; see class docblock.
 		$form_ids = isset( $_POST['form_ids'] ) ? array_map( 'absint', (array) $_POST['form_ids'] ) : array();
 
-		// Generate a unique captcha per form so multiple forms on the same
-		// page each show a different math question after cache refresh.
+		// Issue a distinct challenge per form, so two forms on one page never
+		// share a token — the resolver memoises the strategy instance, not the
+		// challenge, so each call mints a fresh one.
 		if ( count( $form_ids ) > 1 ) {
 			$per_form = array();
 			foreach ( $form_ids as $fid ) {
 				if ( $fid > 0 ) {
-					$c                = \FreeFormCertificate\Core\SecurityService::generate_simple_captcha();
-					$per_form[ $fid ] = array(
-						'label' => $c['label'],
-						'hash'  => $c['hash'],
-					);
+					$per_form[ $fid ] = Captcha\CaptchaProvider::resolve()->challenge_payload();
 				}
 			}
 			if ( ! empty( $per_form ) ) {

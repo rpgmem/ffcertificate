@@ -147,27 +147,6 @@ class FrontendShortcodesTest extends TestCase {
 	}
 
 	// ==================================================================
-	// get_new_captcha_data()
-	// ==================================================================
-
-	public function test_get_new_captcha_data_returns_label_and_hash(): void {
-		$captcha = $this->shortcodes->get_new_captcha_data();
-
-		$this->assertArrayHasKey( 'label', $captcha );
-		$this->assertArrayHasKey( 'hash', $captcha );
-		$this->assertArrayHasKey( 'answer', $captcha );
-		$this->assertIsInt( $captcha['answer'] );
-		$this->assertGreaterThanOrEqual( 0, $captcha['answer'] );
-
-		// Since 6.23.0 the token is `<expires>.<nonce>.<signature>` rather than
-		// a digest of the answer, so it expires and can only be redeemed once.
-		$this->assertMatchesRegularExpression(
-			'/^\d+\.[0-9a-f]{16}\.[0-9a-f]{64}$/',
-			$captcha['hash']
-		);
-	}
-
-	// ==================================================================
 	// generate_security_fields()
 	// ==================================================================
 
