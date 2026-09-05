@@ -448,8 +448,11 @@ details.ffc-consent-description > p {
  *
  * Shares the math row's framing so the two strategies read as the same block
  * — a visitor switching between them should not see the form change shape.
- * The widget itself renders in a shadow root, so only the surround is styled
- * from here; its internals are reached by the custom properties below.
+ * The widget renders into the light DOM (measured in a browser, not assumed:
+ * the element has no shadow root), so its internals are ordinary descendants
+ * here. They are still addressed through the custom properties below rather
+ * than by class, because those are the surface the bundle publishes and a
+ * class name is free to change between versions.
  */
 .ffc-shortcode .ffc-altcha-row {
     margin-bottom: 20px;
@@ -486,8 +489,28 @@ details.ffc-consent-description > p {
     display: block;
     width: 100%;
 
+    /*
+     * Typography is set, never inherited. Everything inside the widget is
+     * `font-family: inherit` and `font-size: inherit`, so left alone it takes
+     * the theme's body text while the form's own fields do not — the fields
+     * carry their own sizes. On a theme with a 20px body that reads as a
+     * captcha in a different typeface, one size larger than the question
+     * beside it. 18px is the math row's label size; the two must agree.
+     */
+    font-family: var(--ffc-font-family);
+    font-size: 18px;
+
     --altcha-border-color: var(--ffc-border);
-    --altcha-border-radius: var(--ffc-radius);
+
+    /*
+     * `--ffc-radius` does not exist in this stylesheet — only in the
+     * recruitment and user-dashboard sheets, which do not load here. Naming
+     * it made the declaration invalid at computed-value time, so the widget's
+     * own `var(--altcha-border-radius, 0)` fell through to its fallback and
+     * the box had square corners. Matches `.ffc-input`, which is the control
+     * this box sits next to.
+     */
+    --altcha-border-radius: var(--ffc-radius-sm);
     --altcha-checkbox-border-color: var(--ffc-border);
     --altcha-color-base: var(--ffc-bg-input);
     --altcha-color-base-content: var(--ffc-text);
