@@ -37,6 +37,18 @@ class MathCaptcha implements CaptchaProviderInterface {
 	public const ID = 'math';
 
 	/**
+	 * Renders served so far in this request.
+	 *
+	 * Ids have to be unique per page and the renderer has no form context, so
+	 * the instance number comes from here. It is only ever used to build the
+	 * `<label for>` pair — no script looks these ids up, they all match by
+	 * `name` — so its value carries no meaning beyond being distinct.
+	 *
+	 * @var int
+	 */
+	private static int $instances = 0;
+
+	/**
 	 * {@inheritDoc}
 	 *
 	 * @return string
@@ -53,14 +65,30 @@ class MathCaptcha implements CaptchaProviderInterface {
 	public function render_fields(): string {
 		$challenge = SecurityService::generate_simple_captcha();
 
-		$ffc_captcha_label = (string) $challenge['label'];
-		$ffc_captcha_token = (string) $challenge['hash'];
+		++self::$instances;
+
+		$ffc_captcha_label   = (string) $challenge['label'];
+		$ffc_captcha_token   = (string) $challenge['hash'];
+		$ffc_captcha_ans_id  = 'ffc_captcha_ans_' . self::$instances;
+		$ffc_captcha_hash_id = 'ffc_captcha_hash_' . self::$instances;
 
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/captcha/math-fields.php';
 		$html = ob_get_clean();
 
 		return false === $html ? '' : $html;
+	}
+
+	/**
+	 * Reset the per-request instance counter.
+	 *
+	 * Test seam: the counter is static, so ids would keep climbing across
+	 * test methods and assertions on a specific id would depend on run order.
+	 *
+	 * @return void
+	 */
+	public static function reset_instances(): void {
+		self::$instances = 0;
 	}
 
 	/**

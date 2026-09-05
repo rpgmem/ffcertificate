@@ -406,3 +406,87 @@ describe('ffc-calendar-frontend.js — submitBooking nonce plumbing', () => {
 		expect(payload).toContain('date=2026-05-20');
 	});
 });
+
+describe('ffc-calendar-frontend.js — refreshCaptcha scoping (#1056)', () => {
+	beforeEach(() => {
+		reset();
+		installGlobals();
+		loadScript('assets/js/ffc-calendar-frontend.js');
+	});
+
+	function mountTwoForms() {
+		// Two booking forms on one page — a configuration the plugin supports
+		// on purpose: DynamicFragments has a branch that mints a distinct
+		// challenge per form. Ids are per-instance since #1056, so the markup
+		// mirrors that: same `name`, different `id`.
+		document.body.innerHTML = `
+			<form class="ffc-booking-form" id="form-a">
+				<div class="ffc-captcha-row">
+					<label for="ffc_captcha_ans_1"><span class="ffc-captcha-label-text">1 + 1</span></label>
+					<input type="number" name="ffc_captcha_ans" id="ffc_captcha_ans_1">
+					<input type="hidden" name="ffc_captcha_hash" id="ffc_captcha_hash_1" value="token-a">
+				</div>
+			</form>
+			<form class="ffc-booking-form" id="form-b">
+				<div class="ffc-captcha-row">
+					<label for="ffc_captcha_ans_2"><span class="ffc-captcha-label-text">2 + 2</span></label>
+					<input type="number" name="ffc_captcha_ans" id="ffc_captcha_ans_2">
+					<input type="hidden" name="ffc_captcha_hash" id="ffc_captcha_hash_2" value="token-b">
+				</div>
+			</form>`;
+		return {
+			$a: window.$('#form-a'),
+			$b: window.$('#form-b'),
+		};
+	}
+
+	it('updates only the form it was given', () => {
+		const { $a, $b } = mountTwoForms();
+
+		window.ffcCalendarFrontend.refreshCaptcha($a, '9 + 9', 'token-a2');
+
+		expect($a.find('.ffc-captcha-label-text').text()).toBe('9 + 9');
+		expect($a.find('input[name="ffc_captcha_hash"]').val()).toBe('token-a2');
+
+		// The regression: the label used to be rewritten page-wide while only
+		// the first token was replaced, so this form would display a question
+		// its token did not answer.
+		expect($b.find('.ffc-captcha-label-text').text()).toBe('2 + 2');
+		expect($b.find('input[name="ffc_captcha_hash"]').val()).toBe('token-b');
+	});
+
+	it('keeps label and token coherent in the untouched form', () => {
+		const { $a, $b } = mountTwoForms();
+
+		window.ffcCalendarFrontend.refreshCaptcha($b, '7 + 7', 'token-b2');
+
+		// Each form's displayed question must belong to the token it carries.
+		expect($a.find('.ffc-captcha-label-text').text()).toBe('1 + 1');
+		expect($a.find('input[name="ffc_captcha_hash"]').val()).toBe('token-a');
+		expect($b.find('.ffc-captcha-label-text').text()).toBe('7 + 7');
+		expect($b.find('input[name="ffc_captcha_hash"]').val()).toBe('token-b2');
+	});
+
+	it('clears the answer field of the refreshed form only', () => {
+		const { $a, $b } = mountTwoForms();
+		$a.find('input[name="ffc_captcha_ans"]').val('11');
+		$b.find('input[name="ffc_captcha_ans"]').val('22');
+
+		window.ffcCalendarFrontend.refreshCaptcha($a, '3 + 3', 'token-a3');
+
+		expect($a.find('input[name="ffc_captcha_ans"]').val()).toBe('');
+		expect($b.find('input[name="ffc_captcha_ans"]').val()).toBe('22');
+	});
+
+	it('is a no-op without a form or without challenge data', () => {
+		const { $a } = mountTwoForms();
+
+		window.ffcCalendarFrontend.refreshCaptcha(null, '5 + 5', 'x');
+		window.ffcCalendarFrontend.refreshCaptcha($a, '', 'x');
+		window.ffcCalendarFrontend.refreshCaptcha($a, '5 + 5', '');
+		window.ffcCalendarFrontend.refreshCaptcha(window.$('#nope'), '5 + 5', 'x');
+
+		expect($a.find('.ffc-captcha-label-text').text()).toBe('1 + 1');
+		expect($a.find('input[name="ffc_captcha_hash"]').val()).toBe('token-a');
+	});
+});
