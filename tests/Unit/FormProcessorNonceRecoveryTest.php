@@ -36,6 +36,9 @@ class FormProcessorNonceRecoveryTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
+		// CaptchaProvider::resolve() reads ffc_settings.
+		Functions\when( 'get_option' )->justReturn( array() );
+
 		// Captcha challenges are signed + single-use since 6.23.0.
 		Functions\when( 'wp_salt' )->alias( function ( string $scheme = 'auth' ): string {
 			return 'test-salt-' . $scheme;

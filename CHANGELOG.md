@@ -11,6 +11,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **O captcha matemático era contornável por replay** (#1053): o token derivava apenas da resposta, sem expiração nem uso único, então um par `(resposta, token)` capturado uma vez autenticava qualquer envio posterior, em qualquer formulário. Agora é assinado com chave derivada do site, expira em 10 minutos e é consumido no resgate.
 
+### Changed
+
+- Internal (#1053) — o captcha passa a ter um contrato de estratégia (`CaptchaProviderInterface` + `CaptchaProvider::resolve()`), com o desafio matemático atrás dele. Os 6 sites de verificação e os 4 de retry não mudam: `validate_security_fields()` continua sendo o ponto único e agora delega a metade captcha. As duas cópias do bloco de segurança viraram uma, em `templates/`.
+
 ## [6.22.0] (2026-09-04) — `aa5ba5b`
 
 ### Deprecated

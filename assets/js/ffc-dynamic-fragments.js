@@ -13,8 +13,15 @@
 	'use strict';
 
 	function refreshFragments() {
-		// Only run if the page contains FFC elements that need refreshing
+		// Only run if the page contains FFC elements that need refreshing.
+		// `.ffc-security-container` is the provider-independent wrapper: it
+		// carries the honeypot, which every provider renders. `.ffc-captcha-row`
+		// is math-specific and disappears under a provider that renders no
+		// arithmetic row — on a page whose only FFC marker was that row (the
+		// [ffc_csv_download] shortcode), nonce refresh would silently stop and
+		// surface later as a random "security check failed" on cached pages.
 		var needsRefresh =
+			document.querySelector('.ffc-security-container') ||
 			document.querySelector('.ffc-captcha-row') ||
 			document.querySelector('.ffc-verification-form') ||
 			document.querySelector('.ffc-form-container') ||

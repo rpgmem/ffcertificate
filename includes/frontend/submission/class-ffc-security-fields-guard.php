@@ -46,14 +46,9 @@ class SecurityFieldsGuard {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by NonceGuard; SecurityService sanitizes internally.
 		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
 		if ( true !== $security_check ) {
-			// Generate new captcha for retry.
-			$new_captcha = \FreeFormCertificate\Core\SecurityService::generate_simple_captcha();
 			throw new SubmissionRejected(
-				array(
-					'message'         => $security_check,
-					'refresh_captcha' => true,
-					'new_label'       => $new_captcha['label'],
-					'new_hash'        => $new_captcha['hash'],
+				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+					array( 'message' => $security_check )
 				)
 			);
 		}

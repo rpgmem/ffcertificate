@@ -32,6 +32,9 @@ class SecurityServiceTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
+		// CaptchaProvider::resolve() reads ffc_settings.
+		Functions\when( 'get_option' )->justReturn( array() );
+
 		// Stub wp_rand to use PHP's random_int
 		Functions\when('wp_rand')->alias(function (int $min, int $max): int {
 			return random_int($min, $max);

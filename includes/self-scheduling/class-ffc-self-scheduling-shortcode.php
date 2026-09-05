@@ -619,27 +619,14 @@ class SelfSchedulingShortcode {
 									<textarea id="ffc-booking-notes" name="notes" rows="3"></textarea>
 								</div>
 
-								<!-- Security Fields (Honeypot + Math Captcha) -->
 								<?php
-								$captcha = \FreeFormCertificate\Core\SecurityService::generate_simple_captcha();
+								// Shared block (honeypot + the configured challenge). This
+								// used to be an inline copy of the certificate form's markup,
+								// and the two had drifted — the hidden input carried an id
+								// here and not there.
+								// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside render_security_fields().
+								echo \FreeFormCertificate\Core\SecurityService::render_security_fields();
 								?>
-								<div class="ffc-security-container">
-									<!-- Honeypot Field -->
-									<div class="ffc-honeypot-field">
-										<label><?php esc_html_e( 'Do not fill this field if you are human:', 'ffcertificate' ); ?>
-											<input type="text" name="ffc_honeypot_trap" value="" tabindex="-1" autocomplete="off">
-										</label>
-									</div>
-
-									<!-- Math Captcha -->
-									<div class="ffc-captcha-row">
-										<label for="ffc_captcha_ans">
-											<span class="ffc-captcha-label-text"><?php echo esc_html( $captcha['label'] ); ?></span> <span class="required">*</span>
-										</label>
-										<input type="number" name="ffc_captcha_ans" id="ffc_captcha_ans" class="ffc-input" required aria-required="true">
-										<input type="hidden" name="ffc_captcha_hash" id="ffc_captcha_hash" value="<?php echo esc_attr( $captcha['hash'] ); ?>">
-									</div>
-								</div>
 
 								<!-- LGPD Consent -->
 								<div class="ffc-form-row ffc-consent-row">

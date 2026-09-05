@@ -124,7 +124,9 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 
 		// SecurityService — honeypot/captcha passes by default.
 		$this->security = Mockery::mock( 'alias:FreeFormCertificate\Core\SecurityService' )
-			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array { return $p; } );
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array {
+				return $p + array( 'refresh_captcha' => true, 'new_label' => '1+1', 'new_hash' => 'fresh-token' );
+			} );
 		$this->security->shouldReceive( 'validate_security_fields' )->andReturn( true )->byDefault();
 	}
 

@@ -136,7 +136,9 @@ class SubmissionGuardsTest extends TestCase {
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )
 			->shouldReceive( 'log_form' )->andReturnNull()->byDefault();
 		$svc = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' )
-			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array { return $p; } );
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array {
+				return $p + array( 'refresh_captcha' => true, 'new_label' => '1+1', 'new_hash' => 'fresh-token' );
+			} );
 		$svc->shouldReceive( 'validate_security_fields' )->andReturn( 'Wrong answer.' );
 		$svc->shouldReceive( 'generate_simple_captcha' )->andReturn(
 			array( 'label' => '2 + 2', 'hash' => 'h' )
@@ -148,8 +150,11 @@ class SubmissionGuardsTest extends TestCase {
 			$this->fail( 'expected SubmissionRejected' );
 		} catch ( SubmissionRejected $e ) {
 			$payload = $e->get_payload();
+			// The guard's job is to reject carrying a usable challenge. The
+			// challenge itself comes from SecurityService, alias-mocked here —
+			// its real construction is covered by CaptchaProviderTest.
 			$this->assertTrue( $payload['refresh_captcha'] );
-			$this->assertSame( '2 + 2', $payload['new_label'] );
+			$this->assertNotEmpty( $payload['new_hash'] );
 		}
 	}
 
@@ -157,7 +162,9 @@ class SubmissionGuardsTest extends TestCase {
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )
 			->shouldReceive( 'log_form' )->andReturnNull()->byDefault();
 		$svc = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' )
-			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array { return $p; } );
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array {
+				return $p + array( 'refresh_captcha' => true, 'new_label' => '1+1', 'new_hash' => 'fresh-token' );
+			} );
 		$svc->shouldReceive( 'validate_security_fields' )->andReturn( true );
 		$_POST = array();
 		( new SecurityFieldsGuard() )->apply( $this->ctx() );
