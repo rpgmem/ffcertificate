@@ -163,4 +163,45 @@ class CaptchaChallengeTest extends TestCase {
 
 		$this->assertSame( 600, $this->last_ttl );
 	}
+
+	// ------------------------------------------------------------------
+	// is_spent() — the read-only half the two-request flows depend on.
+	// ------------------------------------------------------------------
+
+	public function test_is_spent_is_false_before_redemption(): void {
+		$this->assertFalse( ChallengeStore::is_spent( 'proof-a' ) );
+	}
+
+	public function test_is_spent_is_true_after_redemption(): void {
+		ChallengeStore::redeem( 'proof-a', 600 );
+
+		$this->assertTrue( ChallengeStore::is_spent( 'proof-a' ) );
+	}
+
+	public function test_is_spent_does_not_itself_spend_the_proof(): void {
+		// The whole point: asking must not consume. Two questions, then the
+		// redemption still has to be admitted.
+		$this->assertFalse( ChallengeStore::is_spent( 'proof-a' ) );
+		$this->assertFalse( ChallengeStore::is_spent( 'proof-a' ) );
+		$this->assertSame( array(), $this->transients, 'asking must not write to the ledger' );
+
+		$this->assertTrue( ChallengeStore::redeem( 'proof-a', 600 ) );
+	}
+
+	public function test_is_spent_writes_nothing(): void {
+		ChallengeStore::is_spent( 'proof-a' );
+
+		$this->assertSame( array(), $this->transients );
+	}
+
+	public function test_is_spent_tracks_proofs_independently(): void {
+		ChallengeStore::redeem( 'proof-a', 600 );
+
+		$this->assertTrue( ChallengeStore::is_spent( 'proof-a' ) );
+		$this->assertFalse( ChallengeStore::is_spent( 'proof-b' ) );
+	}
+
+	public function test_is_spent_is_false_for_an_empty_proof(): void {
+		$this->assertFalse( ChallengeStore::is_spent( '' ) );
+	}
 }

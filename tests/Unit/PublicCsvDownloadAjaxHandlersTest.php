@@ -128,6 +128,9 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 				return $p + array( 'refresh_captcha' => true, 'new_label' => '1+1', 'new_hash' => 'fresh-token' );
 			} );
 		$this->security->shouldReceive( 'validate_security_fields' )->andReturn( true )->byDefault();
+		// `ajax_info()` peeks instead of spending — the two-request AJAX flow
+		// consumes the challenge in PublicFormsExportSource::authorize_start().
+		$this->security->shouldReceive( 'peek_security_fields' )->andReturn( true )->byDefault();
 	}
 
 	protected function tearDown(): void {
@@ -139,6 +142,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 
 	private function stub_security( $result = true ): void {
 		$this->security->shouldReceive( 'validate_security_fields' )->andReturn( $result );
+		$this->security->shouldReceive( 'peek_security_fields' )->andReturn( $result );
 	}
 
 	private function valid_post( int $form_id = 42 ): void {
@@ -188,6 +192,23 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		} catch ( \RuntimeException $e ) {
 			$this->assertSame( 'json_error', $e->getMessage() );
 			$this->assertSame( 'captcha wrong', $this->captured['payload']['message'] );
+		}
+	}
+
+	public function test_ajax_info_peeks_at_the_captcha_instead_of_spending_it(): void {
+		// The 6.23.0 regression: this screen burned the token, so the download
+		// that re-posts the same payload rejected the answer the visitor had
+		// just been told was correct. The gate still runs — it must not
+		// consume.
+		$this->security->shouldReceive( 'peek_security_fields' )->once()->andReturn( true );
+		$this->security->shouldReceive( 'validate_security_fields' )->never();
+		$this->valid_post();
+
+		try {
+			( new PublicCsvDownload() )->ajax_info();
+			$this->fail( 'expected json_success' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'json_success', $e->getMessage() );
 		}
 	}
 

@@ -98,11 +98,39 @@ class MathCaptcha implements CaptchaProviderInterface {
 	 * @return true|string
 	 */
 	public function verify( array $request ) {
+		return $this->check( $request, true );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @param array<string, mixed> $request Request data.
+	 * @return true|string
+	 */
+	public function peek( array $request ) {
+		return $this->check( $request, false );
+	}
+
+	/**
+	 * Shared body of {@see verify()} and {@see peek()}.
+	 *
+	 * @param array<string, mixed> $request Request data.
+	 * @param bool                 $consume Whether to spend the challenge.
+	 * @return true|string
+	 */
+	private function check( array $request, bool $consume ) {
 		if ( ! isset( $request['ffc_captcha_ans'] ) || ! isset( $request['ffc_captcha_hash'] ) ) {
 			return \__( 'Error: Please answer the security question.', 'ffcertificate' );
 		}
 
-		if ( ! SecurityService::verify_simple_captcha( (string) $request['ffc_captcha_ans'], (string) $request['ffc_captcha_hash'] ) ) {
+		$answer = (string) $request['ffc_captcha_ans'];
+		$token  = (string) $request['ffc_captcha_hash'];
+
+		$ok = $consume
+			? SecurityService::verify_simple_captcha( $answer, $token )
+			: SecurityService::peek_simple_captcha( $answer, $token );
+
+		if ( ! $ok ) {
 			return \__( 'Error: The math answer is incorrect.', 'ffcertificate' );
 		}
 

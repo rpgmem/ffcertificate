@@ -53,6 +53,24 @@ interface CaptchaProviderInterface {
 	public function verify( array $request );
 
 	/**
+	 * Check the challenge in a request payload without spending it.
+	 *
+	 * Every strategy worth having is single-use — a proof-of-work solution is
+	 * replayable until the server records it, exactly as the math token is —
+	 * so a flow that validates on one request and acts on a later one needs
+	 * this everywhere, not just for one provider. The public CSV download is
+	 * that flow: its info screen checks, its download consumes.
+	 *
+	 * Implementations must reject an already-spent challenge here too;
+	 * otherwise the rejection merely moves to the next request.
+	 *
+	 * @since 6.23.0
+	 * @param array<string, mixed> $request Request data (typically `$_POST`).
+	 * @return true|string True when valid, else a translated error message.
+	 */
+	public function peek( array $request );
+
+	/**
 	 * A freshly issued challenge, shaped for a JSON response.
 	 *
 	 * Consumed by the retry path (a redeemed challenge is spent, so any

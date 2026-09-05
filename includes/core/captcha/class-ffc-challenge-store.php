@@ -74,6 +74,28 @@ class ChallengeStore {
 	}
 
 	/**
+	 * Whether a proof has already been redeemed.
+	 *
+	 * The read-only half of {@see redeem()}. It exists because a flow can
+	 * legitimately check a challenge on one request and spend it on a later
+	 * one — the public CSV download validates on its info screen and spends
+	 * on the download itself. Without this, that first check would either
+	 * burn the token (and the second request would reject a challenge the
+	 * visitor had just been told was correct) or accept a spent one (and the
+	 * rejection would surface a step too late, saying the same thing).
+	 *
+	 * @param string $proof Signature identifying the challenge.
+	 * @return bool True when the proof is already in the ledger.
+	 */
+	public static function is_spent( string $proof ): bool {
+		if ( '' === $proof ) {
+			return false;
+		}
+
+		return false !== \get_transient( self::key( $proof ) );
+	}
+
+	/**
 	 * Build the transient key for a proof.
 	 *
 	 * The proof is hashed rather than embedded: it keeps the key inside the
