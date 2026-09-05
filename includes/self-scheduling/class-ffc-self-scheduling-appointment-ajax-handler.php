@@ -88,8 +88,10 @@ class AppointmentAjaxHandler {
 
 			if ( ! $calendar_id || ! $date || ! $time ) {
 				wp_send_json_error(
-					array(
-						'message' => __( 'Missing required fields.', 'ffcertificate' ),
+					\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+						array(
+							'message' => __( 'Missing required fields.', 'ffcertificate' ),
+						)
 					)
 				);
 			}
@@ -117,9 +119,11 @@ class AppointmentAjaxHandler {
 
 			if ( is_wp_error( $result ) ) {
 				wp_send_json_error(
-					array(
-						'code'    => $result->get_error_code(),
-						'message' => $result->get_error_message(),
+					\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+						array(
+							'code'    => $result->get_error_code(),
+							'message' => $result->get_error_message(),
+						)
 					)
 				);
 			}
@@ -202,9 +206,11 @@ class AppointmentAjaxHandler {
 				);
 			}
 			wp_send_json_error(
-				array(
-					'code'    => 'ffc_internal_error',
-					'message' => __( 'An unexpected error occurred. Please try again.', 'ffcertificate' ),
+				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+					array(
+						'code'    => 'ffc_internal_error',
+						'message' => __( 'An unexpected error occurred. Please try again.', 'ffcertificate' ),
+					)
 				)
 			);
 		}

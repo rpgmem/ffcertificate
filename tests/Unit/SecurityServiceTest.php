@@ -21,6 +21,13 @@ class SecurityServiceTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/**
+	 * In-memory stand-in for the transient store.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $transients = [];
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -30,9 +37,21 @@ class SecurityServiceTest extends TestCase {
 			return random_int($min, $max);
 		});
 
-		// Stub wp_hash to use a deterministic sha256 hash
-		Functions\when('wp_hash')->alias(function ($data) {
-			return hash('sha256', $data);
+		// Deterministic signing key. Challenges are HMAC'd with a key derived
+		// from wp_salt() since 6.23.0, so this is what makes them reproducible.
+		Functions\when('wp_salt')->alias(function (string $scheme = 'auth'): string {
+			return 'test-salt-' . $scheme;
+		});
+
+		// In-memory redemption ledger. Challenges are single-use, so the
+		// transient store has to behave like one for a round trip to pass.
+		$this->transients = [];
+		Functions\when('get_transient')->alias(function (string $key) {
+			return $this->transients[$key] ?? false;
+		});
+		Functions\when('set_transient')->alias(function (string $key, $value): bool {
+			$this->transients[$key] = $value;
+			return true;
 		});
 
 		// Stub translation functions to return the first argument
@@ -68,11 +87,42 @@ class SecurityServiceTest extends TestCase {
 		}
 	}
 
-	public function test_generate_simple_captcha_hash_matches_answer_with_salt(): void {
-		for ($i = 0; $i < 20; $i++) {
-			$result = SecurityService::generate_simple_captcha();
-			$expected_hash = hash('sha256', $result['answer'] . 'ffc_math_salt');
-			$this->assertSame($expected_hash, $result['hash']);
+	public function test_generate_simple_captcha_token_is_expiry_plus_signature(): void {
+		$result = SecurityService::generate_simple_captcha();
+
+		$this->assertMatchesRegularExpression('/^\d+\.[0-9a-f]{16}\.[0-9a-f]{64}$/', $result['hash']);
+
+		[$expires] = explode('.', $result['hash']);
+		$this->assertGreaterThan(time(), (int) $expires);
+		$this->assertLessThanOrEqual(time() + SecurityService::CHALLENGE_TTL, (int) $expires);
+	}
+
+	public function test_generate_simple_captcha_token_is_not_derived_from_the_answer_alone(): void {
+		// The pre-6.23.0 token was wp_hash($answer . $fixed_salt): same answer,
+		// same token, forever. That is what made one captured pair authenticate
+		// every later submission.
+		$by_answer = [];
+		for ($i = 0; $i < 60; $i++) {
+			$captcha = SecurityService::generate_simple_captcha();
+
+			$this->assertNotSame(
+				hash('sha256', $captcha['answer'] . 'ffc_math_salt'),
+				$captcha['hash'],
+				'token must not be the legacy answer-only digest'
+			);
+
+			$by_answer[$captcha['answer']][] = $captcha['hash'];
+		}
+
+		$repeats = array_filter($by_answer, static fn (array $h): bool => count($h) > 1);
+		$this->assertNotEmpty($repeats, 'expected some answer to recur across 60 draws');
+
+		foreach ($repeats as $answer => $hashes) {
+			$this->assertSame(
+				count($hashes),
+				count(array_unique($hashes)),
+				"answer {$answer} produced a duplicate token; two visitors would share one challenge"
+			);
 		}
 	}
 

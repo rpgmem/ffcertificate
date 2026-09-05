@@ -106,6 +106,7 @@ class VerificationHandlerAjaxTest extends TestCase {
 	public function test_verification_ajax_rate_limited(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' )
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array { return $p; } )
 			->shouldReceive( 'validate_security_fields' )->andReturn( true );
 		$rl = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
 		$rl->shouldReceive( 'check_verification' )->andReturn( array( 'allowed' => false ) );
@@ -136,7 +137,8 @@ class VerificationHandlerAjaxTest extends TestCase {
 
 	public function test_verification_ajax_security_fields_fail_refreshes_captcha(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
-		$svc = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' );
+		$svc = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' )
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array { return $p; } );
 		$svc->shouldReceive( 'validate_security_fields' )->andReturn( 'Wrong captcha.' );
 		$svc->shouldReceive( 'generate_simple_captcha' )->andReturn( array( 'label' => '1+1', 'hash' => 'h1' ) );
 
@@ -161,7 +163,8 @@ class VerificationHandlerAjaxTest extends TestCase {
 		$wpdb->shouldReceive( 'get_var' )->andReturn( null );
 
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
-		$svc = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' );
+		$svc = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' )
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array { return $p; } );
 		$svc->shouldReceive( 'validate_security_fields' )->andReturn( true );
 		$svc->shouldReceive( 'generate_simple_captcha' )->andReturn( array( 'label' => '3+3', 'hash' => 'h2' ) );
 		$this->rate_limiter_allowed();
@@ -196,6 +199,7 @@ class VerificationHandlerAjaxTest extends TestCase {
 
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' )
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array { return $p; } )
 			->shouldReceive( 'validate_security_fields' )->andReturn( true );
 		$this->rate_limiter_allowed();
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLog' )
@@ -239,6 +243,7 @@ class VerificationHandlerAjaxTest extends TestCase {
 
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' )
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array { return $p; } )
 			->shouldReceive( 'validate_security_fields' )->andReturn( true );
 		$this->rate_limiter_allowed();
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLog' )
@@ -283,6 +288,7 @@ class VerificationHandlerAjaxTest extends TestCase {
 
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' )
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array { return $p; } )
 			->shouldReceive( 'validate_security_fields' )->andReturn( true );
 		$this->rate_limiter_allowed();
 
@@ -327,6 +333,7 @@ class VerificationHandlerAjaxTest extends TestCase {
 
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' )
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array { return $p; } )
 			->shouldReceive( 'validate_security_fields' )->andReturn( true );
 		$this->rate_limiter_allowed();
 

@@ -800,8 +800,10 @@ class VerificationHandler {
 		$rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );
 		if ( ! $rate_check['allowed'] ) {
 			wp_send_json_error(
-				array(
-					'message' => __( 'Too many verification attempts. Please try again later.', 'ffcertificate' ),
+				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+					array(
+						'message' => __( 'Too many verification attempts. Please try again later.', 'ffcertificate' ),
+					)
 				)
 			);
 		}
@@ -837,7 +839,7 @@ class VerificationHandler {
 		}
 
 		if ( is_wp_error( $pdf_data ) ) {
-			wp_send_json_error( array( 'message' => $pdf_data->get_error_message() ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $pdf_data->get_error_message() ) ) );
 		}
 
 		if ( ! empty( $result['type'] ) && 'appointment' === $result['type'] ) {

@@ -436,26 +436,26 @@ class PublicCsvDownload {
 			if ( $form_id > 0 ) {
 				$this->validator->record_download_log_entry( $form_id, 'captcha', '', 'fail_captcha' );
 			}
-			wp_send_json_error( array( 'message' => (string) $security_check ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => (string) $security_check ) ) );
 		}
 
 		// 5. Form-id / hash presence.
 		if ( $form_id <= 0 || '' === $posted_hash ) {
-			wp_send_json_error( array( 'message' => __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) ) ) );
 		}
 
 		// 6–7. Hash-only validation (form exists, feature enabled, hash matches).
 		$error = $this->validate_hash_only( $form_id, $posted_hash );
 		if ( null !== $error ) {
 			$this->validator->record_download_log_entry( $form_id, 'access', '', 'fail_other' );
-			wp_send_json_error( array( 'message' => $error ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $error ) ) );
 		}
 
 		// 7b. CPF gate (per-form opt-in, no-op when mode = 'none').
 		$cpf_input = RequestInput::get_post_string( 'cpf' );
 		$cpf_error = $this->validate_cpf_requirement( $form_id, $cpf_input );
 		if ( null !== $cpf_error ) {
-			wp_send_json_error( array( 'message' => $cpf_error ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $cpf_error ) ) );
 		}
 
 		wp_send_json_success( $this->form_info_builder->build_form_info( $form_id ) );

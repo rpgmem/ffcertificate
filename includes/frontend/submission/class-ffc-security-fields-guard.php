@@ -2,9 +2,10 @@
 /**
  * SecurityFieldsGuard — pipeline stages 4–5 (#563 Sprint 1).
  *
- * Emits the CAPTCHA debug trace, then validates the security fields
- * (math CAPTCHA + honeypot) via SecurityService. On failure it mints a
- * fresh CAPTCHA so the client can retry inline.
+ * Validates the security fields (math CAPTCHA + honeypot) via
+ * SecurityService. On failure it mints a fresh CAPTCHA so the client can
+ * retry inline; since 6.23.0 a redeemed challenge is spent, so every later
+ * rejection is given one too — see FormProcessor's catch.
  *
  * Runs after NonceGuard, so the $_POST read here is nonce-verified.
  *
@@ -33,27 +34,13 @@ class SecurityFieldsGuard {
 	 * @throws SubmissionRejected When CAPTCHA / honeypot validation fails.
 	 */
 	public function apply( SubmissionContext $ctx ): void {
-		// ===== DEBUG CAPTCHA =====.
-		\FreeFormCertificate\Core\Debug::log_form( '===== CAPTCHA DEBUG =====' );
-		\FreeFormCertificate\Core\Debug::log_form( 'Answer received', RequestInput::get_post_string( 'ffc_captcha_ans', 'NOT SET' ) );
-		\FreeFormCertificate\Core\Debug::log_form( 'Hash received', RequestInput::get_post_string( 'ffc_captcha_hash', 'NOT SET' ) );
-
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- isset() check only; values read via sanitized accessor below.
-		if ( isset( $_POST['ffc_captcha_ans'] ) && isset( $_POST['ffc_captcha_hash'] ) ) {
-			$test_answer    = trim( RequestInput::get_post_string( 'ffc_captcha_ans' ) );
-			$received_hash  = RequestInput::get_post_string( 'ffc_captcha_hash' );
-			$generated_hash = wp_hash( $test_answer . 'ffc_math_salt' );
-
-			\FreeFormCertificate\Core\Debug::log_form( 'Trimmed answer', $test_answer );
-			\FreeFormCertificate\Core\Debug::log_form( 'Generated hash from answer', $generated_hash );
-			\FreeFormCertificate\Core\Debug::log_form( 'Hashes match', $generated_hash === $received_hash ? 'YES' : 'NO' );
-
-			// Test with different variations.
-			\FreeFormCertificate\Core\Debug::log_form( 'Test with (int)', wp_hash( (int) $test_answer . 'ffc_math_salt' ) );
-			\FreeFormCertificate\Core\Debug::log_form( 'Test with (string)', wp_hash( (string) $test_answer . 'ffc_math_salt' ) );
-		}
-		\FreeFormCertificate\Core\Debug::log_form( '===== END CAPTCHA DEBUG =====' );
-		// ===== END DEBUG =====.
+		\FreeFormCertificate\Core\Debug::log_form(
+			'Captcha submitted',
+			array(
+				'answer_present' => '' !== RequestInput::get_post_string( 'ffc_captcha_ans' ) ? 'yes' : 'no',
+				'token_present'  => '' !== RequestInput::get_post_string( 'ffc_captcha_hash' ) ? 'yes' : 'no',
+			)
+		);
 
 		// Validate security fields (CAPTCHA + honeypot).
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by NonceGuard; SecurityService sanitizes internally.

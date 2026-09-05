@@ -135,7 +135,8 @@ class SubmissionGuardsTest extends TestCase {
 	public function test_security_guard_throws_with_new_captcha_on_failure(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )
 			->shouldReceive( 'log_form' )->andReturnNull()->byDefault();
-		$svc = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' );
+		$svc = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' )
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array { return $p; } );
 		$svc->shouldReceive( 'validate_security_fields' )->andReturn( 'Wrong answer.' );
 		$svc->shouldReceive( 'generate_simple_captcha' )->andReturn(
 			array( 'label' => '2 + 2', 'hash' => 'h' )
@@ -155,7 +156,8 @@ class SubmissionGuardsTest extends TestCase {
 	public function test_security_guard_passes_when_valid(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\Debug' )
 			->shouldReceive( 'log_form' )->andReturnNull()->byDefault();
-		$svc = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' );
+		$svc = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' )
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array { return $p; } );
 		$svc->shouldReceive( 'validate_security_fields' )->andReturn( true );
 		$_POST = array();
 		( new SecurityFieldsGuard() )->apply( $this->ctx() );

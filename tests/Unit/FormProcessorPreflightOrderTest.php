@@ -52,7 +52,8 @@ class FormProcessorPreflightOrderTest extends TestCase {
 
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 
-		$security_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' );
+		$security_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' )
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array { return $p; } );
 		$security_mock->shouldReceive( 'validate_security_fields' )->andReturn( true )->byDefault();
 
 		Functions\when( 'get_post_meta' )->alias( static function ( $post_id, $key ) {

@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security
+
+- **O captcha matemático era contornável por replay** (#1053): o token derivava apenas da resposta, sem expiração nem uso único, então um par `(resposta, token)` capturado uma vez autenticava qualquer envio posterior, em qualquer formulário. Agora é assinado com chave derivada do site, expira em 10 minutos e é consumido no resgate.
+
 ## [6.22.0] (2026-09-04) — `aa5ba5b`
 
 ### Deprecated

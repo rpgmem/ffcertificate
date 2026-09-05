@@ -36,7 +36,18 @@ class FormProcessorNonceRecoveryTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
+		// Captcha challenges are signed + single-use since 6.23.0.
+		Functions\when( 'wp_salt' )->alias( function ( string $scheme = 'auth' ): string {
+			return 'test-salt-' . $scheme;
+		} );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+
 		Functions\when( '__' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'wp_rand' )->alias( function ( int $min = 0, int $max = 0 ): int {
+			return random_int( $min, $max );
+		} );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 
