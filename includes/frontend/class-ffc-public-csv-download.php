@@ -326,7 +326,7 @@ class PublicCsvDownload {
 		 * implications; captcha still runs as a gate before any heavy
 		 * work below.
 		 */
-		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
+		$form_id     = \FreeFormCertificate\Core\RequestInput::get_post_int( 'form_id', 0 );
 		$posted_hash = RequestInput::get_post_string( 'hash' );
 
 		/*
@@ -434,7 +434,7 @@ class PublicCsvDownload {
 		 * hash mismatch, etc.) can be attributed to the right form's
 		 * audit log.
 		 */
-		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
+		$form_id     = \FreeFormCertificate\Core\RequestInput::get_post_int( 'form_id', 0 );
 		$posted_hash = RequestInput::get_post_string( 'hash' );
 
 		/*
@@ -491,7 +491,7 @@ class PublicCsvDownload {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ) );
 		}
 
-		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
+		$form_id     = \FreeFormCertificate\Core\RequestInput::get_post_int( 'form_id', 0 );
 		$posted_hash = RequestInput::get_post_string( 'hash' );
 
 		$error = $this->validate_hash_only( $form_id, $posted_hash );
@@ -552,7 +552,7 @@ class PublicCsvDownload {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ), 403 );
 		}
 
-		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
+		$form_id     = \FreeFormCertificate\Core\RequestInput::get_post_int( 'form_id', 0 );
 		$posted_hash = RequestInput::get_post_string( 'hash' );
 		$cpf_input   = RequestInput::get_post_string( 'cpf' );
 
@@ -627,7 +627,7 @@ class PublicCsvDownload {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ), 403 );
 		}
 
-		$form_id      = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
+		$form_id      = \FreeFormCertificate\Core\RequestInput::get_post_int( 'form_id', 0 );
 		$posted_hash  = RequestInput::get_post_string( 'hash' );
 		$new_time_end = RequestInput::get_post_string( 'new_time_end' );
 		$cpf_input    = RequestInput::get_post_string( 'cpf' );
@@ -701,7 +701,7 @@ class PublicCsvDownload {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ), 403 );
 		}
 
-		$form_id        = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
+		$form_id        = \FreeFormCertificate\Core\RequestInput::get_post_int( 'form_id', 0 );
 		$posted_hash    = RequestInput::get_post_string( 'hash' );
 		$start_override = RequestInput::get_post_string( 'start_override' );
 		$end_override   = RequestInput::get_post_string( 'end_override' );

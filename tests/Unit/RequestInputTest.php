@@ -160,6 +160,46 @@ class RequestInputTest extends TestCase {
 		$this->assertSame( 7, RequestInput::get_get_int( 'id', 7 ) );
 	}
 
+	/**
+	 * The two int accessors used to cast blind while their string siblings
+	 * type-checked (#1087). `absint( array( '45' ) )` is 1 and
+	 * `absint( array() )` is 0 — both silent, and 1 is a plausible id, count
+	 * and ceiling. Asserted against those two values, not merely against the
+	 * default, so the test discriminates: it fails on the old code.
+	 */
+	public function test_get_get_int_returns_default_for_an_array_value(): void {
+		$this->stub_get_readers();
+		$_GET['id'] = array( '45' );
+		$this->assertSame( 7, RequestInput::get_get_int( 'id', 7 ) );
+
+		$_GET['id'] = array();
+		$this->assertSame( 7, RequestInput::get_get_int( 'id', 7 ) );
+		unset( $_GET['id'] );
+	}
+
+	public function test_get_post_int_casts_through_absint(): void {
+		$this->stub_get_readers();
+		$_POST['qty'] = '-42abc';
+		$this->assertSame( 42, RequestInput::get_post_int( 'qty' ) );
+		unset( $_POST['qty'] );
+	}
+
+	public function test_get_post_int_returns_default_for_an_array_value(): void {
+		$this->stub_get_readers();
+		$_POST['qty'] = array( '45' );
+		$this->assertSame( 90, RequestInput::get_post_int( 'qty', 90 ) );
+
+		$_POST['qty'] = array();
+		$this->assertSame( 90, RequestInput::get_post_int( 'qty', 90 ) );
+		unset( $_POST['qty'] );
+	}
+
+	public function test_get_post_int_returns_default_when_absent(): void {
+		$this->stub_get_readers();
+		unset( $_POST['qty'] );
+		$this->assertSame( 90, RequestInput::get_post_int( 'qty', 90 ) );
+	}
+
 	public function test_has_get_is_presence_not_truthiness(): void {
 		$_GET['ffc_saved'] = '';
 		$this->assertTrue( RequestInput::has_get( 'ffc_saved' ) );

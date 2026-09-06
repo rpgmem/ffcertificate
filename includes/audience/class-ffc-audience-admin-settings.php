@@ -242,8 +242,8 @@ class AudienceAdminSettings {
 			}
 
 			update_option( 'ffc_ss_private_display_mode', $display_mode );
-			update_option( 'ffc_ss_visibility_message', wp_kses_post( wp_unslash( $_POST['ffc_ss_visibility_message'] ?? '' ) ) );
-			update_option( 'ffc_ss_scheduling_message', wp_kses_post( wp_unslash( $_POST['ffc_ss_scheduling_message'] ?? '' ) ) );
+			update_option( 'ffc_ss_visibility_message', self::rich_text_post( 'ffc_ss_visibility_message' ) );
+			update_option( 'ffc_ss_scheduling_message', self::rich_text_post( 'ffc_ss_scheduling_message' ) );
 
 			add_settings_error( 'ffc_audience', 'ffc_message', __( 'Self-scheduling visibility settings saved.', 'ffcertificate' ), 'success' );
 		}
@@ -255,8 +255,8 @@ class AudienceAdminSettings {
 				return;
 			}
 
-			update_option( 'ffc_ss_business_hours_viewing_message', wp_kses_post( wp_unslash( $_POST['ffc_ss_business_hours_viewing_message'] ?? '' ) ) );
-			update_option( 'ffc_ss_business_hours_booking_message', wp_kses_post( wp_unslash( $_POST['ffc_ss_business_hours_booking_message'] ?? '' ) ) );
+			update_option( 'ffc_ss_business_hours_viewing_message', self::rich_text_post( 'ffc_ss_business_hours_viewing_message' ) );
+			update_option( 'ffc_ss_business_hours_booking_message', self::rich_text_post( 'ffc_ss_business_hours_booking_message' ) );
 
 			add_settings_error( 'ffc_audience', 'ffc_message', __( 'Business hours restriction messages saved.', 'ffcertificate' ), 'success' );
 		}
@@ -275,8 +275,8 @@ class AudienceAdminSettings {
 			}
 
 			update_option( 'ffc_aud_private_display_mode', $display_mode );
-			update_option( 'ffc_aud_visibility_message', wp_kses_post( wp_unslash( $_POST['ffc_aud_visibility_message'] ?? '' ) ) );
-			update_option( 'ffc_aud_scheduling_message', wp_kses_post( wp_unslash( $_POST['ffc_aud_scheduling_message'] ?? '' ) ) );
+			update_option( 'ffc_aud_visibility_message', self::rich_text_post( 'ffc_aud_visibility_message' ) );
+			update_option( 'ffc_aud_scheduling_message', self::rich_text_post( 'ffc_aud_scheduling_message' ) );
 
 			$ma_color = ColorValidator::normalize(
 				// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Normalised by ColorValidator::normalize(), which returns the default for anything that is not a hex colour.
@@ -336,7 +336,7 @@ class AudienceAdminSettings {
 
 		// Delete global holiday (GET).
 		if ( isset( $_GET['ffc_action'] ) && 'delete_global_holiday' === $_GET['ffc_action'] ) {
-			$index = isset( $_GET['holiday_index'] ) ? absint( $_GET['holiday_index'] ) : -1;
+			$index = \FreeFormCertificate\Core\RequestInput::get_get_int( 'holiday_index', -1 );
 
 			if ( ! isset( $_GET['ffc_global_holiday_nonce'] ) ||
 				! wp_verify_nonce( RequestInput::get_get_string( 'ffc_global_holiday_nonce' ), 'delete_global_holiday_' . $index ) ) {
@@ -356,5 +356,36 @@ class AudienceAdminSettings {
 			wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=general&message=holiday_deleted' ) );
 			exit;
 		}
+	}
+
+	/**
+	 * Read a rich-text `$_POST` field as a `wp_kses_post()`-filtered string.
+	 *
+	 * These six option keys are read as strings by every consumer, so a
+	 * non-scalar must never reach `update_option()`. `RequestInput` has no
+	 * accessor for this shape: `get_post_string()` applies
+	 * `sanitize_text_field()`, which strips the markup these messages are
+	 * allowed to carry. It stays private here rather than moving to
+	 * `RequestInput` because this class is its only consumer in the whole
+	 * plugin — a shared helper with one caller is indirection that narrows
+	 * nothing (the #1079 precedent). Extract it when a second one appears.
+	 *
+	 * Caller verifies the nonce before calling.
+	 *
+	 * @since 6.23.0
+	 * @param string $key `$_POST` key.
+	 * @return string Filtered HTML; empty string when absent or not a string.
+	 */
+	private static function rich_text_post( string $key ): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified by the calling handler.
+		if ( ! isset( $_POST[ $key ] ) ) {
+			return '';
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified by the calling handler. This IS the sanitiser: type-checked below, then wp_kses_post().
+		$raw = wp_unslash( $_POST[ $key ] );
+		if ( ! is_string( $raw ) ) {
+			return '';
+		}
+		return wp_kses_post( $raw );
 	}
 }

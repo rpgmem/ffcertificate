@@ -229,7 +229,7 @@ class CertTemplateReceiptSettings {
 
 		$selection = array();
 		foreach ( array( 'regular', 'custom' ) as $mode ) {
-			$id                 = isset( $_POST[ 'ffc_receipt_' . $mode ] ) ? absint( wp_unslash( $_POST[ 'ffc_receipt_' . $mode ] ) ) : 0;
+			$id                 = \FreeFormCertificate\Core\RequestInput::get_post_int( 'ffc_receipt_' . $mode, 0 );
 			$selection[ $mode ] = $this->sanitize_receipt_id( $id );
 		}
 

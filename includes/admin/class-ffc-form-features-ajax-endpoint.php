@@ -77,7 +77,7 @@ class FormFeaturesAjaxEndpoint {
 	public static function handle(): void {
 		check_ajax_referer( self::AJAX_ACTION, 'nonce' );
 
-		$form_id = isset( $_POST['form_id'] ) ? absint( $_POST['form_id'] ) : 0;
+		$form_id = \FreeFormCertificate\Core\RequestInput::get_post_int( 'form_id', 0 );
 		if ( $form_id <= 0 ) {
 			wp_send_json_error( array( 'message' => __( 'Missing form id.', 'ffcertificate' ) ), 400 );
 		}

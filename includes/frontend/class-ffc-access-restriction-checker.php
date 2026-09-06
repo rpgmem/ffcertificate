@@ -244,7 +244,16 @@ class AccessRestrictionChecker {
 	 * @param string $ticket Ticket code to consume.
 	 */
 	public static function consume_ticket( int $form_id, string $ticket ): void {
-		$current_config                         = get_post_meta( $form_id, '_ffc_form_config', true );
+		// `get_post_meta( …, true )` returns '' when the key does not exist,
+		// and in PHP 8 assigning an offset on a string is fatal, not a notice:
+		// `$s = ''; $s['k'] = 'v';` throws "Cannot access offset of type string
+		// on string". Unreachable today — the caller only gets here after
+		// `check()` read the same meta as an `array` — so this is the shape of
+		// #1058 made safe, not a live bug being fixed (#1087).
+		$current_config = get_post_meta( $form_id, '_ffc_form_config', true );
+		if ( ! is_array( $current_config ) ) {
+			$current_config = array();
+		}
 		$current_raw_codes                      = isset( $current_config['generated_codes_list'] ) ? $current_config['generated_codes_list'] : '';
 		$current_list                           = array_filter( array_map( 'trim', explode( "\n", $current_raw_codes ) ) );
 		$updated_list                           = array_diff( $current_list, array( $ticket ) );
