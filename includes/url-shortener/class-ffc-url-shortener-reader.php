@@ -139,7 +139,12 @@ class UrlShortenerReader extends AbstractRepository {
 			return $cached;
 		}
 
-		/** @var ShortUrlRow|null $result Asserted against the activator's CREATE TABLE — see findByShortCode(). */
+		/**
+		 * Same assertion as findByShortCode(): the shape is checked against the
+		 * activator's CREATE TABLE, not inferred.
+		 *
+		 * @var ShortUrlRow|null $result
+		 */
 		$result = $this->wpdb->get_row(
 			$this->wpdb->prepare(
 				'SELECT * FROM %i WHERE post_id = %d AND status = %s ORDER BY id DESC LIMIT 1',
@@ -243,7 +248,11 @@ class UrlShortenerReader extends AbstractRepository {
 		$items_query = "SELECT * FROM %i {$where_sql} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d";
 		$items_args  = array_merge( array( $this->table ), $where_values, array( $per_page, $offset ) );
 
-		/** @var list<ShortUrlRow>|null $items Asserted against the activator's CREATE TABLE — see findByShortCode(). */
+		/**
+		 * Same assertion as findByShortCode(), for a list of rows.
+		 *
+		 * @var list<ShortUrlRow>|null $items
+		 */
 		$items = $this->wpdb->get_results(
 			$this->wpdb->prepare( $items_query, ...$items_args ),
 			ARRAY_A
@@ -338,7 +347,11 @@ class UrlShortenerReader extends AbstractRepository {
 		 */
 		$prepared = $this->wpdb->prepare( $query, ...$args );
 
-		/** @var list<ShortUrlRow>|null $rows Asserted against the activator's CREATE TABLE — see findByShortCode(). */
+		/**
+		 * Same assertion as findByShortCode(), for a list of rows.
+		 *
+		 * @var list<ShortUrlRow>|null $rows
+		 */
 		$rows = $this->wpdb->get_results( $prepared, ARRAY_A );
 
 		return $rows ? $rows : array();

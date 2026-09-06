@@ -22,6 +22,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **A régua de linhas media 45 classes quando 53 leem linhas** (#1087): o scan exigia a substring literal `$wpdb->`, então todo repositório que liga wpdb como propriedade e chama `$this->wpdb->get_results()` era invisível. O gate imprimia `0 (allowed: 0)` com **30** erros de nível 9 de pé em oito repositórios, o `AbstractRepository` entre eles. Nenhum é novo — nunca foram olhados.
 - **`RequestInput::get_post_int()`/`get_get_int()` liam um array como o número 1** (#1087): `absint( array('45') )` é `1`, em silêncio — e `1` é um id, uma contagem e um teto plausíveis. Os irmãos de string sempre conferiram o tipo; estes dois não. 74 chamadas corrigidas de uma vez, mais 39 casts diretos roteados pelos helpers — entre eles os tetos do rate limit.
 
 ### Changed
