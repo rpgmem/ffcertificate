@@ -16,6 +16,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Aba Configurações → Captcha** (#1053): escolha entre os três modos, com o efeito de cada um dito na própria opção — o modo só-ALTCHA é recusado no salvamento sem HTTPS, porque o widget se recusa a rodar fora de contexto seguro e o formulário ficaria intransponível. Fator de trabalho e validade do desafio têm piso e teto; abaixo do piso a prova não custa nada, acima do teto um celular lento mói até o widget desistir aos 90s. Aviso dispensável sugerindo o modo mais forte só onde ele é possível.
 - **Captcha ALTCHA, proof-of-work, servido inteiramente pelo próprio site** (#1053): o desafio sai de um endpoint do plugin (`ffc_altcha_challenge`), o trabalho acontece no navegador do visitante e a verificação é PHP puro — nenhuma requisição sai do servidor. Widget MIT vendorizado em `libs/js/`, sem CDN. Três modos: só matemático (padrão, inalterado no upgrade), só ALTCHA, e ALTCHA com o matemático em `<noscript>`. A tela de configuração chega na sequência; até lá o padrão é o único valor em jogo.
 
+### Added
+
+- **Guarda contra cast de superglobal sem tipo** (#1087): `tests/Unit/RequestInputCastTest.php` congela em baseline os casts inteiros aplicados direto a `$_POST`/`$_GET`/`$_REQUEST` — 55 hoje — como catraca que só encolhe. Um cast novo falha o CI e aponta o acessor certo; um removido também falha, para travar o ganho.
+
 ### Fixed
 
 - **`RequestInput::get_post_int()`/`get_get_int()` liam um array como o número 1** (#1087): `absint( array('45') )` é `1`, em silêncio — e `1` é um id, uma contagem e um teto plausíveis. Os irmãos de string sempre conferiram o tipo; estes dois não. 74 chamadas corrigidas de uma vez, mais 39 casts diretos roteados pelos helpers — entre eles os tetos do rate limit.
