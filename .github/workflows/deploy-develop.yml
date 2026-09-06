@@ -129,6 +129,7 @@ jobs:
             --exclude='phpunit.xml.dist' \
             --exclude='phpstan.neon' \
             --exclude='phpstan.neon.dist' \
+            --exclude='phpstan-rows.neon.dist' \
             --exclude='phpstan-stubs.php' \
             --exclude='phpcs.xml' \
             --exclude='phpcs.xml.dist' \

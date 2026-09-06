@@ -26,6 +26,36 @@ jobs:
       - name: Run PHPStan
         run: vendor/bin/phpstan analyze
 
+  # Level 9, reported only for the classes that read rows out of $wpdb.
+  #
+  # `continue-on-error` on purpose, and temporarily: the count is 243 while
+  # #1060 works through the row shapes, so a blocking job would be red on
+  # every PR and teach people to ignore it. The allowance below ratchets DOWN
+  # with each PR of that issue and the flag comes off at zero — same
+  # evidence-gated shape as the post-deploy smoke, which ran non-blocking
+  # until it had proved itself.
+  #
+  # Read the count in the STEP output, never the job conclusion: while the
+  # flag is on, a failing step still shows the job green.
+  rows:
+    name: Row shapes (level 9)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-composer
+        with:
+          php-version: '8.3'
+      - name: Analyse at level 9
+        # Level 9 reports the whole repository; a non-zero exit here is
+        # expected and says nothing on its own. The report script is what
+        # decides.
+        run: |
+          vendor/bin/phpstan analyse -c phpstan-rows.neon.dist \
+            --error-format=json --no-progress --memory-limit=2G > rows.json || true
+      - name: Report the row-reading classes
+        run: php .github/scripts/phpstan-rows-report.php rows.json 243
+
   audit:
     name: Composer audit
     runs-on: ubuntu-latest
