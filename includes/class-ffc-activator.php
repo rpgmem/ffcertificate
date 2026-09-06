@@ -289,6 +289,15 @@ class Activator {
 				if ( 0 === $row_count ) {
 					break;
 				}
+				/**
+				 * The projection names both columns, and `$wpdb` returns
+				 * each as a string. `submission_date` is the pre-migration
+				 * DATETIME column, whose definition is no longer in the
+				 * tree, so it is read as nullable — which is also why the
+				 * parse below sits in a try/catch (#1060).
+				 *
+				 * @var \stdClass&object{id: numeric-string, submission_date: string|null} $row
+				 */
 				foreach ( $rows as $row ) {
 					try {
 						$dt = new \DateTimeImmutable( (string) $row->submission_date, $tz );
@@ -401,6 +410,13 @@ class Activator {
 				if ( 0 === $row_count ) {
 					break;
 				}
+				/**
+				 * Same projection shape as the block above; here the WHERE
+				 * itself excludes NULL, so `submitted_at` is a plain string
+				 * (#1060).
+				 *
+				 * @var \stdClass&object{id: numeric-string, submitted_at: string} $row
+				 */
 				foreach ( $rows as $row ) {
 					try {
 						$dt = new \DateTimeImmutable( (string) $row->submitted_at, $tz );

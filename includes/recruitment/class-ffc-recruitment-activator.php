@@ -104,7 +104,11 @@ class RecruitmentActivator {
 	 */
 	public static function maybe_migrate(): void {
 		$option_key = 'ffc_recruitment_schema_version';
-		$current    = (int) get_option( $option_key, 0 );
+		// `get_option()` is mixed and `(int) array()` is 1. No step below
+		// gates on `< 1`, so nothing behaves differently today — this is
+		// the unchecked cast made honest, not a fix (#1060).
+		$stored  = get_option( $option_key, 0 );
+		$current = is_numeric( $stored ) ? (int) $stored : 0;
 
 		if ( $current < 2 ) {
 			self::migrate_status_active_to_definitive();
@@ -236,6 +240,15 @@ class RecruitmentActivator {
 				if ( 0 === $row_count ) {
 					break;
 				}
+				/**
+				 * The projection names both columns and `$wpdb` returns each
+				 * as a string. `called_at` is the pre-migration DATETIME
+				 * column, whose definition is no longer in the tree, so it is
+				 * read as nullable — which is also why the parse below sits in
+				 * a try/catch (#1060).
+				 *
+				 * @var \stdClass&object{id: numeric-string, called_at: string|null} $row
+				 */
 				foreach ( $rows as $row ) {
 					try {
 						$dt = new \DateTimeImmutable( (string) $row->called_at, $tz );

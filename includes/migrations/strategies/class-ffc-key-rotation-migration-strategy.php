@@ -47,6 +47,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Migrations\Strategies;
 
 use Exception;
+use FreeFormCertificate\Core\ArrayValue;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -198,7 +199,12 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 	 * @return array<string, mixed>
 	 */
 	public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array {
-		$batch_size = isset( $migration_config['batch_size'] ) ? (int) $migration_config['batch_size'] : 100;
+		// `$migration_config` comes out of the registry *after*
+		// `ffcertificate_migrations_registry` has run, so a filter can put
+		// anything here. `(int) 'x'` is 0, and a batch size of 0 makes the
+		// migration report itself complete having processed nothing —
+		// hence the typed read plus a floor of 1 (#1060).
+		$batch_size = max( 1, ArrayValue::int( $migration_config, 'batch_size', 100 ) );
 
 		// Re-arm the cursor + completion flag whenever the active key changed
 		// since the last run: the dataset must be re-rotated onto the new key.
@@ -556,8 +562,13 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 	 * @return bool
 	 */
 	private function fingerprint_matches(): bool {
+		// `array_key_exists` rather than a non-empty check so the branch
+		// stays exactly the one the old `isset()` took; only the read
+		// changes, and a non-scalar now compares as '' instead of the
+		// literal `Array` (#1060).
 		$state = $this->get_state();
-		return isset( $state['fingerprint'] ) && hash_equals( (string) $state['fingerprint'], $this->active_fingerprint() );
+		return array_key_exists( 'fingerprint', $state )
+			&& hash_equals( ArrayValue::string( $state, 'fingerprint' ), $this->active_fingerprint() );
 	}
 
 	/**
@@ -608,8 +619,12 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 	 * @return int
 	 */
 	private function get_cursor( string $table ): int {
+		// The state is an option: `get_option()` is mixed and every level
+		// of it can be anything, so both the map and the entry are read
+		// typed. A corrupted cursor restarts the table, which only
+		// re-reads rows the rotation is idempotent over (#1060).
 		$state = $this->get_state();
-		return isset( $state['cursor'][ $table ] ) ? (int) $state['cursor'][ $table ] : 0;
+		return ArrayValue::int( ArrayValue::array( $state, 'cursor' ), $table );
 	}
 
 	/**

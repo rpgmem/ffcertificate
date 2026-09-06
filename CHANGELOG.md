@@ -33,11 +33,17 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Formas de linha honestas nos módulos de domínio** (#1060): `reregistration`, `recruitment`, `privacy`, `services`, `user-dashboard` e o repositório de `ffc_user_profiles` — nove arquivos, dos quais quatro liam do cache de objetos sem tipo e os demais castavam `mixed` vindo de `get_user_meta()`, `get_option()` ou de um filtro do chamador. A régua de nível 9 baixou de 135 para 109 e os nove ficaram em zero.
 
+- **Formas de linha honestas em activators e migrations** (#1060): os seis arquivos que faltavam. As projeções de backfill (`submission_date`, `submitted_at`, `called_at`) declaram o que o `SELECT` traz, e as leituras de cursor e de versão de schema deixam de castar `mixed` vindo do `get_option()`. A régua de nível 9 baixou de 109 para 91, e **44 dos 45 arquivos estão em zero** — o que resta é a entrada de requisição do #1075.
+
 ### Removed
 
 - `Shortcodes::get_new_captcha_data()` (#1053): método público sem nenhum chamador em produção — o único consumidor era o próprio teste. A geração de desafio já é responsabilidade do contrato de captcha.
 
 ### Fixed
+
+- **Um `batch_size` inválido fazia a migração se declarar concluída sem processar nada** (#1060): o array de configuração chega às estratégias **depois** do filtro `ffcertificate_migrations_registry`, então um terceiro pode pôr qualquer coisa em `batch_size` — e `(int) 'x'` é `0`, o que vira `LIMIT 0`: nenhuma linha lida, `has_more` falso, migração dada como completa. Agora um valor não numérico cai no padrão e há piso de 1.
+
+- **Cursor corrompido pulava a primeira linha da migração** (#1060): o cursor é uma opção, `get_option()` é `mixed` e `(int) array()` é `1` — a varredura `id > 1` nunca via a linha 1. Um valor não numérico agora reinicia em 0, o que no pior caso relê linhas sobre as quais a migração é idempotente.
 
 - **Uma lista de opções numérica tornava o campo `select` impossível de preencher** (#1060): `field_options` é JSON escrito pelo administrador, então `{"choices":[1,2]}` devolvia inteiros, enquanto o validador compara o valor postado — sempre string — com `in_array( …, true )`. Nenhuma seleção casava e toda submissão era recusada como inválida. As opções passam a ser normalizadas para string, e entradas não escalares (que nenhum consumidor consegue renderizar) são descartadas.
 
