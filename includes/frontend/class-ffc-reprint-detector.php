@@ -21,6 +21,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Reprint Detector.
+ *
+ * The result shape is declared here rather than left as
+ * `array<string, mixed>`, because every consumer reads its keys and none of
+ * them could be checked while the values were `mixed` (#1060). `id` keeps the
+ * `numeric-string` that `$wpdb` hands back on the reprint path and the literal
+ * `0` on the other; `date` is unix UTC seconds since 6.6.0 (#249).
+ *
+ * @phpstan-type ReprintResult array{
+ *     is_reprint: bool,
+ *     data: array<string, mixed>,
+ *     id: numeric-string|int,
+ *     email: string,
+ *     date: int
+ * }
  */
 class ReprintDetector {
 
@@ -32,7 +46,7 @@ class ReprintDetector {
 	 * @param int    $form_id Form ID.
 	 * @param string $val_cpf CPF/RF value.
 	 * @param string $val_ticket Ticket value.
-	 * @return array<string, mixed>
+	 * @return ReprintResult
 	 */
 	public static function detect( int $form_id, string $val_cpf, string $val_ticket ): array {
 		global $wpdb;
@@ -102,7 +116,10 @@ class ReprintDetector {
 			'data'       => array(),
 			'id'         => 0,
 			'email'      => '',
-			'date'       => '',
+			// 0, not '': the reprint branch returns unix seconds here, and a
+			// contract whose type depends on the branch cannot be checked.
+			// Only the persister reads this key, and only when is_reprint.
+			'date'       => 0,
 		);
 	}
 
@@ -111,7 +128,7 @@ class ReprintDetector {
 	 *
 	 * @param object $existing_submission Database row.
 	 * @phpstan-param \stdClass&object{id: numeric-string, submission_date: numeric-string|int, email_encrypted?: string|null, data?: string|null} $existing_submission
-	 * @return array<string, mixed> Reprint result array
+	 * @return ReprintResult
 	 */
 	private static function build_reprint_result( object $existing_submission ): array {
 		// Ensure data is not null before json_decode (strict types requirement).

@@ -21,6 +21,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend\Submission;
 
+use FreeFormCertificate\Core\ArrayValue;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -79,8 +80,8 @@ class SubmissionPersister {
 		if ( $is_quiz ) {
 			// Calculate quiz score.
 			$quiz_score    = $this->calculate_quiz_score( $fields_config, $submission_data );
-			$passing_score = absint( $form_config['quiz_passing_score'] ?? 70 );
-			$max_attempts  = absint( $form_config['quiz_max_attempts'] ?? 0 );
+			$passing_score = ArrayValue::int( $form_config, 'quiz_passing_score', 70 );
+			$max_attempts  = ArrayValue::int( $form_config, 'quiz_max_attempts', 0 );
 			$passed        = $quiz_score['percent'] >= $passing_score;
 
 			// Store quiz data in submission.
@@ -110,7 +111,7 @@ class SubmissionPersister {
 					if ( ! is_array( $prev_data ) ) {
 						$prev_data = array();
 					}
-					$prev_attempt = absint( $prev_data['_quiz_attempt'] ?? 0 );
+					$prev_attempt = ArrayValue::int( $prev_data, '_quiz_attempt', 0 );
 				}
 				$attempt_number                   = $prev_attempt + 1;
 				$submission_data['_quiz_attempt'] = $attempt_number;
@@ -318,23 +319,23 @@ class SubmissionPersister {
 		$max_score = 0;
 
 		foreach ( $fields_config as $field ) {
-			$type       = $field['type'] ?? '';
-			$points_str = $field['points'] ?? '';
+			$type       = ArrayValue::string( $field, 'type' );
+			$points_str = ArrayValue::string( $field, 'points' );
 
 			// Only radio/select fields with points participate in scoring.
 			if ( empty( $points_str ) || ! in_array( $type, array( 'radio', 'select' ), true ) ) {
 				continue;
 			}
 
-			$options = array_map( 'trim', explode( ',', $field['options'] ?? '' ) );
+			$options = array_map( 'trim', explode( ',', ArrayValue::string( $field, 'options' ) ) );
 			$points  = array_map( 'intval', array_map( 'trim', explode( ',', $points_str ) ) );
 
 			// Max score: highest point value for this field.
 			$max_score += max( $points );
 
 			// User's answer.
-			$name       = $field['name'] ?? '';
-			$user_value = isset( $submission_data[ $name ] ) ? trim( (string) $submission_data[ $name ] ) : '';
+			$name       = ArrayValue::string( $field, 'name' );
+			$user_value = trim( ArrayValue::string( $submission_data, $name ) );
 
 			// Find matching option index and get its points.
 			foreach ( $options as $i => $opt ) {
@@ -424,8 +425,8 @@ class SubmissionPersister {
 		array $payload,
 		string $participant_cpf_plain
 	): bool {
-		$jti = (string) ( $payload['jti'] ?? '' );
-		$exp = (int) ( $payload['exp'] ?? 0 );
+		$jti = ArrayValue::string( $payload, 'jti' );
+		$exp = ArrayValue::int( $payload, 'exp' );
 		if ( ! \FreeFormCertificate\Frontend\ScheduleExceptionSession::try_consume_jti( $jti, $exp ) ) {
 			return false;
 		}
@@ -492,10 +493,10 @@ class SubmissionPersister {
 				'form_id'               => $form_id,
 				'submission_id'         => $submission_id,
 				'participant_cpf_hash'  => $participant_cpf_hash,
-				'operator_cpf_hash'     => (string) ( $payload['operator_cpf_hash'] ?? '' ),
-				'operator_cpf_masked'   => (string) ( $payload['operator_cpf_masked'] ?? '' ),
-				'schedule_start_before' => (string) ( $payload['baseline_start'] ?? '' ),
-				'schedule_end_before'   => (string) ( $payload['baseline_end'] ?? '' ),
+				'operator_cpf_hash'     => ArrayValue::string( $payload, 'operator_cpf_hash' ),
+				'operator_cpf_masked'   => ArrayValue::string( $payload, 'operator_cpf_masked' ),
+				'schedule_start_before' => ArrayValue::string( $payload, 'baseline_start' ),
+				'schedule_end_before'   => ArrayValue::string( $payload, 'baseline_end' ),
 				'schedule_start_after'  => $start_override,
 				'schedule_end_after'    => $end_override,
 				'ts'                    => time(),
@@ -511,8 +512,8 @@ class SubmissionPersister {
 				'form_id'             => $form_id,
 				'submission_id'       => $submission_id,
 				'bypassed_ip'         => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
-				'operator_cpf_hash'   => (string) ( $payload['operator_cpf_hash'] ?? '' ),
-				'operator_cpf_masked' => (string) ( $payload['operator_cpf_masked'] ?? '' ),
+				'operator_cpf_hash'   => ArrayValue::string( $payload, 'operator_cpf_hash' ),
+				'operator_cpf_masked' => ArrayValue::string( $payload, 'operator_cpf_masked' ),
 				'ts'                  => time(),
 			),
 			0,

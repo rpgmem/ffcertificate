@@ -93,7 +93,10 @@ class ReprintDetectorTest extends TestCase {
 		$this->assertSame([], $result['data']);
 		$this->assertSame(0, $result['id']);
 		$this->assertSame('', $result['email']);
-		$this->assertSame('', $result['date']);
+		// 0, not '': the reprint branch returns unix seconds here, so the old
+		// empty string made the key's type depend on the branch (#1060). Only
+		// the persister reads it, and only when is_reprint is true.
+		$this->assertSame(0, $result['date']);
 	}
 
 	public function test_not_reprint_result_has_complete_structure(): void {
@@ -108,7 +111,7 @@ class ReprintDetectorTest extends TestCase {
 		$this->assertIsArray($result['data']);
 		$this->assertIsInt($result['id']);
 		$this->assertIsString($result['email']);
-		$this->assertIsString($result['date']);
+		$this->assertIsInt($result['date']);
 	}
 
 	// ==================================================================
