@@ -19,6 +19,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Privacy;
 
+use FreeFormCertificate\Core\ArrayValue;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -72,33 +74,38 @@ class PrivacyExporters {
 		$bundle  = \FreeFormCertificate\Services\UserService::export_personal_data( (int) $user->ID );
 		$profile = is_array( $bundle['profile'] ?? null ) ? $bundle['profile'] : array();
 
+		// That bundle merges three sources with different value types
+		// (the WP user object, an optional `ffc_user_profiles` row, a
+		// capability map), so it is read through `ArrayValue` rather
+		// than cast: `(string)` on a non-scalar yields the literal
+		// `Array`, and this one would land in an LGPD export (#1060).
 		$data = array(
 			array(
 				'name'  => __( 'Display Name', 'ffcertificate' ),
-				'value' => (string) ( $profile['display_name'] ?? $user->display_name ),
+				'value' => ArrayValue::string( $profile, 'display_name', (string) $user->display_name ),
 			),
 			array(
 				'name'  => __( 'Email', 'ffcertificate' ),
-				'value' => (string) ( $profile['email'] ?? $user->user_email ),
+				'value' => ArrayValue::string( $profile, 'email', (string) $user->user_email ),
 			),
 		);
 
 		if ( ! empty( $profile['phone'] ) ) {
 			$data[] = array(
 				'name'  => __( 'Phone', 'ffcertificate' ),
-				'value' => (string) $profile['phone'],
+				'value' => ArrayValue::string( $profile, 'phone' ),
 			);
 		}
 		if ( ! empty( $profile['department'] ) ) {
 			$data[] = array(
 				'name'  => __( 'Department', 'ffcertificate' ),
-				'value' => (string) $profile['department'],
+				'value' => ArrayValue::string( $profile, 'department' ),
 			);
 		}
 		if ( ! empty( $profile['organization'] ) ) {
 			$data[] = array(
 				'name'  => __( 'Organization', 'ffcertificate' ),
-				'value' => (string) $profile['organization'],
+				'value' => ArrayValue::string( $profile, 'organization' ),
 			);
 		}
 

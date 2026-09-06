@@ -197,6 +197,13 @@ final class UserIdentifiersQueryService {
 			ARRAY_A
 		);
 
+		/**
+		 * Both columns are selected by name and the WHERE keeps only rows
+		 * where at least one is non-NULL; `$wpdb` hands every column back
+		 * as a string, so the pair is `string|null` (#1060).
+		 *
+		 * @var list<array{cpf_encrypted: string|null, rf_encrypted: string|null}>
+		 */
 		return is_array( $rows ) ? array_values( $rows ) : array();
 	}
 
@@ -231,6 +238,9 @@ final class UserIdentifiersQueryService {
 			)
 		);
 
-		return is_array( $rows ) ? array_values( array_map( 'strval', $rows ) ) : array();
+		// `get_col()` is mixed; a non-string is dropped rather than
+		// stringified — the SQL already excludes NULL and '', so nothing
+		// a decrypter could use is lost (#1060).
+		return is_array( $rows ) ? array_values( array_filter( $rows, 'is_string' ) ) : array();
 	}
 }

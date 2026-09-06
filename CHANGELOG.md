@@ -31,11 +31,20 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Formas de linha honestas em `api`, `generators` e `admin`** (#1060): o `QRCodeGenerator` passa a ler `ffc_settings` pelo `SettingsReader` — regra do próprio projeto — e seus parâmetros viraram uma shape tipada até a chamada da biblioteca; `find_user_bookings()` declara publicamente o que devolve, em vez de `array<string, mixed>`. A régua de nível 9 baixou de 170 para 135 e os três módulos ficaram em zero.
 - **`SettingsReader::get_string()`** (#1060): acessor tipado que faltava. Recusa valor não escalar em vez de convertê-lo — `(string) array()` é a string `Array` mais um notice. Os acessores de int e bool seguem com o cast simples: mudá-los mudaria o que todo chamador existente recebe.
 
+- **Formas de linha honestas nos módulos de domínio** (#1060): `reregistration`, `recruitment`, `privacy`, `services`, `user-dashboard` e o repositório de `ffc_user_profiles` — nove arquivos, dos quais quatro liam do cache de objetos sem tipo e os demais castavam `mixed` vindo de `get_user_meta()`, `get_option()` ou de um filtro do chamador. A régua de nível 9 baixou de 135 para 109 e os nove ficaram em zero.
+
 ### Removed
 
 - `Shortcodes::get_new_captcha_data()` (#1053): método público sem nenhum chamador em produção — o único consumidor era o próprio teste. A geração de desafio já é responsabilidade do contrato de captcha.
 
 ### Fixed
+
+- **Uma lista de opções numérica tornava o campo `select` impossível de preencher** (#1060): `field_options` é JSON escrito pelo administrador, então `{"choices":[1,2]}` devolvia inteiros, enquanto o validador compara o valor postado — sempre string — com `in_array( …, true )`. Nenhuma seleção casava e toda submissão era recusada como inválida. As opções passam a ser normalizadas para string, e entradas não escalares (que nenhum consumidor consegue renderizar) são descartadas.
+
+- **Filtro não-escalar em `ReregistrationRepository::count()` era vinculado como a string `Array`** (#1060): o mesmo defeito já corrigido em `find_user_bookings()`, no outro módulo. O `audience_id` era pior: `(int) array()` é `1`, então um filtro inutilizável passava a contar o público 1.
+
+- **Um valor não escalar em `UserManager::update_profile()` era gravado como a string `Array`** (#1060): o patch chega sem tipo do chamador e era convertido direto; agora o campo é ignorado, o que preserva a coluna em vez de estragá-la. Mesma correção na leitura de metadados sensíveis, que entregava `Array` ao decifrador.
+
 - **O cache de QR Code nunca ligava pelo toggle** (#1060): os dois gravadores da chave `qr_cache_enabled` discordam do tipo — o save do formulário grava `int 1`, e o autosave, que é o que o interruptor chama de fato, grava um booleano. A checagem era `1 === $valor`, e `1 === true` é falso, então ligar o cache pela interface deixava-o desligado.
 
 - **`ReprintDetector::detect()` devolvia `date` com tipo diferente conforme o ramo** (#1060): inteiro (segundos unix) quando havia reimpressão, string vazia quando não. Só um consumidor lê a chave, e só no ramo de reimpressão, então o ramo vazio passou a devolver `0` — um contrato cujo tipo depende do ramo não pode ser verificado.
