@@ -201,9 +201,7 @@ class SettingsActionHandler {
 
 		switch ( $mode ) {
 			case 'save_days':
-				$posted_days = isset( $_POST['obsolete_shortcode_days'] )
-					? absint( wp_unslash( $_POST['obsolete_shortcode_days'] ) )
-					: 0;
+				$posted_days = \FreeFormCertificate\Core\RequestInput::get_post_int( 'obsolete_shortcode_days', 0 );
 				if ( $posted_days < 1 ) {
 					$posted_days = 1;
 				} elseif ( $posted_days > 3650 ) {
@@ -352,7 +350,7 @@ class SettingsActionHandler {
 		}
 
 		if ( 'preview' === $mode ) {
-			$posted_days = isset( $_POST['url_cleanup_days'] ) ? absint( wp_unslash( $_POST['url_cleanup_days'] ) ) : 90;
+			$posted_days = \FreeFormCertificate\Core\RequestInput::get_post_int( 'url_cleanup_days', 90 );
 			$days        = min( 3650, max( 1, $posted_days ) );
 			$orphaned    = empty( $_POST['url_cleanup_orphaned'] ) ? 0 : 1;
 			$never       = empty( $_POST['url_cleanup_never_clicked'] ) ? 0 : 1;
@@ -479,7 +477,7 @@ class SettingsActionHandler {
 		}
 
 		if ( 'preview' === $mode ) {
-			$posted_days                            = isset( $_POST['public_access_disable_days'] ) ? absint( wp_unslash( $_POST['public_access_disable_days'] ) ) : 90;
+			$posted_days                            = \FreeFormCertificate\Core\RequestInput::get_post_int( 'public_access_disable_days', 90 );
 			$days                                   = min( 3650, max( 1, $posted_days ) );
 			$settings['public_access_disable_days'] = $days;
 			update_option( 'ffc_settings', $settings );

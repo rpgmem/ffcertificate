@@ -174,7 +174,7 @@ class TabReregistration extends SettingsTab {
 		}
 		check_admin_referer( self::NONCE );
 
-		$id = isset( $_POST['ffc_ficha_template'] ) ? absint( wp_unslash( $_POST['ffc_ficha_template'] ) ) : 0;
+		$id = \FreeFormCertificate\Core\RequestInput::get_post_int( 'ffc_ficha_template', 0 );
 		// Keep only an id that actually points at a ficha template (0 otherwise).
 		if ( $id > 0 && CertTemplateCpt::KIND_FICHA !== CertTemplateReader::get_kind( $id ) ) {
 			$id = 0;

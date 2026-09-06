@@ -322,9 +322,9 @@ class TabGeolocation extends SettingsTab {
 			'ip_api_cascade'        => isset( $_POST['ip_api_cascade'] ),
 			'ipinfo_api_key'        => \FreeFormCertificate\Core\RequestInput::get_post_string( 'ipinfo_api_key' ),
 			'ip_cache_enabled'      => isset( $_POST['ip_cache_enabled'] ),
-			'ip_cache_ttl'          => max( 300, min( 3600, absint( wp_unslash( $_POST['ip_cache_ttl'] ?? 600 ) ) ) ),
+			'ip_cache_ttl'          => max( 300, min( 3600, \FreeFormCertificate\Core\RequestInput::get_post_int( 'ip_cache_ttl', 600 ) ) ),
 
-			'gps_cache_ttl'         => max( 60, min( 3600, absint( wp_unslash( $_POST['gps_cache_ttl'] ?? 600 ) ) ) ),
+			'gps_cache_ttl'         => max( 60, min( 3600, \FreeFormCertificate\Core\RequestInput::get_post_int( 'gps_cache_ttl', 600 ) ) ),
 
 			'api_fallback'          => in_array( $ffc_api_fallback, array( 'allow', 'block', 'gps_only' ), true )
 				? $ffc_api_fallback

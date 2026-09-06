@@ -411,6 +411,34 @@ class AccessRestrictionCheckerTest extends TestCase {
 		$this->assertEmpty( $remaining );
 	}
 
+	/**
+	 * The sibling above stubs `get_post_meta` returning `array()`. The value it
+	 * actually returns when the meta row does not exist is `''`, and in PHP 8
+	 * assigning an offset on a string is fatal, not a notice — this test fails
+	 * with `TypeError: Cannot access offset of type string on string` against
+	 * the unguarded version.
+	 *
+	 * The path is NOT reachable in production (the caller only gets here after
+	 * `check()` read the same meta as an array), so this locks a latent shape
+	 * rather than fixing a live bug — #1087 says so in those words.
+	 */
+	public function test_consume_ticket_survives_an_absent_config_meta(): void {
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+
+		$saved_config = null;
+		Functions\expect( 'update_post_meta' )
+			->once()
+			->with( 1, '_ffc_form_config', Mockery::on( function( $config ) use ( &$saved_config ) {
+				$saved_config = $config;
+				return true;
+			} ) )
+			->andReturn( true );
+
+		AccessRestrictionChecker::consume_ticket( 1, 'ANYTHING' );
+
+		$this->assertSame( '', $saved_config['generated_codes_list'] );
+	}
+
 	public function test_consume_ticket_with_missing_config_key(): void {
 		$existing_config = array();  // No 'generated_codes_list'
 

@@ -206,37 +206,37 @@ class TabRateLimit extends SettingsTab {
 		$settings = array(
 			'ip'        => array(
 				'enabled'          => isset( $_POST['ip_enabled'] ),
-				'max_per_hour'     => absint( wp_unslash( $_POST['ip_max_per_hour'] ?? 5 ) ),
-				'max_per_day'      => absint( wp_unslash( $_POST['ip_max_per_day'] ?? 20 ) ),
-				'cooldown_seconds' => absint( wp_unslash( $_POST['ip_cooldown_seconds'] ?? 60 ) ),
+				'max_per_hour'     => \FreeFormCertificate\Core\RequestInput::get_post_int( 'ip_max_per_hour', 5 ),
+				'max_per_day'      => \FreeFormCertificate\Core\RequestInput::get_post_int( 'ip_max_per_day', 20 ),
+				'cooldown_seconds' => \FreeFormCertificate\Core\RequestInput::get_post_int( 'ip_cooldown_seconds', 60 ),
 				'apply_to'         => \FreeFormCertificate\Core\RequestInput::get_post_string( 'ip_apply_to', 'all' ),
 				'message'          => sanitize_textarea_field( wp_unslash( $_POST['ip_message'] ?? '' ) ),
 			),
 			'email'     => array(
 				'enabled'        => isset( $_POST['email_enabled'] ),
-				'max_per_day'    => absint( wp_unslash( $_POST['email_max_per_day'] ?? 3 ) ),
-				'max_per_week'   => absint( wp_unslash( $_POST['email_max_per_week'] ?? 10 ) ),
-				'max_per_month'  => absint( wp_unslash( $_POST['email_max_per_month'] ?? 30 ) ),
-				'wait_hours'     => absint( wp_unslash( $_POST['email_wait_hours'] ?? 24 ) ),
+				'max_per_day'    => \FreeFormCertificate\Core\RequestInput::get_post_int( 'email_max_per_day', 3 ),
+				'max_per_week'   => \FreeFormCertificate\Core\RequestInput::get_post_int( 'email_max_per_week', 10 ),
+				'max_per_month'  => \FreeFormCertificate\Core\RequestInput::get_post_int( 'email_max_per_month', 30 ),
+				'wait_hours'     => \FreeFormCertificate\Core\RequestInput::get_post_int( 'email_wait_hours', 24 ),
 				'apply_to'       => \FreeFormCertificate\Core\RequestInput::get_post_string( 'email_apply_to', 'all' ),
 				'message'        => sanitize_textarea_field( wp_unslash( $_POST['email_message'] ?? '' ) ),
 				'check_database' => isset( $_POST['email_check_database'] ),
 			),
 			'cpf'       => array(
 				'enabled'         => isset( $_POST['cpf_enabled'] ),
-				'max_per_month'   => absint( wp_unslash( $_POST['cpf_max_per_month'] ?? 5 ) ),
-				'max_per_year'    => absint( wp_unslash( $_POST['cpf_max_per_year'] ?? 50 ) ),
-				'block_threshold' => absint( wp_unslash( $_POST['cpf_block_threshold'] ?? 3 ) ),
-				'block_hours'     => absint( wp_unslash( $_POST['cpf_block_hours'] ?? 1 ) ),
-				'block_duration'  => absint( wp_unslash( $_POST['cpf_block_duration'] ?? 24 ) ),
+				'max_per_month'   => \FreeFormCertificate\Core\RequestInput::get_post_int( 'cpf_max_per_month', 5 ),
+				'max_per_year'    => \FreeFormCertificate\Core\RequestInput::get_post_int( 'cpf_max_per_year', 50 ),
+				'block_threshold' => \FreeFormCertificate\Core\RequestInput::get_post_int( 'cpf_block_threshold', 3 ),
+				'block_hours'     => \FreeFormCertificate\Core\RequestInput::get_post_int( 'cpf_block_hours', 1 ),
+				'block_duration'  => \FreeFormCertificate\Core\RequestInput::get_post_int( 'cpf_block_duration', 24 ),
 				'apply_to'        => \FreeFormCertificate\Core\RequestInput::get_post_string( 'cpf_apply_to', 'all' ),
 				'message'         => sanitize_textarea_field( wp_unslash( $_POST['cpf_message'] ?? '' ) ),
 				'check_database'  => isset( $_POST['cpf_check_database'] ),
 			),
 			'global'    => array(
 				'enabled'        => isset( $_POST['global_enabled'] ),
-				'max_per_minute' => absint( wp_unslash( $_POST['global_max_per_minute'] ?? 100 ) ),
-				'max_per_hour'   => absint( wp_unslash( $_POST['global_max_per_hour'] ?? 1000 ) ),
+				'max_per_minute' => \FreeFormCertificate\Core\RequestInput::get_post_int( 'global_max_per_minute', 100 ),
+				'max_per_hour'   => \FreeFormCertificate\Core\RequestInput::get_post_int( 'global_max_per_hour', 1000 ),
 				'message'        => sanitize_textarea_field( wp_unslash( $_POST['global_message'] ?? '' ) ),
 			),
 			'read'      => array(
@@ -247,9 +247,9 @@ class TabRateLimit extends SettingsTab {
 			),
 			'device'    => array(
 				'enabled'                   => isset( $_POST['device_enabled'] ),
-				'max_per_form'              => max( 1, absint( wp_unslash( $_POST['device_max_per_form'] ?? 1 ) ) ),
-				'match_threshold'           => max( 3, min( 12, absint( wp_unslash( $_POST['device_match_threshold'] ?? 7 ) ) ) ),
-				'match_strong_min'          => max( 0, min( 6, absint( wp_unslash( $_POST['device_match_strong_min'] ?? 2 ) ) ) ),
+				'max_per_form'              => max( 1, \FreeFormCertificate\Core\RequestInput::get_post_int( 'device_max_per_form', 1 ) ),
+				'match_threshold'           => max( 3, min( 12, \FreeFormCertificate\Core\RequestInput::get_post_int( 'device_match_threshold', 7 ) ) ),
+				'match_strong_min'          => max( 0, min( 6, \FreeFormCertificate\Core\RequestInput::get_post_int( 'device_match_strong_min', 2 ) ) ),
 				'signals_enabled'           => isset( $_POST['device_signals_enabled'] ) && is_array( $_POST['device_signals_enabled'] )
 					? array_values(
 						array_intersect(
@@ -269,7 +269,7 @@ class TabRateLimit extends SettingsTab {
 					)
 				),
 				'message'                   => sanitize_textarea_field( wp_unslash( $_POST['device_message'] ?? '' ) ),
-				'retention_days'            => max( 1, absint( wp_unslash( $_POST['device_retention_days'] ?? 90 ) ) ),
+				'retention_days'            => max( 1, \FreeFormCertificate\Core\RequestInput::get_post_int( 'device_retention_days', 90 ) ),
 				'log_blocks'                => isset( $_POST['device_log_blocks'] ),
 			),
 			'whitelist' => array(
@@ -290,8 +290,8 @@ class TabRateLimit extends SettingsTab {
 				'enabled'        => isset( $_POST['logging_enabled'] ),
 				'log_allowed'    => isset( $_POST['logging_log_allowed'] ),
 				'log_blocked'    => isset( $_POST['logging_log_blocked'] ),
-				'retention_days' => absint( wp_unslash( $_POST['logging_retention_days'] ?? 30 ) ),
-				'max_logs'       => absint( wp_unslash( $_POST['logging_max_logs'] ?? 10000 ) ),
+				'retention_days' => \FreeFormCertificate\Core\RequestInput::get_post_int( 'logging_retention_days', 30 ),
+				'max_logs'       => \FreeFormCertificate\Core\RequestInput::get_post_int( 'logging_max_logs', 10000 ),
 			),
 			'ui'        => array(
 				'show_remaining'  => isset( $_POST['ui_show_remaining'] ),
@@ -324,8 +324,8 @@ class TabRateLimit extends SettingsTab {
 		foreach ( $known as $key ) {
 			$out[ $key ] = array(
 				'enabled'        => isset( $_POST[ 'read_endpoint_' . $key . '_enabled' ] ),
-				'max_per_minute' => absint( wp_unslash( $_POST[ 'read_endpoint_' . $key . '_max_per_minute' ] ?? 0 ) ),
-				'max_per_hour'   => absint( wp_unslash( $_POST[ 'read_endpoint_' . $key . '_max_per_hour' ] ?? 0 ) ),
+				'max_per_minute' => \FreeFormCertificate\Core\RequestInput::get_post_int( 'read_endpoint_' . $key . '_max_per_minute', 0 ),
+				'max_per_hour'   => \FreeFormCertificate\Core\RequestInput::get_post_int( 'read_endpoint_' . $key . '_max_per_hour', 0 ),
 			);
 		}
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
