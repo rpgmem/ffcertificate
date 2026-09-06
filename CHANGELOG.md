@@ -44,6 +44,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **`UserManager::get_profile()` devolvia formas diferentes conforme o ramo** (#1077): vindo da tabela era a linha crua — `user_id` como `'42'`, mais uma chave `id` que ninguém lê —, e vindo do fallback era um array montado em PHP com `user_id` inteiro e sem `id`. Qual ramo roda depende do **estado da instalação**, não da chamada, então o mesmo código recebia tipos diferentes em sites diferentes. Passa a devolver uma forma só, declarada; array vazio continua significando "usuário inexistente".
+
 - **Numa instalação nova, a aba Geral mostrava três padrões de QR Code que o plugin não usava** (#1076): cada `<option>` do nível de correção passava **o próprio valor** como fallback do `get_option`, então com a chave ausente as quatro eram marcadas e o navegador honrava a última — a tela dizia "H — Alta (30%)" enquanto o gerador usava o `'M'` declarado, e salvar sem tocar no campo gravava `H`. O tamanho (100 contra 200 declarado) e a margem (0 contra 2) tinham a mesma divergência, encontradas ao medir. Os três passam a ler o padrão declarado.
 
 - **O guarda de defaults (#993) não enxergava as views das abas** (#1076): ele varre `includes/` inteiro, mas só reconhecia `SettingsReader::get*()` — e as views leem pelo invólucro `$tab->get_option( 'chave', 'padrão' )`, que é uma linha sobre o mesmo leitor. Passa a reconhecer as três formas, e resolve um `Class::CONSTANTE` no site de leitura quando o nome é inequívoco, em vez de reportá-lo como divergência. Foi assim que os outros dois defeitos acima apareceram.
