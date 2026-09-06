@@ -455,7 +455,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 						<label for="qr_default_size"><?php esc_html_e( 'Default QR Code Size', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<input type="number" name="ffc_settings[qr_default_size]" id="qr_default_size" value="<?php echo esc_attr( $ffcertificate_get_option( 'qr_default_size', 100 ) ); ?>" min="100" max="500" step="10" class="small-text" data-ffc-autosave-key="qr_default_size"> px
+						<input type="number" name="ffc_settings[qr_default_size]" id="qr_default_size" value="<?php echo esc_attr( $ffcertificate_get_option( 'qr_default_size', 200 ) ); ?>" min="100" max="500" step="10" class="small-text" data-ffc-autosave-key="qr_default_size"> px
 						<p class="description">
 							<?php esc_html_e( 'Default size when {{qr_code}} placeholder is used without size parameter. Range: 100-500px.', 'ffcertificate' ); ?>
 						</p>
@@ -467,7 +467,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 						<label for="qr_default_margin"><?php esc_html_e( 'Default QR Code Margin', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<input type="number" name="ffc_settings[qr_default_margin]" id="qr_default_margin" value="<?php echo esc_attr( $ffcertificate_get_option( 'qr_default_margin', 0 ) ); ?>" min="0" max="10" step="1" class="small-text" data-ffc-autosave-key="qr_default_margin">
+						<input type="number" name="ffc_settings[qr_default_margin]" id="qr_default_margin" value="<?php echo esc_attr( $ffcertificate_get_option( 'qr_default_margin', 2 ) ); ?>" min="0" max="10" step="1" class="small-text" data-ffc-autosave-key="qr_default_margin">
 						<p class="description">
 							<?php esc_html_e( 'White space around QR Code in modules. 0 = no margin, higher values = more white space.', 'ffcertificate' ); ?>
 						</p>
@@ -479,17 +479,25 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 						<label for="qr_default_error_level"><?php esc_html_e( 'Default Error Correction Level', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
+						<?php
+						// Read once, outside the options: passing each option's
+						// own value as the fallback made every `selected()` fire
+						// when the key was absent, and the browser honours the
+						// last — so a fresh install showed "H" while the
+						// generator used the declared 'M' (#1076).
+						$ffcertificate_qr_level = $ffcertificate_get_option( 'qr_default_error_level', 'M' );
+						?>
 						<select name="ffc_settings[qr_default_error_level]" id="qr_default_error_level" class="regular-text" data-ffc-autosave-key="qr_default_error_level">
-							<option value="L" <?php selected( 'L', $ffcertificate_get_option( 'qr_default_error_level', 'L' ) ); ?>>
+							<option value="L" <?php selected( 'L', $ffcertificate_qr_level ); ?>>
 								L - <?php esc_html_e( 'Low (7% correction)', 'ffcertificate' ); ?>
 							</option>
-							<option value="M" <?php selected( 'M', $ffcertificate_get_option( 'qr_default_error_level', 'M' ) ); ?>>
+							<option value="M" <?php selected( 'M', $ffcertificate_qr_level ); ?>>
 								M - <?php esc_html_e( 'Medium (15% correction) - Recommended', 'ffcertificate' ); ?>
 							</option>
-							<option value="Q" <?php selected( 'Q', $ffcertificate_get_option( 'qr_default_error_level', 'Q' ) ); ?>>
+							<option value="Q" <?php selected( 'Q', $ffcertificate_qr_level ); ?>>
 								Q - <?php esc_html_e( 'Quartile (25% correction)', 'ffcertificate' ); ?>
 							</option>
-							<option value="H" <?php selected( 'H', $ffcertificate_get_option( 'qr_default_error_level', 'H' ) ); ?>>
+							<option value="H" <?php selected( 'H', $ffcertificate_qr_level ); ?>>
 								H - <?php esc_html_e( 'High (30% correction)', 'ffcertificate' ); ?>
 							</option>
 						</select>
