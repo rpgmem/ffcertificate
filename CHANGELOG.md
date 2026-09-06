@@ -28,11 +28,16 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Formas de linha honestas em `frontend` e `core`** (#1060): `ActivityLogQuery` declara a linha do log derivada do `CREATE TABLE`, e `ReprintDetector` declara o formato do resultado que dois consumidores já liam às cegas. A régua de nível 9 baixou de 203 para 170 e os dois módulos ficaram em zero.
 - **`Core\ArrayValue`** (#1060): leitura de escalar sobre array sem tipo — JSON decodificado, configuração de formulário, payload de token. Substitui o idioma `(string) ( $data['k'] ?? '' )`, que não confere nada: dado um array ele produz a string `Array`, dado um objeto sem `__toString` é fatal. Não serve para `$_POST` (isso é o `RequestInput`) nem para linha de banco (isso é shape declarada).
 
+- **Formas de linha honestas em `api`, `generators` e `admin`** (#1060): o `QRCodeGenerator` passa a ler `ffc_settings` pelo `SettingsReader` — regra do próprio projeto — e seus parâmetros viraram uma shape tipada até a chamada da biblioteca; `find_user_bookings()` declara publicamente o que devolve, em vez de `array<string, mixed>`. A régua de nível 9 baixou de 170 para 135 e os três módulos ficaram em zero.
+- **`SettingsReader::get_string()`** (#1060): acessor tipado que faltava. Recusa valor não escalar em vez de convertê-lo — `(string) array()` é a string `Array` mais um notice. Os acessores de int e bool seguem com o cast simples: mudá-los mudaria o que todo chamador existente recebe.
+
 ### Removed
 
 - `Shortcodes::get_new_captcha_data()` (#1053): método público sem nenhum chamador em produção — o único consumidor era o próprio teste. A geração de desafio já é responsabilidade do contrato de captcha.
 
 ### Fixed
+- **O cache de QR Code nunca ligava pelo toggle** (#1060): os dois gravadores da chave `qr_cache_enabled` discordam do tipo — o save do formulário grava `int 1`, e o autosave, que é o que o interruptor chama de fato, grava um booleano. A checagem era `1 === $valor`, e `1 === true` é falso, então ligar o cache pela interface deixava-o desligado.
+
 - **`ReprintDetector::detect()` devolvia `date` com tipo diferente conforme o ramo** (#1060): inteiro (segundos unix) quando havia reimpressão, string vazia quando não. Só um consumidor lê a chave, e só no ramo de reimpressão, então o ramo vazio passou a devolver `0` — um contrato cujo tipo depende do ramo não pode ser verificado.
 
 - **Ids não-numéricos em reservas de público viravam `0`** (#1060): `audience_ids` e `user_ids` chegam dentro de um `$data` do chamador, e cada entrada era convertida direto com `(int)` — uma string solta ou `null` virava `0` e gravava uma linha de junção apontando para um público que não existe. Agora entradas não-numéricas são descartadas.

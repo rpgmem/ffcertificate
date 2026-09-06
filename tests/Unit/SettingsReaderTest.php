@@ -113,6 +113,33 @@ class SettingsReaderTest extends TestCase {
 		$this->assertTrue( SettingsReader::get_bool( 'missing', true ) );
 	}
 
+	public function test_get_string_reads_a_scalar(): void {
+		$this->stub_option( array(
+			'as_string' => 'H',
+			'as_int'    => 7,
+		) );
+
+		$this->assertSame( 'H', SettingsReader::get_string( 'as_string' ) );
+		$this->assertSame( '7', SettingsReader::get_string( 'as_int' ) );
+	}
+
+	public function test_get_string_refuses_a_non_scalar_instead_of_returning_the_word_array(): void {
+		// Unlike its int and bool siblings this does not cast blindly:
+		// `(string) array()` is the literal 'Array' plus a notice, and a
+		// setting that reads as the word Array is worse than its default
+		// (#1060).
+		$this->stub_option( array( 'as_array' => array( 'a' ) ) );
+
+		$this->assertSame( 'fallback', SettingsReader::get_string( 'as_array', 'fallback' ) );
+	}
+
+	public function test_get_string_returns_the_default_when_the_key_is_absent(): void {
+		$this->stub_option( array() );
+
+		$this->assertSame( '', SettingsReader::get_string( 'missing' ) );
+		$this->assertSame( 'M', SettingsReader::get_string( 'missing', 'M' ) );
+	}
+
 	public function test_get_int_casts_numeric_strings(): void {
 		$this->stub_option( array(
 			'as_int'    => 42,

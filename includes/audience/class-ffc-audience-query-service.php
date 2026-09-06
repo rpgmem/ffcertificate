@@ -78,6 +78,31 @@ if ( ! defined( 'ABSPATH' ) ) {
  *     schedule_name: string|null,
  *     is_all_day?: numeric-string|null
  * }
+ * `UserBookingWithAudiences` repeats every key of `UserBookingRow` instead of
+ * intersecting with it: PHPStan resolves an intersection of two sealed array
+ * shapes to *NEVER*, so `UserBookingRow&array{audiences: …}` type-checks as a
+ * value that cannot exist. The duplication is the cost of saying what the
+ * method actually returns.
+ *
+ * @phpstan-type UserBookingWithAudiences array{
+ *     id: numeric-string,
+ *     environment_id: numeric-string,
+ *     booking_date: string,
+ *     start_time: string,
+ *     end_time: string,
+ *     booking_type: string,
+ *     description: string,
+ *     status: string|null,
+ *     created_by: numeric-string,
+ *     created_at: string|null,
+ *     cancelled_by: numeric-string|null,
+ *     cancelled_at: string|null,
+ *     cancellation_reason: string|null,
+ *     environment_name: string|null,
+ *     schedule_name: string|null,
+ *     is_all_day?: numeric-string|null,
+ *     audiences: list<array{name: string, color: string|null}>
+ * }
  * @phpstan-type BookingAudienceBadgeRow array{
  *     booking_id: numeric-string,
  *     name: string,
@@ -213,7 +238,7 @@ final class AudienceQueryService {
 	 * @since 6.6.2
 	 * @param int                  $user_id WordPress user ID.
 	 * @param array<string, mixed> $filter  Optional filter (see shape above).
-	 * @return list<array<string, mixed>>
+	 * @return list<UserBookingWithAudiences>
 	 */
 	public static function find_user_bookings( int $user_id, array $filter = array() ): array {
 		if ( $user_id <= 0 ) {

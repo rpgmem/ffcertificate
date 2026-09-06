@@ -243,6 +243,10 @@ class UserAudienceRestControllerTest extends TestCase {
 			'environment_name' => 'Env',
 			'schedule_name'    => 'Sched',
 			'description'      => '',
+			// The service always sets this key — an empty batch-load yields an
+			// empty list, never an absent key — so the fixture has to as well,
+			// or it tests a row shape production never produces (#1060).
+			'audiences'        => array(),
 		);
 		// Service returns the single booking row (audience batch-load empty).
 		$this->query_service->shouldReceive( 'find_user_bookings' )->andReturn( array( $booking_row ) );

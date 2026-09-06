@@ -55,7 +55,7 @@ jobs:
           vendor/bin/phpstan analyse -c phpstan-rows.neon.dist \
             --error-format=json --no-progress --memory-limit=2G > rows.json || true
       - name: Report the row-reading classes
-        run: php .github/scripts/phpstan-rows-report.php rows.json 170
+        run: php .github/scripts/phpstan-rows-report.php rows.json 135
 
   audit:
     name: Composer audit
