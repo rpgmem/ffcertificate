@@ -20,6 +20,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Migrations\Strategies;
 
 use Exception;
+use FreeFormCertificate\Core\ArrayValue;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -29,6 +30,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.DirectDatabaseQuery -- Schema and data statements against the plugin's own ffc_* tables during activation/migration. WordPress exposes no API for them, and there is nothing to cache on this path.
 /**
  * Strategy implementation for cpf rf split migration.
+ *
+ * The row shape below is the projection this class selects, not the whole
+ * table: `$wpdb` returns every column as a string, the WHERE guarantees
+ * `cpf_rf_hash` is present, and the two legacy payload columns are
+ * nullable — which is exactly why `resolve_plain_value()` tries them in
+ * order (#1060).
+ *
+ * @phpstan-type CpfRfLegacyRow array{id: numeric-string, cpf_rf: string|null, cpf_rf_encrypted: string|null, cpf_rf_hash: string}
  */
 class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 
@@ -105,7 +114,12 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 	 * @return array<string, mixed> Execution result
 	 */
 	public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array {
-		$batch_size = isset( $migration_config['batch_size'] ) ? intval( $migration_config['batch_size'] ) : 50;
+		// `$migration_config` comes out of the registry *after*
+		// `ffcertificate_migrations_registry` has run, so a filter can put
+		// anything here. `intval( 'x' )` is 0, and a batch size of 0 makes
+		// the migration report itself complete having processed nothing —
+		// hence the typed read plus a floor of 1 (#1060).
+		$batch_size = max( 1, ArrayValue::int( $migration_config, 'batch_size', 50 ) );
 
 		$total_processed = 0;
 		$all_errors      = array();
@@ -297,6 +311,11 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 			);
 		}
 
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var CpfRfLegacyRow $record
+		 */
 		foreach ( $records as $record ) {
 			try {
 				$plain_value = $this->resolve_plain_value( $record );
@@ -399,6 +418,7 @@ class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 	 * 2. Decrypt cpf_rf_encrypted
 	 *
 	 * @param array<string, mixed> $record Database row.
+	 * @phpstan-param CpfRfLegacyRow $record
 	 * @return string|null Clean digits or null
 	 */
 	private function resolve_plain_value( array $record ): ?string {
