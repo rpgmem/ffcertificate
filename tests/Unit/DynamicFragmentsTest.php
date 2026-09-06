@@ -139,63 +139,150 @@ class DynamicFragmentsTest extends TestCase {
 	// handle() — per-form challenges
 	// ==================================================================
 
-	public function test_handle_issues_one_challenge_per_form_when_several_are_posted(): void {
-		// Two forms on one page must never share a token (#1056), so the
-		// endpoint asks the provider once per form and keys the answers by
-		// form id. Distinct payloads here are what prove they are separate
-		// calls rather than one reused value.
-		$this->mockProvider(
-			array( 'provider' => 'math', 'new_label' => 'a', 'new_hash' => 'a-hash' ),
-			array( 'provider' => 'math', 'new_label' => 'b', 'new_hash' => 'b-hash' ),
-			array( 'provider' => 'math', 'new_label' => 'c', 'new_hash' => 'c-hash' )
-		);
-
+	/**
+	 * Stub the WP functions every `handle()` path touches.
+	 */
+	private function stubWordPress(): void {
 		Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );
 		Functions\when( 'wp_unslash' )->returnArg();
-		// The same `form_ids` also drive the geofence branch further down.
+		// `form_ids` also drives the geofence branch further down.
 		Functions\when( 'get_post_meta' )->justReturn( '' );
+	}
+
+	public function test_handle_issues_one_challenge_per_security_block(): void {
+		// Two blocks on one page must never share a token (#1056): since
+		// #1054 the token is single-use, so the second submitter sends one
+		// the first already spent. Distinct payloads here are what prove
+		// these are separate provider calls rather than one reused value.
+		$this->mockProvider(
+			array( 'provider' => 'math', 'new_label' => 'default', 'new_hash' => 'default-hash' ),
+			array( 'provider' => 'math', 'new_label' => 'a', 'new_hash' => 'a-hash' ),
+			array( 'provider' => 'math', 'new_label' => 'b', 'new_hash' => 'b-hash' )
+		);
+		$this->stubWordPress();
 
 		$_POST['form_ids'] = array( '7', '8' );
+		$_POST['blocks']   = '2';
 
 		$fragments = new DynamicFragments();
 		$this->callHandle( $fragments );
 
-		unset( $_POST['form_ids'] );
+		unset( $_POST['form_ids'], $_POST['blocks'] );
 
 		$data = $this->json_responses[0]['data'];
 
 		$this->assertArrayHasKey( 'captchas', $data );
-		$this->assertSame( array( 7, 8 ), array_keys( $data['captchas'] ) );
+		$this->assertCount( 2, $data['captchas'] );
+		$this->assertSame( array( 0, 1 ), array_keys( $data['captchas'] ) );
 		$this->assertNotSame(
-			$data['captchas'][7]['new_hash'],
-			$data['captchas'][8]['new_hash'],
-			'Each form must get its own token, or the second form submits one the first already spent.'
+			$data['captchas'][0]['new_hash'],
+			$data['captchas'][1]['new_hash'],
+			'Each block must get its own token, or one form spends the other\'s.'
 		);
 	}
 
-	public function test_handle_omits_per_form_challenges_for_a_single_form(): void {
-		// One form needs no per-form branch — the default challenge already
-		// lands on it, and a `captchas` map of one would be a second token
-		// for the same block.
-		$this->mockProvider( array( 'provider' => 'math', 'new_label' => 'a', 'new_hash' => 'a-hash' ) );
-
-		Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
-		Functions\when( 'is_user_logged_in' )->justReturn( false );
-		Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );
-		Functions\when( 'wp_unslash' )->returnArg();
-		// The same `form_ids` also drive the geofence branch further down.
-		Functions\when( 'get_post_meta' )->justReturn( '' );
+	/**
+	 * #1063 — the defect this replaced. A page with one certificate form
+	 * beside a `[ffc_self_scheduling]` or `[ffc_csv_download]` block has TWO
+	 * security blocks and ONE form id. Counting form ids saw a single form,
+	 * emitted no per-form map, and both blocks fell back to `captcha`.
+	 */
+	public function test_handle_counts_blocks_not_forms(): void {
+		$this->mockProvider(
+			array( 'provider' => 'math', 'new_label' => 'default', 'new_hash' => 'default-hash' ),
+			array( 'provider' => 'math', 'new_label' => 'a', 'new_hash' => 'a-hash' ),
+			array( 'provider' => 'math', 'new_label' => 'b', 'new_hash' => 'b-hash' )
+		);
+		$this->stubWordPress();
 
 		$_POST['form_ids'] = array( '7' );
+		$_POST['blocks']   = '2';
+
+		$fragments = new DynamicFragments();
+		$this->callHandle( $fragments );
+
+		unset( $_POST['form_ids'], $_POST['blocks'] );
+
+		$data = $this->json_responses[0]['data'];
+
+		$this->assertArrayHasKey( 'captchas', $data, 'One form id but two blocks still needs two challenges.' );
+		$this->assertCount( 2, $data['captchas'] );
+		$this->assertNotSame( $data['captchas'][0]['new_hash'], $data['captchas'][1]['new_hash'] );
+	}
+
+	public function test_handle_omits_the_list_for_a_single_block(): void {
+		// One block needs no list — the default challenge already lands on
+		// it, and a list of one would mint a second token for the same block.
+		$this->mockProvider( array( 'provider' => 'math', 'new_label' => 'a', 'new_hash' => 'a-hash' ) );
+		$this->stubWordPress();
+
+		$_POST['form_ids'] = array( '7' );
+		$_POST['blocks']   = '1';
+
+		$fragments = new DynamicFragments();
+		$this->callHandle( $fragments );
+
+		unset( $_POST['form_ids'], $_POST['blocks'] );
+
+		$this->assertArrayNotHasKey( 'captchas', $this->json_responses[0]['data'] );
+	}
+
+	/**
+	 * The endpoint is public and nonce-free by design, so the posted count is
+	 * attacker-controlled. Without the ceiling one request mints as many
+	 * signed challenges as it asks for.
+	 */
+	public function test_handle_clamps_the_block_count(): void {
+		$provider = Mockery::mock( '\FreeFormCertificate\Core\Captcha\CaptchaProviderInterface' );
+		$calls    = 0;
+		$provider->shouldReceive( 'challenge_payload' )->andReturnUsing(
+			function () use ( &$calls ) {
+				++$calls;
+				return array( 'provider' => 'math', 'new_label' => 'l' . $calls, 'new_hash' => 'h' . $calls );
+			}
+		);
+		$resolver = Mockery::mock( 'alias:\FreeFormCertificate\Core\Captcha\CaptchaProvider' );
+		$resolver->shouldReceive( 'resolve' )->andReturn( $provider );
+
+		$this->stubWordPress();
+
+		$_POST['blocks'] = '5000';
+
+		$fragments = new DynamicFragments();
+		$this->callHandle( $fragments );
+
+		unset( $_POST['blocks'] );
+
+		$this->assertCount( 20, $this->json_responses[0]['data']['captchas'] );
+		$this->assertSame( 21, $calls, 'One default challenge plus the capped list — never 5000.' );
+	}
+
+	/**
+	 * Same ceiling on the ids, for the same reason: each one costs a
+	 * `get_post_meta()` read in the geofence loop.
+	 */
+	public function test_handle_clamps_the_form_id_count(): void {
+		$this->mockProvider( array( 'provider' => 'math', 'new_label' => 'a', 'new_hash' => 'a-hash' ) );
+		$this->stubWordPress();
+
+		$reads = 0;
+		Functions\when( 'get_post_meta' )->alias(
+			function () use ( &$reads ) {
+				++$reads;
+				return '';
+			}
+		);
+
+		$_POST['form_ids'] = array_map( 'strval', range( 1, 500 ) );
 
 		$fragments = new DynamicFragments();
 		$this->callHandle( $fragments );
 
 		unset( $_POST['form_ids'] );
 
-		$this->assertArrayNotHasKey( 'captchas', $this->json_responses[0]['data'] );
+		$this->assertSame( 20, $reads, 'A forged form_ids list must not drive 500 meta reads.' );
 	}
 
 	// ==================================================================

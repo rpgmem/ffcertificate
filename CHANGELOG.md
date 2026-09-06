@@ -41,6 +41,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Dois blocos de captcha na mesma página podiam receber o mesmo token** (#1063): numa página que misture `[ffc_form]` com `[ffc_self_scheduling]` ou `[ffc_csv_download]`, o refresh de fragmentos escrevia o mesmo desafio nos dois — e o token é de uso único desde o #1054, então quem enviasse primeiro queimava o do outro, e o segundo formulário recusava uma resposta correta. A causa era conceitual: o servidor emitia um desafio por **formulário**, mas quem consome um desafio é o **bloco de segurança**, e os blocos do agendamento e do download não vivem dentro de um formulário. O cliente passa a informar quantos blocos existem e o servidor emite essa quantidade.
+
+- **Endpoint de fragmentos aceitava listas de tamanho ilimitado** (#1063): ele é público e sem nonce por construção, então a quantidade pedida vem do atacante. `form_ids` acionava uma leitura de `get_post_meta()` por id, sem teto. Ambas as listas passam a ter limite de 20.
+
+
 - **Um `batch_size` inválido fazia a migração se declarar concluída sem processar nada** (#1060): o array de configuração chega às estratégias **depois** do filtro `ffcertificate_migrations_registry`, então um terceiro pode pôr qualquer coisa em `batch_size` — e `(int) 'x'` é `0`, o que vira `LIMIT 0`: nenhuma linha lida, `has_more` falso, migração dada como completa. Agora um valor não numérico cai no padrão e há piso de 1.
 
 - **Cursor corrompido pulava a primeira linha da migração** (#1060): o cursor é uma opção, `get_option()` é `mixed` e `(int) array()` é `1` — a varredura `id > 1` nunca via a linha 1. Um valor não numérico agora reinicia em 0, o que no pior caso relê linhas sobre as quais a migração é idempotente.
