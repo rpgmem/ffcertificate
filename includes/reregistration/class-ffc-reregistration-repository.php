@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Reregistration;
 
 use FreeFormCertificate\Audience\AudienceReader;
+use FreeFormCertificate\Core\ArrayValue;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -179,6 +180,16 @@ class ReregistrationRepository {
 	 * @return ReregistrationRow|null
 	 */
 	public static function get_by_id( int $id ): ?object {
+		/**
+		 * The object cache is untyped — `wp_cache_get()` returns mixed — and
+		 * this key is the one written a few lines below, so the assertion is
+		 * checkable against the `cache_set()` in the same method. It is stated
+		 * per key rather than on the trait's `cache_get()` because the cache
+		 * is heterogeneous: this class also stores other shapes under other
+		 * keys, and one type on the accessor would be a lie for those.
+		 *
+		 * @var ReregistrationRow|false $cached
+		 */
 		$cached = static::cache_get( "id_{$id}" );
 		if ( false !== $cached ) {
 			return $cached;
@@ -304,15 +315,19 @@ class ReregistrationRepository {
 		$where  = array();
 		$values = array( $table );
 
+		// The filters arrive untyped from the caller and are bound
+		// straight into the statement, so they are read through
+		// `ArrayValue` rather than passed on: a non-scalar binds as the
+		// literal `Array`, which matches nothing and says nothing (#1060).
 		if ( ! empty( $filters['audience_id'] ) ) {
 			$joins    = 'JOIN %i ra_filter ON r.id = ra_filter.reregistration_id AND ra_filter.audience_id = %d';
 			$values[] = $junction;
-			$values[] = (int) $filters['audience_id'];
+			$values[] = ArrayValue::int( $filters, 'audience_id' );
 		}
 
 		if ( ! empty( $filters['status'] ) ) {
 			$where[]  = 'r.status = %s';
-			$values[] = $filters['status'];
+			$values[] = ArrayValue::string( $filters, 'status' );
 		}
 
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
@@ -405,7 +420,7 @@ class ReregistrationRepository {
 				continue;
 			}
 			if ( 'title' === $key ) {
-				$value = sanitize_text_field( $value );
+				$value = sanitize_text_field( ArrayValue::string( $data, $key ) );
 			}
 			$update_data[ $key ] = $value;
 			$format[]            = $field_formats[ $key ];

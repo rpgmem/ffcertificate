@@ -130,7 +130,10 @@ class UserManager {
 		$patch = array();
 
 		foreach ( array( 'display_name', 'phone', 'department', 'organization', 'notes' ) as $field ) {
-			if ( array_key_exists( $field, $data ) ) {
+			// A non-scalar is skipped, not stringified: `(string) array()`
+			// is the literal `Array`, and writing that into the profile
+			// would be worse than leaving the column untouched (#1060).
+			if ( array_key_exists( $field, $data ) && is_scalar( $data[ $field ] ) ) {
 				$patch[ $field ] = sanitize_text_field( (string) $data[ $field ] );
 			}
 		}
@@ -257,7 +260,10 @@ class UserManager {
 			}
 
 			if ( isset( $sensitive_map[ $key ] ) && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
-				$decrypted       = \FreeFormCertificate\Core\Encryption::decrypt( (string) $raw );
+				// `get_user_meta()` is mixed; only a scalar can be a
+				// ciphertext, and a non-scalar cast would hand the
+				// decrypter the literal `Array` (#1060).
+				$decrypted       = is_scalar( $raw ) ? \FreeFormCertificate\Core\Encryption::decrypt( (string) $raw ) : null;
 				$profile[ $key ] = null !== $decrypted ? $decrypted : '';
 			} else {
 				$profile[ $key ] = $raw;

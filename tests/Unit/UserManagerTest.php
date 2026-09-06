@@ -235,6 +235,28 @@ class UserManagerTest extends TestCase {
 		$this->assertTrue( $result );
 	}
 
+	/**
+	 * #1060 — the patch arrives untyped. A non-scalar used to be cast,
+	 * writing the literal `Array` into the column; it is now skipped, so
+	 * the only field left is the valid one.
+	 */
+	public function test_update_profile_skips_a_non_scalar_field_instead_of_writing_array(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '5' );
+		$this->wpdb->shouldReceive( 'update' )
+			->once()
+			->withArgs( function ( $table, $data ) {
+				return array( 'phone' => '+5511888888888' ) === $data;
+			} )
+			->andReturn( 1 );
+
+		$result = UserManager::update_profile( 42, array(
+			'department' => array( 'HR', 'Legal' ),
+			'phone'      => '+5511888888888',
+		) );
+
+		$this->assertTrue( $result );
+	}
+
 	public function test_update_profile_handles_preferences_json(): void {
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '3' );
 		$this->wpdb->shouldReceive( 'update' )

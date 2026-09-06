@@ -29,7 +29,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Stateless CSV parsing helpers for recruitment imports.
  *
- * @phpstan-type ParseResult array{ok: bool, rows: list<array<string, mixed>>, errors: list<string>}
+ * A parsed row is `build_row()`'s output — every declared header as a
+ * string, missing optional columns filled with `''` — plus the `_line`
+ * key the parser appends, which is the only int in it. `mixed` was a
+ * loose stand-in for that; nothing in this class can put anything else
+ * in a row (#1060).
+ *
+ * @phpstan-type CsvRow array<string, string|int>
+ * @phpstan-type ParseResult array{ok: bool, rows: list<CsvRow>, errors: list<string>}
  * @phpstan-type NormalisedId array{value: string, too_long: bool}
  */
 final class CsvParser {
