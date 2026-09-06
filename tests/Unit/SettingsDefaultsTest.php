@@ -112,12 +112,21 @@ final class SettingsDefaultsTest extends TestCase {
 	}
 
 	/**
-	 * Every `SettingsReader` read that restates a scalar default.
+	 * Every read site that restates a scalar default.
 	 *
-	 * Matches the qualified `SettingsReader::get*()` form used by consumers and
-	 * the bare `self::get*()` form used by the typed accessors inside the reader
-	 * — the accessors are where the drift actually happened, so a pattern that
-	 * only saw external callers would have missed it.
+	 * Three forms, all of which end up in `SettingsReader::get()`:
+	 *
+	 * - the qualified `SettingsReader::get*()` used by consumers;
+	 * - the bare `self::get*()` used by the typed accessors inside the reader
+	 *   — where the drift actually happened, so a pattern that only saw
+	 *   external callers would have missed it;
+	 * - **the settings-tab wrapper** `$tab->get_option( 'key', 'default' )`,
+	 *   which the tab views reach through a closure named
+	 *   `$ffcertificate_get_option`. `SettingsTab::get_option()` is one line
+	 *   over `SettingsReader::get()`, so a default restated there is the same
+	 *   defect — and it hid three of them in a single view (#1076): the QR
+	 *   size, margin and error level each disagreed with the declared value,
+	 *   so a fresh install showed settings the generator was not using.
 	 *
 	 * @return array<int, array{key: string, default: string, file: string}>
 	 */
@@ -133,10 +142,17 @@ final class SettingsDefaultsTest extends TestCase {
 			if ( substr( $path, -4 ) !== '.php' || strpos( $path, '/libraries/' ) !== false ) {
 				continue;
 			}
+			// `TabUserAccess` overrides `get_option()` to read a different
+			// option entirely (`ffc_user_access_settings`), so its defaults
+			// are not `ffc_settings` defaults and must not be compared.
+			if ( strpos( $path, 'class-ffc-tab-user-access.php' ) !== false ) {
+				continue;
+			}
+
 			$text = (string) file_get_contents( $path );
 
 			if ( ! preg_match_all(
-				"/(?:SettingsReader::|self::)get(?:_int|_bool|_string|_array)?\(\s*'([a-z0-9_]+)'\s*,\s*([^,)]+?)\s*\)/",
+				"/(?:(?:SettingsReader::|self::)get(?:_int|_bool|_string|_array)?|\\\$this->get_option|\\\$ffcertificate_get_option|\\\$settings->get_option)\(\s*'([a-z0-9_]+)'\s*,\s*([^,)]+?)\s*\)/",
 				$text,
 				$matches,
 				PREG_SET_ORDER
@@ -159,6 +175,51 @@ final class SettingsDefaultsTest extends TestCase {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Resolve a `Class::CONSTANT` read-site default to the literal it holds.
+	 *
+	 * A read site that names a constant is not restating a default — it is
+	 * referencing one — but the constant is still the effective fallback, so
+	 * a constant that drifts from the declared value is the same defect. The
+	 * resolver is deliberately narrow: it takes the constant's short name,
+	 * requires exactly ONE `const NAME = '<literal>'` in `includes/`, and
+	 * returns null when there is none or more than one. Guessing which class
+	 * a repeated name belongs to would be worse than not looking.
+	 *
+	 * @param string $expression Read-site default as written.
+	 * @return string|null Literal, or null when it is not a resolvable constant.
+	 */
+	private static function resolve_constant( string $expression ): ?string {
+		if ( ! preg_match( '/::([A-Z][A-Z0-9_]*)$/', trim( $expression ), $name ) ) {
+			return null;
+		}
+
+		$found = array();
+		$iter  = new \RecursiveIteratorIterator(
+			new \RecursiveDirectoryIterator( self::root() . '/includes', \FilesystemIterator::SKIP_DOTS )
+		);
+
+		foreach ( $iter as $file ) {
+			$path = $file->getPathname();
+			if ( substr( $path, -4 ) !== '.php' ) {
+				continue;
+			}
+			if ( preg_match_all(
+				"/const\s+" . preg_quote( $name[1], '/' ) . "\s*=\s*('[^']*'|\d+|true|false)\s*;/",
+				(string) file_get_contents( $path ),
+				$hits
+			) ) {
+				foreach ( $hits[1] as $hit ) {
+					$found[] = $hit;
+				}
+			}
+		}
+
+		$found = array_unique( $found );
+
+		return 1 === count( $found ) ? reset( $found ) : null;
 	}
 
 	/**
@@ -195,7 +256,18 @@ final class SettingsDefaultsTest extends TestCase {
 				continue;
 			}
 
-			if ( self::normalise( $declared[ $key ] ) !== self::normalise( $read['default'] ) ) {
+			// A named constant is the effective default too; resolve it when
+			// the name is unambiguous, and skip when it is not.
+			$read_default = $read['default'];
+			if ( strpos( $read_default, '::' ) !== false ) {
+				$resolved = self::resolve_constant( $read_default );
+				if ( null === $resolved ) {
+					continue;
+				}
+				$read_default = $resolved;
+			}
+
+			if ( self::normalise( $declared[ $key ] ) !== self::normalise( $read_default ) ) {
 				$drift[] = sprintf(
 					'%s  declared %s, read as %s  (%s)',
 					$key,
