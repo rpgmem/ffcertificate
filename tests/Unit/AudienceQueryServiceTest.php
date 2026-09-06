@@ -147,6 +147,28 @@ class AudienceQueryServiceTest extends TestCase {
 		$this->assertCount( 2, $out[1]['audiences'] );
 	}
 
+	public function test_a_non_scalar_filter_value_is_ignored_instead_of_bound_as_the_word_array(): void {
+		// Found by the level-9 pass of #1060. The filter dict is
+		// caller-supplied, so a value is only known to be mixed, and the cast
+		// turned an array into the literal string 'Array' — a filter that
+		// silently matches nothing instead of failing or being skipped.
+		$captured_sql = null;
+		$this->wpdb->shouldReceive( 'prepare' )
+			->andReturnUsing(
+				function ( $sql ) use ( &$captured_sql ) {
+					if ( null === $captured_sql ) {
+						$captured_sql = $sql;
+					}
+					return $sql;
+				}
+			);
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+		AudienceQueryService::find_user_bookings( 42, array( 'start_date' => array( '2026-06-01' ) ) );
+
+		$this->assertStringNotContainsString( 'b.booking_date >= %s', (string) $captured_sql );
+	}
+
 	public function test_find_user_bookings_passes_filter_clauses(): void {
 		$captured_sql = null;
 		$this->wpdb->shouldReceive( 'prepare' )

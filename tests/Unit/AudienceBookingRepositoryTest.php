@@ -900,6 +900,32 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$this->assertTrue($result);
 	}
 
+	public function test_update_drops_ids_that_are_not_ids_instead_of_writing_zero(): void {
+		// Found by the level-9 pass of #1060. The id arrays arrive inside a
+		// caller-supplied $data, so their elements are only known to be mixed;
+		// casting each one to int turned a stray string into 0 and wrote a
+		// junction row pointing at audience 0, which exists nowhere.
+		$this->wpdb->shouldReceive('update')->andReturn(1);
+
+		$this->wpdb->shouldReceive('delete')
+			->with('wp_ffc_audience_booking_audiences', ['booking_id' => 1], ['%d'])
+			->once()
+			->andReturn(1);
+
+		// Only the numeric id survives.
+		$this->wpdb->shouldReceive('insert')
+			->with('wp_ffc_audience_booking_audiences', ['booking_id' => 1, 'audience_id' => 10], ['%d', '%d'])
+			->once()
+			->andReturn(1);
+
+		$result = AudienceBookingWriter::update(1, [
+			'description'  => 'Updated',
+			'audience_ids' => [10, 'not-an-id', null],
+		]);
+
+		$this->assertTrue($result);
+	}
+
 	public function test_update_handles_user_ids_separately(): void {
 		// Main booking update with description
 		$this->wpdb->shouldReceive('update')

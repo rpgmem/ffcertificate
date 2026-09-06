@@ -23,11 +23,16 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Régua de nível 9 sobre as classes que leem linhas do `$wpdb`** (#1060): `phpstan-rows.neon.dist` mais `.github/scripts/phpstan-rows-report.php` rodam o nível 9 na mesma árvore do gate principal e reportam só os arquivos que leem linhas — 243 erros hoje. É a cegueira do #1058: `$wpdb` devolve toda coluna como string, e passar `mixed` a um parâmetro tipado só é verificado no nível 9. O job de CI entra **não-bloqueante**, com a folga baixando a cada PR da issue.
 
+- **Formas de linha honestas no módulo `audience`** (#1060): as seis classes que leem linhas do `$wpdb` declaram o que a linha contém, derivado coluna a coluna do `CREATE TABLE` — toda coluna chega como string, e uma coluna sem `NOT NULL` é anulável mesmo com `DEFAULT`. A régua de nível 9 baixou de 243 para 203 e o módulo ficou em zero. O buraco de tipo nas quatro classes que já tinham shape não era o `$wpdb`, era o **cache de objetos**: `wp_cache_get()` devolve `mixed` e o `get_by_id()` devolvia isso direto.
+
 ### Removed
 
 - `Shortcodes::get_new_captcha_data()` (#1053): método público sem nenhum chamador em produção — o único consumidor era o próprio teste. A geração de desafio já é responsabilidade do contrato de captcha.
 
 ### Fixed
+- **Ids não-numéricos em reservas de público viravam `0`** (#1060): `audience_ids` e `user_ids` chegam dentro de um `$data` do chamador, e cada entrada era convertida direto com `(int)` — uma string solta ou `null` virava `0` e gravava uma linha de junção apontando para um público que não existe. Agora entradas não-numéricas são descartadas.
+- **Um filtro não-escalar em `find_user_bookings()` era vinculado como a string `Array`** (#1060): o valor vem do chamador e era convertido com `(string)`, o que produzia um `WHERE` que não casa com nada, em silêncio, em vez de ignorar o filtro.
+
 
 - **Widget do captcha aparecia em inglês, e dois controles não faziam nada** (#1053): o widget resolve o idioma quando inicializa, antes de o plugin registrar as traduções, e não voltava a olhar — agora é reaplicado pelo `configure()` do próprio elemento. Os seletores de layout e tema saíram: `bar` e `floating` são posicionados fora da tela por construção e só funcionam num fluxo ancorado, e o bundle não tem uma única regra que consuma `theme`. O tema agora vem das variáveis `--altcha-*` mapeadas nos tokens do plugin, então o widget acompanha o modo claro/escuro do site.
 
