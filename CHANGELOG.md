@@ -25,11 +25,16 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Formas de linha honestas no módulo `audience`** (#1060): as seis classes que leem linhas do `$wpdb` declaram o que a linha contém, derivado coluna a coluna do `CREATE TABLE` — toda coluna chega como string, e uma coluna sem `NOT NULL` é anulável mesmo com `DEFAULT`. A régua de nível 9 baixou de 243 para 203 e o módulo ficou em zero. O buraco de tipo nas quatro classes que já tinham shape não era o `$wpdb`, era o **cache de objetos**: `wp_cache_get()` devolve `mixed` e o `get_by_id()` devolvia isso direto.
 
+- **Formas de linha honestas em `frontend` e `core`** (#1060): `ActivityLogQuery` declara a linha do log derivada do `CREATE TABLE`, e `ReprintDetector` declara o formato do resultado que dois consumidores já liam às cegas. A régua de nível 9 baixou de 203 para 170 e os dois módulos ficaram em zero.
+- **`Core\ArrayValue`** (#1060): leitura de escalar sobre array sem tipo — JSON decodificado, configuração de formulário, payload de token. Substitui o idioma `(string) ( $data['k'] ?? '' )`, que não confere nada: dado um array ele produz a string `Array`, dado um objeto sem `__toString` é fatal. Não serve para `$_POST` (isso é o `RequestInput`) nem para linha de banco (isso é shape declarada).
+
 ### Removed
 
 - `Shortcodes::get_new_captcha_data()` (#1053): método público sem nenhum chamador em produção — o único consumidor era o próprio teste. A geração de desafio já é responsabilidade do contrato de captcha.
 
 ### Fixed
+- **`ReprintDetector::detect()` devolvia `date` com tipo diferente conforme o ramo** (#1060): inteiro (segundos unix) quando havia reimpressão, string vazia quando não. Só um consumidor lê a chave, e só no ramo de reimpressão, então o ramo vazio passou a devolver `0` — um contrato cujo tipo depende do ramo não pode ser verificado.
+
 - **Ids não-numéricos em reservas de público viravam `0`** (#1060): `audience_ids` e `user_ids` chegam dentro de um `$data` do chamador, e cada entrada era convertida direto com `(int)` — uma string solta ou `null` virava `0` e gravava uma linha de junção apontando para um público que não existe. Agora entradas não-numéricas são descartadas.
 - **Um filtro não-escalar em `find_user_bookings()` era vinculado como a string `Array`** (#1060): o valor vem do chamador e era convertido com `(string)`, o que produzia um `WHERE` que não casa com nada, em silêncio, em vez de ignorar o filtro.
 
