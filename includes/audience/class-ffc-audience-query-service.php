@@ -39,6 +39,50 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Stateless service. Public API mirrors what REST controllers used to
  * spell inline; the JOIN shape is the same — just centralized.
+ *
+ * Row shapes below are what `$wpdb` actually hands back, not what the
+ * columns mean: every column arrives as a string because WordPress uses
+ * mysqli without native types, and only a real SQL NULL stays null. They are
+ * derived from the `CREATE TABLE` statements in `AudienceActivator`, column
+ * by column — a shape that says `id: int` would satisfy the analyser and keep
+ * the defect it exists to catch (#1060).
+ *
+ * A column declared without `NOT NULL` is nullable in MySQL even when it
+ * carries a `DEFAULT`, so `color`, `status` and the timestamps are
+ * `string|null` here. `allow_self_join` and `is_all_day` are optional because
+ * they arrive by migration rather than from the original `CREATE TABLE`.
+ *
+ * @phpstan-type JoinableAudienceRow array{
+ *     id: numeric-string,
+ *     name: string,
+ *     color: string|null,
+ *     parent_id: numeric-string|null,
+ *     allow_self_join: numeric-string|null,
+ *     is_member: numeric-string
+ * }
+ * @phpstan-type UserBookingRow array{
+ *     id: numeric-string,
+ *     environment_id: numeric-string,
+ *     booking_date: string,
+ *     start_time: string,
+ *     end_time: string,
+ *     booking_type: string,
+ *     description: string,
+ *     status: string|null,
+ *     created_by: numeric-string,
+ *     created_at: string|null,
+ *     cancelled_by: numeric-string|null,
+ *     cancelled_at: string|null,
+ *     cancellation_reason: string|null,
+ *     environment_name: string|null,
+ *     schedule_name: string|null,
+ *     is_all_day?: numeric-string|null
+ * }
+ * @phpstan-type BookingAudienceBadgeRow array{
+ *     booking_id: numeric-string,
+ *     name: string,
+ *     color: string|null
+ * }
  */
 final class AudienceQueryService {
 
@@ -124,6 +168,11 @@ final class AudienceQueryService {
 			ARRAY_A
 		);
 
+		/**
+		 * Rows as `$wpdb` hands them back, checked against the SELECT above.
+		 *
+		 * @var list<JoinableAudienceRow>|null $rows
+		 */
 		if ( ! is_array( $rows ) ) {
 			return array();
 		}
@@ -131,12 +180,12 @@ final class AudienceQueryService {
 		$out = array();
 		foreach ( $rows as $row ) {
 			$out[] = array(
-				'id'              => (int) ( $row['id'] ?? 0 ),
-				'name'            => (string) ( $row['name'] ?? '' ),
+				'id'              => (int) $row['id'],
+				'name'            => $row['name'],
 				'color'           => (string) ( $row['color'] ?? '' ),
 				'parent_id'       => empty( $row['parent_id'] ) ? null : (int) $row['parent_id'],
 				'allow_self_join' => 1 === (int) ( $row['allow_self_join'] ?? 0 ),
-				'is_member'       => 1 === (int) ( $row['is_member'] ?? 0 ),
+				'is_member'       => 1 === (int) $row['is_member'],
 			);
 		}
 		return $out;
@@ -207,6 +256,11 @@ final class AudienceQueryService {
 			$where_args
 		);
 
+		/**
+		 * Rows as `$wpdb` hands them back, checked against the SELECT above.
+		 *
+		 * @var list<UserBookingRow>|null $bookings
+		 */
 		$bookings = $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A );
 
 		if ( ! is_array( $bookings ) || empty( $bookings ) ) {
@@ -215,7 +269,7 @@ final class AudienceQueryService {
 
 		$booking_ids = array();
 		foreach ( $bookings as $b ) {
-			$id = (int) ( $b['id'] ?? 0 );
+			$id = (int) $b['id'];
 			if ( $id > 0 ) {
 				$booking_ids[] = $id;
 			}
@@ -224,7 +278,7 @@ final class AudienceQueryService {
 
 		$out = array();
 		foreach ( $bookings as $booking ) {
-			$booking_id           = (int) ( $booking['id'] ?? 0 );
+			$booking_id           = (int) $booking['id'];
 			$booking['audiences'] = $audiences_map[ $booking_id ] ?? array();
 			$out[]                = $booking;
 		}
@@ -291,19 +345,41 @@ final class AudienceQueryService {
 		$sql  = '';
 		$args = array();
 
-		if ( ! empty( $filter['start_date'] ) ) {
+		$start_date     = self::filter_string( $filter, 'start_date' );
+		$end_date       = self::filter_string( $filter, 'end_date' );
+		$exclude_status = self::filter_string( $filter, 'exclude_status' );
+
+		if ( '' !== $start_date ) {
 			$sql   .= ' AND b.booking_date >= %s';
-			$args[] = (string) $filter['start_date'];
+			$args[] = $start_date;
 		}
-		if ( ! empty( $filter['end_date'] ) ) {
+		if ( '' !== $end_date ) {
 			$sql   .= ' AND b.booking_date <= %s';
-			$args[] = (string) $filter['end_date'];
+			$args[] = $end_date;
 		}
-		if ( ! empty( $filter['exclude_status'] ) ) {
+		if ( '' !== $exclude_status ) {
 			$sql   .= ' AND b.status != %s';
-			$args[] = (string) $filter['exclude_status'];
+			$args[] = $exclude_status;
 		}
 		return array( $sql, $args );
+	}
+
+	/**
+	 * Read one filter key as a string, or `''` when it is not usable.
+	 *
+	 * The filter dict is caller-supplied, so a value is only known to be
+	 * `mixed`. Casting it straight to string turned an array into the literal
+	 * `'Array'` and bound that into the query — a filter that silently matches
+	 * nothing rather than failing.
+	 *
+	 * @param array<string, mixed> $filter Filter dict.
+	 * @param string               $key    Key to read.
+	 * @return string
+	 */
+	private static function filter_string( array $filter, string $key ): string {
+		$value = $filter[ $key ] ?? null;
+
+		return is_scalar( $value ) ? (string) $value : '';
 	}
 
 	/**
@@ -339,11 +415,16 @@ final class AudienceQueryService {
 			ARRAY_A
 		);
 
+		/**
+		 * Rows as `$wpdb` hands them back, checked against the SELECT above.
+		 *
+		 * @var list<BookingAudienceBadgeRow>|null $rows
+		 */
 		$out = array();
 		if ( is_array( $rows ) ) {
 			foreach ( $rows as $aud ) {
 				$out[ (int) $aud['booking_id'] ][] = array(
-					'name'  => (string) ( $aud['name'] ?? '' ),
+					'name'  => $aud['name'],
 					'color' => (string) ( $aud['color'] ?? '#2271b1' ),
 				);
 			}

@@ -136,6 +136,12 @@ class AudienceReader {
 			),
 			ARRAY_A
 		);
+
+		/**
+		 * Rows as `$wpdb` hands them back, checked against the SELECT above.
+		 *
+		 * @var list<array{name: string, color: string|null}>|null $rows
+		 */
 		if ( ! is_array( $rows ) ) {
 			return array();
 		}
@@ -143,7 +149,7 @@ class AudienceReader {
 		$out = array();
 		foreach ( $rows as $row ) {
 			$out[] = array(
-				'name'  => (string) ( $row['name'] ?? '' ),
+				'name'  => $row['name'],
 				'color' => (string) ( $row['color'] ?? '' ),
 			);
 		}
@@ -227,6 +233,16 @@ class AudienceReader {
 	 * @return AudienceRow|null
 	 */
 	public static function get_by_id( int $id ): ?object {
+		/**
+		 * The object cache is untyped — `wp_cache_get()` returns mixed — and
+		 * this key is the one written a few lines below, so the assertion is
+		 * checkable against the `cache_set()` in the same method. It is stated
+		 * per key rather than on the trait's `cache_get()` because the cache
+		 * is heterogeneous: this class also stores counts and lists under
+		 * other keys, and one type on the accessor would be a lie for those.
+		 *
+		 * @var AudienceRow|false $cached
+		 */
 		$cached = static::cache_get( "id_{$id}" );
 		if ( false !== $cached ) {
 			return $cached;
@@ -479,9 +495,14 @@ class AudienceReader {
 	public static function count( array $args = array() ): int {
 		$args_json = wp_json_encode( $args );
 		$cache_key = 'aud_count_' . md5( $args_json ? $args_json : '' ) . '_' . \FreeFormCertificate\Core\CacheVersion::suffix( self::CACHE_DOMAIN );
-		$cached    = wp_cache_get( $cache_key, self::QUERY_CACHE_GROUP );
+		/**
+		 * The same method writes the COUNT into this key a few lines below.
+		 *
+		 * @var int|false $cached
+		 */
+		$cached = wp_cache_get( $cache_key, self::QUERY_CACHE_GROUP );
 		if ( false !== $cached ) {
-			return (int) $cached;
+			return $cached;
 		}
 
 		$wpdb  = self::db();

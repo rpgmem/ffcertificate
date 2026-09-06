@@ -28,7 +28,8 @@ jobs:
 
   # Level 9, reported only for the classes that read rows out of $wpdb.
   #
-  # `continue-on-error` on purpose, and temporarily: the count is 243 while
+  # `continue-on-error` on purpose, and temporarily: the count is still in the
+  # hundreds while
   # #1060 works through the row shapes, so a blocking job would be red on
   # every PR and teach people to ignore it. The allowance below ratchets DOWN
   # with each PR of that issue and the flag comes off at zero — same
@@ -54,7 +55,7 @@ jobs:
           vendor/bin/phpstan analyse -c phpstan-rows.neon.dist \
             --error-format=json --no-progress --memory-limit=2G > rows.json || true
       - name: Report the row-reading classes
-        run: php .github/scripts/phpstan-rows-report.php rows.json 243
+        run: php .github/scripts/phpstan-rows-report.php rows.json 203
 
   audit:
     name: Composer audit
