@@ -14,6 +14,9 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
+use FreeFormCertificate\Core\ArrayValue;
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -22,6 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Handles saving calendar configuration, working hours, and email settings.
  *
  * @since 4.12.16
+ * @phpstan-import-type CustomBlock from CustomSlots
  */
 class SelfSchedulingSaveHandler {
 
@@ -46,7 +50,7 @@ class SelfSchedulingSaveHandler {
 			return;
 		}
 
-		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_self_scheduling_config_nonce' ), 'ffc_self_scheduling_config_nonce' ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( 'ffc_self_scheduling_config_nonce' ), 'ffc_self_scheduling_config_nonce' ) ) {
 			return;
 		}
 
@@ -65,70 +69,109 @@ class SelfSchedulingSaveHandler {
 	/**
 	 * Save calendar configuration.
 	 *
+	 * The stored value is **rebuilt from the declared key list**, not
+	 * mutated in place. Reading `$_POST` and overwriting the keys it knows
+	 * left every key it does not know stored verbatim, so a forged submit
+	 * wrote arbitrary data into the post meta — and no shape could be
+	 * declared for an array carrying whatever the request had. The list
+	 * below is the same one the two editor metaboxes render defaults for
+	 * (#1075).
+	 *
 	 * @param int $post_id Post ID.
 	 */
 	private function save_config( int $post_id ): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in save_calendar_data(); isset() check only; value unslashed below.
-		if ( ! isset( $_POST['ffc_self_scheduling_config'] ) ) {
+		if ( ! RequestInput::has_post( 'ffc_self_scheduling_config' ) ) {
 			return;
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in save_calendar_data(); each field sanitized individually below.
-		$config = wp_unslash( $_POST['ffc_self_scheduling_config'] );
+		$raw = RequestInput::get_post_raw_array( 'ffc_self_scheduling_config' );
 
-		// Sanitize.
-		$config['description']                       = sanitize_textarea_field( $config['description'] ?? '' );
-		$config['slot_duration']                     = absint( $config['slot_duration'] ?? 30 );
-		$config['slot_interval']                     = absint( $config['slot_interval'] ?? 0 );
-		$config['slots_per_day']                     = absint( $config['slots_per_day'] ?? 0 );
-		$config['max_appointments_per_slot']         = absint( $config['max_appointments_per_slot'] ?? 1 );
-		$config['advance_booking_min']               = absint( $config['advance_booking_min'] ?? 0 );
-		$config['advance_booking_max']               = absint( $config['advance_booking_max'] ?? 30 );
-		$config['allow_cancellation']                = isset( $config['allow_cancellation'] ) ? 1 : 0;
-		$config['cancellation_min_hours']            = absint( $config['cancellation_min_hours'] ?? 24 );
-		$config['minimum_interval_between_bookings'] = absint( $config['minimum_interval_between_bookings'] ?? 24 );
-		$config['requires_approval']                 = isset( $config['requires_approval'] ) ? 1 : 0;
-		$config['status']                            = sanitize_text_field( $config['status'] ?? 'active' );
+		$config = array(
+			'description'                       => sanitize_textarea_field( ArrayValue::string( $raw, 'description' ) ),
+			'slot_duration'                     => self::config_int( $raw, 'slot_duration', 30 ),
+			'slot_interval'                     => self::config_int( $raw, 'slot_interval', 0 ),
+			'slots_per_day'                     => self::config_int( $raw, 'slots_per_day', 0 ),
+			'max_appointments_per_slot'         => self::config_int( $raw, 'max_appointments_per_slot', 1 ),
+			'advance_booking_min'               => self::config_int( $raw, 'advance_booking_min', 0 ),
+			'advance_booking_max'               => self::config_int( $raw, 'advance_booking_max', 30 ),
+			'allow_cancellation'                => isset( $raw['allow_cancellation'] ) ? 1 : 0,
+			'cancellation_min_hours'            => self::config_int( $raw, 'cancellation_min_hours', 24 ),
+			'minimum_interval_between_bookings' => self::config_int( $raw, 'minimum_interval_between_bookings', 24 ),
+			'requires_approval'                 => isset( $raw['requires_approval'] ) ? 1 : 0,
+			'status'                            => sanitize_text_field( ArrayValue::string( $raw, 'status', 'active' ) ),
 
-		// Waitlist (#941 phase 2): both scheduling modes. When enabled, a full
-		// slot/block offers a queue instead of rejecting; capacity 0 = unlimited.
-		$config['waitlist_enabled']  = isset( $config['waitlist_enabled'] ) ? 1 : 0;
-		$config['waitlist_capacity'] = absint( $config['waitlist_capacity'] ?? 0 );
+			// Waitlist (#941 phase 2): both scheduling modes. When enabled, a
+			// full slot/block offers a queue instead of rejecting; capacity
+			// 0 = unlimited.
+			'waitlist_enabled'                  => isset( $raw['waitlist_enabled'] ) ? 1 : 0,
+			'waitlist_capacity'                 => self::config_int( $raw, 'waitlist_capacity', 0 ),
 
-		// Per-user block cap (#941 phase 3): custom mode only; 0 = disabled.
-		$config['max_blocks_per_user'] = absint( $config['max_blocks_per_user'] ?? 0 );
+			// Per-user block cap (#941 phase 3): custom mode only; 0 = disabled.
+			'max_blocks_per_user'               => self::config_int( $raw, 'max_blocks_per_user', 0 ),
 
-		// Scheduling mode (#941): 'regular' (weekly working hours) or 'custom'
-		// (explicit date/time blocks). Unknown values fall back to 'regular'.
-		$config['schedule_type'] = ( 'custom' === ( $config['schedule_type'] ?? 'regular' ) ) ? 'custom' : 'regular';
+			// Scheduling mode (#941): 'regular' (weekly working hours) or
+			// 'custom' (explicit date/time blocks). Unknown values fall back
+			// to 'regular'.
+			'schedule_type'                     => ( 'custom' === ArrayValue::string( $raw, 'schedule_type', 'regular' ) ) ? 'custom' : 'regular',
+
+			// Visibility controls.
+			'visibility'                        => self::one_of( ArrayValue::string( $raw, 'visibility' ), array( 'public', 'private' ), 'public' ),
+			'scheduling_visibility'             => self::one_of( ArrayValue::string( $raw, 'scheduling_visibility' ), array( 'public', 'private' ), 'public' ),
+
+			// Business hours restriction toggles.
+			'restrict_viewing_to_hours'         => isset( $raw['restrict_viewing_to_hours'] ) ? 1 : 0,
+			'restrict_booking_to_hours'         => isset( $raw['restrict_booking_to_hours'] ) ? 1 : 0,
+
+			// Per-calendar admin bypass toggle. Once the key is written the
+			// stored value is authoritative; defaulting-to-on for legacy
+			// calendars happens in the consumer
+			// (CalendarRepository::userHasSchedulingBypass).
+			'admin_bypass'                      => isset( $raw['admin_bypass'] ) ? 1 : 0,
+		);
 
 		// Lock the mode once the calendar has bookings — switching would orphan them.
 		if ( $this->calendar_has_appointments( $post_id ) ) {
 			$stored = get_post_meta( $post_id, '_ffc_self_scheduling_config', true );
 			if ( is_array( $stored ) && ! empty( $stored['schedule_type'] ) ) {
-				$config['schedule_type'] = ( 'custom' === $stored['schedule_type'] ) ? 'custom' : 'regular';
+				$config['schedule_type'] = ( 'custom' === ArrayValue::string( $stored, 'schedule_type' ) ) ? 'custom' : 'regular';
 			}
 		}
-
-		// Visibility controls.
-		$config['visibility']            = in_array( ( $config['visibility'] ?? '' ), array( 'public', 'private' ), true ) ? $config['visibility'] : 'public';
-		$config['scheduling_visibility'] = in_array( ( $config['scheduling_visibility'] ?? '' ), array( 'public', 'private' ), true ) ? $config['scheduling_visibility'] : 'public';
 
 		// If visibility is private, scheduling must also be private.
 		if ( 'private' === $config['visibility'] ) {
 			$config['scheduling_visibility'] = 'private';
 		}
 
-		// Business hours restriction toggles.
-		$config['restrict_viewing_to_hours'] = isset( $config['restrict_viewing_to_hours'] ) ? 1 : 0;
-		$config['restrict_booking_to_hours'] = isset( $config['restrict_booking_to_hours'] ) ? 1 : 0;
-
-		// Per-calendar admin bypass toggle. Once the key is written the stored
-		// value is authoritative; defaulting-to-on for legacy calendars happens
-		// in the consumer (CalendarRepository::userHasSchedulingBypass).
-		$config['admin_bypass'] = isset( $config['admin_bypass'] ) ? 1 : 0;
-
 		update_post_meta( $post_id, '_ffc_self_scheduling_config', $config );
+	}
+
+	/**
+	 * Read a non-negative integer out of an untyped request container.
+	 *
+	 * `absint()` keeps the old clamping (a negative becomes its absolute
+	 * value); `ArrayValue::int()` is what makes the value an int at all.
+	 * A non-numeric now yields the declared default rather than `absint()`'s
+	 * `0`, which for several of these fields is not a usable setting (#1075).
+	 *
+	 * @param array<array-key, mixed> $data    Request container.
+	 * @param string                  $key     Field name.
+	 * @param int                     $default Value when absent or non-numeric.
+	 * @return int
+	 */
+	private static function config_int( array $data, string $key, int $default ): int {
+		return absint( ArrayValue::int( $data, $key, $default ) );
+	}
+
+	/**
+	 * Constrain a value to an allowlist.
+	 *
+	 * @param string        $value    Candidate.
+	 * @param array<string> $allowed  Accepted values.
+	 * @param string        $fallback Returned when the candidate is not in the list.
+	 * @return string
+	 */
+	private static function one_of( string $value, array $allowed, string $fallback ): string {
+		return in_array( $value, $allowed, true ) ? $value : $fallback;
 	}
 
 	/**
@@ -137,18 +180,33 @@ class SelfSchedulingSaveHandler {
 	 * @param int $post_id Post ID.
 	 */
 	private function save_working_hours( int $post_id ): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in save_calendar_data(); isset()/is_array() check only; value unslashed below.
-		if ( ! isset( $_POST['ffc_self_scheduling_working_hours'] ) || ! is_array( $_POST['ffc_self_scheduling_working_hours'] ) ) {
+		if ( ! RequestInput::has_post( 'ffc_self_scheduling_working_hours' ) ) {
+			return;
+		}
+
+		// An empty container is not a write. `get_post_raw_array()` returns
+		// `array()` both for a posted empty array and for a posted non-array,
+		// and the old guard refused the second — so refusing both keeps the
+		// safer half: a forged `…working_hours=x` cannot wipe the stored
+		// hours. Neither case is reachable from the editor, which posts no
+		// key at all when there are no rows (#1075).
+		$rows = RequestInput::get_post_raw_array( 'ffc_self_scheduling_working_hours' );
+		if ( empty( $rows ) ) {
 			return;
 		}
 
 		$working_hours = array();
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in save_calendar_data(); each field sanitized individually below.
-		foreach ( wp_unslash( $_POST['ffc_self_scheduling_working_hours'] ) as $hours ) {
+		foreach ( $rows as $hours ) {
+			// A row that is not an array is not a row. Indexing a string by
+			// `['day']` reads character 0 with a warning, so the old code
+			// stored junk for it rather than skipping it (#1075).
+			if ( ! is_array( $hours ) ) {
+				continue;
+			}
 			$working_hours[] = array(
-				'day'   => absint( $hours['day'] ?? 0 ),
-				'start' => sanitize_text_field( $hours['start'] ?? '09:00' ),
-				'end'   => sanitize_text_field( $hours['end'] ?? '17:00' ),
+				'day'   => self::config_int( $hours, 'day', 0 ),
+				'start' => sanitize_text_field( ArrayValue::string( $hours, 'start', '09:00' ) ),
+				'end'   => sanitize_text_field( ArrayValue::string( $hours, 'end', '17:00' ) ),
 			);
 		}
 		update_post_meta( $post_id, '_ffc_self_scheduling_working_hours', $working_hours );
@@ -166,22 +224,27 @@ class SelfSchedulingSaveHandler {
 	 * @param int $post_id Post ID.
 	 */
 	private function save_custom_slots( int $post_id ): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in save_calendar_data(); isset()/is_array() check only; value unslashed below.
-		if ( ! isset( $_POST['ffc_self_scheduling_custom_slots'] ) || ! is_array( $_POST['ffc_self_scheduling_custom_slots'] ) ) {
+		if ( ! RequestInput::has_post( 'ffc_self_scheduling_custom_slots' ) ) {
 			// Field absent (e.g. saving a regular calendar) — leave existing blocks untouched.
+			return;
+		}
+
+		// Same reasoning as `save_working_hours()`: an empty container is not
+		// a write, so a forged non-array value cannot clear the blocks.
+		$rows = RequestInput::get_post_raw_array( 'ffc_self_scheduling_custom_slots' );
+		if ( empty( $rows ) ) {
 			return;
 		}
 
 		$blocks = array();
 		$seen   = array();
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in save_calendar_data(); each field sanitized individually below.
-		foreach ( wp_unslash( $_POST['ffc_self_scheduling_custom_slots'] ) as $row ) {
+		foreach ( $rows as $row ) {
 			if ( ! is_array( $row ) ) {
 				continue;
 			}
-			$date  = sanitize_text_field( $row['date'] ?? '' );
-			$start = self::normalize_block_time( sanitize_text_field( $row['start'] ?? '' ) );
-			$end   = self::normalize_block_time( sanitize_text_field( $row['end'] ?? '' ) );
+			$date  = sanitize_text_field( ArrayValue::string( $row, 'date' ) );
+			$start = self::normalize_block_time( sanitize_text_field( ArrayValue::string( $row, 'start' ) ) );
+			$end   = self::normalize_block_time( sanitize_text_field( ArrayValue::string( $row, 'end' ) ) );
 
 			if ( ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $date ) || '' === $start || '' === $end || $start >= $end ) {
 				continue;
@@ -197,8 +260,8 @@ class SelfSchedulingSaveHandler {
 				'date'     => $date,
 				'start'    => $start,
 				'end'      => $end,
-				'capacity' => max( 1, absint( $row['capacity'] ?? 1 ) ),
-				'label'    => sanitize_text_field( $row['label'] ?? '' ),
+				'capacity' => max( 1, self::config_int( $row, 'capacity', 1 ) ),
+				'label'    => sanitize_text_field( ArrayValue::string( $row, 'label' ) ),
 			);
 		}
 
@@ -250,7 +313,9 @@ class SelfSchedulingSaveHandler {
 	 *
 	 * @param int                              $post_id  Calendar post id.
 	 * @param array<int, array<string, mixed>> $incoming Parsed incoming blocks.
+	 * @phpstan-param list<CustomBlock> $incoming
 	 * @return array<int, array<string, mixed>>
+	 * @phpstan-return list<CustomBlock>
 	 */
 	private function preserve_booked_blocks( int $post_id, array $incoming ): array {
 		global $wpdb;
@@ -271,13 +336,24 @@ class SelfSchedulingSaveHandler {
 		}
 
 		$booked = array();
+		/**
+		 * Both columns are aliased in the SELECT above and `$wpdb` returns
+		 * each as a string; `start_time` is `TIME NOT NULL` in the
+		 * appointments table (#1060).
+		 *
+		 * @var array{d: string, s: string} $row
+		 */
 		foreach ( $rows as $row ) {
-			$booked[ $row['d'] . '|' . substr( (string) $row['s'], 0, 5 ) ] = true;
+			$booked[ $row['d'] . '|' . substr( $row['s'], 0, 5 ) ] = true;
 		}
 
-		$old = array();
-		foreach ( \FreeFormCertificate\SelfScheduling\CustomSlots::decode( get_post_meta( $post_id, '_ffc_self_scheduling_custom_slots', true ) ) as $block ) {
-			$old[ $block['date'] . '|' . \FreeFormCertificate\SelfScheduling\CustomSlots::hm( $block['start'] ) ] = $block;
+		// `get_post_meta()` is mixed; `decode()` accepts the stored JSON
+		// string or the stored array, and nothing else is a custom-slots
+		// value (#1075).
+		$stored = get_post_meta( $post_id, '_ffc_self_scheduling_custom_slots', true );
+		$old    = array();
+		foreach ( CustomSlots::decode( is_array( $stored ) || is_string( $stored ) ? $stored : null ) as $block ) {
+			$old[ $block['date'] . '|' . CustomSlots::hm( $block['start'] ) ] = $block;
 		}
 
 		$by_key = array();
@@ -320,27 +396,33 @@ class SelfSchedulingSaveHandler {
 	 * @param int $post_id Post ID.
 	 */
 	private function save_email_config( int $post_id ): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in save_calendar_data(); isset() check only; value unslashed below.
-		if ( ! isset( $_POST['ffc_self_scheduling_email_config'] ) ) {
+		if ( ! RequestInput::has_post( 'ffc_self_scheduling_email_config' ) ) {
 			return;
 		}
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified in save_calendar_data(); each field sanitized individually below.
-		$email_config = wp_unslash( $_POST['ffc_self_scheduling_email_config'] );
+		$raw = RequestInput::get_post_raw_array( 'ffc_self_scheduling_email_config' );
 
-		$email_config['send_user_confirmation']         = isset( $email_config['send_user_confirmation'] ) ? 1 : 0;
-		$email_config['send_admin_notification']        = isset( $email_config['send_admin_notification'] ) ? 1 : 0;
-		$email_config['send_approval_notification']     = isset( $email_config['send_approval_notification'] ) ? 1 : 0;
-		$email_config['send_cancellation_notification'] = isset( $email_config['send_cancellation_notification'] ) ? 1 : 0;
-		$email_config['send_reminder']                  = isset( $email_config['send_reminder'] ) ? 1 : 0;
-		$email_config['reminder_hours_before']          = absint( $email_config['reminder_hours_before'] ?? 24 );
-		$email_config['admin_emails']                   = sanitize_text_field( $email_config['admin_emails'] ?? '' );
-		$email_config['user_confirmation_subject']      = sanitize_text_field( $email_config['user_confirmation_subject'] ?? '' );
-		// The confirmation body is now rich HTML authored in the teeny wp_editor
-		// (details box + {{receipt_button}} / {{cancel_button}} tokens), so it is
-		// sanitised with wp_kses_post like every other editable email body (#965)
-		// rather than the tag-stripping sanitize_textarea_field.
-		$email_config['user_confirmation_body'] = wp_kses_post( $email_config['user_confirmation_body'] ?? '' );
+		// Rebuilt from the declared key list, same as `save_config()` — see
+		// the note there for why mutating the posted array in place is what
+		// let unknown keys reach the post meta (#1075).
+		$email_config = array(
+			'send_user_confirmation'         => isset( $raw['send_user_confirmation'] ) ? 1 : 0,
+			'send_admin_notification'        => isset( $raw['send_admin_notification'] ) ? 1 : 0,
+			'send_approval_notification'     => isset( $raw['send_approval_notification'] ) ? 1 : 0,
+			'send_cancellation_notification' => isset( $raw['send_cancellation_notification'] ) ? 1 : 0,
+			'send_reminder'                  => isset( $raw['send_reminder'] ) ? 1 : 0,
+			'reminder_hours_before'          => self::config_int( $raw, 'reminder_hours_before', 24 ),
+			'admin_emails'                   => sanitize_text_field( ArrayValue::string( $raw, 'admin_emails' ) ),
+			'user_confirmation_subject'      => sanitize_text_field( ArrayValue::string( $raw, 'user_confirmation_subject' ) ),
+			// The confirmation body is rich HTML authored in the teeny
+			// wp_editor (details box + {{receipt_button}} / {{cancel_button}}
+			// tokens), so it is sanitised with wp_kses_post like every other
+			// editable email body (#965) rather than the tag-stripping
+			// sanitize_textarea_field. It is also why this payload cannot go
+			// through `RequestInput::get_post_array()`, which would strip the
+			// markup before this line ever ran.
+			'user_confirmation_body'         => wp_kses_post( ArrayValue::string( $raw, 'user_confirmation_body' ) ),
+		);
 
 		update_post_meta( $post_id, '_ffc_self_scheduling_email_config', $email_config );
 	}

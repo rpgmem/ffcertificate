@@ -28,20 +28,19 @@ jobs:
 
   # Level 9, reported only for the classes that read rows out of $wpdb.
   #
-  # `continue-on-error` on purpose, and temporarily: the count is still in the
-  # hundreds while
-  # #1060 works through the row shapes, so a blocking job would be red on
-  # every PR and teach people to ignore it. The allowance below ratchets DOWN
-  # with each PR of that issue and the flag comes off at zero — same
-  # evidence-gated shape as the post-deploy smoke, which ran non-blocking
-  # until it had proved itself.
+  # BLOCKING, with an allowance of zero, since #1075 took the last file to
+  # zero. It ran with `continue-on-error` while #1060 worked the count down
+  # from 243 — a blocking job red on every PR teaches people to ignore it —
+  # and the flag came off at zero, the same evidence-gated shape as the
+  # post-deploy smoke.
   #
-  # Read the count in the STEP output, never the job conclusion: while the
-  # flag is on, a failing step still shows the job green.
+  # The allowance stays at 0. A new `mixed` reaching a typed parameter in one
+  # of these classes is the #1058 defect, which passed CI, PHPStan level 8 and
+  # 7.500 tests; raise the number only to record a deliberate, argued
+  # exception, never to get a red PR green.
   rows:
     name: Row shapes (level 9)
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-composer
@@ -55,7 +54,7 @@ jobs:
           vendor/bin/phpstan analyse -c phpstan-rows.neon.dist \
             --error-format=json --no-progress --memory-limit=2G > rows.json || true
       - name: Report the row-reading classes
-        run: php .github/scripts/phpstan-rows-report.php rows.json 91
+        run: php .github/scripts/phpstan-rows-report.php rows.json 0
 
   audit:
     name: Composer audit

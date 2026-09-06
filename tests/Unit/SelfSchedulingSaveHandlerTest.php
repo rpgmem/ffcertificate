@@ -95,6 +95,51 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
 		$this->assertSame( 45, $this->saved_meta['_ffc_self_scheduling_config']['slot_duration'] );
 	}
 
+	/**
+	 * #1075 — the stored value used to be the posted array with the known
+	 * keys overwritten, so every key the sanitiser did not name survived
+	 * verbatim into the post meta. It is now rebuilt from the declared list.
+	 */
+	public function test_config_drops_keys_that_are_not_declared(): void {
+		$_POST['ffc_self_scheduling_config'] = array(
+			'slot_duration' => '45',
+			'evil'          => '<script>alert(1)</script>',
+			'another'       => array( 'nested' => 'junk' ),
+		);
+		$this->invoke( 'save_config', array( 100 ) );
+
+		$saved = $this->saved_meta['_ffc_self_scheduling_config'];
+		$this->assertArrayNotHasKey( 'evil', $saved );
+		$this->assertArrayNotHasKey( 'another', $saved );
+		$this->assertSame( 45, $saved['slot_duration'], 'The declared keys still save.' );
+	}
+
+	/** #1075 — same rebuild on the email payload. */
+	public function test_email_config_drops_keys_that_are_not_declared(): void {
+		$_POST['ffc_self_scheduling_email_config'] = array(
+			'admin_emails' => 'a@example.com',
+			'evil'         => 'whatever',
+		);
+		$this->invoke( 'save_email_config', array( 100 ) );
+
+		$saved = $this->saved_meta['_ffc_self_scheduling_email_config'];
+		$this->assertArrayNotHasKey( 'evil', $saved );
+		$this->assertSame( 'a@example.com', $saved['admin_emails'] );
+	}
+
+	/**
+	 * #1075 — `absint( array( '45' ) )` is 1, because `intval()` of a
+	 * non-empty array is 1. A forged `slot_duration[]=45` therefore stored a
+	 * one-minute slot duration. A non-numeric value now falls back to the
+	 * declared default.
+	 */
+	public function test_config_non_scalar_int_field_falls_back_to_the_default(): void {
+		$_POST['ffc_self_scheduling_config'] = array( 'slot_duration' => array( '45' ) );
+		$this->invoke( 'save_config', array( 100 ) );
+
+		$this->assertSame( 30, $this->saved_meta['_ffc_self_scheduling_config']['slot_duration'] );
+	}
+
 	public function test_config_waitlist_enabled_and_capacity_parsed(): void {
 		$_POST['ffc_self_scheduling_config'] = array(
 			'waitlist_enabled'  => 'on',
@@ -321,6 +366,27 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
 		$this->assertSame( '09:00', $hours[0]['start'] );
 		$this->assertSame( '17:00', $hours[0]['end'] );
 		$this->assertSame( 2, $hours[1]['day'] );
+	}
+
+	/**
+	 * #1075 — a row that is not an array is not a row. Indexing a string by
+	 * `['day']` reads character 0 with a warning, so the old code stored a
+	 * junk entry for it instead of skipping it.
+	 */
+	public function test_working_hours_skips_rows_that_are_not_arrays(): void {
+		$_POST['ffc_self_scheduling_working_hours'] = array(
+			array(
+				'day'   => '1',
+				'start' => '08:00',
+				'end'   => '12:00',
+			),
+			'not-a-row',
+		);
+		$this->invoke( 'save_working_hours', array( 100 ) );
+
+		$saved = $this->saved_meta['_ffc_self_scheduling_working_hours'];
+		$this->assertCount( 1, $saved );
+		$this->assertSame( 1, $saved[0]['day'] );
 	}
 
 	public function test_working_hours_defaults_for_missing_fields(): void {

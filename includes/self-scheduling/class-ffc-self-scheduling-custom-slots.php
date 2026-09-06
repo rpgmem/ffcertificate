@@ -25,6 +25,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Pure helpers over the custom-blocks JSON.
+ *
+ * `decode()` is the only producer of a normalised block, so the shape it
+ * guarantees lives here and consumers import it rather than restating it
+ * (#1075).
+ *
+ * @phpstan-type CustomBlock array{date: string, start: string, end: string, capacity: int, label: string}
  */
 final class CustomSlots {
 
@@ -34,6 +40,7 @@ final class CustomSlots {
 	 *
 	 * @param string|array<mixed>|null $raw Stored custom_slots.
 	 * @return array<int, array{date:string,start:string,end:string,capacity:int,label:string}>
+	 * @phpstan-return list<CustomBlock>
 	 */
 	public static function decode( $raw ): array {
 		if ( is_string( $raw ) ) {

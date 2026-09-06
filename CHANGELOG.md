@@ -35,6 +35,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Formas de linha honestas em activators e migrations** (#1060): os seis arquivos que faltavam. As projeções de backfill (`submission_date`, `submitted_at`, `called_at`) declaram o que o `SELECT` traz, e as leituras de cursor e de versão de schema deixam de castar `mixed` vindo do `get_option()`. A régua de nível 9 baixou de 109 para 91, e **44 dos 45 arquivos estão em zero** — o que resta é a entrada de requisição do #1075.
 
+- **Régua de nível 9 passa a bloquear, com folga zero** (#1075, #1060): o save-handler do self-scheduling era o último arquivo fora de zero — 91 erros, dos quais 88 de entrada de requisição. Os 45 arquivos que leem linhas do `$wpdb` estão em zero e o job de CI perdeu o `continue-on-error`. Começou em 243.
+- **`RequestInput::get_post_raw_array()` e `has_post()`** (#1075): o primeiro devolve o container de `$_POST` sem sanitizar elemento nenhum — `get_post_array()` passa tudo por `sanitize_text_field()`, o que achata uma linha aninhada para `''` e tira a marcação de um corpo que precisa de `wp_kses_post()`. O caller sanitiza campo a campo, com a função certa de cada um. O segundo distingue "campo ausente" de "campo vazio", que é o que decide se um save mexe ou não no valor guardado.
+
 ### Removed
 
 - `Shortcodes::get_new_captcha_data()` (#1053): método público sem nenhum chamador em produção — o único consumidor era o próprio teste. A geração de desafio já é responsabilidade do contrato de captcha.
@@ -45,6 +48,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Endpoint de fragmentos aceitava listas de tamanho ilimitado** (#1063): ele é público e sem nonce por construção, então a quantidade pedida vem do atacante. `form_ids` acionava uma leitura de `get_post_meta()` por id, sem teto. Ambas as listas passam a ter limite de 20.
 
+- **O salvamento do calendário gravava no post meta qualquer chave que o formulário enviasse** (#1075): a configuração e a de e-mail eram o array vindo do `$_POST` com as chaves conhecidas sobrescritas, então toda chave não prevista sobrevivia intacta até o banco. Ambas passam a ser reconstruídas a partir da lista declarada — a mesma que os dois metaboxes do editor renderizam.
+
+- **Um campo numérico enviado como array virava `1`** (#1075): `absint( array( '45' ) )` é `1`, porque `intval()` de um array não vazio é 1. Um `slot_duration[]=45` forjado gravava duração de slot de **um minuto**. Valor não numérico agora cai no padrão declarado do campo.
+
+- **Uma linha de horário de trabalho que não fosse array virava lixo guardado** (#1075): indexar uma string por `['day']` lê o caractere 0 com aviso, e a entrada era salva assim mesmo. Agora é descartada.
 
 - **Um `batch_size` inválido fazia a migração se declarar concluída sem processar nada** (#1060): o array de configuração chega às estratégias **depois** do filtro `ffcertificate_migrations_registry`, então um terceiro pode pôr qualquer coisa em `batch_size` — e `(int) 'x'` é `0`, o que vira `LIMIT 0`: nenhuma linha lida, `has_more` falso, migração dada como completa. Agora um valor não numérico cai no padrão e há piso de 1.
 
