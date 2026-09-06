@@ -109,6 +109,130 @@ class FormEditorSaveHandlerTest extends TestCase {
 	// ==================================================================
 
 	// ==================================================================
+	// save_* meta writers — untyped request input (#1084)
+	// ==================================================================
+
+	/**
+	 * Capture what the save_* methods write, with the WP functions they
+	 * reach stubbed. Returns [ meta_key => value ] plus the deletions.
+	 *
+	 * @param string $method Private method on the handler.
+	 * @return array{written: array<string, mixed>, deleted: array<int, string>}
+	 */
+	private function capture_meta_writes( string $method ): array {
+		$written = array();
+		$deleted = array();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_textarea_field' )->returnArg();
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'wp_kses' )->returnArg();
+		Functions\when( 'esc_url_raw' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ): int => abs( (int) $v ) );
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( $id, $key, $value ) use ( &$written ) {
+				$written[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'delete_post_meta' )->alias(
+			static function ( $id, $key ) use ( &$deleted ) {
+				$deleted[] = $key;
+				return true;
+			}
+		);
+
+		$this->invoke( $method, array( 100 ) );
+
+		return array(
+			'written' => $written,
+			'deleted' => $deleted,
+		);
+	}
+
+	/**
+	 * #1084 — behaviour preservation, not a fix: verified passing against
+	 * the old code too. `empty( $string['label'] )` is silently true for an
+	 * illegal offset, so the `empty()` chain already skipped a non-array
+	 * row. The explicit `is_array()` guard states that precondition instead
+	 * of inheriting it from that accident, and this test is what stops the
+	 * skip from being lost when someone reorders the guards.
+	 */
+	public function test_save_fields_meta_skips_rows_that_are_not_arrays(): void {
+		$_POST['ffc_fields'] = array(
+			array(
+				'label' => 'Nome',
+				'name'  => 'nome',
+				'type'  => 'text',
+			),
+			'not-a-row',
+		);
+
+		$out = $this->capture_meta_writes( 'save_fields_meta' );
+		unset( $_POST['ffc_fields'] );
+
+		$fields = $out['written']['_ffc_form_fields'];
+		$this->assertCount( 1, $fields );
+		$this->assertSame( 'Nome', $fields[0]['label'] );
+	}
+
+	/**
+	 * #1084 — a non-scalar field value used to be handed straight to the
+	 * sanitiser. It is read typed now, so the row saves with an empty
+	 * label instead of the literal `Array`.
+	 */
+	public function test_save_fields_meta_reads_a_non_scalar_value_as_empty(): void {
+		$_POST['ffc_fields'] = array(
+			array(
+				'label' => array( 'a', 'b' ),
+				'name'  => 'nome',
+				'type'  => 'text',
+			),
+		);
+
+		$out = $this->capture_meta_writes( 'save_fields_meta' );
+		unset( $_POST['ffc_fields'] );
+
+		$fields = $out['written']['_ffc_form_fields'];
+		$this->assertCount( 1, $fields );
+		$this->assertSame( '', $fields[0]['label'] );
+		$this->assertSame( 'nome', $fields[0]['name'], 'The rest of the row still saves.' );
+	}
+
+	/**
+	 * #1084 — `sanitize_textarea_field( (string) array() )` is the literal
+	 * `Array` plus a PHP warning, and that string was stored as the
+	 * per-form device-limit message. An unusable value now reads as empty,
+	 * which is the documented "inherit the global" state.
+	 */
+	public function test_save_device_limit_meta_does_not_store_a_non_scalar_message(): void {
+		$_POST['ffc_device_limit'] = array(
+			'present' => '1',
+			'enabled' => '1',
+			'message' => array( 'oops' ),
+		);
+
+		$out = $this->capture_meta_writes( 'save_device_limit_meta' );
+		unset( $_POST['ffc_device_limit'] );
+
+		$this->assertArrayNotHasKey( '_ffc_device_limit_message', $out['written'] );
+		$this->assertContains( '_ffc_device_limit_message', $out['deleted'] );
+	}
+
+	/**
+	 * #1084 — the posted location-id list went through
+	 * `array_map( 'sanitize_key', … )`, which is handed whatever the
+	 * request nested there. A nested array is dropped now.
+	 */
+	public function test_sanitized_key_list_drops_non_scalar_entries(): void {
+		$out = $this->invoke_static(
+			'sanitized_key_list',
+			array( array( 'loc-1', array( 'nested' ), 'loc-2' ) )
+		);
+
+		$this->assertSame( array( 'loc-1', 'loc-2' ), $out );
+	}
+
+	// ==================================================================
 	// display_save_errors() — legacy html/ linter warning (#865 Phase 4)
 	// ==================================================================
 
