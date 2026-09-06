@@ -20,6 +20,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Generators;
 
+use FreeFormCertificate\Core\ArrayValue;
+use FreeFormCertificate\Settings\SettingsReader;
 use Exception;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -39,7 +41,16 @@ class QRCodeGenerator {
 	 *
 	 * @var array<string, mixed>
 	 */
-	private $defaults = array(
+	/**
+	 * Default QR parameters.
+	 *
+	 * Declared as a shape so `$params` stays typed all the way to
+	 * `\QRcode::png()` — untyped, every read of `$params['size']` was a
+	 * `mixed` the analyser could not check (#1060).
+	 *
+	 * @var array{size: int, margin: int, error_level: string}
+	 */
+	private array $defaults = array(
 		'size'        => 200,
 		'margin'      => 2,
 		'error_level' => 'M',
@@ -62,19 +73,22 @@ class QRCodeGenerator {
 	 * Load default values from plugin settings
 	 */
 	private function load_defaults_from_settings(): void {
-		$settings = get_option( 'ffc_settings', array() );
-
-		if ( isset( $settings['qr_default_size'] ) ) {
-			$this->defaults['size'] = absint( $settings['qr_default_size'] );
-		}
-
-		if ( isset( $settings['qr_default_margin'] ) ) {
-			$this->defaults['margin'] = absint( $settings['qr_default_margin'] );
-		}
-
-		if ( isset( $settings['qr_default_error_level'] ) ) {
-			$this->defaults['error_level'] = sanitize_text_field( $settings['qr_default_error_level'] );
-		}
+		// Through SettingsReader rather than get_option(), which is the
+		// project's rule for `ffc_settings` and also what makes these three
+		// reads typed instead of mixed.
+		// The defaults are spelled as literals here, not as `$this->defaults[…]`:
+		// `SettingsDefaultsTest` compares each read site's default against the
+		// declared one in `Settings::get_default_settings()` (#993), and it can
+		// only do that when the literal is at the read site. They must stay
+		// equal to the property's initialisers above.
+		$this->defaults['size']   = SettingsReader::get_int( 'qr_default_size', 200 );
+		$this->defaults['margin'] = SettingsReader::get_int( 'qr_default_margin', 2 );
+		// An allowlist rather than `sanitize_text_field()`: the value only ever
+		// selects a QR error-correction constant, it is never echoed, and the
+		// save handler already sanitises it on write. This is the same check
+		// `parse_placeholder_params()` applies to the shortcode's own value.
+		$level                         = strtoupper( SettingsReader::get_string( 'qr_default_error_level', 'M' ) );
+		$this->defaults['error_level'] = in_array( $level, array( 'L', 'M', 'Q', 'H' ), true ) ? $level : 'M';
 	}
 
 	/**
@@ -175,7 +189,7 @@ class QRCodeGenerator {
 	 * - "{{qr_code:size=200:margin=0:error=H}}" → all custom
 	 *
 	 * @param string $placeholder Placeholder.
-	 * @return array<string, mixed> Parameters with keys: size, margin, error_level
+	 * @return array{size: int, margin: int, error_level: string}
 	 */
 	private function parse_placeholder_params( string $placeholder ): array {
 		$params = $this->defaults;
@@ -231,8 +245,16 @@ class QRCodeGenerator {
 	 * @return string Base64 encoded PNG
 	 */
 	public function generate( string $url, array $params = array() ): string {
-		// Merge with defaults.
-		$params = array_merge( $this->defaults, $params );
+		// Merge with defaults, then normalise: this method is public, so a
+		// caller can hand it anything, and the values go on to a library call
+		// where a wrong type is a deprecation warning or a broken image
+		// rather than an exception (#1060).
+		$merged = array_merge( $this->defaults, $params );
+		$params = array(
+			'size'        => ArrayValue::int( $merged, 'size', $this->defaults['size'] ),
+			'margin'      => ArrayValue::int( $merged, 'margin', $this->defaults['margin'] ),
+			'error_level' => ArrayValue::string( $merged, 'error_level', $this->defaults['error_level'] ),
+		);
 
 		// Validate URL.
 		if ( empty( $url ) ) {
@@ -375,8 +397,15 @@ class QRCodeGenerator {
 	 * @return bool
 	 */
 	private function is_cache_enabled(): bool {
-		$settings = get_option( 'ffc_settings', array() );
-		return isset( $settings['qr_cache_enabled'] ) && 1 === $settings['qr_cache_enabled'];
+		/*
+		 * Through the typed accessor, which is also the fix for a toggle that
+		 * did nothing. The check here used to be `1 === $settings[...]`, and
+		 * the two writers disagree on the type: the tab's form save stores
+		 * int 1, while the autosave endpoint — which is what flipping the
+		 * switch actually calls — stores a PHP boolean. `1 === true` is false,
+		 * so turning the cache on from the UI left it off (#1060).
+		 */
+		return SettingsReader::qr_cache_enabled();
 	}
 
 	/**

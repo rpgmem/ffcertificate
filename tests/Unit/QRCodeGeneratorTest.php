@@ -248,6 +248,25 @@ class QRCodeGeneratorTest extends TestCase {
 		$this->assertTrue( $m->invoke( $gen ) );
 	}
 
+	public function test_cache_enabled_when_the_toggle_stored_a_boolean(): void {
+		// The two writers of this key disagree on its type: the tab's form
+		// save stores int 1, while the autosave endpoint — which is what
+		// flipping the switch actually calls — stores a PHP boolean through
+		// RequestInput::is_truthy(). The old check was `1 === $value`, and
+		// `1 === true` is false, so turning the cache on from the UI left it
+		// off (#1060).
+		Functions\when( 'get_option' )->justReturn(
+			array( 'qr_cache_enabled' => true )
+		);
+
+		$gen = new QRCodeGenerator();
+		$ref = new \ReflectionClass( $gen );
+		$m   = $ref->getMethod( 'is_cache_enabled' );
+		$m->setAccessible( true );
+
+		$this->assertTrue( $m->invoke( $gen ) );
+	}
+
 	// ==================================================================
 	// generate() — QR Code generation
 	// ==================================================================

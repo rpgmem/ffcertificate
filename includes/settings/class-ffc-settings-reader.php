@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Settings;
 
+use FreeFormCertificate\Core\ArrayValue;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -92,6 +94,24 @@ final class SettingsReader {
 	public static function get_int( string $key, int $default = 0 ): int {
 		$value = self::get( $key, $default );
 		return (int) $value;
+	}
+
+	/**
+	 * String-typed read.
+	 *
+	 * Unlike its two siblings above this refuses a non-scalar rather than
+	 * casting it: `(string) array()` is the literal `'Array'` plus a notice,
+	 * and a setting that reads as the word Array is worse than one that reads
+	 * as its default (#1060). The int and bool accessors keep their plain
+	 * casts — changing those changes what every existing caller gets back,
+	 * which is a wider decision than this one.
+	 *
+	 * @param string $key     Settings key.
+	 * @param string $default Returned when the key is absent or not scalar.
+	 * @return string
+	 */
+	public static function get_string( string $key, string $default = '' ): string {
+		return ArrayValue::string( self::all(), $key, $default );
 	}
 
 	// ──────────────────────────────────────────────────────────────.

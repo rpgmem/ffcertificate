@@ -124,6 +124,38 @@ class FormListColumns {
 	}
 
 	/**
+	 * Read a post meta value as a string.
+	 *
+	 * `get_post_meta()` returns mixed — a meta row can hold a serialised
+	 * array — and `(string)` on one is the literal `'Array'` plus a notice.
+	 * Local to this class on purpose: the repository has 87 casts of this
+	 * shape and a shared helper is worth extracting from two proven users,
+	 * not from one (#1060).
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $key     Meta key.
+	 * @return string
+	 */
+	private static function meta_string( int $post_id, string $key ): string {
+		$value = get_post_meta( $post_id, $key, true );
+
+		return is_scalar( $value ) ? (string) $value : '';
+	}
+
+	/**
+	 * Read a post meta value as an integer.
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $key     Meta key.
+	 * @return int
+	 */
+	private static function meta_int( int $post_id, string $key ): int {
+		$value = get_post_meta( $post_id, $key, true );
+
+		return is_numeric( $value ) ? (int) $value : 0;
+	}
+
+	/**
 	 * Resolve the on/off state of each toggleable feature for a form.
 	 *
 	 * @param int $post_id Form post ID.
@@ -132,7 +164,7 @@ class FormListColumns {
 	private static function get_feature_states( int $post_id ): array {
 		$config      = get_post_meta( $post_id, '_ffc_form_config', true );
 		$device_meta = get_post_meta( $post_id, '_ffc_device_limit', true );
-		$csv_enabled = (string) get_post_meta( $post_id, '_ffc_csv_public_enabled', true );
+		$csv_enabled = self::meta_string( $post_id, '_ffc_csv_public_enabled' );
 
 		return array(
 			'csv_public_enabled' => '1' === $csv_enabled,
@@ -227,12 +259,12 @@ class FormListColumns {
 				break;
 
 			case 'ffc_csv_downloads':
-				$csv_enabled = (string) get_post_meta( $post_id, '_ffc_csv_public_enabled', true );
+				$csv_enabled = self::meta_string( $post_id, '_ffc_csv_public_enabled' );
 				if ( '1' !== $csv_enabled ) {
 					echo '<span class="ffc-empty-value">&mdash;</span>';
 				} else {
-					$dl_count = (int) get_post_meta( $post_id, '_ffc_csv_public_count', true );
-					$limit    = (int) get_post_meta( $post_id, '_ffc_csv_public_limit', true );
+					$dl_count = self::meta_int( $post_id, '_ffc_csv_public_count' );
+					$limit    = self::meta_int( $post_id, '_ffc_csv_public_limit' );
 					if ( $limit > 0 ) {
 						printf(
 							'%s / %s',
@@ -318,11 +350,12 @@ class FormListColumns {
 		}
 
 		$search = $query->get( 's' );
-		if ( '' === $search || ! ctype_digit( trim( $search ) ) ) {
+		$search = is_scalar( $search ) ? trim( (string) $search ) : '';
+		if ( '' === $search || ! ctype_digit( $search ) ) {
 			return;
 		}
 
-		$query->set( 'post__in', array( absint( trim( $search ) ) ) );
+		$query->set( 'post__in', array( absint( $search ) ) );
 		$query->set( 's', '' );
 	}
 }
