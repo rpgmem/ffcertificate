@@ -159,6 +159,51 @@ class SettingsReaderTest extends TestCase {
 		$this->assertSame( 600, SettingsReader::get_int( 'missing', 600 ) );
 	}
 
+	/**
+	 * The three typed accessors follow one rule: cast a scalar, return the
+	 * default for anything else. Before #1084 only get_string() did — and the
+	 * two casts it did not share are the silent half of the pair, which is why
+	 * this test asserts against the value the old code produced, not merely
+	 * against the default.
+	 */
+	public function test_get_int_refuses_a_non_scalar_instead_of_reading_it_as_one(): void {
+		$this->stub_option( array(
+			'as_filled_array' => array( '45' ),
+			'as_empty_array'  => array(),
+		) );
+
+		// (int) array( '45' ) is 1 — a plausible id, with no notice to find later.
+		$this->assertSame( 600, SettingsReader::get_int( 'as_filled_array', 600 ) );
+		$this->assertSame( 600, SettingsReader::get_int( 'as_empty_array', 600 ) );
+	}
+
+	public function test_get_int_keeps_the_plain_cast_for_every_scalar(): void {
+		$this->stub_option( array(
+			'as_word'  => 'abc',
+			'as_bool'  => true,
+			'as_empty' => '',
+		) );
+
+		// Deliberately NOT ArrayValue::int() semantics: a non-numeric string
+		// still reads as 0 here, because narrowing that would change what
+		// every existing caller receives.
+		$this->assertSame( 0, SettingsReader::get_int( 'as_word', 600 ) );
+		$this->assertSame( 1, SettingsReader::get_int( 'as_bool', 600 ) );
+		$this->assertSame( 0, SettingsReader::get_int( 'as_empty', 600 ) );
+	}
+
+	public function test_get_bool_refuses_a_non_scalar_instead_of_reading_it_as_one(): void {
+		$this->stub_option( array(
+			'as_filled_array' => array( 0 ),
+			'as_empty_array'  => array(),
+		) );
+
+		// (bool) array( 0 ) is true and (bool) array() is false — the stored
+		// value decides nothing, the shape of the array does.
+		$this->assertFalse( SettingsReader::get_bool( 'as_filled_array' ) );
+		$this->assertTrue( SettingsReader::get_bool( 'as_empty_array', true ) );
+	}
+
 	// ------------------------------------------------------------------
 	// Typed bool accessors
 	// ------------------------------------------------------------------

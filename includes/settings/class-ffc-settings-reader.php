@@ -73,38 +73,57 @@ final class SettingsReader {
 	}
 
 	/**
-	 * Bool-typed read with explicit cast.
+	 * Bool-typed read.
+	 *
+	 * Refuses a non-scalar rather than casting it — see the family rule on
+	 * {@see self::get_string()}. For every scalar the result is the plain
+	 * `(bool)` cast this accessor has always applied.
 	 *
 	 * @param string $key     Settings key.
-	 * @param bool   $default Returned when the key is absent.
+	 * @param bool   $default Returned when the key is absent or not scalar.
 	 * @return bool
 	 */
 	public static function get_bool( string $key, bool $default = false ): bool {
 		$value = self::get( $key, $default );
-		return (bool) $value;
+		return is_scalar( $value ) ? (bool) $value : $default;
 	}
 
 	/**
-	 * Int-typed read with explicit cast.
+	 * Int-typed read.
+	 *
+	 * Refuses a non-scalar rather than casting it — see the family rule on
+	 * {@see self::get_string()}. For every scalar the result is the plain
+	 * `(int)` cast this accessor has always applied, so a non-numeric string
+	 * still reads as 0 here (unlike {@see ArrayValue::int()}, which returns
+	 * the default). That difference is deliberate: `ArrayValue` reads foreign
+	 * data, while these three read an option the plugin itself sanitises on
+	 * save, and narrowing the scalar path would change what every existing
+	 * caller gets back.
 	 *
 	 * @param string $key     Settings key.
-	 * @param int    $default Returned when the key is absent.
+	 * @param int    $default Returned when the key is absent or not scalar.
 	 * @return int
 	 */
 	public static function get_int( string $key, int $default = 0 ): int {
 		$value = self::get( $key, $default );
-		return (int) $value;
+		return is_scalar( $value ) ? (int) $value : $default;
 	}
 
 	/**
 	 * String-typed read.
 	 *
-	 * Unlike its two siblings above this refuses a non-scalar rather than
-	 * casting it: `(string) array()` is the literal `'Array'` plus a notice,
-	 * and a setting that reads as the word Array is worse than one that reads
-	 * as its default (#1060). The int and bool accessors keep their plain
-	 * casts — changing those changes what every existing caller gets back,
-	 * which is a wider decision than this one.
+	 * **The family rule, which all three typed accessors follow:** a scalar is
+	 * cast, anything else returns the default. A setting that reads as the word
+	 * `Array` is worse than one that reads as its default, and the int and bool
+	 * casts are worse still because they are *silent* — `(int) array( '45' )`
+	 * is `1` and `(bool) array( 0 )` is `true`, with no notice to find later.
+	 * That is the #1060 defect class, twice over.
+	 *
+	 * The three sat on two semantics until #1084 closed the epic: this one
+	 * refused a non-scalar while its siblings cast blind. Nothing the plugin
+	 * writes into `ffc_settings` is non-scalar, so aligning them changed no
+	 * stored value — it only decided what happens when something else puts an
+	 * array there.
 	 *
 	 * @param string $key     Settings key.
 	 * @param string $default Returned when the key is absent or not scalar.

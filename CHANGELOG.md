@@ -18,6 +18,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Os três acessores tipados do `SettingsReader` seguem uma regra só** (#1060): escalar é convertido, o resto devolve o padrão. `get_int()`/`get_bool()` convertiam cego, e são a metade silenciosa do par — `(int) array('45')` é `1`, sem aviso nenhum. Nenhum valor gravado em `ffc_settings` é não-escalar, então nada muda de leitura.
 - Internal (#1053) — o endpoint de fragmentos de página em cache passa a servir o desafio do provider configurado, via `CaptchaProvider::resolve()->challenge_payload()`, em vez de chamar o captcha matemático direto; o cliente despacha pelo campo `provider` do payload e ignora o que não reconhece, em vez de aplicar meio payload. É o quinto site de refresh, que a unificação do contrato não havia alcançado.
 - Internal (#1053) — o captcha passa a ter um contrato de estratégia (`CaptchaProviderInterface` + `CaptchaProvider::resolve()`), com o desafio matemático atrás dele. Os 6 sites de verificação e os 4 de retry não mudam: `validate_security_fields()` continua sendo o ponto único e agora delega a metade captcha. As duas cópias do bloco de segurança viraram uma, em `templates/`.
 
