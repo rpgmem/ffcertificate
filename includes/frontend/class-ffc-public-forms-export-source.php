@@ -357,7 +357,8 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 	 * @return int
 	 */
 	private function request_form_id(): int {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- absint() sanitizes; nonce verified in authorize_start().
+		// No annotation needed: the read, its unslash and its nonce note all
+		// live inside the accessor now.
 		return \FreeFormCertificate\Core\RequestInput::get_post_int( 'form_id', 0 );
 	}
 }
