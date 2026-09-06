@@ -81,8 +81,8 @@ class QRCodeGenerator {
 		// declared one in `Settings::get_default_settings()` (#993), and it can
 		// only do that when the literal is at the read site. They must stay
 		// equal to the property's initialisers above.
-		$this->defaults['size']        = SettingsReader::get_int( 'qr_default_size', 200 );
-		$this->defaults['margin']      = SettingsReader::get_int( 'qr_default_margin', 2 );
+		$this->defaults['size']   = SettingsReader::get_int( 'qr_default_size', 200 );
+		$this->defaults['margin'] = SettingsReader::get_int( 'qr_default_margin', 2 );
 		// An allowlist rather than `sanitize_text_field()`: the value only ever
 		// selects a QR error-correction constant, it is never echoed, and the
 		// save handler already sanitises it on write. This is the same check
