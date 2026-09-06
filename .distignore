@@ -18,6 +18,7 @@
 /vendor
 /phpcs.xml.dist
 /phpstan.neon.dist
+/phpstan-rows.neon.dist
 /phpstan-baseline.neon
 /phpstan-stubs.php
 /phpunit.xml

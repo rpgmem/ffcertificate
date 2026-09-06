@@ -1,0 +1,26 @@
+# Level 9 over the same tree as `phpstan.neon.dist`, reported only for the
+# classes that read rows out of `$wpdb`.
+#
+# Why a second config instead of raising the level of the first one: level 9
+# reports every mishandled `mixed` in the repository — 2948 of them when this
+# file was written, and 92% of those have nothing to do with the database
+# (`$_POST`, `get_option()`, `json_decode()`, hook arguments). Raising the
+# main gate would mean baselining thousands of errors in bulk, which trades a
+# specific blindness for a generic suppression.
+#
+# Why the tree is NOT restricted to the row-reading files: measured, because
+# it is tempting and wrong. Narrowing `paths` to the 45 files takes the rest
+# of `includes/` out of the analysis, so PHPStan loses the inferred return
+# types of everything they call and invents `mixed` that does not exist —
+# 778 errors instead of 243, with `scanDirectories` bringing it only to 363.
+# Chasing that gap would mean annotating things that are not defects. The
+# whole tree is analysed; `.github/scripts/phpstan-rows-report.php` is what
+# narrows the report.
+#
+# See rpgmem/ffcertificate#1060.
+
+includes:
+    - phpstan.neon.dist
+
+parameters:
+    level: 9
