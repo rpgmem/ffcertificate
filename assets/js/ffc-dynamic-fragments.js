@@ -57,6 +57,12 @@
 			payload += '&form_ids%5B%5D=' + encodeURIComponent(formIds[fi]);
 		}
 
+		// How many challenges to ask for. The server cannot work this out:
+		// it only ever sees form ids, and the security blocks rendered by
+		// [ffc_self_scheduling] and [ffc_csv_download] belong to no form.
+		// Counting forms there is what let two blocks share one token (#1063).
+		payload += '&blocks=' + securityBlocks().length;
+
 		var xhr = new XMLHttpRequest();
 		xhr.open('POST', ajaxUrl, true);
 		xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
@@ -159,21 +165,22 @@
 		var i;
 
 		// --- Captchas ---
-		// One pass over the security blocks. A block inside a form wrapper
-		// takes that form's own payload when the server sent one (several
-		// forms on a page must never share a challenge — #1056); everything
-		// else takes the default. Scoping by block rather than by document
-		// is what keeps two challenges on one page independent.
+		// One challenge per security block, taken from the list the server
+		// minted for the count sent above — position i for block i, in the
+		// order `securityBlocks()` returns. The payloads are interchangeable
+		// (a challenge is not bound to a form), so the only property that
+		// matters is that no two blocks read the same entry: since #1054 the
+		// token is single-use, and a shared one means whoever submits first
+		// spends the other's (#1056, #1063).
+		//
+		// `data.captcha` remains the fallback — for the single-block page,
+		// where the server sends no list, and for any block past the end of
+		// one, which a page that grew a block after the request would hit.
 		if (data.captcha || data.captchas) {
 			var blocks = securityBlocks();
+			var minted = Array.isArray(data.captchas) ? data.captchas : null;
 			for (i = 0; i < blocks.length; i++) {
-				var wrapper = blocks[i].closest('.ffc-form-wrapper');
-				var formId  = wrapper ? wrapper.id.replace('ffc-form-', '') : '';
-				var payload = (data.captchas && formId && data.captchas[formId])
-					? data.captchas[formId]
-					: data.captcha;
-
-				applyChallenge(blocks[i], payload);
+				applyChallenge(blocks[i], (minted && minted[i]) || data.captcha);
 			}
 		}
 
@@ -242,7 +249,7 @@
 
 		// --- Geofence configs (refresh stale cached data) ---
 		if (data.geofence && typeof ffcGeofenceConfig !== 'undefined') {
-			for (formId in data.geofence) {
+			for (var formId in data.geofence) {
 				if (data.geofence.hasOwnProperty(formId)) {
 					ffcGeofenceConfig[formId] = data.geofence[formId];
 				}

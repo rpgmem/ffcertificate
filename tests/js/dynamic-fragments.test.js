@@ -87,6 +87,25 @@ describe('ffc-dynamic-fragments — early returns', () => {
 		expect(MockXHR.lastInstance.url).toBe('/fallback');
 	});
 
+	it('posts the security-block count, which is not the form count', () => {
+		// #1063. The server cannot derive this: the block rendered by
+		// [ffc_self_scheduling] belongs to no form, so the page below is one
+		// form id and two blocks.
+		installXHRMock();
+		document.body.innerHTML = `
+			<div class="ffc-form-wrapper" id="ffc-form-42">
+				<div class="ffc-security-container"><div class="ffc-captcha-row"></div></div>
+			</div>
+			<div class="ffc-booking-form">
+				<div class="ffc-security-container"><div class="ffc-captcha-row"></div></div>
+			</div>
+		`;
+		window.ffcDynamic = { ajaxUrl: '/x' };
+		loadScript('assets/js/ffc-dynamic-fragments.js');
+		expect(MockXHR.lastInstance.payload).toContain('form_ids%5B%5D=42');
+		expect(MockXHR.lastInstance.payload).toContain('blocks=2');
+	});
+
 	it('collects form_ids from ffc-form-* wrappers into the payload', () => {
 		installXHRMock();
 		document.body.innerHTML = `
@@ -133,7 +152,7 @@ describe('ffc-dynamic-fragments — applyFragments via XHR onload', () => {
 		</div>`;
 	}
 
-	it('updates the per-form captcha (label, hash, blanks the answer)', () => {
+	it('updates the block from the minted list (label, hash, blanks the answer)', () => {
 		setupAndDeliver(
 			`<div class="ffc-form-wrapper" id="ffc-form-7">
 				${securityBlock('old-label', 'old-hash', '123')}
@@ -141,9 +160,7 @@ describe('ffc-dynamic-fragments — applyFragments via XHR onload', () => {
 			{
 				success: true,
 				data: {
-					captchas: {
-						'7': { provider: 'math', new_label: 'new-label', new_hash: 'new-hash' },
-					},
+					captchas: [{ provider: 'math', new_label: 'new-label', new_hash: 'new-hash' }],
 				},
 			}
 		);
@@ -221,21 +238,21 @@ describe('ffc-dynamic-fragments — applyFragments via XHR onload', () => {
 		expect(document.querySelector('input[name="ffc_captcha_ans"]').value).toBe('4');
 	});
 
-	it('gives each form on the page its own challenge', () => {
+	it('gives each security block on the page its own challenge', () => {
 		// The #1056 property, enforced at the fragment-refresh level: two
-		// forms must never end up sharing a token. Scoping per security block
-		// is what makes this hold — a document-wide query would write the
-		// same values into both.
+		// blocks must never end up sharing a token. Scoping per security
+		// block is what makes this hold — a document-wide query would write
+		// the same values into both.
 		setupAndDeliver(
 			`<div class="ffc-form-wrapper" id="ffc-form-7">${securityBlock('a-old', 'a-old-hash', '1')}</div>
 			 <div class="ffc-form-wrapper" id="ffc-form-8">${securityBlock('b-old', 'b-old-hash', '2')}</div>`,
 			{
 				success: true,
 				data: {
-					captchas: {
-						'7': { provider: 'math', new_label: 'a-new', new_hash: 'a-new-hash' },
-						'8': { provider: 'math', new_label: 'b-new', new_hash: 'b-new-hash' },
-					},
+					captchas: [
+						{ provider: 'math', new_label: 'a-new', new_hash: 'a-new-hash' },
+						{ provider: 'math', new_label: 'b-new', new_hash: 'b-new-hash' },
+					],
 				},
 			}
 		);
@@ -245,6 +262,54 @@ describe('ffc-dynamic-fragments — applyFragments via XHR onload', () => {
 		expect(labels[1].textContent).toBe('b-new');
 		expect(hashes[0].value).toBe('a-new-hash');
 		expect(hashes[1].value).toBe('b-new-hash');
+	});
+
+	it('gives a block outside a form wrapper its own challenge too', () => {
+		// #1063. A page mixing [ffc_form] with [ffc_self_scheduling] or
+		// [ffc_csv_download] has two security blocks and one form id — the
+		// second block lives in no `.ffc-form-wrapper`. Keying challenges by
+		// form id left it on the shared default payload, and since #1054 the
+		// token is single-use: whoever submitted first spent the other's.
+		setupAndDeliver(
+			`<div class="ffc-form-wrapper" id="ffc-form-7">${securityBlock('a-old', 'a-old-hash', '1')}</div>
+			 <div class="ffc-booking-form">${securityBlock('b-old', 'b-old-hash', '2')}</div>`,
+			{
+				success: true,
+				data: {
+					captcha: { provider: 'math', new_label: 'shared', new_hash: 'shared-hash' },
+					captchas: [
+						{ provider: 'math', new_label: 'a-new', new_hash: 'a-new-hash' },
+						{ provider: 'math', new_label: 'b-new', new_hash: 'b-new-hash' },
+					],
+				},
+			}
+		);
+		const hashes = document.querySelectorAll('input[name="ffc_captcha_hash"]');
+		expect(hashes[0].value).toBe('a-new-hash');
+		expect(hashes[1].value).toBe('b-new-hash');
+		expect(hashes[0].value).not.toBe(hashes[1].value);
+	});
+
+	it('falls back to the default payload for a block past the end of the list', () => {
+		// The list is minted for the count sent at request time. A page that
+		// grew a block in between still gets a challenge in every block —
+		// a repeated one is no worse than the stale markup it replaces, and
+		// leaving a block unpatched would keep a token the cache may have
+		// served to someone else.
+		setupAndDeliver(
+			`<div class="ffc-form-wrapper" id="ffc-form-7">${securityBlock('a-old', 'a-old-hash', '1')}</div>
+			 <div class="ffc-booking-form">${securityBlock('b-old', 'b-old-hash', '2')}</div>`,
+			{
+				success: true,
+				data: {
+					captcha: { provider: 'math', new_label: 'default', new_hash: 'default-hash' },
+					captchas: [{ provider: 'math', new_label: 'a-new', new_hash: 'a-new-hash' }],
+				},
+			}
+		);
+		const hashes = document.querySelectorAll('input[name="ffc_captcha_hash"]');
+		expect(hashes[0].value).toBe('a-new-hash');
+		expect(hashes[1].value).toBe('default-hash');
 	});
 
 	it('refreshes ffcGeofenceConfig and triggers FFCGeofence.recheck()', () => {
@@ -343,19 +408,21 @@ describe('ffc-dynamic-fragments — applyFragments via XHR onload', () => {
 		expect(email.getAttribute('readonly')).toBe('readonly');
 	});
 
-	it('prefers a form\'s own payload over the default one', () => {
+	it('prefers the minted list entry over the default payload', () => {
+		// The default is the fallback, not the first choice: it is the one
+		// payload every block would otherwise share.
 		setupAndDeliver(
 			`<div class="ffc-form-wrapper" id="ffc-form-7">${securityBlock('old', 'old-hash', '5')}</div>`,
 			{
 				success: true,
 				data: {
-					captchas: { '7': { provider: 'math', new_label: 'per-form-label', new_hash: 'per-form-hash' } },
+					captchas: [{ provider: 'math', new_label: 'minted-label', new_hash: 'minted-hash' }],
 					captcha: { provider: 'math', new_label: 'default-label', new_hash: 'default-hash' },
 				},
 			}
 		);
-		expect(document.querySelector('.ffc-captcha-label-text').textContent).toBe('per-form-label');
-		expect(document.querySelector('input[name="ffc_captcha_hash"]').value).toBe('per-form-hash');
+		expect(document.querySelector('.ffc-captcha-label-text').textContent).toBe('minted-label');
+		expect(document.querySelector('input[name="ffc_captcha_hash"]').value).toBe('minted-hash');
 		expect(document.querySelector('input[name="ffc_captcha_ans"]').value).toBe('');
 	});
 });
