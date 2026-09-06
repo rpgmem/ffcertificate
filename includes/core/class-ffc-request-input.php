@@ -50,6 +50,38 @@ class RequestInput {
 	}
 
 	/**
+	 * Read a `$_POST` array container WITHOUT sanitising its elements.
+	 *
+	 * `get_post_array()` puts every element through `sanitize_text_field()`,
+	 * which is the right default and the wrong one for a payload whose
+	 * fields do not share a type: it collapses the newlines a textarea
+	 * needs, strips the markup a `wp_kses_post()` body needs, and returns
+	 * `''` for a nested array — silently flattening a repeatable field to
+	 * nothing. This accessor is for exactly that case, and it moves the
+	 * unslash, the `is_array()` guard and the phpcs annotations off the
+	 * caller while leaving the values untouched.
+	 *
+	 * **The caller MUST sanitise every value it reads out**, with the
+	 * function that fits that field. What is centralised here is the
+	 * container, never the sanitising.
+	 *
+	 * @since 6.23.0
+	 * @param string $key `$_POST` key.
+	 * @return array<array-key, mixed> Unslashed, UNSANITISED values; empty
+	 *                                 when the key is absent or not an array.
+	 */
+	public static function get_post_raw_array( string $key ): array {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller responsibility.
+		if ( ! isset( $_POST[ $key ] ) ) {
+			return array();
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller responsibility, and deliberately unsanitised: see the docblock. Every consumer sanitises per field.
+		$raw = wp_unslash( $_POST[ $key ] );
+
+		return is_array( $raw ) ? $raw : array();
+	}
+
+	/**
 	 * Read + sanitize a `$_POST` string value.
 	 *
 	 * Returns `$default` when the key is absent or the underlying value
@@ -160,6 +192,23 @@ class RequestInput {
 	public static function has_get( string $key ): bool {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Caller responsibility.
 		return isset( $_GET[ $key ] );
+	}
+
+	/**
+	 * Whether a `$_POST` key is present at all.
+	 *
+	 * Distinct from reading it: a handler that only writes the fields its
+	 * own metabox rendered has to tell "absent" (another box was saved —
+	 * leave the stored value alone) from "present but empty" (the admin
+	 * cleared it). The typed readers collapse both to their default.
+	 *
+	 * @since 6.23.0
+	 * @param string $key `$_POST` key.
+	 * @return bool
+	 */
+	public static function has_post( string $key ): bool {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller responsibility.
+		return isset( $_POST[ $key ] );
 	}
 
 	/**

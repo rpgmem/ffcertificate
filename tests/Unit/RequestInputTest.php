@@ -167,4 +167,46 @@ class RequestInputTest extends TestCase {
 		unset( $_GET['ffc_saved'] );
 		$this->assertFalse( RequestInput::has_get( 'ffc_saved' ) );
 	}
+
+	public function test_has_post_is_presence_not_truthiness(): void {
+		$_POST['ffc_config'] = '';
+		$this->assertTrue( RequestInput::has_post( 'ffc_config' ) );
+
+		unset( $_POST['ffc_config'] );
+		$this->assertFalse( RequestInput::has_post( 'ffc_config' ) );
+	}
+
+	/**
+	 * #1075 — the point of this accessor. `get_post_array()` puts every
+	 * element through `sanitize_text_field()`, which flattens a nested row
+	 * to `''` and strips the markup a `wp_kses_post()` body needs. This one
+	 * returns the container untouched, and the caller sanitises per field.
+	 */
+	public function test_get_post_raw_array_leaves_values_untouched(): void {
+		Functions\when( 'wp_unslash' )->returnArg();
+		$_POST['payload'] = array(
+			'body' => '<strong>keep</strong>',
+			'rows' => array( array( 'day' => '1' ) ),
+			'text' => "line one\nline two",
+		);
+
+		$out = RequestInput::get_post_raw_array( 'payload' );
+
+		unset( $_POST['payload'] );
+
+		$this->assertSame( '<strong>keep</strong>', $out['body'] );
+		$this->assertSame( array( array( 'day' => '1' ) ), $out['rows'] );
+		$this->assertSame( "line one\nline two", $out['text'] );
+	}
+
+	public function test_get_post_raw_array_returns_empty_for_absent_or_non_array(): void {
+		Functions\when( 'wp_unslash' )->returnArg();
+
+		unset( $_POST['payload'] );
+		$this->assertSame( array(), RequestInput::get_post_raw_array( 'payload' ) );
+
+		$_POST['payload'] = 'a string';
+		$this->assertSame( array(), RequestInput::get_post_raw_array( 'payload' ) );
+		unset( $_POST['payload'] );
+	}
 }
