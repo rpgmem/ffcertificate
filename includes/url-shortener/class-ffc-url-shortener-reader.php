@@ -21,6 +21,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\UrlShortener;
 
 use FreeFormCertificate\Repositories\AbstractRepository;
+use FreeFormCertificate\Core\ArrayValue;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -99,7 +100,16 @@ class UrlShortenerReader extends AbstractRepository {
 	 */
 	public function findByShortCode( string $code ): ?array {
 		$cache_key = 'code_' . $code;
-		$cached    = $this->get_cache( $cache_key );
+
+		/**
+		 * The object cache is the second hole, and it is not the `$wpdb` one:
+		 * `wp_cache_get()` returns `mixed`, so a cache HIT threw the shape away
+		 * while the read below was typed. That is the #1072 finding, applied
+		 * here only now because this file was invisible to the ruler (#1087).
+		 *
+		 * @var ShortUrlRow|false $cached
+		 */
+		$cached = $this->get_cache( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
@@ -133,7 +143,16 @@ class UrlShortenerReader extends AbstractRepository {
 	 */
 	public function findByPostId( int $post_id ): ?array {
 		$cache_key = 'post_' . $post_id;
-		$cached    = $this->get_cache( $cache_key );
+
+		/**
+		 * The object cache is the second hole, and it is not the `$wpdb` one:
+		 * `wp_cache_get()` returns `mixed`, so a cache HIT threw the shape away
+		 * while the read below was typed. That is the #1072 finding, applied
+		 * here only now because this file was invisible to the ruler (#1087).
+		 *
+		 * @var ShortUrlRow|false $cached
+		 */
+		$cached = $this->get_cache( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
@@ -276,8 +295,11 @@ class UrlShortenerReader extends AbstractRepository {
 	 * @phpstan-return array{0: string, 1: array<int, string>}
 	 */
 	private function build_export_where( array $filters ): array {
-		$status = isset( $filters['status'] ) ? (string) $filters['status'] : 'all';
-		$search = isset( $filters['search'] ) ? (string) $filters['search'] : '';
+		// `$filters` is the caller's untyped bag; ArrayValue refuses a
+		// non-scalar instead of letting `(string) array()` become "Array"
+		// and reach the WHERE as a filter that matches nothing (#1072).
+		$status = ArrayValue::string( $filters, 'status', 'all' );
+		$search = ArrayValue::string( $filters, 'search' );
 
 		$where_clauses = array();
 		$where_values  = array();
@@ -514,6 +536,13 @@ class UrlShortenerReader extends AbstractRepository {
 	 * @return array{total_links: int, active_links: int, total_clicks: int, trashed_links: int}
 	 */
 	public function getStats(): array {
+		/**
+		 * Four aggregates, not a row — and `SUM()` comes back as a numeric
+		 * string like every column, or NULL on an empty table (the COALESCE
+		 * only covers total_clicks).
+		 *
+		 * @var array{total_links: numeric-string|null, active_links: numeric-string|null, total_clicks: numeric-string, trashed_links: numeric-string|null}|null $row
+		 */
 		$row = $this->wpdb->get_row(
 			$this->wpdb->prepare(
 				"SELECT

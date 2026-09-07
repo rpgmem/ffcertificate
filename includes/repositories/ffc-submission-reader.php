@@ -204,7 +204,17 @@ class SubmissionReader extends AbstractRepository {
 	 */
 	public function findByAuthCode( string $auth_code ) {
 		$cache_key = "auth_{$auth_code}";
-		$cached    = $this->get_cache( $cache_key );
+
+		/**
+		 * The object cache is the hole, not `$wpdb`: `wp_cache_get()` returns
+		 * `mixed`, so a cache hit threw the type away. The #1072 finding, which
+		 * never reached this file because the ruler could not see it (#1087).
+		 *
+		 * The assertion is on the KEY — the cache is heterogeneous by key.
+		 *
+		 * @var array<string, mixed>|false $cached
+		 */
+		$cached = $this->get_cache( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
@@ -230,7 +240,17 @@ class SubmissionReader extends AbstractRepository {
 	 */
 	public function findByToken( string $token ) {
 		$cache_key = "token_{$token}";
-		$cached    = $this->get_cache( $cache_key );
+
+		/**
+		 * The object cache is the hole, not `$wpdb`: `wp_cache_get()` returns
+		 * `mixed`, so a cache hit threw the type away. The #1072 finding, which
+		 * never reached this file because the ruler could not see it (#1087).
+		 *
+		 * The assertion is on the KEY — the cache is heterogeneous by key.
+		 *
+		 * @var array<string, mixed>|false $cached
+		 */
+		$cached = $this->get_cache( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
@@ -558,7 +578,15 @@ class SubmissionReader extends AbstractRepository {
 		$where = array( $this->wpdb->prepare( 'status = %s', $args['status'] ) );
 
 		if ( ! empty( $args['form_ids'] ) && is_array( $args['form_ids'] ) ) {
-			$form_ids_int          = array_map( 'absint', $args['form_ids'] );
+			/**
+			 * `$args` is the caller's untyped bag, so `form_ids` is `mixed`
+			 * until the is_array() above narrows the container — its elements
+			 * still are not, and absint() on a nested array would be 1.
+			 *
+			 * @var array<array-key, scalar> $form_ids_raw
+			 */
+			$form_ids_raw          = $args['form_ids'];
+			$form_ids_int          = array_map( 'absint', $form_ids_raw );
 			$form_ids_placeholders = implode( ', ', array_fill( 0, count( $form_ids_int ), '%d' ) );
             // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $form_ids_placeholders is %d repeated to match count($form_ids_int); Interpolated* is file-disabled above.
 			$where[] = $this->wpdb->prepare(
@@ -659,6 +687,12 @@ class SubmissionReader extends AbstractRepository {
 	 * @return array<string, int>
 	 */
 	public function countByStatus(): array {
+		/**
+		 * A transient is `mixed` by construction — is_array() narrows the
+		 * container, never its values.
+		 *
+		 * @var array<string, int>|false $cached
+		 */
 		$cached = \get_transient( self::COUNT_CACHE_KEY );
 		if ( is_array( $cached ) ) {
 			return $cached;
