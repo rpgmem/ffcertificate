@@ -18,6 +18,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Guarda de idempotência do `dbDelta`** (#1087): o job `fresh-install` repassa cada `CREATE TABLE` pelo `dbDelta()` contra a tabela recém-criada; o que ele quiser alterar é um `ALTER` em toda ativação futura — a classe do #997, medida uma vez à mão e nunca mais. A primeira medição achou **14 declarações** nesse estado, congeladas em baseline como catraca que só encolhe.
 - **Guarda contra cast de superglobal sem tipo** (#1087): `tests/Unit/RequestInputCastTest.php` congela em baseline os casts inteiros aplicados direto a `$_POST`/`$_GET`/`$_REQUEST` — 55 hoje — como catraca que só encolhe. Um cast novo falha o CI e aponta o acessor certo; um removido também falha, para travar o ganho.
 
 ### Fixed

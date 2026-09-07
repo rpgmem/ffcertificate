@@ -416,6 +416,18 @@ jobs:
           wp plugin activate ffcertificate --path="$HOME/wp"
       - name: Check what the activation created
         run: php .github/scripts/fresh-install-check.php "$HOME/wp" uninstall.php activate
+      - name: Re-run every CREATE TABLE through dbDelta
+        # The class no other gate sees. dbDelta ALTERs the difference between a
+        # CREATE TABLE and what MySQL actually stored — when the two disagree in
+        # a way the statement can never satisfy, it re-ALTERs on every run,
+        # forever, in silence. #997 measured it once by hand (41 database errors
+        # on the self-scheduling tables, 1 after the cleanup) and it was never
+        # measured again; two CREATE statements changed in #1091 and #1093.
+        #
+        # Runs here because this is the only job with a real MariaDB AND a
+        # freshly created schema: the statement is replayed against the table it
+        # just built, so an empty change list is the only correct answer.
+        run: php .github/scripts/dbdelta-idempotence-check.php "$HOME/wp"
       - name: Delete the plugin with the Danger Zone opt-in on
         run: |
           # `wp plugin uninstall` removes the plugin directory, and these scripts
