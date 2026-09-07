@@ -41,6 +41,21 @@ declare(strict_types=1);
 /**
  * Absolute paths of the files that read rows straight from `$wpdb`.
  *
+ * **Two receivers, and the second one was missed until #1087.** Most classes
+ * call the global `$wpdb->get_results(…)`, but every repository that extends
+ * `AbstractRepository` binds wpdb as a property and calls
+ * `$this->wpdb->get_results(…)` — which does not contain the substring
+ * `$wpdb->` at all. The original pattern required that substring, so eight
+ * repositories were invisible to this gate while it reported
+ * "Every class that reads a row declares what the row holds": the count was
+ * honest, the denominator was not. The scan covers both idioms now.
+ *
+ * **`$user_query->get_results()` is deliberately NOT matched.** It is
+ * `WP_User_Query`, a core object with its own typed return — not a row read
+ * off one of the plugin's tables. A pattern loose enough to catch every
+ * `->get_results` would pull it in and measure the wrong thing, which is why
+ * the receiver is named rather than wildcarded.
+ *
  * @param string $includes_dir Absolute path to the plugin's `includes/`.
  * @return array<int, string> Sorted; empty when the scan finds nothing.
  */
@@ -58,7 +73,7 @@ function ffc_row_reading_files( string $includes_dir ): array {
 
 		$source = (string) file_get_contents( $file->getPathname() );
 
-		if ( preg_match( '/\$wpdb->(get_row|get_results|get_col)\b/', $source ) ) {
+		if ( preg_match( '/\$(?:this->)?wpdb->(get_row|get_results|get_col)\b/', $source ) ) {
 			$found[] = $file->getPathname();
 		}
 	}

@@ -95,6 +95,54 @@ class PhpstanRowsReportTest extends TestCase {
 		$this->assertSame( 2, $run['status'] );
 	}
 
+	/**
+	 * The blind spot #1087 found, frozen so it cannot come back.
+	 *
+	 * The discovery scan used to require the literal substring `$wpdb->`, so
+	 * every repository binding wpdb as a property — `$this->wpdb->get_results()`
+	 * — was never measured. Eight files, thirty level-9 errors, while the gate
+	 * printed "0 (allowed: 0)" and "Every class that reads a row declares what
+	 * the row holds". The count was honest; the denominator was not.
+	 *
+	 * This asserts the property-bound file is counted, against a real file from
+	 * the tree rather than an invented path — an invented one would simply not
+	 * be discovered and the test would pass vacuously.
+	 */
+	public function test_a_property_bound_wpdb_repository_is_counted(): void {
+		$file   = $this->a_property_bound_row_reading_file();
+		$report = $this->write_report( array( $file => 3 ) );
+
+		$run = $this->run_script( $report, 0 );
+
+		$this->assertSame( 1, $run['status'], 'A repository calling $this->wpdb->get_results() must be inside the scan.' );
+		$this->assertStringContainsString( 'Level-9 errors in them: 3', $run['output'] );
+		$this->assertStringContainsString( basename( $file ), $run['output'] );
+	}
+
+	/**
+	 * `WP_User_Query::get_results()` must NOT drag a file into the scan.
+	 *
+	 * It is a core object with its own typed return, not a row read off one of
+	 * the plugin's tables. A pattern loose enough to match every
+	 * `->get_results` would count it and measure the wrong thing — so the
+	 * receiver is named in the pattern, and this pins that choice.
+	 */
+	public function test_a_wp_user_query_result_is_not_mistaken_for_a_row_read(): void {
+		$fixture = sys_get_temp_dir() . '/ffc-rows-user-query-' . uniqid() . '.php';
+		file_put_contents(
+			$fixture,
+			"<?php\n\$user_query = new WP_User_Query( array() );\n\$rows = \$user_query->get_results();\n"
+		);
+		$this->temp[] = $fixture;
+
+		$report = $this->write_report( array( $fixture => 9 ) );
+
+		$run = $this->run_script( $report, 0 );
+
+		$this->assertSame( 0, $run['status'] );
+		$this->assertStringContainsString( 'Level-9 errors in them: 0', $run['output'] );
+	}
+
 	public function test_a_missing_report_fails_loudly(): void {
 		$run = $this->run_script( sys_get_temp_dir() . '/ffc-rows-does-not-exist.json', 0 );
 
@@ -123,6 +171,26 @@ class PhpstanRowsReportTest extends TestCase {
 		}
 
 		$this->fail( 'No class in includes/ reads rows from $wpdb — the fixture premise is gone.' );
+	}
+
+	/**
+	 * A real file from the tree that reads rows through a wpdb PROPERTY.
+	 *
+	 * @return string
+	 */
+	private function a_property_bound_row_reading_file(): string {
+		$root  = dirname( __DIR__, 2 );
+		$paths = glob( $root . '/includes/*/*.php' ) ?: array();
+
+		foreach ( $paths as $path ) {
+			$source = (string) file_get_contents( $path );
+
+			if ( preg_match( '/\$this->wpdb->(get_row|get_results|get_col)\b/', $source ) ) {
+				return $path;
+			}
+		}
+
+		$this->fail( 'No repository in includes/ binds wpdb as a property — the fixture premise is gone.' );
 	}
 
 	/**
