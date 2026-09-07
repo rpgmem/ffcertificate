@@ -687,10 +687,10 @@ class AdminAssetsManager {
 	 * defaults first, each carrying its post `id` (the JS posts `template_id`
 	 * to load it). The `file` key is empty for pool entries.
 	 *
-	 * Falls back to the legacy `html/` glob when the pool is empty (a site
-	 * whose pool hasn't seeded yet) — a deprecated shim (#865 phase-4) whose
-	 * entries carry `id` 0 and a `file` basename, so the JS posts the legacy
-	 * `filename` param instead. Removed once the pool seeds on every install.
+	 * The pool is the sole source since 6.23.0. The legacy `html/*.html` glob
+	 * that used to answer when the pool was empty is gone (#1087): its written
+	 * exit condition — that the pool seeds on every install — is met by the
+	 * `CertTemplateSeeder::pool_has_defaults()` retry shipped in 6.22.0.
 	 *
 	 * @return array<int,array{id: int, label: string, is_default: bool, file: string}>
 	 */
@@ -710,46 +710,6 @@ class AdminAssetsManager {
 			);
 		}
 
-		return self::discover_layout_templates_legacy_glob();
-	}
-
-	/**
-	 * Deprecated fallback (#865 phase-4): the pre-pool `html/` glob.
-	 *
-	 * Scans `html/*.html` and keeps filenames whose basename contains
-	 * "certificate" anywhere (case-insensitive) — the #443 convention for
-	 * which bundled HTML files are valid certificate layouts (excludes
-	 * receipt / ficha / atestado templates in the same directory). Labels
-	 * are derived from the filename: strip `.html`, replace `_` with space,
-	 * title-case. So `default_certificate_1.html` → "Default Certificate 1".
-	 *
-	 * Entries carry `id` 0 and the `file` basename so the front-end posts the
-	 * legacy `filename` param. Removed once the pool is the sole source.
-	 *
-	 * @return array<int,array{id: int, label: string, is_default: bool, file: string}>
-	 */
-	private static function discover_layout_templates_legacy_glob(): array {
-		$dir   = FFC_PLUGIN_DIR . 'html/';
-		$paths = glob( $dir . '*.html' );
-		if ( ! $paths ) {
-			return array();
-		}
-
-		$out = array();
-		foreach ( $paths as $path ) {
-			$name = basename( $path );
-			if ( false === stripos( $name, 'certificate' ) ) {
-				continue;
-			}
-			$stem  = (string) preg_replace( '/\.html$/i', '', $name );
-			$label = ucwords( str_replace( '_', ' ', $stem ) );
-			$out[] = array(
-				'id'         => 0,
-				'label'      => $label,
-				'is_default' => true,
-				'file'       => $name,
-			);
-		}
-		return $out;
+		return array();
 	}
 }

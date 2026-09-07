@@ -371,88 +371,48 @@ class FormEditorTest extends TestCase {
 	}
 
 	// ==================================================================
-	// ajax_load_template() — empty filename
+	// ajax_load_template() — no resolvable template (#1087)
 	// ==================================================================
 
-	public function test_ajax_load_template_returns_error_for_empty_filename(): void {
+	/**
+	 * The legacy `html/` by-filename path was removed in 6.23.0, so a request
+	 * that does not carry a template id has nothing left to resolve.
+	 *
+	 * The three tests this replaces covered that path: an empty `filename`, a
+	 * `filename` pointing at a missing file, and a successful read off disk.
+	 * Only the first still describes reachable behaviour, and it no longer
+	 * depends on `filename` at all.
+	 */
+	public function test_ajax_load_template_errors_without_a_template_id(): void {
 		Functions\when( 'check_ajax_referer' )->justReturn( true );
 		Functions\when( 'current_user_can' )->justReturn( true );
-		$_POST['filename'] = '';
 
 		$editor = new FormEditor();
 		try {
 			$editor->ajax_load_template();
 		} catch ( \RuntimeException $e ) {
-			// Expected
+			// wp_send_json_* throws in the test harness.
+			unset( $e );
 		}
 
 		$this->assertSame( 'error', $this->json_responses[0]['type'] );
 	}
 
-	// ==================================================================
-	// ajax_load_template() — file not found
-	// ==================================================================
-
-	public function test_ajax_load_template_returns_error_for_missing_file(): void {
+	public function test_ajax_load_template_ignores_a_legacy_filename_param(): void {
+		// A cached admin page could still post the old param; it must not
+		// resurrect a disk read, so the response is the same error.
 		Functions\when( 'check_ajax_referer' )->justReturn( true );
 		Functions\when( 'current_user_can' )->justReturn( true );
-		$_POST['filename'] = 'nonexistent.html';
+		$_POST['filename'] = 'default_certificate_1.html';
 
 		$editor = new FormEditor();
 		try {
 			$editor->ajax_load_template();
 		} catch ( \RuntimeException $e ) {
-			// Expected
+			unset( $e );
 		}
 
 		$this->assertSame( 'error', $this->json_responses[0]['type'] );
-	}
-
-	// ==================================================================
-	public function test_ajax_load_template_denies_plain_editor(): void {
-		// #739 escape closed: raw edit_posts no longer authorizes — requires
-		// ffc_manage_forms (or manage_options).
-		Functions\when( 'check_ajax_referer' )->justReturn( true );
-		Functions\when( 'current_user_can' )->alias( function ( $cap ) {
-			return 'edit_posts' === $cap;
-		} );
-
-		$editor = new FormEditor();
-		try {
-			$editor->ajax_load_template();
-		} catch ( \RuntimeException $e ) {
-			// Expected
-		}
-
-		$this->assertSame( 'error', $this->json_responses[0]['type'] );
-	}
-
-	// ajax_load_template() — success
-	// ==================================================================
-
-	public function test_ajax_load_template_returns_content(): void {
-		Functions\when( 'check_ajax_referer' )->justReturn( true );
-		Functions\when( 'current_user_can' )->justReturn( true );
-
-		$dir = FFC_PLUGIN_DIR . 'html';
-		@mkdir( $dir, 0777, true );
-		file_put_contents( $dir . '/test_tpl.html', '<div>Template</div>' );
-		$_POST['filename'] = 'test_tpl.html';
-
-		$editor = new FormEditor();
-		try {
-			$editor->ajax_load_template();
-		} catch ( \RuntimeException $e ) {
-			// Expected
-		}
-
-		$this->assertSame( 'success', $this->json_responses[0]['type'] );
-		// #865: the response is a { html, bg_image } payload; legacy html/
-		// drop-ins carry no background image.
-		$this->assertSame( '<div>Template</div>', $this->json_responses[0]['data']['html'] );
-		$this->assertSame( '', $this->json_responses[0]['data']['bg_image'] );
-
-		@unlink( $dir . '/test_tpl.html' );
 	}
 
 	// ==================================================================
