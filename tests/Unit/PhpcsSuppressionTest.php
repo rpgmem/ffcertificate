@@ -331,4 +331,52 @@ final class PhpcsSuppressionTest extends TestCase {
 	private static function related( string $a, string $b ): bool {
 		return $a === $b || str_starts_with( $a, $b . '.' ) || str_starts_with( $b, $a . '.' );
 	}
+
+	/**
+	 * The scan may not collapse without this file noticing.
+	 *
+	 * Every assertion above compares `array()` against a list of offenders, so
+	 * a scan that stopped matching would find none and this guard would report
+	 * that every suppression is well-formed — because it read none. That is the
+	 * shape the row-shape ruler had: it printed "Every class that reads a row
+	 * declares what the row holds" while measuring 45 of the 53 that do (#1090),
+	 * and the same blind spot hid a whole registration idiom from the AJAX
+	 * wiring guard (#1087 passo 6).
+	 *
+	 * Two anchors, because the collapse has two triggers. The file list may go
+	 * empty (a changed root, a broken iterator), or the annotation parser may
+	 * stop recognising the token while files are still found.
+	 *
+	 * @return void
+	 */
+	public function test_the_scan_cannot_collapse_in_silence(): void {
+		$sources = self::sources();
+
+		$this->assertNotEmpty( $sources, 'No PHP source found at all — the scan root is wrong, not the codebase clean.' );
+
+		$raw = 0;
+		foreach ( $sources as $path ) {
+			$raw += preg_match_all( '/phpcs:(?:ignore|disable|enable)(?![A-Za-z])/', (string) file_get_contents( $path ) );
+		}
+
+		$this->assertGreaterThan(
+			0,
+			$raw,
+			'Not one phpcs: annotation found in any scanned file. The population was in the hundreds when this'
+			. ' guard was written, so a zero means the pattern no longer matches — every assertion in this file'
+			. ' would then pass without examining anything.'
+		);
+
+		$parsed = 0;
+		foreach ( $sources as $path ) {
+			$parsed += count( self::annotations( $path ) );
+		}
+
+		$this->assertGreaterThan(
+			0,
+			$parsed,
+			'Annotations exist in the sources but the parser produced none — it stopped understanding the'
+			. ' shape it is meant to police.'
+		);
+	}
 }
