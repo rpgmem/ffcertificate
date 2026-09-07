@@ -1,11 +1,13 @@
 <?php
 /**
- * Known dbDelta drift, frozen (#1087 passo 7).
+ * Known dbDelta drift, frozen (#1087 passo 7, reduced in passo 8).
  *
  * Every entry here is a `CREATE TABLE` that `dbDelta()` wants to ALTER against
- * the table it just created from that very statement — so the ALTER runs on
- * **every** activation, in every install, forever. That is the #997 class, and
- * the first measurement since #997 found it in 13 statements.
+ * the table it just created from that very statement — so the ALTER would run
+ * on every activation that reaches it. That is the #997 class, and the first
+ * measurement since #997 found it in 14 statements / 33 changes. Passo 8 fixed
+ * everything that could be fixed without a decision; what remains is one family
+ * and one question.
  *
  * **This is a debt register, not a target to grow.** It exists so the gate can
  * block from day one instead of shipping non-blocking and being ignored — the
@@ -14,27 +16,44 @@
  * listed here fails, and a listed change that stops happening also fails, so a
  * fix is locked in the moment it lands.
  *
- * **Three families, and only one of them was avoidable.**
+ * **What remains: `json`, which MariaDB does not store.** MariaDB implements
+ * `JSON` as an alias for `LONGTEXT` plus a CHECK constraint, so a statement
+ * asking for `json` is answered by `SHOW CREATE TABLE` with `longtext`, and
+ * dbDelta rewrites the difference every run. There is no spelling that satisfies
+ * both servers here, unlike the display width below: `json` and `longtext` are
+ * genuinely different types in MySQL 8, where `json` is native and carries
+ * validation. Declaring `longtext` would clear the drift on MariaDB and, on
+ * MySQL, convert a `json` column to `longtext` once — data survives, validation
+ * does not. That is a product decision about which server the plugin's schema
+ * describes, so it is deliberately left open rather than settled by a scan.
  *
- * 1. **Display width the server supplies.** The statement writes `int unsigned`
- *    and MariaDB stores `int(10) unsigned` (MySQL 8.0.19+ went the other way and
- *    dropped the width). dbDelta compares the two as text, so it ALTERs the
- *    difference on every run. 9 of the 13.
- * 2. **`json`, which MariaDB implements as `longtext` plus a CHECK.** The
- *    statement asks for `json`, `SHOW CREATE TABLE` answers `longtext`, and the
- *    ALTER repeats forever. 6 statements, all on `field_options` /
- *    `validation_rules` / `data` / `preferences`.
- * 3. **A column or index the live table does not have** — `ffc_reregistrations.
- *    audience_id`, and a `KEY auth_code` on two tables. This family is NOT
- *    cosmetic: it means the statement and the table genuinely disagree, either
- *    because two files declare the same table differently (three files declare
- *    `ffc_custom_fields`; three declare `ffc_reregistration_submissions`) or
- *    because the index was never created. Diagnosing it needs the live schema,
- *    which is why the gate prints `SHOW CREATE TABLE` for exactly these.
+ * `dbDelta` offers no relief: its `$text_fields` / `$blob_fields` "declared type
+ * is smaller than stored, leave it alone" rule lists neither `json`, so the
+ * comparison stays a string comparison.
  *
- * Families 1 and 2 are a type spelling to fix; family 3 is a schema question to
- * answer. Both are follow-up work on #1087, deliberately not folded into the PR
- * that adds the measurement.
+ * **What passo 8 fixed, and why those were not decisions.**
+ *
+ * - **Display width — 9 statements, 20 changes.** The statements wrote
+ *   `int unsigned` and MariaDB stores `int(10) unsigned`. This looked like the
+ *   same irreconcilable trade-off as `json` and is not: WP core's `dbDelta`
+ *   ignores a display-width-only difference on **MySQL 8.0.17+ and explicitly
+ *   not on MariaDB** ("Note: This is specific to MySQL and does not affect
+ *   MariaDB"). So writing the width is correct on both servers — MariaDB matches
+ *   it literally, MySQL ignores it — and it is what WP core writes in its own
+ *   schema.
+ * - **`ffc_reregistrations.audience_id`.** The migration still declared a column
+ *   and index that `ReregistrationActivator` drops right after, having moved the
+ *   relationship to a junction table. On a fresh install the column was created
+ *   and destroyed in the same activation; the declaration described a table that
+ *   never exists. (It was NOT a per-activation cycle — `create_reregistrations_table()`
+ *   is guarded by `table_exists()`, so it never re-created the column on an
+ *   established install.)
+ * - **`KEY auth_code` on two tables.** `Activator::upgrade_auth_code_unique_constraints()`
+ *   drops the non-unique indexes on `auth_code` and adds `UNIQUE INDEX uq_auth_code`,
+ *   on `ffc_submissions` and `ffc_reregistration_submissions` alike. The
+ *   statements declared the plain `KEY` that never survives, so dbDelta asked
+ *   for it back on every run. They now declare the UNIQUE the code actually
+ *   creates — the same shape CLAUDE.md records for `validation_code`.
  *
  * **Regenerating:** there is no local path — it needs a live MariaDB, which only
  * the `fresh-install` CI job has. When the gate fails it prints the exact PHP
@@ -50,21 +69,9 @@
 declare(strict_types=1);
 
 return array(
-	'includes/audience/class-ffc-audience-activator.php::ffc_audience_schedules' => array(
-		'Changed type of ffc_audience_schedules.future_days_limit from int(10) unsigned to int unsigned',
-	),
-	'includes/class-ffc-activator.php::ffc_submissions' => array(
-		'Added index ffc_submissions KEY `auth_code` (`auth_code`)',
-		'Changed type of ffc_submissions.consent_date from bigint(20) unsigned to bigint unsigned',
-		'Changed type of ffc_submissions.edited_at from bigint(20) unsigned to bigint unsigned',
-	),
 	'includes/migrations/class-ffc-migration-custom-fields-tables.php::ffc_custom_fields' => array(
 		'Changed type of ffc_custom_fields.field_options from longtext to json',
 		'Changed type of ffc_custom_fields.validation_rules from longtext to json',
-	),
-	'includes/migrations/class-ffc-migration-custom-fields-tables.php::ffc_reregistrations' => array(
-		'Added column ffc_reregistrations.audience_id',
-		'Added index ffc_reregistrations KEY `idx_audience_id` (`audience_id`)',
 	),
 	'includes/migrations/class-ffc-migration-custom-fields-tables.php::ffc_reregistration_submissions' => array(
 		'Changed type of ffc_reregistration_submissions.data from longtext to json',
@@ -76,33 +83,8 @@ return array(
 	'includes/migrations/class-ffc-migration-dynamic-rereg-fields.php::ffc_reregistration_submissions' => array(
 		'Changed type of ffc_reregistration_submissions.data from longtext to json',
 	),
-	'includes/recruitment/class-ffc-recruitment-activator.php::ffc_recruitment_classification' => array(
-		'Changed type of ffc_recruitment_classification.rank from int(10) unsigned to int unsigned',
-	),
-	'includes/recruitment/class-ffc-recruitment-activator.php::ffc_recruitment_import_jobs' => array(
-		'Changed type of ffc_recruitment_import_jobs.processed_count from int(10) unsigned to int unsigned',
-		'Changed type of ffc_recruitment_import_jobs.total from int(10) unsigned to int unsigned',
-	),
-	'includes/recruitment/class-ffc-recruitment-activator.php::ffc_recruitment_import_staging' => array(
-		'Changed type of ffc_recruitment_import_staging.line_no from int(10) unsigned to int unsigned',
-		'Changed type of ffc_recruitment_import_staging.rank_value from int(10) unsigned to int unsigned',
-		'Changed type of ffc_recruitment_import_staging.row_no from int(10) unsigned to int unsigned',
-	),
 	'includes/reregistration/class-ffc-reregistration-activator.php::ffc_reregistration_submissions' => array(
-		'Added index ffc_reregistration_submissions KEY `auth_code` (`auth_code`)',
 		'Changed type of ffc_reregistration_submissions.data from longtext to json',
-	),
-	'includes/self-scheduling/class-ffc-self-scheduling-activator.php::ffc_self_scheduling_calendars' => array(
-		'Changed type of ffc_self_scheduling_calendars.advance_booking_max from int(10) unsigned to int unsigned',
-		'Changed type of ffc_self_scheduling_calendars.advance_booking_min from int(10) unsigned to int unsigned',
-		'Changed type of ffc_self_scheduling_calendars.cancellation_min_hours from int(10) unsigned to int unsigned',
-		'Changed type of ffc_self_scheduling_calendars.max_appointments_per_slot from int(10) unsigned to int unsigned',
-		'Changed type of ffc_self_scheduling_calendars.max_blocks_per_user from int(10) unsigned to int unsigned',
-		'Changed type of ffc_self_scheduling_calendars.minimum_interval_between_bookings from int(10) unsigned to int unsigned',
-		'Changed type of ffc_self_scheduling_calendars.slot_duration from int(10) unsigned to int unsigned',
-		'Changed type of ffc_self_scheduling_calendars.slot_interval from int(10) unsigned to int unsigned',
-		'Changed type of ffc_self_scheduling_calendars.slots_per_day from int(10) unsigned to int unsigned',
-		'Changed type of ffc_self_scheduling_calendars.waitlist_capacity from int(10) unsigned to int unsigned',
 	),
 	'includes/user-dashboard/class-ffc-user-dashboard-activator.php::ffc_custom_fields' => array(
 		'Changed type of ffc_custom_fields.field_options from longtext to json',

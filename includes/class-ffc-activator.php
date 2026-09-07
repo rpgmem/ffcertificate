@@ -102,6 +102,15 @@ class Activator {
 
 	/**
 	 * Create submissions table.
+	 *
+	 * **`auth_code` is declared UNIQUE here (#1087 passo 8).** It is not a
+	 * cosmetic choice: `upgrade_auth_code_unique_constraints()` drops every
+	 * non-unique index on the column and adds `UNIQUE INDEX uq_auth_code`, so a
+	 * plain `KEY auth_code` never survives — and while this statement declared
+	 * one, `dbDelta()` asked for it back on every run that reached this method.
+	 * The incremental path still adds the plain index (`add_columns()`), because
+	 * there the upgrade routine is what converts it. Same shape CLAUDE.md
+	 * records for `validation_code` in the self-scheduling tables.
 	 */
 	private static function create_submissions_table(): void {
 		global $wpdb;
@@ -133,10 +142,10 @@ class Activator {
             user_ip_encrypted text NULL DEFAULT NULL,
             data_encrypted longtext NULL DEFAULT NULL,
             consent_given tinyint(1) DEFAULT 0,
-            consent_date bigint unsigned DEFAULT NULL,
+            consent_date bigint(20) unsigned DEFAULT NULL,
             consent_text text DEFAULT NULL,
             qr_code_cache longtext DEFAULT NULL,
-            edited_at bigint unsigned DEFAULT NULL,
+            edited_at bigint(20) unsigned DEFAULT NULL,
             edited_by bigint(20) unsigned NULL DEFAULT NULL,
             schedule_start_override time NULL DEFAULT NULL,
             schedule_end_override time NULL DEFAULT NULL,
@@ -145,7 +154,7 @@ class Activator {
             KEY user_id (user_id),
             KEY status (status),
             KEY magic_token (magic_token),
-            KEY auth_code (auth_code),
+            UNIQUE KEY uq_auth_code (auth_code),
             KEY email_hash (email_hash),
             KEY cpf_hash (cpf_hash),
             KEY rf_hash (rf_hash),
