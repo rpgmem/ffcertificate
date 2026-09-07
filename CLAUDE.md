@@ -546,14 +546,20 @@ _Two related things to know if this ever comes up again. The seeder reads `templ
 
 When a new shim is added, log it here (Shim · Location · Risk if removed · Why it stays), and when a new feature makes one unsafe or inadequate, open a specific sub-issue + a breaking-change banner in the CHANGELOG.
 
-#### Exit condition for the `html/` fallback — evidence, not a deprecation cycle
+#### Resolved exemplar — how the `html/` fallback was retired (evidence, not a deprecation cycle)
 
-Retiring it is **evidence-gated** (the `cpf_rf_encrypted` shape below), *not* a versioned deprecation cycle. The cycle exists for surfaces whose consumers a code scan cannot see — a public method an external integration might call. Both sites here are internal render paths with no hook, no filter and no external caller, so nothing invisible can depend on them; what they depend on is **install state**, which is observable. Two conditions, and note they are genuinely different — conflating them is the mistake that nearly retired this shim early:
+Kept because the *method* generalises, and because what it got wrong the first time is the useful part.
 
-1. **The pool seeds on every install** — the fallback's own written condition, and the one that was *not* met before 6.22.0. The seeder fix is what makes it hold; verify on a real install that the layout picker is served from the pool.
-2. **Settings → Migrations → `import_legacy_templates` reads 0 pending** — every file an admin dropped into `html/` has been imported. This one has read 0 in production for some time, but it measures *imports*, not seeding, and on its own says nothing about condition 1.
+Retiring it was **evidence-gated** (the `cpf_rf_encrypted` shape below), *not* a versioned deprecation cycle. The cycle exists for surfaces whose consumers a code scan cannot see — a public method an external integration might call. Both render sites were internal, with no hook, no filter and no external caller, so nothing invisible could depend on them; what they depended on was **install state**, which is observable.
 
-Ship the seeder fix and the removal in **different releases** (6.22.0 → 6.23.0): an install with an empty pool must receive the repair, and be observed to have taken it, before losing the safety net. The removal is ⚠ breaking for anyone still relying on a file in `html/`, so it carries a CHANGELOG banner.
+Two conditions were written down, and they are genuinely different — conflating them is the mistake that nearly retired the shim early:
+
+1. **The pool seeds on every install** — the fallback's own written condition, and the one that was *not* met before 6.22.0. The `CertTemplateSeeder::pool_has_defaults()` retry is what made it hold.
+2. **Settings → Migrations → `import_legacy_templates` reads 0 pending** — every file an admin dropped into `html/` has been imported. It had read 0 in production for some time, but it measures *imports*, not seeding, and on its own said nothing about condition 1.
+
+The seeder fix and the removal shipped in **different releases** (6.22.0 → 6.23.0), so an install with an empty pool received the repair, and was observed to have taken it, before losing the safety net.
+
+**The lesson worth carrying: the written conditions were incomplete.** Measuring the surface at removal time found *four* sites reading `html/`, not the two the inventory named, and a **third** exit condition nobody had written down — `rewrite_html_image_refs` side-loads `html/*.png` into the Media Library by reading them off disk, so the images could not go until that migration also read 0 pending. The first removal commit therefore deleted the code and the three `.html` files and **kept the images**; they went in a second commit, once that condition was attested too. So: re-measure the surface before retiring a shim, and do not trust the inventory's own list of conditions to be exhaustive — it records what was known when the shim was logged, not what is true when it is removed.
 
 #### Gathering the evidence to remove a **High**-risk shim
 
