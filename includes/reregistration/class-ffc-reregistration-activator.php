@@ -184,7 +184,7 @@ class ReregistrationActivator {
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             reregistration_id bigint(20) unsigned NOT NULL,
             user_id bigint(20) unsigned NOT NULL,
-            data json DEFAULT NULL,
+            data longtext DEFAULT NULL,
             status varchar(20) NOT NULL DEFAULT 'pending',
             auth_code varchar(20) DEFAULT NULL,
             magic_token varchar(64) DEFAULT NULL,

@@ -2,17 +2,40 @@
 /**
  * Schema-agreement guard (#1087).
  *
- * A table declared in two places drifts silently. Two activators declare one:
+ * A table declared in two places drifts silently. This file checks the two
+ * shapes that duplication takes in this repository.
  *
- *   1. A `CREATE TABLE`, which is what a **fresh install** gets in one statement.
- *   2. An `add_columns_if_missing()` call, which is what an **existing install**
- *      gets when `FFC_VERSION` changes.
+ * **Within one file — `CREATE TABLE` vs `add_columns_if_missing()`.**
+ *
+ *   1. The `CREATE TABLE` is what a **fresh install** gets in one statement.
+ *   2. The `add_columns_if_missing()` call is what an **existing install** gets
+ *      when `FFC_VERSION` changes.
  *
  * Both must name the same columns, or a fresh install and an upgraded install
  * end up with different tables and nothing says so. That is not hypothetical:
  * `ffc_submissions` was born with 7 of its 25 columns until #1091, and
  * `ffc_reregistration_submissions` without `auth_code` / `magic_token` until
- * this one.
+ * #1093.
+ *
+ * **Across files — the same table declared by more than one class.** Three
+ * tables are: `ffc_custom_fields` (3 declarations), `ffc_reregistration_submissions`
+ * (3) and `ffc_reregistrations` (2), because the activators were written after
+ * the migrations that first created those tables and neither side was retired.
+ * Nothing compared them, and the third occurrence of the #1091 class was hiding
+ * exactly there: `UserDashboardActivator` declared **12 of the 17 columns** of
+ * `ffc_custom_fields`, missing the five that `CustomFieldWriter::create()`
+ * writes on every insert. A fresh install came out correct only because
+ * `MigrationDynamicReregFields` runs later in the same activation and its
+ * `dbDelta` added them — and that migration is one-shot, flagged by an option,
+ * so any recreation of the table afterwards would have produced a permanently
+ * 12-column table.
+ *
+ * The keys diverged the same way, and that one was already costing something:
+ * both paths indexed `auth_code` and `magic_token` under **different names**, so
+ * an install that took both ended up carrying two indexes on each column
+ * (visible in the `SHOW CREATE TABLE` the idempotence gate dumped). Aligning
+ * the declarations stops new installs from inheriting the pair; dropping the
+ * duplicates on existing installs is a separate, destructive change.
  *
  * **Why both declarations still exist.** Every one of these activators guards
  * its `dbDelta()` on `table_exists()`, so `dbDelta` never runs on an install
@@ -179,6 +202,135 @@ final class SchemaAgreementTest extends TestCase {
 			$failures,
 			"A column that add_columns_if_missing() gives an existing install is absent from every"
 			. " CREATE TABLE in the same file, so a fresh install would not have it:\n  "
+			. implode( "\n  ", $failures )
+		);
+	}
+
+	/**
+	 * Every `CREATE TABLE` in `includes/`, grouped by the table it writes to.
+	 *
+	 * Uses the same extraction as `ActivatorSqlTest` and the dbDelta idempotence
+	 * gate — one parser, three consumers, for the reason `uninstall.php` is one
+	 * manifest. A private second scan here is how the three would end up
+	 * measuring different sets.
+	 *
+	 * @return array<string, array<string, array{columns: list<string>, keys: list<string>}>>
+	 *         Table => file basename => its declared columns and key names.
+	 */
+	private function declarations_by_table(): array {
+		require_once dirname( __DIR__, 2 ) . '/.github/scripts/ffc-create-statements.php';
+
+		$by_table = array();
+
+		foreach ( ffc_create_statements( dirname( __DIR__, 2 ) . '/includes' ) as $statement ) {
+			if ( null === $statement['table'] ) {
+				continue;
+			}
+
+			if ( ! preg_match( '/CREATE TABLE [^(]*\((.*)\)\s*\{?\$charset_collate/s', $statement['sql'], $body ) ) {
+				continue;
+			}
+
+			$columns = array();
+			$keys    = array();
+
+			foreach ( explode( "\n", $body[1] ) as $line ) {
+				$line = rtrim( trim( $line ), ',' );
+
+				if ( '' === $line ) {
+					continue;
+				}
+
+				// `PRIMARY KEY` is unnamed, so it is covered by the column set
+				// implicitly and comparing it would compare nothing.
+				if ( preg_match( '/^(?:UNIQUE )?KEY\s+`?([a-z_][a-z0-9_]*)`?/i', $line, $key ) ) {
+					$keys[] = $key[1];
+					continue;
+				}
+
+				if ( preg_match( '/^(?:PRIMARY KEY)\b/i', $line ) ) {
+					continue;
+				}
+
+				if ( preg_match( '/^`?([a-z_][a-z0-9_]*)`?\s/i', $line, $column ) ) {
+					$columns[] = $column[1];
+				}
+			}
+
+			$by_table[ $statement['table'] ][ basename( $statement['file'] ) ] = array(
+				'columns' => $columns,
+				'keys'    => $keys,
+			);
+		}
+
+		return array_filter(
+			$by_table,
+			static function ( array $declarations ): bool {
+				return count( $declarations ) > 1;
+			}
+		);
+	}
+
+	public function test_the_cross_file_scan_finds_tables_declared_more_than_once(): void {
+		// The two checks below compare declarations against each other, so an
+		// empty result would make both pass having looked at nothing — the
+		// silent-pass shape #1087 passo 6 found in four guards.
+		$this->assertNotEmpty(
+			$this->declarations_by_table(),
+			'No table is declared by more than one file any more. If the duplication was genuinely '
+			. 'retired, delete these two checks; if the scan broke, fix it — do not leave it passing on nothing.'
+		);
+	}
+
+	public function test_every_declaration_of_a_table_names_the_same_columns(): void {
+		$failures = array();
+
+		foreach ( $this->declarations_by_table() as $table => $declarations ) {
+			$union = array();
+
+			foreach ( $declarations as $declaration ) {
+				$union = array_unique( array_merge( $union, $declaration['columns'] ) );
+			}
+
+			foreach ( $declarations as $file => $declaration ) {
+				foreach ( array_diff( $union, $declaration['columns'] ) as $missing ) {
+					$failures[] = $table . ' :: ' . $file . ' is missing ' . $missing;
+				}
+			}
+		}
+
+		$this->assertSame(
+			array(),
+			$failures,
+			"One declaration of a table names a column the others do not, so which columns an\n"
+			. "install ends up with depends on which path created the table — the #1091 class,\n"
+			. "one level up:\n  " . implode( "\n  ", $failures )
+		);
+	}
+
+	public function test_every_declaration_of_a_table_names_the_same_keys(): void {
+		$failures = array();
+
+		foreach ( $this->declarations_by_table() as $table => $declarations ) {
+			$union = array();
+
+			foreach ( $declarations as $declaration ) {
+				$union = array_unique( array_merge( $union, $declaration['keys'] ) );
+			}
+
+			foreach ( $declarations as $file => $declaration ) {
+				foreach ( array_diff( $union, $declaration['keys'] ) as $missing ) {
+					$failures[] = $table . ' :: ' . $file . ' is missing ' . $missing;
+				}
+			}
+		}
+
+		$this->assertSame(
+			array(),
+			$failures,
+			"One declaration of a table names an index the others do not. When both paths run,\n"
+			. "the table carries both — which is how ffc_reregistration_submissions ended up with\n"
+			. "two indexes on auth_code and two on magic_token, under different names:\n  "
 			. implode( "\n  ", $failures )
 		);
 	}

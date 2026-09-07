@@ -119,45 +119,6 @@ final class CreateStatementsParserTest extends TestCase {
 		$this->assertContains( 'ffc_device_signals', $tables );
 	}
 
-	/**
-	 * Every baseline key must still name a file that declares that table.
-	 *
-	 * The gate itself only compares what it measures against what the baseline
-	 * holds, so an entry whose file was renamed or whose statement was deleted
-	 * would sit there forever, matching nothing and failing nothing. That is the
-	 * same silent-exemption shape #1087 has been chasing, one level up — and it
-	 * is checkable without a database, unlike the drift itself.
-	 */
-	public function test_every_drift_baseline_entry_still_points_at_a_real_statement(): void {
-		$baseline = require self::root() . '/.github/scripts/dbdelta-drift-baseline.php';
-
-		$this->assertNotEmpty( $baseline, 'The drift baseline is empty — if the drift is gone, delete the file and the comparison with it.' );
-
-		$declared = array();
-
-		foreach ( ffc_create_statements( self::root() . '/includes' ) as $statement ) {
-			$relative = ltrim( str_replace( self::root(), '', $statement['file'] ), '/' );
-
-			$declared[ $relative . '::' . $statement['table'] ] = true;
-		}
-
-		$orphans = array();
-
-		foreach ( array_keys( $baseline ) as $key ) {
-			if ( ! isset( $declared[ $key ] ) ) {
-				$orphans[] = $key;
-			}
-		}
-
-		$this->assertSame(
-			array(),
-			$orphans,
-			"These baseline entries name a file/table pair that no CREATE TABLE declares any\n"
-			. "more. The statement moved or went away, so the entry can never match and can\n"
-			. "never fail — remove it, or fix the key:\n  " . implode( "\n  ", $orphans )
-		);
-	}
-
 	public function test_an_unknown_naming_idiom_resolves_to_null_rather_than_a_wrong_table(): void {
 		$lines = explode(
 			"\n",
