@@ -427,7 +427,7 @@ jobs:
         # Runs here because this is the only job with a real MariaDB AND a
         # freshly created schema: the statement is replayed against the table it
         # just built, so an empty change list is the only correct answer.
-        run: wp eval-file .github/scripts/dbdelta-idempotence-check.php --path="$HOME/wp"
+        run: php .github/scripts/dbdelta-idempotence-check.php "$HOME/wp"
       - name: Delete the plugin with the Danger Zone opt-in on
         run: |
           # `wp plugin uninstall` removes the plugin directory, and these scripts

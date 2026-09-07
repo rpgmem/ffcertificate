@@ -28,21 +28,35 @@
  * therefore re-runs against an existing table on every activation, in every
  * install — which makes it the first thing this gate should be trusted on.
  *
- * Run inside WordPress (`wp eval-file`), after the plugin is active.
+ * Runs after the plugin is active, loading WordPress itself — the same shape as
+ * `fresh-install-check.php` in this job, and deliberately **not** `wp eval-file`:
+ * that command `eval()`s the file, where a `declare(strict_types=1)` is a fatal
+ * error rather than a declaration.
  *
- * Usage: wp eval-file .github/scripts/dbdelta-idempotence-check.php
+ * Usage: php dbdelta-idempotence-check.php <wp-root>
  *
- * @package FreeFormCertificate
+ * Exit codes: 0 = pass, 1 = a statement drifts, 2 = the scan itself is broken.
+ *
+ * @package FreeFormCertificate\CI
  */
 
 declare(strict_types=1);
 
-if ( ! defined( 'ABSPATH' ) ) {
-	fwrite( STDERR, "This script must run inside WordPress (wp eval-file).\n" );
+$wp_root = (string) ( $argv[1] ?? '' );
+
+if ( '' === $wp_root || ! is_readable( $wp_root . '/wp-load.php' ) ) {
+	fwrite( STDERR, "usage: dbdelta-idempotence-check.php <wp-root>\n" );
 	exit( 2 );
 }
 
 require_once __DIR__ . '/ffc-create-statements.php';
+
+$_SERVER['HTTP_HOST']      = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$_SERVER['REQUEST_METHOD'] = 'GET';
+$_SERVER['REQUEST_URI']    = '/';
+$_SERVER['SCRIPT_NAME']    = '/index.php';
+
+require_once $wp_root . '/wp-load.php';
 require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
 global $wpdb;
