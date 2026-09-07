@@ -326,10 +326,17 @@ class PublicCsvDownload {
 		 * implications; captcha still runs as a gate before any heavy
 		 * work below.
 		 */
-		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
+		$form_id     = \FreeFormCertificate\Core\RequestInput::get_post_int( 'form_id', 0 );
 		$posted_hash = RequestInput::get_post_string( 'hash' );
 
-		// 4. Honeypot + CAPTCHA.
+		/*
+		 * 4. Honeypot + CAPTCHA — spent here, on purpose.
+		 *
+		 * This is the no-JS path: one request that both validates and
+		 * streams, so the challenge is consumed by the very request it
+		 * authorizes. The AJAX path splits those across two requests and
+		 * therefore only peeks on the first — see `ajax_info()`.
+		 */
 		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
 		if ( true !== $security_check ) {
 			if ( $form_id > 0 ) {
@@ -427,35 +434,44 @@ class PublicCsvDownload {
 		 * hash mismatch, etc.) can be attributed to the right form's
 		 * audit log.
 		 */
-		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
+		$form_id     = \FreeFormCertificate\Core\RequestInput::get_post_int( 'form_id', 0 );
 		$posted_hash = RequestInput::get_post_string( 'hash' );
 
-		// 4. Honeypot + CAPTCHA.
-		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
+		/*
+		 * 4. Honeypot + CAPTCHA — checked, deliberately NOT spent.
+		 *
+		 * This screen is the first leg of a two-request flow: the download
+		 * button that follows re-posts this same payload to
+		 * `PublicFormsExportSource::authorize_start()`, which is where the
+		 * challenge is consumed. Spending it here would reject, one screen
+		 * later, the very answer the visitor was just told was correct —
+		 * the regression single-use tokens introduced in 6.23.0.
+		 */
+		$security_check = \FreeFormCertificate\Core\SecurityService::peek_security_fields( $_POST );
 		if ( true !== $security_check ) {
 			if ( $form_id > 0 ) {
 				$this->validator->record_download_log_entry( $form_id, 'captcha', '', 'fail_captcha' );
 			}
-			wp_send_json_error( array( 'message' => (string) $security_check ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => (string) $security_check ) ) );
 		}
 
 		// 5. Form-id / hash presence.
 		if ( $form_id <= 0 || '' === $posted_hash ) {
-			wp_send_json_error( array( 'message' => __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) ) ) );
 		}
 
 		// 6–7. Hash-only validation (form exists, feature enabled, hash matches).
 		$error = $this->validate_hash_only( $form_id, $posted_hash );
 		if ( null !== $error ) {
 			$this->validator->record_download_log_entry( $form_id, 'access', '', 'fail_other' );
-			wp_send_json_error( array( 'message' => $error ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $error ) ) );
 		}
 
 		// 7b. CPF gate (per-form opt-in, no-op when mode = 'none').
 		$cpf_input = RequestInput::get_post_string( 'cpf' );
 		$cpf_error = $this->validate_cpf_requirement( $form_id, $cpf_input );
 		if ( null !== $cpf_error ) {
-			wp_send_json_error( array( 'message' => $cpf_error ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $cpf_error ) ) );
 		}
 
 		wp_send_json_success( $this->form_info_builder->build_form_info( $form_id ) );
@@ -475,7 +491,7 @@ class PublicCsvDownload {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ) );
 		}
 
-		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
+		$form_id     = \FreeFormCertificate\Core\RequestInput::get_post_int( 'form_id', 0 );
 		$posted_hash = RequestInput::get_post_string( 'hash' );
 
 		$error = $this->validate_hash_only( $form_id, $posted_hash );
@@ -536,7 +552,7 @@ class PublicCsvDownload {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ), 403 );
 		}
 
-		$form_id     = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
+		$form_id     = \FreeFormCertificate\Core\RequestInput::get_post_int( 'form_id', 0 );
 		$posted_hash = RequestInput::get_post_string( 'hash' );
 		$cpf_input   = RequestInput::get_post_string( 'cpf' );
 
@@ -611,7 +627,7 @@ class PublicCsvDownload {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ), 403 );
 		}
 
-		$form_id      = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
+		$form_id      = \FreeFormCertificate\Core\RequestInput::get_post_int( 'form_id', 0 );
 		$posted_hash  = RequestInput::get_post_string( 'hash' );
 		$new_time_end = RequestInput::get_post_string( 'new_time_end' );
 		$cpf_input    = RequestInput::get_post_string( 'cpf' );
@@ -685,7 +701,7 @@ class PublicCsvDownload {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ), 403 );
 		}
 
-		$form_id        = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
+		$form_id        = \FreeFormCertificate\Core\RequestInput::get_post_int( 'form_id', 0 );
 		$posted_hash    = RequestInput::get_post_string( 'hash' );
 		$start_override = RequestInput::get_post_string( 'start_override' );
 		$end_override   = RequestInput::get_post_string( 'end_override' );

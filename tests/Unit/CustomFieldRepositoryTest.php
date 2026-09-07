@@ -1035,6 +1035,38 @@ class CustomFieldRepositoryTest extends TestCase {
 		$this->assertSame(['A', 'B'], $choices);
 	}
 
+	/**
+	 * #1060 — `field_options` is admin-authored JSON, so a choice list can
+	 * come back as ints. The validator compares the POSTed value against
+	 * this list with a strict `in_array()`, so `[1, 2]` matched nothing
+	 * and a legitimate selection was rejected as invalid.
+	 */
+	public function test_get_field_choices_returns_numeric_choices_as_strings(): void {
+		$field = $this->make_field([
+			'field_options' => '{"choices":[1,2,3]}',
+		]);
+
+		$choices = CustomFieldReader::get_field_choices($field);
+
+		$this->assertSame(['1', '2', '3'], $choices);
+		$this->assertTrue(in_array('2', $choices, true), 'A POSTed "2" must match the choice list strictly.');
+	}
+
+	/**
+	 * #1060 — a nested value cannot be rendered: every consumer either
+	 * `esc_attr()`s the entry or prints it. Dropping it keeps the
+	 * declared `list<string>` true instead of merely asserted.
+	 */
+	public function test_get_field_choices_drops_non_scalar_entries(): void {
+		$field = $this->make_field([
+			'field_options' => ['choices' => ['A', ['nested'], 'B']],
+		]);
+
+		$choices = CustomFieldReader::get_field_choices($field);
+
+		$this->assertSame(['A', 'B'], $choices);
+	}
+
 	public function test_get_field_choices_returns_empty_when_no_choices(): void {
 		$field = $this->make_field(['field_options' => null]);
 
@@ -1086,6 +1118,23 @@ class CustomFieldRepositoryTest extends TestCase {
 		$this->assertArrayHasKey('Dept A', $groups);
 		$this->assertSame(['Team 1', 'Team 2'], $groups['Dept A']);
 		$this->assertSame(['Team 3'], $groups['Dept B']);
+	}
+
+	/**
+	 * #1060 — same enforcement on the grouped variant: a group whose
+	 * value is not a list is skipped, and its scalar children are
+	 * normalised to strings for the strict comparison in the validator.
+	 */
+	public function test_get_dependent_choices_skips_malformed_groups_and_normalises_children(): void {
+		$field = $this->make_field([
+			'field_options' => '{"groups":{"Dept A":[1,2],"Dept B":"not-a-list","Dept C":["ok",{"x":1}]}}',
+		]);
+
+		$groups = CustomFieldReader::get_dependent_choices($field);
+
+		$this->assertSame(['1', '2'], $groups['Dept A']);
+		$this->assertArrayNotHasKey('Dept B', $groups);
+		$this->assertSame(['ok'], $groups['Dept C']);
 	}
 
 	public function test_get_dependent_choices_returns_empty_when_no_groups(): void {

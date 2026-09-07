@@ -94,34 +94,26 @@ final class ActivatorSqlTest extends TestCase {
 	/**
 	 * Every double-quoted `CREATE TABLE …` literal under `includes/`.
 	 *
-	 * @return array<int, array{file: string, line: int, sql: string}>
+	 * Delegates to `.github/scripts/ffc-create-statements.php` so this guard and
+	 * the dbDelta idempotence gate (#1087 passo 7) measure the **same** set. Two
+	 * private extractions of one thing is how a denominator goes wrong without
+	 * anyone noticing — the row ruler saw 45 of 53 classes for exactly that kind
+	 * of reason. Same rule the repo already applies to `uninstall.php`, which is
+	 * one manifest read by three consumers.
+	 *
+	 * @return array<int, array{file: string, line: int, sql: string, table: string|null}>
 	 */
 	public static function create_statements(): array {
-		$out  = array();
-		$iter = new \RecursiveIteratorIterator(
-			new \RecursiveDirectoryIterator( self::root() . '/includes', \FilesystemIterator::SKIP_DOTS )
+		require_once self::root() . '/.github/scripts/ffc-create-statements.php';
+
+		return array_map(
+			static function ( array $statement ): array {
+				$statement['file'] = ltrim( str_replace( self::root(), '', $statement['file'] ), '/' );
+
+				return $statement;
+			},
+			ffc_create_statements( self::root() . '/includes' )
 		);
-
-		foreach ( $iter as $file ) {
-			$path = $file->getPathname();
-			if ( substr( $path, -4 ) !== '.php' ) {
-				continue;
-			}
-			$text = (string) file_get_contents( $path );
-			if ( ! preg_match_all( '/"CREATE TABLE.*?"\s*;/s', $text, $matches, PREG_OFFSET_CAPTURE ) ) {
-				continue;
-			}
-			foreach ( $matches[0] as $match ) {
-				$out[] = array(
-					'file' => ltrim( str_replace( self::root(), '', $path ), '/' ),
-					'line' => substr_count( substr( $text, 0, (int) $match[1] ), "\n" ) + 1,
-					// Drop the PHP statement terminator, keeping the SQL literal.
-					'sql'  => substr( (string) $match[0], 0, -2 ),
-				);
-			}
-		}
-
-		return $out;
 	}
 
 	/**

@@ -785,13 +785,9 @@ class VerificationHandler {
 		// Validate honeypot + captcha via centralised service.
 		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
 		if ( true !== $security_check ) {
-			$new_captcha = \FreeFormCertificate\Core\SecurityService::generate_simple_captcha();
 			wp_send_json_error(
-				array(
-					'message'         => $security_check,
-					'refresh_captcha' => true,
-					'new_label'       => $new_captcha['label'],
-					'new_hash'        => $new_captcha['hash'],
+				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+					array( 'message' => $security_check )
 				)
 			);
 		}
@@ -800,8 +796,10 @@ class VerificationHandler {
 		$rate_check = \FreeFormCertificate\Security\RateLimiter::check_verification( $user_ip );
 		if ( ! $rate_check['allowed'] ) {
 			wp_send_json_error(
-				array(
-					'message' => __( 'Too many verification attempts. Please try again later.', 'ffcertificate' ),
+				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+					array(
+						'message' => __( 'Too many verification attempts. Please try again later.', 'ffcertificate' ),
+					)
 				)
 			);
 		}
@@ -810,13 +808,9 @@ class VerificationHandler {
 		$result    = $this->search_certificate( $auth_code );
 
 		if ( ! $result['found'] ) {
-			$new_captcha = \FreeFormCertificate\Core\SecurityService::generate_simple_captcha();
 			wp_send_json_error(
-				array(
-					'message'         => '❌ ' . __( 'Document not found or invalid code.', 'ffcertificate' ),
-					'refresh_captcha' => true,
-					'new_label'       => $new_captcha['label'],
-					'new_hash'        => $new_captcha['hash'],
+				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+					array( 'message' => '❌ ' . __( 'Document not found or invalid code.', 'ffcertificate' ) )
 				)
 			);
 		}
@@ -837,7 +831,7 @@ class VerificationHandler {
 		}
 
 		if ( is_wp_error( $pdf_data ) ) {
-			wp_send_json_error( array( 'message' => $pdf_data->get_error_message() ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $pdf_data->get_error_message() ) ) );
 		}
 
 		if ( ! empty( $result['type'] ) && 'appointment' === $result['type'] ) {

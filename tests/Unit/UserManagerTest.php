@@ -83,14 +83,46 @@ class UserManagerTest extends TestCase {
 			->byDefault();
 	}
 
+	/**
+	 * A complete `ffc_user_profiles` row, as `SELECT *` returns it: every
+	 * column present, every value a string (#1077).
+	 *
+	 * @param array<string, string|null> $overrides Column overrides.
+	 * @return array<string, string|null>
+	 */
+	private function profile_row_fixture( array $overrides = array() ): array {
+		return array_merge(
+			array(
+				'id'           => '1',
+				'user_id'      => '42',
+				'display_name' => 'Alice',
+				'phone'        => '555-0100',
+				'department'   => 'Sales',
+				'organization' => 'Acme',
+				'notes'        => '',
+				'preferences'  => null,
+				'created_at'   => '2025-01-01 00:00:00',
+				'updated_at'   => '2025-01-01 00:00:00',
+			),
+			$overrides
+		);
+	}
+
 	// ==================================================================
 	// get_profile()
 	// ==================================================================
 
-	public function test_get_profile_returns_profile_from_custom_table(): void {
+	/**
+	 * #1077 — the stored row is normalised, not passed through. `$wpdb`
+	 * returns every column as a string, so `user_id` arrives as `'42'`;
+	 * the fallback branch built it as an int. That difference was the
+	 * contract depending on which branch ran.
+	 */
+	public function test_get_profile_normalises_the_stored_row(): void {
+		// Every column, as `SELECT *` returns them: all strings.
 		$profile_row = array(
-			'id'           => 1,
-			'user_id'      => 42,
+			'id'           => '1',
+			'user_id'      => '42',
 			'display_name' => 'Alice Smith',
 			'phone'        => '+5511999999999',
 			'department'   => 'Engineering',
@@ -114,7 +146,61 @@ class UserManagerTest extends TestCase {
 
 		$result = UserManager::get_profile( 42 );
 
-		$this->assertSame( $profile_row, $result );
+		$this->assertSame( 42, $result['user_id'], 'The id must be an int, as the fallback branch has always returned.' );
+		$this->assertArrayNotHasKey( 'id', $result, 'The profile row PK is not part of the contract.' );
+		$this->assertSame( 'Alice Smith', $result['display_name'] );
+		$this->assertSame( '{"theme":"dark"}', $result['preferences'] );
+		$this->assertSame( '2025-01-01 00:00:00', $result['created_at'] );
+	}
+
+	/**
+	 * #1077 — the property the normalisation exists for: both branches
+	 * answer with the same keys and the same types, so a consumer cannot
+	 * behave differently depending on whether the install has a profile row.
+	 */
+	public function test_get_profile_returns_the_same_shape_from_both_branches(): void {
+		$this->wpdb->shouldReceive( 'get_var' )
+			->with( 'SHOW TABLES LIKE %s' )
+			->andReturn( 'wp_ffc_user_profiles' );
+		$this->wpdb->shouldReceive( 'get_row' )
+			->once()
+			->andReturn(
+				array(
+					'id'           => '1',
+					'user_id'      => '42',
+					'display_name' => 'Alice',
+					'phone'        => null,
+					'department'   => null,
+					'organization' => null,
+					'notes'        => null,
+					'preferences'  => null,
+					'created_at'   => '2025-01-01 00:00:00',
+					'updated_at'   => '2025-01-01 00:00:00',
+				)
+			);
+
+		$from_table = UserManager::get_profile( 42 );
+
+		// Second call: same table, no row → the userdata fallback.
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
+
+		$mock_user                  = new \stdClass();
+		$mock_user->display_name    = 'Alice';
+		$mock_user->user_registered = '2025-01-01 00:00:00';
+		Functions\expect( 'get_userdata' )->once()->andReturn( $mock_user );
+
+		$from_fallback = UserManager::get_profile( 42 );
+
+		$this->assertSame( array_keys( $from_table ), array_keys( $from_fallback ) );
+		foreach ( $from_table as $key => $value ) {
+			$this->assertSame(
+				gettype( $value ),
+				gettype( $from_fallback[ $key ] ),
+				sprintf( 'Key "%s" must have the same type whichever branch produced it.', $key )
+			);
+		}
+		// A NULL text column reads as '' — the same value the fallback builds.
+		$this->assertSame( '', $from_table['phone'] );
 	}
 
 	public function test_get_profile_falls_back_to_userdata_when_table_exists_but_no_row(): void {
@@ -230,6 +316,28 @@ class UserManagerTest extends TestCase {
 		$result = UserManager::update_profile( 42, array(
 			'department'   => 'HR',
 			'organization' => 'ACME Corp',
+		) );
+
+		$this->assertTrue( $result );
+	}
+
+	/**
+	 * #1060 — the patch arrives untyped. A non-scalar used to be cast,
+	 * writing the literal `Array` into the column; it is now skipped, so
+	 * the only field left is the valid one.
+	 */
+	public function test_update_profile_skips_a_non_scalar_field_instead_of_writing_array(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '5' );
+		$this->wpdb->shouldReceive( 'update' )
+			->once()
+			->withArgs( function ( $table, $data ) {
+				return array( 'phone' => '+5511888888888' ) === $data;
+			} )
+			->andReturn( 1 );
+
+		$result = UserManager::update_profile( 42, array(
+			'department' => array( 'HR', 'Legal' ),
+			'phone'      => '+5511888888888',
 		) );
 
 		$this->assertTrue( $result );
@@ -1227,14 +1335,10 @@ class UserManagerTest extends TestCase {
 
 	public function test_get_extended_profile_reads_table_keys_and_plain_extra_meta(): void {
 		$this->mock_table_exists( 'wp_ffc_user_profiles', true );
+		// A full row, as `SELECT *` returns it — a partial one is not
+		// something production can emit (#1077).
 		$this->wpdb->shouldReceive( 'get_row' )
-			->andReturn( array(
-				'display_name' => 'Alice',
-				'phone'        => '555-0100',
-				'department'   => 'Sales',
-				'organization' => 'Acme',
-				'notes'        => '',
-			) );
+			->andReturn( $this->profile_row_fixture() );
 
 		Functions\when( 'sanitize_key' )->returnArg();
 		Functions\when( 'get_user_meta' )->alias( function ( $uid, $key ) {
@@ -1265,13 +1369,9 @@ class UserManagerTest extends TestCase {
 		$this->mock_table_exists( 'wp_ffc_user_profiles', true );
 		// get_row returning a non-empty row keeps get_profile on the fast
 		// path and avoids its get_userdata() fallback (not mocked here).
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn( array(
-			'display_name' => 'Alice',
-			'phone'        => '',
-			'department'   => '',
-			'organization' => '',
-			'notes'        => '',
-		) );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
+			$this->profile_row_fixture( array( 'phone' => '' ) )
+		);
 
 		Functions\when( 'sanitize_key' )->returnArg();
 		Functions\when( 'get_user_meta' )->alias( function ( $uid, $key ) {
@@ -1292,13 +1392,7 @@ class UserManagerTest extends TestCase {
 		// an extra key must be a no-op, not a duplicate meta read.
 		$this->mock_table_exists( 'wp_ffc_user_profiles', true );
 		$this->wpdb->shouldReceive( 'get_row' )
-			->andReturn( array(
-				'display_name' => 'Alice',
-				'phone'        => '',
-				'department'   => '',
-				'organization' => '',
-				'notes'        => '',
-			) );
+			->andReturn( $this->profile_row_fixture( array( 'phone' => '' ) ) );
 
 		Functions\when( 'sanitize_key' )->returnArg();
 		Functions\when( 'get_user_meta' )->justReturn( 'WRONG' );

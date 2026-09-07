@@ -104,7 +104,11 @@ class RecruitmentActivator {
 	 */
 	public static function maybe_migrate(): void {
 		$option_key = 'ffc_recruitment_schema_version';
-		$current    = (int) get_option( $option_key, 0 );
+		// `get_option()` is mixed and `(int) array()` is 1. No step below
+		// gates on `< 1`, so nothing behaves differently today — this is
+		// the unchecked cast made honest, not a fix (#1060).
+		$stored  = get_option( $option_key, 0 );
+		$current = is_numeric( $stored ) ? (int) $stored : 0;
 
 		if ( $current < 2 ) {
 			self::migrate_status_active_to_definitive();
@@ -236,6 +240,15 @@ class RecruitmentActivator {
 				if ( 0 === $row_count ) {
 					break;
 				}
+				/**
+				 * The projection names both columns and `$wpdb` returns each
+				 * as a string. `called_at` is the pre-migration DATETIME
+				 * column, whose definition is no longer in the tree, so it is
+				 * read as nullable — which is also why the parse below sits in
+				 * a try/catch (#1060).
+				 *
+				 * @var \stdClass&object{id: numeric-string, called_at: string|null} $row
+				 */
 				foreach ( $rows as $row ) {
 					try {
 						$dt = new \DateTimeImmutable( (string) $row->called_at, $tz );
@@ -690,7 +703,7 @@ class RecruitmentActivator {
             adjutancy_id bigint(20) unsigned NOT NULL,
             notice_id bigint(20) unsigned NOT NULL,
             list_type varchar(50) NOT NULL,
-            `rank` int unsigned NOT NULL,
+            `rank` int(10) unsigned NOT NULL,
             score decimal(10,4) NOT NULL,
             time_points decimal(10,4) NOT NULL DEFAULT 0,
             hab_emebs tinyint(1) NOT NULL DEFAULT 0,
@@ -844,8 +857,8 @@ class RecruitmentActivator {
             notice_id bigint(20) unsigned NOT NULL,
             list_type varchar(20) NOT NULL,
             status varchar(20) NOT NULL DEFAULT 'ingested',
-            total int unsigned NOT NULL DEFAULT 0,
-            processed_count int unsigned NOT NULL DEFAULT 0,
+            total int(10) unsigned NOT NULL DEFAULT 0,
+            processed_count int(10) unsigned NOT NULL DEFAULT 0,
             user_id bigint(20) unsigned NOT NULL DEFAULT 0,
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
@@ -903,8 +916,8 @@ class RecruitmentActivator {
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             job_id varchar(40) NOT NULL,
-            row_no int unsigned NOT NULL,
-            line_no int unsigned NOT NULL,
+            row_no int(10) unsigned NOT NULL,
+            line_no int(10) unsigned NOT NULL,
             notice_id bigint(20) unsigned NOT NULL,
             name varchar(255) NOT NULL,
             cpf_normalized varchar(11) NOT NULL DEFAULT '',
@@ -913,7 +926,7 @@ class RecruitmentActivator {
             phone varchar(50) NOT NULL DEFAULT '',
             adjutancy_slug varchar(100) NOT NULL,
             adjutancy_id bigint(20) unsigned NOT NULL,
-            rank_value int unsigned NOT NULL,
+            rank_value int(10) unsigned NOT NULL,
             score decimal(10,4) NOT NULL,
             time_points decimal(10,4) NOT NULL DEFAULT 0,
             hab_emebs tinyint(1) NOT NULL DEFAULT 0,

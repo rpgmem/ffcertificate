@@ -187,6 +187,12 @@ $ffc_doc_tree = array(
 						'file'   => 'config-cache.php',
 					),
 					array(
+						'anchor' => 'config-captcha',
+						'icon'   => 'dashicons-shield',
+						'title'  => __( 'Captcha', 'ffcertificate' ),
+						'file'   => 'config-captcha.php',
+					),
+					array(
 						'anchor' => 'config-rate-limit',
 						'icon'   => 'dashicons-shield-alt',
 						'title'  => __( 'Rate Limit', 'ffcertificate' ),

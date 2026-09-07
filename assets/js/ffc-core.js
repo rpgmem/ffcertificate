@@ -287,6 +287,21 @@
                                     send();
                                     return;
                                 }
+                                // Announce every server-side rejection on a
+                                // single wire. A proof-of-work captcha has to
+                                // be reset whenever the server refuses a
+                                // submission — its solution is spent whether
+                                // or not the captcha is what failed — and
+                                // wiring that into each rejection site would
+                                // mean finding them all, and finding every
+                                // future one. Listeners are optional; nothing
+                                // here depends on anyone subscribing.
+                                if (typeof document !== 'undefined' && typeof window.CustomEvent === 'function') {
+                                    document.dispatchEvent(new CustomEvent('ffc:request-rejected', {
+                                        detail: { action: action, data: err.data }
+                                    }));
+                                }
+
                                 reject(err);
                                 return;
                             }

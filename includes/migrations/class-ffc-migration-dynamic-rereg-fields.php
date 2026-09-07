@@ -99,7 +99,8 @@ class MigrationDynamicReregFields {
 		$table_name      = $wpdb->prefix . 'ffc_custom_fields';
 		$charset_collate = $wpdb->get_charset_collate();
 
-		// Full desired schema (same as MigrationCustomFieldsTables, plus new columns).
+		// Full desired schema, matching UserDashboardActivator's CREATE TABLE — the
+		// SchemaAgreementTest enforces that the two stay identical (#1087).
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             audience_id bigint(20) unsigned NOT NULL,
@@ -111,8 +112,8 @@ class MigrationDynamicReregFields {
             field_profile_key varchar(100) DEFAULT NULL,
             field_mask varchar(50) DEFAULT NULL,
             is_sensitive tinyint(1) NOT NULL DEFAULT 0,
-            field_options json DEFAULT NULL,
-            validation_rules json DEFAULT NULL,
+            field_options longtext DEFAULT NULL,
+            validation_rules longtext DEFAULT NULL,
             sort_order int(11) NOT NULL DEFAULT 0,
             is_required tinyint(1) NOT NULL DEFAULT 0,
             is_active tinyint(1) NOT NULL DEFAULT 1,
@@ -168,7 +169,7 @@ class MigrationDynamicReregFields {
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             reregistration_id bigint(20) unsigned NOT NULL,
             user_id bigint(20) unsigned NOT NULL,
-            data json DEFAULT NULL,
+            data longtext DEFAULT NULL,
             status varchar(20) NOT NULL DEFAULT 'pending',
             submitted_at bigint(20) unsigned DEFAULT NULL,
             reviewed_at bigint(20) unsigned DEFAULT NULL,
@@ -182,8 +183,9 @@ class MigrationDynamicReregFields {
             UNIQUE KEY idx_reregistration_user (reregistration_id, user_id),
             KEY idx_user_id (user_id),
             KEY idx_status (status),
-            KEY idx_auth_code (auth_code),
-            KEY idx_magic_token (magic_token)
+            KEY idx_created (created_at),
+            UNIQUE KEY uq_auth_code (auth_code),
+            KEY magic_token (magic_token)
         ) {$charset_collate};";
 
 		dbDelta( $sql );

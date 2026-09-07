@@ -18,6 +18,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\ArrayValue;
 use FreeFormCertificate\Core\BatchedCsvExport;
 use FreeFormCertificate\Core\SourceRegistry;
 use FreeFormCertificate\Repositories\SubmissionRepository;
@@ -109,10 +110,11 @@ class CsvExporter {
 
 				// Read the payload BEFORE deleting so we can unlink the temp
 				// file the abandoned job left on disk.
-				$job = get_option( '_transient_' . $transient_key );
-				if ( is_array( $job ) && ! empty( $job['file'] ) && file_exists( $job['file'] ) ) {
+				$job  = get_option( '_transient_' . $transient_key );
+				$file = is_array( $job ) ? ArrayValue::string( $job, 'file' ) : '';
+				if ( '' !== $file && file_exists( $file ) ) {
 					// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Deletes the plugin's own temp export file by absolute path. WP_Filesystem would need credentials, and this runs on a cleanup path with no user present.
-					unlink( $job['file'] );
+					unlink( $file );
 				}
 
 				delete_transient( $transient_key );

@@ -59,6 +59,19 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		Functions\when( 'wp_hash' )->alias( function ( $data ) {
 			return md5( $data . 'test-salt' );
 		} );
+
+		// Challenge signing key + single-redemption ledger (6.23.0).
+		Functions\when( 'wp_salt' )->alias( function ( string $scheme = 'auth' ): string {
+			return 'test-salt-' . $scheme;
+		} );
+		$this->transients = array();
+		Functions\when( 'get_transient' )->alias( function ( string $key ) {
+			return $this->transients[ $key ] ?? false;
+		} );
+		Functions\when( 'set_transient' )->alias( function ( string $key, $value ): bool {
+			$this->transients[ $key ] = $value;
+			return true;
+		} );
 		Functions\when( 'wp_rand' )->alias( function ( $min = 0, $max = 0 ) {
 			return rand( $min, $max );
 		} );
@@ -141,11 +154,27 @@ class AppointmentAjaxHandlerTest extends TestCase {
 	}
 
 	/**
-	 * Generate a valid captcha hash for a given answer using the same
-	 * logic as SecurityService (wp_hash is stubbed as md5 + salt).
+	 * In-memory stand-in for the transient store.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $transients = array();
+
+	/**
+	 * Issue a real challenge token for a given answer.
+	 *
+	 * Since 6.23.0 the token is a signed, expiring value the test cannot
+	 * hand-roll, so it is minted through the service and the answer read
+	 * back from it.
+	 *
+	 * @param int $answer Answer the caller intends to post.
+	 * @return string Token for the `ffc_captcha_hash` field.
 	 */
 	private function makeCaptchaHash( int $answer ): string {
-		return md5( $answer . 'ffc_math_salt' . 'test-salt' );
+		$reflection = new \ReflectionMethod( \FreeFormCertificate\Core\SecurityService::class, 'issue_token' );
+		$reflection->setAccessible( true );
+
+		return (string) $reflection->invoke( null, (string) $answer, time() + 600 );
 	}
 
 	/**

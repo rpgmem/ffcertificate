@@ -198,44 +198,91 @@ class AppointmentHandler {
 		}
 		// === END TRANSACTION ===.
 
-		/**
-		 * Fires after an appointment is created.
-		 *
-		 * @since 4.6.4
-		 * @param int   $appointment_id New appointment ID.
-		 * @param array $data           Appointment data.
-		 * @param array<string, mixed> $calendar       Calendar configuration.
-		 */
-		do_action( 'ffcertificate_after_appointment_create', $appointment_id, $data, $calendar );
+		// Everything from here on is *after* the commit: the appointment row
+		// exists and the booking is real. A failure in the notification hook,
+		// the confirmation email or the receipt link is a degraded booking, not
+		// a failed one — so it must never propagate out of this method as an
+		// error. Before this guard a throw here surfaced to the visitor as
+		// "an error occurred, please try again" for a booking that was already
+		// in the database, and the natural response — booking again — either
+		// duplicated it or hit the duplicate guard.
+		$appointment = null;
+		$receipt_url = '';
+		$emails_ok   = true;
 
-		// Get appointment for email (outside transaction — read-only).
-		$appointment = $this->appointment_repository->findById( $appointment_id );
+		try {
+			/**
+			 * Fires after an appointment is created.
+			 *
+			 * @since 4.6.4
+			 * @param int   $appointment_id New appointment ID.
+			 * @param array $data           Appointment data.
+			 * @param array<string, mixed> $calendar       Calendar configuration.
+			 */
+			do_action( 'ffcertificate_after_appointment_create', $appointment_id, $data, $calendar );
+
+			// Get appointment for email (outside transaction — read-only).
+			$appointment = $this->appointment_repository->findById( $appointment_id );
+		} catch ( \Throwable $e ) {
+			$this->log_post_commit_failure( 'after_create_hook', $appointment_id, $e );
+		}
 
 		// Schedule email notifications. A waitlisted booking gets the "you're on
 		// the waitlist" email instead of the booking confirmation (#941 phase 2).
 		if ( is_array( $appointment ) ) {
-			$this->schedule_email_notifications( $appointment, $calendar, $is_waitlist ? 'waitlisted' : 'created' );
+			try {
+				$this->schedule_email_notifications( $appointment, $calendar, $is_waitlist ? 'waitlisted' : 'created' );
+			} catch ( \Throwable $e ) {
+				$emails_ok = false;
+				$this->log_post_commit_failure( 'email_notifications', $appointment_id, $e );
+			}
 		}
 
 		// Generate receipt URL (magic link to /valid/ page).
-		$receipt_url        = '';
-		$confirmation_token = $appointment['confirmation_token'] ?? '';
-		if ( ! empty( $confirmation_token ) && class_exists( '\\FreeFormCertificate\\Generators\\MagicLinkHelper' ) ) {
-			$receipt_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $confirmation_token );
-		} elseif ( class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler' ) ) {
-			$receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
-				$appointment_id,
-				$confirmation_token
-			);
+		$confirmation_token = is_array( $appointment ) ? ( $appointment['confirmation_token'] ?? '' ) : '';
+
+		try {
+			if ( ! empty( $confirmation_token ) && class_exists( '\\FreeFormCertificate\\Generators\\MagicLinkHelper' ) ) {
+				$receipt_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $confirmation_token );
+			} elseif ( class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler' ) ) {
+				$receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
+					$appointment_id,
+					$confirmation_token
+				);
+			}
+		} catch ( \Throwable $e ) {
+			$this->log_post_commit_failure( 'receipt_url', $appointment_id, $e );
 		}
 
 		return array(
 			'success'            => true,
 			'appointment_id'     => $appointment_id,
-			'confirmation_token' => $appointment['confirmation_token'] ?? null,
+			'confirmation_token' => '' !== $confirmation_token ? $confirmation_token : null,
 			'requires_approval'  => 1 === $calendar['requires_approval'],
 			'waitlisted'         => $is_waitlist,
 			'receipt_url'        => $receipt_url,
+			'notifications_ok'   => $emails_ok,
+		);
+	}
+
+	/**
+	 * Record a post-commit failure without failing the booking.
+	 *
+	 * @param string     $stage          Which post-commit step threw.
+	 * @param int        $appointment_id Committed appointment id.
+	 * @param \Throwable $e              The failure.
+	 * @return void
+	 */
+	private function log_post_commit_failure( string $stage, int $appointment_id, \Throwable $e ): void {
+		\FreeFormCertificate\Core\Debug::log_self_scheduling(
+			'Post-commit failure — the appointment is booked, this step is not',
+			array(
+				'stage'          => $stage,
+				'appointment_id' => $appointment_id,
+				'message'        => $e->getMessage(),
+				'file'           => $e->getFile(),
+				'line'           => $e->getLine(),
+			)
 		);
 	}
 

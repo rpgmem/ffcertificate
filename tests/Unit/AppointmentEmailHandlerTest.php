@@ -123,9 +123,20 @@ class AppointmentEmailHandlerTest extends TestCase {
 	// Helper factories
 	// ------------------------------------------------------------------
 
+	/**
+	 * Build an appointment row.
+	 *
+	 * `id` is a **string** on purpose: `$wpdb` returns every column as one, and
+	 * this fixture used to hand back an int — which is why the suite was green
+	 * while production fataled with a TypeError on the strictly-typed
+	 * `AppointmentReceiptHandler::get_receipt_url( int $appointment_id )`.
+	 *
+	 * @param array<string, mixed> $overrides Fields to override.
+	 * @return array<string, mixed>
+	 */
 	private function makeAppointment( array $overrides = [] ): array {
 		return array_merge( array(
-			'id'                  => 1,
+			'id'                  => '1',
 			'calendar_id'         => 1,
 			'name'                => 'John Doe',
 			'email'               => 'john@example.com',
@@ -151,6 +162,24 @@ class AppointmentEmailHandlerTest extends TestCase {
 	// ==================================================================
 	// send_booking_confirmation()
 	// ==================================================================
+
+	public function test_booking_confirmation_survives_a_string_id_from_the_database(): void {
+		// The booking commits before this email is sent, so a throw here left a
+		// real appointment reported to the visitor as a failure — an uncaught
+		// TypeError, HTTP 500, no JSON, and the client's generic "an error
+		// occurred". `$wpdb` returns `id` as a string; the receipt-URL helper
+		// declares `int` under strict_types.
+		$this->handler->send_booking_confirmation(
+			$this->makeAppointment( array( 'id' => '4321' ) ),
+			$this->makeCalendar()
+		);
+
+		// Reaching the send at all is the regression guard; asserting on the
+		// mail proves the method ran to completion rather than merely not
+		// throwing on an early return.
+		$this->assertTrue( $this->mail_sent );
+		$this->assertStringContainsString( '4321', $this->last_mail['body'] );
+	}
 
 	public function test_booking_confirmation_sends_email(): void {
 		$this->handler->send_booking_confirmation(

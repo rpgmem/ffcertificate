@@ -93,7 +93,7 @@ class AppointmentEmailHandler {
 		$receipt_url = '';
 		if ( class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler' ) ) {
 			$receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
-				$appointment['id'],
+				(int) ( $appointment['id'] ?? 0 ),
 				$appointment['confirmation_token'] ?? ''
 			);
 		}
@@ -371,7 +371,7 @@ class AppointmentEmailHandler {
 		$receipt_url = '';
 		if ( class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler' ) ) {
 			$receipt_url = AppointmentReceiptHandler::get_receipt_url(
-				$appointment['id'],
+				(int) ( $appointment['id'] ?? 0 ),
 				$appointment['confirmation_token'] ?? ''
 			);
 		}
@@ -469,7 +469,7 @@ class AppointmentEmailHandler {
 		$receipt_url = '';
 		if ( class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler' ) ) {
 			$receipt_url = AppointmentReceiptHandler::get_receipt_url(
-				$appointment['id'],
+				(int) ( $appointment['id'] ?? 0 ),
 				$appointment['confirmation_token'] ?? ''
 			);
 		}

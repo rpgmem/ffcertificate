@@ -4,7 +4,7 @@
  * Plugin URI:         https://github.com/rpgmem/ffcertificate
  * Update URI:         https://github.com/rpgmem/ffcertificate
  * Description:        Allows creation of dynamic forms, saves submissions, generates a PDF certificate, and enables CSV export.
- * Version:            6.22.0
+ * Version:            6.23.0
  * Requires at least:  6.4
  * Requires PHP:       8.3
  * Author:             Alex Meusburger
@@ -24,11 +24,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Centralized version management
  */
-define( 'FFC_VERSION', '6.22.0' );                 // Plugin version (WordPress Plugin Check compliance)
+define( 'FFC_VERSION', '6.23.0' );                 // Plugin version (WordPress Plugin Check compliance)
 // External libraries versions.
 define( 'FFC_HTML2CANVAS_VERSION', '1.4.1' );   // html2canvas - https://html2canvas.hertzen.com/.
 define( 'FFC_JSPDF_VERSION', '4.2.1' );         // jsPDF - https://github.com/parallax/jsPDF.
 define( 'FFC_THUMBMARK_VERSION', '1.10.1' );    // thumbmarkjs - https://github.com/thumbmarkjs/thumbmarkjs (MIT, vendored at libs/js/).
+define( 'FFC_ALTCHA_VERSION', '3.2.2' );        // ALTCHA widget - https://github.com/altcha-org/altcha (MIT, vendored at libs/js/).
 
 define( 'FFC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FFC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

@@ -443,6 +443,92 @@ details.ffc-consent-description > p {
 
 /* .ffc-honeypot-field defined in ffc-common.css */
 
+/*
+ * ALTCHA widget row.
+ *
+ * Shares the math row's framing so the two strategies read as the same block
+ * — a visitor switching between them should not see the form change shape.
+ * The widget renders into the light DOM (measured in a browser, not assumed:
+ * the element has no shadow root), so its internals are ordinary descendants
+ * here. They are still addressed through the custom properties below rather
+ * than by class, because those are the surface the bundle publishes and a
+ * class name is free to change between versions.
+ */
+.ffc-shortcode .ffc-altcha-row {
+    margin-bottom: 20px;
+    padding: 20px;
+    background: var(--ffc-primary-light);
+    border: 2px solid var(--ffc-primary);
+    border-radius: var(--ffc-radius-lg);
+    box-shadow: 0 2px 8px var(--ffc-focus-ring);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/*
+ * Widget theming.
+ *
+ * ALTCHA has no theme rules of its own in the bundled build — the `theme`
+ * attribute is written to the host and nothing consumes it, which is why a
+ * theme selector could never have worked. Theming is done entirely through
+ * these custom properties, so mapping them onto the plugin's own tokens is
+ * what makes the widget follow the site: it inherits light/dark from
+ * `.ffc-dark-mode` for free, because the tokens on the right already do.
+ */
+.ffc-shortcode .ffc-altcha-row altcha-widget {
+    /*
+     * The widget is 320px wide by default — `--altcha-max-width` names a
+     * maximum but is applied as `width` on its inner wrapper, so it is the
+     * whole story. At 320px inside a wider panel the label crowds the logo,
+     * which the footer pushes to the right edge with `justify-content:
+     * flex-end` and therefore has nowhere to go. Filling the panel gives
+     * both the room the layout already assumes.
+     */
+    --altcha-max-width: 100%;
+
+    display: block;
+    width: 100%;
+
+    /*
+     * Typography is set, never inherited. Everything inside the widget is
+     * `font-family: inherit` and `font-size: inherit`, so left alone it takes
+     * the theme's body text while the form's own fields do not — the fields
+     * carry their own sizes. On a theme with a 20px body that reads as a
+     * captcha in a different typeface, one size larger than the question
+     * beside it. 18px is the math row's label size; the two must agree.
+     */
+    font-family: var(--ffc-font-family);
+    font-size: 18px;
+
+    --altcha-border-color: var(--ffc-border);
+
+    /*
+     * `--ffc-radius` does not exist in this stylesheet — only in the
+     * recruitment and user-dashboard sheets, which do not load here. Naming
+     * it made the declaration invalid at computed-value time, so the widget's
+     * own `var(--altcha-border-radius, 0)` fell through to its fallback and
+     * the box had square corners. Matches `.ffc-input`, which is the control
+     * this box sits next to.
+     */
+    --altcha-border-radius: var(--ffc-radius-sm);
+    --altcha-checkbox-border-color: var(--ffc-border);
+    --altcha-color-base: var(--ffc-bg-input);
+    --altcha-color-base-content: var(--ffc-text);
+    --altcha-color-error: var(--ffc-danger, #b32d2e);
+    --altcha-color-primary: var(--ffc-primary);
+    --altcha-color-success: var(--ffc-success, #00a32a);
+    --altcha-spinner-color: var(--ffc-primary);
+}
+
+/* The widget's own fallback text when JavaScript is off, and the message the
+   glue script writes when the widget reports an error. */
+.ffc-shortcode .ffc-altcha-noscript,
+.ffc-shortcode .ffc-altcha-error {
+    margin: 10px 0 0;
+    color: var(--ffc-danger, #b32d2e);
+    font-weight: 600;
+}
+
 .ffc-shortcode .ffc-captcha-row {
     margin-bottom: 20px;
     padding: 20px; /* ← Padding confortável */

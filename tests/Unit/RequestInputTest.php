@@ -160,11 +160,93 @@ class RequestInputTest extends TestCase {
 		$this->assertSame( 7, RequestInput::get_get_int( 'id', 7 ) );
 	}
 
+	/**
+	 * The two int accessors used to cast blind while their string siblings
+	 * type-checked (#1087). `absint( array( '45' ) )` is 1 and
+	 * `absint( array() )` is 0 — both silent, and 1 is a plausible id, count
+	 * and ceiling. Asserted against those two values, not merely against the
+	 * default, so the test discriminates: it fails on the old code.
+	 */
+	public function test_get_get_int_returns_default_for_an_array_value(): void {
+		$this->stub_get_readers();
+		$_GET['id'] = array( '45' );
+		$this->assertSame( 7, RequestInput::get_get_int( 'id', 7 ) );
+
+		$_GET['id'] = array();
+		$this->assertSame( 7, RequestInput::get_get_int( 'id', 7 ) );
+		unset( $_GET['id'] );
+	}
+
+	public function test_get_post_int_casts_through_absint(): void {
+		$this->stub_get_readers();
+		$_POST['qty'] = '-42abc';
+		$this->assertSame( 42, RequestInput::get_post_int( 'qty' ) );
+		unset( $_POST['qty'] );
+	}
+
+	public function test_get_post_int_returns_default_for_an_array_value(): void {
+		$this->stub_get_readers();
+		$_POST['qty'] = array( '45' );
+		$this->assertSame( 90, RequestInput::get_post_int( 'qty', 90 ) );
+
+		$_POST['qty'] = array();
+		$this->assertSame( 90, RequestInput::get_post_int( 'qty', 90 ) );
+		unset( $_POST['qty'] );
+	}
+
+	public function test_get_post_int_returns_default_when_absent(): void {
+		$this->stub_get_readers();
+		unset( $_POST['qty'] );
+		$this->assertSame( 90, RequestInput::get_post_int( 'qty', 90 ) );
+	}
+
 	public function test_has_get_is_presence_not_truthiness(): void {
 		$_GET['ffc_saved'] = '';
 		$this->assertTrue( RequestInput::has_get( 'ffc_saved' ) );
 
 		unset( $_GET['ffc_saved'] );
 		$this->assertFalse( RequestInput::has_get( 'ffc_saved' ) );
+	}
+
+	public function test_has_post_is_presence_not_truthiness(): void {
+		$_POST['ffc_config'] = '';
+		$this->assertTrue( RequestInput::has_post( 'ffc_config' ) );
+
+		unset( $_POST['ffc_config'] );
+		$this->assertFalse( RequestInput::has_post( 'ffc_config' ) );
+	}
+
+	/**
+	 * #1075 — the point of this accessor. `get_post_array()` puts every
+	 * element through `sanitize_text_field()`, which flattens a nested row
+	 * to `''` and strips the markup a `wp_kses_post()` body needs. This one
+	 * returns the container untouched, and the caller sanitises per field.
+	 */
+	public function test_get_post_raw_array_leaves_values_untouched(): void {
+		Functions\when( 'wp_unslash' )->returnArg();
+		$_POST['payload'] = array(
+			'body' => '<strong>keep</strong>',
+			'rows' => array( array( 'day' => '1' ) ),
+			'text' => "line one\nline two",
+		);
+
+		$out = RequestInput::get_post_raw_array( 'payload' );
+
+		unset( $_POST['payload'] );
+
+		$this->assertSame( '<strong>keep</strong>', $out['body'] );
+		$this->assertSame( array( array( 'day' => '1' ) ), $out['rows'] );
+		$this->assertSame( "line one\nline two", $out['text'] );
+	}
+
+	public function test_get_post_raw_array_returns_empty_for_absent_or_non_array(): void {
+		Functions\when( 'wp_unslash' )->returnArg();
+
+		unset( $_POST['payload'] );
+		$this->assertSame( array(), RequestInput::get_post_raw_array( 'payload' ) );
+
+		$_POST['payload'] = 'a string';
+		$this->assertSame( array(), RequestInput::get_post_raw_array( 'payload' ) );
+		unset( $_POST['payload'] );
 	}
 }

@@ -170,7 +170,7 @@ class FormMetaAjaxEndpoint {
 	public static function handle(): void {
 		check_ajax_referer( self::AJAX_ACTION, 'nonce' );
 
-		$post_id = isset( $_POST['post_id'] ) ? absint( wp_unslash( $_POST['post_id'] ) ) : 0;
+		$post_id = \FreeFormCertificate\Core\RequestInput::get_post_int( 'post_id', 0 );
 		if ( $post_id <= 0 || 'ffc_form' !== get_post_type( $post_id ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid form.', 'ffcertificate' ) ), 400 );
 		}

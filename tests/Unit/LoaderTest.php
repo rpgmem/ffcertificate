@@ -176,11 +176,38 @@ class LoaderTest extends TestCase {
 			return 'https://example.com/wp-admin/' . ltrim( $path, '/' );
 		} );
 
+		// The captcha widget registers here too (#1053), and its localisation
+		// reads the site locale to key the widget's i18n store.
+		Functions\when( 'get_locale' )->justReturn( 'pt_BR' );
+		Functions\when( '__' )->returnArg();
+
 		return [
 			'loader'              => $loader,
 			'registered_scripts'  => &$registered_scripts,
 			'localized_scripts'   => &$localized_scripts,
 		];
+	}
+
+	public function test_register_frontend_assets_registers_the_captcha_widget(): void {
+		// Registered unconditionally here and enqueued by the provider at
+		// render time, so the widget reaches every surface that renders it
+		// rather than a list of page types that drifts.
+		$spies = $this->build_loader_and_asset_spies();
+		$spies['loader']->register_frontend_assets();
+
+		$handles = array_column( $spies['registered_scripts'], 'handle' );
+
+		$this->assertContains( 'ffc-altcha', $handles );
+		$this->assertContains( 'ffc-captcha', $handles );
+
+		$matches = array_filter(
+			$spies['registered_scripts'],
+			static fn( $entry ) => 'ffc-captcha' === $entry['handle']
+		);
+		$glue    = reset( $matches );
+
+		$this->assertContains( 'ffc-altcha', $glue['deps'], 'The glue writes to the store the bundle creates.' );
+		$this->assertContains( 'ffc-core', $glue['deps'], 'The glue listens for the rejection event ffc-core dispatches.' );
 	}
 
 	public function test_register_frontend_assets_registers_rate_limit_script(): void {

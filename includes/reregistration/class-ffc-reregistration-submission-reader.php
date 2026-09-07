@@ -92,6 +92,16 @@ class ReregistrationSubmissionReader {
 	 * @return ReregistrationSubmissionRow|null
 	 */
 	public static function get_by_id( int $id ): ?object {
+		/**
+		 * The object cache is untyped — `wp_cache_get()` returns mixed — and
+		 * this key is the one written a few lines below, so the assertion is
+		 * checkable against the `cache_set()` in the same method. It is stated
+		 * per key rather than on the trait's `cache_get()` because the cache
+		 * is heterogeneous: this class also stores other shapes under other
+		 * keys, and one type on the accessor would be a lie for those.
+		 *
+		 * @var ReregistrationSubmissionRow|false $cached
+		 */
 		$cached = static::cache_get( "id_{$id}" );
 		if ( false !== $cached ) {
 			return $cached;

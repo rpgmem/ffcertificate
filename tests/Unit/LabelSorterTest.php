@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use Brain\Monkey;
+use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\LabelSorter;
 
@@ -15,7 +17,22 @@ class LabelSorterTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
+		Monkey\setUp();
 		class_exists( '\\FreeFormCertificate\\Core\\LabelSorter' );
+
+		// `LabelSorter::locale()` is guarded by `function_exists( 'get_locale' )`,
+		// so this used to take the no-WordPress branch only because nothing in
+		// the process had defined that function yet. That is an accident of
+		// file ordering, not a property of these tests: the moment any other
+		// suite stubs `get_locale`, the guard passes here too and the call
+		// lands unmocked. Pin it to the same locale the fallback would have
+		// produced, so the behaviour under test is chosen rather than inherited.
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
+	}
+
+	protected function tearDown(): void {
+		Monkey\tearDown();
+		parent::tearDown();
 	}
 
 	/*

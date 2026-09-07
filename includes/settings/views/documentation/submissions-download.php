@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<pre><code>https://example.com/valid/#token=&lt;magic_token&gt;</code></pre>
 
 	<h4><?php esc_html_e( 'Public validation page', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'The /valid page (the [ffc_verification] shortcode) also offers a manual lookup: anyone can type a certificate\'s authentication code to confirm it is genuine and view its status. This path is protected by a nonce, a honeypot + math captcha, and IP rate-limiting.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The /valid page (the [ffc_verification] shortcode) also offers a manual lookup: anyone can type a certificate\'s authentication code to confirm it is genuine and view its status. This path is protected by a nonce, a honeypot + the configured captcha, and IP rate-limiting.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-note">
 		<p>

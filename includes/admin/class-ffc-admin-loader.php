@@ -87,6 +87,7 @@ class AdminLoader {
 		RoleCapabilityEditor::init();
 		AdminMenuVisibility::init();
 		DeviceThresholdUpgradeNotice::init();
+		CaptchaModeNotice::init();
 		EncryptionKeyHealthNotice::init();
 		HtmlRefsNotice::init();
 		SettingsAjaxEndpoint::init();

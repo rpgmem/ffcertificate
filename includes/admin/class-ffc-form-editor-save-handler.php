@@ -15,6 +15,9 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\ArrayValue;
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -68,7 +71,7 @@ class FormEditorSaveHandler {
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 			return;
 		}
-		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_form_nonce' ), 'ffc_save_form_data' ) ) {
+		if ( ! wp_verify_nonce( RequestInput::get_post_string( 'ffc_form_nonce' ), 'ffc_save_form_data' ) ) {
 			return;
 		}
 		if ( ! current_user_can( 'edit_post', $post_id ) ) {
@@ -123,30 +126,39 @@ class FormEditorSaveHandler {
 	 * @param int $post_id The post ID.
 	 */
 	private function save_fields_meta( int $post_id ): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- isset()/is_array() existence and type checks only; nonce verified in save_form_data() before dispatch.
-		if ( isset( $_POST['ffc_fields'] ) && is_array( $_POST['ffc_fields'] ) ) {
-			$clean_fields = array();
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Each field sanitized individually below; nonce verified in save_form_data() before dispatch.
-			foreach ( wp_unslash( $_POST['ffc_fields'] ) as $index => $field ) {
-				if ( 'TEMPLATE' === $index || ( empty( $field['label'] ) && empty( $field['name'] ) && empty( $field['content'] ) && empty( $field['embed_url'] ) ) ) {
-					continue;
-				}
-
-				$clean_fields[] = array(
-					'label'     => sanitize_text_field( $field['label'] ),
-					'name'      => sanitize_key( $field['name'] ),
-					'type'      => sanitize_key( $field['type'] ),
-					'required'  => isset( $field['required'] ) ? '1' : '',
-					'options'   => sanitize_text_field( isset( $field['options'] ) ? $field['options'] : '' ),
-					'content'   => wp_kses_post( isset( $field['content'] ) ? $field['content'] : '' ),
-					'embed_url' => esc_url_raw( isset( $field['embed_url'] ) ? $field['embed_url'] : '' ),
-					'points'    => sanitize_text_field( isset( $field['points'] ) ? $field['points'] : '' ),
-				);
-			}
-			update_post_meta( $post_id, '_ffc_form_fields', $clean_fields );
-		} else {
+		$rows = RequestInput::get_post_raw_array( 'ffc_fields' );
+		if ( empty( $rows ) ) {
 			update_post_meta( $post_id, '_ffc_form_fields', array() );
+			return;
 		}
+
+		$clean_fields = array();
+		foreach ( $rows as $index => $field ) {
+			// A row that is not an array is not a row. The `empty()` chain
+			// below already skipped it — `empty( $string['label'] )` is
+			// silently true for an illegal offset — so this guard changes
+			// nothing at runtime; it states the precondition the rest of
+			// the body relies on instead of leaving it to that accident,
+			// and it is what lets the reads below be typed (#1084).
+			if ( 'TEMPLATE' === $index || ! is_array( $field ) ) {
+				continue;
+			}
+			if ( empty( $field['label'] ) && empty( $field['name'] ) && empty( $field['content'] ) && empty( $field['embed_url'] ) ) {
+				continue;
+			}
+
+			$clean_fields[] = array(
+				'label'     => sanitize_text_field( ArrayValue::string( $field, 'label' ) ),
+				'name'      => sanitize_key( ArrayValue::string( $field, 'name' ) ),
+				'type'      => sanitize_key( ArrayValue::string( $field, 'type' ) ),
+				'required'  => isset( $field['required'] ) ? '1' : '',
+				'options'   => sanitize_text_field( ArrayValue::string( $field, 'options' ) ),
+				'content'   => wp_kses_post( ArrayValue::string( $field, 'content' ) ),
+				'embed_url' => esc_url_raw( ArrayValue::string( $field, 'embed_url' ) ),
+				'points'    => sanitize_text_field( ArrayValue::string( $field, 'points' ) ),
+			);
+		}
+		update_post_meta( $post_id, '_ffc_form_fields', $clean_fields );
 	}
 
 	/**
@@ -155,66 +167,65 @@ class FormEditorSaveHandler {
 	 * @param int $post_id The post ID.
 	 */
 	private function save_config_meta( int $post_id ): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- isset() existence check only; nonce verified in save_form_data() before dispatch.
-		if ( isset( $_POST['ffc_config'] ) ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Each field sanitized individually below; nonce verified in save_form_data() before dispatch.
-			$config       = wp_unslash( $_POST['ffc_config'] );
+		if ( RequestInput::has_post( 'ffc_config' ) ) {
+			$config       = RequestInput::get_post_raw_array( 'ffc_config' );
 			$allowed_html = \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags();
 
 			// Form essentials — not gated by any toggle.
 			$clean_config               = array();
-			$clean_config['pdf_layout'] = wp_kses( (string) ( $config['pdf_layout'] ?? '' ), $allowed_html );
-			$clean_config['bg_image']   = esc_url_raw( (string) ( $config['bg_image'] ?? '' ) );
+			$clean_config['pdf_layout'] = wp_kses( ArrayValue::string( $config, 'pdf_layout' ), $allowed_html );
+			$clean_config['bg_image']   = esc_url_raw( ArrayValue::string( $config, 'bg_image' ) );
 
-			$clean_config['enable_restriction'] = sanitize_key( (string) ( $config['enable_restriction'] ?? '' ) );
+			$clean_config['enable_restriction'] = sanitize_key( ArrayValue::string( $config, 'enable_restriction' ) );
 
 			// Email — master toggle is `send_user_email`. Sub-options
 			// (subject + body) are only written when the toggle is on, so
 			// turning email off preserves the prior subject/body verbatim
 			// for when the admin turns it back on (Sprint 2 / #238).
-			$send_user_email                 = isset( $config['send_user_email'] ) && '1' === (string) $config['send_user_email'] ? '1' : '0';
+			$send_user_email                 = '1' === ArrayValue::string( $config, 'send_user_email' ) ? '1' : '0';
 			$clean_config['send_user_email'] = $send_user_email;
 			if ( '1' === $send_user_email ) {
-				$clean_config['email_subject'] = sanitize_text_field( (string) ( $config['email_subject'] ?? '' ) );
+				$clean_config['email_subject'] = sanitize_text_field( ArrayValue::string( $config, 'email_subject' ) );
 				// Email body is authored in the teeny wp_editor; wp_kses_post()
 				// is the canonical WordPress allowlist for post-like rich
 				// content and already strips scripts/forms while keeping the
 				// formatting users expect.
-				$clean_config['email_body'] = wp_kses_post( (string) ( $config['email_body'] ?? '' ) );
+				$clean_config['email_body'] = wp_kses_post( ArrayValue::string( $config, 'email_body' ) );
 			}
 
 			// Admin notification — independent opt-in toggle (default off, #649).
 			// The recipient list is only written when the toggle is on, so
 			// turning it off preserves the prior recipients verbatim.
-			$send_admin_email                 = isset( $config['send_admin_email'] ) && '1' === (string) $config['send_admin_email'] ? '1' : '0';
+			$send_admin_email                 = '1' === ArrayValue::string( $config, 'send_admin_email' ) ? '1' : '0';
 			$clean_config['send_admin_email'] = $send_admin_email;
 			if ( '1' === $send_admin_email ) {
-				$clean_config['email_admin'] = sanitize_text_field( (string) ( $config['email_admin'] ?? '' ) );
+				$clean_config['email_admin'] = sanitize_text_field( ArrayValue::string( $config, 'email_admin' ) );
 			}
 
 			// Restrictions — 4 independent toggles. Each gates exactly one
 			// data field; when its toggle is off, the corresponding field
 			// is not written to $clean_config so the prior value rides
 			// through `array_merge` at the end of this block.
+			$posted_restrictions          = ArrayValue::array( $config, 'restrictions' );
 			$restrictions                 = array(
-				'password'  => isset( $config['restrictions']['password'] ) ? '1' : '0',
-				'allowlist' => isset( $config['restrictions']['allowlist'] ) ? '1' : '0',
-				'denylist'  => isset( $config['restrictions']['denylist'] ) ? '1' : '0',
-				'ticket'    => isset( $config['restrictions']['ticket'] ) ? '1' : '0',
+				'password'  => isset( $posted_restrictions['password'] ) ? '1' : '0',
+				'allowlist' => isset( $posted_restrictions['allowlist'] ) ? '1' : '0',
+				'denylist'  => isset( $posted_restrictions['denylist'] ) ? '1' : '0',
+				'ticket'    => isset( $posted_restrictions['ticket'] ) ? '1' : '0',
 			);
 			$clean_config['restrictions'] = $restrictions;
 
 			if ( '1' === $restrictions['password'] ) {
-				$clean_config['validation_code'] = sanitize_text_field( (string) ( $config['validation_code'] ?? '' ) );
+				$clean_config['validation_code'] = sanitize_text_field( ArrayValue::string( $config, 'validation_code' ) );
 			}
 			if ( '1' === $restrictions['allowlist'] ) {
-				$clean_config['allowed_users_list'] = sanitize_textarea_field( (string) ( $config['allowed_users_list'] ?? '' ) );
+				$clean_config['allowed_users_list'] = sanitize_textarea_field( ArrayValue::string( $config, 'allowed_users_list' ) );
 			}
 			if ( '1' === $restrictions['denylist'] ) {
-				$clean_config['denied_users_list'] = sanitize_textarea_field( (string) ( $config['denied_users_list'] ?? '' ) );
+				$clean_config['denied_users_list'] = sanitize_textarea_field( ArrayValue::string( $config, 'denied_users_list' ) );
 			}
 			if ( '1' === $restrictions['ticket'] ) {
-				$clean_config['generated_codes_list'] = sanitize_textarea_field( (string) ( $config['generated_codes_list'] ?? '' ) );
+				$clean_config['generated_codes_list'] = sanitize_textarea_field( ArrayValue::string( $config, 'generated_codes_list' ) );
 			}
 
 			// Quiz / Evaluation Mode — 1 master toggle, 4 sub-options
@@ -222,8 +233,8 @@ class FormEditorSaveHandler {
 			$quiz_enabled                 = isset( $config['quiz_enabled'] ) ? '1' : '0';
 			$clean_config['quiz_enabled'] = $quiz_enabled;
 			if ( '1' === $quiz_enabled ) {
-				$clean_config['quiz_passing_score'] = absint( $config['quiz_passing_score'] ?? 70 );
-				$clean_config['quiz_max_attempts']  = absint( $config['quiz_max_attempts'] ?? 0 );
+				$clean_config['quiz_passing_score'] = absint( ArrayValue::int( $config, 'quiz_passing_score', 70 ) );
+				$clean_config['quiz_max_attempts']  = absint( ArrayValue::int( $config, 'quiz_max_attempts', 0 ) );
 				$clean_config['quiz_show_score']    = isset( $config['quiz_show_score'] ) ? '1' : '0';
 				$clean_config['quiz_show_correct']  = isset( $config['quiz_show_correct'] ) ? '1' : '0';
 			}
@@ -265,10 +276,8 @@ class FormEditorSaveHandler {
 	 * @param int $post_id The post ID.
 	 */
 	private function save_geofence_meta( int $post_id ): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- isset() existence check only; nonce verified in save_form_data() before dispatch.
-		if ( isset( $_POST['ffc_geofence'] ) ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Each field sanitized individually below; nonce verified in save_form_data() before dispatch.
-			$geofence = wp_unslash( $_POST['ffc_geofence'] );
+		if ( RequestInput::has_post( 'ffc_geofence' ) ) {
+			$geofence = RequestInput::get_post_raw_array( 'ffc_geofence' );
 
 			// Skip-on-off per master toggle (Sprint 2 / #238). Each
 			// $clean_geofence entry is only added when its gating toggle
@@ -301,19 +310,17 @@ class FormEditorSaveHandler {
 				// under the old single-dropdown UI still produces a valid
 				// three-key payload. The legacy key is no longer
 				// persisted on save.
-				$legacy_hide_mode = isset( $geofence['datetime_hide_mode'] )
-					? sanitize_key( $geofence['datetime_hide_mode'] )
-					: 'message';
+				$legacy_hide_mode = sanitize_key( ArrayValue::string( $geofence, 'datetime_hide_mode', 'message' ) );
 
-				$clean_geofence['date_start']                = ! empty( $geofence['date_start'] ) ? sanitize_text_field( $geofence['date_start'] ) : '';
-				$clean_geofence['date_end']                  = ! empty( $geofence['date_end'] ) ? sanitize_text_field( $geofence['date_end'] ) : '';
-				$clean_geofence['time_start']                = ! empty( $geofence['time_start'] ) ? sanitize_text_field( $geofence['time_start'] ) : '';
-				$clean_geofence['time_end']                  = ! empty( $geofence['time_end'] ) ? sanitize_text_field( $geofence['time_end'] ) : '';
-				$clean_geofence['time_mode']                 = sanitize_key( $geofence['time_mode'] ?? 'daily' );
-				$clean_geofence['datetime_hide_mode_before'] = sanitize_key( $geofence['datetime_hide_mode_before'] ?? $legacy_hide_mode );
-				$clean_geofence['datetime_hide_mode_during'] = sanitize_key( $geofence['datetime_hide_mode_during'] ?? $legacy_hide_mode );
-				$clean_geofence['datetime_hide_mode_after']  = sanitize_key( $geofence['datetime_hide_mode_after'] ?? $legacy_hide_mode );
-				$clean_geofence['msg_datetime']              = sanitize_textarea_field( $geofence['msg_datetime'] ?? '' );
+				$clean_geofence['date_start']                = sanitize_text_field( ArrayValue::string( $geofence, 'date_start' ) );
+				$clean_geofence['date_end']                  = sanitize_text_field( ArrayValue::string( $geofence, 'date_end' ) );
+				$clean_geofence['time_start']                = sanitize_text_field( ArrayValue::string( $geofence, 'time_start' ) );
+				$clean_geofence['time_end']                  = sanitize_text_field( ArrayValue::string( $geofence, 'time_end' ) );
+				$clean_geofence['time_mode']                 = sanitize_key( ArrayValue::string( $geofence, 'time_mode', 'daily' ) );
+				$clean_geofence['datetime_hide_mode_before'] = sanitize_key( ArrayValue::string( $geofence, 'datetime_hide_mode_before', $legacy_hide_mode ) );
+				$clean_geofence['datetime_hide_mode_during'] = sanitize_key( ArrayValue::string( $geofence, 'datetime_hide_mode_during', $legacy_hide_mode ) );
+				$clean_geofence['datetime_hide_mode_after']  = sanitize_key( ArrayValue::string( $geofence, 'datetime_hide_mode_after', $legacy_hide_mode ) );
+				$clean_geofence['msg_datetime']              = sanitize_textarea_field( ArrayValue::string( $geofence, 'msg_datetime' ) );
 
 				// Multi-day toggle (UX scope: hides the End Date / Time
 				// Behavior / Display-during-slot controls when off). When
@@ -338,22 +345,22 @@ class FormEditorSaveHandler {
 			// Geolocation — 1 master toggle gating 8 sub-options +
 			// 1 nested toggle (`geo_ip_areas_permissive`) gating 3 more.
 			if ( '1' === $geo_enabled ) {
-				$gps_src                                 = (string) ( $geofence['geo_area_source'] ?? 'custom' );
+				$gps_src                                 = ArrayValue::string( $geofence, 'geo_area_source', 'custom' );
 				$clean_geofence['geo_gps_enabled']       = isset( $geofence['geo_gps_enabled'] ) ? '1' : '0';
 				$clean_geofence['geo_ip_enabled']        = isset( $geofence['geo_ip_enabled'] ) ? '1' : '0';
 				$clean_geofence['geo_area_source']       = in_array( $gps_src, array( 'locations', 'custom' ), true ) ? $gps_src : 'custom';
-				$clean_geofence['geo_area_location_ids'] = array_map( 'sanitize_key', (array) ( $geofence['geo_area_location_ids'] ?? array() ) );
-				$clean_geofence['geo_areas']             = sanitize_textarea_field( $geofence['geo_areas'] ?? '' );
-				$clean_geofence['geo_gps_ip_logic']      = sanitize_key( $geofence['geo_gps_ip_logic'] ?? 'or' );
-				$clean_geofence['geo_hide_mode']         = sanitize_key( $geofence['geo_hide_mode'] ?? 'message' );
-				$clean_geofence['msg_geo_blocked']       = sanitize_textarea_field( $geofence['msg_geo_blocked'] ?? '' );
-				$clean_geofence['msg_geo_error']         = sanitize_textarea_field( $geofence['msg_geo_error'] ?? '' );
+				$clean_geofence['geo_area_location_ids'] = self::sanitized_key_list( ArrayValue::array( $geofence, 'geo_area_location_ids' ) );
+				$clean_geofence['geo_areas']             = sanitize_textarea_field( ArrayValue::string( $geofence, 'geo_areas' ) );
+				$clean_geofence['geo_gps_ip_logic']      = sanitize_key( ArrayValue::string( $geofence, 'geo_gps_ip_logic', 'or' ) );
+				$clean_geofence['geo_hide_mode']         = sanitize_key( ArrayValue::string( $geofence, 'geo_hide_mode', 'message' ) );
+				$clean_geofence['msg_geo_blocked']       = sanitize_textarea_field( ArrayValue::string( $geofence, 'msg_geo_blocked' ) );
+				$clean_geofence['msg_geo_error']         = sanitize_textarea_field( ArrayValue::string( $geofence, 'msg_geo_error' ) );
 
 				if ( '1' === $ip_permissive ) {
-					$ip_src                                     = (string) ( $geofence['geo_ip_area_source'] ?? 'custom' );
+					$ip_src                                     = ArrayValue::string( $geofence, 'geo_ip_area_source', 'custom' );
 					$clean_geofence['geo_ip_area_source']       = in_array( $ip_src, array( 'locations', 'custom' ), true ) ? $ip_src : 'custom';
-					$clean_geofence['geo_ip_area_location_ids'] = array_map( 'sanitize_key', (array) ( $geofence['geo_ip_area_location_ids'] ?? array() ) );
-					$clean_geofence['geo_ip_areas']             = sanitize_textarea_field( $geofence['geo_ip_areas'] ?? '' );
+					$clean_geofence['geo_ip_area_location_ids'] = self::sanitized_key_list( ArrayValue::array( $geofence, 'geo_ip_area_location_ids' ) );
+					$clean_geofence['geo_ip_areas']             = sanitize_textarea_field( ArrayValue::string( $geofence, 'geo_ip_areas' ) );
 				}
 			}
 
@@ -399,12 +406,19 @@ class FormEditorSaveHandler {
 	 * @param int $post_id The post ID.
 	 */
 	private function save_csv_public_meta( int $post_id ): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- isset() existence check; values sanitized below; nonce verified in save_form_data() before dispatch.
-		if ( isset( $_POST['ffc_csv_public'] ) && is_array( $_POST['ffc_csv_public'] ) ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Each key sanitized individually; nonce verified in save_form_data() before dispatch.
-			$public_raw = wp_unslash( $_POST['ffc_csv_public'] );
+		// The metabox posts a hidden `ffc_csv_public[present]` carrier, so a
+		// rendered box always yields a non-empty array — an empty one means
+		// the box was not on the screen, which is the case the old
+		// `isset()`/`is_array()` pair refused too (#1084).
+		$public_raw = RequestInput::get_post_raw_array( 'ffc_csv_public' );
+		if ( ! empty( $public_raw ) ) {
 
-			$previous_enabled = (string) get_post_meta( $post_id, '_ffc_csv_public_enabled', true );
+			// `get_post_meta()` is mixed. The repo-wide census in #1084 found
+			// no writer that stores a non-scalar in any of these keys, so the
+			// cast is correct — but this file is going to zero, and a guard
+			// on the two sites it owns costs nothing.
+			$previous_meta    = get_post_meta( $post_id, '_ffc_csv_public_enabled', true );
+			$previous_enabled = is_scalar( $previous_meta ) ? (string) $previous_meta : '';
 			$enabled          = ! empty( $public_raw['enabled'] ) ? '1' : '0';
 			update_post_meta( $post_id, '_ffc_csv_public_enabled', $enabled );
 
@@ -451,7 +465,7 @@ class FormEditorSaveHandler {
 				// value deletes the meta so the read paths (validator + info
 				// builder) fall back to the global, matching the device-fingerprint
 				// inherit semantics — no per-form value is forced.
-				$limit_raw = isset( $public_raw['limit'] ) ? trim( (string) $public_raw['limit'] ) : '';
+				$limit_raw = trim( ArrayValue::string( $public_raw, 'limit' ) );
 				if ( '' === $limit_raw || absint( $limit_raw ) < 1 ) {
 					delete_post_meta( $post_id, '_ffc_csv_public_limit' );
 				} else {
@@ -459,7 +473,8 @@ class FormEditorSaveHandler {
 				}
 
 				// Hash handling: auto-generate on first enable, or regenerate on request.
-				$current_hash   = (string) get_post_meta( $post_id, '_ffc_csv_public_hash', true );
+				$stored_hash    = get_post_meta( $post_id, '_ffc_csv_public_hash', true );
+				$current_hash   = is_scalar( $stored_hash ) ? (string) $stored_hash : '';
 				$regenerate     = ! empty( $public_raw['regenerate_hash'] );
 				$needs_new_hash = $regenerate || '' === $current_hash;
 
@@ -484,7 +499,7 @@ class FormEditorSaveHandler {
 				// them. On subsequent saves, respect the user's explicit
 				// choice — including 'none' if they actively pick it.
 				$valid_modes = array( 'none', 'audit', 'participants', 'owner', 'whitelist' );
-				$mode_raw    = isset( $public_raw['cpf_mode'] ) ? sanitize_key( (string) $public_raw['cpf_mode'] ) : 'none';
+				$mode_raw    = sanitize_key( ArrayValue::string( $public_raw, 'cpf_mode', 'none' ) );
 				if ( ! in_array( $mode_raw, $valid_modes, true ) ) {
 					$mode_raw = 'none';
 				}
@@ -499,7 +514,7 @@ class FormEditorSaveHandler {
 				// from the POST — preserve the existing list instead of
 				// silently deleting it.
 				if ( array_key_exists( 'cpf_whitelist', $public_raw ) ) {
-					$wl_raw = sanitize_textarea_field( (string) $public_raw['cpf_whitelist'] );
+					$wl_raw = sanitize_textarea_field( ArrayValue::string( $public_raw, 'cpf_whitelist' ) );
 					if ( '' !== trim( $wl_raw ) ) {
 						$cleaned_lines = array();
 						$lines         = preg_split( '/[\r\n,]+/', $wl_raw );
@@ -525,10 +540,9 @@ class FormEditorSaveHandler {
 	 * @param int $post_id The post ID.
 	 */
 	private function save_device_limit_meta( int $post_id ): void {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- isset() existence check; values sanitized below; nonce verified in save_form_data() before dispatch.
-		if ( isset( $_POST['ffc_device_limit'] ) && is_array( $_POST['ffc_device_limit'] ) ) {
-            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Each key sanitized individually; nonce verified in save_form_data() before dispatch.
-			$device_raw = wp_unslash( $_POST['ffc_device_limit'] );
+		// Same hidden `ffc_device_limit[present]` carrier as the CSV box.
+		$device_raw = RequestInput::get_post_raw_array( 'ffc_device_limit' );
+		if ( ! empty( $device_raw ) ) {
 
 			$device_enabled = ! empty( $device_raw['enabled'] ) ? '1' : '0';
 			update_post_meta( $post_id, '_ffc_device_limit_enabled', $device_enabled );
@@ -543,7 +557,7 @@ class FormEditorSaveHandler {
 				// Deleting the meta lets RateLimitChecker::get_device_effective_settings()
 				// fall back to the global at read time — same inherit-from-global
 				// semantics as the threshold + message below.
-				$max_raw = isset( $device_raw['max'] ) ? trim( (string) $device_raw['max'] ) : '';
+				$max_raw = trim( ArrayValue::string( $device_raw, 'max' ) );
 				if ( '' === $max_raw ) {
 					delete_post_meta( $post_id, '_ffc_device_limit_max' );
 				} else {
@@ -553,7 +567,7 @@ class FormEditorSaveHandler {
 				// Threshold and message keep the inherit-from-global semantic:
 				// empty value deletes the meta so RateLimiter::get_settings()
 				// supplies the global default at read time.
-				$thr_raw = isset( $device_raw['threshold'] ) ? trim( (string) $device_raw['threshold'] ) : '';
+				$thr_raw = trim( ArrayValue::string( $device_raw, 'threshold' ) );
 				if ( '' === $thr_raw ) {
 					delete_post_meta( $post_id, '_ffc_device_match_threshold' );
 				} else {
@@ -563,14 +577,14 @@ class FormEditorSaveHandler {
 				// Minimum strong signals (two-tier match). Empty inherits the
 				// global default; 0 is a valid explicit value (disables the
 				// strong tier for this form).
-				$strong_raw = isset( $device_raw['strong_min'] ) ? trim( (string) $device_raw['strong_min'] ) : '';
+				$strong_raw = trim( ArrayValue::string( $device_raw, 'strong_min' ) );
 				if ( '' === $strong_raw ) {
 					delete_post_meta( $post_id, '_ffc_device_strong_min' );
 				} else {
 					update_post_meta( $post_id, '_ffc_device_strong_min', max( 0, min( 6, absint( $strong_raw ) ) ) );
 				}
 
-				$msg_raw = isset( $device_raw['message'] ) ? sanitize_textarea_field( (string) $device_raw['message'] ) : '';
+				$msg_raw = sanitize_textarea_field( ArrayValue::string( $device_raw, 'message' ) );
 				if ( '' === $msg_raw ) {
 					delete_post_meta( $post_id, '_ffc_device_limit_message' );
 				} else {
@@ -578,6 +592,27 @@ class FormEditorSaveHandler {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Sanitize a posted list of location ids.
+	 *
+	 * `array_map( 'sanitize_key', … )` over a raw POST list hands
+	 * `sanitize_key()` whatever the request nested there — an array element
+	 * is a TypeError, not a sanitised key. Non-scalar entries are dropped
+	 * instead (#1084).
+	 *
+	 * @param array<array-key, mixed> $ids Posted list.
+	 * @return list<string>
+	 */
+	private static function sanitized_key_list( array $ids ): array {
+		$out = array();
+		foreach ( $ids as $id ) {
+			if ( is_scalar( $id ) ) {
+				$out[] = sanitize_key( (string) $id );
+			}
+		}
+		return $out;
 	}
 
 	/**
@@ -603,15 +638,15 @@ class FormEditorSaveHandler {
 	 * @return array<string, string> The four sanitized schedule-exception keys.
 	 */
 	private static function sanitize_schedule_exception_config( array $geofence ): array {
-		$mode = isset( $geofence['schedule_default_mode'] ) ? sanitize_key( (string) $geofence['schedule_default_mode'] ) : 'now';
+		$mode = sanitize_key( ArrayValue::string( $geofence, 'schedule_default_mode', 'now' ) );
 		if ( ! in_array( $mode, array( 'now', 'manual' ), true ) ) {
 			$mode = 'now';
 		}
 
 		return array(
 			'schedule_exception_enabled' => isset( $geofence['schedule_exception_enabled'] ) ? '1' : '0',
-			'class_time_start'           => ! empty( $geofence['class_time_start'] ) ? sanitize_text_field( (string) $geofence['class_time_start'] ) : '',
-			'class_time_end'             => ! empty( $geofence['class_time_end'] ) ? sanitize_text_field( (string) $geofence['class_time_end'] ) : '',
+			'class_time_start'           => sanitize_text_field( ArrayValue::string( $geofence, 'class_time_start' ) ),
+			'class_time_end'             => sanitize_text_field( ArrayValue::string( $geofence, 'class_time_end' ) ),
 			'schedule_default_mode'      => $mode,
 		);
 	}
@@ -621,12 +656,15 @@ class FormEditorSaveHandler {
 	 */
 	public function display_save_errors(): void {
 		// Display PDF layout errors.
+		// `get_transient()` is mixed: these three reads carry whatever a
+		// previous save wrote, and the renderers below iterate and echo it
+		// (#1084).
 		$error_tags = get_transient( 'ffc_save_error_' . get_current_user_id() );
-		if ( $error_tags ) {
+		if ( is_array( $error_tags ) && ! empty( $error_tags ) ) {
 			delete_transient( 'ffc_save_error_' . get_current_user_id() );
 			ob_start();
 			?>
-			<p><strong><?php esc_html_e( 'Warning! Missing required tags in PDF Layout:', 'ffcertificate' ); ?></strong> <code><?php echo esc_html( implode( ', ', $error_tags ) ); ?></code>.</p>
+			<p><strong><?php esc_html_e( 'Warning! Missing required tags in PDF Layout:', 'ffcertificate' ); ?></strong> <code><?php echo esc_html( implode( ', ', array_map( 'strval', array_filter( $error_tags, 'is_scalar' ) ) ) ); ?></code>.</p>
 			<?php
 			wp_admin_notice(
 				(string) ob_get_clean(),
@@ -650,7 +688,7 @@ class FormEditorSaveHandler {
 			<p><strong><?php esc_html_e( 'Heads up — this certificate references images inside the plugin folder:', 'ffcertificate' ); ?></strong></p>
 			<ul class="ffc-list-disc ffc-ml-20">
 				<?php foreach ( (array) $html_lint as $ref ) : ?>
-					<li><code><?php echo esc_html( (string) $ref ); ?></code></li>
+					<li><code><?php echo esc_html( is_scalar( $ref ) ? (string) $ref : '' ); ?></code></li>
 				<?php endforeach; ?>
 			</ul>
 			<p>
@@ -670,7 +708,7 @@ class FormEditorSaveHandler {
 
 		// Display geofence validation errors.
 		$geofence_errors = get_transient( 'ffc_geofence_error_' . get_current_user_id() );
-		if ( $geofence_errors ) {
+		if ( is_array( $geofence_errors ) && ! empty( $geofence_errors ) ) {
 			delete_transient( 'ffc_geofence_error_' . get_current_user_id() );
 			// Companion tab-routing transient set alongside the error list.
 			delete_transient( 'ffc_geofence_error_tabs_' . get_current_user_id() );
@@ -679,7 +717,7 @@ class FormEditorSaveHandler {
 			<p><strong><?php esc_html_e( 'Geolocation Configuration Error:', 'ffcertificate' ); ?></strong></p>
 			<ul class="ffc-list-disc ffc-ml-20">
 				<?php foreach ( $geofence_errors as $error ) : ?>
-					<li><?php echo esc_html( $error ); ?></li>
+					<li><?php echo esc_html( is_scalar( $error ) ? (string) $error : '' ); ?></li>
 				<?php endforeach; ?>
 			</ul>
 			<?php

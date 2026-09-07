@@ -147,30 +147,11 @@ class FrontendShortcodesTest extends TestCase {
 	}
 
 	// ==================================================================
-	// get_new_captcha_data()
-	// ==================================================================
-
-	public function test_get_new_captcha_data_returns_label_and_hash(): void {
-		$captcha = $this->shortcodes->get_new_captcha_data();
-
-		$this->assertArrayHasKey( 'label', $captcha );
-		$this->assertArrayHasKey( 'hash', $captcha );
-		$this->assertArrayHasKey( 'answer', $captcha );
-		$this->assertIsInt( $captcha['answer'] );
-		$this->assertGreaterThanOrEqual( 0, $captcha['answer'] );
-		$this->assertSame(
-			hash( 'sha256', $captcha['answer'] . 'ffc_math_salt' ),
-			$captcha['hash']
-		);
-	}
-
-	// ==================================================================
 	// generate_security_fields()
 	// ==================================================================
 
 	public function test_generate_security_fields_contains_honeypot_and_captcha(): void {
 		Functions\when( 'wp_rand' )->justReturn( 3 );
-		Functions\when( 'wp_hash' )->justReturn( 'testhash123' );
 
 		$html = $this->shortcodes->generate_security_fields();
 
@@ -178,7 +159,15 @@ class FrontendShortcodesTest extends TestCase {
 		$this->assertStringContainsString( 'ffc_honeypot_trap', $html );
 		$this->assertStringContainsString( 'ffc_captcha_ans', $html );
 		$this->assertStringContainsString( 'ffc_captcha_hash', $html );
-		$this->assertStringContainsString( 'testhash123', $html );
+
+		// The hidden field carries the signed, expiring token (6.23.0). Its id
+		// is per-render since #1056 — several forms can share a page, and fixed
+		// ids duplicated across them — so match the suffix, not a literal. No
+		// script looks the id up; they all match by `name`.
+		$this->assertMatchesRegularExpression(
+			'/name="ffc_captcha_hash" id="ffc_captcha_hash_\d+" value="\d+\.[0-9a-f]{16}\.[0-9a-f]{64}"/',
+			$html
+		);
 
 		// #951 a11y: the honeypot input must be wrapped by its <label> so it
 		// carries an accessible name. Off-screen (not display:none), the field

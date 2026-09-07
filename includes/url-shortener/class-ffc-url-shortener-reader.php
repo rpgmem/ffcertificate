@@ -21,6 +21,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\UrlShortener;
 
 use FreeFormCertificate\Repositories\AbstractRepository;
+use FreeFormCertificate\Core\ArrayValue;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -29,6 +30,47 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- The sniff only recognises the global $wpdb->prepare(); this class binds wpdb as a property, so every $this->wpdb->prepare() call reads as unprepared SQL. Table names go through %i and every value through a placeholder; {$where_sql}/{$placeholders} are assembled here, {$orderby}/{$order} come from an in_array() allowlist and {$orphan_expr}/{$nevclk_expr}/{$trashed_expr} are literal SQL fragments.
 /**
  * Read queries for url shortener records.
+ *
+ * **The row shapes are read off the `CREATE TABLE` in
+ * {@see UrlShortenerActivator::create_tables()}, not off intuition** — the rule
+ * the #1060 epic established, because a dishonest shape silences PHPStan and
+ * keeps the bug. `$wpdb` returns every column as a string (mysqli without
+ * native types), so an `INT` arrives as `'7'`; a column without `NOT NULL` is
+ * nullable **even when it declares a `DEFAULT`**, because MySQL treats it so.
+ * `ffc_short_urls` gains no column after creation — the activator has no
+ * incremental `add_columns` step — so there is no optional key here.
+ *
+ * Declaring these was the point of #1087 passo 3: this class already reported
+ * zero at level 9 because it casts defensively on every access, but its public
+ * methods handed out `array<string, mixed>`, which threw the type away at the
+ * boundary. The ruler watches the inside of the class, not what it exports.
+ *
+ * @phpstan-type ShortUrlRow array{
+ *     id: numeric-string,
+ *     short_code: string,
+ *     target_url: string,
+ *     post_id: numeric-string|null,
+ *     title: string|null,
+ *     click_count: numeric-string|null,
+ *     created_by: numeric-string|null,
+ *     created_at: string,
+ *     updated_at: string,
+ *     status: string|null,
+ * }
+ * @phpstan-type ShortUrlCleanupRow array{
+ *     id: numeric-string,
+ *     short_code: string,
+ *     target_url: string,
+ *     post_id: numeric-string|null,
+ *     title: string|null,
+ *     click_count: numeric-string|null,
+ *     status: string|null,
+ *     created_at: string,
+ *     is_orphaned: numeric-string,
+ *     is_never_clicked: numeric-string,
+ *     is_trashed: numeric-string,
+ * }
+ * @phpstan-type BackfillCandidateRow array{ ID: numeric-string, post_title: string }
  */
 class UrlShortenerReader extends AbstractRepository {
 
@@ -54,16 +96,33 @@ class UrlShortenerReader extends AbstractRepository {
 	 * Find a short URL record by its short code.
 	 *
 	 * @param string $code The short code (e.g. "abc123").
-	 * @return array<string, mixed>|null
+	 * @return ShortUrlRow|null
 	 */
 	public function findByShortCode( string $code ): ?array {
 		$cache_key = 'code_' . $code;
-		$cached    = $this->get_cache( $cache_key );
+
+		/**
+		 * The object cache is the second hole, and it is not the `$wpdb` one:
+		 * `wp_cache_get()` returns `mixed`, so a cache HIT threw the shape away
+		 * while the read below was typed. That is the #1072 finding, applied
+		 * here only now because this file was invisible to the ruler (#1087).
+		 *
+		 * @var ShortUrlRow|false $cached
+		 */
+		$cached = $this->get_cache( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
 		}
 
+		/**
+		 * The shape is asserted here, at the one place that has read the
+		 * `CREATE TABLE`: `$wpdb` hands back `array<mixed>` and cannot know
+		 * the columns. Verify it against the activator before changing it —
+		 * a dishonest assertion silences PHPStan and keeps the bug (#1060).
+		 *
+		 * @var ShortUrlRow|null $result
+		 */
 		$result = $this->wpdb->get_row(
 			$this->wpdb->prepare( 'SELECT * FROM %i WHERE short_code = %s', $this->table, $code ),
 			ARRAY_A
@@ -80,16 +139,31 @@ class UrlShortenerReader extends AbstractRepository {
 	 * Find a short URL record by post ID.
 	 *
 	 * @param int $post_id WordPress post ID.
-	 * @return array<string, mixed>|null
+	 * @return ShortUrlRow|null
 	 */
 	public function findByPostId( int $post_id ): ?array {
 		$cache_key = 'post_' . $post_id;
-		$cached    = $this->get_cache( $cache_key );
+
+		/**
+		 * The object cache is the second hole, and it is not the `$wpdb` one:
+		 * `wp_cache_get()` returns `mixed`, so a cache HIT threw the shape away
+		 * while the read below was typed. That is the #1072 finding, applied
+		 * here only now because this file was invisible to the ruler (#1087).
+		 *
+		 * @var ShortUrlRow|false $cached
+		 */
+		$cached = $this->get_cache( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
 		}
 
+		/**
+		 * Same assertion as findByShortCode(): the shape is checked against the
+		 * activator's CREATE TABLE, not inferred.
+		 *
+		 * @var ShortUrlRow|null $result
+		 */
 		$result = $this->wpdb->get_row(
 			$this->wpdb->prepare(
 				'SELECT * FROM %i WHERE post_id = %d AND status = %s ORDER BY id DESC LIMIT 1',
@@ -136,7 +210,7 @@ class UrlShortenerReader extends AbstractRepository {
 	 *     @type string $search    Search term for title/target_url.
 	 *     @type string $status    Filter by status (default 'all').
 	 * }
-	 * @return array{items: array<int, array<string, mixed>>, total: int}
+	 * @return array{items: array<int, ShortUrlRow>, total: int}
 	 */
 	public function findPaginated( array $args = array() ): array {
 		$defaults = array(
@@ -193,6 +267,11 @@ class UrlShortenerReader extends AbstractRepository {
 		$items_query = "SELECT * FROM %i {$where_sql} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d";
 		$items_args  = array_merge( array( $this->table ), $where_values, array( $per_page, $offset ) );
 
+		/**
+		 * Same assertion as findByShortCode(), for a list of rows.
+		 *
+		 * @var list<ShortUrlRow>|null $items
+		 */
 		$items = $this->wpdb->get_results(
 			$this->wpdb->prepare( $items_query, ...$items_args ),
 			ARRAY_A
@@ -216,8 +295,11 @@ class UrlShortenerReader extends AbstractRepository {
 	 * @phpstan-return array{0: string, 1: array<int, string>}
 	 */
 	private function build_export_where( array $filters ): array {
-		$status = isset( $filters['status'] ) ? (string) $filters['status'] : 'all';
-		$search = isset( $filters['search'] ) ? (string) $filters['search'] : '';
+		// `$filters` is the caller's untyped bag; ArrayValue refuses a
+		// non-scalar instead of letting `(string) array()` become "Array"
+		// and reach the WHERE as a filter that matches nothing (#1072).
+		$status = ArrayValue::string( $filters, 'status', 'all' );
+		$search = ArrayValue::string( $filters, 'search' );
 
 		$where_clauses = array();
 		$where_values  = array();
@@ -272,7 +354,7 @@ class UrlShortenerReader extends AbstractRepository {
 	 * @param array<string, mixed> $filters Status + search.
 	 * @param int                  $cursor  Exclusive upper-bound id (PHP_INT_MAX on the first page).
 	 * @param int                  $size    Page size.
-	 * @return array<int, array<string, mixed>>
+	 * @return array<int, ShortUrlRow>
 	 */
 	public function findByCursor( array $filters, int $cursor, int $size ): array {
 		list( $where_sql, $where_values ) = $this->build_export_where( $filters );
@@ -287,6 +369,11 @@ class UrlShortenerReader extends AbstractRepository {
 		 */
 		$prepared = $this->wpdb->prepare( $query, ...$args );
 
+		/**
+		 * Same assertion as findByShortCode(), for a list of rows.
+		 *
+		 * @var list<ShortUrlRow>|null $rows
+		 */
 		$rows = $this->wpdb->get_results( $prepared, ARRAY_A );
 
 		return $rows ? $rows : array();
@@ -334,7 +421,7 @@ class UrlShortenerReader extends AbstractRepository {
 	 * @param array<string> $post_types Post types to consider.
 	 * @param int           $cursor     Exclusive upper-bound post ID (PHP_INT_MAX on the first page).
 	 * @param int           $size       Page size.
-	 * @return array<int, array<string, mixed>> Rows with `ID` and `post_title`.
+	 * @return array<int, BackfillCandidateRow>
 	 */
 	public function findBackfillCandidates( array $post_types, int $cursor, int $size ): array {
 		$post_types = array_values( array_filter( array_map( 'strval', $post_types ) ) );
@@ -363,6 +450,12 @@ class UrlShortenerReader extends AbstractRepository {
 		// The interpolated part is a literal `%s, %s, …` placeholder list.
 		$prepared = $this->wpdb->prepare( $sql, ...$args );
 
+		/**
+		 * `wp_posts`, not `ffc_short_urls`: this query selects `p.ID` and
+		 * `p.post_title` from core's table, so the shape is its own.
+		 *
+		 * @var list<BackfillCandidateRow>|null $rows
+		 */
 		$rows = $this->wpdb->get_results( $prepared, ARRAY_A );
 
 		return $rows ? $rows : array();
@@ -383,7 +476,7 @@ class UrlShortenerReader extends AbstractRepository {
 	 *
 	 * @param array{orphaned?:bool, never_clicked?:bool, trashed?:bool} $criteria Enabled criteria.
 	 * @param int                                                       $never_clicked_days Grace window (days) for the never_clicked criterion.
-	 * @return array<int, array<string, mixed>> Matching rows (empty when no criteria enabled).
+	 * @return array<int, ShortUrlCleanupRow> Empty when no criteria enabled.
 	 */
 	public function find_cleanup_candidates( array $criteria, int $never_clicked_days ): array {
 		$days = max( 0, $never_clicked_days );
@@ -422,6 +515,13 @@ class UrlShortenerReader extends AbstractRepository {
 			$args[] = $days;
 		}
 
+		/**
+		 * A projection, not the whole row: eight columns plus the three
+		 * computed `is_*` flags, which arrive as '0'/'1' strings like every
+		 * other column.
+		 *
+		 * @var list<ShortUrlCleanupRow>|null $rows
+		 */
 		$rows = $this->wpdb->get_results(
 			$this->wpdb->prepare( $sql, ...$args ),
 			ARRAY_A
@@ -436,6 +536,13 @@ class UrlShortenerReader extends AbstractRepository {
 	 * @return array{total_links: int, active_links: int, total_clicks: int, trashed_links: int}
 	 */
 	public function getStats(): array {
+		/**
+		 * Four aggregates, not a row — and `SUM()` comes back as a numeric
+		 * string like every column, or NULL on an empty table (the COALESCE
+		 * only covers total_clicks).
+		 *
+		 * @var array{total_links: numeric-string|null, active_links: numeric-string|null, total_clicks: numeric-string, trashed_links: numeric-string|null}|null $row
+		 */
 		$row = $this->wpdb->get_row(
 			$this->wpdb->prepare(
 				"SELECT

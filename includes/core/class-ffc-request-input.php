@@ -50,6 +50,38 @@ class RequestInput {
 	}
 
 	/**
+	 * Read a `$_POST` array container WITHOUT sanitising its elements.
+	 *
+	 * `get_post_array()` puts every element through `sanitize_text_field()`,
+	 * which is the right default and the wrong one for a payload whose
+	 * fields do not share a type: it collapses the newlines a textarea
+	 * needs, strips the markup a `wp_kses_post()` body needs, and returns
+	 * `''` for a nested array — silently flattening a repeatable field to
+	 * nothing. This accessor is for exactly that case, and it moves the
+	 * unslash, the `is_array()` guard and the phpcs annotations off the
+	 * caller while leaving the values untouched.
+	 *
+	 * **The caller MUST sanitise every value it reads out**, with the
+	 * function that fits that field. What is centralised here is the
+	 * container, never the sanitising.
+	 *
+	 * @since 6.23.0
+	 * @param string $key `$_POST` key.
+	 * @return array<array-key, mixed> Unslashed, UNSANITISED values; empty
+	 *                                 when the key is absent or not an array.
+	 */
+	public static function get_post_raw_array( string $key ): array {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller responsibility.
+		if ( ! isset( $_POST[ $key ] ) ) {
+			return array();
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller responsibility, and deliberately unsanitised: see the docblock. Every consumer sanitises per field.
+		$raw = wp_unslash( $_POST[ $key ] );
+
+		return is_array( $raw ) ? $raw : array();
+	}
+
+	/**
 	 * Read + sanitize a `$_POST` string value.
 	 *
 	 * Returns `$default` when the key is absent or the underlying value
@@ -127,11 +159,12 @@ class RequestInput {
 
 	/**
 	 * Read a non-negative integer `$_GET` value via `absint()`. Same
-	 * contract as {@see self::get_post_int()}, just for `$_GET`.
+	 * contract as {@see self::get_post_int()}, scalar guard included,
+	 * just for `$_GET`.
 	 *
 	 * @since 6.22.0
 	 * @param string $key     `$_GET` key.
-	 * @param int    $default Returned when the key is absent.
+	 * @param int    $default Returned when the key is absent or not scalar.
 	 * @return int Non-negative integer.
 	 */
 	public static function get_get_int( string $key, int $default = 0 ): int {
@@ -139,8 +172,12 @@ class RequestInput {
 		if ( ! isset( $_GET[ $key ] ) ) {
 			return $default;
 		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Caller responsibility.
-		return absint( wp_unslash( $_GET[ $key ] ) );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller responsibility. This IS the sanitiser: type-checked below, then absint().
+		$raw = wp_unslash( $_GET[ $key ] );
+		if ( ! is_scalar( $raw ) ) {
+			return $default;
+		}
+		return absint( $raw );
 	}
 
 	/**
@@ -163,13 +200,39 @@ class RequestInput {
 	}
 
 	/**
+	 * Whether a `$_POST` key is present at all.
+	 *
+	 * Distinct from reading it: a handler that only writes the fields its
+	 * own metabox rendered has to tell "absent" (another box was saved —
+	 * leave the stored value alone) from "present but empty" (the admin
+	 * cleared it). The typed readers collapse both to their default.
+	 *
+	 * @since 6.23.0
+	 * @param string $key `$_POST` key.
+	 * @return bool
+	 */
+	public static function has_post( string $key ): bool {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller responsibility.
+		return isset( $_POST[ $key ] );
+	}
+
+	/**
 	 * Read a non-negative integer `$_POST` value via `absint()`.
-	 * Returns `$default` when the key is absent. Caller is responsible
-	 * for nonce verification BEFORE calling this helper.
+	 * Returns `$default` when the key is absent or not scalar.
+	 *
+	 * **The scalar guard is the point.** `absint()` on an array is `1` for a
+	 * non-empty one and `0` for an empty one, with no notice either way — so
+	 * `?limit[]=x` silently reads as the number 1, which is a plausible id, a
+	 * plausible count and a plausible ceiling. That is how a slot duration
+	 * became one minute (#1075) and how a corrupted cursor skipped row 1
+	 * (#1079). The string siblings above have always type-checked; these two
+	 * did not, and #1087 closed the asymmetry.
+	 *
+	 * Caller is responsible for nonce verification BEFORE calling this helper.
 	 *
 	 * @since 6.6.1
 	 * @param string $key     `$_POST` key.
-	 * @param int    $default Returned when the key is absent.
+	 * @param int    $default Returned when the key is absent or not scalar.
 	 * @return int Non-negative integer.
 	 */
 	public static function get_post_int( string $key, int $default = 0 ): int {
@@ -177,8 +240,12 @@ class RequestInput {
 		if ( ! isset( $_POST[ $key ] ) ) {
 			return $default;
 		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller responsibility.
-		return absint( wp_unslash( $_POST[ $key ] ) );
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller responsibility. This IS the sanitiser: type-checked below, then absint().
+		$raw = wp_unslash( $_POST[ $key ] );
+		if ( ! is_scalar( $raw ) ) {
+			return $default;
+		}
+		return absint( $raw );
 	}
 
 	/**

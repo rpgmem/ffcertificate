@@ -263,6 +263,83 @@ class ActivityLogClearPlaintextMigrationStrategyTest extends TestCase {
 		$this->assertContains( 'Deadlock found when trying to get lock', $result['errors'] );
 	}
 
+	/**
+	 * #1060 — the registry array reaches `execute()` after the
+	 * `ffcertificate_migrations_registry` filter has run, so a third
+	 * party can put anything in `batch_size`. `(int) 'x'` is 0, and
+	 * `LIMIT 0` makes the migration report itself complete having read
+	 * nothing. A non-numeric value now falls back to the default.
+	 */
+	public function test_execute_falls_back_to_the_default_batch_size_for_a_non_numeric_config(): void {
+		$captured_args = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) use ( &$captured_args ) {
+				$captured_args[] = $args;
+				return 'SQL';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn(
+			'wp_ffc_activity_log',
+			'wp_ffc_activity_log',
+			'5',
+			'0'
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array() ) );
+		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array( '1', '2', '3' ) );
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 3 );
+
+		$this->strategy->execute( 'activity_log_clear_plaintext', array( 'batch_size' => 'todos' ) );
+
+		// The SELECT id query binds (table, cursor, batch_size); the
+		// third position is the LIMIT, and 0 there reads no rows.
+		$limits = array();
+		foreach ( $captured_args as $args ) {
+			if ( 3 === count( $args ) ) {
+				$limits[] = $args[2];
+			}
+		}
+		$this->assertNotEmpty( $limits, 'The batched SELECT should have been prepared.' );
+		$this->assertSame( array( 200 ), array_unique( $limits ), 'A non-numeric batch_size must bind the default, not 0.' );
+	}
+
+	/**
+	 * #1060 — the cursor is an option and `get_option()` is mixed.
+	 * `(int) array()` is 1, so a corrupted option started the keyset at 1
+	 * and the `id > %d` scan never saw row 1. It now restarts from 0.
+	 */
+	public function test_execute_restarts_the_cursor_at_zero_when_the_option_is_corrupted(): void {
+		$captured_args = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) use ( &$captured_args ) {
+				$captured_args[] = $args;
+				return 'SQL';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn(
+			'wp_ffc_activity_log',
+			'wp_ffc_activity_log',
+			'5',
+			'0'
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array() ) );
+		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array( '1', '2', '3' ) );
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 3 );
+
+		Functions\when( 'FreeFormCertificate\Migrations\Strategies\get_option' )->justReturn( array( 'corrupted' ) );
+
+		$this->strategy->execute( 'activity_log_clear_plaintext', array( 'batch_size' => 50 ) );
+
+		// The batched SELECT binds (table, cursor, batch_size).
+		$cursors = array();
+		foreach ( $captured_args as $args ) {
+			if ( 3 === count( $args ) ) {
+				$cursors[] = $args[1];
+			}
+		}
+		$this->assertNotEmpty( $cursors, 'The batched SELECT should have been prepared.' );
+		$this->assertSame( array( 0 ), array_unique( $cursors ), 'A corrupted cursor must restart at 0, not skip row 1.' );
+	}
+
 	public function test_execute_respects_batch_size_from_config(): void {
 		$captured_args = array();
 		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(

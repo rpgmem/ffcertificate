@@ -123,6 +123,7 @@ class PublicFormsExportSourceTest extends TestCase {
 			->shouldReceive( 'get_user_ip' )->andReturn( '1.2.3.4' )
 		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
 		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_post_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) ? abs( (int) $_POST[ $key ] ) : $default )
 		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$this->expectException( \RuntimeException::class );
@@ -140,6 +141,7 @@ class PublicFormsExportSourceTest extends TestCase {
 			->shouldReceive( 'get_post_string' )->andReturn( 'n' )
 		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
 		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_post_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) ? abs( (int) $_POST[ $key ] ) : $default )
 		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$this->expectException( \RuntimeException::class );
@@ -157,8 +159,12 @@ class PublicFormsExportSourceTest extends TestCase {
 			->shouldReceive( 'get_post_string' )->andReturn( 'n' )
 		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
 		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_post_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) ? abs( (int) $_POST[ $key ] ) : $default )
 		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\SecurityService' )
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array {
+				return $p + array( 'refresh_captcha' => true, 'new_label' => '1+1', 'new_hash' => 'fresh-token' );
+			} )
 			->shouldReceive( 'validate_security_fields' )->andReturn( 'spam detected' );
 
 		$this->expectException( \RuntimeException::class );
@@ -176,6 +182,9 @@ class PublicFormsExportSourceTest extends TestCase {
 		\Mockery::mock( 'alias:FreeFormCertificate\Security\RateLimiter' )
 			->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) );
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\SecurityService' )
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array {
+				return $p + array( 'refresh_captcha' => true, 'new_label' => '1+1', 'new_hash' => 'fresh-token' );
+			} )
 			->shouldReceive( 'validate_security_fields' )->andReturn( true );
 		// form_id present but hash empty → guard fires.
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
@@ -183,6 +192,7 @@ class PublicFormsExportSourceTest extends TestCase {
 			->shouldReceive( 'get_post_string' )->andReturn( '' )
 		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
 		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_post_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) ? abs( (int) $_POST[ $key ] ) : $default )
 		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		$_POST['form_id'] = 5;
 
@@ -242,6 +252,9 @@ class PublicFormsExportSourceTest extends TestCase {
 		\Mockery::mock( 'alias:FreeFormCertificate\Security\RateLimiter' )
 			->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) );
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\SecurityService' )
+			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array {
+				return $p + array( 'refresh_captcha' => true, 'new_label' => '1+1', 'new_hash' => 'fresh-token' );
+			} )
 			->shouldReceive( 'validate_security_fields' )->andReturn( true );
 		\Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
 			->shouldReceive( 'get_user_ip' )->andReturn( '203.0.113.9' )
@@ -253,6 +266,7 @@ class PublicFormsExportSourceTest extends TestCase {
 			)
 		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
 		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_post_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) ? abs( (int) $_POST[ $key ] ) : $default )
 		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		$_POST['form_id'] = 7;
 	}
@@ -269,6 +283,7 @@ class PublicFormsExportSourceTest extends TestCase {
 			->shouldReceive( 'get_user_ip' )->andReturn( '1.2.3.4' )
 		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
 		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_post_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) ? abs( (int) $_POST[ $key ] ) : $default )
 		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$this->expectException( \RuntimeException::class );
@@ -284,6 +299,7 @@ class PublicFormsExportSourceTest extends TestCase {
 			->shouldReceive( 'get_user_ip' )->andReturn( '9.9.9.9' )
 		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
 		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_post_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) ? abs( (int) $_POST[ $key ] ) : $default )
 		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$this->expectException( \RuntimeException::class );
@@ -299,6 +315,7 @@ class PublicFormsExportSourceTest extends TestCase {
 			->shouldReceive( 'get_user_ip' )->andReturn( '203.0.113.7' )
 		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
 		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_post_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) ? abs( (int) $_POST[ $key ] ) : $default )
 		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		// No throw → passed.
@@ -318,6 +335,7 @@ class PublicFormsExportSourceTest extends TestCase {
 			->shouldReceive( 'get_user_ip' )->andReturn( '1.2.3.4' )
 		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
 		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_post_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) ? abs( (int) $_POST[ $key ] ) : $default )
 		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$this->expectException( \RuntimeException::class );
@@ -333,6 +351,7 @@ class PublicFormsExportSourceTest extends TestCase {
 			->shouldReceive( 'get_user_ip' )->andReturn( '9.9.9.9' )
 		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
 		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_post_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) ? abs( (int) $_POST[ $key ] ) : $default )
 		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 
 		$this->expectException( \RuntimeException::class );
@@ -354,6 +373,7 @@ class PublicFormsExportSourceTest extends TestCase {
 			->shouldReceive( 'get_post_string' )->with( 'cpf' )->andReturn( '123.456.789-00' )
 		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
 		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
+		->shouldReceive( 'get_post_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) ? abs( (int) $_POST[ $key ] ) : $default )
 		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
 		$_POST['form_id'] = 12;
 

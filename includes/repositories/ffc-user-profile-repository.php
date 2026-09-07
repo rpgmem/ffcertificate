@@ -28,6 +28,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- The sniff only recognises the global $wpdb->prepare(); this class binds wpdb as a property, so every $this->wpdb->prepare() call reads as unprepared SQL. Table names go through %i and every value through a placeholder; {$user_id} is an int-typed parameter.
 /**
  * Database repository for `ffc_user_profiles` rows.
+ *
+ * The shape below is read off the `CREATE TABLE` in
+ * `UserDashboard\UserDashboardActivator::create_user_profiles_table()`:
+ * `$wpdb` returns every column as a string, and every column but `id`
+ * and `user_id` is declared without `NOT NULL` — a `DEFAULT ''` does
+ * not make a column non-nullable — so it is `string|null` (#1060).
+ *
+ * @phpstan-type UserProfileRow array{id: numeric-string, user_id: numeric-string, display_name: string|null, phone: string|null, department: string|null, organization: string|null, notes: string|null, preferences: string|null, created_at: string|null, updated_at: string|null}
  */
 class UserProfileRepository extends AbstractRepository {
 
@@ -55,6 +63,7 @@ class UserProfileRepository extends AbstractRepository {
 	 * @since 6.6.2
 	 * @param int $user_id WordPress user ID.
 	 * @return array<string, mixed>|null
+	 * @phpstan-return UserProfileRow|null
 	 */
 	public function findByUserId( int $user_id ): ?array {
 		if ( $user_id <= 0 ) {
@@ -64,6 +73,11 @@ class UserProfileRepository extends AbstractRepository {
 			$this->wpdb->prepare( 'SELECT * FROM %i WHERE user_id = %d', $this->table, $user_id ),
 			ARRAY_A
 		);
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var UserProfileRow|null
+		 */
 		return is_array( $row ) ? $row : null;
 	}
 

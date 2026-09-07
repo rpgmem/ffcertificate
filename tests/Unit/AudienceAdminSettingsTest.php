@@ -21,6 +21,13 @@ class AudienceAdminSettingsTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
+		// `LabelSorter::locale()` is guarded by `function_exists( 'get_locale' )`,
+		// so this used to take the no-WordPress branch only because nothing in
+		// the process had defined that function yet — an accident of file
+		// ordering, not a property this test asserts. Pin it to the same locale
+		// the fallback produced, so the behaviour under test is chosen.
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
+
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
@@ -89,6 +96,50 @@ class AudienceAdminSettingsTest extends TestCase {
 	// ==================================================================
 	// handle_visibility_settings() — no action
 	// ==================================================================
+
+	/**
+	 * The six message options are read as strings by every consumer, so a
+	 * non-scalar must never reach `update_option()`. What the *old* code stored
+	 * for an array is deliberately NOT asserted here — that depends on what
+	 * WordPress's real `wp_kses_post()` does with an array, which a stubbed
+	 * suite cannot answer and #1087 records as unverified. What is asserted is
+	 * the contract this guard establishes: a non-string reads as ''.
+	 */
+	public function test_visibility_message_stores_an_empty_string_for_a_non_scalar(): void {
+		Functions\when( 'add_settings_error' )->justReturn( null );
+
+		$written = array();
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) use ( &$written ) {
+				$written[ $key ] = $value;
+				return true;
+			}
+		);
+
+		$_POST['ffc_action']                   = 'save_ss_visibility_settings';
+		$_POST['ffc_ss_visibility_nonce']      = 'nonce';
+		$_POST['ffc_ss_private_display_mode']  = 'hide';
+		$_POST['ffc_ss_visibility_message']    = array( '<b>injected</b>' );
+		$_POST['ffc_ss_scheduling_message']    = 'plain text';
+
+		$page = new AudienceAdminSettings( 'ffc-audience', \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class )->shouldIgnoreMissing() );
+		try {
+			$page->handle_visibility_settings();
+		} finally {
+			// A leaked ffc_action makes the *next* test enter the save branch —
+			// clear it even when the call above throws.
+			unset(
+				$_POST['ffc_action'],
+				$_POST['ffc_ss_visibility_nonce'],
+				$_POST['ffc_ss_private_display_mode'],
+				$_POST['ffc_ss_visibility_message'],
+				$_POST['ffc_ss_scheduling_message']
+			);
+		}
+
+		$this->assertSame( '', $written['ffc_ss_visibility_message'], 'A non-scalar must not reach a string option' );
+		$this->assertSame( 'plain text', $written['ffc_ss_scheduling_message'], 'A string value is unchanged' );
+	}
 
 	public function test_handle_visibility_settings_does_nothing_without_post(): void {
 		unset( $_POST['ffc_visibility_action'] );

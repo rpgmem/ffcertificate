@@ -244,6 +244,7 @@ class AdminActivityLogPage {
 			'pdf_generated'                                => __( 'PDF Generated', 'ffcertificate' ),
 			'certificate_emailed'                          => __( 'Certificate Emailed', 'ffcertificate' ),
 			'csv_downloaded'                               => __( 'CSV Downloaded', 'ffcertificate' ),
+			'captcha_fallback_used'                        => __( 'Captcha: fallback used', 'ffcertificate' ),
 
 			// Submission lifecycle.
 			'submission_trashed'                           => __( 'Submission Trashed', 'ffcertificate' ),

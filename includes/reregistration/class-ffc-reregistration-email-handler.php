@@ -262,8 +262,13 @@ class ReregistrationEmailHandler {
 			return false;
 		}
 
+		// `get_option()` is mixed and this one is written by the
+		// dashboard activator as a post id; anything that is not a
+		// number falls back rather than being cast (#1060).
 		$dashboard_page_id = get_option( 'ffc_dashboard_page_id' );
-		$dashboard_url     = $dashboard_page_id ? get_permalink( (int) $dashboard_page_id ) : home_url( '/dashboard' );
+		$dashboard_url     = is_numeric( $dashboard_page_id ) && (int) $dashboard_page_id > 0
+			? get_permalink( (int) $dashboard_page_id )
+			: home_url( '/dashboard' );
 
 		$variables = array_merge(
 			array(

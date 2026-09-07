@@ -41,6 +41,57 @@ class ReregistrationActivator {
 		self::create_reregistration_submissions_table();
 		self::add_reregistration_submissions_columns();
 		self::migrate_reregistration_audience_to_junction();
+		self::drop_superseded_indexes();
+	}
+
+	/**
+	 * Drop the duplicate indexes the two declaration paths left behind (#1087).
+	 *
+	 * `ffc_reregistration_submissions` was declared by this activator **and** by
+	 * two migrations, and the two sides indexed the same columns under different
+	 * names — so an install that took both paths carries two indexes on
+	 * `auth_code` and two on `magic_token`, costing write time and space for
+	 * nothing. #1102 aligned the declarations, so no new install inherits the
+	 * pair; this removes it from the installs that already have it.
+	 *
+	 * **Why the pair survived:** `Activator::upgrade_auth_code_unique_constraints()`
+	 * drops the non-unique indexes on `auth_code` only on the run where it still
+	 * has to create the UNIQUE — once one exists it returns early, so anything
+	 * left beside it stays forever. That is fixed at the source by the aligned
+	 * declarations; what remains is this cleanup.
+	 *
+	 * The legacy names are listed explicitly rather than derived: the canonical
+	 * name is read from the `CREATE TABLE`, and dropping "whichever index looks
+	 * redundant" would be a heuristic over a schema this file already knows.
+	 * Each drop is gated on the canonical index existing, so the column is never
+	 * left unindexed — and `index_exists()` makes it idempotent.
+	 *
+	 * @return void
+	 */
+	private static function drop_superseded_indexes(): void {
+		global $wpdb;
+
+		$table = $wpdb->prefix . 'ffc_reregistration_submissions';
+
+		if ( ! self::table_exists( $table ) ) {
+			return;
+		}
+
+		// Legacy index name => the canonical index that must already cover the
+		// same column before the legacy one may go.
+		$superseded = array(
+			'idx_auth_code'   => 'uq_auth_code',
+			'idx_magic_token' => 'magic_token',
+		);
+
+		foreach ( $superseded as $legacy => $canonical ) {
+			if ( ! self::index_exists( $table, $legacy ) || ! self::index_exists( $table, $canonical ) ) {
+				continue;
+			}
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema change on an activation path; there is nothing to cache and WordPress exposes no API for DROP INDEX.
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table, $legacy ) );
+		}
 	}
 
 	/**
@@ -147,6 +198,11 @@ class ReregistrationActivator {
 	 *
 	 * Stores individual user responses to reregistration campaigns.
 	 *
+	 * **`auth_code` is declared UNIQUE (#1087 passo 8)** because
+	 * `Activator::upgrade_auth_code_unique_constraints()` converts it on this
+	 * table too — a plain `KEY auth_code` never survives, and declaring one made
+	 * `dbDelta()` ask for it back on every run that reached this method.
+	 *
 	 * @since 4.11.0
 	 */
 	private static function create_reregistration_submissions_table(): void {
@@ -179,8 +235,10 @@ class ReregistrationActivator {
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             reregistration_id bigint(20) unsigned NOT NULL,
             user_id bigint(20) unsigned NOT NULL,
-            data json DEFAULT NULL,
+            data longtext DEFAULT NULL,
             status varchar(20) NOT NULL DEFAULT 'pending',
+            auth_code varchar(20) DEFAULT NULL,
+            magic_token varchar(64) DEFAULT NULL,
             submitted_at bigint(20) unsigned DEFAULT NULL,
             reviewed_at bigint(20) unsigned DEFAULT NULL,
             reviewed_by bigint(20) unsigned DEFAULT NULL,
@@ -191,7 +249,9 @@ class ReregistrationActivator {
             UNIQUE KEY idx_reregistration_user (reregistration_id, user_id),
             KEY idx_user_id (user_id),
             KEY idx_status (status),
-            KEY idx_created (created_at)
+            KEY idx_created (created_at),
+            UNIQUE KEY uq_auth_code (auth_code),
+            KEY magic_token (magic_token)
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';

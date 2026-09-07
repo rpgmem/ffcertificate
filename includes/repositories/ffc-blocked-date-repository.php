@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Repositories;
 
+use FreeFormCertificate\Core\ArrayValue;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
@@ -122,7 +124,14 @@ class BlockedDateRepository extends AbstractRepository {
 
 			// Recurring block.
 			if ( 'recurring' === $block['block_type'] && ! empty( $block['recurring_pattern'] ) ) {
-				if ( $this->matchesRecurringPattern( $date, $time, json_decode( $block['recurring_pattern'], true ) ) ) {
+				// The column is JSON text this plugin wrote, but the row is a
+				// generic `array<string, mixed>` read, so the value is `mixed`.
+				// ArrayValue::string() refuses a non-scalar instead of letting
+				// `(string) array()` reach the parser as the word "Array";
+				// json_decode() of a non-JSON string is null, which
+				// matchesRecurringPattern() already accepts.
+				$pattern = json_decode( ArrayValue::string( $block, 'recurring_pattern' ), true );
+				if ( $this->matchesRecurringPattern( $date, $time, is_array( $pattern ) ? $pattern : array() ) ) {
 					return true;
 				}
 			}

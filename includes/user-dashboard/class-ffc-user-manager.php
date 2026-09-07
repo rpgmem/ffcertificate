@@ -25,6 +25,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Manager for user operations.
+ *
+ * `get_profile()` used to hand back whichever of two different shapes its
+ * branch produced: the raw `ffc_user_profiles` row (every value a string,
+ * plus an `id` nobody reads) when one existed, and a PHP-built array
+ * (`user_id` an int, the text fields `''`) when it did not. Which branch
+ * runs depends on the *state of the installation*, not on the call, so the
+ * same code got different types on different sites — visible only under a
+ * strict comparison, which is exactly the #1058 shape. It is normalised to
+ * one declared type now (#1077).
+ *
+ * @phpstan-import-type UserProfileRow from \FreeFormCertificate\Repositories\UserProfileRepository
+ * @phpstan-type UserProfile array{user_id: int, display_name: string, phone: string, department: string, organization: string, notes: string, preferences: string|null, created_at: string, updated_at: string}
  */
 class UserManager {
 
@@ -81,19 +93,30 @@ class UserManager {
 	/**
 	 * Get user profile from ffc_user_profiles
 	 *
+	 * Returns the same shape whichever branch runs — see the class docblock
+	 * for why that was not true before (#1077). An empty array still means
+	 * "no such user", which is a different answer from "user with no profile
+	 * row" and is what the callers already test for.
+	 *
+	 * The row's `id` is deliberately not in the shape: it is the profile
+	 * row's primary key, not the user's, no caller reads it, and carrying it
+	 * would make the shape depend on the branch again. Callers that need it
+	 * go to `UserProfileRepository` directly.
+	 *
 	 * @since 4.9.4
 	 * @param int $user_id WordPress user ID.
 	 * @return array<string, mixed> Profile data
+	 * @phpstan-return UserProfile|array{}
 	 */
 	public static function get_profile( int $user_id ): array {
 		global $wpdb;
 		$table = $wpdb->prefix . 'ffc_user_profiles';
 
 		if ( self::table_exists( $table ) ) {
-			$profile = ( new \FreeFormCertificate\Repositories\UserProfileRepository() )->findByUserId( $user_id );
+			$row = ( new \FreeFormCertificate\Repositories\UserProfileRepository() )->findByUserId( $user_id );
 
-			if ( $profile ) {
-				return $profile;
+			if ( $row ) {
+				return self::normalise_profile_row( $row );
 			}
 		}
 
@@ -104,14 +127,48 @@ class UserManager {
 
 		return array(
 			'user_id'      => $user_id,
-			'display_name' => $user->display_name,
+			'display_name' => (string) $user->display_name,
 			'phone'        => '',
 			'department'   => '',
 			'organization' => '',
 			'notes'        => '',
 			'preferences'  => null,
-			'created_at'   => $user->user_registered,
-			'updated_at'   => $user->user_registered,
+			// No profile row exists in this branch, so there is no profile
+			// timestamp either. Both keys keep carrying the WP account date,
+			// as they always have: no caller reads them (checked), so
+			// changing the value would be churn — but the choice is recorded
+			// here rather than inherited (#1077).
+			'created_at'   => (string) $user->user_registered,
+			'updated_at'   => (string) $user->user_registered,
+		);
+	}
+
+	/**
+	 * Convert a stored profile row into the shape callers are promised.
+	 *
+	 * `$wpdb` returns every column as a string and every column but the two
+	 * ids is nullable, so this is where `'42'` becomes `42` and a NULL text
+	 * column becomes `''` — the two differences that made the old contract
+	 * depend on which branch produced it.
+	 *
+	 * @param array<string, mixed> $row Stored row.
+	 * @phpstan-param UserProfileRow $row
+	 * @return array<string, mixed>
+	 * @phpstan-return UserProfile
+	 */
+	private static function normalise_profile_row( array $row ): array {
+		return array(
+			'user_id'      => (int) $row['user_id'],
+			'display_name' => (string) ( $row['display_name'] ?? '' ),
+			'phone'        => (string) ( $row['phone'] ?? '' ),
+			'department'   => (string) ( $row['department'] ?? '' ),
+			'organization' => (string) ( $row['organization'] ?? '' ),
+			'notes'        => (string) ( $row['notes'] ?? '' ),
+			// The raw JSON blob, kept as stored: callers decode it, and the
+			// column is genuinely nullable.
+			'preferences'  => $row['preferences'],
+			'created_at'   => (string) ( $row['created_at'] ?? '' ),
+			'updated_at'   => (string) ( $row['updated_at'] ?? '' ),
 		);
 	}
 
@@ -130,7 +187,10 @@ class UserManager {
 		$patch = array();
 
 		foreach ( array( 'display_name', 'phone', 'department', 'organization', 'notes' ) as $field ) {
-			if ( array_key_exists( $field, $data ) ) {
+			// A non-scalar is skipped, not stringified: `(string) array()`
+			// is the literal `Array`, and writing that into the profile
+			// would be worse than leaving the column untouched (#1060).
+			if ( array_key_exists( $field, $data ) && is_scalar( $data[ $field ] ) ) {
 				$patch[ $field ] = sanitize_text_field( (string) $data[ $field ] );
 			}
 		}
@@ -257,7 +317,10 @@ class UserManager {
 			}
 
 			if ( isset( $sensitive_map[ $key ] ) && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
-				$decrypted       = \FreeFormCertificate\Core\Encryption::decrypt( (string) $raw );
+				// `get_user_meta()` is mixed; only a scalar can be a
+				// ciphertext, and a non-scalar cast would hand the
+				// decrypter the literal `Array` (#1060).
+				$decrypted       = is_scalar( $raw ) ? \FreeFormCertificate\Core\Encryption::decrypt( (string) $raw ) : null;
 				$profile[ $key ] = null !== $decrypted ? $decrypted : '';
 			} else {
 				$profile[ $key ] = $raw;

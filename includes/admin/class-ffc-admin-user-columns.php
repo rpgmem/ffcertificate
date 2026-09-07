@@ -18,6 +18,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\ArrayValue;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -237,9 +239,11 @@ class AdminUserColumns {
 		// Get dashboard URL from User Access Settings (cached per request).
 		if ( null === self::$dashboard_url_cache ) {
 			$user_access_settings      = get_option( 'ffc_user_access_settings', array() );
-			self::$dashboard_url_cache = isset( $user_access_settings['redirect_url'] ) && ! empty( $user_access_settings['redirect_url'] )
-				? $user_access_settings['redirect_url']
-				: home_url( '/dashboard' );
+			self::$dashboard_url_cache = ArrayValue::string(
+				is_array( $user_access_settings ) ? $user_access_settings : array(),
+				'redirect_url',
+				home_url( '/dashboard' )
+			);
 		}
 		$dashboard_url = self::$dashboard_url_cache;
 

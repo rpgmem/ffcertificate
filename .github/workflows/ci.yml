@@ -26,6 +26,48 @@ jobs:
       - name: Run PHPStan
         run: vendor/bin/phpstan analyze
 
+  # Level 9, reported only for the classes that read rows out of $wpdb.
+  #
+  # BLOCKING, with an allowance of zero, since #1075 took the last file to
+  # zero. It ran with `continue-on-error` while #1060 worked the count down
+  # from 243 — a blocking job red on every PR teaches people to ignore it —
+  # and the flag came off at zero, the same evidence-gated shape as the
+  # post-deploy smoke.
+  #
+  # The allowance stays at 0. A new `mixed` reaching a typed parameter in one
+  # of these classes is the #1058 defect, which passed CI, PHPStan level 8 and
+  # 7.500 tests; raise the number only to record a deliberate, argued
+  # exception, never to get a red PR green.
+  rows:
+    name: Row shapes (level 9)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-composer
+        with:
+          php-version: '8.3'
+      - name: Analyse at level 9
+        # Level 9 reports the whole repository; a non-zero exit here is
+        # expected and says nothing on its own. The report script is what
+        # decides.
+        run: |
+          vendor/bin/phpstan analyse -c phpstan-rows.neon.dist \
+            --error-format=json --no-progress --memory-limit=2G > rows.json || true
+      - name: Report the row-reading classes
+        # Back to 0, and back by SHRINKING — the only way the raise was ever
+        # allowed to be undone (#1087 passo 4).
+        #
+        # The allowance was 30 for exactly one release cycle, because the
+        # discovery scan had been measuring 45 classes when 53 read rows: every
+        # repository binding wpdb as a property was invisible, AbstractRepository
+        # among them. Those 30 errors were never new — they had never been
+        # looked at. All 30 are now fixed, so the gate blocks at 0 again and the
+        # count means what it says.
+        #
+        # Raising it again needs the same bar the raise met: a deliberate,
+        # argued exception, written here next to the number.
+        run: php .github/scripts/phpstan-rows-report.php rows.json 0
+
   audit:
     name: Composer audit
     runs-on: ubuntu-latest
@@ -374,6 +416,18 @@ jobs:
           wp plugin activate ffcertificate --path="$HOME/wp"
       - name: Check what the activation created
         run: php .github/scripts/fresh-install-check.php "$HOME/wp" uninstall.php activate
+      - name: Re-run every CREATE TABLE through dbDelta
+        # The class no other gate sees. dbDelta ALTERs the difference between a
+        # CREATE TABLE and what MySQL actually stored — when the two disagree in
+        # a way the statement can never satisfy, it re-ALTERs on every run,
+        # forever, in silence. #997 measured it once by hand (41 database errors
+        # on the self-scheduling tables, 1 after the cleanup) and it was never
+        # measured again; two CREATE statements changed in #1091 and #1093.
+        #
+        # Runs here because this is the only job with a real MariaDB AND a
+        # freshly created schema: the statement is replayed against the table it
+        # just built, so an empty change list is the only correct answer.
+        run: php .github/scripts/dbdelta-idempotence-check.php "$HOME/wp"
       - name: Delete the plugin with the Danger Zone opt-in on
         run: |
           # `wp plugin uninstall` removes the plugin directory, and these scripts

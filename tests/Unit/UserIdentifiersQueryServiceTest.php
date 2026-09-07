@@ -121,4 +121,37 @@ class UserIdentifiersQueryServiceTest extends TestCase {
 		// dedups them to one.
 		$this->assertSame( array( 'alice@example.com' ), $out );
 	}
+
+	/**
+	 * #1060 — `get_col()` is mixed. A NULL used to be stringified to ''
+	 * and handed to the decrypter as if it were a ciphertext; it is now
+	 * dropped, which is also what the SQL's `IS NOT NULL` intends.
+	 *
+	 * The assertion is on the arguments the decrypter actually received,
+	 * not on a Mockery expectation: `get_emails_for_user()` swallows
+	 * every exception raised inside its loop, so an unmatched call there
+	 * is silently discarded and an expectation-based test passes against
+	 * the old behaviour too.
+	 */
+	public function test_get_emails_for_user_drops_non_string_column_values(): void {
+		$seen    = array();
+		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$encMock->shouldReceive( 'decrypt' )->andReturnUsing(
+			function ( $value ) use ( &$seen ) {
+				$seen[] = $value;
+				return 'alice@example.com';
+			}
+		);
+
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( 'cipher-1', null ) );
+
+		$user             = new \stdClass();
+		$user->user_email = 'alice@example.com';
+		Functions\when( 'get_user_by' )->justReturn( $user );
+
+		$out = UserIdentifiersQueryService::get_emails_for_user( 42 );
+
+		$this->assertSame( array( 'cipher-1' ), $seen );
+		$this->assertSame( array( 'alice@example.com' ), $out );
+	}
 }

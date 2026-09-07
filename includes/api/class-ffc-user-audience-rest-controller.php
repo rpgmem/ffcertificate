@@ -16,6 +16,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 
+use FreeFormCertificate\Core\ArrayValue;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -170,18 +172,18 @@ class UserAudienceRestController {
 
 				$bookings_formatted[] = array(
 					'id'               => (int) $booking['id'],
-					'environment_id'   => (int) ( $booking['environment_id'] ?? 0 ),
+					'environment_id'   => (int) $booking['environment_id'],
 					'environment_name' => $booking['environment_name'] ?? __( 'Unknown', 'ffcertificate' ),
 					'schedule_name'    => $booking['schedule_name'] ?? '',
 					'booking_date'     => $date_formatted,
-					'booking_date_raw' => $booking['booking_date'] ?? '',
+					'booking_date_raw' => $booking['booking_date'],
 					'start_time'       => $time_formatted,
 					'end_time'         => $end_time_formatted,
-					'description'      => $booking['description'] ?? '',
+					'description'      => $booking['description'],
 					'status'           => $status,
 					'status_label'     => $status_labels[ $status ] ?? $status,
 					'is_past'          => $is_past,
-					'audiences'        => $booking['audiences'] ?? array(),
+					'audiences'        => $booking['audiences'],
 				);
 			}
 
@@ -305,6 +307,23 @@ class UserAudienceRestController {
 	}
 
 	/**
+	 * Read an integer route parameter.
+	 *
+	 * `WP_REST_Request::get_param()` returns mixed — the route's registered
+	 * type is a runtime validation, not something the analyser can see — and
+	 * `absint()` on an array is a TypeError rather than a rejected request.
+	 *
+	 * @param \WP_REST_Request<array<string, mixed>> $request Request.
+	 * @param string                                 $key     Parameter name.
+	 * @return int
+	 */
+	private static function param_int( $request, string $key ): int {
+		$value = $request->get_param( $key );
+
+		return is_numeric( $value ) ? absint( $value ) : 0;
+	}
+
+	/**
 	 * Recursively assemble a joinable-tree node from a raw audience row.
 	 *
 	 * Per-node model (#792 / CLAUDE.md self-join rules):
@@ -319,13 +338,23 @@ class UserAudienceRestController {
 	 * reference tallies the user's memberships in button-bearing nodes —
 	 * the on-screen "joined N of max" counter.
 	 *
-	 * @param array<string, mixed> $node  Audience row with 'children' array.
-	 * @param int                  $count Reference counter for joined self-join nodes.
-	 * @return array<string, mixed>|null  Assembled node, or null when it does not appear.
+	 * The parameter is `array<array-key, mixed>` rather than
+	 * `array<string, mixed>` because the recursive call feeds it an element of
+	 * the node's own `children`, whose key type nothing guarantees. Every read
+	 * below goes through `ArrayValue`, so a node missing a key yields a
+	 * default instead of a warning.
+	 *
+	 * @param array<array-key, mixed> $node  Audience row with 'children' array.
+	 * @param int                     $count Reference counter for joined self-join nodes.
+	 * @return array<string, mixed>|null     Assembled node, or null when it does not appear.
 	 */
 	private function build_joinable_node( array $node, int &$count ): ?array {
 		$children = array();
-		foreach ( $node['children'] as $child ) {
+		foreach ( ArrayValue::array( $node, 'children' ) as $child ) {
+			if ( ! is_array( $child ) ) {
+				continue;
+			}
+
 			$built = $this->build_joinable_node( $child, $count );
 			if ( $built ) {
 				$children[] = $built;
@@ -373,7 +402,7 @@ class UserAudienceRestController {
 		try {
 			$ctx      = $this->resolve_user_context( $request );
 			$user_id  = $ctx['user_id'];
-			$group_id = absint( $request->get_param( 'group_id' ) );
+			$group_id = self::param_int( $request, 'group_id' );
 
 			if ( ! $user_id ) {
 				return new \WP_Error( 'not_logged_in', __( 'You must be logged in', 'ffcertificate' ), array( 'status' => 401 ) );
@@ -448,7 +477,7 @@ class UserAudienceRestController {
 			global $wpdb;
 			$ctx      = $this->resolve_user_context( $request );
 			$user_id  = $ctx['user_id'];
-			$group_id = absint( $request->get_param( 'group_id' ) );
+			$group_id = self::param_int( $request, 'group_id' );
 
 			if ( ! $user_id ) {
 				return new \WP_Error( 'not_logged_in', __( 'You must be logged in', 'ffcertificate' ), array( 'status' => 401 ) );

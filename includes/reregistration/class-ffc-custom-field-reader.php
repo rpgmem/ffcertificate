@@ -128,6 +128,16 @@ class CustomFieldReader {
 	 * @return CustomFieldRow|null
 	 */
 	public static function get_by_id( int $field_id ): ?object {
+		/**
+		 * The object cache is untyped — `wp_cache_get()` returns mixed — and
+		 * this key is the one written a few lines below, so the assertion is
+		 * checkable against the `cache_set()` in the same method. It is stated
+		 * per key rather than on the trait's `cache_get()` because the cache
+		 * is heterogeneous: this class also stores other shapes under other
+		 * keys, and one type on the accessor would be a lie for those.
+		 *
+		 * @var CustomFieldRow|false $cached
+		 */
 		$cached = static::cache_get( "id_{$field_id}" );
 		if ( false !== $cached ) {
 			return $cached;
@@ -441,6 +451,15 @@ class CustomFieldReader {
 		if ( empty( $data ) || ! is_array( $data ) ) {
 			return array();
 		}
+		/**
+		 * Every key is written as `'field_' . $id` by
+		 * {@see CustomFieldWriter::save_user_data()} — the only writer —
+		 * so no key is a numeric string and PHP never coerces one to an
+		 * int. That is what makes `array<string, mixed>` true here
+		 * rather than merely declared (#1060).
+		 *
+		 * @var array<string, mixed> $data
+		 */
 		return $data;
 	}
 
@@ -485,7 +504,37 @@ class CustomFieldReader {
 		if ( is_string( $options ) ) {
 			$options = json_decode( $options, true );
 		}
-		return is_array( $options ) && isset( $options['groups'] ) && is_array( $options['groups'] ) ? $options['groups'] : array();
+		if ( ! is_array( $options ) || ! isset( $options['groups'] ) || ! is_array( $options['groups'] ) ) {
+			return array();
+		}
+
+		// The blob is admin-authored JSON, so the declared shape is
+		// enforced here instead of asserted: a nested array reaching a
+		// view renders as the literal `Array` (#1060).
+		$groups = array();
+		foreach ( $options['groups'] as $parent => $children ) {
+			if ( ! is_array( $children ) ) {
+				continue;
+			}
+			$groups[ (string) $parent ] = self::scalar_list( $children );
+		}
+		return $groups;
+	}
+
+	/**
+	 * Keep the scalar entries of a decoded JSON list, as strings.
+	 *
+	 * @param array<mixed> $values Decoded list.
+	 * @return list<string>
+	 */
+	private static function scalar_list( array $values ): array {
+		$out = array();
+		foreach ( $values as $value ) {
+			if ( is_scalar( $value ) ) {
+				$out[] = (string) $value;
+			}
+		}
+		return $out;
 	}
 
 	/**
@@ -500,7 +549,10 @@ class CustomFieldReader {
 		if ( is_string( $options ) ) {
 			$options = json_decode( $options, true );
 		}
-		return is_array( $options ) && isset( $options['choices'] ) && is_array( $options['choices'] ) ? $options['choices'] : array();
+		if ( ! is_array( $options ) || ! isset( $options['choices'] ) || ! is_array( $options['choices'] ) ) {
+			return array();
+		}
+		return self::scalar_list( $options['choices'] );
 	}
 
 	/**
@@ -597,7 +649,7 @@ class CustomFieldReader {
 		}
 		$keys = array();
 		foreach ( $rows as $field_key ) {
-			$key = (string) $field_key;
+			$key = is_scalar( $field_key ) ? (string) $field_key : '';
 			if ( '' !== $key ) {
 				$keys[ $key ] = true;
 			}

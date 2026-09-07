@@ -100,7 +100,7 @@ class AudienceActivator {
             name varchar(255) NOT NULL,
             description text DEFAULT NULL,
             visibility enum('public','private') DEFAULT 'private',
-            future_days_limit int unsigned DEFAULT NULL COMMENT 'NULL = no limit, only applies to non-admin',
+            future_days_limit int(10) unsigned DEFAULT NULL COMMENT 'NULL = no limit, only applies to non-admin',
             notify_on_booking tinyint(1) DEFAULT 1,
             notify_on_cancellation tinyint(1) DEFAULT 1,
             notify_admin_on_booking tinyint(1) DEFAULT 0,

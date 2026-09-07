@@ -21,6 +21,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Activity Log Query.
+ *
+ * The row shape is what `$wpdb` hands back, derived from the `CREATE TABLE`
+ * in `ActivityLog` — every column arrives as a string, and only a real SQL
+ * NULL stays null (#1060). `context_encrypted` is optional because it is
+ * added by migration, which is also why the code guards it with
+ * `column_exists()` before using it.
+ *
+ * @phpstan-type ActivityLogRow array{
+ *     id: numeric-string,
+ *     action: string,
+ *     level: string,
+ *     context: string|null,
+ *     user_id: numeric-string|null,
+ *     user_ip: string|null,
+ *     created_at: string,
+ *     context_encrypted?: string|null
+ * }
  */
 class ActivityLogQuery {
 
@@ -54,16 +71,23 @@ class ActivityLogQuery {
 		$where = array( '1=1' );
 
 		if ( $args['level'] ) {
-			$where[] = $wpdb->prepare( 'level = %s', sanitize_key( $args['level'] ) );
+			$where[] = $wpdb->prepare( 'level = %s', sanitize_key( ArrayValue::string( $args, 'level' ) ) );
 		}
 		if ( $args['action'] ) {
-			$where[] = $wpdb->prepare( 'action = %s', sanitize_text_field( $args['action'] ) );
+			$where[] = $wpdb->prepare( 'action = %s', sanitize_text_field( ArrayValue::string( $args, 'action' ) ) );
 		}
 		if ( is_array( $args['action_in'] ) && ! empty( $args['action_in'] ) ) {
 			// Sanitized + bounded — each value passes through
 			// sanitize_text_field and the SET is built from a fixed-count
 			// `%s` placeholder run that matches $sanitized one-for-one.
-			$sanitized    = array_values( array_unique( array_map( 'sanitize_text_field', $args['action_in'] ) ) );
+			$sanitized    = array_values(
+				array_unique(
+					array_map(
+						static fn( $action ): string => sanitize_text_field( is_scalar( $action ) ? (string) $action : '' ),
+						$args['action_in']
+					)
+				)
+			);
 			$placeholders = implode( ',', array_fill( 0, count( $sanitized ), '%s' ) );
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders is a compile-time `%s,%s,...` string whose count matches $sanitized one-for-one; values are bound by wpdb->prepare.
 			$where[] = $wpdb->prepare( "action IN ({$placeholders})", $sanitized );
@@ -130,13 +154,13 @@ class ActivityLogQuery {
 		$where = array( '1=1' );
 
 		if ( ! empty( $filters['level'] ) ) {
-			$where[] = $wpdb->prepare( 'level = %s', sanitize_key( (string) $filters['level'] ) );
+			$where[] = $wpdb->prepare( 'level = %s', sanitize_key( ArrayValue::string( $filters, 'level' ) ) );
 		}
 		if ( ! empty( $filters['action'] ) ) {
-			$where[] = $wpdb->prepare( 'action = %s', sanitize_text_field( (string) $filters['action'] ) );
+			$where[] = $wpdb->prepare( 'action = %s', sanitize_text_field( ArrayValue::string( $filters, 'action' ) ) );
 		}
 		if ( ! empty( $filters['search'] ) ) {
-			$search  = '%' . $wpdb->esc_like( sanitize_text_field( (string) $filters['search'] ) ) . '%';
+			$search  = '%' . $wpdb->esc_like( sanitize_text_field( ArrayValue::string( $filters, 'search' ) ) ) . '%';
 			$where[] = $wpdb->prepare( '(action LIKE %s OR context LIKE %s)', $search, $search );
 		}
 
@@ -152,6 +176,11 @@ class ActivityLogQuery {
 			ARRAY_A
 		);
 
+		/**
+		 * Rows as `$wpdb` hands them back, checked against the SELECT above.
+		 *
+		 * @var list<ActivityLogRow>|null $results
+		 */
 		if ( ! is_array( $results ) ) {
 			return array();
 		}
@@ -185,7 +214,12 @@ class ActivityLogQuery {
 		if ( ! is_array( $actions ) ) {
 			return array();
 		}
-		return array_values( array_map( 'strval', $actions ) );
+		return array_values(
+			array_map(
+				static fn( $action ): string => is_scalar( $action ) ? (string) $action : '',
+				$actions
+			)
+		);
 	}
 
 	/**
@@ -249,7 +283,7 @@ class ActivityLogQuery {
 			&& class_exists( '\\FreeFormCertificate\\Core\\Encryption' )
 			&& \FreeFormCertificate\Core\Encryption::is_configured()
 		) {
-			$decrypted = \FreeFormCertificate\Core\Encryption::decrypt( $row['context_encrypted'] );
+			$decrypted = \FreeFormCertificate\Core\Encryption::decrypt( ArrayValue::string( $row, 'context_encrypted' ) );
 			if ( null !== $decrypted && '' !== $decrypted ) {
 				$raw = $decrypted;
 			}
@@ -328,7 +362,14 @@ class ActivityLogQuery {
 	 */
 	public static function get_stats( int $days = 30 ): array {
 		$cache_key = 'ffc_activity_stats_' . $days;
-		$cached    = get_transient( $cache_key );
+
+		/**
+		 * The same method writes this transient at the end, so the shape is
+		 * checkable against the `set_transient()` a few lines below.
+		 *
+		 * @var array<string, mixed>|false $cached
+		 */
+		$cached = get_transient( $cache_key );
 		if ( false !== $cached ) {
 			return $cached;
 		}

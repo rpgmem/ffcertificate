@@ -144,17 +144,19 @@ class AudienceBookingWriter {
 
 		$wpdb->query( 'COMMIT' );
 
-		// Add audience associations if provided.
+		// Add audience associations if provided. `$data` is caller-supplied,
+		// so the ids are only known to be mixed; a non-numeric entry used to
+		// cast to 0 and write a row pointing at no audience.
 		if ( isset( $data['audience_ids'] ) && is_array( $data['audience_ids'] ) ) {
-			foreach ( $data['audience_ids'] as $audience_id ) {
-				self::add_booking_audience( $booking_id, (int) $audience_id );
+			foreach ( self::numeric_ids( $data['audience_ids'] ) as $audience_id ) {
+				self::add_booking_audience( $booking_id, $audience_id );
 			}
 		}
 
 		// Add user associations if provided.
 		if ( isset( $data['user_ids'] ) && is_array( $data['user_ids'] ) ) {
-			foreach ( $data['user_ids'] as $user_id ) {
-				self::add_booking_user( $booking_id, (int) $user_id );
+			foreach ( self::numeric_ids( $data['user_ids'] ) as $user_id ) {
+				self::add_booking_user( $booking_id, $user_id );
 			}
 		}
 
@@ -271,13 +273,13 @@ class AudienceBookingWriter {
 		}
 
 		// Update audience associations.
-		if ( null !== $audience_ids ) {
-			self::set_booking_audiences( $id, $audience_ids );
+		if ( is_array( $audience_ids ) ) {
+			self::set_booking_audiences( $id, self::numeric_ids( $audience_ids ) );
 		}
 
 		// Update user associations.
-		if ( null !== $user_ids ) {
-			self::set_booking_users( $id, $user_ids );
+		if ( is_array( $user_ids ) ) {
+			self::set_booking_users( $id, self::numeric_ids( $user_ids ) );
 		}
 
 		static::cache_delete( "id_{$id}" );
@@ -380,6 +382,30 @@ class AudienceBookingWriter {
 		);
 
 		return false !== $result;
+	}
+
+	/**
+	 * Keep only the entries that are actually ids.
+	 *
+	 * The id arrays reach this class inside a caller-supplied `$data`, so
+	 * their elements are `mixed`. Casting each one straight to `int` turned
+	 * anything non-numeric — a stray string, an array, null — into `0` and
+	 * wrote a junction row pointing at nothing. Dropping those is the
+	 * behaviour the callers already assumed.
+	 *
+	 * @param array<array-key, mixed> $ids Raw ids from caller-supplied data.
+	 * @return list<int>
+	 */
+	private static function numeric_ids( array $ids ): array {
+		$out = array();
+
+		foreach ( $ids as $id ) {
+			if ( is_numeric( $id ) ) {
+				$out[] = (int) $id;
+			}
+		}
+
+		return $out;
 	}
 
 	/**

@@ -353,6 +353,7 @@
 .ffc-icon-palette::before { content: "\1F3A8 "; }
 .ffc-icon-lock::before { content: "\1F512 "; }
 .ffc-icon-shield::before { content: "\1F6E1\FE0F "; }
+.ffc-icon-robot::before { content: "\1F916 "; }
 .ffc-icon-download::before { content: "\2B07\FE0F "; }
 .ffc-icon-bulb::before { content: "\1F4A1 "; }
 .ffc-icon-checkmark::before { content: "\2713 "; }
@@ -690,3 +691,31 @@
     transition: opacity 0.15s ease;
 }
 
+/* ── Captcha settings: mode chooser (#1053) ─────────────────────────
+   Each mode carries a consequence rather than a preference, so the note
+   sits with its option instead of in a paragraph above the group. */
+.ffc-captcha-mode {
+    margin: 0 0 18px;
+    max-width: 46em;
+}
+
+.ffc-captcha-mode-summary,
+.ffc-captcha-mode-note {
+    display: block;
+    /* Indented under the radio so the note reads as belonging to its option. */
+    margin-left: 24px;
+}
+
+.ffc-captcha-mode-note {
+    margin-top: 4px;
+    padding-left: 10px;
+    border-left: 3px solid transparent;
+}
+
+.ffc-captcha-mode-note--warning {
+    border-left-color: #dba617;
+}
+
+.ffc-captcha-mode-note--info {
+    border-left-color: #72aee6;
+}

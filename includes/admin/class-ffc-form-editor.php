@@ -348,27 +348,11 @@ class FormEditor {
 			);
 		}
 
-		// Deprecated fallback (#865 phase-4): legacy `html/` glob by filename.
-		$filename = isset( $_POST['filename'] ) ? sanitize_file_name( wp_unslash( $_POST['filename'] ) ) : '';
-		if ( empty( $filename ) ) {
-			wp_send_json_error();
-		}
-
-		$filepath = FFC_PLUGIN_DIR . 'html/' . $filename;
-		if ( ! file_exists( $filepath ) ) {
-			wp_send_json_error();
-		}
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading bundled plugin HTML template; no remote URL.
-		$content = file_get_contents( $filepath );
-		// Legacy html/ drop-ins carry no background image; keep the response
-		// shape identical to the pool path ({ html, bg_image }).
-		wp_send_json_success(
-			array(
-				'html'     => (string) $content,
-				'bg_image' => '',
-			)
-		);
+		// The template pool is the sole source since 6.23.0 (#1087). The legacy
+		// by-filename load from `html/` is gone along with the picker entries
+		// that posted a `filename`, so a request without a valid template id
+		// has nothing left to resolve.
+		wp_send_json_error();
 	}
 
 	/**

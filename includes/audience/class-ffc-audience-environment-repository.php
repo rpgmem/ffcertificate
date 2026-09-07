@@ -146,6 +146,16 @@ class AudienceEnvironmentRepository {
 	 * @return EnvironmentRow|null
 	 */
 	public static function get_by_id( int $id ): ?object {
+		/**
+		 * The object cache is untyped — `wp_cache_get()` returns mixed — and
+		 * this key is the one written a few lines below, so the assertion is
+		 * checkable against the `cache_set()` in the same method. It is stated
+		 * per key rather than on the trait's `cache_get()` because the cache
+		 * is heterogeneous: this class also stores counts and lists under
+		 * other keys, and one type on the accessor would be a lie for those.
+		 *
+		 * @var EnvironmentRow|false $cached
+		 */
 		$cached = static::cache_get( "id_{$id}" );
 		if ( false !== $cached ) {
 			return $cached;
@@ -318,7 +328,21 @@ class AudienceEnvironmentRepository {
 		}
 
 		$hours = json_decode( $env->working_hours, true );
-		return is_array( $hours ) ? $hours : null;
+
+		if ( ! is_array( $hours ) ) {
+			return null;
+		}
+
+		/**
+		 * The column holds JSON this plugin writes — `save_working_hours()`
+		 * is the only writer — so the shape is a claim about our own encoder,
+		 * not about arbitrary input. `json_decode()` can return anything, and
+		 * the `is_array()` above is what makes the claim survive a column
+		 * someone edited by hand.
+		 *
+		 * @var array<string, array<string, mixed>> $hours
+		 */
+		return $hours;
 	}
 
 	/**
@@ -485,9 +509,14 @@ class AudienceEnvironmentRepository {
 	public static function count( array $args = array() ): int {
 		$args_json = wp_json_encode( $args );
 		$cache_key = 'env_count_' . md5( $args_json ? $args_json : '' ) . '_' . \FreeFormCertificate\Core\CacheVersion::suffix( self::CACHE_DOMAIN );
-		$cached    = wp_cache_get( $cache_key, self::QUERY_CACHE_GROUP );
+		/**
+		 * The same method writes the COUNT into this key a few lines below.
+		 *
+		 * @var int|false $cached
+		 */
+		$cached = wp_cache_get( $cache_key, self::QUERY_CACHE_GROUP );
 		if ( false !== $cached ) {
-			return (int) $cached;
+			return $cached;
 		}
 
 		$wpdb  = self::db();

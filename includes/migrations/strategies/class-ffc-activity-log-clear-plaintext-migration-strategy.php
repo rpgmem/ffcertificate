@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Migrations\Strategies;
 
 use Exception;
+use FreeFormCertificate\Core\ArrayValue;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -120,7 +121,12 @@ class ActivityLogClearPlaintextMigrationStrategy implements MigrationStrategyInt
 	 * @return array<string, mixed>
 	 */
 	public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array {
-		$batch_size = isset( $migration_config['batch_size'] ) ? (int) $migration_config['batch_size'] : 200;
+		// `$migration_config` comes out of the registry *after*
+		// `ffcertificate_migrations_registry` has run, so a filter can put
+		// anything here. `(int) 'x'` is 0, and a batch size of 0 makes the
+		// migration report itself complete having processed nothing —
+		// hence the typed read plus a floor of 1 (#1060).
+		$batch_size = max( 1, ArrayValue::int( $migration_config, 'batch_size', 200 ) );
 
 		if ( ! self::table_exists( $this->table )
 			|| ! self::column_exists( $this->table, 'context' )
@@ -136,7 +142,12 @@ class ActivityLogClearPlaintextMigrationStrategy implements MigrationStrategyInt
 		}
 
 		global $wpdb;
-		$cursor = (int) get_option( self::CURSOR_OPTION, 0 );
+		// `get_option()` is mixed and `(int) array()` is 1, so a corrupted
+		// option starts the keyset at 1 and the `id > %d` scan never sees
+		// row 1. Anything non-numeric now restarts from 0, which at worst
+		// re-reads rows the migration is idempotent over (#1060).
+		$stored = get_option( self::CURSOR_OPTION, 0 );
+		$cursor = is_numeric( $stored ) ? (int) $stored : 0;
 
 		$ids = $wpdb->get_col(
 			$wpdb->prepare(

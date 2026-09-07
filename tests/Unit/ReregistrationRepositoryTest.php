@@ -584,6 +584,43 @@ class ReregistrationRepositoryTest extends TestCase {
 		$this->assertSame(0, $result);
 	}
 
+	/**
+	 * #1060 — the filters arrive untyped and are bound straight into the
+	 * statement. Before this, a non-scalar was passed through and bound
+	 * as the literal string `Array`, so the query silently matched
+	 * nothing instead of ignoring the unusable filter.
+	 */
+	public function test_count_binds_an_empty_string_for_a_non_scalar_status_filter(): void {
+		$captured_values = array();
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$captured_values) {
+			$captured_values = func_get_args()[1];
+			return 'QUERY';
+		});
+		$this->wpdb->shouldReceive('get_var')->once()->andReturn('0');
+
+		ReregistrationRepository::count(array('status' => array('active', 'draft')));
+
+		$this->assertNotContains('Array', $captured_values);
+		$this->assertContains('', $captured_values);
+	}
+
+	/**
+	 * #1060 — same for the numeric half: `(int) array()` is 1 (with a
+	 * warning), which would have filtered on audience 1.
+	 */
+	public function test_count_binds_zero_for_a_non_numeric_audience_filter(): void {
+		$captured_values = array();
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$captured_values) {
+			$captured_values = func_get_args()[1];
+			return 'QUERY';
+		});
+		$this->wpdb->shouldReceive('get_var')->once()->andReturn('0');
+
+		ReregistrationRepository::count(array('audience_id' => array(7)));
+
+		$this->assertContains(0, $captured_values, 'A non-numeric audience filter must bind 0, not 1.');
+	}
+
 	public function test_count_with_combined_filters(): void {
 		$captured_sql = '';
 		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$captured_sql) {

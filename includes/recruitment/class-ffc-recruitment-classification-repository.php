@@ -449,6 +449,12 @@ class RecruitmentClassificationRepository {
 
 		$out = array();
 		if ( is_array( $rows ) ) {
+			/**
+			 * Both columns come straight out of the SELECT above: `user_id`
+			 * is filtered `IS NOT NULL`, and `COUNT(DISTINCT …)` never is.
+			 *
+			 * @var list<array{user_id: numeric-string, c: numeric-string}> $rows
+			 */
 			foreach ( $rows as $row ) {
 				$out[ (int) $row['user_id'] ] = (int) $row['c'];
 			}

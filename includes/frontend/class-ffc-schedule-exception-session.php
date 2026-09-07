@@ -49,6 +49,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Frontend;
 
+use FreeFormCertificate\Core\ArrayValue;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -181,7 +183,7 @@ class ScheduleExceptionSession {
 		}
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Cookie payload verified cryptographically on the next line by self::verify_token(); an unsigned value yields null.
-		$raw     = (string) wp_unslash( $_COOKIE[ $name ] );
+		$raw     = ArrayValue::string( wp_unslash( $_COOKIE ), $name );
 		$payload = self::verify_token( $raw );
 		if ( null === $payload ) {
 			return null;
@@ -190,7 +192,7 @@ class ScheduleExceptionSession {
 		// Defense-in-depth: a cookie scoped to form A must not be
 		// accepted on the render path of form B even if both signatures
 		// validate (e.g. an operator session pasted into the wrong tab).
-		if ( (int) ( $payload['form_id'] ?? 0 ) !== $form_id ) {
+		if ( ArrayValue::int( $payload, 'form_id' ) !== $form_id ) {
 			return null;
 		}
 
@@ -346,7 +348,7 @@ class ScheduleExceptionSession {
 		if ( ( $payload['v'] ?? 0 ) !== self::TOKEN_VERSION ) {
 			return null;
 		}
-		if ( ( (int) ( $payload['exp'] ?? 0 ) ) <= time() ) {
+		if ( ArrayValue::int( $payload, 'exp' ) <= time() ) {
 			return null;
 		}
 

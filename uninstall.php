@@ -117,6 +117,7 @@ $ffcertificate_options = array(
 	'ffc_dashboard_page_id',
 	'ffc_geolocation_settings',
 	'ffc_rate_limit_settings',
+	'ffc_captcha_mode_notice_dismissed',
 	'ffc_rate_limit_db_version',
 	'ffc_user_access_settings',
 	'ffc_global_holidays',

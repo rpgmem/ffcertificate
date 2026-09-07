@@ -23,6 +23,11 @@ class SelfSchedulingShortcodeTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
+		// Captcha challenges are signed with a wp_salt()-derived key since 6.23.0.
+		Functions\when( 'wp_salt' )->alias( function ( string $scheme = 'auth' ): string {
+			return 'test-salt-' . $scheme;
+		} );
+
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();

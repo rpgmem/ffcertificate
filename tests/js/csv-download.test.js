@@ -261,17 +261,31 @@ describe('csv-download — download flow', () => {
 		];
 		postSpy.mockImplementation(() => postChain({ done: responses.shift() }));
 
-		window.$('.ffc-btn-download-csv').trigger('click');
-		await flush();
+		// Fake timers, like the cleanup-timer sibling below. Under real timers
+		// this test drained only onExportComplete's outer MIN_DISPLAY timer and
+		// left its nested 2000ms cleanup pending: when the file finished first,
+		// that callback fired against a torn-down jsdom and surfaced as an
+		// unhandled `window is not defined` that failed the run while all 1731
+		// tests passed. Reproduced in CI, not locally — it is a race with
+		// environment teardown, so it depends on run speed.
+		vi.useFakeTimers();
+		try {
+			window.$('.ffc-btn-download-csv').trigger('click');
+			// Past MIN_DISPLAY so the completion status lands, but short of the
+			// 2000ms cleanup so the iframe is still there to assert on.
+			await vi.advanceTimersByTimeAsync(50);
 
-		// All 3 AJAX calls fired synchronously.
-		expect(postSpy.mock.calls.length).toBeGreaterThanOrEqual(4);
-		// onExportComplete schedules the final "Download complete!" status
-		// inside a setTimeout(remaining). Flush it.
-		await new Promise((r) => setTimeout(r, 5));
-		expect(window.$('.ffc-csv-progress-status').text()).toContain('Download complete!');
-		// Iframe injected.
-		expect(window.$('iframe[src*="ffc_export_download"]').length).toBe(1);
+			// All 3 AJAX calls fired synchronously.
+			expect(postSpy.mock.calls.length).toBeGreaterThanOrEqual(4);
+			expect(window.$('.ffc-csv-progress-status').text()).toContain('Download complete!');
+			// Iframe injected.
+			expect(window.$('iframe[src*="ffc_export_download"]').length).toBe(1);
+
+			// Drain the cleanup timer so nothing outlives this test.
+			await vi.advanceTimersByTimeAsync(2200);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it('start request preserves the page nonce + type from the serialized form (regression: $.extend string-spread)', async () => {

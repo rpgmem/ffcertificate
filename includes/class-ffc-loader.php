@@ -252,6 +252,12 @@ class Loader {
 		// is_admin(): the update scan runs in cron, outside the admin context.
 		\FreeFormCertificate\Integrations\GithubUpdater::init();
 
+		// Challenge endpoint for the ALTCHA strategy. Registered
+		// unconditionally: the strategy can be switched at any moment, and a
+		// handler that only exists while its provider is selected leaves the
+		// widget on an already-rendered page fetching a 400.
+		\FreeFormCertificate\Core\Captcha\AltchaChallengeEndpoint::init();
+
 		DashboardShortcode::init();
 		// Reregistration module — single bootstrap entry point (#563 B3).
 		// Toggleable via the Modules tab (default on).
@@ -840,6 +846,14 @@ class Loader {
 				'version' => FFC_VERSION,
 			)
 		);
+
+		// Captcha widget + glue (#1053). Registered on every frontend request
+		// and enqueued by the provider at render time, so it follows the
+		// widget onto whichever surface renders it — the certificate form,
+		// the verification page, the public CSV download and the
+		// self-scheduling booking form, the last of which is enqueued by a
+		// different class entirely.
+		\FreeFormCertificate\Core\Captcha\AltchaCaptcha::register_assets();
 
 		// Dynamic fragments: refresh captcha + nonces on cached pages (v4.12.0).
 		wp_register_script( 'ffc-dynamic-fragments', FFC_PLUGIN_URL . "assets/js/ffc-dynamic-fragments{$s}.js", array(), FFC_VERSION, true );
