@@ -88,21 +88,21 @@ class SelfSchedulingActivator {
             title varchar(255) NOT NULL,
             description text DEFAULT NULL,
             schedule_type enum('regular','custom') NOT NULL DEFAULT 'regular' COMMENT 'regular = weekly working_hours, custom = explicit custom_slots',
-            slot_duration int unsigned DEFAULT 30 COMMENT 'Duration in minutes',
-            slot_interval int unsigned DEFAULT 0 COMMENT 'Break between slots in minutes',
-            slots_per_day int unsigned DEFAULT 0 COMMENT '0 = unlimited',
+            slot_duration int(10) unsigned DEFAULT 30 COMMENT 'Duration in minutes',
+            slot_interval int(10) unsigned DEFAULT 0 COMMENT 'Break between slots in minutes',
+            slots_per_day int(10) unsigned DEFAULT 0 COMMENT '0 = unlimited',
             working_hours longtext DEFAULT NULL,
             custom_slots longtext DEFAULT NULL,
-            advance_booking_min int unsigned DEFAULT 0 COMMENT 'Minimum hours in advance',
-            advance_booking_max int unsigned DEFAULT 30 COMMENT 'Maximum days in advance',
+            advance_booking_min int(10) unsigned DEFAULT 0 COMMENT 'Minimum hours in advance',
+            advance_booking_max int(10) unsigned DEFAULT 30 COMMENT 'Maximum days in advance',
             allow_cancellation tinyint(1) DEFAULT 1,
-            cancellation_min_hours int unsigned DEFAULT 24 COMMENT 'Minimum hours before appointment',
-            minimum_interval_between_bookings int unsigned DEFAULT 24 COMMENT 'Minimum hours between user bookings (0 = disabled)',
+            cancellation_min_hours int(10) unsigned DEFAULT 24 COMMENT 'Minimum hours before appointment',
+            minimum_interval_between_bookings int(10) unsigned DEFAULT 24 COMMENT 'Minimum hours between user bookings (0 = disabled)',
             requires_approval tinyint(1) DEFAULT 0,
-            max_appointments_per_slot int unsigned DEFAULT 1,
+            max_appointments_per_slot int(10) unsigned DEFAULT 1,
             waitlist_enabled tinyint(1) DEFAULT 0 COMMENT '1 = full slots offer a waitlist instead of rejecting',
-            waitlist_capacity int unsigned DEFAULT 0 COMMENT 'Max queue length per slot (0 = unlimited)',
-            max_blocks_per_user int unsigned DEFAULT 0 COMMENT 'Custom mode: max blocks a single user may book in this calendar (0 = disabled)',
+            waitlist_capacity int(10) unsigned DEFAULT 0 COMMENT 'Max queue length per slot (0 = unlimited)',
+            max_blocks_per_user int(10) unsigned DEFAULT 0 COMMENT 'Custom mode: max blocks a single user may book in this calendar (0 = disabled)',
             visibility enum('public','private') DEFAULT 'public' COMMENT 'Calendar visibility: public or private',
             scheduling_visibility enum('public','private') DEFAULT 'public' COMMENT 'Booking access: public or private',
             email_config longtext DEFAULT NULL,
@@ -361,7 +361,7 @@ class SelfSchedulingActivator {
 		self::add_column_if_missing(
 			$table_name,
 			'max_blocks_per_user',
-			"int unsigned DEFAULT 0 COMMENT 'Custom mode: max blocks a single user may book in this calendar (0 = disabled)'",
+			"int(10) unsigned DEFAULT 0 COMMENT 'Custom mode: max blocks a single user may book in this calendar (0 = disabled)'",
 			'waitlist_capacity'
 		);
 	}
@@ -390,7 +390,7 @@ class SelfSchedulingActivator {
 		self::add_column_if_missing(
 			$table_name,
 			'waitlist_capacity',
-			"int unsigned DEFAULT 0 COMMENT 'Max queue length per slot (0 = unlimited)'",
+			"int(10) unsigned DEFAULT 0 COMMENT 'Max queue length per slot (0 = unlimited)'",
 			'waitlist_enabled'
 		);
 	}
@@ -437,7 +437,7 @@ class SelfSchedulingActivator {
 		self::add_column_if_missing(
 			$table_name,
 			'minimum_interval_between_bookings',
-			"int unsigned DEFAULT 24 COMMENT 'Minimum hours between user bookings (0 = disabled)'",
+			"int(10) unsigned DEFAULT 24 COMMENT 'Minimum hours between user bookings (0 = disabled)'",
 			'cancellation_min_hours'
 		);
 	}

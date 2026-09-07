@@ -170,6 +170,14 @@ class MigrationCustomFieldsTables {
 	/**
 	 * Create ffc_reregistrations table
 	 *
+	 * **No `audience_id` here, on purpose (#1087 passo 8).** The relationship
+	 * moved to the `ffc_reregistration_audiences` junction table, and
+	 * `ReregistrationActivator::migrate_reregistration_audience_to_junction()`
+	 * drops the column and its index right after this runs. While this statement
+	 * still declared them, a fresh install created and destroyed the column in
+	 * the same activation and `dbDelta()` asked for it back on every run that
+	 * reached this method — the drift the idempotence gate measures.
+	 *
 	 * @return array{success: bool, message: string}
 	 */
 	private static function create_reregistrations_table(): array {
@@ -191,7 +199,6 @@ class MigrationCustomFieldsTables {
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             title varchar(250) NOT NULL,
-            audience_id bigint(20) unsigned NOT NULL,
             start_date datetime NOT NULL,
             end_date datetime NOT NULL,
             auto_approve tinyint(1) NOT NULL DEFAULT 0,
@@ -204,7 +211,6 @@ class MigrationCustomFieldsTables {
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
-            KEY idx_audience_id (audience_id),
             KEY idx_status (status),
             KEY idx_dates (start_date, end_date)
         ) {$charset_collate};";

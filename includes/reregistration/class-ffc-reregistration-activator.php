@@ -147,6 +147,11 @@ class ReregistrationActivator {
 	 *
 	 * Stores individual user responses to reregistration campaigns.
 	 *
+	 * **`auth_code` is declared UNIQUE (#1087 passo 8)** because
+	 * `Activator::upgrade_auth_code_unique_constraints()` converts it on this
+	 * table too — a plain `KEY auth_code` never survives, and declaring one made
+	 * `dbDelta()` ask for it back on every run that reached this method.
+	 *
 	 * @since 4.11.0
 	 */
 	private static function create_reregistration_submissions_table(): void {
@@ -194,7 +199,7 @@ class ReregistrationActivator {
             KEY idx_user_id (user_id),
             KEY idx_status (status),
             KEY idx_created (created_at),
-            KEY auth_code (auth_code),
+            UNIQUE KEY uq_auth_code (auth_code),
             KEY magic_token (magic_token)
         ) {$charset_collate};";
 
