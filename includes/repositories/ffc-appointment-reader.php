@@ -515,6 +515,12 @@ class AppointmentReader extends AbstractRepository {
 	public function getBookingCountsByDateRange( int $calendar_id, string $start_date, string $end_date ): array {
 		$table = $this->get_table_name();
 
+		/**
+		 * An aggregate projection, not a row: two columns, and `COUNT(*)`
+		 * comes back as a numeric string like every other column.
+		 *
+		 * @var list<array{appointment_date: string, count: numeric-string}>|null $results
+		 */
 		$results = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				"SELECT appointment_date, COUNT(*) as count
@@ -564,7 +570,14 @@ class AppointmentReader extends AbstractRepository {
 			$args[] = $exclude_status;
 		}
 
-		$sql  = "SELECT user_id, COUNT(*) AS c FROM %i WHERE {$where} GROUP BY user_id";
+		$sql = "SELECT user_id, COUNT(*) AS c FROM %i WHERE {$where} GROUP BY user_id";
+
+		/**
+		 * Same aggregate projection as getBookingCountsByDateRange(). The
+		 * WHERE excludes NULL and 0, so `user_id` is a numeric string here.
+		 *
+		 * @var list<array{user_id: numeric-string, c: numeric-string}>|null $rows
+		 */
 		$rows = $this->wpdb->get_results( $this->wpdb->prepare( $sql, $args ), ARRAY_A );
 
 		$out = array();

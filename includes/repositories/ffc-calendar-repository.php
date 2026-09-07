@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Repositories;
 
+use FreeFormCertificate\Core\ArrayValue;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
@@ -49,7 +51,15 @@ class CalendarRepository extends AbstractRepository {
 	 */
 	public function findByPostId( int $post_id ): ?array {
 		$cache_key = "post_{$post_id}";
-		$cached    = $this->get_cache( $cache_key );
+
+		/**
+		 * The object cache is the hole, not `$wpdb` — `wp_cache_get()` is
+		 * `mixed`, so a cache hit threw the type away (#1072, applied here only
+		 * now because the ruler could not see this file — #1087).
+		 *
+		 * @var array<string, mixed>|false $cached
+		 */
+		$cached = $this->get_cache( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
@@ -93,12 +103,16 @@ class CalendarRepository extends AbstractRepository {
 	public function getWithWorkingHours( int $id ): ?array {
 		$calendar = $this->findById( $id );
 
+		// Both columns are JSON text written by this plugin, but the row comes
+		// back from a generic `array<string, mixed>` read, so the value reaching
+		// json_decode() is `mixed`. ArrayValue::string() refuses a non-scalar
+		// instead of letting `(string) array()` reach the parser as "Array".
 		if ( $calendar && ! empty( $calendar['working_hours'] ) ) {
-			$calendar['working_hours'] = json_decode( $calendar['working_hours'], true );
+			$calendar['working_hours'] = json_decode( ArrayValue::string( $calendar, 'working_hours' ), true );
 		}
 
 		if ( $calendar && ! empty( $calendar['email_config'] ) ) {
-			$calendar['email_config'] = json_decode( $calendar['email_config'], true );
+			$calendar['email_config'] = json_decode( ArrayValue::string( $calendar, 'email_config' ), true );
 		}
 
 		return $calendar ? $calendar : null;

@@ -26,6 +26,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- {$placeholders}/{$move_placeholders} are %d repeated to match the bound id array — prepare() takes them as one array argument, which is what ReplacementsWrongNumber trips on. {$where_clause} is assembled here; table names go through %i and every value through a placeholder.
 /**
  * Write operations for submission records.
+ *
+ * @phpstan-type IdentifierProjection array{
+ *     id: numeric-string,
+ *     user_id: numeric-string|null,
+ *     email_hash: string|null,
+ *     cpf_hash: string|null,
+ *     rf_hash: string|null,
+ * }
  */
 class SubmissionWriter extends AbstractRepository {
 
@@ -285,6 +293,13 @@ class SubmissionWriter extends AbstractRepository {
 			);
 		}
 
+		/**
+		 * A projection of five columns, not the whole row — the SELECT above
+		 * names them. Types read off the CREATE TABLE in Activator: `id` is
+		 * the only NOT NULL of the five, so the other four are nullable.
+		 *
+		 * @var list<IdentifierProjection>|null $rows
+		 */
 		$rows = $this->wpdb->get_results( $select_sql, ARRAY_A );
 		if ( ! is_array( $rows ) ) {
 			return array(
@@ -329,8 +344,8 @@ class SubmissionWriter extends AbstractRepository {
 	 * columns covered by the (form_id, hash) indexes), ignoring null/empty
 	 * identifiers.
 	 *
-	 * @param int                  $form_id Target form ID.
-	 * @param array<string, mixed> $row     Source row with identifier columns.
+	 * @param int                   $form_id Target form ID.
+	 * @param IdentifierProjection  $row     Source row with identifier columns.
 	 * @return bool True when at least one row in $form_id matches any populated identifier.
 	 */
 	private function hasConflictInForm( int $form_id, array $row ): bool {

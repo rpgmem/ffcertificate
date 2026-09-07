@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Repositories;
 
+use FreeFormCertificate\Core\ArrayValue;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; }
 
@@ -79,12 +81,34 @@ abstract class AbstractRepository {
 	 */
 	public function findById( int $id ) {
 		$cache_key = "id_{$id}";
-		$cached    = $this->get_cache( $cache_key );
+
+		/**
+		 * The object cache is the hole here, not `$wpdb` — `wp_cache_get()`
+		 * returns `mixed`, so a cache hit threw the type away while the read
+		 * below was typed. That is the #1072 finding, which never reached this
+		 * file because the ruler could not see it (#1087 passo 3): it binds
+		 * wpdb as a property, so the discovery scan missed it entirely.
+		 *
+		 * The assertion is on the KEY, not on `get_cache()` itself: the cache
+		 * is heterogeneous by key, and only this method knows what it stored
+		 * under `id_*`.
+		 *
+		 * @var array<string, mixed>|false $cached
+		 */
+		$cached = $this->get_cache( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
 		}
 
+		/**
+		 * A base class for many tables cannot name the columns, and saying so
+		 * is the honest shape: what it does know is that `$wpdb` hands back
+		 * string keys. A concrete reader declares the real columns; this one
+		 * must not pretend to.
+		 *
+		 * @var array<string, mixed>|null $result
+		 */
 		$result = $this->wpdb->get_row(
 			$this->wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $this->table, $id ),
 			ARRAY_A
@@ -127,6 +151,11 @@ abstract class AbstractRepository {
 			$safe_ids     = array_map( 'absint', $missing );
 			$placeholders = implode( ',', array_fill( 0, count( $safe_ids ), '%d' ) );
             // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders is %d repeated to match count($safe_ids); Interpolated* is file-disabled above.
+			/**
+			 * Same reasoning as findById(): string keys, unnamed columns.
+			 *
+			 * @var list<array<string, mixed>>|null $rows
+			 */
 			$rows = $this->wpdb->get_results(
 				$this->wpdb->prepare( "SELECT * FROM %i WHERE id IN ({$placeholders})", $this->table, ...$safe_ids ),
 				ARRAY_A
@@ -135,7 +164,10 @@ abstract class AbstractRepository {
 
 			if ( is_array( $rows ) ) {
 				foreach ( $rows as $row ) {
-					$row_id = (int) $row['id'];
+					// The base class knows `id` exists — it is the column the
+					// query filters on — but not its type, so read it through
+					// the helper rather than casting an unchecked `mixed`.
+					$row_id = ArrayValue::int( $row, 'id' );
 					$this->set_cache( "id_{$row_id}", $row );
 					$results[ $row_id ] = $row;
 				}
