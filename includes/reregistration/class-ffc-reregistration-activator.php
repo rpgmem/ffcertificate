@@ -41,6 +41,57 @@ class ReregistrationActivator {
 		self::create_reregistration_submissions_table();
 		self::add_reregistration_submissions_columns();
 		self::migrate_reregistration_audience_to_junction();
+		self::drop_superseded_indexes();
+	}
+
+	/**
+	 * Drop the duplicate indexes the two declaration paths left behind (#1087).
+	 *
+	 * `ffc_reregistration_submissions` was declared by this activator **and** by
+	 * two migrations, and the two sides indexed the same columns under different
+	 * names — so an install that took both paths carries two indexes on
+	 * `auth_code` and two on `magic_token`, costing write time and space for
+	 * nothing. #1102 aligned the declarations, so no new install inherits the
+	 * pair; this removes it from the installs that already have it.
+	 *
+	 * **Why the pair survived:** `Activator::upgrade_auth_code_unique_constraints()`
+	 * drops the non-unique indexes on `auth_code` only on the run where it still
+	 * has to create the UNIQUE — once one exists it returns early, so anything
+	 * left beside it stays forever. That is fixed at the source by the aligned
+	 * declarations; what remains is this cleanup.
+	 *
+	 * The legacy names are listed explicitly rather than derived: the canonical
+	 * name is read from the `CREATE TABLE`, and dropping "whichever index looks
+	 * redundant" would be a heuristic over a schema this file already knows.
+	 * Each drop is gated on the canonical index existing, so the column is never
+	 * left unindexed — and `index_exists()` makes it idempotent.
+	 *
+	 * @return void
+	 */
+	private static function drop_superseded_indexes(): void {
+		global $wpdb;
+
+		$table = $wpdb->prefix . 'ffc_reregistration_submissions';
+
+		if ( ! self::table_exists( $table ) ) {
+			return;
+		}
+
+		// Legacy index name => the canonical index that must already cover the
+		// same column before the legacy one may go.
+		$superseded = array(
+			'idx_auth_code'   => 'uq_auth_code',
+			'idx_magic_token' => 'magic_token',
+		);
+
+		foreach ( $superseded as $legacy => $canonical ) {
+			if ( ! self::index_exists( $table, $legacy ) || ! self::index_exists( $table, $canonical ) ) {
+				continue;
+			}
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema change on an activation path; there is nothing to cache and WordPress exposes no API for DROP INDEX.
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table, $legacy ) );
+		}
 	}
 
 	/**
