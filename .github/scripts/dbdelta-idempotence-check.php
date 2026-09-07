@@ -22,12 +22,23 @@
  * Anything in it is a change the statement asks for and the schema will never
  * satisfy — an ALTER on every future run.
  *
- * **The first measurement found 14 such statements**, so the gate blocks against
- * a frozen baseline rather than against zero: `dbdelta-drift-baseline.php` holds
- * what drifts today, a new change fails, and a change that stops happening also
- * fails so the fix is locked in. That file carries the analysis of the three
- * families found and why fixing them is follow-up work rather than part of the
- * pull request that adds the measurement.
+ * **The first measurement found 14 such statements; all 14 are fixed.** The gate
+ * therefore blocks against zero, and the frozen baseline it needed in the
+ * meantime is gone. What the three families taught is worth keeping, because
+ * each looks like the opposite of what it is:
+ *
+ * 1. **Write the display width.** `int unsigned` reads cleaner and is wrong:
+ *    MariaDB stores `int(10) unsigned` and compares textually, while WP core's
+ *    dbDelta ignores a width-only difference on MySQL 8.0.17+ and *explicitly
+ *    not* on MariaDB. `int(10)` is correct on both — do not tidy it away.
+ * 2. **MariaDB does not store `json`**, only `LONGTEXT` plus a CHECK, so a
+ *    `json` column can never match. These columns are declared `longtext`
+ *    because nothing in the plugin uses a native JSON function — every read is
+ *    `json_decode` in PHP, and `PreflightStatsService` already aggregates in
+ *    memory rather than depend on `JSON_EXTRACT`.
+ * 3. **Declare the index the code creates, not the one you asked for.**
+ *    `Activator::upgrade_auth_code_unique_constraints()` converts `auth_code`
+ *    to `UNIQUE INDEX uq_auth_code`, so a declared plain `KEY` never survived.
  *
  * **One table already lives this in production, and it is clean.**
  * `ffc_device_signals` is the only one whose `dbDelta` is deliberately NOT gated
@@ -106,11 +117,9 @@ if ( count( $statements ) !== $present ) {
 	exit( 2 );
 }
 
-$baseline_file = __DIR__ . '/dbdelta-drift-baseline.php';
-$baseline      = require $baseline_file;
 
 $unresolved = array();
-$observed   = array();
+$drifting   = array();
 $diagnose   = array();
 $checked    = 0;
 
@@ -149,18 +158,17 @@ foreach ( $statements as $statement ) {
 		continue;
 	}
 
-	// The baseline must not depend on the install's table prefix.
-	$changes = array_values(
-		array_map(
-			static function ( string $change ) use ( $wpdb ): string {
-				return str_replace( $wpdb->prefix . 'ffc_', 'ffc_', $change );
-			},
-			$changes
-		)
+	// The prefix is an install detail; the finding is not.
+	$changes = array_map(
+		static function ( string $change ) use ( $wpdb ): string {
+			return str_replace( $wpdb->prefix . 'ffc_', 'ffc_', $change );
+		},
+		$changes
 	);
 	sort( $changes );
 
-	$observed[ $relative . '::' . $statement['table'] ] = $changes;
+	$drifting[] = $relative . ':' . $statement['line'] . ' (' . $statement['table'] . ")\n      "
+		. implode( "\n      ", $changes );
 
 	// A changed TYPE is a spelling the server normalises. An ADDED column or
 	// index is the statement and the table genuinely disagreeing — dump the
@@ -184,31 +192,8 @@ if ( array() !== $unresolved ) {
 	exit( 2 );
 }
 
-ksort( $observed );
+echo "Checked against the live schema: {$checked}\n\n";
 
-echo "Checked against the live schema: {$checked}\n";
-echo 'Statements dbDelta wants to alter: ' . count( $observed ) . ' (baseline: ' . count( $baseline ) . ")\n\n";
-
-$appeared  = array();
-$vanished  = array();
-
-foreach ( $observed as $key => $changes ) {
-	$known = $baseline[ $key ] ?? array();
-
-	foreach ( array_diff( $changes, $known ) as $change ) {
-		$appeared[] = $key . "\n      " . $change;
-	}
-}
-
-foreach ( $baseline as $key => $changes ) {
-	foreach ( array_diff( $changes, $observed[ $key ] ?? array() ) as $change ) {
-		$vanished[] = $key . "\n      " . $change;
-	}
-}
-
-// The live schema for the statements whose disagreement is not a type spelling.
-// Printed whether or not they are in the baseline: the baseline records that
-// they drift, not why, and the why is only visible here.
 if ( array() !== $diagnose ) {
 	echo "Live schema for the statements that disagree beyond a type spelling:\n\n";
 
@@ -218,51 +203,17 @@ if ( array() !== $diagnose ) {
 	}
 }
 
-if ( array() !== $appeared || array() !== $vanished ) {
-	if ( array() !== $appeared ) {
-		fwrite(
-			STDERR,
-			"FAIL: dbDelta wants a change that is not in the baseline. Against a table it\n"
-			. "just created from this very statement, that is an ALTER on every future run —\n"
-			. "the #997 class, silent and permanent. Fix the CREATE TABLE:\n\n  "
-			. implode( "\n\n  ", $appeared ) . "\n\n"
-		);
-	}
-
-	if ( array() !== $vanished ) {
-		fwrite(
-			STDERR,
-			"FAIL: a change in the baseline no longer happens — the drift was fixed. Shrink\n"
-			. "the baseline so the win is locked in:\n\n  "
-			. implode( "\n\n  ", $vanished ) . "\n\n"
-		);
-	}
-
-	// There is no local way to regenerate this file: it needs a live MariaDB,
-	// and only this job has one. So print what to paste, rather than leaving
-	// the next person to transcribe it out of a log.
-	fwrite( STDERR, "The measured state, ready to paste into dbdelta-drift-baseline.php:\n\n" );
-	fwrite( STDERR, "return array(\n" );
-
-	foreach ( $observed as $key => $changes ) {
-		fwrite( STDERR, "\t'" . $key . "' => array(\n" );
-
-		foreach ( $changes as $change ) {
-			fwrite( STDERR, "\t\t'" . str_replace( "'", "\\'", $change ) . "',\n" );
-		}
-
-		fwrite( STDERR, "\t),\n" );
-	}
-
-	fwrite( STDERR, ");\n" );
-
+if ( array() !== $drifting ) {
+	fwrite(
+		STDERR,
+		"FAIL: dbDelta wants to change a table it just created from this very statement.\n"
+		. "That is an ALTER on every run that reaches it — the #997 class, silent and\n"
+		. "permanent. Fix the CREATE TABLE so it describes what the server actually\n"
+		. "stores; the live schema printed above says what that is:\n\n  "
+		. implode( "\n\n  ", $drifting ) . "\n"
+	);
 	exit( 1 );
 }
 
-if ( array() === $observed ) {
-	echo "PASS: every CREATE TABLE describes what MySQL stored — dbDelta has nothing to alter.\n";
-} else {
-	echo 'PASS: no new drift. ' . count( $observed ) . " statements still carry the drift the baseline records.\n";
-}
-
+echo "PASS: every CREATE TABLE describes what the server stored — dbDelta has nothing to alter.\n";
 exit( 0 );
