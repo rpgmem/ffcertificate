@@ -102,6 +102,122 @@ class ReregistrationActivatorTest extends TestCase {
 	}
 
 	// ==================================================================
+	// drop_superseded_indexes() — the duplicate-index cleanup (#1087)
+	// ==================================================================
+
+	public function test_superseded_indexes_are_dropped_when_the_canonical_ones_exist(): void {
+		$queries = array();
+
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function () {
+				$args   = func_get_args();
+				$format = array_shift( $args );
+
+				foreach ( $args as $arg ) {
+					$format = preg_replace( '/%[isd]/', (string) $arg, (string) $format, 1 );
+				}
+
+				return $format;
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $sql ) use ( &$queries ) {
+				$queries[] = (string) $sql;
+				return 1;
+			}
+		);
+
+		// Every table exists, so the DDL paths early-return.
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				return preg_match( '/SHOW TABLES LIKE (\S+)/', (string) $sql, $m ) ? $m[1] : null;
+			}
+		);
+
+		// SHOW COLUMNS (junction migration) returns nothing; every SHOW INDEX
+		// reports the index as present.
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				return false !== strpos( (string) $sql, 'SHOW INDEX' ) ? array( (object) array( 'Key_name' => 'x' ) ) : array();
+			}
+		);
+
+		Functions\when( 'dbDelta' )->justReturn( array() );
+
+		ReregistrationActivator::create_tables();
+
+		$drops = array_values(
+			array_filter(
+				$queries,
+				static function ( string $sql ): bool {
+					return false !== strpos( $sql, 'DROP INDEX' );
+				}
+			)
+		);
+
+		$this->assertCount( 2, $drops, 'Both legacy index names should be dropped once each.' );
+		$this->assertStringContainsString( 'idx_auth_code', implode( ' ', $drops ) );
+		$this->assertStringContainsString( 'idx_magic_token', implode( ' ', $drops ) );
+	}
+
+	public function test_a_superseded_index_is_kept_when_its_canonical_replacement_is_absent(): void {
+		// The whole point of the guard: dropping the legacy index when nothing
+		// else covers the column would leave it unindexed.
+		$queries = array();
+
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function () {
+				$args   = func_get_args();
+				$format = array_shift( $args );
+
+				foreach ( $args as $arg ) {
+					$format = preg_replace( '/%[isd]/', (string) $arg, (string) $format, 1 );
+				}
+
+				return $format;
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $sql ) use ( &$queries ) {
+				$queries[] = (string) $sql;
+				return 1;
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				return preg_match( '/SHOW TABLES LIKE (\S+)/', (string) $sql, $m ) ? $m[1] : null;
+			}
+		);
+
+		// The legacy indexes exist; the canonical ones do not.
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				$sql = (string) $sql;
+
+				if ( false === strpos( $sql, 'SHOW INDEX' ) ) {
+					return array();
+				}
+
+				$legacy = false !== strpos( $sql, 'idx_auth_code' ) || false !== strpos( $sql, 'idx_magic_token' );
+
+				return $legacy ? array( (object) array( 'Key_name' => 'x' ) ) : array();
+			}
+		);
+
+		Functions\when( 'dbDelta' )->justReturn( array() );
+
+		ReregistrationActivator::create_tables();
+
+		foreach ( $queries as $sql ) {
+			$this->assertStringNotContainsString(
+				'DROP INDEX',
+				$sql,
+				'No index may be dropped while the index meant to replace it is missing.'
+			);
+		}
+	}
+
+	// ==================================================================
 	// create_tables() — fresh install (all DDL runs)
 	// ==================================================================
 
