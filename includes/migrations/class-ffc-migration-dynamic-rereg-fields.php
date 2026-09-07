@@ -182,8 +182,9 @@ class MigrationDynamicReregFields {
             UNIQUE KEY idx_reregistration_user (reregistration_id, user_id),
             KEY idx_user_id (user_id),
             KEY idx_status (status),
-            KEY idx_auth_code (auth_code),
-            KEY idx_magic_token (magic_token)
+            KEY idx_created (created_at),
+            UNIQUE KEY uq_auth_code (auth_code),
+            KEY magic_token (magic_token)
         ) {$charset_collate};";
 
 		dbDelta( $sql );

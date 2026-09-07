@@ -124,6 +124,11 @@ class UserDashboardActivator {
             field_key varchar(100) NOT NULL,
             field_label varchar(250) NOT NULL,
             field_type varchar(50) NOT NULL DEFAULT 'text',
+            field_group varchar(100) NOT NULL DEFAULT '',
+            field_source varchar(20) NOT NULL DEFAULT 'custom',
+            field_profile_key varchar(100) DEFAULT NULL,
+            field_mask varchar(50) DEFAULT NULL,
+            is_sensitive tinyint(1) NOT NULL DEFAULT 0,
             field_options longtext DEFAULT NULL,
             validation_rules longtext DEFAULT NULL,
             sort_order int(11) NOT NULL DEFAULT 0,
@@ -134,7 +139,9 @@ class UserDashboardActivator {
             PRIMARY KEY (id),
             KEY idx_audience_id (audience_id),
             KEY idx_field_key (field_key),
-            KEY idx_sort_order (audience_id, sort_order)
+            KEY idx_sort_order (audience_id, sort_order),
+            KEY idx_group_sort (audience_id, field_group, sort_order),
+            KEY idx_source (audience_id, field_source)
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
