@@ -181,6 +181,8 @@ class ReregistrationActivator {
             user_id bigint(20) unsigned NOT NULL,
             data json DEFAULT NULL,
             status varchar(20) NOT NULL DEFAULT 'pending',
+            auth_code varchar(20) DEFAULT NULL,
+            magic_token varchar(64) DEFAULT NULL,
             submitted_at bigint(20) unsigned DEFAULT NULL,
             reviewed_at bigint(20) unsigned DEFAULT NULL,
             reviewed_by bigint(20) unsigned DEFAULT NULL,
@@ -191,7 +193,9 @@ class ReregistrationActivator {
             UNIQUE KEY idx_reregistration_user (reregistration_id, user_id),
             KEY idx_user_id (user_id),
             KEY idx_status (status),
-            KEY idx_created (created_at)
+            KEY idx_created (created_at),
+            KEY auth_code (auth_code),
+            KEY magic_token (magic_token)
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
