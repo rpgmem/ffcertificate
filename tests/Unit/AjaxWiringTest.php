@@ -197,6 +197,13 @@ final class AjaxWiringTest extends TestCase {
 	 */
 	private static array $constant_aliases = array();
 
+	/**
+	 * Action name => the abstract registrar that hooks it (idiom 3).
+	 *
+	 * @var array<string, string>
+	 */
+	private static array $abstract_registrars = array();
+
 	// ------------------------------------------------------------- collectors
 
 	/**
@@ -245,10 +252,74 @@ final class AjaxWiringTest extends TestCase {
 					}
 				}
 			}
+
+			// Idiom 3 — abstract base: add_action( 'wp_ajax_' . static::action(), … ).
+			//
+			// `AbstractDismissibleNotice` registers the hook once, in the base
+			// class, and each subclass supplies the name from its own
+			// `action()`. `static::` therefore resolves in the SUBCLASS, not
+			// here — so the base file yields no action at all and every child's
+			// action is invisible to both directions of this guard. Four
+			// notices were in exactly that state until #1087 passo 6, and the
+			// self-check below is what surfaced them: the wiring happened to be
+			// correct, but nothing had ever verified it.
+			//
+			// Resolution is the other way round from idiom 2: find the files
+			// whose `action()` returns a constant, and read the constant there.
+			if ( preg_match( "/add_action\(\s*'wp_ajax_(?:nopriv_)?'\s*\.\s*static::action\(\)/", $code ) ) {
+				foreach ( self::subclass_actions( $path ) as $action => $subclass_path ) {
+					$actions[ $action ]                   = $subclass_path;
+					self::$abstract_registrars[ $action ] = $path;
+				}
+			}
 		}
 
 		ksort( $actions );
 		return $actions;
+	}
+
+	/**
+	 * Actions supplied by the subclasses of an abstract registrar.
+	 *
+	 * The base class hooks `'wp_ajax_' . static::action()`; each subclass
+	 * implements `action()`, normally by returning one of its own constants.
+	 * Reads the constant out of the subclass file, the same way idiom 2 reads
+	 * it out of the declaring file.
+	 *
+	 * @param string $base_path Absolute path of the abstract registrar.
+	 * @return array<string, string> Action name => absolute subclass path.
+	 */
+	private static function subclass_actions( string $base_path ): array {
+		$found = array();
+
+		if ( ! preg_match( '/\babstract\s+class\s+([A-Za-z0-9_]+)/', self::code_of( $base_path ), $base ) ) {
+			return $found;
+		}
+
+		foreach ( self::files_in( 'includes', array( '.php' ) ) as $path ) {
+			if ( $path === $base_path ) {
+				continue;
+			}
+
+			$code = self::code_of( $path );
+
+			if ( ! preg_match( '/\bextends\s+' . preg_quote( $base[1], '/' ) . '\b/', $code ) ) {
+				continue;
+			}
+
+			// `action()` returning a constant of the same class, or a literal.
+			if ( preg_match( "/function\s+action\(\s*\)\s*:\s*string\s*\{\s*return\s+(?:self|static)::([A-Z0-9_]+)\s*;/", $code, $const )
+				&& preg_match( "/const\s+" . preg_quote( $const[1], '/' ) . "\s*=\s*'([a-z0-9_]+)'/", $code, $value ) ) {
+				$found[ $value[1] ] = $path;
+				continue;
+			}
+
+			if ( preg_match( "/function\s+action\(\s*\)\s*:\s*string\s*\{\s*return\s+'([a-z0-9_]+)'\s*;/", $code, $literal ) ) {
+				$found[ $literal[1] ] = $path;
+			}
+		}
+
+		return $found;
 	}
 
 	/**
@@ -342,6 +413,40 @@ final class AjaxWiringTest extends TestCase {
 	 * @param string $action    Action token.
 	 * @param string $registrar Absolute path to the registering file.
 	 */
+	/**
+	 * Whether an abstract registrar hands its action to the client through a
+	 * data attribute that some script actually reads.
+	 *
+	 * Idiom 3 defeats direction A's premise. `AbstractDismissibleNotice` puts
+	 * `static::action()` into `data-ffc-action` and a shared script posts
+	 * whatever that attribute holds — so the client **never names the action**,
+	 * and no lexical search can find a caller. Three of the four notices read as
+	 * orphans for exactly that reason, while being correctly wired.
+	 *
+	 * This verifies the link instead of exempting it: the base must emit the
+	 * action into an attribute, and some JS must read that same attribute. Drop
+	 * the script and the guard goes back to reporting the orphans.
+	 *
+	 * @param string $base_path Absolute path of the abstract registrar.
+	 * @return bool
+	 */
+	private static function dispatched_through_data_attribute( string $base_path ): bool {
+		$base = self::code_of( $base_path );
+
+		// The attribute the base fills with the action name.
+		if ( ! preg_match( "/'(data-[a-z0-9-]+)'\s*=>\s*static::action\(\)/", $base, $attribute ) ) {
+			return false;
+		}
+
+		foreach ( self::files_in( 'assets/js', array( '.js' ) ) as $script ) {
+			if ( false !== strpos( self::code_of( $script ), $attribute[1] ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	private static function registrar_wires_a_client( string $action, string $registrar ): bool {
 		$code = self::code_of( $registrar );
 
@@ -435,6 +540,11 @@ final class AjaxWiringTest extends TestCase {
 			if ( isset( self::KNOWN_CALLERLESS_ACTIONS[ $action ] ) ) {
 				continue;
 			}
+			$base = self::$abstract_registrars[ $action ] ?? null;
+			if ( null !== $base && self::dispatched_through_data_attribute( $base ) ) {
+				continue;
+			}
+
 			if ( self::registrar_wires_a_client( $action, $registrar ) ) {
 				continue;
 			}
@@ -546,6 +656,75 @@ final class AjaxWiringTest extends TestCase {
 			. "\nno matter what an operator configures — the #936 defect. Either the key is"
 			. "\nwrong (the value may live under a sub-key of `ffc_settings`) or the write"
 			. "\nside was never built."
+		);
+	}
+
+	/**
+	 * Every `wp_ajax_*` registration must be resolved by one of the two idioms.
+	 *
+	 * **Why this test exists.** The three assertions above all compare `array()`
+	 * against a list of offenders, so a scan that stopped matching would find no
+	 * offenders and the guard would pass in silence — reporting that the wiring
+	 * is sound because it looked at nothing. That is not hypothetical: the
+	 * row-shape ruler measured 45 classes when 53 read rows for exactly that
+	 * reason, printing "Every class that reads a row declares what the row
+	 * holds" with thirty errors standing (#1087 passo 3).
+	 *
+	 * **And it checks resolution, not emptiness.** The ruler's failure was
+	 * *partial* — it found most of the population, not none — so an assertion
+	 * that the scan found *something* would have passed straight through it.
+	 * This one fails the day a third registration idiom appears (a variable
+	 * action, an interpolated string, an array of hooks) by naming the site the
+	 * parser could not resolve. It is the shape `ActivatorSqlTest` already uses
+	 * for CREATE statements: count independently, then demand agreement.
+	 *
+	 * @return void
+	 */
+	public function test_every_wp_ajax_registration_is_resolved_by_a_known_idiom(): void {
+		$unresolved = array();
+
+		foreach ( self::files_in( 'includes', array( '.php' ) ) as $path ) {
+			$code = self::code_of( $path );
+
+			// Every registration site, however the action name is built.
+			if ( ! preg_match_all( "/add_action\(\s*['\"]wp_ajax(_nopriv)?_[^,]*/", $code, $sites ) ) {
+				continue;
+			}
+
+			foreach ( $sites[0] as $site ) {
+				$literal  = (bool) preg_match( "/add_action\(\s*'wp_ajax_(?:nopriv_)?+[a-z0-9_]+'/", $site );
+				$constant = (bool) preg_match( "/add_action\(\s*'wp_ajax_(?:nopriv_)?'\s*\.\s*(?:self|static)::[A-Z][A-Z0-9_]*/", $site );
+				$abstract = (bool) preg_match( "/add_action\\(\\s*'wp_ajax_(?:nopriv_)?'\\s*\\.\\s*static::action\\(\\)/", $site );
+
+				if ( ! $literal && ! $constant && ! $abstract ) {
+					$unresolved[] = str_replace( self::root() . '/', '', $path ) . ' :: ' . trim( $site );
+				}
+			}
+		}
+
+		$this->assertSame(
+			array(),
+			$unresolved,
+			"A wp_ajax_* registration that neither idiom resolves. The parser would skip it,\n"
+			. "and every assertion in this file would then pass without ever seeing that action:\n\n  "
+			. implode( "\n  ", $unresolved )
+			. "\n\nTeach registered_ajax_actions() the new idiom rather than leaving it invisible."
+		);
+	}
+
+	/**
+	 * The population itself must not collapse.
+	 *
+	 * The check above proves every site the scan *found* was resolved; this one
+	 * proves the scan still finds sites at all — the cheaper half of the same
+	 * failure, for the day `files_in()` or `code_of()` stops returning anything.
+	 *
+	 * @return void
+	 */
+	public function test_the_registration_scan_still_finds_a_population(): void {
+		$this->assertNotEmpty(
+			self::registered_ajax_actions(),
+			'No wp_ajax_* registration found anywhere in includes/ — the scan is broken, not the plugin.'
 		);
 	}
 }

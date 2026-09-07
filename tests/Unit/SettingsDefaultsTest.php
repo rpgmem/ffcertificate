@@ -291,4 +291,50 @@ final class SettingsDefaultsTest extends TestCase {
 			. "\nKNOWN_DIVERGENT_DEFAULTS with the reason."
 		);
 	}
+
+	/**
+	 * Neither scan may collapse without the guard noticing.
+	 *
+	 * **Why.** The assertion below compares `array()` against a list of drifting
+	 * defaults, so a scan that stopped matching would find no drift and this
+	 * file would report that every default agrees — because it read none. And
+	 * the collapse has TWO independent triggers here, either of which is
+	 * enough:
+	 *
+	 *   1. `declared_defaults()` returns `array()` outright when the
+	 *      `get_default_settings(): array {` pattern misses — a changed
+	 *      signature, an added parameter, a reformat. Every read site then
+	 *      falls through the `! isset( $declared[ $key ] )` skip.
+	 *   2. `restated_defaults()` yields nothing when the accessor pattern
+	 *      misses, and the loop has nothing to compare.
+	 *
+	 * This is the shape the row-shape ruler lacked: it printed "Every class
+	 * that reads a row declares what the row holds" while measuring 45 of the
+	 * 53 that do (#1090). The check below anchors the declared side against an
+	 * independent fact — the method exists in the file — rather than against a
+	 * number that would need updating with every new setting.
+	 *
+	 * @return void
+	 */
+	public function test_neither_scan_can_collapse_in_silence(): void {
+		$settings_path = self::root() . '/includes/admin/class-ffc-settings.php';
+		$source        = (string) file_get_contents( $settings_path );
+
+		$this->assertStringContainsString(
+			'function get_default_settings',
+			$source,
+			'Settings::get_default_settings() is gone — this guard has no declared side left to compare against.'
+		);
+
+		$this->assertNotEmpty(
+			self::declared_defaults(),
+			'get_default_settings() exists but the parse yielded no key: the body pattern no longer matches its'
+			. ' signature, so every read site would be skipped as "not declared" and the guard would pass blind.'
+		);
+
+		$this->assertNotEmpty(
+			self::restated_defaults(),
+			'No read site restates a default anywhere in includes/ — the accessor pattern is broken, not the codebase.'
+		);
+	}
 }
