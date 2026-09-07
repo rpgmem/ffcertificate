@@ -138,6 +138,14 @@ abstract class AbstractRepository {
 		$results = array();
 		$missing = array();
 		foreach ( $ids as $id ) {
+			/**
+			 * The same cache hole as findById(), one method over: a hit seeds
+			 * $results with `mixed` and throws away the type the batch read
+			 * below declares. Asserted on the KEY — `id_*` is written by this
+			 * class and by findById(), and nothing else stores under it.
+			 *
+			 * @var array<string, mixed>|false $cached
+			 */
 			$cached = $this->get_cache( "id_{$id}" );
 			if ( false !== $cached ) {
 				$results[ $id ] = $cached;

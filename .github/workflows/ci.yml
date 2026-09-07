@@ -54,24 +54,19 @@ jobs:
           vendor/bin/phpstan analyse -c phpstan-rows.neon.dist \
             --error-format=json --no-progress --memory-limit=2G > rows.json || true
       - name: Report the row-reading classes
-        # The allowance is 30, and that is a raise — the one the CLAUDE.md rule
-        # reserves for a deliberate, argued exception (#1087 passo 3).
+        # Back to 0, and back by SHRINKING — the only way the raise was ever
+        # allowed to be undone (#1087 passo 4).
         #
-        # What changed is the DENOMINATOR, not the debt. The discovery scan
-        # required the literal substring `$wpdb->`, so every repository that
-        # binds wpdb as a property and calls `$this->wpdb->get_results(…)` was
-        # invisible: 45 classes were measured, 53 read rows. The gate reported
-        # "0 (allowed: 0)" and "Every class that reads a row declares what the
-        # row holds" while 30 level-9 errors stood in eight repositories,
-        # AbstractRepository among them. None of those 30 are new; they were
-        # never looked at.
+        # The allowance was 30 for exactly one release cycle, because the
+        # discovery scan had been measuring 45 classes when 53 read rows: every
+        # repository binding wpdb as a property was invisible, AbstractRepository
+        # among them. Those 30 errors were never new — they had never been
+        # looked at. All 30 are now fixed, so the gate blocks at 0 again and the
+        # count means what it says.
         #
-        # It goes back to 0 by shrinking, never by narrowing the scan again.
-        # Five tables are involved and one of them (ffc_submissions: 7 columns
-        # in the CREATE plus 18 added incrementally by Activator::add_columns)
-        # needs a decision on whether those 18 are optional keys before an
-        # honest shape can be written at all.
-        run: php .github/scripts/phpstan-rows-report.php rows.json 30
+        # Raising it again needs the same bar the raise met: a deliberate,
+        # argued exception, written here next to the number.
+        run: php .github/scripts/phpstan-rows-report.php rows.json 0
 
   audit:
     name: Composer audit

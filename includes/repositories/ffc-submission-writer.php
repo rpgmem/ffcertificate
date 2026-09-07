@@ -344,8 +344,9 @@ class SubmissionWriter extends AbstractRepository {
 	 * columns covered by the (form_id, hash) indexes), ignoring null/empty
 	 * identifiers.
 	 *
-	 * @param int                   $form_id Target form ID.
-	 * @param IdentifierProjection  $row     Source row with identifier columns.
+	 * @param int                  $form_id Target form ID.
+	 * @param array<string, mixed> $row     Source row with identifier columns.
+	 * @phpstan-param IdentifierProjection $row
 	 * @return bool True when at least one row in $form_id matches any populated identifier.
 	 */
 	private function hasConflictInForm( int $form_id, array $row ): bool {
