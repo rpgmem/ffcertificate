@@ -99,7 +99,8 @@ class MigrationDynamicReregFields {
 		$table_name      = $wpdb->prefix . 'ffc_custom_fields';
 		$charset_collate = $wpdb->get_charset_collate();
 
-		// Full desired schema (same as MigrationCustomFieldsTables, plus new columns).
+		// Full desired schema, matching UserDashboardActivator's CREATE TABLE — the
+		// SchemaAgreementTest enforces that the two stay identical (#1087).
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             audience_id bigint(20) unsigned NOT NULL,
