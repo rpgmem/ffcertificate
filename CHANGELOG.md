@@ -60,6 +60,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Removed
 
+- ⚠ **BREAKING — o fallback de layout `html/` foi removido** (#1087, #865): o seletor de layouts do editor de formulários passa a ser servido **exclusivamente** pelo pool de modelos. Saem o glob `html/*.html`, a carga por nome de arquivo e os três `html/default_certificate_*.html`. Quem ainda dependia de um arquivo solto em `html/` precisa importá-lo pelo pool (Configurações → Migrações → `import_legacy_templates`) antes de atualizar. Os `html/*.png` **continuam**, porque a migração de reescrita de imagens os lê do disco.
 - **`MigrationCustomFieldsTables`** (#1087): criava três tabelas que os activators já criam **antes** dela na mesma ativação, e não fazia mais nada — nem seu `get_status()` tinha consumidor. Shim de quando os activators ainda não existiam. A opção que ela gravava segue no `uninstall.php`, porque instalações existentes a têm.
 - `Shortcodes::get_new_captcha_data()` (#1053): método público sem nenhum chamador em produção — o único consumidor era o próprio teste. A geração de desafio já é responsabilidade do contrato de captcha.
 

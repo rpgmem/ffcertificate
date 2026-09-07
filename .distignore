@@ -50,10 +50,15 @@
 /force-split-migration.php
 
 # Instance-specific sample assets in html/ — NOT generic plugin defaults.
-# (Generic shipped defaults now live under assets/img/certificate-defaults/
-# and templates/ — the legacy html/default_certificate_* glob fallback stays
-# in html/ for now.) These are org/deployment-specific (São Paulo logos, a
-# named signature, a sample atestado) and should not go to end users.
+# (Generic shipped defaults live under assets/img/certificate-defaults/ and
+# templates/certificate-defaults/. The legacy html/default_certificate_* files
+# and the glob fallback that read them were removed in 6.23.0 — #1087.) These
+# are org/deployment-specific (São Paulo logos, a named signature, a sample
+# atestado) and should not go to end users.
+#
+# The remaining html/*.png stay shipped on purpose: the rewrite_html_image_refs
+# migration side-loads them into the Media Library for installs whose templates
+# still carry a legacy html/ reference, and it reads them off disk to do it.
 /html/Logo_Cidade_SP_SemFundo.png
 /html/Logo_DRE_v2-scaled.png
 /html/ludmila_santos.png
