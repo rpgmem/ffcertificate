@@ -55,10 +55,6 @@ class Activator {
 			\FreeFormCertificate\Migrations\MigrationRenameCapabilities::run();
 		}
 
-		if ( class_exists( '\FreeFormCertificate\Migrations\MigrationCustomFieldsTables' ) ) {
-			\FreeFormCertificate\Migrations\MigrationCustomFieldsTables::run();
-		}
-
 		if ( class_exists( '\FreeFormCertificate\Migrations\MigrationDynamicReregFields' ) ) {
 			\FreeFormCertificate\Migrations\MigrationDynamicReregFields::run();
 		}

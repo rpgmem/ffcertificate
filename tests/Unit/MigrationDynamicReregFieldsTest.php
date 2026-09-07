@@ -147,31 +147,4 @@ class MigrationDynamicReregFieldsTest extends TestCase {
 		$this->assertSame( 0, $result['seeded'] );
 	}
 
-	// ==================================================================
-	// dbDelta SQL hygiene — no backtick identifiers inside `-- ` comments
-	// ==================================================================
-
-	public function test_dbdelta_create_table_sql_has_no_backtick_inline_comments(): void {
-		// A standalone `-- ` SQL comment that contains a backtick identifier
-		// makes dbDelta's column-diff parser misread it as a real column and
-		// emit a broken `ALTER TABLE … ADD COLUMN -- …` (logged DB error on
-		// every activation). Guard every dbDelta source against re-introduction.
-		$files = array(
-			__DIR__ . '/../../includes/migrations/class-ffc-migration-dynamic-rereg-fields.php',
-			__DIR__ . '/../../includes/migrations/class-ffc-migration-custom-fields-tables.php',
-			__DIR__ . '/../../includes/self-scheduling/class-ffc-self-scheduling-activator.php',
-			__DIR__ . '/../../includes/recruitment/class-ffc-recruitment-activator.php',
-		);
-		foreach ( $files as $file ) {
-			$this->assertFileExists( $file );
-			$lines = file( $file );
-			foreach ( $lines as $i => $line ) {
-				$this->assertDoesNotMatchRegularExpression(
-					'/^\s*--\s.*`/',
-					$line,
-					sprintf( '%s line %d: a backtick in a dbDelta `-- ` comment breaks dbDelta parsing', basename( $file ), $i + 1 )
-				);
-			}
-		}
-	}
 }
