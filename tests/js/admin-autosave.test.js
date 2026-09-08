@@ -540,3 +540,75 @@ describe('FFC.Admin.autoSaveField — browser validity (#1114)', () => {
 		expect(postSpy).toHaveBeenCalledTimes(1);
 	});
 });
+
+describe('FFC.Admin.bootAutoSaveFields — two endpoints, one widget (#1116)', () => {
+	afterEach(() => {
+		delete window.ffcFormMetaAutosave;
+		delete window.ffcAdminAutosave;
+	});
+
+	function mountBoth() {
+		document.body.innerHTML = `
+			<input type="checkbox" id="s" data-ffc-autosave-key="ip_enabled">
+			<input type="checkbox" id="m" data-ffc-autosave-form-key="quiz_enabled">
+		`;
+	}
+
+	it('routes each attribute to its own action, nonce and url', () => {
+		window.ffcAdminAutosave = { nonce: 'settings-nonce' };
+		window.ffcFormMetaAutosave = {
+			ajaxUrl: '/other/admin-ajax.php',
+			action: 'ffc_update_form_meta',
+			nonce: 'fm-nonce',
+			postId: 7,
+		};
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true, data: {},
+		})));
+		mountBoth();
+		window.FFC.Admin.bootAutoSaveFields();
+
+		window.$('#s').prop('checked', true).trigger('change');
+		window.$('#m').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(600);
+
+		expect(postSpy).toHaveBeenCalledTimes(2);
+		const byAction = {};
+		postSpy.mock.calls.forEach(([url, payload]) => { byAction[payload.action] = { url, payload }; });
+
+		expect(byAction.ffc_update_setting.payload.nonce).toBe('settings-nonce');
+		expect(byAction.ffc_update_setting.payload.post_id).toBeUndefined();
+
+		expect(byAction.ffc_update_form_meta.url).toBe('/other/admin-ajax.php');
+		expect(byAction.ffc_update_form_meta.payload.nonce).toBe('fm-nonce');
+		expect(byAction.ffc_update_form_meta.payload.post_id).toBe(7);
+	});
+
+	it('leaves the settings half working on a screen with no form-meta config', () => {
+		window.ffcAdminAutosave = { nonce: 'settings-nonce' };
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true, data: {},
+		})));
+		mountBoth();
+		window.FFC.Admin.bootAutoSaveFields();
+
+		window.$('#s').prop('checked', true).trigger('change');
+		window.$('#m').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(600);
+
+		// Every settings tab is such a screen: no post to save meta against.
+		expect(postSpy).toHaveBeenCalledTimes(1);
+		expect(postSpy.mock.calls[0][1].action).toBe('ffc_update_setting');
+	});
+
+	it('is idempotent across both attributes', () => {
+		window.ffcFormMetaAutosave = { ajaxUrl: '/wp-admin/admin-ajax.php', nonce: 'fm', postId: 7 };
+		const spy = vi.spyOn(window.FFC.Admin, 'autoSaveField').mockImplementation(() => ({ destroy: () => {} }));
+		mountBoth();
+
+		window.FFC.Admin.bootAutoSaveFields();
+		window.FFC.Admin.bootAutoSaveFields();
+
+		expect(spy).toHaveBeenCalledTimes(2);
+	});
+});

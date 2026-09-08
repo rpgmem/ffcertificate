@@ -189,17 +189,18 @@ class FormEditorTest extends TestCase {
 	/**
 	 * Regression for the post-#240 form-meta autosave silent failure.
 	 *
-	 * `FormEditor::enqueue_scripts()` calls
-	 * `wp_localize_script('ffc-admin-js', 'ffcFormMetaAutosave', ...)`
-	 * but `ffc-admin-js` is registered by `AdminAssetsManager` on the
-	 * same hook. If FormEditor's callback runs first, WP silently drops
-	 * the localize data and the JS handler in ffc-admin.js short-
-	 * circuits — toggles stop auto-saving with no error surfacing.
+	 * `FormEditor::enqueue_scripts()` used to localize `ffcFormMetaAutosave`
+	 * onto `ffc-admin-js`, which `AdminAssetsManager` registers on the same
+	 * hook: running first meant WP silently dropped the localize data and
+	 * the toggles stopped auto-saving with no error surfacing. The fix was
+	 * priority 20, and #1116 removed the hazard's cause by moving the
+	 * localize onto `ffc-admin-autosave`, a handle FormEditor enqueues
+	 * itself.
 	 *
-	 * Fix: bump FormEditor's hook priority to 20 so it runs AFTER
-	 * AdminAssetsManager (default 10). The assertion below pins that
-	 * priority so a future refactor that drops it back to 10 fails
-	 * loudly here instead of in the browser.
+	 * The pin stays because the ordering it buys is still real — the rest
+	 * of the method localizes onto handles registered elsewhere — and
+	 * because dropping it back to 10 would fail in the browser rather than
+	 * here.
 	 */
 	public function test_enqueue_scripts_runs_after_admin_assets_manager(): void {
 		$captured = array();
@@ -223,8 +224,64 @@ class FormEditorTest extends TestCase {
 		$this->assertGreaterThan(
 			10,
 			$entry[2],
-			'enqueue_scripts must run after AdminAssetsManager (priority > 10) so ffc-admin-js is registered before wp_localize_script fires for it.'
+			'enqueue_scripts must run after AdminAssetsManager (priority > 10) so the handles it localizes onto are registered before wp_localize_script fires.'
 		);
+	}
+
+	/**
+	 * The form editor must enqueue the shared autosave widget (#1116).
+	 *
+	 * Before it, the metabox toggles were saved by a handler living inside
+	 * `ffc-admin.js`, so this screen needed no script of its own. Now they
+	 * are saved by `FFC.Admin.autoSaveField` — the same widget the settings
+	 * tabs use — which lives in `ffc-admin-autosave.js`. Forget the enqueue
+	 * and all 16 toggles stop saving, silently: nothing throws, the field
+	 * simply has no listener.
+	 *
+	 * The localized object goes onto that handle rather than onto
+	 * `ffc-admin-js`, which is what removes the ordering hazard the
+	 * priority test above describes.
+	 */
+	public function test_enqueue_scripts_wires_the_shared_autosave_widget(): void {
+		$screen = (object) array( 'post_type' => 'ffc_form' );
+		Functions\when( 'get_current_screen' )->justReturn( $screen );
+
+		$enqueued = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( $handle, $src = '', $deps = array() ) use ( &$enqueued ) {
+				$enqueued[ $handle ] = is_array( $deps ) ? $deps : array();
+			}
+		);
+		$localized = array();
+		Functions\when( 'wp_localize_script' )->alias(
+			static function ( $handle, $object_name, $data ) use ( &$localized ) {
+				$localized[ $object_name ] = array( 'handle' => $handle, 'data' => $data );
+				return true;
+			}
+		);
+		Functions\when( 'get_post' )->justReturn(
+			(object) array( 'ID' => 42, 'post_type' => 'ffc_form' )
+		);
+		Functions\when( 'get_post_meta' )->justReturn( false );
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'wp_create_nonce' )->justReturn( 'fm-nonce' );
+		Functions\when( 'get_option' )->justReturn( array() );
+
+		$editor = new FormEditor();
+		$editor->enqueue_scripts( 'post.php' );
+
+		$this->assertArrayHasKey( 'ffc-admin-autosave', $enqueued, 'The metabox toggles have no listener without this script.' );
+		$this->assertContains( 'ffc-core', $enqueued['ffc-admin-autosave'], 'The widget calls FFC.request, which ffc-core defines.' );
+		$this->assertContains( 'ffc-admin-js', $enqueued['ffc-admin-autosave'], 'The widget attaches to the FFC.Admin namespace ffc-admin.js creates.' );
+		$this->assertArrayHasKey( 'ffc-core', $enqueued );
+
+		$this->assertArrayHasKey( 'ffcFormMetaAutosave', $localized );
+		$this->assertSame( 'ffc-admin-autosave', $localized['ffcFormMetaAutosave']['handle'] );
+		$payload = $localized['ffcFormMetaAutosave']['data'];
+		$this->assertSame( 42, $payload['postId'] );
+		$this->assertSame( 'ffc_update_form_meta', $payload['action'] );
+		$this->assertSame( 'fm-nonce', $payload['nonce'] );
+		$this->assertArrayHasKey( 'invalid', $payload['strings'], 'The validity guard falls back to this string (#1114).' );
 	}
 
 	// ==================================================================

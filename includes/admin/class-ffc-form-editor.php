@@ -179,27 +179,41 @@ class FormEditor {
 			)
 		);
 
-		// Localize per-form-meta autosave wiring (nonce + post id) so the
-		// admin script can talk to FormMetaAjaxEndpoint on toggle change.
-		// `ffc-admin-js` is registered globally and already enqueued on
-		// this screen by AdminAssets; we attach the localized object to
-		// its handle so the inline `data-ffc-autosave-form-key` listeners
-		// read it on document-ready.
+		// Per-form-meta autosave. The widget that saves these toggles is
+		// the same one the settings tabs use — one implementation reading
+		// two attributes since #1116 — so this screen has to enqueue it;
+		// before that, the handler lived inline in `ffc-admin.js` and
+		// needed no script of its own.
+		//
+		// `ffc-admin-js` is registered globally and already enqueued here
+		// by AdminAssets, and it defines the `FFC.Admin` namespace the
+		// widget attaches to, so it is a dependency rather than an
+		// assumption. `ffc-core` supplies `FFC.request`.
 		$post = get_post();
 		if ( $post && 'ffc_form' === $post->post_type && $post->ID > 0 ) {
+			wp_enqueue_script(
+				'ffc-core',
+				FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
+				array( 'jquery' ),
+				FFC_VERSION,
+				true
+			);
+			wp_enqueue_script(
+				'ffc-admin-autosave',
+				FFC_PLUGIN_URL . "assets/js/ffc-admin-autosave{$s}.js",
+				array( 'jquery', 'ffc-core', 'ffc-admin-js' ),
+				FFC_VERSION,
+				true
+			);
 			wp_localize_script(
-				'ffc-admin-js',
+				'ffc-admin-autosave',
 				'ffcFormMetaAutosave',
 				array(
 					'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 					'action'  => \FreeFormCertificate\Admin\FormMetaAjaxEndpoint::AJAX_ACTION,
 					'nonce'   => wp_create_nonce( \FreeFormCertificate\Admin\FormMetaAjaxEndpoint::AJAX_ACTION ),
 					'postId'  => $post->ID,
-					'strings' => array(
-						'saving' => __( 'Saving…', 'ffcertificate' ),
-						'saved'  => __( 'Saved', 'ffcertificate' ),
-						'error'  => __( 'Save failed', 'ffcertificate' ),
-					),
+					'strings' => AdminUI::autosave_strings(),
 				)
 			);
 		}
