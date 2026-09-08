@@ -9,6 +9,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Limpar um limite na aba Rate Limit gravava zero e bloqueava o eixo inteiro** (#1114): os checadores leem `contagem >= 0` como "limite já atingido", então um `ip_max_per_hour` apagado barrava toda submissão de todo endereço. Campo vazio ou ausente passa a manter o valor gravado, com piso igual ao `min` que o próprio campo declara.
 - **Limpar um campo numérico no admin gravava o piso daquela chave, em silêncio** (#1111): `(int) ''` é `0`, então esvaziar o campo escrevia o menor valor aceito — e o autosave salva a cada tecla, então bastava apagar para retomar a digitação. O endpoint agora recusa valor vazio e mantém o gravado; `0` digitado continua valendo.
 
 ### Changed

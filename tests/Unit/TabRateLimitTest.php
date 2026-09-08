@@ -333,10 +333,10 @@ class TabRateLimitTest extends TestCase {
 	// Helpers + sanitize/save logic
 	// ==================================================================
 
-	private function invoke_private( string $method ) {
+	private function invoke_private( string $method, array $args = array() ) {
 		$ref = new \ReflectionMethod( TabRateLimit::class, $method );
 		$ref->setAccessible( true );
-		return $ref->invokeArgs( $this->tab, array() );
+		return $ref->invokeArgs( $this->tab, $args );
 	}
 
 	/** Stub the input-sanitizing WP funcs used by save_settings(). */
@@ -403,7 +403,7 @@ class TabRateLimitTest extends TestCase {
 
 	public function test_parse_read_endpoints_defaults_when_no_post(): void {
 		$this->stub_save_funcs();
-		$out = $this->invoke_private( 'parse_read_endpoints_post' );
+		$out = $this->invoke_private( 'parse_read_endpoints_post', array( array() ) );
 
 		$this->assertSame( array( 'calendar_slots', 'calendar_list', 'calendar_detail' ), array_keys( $out ) );
 		foreach ( $out as $endpoint ) {
@@ -419,7 +419,7 @@ class TabRateLimitTest extends TestCase {
 		$_POST['read_endpoint_calendar_slots_max_per_minute'] = '5';
 		$_POST['read_endpoint_calendar_slots_max_per_hour']   = '120';
 
-		$out = $this->invoke_private( 'parse_read_endpoints_post' );
+		$out = $this->invoke_private( 'parse_read_endpoints_post', array( array() ) );
 
 		$this->assertTrue( $out['calendar_slots']['enabled'] );
 		$this->assertSame( 5, $out['calendar_slots']['max_per_minute'] );
@@ -634,5 +634,120 @@ class TabRateLimitTest extends TestCase {
 		$this->assertSame( 0, $saved['ip']['captcha_max_per_window'] );
 
 		unset( $_POST['ip_captcha_max_per_window'] );
+	}
+
+	// ------------------------------------------------------------------
+	// Cleared / absent numeric fields (#1114)
+	// ------------------------------------------------------------------
+
+	/** Capture what save_settings() writes, over a given stored option. */
+	private function save_over( array $stored ): array {
+		$this->stub_save_funcs();
+		Functions\when( 'get_option' )->justReturn( $stored );
+
+		$saved = null;
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) use ( &$saved ) {
+				if ( 'ffc_rate_limit_settings' === $key ) {
+					$saved = $value;
+				}
+				return true;
+			}
+		);
+
+		$this->invoke_private( 'save_settings' );
+
+		return $saved;
+	}
+
+	public function test_a_cleared_limit_keeps_the_stored_value_across_every_group(): void {
+		// A cleared <input type="number"> posts '', absint('') is 0, and the
+		// checkers read a zero limit as "already reached" — so this used to
+		// block every submission on that axis, silently.
+		$_POST['ip_max_per_hour']        = '';
+		$_POST['email_max_per_day']      = '';
+		$_POST['cpf_max_per_month']      = '';
+		$_POST['global_max_per_minute']  = '';
+		$_POST['logging_retention_days'] = '';
+
+		$saved = $this->save_over(
+			array(
+				'ip'      => array( 'max_per_hour' => 42 ),
+				'email'   => array( 'max_per_day' => 7 ),
+				'cpf'     => array( 'max_per_month' => 9 ),
+				'global'  => array( 'max_per_minute' => 250 ),
+				'logging' => array( 'retention_days' => 15 ),
+			)
+		);
+
+		$this->assertSame( 42, $saved['ip']['max_per_hour'] );
+		$this->assertSame( 7, $saved['email']['max_per_day'] );
+		$this->assertSame( 9, $saved['cpf']['max_per_month'] );
+		$this->assertSame( 250, $saved['global']['max_per_minute'] );
+		$this->assertSame( 15, $saved['logging']['retention_days'] );
+
+		unset(
+			$_POST['ip_max_per_hour'], $_POST['email_max_per_day'], $_POST['cpf_max_per_month'],
+			$_POST['global_max_per_minute'], $_POST['logging_retention_days']
+		);
+	}
+
+	public function test_a_typed_zero_is_floored_where_zero_is_not_a_value(): void {
+		// Deliberate differs from accidental, but a zero limit is not an
+		// intent the checkers can express — `$count >= 0` is true on the first
+		// request. The floors mirror the min each field declares in the view.
+		$_POST['ip_max_per_hour']       = '0';
+		$_POST['global_max_per_minute'] = '0';
+		$_POST['logging_max_logs']      = '0';
+
+		$saved = $this->save_over( array() );
+
+		$this->assertSame( 1, $saved['ip']['max_per_hour'] );
+		$this->assertSame( 1, $saved['global']['max_per_minute'] );
+		$this->assertSame( 100, $saved['logging']['max_logs'], 'logging_max_logs declares min=100.' );
+
+		unset( $_POST['ip_max_per_hour'], $_POST['global_max_per_minute'], $_POST['logging_max_logs'] );
+	}
+
+	public function test_wait_hours_survives_a_save_although_no_field_renders_it(): void {
+		// The POST key is never present, so the old read reset the operator's
+		// value to the hardcoded default on every Save.
+		$saved = $this->save_over( array( 'email' => array( 'wait_hours' => 72 ) ) );
+
+		$this->assertSame( 72, $saved['email']['wait_hours'] );
+	}
+
+	public function test_a_read_endpoint_cap_tells_a_typed_zero_from_a_cleared_field(): void {
+		// Zero IS a value here ("no cap on this axis"), so no floor — but a
+		// cleared field must not be read as one.
+		$_POST['read_endpoint_calendar_slots_max_per_minute'] = '';
+		$_POST['read_endpoint_calendar_slots_max_per_hour']   = '0';
+
+		$saved = $this->save_over(
+			array(
+				'read' => array(
+					'endpoints' => array(
+						'calendar_slots' => array(
+							'max_per_minute' => 30,
+							'max_per_hour'   => 500,
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertSame( 30, $saved['read']['endpoints']['calendar_slots']['max_per_minute'], 'Cleared keeps the stored cap.' );
+		$this->assertSame( 0, $saved['read']['endpoints']['calendar_slots']['max_per_hour'], 'A typed zero still lifts that axis.' );
+
+		unset(
+			$_POST['read_endpoint_calendar_slots_max_per_minute'],
+			$_POST['read_endpoint_calendar_slots_max_per_hour']
+		);
+	}
+
+	public function test_non_numeric_residue_in_the_option_falls_back_to_the_default(): void {
+		$saved = $this->save_over( array( 'ip' => array( 'max_per_hour' => 'muitas' ) ) );
+
+		$this->assertSame( 5, $saved['ip']['max_per_hour'] );
 	}
 }
