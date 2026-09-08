@@ -287,7 +287,8 @@ final class RecruitmentAdminAssetsManager {
 			'ffc-admin-autosave',
 			'ffcAdminAutosave',
 			array(
-				'nonce' => wp_create_nonce( \FreeFormCertificate\Admin\SettingsAjaxEndpoint::AJAX_ACTION ),
+				'nonce'   => wp_create_nonce( \FreeFormCertificate\Admin\SettingsAjaxEndpoint::AJAX_ACTION ),
+				'strings' => \FreeFormCertificate\Admin\AdminUI::autosave_strings(),
 			)
 		);
 

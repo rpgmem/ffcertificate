@@ -449,5 +449,13 @@ class SettingsTabTest extends TestCase {
 		$this->assertContains( 'ffc-section-collapse', $handles );
 		$this->assertArrayHasKey( 'ffcAdminAutosave', $localized );
 		$this->assertSame( 'autosave-nonce', $localized['ffcAdminAutosave']['nonce'] );
+		// #1116: the widget's badge strings were English literals baked into
+		// the JS on this half, while the form-editor half was translated.
+		// One widget with a translated half is worse than two, so both
+		// screens now localize the same set.
+		$this->assertSame(
+			array( 'saving', 'saved', 'error', 'invalid' ),
+			array_keys( $localized['ffcAdminAutosave']['strings'] )
+		);
 	}
 }

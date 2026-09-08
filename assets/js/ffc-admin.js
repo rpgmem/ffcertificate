@@ -392,76 +392,14 @@
     });
 
     // =========================================================================
-    // Per-form-meta auto-save. Any input carrying
-    // `data-ffc-autosave-form-key="<allowlisted-key>"` POSTs its value to
-    // `ffc_update_form_meta` on `change`, scoped to the post id localized
-    // into `window.ffcFormMetaAutosave.postId`. A small inline status
-    // chip surfaces "Saving…" / "Saved" / "Save failed" beside the field.
-    //
-    // Scope: master toggle checkboxes only. The endpoint allowlist is
-    // hardcoded server-side; unknown keys are rejected with a 403.
+    // Per-form-meta auto-save lives in `ffc-admin-autosave.js`, together
+    // with the settings autosave it used to duplicate (#1116). This file
+    // carried its own handler — same work, different events, different
+    // badge, its own copy of the validity guard — until the two were
+    // converged into one widget reading both attributes. The form editor
+    // enqueues that script and localizes `ffcFormMetaAutosave`; nothing
+    // here is needed for it any more.
     // =========================================================================
-    var FORM_META_CFG = window.ffcFormMetaAutosave || null;
-
-    function formMetaStatusChip($field) {
-        var $wrap = $field.closest('.ffc-toggle');
-        if (!$wrap.length) { $wrap = $field; }
-        var $chip = $wrap.next('.ffc-form-meta-autosave-status');
-        if ($chip.length) { return $chip; }
-        $chip = $('<span class="ffc-form-meta-autosave-status" aria-live="polite" hidden></span>');
-        $wrap.after($chip);
-        return $chip;
-    }
-
-    function setFormMetaStatus($chip, state, text) {
-        $chip
-            .removeClass('is-saving is-saved is-error')
-            .addClass('is-' + state)
-            .text(text || '')
-            .removeAttr('hidden');
-    }
-
-    if (FORM_META_CFG && FORM_META_CFG.ajaxUrl && FORM_META_CFG.postId) {
-        $(document).on('change.ffcFormMetaAutosave', '[data-ffc-autosave-form-key]', function() {
-            var $field = $(this);
-            var key    = $field.data('ffc-autosave-form-key');
-            if (!key) { return; }
-            var $chip   = formMetaStatusChip($field);
-            var strings = FORM_META_CFG.strings || {};
-
-            // Same guard as FFC.Admin.autoSaveField. The duplication is
-            // temporary and deliberate: this path is a separate handler, not
-            // that widget, so a fix written there does not reach these fields
-            // (#1114). It collapses into one when #1116 converges the two.
-            // A checkbox has no constraints, so every toggle is unaffected.
-            var el = $field[0];
-            if (el && typeof el.checkValidity === 'function' && !el.checkValidity()) {
-                setFormMetaStatus($chip, 'error', el.validationMessage || strings.invalid || 'Enter a valid value');
-                if (typeof el.reportValidity === 'function') {
-                    el.reportValidity();
-                }
-                return;
-            }
-
-            var value = $field.is(':checkbox') ? ($field.is(':checked') ? '1' : '0') : $field.val();
-
-            setFormMetaStatus($chip, 'saving', strings.saving || 'Saving…');
-
-            FFC.request(
-                FORM_META_CFG.action || 'ffc_update_form_meta',
-                { post_id: FORM_META_CFG.postId, key: key, value: value },
-                { nonce: FORM_META_CFG.nonce, ajaxUrl: FORM_META_CFG.ajaxUrl }
-            )
-                .then(function () {
-                    setFormMetaStatus($chip, 'saved', strings.saved || 'Saved');
-                    setTimeout(function () { $chip.attr('hidden', 'hidden').text(''); }, 1500);
-                })
-                .catch(function (err) {
-                    var msg = (err && err.fromServer && err.message) || strings.error || 'Save failed';
-                    setFormMetaStatus($chip, 'error', msg);
-                });
-        });
-    }
 
     // =========================================================================
     // Copy-to-clipboard buttons. Any button carrying

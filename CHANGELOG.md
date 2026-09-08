@@ -15,6 +15,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Os dois caminhos de autosave do admin viraram um só widget** (#1116): o `data-ffc-autosave-form-key` tinha implementação própria em `ffc-admin.js` — mesmo trabalho, outro evento, outro badge — e a guarda de validade do #1114 precisou ser escrita duas vezes para alcançar os dois. Agora um widget lê os dois atributos; os endpoints seguem separados, com capacidade e nonce próprios.
+- **Badge de autosave dos metaboxes passa a seguir o modo escuro** (#1116): usava hex fixo em vez dos tokens `--ffc-*`. De quebra, distingue queda de conexão de recusa do servidor, que a implementação antiga achatava num "falha ao salvar" genérico, e os textos das abas de configuração deixam de ser literais em inglês no JS.
 - **Entradas numéricas das abas de configuração agora são obrigatórias** (#1114): 38 campos ganharam `required`, e o `smtp_port` — o único sem limite algum — ganhou faixa. Os caps de endpoint de leitura passam a dizer no próprio card que ali `0` remove o limite, ao contrário dos demais.
 - **Piso da janela de emissão de captcha baixado de 60s para 1s** (#1111): abaixo de um minuto o limite vira decorativo — o campo passa a dizer isso como recomendação, em vez de o código recusar, alinhando com os demais limites da aba.
 

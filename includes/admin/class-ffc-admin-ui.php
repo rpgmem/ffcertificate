@@ -25,6 +25,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 class AdminUI {
 
 	/**
+	 * Badge strings for the inline autosave widget.
+	 *
+	 * One source for both screens that enqueue it — the settings tabs and
+	 * the form editor. They were separate before #1116, and the settings
+	 * half had no strings at all: `FFC.Admin.autoSaveField` fell back to
+	 * English literals while the form editor's copy was translated. A
+	 * single widget with a translated half is worse than two, so the
+	 * strings are shared with it.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function autosave_strings(): array {
+		return array(
+			'saving'  => __( 'Saving…', 'ffcertificate' ),
+			'saved'   => __( 'Saved', 'ffcertificate' ),
+			'error'   => __( 'Save failed', 'ffcertificate' ),
+			'invalid' => __( 'Enter a valid value', 'ffcertificate' ),
+		);
+	}
+
+	/**
 	 * Render a toggle switch (`.ffc-toggle`) — visually a switch, an
 	 * accessible checkbox underneath.
 	 *
