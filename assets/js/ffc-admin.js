@@ -426,9 +426,24 @@
             var $field = $(this);
             var key    = $field.data('ffc-autosave-form-key');
             if (!key) { return; }
-            var value  = $field.is(':checkbox') ? ($field.is(':checked') ? '1' : '0') : $field.val();
-            var $chip  = formMetaStatusChip($field);
+            var $chip   = formMetaStatusChip($field);
             var strings = FORM_META_CFG.strings || {};
+
+            // Same guard as FFC.Admin.autoSaveField. The duplication is
+            // temporary and deliberate: this path is a separate handler, not
+            // that widget, so a fix written there does not reach these fields
+            // (#1114). It collapses into one when #1116 converges the two.
+            // A checkbox has no constraints, so every toggle is unaffected.
+            var el = $field[0];
+            if (el && typeof el.checkValidity === 'function' && !el.checkValidity()) {
+                setFormMetaStatus($chip, 'error', el.validationMessage || strings.invalid || 'Enter a valid value');
+                if (typeof el.reportValidity === 'function') {
+                    el.reportValidity();
+                }
+                return;
+            }
+
+            var value = $field.is(':checkbox') ? ($field.is(':checked') ? '1' : '0') : $field.val();
 
             setFormMetaStatus($chip, 'saving', strings.saving || 'Saving…');
 

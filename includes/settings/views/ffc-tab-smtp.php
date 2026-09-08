@@ -162,7 +162,7 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 						<tr>
 							<th scope="row"><label for="smtp_port"><?php esc_html_e( 'SMTP Port', 'ffcertificate' ); ?></label></th>
 							<td>
-								<input type="number" name="ffc_settings[smtp_port]" id="smtp_port" value="<?php echo esc_attr( $ffcertificate_get_option( 'smtp_port' ) ); ?>" class="small-text" placeholder="587">
+								<input type="number" name="ffc_settings[smtp_port]" id="smtp_port" value="<?php echo esc_attr( $ffcertificate_get_option( 'smtp_port' ) ); ?>" class="small-text" placeholder="587" min="1" max="65535" required>
 								<p class="description"><?php esc_html_e( 'Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)', 'ffcertificate' ); ?></p>
 							</td>
 						</tr>

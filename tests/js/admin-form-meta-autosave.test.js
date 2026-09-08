@@ -155,3 +155,52 @@ describe('ffc-admin form-meta autosave', () => {
 		expect(chip.classList.contains('ffc-form-meta-autosave-status')).toBe(true);
 	});
 });
+
+describe('ffc-admin form-meta autosave — browser validity (#1114)', () => {
+	function mountNumber(key, attrs) {
+		document.body.innerHTML = `
+			<input type="number" id="n-${key}" data-ffc-autosave-form-key="${key}" ${attrs}>
+		`;
+		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		loadScript('assets/js/ffc-admin.js');
+	}
+
+	it('refuses to save a value the browser considers invalid', async () => {
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
+		mountNumber('device_limit_max', 'min="1" value="1" required');
+
+		window.$('#n-device_limit_max').val('').trigger('change');
+		await flush();
+
+		expect(postSpy).not.toHaveBeenCalled();
+		expect(document.querySelector('.ffc-form-meta-autosave-status').className).toContain('is-error');
+	});
+
+	it('saves once the value becomes valid again', async () => {
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
+		mountNumber('device_limit_max', 'min="1" value="1" required');
+
+		window.$('#n-device_limit_max').val('').trigger('change');
+		expect(postSpy).not.toHaveBeenCalled();
+
+		window.$('#n-device_limit_max').val('3').trigger('change');
+		await flush();
+
+		// Not a call count: this handler is delegated on `document` and every
+		// mount in this file re-registers it, so the listener population grows
+		// across tests. What matters is that the valid value reached the wire.
+		expect(postSpy).toHaveBeenCalled();
+		expect(postSpy.mock.calls[postSpy.mock.calls.length - 1][1].value).toBe('3');
+	});
+
+	it('leaves toggles untouched — a checkbox is always valid', async () => {
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
+		mountToggle('quiz_enabled', false);
+
+		window.$('#t-quiz_enabled').prop('checked', true).trigger('change');
+		await flush();
+
+		expect(postSpy).toHaveBeenCalled();
+		expect(postSpy.mock.calls[postSpy.mock.calls.length - 1][1].value).toBe('1');
+	});
+});

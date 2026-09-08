@@ -142,6 +142,7 @@
         var saving   = strings.saving || 'Saving…';
         var saved    = strings.saved  || 'Saved';
         var errorTxt = strings.error  || 'Save failed';
+        var invalidTxt = strings.invalid || 'Enter a valid value';
         var debounceMs = typeof config.debounce === 'number' ? config.debounce : 400;
         var $badge   = ensureBadge($field, config.$badge);
 
@@ -159,8 +160,39 @@
             pendingTimer = setTimeout(performSave, debounceMs);
         }
 
+        /**
+         * Refuse to save a field the browser itself considers invalid.
+         *
+         * This widget saves on `input`, so without the check a number field
+         * cleared on the way to retyping it was saved as an empty string the
+         * moment it was emptied — and `min`, `max`, `step` and `required` were
+         * decorative here, enforced only on a submit this path never does
+         * (#1114). A checkbox has no constraints, so this is a no-op for every
+         * toggle; it bites on numbers and on the URL fields.
+         *
+         * The form-meta handler in `ffc-admin.js` carries a copy of this,
+         * because it is a separate implementation rather than a caller of this
+         * widget. #1116 converges the two and collapses the pair.
+         *
+         * @returns {boolean} True when the field may be saved.
+         */
+        function isSaveable() {
+            var el = $field[0];
+            if (!el || typeof el.checkValidity !== 'function' || el.checkValidity()) {
+                return true;
+            }
+            setBadgeState($badge, 'error', (el.validationMessage || invalidTxt));
+            if (typeof el.reportValidity === 'function') {
+                el.reportValidity();
+            }
+            return false;
+        }
+
         function performSave() {
             pendingTimer = null;
+            if (!isSaveable()) {
+                return;
+            }
             setBadgeState($badge, 'saving', saving);
             var value = extractValue($field, config.transform);
             // Endpoint expects a nonce verified against `ffc_update_setting`.

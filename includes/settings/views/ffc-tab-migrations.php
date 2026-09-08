@@ -361,7 +361,7 @@ try {
 					max="3650"
 					step="1"
 					value="<?php echo esc_attr( (string) $ffcertificate_cleanup_days ); ?>"
-					class="ffc-set-w-90">
+					class="ffc-set-w-90" required>
 				<span><?php esc_html_e( 'days ago', 'ffcertificate' ); ?></span>
 				<button type="submit" class="button button-secondary">
 					<?php esc_html_e( 'Save', 'ffcertificate' ); ?>
@@ -601,7 +601,7 @@ try {
 								)
 							);
 							?>
-							<input type="number" name="url_cleanup_days" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $ffcertificate_url_days ); ?>" class="ffc-set-w-80" data-ffc-autosave-key="url_cleanup_days">
+							<input type="number" name="url_cleanup_days" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $ffcertificate_url_days ); ?>" class="ffc-set-w-80" data-ffc-autosave-key="url_cleanup_days" required>
 							<span><?php esc_html_e( 'days ago', 'ffcertificate' ); ?></span>
 						</div>
 						<div>
@@ -783,7 +783,7 @@ try {
 				<label for="ffc-pubaccess-days" class="ffc-set-mr-8">
 					<?php esc_html_e( 'Disable access on forms ended more than', 'ffcertificate' ); ?>
 				</label>
-				<input type="number" id="ffc-pubaccess-days" name="public_access_disable_days" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $ffcertificate_pa_days ); ?>" class="ffc-set-w-90">
+				<input type="number" id="ffc-pubaccess-days" name="public_access_disable_days" min="1" max="3650" step="1" value="<?php echo esc_attr( (string) $ffcertificate_pa_days ); ?>" class="ffc-set-w-90" required>
 				<span><?php esc_html_e( 'days ago', 'ffcertificate' ); ?></span>
 				<button type="submit" class="button button-secondary">
 					<span class="dashicons dashicons-visibility"></span>
