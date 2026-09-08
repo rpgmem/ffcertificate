@@ -11,6 +11,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Settings\Tabs\TabRateLimit;
+use FreeFormCertificate\Core\Captcha\CaptchaSettings;
 
 /**
  * Tests for TabRateLimit: rate limiting settings tab.
@@ -445,6 +446,8 @@ class TabRateLimitTest extends TestCase {
 		$_POST['device_match_strong_min'] = '99';         // clamped to <= 6
 		$_POST['device_signals_enabled'] = array( 'cookie', 'bogus', 'ua' );
 		$_POST['whitelist_ips']      = "1.1.1.1\n2.2.2.2\n";
+		$_POST['ip_captcha_max_per_window'] = '999999';   // clamped to MINT_CAP_MAX
+		$_POST['ip_captcha_window_seconds'] = '5';        // clamped to MINT_WINDOW_MIN
 
 		$saved = null;
 		Functions\when( 'update_option' )->alias(
@@ -473,13 +476,17 @@ class TabRateLimitTest extends TestCase {
 		$this->assertSame( array( '1.1.1.1', '2.2.2.2' ), array_values( $saved['whitelist']['ips'] ) );
 		// read.endpoints comes from parse_read_endpoints_post().
 		$this->assertArrayHasKey( 'calendar_slots', $saved['read']['endpoints'] );
+		// The captcha issuing cap is clamped on save as well as on read (#1111).
+		$this->assertSame( CaptchaSettings::MINT_CAP_MAX, $saved['ip']['captcha_max_per_window'] );
+		$this->assertSame( CaptchaSettings::MINT_WINDOW_MIN, $saved['ip']['captcha_window_seconds'] );
 
 		unset(
 			$_POST['ip_enabled'], $_POST['ip_max_per_hour'], $_POST['ip_apply_to'],
 			$_POST['email_check_database'], $_POST['device_max_per_form'],
 			$_POST['device_match_threshold'], $_POST['device_match_strong_min'],
 			$_POST['device_signals_enabled'],
-			$_POST['whitelist_ips']
+			$_POST['whitelist_ips'], $_POST['ip_captcha_max_per_window'],
+			$_POST['ip_captcha_window_seconds']
 		);
 	}
 
@@ -502,5 +509,33 @@ class TabRateLimitTest extends TestCase {
 		$this->assertSame( 5, $saved['ip']['max_per_hour'] );
 		$this->assertSame( 'all', $saved['ip']['apply_to'] );
 		$this->assertSame( array(), $saved['device']['signals_enabled'] );
+		// An absent field must not silently change the enforced cap: the
+		// rebuild-save falls back to the same default the endpoint reads.
+		$this->assertSame( CaptchaSettings::MINT_CAP_DEFAULT, $saved['ip']['captcha_max_per_window'] );
+		$this->assertSame( CaptchaSettings::MINT_WINDOW_DEFAULT, $saved['ip']['captcha_window_seconds'] );
+	}
+
+	public function test_save_settings_accepts_zero_as_no_captcha_cap(): void {
+		// 0 is the documented escape hatch for institutional NAT, so it has
+		// to survive the save rather than being floored to the default.
+		$this->stub_save_funcs();
+
+		$_POST['ip_captcha_max_per_window'] = '0';
+
+		$saved = null;
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) use ( &$saved ) {
+				if ( 'ffc_rate_limit_settings' === $key ) {
+					$saved = $value;
+				}
+				return true;
+			}
+		);
+
+		$this->invoke_private( 'save_settings' );
+
+		$this->assertSame( 0, $saved['ip']['captcha_max_per_window'] );
+
+		unset( $_POST['ip_captcha_max_per_window'] );
 	}
 }

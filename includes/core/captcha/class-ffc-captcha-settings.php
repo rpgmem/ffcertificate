@@ -20,6 +20,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Core\Captcha;
 
+use FreeFormCertificate\Settings\RateLimitSettingsReader;
 use FreeFormCertificate\Settings\SettingsReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -70,6 +71,80 @@ class CaptchaSettings {
 	public const TTL_MAX = 3600;
 
 	/**
+	 * Challenges one address may mint per window when unconfigured.
+	 *
+	 * Enough for a visitor to render a form and retry a few times. It is the
+	 * value the endpoint enforced as a private constant before #1111 made it
+	 * configurable, so an install that never touches the field keeps exactly
+	 * the behaviour it had.
+	 *
+	 * @var int
+	 */
+	public const MINT_CAP_DEFAULT = 60;
+
+	/**
+	 * Lowest issuing cap an administrator may set.
+	 *
+	 * Zero, and it means "no cap" rather than "refuse everyone" — the same
+	 * convention the per-endpoint read limits already use. It is the escape
+	 * hatch for heavy institutional NAT, where any per-address number is
+	 * wrong by construction: hundreds of people share one address, so the
+	 * cap stops being a ceiling on farming and becomes a ceiling on the
+	 * building. What still bounds a farmer there is the challenge TTL plus
+	 * the per-CPF and per-IP limits on submission — a stockpile of solved
+	 * challenges expires long before the submission rate can spend it.
+	 *
+	 * @var int
+	 */
+	public const MINT_CAP_MIN = 0;
+
+	/**
+	 * Highest issuing cap an administrator may set.
+	 *
+	 * Above this, "unlimited" is the honest setting and the number is just
+	 * theatre. The ceiling exists so a typo lands somewhere the transient
+	 * counter still means something, not to express a security opinion.
+	 *
+	 * @var int
+	 */
+	public const MINT_CAP_MAX = 10000;
+
+	/**
+	 * Length of the issuing window when unconfigured, in seconds.
+	 *
+	 * Ten minutes — the value the endpoint carried as a private constant
+	 * before #1111, so an install that never touches the field keeps the
+	 * behaviour it had.
+	 *
+	 * @var int
+	 */
+	public const MINT_WINDOW_DEFAULT = 600;
+
+	/**
+	 * Shortest issuing window an administrator may set, in seconds.
+	 *
+	 * These are fixed windows, not sliding ones: the counter resets on the
+	 * boundary, so a caller who exhausts the cap waits at most one window.
+	 * Below a minute that wait stops being a throttle at all — a farmer just
+	 * paces its requests across boundaries.
+	 *
+	 * @var int
+	 */
+	public const MINT_WINDOW_MIN = 60;
+
+	/**
+	 * Longest issuing window an administrator may set, in seconds.
+	 *
+	 * The window is also the transient's lifetime, and it is the worst case
+	 * a legitimate visitor waits after tripping the cap. An hour is already
+	 * long enough that the right lever for a busy site is the cap, not a
+	 * longer window; further out it reads as a lockout.
+	 *
+	 * @var int
+	 */
+	public const MINT_WINDOW_MAX = 3600;
+
+	/**
 	 * Widget presentations the element accepts for `type`.
 	 *
 	 * @return array<int, string>
@@ -108,6 +183,26 @@ class CaptchaSettings {
 	}
 
 	/**
+	 * Clamp a challenge-issuing cap into the allowed range.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return int
+	 */
+	public static function clamp_mint_cap( $value ): int {
+		return self::clamp( $value, self::MINT_CAP_MIN, self::MINT_CAP_MAX, self::MINT_CAP_DEFAULT );
+	}
+
+	/**
+	 * Clamp an issuing window into the allowed range.
+	 *
+	 * @param mixed $value Raw value, in seconds.
+	 * @return int
+	 */
+	public static function clamp_mint_window( $value ): int {
+		return self::clamp( $value, self::MINT_WINDOW_MIN, self::MINT_WINDOW_MAX, self::MINT_WINDOW_DEFAULT );
+	}
+
+	/**
 	 * The configured work factor, already bounded.
 	 *
 	 * Read through here rather than from the option directly, so a value
@@ -127,6 +222,40 @@ class CaptchaSettings {
 	 */
 	public static function ttl(): int {
 		return self::clamp_ttl( SettingsReader::get( 'captcha_altcha_ttl', 600 ) );
+	}
+
+	/**
+	 * The configured challenge-issuing cap, already bounded.
+	 *
+	 * Read from the rate-limit option rather than `ffc_settings`, because
+	 * that is where it is edited: the Rate Limit tab groups by *what is
+	 * limited*, and this is limited per IP, next to the submission limit an
+	 * administrator preparing a busy event already raises. The bounds still
+	 * live here with the rest of the captcha guardrail, so both sides of the
+	 * value — where it is stored and what it may be — have one owner each.
+	 *
+	 * @return int Challenges per window; 0 means no cap.
+	 */
+	public static function mint_cap(): int {
+		$ip = RateLimitSettingsReader::ip();
+
+		return self::clamp_mint_cap( $ip['captcha_max_per_window'] ?? self::MINT_CAP_DEFAULT );
+	}
+
+	/**
+	 * The configured issuing window, already bounded.
+	 *
+	 * Stored beside the cap it applies to — a cap without its window is half
+	 * a setting, and an administrator who raises one and cannot see the
+	 * other is guessing. Changing it mid-flight only moves callers into a
+	 * fresh bucket, because the window length is part of the transient key.
+	 *
+	 * @return int Window length in seconds.
+	 */
+	public static function mint_window(): int {
+		$ip = RateLimitSettingsReader::ip();
+
+		return self::clamp_mint_window( $ip['captcha_window_seconds'] ?? self::MINT_WINDOW_DEFAULT );
 	}
 
 	/**

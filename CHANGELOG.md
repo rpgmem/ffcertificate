@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Emissão de desafios ALTCHA agora é configurável** (#1111): teto e janela no bloco de IP da aba Rate Limit, padrões 60 e 600s — os valores que já vigoravam — e teto 0 = sem limite. Era o único limite do sistema sem controle na interface: atrás de NAT institucional ele barrava o formulário para todos depois do 60º desafio, com 429 e nenhum erro visível.
+
 ## [6.23.0] (2026-09-07) — `e029d6f`
 
 ### Security

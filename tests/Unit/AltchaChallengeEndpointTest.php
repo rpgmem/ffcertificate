@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\Captcha\AltchaChallengeEndpoint;
+use FreeFormCertificate\Core\Captcha\CaptchaSettings;
 
 /**
  * Tests for the ALTCHA challenge endpoint (#1053 PR3).
@@ -38,6 +39,12 @@ class AltchaChallengeEndpointTest extends TestCase {
 	/** @var array<int, string> Hooks registered by init(). */
 	private array $hooks = array();
 
+	/** @var array<string, mixed> Stored `ffc_rate_limit_settings`. */
+	private array $rate_limit_settings = array();
+
+	/** @var array<int, int> TTLs passed to set_transient(). */
+	private array $transient_expirations = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -50,9 +57,14 @@ class AltchaChallengeEndpointTest extends TestCase {
 		$this->nocache    = false;
 		$this->hooks      = array();
 
+		$this->rate_limit_settings   = array();
+		$this->transient_expirations = array();
+
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
-		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_option' )->alias(
+			fn( string $key, $default = false ) => 'ffc_rate_limit_settings' === $key ? $this->rate_limit_settings : array()
+		);
 		Functions\when( 'add_action' )->alias(
 			function ( string $hook ): bool {
 				$this->hooks[] = $hook;
@@ -77,8 +89,9 @@ class AltchaChallengeEndpointTest extends TestCase {
 		);
 		Functions\when( 'get_transient' )->alias( fn( string $key ) => $this->transients[ $key ] ?? false );
 		Functions\when( 'set_transient' )->alias(
-			function ( string $key, $value ): bool {
-				$this->transients[ $key ] = $value;
+			function ( string $key, $value, $expiration = 0 ): bool {
+				$this->transients[ $key ]      = $value;
+				$this->transient_expirations[] = (int) $expiration;
 				return true;
 			}
 		);
@@ -92,6 +105,15 @@ class AltchaChallengeEndpointTest extends TestCase {
 	private function mock_ip( string $ip ): void {
 		$request = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
 		$request->shouldReceive( 'get_user_ip' )->andReturn( $ip );
+	}
+
+	private function set_mint_cap( int $cap ): void {
+		$this->rate_limit_settings = array( 'ip' => array( 'captcha_max_per_window' => $cap ) );
+	}
+
+	/** @return array<int, int> The TTLs set_transient() was given. */
+	private function transient_ttls(): array {
+		return $this->transient_expirations;
 	}
 
 	private function call_handle(): void {
@@ -197,5 +219,108 @@ class AltchaChallengeEndpointTest extends TestCase {
 
 		$this->assertArrayHasKey( 'challenge', $this->responses[0] );
 		$this->assertSame( array(), $this->statuses );
+	}
+
+	// ==================================================================
+	// The cap is configurable (#1111)
+	// ==================================================================
+
+	public function test_the_default_cap_is_the_one_the_endpoint_enforced_before_it_was_configurable(): void {
+		// An install that never touches the field must not change state on
+		// upgrade, so the unconfigured cap is exactly the old constant.
+		$this->mock_ip( '203.0.113.20' );
+
+		for ( $i = 0; $i < CaptchaSettings::MINT_CAP_DEFAULT; $i++ ) {
+			$this->call_handle();
+		}
+		$this->assertSame( array(), $this->statuses, 'The cap must not bite before it is reached.' );
+
+		$this->call_handle();
+		$this->assertSame( array( 429 ), $this->statuses );
+	}
+
+	public function test_a_configured_cap_replaces_the_default(): void {
+		$this->set_mint_cap( 3 );
+		$this->mock_ip( '203.0.113.21' );
+
+		for ( $i = 0; $i < 3; $i++ ) {
+			$this->call_handle();
+		}
+		$this->assertSame( array(), $this->statuses );
+
+		$this->call_handle();
+		$this->assertSame( array( 429 ), $this->statuses );
+	}
+
+	public function test_a_cap_of_zero_lifts_the_throttle_entirely(): void {
+		// The escape hatch for institutional NAT, where any per-address
+		// number caps the building rather than the farmer.
+		$this->set_mint_cap( 0 );
+		$this->mock_ip( '203.0.113.22' );
+
+		for ( $i = 0; $i < CaptchaSettings::MINT_CAP_DEFAULT + 5; $i++ ) {
+			$this->call_handle();
+		}
+
+		$this->assertSame( array(), $this->statuses );
+		$this->assertSame( array(), $this->transients, 'With no cap there is nothing to count, so nothing is written.' );
+	}
+
+	public function test_the_window_is_configurable_and_is_also_the_counter_lifetime(): void {
+		// A cap whose window is a private constant is half a setting: the
+		// same number means something different over a minute and an hour.
+		$this->rate_limit_settings = array(
+			'ip' => array(
+				'captcha_max_per_window' => 5,
+				'captcha_window_seconds' => 120,
+			),
+		);
+		$this->mock_ip( '203.0.113.24' );
+
+		$this->call_handle();
+
+		$this->assertSame( array( 120 ), $this->transient_ttls(), 'The counter must expire with its own window.' );
+		$this->assertStringEndsWith( '_' . (int) floor( time() / 120 ), array_key_first( $this->transients ) );
+	}
+
+	public function test_an_out_of_range_window_is_clamped_rather_than_taken_literally(): void {
+		// Bounded on read as well as on save. A one-second window would make
+		// the throttle a formality; the floor is what stops that.
+		$this->rate_limit_settings = array(
+			'ip' => array(
+				'captcha_max_per_window' => 5,
+				'captcha_window_seconds' => 1,
+			),
+		);
+		$this->mock_ip( '203.0.113.25' );
+
+		$this->call_handle();
+
+		$this->assertSame( array( CaptchaSettings::MINT_WINDOW_MIN ), $this->transient_ttls() );
+	}
+
+	public function test_an_unconfigured_window_keeps_the_ten_minutes_the_constant_carried(): void {
+		$this->mock_ip( '203.0.113.26' );
+
+		$this->call_handle();
+
+		$this->assertSame( 600, CaptchaSettings::MINT_WINDOW_DEFAULT );
+		$this->assertSame( array( CaptchaSettings::MINT_WINDOW_DEFAULT ), $this->transient_ttls() );
+	}
+
+	public function test_a_nonsense_stored_value_falls_back_to_the_default_rather_than_lifting_the_cap(): void {
+		// Bounded on read, not only on save. The failure mode that matters is
+		// the permissive one: a garbage value must not read as "no cap".
+		// The numeric bounds themselves are asserted in CaptchaSettingsTest.
+		$this->rate_limit_settings = array( 'ip' => array( 'captcha_max_per_window' => 'plenty' ) );
+		$this->mock_ip( '203.0.113.23' );
+
+		for ( $i = 0; $i < CaptchaSettings::MINT_CAP_DEFAULT; $i++ ) {
+			$this->call_handle();
+		}
+		$this->assertSame( array(), $this->statuses );
+
+		$this->call_handle();
+		$this->assertSame( array( 429 ), $this->statuses );
 	}
 }
