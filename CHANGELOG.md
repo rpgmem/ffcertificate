@@ -9,11 +9,13 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Campo numérico do admin salvava valor inválido pelo autosave** (#1114): o widget salva a cada tecla e nunca consultava a validade do campo, então `min`, `max` e `step` eram decorativos ali — vazio, negativo e decimal passavam. Os dois caminhos de autosave passam a recusar o que o navegador considera inválido; toggles não são afetados.
 - **Limpar um limite na aba Rate Limit gravava zero e bloqueava o eixo inteiro** (#1114): os checadores leem `contagem >= 0` como "limite já atingido", então um `ip_max_per_hour` apagado barrava toda submissão de todo endereço. Campo vazio ou ausente passa a manter o valor gravado, com piso igual ao `min` que o próprio campo declara.
 - **Limpar um campo numérico no admin gravava o piso daquela chave, em silêncio** (#1111): `(int) ''` é `0`, então esvaziar o campo escrevia o menor valor aceito — e o autosave salva a cada tecla, então bastava apagar para retomar a digitação. O endpoint agora recusa valor vazio e mantém o gravado; `0` digitado continua valendo.
 
 ### Changed
 
+- **Entradas numéricas das abas de configuração agora são obrigatórias** (#1114): 38 campos ganharam `required`, e o `smtp_port` — o único sem limite algum — ganhou faixa. Os caps de endpoint de leitura passam a dizer no próprio card que ali `0` remove o limite, ao contrário dos demais.
 - **Piso da janela de emissão de captcha baixado de 60s para 1s** (#1111): abaixo de um minuto o limite vira decorativo — o campo passa a dizer isso como recomendação, em vez de o código recusar, alinhando com os demais limites da aba.
 
 ### Added

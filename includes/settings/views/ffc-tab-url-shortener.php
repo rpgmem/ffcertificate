@@ -75,7 +75,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 		<td>
 			<input type="number" name="ffc_settings[url_shortener_code_length]" id="url_shortener_code_length"
 					value="<?php echo esc_attr( (string) $code_length ); ?>"
-					min="4" max="10" step="1" class="small-text" />
+					min="4" max="10" step="1" class="small-text" required />
 			<p class="description">
 				<?php esc_html_e( 'Length of the random code in short URLs (4-10 characters). Default: 6.', 'ffcertificate' ); ?>
 			</p>

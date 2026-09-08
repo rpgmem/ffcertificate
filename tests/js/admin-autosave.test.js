@@ -481,3 +481,62 @@ describe('FFC.Admin.autoSaveField — confirmOff gate', () => {
 		spy.mockRestore();
 	});
 });
+
+describe('FFC.Admin.autoSaveField — browser validity (#1114)', () => {
+	it('refuses to save a number the browser considers invalid', () => {
+		document.body.innerHTML = '<input type="number" id="n" min="1" value="5" required>';
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true, data: {},
+		})));
+		window.FFC.Admin.autoSaveField(window.$('#n'), { key: 'ip_max_per_hour' });
+
+		// This widget saves on `input`, so an emptied field used to be sent
+		// the moment it was cleared on the way to retyping it.
+		window.$('#n').val('').trigger('input');
+		vi.advanceTimersByTime(600);
+
+		expect(postSpy).not.toHaveBeenCalled();
+		expect(document.querySelector('.ffc-autosave-badge').className).toContain('--error');
+	});
+
+	it('refuses a value below the declared min', () => {
+		document.body.innerHTML = '<input type="number" id="n" min="1" value="5" required>';
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true, data: {},
+		})));
+		window.FFC.Admin.autoSaveField(window.$('#n'), { key: 'ip_max_per_hour' });
+
+		window.$('#n').val('0').trigger('input');
+		vi.advanceTimersByTime(600);
+
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+
+	it('saves once the value becomes valid again', () => {
+		document.body.innerHTML = '<input type="number" id="n" min="1" value="5" required>';
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true, data: {},
+		})));
+		window.FFC.Admin.autoSaveField(window.$('#n'), { key: 'ip_max_per_hour' });
+
+		window.$('#n').val('').trigger('input');
+		vi.advanceTimersByTime(600);
+		window.$('#n').val('9').trigger('input');
+		vi.advanceTimersByTime(600);
+
+		expect(postSpy).toHaveBeenCalledTimes(1);
+	});
+
+	it('is a no-op for a toggle — a checkbox carries no constraints', () => {
+		document.body.innerHTML = '<input type="checkbox" id="t">';
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true, data: {},
+		})));
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'ip_enabled' });
+
+		window.$('#t').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(600);
+
+		expect(postSpy).toHaveBeenCalledTimes(1);
+	});
+});
