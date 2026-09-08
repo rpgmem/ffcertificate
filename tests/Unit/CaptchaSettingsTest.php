@@ -253,14 +253,19 @@ class CaptchaSettingsTest extends TestCase {
 	 */
 	public static function mint_windows(): array {
 		return array(
-			'in range'          => array( 900, 900 ),
+			'in range'                => array( 900, 900 ),
+			// Under a minute is discouraged in the field, not refused by the
+			// code — the same latitude every other limit on that tab gives.
+			'short but allowed'       => array( 5, 5 ),
 			// Unlike the cap, 0 is not a value here: a window of nothing has
 			// no meaning, so it floors like any other out-of-range number.
-			'zero'              => array( 0, CaptchaSettings::MINT_WINDOW_MIN ),
-			'below the floor'   => array( 5, CaptchaSettings::MINT_WINDOW_MIN ),
-			'above the ceiling' => array( 999999, CaptchaSettings::MINT_WINDOW_MAX ),
-			'numeric string'    => array( '300', 300 ),
-			'not a number'      => array( 'dez minutos', CaptchaSettings::MINT_WINDOW_DEFAULT ),
+			// Both write paths refuse an empty field outright, so this is a
+			// backstop for a value that reached the option some other way.
+			'zero'                    => array( 0, CaptchaSettings::MINT_WINDOW_MIN ),
+			'negative'                => array( -5, CaptchaSettings::MINT_WINDOW_MIN ),
+			'above the ceiling'       => array( 999999, CaptchaSettings::MINT_WINDOW_MAX ),
+			'numeric string'          => array( '300', 300 ),
+			'not a number'            => array( 'dez minutos', CaptchaSettings::MINT_WINDOW_DEFAULT ),
 		);
 	}
 

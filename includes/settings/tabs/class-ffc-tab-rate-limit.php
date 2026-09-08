@@ -208,6 +208,11 @@ class TabRateLimit extends SettingsTab {
 	 * Save settings.
 	 */
 	private function save_settings(): void {
+		// Read before rebuilding: a numeric field the browser sent empty must
+		// fall back to what is already stored, not to a bound (see
+		// post_int_or_current()).
+		$current_ip = \FreeFormCertificate\Settings\RateLimitSettingsReader::ip();
+
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in render() via check_admin_referer.
 		$settings = array(
 			'ip'        => array(
@@ -218,15 +223,15 @@ class TabRateLimit extends SettingsTab {
 				'apply_to'               => \FreeFormCertificate\Core\RequestInput::get_post_string( 'ip_apply_to', 'all' ),
 				'message'                => sanitize_textarea_field( wp_unslash( $_POST['ip_message'] ?? '' ) ),
 				'captcha_max_per_window' => \FreeFormCertificate\Core\Captcha\CaptchaSettings::clamp_mint_cap(
-					\FreeFormCertificate\Core\RequestInput::get_post_int(
+					$this->post_int_or_current(
 						'ip_captcha_max_per_window',
-						\FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_CAP_DEFAULT
+						$current_ip['captcha_max_per_window'] ?? \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_CAP_DEFAULT
 					)
 				),
 				'captcha_window_seconds' => \FreeFormCertificate\Core\Captcha\CaptchaSettings::clamp_mint_window(
-					\FreeFormCertificate\Core\RequestInput::get_post_int(
+					$this->post_int_or_current(
 						'ip_captcha_window_seconds',
-						\FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_WINDOW_DEFAULT
+						$current_ip['captcha_window_seconds'] ?? \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_WINDOW_DEFAULT
 					)
 				),
 			),
@@ -320,6 +325,32 @@ class TabRateLimit extends SettingsTab {
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		update_option( 'ffc_rate_limit_settings', $settings );
+	}
+
+	/**
+	 * Read a POST integer, treating an empty field as "unchanged".
+	 *
+	 * A cleared `<input type="number">` posts the empty string, and `absint()`
+	 * turns that into `0` — which every bounded field then clamps to its own
+	 * floor. The result is a value the administrator never chose, written
+	 * silently: clearing the captcha window would have stored one second, and
+	 * clearing the cap would have stored "no cap" (#1111 follow-up). An empty
+	 * field means the value was not supplied, so the stored one stands.
+	 *
+	 * `0` typed deliberately still reads as `0` — that is a real value for
+	 * the cap, and the caller's clamp decides what it means elsewhere.
+	 *
+	 * @since 6.24.0
+	 * @param string $key     `$_POST` key.
+	 * @param int    $current Value already stored for this setting.
+	 * @return int
+	 */
+	private function post_int_or_current( string $key, int $current ): int {
+		if ( '' === \FreeFormCertificate\Core\RequestInput::get_post_string( $key, '' ) ) {
+			return $current;
+		}
+
+		return \FreeFormCertificate\Core\RequestInput::get_post_int( $key, $current );
 	}
 
 	/**

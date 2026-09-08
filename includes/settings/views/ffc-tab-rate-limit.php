@@ -40,15 +40,21 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 		<tr><th><?php esc_html_e( 'Apply to', 'ffcertificate' ); ?></th><td><select name="ip_apply_to" data-ffc-autosave-key="ip_apply_to"><option value="all"><?php esc_html_e( 'All forms', 'ffcertificate' ); ?></option></select></td></tr>
 		<tr><th><?php esc_html_e( 'Message', 'ffcertificate' ); ?></th><td><textarea name="ip_message" rows="3" class="large-text" data-ffc-autosave-key="ip_message" data-ffc-autosave-debounce="800"><?php echo esc_textarea( $ffcertificate_s['ip']['message'] ); ?></textarea></td></tr>
 	</tbody></table>
-	<?php
-	/*
-	 * Outside the `rl-ip` section table on purpose: this cap is enforced by
-	 * the ALTCHA challenge endpoint, which never consults `ip.enabled`, so
-	 * hiding it with the submission limits would hide a control that is
-	 * still in force. Same group because it is still limited per IP.
-	 */
-	?>
-	<h3><?php esc_html_e( 'Captcha challenges', 'ffcertificate' ); ?></h3>
+</div>
+
+<?php
+/*
+ * Its own card, not a block inside "IP Rate Limit": this cap is enforced by
+ * the ALTCHA challenge endpoint, which never consults `ip.enabled` and never
+ * touches the `ffc_rate_limit_*` tables the submission limits count in. Sitting
+ * inside that card it would read as something the IP toggle governs, and would
+ * disappear with the rest of the section when the toggle is off — while still
+ * being in force. It stores under the `ip` group because it is still limited
+ * per address; that is where the value lives, not what it belongs to on screen.
+ */
+?>
+<div class="card">
+	<h2 class="ffc-icon-shield"><?php esc_html_e( 'Captcha Challenges', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'How many ALTCHA challenges one address may request, and over how long. Only applies to the captcha modes that show the widget; the math mode never asks the server for one. Past the cap the widget cannot load a challenge and the form is unusable for everyone on that address — which behind institutional NAT is everyone in the building.', 'ffcertificate' ); ?>
 	</p>
@@ -73,6 +79,9 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 					max="<?php echo esc_attr( (string) \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_WINDOW_MAX ); ?>"
 					data-ffc-autosave-key="ip_captcha_window_seconds">
 				<p class="description"><?php esc_html_e( 'Fixed windows, not sliding: the count resets on the boundary, so an address that hits the cap waits at most one window.', 'ffcertificate' ); ?></p>
+				<p class="description">
+					<?php esc_html_e( 'Values under 60 seconds are allowed but not recommended: the count resets so often that an address never really reaches the cap — it just paces its requests across boundaries, and the limit becomes decorative.', 'ffcertificate' ); ?>
+				</p>
 			</td>
 		</tr>
 	</tbody></table>
