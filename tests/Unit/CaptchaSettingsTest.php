@@ -19,17 +19,29 @@ class CaptchaSettingsTest extends TestCase {
 	/** @var array<string, mixed> */
 	private array $settings = array();
 
+	/** @var array<string, mixed> Stored `ffc_rate_limit_settings`. */
+	private array $rate_limit_settings = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
 		class_exists( '\FreeFormCertificate\Core\Captcha\CaptchaSettings' );
 
-		$this->settings = array();
+		$this->settings            = array();
+		$this->rate_limit_settings = array();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'get_option' )->alias(
-			fn( string $key, $default = false ) => 'ffc_settings' === $key ? $this->settings : $default
+			function ( string $key, $default = false ) {
+				if ( 'ffc_settings' === $key ) {
+					return $this->settings;
+				}
+				if ( 'ffc_rate_limit_settings' === $key ) {
+					return $this->rate_limit_settings;
+				}
+				return $default;
+			}
 		);
 	}
 
@@ -189,5 +201,77 @@ class CaptchaSettingsTest extends TestCase {
 		foreach ( array( 'type', 'auto', 'display', 'theme', 'name', 'challenge', 'language', 'workers' ) as $attribute ) {
 			$this->assertArrayNotHasKey( $attribute, $config );
 		}
+	}
+
+	// ==================================================================
+	// Challenge-issuing cap (#1111)
+	// ==================================================================
+
+	/**
+	 * @dataProvider mint_caps
+	 * @param mixed $stored   Value in the rate-limit option.
+	 * @param int   $expected Value the endpoint should enforce.
+	 */
+	public function test_the_issuing_cap_is_bounded_on_read( $stored, int $expected ): void {
+		$this->rate_limit_settings = array( 'ip' => array( 'captcha_max_per_window' => $stored ) );
+
+		$this->assertSame( $expected, CaptchaSettings::mint_cap() );
+	}
+
+	/**
+	 * @return array<string, array{0: mixed, 1: int}>
+	 */
+	public static function mint_caps(): array {
+		return array(
+			'in range'          => array( 500, 500 ),
+			// 0 is a value, not a floor violation: it is the documented
+			// "no cap" setting for heavy institutional NAT.
+			'zero means no cap' => array( 0, 0 ),
+			'negative'          => array( -5, CaptchaSettings::MINT_CAP_MIN ),
+			'above the ceiling' => array( 999999, CaptchaSettings::MINT_CAP_MAX ),
+			'numeric string'    => array( '120', 120 ),
+			// The permissive failure is the one that matters: garbage must
+			// not read as "no cap".
+			'not a number'      => array( 'muitos', CaptchaSettings::MINT_CAP_DEFAULT ),
+			'array'             => array( array( 1 ), CaptchaSettings::MINT_CAP_DEFAULT ),
+		);
+	}
+
+	/**
+	 * @dataProvider mint_windows
+	 * @param mixed $stored   Value in the rate-limit option.
+	 * @param int   $expected Value the endpoint should bucket by.
+	 */
+	public function test_the_issuing_window_is_bounded_on_read( $stored, int $expected ): void {
+		$this->rate_limit_settings = array( 'ip' => array( 'captcha_window_seconds' => $stored ) );
+
+		$this->assertSame( $expected, CaptchaSettings::mint_window() );
+	}
+
+	/**
+	 * @return array<string, array{0: mixed, 1: int}>
+	 */
+	public static function mint_windows(): array {
+		return array(
+			'in range'          => array( 900, 900 ),
+			// Unlike the cap, 0 is not a value here: a window of nothing has
+			// no meaning, so it floors like any other out-of-range number.
+			'zero'              => array( 0, CaptchaSettings::MINT_WINDOW_MIN ),
+			'below the floor'   => array( 5, CaptchaSettings::MINT_WINDOW_MIN ),
+			'above the ceiling' => array( 999999, CaptchaSettings::MINT_WINDOW_MAX ),
+			'numeric string'    => array( '300', 300 ),
+			'not a number'      => array( 'dez minutos', CaptchaSettings::MINT_WINDOW_DEFAULT ),
+		);
+	}
+
+	public function test_an_install_that_never_configured_the_cap_keeps_the_previous_behaviour(): void {
+		// The value the endpoint enforced as a private constant before the
+		// field existed — an upgrade must not change what any install does.
+		$this->rate_limit_settings = array();
+
+		$this->assertSame( 60, CaptchaSettings::MINT_CAP_DEFAULT );
+		$this->assertSame( CaptchaSettings::MINT_CAP_DEFAULT, CaptchaSettings::mint_cap() );
+		$this->assertSame( 600, CaptchaSettings::MINT_WINDOW_DEFAULT );
+		$this->assertSame( CaptchaSettings::MINT_WINDOW_DEFAULT, CaptchaSettings::mint_window() );
 	}
 }

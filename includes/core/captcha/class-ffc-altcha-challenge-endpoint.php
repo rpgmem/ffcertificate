@@ -40,26 +40,6 @@ class AltchaChallengeEndpoint {
 	public const AJAX_ACTION = 'ffc_altcha_challenge';
 
 	/**
-	 * Challenges one address may mint per window.
-	 *
-	 * Generous on purpose: a visitor legitimately mints one per form render,
-	 * plus one per retry, and a shared address behind institutional NAT — the
-	 * normal case for this plugin's audience — multiplies that by everyone
-	 * sitting behind it. The cap is a ceiling on farming, not a quota anyone
-	 * should meet.
-	 *
-	 * @var int
-	 */
-	private const MAX_PER_WINDOW = 60;
-
-	/**
-	 * Length of the throttle window, in seconds.
-	 *
-	 * @var int
-	 */
-	private const WINDOW = 600;
-
-	/**
 	 * Transient key prefix.
 	 *
 	 * `ffc_` with no leading underscore, so the stored option is
@@ -117,9 +97,21 @@ class AltchaChallengeEndpoint {
 	 * in a single field. Minting is also cheap — a random int, a hash — so
 	 * what is bounded here is farming, not server load.
 	 *
+	 * Both halves are configurable (Rate Limit → IP), because no fixed
+	 * per-address number can be right for both a home connection and the
+	 * institutional NAT this plugin's audience sits behind (#1111) — and a
+	 * cap whose window is a private constant is half a setting. At 0 the
+	 * counter is skipped outright — no read, no write — so "no cap" costs
+	 * nothing rather than counting into a ceiling that never applies.
+	 *
 	 * @return bool True when the caller may mint another challenge.
 	 */
 	private static function allow_mint(): bool {
+		$cap = CaptchaSettings::mint_cap();
+		if ( $cap <= 0 ) {
+			return true;
+		}
+
 		$ip = RequestInput::get_user_ip();
 		if ( '' === $ip ) {
 			return true;
@@ -135,17 +127,22 @@ class AltchaChallengeEndpoint {
 		 * The address is hashed and never stored raw — an option name is
 		 * readable by anything that can list options, and a visitor IP is
 		 * personal data.
+		 *
+		 * The window length is part of the bucket number, so shortening or
+		 * lengthening it in the settings simply moves callers into a fresh
+		 * bucket rather than reinterpreting counts taken under the old one.
 		 */
-		$bucket = (int) floor( time() / self::WINDOW );
+		$window = CaptchaSettings::mint_window();
+		$bucket = (int) floor( time() / $window );
 		$key    = self::PREFIX . substr( hash( 'sha256', $ip ), 0, 32 ) . '_' . $bucket;
 		$count  = \get_transient( $key );
 		$count  = is_numeric( $count ) ? (int) $count : 0;
 
-		if ( $count >= self::MAX_PER_WINDOW ) {
+		if ( $count >= $cap ) {
 			return false;
 		}
 
-		\set_transient( $key, $count + 1, self::WINDOW );
+		\set_transient( $key, $count + 1, $window );
 
 		return true;
 	}

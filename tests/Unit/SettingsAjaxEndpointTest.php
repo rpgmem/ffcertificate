@@ -424,6 +424,17 @@ class SettingsAjaxEndpointTest extends TestCase {
 			$this->assertSame( $path, $list[ $key ]['path'] );
 			$this->assertSame( $type, $list[ $key ]['type'] );
 		}
+		// The captcha issuing cap is autosaved like its IP-group siblings, and
+		// its floor is 0 — the documented "no cap" value, not a missing bound.
+		$this->assertSame( array( 'ip', 'captcha_max_per_window' ), $list['ip_captcha_max_per_window']['path'] );
+		$this->assertSame( 0, $list['ip_captcha_max_per_window']['min'] );
+		$this->assertSame( 10000, $list['ip_captcha_max_per_window']['max'] );
+		// Its window travels with it — a cap whose window is not editable is
+		// half a setting.
+		$this->assertSame( array( 'ip', 'captcha_window_seconds' ), $list['ip_captcha_window_seconds']['path'] );
+		$this->assertSame( 60, $list['ip_captcha_window_seconds']['min'] );
+		$this->assertSame( 3600, $list['ip_captcha_window_seconds']['max'] );
+
 		// Message textareas declare multiline_text so newlines survive.
 		$this->assertSame( 'multiline_text', $list['ip_message']['as'] );
 		$this->assertSame( 'multiline_text', $list['device_message']['as'] );

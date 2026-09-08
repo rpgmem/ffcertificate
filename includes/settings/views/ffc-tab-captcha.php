@@ -165,6 +165,15 @@ $ffc_modes = array(
 					<p class="description">
 						<?php esc_html_e( 'How long a challenge stays valid after it is issued. Long enough to fill in the form without rushing; short enough that a solved challenge is not worth stockpiling.', 'ffcertificate' ); ?>
 					</p>
+					<p class="description">
+						<?php
+						printf(
+							/* translators: %s: link to the Rate Limit settings tab */
+							esc_html__( 'How many challenges one address may request, and over how long, is set under %s — raise it there when many visitors share one address.', 'ffcertificate' ),
+							'<a href="' . esc_url( admin_url( 'admin.php?page=ffc-settings&tab=rate_limit' ) ) . '">' . esc_html__( 'Rate Limit', 'ffcertificate' ) . '</a>'
+						);
+						?>
+					</p>
 				</td>
 			</tr>
 
