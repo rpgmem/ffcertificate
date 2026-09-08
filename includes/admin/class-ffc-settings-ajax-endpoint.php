@@ -551,7 +551,26 @@ class SettingsAjaxEndpoint {
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised on the next line by self::sanitize_value() against the allowlisted type for this key.
 		$raw_value = wp_unslash( $_POST['value'] ?? '' );
-		$value     = self::sanitize_value( $raw_value, $entry['type'] ?? 'bool', $entry );
+
+		/*
+		 * An empty string is not a number, and this endpoint must not guess
+		 * which one was meant. `(int) ''` is 0, so before this guard clearing
+		 * ANY numeric field in the admin silently stored that key's floor —
+		 * `cache_expiration` became 60, `qr_default_size` became 100, and the
+		 * captcha issuing window would have become one second (#1111
+		 * follow-up). The autosave widget saves on `input`, so a field cleared
+		 * on the way to retyping it wrote the floor within 400ms, with no
+		 * error and nothing on screen to say the value had changed.
+		 *
+		 * Refusing leaves the stored value intact and surfaces the failure in
+		 * the field's own badge, which is the honest outcome: nothing was
+		 * saved because nothing was typed. A deliberate `0` still saves.
+		 */
+		if ( 'int' === ( $entry['type'] ?? 'bool' ) && is_string( $raw_value ) && '' === trim( $raw_value ) ) {
+			wp_send_json_error( array( 'message' => __( 'Enter a number — an empty field leaves the setting unchanged.', 'ffcertificate' ) ), 400 );
+		}
+
+		$value = self::sanitize_value( $raw_value, $entry['type'] ?? 'bool', $entry );
 
 		// Optional bool inversion — the SMTP tab's "Ativar envios" toggle is
 		// stored on disk as `disable_all_emails` for historical reasons, so the

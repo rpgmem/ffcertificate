@@ -123,14 +123,24 @@ class CaptchaSettings {
 	/**
 	 * Shortest issuing window an administrator may set, in seconds.
 	 *
-	 * These are fixed windows, not sliding ones: the counter resets on the
-	 * boundary, so a caller who exhausts the cap waits at most one window.
-	 * Below a minute that wait stops being a throttle at all — a farmer just
-	 * paces its requests across boundaries.
+	 * One second, which is the bound against a value that is not a duration
+	 * at all — not a floor expressing an opinion about what is safe. It was
+	 * 60 for one release and that was the wrong kind of bound: these are
+	 * fixed windows, so the counter resets on the boundary and a window under
+	 * a minute makes the throttle mostly decorative — a farmer simply paces
+	 * its requests across boundaries. That is a recommendation the field
+	 * states (#1111 follow-up), not a range the code refuses, matching how
+	 * every other limit on the Rate Limit tab treats the administrator.
+	 *
+	 * The reason the floor could not simply be lowered on its own: a cleared
+	 * number field arrives as the empty string and `(int) ''` is 0, so with a
+	 * floor of 1 an accidental clear would have written a one-second window.
+	 * Both write paths now refuse an empty value rather than clamp it — see
+	 * `TabRateLimit::save_settings()` and `SettingsAjaxEndpoint::handle()`.
 	 *
 	 * @var int
 	 */
-	public const MINT_WINDOW_MIN = 60;
+	public const MINT_WINDOW_MIN = 1;
 
 	/**
 	 * Longest issuing window an administrator may set, in seconds.

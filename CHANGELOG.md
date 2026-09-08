@@ -7,6 +7,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Limpar um campo numérico no admin gravava o piso daquela chave, em silêncio** (#1111): `(int) ''` é `0`, então esvaziar o campo escrevia o menor valor aceito — e o autosave salva a cada tecla, então bastava apagar para retomar a digitação. O endpoint agora recusa valor vazio e mantém o gravado; `0` digitado continua valendo.
+
+### Changed
+
+- **Piso da janela de emissão de captcha baixado de 60s para 1s** (#1111): abaixo de um minuto o limite vira decorativo — o campo passa a dizer isso como recomendação, em vez de o código recusar, alinhando com os demais limites da aba.
+
 ### Added
 
 - **Emissão de desafios ALTCHA agora é configurável** (#1111): teto e janela no bloco de IP da aba Rate Limit, padrões 60 e 600s — os valores que já vigoravam — e teto 0 = sem limite. Era o único limite do sistema sem controle na interface: atrás de NAT institucional ele barrava o formulário para todos depois do 60º desafio, com 429 e nenhum erro visível.

@@ -342,6 +342,10 @@ class TabRateLimitTest extends TestCase {
 	/** Stub the input-sanitizing WP funcs used by save_settings(). */
 	private function stub_save_funcs(): void {
 		Functions\when( 'absint' )->alias( fn ( $v ) => abs( (int) $v ) );
+		// save_settings() reads the stored option so a cleared numeric field
+		// can fall back to the current value instead of a bound. Tests that
+		// care about the stored side re-stub this after calling us.
+		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
@@ -447,7 +451,7 @@ class TabRateLimitTest extends TestCase {
 		$_POST['device_signals_enabled'] = array( 'cookie', 'bogus', 'ua' );
 		$_POST['whitelist_ips']      = "1.1.1.1\n2.2.2.2\n";
 		$_POST['ip_captcha_max_per_window'] = '999999';   // clamped to MINT_CAP_MAX
-		$_POST['ip_captcha_window_seconds'] = '5';        // clamped to MINT_WINDOW_MIN
+		$_POST['ip_captcha_window_seconds'] = '0';        // typed zero → clamped to MINT_WINDOW_MIN
 
 		$saved = null;
 		Functions\when( 'update_option' )->alias(
@@ -479,6 +483,11 @@ class TabRateLimitTest extends TestCase {
 		// The captcha issuing cap is clamped on save as well as on read (#1111).
 		$this->assertSame( CaptchaSettings::MINT_CAP_MAX, $saved['ip']['captcha_max_per_window'] );
 		$this->assertSame( CaptchaSettings::MINT_WINDOW_MIN, $saved['ip']['captcha_window_seconds'] );
+		$this->assertSame( 1, CaptchaSettings::MINT_WINDOW_MIN, 'A window under a minute is discouraged in the field, not refused by the code.' );
+		// And a short-but-deliberate window survives the save unchanged.
+		$_POST['ip_captcha_window_seconds'] = '5';
+		$this->invoke_private( 'save_settings' );
+		$this->assertSame( 5, $saved['ip']['captcha_window_seconds'] );
 
 		unset(
 			$_POST['ip_enabled'], $_POST['ip_max_per_hour'], $_POST['ip_apply_to'],
@@ -521,6 +530,94 @@ class TabRateLimitTest extends TestCase {
 		$this->stub_save_funcs();
 
 		$_POST['ip_captcha_max_per_window'] = '0';
+
+		$saved = null;
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) use ( &$saved ) {
+				if ( 'ffc_rate_limit_settings' === $key ) {
+					$saved = $value;
+				}
+				return true;
+			}
+		);
+
+		$this->invoke_private( 'save_settings' );
+
+		$this->assertSame( 0, $saved['ip']['captcha_max_per_window'] );
+
+		unset( $_POST['ip_captcha_max_per_window'] );
+	}
+
+	public function test_a_cleared_number_field_keeps_the_stored_value(): void {
+		// A cleared <input type="number"> posts '', and absint('') is 0 — so
+		// without this the captcha window would have been saved as one second
+		// and the cap as "no cap", neither of which anyone typed.
+		$this->stub_save_funcs();
+
+		$_POST['ip_captcha_max_per_window'] = '';
+		$_POST['ip_captcha_window_seconds'] = '';
+
+		Functions\when( 'get_option' )->justReturn(
+			array(
+				'ip' => array(
+					'captcha_max_per_window' => 300,
+					'captcha_window_seconds' => 1800,
+				),
+			)
+		);
+
+		$saved = null;
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) use ( &$saved ) {
+				if ( 'ffc_rate_limit_settings' === $key ) {
+					$saved = $value;
+				}
+				return true;
+			}
+		);
+
+		$this->invoke_private( 'save_settings' );
+
+		$this->assertSame( 300, $saved['ip']['captcha_max_per_window'] );
+		$this->assertSame( 1800, $saved['ip']['captcha_window_seconds'] );
+
+		unset( $_POST['ip_captcha_max_per_window'], $_POST['ip_captcha_window_seconds'] );
+	}
+
+	public function test_a_cleared_field_with_nothing_stored_falls_back_to_the_default(): void {
+		$this->stub_save_funcs();
+
+		$_POST['ip_captcha_window_seconds'] = '';
+
+		Functions\when( 'get_option' )->justReturn( array() );
+
+		$saved = null;
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) use ( &$saved ) {
+				if ( 'ffc_rate_limit_settings' === $key ) {
+					$saved = $value;
+				}
+				return true;
+			}
+		);
+
+		$this->invoke_private( 'save_settings' );
+
+		$this->assertSame( CaptchaSettings::MINT_WINDOW_DEFAULT, $saved['ip']['captcha_window_seconds'] );
+
+		unset( $_POST['ip_captcha_window_seconds'] );
+	}
+
+	public function test_a_typed_zero_cap_is_not_mistaken_for_a_cleared_field(): void {
+		// "Nothing typed" and "zero typed" are the same after absint(); only
+		// the raw read tells them apart, and 0 is a real value for the cap.
+		$this->stub_save_funcs();
+
+		$_POST['ip_captcha_max_per_window'] = '0';
+
+		Functions\when( 'get_option' )->justReturn(
+			array( 'ip' => array( 'captcha_max_per_window' => 300 ) )
+		);
 
 		$saved = null;
 		Functions\when( 'update_option' )->alias(
