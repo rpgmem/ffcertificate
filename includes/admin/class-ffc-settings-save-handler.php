@@ -298,6 +298,13 @@ class SettingsSaveHandler {
 			$clean['send_wp_user_email_migration'] = sanitize_text_field( $new['send_wp_user_email_migration'] );
 		}
 
+		// Access-granted notification (#1123). Same shape as the four above:
+		// the view emits a hidden '0' sibling, so the key is always present
+		// on an SMTP-tab POST and the value is what decides.
+		if ( isset( $new['notify_capability_grant'] ) ) {
+			$clean['notify_capability_grant'] = sanitize_text_field( $new['notify_capability_grant'] );
+		}
+
 		if ( isset( $new['smtp_mode'] ) ) {
 			$clean['smtp_mode'] = sanitize_key( $new['smtp_mode'] );
 		}

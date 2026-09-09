@@ -35,6 +35,18 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Debug-area toggles are NOT exposed here — they're already typed via
  * {@see \FreeFormCertificate\Core\Debug::is_enabled()}, which is the
  * canonical reader for that subset.
+ *
+ * INVARIANT — every key here belongs to `ffc_settings`. Three sibling
+ * facades read their own option (`GeolocationSettingsReader`,
+ * `RateLimitSettingsReader`, `IpDiagnosticsSettingsReader`), and
+ * `AccessControl` owns `ffc_user_access_settings`. An accessor added here
+ * for one of *their* keys compiles, passes review and always returns its
+ * hardcoded default, because nothing ever writes that key into this option
+ * — seven of them had accumulated that way and were removed in #1123, four
+ * of which duplicated a correct accessor on `GeolocationSettingsReader`.
+ * Nothing had called any of them, which is the only reason it never showed:
+ * the first caller would have inherited a setting frozen at its default.
+ * `SettingsDefaultsTest` now watches the key set from the outside.
  */
 final class SettingsReader {
 
@@ -204,11 +216,6 @@ final class SettingsReader {
 		return array_values( array_unique( $tags ) );
 	}
 
-	/** Whether the WP admin bar is allowed for the FFC user role. */
-	public static function admin_bar_allowed(): bool {
-		return self::get_bool( 'allow_admin_bar' );
-	}
-
 	/**
 	 * Whether deleting the plugin (uninstall.php) should drop tables /
 	 * options / CPT posts / roles / caps / user meta.
@@ -221,19 +228,6 @@ final class SettingsReader {
 	 */
 	public static function delete_data_on_uninstall(): bool {
 		return self::get_bool( 'delete_data_on_uninstall' );
-	}
-
-	/** Whether the FFC user role is blocked from wp-admin. */
-	public static function wp_admin_blocked(): bool {
-		return self::get_bool( 'block_wp_admin' );
-	}
-
-	/**
-	 * Whether site administrators bypass the FFC user-side restrictions
-	 * (admin-bar gating, wp-admin block, etc.).
-	 */
-	public static function admins_bypassed(): bool {
-		return self::get_bool( 'bypass_for_admins' );
 	}
 
 	/** Whether the QR-code cache is enabled. */
@@ -304,16 +298,6 @@ final class SettingsReader {
 		return self::get_bool( self::module_option_key( $module ), true );
 	}
 
-	/** Whether IP-geolocation lookups are cached. */
-	public static function ip_cache_enabled(): bool {
-		return self::get_bool( 'ip_cache_enabled' );
-	}
-
-	/** Whether the IP-geolocation provider lookup is enabled. */
-	public static function ip_api_enabled(): bool {
-		return self::get_bool( 'ip_api_enabled' );
-	}
-
 	/** Whether admins are notified when a capability is granted. */
 	public static function notify_capability_grant_enabled(): bool {
 		return self::get_bool( 'notify_capability_grant' );
@@ -342,16 +326,6 @@ final class SettingsReader {
 	 */
 	public static function obsolete_shortcode_days(): int {
 		return self::get_int( 'obsolete_shortcode_days', 90 );
-	}
-
-	/** TTL for cached GPS-resolved locations. */
-	public static function gps_cache_ttl(): int {
-		return self::get_int( 'gps_cache_ttl', 600 );
-	}
-
-	/** TTL for cached IP-resolved locations. */
-	public static function ip_cache_ttl(): int {
-		return self::get_int( 'ip_cache_ttl', 600 );
 	}
 
 	/** Default row count returned by the public CSV download endpoint. */

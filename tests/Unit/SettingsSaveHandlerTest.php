@@ -395,6 +395,22 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertSame( 'no', $result['send_wp_user_email_migration'] );
 	}
 
+	/**
+	 * #1123 — the key that gated the "Access granted" email had no write
+	 * path at all, so the email was unreachable on every install. This
+	 * covers the rebuild-save half; the autosave half is the allowlist
+	 * entry asserted in SettingsAjaxEndpointTest.
+	 */
+	public function test_notify_capability_grant_is_saved(): void {
+		$result = $this->invoke( 'save_smtp_settings', array( array(), array( 'notify_capability_grant' => '1' ) ) );
+		$this->assertSame( '1', $result['notify_capability_grant'] );
+	}
+
+	public function test_notify_capability_grant_absent_leaves_the_stored_value(): void {
+		$result = $this->invoke( 'save_smtp_settings', array( array( 'notify_capability_grant' => '1' ), array() ) );
+		$this->assertSame( '1', $result['notify_capability_grant'] );
+	}
+
 	public function test_smtp_user_pass_from_name_stored(): void {
 		$new = array(
 			'smtp_user'      => 'mailer@example.com',
