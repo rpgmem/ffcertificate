@@ -166,6 +166,15 @@ class AudienceWriter {
 			}
 		}
 
+		// Two of the updatable columns change what `get_user_audiences()`
+		// answers, for people whose membership did not change at all: the query
+		// filters `status = 'active'`, and its `include_parents` variant walks
+		// `parent_id` upward. Read the affected users before the write —
+		// membership is the same either side of it, but doing it here keeps the
+		// order identical to delete(), where it genuinely matters.
+		$touches_user_lists = isset( $update_data['status'] ) || array_key_exists( 'parent_id', $update_data );
+		$affected           = $touches_user_lists ? AudienceReader::get_members( $id, true ) : array();
+
 		$result = $wpdb->update(
 			$table,
 			$update_data,
@@ -176,6 +185,7 @@ class AudienceWriter {
 
 		static::cache_delete( "id_{$id}" );
 		\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_DOMAIN );
+		self::invalidate_user_audiences( $affected );
 
 		return false !== $result;
 	}
@@ -215,6 +225,22 @@ class AudienceWriter {
 			$wpdb->query( $update_sql );
 		}
 
+		// `allow_self_join` is one of the columns `get_user_audiences()` returns,
+		// so every member of every touched child was reading a stale flag. This
+		// method invalidated nothing at all — not the by-id entries, not the
+		// query version, not the per-user lists (#1127).
+		//
+		// The recursion below repeats this for each level, so the top call's
+		// `include_children` sweep is redone for subsets. Left as-is: the extra
+		// work is one query per level of an admin-triggered cascade, and
+		// threading a "top-level only" flag through a public recursive method
+		// costs more clarity than it saves.
+		foreach ( $child_ids as $child_id ) {
+			static::cache_delete( "id_{$child_id}" );
+		}
+		self::invalidate_user_audiences( AudienceReader::get_members( $parent_id, true ) );
+		\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_DOMAIN );
+
 		// Recurse into each child.
 		foreach ( $children as $child ) {
 			self::cascade_self_join( (int) $child->id, $value );
@@ -234,6 +260,13 @@ class AudienceWriter {
 		$table         = self::get_table_name();
 		$members_table = self::get_members_table_name();
 
+		// Collect the affected users BEFORE anything is deleted: the recursion
+		// below empties the members table of every descendant, so asking
+		// afterwards returns nothing. `include_children` is required — a user
+		// who is only in a child audience still sees this one through the
+		// `include_parents` variant of the cached query.
+		$affected = AudienceReader::get_members( $id, true );
+
 		// Delete children first.
 		$children = AudienceReader::get_children( $id );
 		foreach ( $children as $child ) {
@@ -248,8 +281,40 @@ class AudienceWriter {
 
 		static::cache_delete( "id_{$id}" );
 		\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_DOMAIN );
+		self::invalidate_user_audiences( $affected );
 
 		return false !== $result;
+	}
+
+	/**
+	 * Drop the cached audience list of every affected user.
+	 *
+	 * `AudienceReader::get_user_audiences()` answers "which audiences is this
+	 * user in", and its result changes on **membership** (a row in the members
+	 * table) *and* on the **audience row itself** — the query filters
+	 * `status = 'active'`, returns `allow_self_join`, and the `include_parents`
+	 * variant walks `parent_id` upward. So a mutator touching any of those has
+	 * to invalidate here, not only the ones that write the members table.
+	 *
+	 * It is deliberately **explicit per user** rather than a
+	 * {@see \FreeFormCertificate\Core\CacheVersion} bump. A version bump writes
+	 * an option, so a 500-user bulk add would be 500 `update_option()` calls,
+	 * and it would retire every audience query cache for every user. The
+	 * versioned group exists for keys that *cannot* be enumerated at write
+	 * time (`md5( args )` hashes); this key can — a mutator always knows whose
+	 * membership it changed.
+	 *
+	 * @param array<int|string> $user_ids Affected user IDs.
+	 * @return void
+	 */
+	private static function invalidate_user_audiences( array $user_ids ): void {
+		foreach ( array_unique( array_map( 'absint', $user_ids ) ) as $uid ) {
+			if ( $uid <= 0 ) {
+				continue;
+			}
+			static::cache_delete( AudienceReader::user_audiences_cache_key( $uid, false ) );
+			static::cache_delete( AudienceReader::user_audiences_cache_key( $uid, true ) );
+		}
 	}
 
 	/**
@@ -277,7 +342,15 @@ class AudienceWriter {
 			array( '%d', '%d' )
 		);
 
-		return $result ? $wpdb->insert_id : false;
+		if ( ! $result ) {
+			return false;
+		}
+
+		// Invalidating here rather than in the bulk wrappers is what covers
+		// `bulk_add_members()` too — it is a loop over this method.
+		self::invalidate_user_audiences( array( $user_id ) );
+
+		return $wpdb->insert_id;
 	}
 
 	/**
@@ -300,7 +373,14 @@ class AudienceWriter {
 			array( '%d', '%d' )
 		);
 
-		return false !== $result;
+		if ( false === $result ) {
+			return false;
+		}
+
+		// As in add_member(): this is what covers `bulk_remove_members()`.
+		self::invalidate_user_audiences( array( $user_id ) );
+
+		return true;
 	}
 
 	/**
@@ -348,18 +428,21 @@ class AudienceWriter {
 		$wpdb  = self::db();
 		$table = self::get_members_table_name();
 
+		// Read the current members BEFORE the wipe. Whoever is dropped by it is
+		// affected exactly as much as whoever is added, and the previous version
+		// of this method invalidated only the incoming list — so a user removed
+		// from an audience kept seeing it until the entry expired (#1127).
+		$previous = AudienceReader::get_members( $audience_id );
+
 		$wpdb->delete( $table, array( 'audience_id' => $audience_id ), array( '%d' ) );
 
-		// Add new members.
+		// Add new members. Each add_member() invalidates its own user; the
+		// sweep below is what covers the ones that were dropped.
 		foreach ( $user_ids as $user_id ) {
 			self::add_member( $audience_id, (int) $user_id );
 		}
 
-		// Invalidate audience membership caches for affected users.
-		foreach ( $user_ids as $uid ) {
-			wp_cache_delete( 'ffcertificate_user_aud_' . (int) $uid . '_0', 'ffcertificate' );
-			wp_cache_delete( 'ffcertificate_user_aud_' . (int) $uid . '_1', 'ffcertificate' );
-		}
+		self::invalidate_user_audiences( array_merge( $previous, $user_ids ) );
 
 		return true;
 	}

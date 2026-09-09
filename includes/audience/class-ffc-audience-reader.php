@@ -386,6 +386,27 @@ class AudienceReader {
 	}
 
 	/**
+	 * Cache key for {@see self::get_user_audiences()}.
+	 *
+	 * Lives on the Reader because the Reader owns the shape of what is
+	 * cached, and {@see AudienceWriter} has to delete the very keys this
+	 * builds — two copies of a key format is how one side drifts.
+	 *
+	 * The key sits in {@see self::cache_group()} like every other entry this
+	 * pair writes. It used to sit in a literal `'ffcertificate'` group of its
+	 * own, outside the Reader/Writer pair entirely, which is what let five of
+	 * the mutators forget it (#1127).
+	 *
+	 * @param int  $user_id         User ID.
+	 * @param bool $include_parents Whether ancestors are folded in — a
+	 *                              different result, so a different key.
+	 * @return string
+	 */
+	public static function user_audiences_cache_key( int $user_id, bool $include_parents ): string {
+		return 'user_aud_' . $user_id . '_' . ( $include_parents ? '1' : '0' );
+	}
+
+	/**
 	 * Get audiences a user belongs to
 	 *
 	 * @param int  $user_id User ID.
@@ -393,8 +414,8 @@ class AudienceReader {
 	 * @return list<AudienceRow>
 	 */
 	public static function get_user_audiences( int $user_id, bool $include_parents = false ): array {
-		$cache_key = 'ffcertificate_user_aud_' . $user_id . '_' . ( $include_parents ? '1' : '0' );
-		$cached    = wp_cache_get( $cache_key, 'ffcertificate' );
+		$cache_key = self::user_audiences_cache_key( $user_id, $include_parents );
+		$cached    = self::cache_get( $cache_key );
 		if ( is_array( $cached ) ) {
 			/**
 		 * Cast wpdb result to typed shape.
@@ -470,7 +491,7 @@ class AudienceReader {
 			}
 		}
 
-		wp_cache_set( $cache_key, $audiences, 'ffcertificate' );
+		self::cache_set( $cache_key, $audiences );
 
 		return $audiences;
 	}
