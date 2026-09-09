@@ -219,6 +219,36 @@ class RateLimiterTest extends TestCase {
 		$this->assertTrue( $result['allowed'] );
 	}
 
+	/**
+	 * The `$token` parameter is gone, on both the façade and the checker.
+	 *
+	 * It was accepted and never read, which on a Security method is worse than
+	 * absent: the signature advertised a per-token limit that did not exist
+	 * (#1048, announced 6.22.0, removed 6.24.0). Behaviour tests cannot see a
+	 * parameter nobody passes, so the signature itself is what gets pinned —
+	 * re-adding one would have to be deliberate.
+	 *
+	 * @dataProvider verification_signatures
+	 * @param string $class  Declaring class.
+	 * @param string $method Method name.
+	 */
+	public function test_check_verification_takes_only_an_ip( string $class, string $method ): void {
+		$ref = new \ReflectionMethod( $class, $method );
+
+		$this->assertSame( 1, $ref->getNumberOfParameters(), "{$class}::{$method}() must take the IP and nothing else." );
+		$this->assertSame( 'ip', $ref->getParameters()[0]->getName() );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public static function verification_signatures(): array {
+		return array(
+			'facade'  => array( 'FreeFormCertificate\\Security\\RateLimiter', 'check_verification' ),
+			'checker' => array( 'FreeFormCertificate\\Security\\RateLimitChecker', 'check_verification' ),
+		);
+	}
+
 	// ------------------------------------------------------------------
 	// check_user_limit()
 	// ------------------------------------------------------------------
