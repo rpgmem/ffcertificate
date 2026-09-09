@@ -69,6 +69,8 @@ class AdminUserCustomFieldsTest extends TestCase {
 			return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? $_POST[ $key ] : $default;
 		} )->byDefault();
 		$this->utils_mock->shouldReceive('asset_suffix')->andReturn('.min')->byDefault();
+		// enqueue_common_style() puts the token palette on the screen (#1126 B).
+		$this->utils_mock->shouldReceive('enqueue_common_style')->byDefault();
 
 		// Repository alias mocks
 		$this->audience_repo_mock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceReader');

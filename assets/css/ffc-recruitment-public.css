@@ -111,8 +111,8 @@
 
 .ffc-recruitment-queue .ffc-recruitment-search-btn:hover,
 .ffc-recruitment-queue .ffc-recruitment-search-btn:focus {
-    background: var(--ffc-primary-darker, #135e96);
-    border-color: var(--ffc-primary-darker, #135e96);
+    background: var(--ffc-primary-hover);
+    border-color: var(--ffc-primary-hover);
     box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.18);
     outline: none;
 }

@@ -237,10 +237,14 @@ class UrlShortenerMetaBox {
 			return;
 		}
 
+		// ffc-url-shortener-admin.css paints through `var(--ffc-*)` since #1126
+		// (defeito B), and ffc-common.css is where those tokens are declared.
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
+
 		wp_enqueue_style(
 			'ffc-url-shortener-admin',
 			FFC_PLUGIN_URL . 'assets/css/ffc-url-shortener-admin.css',
-			array(),
+			array( 'ffc-common' ),
 			FFC_VERSION
 		);
 		wp_enqueue_script(

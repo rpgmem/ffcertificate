@@ -55,8 +55,10 @@ class AdminUserCustomFields {
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
-		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array(), FFC_VERSION );
-		wp_enqueue_style( 'ffc-custom-fields-admin', FFC_PLUGIN_URL . "assets/css/ffc-custom-fields-admin{$s}.css", array(), FFC_VERSION );
+		// Both sheets paint through `var(--ffc-*)` since #1126 (defeito B).
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
+		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+		wp_enqueue_style( 'ffc-custom-fields-admin', FFC_PLUGIN_URL . "assets/css/ffc-custom-fields-admin{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 		wp_enqueue_script( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 		// `ffc-core` supplies `FFC.setRequiredWithin()`, which the collapse
 		// script uses to carry `required` with a section's visibility (#1120).

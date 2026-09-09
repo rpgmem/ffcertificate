@@ -1661,8 +1661,8 @@ details.ffc-consent-description > p {
 .ffc-public-csv-download .ffc-info-btn-warning:hover:not([disabled]),
 .ffc-open-early-modal .ffc-info-btn-warning:hover:not([disabled]),
 .ffc-extend-end-modal .ffc-info-btn-warning:hover:not([disabled]) {
-    background: var(--ffc-warning-dark, #b86a1f);
-    border-color: var(--ffc-warning-dark, #b86a1f);
+    background: var(--ffc-warning-text);
+    border-color: var(--ffc-warning-text);
 }
 
 .ffc-public-csv-download .ffc-info-btn-warning[disabled],

@@ -91,7 +91,7 @@ class SelfSchedulingShortcode {
 		wp_enqueue_style(
 			'ffc-calendar-frontend',
 			FFC_PLUGIN_URL . "assets/css/ffc-calendar-frontend{$s}.css",
-			array( 'ffc-audience' ),
+			array( 'ffc-common', 'ffc-audience' ),
 			FFC_VERSION
 		);
 

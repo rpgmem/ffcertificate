@@ -24,7 +24,7 @@
 }
 
 .ffc-csv-progress-card {
-    background: var(--ffc-card-bg, #fff);
+    background: var(--ffc-bg-card);
     color: var(--ffc-text, #333);
     border-radius: 8px;
     padding: 30px;

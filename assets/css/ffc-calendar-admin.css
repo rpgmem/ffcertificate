@@ -10,7 +10,11 @@
     margin-top: 10px;
 }
 
-/* Appointment Status Badges */
+/* Appointment Status Badges
+   Tokenizado no #1126 (defeito B): os pares vinham de uma paleta própria e
+   ficavam claros dentro do card escuro. Cada estado passa a usar o par
+   surface/text da paleta de estado, que o medidor de contraste do
+   DarkModeCssTest verifica nos dois temas. */
 .ffc-status {
     display: inline-block;
     padding: 2px 8px;
@@ -21,26 +25,26 @@
 }
 
 .ffc-status-pending {
-    background: #f0f0f1;
-    color: #646970;
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-muted);
 }
 
 .ffc-status-confirmed {
-    background: #d5e8d4;
-    color: #2e7d32;
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
 }
 
 .ffc-status-cancelled {
-    background: #f8d7da;
-    color: #b32d2e;
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
 }
 
 .ffc-status-completed {
-    background: #cfe2ff;
-    color: #004085;
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
 }
 
 .ffc-status-noshow {
-    background: #fff3cd;
-    color: #856404;
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
 }

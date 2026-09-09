@@ -126,10 +126,13 @@ class SelfSchedulingAdmin {
 		// (ffcSelfSchedulingAdmin) and admin nonce were never read by any
 		// script, and the jquery-ui deps/theme it pulled in had no widget to
 		// drive — all removed in the frontend-audit Item 4 cleanup.
+		// The status badges paint through `var(--ffc-*)` since #1126 (defeito B).
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
+
 		wp_enqueue_style(
 			'ffc-calendar-admin',
 			plugins_url( "assets/css/ffc-calendar-admin{$s}.css", dirname( __DIR__, 1 ) ),
-			array(),
+			array( 'ffc-common' ),
 			FFC_VERSION
 		);
 
@@ -155,7 +158,7 @@ class SelfSchedulingAdmin {
 		wp_enqueue_style(
 			'ffc-progress-overlay',
 			plugins_url( "assets/css/ffc-progress-overlay{$s}.css", dirname( __DIR__, 1 ) ),
-			array(),
+			array( 'ffc-common' ),
 			FFC_VERSION
 		);
 

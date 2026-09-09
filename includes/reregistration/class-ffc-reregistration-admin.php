@@ -186,7 +186,7 @@ class ReregistrationAdmin {
 		wp_enqueue_style(
 			'ffc-progress-overlay',
 			FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css",
-			array(),
+			array( 'ffc-common' ),
 			FFC_VERSION
 		);
 

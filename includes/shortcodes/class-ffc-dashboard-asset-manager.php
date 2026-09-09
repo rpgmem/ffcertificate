@@ -99,7 +99,7 @@ class DashboardAssetManager {
 		wp_enqueue_script( 'ffc-dashboard-audience-join', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-audience-join{$s}.js", array( 'ffc-dashboard', 'ffc-dashboard-profile' ), FFC_VERSION, true );
 
 		// Working hours field component (shared).
-		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array(), FFC_VERSION );
+		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 		wp_enqueue_script( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 		wp_localize_script(
 			'ffc-working-hours',

@@ -19,11 +19,13 @@
     --ffc-primary-light: #e7f3ff;
 
     /* Status Colors */
-    --ffc-success: #00a32a;
+    --ffc-success: #00801e;         /* 5,11:1 com branco — era #00a32a, 3,35:1 no botão (#1126 B). */
+    --ffc-success-hover: #006618;
     --ffc-success-light: #e7f5ec;
     --ffc-warning: #ba8d14;         /* 3,04:1 sobre branco — era #dba617, 2,22:1 (#1132). */
     --ffc-warning-light: #fff8e5;
     --ffc-danger: #d63638;
+    --ffc-danger-hover: #b32d2e;
     --ffc-danger-light: #fcf0f1;
     --ffc-info: #006ba1;
     --ffc-info-light: #e5f5fa;
@@ -87,6 +89,15 @@
     --ffc-text-muted: #646970;
     --ffc-text-light: #737579;      /* 4,62:1 sobre branco — era #8c8f94, 3,24:1 (#1132). */
     --ffc-text-on-primary: #ffffff;
+    --ffc-text-on-danger: #ffffff;  /* 4,73:1 sobre --ffc-danger (#1126 B). */
+    --ffc-text-on-success: #ffffff; /* 5,11:1 sobre --ffc-success (#1126 B). */
+
+    /* Semantic Tokens - Inverse surface (o inverseSurface/inverseOnSurface do M3)
+       O balão de toast é chrome invertido de propósito: escuro sobre a página
+       clara. Sem este par ele era #1d2327/#fff fixo e seguia escuro no tema
+       escuro, onde a inversão tem de virar ao contrário (#1126 defeito B). */
+    --ffc-inverse-surface: #1d2327;
+    --ffc-inverse-on-surface: #ffffff;
 
     /* Semantic Tokens - Borders */
     --ffc-border: #8e8f91;          /* 3,24:1 sobre branco, 3,02:1 sobre #f6f7f7 — era #c3c4c7, 1,74:1 (#1132). */
@@ -95,7 +106,7 @@
 
     /* Semantic Tokens - Status Surfaces */
     --ffc-success-bg: #e7f5ec;
-    --ffc-success-border: #00a32a;
+    --ffc-success-border: #00801e;
     --ffc-success-text: #0a5c1a;
     --ffc-warning-bg: #fff8e5;
     --ffc-warning-border: #dba617;
@@ -127,10 +138,12 @@
 
     /* Status Colors */
     --ffc-success: #4caf50;
+    --ffc-success-hover: #6ec071;
     --ffc-success-light: #1a2e1a;
     --ffc-warning: #f0b849;
     --ffc-warning-light: #332b10;
-    --ffc-danger: #e57373;
+    --ffc-danger: #e88080;          /* 4,78:1 sobre o card — era #e57373, 4,29:1 (#1126 B). */
+    --ffc-danger-hover: #ee9595;
     --ffc-danger-light: #2e1515;
     --ffc-info: #4fc3f7;
     --ffc-info-light: #0d2b3a;
@@ -157,16 +170,21 @@
     --ffc-bg-card: #2c3338;
     --ffc-bg-input: #23282d;
     --ffc-bg-overlay: rgba(0, 0, 0, 0.7);
+    --ffc-inverse-surface: #e7e8ea;
+    --ffc-inverse-on-surface: #1d2327;
 
     /* Semantic Tokens - Text */
     --ffc-text: #e7e8ea;
     --ffc-text-secondary: #c3c4c7;
     --ffc-text-muted: #a7aaad;
-    --ffc-text-light: #8c8f94;
+    --ffc-text-light: #9a9ea3;      /* 4,76:1 sobre o card — era #8c8f94, 3,95:1 (#1126 B). */
     --ffc-text-on-primary: #213c4e;  /* tom ~20. O M3 INVERTE este par no tema escuro: a
                                         primária clareia e o texto sobre ela escurece. O plugin
                                         clareou a primária e manteve o branco, deixando 2,52:1 no
                                         botão de ação primária; agora 4,58:1 (#1132). */
+    --ffc-text-on-danger: #452020;   /* tom ~20 — a mesma inversão do par acima, aplicada ao
+                                        botão destrutivo: 5,29:1 sobre --ffc-danger (#1126 B). */
+    --ffc-text-on-success: #10361a;  /* idem no botão de sucesso: 4,83:1 (#1126 B). */
 
     /* Semantic Tokens - Borders */
     --ffc-border: #6f7c89;           /* 3,72:1 sobre o fundo, 3,00:1 sobre o card, 3,48:1 sobre o
@@ -182,7 +200,7 @@
     --ffc-warning-border: #f0b849;
     --ffc-warning-text: #ffe082;
     --ffc-danger-bg: #2e1515;
-    --ffc-danger-border: #e57373;
+    --ffc-danger-border: #e88080;
     --ffc-danger-text: #ef9a9a;
     --ffc-info-bg: #0d2b3a;
     --ffc-info-border: #4fc3f7;
@@ -580,8 +598,8 @@
 /* Private visibility restriction container */
 .ffc-visibility-restricted {
     padding: 20px;
-    background: var(--ffc-warning-light, #fff8e5);
-    border: 1px solid var(--ffc-warning, #dba617);
+    background: var(--ffc-warning-light);
+    border: 1px solid var(--ffc-warning);
     border-radius: 6px;
     text-align: center;
 }
@@ -589,15 +607,15 @@
 .ffc-visibility-restricted .ffc-calendar-title {
     margin: 0 0 10px;
     font-size: 1.2em;
-    color: var(--ffc-text, #1d2327);
+    color: var(--ffc-text);
 }
 
 .ffc-visibility-restricted .ffc-restricted-message {
-    color: var(--ffc-text-muted, #50575e);
+    color: var(--ffc-text-muted);
 }
 
 .ffc-visibility-restricted .ffc-restricted-message a {
-    color: var(--ffc-primary, #2271b1);
+    color: var(--ffc-primary);
     font-weight: 600;
 }
 
@@ -608,11 +626,11 @@
 }
 
 .ffc-scheduling-restricted .ffc-restricted-message {
-    color: var(--ffc-text-muted, #50575e);
+    color: var(--ffc-text-muted);
 }
 
 .ffc-scheduling-restricted .ffc-restricted-message a {
-    color: var(--ffc-primary, #2271b1);
+    color: var(--ffc-primary);
     font-weight: 600;
 }
 
@@ -620,11 +638,11 @@
 .ffc-admin-bypass-notice {
     padding: 10px 15px;
     margin-bottom: 15px;
-    background: var(--ffc-info-light, #e5f5fa);
-    border: 1px solid var(--ffc-info, #006ba1);
+    background: var(--ffc-info-light);
+    border: 1px solid var(--ffc-info);
     border-radius: 4px;
     font-size: 0.9em;
-    color: var(--ffc-info, #006ba1);
+    color: var(--ffc-info);
 }
 
 /* Badge — canonical base class (shared across admin + frontend) */
@@ -668,7 +686,7 @@
 
 .ffc-btn-primary {
     background: var(--ffc-primary);
-    color: #fff;
+    color: var(--ffc-text-on-primary);
 }
 
 .ffc-btn-primary:hover {
@@ -690,20 +708,20 @@
 
 .ffc-btn-success {
     background: var(--ffc-success);
-    color: #fff;
+    color: var(--ffc-text-on-success);
 }
 
 .ffc-btn-success:hover {
-    background: #008a20;
+    background: var(--ffc-success-hover);
 }
 
 .ffc-btn-danger {
     background: var(--ffc-danger);
-    color: #fff;
+    color: var(--ffc-text-on-danger);
 }
 
 .ffc-btn-danger:hover {
-    background: #b32d2e;
+    background: var(--ffc-danger-hover);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -713,9 +731,9 @@
 }
 
 .ffc-badge-private {
-    background: var(--ffc-danger-light, #fcf0f1);
-    color: var(--ffc-danger, #d63638);
-    border: 1px solid var(--ffc-danger, #d63638);
+    background: var(--ffc-danger-light);
+    color: var(--ffc-danger);
+    border: 1px solid var(--ffc-danger);
 }
 
 /* ==========================================================================
@@ -766,7 +784,7 @@
     flex: 0 0 auto;
     width: 38px;
     height: 22px;
-    background: var(--ffc-border-medium, #c3c4c7);
+    background: var(--ffc-border);
     border-radius: 11px;
     transition: background-color 0.15s ease;
 }
@@ -779,13 +797,16 @@
     width: 18px;
     height: 18px;
     border-radius: 50%;
+    /* O botão do interruptor fica branco nos dois temas de propósito: no tema
+       escuro a pista é escura, e um botão em var(--ffc-bg-card) sumiria dentro
+       dela. É literal por decisão, não por esquecimento (#1126 B). */
     background: #fff;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     transition: transform 0.15s ease;
 }
 
 .ffc-toggle input[type="checkbox"]:checked + .ffc-toggle-track {
-    background: var(--ffc-primary, #2271b1);
+    background: var(--ffc-primary);
 }
 
 .ffc-toggle input[type="checkbox"]:checked + .ffc-toggle-track::after {
@@ -793,7 +814,7 @@
 }
 
 .ffc-toggle input[type="checkbox"]:focus-visible + .ffc-toggle-track {
-    outline: 2px solid var(--ffc-primary, #2271b1);
+    outline: 2px solid var(--ffc-primary);
     outline-offset: 2px;
 }
 
@@ -829,18 +850,18 @@
 }
 
 .ffc-autosave-badge--saving {
-    background: var(--ffc-bg-subtle, #f0f0f1);
-    color: var(--ffc-text-muted, #646970);
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-muted);
 }
 
 .ffc-autosave-badge--saved {
-    background: var(--ffc-success-light, #ecf7ed);
-    color: var(--ffc-success, #00a32a);
+    background: var(--ffc-success-light);
+    color: var(--ffc-success);
 }
 
 .ffc-autosave-badge--error {
-    background: var(--ffc-danger-light, #fcf0f1);
-    color: var(--ffc-danger, #d63638);
+    background: var(--ffc-danger-light);
+    color: var(--ffc-danger);
 }
 
 /* ==========================================================================
@@ -869,18 +890,18 @@
 }
 
 .ffc-features-badge--saving {
-    background: var(--ffc-bg-subtle, #f0f0f1);
-    color: var(--ffc-text-muted, #646970);
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-muted);
 }
 
 .ffc-features-badge--saved {
-    background: var(--ffc-success-light, #ecf7ed);
-    color: var(--ffc-success, #00a32a);
+    background: var(--ffc-success-light);
+    color: var(--ffc-success);
 }
 
 .ffc-features-badge--error {
-    background: var(--ffc-danger-light, #fcf0f1);
-    color: var(--ffc-danger, #d63638);
+    background: var(--ffc-danger-light);
+    color: var(--ffc-danger);
 }
 
 /* ==========================================================================
@@ -915,9 +936,9 @@
 }
 
 .ffc-captcha-mode-note--warning {
-    border-left-color: #dba617;
+    border-left-color: var(--ffc-warning-border);
 }
 
 .ffc-captcha-mode-note--info {
-    border-left-color: #72aee6;
+    border-left-color: var(--ffc-info-border);
 }

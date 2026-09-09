@@ -988,7 +988,7 @@
 }
 
 .ffc-audience-parent-header:hover {
-    background: var(--ffc-bg-hover, #e9ecef);
+    background: var(--ffc-bg-alt);
 }
 
 .ffc-audience-parent-header[aria-expanded="true"] {
@@ -1630,12 +1630,12 @@
 
 #tab-recruitment .ffc-banner-preliminary {
     background: var(--ffc-warning-light, #fff3cd);
-    color: var(--ffc-warning-dark, #856404);
+    color: var(--ffc-warning-text);
 }
 
 #tab-recruitment .ffc-banner-definitive {
     background: var(--ffc-success-light, #d4edda);
-    color: var(--ffc-success-dark, #155724);
+    color: var(--ffc-success-text);
 }
 
 /* ==========================================================================
