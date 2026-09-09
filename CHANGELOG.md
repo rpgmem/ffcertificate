@@ -15,6 +15,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Limpar o campo de lembrete de uma campanha de rerrematrícula gravava zero** (#1117): `absint( '' )` é `0`, e a varredura lê `DATEDIFF(end_date, CURDATE()) <= reminder_days` — o lembrete passava a sair só no último dia da campanha, tarde demais para servir, sem nada na tela dizendo que o valor mudou.
 - **Limpar um campo numérico no admin gravava o piso daquela chave, em silêncio** (#1111): `(int) ''` é `0`, então esvaziar o campo escrevia o menor valor aceito — e o autosave salva a cada tecla, então bastava apagar para retomar a digitação. O endpoint agora recusa valor vazio e mantém o gravado; `0` digitado continua valendo.
 - **O e-mail de acesso concedido nunca foi enviado por nenhuma instalação** (#1123): `notify_capability_grant` guardava o envio e não era escrita em lugar nenhum — nem campo, nem allowlist, nem padrão declarado — então a guarda lia `false` para sempre, enquanto o hub de e-mails oferecia o texto para edição. Ganhou interruptor na aba SMTP, desligado por padrão para preservar o comportamento de hoje.
+- **Linha de horário de trabalho pela metade era gravada em silêncio** (#1128): a guarda do servidor era `isset( $entry['entry1'] )`, e `isset( '' )` é verdadeiro — então uma linha com horário vazio passava. O formulário público de recadastramento era ainda mais permissivo: conferia só o dia. Agora um só sanitizador decide pelas duas telas.
 
 ### Changed
 
@@ -24,6 +25,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Badge de autosave dos metaboxes passa a seguir o modo escuro** (#1116): usava hex fixo em vez dos tokens `--ffc-*`. De quebra, distingue queda de conexão de recusa do servidor, que a implementação antiga achatava num "falha ao salvar" genérico, e os textos das abas de configuração deixam de ser literais em inglês no JS.
 - **Entradas numéricas das abas de configuração agora são obrigatórias** (#1114): 38 campos ganharam `required`, e o `smtp_port` — o único sem limite algum — ganhou faixa. Os caps de endpoint de leitura passam a dizer no próprio card que ali `0` remove o limite, ao contrário dos demais.
 - **Piso da janela de emissão de captcha baixado de 60s para 1s** (#1111): abaixo de um minuto o limite vira decorativo — o campo passa a dizer isso como recomendação, em vez de o código recusar, alinhando com os demais limites da aba.
+- **Horário de trabalho: a regra da linha agora é exigida, e antes do envio** (#1128): entrada do primeiro turno e saída do último são obrigatórias, o intervalo é opcional — regra que existia só como um `required` no markup e que ninguém tinha escrito. Uma linha pela metade bloqueia o envio nomeando o que falta e abrindo a seção recolhida, em vez de o servidor decidir sozinho o que descartar; nada do que foi digitado se perde. ⚠ Linha sem horário nenhum deixa de ser gravada: um dia sem linha já significa "não trabalho neste dia".
 
 ### Removed
 

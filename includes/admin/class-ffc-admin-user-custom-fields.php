@@ -68,7 +68,15 @@ class AdminUserCustomFields {
 			'ffc-working-hours',
 			'ffcWorkingHours',
 			array(
-				'days' => array(
+				// #1128 — the submit guard names the missing cell, so the two
+				// required labels and the message travel with the day names.
+				'strings' => array(
+					'entry1'     => __( 'Entry 1', 'ffcertificate' ),
+					'exit2'      => __( 'Exit 2', 'ffcertificate' ),
+					/* translators: %s: comma-separated list of missing time labels. */
+					'incomplete' => __( 'This row has a time but is missing: %s. Fill it in, or clear the row to remove the day.', 'ffcertificate' ),
+				),
+				'days'    => array(
 					array(
 						'value' => 0,
 						'label' => __( 'Sunday', 'ffcertificate' ),
@@ -350,10 +358,11 @@ class AdminUserCustomFields {
 			return;
 		}
 
-		$data     = array();
-		$seen_ids = array();
-		$existing = CustomFieldReader::get_user_data( $user_id );
-		$kept     = array();
+		$data       = array();
+		$seen_ids   = array();
+		$existing   = CustomFieldReader::get_user_data( $user_id );
+		$kept       = array();
+		$incomplete = array();
 
 		foreach ( $fields as $field ) {
 			// Avoid processing same field twice.
@@ -368,25 +377,25 @@ class AdminUserCustomFields {
 			if ( 'checkbox' === $field->field_type ) {
 				$data[ $field_key ] = isset( $_POST[ $input_name ] ) ? 1 : 0;
 			} elseif ( 'working_hours' === $field->field_type ) {
-                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized via json_decode + sanitize_text_field below.
+				/*
+				 * The old guard here was `isset( $entry['entry1'], $entry['exit2'] )`,
+				 * and `isset( '' )` is true — so a row with an empty time passed it
+				 * and was stored (#1128). `WorkingHours::sanitize()` is now the one
+				 * place that decides, shared with the reregistration form so the two
+				 * cannot drift apart again.
+				 */
+                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized inside WorkingHours::sanitize().
 				$raw_value = isset( $_POST[ $input_name ] ) ? wp_unslash( $_POST[ $input_name ] ) : '[]';
-				$wh        = json_decode( $raw_value, true );
-				if ( is_array( $wh ) ) {
-					$sanitized = array();
-					foreach ( $wh as $entry ) {
-						if ( is_array( $entry ) && isset( $entry['day'], $entry['entry1'], $entry['exit2'] ) ) {
-							$sanitized[] = array(
-								'day'    => absint( $entry['day'] ),
-								'entry1' => sanitize_text_field( $entry['entry1'] ),
-								'exit1'  => sanitize_text_field( $entry['exit1'] ?? '' ),
-								'entry2' => sanitize_text_field( $entry['entry2'] ?? '' ),
-								'exit2'  => sanitize_text_field( $entry['exit2'] ),
-							);
-						}
-					}
-					$data[ $field_key ] = wp_json_encode( $sanitized );
-				} else {
-					$data[ $field_key ] = '[]';
+				$result    = \FreeFormCertificate\Core\WorkingHours::sanitize( is_string( $raw_value ) ? $raw_value : '[]' );
+
+				$data[ $field_key ] = $result['json'];
+
+				foreach ( $result['incomplete'] as $ffc_row ) {
+					$incomplete[] = array(
+						'label'   => (string) $field->field_label,
+						'day'     => $ffc_row['day'],
+						'missing' => $ffc_row['missing'],
+					);
 				}
 			} else {
                 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Checked via isset; sanitized via sanitize_text_field/sanitize_textarea_field below.
@@ -420,6 +429,10 @@ class AdminUserCustomFields {
 		if ( ! empty( $kept ) ) {
 			set_transient( 'ffc_cf_required_kept_' . get_current_user_id(), $kept, MINUTE_IN_SECONDS );
 		}
+
+		if ( ! empty( $incomplete ) ) {
+			set_transient( 'ffc_cf_wh_incomplete_' . get_current_user_id(), $incomplete, MINUTE_IN_SECONDS );
+		}
 	}
 
 	/**
@@ -439,6 +452,16 @@ class AdminUserCustomFields {
 			return;
 		}
 
+		self::render_kept_notice();
+		self::render_incomplete_hours_notice();
+	}
+
+	/**
+	 * "This required field arrived empty and kept its previous value."
+	 *
+	 * @return void
+	 */
+	private static function render_kept_notice(): void {
 		$key  = 'ffc_cf_required_kept_' . get_current_user_id();
 		$kept = get_transient( $key );
 		if ( empty( $kept ) || ! is_array( $kept ) ) {
@@ -455,6 +478,55 @@ class AdminUserCustomFields {
 					implode( ', ', array_map( 'strval', $kept ) )
 				)
 			)
+		);
+	}
+
+	/**
+	 * "This working-hours row was incomplete, so it was not saved."
+	 *
+	 * Names the day and the missing time rather than saying the field failed:
+	 * the row lives inside a section the operator may have collapsed, so a
+	 * generic message would leave them hunting for which of seven rows to fix
+	 * (#1128).
+	 *
+	 * @return void
+	 */
+	private static function render_incomplete_hours_notice(): void {
+		$key  = 'ffc_cf_wh_incomplete_' . get_current_user_id();
+		$rows = get_transient( $key );
+		if ( empty( $rows ) || ! is_array( $rows ) ) {
+			return;
+		}
+		delete_transient( $key );
+
+		$lines = array();
+		foreach ( $rows as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+
+			$missing = array_map(
+				array( \FreeFormCertificate\Core\WorkingHours::class, 'key_label' ),
+				is_array( $row['missing'] ?? null ) ? $row['missing'] : array()
+			);
+
+			$lines[] = sprintf(
+				/* translators: 1: custom field label, 2: weekday name, 3: comma-separated list of missing time labels. */
+				__( '%1$s — %2$s: missing %3$s', 'ffcertificate' ),
+				(string) ( $row['label'] ?? '' ),
+				\FreeFormCertificate\Core\WorkingHours::day_label( (int) ( $row['day'] ?? 0 ) ),
+				implode( ', ', $missing )
+			);
+		}
+
+		if ( empty( $lines ) ) {
+			return;
+		}
+
+		printf(
+			'<div class="notice notice-warning is-dismissible"><p>%s</p><ul style="list-style:disc;margin-left:2em"><li>%s</li></ul></div>',
+			esc_html__( 'These working-hours rows were incomplete and were not saved. The first entry and the last exit are required; the middle shift is optional.', 'ffcertificate' ),
+			implode( '</li><li>', array_map( 'esc_html', $lines ) )
 		);
 	}
 }

@@ -582,6 +582,17 @@ class AdminUserCustomFieldsTest extends TestCase {
 		Functions\when('current_user_can')->justReturn(true);
 		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
 
+		// Since #1128 the half-filled row is not only dropped, it is reported,
+		// so the save writes the incomplete-rows transient on this path.
+		$reported = null;
+		Functions\when('get_current_user_id')->justReturn(1);
+		Functions\when('set_transient')->alias(function ($key, $value) use (&$reported) {
+			if (str_starts_with($key, 'ffc_cf_wh_incomplete_')) {
+				$reported = $value;
+			}
+			return true;
+		});
+
 		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')
 			->with(8, true)->andReturn([$field]);
 
@@ -598,6 +609,16 @@ class AdminUserCustomFieldsTest extends TestCase {
 			}));
 
 		AdminUserCustomFields::save_section(8);
+
+		// The dropped row is announced, naming the day and what was missing —
+		// dropping it in silence is the half of #1128 that was never the fix.
+		$this->assertIsArray($reported);
+		$this->assertCount(1, $reported);
+		$this->assertSame(['exit2'], $reported[0]['missing']);
+		$this->assertSame('Hours', $reported[0]['label']);
+		// Not asserting the day here on purpose: this class stubs `absint` to
+		// justReturn(1), so a day assertion would be checking the stub, not the
+		// code. The day is covered in WorkingHoursTest, which stubs it faithfully.
 	}
 
 	public function test_save_section_working_hours_invalid_json_stores_empty_array(): void {

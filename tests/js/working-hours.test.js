@@ -171,3 +171,113 @@ describe('ffc-working-hours — sync on change', () => {
 		expect(hidden[0].entry2).toBe('');
 	});
 });
+
+// ---------------------------------------------------------------------------
+// #1128 — the submit guard on a half-filled row
+// ---------------------------------------------------------------------------
+//
+// The rule: the first shift's entry and the last shift's exit are required,
+// the middle is optional. A row with NO time at all is not a mistake — it is
+// "I do not work this day" — so only a half-filled row blocks.
+//
+// This runs BEFORE the POST on purpose. Once the form submits, the profile
+// screen reloads from the database and whatever the operator typed is gone, so
+// "signal and let them fix it" is only meaningful here; the server-side
+// sanitizer stays as the backstop for a direct POST.
+
+function mountInForm(rows, wrap) {
+	mountWithRows(rows);
+	const inner = document.body.innerHTML;
+	document.body.innerHTML = wrap
+		? `<form id="f"><div id="sec" class="ffc-cf-section-body collapsed">${inner}</div></form>`
+		: `<form id="f">${inner}</form>`;
+}
+
+function submit() {
+	const ev = window.$.Event('submit');
+	window.$('#f').trigger(ev);
+	return ev;
+}
+
+describe('ffc-working-hours — submit guard (#1128)', () => {
+	it('lets a complete row through', () => {
+		mountInForm([{ day: 1, entry1: '08:00', exit1: '', entry2: '', exit2: '17:00' }]);
+		expect(submit().isDefaultPrevented()).toBe(false);
+		expect(window.$('.ffc-wh-row-error').length).toBe(0);
+	});
+
+	it('lets a row with no times at all through — that is "I do not work this day"', () => {
+		mountInForm([{ day: 1, entry1: '', exit1: '', entry2: '', exit2: '' }]);
+		expect(submit().isDefaultPrevented()).toBe(false);
+		expect(window.$('.ffc-wh-row-error').length).toBe(0);
+	});
+
+	it('blocks a row missing the first entry', () => {
+		mountInForm([{ day: 1, entry1: '', exit1: '', entry2: '', exit2: '17:00' }]);
+		expect(submit().isDefaultPrevented()).toBe(true);
+	});
+
+	it('blocks a row missing the last exit', () => {
+		mountInForm([{ day: 1, entry1: '08:00', exit1: '', entry2: '', exit2: '' }]);
+		expect(submit().isDefaultPrevented()).toBe(true);
+	});
+
+	it('blocks a row carrying only the optional middle shift', () => {
+		mountInForm([{ day: 1, entry1: '', exit1: '12:00', entry2: '', exit2: '' }]);
+		expect(submit().isDefaultPrevented()).toBe(true);
+	});
+
+	it('names what is missing on the offending row', () => {
+		mountInForm([{ day: 1, entry1: '', exit1: '', entry2: '', exit2: '17:00' }]);
+		submit();
+
+		const $err = window.$('.ffc-wh-row-error');
+		expect($err.length).toBe(1);
+		expect($err.text()).toContain('Entry 1');
+		expect($err.text()).not.toContain('Exit 2');
+	});
+
+	it('marks the offending row and leaves the valid one alone', () => {
+		mountInForm([
+			{ day: 1, entry1: '08:00', exit1: '', entry2: '', exit2: '17:00' },
+			{ day: 2, entry1: '', exit1: '', entry2: '', exit2: '17:00' },
+		]);
+		submit();
+
+		const $rows = window.$('.ffc-wh-table tbody tr:not(.ffc-wh-row-error)');
+		expect($rows.eq(0).hasClass('ffc-wh-row-invalid')).toBe(false);
+		expect($rows.eq(1).hasClass('ffc-wh-row-invalid')).toBe(true);
+	});
+
+	it('clears the previous message on the next submit', () => {
+		mountInForm([{ day: 1, entry1: '', exit1: '', entry2: '', exit2: '17:00' }]);
+		submit();
+		expect(window.$('.ffc-wh-row-error').length).toBe(1);
+
+		window.$('.ffc-wh-entry1').val('08:00');
+		expect(submit().isDefaultPrevented()).toBe(false);
+		expect(window.$('.ffc-wh-row-error').length).toBe(0);
+		expect(window.$('.ffc-wh-row-invalid').length).toBe(0);
+	});
+
+	// The defect #1117 set out to remove: refusing a submit while pointing at a
+	// control nobody can see. The guard has to open the section first.
+	it('expands a collapsed section before pointing at the row', () => {
+		mountInForm([{ day: 1, entry1: '', exit1: '', entry2: '', exit2: '17:00' }], true);
+		expect(window.$('#sec').hasClass('collapsed')).toBe(true);
+
+		submit();
+
+		expect(window.$('#sec').hasClass('collapsed')).toBe(false);
+	});
+
+	it('uses the localized strings when supplied', () => {
+		window.ffcWorkingHours = { strings: { entry1: 'Entrada 1', exit2: 'Saída 2', incomplete: 'Falta: %s' } };
+		loadScript('assets/js/ffc-working-hours.js');
+
+		mountInForm([{ day: 1, entry1: '', exit1: '', entry2: '', exit2: '17:00' }]);
+		submit();
+
+		expect(window.$('.ffc-wh-row-error').text()).toBe('Falta: Entrada 1');
+	});
+});

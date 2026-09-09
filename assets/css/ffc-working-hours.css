@@ -107,3 +107,18 @@
         width: 85px;
     }
 }
+
+/* Incomplete row: has a time but not both required ones (#1128).
+   Tokens, never literals — a hex here is invisible in dark mode, which is
+   the defect #1116 fixed once and #1126 catalogued as a class. */
+.ffc-wh-row-invalid td {
+    background: var(--ffc-danger-bg);
+}
+
+.ffc-wh-row-error td {
+    padding: 4px 8px;
+    color: var(--ffc-danger-text);
+    font-size: 12px;
+    background: var(--ffc-danger-bg);
+    border-top: 0;
+}
