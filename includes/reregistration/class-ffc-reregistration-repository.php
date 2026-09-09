@@ -559,6 +559,52 @@ class ReregistrationRepository {
 	// ─────────────────────────────────────────────.
 
 	/**
+	 * Reopen the submissions a previous expiry closed (#1125).
+	 *
+	 * The exact inverse of the `expired` write in {@see self::expire_overdue()},
+	 * and deliberately no wider. When a campaign expires, every submission
+	 * still at `pending` / `in_progress` is moved to `expired`; reactivating
+	 * the campaign has to undo that, or the users from the previous cycle sit
+	 * at a status that neither lets them submit nor renders a banner — the
+	 * defect the 6.24.0 smoke found, where reactivation was silent on both
+	 * ends.
+	 *
+	 * **Only `expired` is touched.** `approved` and `submitted` are records of
+	 * something the user actually delivered; reopening those would discard a
+	 * delivery, and an administrator who wants that deletes the submission
+	 * instead — which lands the user on `no_submission`, submittable since
+	 * this same issue.
+	 *
+	 * They return to `pending`, not `in_progress`: `pending` is the state the
+	 * seeding creates, and it is what `ReregistrationEmailHandler::send_invitations()`
+	 * queries — so the invitation email, which the reactivation also failed to
+	 * send, starts working again as a consequence rather than as a second fix.
+	 *
+	 * @param int $reregistration_id Reregistration ID.
+	 * @return int Number of submissions reopened.
+	 */
+	public static function reopen_expired_submissions( int $reregistration_id ): int {
+		$wpdb       = self::db();
+		$subs_table = ReregistrationSubmissionReader::get_table_name();
+
+		$sql = $wpdb->prepare(
+			"UPDATE %i SET status = 'pending', updated_at = %s
+			WHERE reregistration_id = %d AND status = 'expired'",
+			$subs_table,
+			current_time( 'mysql' ),
+			$reregistration_id
+		);
+
+		if ( ! is_string( $sql ) ) {
+			return 0;
+		}
+
+		$reopened = $wpdb->query( $sql );
+
+		return is_int( $reopened ) ? $reopened : 0;
+	}
+
+	/**
 	 * Expire overdue reregistrations.
 	 *
 	 * Changes status from 'active' to 'expired' for campaigns past end_date.
