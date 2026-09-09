@@ -400,6 +400,40 @@
         },
 
         /**
+         * Carry `required` with a container's visibility.
+         *
+         * Constraint validation does not care whether a control is on
+         * screen: an empty `required` field inside a `display: none`
+         * block still blocks the submit, and the browser reports it
+         * against an element nobody can see — in Chrome, "An invalid form
+         * control with name='…' is not focusable", with no way for the
+         * operator to act on it. Only `disabled` bars a control from
+         * validation, and disabling would drop the field from the POST,
+         * which changes what gets saved.
+         *
+         * So the attribute is removed while the block is hidden and put
+         * back when it returns. The marker attribute is what makes that
+         * reversible: without it a second call would promote every field
+         * in the container to required, including the ones that never
+         * were (#1117).
+         *
+         * @param {jQuery|string} $container Wrapper whose fields follow its visibility.
+         * @param {boolean}       on         True when the block is visible.
+         */
+        setRequiredWithin: function($container, on) {
+            jQuery($container).find('[required], [data-ffc-required-off]').each(function() {
+                var $field = jQuery(this);
+                if (on) {
+                    if (typeof $field.attr('data-ffc-required-off') !== 'undefined') {
+                        $field.prop('required', true).removeAttr('data-ffc-required-off');
+                    }
+                } else if (this.required) {
+                    $field.prop('required', false).attr('data-ffc-required-off', '');
+                }
+            });
+        },
+
+        /**
          * Centralized field toggle helper
          *
          * @param {jQuery|string} $trigger - Trigger element (checkbox, radio, select)

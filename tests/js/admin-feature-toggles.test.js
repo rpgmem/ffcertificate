@@ -388,7 +388,10 @@ describe('admin quiz mode toggle', () => {
 			<button id="ffc-migrations-btn"></button>
 			<div id="ffc-migrations-menu"></div>
 			<input type="checkbox" id="ffc_quiz_enabled">
-			<div class="ffc-quiz-setting ffc-hidden">setting</div>
+			<div class="ffc-quiz-setting ffc-hidden">
+				setting
+				<input type="number" id="quiz_passing_score" value="70" min="0" max="100" required>
+			</div>
 			<div class="ffc-options-field">
 				<span class="ffc-quiz-points ffc-hidden">points</span>
 			</div>
@@ -413,6 +416,19 @@ describe('admin quiz mode toggle', () => {
 
 		expect(window.$('.ffc-quiz-setting').hasClass('ffc-hidden')).toBe(true);
 		expect(window.$('.ffc-quiz-points').hasClass('ffc-hidden')).toBe(true);
+	});
+
+	it('carries required with the visibility (#1117)', async () => {
+		// `.ffc-hidden` is `display: none`, and constraint validation does
+		// not care: an empty required field in there blocks the save of the
+		// whole form editor, reported against a row nobody can see.
+		window.$('#ffc_quiz_enabled').prop('checked', false).trigger('change');
+		await flush();
+		expect(document.getElementById('quiz_passing_score').required).toBe(false);
+
+		window.$('#ffc_quiz_enabled').prop('checked', true).trigger('change');
+		await flush();
+		expect(document.getElementById('quiz_passing_score').required).toBe(true);
 	});
 });
 

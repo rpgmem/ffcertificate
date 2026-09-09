@@ -329,6 +329,12 @@
     if ($('#ffc_quiz_enabled').length) {
         function toggleQuizUI(on) {
             $('.ffc-quiz-setting').toggleClass('ffc-hidden', !on);
+            // `.ffc-hidden` is `display: none`, and a hidden `required`
+            // field still blocks the submit — against a control nobody can
+            // see. Carry the attribute with the visibility (#1117).
+            if (window.FFC && window.FFC.setRequiredWithin) {
+                window.FFC.setRequiredWithin($('.ffc-quiz-setting'), on);
+            }
             $('.ffc-options-field').each(function() {
                 var $opts = $(this);
                 if (!$opts.hasClass('ffc-hidden')) {

@@ -350,3 +350,97 @@ describe('custom scheduling mode (#941)', () => {
 		expect(document.querySelectorAll('#ffc-custom-slots-list tr').length).toBe(1);
 	});
 });
+
+// ----------------------------------------------------------------------
+// `required` follows visibility (#1117)
+// ----------------------------------------------------------------------
+
+describe('required follows the blocks the editor shows and hides', () => {
+	// A `required` field inside a `display:none` block still blocks the
+	// submit, and the browser reports it against a control nobody can see.
+	// Four blocks here are JS-toggled, so the attribute has to travel with
+	// them.
+	function mountModes() {
+		document.body.innerHTML = `
+			<form id="post">
+				<label><input type="radio" name="mode" value="regular" class="ffc-schedule-type-radio" checked></label>
+				<label><input type="radio" name="mode" value="custom" class="ffc-schedule-type-radio"></label>
+
+				<div id="ffc-working-hours-wrapper" class="ffc-regular-only">
+					<table><tbody id="ffc-working-hours-list">
+						<tr><td><input type="time" name="wh[0][start]" value="09:00" required /></td></tr>
+					</tbody></table>
+				</div>
+
+				<div class="ffc-custom-only">
+					<table><tbody id="ffc-custom-slots-list"></tbody></table>
+					<input type="number" id="max_blocks_per_user" value="0" min="0" required>
+				</div>
+
+				<input type="checkbox" id="allow_cancellation">
+				<input type="checkbox" id="waitlist_enabled">
+
+				<table><tbody>
+					<tr class="ffc-regular-only"><td><input type="number" id="slot_duration" value="30" min="5" required></td></tr>
+					<tr class="ffc-cancellation-hours" style="display:none"><td><input type="number" id="cancellation_min_hours" value="24" min="0" required></td></tr>
+					<tr class="ffc-waitlist-capacity" style="display:none"><td><input type="number" id="waitlist_capacity" value="0" min="0" required></td></tr>
+				</tbody></table>
+			</form>
+		`;
+	}
+
+	function req(id) {
+		return document.getElementById(id).required;
+	}
+
+	it('drops required from the regular block when custom mode is picked, and restores it', () => {
+		mountModes();
+		window.$('.ffc-schedule-type-radio[value="custom"]').prop('checked', true).trigger('change');
+
+		expect(req('slot_duration')).toBe(false);
+		expect(req('max_blocks_per_user')).toBe(true);
+
+		window.$('.ffc-schedule-type-radio[value="regular"]').prop('checked', true).trigger('change');
+		expect(req('slot_duration')).toBe(true);
+		expect(req('max_blocks_per_user')).toBe(false);
+	});
+
+	it('covers the working-hours rows, whose required predates #1117', () => {
+		mountModes();
+		const start = () => document.querySelector('#ffc-working-hours-list input[type="time"]').required;
+		expect(start()).toBe(true);
+
+		// This is the latent bug the sync closes: a stored row with an empty
+		// time jammed the save of any calendar switched to custom mode.
+		window.$('.ffc-schedule-type-radio[value="custom"]').prop('checked', true).trigger('change');
+		expect(start()).toBe(false);
+
+		window.$('.ffc-schedule-type-radio[value="regular"]').prop('checked', true).trigger('change');
+		expect(start()).toBe(true);
+	});
+
+	it('follows the cancellation and waitlist toggles', () => {
+		mountModes();
+		// Both render hidden, so the toggle handler is what enables them.
+		window.$('#allow_cancellation').prop('checked', true).trigger('change');
+		expect(req('cancellation_min_hours')).toBe(true);
+		expect(req('waitlist_capacity')).toBe(false);
+
+		window.$('#waitlist_enabled').prop('checked', true).trigger('change');
+		expect(req('waitlist_capacity')).toBe(true);
+
+		window.$('#allow_cancellation').prop('checked', false).trigger('change');
+		expect(req('cancellation_min_hours')).toBe(false);
+		expect(req('waitlist_capacity')).toBe(true);
+	});
+
+	it('marks a newly added custom block capacity as required', () => {
+		mountModes();
+		document.body.insertAdjacentHTML('beforeend', '<button id="ffc-add-custom-slot">Add</button>');
+		window.$('.ffc-schedule-type-radio[value="custom"]').prop('checked', true).trigger('change');
+
+		document.getElementById('ffc-add-custom-slot').click();
+		const capacity = document.querySelector('#ffc-custom-slots-list input[type="number"]');
+		expect(capacity.required).toBe(true);
+	});
+});

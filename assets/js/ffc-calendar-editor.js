@@ -28,6 +28,31 @@
             this.initRowCounter();
             this.slotCounter = $('#ffc-custom-slots-list tr').length;
             this.applyMode();
+            // The cancellation and waitlist rows get their initial hidden
+            // state from PHP, not from a handler, so nothing would have
+            // stripped their `required` before the first save (#1117).
+            this.syncRequired();
+        },
+
+        /**
+         * Keep `required` on the fields the current configuration shows.
+         *
+         * Four blocks here are hidden by JS, and a hidden `required` field
+         * blocks the submit against a control the operator cannot see. This
+         * is not only about the fields #1117 added: the working-hours rows
+         * have carried `required` on day/start/end since 4.1.0 inside
+         * `.ffc-regular-only`, so a stored row with an empty time already
+         * jammed the save of any calendar switched to custom mode.
+         */
+        syncRequired: function() {
+            if (!window.FFC || !window.FFC.setRequiredWithin) {
+                return;
+            }
+            var custom = $('.ffc-schedule-type-radio:checked').val() === 'custom';
+            window.FFC.setRequiredWithin($('.ffc-regular-only'), !custom);
+            window.FFC.setRequiredWithin($('.ffc-custom-only'), custom);
+            window.FFC.setRequiredWithin($('.ffc-cancellation-hours'), $('#allow_cancellation').is(':checked'));
+            window.FFC.setRequiredWithin($('.ffc-waitlist-capacity'), $('#waitlist_enabled').is(':checked'));
         },
 
         /**
@@ -76,6 +101,7 @@
                 $('.ffc-regular-only').show();
                 $('.ffc-custom-only').hide();
             }
+            FFCCalendarEditor.syncRequired();
         },
 
         /**
@@ -92,7 +118,7 @@
                 '<td><input type="date" name="' + n + '[date]" /></td>' +
                 '<td><input type="time" name="' + n + '[start]" /></td>' +
                 '<td><input type="time" name="' + n + '[end]" /></td>' +
-                '<td><input type="number" name="' + n + '[capacity]" value="1" min="1" max="10000" /></td>' +
+                '<td><input type="number" name="' + n + '[capacity]" value="1" min="1" max="10000" required /></td>' +
                 '<td><input type="text" name="' + n + '[label]" class="regular-text" /></td>' +
                 '<td><button type="button" class="button ffc-remove-slot">' + removeLabel + '</button></td>' +
                 '</tr>';
@@ -182,6 +208,7 @@
         toggleCancellationHours: function() {
             const isChecked = $(this).is(':checked');
             $('.ffc-cancellation-hours').toggle(isChecked);
+            FFCCalendarEditor.syncRequired();
         },
 
         /**
@@ -190,6 +217,7 @@
         toggleWaitlistCapacity: function() {
             const isChecked = $(this).is(':checked');
             $('.ffc-waitlist-capacity').toggle(isChecked);
+            FFCCalendarEditor.syncRequired();
         },
 
         /**

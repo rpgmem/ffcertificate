@@ -93,7 +93,7 @@ $ffc_font_options  = array(
 							<?php if ( 'color' === $ffc_type ) : ?>
 								<input type="text" class="ffc-email-model-color" id="<?php echo esc_attr( $ffc_id ); ?>" name="<?php echo esc_attr( $ffc_name ); ?>" value="<?php echo esc_attr( $ffc_value ); ?>" data-ffc-model-field="<?php echo esc_attr( $ffc_key ); ?>" data-default-color="<?php echo esc_attr( $ffc_value ); ?>">
 							<?php elseif ( 'number' === $ffc_type ) : ?>
-								<input type="number" min="0" class="small-text" id="<?php echo esc_attr( $ffc_id ); ?>" name="<?php echo esc_attr( $ffc_name ); ?>" value="<?php echo esc_attr( $ffc_value ); ?>" data-ffc-model-field="<?php echo esc_attr( $ffc_key ); ?>">
+								<input type="number" min="0" required class="small-text" id="<?php echo esc_attr( $ffc_id ); ?>" name="<?php echo esc_attr( $ffc_name ); ?>" value="<?php echo esc_attr( $ffc_value ); ?>" data-ffc-model-field="<?php echo esc_attr( $ffc_key ); ?>">
 							<?php elseif ( 'align' === $ffc_type ) : ?>
 								<select id="<?php echo esc_attr( $ffc_id ); ?>" name="<?php echo esc_attr( $ffc_name ); ?>" data-ffc-model-field="<?php echo esc_attr( $ffc_key ); ?>">
 									<?php foreach ( $ffc_align_options as $ffc_ov => $ffc_ol ) : ?>
