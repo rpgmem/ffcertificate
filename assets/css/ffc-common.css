@@ -191,6 +191,204 @@
 }
 
 /* ==========================================================================
+   DARK MODE - WordPress core chrome (#1126)
+   ==========================================================================
+
+   Redefining the tokens above flips everything the PLUGIN paints. It flips
+   nothing WordPress paints, because core writes #1d2327 / #646970 / #fff
+   literally in its own stylesheet and nothing here overrode it — so a settings
+   tab came out with readable descriptions (the plugin sets their colour) and
+   invisible labels (core sets theirs). `.ffc-settings-wrap .form-table th` is
+   the exact case: it had width, padding, font-weight and vertical-align, and
+   no `color` at all.
+
+   SCOPE — `.ffc-dark-mode` is added by `AssetHelper::enqueue_dark_mode()`,
+   which only runs from `AdminAssetsManager::enqueue_admin_assets()`, which
+   returns early unless `is_ffc_page()`. So these bare core selectors can only
+   ever match on a plugin screen; they cannot reach another plugin's page, and
+   no `.ffc-settings-wrap` wrapper is needed to contain them.
+
+   TOKENS ONLY. A literal colour here is the defect this block exists to fix —
+   the #1116 autosave badge shape, catalogued as a class in #1126. */
+
+:root.ffc-dark-mode .wrap h1,
+:root.ffc-dark-mode .wrap h2,
+:root.ffc-dark-mode .wrap h3,
+:root.ffc-dark-mode .wp-heading-inline {
+    color: var(--ffc-text);
+}
+
+/* Form tables — the labels that vanished. */
+:root.ffc-dark-mode .form-table th,
+:root.ffc-dark-mode .form-table th label,
+:root.ffc-dark-mode .form-table td,
+:root.ffc-dark-mode .form-table td label,
+:root.ffc-dark-mode fieldset legend {
+    color: var(--ffc-text);
+}
+
+:root.ffc-dark-mode .form-table,
+:root.ffc-dark-mode .form-table tr {
+    border-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode p.description,
+:root.ffc-dark-mode .description,
+:root.ffc-dark-mode .howto {
+    color: var(--ffc-text-muted);
+}
+
+/* Inputs — core keeps these white on a dark card otherwise. */
+:root.ffc-dark-mode input[type="text"],
+:root.ffc-dark-mode input[type="search"],
+:root.ffc-dark-mode input[type="number"],
+:root.ffc-dark-mode input[type="email"],
+:root.ffc-dark-mode input[type="url"],
+:root.ffc-dark-mode input[type="tel"],
+:root.ffc-dark-mode input[type="password"],
+:root.ffc-dark-mode input[type="date"],
+:root.ffc-dark-mode input[type="time"],
+:root.ffc-dark-mode input[type="datetime-local"],
+:root.ffc-dark-mode select,
+:root.ffc-dark-mode textarea {
+    color: var(--ffc-text);
+    background-color: var(--ffc-bg-input);
+    border-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode input::placeholder,
+:root.ffc-dark-mode textarea::placeholder {
+    color: var(--ffc-text-light);
+}
+
+:root.ffc-dark-mode input:focus,
+:root.ffc-dark-mode select:focus,
+:root.ffc-dark-mode textarea:focus {
+    border-color: var(--ffc-border-focus);
+    box-shadow: 0 0 0 1px var(--ffc-border-focus);
+}
+
+/* A disabled control must still read as text, not as the background. */
+:root.ffc-dark-mode input:disabled,
+:root.ffc-dark-mode select:disabled,
+:root.ffc-dark-mode textarea:disabled {
+    color: var(--ffc-text-muted);
+    background-color: var(--ffc-bg-alt);
+}
+
+/* Cards and metaboxes. */
+:root.ffc-dark-mode .card,
+:root.ffc-dark-mode .postbox {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-card);
+    border-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .postbox .postbox-header,
+:root.ffc-dark-mode .postbox .hndle,
+:root.ffc-dark-mode .postbox h2 {
+    color: var(--ffc-text);
+    border-bottom-color: var(--ffc-border);
+}
+
+/* List tables. */
+:root.ffc-dark-mode .wp-list-table,
+:root.ffc-dark-mode table.widefat {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-card);
+    border-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .wp-list-table th,
+:root.ffc-dark-mode .wp-list-table thead td,
+:root.ffc-dark-mode table.widefat th,
+:root.ffc-dark-mode table.widefat thead td {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-alt);
+    border-bottom-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .wp-list-table td,
+:root.ffc-dark-mode table.widefat td {
+    color: var(--ffc-text);
+    border-top-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .wp-list-table.striped > tbody > :nth-child(odd),
+:root.ffc-dark-mode .striped > tbody > :nth-child(odd) {
+    background-color: var(--ffc-bg-alt);
+}
+
+:root.ffc-dark-mode .tablenav,
+:root.ffc-dark-mode .tablenav .displaying-num,
+:root.ffc-dark-mode .tablenav-pages a,
+:root.ffc-dark-mode .subsubsub,
+:root.ffc-dark-mode .subsubsub a {
+    color: var(--ffc-text-secondary);
+}
+
+/* Secondary buttons. The primary button keeps core's blue, which reads
+   correctly on both grounds and is the one affordance users look for. */
+:root.ffc-dark-mode .button,
+:root.ffc-dark-mode .button-secondary {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-alt);
+    border-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .button:hover,
+:root.ffc-dark-mode .button-secondary:hover {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-card);
+    border-color: var(--ffc-border-focus);
+}
+
+:root.ffc-dark-mode .button:disabled,
+:root.ffc-dark-mode .button.disabled {
+    color: var(--ffc-text-light);
+    background: var(--ffc-bg);
+    border-color: var(--ffc-border-light);
+}
+
+/* Tab strips. */
+:root.ffc-dark-mode .nav-tab-wrapper {
+    border-bottom-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .nav-tab {
+    color: var(--ffc-text-secondary);
+    background: var(--ffc-bg-alt);
+    border-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .nav-tab-active,
+:root.ffc-dark-mode .nav-tab:hover {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-card);
+}
+
+/* Notices. Core paints the body white and leaves the left border coloured,
+   so only the ground and the text need moving — the status hue still reads. */
+:root.ffc-dark-mode .notice,
+:root.ffc-dark-mode div.updated,
+:root.ffc-dark-mode div.error {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-card);
+}
+
+/* Inline code, which core sets on a light grey ground. */
+:root.ffc-dark-mode code,
+:root.ffc-dark-mode kbd {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-alt);
+}
+
+:root.ffc-dark-mode hr,
+:root.ffc-dark-mode .wp-header-end {
+    border-color: var(--ffc-border);
+}
+
+/* ==========================================================================
    UTILITY CLASSES - Visibility & Display
    ========================================================================== */
 
