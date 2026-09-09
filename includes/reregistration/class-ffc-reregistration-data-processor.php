@@ -53,27 +53,24 @@ class ReregistrationDataProcessor {
 	/**
 	 * Sanitize a raw working_hours JSON string into canonical JSON.
 	 *
+	 * Delegates to {@see \FreeFormCertificate\Core\WorkingHours::sanitize()},
+	 * which is shared with the user-profile screen. This method used to be a
+	 * second copy of that loop, checking only `isset( $entry['day'] )` — so a
+	 * row with no time at all was stored, on the *public* form, where nobody is
+	 * watching (#1128). The two copies had already drifted: the admin side at
+	 * least named `entry1`/`exit2`, though `isset( '' )` being true made that
+	 * check ineffective too.
+	 *
+	 * The incomplete rows the shared sanitizer reports are dropped here rather
+	 * than surfaced: this path is an AJAX submit whose response shape is fixed,
+	 * and the public form's own client-side `required` covers the case. Wiring
+	 * the report through would be a separate change to that contract.
+	 *
 	 * @param string $raw Raw JSON input.
 	 * @return string Sanitized JSON.
 	 */
 	public static function sanitize_working_hours( string $raw ): string {
-		$wh = json_decode( $raw, true );
-		if ( ! is_array( $wh ) ) {
-			return '[]';
-		}
-		$sanitized = array();
-		foreach ( $wh as $entry ) {
-			if ( is_array( $entry ) && isset( $entry['day'] ) ) {
-				$sanitized[] = array(
-					'day'    => absint( $entry['day'] ),
-					'entry1' => sanitize_text_field( (string) ( $entry['entry1'] ?? '' ) ),
-					'exit1'  => sanitize_text_field( (string) ( $entry['exit1'] ?? '' ) ),
-					'entry2' => sanitize_text_field( (string) ( $entry['entry2'] ?? '' ) ),
-					'exit2'  => sanitize_text_field( (string) ( $entry['exit2'] ?? '' ) ),
-				);
-			}
-		}
-		return (string) wp_json_encode( $sanitized );
+		return \FreeFormCertificate\Core\WorkingHours::sanitize( $raw )['json'];
 	}
 
 	/**
