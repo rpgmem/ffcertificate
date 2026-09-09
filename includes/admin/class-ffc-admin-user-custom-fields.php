@@ -39,6 +39,7 @@ class AdminUserCustomFields {
 		add_action( 'personal_options_update', array( __CLASS__, 'save_section' ) );
 		add_action( 'edit_user_profile_update', array( __CLASS__, 'save_section' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
+		add_action( 'admin_notices', array( __CLASS__, 'render_save_notice' ) );
 	}
 
 	/**
@@ -57,7 +58,12 @@ class AdminUserCustomFields {
 		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array(), FFC_VERSION );
 		wp_enqueue_style( 'ffc-custom-fields-admin', FFC_PLUGIN_URL . "assets/css/ffc-custom-fields-admin{$s}.css", array(), FFC_VERSION );
 		wp_enqueue_script( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array( 'jquery' ), FFC_VERSION, true );
-		wp_enqueue_script( 'ffc-custom-fields-collapse', FFC_PLUGIN_URL . "assets/js/ffc-custom-fields-collapse{$s}.js", array(), FFC_VERSION, true );
+		// `ffc-core` supplies `FFC.setRequiredWithin()`, which the collapse
+		// script uses to carry `required` with a section's visibility (#1120).
+		// Without it a collapsed section holding a required field blocks the
+		// profile save against a control nobody can see.
+		wp_enqueue_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+		wp_enqueue_script( 'ffc-custom-fields-collapse', FFC_PLUGIN_URL . "assets/js/ffc-custom-fields-collapse{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 		wp_localize_script(
 			'ffc-working-hours',
 			'ffcWorkingHours',
@@ -200,17 +206,34 @@ class AdminUserCustomFields {
 	 * @return void
 	 */
 	private static function render_field_input( object $field, string $input_name, $value ): void {
+		/*
+		 * The definition already carries `is_required`, and until #1120 the
+		 * only thing that read it was the asterisk beside the label — no
+		 * input emitted the attribute and `save_section()` never checked the
+		 * flag, so the screen promised something neither end enforced.
+		 *
+		 * Two types are deliberately excluded. A `checkbox` would have to be
+		 * *ticked* to satisfy `required`, which is a different promise from
+		 * "this field must be filled in" and would change what existing
+		 * profiles are allowed to save — the reregistration renderer draws
+		 * the asterisk and skips the attribute for exactly this reason, and
+		 * this follows it. And `working_hours` posts through a hidden input,
+		 * which is barred from constraint validation outright; its own two
+		 * `required` time inputs are what enforce it there.
+		 */
+		$ffc_required = empty( $field->is_required ) ? '' : ' required';
+
 		switch ( $field->field_type ) {
 			case 'textarea':
 				?>
-				<textarea name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" rows="4" cols="50" class="regular-text"><?php echo esc_textarea( (string) $value ); ?></textarea>
+				<textarea name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" rows="4" cols="50" class="regular-text"<?php echo esc_attr( $ffc_required ); ?>><?php echo esc_textarea( (string) $value ); ?></textarea>
 				<?php
 				break;
 
 			case 'select':
 				$choices = CustomFieldReader::get_field_choices( $field );
 				?>
-				<select name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>">
+				<select name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>"<?php echo esc_attr( $ffc_required ); ?>>
 					<option value=""><?php esc_html_e( '&mdash; Select &mdash;', 'ffcertificate' ); ?></option>
 					<?php foreach ( $choices as $choice ) : ?>
 						<option value="<?php echo esc_attr( $choice ); ?>" <?php selected( $value, $choice ); ?>>
@@ -232,13 +255,13 @@ class AdminUserCustomFields {
 
 			case 'number':
 				?>
-				<input type="number" name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( (string) $value ); ?>" class="regular-text">
+				<input type="number" name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( (string) $value ); ?>" class="regular-text"<?php echo esc_attr( $ffc_required ); ?>>
 				<?php
 				break;
 
 			case 'date':
 				?>
-				<input type="date" name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( (string) $value ); ?>" class="regular-text">
+				<input type="date" name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( (string) $value ); ?>" class="regular-text"<?php echo esc_attr( $ffc_required ); ?>>
 				<?php
 				break;
 
@@ -298,7 +321,7 @@ class AdminUserCustomFields {
 			case 'text':
 			default:
 				?>
-				<input type="text" name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( (string) $value ); ?>" class="regular-text">
+				<input type="text" name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( (string) $value ); ?>" class="regular-text"<?php echo esc_attr( $ffc_required ); ?>>
 				<?php
 				break;
 		}
@@ -329,6 +352,8 @@ class AdminUserCustomFields {
 
 		$data     = array();
 		$seen_ids = array();
+		$existing = CustomFieldReader::get_user_data( $user_id );
+		$kept     = array();
 
 		foreach ( $fields as $field ) {
 			// Avoid processing same field twice.
@@ -365,13 +390,71 @@ class AdminUserCustomFields {
 				}
 			} else {
                 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Checked via isset; sanitized via sanitize_text_field/sanitize_textarea_field below.
-				$raw_value          = isset( $_POST[ $input_name ] ) ? wp_unslash( $_POST[ $input_name ] ) : '';
-				$data[ $field_key ] = 'textarea' === $field->field_type
+				$raw_value = isset( $_POST[ $input_name ] ) ? wp_unslash( $_POST[ $input_name ] ) : '';
+				$clean     = 'textarea' === $field->field_type
 					? sanitize_textarea_field( $raw_value )
 					: sanitize_text_field( $raw_value );
+
+				/*
+				 * An empty value on a required field is "not supplied", never
+				 * "clear it" (#1120, the shape #1114 fixed on the Rate Limit
+				 * tab). The `required` attribute stops this in the browser,
+				 * but the browser is not the guard: a direct POST, a client
+				 * with JS off, or a field the markup cannot mark required all
+				 * reach here. Keeping the stored value means the worst case is
+				 * an edit that did not take, announced below — not a value
+				 * silently erased.
+				 */
+				if ( '' === $clean && ! empty( $field->is_required ) && '' !== (string) ( $existing[ $field_key ] ?? '' ) ) {
+					$data[ $field_key ] = (string) $existing[ $field_key ];
+					$kept[]             = (string) $field->field_label;
+					continue;
+				}
+
+				$data[ $field_key ] = $clean;
 			}
 		}
 
 		CustomFieldWriter::save_user_data( $user_id, $data );
+
+		if ( ! empty( $kept ) ) {
+			set_transient( 'ffc_cf_required_kept_' . get_current_user_id(), $kept, MINUTE_IN_SECONDS );
+		}
+	}
+
+	/**
+	 * Tell the operator which required fields kept their previous value.
+	 *
+	 * `personal_options_update` / `edit_user_profile_update` run before the
+	 * redirect, so there is no screen left to write on — the notice has to
+	 * ride a transient into the next request, the way the form editor already
+	 * surfaces its save errors. Keyed on the *editor*, not the user being
+	 * edited, so two administrators never read each other's notice.
+	 *
+	 * @return void
+	 */
+	public static function render_save_notice(): void {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || ! in_array( $screen->id, array( 'profile', 'user-edit' ), true ) ) {
+			return;
+		}
+
+		$key  = 'ffc_cf_required_kept_' . get_current_user_id();
+		$kept = get_transient( $key );
+		if ( empty( $kept ) || ! is_array( $kept ) ) {
+			return;
+		}
+		delete_transient( $key );
+
+		printf(
+			'<div class="notice notice-warning is-dismissible"><p>%s</p></div>',
+			esc_html(
+				sprintf(
+					/* translators: %s: comma-separated list of required custom field labels. */
+					__( 'These required fields arrived empty and kept their previous value: %s', 'ffcertificate' ),
+					implode( ', ', array_map( 'strval', $kept ) )
+				)
+			)
+		);
 	}
 }

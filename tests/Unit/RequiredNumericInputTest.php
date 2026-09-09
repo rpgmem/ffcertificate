@@ -70,10 +70,12 @@ class RequiredNumericInputTest extends TestCase {
 		'includes/settings/views/ffc-tab-geolocation.php::ffc_location_new[radius]'                  => 'empty add-row',
 
 		// 3. User-defined custom fields: whether one is required is a property
-		// of the field definition, not of this markup. The reregistration
-		// renderer already emits `required` from that flag; the user-profile
-		// renderer draws the asterisk and does not (a follow-up, not a
-		// hardcoded attribute).
+		// of the field definition, not of this markup. Both renderers now
+		// emit `required` from `is_required` (#1117 catalogued the gap,
+		// #1120 closed it on the user-profile side) — they stay listed
+		// because the attribute is written through a PHP expression, which
+		// the scanner blanks along with every other PHP block, so it can
+		// never see one here. A hardcoded attribute would be the bug.
 		'includes/admin/class-ffc-admin-user-custom-fields.php::#1'                                  => 'per-field is_required',
 		'includes/reregistration/class-ffc-reregistration-form-renderer.php::%s'                     => 'per-field is_required',
 	);
