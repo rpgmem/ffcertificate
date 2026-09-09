@@ -193,10 +193,14 @@ final class RecruitmentPublicShortcode {
 	private static function enqueue_public_css(): void {
 		$path = FFC_PLUGIN_DIR . 'assets/css/ffc-recruitment-public.css';
 		$ver  = file_exists( $path ) ? (string) filemtime( $path ) : FFC_VERSION;
+		// The palette lives in ffc-common.css; on a public page nothing else
+		// puts it there (#1126 defeito B).
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
+
 		wp_enqueue_style(
 			'ffc-recruitment-public',
 			FFC_PLUGIN_URL . 'assets/css/ffc-recruitment-public.css',
-			array(),
+			array( 'ffc-common' ),
 			$ver
 		);
 	}

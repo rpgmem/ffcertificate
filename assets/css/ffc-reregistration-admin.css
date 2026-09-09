@@ -17,49 +17,49 @@
 }
 
 .ffc-status-draft {
-    background: #f0f0f1;
-    color: #50575e;
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-secondary);
 }
 
 .ffc-status-active {
-    background: #e6f6e6;
-    color: #00700e;
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
 }
 
 .ffc-status-expired {
-    background: #fcf0e3;
-    color: #996800;
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
 }
 
 .ffc-status-closed {
-    background: #f0f0f1;
-    color: #787c82;
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-muted);
 }
 
 /* Submission statuses */
 .ffc-status-pending {
-    background: #f0f0f1;
-    color: #50575e;
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-secondary);
 }
 
 .ffc-status-in_progress {
-    background: #e7f5fe;
-    color: #0073aa;
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
 }
 
 .ffc-status-submitted {
-    background: #e5f1fb;
-    color: #135e96;
+    background: var(--ffc-primary-light);
+    color: var(--ffc-primary-hover);
 }
 
 .ffc-status-approved {
-    background: #e6f6e6;
-    color: #00700e;
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
 }
 
 .ffc-status-rejected {
-    background: #fce4e4;
-    color: #8a1708;
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
 }
 
 /* ── Color dots ──────────────────────────────── */
@@ -81,8 +81,8 @@
     align-items: center;
     margin: 15px 0;
     padding: 10px 15px;
-    background: #fff;
-    border: 1px solid #c3c4c7;
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
     border-radius: 3px;
 }
 
@@ -129,11 +129,11 @@
 
 /* ── Delete link ─────────────────────────────── */
 a.delete-link {
-    color: #b32d2e;
+    color: var(--ffc-danger-text);
 }
 
 a.delete-link:hover {
-    color: #a00;
+    color: var(--ffc-danger);
 }
 
 /* ── Audience badges (list view) ────────────── */
@@ -141,7 +141,8 @@ a.delete-link:hover {
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    background: #f0f0f1;
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-secondary);
     padding: 1px 8px;
     border-radius: 3px;
     font-size: 12px;
@@ -159,9 +160,9 @@ a.delete-link:hover {
 
 .ffc-transfer-col {
     flex: 1;
-    border: 1px solid #c3c4c7;
+    border: 1px solid var(--ffc-border);
     border-radius: 4px;
-    background: #fff;
+    background: var(--ffc-bg-card);
     display: flex;
     flex-direction: column;
     min-width: 0;
@@ -171,15 +172,15 @@ a.delete-link:hover {
     padding: 8px 12px;
     font-weight: 600;
     font-size: 13px;
-    background: #f6f7f7;
-    border-bottom: 1px solid #c3c4c7;
+    background: var(--ffc-bg-alt);
+    border-bottom: 1px solid var(--ffc-border);
     border-radius: 4px 4px 0 0;
 }
 
 .ffc-transfer-search {
     margin: 6px 8px;
     padding: 4px 8px;
-    border: 1px solid #c3c4c7;
+    border: 1px solid var(--ffc-border);
     border-radius: 3px;
     font-size: 12px;
     width: calc(100% - 16px);
@@ -206,16 +207,16 @@ a.delete-link:hover {
 }
 
 .ffc-transfer-item:hover {
-    background: #f0f6fc;
+    background: var(--ffc-primary-light);
 }
 
 .ffc-transfer-item.ffc-transfer-highlight {
-    background: #2271b1;
-    color: #fff;
+    background: var(--ffc-primary);
+    color: var(--ffc-text-on-primary);
 }
 
 .ffc-transfer-item.ffc-transfer-highlight .ffc-color-dot {
-    box-shadow: 0 0 0 1px #fff;
+    box-shadow: 0 0 0 1px var(--ffc-text-on-primary);
 }
 
 .ffc-transfer-child {
@@ -239,8 +240,8 @@ a.delete-link:hover {
 }
 
 .ffc-transfer-selected.ffc-transfer-error {
-    border-color: #d63638;
-    box-shadow: 0 0 0 1px #d63638;
+    border-color: var(--ffc-danger);
+    box-shadow: 0 0 0 1px var(--ffc-danger);
 }
 
 .ffc-transfer-member-count {
@@ -261,7 +262,7 @@ body.ffc-modal-open {
 .ffc-modal-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(30, 30, 30, 0.55);
+    background: var(--ffc-bg-overlay);
 }
 
 .ffc-modal-content {
@@ -270,9 +271,9 @@ body.ffc-modal-open {
     width: calc(100% - 40px);
     max-height: calc(100vh - 60px);
     margin: 30px auto 0;
-    background: #fff;
+    background: var(--ffc-bg-card);
     border-radius: 6px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--ffc-shadow-lg);
     display: flex;
     flex-direction: column;
 }
@@ -282,8 +283,8 @@ body.ffc-modal-open {
     align-items: center;
     justify-content: space-between;
     padding: 14px 20px;
-    border-bottom: 1px solid #dcdcde;
-    background: #f6f7f7;
+    border-bottom: 1px solid var(--ffc-border-light);
+    background: var(--ffc-bg-alt);
     border-radius: 6px 6px 0 0;
 }
 
@@ -298,13 +299,13 @@ body.ffc-modal-open {
     border: none;
     font-size: 28px;
     line-height: 1;
-    color: #50575e;
+    color: var(--ffc-text-secondary);
     cursor: pointer;
     padding: 0 6px;
 }
 
 .ffc-modal-close:hover {
-    color: #000;
+    color: var(--ffc-text);
 }
 
 .ffc-modal-body {
@@ -314,7 +315,7 @@ body.ffc-modal-open {
 }
 
 .ffc-modal-loading {
-    color: #50575e;
+    color: var(--ffc-text-secondary);
     font-style: italic;
 }
 
@@ -322,7 +323,7 @@ body.ffc-modal-open {
 .ffc-submission-meta {
     margin-bottom: 14px;
     padding-bottom: 10px;
-    border-bottom: 1px solid #dcdcde;
+    border-bottom: 1px solid var(--ffc-border-light);
 }
 
 .ffc-submission-meta p {
@@ -330,18 +331,18 @@ body.ffc-modal-open {
 }
 
 .ffc-details-fieldset {
-    border: 1px solid #c3c4c7;
+    border: 1px solid var(--ffc-border);
     border-radius: 4px;
     padding: 8px 14px 12px;
     margin: 0 0 14px;
-    background: #fff;
+    background: var(--ffc-bg-card);
 }
 
 .ffc-details-fieldset > legend {
     padding: 0 6px;
     font-weight: 600;
     font-size: 13px;
-    color: #1d2327;
+    color: var(--ffc-text);
 }
 
 .ffc-details-list {
@@ -353,21 +354,21 @@ body.ffc-modal-open {
 
 .ffc-details-list dt {
     font-weight: 600;
-    color: #50575e;
+    color: var(--ffc-text-secondary);
     font-size: 13px;
     padding: 4px 0;
-    border-bottom: 1px dashed #f0f0f1;
+    border-bottom: 1px dashed var(--ffc-border-light);
 }
 
 .ffc-details-list dd {
     margin: 0;
     padding: 4px 0;
-    border-bottom: 1px dashed #f0f0f1;
+    border-bottom: 1px dashed var(--ffc-border-light);
     overflow-wrap: break-word;
 }
 
 .ffc-details-empty {
-    color: #a7aaad;
+    color: var(--ffc-text-light);
 }
 
 /* ── Extracted inline styles (frontend-audit Item 1) ──────────────────────
@@ -390,9 +391,9 @@ body.ffc-modal-open {
 }
 
 .ffc-rereg-yes {
-    color: #00a32a;
+    color: var(--ffc-success-text);
 }
 
 .ffc-rereg-muted {
-    color: #a7aaad;
+    color: var(--ffc-text-light);
 }

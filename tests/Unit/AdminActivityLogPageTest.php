@@ -124,8 +124,10 @@ class AdminActivityLogPageTest extends TestCase {
 			define('FFC_VERSION', '9.9.9');
 		}
 
-		Mockery::mock('alias:\FreeFormCertificate\Core\AssetHelper')
-			->shouldReceive('asset_suffix')->andReturn('.min');
+		$asset_helper = Mockery::mock('alias:\FreeFormCertificate\Core\AssetHelper');
+		$asset_helper->shouldReceive('asset_suffix')->andReturn('.min');
+		// enqueue_common_style() puts the token palette on the screen (#1126 B).
+		$asset_helper->shouldReceive('enqueue_common_style');
 
 		$scripts = [];
 		Functions\when('wp_enqueue_script')->alias(function ($handle) use (&$scripts) {

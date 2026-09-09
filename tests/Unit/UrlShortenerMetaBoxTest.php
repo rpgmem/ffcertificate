@@ -526,6 +526,13 @@ class UrlShortenerMetaBoxTest extends TestCase {
 				$enqueued[] = $h;
 			}
 		);
+		// The meta box now calls AssetHelper::enqueue_common_style(), which
+		// enqueues from the Core namespace (#1126 B).
+		Functions\when( 'FreeFormCertificate\Core\wp_enqueue_style' )->alias(
+			static function ( $h ) use ( &$enqueued ) {
+				$enqueued[] = $h;
+			}
+		);
 		Functions\when( 'FreeFormCertificate\UrlShortener\wp_localize_script' )->justReturn( true );
 		Functions\when( 'FreeFormCertificate\UrlShortener\admin_url' )->returnArg();
 		Functions\when( 'FreeFormCertificate\UrlShortener\wp_create_nonce' )->justReturn( 'nonce' );

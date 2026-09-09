@@ -232,7 +232,7 @@ class AudienceLoader {
 			wp_enqueue_style(
 				'ffc-custom-fields-admin',
 				FFC_PLUGIN_URL . "assets/css/ffc-custom-fields-admin{$s}.css",
-				array( 'ffc-audience-admin' ),
+				array( 'ffc-common', 'ffc-audience-admin' ),
 				FFC_VERSION
 			);
 
@@ -289,7 +289,7 @@ class AudienceLoader {
 			wp_enqueue_style(
 				'ffc-progress-overlay',
 				FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css",
-				array(),
+				array( 'ffc-common' ),
 				FFC_VERSION
 			);
 		}

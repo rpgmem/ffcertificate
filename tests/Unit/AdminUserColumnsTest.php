@@ -61,9 +61,11 @@ class AdminUserColumnsTest extends TestCase {
 
 		// Utils alias mock
 		$this->utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )->shouldReceive( 'asset_suffix' )
-			->andReturn( '.min' )
-			->byDefault();
+		$asset_helper = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
+		$asset_helper->shouldReceive( 'asset_suffix' )->andReturn( '.min' )->byDefault();
+		// enqueue_common_style() puts the token palette on the screen (#1126 B):
+		// users.php is not an is_ffc_page(), so nothing else would.
+		$asset_helper->shouldReceive( 'enqueue_common_style' )->byDefault();
 
 		// Common WP stubs
 		Functions\when( '__' )->returnArg();
@@ -389,7 +391,10 @@ class AdminUserColumnsTest extends TestCase {
 			->with(
 				'ffc-admin',
 				Mockery::pattern( '/ffc-admin\.min\.css/' ),
-				array(),
+				// ffc-admin.css paints with var(--ffc-*), and users.php is not
+				// an is_ffc_page(), so the palette must ride in as a declared
+				// dependency (#1126 defeito B).
+				array( 'ffc-common' ),
 				FFC_VERSION
 			);
 

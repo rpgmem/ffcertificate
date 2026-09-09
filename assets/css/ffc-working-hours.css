@@ -30,13 +30,13 @@
     padding: 6px 6px;
     font-weight: 600;
     font-size: 12px;
-    color: #50575e;
-    border-bottom: 1px solid #dcdcde;
+    color: var(--ffc-text-secondary);
+    border-bottom: 1px solid var(--ffc-border-light);
     white-space: nowrap;
 }
 
 .ffc-wh-table th .required {
-    color: #d63638;
+    color: var(--ffc-danger);
 }
 
 .ffc-wh-table td {
@@ -47,7 +47,7 @@
 .ffc-wh-table select,
 .ffc-wh-table input[type="time"] {
     padding: 4px 6px;
-    border: 1px solid #dcdcde;
+    border: 1px solid var(--ffc-border);
     border-radius: 4px;
     font-size: 13px;
     font-family: inherit;
@@ -63,18 +63,18 @@
 
 /* Required time inputs */
 .ffc-wh-table input[type="time"][required] {
-    border-left: 2px solid #2271b1;
+    border-left: 2px solid var(--ffc-primary);
 }
 
 /* Optional time inputs placeholder styling */
 .ffc-wh-table input[type="time"]:not([required]):placeholder-shown {
-    color: #a7aaad;
+    color: var(--ffc-text-light);
 }
 
 .ffc-wh-remove {
     background: none;
     border: 1px solid transparent;
-    color: #b32d2e;
+    color: var(--ffc-danger-text);
     cursor: pointer;
     font-size: 16px;
     line-height: 1;
@@ -83,9 +83,9 @@
 }
 
 .ffc-wh-remove:hover {
-    color: #dc3232;
-    border-color: #dc3232;
-    background: #fef0f0;
+    color: var(--ffc-danger);
+    border-color: var(--ffc-danger);
+    background: var(--ffc-danger-bg);
 }
 
 .ffc-wh-add {

@@ -14,7 +14,7 @@
 }
 
 .ffc-shorturl-metabox input[readonly] {
-    background: #f7f7f7;
+    background: var(--ffc-bg-alt);
     cursor: text;
 }
 
@@ -41,8 +41,8 @@
     bottom: 30px;
     left: 50%;
     transform: translateX(-50%) translateY(20px);
-    background: #1d2327;
-    color: #fff;
+    background: var(--ffc-inverse-surface);
+    color: var(--ffc-inverse-on-surface);
     padding: 10px 20px;
     border-radius: 4px;
     font-size: 13px;
@@ -50,7 +50,7 @@
     opacity: 0;
     transition: opacity 0.3s ease, transform 0.3s ease;
     pointer-events: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--ffc-shadow-md);
 }
 
 .ffc-shorturl-toast--visible {
@@ -59,7 +59,8 @@
 }
 
 .ffc-shorturl-toast--error {
-    background: #dc3232;
+    background: var(--ffc-danger);
+    color: var(--ffc-text-on-primary);
 }
 
 /* Admin page: clickable short URL code */
@@ -69,7 +70,7 @@
 }
 
 .ffc-shorturl-code:hover {
-    background: #ddd;
+    background: var(--ffc-bg-alt);
 }
 
 /* Stats cards */
@@ -80,27 +81,27 @@
 }
 
 .ffc-shorturl-stats > div {
-    background: #fff;
+    background: var(--ffc-bg-card);
     padding: 12px 20px;
-    border: 1px solid #ccd0d4;
+    border: 1px solid var(--ffc-border);
     border-radius: 4px;
     transition: box-shadow 0.2s;
 }
 
 .ffc-shorturl-stats > div:hover {
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--ffc-shadow-sm);
 }
 
 .ffc-shorturl-stats .ffc-stat-label {
-    color: #666;
+    color: var(--ffc-text-muted);
     margin-left: 4px;
 }
 
 /* Create form */
 .ffc-shorturl-create {
-    background: #fff;
+    background: var(--ffc-bg-card);
     padding: 15px 20px;
-    border: 1px solid #ccd0d4;
+    border: 1px solid var(--ffc-border);
     border-radius: 4px;
     margin-bottom: 15px;
 }
@@ -129,7 +130,8 @@
 #ffc-shorturl-result {
     display: none;
     padding: 8px 12px;
-    background: #d4edda;
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
     border-radius: 3px;
 }
 
@@ -163,17 +165,17 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--ffc-bg-overlay);
 }
 
 .ffc-qr-modal__content {
     position: relative;
-    background: #fff;
+    background: var(--ffc-bg-card);
     border-radius: 8px;
     padding: 30px;
     min-width: 340px;
     max-width: 420px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--ffc-shadow-lg);
     text-align: center;
     z-index: 1;
     animation: ffcQrModalIn 0.2s ease-out;
@@ -198,7 +200,7 @@
     border: none;
     font-size: 24px;
     line-height: 1;
-    color: #666;
+    color: var(--ffc-text-muted);
     cursor: pointer;
     padding: 4px 8px;
     border-radius: 4px;
@@ -206,22 +208,22 @@
 }
 
 .ffc-qr-modal__close:hover {
-    color: #dc3232;
-    background: #f0f0f0;
+    color: var(--ffc-danger);
+    background: var(--ffc-bg-alt);
 }
 
 .ffc-qr-modal__title {
     margin: 0 0 4px;
     font-size: 16px;
     font-weight: 600;
-    color: #1d2327;
+    color: var(--ffc-text);
     overflow-wrap: break-word;
 }
 
 .ffc-qr-modal__url {
     margin: 0 0 16px;
     font-size: 13px;
-    color: #2271b1;
+    color: var(--ffc-link);
     word-break: break-all;
 }
 
@@ -231,8 +233,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f9f9f9;
-    border: 1px solid #e0e0e0;
+    background: var(--ffc-bg-alt);
+    border: 1px solid var(--ffc-border);
     border-radius: 6px;
     padding: 16px;
 }
@@ -301,8 +303,8 @@
     text-align: center;
     margin: 12px 0;
     padding: 10px;
-    background: #fff;
-    border: 1px solid #ddd;
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
     border-radius: 4px;
 }
 
@@ -351,9 +353,9 @@
     font-weight: 600;
 }
 
-.ffc-shorturl-status-active   { color: #46b450; }
-.ffc-shorturl-status-disabled { color: #dc3232; }
-.ffc-shorturl-status-trashed  { color: #b32d2e; }
+.ffc-shorturl-status-active   { color: var(--ffc-success-text); }
+.ffc-shorturl-status-disabled { color: var(--ffc-danger); }
+.ffc-shorturl-status-trashed  { color: var(--ffc-danger-text); }
 
 /* Admin page: empty trash wrapper */
 .ffc-shorturl-empty-trash {
@@ -367,12 +369,12 @@
 
 /* Admin page: inline error text (edit modal / AJAX failures) */
 .ffc-shorturl-error {
-    color: #dc3232;
+    color: var(--ffc-danger-text);
 }
 
 /* Admin page: destination "follows the page" note (post-linked rows, #888) */
 .ffc-shorturl-dest-note {
-    color: #646970;
+    color: var(--ffc-text-muted);
     font-style: italic;
 }
 

@@ -194,11 +194,31 @@ final class DarkModeCssTest extends TestCase {
 			array( '--ffc-warning-text', '--ffc-warning-bg', 4.5, 'texto de aviso' ),
 			array( '--ffc-danger-text', '--ffc-danger-bg', 4.5, 'texto de perigo' ),
 			array( '--ffc-info-text', '--ffc-info-bg', 4.5, 'texto informativo' ),
+			// Pares que as sete folhas de admin passaram a pintar (#1126 B).
+			// Duas delas já reprovavam antes da conversão: --ffc-danger como
+			// texto sobre card (4,29:1 no escuro) e o rótulo branco do botão
+			// .ffc-btn-success (3,35:1 no claro). Nenhum guarda media isso.
+			array( '--ffc-text-secondary', '--ffc-bg-alt', 4.5, 'badge de estado neutro' ),
+			array( '--ffc-text-muted', '--ffc-bg-alt', 4.5, 'badge de estado encerrado' ),
+			array( '--ffc-text-secondary', '--ffc-bg-card', 4.5, 'rótulo dentro do modal' ),
+			array( '--ffc-primary-hover', '--ffc-primary-light', 4.5, 'badge "enviado"' ),
+			array( '--ffc-success-text', '--ffc-bg-card', 4.5, 'estado positivo como texto' ),
+			array( '--ffc-danger-text', '--ffc-bg-card', 4.5, 'link de exclusão' ),
+			array( '--ffc-danger', '--ffc-bg-card', 4.5, 'perigo como texto sobre card' ),
+			array( '--ffc-text-light', '--ffc-bg-card', 4.5, 'vazio dentro do modal' ),
+			array( '--ffc-primary', '--ffc-bg-card', 4.5, 'primária como texto sobre card' ),
+			array( '--ffc-text-on-primary', '--ffc-primary-hover', 4.5, 'botão primário sob o mouse' ),
+			array( '--ffc-text-on-danger', '--ffc-danger', 4.5, 'rótulo do botão destrutivo' ),
+			array( '--ffc-text-on-danger', '--ffc-danger-hover', 4.5, 'botão destrutivo sob o mouse' ),
+			array( '--ffc-text-on-success', '--ffc-success', 4.5, 'rótulo do botão de sucesso' ),
+			array( '--ffc-text-on-success', '--ffc-success-hover', 4.5, 'botão de sucesso sob o mouse' ),
+			array( '--ffc-inverse-on-surface', '--ffc-inverse-surface', 4.5, 'balão de toast' ),
 			// Não-texto: o contorno que identifica o componente, e as cores
 			// de estado usadas como sinal (o ponto colorido de um badge).
 			array( '--ffc-border', '--ffc-bg', 3.0, 'contorno sobre o fundo' ),
 			array( '--ffc-border', '--ffc-bg-card', 3.0, 'contorno sobre card' ),
 			array( '--ffc-border', '--ffc-bg-input', 3.0, 'contorno de campo' ),
+			array( '--ffc-border', '--ffc-bg-alt', 3.0, 'contorno sobre o fundo alternado' ),
 			array( '--ffc-primary', '--ffc-bg', 3.0, 'primária como sinal' ),
 			array( '--ffc-danger', '--ffc-bg', 3.0, 'perigo como sinal' ),
 			array( '--ffc-success', '--ffc-bg', 3.0, 'sucesso como sinal' ),

@@ -1026,7 +1026,7 @@ p.ffc-datetime-order-error {
 	padding-bottom: 10px;
 	font-size: 15px;
 	font-weight: 600;
-	color: var(--ffc-heading, inherit);
+	color: var(--ffc-text);
 	border-bottom: 2px solid var(--ffc-primary);
 }
 

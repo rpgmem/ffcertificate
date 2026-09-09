@@ -474,7 +474,12 @@ class AdminUserColumns {
 			return;
 		}
 
+		// users.php is not an `is_ffc_page()` screen, so `AdminAssetsManager`
+		// returns before enqueueing the palette — ffc-admin.css would paint
+		// with undefined custom properties here (#1126 defeito B).
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
+
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		wp_enqueue_style( 'ffc-admin', FFC_PLUGIN_URL . "assets/css/ffc-admin{$s}.css", array(), FFC_VERSION );
+		wp_enqueue_style( 'ffc-admin', FFC_PLUGIN_URL . "assets/css/ffc-admin{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 	}
 }

@@ -157,7 +157,7 @@ class Frontend {
 			// Shared CSV progress-overlay modal styles (#786) — the base
 			// .ffc-csv-progress-* rules moved here from ffc-frontend.css so the
 			// admin exports render the identical modal; loaded on both surfaces.
-			wp_enqueue_style( 'ffc-progress-overlay', FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css", array(), FFC_VERSION );
+			wp_enqueue_style( 'ffc-progress-overlay', FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 
 			// Dynamic fragments: refresh captcha + nonces on cached pages so
 			// LiteSpeed/Varnish visitors don't submit with a stale nonce. The
