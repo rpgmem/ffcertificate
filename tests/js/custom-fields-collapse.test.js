@@ -75,3 +75,69 @@ describe('ffc-custom-fields-collapse', () => {
 		}
 	});
 });
+
+describe('ffc-custom-fields-collapse — required follows the section (#1120)', () => {
+	// `.ffc-cf-section-body.collapsed` is `display: none`, and constraint
+	// validation ignores visibility: an empty required field in a collapsed
+	// section blocks the whole profile save, reported against a control the
+	// operator cannot see or reach.
+	function installWithFields() {
+		document.body.innerHTML = `
+			<h3 class="ffc-cf-toggle" data-target="sec1" aria-expanded="true">Heading</h3>
+			<div id="sec1" class="ffc-cf-section-body">
+				<input type="text" id="req" required>
+				<input type="text" id="plain">
+				<input type="time" id="wh" class="ffc-wh-entry1" required>
+			</div>
+		`;
+	}
+
+	it('strips required while collapsed and restores it on expand', () => {
+		installWithFields();
+		loadScript('assets/js/ffc-core.js');
+		loadScript(SCRIPT);
+		const heading = document.querySelector('.ffc-cf-toggle');
+
+		heading.click();
+		expect(document.getElementById('req').required).toBe(false);
+		// The working-hours inputs have carried `required` since before
+		// #1120 and are covered by the same sweep.
+		expect(document.getElementById('wh').required).toBe(false);
+
+		heading.click();
+		expect(document.getElementById('req').required).toBe(true);
+		expect(document.getElementById('wh').required).toBe(true);
+	});
+
+	it('never promotes a field that was not required', () => {
+		installWithFields();
+		loadScript('assets/js/ffc-core.js');
+		loadScript(SCRIPT);
+		const heading = document.querySelector('.ffc-cf-toggle');
+
+		heading.click();
+		heading.click();
+		expect(document.getElementById('plain').required).toBe(false);
+	});
+
+	it('syncs from the markup on init when a section renders collapsed', () => {
+		installWithFields();
+		document.getElementById('sec1').classList.add('collapsed');
+		loadScript('assets/js/ffc-core.js');
+		loadScript(SCRIPT);
+
+		expect(document.getElementById('req').required).toBe(false);
+	});
+
+	it('degrades quietly when ffc-core did not load', () => {
+		installWithFields();
+		const saved = window.FFC;
+		delete window.FFC;
+		loadScript(SCRIPT);
+
+		// No throw, and the collapse itself still works.
+		document.querySelector('.ffc-cf-toggle').click();
+		expect(document.getElementById('sec1').classList.contains('collapsed')).toBe(true);
+		window.FFC = saved;
+	});
+});
