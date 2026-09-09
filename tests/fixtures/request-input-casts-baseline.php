@@ -46,7 +46,6 @@ return array(
 	'frontend/submission/class-ffc-form-config-resolver.php::POST[form_id]#1',
 	'frontend/submission/class-ffc-schedule-exception-guard.php::POST[form_id]#1',
 	'reregistration/class-ffc-reregistration-admin.php::GET[id]#1',
-	'reregistration/class-ffc-reregistration-admin.php::POST[rereg_reminder_days]#1',
 	'reregistration/class-ffc-reregistration-admin.php::POST[reregistration_id]#1',
 	'reregistration/class-ffc-reregistration-ajax-handler.php::POST[submission_id]#1',
 	'reregistration/class-ffc-reregistration-ajax-handler.php::POST[submission_id]#2',

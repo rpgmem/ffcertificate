@@ -488,6 +488,18 @@ Two things the convergence measured, worth not re-deriving. Every one of the 16 
 - Tabs that share `ffc_settings` save through the central `SettingsSaveHandler`, which is **merge-based** (`$clean = get_option(...)`) and gates each section on the hidden `_ffc_tab` marker — so saving tab X only rebuilds tab X's toggles, preserving every other tab's auto-saved keys. Keep both properties (merge base + `_ffc_tab` guard) when touching that handler.
 - Tabs with their own option (geolocation, rate-limit, user-access, ip-diagnostics) full-rebuild that option from their own form; every toggle in the option must be read back from `$_POST` there.
 
+### Admin number inputs — `required`, and the three times it is wrong
+
+Every `<input type="number">` in the admin carries `required`, enforced by `tests/Unit/RequiredNumericInputTest.php` — an unlisted one without it fails, and a listed exception that gained it (or vanished) fails too. The reason is the #1114 class: a cleared number field posts the empty string, `absint( '' )` is `0`, and what that `0` means is per-consumer and was never uniform — on the Rate Limit tab it read as "limit already reached" and barred every submission from every address; on a reregistration campaign it collapsed the reminder onto the campaign's last day. The attribute is only the cheap half: **the save handler still has to treat empty as "not supplied"**, because the browser is not the guard (`RequestInput::get_post_string( $k, '' )` then an explicit `'' === …` branch; `ArrayValue::int()` already does this, since `is_numeric( '' )` is false).
+
+Three shapes make `required` a **bug** rather than a missing safeguard, and each is in the guard's `KNOWN_OPTIONAL` with its reason:
+
+1. **Empty is a documented value.** The device-limit and public-CSV fields say "Inherit from global" and their save handler *deletes the meta* so the read side falls back; the audience calendar's says "Leave empty for no limit". `required` removes the only way to express it.
+2. **The control is not a form field.** `ffc_qty_codes` has no `name` — it is the argument to an AJAX button. A control without a name is still a candidate for constraint validation, so `required` there blocks the surrounding form while never being submitted. Same for an empty "add a new row" line inside a shared `<form>` (`ffc_location_new[…]`, caught in #1115 before it shipped).
+3. **Requiredness belongs to the field's definition.** User-defined custom fields carry `is_required`; the markup must emit the attribute from that flag, never hardcode it.
+
+**A `required` field inside a JS-hidden block blocks the submit against a control nobody can see** — constraint validation ignores visibility, and only `disabled` bars a control (which would drop it from the POST). So the attribute travels with the block: `FFC.setRequiredWithin( $container, visible )` strips it and puts it back, using a marker attribute so a re-show never *promotes* fields that were never required. Call it wherever a block is shown or hidden — the calendar editor's four blocks and the quiz rows do. This was not hypothetical: the working-hours rows had carried `required` inside `.ffc-regular-only` since 4.1.0, so a stored row with an empty time jammed the save of any calendar switched to custom mode.
+
 ### Capability naming
 
 All FFC capabilities follow one grammar (ratified in #488, applied plugin-wide):

@@ -352,6 +352,15 @@ class ReregistrationAdmin {
 			$prev_status = $existing ? $existing->status : null;
 		}
 
+		// An emptied number field is "not supplied", never zero. `absint( '' )`
+		// is 0, and the reminder sweep reads
+		// `DATEDIFF(end_date, CURDATE()) <= reminder_days`, so a cleared field
+		// would quietly move every reminder to the campaign's last day — late
+		// enough to be useless, with nothing on screen saying so. The input
+		// declares `min="1"`, so a deliberately typed 0 lands on that floor
+		// (#1117; the shape #1114 fixed on the Rate Limit tab).
+		$ffc_reminder_raw = \FreeFormCertificate\Core\RequestInput::get_post_string( 'rereg_reminder_days', '' );
+
 		$data = array(
 			'title'                      => \FreeFormCertificate\Core\RequestInput::get_post_string( 'rereg_title' ),
 			'start_date'                 => \FreeFormCertificate\Core\RequestInput::get_post_string( 'rereg_start_date' ),
@@ -360,7 +369,7 @@ class ReregistrationAdmin {
 			'email_invitation_enabled'   => ! empty( $_POST['rereg_email_invitation'] ) ? 1 : 0,
 			'email_reminder_enabled'     => ! empty( $_POST['rereg_email_reminder'] ) ? 1 : 0,
 			'email_confirmation_enabled' => ! empty( $_POST['rereg_email_confirmation'] ) ? 1 : 0,
-			'reminder_days'              => isset( $_POST['rereg_reminder_days'] ) ? absint( $_POST['rereg_reminder_days'] ) : 7,
+			'reminder_days'              => '' === $ffc_reminder_raw ? 7 : max( 1, absint( $ffc_reminder_raw ) ),
 			'status'                     => \FreeFormCertificate\Core\RequestInput::get_post_string( 'rereg_status', 'draft' ),
 		);
 
