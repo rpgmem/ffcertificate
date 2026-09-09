@@ -24,6 +24,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Entradas numéricas das abas de configuração agora são obrigatórias** (#1114): 38 campos ganharam `required`, e o `smtp_port` — o único sem limite algum — ganhou faixa. Os caps de endpoint de leitura passam a dizer no próprio card que ali `0` remove o limite, ao contrário dos demais.
 - **Piso da janela de emissão de captcha baixado de 60s para 1s** (#1111): abaixo de um minuto o limite vira decorativo — o campo passa a dizer isso como recomendação, em vez de o código recusar, alinhando com os demais limites da aba.
 
+### Removed
+
+- ⚠ **O argumento `$token` de `check_verification()`** (#1048): anunciado obsoleto na 6.22.0, removido agora conforme o prazo publicado. `RateLimiter::check_verification()` e `RateLimitChecker::check_verification()` passam a receber só o IP. Nenhum chamador passava o segundo argumento, e quem passar não quebra — o PHP ignora argumento excedente em função de usuário.
+
 ### Added
 
 - **Emissão de desafios ALTCHA agora é configurável** (#1111): teto e janela no bloco de IP da aba Rate Limit, padrões 60 e 600s — os valores que já vigoravam — e teto 0 = sem limite. Era o único limite do sistema sem controle na interface: atrás de NAT institucional ele barrava o formulário para todos depois do 60º desafio, com 429 e nenhum erro visível.

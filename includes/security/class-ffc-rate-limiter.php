@@ -148,16 +148,17 @@ class RateLimiter {
 	/**
 	 * Forwards to {@see RateLimitChecker::check_verification()}.
 	 *
-	 * @deprecated 6.22.0 The `$token` argument is ignored and will be removed in
-	 *             6.24.0 (#1048). Verification throttling is keyed on the IP only;
-	 *             a per-token limit was never implemented. Call with `$ip` alone.
+	 * The `$token` argument this carried until 6.24.0 is gone (#1048, announced
+	 * 6.22.0): it was accepted and never read, which on a Security method is
+	 * worse than absent — the signature advertised a per-token limit that did
+	 * not exist. Passing it does no harm on the way out, because PHP ignores
+	 * surplus arguments to a userland function.
 	 *
-	 * @param string      $ip    IP address.
-	 * @param string|null $token Ignored. Kept for signature compatibility until 6.24.0.
+	 * @param string $ip IP address.
 	 * @return array{allowed: bool, message?: string, wait_seconds?: int}
 	 */
-	public static function check_verification( string $ip, ?string $token = null ): array {
-		return RateLimitChecker::check_verification( $ip, $token );
+	public static function check_verification( string $ip ): array {
+		return RateLimitChecker::check_verification( $ip );
 	}
 
 	/**
