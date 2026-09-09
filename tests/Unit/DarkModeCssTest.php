@@ -154,4 +154,209 @@ final class DarkModeCssTest extends TestCase {
 			);
 		}
 	}
+
+	// ==================================================================
+	// Contraste medido (#1132)
+	// ==================================================================
+	//
+	// O guarda acima vê PRESENÇA — se a declaração usa token ou literal.
+	// Não vê se o par resultante é legível, e foi por aí que dez pares
+	// chegaram ao repositório reprovando o WCAG AA, o `on-primary` do tema
+	// escuro entre eles: branco sobre a primária clara, 2,52:1, desde o dia
+	// em que o tema escuro foi escrito. Nada media, então nada acusou.
+	//
+	// Isto calcula a razão a partir do próprio CSS. Bloqueia em zero.
+
+	/**
+	 * Pares que o CSS realmente pinta, com o piso de cada um.
+	 *
+	 * O piso não é uma opinião: 4,5:1 é o mínimo do WCAG AA para texto
+	 * normal, 3:1 para o que identifica um componente (SC 1.4.11) — e é o
+	 * mesmo piso que o Material 3 adota. Um par que não aparece na tela não
+	 * entra aqui; a lista descreve composições reais, não o produto
+	 * cartesiano dos tokens.
+	 *
+	 * @return array<int, array{0: string, 1: string, 2: float, 3: string}>
+	 */
+	private static function pairs(): array {
+		return array(
+			array( '--ffc-text', '--ffc-bg', 4.5, 'texto sobre o fundo' ),
+			array( '--ffc-text', '--ffc-bg-alt', 4.5, 'texto sobre o fundo alternado' ),
+			array( '--ffc-text', '--ffc-bg-card', 4.5, 'texto sobre card' ),
+			array( '--ffc-text', '--ffc-bg-input', 4.5, 'texto dentro de um campo' ),
+			array( '--ffc-text-secondary', '--ffc-bg-card', 4.5, 'texto secundário sobre card' ),
+			array( '--ffc-text-muted', '--ffc-bg-card', 4.5, 'descrição sobre card' ),
+			array( '--ffc-text-muted', '--ffc-bg-alt', 4.5, 'descrição sobre o fundo alternado' ),
+			array( '--ffc-text-light', '--ffc-bg-input', 4.5, 'placeholder dentro de um campo' ),
+			array( '--ffc-link', '--ffc-bg-card', 4.5, 'link sobre card' ),
+			array( '--ffc-text-on-primary', '--ffc-primary', 4.5, 'rótulo do botão primário' ),
+			array( '--ffc-success-text', '--ffc-success-bg', 4.5, 'texto de sucesso' ),
+			array( '--ffc-warning-text', '--ffc-warning-bg', 4.5, 'texto de aviso' ),
+			array( '--ffc-danger-text', '--ffc-danger-bg', 4.5, 'texto de perigo' ),
+			array( '--ffc-info-text', '--ffc-info-bg', 4.5, 'texto informativo' ),
+			// Não-texto: o contorno que identifica o componente, e as cores
+			// de estado usadas como sinal (o ponto colorido de um badge).
+			array( '--ffc-border', '--ffc-bg', 3.0, 'contorno sobre o fundo' ),
+			array( '--ffc-border', '--ffc-bg-card', 3.0, 'contorno sobre card' ),
+			array( '--ffc-border', '--ffc-bg-input', 3.0, 'contorno de campo' ),
+			array( '--ffc-primary', '--ffc-bg', 3.0, 'primária como sinal' ),
+			array( '--ffc-danger', '--ffc-bg', 3.0, 'perigo como sinal' ),
+			array( '--ffc-success', '--ffc-bg', 3.0, 'sucesso como sinal' ),
+			array( '--ffc-warning', '--ffc-bg', 3.0, 'aviso como sinal' ),
+			array( '--ffc-info', '--ffc-bg', 3.0, 'info como sinal' ),
+		);
+	}
+
+	/**
+	 * Os tokens de cor de um dos dois temas.
+	 *
+	 * O tema escuro é o claro **sobrescrito**, não um conjunto próprio: o
+	 * bloco `:root.ffc-dark-mode` só redefine parte dos tokens, e o resto
+	 * segue valendo. Ler o bloco escuro isolado mediria um tema que não
+	 * existe — daí a mesclagem.
+	 *
+	 * @param string $theme 'light' ou 'dark'.
+	 * @return array<string, string> Token => valor.
+	 */
+	private static function palette( string $theme ): array {
+		$css = (string) preg_replace( '#/\*.*?\*/#s', '', (string) file_get_contents( self::stylesheet() ) );
+
+		$read = static function ( string $selector ) use ( $css ): array {
+			if ( ! preg_match( '/' . preg_quote( $selector, '/' ) . '\s*\{(.*?)\n\}/s', $css, $m ) ) {
+				return array();
+			}
+			$out = array();
+			foreach ( explode( ';', $m[1] ) as $declaration ) {
+				$parts = explode( ':', $declaration, 2 );
+				if ( count( $parts ) === 2 && strpos( trim( $parts[0] ), '--ffc-' ) === 0 ) {
+					$out[ trim( $parts[0] ) ] = trim( $parts[1] );
+				}
+			}
+			return $out;
+		};
+
+		$light = $read( ':root' );
+		return 'dark' === $theme ? array_merge( $light, $read( ':root.ffc-dark-mode' ) ) : $light;
+	}
+
+	/**
+	 * `#rgb`, `#rrggbb` ou `rgba()` para [r, g, b]; null para o resto.
+	 *
+	 * @param string $value Valor CSS.
+	 * @return array{0: int, 1: int, 2: int}|null
+	 */
+	private static function to_rgb( string $value ): ?array {
+		if ( preg_match( '/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', trim( $value ), $m ) ) {
+			$hex = $m[1];
+			if ( strlen( $hex ) === 3 ) {
+				$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+			}
+			return array(
+				(int) hexdec( substr( $hex, 0, 2 ) ),
+				(int) hexdec( substr( $hex, 2, 2 ) ),
+				(int) hexdec( substr( $hex, 4, 2 ) ),
+			);
+		}
+
+		if ( preg_match( '/^rgba?\(\s*([0-9]+)\s*,\s*([0-9]+)\s*,\s*([0-9]+)/', trim( $value ), $m ) ) {
+			return array( (int) $m[1], (int) $m[2], (int) $m[3] );
+		}
+
+		return null;
+	}
+
+	/**
+	 * Razão de contraste do WCAG 2.x entre duas cores.
+	 *
+	 * @param array{0: int, 1: int, 2: int} $a Primeira cor.
+	 * @param array{0: int, 1: int, 2: int} $b Segunda cor.
+	 */
+	private static function contrast( array $a, array $b ): float {
+		$luminance = static function ( array $c ): float {
+			$channel = static function ( int $v ): float {
+				$s = $v / 255;
+				return $s <= 0.03928 ? $s / 12.92 : pow( ( $s + 0.055 ) / 1.055, 2.4 );
+			};
+			return 0.2126 * $channel( $c[0] ) + 0.7152 * $channel( $c[1] ) + 0.0722 * $channel( $c[2] );
+		};
+
+		$la = $luminance( $a );
+		$lb = $luminance( $b );
+
+		return ( max( $la, $lb ) + 0.05 ) / ( min( $la, $lb ) + 0.05 );
+	}
+
+	/**
+	 * Todo par pintado precisa atingir o piso do WCAG AA, nos dois temas.
+	 *
+	 * @dataProvider provider_themes
+	 * @param string $theme Nome do tema.
+	 */
+	public function test_every_painted_pair_meets_its_contrast_floor( string $theme ): void {
+		$palette  = self::palette( $theme );
+		$failures = array();
+
+		foreach ( self::pairs() as list( $fg, $bg, $floor, $what ) ) {
+			$a = self::to_rgb( $palette[ $fg ] ?? '' );
+			$b = self::to_rgb( $palette[ $bg ] ?? '' );
+
+			$this->assertNotNull( $a, "Token {$fg} ausente ou ilegível no tema {$theme}." );
+			$this->assertNotNull( $b, "Token {$bg} ausente ou ilegível no tema {$theme}." );
+
+			$ratio = self::contrast( $a, $b );
+			if ( $ratio < $floor ) {
+				$failures[] = sprintf(
+					'%s: %s sobre %s = %.2f:1, mínimo %.1f:1  (%s / %s)',
+					$what,
+					$palette[ $fg ],
+					$palette[ $bg ],
+					$ratio,
+					$floor,
+					$fg,
+					$bg
+				);
+			}
+		}
+
+		$this->assertSame(
+			array(),
+			$failures,
+			"Pares abaixo do piso do WCAG AA no tema {$theme}:\n  " . implode( "\n  ", $failures )
+			. "\n\nAjuste a LUMINOSIDADE do token preservando o matiz, e confira contra TODOS os"
+			. "\nfundos em que ele aparece — um token costuma ser pintado sobre mais de um."
+		);
+	}
+
+	/**
+	 * @return array<string, array{string}>
+	 */
+	public static function provider_themes(): array {
+		return array(
+			'claro'  => array( 'light' ),
+			'escuro' => array( 'dark' ),
+		);
+	}
+
+	/**
+	 * Autoverificação do medidor.
+	 *
+	 * `assertSame( array(), $failures )` também é satisfeito por uma paleta
+	 * que não foi lida — a forma que o #1094 achou em quatro guardas de uma
+	 * vez. Aqui a checagem é dupla: a paleta precisa ter tamanho plausível,
+	 * o tema escuro precisa de fato diferir do claro, e o cálculo precisa
+	 * reproduzir dois valores conhecidos.
+	 */
+	public function test_the_meter_cannot_collapse_in_silence(): void {
+		$light = self::palette( 'light' );
+		$dark  = self::palette( 'dark' );
+
+		$this->assertGreaterThan( 30, count( $light ), 'A paleta clara não foi lida.' );
+		$this->assertGreaterThan( 30, count( $dark ), 'A paleta escura não foi lida.' );
+		$this->assertNotSame( $light, $dark, 'O tema escuro leu igual ao claro — a mesclagem quebrou.' );
+
+		// Preto sobre branco é 21:1 e branco sobre branco é 1:1, por definição.
+		$this->assertEqualsWithDelta( 21.0, self::contrast( array( 0, 0, 0 ), array( 255, 255, 255 ) ), 0.01 );
+		$this->assertEqualsWithDelta( 1.0, self::contrast( array( 255, 255, 255 ), array( 255, 255, 255 ) ), 0.01 );
+	}
 }
+
