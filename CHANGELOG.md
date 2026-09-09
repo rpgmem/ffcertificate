@@ -14,6 +14,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Campo obrigatório no perfil de usuário não era exigido em ponta nenhuma** (#1120): `is_required` só desenhava o asterisco — nenhum input emitia o atributo e o salvamento não conferia a flag, então um campo marcado obrigatório gravava vazio em silêncio. Agora o navegador exige e o servidor preserva o valor gravado quando o campo chega vazio, avisando quais preservou.
 - **Limpar o campo de lembrete de uma campanha de rerrematrícula gravava zero** (#1117): `absint( '' )` é `0`, e a varredura lê `DATEDIFF(end_date, CURDATE()) <= reminder_days` — o lembrete passava a sair só no último dia da campanha, tarde demais para servir, sem nada na tela dizendo que o valor mudou.
 - **Limpar um campo numérico no admin gravava o piso daquela chave, em silêncio** (#1111): `(int) ''` é `0`, então esvaziar o campo escrevia o menor valor aceito — e o autosave salva a cada tecla, então bastava apagar para retomar a digitação. O endpoint agora recusa valor vazio e mantém o gravado; `0` digitado continua valendo.
+- **O e-mail de acesso concedido nunca foi enviado por nenhuma instalação** (#1123): `notify_capability_grant` guardava o envio e não era escrita em lugar nenhum — nem campo, nem allowlist, nem padrão declarado — então a guarda lia `false` para sempre, enquanto o hub de e-mails oferecia o texto para edição. Ganhou interruptor na aba SMTP, desligado por padrão para preservar o comportamento de hoje.
 
 ### Changed
 
@@ -27,10 +28,12 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Removed
 
 - ⚠ **O argumento `$token` de `check_verification()`** (#1048): anunciado obsoleto na 6.22.0, removido agora conforme o prazo publicado. `RateLimiter::check_verification()` e `RateLimitChecker::check_verification()` passam a receber só o IP. Nenhum chamador passava o segundo argumento, e quem passar não quebra — o PHP ignora argumento excedente em função de usuário.
+- **Sete acessores do `SettingsReader` que liam a opção errada** (#1123): `admin_bar_allowed()`, `wp_admin_blocked()` e `admins_bypassed()` liam chaves de `ffc_user_access_settings`; `ip_cache_enabled()`, `ip_api_enabled()`, `ip_cache_ttl()` e `gps_cache_ttl()` liam chaves de `ffc_geolocation_settings`, duplicando acessores corretos que já existiam. Nada os chamava, e nada escrevia aquelas chaves em `ffc_settings` — devolviam o padrão embutido para sempre.
 
 ### Added
 
 - **Emissão de desafios ALTCHA agora é configurável** (#1111): teto e janela no bloco de IP da aba Rate Limit, padrões 60 e 600s — os valores que já vigoravam — e teto 0 = sem limite. Era o único limite do sistema sem controle na interface: atrás de NAT institucional ele barrava o formulário para todos depois do 60º desafio, com 429 e nenhum erro visível.
+- **Guarda de caminho de escrita sobre `ffc_settings`** (#1123, #993): toda chave lida da opção precisa poder ser gravada nela — por campo, por allowlist de autosave ou por padrão declarado. Bloqueia em zero, sem baseline, e pega as duas formas que motivaram a issue: o acessor de chave alheia e a funcionalidade dormente. Junto vai uma catraca das 32 chaves lidas sem declaração, que só encolhe.
 
 ## [6.23.0] (2026-09-07) — `e029d6f`
 

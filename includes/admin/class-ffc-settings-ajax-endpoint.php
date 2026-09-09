@@ -75,6 +75,8 @@ class SettingsAjaxEndpoint {
 			'send_wp_user_email_appointment',
 			'send_wp_user_email_csv_import',
 			'send_wp_user_email_migration',
+			// Access-granted notification — read since 6.x, writable since #1123.
+			'notify_capability_grant',
 			// URL Shortener tab.
 			'url_shortener_enabled',
 			'url_shortener_auto_create',

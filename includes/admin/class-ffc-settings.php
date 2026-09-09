@@ -330,6 +330,13 @@ class Settings {
 			'captcha_altcha_auto'        => 'off', // 'off' | 'onfocus' | 'onload' | 'onsubmit'.
 			'captcha_altcha_hide_logo'   => 0,
 			'captcha_altcha_hide_footer' => 0,
+			// #1123. Read since the "Access granted" email was written, but
+			// never written by anything, so `get_bool()` returned false on
+			// every install and the email was unreachable. `0` keeps that
+			// state as the *declared* one — the fix is the SMTP-tab toggle
+			// that now writes the key, not a default that starts mailing
+			// every existing install on upgrade.
+			'notify_capability_grant'    => 0,
 		);
 	}
 

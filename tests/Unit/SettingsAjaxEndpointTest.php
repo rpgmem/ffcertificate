@@ -280,6 +280,9 @@ class SettingsAjaxEndpointTest extends TestCase {
 				'debug_self_scheduling',
 				'debug_audience',
 				'debug_qrcode',
+				// #1123 — read to gate the "Access granted" email since it
+				// was written, writable only from here on.
+				'notify_capability_grant',
 			) as $key
 		) {
 			$this->assertArrayHasKey( $key, $list, "missing allowlist entry for {$key}" );

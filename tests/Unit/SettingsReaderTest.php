@@ -278,19 +278,21 @@ class SettingsReaderTest extends TestCase {
 	}
 
 	/**
+	 * Seven accessors left this file with #1123, not because they were
+	 * untested but because they were untestable in the honest sense: three
+	 * read `ffc_user_access_settings` keys and four read
+	 * `ffc_geolocation_settings` keys, all through `ffc_settings`. This
+	 * provider stubbed the key into the option they read, so every one
+	 * passed while no install could ever put it there.
+	 *
 	 * @return array<string, array{string, string}>
 	 */
 	public static function provider_bool_accessors_default_false(): array {
 		return array(
 			'emails_disabled'                 => array( 'emails_disabled', 'disable_all_emails' ),
 			'activity_log_enabled'            => array( 'activity_log_enabled', 'enable_activity_log' ),
-			'admin_bar_allowed'               => array( 'admin_bar_allowed', 'allow_admin_bar' ),
 			'delete_data_on_uninstall'        => array( 'delete_data_on_uninstall', 'delete_data_on_uninstall' ),
-			'wp_admin_blocked'                => array( 'wp_admin_blocked', 'block_wp_admin' ),
-			'admins_bypassed'                 => array( 'admins_bypassed', 'bypass_for_admins' ),
 			'qr_cache_enabled'                => array( 'qr_cache_enabled', 'qr_cache_enabled' ),
-			'ip_cache_enabled'                => array( 'ip_cache_enabled', 'ip_cache_enabled' ),
-			'ip_api_enabled'                  => array( 'ip_api_enabled', 'ip_api_enabled' ),
 			'notify_capability_grant_enabled' => array( 'notify_capability_grant_enabled', 'notify_capability_grant' ),
 		);
 	}
@@ -336,8 +338,6 @@ class SettingsReaderTest extends TestCase {
 			'activity_log_retention_days' => array( 'activity_log_retention_days', 'activity_log_retention_days', 90 ),
 			'cache_expiration_seconds'    => array( 'cache_expiration_seconds', 'cache_expiration', 3600 ),
 			'obsolete_shortcode_days'     => array( 'obsolete_shortcode_days', 'obsolete_shortcode_days', 90 ),
-			'gps_cache_ttl'               => array( 'gps_cache_ttl', 'gps_cache_ttl', 600 ),
-			'ip_cache_ttl'                => array( 'ip_cache_ttl', 'ip_cache_ttl', 600 ),
 			'public_csv_default_limit'    => array( 'public_csv_default_limit', 'public_csv_default_limit', 1 ),
 			'public_csv_sync_max_rows'    => array( 'public_csv_sync_max_rows', 'public_csv_sync_max_rows', 5000 ),
 			'qr_default_size'             => array( 'qr_default_size', 'qr_default_size', 200 ),
