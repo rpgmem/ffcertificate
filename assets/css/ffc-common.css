@@ -21,7 +21,7 @@
     /* Status Colors */
     --ffc-success: #00a32a;
     --ffc-success-light: #e7f5ec;
-    --ffc-warning: #dba617;
+    --ffc-warning: #ba8d14;         /* 3,04:1 sobre branco — era #dba617, 2,22:1 (#1132). */
     --ffc-warning-light: #fff8e5;
     --ffc-danger: #d63638;
     --ffc-danger-light: #fcf0f1;
@@ -85,11 +85,11 @@
     --ffc-text: #1d2327;
     --ffc-text-secondary: #50575e;
     --ffc-text-muted: #646970;
-    --ffc-text-light: #8c8f94;
+    --ffc-text-light: #737579;      /* 4,62:1 sobre branco — era #8c8f94, 3,24:1 (#1132). */
     --ffc-text-on-primary: #ffffff;
 
     /* Semantic Tokens - Borders */
-    --ffc-border: #c3c4c7;
+    --ffc-border: #8e8f91;          /* 3,24:1 sobre branco, 3,02:1 sobre #f6f7f7 — era #c3c4c7, 1,74:1 (#1132). */
     --ffc-border-light: #dcdcde;
     --ffc-border-focus: #2271b1;
 
@@ -110,7 +110,7 @@
     /* Semantic Tokens - Interactive */
     --ffc-link: #2271b1;
     --ffc-link-hover: #135e96;
-    --ffc-focus-ring: rgba(34, 113, 177, 0.4);
+    --ffc-focus-ring: rgba(34, 113, 177, 0.75);   /* composto 3,25:1 — a 0.4 dava 1,78:1 (#1132). */
 }
 
 /* ==========================================================================
@@ -163,10 +163,14 @@
     --ffc-text-secondary: #c3c4c7;
     --ffc-text-muted: #a7aaad;
     --ffc-text-light: #8c8f94;
-    --ffc-text-on-primary: #ffffff;
+    --ffc-text-on-primary: #213c4e;  /* tom ~20. O M3 INVERTE este par no tema escuro: a
+                                        primária clareia e o texto sobre ela escurece. O plugin
+                                        clareou a primária e manteve o branco, deixando 2,52:1 no
+                                        botão de ação primária; agora 4,58:1 (#1132). */
 
     /* Semantic Tokens - Borders */
-    --ffc-border: #3c434a;
+    --ffc-border: #6f7c89;           /* 3,72:1 sobre o fundo, 3,00:1 sobre o card, 3,48:1 sobre o
+                                        campo — era #3c434a, 1,28:1 sobre card (#1132). */
     --ffc-border-light: #2c3338;
     --ffc-border-focus: #5dabde;
 
@@ -187,7 +191,7 @@
     /* Semantic Tokens - Interactive */
     --ffc-link: #5dabde;
     --ffc-link-hover: #7cbde8;
-    --ffc-focus-ring: rgba(93, 171, 222, 0.4);
+    --ffc-focus-ring: rgba(93, 171, 222, 0.6);    /* composto 3,19:1 — a 0.4 dava 2,14:1 (#1132). */
 }
 
 /* ==========================================================================
