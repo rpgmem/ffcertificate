@@ -27,6 +27,32 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ReregistrationFrontend {
 
 	/**
+	 * Synthetic status for a user with no submission row for a campaign.
+	 *
+	 * Two real states produce it, and both must be able to submit (#1125): a
+	 * user added to the audience *after* the campaign went active (the seeding
+	 * is a one-shot on that transition, so they never get a row), and a
+	 * submission an administrator deleted, which the maintainer decided must
+	 * return the user to the start rather than lock them out.
+	 */
+	public const STATUS_NO_SUBMISSION = 'no_submission';
+
+	/**
+	 * Statuses from which the user may fill the form.
+	 *
+	 * `no_submission` belongs here and was the omission behind #1125: it is not
+	 * a state the user has *left*, it is the state before they begin.
+	 *
+	 * @var array<int, string>
+	 */
+	public const SUBMITTABLE_STATUSES = array(
+		self::STATUS_NO_SUBMISSION,
+		'pending',
+		'in_progress',
+		'rejected',
+	);
+
+	/**
 	 * Initialize AJAX hooks.
 	 *
 	 * @return void
@@ -187,7 +213,7 @@ class ReregistrationFrontend {
 
 		foreach ( $active as $rereg ) {
 			$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( (int) $rereg->id, $user_id );
-			$sub_status = $submission ? $submission->status : 'no_submission';
+			$sub_status = $submission ? $submission->status : self::STATUS_NO_SUBMISSION;
 
 			// Build magic link for submitted/approved submissions.
 			$magic_link = '';
@@ -205,7 +231,7 @@ class ReregistrationFrontend {
 				'auto_approve'      => ! empty( $rereg->auto_approve ),
 				'submission_status' => $sub_status,
 				'submission_id'     => $submission ? (int) $submission->id : 0,
-				'can_submit'        => in_array( $sub_status, array( 'pending', 'in_progress', 'rejected' ), true ),
+				'can_submit'        => in_array( $sub_status, self::SUBMITTABLE_STATUSES, true ),
 				'magic_link'        => $magic_link,
 			);
 		}

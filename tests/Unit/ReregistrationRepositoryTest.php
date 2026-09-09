@@ -1100,6 +1100,62 @@ class ReregistrationRepositoryTest extends TestCase {
 	}
 
 	// ==================================================================
+	// reopen_expired_submissions() (#1125)
+	// ==================================================================
+	//
+	// The exact inverse of the `expired` write in expire_overdue(). It exists
+	// because create_for_audience_members() skips a user who already has a
+	// submission, so on a REACTIVATION it does nothing for the previous
+	// cycle — everyone stayed at `expired`, a status that neither let them
+	// submit nor drew a banner.
+
+	public function test_reopen_expired_submissions_moves_expired_back_to_pending(): void {
+		$captured = '';
+		$this->wpdb->shouldReceive('prepare')
+			->once()
+			->andReturnUsing(function ($sql) use (&$captured) {
+				$captured = $sql;
+				return $sql;
+			});
+		$this->wpdb->shouldReceive('query')->once()->andReturn(3);
+
+		$this->assertSame(3, ReregistrationRepository::reopen_expired_submissions(7));
+
+		$this->assertStringContainsString("SET status = 'pending'", $captured);
+		$this->assertStringContainsString("status = 'expired'", $captured);
+	}
+
+	/**
+	 * The narrowness is the point: `approved` and `submitted` are records of a
+	 * delivery, and reopening one would discard it. An administrator who wants
+	 * that deletes the submission, which lands the user on `no_submission` —
+	 * submittable since #1125.
+	 */
+	public function test_reopen_expired_submissions_touches_no_other_status(): void {
+		$captured = '';
+		$this->wpdb->shouldReceive('prepare')
+			->once()
+			->andReturnUsing(function ($sql) use (&$captured) {
+				$captured = $sql;
+				return $sql;
+			});
+		$this->wpdb->shouldReceive('query')->once()->andReturn(0);
+
+		ReregistrationRepository::reopen_expired_submissions(7);
+
+		foreach (array('approved', 'submitted', 'rejected', 'in_progress') as $status) {
+			$this->assertStringNotContainsString("'{$status}'", $captured, "Must not match {$status}");
+		}
+	}
+
+	public function test_reopen_expired_submissions_returns_zero_when_prepare_fails(): void {
+		$this->wpdb->shouldReceive('prepare')->once()->andReturn(null);
+		$this->wpdb->shouldNotReceive('query');
+
+		$this->assertSame(0, ReregistrationRepository::reopen_expired_submissions(7));
+	}
+
+	// ==================================================================
 	// expire_overdue()
 	// ==================================================================
 

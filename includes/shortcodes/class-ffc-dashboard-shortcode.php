@@ -416,6 +416,42 @@ class DashboardShortcode {
 						</div>
 					</div>
 					<?php
+				} else {
+					/*
+					 * Every other non-submittable status (#1125). The two `if`s
+					 * above covered `approved` and `submitted`, and the bare
+					 * `continue` that used to sit here rendered NOTHING for
+					 * anything else — which is how a user left at `expired` by
+					 * a campaign that later reopened saw no banner at all, and
+					 * had no way to know why.
+					 *
+					 * `expired` is handled at the source now (reactivation
+					 * reopens it) and `no_submission` is submittable, so this
+					 * branch should be unreachable today. It exists so that the
+					 * *next* status added to the set produces a visible state
+					 * instead of a blank screen: a silent `continue` is what
+					 * made this defect cost a smoke run to find.
+					 */
+					?>
+					<div class="ffc-dashboard-notice ffc-notice-info ffc-rereg-banner">
+						<div class="ffc-dashboard-header">
+							<div>
+								<strong><?php echo esc_html( $rereg['title'] ); ?></strong>
+								<p class="ffc-m-5-0">
+									<?php
+									echo esc_html(
+										sprintf(
+											/* translators: %s: submission status label. */
+											__( 'Status: %s', 'ffcertificate' ),
+											\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_status_label( (string) $rereg['submission_status'] )
+										)
+									);
+									?>
+								</p>
+							</div>
+						</div>
+					</div>
+					<?php
 				}
 				continue;
 			}

@@ -383,8 +383,23 @@ class ReregistrationAdmin {
 			ReregistrationRepository::update( $id, $data );
 			ReregistrationRepository::set_audience_ids( $id, $audience_ids );
 
-			// If transitioning to active, create submissions for members and send invitations.
+			/*
+			 * Transition to active: reopen, then seed, then invite — the order
+			 * matters and is the whole fix for #1125.
+			 *
+			 * `create_for_audience_members()` skips a user who already has a
+			 * submission, so on a *reactivation* it does nothing for everyone
+			 * from the previous cycle: they still carry the `expired` that
+			 * `expire_overdue()` wrote, a status that neither lets them submit
+			 * nor draws a banner. Reopening first puts them back on `pending`,
+			 * which is also the status `send_invitations()` queries — so the
+			 * invitation email, silent on reactivation for the same reason,
+			 * starts working without a second fix.
+			 *
+			 * Seeding still runs after, for members added since.
+			 */
 			if ( 'active' === $data['status'] && 'active' !== $prev_status ) {
+				ReregistrationRepository::reopen_expired_submissions( $id );
 				ReregistrationSubmissionWriter::create_for_audience_members( $id, $audience_ids );
 				ReregistrationEmailHandler::send_invitations( $id );
 			}
