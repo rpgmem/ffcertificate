@@ -207,9 +207,9 @@
 }
 
 .ffc-preflight-badge {
-    background: var(--ffc-bg-alt, #f6f7f7);
+    background: var(--ffc-bg-alt);
     border-radius: 4px;
-    border-left: 3px solid var(--ffc-primary, #0073aa);
+    border-left: 3px solid var(--ffc-primary);
     padding: 0;
 }
 
@@ -219,13 +219,13 @@
     gap: 8px;
     padding: 8px 12px;
     text-decoration: none;
-    color: var(--ffc-text, #1d2327);
+    color: var(--ffc-text);
     font-size: 13px;
 }
 
 .ffc-preflight-badge a:hover,
 .ffc-preflight-badge a:focus {
-    background: rgba(0, 115, 170, 0.06);
+    background: var(--ffc-primary-light);
 }
 
 .ffc-preflight-badge-icon {
@@ -235,7 +235,7 @@
 
 .ffc-preflight-badge strong {
     font-size: 16px;
-    color: var(--ffc-primary, #0073aa);
+    color: var(--ffc-primary);
     min-width: 2ch;
     text-align: right;
 }
@@ -245,10 +245,10 @@
 .ffc-debug-group-title {
     margin: 24px 0 4px;
     padding-top: 12px;
-    border-top: 1px solid #dcdcde;
+    border-top: 1px solid var(--ffc-border-light);
     font-size: 14px;
     font-weight: 600;
-    color: var(--ffc-primary, #0073aa);
+    color: var(--ffc-primary);
 }
 
 .ffc-debug-group-title:first-child,
@@ -260,7 +260,7 @@
 .ffc-debug-group-blurb {
     margin: 0 0 8px 0;
     font-style: italic;
-    color: var(--ffc-text-muted, #50575e);
+    color: var(--ffc-text-muted);
 }
 
 /* 6.18.0 (#886) — URL Shortener settings: per-post-type Shorten/Expose grid
@@ -273,5 +273,5 @@
 .ffc-inline-status {
     margin-left: 8px;
     font-style: italic;
-    color: var(--ffc-text-muted, #50575e);
+    color: var(--ffc-text-muted);
 }

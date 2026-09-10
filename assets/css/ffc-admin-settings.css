@@ -147,6 +147,8 @@
 }
 
 .ffc-stats-box tr.alternate {
+    /* Véu claro sobre a linha alternada do quadro de estatísticas: camada
+       sobre o que estiver embaixo, não papel da paleta (#1126). */
     background: rgba(255, 255, 255, 0.6);
 }
 
@@ -200,10 +202,12 @@
 }
 
 .ffc-provider-card.outlook {
+    /* Cor de marca do provedor, não papel da paleta (#1126). */
     border-left-color: #00a0d2;
 }
 
 .ffc-provider-card.sendgrid {
+    /* Cor de marca do provedor, não papel da paleta (#1126). */
     border-left-color: #9b51e0;
 }
 
@@ -286,12 +290,12 @@
 
 .ffc-loglevel-table td {
     padding: 0;
-    border: 1px solid var(--ffc-border-light, #dcdcde);
+    border: 1px solid var(--ffc-border-light);
     border-bottom: none;
 }
 
 .ffc-loglevel-table tr:last-child td {
-    border-bottom: 1px solid var(--ffc-border-light, #dcdcde);
+    border-bottom: 1px solid var(--ffc-border-light);
 }
 
 .ffc-loglevel-label {
@@ -307,12 +311,12 @@
 /* Recorded rows: the row whose radio is checked + all following (lower) rows. */
 .ffc-loglevel-table tr:has( input[type="radio"]:checked ),
 .ffc-loglevel-table tr:has( input[type="radio"]:checked ) ~ tr {
-    background: var(--ffc-success-light, #e7f5ec);
+    background: var(--ffc-success-light);
 }
 
 .ffc-loglevel-table tr:has( input[type="radio"]:checked ) .ffc-loglevel-name,
 .ffc-loglevel-table tr:has( input[type="radio"]:checked ) ~ tr .ffc-loglevel-name {
-    color: var(--ffc-success, #00a32a);
+    color: var(--ffc-success);
     font-weight: 600;
 }
 
@@ -399,11 +403,11 @@
 }
 
 .ffc-progress-bar-fill.complete {
-    background: linear-gradient(90deg, var(--ffc-success) 0%, #008a20 100%);
+    background: linear-gradient(90deg, var(--ffc-success) 0%, var(--ffc-success-hover) 100%);
 }
 
 .ffc-progress-bar-fill.pending {
-    background: linear-gradient(90deg, var(--ffc-warning) 0%, #dba617 100%);
+    background: linear-gradient(90deg, var(--ffc-warning) 0%, var(--ffc-warning-border) 100%);
 }
 
 .ffc-progress-bar-label {
@@ -535,7 +539,7 @@
     }
     
     .card {
-        border: 1px solid #000;
+        border: 1px solid var(--ffc-text);
         box-shadow: none;
         break-inside: avoid;
     }
@@ -581,7 +585,7 @@
 .ffc-doc-toc-sublist {
     padding-left: 16px;
     margin-left: 8px;
-    border-left: 1px solid var(--ffc-border-light, #dcdcde);
+    border-left: 1px solid var(--ffc-border-light);
 }
 
 /* Collapsible branch header. */
@@ -612,7 +616,7 @@
     font-size: 16px;
     line-height: 1;
     flex: 0 0 auto;
-    color: var(--ffc-text-muted, #646970);
+    color: var(--ffc-text-muted);
     transition: transform 0.15s ease;
 }
 
@@ -669,7 +673,7 @@
     height: 18px;
     font-size: 18px;
     line-height: 1;
-    color: var(--ffc-text-muted, #646970);
+    color: var(--ffc-text-muted);
 }
 
 .ffc-doc-toc-list li > a:hover {
@@ -700,6 +704,8 @@
 }
 
 .ffc-doc-example pre {
+    /* Tema de editor: escuro nos dois temas por definição, como o
+       ffc-code-editor-dark.css (#1126). */
     background: #1e1e1e;
     color: #d4d4d4;
     padding: 15px;
@@ -952,7 +958,7 @@ pre code {
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--ffc-text-muted, #646970);
+    color: var(--ffc-text-muted);
 }
 
 /* The first group sits flush with the nav top — no extra lead space. */
@@ -1115,10 +1121,10 @@ pre code {
     width: 42px;
     height: 42px;
     border-radius: 50%;
-    background: var(--ffc-primary, #2271b1);
-    color: var(--ffc-text-on-primary, #fff);
+    background: var(--ffc-primary);
+    color: var(--ffc-text-on-primary);
     text-decoration: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--ffc-shadow-md);
     opacity: 0.85;
     transition: opacity 0.2s ease, transform 0.2s ease;
 }
@@ -1126,7 +1132,7 @@ pre code {
 .ffc-settings-back-to-top:hover,
 .ffc-settings-back-to-top:focus {
     opacity: 1;
-    color: var(--ffc-text-on-primary, #fff);
+    color: var(--ffc-text-on-primary);
     transform: translateY(-2px);
 }
 
@@ -1302,7 +1308,7 @@ html:has(.ffc-settings-back-to-top) {
    room and a light separator so the seven editors don't run together. */
 .ffc-email-body-hub__item {
     padding: 16px 0;
-    border-top: 1px solid #e2e4e7;
+    border-top: 1px solid var(--ffc-border-light);
 }
 
 .ffc-email-body-hub__item:first-of-type {

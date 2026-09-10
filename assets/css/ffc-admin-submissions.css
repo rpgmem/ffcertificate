@@ -21,50 +21,50 @@
 
 .ffc-table-responsive .button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--ffc-shadow-md);
 }
 
 /* PDF Button - Modern Gradient */
 .ffc-table-responsive a[title*="PDF"] {
-    background: linear-gradient(135deg, #2271b1 0%, #1a5a8a 100%) !important;
-    border-color: #1a5a8a !important;
+    background: linear-gradient(135deg, var(--ffc-primary) 0%, var(--ffc-primary-hover) 100%) !important;
+    border-color: var(--ffc-primary-hover) !important;
     color: white !important;
-    box-shadow: 0 2px 4px rgba(34, 113, 177, 0.2);
+    box-shadow: var(--ffc-shadow-md);
 }
 
 .ffc-table-responsive .button[title*="PDF"]:hover {
-    background: linear-gradient(135deg, #1a5a8a 0%, #135078 100%) !important;
-    border-color: #135078 !important;
-    box-shadow: 0 3px 6px rgba(34, 113, 177, 0.3);
+    background: linear-gradient(135deg, var(--ffc-primary-hover) 0%, var(--ffc-primary-hover) 100%) !important;
+    border-color: var(--ffc-primary-hover) !important;
+    box-shadow: var(--ffc-shadow-md);
     transform: translateY(-1px);
 }
 
 /* Delete Button - Danger Red */
 .ffc-delete-btn {
-    background: #d63638 !important;
-    border-color: #b32d2e !important;
+    background: var(--ffc-danger) !important;
+    border-color: var(--ffc-danger-hover) !important;
     color: white !important;
-    box-shadow: 0 2px 4px rgba(214, 54, 56, 0.2);
+    box-shadow: var(--ffc-shadow-md);
 }
 
 .ffc-delete-btn:hover {
-    background: #b32d2e !important;
-    border-color: #8a2424 !important;
-    box-shadow: 0 3px 6px rgba(214, 54, 56, 0.3);
+    background: var(--ffc-danger-hover) !important;
+    border-color: var(--ffc-danger-text) !important;
+    box-shadow: var(--ffc-shadow-md);
 }
 
 /* Restore Button - Success Green */
 .ffc-table-responsive .button[href*="action=restore"] {
-    background: #00a32a !important;
-    border-color: #008a24 !important;
+    background: var(--ffc-success) !important;
+    border-color: var(--ffc-success-hover) !important;
     color: white !important;
-    box-shadow: 0 2px 4px rgba(0, 163, 42, 0.2);
+    box-shadow: var(--ffc-shadow-md);
 }
 
 .ffc-table-responsive .button[href*="action=restore"]:hover {
-    background: #008a24 !important;
-    border-color: #007020 !important;
-    box-shadow: 0 3px 6px rgba(0, 163, 42, 0.3);
+    background: var(--ffc-success-hover) !important;
+    border-color: var(--ffc-success-hover) !important;
+    box-shadow: var(--ffc-shadow-md);
 }
 
 /* ==========================================================================
@@ -233,14 +233,14 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--ffc-bg-overlay);
 }
 
 .ffc-filter-overlay-content {
     position: relative;
-    background: #fff;
+    background: var(--ffc-bg-card);
     border-radius: 6px;
-    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--ffc-shadow-lg);
     max-width: 480px;
     width: 90%;
     max-height: 80vh;
@@ -253,7 +253,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 14px 18px;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--ffc-border);
 }
 
 .ffc-filter-overlay-header h3 {
@@ -267,13 +267,13 @@
     border: none;
     font-size: 22px;
     cursor: pointer;
-    color: #666;
+    color: var(--ffc-text-muted);
     padding: 0;
     line-height: 1;
 }
 
 .ffc-filter-overlay-close:hover {
-    color: #333;
+    color: var(--ffc-text);
 }
 
 .ffc-filter-overlay-body {
@@ -289,7 +289,7 @@
     padding: 10px 18px;
     cursor: pointer;
     transition: background 0.15s ease;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--ffc-border-light);
 }
 
 .ffc-filter-form-item:last-child {
@@ -297,7 +297,7 @@
 }
 
 .ffc-filter-form-item:hover {
-    background: #f6f7f7;
+    background: var(--ffc-bg-alt);
 }
 
 .ffc-filter-form-item input[type="checkbox"] {
@@ -308,12 +308,12 @@
 .ffc-filter-form-title {
     flex: 1;
     font-size: 14px;
-    color: #1d2327;
+    color: var(--ffc-text);
 }
 
 .ffc-filter-form-id {
     font-size: 12px;
-    color: #999;
+    color: var(--ffc-text-light);
     flex-shrink: 0;
 }
 
@@ -322,7 +322,7 @@
     justify-content: flex-end;
     gap: 8px;
     padding: 14px 18px;
-    border-top: 1px solid #ddd;
+    border-top: 1px solid var(--ffc-border);
 }
 
 .ffc-filter-btn .dashicons {
@@ -351,14 +351,14 @@
 }
 
 .ffc-admin-top-actions .button {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--ffc-shadow-sm);
     border-radius: 4px;
     font-weight: 500;
 }
 
 .ffc-admin-top-actions .button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
+    box-shadow: var(--ffc-shadow-md);
 }
 
 /* ==========================================================================
@@ -405,12 +405,12 @@
     transform: translateX(-50%);
     margin-bottom: 8px;
     padding: 6px 10px;
-    background: #1d2327;
+    background: var(--ffc-inverse-surface);
     color: white;
     font-size: 12px;
     white-space: nowrap;
     border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--ffc-shadow-md);
     z-index: 1000;
     pointer-events: none;
 }
@@ -423,7 +423,7 @@
     left: 50%;
     transform: translateX(-50%);
     border: 4px solid transparent;
-    border-top-color: #1d2327;
+    border-top-color: var(--ffc-inverse-surface);
     z-index: 1000;
 }
 
@@ -483,6 +483,6 @@
     }
     
     .ffc-table-responsive table.wp-list-table {
-        border: 1px solid #000;
+        border: 1px solid var(--ffc-text);
     }
 }

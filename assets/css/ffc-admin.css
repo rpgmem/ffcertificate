@@ -22,7 +22,7 @@
 }
 
 .ffc-field-row:hover { 
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+    box-shadow: var(--ffc-shadow-md); 
 }
 
 .ffc-field-row-header {
@@ -100,6 +100,7 @@
     height: 450px;
     font-family: Consolas, Monaco, monospace;
     font-size: 13px;
+    /* Editor de código: escuro nos dois temas por definição (#1126). */
     background: #2c3338;
     color: #f0f0f1;
     padding: 15px;
@@ -428,11 +429,11 @@
 }
 
 .ffc-autosave-status.ffc-saved {
-    color: var(--ffc-success, #1a7f37);
+    color: var(--ffc-success);
 }
 
 .ffc-autosave-status.ffc-error {
-    color: var(--ffc-danger, #b32d2e);
+    color: var(--ffc-danger);
 }
 
 /* ==========================================================================
@@ -561,8 +562,8 @@
 .ffc-global-default {
     padding: 0 4px;
     border-radius: 3px;
-    background: #f0f6fc;
-    color: #2271b1;
+    background: var(--ffc-primary-light);
+    color: var(--ffc-primary);
     font-weight: 600;
 }
 
@@ -577,16 +578,16 @@
     line-height: 1.5;
 }
 .ffc-status-pill--success {
-    background: var(--ffc-success-light, #ecf7ed);
-    color: var(--ffc-success, #00a32a);
+    background: var(--ffc-success-light);
+    color: var(--ffc-success);
 }
 .ffc-status-pill--warning {
-    background: var(--ffc-warning-light, #fdf3e3);
-    color: var(--ffc-warning, #d9822b);
+    background: var(--ffc-warning-light);
+    color: var(--ffc-warning);
 }
 .ffc-status-pill--info {
-    background: var(--ffc-info-light, #e6f3fb);
-    color: var(--ffc-info, #2271b1);
+    background: var(--ffc-info-light);
+    color: var(--ffc-info);
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -668,7 +669,7 @@
 
 /* Inline warning text used by metaboxes (replaces inline style="color:#a00"). */
 .ffc-warning-text {
-    color: #a00;
+    color: var(--ffc-danger-text);
 }
 
 /* Dashboard header flex */
@@ -758,7 +759,7 @@ td .ffc-restriction-label {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.75);
+    background: var(--ffc-bg-overlay);
 }
 
 .ffc-preview-container {
@@ -772,7 +773,7 @@ td .ffc-restriction-label {
     margin: 5vh auto;
     background: var(--ffc-bg-card);
     border-radius: 8px;
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--ffc-shadow-lg);
     overflow: hidden;
 }
 
@@ -781,8 +782,8 @@ td .ffc-restriction-label {
     justify-content: space-between;
     align-items: center;
     padding: 12px 20px;
-    background: #1d2327;
-    color: #fff;
+    background: var(--ffc-inverse-surface);
+    color: var(--ffc-inverse-on-surface);
     flex-shrink: 0;
 }
 
@@ -790,13 +791,13 @@ td .ffc-restriction-label {
     margin: 0;
     font-size: 16px;
     font-weight: 600;
-    color: #fff;
+    color: var(--ffc-inverse-on-surface);
 }
 
 .ffc-preview-close {
     background: none;
     border: none;
-    color: #ccc;
+    color: var(--ffc-inverse-on-surface);
     font-size: 28px;
     line-height: 1;
     cursor: pointer;
@@ -805,7 +806,7 @@ td .ffc-restriction-label {
 }
 
 .ffc-preview-close:hover {
-    color: #fff;
+    color: var(--ffc-inverse-on-surface);
 }
 
 .ffc-preview-note {
@@ -834,7 +835,7 @@ td .ffc-restriction-label {
     position: relative;
     flex: 0 0 auto;
     overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--ffc-shadow-md);
 }
 
 #ffc-preview-iframe {
@@ -879,12 +880,12 @@ td .ffc-restriction-label {
 .ffc-shortcode-cell { display: inline-flex; align-items: center; gap: 4px; }
 .ffc-shortcode-code { font-size: 12px; padding: 2px 6px; user-select: all; }
 .ffc-copy-shortcode {
-    background: none; border: 1px solid #ddd; border-radius: 3px;
-    cursor: pointer; padding: 2px 4px; line-height: 1; color: #666;
+    background: none; border: 1px solid var(--ffc-border); border-radius: 3px;
+    cursor: pointer; padding: 2px 4px; line-height: 1; color: var(--ffc-text-muted);
 }
-.ffc-copy-shortcode:hover { color: #0073aa; border-color: #0073aa; }
+.ffc-copy-shortcode:hover { color: var(--ffc-primary); border-color: var(--ffc-primary); }
 .ffc-copy-shortcode .dashicons { font-size: 14px; width: 14px; height: 14px; }
-.ffc-copy-shortcode.copied { color: #46b450; border-color: #46b450; }
+.ffc-copy-shortcode.copied { color: var(--ffc-success-text); border-color: var(--ffc-success); }
 
 /* =========================================================================
  * Datetime order validation feedback (#159 S3).
@@ -894,15 +895,15 @@ td .ffc-restriction-label {
  * operator edits the date/time inputs.
  * ========================================================================= */
 .ffc-input-invalid {
-	border-color: #d63638 !important;
-	box-shadow: 0 0 0 1px #d63638 !important;
+	border-color: var(--ffc-danger) !important;
+	box-shadow: 0 0 0 1px var(--ffc-danger) !important;
 }
 .ffc-input-invalid:focus {
-	border-color: #d63638 !important;
-	box-shadow: 0 0 0 1px #d63638, 0 0 2px 1px rgba(214, 54, 56, 0.6) !important;
+	border-color: var(--ffc-danger) !important;
+	box-shadow: 0 0 0 1px var(--ffc-danger), 0 0 2px 1px var(--ffc-danger-hover) !important;
 }
 p.ffc-datetime-order-error {
-	color: #d63638;
+	color: var(--ffc-danger-text);
 	font-weight: 500;
 	margin-top: 4px;
 }
@@ -997,11 +998,11 @@ p.ffc-datetime-order-error {
 
 /* Validation-error signalling — wired on in a later sprint. */
 .ffc-form-tabs__tab.has-error {
-	color: var(--ffc-danger, #d63638);
+	color: var(--ffc-danger);
 }
 
 .ffc-form-tabs__tab.has-error .dashicons {
-	color: var(--ffc-danger, #d63638);
+	color: var(--ffc-danger);
 }
 
 .ffc-form-tabs__error-dot {
@@ -1009,7 +1010,7 @@ p.ffc-datetime-order-error {
 	height: 8px;
 	margin-left: auto;
 	border-radius: 50%;
-	background: var(--ffc-danger, #d63638);
+	background: var(--ffc-danger);
 }
 
 .ffc-form-tabs__panels {
@@ -1049,7 +1050,7 @@ p.ffc-datetime-order-error {
 
 /* "Duplicate this form" link inside the Publish (Submit) box. */
 .misc-pub-section.ffc-duplicate-action .dashicons {
-	color: var(--ffc-text-muted, #646970);
+	color: var(--ffc-text-muted);
 	margin-right: 4px;
 	vertical-align: text-bottom;
 }
@@ -1103,7 +1104,7 @@ p.ffc-datetime-order-error {
     display: inline-block;
     width: 1em;
     height: 1em;
-    border: 1px solid #ccc;
+    border: 1px solid var(--ffc-border);
     vertical-align: middle;
     background-color: var(--ffc-color);
 }

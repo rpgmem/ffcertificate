@@ -12,7 +12,7 @@
     font-family: var(--ffc-font-family);
     max-width: 600px;
     margin: 0 auto;
-    background: #fff;
+    background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-gray-200);
     border-radius: var(--ffc-radius-sm);
     overflow: hidden;
@@ -56,7 +56,7 @@
 }
 
 .ffc-shortcode .ffc-nav-btn {
-    background: #fff;
+    background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-gray-300);
     border-radius: var(--ffc-radius-sm);
     padding: 8px 12px;
@@ -91,7 +91,7 @@
     border: 1px solid var(--ffc-gray-300);
     border-radius: var(--ffc-radius-sm);
     font-size: 14px;
-    background: #fff;
+    background: var(--ffc-bg-card);
     min-width: 150px;
 }
 
@@ -102,7 +102,7 @@
     color: var(--ffc-gray-700);
     border: 1px solid var(--ffc-gray-300);
     border-radius: var(--ffc-radius-sm);
-    background: #fff;
+    background: var(--ffc-bg-card);
 }
 
 /* Calendar Grid */
@@ -138,7 +138,7 @@
     border: 1px solid var(--ffc-gray-200);
     border-radius: var(--ffc-radius-sm);
     padding: 5px;
-    background: #fff;
+    background: var(--ffc-bg-card);
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
@@ -170,7 +170,7 @@
 }
 
 .ffc-shortcode .ffc-day.ffc-holiday {
-    background: #fff5f5;
+    background: var(--ffc-danger-bg);
     cursor: default;
 }
 
@@ -200,7 +200,7 @@
 
 .ffc-shortcode .ffc-day.ffc-available:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month):hover {
     border-color: var(--ffc-success);
-    box-shadow: 0 0 0 2px rgba(0, 167, 60, 0.2);
+    box-shadow: 0 0 0 2px var(--ffc-success-border);
 }
 
 .ffc-shortcode .ffc-day.ffc-selected {
@@ -244,17 +244,17 @@
 
 .ffc-shortcode .ffc-badge-bookings {
     background: var(--ffc-primary);
-    color: #fff;
+    color: var(--ffc-text-on-primary);
 }
 
 .ffc-shortcode .ffc-badge-holiday {
     background: var(--ffc-warning);
-    color: #fff;
+    color: var(--ffc-text-on-warning);
 }
 
 .ffc-shortcode .ffc-badge-closed {
-    background: var(--ffc-gray-400);
-    color: #fff;
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-secondary);
 }
 
 /* Calendar Legend */
@@ -316,12 +316,12 @@
 }
 
 .ffc-shortcode .ffc-audience-notice.ffc-notice-warning {
-    background: #fff8e5;
+    background: var(--ffc-warning-bg);
     border: 1px solid var(--ffc-warning);
 }
 
 .ffc-shortcode .ffc-audience-notice.ffc-notice-info {
-    background: #e5f5fa;
+    background: var(--ffc-info-bg);
     border: 1px solid var(--ffc-primary);
 }
 
@@ -347,14 +347,14 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--ffc-bg-overlay);
 }
 
 .ffc-shortcode .ffc-modal-content {
     position: relative;
-    background: #fff;
+    background: var(--ffc-bg-card);
     border-radius: var(--ffc-radius-sm);
-    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--ffc-shadow-lg);
     max-width: 500px;
     width: 90%;
     max-height: 90vh;
@@ -486,7 +486,7 @@
     display: inline-flex;
     align-items: center;
     background: var(--ffc-primary);
-    color: #fff;
+    color: var(--ffc-text-on-primary);
     padding: 5px 10px;
     border-radius: 20px;
     font-size: 13px;
@@ -506,7 +506,7 @@
 
 /* Conflict Warning */
 .ffc-shortcode .ffc-conflict-warning {
-    background: #fff8e5;
+    background: var(--ffc-warning-bg);
     border: 1px solid var(--ffc-warning);
     border-radius: var(--ffc-radius-sm);
     padding: 15px;
@@ -546,7 +546,7 @@
 
 /* Hard Conflict Error */
 .ffc-shortcode .ffc-conflict-error {
-    background: #fef2f2;
+    background: var(--ffc-danger-bg);
     border: 1px solid var(--ffc-danger);
     border-radius: var(--ffc-radius-sm);
     padding: 15px;
@@ -615,6 +615,9 @@
     padding: 3px 8px;
     border-radius: 3px;
     font-size: 12px;
+    /* O fundo desta etiqueta vem da cor da audiência, escrita no style= do
+       elemento: branco é a única escolha segura contra um matiz arbitrário,
+       então não é papel da paleta (#1126). */
     color: #fff;
 }
 
@@ -652,7 +655,7 @@
 
 .ffc-shortcode .ffc-booking-cancelled {
     opacity: 0.7;
-    background: #fff5f5;
+    background: var(--ffc-danger-bg);
 }
 
 .ffc-shortcode .ffc-booking-cancelled .ffc-booking-time::after {
@@ -760,7 +763,7 @@
 
 /* Event List Panel */
 .ffc-shortcode .ffc-event-list-panel {
-    background: #fff;
+    background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-gray-200);
     border-radius: var(--ffc-radius-sm);
     overflow: hidden;
@@ -864,6 +867,7 @@
     padding: 1px 6px;
     border-radius: 3px;
     font-size: 10px;
+    /* Idem à etiqueta grande acima: fundo data-driven (#1126). */
     color: #fff;
 }
 
