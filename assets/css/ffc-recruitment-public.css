@@ -220,6 +220,7 @@
 }
 
 .ffc-recruitment-queue form select {
+    color: var(--ffc-text);
     padding: 6px 10px;
     border-radius: var(--ffc-radius-md);
     border: 1px solid var(--ffc-border-light);
