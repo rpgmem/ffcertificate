@@ -184,7 +184,9 @@
 }
 
 .ffc-text-warning {
-    color: var(--ffc-warning);
+    /* --ffc-warning é cor de sinal (piso 3:1), não de texto: sobre branco dá
+       3,04:1. Como texto o papel certo é --ffc-warning-text (#1126). */
+    color: var(--ffc-warning-text);
     font-weight: 600;
 }
 
@@ -273,5 +275,12 @@
 .ffc-inline-status {
     margin-left: 8px;
     font-style: italic;
+    color: var(--ffc-text-muted);
+}
+
+/* Valor hexadecimal ao lado do seletor de cor, na aba de público-alvo. Estava
+   num `style="color:#666"` inline no PHP (#1126). */
+.ffc-color-value {
+    margin-left: 8px;
     color: var(--ffc-text-muted);
 }

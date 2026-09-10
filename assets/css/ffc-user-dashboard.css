@@ -584,10 +584,17 @@
     color: var(--ffc-text-on-danger);
 }
 
-.ffc-appointments-table.past-appointments { opacity: 0.75; }
+/* Sem `opacity` nestas quatro regras, de propósito (#1126).
+   Opacidade sobre uma linha desbota o TEXTO junto com o fundo, então ela
+   multiplica para baixo qualquer contraste que os tokens tenham garantido — e
+   o medidor de pares não enxerga isso, porque os tokens continuam certos.
+   Medido: a 0,75 a linha passada dava 3,11:1 no tema claro e a palavra
+   "Cancelado" dava 3,99:1, ambos abaixo do mínimo. O estado passa a ser dito
+   pela cor do texto, que é medível, em vez de por desbotamento. */
 .ffc-appointments-table.past-appointments td { color: var(--ffc-text-muted); }
 .ffc-appointments-table .past-row { background: var(--ffc-bg-alt); }
-.ffc-appointments-table .cancelled-row { background: var(--ffc-danger-bg); opacity: 0.7; }
+.ffc-appointments-table .cancelled-row { background: var(--ffc-danger-bg); }
+.ffc-appointments-table .cancelled-row td { color: var(--ffc-text-muted); }
 
 #tab-appointments h3,
 #tab-audience h3,
@@ -618,10 +625,17 @@
 .ffc-audience-bookings-table th:nth-child(6),
 .ffc-audience-bookings-table td:nth-child(6) { width: 20%; }
 
-.ffc-audience-bookings-table.past-bookings { opacity: 0.75; }
+/* Sem `opacity` nestas quatro regras, de propósito (#1126).
+   Opacidade sobre uma linha desbota o TEXTO junto com o fundo, então ela
+   multiplica para baixo qualquer contraste que os tokens tenham garantido — e
+   o medidor de pares não enxerga isso, porque os tokens continuam certos.
+   Medido: a 0,75 a linha passada dava 3,11:1 no tema claro e a palavra
+   "Cancelado" dava 3,99:1, ambos abaixo do mínimo. O estado passa a ser dito
+   pela cor do texto, que é medível, em vez de por desbotamento. */
 .ffc-audience-bookings-table.past-bookings td { color: var(--ffc-text-muted); }
 .ffc-audience-bookings-table .past-row { background: var(--ffc-bg-alt); }
-.ffc-audience-bookings-table .cancelled-row { background: var(--ffc-danger-bg); opacity: 0.7; }
+.ffc-audience-bookings-table .cancelled-row { background: var(--ffc-danger-bg); }
+.ffc-audience-bookings-table .cancelled-row td { color: var(--ffc-text-muted); }
 
 .ffc-audience-bookings-table .ffc-audience-tag {
     display: block;

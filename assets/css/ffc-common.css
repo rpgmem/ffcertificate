@@ -340,8 +340,13 @@
     border-top-color: var(--ffc-border);
 }
 
+/* `.alternate` is the third way core stripes a row, and it is the one this
+   plugin actually writes by hand — seven times on the Cache tab alone. The
+   first version of this block covered only the two `:nth-child(odd)` forms,
+   so those rows stayed `#f6f7f7` white inside the dark card (#1126). */
 :root.ffc-dark-mode .wp-list-table.striped > tbody > :nth-child(odd),
-:root.ffc-dark-mode .striped > tbody > :nth-child(odd) {
+:root.ffc-dark-mode .striped > tbody > :nth-child(odd),
+:root.ffc-dark-mode .alternate {
     background-color: var(--ffc-bg-alt);
 }
 
@@ -945,4 +950,28 @@
 
 .ffc-captcha-mode-note--info {
     border-left-color: var(--ffc-info-border);
+}
+
+/* ==========================================================================
+   AVISO DE E-MAILS DESLIGADOS (Core\EmailDisabledNotice)
+
+   Estas regras estavam num `style=""` dentro do PHP, o que fazia o aviso
+   ignorar o modo escuro em toda tela que edita e-mail (#1126). Ficam aqui, e
+   não em ffc-admin.css, porque o aviso aparece em cinco superfícies
+   diferentes — metabox do editor de formulário, editor de calendário e três
+   abas de configuração — e ffc-common é a única folha que todas as cinco
+   declaram como dependência.
+   ========================================================================== */
+
+.ffc-email-disabled-notice {
+    margin: 0 0 16px;
+    padding: 10px 14px;
+    border-left: 4px solid var(--ffc-warning-border);
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+    border-radius: 2px;
+}
+
+.ffc-email-disabled-notice p {
+    margin: 0;
 }

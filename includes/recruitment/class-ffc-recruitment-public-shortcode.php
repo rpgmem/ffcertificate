@@ -194,8 +194,12 @@ final class RecruitmentPublicShortcode {
 		$path = FFC_PLUGIN_DIR . 'assets/css/ffc-recruitment-public.css';
 		$ver  = file_exists( $path ) ? (string) filemtime( $path ) : FFC_VERSION;
 		// The palette lives in ffc-common.css; on a public page nothing else
-		// puts it there (#1126 defeito B).
+		// puts it there (#1126 defeito B). And without the toggle below,
+		// `.ffc-dark-mode` never reaches <html> here, so the tokens stay frozen
+		// on the light theme — which is what left the notice list light in the
+		// 6.24.0 smoke, with every colour already tokenised.
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
+		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
 
 		wp_enqueue_style(
 			'ffc-recruitment-public',

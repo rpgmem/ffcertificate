@@ -365,6 +365,10 @@ class AudienceLoader {
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
+		// Sem isto `.ffc-dark-mode` nunca chega ao <html> desta página e a
+		// paleta fica congelada no tema claro (#1126).
+		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
+
 		// Frontend CSS.
 		wp_enqueue_style(
 			'ffc-common',

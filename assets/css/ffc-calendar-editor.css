@@ -166,3 +166,11 @@
         transition: none;
     }
 }
+
+/* Aviso de calendário com reservas. Estava num `style="color:#b32d2e"` inline
+   no PHP, e por isso ignorava o modo escuro (#1126). */
+.ffc-working-hours-table .description.ffc-text-danger,
+.form-table .description.ffc-text-danger,
+.description.ffc-text-danger {
+    color: var(--ffc-danger-text);
+}
