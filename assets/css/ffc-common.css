@@ -229,13 +229,47 @@
    no `color` at all.
 
    SCOPE — `.ffc-dark-mode` is added by `AssetHelper::enqueue_dark_mode()`,
-   which only runs from `AdminAssetsManager::enqueue_admin_assets()`, which
-   returns early unless `is_ffc_page()`. So these bare core selectors can only
-   ever match on a plugin screen; they cannot reach another plugin's page, and
-   no `.ffc-settings-wrap` wrapper is needed to contain them.
+   which SEVEN call sites reach, and SIX of them are the FRONTEND (the two
+   audience paths, the self-scheduling calendar, the recruitment notices, the
+   user dashboard and `Frontend::enqueue_assets()`). An earlier version of this
+   comment claimed the class only ever existed on a plugin admin screen; it is
+   not true, and the claim is the reason `body` below has to name `.wp-admin`
+   explicitly instead of being written bare. On an admin screen the selectors below are still contained,
+   because `AdminAssetsManager::enqueue_admin_assets()` returns early unless
+   `is_ffc_page()` — but a bare core selector here CAN match a theme's markup
+   on a public page, so keep new entries to chrome only wp-admin renders.
 
    TOKENS ONLY. A literal colour here is the defect this block exists to fix —
    the #1116 autosave badge shape, catalogued as a class in #1126. */
+
+/* BASE PAIR — the hole every selector below was patching one at a time.
+
+   Text that declares no colour of its own inherits it from OUTSIDE our CSS:
+   in wp-admin from core's `body { color: #3c434a }`, on the frontend from the
+   active theme's body rule. Both are near-black, so on a dark ground such text
+   lands at **1,28:1** — measured, not estimated. That is what made the
+   `[ffc_audience]` legend ("Disponível / Reservado / Feriado / Fechado", no
+   `color` anywhere in its rules) and the reregistration tab's `<label>Modelo:`
+   unreadable while every DECLARED pair in those same sheets measured fine.
+
+   So the fix is not another selector — it is giving the inherited value a
+   theme-aware default at each root we own. The pair meter cannot catch this
+   class by construction: it compares declared pairs, and here nothing is
+   declared.
+
+   Admin is `body.wp-admin`, never bare `body`: the class also lands on public
+   pages, where repainting the theme's own text is not ours to do. The frontend
+   entries are the OUTERMOST wrapper of each public surface — `.ffc-shortcode`
+   already contains the dashboard, the recruitment queue, the audience calendar
+   and the verification screens, so naming those inner classes too would be
+   noise. `AdminStylesheetTokensTest` fails when one of these stops appearing
+   in the markup — see `test_the_dark_mode_base_pair_names_only_live_roots()`. */
+:root.ffc-dark-mode body.wp-admin,
+:root.ffc-dark-mode .ffc-shortcode,
+:root.ffc-dark-mode .ffc-rereg-form-container,
+:root.ffc-dark-mode .ffc-cancel-page {
+    color: var(--ffc-text);
+}
 
 :root.ffc-dark-mode .wrap h1,
 :root.ffc-dark-mode .wrap h2,

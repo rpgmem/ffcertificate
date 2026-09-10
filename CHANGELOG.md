@@ -39,6 +39,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **`.ffc-text-warning` pintava texto com cor de sinal** (#1126): `--ffc-warning` tem piso de 3:1 por ser sinal, e dava 3,04:1 como texto sobre branco.
 - **O aviso de e-mails desligados ignorava o modo escuro** (#1126): as cores viviam num `style=""` dentro do PHP, em cinco telas que editam e-mail.
 - **Badges e faixas de edital fixavam texto `#333` sobre cor escolhida pelo administrador** (#1126): loteria de contraste — e, por ser inline, vencia as regras tokenizadas da própria classe. O texto passa a ser calculado por luminância WCAG, o que garante 4,58:1 sobre qualquer cor do cubo RGB.
+- **Texto sem cor própria caía em 1,28:1 no modo escuro** (#1126): quem não declara `color` herda de fora do plugin — do `body` do wp-admin ou do tema numa página pública, ambos quase pretos. Era a legenda do calendário de público-alvo e o rótulo "Modelo:" do recadastramento, com todos os pares *declarados* dessas mesmas folhas medindo bem. A paleta ganha uma regra de base por raiz nossa; o medidor de pares não enxerga essa classe por construção.
+- **A página pública de cancelamento não tinha a paleta** (#1126): ela monta o próprio documento e referencia a folha direto, então nunca passou pelo enfileiramento que declara `ffc-common` — e as onze leituras de `var(--ffc-*)` invalidavam as declarações inteiras, deixando o cartão sem fundo, sem cor de texto e com o botão de confirmar despintado, nos dois temas. Passa também a seguir o modo escuro quando ele está em "ligado".
+- **Trocar o modo escuro só valia no carregamento seguinte** (#1126): o seletor salva sozinho, mas nada repintava a página — nas duas direções, o que se lê como um salvamento que falhou. O autosave passa a anunciar o que gravou e o script do tema aplica na hora, inclusive parando de seguir o sistema operacional ao sair do "automático".
 
 ### Changed
 

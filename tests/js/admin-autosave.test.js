@@ -95,6 +95,49 @@ describe('FFC.Admin.autoSaveField', () => {
 		expect($badge.attr('hidden')).toBe('hidden');
 	});
 
+	// A setting that changes the page it is edited on has to repaint, and this
+	// widget must not know which settings those are — it states the fact and an
+	// interested script acts. Today that is ffc-dark-mode.js, which without the
+	// event wrote the option and left the page on its old theme until the next
+	// load: a missing repaint that reads as a save that failed.
+	it('announces ffc:setting-saved on document after a successful save', async () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" />';
+		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true, data: {},
+		})));
+		const seen = [];
+		const onSaved = (e) => seen.push(e.detail);
+		document.addEventListener('ffc:setting-saved', onSaved);
+
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'dark_mode' });
+		window.$('#t').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		document.removeEventListener('ffc:setting-saved', onSaved);
+		expect(seen).toEqual([{ key: 'dark_mode', value: '1' }]);
+	});
+
+	it('stays silent when the save fails', async () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" />';
+		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: false, data: { message: 'nope' },
+		})));
+		const seen = [];
+		const onSaved = (e) => seen.push(e.detail);
+		document.addEventListener('ffc:setting-saved', onSaved);
+
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'dark_mode' });
+		window.$('#t').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		document.removeEventListener('ffc:setting-saved', onSaved);
+		expect(seen).toEqual([]);
+	});
+
 	it('renders the error badge with the server message on protocol failure', async () => {
 		document.body.innerHTML = '<input type="checkbox" id="t" />';
 		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({

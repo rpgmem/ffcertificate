@@ -332,10 +332,14 @@ class AdminAssetsManager {
 	/**
 	 * Enqueue dark mode script (loaded early to prevent flash)
 	 *
+	 * `true` — the Dark Mode select lives on a plugin admin screen and auto-saves,
+	 * so the script has to be present in the `off` state as well; it is the half
+	 * that repaints `<html>` when the option changes without a reload.
+	 *
 	 * @since 4.6.16
 	 */
 	private function enqueue_dark_mode_script(): void {
-		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
+		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode( true );
 	}
 
 	/**

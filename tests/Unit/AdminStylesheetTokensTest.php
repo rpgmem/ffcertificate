@@ -561,6 +561,132 @@ final class AdminStylesheetTokensTest extends TestCase {
 		);
 	}
 
+	// ==================================================================
+	// Direção D — a cor herdada (#1126, quinta rodada)
+	// ==================================================================
+
+	/**
+	 * The base pair, and the reason it is a rule rather than a habit.
+	 *
+	 * Text that declares no colour of its own inherits one from OUTSIDE this
+	 * repository: in wp-admin from core's `body { color: #3c434a }`, on a public
+	 * page from the active theme. Both are near-black, so on a dark ground such
+	 * text measures **1,28:1** — which is what the `[ffc_audience]` legend and
+	 * the reregistration tab's `<label>Modelo:` were, while every *declared*
+	 * pair in those same sheets measured fine. `DarkModeCssTest` cannot see it
+	 * by construction: it compares pairs, and here one half is not declared.
+	 *
+	 * So the palette carries one rule that gives the inherited value a
+	 * theme-aware default at each root we own, and this test pins two things
+	 * about it: it exists and paints through a token, and every selector in it
+	 * still names a wrapper the markup actually renders. The second half is the
+	 * staleness check — a root that gets renamed leaves a rule that silently
+	 * covers nothing, and the symptom is one screen of grey-on-grey.
+	 */
+	public function test_the_dark_mode_base_pair_exists_and_uses_a_token(): void {
+		$css = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-common.css' );
+		$css = (string) preg_replace( '#/\*.*?\*/#s', '', $css );
+
+		$this->assertMatchesRegularExpression(
+			'/:root\.ffc-dark-mode\s+body\.wp-admin\s*,/',
+			$css,
+			'A regra de base sumiu do bloco escuro — todo texto sem cor própria volta a herdar o #3c434a do core.'
+		);
+
+		$this->assertStringNotContainsString(
+			":root.ffc-dark-mode body {",
+			$css,
+			'`body` sem `.wp-admin` também repinta o texto do TEMA nas páginas públicas, que não é nosso.'
+		);
+
+		$this->assertSame(
+			'var(--ffc-text)',
+			self::base_pair_colour( $css ),
+			'A regra de base tem de pintar por token — um literal aqui é o defeito que o bloco existe para corrigir.'
+		);
+	}
+
+	public function test_the_dark_mode_base_pair_names_only_live_roots(): void {
+		$css      = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-common.css' );
+		$selector = self::base_pair_selector( (string) preg_replace( '#/\*.*?\*/#s', '', $css ) );
+
+		$roots = array();
+		foreach ( explode( ',', $selector ) as $part ) {
+			$part = trim( $part );
+			if ( preg_match( '/\.(ffc-[\w-]+)$/', $part, $m ) ) {
+				$roots[] = $m[1];
+			}
+		}
+
+		$this->assertGreaterThanOrEqual( 3, count( $roots ), 'A varredura do seletor de base colapsou.' );
+
+		$markup = '';
+		foreach ( self::php_and_template_sources() as $path ) {
+			$markup .= (string) file_get_contents( $path );
+		}
+		$this->assertGreaterThan( 500000, strlen( $markup ), 'A varredura da marcação colapsou.' );
+
+		foreach ( $roots as $root ) {
+			$this->assertStringContainsString(
+				$root,
+				$markup,
+				"A regra de base nomeia .{$root}, que nenhuma marcação renderiza — ela cobre nada."
+			);
+		}
+	}
+
+	/**
+	 * The declaration block of the base-pair rule.
+	 *
+	 * @param string $css Comment-stripped stylesheet.
+	 * @return string The `color` value, or an empty string.
+	 */
+	private static function base_pair_colour( string $css ): string {
+		if ( ! preg_match( '/:root\.ffc-dark-mode\s+body\.wp-admin\s*,[^{}]*\{([^{}]*)\}/s', $css, $m ) ) {
+			return '';
+		}
+		if ( ! preg_match( '/(?<![-\w])color\s*:\s*([^;]+);/', $m[1], $c ) ) {
+			return '';
+		}
+
+		return trim( $c[1] );
+	}
+
+	/**
+	 * The selector list of the base-pair rule.
+	 *
+	 * @param string $css Comment-stripped stylesheet.
+	 * @return string
+	 */
+	private static function base_pair_selector( string $css ): string {
+		if ( ! preg_match( '/(:root\.ffc-dark-mode\s+body\.wp-admin\s*,[^{}]*)\{/s', $css, $m ) ) {
+			return '';
+		}
+
+		return $m[1];
+	}
+
+	/**
+	 * Every PHP source and template that can render markup.
+	 *
+	 * @return array<int, string> Absolute paths.
+	 */
+	private static function php_and_template_sources(): array {
+		$root = dirname( __DIR__, 2 );
+		$out  = array();
+
+		foreach ( array( $root . '/includes', $root . '/templates' ) as $dir ) {
+			$it = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $dir ) );
+			foreach ( $it as $file ) {
+				if ( $file->isFile() && 'php' === $file->getExtension() ) {
+					$out[] = $file->getPathname();
+				}
+			}
+		}
+
+		return $out;
+	}
+
 	public function test_every_budget_entry_names_a_real_stylesheet(): void {
 		$known = array_keys( self::stylesheets() );
 
