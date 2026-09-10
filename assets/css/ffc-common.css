@@ -91,6 +91,10 @@
     --ffc-text-on-primary: #ffffff;
     --ffc-text-on-danger: #ffffff;  /* 4,73:1 sobre --ffc-danger (#1126 B). */
     --ffc-text-on-success: #ffffff; /* 5,11:1 sobre --ffc-success (#1126 B). */
+    --ffc-text-on-warning: #2e2200; /* 5,14:1 sobre --ffc-warning; branco dava 3,04:1 (#1126).
+                                       NÃO é redeclarado no bloco escuro de propósito: o aviso é
+                                       tom médio-claro nos dois temas, então o mesmo texto escuro
+                                       serve — 8,67:1 sobre o #f0b849 do escuro. */
 
     /* Semantic Tokens - Inverse surface (o inverseSurface/inverseOnSurface do M3)
        O balão de toast é chrome invertido de propósito: escuro sobre a página
