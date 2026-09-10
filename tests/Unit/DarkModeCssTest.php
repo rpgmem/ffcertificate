@@ -212,6 +212,9 @@ final class DarkModeCssTest extends TestCase {
 			array( '--ffc-text-on-danger', '--ffc-danger-hover', 4.5, 'botão destrutivo sob o mouse' ),
 			array( '--ffc-text-on-success', '--ffc-success', 4.5, 'rótulo do botão de sucesso' ),
 			array( '--ffc-text-on-success', '--ffc-success-hover', 4.5, 'botão de sucesso sob o mouse' ),
+			// O rótulo do botão de aviso era branco sobre --ffc-warning: 3,04:1
+			// no tema claro, desde sempre, e nada media (#1126, 2ª passada).
+			array( '--ffc-text-on-warning', '--ffc-warning', 4.5, 'rótulo do botão de aviso' ),
 			array( '--ffc-inverse-on-surface', '--ffc-inverse-surface', 4.5, 'balão de toast' ),
 			// Não-texto: o contorno que identifica o componente, e as cores
 			// de estado usadas como sinal (o ponto colorido de um badge).

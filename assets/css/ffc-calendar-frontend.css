@@ -79,7 +79,7 @@
     justify-content: center;
     border: 1px solid var(--ffc-gray-200);
     border-radius: var(--ffc-radius-sm);
-    background: #fff;
+    background: var(--ffc-bg-card);
     cursor: pointer;
     transition: all 0.2s ease;
     padding: 10px;
@@ -99,7 +99,7 @@
     border-color: var(--ffc-primary);
     border-width: 2px;
     background: var(--ffc-primary);
-    color: #fff;
+    color: var(--ffc-text-on-primary);
 }
 
 .ffc-shortcode .ffc-timeslot-time {
@@ -202,7 +202,8 @@
     font-size: 14px;
     font-family: var(--ffc-font-family);
     transition: all 0.2s ease;
-    background: #fff;
+    background: var(--ffc-bg-input);
+    color: var(--ffc-text);
 }
 
 .ffc-shortcode .ffc-booking-form input[type="text"]:focus,
@@ -248,7 +249,7 @@
 
 /* Consent Row */
 .ffc-shortcode .ffc-consent-row {
-    background: #e5f5fa;
+    background: var(--ffc-info-bg);
     padding: 15px;
     border-radius: var(--ffc-radius-sm);
     border: 1px solid var(--ffc-primary);
@@ -334,7 +335,7 @@
     height: 80px;
     margin: 0 auto 20px;
     background: var(--ffc-success);
-    color: #fff;
+    color: var(--ffc-text-on-success);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -371,7 +372,7 @@
 
 /* Confirmation Code */
 .ffc-shortcode .ffc-confirmation-code {
-    background: #e5f5fa;
+    background: var(--ffc-info-bg);
     border: 2px solid var(--ffc-primary);
     border-radius: var(--ffc-radius-sm);
     padding: 20px;
@@ -394,7 +395,7 @@
     font-family: 'Courier New', monospace;
     letter-spacing: 2px;
     padding: 15px;
-    background: #fff;
+    background: var(--ffc-bg-card);
     border-radius: var(--ffc-radius-sm);
     margin: 15px 0;
     word-break: break-all;
@@ -414,7 +415,7 @@
 
 .ffc-shortcode .ffc-receipt-actions .ffc-btn-secondary {
     background: var(--ffc-primary);
-    color: #fff;
+    color: var(--ffc-text-on-primary);
 }
 
 .ffc-shortcode .ffc-receipt-actions .ffc-btn-secondary:hover {

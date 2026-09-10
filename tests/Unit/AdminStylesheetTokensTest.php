@@ -53,11 +53,15 @@ final class AdminStylesheetTokensTest extends TestCase {
 	 * zero. Every other number is what was measured when the guard landed, and
 	 * it may only go down — lower it in the PR that lowers the real count.
 	 *
-	 * The seven zeros are the sheets #1126 B converted. The rest are the debt
-	 * register: `ffc-user-permissions.css` carries a whole ad-hoc palette of
-	 * per-group accent colours that needs its own decision, and the frontend
-	 * sheets are outside the dark mode's reach (`.ffc-dark-mode` is only ever
-	 * added on a plugin admin screen) so they are recorded, not required.
+	 * ⚠ The first version of this comment said the frontend sheets were
+	 * "outside the dark mode's reach, since `.ffc-dark-mode` is only ever added
+	 * on a plugin admin screen". **That was wrong.**
+	 * `AssetHelper::enqueue_dark_mode()` is called from THREE places, and two
+	 * of them are public: the `[ffc_form]` / verification / csv-download
+	 * shortcodes, and the user-dashboard shortcode. The class lands on `<html>`
+	 * there just as it does in wp-admin, so a frontend sheet full of literals
+	 * is the same defect on a page a visitor sees — which is what the 6.24.0
+	 * smoke reported before anyone re-read this line.
 	 *
 	 * @var array<string, int>
 	 */
@@ -71,32 +75,37 @@ final class AdminStylesheetTokensTest extends TestCase {
 		'ffc-url-shortener-admin.css'   => 0,
 		'ffc-working-hours.css'         => 0,
 
-		// Admin, partially tokenized — the next slice of the same work.
+		// Converted by the second pass (#1126 follow-up), on the screens the
+		// 6.24.0 smoke reported. What is left in each is deliberate and carries
+		// its reason inline: a white switch knob that must stay white over a
+		// dark track, a translucent veil over an arbitrary colour, the white
+		// paper of the certificate preview.
+		'ffc-calendar-frontend.css'     => 0,
+		'ffc-recruitment-public.css'    => 0,
+		'ffc-frontend.css'              => 4,
+		'ffc-user-dashboard.css'        => 2,
+		'ffc-user-permissions.css'      => 12,
+
+		// Still to do — the next slice of the same work.
 		'ffc-admin.css'                 => 39,
 		'ffc-admin-move-submissions.css' => 6,
 		'ffc-admin-settings.css'        => 21,
 		'ffc-admin-submission-edit.css' => 1,
 		'ffc-admin-submissions.css'     => 36,
 		'ffc-admin-utilities.css'       => 9,
-		'ffc-audience-admin.css'        => 19,
-		'ffc-user-permissions.css'      => 94,
-
-		// The palette itself: literals are what it is for.
-		'ffc-common.css'                => 116,
-
-		// Frontend / print / editor theme — outside the dark mode's reach.
 		'ffc-appointment-cancellation.css' => 11,
+		'ffc-audience-admin.css'        => 19,
 		'ffc-audience.css'              => 22,
-		'ffc-calendar-frontend.css'     => 8,
 		'ffc-certificates-dashboard.css' => 42,
-		'ffc-code-editor-dark.css'      => 35,
 		'ffc-email-model.css'           => 3,
-		'ffc-frontend.css'              => 148,
-		'ffc-pdf-core.css'              => 12,
 		'ffc-progress-overlay.css'      => 9,
-		'ffc-recruitment-public.css'    => 28,
 		'ffc-reregistration-frontend.css' => 43,
-		'ffc-user-dashboard.css'        => 81,
+
+		// The palette itself, and the two sheets whose literals ARE the point:
+		// a code-editor theme and a print stylesheet.
+		'ffc-common.css'                => 117,
+		'ffc-code-editor-dark.css'      => 35,
+		'ffc-pdf-core.css'              => 12,
 	);
 
 	/**
