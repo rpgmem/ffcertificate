@@ -12,14 +12,110 @@
 
     var helpers = FFCDashboard.helpers;
 
-    function cancelAppointment(appointmentId) {
-        if (!confirm(ffcDashboard.strings.confirmCancel)) return;
+    var MODAL_ID = 'ffc-cancel-appointment-modal';
 
+    /**
+     * Build the confirmation dialog for one appointment.
+     *
+     * It shows what the browser's `confirm()` could not — which appointment is
+     * being cancelled — and carries the optional reason field. The endpoint has
+     * always accepted `reason` (it sanitizes `$_POST['reason']` and passes it
+     * on); only this caller never sent one, so a cancellation from the
+     * dashboard recorded an empty reason while the same action from the e-mail
+     * link recorded what the person wrote (#1140).
+     *
+     * The modal carries `ffc-shortcode` on itself because it is appended to
+     * `<body>`, outside the dashboard container that would otherwise provide
+     * that scope.
+     *
+     * @param {Object} apt Appointment row from the panel's own state.
+     * @returns {jQuery}
+     */
+    function buildModal(apt) {
+        var s = ffcDashboard.strings;
+        var when = apt.appointment_date + (apt.start_time ? ' · ' + apt.start_time : '');
+
+        var html = '' +
+            '<div class="ffc-shortcode ffc-modal" id="' + MODAL_ID + '" role="dialog" aria-modal="true" aria-labelledby="' + MODAL_ID + '-title">' +
+                '<div class="ffc-modal-backdrop"></div>' +
+                '<div class="ffc-modal-content">' +
+                    '<div class="ffc-modal-header">' +
+                        '<h3 class="ffc-modal-title" id="' + MODAL_ID + '-title">' + helpers.esc(s.cancelTitle) + '</h3>' +
+                        '<button type="button" class="ffc-modal-close" aria-label="' + helpers.escAttr(s.close) + '">&times;</button>' +
+                    '</div>' +
+                    '<div class="ffc-modal-body">' +
+                        '<p>' + helpers.esc(s.cancelIntro) + '</p>' +
+                        '<dl class="ffc-cancel-summary">' +
+                            '<dt>' + helpers.esc(s.cancelService) + '</dt>' +
+                            '<dd>' + helpers.esc(apt.calendar_title) + '</dd>' +
+                            (when ? '<dt>' + helpers.esc(s.cancelWhen) + '</dt><dd>' + helpers.esc(when) + '</dd>' : '') +
+                        '</dl>' +
+                        '<div class="ffc-form-group">' +
+                            '<label for="ffc-cancel-reason">' + helpers.esc(s.cancelReasonLabel) + '</label>' +
+                            '<textarea id="ffc-cancel-reason" rows="3"></textarea>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="ffc-modal-footer">' +
+                        '<button type="button" class="ffc-btn ffc-btn-secondary ffc-cancel-keep">' + helpers.esc(s.cancelKeepBtn) + '</button>' +
+                        '<button type="button" class="ffc-btn ffc-btn-danger ffc-cancel-confirm" data-id="' + helpers.escAttr(String(apt.id)) + '">' + helpers.esc(s.cancelConfirmBtn) + '</button>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+        return $(html);
+    }
+
+    function closeModal() {
+        $('#' + MODAL_ID).remove();
+        $(document).off('keydown.ffcCancelModal');
+    }
+
+    /**
+     * Open the dialog for an appointment id, reading its details out of the
+     * panel's own state rather than re-fetching or duplicating them into data
+     * attributes — the list the user is looking at is already in memory.
+     *
+     * @param {number|string} appointmentId
+     */
+    function openCancelDialog(appointmentId) {
+        var rows = FFCDashboard.panels.appointments.state || [];
+        var apt = null;
+        for (var i = 0; i < rows.length; i++) {
+            if (String(rows[i].id) === String(appointmentId)) {
+                apt = rows[i];
+                break;
+            }
+        }
+        if (!apt) {
+            return;
+        }
+
+        closeModal();
+        var $modal = buildModal(apt);
+        $('body').append($modal);
+        $modal.find('#ffc-cancel-reason').trigger('focus');
+
+        $(document).on('keydown.ffcCancelModal', function (e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+    }
+
+    /**
+     * Send the cancellation, with whatever reason was typed.
+     *
+     * @param {number|string} appointmentId
+     * @param {string}        reason
+     */
+    function cancelAppointment(appointmentId, reason) {
         var payload = { appointment_id: appointmentId };
+        if (reason) payload.reason = reason;
         if (ffcDashboard.viewAsUserId) payload.viewAsUserId = ffcDashboard.viewAsUserId;
 
         FFC.request('ffc_cancel_appointment', payload, { nonce: ffcDashboard.schedulingNonce })
             .then(function () {
+                closeModal();
                 alert(ffcDashboard.strings.cancelSuccess);
                 var panel = FFCDashboard.panels.appointments;
                 panel.state = null;
@@ -42,7 +138,19 @@
         bindEvents: function () {
             $(document).on('click', '.ffc-cancel-appointment', function (e) {
                 e.preventDefault();
-                cancelAppointment($(this).data('id'));
+                openCancelDialog($(this).data('id'));
+            });
+
+            // Delegated on `document` because the dialog is appended to
+            // `<body>` on demand and removed on close.
+            $(document).on('click', '#' + MODAL_ID + ' .ffc-cancel-confirm', function (e) {
+                e.preventDefault();
+                cancelAppointment($(this).data('id'), $('#ffc-cancel-reason').val() || '');
+            });
+
+            $(document).on('click', '#' + MODAL_ID + ' .ffc-cancel-keep, #' + MODAL_ID + ' .ffc-modal-close, #' + MODAL_ID + ' .ffc-modal-backdrop', function (e) {
+                e.preventDefault();
+                closeModal();
             });
         },
 

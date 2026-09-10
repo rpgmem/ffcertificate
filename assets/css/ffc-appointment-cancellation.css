@@ -27,25 +27,9 @@
 	font-size: 1.5rem;
 }
 
-.ffc-cancel-summary {
-	margin: 1.5rem 0;
-	padding: 1rem;
-	background: var(--ffc-bg-alt);
-	border-radius: 6px;
-}
-
-.ffc-cancel-summary dt {
-	font-weight: 600;
-	color: var(--ffc-text-secondary);
-}
-
-.ffc-cancel-summary dd {
-	margin: 0 0 0.75rem;
-}
-
-.ffc-cancel-summary dd:last-child {
-	margin-bottom: 0;
-}
+/* `.ffc-cancel-summary` mora em ffc-common.css (#1140): o mesmo par
+   serviço/quando aparece no diálogo do dashboard, e esta página passou a
+   carregar a paleta no #1139. */
 
 .ffc-cancel-form label {
 	font-weight: 600;
