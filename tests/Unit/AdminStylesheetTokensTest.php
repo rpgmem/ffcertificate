@@ -66,40 +66,43 @@ final class AdminStylesheetTokensTest extends TestCase {
 	 * @var array<string, int>
 	 */
 	private const BUDGET = array(
-		// Converted by #1126 defeito B — these block at zero.
+		// Every sheet the plugin paints with is converted. A `0` here is the
+		// normal state and the guard blocks at it; the handful of non-zero
+		// entries below are decisions, each with its reason INLINE in the CSS,
+		// not silent debt.
+		'ffc-admin-move-submissions.css' => 0,
+		'ffc-admin-submission-edit.css' => 0,
+		'ffc-admin-submissions.css'     => 0,
+		'ffc-admin-utilities.css'       => 0,
+		'ffc-appointment-cancellation.css' => 0,
 		'ffc-calendar-admin.css'        => 0,
 		'ffc-calendar-editor.css'       => 0,
+		'ffc-calendar-frontend.css'     => 0,
+		'ffc-certificates-dashboard.css' => 0,
 		'ffc-custom-fields-admin.css'   => 0,
+		'ffc-email-model.css'           => 0,
+		'ffc-progress-overlay.css'      => 0,
 		'ffc-recruitment-admin.css'     => 0,
+		'ffc-recruitment-public.css'    => 0,
 		'ffc-reregistration-admin.css'  => 0,
+		'ffc-reregistration-frontend.css' => 0,
 		'ffc-url-shortener-admin.css'   => 0,
 		'ffc-working-hours.css'         => 0,
 
-		// Converted by the second pass (#1126 follow-up), on the screens the
-		// 6.24.0 smoke reported. What is left in each is deliberate and carries
-		// its reason inline: a white switch knob that must stay white over a
-		// dark track, a translucent veil over an arbitrary colour, the white
-		// paper of the certificate preview.
-		'ffc-calendar-frontend.css'     => 0,
-		'ffc-recruitment-public.css'    => 0,
+		// Deliberate literals, reason inline at each site:
+		// - a white switch knob that would vanish into a dark track;
+		// - translucent veils over whatever colour sits underneath;
+		// - the white paper of the certificate preview;
+		// - the twelve-hue categorical scale of the capability groups;
+		// - `#adminmenu`, which follows the user's own wp-admin colour scheme;
+		// - two vendor brand colours and one code-sample theme.
+		'ffc-admin.css'                 => 3,
+		'ffc-admin-settings.css'        => 5,
+		'ffc-audience.css'              => 2,
+		'ffc-audience-admin.css'        => 4,
 		'ffc-frontend.css'              => 4,
 		'ffc-user-dashboard.css'        => 2,
 		'ffc-user-permissions.css'      => 12,
-
-		// Still to do — the next slice of the same work.
-		'ffc-admin.css'                 => 39,
-		'ffc-admin-move-submissions.css' => 6,
-		'ffc-admin-settings.css'        => 21,
-		'ffc-admin-submission-edit.css' => 1,
-		'ffc-admin-submissions.css'     => 36,
-		'ffc-admin-utilities.css'       => 9,
-		'ffc-appointment-cancellation.css' => 11,
-		'ffc-audience-admin.css'        => 19,
-		'ffc-audience.css'              => 22,
-		'ffc-certificates-dashboard.css' => 42,
-		'ffc-email-model.css'           => 3,
-		'ffc-progress-overlay.css'      => 9,
-		'ffc-reregistration-frontend.css' => 43,
 
 		// The palette itself, and the two sheets whose literals ARE the point:
 		// a code-editor theme and a print stylesheet.

@@ -30,6 +30,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Quatro regras de modo escuro do frontend nunca dispararam** (#1126): casavam `[data-ffc-theme="dark"]`, atributo que nada no plugin define — nem PHP, nem template, nem JS. Tratamento de tema inerte, com aparência de tratamento existente; removidas, e os alertas passam a seguir a paleta.
 - **Rótulo do botão de aviso reprovava o contraste** (#1126): branco sobre `--ffc-warning` dá 3,04:1 no tema claro. Ganhou par `on-warning`, que não inverte entre os temas porque o aviso é tom médio-claro nos dois.
 - **Caixa de funções, dashboard, editais, calendário e caixa informativa do formulário ignoravam o modo escuro** (#1126): cinco folhas pintavam com hex fixo. Todas passam a pintar pela paleta; o que segue literal é decisão com motivo no código — o botão branco do interruptor, o véu translúcido sobre cor arbitrária e o papel branco da pré-visualização do certificado.
+- **As treze folhas restantes ignoravam o modo escuro** (#1126): submissões, painel de certificados, formulário de recadastramento, calendário do admin, público-alvo, modal de mover submissões, aviso de cancelamento, modelo de e-mail e as demais pintavam com hex fixo. Toda folha que o plugin pinta passa a ler a paleta, e a catraca bloqueia em zero — o que resta é decisão com o motivo escrito ao lado.
+- **A pílula de contagem do painel de certificados podia sumir** (#1126): tinha uma cor de texto só para dois fundos diferentes, verde e cinza. Cada fundo passa a trazer o seu par.
+- **Três folhas liam token sem a paleta garantida na página** (#1126): mover submissões, formulário de recadastramento e modelo de e-mail eram enfileiradas sem declarar `ffc-common` — a guarda do #1126 as achou assim que elas passaram a ler tokens.
 
 ### Changed
 

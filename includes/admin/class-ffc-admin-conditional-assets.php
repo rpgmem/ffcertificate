@@ -287,7 +287,7 @@ class AdminConditionalAssets {
 		wp_enqueue_style(
 			'ffc-admin-move-submissions',
 			FFC_PLUGIN_URL . "assets/css/ffc-admin-move-submissions{$s}.css",
-			array(),
+			array( 'ffc-common' ),
 			FFC_VERSION
 		);
 

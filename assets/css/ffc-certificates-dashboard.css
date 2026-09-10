@@ -23,16 +23,16 @@
 }
 
 .ffc-certificates-dashboard-calendar {
-    background: var(--ffc-bg-card, #ffffff);
-    border: 1px solid var(--ffc-border, #dcdcde);
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
     border-radius: 4px;
     padding: 0;
     overflow: hidden;
 }
 
 .ffc-certificates-dashboard-side {
-    background: var(--ffc-bg-card, #ffffff);
-    border: 1px solid var(--ffc-border, #dcdcde);
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
     border-radius: 4px;
     padding: 16px;
 }
@@ -43,7 +43,7 @@
 }
 
 .ffc-certificates-side-empty {
-    color: var(--ffc-text-secondary, #50575e);
+    color: var(--ffc-text-secondary);
     margin: 0;
     font-style: italic;
 }
@@ -60,7 +60,7 @@
     align-items: center;
     gap: 8px;
     padding: 10px 0;
-    border-bottom: 1px solid var(--ffc-border-light, #f0f0f1);
+    border-bottom: 1px solid var(--ffc-border-light);
 }
 
 .ffc-certificates-day-item:last-child {
@@ -78,19 +78,19 @@
 }
 
 .ffc-certificates-source-badge.is-geofence {
-    background: var(--ffc-success-light, #e7f5ec);
-    color: var(--ffc-success, #00733a);
+    background: var(--ffc-success-light);
+    color: var(--ffc-success);
 }
 
 .ffc-certificates-source-badge.is-fallback {
-    background: #f0f0f1;
-    color: #50575e;
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-secondary);
 }
 
 .ffc-certificates-day-title {
     flex: 1 1 auto;
     font-weight: 500;
-    color: var(--ffc-link, #2271b1);
+    color: var(--ffc-link);
     text-decoration: none;
 }
 
@@ -100,7 +100,7 @@
 
 .ffc-certificates-status {
     font-size: 12px;
-    color: var(--ffc-text-secondary, #50575e);
+    color: var(--ffc-text-secondary);
 }
 
 /* Discreet "view submissions" link at the end of each day-list row. */
@@ -108,7 +108,7 @@
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
-    color: var(--ffc-text-secondary, #787c82);
+    color: var(--ffc-text-secondary);
     text-decoration: none;
     opacity: 0.55;
     transition: opacity 0.15s ease, color 0.15s ease;
@@ -117,7 +117,7 @@
 .ffc-certificates-submissions-link:hover,
 .ffc-certificates-submissions-link:focus {
     opacity: 1;
-    color: var(--ffc-link, #2271b1);
+    color: var(--ffc-link);
 }
 
 .ffc-certificates-submissions-link .dashicons {
@@ -132,7 +132,7 @@
 
 .ffc-calendar-core {
     width: 100%;
-    background: #fff;
+    background: var(--ffc-bg-card);
 }
 
 .ffc-calendar-core .ffc-calendar-header {
@@ -140,8 +140,8 @@
     justify-content: space-between;
     align-items: center;
     padding: 15px 20px;
-    background: #f6f7f7;
-    border-bottom: 1px solid #dcdcde;
+    background: var(--ffc-bg-alt);
+    border-bottom: 1px solid var(--ffc-border-light);
     flex-wrap: wrap;
     gap: 15px;
 }
@@ -161,8 +161,8 @@
 }
 
 .ffc-calendar-core .ffc-nav-btn {
-    background: #fff;
-    border: 1px solid #dcdcde;
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
     border-radius: 4px;
     padding: 8px 12px;
     cursor: pointer;
@@ -172,12 +172,12 @@
 }
 
 .ffc-calendar-core .ffc-nav-btn:hover {
-    background: #f6f7f7;
-    border-color: #c3c4c7;
+    background: var(--ffc-bg-alt);
+    border-color: var(--ffc-border);
 }
 
 .ffc-calendar-core .ffc-nav-btn:focus-visible {
-    outline: 2px solid #2271b1;
+    outline: 2px solid var(--ffc-border-focus);
     outline-offset: 2px;
 }
 
@@ -202,7 +202,7 @@
     text-align: center;
     font-weight: 600;
     font-size: 13px;
-    color: #50575e;
+    color: var(--ffc-text-secondary);
     padding: 10px 5px;
 }
 
@@ -215,10 +215,10 @@
 .ffc-calendar-core .ffc-day {
     aspect-ratio: 1;
     min-height: 0;
-    border: 1px solid #dcdcde;
+    border: 1px solid var(--ffc-border);
     border-radius: 4px;
     padding: 5px;
-    background: #fff;
+    background: var(--ffc-bg-card);
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
@@ -227,34 +227,34 @@
 }
 
 .ffc-calendar-core .ffc-day:hover {
-    border-color: #2271b1;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    border-color: var(--ffc-border-focus);
+    box-shadow: var(--ffc-shadow-sm);
 }
 
 .ffc-calendar-core .ffc-day.ffc-other-month {
-    background: #f6f7f7;
+    background: var(--ffc-bg-alt);
     opacity: 0.6;
     cursor: default;
 }
 
 .ffc-calendar-core .ffc-day.ffc-today {
-    border-color: #2271b1;
+    border-color: var(--ffc-border-focus);
     border-width: 2px;
 }
 
 .ffc-calendar-core .ffc-day.ffc-selected {
-    background: #e7f3ff;
-    border-color: #2271b1;
+    background: var(--ffc-primary-light);
+    border-color: var(--ffc-border-focus);
 }
 
 .ffc-calendar-core .ffc-day-number {
     font-weight: 600;
     font-size: 14px;
-    color: #1e1e1e;
+    color: var(--ffc-text);
 }
 
 .ffc-calendar-core .ffc-today .ffc-day-number {
-    color: #2271b1;
+    color: var(--ffc-primary);
 }
 
 .ffc-calendar-core .ffc-day-content {
@@ -268,8 +268,8 @@
     display: flex;
     gap: 20px;
     padding: 15px 20px;
-    background: #f6f7f7;
-    border-top: 1px solid #dcdcde;
+    background: var(--ffc-bg-alt);
+    border-top: 1px solid var(--ffc-border-light);
     font-size: 13px;
     justify-content: center;
     flex-wrap: wrap;
@@ -300,23 +300,29 @@
     font-size: 11px;
     font-weight: 600;
     line-height: 1.5;
-    color: #fff;
-    background: #8c8f94;
+    /* Pílula cheia neutra: o par inverso é o que a mantém legível nos dois
+       temas — escura sobre a célula clara, clara sobre a célula escura. Cada
+       fundo abaixo traz o seu próprio texto, porque o verde e o neutro não
+       aceitam o mesmo (#1126). */
+    color: var(--ffc-inverse-on-surface);
+    background: var(--ffc-inverse-surface);
     text-align: center;
 }
 
 .ffc-calendar-core .ffc-day.ffc-cert-has-geofence .ffc-cert-count {
-    background: var(--ffc-success, #00a32a);
+    background: var(--ffc-success);
+    color: var(--ffc-text-on-success);
 }
 
 .ffc-calendar-core .ffc-day.ffc-cert-has-fallback:not(.ffc-cert-has-geofence) .ffc-cert-count {
-    background: #8c8f94;
+    background: var(--ffc-inverse-surface);
+    color: var(--ffc-inverse-on-surface);
 }
 
 /* When a day has both sources, lean on the geofence colour but mark the
  * card with a thin neutral underline so users can spot the mix. */
 .ffc-calendar-core .ffc-day.ffc-cert-has-geofence.ffc-cert-has-fallback {
-    box-shadow: inset 0 -3px 0 0 #c3c4c7;
+    box-shadow: inset 0 -3px 0 0 var(--ffc-border);
 }
 
 .ffc-calendar-core .ffc-day.ffc-cert-day {
@@ -324,11 +330,11 @@
 }
 
 .ffc-calendar-legend .ffc-legend-dot.ffc-cert-has-geofence {
-    background: var(--ffc-success, #00a32a);
+    background: var(--ffc-success);
 }
 
 .ffc-calendar-legend .ffc-legend-dot.ffc-cert-has-fallback {
-    background: #8c8f94;
+    background: var(--ffc-text-muted);
 }
 
 @media screen and (max-width: 782px) {
