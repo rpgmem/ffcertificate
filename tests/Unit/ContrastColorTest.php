@@ -61,6 +61,23 @@ final class ContrastColorTest extends TestCase {
 	}
 
 	/**
+	 * The dark end is pure black, and the arithmetic depends on it.
+	 *
+	 * `on()` divides by black's relative luminance folded into the WCAG offset
+	 * (`0 + 0.05`). Swapping the constant for anything else — the palette's
+	 * `#1d2327`, say — would leave the formula computing a ratio the colour no
+	 * longer has, and the sweep below would drop to 3,99:1 without anything
+	 * saying why. This pins it from the outside, through behaviour.
+	 */
+	public function test_the_dark_end_is_pure_black(): void {
+		$this->assertSame(
+			'#000000',
+			ContrastColor::on( '#ffffff' ),
+			'A ponta escura precisa ser preto puro: a conta de on() assume luminância 0.'
+		);
+	}
+
+	/**
 	 * Garbage in must not produce a colour that hides the text.
 	 *
 	 * The dark end is the safe fallback because it is what both call sites used

@@ -64,14 +64,19 @@ final class ContrastColor {
 
 		$luminance = self::relative_luminance( $rgb );
 
-		// Contrast against white is (1.05) / (L + 0.05); against near-black it
-		// is (L + 0.05) / (Ldark + 0.05). Comparing the two is what picks the
-		// better of the pair rather than guessing a threshold.
-		$dark_rgb = self::to_rgb( self::DARK );
-		$l_dark   = null === $dark_rgb ? 0.0 : self::relative_luminance( $dark_rgb );
-
+		// Contrast against white is 1.05 / (L + 0.05); against the dark end it is
+		// (L + 0.05) / (Ldark + 0.05). Comparing the two picks the better of the
+		// pair instead of guessing a threshold — and the crossover between them
+		// IS the guarantee this class offers, which is why both ends are the
+		// extremes of the scale rather than palette values.
+		//
+		// `self::DARK` is pure black, whose relative luminance is 0 by
+		// definition, so there is nothing to parse here and no failure to guard
+		// against. `ContrastColorTest` pins that black end behaviourally and
+		// sweeps the whole RGB cube, so changing it fails loudly rather than
+		// quietly shifting the maths.
 		$against_light = 1.05 / ( $luminance + 0.05 );
-		$against_dark  = ( $luminance + 0.05 ) / ( $l_dark + 0.05 );
+		$against_dark  = ( $luminance + 0.05 ) / 0.05;
 
 		return $against_dark >= $against_light ? self::DARK : self::LIGHT;
 	}
