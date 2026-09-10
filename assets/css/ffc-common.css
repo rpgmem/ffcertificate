@@ -441,6 +441,30 @@
     background: var(--ffc-bg-card);
 }
 
+/* …and the notice's own text nodes, by name.
+   The rule above sets `color` on the box and every child inherits it — which is
+   how it reads in isolation, and how it measured in a Chromium loaded with
+   WordPress's real admin CSS: 13:1. On the live install it does not hold, and
+   the reason is not in this repository: nothing here paints a bare `p` inside a
+   `.notice` (grep of all 28 stylesheets), and core sets no `color` on `.notice`
+   or its children at all — `common.css`, `forms.css`, `edit.css`,
+   `dashboard.css`, `list-tables.css` were all read. So a third party on that
+   install declares a colour on these nodes directly, and ANY direct declaration
+   beats an inherited value however specific its source.
+
+   Naming the children is the fix that does not depend on knowing which: at
+   0,3,1 it outranks any plausible plugin or theme rule. It would still lose to
+   an `!important`, which is the one case left open — deliberately, because
+   answering `!important` with `!important` starts a war the next stylesheet
+   wins. */
+:root.ffc-dark-mode .notice p,
+:root.ffc-dark-mode .notice li,
+:root.ffc-dark-mode .notice strong,
+:root.ffc-dark-mode div.updated p,
+:root.ffc-dark-mode div.error p {
+    color: var(--ffc-text);
+}
+
 /* Inline code, which core sets on a light grey ground. */
 :root.ffc-dark-mode code,
 :root.ffc-dark-mode kbd {

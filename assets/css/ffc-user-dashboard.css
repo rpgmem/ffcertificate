@@ -899,6 +899,7 @@
 }
 
 .ffc-password-form input[type="password"] {
+    color: var(--ffc-text);
     width: 100%;
     max-width: 340px;
     padding: 8px 12px;
@@ -1292,6 +1293,7 @@
 .ffc-profile-edit-form input[type="text"],
 .ffc-profile-edit-form input[type="tel"],
 .ffc-profile-edit-form textarea {
+    color: var(--ffc-text);
     width: 100%;
     max-width: 450px;
     padding: 8px 12px;

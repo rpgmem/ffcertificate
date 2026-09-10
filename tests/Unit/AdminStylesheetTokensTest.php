@@ -687,6 +687,143 @@ final class AdminStylesheetTokensTest extends TestCase {
 		return $out;
 	}
 
+	// ==================================================================
+	// Direção E — o controle de formulário, que não herda (#1126)
+	// ==================================================================
+
+	/**
+	 * Rules that paint a control's ground but leave its text to the browser.
+	 *
+	 * A `<button>`, `<input>`, `<select>` or `<textarea>` does NOT inherit
+	 * `color`: the user agent gives it `buttontext` / `fieldtext`, which is
+	 * near-black. So the base pair of Direction D cannot reach it — a control
+	 * given one of our dark grounds renders near-black text on it no matter what
+	 * any ancestor says. Measured on the audience calendar's month arrows and
+	 * "Hoje" button, the two the smoke reported; the same scan found sixteen
+	 * more, including every field of the public reregistration form and of the
+	 * profile editor, unreported only because nobody had those screens open.
+	 *
+	 * This one IS statically decidable, which the inherited-colour class is not:
+	 * the rule either declares `color` next to its `background` or it does not.
+	 *
+	 * @return array<string, list<string>> Stylesheet basename => offending selectors.
+	 */
+	private static function controls_without_a_text_colour(): array {
+		$colour = '/(?<![-\w])color\s*:/';
+		// A ground that is actually painted — `transparent` and `none` are not.
+		$ground = '/(?<![-\w])background(-color)?\s*:\s*(?!none|transparent|0 0|url)/';
+		// Text-bearing controls only. A toggle track, a day cell and a
+		// `::before` glyph carry no text, so the rule does not apply to them.
+		$control = '/(?:^|\s|>)(?:button|textarea|select|input(?:\[[^\]]*\])?|\.[\w-]*(?:btn|input)[\w-]*)$/i';
+		// A state modifier inherits the colour of the base rule it overrides,
+		// so re-declaring it there would be noise, not safety.
+		$modifier = '/::|:disabled|:checked|:hover|:focus|:active/';
+
+		$out = array();
+		foreach ( self::stylesheets() as $name => $path ) {
+			$css = (string) preg_replace( '#/\*.*?\*/#s', '', (string) file_get_contents( $path ) );
+			if ( ! preg_match_all( '/([^{}]+)\{([^{}]*)\}/s', $css, $m, PREG_SET_ORDER ) ) {
+				continue;
+			}
+			foreach ( $m as $rule ) {
+				$selector = trim( $rule[1] );
+				$body     = $rule[2];
+				if ( str_starts_with( $selector, '@' ) || preg_match( $modifier, $selector ) ) {
+					continue;
+				}
+				if ( ! preg_match( $ground, $body ) || preg_match( $colour, $body ) ) {
+					continue;
+				}
+				foreach ( explode( ',', $selector ) as $part ) {
+					$part = trim( $part );
+					if ( '' !== $part && preg_match( $control, $part ) ) {
+						$out[ $name ][] = $part;
+					}
+				}
+			}
+		}
+
+		return $out;
+	}
+
+	public function test_a_control_given_a_ground_also_declares_its_text_colour(): void {
+		$this->assertSame(
+			array(),
+			self::controls_without_a_text_colour(),
+			'Um controle de formulário não herda `color`: quem pinta o fundo tem de pintar o texto, ou o navegador usa o quase-preto dele.'
+		);
+	}
+
+	/**
+	 * The scan has to be able to see the shape it forbids, or an empty result
+	 * means nothing — the #1071 / #1094 lesson, applied to a new scanner.
+	 *
+	 * @return void
+	 */
+	public function test_the_control_scan_can_see_the_shape_it_forbids(): void {
+		$offenders = self::detect_controls( ".x button { background: var(--ffc-bg-card); }" );
+		$this->assertSame( array( 'x.css' => array( '.x button' ) ), $offenders );
+
+		// …and does not report the two shapes that are correct by construction.
+		$this->assertSame(
+			array(),
+			self::detect_controls( ".x button { color: var(--ffc-text); background: var(--ffc-bg-card); }" ),
+			'Uma regra que declara as duas metades está certa.'
+		);
+		$this->assertSame(
+			array(),
+			self::detect_controls( ".x button:disabled { background: var(--ffc-bg-alt); }" ),
+			'Um modificador de estado herda a cor da regra base que ele sobrescreve.'
+		);
+		$this->assertSame(
+			array(),
+			self::detect_controls( ".x .ffc-toggle-track { background: var(--ffc-bg-alt); }" ),
+			'Uma pista de interruptor não carrega texto.'
+		);
+	}
+
+	/**
+	 * Run the control scan over one stylesheet's worth of CSS text.
+	 *
+	 * @param string $css Stylesheet source.
+	 * @return array<string, list<string>>
+	 */
+	private static function detect_controls( string $css ): array {
+		$dir  = sys_get_temp_dir() . '/ffc-control-scan-' . uniqid( '', true );
+		mkdir( $dir );
+		file_put_contents( $dir . '/x.css', $css );
+
+		$colour   = '/(?<![-\w])color\s*:/';
+		$ground   = '/(?<![-\w])background(-color)?\s*:\s*(?!none|transparent|0 0|url)/';
+		$control  = '/(?:^|\s|>)(?:button|textarea|select|input(?:\[[^\]]*\])?|\.[\w-]*(?:btn|input)[\w-]*)$/i';
+		$modifier = '/::|:disabled|:checked|:hover|:focus|:active/';
+
+		$out = array();
+		$src = (string) preg_replace( '#/\*.*?\*/#s', '', $css );
+		if ( preg_match_all( '/([^{}]+)\{([^{}]*)\}/s', $src, $m, PREG_SET_ORDER ) ) {
+			foreach ( $m as $rule ) {
+				$selector = trim( $rule[1] );
+				if ( str_starts_with( $selector, '@' ) || preg_match( $modifier, $selector ) ) {
+					continue;
+				}
+				if ( ! preg_match( $ground, $rule[2] ) || preg_match( $colour, $rule[2] ) ) {
+					continue;
+				}
+				foreach ( explode( ',', $selector ) as $part ) {
+					$part = trim( $part );
+					if ( '' !== $part && preg_match( $control, $part ) ) {
+						$out['x.css'][] = $part;
+					}
+				}
+			}
+		}
+
+		unlink( $dir . '/x.css' );
+		rmdir( $dir );
+
+		return $out;
+	}
+
 	public function test_every_budget_entry_names_a_real_stylesheet(): void {
 		$known = array_keys( self::stylesheets() );
 

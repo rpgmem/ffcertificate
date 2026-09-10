@@ -113,6 +113,7 @@
  * Readonly input styling
  */
 .ffc-input-readonly {
+    color: var(--ffc-text);
     background-color: var(--ffc-bg-alt);
     cursor: not-allowed;
 }

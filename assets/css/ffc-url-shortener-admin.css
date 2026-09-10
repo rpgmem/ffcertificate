@@ -14,6 +14,7 @@
 }
 
 .ffc-shorturl-metabox input[readonly] {
+    color: var(--ffc-text);
     background: var(--ffc-bg-alt);
     cursor: text;
 }

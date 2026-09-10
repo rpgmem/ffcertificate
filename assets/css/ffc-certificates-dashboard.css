@@ -161,6 +161,7 @@
 }
 
 .ffc-calendar-core .ffc-nav-btn {
+    color: var(--ffc-text);
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
     border-radius: 4px;

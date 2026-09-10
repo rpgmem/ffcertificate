@@ -549,8 +549,12 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-captcha-row .ffc-input {
+    /* O par repete o da regra base de `.ffc-input` de propósito: uma regra que
+       repinta o fundo de um controle carrega as duas metades, para que elas não
+       possam divergir depois. Um controle não herda `color` (#1126). */
+    color: var(--ffc-text);
     border: 2px solid var(--ffc-primary) !important; /* ← DESTAQUE: borda azul mais grossa */
-    background: var(--ffc-bg-input) !important; /* ← Fundo branco para contraste */
+    background: var(--ffc-bg-input) !important;
     margin-bottom: 0 !important; /* ← Remove margem inferior */
 }
 

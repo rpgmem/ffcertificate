@@ -102,6 +102,7 @@
 
 /* Shortcode input (sidebar metabox) */
 .ffc-shortcode-input {
+    color: var(--ffc-text);
     width: 100%;
     padding: 6px;
     font-family: monospace;

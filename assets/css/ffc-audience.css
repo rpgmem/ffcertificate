@@ -56,6 +56,10 @@
 }
 
 .ffc-shortcode .ffc-nav-btn {
+    /* Um controle de formulário NÃO herda `color` — o agente de usuário dá
+       `buttontext`, quase preto, então a regra de base do tema escuro não o
+       alcança. Quem pinta o fundo tem de pintar o texto (#1126). */
+    color: var(--ffc-text);
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-gray-300);
     border-radius: var(--ffc-radius-sm);
@@ -87,6 +91,7 @@
 }
 
 .ffc-shortcode .ffc-calendar-filters select {
+    color: var(--ffc-text);
     padding: 8px 12px;
     border: 1px solid var(--ffc-gray-300);
     border-radius: var(--ffc-radius-sm);
