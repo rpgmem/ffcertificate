@@ -222,6 +222,14 @@ final class DarkModeCssTest extends TestCase {
 			array( '--ffc-warning-text', '--ffc-bg', 4.5, 'aviso como texto' ),
 			array( '--ffc-warning-text', '--ffc-bg-card', 4.5, 'aviso como texto sobre card' ),
 			array( '--ffc-inverse-on-surface', '--ffc-inverse-surface', 4.5, 'balão de toast' ),
+			// Par de base (#1126, 5ª passada). O texto que não declara cor
+			// herda de FORA daqui — do `body { color: #3c434a }` do core no
+			// admin, do tema numa página pública — e cai em 1,28:1 sobre um
+			// fundo escuro. A regra de base o traz para --ffc-text; estes são
+			// os fundos que ela precisa cobrir, agora medidos como qualquer
+			// outro par em vez de dependerem de herança.
+			array( '--ffc-text', '--ffc-gray-100', 4.5, 'texto herdado sobre o cabeçalho do calendário' ),
+			array( '--ffc-text', '--ffc-gray-50', 4.5, 'texto herdado sobre a superfície mais rasa' ),
 			// Não-texto: o contorno que identifica o componente, e as cores
 			// de estado usadas como sinal (o ponto colorido de um badge).
 			array( '--ffc-border', '--ffc-bg', 3.0, 'contorno sobre o fundo' ),

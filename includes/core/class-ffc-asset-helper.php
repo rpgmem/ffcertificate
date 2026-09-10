@@ -75,11 +75,21 @@ final class AssetHelper {
 	 * Shared between admin and frontend to avoid duplicate logic.
 	 *
 	 * @since 4.7.0
+	 *
+	 * @param bool $always Enqueue even when the mode is `off`. The script is what
+	 *                     repaints `<html>` when the Dark Mode select auto-saves,
+	 *                     so a screen that can CHANGE the setting needs it loaded
+	 *                     in the `off` state too — otherwise switching light → dark
+	 *                     has nobody to act on it and only takes effect on the next
+	 *                     page load. Public pages pass `false` (the default): they
+	 *                     cannot change the setting, so loading a script that would
+	 *                     do nothing is a request for nothing.
+	 * @return void
 	 */
-	public static function enqueue_dark_mode(): void {
+	public static function enqueue_dark_mode( bool $always = false ): void {
 		$dark_mode = \FreeFormCertificate\Settings\SettingsReader::get( 'dark_mode', 'off' );
 
-		if ( 'off' === $dark_mode ) {
+		if ( 'off' === $dark_mode && ! $always ) {
 			return;
 		}
 

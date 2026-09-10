@@ -116,6 +116,30 @@
     }
 
     /**
+     * Announce a successful save on `document` as `ffc:setting-saved`.
+     *
+     * A setting that changes the page it is edited on has to repaint, and this
+     * widget must not know which settings those are — so it states the fact and
+     * lets an interested script act. Today that is `ffc-dark-mode.js`, which
+     * without it wrote the option and left the page on its old theme until the
+     * next load (both directions — a missing repaint that read as a failed save).
+     *
+     * CustomEvent is IE-only-absent, and this is an admin script behind jQuery;
+     * the guard is for a test environment without it, not for a browser.
+     *
+     * @param {string}          key   The allowlisted setting key that was saved.
+     * @param {string|string[]} value The value that reached the server.
+     */
+    function announceSaved(key, value) {
+        if (typeof window.CustomEvent !== 'function') {
+            return;
+        }
+        document.dispatchEvent(new window.CustomEvent('ffc:setting-saved', {
+            detail: { key: key, value: value },
+        }));
+    }
+
+    /**
      * Attach auto-save behaviour to a field.
      *
      * The endpoint is a parameter rather than a constant because two of
@@ -222,6 +246,7 @@
                 .then(function () {
                     setBadgeState($badge, 'saved', saved);
                     lingerTimer = setTimeout(function () { hideBadge($badge); }, SAVED_LINGER);
+                    announceSaved(config.key, value);
                 })
                 .catch(function (err) {
                     setBadgeState($badge, 'error', (err && err.message) ? err.message : errorTxt);
