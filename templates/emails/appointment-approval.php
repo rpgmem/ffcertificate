@@ -7,7 +7,8 @@
  *
  * Tokens (resolved by AppointmentEmailHandler::render_confirmation_template()):
  * {{user_name}}, {{calendar_title}}, {{appointment_date}}, {{appointment_time}},
- * and the pre-rendered {{receipt_button}} (empty when no receipt URL).
+ * and the pre-rendered {{receipt_button}} / {{cancel_button}} (each empty when
+ * its URL is absent — the cancel one when the calendar forbids cancelling).
  *
  * @package FreeFormCertificate\SelfScheduling
  */
@@ -26,5 +27,6 @@ return array(
 		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Date:', 'ffcertificate' ) . '</strong> {{appointment_date}}</p>'
 		. '<p style="margin: 0;"><strong>' . __( 'Time:', 'ffcertificate' ) . '</strong> {{appointment_time}}</p>'
 		. '</div>'
-		. '{{receipt_button}}',
+		. '{{receipt_button}}'
+		. '{{cancel_button}}',
 );

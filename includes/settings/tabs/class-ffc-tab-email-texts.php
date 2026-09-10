@@ -169,7 +169,7 @@ class TabEmailTexts extends SettingsTab {
 			),
 			'appointment-approval'          => array(
 				'label'  => __( 'Appointment approved', 'ffcertificate' ),
-				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'appointment_date', 'appointment_time', 'receipt_button' ),
+				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'appointment_date', 'appointment_time', 'receipt_button', 'cancel_button' ),
 			),
 			'appointment-cancellation'      => array(
 				'label'  => __( 'Appointment cancelled', 'ffcertificate' ),
