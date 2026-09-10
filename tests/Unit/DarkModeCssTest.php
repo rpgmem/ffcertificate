@@ -215,6 +215,12 @@ final class DarkModeCssTest extends TestCase {
 			// O rótulo do botão de aviso era branco sobre --ffc-warning: 3,04:1
 			// no tema claro, desde sempre, e nada media (#1126, 2ª passada).
 			array( '--ffc-text-on-warning', '--ffc-warning', 4.5, 'rótulo do botão de aviso' ),
+			// Pares do smoke da 6.24.0: a linha cancelada da agenda e o rótulo
+			// de aviso usado como TEXTO (--ffc-warning é cor de sinal, piso 3:1,
+			// e dava 3,04:1 sobre branco quando usado em .ffc-text-warning).
+			array( '--ffc-text-muted', '--ffc-danger-bg', 4.5, 'linha cancelada da agenda' ),
+			array( '--ffc-warning-text', '--ffc-bg', 4.5, 'aviso como texto' ),
+			array( '--ffc-warning-text', '--ffc-bg-card', 4.5, 'aviso como texto sobre card' ),
 			array( '--ffc-inverse-on-surface', '--ffc-inverse-surface', 4.5, 'balão de toast' ),
 			// Não-texto: o contorno que identifica o componente, e as cores
 			// de estado usadas como sinal (o ponto colorido de um badge).

@@ -414,9 +414,14 @@ final class RecruitmentPublicShortcodeRenderer {
 			);
 			$bg       = $colors[ $notice->status ];
 			$banner   = sprintf(
-				'<div class="ffc-recruitment-banner ffc-recruitment-banner-%1$s" role="status" style="background:%2$s;color:#333;">%3$s</div>',
+				// A cor de fundo é escolhida pelo administrador nas configurações,
+				// então nenhum texto fixo é legível sobre todas elas — o `#333`
+				// que ficava aqui era loteria de contraste, e por ser inline ainda
+				// vencia as regras tokenizadas da própria classe (#1126).
+				'<div class="ffc-recruitment-banner ffc-recruitment-banner-%1$s" role="status" style="background:%2$s;color:%3$s;">%4$s</div>',
 				esc_attr( $notice->status ),
 				esc_attr( $bg ),
+				esc_attr( \FreeFormCertificate\Core\ContrastColor::on( $bg ) ),
 				esc_html( $status_messages[ $notice->status ] )
 			);
 		}

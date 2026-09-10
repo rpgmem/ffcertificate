@@ -346,7 +346,7 @@ class SelfSchedulingEditor {
 					<label><input type="radio" name="ffc_self_scheduling_config[schedule_type]" value="custom" class="ffc-schedule-type-radio" <?php checked( $config['schedule_type'], 'custom' ); ?> <?php disabled( $mode_locked ); ?> /> <?php esc_html_e( 'Custom — specific date/time blocks, each with its own number of vacancies', 'ffcertificate' ); ?></label>
 					<?php if ( $mode_locked ) : ?>
 						<input type="hidden" name="ffc_self_scheduling_config[schedule_type]" value="<?php echo esc_attr( $config['schedule_type'] ); ?>" />
-						<p class="description" style="color:#b32d2e;"><?php esc_html_e( 'This calendar already has bookings — the scheduling mode is locked.', 'ffcertificate' ); ?></p>
+						<p class="description ffc-text-danger"><?php esc_html_e( 'This calendar already has bookings — the scheduling mode is locked.', 'ffcertificate' ); ?></p>
 					<?php else : ?>
 						<p class="description"><?php esc_html_e( 'Regular repeats weekly. Custom lets you list exact dates and times below, each with its own capacity.', 'ffcertificate' ); ?></p>
 					<?php endif; ?>
@@ -554,7 +554,7 @@ class SelfSchedulingEditor {
 				<button type="button" class="button" id="ffc-add-custom-slot"><?php esc_html_e( '+ Add Block', 'ffcertificate' ); ?></button>
 			</p>
 			<?php if ( $mode_locked ) : ?>
-				<p class="description" style="color:#b32d2e;"><?php esc_html_e( 'This calendar has bookings — blocks with existing bookings cannot be removed or retimed on save; you may still add blocks or raise capacity.', 'ffcertificate' ); ?></p>
+				<p class="description ffc-text-danger"><?php esc_html_e( 'This calendar has bookings — blocks with existing bookings cannot be removed or retimed on save; you may still add blocks or raise capacity.', 'ffcertificate' ); ?></p>
 			<?php endif; ?>
 		</div>
 		<?php

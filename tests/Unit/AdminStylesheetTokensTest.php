@@ -317,6 +317,131 @@ final class AdminStylesheetTokensTest extends TestCase {
 	}
 
 	// ==================================================================
+	// Direção B2 — o interruptor precisa chegar junto com a paleta
+	// ==================================================================
+
+	/**
+	 * Methods that put the palette on a screen without enqueueing the toggle,
+	 * each because something else does or because the screen is meant to stay
+	 * light. The reason is the point of the entry: without it this list becomes
+	 * a place to silence the check.
+	 *
+	 * @var array<string, string>
+	 */
+	private const TOGGLE_NOT_NEEDED = array(
+		// `AdminAssetsManager::enqueue_admin_assets()` enqueues the toggle on
+		// every `is_ffc_page()` screen, and these all run on one.
+		'includes/admin/class-ffc-admin-activity-log-page.php::enqueue_scripts()' => 'AdminAssetsManager já enfileira o interruptor nesta tela',
+		'includes/admin/class-ffc-role-capability-editor.php::enqueue()' => 'idem',
+		'includes/self-scheduling/class-ffc-self-scheduling-editor.php::enqueue_scripts()' => 'idem',
+		'includes/self-scheduling/class-ffc-self-scheduling-admin.php::enqueue_admin_assets()' => 'idem',
+		'includes/url-shortener/class-ffc-url-shortener-admin-page.php::enqueue_assets()' => 'idem',
+		'includes/recruitment/class-ffc-recruitment-admin-assets-manager.php::maybe_enqueue()' => 'idem',
+
+		// This IS the method that enqueues the toggle, right below the palette.
+		'includes/admin/class-ffc-admin-assets-manager.php::enqueue_admin_base_styles()' => 'a própria origem do interruptor no admin',
+
+		// The helper itself is not a screen: it is called BY the screens above.
+		'includes/core/class-ffc-asset-helper.php::enqueue_common_style()' => 'helper, não é uma tela',
+
+		// Deliberately light (#1126): these paint a fragment inside a WordPress
+		// core screen that is not `is_ffc_page()` and stays light itself. A dark
+		// island inside a light profile page reads as broken, not as a theme.
+		'includes/admin/class-ffc-admin-user-custom-fields.php::enqueue_assets()' => 'perfil/usuário: tela do core, clara por decisão',
+		'includes/admin/class-ffc-admin-user-capabilities.php::enqueue_scripts()' => 'idem',
+		'includes/admin/class-ffc-admin-user-columns.php::enqueue_styles()' => 'users.php: tela do core, clara por decisão',
+		'includes/url-shortener/class-ffc-url-shortener-meta-box.php::enqueue_assets()' => 'metabox no editor de post: tela do core, clara por decisão',
+	);
+
+	/**
+	 * A method that enqueues a token-reading sheet must also enqueue the toggle.
+	 *
+	 * The palette alone is not the theme. `.ffc-dark-mode` is put on `<html>` by
+	 * `AssetHelper::enqueue_dark_mode()`, and without it every `var(--ffc-*)` on
+	 * the page resolves to the light block — no matter how thoroughly the sheet
+	 * was tokenised. That is a silent failure with the worst possible shape: the
+	 * CSS looks converted, the guard above passes, and the screen is simply
+	 * always light.
+	 *
+	 * It was live on three public surfaces at once — the calendar, the audience
+	 * and the recruitment shortcodes — and the 6.24.0 smoke reported all three
+	 * as "still light" **after** their stylesheets had been fully converted.
+	 *
+	 * The check is per **method**, not per file: a class may enqueue on several
+	 * hooks and only one of them is the screen that carries the palette.
+	 *
+	 * @return void
+	 */
+	public function test_a_method_that_enqueues_the_palette_also_enqueues_the_toggle(): void {
+		$offenders = array();
+		$seen      = 0;
+		$allowed   = self::TOGGLE_NOT_NEEDED;
+
+		$it = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( dirname( __DIR__, 2 ) . '/includes' ) );
+		foreach ( $it as $file ) {
+			if ( ! $file instanceof \SplFileInfo || 'php' !== $file->getExtension() ) {
+				continue;
+			}
+
+			$php  = (string) file_get_contents( $file->getPathname() );
+			$rel  = str_replace( dirname( __DIR__, 2 ) . '/', '', $file->getPathname() );
+			$body = preg_split( '/\n\t(?:public|protected|private)[^\n]*function\s+(\w+)/', $php, -1, PREG_SPLIT_DELIM_CAPTURE );
+
+			if ( ! is_array( $body ) ) {
+				continue;
+			}
+
+			for ( $i = 1; $i < count( $body ); $i += 2 ) {
+				$method = (string) $body[ $i ];
+				$code   = (string) ( $body[ $i + 1 ] ?? '' );
+
+				// Only methods that put ffc-common itself on the page: that is
+				// the one sheet whose presence means "this screen is painted by
+				// the plugin's palette".
+				if ( ! preg_match( "/wp_enqueue_style\(\s*'ffc-common'|enqueue_common_style\(/", $code ) ) {
+					continue;
+				}
+
+				++$seen;
+
+				$id = "{$rel}::{$method}()";
+
+				if ( isset( $allowed[ $id ] ) ) {
+					continue;
+				}
+
+				if ( strpos( $code, 'enqueue_dark_mode(' ) === false ) {
+					$offenders[] = $id;
+				}
+			}
+		}
+
+		$this->assertGreaterThan( 4, $seen, 'The enqueue-method scan collapsed — no method enqueues the palette?' );
+
+		// Uma entrada da allowlist que deixou de existir vira mentira herdada:
+		// o próximo leitor confia nela sem conferir.
+		$stale = array();
+		foreach ( array_keys( $allowed ) as $entry ) {
+			list( $rel_path, $fn ) = explode( '::', $entry, 2 );
+			$abs = dirname( __DIR__, 2 ) . '/' . $rel_path;
+			if ( ! file_exists( $abs ) || strpos( (string) file_get_contents( $abs ), 'function ' . rtrim( $fn, '()' ) ) === false ) {
+				$stale[] = $entry;
+			}
+		}
+		$this->assertSame( array(), $stale, "TOGGLE_NOT_NEEDED lista métodos que não existem mais:\n  " . implode( "\n  ", $stale ) );
+
+		$this->assertSame(
+			array(),
+			$offenders,
+			"Um método põe a paleta na página sem pôr o interruptor do modo escuro:\n  "
+			. implode( "\n  ", $offenders )
+			. "\n\nSem AssetHelper::enqueue_dark_mode() a classe .ffc-dark-mode nunca chega ao"
+			. "\n<html>, e todo var(--ffc-*) resolve pelo bloco claro — a tela fica sempre"
+			. "\nclara por mais tokenizada que a folha esteja."
+		);
+	}
+
+	// ==================================================================
 	// Direção C — o token precisa existir
 	// ==================================================================
 

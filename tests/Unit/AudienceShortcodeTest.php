@@ -37,6 +37,12 @@ class AudienceShortcodeTest extends TestCase {
 			return abs(intval($val));
 		});
 		Functions\when('sanitize_text_field')->returnArg();
+		// `AssetHelper::enqueue_dark_mode()` lê a configuração do modo escuro
+		// para decidir se enfileira o interruptor (#1126). Sem este stub o
+		// caminho de enfileiramento morre em `get_option()` — e ele não é
+		// `byDefault()` nos testes que declaram o seu próprio `get_option`,
+		// porque lá o alias específico já responde.
+		Functions\when('get_option')->justReturn(false);
 	}
 
 	protected function tearDown(): void {
@@ -115,6 +121,8 @@ class AudienceShortcodeTest extends TestCase {
 		// Stub Utils for enqueue_styles
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
+		// O shortcode passou a enfileirar o interruptor do modo escuro (#1126).
+		$utilsMock->shouldReceive('enqueue_dark_mode');
 
 		$result = AudienceShortcode::render(array('schedule_id' => 1));
 
@@ -157,6 +165,8 @@ class AudienceShortcodeTest extends TestCase {
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
+		// O shortcode passou a enfileirar o interruptor do modo escuro (#1126).
+		$utilsMock->shouldReceive('enqueue_dark_mode');
 
 		$result = AudienceShortcode::render(array('schedule_id' => 1));
 
@@ -191,6 +201,8 @@ class AudienceShortcodeTest extends TestCase {
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
+		// O shortcode passou a enfileirar o interruptor do modo escuro (#1126).
+		$utilsMock->shouldReceive('enqueue_dark_mode');
 
 		$result = AudienceShortcode::render(array('schedule_id' => 5));
 
@@ -224,6 +236,8 @@ class AudienceShortcodeTest extends TestCase {
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
+		// O shortcode passou a enfileirar o interruptor do modo escuro (#1126).
+		$utilsMock->shouldReceive('enqueue_dark_mode');
 
 		$result = AudienceShortcode::render(array());
 
@@ -298,6 +312,8 @@ class AudienceShortcodeTest extends TestCase {
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
+		// O shortcode passou a enfileirar o interruptor do modo escuro (#1126).
+		$utilsMock->shouldReceive('enqueue_dark_mode');
 
 		Functions\when('get_option')->alias(function ($key, $default = false) {
 			if ($key === 'ffc_aud_scheduling_message') return 'Please log in to book.';
@@ -347,6 +363,8 @@ class AudienceShortcodeTest extends TestCase {
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
+		// O shortcode passou a enfileirar o interruptor do modo escuro (#1126).
+		$utilsMock->shouldReceive('enqueue_dark_mode');
 
 		Functions\when('get_option')->alias(function ($key, $default = false) {
 			if ($key === 'ffc_aud_private_display_mode') return 'show_title_message';
@@ -385,6 +403,8 @@ class AudienceShortcodeTest extends TestCase {
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
+		// O shortcode passou a enfileirar o interruptor do modo escuro (#1126).
+		$utilsMock->shouldReceive('enqueue_dark_mode');
 
 		$result = AudienceShortcode::render(array('schedule_id' => 99));
 
@@ -407,6 +427,8 @@ class AudienceShortcodeTest extends TestCase {
 
 		$utilsMock = Mockery::mock('alias:FreeFormCertificate\Core\AssetHelper');
 		$utilsMock->shouldReceive('asset_suffix')->andReturn('.min');
+		// O shortcode passou a enfileirar o interruptor do modo escuro (#1126).
+		$utilsMock->shouldReceive('enqueue_dark_mode');
 
 		Functions\when('get_option')->alias(function ($key, $default = false) {
 			if ($key === 'ffc_aud_private_display_mode') return 'show_message';

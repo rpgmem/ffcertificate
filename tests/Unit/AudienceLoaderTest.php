@@ -33,6 +33,12 @@ class AudienceLoaderTest extends TestCase {
 		Functions\when('absint')->alias(function ($val) {
 			return abs(intval($val));
 		});
+		// `AssetHelper::enqueue_dark_mode()` lê a configuração do modo escuro
+		// para decidir se enfileira o interruptor (#1126). Sem este stub o
+		// caminho de enfileiramento morre em `get_option()` — e ele não é
+		// `byDefault()` nos testes que declaram o seu próprio `get_option`,
+		// porque lá o alias específico já responde.
+		Functions\when('get_option')->justReturn(false);
 
 		// Reset singleton between tests via reflection
 		$ref = new \ReflectionClass(AudienceLoader::class);

@@ -56,8 +56,12 @@ final class EmailDisabledNotice {
 			$link
 		);
 
-		$html = '<div class="ffc-email-disabled-notice" style="margin:0 0 16px;padding:10px 14px;border-left:4px solid #dba617;background:#fcf9e8;border-radius:2px;">'
-			. '<p style="margin:0;">' . $message . '</p>'
+		// As cores e o espaçamento viviam num `style=""` aqui e por isso este
+		// aviso ignorava o modo escuro — amarelo claro sobre a tela escura, em
+		// toda superfície que edita e-mail. Agora estão em ffc-admin.css, com
+		// tokens (#1126).
+		$html = '<div class="ffc-email-disabled-notice">'
+			. '<p>' . $message . '</p>'
 			. '</div>';
 
 		// $html is assembled entirely from esc_url() / esc_html__() output plus a
