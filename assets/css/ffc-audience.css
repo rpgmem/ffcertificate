@@ -332,82 +332,9 @@
 
 /* Buttons — base classes consolidated in ffc-common.css */
 
-/* Modal */
-.ffc-shortcode .ffc-modal,
-.ffc-shortcode.ffc-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 100000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.ffc-shortcode .ffc-modal-backdrop {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--ffc-bg-overlay);
-}
-
-.ffc-shortcode .ffc-modal-content {
-    position: relative;
-    background: var(--ffc-bg-card);
-    border-radius: var(--ffc-radius-sm);
-    box-shadow: var(--ffc-shadow-lg);
-    max-width: 500px;
-    width: 90%;
-    max-height: 90vh;
-    overflow: auto;
-}
-
-.ffc-shortcode .ffc-modal-lg {
-    max-width: min(700px, 95vw);
-}
-
-.ffc-shortcode .ffc-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 20px;
-    border-bottom: 1px solid var(--ffc-gray-200);
-}
-
-.ffc-shortcode .ffc-modal-header h3 {
-    margin: 0;
-    font-size: 18px;
-}
-
-.ffc-shortcode .ffc-modal-close {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: var(--ffc-gray-600);
-    padding: 0;
-    line-height: 1;
-}
-
-.ffc-shortcode .ffc-modal-close:hover {
-    color: var(--ffc-gray-800);
-}
-
-.ffc-shortcode .ffc-modal-body {
-    padding: 20px;
-}
-
-.ffc-shortcode .ffc-modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    padding: 15px 20px;
-    border-top: 1px solid var(--ffc-gray-200);
-}
+/* Modal — movido para ffc-common.css (#1140): componente compartilhado,
+   e o dashboard é o terceiro consumidor. `ffc-common` é dependência desta
+   folha, então quem já usava o modal continua recebendo as mesmas regras. */
 
 /* Form Styles */
 .ffc-shortcode .ffc-form-group {

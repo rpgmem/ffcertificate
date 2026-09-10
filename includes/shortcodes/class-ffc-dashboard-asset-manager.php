@@ -227,9 +227,20 @@ class DashboardAssetManager {
 					'cancelAppointment'        => __( 'Cancel', 'ffcertificate' ),
 					'viewReceipt'              => __( 'View Receipt', 'ffcertificate' ),
 					'viewDetails'              => __( 'View Details', 'ffcertificate' ),
-					'confirmCancel'            => __( 'Are you sure you want to cancel this appointment?', 'ffcertificate' ),
 					'cancelSuccess'            => __( 'Appointment cancelled successfully', 'ffcertificate' ),
 					'cancelError'              => __( 'Error cancelling appointment', 'ffcertificate' ),
+					// The cancellation dialog. Every literal below is the SAME
+					// string the public cancellation page passes to `__()`, so
+					// the two screens share one entry in the .po instead of
+					// drifting into two wordings for the same question (#1140).
+					'cancelTitle'              => __( 'Cancel appointment', 'ffcertificate' ),
+					'cancelIntro'              => __( 'Please confirm that you want to cancel the following appointment.', 'ffcertificate' ),
+					'cancelService'            => __( 'Service', 'ffcertificate' ),
+					'cancelWhen'               => __( 'When', 'ffcertificate' ),
+					'cancelReasonLabel'        => __( 'Reason (optional)', 'ffcertificate' ),
+					'cancelConfirmBtn'         => __( 'Confirm cancellation', 'ffcertificate' ),
+					'cancelKeepBtn'            => __( 'Keep appointment', 'ffcertificate' ),
+					'close'                    => __( 'Close', 'ffcertificate' ),
 					'noPermission'             => __( 'You do not have permission to view this content.', 'ffcertificate' ),
 					// Calendar export.
 					'exportToCalendar'         => __( 'Export to Calendar', 'ffcertificate' ),
