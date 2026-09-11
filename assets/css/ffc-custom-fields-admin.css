@@ -50,7 +50,7 @@
 }
 
 .ffc-field-handle .dashicons {
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
     width: 18px;
     height: 18px;
 }
@@ -84,7 +84,7 @@
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     white-space: nowrap;
 }
 
@@ -101,12 +101,12 @@
 .ffc-field-details-row .ffc-field-key {
     max-width: 250px;
     font-family: monospace;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
 }
 
 .ffc-field-details-row .ffc-field-choices {
     max-width: 400px;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
 }
 
 .ffc-field-details-row .ffc-field-help {
@@ -128,7 +128,7 @@
 .ffc-field-validation-container .ffc-field-regex {
     max-width: 200px;
     font-family: monospace;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
 }
 
 .ffc-field-validation-container .ffc-field-regex-msg {
@@ -150,7 +150,7 @@
 }
 
 .ffc-field-actions .dashicons {
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     width: 16px;
     height: 16px;
     vertical-align: text-bottom;
@@ -210,7 +210,7 @@
 }
 
 .ffc-cf-toggle-icon {
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     width: 16px;
     height: 16px;
     transition: transform 0.2s;
@@ -223,7 +223,7 @@
 .ffc-cf-field-count {
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-secondary);
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 400;
     padding: 1px 7px;
     border-radius: 10px;
@@ -287,7 +287,7 @@
 .ffc-ds-editor .ffc-ds-sector-remove {
     color: var(--ffc-danger-text);
     text-decoration: none;
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
     line-height: 1;
     cursor: pointer;
 }

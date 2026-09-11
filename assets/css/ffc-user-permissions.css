@@ -37,7 +37,7 @@
 }
 
 .ffc-cap-context-label {
-	font-size: 11px;
+	font-size: var(--ffc-font-size-2xs);
 	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: 0.4px;
@@ -52,7 +52,7 @@
 }
 
 .ffc-cap-context-hint {
-	font-size: 12px;
+	font-size: var(--ffc-font-size-xs);
 	color: var(--ffc-text-muted);
 }
 
@@ -60,7 +60,7 @@
 	display: inline-block;
 	padding: 2px 10px;
 	border-radius: 11px;
-	font-size: 12px;
+	font-size: var(--ffc-font-size-xs);
 	background: var(--ffc-bg-alt);
 	border: 1px solid var(--ffc-border);
 	color: var(--ffc-text);
@@ -90,7 +90,7 @@
 	align-items: center;
 	gap: 7px;
 	padding: 3px 0;
-	font-size: 13px;
+	font-size: var(--ffc-font-size-sm);
 	cursor: pointer;
 }
 
@@ -178,11 +178,11 @@
 
 .ffc-cap-gtitle {
 	font-weight: 600;
-	font-size: 13.5px;
+	font-size: var(--ffc-font-size-sm);
 }
 
 .ffc-cap-badge-admin {
-	font-size: 10px;
+	font-size: var(--ffc-font-size-2xs);
 	font-weight: 700;
 	text-transform: uppercase;
 	letter-spacing: 0.4px;
@@ -198,7 +198,7 @@
 	margin: 18px 0 8px;
 	padding-bottom: 4px;
 	border-bottom: 1px solid var(--ffc-border-light);
-	font-size: 11px;
+	font-size: var(--ffc-font-size-2xs);
 	font-weight: 700;
 	text-transform: uppercase;
 	letter-spacing: 0.6px;
@@ -216,7 +216,7 @@
 	margin-left: 6px;
 	padding: 1px 6px;
 	border-radius: 9px;
-	font-size: 9.5px;
+	font-size: var(--ffc-font-size-2xs);
 	font-weight: 700;
 	text-transform: uppercase;
 	letter-spacing: 0.3px;
@@ -244,7 +244,7 @@
 
 .ffc-cap-gmeta {
 	margin-left: auto;
-	font-size: 12px;
+	font-size: var(--ffc-font-size-xs);
 	color: var(--ffc-text-muted);
 }
 
@@ -282,7 +282,7 @@
 .ffc-cap-row-desc {
 	display: block;
 	margin-top: 2px;
-	font-size: 12.5px;
+	font-size: var(--ffc-font-size-xs);
 	color: var(--ffc-text-muted);
 }
 
@@ -294,7 +294,7 @@
 	padding: 3px 7px;
 	border-radius: 4px;
 	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-	font-size: 11.5px;
+	font-size: var(--ffc-font-size-xs);
 	color: var(--ffc-text-secondary);
 	background: var(--ffc-bg-alt);
 	border: 1px solid var(--ffc-border);
@@ -305,7 +305,7 @@
 	background: none;
 	padding: 0;
 	cursor: pointer;
-	font-size: 12px;
+	font-size: var(--ffc-font-size-xs);
 	line-height: 1;
 	color: var(--ffc-text-muted);
 }
@@ -318,7 +318,7 @@
 .ffc-cap-origin {
 	align-self: center;
 	white-space: nowrap;
-	font-size: 10.5px;
+	font-size: var(--ffc-font-size-2xs);
 	font-weight: 600;
 	padding: 2px 9px;
 	border-radius: 11px;
@@ -393,17 +393,17 @@
 .ffc-cap-role.is-on .ffc-cap-role-mark::after {
 	content: "✓";
 	color: var(--ffc-bg-card);
-	font-size: 11px;
+	font-size: var(--ffc-font-size-2xs);
 	line-height: 1;
 }
 
 .ffc-cap-role-nm {
 	font-weight: 600;
-	font-size: 13px;
+	font-size: var(--ffc-font-size-sm);
 }
 
 .ffc-cap-role-ct {
-	font-size: 11px;
+	font-size: var(--ffc-font-size-2xs);
 	color: var(--ffc-text-muted);
 }
 
@@ -419,7 +419,7 @@
 .ffc-cap-role-other {
 	display: block;
 	margin-top: 4px;
-	font-size: 12px;
+	font-size: var(--ffc-font-size-xs);
 	color: var(--ffc-text-muted);
 }
 
@@ -447,7 +447,7 @@
 .ffc-cap-role-tag {
 	display: none;
 	margin-left: 8px;
-	font-size: 10.5px;
+	font-size: var(--ffc-font-size-2xs);
 	font-weight: 600;
 	color: var(--ffc-warning-text);
 	background: var(--ffc-warning-bg);
@@ -483,7 +483,7 @@
 	align-self: center;
 	min-width: 48px;
 	text-align: right;
-	font-size: 11.5px;
+	font-size: var(--ffc-font-size-xs);
 	font-weight: 600;
 	color: var(--ffc-success-text);
 }
@@ -584,7 +584,7 @@
 .ffc-blocked-roles__group--recommended em {
 	color: var(--ffc-success-text);
 	font-style: normal;
-	font-size: 12px;
+	font-size: var(--ffc-font-size-xs);
 }
 .ffc-blocked-roles__group--admin {
 	padding: 8px 12px;

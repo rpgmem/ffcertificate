@@ -39,7 +39,7 @@
     margin-bottom: 15px;
     padding-bottom: 10px;
     border-bottom: 1px solid var(--ffc-border-light);
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
     font-weight: 600;
     color: var(--ffc-text);
 }
@@ -47,7 +47,7 @@
 .ffc-settings-wrap .card h3 {
     margin-top: 20px;
     margin-bottom: 15px;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
 }
 
@@ -92,7 +92,7 @@
 .ffc-settings-wrap .form-table .description {
     margin-top: 8px;
     margin-bottom: 0;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-muted);
     line-height: 1.5;
 }
@@ -118,7 +118,7 @@
     margin-top: 1px;
     width: 16px;
     height: 16px;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     color: var(--ffc-text-muted);
 }
 
@@ -213,13 +213,13 @@
 
 .ffc-provider-card h4 {
     margin: 0 0 10px 0;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     font-weight: 600;
 }
 
 .ffc-provider-card p {
     margin: 5px 0;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     line-height: 1.4;
 }
 
@@ -242,14 +242,14 @@
 .ffc-checkbox-group .checkbox-sublabel {
     color: var(--ffc-primary);
     font-weight: 400;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     margin-left: 5px;
 }
 
 .ffc-checkbox-group .description {
     margin-left: 30px;
     margin-top: 5px;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-muted);
 }
 
@@ -356,7 +356,7 @@
 }
 
 .ffc-migration-stat-label {
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     color: var(--ffc-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -364,7 +364,7 @@
 }
 
 .ffc-migration-stat-value {
-    font-size: 24px;
+    font-size: var(--ffc-font-size-2xl);
     font-weight: 700;
     font-family: 'SF Mono', Monaco, Consolas, monospace;
     color: var(--ffc-text);
@@ -416,7 +416,7 @@
     left: 50%;
     transform: translate(-50%, -50%);
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     white-space: nowrap;
 }
 
@@ -501,11 +501,11 @@
     }
     
     .ffc-stats-box table {
-        font-size: 13px;
+        font-size: var(--ffc-font-size-sm);
     }
     
     .ffc-migration-stat-value {
-        font-size: 20px;
+        font-size: var(--ffc-font-size-xl);
     }
 }
 
@@ -613,7 +613,7 @@
 .ffc-doc-toc-branch > details > summary::before {
     content: "\f345"; /* dashicons-arrow-right-alt2 */
     font-family: dashicons;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     line-height: 1;
     flex: 0 0 auto;
     color: var(--ffc-text-muted);
@@ -639,7 +639,7 @@
     flex: 0 0 auto;
     width: 18px;
     height: 18px;
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
     line-height: 1;
     color: var(--ffc-primary);
 }
@@ -671,7 +671,7 @@
     flex: 0 0 auto;
     width: 18px;
     height: 18px;
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
     line-height: 1;
     color: var(--ffc-text-muted);
 }
@@ -699,7 +699,7 @@
     margin-top: 0;
     margin-bottom: 10px;
     color: var(--ffc-success);
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     font-weight: 600;
 }
 
@@ -713,7 +713,7 @@
     overflow-x: auto;
     margin: 10px 0;
     font-family: 'SF Mono', Monaco, Consolas, monospace;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     line-height: 1.5;
 }
 
@@ -733,7 +733,7 @@ code {
     padding: 3px 6px;
     border-radius: 3px;
     font-family: 'SF Mono', Monaco, Consolas, monospace;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-danger);
     border: 1px solid var(--ffc-border-light);
 }
@@ -767,7 +767,7 @@ pre code {
     left: 0;
     color: var(--ffc-success);
     font-weight: 700;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
 }
 
 /* Alerts */
@@ -811,7 +811,7 @@ pre code {
 }
 
 .ffc-settings-wrap .widefat code {
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
 }
 
 /* Section Spacing */
@@ -823,7 +823,7 @@ pre code {
 .ffc-settings-wrap .card h3[id] .dashicons {
     width: 22px;
     height: 22px;
-    font-size: 22px;
+    font-size: var(--ffc-font-size-2xl);
     line-height: 1;
     vertical-align: text-bottom;
     margin-right: 6px;
@@ -833,7 +833,7 @@ pre code {
 /* Responsive */
 @media screen and (max-width: 782px) {
     .ffc-doc-example pre {
-        font-size: 12px;
+        font-size: var(--ffc-font-size-xs);
         padding: 10px;
     }
 }
@@ -954,7 +954,7 @@ pre code {
 .ffc-settings-tabs__group-label {
     display: block;
     padding: 14px 12px 5px;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -1053,6 +1053,9 @@ pre code {
      (module links also carry an external marker → external \f504)
    ========================================================================== */
 
+/* 20px literal: glifos de ícone (dashicons), não texto — um ícone
+   dimensionado por font-size é uma caixa de glifo, e a escala tipográfica
+   não o governa. Mesma razão do .ffc-stat-icon. */
 .ffc-settings-tabs__nav .ffc-settings-tabs__icon,
 .ffc-settings-tabs__nav .ffc-settings-tabs__external {
     font-family: dashicons;
@@ -1080,7 +1083,7 @@ pre code {
 .ffc-settings-tabs__nav .ffc-icon-calendar::before { content: "\f508"; }
 
 .ffc-settings-tabs__nav .ffc-settings-tabs__external {
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-settings-tabs__nav .ffc-settings-tabs__external::before {
@@ -1144,7 +1147,7 @@ pre code {
 .ffc-settings-back-to-top .dashicons {
     width: 24px;
     height: 24px;
-    font-size: 24px;
+    font-size: var(--ffc-font-size-2xl);
     line-height: 1;
 }
 
@@ -1277,7 +1280,7 @@ html:has(.ffc-settings-back-to-top) {
     display: inline-block;
     padding: 1px 7px;
     border-radius: 9px;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
     vertical-align: middle;
 }

@@ -28,7 +28,7 @@
 .ffc-copy-shorturl .dashicons {
     width: 16px;
     height: 16px;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
 }
 
 /* Download buttons */
@@ -46,7 +46,7 @@
     color: var(--ffc-inverse-on-surface);
     padding: 10px 20px;
     border-radius: 4px;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     z-index: 100100;
     opacity: 0;
     transition: opacity 0.3s ease, transform 0.3s ease;
@@ -199,7 +199,7 @@
     right: 14px;
     background: none;
     border: none;
-    font-size: 24px;
+    font-size: var(--ffc-font-size-2xl);
     line-height: 1;
     color: var(--ffc-text-muted);
     cursor: pointer;
@@ -215,7 +215,7 @@
 
 .ffc-qr-modal__title {
     margin: 0 0 4px;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-text);
     overflow-wrap: break-word;
@@ -223,7 +223,7 @@
 
 .ffc-qr-modal__url {
     margin: 0 0 16px;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-link);
     word-break: break-all;
 }
@@ -266,7 +266,7 @@
 }
 
 .ffc-qr-modal__actions .dashicons {
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     width: 16px;
     height: 16px;
     /* The buttons are flex with `align-items: center`, which already centres
@@ -291,7 +291,7 @@
 
 /* Meta box: small monospace input */
 .ffc-shorturl-metabox input.ffc-shorturl-input-sm {
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
 }
 
 /* Meta box: click counter */
@@ -332,7 +332,7 @@
 /* Meta box: small dashicon */
 .ffc-shorturl-metabox .dashicons.ffc-dashicon-sm {
     margin-top: 3px;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }
 
 /* Meta box: regenerate row */
@@ -382,7 +382,7 @@
 /* Admin page: small dashicon (QR button in table) */
 .ffc-dashicon-sm-inline {
     margin-top: 3px;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     width: 14px;
     height: 14px;
 }

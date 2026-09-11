@@ -46,7 +46,7 @@
 }
 
 .ffc-email-model-tokens code {
-	font-size: 11px;
+	font-size: var(--ffc-font-size-2xs);
 }
 
 .ffc-email-model-actions {

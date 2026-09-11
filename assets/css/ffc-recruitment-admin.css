@@ -5,7 +5,7 @@
     display: inline-block;
     padding: 2px 8px;
     border-radius: 3px;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: .03em;
@@ -25,14 +25,14 @@
     padding: 2px 6px;
     margin: 2px;
     border-radius: 3px;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
 }
 .ffc-attached a { text-decoration: none; color: var(--ffc-text-muted); margin-left: 4px; }
 .ffc-attached a:hover { color: var(--ffc-danger); }
 
 /* CSV import status message — kept inline by sprint A1's import form
  * but scoped here so the styling moves with the assets manager. */
-#ffc-csv-status { font-family: monospace; font-size: 12px; }
+#ffc-csv-status { font-family: monospace; font-size: var(--ffc-font-size-xs); }
 
 /* Confirm modal (replaces native confirm() for status-change / delete
  * actions in the recruitment admin). Layout mirrors the audience-admin
@@ -69,13 +69,13 @@
 }
 .ffc-confirm-modal-header h2 {
     margin: 0;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
 }
 .ffc-confirm-modal-close {
     background: none;
     border: none;
-    font-size: 22px;
+    font-size: var(--ffc-font-size-2xl);
     cursor: pointer;
     color: var(--ffc-text-muted);
     padding: 0 4px;
@@ -236,14 +236,14 @@
 .ffc-rec-mono-status {
     margin-left: 1em;
     font-family: monospace;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
 }
 
 .ffc-rec-csv-errors {
     margin: .5em 0 0;
     padding-left: 1.5em;
     font-family: monospace;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     color: var(--ffc-danger-text);
 }
 
@@ -267,7 +267,7 @@
 
 .ffc-rec-mandatory-note {
     color: var(--ffc-text-muted);
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
 }
 
 .ffc-rec-inline {
@@ -321,5 +321,5 @@
     border-radius: 10px;
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-secondary);
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
 }

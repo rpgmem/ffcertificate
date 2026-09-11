@@ -37,7 +37,7 @@
 .ffc-csv-progress-status {
     margin-bottom: 16px;
     font-weight: 600;
-    font-size: 15px;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-csv-progress-bar-container {
@@ -66,7 +66,7 @@
 
 .ffc-csv-progress-percent {
     margin-top: 8px;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     color: var(--ffc-text-muted);
 }
 
@@ -74,5 +74,5 @@
     color: var(--ffc-danger);
     margin-top: 12px;
     font-weight: 500;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }

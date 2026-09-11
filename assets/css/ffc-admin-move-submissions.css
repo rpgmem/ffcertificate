@@ -31,13 +31,13 @@
 	background: var(--ffc-bg-card);
 	border-radius: 4px;
 	box-shadow: var(--ffc-shadow-lg);
-	font-size: 13px;
+	font-size: var(--ffc-font-size-sm);
 	color: var(--ffc-text);
 }
 
 .ffc-move-modal-title {
 	margin: 0 0 8px;
-	font-size: 18px;
+	font-size: var(--ffc-font-size-xl);
 	line-height: 1.3;
 }
 
