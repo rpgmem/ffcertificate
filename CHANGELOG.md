@@ -7,8 +7,13 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Status "Cancelado" saía âmbar na lista de Agendamentos** (#1162): `.ffc-status-cancelled` era declarado pela folha do calendário (vermelho) e pela da audiência (âmbar). Agendamentos é submenu de Scheduling, então as duas carregam, e sem aresta entre elas a ordem de bootstrap decidia. Cada família ganhou nome próprio.
+
 ### Added
 
+- **Guarda de posse de componente** (#1162): classe declarada crua em duas folhas sem aresta de dependência entre elas tem a ordem decidida por enfileiramento — trocar duas linhas do bootstrap repinta uma tela. Guarda nova bloqueia o caso; os dois pares que restam ficam registrados com o motivo.
 - **Catraca de namespace no CSS** (#1152): 60 seletores não nomeiam nada que o plugin possua — `.button::before`, `.column-status`, `#tab-*` — e alcançam qualquer elemento da tela; hoje o raio é pequeno por sorte de enfileiramento, não por desenho. Guarda nova congela a lista por folha e só deixa encolher.
 
 ### Changed

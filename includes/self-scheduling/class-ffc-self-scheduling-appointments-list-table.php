@@ -278,11 +278,11 @@ class AppointmentsListTable extends \WP_List_Table {
 	 */
 	public function column_status( $item ): string {
 		$status_labels = array(
-			'pending'   => '<span class="ffc-status ffc-status-pending">' . __( 'Pending', 'ffcertificate' ) . '</span>',
-			'confirmed' => '<span class="ffc-status ffc-status-confirmed">' . __( 'Confirmed', 'ffcertificate' ) . '</span>',
-			'cancelled' => '<span class="ffc-status ffc-status-cancelled">' . __( 'Cancelled', 'ffcertificate' ) . '</span>',
-			'completed' => '<span class="ffc-status ffc-status-completed">' . __( 'Completed', 'ffcertificate' ) . '</span>',
-			'no_show'   => '<span class="ffc-status ffc-status-noshow">' . __( 'No Show', 'ffcertificate' ) . '</span>',
+			'pending'   => '<span class="ffc-appointment-status ffc-appointment-status-pending">' . __( 'Pending', 'ffcertificate' ) . '</span>',
+			'confirmed' => '<span class="ffc-appointment-status ffc-appointment-status-confirmed">' . __( 'Confirmed', 'ffcertificate' ) . '</span>',
+			'cancelled' => '<span class="ffc-appointment-status ffc-appointment-status-cancelled">' . __( 'Cancelled', 'ffcertificate' ) . '</span>',
+			'completed' => '<span class="ffc-appointment-status ffc-appointment-status-completed">' . __( 'Completed', 'ffcertificate' ) . '</span>',
+			'no_show'   => '<span class="ffc-appointment-status ffc-appointment-status-noshow">' . __( 'No Show', 'ffcertificate' ) . '</span>',
 		);
 
 		return $status_labels[ $item['status'] ] ?? esc_html( $item['status'] );
