@@ -260,7 +260,7 @@
                 html += '<td>' + helpers.esc(apt.calendar_title) + '</td>';
                 html += '<td>' + apt.appointment_date + '</td>';
                 html += '<td>' + apt.start_time + '</td>';
-                html += '<td><span class="appointment-status status-' + apt.status + '">' + apt.status_label + '</span></td>';
+                html += '<td><span class="ffc-dashboard-status ffc-dashboard-status-' + apt.status + '">' + apt.status_label + '</span></td>';
                 html += '<td>';
 
                 if (apt.receipt_url) {

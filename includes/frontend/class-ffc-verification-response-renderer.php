@@ -237,7 +237,7 @@ class VerificationResponseRenderer {
 
 		$html .= '<div class="ffc-preview-header">';
 		$html .= '<span class="ffc-status-badge success ffc-icon-success">' . esc_html__( 'Appointment Receipt Valid', 'ffcertificate' ) . '</span>';
-		$html .= '<br><span class="ffc-appointment-status ffc-status-' . esc_attr( $status ) . '">' . esc_html( $status_label ) . '</span>';
+		$html .= '<br><span class="ffc-verification-status ffc-verification-status-' . esc_attr( $status ) . '">' . esc_html( $status_label ) . '</span>';
 		$html .= '</div>';
 
 		$html .= '<div class="ffc-preview-body">';
@@ -387,7 +387,7 @@ class VerificationResponseRenderer {
 
 		$html .= '<div class="ffc-detail-row">';
 		$html .= '<span class="label">' . esc_html__( 'Status:', 'ffcertificate' ) . '</span>';
-		$html .= '<span class="value"><span class="ffc-appointment-status ffc-status-' . esc_attr( $rereg['status'] ) . '">' . esc_html( $rereg['status_label'] ) . '</span></span>';
+		$html .= '<span class="value"><span class="ffc-verification-status ffc-verification-status-' . esc_attr( $rereg['status'] ) . '">' . esc_html( $rereg['status_label'] ) . '</span></span>';
 		$html .= '</div>';
 
 		// 6.7.5 — Campaign window. Surfaces the open period of the

@@ -112,6 +112,22 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 		expect(buttons.length).toBe(1);
 	});
 
+	it('attaches the prefixed status class with the status value', () => {
+		panel().render([
+			makeRereg({ status: 'approved', status_label: 'Approved', reregistration_id: 1 }),
+			makeRereg({ status: 'rejected', status_label: 'Rejected', reregistration_id: 2 }),
+		], 1);
+		expect(document.querySelectorAll('#tab-reregistrations .ffc-dashboard-status.ffc-dashboard-status-approved').length).toBe(1);
+		expect(document.querySelectorAll('#tab-reregistrations .ffc-dashboard-status.ffc-dashboard-status-rejected').length).toBe(1);
+	});
+
+	// #1151 — the same badge, the same rename, the second of its two emitters.
+	it('publishes no unprefixed status class', () => {
+		panel().render([makeRereg({ status: 'approved', status_label: 'Approved' })], 1);
+		expect(document.querySelectorAll('#tab-reregistrations .appointment-status').length).toBe(0);
+		expect(document.querySelectorAll('#tab-reregistrations .status-approved').length).toBe(0);
+	});
+
 	it('renders the auth_code in a <code> tag when present, dash when absent', () => {
 		panel().render([
 			makeRereg({ auth_code: 'ABC123' }),
