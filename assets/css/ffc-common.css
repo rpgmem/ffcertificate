@@ -492,9 +492,18 @@
    anexado ao `<body>`, fora do contêiner do shortcode, então ele carrega a
    classe de escopo em si mesmo.
 
-   A cópia do admin de recadastramento ficou onde está: seletores sem escopo,
-   outra tela, e mesclar as duas exigiria decidir o escopo de cada regra — é
-   um PR próprio, não um efeito colateral deste. */
+   NÃO tente fundir com `.ffc-modal` de `ffc-reregistration-admin.css`. A
+   redação anterior aqui chamava aquilo de "segunda cópia", e medindo (#1148)
+   isso se mostrou falso: são dois componentes diferentes que compartilham a
+   convenção de nome. Um centraliza por flex e tem 500px; o outro posiciona por
+   `margin-top` e tem 820px, rola pelo body em vez do content, e titula com
+   `h2`. Unificar seria redesenhar uma das telas, não refatorar.
+
+   E o prefixo `.ffc-shortcode` é justamente o que mantém os dois separados:
+   `ffc-common` é dependência DECLARADA de `ffc-reregistration-admin`, então as
+   duas folhas carregam na mesma tela. Sem o prefixo, estas regras cairiam em
+   cima do modal do admin e o quebrariam. `AdminStylesheetTokensTest` falha se
+   ele sair. */
 
 .ffc-shortcode .ffc-modal,
 .ffc-shortcode.ffc-modal {
@@ -531,6 +540,17 @@
 
 .ffc-shortcode .ffc-modal-lg {
     max-width: min(700px, 95vw);
+}
+
+/* O ajuste de telefone mora junto da base. Ele ficou para trás em
+   `ffc-audience.css` quando o componente veio para cá (#1140), o que partia o
+   modal em dois arquivos: a base aqui, a media query lá. Funcionava pela ordem
+   de carga e era exatamente o tipo de coisa que o próximo leitor não encontra. */
+@media screen and (max-width: 768px) {
+    .ffc-shortcode .ffc-modal-content {
+        width: 95%;
+        max-height: 95vh;
+    }
 }
 
 .ffc-shortcode .ffc-modal-header {
