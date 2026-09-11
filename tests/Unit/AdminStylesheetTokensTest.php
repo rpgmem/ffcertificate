@@ -881,21 +881,28 @@ final class AdminStylesheetTokensTest extends TestCase {
 	}
 
 	/**
-	 * The shared modal keeps its `.ffc-shortcode` scope, and it is load-bearing.
+	 * The shared modal keeps its `.ffc-shortcode` scope.
 	 *
-	 * There is a second `.ffc-modal` in `ffc-reregistration-admin.css`, written
-	 * WITHOUT a scope prefix. It looks like a duplicate and is not: one centres
-	 * by flex at 500px and scrolls the content, the other positions by
-	 * `margin-top` at 820px and scrolls the body, with an `h2` title and a
-	 * filled header. Unifying them would redesign a screen, not refactor one.
+	 * This guard was written in #1150 for a reason that no longer applies, and
+	 * the history is the useful part. There was a second `.ffc-modal` in
+	 * `ffc-reregistration-admin.css`, written WITHOUT a scope prefix, and since
+	 * `ffc-common` is a DECLARED dependency of that sheet, both loaded on the
+	 * same screen. The prefix was then the ONLY thing keeping the shared rules
+	 * off the admin modal — drop it "to tidy up" and that screen inherited a
+	 * 500px flex-centred box it was never built for, with nothing red: the
+	 * literal ratchet, the pair meter and the dependency direction all stayed
+	 * green, because every rule involved was still tokenised and still declared.
 	 *
-	 * `ffc-common` is a DECLARED dependency of `ffc-reregistration-admin`, so
-	 * both sheets load on that screen. The prefix is the only thing keeping the
-	 * shared rules off the admin modal — drop it "to tidy up" and the admin
-	 * screen inherits a 500px flex-centred box it was never built for. Nothing
-	 * else would fail: the literal ratchet, the pair meter and the dependency
-	 * direction all stay green, because every rule involved is still tokenised
-	 * and still declared.
+	 * #1154 renamed the admin one to `ffc-rereg-modal*`, so the two names no
+	 * longer meet. What #1150 measured is still true — they are different
+	 * components, one centring by flex at 500px and the other positioning by
+	 * `margin-top` at 820px with an `h2` title — but "separate" no longer rests
+	 * on a selector continuing to exist.
+	 *
+	 * The guard stays, for the ordinary reason every frontend rule has one: a
+	 * `.ffc-modal` rule without the prefix reaches whatever the site's theme
+	 * calls a modal. That is a weaker claim than the one it was born with, and
+	 * it is the honest one.
 	 *
 	 * @return void
 	 */
@@ -922,10 +929,43 @@ final class AdminStylesheetTokensTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$unscoped,
-			'Regra de modal sem `.ffc-shortcode` na paleta: ela alcançaria o modal do admin de recadastramento, que é outro componente.'
+			'Regra de modal sem `.ffc-shortcode` na paleta: a folha carrega no frontend, então ela alcança o que o tema do site chamar de modal.'
 		);
 	}
 
+
+	/**
+	 * The reregistration admin modal keeps a name of its own.
+	 *
+	 * It was `.ffc-modal` — the same name as the shared component, on a sheet
+	 * that loads alongside it. #1150 established they are different components
+	 * and kept them apart with the `.ffc-shortcode` prefix; #1154 finished the
+	 * job by renaming this one, so the separation rests on the names rather
+	 * than on a selector continuing to exist.
+	 *
+	 * The assertion is the absence, not the presence: a half-done rename that
+	 * left one `.ffc-modal` rule behind would satisfy a check for the new name
+	 * while the old one still collides.
+	 *
+	 * @return void
+	 */
+	public function test_the_reregistration_admin_modal_keeps_its_own_name(): void {
+		$css = (string) preg_replace(
+			'#/\*.*?\*/#s',
+			'',
+			(string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-reregistration-admin.css' )
+		);
+
+		preg_match_all( '/(?<![\w-])\.ffc-rereg-modal[\w-]*/', $css, $renamed );
+		$this->assertNotSame( array(), $renamed[0], 'A varredura do modal do admin colapsou — nenhuma regra encontrada.' );
+
+		preg_match_all( '/(?<![\w-])\.?ffc-modal[\w-]*/', $css, $leftover );
+		$this->assertSame(
+			array(),
+			$leftover[0],
+			'Sobrou `ffc-modal` na folha do admin de recadastramento: o nome volta a colidir com o componente compartilhado de `ffc-common.css`.'
+		);
+	}
 
 	public function test_every_budget_entry_names_a_real_stylesheet(): void {
 		$known = array_keys( self::stylesheets() );

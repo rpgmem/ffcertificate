@@ -298,10 +298,10 @@ describe('rereg-admin — submission details modal', () => {
 		document.body.innerHTML = `
 			<button type="button" class="ffc-view-details-btn" data-submission-id="7">Details</button>
 			<div id="ffc-submission-details-modal" style="display:none">
-				<div class="ffc-modal-backdrop"></div>
-				<div class="ffc-modal-content">
-					<button type="button" class="ffc-modal-close">x</button>
-					<div class="ffc-modal-body"><p class="ffc-modal-loading"></p></div>
+				<div class="ffc-rereg-modal-backdrop"></div>
+				<div class="ffc-rereg-modal-content">
+					<button type="button" class="ffc-rereg-modal-close">x</button>
+					<div class="ffc-rereg-modal-body"><p class="ffc-rereg-modal-loading"></p></div>
 				</div>
 			</div>
 		`;
@@ -323,14 +323,14 @@ describe('rereg-admin — submission details modal', () => {
 		expect(window.$('#ffc-submission-details-modal').css('display')).not.toBe('none');
 		// jsdom reorders text outside <table> nodes; assert on the visible
 		// payload rather than literal HTML preservation.
-		expect(window.$('.ffc-modal-body').text()).toContain('fields');
+		expect(window.$('.ffc-rereg-modal-body').text()).toContain('fields');
 	});
 
 	it('bails on a view-details click when the button has no submission id', async () => {
 		document.body.innerHTML = `
 			<button type="button" class="ffc-view-details-btn">Details</button>
 			<div id="ffc-submission-details-modal" style="display:none">
-				<div class="ffc-modal-body"><p class="ffc-modal-loading"></p></div>
+				<div class="ffc-rereg-modal-body"><p class="ffc-rereg-modal-loading"></p></div>
 			</div>
 		`;
 		await reload();
@@ -358,7 +358,7 @@ describe('rereg-admin — submission details modal', () => {
 		window.$('.ffc-view-details-btn').trigger('click');
 		await flush();
 
-		expect(window.$('.ffc-modal-body').text()).toContain('Failed to load');
+		expect(window.$('.ffc-rereg-modal-body').text()).toContain('Failed to load');
 	});
 
 	it('shows the server error in the modal when response.success=false', async () => {
@@ -374,7 +374,7 @@ describe('rereg-admin — submission details modal', () => {
 		window.$('.ffc-view-details-btn').trigger('click');
 		await flush();
 
-		expect(window.$('.ffc-modal-body').text()).toContain('Forbidden');
+		expect(window.$('.ffc-rereg-modal-body').text()).toContain('Forbidden');
 	});
 
 	it('on network failure: renders the localised error', async () => {
@@ -394,7 +394,7 @@ describe('rereg-admin — submission details modal', () => {
 		window.$('.ffc-view-details-btn').trigger('click');
 		await flush();
 
-		expect(window.$('.ffc-modal-body').text()).toContain('Failed to load');
+		expect(window.$('.ffc-rereg-modal-body').text()).toContain('Failed to load');
 	});
 
 	it('close button hides the modal', async () => {
@@ -402,7 +402,7 @@ describe('rereg-admin — submission details modal', () => {
 		await reload();
 		// Force open
 		window.$('#ffc-submission-details-modal').show();
-		window.$('#ffc-submission-details-modal .ffc-modal-close').trigger('click');
+		window.$('#ffc-submission-details-modal .ffc-rereg-modal-close').trigger('click');
 		await flush();
 		expect(window.$('#ffc-submission-details-modal').css('display')).toBe('none');
 	});

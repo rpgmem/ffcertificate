@@ -111,15 +111,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</form>
 
 		<!-- Submission details modal -->
-		<div id="ffc-submission-details-modal" class="ffc-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ffc-submission-details-title">
-			<div class="ffc-modal-backdrop"></div>
-			<div class="ffc-modal-content">
-				<div class="ffc-modal-header">
+		<div id="ffc-submission-details-modal" class="ffc-rereg-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ffc-submission-details-title">
+			<div class="ffc-rereg-modal-backdrop"></div>
+			<div class="ffc-rereg-modal-content">
+				<div class="ffc-rereg-modal-header">
 					<h2 id="ffc-submission-details-title"><?php esc_html_e( 'Submission Details', 'ffcertificate' ); ?></h2>
-					<button type="button" class="ffc-modal-close" aria-label="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">&times;</button>
+					<button type="button" class="ffc-rereg-modal-close" aria-label="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">&times;</button>
 				</div>
-				<div class="ffc-modal-body">
-					<p class="ffc-modal-loading"><?php esc_html_e( 'Loading…', 'ffcertificate' ); ?></p>
+				<div class="ffc-rereg-modal-body">
+					<p class="ffc-rereg-modal-loading"><?php esc_html_e( 'Loading…', 'ffcertificate' ); ?></p>
 				</div>
 			</div>
 		</div>
