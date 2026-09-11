@@ -49,9 +49,10 @@ use PHPUnit\Framework\TestCase;
  *
  * O que ela NÃO vê: CSS inline impresso por PHP (`print_menu_separator_css()`,
  * o recibo de agendamento) e o `style=""` de atributo. Varre só as folhas de
- * `assets/css/`. Também não vê duplicação — a mesma varredura achou 21 classes
+ * `assets/css/`. Também não vê duplicação — a mesma varredura achou 19 classes
  * `ffc-*` declaradas cruas em mais de uma folha (`.ffc-status-badge` em cinco),
- * que é problema de componente sem dono único, não de namespace.
+ * que é problema de componente sem dono único, não de namespace, e está na
+ * #1162.
  */
 class CssNamespaceAnchorTest extends TestCase {
 
