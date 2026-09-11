@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Tema do editor de código foi para a aba Geral, ao lado do Modo Escuro** (#1148): o campo existia desde sempre na aba Avançado, com três valores — inclusive `auto`, que segue o Modo Escuro. Quem procurava o tema do editor procurava junto do tema; ali ninguém achava. Guarda nova recusa a mesma chave de autosave em duas abas.
+
 ## [6.24.0] (2026-09-10) — `c08e59a`
 
 ### Fixed

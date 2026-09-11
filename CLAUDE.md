@@ -451,7 +451,7 @@ Each carries a self-check that fails when its own scan collapses — an empty re
 
 - **Print and PDF are light by definition.** `ffc-pdf-core.css` and the certificate preview's white paper are documents that may be printed; they do not follow the theme.
 - **Core screens stay light** — `profile.php`, `users.php`, the post-editor metabox. The content area of every core colour scheme is white, so our fields rendering light there is *consistent*, not a bug. Listed in `TOGGLE_NOT_NEEDED` with that reason.
-- **The code editor has its own setting**, `code_editor_theme` on the Advanced tab: `dark` (default), `light`, or `auto` (follows `dark_mode`). It is not hard-coded.
+- **The code editor has its own setting**, `code_editor_theme` on the General tab, immediately below Dark Mode: `dark` (default), `light`, or `auto` (follows `dark_mode`). It is not hard-coded. It sat on Advanced until #1148 and nobody found it there — `auto` resolves by reading `dark_mode`, so the two belong side by side. It was **moved, not mirrored**: `SettingsAutosaveFieldPlacementTest` refuses one autosave key on two tabs, because each tab's Save rebuilds its own fields and two copies drift.
 - **A theme change repaints live.** The autosave widget announces `ffc:setting-saved` on `document`; `ffc-dark-mode.js` listens and re-applies, including dropping the OS listener when leaving `auto`. The widget must not learn which keys repaint — it states the fact, an interested script acts.
 
 Open items and the measurements behind them are in #1148 — among them the typography scale, which already exists and is already semantic, and the trade that makes multiple themes cost more than it looks.
