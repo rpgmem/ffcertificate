@@ -529,7 +529,7 @@
    APPOINTMENTS TABLE
    ========================================================================== */
 
-.appointment-status {
+.ffc-dashboard-status {
     padding: 3px 10px;
     border-radius: 10px;
     font-size: 11px;
@@ -539,27 +539,27 @@
     text-transform: capitalize;
 }
 
-.appointment-status.status-pending {
+.ffc-dashboard-status.ffc-dashboard-status-pending {
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
 }
 
-.appointment-status.status-confirmed {
+.ffc-dashboard-status.ffc-dashboard-status-confirmed {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
 }
 
-.appointment-status.status-cancelled {
+.ffc-dashboard-status.ffc-dashboard-status-cancelled {
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
 }
 
-.appointment-status.status-completed {
+.ffc-dashboard-status.ffc-dashboard-status-completed {
     background: var(--ffc-info-bg);
     color: var(--ffc-info-text);
 }
 
-.appointment-status.status-no_show {
+.ffc-dashboard-status.ffc-dashboard-status-no_show {
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-secondary);
 }
@@ -666,27 +666,27 @@
     white-space: nowrap;
 }
 
-.appointment-status.status-submitted {
+.ffc-dashboard-status.ffc-dashboard-status-submitted {
     background: var(--ffc-primary-light);
     color: var(--ffc-primary-hover);
 }
 
-.appointment-status.status-approved {
+.ffc-dashboard-status.ffc-dashboard-status-approved {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
 }
 
-.appointment-status.status-rejected {
+.ffc-dashboard-status.ffc-dashboard-status-rejected {
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
 }
 
-.appointment-status.status-expired {
+.ffc-dashboard-status.ffc-dashboard-status-expired {
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-secondary);
 }
 
-.appointment-status.status-in_progress {
+.ffc-dashboard-status.ffc-dashboard-status-in_progress {
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
 }

@@ -136,12 +136,23 @@ describe('FFCDashboard.panels.appointments.render', () => {
 		expect(link.getAttribute('rel')).toBe('noopener noreferrer');
 	});
 
-	it('attaches the appointment-status class with the status value', () => {
+	it('attaches the prefixed status class with the status value', () => {
 		panel().render([
 			makeAppt({ status: 'confirmed', status_label: 'Confirmed' }),
 			makeAppt({ status: 'completed', status_label: 'Done', appointment_date_raw: FAR_PAST }),
 		], 1);
-		expect(document.querySelectorAll('#tab-appointments .appointment-status.status-confirmed').length).toBe(1);
-		expect(document.querySelectorAll('#tab-appointments .appointment-status.status-completed').length).toBe(1);
+		expect(document.querySelectorAll('#tab-appointments .ffc-dashboard-status.ffc-dashboard-status-confirmed').length).toBe(1);
+		expect(document.querySelectorAll('#tab-appointments .ffc-dashboard-status.ffc-dashboard-status-completed').length).toBe(1);
+	});
+
+	// #1151: the badge was `appointment-status status-<state>` — the only
+	// unprefixed name this plugin published to the frontend, on a sheet that
+	// loads inside whatever theme the site runs. The unprefixed name must not
+	// come back, and it is not enough to assert the new one is present: both
+	// classes can coexist on one element.
+	it('publishes no unprefixed status class', () => {
+		panel().render([makeAppt({ status: 'confirmed', status_label: 'Confirmed' })], 1);
+		expect(document.querySelectorAll('#tab-appointments .appointment-status').length).toBe(0);
+		expect(document.querySelectorAll('#tab-appointments .status-confirmed').length).toBe(0);
 	});
 });

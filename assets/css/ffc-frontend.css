@@ -936,7 +936,7 @@ details.ffc-consent-description > p {
    APPOINTMENT VERIFICATION (on /valid/ page)
    ============================================ */
 
-.ffc-shortcode .ffc-appointment-status {
+.ffc-shortcode .ffc-verification-status {
     display: inline-block;
     padding: 4px 14px;
     border-radius: var(--ffc-radius-sm);
@@ -945,20 +945,20 @@ details.ffc-consent-description > p {
     text-transform: uppercase;
 }
 
-.ffc-shortcode .ffc-status-pending { background: var(--ffc-bg-alt); color: var(--ffc-text-muted); }
-.ffc-shortcode .ffc-status-confirmed { background: var(--ffc-success-bg); color: var(--ffc-success-text); }
-.ffc-shortcode .ffc-status-cancelled { background: var(--ffc-danger-bg); color: var(--ffc-danger-text); }
-.ffc-shortcode .ffc-status-completed { background: var(--ffc-info-bg); color: var(--ffc-info-text); }
-.ffc-shortcode .ffc-status-no_show { background: var(--ffc-warning-bg); color: var(--ffc-warning-text); }
+.ffc-shortcode .ffc-verification-status-pending { background: var(--ffc-bg-alt); color: var(--ffc-text-muted); }
+.ffc-shortcode .ffc-verification-status-confirmed { background: var(--ffc-success-bg); color: var(--ffc-success-text); }
+.ffc-shortcode .ffc-verification-status-cancelled { background: var(--ffc-danger-bg); color: var(--ffc-danger-text); }
+.ffc-shortcode .ffc-verification-status-completed { background: var(--ffc-info-bg); color: var(--ffc-info-text); }
+.ffc-shortcode .ffc-verification-status-no_show { background: var(--ffc-warning-bg); color: var(--ffc-warning-text); }
 
 /* 6.7.5 — Reregistration submission statuses (#366 vocabulary). Used
    by the `/valid` body's Status row to give the submission state a
-   colored pill matching the appointment-status visual family. */
-.ffc-shortcode .ffc-status-in_progress { background: var(--ffc-info-bg); color: var(--ffc-info-text); }
-.ffc-shortcode .ffc-status-submitted { background: var(--ffc-info-bg); color: var(--ffc-info-text); }
-.ffc-shortcode .ffc-status-approved { background: var(--ffc-success-bg); color: var(--ffc-success-text); }
-.ffc-shortcode .ffc-status-rejected { background: var(--ffc-danger-bg); color: var(--ffc-danger-text); }
-.ffc-shortcode .ffc-status-expired { background: var(--ffc-warning-bg); color: var(--ffc-warning-text); }
+   colored pill matching the badge above. */
+.ffc-shortcode .ffc-verification-status-in_progress { background: var(--ffc-info-bg); color: var(--ffc-info-text); }
+.ffc-shortcode .ffc-verification-status-submitted { background: var(--ffc-info-bg); color: var(--ffc-info-text); }
+.ffc-shortcode .ffc-verification-status-approved { background: var(--ffc-success-bg); color: var(--ffc-success-text); }
+.ffc-shortcode .ffc-verification-status-rejected { background: var(--ffc-danger-bg); color: var(--ffc-danger-text); }
+.ffc-shortcode .ffc-verification-status-expired { background: var(--ffc-warning-bg); color: var(--ffc-warning-text); }
 
 /* ============================================
    SCHEDULE EXCEPTION BLOCK (on /valid/ page)

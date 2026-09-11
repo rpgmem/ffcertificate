@@ -112,7 +112,7 @@
                 html += '<tr' + rowClass + '>';
                 html += '<td>' + esc(item.title) + '</td>';
                 html += '<td>' + esc(item.start_date_formatted) + ' &mdash; ' + esc(item.end_date_formatted) + '</td>';
-                html += '<td><span class="appointment-status status-' + item.status + '">' + esc(item.status_label) + '</span></td>';
+                html += '<td><span class="ffc-dashboard-status ffc-dashboard-status-' + item.status + '">' + esc(item.status_label) + '</span></td>';
                 html += '<td>' + esc(item.submitted_at || '—') + '</td>';
                 html += '<td>';
                 if (item.auth_code) {
