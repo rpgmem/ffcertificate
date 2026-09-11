@@ -10,7 +10,7 @@ Project conventions for Claude (Anthropic CLI / agent sessions) working on this 
 
 1. **[Contributing workflow](#1-contributing-workflow)** — git / PR / release: pull-request workflow, branch naming, develop-branch workflow, versioning, CHANGELOG conventions, what not to do.
 2. **[Quality gates and testing](#2-quality-gates-and-testing)** — CI gates (+ coverage floors, module-boundary guard), test infrastructure, build & assets.
-3. **[Architecture and patterns](#3-architecture-and-patterns)** — repository pattern, module bootstrap (loaders), shared-service directories, email pipeline, CSV export, captcha, stylesheet architecture, light/dark theme.
+3. **[Architecture and patterns](#3-architecture-and-patterns)** — repository pattern, module bootstrap (loaders), shared-service directories, email pipeline, CSV export, captcha, stylesheet architecture, naming and composition, light/dark theme.
 4. **[Domain conventions](#4-domain-conventions)** — date/time storage, settings reads, capability naming, security & PII.
 5. **[Legacy and tech debt](#5-legacy-and-tech-debt)** — compat shims + evidence-gating.
 
@@ -464,7 +464,34 @@ Three facts about that graph that cost time to rediscover. **Two handles can nam
 - **Would be a defect here.** *Generic* (a reset) and *Elements* (bare tag styling) both assume ownership of the document, which a plugin does not have; the second is the very thing #1152 froze as debt. **BEM** is churn: the `ffc-` prefix already carries the isolation BEM's naming would, over ~1,000 classes. What *is* worth keeping from that advice is component-specific naming, which #1151 / #1154 / #1162 have been doing one component at a time.
 - **Genuinely worth doing.** A **page-scope class on the admin `wrap`** — only 5 of 25 `class="wrap"` carry an `ffc-` class today, and that missing anchor is exactly what #1152's 60 baselined selectors need in order to be fixed.
 
-**A preprocessor has exactly one real argument, and it is not "variables" or "nesting".** It is a mixin for *the same visual shape under different owners* — the `.ffc-status-badge` in five sheets (the two pairs left in `StylesheetOwnershipTest`'s baseline) would become an `@include` per sheet, sharing the shape without sharing a class name and therefore without the collision. The price is duplicating those bytes per sheet plus a build step the "Verify minified assets are up to date" gate has to learn. Not built; revisit **only** if a third such shape appears, and decide it the #788 / #902 / #993 way — from proven duplication, not on spec.
+**A preprocessor has exactly one real argument, and it is not "variables" or "nesting".** It is a mixin for *the same visual shape under different owners* — the `.ffc-status-badge` in five sheets (the two pairs left in `StylesheetOwnershipTest`'s baseline) would become an `@include` per sheet, sharing the shape without sharing a class name and therefore without the collision. The price is duplicating those bytes per sheet plus a build step the "Verify minified assets are up to date" gate has to learn. Not built; revisit **only** if a third such shape appears, and decide it the #788 / #902 / #993 way — from proven duplication, not on spec. **#1167 measured a candidate answer that needs no build step at all** — that shape is 57 rules under 57 names, and a shared skin object in `ffc-common.css` gives them one form without one name (#1168); when that lands, this argument is spent.
+
+### Naming and composition inside the sheets (#1167)
+
+The previous section settles *how many sheets and why*; this one settles *how a class is named and how a component is composed*, so that a proposal framed as "adopt BEM" or "adopt utility-first" is answered from measurement rather than from scratch. Measured over the 28 sheets with the shared parser (`tests/Support/CssSelectors.php` — the same one the guards read, so the numbers cannot disagree with them): **2,128 rules · 2,512 selectors · 1,196 distinct classes**, of which **1,049 carry the `ffc-` prefix** and 147 do not.
+
+**Where each methodology already sits — measured, not aspirational:**
+
+| | Level | Evidence |
+| --- | --- | --- |
+| **OOCSS** | partial | 108 occurrences (79 distinct) of the compound unit `.ffc-a.ffc-b` already split object from modifier (`.ffc-day.ffc-selected`). The **skin** half is not split: 57 rules across 12 sheets repeat one `background: var(--ffc-X-bg); color: var(--ffc-X-text)` pair under 57 names (#1168) |
+| **BEM** | 5 islands, ~5% | 33 `__` elements + 24 `--` modifiers, all inside `ffc-settings-tabs`, `ffc-form-tabs`, `ffc-qr-modal`, `ffc-blocked-roles` and the autosave badges |
+| **SMACSS** | state layer yes, layout layer absent | 12 `is-`/`has-` classes, and **all 12 appear compounded with an `ffc-` class, never bare** — which is why #1152 never saw them, and a bare `.is-open` would fail it today. Zero `l-`, zero `js-` |
+| **Atomic / utility-first** | exists, drifting | `ffc-admin-utilities.css`, 42 classes, of which 9 are screen components and 3 are dead (#1171) |
+
+**Three idioms say the same thing, and all three are live** — a prefixed modifier (`.ffc-day.ffc-selected`, 108 occurrences), an unprefixed one (`.ffc-consent-status.consent-given`, 38 names) and a SMACSS state (`.ffc-cap-role.is-on`, 12). Converging them is #1170. Of the 147 unprefixed classes, only 38 are ours: 18 are CodeMirror's (the vendor emits `cm-*`; they cannot be prefixed), 16 are emitted by WordPress (`hndle`, `inside`, `post-type-*`, `column-ffc_*`, `publish`, `trash`), and 6 are bare and already in #1152's baseline. **The 38 are anchored, so this is not a collision risk — it is a readability one**, which by this file's own priority rule is a recurring reader-facing inconsistency rather than a cosmetic one.
+
+**The largest finding is not a methodology — it is a scale that nobody reads.** `--ffc-spacing-*` has existed for as long as the palette and has **3 consumers out of 1,238** spacing declarations; 30 distinct px values are in use. This is the typography story before #1148, with one aggravation: the declared ladder (5 · 10 · 15 · 20 · 30, **550** uses) does not contain the ladder the code actually uses (2 · 4 · 6 · 8 · 12 · 16 · 24, **624** uses), and neither dominates. `border-radius` is half-adopted (68 tokenized against ~133 literals, **71 of those literals being the `4px` that `--ffc-radius-sm` already is**) and `z-index` has no scale at all — `1`, `2`, `1000`, `9999`, `100000`, `100100`, `999999`, `2147483647`, the last being int32's maximum and the classic sign of a stacking war. Tracked in #1169 / #1171.
+
+**What this means for the theme arc:** a third *colour* theme costs 57 lines, because dark is light overridden and only 57 of the 78 tokens change. A **density** theme (compact/comfortable) — the more likely accessibility ask for public-sector forms — is impossible today, because spacing, radius and `z-index` are not tokens. That is the same finding seen from the reuse angle, and it is the reason #1169 is ranked first.
+
+**Standing decisions, so they are not re-litigated:**
+
+- **No BEM across the base.** The `ffc-` prefix already carries the isolation BEM's naming would, over ~1,000 classes; converting is churn against a property that already holds. The 5 BEM islands stay as they are — internally coherent, and rewriting them to the house idiom is churn in the other direction. What survives from the idea is **component-specific naming**, which #1151 / #1154 / #1162 have been doing one component at a time.
+- **No ITCSS with per-area bundles.** Measured in the previous section: 1.9×/2.2× per screen, and conditional loading is a safety property rather than an optimisation. Two of the seven layers (*generic*/reset, *elements*/bare tags) presuppose owning the document, which a plugin does not.
+- **No Tailwind-style utility-first.** It needs a CSS build the project does not have (`cleancss` minifies in place, it does not compile) and a class scan that cannot see what PHP assembles at runtime. The utility layer that does make sense here already exists; the work is keeping it small (#1171), not growing it.
+- **No layout layer (`l-`).** Zero occurrences, and the split it would express is already made per sheet.
+- **A scale is worth building only where a second consumer of the same value exists.** Colour and typography earned theirs; spacing has 1,235 literal declarations and is next. A one-off number — an optical nudge, a hairline — stays literal with the reason inline, exactly as the typography section describes.
 
 ### Theme (one palette, one root class — #1126)
 
