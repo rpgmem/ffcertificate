@@ -492,18 +492,21 @@
    anexado ao `<body>`, fora do contêiner do shortcode, então ele carrega a
    classe de escopo em si mesmo.
 
-   NÃO tente fundir com `.ffc-modal` de `ffc-reregistration-admin.css`. A
-   redação anterior aqui chamava aquilo de "segunda cópia", e medindo (#1148)
-   isso se mostrou falso: são dois componentes diferentes que compartilham a
-   convenção de nome. Um centraliza por flex e tem 500px; o outro posiciona por
+   O modal do admin de recadastramento, que dividia este nome, agora se chama
+   `ffc-rereg-modal*` (#1154). Duas redações anteriores aqui erraram sobre ele,
+   e as duas ficam registradas porque a correção de cada uma custou medição.
+   A primeira o chamou de "segunda cópia": medindo (#1148), são componentes
+   diferentes — um centraliza por flex e tem 500px; o outro posiciona por
    `margin-top` e tem 820px, rola pelo body em vez do content, e titula com
-   `h2`. Unificar seria redesenhar uma das telas, não refatorar.
+   `h2`. Unificar seria redesenhar uma tela, não refatorar. A segunda disse que
+   o prefixo `.ffc-shortcode` era o que mantinha os dois separados, e era
+   verdade — `ffc-common` é dependência DECLARADA de `ffc-reregistration-admin`,
+   então as duas folhas carregam na mesma tela. O que faltava é que seguir
+   separados não obrigava a continuar com o mesmo nome.
 
-   E o prefixo `.ffc-shortcode` é justamente o que mantém os dois separados:
-   `ffc-common` é dependência DECLARADA de `ffc-reregistration-admin`, então as
-   duas folhas carregam na mesma tela. Sem o prefixo, estas regras cairiam em
-   cima do modal do admin e o quebrariam. `AdminStylesheetTokensTest` falha se
-   ele sair. */
+   O prefixo fica, pelo motivo comum a toda regra de frontend: sem ele, estas
+   regras alcançam o que o tema do site chamar de modal.
+   `AdminStylesheetTokensTest` falha se ele sair. */
 
 .ffc-shortcode .ffc-modal,
 .ffc-shortcode.ffc-modal {

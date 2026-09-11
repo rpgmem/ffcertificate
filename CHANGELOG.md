@@ -9,6 +9,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **O modal do admin de recadastramento ganhou nome próprio** (#1154): dividia `.ffc-modal` com o componente compartilhado, numa tela onde as duas folhas carregam — a separação dependia do prefixo `.ffc-shortcode` continuar existindo. Vira `ffc-rereg-modal*`; os componentes seguem distintos, agora pelo nome.
 - **Badges de status ganharam nomes prefixados e específicos** (#1151): o do painel do usuário era `appointment-status status-<estado>` — o único nome sem prefixo que o plugin publicava no frontend, numa folha que carrega dentro do tema do site. Vira `ffc-dashboard-status`; o irmão da página de verificação vira `ffc-verification-status`, saindo do vocabulário genérico `ffc-status-*` que oito componentes compartilham.
 - **Tema do editor de código foi para a aba Geral, ao lado do Modo Escuro** (#1148): o campo existia desde sempre na aba Avançado, com três valores — inclusive `auto`, que segue o Modo Escuro. Quem procurava o tema do editor procurava junto do tema; ali ninguém achava. Guarda nova recusa a mesma chave de autosave em duas abas.
 

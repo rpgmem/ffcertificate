@@ -155,17 +155,17 @@
         var $modal = $('#ffc-submission-details-modal');
         if (!$modal.length) return;
 
-        var $body = $modal.find('.ffc-modal-body');
+        var $body = $modal.find('.ffc-rereg-modal-body');
 
         function openModal() {
             $modal.show();
-            $('body').addClass('ffc-modal-open');
+            $('body').addClass('ffc-rereg-modal-open');
         }
 
         function closeModal() {
             $modal.hide();
-            $('body').removeClass('ffc-modal-open');
-            $body.html('<p class="ffc-modal-loading"></p>');
+            $('body').removeClass('ffc-rereg-modal-open');
+            $body.html('<p class="ffc-rereg-modal-loading"></p>');
         }
 
         $(document).on('click', '.ffc-view-details-btn', function (e) {
@@ -174,7 +174,7 @@
             if (!subId) return;
 
             var S = (window.ffcReregistrationAdmin && window.ffcReregistrationAdmin.strings) || {};
-            $body.html('<p class="ffc-modal-loading">' + (S.loadingDetails || 'Loading…') + '</p>');
+            $body.html('<p class="ffc-rereg-modal-loading">' + (S.loadingDetails || 'Loading…') + '</p>');
             openModal();
 
             FFC.request(
@@ -196,7 +196,7 @@
         });
 
         // Close handlers: X button, backdrop, ESC key
-        $modal.on('click', '.ffc-modal-close, .ffc-modal-backdrop', function () {
+        $modal.on('click', '.ffc-rereg-modal-close, .ffc-rereg-modal-backdrop', function () {
             closeModal();
         });
         $(document).on('keydown.ffcDetails', function (e) {
