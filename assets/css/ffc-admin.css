@@ -1123,3 +1123,23 @@ p.ffc-datetime-order-error {
     display: block;
     margin-bottom: 4px;
 }
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
+   O mecanismo está explicado em ffc-common.css (#1165).
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Selos de estado: o texto continua dizendo o estado; a borda
+       devolve a eles a forma de selo. */
+    .ffc-badge-debug,
+    .ffc-badge-error,
+    .ffc-badge-info,
+    .ffc-badge-warning,
+    .ffc-status-pill--info,
+    .ffc-status-pill--success,
+    .ffc-status-pill--warning {
+        border: 1px solid CanvasText;
+    }
+}

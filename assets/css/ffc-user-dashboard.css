@@ -1664,3 +1664,26 @@
     .ffc-audience-join-item { transition: none; }
     .ffc-password-form input { transition: none; }
 }
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
+   O mecanismo está explicado em ffc-common.css (#1165).
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Selos de estado: o texto continua dizendo o estado; a borda
+       devolve a eles a forma de selo. */
+    .ffc-dashboard-status.ffc-dashboard-status-approved,
+    .ffc-dashboard-status.ffc-dashboard-status-cancelled,
+    .ffc-dashboard-status.ffc-dashboard-status-completed,
+    .ffc-dashboard-status.ffc-dashboard-status-confirmed,
+    .ffc-dashboard-status.ffc-dashboard-status-expired,
+    .ffc-dashboard-status.ffc-dashboard-status-in_progress,
+    .ffc-dashboard-status.ffc-dashboard-status-no_show,
+    .ffc-dashboard-status.ffc-dashboard-status-pending,
+    .ffc-dashboard-status.ffc-dashboard-status-rejected,
+    .ffc-dashboard-status.ffc-dashboard-status-submitted {
+        border: 1px solid CanvasText;
+    }
+}
