@@ -546,18 +546,30 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertSame( 50, $result['public_csv_default_limit'] );
 	}
 
-	public function test_general_advanced_tab_code_editor_theme_valid(): void {
-		$_POST['_ffc_tab'] = 'advanced';
+	public function test_general_tab_code_editor_theme_valid(): void {
+		$_POST['_ffc_tab'] = 'general';
 		foreach ( array( 'auto', 'light', 'dark' ) as $theme ) {
 			$result = $this->invoke( 'save_general_settings', array( array(), array( 'code_editor_theme' => $theme ) ) );
 			$this->assertSame( $theme, $result['code_editor_theme'] );
 		}
 	}
 
-	public function test_general_advanced_tab_code_editor_theme_invalid_defaults_to_dark(): void {
-		$_POST['_ffc_tab'] = 'advanced';
+	public function test_general_tab_code_editor_theme_invalid_defaults_to_dark(): void {
+		$_POST['_ffc_tab'] = 'general';
 		$result = $this->invoke( 'save_general_settings', array( array(), array( 'code_editor_theme' => 'rainbow' ) ) );
 		$this->assertSame( 'dark', $result['code_editor_theme'] );
+	}
+
+	/**
+	 * The field moved to General (#1148 item 2) and its sanitiser moved with
+	 * it, out of the `advanced` block and next to dark_mode's — both ungated,
+	 * so a tab that does not render the field simply never posts it and the
+	 * merge base in handle_all_submissions() preserves the stored value.
+	 */
+	public function test_code_editor_theme_is_untouched_by_a_save_that_does_not_post_it(): void {
+		$_POST['_ffc_tab'] = 'advanced';
+		$result = $this->invoke( 'save_general_settings', array( array( 'code_editor_theme' => 'light' ), array() ) );
+		$this->assertSame( 'light', $result['code_editor_theme'] );
 	}
 
 	// ==================================================================
