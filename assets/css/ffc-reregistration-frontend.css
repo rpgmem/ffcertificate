@@ -46,14 +46,14 @@
 }
 
 .ffc-rereg-header-title {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
 
 .ffc-rereg-header-subtitle {
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     font-weight: 400;
     margin-top: 2px;
     opacity: 0.9;
@@ -71,14 +71,14 @@
 
 .ffc-rereg-form-container h3 {
     margin: 0 0 4px 0;
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
     font-weight: 600;
     color: var(--ffc-text);
 }
 
 .ffc-rereg-deadline {
     color: var(--ffc-text-secondary);
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     margin: 0 0 20px 0;
 }
 
@@ -93,7 +93,7 @@
 
 .ffc-rereg-fieldset legend {
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     color: var(--ffc-text);
     padding: 0 8px;
 }
@@ -111,7 +111,7 @@
 .ffc-rereg-field label {
     display: block;
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text);
     margin-bottom: 5px;
 }
@@ -133,7 +133,7 @@
     padding: 8px 12px;
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     font-family: inherit;
     background: var(--ffc-bg-card);
     transition: border-color 0.15s, box-shadow 0.15s;
@@ -208,13 +208,13 @@
 .ffc-wh-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
 }
 
 .ffc-wh-table th {
     text-align: left;
     font-weight: 600;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     color: var(--ffc-text-secondary);
     padding: 6px 4px;
     border-bottom: 1px solid var(--ffc-border-light);
@@ -230,7 +230,7 @@
     padding: 4px 6px;
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     font-family: inherit;
     box-sizing: border-box;
 }
@@ -239,7 +239,7 @@
     background: none;
     border: none;
     color: var(--ffc-danger-text);
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
     cursor: pointer;
     padding: 2px 6px;
     line-height: 1;
@@ -251,7 +251,7 @@
 
 .ffc-wh-add {
     margin-top: 8px;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
 }
 
 /* ── Acúmulo de Cargos ──────────────────────── */
@@ -265,7 +265,7 @@
 /* ── Termo de Ciência ───────────────────────── */
 
 .ffc-rereg-termo-text {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-secondary);
     line-height: 1.6;
 }
@@ -291,7 +291,7 @@
 .ffc-field-error {
     display: block;
     color: var(--ffc-danger-text);
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     margin-top: 4px;
     min-height: 0;
 }
@@ -314,7 +314,7 @@
 
 .ffc-rereg-actions .button {
     padding: 8px 20px;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     font-weight: 500;
     border-radius: 6px;
     cursor: pointer;
@@ -344,7 +344,7 @@
 }
 
 .ffc-rereg-status {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     font-weight: 500;
 }
 

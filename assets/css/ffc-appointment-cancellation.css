@@ -24,7 +24,7 @@
 
 .ffc-cancel-card h1 {
 	margin-top: 0;
-	font-size: 1.5rem;
+	font-size: var(--ffc-font-size-2xl);
 }
 
 /* `.ffc-cancel-summary` mora em ffc-common.css (#1140): o mesmo par
@@ -46,7 +46,7 @@
 .ffc-cancel-confirm-btn {
 	display: inline-block;
 	padding: 0.6rem 1.25rem;
-	font-size: 1rem;
+	font-size: var(--ffc-font-size-lg);
 	color: var(--ffc-text-on-danger);
 	background: var(--ffc-danger);
 	border: 0;

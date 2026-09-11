@@ -49,7 +49,7 @@
 
 .ffc-shortcode .ffc-current-month {
     margin: 0;
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
     font-weight: 600;
     min-width: 180px;
     text-align: center;
@@ -65,7 +65,7 @@
     border-radius: var(--ffc-radius-sm);
     padding: 8px 12px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     transition: all 0.2s ease;
 }
 
@@ -80,7 +80,7 @@
 }
 
 .ffc-shortcode .ffc-today-btn {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     padding: 6px 12px;
     margin-left: 10px;
 }
@@ -95,14 +95,14 @@
     padding: 8px 12px;
     border: 1px solid var(--ffc-gray-300);
     border-radius: var(--ffc-radius-sm);
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     background: var(--ffc-bg-card);
     min-width: 150px;
 }
 
 .ffc-shortcode .ffc-calendar-title {
     padding: 8px 12px;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     font-weight: 600;
     color: var(--ffc-gray-700);
     border: 1px solid var(--ffc-gray-300);
@@ -125,7 +125,7 @@
 .ffc-shortcode .ffc-weekday {
     text-align: center;
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-gray-600);
     padding: 10px 5px;
 }
@@ -219,7 +219,7 @@
 
 .ffc-shortcode .ffc-day-number {
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     color: var(--ffc-gray-800);
 }
 
@@ -230,10 +230,14 @@
 /* Day Content */
 .ffc-shortcode .ffc-day-content {
     margin-top: 5px;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     overflow: hidden;
 }
 
+/* 10px literal, e 9px no @media adiante: o selo cabe DENTRO da célula de um
+   dia do calendário — é dimensionado pelo espaço, não para ser lido como
+   texto, e tem o próprio passo responsivo. Mapear os dois para `2xs` (11px)
+   tornaria aquele @media um no-op, pior que a deriva que ele corrige. */
 .ffc-shortcode .ffc-day-badge {
     display: inline-block;
     padding: 2px 6px;
@@ -269,7 +273,7 @@
     padding: 15px 20px;
     background: var(--ffc-gray-100);
     border-top: 1px solid var(--ffc-gray-200);
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     justify-content: center;
     flex-wrap: wrap;
 }
@@ -345,7 +349,7 @@
     display: block;
     font-weight: 600;
     margin-bottom: 5px;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-shortcode .ffc-form-group input,
@@ -355,7 +359,7 @@
     padding: 10px;
     border: 1px solid var(--ffc-gray-300);
     border-radius: var(--ffc-radius-sm);
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-shortcode .ffc-form-group input:focus,
@@ -373,7 +377,7 @@
 }
 
 .ffc-shortcode .ffc-char-count {
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     color: var(--ffc-gray-600);
     float: right;
     margin-top: 5px;
@@ -421,7 +425,7 @@
     color: var(--ffc-text-on-primary);
     padding: 5px 10px;
     border-radius: 20px;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
 }
 
 .ffc-shortcode .ffc-selected-user .remove {
@@ -449,7 +453,7 @@
     color: var(--ffc-warning);
     float: left;
     margin-right: 10px;
-    font-size: 24px;
+    font-size: var(--ffc-font-size-2xl);
 }
 
 .ffc-shortcode .ffc-conflict-warning p {
@@ -457,7 +461,7 @@
 }
 
 .ffc-shortcode .ffc-conflict-details {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-gray-600);
     margin-top: 10px;
 }
@@ -467,7 +471,7 @@
     align-items: flex-start;
     gap: 8px;
     margin-top: 12px;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     font-weight: 600;
     cursor: pointer;
 }
@@ -489,11 +493,11 @@
     color: var(--ffc-danger);
     float: left;
     margin-right: 10px;
-    font-size: 24px;
+    font-size: var(--ffc-font-size-2xl);
 }
 
 .ffc-shortcode .ffc-conflict-error-details {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-gray-700);
     margin-top: 5px;
 }
@@ -518,7 +522,7 @@
 
 .ffc-shortcode .ffc-booking-time {
     font-weight: 600;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     color: var(--ffc-primary);
     margin-bottom: 5px;
 }
@@ -531,7 +535,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 15px;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-gray-600);
 }
 
@@ -546,7 +550,7 @@
     display: inline-block;
     padding: 3px 8px;
     border-radius: 3px;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     /* O fundo desta etiqueta vem da cor da audiência, escrita no style= do
        elemento: branco é a única escolha segura contra um matiz arbitrário,
        então não é papel da paleta (#1126). */
@@ -571,7 +575,7 @@
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     color: var(--ffc-gray-600);
 }
 
@@ -581,7 +585,7 @@
 
 .ffc-shortcode .ffc-status-cancelled {
     color: var(--ffc-danger);
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     font-weight: 400;
 }
 
@@ -618,7 +622,7 @@
     }
 
     .ffc-shortcode .ffc-weekday {
-        font-size: 11px;
+        font-size: var(--ffc-font-size-2xs);
         padding: 5px 2px;
     }
 
@@ -629,7 +633,7 @@
     .ffc-shortcode .ffc-calendar-legend {
         justify-content: flex-start;
         gap: 10px;
-        font-size: 11px;
+        font-size: var(--ffc-font-size-2xs);
     }
 
     /* Side layout becomes below on mobile */
@@ -645,7 +649,7 @@
 
 @media screen and (max-width: 480px) {
     .ffc-shortcode .ffc-day-number {
-        font-size: 12px;
+        font-size: var(--ffc-font-size-xs);
     }
 
     .ffc-shortcode .ffc-day-badge {
@@ -654,7 +658,7 @@
     }
 
     .ffc-shortcode .ffc-current-month {
-        font-size: 15px;
+        font-size: var(--ffc-font-size-lg);
         min-width: auto;
     }
 }
@@ -716,7 +720,7 @@
 
 .ffc-shortcode .ffc-event-list-header h3 {
     margin: 0;
-    font-size: 15px;
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-gray-800);
 }
@@ -727,7 +731,7 @@
 
 /* Event list date group header */
 .ffc-shortcode .ffc-event-list-date {
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     font-weight: 600;
     color: var(--ffc-gray-600);
     text-transform: uppercase;
@@ -761,7 +765,7 @@
 }
 
 .ffc-shortcode .ffc-event-list-time {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     font-weight: 600;
     color: var(--ffc-primary);
 }
@@ -771,13 +775,13 @@
 }
 
 .ffc-shortcode .ffc-event-list-env {
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     color: var(--ffc-gray-600);
     font-weight: 500;
 }
 
 .ffc-shortcode .ffc-event-list-desc {
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     color: var(--ffc-gray-500);
     line-height: 1.3;
 }
@@ -793,7 +797,7 @@
     display: inline-block;
     padding: 1px 6px;
     border-radius: 3px;
-    font-size: 10px;
+    font-size: var(--ffc-font-size-2xs);
     /* Idem à etiqueta grande acima: fundo data-driven (#1126). */
     color: #fff;
 }
@@ -801,7 +805,7 @@
 .ffc-shortcode .ffc-no-events {
     text-align: center;
     color: var(--ffc-gray-500);
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     padding: 20px 10px;
     margin: 0;
 }

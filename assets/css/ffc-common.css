@@ -595,13 +595,13 @@
 
 .ffc-shortcode .ffc-modal-header h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
 }
 
 .ffc-shortcode .ffc-modal-close {
     background: none;
     border: none;
-    font-size: 24px;
+    font-size: var(--ffc-font-size-2xl);
     cursor: pointer;
     color: var(--ffc-gray-600);
     padding: 0;
@@ -712,7 +712,7 @@
     display: inline-block;
     padding: 2px 8px;
     border-radius: 10px;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
     text-transform: uppercase;
     white-space: nowrap;
@@ -776,7 +776,7 @@
 }
 
 .ffc-rate-limit-icon {
-    font-size: 24px;
+    font-size: var(--ffc-font-size-2xl);
 }
 
 .ffc-rate-limit-message {
@@ -858,6 +858,9 @@
     text-align: center;
 }
 
+/* 1.2em literal: relativo ao PAI de propósito — este componente é solto em
+   contextos de tamanhos diferentes e acompanha cada um. Um token absoluto
+   destruiria justamente essa relação. */
 .ffc-visibility-restricted .ffc-calendar-title {
     margin: 0 0 10px;
     font-size: 1.2em;
@@ -889,6 +892,7 @@
 }
 
 /* Admin bypass notice */
+/* 0.9em literal: relativo ao pai, mesma razão do .ffc-calendar-title acima. */
 .ffc-admin-bypass-notice {
     padding: 10px 15px;
     margin-bottom: 15px;
@@ -904,7 +908,7 @@
     display: inline-block;
     padding: 3px 8px;
     border-radius: 3px;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -920,7 +924,7 @@
     border: none;
     border-radius: var(--ffc-radius-sm);
     font-family: var(--ffc-font-family);
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     font-weight: 500;
     cursor: pointer;
     text-decoration: none;
@@ -1097,7 +1101,7 @@
     margin-left: 8px;
     padding: 2px 8px;
     border-radius: 10px;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     font-weight: 500;
     line-height: 1.5;
     vertical-align: middle;
@@ -1138,7 +1142,7 @@
     margin-top: 4px;
     padding: 2px 8px;
     border-radius: 10px;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 500;
     line-height: 1.4;
 }

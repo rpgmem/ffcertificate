@@ -39,7 +39,7 @@
 
 .ffc-certificates-side-title {
     margin: 0 0 12px;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
 }
 
 .ffc-certificates-side-empty {
@@ -68,7 +68,7 @@
 }
 
 .ffc-certificates-source-badge {
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -99,7 +99,7 @@
 }
 
 .ffc-certificates-status {
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     color: var(--ffc-text-secondary);
 }
 
@@ -121,7 +121,7 @@
 }
 
 .ffc-certificates-submissions-link .dashicons {
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
     width: 18px;
     height: 18px;
 }
@@ -154,7 +154,7 @@
 
 .ffc-calendar-core .ffc-current-month {
     margin: 0;
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
     font-weight: 600;
     min-width: 180px;
     text-align: center;
@@ -167,7 +167,7 @@
     border-radius: 4px;
     padding: 8px 12px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     transition: all 0.2s ease;
     line-height: 1;
 }
@@ -183,7 +183,7 @@
 }
 
 .ffc-calendar-core .ffc-today-btn {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     padding: 6px 12px;
     margin-left: 10px;
 }
@@ -202,7 +202,7 @@
 .ffc-calendar-core .ffc-weekday {
     text-align: center;
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-secondary);
     padding: 10px 5px;
 }
@@ -250,7 +250,7 @@
 
 .ffc-calendar-core .ffc-day-number {
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     color: var(--ffc-text);
 }
 
@@ -260,7 +260,7 @@
 
 .ffc-calendar-core .ffc-day-content {
     margin-top: auto;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     overflow: hidden;
     align-self: flex-end;
 }
@@ -271,7 +271,7 @@
     padding: 15px 20px;
     background: var(--ffc-bg-alt);
     border-top: 1px solid var(--ffc-border-light);
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     justify-content: center;
     flex-wrap: wrap;
 }
@@ -298,7 +298,7 @@
     min-width: 20px;
     padding: 1px 6px;
     border-radius: 10px;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
     line-height: 1.5;
     /* Pílula cheia neutra: o par inverso é o que a mantém legível nos dois

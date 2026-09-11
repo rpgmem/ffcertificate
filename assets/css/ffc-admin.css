@@ -99,7 +99,7 @@
     width: 100%;
     height: 450px;
     font-family: Consolas, Monaco, monospace;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     /* Editor de código: escuro nos dois temas por definição (#1126). */
     background: #2c3338;
     color: #f0f0f1;
@@ -120,7 +120,7 @@
     width: 100%;
     min-height: 150px;
     border: 1px solid var(--ffc-gray-400);
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
 }
 
 .ffc-gen-status {
@@ -131,7 +131,7 @@
 
 .ffc-textarea-mono {
     font-family: 'Courier New', Courier, monospace;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
 }
 
 .ffc-h80 { min-height: 80px; }
@@ -195,7 +195,7 @@
     .ffc-table-responsive .button {
         display: inline-block;
         margin: 2px;
-        font-size: 11px;
+        font-size: var(--ffc-font-size-2xs);
         padding: 4px 8px;
         line-height: 1.5;
     }
@@ -235,14 +235,14 @@
     margin: 10px 0;
     user-select: all;
     font-family: 'Courier New', Courier, monospace;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     word-break: break-all;
 }
 
 .ffc-tips-list {
     list-style: disc;
     padding-left: 20px;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     color: var(--ffc-text-muted);
 }
 
@@ -263,7 +263,7 @@
     cursor: move;
     color: var(--ffc-gray-300);
     padding: 5px;
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
     display: flex;
     align-items: center;
 }
@@ -276,7 +276,7 @@
     color: var(--ffc-danger);
     cursor: pointer;
     text-decoration: none;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
 }
 
 .ffc-remove-field:hover {
@@ -316,7 +316,7 @@
 
 /* Seções de cabeçalho */
 .ffc-edit-submission-form h2 {
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -411,6 +411,9 @@
 }
 
 .ffc-action-group .button .dashicons,
+/* 17px literal: caixa de glifo, não texto — um ícone ou um `&times;`
+   dimensionado por font-size é uma caixa, e a escala tipográfica não o
+   governa. Mesma razão do .ffc-stat-icon (#1148 etapa 1). */
 .ffc-template-loader .button .dashicons {
     margin-right: 4px;
     font-size: 17px;
@@ -423,7 +426,7 @@
 .ffc-autosave-status {
     display: inline-block;
     margin-left: 8px;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     font-style: italic;
     vertical-align: middle;
 }
@@ -453,7 +456,7 @@
 .ffc-view-as-user {
     color: var(--ffc-link);
     text-decoration: none;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
 }
 
 .ffc-view-as-user:hover {
@@ -478,7 +481,7 @@
     padding: 2px 6px;
     color: var(--ffc-primary);
     font-family: "Courier New", monospace;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     white-space: nowrap;
     display: inline-block;
     cursor: default;
@@ -496,7 +499,7 @@
     border-radius: 3px;
     height: auto;
     min-height: 260px;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     font-family: Consolas, Monaco, "Courier New", monospace;
 }
 
@@ -573,7 +576,7 @@
     display: inline-block;
     padding: 3px 10px;
     border-radius: 11px;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     font-weight: 500;
     line-height: 1.5;
 }
@@ -644,7 +647,7 @@
 
 .ffc-csv-audit-card-label {
     display: block;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     color: var(--ffc-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -653,7 +656,7 @@
 
 .ffc-csv-audit-card-value {
     display: block;
-    font-size: 22px;
+    font-size: var(--ffc-font-size-2xl);
     font-weight: 700;
     line-height: 1.1;
     color: var(--ffc-text);
@@ -661,7 +664,7 @@
 
 .ffc-csv-audit-card-hint {
     display: block;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     color: var(--ffc-text-muted);
     margin-top: 6px;
     line-height: 1.3;
@@ -686,7 +689,7 @@
 }
 
 .ffc-log-pre {
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     max-height: 150px;
     overflow: auto;
     margin-top: 8px;
@@ -789,11 +792,14 @@ td .ffc-restriction-label {
 
 .ffc-preview-header h2 {
     margin: 0;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-inverse-on-surface);
 }
 
+/* 28px literal: caixa de glifo, não texto — um ícone ou um `&times;`
+   dimensionado por font-size é uma caixa, e a escala tipográfica não o
+   governa. Mesma razão do .ffc-stat-icon (#1148 etapa 1). */
 .ffc-preview-close {
     background: none;
     border: none;
@@ -813,7 +819,7 @@ td .ffc-restriction-label {
     padding: 8px 20px;
     background: var(--ffc-info-bg);
     border-bottom: 1px solid var(--ffc-border);
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     color: var(--ffc-text-secondary);
     flex-shrink: 0;
 }
@@ -878,13 +884,13 @@ td .ffc-restriction-label {
 .column-ffc_shortcode { width: 240px; }
 .column-ffc_submissions { width: 100px; }
 .ffc-shortcode-cell { display: inline-flex; align-items: center; gap: 4px; }
-.ffc-shortcode-code { font-size: 12px; padding: 2px 6px; user-select: all; }
+.ffc-shortcode-code { font-size: var(--ffc-font-size-xs); padding: 2px 6px; user-select: all; }
 .ffc-copy-shortcode {
     background: none; border: 1px solid var(--ffc-border); border-radius: 3px;
     cursor: pointer; padding: 2px 4px; line-height: 1; color: var(--ffc-text-muted);
 }
 .ffc-copy-shortcode:hover { color: var(--ffc-primary); border-color: var(--ffc-primary); }
-.ffc-copy-shortcode .dashicons { font-size: 14px; width: 14px; height: 14px; }
+.ffc-copy-shortcode .dashicons { font-size: var(--ffc-font-size-base); width: 14px; height: 14px; }
 .ffc-copy-shortcode.copied { color: var(--ffc-success-text); border-color: var(--ffc-success); }
 
 /* =========================================================================
@@ -982,7 +988,7 @@ p.ffc-datetime-order-error {
 	flex: 0 0 auto;
 	width: 18px;
 	height: 18px;
-	font-size: 18px;
+	font-size: var(--ffc-font-size-xl);
 	color: var(--ffc-text-muted);
 }
 
@@ -1025,12 +1031,15 @@ p.ffc-datetime-order-error {
 	gap: 8px;
 	margin: 4px 0 16px;
 	padding-bottom: 10px;
-	font-size: 15px;
+	font-size: var(--ffc-font-size-lg);
 	font-weight: 600;
 	color: var(--ffc-text);
 	border-bottom: 2px solid var(--ffc-primary);
 }
 
+/* 20px literal: caixa de glifo, não texto — um ícone ou um `&times;`
+   dimensionado por font-size é uma caixa, e a escala tipográfica não o
+   governa. Mesma razão do .ffc-stat-icon (#1148 etapa 1). */
 .ffc-form-tabs__panel-title .dashicons {
 	flex: 0 0 auto;
 	color: var(--ffc-primary);

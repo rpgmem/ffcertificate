@@ -58,24 +58,44 @@ class TypographyTokensTest extends TestCase {
 	 * @var array<string, int>
 	 */
 	private const BUDGET = array(
-		// Convertidas (#1148 item 4, etapa 1 — admin).
+		// Zero é o estado normal: a folha inteira pinta pela escala.
 		'ffc-admin-move-submissions.css'   => 0,
 		'ffc-admin-submission-edit.css'    => 0,
 		'ffc-admin-submissions.css'        => 0,
 		'ffc-admin-utilities.css'          => 0,
+		'ffc-appointment-cancellation.css' => 0,
 		'ffc-calendar-admin.css'           => 0,
+		'ffc-calendar-editor.css'          => 0,
+		'ffc-certificates-dashboard.css'   => 0,
 		'ffc-custom-fields-admin.css'      => 0,
 		'ffc-email-model.css'              => 0,
 		'ffc-progress-overlay.css'         => 0,
 		'ffc-recruitment-admin.css'        => 0,
+		'ffc-recruitment-public.css'       => 0,
+		'ffc-reregistration-frontend.css'  => 0,
 		'ffc-url-shortener-admin.css'      => 0,
 		'ffc-user-permissions.css'         => 0,
 		'ffc-working-hours.css'            => 0,
 
-		// Convertidas, menos as exceções anotadas: glifos de ícone e o número-herói.
+		// Glifos: um ícone (dashicon, `&times;`, marca de sucesso) dimensionado
+		// por font-size é uma caixa de glifo, não texto.
 		'ffc-admin-settings.css'           => 1,
-		'ffc-audience-admin.css'           => 2,
+		'ffc-calendar-frontend.css'        => 1,
 		'ffc-reregistration-admin.css'     => 1,
+		'ffc-admin.css'                    => 3,
+		'ffc-frontend.css'                 => 2,
+
+		// Números-herói de card, deliberadamente acima da escala de texto —
+		// mais o passo móvel que ficaria sem sentido se subisse ao piso.
+		'ffc-audience-admin.css'           => 2,
+		'ffc-user-dashboard.css'           => 2,
+
+		// Selo que cabe dentro da célula do dia, com passo responsivo próprio.
+		'ffc-audience.css'                 => 2,
+
+		// Dois `em` relativos ao pai de propósito: o componente é solto em
+		// contextos de tamanhos diferentes e acompanha cada um.
+		'ffc-common.css'                   => 2,
 
 		// `ffc-pdf-core.css` fica inteira literal, por duas razões distintas.
 		// Os seis h1–h6 redeclaram os tamanhos padrão do agente de usuário
@@ -87,20 +107,6 @@ class TypographyTokensTest extends TestCase {
 		// enfileiramento no frontend. Ler um token que a página pode não ter
 		// invalida a declaração inteira.
 		'ffc-pdf-core.css'                 => 7,
-
-		// Ainda não convertidas — etapa 2 (frontend). Estes números caem para
-		// perto de zero lá; até isso acontecer, a catraca impede que cresçam.
-		'ffc-admin.css'                    => 27,
-		'ffc-appointment-cancellation.css' => 2,
-		'ffc-audience.css'                 => 36,
-		'ffc-calendar-editor.css'          => 1,
-		'ffc-calendar-frontend.css'        => 18,
-		'ffc-certificates-dashboard.css'   => 12,
-		'ffc-common.css'                   => 10,
-		'ffc-frontend.css'                 => 84,
-		'ffc-recruitment-public.css'       => 11,
-		'ffc-reregistration-frontend.css'  => 16,
-		'ffc-user-dashboard.css'           => 56,
 	);
 
 	/**

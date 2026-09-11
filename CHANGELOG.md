@@ -9,6 +9,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **As 11 folhas do frontend passaram a ler a escala** (#1148): 238 declarações convertidas por casamento exato e 23 pelo degrau mais próximo, restando 23 literais em toda a base — cada um com o motivo ao lado (glifo de ícone, número-herói, `em` relativo ao pai, selo dentro da célula do dia). A catraca bloqueia em zero nas 17 folhas já limpas.
 - **Cada degrau da escala ganhou piso em px** (#1157): a escala é `rem` pela preferência de fonte do navegador, mas `rem` resolve contra a raiz do documento — sob um tema com `html { font-size: 62.5% }` o corpo renderizava a 8,1px. Vira `max(13px, 0.8125rem)`: imune ao tema, e ainda cresce com a preferência do usuário.
 - **A escala de tipografia passou a ser usada, e ganhou o degrau que faltava** (#1148): 415 declarações `font-size` e nenhuma lia um token — a escala existia e era órfã. O `xs` virou 12px (69 usos, terceiro valor mais comum, sem degrau) e o 11px virou `2xs`; renomear custou zero por não haver call site. 16 folhas do admin convertidas; catraca por folha impede o retorno.
 - **O modal do admin de recadastramento ganhou nome próprio** (#1154): dividia `.ffc-modal` com o componente compartilhado, numa tela onde as duas folhas carregam — a separação dependia do prefixo `.ffc-shortcode` continuar existindo. Vira `ffc-rereg-modal*`; os componentes seguem distintos, agora pelo nome.
