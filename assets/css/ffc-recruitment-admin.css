@@ -323,3 +323,21 @@
     color: var(--ffc-text-secondary);
     font-size: var(--ffc-font-size-2xs);
 }
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
+   O mecanismo está explicado em ffc-common.css (#1165).
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Selos de estado: o texto continua dizendo o estado; a borda
+       devolve a eles a forma de selo. */
+    .ffc-rec-pill,
+    .ffc-status-badge.ffc-status-active,
+    .ffc-status-badge.ffc-status-closed,
+    .ffc-status-badge.ffc-status-draft,
+    .ffc-status-badge.ffc-status-preliminary {
+        border: 1px solid CanvasText;
+    }
+}

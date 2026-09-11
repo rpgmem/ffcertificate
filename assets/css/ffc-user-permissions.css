@@ -600,3 +600,20 @@
 .ffc-blocked-roles__hint {
 	margin: 6px 0 10px;
 }
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
+   O mecanismo está explicado em ffc-common.css (#1165).
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Selos de estado: o texto continua dizendo o estado; a borda
+       devolve a eles a forma de selo. */
+    .ffc-cap-badge-surface--admin,
+    .ffc-cap-badge-surface--api,
+    .ffc-cap-badge-surface--frontend,
+    .ffc-cap-chip--muted {
+        border: 1px solid CanvasText;
+    }
+}
