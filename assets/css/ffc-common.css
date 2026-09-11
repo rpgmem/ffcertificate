@@ -41,30 +41,46 @@
     --ffc-gray-700: #3c434a;
     --ffc-gray-800: #1d2327;
 
-    /* Typography
-       Font sizes use rem so they respect the user's browser base font size
-       (default 16px). Values match the px scale on a 16px root:
-       11→0.6875, 12→0.75, 13→0.8125, 14→0.875, 16→1, 18→1.125, 24→1.5.
+    /* Typography — cada degrau é `max(<piso px>, <rem>)`, e a forma é o ponto.
+
+       O `rem` respeita a preferência de tamanho de fonte do navegador, que é
+       o ganho de acessibilidade que queremos. Mas `rem` resolve contra a raiz
+       do DOCUMENTO, e no frontend a raiz é do tema do site: sob o idioma
+       comum `html { font-size: 62.5% }` a escala inteira encolhe junto.
+       O piso em px anula isso sem abrir mão do ganho.
+
+       Medido em Chromium (#1157), tamanho computado do degrau `sm`:
+
+                                    só rem   só px   max()
+         tema neutro (16px)           13px    13px    13px
+         tema 62.5%                  8,1px    13px    13px
+         usuário aumenta p/ 20px    16,3px    13px   16,3px
+
+       `max()` não é meio-termo: é melhor que `rem` no caso que quebra e
+       melhor que `px` no caso que importa. A única perda honesta é combinada
+       — sob um tema que encolhe a raiz, a preferência do usuário fica
+       absorvida pelo piso até ultrapassá-lo (com raiz a 62,5%, mesmo pedindo
+       24px ele recebe os 13px do piso). Ainda assim é melhor que os 12,2px
+       que o `rem` puro entregaria ali.
+
+       As duas metades têm de concordar a 16px — `max(13px, 0.8125rem)` é uma
+       identidade, não um intervalo. `TypographyTokensTest` falha se
+       divergirem, se o `max()` sumir, ou se um degrau sumir: uma custom
+       property não declarada invalida a declaração inteira.
 
        O degrau `xs` era 11px e passou a ser 12px (#1148 item 4). O 12px tinha
        69 usos e nenhum token — era o terceiro valor mais usado da base e a
        escala pulava justamente ele, que é também o passo responsivo do `sm`
        em quatro folhas. Renomear custou zero porque a escala tinha ZERO
-       consumidores: 415 declarações `font-size` e nenhuma lia um token.
-
-       A exposição que o `rem` traz está aceita e escrita: sob um tema que
-       mexa no root (`html { font-size: 62.5% }` é idioma comum), estes
-       valores encolhem junto. Nenhuma guarda vê isso — contraste não muda.
-       Decidido assim pelo ganho de acessibilidade; #1157 mede em quais temas
-       reais isso morde. */
+       consumidores: 415 declarações `font-size` e nenhuma lia um token. */
     --ffc-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-    --ffc-font-size-2xs: 0.6875rem;
-    --ffc-font-size-xs: 0.75rem;
-    --ffc-font-size-sm: 0.8125rem;
-    --ffc-font-size-base: 0.875rem;
-    --ffc-font-size-lg: 1rem;
-    --ffc-font-size-xl: 1.125rem;
-    --ffc-font-size-2xl: 1.5rem;
+    --ffc-font-size-2xs: max(11px, 0.6875rem);
+    --ffc-font-size-xs: max(12px, 0.75rem);
+    --ffc-font-size-sm: max(13px, 0.8125rem);
+    --ffc-font-size-base: max(14px, 0.875rem);
+    --ffc-font-size-lg: max(16px, 1rem);
+    --ffc-font-size-xl: max(18px, 1.125rem);
+    --ffc-font-size-2xl: max(24px, 1.5rem);
 
     /* Spacing */
     --ffc-spacing-xs: 5px;
