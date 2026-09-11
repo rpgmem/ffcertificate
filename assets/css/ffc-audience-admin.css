@@ -77,25 +77,39 @@
     flex-wrap: wrap;
 }
 
-/* Status Badges */
-.ffc-status-badge {
+/* Status Badges — nome próprio desde o #1162.
+   Antes chamavam-se `.ffc-status-badge` + `.ffc-status-<estado>`, e o
+   `.ffc-status-cancelled` daqui colidia com o do `ffc-calendar-admin.css` na
+   tela de Agendamentos: Appointments é submenu de `ffc-scheduling`, então o
+   gate desta folha (`strpos($hook, 'ffc-scheduling')`) casa lá também, as duas
+   carregam sem aresta de dependência entre si e a ordem decidia a cor.
+   A forma abaixo é declarada por inteiro de propósito: as quatro propriedades
+   que faltavam (`display`, `text-transform`, `letter-spacing`, `white-space`)
+   vinham por herança acidental de `ffc-common.css` e `ffc-admin-submissions.css`
+   -- esta última carrega em TODA página `?page=ffc-*`, não só em submissões.
+   Declarar o conjunto mantém o render idêntico e o torna intencional. */
+.ffc-audience-status {
+    display: inline-block;
     padding: 3px 8px;
     border-radius: 3px;
     font-size: var(--ffc-font-size-xs);
     font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
 }
 
-.ffc-status-active {
+.ffc-audience-status-active {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
 }
 
-.ffc-status-inactive {
+.ffc-audience-status-inactive {
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
 }
 
-.ffc-status-cancelled {
+.ffc-audience-status-cancelled {
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
 }

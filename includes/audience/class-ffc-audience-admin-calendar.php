@@ -128,7 +128,7 @@ class AudienceAdminCalendar {
 							</td>
 							<td class="column-environments"><?php echo esc_html( (string) $env_count ); ?></td>
 							<td class="column-status">
-								<span class="ffc-status-badge ffc-status-<?php echo esc_attr( $schedule->status ); ?>">
+								<span class="ffc-audience-status ffc-audience-status-<?php echo esc_attr( $schedule->status ); ?>">
 									<?php echo $is_active ? esc_html__( 'Active', 'ffcertificate' ) : esc_html__( 'Inactive', 'ffcertificate' ); ?>
 								</span>
 							</td>

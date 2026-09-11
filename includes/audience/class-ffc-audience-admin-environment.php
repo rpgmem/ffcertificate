@@ -182,7 +182,7 @@ class AudienceAdminEnvironment {
 								<?php echo esc_html( $schedule_name ); ?>
 							</td>
 							<td class="column-status">
-								<span class="ffc-status-badge ffc-status-<?php echo esc_attr( $env->status ); ?>">
+								<span class="ffc-audience-status ffc-audience-status-<?php echo esc_attr( $env->status ); ?>">
 									<?php echo $is_active ? esc_html__( 'Active', 'ffcertificate' ) : esc_html__( 'Inactive', 'ffcertificate' ); ?>
 								</span>
 							</td>

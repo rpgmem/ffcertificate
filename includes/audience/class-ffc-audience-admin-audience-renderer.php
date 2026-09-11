@@ -125,7 +125,7 @@ final class AudienceAdminAudienceRenderer {
 				</a>
 			</td>
 			<td class="column-status">
-				<span class="ffc-status-badge ffc-status-<?php echo esc_attr( $audience->status ); ?>">
+				<span class="ffc-audience-status ffc-audience-status-<?php echo esc_attr( $audience->status ); ?>">
 					<?php echo $is_active ? esc_html__( 'Active', 'ffcertificate' ) : esc_html__( 'Inactive', 'ffcertificate' ); ?>
 				</span>
 			</td>

@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\CssSelectors;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -178,131 +179,16 @@ class CssNamespaceAnchorTest extends TestCase {
 	/**
 	 * Extrai os seletores de uma folha, um por entrada da lista.
 	 *
-	 * Anda pelas chaves em vez de casar `([^{]+)\{`, porque precisa (a) pular
-	 * o prelúdio de at-rule, (b) pular os passos de `@keyframes` -- `0%`,
-	 * `from` -- que não são seletores, e (c) não ler `{`, `}` ou `;` de dentro
-	 * de uma string: `img[src^="data:image/png;base64"]` tem um `;` que, lido
-	 * fora de contexto, corta o seletor ao meio.
+	 * Delega ao parser compartilhado: a guarda de posse de componente (#1162)
+	 * mede sobre as MESMAS folhas, e duas varreduras que discordassem sobre o
+	 * que é um seletor mediriam conjuntos diferentes -- o motivo pelo qual
+	 * `.github/scripts/ffc-create-statements.php` também é compartilhado.
 	 *
 	 * @param string $css Conteúdo da folha.
 	 * @return array<int, string>
 	 */
 	private function selectors( string $css ): array {
-		$css   = (string) preg_replace( '#/\*.*?\*/#s', '', $css );
-		$out   = array();
-		$buf   = '';
-		$stack = array();
-		$quote = '';
-		$len   = strlen( $css );
-
-		for ( $i = 0; $i < $len; $i++ ) {
-			$ch = $css[ $i ];
-
-			if ( '' !== $quote ) {
-				$buf .= $ch;
-				if ( '\\' === $ch && $i + 1 < $len ) {
-					$buf .= $css[ ++$i ];
-					continue;
-				}
-				if ( $ch === $quote ) {
-					$quote = '';
-				}
-				continue;
-			}
-
-			if ( '"' === $ch || "'" === $ch ) {
-				$quote = $ch;
-				$buf  .= $ch;
-				continue;
-			}
-
-			if ( '{' === $ch ) {
-				$prelude = trim( $buf );
-				$buf     = '';
-				if ( str_starts_with( $prelude, '@' ) ) {
-					$name    = strtolower( strtok( $prelude, " \t\n(" ) ?: '' );
-					$stack[] = str_contains( $name, 'keyframes' ) ? 'keyframes' : 'atrule';
-					continue;
-				}
-				$parent = end( $stack );
-				if ( 'keyframes' !== $parent && '' !== $prelude ) {
-					foreach ( $this->split_list( $prelude ) as $one ) {
-						$out[] = $one;
-					}
-				}
-				$stack[] = 'rule';
-				continue;
-			}
-
-			if ( '}' === $ch ) {
-				$buf = '';
-				array_pop( $stack );
-				continue;
-			}
-
-			if ( ';' === $ch && array() === $stack ) {
-				$buf = '';
-				continue;
-			}
-
-			$buf .= $ch;
-		}
-
-		return $out;
-	}
-
-	/**
-	 * Quebra uma lista de seletores nas vírgulas de nível zero.
-	 *
-	 * @param string $list Prelúdio da regra.
-	 * @return array<int, string>
-	 */
-	private function split_list( string $list ): array {
-		$parts = array();
-		$cur   = '';
-		$depth = 0;
-		$quote = '';
-		$len   = strlen( $list );
-
-		for ( $i = 0; $i < $len; $i++ ) {
-			$ch = $list[ $i ];
-
-			if ( '' !== $quote ) {
-				$cur .= $ch;
-				if ( $ch === $quote ) {
-					$quote = '';
-				}
-				continue;
-			}
-			if ( '"' === $ch || "'" === $ch ) {
-				$quote = $ch;
-				$cur  .= $ch;
-				continue;
-			}
-			if ( '(' === $ch ) {
-				++$depth;
-			} elseif ( ')' === $ch ) {
-				--$depth;
-			}
-			if ( ',' === $ch && 0 === $depth ) {
-				$parts[] = $cur;
-				$cur     = '';
-				continue;
-			}
-			$cur .= $ch;
-		}
-
-		$parts[] = $cur;
-
-		$clean = array();
-		foreach ( $parts as $part ) {
-			$part = trim( (string) preg_replace( '/\s+/', ' ', $part ) );
-			if ( '' !== $part ) {
-				$clean[] = $part;
-			}
-		}
-
-		return $clean;
+		return CssSelectors::of( $css );
 	}
 
 	/**
@@ -315,10 +201,7 @@ class CssNamespaceAnchorTest extends TestCase {
 		$total      = 0;
 		$sheets     = 0;
 
-		foreach ( glob( dirname( __DIR__, 2 ) . '/assets/css/*.css' ) ?: array() as $path ) {
-			if ( str_ends_with( $path, '.min.css' ) ) {
-				continue;
-			}
+		foreach ( CssSelectors::sheets() as $path ) {
 			++$sheets;
 			$name = basename( $path );
 
