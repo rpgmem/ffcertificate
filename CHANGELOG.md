@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Catraca de namespace no CSS** (#1152): 60 seletores não nomeiam nada que o plugin possua — `.button::before`, `.column-status`, `#tab-*` — e alcançam qualquer elemento da tela; hoje o raio é pequeno por sorte de enfileiramento, não por desenho. Guarda nova congela a lista por folha e só deixa encolher.
+
 ### Changed
 
 - **As 11 folhas do frontend passaram a ler a escala** (#1148): 238 declarações convertidas por casamento exato e 23 pelo degrau mais próximo, restando 23 literais em toda a base — cada um com o motivo ao lado (glifo de ícone, número-herói, `em` relativo ao pai, selo dentro da célula do dia). A catraca bloqueia em zero nas 17 folhas já limpas.
