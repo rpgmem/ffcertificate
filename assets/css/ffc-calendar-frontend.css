@@ -26,7 +26,7 @@
 .ffc-shortcode .ffc-calendar-description p {
     margin: 0;
     color: var(--ffc-gray-800);
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }
 
 /* ==========================================================================
@@ -39,7 +39,7 @@
     background: var(--ffc-gray-100);
     border-bottom: 1px solid var(--ffc-gray-200);
     color: var(--ffc-gray-800);
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
     font-weight: 600;
 }
 
@@ -104,14 +104,14 @@
 
 .ffc-shortcode .ffc-timeslot-time {
     display: block;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     margin-bottom: 5px;
 }
 
 .ffc-shortcode .ffc-timeslot-available {
     display: block;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     opacity: 0.8;
 }
 
@@ -142,7 +142,7 @@
     border-radius: 6px;
     background: var(--ffc-gray-100);
     border: 1px solid var(--ffc-gray-200);
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     color: var(--ffc-gray-700);
 }
 
@@ -150,7 +150,7 @@
     text-align: center;
     padding: 40px 20px;
     color: var(--ffc-gray-600);
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }
 
 /* ==========================================================================
@@ -163,7 +163,7 @@
     background: var(--ffc-gray-100);
     border-bottom: 1px solid var(--ffc-gray-200);
     color: var(--ffc-gray-800);
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
     font-weight: 600;
 }
 
@@ -181,7 +181,7 @@
     margin-bottom: 5px;
     color: var(--ffc-gray-800);
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-shortcode .ffc-booking-form .required {
@@ -199,7 +199,7 @@
     padding: 10px;
     border: 1px solid var(--ffc-gray-300);
     border-radius: var(--ffc-radius-sm);
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     font-family: var(--ffc-font-family);
     transition: all 0.2s ease;
     background: var(--ffc-bg-input);
@@ -301,7 +301,7 @@
     padding: 15px;
     border-radius: var(--ffc-radius-sm);
     margin-bottom: 10px;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-shortcode .ffc-message-error {
@@ -330,6 +330,8 @@
     padding: 40px 20px;
 }
 
+/* 48px literal: glifo do ícone de sucesso, dimensionado como marca visual e
+   não como texto — a escala tipográfica não o governa. */
 .ffc-shortcode .ffc-success-icon {
     width: 80px;
     height: 80px;
@@ -347,7 +349,7 @@
 .ffc-shortcode .ffc-confirmation-success h3 {
     margin: 0 0 20px;
     color: var(--ffc-gray-800);
-    font-size: 24px;
+    font-size: var(--ffc-font-size-2xl);
 }
 
 .ffc-shortcode .ffc-appointment-details {
@@ -363,7 +365,7 @@
 
 .ffc-shortcode .ffc-appointment-details p {
     margin: 10px 0;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-shortcode .ffc-appointment-details strong {
@@ -385,11 +387,11 @@
     margin-top: 0;
     font-weight: 600;
     color: var(--ffc-gray-800);
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-shortcode .ffc-code-value {
-    font-size: 24px;
+    font-size: var(--ffc-font-size-2xl);
     font-weight: 700;
     color: var(--ffc-primary);
     font-family: 'Courier New', monospace;
@@ -403,7 +405,7 @@
 
 .ffc-shortcode .ffc-code-help {
     color: var(--ffc-gray-500);
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     margin-bottom: 0;
 }
 
@@ -467,7 +469,7 @@
 @media (max-width: 480px) {
     .ffc-shortcode .ffc-timeslots-wrapper h3,
     .ffc-shortcode .ffc-booking-form-wrapper h3 {
-        font-size: 16px;
+        font-size: var(--ffc-font-size-lg);
         padding: 12px 15px;
     }
 
@@ -477,7 +479,7 @@
     }
 
     .ffc-shortcode .ffc-timeslot-time {
-        font-size: 14px;
+        font-size: var(--ffc-font-size-base);
     }
 }
 
