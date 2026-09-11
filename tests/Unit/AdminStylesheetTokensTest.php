@@ -880,6 +880,53 @@ final class AdminStylesheetTokensTest extends TestCase {
 		);
 	}
 
+	/**
+	 * The shared modal keeps its `.ffc-shortcode` scope, and it is load-bearing.
+	 *
+	 * There is a second `.ffc-modal` in `ffc-reregistration-admin.css`, written
+	 * WITHOUT a scope prefix. It looks like a duplicate and is not: one centres
+	 * by flex at 500px and scrolls the content, the other positions by
+	 * `margin-top` at 820px and scrolls the body, with an `h2` title and a
+	 * filled header. Unifying them would redesign a screen, not refactor one.
+	 *
+	 * `ffc-common` is a DECLARED dependency of `ffc-reregistration-admin`, so
+	 * both sheets load on that screen. The prefix is the only thing keeping the
+	 * shared rules off the admin modal — drop it "to tidy up" and the admin
+	 * screen inherits a 500px flex-centred box it was never built for. Nothing
+	 * else would fail: the literal ratchet, the pair meter and the dependency
+	 * direction all stay green, because every rule involved is still tokenised
+	 * and still declared.
+	 *
+	 * @return void
+	 */
+	public function test_the_shared_modal_keeps_its_scope_prefix(): void {
+		$css = (string) preg_replace(
+			'#/\*.*?\*/#s',
+			'',
+			(string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-common.css' )
+		);
+
+		$unscoped = array();
+		if ( preg_match_all( '/^([^{}\n]*\.ffc-modal[\w-]*[^{}\n]*)\{/m', $css, $m ) ) {
+			foreach ( $m[1] as $selector ) {
+				foreach ( explode( ',', $selector ) as $part ) {
+					$part = trim( $part );
+					if ( '' !== $part && ! str_contains( $part, '.ffc-shortcode' ) ) {
+						$unscoped[] = $part;
+					}
+				}
+			}
+		}
+
+		$this->assertNotSame( array(), $m[1] ?? array(), 'A varredura do modal colapsou.' );
+		$this->assertSame(
+			array(),
+			$unscoped,
+			'Regra de modal sem `.ffc-shortcode` na paleta: ela alcançaria o modal do admin de recadastramento, que é outro componente.'
+		);
+	}
+
+
 	public function test_every_budget_entry_names_a_real_stylesheet(): void {
 		$known = array_keys( self::stylesheets() );
 

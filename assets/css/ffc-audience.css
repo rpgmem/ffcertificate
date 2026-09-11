@@ -632,11 +632,6 @@
         font-size: 11px;
     }
 
-    .ffc-shortcode .ffc-modal-content {
-        width: 95%;
-        max-height: 95vh;
-    }
-
     /* Side layout becomes below on mobile */
     .ffc-shortcode .ffc-calendar-wrapper.ffc-event-list-side {
         flex-direction: column;
