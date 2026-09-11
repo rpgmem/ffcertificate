@@ -187,6 +187,67 @@ class TypographyTokensTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Cada degrau é `max(<piso px>, <rem>)`, e as duas metades concordam a 16px.
+	 *
+	 * O `rem` sozinho resolve contra a raiz do DOCUMENTO, que no frontend é do
+	 * tema do site: sob `html { font-size: 62.5% }` — idioma comum — a escala
+	 * inteira encolhe, e o degrau `sm` mede 8,1px em vez de 13px. Medido em
+	 * Chromium (#1157), não estimado. O piso anula isso; o `rem` no outro lado
+	 * do `max()` preserva a preferência de fonte do navegador, que é o motivo
+	 * de a escala ser `rem` em primeiro lugar.
+	 *
+	 * A igualdade a 16px é o que esta guarda mede de mais específico:
+	 * `max(13px, 0.8125rem)` é uma IDENTIDADE naquele ponto, não um intervalo.
+	 * Um `max(13px, 0.75rem)` digitado por engano passaria despercebido para
+	 * sempre — as duas metades são plausíveis isoladamente, e a diferença só
+	 * aparece renderizada, num tema que ninguém aqui roda.
+	 *
+	 * O que ela não vê: se o piso é o tamanho certo para aquele papel. Ela
+	 * mede coerência da escala, nunca acerto de design.
+	 *
+	 * @return void
+	 */
+	public function test_every_step_floors_in_px_and_scales_in_rem(): void {
+		$css = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-common.css' );
+
+		$broken = array();
+		$seen   = 0;
+
+		foreach ( self::STEPS as $step ) {
+			$found = preg_match(
+				'/--ffc-font-size-' . preg_quote( $step, '/' ) . '\s*:\s*([^;]+);/',
+				$css,
+				$m
+			);
+
+			if ( ! $found ) {
+				$broken[] = "{$step}: não declarado.";
+				continue;
+			}
+
+			$value = trim( $m[1] );
+			if ( ! preg_match( '/^max\(\s*([\d.]+)px\s*,\s*([\d.]+)rem\s*\)$/', $value, $parts ) ) {
+				$broken[] = "{$step}: `{$value}` — a forma tem de ser `max(<px>, <rem>)`.";
+				continue;
+			}
+
+			++$seen;
+			$px  = (float) $parts[1];
+			$rem = (float) $parts[2] * 16.0;
+			if ( abs( $px - $rem ) > 0.001 ) {
+				$broken[] = "{$step}: piso {$px}px, mas o rem vale {$rem}px numa raiz de 16px — as metades divergem.";
+			}
+		}
+
+		$this->assertSame(
+			array(),
+			$broken,
+			"A escala perdeu a forma que a torna segura sob o tema do site (#1157):\n" . implode( "\n", $broken )
+		);
+		$this->assertSame( count( self::STEPS ), $seen, 'A varredura da escala colapsou — nenhum degrau casou a forma.' );
+	}
+
 	public function test_the_scale_declares_exactly_the_seven_steps(): void {
 		$css = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-common.css' );
 
