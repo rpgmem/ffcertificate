@@ -824,6 +824,62 @@ final class AdminStylesheetTokensTest extends TestCase {
 		return $out;
 	}
 
+	/**
+	 * The notice's text nodes are named, and painted through a token.
+	 *
+	 * The rule above them paints the box and every child inherits it — which is
+	 * how it reads in isolation, and how it measured at 13:1 in a Chromium
+	 * loaded with WordPress's real admin CSS. On a live install with other
+	 * plugins it did not hold: something declares a colour on those nodes
+	 * directly, and ANY direct declaration beats an inherited value however
+	 * specific its source. Naming the children at 0,3,1 is what fixed it, and
+	 * the fix was confirmed on the real install.
+	 *
+	 * The rule is therefore load-bearing and invisible: delete these five
+	 * selectors and nothing else fails, because the box rule still measures
+	 * fine and the pair meter compares declared pairs. Same shape as the base
+	 * pair of Direction D, and the same reason for pinning it.
+	 *
+	 * What it does not see — deliberately — is WHICH rule was losing. That was
+	 * never identified: the scan ruled out all 28 of our stylesheets and the
+	 * five core files that could plausibly carry it. A guard cannot assert
+	 * against a rule nobody can name; it can assert that our answer to it is
+	 * still here.
+	 */
+	public function test_the_notice_text_nodes_are_named_and_use_a_token(): void {
+		$css = (string) preg_replace(
+			'#/\*.*?\*/#s',
+			'',
+			(string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-common.css' )
+		);
+
+		if ( ! preg_match( '/(:root\.ffc-dark-mode\s+\.notice\s+p\s*,[^{}]*)\{([^{}]*)\}/s', $css, $m ) ) {
+			$this->fail( 'A regra que nomeia os nós de texto da tarja sumiu — sem ela o texto volta a herdar, e nada mais falha.' );
+		}
+
+		foreach ( array( '.notice p', '.notice li', '.notice strong' ) as $needed ) {
+			$this->assertStringContainsString(
+				$needed,
+				$m[1],
+				"A regra deixou de cobrir `{$needed}`."
+			);
+		}
+
+		$this->assertMatchesRegularExpression(
+			'/(?<![-\w])color\s*:\s*var\(--ffc-[\w-]+\)/',
+			$m[2],
+			'A tarja tem de pintar por token — literal aqui é o defeito que o bloco existe para corrigir.'
+		);
+
+		// E nunca com `!important`: responder `!important` com `!important`
+		// começa uma guerra que a próxima folha de terceiro ganha (#1141).
+		$this->assertStringNotContainsString(
+			'!important',
+			$m[2],
+			'Escalar para `!important` aqui é uma guerra que a próxima folha ganha.'
+		);
+	}
+
 	public function test_every_budget_entry_names_a_real_stylesheet(): void {
 		$known = array_keys( self::stylesheets() );
 

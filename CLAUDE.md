@@ -10,7 +10,7 @@ Project conventions for Claude (Anthropic CLI / agent sessions) working on this 
 
 1. **[Contributing workflow](#1-contributing-workflow)** — git / PR / release: pull-request workflow, branch naming, develop-branch workflow, versioning, CHANGELOG conventions, what not to do.
 2. **[Quality gates and testing](#2-quality-gates-and-testing)** — CI gates (+ coverage floors, module-boundary guard), test infrastructure, build & assets.
-3. **[Architecture and patterns](#3-architecture-and-patterns)** — repository pattern, module bootstrap (loaders), shared-service directories, email pipeline.
+3. **[Architecture and patterns](#3-architecture-and-patterns)** — repository pattern, module bootstrap (loaders), shared-service directories, email pipeline, CSV export, captcha, light/dark theme.
 4. **[Domain conventions](#4-domain-conventions)** — date/time storage, settings reads, capability naming, security & PII.
 5. **[Legacy and tech debt](#5-legacy-and-tech-debt)** — compat shims + evidence-gating.
 
@@ -417,6 +417,45 @@ Every public form is guarded by the same block: a honeypot (provider-independent
 **Keys, bounds and privacy defaults live in `CaptchaSettings`** — allowed values for each attribute, and the four bounded numbers. Each is clamped **on read as well as on save**, so a value written before a bound moved still lands somewhere the widget can cope with. The last two are the **challenge-issuing cap and its window** (#1111) — a cap whose window is a private constant is half a setting, since the same number means something different over a minute and an hour — and they are the one exception to "a captcha setting lives in `ffc_settings`": they are stored in `ffc_rate_limit_settings` under `ip.captcha_max_per_window` / `ip.captcha_window_seconds` and edited on the Rate Limit tab, because that tab groups by *what is limited* and this is limited per IP — next to the submission cap an administrator raises for the same institutional-NAT reason. Bounds stay in `CaptchaSettings`; storage belongs to the tab that owns the option. `0` on the cap means no cap, the same convention the per-endpoint read limits use, and it is the only honest answer for heavy NAT, where any per-address number caps the building rather than the farmer — `0` on the *window* is not a value and floors like any other out-of-range number. The window's floor is **1 second, not 60**: under a minute the throttle is mostly decorative (a caller just paces across boundaries), but that is a recommendation the field states, not a range the code refuses — the bounds here exist against a value the runtime cannot use, never to express a security opinion the administrator is not allowed to overrule. Lowering it required fixing what a **cleared field** writes: `(int) ''` is `0`, so every bounded numeric setting in the admin silently stored its own floor when emptied, and with a floor of 1 that would have meant a one-second window. Both write paths now treat empty as "not supplied" — the tab's rebuild-save keeps the stored value, and `SettingsAjaxEndpoint` refuses the write with a 400 (for **every** `int` key, not just these) so the field's badge shows the failure instead of a value nobody typed. The window length is part of the transient's bucket key, so changing it moves callers to a fresh bucket instead of reinterpreting counts taken under the old one. `humanInteractionSignature` (pointer and keyboard timings) and `setCookie` are **forced off and deliberately not configurable**: these are public-sector forms under the LGPD, the proof of work already carries the anti-automation load, and an administrator toggling them back on would change what the site has to disclose without being told so.
 
 **Signing and single use are shared, not per-strategy:** `Core\Captcha\ChallengeSigner` (key derived from `wp_salt('nonce')` — no option, nothing for `uninstall.php` or the fresh-install manifest) and `Core\Captcha\ChallengeStore` (transient ledger; `redeem()` spends, `is_spent()` reads). A new strategy reuses both rather than inventing its own.
+
+### Theme (one palette, one root class — #1126)
+
+Every colour the plugin paints comes from a `var(--ffc-*)` token declared in `assets/css/ffc-common.css`. The dark theme is that same sheet's `:root.ffc-dark-mode` block redefining part of the tokens — **the dark theme is the light theme overridden, never a second set**, which is why `DarkModeCssTest::palette('dark')` merges the two before measuring. `AssetHelper::enqueue_dark_mode()` puts the class on `<html>`, reading `ffc_settings['dark_mode']` (`off` / `on` / `auto`).
+
+**The plugin's own setting is the single source of truth. There is ZERO `prefers-color-scheme` in the CSS** — the OS is consulted inside `ffc-dark-mode.js`, and only when the setting is `auto`. A rule keyed on the media query would silently outrank the administrator's choice; don't add one.
+
+**Seven things the #1126 arc measured that are not guessable, each of which shipped as a defect first:**
+
+1. **The palette alone is not the theme.** A fully tokenized sheet renders light when the toggle script never reaches the page — every `var(--ffc-*)` resolves through the light block. Four public screens were in exactly that state.
+2. **An undeclared custom property invalidates the WHOLE declaration.** It does not fall back to the literal that was there before, so the element renders with no colour at all. Tokenizing a sheet whose enqueue does not depend on `ffc-common` makes the screen *worse*. A local `:root { --ffc-… }` inside a component is the same defect wearing a different hat: it shadows the palette for everything inside, so `:root.ffc-dark-mode` can never reach it.
+3. **Text that declares no `color` inherits from OUTSIDE this repository** — core's `body { color: #3c434a }` in wp-admin, the active theme on a public page. Both are near-black: **1,28:1** on a dark ground. The palette therefore carries a base pair per root we own (`body.wp-admin` — never bare `body`, since the class also lands on public pages).
+4. **A form control does not inherit `color` at all.** `<button>`, `<input>`, `<select>` and `<textarea>` take `buttontext` / `fieldtext` from the user agent, so the base pair cannot reach them. **A rule that paints a control's ground must paint its text.**
+5. **`opacity` on a row fades text and ground together**, multiplying down whatever contrast the tokens guaranteed — and the pair meter cannot see it by construction, because the tokens stay correct. Say state with colour, not with opacity.
+6. **An inline `style=""` beats the tokenized class.** Tokenizing is dead code while an inline colour exists. Where the background is a colour the *operator* picks, no token can work — the foreground comes from `Core\ContrastColor::on()`, which computes it by WCAG luminance. Its two candidates are pure black and white on purpose: the palette's near-black `#1d2327` drops the worst mid-tone of the RGB cube to **3,99:1**, while black holds **4,58:1** over any colour.
+7. **Categorical hues are not theme colours.** The twelve capability-group hues must stay distinguishable from each other, so they stay literal with the reason inline. Same for `#adminmenu` (it follows the user's own wp-admin colour scheme), vendor brand colours, an editor theme that is dark in both themes, and print.
+
+**Five guards, and none was written on spec** — each came from a defect that had already shipped:
+
+| Guard | What it blocks |
+| --- | --- |
+| `AdminStylesheetTokensTest` A | a colour literal per sheet — a ratchet, `0` for the converted ones |
+| …B / B2 | a sheet reading tokens without declaring `ffc-common`; a method enqueuing the palette without the toggle |
+| …C | a `var(--ffc-*)` nobody declares |
+| …D | the base pair exists, paints through a token, and names only live roots; the notice's text nodes likewise |
+| …E | a form control given a ground but no text colour |
+| `DarkModeCssTest` | every painted pair against its WCAG floor, both themes (4.5:1 text, 3:1 signal) |
+
+Each carries a self-check that fails when its own scan collapses — an empty result must never read as "clean" (the #1071 / #1094 lesson).
+
+**Standing decisions, so they are not re-litigated:**
+
+- **Print and PDF are light by definition.** `ffc-pdf-core.css` and the certificate preview's white paper are documents that may be printed; they do not follow the theme.
+- **Core screens stay light** — `profile.php`, `users.php`, the post-editor metabox. The content area of every core colour scheme is white, so our fields rendering light there is *consistent*, not a bug. Listed in `TOGGLE_NOT_NEEDED` with that reason.
+- **The code editor has its own setting**, `code_editor_theme` on the Advanced tab: `dark` (default), `light`, or `auto` (follows `dark_mode`). It is not hard-coded.
+- **A theme change repaints live.** The autosave widget announces `ffc:setting-saved` on `document`; `ffc-dark-mode.js` listens and re-applies, including dropping the OS listener when leaving `auto`. The widget must not learn which keys repaint — it states the fact, an interested script acts.
+
+Open items and the measurements behind them are in #1148 — among them the typography scale, which already exists and is already semantic, and the trade that makes multiple themes cost more than it looks.
+
 
 ---
 
