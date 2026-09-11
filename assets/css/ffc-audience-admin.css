@@ -28,11 +28,16 @@
     gap: 12px;
 }
 
+/* 32px literal: é o glifo do ícone, não texto — um ícone dimensionado por
+   font-size é uma caixa de glifo, e a escala tipográfica não o governa. */
 .ffc-stat-icon {
     font-size: 32px;
     color: var(--ffc-primary);
 }
 
+/* 36px literal: número-herói do card, deliberadamente acima da escala de
+   texto, pareado com o ícone de 32px ao lado. Um degrau usado uma vez não
+   é escala. */
 .ffc-stat-value {
     font-size: 36px;
     font-weight: 600;
@@ -41,7 +46,7 @@
 
 .ffc-stat-label {
     color: var(--ffc-text-secondary);
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-stat-link {
@@ -76,7 +81,7 @@
 .ffc-status-badge {
     padding: 3px 8px;
     border-radius: 3px;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     font-weight: 500;
 }
 
@@ -164,12 +169,12 @@
 }
 
 .ffc-hierarchy-parent > .column-name > strong > a {
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-member-total {
     color: var(--ffc-text-light);
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     margin-left: 2px;
 }
 
@@ -179,7 +184,7 @@
     align-items: center;
     gap: 6px;
     margin: 8px 0 0;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-secondary);
 }
 
@@ -194,7 +199,7 @@
 
 .ffc-breadcrumb-sep {
     color: var(--ffc-text-light);
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
 }
 
 /* Working Hours */
@@ -266,7 +271,7 @@
     padding: 5px 10px;
     margin: 3px;
     border-radius: 3px;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
 }
 
 .ffc-selected-user .remove {
@@ -346,14 +351,14 @@
 
 .ffc-admin-modal-header h3 {
     margin: 0;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
 }
 
 .ffc-admin-modal-close {
     background: none;
     border: none;
-    font-size: 22px;
+    font-size: var(--ffc-font-size-2xl);
     cursor: pointer;
     color: var(--ffc-text-muted);
     padding: 0;
@@ -410,7 +415,7 @@
     background: var(--ffc-bg-alt);
     padding: 15px;
     overflow-x: auto;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
 }
 
 .ffc-sample-csv h4 {
@@ -472,7 +477,7 @@
     pointer-events: none;
     cursor: default;
     color: #a7aaad !important;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -486,7 +491,7 @@
 }
 #adminmenu .wp-submenu a[href^="#ffc-separator-"]::before {
     font-family: dashicons;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     margin-right: 4px;
     vertical-align: middle;
     position: relative;
@@ -503,7 +508,7 @@
 }
 #adminmenu .wp-submenu a[href$="ffc-scheduling-dashboard"]::before {
     font-family: dashicons;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     margin-right: 4px;
     vertical-align: middle;
     position: relative;

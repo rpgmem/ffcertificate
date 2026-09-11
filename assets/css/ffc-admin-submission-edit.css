@@ -81,12 +81,12 @@
 
 .ffc-user-email {
     color: var(--ffc-text-muted);
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
 }
 
 .ffc-user-id {
     color: var(--ffc-text-light);
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     margin-left: 5px;
 }
 
@@ -173,12 +173,12 @@
 
 .ffc-user-search-results .ffc-search-result-email {
     color: var(--ffc-text-muted);
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
 }
 
 .ffc-user-search-results .ffc-search-result-id {
     color: var(--ffc-text-light);
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
 }
 
 .ffc-user-search-results .ffc-no-results {
@@ -239,7 +239,7 @@
 .ffc-consent-toggle-icon {
     display: inline-block;
     transition: transform 0.2s;
-    font-size: 10px;
+    font-size: var(--ffc-font-size-2xs);
 }
 
 .ffc-consent-box.ffc-collapsible.is-open .ffc-consent-toggle-icon {
@@ -248,7 +248,7 @@
 
 .ffc-consent-summary {
     font-weight: 400;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-muted);
 }
 

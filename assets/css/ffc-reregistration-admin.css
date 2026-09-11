@@ -10,7 +10,7 @@
     display: inline-block;
     padding: 2px 8px;
     border-radius: 3px;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     font-weight: 600;
     line-height: 1.5;
     white-space: nowrap;
@@ -145,7 +145,7 @@ a.delete-link:hover {
     color: var(--ffc-text-secondary);
     padding: 1px 8px;
     border-radius: 3px;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     margin: 1px 2px;
     white-space: nowrap;
 }
@@ -171,7 +171,7 @@ a.delete-link:hover {
 .ffc-transfer-header {
     padding: 8px 12px;
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     background: var(--ffc-bg-alt);
     border-bottom: 1px solid var(--ffc-border);
     border-radius: 4px 4px 0 0;
@@ -182,7 +182,7 @@ a.delete-link:hover {
     padding: 4px 8px;
     border: 1px solid var(--ffc-border);
     border-radius: 3px;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     width: calc(100% - 16px);
     box-sizing: border-box;
 }
@@ -198,7 +198,7 @@ a.delete-link:hover {
 .ffc-transfer-item {
     padding: 5px 10px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     display: flex;
     align-items: center;
     gap: 5px;
@@ -234,7 +234,7 @@ a.delete-link:hover {
 .ffc-transfer-actions .button {
     min-width: 32px;
     padding: 2px 8px;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     line-height: 1.4;
     text-align: center;
 }
@@ -290,10 +290,12 @@ body.ffc-rereg-modal-open {
 
 .ffc-rereg-modal-header h2 {
     margin: 0;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
 }
 
+/* 28px literal: o glifo `&times;` do botão de fechar, dimensionado pelo
+   alvo de clique e não pela escala de texto. */
 .ffc-rereg-modal-close {
     background: none;
     border: none;
@@ -341,7 +343,7 @@ body.ffc-rereg-modal-open {
 .ffc-details-fieldset > legend {
     padding: 0 6px;
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text);
 }
 
@@ -355,7 +357,7 @@ body.ffc-rereg-modal-open {
 .ffc-details-list dt {
     font-weight: 600;
     color: var(--ffc-text-secondary);
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     padding: 4px 0;
     border-bottom: 1px dashed var(--ffc-border-light);
 }
@@ -379,7 +381,7 @@ body.ffc-rereg-modal-open {
 
 .ffc-rereg-icon {
     vertical-align: middle;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-rereg-ml-10 {
