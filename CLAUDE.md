@@ -94,14 +94,25 @@ When the batch on develop is validated against the testes site and ready to ship
    ```bash
    git push origin :refs/tags/vX.Y.Z   # only when re-tagging after a bad tag; skip otherwise
    git tag -d vX.Y.Z                   # ditto
-   git fetch origin
-   git checkout main && git pull --ff-only origin main   # local main = the release squash
-   git rev-parse --short HEAD                             # MUST be the release squash's SHA
-   grep 'Version:' ffcertificate.php                      # MUST read X.Y.Z
-   git tag vX.Y.Z                                         # tag the release commit
-   git push origin vX.Y.Z                                 # → fires release.yml (Release + zip)
+
+   git checkout main && git fetch origin && git pull --ff-only origin main
+   test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" \
+     && grep -q "Version:            X.Y.Z" ffcertificate.php \
+     && git tag vX.Y.Z && git push origin vX.Y.Z \
+     || echo "STOPPED: HEAD=$(git rev-parse HEAD) main=$(git rev-parse origin/main) / $(grep 'Version:' ffcertificate.php)"
    ```
-   **The two checks in the middle are not optional, and they are there because the tag has landed on the wrong commit before.** For 6.23.0 the tag was pushed within a minute of the merge, onto a local `main` the `pull` had not yet advanced, so it marked the *previous* release's squash — `Version: 6.22.0` under a tag saying `6.23.0`. `git rev-parse --short HEAD` and the `grep` fail loudly in that state; without them, nothing does until the workflow rejects the tag minutes later, and recovering means deleting a published tag (the first two lines above) rather than never creating a bad one.
+   **The two checks are chained with `&&` because a check that only prints does not stop anything, and that is not a hypothetical.** The tag has landed on the wrong commit TWICE, and the second time a written-down guard was already in place.
+
+   For 6.23.0 the tag was pushed within a minute of the merge, onto a local `main` the `pull` had not yet advanced, so it marked the *previous* release's squash — `Version: 6.22.0` under a tag saying `6.23.0`. That produced the guard.
+
+   For 6.24.0 the guard existed and was followed, and the tag still landed on 6.22.0's squash. The `pull --ff-only` had ABORTED on a dirty `package-lock.json`, leaving HEAD three releases back; `git rev-parse --short HEAD` and the `grep` both printed the wrong values, exactly as designed — and then `git tag` ran anyway, because the whole recipe was pasted as one block and printing is not refusing. **The lesson is not "check": it is that the check must be able to interrupt.**
+
+   Two mechanics the recovery taught, both easy to get wrong a second time:
+
+   - **Compare against `origin/main`, never a literal SHA.** The first repair attempt hard-coded a 7-character SHA against a `git rev-parse --short` that returned 8 — `--short` uses the shortest *unambiguous* length, which grows with the repository — so a correct HEAD was rejected. The comparison above states the real invariant: *this is the commit that is `main`'s tip, and it declares the version being tagged*.
+   - **`git fetch --tags` does not move a local tag that already exists.** After deleting and re-pushing the tag, a local checkout keeps pointing at the bad commit and will happily confirm the wrong answer. Read `git ls-remote origin refs/tags/vX.Y.Z`, or fetch with `--force`.
+
+   The workflow's own version check is a backstop and it did fire both times: nothing was published, so there was no wrong zip or Release to retract. But recovering still means deleting a published tag (the first two lines above) rather than never creating a bad one.
 
    The tagged commit's `Version:` header must already equal `X.Y.Z` (true post-bump) or the workflow's sanity check fails. **That check is a backstop, not the guard** — it fires after the tag is already public. It failing is the good outcome (nothing is published, so there is no wrong zip or Release to retract), but the tag still has to be deleted and re-pushed. The tagged tree will **not** carry its own CHANGELOG short-SHA suffix, and that is expected — see step 6. Pushing the tag publishes a production release (public zip + Release notes), so **an agent surfaces this sequence for the user to run rather than pushing the tag itself** — the same production-deploy sign-off that keeps the `develop → main` PR draft until the user confirms.
 5. After merge, **sync `develop` with `main`** (see Sync below) so the next batch starts from the bumped baseline. After a *release* this is a hard `reset`, **not** a rebase — the squash already contains every develop commit, so a rebase tries to replay them all and conflicts.
