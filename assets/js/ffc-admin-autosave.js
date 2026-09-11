@@ -116,11 +116,46 @@
     }
 
     /**
+     * Announce a successful save on `document` as `ffc:setting-saved`.
+     *
+     * A setting that changes the page it is edited on has to repaint, and this
+     * widget must not know which settings those are — so it states the fact and
+     * lets an interested script act. Today that is `ffc-dark-mode.js`, which
+     * without it wrote the option and left the page on its old theme until the
+     * next load (both directions — a missing repaint that read as a failed save).
+     *
+     * CustomEvent is IE-only-absent, and this is an admin script behind jQuery;
+     * the guard is for a test environment without it, not for a browser.
+     *
+     * @param {string}          key   The allowlisted setting key that was saved.
+     * @param {string|string[]} value The value that reached the server.
+     */
+    function announceSaved(key, value) {
+        if (typeof window.CustomEvent !== 'function') {
+            return;
+        }
+        document.dispatchEvent(new window.CustomEvent('ffc:setting-saved', {
+            detail: { key: key, value: value },
+        }));
+    }
+
+    /**
      * Attach auto-save behaviour to a field.
+     *
+     * The endpoint is a parameter rather than a constant because two of
+     * them autosave admin fields: `ffc_update_setting` writes WP options
+     * under a global capability, `ffc_update_form_meta` writes per-post
+     * meta gated on `edit_post` of that exact form. They stay separate
+     * server-side on purpose — the capability check is the whole point —
+     * but nothing about *this* side differs, which is why the form-meta
+     * path used to be a second implementation and no longer is (#1116).
      *
      * @param {jQuery} $field
      * @param {Object} config
      * @param {string} config.key                      Allowlisted setting key.
+     * @param {string} [config.action='ffc_update_setting'] AJAX action to POST to.
+     * @param {Object} [config.payload]                Extra fields merged into the request.
+     * @param {Object} [config.request]                FFC.request options ({nonce, ajaxUrl}).
      * @param {Function} [config.transform]            Custom value extractor.
      * @param {number} [config.debounce=400]           Debounce window in ms.
      * @param {jQuery} [config.$badge]                 Pre-existing badge node.
@@ -128,6 +163,7 @@
      * @param {string} [config.strings.saving='Saving…']
      * @param {string} [config.strings.saved='Saved']
      * @param {string} [config.strings.error='Save failed']
+     * @param {string} [config.strings.invalid='Enter a valid value']
      * @returns {Object} {destroy: fn}
      */
     function autoSaveField($field, config) {
@@ -142,6 +178,7 @@
         var saving   = strings.saving || 'Saving…';
         var saved    = strings.saved  || 'Saved';
         var errorTxt = strings.error  || 'Save failed';
+        var invalidTxt = strings.invalid || 'Enter a valid value';
         var debounceMs = typeof config.debounce === 'number' ? config.debounce : 400;
         var $badge   = ensureBadge($field, config.$badge);
 
@@ -159,23 +196,57 @@
             pendingTimer = setTimeout(performSave, debounceMs);
         }
 
+        /**
+         * Refuse to save a field the browser itself considers invalid.
+         *
+         * This widget saves on `input`, so without the check a number field
+         * cleared on the way to retyping it was saved as an empty string the
+         * moment it was emptied — and `min`, `max`, `step` and `required` were
+         * decorative here, enforced only on a submit this path never does
+         * (#1114). A checkbox has no constraints, so this is a no-op for every
+         * toggle; it bites on numbers and on the URL fields.
+         *
+         * It was written twice while the form-meta path was its own handler.
+         * That is what #1116 converged: one copy now covers both endpoints.
+         *
+         * @returns {boolean} True when the field may be saved.
+         */
+        function isSaveable() {
+            var el = $field[0];
+            if (!el || typeof el.checkValidity !== 'function' || el.checkValidity()) {
+                return true;
+            }
+            setBadgeState($badge, 'error', (el.validationMessage || invalidTxt));
+            if (typeof el.reportValidity === 'function') {
+                el.reportValidity();
+            }
+            return false;
+        }
+
         function performSave() {
             pendingTimer = null;
+            if (!isSaveable()) {
+                return;
+            }
             setBadgeState($badge, 'saving', saving);
             var value = extractValue($field, config.transform);
-            // Endpoint expects a nonce verified against `ffc_update_setting`.
-            // The global FFC.config.nonce is created for a different
-            // action (ffc_admin_pdf_nonce), so we pull the right one
-            // from window.ffcAdminAutosave (localized by enqueue_autosave_infra).
-            var payload = { key: config.key, value: value };
+            // Each endpoint verifies its own nonce, and neither accepts the
+            // global FFC.config.nonce (created for `ffc_admin_pdf_nonce`).
+            // The settings path carries its nonce inside the payload, from
+            // window.ffcAdminAutosave (localized by enqueue_autosave_infra);
+            // the form-meta path passes nonce + ajaxUrl as FFC.request
+            // options, where an explicit options.nonce wins. Both land the
+            // same field on the wire.
+            var payload = $.extend({ key: config.key, value: value }, config.payload || {});
             var autosaveCfg = window.ffcAdminAutosave;
-            if (autosaveCfg && autosaveCfg.nonce) {
+            if (!config.request && autosaveCfg && autosaveCfg.nonce) {
                 payload.nonce = autosaveCfg.nonce;
             }
-            window.FFC.request('ffc_update_setting', payload)
+            window.FFC.request(config.action || 'ffc_update_setting', payload, config.request)
                 .then(function () {
                     setBadgeState($badge, 'saved', saved);
                     lingerTimer = setTimeout(function () { hideBadge($badge); }, SAVED_LINGER);
+                    announceSaved(config.key, value);
                 })
                 .catch(function (err) {
                     setBadgeState($badge, 'error', (err && err.message) ? err.message : errorTxt);
@@ -221,20 +292,63 @@
     window.FFC.Admin.autoSaveField = autoSaveField;
 
     /**
-     * Scan the DOM for inputs tagged with `data-ffc-autosave-key` and
-     * wire each one to {@link autoSaveField}. Idempotent — fields that
-     * have already been bound carry an `ffcAutoSaveBound` data flag and
-     * are skipped on subsequent calls.
+     * Configuration for the per-post-meta variant, or null when this
+     * screen has none.
+     *
+     * The form editor localizes `ffcFormMetaAutosave` with the post id,
+     * the nonce for `ffc_update_form_meta` and its own ajaxUrl. Absent
+     * any of those there is nothing to save against, so the fields stay
+     * unbound rather than POSTing into a rejection.
+     *
+     * @returns {Object|null}
      */
-    function bootAutoSaveFields() {
+    function formMetaBase() {
+        var cfg = window.ffcFormMetaAutosave;
+        if (!cfg || !cfg.ajaxUrl || !cfg.postId) {
+            return null;
+        }
+        return {
+            action:  cfg.action || 'ffc_update_form_meta',
+            payload: { post_id: cfg.postId },
+            request: { nonce: cfg.nonce, ajaxUrl: cfg.ajaxUrl },
+            strings: cfg.strings || {},
+        };
+    }
+
+    /**
+     * Configuration for the settings variant.
+     *
+     * Only strings — the nonce is read at save time from the same
+     * localized object, and the action is this widget's default.
+     *
+     * @returns {Object}
+     */
+    function settingsBase() {
+        var cfg = window.ffcAdminAutosave;
+        return { strings: (cfg && cfg.strings) || {} };
+    }
+
+    /**
+     * Wire every field carrying `attr` to {@link autoSaveField}.
+     *
+     * Idempotent — fields that have already been bound carry an
+     * `ffcAutoSaveBound` data flag and are skipped on subsequent calls.
+     *
+     * @param {string}      attr    Attribute that marks a field, e.g. `data-ffc-autosave-key`.
+     * @param {Object|null} base    Endpoint config merged into every field's config.
+     */
+    function bootVariant(attr, base) {
         var multiBound = {};
-        $('[data-ffc-autosave-key]').each(function () {
+        $('[' + attr + ']').each(function () {
             var $input = $(this);
             if ($input.data('ffcAutoSaveBound')) {
                 return;
             }
-            var key      = $input.data('ffc-autosave-key');
+            var key      = $input.attr(attr);
             var isMulti  = $input.attr('data-ffc-autosave-multi') !== undefined;
+            if (!key) {
+                return;
+            }
 
             // Multi-checkbox group — only the first occurrence per key
             // becomes the "anchor" (carries the badge, drives the AJAX
@@ -250,7 +364,7 @@
             }
             $input.data('ffcAutoSaveBound', true);
 
-            var config = { key: key };
+            var config = $.extend({ key: key }, base || {});
             var debounceAttr = $input.attr('data-ffc-autosave-debounce');
             if (debounceAttr && !isNaN(parseInt(debounceAttr, 10))) {
                 config.debounce = parseInt(debounceAttr, 10);
@@ -260,7 +374,7 @@
                 config.confirmOff = confirmOff;
             }
             if (isMulti) {
-                var $group = $('[data-ffc-autosave-key="' + key + '"][data-ffc-autosave-multi]');
+                var $group = $('[' + attr + '="' + key + '"][data-ffc-autosave-multi]');
                 $group.not($input).data('ffcAutoSaveBound', true);
                 config.$group    = $group;
                 config.transform = function () {
@@ -269,6 +383,28 @@
             }
             window.FFC.Admin.autoSaveField($input, config);
         });
+    }
+
+    /**
+     * Scan the DOM for autosave-tagged inputs and wire each one.
+     *
+     * Two attributes, one widget (#1116): `data-ffc-autosave-key` saves a
+     * WP option through `ffc_update_setting`, `data-ffc-autosave-form-key`
+     * saves per-post meta through `ffc_update_form_meta`. They were two
+     * independent implementations until the validity guard of #1114 had to
+     * be written twice to reach both.
+     *
+     * The scan runs at document-ready rather than delegating on `document`,
+     * because every field of both kinds is server-rendered in the page it
+     * belongs to. Call this again after inserting an autosave field into
+     * the DOM — it skips what it already bound.
+     */
+    function bootAutoSaveFields() {
+        bootVariant('data-ffc-autosave-key', settingsBase());
+        var formMeta = formMetaBase();
+        if (formMeta) {
+            bootVariant('data-ffc-autosave-form-key', formMeta);
+        }
     }
     window.FFC.Admin.bootAutoSaveFields = bootAutoSaveFields;
 

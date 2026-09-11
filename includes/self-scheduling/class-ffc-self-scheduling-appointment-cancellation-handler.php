@@ -328,19 +328,61 @@ class AppointmentCancellationHandler {
 			header( 'Content-Type: text/html; charset=utf-8' );
 		}
 
-		$suffix    = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
-		$style_url = FFC_PLUGIN_URL . "assets/css/ffc-appointment-cancellation{$suffix}.css";
+		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
-		echo '<!DOCTYPE html><html ' . get_language_attributes() . '><head>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_language_attributes() returns a safe attribute string.
+		echo '<!DOCTYPE html><html ' . get_language_attributes() . self::root_class() . '><head>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_language_attributes() returns a safe attribute string; root_class() returns one of two literals.
 		echo '<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">';
 		echo '<meta name="robots" content="noindex,nofollow">';
 		echo '<title>' . esc_html( $title ) . ' — ' . esc_html( get_bloginfo( 'name' ) ) . '</title>';
-		// phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet -- standalone page rendered outside the wp_enqueue lifecycle (template_redirect → exit), mirroring AppointmentReceiptHandler.
-		echo '<link rel="stylesheet" href="' . esc_url( $style_url ) . '">';
+		foreach ( self::stylesheets( (string) $suffix ) as $href ) {
+			// phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedStylesheet -- standalone page rendered outside the wp_enqueue lifecycle (template_redirect → exit), mirroring AppointmentReceiptHandler.
+			echo '<link rel="stylesheet" href="' . esc_url( $href ) . '">';
+		}
 		echo '</head><body class="ffc-cancel-page"><main class="ffc-cancel-card">';
 		echo $inner; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- callers pass pre-escaped markup.
 		echo '</main></body></html>';
 
 		exit;
+	}
+
+	/**
+	 * The page's stylesheets, in load order.
+	 *
+	 * The palette comes FIRST, and it has to be here at all because this page
+	 * builds its own document: it never went through `wp_enqueue_style()`, so it
+	 * never picked up the `ffc-common` dependency every enqueued sheet declares.
+	 * Its own sheet reads eleven `var(--ffc-*)`, and an undeclared custom
+	 * property does not fall back to a literal — it invalidates the whole
+	 * declaration — so the card rendered with no ground, no text colour and an
+	 * unpainted confirm button, in both themes.
+	 *
+	 * Extracted so the order is a testable value rather than a sequence of
+	 * `echo`s behind an `exit()`.
+	 *
+	 * @param string $suffix Asset suffix ('' or '.min').
+	 * @return array<int, string> Absolute URLs, palette first.
+	 */
+	private static function stylesheets( string $suffix ): array {
+		return array(
+			FFC_PLUGIN_URL . "assets/css/ffc-common{$suffix}.css",
+			FFC_PLUGIN_URL . "assets/css/ffc-appointment-cancellation{$suffix}.css",
+		);
+	}
+
+	/**
+	 * The `<html>` class attribute, or an empty string.
+	 *
+	 * The plugin's dark-mode setting is the single source of truth (#1126), and
+	 * this page carries no JavaScript by design — so it can only honour the two
+	 * modes a server knows. `auto` follows the operating system, which is only
+	 * readable in the browser, so it renders light here: a stated limit of a
+	 * scriptless page rather than an oversight.
+	 *
+	 * @return string ` class="ffc-dark-mode"` or an empty string.
+	 */
+	private static function root_class(): string {
+		$mode = (string) \FreeFormCertificate\Settings\SettingsReader::get( 'dark_mode', 'off' );
+
+		return 'on' === $mode ? ' class="ffc-dark-mode"' : '';
 	}
 }

@@ -254,6 +254,42 @@ class AppointmentEmailHandlerTest extends TestCase {
 		$this->assertStringContainsString( 'pending approval', $this->last_mail['body'] );
 	}
 
+	/**
+	 * The SHIPPED default has to carry the public cancellation link.
+	 *
+	 * The existing coverage proved the `{{cancel_button}}` token resolves inside
+	 * an ADMIN OVERRIDE — which says nothing about the body an install that never
+	 * touched the hub actually receives, and that is the common case. This
+	 * asserts the link itself, not merely the label: a button pointing at the
+	 * dashboard instead of the token URL would pass a label-only check while
+	 * sending a logged-out visitor somewhere they cannot use.
+	 *
+	 * @return void
+	 */
+	public function test_booking_confirmation_default_body_carries_the_public_cancellation_link(): void {
+		$this->handler->send_booking_confirmation( $this->makeAppointment(), $this->makeCalendar() );
+
+		$this->assertTrue( $this->mail_sent );
+		$this->assertStringContainsString( 'Cancel Appointment', $this->last_mail['body'] );
+		$this->assertStringContainsString( 'ffc_cancel_appointment=1', $this->last_mail['body'] );
+		$this->assertStringContainsString( 'token=tok123', $this->last_mail['body'] );
+	}
+
+	/**
+	 * A calendar that forbids cancellation must not offer the link.
+	 *
+	 * @return void
+	 */
+	public function test_booking_confirmation_omits_the_link_when_the_calendar_forbids_cancelling(): void {
+		$this->handler->send_booking_confirmation(
+			$this->makeAppointment(),
+			$this->makeCalendar( array( 'allow_cancellation' => 0 ) )
+		);
+
+		$this->assertTrue( $this->mail_sent );
+		$this->assertStringNotContainsString( 'ffc_cancel_appointment=', $this->last_mail['body'] );
+	}
+
 	public function test_booking_confirmation_default_body_tracks_the_hub_override(): void {
 		// A calendar with no custom body now resolves the effective GLOBAL, so an
 		// SMTP email-body-hub override for `selfscheduling-confirmation` controls
@@ -363,6 +399,44 @@ class AppointmentEmailHandlerTest extends TestCase {
 
 		$this->assertTrue( $this->mail_sent );
 		$this->assertStringContainsString( 'Approved', $this->last_mail['subject'] );
+	}
+
+	/**
+	 * The approval e-mail is the confirmation, so it needs the cancel link.
+	 *
+	 * On a calendar that requires approval the booking e-mail only says "pending
+	 * approval, you will receive a confirmation once it is approved" — this is
+	 * that confirmation. It was the one appointment mail of five that carried no
+	 * cancellation link, so the person whose appointment was actually confirmed
+	 * had no way to cancel from their inbox.
+	 *
+	 * @return void
+	 */
+	public function test_approval_notification_carries_the_public_cancellation_link(): void {
+		$this->handler->send_approval_notification(
+			$this->makeAppointment( array( 'status' => 'confirmed' ) ),
+			$this->makeCalendar()
+		);
+
+		$this->assertTrue( $this->mail_sent );
+		$this->assertStringContainsString( 'Cancel Appointment', $this->last_mail['body'] );
+		$this->assertStringContainsString( 'ffc_cancel_appointment=1', $this->last_mail['body'] );
+		$this->assertStringContainsString( 'token=tok123', $this->last_mail['body'] );
+	}
+
+	/**
+	 * …and honours the calendar that forbids it, like every other sender.
+	 *
+	 * @return void
+	 */
+	public function test_approval_notification_omits_the_link_when_the_calendar_forbids_cancelling(): void {
+		$this->handler->send_approval_notification(
+			$this->makeAppointment( array( 'status' => 'confirmed' ) ),
+			$this->makeCalendar( array( 'allow_cancellation' => 0 ) )
+		);
+
+		$this->assertTrue( $this->mail_sent );
+		$this->assertStringNotContainsString( 'ffc_cancel_appointment=', $this->last_mail['body'] );
 	}
 
 	// ==================================================================

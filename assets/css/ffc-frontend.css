@@ -408,15 +408,15 @@ details.ffc-consent-description > p {
 @media (prefers-contrast: more) {
     .ffc-shortcode .ffc-lgpd-consent {
         border-width: 3px;
-        border-color: #000;
+        border-color: var(--ffc-text);
     }
 
     .ffc-shortcode .ffc-consent-text {
-        color: #000;
+        color: var(--ffc-text);
     }
 
     .ffc-shortcode .ffc-consent-text a {
-        color: #0000EE;
+        color: var(--ffc-link);
         text-decoration: underline;
     }
 }
@@ -514,9 +514,9 @@ details.ffc-consent-description > p {
     --altcha-checkbox-border-color: var(--ffc-border);
     --altcha-color-base: var(--ffc-bg-input);
     --altcha-color-base-content: var(--ffc-text);
-    --altcha-color-error: var(--ffc-danger, #b32d2e);
+    --altcha-color-error: var(--ffc-danger);
     --altcha-color-primary: var(--ffc-primary);
-    --altcha-color-success: var(--ffc-success, #00a32a);
+    --altcha-color-success: var(--ffc-success);
     --altcha-spinner-color: var(--ffc-primary);
 }
 
@@ -525,7 +525,7 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-altcha-noscript,
 .ffc-shortcode .ffc-altcha-error {
     margin: 10px 0 0;
-    color: var(--ffc-danger, #b32d2e);
+    color: var(--ffc-danger);
     font-weight: 600;
 }
 
@@ -549,8 +549,12 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-captcha-row .ffc-input {
+    /* O par repete o da regra base de `.ffc-input` de propósito: uma regra que
+       repinta o fundo de um controle carrega as duas metades, para que elas não
+       possam divergir depois. Um controle não herda `color` (#1126). */
+    color: var(--ffc-text);
     border: 2px solid var(--ffc-primary) !important; /* ← DESTAQUE: borda azul mais grossa */
-    background: var(--ffc-bg-input) !important; /* ← Fundo branco para contraste */
+    background: var(--ffc-bg-input) !important;
     margin-bottom: 0 !important; /* ← Remove margem inferior */
 }
 
@@ -791,6 +795,8 @@ details.ffc-consent-description > p {
     font-size: 22px;
     font-weight: 600;
     padding: 5px 15px;
+    /* Véu branco translúcido sobre o gradiente colorido do cartão: é uma
+       camada sobre a cor que estiver embaixo, não um papel da paleta (#1126). */
     background: rgba(255, 255, 255, 0.2);
     border-radius: 20px;
     -webkit-backdrop-filter: blur(10px);
@@ -798,6 +804,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-status-badge.success {
+    /* Véu translúcido sobre o gradiente do cartão, como o irmão acima (#1126). */
     background: rgba(212, 237, 218, 0.3);
 }
 
@@ -813,10 +820,11 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-certificate-preview.ffc-error .ffc-preview-header {
-    background: linear-gradient(135deg, var(--ffc-danger) 0%, #b32a2c 100%);
+    background: linear-gradient(135deg, var(--ffc-danger) 0%, var(--ffc-danger-hover) 100%);
 }
 
 .ffc-shortcode .ffc-status-badge.error {
+    /* Véu translúcido sobre o gradiente do cartão, como os irmãos acima (#1126). */
     background: rgba(252, 240, 241, 0.25);
 }
 
@@ -966,8 +974,8 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-schedule-exception-block {
     margin: 25px 0 5px;
     padding: 16px 20px;
-    background: #fcf9e8;
-    border-left: 4px solid #dba617;
+    background: var(--ffc-warning-bg);
+    border-left: 4px solid var(--ffc-warning-border);
     border-radius: var(--ffc-radius-sm);
 }
 
@@ -979,8 +987,8 @@ details.ffc-consent-description > p {
     gap: 8px;
     margin: 0 0 8px;
     padding-bottom: 8px;
-    border-bottom: 1px solid rgba(219, 166, 23, 0.4);
-    color: #674008;
+    border-bottom: 1px solid var(--ffc-warning-border);
+    color: var(--ffc-warning-text);
     font-size: 16px;
 }
 
@@ -994,14 +1002,14 @@ details.ffc-consent-description > p {
     margin: 0 0 12px;
     font-size: 14px;
     line-height: 1.5;
-    color: #7a5005;
+    color: var(--ffc-warning-text);
 }
 
 /* `.ffc-detail-row` rows inside the block keep their structure but
    the bottom border softens to fit the amber card (otherwise the
    thicker `var(--ffc-border-light)` line cuts the cohesion). */
 .ffc-shortcode .ffc-schedule-exception-block .ffc-detail-row {
-    border-bottom-color: rgba(219, 166, 23, 0.25);
+    border-bottom-color: var(--ffc-warning-border);
     padding: 8px 0;
 }
 
@@ -1245,7 +1253,7 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-success-row-hint {
     margin: 6px 0 16px;
     font-size: 13px;
-    color: var(--ffc-text-muted, #666);
+    color: var(--ffc-text-muted);
     line-height: 1.5;
 }
 
@@ -1260,7 +1268,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-magic-link-url {
-    color: var(--ffc-primary, #0073aa);
+    color: var(--ffc-primary);
     text-decoration: underline;
     font-family: 'Courier New', monospace;
     font-size: 13px;
@@ -1276,9 +1284,9 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-copy-btn {
     display: inline-block;
     padding: 4px 12px;
-    border: 1px solid var(--ffc-primary, #0073aa);
+    border: 1px solid var(--ffc-primary);
     background: transparent;
-    color: var(--ffc-primary, #0073aa);
+    color: var(--ffc-primary);
     border-radius: 4px;
     font-family: inherit;
     font-size: 12px;
@@ -1292,8 +1300,8 @@ details.ffc-consent-description > p {
 
 .ffc-shortcode .ffc-copy-btn:hover,
 .ffc-shortcode .ffc-copy-btn:focus {
-    background: var(--ffc-primary, #0073aa);
-    color: #fff;
+    background: var(--ffc-primary);
+    color: var(--ffc-text-on-primary);
 }
 
 /* "Can't find the PDF?" collapsible at the bottom of the success card.
@@ -1319,7 +1327,7 @@ details.ffc-consent-description > p {
     cursor: pointer;
     font-size: 16px;
     font-weight: 600;
-    color: var(--ffc-text, #333);
+    color: var(--ffc-text);
     list-style: revert;
     padding: 0;
 }
@@ -1343,9 +1351,9 @@ details.ffc-consent-description > p {
    Yellow warning, non-blocking visually but the form is hidden behind.
    Includes a "try anyway" CTA so permissive users can proceed. */
 .ffc-preflight-banner {
-    border: 1px solid #dba617;
-    background: #fcf9e8;
-    color: #674008;
+    border: 1px solid var(--ffc-warning-border);
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
     padding: 16px 18px;
     border-radius: 6px;
     margin: 12px 0;
@@ -1356,7 +1364,7 @@ details.ffc-consent-description > p {
     display: block;
     font-size: 16px;
     margin-bottom: 6px;
-    color: #674008;
+    color: var(--ffc-warning-text);
 }
 
 .ffc-preflight-banner-body,
@@ -1367,7 +1375,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-preflight-banner-how {
-    color: #7a5005;
+    color: var(--ffc-warning-text);
     font-style: italic;
 }
 
@@ -1376,8 +1384,8 @@ details.ffc-consent-description > p {
     margin-top: 10px;
     padding: 8px 16px;
     background: transparent;
-    color: #674008;
-    border: 1px solid #dba617;
+    color: var(--ffc-warning-text);
+    border: 1px solid var(--ffc-warning-border);
     border-radius: 4px;
     font-weight: 600;
     cursor: pointer;
@@ -1386,8 +1394,8 @@ details.ffc-consent-description > p {
 
 .ffc-preflight-try-anyway:hover,
 .ffc-preflight-try-anyway:focus {
-    background: #dba617;
-    color: #fff;
+    background: var(--ffc-warning);
+    color: var(--ffc-text-on-warning);
 }
 
 /* ============================================
@@ -1419,7 +1427,7 @@ details.ffc-consent-description > p {
     gap: 12px;
     margin-bottom: 24px;
     padding-bottom: 16px;
-    border-bottom: 1px solid var(--ffc-border, #e0e0e0);
+    border-bottom: 1px solid var(--ffc-border);
     width: 100%;
     box-sizing: border-box;
 }
@@ -1428,17 +1436,17 @@ details.ffc-consent-description > p {
     margin: 0;
     font-size: 22px;
     font-weight: 600;
-    color: var(--ffc-text, #333);
+    color: var(--ffc-text);
     flex: 1;
 }
 
 .ffc-public-csv-download .ffc-info-back {
     background: none;
-    border: 1px solid var(--ffc-border, #e0e0e0);
+    border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-sm, 4px);
     padding: 6px 12px;
     font-size: 13px;
-    color: var(--ffc-text-muted, #666);
+    color: var(--ffc-text-muted);
     cursor: pointer;
     transition: all 0.2s ease;
     display: inline-flex;
@@ -1448,8 +1456,8 @@ details.ffc-consent-description > p {
 }
 
 .ffc-public-csv-download .ffc-info-back:hover {
-    border-color: var(--ffc-primary, #0073aa);
-    color: var(--ffc-primary, #0073aa);
+    border-color: var(--ffc-primary);
+    color: var(--ffc-primary);
 }
 
 .ffc-public-csv-download .ffc-info-back-arrow {
@@ -1460,9 +1468,9 @@ details.ffc-consent-description > p {
 .ffc-public-csv-download .ffc-info-section {
     margin-bottom: 20px;
     padding: 16px;
-    background: var(--ffc-bg-subtle, #f8f9fa);
+    background: var(--ffc-bg-alt);
     border-radius: var(--ffc-radius-sm, 6px);
-    border: 1px solid var(--ffc-border, #e0e0e0);
+    border: 1px solid var(--ffc-border);
     width: 100%;
     box-sizing: border-box;
 }
@@ -1471,15 +1479,15 @@ details.ffc-consent-description > p {
     margin: 0 0 12px 0;
     font-size: 14px;
     font-weight: 600;
-    color: var(--ffc-text-muted, #666);
+    color: var(--ffc-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .ffc-public-csv-download .ffc-info-section.ffc-info-summary {
-    background: var(--ffc-bg-card, #fff);
-    border-color: var(--ffc-primary, #0073aa);
-    border-left: 3px solid var(--ffc-primary, #0073aa);
+    background: var(--ffc-bg-card);
+    border-color: var(--ffc-primary);
+    border-left: 3px solid var(--ffc-primary);
 }
 
 .ffc-public-csv-download .ffc-info-row {
@@ -1493,18 +1501,18 @@ details.ffc-consent-description > p {
 }
 
 .ffc-public-csv-download .ffc-info-row + .ffc-info-row {
-    border-top: 1px solid var(--ffc-border, #e0e0e0);
+    border-top: 1px solid var(--ffc-border);
 }
 
 .ffc-public-csv-download .ffc-info-label {
     font-size: 14px;
-    color: var(--ffc-text-muted, #666);
+    color: var(--ffc-text-muted);
 }
 
 .ffc-public-csv-download .ffc-info-value {
     font-size: 14px;
     font-weight: 500;
-    color: var(--ffc-text, #333);
+    color: var(--ffc-text);
     text-align: right;
 }
 
@@ -1519,7 +1527,7 @@ details.ffc-consent-description > p {
 .ffc-public-csv-download .ffc-info-sublabel {
     font-size: 13px;
     font-weight: 500;
-    color: var(--ffc-text-muted, #666);
+    color: var(--ffc-text-muted);
     display: block;
     margin-bottom: 4px;
 }
@@ -1532,16 +1540,16 @@ details.ffc-consent-description > p {
 
 .ffc-public-csv-download .ffc-info-list li {
     font-size: 14px;
-    color: var(--ffc-text, #333);
+    color: var(--ffc-text);
     padding: 2px 0;
 }
 
 .ffc-public-csv-download .ffc-info-list-restrictions li {
-    color: var(--ffc-text-muted, #666);
+    color: var(--ffc-text-muted);
 }
 
 .ffc-public-csv-download .ffc-info-list-locations li a {
-    color: var(--ffc-primary, #0073aa);
+    color: var(--ffc-primary);
     text-decoration: none;
 }
 
@@ -1559,21 +1567,21 @@ details.ffc-consent-description > p {
 }
 
 .ffc-public-csv-download .ffc-info-alert-warning {
-    background: #fff3cd;
-    border: 1px solid #ffc107;
-    color: #856404;
+    background: var(--ffc-warning-bg);
+    border: 1px solid var(--ffc-warning-border);
+    color: var(--ffc-warning-text);
 }
 
 .ffc-public-csv-download .ffc-info-alert-info {
-    background: #d1ecf1;
-    border: 1px solid #bee5eb;
-    color: #0c5460;
+    background: var(--ffc-info-bg);
+    border: 1px solid var(--ffc-info-border);
+    color: var(--ffc-info-text);
 }
 
 .ffc-public-csv-download .ffc-info-alert-success {
-    background: #d4edda;
-    border: 1px solid #c3e6cb;
-    color: #155724;
+    background: var(--ffc-success-bg);
+    border: 1px solid var(--ffc-success-border);
+    color: var(--ffc-success-text);
 }
 
 /* Action buttons */
@@ -1609,14 +1617,14 @@ details.ffc-consent-description > p {
 .ffc-public-csv-download .ffc-info-btn-primary,
 .ffc-open-early-modal .ffc-info-btn-primary,
 .ffc-extend-end-modal .ffc-info-btn-primary {
-    background: var(--ffc-primary, #0073aa);
-    color: #fff;
+    background: var(--ffc-primary);
+    color: var(--ffc-text-on-primary);
 }
 
 .ffc-public-csv-download .ffc-info-btn-primary:hover:not([disabled]),
 .ffc-open-early-modal .ffc-info-btn-primary:hover:not([disabled]),
 .ffc-extend-end-modal .ffc-info-btn-primary:hover:not([disabled]) {
-    background: var(--ffc-primary-hover, #005d8c);
+    background: var(--ffc-primary-hover);
 }
 
 .ffc-public-csv-download .ffc-info-btn-primary[disabled],
@@ -1629,15 +1637,15 @@ details.ffc-consent-description > p {
 .ffc-public-csv-download .ffc-info-btn-secondary,
 .ffc-open-early-modal .ffc-info-btn-secondary,
 .ffc-extend-end-modal .ffc-info-btn-secondary {
-    background: var(--ffc-bg-subtle, #f0f0f0);
-    color: var(--ffc-text, #333);
-    border: 1px solid var(--ffc-border, #e0e0e0);
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text);
+    border: 1px solid var(--ffc-border);
 }
 
 .ffc-public-csv-download .ffc-info-btn-secondary:hover:not([disabled]),
 .ffc-open-early-modal .ffc-info-btn-secondary:hover:not([disabled]),
 .ffc-extend-end-modal .ffc-info-btn-secondary:hover:not([disabled]) {
-    background: var(--ffc-border, #e0e0e0);
+    background: var(--ffc-border);
 }
 
 .ffc-public-csv-download .ffc-info-btn-secondary[disabled],
@@ -1653,16 +1661,16 @@ details.ffc-consent-description > p {
 .ffc-public-csv-download .ffc-info-btn-warning,
 .ffc-open-early-modal .ffc-info-btn-warning,
 .ffc-extend-end-modal .ffc-info-btn-warning {
-    background: var(--ffc-warning, #d9822b);
-    color: #fff;
-    border: 1px solid var(--ffc-warning, #d9822b);
+    background: var(--ffc-warning);
+    color: var(--ffc-text-on-warning);
+    border: 1px solid var(--ffc-warning);
 }
 
 .ffc-public-csv-download .ffc-info-btn-warning:hover:not([disabled]),
 .ffc-open-early-modal .ffc-info-btn-warning:hover:not([disabled]),
 .ffc-extend-end-modal .ffc-info-btn-warning:hover:not([disabled]) {
-    background: var(--ffc-warning-dark, #b86a1f);
-    border-color: var(--ffc-warning-dark, #b86a1f);
+    background: var(--ffc-warning-text);
+    border-color: var(--ffc-warning-text);
 }
 
 .ffc-public-csv-download .ffc-info-btn-warning[disabled],
@@ -1733,8 +1741,8 @@ details.ffc-consent-description > p {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    color: var(--ffc-text-muted, #666);
-    border-bottom: 1px solid var(--ffc-border, #e0e0e0);
+    color: var(--ffc-text-muted);
+    border-bottom: 1px solid var(--ffc-border);
     padding: 4px 6px;
 }
 
@@ -1744,7 +1752,7 @@ details.ffc-consent-description > p {
 
 .ffc-public-csv-download .ffc-info-table td {
     padding: 6px;
-    border-bottom: 1px solid var(--ffc-border, #e0e0e0);
+    border-bottom: 1px solid var(--ffc-border);
 }
 
 .ffc-public-csv-download .ffc-info-table tbody tr:last-child td {
@@ -1752,31 +1760,31 @@ details.ffc-consent-description > p {
 }
 
 .ffc-public-csv-download .ffc-info-table .ffc-info-table-label {
-    color: var(--ffc-text-muted, #666);
+    color: var(--ffc-text-muted);
 }
 
 .ffc-public-csv-download .ffc-info-table .ffc-info-table-value {
     text-align: right;
     font-weight: 500;
-    color: var(--ffc-text, #333);
+    color: var(--ffc-text);
     font-variant-numeric: tabular-nums;
 }
 
 .ffc-public-csv-download .ffc-info-table .ffc-info-table-dash {
     text-align: right;
-    color: var(--ffc-border, #c3c4c7);
+    color: var(--ffc-border);
 }
 
 .ffc-public-csv-download .ffc-info-schedule-ref-note {
     font-size: 12px;
-    color: var(--ffc-text-muted, #646970);
+    color: var(--ffc-text-muted);
     margin: 8px 0 0;
 }
 
 .ffc-open-early-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.75);
+    background: var(--ffc-bg-overlay);
 }
 
 .ffc-open-early-container {
@@ -1784,9 +1792,9 @@ details.ffc-consent-description > p {
     z-index: 1;
     width: 92%;
     max-width: 540px;
-    background: var(--ffc-bg-card, #fff);
+    background: var(--ffc-bg-card);
     border-radius: var(--ffc-radius-lg, 8px);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--ffc-shadow-lg);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -1798,14 +1806,14 @@ details.ffc-consent-description > p {
     justify-content: space-between;
     padding: 16px 20px;
     background: linear-gradient(135deg, var(--ffc-primary) 0%, var(--ffc-primary-hover) 100%);
-    color: var(--ffc-text-on-primary, #fff);
+    color: var(--ffc-text-on-primary);
 }
 
 .ffc-open-early-header h2 {
     margin: 0;
     font-size: 18px;
     font-weight: 600;
-    color: var(--ffc-text-on-primary, #fff);
+    color: var(--ffc-text-on-primary);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1814,7 +1822,7 @@ details.ffc-consent-description > p {
 .ffc-open-early-close {
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--ffc-inverse-on-surface);
     font-size: 26px;
     cursor: pointer;
     padding: 0 4px;
@@ -1824,13 +1832,13 @@ details.ffc-consent-description > p {
 
 .ffc-open-early-close:hover,
 .ffc-open-early-close:focus-visible {
-    color: #fff;
+    color: var(--ffc-inverse-on-surface);
     outline: 0;
 }
 
 .ffc-open-early-body {
     padding: 20px 24px;
-    color: var(--ffc-text, #333);
+    color: var(--ffc-text);
     font-size: 15px;
     line-height: 1.55;
 }
@@ -1850,9 +1858,9 @@ details.ffc-consent-description > p {
 }
 
 .ffc-open-early-warn {
-    color: var(--ffc-danger, #d63638);
-    background: var(--ffc-danger-bg, #fcebec);
-    border-left: 3px solid var(--ffc-danger, #d63638);
+    color: var(--ffc-danger);
+    background: var(--ffc-danger-bg);
+    border-left: 3px solid var(--ffc-danger);
     padding: 10px 14px;
     margin: 14px 0 4px;
     border-radius: var(--ffc-radius-sm, 4px);
@@ -1860,12 +1868,12 @@ details.ffc-consent-description > p {
 }
 
 .ffc-open-early-warn-cache {
-    background: var(--ffc-warning-light, #fdf3e3);
-    border-left: 3px solid var(--ffc-warning, #d9822b);
+    background: var(--ffc-warning-light);
+    border-left: 3px solid var(--ffc-warning);
     padding: 10px 14px;
     margin: 12px 0 0;
     font-size: 13px;
-    color: var(--ffc-warning-text, #856404);
+    color: var(--ffc-warning-text);
     border-radius: var(--ffc-radius-sm, 4px);
 }
 
@@ -1875,32 +1883,32 @@ details.ffc-consent-description > p {
     width: 100%;
     height: 45px;
     padding: 10px 12px;
-    border: 1px solid var(--ffc-border, #e0e0e0);
+    border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-sm, 4px);
     font-size: 16px;
     line-height: 1.5;
-    background: var(--ffc-bg-input, #fff);
-    color: var(--ffc-text, #333);
+    background: var(--ffc-bg-input);
+    color: var(--ffc-text);
     box-sizing: border-box;
     transition: border-color var(--ffc-transition-base), box-shadow var(--ffc-transition-base);
 }
 
 .ffc-extend-end-modal .ffc-extend-end-input:focus {
     outline: 0;
-    border-color: var(--ffc-primary, #0073aa);
-    box-shadow: 0 0 0 3px var(--ffc-focus-ring, rgba(0, 115, 170, 0.2));
+    border-color: var(--ffc-primary);
+    box-shadow: 0 0 0 3px var(--ffc-focus-ring);
 }
 
 /* Client-side validation error state — set via .ffc-extend-end-input-invalid
    in ffc-csv-extend-end.js (was previously a JS inline border-color). */
 .ffc-extend-end-modal .ffc-extend-end-input-invalid {
-    border-color: var(--ffc-danger, #d63638);
+    border-color: var(--ffc-danger);
 }
 
 .ffc-extend-end-error {
     margin: 6px 0 0;
     font-size: 13px;
-    color: var(--ffc-danger, #d63638);
+    color: var(--ffc-danger);
 }
 
 .ffc-open-early-actions {
@@ -1908,8 +1916,8 @@ details.ffc-consent-description > p {
     justify-content: flex-end;
     gap: 12px;
     padding: 14px 24px 18px;
-    border-top: 1px solid var(--ffc-border, #e0e0e0);
-    background: var(--ffc-bg-subtle, #fafafa);
+    border-top: 1px solid var(--ffc-border);
+    background: var(--ffc-bg-alt);
 }
 
 /* Cancel is the prominent, defensive default — keeps the operator
@@ -1962,7 +1970,7 @@ details.ffc-consent-description > p {
 .ffc-preview-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.75);
+    background: var(--ffc-bg-overlay);
 }
 
 .ffc-preview-container {
@@ -1970,12 +1978,12 @@ details.ffc-consent-description > p {
     width: 90%;
     max-width: 900px;
     height: 85vh;
-    background: var(--ffc-bg-card, #fff);
+    background: var(--ffc-bg-card);
     border-radius: var(--ffc-radius-lg, 8px);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--ffc-shadow-lg);
 }
 
 /* Modal-only header/body rules — scoped to #ffc-preview-modal so they do not
@@ -1988,21 +1996,21 @@ details.ffc-consent-description > p {
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    background: #1d2327;
-    color: #fff;
+    background: var(--ffc-inverse-surface);
+    color: var(--ffc-inverse-on-surface);
 }
 
 #ffc-preview-modal .ffc-preview-header h2 {
     margin: 0;
     font-size: 16px;
     font-weight: 500;
-    color: #fff;
+    color: var(--ffc-inverse-on-surface);
 }
 
 #ffc-preview-modal .ffc-preview-close {
     background: none;
     border: none;
-    color: #ccc;
+    color: var(--ffc-inverse-on-surface);
     font-size: 24px;
     cursor: pointer;
     padding: 0 4px;
@@ -2010,15 +2018,15 @@ details.ffc-consent-description > p {
 }
 
 #ffc-preview-modal .ffc-preview-close:hover {
-    color: #fff;
+    color: var(--ffc-inverse-on-surface);
 }
 
 #ffc-preview-modal .ffc-preview-note {
     padding: 8px 16px;
-    background: #f0f6fc;
-    border-bottom: 1px solid #d0d5dd;
+    background: var(--ffc-primary-light);
+    border-bottom: 1px solid var(--ffc-border);
     font-size: 12px;
-    color: #555;
+    color: var(--ffc-text-secondary);
 }
 
 #ffc-preview-modal .ffc-preview-body {
@@ -2042,33 +2050,16 @@ details.ffc-consent-description > p {
 #ffc-preview-iframe {
     display: block;
     border: none;
+    /* Branco nos dois temas: o iframe mostra a pré-visualização do certificado,
+       e o papel do documento é branco por definição (#1126). */
     background: #fff;
 }
 
-/* Dark mode alert overrides */
-[data-ffc-theme="dark"] .ffc-info-alert-warning {
-    background: #3d3200;
-    border-color: #665500;
-    color: #ffc107;
-}
-
-[data-ffc-theme="dark"] .ffc-info-alert-info {
-    background: #0a2e36;
-    border-color: #155d6e;
-    color: #7dd3e0;
-}
-
-[data-ffc-theme="dark"] .ffc-info-alert-success {
-    background: #0d3318;
-    border-color: #1a5c2e;
-    color: #7dd4a0;
-}
-
-[data-ffc-theme="dark"] .ffc-preview-note {
-    background: #2c3338;
-    border-color: #3c4349;
-    color: #bbb;
-}
+/* As quatro regras de modo escuro que viviam aqui foram removidas no #1126:
+   elas casavam `[data-ffc-theme="dark"]`, atributo que NADA no plugin define —
+   nem PHP, nem template, nem JS. Eram tratamento de tema inerte, com aparência
+   de tratamento existente. Os alertas acima passam a seguir a paleta, e com ela
+   o `.ffc-dark-mode` de verdade. */
 
 /* ============================================
    REDUCED MOTION
@@ -2106,17 +2097,17 @@ details.ffc-consent-description > p {
     align-items: flex-start;
     padding: 18px 20px;
     margin: 0 0 24px 0;
-    background: #fff8e6;
-    border: 1px solid #f5c518;
-    border-left: 4px solid #f5a800;
+    background: var(--ffc-warning-bg);
+    border: 1px solid var(--ffc-warning-border);
+    border-left: 4px solid var(--ffc-warning);
     border-radius: var(--ffc-radius-lg);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    box-shadow: var(--ffc-shadow-sm);
 }
 
 .ffc-webview-warning-icon {
     font-size: 26px;
     line-height: 1;
-    color: #b86b00;
+    color: var(--ffc-warning-text);
     flex-shrink: 0;
 }
 
@@ -2129,7 +2120,7 @@ details.ffc-consent-description > p {
     margin: 0 0 6px 0;
     font-size: 16px;
     font-weight: 600;
-    color: #3a2a00;
+    color: var(--ffc-warning-text);
     line-height: 1.3;
 }
 
@@ -2137,7 +2128,7 @@ details.ffc-consent-description > p {
     margin: 0 0 14px 0;
     font-size: 14px;
     line-height: 1.5;
-    color: #3a3a3a;
+    color: var(--ffc-text);
 }
 
 .ffc-webview-warning-actions {
@@ -2158,26 +2149,26 @@ details.ffc-consent-description > p {
 
 .ffc-webview-warning-open {
     background: var(--ffc-primary);
-    color: #fff;
+    color: var(--ffc-text-on-primary);
     border: 1px solid var(--ffc-primary);
 }
 
 .ffc-webview-warning-open:hover,
 .ffc-webview-warning-open:focus-visible {
-    background: var(--ffc-primary-hover, var(--ffc-link-hover, #005a8a));
+    background: var(--ffc-primary-hover, var(--ffc-link-hover));
     outline: none;
 }
 
 .ffc-webview-warning-dismiss {
     background: transparent;
-    color: #555;
-    border: 1px solid #bbb;
+    color: var(--ffc-text-secondary);
+    border: 1px solid var(--ffc-border);
 }
 
 .ffc-webview-warning-dismiss:hover,
 .ffc-webview-warning-dismiss:focus-visible {
-    background: #f5f5f5;
-    border-color: #999;
+    background: var(--ffc-bg-alt);
+    border-color: var(--ffc-border-focus);
     outline: none;
 }
 
@@ -2213,17 +2204,17 @@ details.ffc-consent-description > p {
     align-items: flex-start;
     padding: 16px 20px;
     margin: 0 0 24px 0;
-    background: #e7f3fb;
-    border: 1px solid #92c5e5;
-    border-left: 4px solid #2271b1;
+    background: var(--ffc-info-bg);
+    border: 1px solid var(--ffc-info-border);
+    border-left: 4px solid var(--ffc-primary);
     border-radius: var(--ffc-radius-lg);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    box-shadow: var(--ffc-shadow-sm);
 }
 
 .ffc-already-submitted-icon {
     font-size: 24px;
     line-height: 1;
-    color: #2271b1;
+    color: var(--ffc-primary);
     flex-shrink: 0;
     font-weight: 700;
 }
@@ -2237,7 +2228,7 @@ details.ffc-consent-description > p {
     margin: 0 0 6px 0;
     font-size: 15px;
     font-weight: 600;
-    color: #0a4a73;
+    color: var(--ffc-info-text);
     line-height: 1.3;
 }
 
@@ -2245,7 +2236,7 @@ details.ffc-consent-description > p {
     margin: 0 0 12px 0;
     font-size: 14px;
     line-height: 1.5;
-    color: #1d3a55;
+    color: var(--ffc-info-text);
 }
 
 .ffc-already-submitted-dismiss {
@@ -2253,8 +2244,8 @@ details.ffc-consent-description > p {
     font-size: 13px;
     font-weight: 600;
     background: transparent;
-    color: #2271b1;
-    border: 1px solid #92c5e5;
+    color: var(--ffc-primary);
+    border: 1px solid var(--ffc-info-border);
     border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     transition: background var(--ffc-transition-base), border-color var(--ffc-transition-base);
@@ -2262,8 +2253,8 @@ details.ffc-consent-description > p {
 
 .ffc-already-submitted-dismiss:hover,
 .ffc-already-submitted-dismiss:focus-visible {
-    background: #d4ebf8;
-    border-color: #2271b1;
+    background: var(--ffc-primary-light);
+    border-color: var(--ffc-primary);
     outline: none;
 }
 

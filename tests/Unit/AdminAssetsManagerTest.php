@@ -344,7 +344,10 @@ class AdminAssetsManagerTest extends TestCase {
 		global $post_type;
 		$post_type = 'ffc_form';
 
-		$this->utils_mock->shouldReceive('enqueue_dark_mode')->once();
+		// `true`: the Dark Mode select is on a plugin admin screen and auto-saves,
+		// so the script has to be present in the `off` state as well — it is what
+		// repaints <html> when the option changes without a reload.
+		$this->utils_mock->shouldReceive('enqueue_dark_mode')->once()->with( true );
 
 		Functions\when('wp_enqueue_media')->justReturn(true);
 		Functions\when('wp_enqueue_script')->justReturn(true);

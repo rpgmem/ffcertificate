@@ -3,34 +3,25 @@
  *
  * Mirrors the visual conventions of the user dashboard
  * (assets/css/ffc-user-dashboard.css) so the public list reads as
- * the same product. Variables are scoped to .ffc-recruitment-queue
- * so themes that don't load the dashboard CSS still get a coherent
- * recruitment list.
+ * the same product.
+ *
+ * This block used to REDECLARE a dozen `--ffc-*` tokens locally, so that a
+ * theme not loading the dashboard CSS still got a coherent list. That
+ * rationale is gone — `ffc-common.css` is a declared dependency of this
+ * handle since #1126 — and the cost was real: a local declaration shadows the
+ * palette for everything inside this component, so `:root.ffc-dark-mode`
+ * could never reach it. The public recruitment list stayed light with the
+ * dark mode on, and no amount of fixing the palette would have changed that.
  *
  * @since 6.1.0
  */
 
 .ffc-recruitment-queue {
-    --ffc-primary: #2271b1;
-    --ffc-primary-light: #f0f6fc;
-    --ffc-text: #1e1e1e;
-    --ffc-text-secondary: #50575e;
-    --ffc-text-muted: #8c8f94;
-    --ffc-border-light: #e9ecef;
-    --ffc-bg: #ffffff;
-    --ffc-bg-subtle: #f6f7f7;
-    --ffc-success: #00a32a;
-    --ffc-warning: #dba617;
-    --ffc-danger: #d63638;
-    --ffc-radius: 6px;
-    --ffc-radius-lg: 10px;
-    --ffc-shadow: 0 1px 3px rgba(0, 0, 0, .06), 0 1px 2px rgba(0, 0, 0, .04);
-
     background: var(--ffc-bg);
     color: var(--ffc-text);
     border-radius: var(--ffc-radius-lg);
     padding: 24px;
-    box-shadow: var(--ffc-shadow);
+    box-shadow: var(--ffc-shadow-sm);
     margin: 24px 0;
     font-size: 14px;
     line-height: 1.5;
@@ -58,25 +49,25 @@
 .ffc-recruitment-queue .ffc-recruitment-banner {
     display: block;
     padding: 6px 12px;
-    border-radius: var(--ffc-radius);
+    border-radius: var(--ffc-radius-md);
     font-size: 18px;
     font-weight: 600;
     text-align: center;
 }
 
 .ffc-recruitment-queue .ffc-recruitment-banner-preliminary {
-    background: #fff3cd;
-    color: #856404;
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
 }
 
 .ffc-recruitment-queue .ffc-recruitment-banner-definitive {
-    background: #d4edda;
-    color: #155724;
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
 }
 
 .ffc-recruitment-queue .ffc-recruitment-banner-closed {
-    background: #f8d7da;
-    color: #721c24;
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
 }
 
 .ffc-recruitment-queue .ffc-recruitment-filters {
@@ -98,9 +89,9 @@
     align-items: center;
     gap: 6px;
     padding: 6px 14px;
-    border: 1px solid var(--ffc-primary, #2271b1);
-    background: var(--ffc-primary, #2271b1);
-    color: #fff;
+    border: 1px solid var(--ffc-primary);
+    background: var(--ffc-primary);
+    color: var(--ffc-text-on-primary);
     border-radius: 4px;
     cursor: pointer;
     font-size: 13px;
@@ -111,9 +102,9 @@
 
 .ffc-recruitment-queue .ffc-recruitment-search-btn:hover,
 .ffc-recruitment-queue .ffc-recruitment-search-btn:focus {
-    background: var(--ffc-primary-darker, #135e96);
-    border-color: var(--ffc-primary-darker, #135e96);
-    box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.18);
+    background: var(--ffc-primary-hover);
+    border-color: var(--ffc-primary-hover);
+    box-shadow: 0 0 0 2px var(--ffc-focus-ring);
     outline: none;
 }
 
@@ -146,7 +137,7 @@
     font-size: 12px;
     font-weight: 600;
     color: var(--ffc-text-secondary);
-    background: var(--ffc-bg-muted, #eef2f7);
+    background: var(--ffc-bg-alt);
     border-radius: 999px;
     padding: 2px 10px;
     text-transform: none;
@@ -158,12 +149,12 @@
     border-collapse: separate;
     border-spacing: 0;
     border: 1px solid var(--ffc-border-light);
-    border-radius: var(--ffc-radius);
+    border-radius: var(--ffc-radius-md);
     overflow: hidden;
 }
 
 .ffc-recruitment-queue .ffc-recruitment-table th {
-    background: var(--ffc-bg-subtle);
+    background: var(--ffc-bg-alt);
     padding: 10px 12px;
     text-align: left;
     font-weight: 600;
@@ -202,7 +193,7 @@
     display: inline-block;
     padding: 6px 10px;
     border: 1px solid var(--ffc-border-light);
-    border-radius: var(--ffc-radius);
+    border-radius: var(--ffc-radius-md);
     text-decoration: none;
     font-size: 13px;
     color: var(--ffc-text);
@@ -220,7 +211,7 @@
 .ffc-recruitment-queue .ffc-recruitment-pagination .current {
     background: var(--ffc-primary);
     border-color: var(--ffc-primary);
-    color: #fff;
+    color: var(--ffc-text-on-primary);
     font-weight: 600;
 }
 
@@ -229,8 +220,9 @@
 }
 
 .ffc-recruitment-queue form select {
+    color: var(--ffc-text);
     padding: 6px 10px;
-    border-radius: var(--ffc-radius);
+    border-radius: var(--ffc-radius-md);
     border: 1px solid var(--ffc-border-light);
     font-size: 13px;
     background: var(--ffc-bg);
@@ -238,7 +230,7 @@
 
 .ffc-recruitment-queue .ffc-recruitment-message {
     padding: 12px 16px;
-    border-radius: var(--ffc-radius);
+    border-radius: var(--ffc-radius-md);
     font-size: 14px;
     margin: 16px 0;
 }
@@ -249,11 +241,11 @@
 }
 
 .ffc-recruitment-queue .ffc-recruitment-message-warning {
-    background: #fff3cd;
-    color: #856404;
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
 }
 
 .ffc-recruitment-queue .ffc-recruitment-message-error {
-    background: #f8d7da;
-    color: #721c24;
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
 }

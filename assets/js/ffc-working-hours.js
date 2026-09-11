@@ -96,4 +96,110 @@
         syncHidden($wrapper);
     });
 
+    /**
+     * Rows that carry some time but not both required ones (#1128).
+     *
+     * A row with NO time at all is not incomplete — it is "I do not work this
+     * day", and the server drops it. Only a half-filled row is a mistake.
+     *
+     * @param {jQuery} $wrapper The .ffc-working-hours container.
+     * @return {Array} One entry per offending row: { $row, missing: [labels] }.
+     */
+    function incompleteRows($wrapper) {
+        var found = [];
+
+        $wrapper.find('.ffc-wh-table tbody tr').each(function () {
+            var $row = $(this);
+            // `$.trim` was removed in jQuery 4; native String.prototype.trim
+            // is the replacement and works on every version WP has shipped.
+            var entry1 = ($row.find('.ffc-wh-entry1').val() || '').trim();
+            var exit1  = ($row.find('.ffc-wh-exit1').val() || '').trim();
+            var entry2 = ($row.find('.ffc-wh-entry2').val() || '').trim();
+            var exit2  = ($row.find('.ffc-wh-exit2').val() || '').trim();
+
+            if (!entry1 && !exit1 && !entry2 && !exit2) {
+                return;
+            }
+
+            var missing = [];
+            if (!entry1) { missing.push(strings.entry1); }
+            if (!exit2)  { missing.push(strings.exit2); }
+
+            if (missing.length) {
+                found.push({ $row: $row, missing: missing });
+            }
+        });
+
+        return found;
+    }
+
+    var strings = $.extend({
+        entry1:     'Entry 1',
+        exit2:      'Exit 2',
+        incomplete: 'This row has a time but is missing: %s. Fill it in, or clear the row to remove the day.'
+    }, (window.ffcWorkingHours && window.ffcWorkingHours.strings) || {});
+
+    /**
+     * Block the submit on a half-filled row, instead of letting the server
+     * decide what to discard (#1128).
+     *
+     * This is the half that can actually let the operator fix it: once the
+     * form posts, the screen reloads from the database and whatever they typed
+     * is gone, so "signal and let them correct" only means something *before*
+     * the POST. The server-side sanitizer stays as the backstop for a direct
+     * POST or a client with JS off — the browser is never the guard.
+     *
+     * `reportValidity()` is not usable here: the two time cells carry no
+     * `name`, and `FFC.setRequiredWithin()` strips their `required` while a
+     * section is collapsed, which is deliberate. So the message is placed on
+     * the row itself, and any collapsed ancestor is opened first — otherwise
+     * this reproduces the very defect #1117 set out to remove, pointing at a
+     * control nobody can see.
+     */
+    $(document).on('submit', 'form', function (e) {
+        var $form = $(this);
+        var blocked = null;
+
+        $form.find('.ffc-working-hours').each(function () {
+            var $wrapper = $(this);
+            var rows = incompleteRows($wrapper);
+
+            $wrapper.find('.ffc-wh-row-error').remove();
+            $wrapper.find('.ffc-wh-row-invalid').removeClass('ffc-wh-row-invalid');
+
+            for (var i = 0; i < rows.length; i++) {
+                rows[i].$row.addClass('ffc-wh-row-invalid');
+                $('<tr class="ffc-wh-row-error"><td colspan="6"></td></tr>')
+                    .find('td')
+                    .text(strings.incomplete.replace('%s', rows[i].missing.join(', ')))
+                    .end()
+                    .insertAfter(rows[i].$row);
+
+                if (!blocked) {
+                    blocked = rows[i].$row;
+                }
+            }
+        });
+
+        if (!blocked) {
+            return;
+        }
+
+        e.preventDefault();
+
+        // Open any collapsed ancestor before pointing at the row.
+        blocked.parents('.ffc-cf-section-body.collapsed').each(function () {
+            var $body = $(this);
+            $body.removeClass('collapsed');
+            $('[data-target="' + $body.attr('id') + '"]').attr('aria-expanded', 'true');
+        });
+
+        if (blocked[0] && blocked[0].scrollIntoView) {
+            blocked[0].scrollIntoView({ block: 'center' });
+        }
+        blocked.find('.ffc-wh-entry1, .ffc-wh-exit2').filter(function () {
+            return !($(this).val() || '').trim();
+        }).first().trigger('focus');
+    });
+
 })(jQuery);

@@ -16,7 +16,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--ffc-bg-overlay);
     z-index: 100000;
     display: flex;
     align-items: center;
@@ -24,13 +24,13 @@
 }
 
 .ffc-csv-progress-card {
-    background: var(--ffc-card-bg, #fff);
-    color: var(--ffc-text, #333);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
     border-radius: 8px;
     padding: 30px;
     max-width: 420px;
     width: 90%;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--ffc-shadow-lg);
     text-align: center;
 }
 
@@ -41,7 +41,7 @@
 }
 
 .ffc-csv-progress-bar-container {
-    background: var(--ffc-border, #e0e0e0);
+    background: var(--ffc-border);
     border-radius: 4px;
     height: 20px;
     overflow: hidden;
@@ -49,7 +49,7 @@
 }
 
 .ffc-csv-progress-bar-fill {
-    background: var(--ffc-primary, #0073aa);
+    background: var(--ffc-primary);
     height: 100%;
     width: 0;
     transition: width 0.3s ease;
@@ -57,21 +57,21 @@
 }
 
 .ffc-csv-progress-bar-fill.ffc-csv-complete {
-    background: var(--ffc-success, #46b450);
+    background: var(--ffc-success);
 }
 
 .ffc-csv-progress-bar-fill.ffc-csv-error {
-    background: var(--ffc-danger, #d63638);
+    background: var(--ffc-danger);
 }
 
 .ffc-csv-progress-percent {
     margin-top: 8px;
     font-size: 14px;
-    color: var(--ffc-text-muted, #666);
+    color: var(--ffc-text-muted);
 }
 
 .ffc-csv-progress-error {
-    color: var(--ffc-danger, #d63638);
+    color: var(--ffc-danger);
     margin-top: 12px;
     font-weight: 500;
     font-size: 14px;

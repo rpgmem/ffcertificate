@@ -376,8 +376,20 @@ class AppointmentEmailHandler {
 			);
 		}
 
+		// This IS the confirmation for a calendar that requires approval: the
+		// booking email only says "pending approval, you will receive a
+		// confirmation once it is approved". So the person whose appointment is
+		// actually confirmed was the one with no way to cancel from e-mail —
+		// every other appointment mail carries the link, this one did not.
+		$cancel_url = $calendar['allow_cancellation'] ? $this->get_cancellation_url( $appointment ) : '';
+
 		$extra = array(
 			'{{receipt_button}}' => self::build_receipt_button( $receipt_url ),
+			'{{cancel_button}}'  => self::build_cancel_button(
+				$cancel_url,
+				__( 'Cancel Appointment', 'ffcertificate' ),
+				__( 'Need to cancel?', 'ffcertificate' )
+			),
 		);
 
 		$this->send_lifecycle_email( 'appointment-approval', $email, $appointment, $calendar, $extra );

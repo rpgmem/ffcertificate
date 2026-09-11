@@ -20,8 +20,8 @@
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    background: #fff;
-    border: 1px solid #c3c4c7;
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
     padding: 10px 12px;
     margin-bottom: 4px;
     border-radius: 3px;
@@ -29,24 +29,24 @@
 }
 
 .ffc-custom-field-row:hover {
-    border-color: #2271b1;
+    border-color: var(--ffc-primary);
 }
 
 .ffc-custom-field-row.ffc-field-inactive {
     opacity: 0.5;
-    background: #f6f7f7;
+    background: var(--ffc-bg-alt);
 }
 
 /* Drag handle */
 .ffc-field-handle {
     cursor: move;
     padding: 4px 2px;
-    color: #c3c4c7;
+    color: var(--ffc-text-light);
     flex-shrink: 0;
 }
 
 .ffc-field-handle:hover {
-    color: #2271b1;
+    color: var(--ffc-primary);
 }
 
 .ffc-field-handle .dashicons {
@@ -92,7 +92,7 @@
 .ffc-field-details-row {
     margin-top: 10px;
     padding-top: 10px;
-    border-top: 1px dashed #dcdcde;
+    border-top: 1px dashed var(--ffc-border-light);
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -158,8 +158,8 @@
 
 /* Sortable placeholder */
 .ffc-sortable-placeholder {
-    border: 2px dashed #2271b1;
-    background: #f0f6fc;
+    border: 2px dashed var(--ffc-primary);
+    background: var(--ffc-primary-light);
     margin-bottom: 4px;
     min-height: 50px;
     border-radius: 3px;
@@ -172,11 +172,11 @@
 }
 
 .ffc-save-status.ffc-status-success {
-    color: #00a32a;
+    color: var(--ffc-success-text);
 }
 
 .ffc-save-status.ffc-status-error {
-    color: #d63638;
+    color: var(--ffc-danger-text);
 }
 
 /* ==========================================================================
@@ -189,7 +189,7 @@
     gap: 8px;
     margin-top: 20px;
     padding-bottom: 5px;
-    border-bottom: 1px solid #c3c4c7;
+    border-bottom: 1px solid var(--ffc-border);
 }
 
 .ffc-color-dot {
@@ -206,7 +206,7 @@
 }
 
 .ffc-cf-toggle:hover {
-    color: #2271b1;
+    color: var(--ffc-primary);
 }
 
 .ffc-cf-toggle-icon {
@@ -221,8 +221,8 @@
 }
 
 .ffc-cf-field-count {
-    background: #dcdcde;
-    color: #50575e;
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-secondary);
     font-size: 11px;
     font-weight: 400;
     padding: 1px 7px;
@@ -252,11 +252,11 @@
 }
 
 .ffc-ds-editor .ffc-ds-division {
-    border: 1px solid #dcdcde;
+    border: 1px solid var(--ffc-border);
     border-radius: 4px;
     padding: 12px;
     margin-bottom: 12px;
-    background: #fff;
+    background: var(--ffc-bg-card);
 }
 
 .ffc-ds-editor .ffc-ds-division-head {
@@ -274,7 +274,7 @@
 .ffc-ds-editor .ffc-ds-sectors {
     margin: 0 0 8px 20px;
     padding-left: 12px;
-    border-left: 2px solid #f0f0f1;
+    border-left: 2px solid var(--ffc-border-light);
 }
 
 .ffc-ds-editor .ffc-ds-sector {
@@ -285,7 +285,7 @@
 }
 
 .ffc-ds-editor .ffc-ds-sector-remove {
-    color: #b32d2e;
+    color: var(--ffc-danger-text);
     text-decoration: none;
     font-size: 18px;
     line-height: 1;

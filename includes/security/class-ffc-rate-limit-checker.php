@@ -355,23 +355,23 @@ final class RateLimitChecker {
 	/**
 	 * Check rate limit for verification requests (magic links).
 	 *
-	 * Throttles by IP only — 10/hour and 30/day. The `$token` argument is accepted
-	 * and ignored: a per-token limit was never implemented, and it is not needed
-	 * here. The only thing keying on the token would add is defence against a
-	 * distributed brute-force of a single auth code, and the code space rules that
-	 * out — `AuthCodeService` emits 12 characters over `[A-Z0-9]` (36^12, ~62 bits)
-	 * with global uniqueness verified across the three tables that hold one.
+	 * Throttles by IP only — 10/hour and 30/day. It carried a `$token` argument
+	 * until 6.24.0 that nothing ever read; it was removed in #1048, announced in
+	 * 6.22.0.
 	 *
-	 * @deprecated 6.22.0 The `$token` argument is ignored and will be removed in
-	 *             6.24.0 (#1048). Call with `$ip` alone. Revisit the per-token limit
-	 *             only if the auth code shortens, or a flow appears that accepts a
-	 *             short human-typed code.
+	 * A per-token limit is still not needed, and the reason is worth keeping so
+	 * it is not re-derived: the only thing keying on the token would add is
+	 * defence against a distributed brute-force of a single auth code, and the
+	 * code space rules that out — `AuthCodeService` emits 12 characters over
+	 * `[A-Z0-9]` (36^12, ~62 bits) with global uniqueness verified across the
+	 * three tables that hold one. Revisit it only if the auth code shortens, or
+	 * a flow appears that accepts a short human-typed code (6-8 characters); at
+	 * that length the IP-only ceiling stops being sufficient.
 	 *
-	 * @param string      $ip    IP address.
-	 * @param string|null $token Ignored. Kept for signature compatibility until 6.24.0.
+	 * @param string $ip IP address.
 	 * @return array{allowed: bool, message?: string, wait_seconds?: int}
 	 */
-	public static function check_verification( string $ip, ?string $token = null ): array {
+	public static function check_verification( string $ip ): array {
 		$settings = self::get_settings();
 
 		if ( empty( $settings['ip']['enabled'] ) ) {

@@ -15,7 +15,7 @@
 }
 
 .ffc-email-model-group {
-	border: 1px solid #dcdcde;
+	border: 1px solid var(--ffc-border-light);
 	border-radius: 4px;
 	padding: 8px 14px 14px;
 	margin: 0 0 16px;
@@ -70,9 +70,9 @@
 .ffc-email-model-preview-frame {
 	width: 100%;
 	height: 460px;
-	border: 1px solid #dcdcde;
+	border: 1px solid var(--ffc-border-light);
 	border-radius: 4px;
-	background: #fff;
+	background: var(--ffc-bg-card);
 }
 
 @media screen and (max-width: 782px) {

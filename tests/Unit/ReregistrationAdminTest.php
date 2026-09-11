@@ -360,6 +360,180 @@ class ReregistrationAdminTest extends TestCase {
 	}
 
 	/**
+	 * Run handle_save() with one `rereg_reminder_days` value and return the
+	 * `reminder_days` the repository was asked to store.
+	 *
+	 * @param string $posted Raw field value, as the browser would send it.
+	 * @return int
+	 */
+	private function saved_reminder_days( string $posted ): int {
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+
+		$_POST['ffc_action']        = 'save_reregistration';
+		$_POST['reregistration_id'] = 0;
+
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+			->shouldReceive( 'get_post_string' )->andReturnUsing(
+				function ( $key, $default = '' ) use ( $posted ) {
+					$map = array(
+						'rereg_title'          => 'C',
+						'rereg_start_date'     => '2026-01-01',
+						'rereg_end_date'       => '2026-12-31',
+						'rereg_status'         => 'draft',
+						'rereg_reminder_days'  => $posted,
+					);
+					return $map[ $key ] ?? $default;
+				}
+			)
+			->shouldReceive( 'get_get_key' )->andReturn( '' )
+			->shouldReceive( 'get_get_int' )->andReturn( 0 )
+			->shouldReceive( 'has_get' )->andReturn( false );
+
+		$captured = 0;
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
+			->shouldReceive( 'create' )->once()->andReturnUsing(
+				function ( $data ) use ( &$captured ) {
+					$captured = (int) $data['reminder_days'];
+					return 55;
+				}
+			)
+			->shouldReceive( 'set_audience_ids' );
+
+		$admin = new ReregistrationAdmin();
+		try {
+			$this->invoke_private( $admin, 'handle_save' );
+		} catch ( \RuntimeException $e ) {
+			// The redirect is how handle_save() ends; the write already happened.
+			unset( $e );
+		}
+
+		return $captured;
+	}
+
+	/**
+	 * Reactivating a campaign reopens the previous cycle (#1125).
+	 *
+	 * The wiring is the whole fix, and it had no test: the smoke found that a
+	 * reactivated campaign was silent on both ends, because
+	 * `create_for_audience_members()` skips a user who already has a
+	 * submission — so everyone from the previous cycle stayed at `expired`.
+	 *
+	 * The ORDER is what is pinned here, not just the call. Reopening has to
+	 * run BEFORE `send_invitations()`, which queries `status = 'pending'`:
+	 * reversed, the invitation email stays silent exactly as it was.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_handle_save_reopens_expired_submissions_when_reactivating(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+
+		$_POST['ffc_action']        = 'save_reregistration';
+		$_POST['reregistration_id'] = 9;
+
+		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
+			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
+			->shouldReceive( 'get_post_string' )->andReturnUsing(
+				function ( $key, $default = '' ) {
+					$map = array(
+						'rereg_title'      => 'C',
+						'rereg_start_date' => '2026-01-01',
+						'rereg_end_date'   => '2026-12-31',
+						// The transition under test: the campaign was expired
+						// and the administrator is switching it back on.
+						'rereg_status'     => 'active',
+					);
+					return $map[ $key ] ?? $default;
+				}
+			)
+			->shouldReceive( 'get_get_key' )->andReturn( '' )
+			->shouldReceive( 'get_get_int' )->andReturn( 0 )
+			->shouldReceive( 'has_get' )->andReturn( false );
+
+		$calls = array();
+
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' )
+			->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 9, 'status' => 'expired' ) )
+			->shouldReceive( 'update' )->andReturn( true )
+			->shouldReceive( 'set_audience_ids' )
+			->shouldReceive( 'reopen_expired_submissions' )->once()->andReturnUsing(
+				function () use ( &$calls ) {
+					$calls[] = 'reopen';
+					return 2;
+				}
+			);
+
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' )
+			->shouldReceive( 'create_for_audience_members' )->once()->andReturnUsing(
+				function () use ( &$calls ) {
+					$calls[] = 'seed';
+					return 0;
+				}
+			);
+
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' )
+			->shouldReceive( 'send_invitations' )->once()->andReturnUsing(
+				function () use ( &$calls ) {
+					$calls[] = 'invite';
+					return 0;
+				}
+			);
+
+		$admin = new ReregistrationAdmin();
+		try {
+			$this->invoke_private( $admin, 'handle_save' );
+		} catch ( \RuntimeException $e ) {
+			unset( $e );
+		}
+
+		$this->assertSame(
+			array( 'reopen', 'seed', 'invite' ),
+			$calls,
+			'Reopening must precede the invitation, which only queries pending.'
+		);
+	}
+
+	/**
+	 * A cleared field must not write zero (#1117).
+	 *
+	 * `absint( '' )` is 0, and the reminder sweep reads
+	 * `DATEDIFF(end_date, CURDATE()) <= reminder_days`, so a 0 collapses
+	 * every reminder onto the campaign's last day — too late to be a
+	 * reminder, and nothing on screen says the value changed.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_handle_save_keeps_the_default_when_reminder_days_is_cleared(): void {
+		$this->assertSame( 7, $this->saved_reminder_days( '' ) );
+	}
+
+	/**
+	 * A typed 0 lands on the floor the field itself declares (`min="1"`).
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_handle_save_floors_a_typed_zero_on_the_fields_own_min(): void {
+		$this->assertSame( 1, $this->saved_reminder_days( '0' ) );
+	}
+
+	/**
+	 * A real value still round-trips.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_handle_save_stores_a_supplied_reminder_days(): void {
+		$this->assertSame( 14, $this->saved_reminder_days( '14' ) );
+	}
+
+	/**
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */

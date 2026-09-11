@@ -75,6 +75,8 @@ class SettingsAjaxEndpoint {
 			'send_wp_user_email_appointment',
 			'send_wp_user_email_csv_import',
 			'send_wp_user_email_migration',
+			// Access-granted notification — read since 6.x, writable since #1123.
+			'notify_capability_grant',
 			// URL Shortener tab.
 			'url_shortener_enabled',
 			'url_shortener_auto_create',
@@ -387,7 +389,7 @@ class SettingsAjaxEndpoint {
 
 		// Rate-limit nested non-boolean fields.
 		$rate_limit_typed = array(
-			'ip_max_per_hour'         => array(
+			'ip_max_per_hour'           => array(
 				array( 'ip', 'max_per_hour' ),
 				'int',
 				array(
@@ -395,7 +397,7 @@ class SettingsAjaxEndpoint {
 					'max' => 1000,
 				),
 			),
-			'ip_max_per_day'          => array(
+			'ip_max_per_day'            => array(
 				array( 'ip', 'max_per_day' ),
 				'int',
 				array(
@@ -403,7 +405,7 @@ class SettingsAjaxEndpoint {
 					'max' => 10000,
 				),
 			),
-			'ip_cooldown_seconds'     => array(
+			'ip_cooldown_seconds'       => array(
 				array( 'ip', 'cooldown_seconds' ),
 				'int',
 				array(
@@ -411,22 +413,38 @@ class SettingsAjaxEndpoint {
 					'max' => 3600,
 				),
 			),
-			'ip_apply_to'             => array( array( 'ip', 'apply_to' ), 'string', array() ),
-			'ip_message'              => array( array( 'ip', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
-			'email_max_per_day'       => array( array( 'email', 'max_per_day' ), 'int', array( 'min' => 1 ) ),
-			'email_max_per_week'      => array( array( 'email', 'max_per_week' ), 'int', array( 'min' => 1 ) ),
-			'email_max_per_month'     => array( array( 'email', 'max_per_month' ), 'int', array( 'min' => 1 ) ),
-			'email_message'           => array( array( 'email', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
-			'cpf_max_per_month'       => array( array( 'cpf', 'max_per_month' ), 'int', array( 'min' => 1 ) ),
-			'cpf_max_per_year'        => array( array( 'cpf', 'max_per_year' ), 'int', array( 'min' => 1 ) ),
-			'cpf_block_threshold'     => array( array( 'cpf', 'block_threshold' ), 'int', array( 'min' => 1 ) ),
-			'cpf_block_hours'         => array( array( 'cpf', 'block_hours' ), 'int', array( 'min' => 1 ) ),
-			'cpf_block_duration'      => array( array( 'cpf', 'block_duration' ), 'int', array( 'min' => 1 ) ),
-			'cpf_message'             => array( array( 'cpf', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
-			'global_max_per_minute'   => array( array( 'global', 'max_per_minute' ), 'int', array( 'min' => 1 ) ),
-			'global_max_per_hour'     => array( array( 'global', 'max_per_hour' ), 'int', array( 'min' => 1 ) ),
-			'global_message'          => array( array( 'global', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
-			'device_max_per_form'     => array(
+			'ip_captcha_max_per_window' => array(
+				array( 'ip', 'captcha_max_per_window' ),
+				'int',
+				array(
+					'min' => \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_CAP_MIN,
+					'max' => \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_CAP_MAX,
+				),
+			),
+			'ip_captcha_window_seconds' => array(
+				array( 'ip', 'captcha_window_seconds' ),
+				'int',
+				array(
+					'min' => \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_WINDOW_MIN,
+					'max' => \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_WINDOW_MAX,
+				),
+			),
+			'ip_apply_to'               => array( array( 'ip', 'apply_to' ), 'string', array() ),
+			'ip_message'                => array( array( 'ip', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
+			'email_max_per_day'         => array( array( 'email', 'max_per_day' ), 'int', array( 'min' => 1 ) ),
+			'email_max_per_week'        => array( array( 'email', 'max_per_week' ), 'int', array( 'min' => 1 ) ),
+			'email_max_per_month'       => array( array( 'email', 'max_per_month' ), 'int', array( 'min' => 1 ) ),
+			'email_message'             => array( array( 'email', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
+			'cpf_max_per_month'         => array( array( 'cpf', 'max_per_month' ), 'int', array( 'min' => 1 ) ),
+			'cpf_max_per_year'          => array( array( 'cpf', 'max_per_year' ), 'int', array( 'min' => 1 ) ),
+			'cpf_block_threshold'       => array( array( 'cpf', 'block_threshold' ), 'int', array( 'min' => 1 ) ),
+			'cpf_block_hours'           => array( array( 'cpf', 'block_hours' ), 'int', array( 'min' => 1 ) ),
+			'cpf_block_duration'        => array( array( 'cpf', 'block_duration' ), 'int', array( 'min' => 1 ) ),
+			'cpf_message'               => array( array( 'cpf', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
+			'global_max_per_minute'     => array( array( 'global', 'max_per_minute' ), 'int', array( 'min' => 1 ) ),
+			'global_max_per_hour'       => array( array( 'global', 'max_per_hour' ), 'int', array( 'min' => 1 ) ),
+			'global_message'            => array( array( 'global', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
+			'device_max_per_form'       => array(
 				array( 'device', 'max_per_form' ),
 				'int',
 				array(
@@ -434,7 +452,7 @@ class SettingsAjaxEndpoint {
 					'max' => 100,
 				),
 			),
-			'device_match_threshold'  => array(
+			'device_match_threshold'    => array(
 				array( 'device', 'match_threshold' ),
 				'int',
 				array(
@@ -442,7 +460,7 @@ class SettingsAjaxEndpoint {
 					'max' => 12,
 				),
 			),
-			'device_match_strong_min' => array(
+			'device_match_strong_min'   => array(
 				array( 'device', 'match_strong_min' ),
 				'int',
 				array(
@@ -450,7 +468,7 @@ class SettingsAjaxEndpoint {
 					'max' => 6,
 				),
 			),
-			'device_retention_days'   => array(
+			'device_retention_days'     => array(
 				array( 'device', 'retention_days' ),
 				'int',
 				array(
@@ -458,10 +476,10 @@ class SettingsAjaxEndpoint {
 					'max' => 3650,
 				),
 			),
-			'device_message'          => array( array( 'device', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
-			'logging_retention_days'  => array( array( 'logging', 'retention_days' ), 'int', array( 'min' => 1 ) ),
-			'logging_max_logs'        => array( array( 'logging', 'max_logs' ), 'int', array( 'min' => 100 ) ),
-			'read_message'            => array( array( 'read', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
+			'device_message'            => array( array( 'device', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
+			'logging_retention_days'    => array( array( 'logging', 'retention_days' ), 'int', array( 'min' => 1 ) ),
+			'logging_max_logs'          => array( array( 'logging', 'max_logs' ), 'int', array( 'min' => 100 ) ),
+			'read_message'              => array( array( 'read', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
 		);
 
 		// Per-endpoint numeric thresholds under read.endpoints.<ep>.{max_per_minute,max_per_hour}.
@@ -535,7 +553,26 @@ class SettingsAjaxEndpoint {
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised on the next line by self::sanitize_value() against the allowlisted type for this key.
 		$raw_value = wp_unslash( $_POST['value'] ?? '' );
-		$value     = self::sanitize_value( $raw_value, $entry['type'] ?? 'bool', $entry );
+
+		/*
+		 * An empty string is not a number, and this endpoint must not guess
+		 * which one was meant. `(int) ''` is 0, so before this guard clearing
+		 * ANY numeric field in the admin silently stored that key's floor —
+		 * `cache_expiration` became 60, `qr_default_size` became 100, and the
+		 * captcha issuing window would have become one second (#1111
+		 * follow-up). The autosave widget saves on `input`, so a field cleared
+		 * on the way to retyping it wrote the floor within 400ms, with no
+		 * error and nothing on screen to say the value had changed.
+		 *
+		 * Refusing leaves the stored value intact and surfaces the failure in
+		 * the field's own badge, which is the honest outcome: nothing was
+		 * saved because nothing was typed. A deliberate `0` still saves.
+		 */
+		if ( 'int' === ( $entry['type'] ?? 'bool' ) && is_string( $raw_value ) && '' === trim( $raw_value ) ) {
+			wp_send_json_error( array( 'message' => __( 'Enter a number — an empty field leaves the setting unchanged.', 'ffcertificate' ) ), 400 );
+		}
+
+		$value = self::sanitize_value( $raw_value, $entry['type'] ?? 'bool', $entry );
 
 		// Optional bool inversion — the SMTP tab's "Ativar envios" toggle is
 		// stored on disk as `disable_all_emails` for historical reasons, so the

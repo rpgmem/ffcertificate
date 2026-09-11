@@ -316,7 +316,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 								value="<?php echo absint( $settings['ip_cache_ttl'] ); ?>"
 								min="300"
 								max="3600"
-								step="60">
+								step="60" required>
 						<?php esc_html_e( 'seconds', 'ffcertificate' ); ?>
 						<p class="description">
 							<?php esc_html_e( 'How long to cache IP location data. Range: 300-3600 seconds (5 min - 1 hour).', 'ffcertificate' ); ?>
@@ -347,7 +347,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 								value="<?php echo absint( $settings['gps_cache_ttl'] ); ?>"
 								min="60"
 								max="3600"
-								step="60">
+								step="60" required>
 						<?php esc_html_e( 'seconds', 'ffcertificate' ); ?>
 						<p class="description">
 							<?php esc_html_e( 'How long to cache GPS location in browser. Range: 60-3600 seconds (1 min - 1 hour). Default: 600 (10 min).', 'ffcertificate' ); ?>

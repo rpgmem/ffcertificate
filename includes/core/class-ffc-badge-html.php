@@ -32,8 +32,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class BadgeHtml {
 
-	/** Shared CSS declarations applied to every badge. */
-	private const BADGE_STYLE = 'color:#333;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;';
+	/**
+	 * Shared layout declarations applied to every badge.
+	 *
+	 * The text colour used to live here as a literal `#333`. It does not any
+	 * more: the background is a colour an administrator picked, so no fixed
+	 * foreground is readable over all of them — {@see ContrastColor::on()}
+	 * computes it per badge (#1126). The layout stays inline because a badge
+	 * is rendered on screens whose stylesheets do not all overlap.
+	 */
+	private const BADGE_STYLE = 'padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;';
 
 	/**
 	 * Render a badge `<span>` with the supplied attributes.
@@ -58,11 +66,12 @@ final class BadgeHtml {
 		$cursor  = $has_tip ? 'help' : 'default';
 		$title   = $has_tip ? ' title="' . esc_attr( $tooltip ) . '"' : '';
 		return sprintf(
-			'<span class="%1$s %2$s"%3$s style="background:%4$s;%5$scursor:%6$s;">%7$s</span>',
+			'<span class="%1$s %2$s"%3$s style="background:%4$s;color:%5$s;%6$scursor:%7$s;">%8$s</span>',
 			esc_attr( $base_class ),
 			esc_attr( $variant_class ),
 			$title,
 			esc_attr( $bg ),
+			esc_attr( ContrastColor::on( $bg ) ),
 			self::BADGE_STYLE,
 			esc_attr( $cursor ),
 			esc_html( $label )

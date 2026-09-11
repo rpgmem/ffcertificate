@@ -64,10 +64,21 @@ class SelfSchedulingEditor {
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
+		// `ffc-core` supplies `FFC.setRequiredWithin()`, which the editor
+		// uses to carry `required` with the four blocks it shows and hides
+		// (#1117). Without it the editor still works — the sync is guarded
+		// — but a hidden required field would block the save.
+		wp_enqueue_script(
+			'ffc-core',
+			FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js",
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
 		wp_enqueue_script(
 			'ffc-calendar-editor',
 			FFC_PLUGIN_URL . "assets/js/ffc-calendar-editor{$s}.js",
-			array( 'jquery', 'jquery-ui-sortable' ),
+			array( 'jquery', 'jquery-ui-sortable', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);
@@ -335,7 +346,7 @@ class SelfSchedulingEditor {
 					<label><input type="radio" name="ffc_self_scheduling_config[schedule_type]" value="custom" class="ffc-schedule-type-radio" <?php checked( $config['schedule_type'], 'custom' ); ?> <?php disabled( $mode_locked ); ?> /> <?php esc_html_e( 'Custom — specific date/time blocks, each with its own number of vacancies', 'ffcertificate' ); ?></label>
 					<?php if ( $mode_locked ) : ?>
 						<input type="hidden" name="ffc_self_scheduling_config[schedule_type]" value="<?php echo esc_attr( $config['schedule_type'] ); ?>" />
-						<p class="description" style="color:#b32d2e;"><?php esc_html_e( 'This calendar already has bookings — the scheduling mode is locked.', 'ffcertificate' ); ?></p>
+						<p class="description ffc-text-danger"><?php esc_html_e( 'This calendar already has bookings — the scheduling mode is locked.', 'ffcertificate' ); ?></p>
 					<?php else : ?>
 						<p class="description"><?php esc_html_e( 'Regular repeats weekly. Custom lets you list exact dates and times below, each with its own capacity.', 'ffcertificate' ); ?></p>
 					<?php endif; ?>
@@ -344,28 +355,28 @@ class SelfSchedulingEditor {
 			<tr class="ffc-regular-only">
 				<th><label for="slot_duration"><?php esc_html_e( 'Appointment Duration', 'ffcertificate' ); ?></label></th>
 				<td>
-					<input type="number" id="slot_duration" name="ffc_self_scheduling_config[slot_duration]" value="<?php echo esc_attr( $config['slot_duration'] ); ?>" min="5" max="480" step="5" /> <?php esc_html_e( 'minutes', 'ffcertificate' ); ?>
+					<input type="number" id="slot_duration" name="ffc_self_scheduling_config[slot_duration]" value="<?php echo esc_attr( $config['slot_duration'] ); ?>" min="5" max="480" step="5" required /> <?php esc_html_e( 'minutes', 'ffcertificate' ); ?>
 					<p class="description"><?php esc_html_e( 'Duration of each appointment slot', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 			<tr class="ffc-regular-only">
 				<th><label for="slot_interval"><?php esc_html_e( 'Break Between Appointments', 'ffcertificate' ); ?></label></th>
 				<td>
-					<input type="number" id="slot_interval" name="ffc_self_scheduling_config[slot_interval]" value="<?php echo esc_attr( $config['slot_interval'] ); ?>" min="0" max="120" step="5" /> <?php esc_html_e( 'minutes', 'ffcertificate' ); ?>
+					<input type="number" id="slot_interval" name="ffc_self_scheduling_config[slot_interval]" value="<?php echo esc_attr( $config['slot_interval'] ); ?>" min="0" max="120" step="5" required /> <?php esc_html_e( 'minutes', 'ffcertificate' ); ?>
 					<p class="description"><?php esc_html_e( 'Buffer time between appointments (0 = no break)', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 			<tr class="ffc-regular-only">
 				<th><label for="max_appointments_per_slot"><?php esc_html_e( 'Max Bookings Per Slot', 'ffcertificate' ); ?></label></th>
 				<td>
-					<input type="number" id="max_appointments_per_slot" name="ffc_self_scheduling_config[max_appointments_per_slot]" value="<?php echo esc_attr( $config['max_appointments_per_slot'] ); ?>" min="1" max="100" />
+					<input type="number" id="max_appointments_per_slot" name="ffc_self_scheduling_config[max_appointments_per_slot]" value="<?php echo esc_attr( $config['max_appointments_per_slot'] ); ?>" min="1" max="100" required />
 					<p class="description"><?php esc_html_e( 'Maximum number of people per time slot (1 = exclusive)', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 			<tr class="ffc-regular-only">
 				<th><label for="slots_per_day"><?php esc_html_e( 'Daily Booking Limit', 'ffcertificate' ); ?></label></th>
 				<td>
-					<input type="number" id="slots_per_day" name="ffc_self_scheduling_config[slots_per_day]" value="<?php echo esc_attr( $config['slots_per_day'] ); ?>" min="0" max="200" />
+					<input type="number" id="slots_per_day" name="ffc_self_scheduling_config[slots_per_day]" value="<?php echo esc_attr( $config['slots_per_day'] ); ?>" min="0" max="200" required />
 					<p class="description"><?php esc_html_e( 'Maximum appointments per day (0 = unlimited)', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
@@ -531,7 +542,7 @@ class SelfSchedulingEditor {
 							<td><input type="date" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][date]" value="<?php echo esc_attr( $block['date'] ?? '' ); ?>" /></td>
 							<td><input type="time" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][start]" value="<?php echo esc_attr( $block['start'] ?? '' ); ?>" /></td>
 							<td><input type="time" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][end]" value="<?php echo esc_attr( $block['end'] ?? '' ); ?>" /></td>
-							<td><input type="number" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][capacity]" value="<?php echo esc_attr( (string) ( $block['capacity'] ?? 1 ) ); ?>" min="1" max="10000" /></td>
+							<td><input type="number" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][capacity]" value="<?php echo esc_attr( (string) ( $block['capacity'] ?? 1 ) ); ?>" min="1" max="10000" required /></td>
 							<td><input type="text" name="ffc_self_scheduling_custom_slots[<?php echo esc_attr( (string) $index ); ?>][label]" value="<?php echo esc_attr( $block['label'] ?? '' ); ?>" class="regular-text" /></td>
 							<td><button type="button" class="button ffc-remove-slot"><?php esc_html_e( 'Remove', 'ffcertificate' ); ?></button></td>
 						</tr>
@@ -543,7 +554,7 @@ class SelfSchedulingEditor {
 				<button type="button" class="button" id="ffc-add-custom-slot"><?php esc_html_e( '+ Add Block', 'ffcertificate' ); ?></button>
 			</p>
 			<?php if ( $mode_locked ) : ?>
-				<p class="description" style="color:#b32d2e;"><?php esc_html_e( 'This calendar has bookings — blocks with existing bookings cannot be removed or retimed on save; you may still add blocks or raise capacity.', 'ffcertificate' ); ?></p>
+				<p class="description ffc-text-danger"><?php esc_html_e( 'This calendar has bookings — blocks with existing bookings cannot be removed or retimed on save; you may still add blocks or raise capacity.', 'ffcertificate' ); ?></p>
 			<?php endif; ?>
 		</div>
 		<?php
@@ -591,14 +602,14 @@ class SelfSchedulingEditor {
 			<tr>
 				<th><label for="advance_booking_min"><?php esc_html_e( 'Minimum Advance Booking', 'ffcertificate' ); ?></label></th>
 				<td>
-					<input type="number" id="advance_booking_min" name="ffc_self_scheduling_config[advance_booking_min]" value="<?php echo esc_attr( $config['advance_booking_min'] ); ?>" min="0" max="720" /> <?php esc_html_e( 'hours', 'ffcertificate' ); ?>
+					<input type="number" id="advance_booking_min" name="ffc_self_scheduling_config[advance_booking_min]" value="<?php echo esc_attr( $config['advance_booking_min'] ); ?>" min="0" max="720" required /> <?php esc_html_e( 'hours', 'ffcertificate' ); ?>
 					<p class="description"><?php esc_html_e( 'Minimum time in advance required to book (0 = same day allowed)', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 			<tr>
 				<th><label for="advance_booking_max"><?php esc_html_e( 'Maximum Advance Booking', 'ffcertificate' ); ?></label></th>
 				<td>
-					<input type="number" id="advance_booking_max" name="ffc_self_scheduling_config[advance_booking_max]" value="<?php echo esc_attr( $config['advance_booking_max'] ); ?>" min="1" max="365" /> <?php esc_html_e( 'days', 'ffcertificate' ); ?>
+					<input type="number" id="advance_booking_max" name="ffc_self_scheduling_config[advance_booking_max]" value="<?php echo esc_attr( $config['advance_booking_max'] ); ?>" min="1" max="365" required /> <?php esc_html_e( 'days', 'ffcertificate' ); ?>
 					<p class="description"><?php esc_html_e( 'How far in advance can users book?', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
@@ -620,14 +631,14 @@ class SelfSchedulingEditor {
 			<tr class="ffc-cancellation-hours" <?php echo esc_attr( $config['allow_cancellation'] ? '' : 'style="display:none;"' ); ?>>
 				<th><label for="cancellation_min_hours"><?php esc_html_e( 'Cancellation Deadline', 'ffcertificate' ); ?></label></th>
 				<td>
-					<input type="number" id="cancellation_min_hours" name="ffc_self_scheduling_config[cancellation_min_hours]" value="<?php echo esc_attr( $config['cancellation_min_hours'] ); ?>" min="0" max="168" /> <?php esc_html_e( 'hours before', 'ffcertificate' ); ?>
+					<input type="number" id="cancellation_min_hours" name="ffc_self_scheduling_config[cancellation_min_hours]" value="<?php echo esc_attr( $config['cancellation_min_hours'] ); ?>" min="0" max="168" required /> <?php esc_html_e( 'hours before', 'ffcertificate' ); ?>
 					<p class="description"><?php esc_html_e( 'Minimum notice required to cancel (e.g., 24 hours)', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 			<tr>
 				<th><label for="minimum_interval_between_bookings"><?php esc_html_e( 'Minimum Interval Between Bookings', 'ffcertificate' ); ?></label></th>
 				<td>
-					<input type="number" id="minimum_interval_between_bookings" name="ffc_self_scheduling_config[minimum_interval_between_bookings]" value="<?php echo esc_attr( $config['minimum_interval_between_bookings'] ); ?>" min="0" max="720" /> <?php esc_html_e( 'hours', 'ffcertificate' ); ?>
+					<input type="number" id="minimum_interval_between_bookings" name="ffc_self_scheduling_config[minimum_interval_between_bookings]" value="<?php echo esc_attr( $config['minimum_interval_between_bookings'] ); ?>" min="0" max="720" required /> <?php esc_html_e( 'hours', 'ffcertificate' ); ?>
 					<p class="description"><?php esc_html_e( 'Prevent users from booking another appointment within X hours of their last booking (0 = disabled, default: 24 hours)', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
@@ -665,14 +676,14 @@ class SelfSchedulingEditor {
 			<tr class="ffc-waitlist-capacity" <?php echo esc_attr( $config['waitlist_enabled'] ? '' : 'style="display:none;"' ); ?>>
 				<th><label for="waitlist_capacity"><?php esc_html_e( 'Waitlist Capacity', 'ffcertificate' ); ?></label></th>
 				<td>
-					<input type="number" id="waitlist_capacity" name="ffc_self_scheduling_config[waitlist_capacity]" value="<?php echo esc_attr( $config['waitlist_capacity'] ); ?>" min="0" max="9999" /> <?php esc_html_e( 'per slot', 'ffcertificate' ); ?>
+					<input type="number" id="waitlist_capacity" name="ffc_self_scheduling_config[waitlist_capacity]" value="<?php echo esc_attr( $config['waitlist_capacity'] ); ?>" min="0" max="9999" required /> <?php esc_html_e( 'per slot', 'ffcertificate' ); ?>
 					<p class="description"><?php esc_html_e( 'Maximum number of people who can wait per slot (0 = unlimited).', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 			<tr class="ffc-custom-only">
 				<th><label for="max_blocks_per_user"><?php esc_html_e( 'Blocks per User (Custom mode)', 'ffcertificate' ); ?></label></th>
 				<td>
-					<input type="number" id="max_blocks_per_user" name="ffc_self_scheduling_config[max_blocks_per_user]" value="<?php echo esc_attr( $config['max_blocks_per_user'] ); ?>" min="0" max="9999" />
+					<input type="number" id="max_blocks_per_user" name="ffc_self_scheduling_config[max_blocks_per_user]" value="<?php echo esc_attr( $config['max_blocks_per_user'] ); ?>" min="0" max="9999" required />
 					<p class="description"><?php esc_html_e( 'Maximum number of blocks a single user may book in this custom calendar (0 = no limit). Waitlisted bookings count toward the limit.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
@@ -847,7 +858,7 @@ class SelfSchedulingEditor {
 			<tr>
 				<th><label for="reminder_hours_before"><?php esc_html_e( 'Reminder Timing', 'ffcertificate' ); ?></label></th>
 				<td>
-					<input type="number" id="reminder_hours_before" name="ffc_self_scheduling_email_config[reminder_hours_before]" value="<?php echo esc_attr( $email_config['reminder_hours_before'] ); ?>" min="1" max="168" /> <?php esc_html_e( 'hours before appointment', 'ffcertificate' ); ?>
+					<input type="number" id="reminder_hours_before" name="ffc_self_scheduling_email_config[reminder_hours_before]" value="<?php echo esc_attr( $email_config['reminder_hours_before'] ); ?>" min="1" max="168" required /> <?php esc_html_e( 'hours before appointment', 'ffcertificate' ); ?>
 				</td>
 			</tr>
 			<tr>

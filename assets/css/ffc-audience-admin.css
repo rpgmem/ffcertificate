@@ -168,7 +168,7 @@
 }
 
 .ffc-member-total {
-    color: var(--ffc-text-light, #8c8f94);
+    color: var(--ffc-text-light);
     font-size: 12px;
     margin-left: 2px;
 }
@@ -180,12 +180,12 @@
     gap: 6px;
     margin: 8px 0 0;
     font-size: 13px;
-    color: #50575e;
+    color: var(--ffc-text-secondary);
 }
 
 .ffc-breadcrumb a {
     text-decoration: none;
-    color: #2271b1;
+    color: var(--ffc-link);
 }
 
 .ffc-breadcrumb a:hover {
@@ -193,7 +193,7 @@
 }
 
 .ffc-breadcrumb-sep {
-    color: #a7aaad;
+    color: var(--ffc-text-light);
     font-size: 16px;
 }
 
@@ -318,7 +318,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--ffc-bg-overlay);
     z-index: 100000;
     display: flex;
     align-items: center;
@@ -326,9 +326,9 @@
 }
 
 .ffc-admin-modal {
-    background: #fff;
+    background: var(--ffc-bg-card);
     border-radius: 6px;
-    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--ffc-shadow-lg);
     max-width: 600px;
     width: 90%;
     max-height: 80vh;
@@ -341,7 +341,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 14px 18px;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--ffc-border);
 }
 
 .ffc-admin-modal-header h3 {
@@ -355,13 +355,13 @@
     border: none;
     font-size: 22px;
     cursor: pointer;
-    color: #666;
+    color: var(--ffc-text-muted);
     padding: 0;
     line-height: 1;
 }
 
 .ffc-admin-modal-close:hover {
-    color: #333;
+    color: var(--ffc-text);
 }
 
 .ffc-admin-modal-body {
@@ -461,6 +461,12 @@
 /* ==========================================================================
    ADMIN MENU — Submenu separators & dashicon labels
    Migrated from class-ffc-audience-admin-page.php (Sprint 2)
+
+   AS CORES AQUI FICAM LITERAIS, de propósito (#1126). O `#adminmenu` é do
+   WordPress e segue o *esquema de cores* que cada usuário escolhe no perfil
+   dele — nada a ver com o modo escuro do plugin. Pintar estes separadores com
+   a paleta faria eles brigarem com o esquema escolhido, e num esquema claro o
+   `rgba(255,255,255,.1)` continua sendo o que o próprio core usa ali.
    ========================================================================== */
 #adminmenu .wp-submenu a[href^="#ffc-separator-"] {
     pointer-events: none;
@@ -537,16 +543,16 @@
 .ffc-aud-panel {
     margin-bottom: 20px;
     padding: 15px;
-    background: #f6f7f7;
-    border: 1px solid #ddd;
+    background: var(--ffc-bg-alt);
+    border: 1px solid var(--ffc-border);
 }
 
 .ffc-aud-user-dropdown {
     display: none;
     position: absolute;
     z-index: 100;
-    background: #fff;
-    border: 1px solid #ddd;
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
     max-height: 200px;
     overflow-y: auto;
     width: 300px;
@@ -585,7 +591,7 @@
 }
 
 .ffc-aud-check {
-    color: #00a32a;
+    color: var(--ffc-success-text);
     font-weight: 600;
 }
 
@@ -606,6 +612,8 @@
     height: 20px;
     border-radius: 50%;
     background-color: var(--ffc-color);
+    /* Contorno neutro sobre a cor arbitrária do ambiente: precisa funcionar
+       contra qualquer matiz, então não é papel da paleta (#1126). */
     border: 1px solid rgba(0, 0, 0, 0.1);
 }
 

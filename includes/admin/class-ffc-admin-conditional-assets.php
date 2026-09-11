@@ -44,7 +44,7 @@ class AdminConditionalAssets {
 			wp_enqueue_style(
 				'ffc-admin-settings',
 				FFC_PLUGIN_URL . "assets/css/ffc-admin-settings{$s}.css",
-				array( 'ffc-admin-css' ),
+				array( 'ffc-common', 'ffc-admin-css' ),
 				FFC_VERSION
 			);
 
@@ -159,7 +159,7 @@ class AdminConditionalAssets {
 		wp_enqueue_style(
 			'ffc-certificates-dashboard',
 			FFC_PLUGIN_URL . "assets/css/ffc-certificates-dashboard{$s}.css",
-			array( 'ffc-admin-css' ),
+			array( 'ffc-common', 'ffc-admin-css' ),
 			FFC_VERSION
 		);
 
@@ -287,7 +287,7 @@ class AdminConditionalAssets {
 		wp_enqueue_style(
 			'ffc-admin-move-submissions',
 			FFC_PLUGIN_URL . "assets/css/ffc-admin-move-submissions{$s}.css",
-			array(),
+			array( 'ffc-common' ),
 			FFC_VERSION
 		);
 
@@ -387,7 +387,7 @@ class AdminConditionalAssets {
 		wp_enqueue_style(
 			'ffc-admin-submission-edit',
 			FFC_PLUGIN_URL . "assets/css/ffc-admin-submission-edit{$s}.css",
-			array( 'ffc-admin-css' ),
+			array( 'ffc-common', 'ffc-admin-css' ),
 			FFC_VERSION
 		);
 

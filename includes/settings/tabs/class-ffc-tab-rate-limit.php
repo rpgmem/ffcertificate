@@ -57,12 +57,18 @@ class TabRateLimit extends SettingsTab {
 	private function get_settings(): array {
 		$defaults = array(
 			'ip'        => array(
-				'enabled'          => true,
-				'max_per_hour'     => 5,
-				'max_per_day'      => 20,
-				'cooldown_seconds' => 60,
-				'apply_to'         => 'all',
-				'message'          => __( 'Limit reached. Please wait {time}.', 'ffcertificate' ),
+				'enabled'                => true,
+				'max_per_hour'           => 5,
+				'max_per_day'            => 20,
+				'cooldown_seconds'       => 60,
+				'apply_to'               => 'all',
+				'message'                => __( 'Limit reached. Please wait {time}.', 'ffcertificate' ),
+				// Challenges the ALTCHA endpoint issues per address per
+				// window (#1111). Lives in the IP group because that is
+				// what it limits, and next to the submission cap an
+				// administrator raises for the same NAT reason. 0 = no cap.
+				'captcha_max_per_window' => \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_CAP_DEFAULT,
+				'captcha_window_seconds' => \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_WINDOW_DEFAULT,
 			),
 			'email'     => array(
 				'enabled'        => true,
@@ -202,54 +208,74 @@ class TabRateLimit extends SettingsTab {
 	 * Save settings.
 	 */
 	private function save_settings(): void {
+		// Read before rebuilding: a numeric field the browser sent empty — or
+		// one this tab has no field for at all — must fall back to what is
+		// already stored, not to a bound or to the declared default (see
+		// post_int_or_current()).
+		$stored = \FreeFormCertificate\Settings\RateLimitSettingsReader::all();
+
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in render() via check_admin_referer.
 		$settings = array(
 			'ip'        => array(
-				'enabled'          => isset( $_POST['ip_enabled'] ),
-				'max_per_hour'     => \FreeFormCertificate\Core\RequestInput::get_post_int( 'ip_max_per_hour', 5 ),
-				'max_per_day'      => \FreeFormCertificate\Core\RequestInput::get_post_int( 'ip_max_per_day', 20 ),
-				'cooldown_seconds' => \FreeFormCertificate\Core\RequestInput::get_post_int( 'ip_cooldown_seconds', 60 ),
-				'apply_to'         => \FreeFormCertificate\Core\RequestInput::get_post_string( 'ip_apply_to', 'all' ),
-				'message'          => sanitize_textarea_field( wp_unslash( $_POST['ip_message'] ?? '' ) ),
+				'enabled'                => isset( $_POST['ip_enabled'] ),
+				'max_per_hour'           => $this->post_int_or_current( 'ip_max_per_hour', $this->stored_int( $stored, 'ip', 'max_per_hour', 5 ), 1 ),
+				'max_per_day'            => $this->post_int_or_current( 'ip_max_per_day', $this->stored_int( $stored, 'ip', 'max_per_day', 20 ), 1 ),
+				'cooldown_seconds'       => $this->post_int_or_current( 'ip_cooldown_seconds', $this->stored_int( $stored, 'ip', 'cooldown_seconds', 60 ), 1 ),
+				'apply_to'               => \FreeFormCertificate\Core\RequestInput::get_post_string( 'ip_apply_to', 'all' ),
+				'message'                => sanitize_textarea_field( wp_unslash( $_POST['ip_message'] ?? '' ) ),
+				'captcha_max_per_window' => \FreeFormCertificate\Core\Captcha\CaptchaSettings::clamp_mint_cap(
+					$this->post_int_or_current(
+						'ip_captcha_max_per_window',
+						$this->stored_int( $stored, 'ip', 'captcha_max_per_window', \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_CAP_DEFAULT )
+					)
+				),
+				'captcha_window_seconds' => \FreeFormCertificate\Core\Captcha\CaptchaSettings::clamp_mint_window(
+					$this->post_int_or_current(
+						'ip_captcha_window_seconds',
+						$this->stored_int( $stored, 'ip', 'captcha_window_seconds', \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_WINDOW_DEFAULT )
+					)
+				),
 			),
 			'email'     => array(
 				'enabled'        => isset( $_POST['email_enabled'] ),
-				'max_per_day'    => \FreeFormCertificate\Core\RequestInput::get_post_int( 'email_max_per_day', 3 ),
-				'max_per_week'   => \FreeFormCertificate\Core\RequestInput::get_post_int( 'email_max_per_week', 10 ),
-				'max_per_month'  => \FreeFormCertificate\Core\RequestInput::get_post_int( 'email_max_per_month', 30 ),
-				'wait_hours'     => \FreeFormCertificate\Core\RequestInput::get_post_int( 'email_wait_hours', 24 ),
+				'max_per_day'    => $this->post_int_or_current( 'email_max_per_day', $this->stored_int( $stored, 'email', 'max_per_day', 3 ), 1 ),
+				'max_per_week'   => $this->post_int_or_current( 'email_max_per_week', $this->stored_int( $stored, 'email', 'max_per_week', 10 ), 1 ),
+				'max_per_month'  => $this->post_int_or_current( 'email_max_per_month', $this->stored_int( $stored, 'email', 'max_per_month', 30 ), 1 ),
+				// No field renders this one, so the POST key is always absent
+				// and the old read reset it to 24 on every Save (#1114).
+				'wait_hours'     => $this->post_int_or_current( 'email_wait_hours', $this->stored_int( $stored, 'email', 'wait_hours', 24 ), 1 ),
 				'apply_to'       => \FreeFormCertificate\Core\RequestInput::get_post_string( 'email_apply_to', 'all' ),
 				'message'        => sanitize_textarea_field( wp_unslash( $_POST['email_message'] ?? '' ) ),
 				'check_database' => isset( $_POST['email_check_database'] ),
 			),
 			'cpf'       => array(
 				'enabled'         => isset( $_POST['cpf_enabled'] ),
-				'max_per_month'   => \FreeFormCertificate\Core\RequestInput::get_post_int( 'cpf_max_per_month', 5 ),
-				'max_per_year'    => \FreeFormCertificate\Core\RequestInput::get_post_int( 'cpf_max_per_year', 50 ),
-				'block_threshold' => \FreeFormCertificate\Core\RequestInput::get_post_int( 'cpf_block_threshold', 3 ),
-				'block_hours'     => \FreeFormCertificate\Core\RequestInput::get_post_int( 'cpf_block_hours', 1 ),
-				'block_duration'  => \FreeFormCertificate\Core\RequestInput::get_post_int( 'cpf_block_duration', 24 ),
+				'max_per_month'   => $this->post_int_or_current( 'cpf_max_per_month', $this->stored_int( $stored, 'cpf', 'max_per_month', 5 ), 1 ),
+				'max_per_year'    => $this->post_int_or_current( 'cpf_max_per_year', $this->stored_int( $stored, 'cpf', 'max_per_year', 50 ), 1 ),
+				'block_threshold' => $this->post_int_or_current( 'cpf_block_threshold', $this->stored_int( $stored, 'cpf', 'block_threshold', 3 ), 1 ),
+				'block_hours'     => $this->post_int_or_current( 'cpf_block_hours', $this->stored_int( $stored, 'cpf', 'block_hours', 1 ), 1 ),
+				'block_duration'  => $this->post_int_or_current( 'cpf_block_duration', $this->stored_int( $stored, 'cpf', 'block_duration', 24 ), 1 ),
 				'apply_to'        => \FreeFormCertificate\Core\RequestInput::get_post_string( 'cpf_apply_to', 'all' ),
 				'message'         => sanitize_textarea_field( wp_unslash( $_POST['cpf_message'] ?? '' ) ),
 				'check_database'  => isset( $_POST['cpf_check_database'] ),
 			),
 			'global'    => array(
 				'enabled'        => isset( $_POST['global_enabled'] ),
-				'max_per_minute' => \FreeFormCertificate\Core\RequestInput::get_post_int( 'global_max_per_minute', 100 ),
-				'max_per_hour'   => \FreeFormCertificate\Core\RequestInput::get_post_int( 'global_max_per_hour', 1000 ),
+				'max_per_minute' => $this->post_int_or_current( 'global_max_per_minute', $this->stored_int( $stored, 'global', 'max_per_minute', 100 ), 1 ),
+				'max_per_hour'   => $this->post_int_or_current( 'global_max_per_hour', $this->stored_int( $stored, 'global', 'max_per_hour', 1000 ), 1 ),
 				'message'        => sanitize_textarea_field( wp_unslash( $_POST['global_message'] ?? '' ) ),
 			),
 			'read'      => array(
 				'respect_whitelist' => isset( $_POST['read_respect_whitelist'] ),
 				'bypass_logged_in'  => isset( $_POST['read_bypass_logged_in'] ),
 				'message'           => sanitize_textarea_field( wp_unslash( $_POST['read_message'] ?? '' ) ),
-				'endpoints'         => $this->parse_read_endpoints_post(),
+				'endpoints'         => $this->parse_read_endpoints_post( $stored ),
 			),
 			'device'    => array(
 				'enabled'                   => isset( $_POST['device_enabled'] ),
-				'max_per_form'              => max( 1, \FreeFormCertificate\Core\RequestInput::get_post_int( 'device_max_per_form', 1 ) ),
-				'match_threshold'           => max( 3, min( 12, \FreeFormCertificate\Core\RequestInput::get_post_int( 'device_match_threshold', 7 ) ) ),
-				'match_strong_min'          => max( 0, min( 6, \FreeFormCertificate\Core\RequestInput::get_post_int( 'device_match_strong_min', 2 ) ) ),
+				'max_per_form'              => $this->post_int_or_current( 'device_max_per_form', $this->stored_int( $stored, 'device', 'max_per_form', 1 ), 1 ),
+				'match_threshold'           => min( 12, $this->post_int_or_current( 'device_match_threshold', $this->stored_int( $stored, 'device', 'match_threshold', 7 ), 3 ) ),
+				'match_strong_min'          => min( 6, $this->post_int_or_current( 'device_match_strong_min', $this->stored_int( $stored, 'device', 'match_strong_min', 2 ), 0 ) ),
 				'signals_enabled'           => isset( $_POST['device_signals_enabled'] ) && is_array( $_POST['device_signals_enabled'] )
 					? array_values(
 						array_intersect(
@@ -269,7 +295,7 @@ class TabRateLimit extends SettingsTab {
 					)
 				),
 				'message'                   => sanitize_textarea_field( wp_unslash( $_POST['device_message'] ?? '' ) ),
-				'retention_days'            => max( 1, \FreeFormCertificate\Core\RequestInput::get_post_int( 'device_retention_days', 90 ) ),
+				'retention_days'            => $this->post_int_or_current( 'device_retention_days', $this->stored_int( $stored, 'device', 'retention_days', 90 ), 1 ),
 				'log_blocks'                => isset( $_POST['device_log_blocks'] ),
 			),
 			'whitelist' => array(
@@ -290,8 +316,8 @@ class TabRateLimit extends SettingsTab {
 				'enabled'        => isset( $_POST['logging_enabled'] ),
 				'log_allowed'    => isset( $_POST['logging_log_allowed'] ),
 				'log_blocked'    => isset( $_POST['logging_log_blocked'] ),
-				'retention_days' => \FreeFormCertificate\Core\RequestInput::get_post_int( 'logging_retention_days', 30 ),
-				'max_logs'       => \FreeFormCertificate\Core\RequestInput::get_post_int( 'logging_max_logs', 10000 ),
+				'retention_days' => $this->post_int_or_current( 'logging_retention_days', $this->stored_int( $stored, 'logging', 'retention_days', 30 ), 1 ),
+				'max_logs'       => $this->post_int_or_current( 'logging_max_logs', $this->stored_int( $stored, 'logging', 'max_logs', 10000 ), 100 ),
 			),
 			'ui'        => array(
 				'show_remaining'  => isset( $_POST['ui_show_remaining'] ),
@@ -305,6 +331,66 @@ class TabRateLimit extends SettingsTab {
 	}
 
 	/**
+	 * Read a POST integer, treating an empty field as "unchanged".
+	 *
+	 * A cleared `<input type="number">` posts the empty string, and `absint()`
+	 * turns that into `0` — which every bounded field then clamps to its own
+	 * floor. The result is a value the administrator never chose, written
+	 * silently: clearing the captcha window would have stored one second, and
+	 * clearing the cap would have stored "no cap" (#1111 follow-up). An empty
+	 * field means the value was not supplied, so the stored one stands.
+	 *
+	 * An **absent** key is the same case and matters on its own: `wait_hours`
+	 * has no field on this tab, so the rebuild-save was overwriting whatever
+	 * an operator had configured with the hardcoded default on every Save
+	 * (#1114). Reading the stored value fixes that too.
+	 *
+	 * `$min` is the floor for the fields where `0` is not a value anyone
+	 * means. It is not a second guess at the default: on this tab a zero
+	 * *count* is read by the checkers as "the limit is already reached", so
+	 * `ip.max_per_hour = 0` blocks every submission from every address rather
+	 * than lifting the limit — `$hc >= 0` is true on the first request. The
+	 * floors here mirror the `min` each field already declares in the view,
+	 * so the form and the save agree instead of only the browser enforcing
+	 * it. Leave it at `0` where zero is documented to mean "no cap on this
+	 * axis" (the read endpoints, the captcha issuing cap).
+	 *
+	 * @since 6.24.0
+	 * @param string $key     `$_POST` key.
+	 * @param int    $current Value already stored for this setting.
+	 * @param int    $min     Lowest value the field accepts; 0 leaves it unclamped.
+	 * @return int
+	 */
+	private function post_int_or_current( string $key, int $current, int $min = 0 ): int {
+		if ( '' === \FreeFormCertificate\Core\RequestInput::get_post_string( $key, '' ) ) {
+			return max( $min, $current );
+		}
+
+		return max( $min, \FreeFormCertificate\Core\RequestInput::get_post_int( $key, $current ) );
+	}
+
+	/**
+	 * Read a stored number out of the settings array being rebuilt over.
+	 *
+	 * The fallback a cleared or absent field lands on has to be what is
+	 * already saved, not the declared default — otherwise Save silently
+	 * resets the setting instead of leaving it alone. Non-numeric residue in
+	 * the option falls through to the default rather than being cast.
+	 *
+	 * @since 6.24.0
+	 * @param array<string, mixed> $stored  The whole stored option.
+	 * @param string               $group   Settings group (`ip`, `email`, …).
+	 * @param string               $key     Key inside the group.
+	 * @param int                  $default Value for a key never saved before.
+	 * @return int
+	 */
+	private function stored_int( array $stored, string $group, string $key, int $default ): int {
+		$value = $stored[ $group ][ $key ] ?? null;
+
+		return is_numeric( $value ) ? (int) $value : $default;
+	}
+
+	/**
 	 * Parse the per-endpoint read-rate-limit POST fields into the
 	 * `endpoints` sub-array shape `get_settings()` documents. Keys
 	 * are the known endpoint identifiers — anything else POST'd is
@@ -314,18 +400,35 @@ class TabRateLimit extends SettingsTab {
 	 * `max_per_minute` / `max_per_hour` accept `0` (= "no per-window
 	 * cap on this axis"); the checker treats `<=0` as "skip this gate".
 	 *
+	 * These are the fields where `0` genuinely is a value, so they take no
+	 * floor — but they still have to tell a **typed** zero from a **cleared**
+	 * field, or clearing one would silently lift the cap it was meant to
+	 * adjust (#1114). That distinction is exactly what `post_int_or_current()`
+	 * makes, which is why the stored option is threaded through here.
+	 *
 	 * @since 6.6.2
+	 * @param array<string, mixed> $stored The stored option being rebuilt over.
 	 * @return array<string, array{enabled: bool, max_per_minute: int, max_per_hour: int}>
 	 */
-	private function parse_read_endpoints_post(): array {
+	private function parse_read_endpoints_post( array $stored ): array {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified by save_settings() caller.
-		$known = array( 'calendar_slots', 'calendar_list', 'calendar_detail' );
-		$out   = array();
+		$known     = array( 'calendar_slots', 'calendar_list', 'calendar_detail' );
+		$endpoints = $stored['read']['endpoints'] ?? array();
+		$endpoints = is_array( $endpoints ) ? $endpoints : array();
+		$out       = array();
 		foreach ( $known as $key ) {
+			$saved = array( 'read' => is_array( $endpoints[ $key ] ?? null ) ? $endpoints[ $key ] : array() );
+
 			$out[ $key ] = array(
 				'enabled'        => isset( $_POST[ 'read_endpoint_' . $key . '_enabled' ] ),
-				'max_per_minute' => \FreeFormCertificate\Core\RequestInput::get_post_int( 'read_endpoint_' . $key . '_max_per_minute', 0 ),
-				'max_per_hour'   => \FreeFormCertificate\Core\RequestInput::get_post_int( 'read_endpoint_' . $key . '_max_per_hour', 0 ),
+				'max_per_minute' => $this->post_int_or_current(
+					'read_endpoint_' . $key . '_max_per_minute',
+					$this->stored_int( $saved, 'read', 'max_per_minute', 0 )
+				),
+				'max_per_hour'   => $this->post_int_or_current(
+					'read_endpoint_' . $key . '_max_per_hour',
+					$this->stored_int( $saved, 'read', 'max_per_hour', 0 )
+				),
 			);
 		}
 		// phpcs:enable WordPress.Security.NonceVerification.Missing

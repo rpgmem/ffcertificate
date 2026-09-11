@@ -66,7 +66,7 @@ class TabEmailModel extends SettingsTab {
 		wp_enqueue_style(
 			'ffc-email-model',
 			FFC_PLUGIN_URL . "assets/css/ffc-email-model{$s}.css",
-			array(),
+			array( 'ffc-common' ),
 			FFC_VERSION
 		);
 		wp_enqueue_script(

@@ -332,10 +332,14 @@ class AdminAssetsManager {
 	/**
 	 * Enqueue dark mode script (loaded early to prevent flash)
 	 *
+	 * `true` — the Dark Mode select lives on a plugin admin screen and auto-saves,
+	 * so the script has to be present in the `off` state as well; it is the half
+	 * that repaints `<html>` when the option changes without a reload.
+	 *
 	 * @since 4.6.16
 	 */
 	private function enqueue_dark_mode_script(): void {
-		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
+		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode( true );
 	}
 
 	/**
@@ -387,7 +391,7 @@ class AdminAssetsManager {
 		wp_enqueue_style(
 			'ffc-admin-submissions-css',
 			FFC_PLUGIN_URL . "assets/css/ffc-admin-submissions{$s}.css",
-			array( 'ffc-admin-css' ),
+			array( 'ffc-common', 'ffc-admin-css' ),
 			FFC_VERSION
 		);
 	}
@@ -486,7 +490,7 @@ class AdminAssetsManager {
 		wp_enqueue_style(
 			'ffc-progress-overlay',
 			FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css",
-			array(),
+			array( 'ffc-common' ),
 			FFC_VERSION
 		);
 

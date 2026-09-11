@@ -124,7 +124,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr>
 					<th scope="row"><label for="rereg_reminder_days"><?php esc_html_e( 'Reminder Days', 'ffcertificate' ); ?></label></th>
 					<td>
-						<input type="number" name="rereg_reminder_days" id="rereg_reminder_days" value="<?php echo esc_attr( $item->reminder_days ?? '7' ); ?>" min="1" max="30" class="small-text">
+						<input type="number" name="rereg_reminder_days" id="rereg_reminder_days" value="<?php echo esc_attr( $item->reminder_days ?? '7' ); ?>" min="1" max="30" class="small-text" required>
 						<p class="description"><?php esc_html_e( 'Send reminder this many days before the end date.', 'ffcertificate' ); ?></p>
 					</td>
 				</tr>

@@ -95,6 +95,49 @@ describe('FFC.Admin.autoSaveField', () => {
 		expect($badge.attr('hidden')).toBe('hidden');
 	});
 
+	// A setting that changes the page it is edited on has to repaint, and this
+	// widget must not know which settings those are — it states the fact and an
+	// interested script acts. Today that is ffc-dark-mode.js, which without the
+	// event wrote the option and left the page on its old theme until the next
+	// load: a missing repaint that reads as a save that failed.
+	it('announces ffc:setting-saved on document after a successful save', async () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" />';
+		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true, data: {},
+		})));
+		const seen = [];
+		const onSaved = (e) => seen.push(e.detail);
+		document.addEventListener('ffc:setting-saved', onSaved);
+
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'dark_mode' });
+		window.$('#t').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		document.removeEventListener('ffc:setting-saved', onSaved);
+		expect(seen).toEqual([{ key: 'dark_mode', value: '1' }]);
+	});
+
+	it('stays silent when the save fails', async () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" />';
+		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: false, data: { message: 'nope' },
+		})));
+		const seen = [];
+		const onSaved = (e) => seen.push(e.detail);
+		document.addEventListener('ffc:setting-saved', onSaved);
+
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'dark_mode' });
+		window.$('#t').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		document.removeEventListener('ffc:setting-saved', onSaved);
+		expect(seen).toEqual([]);
+	});
+
 	it('renders the error badge with the server message on protocol failure', async () => {
 		document.body.innerHTML = '<input type="checkbox" id="t" />';
 		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
@@ -479,5 +522,136 @@ describe('FFC.Admin.autoSaveField — confirmOff gate', () => {
 		expect(spy).toHaveBeenCalledTimes(1);
 		expect(spy.mock.calls[0][1].confirmOff).toBe('Disable Recruitment?');
 		spy.mockRestore();
+	});
+});
+
+describe('FFC.Admin.autoSaveField — browser validity (#1114)', () => {
+	it('refuses to save a number the browser considers invalid', () => {
+		document.body.innerHTML = '<input type="number" id="n" min="1" value="5" required>';
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true, data: {},
+		})));
+		window.FFC.Admin.autoSaveField(window.$('#n'), { key: 'ip_max_per_hour' });
+
+		// This widget saves on `input`, so an emptied field used to be sent
+		// the moment it was cleared on the way to retyping it.
+		window.$('#n').val('').trigger('input');
+		vi.advanceTimersByTime(600);
+
+		expect(postSpy).not.toHaveBeenCalled();
+		expect(document.querySelector('.ffc-autosave-badge').className).toContain('--error');
+	});
+
+	it('refuses a value below the declared min', () => {
+		document.body.innerHTML = '<input type="number" id="n" min="1" value="5" required>';
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true, data: {},
+		})));
+		window.FFC.Admin.autoSaveField(window.$('#n'), { key: 'ip_max_per_hour' });
+
+		window.$('#n').val('0').trigger('input');
+		vi.advanceTimersByTime(600);
+
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+
+	it('saves once the value becomes valid again', () => {
+		document.body.innerHTML = '<input type="number" id="n" min="1" value="5" required>';
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true, data: {},
+		})));
+		window.FFC.Admin.autoSaveField(window.$('#n'), { key: 'ip_max_per_hour' });
+
+		window.$('#n').val('').trigger('input');
+		vi.advanceTimersByTime(600);
+		window.$('#n').val('9').trigger('input');
+		vi.advanceTimersByTime(600);
+
+		expect(postSpy).toHaveBeenCalledTimes(1);
+	});
+
+	it('is a no-op for a toggle — a checkbox carries no constraints', () => {
+		document.body.innerHTML = '<input type="checkbox" id="t">';
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true, data: {},
+		})));
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'ip_enabled' });
+
+		window.$('#t').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(600);
+
+		expect(postSpy).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('FFC.Admin.bootAutoSaveFields — two endpoints, one widget (#1116)', () => {
+	afterEach(() => {
+		delete window.ffcFormMetaAutosave;
+		delete window.ffcAdminAutosave;
+	});
+
+	function mountBoth() {
+		document.body.innerHTML = `
+			<input type="checkbox" id="s" data-ffc-autosave-key="ip_enabled">
+			<input type="checkbox" id="m" data-ffc-autosave-form-key="quiz_enabled">
+		`;
+	}
+
+	it('routes each attribute to its own action, nonce and url', () => {
+		window.ffcAdminAutosave = { nonce: 'settings-nonce' };
+		window.ffcFormMetaAutosave = {
+			ajaxUrl: '/other/admin-ajax.php',
+			action: 'ffc_update_form_meta',
+			nonce: 'fm-nonce',
+			postId: 7,
+		};
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true, data: {},
+		})));
+		mountBoth();
+		window.FFC.Admin.bootAutoSaveFields();
+
+		window.$('#s').prop('checked', true).trigger('change');
+		window.$('#m').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(600);
+
+		expect(postSpy).toHaveBeenCalledTimes(2);
+		const byAction = {};
+		postSpy.mock.calls.forEach(([url, payload]) => { byAction[payload.action] = { url, payload }; });
+
+		expect(byAction.ffc_update_setting.payload.nonce).toBe('settings-nonce');
+		expect(byAction.ffc_update_setting.payload.post_id).toBeUndefined();
+
+		expect(byAction.ffc_update_form_meta.url).toBe('/other/admin-ajax.php');
+		expect(byAction.ffc_update_form_meta.payload.nonce).toBe('fm-nonce');
+		expect(byAction.ffc_update_form_meta.payload.post_id).toBe(7);
+	});
+
+	it('leaves the settings half working on a screen with no form-meta config', () => {
+		window.ffcAdminAutosave = { nonce: 'settings-nonce' };
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
+			success: true, data: {},
+		})));
+		mountBoth();
+		window.FFC.Admin.bootAutoSaveFields();
+
+		window.$('#s').prop('checked', true).trigger('change');
+		window.$('#m').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(600);
+
+		// Every settings tab is such a screen: no post to save meta against.
+		expect(postSpy).toHaveBeenCalledTimes(1);
+		expect(postSpy.mock.calls[0][1].action).toBe('ffc_update_setting');
+	});
+
+	it('is idempotent across both attributes', () => {
+		window.ffcFormMetaAutosave = { ajaxUrl: '/wp-admin/admin-ajax.php', nonce: 'fm', postId: 7 };
+		const spy = vi.spyOn(window.FFC.Admin, 'autoSaveField').mockImplementation(() => ({ destroy: () => {} }));
+		mountBoth();
+
+		window.FFC.Admin.bootAutoSaveFields();
+		window.FFC.Admin.bootAutoSaveFields();
+
+		expect(spy).toHaveBeenCalledTimes(2);
 	});
 });

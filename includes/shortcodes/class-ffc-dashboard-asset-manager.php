@@ -99,7 +99,7 @@ class DashboardAssetManager {
 		wp_enqueue_script( 'ffc-dashboard-audience-join', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-audience-join{$s}.js", array( 'ffc-dashboard', 'ffc-dashboard-profile' ), FFC_VERSION, true );
 
 		// Working hours field component (shared).
-		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array(), FFC_VERSION );
+		wp_enqueue_style( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/css/ffc-working-hours{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 		wp_enqueue_script( 'ffc-working-hours', FFC_PLUGIN_URL . "assets/js/ffc-working-hours{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 		wp_localize_script(
 			'ffc-working-hours',
@@ -139,7 +139,7 @@ class DashboardAssetManager {
 		);
 
 		// Reregistration frontend assets.
-		wp_enqueue_style( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/css/ffc-reregistration-frontend{$s}.css", array( 'ffc-dashboard' ), FFC_VERSION );
+		wp_enqueue_style( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/css/ffc-reregistration-frontend{$s}.css", array( 'ffc-common', 'ffc-dashboard' ), FFC_VERSION );
 		wp_enqueue_script( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/js/ffc-reregistration-frontend{$s}.js", array( 'jquery', 'ffc-dashboard', 'ffc-working-hours' ), FFC_VERSION, true );
 		wp_localize_script(
 			'ffc-reregistration-frontend',
@@ -227,9 +227,20 @@ class DashboardAssetManager {
 					'cancelAppointment'        => __( 'Cancel', 'ffcertificate' ),
 					'viewReceipt'              => __( 'View Receipt', 'ffcertificate' ),
 					'viewDetails'              => __( 'View Details', 'ffcertificate' ),
-					'confirmCancel'            => __( 'Are you sure you want to cancel this appointment?', 'ffcertificate' ),
 					'cancelSuccess'            => __( 'Appointment cancelled successfully', 'ffcertificate' ),
 					'cancelError'              => __( 'Error cancelling appointment', 'ffcertificate' ),
+					// The cancellation dialog. Every literal below is the SAME
+					// string the public cancellation page passes to `__()`, so
+					// the two screens share one entry in the .po instead of
+					// drifting into two wordings for the same question (#1140).
+					'cancelTitle'              => __( 'Cancel appointment', 'ffcertificate' ),
+					'cancelIntro'              => __( 'Please confirm that you want to cancel the following appointment.', 'ffcertificate' ),
+					'cancelService'            => __( 'Service', 'ffcertificate' ),
+					'cancelWhen'               => __( 'When', 'ffcertificate' ),
+					'cancelReasonLabel'        => __( 'Reason (optional)', 'ffcertificate' ),
+					'cancelConfirmBtn'         => __( 'Confirm cancellation', 'ffcertificate' ),
+					'cancelKeepBtn'            => __( 'Keep appointment', 'ffcertificate' ),
+					'close'                    => __( 'Close', 'ffcertificate' ),
 					'noPermission'             => __( 'You do not have permission to view this content.', 'ffcertificate' ),
 					// Calendar export.
 					'exportToCalendar'         => __( 'Export to Calendar', 'ffcertificate' ),

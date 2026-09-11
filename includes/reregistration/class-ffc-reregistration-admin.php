@@ -186,7 +186,7 @@ class ReregistrationAdmin {
 		wp_enqueue_style(
 			'ffc-progress-overlay',
 			FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css",
-			array(),
+			array( 'ffc-common' ),
 			FFC_VERSION
 		);
 
@@ -352,6 +352,15 @@ class ReregistrationAdmin {
 			$prev_status = $existing ? $existing->status : null;
 		}
 
+		// An emptied number field is "not supplied", never zero. `absint( '' )`
+		// is 0, and the reminder sweep reads
+		// `DATEDIFF(end_date, CURDATE()) <= reminder_days`, so a cleared field
+		// would quietly move every reminder to the campaign's last day — late
+		// enough to be useless, with nothing on screen saying so. The input
+		// declares `min="1"`, so a deliberately typed 0 lands on that floor
+		// (#1117; the shape #1114 fixed on the Rate Limit tab).
+		$ffc_reminder_raw = \FreeFormCertificate\Core\RequestInput::get_post_string( 'rereg_reminder_days', '' );
+
 		$data = array(
 			'title'                      => \FreeFormCertificate\Core\RequestInput::get_post_string( 'rereg_title' ),
 			'start_date'                 => \FreeFormCertificate\Core\RequestInput::get_post_string( 'rereg_start_date' ),
@@ -360,7 +369,7 @@ class ReregistrationAdmin {
 			'email_invitation_enabled'   => ! empty( $_POST['rereg_email_invitation'] ) ? 1 : 0,
 			'email_reminder_enabled'     => ! empty( $_POST['rereg_email_reminder'] ) ? 1 : 0,
 			'email_confirmation_enabled' => ! empty( $_POST['rereg_email_confirmation'] ) ? 1 : 0,
-			'reminder_days'              => isset( $_POST['rereg_reminder_days'] ) ? absint( $_POST['rereg_reminder_days'] ) : 7,
+			'reminder_days'              => '' === $ffc_reminder_raw ? 7 : max( 1, absint( $ffc_reminder_raw ) ),
 			'status'                     => \FreeFormCertificate\Core\RequestInput::get_post_string( 'rereg_status', 'draft' ),
 		);
 
@@ -374,8 +383,23 @@ class ReregistrationAdmin {
 			ReregistrationRepository::update( $id, $data );
 			ReregistrationRepository::set_audience_ids( $id, $audience_ids );
 
-			// If transitioning to active, create submissions for members and send invitations.
+			/*
+			 * Transition to active: reopen, then seed, then invite — the order
+			 * matters and is the whole fix for #1125.
+			 *
+			 * `create_for_audience_members()` skips a user who already has a
+			 * submission, so on a *reactivation* it does nothing for everyone
+			 * from the previous cycle: they still carry the `expired` that
+			 * `expire_overdue()` wrote, a status that neither lets them submit
+			 * nor draws a banner. Reopening first puts them back on `pending`,
+			 * which is also the status `send_invitations()` queries — so the
+			 * invitation email, silent on reactivation for the same reason,
+			 * starts working without a second fix.
+			 *
+			 * Seeding still runs after, for members added since.
+			 */
 			if ( 'active' === $data['status'] && 'active' !== $prev_status ) {
+				ReregistrationRepository::reopen_expired_submissions( $id );
 				ReregistrationSubmissionWriter::create_for_audience_members( $id, $audience_ids );
 				ReregistrationEmailHandler::send_invitations( $id );
 			}

@@ -413,4 +413,105 @@ class ReregistrationFrontendTest extends TestCase {
 		$this->assertTrue($result[0]['can_submit']);
 		$this->assertSame('', $result[0]['magic_link']);
 	}
+
+	// ==================================================================
+	// can_submit across EVERY status (#1125)
+	// ==================================================================
+	//
+	// The survey that was missing. Before #1125 the set was
+	// pending/in_progress/rejected, and the dashboard rendered a banner only
+	// for approved/submitted — so `expired` and `no_submission` fell through
+	// both, producing a blank screen. The gap was only visible by listing all
+	// seven states at once, which is what this provider does.
+
+	/**
+	 * @dataProvider provider_can_submit_by_status
+	 * @param string $status     Submission status, or '' for no submission row.
+	 * @param bool   $can_submit Whether the user may fill the form.
+	 */
+	public function test_can_submit_is_defined_for_every_status(string $status, bool $can_submit): void {
+		global $wpdb;
+
+		$rereg = (object) array(
+			'id'            => 5,
+			'title'         => 'Campaign 2026',
+			'audience_name' => 'Teachers',
+			'start_date'    => '2026-01-01',
+			'end_date'      => '2026-06-30',
+			'auto_approve'  => 0,
+		);
+		$wpdb->shouldReceive('get_results')->andReturn(array($rereg));
+
+		$submission = '' === $status
+			? null
+			: (object) array('id' => 20, 'status' => $status, 'user_id' => 1, 'magic_token' => 'tok');
+
+		/*
+		 * Two different `get_row` calls happen, in this order, and conflating
+		 * them is what made the null case look like "no campaign" instead of
+		 * "no submission": ReregistrationRepository::get_active_for_audience()
+		 * resolves the audience through AudienceReader::get_by_id() FIRST, and
+		 * returns early when that is null — so a blanket null never reached the
+		 * submission lookup at all.
+		 */
+		$audience = (object) array('id' => 5, 'name' => 'Teachers', 'parent_id' => 0);
+		$wpdb->shouldReceive('get_row')->andReturnValues(array($audience, $submission));
+
+		// submitted/approved build a magic link on the way out; the link is not
+		// what this test measures, so the page lookup is stubbed flat.
+		Functions\when('get_option')->justReturn(0);
+		Functions\when('home_url')->justReturn('https://example.test/valid/');
+		Functions\when('trailingslashit')->alias(static fn($u) => rtrim((string) $u, '/') . '/');
+
+		$result = ReregistrationFrontend::get_user_reregistrations(1);
+
+		$expected_status = '' === $status ? 'no_submission' : $status;
+		$this->assertSame($expected_status, $result[0]['submission_status']);
+		$this->assertSame($can_submit, $result[0]['can_submit'], "can_submit wrong for {$expected_status}");
+	}
+
+	/**
+	 * @return array<string, array{string, bool}>
+	 */
+	public static function provider_can_submit_by_status(): array {
+		return array(
+			// The state before the user begins. It reaches the dashboard two
+			// ways — joined the audience after activation, or an administrator
+			// deleted the submission — and both must be able to submit.
+			'no submission row' => array('', true),
+			'pending'           => array('pending', true),
+			'in_progress'       => array('in_progress', true),
+			'rejected'          => array('rejected', true),
+			// Records of a delivery: not reopened by anything short of the
+			// administrator deleting the row.
+			'submitted'         => array('submitted', false),
+			'approved'          => array('approved', false),
+			// Handled at the source — reactivation reopens it to pending — so
+			// a user should not sit here. Pinned so that if one ever does, the
+			// dashboard's catch-all branch is what they see, not a blank.
+			'expired'           => array('expired', false),
+		);
+	}
+
+	/**
+	 * The set is a contract, not an implementation detail: the dashboard and
+	 * the REST endpoints all branch on it.
+	 */
+	public function test_no_submission_is_in_the_submittable_set(): void {
+		$this->assertContains(
+			ReregistrationFrontend::STATUS_NO_SUBMISSION,
+			ReregistrationFrontend::SUBMITTABLE_STATUSES,
+			'A user with no row has not left a state — they have not started one.'
+		);
+	}
+
+	public function test_a_delivered_submission_is_never_submittable(): void {
+		foreach (array('submitted', 'approved') as $status) {
+			$this->assertNotContains(
+				$status,
+				ReregistrationFrontend::SUBMITTABLE_STATUSES,
+				"Reopening {$status} would discard a delivery."
+			);
+		}
+	}
 }

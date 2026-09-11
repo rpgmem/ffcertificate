@@ -694,6 +694,10 @@ class AudienceShortcode {
 	 */
 	private static function enqueue_styles(): void {
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		// Sem este script `.ffc-dark-mode` nunca chega ao <html> desta página, e
+		// a paleta fica congelada no tema claro (#1126).
+		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
+
 		wp_enqueue_style(
 			'ffc-common',
 			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",

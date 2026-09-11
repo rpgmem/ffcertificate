@@ -19,11 +19,13 @@
     --ffc-primary-light: #e7f3ff;
 
     /* Status Colors */
-    --ffc-success: #00a32a;
+    --ffc-success: #00801e;         /* 5,11:1 com branco — era #00a32a, 3,35:1 no botão (#1126 B). */
+    --ffc-success-hover: #006618;
     --ffc-success-light: #e7f5ec;
-    --ffc-warning: #dba617;
+    --ffc-warning: #ba8d14;         /* 3,04:1 sobre branco — era #dba617, 2,22:1 (#1132). */
     --ffc-warning-light: #fff8e5;
     --ffc-danger: #d63638;
+    --ffc-danger-hover: #b32d2e;
     --ffc-danger-light: #fcf0f1;
     --ffc-info: #006ba1;
     --ffc-info-light: #e5f5fa;
@@ -85,17 +87,30 @@
     --ffc-text: #1d2327;
     --ffc-text-secondary: #50575e;
     --ffc-text-muted: #646970;
-    --ffc-text-light: #8c8f94;
+    --ffc-text-light: #737579;      /* 4,62:1 sobre branco — era #8c8f94, 3,24:1 (#1132). */
     --ffc-text-on-primary: #ffffff;
+    --ffc-text-on-danger: #ffffff;  /* 4,73:1 sobre --ffc-danger (#1126 B). */
+    --ffc-text-on-success: #ffffff; /* 5,11:1 sobre --ffc-success (#1126 B). */
+    --ffc-text-on-warning: #2e2200; /* 5,14:1 sobre --ffc-warning; branco dava 3,04:1 (#1126).
+                                       NÃO é redeclarado no bloco escuro de propósito: o aviso é
+                                       tom médio-claro nos dois temas, então o mesmo texto escuro
+                                       serve — 8,67:1 sobre o #f0b849 do escuro. */
+
+    /* Semantic Tokens - Inverse surface (o inverseSurface/inverseOnSurface do M3)
+       O balão de toast é chrome invertido de propósito: escuro sobre a página
+       clara. Sem este par ele era #1d2327/#fff fixo e seguia escuro no tema
+       escuro, onde a inversão tem de virar ao contrário (#1126 defeito B). */
+    --ffc-inverse-surface: #1d2327;
+    --ffc-inverse-on-surface: #ffffff;
 
     /* Semantic Tokens - Borders */
-    --ffc-border: #c3c4c7;
+    --ffc-border: #8e8f91;          /* 3,24:1 sobre branco, 3,02:1 sobre #f6f7f7 — era #c3c4c7, 1,74:1 (#1132). */
     --ffc-border-light: #dcdcde;
     --ffc-border-focus: #2271b1;
 
     /* Semantic Tokens - Status Surfaces */
     --ffc-success-bg: #e7f5ec;
-    --ffc-success-border: #00a32a;
+    --ffc-success-border: #00801e;
     --ffc-success-text: #0a5c1a;
     --ffc-warning-bg: #fff8e5;
     --ffc-warning-border: #dba617;
@@ -110,7 +125,7 @@
     /* Semantic Tokens - Interactive */
     --ffc-link: #2271b1;
     --ffc-link-hover: #135e96;
-    --ffc-focus-ring: rgba(34, 113, 177, 0.4);
+    --ffc-focus-ring: rgba(34, 113, 177, 0.75);   /* composto 3,25:1 — a 0.4 dava 1,78:1 (#1132). */
 }
 
 /* ==========================================================================
@@ -127,10 +142,12 @@
 
     /* Status Colors */
     --ffc-success: #4caf50;
+    --ffc-success-hover: #6ec071;
     --ffc-success-light: #1a2e1a;
     --ffc-warning: #f0b849;
     --ffc-warning-light: #332b10;
-    --ffc-danger: #e57373;
+    --ffc-danger: #e88080;          /* 4,78:1 sobre o card — era #e57373, 4,29:1 (#1126 B). */
+    --ffc-danger-hover: #ee9595;
     --ffc-danger-light: #2e1515;
     --ffc-info: #4fc3f7;
     --ffc-info-light: #0d2b3a;
@@ -157,16 +174,25 @@
     --ffc-bg-card: #2c3338;
     --ffc-bg-input: #23282d;
     --ffc-bg-overlay: rgba(0, 0, 0, 0.7);
+    --ffc-inverse-surface: #e7e8ea;
+    --ffc-inverse-on-surface: #1d2327;
 
     /* Semantic Tokens - Text */
     --ffc-text: #e7e8ea;
     --ffc-text-secondary: #c3c4c7;
     --ffc-text-muted: #a7aaad;
-    --ffc-text-light: #8c8f94;
-    --ffc-text-on-primary: #ffffff;
+    --ffc-text-light: #9a9ea3;      /* 4,76:1 sobre o card — era #8c8f94, 3,95:1 (#1126 B). */
+    --ffc-text-on-primary: #213c4e;  /* tom ~20. O M3 INVERTE este par no tema escuro: a
+                                        primária clareia e o texto sobre ela escurece. O plugin
+                                        clareou a primária e manteve o branco, deixando 2,52:1 no
+                                        botão de ação primária; agora 4,58:1 (#1132). */
+    --ffc-text-on-danger: #452020;   /* tom ~20 — a mesma inversão do par acima, aplicada ao
+                                        botão destrutivo: 5,29:1 sobre --ffc-danger (#1126 B). */
+    --ffc-text-on-success: #10361a;  /* idem no botão de sucesso: 4,83:1 (#1126 B). */
 
     /* Semantic Tokens - Borders */
-    --ffc-border: #3c434a;
+    --ffc-border: #6f7c89;           /* 3,72:1 sobre o fundo, 3,00:1 sobre o card, 3,48:1 sobre o
+                                        campo — era #3c434a, 1,28:1 sobre card (#1132). */
     --ffc-border-light: #2c3338;
     --ffc-border-focus: #5dabde;
 
@@ -178,7 +204,7 @@
     --ffc-warning-border: #f0b849;
     --ffc-warning-text: #ffe082;
     --ffc-danger-bg: #2e1515;
-    --ffc-danger-border: #e57373;
+    --ffc-danger-border: #e88080;
     --ffc-danger-text: #ef9a9a;
     --ffc-info-bg: #0d2b3a;
     --ffc-info-border: #4fc3f7;
@@ -187,7 +213,403 @@
     /* Semantic Tokens - Interactive */
     --ffc-link: #5dabde;
     --ffc-link-hover: #7cbde8;
-    --ffc-focus-ring: rgba(93, 171, 222, 0.4);
+    --ffc-focus-ring: rgba(93, 171, 222, 0.6);    /* composto 3,19:1 — a 0.4 dava 2,14:1 (#1132). */
+}
+
+/* ==========================================================================
+   DARK MODE - WordPress core chrome (#1126)
+   ==========================================================================
+
+   Redefining the tokens above flips everything the PLUGIN paints. It flips
+   nothing WordPress paints, because core writes #1d2327 / #646970 / #fff
+   literally in its own stylesheet and nothing here overrode it — so a settings
+   tab came out with readable descriptions (the plugin sets their colour) and
+   invisible labels (core sets theirs). `.ffc-settings-wrap .form-table th` is
+   the exact case: it had width, padding, font-weight and vertical-align, and
+   no `color` at all.
+
+   SCOPE — `.ffc-dark-mode` is added by `AssetHelper::enqueue_dark_mode()`,
+   which SEVEN call sites reach, and SIX of them are the FRONTEND (the two
+   audience paths, the self-scheduling calendar, the recruitment notices, the
+   user dashboard and `Frontend::enqueue_assets()`). An earlier version of this
+   comment claimed the class only ever existed on a plugin admin screen; it is
+   not true, and the claim is the reason `body` below has to name `.wp-admin`
+   explicitly instead of being written bare. On an admin screen the selectors below are still contained,
+   because `AdminAssetsManager::enqueue_admin_assets()` returns early unless
+   `is_ffc_page()` — but a bare core selector here CAN match a theme's markup
+   on a public page, so keep new entries to chrome only wp-admin renders.
+
+   TOKENS ONLY. A literal colour here is the defect this block exists to fix —
+   the #1116 autosave badge shape, catalogued as a class in #1126. */
+
+/* BASE PAIR — the hole every selector below was patching one at a time.
+
+   Text that declares no colour of its own inherits it from OUTSIDE our CSS:
+   in wp-admin from core's `body { color: #3c434a }`, on the frontend from the
+   active theme's body rule. Both are near-black, so on a dark ground such text
+   lands at **1,28:1** — measured, not estimated. That is what made the
+   `[ffc_audience]` legend ("Disponível / Reservado / Feriado / Fechado", no
+   `color` anywhere in its rules) and the reregistration tab's `<label>Modelo:`
+   unreadable while every DECLARED pair in those same sheets measured fine.
+
+   So the fix is not another selector — it is giving the inherited value a
+   theme-aware default at each root we own. The pair meter cannot catch this
+   class by construction: it compares declared pairs, and here nothing is
+   declared.
+
+   Admin is `body.wp-admin`, never bare `body`: the class also lands on public
+   pages, where repainting the theme's own text is not ours to do. The frontend
+   entries are the OUTERMOST wrapper of each public surface — `.ffc-shortcode`
+   already contains the dashboard, the recruitment queue, the audience calendar
+   and the verification screens, so naming those inner classes too would be
+   noise. `AdminStylesheetTokensTest` fails when one of these stops appearing
+   in the markup — see `test_the_dark_mode_base_pair_names_only_live_roots()`. */
+:root.ffc-dark-mode body.wp-admin,
+:root.ffc-dark-mode .ffc-shortcode,
+:root.ffc-dark-mode .ffc-rereg-form-container,
+:root.ffc-dark-mode .ffc-cancel-page {
+    color: var(--ffc-text);
+}
+
+:root.ffc-dark-mode .wrap h1,
+:root.ffc-dark-mode .wrap h2,
+:root.ffc-dark-mode .wrap h3,
+:root.ffc-dark-mode .wp-heading-inline {
+    color: var(--ffc-text);
+}
+
+/* Form tables — the labels that vanished. */
+:root.ffc-dark-mode .form-table th,
+:root.ffc-dark-mode .form-table th label,
+:root.ffc-dark-mode .form-table td,
+:root.ffc-dark-mode .form-table td label,
+:root.ffc-dark-mode fieldset legend {
+    color: var(--ffc-text);
+}
+
+:root.ffc-dark-mode .form-table,
+:root.ffc-dark-mode .form-table tr {
+    border-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode p.description,
+:root.ffc-dark-mode .description,
+:root.ffc-dark-mode .howto {
+    color: var(--ffc-text-muted);
+}
+
+/* Inputs — core keeps these white on a dark card otherwise. */
+:root.ffc-dark-mode input[type="text"],
+:root.ffc-dark-mode input[type="search"],
+:root.ffc-dark-mode input[type="number"],
+:root.ffc-dark-mode input[type="email"],
+:root.ffc-dark-mode input[type="url"],
+:root.ffc-dark-mode input[type="tel"],
+:root.ffc-dark-mode input[type="password"],
+:root.ffc-dark-mode input[type="date"],
+:root.ffc-dark-mode input[type="time"],
+:root.ffc-dark-mode input[type="datetime-local"],
+:root.ffc-dark-mode select,
+:root.ffc-dark-mode textarea {
+    color: var(--ffc-text);
+    background-color: var(--ffc-bg-input);
+    border-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode input::placeholder,
+:root.ffc-dark-mode textarea::placeholder {
+    color: var(--ffc-text-light);
+}
+
+:root.ffc-dark-mode input:focus,
+:root.ffc-dark-mode select:focus,
+:root.ffc-dark-mode textarea:focus {
+    border-color: var(--ffc-border-focus);
+    box-shadow: 0 0 0 1px var(--ffc-border-focus);
+}
+
+/* A disabled control must still read as text, not as the background. */
+:root.ffc-dark-mode input:disabled,
+:root.ffc-dark-mode select:disabled,
+:root.ffc-dark-mode textarea:disabled {
+    color: var(--ffc-text-muted);
+    background-color: var(--ffc-bg-alt);
+}
+
+/* Cards and metaboxes. */
+:root.ffc-dark-mode .card,
+:root.ffc-dark-mode .postbox {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-card);
+    border-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .postbox .postbox-header,
+:root.ffc-dark-mode .postbox .hndle,
+:root.ffc-dark-mode .postbox h2 {
+    color: var(--ffc-text);
+    border-bottom-color: var(--ffc-border);
+}
+
+/* List tables. */
+:root.ffc-dark-mode .wp-list-table,
+:root.ffc-dark-mode table.widefat {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-card);
+    border-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .wp-list-table th,
+:root.ffc-dark-mode .wp-list-table thead td,
+:root.ffc-dark-mode table.widefat th,
+:root.ffc-dark-mode table.widefat thead td {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-alt);
+    border-bottom-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .wp-list-table td,
+:root.ffc-dark-mode table.widefat td {
+    color: var(--ffc-text);
+    border-top-color: var(--ffc-border);
+}
+
+/* `.alternate` is the third way core stripes a row, and it is the one this
+   plugin actually writes by hand — seven times on the Cache tab alone. The
+   first version of this block covered only the two `:nth-child(odd)` forms,
+   so those rows stayed `#f6f7f7` white inside the dark card (#1126). */
+:root.ffc-dark-mode .wp-list-table.striped > tbody > :nth-child(odd),
+:root.ffc-dark-mode .striped > tbody > :nth-child(odd),
+:root.ffc-dark-mode .alternate {
+    background-color: var(--ffc-bg-alt);
+}
+
+:root.ffc-dark-mode .tablenav,
+:root.ffc-dark-mode .tablenav .displaying-num,
+:root.ffc-dark-mode .tablenav-pages a,
+:root.ffc-dark-mode .subsubsub,
+:root.ffc-dark-mode .subsubsub a {
+    color: var(--ffc-text-secondary);
+}
+
+/* Secondary buttons. The primary button keeps core's blue, which reads
+   correctly on both grounds and is the one affordance users look for. */
+:root.ffc-dark-mode .button,
+:root.ffc-dark-mode .button-secondary {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-alt);
+    border-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .button:hover,
+:root.ffc-dark-mode .button-secondary:hover {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-card);
+    border-color: var(--ffc-border-focus);
+}
+
+:root.ffc-dark-mode .button:disabled,
+:root.ffc-dark-mode .button.disabled {
+    color: var(--ffc-text-light);
+    background: var(--ffc-bg);
+    border-color: var(--ffc-border-light);
+}
+
+/* Tab strips. */
+:root.ffc-dark-mode .nav-tab-wrapper {
+    border-bottom-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .nav-tab {
+    color: var(--ffc-text-secondary);
+    background: var(--ffc-bg-alt);
+    border-color: var(--ffc-border);
+}
+
+:root.ffc-dark-mode .nav-tab-active,
+:root.ffc-dark-mode .nav-tab:hover {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-card);
+}
+
+/* Notices. Core paints the body white and leaves the left border coloured,
+   so only the ground and the text need moving — the status hue still reads. */
+:root.ffc-dark-mode .notice,
+:root.ffc-dark-mode div.updated,
+:root.ffc-dark-mode div.error {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-card);
+}
+
+/* …and the notice's own text nodes, by name.
+   The rule above sets `color` on the box and every child inherits it — which is
+   how it reads in isolation, and how it measured in a Chromium loaded with
+   WordPress's real admin CSS: 13:1. On the live install it does not hold, and
+   the reason is not in this repository: nothing here paints a bare `p` inside a
+   `.notice` (grep of all 28 stylesheets), and core sets no `color` on `.notice`
+   or its children at all — `common.css`, `forms.css`, `edit.css`,
+   `dashboard.css`, `list-tables.css` were all read. So a third party on that
+   install declares a colour on these nodes directly, and ANY direct declaration
+   beats an inherited value however specific its source.
+
+   Naming the children is the fix that does not depend on knowing which: at
+   0,3,1 it outranks any plausible plugin or theme rule. It would still lose to
+   an `!important`, which is the one case left open — deliberately, because
+   answering `!important` with `!important` starts a war the next stylesheet
+   wins. */
+:root.ffc-dark-mode .notice p,
+:root.ffc-dark-mode .notice li,
+:root.ffc-dark-mode .notice strong,
+:root.ffc-dark-mode div.updated p,
+:root.ffc-dark-mode div.error p {
+    color: var(--ffc-text);
+}
+
+/* Inline code, which core sets on a light grey ground. */
+:root.ffc-dark-mode code,
+:root.ffc-dark-mode kbd {
+    color: var(--ffc-text);
+    background: var(--ffc-bg-alt);
+}
+
+:root.ffc-dark-mode hr,
+:root.ffc-dark-mode .wp-header-end {
+    border-color: var(--ffc-border);
+}
+
+/* ==========================================================================
+   MODAL — componente compartilhado (#1140)
+   ==========================================================================
+
+   Vinha de `ffc-audience.css`, e havia uma segunda cópia sem escopo em
+   `ffc-reregistration-admin.css`. Duas cópias e um terceiro consumidor a
+   caminho (o cancelamento no dashboard, que carrega só `ffc-common` +
+   `ffc-user-dashboard`) é o momento de consolidar, não de escrever a terceira.
+   Aqui porque `ffc-common` é dependência declarada de toda folha que já usava
+   o modal — ninguém perde regra — e é a única que o dashboard tem.
+
+   O seletor composto `.ffc-shortcode.ffc-modal` não é engano: o modal é
+   anexado ao `<body>`, fora do contêiner do shortcode, então ele carrega a
+   classe de escopo em si mesmo.
+
+   A cópia do admin de recadastramento ficou onde está: seletores sem escopo,
+   outra tela, e mesclar as duas exigiria decidir o escopo de cada regra — é
+   um PR próprio, não um efeito colateral deste. */
+
+.ffc-shortcode .ffc-modal,
+.ffc-shortcode.ffc-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ffc-shortcode .ffc-modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--ffc-bg-overlay);
+}
+
+.ffc-shortcode .ffc-modal-content {
+    position: relative;
+    background: var(--ffc-bg-card);
+    border-radius: var(--ffc-radius-sm);
+    box-shadow: var(--ffc-shadow-lg);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow: auto;
+}
+
+.ffc-shortcode .ffc-modal-lg {
+    max-width: min(700px, 95vw);
+}
+
+.ffc-shortcode .ffc-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--ffc-gray-200);
+}
+
+.ffc-shortcode .ffc-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.ffc-shortcode .ffc-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--ffc-gray-600);
+    padding: 0;
+    line-height: 1;
+}
+
+.ffc-shortcode .ffc-modal-close:hover {
+    color: var(--ffc-gray-800);
+}
+
+.ffc-shortcode .ffc-modal-body {
+    padding: 20px;
+}
+
+.ffc-shortcode .ffc-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 15px 20px;
+    border-top: 1px solid var(--ffc-gray-200);
+}
+
+/* O `<textarea>` do diálogo. Um controle não herda `color` (#1126), e a folha
+   que estilizava `.ffc-form-group` não é carregada no dashboard. */
+.ffc-shortcode .ffc-modal-body .ffc-form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.ffc-shortcode .ffc-modal-body .ffc-form-group textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    color: var(--ffc-text);
+    background: var(--ffc-bg-input);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+}
+
+/* Resumo serviço/quando — o mesmo par que a página pública de cancelamento
+   mostra, agora compartilhado com o diálogo do dashboard (#1140). */
+.ffc-cancel-summary {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: var(--ffc-bg-alt);
+    border-radius: var(--ffc-radius-sm);
+}
+
+.ffc-cancel-summary dt {
+    font-weight: 600;
+    color: var(--ffc-text-secondary);
+}
+
+.ffc-cancel-summary dd {
+    margin: 0 0 0.75rem;
+}
+
+.ffc-cancel-summary dd:last-child {
+    margin-bottom: 0;
 }
 
 /* ==========================================================================
@@ -378,8 +800,8 @@
 /* Private visibility restriction container */
 .ffc-visibility-restricted {
     padding: 20px;
-    background: var(--ffc-warning-light, #fff8e5);
-    border: 1px solid var(--ffc-warning, #dba617);
+    background: var(--ffc-warning-light);
+    border: 1px solid var(--ffc-warning);
     border-radius: 6px;
     text-align: center;
 }
@@ -387,15 +809,15 @@
 .ffc-visibility-restricted .ffc-calendar-title {
     margin: 0 0 10px;
     font-size: 1.2em;
-    color: var(--ffc-text, #1d2327);
+    color: var(--ffc-text);
 }
 
 .ffc-visibility-restricted .ffc-restricted-message {
-    color: var(--ffc-text-muted, #50575e);
+    color: var(--ffc-text-muted);
 }
 
 .ffc-visibility-restricted .ffc-restricted-message a {
-    color: var(--ffc-primary, #2271b1);
+    color: var(--ffc-primary);
     font-weight: 600;
 }
 
@@ -406,11 +828,11 @@
 }
 
 .ffc-scheduling-restricted .ffc-restricted-message {
-    color: var(--ffc-text-muted, #50575e);
+    color: var(--ffc-text-muted);
 }
 
 .ffc-scheduling-restricted .ffc-restricted-message a {
-    color: var(--ffc-primary, #2271b1);
+    color: var(--ffc-primary);
     font-weight: 600;
 }
 
@@ -418,11 +840,11 @@
 .ffc-admin-bypass-notice {
     padding: 10px 15px;
     margin-bottom: 15px;
-    background: var(--ffc-info-light, #e5f5fa);
-    border: 1px solid var(--ffc-info, #006ba1);
+    background: var(--ffc-info-light);
+    border: 1px solid var(--ffc-info);
     border-radius: 4px;
     font-size: 0.9em;
-    color: var(--ffc-info, #006ba1);
+    color: var(--ffc-info);
 }
 
 /* Badge — canonical base class (shared across admin + frontend) */
@@ -466,7 +888,7 @@
 
 .ffc-btn-primary {
     background: var(--ffc-primary);
-    color: #fff;
+    color: var(--ffc-text-on-primary);
 }
 
 .ffc-btn-primary:hover {
@@ -488,20 +910,20 @@
 
 .ffc-btn-success {
     background: var(--ffc-success);
-    color: #fff;
+    color: var(--ffc-text-on-success);
 }
 
 .ffc-btn-success:hover {
-    background: #008a20;
+    background: var(--ffc-success-hover);
 }
 
 .ffc-btn-danger {
     background: var(--ffc-danger);
-    color: #fff;
+    color: var(--ffc-text-on-danger);
 }
 
 .ffc-btn-danger:hover {
-    background: #b32d2e;
+    background: var(--ffc-danger-hover);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -511,9 +933,9 @@
 }
 
 .ffc-badge-private {
-    background: var(--ffc-danger-light, #fcf0f1);
-    color: var(--ffc-danger, #d63638);
-    border: 1px solid var(--ffc-danger, #d63638);
+    background: var(--ffc-danger-light);
+    color: var(--ffc-danger);
+    border: 1px solid var(--ffc-danger);
 }
 
 /* ==========================================================================
@@ -564,7 +986,7 @@
     flex: 0 0 auto;
     width: 38px;
     height: 22px;
-    background: var(--ffc-border-medium, #c3c4c7);
+    background: var(--ffc-border);
     border-radius: 11px;
     transition: background-color 0.15s ease;
 }
@@ -577,13 +999,16 @@
     width: 18px;
     height: 18px;
     border-radius: 50%;
+    /* O botão do interruptor fica branco nos dois temas de propósito: no tema
+       escuro a pista é escura, e um botão em var(--ffc-bg-card) sumiria dentro
+       dela. É literal por decisão, não por esquecimento (#1126 B). */
     background: #fff;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     transition: transform 0.15s ease;
 }
 
 .ffc-toggle input[type="checkbox"]:checked + .ffc-toggle-track {
-    background: var(--ffc-primary, #2271b1);
+    background: var(--ffc-primary);
 }
 
 .ffc-toggle input[type="checkbox"]:checked + .ffc-toggle-track::after {
@@ -591,7 +1016,7 @@
 }
 
 .ffc-toggle input[type="checkbox"]:focus-visible + .ffc-toggle-track {
-    outline: 2px solid var(--ffc-primary, #2271b1);
+    outline: 2px solid var(--ffc-primary);
     outline-offset: 2px;
 }
 
@@ -627,18 +1052,18 @@
 }
 
 .ffc-autosave-badge--saving {
-    background: var(--ffc-bg-subtle, #f0f0f1);
-    color: var(--ffc-text-muted, #646970);
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-muted);
 }
 
 .ffc-autosave-badge--saved {
-    background: var(--ffc-success-light, #ecf7ed);
-    color: var(--ffc-success, #00a32a);
+    background: var(--ffc-success-light);
+    color: var(--ffc-success);
 }
 
 .ffc-autosave-badge--error {
-    background: var(--ffc-danger-light, #fcf0f1);
-    color: var(--ffc-danger, #d63638);
+    background: var(--ffc-danger-light);
+    color: var(--ffc-danger);
 }
 
 /* ==========================================================================
@@ -667,18 +1092,18 @@
 }
 
 .ffc-features-badge--saving {
-    background: var(--ffc-bg-subtle, #f0f0f1);
-    color: var(--ffc-text-muted, #646970);
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-muted);
 }
 
 .ffc-features-badge--saved {
-    background: var(--ffc-success-light, #ecf7ed);
-    color: var(--ffc-success, #00a32a);
+    background: var(--ffc-success-light);
+    color: var(--ffc-success);
 }
 
 .ffc-features-badge--error {
-    background: var(--ffc-danger-light, #fcf0f1);
-    color: var(--ffc-danger, #d63638);
+    background: var(--ffc-danger-light);
+    color: var(--ffc-danger);
 }
 
 /* ==========================================================================
@@ -713,9 +1138,33 @@
 }
 
 .ffc-captcha-mode-note--warning {
-    border-left-color: #dba617;
+    border-left-color: var(--ffc-warning-border);
 }
 
 .ffc-captcha-mode-note--info {
-    border-left-color: #72aee6;
+    border-left-color: var(--ffc-info-border);
+}
+
+/* ==========================================================================
+   AVISO DE E-MAILS DESLIGADOS (Core\EmailDisabledNotice)
+
+   Estas regras estavam num `style=""` dentro do PHP, o que fazia o aviso
+   ignorar o modo escuro em toda tela que edita e-mail (#1126). Ficam aqui, e
+   não em ffc-admin.css, porque o aviso aparece em cinco superfícies
+   diferentes — metabox do editor de formulário, editor de calendário e três
+   abas de configuração — e ffc-common é a única folha que todas as cinco
+   declaram como dependência.
+   ========================================================================== */
+
+.ffc-email-disabled-notice {
+    margin: 0 0 16px;
+    padding: 10px 14px;
+    border-left: 4px solid var(--ffc-warning-border);
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+    border-radius: 2px;
+}
+
+.ffc-email-disabled-notice p {
+    margin: 0;
 }

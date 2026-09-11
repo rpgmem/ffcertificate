@@ -575,7 +575,11 @@ class AudienceRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() {
 			return func_get_args()[0];
 		});
-		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]); // get_children returns empty
+		// delete() now reads the affected members before deleting anything, so
+		// get_children() is reached twice: once by get_descendant_ids(), once by
+		// the recursion itself (#1127).
+		$this->wpdb->shouldReceive('get_results')->andReturn([]);
+		$this->wpdb->shouldReceive('get_col')->andReturn([]);
 
 		// Delete member associations
 		$this->wpdb->shouldReceive('delete')
@@ -596,7 +600,8 @@ class AudienceRepositoryTest extends TestCase {
 
 	public function test_delete_returns_false_on_failure(): void {
 		$this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
-		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]); // no children
+		$this->wpdb->shouldReceive('get_results')->andReturn([]); // no children
+		$this->wpdb->shouldReceive('get_col')->andReturn([]); // no members (#1127)
 
 		$this->wpdb->shouldReceive('delete')
 			->with('wp_ffc_audience_members', Mockery::any(), Mockery::any())
@@ -614,14 +619,20 @@ class AudienceRepositoryTest extends TestCase {
 	public function test_delete_recursively_deletes_children(): void {
 		$child = (object) ['id' => 10, 'name' => 'Child', 'parent_id' => 5];
 
-		$call_count = 0;
-		$this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
-		$this->wpdb->shouldReceive('get_results')->andReturnUsing(function() use (&$call_count, $child) {
-			$call_count++;
-			// First call: children of parent 5 (returns one child)
-			// Second call: children of child 10 (returns empty)
-			return $call_count === 1 ? [$child] : [];
+		// Answer by the parent id being asked about rather than by call order:
+		// delete() reads the affected members first (#1127), so get_children()
+		// is now reached once by get_descendant_ids() and once by the recursion,
+		// and a counter-based stub silently answers the wrong question.
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function($sql, $args = []) {
+			if (is_array($args) && count($args) === 2 && strpos($sql, 'parent_id = %d') !== false) {
+				return 'CHILDREN_OF:' . $args[1];
+			}
+			return 'QUERY';
 		});
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(function($sql) use ($child) {
+			return 'CHILDREN_OF:5' === $sql ? [$child] : [];
+		});
+		$this->wpdb->shouldReceive('get_col')->andReturn([]);
 
 		// Expect deletes for child 10 first (members + audience), then parent 5
 		$delete_calls = [];
@@ -643,7 +654,8 @@ class AudienceRepositoryTest extends TestCase {
 
 	public function test_delete_clears_cache(): void {
 		$this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
-		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+		$this->wpdb->shouldReceive('get_results')->andReturn([]);
+		$this->wpdb->shouldReceive('get_col')->andReturn([]); // #1127
 		$this->wpdb->shouldReceive('delete')->andReturn(1);
 
 		$deleted_keys = [];
@@ -698,7 +710,8 @@ class AudienceRepositoryTest extends TestCase {
 
 	public function test_delete_bumps_query_cache_version(): void {
 		$this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
-		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+		$this->wpdb->shouldReceive('get_results')->andReturn([]);
+		$this->wpdb->shouldReceive('get_col')->andReturn([]); // #1127
 		$this->wpdb->shouldReceive('delete')->andReturn(1);
 
 		$bumped = null;
@@ -999,7 +1012,9 @@ class AudienceRepositoryTest extends TestCase {
 		];
 
 		Functions\when('wp_cache_get')->alias(function($key, $group = '') use ($cached) {
-			if ($key === 'ffcertificate_user_aud_42_0' && $group === 'ffcertificate') {
+			// #1127 moved this key out of the literal 'ffcertificate' group and
+			// into the group the Reader/Writer pair shares.
+			if ($key === 'user_aud_42_0' && $group === 'ffc_audiences') {
 				return $cached;
 			}
 			return false;
@@ -1020,7 +1035,7 @@ class AudienceRepositoryTest extends TestCase {
 		];
 
 		Functions\when('wp_cache_get')->alias(function($key, $group = '') use ($cached) {
-			if ($key === 'ffcertificate_user_aud_42_1' && $group === 'ffcertificate') {
+			if ($key === 'user_aud_42_1' && $group === 'ffc_audiences') {
 				return $cached;
 			}
 			return false;
@@ -1139,17 +1154,20 @@ class AudienceRepositoryTest extends TestCase {
 		$child = (object) ['id' => 10, 'name' => 'Child', 'parent_id' => 1];
 		$captured_sqls = [];
 
-		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$captured_sqls) {
-			$sql = func_get_args()[0];
+		// Answer by the parent id being asked about, not by call order:
+		// cascade_self_join() now also reads the members of the subtree so it can
+		// invalidate them (#1127), and that walks the tree as well.
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function($sql, $args = []) use (&$captured_sqls) {
 			$captured_sqls[] = $sql;
+			if (is_array($args) && count($args) === 2 && strpos($sql, 'parent_id = %d') !== false) {
+				return 'CHILDREN_OF:' . $args[1];
+			}
 			return $sql;
 		});
-		// get_children(1) returns one child; get_children(10) returns none
-		$call_count = 0;
-		$this->wpdb->shouldReceive('get_results')->andReturnUsing(function() use (&$call_count, $child) {
-			$call_count++;
-			return $call_count === 1 ? [$child] : [];
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(function($sql) use ($child) {
+			return 'CHILDREN_OF:1' === $sql ? [$child] : [];
 		});
+		$this->wpdb->shouldReceive('get_col')->andReturn([]);
 		$this->wpdb->shouldReceive('query')->once()->andReturn(1);
 
 		AudienceWriter::cascade_self_join(1, 1);
@@ -1195,6 +1213,9 @@ class AudienceRepositoryTest extends TestCase {
 
 		// Then: add_member for each user (is_member + insert)
 		$this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
+		// set_members() reads the current members before the wipe so it can
+		// invalidate the users it drops, not only the ones it adds (#1127).
+		$this->wpdb->shouldReceive('get_col')->andReturn([]);
 		$this->wpdb->shouldReceive('get_var')->andReturn('0');
 		$this->wpdb->shouldReceive('insert')->andReturn(1);
 

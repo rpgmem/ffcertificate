@@ -378,6 +378,77 @@ class AppointmentCancellationHandlerTest extends TestCase {
 		unset( $_POST['ffc_cancel_reason'] );
 	}
 
+	// ---- the document head --------------------------------------------
+
+	/**
+	 * The palette has to reach this page, and it is the one page nothing enqueues.
+	 *
+	 * This handler builds its own document and links its stylesheet directly, so
+	 * it never went through `wp_enqueue_style()` and never picked up the
+	 * `ffc-common` dependency every enqueued sheet declares. That sheet reads
+	 * eleven `var(--ffc-*)`, and an undeclared custom property does NOT fall back
+	 * to a literal — it invalidates the whole declaration. The card therefore had
+	 * no ground, no text colour and an unpainted confirm button, in both themes.
+	 *
+	 * `AdminStylesheetTokensTest`'s dependency direction cannot see this page by
+	 * construction: it reads `wp_enqueue_style()` calls, and there is none here.
+	 *
+	 * @return void
+	 */
+	public function test_the_palette_loads_before_the_page_own_stylesheet(): void {
+		$sheets = $this->call_private_static( 'stylesheets', array( '.min' ) );
+
+		$this->assertCount( 2, $sheets );
+		$this->assertStringContainsString( 'assets/css/ffc-common.min.css', $sheets[0] );
+		$this->assertStringContainsString( 'assets/css/ffc-appointment-cancellation.min.css', $sheets[1] );
+	}
+
+	/**
+	 * `on` renders dark. `auto` cannot: this page carries no JavaScript, and the
+	 * OS preference is only readable there — a stated limit, not an oversight.
+	 *
+	 * @return void
+	 */
+	public function test_the_root_class_honours_the_mode_a_server_can_know(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'dark_mode' => 'on' ) );
+		$this->assertSame( ' class="ffc-dark-mode"', $this->call_private_static( 'root_class' ) );
+	}
+
+	/**
+	 * @dataProvider provider_light_modes
+	 * @param string $mode Stored `dark_mode` value that must render light.
+	 * @return void
+	 */
+	public function test_the_root_class_is_empty_for_every_other_mode( string $mode ): void {
+		Functions\when( 'get_option' )->justReturn( array( 'dark_mode' => $mode ) );
+		$this->assertSame( '', $this->call_private_static( 'root_class' ) );
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public function provider_light_modes(): array {
+		return array(
+			'desligado'  => array( 'off' ),
+			'automatico' => array( 'auto' ),
+			'lixo'       => array( 'nonsense' ),
+		);
+	}
+
+	/**
+	 * Call one of the two extracted head helpers.
+	 *
+	 * @param string            $method Method name.
+	 * @param array<int, mixed> $args   Arguments.
+	 * @return mixed
+	 */
+	private function call_private_static( string $method, array $args = array() ) {
+		$ref = new \ReflectionMethod( AppointmentCancellationHandler::class, $method );
+		$ref->setAccessible( true );
+
+		return $ref->invokeArgs( null, $args );
+	}
+
 	/**
 	 * Wire up the render-path WP function stubs and capture every string that
 	 * reaches __()/esc_html_e(); make AssetHelper::asset_suffix() throw so render_page

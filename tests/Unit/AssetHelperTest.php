@@ -66,4 +66,26 @@ class AssetHelperTest extends TestCase {
 		// so the test isn't flagged risky for "no assertions".
 		$this->addToAssertionCount( 1 );
 	}
+
+	/**
+	 * `off` + `$always` still loads the script, and says so.
+	 *
+	 * The screen that CHANGES the setting needs the script in the `off` state
+	 * too: it is the half that repaints `<html>` when the select auto-saves.
+	 * Without it the option was written and the page kept its old theme until
+	 * the next load, which reads as a save that did not work.
+	 */
+	public function test_enqueue_dark_mode_loads_in_the_off_state_when_always(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'dark_mode' => 'off' ) );
+		Functions\expect( 'wp_enqueue_script' )
+			->once()
+			->with( 'ffc-dark-mode', \Mockery::type( 'string' ), array(), FFC_VERSION, false );
+		Functions\expect( 'wp_localize_script' )
+			->once()
+			->with( 'ffc-dark-mode', 'ffcDarkMode', array( 'mode' => 'off' ) );
+
+		AssetHelper::enqueue_dark_mode( true );
+
+		$this->addToAssertionCount( 1 );
+	}
 }

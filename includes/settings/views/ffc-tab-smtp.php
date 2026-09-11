@@ -91,6 +91,15 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 						'description' => __( 'Send welcome email when a new WordPress user is created during migration. Recommended to keep disabled to avoid sending bulk emails.', 'ffcertificate' ),
 						'default'     => '0',
 					),
+					// #1123: the "Access granted" email was composed, editable in
+					// the email hub and gated on this key — which nothing wrote,
+					// so it never left any install. Default '0' keeps that
+					// behaviour; the toggle is what makes it reachable.
+					'notify_capability_grant'        => array(
+						'th_label'    => __( 'Access Granted Notification', 'ffcertificate' ),
+						'description' => __( 'Email the user when they are granted access to certificates, appointments or audience groups. Edit the text under Settings → Email Texts → Account access.', 'ffcertificate' ),
+						'default'     => '0',
+					),
 				);
 				foreach ( $ffcertificate_email_toggles as $ffcertificate_key => $ffcertificate_row ) :
 					$ffcertificate_current = (string) $ffcertificate_get_option( $ffcertificate_key, $ffcertificate_row['default'] );
@@ -162,7 +171,7 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 						<tr>
 							<th scope="row"><label for="smtp_port"><?php esc_html_e( 'SMTP Port', 'ffcertificate' ); ?></label></th>
 							<td>
-								<input type="number" name="ffc_settings[smtp_port]" id="smtp_port" value="<?php echo esc_attr( $ffcertificate_get_option( 'smtp_port' ) ); ?>" class="small-text" placeholder="587">
+								<input type="number" name="ffc_settings[smtp_port]" id="smtp_port" value="<?php echo esc_attr( $ffcertificate_get_option( 'smtp_port' ) ); ?>" class="small-text" placeholder="587" min="1" max="65535" required>
 								<p class="description"><?php esc_html_e( 'Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)', 'ffcertificate' ); ?></p>
 							</td>
 						</tr>

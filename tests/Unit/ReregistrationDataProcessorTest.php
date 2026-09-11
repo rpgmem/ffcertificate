@@ -307,7 +307,7 @@ class ReregistrationDataProcessorTest extends TestCase {
 
 	public function test_sanitize_working_hours_skips_entries_without_day(): void {
 		$input = json_encode( array(
-			array( 'day' => 1, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '', 'exit2' => '' ),
+			array( 'day' => 1, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '13:00', 'exit2' => '17:00' ),
 			array( 'entry1' => '09:00' ), // Missing 'day'
 			'not an array',
 		) );
@@ -321,7 +321,7 @@ class ReregistrationDataProcessorTest extends TestCase {
 
 	public function test_sanitize_working_hours_casts_day_to_int(): void {
 		$input = json_encode( array(
-			array( 'day' => '3', 'entry1' => '', 'exit1' => '', 'entry2' => '', 'exit2' => '' ),
+			array( 'day' => '3', 'entry1' => '08:00', 'exit1' => '', 'entry2' => '', 'exit2' => '17:00' ),
 		) );
 
 		$result = ReregistrationDataProcessor::sanitize_working_hours( $input );
@@ -330,18 +330,47 @@ class ReregistrationDataProcessorTest extends TestCase {
 		$this->assertSame( 3, $decoded[0]['day'] );
 	}
 
-	public function test_sanitize_working_hours_missing_optional_fields_default_empty(): void {
+	/**
+	 * #1128 changed this: a row with no time at all used to be stored as four
+	 * empty strings. It is now dropped — "I do not work this day" is what a
+	 * missing row already means, so storing an empty one said nothing and made
+	 * the field's own `is_required` unenforceable.
+	 */
+	public function test_sanitize_working_hours_drops_a_row_with_no_times(): void {
 		$input = json_encode( array(
 			array( 'day' => 1 ),
 		) );
 
-		$result = ReregistrationDataProcessor::sanitize_working_hours( $input );
-		$decoded = json_decode( $result, true );
+		$this->assertSame( '[]', ReregistrationDataProcessor::sanitize_working_hours( $input ) );
+	}
 
-		$this->assertSame( '', $decoded[0]['entry1'] );
+	/**
+	 * The optional middle shift still defaults to empty on a row that is
+	 * otherwise complete — only the two required times gate the row.
+	 */
+	public function test_sanitize_working_hours_keeps_the_middle_shift_empty(): void {
+		$input = json_encode( array(
+			array( 'day' => 1, 'entry1' => '08:00', 'exit2' => '17:00' ),
+		) );
+
+		$decoded = json_decode( ReregistrationDataProcessor::sanitize_working_hours( $input ), true );
+
+		$this->assertSame( '08:00', $decoded[0]['entry1'] );
 		$this->assertSame( '', $decoded[0]['exit1'] );
 		$this->assertSame( '', $decoded[0]['entry2'] );
-		$this->assertSame( '', $decoded[0]['exit2'] );
+		$this->assertSame( '17:00', $decoded[0]['exit2'] );
+	}
+
+	/**
+	 * A half-filled row is dropped rather than stored (#1128) — the defect the
+	 * smoke of 6.24.0 found, where `isset( '' )` being true let it through.
+	 */
+	public function test_sanitize_working_hours_drops_a_half_filled_row(): void {
+		$input = json_encode( array(
+			array( 'day' => 1, 'entry1' => '', 'exit1' => '', 'entry2' => '', 'exit2' => '17:00' ),
+		) );
+
+		$this->assertSame( '[]', ReregistrationDataProcessor::sanitize_working_hours( $input ) );
 	}
 
 	// ==================================================================
@@ -635,7 +664,9 @@ class ReregistrationDataProcessorTest extends TestCase {
 		) );
 
 		$_POST['fields'] = array(
-			'wh'    => json_encode( array( array( 'day' => 1, 'entry1' => '08:00' ) ) ),
+			// Complete row: half-filled rows are dropped since #1128, and this
+			// test is about the per-type dispatch, not the row rule.
+			'wh'    => json_encode( array( array( 'day' => 1, 'entry1' => '08:00', 'exit2' => '17:00' ) ) ),
 			'dep'   => json_encode( array( 'parent' => 'A', 'child' => 'B' ) ),
 			'bio'   => 'Some notes',
 			'age'   => '42',

@@ -19,7 +19,14 @@ beforeAll(() => {
 		time: 'Time',
 		viewReceipt: 'View Receipt',
 		cancelAppointment: 'Cancel',
-		confirmCancel: 'Are you sure?',
+		cancelTitle: 'Cancel appointment',
+		cancelIntro: 'Please confirm.',
+		cancelService: 'Service',
+		cancelWhen: 'When',
+		cancelReasonLabel: 'Reason (optional)',
+		cancelConfirmBtn: 'Confirm cancellation',
+		cancelKeepBtn: 'Keep appointment',
+		close: 'Close',
 		cancelSuccess: 'Cancelled OK',
 		cancelError: 'Cancel failed',
 		noPermission: 'No permission',
@@ -179,18 +186,22 @@ describe('appointments.load', () => {
 });
 
 // ----------------------------------------------------------------------
-// cancelAppointment (via the delegated click handler)
+// The cancellation dialog (#1140)
+//
+// It replaced a `confirm()`, and the reason is not cosmetic: the endpoint has
+// always accepted and sanitised `reason`, and this caller never sent one — so a
+// cancellation from the dashboard recorded an empty reason while the same
+// action from the e-mail link recorded what the person wrote. The dialog also
+// says WHICH appointment is being cancelled, which `confirm()` could not.
 // ----------------------------------------------------------------------
 
-describe('appointments.cancelAppointment', () => {
-	function mountCancelButton(id = 55) {
+describe('appointments cancellation dialog', () => {
+	function mountCancelButton(id = 55, over = {}) {
 		document.getElementById('tab-appointments').innerHTML =
 			`<button class="ffc-cancel-appointment" data-id="${id}">Cancel</button>`;
+		panel().state = [makeAppt(Object.assign({ id, can_cancel: true }, over))];
 	}
 
-	// The migrated cancelAppointment goes through FFC.request which uses
-	// jQuery.post under the hood. These tests spy on $.post and drive
-	// the .done/.fail chain manually.
 	function postChain(opts) {
 		const chain = { done: () => chain, fail: () => chain };
 		if (opts.done) chain.done = (cb) => { cb(opts.done); return chain; };
@@ -198,23 +209,55 @@ describe('appointments.cancelAppointment', () => {
 		return chain;
 	}
 
-	it('bails when the user declines the confirm', async () => {
+	const openDialog = () => window.$('.ffc-cancel-appointment').trigger('click');
+	const dialog = () => document.getElementById('ffc-cancel-appointment-modal');
+
+	afterEach(() => {
+		const el = dialog();
+		if (el) el.remove();
+	});
+
+	it('opens a dialog naming the appointment instead of a bare confirm', async () => {
+		mountCancelButton(7, { calendar_title: 'Sala Azul', appointment_date: '16/09/2026', start_time: '10:30' });
+		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+		openDialog();
+		await flushPromises();
+
+		expect(confirmSpy).not.toHaveBeenCalled();
+		expect(dialog()).not.toBeNull();
+		const text = dialog().textContent;
+		expect(text).toContain('Sala Azul');
+		expect(text).toContain('16/09/2026');
+		expect(text).toContain('10:30');
+	});
+
+	it('does nothing when the id matches no row in state', async () => {
+		mountCancelButton(7);
+		panel().state = [makeAppt({ id: 999 })];
+
+		openDialog();
+		await flushPromises();
+
+		expect(dialog()).toBeNull();
+	});
+
+	it('sends no request until the confirm button is pressed', async () => {
 		mountCancelButton();
-		vi.spyOn(window, 'confirm').mockReturnValue(false);
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
-		window.$('.ffc-cancel-appointment').trigger('click');
+		openDialog();
 		await flushPromises();
 
 		expect(postSpy).not.toHaveBeenCalled();
 	});
 
-	it('POSTs ffc_cancel_appointment with the row id + nonce', async () => {
+	it('POSTs the row id + nonce when confirmed', async () => {
 		mountCancelButton(123);
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
-		window.$('.ffc-cancel-appointment').trigger('click');
+		openDialog();
+		window.$('.ffc-cancel-confirm').trigger('click');
 		await flushPromises();
 
 		const [url, payload] = postSpy.mock.calls[0];
@@ -226,59 +269,112 @@ describe('appointments.cancelAppointment', () => {
 		});
 	});
 
+	it('sends the typed reason — the gap the dialog exists to close', async () => {
+		mountCancelButton();
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+
+		openDialog();
+		document.getElementById('ffc-cancel-reason').value = 'Conflito de agenda';
+		window.$('.ffc-cancel-confirm').trigger('click');
+		await flushPromises();
+
+		expect(postSpy.mock.calls[0][1].reason).toBe('Conflito de agenda');
+	});
+
+	it('omits reason entirely when the field is left empty', async () => {
+		mountCancelButton();
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+
+		openDialog();
+		window.$('.ffc-cancel-confirm').trigger('click');
+		await flushPromises();
+
+		expect(postSpy.mock.calls[0][1]).not.toHaveProperty('reason');
+	});
+
+	it.each([
+		['keep button', '.ffc-cancel-keep'],
+		['close button', '.ffc-modal-close'],
+		['backdrop', '.ffc-modal-backdrop'],
+	])('closes without sending anything via the %s', async (_label, selector) => {
+		mountCancelButton();
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+
+		openDialog();
+		window.$('#ffc-cancel-appointment-modal ' + selector).trigger('click');
+		await flushPromises();
+
+		expect(dialog()).toBeNull();
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+
+	it('closes on Escape without sending anything', async () => {
+		mountCancelButton();
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+
+		openDialog();
+		window.$(document).trigger(window.$.Event('keydown', { key: 'Escape' }));
+		await flushPromises();
+
+		expect(dialog()).toBeNull();
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+
 	it('includes viewAsUserId in the POST body when impersonating', async () => {
 		mountCancelButton();
 		window.ffcDashboard.viewAsUserId = 42;
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 
-		window.$('.ffc-cancel-appointment').trigger('click');
+		openDialog();
+		window.$('.ffc-cancel-confirm').trigger('click');
 		await flushPromises();
 
 		expect(postSpy.mock.calls[0][1].viewAsUserId).toBe(42);
 	});
 
-	it('on success: alerts, clears state, repaints loading, and reloads', async () => {
+	it('on success: closes the dialog, alerts, clears state, repaints and reloads', async () => {
 		mountCancelButton();
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		const loadSpy = vi.spyOn(panel(), 'load').mockImplementation(() => {});
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
-		// Pre-seed state so we can confirm it's nulled.
-		panel().state = [makeAppt()];
 
-		window.$('.ffc-cancel-appointment').trigger('click');
+		openDialog();
+		window.$('.ffc-cancel-confirm').trigger('click');
 		await flushPromises();
 
+		expect(dialog()).toBeNull();
 		expect(alertSpy).toHaveBeenCalledWith('Cancelled OK');
 		expect(panel().state).toBeNull();
 		expect(document.getElementById('tab-appointments').innerHTML).toContain('Loading');
 		expect(loadSpy).toHaveBeenCalled();
 	});
 
-	it('on response.success=false: alerts the server message', async () => {
+	it('on response.success=false: alerts the server message and leaves the dialog open', async () => {
 		mountCancelButton();
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({
 			done: { success: false, data: { message: 'Already cancelled' } },
 		}));
 
-		window.$('.ffc-cancel-appointment').trigger('click');
+		openDialog();
+		window.$('.ffc-cancel-confirm').trigger('click');
 		await flushPromises();
 
 		expect(alertSpy).toHaveBeenCalledWith('Already cancelled');
+		// Left open on purpose: the reason the person typed is still in the
+		// field, so a retry does not start from a blank form.
+		expect(dialog()).not.toBeNull();
 	});
 
-	it('on response.success=false without data.message: falls back to localised error', async () => {
+	it('on response.success=false without data.message: falls back to the localised error', async () => {
 		mountCancelButton();
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({
 			done: { success: false, data: {} },
 		}));
 
-		window.$('.ffc-cancel-appointment').trigger('click');
+		openDialog();
+		window.$('.ffc-cancel-confirm').trigger('click');
 		await flushPromises();
 
 		expect(alertSpy).toHaveBeenCalledWith('Cancel failed');
@@ -286,11 +382,11 @@ describe('appointments.cancelAppointment', () => {
 
 	it('on network error: alerts the localised error', async () => {
 		mountCancelButton();
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 
-		window.$('.ffc-cancel-appointment').trigger('click');
+		openDialog();
+		window.$('.ffc-cancel-confirm').trigger('click');
 		await flushPromises();
 
 		expect(alertSpy).toHaveBeenCalledWith('Cancel failed');

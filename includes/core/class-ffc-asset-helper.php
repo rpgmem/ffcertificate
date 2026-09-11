@@ -38,16 +38,58 @@ final class AssetHelper {
 	}
 
 	/**
+	 * Put the design-token palette on the page.
+	 *
+	 * `ffc-common.css` is where every `--ffc-*` custom property is declared, so
+	 * a stylesheet that paints with `var(--ffc-*)` is unusable without it. The
+	 * failure is not a fallback to the previous literal — an undeclared custom
+	 * property makes the **whole declaration invalid** at compute time, so the
+	 * element renders with no background/colour at all, in both themes. That is
+	 * strictly worse than the hardcoded hex the tokens replaced, which is why
+	 * #1126 (defeito B) pairs every conversion with this call.
+	 *
+	 * Callers should ALSO list `'ffc-common'` in the dependent handle's `$deps`.
+	 * The enqueue here guarantees the palette is present; the declared
+	 * dependency is what keeps it in the chain when a CSS-combining cache
+	 * plugin flattens the queue — the same reasoning as the `ffc-core` script
+	 * dependencies added in 6.6.7 (#367). `tests/Unit/AdminStylesheetTokensTest`
+	 * enforces the second half.
+	 *
+	 * @since 6.24.0
+	 * @return void
+	 */
+	public static function enqueue_common_style(): void {
+		$s = self::asset_suffix();
+
+		wp_enqueue_style(
+			'ffc-common',
+			FFC_PLUGIN_URL . "assets/css/ffc-common{$s}.css",
+			array(),
+			FFC_VERSION
+		);
+	}
+
+	/**
 	 * Enqueue dark mode script if enabled
 	 *
 	 * Shared between admin and frontend to avoid duplicate logic.
 	 *
 	 * @since 4.7.0
+	 *
+	 * @param bool $always Enqueue even when the mode is `off`. The script is what
+	 *                     repaints `<html>` when the Dark Mode select auto-saves,
+	 *                     so a screen that can CHANGE the setting needs it loaded
+	 *                     in the `off` state too — otherwise switching light → dark
+	 *                     has nobody to act on it and only takes effect on the next
+	 *                     page load. Public pages pass `false` (the default): they
+	 *                     cannot change the setting, so loading a script that would
+	 *                     do nothing is a request for nothing.
+	 * @return void
 	 */
-	public static function enqueue_dark_mode(): void {
+	public static function enqueue_dark_mode( bool $always = false ): void {
 		$dark_mode = \FreeFormCertificate\Settings\SettingsReader::get( 'dark_mode', 'off' );
 
-		if ( 'off' === $dark_mode ) {
+		if ( 'off' === $dark_mode && ! $always ) {
 			return;
 		}
 

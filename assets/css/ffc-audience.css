@@ -12,7 +12,7 @@
     font-family: var(--ffc-font-family);
     max-width: 600px;
     margin: 0 auto;
-    background: #fff;
+    background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-gray-200);
     border-radius: var(--ffc-radius-sm);
     overflow: hidden;
@@ -56,7 +56,11 @@
 }
 
 .ffc-shortcode .ffc-nav-btn {
-    background: #fff;
+    /* Um controle de formulário NÃO herda `color` — o agente de usuário dá
+       `buttontext`, quase preto, então a regra de base do tema escuro não o
+       alcança. Quem pinta o fundo tem de pintar o texto (#1126). */
+    color: var(--ffc-text);
+    background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-gray-300);
     border-radius: var(--ffc-radius-sm);
     padding: 8px 12px;
@@ -87,11 +91,12 @@
 }
 
 .ffc-shortcode .ffc-calendar-filters select {
+    color: var(--ffc-text);
     padding: 8px 12px;
     border: 1px solid var(--ffc-gray-300);
     border-radius: var(--ffc-radius-sm);
     font-size: 14px;
-    background: #fff;
+    background: var(--ffc-bg-card);
     min-width: 150px;
 }
 
@@ -102,7 +107,7 @@
     color: var(--ffc-gray-700);
     border: 1px solid var(--ffc-gray-300);
     border-radius: var(--ffc-radius-sm);
-    background: #fff;
+    background: var(--ffc-bg-card);
 }
 
 /* Calendar Grid */
@@ -138,7 +143,7 @@
     border: 1px solid var(--ffc-gray-200);
     border-radius: var(--ffc-radius-sm);
     padding: 5px;
-    background: #fff;
+    background: var(--ffc-bg-card);
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
@@ -170,7 +175,7 @@
 }
 
 .ffc-shortcode .ffc-day.ffc-holiday {
-    background: #fff5f5;
+    background: var(--ffc-danger-bg);
     cursor: default;
 }
 
@@ -200,7 +205,7 @@
 
 .ffc-shortcode .ffc-day.ffc-available:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month):hover {
     border-color: var(--ffc-success);
-    box-shadow: 0 0 0 2px rgba(0, 167, 60, 0.2);
+    box-shadow: 0 0 0 2px var(--ffc-success-border);
 }
 
 .ffc-shortcode .ffc-day.ffc-selected {
@@ -244,17 +249,17 @@
 
 .ffc-shortcode .ffc-badge-bookings {
     background: var(--ffc-primary);
-    color: #fff;
+    color: var(--ffc-text-on-primary);
 }
 
 .ffc-shortcode .ffc-badge-holiday {
     background: var(--ffc-warning);
-    color: #fff;
+    color: var(--ffc-text-on-warning);
 }
 
 .ffc-shortcode .ffc-badge-closed {
-    background: var(--ffc-gray-400);
-    color: #fff;
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-secondary);
 }
 
 /* Calendar Legend */
@@ -316,93 +321,20 @@
 }
 
 .ffc-shortcode .ffc-audience-notice.ffc-notice-warning {
-    background: #fff8e5;
+    background: var(--ffc-warning-bg);
     border: 1px solid var(--ffc-warning);
 }
 
 .ffc-shortcode .ffc-audience-notice.ffc-notice-info {
-    background: #e5f5fa;
+    background: var(--ffc-info-bg);
     border: 1px solid var(--ffc-primary);
 }
 
 /* Buttons — base classes consolidated in ffc-common.css */
 
-/* Modal */
-.ffc-shortcode .ffc-modal,
-.ffc-shortcode.ffc-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 100000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.ffc-shortcode .ffc-modal-backdrop {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-}
-
-.ffc-shortcode .ffc-modal-content {
-    position: relative;
-    background: #fff;
-    border-radius: var(--ffc-radius-sm);
-    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
-    max-width: 500px;
-    width: 90%;
-    max-height: 90vh;
-    overflow: auto;
-}
-
-.ffc-shortcode .ffc-modal-lg {
-    max-width: min(700px, 95vw);
-}
-
-.ffc-shortcode .ffc-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 20px;
-    border-bottom: 1px solid var(--ffc-gray-200);
-}
-
-.ffc-shortcode .ffc-modal-header h3 {
-    margin: 0;
-    font-size: 18px;
-}
-
-.ffc-shortcode .ffc-modal-close {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: var(--ffc-gray-600);
-    padding: 0;
-    line-height: 1;
-}
-
-.ffc-shortcode .ffc-modal-close:hover {
-    color: var(--ffc-gray-800);
-}
-
-.ffc-shortcode .ffc-modal-body {
-    padding: 20px;
-}
-
-.ffc-shortcode .ffc-modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    padding: 15px 20px;
-    border-top: 1px solid var(--ffc-gray-200);
-}
+/* Modal — movido para ffc-common.css (#1140): componente compartilhado,
+   e o dashboard é o terceiro consumidor. `ffc-common` é dependência desta
+   folha, então quem já usava o modal continua recebendo as mesmas regras. */
 
 /* Form Styles */
 .ffc-shortcode .ffc-form-group {
@@ -486,7 +418,7 @@
     display: inline-flex;
     align-items: center;
     background: var(--ffc-primary);
-    color: #fff;
+    color: var(--ffc-text-on-primary);
     padding: 5px 10px;
     border-radius: 20px;
     font-size: 13px;
@@ -506,7 +438,7 @@
 
 /* Conflict Warning */
 .ffc-shortcode .ffc-conflict-warning {
-    background: #fff8e5;
+    background: var(--ffc-warning-bg);
     border: 1px solid var(--ffc-warning);
     border-radius: var(--ffc-radius-sm);
     padding: 15px;
@@ -546,7 +478,7 @@
 
 /* Hard Conflict Error */
 .ffc-shortcode .ffc-conflict-error {
-    background: #fef2f2;
+    background: var(--ffc-danger-bg);
     border: 1px solid var(--ffc-danger);
     border-radius: var(--ffc-radius-sm);
     padding: 15px;
@@ -615,6 +547,9 @@
     padding: 3px 8px;
     border-radius: 3px;
     font-size: 12px;
+    /* O fundo desta etiqueta vem da cor da audiência, escrita no style= do
+       elemento: branco é a única escolha segura contra um matiz arbitrário,
+       então não é papel da paleta (#1126). */
     color: #fff;
 }
 
@@ -652,7 +587,7 @@
 
 .ffc-shortcode .ffc-booking-cancelled {
     opacity: 0.7;
-    background: #fff5f5;
+    background: var(--ffc-danger-bg);
 }
 
 .ffc-shortcode .ffc-booking-cancelled .ffc-booking-time::after {
@@ -760,7 +695,7 @@
 
 /* Event List Panel */
 .ffc-shortcode .ffc-event-list-panel {
-    background: #fff;
+    background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-gray-200);
     border-radius: var(--ffc-radius-sm);
     overflow: hidden;
@@ -864,6 +799,7 @@
     padding: 1px 6px;
     border-radius: 3px;
     font-size: 10px;
+    /* Idem à etiqueta grande acima: fundo data-driven (#1126). */
     color: #fff;
 }
 

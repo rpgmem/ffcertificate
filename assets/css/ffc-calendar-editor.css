@@ -13,7 +13,7 @@
 .ffc-working-hours-table th {
     padding: 10px;
     font-weight: 600;
-    background: #f9f9f9;
+    background: var(--ffc-bg-alt);
 }
 
 .ffc-working-hours-table td {
@@ -28,12 +28,12 @@
 }
 
 .ffc-working-hours-table .ffc-remove-hour {
-    color: #b32d2e;
+    color: var(--ffc-danger-text);
 }
 
 .ffc-working-hours-table .ffc-remove-hour:hover {
-    color: #dc3232;
-    border-color: #dc3232;
+    color: var(--ffc-danger);
+    border-color: var(--ffc-danger);
 }
 
 /* Add Working Hour Button */
@@ -60,7 +60,7 @@
 .form-table .description {
     margin-top: 5px;
     font-style: italic;
-    color: #666;
+    color: var(--ffc-text-muted);
 }
 
 /* Conditional Fields */
@@ -70,8 +70,8 @@
 
 /* Shortcode Display */
 .ffc-shortcode-display {
-    background: #f9f9f9;
-    border: 1px solid #ddd;
+    background: var(--ffc-bg-alt);
+    border: 1px solid var(--ffc-border);
     padding: 12px;
     margin: 15px 0;
     font-family: monospace;
@@ -80,7 +80,7 @@
 }
 
 .ffc-shortcode-display code {
-    background: #fff;
+    background: var(--ffc-bg-card);
     padding: 4px 8px;
     border-radius: 3px;
     display: inline-block;
@@ -102,10 +102,11 @@
 
 /* Shortcode input (sidebar metabox) */
 .ffc-shortcode-input {
+    color: var(--ffc-text);
     width: 100%;
     padding: 6px;
     font-family: monospace;
-    background: #f0f0f1;
+    background: var(--ffc-bg-alt);
 }
 
 /* Shortcode preview label */
@@ -137,7 +138,7 @@
 
 .ffc-cleanup-warning {
     margin-top: 10px;
-    color: #d63638;
+    color: var(--ffc-danger);
 }
 
 /* Responsive */
@@ -165,4 +166,12 @@
     .ffc-cancellation-hours {
         transition: none;
     }
+}
+
+/* Aviso de calendário com reservas. Estava num `style="color:#b32d2e"` inline
+   no PHP, e por isso ignorava o modo escuro (#1126). */
+.ffc-working-hours-table .description.ffc-text-danger,
+.form-table .description.ffc-text-danger,
+.description.ffc-text-danger {
+    color: var(--ffc-danger-text);
 }

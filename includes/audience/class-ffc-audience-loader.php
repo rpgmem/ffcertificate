@@ -232,7 +232,7 @@ class AudienceLoader {
 			wp_enqueue_style(
 				'ffc-custom-fields-admin',
 				FFC_PLUGIN_URL . "assets/css/ffc-custom-fields-admin{$s}.css",
-				array( 'ffc-audience-admin' ),
+				array( 'ffc-common', 'ffc-audience-admin' ),
 				FFC_VERSION
 			);
 
@@ -289,7 +289,7 @@ class AudienceLoader {
 			wp_enqueue_style(
 				'ffc-progress-overlay',
 				FFC_PLUGIN_URL . "assets/css/ffc-progress-overlay{$s}.css",
-				array(),
+				array( 'ffc-common' ),
 				FFC_VERSION
 			);
 		}
@@ -345,7 +345,8 @@ class AudienceLoader {
 			'ffc-admin-autosave',
 			'ffcAdminAutosave',
 			array(
-				'nonce' => wp_create_nonce( \FreeFormCertificate\Admin\SettingsAjaxEndpoint::AJAX_ACTION ),
+				'nonce'   => wp_create_nonce( \FreeFormCertificate\Admin\SettingsAjaxEndpoint::AJAX_ACTION ),
+				'strings' => \FreeFormCertificate\Admin\AdminUI::autosave_strings(),
 			)
 		);
 	}
@@ -363,6 +364,10 @@ class AudienceLoader {
 		}
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+
+		// Sem isto `.ffc-dark-mode` nunca chega ao <html> desta página e a
+		// paleta fica congelada no tema claro (#1126).
+		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
 
 		// Frontend CSS.
 		wp_enqueue_style(

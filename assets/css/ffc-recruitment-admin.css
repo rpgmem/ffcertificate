@@ -11,23 +11,24 @@
     letter-spacing: .03em;
     line-height: 1.5;
 }
-.ffc-status-badge.ffc-status-draft       { background: #ddd;     color: #333; }
-.ffc-status-badge.ffc-status-preliminary { background: #fff3cd;  color: #856404; }
-.ffc-status-badge.ffc-status-active      { background: #d4edda;  color: #155724; }
-.ffc-status-badge.ffc-status-closed      { background: #f8d7da;  color: #721c24; }
+.ffc-status-badge.ffc-status-draft       { background: var(--ffc-bg-alt);      color: var(--ffc-text-secondary); }
+.ffc-status-badge.ffc-status-preliminary { background: var(--ffc-warning-bg);  color: var(--ffc-warning-text); }
+.ffc-status-badge.ffc-status-active      { background: var(--ffc-success-bg);  color: var(--ffc-success-text); }
+.ffc-status-badge.ffc-status-closed      { background: var(--ffc-danger-bg);   color: var(--ffc-danger-text); }
 
 /* Attached-adjutancy pill (Notices tab inline cell). */
 .ffc-attached-list { line-height: 1.8; }
 .ffc-attached {
     display: inline-block;
-    background: #e0e0e0;
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-secondary);
     padding: 2px 6px;
     margin: 2px;
     border-radius: 3px;
     font-size: 12px;
 }
-.ffc-attached a { text-decoration: none; color: #999; margin-left: 4px; }
-.ffc-attached a:hover { color: #d63638; }
+.ffc-attached a { text-decoration: none; color: var(--ffc-text-muted); margin-left: 4px; }
+.ffc-attached a:hover { color: var(--ffc-danger); }
 
 /* CSV import status message — kept inline by sprint A1's import form
  * but scoped here so the styling moves with the assets manager. */
@@ -42,7 +43,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.55);
+    background: var(--ffc-bg-overlay);
     z-index: 100000;
     display: flex;
     align-items: center;
@@ -50,9 +51,9 @@
     padding: 20px;
 }
 .ffc-confirm-modal {
-    background: #fff;
+    background: var(--ffc-bg-card);
     border-radius: 6px;
-    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--ffc-shadow-lg);
     max-width: 540px;
     width: 100%;
     max-height: 90vh;
@@ -64,7 +65,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 14px 18px;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--ffc-border);
 }
 .ffc-confirm-modal-header h2 {
     margin: 0;
@@ -76,23 +77,24 @@
     border: none;
     font-size: 22px;
     cursor: pointer;
-    color: #666;
+    color: var(--ffc-text-muted);
     padding: 0 4px;
     line-height: 1;
 }
-.ffc-confirm-modal-close:hover { color: #333; }
+.ffc-confirm-modal-close:hover { color: var(--ffc-text); }
 .ffc-confirm-modal-body {
     padding: 18px;
     overflow-y: auto;
-    color: #1d2327;
+    color: var(--ffc-text);
 }
 .ffc-confirm-modal-body p { margin: 0 0 12px; }
 .ffc-confirm-modal-body p:last-child { margin-bottom: 0; }
 .ffc-confirm-modal-consequences {
     margin: 8px 0 12px;
     padding: 12px 14px 12px 32px;
-    background: #fff8e5;
-    border-left: 4px solid #dba617;
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+    border-left: 4px solid var(--ffc-warning-border);
     border-radius: 2px;
 }
 .ffc-confirm-modal-consequences li {
@@ -101,8 +103,9 @@
 }
 .ffc-confirm-modal-consequences li:last-child { margin-bottom: 0; }
 .ffc-confirm-modal[data-style="destructive"] .ffc-confirm-modal-consequences {
-    background: #fdecea;
-    border-left-color: #d63638;
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+    border-left-color: var(--ffc-danger-border);
 }
 .ffc-confirm-modal-reason {
     margin-top: 10px;
@@ -129,17 +132,17 @@
     justify-content: flex-end;
     gap: 8px;
     padding: 12px 18px;
-    border-top: 1px solid #ddd;
+    border-top: 1px solid var(--ffc-border);
 }
 .ffc-confirm-modal[data-style="destructive"] .ffc-confirm-modal-confirm {
-    background: #d63638;
-    border-color: #b32d2e;
-    color: #fff;
+    background: var(--ffc-danger);
+    border-color: var(--ffc-danger);
+    color: var(--ffc-text-on-danger);
 }
 .ffc-confirm-modal[data-style="destructive"] .ffc-confirm-modal-confirm:hover {
-    background: #b32d2e;
-    border-color: #8a2326;
-    color: #fff;
+    background: var(--ffc-danger-text);
+    border-color: var(--ffc-danger-text);
+    color: var(--ffc-text-on-danger);
 }
 .ffc-confirm-modal-confirm[disabled],
 .ffc-confirm-modal-confirm[disabled]:hover {
@@ -241,7 +244,7 @@
     padding-left: 1.5em;
     font-family: monospace;
     font-size: 12px;
-    color: #b32d2e;
+    color: var(--ffc-danger-text);
 }
 
 .ffc-rec-columns-grid {
@@ -263,7 +266,7 @@
 }
 
 .ffc-rec-mandatory-note {
-    color: #646970;
+    color: var(--ffc-text-muted);
     font-size: 11px;
 }
 
@@ -294,8 +297,8 @@
 }
 
 .ffc-rec-bulk-toolbar {
-    background: #f6f7f7;
-    border: 1px solid #dcdcde;
+    background: var(--ffc-bg-alt);
+    border: 1px solid var(--ffc-border);
     border-radius: 4px;
     padding: 10px 12px;
     margin-bottom: 8px;
@@ -307,7 +310,7 @@
 }
 
 .ffc-rec-pre-block {
-    background: #f5f5f5;
+    background: var(--ffc-bg-alt);
     padding: 1em;
 }
 
@@ -316,6 +319,7 @@
     padding: 1px 8px;
     margin-right: 4px;
     border-radius: 10px;
-    background: #f0f0f1;
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text-secondary);
     font-size: 11px;
 }

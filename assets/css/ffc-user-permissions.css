@@ -13,9 +13,9 @@
 .ffc-cap-panel {
 	width: 100%;
 	margin: 8px 0 4px;
-	border: 1px solid #dcdcde;
+	border: 1px solid var(--ffc-border-light);
 	border-radius: 6px;
-	background: #fff;
+	background: var(--ffc-bg-card);
 	overflow: hidden;
 }
 
@@ -24,8 +24,8 @@
 	display: grid;
 	grid-template-columns: 1fr;
 	gap: 1px;
-	background: #dcdcde;
-	border-bottom: 1px solid #dcdcde;
+	background: var(--ffc-border-light);
+	border-bottom: 1px solid var(--ffc-border-light);
 }
 
 .ffc-cap-context-item {
@@ -33,7 +33,7 @@
 	flex-direction: column;
 	gap: 4px;
 	padding: 12px 16px;
-	background: #fbfbfc;
+	background: var(--ffc-bg-alt);
 }
 
 .ffc-cap-context-label {
@@ -41,7 +41,7 @@
 	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: 0.4px;
-	color: #646970;
+	color: var(--ffc-text-muted);
 }
 
 .ffc-cap-context-val {
@@ -53,7 +53,7 @@
 
 .ffc-cap-context-hint {
 	font-size: 12px;
-	color: #646970;
+	color: var(--ffc-text-muted);
 }
 
 .ffc-cap-chip {
@@ -61,14 +61,14 @@
 	padding: 2px 10px;
 	border-radius: 11px;
 	font-size: 12px;
-	background: #f0f0f1;
-	border: 1px solid #c3c4c7;
-	color: #1d2327;
+	background: var(--ffc-bg-alt);
+	border: 1px solid var(--ffc-border);
+	color: var(--ffc-text);
 }
 
 .ffc-cap-chip--color {
-	border-color: var(--ffc-cap-chip-color, #c3c4c7);
-	box-shadow: inset 3px 0 0 var(--ffc-cap-chip-color, #c3c4c7);
+	border-color: var(--ffc-cap-chip-color, var(--ffc-border));
+	box-shadow: inset 3px 0 0 var(--ffc-cap-chip-color, var(--ffc-border));
 }
 
 /* ---- editable audience-membership checklist -------------------------- */
@@ -103,7 +103,7 @@
 	height: 9px;
 	border-radius: 50%;
 	flex: 0 0 auto;
-	background: var(--ffc-cap-chip-color, #c3c4c7);
+	background: var(--ffc-cap-chip-color, var(--ffc-border));
 }
 
 .ffc-cap-aud-name {
@@ -120,7 +120,7 @@
 	align-items: center;
 	justify-content: space-between;
 	padding: 12px 16px;
-	border-bottom: 1px solid #dcdcde;
+	border-bottom: 1px solid var(--ffc-border-light);
 }
 
 .ffc-cap-search {
@@ -137,7 +137,7 @@
 
 /* ---- group cards ----------------------------------------------------- */
 .ffc-cap-group {
-	border-bottom: 1px solid #f0f0f1;
+	border-bottom: 1px solid var(--ffc-bg-alt);
 }
 
 .ffc-cap-group:last-child {
@@ -150,23 +150,23 @@
 	gap: 10px;
 	width: 100%;
 	padding: 11px 16px;
-	background: #fbfbfc;
+	background: var(--ffc-bg-alt);
 	border: 0;
-	border-bottom: 1px solid #f0f0f1;
+	border-bottom: 1px solid var(--ffc-bg-alt);
 	cursor: pointer;
 	text-align: left;
 	font: inherit;
-	color: #1d2327;
+	color: var(--ffc-text);
 }
 
 .ffc-cap-group-h:hover {
-	background: #f6f7f7;
+	background: var(--ffc-bg-alt);
 }
 
 .ffc-cap-caret {
 	width: 0;
 	height: 0;
-	border-left: 6px solid #787c82;
+	border-left: 6px solid var(--ffc-text-muted);
 	border-top: 5px solid transparent;
 	border-bottom: 5px solid transparent;
 	transition: transform 0.15s ease;
@@ -188,21 +188,21 @@
 	letter-spacing: 0.4px;
 	padding: 1px 7px;
 	border-radius: 10px;
-	color: #8c5e00;
-	background: #fff4e5;
-	border: 1px solid #f0d9b5;
+	color: var(--ffc-warning-text);
+	background: var(--ffc-warning-bg);
+	border: 1px solid var(--ffc-warning-border);
 }
 
 /* Section divider between the self-service and administration tiers. */
 .ffc-cap-section {
 	margin: 18px 0 8px;
 	padding-bottom: 4px;
-	border-bottom: 1px solid #dcdcde;
+	border-bottom: 1px solid var(--ffc-border-light);
 	font-size: 11px;
 	font-weight: 700;
 	text-transform: uppercase;
 	letter-spacing: 0.6px;
-	color: #646970;
+	color: var(--ffc-text-muted);
 }
 
 .ffc-cap-section:first-child {
@@ -225,27 +225,27 @@
 }
 
 .ffc-cap-badge-surface--api {
-	color: #3858a8;
-	background: #eef2fb;
-	border-color: #cdd8f3;
+	color: var(--ffc-info-text);
+	background: var(--ffc-info-bg);
+	border-color: var(--ffc-info-border);
 }
 
 .ffc-cap-badge-surface--frontend {
-	color: #2a7a46;
-	background: #eafaf0;
-	border-color: #c3e9d2;
+	color: var(--ffc-success-text);
+	background: var(--ffc-success-bg);
+	border-color: var(--ffc-success-border);
 }
 
 .ffc-cap-badge-surface--admin {
-	color: #555;
-	background: #f0f0f1;
-	border-color: #dcdcde;
+	color: var(--ffc-text-secondary);
+	background: var(--ffc-bg-alt);
+	border-color: var(--ffc-border-light);
 }
 
 .ffc-cap-gmeta {
 	margin-left: auto;
 	font-size: 12px;
-	color: #646970;
+	color: var(--ffc-text-muted);
 }
 
 .ffc-cap-group.is-collapsed .ffc-cap-group-body {
@@ -259,7 +259,7 @@
 	gap: 12px;
 	align-items: start;
 	padding: 11px 16px;
-	border-top: 1px solid #f1f1f2;
+	border-top: 1px solid var(--ffc-border-light);
 }
 
 .ffc-cap-row:first-child {
@@ -267,7 +267,7 @@
 }
 
 .ffc-cap-row:hover {
-	background: #fafafa;
+	background: var(--ffc-bg-alt);
 }
 
 .ffc-cap-row-toggle {
@@ -283,7 +283,7 @@
 	display: block;
 	margin-top: 2px;
 	font-size: 12.5px;
-	color: #646970;
+	color: var(--ffc-text-muted);
 }
 
 .ffc-cap-slug {
@@ -295,9 +295,9 @@
 	border-radius: 4px;
 	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 	font-size: 11.5px;
-	color: #3c434a;
-	background: #f6f7f7;
-	border: 1px solid #c3c4c7;
+	color: var(--ffc-text-secondary);
+	background: var(--ffc-bg-alt);
+	border: 1px solid var(--ffc-border);
 }
 
 .ffc-cap-copy {
@@ -307,11 +307,11 @@
 	cursor: pointer;
 	font-size: 12px;
 	line-height: 1;
-	color: #787c82;
+	color: var(--ffc-text-muted);
 }
 
 .ffc-cap-copy:hover {
-	color: #1d2327;
+	color: var(--ffc-text);
 }
 
 /* ---- origin badge ---------------------------------------------------- */
@@ -325,21 +325,21 @@
 }
 
 .ffc-cap-origin--user {
-	color: #00733b;
-	background: #e6f4ea;
-	border: 1px solid #b7e1c2;
+	color: var(--ffc-success-text);
+	background: var(--ffc-success-bg);
+	border: 1px solid var(--ffc-success-border);
 }
 
 .ffc-cap-origin--role {
-	color: #8c5e00;
-	background: #fff4e5;
-	border: 1px solid #f0d9b5;
+	color: var(--ffc-warning-text);
+	background: var(--ffc-warning-bg);
+	border: 1px solid var(--ffc-warning-border);
 }
 
 .ffc-cap-origin--none {
-	color: #787c82;
-	background: #f6f7f7;
-	border: 1px solid #c3c4c7;
+	color: var(--ffc-text-muted);
+	background: var(--ffc-bg-alt);
+	border: 1px solid var(--ffc-border);
 }
 
 /* ---- role preset chips ----------------------------------------------- */
@@ -356,43 +356,43 @@
 	gap: 8px;
 	padding: 5px 12px;
 	border-radius: 20px;
-	border: 1px solid #c3c4c7;
-	background: #fff;
+	border: 1px solid var(--ffc-border);
+	background: var(--ffc-bg-card);
 	cursor: pointer;
 	font: inherit;
-	color: #1d2327;
+	color: var(--ffc-text);
 	transition: box-shadow 0.12s, border-color 0.12s, background 0.12s;
 }
 
 .ffc-cap-role:hover {
-	border-color: #2271b1;
-	box-shadow: 0 0 0 3px rgba(34, 113, 177, 0.12);
+	border-color: var(--ffc-primary);
+	box-shadow: 0 0 0 3px var(--ffc-focus-ring);
 }
 
 .ffc-cap-role.is-on {
-	background: #eaf2fa;
-	border-color: #2271b1;
-	color: #135e96;
+	background: var(--ffc-primary-light);
+	border-color: var(--ffc-primary);
+	color: var(--ffc-primary-hover);
 }
 
 .ffc-cap-role-mark {
 	width: 16px;
 	height: 16px;
 	border-radius: 50%;
-	border: 1.5px solid #c3c4c7;
+	border: 1.5px solid var(--ffc-border);
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 }
 
 .ffc-cap-role.is-on .ffc-cap-role-mark {
-	background: #2271b1;
-	border-color: #2271b1;
+	background: var(--ffc-primary);
+	border-color: var(--ffc-primary);
 }
 
 .ffc-cap-role.is-on .ffc-cap-role-mark::after {
 	content: "✓";
-	color: #fff;
+	color: var(--ffc-bg-card);
 	font-size: 11px;
 	line-height: 1;
 }
@@ -404,11 +404,11 @@
 
 .ffc-cap-role-ct {
 	font-size: 11px;
-	color: #646970;
+	color: var(--ffc-text-muted);
 }
 
 .ffc-cap-role.is-on .ffc-cap-role-ct {
-	color: #135e96;
+	color: var(--ffc-primary-hover);
 }
 
 .ffc-cap-role[disabled] {
@@ -420,28 +420,28 @@
 	display: block;
 	margin-top: 4px;
 	font-size: 12px;
-	color: #646970;
+	color: var(--ffc-text-muted);
 }
 
 .ffc-cap-chip--muted {
-	background: #f6f7f7;
-	color: #787c82;
+	background: var(--ffc-bg-alt);
+	color: var(--ffc-text-muted);
 }
 
 /* role-granted capability: amber, "locked" toggle */
 .ffc-toggle.ffc-cap-toggle--byrole input[type="checkbox"]:checked + .ffc-toggle-track {
-	background: #b8860b;
+	background: var(--ffc-warning);
 	cursor: not-allowed;
 }
 
 .ffc-toggle.ffc-cap-toggle--byrole .ffc-toggle-track::after {
-	box-shadow: 0 0 0 2px #fff4e5;
+	box-shadow: 0 0 0 2px var(--ffc-warning-bg);
 }
 
 /* hover-illumination of the caps a role grants */
 .ffc-cap-row.is-lit {
-	background: #fff7e6;
-	box-shadow: inset 3px 0 0 #f0c36d;
+	background: var(--ffc-warning-bg);
+	box-shadow: inset 3px 0 0 var(--ffc-warning-border);
 }
 
 .ffc-cap-role-tag {
@@ -449,9 +449,9 @@
 	margin-left: 8px;
 	font-size: 10.5px;
 	font-weight: 600;
-	color: #8c5e00;
-	background: #fff4e5;
-	border: 1px solid #f0d9b5;
+	color: var(--ffc-warning-text);
+	background: var(--ffc-warning-bg);
+	border: 1px solid var(--ffc-warning-border);
 	border-radius: 9px;
 	padding: 1px 7px;
 	vertical-align: middle;
@@ -485,7 +485,7 @@
 	text-align: right;
 	font-size: 11.5px;
 	font-weight: 600;
-	color: #00733b;
+	color: var(--ffc-success-text);
 }
 
 /* ---- search "no results" / hidden rows ------------------------------- */
@@ -498,7 +498,16 @@
 /* Each domain group carries a hue; each cap row paints that hue as a left
    accent bar whose opacity rises with the capability's write-power tier
    (view = faint → delete = solid). Domains read by color, severity by
-   intensity. The bar reinforces the textual label, never replaces it. */
+   intensity. The bar reinforces the textual label, never replaces it.
+
+   THESE DOZE STAY LITERAL, on purpose (#1126). They are a categorical scale,
+   not palette roles: what matters is that the hues stay distinguishable from
+   each other, and two of them happen to sit near --ffc-primary and
+   --ffc-warning. Routing those two through the palette would move them
+   between themes while the other ten stayed put — breaking the set — and
+   would paint the certificates domain in the same blue the granted-role state
+   uses. The bar is decorative and always doubled by a text label, so it
+   carries no contrast floor of its own. */
 .ffc-cap-group[data-ffc-hue="certificates"]   { --ffc-cap-hue: #2271b1; }
 .ffc-cap-group[data-ffc-hue="forms"]          { --ffc-cap-hue: #7c3aed; }
 .ffc-cap-group[data-ffc-hue="appointments"]   { --ffc-cap-hue: #0d9488; }
@@ -529,7 +538,7 @@
 	bottom: 0;
 	left: 0;
 	width: 3px;
-	background: var(--ffc-cap-hue, #c3c4c7);
+	background: var(--ffc-cap-hue, var(--ffc-border));
 	opacity: var(--ffc-tier-strength, 0.5);
 }
 
@@ -570,18 +579,18 @@
 	padding: 2px 0;
 }
 .ffc-blocked-roles__group--recommended .ffc-blocked-roles__legend {
-	color: #1d6a3c;
+	color: var(--ffc-success-text);
 }
 .ffc-blocked-roles__group--recommended em {
-	color: #1d6a3c;
+	color: var(--ffc-success-text);
 	font-style: normal;
 	font-size: 12px;
 }
 .ffc-blocked-roles__group--admin {
 	padding: 8px 12px;
-	border: 1px solid #dcdcde;
+	border: 1px solid var(--ffc-border-light);
 	border-radius: 6px;
-	background: #fbfbfc;
+	background: var(--ffc-bg-alt);
 }
 .ffc-blocked-roles__group--admin > summary {
 	cursor: pointer;

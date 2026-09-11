@@ -280,6 +280,9 @@ class SettingsAjaxEndpointTest extends TestCase {
 				'debug_self_scheduling',
 				'debug_audience',
 				'debug_qrcode',
+				// #1123 — read to gate the "Access granted" email since it
+				// was written, writable only from here on.
+				'notify_capability_grant',
 			) as $key
 		) {
 			$this->assertArrayHasKey( $key, $list, "missing allowlist entry for {$key}" );
@@ -424,6 +427,17 @@ class SettingsAjaxEndpointTest extends TestCase {
 			$this->assertSame( $path, $list[ $key ]['path'] );
 			$this->assertSame( $type, $list[ $key ]['type'] );
 		}
+		// The captcha issuing cap is autosaved like its IP-group siblings, and
+		// its floor is 0 — the documented "no cap" value, not a missing bound.
+		$this->assertSame( array( 'ip', 'captcha_max_per_window' ), $list['ip_captcha_max_per_window']['path'] );
+		$this->assertSame( 0, $list['ip_captcha_max_per_window']['min'] );
+		$this->assertSame( 10000, $list['ip_captcha_max_per_window']['max'] );
+		// Its window travels with it — a cap whose window is not editable is
+		// half a setting.
+		$this->assertSame( array( 'ip', 'captcha_window_seconds' ), $list['ip_captcha_window_seconds']['path'] );
+		$this->assertSame( 1, $list['ip_captcha_window_seconds']['min'] );
+		$this->assertSame( 3600, $list['ip_captcha_window_seconds']['max'] );
+
 		// Message textareas declare multiline_text so newlines survive.
 		$this->assertSame( 'multiline_text', $list['ip_message']['as'] );
 		$this->assertSame( 'multiline_text', $list['device_message']['as'] );
@@ -506,5 +520,120 @@ class SettingsAjaxEndpointTest extends TestCase {
 		}
 
 		$this->assertSame( array( 'check_database' => true ), $captured_option['cpf'] );
+	}
+
+	// ==================================================================
+	// An empty numeric field is refused, never clamped (#1111 follow-up)
+	// ==================================================================
+
+	public function test_an_empty_int_value_is_refused_instead_of_writing_the_floor(): void {
+		// `(int) ''` is 0, so before this guard a cleared field silently wrote
+		// the key's own floor. The autosave widget saves on `input`, so a
+		// field cleared on the way to retyping it wrote that floor within
+		// 400ms with nothing on screen to say so.
+		$wrote = false;
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'update_option' )->alias(
+			function () use ( &$wrote ) {
+				$wrote = true;
+				return true;
+			}
+		);
+
+		$_POST = array(
+			'nonce' => 'x',
+			'key'   => 'ip_captcha_window_seconds',
+			'value' => '',
+		);
+
+		$this->expectException( \RuntimeException::class );
+		try {
+			SettingsAjaxEndpoint::handle();
+		} finally {
+			$this->assertFalse( $wrote, 'An empty field must leave the stored value untouched.' );
+		}
+	}
+
+	public function test_a_whitespace_only_int_value_is_refused_too(): void {
+		$wrote = false;
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'update_option' )->alias(
+			function () use ( &$wrote ) {
+				$wrote = true;
+				return true;
+			}
+		);
+
+		$_POST = array(
+			'nonce' => 'x',
+			'key'   => 'ip_captcha_window_seconds',
+			'value' => '   ',
+		);
+
+		$this->expectException( \RuntimeException::class );
+		try {
+			SettingsAjaxEndpoint::handle();
+		} finally {
+			$this->assertFalse( $wrote );
+		}
+	}
+
+	public function test_a_deliberate_zero_still_saves(): void {
+		// The guard must catch "nothing typed", not "zero typed": 0 is the
+		// documented "no cap" value for the captcha issuing limit.
+		$captured = null;
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) use ( &$captured ) {
+				if ( 'ffc_rate_limit_settings' === $key ) {
+					$captured = $value;
+				}
+				return true;
+			}
+		);
+
+		$_POST = array(
+			'nonce' => 'x',
+			'key'   => 'ip_captcha_max_per_window',
+			'value' => '0',
+		);
+
+		try {
+			SettingsAjaxEndpoint::handle();
+		} catch ( \RuntimeException $e ) {
+			// wp_send_json_success() exits in production; the stub throws.
+		}
+
+		$this->assertSame( 0, $captured['ip']['captcha_max_per_window'] );
+	}
+
+	public function test_an_empty_string_value_still_saves_for_a_string_key(): void {
+		// The guard is scoped to int keys — clearing a text setting is a
+		// legitimate way to empty it.
+		$captured = null;
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) use ( &$captured ) {
+				if ( 'ffc_settings' === $key ) {
+					$captured = $value;
+				}
+				return true;
+			}
+		);
+
+		$_POST = array(
+			'nonce' => 'x',
+			'key'   => 'main_address',
+			'value' => '',
+		);
+
+		try {
+			SettingsAjaxEndpoint::handle();
+		} catch ( \RuntimeException $e ) {
+			// expected
+		}
+
+		$this->assertSame( '', $captured['main_address'] );
 	}
 }

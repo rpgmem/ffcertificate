@@ -229,3 +229,72 @@ describe('ffc-core.js — delegated [data-confirm] guard', () => {
 		expect(ev.isDefaultPrevented()).toBe(false);
 	});
 });
+
+describe('ffc-core.js — setRequiredWithin (#1117)', () => {
+	function mount() {
+		document.body.innerHTML = `
+			<div id="block">
+				<input type="number" id="req" required>
+				<input type="number" id="plain">
+				<input type="text" id="txt" required>
+			</div>
+			<input type="number" id="outside" required>
+		`;
+	}
+
+	it('strips required while the block is hidden and puts it back', async () => {
+		await load();
+		mount();
+		const $block = window.$('#block');
+
+		window.FFC.setRequiredWithin($block, false);
+		expect(document.getElementById('req').required).toBe(false);
+		expect(document.getElementById('txt').required).toBe(false);
+
+		window.FFC.setRequiredWithin($block, true);
+		expect(document.getElementById('req').required).toBe(true);
+		expect(document.getElementById('txt').required).toBe(true);
+	});
+
+	it('never promotes a field that was not required to begin with', async () => {
+		await load();
+		mount();
+		const $block = window.$('#block');
+
+		// The whole point of the marker attribute: without it, "show" would
+		// mean "make everything in here required".
+		window.FFC.setRequiredWithin($block, false);
+		window.FFC.setRequiredWithin($block, true);
+		expect(document.getElementById('plain').required).toBe(false);
+		expect(document.getElementById('plain').hasAttribute('data-ffc-required-off')).toBe(false);
+	});
+
+	it('is idempotent in both directions', async () => {
+		await load();
+		mount();
+		const $block = window.$('#block');
+
+		window.FFC.setRequiredWithin($block, false);
+		window.FFC.setRequiredWithin($block, false);
+		window.FFC.setRequiredWithin($block, true);
+		window.FFC.setRequiredWithin($block, true);
+		expect(document.getElementById('req').required).toBe(true);
+		expect(document.getElementById('req').hasAttribute('data-ffc-required-off')).toBe(false);
+	});
+
+	it('leaves fields outside the container alone', async () => {
+		await load();
+		mount();
+
+		window.FFC.setRequiredWithin(window.$('#block'), false);
+		expect(document.getElementById('outside').required).toBe(true);
+	});
+
+	it('accepts a selector string as well as a jQuery object', async () => {
+		await load();
+		mount();
+
+		window.FFC.setRequiredWithin('#block', false);
+		expect(document.getElementById('req').required).toBe(false);
+	});
+});

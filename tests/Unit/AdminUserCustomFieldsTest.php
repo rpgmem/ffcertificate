@@ -69,11 +69,17 @@ class AdminUserCustomFieldsTest extends TestCase {
 			return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? $_POST[ $key ] : $default;
 		} )->byDefault();
 		$this->utils_mock->shouldReceive('asset_suffix')->andReturn('.min')->byDefault();
+		// enqueue_common_style() puts the token palette on the screen (#1126 B).
+		$this->utils_mock->shouldReceive('enqueue_common_style')->byDefault();
 
 		// Repository alias mocks
 		$this->audience_repo_mock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceReader');
 		$this->custom_field_repo_mock = Mockery::mock('alias:\FreeFormCertificate\Reregistration\CustomFieldReader');
 		$this->custom_field_writer_mock = Mockery::mock('alias:\FreeFormCertificate\Reregistration\CustomFieldWriter');
+		// save_section() reads the stored values so it can keep one when a
+		// required field arrives empty (#1120). Most tests do not care what
+		// is stored; the ones that do override this.
+		$this->custom_field_repo_mock->shouldReceive('get_user_data')->andReturn([])->byDefault();
 	}
 
 	protected function tearDown(): void {
@@ -102,7 +108,7 @@ class AdminUserCustomFieldsTest extends TestCase {
 		AdminUserCustomFields::init();
 	}
 
-	public function test_init_registers_all_five_hooks(): void {
+	public function test_init_registers_all_six_hooks(): void {
 		$registered_hooks = [];
 		Functions\when('add_action')->alias(function ($hook, $callback, $priority = 10) use (&$registered_hooks) {
 			$registered_hooks[] = $hook;
@@ -115,7 +121,9 @@ class AdminUserCustomFieldsTest extends TestCase {
 		$this->assertContains('personal_options_update', $registered_hooks);
 		$this->assertContains('edit_user_profile_update', $registered_hooks);
 		$this->assertContains('admin_enqueue_scripts', $registered_hooks);
-		$this->assertCount(5, $registered_hooks);
+		// #1120 — the notice that says which required fields kept their value.
+		$this->assertContains('admin_notices', $registered_hooks);
+		$this->assertCount(6, $registered_hooks);
 	}
 
 	// ==================================================================
@@ -486,6 +494,7 @@ class AdminUserCustomFieldsTest extends TestCase {
 		Functions\when('wp_nonce_field')->justReturn('');
 		Functions\when('selected')->justReturn('');
 		Functions\when('checked')->justReturn('');
+		Functions\when('esc_html_e')->alias(static function ($text) { echo $text; });
 		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
 
 		ob_start();
@@ -575,6 +584,17 @@ class AdminUserCustomFieldsTest extends TestCase {
 		Functions\when('current_user_can')->justReturn(true);
 		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
 
+		// Since #1128 the half-filled row is not only dropped, it is reported,
+		// so the save writes the incomplete-rows transient on this path.
+		$reported = null;
+		Functions\when('get_current_user_id')->justReturn(1);
+		Functions\when('set_transient')->alias(function ($key, $value) use (&$reported) {
+			if (str_starts_with($key, 'ffc_cf_wh_incomplete_')) {
+				$reported = $value;
+			}
+			return true;
+		});
+
 		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')
 			->with(8, true)->andReturn([$field]);
 
@@ -591,6 +611,16 @@ class AdminUserCustomFieldsTest extends TestCase {
 			}));
 
 		AdminUserCustomFields::save_section(8);
+
+		// The dropped row is announced, naming the day and what was missing —
+		// dropping it in silence is the half of #1128 that was never the fix.
+		$this->assertIsArray($reported);
+		$this->assertCount(1, $reported);
+		$this->assertSame(['exit2'], $reported[0]['missing']);
+		$this->assertSame('Hours', $reported[0]['label']);
+		// Not asserting the day here on purpose: this class stubs `absint` to
+		// justReturn(1), so a day assertion would be checking the stub, not the
+		// code. The day is covered in WorkingHoursTest, which stubs it faithfully.
 	}
 
 	public function test_save_section_working_hours_invalid_json_stores_empty_array(): void {
@@ -618,5 +648,208 @@ class AdminUserCustomFieldsTest extends TestCase {
 			}));
 
 		AdminUserCustomFields::save_section(9);
+	}
+
+	// ==================================================================
+	// #1120 — a required field arriving empty keeps its stored value
+	// ==================================================================
+
+	/**
+	 * Build the POST + mocks for one required text field and run save_section.
+	 *
+	 * @param string $posted Value the browser sent.
+	 * @param string $stored Value already on the profile.
+	 * @return array{0: array<string, mixed>, 1: array<int, string>} Saved data, and the labels the notice would name.
+	 */
+	private function save_required_text( string $posted, string $stored ): array {
+		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
+		$_POST['ffc_cf_77']                    = $posted;
+
+		Functions\when('wp_verify_nonce')->justReturn(true);
+		Functions\when('current_user_can')->justReturn(true);
+		Functions\when('get_current_user_id')->justReturn(3);
+
+		$kept = array();
+		Functions\when('set_transient')->alias(function ($key, $value) use (&$kept) {
+			$kept = $value;
+			return true;
+		});
+
+		$field = (object) [
+			'id'          => 77,
+			'field_type'  => 'text',
+			'field_label' => 'Registration number',
+			'is_required' => 1,
+		];
+
+		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')
+			->with(5, true)->andReturn([$field]);
+		$this->custom_field_repo_mock->shouldReceive('get_user_data')
+			->with(5)->andReturn(['field_77' => $stored]);
+
+		$saved = array();
+		$this->custom_field_writer_mock->shouldReceive('save_user_data')
+			->once()
+			->with(5, Mockery::on(function ($data) use (&$saved) {
+				$saved = $data;
+				return true;
+			}));
+
+		AdminUserCustomFields::save_section(5);
+
+		return [$saved, $kept];
+	}
+
+	/**
+	 * The `required` attribute stops this in the browser, but the browser is
+	 * not the guard: a direct POST reaches save_section() all the same, and
+	 * before #1120 it overwrote the stored value with the empty string.
+	 */
+	public function test_save_section_keeps_the_stored_value_when_a_required_field_is_empty(): void {
+		[$saved, $kept] = $this->save_required_text('', '1234567');
+
+		$this->assertSame('1234567', $saved['field_77']);
+		$this->assertSame(['Registration number'], $kept, 'The operator has to be told the edit did not take.');
+	}
+
+	public function test_save_section_still_writes_a_supplied_value_on_a_required_field(): void {
+		[$saved, $kept] = $this->save_required_text('7654321', '1234567');
+
+		$this->assertSame('7654321', $saved['field_77']);
+		$this->assertSame([], $kept);
+	}
+
+	/**
+	 * Nothing to preserve means nothing to announce — a required field that
+	 * was already empty stays empty, and the notice would be noise.
+	 */
+	public function test_save_section_does_not_announce_a_required_field_that_was_already_empty(): void {
+		[$saved, $kept] = $this->save_required_text('', '');
+
+		$this->assertSame('', $saved['field_77']);
+		$this->assertSame([], $kept);
+	}
+
+	/**
+	 * An optional field keeps the old behaviour: clearing it clears it.
+	 */
+	public function test_save_section_still_clears_an_optional_field(): void {
+		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
+		$_POST['ffc_cf_78']                    = '';
+
+		Functions\when('wp_verify_nonce')->justReturn(true);
+		Functions\when('current_user_can')->justReturn(true);
+
+		$field = (object) [
+			'id'          => 78,
+			'field_type'  => 'text',
+			'field_label' => 'Nickname',
+			'is_required' => 0,
+		];
+
+		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')
+			->with(5, true)->andReturn([$field]);
+		$this->custom_field_repo_mock->shouldReceive('get_user_data')
+			->with(5)->andReturn(['field_78' => 'Bob']);
+
+		$this->custom_field_writer_mock->shouldReceive('save_user_data')
+			->once()
+			->with(5, Mockery::on(static fn($data) => '' === $data['field_78']));
+
+		AdminUserCustomFields::save_section(5);
+	}
+
+	// ==================================================================
+	// #1120 — render_field_input() emits `required` from the flag
+	// ==================================================================
+
+	/**
+	 * Render one field and return its markup.
+	 *
+	 * @param string $type     Field type.
+	 * @param bool   $required Whether the definition marks it required.
+	 * @return string
+	 */
+	private function render_input( string $type, bool $required ): string {
+		$field = (object) [
+			'id'            => 1,
+			'field_type'    => $type,
+			'field_label'   => 'Label',
+			'is_required'   => $required ? 1 : 0,
+			'field_options' => '',
+		];
+
+		$this->custom_field_repo_mock->shouldReceive('get_field_choices')->andReturn(['a', 'b'])->byDefault();
+		Functions\when('selected')->justReturn('');
+		Functions\when('checked')->justReturn('');
+		Functions\when('esc_html_e')->alias(static function ($text) { echo $text; });
+		Functions\when('esc_textarea')->returnArg();
+		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
+
+		$ref = new \ReflectionMethod(AdminUserCustomFields::class, 'render_field_input');
+		$ref->setAccessible(true);
+
+		ob_start();
+		$ref->invokeArgs(null, [$field, 'ffc_cf_1', '']);
+
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Until #1120 the flag drew an asterisk and nothing else — no input
+	 * emitted the attribute and save_section() never checked it, so the
+	 * screen promised something neither end enforced.
+	 *
+	 * @dataProvider requirable_types
+	 * @param string $type Field type that must honour the flag.
+	 */
+	public function test_render_field_input_emits_required_for_a_required_field( string $type ): void {
+		$this->assertStringContainsString('required', $this->render_input($type, true));
+	}
+
+	/**
+	 * @dataProvider requirable_types
+	 * @param string $type Field type that must not invent the attribute.
+	 */
+	public function test_render_field_input_omits_required_for_an_optional_field( string $type ): void {
+		$this->assertStringNotContainsString('required', $this->render_input($type, false));
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function requirable_types(): array {
+		return [
+			'text'     => ['text'],
+			'textarea' => ['textarea'],
+			'number'   => ['number'],
+			'date'     => ['date'],
+			'select'   => ['select'],
+		];
+	}
+
+	/**
+	 * A required checkbox would have to be *ticked* to satisfy the browser,
+	 * which is a different promise from "fill this in" and would change what
+	 * existing profiles may save. The reregistration renderer draws the
+	 * asterisk and skips the attribute for the same reason.
+	 */
+	public function test_render_field_input_never_marks_a_checkbox_required(): void {
+		$html = $this->render_input('checkbox', true);
+
+		$this->assertStringContainsString('type="checkbox"', $html);
+		$this->assertStringNotContainsString('required', $html);
+	}
+
+	/**
+	 * The working-hours value posts through a hidden input, which is barred
+	 * from constraint validation outright; the two time inputs inside are
+	 * what enforce it, and they predate #1120.
+	 */
+	public function test_render_field_input_does_not_mark_the_working_hours_carrier_required(): void {
+		$html = $this->render_input('working_hours', true);
+
+		$this->assertStringContainsString('type="hidden"', $html);
+		$this->assertDoesNotMatchRegularExpression('/<input type="hidden"[^>]*required/', $html);
 	}
 }

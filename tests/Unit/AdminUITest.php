@@ -125,4 +125,23 @@ class AdminUITest extends TestCase {
 		$this->assertStringContainsString( 'name="k"', $returned );
 		$this->assertStringContainsString( '<span class="ffc-toggle-label">My toggle</span>', $returned );
 	}
+
+	/**
+	 * The autosave badge strings are shared by four enqueue sites (#1116).
+	 *
+	 * `invalid` is the one a reader is likeliest to drop, because nothing
+	 * renders it on a happy path: it is the fallback the validity guard
+	 * shows when the browser supplies no `validationMessage` of its own
+	 * (#1114). Losing a key here degrades to an English literal in the JS,
+	 * which is exactly the silent half-translation this method exists to
+	 * prevent.
+	 */
+	public function test_autosave_strings_cover_every_badge_state(): void {
+		$strings = AdminUI::autosave_strings();
+
+		$this->assertSame( array( 'saving', 'saved', 'error', 'invalid' ), array_keys( $strings ) );
+		foreach ( $strings as $key => $value ) {
+			$this->assertNotSame( '', $value, "The '{$key}' badge string must not be empty." );
+		}
+	}
 }
