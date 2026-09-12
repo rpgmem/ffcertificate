@@ -109,19 +109,9 @@ final class RecruitmentAdminPage {
 	 * @return string Already-escaped HTML.
 	 */
 	public static function classification_status_badge( string $status ): string {
-		$settings = RecruitmentSettings::all();
-		$colors   = array(
-			'empty'     => (string) $settings['status_color_empty'],
-			'called'    => (string) $settings['status_color_called'],
-			'accepted'  => (string) $settings['status_color_called'],
-			'hired'     => (string) $settings['status_color_hired'],
-			'not_shown' => (string) $settings['status_color_not_shown'],
-			'withdrew'  => (string) $settings['status_color_withdrew'],
-		);
 		return BadgeHtml::render(
 			'ffc-recruitment-status-badge',
 			'ffc-recruitment-status-' . $status,
-			$colors[ $status ] ?? '#e9ecef',
 			self::classification_status_label( $status )
 		);
 	}
@@ -142,9 +132,8 @@ final class RecruitmentAdminPage {
 			? $color_raw
 			: RecruitmentAdjutancyReader::DEFAULT_COLOR;
 		$name      = $adjutancy->name ?? '';
-		return BadgeHtml::render(
+		return BadgeHtml::render_with_row_color(
 			'ffc-recruitment-adjutancy-badge',
-			'',
 			$color,
 			is_string( $name ) ? $name : ''
 		);
@@ -161,17 +150,9 @@ final class RecruitmentAdminPage {
 	 * @return string Already-escaped HTML.
 	 */
 	public static function notice_status_badge( string $status ): string {
-		$settings = RecruitmentSettings::all();
-		$colors   = array(
-			'draft'       => (string) $settings['notice_status_color_draft'],
-			'preliminary' => (string) $settings['notice_status_color_preliminary'],
-			'definitive'  => (string) $settings['notice_status_color_definitive'],
-			'closed'      => (string) $settings['notice_status_color_closed'],
-		);
 		return BadgeHtml::render(
 			'ffc-recruitment-status-badge',
 			'ffc-recruitment-status-' . $status,
-			$colors[ $status ] ?? '#e9ecef',
 			self::notice_status_label( $status )
 		);
 	}

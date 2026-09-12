@@ -26,14 +26,14 @@
     line-height: 1.5;
     white-space: nowrap;
 }
-.ffc-recruitment-status-badge.ffc-recruitment-status-draft       { background: var(--ffc-bg-alt);      color: var(--ffc-text-secondary); }
-.ffc-recruitment-status-badge.ffc-recruitment-status-preliminary { background: var(--ffc-warning-bg);  color: var(--ffc-warning-text); }
-/* `definitive`, não `active`: o activator migrou o ENUM e rodou
-   `UPDATE … SET status='definitive' WHERE status='active'`, mas a folha
-   ficou com o nome antigo — então esta regra não casava com linha nenhuma,
-   e o status que a substituiu não tinha regra. Achado ao renomear (#1183). */
-.ffc-recruitment-status-badge.ffc-recruitment-status-definitive  { background: var(--ffc-success-bg);  color: var(--ffc-success-text); }
-.ffc-recruitment-status-badge.ffc-recruitment-status-closed      { background: var(--ffc-danger-bg);   color: var(--ffc-danger-text); }
+/* As quatro regras de cor de status saíram no #1193. Elas liam a paleta
+   (`--ffc-warning-bg` e irmãs), mas a cor destes selos é um hex que o operador
+   escolhe nas Settings do módulo -- e vinha inline, então a regra nunca era
+   vista. Agora vem de `RecruitmentBadgePalette`, que gera uma regra por
+   variante e a anexa a ESTA folha; o valor é dado, então ele não pode morar
+   aqui, e manter a regra da paleta ao lado só deixaria dois donos para a mesma
+   declaração. O mesmo vale para as variantes de classificação, que nunca
+   tiveram regra nenhuma e por isso saíam sem cor quando o inline não vinha. */
 
 /* Attached-adjutancy pill (Notices tab inline cell). */
 .ffc-attached-list { line-height: 1.8; }
@@ -351,12 +351,14 @@
 
 @media (forced-colors: active) {
     /* Selos de estado: o texto continua dizendo o estado; a borda
-       devolve a eles a forma de selo. */
+       devolve a eles a forma de selo.
+
+       Era uma lista de quatro nomes de status, e por isso as seis variantes de
+       CLASSIFICAÇÃO ficavam de fora -- a lacuna que o #1183 registrou e que o
+       #1191 achou na versão `definitive`. Agora casa a FAMÍLIA, então uma
+       variante nova nasce coberta em vez de nascer esquecida (#1193). */
     .ffc-rec-pill,
-    .ffc-recruitment-status-badge.ffc-recruitment-status-definitive,
-    .ffc-recruitment-status-badge.ffc-recruitment-status-closed,
-    .ffc-recruitment-status-badge.ffc-recruitment-status-draft,
-    .ffc-recruitment-status-badge.ffc-recruitment-status-preliminary {
+    .ffc-recruitment-status-badge {
         border: 1px solid CanvasText;
     }
 }

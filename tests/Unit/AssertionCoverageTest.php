@@ -97,6 +97,14 @@ final class AssertionCoverageTest extends TestCase {
 	 * one — which reports methods as assertion-free when their assertions sit
 	 * after a `Functions\when(…)->alias( function () { … } )` block.
 	 *
+	 * Braces inside a string or a comment are skipped, and that is not a
+	 * refinement: a test that feeds a CSS- or HTML-shaped literal to the code
+	 * under test — `'red;} body {display:none'`, which is exactly how one
+	 * proves an injection is refused — closes the body at the `}` inside the
+	 * quotes, hiding every assertion after it. The method then reads as
+	 * vacuous. It is the same quote-awareness `CssSelectors` needs, for the
+	 * same reason, and it was found by the guard firing on two honest tests.
+	 *
 	 * @param string $code   Full file source.
 	 * @param int    $offset Offset of the method's opening brace.
 	 */
@@ -105,9 +113,38 @@ final class AssertionCoverageTest extends TestCase {
 		$length = strlen( $code );
 
 		for ( $i = $offset; $i < $length; $i++ ) {
-			if ( '{' === $code[ $i ] ) {
+			$char = $code[ $i ];
+
+			// Skip over a quoted literal, honouring backslash escapes.
+			if ( "'" === $char || '"' === $char ) {
+				$quote = $char;
+				for ( ++$i; $i < $length; $i++ ) {
+					if ( '\\' === $code[ $i ] ) {
+						++$i;
+						continue;
+					}
+					if ( $quote === $code[ $i ] ) {
+						break;
+					}
+				}
+				continue;
+			}
+
+			// Skip over a comment: `//` and `#` to end of line, `/* */` to its close.
+			if ( '#' === $char || ( '/' === $char && $i + 1 < $length && '/' === $code[ $i + 1 ] ) ) {
+				$end = strpos( $code, "\n", $i );
+				$i   = false === $end ? $length : $end;
+				continue;
+			}
+			if ( '/' === $char && $i + 1 < $length && '*' === $code[ $i + 1 ] ) {
+				$end = strpos( $code, '*/', $i + 2 );
+				$i   = false === $end ? $length : $end + 1;
+				continue;
+			}
+
+			if ( '{' === $char ) {
 				++$depth;
-			} elseif ( '}' === $code[ $i ] ) {
+			} elseif ( '}' === $char ) {
 				--$depth;
 				if ( 0 === $depth ) {
 					return substr( $code, $offset, $i - $offset );

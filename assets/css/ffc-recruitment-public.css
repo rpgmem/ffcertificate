@@ -270,3 +270,22 @@
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
 }
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
+   O mecanismo está explicado em ffc-common.css (#1165).
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* As quatro famílias de selo desta tela. Faltavam aqui desde o #1165 --
+       o #1191 registrou a lacuna nas variantes de classificação e não a
+       fechou. Casam a FAMÍLIA, não os nomes de status, para que uma variante
+       nova nasça coberta (#1193). */
+    .ffc-recruitment-adjutancy-badge,
+    .ffc-recruitment-preview-status-badge,
+    .ffc-recruitment-status-badge,
+    .ffc-recruitment-subscription-badge {
+        border: 1px solid CanvasText;
+    }
+}

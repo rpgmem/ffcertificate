@@ -77,8 +77,14 @@ class RecruitmentAdminPageTest extends TestCase {
 		)->byDefault();
 
 		$this->badgeMock = Mockery::mock( 'alias:FreeFormCertificate\Core\BadgeHtml' );
+		// A cor saiu da assinatura no #1193: as variantes de status são pintadas
+		// por regra gerada, não por atributo, então o ajudante só recebe classes
+		// e rótulo. A adjutância, cuja cor é por linha, tem método próprio.
 		$this->badgeMock->shouldReceive( 'render' )->andReturnUsing(
-			fn( $base, $cls, $color, $label ) => "[BADGE:$cls:$color:$label]"
+			fn( $base, $cls, $label ) => "[BADGE:$cls:$label]"
+		);
+		$this->badgeMock->shouldReceive( 'render_with_row_color' )->andReturnUsing(
+			fn( $base, $color, $label ) => "[ROWBADGE:$base:$color:$label]"
 		);
 	}
 
@@ -124,11 +130,16 @@ class RecruitmentAdminPageTest extends TestCase {
 		$this->assertStringContainsString( 'preliminary', $html );
 	}
 
-	public function test_notice_status_badge_falls_back_to_neutral_color_for_unknown_status(): void {
+	/**
+	 * An unknown status still gets a variant class; the neutral floor that used
+	 * to be a `?? '#e9ecef'` here is now a family rule in the generated palette,
+	 * which is where it can follow the dark theme. Pinned in
+	 * {@see RecruitmentBadgePaletteTest}.
+	 */
+	public function test_notice_status_badge_still_names_an_unknown_status(): void {
 		$html = RecruitmentAdminPage::notice_status_badge( 'bogus' );
 
-		// Unknown status → the `?? '#e9ecef'` neutral fallback color.
-		$this->assertStringContainsString( '#e9ecef', $html );
+		$this->assertStringContainsString( 'ffc-recruitment-status-bogus', $html );
 	}
 
 	public function test_adjutancy_badge_returns_empty_string_for_null(): void {
@@ -143,6 +154,7 @@ class RecruitmentAdminPageTest extends TestCase {
 
 		$html = RecruitmentAdminPage::adjutancy_badge( $adjutancy );
 
+		$this->assertStringContainsString( 'ROWBADGE', $html );
 		$this->assertStringContainsString( '#123456', $html );
 		$this->assertStringContainsString( 'Matemática', $html );
 	}

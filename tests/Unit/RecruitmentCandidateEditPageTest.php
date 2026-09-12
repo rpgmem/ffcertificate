@@ -272,11 +272,14 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 		// Classification summary row.
 		$this->assertStringContainsString( 'ED-01', $html );
 		$this->assertStringContainsString( 'ffc-recruitment-status-called', $html );
-		// A célula passa pelo helper desde o #1193: forma pela classe da base,
-		// rótulo traduzido e a cor configurável — antes saía o enum cru, sem cor
-		// e com uma forma que nenhum outro selo daquela tela tinha.
-		$this->assertStringContainsString( 'ffc-pill ffc-recruitment-status-badge ffc-recruitment-status-called', $html );
-		$this->assertStringContainsString( 'background:#e9d8fd', $html );
+		// A célula passa pelo helper desde o #1193: forma pela classe da base e
+		// rótulo traduzido — antes saía o enum cru, sem cor e com uma forma que
+		// nenhum outro selo daquela tela tinha. A cor vem de regra gerada, então
+		// o `<span>` não carrega estilo nenhum.
+		$this->assertStringContainsString(
+			'<span class="ffc-pill ffc-recruitment-status-badge ffc-recruitment-status-called">Called</span>',
+			$html
+		);
 		// Adjutancy <select> branch (notice has ≥2 attached adjutancies).
 		$this->assertStringContainsString( 'ffc-adjutancy-swap-select', $html );
 		$this->assertStringContainsString( '>mat<', $html );

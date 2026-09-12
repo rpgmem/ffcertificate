@@ -33,59 +33,94 @@ class BadgeHtmlTest extends TestCase {
 	}
 
 	public function test_emits_shape_family_and_variant_classes(): void {
-		$html = BadgeHtml::render( 'ffc-badge', 'ffc-badge-success', '#d4edda', 'OK' );
+		$html = BadgeHtml::render( 'ffc-badge', 'ffc-badge-success', 'OK' );
 
 		$this->assertStringContainsString( 'class="ffc-pill ffc-badge ffc-badge-success"', $html );
 	}
 
 	/**
-	 * The shape is a class, not a `style` declaration — that is the whole point
-	 * of #1193, and an inline padding/radius would silently outrank `.ffc-pill`
-	 * on every screen.
+	 * The whole point of #1193's second half: a status badge carries classes and
+	 * nothing else. An inline declaration would outrank the generated rule that
+	 * {@see RecruitmentBadgePalette} appends to the module stylesheet.
 	 */
-	public function test_shape_is_not_emitted_inline(): void {
-		$html = BadgeHtml::render( 'b', 'v', '#fff', 'L' );
+	public function test_status_badge_emits_no_style_attribute(): void {
+		$html = BadgeHtml::render( 'ffc-badge', 'ffc-badge-success', 'OK' );
 
-		$this->assertStringNotContainsString( 'padding:', $html );
-		$this->assertStringNotContainsString( 'border-radius:', $html );
-		$this->assertStringNotContainsString( 'font-size:', $html );
-		$this->assertStringNotContainsString( 'font-weight:', $html );
-		$this->assertStringNotContainsString( 'display:', $html );
+		$this->assertStringNotContainsString( 'style=', $html );
 	}
 
 	/**
-	 * An empty fragment must not leave a double space in `class`, which is how
-	 * the adjutancy badge renders: family only, no variant.
+	 * The shape is a class, not a `style` declaration — an inline padding or
+	 * radius would silently outrank `.ffc-pill` on every screen.
+	 */
+	public function test_shape_is_not_emitted_inline(): void {
+		$html = BadgeHtml::render( 'b', 'v', 'L' );
+
+		foreach ( array( 'padding:', 'border-radius:', 'font-size:', 'font-weight:', 'display:', 'cursor:' ) as $property ) {
+			$this->assertStringNotContainsString( $property, $html );
+		}
+	}
+
+	/**
+	 * An empty fragment must not leave a double space in `class`.
 	 */
 	public function test_empty_variant_leaves_no_stray_space(): void {
-		$html = BadgeHtml::render( 'ffc-recruitment-adjutancy-badge', '', '#fff', 'Adj' );
+		$html = BadgeHtml::render( 'ffc-recruitment-adjutancy-badge', '', 'Adj' );
 
 		$this->assertStringContainsString( 'class="ffc-pill ffc-recruitment-adjutancy-badge"', $html );
 	}
 
-	public function test_emits_supplied_background_color(): void {
-		$html = BadgeHtml::render( 'b', 'v', '#abcdef', 'Label' );
-
-		$this->assertStringContainsString( 'background:#abcdef', $html );
-	}
-
 	public function test_emits_label_text(): void {
-		$html = BadgeHtml::render( 'b', 'v', '#fff', 'My Label' );
+		$html = BadgeHtml::render( 'b', 'v', 'My Label' );
 
 		$this->assertStringContainsString( '>My Label<', $html );
 	}
 
-	public function test_no_tooltip_uses_cursor_default(): void {
-		$html = BadgeHtml::render( 'b', 'v', '#fff', 'L' );
+	public function test_no_tooltip_adds_no_title_and_no_tip_class(): void {
+		$html = BadgeHtml::render( 'b', 'v', 'L' );
 
-		$this->assertStringContainsString( 'cursor:default', $html );
 		$this->assertStringNotContainsString( 'title=', $html );
+		$this->assertStringNotContainsString( 'ffc-pill-has-tip', $html );
 	}
 
-	public function test_tooltip_uses_cursor_help_and_title_attribute(): void {
-		$html = BadgeHtml::render( 'b', 'v', '#fff', 'L', 'Hover me' );
+	/**
+	 * `cursor:help` was inline; having a tooltip is a property of the markup, so
+	 * it became a class the stylesheet answers.
+	 */
+	public function test_tooltip_adds_title_attribute_and_tip_class(): void {
+		$html = BadgeHtml::render( 'b', 'v', 'L', 'why' );
 
-		$this->assertStringContainsString( 'cursor:help', $html );
-		$this->assertStringContainsString( 'title="Hover me"', $html );
+		$this->assertStringContainsString( 'title="why"', $html );
+		$this->assertStringContainsString( 'ffc-pill-has-tip', $html );
 	}
+
+	// ==================================================================
+	// Cor por linha do banco
+	// ==================================================================
+
+	/**
+	 * The adjutancy badge is the one colour a generated rule cannot serve: it
+	 * is per database row. The value rides the attribute as a custom property;
+	 * the rule reading it stays in `ffc-common.css`.
+	 */
+	public function test_row_color_travels_as_custom_properties(): void {
+		$html = BadgeHtml::render_with_row_color( 'ffc-recruitment-adjutancy-badge', '#4a90d9', 'Adj' );
+
+		$this->assertStringContainsString( 'ffc-pill-row-color', $html );
+		$this->assertStringContainsString( '--ffc-badge-row-bg:#4a90d9', $html );
+		$this->assertStringContainsString( '--ffc-badge-row-text:', $html );
+		$this->assertStringNotContainsString( 'background:', $html );
+	}
+
+	/**
+	 * The value reaches a `<style>`-adjacent position, so a non-hex row value
+	 * must not travel verbatim — it falls back instead.
+	 */
+	public function test_row_color_refuses_a_value_that_is_not_hex(): void {
+		$html = BadgeHtml::render_with_row_color( 'b', 'red; } body { display:none', 'L' );
+
+		$this->assertStringNotContainsString( 'display:none', $html );
+		$this->assertStringContainsString( '--ffc-badge-row-bg:#e9ecef', $html );
+	}
+
 }
