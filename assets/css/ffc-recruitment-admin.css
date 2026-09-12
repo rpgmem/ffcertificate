@@ -3,7 +3,7 @@
 /* Status badges (notice + classification states). */
 .ffc-status-badge {
     display: inline-block;
-    padding: 2px 8px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
     border-radius: 3px;
     font-size: var(--ffc-font-size-xs);
     font-weight: 600;
@@ -22,12 +22,12 @@
     display: inline-block;
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-secondary);
-    padding: 2px 6px;
-    margin: 2px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
+    margin: var(--ffc-spacing-3xs);
     border-radius: 3px;
     font-size: var(--ffc-font-size-xs);
 }
-.ffc-attached a { text-decoration: none; color: var(--ffc-text-muted); margin-left: 4px; }
+.ffc-attached a { text-decoration: none; color: var(--ffc-text-muted); margin-left: var(--ffc-spacing-2xs); }
 .ffc-attached a:hover { color: var(--ffc-danger); }
 
 /* CSV import status message — kept inline by sprint A1's import form
@@ -48,7 +48,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
 }
 .ffc-confirm-modal {
     background: var(--ffc-bg-card);
@@ -78,7 +78,7 @@
     font-size: var(--ffc-font-size-2xl);
     cursor: pointer;
     color: var(--ffc-text-muted);
-    padding: 0 4px;
+    padding: 0 var(--ffc-spacing-2xs);
     line-height: 1;
 }
 .ffc-confirm-modal-close:hover { color: var(--ffc-text); }
@@ -87,18 +87,18 @@
     overflow-y: auto;
     color: var(--ffc-text);
 }
-.ffc-confirm-modal-body p { margin: 0 0 12px; }
+.ffc-confirm-modal-body p { margin: 0 0 var(--ffc-spacing-lg); }
 .ffc-confirm-modal-body p:last-child { margin-bottom: 0; }
 .ffc-confirm-modal-consequences {
-    margin: 8px 0 12px;
-    padding: 12px 14px 12px 32px;
+    margin: var(--ffc-spacing-sm) 0 var(--ffc-spacing-lg);
+    padding: var(--ffc-spacing-lg) 14px var(--ffc-spacing-lg) 32px;
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
     border-left: 4px solid var(--ffc-warning-border);
     border-radius: 2px;
 }
 .ffc-confirm-modal-consequences li {
-    margin: 0 0 4px;
+    margin: 0 0 var(--ffc-spacing-2xs);
     line-height: 1.5;
 }
 .ffc-confirm-modal-consequences li:last-child { margin-bottom: 0; }
@@ -108,30 +108,30 @@
     border-left-color: var(--ffc-danger-border);
 }
 .ffc-confirm-modal-reason {
-    margin-top: 10px;
+    margin-top: var(--ffc-spacing-md);
 }
 .ffc-confirm-modal-reason label {
     display: block;
     font-weight: 600;
-    margin-bottom: 4px;
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 .ffc-confirm-modal-reason input[type="text"] {
     width: 100%;
 }
 .ffc-confirm-modal-checkbox {
-    margin-top: 10px;
+    margin-top: var(--ffc-spacing-md);
 }
 .ffc-confirm-modal-checkbox label {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ffc-spacing-xs);
     font-weight: 600;
 }
 .ffc-confirm-modal-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    padding: 12px 18px;
+    gap: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-lg) 18px;
     border-top: 1px solid var(--ffc-border);
 }
 .ffc-confirm-modal[data-style="destructive"] .ffc-confirm-modal-confirm {
@@ -157,8 +157,8 @@
 .wrap.ffc-recruitment-admin .card {
     max-width: 1500px;
     min-width: 255px;
-    margin-bottom: 20px;
-    padding: 20px;
+    margin-bottom: var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-2xl);
     box-sizing: border-box;
 }
 
@@ -169,7 +169,7 @@
 
 /* Spacing utilities */
 .ffc-rec-mt-20 {
-    margin-top: 20px;
+    margin-top: var(--ffc-spacing-2xl);
 }
 
 .ffc-rec-mt-0 {
@@ -185,7 +185,7 @@
 }
 
 .ffc-rec-mt-6px {
-    margin: 6px 0 0;
+    margin: var(--ffc-spacing-xs) 0 0;
 }
 
 .ffc-rec-my-15 {
@@ -201,7 +201,7 @@
 }
 
 .ffc-rec-ml-20 {
-    margin-left: 20px;
+    margin-left: var(--ffc-spacing-2xl);
 }
 
 .ffc-rec-mr-1 {
@@ -250,19 +250,19 @@
 .ffc-rec-columns-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 6px 16px;
+    gap: var(--ffc-spacing-xs) var(--ffc-spacing-xl);
 }
 
 .ffc-rec-flex-center-6 {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ffc-spacing-xs);
 }
 
 .ffc-rec-flex-wrap {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px 16px;
+    gap: var(--ffc-spacing-xs) var(--ffc-spacing-xl);
 }
 
 .ffc-rec-mandatory-note {
@@ -288,7 +288,7 @@
     margin-bottom: 1em;
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: var(--ffc-spacing-xs);
     align-items: center;
 }
 
@@ -300,12 +300,12 @@
     background: var(--ffc-bg-alt);
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
-    padding: 10px 12px;
-    margin-bottom: 8px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
+    margin-bottom: var(--ffc-spacing-sm);
 }
 
 .ffc-rec-welcome-notice {
-    padding: 16px 20px;
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     margin: 1em 0;
 }
 
@@ -316,8 +316,8 @@
 
 .ffc-rec-pill {
     display: inline-block;
-    padding: 1px 8px;
-    margin-right: 4px;
+    padding: 1px var(--ffc-spacing-sm);
+    margin-right: var(--ffc-spacing-2xs);
     border-radius: 10px;
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-secondary);

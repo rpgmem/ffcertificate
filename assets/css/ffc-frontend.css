@@ -12,7 +12,7 @@
     width: 100% !important; /* ← 100% do field (que já está em 450px) */
     max-width: none !important; /* ← Remove limitação antiga */
     height: 45px !important;
-    padding: 10px 12px !important;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg) !important;
     border: 1px solid var(--ffc-border) !important;
     border-radius: var(--ffc-radius-sm) !important;
     font-size: var(--ffc-font-size-xl) !important;
@@ -21,7 +21,7 @@
     background-color: var(--ffc-bg-input) !important;
     color: var(--ffc-text);
     display: block !important;
-    margin-bottom: 15px;
+    margin-bottom: var(--ffc-spacing-15);
     transition: border-color var(--ffc-transition-base), box-shadow var(--ffc-transition-base);
     -webkit-appearance: none;
 }
@@ -89,13 +89,13 @@
 }
 
 .ffc-shortcode .ffc-form-field {
-    margin-bottom: 20px;
+    margin-bottom: var(--ffc-spacing-2xl);
     width: 100%; /* ← Campo pega largura total do form (450px) */
 }
 
 .ffc-shortcode .ffc-form-field label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: var(--ffc-spacing-sm);
     font-weight: 500;
     color: var(--ffc-text-secondary);
     font-size: var(--ffc-font-size-xl);
@@ -111,13 +111,13 @@
 .ffc-shortcode .ffc-radio-group {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
 }
 
 .ffc-shortcode .ffc-radio-group label {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--ffc-spacing-sm);
     font-weight: 400;
     cursor: pointer;
 }
@@ -126,8 +126,8 @@
    INFO BLOCK - v4.9.0
    ============================================ */
 .ffc-shortcode .ffc-form-info-block {
-    margin-bottom: 20px;
-    padding: 16px 20px;
+    margin-bottom: var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     background: var(--ffc-bg-alt);
     border-left: 4px solid var(--ffc-primary);
     border-radius: var(--ffc-radius-sm);
@@ -159,7 +159,7 @@
 }
 
 .ffc-shortcode .ffc-info-title {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--ffc-spacing-sm) 0;
     font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-text);
@@ -172,7 +172,7 @@
 }
 
 .ffc-shortcode .ffc-info-content p {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--ffc-spacing-sm) 0;
 }
 
 .ffc-shortcode .ffc-info-content p:last-child {
@@ -190,21 +190,21 @@
 
 .ffc-shortcode .ffc-info-content ul,
 .ffc-shortcode .ffc-info-content ol {
-    margin: 8px 0;
-    padding-left: 20px;
+    margin: var(--ffc-spacing-sm) 0;
+    padding-left: var(--ffc-spacing-2xl);
 }
 
 /* ============================================
    EMBED BLOCK - v4.9.0
    ============================================ */
 .ffc-shortcode .ffc-form-embed-block {
-    margin-bottom: 20px;
+    margin-bottom: var(--ffc-spacing-2xl);
     width: 100%;
     box-sizing: border-box;
 }
 
 .ffc-shortcode .ffc-embed-caption {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--ffc-spacing-sm) 0;
     font-size: var(--ffc-font-size-base);
     color: var(--ffc-text-muted);
     font-style: italic;
@@ -237,8 +237,8 @@
    ============================================ */
 
 .ffc-shortcode .ffc-lgpd-consent {
-    margin: 25px 0 20px 0;
-    padding: 20px;
+    margin: 25px 0 var(--ffc-spacing-2xl) 0;
+    padding: var(--ffc-spacing-2xl);
     background: var(--ffc-bg-alt);
     border: 2px solid var(--ffc-primary);
     border-radius: var(--ffc-radius-lg);
@@ -248,7 +248,7 @@
 .ffc-shortcode .ffc-consent-label {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: var(--ffc-spacing-lg);
     cursor: pointer;
     margin-bottom: 0;
     font-weight: 400;
@@ -258,7 +258,7 @@
     width: 20px;
     height: 20px;
     min-width: 20px;
-    margin: 2px 0 0 0;
+    margin: var(--ffc-spacing-3xs) 0 0 0;
     cursor: pointer;
     flex-shrink: 0;
     accent-color: var(--ffc-primary);
@@ -290,8 +290,8 @@
 }
 
 .ffc-shortcode .ffc-consent-description {
-    margin: 12px 0 0 0;
-    padding: 12px;
+    margin: var(--ffc-spacing-lg) 0 0 0;
+    padding: var(--ffc-spacing-lg);
     background: var(--ffc-bg);
     border-left: 3px solid var(--ffc-primary);
     border-radius: var(--ffc-radius-sm);
@@ -332,7 +332,7 @@ details.ffc-consent-description > summary:focus-visible {
     border-radius: var(--ffc-radius-sm);
 }
 .ffc-shortcode .ffc-device-disclosure-more {
-    margin-left: 4px;
+    margin-left: var(--ffc-spacing-2xs);
     color: var(--ffc-link);
     text-decoration: underline;
     font-weight: 500;
@@ -343,7 +343,7 @@ details.ffc-consent-description[open] > summary > .ffc-device-disclosure-more {
     text-decoration: none;
 }
 details.ffc-consent-description > p {
-    margin: 8px 0 0 0;
+    margin: var(--ffc-spacing-sm) 0 0 0;
 }
 
 /* Checkbox validation states */
@@ -383,12 +383,12 @@ details.ffc-consent-description > p {
 
 @media (max-width: 768px) {
     .ffc-shortcode .ffc-lgpd-consent {
-        padding: 15px;
-        margin: 20px 0 15px 0;
+        padding: var(--ffc-spacing-15);
+        margin: var(--ffc-spacing-2xl) 0 var(--ffc-spacing-15) 0;
     }
 
     .ffc-shortcode .ffc-consent-label {
-        gap: 10px;
+        gap: var(--ffc-spacing-md);
     }
 
     .ffc-shortcode .ffc-consent-text {
@@ -455,8 +455,8 @@ details.ffc-consent-description > p {
  * class name is free to change between versions.
  */
 .ffc-shortcode .ffc-altcha-row {
-    margin-bottom: 20px;
-    padding: 20px;
+    margin-bottom: var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-2xl);
     background: var(--ffc-primary-light);
     border: 2px solid var(--ffc-primary);
     border-radius: var(--ffc-radius-lg);
@@ -524,14 +524,14 @@ details.ffc-consent-description > p {
    glue script writes when the widget reports an error. */
 .ffc-shortcode .ffc-altcha-noscript,
 .ffc-shortcode .ffc-altcha-error {
-    margin: 10px 0 0;
+    margin: var(--ffc-spacing-md) 0 0;
     color: var(--ffc-danger);
     font-weight: 600;
 }
 
 .ffc-shortcode .ffc-captcha-row {
-    margin-bottom: 20px;
-    padding: 20px; /* ← Padding confortável */
+    margin-bottom: var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-2xl); /* ← Padding confortável */
     background: var(--ffc-primary-light); /* ← DESTAQUE: fundo azul claro */
     border: 2px solid var(--ffc-primary); /* ← DESTAQUE: borda azul */
     border-radius: var(--ffc-radius-lg); /* ← DESTAQUE: bordas arredondadas */
@@ -542,7 +542,7 @@ details.ffc-consent-description > p {
 
 .ffc-shortcode .ffc-captcha-row label {
     display: block;
-    margin-bottom: 10px;
+    margin-bottom: var(--ffc-spacing-md);
     font-weight: 600; /* ← DESTAQUE: negrito mais forte */
     color: var(--ffc-primary); /* ← DESTAQUE: cor azul */
     font-size: var(--ffc-font-size-xl); /* ← DESTAQUE: fonte um pouco maior */
@@ -568,7 +568,7 @@ details.ffc-consent-description > p {
    ============================================ */
 .ffc-shortcode .ffc-submit-btn {
     width: 100%; /* ← 100% do form (450px) */
-    padding: 15px;
+    padding: var(--ffc-spacing-15);
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
     border: none;
@@ -603,8 +603,8 @@ details.ffc-consent-description > p {
    MESSAGES
    ============================================ */
 .ffc-shortcode .ffc-message {
-    margin-top: 20px;
-    padding: 15px;
+    margin-top: var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-15);
     border-radius: 5px;
     font-size: var(--ffc-font-size-base);
     line-height: 1.5;
@@ -644,7 +644,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-verification-header h2 {
-    margin: 0 0 10px 0;
+    margin: 0 0 var(--ffc-spacing-md) 0;
     font-size: var(--ffc-font-size-2xl);
     color: var(--ffc-text);
     font-weight: 600;
@@ -679,7 +679,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-verify-input {
-    padding: 12px 15px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-15);
     border: 2px solid var(--ffc-border-light);
     border-radius: 5px;
     font-size: var(--ffc-font-size-xl);
@@ -699,7 +699,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-no-js-security {
-    margin-top: 5px;
+    margin-top: var(--ffc-spacing-5);
     width: 100%;
 }
 
@@ -707,12 +707,12 @@ details.ffc-consent-description > p {
    VERIFICATION RESULTS
    ============================================ */
 .ffc-shortcode .ffc-verify-result {
-    margin-top: 20px;
+    margin-top: var(--ffc-spacing-2xl);
     width: 100%;
 }
 
 .ffc-shortcode .ffc-verify-error {
-    padding: 15px;
+    padding: var(--ffc-spacing-15);
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
     border: 1px solid var(--ffc-danger-border);
@@ -721,7 +721,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-verify-success {
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
     border: 1px solid var(--ffc-success-border);
@@ -729,23 +729,23 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-verify-success h3 {
-    margin: 0 0 15px 0;
+    margin: 0 0 var(--ffc-spacing-15) 0;
     font-size: var(--ffc-font-size-xl);
 }
 
 .ffc-shortcode .ffc-verify-success p {
-    margin: 10px 0;
+    margin: var(--ffc-spacing-md) 0;
     font-size: var(--ffc-font-size-xl);
 }
 
 .ffc-shortcode .ffc-verify-success hr {
-    margin: 15px 0;
+    margin: var(--ffc-spacing-15) 0;
     border: none;
     border-top: 1px solid var(--ffc-success-border);
 }
 
 .ffc-shortcode .ffc-verify-success h4 {
-    margin: 15px 0 10px 0;
+    margin: var(--ffc-spacing-15) 0 var(--ffc-spacing-md) 0;
     font-size: var(--ffc-font-size-xl);
 }
 
@@ -786,7 +786,7 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-preview-header {
     background: linear-gradient(135deg, var(--ffc-primary) 0%, var(--ffc-primary-hover) 100%);
     color: var(--ffc-text-on-primary);
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
     text-align: center;
 }
 
@@ -794,7 +794,7 @@ details.ffc-consent-description > p {
     display: inline-block;
     font-size: var(--ffc-font-size-2xl);
     font-weight: 600;
-    padding: 5px 15px;
+    padding: var(--ffc-spacing-5) var(--ffc-spacing-15);
     /* Véu branco translúcido sobre o gradiente colorido do cartão: é uma
        camada sobre a cor que estiver embaixo, não um papel da paleta (#1126). */
     background: rgba(255, 255, 255, 0.2);
@@ -829,19 +829,19 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-error-message {
-    margin: 0 0 20px;
+    margin: 0 0 var(--ffc-spacing-2xl);
     font-size: var(--ffc-font-size-lg);
     line-height: 1.5;
     color: var(--ffc-text);
 }
 
 .ffc-shortcode .ffc-manual-verification-form {
-    padding-top: 16px;
+    padding-top: var(--ffc-spacing-xl);
     border-top: 1px solid var(--ffc-border-light);
 }
 
 .ffc-shortcode .ffc-manual-verification-form h4 {
-    margin: 0 0 12px;
+    margin: 0 0 var(--ffc-spacing-lg);
     font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-text-secondary);
@@ -852,18 +852,18 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-manual-verification-form .ffc-manual-auth-code {
     width: 100%;
     max-width: 320px;
-    padding: 10px 14px;
+    padding: var(--ffc-spacing-md) 14px;
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-sm);
     font-size: var(--ffc-font-size-base);
     font-family: 'Courier New', monospace;
-    margin: 0 0 12px;
+    margin: 0 0 var(--ffc-spacing-lg);
     box-sizing: border-box;
 }
 
 .ffc-shortcode .ffc-manual-verification-form .ffc-manual-verify-btn {
     display: inline-block;
-    padding: 10px 24px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-3xl);
     font-size: var(--ffc-font-size-base);
 }
 
@@ -875,28 +875,28 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-preview-body h3 {
-    margin: 0 0 20px 0;
+    margin: 0 0 var(--ffc-spacing-2xl) 0;
     font-size: var(--ffc-font-size-xl);
     color: var(--ffc-text);
     font-weight: 600;
     border-bottom: 2px solid var(--ffc-primary);
-    padding-bottom: 10px;
+    padding-bottom: var(--ffc-spacing-md);
 }
 
 .ffc-shortcode .ffc-preview-body h4 {
-    margin: 25px 0 15px 0;
+    margin: 25px 0 var(--ffc-spacing-15) 0;
     font-size: var(--ffc-font-size-lg);
     color: var(--ffc-text-secondary);
     font-weight: 600;
     border-bottom: 2px solid var(--ffc-primary);
-    padding-bottom: 10px;
+    padding-bottom: var(--ffc-spacing-md);
 }
 
 .ffc-shortcode .ffc-detail-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 0;
+    padding: var(--ffc-spacing-lg) 0;
     border-bottom: 1px solid var(--ffc-border-light);
 }
 
@@ -927,7 +927,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-preview-body hr {
-    margin: 20px 0;
+    margin: var(--ffc-spacing-2xl) 0;
     border: none;
     border-top: 1px solid var(--ffc-border-light);
 }
@@ -938,7 +938,7 @@ details.ffc-consent-description > p {
 
 .ffc-shortcode .ffc-verification-status {
     display: inline-block;
-    padding: 4px 14px;
+    padding: var(--ffc-spacing-2xs) 14px;
     border-radius: var(--ffc-radius-sm);
     font-size: var(--ffc-font-size-sm);
     font-weight: 600;
@@ -972,8 +972,8 @@ details.ffc-consent-description > p {
    provides enough visual break from the rows above.
    ============================================ */
 .ffc-shortcode .ffc-schedule-exception-block {
-    margin: 25px 0 5px;
-    padding: 16px 20px;
+    margin: 25px 0 var(--ffc-spacing-5);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     background: var(--ffc-warning-bg);
     border-left: 4px solid var(--ffc-warning-border);
     border-radius: var(--ffc-radius-sm);
@@ -984,9 +984,9 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-preview-body .ffc-schedule-exception-block h4 {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin: 0 0 8px;
-    padding-bottom: 8px;
+    gap: var(--ffc-spacing-sm);
+    margin: 0 0 var(--ffc-spacing-sm);
+    padding-bottom: var(--ffc-spacing-sm);
     border-bottom: 1px solid var(--ffc-warning-border);
     color: var(--ffc-warning-text);
     font-size: var(--ffc-font-size-lg);
@@ -999,7 +999,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-schedule-exception-block .description {
-    margin: 0 0 12px;
+    margin: 0 0 var(--ffc-spacing-lg);
     font-size: var(--ffc-font-size-base);
     line-height: 1.5;
     color: var(--ffc-warning-text);
@@ -1010,7 +1010,7 @@ details.ffc-consent-description > p {
    thicker `var(--ffc-border-light)` line cuts the cohesion). */
 .ffc-shortcode .ffc-schedule-exception-block .ffc-detail-row {
     border-bottom-color: var(--ffc-warning-border);
-    padding: 8px 0;
+    padding: var(--ffc-spacing-sm) 0;
 }
 
 .ffc-shortcode .ffc-schedule-exception-block .ffc-detail-row:last-child {
@@ -1033,7 +1033,7 @@ details.ffc-consent-description > p {
     background: linear-gradient(135deg, var(--ffc-primary) 0%, var(--ffc-primary-hover) 100%);
     color: var(--ffc-text-on-primary);
     border: none;
-    padding: 15px 40px;
+    padding: var(--ffc-spacing-15) 40px;
     font-size: var(--ffc-font-size-xl);
     font-weight: 600;
     border-radius: 5px;
@@ -1086,11 +1086,11 @@ details.ffc-consent-description > p {
 /* Geofence loading message */
 .ffc-shortcode .ffc-geofence-loading-msg {
     text-align: center;
-    padding: 30px 20px;
+    padding: 30px var(--ffc-spacing-2xl);
 }
 
 .ffc-shortcode .ffc-geofence-loading-msg p {
-    margin: 20px 0 0 0;
+    margin: var(--ffc-spacing-2xl) 0 0 0;
     color: var(--ffc-text-muted);
     font-size: var(--ffc-font-size-lg);
 }
@@ -1099,8 +1099,8 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-geofence-blocked {
     background: var(--ffc-warning-bg);
     border-left: 4px solid var(--ffc-warning-border);
-    padding: 15px 20px;
-    margin: 20px 0;
+    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl);
+    margin: var(--ffc-spacing-2xl) 0;
     border-radius: var(--ffc-radius-sm);
 }
 
@@ -1111,15 +1111,15 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-geofence-reload-btn {
-    margin-top: 12px;
+    margin-top: var(--ffc-spacing-lg);
 }
 
 /* Admin bypass message (informational - blue theme) */
 .ffc-shortcode .ffc-geofence-admin-bypass {
     background: var(--ffc-info-bg);
     border-left: 4px solid var(--ffc-info-border);
-    padding: 15px 20px;
-    margin: 0 0 20px 0;
+    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl);
+    margin: 0 0 var(--ffc-spacing-2xl) 0;
     border-radius: var(--ffc-radius-sm);
 }
 
@@ -1135,11 +1135,11 @@ details.ffc-consent-description > p {
    ============================================ */
 .ffc-shortcode .ffc-verify-loading {
     text-align: center;
-    padding: 60px 20px;
+    padding: 60px var(--ffc-spacing-2xl);
 }
 
 .ffc-shortcode .ffc-verify-loading p {
-    margin: 20px 0 0 0;
+    margin: var(--ffc-spacing-2xl) 0 0 0;
     color: var(--ffc-text-muted);
     font-size: var(--ffc-font-size-xl);
 }
@@ -1166,8 +1166,8 @@ details.ffc-consent-description > p {
     .ffc-shortcode.ffc-form-wrapper,
     .ffc-shortcode.ffc-verification-container,
     .ffc-shortcode .ffc-certificate-preview {
-        padding: 20px;
-        margin: 15px;
+        padding: var(--ffc-spacing-2xl);
+        margin: var(--ffc-spacing-15);
     }
 
     .ffc-shortcode .ffc-form-title,
@@ -1178,7 +1178,7 @@ details.ffc-consent-description > p {
     .ffc-shortcode .ffc-detail-row {
         flex-direction: column;
         align-items: flex-start;
-        gap: 8px;
+        gap: var(--ffc-spacing-sm);
     }
 
     .ffc-shortcode .ffc-detail-row .value {
@@ -1188,7 +1188,7 @@ details.ffc-consent-description > p {
 
     .ffc-shortcode .ffc-download-btn {
         width: 100%;
-        padding: 12px 20px;
+        padding: var(--ffc-spacing-lg) var(--ffc-spacing-2xl);
         font-size: var(--ffc-font-size-xl);
     }
 
@@ -1235,7 +1235,7 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-success-auth-code .value.code {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--ffc-spacing-sm);
     flex-wrap: wrap;
     justify-content: flex-end;
 }
@@ -1251,7 +1251,7 @@ details.ffc-consent-description > p {
 /* Helper text below the auth-code row — full-width, muted. The hint
    sits OUTSIDE the row so it does not push the label/value baseline. */
 .ffc-shortcode .ffc-success-row-hint {
-    margin: 6px 0 16px;
+    margin: var(--ffc-spacing-xs) 0 var(--ffc-spacing-xl);
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-muted);
     line-height: 1.5;
@@ -1263,7 +1263,7 @@ details.ffc-consent-description > p {
    `<h4>` already labels the section, so no `.label` element here. */
 .ffc-shortcode .ffc-detail-row.ffc-success-magic-link-row {
     justify-content: flex-start;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
     flex-wrap: wrap;
 }
 
@@ -1283,7 +1283,7 @@ details.ffc-consent-description > p {
    button is nested inside `.value.code` which sets monospace. */
 .ffc-shortcode .ffc-copy-btn {
     display: inline-block;
-    padding: 4px 12px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
     border: 1px solid var(--ffc-primary);
     background: transparent;
     color: var(--ffc-primary);
@@ -1333,7 +1333,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-success-where-is-file[open] .ffc-success-where-title {
-    margin-bottom: 8px;
+    margin-bottom: var(--ffc-spacing-sm);
 }
 
 .ffc-shortcode .ffc-success-where-is-file ul {
@@ -1344,7 +1344,7 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-success-where-is-file li {
     font-size: var(--ffc-font-size-base);
     line-height: 1.5;
-    margin: 4px 0;
+    margin: var(--ffc-spacing-2xs) 0;
 }
 
 /* 6.6.4 — pre-flight permission banners (cookies / GPS).
@@ -1354,22 +1354,22 @@ details.ffc-consent-description > p {
     border: 1px solid var(--ffc-warning-border);
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
-    padding: 16px 18px;
+    padding: var(--ffc-spacing-xl) 18px;
     border-radius: 6px;
-    margin: 12px 0;
+    margin: var(--ffc-spacing-lg) 0;
     text-align: left;
 }
 
 .ffc-preflight-banner-title {
     display: block;
     font-size: var(--ffc-font-size-lg);
-    margin-bottom: 6px;
+    margin-bottom: var(--ffc-spacing-xs);
     color: var(--ffc-warning-text);
 }
 
 .ffc-preflight-banner-body,
 .ffc-preflight-banner-how {
-    margin: 6px 0;
+    margin: var(--ffc-spacing-xs) 0;
     font-size: var(--ffc-font-size-base);
     line-height: 1.5;
 }
@@ -1381,8 +1381,8 @@ details.ffc-consent-description > p {
 
 .ffc-preflight-try-anyway {
     display: inline-block;
-    margin-top: 10px;
-    padding: 8px 16px;
+    margin-top: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-xl);
     background: transparent;
     color: var(--ffc-warning-text);
     border: 1px solid var(--ffc-warning-border);
@@ -1424,9 +1424,9 @@ details.ffc-consent-description > p {
 .ffc-public-csv-download .ffc-info-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 24px;
-    padding-bottom: 16px;
+    gap: var(--ffc-spacing-lg);
+    margin-bottom: var(--ffc-spacing-3xl);
+    padding-bottom: var(--ffc-spacing-xl);
     border-bottom: 1px solid var(--ffc-border);
     width: 100%;
     box-sizing: border-box;
@@ -1444,14 +1444,14 @@ details.ffc-consent-description > p {
     background: none;
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-sm, 4px);
-    padding: 6px 12px;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-muted);
     cursor: pointer;
     transition: all 0.2s ease;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--ffc-spacing-2xs);
     white-space: nowrap;
 }
 
@@ -1466,8 +1466,8 @@ details.ffc-consent-description > p {
 }
 
 .ffc-public-csv-download .ffc-info-section {
-    margin-bottom: 20px;
-    padding: 16px;
+    margin-bottom: var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-xl);
     background: var(--ffc-bg-alt);
     border-radius: var(--ffc-radius-sm, 6px);
     border: 1px solid var(--ffc-border);
@@ -1476,7 +1476,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-public-csv-download .ffc-info-section h3 {
-    margin: 0 0 12px 0;
+    margin: 0 0 var(--ffc-spacing-lg) 0;
     font-size: var(--ffc-font-size-base);
     font-weight: 600;
     color: var(--ffc-text-muted);
@@ -1494,8 +1494,8 @@ details.ffc-consent-description > p {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
-    padding: 6px 0;
+    gap: var(--ffc-spacing-lg);
+    padding: var(--ffc-spacing-xs) 0;
     width: 100%;
     box-sizing: border-box;
 }
@@ -1517,7 +1517,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-public-csv-download .ffc-info-subsection {
-    margin-bottom: 8px;
+    margin-bottom: var(--ffc-spacing-sm);
 }
 
 .ffc-public-csv-download .ffc-info-subsection:last-child {
@@ -1529,19 +1529,19 @@ details.ffc-consent-description > p {
     font-weight: 500;
     color: var(--ffc-text-muted);
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-public-csv-download .ffc-info-list {
     margin: 0;
-    padding: 0 0 0 20px;
+    padding: 0 0 0 var(--ffc-spacing-2xl);
     list-style: disc;
 }
 
 .ffc-public-csv-download .ffc-info-list li {
     font-size: var(--ffc-font-size-base);
     color: var(--ffc-text);
-    padding: 2px 0;
+    padding: var(--ffc-spacing-3xs) 0;
 }
 
 .ffc-public-csv-download .ffc-info-list-restrictions li {
@@ -1559,11 +1559,11 @@ details.ffc-consent-description > p {
 
 /* Alerts */
 .ffc-public-csv-download .ffc-info-alert {
-    padding: 12px 16px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     border-radius: var(--ffc-radius-sm, 6px);
     font-size: var(--ffc-font-size-base);
     line-height: 1.5;
-    margin-top: 12px;
+    margin-top: var(--ffc-spacing-lg);
 }
 
 .ffc-public-csv-download .ffc-info-alert-warning {
@@ -1587,8 +1587,8 @@ details.ffc-consent-description > p {
 /* Action buttons */
 .ffc-public-csv-download .ffc-info-actions {
     display: flex;
-    gap: 12px;
-    margin-top: 24px;
+    gap: var(--ffc-spacing-lg);
+    margin-top: var(--ffc-spacing-3xl);
     flex-wrap: wrap;
     width: 100%;
     box-sizing: border-box;
@@ -1604,7 +1604,7 @@ details.ffc-consent-description > p {
 .ffc-extend-end-modal .ffc-info-btn {
     flex: 1;
     min-width: 160px;
-    padding: 12px 20px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-2xl);
     border: none;
     border-radius: var(--ffc-radius-sm, 6px);
     font-size: var(--ffc-font-size-base);
@@ -1701,7 +1701,7 @@ details.ffc-consent-description > p {
 .ffc-schedule-exception-opening {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
     margin: 0;
 }
 
@@ -1743,7 +1743,7 @@ details.ffc-consent-description > p {
     letter-spacing: 0.03em;
     color: var(--ffc-text-muted);
     border-bottom: 1px solid var(--ffc-border);
-    padding: 4px 6px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xs);
 }
 
 .ffc-public-csv-download .ffc-info-table thead th.ffc-info-table-col {
@@ -1751,7 +1751,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-public-csv-download .ffc-info-table td {
-    padding: 6px;
+    padding: var(--ffc-spacing-xs);
     border-bottom: 1px solid var(--ffc-border);
 }
 
@@ -1778,7 +1778,7 @@ details.ffc-consent-description > p {
 .ffc-public-csv-download .ffc-info-schedule-ref-note {
     font-size: var(--ffc-font-size-xs);
     color: var(--ffc-text-muted);
-    margin: 8px 0 0;
+    margin: var(--ffc-spacing-sm) 0 0;
 }
 
 .ffc-open-early-backdrop {
@@ -1804,7 +1804,7 @@ details.ffc-consent-description > p {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     background: linear-gradient(135deg, var(--ffc-primary) 0%, var(--ffc-primary-hover) 100%);
     color: var(--ffc-text-on-primary);
 }
@@ -1816,7 +1816,7 @@ details.ffc-consent-description > p {
     color: var(--ffc-text-on-primary);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--ffc-spacing-sm);
 }
 
 /* 26px literal: caixa de glifo, não texto — um ícone ou um `&times;`
@@ -1828,7 +1828,7 @@ details.ffc-consent-description > p {
     color: var(--ffc-inverse-on-surface);
     font-size: 26px;
     cursor: pointer;
-    padding: 0 4px;
+    padding: 0 var(--ffc-spacing-2xs);
     line-height: 1;
     transition: color var(--ffc-transition-base);
 }
@@ -1840,32 +1840,32 @@ details.ffc-consent-description > p {
 }
 
 .ffc-open-early-body {
-    padding: 20px 24px;
+    padding: var(--ffc-spacing-2xl) var(--ffc-spacing-3xl);
     color: var(--ffc-text);
     font-size: var(--ffc-font-size-base);
     line-height: 1.55;
 }
 
 .ffc-open-early-body p {
-    margin: 0 0 12px;
+    margin: 0 0 var(--ffc-spacing-lg);
 }
 
 .ffc-open-early-times {
     list-style: none;
     padding: 0;
-    margin: 8px 0 12px;
+    margin: var(--ffc-spacing-sm) 0 var(--ffc-spacing-lg);
 }
 
 .ffc-open-early-times li {
-    margin: 4px 0;
+    margin: var(--ffc-spacing-2xs) 0;
 }
 
 .ffc-open-early-warn {
     color: var(--ffc-danger-text);
     background: var(--ffc-danger-bg);
     border-left: 3px solid var(--ffc-danger);
-    padding: 10px 14px;
-    margin: 14px 0 4px;
+    padding: var(--ffc-spacing-md) 14px;
+    margin: 14px 0 var(--ffc-spacing-2xs);
     border-radius: var(--ffc-radius-sm, 4px);
     font-weight: 500;
 }
@@ -1873,8 +1873,8 @@ details.ffc-consent-description > p {
 .ffc-open-early-warn-cache {
     background: var(--ffc-warning-light);
     border-left: 3px solid var(--ffc-warning);
-    padding: 10px 14px;
-    margin: 12px 0 0;
+    padding: var(--ffc-spacing-md) 14px;
+    margin: var(--ffc-spacing-lg) 0 0;
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-warning-text);
     border-radius: var(--ffc-radius-sm, 4px);
@@ -1885,7 +1885,7 @@ details.ffc-consent-description > p {
 .ffc-extend-end-modal .ffc-extend-end-input {
     width: 100%;
     height: 45px;
-    padding: 10px 12px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-sm, 4px);
     font-size: var(--ffc-font-size-lg);
@@ -1909,7 +1909,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-extend-end-error {
-    margin: 6px 0 0;
+    margin: var(--ffc-spacing-xs) 0 0;
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-danger);
 }
@@ -1917,8 +1917,8 @@ details.ffc-consent-description > p {
 .ffc-open-early-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
-    padding: 14px 24px 18px;
+    gap: var(--ffc-spacing-lg);
+    padding: 14px var(--ffc-spacing-3xl) 18px;
     border-top: 1px solid var(--ffc-border);
     background: var(--ffc-bg-alt);
 }
@@ -1930,7 +1930,7 @@ details.ffc-consent-description > p {
     flex: 0 1 auto;
     min-width: 120px;
     font-weight: 600;
-    padding: 12px 24px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-3xl);
     font-size: var(--ffc-font-size-base);
 }
 
@@ -1938,14 +1938,14 @@ details.ffc-consent-description > p {
 .ffc-open-early-actions .ffc-extend-end-confirm {
     flex: 0 1 auto;
     min-width: 120px;
-    padding: 12px 20px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-2xl);
     font-size: var(--ffc-font-size-base);
 }
 
 .ffc-open-early-actions .ffc-open-early-confirm {
     /* Confirm is smaller + warning-tinted so the operator has to
        deliberately reach for it. */
-    padding: 8px 16px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-xl);
     font-size: var(--ffc-font-size-sm);
 }
 
@@ -1998,7 +1998,7 @@ details.ffc-consent-description > p {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     background: var(--ffc-inverse-surface);
     color: var(--ffc-inverse-on-surface);
 }
@@ -2016,7 +2016,7 @@ details.ffc-consent-description > p {
     color: var(--ffc-inverse-on-surface);
     font-size: var(--ffc-font-size-2xl);
     cursor: pointer;
-    padding: 0 4px;
+    padding: 0 var(--ffc-spacing-2xs);
     line-height: 1;
 }
 
@@ -2025,7 +2025,7 @@ details.ffc-consent-description > p {
 }
 
 #ffc-preview-modal .ffc-preview-note {
-    padding: 8px 16px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-xl);
     background: var(--ffc-primary-light);
     border-bottom: 1px solid var(--ffc-border);
     font-size: var(--ffc-font-size-xs);
@@ -2038,7 +2038,7 @@ details.ffc-consent-description > p {
     align-items: center;
     justify-content: center;
     overflow: auto;
-    padding: 12px;
+    padding: var(--ffc-spacing-lg);
 }
 
 /* Faithful preview: the iframe renders at the real A4 page size and JS scales
@@ -2096,10 +2096,10 @@ details.ffc-consent-description > p {
 
 .ffc-webview-warning {
     display: flex;
-    gap: 16px;
+    gap: var(--ffc-spacing-xl);
     align-items: flex-start;
-    padding: 18px 20px;
-    margin: 0 0 24px 0;
+    padding: 18px var(--ffc-spacing-2xl);
+    margin: 0 0 var(--ffc-spacing-3xl) 0;
     background: var(--ffc-warning-bg);
     border: 1px solid var(--ffc-warning-border);
     border-left: 4px solid var(--ffc-warning);
@@ -2122,7 +2122,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-webview-warning-content h3 {
-    margin: 0 0 6px 0;
+    margin: 0 0 var(--ffc-spacing-xs) 0;
     font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-warning-text);
@@ -2139,12 +2139,12 @@ details.ffc-consent-description > p {
 .ffc-webview-warning-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
 }
 
 .ffc-webview-warning-open,
 .ffc-webview-warning-dismiss {
-    padding: 10px 18px;
+    padding: var(--ffc-spacing-md) 18px;
     font-size: var(--ffc-font-size-base);
     font-weight: 600;
     border-radius: var(--ffc-radius-sm);
@@ -2180,8 +2180,8 @@ details.ffc-consent-description > p {
 @media (max-width: 600px) {
     .ffc-webview-warning {
         flex-direction: column;
-        gap: 8px;
-        padding: 16px;
+        gap: var(--ffc-spacing-sm);
+        padding: var(--ffc-spacing-xl);
     }
     .ffc-webview-warning-actions {
         flex-direction: column;
@@ -2205,10 +2205,10 @@ details.ffc-consent-description > p {
 
 .ffc-already-submitted-notice {
     display: flex;
-    gap: 16px;
+    gap: var(--ffc-spacing-xl);
     align-items: flex-start;
-    padding: 16px 20px;
-    margin: 0 0 24px 0;
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
+    margin: 0 0 var(--ffc-spacing-3xl) 0;
     background: var(--ffc-info-bg);
     border: 1px solid var(--ffc-info-border);
     border-left: 4px solid var(--ffc-primary);
@@ -2230,7 +2230,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-already-submitted-content h3 {
-    margin: 0 0 6px 0;
+    margin: 0 0 var(--ffc-spacing-xs) 0;
     font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-info-text);
@@ -2238,14 +2238,14 @@ details.ffc-consent-description > p {
 }
 
 .ffc-already-submitted-content p {
-    margin: 0 0 12px 0;
+    margin: 0 0 var(--ffc-spacing-lg) 0;
     font-size: var(--ffc-font-size-base);
     line-height: 1.5;
     color: var(--ffc-info-text);
 }
 
 .ffc-already-submitted-dismiss {
-    padding: 8px 16px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-xl);
     font-size: var(--ffc-font-size-sm);
     font-weight: 600;
     background: transparent;
@@ -2266,8 +2266,8 @@ details.ffc-consent-description > p {
 @media (max-width: 600px) {
     .ffc-already-submitted-notice {
         flex-direction: column;
-        gap: 8px;
-        padding: 14px 16px;
+        gap: var(--ffc-spacing-sm);
+        padding: 14px var(--ffc-spacing-xl);
     }
     .ffc-already-submitted-dismiss {
         width: 100%;

@@ -27,52 +27,52 @@
  * Margin top utilities
  */
 .ffc-mt-5 {
-    margin-top: 5px;
+    margin-top: var(--ffc-spacing-5);
 }
 
 /**
  * Margin bottom utilities
  */
 .ffc-mb-5 {
-    margin-bottom: 5px;
+    margin-bottom: var(--ffc-spacing-5);
 }
 
 .ffc-mt-10 {
-    margin-top: 10px;
+    margin-top: var(--ffc-spacing-md);
 }
 
 .ffc-mt-15 {
-    margin-top: 15px;
+    margin-top: var(--ffc-spacing-15);
 }
 
 .ffc-mt-20 {
-    margin-top: 20px;
+    margin-top: var(--ffc-spacing-2xl);
 }
 
 .ffc-mb-15 {
-    margin-bottom: 15px;
+    margin-bottom: var(--ffc-spacing-15);
 }
 
 /* 6.18.0 (#890 slice 1) — spacing/layout utilities lifted from inline styles
    across the admin/settings views. */
 .ffc-mt-8 {
-    margin-top: 8px;
+    margin-top: var(--ffc-spacing-sm);
 }
 
 .ffc-mt-12 {
-    margin-top: 12px;
+    margin-top: var(--ffc-spacing-lg);
 }
 
 .ffc-mt-16 {
-    margin-top: 16px;
+    margin-top: var(--ffc-spacing-xl);
 }
 
 .ffc-mb-2 {
-    margin-bottom: 2px;
+    margin-bottom: var(--ffc-spacing-3xs);
 }
 
 .ffc-mb-4 {
-    margin-bottom: 4px;
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-ml-18 {
@@ -86,7 +86,7 @@
 /* Disc bullet list with indent (WP admin resets ul list-style). */
 .ffc-list-disc {
     list-style: disc;
-    margin-left: 20px;
+    margin-left: var(--ffc-spacing-2xl);
 }
 
 /* ==========================================================================
@@ -99,7 +99,7 @@
 .ffc-block-label {
     display: block;
     font-weight: 600;
-    margin-bottom: 5px;
+    margin-bottom: var(--ffc-spacing-5);
 }
 
 /**
@@ -122,7 +122,7 @@
  * Form input grouping
  */
 .ffc-input-group {
-    margin-bottom: 15px;
+    margin-bottom: var(--ffc-spacing-15);
 }
 
 /* ==========================================================================
@@ -134,7 +134,7 @@
  */
 .ffc-admin-flex-row {
     display: flex;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
     align-items: center;
 }
 
@@ -150,7 +150,7 @@
  */
 .ffc-action-group {
     display: flex;
-    gap: 5px;
+    gap: var(--ffc-spacing-5);
 }
 
 /**
@@ -158,7 +158,7 @@
  */
 .ffc-template-loader {
     display: flex;
-    gap: 5px;
+    gap: var(--ffc-spacing-5);
     align-items: center;
 }
 
@@ -201,12 +201,12 @@
 /* 6.6.4 follow-up (#361 Sprint 3) — pre-flight stats badges in the
    form-editor sidebar metabox. */
 .ffc-preflight-stats-badges {
-    margin: 0 0 10px 0;
+    margin: 0 0 var(--ffc-spacing-md) 0;
     padding: 0;
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--ffc-spacing-xs);
 }
 
 .ffc-preflight-badge {
@@ -219,8 +219,8 @@
 .ffc-preflight-badge a {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     text-decoration: none;
     color: var(--ffc-text);
     font-size: var(--ffc-font-size-sm);
@@ -246,8 +246,8 @@
 /* 6.6.4 follow-up (#361 Sprint 4) — Debug toggles grouped into three
    sub-sections (Client / Server / Admin). */
 .ffc-debug-group-title {
-    margin: 24px 0 4px;
-    padding-top: 12px;
+    margin: var(--ffc-spacing-3xl) 0 var(--ffc-spacing-2xs);
+    padding-top: var(--ffc-spacing-lg);
     border-top: 1px solid var(--ffc-border-light);
     font-size: var(--ffc-font-size-base);
     font-weight: 600;
@@ -261,7 +261,7 @@
 }
 
 .ffc-debug-group-blurb {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--ffc-spacing-sm) 0;
     font-style: italic;
     color: var(--ffc-text-muted);
 }
@@ -274,7 +274,7 @@
 }
 
 .ffc-inline-status {
-    margin-left: 8px;
+    margin-left: var(--ffc-spacing-sm);
     font-style: italic;
     color: var(--ffc-text-muted);
 }
@@ -282,6 +282,6 @@
 /* Valor hexadecimal ao lado do seletor de cor, na aba de público-alvo. Estava
    num `style="color:#666"` inline no PHP (#1126). */
 .ffc-color-value {
-    margin-left: 8px;
+    margin-left: var(--ffc-spacing-sm);
     color: var(--ffc-text-muted);
 }

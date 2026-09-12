@@ -19,8 +19,8 @@
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
-    padding: 20px;
-    margin-bottom: 20px;
+    padding: var(--ffc-spacing-2xl);
+    margin-bottom: var(--ffc-spacing-2xl);
     min-width: 255px;
     max-width: 1500px;
     box-shadow: var(--ffc-shadow-sm);
@@ -36,8 +36,8 @@
 .ffc-settings-wrap .card > h3[id],
 .ffc-settings-page .card > h3[id] {
     margin-top: 0;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
+    margin-bottom: var(--ffc-spacing-15);
+    padding-bottom: var(--ffc-spacing-md);
     border-bottom: 1px solid var(--ffc-border-light);
     font-size: var(--ffc-font-size-xl);
     font-weight: 600;
@@ -45,15 +45,15 @@
 }
 
 .ffc-settings-wrap .card h3 {
-    margin-top: 20px;
-    margin-bottom: 15px;
+    margin-top: var(--ffc-spacing-2xl);
+    margin-bottom: var(--ffc-spacing-15);
     font-size: var(--ffc-font-size-lg);
     font-weight: 600;
 }
 
 .ffc-settings-wrap .card > p.description {
     margin-top: 0;
-    margin-bottom: 15px;
+    margin-bottom: var(--ffc-spacing-15);
     color: var(--ffc-text-muted);
 }
 
@@ -79,18 +79,18 @@
 .ffc-settings-wrap .form-table th,
 .ffc-settings-page .form-table th {
     width: 200px;
-    padding: 15px 10px 15px 0;
+    padding: var(--ffc-spacing-15) var(--ffc-spacing-md) var(--ffc-spacing-15) 0;
     font-weight: 600;
     vertical-align: top;
 }
 
 .ffc-settings-wrap .form-table td,
 .ffc-settings-page .form-table td {
-    padding: 15px 10px;
+    padding: var(--ffc-spacing-15) var(--ffc-spacing-md);
 }
 
 .ffc-settings-wrap .form-table .description {
-    margin-top: 8px;
+    margin-top: var(--ffc-spacing-sm);
     margin-bottom: 0;
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-muted);
@@ -98,8 +98,8 @@
 }
 
 .ffc-settings-wrap .form-table fieldset .description {
-    margin-top: 5px;
-    margin-bottom: 15px;
+    margin-top: var(--ffc-spacing-5);
+    margin-bottom: var(--ffc-spacing-15);
     margin-left: 25px;
 }
 
@@ -108,8 +108,8 @@
 .ffc-settings-wrap .form-table .description.ffc-module-note {
     display: flex;
     align-items: flex-start;
-    gap: 5px;
-    margin-top: 6px;
+    gap: var(--ffc-spacing-5);
+    margin-top: var(--ffc-spacing-xs);
     font-style: italic;
 }
 
@@ -127,7 +127,7 @@
    ========================================================================== */
 .ffc-stats-box {
     background: var(--ffc-bg-alt);
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
     border-radius: 4px;
     border-left: 4px solid var(--ffc-primary);
 }
@@ -153,7 +153,7 @@
 }
 
 .ffc-stats-box td {
-    padding: 12px 0;
+    padding: var(--ffc-spacing-lg) 0;
 }
 
 .ffc-stats-box td:first-child {
@@ -186,13 +186,13 @@
 .ffc-provider-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 15px;
-    margin-top: 15px;
+    gap: var(--ffc-spacing-15);
+    margin-top: var(--ffc-spacing-15);
 }
 
 .ffc-provider-card {
     background: var(--ffc-bg-alt);
-    padding: 15px;
+    padding: var(--ffc-spacing-15);
     border-radius: 4px;
     border-left: 4px solid var(--ffc-primary);
 }
@@ -212,13 +212,13 @@
 }
 
 .ffc-provider-card h4 {
-    margin: 0 0 10px 0;
+    margin: 0 0 var(--ffc-spacing-md) 0;
     font-size: var(--ffc-font-size-base);
     font-weight: 600;
 }
 
 .ffc-provider-card p {
-    margin: 5px 0;
+    margin: var(--ffc-spacing-5) 0;
     font-size: var(--ffc-font-size-sm);
     line-height: 1.4;
 }
@@ -227,12 +227,12 @@
    CHECKBOX GROUPS
    ========================================================================== */
 .ffc-checkbox-group {
-    margin: 15px 0;
+    margin: var(--ffc-spacing-15) 0;
 }
 
 .ffc-checkbox-group label {
     display: block;
-    margin-bottom: 10px;
+    margin-bottom: var(--ffc-spacing-md);
 }
 
 .ffc-checkbox-group .checkbox-label-text {
@@ -243,12 +243,12 @@
     color: var(--ffc-primary);
     font-weight: 400;
     font-size: var(--ffc-font-size-sm);
-    margin-left: 5px;
+    margin-left: var(--ffc-spacing-5);
 }
 
 .ffc-checkbox-group .description {
     margin-left: 30px;
-    margin-top: 5px;
+    margin-top: var(--ffc-spacing-5);
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-muted);
 }
@@ -257,18 +257,18 @@
    COLLAPSIBLE SECTIONS
    ========================================================================== */
 .ffc-collapsible-section {
-    margin-top: 20px;
+    margin-top: var(--ffc-spacing-2xl);
 }
 
 .ffc-collapsible-section.inline {
-    margin-top: 15px;
+    margin-top: var(--ffc-spacing-15);
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
     overflow: hidden;
 }
 
 .ffc-collapsible-content {
-    padding: 15px;
+    padding: var(--ffc-spacing-15);
 }
 
 .ffc-collapsible-section.inline .ffc-collapsible-content {
@@ -285,7 +285,7 @@
    ========================================================================== */
 .ffc-loglevel-table {
     border-collapse: collapse;
-    margin: 4px 0 8px;
+    margin: var(--ffc-spacing-2xs) 0 var(--ffc-spacing-sm);
 }
 
 .ffc-loglevel-table td {
@@ -301,8 +301,8 @@
 .ffc-loglevel-label {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
+    gap: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-xl);
     margin: 0;
     cursor: pointer;
     min-width: 320px;
@@ -321,7 +321,7 @@
 }
 
 .ffc-migration-card {
-    margin-bottom: 20px;
+    margin-bottom: var(--ffc-spacing-2xl);
 }
 
 /*
@@ -335,7 +335,7 @@
  * h3 margin would otherwise add stray space without edit.css to zero it.
  */
 .ffc-migration-card .postbox-header {
-    padding: 20px 20px 10px;
+    padding: var(--ffc-spacing-2xl) var(--ffc-spacing-2xl) var(--ffc-spacing-md);
 }
 
 .ffc-migration-card .postbox-header .hndle {
@@ -345,14 +345,14 @@
 
 .ffc-migration-card .inside {
     margin: 0;
-    padding: 15px 20px 20px;
+    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl) var(--ffc-spacing-2xl);
 }
 
 .ffc-migration-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
-    margin: 15px 0;
+    gap: var(--ffc-spacing-15);
+    margin: var(--ffc-spacing-15) 0;
 }
 
 .ffc-migration-stat-label {
@@ -360,7 +360,7 @@
     color: var(--ffc-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 5px;
+    margin-bottom: var(--ffc-spacing-5);
 }
 
 .ffc-migration-stat-value {
@@ -383,7 +383,7 @@
 }
 
 .ffc-migration-progress-bar {
-    margin: 20px 0;
+    margin: var(--ffc-spacing-2xl) 0;
 }
 
 .ffc-progress-bar-container {
@@ -429,7 +429,7 @@
 }
 
 .ffc-migration-actions {
-    margin-top: 20px;
+    margin-top: var(--ffc-spacing-2xl);
 }
 
 .ffc-migration-help {
@@ -440,17 +440,17 @@
    RATE LIMIT STYLES
    ========================================================================== */
 .ffc-rate-limit-wrap .card {
-    margin-bottom: 20px;
+    margin-bottom: var(--ffc-spacing-2xl);
 }
 
 .ffc-rate-limit-wrap .card h2,
 .ffc-rate-limit-wrap h2 {
     margin-top: 0;
-    margin-bottom: 10px;
+    margin-bottom: var(--ffc-spacing-md);
 }
 
 .ffc-rate-limit-wrap .card > p {
-    margin-bottom: 15px;
+    margin-bottom: var(--ffc-spacing-15);
 }
 
 /* ✅ v4.6.0: Rate limit notice styles moved to ffc-common.css (shared admin+frontend) */
@@ -472,8 +472,8 @@
    BUTTONS
    ========================================================================== */
 .ffc-settings-wrap .button {
-    margin-right: 10px;
-    margin-bottom: 5px;
+    margin-right: var(--ffc-spacing-md);
+    margin-bottom: var(--ffc-spacing-5);
 }
 
 .ffc-settings-wrap .button:last-child {
@@ -491,12 +491,12 @@
     
     .ffc-settings-wrap .form-table th {
         width: auto;
-        padding: 10px 10px 0 0;
+        padding: var(--ffc-spacing-md) var(--ffc-spacing-md) 0 0;
         display: block;
     }
     
     .ffc-settings-wrap .form-table td {
-        padding: 10px 0;
+        padding: var(--ffc-spacing-md) 0;
         display: block;
     }
     
@@ -511,12 +511,12 @@
 
 @media screen and (max-width: 1000px) {
     .ffc-settings-wrap .card {
-        padding: 15px;
+        padding: var(--ffc-spacing-15);
     }
     
     .ffc-provider-card,
     .ffc-stats-box {
-        padding: 15px;
+        padding: var(--ffc-spacing-15);
     }
 }
 
@@ -552,15 +552,15 @@
 /* Table of Contents */
 .ffc-doc-toc {
     background: var(--ffc-bg-alt);
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
     border-radius: 4px;
     border-left: 4px solid var(--ffc-primary);
-    margin: 20px 0;
+    margin: var(--ffc-spacing-2xl) 0;
 }
 
 .ffc-doc-toc h3 {
     margin-top: 0;
-    margin-bottom: 15px;
+    margin-bottom: var(--ffc-spacing-15);
     color: var(--ffc-text);
 }
 
@@ -574,17 +574,17 @@
 }
 
 .ffc-doc-toc-list > li {
-    margin: 2px 0;
+    margin: var(--ffc-spacing-3xs) 0;
 }
 
 .ffc-doc-toc-sublist > li {
-    margin: 2px 0;
+    margin: var(--ffc-spacing-3xs) 0;
 }
 
 /* Each nested level indents under a soft guide rail. */
 .ffc-doc-toc-sublist {
-    padding-left: 16px;
-    margin-left: 8px;
+    padding-left: var(--ffc-spacing-xl);
+    margin-left: var(--ffc-spacing-sm);
     border-left: 1px solid var(--ffc-border-light);
 }
 
@@ -592,8 +592,8 @@
 .ffc-doc-toc-branch > details > summary {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     cursor: pointer;
     border-radius: 4px;
     background: var(--ffc-bg-card);
@@ -654,8 +654,8 @@
 .ffc-doc-toc-list li > a {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     background: var(--ffc-bg-card);
     border-radius: 4px;
     text-decoration: none;
@@ -689,15 +689,15 @@
 /* Documentation Examples */
 .ffc-doc-example {
     background: var(--ffc-bg-alt);
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
     border-radius: 4px;
-    margin: 20px 0;
+    margin: var(--ffc-spacing-2xl) 0;
     border-left: 4px solid var(--ffc-success);
 }
 
 .ffc-doc-example h4 {
     margin-top: 0;
-    margin-bottom: 10px;
+    margin-bottom: var(--ffc-spacing-md);
     color: var(--ffc-success);
     font-size: var(--ffc-font-size-base);
     font-weight: 600;
@@ -708,10 +708,10 @@
        ffc-code-editor-dark.css (#1126). */
     background: #1e1e1e;
     color: #d4d4d4;
-    padding: 15px;
+    padding: var(--ffc-spacing-15);
     border-radius: 4px;
     overflow-x: auto;
-    margin: 10px 0;
+    margin: var(--ffc-spacing-md) 0;
     font-family: 'SF Mono', Monaco, Consolas, monospace;
     font-size: var(--ffc-font-size-sm);
     line-height: 1.5;
@@ -724,13 +724,13 @@
 }
 
 .ffc-doc-example ul {
-    margin: 10px 0 0 20px;
+    margin: var(--ffc-spacing-md) 0 0 var(--ffc-spacing-2xl);
 }
 
 /* Code Tags */
 code {
     background: var(--ffc-bg-alt);
-    padding: 3px 6px;
+    padding: 3px var(--ffc-spacing-xs);
     border-radius: 3px;
     font-family: 'SF Mono', Monaco, Consolas, monospace;
     font-size: var(--ffc-font-size-sm);
@@ -752,7 +752,7 @@ pre code {
 }
 
 .ffc-doc-list li {
-    padding: 10px 0 10px 30px;
+    padding: var(--ffc-spacing-md) 0 var(--ffc-spacing-md) 30px;
     border-bottom: 1px solid var(--ffc-border-light);
     position: relative;
 }
@@ -772,9 +772,9 @@ pre code {
 
 /* Alerts */
 .ffc-alert {
-    padding: 15px 20px;
+    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl);
     border-radius: 4px;
-    margin: 20px 0;
+    margin: var(--ffc-spacing-2xl) 0;
     border-left: 4px solid;
 }
 
@@ -798,11 +798,11 @@ pre code {
 .ffc-settings-wrap .widefat thead th {
     background: var(--ffc-bg-alt);
     font-weight: 600;
-    padding: 12px;
+    padding: var(--ffc-spacing-lg);
 }
 
 .ffc-settings-wrap .widefat tbody td {
-    padding: 12px;
+    padding: var(--ffc-spacing-lg);
     border-bottom: 1px solid var(--ffc-border-light);
 }
 
@@ -826,7 +826,7 @@ pre code {
     font-size: var(--ffc-font-size-2xl);
     line-height: 1;
     vertical-align: text-bottom;
-    margin-right: 6px;
+    margin-right: var(--ffc-spacing-xs);
     color: var(--ffc-primary);
 }
 
@@ -834,7 +834,7 @@ pre code {
 @media screen and (max-width: 782px) {
     .ffc-doc-example pre {
         font-size: var(--ffc-font-size-xs);
-        padding: 10px;
+        padding: var(--ffc-spacing-md);
     }
 }
 /* ==========================================================================
@@ -866,7 +866,7 @@ pre code {
 .ffc-settings-tabs {
     display: flex;
     align-items: stretch;
-    margin-top: 20px;
+    margin-top: var(--ffc-spacing-2xl);
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
@@ -890,8 +890,8 @@ pre code {
 .ffc-settings-tabs__tab {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
+    gap: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     color: var(--ffc-text);
     text-decoration: none;
     border-left: 4px solid transparent;
@@ -953,7 +953,7 @@ pre code {
 
 .ffc-settings-tabs__group-label {
     display: block;
-    padding: 14px 12px 5px;
+    padding: 14px var(--ffc-spacing-lg) var(--ffc-spacing-5);
     font-size: var(--ffc-font-size-2xs);
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -963,7 +963,7 @@ pre code {
 
 /* The first group sits flush with the nav top — no extra lead space. */
 .ffc-settings-tabs__nav > .ffc-settings-tabs__group:first-child .ffc-settings-tabs__group-label {
-    padding-top: 6px;
+    padding-top: var(--ffc-spacing-xs);
 }
 
 /* Module-settings links (#711) — nav items that navigate away to a module's
@@ -982,7 +982,7 @@ pre code {
 .ffc-settings-tabs__panel {
     flex: 1 1 auto;
     min-width: 0;
-    padding: 4px 20px 20px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-2xl) var(--ffc-spacing-2xl);
     animation: ffc-tab-fade-in 0.2s ease-out;
 }
 
@@ -1009,7 +1009,7 @@ pre code {
     .ffc-settings-tabs__tab {
         border-left: none;
         border-bottom: 3px solid transparent;
-        padding: 8px 12px;
+        padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     }
 
     .ffc-settings-tabs__tab.is-active {
@@ -1177,15 +1177,15 @@ html:has(.ffc-settings-back-to-top) {
    coupling the views to the shared utility names. */
 
 .ffc-set-my-10 {
-    margin: 10px 0;
+    margin: var(--ffc-spacing-md) 0;
 }
 
 .ffc-set-my-12 {
-    margin: 12px 0;
+    margin: var(--ffc-spacing-lg) 0;
 }
 
 .ffc-set-mt-10 {
-    margin-top: 10px;
+    margin-top: var(--ffc-spacing-md);
 }
 
 .ffc-set-mt-18 {
@@ -1193,15 +1193,15 @@ html:has(.ffc-settings-back-to-top) {
 }
 
 .ffc-set-mr-8 {
-    margin-right: 8px;
+    margin-right: var(--ffc-spacing-sm);
 }
 
 .ffc-set-mb-10 {
-    margin-bottom: 10px;
+    margin-bottom: var(--ffc-spacing-md);
 }
 
 .ffc-set-mb-6 {
-    margin-bottom: 6px;
+    margin-bottom: var(--ffc-spacing-xs);
 }
 
 .ffc-set-w-80 {
@@ -1234,10 +1234,10 @@ html:has(.ffc-settings-back-to-top) {
 }
 
 .ffc-set-filter-row {
-    margin-bottom: 6px;
+    margin-bottom: var(--ffc-spacing-xs);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ffc-spacing-xs);
     flex-wrap: wrap;
 }
 
@@ -1258,11 +1258,11 @@ html:has(.ffc-settings-back-to-top) {
 
 /* Advanced tab: encryption-key adopt/rotate blocks. */
 .ffc-encryption-key-suggest {
-    margin-top: 16px;
+    margin-top: var(--ffc-spacing-xl);
 }
 
 .ffc-key-suggest-widget {
-    margin-top: 12px;
+    margin-top: var(--ffc-spacing-lg);
 }
 
 /* Rate-limit tab: per-endpoint section heading + device-signal group headings. */
@@ -1271,7 +1271,7 @@ html:has(.ffc-settings-back-to-top) {
 }
 
 .ffc-signal-group-heading {
-    margin-bottom: 2px;
+    margin-bottom: var(--ffc-spacing-3xs);
 }
 
 /* Rate-limit tab: device-signal badge chrome (the per-group colour stays inline
@@ -1288,37 +1288,37 @@ html:has(.ffc-settings-back-to-top) {
 /* Geolocation tab: GPS fallback-cases table (the JS-toggled display stays
    inline — the companion JS flips it via jQuery .toggle()). */
 .ffc-gps-fallback-cases {
-    margin-top: 12px;
+    margin-top: var(--ffc-spacing-lg);
     max-width: 720px;
 }
 
 /* General tab: date/time format divergence notice body. */
 .ffc-settings-divergence-notice {
-    margin: 15px 0;
-    padding: 12px 15px;
+    margin: var(--ffc-spacing-15) 0;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-15);
 }
 
 .ffc-settings-divergence-notice p {
-    margin: 0 0 8px;
+    margin: 0 0 var(--ffc-spacing-sm);
 }
 
 .ffc-settings-divergence-notice ul {
-    margin: 6px 0 0 18px;
+    margin: var(--ffc-spacing-xs) 0 0 18px;
     list-style: disc;
 }
 
 /* Email-body hub (#964): give each email's subject + editor block breathing
    room and a light separator so the seven editors don't run together. */
 .ffc-email-body-hub__item {
-    padding: 16px 0;
+    padding: var(--ffc-spacing-xl) 0;
     border-top: 1px solid var(--ffc-border-light);
 }
 
 .ffc-email-body-hub__item:first-of-type {
     border-top: 0;
-    padding-top: 4px;
+    padding-top: var(--ffc-spacing-2xs);
 }
 
 .ffc-email-body-hub__item h3 {
-    margin: 0 0 10px;
+    margin: 0 0 var(--ffc-spacing-md);
 }

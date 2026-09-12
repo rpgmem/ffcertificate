@@ -83,11 +83,29 @@
     --ffc-font-size-2xl: max(24px, 1.5rem);
 
     /* Spacing */
-    --ffc-spacing-xs: 5px;
-    --ffc-spacing-sm: 10px;
-    --ffc-spacing-md: 15px;
-    --ffc-spacing-lg: 20px;
-    --ffc-spacing-xl: 30px;
+    /* Escala de espaçamento (#1169). Uma progressão só; toda declaração de
+       margin/padding/gap lê um destes. A escala EXISTIA com estes nomes e
+       tinha 3 consumidores de 1.238 declarações — os degraus abaixo são os
+       valores que o código realmente usa, não os que a escala antiga
+       declarava. */
+    --ffc-spacing-3xs: 2px;
+    --ffc-spacing-2xs: 4px;
+    --ffc-spacing-xs: 6px;
+    --ffc-spacing-sm: 8px;
+    --ffc-spacing-md: 10px;
+    --ffc-spacing-lg: 12px;
+    --ffc-spacing-xl: 16px;
+    --ffc-spacing-2xl: 20px;
+    --ffc-spacing-3xl: 24px;
+
+    /* SEGUNDA ESCADA — transitórios, nomeados pelo VALOR de propósito.
+       O código carrega duas escadas: a progressão acima e uma de 5 em 5.
+       Estes dois são o que sobra da segunda (182 declarações) e não
+       pertencem a progressão nenhuma. Saem por DELEÇÃO quando o tema de
+       densidade obrigar a escolher um fator por degrau — não os renomeie
+       para um degrau semântico, que é o que tornaria a dívida invisível. */
+    --ffc-spacing-5: 5px;
+    --ffc-spacing-15: 15px;
 
     /* Border Radius */
     --ffc-radius-sm: 4px;
@@ -589,7 +607,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
+    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl);
     border-bottom: 1px solid var(--ffc-gray-200);
 }
 
@@ -613,14 +631,14 @@
 }
 
 .ffc-shortcode .ffc-modal-body {
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
 }
 
 .ffc-shortcode .ffc-modal-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
-    padding: 15px 20px;
+    gap: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl);
     border-top: 1px solid var(--ffc-gray-200);
 }
 
@@ -629,13 +647,13 @@
 .ffc-shortcode .ffc-modal-body .ffc-form-group label {
     display: block;
     font-weight: 600;
-    margin-bottom: 5px;
+    margin-bottom: var(--ffc-spacing-5);
 }
 
 .ffc-shortcode .ffc-modal-body .ffc-form-group textarea {
     width: 100%;
     box-sizing: border-box;
-    padding: 8px 10px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
     color: var(--ffc-text);
     background: var(--ffc-bg-input);
     border: 1px solid var(--ffc-border);
@@ -710,7 +728,7 @@
  */
 .ffc-status-badge {
     display: inline-block;
-    padding: 2px 8px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
     border-radius: 10px;
     font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
@@ -768,11 +786,11 @@
     background: var(--ffc-warning-bg);
     border: 1px solid var(--ffc-warning-border);
     border-radius: var(--ffc-radius-sm);
-    padding: var(--ffc-spacing-md);
-    margin-bottom: var(--ffc-spacing-lg);
+    padding: var(--ffc-spacing-15);
+    margin-bottom: var(--ffc-spacing-2xl);
     display: flex;
     align-items: center;
-    gap: var(--ffc-spacing-sm);
+    gap: var(--ffc-spacing-md);
 }
 
 .ffc-rate-limit-icon {
@@ -851,7 +869,7 @@
 
 /* Private visibility restriction container */
 .ffc-visibility-restricted {
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
     background: var(--ffc-warning-light);
     border: 1px solid var(--ffc-warning);
     border-radius: 6px;
@@ -862,7 +880,7 @@
    contextos de tamanhos diferentes e acompanha cada um. Um token absoluto
    destruiria justamente essa relação. */
 .ffc-visibility-restricted .ffc-calendar-title {
-    margin: 0 0 10px;
+    margin: 0 0 var(--ffc-spacing-md);
     font-size: 1.2em;
     color: var(--ffc-text);
 }
@@ -878,7 +896,7 @@
 
 /* Scheduling restriction within modal */
 .ffc-scheduling-restricted {
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
     text-align: center;
 }
 
@@ -894,8 +912,8 @@
 /* Admin bypass notice */
 /* 0.9em literal: relativo ao pai, mesma razão do .ffc-calendar-title acima. */
 .ffc-admin-bypass-notice {
-    padding: 10px 15px;
-    margin-bottom: 15px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-15);
+    margin-bottom: var(--ffc-spacing-15);
     background: var(--ffc-info-light);
     border: 1px solid var(--ffc-info);
     border-radius: 4px;
@@ -906,7 +924,7 @@
 /* Badge — canonical base class (shared across admin + frontend) */
 .ffc-badge {
     display: inline-block;
-    padding: 3px 8px;
+    padding: 3px var(--ffc-spacing-sm);
     border-radius: 3px;
     font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
@@ -920,7 +938,7 @@
 
 .ffc-btn {
     display: inline-block;
-    padding: 10px 20px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-2xl);
     border: none;
     border-radius: var(--ffc-radius-sm);
     font-family: var(--ffc-font-family);
@@ -999,7 +1017,7 @@
    Sprint 2: Replace common inline style="" patterns
    ========================================================================== */
 .ffc-flex          { display: flex; }
-.ffc-mb-md         { margin-bottom: 12px; }
+.ffc-mb-md         { margin-bottom: var(--ffc-spacing-lg); }
 .ffc-color-dot     { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: middle; background-color: var(--ffc-color, currentColor); }
 
 /* ==========================================================================
@@ -1021,7 +1039,7 @@
        would otherwise collapse the toggle and overlap the label text. */
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
     cursor: pointer;
     user-select: none;
     line-height: 1.3;
@@ -1098,8 +1116,8 @@
    ========================================================================== */
 .ffc-autosave-badge {
     display: inline-block;
-    margin-left: 8px;
-    padding: 2px 8px;
+    margin-left: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
     border-radius: 10px;
     font-size: var(--ffc-font-size-xs);
     font-weight: 500;
@@ -1130,7 +1148,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 4px;
+    gap: var(--ffc-spacing-2xs);
 }
 
 .ffc-features-cell .ffc-toggle {
@@ -1139,8 +1157,8 @@
 
 .ffc-features-badge {
     display: inline-block;
-    margin-top: 4px;
-    padding: 2px 8px;
+    margin-top: var(--ffc-spacing-2xs);
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
     border-radius: 10px;
     font-size: var(--ffc-font-size-2xs);
     font-weight: 500;
@@ -1184,12 +1202,12 @@
 .ffc-captcha-mode-note {
     display: block;
     /* Indented under the radio so the note reads as belonging to its option. */
-    margin-left: 24px;
+    margin-left: var(--ffc-spacing-3xl);
 }
 
 .ffc-captcha-mode-note {
-    margin-top: 4px;
-    padding-left: 10px;
+    margin-top: var(--ffc-spacing-2xs);
+    padding-left: var(--ffc-spacing-md);
     border-left: 3px solid transparent;
 }
 
@@ -1213,8 +1231,8 @@
    ========================================================================== */
 
 .ffc-email-disabled-notice {
-    margin: 0 0 16px;
-    padding: 10px 14px;
+    margin: 0 0 var(--ffc-spacing-xl);
+    padding: var(--ffc-spacing-md) 14px;
     border-left: 4px solid var(--ffc-warning-border);
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);

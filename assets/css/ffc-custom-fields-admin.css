@@ -7,23 +7,23 @@
 
 /* Container */
 #ffc-custom-fields-container {
-    margin-top: 15px;
+    margin-top: var(--ffc-spacing-15);
 }
 
 /* Sortable list */
 .ffc-custom-fields-sortable {
-    margin-bottom: 15px;
+    margin-bottom: var(--ffc-spacing-15);
 }
 
 /* Individual field row */
 .ffc-custom-field-row {
     display: flex;
     align-items: flex-start;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    padding: 10px 12px;
-    margin-bottom: 4px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
+    margin-bottom: var(--ffc-spacing-2xs);
     border-radius: 3px;
     transition: opacity 0.2s, border-color 0.2s;
 }
@@ -40,7 +40,7 @@
 /* Drag handle */
 .ffc-field-handle {
     cursor: move;
-    padding: 4px 2px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-3xs);
     color: var(--ffc-text-light);
     flex-shrink: 0;
 }
@@ -65,7 +65,7 @@
 .ffc-field-main-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--ffc-spacing-sm);
     flex-wrap: wrap;
 }
 
@@ -90,12 +90,12 @@
 
 /* Details row (toggleable) */
 .ffc-field-details-row {
-    margin-top: 10px;
-    padding-top: 10px;
+    margin-top: var(--ffc-spacing-md);
+    padding-top: var(--ffc-spacing-md);
     border-top: 1px dashed var(--ffc-border-light);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--ffc-spacing-sm);
 }
 
 .ffc-field-details-row .ffc-field-key {
@@ -117,7 +117,7 @@
 .ffc-field-validation-container {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--ffc-spacing-sm);
     flex-wrap: wrap;
 }
 
@@ -138,13 +138,13 @@
 /* Actions */
 .ffc-field-actions {
     display: flex;
-    gap: 4px;
+    gap: var(--ffc-spacing-2xs);
     flex-shrink: 0;
-    padding-top: 2px;
+    padding-top: var(--ffc-spacing-3xs);
 }
 
 .ffc-field-actions .button {
-    padding: 0 6px;
+    padding: 0 var(--ffc-spacing-xs);
     min-height: 28px;
     line-height: 26px;
 }
@@ -160,14 +160,14 @@
 .ffc-sortable-placeholder {
     border: 2px dashed var(--ffc-primary);
     background: var(--ffc-primary-light);
-    margin-bottom: 4px;
+    margin-bottom: var(--ffc-spacing-2xs);
     min-height: 50px;
     border-radius: 3px;
 }
 
 /* Save status */
 .ffc-save-status {
-    margin-left: 10px;
+    margin-left: var(--ffc-spacing-md);
     font-style: italic;
 }
 
@@ -186,9 +186,9 @@
 .ffc-audience-section-heading {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 20px;
-    padding-bottom: 5px;
+    gap: var(--ffc-spacing-sm);
+    margin-top: var(--ffc-spacing-2xl);
+    padding-bottom: var(--ffc-spacing-5);
     border-bottom: 1px solid var(--ffc-border);
 }
 
@@ -248,22 +248,22 @@
 
 /* Divisão → Setor (dependent_select) nested editor in the field row. */
 .ffc-field-groups-container {
-    margin: 8px 0;
+    margin: var(--ffc-spacing-sm) 0;
 }
 
 .ffc-ds-editor .ffc-ds-division {
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
-    padding: 12px;
-    margin-bottom: 12px;
+    padding: var(--ffc-spacing-lg);
+    margin-bottom: var(--ffc-spacing-lg);
     background: var(--ffc-bg-card);
 }
 
 .ffc-ds-editor .ffc-ds-division-head {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: var(--ffc-spacing-sm);
+    margin-bottom: var(--ffc-spacing-sm);
 }
 
 .ffc-ds-editor .ffc-ds-division-name {
@@ -272,16 +272,16 @@
 }
 
 .ffc-ds-editor .ffc-ds-sectors {
-    margin: 0 0 8px 20px;
-    padding-left: 12px;
+    margin: 0 0 var(--ffc-spacing-sm) var(--ffc-spacing-2xl);
+    padding-left: var(--ffc-spacing-lg);
     border-left: 2px solid var(--ffc-border-light);
 }
 
 .ffc-ds-editor .ffc-ds-sector {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-bottom: 6px;
+    gap: var(--ffc-spacing-xs);
+    margin-bottom: var(--ffc-spacing-xs);
 }
 
 .ffc-ds-editor .ffc-ds-sector-remove {

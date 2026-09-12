@@ -35,7 +35,7 @@
 }
 
 .ffc-csv-progress-status {
-    margin-bottom: 16px;
+    margin-bottom: var(--ffc-spacing-xl);
     font-weight: 600;
     font-size: var(--ffc-font-size-base);
 }
@@ -65,14 +65,14 @@
 }
 
 .ffc-csv-progress-percent {
-    margin-top: 8px;
+    margin-top: var(--ffc-spacing-sm);
     font-size: var(--ffc-font-size-base);
     color: var(--ffc-text-muted);
 }
 
 .ffc-csv-progress-error {
     color: var(--ffc-danger);
-    margin-top: 12px;
+    margin-top: var(--ffc-spacing-lg);
     font-weight: 500;
     font-size: var(--ffc-font-size-base);
 }

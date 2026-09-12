@@ -21,8 +21,8 @@
 
 .ffc-user-dashboard {
     max-width: 1500px;
-    margin: 20px auto;
-    padding: 24px;
+    margin: var(--ffc-spacing-2xl) auto;
+    padding: var(--ffc-spacing-3xl);
     background: var(--ffc-bg);
     border-radius: var(--ffc-radius-lg);
     box-shadow: var(--ffc-shadow-md);
@@ -36,7 +36,7 @@
 
 .ffc-dashboard-notice {
     padding: 14px 18px;
-    margin-bottom: 20px;
+    margin-bottom: var(--ffc-spacing-2xl);
     border-radius: var(--ffc-radius-md);
     border-left: 4px solid var(--ffc-border);
     font-size: var(--ffc-font-size-base);
@@ -71,7 +71,7 @@
 }
 
 .ffc-dashboard-notice .button {
-    margin-top: 8px;
+    margin-top: var(--ffc-spacing-sm);
 }
 
 /* ==========================================================================
@@ -80,13 +80,13 @@
 
 .ffc-dashboard-tabs {
     display: flex;
-    gap: 2px;
-    margin-bottom: 24px;
+    gap: var(--ffc-spacing-3xs);
+    margin-bottom: var(--ffc-spacing-3xl);
     border-bottom: 2px solid var(--ffc-border-light);
 }
 
 .ffc-tab {
-    padding: 10px 20px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-2xl);
     background: transparent;
     border: none;
     border-bottom: 3px solid transparent;
@@ -118,7 +118,7 @@
 
 .ffc-tab-content {
     display: none;
-    padding: 4px 0;
+    padding: var(--ffc-spacing-2xs) 0;
     animation: ffcFadeIn 0.25s ease;
 }
 
@@ -137,7 +137,7 @@
 
 .ffc-loading {
     text-align: center;
-    padding: 48px 20px;
+    padding: 48px var(--ffc-spacing-2xl);
     color: var(--ffc-text-muted);
     font-size: var(--ffc-font-size-base);
 }
@@ -147,7 +147,7 @@
     display: inline-block;
     width: 18px;
     height: 18px;
-    margin-left: 8px;
+    margin-left: var(--ffc-spacing-sm);
     border: 2px solid var(--ffc-border);
     border-top-color: var(--ffc-primary);
     border-radius: 50%;
@@ -167,7 +167,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 14px;
-    margin-bottom: 24px;
+    margin-bottom: var(--ffc-spacing-3xl);
 }
 
 .ffc-dashboard-summary:empty {
@@ -178,7 +178,7 @@
     background: var(--ffc-bg-alt);
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-lg);
-    padding: 18px 16px;
+    padding: 18px var(--ffc-spacing-xl);
     text-align: center;
     transition: box-shadow 0.2s, border-color 0.2s;
 }
@@ -206,7 +206,7 @@
 .ffc-summary-detail {
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-secondary);
-    margin-top: 2px;
+    margin-top: var(--ffc-spacing-3xs);
 }
 
 .ffc-summary-label {
@@ -215,7 +215,7 @@
     text-transform: uppercase;
     letter-spacing: 0.6px;
     font-weight: 600;
-    margin-top: 8px;
+    margin-top: var(--ffc-spacing-sm);
 }
 
 /* ==========================================================================
@@ -225,10 +225,10 @@
 .ffc-filter-bar {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--ffc-spacing-sm);
     flex-wrap: wrap;
-    padding: 12px 16px;
-    margin-bottom: 16px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
+    margin-bottom: var(--ffc-spacing-xl);
     background: var(--ffc-bg-alt);
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md);
@@ -239,13 +239,13 @@
     color: var(--ffc-text-secondary);
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: var(--ffc-spacing-5);
     font-weight: 500;
 }
 
 .ffc-filter-bar input[type="date"],
 .ffc-filter-bar input[type="text"] {
-    padding: 6px 10px;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-md);
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
     font-size: var(--ffc-font-size-sm);
@@ -266,7 +266,7 @@
 }
 
 .ffc-filter-bar .button {
-    padding: 6px 14px;
+    padding: var(--ffc-spacing-xs) 14px;
     font-size: var(--ffc-font-size-sm);
     font-weight: 500;
     border-radius: 4px;
@@ -307,7 +307,7 @@
 .ffc-page-size-select a {
     color: var(--ffc-primary);
     text-decoration: none;
-    padding: 2px 6px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
     border-radius: 3px;
     transition: background 0.15s;
 }
@@ -319,7 +319,7 @@
 .ffc-page-size-select strong {
     color: var(--ffc-text);
     background: var(--ffc-primary-light);
-    padding: 2px 8px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
     border-radius: 3px;
     font-weight: 600;
 }
@@ -348,7 +348,7 @@
 .ffc-reregistrations-table th,
 .ffc-recruitment-table th {
     background: var(--ffc-bg-alt);
-    padding: 10px 12px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
     text-align: left;
     font-weight: 600;
     font-size: var(--ffc-font-size-xs);
@@ -363,7 +363,7 @@
 .ffc-audience-bookings-table td,
 .ffc-reregistrations-table td,
 .ffc-recruitment-table td {
-    padding: 10px 12px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
     border-bottom: 1px solid var(--ffc-border-light);
     vertical-align: middle;
     font-size: var(--ffc-font-size-sm);
@@ -435,8 +435,8 @@
 .ffc-btn-edit {
     display: inline-flex !important;
     align-items: center;
-    gap: 5px;
-    padding: 5px 14px !important;
+    gap: var(--ffc-spacing-5);
+    padding: var(--ffc-spacing-5) 14px !important;
     font-size: var(--ffc-font-size-xs) !important;
     font-weight: 500;
     text-decoration: none !important;
@@ -525,7 +525,7 @@
 
 .ffc-appointments-table td:last-child > * + *,
 .ffc-reregistrations-table td:last-child > * + * {
-    margin-left: 6px;
+    margin-left: var(--ffc-spacing-xs);
 }
 
 /* ==========================================================================
@@ -533,7 +533,7 @@
    ========================================================================== */
 
 .ffc-dashboard-status {
-    padding: 3px 10px;
+    padding: 3px var(--ffc-spacing-md);
     border-radius: 10px;
     font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
@@ -569,7 +569,7 @@
 
 .ffc-appointments-table .ffc-cancel-appointment {
     display: inline-block;
-    padding: 4px 12px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
     font-size: var(--ffc-font-size-xs);
     line-height: 1.4;
     min-height: 0;
@@ -603,12 +603,12 @@
 #tab-audience h3,
 #tab-reregistrations h3 {
     margin-top: 0;
-    margin-bottom: 12px;
+    margin-bottom: var(--ffc-spacing-lg);
     color: var(--ffc-text);
     font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     border-bottom: 1px solid var(--ffc-border-light);
-    padding-bottom: 10px;
+    padding-bottom: var(--ffc-spacing-md);
 }
 
 /* ==========================================================================
@@ -642,7 +642,7 @@
 
 .ffc-audience-bookings-table .ffc-audience-tag {
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-audience-bookings-table .ffc-audience-tag:last-child {
@@ -663,7 +663,7 @@
     font-weight: 600;
     letter-spacing: 0.5px;
     background: var(--ffc-bg-alt);
-    padding: 3px 8px;
+    padding: 3px var(--ffc-spacing-sm);
     border-radius: 4px;
     border: 1px solid var(--ffc-border-light);
     white-space: nowrap;
@@ -700,18 +700,18 @@
 
 .ffc-profile-logout {
     text-align: right;
-    margin-bottom: 12px;
+    margin-bottom: var(--ffc-spacing-lg);
 }
 
 .ffc-logout-link {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ffc-spacing-xs);
     color: var(--ffc-text-secondary);
     text-decoration: none;
     font-size: var(--ffc-font-size-sm);
     font-weight: 500;
-    padding: 6px 14px;
+    padding: var(--ffc-spacing-xs) 14px;
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md);
     background: var(--ffc-bg);
@@ -776,7 +776,7 @@
     color: var(--ffc-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 4px;
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-profile-field .value {
@@ -797,7 +797,7 @@
 .ffc-profile-field .email-list li,
 .ffc-profile-field .name-list li,
 .ffc-profile-field .cpf-list li {
-    padding: 2px 0;
+    padding: var(--ffc-spacing-3xs) 0;
     color: var(--ffc-text);
     font-size: var(--ffc-font-size-base);
     font-weight: 500;
@@ -812,7 +812,7 @@
     height: 6px;
     border-radius: 50%;
     background: var(--ffc-primary);
-    margin-right: 8px;
+    margin-right: var(--ffc-spacing-sm);
     vertical-align: middle;
 }
 
@@ -822,12 +822,12 @@
 
 .ffc-profile-actions {
     display: flex;
-    gap: 10px;
-    margin-top: 16px;
+    gap: var(--ffc-spacing-md);
+    margin-top: var(--ffc-spacing-xl);
 }
 
 .ffc-profile-actions .button {
-    padding: 9px 20px;
+    padding: 9px var(--ffc-spacing-2xl);
     font-size: var(--ffc-font-size-sm);
     font-weight: 500;
     border-radius: 6px;
@@ -837,7 +837,7 @@
     text-decoration: none;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ffc-spacing-xs);
 }
 
 .ffc-profile-actions .button-primary {
@@ -880,7 +880,7 @@
 
 .ffc-password-form {
     margin-top: 14px;
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
     background: var(--ffc-bg-alt);
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md);
@@ -898,14 +898,14 @@
     letter-spacing: 0;
     font-weight: 600;
     color: var(--ffc-text);
-    margin-bottom: 5px;
+    margin-bottom: var(--ffc-spacing-5);
 }
 
 .ffc-password-form input[type="password"] {
     color: var(--ffc-text);
     width: 100%;
     max-width: 340px;
-    padding: 8px 12px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
     font-size: var(--ffc-font-size-base);
@@ -920,7 +920,7 @@
 }
 
 .ffc-password-form .button-primary {
-    padding: 8px 20px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-2xl);
     font-size: var(--ffc-font-size-sm);
     border-radius: 6px;
 }
@@ -930,8 +930,8 @@
    ========================================================================== */
 
 .ffc-profile-section {
-    margin-top: 24px;
-    padding-top: 20px;
+    margin-top: var(--ffc-spacing-3xl);
+    padding-top: var(--ffc-spacing-2xl);
     border-top: 1px solid var(--ffc-border-light);
 }
 
@@ -947,8 +947,8 @@
    ========================================================================== */
 
 .ffc-audience-join-section {
-    margin-top: 24px;
-    padding-top: 20px;
+    margin-top: var(--ffc-spacing-3xl);
+    padding-top: var(--ffc-spacing-2xl);
     border-top: 1px solid var(--ffc-border-light);
 }
 
@@ -956,18 +956,18 @@
     font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-text);
-    margin: 0 0 6px 0;
+    margin: 0 0 var(--ffc-spacing-xs) 0;
 }
 
 .ffc-audience-limit-msg {
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-muted);
-    margin: 0 0 16px 0;
+    margin: 0 0 var(--ffc-spacing-xl) 0;
 }
 
 /* Parent group container */
 .ffc-audience-parent-group {
-    margin-bottom: 16px;
+    margin-bottom: var(--ffc-spacing-xl);
 }
 
 .ffc-audience-parent-group:last-child {
@@ -977,13 +977,13 @@
 .ffc-audience-parent-header {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
     width: 100%;
     font-size: var(--ffc-font-size-base);
     font-weight: 600;
     font-family: inherit;
     color: var(--ffc-text);
-    padding: 8px 14px;
+    padding: var(--ffc-spacing-sm) 14px;
     background: var(--ffc-bg-alt);
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md) var(--ffc-radius-md) 0 0;
@@ -1034,7 +1034,7 @@
 .ffc-audience-subgroup .ffc-audience-parent-header {
     font-size: var(--ffc-font-size-sm);
     font-weight: 500;
-    padding: 10px 14px 10px 28px;
+    padding: var(--ffc-spacing-md) 14px var(--ffc-spacing-md) 28px;
     min-height: 44px;
     box-sizing: border-box;
     background: var(--ffc-bg);
@@ -1074,7 +1074,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 14px 10px 28px;
+    padding: var(--ffc-spacing-md) 14px var(--ffc-spacing-md) 28px;
     min-height: 44px;
     box-sizing: border-box;
     background: var(--ffc-bg);
@@ -1096,7 +1096,7 @@
     color: var(--ffc-text);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
 }
 
 .ffc-audience-dot {
@@ -1112,7 +1112,7 @@
 
 .ffc-audience-join-item .button {
     flex-shrink: 0;
-    padding: 5px 16px;
+    padding: var(--ffc-spacing-5) var(--ffc-spacing-xl);
     font-size: var(--ffc-font-size-xs);
     font-weight: 500;
     border-radius: 4px;
@@ -1158,7 +1158,7 @@
 .ffc-audience-item-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--ffc-spacing-sm);
     flex-shrink: 0;
 }
 
@@ -1179,17 +1179,17 @@
 .ffc-notif-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
 }
 
 .ffc-toggle-label {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--ffc-spacing-lg);
     cursor: pointer;
     font-size: var(--ffc-font-size-base);
     color: var(--ffc-text);
-    padding: 6px 0;
+    padding: var(--ffc-spacing-xs) 0;
 }
 
 .ffc-toggle-label input[type="checkbox"] {
@@ -1237,12 +1237,12 @@
 .ffc-lgpd-section .ffc-lgpd-desc {
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-secondary);
-    margin: 0 0 10px 0;
+    margin: 0 0 var(--ffc-spacing-md) 0;
     line-height: 1.5;
 }
 
 .ffc-lgpd-export-btn {
-    padding: 8px 18px !important;
+    padding: var(--ffc-spacing-sm) 18px !important;
     font-size: var(--ffc-font-size-sm) !important;
     border-radius: 6px !important;
 }
@@ -1250,7 +1250,7 @@
 .ffc-lgpd-delete-btn {
     color: var(--ffc-danger) !important;
     border-color: var(--ffc-danger) !important;
-    padding: 8px 18px !important;
+    padding: var(--ffc-spacing-sm) 18px !important;
     font-size: var(--ffc-font-size-sm) !important;
     border-radius: 6px !important;
 }
@@ -1267,12 +1267,12 @@
 .ffc-profile-edit-form {
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md);
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
     background: var(--ffc-bg-alt);
 }
 
 .ffc-profile-edit-form h3 {
-    margin: 0 0 16px 0;
+    margin: 0 0 var(--ffc-spacing-xl) 0;
     font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-text);
@@ -1290,7 +1290,7 @@
     letter-spacing: 0;
     font-weight: 600;
     color: var(--ffc-text);
-    margin-bottom: 5px;
+    margin-bottom: var(--ffc-spacing-5);
 }
 
 .ffc-profile-edit-form input[type="text"],
@@ -1299,7 +1299,7 @@
     color: var(--ffc-text);
     width: 100%;
     max-width: 450px;
-    padding: 8px 12px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
     font-size: var(--ffc-font-size-base);
@@ -1322,12 +1322,12 @@
 .ffc-profile-edit-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
     margin-top: 18px;
 }
 
 .ffc-profile-edit-actions .button {
-    padding: 8px 20px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-2xl);
     font-size: var(--ffc-font-size-sm);
     border-radius: 6px;
 }
@@ -1340,14 +1340,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    margin-top: 16px;
+    gap: var(--ffc-spacing-md);
+    margin-top: var(--ffc-spacing-xl);
     padding-top: 14px;
     border-top: 1px solid var(--ffc-border-light);
 }
 
 .ffc-pagination-btn {
-    padding: 6px 16px;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-xl);
     font-size: var(--ffc-font-size-sm);
     font-weight: 500;
     background: var(--ffc-primary);
@@ -1393,8 +1393,8 @@
 .ffc-cal-export-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
+    gap: var(--ffc-spacing-xs);
+    padding: var(--ffc-spacing-5) var(--ffc-spacing-lg);
     font-size: var(--ffc-font-size-xs);
     line-height: 1.4;
     background: var(--ffc-primary);
@@ -1420,7 +1420,7 @@
     position: absolute;
     right: 0;
     top: 100%;
-    margin-top: 4px;
+    margin-top: var(--ffc-spacing-2xs);
     min-width: 200px;
     background: var(--ffc-bg);
     border: 1px solid var(--ffc-border-light);
@@ -1435,8 +1435,8 @@
 .ffc-cal-export-dropdown a {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
+    gap: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-md) 14px;
     color: var(--ffc-text);
     text-decoration: none;
     font-size: var(--ffc-font-size-sm);
@@ -1458,19 +1458,19 @@
     color: var(--ffc-danger-text);
     padding: 14px 18px;
     border-radius: var(--ffc-radius-md);
-    margin: 20px 0;
+    margin: var(--ffc-spacing-2xl) 0;
     font-size: var(--ffc-font-size-base);
 }
 
 .ffc-empty-state {
     text-align: center;
-    padding: 56px 20px;
+    padding: 56px var(--ffc-spacing-2xl);
     color: var(--ffc-text-muted);
 }
 
 .ffc-empty-state p {
     font-size: var(--ffc-font-size-lg);
-    margin: 8px 0;
+    margin: var(--ffc-spacing-sm) 0;
 }
 
 /* ==========================================================================
@@ -1479,8 +1479,8 @@
 
 @media (max-width: 768px) {
     .ffc-user-dashboard {
-        padding: 16px;
-        margin: 12px auto;
+        padding: var(--ffc-spacing-xl);
+        margin: var(--ffc-spacing-lg) auto;
     }
 
     .ffc-dashboard-summary {
@@ -1490,7 +1490,7 @@
     .ffc-filter-bar {
         flex-direction: column;
         align-items: stretch;
-        gap: 10px;
+        gap: var(--ffc-spacing-md);
     }
 
     .ffc-filter-bar label {
@@ -1510,7 +1510,7 @@
     .ffc-filter-bar .button {
         width: 100%;
         text-align: center;
-        padding: 8px 14px;
+        padding: var(--ffc-spacing-sm) 14px;
     }
 
     .ffc-page-size-select {
@@ -1576,7 +1576,7 @@
 
     .ffc-certificates-table th,
     .ffc-certificates-table td {
-        padding: 8px 6px;
+        padding: var(--ffc-spacing-sm) var(--ffc-spacing-xs);
         font-size: var(--ffc-font-size-xs);
     }
 
@@ -1589,7 +1589,7 @@
     }
 
     .ffc-certificates-table .button {
-        padding: 4px 8px;
+        padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
         font-size: var(--ffc-font-size-2xs);
     }
 }
@@ -1599,7 +1599,7 @@
    ========================================================================== */
 
 #tab-recruitment .ffc-recruitment-my-calls > h2 {
-    margin: 0 0 16px;
+    margin: 0 0 var(--ffc-spacing-xl);
     font-size: var(--ffc-font-size-xl);
     font-weight: 600;
     color: var(--ffc-text);
@@ -1609,25 +1609,25 @@
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md);
     background: var(--ffc-bg-card);
-    padding: 16px;
-    margin-bottom: 16px;
+    padding: var(--ffc-spacing-xl);
+    margin-bottom: var(--ffc-spacing-xl);
 }
 
 #tab-recruitment .ffc-recruitment-my-notice header {
-    margin-bottom: 12px;
+    margin-bottom: var(--ffc-spacing-lg);
     border-bottom: 1px solid var(--ffc-border-light);
-    padding-bottom: 12px;
+    padding-bottom: var(--ffc-spacing-lg);
 }
 
 #tab-recruitment .ffc-recruitment-my-notice header h3 {
-    margin: 0 0 8px;
+    margin: 0 0 var(--ffc-spacing-sm);
     font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-text);
 }
 
 #tab-recruitment .ffc-recruitment-my-notice h4 {
-    margin: 16px 0 8px;
+    margin: var(--ffc-spacing-xl) 0 var(--ffc-spacing-sm);
     font-size: var(--ffc-font-size-xs);
     font-weight: 600;
     color: var(--ffc-text-secondary);
@@ -1637,7 +1637,7 @@
 
 #tab-recruitment .ffc-recruitment-banner {
     display: inline-block;
-    padding: 4px 10px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
     border-radius: var(--ffc-radius-md);
     font-size: var(--ffc-font-size-xs);
     font-weight: 500;

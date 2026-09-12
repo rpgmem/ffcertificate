@@ -9,11 +9,11 @@
 
 /* Edit Button - Primary Blue */
 .ffc-table-responsive .button {
-    margin-right: 6px;
-    margin-bottom: 4px;
+    margin-right: var(--ffc-spacing-xs);
+    margin-bottom: var(--ffc-spacing-2xs);
     display: inline-block;
     vertical-align: middle;
-    padding: 6px 12px;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
     border-radius: 4px;
     font-weight: 500;
     transition: all 0.2s ease;
@@ -94,7 +94,7 @@
 
 .ffc-table-responsive td.column-actions {
     white-space: normal;
-    padding: 12px 10px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-md);
 }
 
 .ffc-table-responsive table.wp-list-table {
@@ -123,27 +123,27 @@
 .button[title*="PDF"]::before {
     display: inline-block;
     content: "📄 ";
-    margin-right: 4px;
+    margin-right: var(--ffc-spacing-2xs);
 }
 
 .button[href*="action=edit"]::before {
     content: "✏️ ";
-    margin-right: 4px;
+    margin-right: var(--ffc-spacing-2xs);
 }
 
 .button[href*="action=trash"]::before {
     content: "🗑️ ";
-    margin-right: 4px;
+    margin-right: var(--ffc-spacing-2xs);
 }
 
 .ffc-delete-btn::before {
     content: "❌ ";
-    margin-right: 4px;
+    margin-right: var(--ffc-spacing-2xs);
 }
 
 .button[href*="action=restore"]::before {
     content: "↩️ ";
-    margin-right: 4px;
+    margin-right: var(--ffc-spacing-2xs);
 }
 
 /* ==========================================================================
@@ -153,7 +153,7 @@
 /* .ffc-badge base is in ffc-common.css — only admin-specific overrides here */
 .ffc-status-badge {
     display: inline-block;
-    padding: 3px 8px;
+    padding: 3px var(--ffc-spacing-sm);
     border-radius: 3px;
     font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
@@ -186,18 +186,18 @@
 
 @media screen and (max-width: 782px) {
     .ffc-table-responsive .button {
-        margin-bottom: 6px;
+        margin-bottom: var(--ffc-spacing-xs);
         display: block;
         width: 100%;
         text-align: center;
     }
     
     .ffc-table-responsive td.column-actions {
-        padding: 10px;
+        padding: var(--ffc-spacing-md);
     }
     
     .button::before {
-        margin-right: 6px;
+        margin-right: var(--ffc-spacing-xs);
     }
 }
 
@@ -277,7 +277,7 @@
 }
 
 .ffc-filter-overlay-body {
-    padding: 8px 0;
+    padding: var(--ffc-spacing-sm) 0;
     overflow-y: auto;
     max-height: 50vh;
 }
@@ -285,8 +285,8 @@
 .ffc-filter-form-item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 18px;
+    gap: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-md) 18px;
     cursor: pointer;
     transition: background 0.15s ease;
     border-bottom: 1px solid var(--ffc-border-light);
@@ -320,7 +320,7 @@
 .ffc-filter-overlay-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: var(--ffc-spacing-sm);
     padding: 14px 18px;
     border-top: 1px solid var(--ffc-border);
 }
@@ -328,7 +328,7 @@
 .ffc-filter-btn .dashicons {
     width: 16px;
     height: 16px;
-    margin-right: 2px;
+    margin-right: var(--ffc-spacing-3xs);
     font-size: var(--ffc-font-size-lg);
     line-height: 1.4;
     vertical-align: middle;
@@ -340,9 +340,9 @@
 
 .ffc-admin-top-actions {
     display: flex;
-    gap: 12px;
+    gap: var(--ffc-spacing-lg);
     align-items: center;
-    margin-bottom: 15px;
+    margin-bottom: var(--ffc-spacing-15);
     flex-wrap: wrap;
 }
 
@@ -403,8 +403,8 @@
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    margin-bottom: 8px;
-    padding: 6px 10px;
+    margin-bottom: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-md);
     background: var(--ffc-inverse-surface);
     color: var(--ffc-inverse-on-surface);
     font-size: var(--ffc-font-size-xs);

@@ -9,7 +9,7 @@
  */
 
 .ffc-working-hours {
-    margin-top: 6px;
+    margin-top: var(--ffc-spacing-xs);
 }
 
 .ffc-wh-table {
@@ -27,7 +27,7 @@
 
 .ffc-wh-table th {
     text-align: left;
-    padding: 6px 6px;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-xs);
     font-weight: 600;
     font-size: var(--ffc-font-size-xs);
     color: var(--ffc-text-secondary);
@@ -40,13 +40,13 @@
 }
 
 .ffc-wh-table td {
-    padding: 4px 6px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xs);
     vertical-align: middle;
 }
 
 .ffc-wh-table select,
 .ffc-wh-table input[type="time"] {
-    padding: 4px 6px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xs);
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
     font-size: var(--ffc-font-size-sm);
@@ -78,7 +78,7 @@
     cursor: pointer;
     font-size: var(--ffc-font-size-lg);
     line-height: 1;
-    padding: 2px 6px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
     border-radius: 4px;
 }
 
@@ -89,7 +89,7 @@
 }
 
 .ffc-wh-add {
-    margin-top: 8px;
+    margin-top: var(--ffc-spacing-sm);
 }
 
 /* Responsive */
@@ -116,7 +116,7 @@
 }
 
 .ffc-wh-row-error td {
-    padding: 4px 8px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
     color: var(--ffc-danger-text);
     font-size: var(--ffc-font-size-xs);
     background: var(--ffc-danger-bg);
