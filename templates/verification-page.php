@@ -35,7 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<form method="POST" class="ffc-verification-form">
 			<div class="ffc-form-field">
 				<label for="ffc_auth_code">
-					<?php esc_html_e( 'Authentication Code', 'ffcertificate' ); ?> <span class="required">*</span>
+					<?php esc_html_e( 'Authentication Code', 'ffcertificate' ); ?> <span class="ffc-required">*</span>
 				</label>
 				<input
 					type="text"

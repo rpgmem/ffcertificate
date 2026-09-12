@@ -236,7 +236,7 @@ class VerificationResponseRenderer {
 		$html = '<div class="ffc-certificate-preview ffc-appointment-verification">';
 
 		$html .= '<div class="ffc-preview-header">';
-		$html .= '<span class="ffc-status-badge success ffc-icon-success">' . esc_html__( 'Appointment Receipt Valid', 'ffcertificate' ) . '</span>';
+		$html .= '<span class="ffc-status-badge ffc-status-badge-success ffc-icon-success">' . esc_html__( 'Appointment Receipt Valid', 'ffcertificate' ) . '</span>';
 		$html .= '<br><span class="ffc-verification-status ffc-verification-status-' . esc_attr( $status ) . '">' . esc_html( $status_label ) . '</span>';
 		$html .= '</div>';
 
@@ -245,26 +245,26 @@ class VerificationResponseRenderer {
 
 		if ( ! empty( $display_code ) ) {
 			$html .= '<div class="ffc-detail-row">';
-			$html .= '<span class="label">' . esc_html__( 'Validation Code:', 'ffcertificate' ) . '</span>';
-			$html .= '<span class="value code">' . esc_html( $display_code ) . '</span>';
+			$html .= '<span class="ffc-detail-label">' . esc_html__( 'Validation Code:', 'ffcertificate' ) . '</span>';
+			$html .= '<span class="ffc-detail-value ffc-detail-value-code">' . esc_html( $display_code ) . '</span>';
 			$html .= '</div>';
 		}
 
 		if ( ! empty( $data['calendar_title'] ) ) {
 			$html .= '<div class="ffc-detail-row">';
-			$html .= '<span class="label">' . esc_html__( 'Event:', 'ffcertificate' ) . '</span>';
-			$html .= '<span class="value">' . esc_html( $data['calendar_title'] ) . '</span>';
+			$html .= '<span class="ffc-detail-label">' . esc_html__( 'Event:', 'ffcertificate' ) . '</span>';
+			$html .= '<span class="ffc-detail-value">' . esc_html( $data['calendar_title'] ) . '</span>';
 			$html .= '</div>';
 		}
 
 		$html .= '<div class="ffc-detail-row">';
-		$html .= '<span class="label">' . esc_html__( 'Date:', 'ffcertificate' ) . '</span>';
-		$html .= '<span class="value">' . esc_html( $formatted_date ) . '</span>';
+		$html .= '<span class="ffc-detail-label">' . esc_html__( 'Date:', 'ffcertificate' ) . '</span>';
+		$html .= '<span class="ffc-detail-value">' . esc_html( $formatted_date ) . '</span>';
 		$html .= '</div>';
 
 		$html .= '<div class="ffc-detail-row">';
-		$html .= '<span class="label">' . esc_html__( 'Time:', 'ffcertificate' ) . '</span>';
-		$html .= '<span class="value">' . esc_html( $formatted_time ) . '</span>';
+		$html .= '<span class="ffc-detail-label">' . esc_html__( 'Time:', 'ffcertificate' ) . '</span>';
+		$html .= '<span class="ffc-detail-value">' . esc_html( $formatted_time ) . '</span>';
 		$html .= '</div>';
 
 		// 6.7.5 — H4 already underlined (rule from 6.6.12). Pre-6.7.5
@@ -276,21 +276,21 @@ class VerificationResponseRenderer {
 
 		if ( ! empty( $data['name'] ) ) {
 			$html .= '<div class="ffc-detail-row">';
-			$html .= '<span class="label">' . esc_html__( 'Name:', 'ffcertificate' ) . '</span>';
-			$html .= '<span class="value">' . esc_html( $data['name'] ) . '</span>';
+			$html .= '<span class="ffc-detail-label">' . esc_html__( 'Name:', 'ffcertificate' ) . '</span>';
+			$html .= '<span class="ffc-detail-value">' . esc_html( $data['name'] ) . '</span>';
 			$html .= '</div>';
 		}
 
 		if ( ! empty( $cpf_rf_display ) ) {
 			$html .= '<div class="ffc-detail-row">';
-			$html .= '<span class="label">' . esc_html__( 'CPF/RF:', 'ffcertificate' ) . '</span>';
-			$html .= '<span class="value">' . esc_html( $cpf_rf_display ) . '</span>';
+			$html .= '<span class="ffc-detail-label">' . esc_html__( 'CPF/RF:', 'ffcertificate' ) . '</span>';
+			$html .= '<span class="ffc-detail-value">' . esc_html( $cpf_rf_display ) . '</span>';
 			$html .= '</div>';
 		}
 
 		$html .= '<div class="ffc-detail-row">';
-		$html .= '<span class="label">' . esc_html__( 'Booked on:', 'ffcertificate' ) . '</span>';
-		$html .= '<span class="value">' . esc_html( $formatted_created ) . '</span>';
+		$html .= '<span class="ffc-detail-label">' . esc_html__( 'Booked on:', 'ffcertificate' ) . '</span>';
+		$html .= '<span class="ffc-detail-value">' . esc_html( $formatted_created ) . '</span>';
 		$html .= '</div>';
 
 		$html .= '</div>'; // .ffc-preview-body
@@ -357,11 +357,11 @@ class VerificationResponseRenderer {
 		}
 
 		// Status badge class.
-		$status_class = 'info';
+		$status_class = 'ffc-status-badge-info';
 		if ( 'approved' === $rereg['status'] ) {
-			$status_class = 'success';
+			$status_class = 'ffc-status-badge-success';
 		} elseif ( 'rejected' === $rereg['status'] ) {
-			$status_class = 'error';
+			$status_class = 'ffc-status-badge-error';
 		}
 
 		$html = '<div class="ffc-certificate-preview ffc-reregistration-verification">';
@@ -380,14 +380,14 @@ class VerificationResponseRenderer {
 
 		if ( ! empty( $display_code ) ) {
 			$html .= '<div class="ffc-detail-row">';
-			$html .= '<span class="label">' . esc_html__( 'Validation Code:', 'ffcertificate' ) . '</span>';
-			$html .= '<span class="value code">' . esc_html( $display_code ) . '</span>';
+			$html .= '<span class="ffc-detail-label">' . esc_html__( 'Validation Code:', 'ffcertificate' ) . '</span>';
+			$html .= '<span class="ffc-detail-value ffc-detail-value-code">' . esc_html( $display_code ) . '</span>';
 			$html .= '</div>';
 		}
 
 		$html .= '<div class="ffc-detail-row">';
-		$html .= '<span class="label">' . esc_html__( 'Status:', 'ffcertificate' ) . '</span>';
-		$html .= '<span class="value"><span class="ffc-verification-status ffc-verification-status-' . esc_attr( $rereg['status'] ) . '">' . esc_html( $rereg['status_label'] ) . '</span></span>';
+		$html .= '<span class="ffc-detail-label">' . esc_html__( 'Status:', 'ffcertificate' ) . '</span>';
+		$html .= '<span class="ffc-detail-value"><span class="ffc-verification-status ffc-verification-status-' . esc_attr( $rereg['status'] ) . '">' . esc_html( $rereg['status_label'] ) . '</span></span>';
 		$html .= '</div>';
 
 		// 6.7.5 — Campaign window. Surfaces the open period of the
@@ -401,8 +401,8 @@ class VerificationResponseRenderer {
 			$end_ts   = strtotime( (string) $rereg['end_date'] );
 			if ( false !== $start_ts && false !== $end_ts ) {
 				$html .= '<div class="ffc-detail-row">';
-				$html .= '<span class="label">' . esc_html__( 'Campaign Period:', 'ffcertificate' ) . '</span>';
-				$html .= '<span class="value">'
+				$html .= '<span class="ffc-detail-label">' . esc_html__( 'Campaign Period:', 'ffcertificate' ) . '</span>';
+				$html .= '<span class="ffc-detail-value">'
 					. esc_html( \FreeFormCertificate\Core\DateFormatter::format_date( $start_ts ) )
 					. ' — '
 					. esc_html( \FreeFormCertificate\Core\DateFormatter::format_date( $end_ts ) )
@@ -413,28 +413,28 @@ class VerificationResponseRenderer {
 
 		if ( ! empty( $rereg['display_name'] ) ) {
 			$html .= '<div class="ffc-detail-row">';
-			$html .= '<span class="label">' . esc_html__( 'Name:', 'ffcertificate' ) . '</span>';
-			$html .= '<span class="value">' . esc_html( $rereg['display_name'] ) . '</span>';
+			$html .= '<span class="ffc-detail-label">' . esc_html__( 'Name:', 'ffcertificate' ) . '</span>';
+			$html .= '<span class="ffc-detail-value">' . esc_html( $rereg['display_name'] ) . '</span>';
 			$html .= '</div>';
 		}
 
 		if ( ! empty( $cpf_display ) ) {
 			$html .= '<div class="ffc-detail-row">';
-			$html .= '<span class="label">' . esc_html__( 'CPF:', 'ffcertificate' ) . '</span>';
-			$html .= '<span class="value">' . esc_html( $cpf_display ) . '</span>';
+			$html .= '<span class="ffc-detail-label">' . esc_html__( 'CPF:', 'ffcertificate' ) . '</span>';
+			$html .= '<span class="ffc-detail-value">' . esc_html( $cpf_display ) . '</span>';
 			$html .= '</div>';
 		}
 
 		if ( ! empty( $email_display ) ) {
 			$html .= '<div class="ffc-detail-row">';
-			$html .= '<span class="label">' . esc_html__( 'Email:', 'ffcertificate' ) . '</span>';
-			$html .= '<span class="value">' . esc_html( $email_display ) . '</span>';
+			$html .= '<span class="ffc-detail-label">' . esc_html__( 'Email:', 'ffcertificate' ) . '</span>';
+			$html .= '<span class="ffc-detail-value">' . esc_html( $email_display ) . '</span>';
 			$html .= '</div>';
 		}
 
 		$html .= '<div class="ffc-detail-row">';
-		$html .= '<span class="label">' . esc_html__( 'Submitted:', 'ffcertificate' ) . '</span>';
-		$html .= '<span class="value">' . esc_html( $submitted_at ) . '</span>';
+		$html .= '<span class="ffc-detail-label">' . esc_html__( 'Submitted:', 'ffcertificate' ) . '</span>';
+		$html .= '<span class="ffc-detail-value">' . esc_html( $submitted_at ) . '</span>';
 		$html .= '</div>';
 
 		$html .= '</div>'; // .ffc-preview-body

@@ -209,7 +209,7 @@ final class AudienceAdminAudienceRenderer {
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
 					<th scope="row">
-						<label for="audience_name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="required">*</span></label>
+						<label for="audience_name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label>
 					</th>
 					<td>
 						<input type="text" name="audience_name" id="audience_name" class="regular-text"

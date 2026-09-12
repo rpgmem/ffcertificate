@@ -149,7 +149,7 @@
 }
 
 /* Form Styles */
-.ffc-form .required {
+.ffc-form .ffc-required {
     color: var(--ffc-danger);
 }
 

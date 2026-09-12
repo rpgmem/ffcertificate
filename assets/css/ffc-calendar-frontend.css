@@ -184,7 +184,7 @@
     font-size: var(--ffc-font-size-base);
 }
 
-.ffc-shortcode .ffc-booking-form .required {
+.ffc-shortcode .ffc-booking-form .ffc-required {
     color: var(--ffc-danger);
     font-weight: 600;
 }

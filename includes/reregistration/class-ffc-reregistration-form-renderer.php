@@ -318,7 +318,7 @@ class ReregistrationFormRenderer {
 					esc_attr( $field_name ),
 					checked( (string) $value, '1', false ),
 					esc_html( (string) $field->field_label ),
-					$required ? ' <span class="required">*</span>' : ''
+					$required ? ' <span class="ffc-required">*</span>' : ''
 				);
 				break;
 

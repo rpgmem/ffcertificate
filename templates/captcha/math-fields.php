@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <div class="ffc-captcha-row">
 	<label for="<?php echo esc_attr( $ffc_captcha_ans_id ); ?>">
-		<span class="ffc-captcha-label-text"><?php echo esc_html( $ffc_captcha_label ); ?></span> <span class="required">*</span>
+		<span class="ffc-captcha-label-text"><?php echo esc_html( $ffc_captcha_label ); ?></span> <span class="ffc-required">*</span>
 	</label>
 	<input type="number" name="ffc_captcha_ans" id="<?php echo esc_attr( $ffc_captcha_ans_id ); ?>" class="ffc-input" required aria-required="true">
 	<input type="hidden" name="ffc_captcha_hash" id="<?php echo esc_attr( $ffc_captcha_hash_id ); ?>" value="<?php echo esc_attr( $ffc_captcha_token ); ?>">

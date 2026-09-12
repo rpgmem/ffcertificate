@@ -35,7 +35,7 @@
     white-space: nowrap;
 }
 
-.ffc-wh-table th .required {
+.ffc-wh-table th .ffc-required {
     color: var(--ffc-danger);
 }
 

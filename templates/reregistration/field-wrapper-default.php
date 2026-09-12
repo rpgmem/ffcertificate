@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php
 				if ( $required ) :
 					?>
-					<span class="required">*</span><?php endif; ?>
+					<span class="ffc-required">*</span><?php endif; ?>
 			</label>
 
 			<?php self::render_input( $field, $field_id, $field_name, $value, $required, $rules ); ?>

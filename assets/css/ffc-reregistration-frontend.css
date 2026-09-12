@@ -116,7 +116,7 @@
     margin-bottom: var(--ffc-spacing-5);
 }
 
-.ffc-rereg-field label .required {
+.ffc-rereg-field label .ffc-required {
     color: var(--ffc-danger-text);
 }
 
