@@ -291,7 +291,7 @@ describe('audience-admin — booking actions', () => {
 					<td>
 						<a class="ffc-view-booking" data-booking-id="42" href="#">View</a> |
 						<a class="ffc-cancel-booking" data-booking-id="42" href="#">Cancel</a>
-						<span class="status-active">Active</span>
+						<span class="ffc-booking-status-active">Active</span>
 					</td>
 				</tr>
 			</table>
@@ -471,8 +471,8 @@ describe('audience-admin — booking actions', () => {
 		window.$('.ffc-cancel-booking').trigger('click');
 		await flush();
 
-		expect(window.$('.status-active').length).toBe(0);
-		expect(window.$('.status-cancelled').text()).toBe('Cancelled');
+		expect(window.$('.ffc-booking-status-active').length).toBe(0);
+		expect(window.$('.ffc-booking-status-cancelled').text()).toBe('Cancelled');
 		expect(window.$('.ffc-cancel-booking').length).toBe(0);
 	});
 
