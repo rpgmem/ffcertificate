@@ -101,6 +101,11 @@ class StylesheetOwnershipTest extends TestCase {
 		// frontend; `ffc-audience-admin.css`, nas telas de audiência.
 		'ffc-working-hours|ffc-audience-admin.css|ffc-reregistration-frontend.css' => 'admin × frontend: nunca coexistem numa tela',
 		'ffc-working-hours|ffc-audience-admin.css|ffc-working-hours.css' => 'telas distintas: audiência × perfil de usuário e painel',
+		// O selo de status do edital existe nas duas superfícies do
+		// recrutamento, e elas não podem coexistir: a folha de admin tem
+		// portão `is_recruitment_screen( $hook_suffix )`, que é um hook do
+		// wp-admin, e a pública é enfileirada no render do shortcode.
+		'ffc-recruitment-status-badge|ffc-recruitment-admin.css|ffc-recruitment-public.css' => 'admin × frontend: nunca coexistem numa tela',
 	);
 
 	/**
