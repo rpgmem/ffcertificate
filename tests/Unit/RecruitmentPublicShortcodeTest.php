@@ -229,4 +229,106 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 
 		$_SERVER = $server_backup;
 	}
+	// ==================================================================
+	// Enfileiramento adiantado (#1193)
+	// ==================================================================
+
+	/**
+	 * The hook itself — without it the method above is unreachable and the
+	 * `<link>` goes back to the footer, with nothing red to say so.
+	 */
+	public function test_register_hooks_the_early_enqueue(): void {
+		Functions\when( 'add_shortcode' )->justReturn( true );
+		$hooks = array();
+		Functions\when( 'add_action' )->alias(
+			static function ( $hook, $cb ) use ( &$hooks ) {
+				$hooks[ $hook ] = $cb;
+				return true;
+			}
+		);
+
+		RecruitmentPublicShortcode::register();
+
+		$this->assertArrayHasKey( 'wp_enqueue_scripts', $hooks );
+		$this->assertSame(
+			array( RecruitmentPublicShortcode::class, 'maybe_enqueue_early' ),
+			$hooks['wp_enqueue_scripts']
+		);
+	}
+
+	/**
+	 * The shortcode enqueues from inside `the_content`, which runs after
+	 * `wp_head` — so the `<link>` comes out in the footer and there is a window
+	 * in which the badges paint without their shape. This hook closes it for
+	 * the case we can see.
+	 */
+	public function test_early_enqueue_runs_when_the_queried_post_carries_the_shortcode(): void {
+		Functions\when( 'is_admin' )->justReturn( false );
+		$post               = new \WP_Post();
+		$post->post_content = '[ffc_recruitment_queue notice="X"]';
+		Functions\when( 'get_post' )->justReturn( $post );
+		Functions\expect( 'has_shortcode' )
+			->once()
+			->with( $post->post_content, 'ffc_recruitment_queue' )
+			->andReturn( true );
+		// `when()` and not `expect()`: the setUp already stubs this function,
+		// and a second Brain\Monkey expectation on the same name never sees the
+		// calls — the first stub answers them all.
+		$handles = array();
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( $handle ) use ( &$handles ) {
+				$handles[] = $handle;
+				return true;
+			}
+		);
+
+		RecruitmentPublicShortcode::maybe_enqueue_early();
+
+		$this->assertContains( 'ffc-recruitment-public', $handles );
+		$this->assertContains( 'ffc-common', $handles, 'A paleta tem que ir junto: sem ela, todo `var(--ffc-*)` invalida a declaração.' );
+	}
+
+	/**
+	 * A post without the shortcode must not pull the sheets onto every page of
+	 * the site — the hook fires on every frontend request.
+	 */
+	public function test_early_enqueue_is_silent_when_the_post_has_no_shortcode(): void {
+		Functions\when( 'is_admin' )->justReturn( false );
+		$post               = new \WP_Post();
+		$post->post_content = 'nothing here';
+		Functions\when( 'get_post' )->justReturn( $post );
+		Functions\when( 'has_shortcode' )->justReturn( false );
+		$handles = array();
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( $handle ) use ( &$handles ) {
+				$handles[] = $handle;
+				return true;
+			}
+		);
+
+		RecruitmentPublicShortcode::maybe_enqueue_early();
+
+		$this->assertSame( array(), $handles );
+	}
+
+	/**
+	 * No queried post at all (a 404, an archive) — `get_post()` returns null and
+	 * the read of `post_content` would be a fatal.
+	 */
+	public function test_early_enqueue_is_silent_without_a_queried_post(): void {
+		Functions\when( 'is_admin' )->justReturn( false );
+		Functions\when( 'get_post' )->justReturn( null );
+		$handles = array();
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( $handle ) use ( &$handles ) {
+				$handles[] = $handle;
+				return true;
+			}
+		);
+
+		RecruitmentPublicShortcode::maybe_enqueue_early();
+
+		$this->assertSame( array(), $handles );
+	}
+
 }

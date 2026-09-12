@@ -9,13 +9,18 @@
 
    A forma abaixo é a MEDIDA, não a que esta folha declarava: o
    `white-space: nowrap` vinha da `ffc-common` e agora é declarado aqui,
-   porque o nome novo não casa mais com o componente compartilhado. */
+   porque o nome novo não casa mais com o componente compartilhado.
+
+   ⚠ Cinco propriedades saíram daqui no #1193 -- `display`, `padding`,
+   `border-radius`, `font-size` e `font-weight`. Elas NUNCA venceram: o único
+   emissor deste selo é o `Core\BadgeHtml`, que escrevia a forma inline, e
+   inline vence classe. Eram letra morta que descrevia um retângulo, enquanto
+   a tela mostrava uma pílula -- e a diferença só aparecia no outro emissor
+   destas classes, o `<td>` da seção de classificações, que não passava pelo
+   helper e por isso saía com OUTRA forma, sem cor e com o enum cru. Aquele
+   `<td>` passou a usar o helper no mesmo PR, então a forma vem toda da
+   `.ffc-pill` e o que fica aqui são as quatro que a base não declara. */
 .ffc-recruitment-status-badge {
-    display: inline-block;
-    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
-    border-radius: var(--ffc-radius-xs);
-    font-size: var(--ffc-font-size-xs);
-    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: .03em;
     line-height: 1.5;

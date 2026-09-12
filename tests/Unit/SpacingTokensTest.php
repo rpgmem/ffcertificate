@@ -88,14 +88,22 @@ final class SpacingTokensTest extends TestCase {
 	private const BUDGET = array(
 		'ffc-admin-move-submissions.css'   => 1,
 		'ffc-admin-settings.css'           => 7,
-		'ffc-admin-submissions.css'        => 1,
+		// O único literal desta folha saiu com a regra fóssil do
+		// `.ffc-status-badge` (#1193): sem emissor desde a migração da lista
+		// para `.ffc-badge`.
+		'ffc-admin-submissions.css'        => 0,
 		'ffc-admin.css'                    => 2,
 		'ffc-audience-admin.css'           => 8,
 		'ffc-audience.css'                 => 7,
 		'ffc-calendar-frontend.css'        => 4,
 		'ffc-certificates-dashboard.css'   => 1,
 		'ffc-code-editor-dark.css'         => 1,
-		'ffc-common.css'                   => 1,
+		// Dois: o `3px` vertical do `.ffc-badge` e o do `.ffc-pill`, que têm a
+		// mesma altura de propósito. O segundo não é literal novo no
+		// repositório -- é o que estava escondido num literal PHP até o #1193,
+		// e o saldo do PR é zero porque `ffc-admin-submissions.css` devolveu o
+		// seu na mesma passada.
+		'ffc-common.css'                   => 2,
 		'ffc-custom-fields-admin.css'      => 3,
 		'ffc-frontend.css'                 => 19,
 		'ffc-pdf-core.css'                 => 1,

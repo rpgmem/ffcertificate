@@ -56,6 +56,9 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 		Functions\when( 'absint' )->alias( static fn ( $v ) => (int) $v );
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'current_user_can' )->justReturn( true );
+		// A célula de status passou a vir de `RecruitmentAdminPage::classification_status_badge()`,
+		// que lê as cores configuráveis das Settings (#1193). Vazio = defaults.
+		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'add_query_arg' )->alias(
 			static fn ( $args ) => 'admin.php?' . http_build_query( (array) $args )
@@ -269,6 +272,11 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 		// Classification summary row.
 		$this->assertStringContainsString( 'ED-01', $html );
 		$this->assertStringContainsString( 'ffc-recruitment-status-called', $html );
+		// A célula passa pelo helper desde o #1193: forma pela classe da base,
+		// rótulo traduzido e a cor configurável — antes saía o enum cru, sem cor
+		// e com uma forma que nenhum outro selo daquela tela tinha.
+		$this->assertStringContainsString( 'ffc-pill ffc-recruitment-status-badge ffc-recruitment-status-called', $html );
+		$this->assertStringContainsString( 'background:#e9d8fd', $html );
 		// Adjutancy <select> branch (notice has ≥2 attached adjutancies).
 		$this->assertStringContainsString( 'ffc-adjutancy-swap-select', $html );
 		$this->assertStringContainsString( '>mat<', $html );
