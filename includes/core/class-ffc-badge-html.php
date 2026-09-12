@@ -82,7 +82,10 @@ final class BadgeHtml {
 		$title   = $has_tip ? ' title="' . esc_attr( $tooltip ) . '"' : '';
 		$classes = implode(
 			' ',
-			array_filter( array( self::BASE_CLASS, $base_class, $variant_class ), 'strlen' )
+			array_filter(
+				array( self::BASE_CLASS, $base_class, $variant_class ),
+				static fn ( string $fragment ): bool => '' !== $fragment
+			)
 		);
 		return sprintf(
 			'<span class="%1$s"%2$s style="background:%3$s;color:%4$s;cursor:%5$s;">%6$s</span>',
