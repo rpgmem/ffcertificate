@@ -133,11 +133,11 @@ final class AudienceAdminAudienceRenderer {
 				<a href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Edit', 'ffcertificate' ); ?></a> |
 				<a href="<?php echo esc_url( $members_url ); ?>"><?php esc_html_e( 'Members', 'ffcertificate' ); ?></a> |
 				<?php if ( $is_active ) : ?>
-					<a href="<?php echo esc_url( $deactivate_url ); ?>" class="delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to deactivate this audience?', 'ffcertificate' ); ?>');">
+					<a href="<?php echo esc_url( $deactivate_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to deactivate this audience?', 'ffcertificate' ); ?>');">
 						<?php esc_html_e( 'Deactivate', 'ffcertificate' ); ?>
 					</a>
 				<?php else : ?>
-					<a href="<?php echo esc_url( $delete_url ); ?>" class="delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to permanently delete this audience?', 'ffcertificate' ); ?>');">
+					<a href="<?php echo esc_url( $delete_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to permanently delete this audience?', 'ffcertificate' ); ?>');">
 						<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
 					</a>
 				<?php endif; ?>
@@ -730,7 +730,7 @@ final class AudienceAdminAudienceRenderer {
 									<td><?php echo esc_html( $user->display_name ); ?></td>
 									<td><?php echo esc_html( $user->user_email ); ?></td>
 									<td class="column-actions">
-										<a href="<?php echo esc_url( $remove_url ); ?>" class="delete-link" onclick="return confirm('<?php esc_attr_e( 'Remove this member?', 'ffcertificate' ); ?>');">
+										<a href="<?php echo esc_url( $remove_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Remove this member?', 'ffcertificate' ); ?>');">
 											<?php esc_html_e( 'Remove', 'ffcertificate' ); ?>
 										</a>
 									</td>

@@ -362,34 +362,6 @@
 }
 
 /* ==========================================================================
-   LOADING STATES
-   ========================================================================== */
-
-.button.loading {
-    position: relative;
-    pointer-events: none;
-    opacity: 0.7;
-}
-
-.button.loading::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    right: 10px;
-    width: 12px;
-    height: 12px;
-    margin-top: -6px;
-    border: 2px solid currentColor;
-    border-radius: var(--ffc-radius-full);
-    border-top-color: transparent;
-    animation: spin 0.6s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* ==========================================================================
    HOVER TOOLTIPS
    ========================================================================== */
 

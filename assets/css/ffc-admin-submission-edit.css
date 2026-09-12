@@ -22,12 +22,12 @@
     border-radius: var(--ffc-radius-sm);
 }
 
-.ffc-consent-box.consent-given {
+.ffc-consent-box.ffc-consent-given {
     background: var(--ffc-success-bg);
     border-color: var(--ffc-success-border);
 }
 
-.ffc-consent-box.consent-not-given {
+.ffc-consent-box.ffc-consent-not-given {
     background: var(--ffc-warning-bg);
     border-color: var(--ffc-warning-border);
 }
@@ -40,11 +40,11 @@
     margin: 0;
 }
 
-.ffc-consent-box.consent-given p {
+.ffc-consent-box.ffc-consent-given p {
     color: var(--ffc-success-text);
 }
 
-.ffc-consent-box.consent-not-given p {
+.ffc-consent-box.ffc-consent-not-given p {
     color: var(--ffc-warning-text);
 }
 

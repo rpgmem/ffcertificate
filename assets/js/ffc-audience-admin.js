@@ -203,7 +203,7 @@
                         var timeDisplay = parseInt(b.is_all_day) ? (strings.allDay || 'All Day') : (b.start_time + ' - ' + b.end_time);
                         var typeDisplay = b.booking_type === 'audience' ? (strings.audience || 'Audience') : (strings.customUsers || 'Custom Users');
                         var statusDisplay = b.status === 'active' ? (strings.active || 'Active') : (strings.cancelled || 'Cancelled');
-                        var statusClass = b.status === 'active' ? 'status-active' : 'status-cancelled';
+                        var statusClass = b.status === 'active' ? 'ffc-booking-status-active' : 'ffc-booking-status-cancelled';
 
                         var html = '<table class="widefat fixed"><tbody>';
                         html += '<tr><th>' + esc(strings.date || 'Date') + '</th><td>' + esc(b.booking_date) + '</td></tr>';
@@ -272,7 +272,7 @@
                     .then(function() {
                         // Update the row status and remove cancel link
                         var $row = $link.closest('tr');
-                        $row.find('.status-active').removeClass('status-active').addClass('status-cancelled').text(strings.cancelled || 'Cancelled');
+                        $row.find('.ffc-booking-status-active').removeClass('ffc-booking-status-active').addClass('ffc-booking-status-cancelled').text(strings.cancelled || 'Cancelled');
                         $link.prev().remove(); // remove "|" separator
                         $link.remove();
                     })

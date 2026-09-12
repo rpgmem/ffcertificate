@@ -189,7 +189,7 @@ class AudienceAdminEnvironment {
 							<td class="column-actions">
 								<a href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Edit', 'ffcertificate' ); ?></a> |
 								<?php if ( $is_active ) : ?>
-									<a href="<?php echo esc_url( $deactivate_url ); ?>" class="delete-link" onclick="return confirm('
+									<a href="<?php echo esc_url( $deactivate_url ); ?>" class="ffc-delete-link" onclick="return confirm('
 									<?php
 										/* translators: %s: environment label (singular) */
 										printf( esc_attr__( 'Are you sure you want to deactivate this %s?', 'ffcertificate' ), esc_attr( $env_label_singular ) );
@@ -198,7 +198,7 @@ class AudienceAdminEnvironment {
 										<?php esc_html_e( 'Deactivate', 'ffcertificate' ); ?>
 									</a>
 								<?php else : ?>
-									<a href="<?php echo esc_url( $delete_url ); ?>" class="delete-link" onclick="return confirm('
+									<a href="<?php echo esc_url( $delete_url ); ?>" class="ffc-delete-link" onclick="return confirm('
 									<?php
 										/* translators: %s: environment label (singular) */
 										printf( esc_attr__( 'Are you sure you want to permanently delete this %s?', 'ffcertificate' ), esc_attr( $env_label_singular ) );

@@ -132,11 +132,11 @@
 }
 
 /* Delete Link */
-.delete-link {
+.ffc-delete-link {
     color: var(--ffc-danger);
 }
 
-.delete-link:hover {
+.ffc-delete-link:hover {
     color: var(--ffc-danger-text);
 }
 
@@ -310,12 +310,12 @@
  * (must be inline because menu is visible on ALL admin pages, not just scheduling pages) */
 
 /* Booking Status (non-prefixed -- used in bookings list) */
-.status-active {
+.ffc-booking-status-active {
     color: var(--ffc-success);
     font-weight: 600;
 }
 
-.status-cancelled {
+.ffc-booking-status-cancelled {
     color: var(--ffc-danger);
     font-weight: 600;
 }

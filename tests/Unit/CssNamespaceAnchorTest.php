@@ -91,8 +91,6 @@ class CssNamespaceAnchorTest extends TestCase {
 		// `.button` é do WordPress. `.button::before` põe um dashicon em TODO
 		// botão da tela de submissões, inclusive os que o core desenha.
 		'ffc-admin-submissions.css' => array(
-			'.button.loading'                         => 1,
-			'.button.loading::after'                  => 1,
 			'.button::before'                         => 1,
 			'.button:focus'                           => 1,
 			'.button[href*="action=edit"]::before'    => 1,
@@ -125,10 +123,6 @@ class CssNamespaceAnchorTest extends TestCase {
 			'.column-members'                  => 2,
 			'.column-status'                   => 1,
 			'.column-visibility'               => 2,
-			'.delete-link'                     => 1,
-			'.delete-link:hover'               => 1,
-			'.status-active'                   => 1,
-			'.status-cancelled'                => 1,
 			'.tablenav.top'                    => 1,
 			'.tablenav.top input[type="date"]' => 1,
 			'.tablenav.top select'             => 1,
@@ -147,8 +141,6 @@ class CssNamespaceAnchorTest extends TestCase {
 			'.column-period'      => 1,
 			'.column-status'      => 1,
 			'.column-submissions' => 1,
-			'a.delete-link'       => 1,
-			'a.delete-link:hover' => 1,
 		),
 		// Os seis ids que `DashboardShortcode` publica sem prefixo. Um id é
 		// único no documento: um tema com `#tab-profile` não repinta -- quebra
