@@ -17,8 +17,8 @@
 .ffc-certificates-dashboard {
     display: grid;
     grid-template-columns: 2fr 1fr;
-    gap: 20px;
-    margin-top: 20px;
+    gap: var(--ffc-spacing-2xl);
+    margin-top: var(--ffc-spacing-2xl);
     align-items: start;
 }
 
@@ -34,11 +34,11 @@
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
-    padding: 16px;
+    padding: var(--ffc-spacing-xl);
 }
 
 .ffc-certificates-side-title {
-    margin: 0 0 12px;
+    margin: 0 0 var(--ffc-spacing-lg);
     font-size: var(--ffc-font-size-lg);
 }
 
@@ -58,8 +58,8 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    padding: 10px 0;
+    gap: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-md) 0;
     border-bottom: 1px solid var(--ffc-border-light);
 }
 
@@ -72,7 +72,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.3px;
-    padding: 2px 8px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
     border-radius: 10px;
     line-height: 1.6;
 }
@@ -139,17 +139,17 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
+    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl);
     background: var(--ffc-bg-alt);
     border-bottom: 1px solid var(--ffc-border-light);
     flex-wrap: wrap;
-    gap: 15px;
+    gap: var(--ffc-spacing-15);
 }
 
 .ffc-calendar-core .ffc-calendar-nav {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
 }
 
 .ffc-calendar-core .ffc-current-month {
@@ -165,7 +165,7 @@
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
-    padding: 8px 12px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     cursor: pointer;
     font-size: var(--ffc-font-size-lg);
     transition: all 0.2s ease;
@@ -184,19 +184,19 @@
 
 .ffc-calendar-core .ffc-today-btn {
     font-size: var(--ffc-font-size-sm);
-    padding: 6px 12px;
-    margin-left: 10px;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
+    margin-left: var(--ffc-spacing-md);
 }
 
 .ffc-calendar-core .ffc-calendar-grid {
-    padding: 15px;
+    padding: var(--ffc-spacing-15);
 }
 
 .ffc-calendar-core .ffc-calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 5px;
-    margin-bottom: 10px;
+    gap: var(--ffc-spacing-5);
+    margin-bottom: var(--ffc-spacing-md);
 }
 
 .ffc-calendar-core .ffc-weekday {
@@ -204,13 +204,13 @@
     font-weight: 600;
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-secondary);
-    padding: 10px 5px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-5);
 }
 
 .ffc-calendar-core .ffc-calendar-days {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 5px;
+    gap: var(--ffc-spacing-5);
 }
 
 .ffc-calendar-core .ffc-day {
@@ -218,7 +218,7 @@
     min-height: 0;
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
-    padding: 5px;
+    padding: var(--ffc-spacing-5);
     background: var(--ffc-bg-card);
     cursor: pointer;
     transition: all 0.2s ease;
@@ -267,8 +267,8 @@
 
 .ffc-calendar-core .ffc-calendar-legend {
     display: flex;
-    gap: 20px;
-    padding: 15px 20px;
+    gap: var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl);
     background: var(--ffc-bg-alt);
     border-top: 1px solid var(--ffc-border-light);
     font-size: var(--ffc-font-size-sm);
@@ -279,7 +279,7 @@
 .ffc-calendar-core .ffc-legend-item {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: var(--ffc-spacing-5);
 }
 
 .ffc-calendar-core .ffc-legend-dot {
@@ -296,7 +296,7 @@
 .ffc-calendar-core .ffc-day .ffc-cert-count {
     display: inline-block;
     min-width: 20px;
-    padding: 1px 6px;
+    padding: 1px var(--ffc-spacing-xs);
     border-radius: 10px;
     font-size: var(--ffc-font-size-2xs);
     font-weight: 600;

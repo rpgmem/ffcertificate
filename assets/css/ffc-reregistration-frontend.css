@@ -11,7 +11,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: var(--ffc-spacing-xl);
     flex-wrap: wrap;
 }
 
@@ -40,8 +40,8 @@
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
     text-align: center;
-    padding: 12px 16px;
-    margin: -24px -24px 20px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
+    margin: -24px -24px var(--ffc-spacing-2xl);
     border-radius: 6px 6px 0 0;
 }
 
@@ -55,7 +55,7 @@
 .ffc-rereg-header-subtitle {
     font-size: var(--ffc-font-size-xs);
     font-weight: 400;
-    margin-top: 2px;
+    margin-top: var(--ffc-spacing-3xs);
     opacity: 0.9;
 }
 
@@ -65,12 +65,12 @@
     background: var(--ffc-bg-input);
     border: 1px solid var(--ffc-border);
     border-radius: 6px;
-    padding: 24px;
-    margin-bottom: 20px;
+    padding: var(--ffc-spacing-3xl);
+    margin-bottom: var(--ffc-spacing-2xl);
 }
 
 .ffc-rereg-form-container h3 {
-    margin: 0 0 4px 0;
+    margin: 0 0 var(--ffc-spacing-2xs) 0;
     font-size: var(--ffc-font-size-xl);
     font-weight: 600;
     color: var(--ffc-text);
@@ -79,7 +79,7 @@
 .ffc-rereg-deadline {
     color: var(--ffc-text-secondary);
     font-size: var(--ffc-font-size-sm);
-    margin: 0 0 20px 0;
+    margin: 0 0 var(--ffc-spacing-2xl) 0;
 }
 
 /* ── Fieldsets ────────────────────────────────── */
@@ -87,21 +87,21 @@
 .ffc-rereg-fieldset {
     border: 1px solid var(--ffc-border-light);
     border-radius: 6px;
-    padding: 20px;
-    margin: 0 0 20px 0;
+    padding: var(--ffc-spacing-2xl);
+    margin: 0 0 var(--ffc-spacing-2xl) 0;
 }
 
 .ffc-rereg-fieldset legend {
     font-weight: 600;
     font-size: var(--ffc-font-size-base);
     color: var(--ffc-text);
-    padding: 0 8px;
+    padding: 0 var(--ffc-spacing-sm);
 }
 
 /* ── Fields ──────────────────────────────────── */
 
 .ffc-rereg-field {
-    margin-bottom: 16px;
+    margin-bottom: var(--ffc-spacing-xl);
 }
 
 .ffc-rereg-field:last-child {
@@ -113,7 +113,7 @@
     font-weight: 600;
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text);
-    margin-bottom: 5px;
+    margin-bottom: var(--ffc-spacing-5);
 }
 
 .ffc-rereg-field label .required {
@@ -130,7 +130,7 @@
     color: var(--ffc-text);
     width: 100%;
     max-width: 500px;
-    padding: 8px 12px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
     font-size: var(--ffc-font-size-base);
@@ -164,8 +164,8 @@
 
 .ffc-rereg-row {
     display: flex;
-    gap: 16px;
-    margin-bottom: 16px;
+    gap: var(--ffc-spacing-xl);
+    margin-bottom: var(--ffc-spacing-xl);
 }
 
 .ffc-rereg-row .ffc-rereg-field {
@@ -189,7 +189,7 @@
 .ffc-checkbox-label {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--ffc-spacing-sm);
     font-weight: 400;
     cursor: pointer;
 }
@@ -202,7 +202,7 @@
 /* ── Working Hours ───────────────────────────── */
 
 .ffc-working-hours {
-    margin-top: 8px;
+    margin-top: var(--ffc-spacing-sm);
 }
 
 .ffc-wh-table {
@@ -216,18 +216,18 @@
     font-weight: 600;
     font-size: var(--ffc-font-size-xs);
     color: var(--ffc-text-secondary);
-    padding: 6px 4px;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-2xs);
     border-bottom: 1px solid var(--ffc-border-light);
 }
 
 .ffc-wh-table td {
-    padding: 4px;
+    padding: var(--ffc-spacing-2xs);
 }
 
 .ffc-wh-table select,
 .ffc-wh-table input[type="time"] {
     width: 100%;
-    padding: 4px 6px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xs);
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
     font-size: var(--ffc-font-size-sm);
@@ -241,7 +241,7 @@
     color: var(--ffc-danger-text);
     font-size: var(--ffc-font-size-xl);
     cursor: pointer;
-    padding: 2px 6px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
     line-height: 1;
 }
 
@@ -250,15 +250,15 @@
 }
 
 .ffc-wh-add {
-    margin-top: 8px;
+    margin-top: var(--ffc-spacing-sm);
     font-size: var(--ffc-font-size-sm);
 }
 
 /* ── Acúmulo de Cargos ──────────────────────── */
 
 .ffc-rereg-acumulo-fields {
-    margin-top: 16px;
-    padding-top: 16px;
+    margin-top: var(--ffc-spacing-xl);
+    padding-top: var(--ffc-spacing-xl);
     border-top: 1px dashed var(--ffc-border-light);
 }
 
@@ -271,12 +271,12 @@
 }
 
 .ffc-rereg-termo-text ul {
-    margin: 8px 0 0 20px;
+    margin: var(--ffc-spacing-sm) 0 0 var(--ffc-spacing-2xl);
     padding: 0;
 }
 
 .ffc-rereg-termo-text li {
-    margin-bottom: 6px;
+    margin-bottom: var(--ffc-spacing-xs);
 }
 
 /* ── Validation Error ────────────────────────── */
@@ -292,7 +292,7 @@
     display: block;
     color: var(--ffc-danger-text);
     font-size: var(--ffc-font-size-xs);
-    margin-top: 4px;
+    margin-top: var(--ffc-spacing-2xs);
     min-height: 0;
 }
 
@@ -305,15 +305,15 @@
 .ffc-rereg-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-top: 24px;
-    padding-top: 20px;
+    gap: var(--ffc-spacing-md);
+    margin-top: var(--ffc-spacing-3xl);
+    padding-top: var(--ffc-spacing-2xl);
     border-top: 1px solid var(--ffc-border-light);
     flex-wrap: wrap;
 }
 
 .ffc-rereg-actions .button {
-    padding: 8px 20px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-2xl);
     font-size: var(--ffc-font-size-sm);
     font-weight: 500;
     border-radius: 6px;
@@ -360,11 +360,11 @@
 
 @media (max-width: 768px) {
     .ffc-rereg-form-container {
-        padding: 16px;
+        padding: var(--ffc-spacing-xl);
     }
 
     .ffc-rereg-header-bar {
-        margin: -16px -16px 16px;
+        margin: -16px -16px var(--ffc-spacing-xl);
     }
 
     .ffc-rereg-fieldset {
@@ -377,7 +377,7 @@
     }
 
     .ffc-rereg-row .ffc-rereg-field {
-        margin-bottom: 16px;
+        margin-bottom: var(--ffc-spacing-xl);
     }
 
     .ffc-rereg-field input[type="text"],

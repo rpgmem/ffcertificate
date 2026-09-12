@@ -9,7 +9,7 @@
 .ffc-stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
+    gap: var(--ffc-spacing-2xl);
     margin-bottom: 30px;
 }
 
@@ -17,7 +17,7 @@
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
     display: flex;
     flex-direction: column;
 }
@@ -25,7 +25,7 @@
 .ffc-stat-number {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--ffc-spacing-lg);
 }
 
 /* 32px literal: é o glifo do ícone, não texto — um ícone dimensionado por
@@ -50,7 +50,7 @@
 }
 
 .ffc-stat-link {
-    margin-top: 15px;
+    margin-top: var(--ffc-spacing-15);
     color: var(--ffc-link);
     text-decoration: none;
 }
@@ -64,7 +64,7 @@
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
 }
 
 .ffc-quick-actions h2 {
@@ -73,7 +73,7 @@
 
 .ffc-action-buttons {
     display: flex;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
     flex-wrap: wrap;
 }
 
@@ -90,7 +90,7 @@
    Declarar o conjunto mantém o render idêntico e o torna intencional. */
 .ffc-audience-status {
     display: inline-block;
-    padding: 3px 8px;
+    padding: 3px var(--ffc-spacing-sm);
     border-radius: 3px;
     font-size: var(--ffc-font-size-xs);
     font-weight: 500;
@@ -142,9 +142,9 @@
 
 /* Filter Form */
 .ffc-filter-form {
-    margin: 15px 0;
+    margin: var(--ffc-spacing-15) 0;
     display: flex;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
     align-items: center;
 }
 
@@ -189,15 +189,15 @@
 .ffc-member-total {
     color: var(--ffc-text-light);
     font-size: var(--ffc-font-size-xs);
-    margin-left: 2px;
+    margin-left: var(--ffc-spacing-3xs);
 }
 
 /* Breadcrumb */
 .ffc-breadcrumb {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin: 8px 0 0;
+    gap: var(--ffc-spacing-xs);
+    margin: var(--ffc-spacing-sm) 0 0;
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-secondary);
 }
@@ -219,15 +219,15 @@
 /* Working Hours */
 .ffc-working-hours {
     background: var(--ffc-bg-alt);
-    padding: 15px;
+    padding: var(--ffc-spacing-15);
     border-radius: 4px;
 }
 
 .ffc-day-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
+    gap: var(--ffc-spacing-md);
+    margin-bottom: var(--ffc-spacing-md);
 }
 
 .ffc-day-label {
@@ -242,8 +242,8 @@
 /* Members Section */
 .ffc-members-section {
     background: var(--ffc-bg-card);
-    padding: 20px;
-    margin: 20px 0;
+    padding: var(--ffc-spacing-2xl);
+    margin: var(--ffc-spacing-2xl) 0;
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
 }
@@ -261,7 +261,7 @@
 }
 
 .ffc-user-result {
-    padding: 8px 12px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     cursor: pointer;
     border-bottom: 1px solid var(--ffc-border-light);
 }
@@ -275,14 +275,14 @@
 }
 
 .ffc-selected-users {
-    margin: 15px 0;
+    margin: var(--ffc-spacing-15) 0;
 }
 
 .ffc-selected-user {
     display: inline-block;
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
-    padding: 5px 10px;
+    padding: var(--ffc-spacing-5) var(--ffc-spacing-md);
     margin: 3px;
     border-radius: 3px;
     font-size: var(--ffc-font-size-sm);
@@ -290,7 +290,7 @@
 
 .ffc-selected-user .remove {
     cursor: pointer;
-    margin-left: 8px;
+    margin-left: var(--ffc-spacing-sm);
     opacity: 0.8;
 }
 
@@ -322,12 +322,12 @@
 
 /* Bookings Filter Bar */
 .tablenav.top {
-    margin-bottom: 15px;
+    margin-bottom: var(--ffc-spacing-15);
 }
 
 .tablenav.top select,
 .tablenav.top input[type="date"] {
-    margin-right: 5px;
+    margin-right: var(--ffc-spacing-5);
 }
 
 /* Admin Modal Overlay (booking details) */
@@ -391,11 +391,11 @@
 .ffc-admin-modal-body table.widefat th {
     width: 140px;
     font-weight: 600;
-    padding: 10px 12px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
 }
 
 .ffc-admin-modal-body table.widefat td {
-    padding: 10px 12px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
 }
 
 /* Import Page */
@@ -403,14 +403,14 @@
     display: flex;
     flex-wrap: wrap;
     gap: 30px;
-    margin-top: 20px;
+    margin-top: var(--ffc-spacing-2xl);
 }
 
 .ffc-import-section {
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
     flex: 1;
     min-width: 400px;
 }
@@ -420,30 +420,30 @@
 }
 
 .ffc-sample-csv {
-    margin-top: 20px;
-    padding-top: 20px;
+    margin-top: var(--ffc-spacing-2xl);
+    padding-top: var(--ffc-spacing-2xl);
     border-top: 1px solid var(--ffc-border);
 }
 
 .ffc-sample-csv pre {
     background: var(--ffc-bg-alt);
-    padding: 15px;
+    padding: var(--ffc-spacing-15);
     overflow-x: auto;
     font-size: var(--ffc-font-size-xs);
 }
 
 .ffc-sample-csv h4 {
-    margin-bottom: 10px;
+    margin-bottom: var(--ffc-spacing-md);
 }
 
 /* Dashboard Headings */
 .ffc-scheduling-dashboard {
-    margin-top: 20px;
+    margin-top: var(--ffc-spacing-2xl);
 }
 
 .ffc-scheduling-dashboard > h2 {
-    margin: 25px 0 15px;
-    padding-bottom: 8px;
+    margin: 25px 0 var(--ffc-spacing-15);
+    padding-bottom: var(--ffc-spacing-sm);
     border-bottom: 1px solid var(--ffc-border);
 }
 
@@ -496,8 +496,8 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border-top: 1px solid rgba(255,255,255,0.1);
-    margin-top: 6px;
-    padding-top: 8px;
+    margin-top: var(--ffc-spacing-xs);
+    padding-top: var(--ffc-spacing-sm);
 }
 #adminmenu .wp-submenu a[href^="#ffc-separator-"]:hover {
     color: #a7aaad !important;
@@ -506,7 +506,7 @@
 #adminmenu .wp-submenu a[href^="#ffc-separator-"]::before {
     font-family: dashicons;
     font-size: var(--ffc-font-size-base);
-    margin-right: 4px;
+    margin-right: var(--ffc-spacing-2xs);
     vertical-align: middle;
     position: relative;
     top: -1px;
@@ -523,7 +523,7 @@
 #adminmenu .wp-submenu a[href$="ffc-scheduling-dashboard"]::before {
     font-family: dashicons;
     font-size: var(--ffc-font-size-base);
-    margin-right: 4px;
+    margin-right: var(--ffc-spacing-2xs);
     vertical-align: middle;
     position: relative;
     top: -1px;
@@ -538,13 +538,13 @@
 
 .ffc-aud-flex-center {
     display: flex;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
     align-items: center;
 }
 
 .ffc-aud-flex-end {
     display: flex;
-    gap: 15px;
+    gap: var(--ffc-spacing-15);
     align-items: flex-end;
     flex-wrap: wrap;
 }
@@ -560,8 +560,8 @@
 }
 
 .ffc-aud-panel {
-    margin-bottom: 20px;
-    padding: 15px;
+    margin-bottom: var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-15);
     background: var(--ffc-bg-alt);
     border: 1px solid var(--ffc-border);
 }
@@ -640,18 +640,18 @@
 .ffc-color-input {
     width: 60px;
     height: 36px;
-    padding: 2px;
+    padding: var(--ffc-spacing-3xs);
     cursor: pointer;
 }
 
 .ffc-color-input-value {
     vertical-align: middle;
-    margin-left: 8px;
+    margin-left: var(--ffc-spacing-sm);
 }
 
 /* Bookings list: total-count note under the table. */
 .ffc-audience-total-note {
-    margin-top: 15px;
+    margin-top: var(--ffc-spacing-15);
 }
 
 /* ==========================================================================

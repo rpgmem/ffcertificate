@@ -7,15 +7,15 @@
    FORM BUILDER (Field Rows) - RESPONSIVE GRID
    ========================================================================== */
 #ffc-fields-container { 
-    margin-bottom: 15px; 
+    margin-bottom: var(--ffc-spacing-15); 
     max-width: 100%; 
 }
 
 .ffc-field-row {
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    padding: 15px;
-    margin-bottom: 12px;
+    padding: var(--ffc-spacing-15);
+    margin-bottom: var(--ffc-spacing-lg);
     border-left: 4px solid var(--ffc-primary);
     border-radius: 4px;
     box-shadow: var(--ffc-shadow-sm);
@@ -29,27 +29,27 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
+    margin-bottom: var(--ffc-spacing-15);
+    padding-bottom: var(--ffc-spacing-md);
     border-bottom: 1px solid var(--ffc-border-light);
 }
 
 .ffc-field-title {
-    margin-left: 8px;
+    margin-left: var(--ffc-spacing-sm);
 }
 
 /* RESPONSIVE GRID - Auto-fit columns */
 .ffc-field-row-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 15px;
+    gap: var(--ffc-spacing-15);
     align-items: end;
 }
 
 .ffc-field-row-grid .ffc-grid-item { 
     display: flex; 
     flex-direction: column; 
-    gap: 5px; 
+    gap: var(--ffc-spacing-5); 
 }
 
 .ffc-field-row-grid input[type="text"],
@@ -62,8 +62,8 @@
 .ffc-req-label {
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding-bottom: 8px;
+    gap: var(--ffc-spacing-5);
+    padding-bottom: var(--ffc-spacing-sm);
 }
 
 .ffc-flex-center {
@@ -73,22 +73,22 @@
 }
 
 .ffc-options-field {
-    margin-top: 15px;
+    margin-top: var(--ffc-spacing-15);
     background: var(--ffc-bg-alt);
-    padding: 12px;
+    padding: var(--ffc-spacing-lg);
     border-radius: 4px;
     border: 1px dashed var(--ffc-border);
 }
 
 .ffc-options-desc {
-    margin: 0 0 5px;
+    margin: 0 0 var(--ffc-spacing-5);
     font-weight: 700;
     color: var(--ffc-primary);
 }
 
 .ffc-builder-actions {
-    margin-top: 20px;
-    padding: 10px;
+    margin-top: var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-md);
     border-top: 1px solid var(--ffc-border-light);
 }
 
@@ -103,7 +103,7 @@
     /* Editor de código: escuro nos dois temas por definição (#1126). */
     background: #2c3338;
     color: #f0f0f1;
-    padding: 15px;
+    padding: var(--ffc-spacing-15);
     border-radius: 4px;
     line-height: 1.5;
     border: 1px solid #1e1e1e;
@@ -124,7 +124,7 @@
 }
 
 .ffc-gen-status {
-    margin-left: 10px;
+    margin-left: var(--ffc-spacing-md);
     color: var(--ffc-primary);
     font-weight: 600;
 }
@@ -149,7 +149,7 @@
 /* Container responsivo da tabela */
 .ffc-table-responsive {
     overflow-x: auto;
-    margin-top: 20px;
+    margin-top: var(--ffc-spacing-2xl);
     width: 100%;
 }
 
@@ -194,9 +194,9 @@
     
     .ffc-table-responsive .button {
         display: inline-block;
-        margin: 2px;
+        margin: var(--ffc-spacing-3xs);
         font-size: var(--ffc-font-size-2xs);
-        padding: 4px 8px;
+        padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
         line-height: 1.5;
     }
 }
@@ -206,7 +206,7 @@
    ========================================================================== */
 .ffc-danger-zone {
     margin-top: 40px;
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
     background: var(--ffc-bg-card);
     border: 2px solid var(--ffc-danger);
     border-radius: 4px;
@@ -222,17 +222,17 @@
    ========================================================================== */
 .ffc-shortcode-box {
     background: var(--ffc-bg-alt);
-    padding: 10px;
+    padding: var(--ffc-spacing-md);
     border-radius: 4px;
     border: 1px solid var(--ffc-border);
 }
 
 .ffc-shortcode-display {
     display: block;
-    padding: 8px;
+    padding: var(--ffc-spacing-sm);
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border-light);
-    margin: 10px 0;
+    margin: var(--ffc-spacing-md) 0;
     user-select: all;
     font-family: 'Courier New', Courier, monospace;
     font-size: var(--ffc-font-size-sm);
@@ -241,13 +241,13 @@
 
 .ffc-tips-list {
     list-style: disc;
-    padding-left: 20px;
+    padding-left: var(--ffc-spacing-2xl);
     font-size: var(--ffc-font-size-xs);
     color: var(--ffc-text-muted);
 }
 
 .ffc-tips-list li {
-    margin-bottom: 5px;
+    margin-bottom: var(--ffc-spacing-5);
 }
 
 /* ==========================================================================
@@ -262,7 +262,7 @@
 .ffc-sort-handle {
     cursor: move;
     color: var(--ffc-gray-300);
-    padding: 5px;
+    padding: var(--ffc-spacing-5);
     font-size: var(--ffc-font-size-xl);
     display: flex;
     align-items: center;
@@ -323,7 +323,7 @@
 
 /* Botão de copiar magic link */
 .ffc-copy-magic-link {
-    margin-left: 10px;
+    margin-left: var(--ffc-spacing-md);
     vertical-align: middle;
 }
 
@@ -382,8 +382,8 @@
 .ffc-migration-warning {
     background: var(--ffc-warning-bg);
     border-left: 4px solid var(--ffc-warning-border);
-    padding: 12px;
-    margin: 15px 0;
+    padding: var(--ffc-spacing-lg);
+    margin: var(--ffc-spacing-15) 0;
 }
 
 .ffc-migration-warning p {
@@ -400,7 +400,7 @@
 .ffc-action-group {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: var(--ffc-spacing-xs);
     align-items: center;
 }
 
@@ -415,7 +415,7 @@
    dimensionado por font-size é uma caixa, e a escala tipográfica não o
    governa. Mesma razão do .ffc-stat-icon (#1148 etapa 1). */
 .ffc-template-loader .button .dashicons {
-    margin-right: 4px;
+    margin-right: var(--ffc-spacing-2xs);
     font-size: 17px;
     width: 17px;
     height: 17px;
@@ -425,7 +425,7 @@
 /* Inline autosave feedback for the template visibility toggle (edit screen). */
 .ffc-autosave-status {
     display: inline-block;
-    margin-left: 8px;
+    margin-left: var(--ffc-spacing-sm);
     font-size: var(--ffc-font-size-xs);
     font-style: italic;
     vertical-align: middle;
@@ -478,7 +478,7 @@
     background: var(--ffc-primary-light);
     border: 1px dashed var(--ffc-primary);
     border-radius: 3px;
-    padding: 2px 6px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
     color: var(--ffc-primary);
     font-family: "Courier New", monospace;
     font-size: var(--ffc-font-size-sm);
@@ -512,12 +512,12 @@
     background: var(--ffc-primary-light);
     color: var(--ffc-primary);
     border-radius: 2px;
-    padding: 0 2px;
+    padding: 0 var(--ffc-spacing-3xs);
     font-weight: 600;
 }
 
 .ffc-code-editor-notice {
-    margin-top: 6px;
+    margin-top: var(--ffc-spacing-xs);
     color: var(--ffc-text-light);
     font-style: italic;
 }
@@ -549,13 +549,13 @@
    ========================================================================== */
 
 /* Margin utilities (ffc-mb-15 and ffc-mt-15 in ffc-admin-utilities.css) */
-.ffc-ml-20 { margin-left: 20px; }
-.ffc-m-5-0 { margin: 5px 0 0 0; }
+.ffc-ml-20 { margin-left: var(--ffc-spacing-2xl); }
+.ffc-m-5-0 { margin: var(--ffc-spacing-5) 0 0 0; }
 
 /* Form label blocks */
 .ffc-restriction-label {
     display: block;
-    margin: 10px 0;
+    margin: var(--ffc-spacing-md) 0;
 }
 
 /* Inline highlight for the "currently inherited from global" value shown in
@@ -563,7 +563,7 @@
    message). Subtle wp-admin-blue chip so the operator can see what an empty
    field will fall back to without it shouting. */
 .ffc-global-default {
-    padding: 0 4px;
+    padding: 0 var(--ffc-spacing-2xs);
     border-radius: 3px;
     background: var(--ffc-primary-light);
     color: var(--ffc-primary);
@@ -574,7 +574,7 @@
    eligibility (Available / Already started / Form ended / etc.) */
 .ffc-status-pill {
     display: inline-block;
-    padding: 3px 10px;
+    padding: 3px var(--ffc-spacing-md);
     border-radius: 11px;
     font-size: var(--ffc-font-size-xs);
     font-weight: 500;
@@ -610,7 +610,7 @@
    Pairs a readonly text input with a Copy-link button on the same row. */
 .ffc-csv-public-share {
     display: flex;
-    gap: 8px;
+    gap: var(--ffc-spacing-sm);
     align-items: center;
 }
 .ffc-csv-public-share input.large-text {
@@ -621,15 +621,15 @@
 /* Audit-log outcome summary cards (Public CSV Download metabox). */
 .ffc-csv-audit-summary {
     display: flex;
-    gap: 12px;
+    gap: var(--ffc-spacing-lg);
     flex-wrap: wrap;
-    margin: 0 0 12px;
+    margin: 0 0 var(--ffc-spacing-lg);
 }
 
 .ffc-csv-audit-card {
     flex: 1 1 140px;
     min-width: 140px;
-    padding: 12px 16px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     border-radius: 6px;
     background: var(--ffc-bg-alt);
     border-left: 4px solid var(--ffc-gray-400);
@@ -651,7 +651,7 @@
     color: var(--ffc-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    margin: 0 0 4px;
+    margin: 0 0 var(--ffc-spacing-2xs);
 }
 
 .ffc-csv-audit-card-value {
@@ -666,7 +666,7 @@
     display: block;
     font-size: var(--ffc-font-size-2xs);
     color: var(--ffc-text-muted);
-    margin-top: 6px;
+    margin-top: var(--ffc-spacing-xs);
     line-height: 1.3;
 }
 
@@ -692,15 +692,15 @@
     font-size: var(--ffc-font-size-2xs);
     max-height: 150px;
     overflow: auto;
-    margin-top: 8px;
-    padding: 8px;
+    margin-top: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-sm);
     background: var(--ffc-bg-alt);
     border: 1px solid var(--ffc-border-light);
 }
 
 /* Activity log card */
 .ffc-activity-card {
-    margin-top: 20px;
+    margin-top: var(--ffc-spacing-2xl);
     max-width: 100%;
 }
 
@@ -711,8 +711,8 @@
 
 /* Time description indent */
 .ffc-time-description {
-    margin-left: 20px;
-    margin-top: 5px;
+    margin-left: var(--ffc-spacing-2xl);
+    margin-top: var(--ffc-spacing-5);
 }
 
 /* List style */
@@ -723,7 +723,7 @@
 /* Checkbox label block */
 .ffc-checkbox-label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: var(--ffc-spacing-sm);
 }
 
 /* Ensure fieldset labels also display as blocks */
@@ -784,7 +784,7 @@ td .ffc-restriction-label {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 20px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-2xl);
     background: var(--ffc-inverse-surface);
     color: var(--ffc-inverse-on-surface);
     flex-shrink: 0;
@@ -807,7 +807,7 @@ td .ffc-restriction-label {
     font-size: 28px;
     line-height: 1;
     cursor: pointer;
-    padding: 0 4px;
+    padding: 0 var(--ffc-spacing-2xs);
     transition: color 0.15s;
 }
 
@@ -816,7 +816,7 @@ td .ffc-restriction-label {
 }
 
 .ffc-preview-note {
-    padding: 8px 20px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-2xl);
     background: var(--ffc-info-bg);
     border-bottom: 1px solid var(--ffc-border);
     font-size: var(--ffc-font-size-xs);
@@ -828,7 +828,7 @@ td .ffc-restriction-label {
     flex: 1;
     overflow: auto;
     background: var(--ffc-bg-alt);
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -858,7 +858,7 @@ td .ffc-restriction-label {
     }
 
     .ffc-preview-body {
-        padding: 10px;
+        padding: var(--ffc-spacing-md);
     }
 }
 
@@ -883,11 +883,11 @@ td .ffc-restriction-label {
 .column-ffc_form_id { width: 60px; text-align: center; }
 .column-ffc_shortcode { width: 240px; }
 .column-ffc_submissions { width: 100px; }
-.ffc-shortcode-cell { display: inline-flex; align-items: center; gap: 4px; }
-.ffc-shortcode-code { font-size: var(--ffc-font-size-xs); padding: 2px 6px; user-select: all; }
+.ffc-shortcode-cell { display: inline-flex; align-items: center; gap: var(--ffc-spacing-2xs); }
+.ffc-shortcode-code { font-size: var(--ffc-font-size-xs); padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs); user-select: all; }
 .ffc-copy-shortcode {
     background: none; border: 1px solid var(--ffc-border); border-radius: 3px;
-    cursor: pointer; padding: 2px 4px; line-height: 1; color: var(--ffc-text-muted);
+    cursor: pointer; padding: var(--ffc-spacing-3xs) var(--ffc-spacing-2xs); line-height: 1; color: var(--ffc-text-muted);
 }
 .ffc-copy-shortcode:hover { color: var(--ffc-primary); border-color: var(--ffc-primary); }
 .ffc-copy-shortcode .dashicons { font-size: var(--ffc-font-size-base); width: 14px; height: 14px; }
@@ -911,7 +911,7 @@ td .ffc-restriction-label {
 p.ffc-datetime-order-error {
 	color: var(--ffc-danger-text);
 	font-weight: 500;
-	margin-top: 4px;
+	margin-top: var(--ffc-spacing-2xs);
 }
 
 /* =========================================================================
@@ -959,8 +959,8 @@ p.ffc-datetime-order-error {
 .ffc-form-tabs__tab {
 	display: flex;
 	align-items: center;
-	gap: 8px;
-	padding: 12px 14px;
+	gap: var(--ffc-spacing-sm);
+	padding: var(--ffc-spacing-lg) 14px;
 	color: var(--ffc-text-secondary);
 	text-decoration: none;
 	font-weight: 500;
@@ -1022,15 +1022,15 @@ p.ffc-datetime-order-error {
 .ffc-form-tabs__panels {
 	flex: 1 1 auto;
 	min-width: 0;
-	padding: 4px 16px 16px;
+	padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xl) var(--ffc-spacing-xl);
 }
 
 .ffc-form-tabs__panel-title {
 	display: flex;
 	align-items: center;
-	gap: 8px;
-	margin: 4px 0 16px;
-	padding-bottom: 10px;
+	gap: var(--ffc-spacing-sm);
+	margin: var(--ffc-spacing-2xs) 0 var(--ffc-spacing-xl);
+	padding-bottom: var(--ffc-spacing-md);
 	font-size: var(--ffc-font-size-lg);
 	font-weight: 600;
 	color: var(--ffc-text);
@@ -1050,7 +1050,7 @@ p.ffc-datetime-order-error {
 
 /* Client-side required-tag save-guard banner (prepended to the Layout panel). */
 .ffc-form-tabs__required-warning {
-	margin: 0 0 16px;
+	margin: 0 0 var(--ffc-spacing-xl);
 }
 
 .ffc-form-tabs__required-warning code {
@@ -1060,7 +1060,7 @@ p.ffc-datetime-order-error {
 /* "Duplicate this form" link inside the Publish (Submit) box. */
 .misc-pub-section.ffc-duplicate-action .dashicons {
 	color: var(--ffc-text-muted);
-	margin-right: 4px;
+	margin-right: var(--ffc-spacing-2xs);
 	vertical-align: text-bottom;
 }
 
@@ -1075,7 +1075,7 @@ p.ffc-datetime-order-error {
 
 /* No-JS fallback: divide the stacked panels so they read as sections. */
 .ffc-form-tabs:not(.is-ready) .ffc-form-tabs__panel + .ffc-form-tabs__panel {
-	margin-top: 16px;
+	margin-top: var(--ffc-spacing-xl);
 	border-top: 1px solid var(--ffc-border-light);
 }
 
@@ -1121,7 +1121,7 @@ p.ffc-datetime-order-error {
 /* Block radio option in a fieldset (repeated per choice). */
 .ffc-radio-option {
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 /* ==========================================================================

@@ -16,6 +16,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **O medidor de contraste passa a derivar os pares das folhas** (#1168): ele comparava uma lista de ~20 pares de token escritos à mão, então media só o que alguém lembrou de listar. Agora toda regra que declara texto e fundo juntos vira uma medição nos dois temas, e o que não consegue ler falha em vez de passar em silêncio. A catraca de literais passa a contar cor nomeada — `white` não casava com nenhum padrão dela.
+- **A escala de espaçamento passa a ser lida** (#1169): `--ffc-spacing-*` existia desde sempre e tinha **3 consumidores de 1.238** declarações, com 30 valores px distintos em uso. A escala foi reconstruída a partir dos valores que o código realmente usa e 1.147 declarações passaram a lê-la, **sem mover um pixel** — cada substituição é uma identidade, provada comparando as declarações resolvidas antes e depois.
 - **Guarda de posse de componente** (#1162): classe declarada crua em duas folhas sem aresta de dependência entre elas tem a ordem decidida por enfileiramento — trocar duas linhas do bootstrap repinta uma tela. Guarda nova bloqueia o caso; os dois pares que restam ficam registrados com o motivo.
 - **Catraca de namespace no CSS** (#1152): 60 seletores não nomeiam nada que o plugin possua — `.button::before`, `.column-status`, `#tab-*` — e alcançam qualquer elemento da tela; hoje o raio é pequeno por sorte de enfileiramento, não por desenho. Guarda nova congela a lista por folha e só deixa encolher.
 

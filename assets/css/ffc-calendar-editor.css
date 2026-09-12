@@ -7,17 +7,17 @@
 
 /* Working Hours Table */
 .ffc-working-hours-table {
-    margin: 15px 0;
+    margin: var(--ffc-spacing-15) 0;
 }
 
 .ffc-working-hours-table th {
-    padding: 10px;
+    padding: var(--ffc-spacing-md);
     font-weight: 600;
     background: var(--ffc-bg-alt);
 }
 
 .ffc-working-hours-table td {
-    padding: 10px;
+    padding: var(--ffc-spacing-md);
     vertical-align: middle;
 }
 
@@ -38,7 +38,7 @@
 
 /* Add Working Hour Button */
 #ffc-add-working-hour {
-    margin-top: 10px;
+    margin-top: var(--ffc-spacing-md);
 }
 
 /* Form Table Styles */
@@ -58,7 +58,7 @@
 }
 
 .form-table .description {
-    margin-top: 5px;
+    margin-top: var(--ffc-spacing-5);
     font-style: italic;
     color: var(--ffc-text-muted);
 }
@@ -72,8 +72,8 @@
 .ffc-shortcode-display {
     background: var(--ffc-bg-alt);
     border: 1px solid var(--ffc-border);
-    padding: 12px;
-    margin: 15px 0;
+    padding: var(--ffc-spacing-lg);
+    margin: var(--ffc-spacing-15) 0;
     font-family: monospace;
     font-size: var(--ffc-font-size-sm);
     border-radius: 4px;
@@ -81,7 +81,7 @@
 
 .ffc-shortcode-display code {
     background: var(--ffc-bg-card);
-    padding: 4px 8px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
     border-radius: 3px;
     display: inline-block;
 }
@@ -97,21 +97,21 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: var(--ffc-spacing-sm);
 }
 
 /* Shortcode input (sidebar metabox) */
 .ffc-shortcode-input {
     color: var(--ffc-text);
     width: 100%;
-    padding: 6px;
+    padding: var(--ffc-spacing-xs);
     font-family: monospace;
     background: var(--ffc-bg-alt);
 }
 
 /* Shortcode preview label */
 .ffc-shortcode-preview-label {
-    margin-top: 15px;
+    margin-top: var(--ffc-spacing-15);
 }
 
 /* ==========================================================================
@@ -119,7 +119,7 @@
    ========================================================================== */
 
 .ffc-cleanup-stats {
-    margin: 15px 0;
+    margin: var(--ffc-spacing-15) 0;
 }
 
 .ffc-cleanup-stats .widefat {
@@ -128,16 +128,16 @@
 
 .ffc-cleanup-btn-full {
     width: 100%;
-    margin-bottom: 5px;
+    margin-bottom: var(--ffc-spacing-5);
 }
 
 .ffc-cleanup-btn-delete-all {
     width: 100%;
-    margin-top: 10px;
+    margin-top: var(--ffc-spacing-md);
 }
 
 .ffc-cleanup-warning {
-    margin-top: 10px;
+    margin-top: var(--ffc-spacing-md);
     color: var(--ffc-danger);
 }
 

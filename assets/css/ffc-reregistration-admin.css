@@ -8,7 +8,7 @@
 /* ── Status badges ───────────────────────────── */
 .ffc-status-badge {
     display: inline-block;
-    padding: 2px 8px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
     border-radius: 3px;
     font-size: var(--ffc-font-size-xs);
     font-weight: 600;
@@ -68,7 +68,7 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    margin-right: 4px;
+    margin-right: var(--ffc-spacing-2xs);
     vertical-align: middle;
     background-color: var(--ffc-color, currentColor);
 }
@@ -77,10 +77,10 @@
 .ffc-rereg-stats {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: var(--ffc-spacing-lg);
     align-items: center;
-    margin: 15px 0;
-    padding: 10px 15px;
+    margin: var(--ffc-spacing-15) 0;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-15);
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
     border-radius: 3px;
@@ -89,14 +89,14 @@
 .ffc-stat-item {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: var(--ffc-spacing-5);
 }
 
 /* ── Filters ─────────────────────────────────── */
 .ffc-rereg-filters {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ffc-spacing-xs);
     flex-wrap: wrap;
 }
 
@@ -143,10 +143,10 @@ a.delete-link:hover {
     gap: 3px;
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-secondary);
-    padding: 1px 8px;
+    padding: 1px var(--ffc-spacing-sm);
     border-radius: 3px;
     font-size: var(--ffc-font-size-xs);
-    margin: 1px 2px;
+    margin: 1px var(--ffc-spacing-3xs);
     white-space: nowrap;
 }
 
@@ -169,7 +169,7 @@ a.delete-link:hover {
 }
 
 .ffc-transfer-header {
-    padding: 8px 12px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     font-weight: 600;
     font-size: var(--ffc-font-size-sm);
     background: var(--ffc-bg-alt);
@@ -178,8 +178,8 @@ a.delete-link:hover {
 }
 
 .ffc-transfer-search {
-    margin: 6px 8px;
-    padding: 4px 8px;
+    margin: var(--ffc-spacing-xs) var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
     border: 1px solid var(--ffc-border);
     border-radius: 3px;
     font-size: var(--ffc-font-size-xs);
@@ -192,16 +192,16 @@ a.delete-link:hover {
     overflow-y: auto;
     min-height: 180px;
     max-height: 300px;
-    padding: 4px 0;
+    padding: var(--ffc-spacing-2xs) 0;
 }
 
 .ffc-transfer-item {
-    padding: 5px 10px;
+    padding: var(--ffc-spacing-5) var(--ffc-spacing-md);
     cursor: pointer;
     font-size: var(--ffc-font-size-sm);
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: var(--ffc-spacing-5);
     user-select: none;
     transition: background 0.1s;
 }
@@ -220,20 +220,20 @@ a.delete-link:hover {
 }
 
 .ffc-transfer-child {
-    padding-left: 24px;
+    padding-left: var(--ffc-spacing-3xl);
 }
 
 .ffc-transfer-actions {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 4px;
-    padding: 0 6px;
+    gap: var(--ffc-spacing-2xs);
+    padding: 0 var(--ffc-spacing-xs);
 }
 
 .ffc-transfer-actions .button {
     min-width: 32px;
-    padding: 2px 8px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
     font-size: var(--ffc-font-size-lg);
     line-height: 1.4;
     text-align: center;
@@ -245,7 +245,7 @@ a.delete-link:hover {
 }
 
 .ffc-transfer-member-count {
-    margin-top: 8px;
+    margin-top: var(--ffc-spacing-sm);
 }
 
 /* ── Submission details modal ────────────────── */
@@ -282,7 +282,7 @@ body.ffc-rereg-modal-open {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 20px;
+    padding: 14px var(--ffc-spacing-2xl);
     border-bottom: 1px solid var(--ffc-border-light);
     background: var(--ffc-bg-alt);
     border-radius: 6px 6px 0 0;
@@ -303,7 +303,7 @@ body.ffc-rereg-modal-open {
     line-height: 1;
     color: var(--ffc-text-secondary);
     cursor: pointer;
-    padding: 0 6px;
+    padding: 0 var(--ffc-spacing-xs);
 }
 
 .ffc-rereg-modal-close:hover {
@@ -324,24 +324,24 @@ body.ffc-rereg-modal-open {
 /* Submission details content */
 .ffc-submission-meta {
     margin-bottom: 14px;
-    padding-bottom: 10px;
+    padding-bottom: var(--ffc-spacing-md);
     border-bottom: 1px solid var(--ffc-border-light);
 }
 
 .ffc-submission-meta p {
-    margin: 4px 0;
+    margin: var(--ffc-spacing-2xs) 0;
 }
 
 .ffc-details-fieldset {
     border: 1px solid var(--ffc-border);
     border-radius: 4px;
-    padding: 8px 14px 12px;
+    padding: var(--ffc-spacing-sm) 14px var(--ffc-spacing-lg);
     margin: 0 0 14px;
     background: var(--ffc-bg-card);
 }
 
 .ffc-details-fieldset > legend {
-    padding: 0 6px;
+    padding: 0 var(--ffc-spacing-xs);
     font-weight: 600;
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text);
@@ -350,7 +350,7 @@ body.ffc-rereg-modal-open {
 .ffc-details-list {
     display: grid;
     grid-template-columns: minmax(140px, 30%) 1fr;
-    gap: 6px 14px;
+    gap: var(--ffc-spacing-xs) 14px;
     margin: 0;
 }
 
@@ -358,13 +358,13 @@ body.ffc-rereg-modal-open {
     font-weight: 600;
     color: var(--ffc-text-secondary);
     font-size: var(--ffc-font-size-sm);
-    padding: 4px 0;
+    padding: var(--ffc-spacing-2xs) 0;
     border-bottom: 1px dashed var(--ffc-border-light);
 }
 
 .ffc-details-list dd {
     margin: 0;
-    padding: 4px 0;
+    padding: var(--ffc-spacing-2xs) 0;
     border-bottom: 1px dashed var(--ffc-border-light);
     overflow-wrap: break-word;
 }
@@ -385,7 +385,7 @@ body.ffc-rereg-modal-open {
 }
 
 .ffc-rereg-ml-10 {
-    margin-left: 10px;
+    margin-left: var(--ffc-spacing-md);
 }
 
 .ffc-rereg-inline {
