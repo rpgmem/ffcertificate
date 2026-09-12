@@ -24,14 +24,14 @@ describe('ffc-custom-fields-collapse', () => {
 		const body    = document.getElementById('sec1');
 
 		heading.click();
-		expect(heading.classList.contains('collapsed')).toBe(true);
+		expect(heading.classList.contains('is-collapsed')).toBe(true);
 		expect(heading.getAttribute('aria-expanded')).toBe('false');
-		expect(body.classList.contains('collapsed')).toBe(true);
+		expect(body.classList.contains('is-collapsed')).toBe(true);
 
 		heading.click();
-		expect(heading.classList.contains('collapsed')).toBe(false);
+		expect(heading.classList.contains('is-collapsed')).toBe(false);
 		expect(heading.getAttribute('aria-expanded')).toBe('true');
-		expect(body.classList.contains('collapsed')).toBe(false);
+		expect(body.classList.contains('is-collapsed')).toBe(false);
 	});
 
 	it('activates on Enter and Space keydown', () => {
@@ -40,10 +40,10 @@ describe('ffc-custom-fields-collapse', () => {
 		const heading = document.querySelector('.ffc-cf-toggle');
 
 		heading.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-		expect(heading.classList.contains('collapsed')).toBe(true);
+		expect(heading.classList.contains('is-collapsed')).toBe(true);
 
 		heading.dispatchEvent(new window.KeyboardEvent('keydown', { key: ' ', bubbles: true }));
-		expect(heading.classList.contains('collapsed')).toBe(false);
+		expect(heading.classList.contains('is-collapsed')).toBe(false);
 	});
 
 	it('ignores other keys', () => {
@@ -51,7 +51,7 @@ describe('ffc-custom-fields-collapse', () => {
 		loadScript(SCRIPT);
 		const heading = document.querySelector('.ffc-cf-toggle');
 		heading.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
-		expect(heading.classList.contains('collapsed')).toBe(false);
+		expect(heading.classList.contains('is-collapsed')).toBe(false);
 	});
 
 	it('defers init to DOMContentLoaded when the document is still loading', () => {
@@ -65,10 +65,10 @@ describe('ffc-custom-fields-collapse', () => {
 			const heading = document.querySelector('.ffc-cf-toggle');
 			// Handler not wired yet — clicking does nothing until DOMContentLoaded.
 			heading.click();
-			expect(heading.classList.contains('collapsed')).toBe(false);
+			expect(heading.classList.contains('is-collapsed')).toBe(false);
 			document.dispatchEvent(new window.Event('DOMContentLoaded'));
 			heading.click();
-			expect(heading.classList.contains('collapsed')).toBe(true);
+			expect(heading.classList.contains('is-collapsed')).toBe(true);
 		} finally {
 			if (desc) Object.defineProperty(document, 'readyState', desc);
 			else delete document.readyState;
@@ -122,7 +122,7 @@ describe('ffc-custom-fields-collapse — required follows the section (#1120)', 
 
 	it('syncs from the markup on init when a section renders collapsed', () => {
 		installWithFields();
-		document.getElementById('sec1').classList.add('collapsed');
+		document.getElementById('sec1').classList.add('is-collapsed');
 		loadScript('assets/js/ffc-core.js');
 		loadScript(SCRIPT);
 
@@ -137,7 +137,7 @@ describe('ffc-custom-fields-collapse — required follows the section (#1120)', 
 
 		// No throw, and the collapse itself still works.
 		document.querySelector('.ffc-cf-toggle').click();
-		expect(document.getElementById('sec1').classList.contains('collapsed')).toBe(true);
+		expect(document.getElementById('sec1').classList.contains('is-collapsed')).toBe(true);
 		window.FFC = saved;
 	});
 });

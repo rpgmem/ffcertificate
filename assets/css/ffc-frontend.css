@@ -102,7 +102,7 @@
     text-transform: none;
 }
 
-.ffc-shortcode .ffc-form-field label .required {
+.ffc-shortcode .ffc-form-field label .ffc-required {
     color: var(--ffc-danger);
     font-weight: 700;
     margin-left: 3px;
@@ -283,7 +283,7 @@
     text-decoration: none;
 }
 
-.ffc-shortcode .ffc-consent-text .required {
+.ffc-shortcode .ffc-consent-text .ffc-required {
     color: var(--ffc-danger);
     font-weight: 700;
     margin-left: 3px;
@@ -359,22 +359,6 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-consent-label input[type="checkbox"]:focus-visible {
     outline: 2px solid var(--ffc-primary);
     outline-offset: 2px;
-}
-
-/* Error state para validação customizada */
-.ffc-shortcode .ffc-lgpd-consent.error {
-    border-color: var(--ffc-danger);
-    background: var(--ffc-danger-bg);
-}
-
-.ffc-shortcode .ffc-lgpd-consent.error .ffc-consent-text {
-    color: var(--ffc-danger-text);
-}
-
-/* Success state (opcional - quando checkbox marcado) */
-.ffc-shortcode .ffc-lgpd-consent.checked {
-    border-color: var(--ffc-success);
-    background: var(--ffc-success-bg);
 }
 
 /* ============================================
@@ -803,7 +787,7 @@ details.ffc-consent-description > p {
     backdrop-filter: blur(10px);
 }
 
-.ffc-shortcode .ffc-status-badge.success {
+.ffc-shortcode .ffc-status-badge.ffc-status-badge-success {
     /* Véu translúcido sobre o gradiente do cartão, como o irmão acima (#1126). */
     background: rgba(212, 237, 218, 0.3);
 }
@@ -823,7 +807,7 @@ details.ffc-consent-description > p {
     background: linear-gradient(135deg, var(--ffc-danger) 0%, var(--ffc-danger-hover) 100%);
 }
 
-.ffc-shortcode .ffc-status-badge.error {
+.ffc-shortcode .ffc-status-badge.ffc-status-badge-error {
     /* Véu translúcido sobre o gradiente do cartão, como os irmãos acima (#1126). */
     background: rgba(252, 240, 241, 0.25);
 }
@@ -904,13 +888,13 @@ details.ffc-consent-description > p {
     border-bottom: none;
 }
 
-.ffc-shortcode .ffc-detail-row .label {
+.ffc-shortcode .ffc-detail-row .ffc-detail-label {
     font-weight: 600;
     color: var(--ffc-text-secondary);
     font-size: var(--ffc-font-size-base);
 }
 
-.ffc-shortcode .ffc-detail-row .value {
+.ffc-shortcode .ffc-detail-row .ffc-detail-value {
     color: var(--ffc-text);
     font-size: var(--ffc-font-size-base);
     text-align: right;
@@ -918,7 +902,7 @@ details.ffc-consent-description > p {
     overflow-wrap: break-word;
 }
 
-.ffc-shortcode .ffc-detail-row .value.code {
+.ffc-shortcode .ffc-detail-row .ffc-detail-value.ffc-detail-value-code {
     font-family: 'Courier New', monospace;
     font-size: var(--ffc-font-size-lg);
     color: var(--ffc-primary);
@@ -1181,7 +1165,7 @@ details.ffc-consent-description > p {
         gap: var(--ffc-spacing-sm);
     }
 
-    .ffc-shortcode .ffc-detail-row .value {
+    .ffc-shortcode .ffc-detail-row .ffc-detail-value {
         text-align: left;
         max-width: 100%;
     }
@@ -1230,9 +1214,9 @@ details.ffc-consent-description > p {
    `.ffc-success-download-btn`, `.ffc-auth-code`.
    ========================================================================== */
 
-/* Auth-code row: the `.value.code` cell holds the <code> + copy button
+/* Auth-code row: the `.ffc-detail-value-code` cell holds the <code> + copy button
    together. Right-aligned, wraps below on narrow widths. */
-.ffc-shortcode .ffc-success-auth-code .value.code {
+.ffc-shortcode .ffc-success-auth-code .ffc-detail-value.ffc-detail-value-code {
     display: inline-flex;
     align-items: center;
     gap: var(--ffc-spacing-sm);
@@ -1241,7 +1225,7 @@ details.ffc-consent-description > p {
 }
 
 /* The <code> wrapper itself — pinned by `SuccessHtmlTest`. Inherits
-   monospace + blue + bold from `.value.code` already; the dedicated
+   monospace + blue + bold from `.ffc-detail-value-code` already; the dedicated
    class is what guarantees `white-space: nowrap` so an auth code like
    `C-YK2K-RKFA-6EQC` never splits mid-string (regression from #354). */
 .ffc-shortcode .ffc-success-code {
@@ -1260,7 +1244,7 @@ details.ffc-consent-description > p {
 /* Magic-link row: the URL is long enough that a side-by-side label+value
    does not fit. Override `.ffc-detail-row` flex defaults so the URL +
    copy button share a single row that wraps on mobile. The preceding
-   `<h4>` already labels the section, so no `.label` element here. */
+   `<h4>` already labels the section, so no `.ffc-detail-label` element here. */
 .ffc-shortcode .ffc-detail-row.ffc-success-magic-link-row {
     justify-content: flex-start;
     gap: var(--ffc-spacing-md);
@@ -1280,7 +1264,7 @@ details.ffc-consent-description > p {
 
 /* Shared copy button — used by both the auth-code row and the magic-link
    row. Reset font-family back to the document default because the
-   button is nested inside `.value.code` which sets monospace. */
+   button is nested inside `.ffc-detail-value-code` which sets monospace. */
 .ffc-shortcode .ffc-copy-btn {
     display: inline-block;
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
@@ -2294,8 +2278,8 @@ details.ffc-consent-description > p {
     /* Selos de estado: o texto continua dizendo o estado; a borda
        devolve a eles a forma de selo. */
     .ffc-shortcode .ffc-status-badge,
-    .ffc-shortcode .ffc-status-badge.error,
-    .ffc-shortcode .ffc-status-badge.success,
+    .ffc-shortcode .ffc-status-badge.ffc-status-badge-error,
+    .ffc-shortcode .ffc-status-badge.ffc-status-badge-success,
     .ffc-shortcode .ffc-verification-status-approved,
     .ffc-shortcode .ffc-verification-status-cancelled,
     .ffc-shortcode .ffc-verification-status-completed,

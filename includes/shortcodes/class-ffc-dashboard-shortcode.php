@@ -171,7 +171,7 @@ class DashboardShortcode {
 
 			<nav class="ffc-dashboard-tabs" role="tablist" aria-label="<?php esc_attr_e( 'Dashboard', 'ffcertificate' ); ?>">
 				<?php if ( $can_view_certificates ) : ?>
-					<button class="ffc-tab <?php echo esc_attr( 'certificates' === $current_tab ? 'active' : '' ); ?>"
+					<button class="ffc-tab <?php echo esc_attr( 'certificates' === $current_tab ? 'is-active' : '' ); ?>"
 							data-tab="certificates"
 							role="tab"
 							id="ffc-tab-certificates"
@@ -183,7 +183,7 @@ class DashboardShortcode {
 				<?php endif; ?>
 
 				<?php if ( $can_view_appointments ) : ?>
-					<button class="ffc-tab <?php echo esc_attr( 'appointments' === $current_tab ? 'active' : '' ); ?>"
+					<button class="ffc-tab <?php echo esc_attr( 'appointments' === $current_tab ? 'is-active' : '' ); ?>"
 							data-tab="appointments"
 							role="tab"
 							id="ffc-tab-appointments"
@@ -195,7 +195,7 @@ class DashboardShortcode {
 				<?php endif; ?>
 
 				<?php if ( $can_view_audience_bookings ) : ?>
-					<button class="ffc-tab <?php echo esc_attr( 'audience' === $current_tab ? 'active' : '' ); ?>"
+					<button class="ffc-tab <?php echo esc_attr( 'audience' === $current_tab ? 'is-active' : '' ); ?>"
 							data-tab="audience"
 							role="tab"
 							id="ffc-tab-audience"
@@ -207,7 +207,7 @@ class DashboardShortcode {
 				<?php endif; ?>
 
 				<?php if ( $can_view_reregistrations ) : ?>
-					<button class="ffc-tab <?php echo esc_attr( 'reregistrations' === $current_tab ? 'active' : '' ); ?>"
+					<button class="ffc-tab <?php echo esc_attr( 'reregistrations' === $current_tab ? 'is-active' : '' ); ?>"
 							data-tab="reregistrations"
 							role="tab"
 							id="ffc-tab-reregistrations"
@@ -219,7 +219,7 @@ class DashboardShortcode {
 				<?php endif; ?>
 
 				<?php if ( $can_view_recruitment ) : ?>
-					<button class="ffc-tab <?php echo esc_attr( 'recruitment' === $current_tab ? 'active' : '' ); ?>"
+					<button class="ffc-tab <?php echo esc_attr( 'recruitment' === $current_tab ? 'is-active' : '' ); ?>"
 							data-tab="recruitment"
 							role="tab"
 							id="ffc-tab-recruitment"
@@ -230,7 +230,7 @@ class DashboardShortcode {
 					</button>
 				<?php endif; ?>
 
-				<button class="ffc-tab <?php echo esc_attr( 'profile' === $current_tab ? 'active' : '' ); ?>"
+				<button class="ffc-tab <?php echo esc_attr( 'profile' === $current_tab ? 'is-active' : '' ); ?>"
 						data-tab="profile"
 						role="tab"
 						id="ffc-tab-profile"
@@ -242,7 +242,7 @@ class DashboardShortcode {
 			</nav>
 
 			<?php if ( $can_view_certificates ) : ?>
-				<div class="ffc-tab-content <?php echo esc_attr( 'certificates' === $current_tab ? 'active' : '' ); ?>"
+				<div class="ffc-tab-content <?php echo esc_attr( 'certificates' === $current_tab ? 'is-active' : '' ); ?>"
 					id="tab-certificates"
 					role="tabpanel"
 					aria-labelledby="ffc-tab-certificates">
@@ -253,7 +253,7 @@ class DashboardShortcode {
 			<?php endif; ?>
 
 			<?php if ( $can_view_appointments ) : ?>
-				<div class="ffc-tab-content <?php echo esc_attr( 'appointments' === $current_tab ? 'active' : '' ); ?>"
+				<div class="ffc-tab-content <?php echo esc_attr( 'appointments' === $current_tab ? 'is-active' : '' ); ?>"
 					id="tab-appointments"
 					role="tabpanel"
 					aria-labelledby="ffc-tab-appointments">
@@ -264,7 +264,7 @@ class DashboardShortcode {
 			<?php endif; ?>
 
 			<?php if ( $can_view_audience_bookings ) : ?>
-				<div class="ffc-tab-content <?php echo esc_attr( 'audience' === $current_tab ? 'active' : '' ); ?>"
+				<div class="ffc-tab-content <?php echo esc_attr( 'audience' === $current_tab ? 'is-active' : '' ); ?>"
 					id="tab-audience"
 					role="tabpanel"
 					aria-labelledby="ffc-tab-audience">
@@ -275,7 +275,7 @@ class DashboardShortcode {
 			<?php endif; ?>
 
 			<?php if ( $can_view_reregistrations ) : ?>
-				<div class="ffc-tab-content <?php echo esc_attr( 'reregistrations' === $current_tab ? 'active' : '' ); ?>"
+				<div class="ffc-tab-content <?php echo esc_attr( 'reregistrations' === $current_tab ? 'is-active' : '' ); ?>"
 					id="tab-reregistrations"
 					role="tabpanel"
 					aria-labelledby="ffc-tab-reregistrations">
@@ -286,7 +286,7 @@ class DashboardShortcode {
 			<?php endif; ?>
 
 			<?php if ( $can_view_recruitment ) : ?>
-				<div class="ffc-tab-content <?php echo esc_attr( 'recruitment' === $current_tab ? 'active' : '' ); ?>"
+				<div class="ffc-tab-content <?php echo esc_attr( 'recruitment' === $current_tab ? 'is-active' : '' ); ?>"
 					id="tab-recruitment"
 					role="tabpanel"
 					aria-labelledby="ffc-tab-recruitment">
@@ -298,7 +298,7 @@ class DashboardShortcode {
 				</div>
 			<?php endif; ?>
 
-			<div class="ffc-tab-content <?php echo esc_attr( 'profile' === $current_tab ? 'active' : '' ); ?>"
+			<div class="ffc-tab-content <?php echo esc_attr( 'profile' === $current_tab ? 'is-active' : '' ); ?>"
 				id="tab-profile"
 				role="tabpanel"
 				aria-labelledby="ffc-tab-profile">

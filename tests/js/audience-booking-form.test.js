@@ -177,24 +177,24 @@ describe('ffc-audience-booking-form — searchUsers', () => {
 		const $results = window.$('#booking-user-results .ffc-user-result');
 		expect($results.length).toBe(1);
 		expect($results.attr('data-id')).toBe('5');
-		expect(window.$('#booking-user-results').hasClass('active')).toBe(true);
+		expect(window.$('#booking-user-results').hasClass('is-active')).toBe(true);
 	});
 
 	it('clears the results when the search returns nothing', async () => {
 		vi.spyOn(window.FFC, 'request').mockResolvedValue([]);
-		window.$('#booking-user-results').addClass('active').html('<div>old</div>');
+		window.$('#booking-user-results').addClass('is-active').html('<div>old</div>');
 		api.searchUsers('zzz');
 		await Promise.resolve().then(() => Promise.resolve());
-		expect(window.$('#booking-user-results').hasClass('active')).toBe(false);
+		expect(window.$('#booking-user-results').hasClass('is-active')).toBe(false);
 		expect(window.$('#booking-user-results').html()).toBe('');
 	});
 
 	it('clears the results on a request rejection', async () => {
 		vi.spyOn(window.FFC, 'request').mockRejectedValue(new Error('net'));
-		window.$('#booking-user-results').addClass('active').html('<div>old</div>');
+		window.$('#booking-user-results').addClass('is-active').html('<div>old</div>');
 		api.searchUsers('x');
 		await Promise.resolve().then(() => Promise.resolve());
-		expect(window.$('#booking-user-results').hasClass('active')).toBe(false);
+		expect(window.$('#booking-user-results').hasClass('is-active')).toBe(false);
 	});
 });
 

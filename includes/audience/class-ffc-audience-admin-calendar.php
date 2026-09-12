@@ -135,11 +135,11 @@ class AudienceAdminCalendar {
 							<td class="column-actions">
 								<a href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Edit', 'ffcertificate' ); ?></a> |
 								<?php if ( $is_active ) : ?>
-									<a href="<?php echo esc_url( $deactivate_url ); ?>" class="delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to deactivate this calendar?', 'ffcertificate' ); ?>');">
+									<a href="<?php echo esc_url( $deactivate_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to deactivate this calendar?', 'ffcertificate' ); ?>');">
 										<?php esc_html_e( 'Deactivate', 'ffcertificate' ); ?>
 									</a>
 								<?php else : ?>
-									<a href="<?php echo esc_url( $delete_url ); ?>" class="delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to permanently delete this calendar?', 'ffcertificate' ); ?>');">
+									<a href="<?php echo esc_url( $delete_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to permanently delete this calendar?', 'ffcertificate' ); ?>');">
 										<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
 									</a>
 								<?php endif; ?>
@@ -209,7 +209,7 @@ class AudienceAdminCalendar {
 				<?php endif; ?>
 				<tr>
 					<th scope="row">
-						<label for="schedule_name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="required">*</span></label>
+						<label for="schedule_name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label>
 					</th>
 					<td>
 						<input type="text" name="schedule_name" id="schedule_name" class="regular-text"

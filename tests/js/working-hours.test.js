@@ -189,7 +189,7 @@ function mountInForm(rows, wrap) {
 	mountWithRows(rows);
 	const inner = document.body.innerHTML;
 	document.body.innerHTML = wrap
-		? `<form id="f"><div id="sec" class="ffc-cf-section-body collapsed">${inner}</div></form>`
+		? `<form id="f"><div id="sec" class="ffc-cf-section-body is-collapsed">${inner}</div></form>`
 		: `<form id="f">${inner}</form>`;
 }
 
@@ -264,11 +264,11 @@ describe('ffc-working-hours — submit guard (#1128)', () => {
 	// control nobody can see. The guard has to open the section first.
 	it('expands a collapsed section before pointing at the row', () => {
 		mountInForm([{ day: 1, entry1: '', exit1: '', entry2: '', exit2: '17:00' }], true);
-		expect(window.$('#sec').hasClass('collapsed')).toBe(true);
+		expect(window.$('#sec').hasClass('is-collapsed')).toBe(true);
 
 		submit();
 
-		expect(window.$('#sec').hasClass('collapsed')).toBe(false);
+		expect(window.$('#sec').hasClass('is-collapsed')).toBe(false);
 	});
 
 	it('uses the localized strings when supplied', () => {

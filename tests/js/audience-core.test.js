@@ -328,9 +328,9 @@ describe('FFCAudience bindEvents — handler bodies', () => {
 	});
 
 	it('user-search under 2 chars clears the results without calling searchUsers', () => {
-		window.$('#booking-user-results').addClass('active').html('<div>x</div>');
+		window.$('#booking-user-results').addClass('is-active').html('<div>x</div>');
 		window.$('#booking-user-search').val('a').trigger('input');
-		expect(window.$('#booking-user-results').hasClass('active')).toBe(false);
+		expect(window.$('#booking-user-results').hasClass('is-active')).toBe(false);
 		expect(api.searchUsers).not.toHaveBeenCalled();
 	});
 
@@ -346,18 +346,18 @@ describe('FFCAudience bindEvents — handler bodies', () => {
 	it('clicking a user result records the user and clears the search', () => {
 		window.$('#booking-user-results')
 			.html('<div class="ffc-user-result" data-id="5" data-name="Alice"></div>')
-			.addClass('active');
+			.addClass('is-active');
 		window.$('#booking-user-results .ffc-user-result').trigger('click');
 		expect(api.state.selectedUsers[5]).toBe('Alice');
 		expect(api.updateSelectedUsers).toHaveBeenCalled();
 		expect(window.$('#booking-user-search').val()).toBe('');
-		expect(window.$('#booking-user-results').hasClass('active')).toBe(false);
+		expect(window.$('#booking-user-results').hasClass('is-active')).toBe(false);
 	});
 
 	it('clicking a selected-user remove chip deletes the user', () => {
 		api.state.selectedUsers = { 5: 'Alice' };
-		window.$('#booking-selected-users').html('<span class="remove" data-id="5">x</span>');
-		window.$('#booking-selected-users .remove').trigger('click');
+		window.$('#booking-selected-users').html('<span class="ffc-selected-user-remove" data-id="5">x</span>');
+		window.$('#booking-selected-users .ffc-selected-user-remove').trigger('click');
 		expect(api.state.selectedUsers[5]).toBeUndefined();
 		expect(api.updateSelectedUsers).toHaveBeenCalled();
 	});

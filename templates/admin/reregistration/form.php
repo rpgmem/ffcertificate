@@ -30,21 +30,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
-					<th scope="row"><label for="rereg_title"><?php esc_html_e( 'Title', 'ffcertificate' ); ?> <span class="required">*</span></label></th>
+					<th scope="row"><label for="rereg_title"><?php esc_html_e( 'Title', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label></th>
 					<td><input type="text" name="rereg_title" id="rereg_title" class="regular-text" value="<?php echo esc_attr( $item->title ?? '' ); ?>" required></td>
 				</tr>
 				<tr>
-					<th scope="row"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?> <span class="required">*</span></th>
+					<th scope="row"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?> <span class="ffc-required">*</span></th>
 					<td>
 						<?php self::render_audience_transfer_list( $audiences, $selected_ids ); ?>
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="rereg_start"><?php esc_html_e( 'Start Date', 'ffcertificate' ); ?> <span class="required">*</span></label></th>
+					<th scope="row"><label for="rereg_start"><?php esc_html_e( 'Start Date', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label></th>
 					<td><input type="datetime-local" name="rereg_start_date" id="rereg_start" value="<?php echo esc_attr( $item ? gmdate( 'Y-m-d\TH:i', (int) strtotime( $item->start_date ) ) : '' ); ?>" required></td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="rereg_end"><?php esc_html_e( 'End Date', 'ffcertificate' ); ?> <span class="required">*</span></label></th>
+					<th scope="row"><label for="rereg_end"><?php esc_html_e( 'End Date', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label></th>
 					<td><input type="datetime-local" name="rereg_end_date" id="rereg_end" value="<?php echo esc_attr( $item ? gmdate( 'Y-m-d\TH:i', (int) strtotime( $item->end_date ) ) : '' ); ?>" required></td>
 				</tr>
 				<tr>

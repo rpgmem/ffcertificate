@@ -216,7 +216,7 @@
     transition: transform 0.2s;
 }
 
-.ffc-cf-toggle.collapsed .ffc-cf-toggle-icon {
+.ffc-cf-toggle.is-collapsed .ffc-cf-toggle-icon {
     transform: rotate(-90deg);
 }
 
@@ -235,7 +235,7 @@
     overflow: hidden;
 }
 
-.ffc-cf-section-body.collapsed {
+.ffc-cf-section-body.is-collapsed {
     display: none;
 }
 

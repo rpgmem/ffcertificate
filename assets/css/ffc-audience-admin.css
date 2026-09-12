@@ -132,11 +132,11 @@
 }
 
 /* Delete Link */
-.delete-link {
+.ffc-delete-link {
     color: var(--ffc-danger);
 }
 
-.delete-link:hover {
+.ffc-delete-link:hover {
     color: var(--ffc-danger-text);
 }
 
@@ -149,7 +149,7 @@
 }
 
 /* Form Styles */
-.ffc-form .required {
+.ffc-form .ffc-required {
     color: var(--ffc-danger);
 }
 
@@ -256,7 +256,7 @@
     background: var(--ffc-bg-card);
 }
 
-.ffc-user-results.active {
+.ffc-user-results.is-active {
     display: block;
 }
 
@@ -288,13 +288,13 @@
     font-size: var(--ffc-font-size-sm);
 }
 
-.ffc-selected-user .remove {
+.ffc-selected-user .ffc-selected-user-remove {
     cursor: pointer;
     margin-left: var(--ffc-spacing-sm);
     opacity: 0.8;
 }
 
-.ffc-selected-user .remove:hover {
+.ffc-selected-user .ffc-selected-user-remove:hover {
     opacity: 1;
 }
 
@@ -310,12 +310,12 @@
  * (must be inline because menu is visible on ALL admin pages, not just scheduling pages) */
 
 /* Booking Status (non-prefixed -- used in bookings list) */
-.status-active {
+.ffc-booking-status-active {
     color: var(--ffc-success);
     font-weight: 600;
 }
 
-.status-cancelled {
+.ffc-booking-status-cancelled {
     color: var(--ffc-danger);
     font-weight: 600;
 }

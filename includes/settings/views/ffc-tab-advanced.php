@@ -973,7 +973,7 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 								)
 							);
 							?>
-							<span class="checkbox-sublabel"><?php esc_html_e( '(recommended)', 'ffcertificate' ); ?></span>
+							<span class="ffc-checkbox-sublabel"><?php esc_html_e( '(recommended)', 'ffcertificate' ); ?></span>
 							<p class="description">
 								<?php esc_html_e( 'When checked, next submission will start from ID #1. Only works if table becomes empty.', 'ffcertificate' ); ?>
 							</p>

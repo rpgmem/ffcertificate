@@ -199,11 +199,11 @@
             var $button = $(e.currentTarget);
             var tab = $button.data('tab');
 
-            $('.ffc-tab').removeClass('active').attr('aria-selected', 'false').attr('tabindex', '-1');
-            $button.addClass('active').attr('aria-selected', 'true').attr('tabindex', '0');
+            $('.ffc-tab').removeClass('is-active').attr('aria-selected', 'false').attr('tabindex', '-1');
+            $button.addClass('is-active').attr('aria-selected', 'true').attr('tabindex', '0');
 
-            $('.ffc-tab-content').removeClass('active');
-            $('#tab-' + tab).addClass('active');
+            $('.ffc-tab-content').removeClass('is-active');
+            $('#tab-' + tab).addClass('is-active');
 
             if (history.pushState) {
                 var url = new URL(window.location);

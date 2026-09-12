@@ -359,7 +359,7 @@ class AdminSubmissionEditPage {
 		<!-- SEÇÃO LGPD CONSENT STATUS (collapsible) -->
 		<tr>
 			<td colspan="2">
-				<div class="ffc-consent-box ffc-collapsible <?php echo esc_attr( $consent_given ? 'consent-given' : 'consent-not-given' ); ?>">
+				<div class="ffc-consent-box ffc-collapsible <?php echo esc_attr( $consent_given ? 'ffc-consent-given' : 'ffc-consent-not-given' ); ?>">
 					<h3 class="ffc-consent-header" tabindex="0" role="button" aria-expanded="false">
 						<span class="ffc-consent-toggle-icon">&#9654;</span>
 						<span class="<?php echo esc_attr( $consent_given ? 'ffc-icon-success' : 'ffc-icon-warning' ); ?>"></span>

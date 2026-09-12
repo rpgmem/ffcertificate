@@ -393,7 +393,7 @@
     margin-top: var(--ffc-spacing-5);
 }
 
-.ffc-shortcode .ffc-user-results.active {
+.ffc-shortcode .ffc-user-results.is-active {
     display: block;
 }
 
@@ -428,7 +428,7 @@
     font-size: var(--ffc-font-size-sm);
 }
 
-.ffc-shortcode .ffc-selected-user .remove {
+.ffc-shortcode .ffc-selected-user .ffc-selected-user-remove {
     margin-left: var(--ffc-spacing-sm);
     cursor: pointer;
     font-weight: 700;

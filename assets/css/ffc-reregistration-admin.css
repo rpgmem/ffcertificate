@@ -128,11 +128,11 @@
 }
 
 /* ── Delete link ─────────────────────────────── */
-a.delete-link {
+a.ffc-delete-link {
     color: var(--ffc-danger-text);
 }
 
-a.delete-link:hover {
+a.ffc-delete-link:hover {
     color: var(--ffc-danger);
 }
 

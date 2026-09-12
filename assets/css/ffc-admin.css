@@ -891,7 +891,7 @@ td .ffc-restriction-label {
 }
 .ffc-copy-shortcode:hover { color: var(--ffc-primary); border-color: var(--ffc-primary); }
 .ffc-copy-shortcode .dashicons { font-size: var(--ffc-font-size-base); width: 14px; height: 14px; }
-.ffc-copy-shortcode.copied { color: var(--ffc-success-text); border-color: var(--ffc-success); }
+.ffc-copy-shortcode.is-copied { color: var(--ffc-success-text); border-color: var(--ffc-success); }
 
 /* =========================================================================
  * Datetime order validation feedback (#159 S3).

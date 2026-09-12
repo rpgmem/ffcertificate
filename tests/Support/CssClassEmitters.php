@@ -219,7 +219,14 @@ final class CssClassEmitters {
 			 * porque a rede pegava o oceano.
 			 */
 			foreach ( self::near_class_context( $src ) as $window ) {
-				if ( preg_match_all( '/(["\'])((?:ffc-)?[a-z][a-z0-9]*(?:-[a-z0-9]+)+)\1/i', $window, $m ) ) {
+				/*
+				 * O `\s*` de cada lado não é folga: o token vem com o espaço
+				 * SEPARADOR quando é concatenado a um atributo que já existe —
+				 * `'<table class="ffc-appointments-table' + (past ? ' past-appointments' : '') + '">'`.
+				 * Sem ele a varredura não achava emissor para as três classes
+				 * `past-*` do painel, e a #1170 ia renomeá-las às cegas.
+				 */
+				if ( preg_match_all( '/(["\'])\s*((?:ffc-)?[a-z][a-z0-9]*(?:-[a-z0-9]+)+)\s*\1/i', $window, $m ) ) {
 					foreach ( $m[2] as $token ) {
 						$add_literal( $token, $file );
 					}

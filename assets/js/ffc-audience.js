@@ -282,7 +282,7 @@
                 clearTimeout(searchTimeout);
                 var query = $(this).val();
                 if (query.length < 2) {
-                    $('#booking-user-results').removeClass('active').empty();
+                    $('#booking-user-results').removeClass('is-active').empty();
                     return;
                 }
 
@@ -297,12 +297,12 @@
                 var name = $(this).data('name');
                 state.selectedUsers[id] = name;
                 api.updateSelectedUsers();
-                $('#booking-user-results').removeClass('active').empty();
+                $('#booking-user-results').removeClass('is-active').empty();
                 $('#booking-user-search').val('');
             });
 
             // Remove selected user
-            $(document).on('click', '#booking-selected-users .remove', function() {
+            $(document).on('click', '#booking-selected-users .ffc-selected-user-remove', function() {
                 var id = $(this).data('id');
                 delete state.selectedUsers[id];
                 api.updateSelectedUsers();

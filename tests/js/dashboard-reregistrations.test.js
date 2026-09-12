@@ -85,11 +85,11 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 		expect(headers).toEqual(['Active', 'Completed']);
 	});
 
-	it("applies 'past-row' to completed rows", () => {
+	it("applies 'ffc-row-past' to completed rows", () => {
 		panel().render([
 			makeRereg({ is_active: false, title: 'Done' }),
 		], 1);
-		expect(document.querySelectorAll('#tab-reregistrations tr.past-row').length).toBe(1);
+		expect(document.querySelectorAll('#tab-reregistrations tr.ffc-row-past').length).toBe(1);
 	});
 
 	it('renders the Edit button when can_submit is true, omits it otherwise', () => {
