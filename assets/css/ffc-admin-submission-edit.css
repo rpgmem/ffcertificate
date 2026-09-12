@@ -17,7 +17,7 @@
 /* LGPD consent box */
 .ffc-consent-box {
     margin: var(--ffc-spacing-2xl) 0;
-    padding: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
     border-left: 4px solid;
     border-radius: var(--ffc-radius-sm);
 }
@@ -87,7 +87,7 @@
 .ffc-user-id {
     color: var(--ffc-text-light);
     font-size: var(--ffc-font-size-2xs);
-    margin-left: var(--ffc-spacing-5);
+    margin-left: var(--ffc-spacing-2xs);
 }
 
 .ffc-no-user {
@@ -182,7 +182,7 @@
 }
 
 .ffc-user-search-results .ffc-no-results {
-    padding: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
     text-align: center;
     color: var(--ffc-text-muted);
 }
@@ -253,8 +253,8 @@
 }
 
 .ffc-consent-details {
-    margin-top: var(--ffc-spacing-15);
-    padding-top: var(--ffc-spacing-15);
+    margin-top: var(--ffc-spacing-xl);
+    padding-top: var(--ffc-spacing-xl);
     border-top: 1px solid var(--ffc-border-light);
 }
 

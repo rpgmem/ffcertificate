@@ -58,66 +58,53 @@ final class SpacingTokensTest extends TestCase {
 	/**
 	 * The nine steps of the scale, plus the two the second ladder left behind.
 	 *
-	 * `5` and `15` are named by their VALUE on purpose. They are not steps —
-	 * they do not sit on the progression, they are what remains of a second
-	 * ladder the codebase carried, and they are meant to leave by **deletion**
-	 * rather than by being renamed into a semantic step. A semantic name would
-	 * make that debt invisible, which is the whole reason this is written down.
+	 * There is **one ladder now**. `--ffc-spacing-5` and `--ffc-spacing-15`
+	 * carried the second one under names that stated their value, so that they
+	 * would leave by deletion rather than by a rename that hides the debt —
+	 * and in #1176 they did: 182 declarations repointed to a neighbouring step,
+	 * the two tokens deleted. The `14px` / `18px` literals went with them; they
+	 * were the exact midpoints of the two widest gaps (12→16 and 16→20), and
+	 * admitting them as steps would have made an eleven-rung dictionary out of
+	 * a scale.
 	 */
 	private const STEPS = array( '3xs', '2xs', 'xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl' );
 
 	/**
-	 * The transitional steps, named by value. See STEPS.
-	 */
-	private const TRANSITIONAL = array( '5', '15' );
-
-	/**
 	 * Spacing literals still allowed per stylesheet, by basename.
 	 *
-	 * A ratchet that only shrinks. The 162 that remain are not one population:
+	 * A ratchet that only shrinks. **162 before #1176, 92 after**, and what
+	 * remains is two populations rather than one:
 	 *
-	 *  - **`1px` and `3px` (37)** — an optical nudge, not a distance. They stay
+	 *  - **`1px` and `3px`** — an optical nudge, not a distance. They stay
 	 *    literal for the same reason the typography scale keeps a glyph box.
-	 *  - **`30px` and above (28)** — one-off large distances, mostly a section
-	 *    break or a fixed panel. A scale that reached them would be a dictionary.
-	 *  - **`14px` (45) and `18px` (27)** — the awkward ones, and the honest
-	 *    answer is that they are neither. They are the residue of a THIRD
-	 *    pattern, and they are the first thing to look at when the density
-	 *    theme forces the scale to be one ladder.
+	 *  - **`30px` and above** — one-off large distances, mostly a section break
+	 *    or a fixed panel. A scale that reached them would be a dictionary.
+	 *
+	 * The third population is gone: `14px` and `18px` were the residue of a
+	 * THIRD pattern, sitting on the exact midpoints of the two widest gaps
+	 * (12→16 and 16→20). #1176 snapped them down rather than admit two more
+	 * rungs, because an eleven-rung ladder is a dictionary too.
 	 */
 	private const BUDGET = array(
 		'ffc-admin-move-submissions.css'   => 1,
-		'ffc-admin-settings.css'           => 10,
-		'ffc-admin-submission-edit.css'    => 0,
-		'ffc-admin-submissions.css'        => 6,
-		'ffc-admin-utilities.css'          => 1,
-		'ffc-admin.css'                    => 3,
-		'ffc-appointment-cancellation.css' => 0,
-		'ffc-audience-admin.css'           => 11,
+		'ffc-admin-settings.css'           => 7,
+		'ffc-admin-submissions.css'        => 1,
+		'ffc-admin.css'                    => 2,
+		'ffc-audience-admin.css'           => 8,
 		'ffc-audience.css'                 => 7,
-		'ffc-calendar-admin.css'           => 0,
-		'ffc-calendar-editor.css'          => 0,
-		'ffc-calendar-frontend.css'        => 5,
+		'ffc-calendar-frontend.css'        => 4,
 		'ffc-certificates-dashboard.css'   => 1,
-		// Estas duas são enfileiradas SEM depender de `ffc-common`, de propósito:
-		// o PDF é claro por definição e o tema do editor é escuro nos dois temas.
-		// Um `var(--ffc-*)` nelas não existe na página, e propriedade inexistente
-		// INVALIDA a declaração inteira (#1126) — ficam literais.
 		'ffc-code-editor-dark.css'         => 1,
-		'ffc-common.css'                   => 3,
+		'ffc-common.css'                   => 1,
 		'ffc-custom-fields-admin.css'      => 3,
-		'ffc-email-model.css'              => 2,
-		'ffc-frontend.css'                 => 33,
+		'ffc-frontend.css'                 => 19,
 		'ffc-pdf-core.css'                 => 1,
 		'ffc-progress-overlay.css'         => 1,
-		'ffc-recruitment-admin.css'        => 7,
-		'ffc-recruitment-public.css'       => 1,
-		'ffc-reregistration-admin.css'     => 11,
-		'ffc-reregistration-frontend.css'  => 1,
+		'ffc-recruitment-admin.css'        => 2,
+		'ffc-reregistration-admin.css'     => 5,
 		'ffc-url-shortener-admin.css'      => 5,
-		'ffc-user-dashboard.css'           => 32,
-		'ffc-user-permissions.css'         => 18,
-		'ffc-working-hours.css'            => 0,
+		'ffc-user-dashboard.css'           => 8,
+		'ffc-user-permissions.css'         => 15,
 	);
 
 	/**
@@ -261,7 +248,7 @@ final class SpacingTokensTest extends TestCase {
 		$declared = array_map( 'strval', array_keys( self::declared_steps() ) );
 		sort( $declared );
 
-		$expected = array_merge( self::STEPS, self::TRANSITIONAL );
+		$expected = self::STEPS;
 		sort( $expected );
 
 		$this->assertSame(
@@ -270,34 +257,6 @@ final class SpacingTokensTest extends TestCase {
 			'A escala mudou de forma. Se um degrau entrou ou saiu, atualize STEPS '
 			. 'e diga por quê — um degrau a mais costuma ser um dicionário nascendo.'
 		);
-	}
-
-	/**
-	 * The two transitional tokens are named by their value, and match it.
-	 *
-	 * This is the #1169 design decision made enforceable: renaming `15` to a
-	 * semantic step is exactly how the debt would stop being visible.
-	 */
-	public function test_the_transitional_steps_are_named_by_their_value(): void {
-		$declared = self::declared_steps();
-
-		foreach ( self::TRANSITIONAL as $name ) {
-			$this->assertArrayHasKey( $name, $declared, "O degrau transitório `{$name}` sumiu." );
-			$this->assertSame(
-				$name . 'px',
-				$declared[ $name ],
-				"`--ffc-spacing-{$name}` precisa valer {$name}px — o nome é o valor de propósito."
-			);
-		}
-
-		foreach ( self::STEPS as $name ) {
-			$this->assertArrayHasKey( $name, $declared, "O degrau `{$name}` sumiu da escala." );
-			$this->assertMatchesRegularExpression(
-				'/^\d+px$/',
-				$declared[ $name ],
-				"O degrau `{$name}` precisa ser um px literal."
-			);
-		}
 	}
 
 	/**

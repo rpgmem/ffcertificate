@@ -79,8 +79,8 @@
     flex-wrap: wrap;
     gap: var(--ffc-spacing-lg);
     align-items: center;
-    margin: var(--ffc-spacing-15) 0;
-    padding: var(--ffc-spacing-md) var(--ffc-spacing-15);
+    margin: var(--ffc-spacing-xl) 0;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-xl);
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-xs);
@@ -89,7 +89,7 @@
 .ffc-stat-item {
     display: inline-flex;
     align-items: center;
-    gap: var(--ffc-spacing-5);
+    gap: var(--ffc-spacing-xs);
 }
 
 /* ── Filters ─────────────────────────────────── */
@@ -196,12 +196,12 @@ a.ffc-delete-link:hover {
 }
 
 .ffc-transfer-item {
-    padding: var(--ffc-spacing-5) var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
     cursor: pointer;
     font-size: var(--ffc-font-size-sm);
     display: flex;
     align-items: center;
-    gap: var(--ffc-spacing-5);
+    gap: var(--ffc-spacing-xs);
     user-select: none;
     transition: background 0.1s;
 }
@@ -282,7 +282,7 @@ body.ffc-rereg-modal-open {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-2xl);
     border-bottom: 1px solid var(--ffc-border-light);
     background: var(--ffc-bg-alt);
     border-radius: var(--ffc-radius-md) var(--ffc-radius-md) 0 0;
@@ -311,7 +311,7 @@ body.ffc-rereg-modal-open {
 }
 
 .ffc-rereg-modal-body {
-    padding: 18px 22px;
+    padding: var(--ffc-spacing-xl) 22px;
     overflow-y: auto;
     flex: 1 1 auto;
 }
@@ -323,7 +323,7 @@ body.ffc-rereg-modal-open {
 
 /* Submission details content */
 .ffc-submission-meta {
-    margin-bottom: 14px;
+    margin-bottom: var(--ffc-spacing-lg);
     padding-bottom: var(--ffc-spacing-md);
     border-bottom: 1px solid var(--ffc-border-light);
 }
@@ -335,8 +335,8 @@ body.ffc-rereg-modal-open {
 .ffc-details-fieldset {
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-sm);
-    padding: var(--ffc-spacing-sm) 14px var(--ffc-spacing-lg);
-    margin: 0 0 14px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg) var(--ffc-spacing-lg);
+    margin: 0 0 var(--ffc-spacing-lg);
     background: var(--ffc-bg-card);
 }
 
@@ -350,7 +350,7 @@ body.ffc-rereg-modal-open {
 .ffc-details-list {
     display: grid;
     grid-template-columns: minmax(140px, 30%) 1fr;
-    gap: var(--ffc-spacing-xs) 14px;
+    gap: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
     margin: 0;
 }
 

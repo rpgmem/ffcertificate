@@ -67,7 +67,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</ol>
 	<p class="description"><?php esc_html_e( 'The rotation is only available when both FFC_ENCRYPTION_KEY and FFC_HASH_SALT are defined, and only one previous key is supported at a time — finish one rotation before starting the next. FFC_HASH_SALT needs no "previous": the search hashes are rebuilt from the decrypted values during the rotation.', 'ffcertificate' ); ?></p>
 
-	<div class="ffc-doc-note ffc-mt-20">
+	<div class="ffc-doc-note ffc-mt-2xl">
 		<p>
 			<strong class="ffc-icon-lock"><?php esc_html_e( 'Danger Zone.', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'Two destructive tools live here: "Delete all plugin data on uninstall" (when on, deleting the plugin drops its tables, options, roles/capabilities and transients — off by default), and a "Delete submissions" action (all, or for one form, with an option to reset the ID counter). Both are irreversible.', 'ffcertificate' ); ?>

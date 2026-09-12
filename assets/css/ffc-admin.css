@@ -7,14 +7,14 @@
    FORM BUILDER (Field Rows) - RESPONSIVE GRID
    ========================================================================== */
 #ffc-fields-container { 
-    margin-bottom: var(--ffc-spacing-15); 
+    margin-bottom: var(--ffc-spacing-xl); 
     max-width: 100%; 
 }
 
 .ffc-field-row {
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    padding: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
     margin-bottom: var(--ffc-spacing-lg);
     border-left: 4px solid var(--ffc-primary);
     border-radius: var(--ffc-radius-sm);
@@ -29,7 +29,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--ffc-spacing-15);
+    margin-bottom: var(--ffc-spacing-xl);
     padding-bottom: var(--ffc-spacing-md);
     border-bottom: 1px solid var(--ffc-border-light);
 }
@@ -42,14 +42,14 @@
 .ffc-field-row-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: var(--ffc-spacing-15);
+    gap: var(--ffc-spacing-xl);
     align-items: end;
 }
 
 .ffc-field-row-grid .ffc-grid-item { 
     display: flex; 
     flex-direction: column; 
-    gap: var(--ffc-spacing-5); 
+    gap: var(--ffc-spacing-xs); 
 }
 
 .ffc-field-row-grid input[type="text"],
@@ -62,7 +62,7 @@
 .ffc-req-label {
     display: flex;
     align-items: center;
-    gap: var(--ffc-spacing-5);
+    gap: var(--ffc-spacing-xs);
     padding-bottom: var(--ffc-spacing-sm);
 }
 
@@ -73,7 +73,7 @@
 }
 
 .ffc-options-field {
-    margin-top: var(--ffc-spacing-15);
+    margin-top: var(--ffc-spacing-xl);
     background: var(--ffc-bg-alt);
     padding: var(--ffc-spacing-lg);
     border-radius: var(--ffc-radius-sm);
@@ -81,7 +81,7 @@
 }
 
 .ffc-options-desc {
-    margin: 0 0 var(--ffc-spacing-5);
+    margin: 0 0 var(--ffc-spacing-2xs);
     font-weight: 700;
     color: var(--ffc-primary);
 }
@@ -103,7 +103,7 @@
     /* Editor de código: escuro nos dois temas por definição (#1126). */
     background: #2c3338;
     color: #f0f0f1;
-    padding: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
     border-radius: var(--ffc-radius-sm);
     line-height: 1.5;
     border: 1px solid #1e1e1e;
@@ -247,7 +247,7 @@
 }
 
 .ffc-tips-list li {
-    margin-bottom: var(--ffc-spacing-5);
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 /* ==========================================================================
@@ -262,7 +262,7 @@
 .ffc-sort-handle {
     cursor: move;
     color: var(--ffc-gray-300);
-    padding: var(--ffc-spacing-5);
+    padding: var(--ffc-spacing-2xs);
     font-size: var(--ffc-font-size-xl);
     display: flex;
     align-items: center;
@@ -383,7 +383,7 @@
     background: var(--ffc-warning-bg);
     border-left: 4px solid var(--ffc-warning-border);
     padding: var(--ffc-spacing-lg);
-    margin: var(--ffc-spacing-15) 0;
+    margin: var(--ffc-spacing-xl) 0;
 }
 
 .ffc-migration-warning p {
@@ -409,7 +409,7 @@
  */
 .ffc-template-loader {
     display: flex;
-    gap: var(--ffc-spacing-5);
+    gap: var(--ffc-spacing-xs);
     align-items: center;
 }
 
@@ -557,9 +557,9 @@
    Replaced inline styles with proper CSS classes for better maintainability
    ========================================================================== */
 
-/* Margin utilities (ffc-mb-15 and ffc-mt-15 in ffc-admin-utilities.css) */
+/* Margin utilities (ffc-mb-xl and ffc-mt-xl in ffc-admin-utilities.css) */
 .ffc-ml-20 { margin-left: var(--ffc-spacing-2xl); }
-.ffc-m-5-0 { margin: var(--ffc-spacing-5) 0 0 0; }
+.ffc-m-2xs-0 { margin: var(--ffc-spacing-2xs) 0 0 0; }
 
 /* Form label blocks */
 .ffc-restriction-label {
@@ -721,7 +721,7 @@
 /* Time description indent */
 .ffc-time-description {
     margin-left: var(--ffc-spacing-2xl);
-    margin-top: var(--ffc-spacing-5);
+    margin-top: var(--ffc-spacing-2xs);
 }
 
 /* List style */
@@ -969,7 +969,7 @@ p.ffc-datetime-order-error {
 	display: flex;
 	align-items: center;
 	gap: var(--ffc-spacing-sm);
-	padding: var(--ffc-spacing-lg) 14px;
+	padding: var(--ffc-spacing-lg) var(--ffc-spacing-lg);
 	color: var(--ffc-text-secondary);
 	text-decoration: none;
 	font-weight: 500;

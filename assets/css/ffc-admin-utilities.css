@@ -9,7 +9,7 @@
  * rename later:
  *
  *   A class here names a PROPERTY or a generic visual shape, not a feature.
- *   `.ffc-mt-20`, `.ffc-w100`, `.ffc-text-warning`, `.ffc-monospace` qualify.
+ *   `.ffc-mt-2xl`, `.ffc-w100`, `.ffc-text-warning`, `.ffc-monospace` qualify.
  *   One rule, no `:hover`, no descendant selectors, no element sub-selectors.
  *
  * WHAT DOES NOT: anything whose name carries a feature, and anything that needs
@@ -57,45 +57,41 @@
 /**
  * Margin top utilities
  */
-.ffc-mt-5 {
-    margin-top: var(--ffc-spacing-5);
+.ffc-mt-2xs {
+    margin-top: var(--ffc-spacing-2xs);
 }
 
 /**
  * Margin bottom utilities
  */
-.ffc-mb-5 {
-    margin-bottom: var(--ffc-spacing-5);
+.ffc-mb-2xs {
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
-.ffc-mt-10 {
+.ffc-mt-md {
     margin-top: var(--ffc-spacing-md);
 }
 
-.ffc-mt-15 {
-    margin-top: var(--ffc-spacing-15);
+.ffc-mt-xl {
+    margin-top: var(--ffc-spacing-xl);
 }
 
-.ffc-mt-20 {
+.ffc-mt-2xl {
     margin-top: var(--ffc-spacing-2xl);
 }
 
-.ffc-mb-15 {
-    margin-bottom: var(--ffc-spacing-15);
+.ffc-mb-xl {
+    margin-bottom: var(--ffc-spacing-xl);
 }
 
 /* 6.18.0 (#890 slice 1) — spacing/layout utilities lifted from inline styles
    across the admin/settings views. */
-.ffc-mt-8 {
+.ffc-mt-sm {
     margin-top: var(--ffc-spacing-sm);
 }
 
-.ffc-mb-4 {
-    margin-bottom: var(--ffc-spacing-2xs);
-}
-
-.ffc-ml-18 {
-    margin-left: 18px;
+.ffc-ml-xl {
+    margin-left: var(--ffc-spacing-xl);
 }
 
 .ffc-inline {
@@ -118,7 +114,7 @@
 .ffc-block-label {
     display: block;
     font-weight: 600;
-    margin-bottom: var(--ffc-spacing-5);
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 /**
@@ -141,7 +137,7 @@
  * Form input grouping
  */
 .ffc-input-group {
-    margin-bottom: var(--ffc-spacing-15);
+    margin-bottom: var(--ffc-spacing-xl);
 }
 
 /* ==========================================================================
@@ -169,7 +165,7 @@
  */
 .ffc-action-group {
     display: flex;
-    gap: var(--ffc-spacing-5);
+    gap: var(--ffc-spacing-xs);
 }
 
 /* ==========================================================================

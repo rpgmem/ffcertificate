@@ -159,7 +159,7 @@ class FormEditorEmailMetabox {
 			<tr>
 				<th></th>
 				<td>
-				<p class="description ffc-mt-15">
+				<p class="description ffc-mt-xl">
 				<em><?php esc_html_e( 'Note: When this option is enabled, the email will only be sent when the user submits the form. This will add them to a waiting list and emails will be sent progressively.', 'ffcertificate' ); ?></em>
 				</p>
 				</td>

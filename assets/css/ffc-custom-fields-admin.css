@@ -7,12 +7,12 @@
 
 /* Container */
 #ffc-custom-fields-container {
-    margin-top: var(--ffc-spacing-15);
+    margin-top: var(--ffc-spacing-xl);
 }
 
 /* Sortable list */
 .ffc-custom-fields-sortable {
-    margin-bottom: var(--ffc-spacing-15);
+    margin-bottom: var(--ffc-spacing-xl);
 }
 
 /* Individual field row */
@@ -188,7 +188,7 @@
     align-items: center;
     gap: var(--ffc-spacing-sm);
     margin-top: var(--ffc-spacing-2xl);
-    padding-bottom: var(--ffc-spacing-5);
+    padding-bottom: var(--ffc-spacing-2xs);
     border-bottom: 1px solid var(--ffc-border);
 }
 

@@ -79,7 +79,7 @@
 .ffc-cap-audience-list {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-	gap: var(--ffc-spacing-3xs) 14px;
+	gap: var(--ffc-spacing-3xs) var(--ffc-spacing-lg);
 	max-height: 180px;
 	overflow-y: auto;
 	padding: var(--ffc-spacing-3xs) 0;
@@ -195,7 +195,7 @@
 
 /* Section divider between the self-service and administration tiers. */
 .ffc-cap-section {
-	margin: 18px 0 var(--ffc-spacing-sm);
+	margin: var(--ffc-spacing-xl) 0 var(--ffc-spacing-sm);
 	padding-bottom: var(--ffc-spacing-2xs);
 	border-bottom: 1px solid var(--ffc-border-light);
 	font-size: var(--ffc-font-size-2xs);
@@ -354,7 +354,7 @@
 	display: inline-flex;
 	align-items: center;
 	gap: var(--ffc-spacing-sm);
-	padding: var(--ffc-spacing-5) var(--ffc-spacing-lg);
+	padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
 	border-radius: 20px;
 	border: 1px solid var(--ffc-border);
 	background: var(--ffc-bg-card);
@@ -560,7 +560,7 @@
    Groups the wp-admin block list so it reads as sections instead of one
    flat wrap of ~30 checkboxes. */
 .ffc-blocked-roles__group {
-	margin: 0 0 14px;
+	margin: 0 0 var(--ffc-spacing-lg);
 }
 .ffc-blocked-roles__legend {
 	margin: 0 0 var(--ffc-spacing-xs);

@@ -776,7 +776,7 @@ class CertTemplateAdminScreen {
 			<?php endif; ?>
 		</p>
 
-		<div class="ffc-input-group ffc-mt-15">
+		<div class="ffc-input-group ffc-mt-xl">
 			<label class="ffc-block-label" for="ffc_template_bg_image"><strong><?php esc_html_e( 'Background Image URL:', 'ffcertificate' ); ?></strong></label>
 			<input type="text" name="ffc_template_bg_image" id="ffc_template_bg_image" value="<?php echo esc_url( $bg_image ); ?>" class="ffc-w100" <?php wp_readonly( $is_default, true ); ?>>
 		</div>

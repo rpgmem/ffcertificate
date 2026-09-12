@@ -139,11 +139,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     background: var(--ffc-bg-alt);
     border-bottom: 1px solid var(--ffc-border-light);
     flex-wrap: wrap;
-    gap: var(--ffc-spacing-15);
+    gap: var(--ffc-spacing-xl);
 }
 
 .ffc-calendar-core .ffc-calendar-nav {
@@ -189,13 +189,13 @@
 }
 
 .ffc-calendar-core .ffc-calendar-grid {
-    padding: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
 }
 
 .ffc-calendar-core .ffc-calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: var(--ffc-spacing-5);
+    gap: var(--ffc-spacing-xs);
     margin-bottom: var(--ffc-spacing-md);
 }
 
@@ -204,13 +204,13 @@
     font-weight: 600;
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-secondary);
-    padding: var(--ffc-spacing-md) var(--ffc-spacing-5);
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-2xs);
 }
 
 .ffc-calendar-core .ffc-calendar-days {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: var(--ffc-spacing-5);
+    gap: var(--ffc-spacing-xs);
 }
 
 .ffc-calendar-core .ffc-day {
@@ -218,7 +218,7 @@
     min-height: 0;
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-sm);
-    padding: var(--ffc-spacing-5);
+    padding: var(--ffc-spacing-2xs);
     background: var(--ffc-bg-card);
     cursor: pointer;
     transition: all 0.2s ease;
@@ -268,7 +268,7 @@
 .ffc-calendar-core .ffc-calendar-legend {
     display: flex;
     gap: var(--ffc-spacing-2xl);
-    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     background: var(--ffc-bg-alt);
     border-top: 1px solid var(--ffc-border-light);
     font-size: var(--ffc-font-size-sm);
@@ -279,7 +279,7 @@
 .ffc-calendar-core .ffc-legend-item {
     display: flex;
     align-items: center;
-    gap: var(--ffc-spacing-5);
+    gap: var(--ffc-spacing-xs);
 }
 
 .ffc-calendar-core .ffc-legend-dot {

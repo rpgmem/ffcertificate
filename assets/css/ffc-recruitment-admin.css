@@ -64,7 +64,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 14px 18px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     border-bottom: 1px solid var(--ffc-border);
 }
 .ffc-confirm-modal-header h2 {
@@ -83,7 +83,7 @@
 }
 .ffc-confirm-modal-close:hover { color: var(--ffc-text); }
 .ffc-confirm-modal-body {
-    padding: 18px;
+    padding: var(--ffc-spacing-xl);
     overflow-y: auto;
     color: var(--ffc-text);
 }
@@ -91,7 +91,7 @@
 .ffc-confirm-modal-body p:last-child { margin-bottom: 0; }
 .ffc-confirm-modal-consequences {
     margin: var(--ffc-spacing-sm) 0 var(--ffc-spacing-lg);
-    padding: var(--ffc-spacing-lg) 14px var(--ffc-spacing-lg) 32px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-lg) var(--ffc-spacing-lg) 32px;
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
     border-left: 4px solid var(--ffc-warning-border);
@@ -131,7 +131,7 @@
     display: flex;
     justify-content: flex-end;
     gap: var(--ffc-spacing-sm);
-    padding: var(--ffc-spacing-lg) 18px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     border-top: 1px solid var(--ffc-border);
 }
 .ffc-confirm-modal[data-style="destructive"] .ffc-confirm-modal-confirm {

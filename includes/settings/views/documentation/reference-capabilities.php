@@ -44,7 +44,7 @@ $ffc_cap_catalog = '\FreeFormCertificate\UserDashboard\CapabilityCatalog';
 			if ( $ffc_level !== $ffc_last_level ) :
 				$ffc_last_level = $ffc_level;
 				?>
-				<h4 class="ffc-mt-20">
+				<h4 class="ffc-mt-2xl">
 					<?php
 					echo esc_html(
 						'admin' === $ffc_level

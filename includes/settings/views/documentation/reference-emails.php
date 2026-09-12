@@ -116,7 +116,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</ul>
 	</div>
 
-	<div class="ffc-alert ffc-alert-info ffc-mt-20">
+	<div class="ffc-alert ffc-alert-info ffc-mt-2xl">
 		<p>
 			<strong class="ffc-icon-info"><?php esc_html_e( 'Not receiving email?', 'ffcertificate' ); ?></strong><br>
 			<?php esc_html_e( 'Check the "Disable all emails" toggle (SMTP tab), configure Custom SMTP, and see Troubleshooting → "Emails not arriving".', 'ffcertificate' ); ?>

@@ -55,7 +55,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 							<span class="ffc-text-success ffc-icon-success"><?php esc_html_e( 'Includes user ID, IP address, and timestamp for LGPD compliance.', 'ffcertificate' ); ?></span>
 							<?php if ( $ffcertificate_log_on ) : ?>
 								<br>
-								<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=activity_log' ) ); ?>" class="button button-secondary ffc-mt-10">
+								<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=activity_log' ) ); ?>" class="button button-secondary ffc-mt-md">
 									<span class="ffc-icon-chart"></span><?php esc_html_e( 'View Activity Logs', 'ffcertificate' ); ?>
 								</a>
 							<?php endif; ?>
@@ -124,7 +124,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						);
 						foreach ( $ffcertificate_log_cats as $ffcertificate_cat_key => $ffcertificate_cat_label ) :
 							?>
-							<div class="ffc-mb-4">
+							<div class="ffc-mb-2xs">
 								<?php
 								\FreeFormCertificate\Admin\AdminUI::render_toggle(
 									array(
@@ -821,7 +821,7 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 		</p>
 		<?php foreach ( $ffc_key_widgets as $ffc_widget ) : ?>
 		<div class="ffc-key-suggest-widget" data-ffc-const="<?php echo esc_attr( $ffc_widget['const'] ); ?>">
-			<p class="ffc-mb-4"><code><?php echo esc_html( $ffc_widget['const'] ); ?></code></p>
+			<p class="ffc-mb-2xs"><code><?php echo esc_html( $ffc_widget['const'] ); ?></code></p>
 			<p>
 				<label class="screen-reader-text"><?php echo esc_html( $ffc_widget['label'] ); ?></label>
 				<textarea class="ffc-key-suggest-input large-text code" readonly rows="8"
@@ -856,10 +856,10 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 		?>
 		<details class="ffc-encryption-key-suggest">
 			<summary><strong><?php esc_html_e( 'Rotate to a new encryption key (advanced)', 'ffcertificate' ); ?></strong></summary>
-			<p class="description ffc-mt-8">
+			<p class="description ffc-mt-sm">
 				<?php esc_html_e( 'Replace the active FFC_ENCRYPTION_KEY with a fresh one without losing existing data — do this only when you have a reason to (e.g. a suspected key exposure), as it re-encrypts every stored record.', 'ffcertificate' ); ?>
 			</p>
-			<ol class="description ffc-ml-18">
+			<ol class="description ffc-ml-xl">
 				<li><?php esc_html_e( 'In wp-config.php, copy your current FFC_ENCRYPTION_KEY line and rename the copy to FFC_ENCRYPTION_KEY_PREVIOUS (keep its value).', 'ffcertificate' ); ?></li>
 				<li><?php esc_html_e( 'Replace FFC_ENCRYPTION_KEY with the new value generated below.', 'ffcertificate' ); ?></li>
 				<li>
@@ -877,7 +877,7 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 				<li><?php esc_html_e( 'When it reaches 100%, remove FFC_ENCRYPTION_KEY_PREVIOUS from wp-config.php.', 'ffcertificate' ); ?></li>
 			</ol>
 			<div class="ffc-key-suggest-widget" data-ffc-const="FFC_ENCRYPTION_KEY">
-				<p class="ffc-mb-4"><code>FFC_ENCRYPTION_KEY</code> <span class="description"><?php esc_html_e( '(new)', 'ffcertificate' ); ?></span></p>
+				<p class="ffc-mb-2xs"><code>FFC_ENCRYPTION_KEY</code> <span class="description"><?php esc_html_e( '(new)', 'ffcertificate' ); ?></span></p>
 				<p>
 					<label class="screen-reader-text"><?php esc_html_e( 'Suggested new FFC_ENCRYPTION_KEY define for wp-config.php', 'ffcertificate' ); ?></label>
 					<textarea class="ffc-key-suggest-input large-text code" readonly rows="8"
@@ -979,7 +979,7 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 							</p>
 						</div>
 
-						<div class="ffc-mt-20">
+						<div class="ffc-mt-2xl">
 							<button type="submit" class="button button-link-delete ffc-icon-delete" onclick="return confirm('<?php echo esc_js( __( 'Are you absolutely sure?\n\nThis action CANNOT be undone!\n\nAll selected data will be permanently deleted.', 'ffcertificate' ) ); ?>');">
 								<?php esc_html_e( 'Delete Data Permanently', 'ffcertificate' ); ?>
 							</button>
