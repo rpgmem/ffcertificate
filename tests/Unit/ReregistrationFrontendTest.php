@@ -185,17 +185,31 @@ class ReregistrationFrontendTest extends TestCase {
 		$this->assertStringContainsString('not found or not active', $ex->payload['message']);
 	}
 
-	public function test_ajax_get_form_errors_when_no_submission_found(): void {
+	/**
+	 * Sem linha E fora dos públicos da campanha: recusa, e NADA é criado.
+	 *
+	 * Este teste afirmava o defeito. Ele congelava a mensagem "No submission
+	 * found for this user." como comportamento correto — e era ela o beco sem
+	 * saída: a #1125 pôs `no_submission` em SUBMITTABLE_STATUSES, o painel
+	 * desenhou o botão, e o handler recusava justamente o estado declarado
+	 * submissível. A recusa continua existindo, mas só para quem de fato não
+	 * pertence à campanha.
+	 *
+	 * A metade que importa aqui é a de segurança: criar sob demanda não pode
+	 * virar "qualquer usuário logado ganha uma linha ao postar um id".
+	 */
+	public function test_ajax_get_form_refuses_a_user_outside_the_campaign_audiences(): void {
 		Functions\when('get_current_user_id')->justReturn(1);
 
 		$_POST['reregistration_id'] = 1;
 
 		global $wpdb;
 		$rereg = (object) array('id' => 1, 'status' => 'active', 'title' => 'Test');
-		// First get_row: repo::get_by_id -> active rereg
-		// Second get_row: submission repo -> null
-		$wpdb->shouldReceive('get_row')
-			->andReturn($rereg, null);
+		// get_by_id -> campanha ativa; lookup da submissão -> nada.
+		$wpdb->shouldReceive('get_row')->andReturn($rereg, null);
+		// get_active_for_user não devolve a campanha: usuário sem público.
+		$wpdb->shouldReceive('get_results')->andReturn(array());
+		$wpdb->shouldNotReceive('insert');
 
 		$ex = null;
 		try {
@@ -205,7 +219,105 @@ class ReregistrationFrontendTest extends TestCase {
 		}
 
 		$this->assertNotNull($ex);
-		$this->assertStringContainsString('No submission found', $ex->payload['message']);
+		$this->assertStringContainsString('not part of this reregistration', $ex->payload['message']);
+	}
+
+	/**
+	 * Sem linha mas DENTRO da campanha: a linha nasce, e o fluxo segue.
+	 *
+	 * O caminho feliz que faltava. A suíte só tinha testes de recusa para os
+	 * três handlers — inclusive o que afirmava a recusa errada —, e o único
+	 * teste da #1125 afirma que `no_submission` está na constante. Ou seja: a
+	 * declaração estava provada e o comportamento nunca.
+	 *
+	 * Vai pelo `save_draft` de propósito: é o handler mais raso depois de
+	 * `submission_for()`, então prova a criação sem precisar de alias mock no
+	 * renderizador — que é global de processo e quebraria testes vizinhos pela
+	 * ordem (a lição do #1053 / #1177).
+	 */
+	public function test_ajax_save_draft_creates_the_missing_row_for_an_entitled_user(): void {
+		Functions\when('get_current_user_id')->justReturn(7);
+		Functions\when('wp_parse_args')->alias(function ($args, $defaults) {
+			return array_merge($defaults, $args);
+		});
+		Functions\when('wp_json_encode')->alias('json_encode');
+		Functions\when('sanitize_textarea_field')->returnArg();
+
+		$_POST['reregistration_id'] = 5;
+
+		$rereg      = (object) array('id' => 5, 'status' => 'active', 'title' => 'Campanha');
+		$audience   = (object) array('id' => 3, 'parent_id' => null, 'name' => 'Público');
+		$created    = (object) array('id' => 42, 'reregistration_id' => '5', 'user_id' => '7', 'status' => 'pending');
+		$lookups    = 0;
+
+		global $wpdb;
+		// `prepare` devolvendo o SQL cru não distingue as duas consultas
+		// `WHERE id = %d` (campanha e público), então aqui ele interpola.
+		$wpdb->shouldReceive('prepare')->andReturnUsing(function (...$args) {
+			$sql  = array_shift($args);
+			$flat = array();
+			foreach ($args as $arg) {
+				foreach (is_array($arg) ? $arg : array($arg) as $one) {
+					$flat[] = $one;
+				}
+			}
+			return preg_replace_callback('/%[ids]/', function () use (&$flat) {
+				return (string) array_shift($flat);
+			}, $sql);
+		});
+
+		$wpdb->shouldReceive('get_row')->andReturnUsing(
+			function ($sql) use ($rereg, $audience, $created, &$lookups) {
+				if (false !== strpos($sql, 'reregistration_id = 5 AND user_id = 7')) {
+					++$lookups;
+					// Antes do INSERT não existe; depois dele, existe.
+					return $lookups > 1 ? $created : null;
+				}
+				if (false !== strpos($sql, 'ffc_reregistrations WHERE id = 5')) {
+					return $rereg;
+				}
+				if (false !== strpos($sql, 'ffc_audiences WHERE id = 3')) {
+					return $audience;
+				}
+				return null;
+			}
+		);
+
+		$wpdb->shouldReceive('get_results')->andReturnUsing(
+			function ($sql) use ($rereg, $audience) {
+				// Públicos do usuário.
+				if (false !== strpos($sql, 'm.user_id = 7')) {
+					return array($audience);
+				}
+				// Campanhas ativas do público.
+				if (false !== strpos($sql, 'SELECT DISTINCT r.*')) {
+					return array($rereg);
+				}
+				return array();
+			}
+		);
+
+		$inserted = array();
+		$wpdb->shouldReceive('insert')->once()->andReturnUsing(
+			function ($table, $data) use (&$inserted) {
+				$inserted = $data;
+				return 1;
+			}
+		);
+		$wpdb->insert_id = 42;
+
+		$ex = null;
+		try {
+			ReregistrationFrontend::ajax_save_draft();
+		} catch (FrontendJsonSuccessException $e) {
+			$ex = $e;
+		}
+
+		$this->assertNotNull($ex, 'o rascunho deveria ter sido salvo sobre a linha recém-criada');
+		$this->assertSame(5, $inserted['reregistration_id']);
+		$this->assertSame(7, $inserted['user_id']);
+		$this->assertSame('pending', $inserted['status'], 'a linha nasce no mesmo estado que a semeadura escreve');
+		$this->assertSame(2, $lookups, 'lê, cria, relê — a releitura é o que resolve a corrida contra o UNIQUE');
 	}
 
 	public function test_ajax_get_form_errors_when_submission_already_approved(): void {
