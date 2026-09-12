@@ -18,7 +18,7 @@
 	padding: 2rem;
 	background: var(--ffc-bg-card);
 	border: 1px solid var(--ffc-border-light);
-	border-radius: 8px;
+	border-radius: var(--ffc-radius-lg);
 	box-shadow: var(--ffc-shadow-sm);
 }
 
@@ -40,7 +40,7 @@
 	box-sizing: border-box;
 	padding: 0.5rem;
 	border: 1px solid var(--ffc-border);
-	border-radius: 4px;
+	border-radius: var(--ffc-radius-sm);
 }
 
 .ffc-cancel-confirm-btn {
@@ -50,7 +50,7 @@
 	color: var(--ffc-text-on-danger);
 	background: var(--ffc-danger);
 	border: 0;
-	border-radius: 4px;
+	border-radius: var(--ffc-radius-sm);
 	cursor: pointer;
 }
 

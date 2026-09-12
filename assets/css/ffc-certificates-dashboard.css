@@ -25,7 +25,7 @@
 .ffc-certificates-dashboard-calendar {
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     padding: 0;
     overflow: hidden;
 }
@@ -33,7 +33,7 @@
 .ffc-certificates-dashboard-side {
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     padding: var(--ffc-spacing-xl);
 }
 
@@ -164,7 +164,7 @@
     color: var(--ffc-text);
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     cursor: pointer;
     font-size: var(--ffc-font-size-lg);
@@ -217,7 +217,7 @@
     aspect-ratio: 1;
     min-height: 0;
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     padding: var(--ffc-spacing-5);
     background: var(--ffc-bg-card);
     cursor: pointer;
@@ -285,7 +285,7 @@
 .ffc-calendar-core .ffc-legend-dot {
     width: 12px;
     height: 12px;
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     display: inline-block;
 }
 
