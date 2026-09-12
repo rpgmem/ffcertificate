@@ -653,7 +653,13 @@
    REREGISTRATIONS TABLE
    ========================================================================== */
 
-.ffc-reregistrations-table.ffc-table-past { opacity: 0.75; }
+/* A linha passada NÃO usa `opacity` -- ver #1126 e as duas tabelas irmãs acima.
+   Opacidade sobre uma linha desbota o TEXTO junto com o fundo, então ela
+   multiplica para baixo qualquer contraste que os tokens tenham garantido — e
+   o medidor de pares não enxerga isso, porque os tokens continuam certos.
+   Medido: a 0,75 a linha passada dava 3,11:1 no tema claro e 4,23:1 no escuro,
+   ambos abaixo do mínimo de 4,5:1; sem ela, 5,15:1 e 6,37:1. O estado passa a
+   ser dito pela cor do texto, que é medível, em vez de por desbotamento. */
 .ffc-reregistrations-table.ffc-table-past td { color: var(--ffc-text-muted); }
 .ffc-reregistrations-table .ffc-row-past { background: var(--ffc-bg-alt); }
 
