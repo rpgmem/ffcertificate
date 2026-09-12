@@ -95,15 +95,41 @@ final class CssClassEmitters {
 		$literals = array();
 		$prefixes = array();
 
-		$add = static function ( array &$bucket, string $key, string $file ): void {
+		/*
+		 * Um acumulador por mapa, capturando o array por referência.
+		 *
+		 * O óbvio seria UM fechamento recebendo `array &$bucket`, e ele quebra —
+		 * mas só quando algum teste anterior no mesmo processo tiver registrado
+		 * um patch. O Patchwork instrumenta a chamada dinâmica e a despacha por
+		 * `call_user_func_array()`, que não passa por referência: a chamada morre
+		 * com "Argument #1 (\$bucket) must be passed by reference".
+		 *
+		 * Rodar este arquivo sozinho passa, e rodá-lo depois de qualquer classe
+		 * que use Brain\Monkey falha — foi assim que o verde local mentiu e a CI
+		 * pegou. Variável capturada por `use ( &… )` não é parâmetro, então o
+		 * despacho não a toca.
+		 */
+		$add_literal = static function ( string $key, string $file ) use ( &$literals ): void {
 			if ( '' === $key ) {
 				return;
 			}
-			if ( ! isset( $bucket[ $key ] ) ) {
-				$bucket[ $key ] = array();
+			if ( ! isset( $literals[ $key ] ) ) {
+				$literals[ $key ] = array();
 			}
-			if ( ! in_array( $file, $bucket[ $key ], true ) ) {
-				$bucket[ $key ][] = $file;
+			if ( ! in_array( $file, $literals[ $key ], true ) ) {
+				$literals[ $key ][] = $file;
+			}
+		};
+
+		$add_prefix = static function ( string $key, string $file ) use ( &$prefixes ): void {
+			if ( '' === $key ) {
+				return;
+			}
+			if ( ! isset( $prefixes[ $key ] ) ) {
+				$prefixes[ $key ] = array();
+			}
+			if ( ! in_array( $file, $prefixes[ $key ], true ) ) {
+				$prefixes[ $key ][] = $file;
 			}
 		};
 
@@ -125,7 +151,7 @@ final class CssClassEmitters {
 					$value = (string) preg_replace( '/<\?(php|=).*?\?>/s', ' ', $hit[2] );
 					foreach ( preg_split( '/\s+/', trim( $value ) ) ?: array() as $token ) {
 						if ( preg_match( '/^[A-Za-z_][A-Za-z0-9_-]*$/', $token ) ) {
-							$add( $literals, $token, $file );
+							$add_literal( $token, $file );
 						}
 					}
 				}
@@ -140,7 +166,7 @@ final class CssClassEmitters {
 						foreach ( $strings[2] as $group ) {
 							foreach ( preg_split( '/\s+/', trim( $group ) ) ?: array() as $token ) {
 								if ( preg_match( '/^[A-Za-z_][A-Za-z0-9_-]*$/', $token ) ) {
-									$add( $literals, $token, $file );
+									$add_literal( $token, $file );
 								}
 							}
 						}
@@ -165,7 +191,7 @@ final class CssClassEmitters {
 			 */
 			if ( preg_match_all( '/\.(ffc-[a-z0-9]+(?:-{1,2}[a-z0-9]+)*)/i', $src, $m ) ) {
 				foreach ( $m[1] as $token ) {
-					$add( $literals, $token, $file );
+					$add_literal( $token, $file );
 				}
 			}
 
@@ -174,7 +200,7 @@ final class CssClassEmitters {
 				foreach ( $m as $hit ) {
 					foreach ( preg_split( '/\s+/', trim( $hit[2] ) ) ?: array() as $token ) {
 						if ( preg_match( '/^[A-Za-z_][A-Za-z0-9_-]*$/', $token ) ) {
-							$add( $literals, $token, $file );
+							$add_literal( $token, $file );
 						}
 					}
 				}
@@ -195,7 +221,7 @@ final class CssClassEmitters {
 			foreach ( self::near_class_context( $src ) as $window ) {
 				if ( preg_match_all( '/(["\'])((?:ffc-)?[a-z][a-z0-9]*(?:-[a-z0-9]+)+)\1/i', $window, $m ) ) {
 					foreach ( $m[2] as $token ) {
-						$add( $literals, $token, $file );
+						$add_literal( $token, $file );
 					}
 				}
 
@@ -219,12 +245,12 @@ final class CssClassEmitters {
 				 */
 				if ( preg_match_all( '/(ffc-[a-z0-9]+(?:-{1,2}[a-z0-9]+)*-{1,2})(["\'])\s*[.+]/i', $window, $m ) ) {
 					foreach ( $m[1] as $prefix ) {
-						$add( $prefixes, $prefix, $file );
+						$add_prefix( $prefix, $file );
 					}
 				}
 				if ( preg_match_all( '/(["\'])(ffc-[a-z0-9]+(?:-[a-z0-9]+)*-)\{?\$/i', $window, $m ) ) {
 					foreach ( $m[2] as $prefix ) {
-						$add( $prefixes, $prefix, $file );
+						$add_prefix( $prefix, $file );
 					}
 				}
 
@@ -240,12 +266,12 @@ final class CssClassEmitters {
 				 */
 				if ( preg_match_all( '/(ffc-[a-z0-9]+(?:-{1,2}[a-z0-9]+)*-{1,2})<\?/i', $window, $m ) ) {
 					foreach ( $m[1] as $prefix ) {
-						$add( $prefixes, $prefix, $file );
+						$add_prefix( $prefix, $file );
 					}
 				}
 				if ( preg_match_all( '/(ffc-[a-z0-9]+(?:-{1,2}[a-z0-9]+)*-{1,2})%[0-9]*\$?[sd]/i', $window, $m ) ) {
 					foreach ( $m[1] as $prefix ) {
-						$add( $prefixes, $prefix, $file );
+						$add_prefix( $prefix, $file );
 					}
 				}
 			}
