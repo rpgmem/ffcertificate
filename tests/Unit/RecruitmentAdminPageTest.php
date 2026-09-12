@@ -114,7 +114,7 @@ class RecruitmentAdminPageTest extends TestCase {
 		$html = RecruitmentAdminPage::classification_status_badge( 'called' );
 
 		$this->assertStringContainsString( '[BADGE:', $html );
-		$this->assertStringContainsString( 'ffc-status-called', $html );
+		$this->assertStringContainsString( 'ffc-recruitment-status-called', $html );
 	}
 
 	public function test_notice_status_badge_delegates_to_badge_html(): void {

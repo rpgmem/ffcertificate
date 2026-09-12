@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php foreach ( $stats as $status => $count ) : ?>
 				<?php if ( 'total' !== $status ) : ?>
 					<span class="ffc-stat-item">
-						<span class="ffc-status-badge ffc-status-<?php echo esc_attr( $status ); ?>"><?php echo esc_html( ReregistrationSubmissionReader::get_status_label( $status ) ); ?></span>
+						<span class="ffc-reregistration-status-badge ffc-reregistration-status-<?php echo esc_attr( $status ); ?>"><?php echo esc_html( ReregistrationSubmissionReader::get_status_label( $status ) ); ?></span>
 						<strong><?php echo esc_html( (string) $count ); ?></strong>
 					</span>
 				<?php endif; ?>

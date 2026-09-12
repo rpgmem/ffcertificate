@@ -119,8 +119,8 @@ final class RecruitmentAdminPage {
 			'withdrew'  => (string) $settings['status_color_withdrew'],
 		);
 		return BadgeHtml::render(
-			'ffc-status-badge',
-			'ffc-status-' . $status,
+			'ffc-recruitment-status-badge',
+			'ffc-recruitment-status-' . $status,
 			$colors[ $status ] ?? '#e9ecef',
 			self::classification_status_label( $status )
 		);
@@ -169,8 +169,8 @@ final class RecruitmentAdminPage {
 			'closed'      => (string) $settings['notice_status_color_closed'],
 		);
 		return BadgeHtml::render(
-			'ffc-status-badge',
-			'ffc-status-' . $status,
+			'ffc-recruitment-status-badge',
+			'ffc-recruitment-status-' . $status,
 			$colors[ $status ] ?? '#e9ecef',
 			self::notice_status_label( $status )
 		);

@@ -1,7 +1,16 @@
 /* Recruitment admin styles — scoped via the asset manager. */
 
 /* Status badges (notice + classification states). */
-.ffc-status-badge {
+/* Nome próprio desde o #1183: o `.ffc-status-badge` genérico era declarado
+   cru por esta folha, pela de submissões e pela `ffc-common`, e a de
+   submissões carrega em TODA tela `?page=ffc-*` (o portão dela é
+   `is_ffc_page()`), então este selo era pintado por uma mescla de três
+   folhas em vez de pela sua própria.
+
+   A forma abaixo é a MEDIDA, não a que esta folha declarava: o
+   `white-space: nowrap` vinha da `ffc-common` e agora é declarado aqui,
+   porque o nome novo não casa mais com o componente compartilhado. */
+.ffc-recruitment-status-badge {
     display: inline-block;
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
     border-radius: var(--ffc-radius-xs);
@@ -10,11 +19,16 @@
     text-transform: uppercase;
     letter-spacing: .03em;
     line-height: 1.5;
+    white-space: nowrap;
 }
-.ffc-status-badge.ffc-status-draft       { background: var(--ffc-bg-alt);      color: var(--ffc-text-secondary); }
-.ffc-status-badge.ffc-status-preliminary { background: var(--ffc-warning-bg);  color: var(--ffc-warning-text); }
-.ffc-status-badge.ffc-status-active      { background: var(--ffc-success-bg);  color: var(--ffc-success-text); }
-.ffc-status-badge.ffc-status-closed      { background: var(--ffc-danger-bg);   color: var(--ffc-danger-text); }
+.ffc-recruitment-status-badge.ffc-recruitment-status-draft       { background: var(--ffc-bg-alt);      color: var(--ffc-text-secondary); }
+.ffc-recruitment-status-badge.ffc-recruitment-status-preliminary { background: var(--ffc-warning-bg);  color: var(--ffc-warning-text); }
+/* `definitive`, não `active`: o activator migrou o ENUM e rodou
+   `UPDATE … SET status='definitive' WHERE status='active'`, mas a folha
+   ficou com o nome antigo — então esta regra não casava com linha nenhuma,
+   e o status que a substituiu não tinha regra. Achado ao renomear (#1183). */
+.ffc-recruitment-status-badge.ffc-recruitment-status-definitive  { background: var(--ffc-success-bg);  color: var(--ffc-success-text); }
+.ffc-recruitment-status-badge.ffc-recruitment-status-closed      { background: var(--ffc-danger-bg);   color: var(--ffc-danger-text); }
 
 /* Attached-adjutancy pill (Notices tab inline cell). */
 .ffc-attached-list { line-height: 1.8; }
@@ -334,10 +348,10 @@
     /* Selos de estado: o texto continua dizendo o estado; a borda
        devolve a eles a forma de selo. */
     .ffc-rec-pill,
-    .ffc-status-badge.ffc-status-active,
-    .ffc-status-badge.ffc-status-closed,
-    .ffc-status-badge.ffc-status-draft,
-    .ffc-status-badge.ffc-status-preliminary {
+    .ffc-recruitment-status-badge.ffc-recruitment-status-definitive,
+    .ffc-recruitment-status-badge.ffc-recruitment-status-closed,
+    .ffc-recruitment-status-badge.ffc-recruitment-status-draft,
+    .ffc-recruitment-status-badge.ffc-recruitment-status-preliminary {
         border: 1px solid CanvasText;
     }
 }

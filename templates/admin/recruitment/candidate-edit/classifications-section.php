@@ -54,7 +54,7 @@ if ( empty( $classifications ) ) {
 		echo '<td>' . esc_html( (string) $c->list_type ) . '</td>';
 		echo '<td>' . esc_html( (string) $c->rank ) . '</td>';
 		echo '<td>' . esc_html( (string) $c->score ) . '</td>';
-		echo '<td><span class="ffc-status-badge ffc-status-' . esc_attr( (string) $c->status ) . '">' . esc_html( (string) $c->status ) . '</span></td>';
+		echo '<td><span class="ffc-recruitment-status-badge ffc-recruitment-status-' . esc_attr( (string) $c->status ) . '">' . esc_html( (string) $c->status ) . '</span></td>';
 		echo '<td>' . esc_html( (string) $call_count ) . '</td>';
 		echo '</tr>';
 	}

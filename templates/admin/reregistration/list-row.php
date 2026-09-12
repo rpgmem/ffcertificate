@@ -34,7 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php endif; ?>
 			</td>
 			<td class="column-status">
-				<span class="ffc-status-badge ffc-status-<?php echo esc_attr( $item->status ); ?>">
+				<span class="ffc-reregistration-status-badge ffc-reregistration-status-<?php echo esc_attr( $item->status ); ?>">
 					<?php echo esc_html( ReregistrationRepository::get_status_label( $item->status ) ); ?>
 				</span>
 			</td>
