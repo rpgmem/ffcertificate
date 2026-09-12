@@ -734,7 +734,7 @@ code {
     border-radius: 3px;
     font-family: 'SF Mono', Monaco, Consolas, monospace;
     font-size: var(--ffc-font-size-sm);
-    color: var(--ffc-danger);
+    color: var(--ffc-danger-text);
     border: 1px solid var(--ffc-border-light);
 }
 

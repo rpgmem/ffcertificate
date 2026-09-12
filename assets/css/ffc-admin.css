@@ -586,7 +586,7 @@
 }
 .ffc-status-pill--warning {
     background: var(--ffc-warning-light);
-    color: var(--ffc-warning);
+    color: var(--ffc-warning-text);
 }
 .ffc-status-pill--info {
     background: var(--ffc-info-light);

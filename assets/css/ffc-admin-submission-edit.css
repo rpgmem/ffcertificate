@@ -111,7 +111,7 @@
 
 .ffc-unlink-user-btn:hover {
     background: var(--ffc-danger);
-    color: var(--ffc-text-on-primary);
+    color: var(--ffc-text-on-danger);
     border-color: var(--ffc-danger);
 }
 

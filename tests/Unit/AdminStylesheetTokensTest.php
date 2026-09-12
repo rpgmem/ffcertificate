@@ -140,6 +140,9 @@ final class AdminStylesheetTokensTest extends TestCase {
 	 * raw text reports every `#ffc-…` element as a colour. Comments go first
 	 * for the same reason — this file's own prose cites `#1126`.
 	 *
+	 * Counts hex, `rgb()`/`hsl()` **and the named colour** (#1168) — the last
+	 * one only inside a colour-valued property, because `white` is a word.
+	 *
 	 * @param string $path Absolute path.
 	 * @return array<int, string> The offending declarations, in file order.
 	 */
@@ -158,6 +161,23 @@ final class AdminStylesheetTokensTest extends TestCase {
 					continue;
 				}
 				if ( preg_match( '/#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/', $declaration ) ) {
+					$out[] = $declaration;
+					continue;
+				}
+
+				// Cor NOMEADA (#1168). `white` não casa com nenhum padrão acima
+				// e opta a declaração para fora da troca de tema tão
+				// completamente quanto um hex. Foi por aqui que quatro regras de
+				// `ffc-admin-submissions.css` — uma folha com orçamento ZERO,
+				// portanto certificada como totalmente convertida — pintaram
+				// branco sobre fundo escuro a 1,23 · 2,52 · 2,68 · 2,78:1.
+				//
+				// Casa só em propriedade de cor e só como palavra inteira:
+				// `font-family: 'Whitney'` não é literal de cor, e
+				// `background: url(white-bg.png)` também não.
+				if ( preg_match( '/^[a-z-]*(?:color|background|border|outline|shadow|fill|stroke)[a-z-]*\s*:/i', $declaration )
+					&& preg_match( '/(?<![-\w#])(?:white|black|red|green|blue|yellow|orange|purple|gray|grey|silver|maroon|navy|teal|olive|lime|aqua|fuchsia)(?![-\w])/i', $declaration )
+				) {
 					$out[] = $declaration;
 				}
 			}

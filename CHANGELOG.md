@@ -9,11 +9,13 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Dez pares de texto abaixo do piso de contraste do WCAG AA** (#1168): quatro regras da lista de submissões cravavam `color: white` sobre fundos tokenizados e mediam 1,23 a 2,78:1 no tema escuro — a dica de um botão ficava praticamente invisível. Outras seis usavam a cor de sinal como texto (`--ffc-danger` sobre `--ffc-danger-bg`, 4,25:1 no tema claro). Todas passam a ler o token de par correto.
 - **Componentes perdiam a forma no modo de alto contraste** (#1165): no `forced-colors` o sistema força as cores e descarta sombras, então quem tinha limite só no fundo ficava sem limite — os cinco selos de estado do agendamento viravam um só e o botão de envio virava texto. 88 controles e selos ganham contorno, sem efeito fora do modo forçado.
 - **Status "Cancelado" saía âmbar na lista de Agendamentos** (#1162): `.ffc-status-cancelled` era declarado pela folha do calendário (vermelho) e pela da audiência (âmbar). Agendamentos é submenu de Scheduling, então as duas carregam, e sem aresta entre elas a ordem de bootstrap decidia. Cada família ganhou nome próprio.
 
 ### Added
 
+- **O medidor de contraste passa a derivar os pares das folhas** (#1168): ele comparava uma lista de ~20 pares de token escritos à mão, então media só o que alguém lembrou de listar. Agora toda regra que declara texto e fundo juntos vira uma medição nos dois temas, e o que não consegue ler falha em vez de passar em silêncio. A catraca de literais passa a contar cor nomeada — `white` não casava com nenhum padrão dela.
 - **Guarda de posse de componente** (#1162): classe declarada crua em duas folhas sem aresta de dependência entre elas tem a ordem decidida por enfileiramento — trocar duas linhas do bootstrap repinta uma tela. Guarda nova bloqueia o caso; os dois pares que restam ficam registrados com o motivo.
 - **Catraca de namespace no CSS** (#1152): 60 seletores não nomeiam nada que o plugin possua — `.button::before`, `.column-status`, `#tab-*` — e alcançam qualquer elemento da tela; hoje o raio é pequeno por sorte de enfileiramento, não por desenho. Guarda nova congela a lista por folha e só deixa encolher.
 

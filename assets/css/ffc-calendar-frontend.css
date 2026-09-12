@@ -306,7 +306,7 @@
 
 .ffc-shortcode .ffc-message-error {
     background: var(--ffc-danger-light);
-    color: var(--ffc-danger);
+    color: var(--ffc-danger-text);
     border: 1px solid var(--ffc-danger);
 }
 
@@ -314,7 +314,7 @@
 .ffc-shortcode .ffc-error {
     padding: 20px;
     background: var(--ffc-danger-light);
-    color: var(--ffc-danger);
+    color: var(--ffc-danger-text);
     border: 1px solid var(--ffc-danger);
     border-radius: var(--ffc-radius-sm);
     margin: 20px 0;

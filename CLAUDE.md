@@ -515,14 +515,24 @@ Every colour the plugin paints comes from a `var(--ffc-*)` token declared in `as
 
 | Guard | What it blocks |
 | --- | --- |
-| `AdminStylesheetTokensTest` A | a colour literal per sheet — a ratchet, `0` for the converted ones |
+| `AdminStylesheetTokensTest` A | a colour literal per sheet — a ratchet, `0` for the converted ones; counts hex, `rgb()`/`hsl()` **and the named colour** (#1168) |
 | …B / B2 | a sheet reading tokens without declaring `ffc-common`; a method enqueuing the palette without the toggle |
 | …C | a `var(--ffc-*)` nobody declares |
 | …D | the base pair exists, paints through a token, and names only live roots; the notice's text nodes likewise |
 | …E | a form control given a ground but no text colour |
-| `DarkModeCssTest` | every painted pair against its WCAG floor, both themes (4.5:1 text, 3:1 signal) |
+| `DarkModeCssTest` | every painted pair against its WCAG floor, both themes (4.5:1 text, 3:1 signal) — **two halves**, see below |
 
 Each carries a self-check that fails when its own scan collapses — an empty result must never read as "clean" (the #1071 / #1094 lesson).
+
+**The contrast meter is two halves, and the line above was aspirational until #1168.** `DarkModeCssTest::pairs()` is a **hand-written list of token pairs** — it measures what somebody remembered to list, and `--ffc-danger` over `--ffc-danger-bg` was never on it, shipping at **4,25:1 in the LIGHT theme** on a public-CSV warning. So a second half now **derives** the pairs: every rule that declares `color` and a background *in the same rule* is measured in both themes against the 4,5:1 text floor, blocking at zero. **Keep both** — they cover different things: the scan only sees what one rule declares together, while the pair that **inheritance** creates (the base text over `--ffc-gray-100`, a label whose colour comes from its container) is invisible to any static scan and is exactly what the curated list is for.
+
+Three things the derived scan measured, none of them guessable:
+
+1. **A sheet certified "0 literals" was painting `white` on four dark grounds.** The literal ratchet's regex was `/#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/` — a **named colour is a word**, so it matched nothing, and `ffc-admin-submissions.css` carried `color: white` on the PDF, delete and restore buttons plus a tooltip, measuring **1,23 · 2,52 · 2,68 · 2,78:1** in dark mode. The `2,52` is the same number this file already records as the historical `on-primary` bug: the palette fixed the *token*, these four rules never adopted it. Direction A now counts named colours, only inside a colour-valued property (`font-family: 'Whitney'` is not a literal).
+2. **Unresolvable must FAIL, never skip.** The scan's first version could not read `!important` or `white` and reported those four as "unresolvable" — i.e. it would have passed over the worst defects in the repository. A colour the scan cannot resolve now fails the test and asks to be taught, which is the same rule the dbDelta gate states as "never count as clean what it did not look at".
+3. **Only two pairs are legitimately below the floor**, and both are **inactive** controls carrying `cursor: not-allowed` — a full time slot and a `readonly`/`disabled` field. SC 1.4.3 exempts text that is part of an inactive component; they sit in `DERIVED_EXCEPTIONS` with that reason, and a test fails when an exception stops matching any real pair.
+
+**The skin object was measured and NOT built** (#1168). Consolidating the 57 rules that declare only a `--ffc-X-bg` / `--ffc-X-text` pair into six shared classes is the textbook OOCSS split, and it was rejected here: the tokens already deliver "change the colour in one place", so the duplication is *syntactic*, and migrating the status-badge families means a status→skin map in PHP **and** JS across ~36 files, because the class is built by concatenation (`'ffc-dashboard-status-' . $status`). The guard delivers the property that mattered — a wrong pair becomes impossible to ship — without the churn.
 
 **Standing decisions, so they are not re-litigated:**
 

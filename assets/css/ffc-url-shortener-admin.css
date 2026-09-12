@@ -61,7 +61,7 @@
 
 .ffc-shorturl-toast--error {
     background: var(--ffc-danger);
-    color: var(--ffc-text-on-primary);
+    color: var(--ffc-text-on-danger);
 }
 
 /* Admin page: clickable short URL code */
@@ -209,7 +209,7 @@
 }
 
 .ffc-qr-modal__close:hover {
-    color: var(--ffc-danger);
+    color: var(--ffc-danger-text);
     background: var(--ffc-bg-alt);
 }
 

@@ -990,7 +990,7 @@
 
 .ffc-badge-private {
     background: var(--ffc-danger-light);
-    color: var(--ffc-danger);
+    color: var(--ffc-danger-text);
     border: 1px solid var(--ffc-danger);
 }
 
@@ -1119,7 +1119,7 @@
 
 .ffc-autosave-badge--error {
     background: var(--ffc-danger-light);
-    color: var(--ffc-danger);
+    color: var(--ffc-danger-text);
 }
 
 /* ==========================================================================
@@ -1159,7 +1159,7 @@
 
 .ffc-features-badge--error {
     background: var(--ffc-danger-light);
-    color: var(--ffc-danger);
+    color: var(--ffc-danger-text);
 }
 
 /* ==========================================================================
