@@ -17,6 +17,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Dois números do `CLAUDE.md` descreviam um estado que não existe mais** (#1187): ele dizia que o registro de testes vazios tinha 95 entradas — tem **1** desde a 6.22.0 (#1030), o que fazia o arquivo inventar um passivo já quitado —, e que a catraca de âncora de namespace congelava 60 seletores, quando são 51 desde a #1170. Documentação, sem mudança de produto.
 - **As classes sem emissor viram três listas, não uma** (#1182): sete são API publicada para o corpo do certificado que o administrador escreve — a folha traz a seção "utility classes for certificate templates" e diz `Add class "ffc-responsive-logo" to img tag` —, quatro são shim que a própria folha declara legado e passam ao inventário de compatibilidade com condição de saída, e quatro seguem em aberto. A #1170 tinha classificado as sete como mortas.
 
 ### Added
