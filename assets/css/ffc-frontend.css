@@ -21,7 +21,7 @@
     background-color: var(--ffc-bg-input) !important;
     color: var(--ffc-text);
     display: block !important;
-    margin-bottom: var(--ffc-spacing-15);
+    margin-bottom: var(--ffc-spacing-xl);
     transition: border-color var(--ffc-transition-base), box-shadow var(--ffc-transition-base);
     -webkit-appearance: none;
 }
@@ -367,8 +367,8 @@ details.ffc-consent-description > p {
 
 @media (max-width: 768px) {
     .ffc-shortcode .ffc-lgpd-consent {
-        padding: var(--ffc-spacing-15);
-        margin: var(--ffc-spacing-2xl) 0 var(--ffc-spacing-15) 0;
+        padding: var(--ffc-spacing-xl);
+        margin: var(--ffc-spacing-2xl) 0 var(--ffc-spacing-xl) 0;
     }
 
     .ffc-shortcode .ffc-consent-label {
@@ -552,7 +552,7 @@ details.ffc-consent-description > p {
    ============================================ */
 .ffc-shortcode .ffc-submit-btn {
     width: 100%; /* ← 100% do form (450px) */
-    padding: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
     border: none;
@@ -588,7 +588,7 @@ details.ffc-consent-description > p {
    ============================================ */
 .ffc-shortcode .ffc-message {
     margin-top: var(--ffc-spacing-2xl);
-    padding: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
     border-radius: 5px;
     font-size: var(--ffc-font-size-base);
     line-height: 1.5;
@@ -663,7 +663,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-verify-input {
-    padding: var(--ffc-spacing-lg) var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     border: 2px solid var(--ffc-border-light);
     border-radius: 5px;
     font-size: var(--ffc-font-size-xl);
@@ -683,7 +683,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-no-js-security {
-    margin-top: var(--ffc-spacing-5);
+    margin-top: var(--ffc-spacing-2xs);
     width: 100%;
 }
 
@@ -696,7 +696,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-verify-error {
-    padding: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
     border: 1px solid var(--ffc-danger-border);
@@ -713,7 +713,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-verify-success h3 {
-    margin: 0 0 var(--ffc-spacing-15) 0;
+    margin: 0 0 var(--ffc-spacing-xl) 0;
     font-size: var(--ffc-font-size-xl);
 }
 
@@ -723,13 +723,13 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-verify-success hr {
-    margin: var(--ffc-spacing-15) 0;
+    margin: var(--ffc-spacing-xl) 0;
     border: none;
     border-top: 1px solid var(--ffc-success-border);
 }
 
 .ffc-shortcode .ffc-verify-success h4 {
-    margin: var(--ffc-spacing-15) 0 var(--ffc-spacing-md) 0;
+    margin: var(--ffc-spacing-xl) 0 var(--ffc-spacing-md) 0;
     font-size: var(--ffc-font-size-xl);
 }
 
@@ -778,7 +778,7 @@ details.ffc-consent-description > p {
     display: inline-block;
     font-size: var(--ffc-font-size-2xl);
     font-weight: 600;
-    padding: var(--ffc-spacing-5) var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xl);
     /* Véu branco translúcido sobre o gradiente colorido do cartão: é uma
        camada sobre a cor que estiver embaixo, não um papel da paleta (#1126). */
     background: rgba(255, 255, 255, 0.2);
@@ -836,7 +836,7 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-manual-verification-form .ffc-manual-auth-code {
     width: 100%;
     max-width: 320px;
-    padding: var(--ffc-spacing-md) 14px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-sm);
     font-size: var(--ffc-font-size-base);
@@ -868,7 +868,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-preview-body h4 {
-    margin: 25px 0 var(--ffc-spacing-15) 0;
+    margin: 25px 0 var(--ffc-spacing-xl) 0;
     font-size: var(--ffc-font-size-lg);
     color: var(--ffc-text-secondary);
     font-weight: 600;
@@ -922,7 +922,7 @@ details.ffc-consent-description > p {
 
 .ffc-shortcode .ffc-verification-status {
     display: inline-block;
-    padding: var(--ffc-spacing-2xs) 14px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
     border-radius: var(--ffc-radius-sm);
     font-size: var(--ffc-font-size-sm);
     font-weight: 600;
@@ -956,7 +956,7 @@ details.ffc-consent-description > p {
    provides enough visual break from the rows above.
    ============================================ */
 .ffc-shortcode .ffc-schedule-exception-block {
-    margin: 25px 0 var(--ffc-spacing-5);
+    margin: 25px 0 var(--ffc-spacing-2xs);
     padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     background: var(--ffc-warning-bg);
     border-left: 4px solid var(--ffc-warning-border);
@@ -1017,7 +1017,7 @@ details.ffc-consent-description > p {
     background: linear-gradient(135deg, var(--ffc-primary) 0%, var(--ffc-primary-hover) 100%);
     color: var(--ffc-text-on-primary);
     border: none;
-    padding: var(--ffc-spacing-15) 40px;
+    padding: var(--ffc-spacing-xl) 40px;
     font-size: var(--ffc-font-size-xl);
     font-weight: 600;
     border-radius: 5px;
@@ -1083,7 +1083,7 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-geofence-blocked {
     background: var(--ffc-warning-bg);
     border-left: 4px solid var(--ffc-warning-border);
-    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     margin: var(--ffc-spacing-2xl) 0;
     border-radius: var(--ffc-radius-sm);
 }
@@ -1102,7 +1102,7 @@ details.ffc-consent-description > p {
 .ffc-shortcode .ffc-geofence-admin-bypass {
     background: var(--ffc-info-bg);
     border-left: 4px solid var(--ffc-info-border);
-    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     margin: 0 0 var(--ffc-spacing-2xl) 0;
     border-radius: var(--ffc-radius-sm);
 }
@@ -1151,7 +1151,7 @@ details.ffc-consent-description > p {
     .ffc-shortcode.ffc-verification-container,
     .ffc-shortcode .ffc-certificate-preview {
         padding: var(--ffc-spacing-2xl);
-        margin: var(--ffc-spacing-15);
+        margin: var(--ffc-spacing-xl);
     }
 
     .ffc-shortcode .ffc-form-title,
@@ -1301,7 +1301,7 @@ details.ffc-consent-description > p {
    peers, not parent/child. */
 .ffc-shortcode .ffc-success-where-is-file {
     max-width: 450px;
-    margin: 18px auto 0;
+    margin: var(--ffc-spacing-xl) auto 0;
     padding: 0;
     text-align: left;
     box-sizing: border-box;
@@ -1322,7 +1322,7 @@ details.ffc-consent-description > p {
 
 .ffc-shortcode .ffc-success-where-is-file ul {
     margin: 0;
-    padding-left: 18px;
+    padding-left: var(--ffc-spacing-xl);
 }
 
 .ffc-shortcode .ffc-success-where-is-file li {
@@ -1338,7 +1338,7 @@ details.ffc-consent-description > p {
     border: 1px solid var(--ffc-warning-border);
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
-    padding: var(--ffc-spacing-xl) 18px;
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-xl);
     border-radius: var(--ffc-radius-md);
     margin: var(--ffc-spacing-lg) 0;
     text-align: left;
@@ -1848,8 +1848,8 @@ details.ffc-consent-description > p {
     color: var(--ffc-danger-text);
     background: var(--ffc-danger-bg);
     border-left: 3px solid var(--ffc-danger);
-    padding: var(--ffc-spacing-md) 14px;
-    margin: 14px 0 var(--ffc-spacing-2xs);
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
+    margin: var(--ffc-spacing-lg) 0 var(--ffc-spacing-2xs);
     border-radius: var(--ffc-radius-sm, 4px);
     font-weight: 500;
 }
@@ -1857,7 +1857,7 @@ details.ffc-consent-description > p {
 .ffc-open-early-warn-cache {
     background: var(--ffc-warning-light);
     border-left: 3px solid var(--ffc-warning);
-    padding: var(--ffc-spacing-md) 14px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
     margin: var(--ffc-spacing-lg) 0 0;
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-warning-text);
@@ -1902,7 +1902,7 @@ details.ffc-consent-description > p {
     display: flex;
     justify-content: flex-end;
     gap: var(--ffc-spacing-lg);
-    padding: 14px var(--ffc-spacing-3xl) 18px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-3xl) var(--ffc-spacing-xl);
     border-top: 1px solid var(--ffc-border);
     background: var(--ffc-bg-alt);
 }
@@ -2082,7 +2082,7 @@ details.ffc-consent-description > p {
     display: flex;
     gap: var(--ffc-spacing-xl);
     align-items: flex-start;
-    padding: 18px var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     margin: 0 0 var(--ffc-spacing-3xl) 0;
     background: var(--ffc-warning-bg);
     border: 1px solid var(--ffc-warning-border);
@@ -2114,7 +2114,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-webview-warning-content p {
-    margin: 0 0 14px 0;
+    margin: 0 0 var(--ffc-spacing-lg) 0;
     font-size: var(--ffc-font-size-base);
     line-height: 1.5;
     color: var(--ffc-text);
@@ -2128,7 +2128,7 @@ details.ffc-consent-description > p {
 
 .ffc-webview-warning-open,
 .ffc-webview-warning-dismiss {
-    padding: var(--ffc-spacing-md) 18px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-xl);
     font-size: var(--ffc-font-size-base);
     font-weight: 600;
     border-radius: var(--ffc-radius-sm);
@@ -2251,7 +2251,7 @@ details.ffc-consent-description > p {
     .ffc-already-submitted-notice {
         flex-direction: column;
         gap: var(--ffc-spacing-sm);
-        padding: 14px var(--ffc-spacing-xl);
+        padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     }
     .ffc-already-submitted-dismiss {
         width: 100%;

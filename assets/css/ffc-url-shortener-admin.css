@@ -78,7 +78,7 @@
 .ffc-shorturl-stats {
     display: flex;
     gap: var(--ffc-spacing-2xl);
-    margin: var(--ffc-spacing-15) 0;
+    margin: var(--ffc-spacing-xl) 0;
 }
 
 .ffc-shorturl-stats > div {
@@ -101,10 +101,10 @@
 /* Create form */
 .ffc-shorturl-create {
     background: var(--ffc-bg-card);
-    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-sm);
-    margin-bottom: var(--ffc-spacing-15);
+    margin-bottom: var(--ffc-spacing-xl);
 }
 
 .ffc-shorturl-create h3 {
@@ -196,7 +196,7 @@
 .ffc-qr-modal__close {
     position: absolute;
     top: 10px;
-    right: 14px;
+    right: var(--ffc-spacing-lg);
     background: none;
     border: none;
     font-size: var(--ffc-font-size-2xl);

@@ -35,7 +35,7 @@
    ========================================================================== */
 
 .ffc-dashboard-notice {
-    padding: 14px 18px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     margin-bottom: var(--ffc-spacing-2xl);
     border-radius: var(--ffc-radius-md);
     border-left: 4px solid var(--ffc-border);
@@ -166,7 +166,7 @@
 .ffc-dashboard-summary {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 14px;
+    gap: var(--ffc-spacing-lg);
     margin-bottom: var(--ffc-spacing-3xl);
 }
 
@@ -178,7 +178,7 @@
     background: var(--ffc-bg-alt);
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-lg);
-    padding: 18px var(--ffc-spacing-xl);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-xl);
     text-align: center;
     transition: box-shadow 0.2s, border-color 0.2s;
 }
@@ -239,7 +239,7 @@
     color: var(--ffc-text-secondary);
     display: flex;
     align-items: center;
-    gap: var(--ffc-spacing-5);
+    gap: var(--ffc-spacing-xs);
     font-weight: 500;
 }
 
@@ -266,7 +266,7 @@
 }
 
 .ffc-filter-bar .button {
-    padding: var(--ffc-spacing-xs) 14px;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
     font-size: var(--ffc-font-size-sm);
     font-weight: 500;
     border-radius: var(--ffc-radius-sm);
@@ -435,8 +435,8 @@
 .ffc-btn-edit {
     display: inline-flex !important;
     align-items: center;
-    gap: var(--ffc-spacing-5);
-    padding: var(--ffc-spacing-5) 14px !important;
+    gap: var(--ffc-spacing-xs);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg) !important;
     font-size: var(--ffc-font-size-xs) !important;
     font-weight: 500;
     text-decoration: none !important;
@@ -717,7 +717,7 @@
     text-decoration: none;
     font-size: var(--ffc-font-size-sm);
     font-weight: 500;
-    padding: var(--ffc-spacing-xs) 14px;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md);
     background: var(--ffc-bg);
@@ -756,7 +756,7 @@
 }
 
 .ffc-profile-field {
-    padding: 14px 18px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     margin: 0;
     border-bottom: 1px solid var(--ffc-border-light);
     border-right: 1px solid var(--ffc-border-light);
@@ -885,7 +885,7 @@
    ========================================================================== */
 
 .ffc-password-form {
-    margin-top: 14px;
+    margin-top: var(--ffc-spacing-lg);
     padding: var(--ffc-spacing-2xl);
     background: var(--ffc-bg-alt);
     border: 1px solid var(--ffc-border-light);
@@ -895,7 +895,7 @@
 .ffc-password-form .ffc-profile-field {
     padding: 0;
     border: none;
-    margin-bottom: 14px;
+    margin-bottom: var(--ffc-spacing-lg);
 }
 
 .ffc-password-form .ffc-profile-field label {
@@ -904,7 +904,7 @@
     letter-spacing: 0;
     font-weight: 600;
     color: var(--ffc-text);
-    margin-bottom: var(--ffc-spacing-5);
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-password-form input[type="password"] {
@@ -945,7 +945,7 @@
     font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-text);
-    margin: 0 0 14px 0;
+    margin: 0 0 var(--ffc-spacing-lg) 0;
 }
 
 /* ==========================================================================
@@ -989,7 +989,7 @@
     font-weight: 600;
     font-family: inherit;
     color: var(--ffc-text);
-    padding: var(--ffc-spacing-sm) 14px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     background: var(--ffc-bg-alt);
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md) var(--ffc-radius-md) 0 0;
@@ -1040,7 +1040,7 @@
 .ffc-audience-subgroup .ffc-audience-parent-header {
     font-size: var(--ffc-font-size-sm);
     font-weight: 500;
-    padding: var(--ffc-spacing-md) 14px var(--ffc-spacing-md) 28px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg) var(--ffc-spacing-md) 28px;
     min-height: 44px;
     box-sizing: border-box;
     background: var(--ffc-bg);
@@ -1080,7 +1080,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--ffc-spacing-md) 14px var(--ffc-spacing-md) 28px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg) var(--ffc-spacing-md) 28px;
     min-height: 44px;
     box-sizing: border-box;
     background: var(--ffc-bg);
@@ -1118,7 +1118,7 @@
 
 .ffc-audience-join-item .button {
     flex-shrink: 0;
-    padding: var(--ffc-spacing-5) var(--ffc-spacing-xl);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xl);
     font-size: var(--ffc-font-size-xs);
     font-weight: 500;
     border-radius: var(--ffc-radius-sm);
@@ -1248,7 +1248,7 @@
 }
 
 .ffc-lgpd-export-btn {
-    padding: var(--ffc-spacing-sm) 18px !important;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-xl) !important;
     font-size: var(--ffc-font-size-sm) !important;
     border-radius: var(--ffc-radius-md) !important;
 }
@@ -1256,7 +1256,7 @@
 .ffc-lgpd-delete-btn {
     color: var(--ffc-danger) !important;
     border-color: var(--ffc-danger) !important;
-    padding: var(--ffc-spacing-sm) 18px !important;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-xl) !important;
     font-size: var(--ffc-font-size-sm) !important;
     border-radius: var(--ffc-radius-md) !important;
 }
@@ -1287,7 +1287,7 @@
 .ffc-profile-edit-form .ffc-profile-field {
     padding: 0;
     border: none;
-    margin-bottom: 14px;
+    margin-bottom: var(--ffc-spacing-lg);
 }
 
 .ffc-profile-edit-form .ffc-profile-field label {
@@ -1296,7 +1296,7 @@
     letter-spacing: 0;
     font-weight: 600;
     color: var(--ffc-text);
-    margin-bottom: var(--ffc-spacing-5);
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-profile-edit-form input[type="text"],
@@ -1329,7 +1329,7 @@
     display: flex;
     align-items: center;
     gap: var(--ffc-spacing-md);
-    margin-top: 18px;
+    margin-top: var(--ffc-spacing-xl);
 }
 
 .ffc-profile-edit-actions .button {
@@ -1348,7 +1348,7 @@
     justify-content: center;
     gap: var(--ffc-spacing-md);
     margin-top: var(--ffc-spacing-xl);
-    padding-top: 14px;
+    padding-top: var(--ffc-spacing-lg);
     border-top: 1px solid var(--ffc-border-light);
 }
 
@@ -1400,7 +1400,7 @@
     display: inline-flex;
     align-items: center;
     gap: var(--ffc-spacing-xs);
-    padding: var(--ffc-spacing-5) var(--ffc-spacing-lg);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
     font-size: var(--ffc-font-size-xs);
     line-height: 1.4;
     background: var(--ffc-primary);
@@ -1442,7 +1442,7 @@
     display: flex;
     align-items: center;
     gap: var(--ffc-spacing-md);
-    padding: var(--ffc-spacing-md) 14px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
     color: var(--ffc-text);
     text-decoration: none;
     font-size: var(--ffc-font-size-sm);
@@ -1462,7 +1462,7 @@
     background: var(--ffc-danger-bg);
     border-left: 4px solid var(--ffc-danger);
     color: var(--ffc-danger-text);
-    padding: 14px 18px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     border-radius: var(--ffc-radius-md);
     margin: var(--ffc-spacing-2xl) 0;
     font-size: var(--ffc-font-size-base);
@@ -1516,7 +1516,7 @@
     .ffc-filter-bar .button {
         width: 100%;
         text-align: center;
-        padding: var(--ffc-spacing-sm) 14px;
+        padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     }
 
     .ffc-page-size-select {

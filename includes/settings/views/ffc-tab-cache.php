@@ -267,7 +267,7 @@ if ( $ffcertificate_cf_behind ) :
 								</tr>
 							</table>
 							<?php if ( ! wp_using_ext_object_cache() ) : ?>
-								<p class="ffc-text-warning ffc-mt-20">
+								<p class="ffc-text-warning ffc-mt-2xl">
 									<span class="ffc-icon-bulb"></span><?php esc_html_e( 'Tip: Install Redis or Memcached for better performance.', 'ffcertificate' ); ?>
 								</p>
 							<?php endif; ?>
@@ -384,7 +384,7 @@ if ( $ffcertificate_cf_behind ) :
 							onclick="return confirm('<?php echo esc_js( __( 'Clear all cached QR Codes?\n\nThey will be regenerated automatically when needed.', 'ffcertificate' ) ); ?>');">
 							<span class="ffc-icon-delete"></span><?php esc_html_e( 'Clear All QR Code Cache', 'ffcertificate' ); ?>
 						</a>
-						<p class="description ffc-mt-10">
+						<p class="description ffc-mt-md">
 							<?php esc_html_e( 'QR Codes will be regenerated automatically when needed. This action is safe and reversible.', 'ffcertificate' ); ?>
 						</p>
 					</td>

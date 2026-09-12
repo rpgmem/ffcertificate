@@ -34,11 +34,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     background: var(--ffc-gray-100);
     border-bottom: 1px solid var(--ffc-gray-200);
     flex-wrap: wrap;
-    gap: var(--ffc-spacing-15);
+    gap: var(--ffc-spacing-xl);
 }
 
 .ffc-shortcode .ffc-calendar-nav {
@@ -112,13 +112,13 @@
 
 /* Calendar Grid */
 .ffc-shortcode .ffc-calendar-grid {
-    padding: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
 }
 
 .ffc-shortcode .ffc-calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: var(--ffc-spacing-5);
+    gap: var(--ffc-spacing-xs);
     margin-bottom: var(--ffc-spacing-md);
 }
 
@@ -127,13 +127,13 @@
     font-weight: 600;
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-gray-600);
-    padding: var(--ffc-spacing-md) var(--ffc-spacing-5);
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-2xs);
 }
 
 .ffc-shortcode .ffc-calendar-days {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: var(--ffc-spacing-5);
+    gap: var(--ffc-spacing-xs);
 }
 
 /* Calendar Day */
@@ -142,7 +142,7 @@
     min-height: 0;
     border: 1px solid var(--ffc-gray-200);
     border-radius: var(--ffc-radius-sm);
-    padding: var(--ffc-spacing-5);
+    padding: var(--ffc-spacing-2xs);
     background: var(--ffc-bg-card);
     cursor: pointer;
     transition: all 0.2s ease;
@@ -229,7 +229,7 @@
 
 /* Day Content */
 .ffc-shortcode .ffc-day-content {
-    margin-top: var(--ffc-spacing-5);
+    margin-top: var(--ffc-spacing-2xs);
     font-size: var(--ffc-font-size-2xs);
     overflow: hidden;
 }
@@ -270,7 +270,7 @@
 .ffc-shortcode .ffc-calendar-legend {
     display: flex;
     gap: var(--ffc-spacing-2xl);
-    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     background: var(--ffc-gray-100);
     border-top: 1px solid var(--ffc-gray-200);
     font-size: var(--ffc-font-size-sm);
@@ -281,7 +281,7 @@
 .ffc-shortcode .ffc-legend-item {
     display: flex;
     align-items: center;
-    gap: var(--ffc-spacing-5);
+    gap: var(--ffc-spacing-xs);
 }
 
 .ffc-shortcode .ffc-legend-dot {
@@ -342,13 +342,13 @@
 
 /* Form Styles */
 .ffc-shortcode .ffc-form-group {
-    margin-bottom: var(--ffc-spacing-15);
+    margin-bottom: var(--ffc-spacing-xl);
 }
 
 .ffc-shortcode .ffc-form-group label {
     display: block;
     font-weight: 600;
-    margin-bottom: var(--ffc-spacing-5);
+    margin-bottom: var(--ffc-spacing-2xs);
     font-size: var(--ffc-font-size-base);
 }
 
@@ -373,14 +373,14 @@
 .ffc-shortcode .ffc-form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: var(--ffc-spacing-15);
+    gap: var(--ffc-spacing-xl);
 }
 
 .ffc-shortcode .ffc-char-count {
     font-size: var(--ffc-font-size-xs);
     color: var(--ffc-gray-600);
     float: right;
-    margin-top: var(--ffc-spacing-5);
+    margin-top: var(--ffc-spacing-2xs);
 }
 
 /* User Search/Select */
@@ -390,7 +390,7 @@
     border: 1px solid var(--ffc-gray-200);
     border-radius: var(--ffc-radius-sm);
     display: none;
-    margin-top: var(--ffc-spacing-5);
+    margin-top: var(--ffc-spacing-2xs);
 }
 
 .ffc-shortcode .ffc-user-results.is-active {
@@ -415,7 +415,7 @@
     margin-top: var(--ffc-spacing-md);
     display: flex;
     flex-wrap: wrap;
-    gap: var(--ffc-spacing-5);
+    gap: var(--ffc-spacing-xs);
 }
 
 .ffc-shortcode .ffc-selected-user {
@@ -423,7 +423,7 @@
     align-items: center;
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
-    padding: var(--ffc-spacing-5) var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
     border-radius: 20px;
     font-size: var(--ffc-font-size-sm);
 }
@@ -445,8 +445,8 @@
     background: var(--ffc-warning-bg);
     border: 1px solid var(--ffc-warning);
     border-radius: var(--ffc-radius-sm);
-    padding: var(--ffc-spacing-15);
-    margin-top: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
+    margin-top: var(--ffc-spacing-xl);
 }
 
 .ffc-shortcode .ffc-conflict-warning .dashicons {
@@ -485,8 +485,8 @@
     background: var(--ffc-danger-bg);
     border: 1px solid var(--ffc-danger);
     border-radius: var(--ffc-radius-sm);
-    padding: var(--ffc-spacing-15);
-    margin-top: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
+    margin-top: var(--ffc-spacing-xl);
 }
 
 .ffc-shortcode .ffc-conflict-error .dashicons {
@@ -499,7 +499,7 @@
 .ffc-shortcode .ffc-conflict-error-details {
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-gray-700);
-    margin-top: var(--ffc-spacing-5);
+    margin-top: var(--ffc-spacing-2xs);
 }
 
 /* Day Detail Bookings */
@@ -511,7 +511,7 @@
 .ffc-shortcode .ffc-booking-item {
     border: 1px solid var(--ffc-gray-200);
     border-radius: var(--ffc-radius-sm);
-    padding: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
     margin-bottom: var(--ffc-spacing-md);
     background: var(--ffc-gray-100);
 }
@@ -524,7 +524,7 @@
     font-weight: 600;
     font-size: var(--ffc-font-size-lg);
     color: var(--ffc-primary);
-    margin-bottom: var(--ffc-spacing-5);
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-shortcode .ffc-booking-description {
@@ -534,7 +534,7 @@
 .ffc-shortcode .ffc-booking-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--ffc-spacing-15);
+    gap: var(--ffc-spacing-xl);
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-gray-600);
 }
@@ -542,7 +542,7 @@
 .ffc-shortcode .ffc-booking-audiences {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--ffc-spacing-5);
+    gap: var(--ffc-spacing-xs);
     margin-top: var(--ffc-spacing-md);
 }
 
@@ -558,14 +558,14 @@
 }
 
 .ffc-shortcode .ffc-booking-actions {
-    margin-top: var(--ffc-spacing-15);
+    margin-top: var(--ffc-spacing-xl);
     padding-top: var(--ffc-spacing-md);
     border-top: 1px solid var(--ffc-gray-200);
 }
 
 /* Day Filter */
 .ffc-shortcode .ffc-day-filter {
-    margin-bottom: var(--ffc-spacing-15);
+    margin-bottom: var(--ffc-spacing-xl);
     padding-bottom: var(--ffc-spacing-md);
     border-bottom: 1px solid var(--ffc-gray-200);
 }
@@ -623,7 +623,7 @@
 
     .ffc-shortcode .ffc-weekday {
         font-size: var(--ffc-font-size-2xs);
-        padding: var(--ffc-spacing-5) var(--ffc-spacing-3xs);
+        padding: var(--ffc-spacing-2xs) var(--ffc-spacing-3xs);
     }
 
     .ffc-shortcode .ffc-form-row {
@@ -713,7 +713,7 @@
 }
 
 .ffc-shortcode .ffc-event-list-header {
-    padding: var(--ffc-spacing-lg) var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     background: var(--ffc-gray-100);
     border-bottom: 1px solid var(--ffc-gray-200);
 }
@@ -735,7 +735,7 @@
     font-weight: 600;
     color: var(--ffc-gray-600);
     text-transform: uppercase;
-    padding: var(--ffc-spacing-sm) var(--ffc-spacing-5) var(--ffc-spacing-2xs);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-2xs) var(--ffc-spacing-2xs);
     border-bottom: 1px solid var(--ffc-gray-200);
     margin-top: var(--ffc-spacing-sm);
 }

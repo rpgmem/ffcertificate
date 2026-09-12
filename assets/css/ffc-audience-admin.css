@@ -50,7 +50,7 @@
 }
 
 .ffc-stat-link {
-    margin-top: var(--ffc-spacing-15);
+    margin-top: var(--ffc-spacing-xl);
     color: var(--ffc-link);
     text-decoration: none;
 }
@@ -142,7 +142,7 @@
 
 /* Filter Form */
 .ffc-filter-form {
-    margin: var(--ffc-spacing-15) 0;
+    margin: var(--ffc-spacing-xl) 0;
     display: flex;
     gap: var(--ffc-spacing-md);
     align-items: center;
@@ -219,7 +219,7 @@
 /* Working Hours */
 .ffc-working-hours {
     background: var(--ffc-bg-alt);
-    padding: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
     border-radius: var(--ffc-radius-sm);
 }
 
@@ -275,14 +275,14 @@
 }
 
 .ffc-selected-users {
-    margin: var(--ffc-spacing-15) 0;
+    margin: var(--ffc-spacing-xl) 0;
 }
 
 .ffc-selected-user {
     display: inline-block;
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
-    padding: var(--ffc-spacing-5) var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
     margin: 3px;
     border-radius: var(--ffc-radius-xs);
     font-size: var(--ffc-font-size-sm);
@@ -322,12 +322,12 @@
 
 /* Bookings Filter Bar */
 .tablenav.top {
-    margin-bottom: var(--ffc-spacing-15);
+    margin-bottom: var(--ffc-spacing-xl);
 }
 
 .tablenav.top select,
 .tablenav.top input[type="date"] {
-    margin-right: var(--ffc-spacing-5);
+    margin-right: var(--ffc-spacing-2xs);
 }
 
 /* Admin Modal Overlay (booking details) */
@@ -359,7 +359,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 14px 18px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     border-bottom: 1px solid var(--ffc-border);
 }
 
@@ -384,7 +384,7 @@
 }
 
 .ffc-admin-modal-body {
-    padding: 18px;
+    padding: var(--ffc-spacing-xl);
     overflow-y: auto;
 }
 
@@ -427,7 +427,7 @@
 
 .ffc-sample-csv pre {
     background: var(--ffc-bg-alt);
-    padding: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
     overflow-x: auto;
     font-size: var(--ffc-font-size-xs);
 }
@@ -442,7 +442,7 @@
 }
 
 .ffc-scheduling-dashboard > h2 {
-    margin: 25px 0 var(--ffc-spacing-15);
+    margin: 25px 0 var(--ffc-spacing-xl);
     padding-bottom: var(--ffc-spacing-sm);
     border-bottom: 1px solid var(--ffc-border);
 }
@@ -544,7 +544,7 @@
 
 .ffc-aud-flex-end {
     display: flex;
-    gap: var(--ffc-spacing-15);
+    gap: var(--ffc-spacing-xl);
     align-items: flex-end;
     flex-wrap: wrap;
 }
@@ -561,7 +561,7 @@
 
 .ffc-aud-panel {
     margin-bottom: var(--ffc-spacing-2xl);
-    padding: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
     background: var(--ffc-bg-alt);
     border: 1px solid var(--ffc-border);
 }
@@ -651,7 +651,7 @@
 
 /* Bookings list: total-count note under the table. */
 .ffc-audience-total-note {
-    margin-top: var(--ffc-spacing-15);
+    margin-top: var(--ffc-spacing-xl);
 }
 
 /* ==========================================================================

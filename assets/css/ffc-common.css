@@ -98,14 +98,6 @@
     --ffc-spacing-2xl: 20px;
     --ffc-spacing-3xl: 24px;
 
-    /* SEGUNDA ESCADA — transitórios, nomeados pelo VALOR de propósito.
-       O código carrega duas escadas: a progressão acima e uma de 5 em 5.
-       Estes dois são o que sobra da segunda (182 declarações) e não
-       pertencem a progressão nenhuma. Saem por DELEÇÃO quando o tema de
-       densidade obrigar a escolher um fator por degrau — não os renomeie
-       para um degrau semântico, que é o que tornaria a dívida invisível. */
-    --ffc-spacing-5: 5px;
-    --ffc-spacing-15: 15px;
 
     /* Border Radius */
     --ffc-radius-xs: 3px;
@@ -624,7 +616,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     border-bottom: 1px solid var(--ffc-gray-200);
 }
 
@@ -655,7 +647,7 @@
     display: flex;
     justify-content: flex-end;
     gap: var(--ffc-spacing-md);
-    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     border-top: 1px solid var(--ffc-gray-200);
 }
 
@@ -664,7 +656,7 @@
 .ffc-shortcode .ffc-modal-body .ffc-form-group label {
     display: block;
     font-weight: 600;
-    margin-bottom: var(--ffc-spacing-5);
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-shortcode .ffc-modal-body .ffc-form-group textarea {
@@ -803,7 +795,7 @@
     background: var(--ffc-warning-bg);
     border: 1px solid var(--ffc-warning-border);
     border-radius: var(--ffc-radius-sm);
-    padding: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
     margin-bottom: var(--ffc-spacing-2xl);
     display: flex;
     align-items: center;
@@ -929,8 +921,8 @@
 /* Admin bypass notice */
 /* 0.9em literal: relativo ao pai, mesma razão do .ffc-calendar-title acima. */
 .ffc-admin-bypass-notice {
-    padding: var(--ffc-spacing-md) var(--ffc-spacing-15);
-    margin-bottom: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-xl);
+    margin-bottom: var(--ffc-spacing-xl);
     background: var(--ffc-info-light);
     border: 1px solid var(--ffc-info);
     border-radius: var(--ffc-radius-sm);
@@ -1211,7 +1203,7 @@
    Each mode carries a consequence rather than a preference, so the note
    sits with its option instead of in a paragraph above the group. */
 .ffc-captcha-mode {
-    margin: 0 0 18px;
+    margin: 0 0 var(--ffc-spacing-xl);
     max-width: 46em;
 }
 
@@ -1249,7 +1241,7 @@
 
 .ffc-email-disabled-notice {
     margin: 0 0 var(--ffc-spacing-xl);
-    padding: var(--ffc-spacing-md) 14px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
     border-left: 4px solid var(--ffc-warning-border);
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);

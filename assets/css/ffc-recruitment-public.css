@@ -88,7 +88,7 @@
     display: inline-flex;
     align-items: center;
     gap: var(--ffc-spacing-xs);
-    padding: var(--ffc-spacing-xs) 14px;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
     border: 1px solid var(--ffc-primary);
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);

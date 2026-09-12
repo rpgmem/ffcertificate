@@ -85,7 +85,7 @@ class DashboardViewMode {
 			<div class="ffc-dashboard-header">
 				<div>
 					<strong>🔍 <?php esc_html_e( 'Admin View Mode', 'ffcertificate' ); ?></strong>
-					<p class="ffc-m-5-0">
+					<p class="ffc-m-2xs-0">
 						<?php
 						echo wp_kses_post(
 							sprintf(

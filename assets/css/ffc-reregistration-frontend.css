@@ -113,7 +113,7 @@
     font-weight: 600;
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text);
-    margin-bottom: var(--ffc-spacing-5);
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-rereg-field label .ffc-required {
@@ -368,7 +368,7 @@
     }
 
     .ffc-rereg-fieldset {
-        padding: 14px;
+        padding: var(--ffc-spacing-lg);
     }
 
     .ffc-rereg-row {

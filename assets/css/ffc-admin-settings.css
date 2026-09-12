@@ -36,7 +36,7 @@
 .ffc-settings-wrap .card > h3[id],
 .ffc-settings-page .card > h3[id] {
     margin-top: 0;
-    margin-bottom: var(--ffc-spacing-15);
+    margin-bottom: var(--ffc-spacing-xl);
     padding-bottom: var(--ffc-spacing-md);
     border-bottom: 1px solid var(--ffc-border-light);
     font-size: var(--ffc-font-size-xl);
@@ -46,14 +46,14 @@
 
 .ffc-settings-wrap .card h3 {
     margin-top: var(--ffc-spacing-2xl);
-    margin-bottom: var(--ffc-spacing-15);
+    margin-bottom: var(--ffc-spacing-xl);
     font-size: var(--ffc-font-size-lg);
     font-weight: 600;
 }
 
 .ffc-settings-wrap .card > p.description {
     margin-top: 0;
-    margin-bottom: var(--ffc-spacing-15);
+    margin-bottom: var(--ffc-spacing-xl);
     color: var(--ffc-text-muted);
 }
 
@@ -79,14 +79,14 @@
 .ffc-settings-wrap .form-table th,
 .ffc-settings-page .form-table th {
     width: 200px;
-    padding: var(--ffc-spacing-15) var(--ffc-spacing-md) var(--ffc-spacing-15) 0;
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-md) var(--ffc-spacing-xl) 0;
     font-weight: 600;
     vertical-align: top;
 }
 
 .ffc-settings-wrap .form-table td,
 .ffc-settings-page .form-table td {
-    padding: var(--ffc-spacing-15) var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-md);
 }
 
 .ffc-settings-wrap .form-table .description {
@@ -98,8 +98,8 @@
 }
 
 .ffc-settings-wrap .form-table fieldset .description {
-    margin-top: var(--ffc-spacing-5);
-    margin-bottom: var(--ffc-spacing-15);
+    margin-top: var(--ffc-spacing-2xs);
+    margin-bottom: var(--ffc-spacing-xl);
     margin-left: 25px;
 }
 
@@ -108,7 +108,7 @@
 .ffc-settings-wrap .form-table .description.ffc-module-note {
     display: flex;
     align-items: flex-start;
-    gap: var(--ffc-spacing-5);
+    gap: var(--ffc-spacing-xs);
     margin-top: var(--ffc-spacing-xs);
     font-style: italic;
 }
@@ -176,13 +176,13 @@
 .ffc-provider-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: var(--ffc-spacing-15);
-    margin-top: var(--ffc-spacing-15);
+    gap: var(--ffc-spacing-xl);
+    margin-top: var(--ffc-spacing-xl);
 }
 
 .ffc-provider-card {
     background: var(--ffc-bg-alt);
-    padding: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
     border-radius: var(--ffc-radius-sm);
     border-left: 4px solid var(--ffc-primary);
 }
@@ -208,7 +208,7 @@
 }
 
 .ffc-provider-card p {
-    margin: var(--ffc-spacing-5) 0;
+    margin: var(--ffc-spacing-2xs) 0;
     font-size: var(--ffc-font-size-sm);
     line-height: 1.4;
 }
@@ -217,7 +217,7 @@
    CHECKBOX GROUPS
    ========================================================================== */
 .ffc-checkbox-group {
-    margin: var(--ffc-spacing-15) 0;
+    margin: var(--ffc-spacing-xl) 0;
 }
 
 .ffc-checkbox-group label {
@@ -229,12 +229,12 @@
     color: var(--ffc-primary);
     font-weight: 400;
     font-size: var(--ffc-font-size-sm);
-    margin-left: var(--ffc-spacing-5);
+    margin-left: var(--ffc-spacing-2xs);
 }
 
 .ffc-checkbox-group .description {
     margin-left: 30px;
-    margin-top: var(--ffc-spacing-5);
+    margin-top: var(--ffc-spacing-2xs);
     font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-muted);
 }
@@ -247,7 +247,7 @@
 }
 
 .ffc-collapsible-content {
-    padding: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
 }
 
 /* ==========================================================================
@@ -320,14 +320,14 @@
 
 .ffc-migration-card .inside {
     margin: 0;
-    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl) var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl) var(--ffc-spacing-2xl);
 }
 
 .ffc-migration-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: var(--ffc-spacing-15);
-    margin: var(--ffc-spacing-15) 0;
+    gap: var(--ffc-spacing-xl);
+    margin: var(--ffc-spacing-xl) 0;
 }
 
 .ffc-migration-stat-label {
@@ -335,7 +335,7 @@
     color: var(--ffc-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: var(--ffc-spacing-5);
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-migration-stat-value {
@@ -425,7 +425,7 @@
 }
 
 .ffc-rate-limit-wrap .card > p {
-    margin-bottom: var(--ffc-spacing-15);
+    margin-bottom: var(--ffc-spacing-xl);
 }
 
 /* ✅ v4.6.0: Rate limit notice styles moved to ffc-common.css (shared admin+frontend) */
@@ -448,7 +448,7 @@
    ========================================================================== */
 .ffc-settings-wrap .button {
     margin-right: var(--ffc-spacing-md);
-    margin-bottom: var(--ffc-spacing-5);
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-settings-wrap .button:last-child {
@@ -486,12 +486,12 @@
 
 @media screen and (max-width: 1000px) {
     .ffc-settings-wrap .card {
-        padding: var(--ffc-spacing-15);
+        padding: var(--ffc-spacing-xl);
     }
     
     .ffc-provider-card,
     .ffc-stats-box {
-        padding: var(--ffc-spacing-15);
+        padding: var(--ffc-spacing-xl);
     }
 }
 
@@ -535,7 +535,7 @@
 
 .ffc-doc-toc h3 {
     margin-top: 0;
-    margin-bottom: var(--ffc-spacing-15);
+    margin-bottom: var(--ffc-spacing-xl);
     color: var(--ffc-text);
 }
 
@@ -683,7 +683,7 @@
        ffc-code-editor-dark.css (#1126). */
     background: #1e1e1e;
     color: #d4d4d4;
-    padding: var(--ffc-spacing-15);
+    padding: var(--ffc-spacing-xl);
     border-radius: var(--ffc-radius-sm);
     overflow-x: auto;
     margin: var(--ffc-spacing-md) 0;
@@ -747,7 +747,7 @@ pre code {
 
 /* Alerts */
 .ffc-alert {
-    padding: var(--ffc-spacing-15) var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     border-radius: var(--ffc-radius-sm);
     margin: var(--ffc-spacing-2xl) 0;
     border-left: 4px solid;
@@ -928,7 +928,7 @@ pre code {
 
 .ffc-settings-tabs__group-label {
     display: block;
-    padding: 14px var(--ffc-spacing-lg) var(--ffc-spacing-5);
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-lg) var(--ffc-spacing-2xs);
     font-size: var(--ffc-font-size-2xs);
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -1164,7 +1164,7 @@ html:has(.ffc-settings-back-to-top) {
 }
 
 .ffc-set-mt-18 {
-    margin-top: 18px;
+    margin-top: var(--ffc-spacing-xl);
 }
 
 .ffc-set-mr-8 {
@@ -1269,8 +1269,8 @@ html:has(.ffc-settings-back-to-top) {
 
 /* General tab: date/time format divergence notice body. */
 .ffc-settings-divergence-notice {
-    margin: var(--ffc-spacing-15) 0;
-    padding: var(--ffc-spacing-lg) var(--ffc-spacing-15);
+    margin: var(--ffc-spacing-xl) 0;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
 }
 
 .ffc-settings-divergence-notice p {
@@ -1278,7 +1278,7 @@ html:has(.ffc-settings-back-to-top) {
 }
 
 .ffc-settings-divergence-notice ul {
-    margin: var(--ffc-spacing-xs) 0 0 18px;
+    margin: var(--ffc-spacing-xs) 0 0 var(--ffc-spacing-xl);
     list-style: disc;
 }
 

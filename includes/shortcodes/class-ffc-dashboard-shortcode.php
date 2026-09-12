@@ -386,7 +386,7 @@ class DashboardShortcode {
 						<div class="ffc-dashboard-header">
 							<div>
 								<strong><?php echo esc_html( $rereg['title'] ); ?></strong>
-								<p class="ffc-m-5-0"><?php esc_html_e( 'Your reregistration has been approved.', 'ffcertificate' ); ?></p>
+								<p class="ffc-m-2xs-0"><?php esc_html_e( 'Your reregistration has been approved.', 'ffcertificate' ); ?></p>
 							</div>
 							<?php if ( ! empty( $rereg['magic_link'] ) ) : ?>
 							<div>
@@ -404,7 +404,7 @@ class DashboardShortcode {
 						<div class="ffc-dashboard-header">
 							<div>
 								<strong><?php echo esc_html( $rereg['title'] ); ?></strong>
-								<p class="ffc-m-5-0"><?php esc_html_e( 'Your reregistration has been submitted and is pending review.', 'ffcertificate' ); ?></p>
+								<p class="ffc-m-2xs-0"><?php esc_html_e( 'Your reregistration has been submitted and is pending review.', 'ffcertificate' ); ?></p>
 							</div>
 							<?php if ( ! empty( $rereg['magic_link'] ) ) : ?>
 							<div>
@@ -437,7 +437,7 @@ class DashboardShortcode {
 						<div class="ffc-dashboard-header">
 							<div>
 								<strong><?php echo esc_html( $rereg['title'] ); ?></strong>
-								<p class="ffc-m-5-0">
+								<p class="ffc-m-2xs-0">
 									<?php
 									echo esc_html(
 										sprintf(
@@ -465,7 +465,7 @@ class DashboardShortcode {
 				<div class="ffc-dashboard-header">
 					<div>
 						<strong><?php echo esc_html( $rereg['title'] ); ?></strong>
-						<p class="ffc-m-5-0">
+						<p class="ffc-m-2xs-0">
 							<?php
 							/* translators: %s: deadline date */
 							echo esc_html( sprintf( __( 'Deadline: %s', 'ffcertificate' ), $end_date ) );
