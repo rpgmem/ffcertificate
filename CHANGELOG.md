@@ -9,6 +9,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **Componentes perdiam a forma no modo de alto contraste** (#1165): no `forced-colors` o sistema força as cores e descarta sombras, então quem tinha limite só no fundo ficava sem limite — os cinco selos de estado do agendamento viravam um só e o botão de envio virava texto. 88 controles e selos ganham contorno, sem efeito fora do modo forçado.
 - **Status "Cancelado" saía âmbar na lista de Agendamentos** (#1162): `.ffc-status-cancelled` era declarado pela folha do calendário (vermelho) e pela da audiência (âmbar). Agendamentos é submenu de Scheduling, então as duas carregam, e sem aresta entre elas a ordem de bootstrap decidia. Cada família ganhou nome próprio.
 
 ### Added

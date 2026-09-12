@@ -399,3 +399,26 @@ body.ffc-rereg-modal-open {
 .ffc-rereg-muted {
     color: var(--ffc-text-light);
 }
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
+   O mecanismo está explicado em ffc-common.css (#1165).
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Selos de estado: o texto continua dizendo o estado; a borda
+       devolve a eles a forma de selo. */
+    .ffc-audience-badge,
+    .ffc-status-active,
+    .ffc-status-approved,
+    .ffc-status-closed,
+    .ffc-status-draft,
+    .ffc-status-expired,
+    .ffc-status-in_progress,
+    .ffc-status-pending,
+    .ffc-status-rejected,
+    .ffc-status-submitted {
+        border: 1px solid CanvasText;
+    }
+}

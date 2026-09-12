@@ -1224,3 +1224,45 @@
 .ffc-email-disabled-notice p {
     margin: 0;
 }
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+
+   No modo de alto contraste o agente de usuário FORÇA `color`,
+   `background-color` e `border-color`, e descarta `box-shadow`. Um componente
+   cujo limite era só o fundo deixa de ter limite: medido em Chromium (#1165),
+   os cinco selos de estado do agendamento viravam um só, e o botão de envio
+   do formulário público virava uma palavra sem contorno.
+
+   A borda aqui não tem efeito nenhum fora do modo forçado -- foi por isso que
+   ela mora numa media query em vez de um `border: 1px solid transparent`, que
+   funciona igual mas muda as métricas da caixa no modo normal.
+
+   `ButtonText` para o que se clica, `CanvasText` para o que se lê: são as
+   cores que o próprio sistema usa para cada papel.
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Controles: sem contorno, um botão deixa de parecer clicável. */
+    .ffc-btn-danger,
+    .ffc-btn-primary,
+    .ffc-btn-secondary,
+    .ffc-btn-success,
+    :root.ffc-dark-mode .button,
+    :root.ffc-dark-mode .button-secondary,
+    :root.ffc-dark-mode .button.disabled {
+        border: 1px solid ButtonText;
+    }
+
+    /* Selos de estado: o texto continua dizendo o estado; a borda
+       devolve a eles a forma de selo. */
+    .ffc-autosave-badge--error,
+    .ffc-autosave-badge--saved,
+    .ffc-autosave-badge--saving,
+    .ffc-features-badge--error,
+    .ffc-features-badge--saved,
+    .ffc-features-badge--saving,
+    .ffc-status-pending {
+        border: 1px solid CanvasText;
+    }
+}

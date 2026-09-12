@@ -58,3 +58,16 @@
 .ffc-cancel-confirm-btn:focus {
 	background: var(--ffc-danger-hover);
 }
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
+   O mecanismo está explicado em ffc-common.css (#1165).
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Controles: sem contorno, um botão deixa de parecer clicável. */
+    .ffc-cancel-confirm-btn {
+        border: 1px solid ButtonText;
+    }
+}

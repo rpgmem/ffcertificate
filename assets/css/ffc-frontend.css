@@ -2274,3 +2274,38 @@ details.ffc-consent-description > p {
         text-align: center;
     }
 }
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
+   O mecanismo está explicado em ffc-common.css (#1165).
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Controles: sem contorno, um botão deixa de parecer clicável. */
+    .ffc-extend-end-modal .ffc-info-btn-primary,
+    .ffc-open-early-modal .ffc-info-btn-primary,
+    .ffc-public-csv-download .ffc-info-btn-primary,
+    .ffc-shortcode .ffc-download-btn,
+    .ffc-shortcode .ffc-submit-btn {
+        border: 1px solid ButtonText;
+    }
+
+    /* Selos de estado: o texto continua dizendo o estado; a borda
+       devolve a eles a forma de selo. */
+    .ffc-shortcode .ffc-status-badge,
+    .ffc-shortcode .ffc-status-badge.error,
+    .ffc-shortcode .ffc-status-badge.success,
+    .ffc-shortcode .ffc-verification-status-approved,
+    .ffc-shortcode .ffc-verification-status-cancelled,
+    .ffc-shortcode .ffc-verification-status-completed,
+    .ffc-shortcode .ffc-verification-status-confirmed,
+    .ffc-shortcode .ffc-verification-status-expired,
+    .ffc-shortcode .ffc-verification-status-in_progress,
+    .ffc-shortcode .ffc-verification-status-no_show,
+    .ffc-shortcode .ffc-verification-status-pending,
+    .ffc-shortcode .ffc-verification-status-rejected,
+    .ffc-shortcode .ffc-verification-status-submitted {
+        border: 1px solid CanvasText;
+    }
+}

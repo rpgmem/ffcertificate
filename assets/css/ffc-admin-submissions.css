@@ -486,3 +486,25 @@
         border: 1px solid var(--ffc-text);
     }
 }
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
+   O mecanismo está explicado em ffc-common.css (#1165).
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Controles: sem contorno, um botão deixa de parecer clicável. */
+    .ffc-delete-btn {
+        border: 1px solid ButtonText;
+    }
+
+    /* Selos de estado: o texto continua dizendo o estado; a borda
+       devolve a eles a forma de selo. */
+    .ffc-badge-muted,
+    .ffc-badge-success,
+    .ffc-status-badge.publish,
+    .ffc-status-badge.trash {
+        border: 1px solid CanvasText;
+    }
+}

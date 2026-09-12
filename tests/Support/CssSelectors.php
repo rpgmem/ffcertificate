@@ -48,12 +48,52 @@ final class CssSelectors {
 	}
 
 	/**
+	 * Regras de estilo de uma folha, com o corpo.
+	 *
+	 * Enxerga DENTRO de `@media` e `@supports`, como `of()` sempre enxergou —
+	 * e isso não é detalhe. Um parser de uso único escrito para medir a
+	 * exposição a `forced-colors` (#1165) só lia o nível de topo e enxergou
+	 * 270 das 2.111 regras da base, porque o responsivo mora quase todo dentro
+	 * de `@media`. O erro foi do script, não desta classe; ele está registrado
+	 * aqui porque é a razão de esta função existir em vez de cada guarda
+	 * escrever a sua.
+	 *
+	 * @param string $css Conteúdo da folha.
+	 * @return array<int, array{selector: string, body: string}>
+	 */
+	public static function rules( string $css ): array {
+		$out = array();
+		foreach ( self::walk( $css ) as $rule ) {
+			$out[] = $rule;
+		}
+
+		return $out;
+	}
+
+	/**
 	 * Extrai os seletores de uma folha, um por entrada da lista.
 	 *
 	 * @param string $css Conteúdo da folha.
 	 * @return array<int, string>
 	 */
 	public static function of( string $css ): array {
+		$out = array();
+		foreach ( self::walk( $css ) as $rule ) {
+			foreach ( self::split_list( $rule['selector'] ) as $one ) {
+				$out[] = $one;
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Percorre as regras, devolvendo seletor bruto + corpo.
+	 *
+	 * @param string $css Conteúdo da folha.
+	 * @return array<int, array{selector: string, body: string}>
+	 */
+	private static function walk( string $css ): array {
 		$css   = (string) preg_replace( '#/\*.*?\*/#s', '', $css );
 		$out   = array();
 		$buf   = '';
@@ -87,26 +127,25 @@ final class CssSelectors {
 				$buf     = '';
 				if ( str_starts_with( $prelude, '@' ) ) {
 					$name    = strtolower( strtok( $prelude, " \t\n(" ) ?: '' );
-					$stack[] = str_contains( $name, 'keyframes' ) ? 'keyframes' : 'atrule';
+					$stack[] = array( 'kind' => str_contains( $name, 'keyframes' ) ? 'keyframes' : 'at' );
 					continue;
 				}
-				$parent = end( $stack );
-				if ( 'keyframes' !== $parent && '' !== $prelude ) {
-					foreach ( self::split_list( $prelude ) as $one ) {
-						$out[] = $one;
-					}
-				}
-				$stack[] = 'rule';
+				$parent  = end( $stack );
+				$stack[] = array(
+					'kind'     => ( false !== $parent && 'keyframes' === $parent['kind'] ) ? 'step' : 'rule',
+					'selector' => $prelude,
+				);
 				continue;
 			}
 
 			if ( '}' === $ch ) {
-				$buf = '';
-				array_pop( $stack );
-				continue;
-			}
-
-			if ( ';' === $ch && array() === $stack ) {
+				$frame = array_pop( $stack );
+				if ( is_array( $frame ) && 'rule' === $frame['kind'] && '' !== $frame['selector'] ) {
+					$out[] = array(
+						'selector' => $frame['selector'],
+						'body'     => $buf,
+					);
+				}
 				$buf = '';
 				continue;
 			}
