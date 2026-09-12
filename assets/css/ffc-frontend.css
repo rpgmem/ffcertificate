@@ -1861,7 +1861,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-open-early-warn {
-    color: var(--ffc-danger);
+    color: var(--ffc-danger-text);
     background: var(--ffc-danger-bg);
     border-left: 3px solid var(--ffc-danger);
     padding: 10px 14px;

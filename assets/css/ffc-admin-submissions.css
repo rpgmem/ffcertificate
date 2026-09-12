@@ -28,7 +28,7 @@
 .ffc-table-responsive a[title*="PDF"] {
     background: linear-gradient(135deg, var(--ffc-primary) 0%, var(--ffc-primary-hover) 100%) !important;
     border-color: var(--ffc-primary-hover) !important;
-    color: white !important;
+    color: var(--ffc-text-on-primary) !important;
     box-shadow: var(--ffc-shadow-md);
 }
 
@@ -43,7 +43,7 @@
 .ffc-delete-btn {
     background: var(--ffc-danger) !important;
     border-color: var(--ffc-danger-hover) !important;
-    color: white !important;
+    color: var(--ffc-text-on-danger) !important;
     box-shadow: var(--ffc-shadow-md);
 }
 
@@ -57,7 +57,7 @@
 .ffc-table-responsive .button[href*="action=restore"] {
     background: var(--ffc-success) !important;
     border-color: var(--ffc-success-hover) !important;
-    color: white !important;
+    color: var(--ffc-text-on-success) !important;
     box-shadow: var(--ffc-shadow-md);
 }
 
@@ -406,7 +406,7 @@
     margin-bottom: 8px;
     padding: 6px 10px;
     background: var(--ffc-inverse-surface);
-    color: white;
+    color: var(--ffc-inverse-on-surface);
     font-size: var(--ffc-font-size-xs);
     white-space: nowrap;
     border-radius: 4px;

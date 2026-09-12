@@ -83,7 +83,7 @@
 }
 
 .ffc-wh-remove:hover {
-    color: var(--ffc-danger);
+    color: var(--ffc-danger-text);
     border-color: var(--ffc-danger);
     background: var(--ffc-danger-bg);
 }
