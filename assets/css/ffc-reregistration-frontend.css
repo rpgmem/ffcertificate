@@ -42,7 +42,7 @@
     text-align: center;
     padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     margin: -24px -24px var(--ffc-spacing-2xl);
-    border-radius: 6px 6px 0 0;
+    border-radius: var(--ffc-radius-md) var(--ffc-radius-md) 0 0;
 }
 
 .ffc-rereg-header-title {
@@ -64,7 +64,7 @@
 .ffc-rereg-form-container {
     background: var(--ffc-bg-input);
     border: 1px solid var(--ffc-border);
-    border-radius: 6px;
+    border-radius: var(--ffc-radius-md);
     padding: var(--ffc-spacing-3xl);
     margin-bottom: var(--ffc-spacing-2xl);
 }
@@ -86,7 +86,7 @@
 
 .ffc-rereg-fieldset {
     border: 1px solid var(--ffc-border-light);
-    border-radius: 6px;
+    border-radius: var(--ffc-radius-md);
     padding: var(--ffc-spacing-2xl);
     margin: 0 0 var(--ffc-spacing-2xl) 0;
 }
@@ -132,7 +132,7 @@
     max-width: 500px;
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     font-size: var(--ffc-font-size-base);
     font-family: inherit;
     background: var(--ffc-bg-card);
@@ -229,7 +229,7 @@
     width: 100%;
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xs);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     font-size: var(--ffc-font-size-sm);
     font-family: inherit;
     box-sizing: border-box;
@@ -316,7 +316,7 @@
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-2xl);
     font-size: var(--ffc-font-size-sm);
     font-weight: 500;
-    border-radius: 6px;
+    border-radius: var(--ffc-radius-md);
     cursor: pointer;
     transition: all 0.15s;
     line-height: 1.4;

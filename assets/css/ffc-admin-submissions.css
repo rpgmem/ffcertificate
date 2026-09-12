@@ -14,7 +14,7 @@
     display: inline-block;
     vertical-align: middle;
     padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     font-weight: 500;
     transition: all 0.2s ease;
 }
@@ -99,7 +99,7 @@
 
 .ffc-table-responsive table.wp-list-table {
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     overflow: hidden;
 }
 
@@ -154,7 +154,7 @@
 .ffc-status-badge {
     display: inline-block;
     padding: 3px var(--ffc-spacing-sm);
-    border-radius: 3px;
+    border-radius: var(--ffc-radius-xs);
     font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
     text-transform: uppercase;
@@ -221,7 +221,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 100000;
+    z-index: var(--ffc-z-modal);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -239,7 +239,7 @@
 .ffc-filter-overlay-content {
     position: relative;
     background: var(--ffc-bg-card);
-    border-radius: 6px;
+    border-radius: var(--ffc-radius-md);
     box-shadow: var(--ffc-shadow-lg);
     max-width: 480px;
     width: 90%;
@@ -352,7 +352,7 @@
 
 .ffc-admin-top-actions .button {
     box-shadow: var(--ffc-shadow-sm);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     font-weight: 500;
 }
 
@@ -380,7 +380,7 @@
     height: 12px;
     margin-top: -6px;
     border: 2px solid currentColor;
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     border-top-color: transparent;
     animation: spin 0.6s linear infinite;
 }
@@ -409,9 +409,9 @@
     color: var(--ffc-inverse-on-surface);
     font-size: var(--ffc-font-size-xs);
     white-space: nowrap;
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     box-shadow: var(--ffc-shadow-md);
-    z-index: 1000;
+    z-index: var(--ffc-z-overlay);
     pointer-events: none;
 }
 
@@ -424,7 +424,7 @@
     transform: translateX(-50%);
     border: 4px solid transparent;
     border-top-color: var(--ffc-inverse-surface);
-    z-index: 1000;
+    z-index: var(--ffc-z-overlay);
 }
 
 /* Hide tooltip on mobile */

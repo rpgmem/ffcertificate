@@ -76,13 +76,13 @@
     margin: var(--ffc-spacing-15) 0;
     font-family: monospace;
     font-size: var(--ffc-font-size-sm);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
 }
 
 .ffc-shortcode-display code {
     background: var(--ffc-bg-card);
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
-    border-radius: 3px;
+    border-radius: var(--ffc-radius-xs);
     display: inline-block;
 }
 

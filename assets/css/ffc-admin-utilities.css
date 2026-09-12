@@ -1,9 +1,32 @@
 /**
  * FFC Admin Utilities
- * v3.1.0 - Admin-specific utility classes
  *
- * This file contains utility classes used exclusively in the WordPress admin area.
- * For shared utilities used in both admin and frontend, see ffc-common.css
+ * Utility classes for the WordPress admin. For utilities shared with the
+ * frontend, see ffc-common.css.
+ *
+ * WHAT BELONGS HERE (#1171) — the scope, written down, because a generic name
+ * invites drift and the defence against the next one is this paragraph, not a
+ * rename later:
+ *
+ *   A class here names a PROPERTY or a generic visual shape, not a feature.
+ *   `.ffc-mt-20`, `.ffc-w100`, `.ffc-text-warning`, `.ffc-monospace` qualify.
+ *   One rule, no `:hover`, no descendant selectors, no element sub-selectors.
+ *
+ * WHAT DOES NOT: anything whose name carries a feature, and anything that needs
+ * more than one rule to render. Nine such classes are here today and are the
+ * debt this docblock exists to stop growing — `ffc-preflight-badge` (six rules,
+ * with `a`, `a:hover` and `strong`), `ffc-preflight-badge-icon`,
+ * `ffc-preflight-stats-badges`, `ffc-template-loader`, `ffc-debug-group-title`,
+ * `ffc-debug-group-blurb`, `ffc-url-shortener-types`, `ffc-color-value` and
+ * `ffc-inline-status`.
+ *
+ * They were NOT moved in #1171, and the reason is worth knowing before someone
+ * tries: this sheet is a DEPENDENCY of `ffc-admin-css`, so everything in it
+ * reaches every FFC admin screen. Moving a component to its owner sheet
+ * NARROWS its reach, and if that sheet is not enqueued on the screen that
+ * renders the component, the styles vanish with nothing to catch it. Each move
+ * needs its target's enqueue gate verified against that screen — a pass with
+ * its own verification, not a tidy-up.
  *
  * @since 3.1.0
  */
@@ -57,18 +80,6 @@
    across the admin/settings views. */
 .ffc-mt-8 {
     margin-top: var(--ffc-spacing-sm);
-}
-
-.ffc-mt-12 {
-    margin-top: var(--ffc-spacing-lg);
-}
-
-.ffc-mt-16 {
-    margin-top: var(--ffc-spacing-xl);
-}
-
-.ffc-mb-2 {
-    margin-bottom: var(--ffc-spacing-3xs);
 }
 
 .ffc-mb-4 {
@@ -211,7 +222,7 @@
 
 .ffc-preflight-badge {
     background: var(--ffc-bg-alt);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     border-left: 3px solid var(--ffc-primary);
     padding: 0;
 }

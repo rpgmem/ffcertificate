@@ -17,7 +17,7 @@
     padding: var(--ffc-spacing-15);
     margin-bottom: var(--ffc-spacing-lg);
     border-left: 4px solid var(--ffc-primary);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     box-shadow: var(--ffc-shadow-sm);
 }
 
@@ -76,7 +76,7 @@
     margin-top: var(--ffc-spacing-15);
     background: var(--ffc-bg-alt);
     padding: var(--ffc-spacing-lg);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     border: 1px dashed var(--ffc-border);
 }
 
@@ -104,7 +104,7 @@
     background: #2c3338;
     color: #f0f0f1;
     padding: var(--ffc-spacing-15);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     line-height: 1.5;
     border: 1px solid #1e1e1e;
 }
@@ -209,7 +209,7 @@
     padding: var(--ffc-spacing-2xl);
     background: var(--ffc-bg-card);
     border: 2px solid var(--ffc-danger);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
 }
 
 .ffc-danger-zone h2 {
@@ -223,7 +223,7 @@
 .ffc-shortcode-box {
     background: var(--ffc-bg-alt);
     padding: var(--ffc-spacing-md);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     border: 1px solid var(--ffc-border);
 }
 
@@ -477,7 +477,7 @@
 .ffc-placeholder {
     background: var(--ffc-primary-light);
     border: 1px dashed var(--ffc-primary);
-    border-radius: 3px;
+    border-radius: var(--ffc-radius-xs);
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
     color: var(--ffc-primary);
     font-family: "Courier New", monospace;
@@ -496,7 +496,7 @@
 /* CodeMirror wrapper (certificate HTML template editor). */
 .ffc-code-editor-wrapper .CodeMirror {
     border: 1px solid var(--ffc-border);
-    border-radius: 3px;
+    border-radius: var(--ffc-radius-xs);
     height: auto;
     min-height: 260px;
     font-size: var(--ffc-font-size-sm);
@@ -564,7 +564,7 @@
    field will fall back to without it shouting. */
 .ffc-global-default {
     padding: 0 var(--ffc-spacing-2xs);
-    border-radius: 3px;
+    border-radius: var(--ffc-radius-xs);
     background: var(--ffc-primary-light);
     color: var(--ffc-primary);
     font-weight: 600;
@@ -630,7 +630,7 @@
     flex: 1 1 140px;
     min-width: 140px;
     padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
-    border-radius: 6px;
+    border-radius: var(--ffc-radius-md);
     background: var(--ffc-bg-alt);
     border-left: 4px solid var(--ffc-gray-400);
 }
@@ -767,7 +767,7 @@ td .ffc-restriction-label {
 
 .ffc-preview-container {
     position: relative;
-    z-index: 1;
+    z-index: var(--ffc-z-raised);
     display: flex;
     flex-direction: column;
     width: 90%;
@@ -775,7 +775,7 @@ td .ffc-restriction-label {
     height: 85vh;
     margin: 5vh auto;
     background: var(--ffc-bg-card);
-    border-radius: 8px;
+    border-radius: var(--ffc-radius-lg);
     box-shadow: var(--ffc-shadow-lg);
     overflow: hidden;
 }
@@ -886,7 +886,7 @@ td .ffc-restriction-label {
 .ffc-shortcode-cell { display: inline-flex; align-items: center; gap: var(--ffc-spacing-2xs); }
 .ffc-shortcode-code { font-size: var(--ffc-font-size-xs); padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs); user-select: all; }
 .ffc-copy-shortcode {
-    background: none; border: 1px solid var(--ffc-border); border-radius: 3px;
+    background: none; border: 1px solid var(--ffc-border); border-radius: var(--ffc-radius-xs);
     cursor: pointer; padding: var(--ffc-spacing-3xs) var(--ffc-spacing-2xs); line-height: 1; color: var(--ffc-text-muted);
 }
 .ffc-copy-shortcode:hover { color: var(--ffc-primary); border-color: var(--ffc-primary); }
@@ -1015,7 +1015,7 @@ p.ffc-datetime-order-error {
 	width: 8px;
 	height: 8px;
 	margin-left: auto;
-	border-radius: 50%;
+	border-radius: var(--ffc-radius-full);
 	background: var(--ffc-danger);
 }
 

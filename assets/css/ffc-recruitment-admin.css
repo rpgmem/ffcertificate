@@ -4,7 +4,7 @@
 .ffc-status-badge {
     display: inline-block;
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
-    border-radius: 3px;
+    border-radius: var(--ffc-radius-xs);
     font-size: var(--ffc-font-size-xs);
     font-weight: 600;
     text-transform: uppercase;
@@ -24,7 +24,7 @@
     color: var(--ffc-text-secondary);
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
     margin: var(--ffc-spacing-3xs);
-    border-radius: 3px;
+    border-radius: var(--ffc-radius-xs);
     font-size: var(--ffc-font-size-xs);
 }
 .ffc-attached a { text-decoration: none; color: var(--ffc-text-muted); margin-left: var(--ffc-spacing-2xs); }
@@ -44,7 +44,7 @@
     right: 0;
     bottom: 0;
     background: var(--ffc-bg-overlay);
-    z-index: 100000;
+    z-index: var(--ffc-z-modal);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -52,7 +52,7 @@
 }
 .ffc-confirm-modal {
     background: var(--ffc-bg-card);
-    border-radius: 6px;
+    border-radius: var(--ffc-radius-md);
     box-shadow: var(--ffc-shadow-lg);
     max-width: 540px;
     width: 100%;
@@ -299,7 +299,7 @@
 .ffc-rec-bulk-toolbar {
     background: var(--ffc-bg-alt);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
     margin-bottom: var(--ffc-spacing-sm);
 }

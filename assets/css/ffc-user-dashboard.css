@@ -150,7 +150,7 @@
     margin-left: var(--ffc-spacing-sm);
     border: 2px solid var(--ffc-border);
     border-top-color: var(--ffc-primary);
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     animation: ffcSpin 0.8s linear infinite;
     vertical-align: middle;
 }
@@ -247,7 +247,7 @@
 .ffc-filter-bar input[type="text"] {
     padding: var(--ffc-spacing-xs) var(--ffc-spacing-md);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     font-size: var(--ffc-font-size-sm);
     background: var(--ffc-bg);
     color: var(--ffc-text);
@@ -269,7 +269,7 @@
     padding: var(--ffc-spacing-xs) 14px;
     font-size: var(--ffc-font-size-sm);
     font-weight: 500;
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     transition: all 0.15s;
     line-height: 1.4;
@@ -308,7 +308,7 @@
     color: var(--ffc-primary);
     text-decoration: none;
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
-    border-radius: 3px;
+    border-radius: var(--ffc-radius-xs);
     transition: background 0.15s;
 }
 
@@ -320,7 +320,7 @@
     color: var(--ffc-text);
     background: var(--ffc-primary-light);
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
-    border-radius: 3px;
+    border-radius: var(--ffc-radius-xs);
     font-weight: 600;
 }
 
@@ -441,7 +441,7 @@
     font-weight: 500;
     text-decoration: none !important;
     white-space: nowrap;
-    border-radius: 4px !important;
+    border-radius: var(--ffc-radius-sm) !important;
     transition: all 0.15s;
     line-height: 1.4;
     cursor: pointer;
@@ -576,7 +576,7 @@
     background: transparent;
     color: var(--ffc-danger);
     border: 1px solid var(--ffc-danger);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.15s;
@@ -664,7 +664,7 @@
     letter-spacing: 0.5px;
     background: var(--ffc-bg-alt);
     padding: 3px var(--ffc-spacing-sm);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     border: 1px solid var(--ffc-border-light);
     white-space: nowrap;
 }
@@ -810,7 +810,7 @@
     display: inline-block;
     width: 6px;
     height: 6px;
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     background: var(--ffc-primary);
     margin-right: var(--ffc-spacing-sm);
     vertical-align: middle;
@@ -830,7 +830,7 @@
     padding: 9px var(--ffc-spacing-2xl);
     font-size: var(--ffc-font-size-sm);
     font-weight: 500;
-    border-radius: 6px;
+    border-radius: var(--ffc-radius-md);
     cursor: pointer;
     transition: all 0.15s;
     line-height: 1.4;
@@ -907,7 +907,7 @@
     max-width: 340px;
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     font-size: var(--ffc-font-size-base);
     background: var(--ffc-bg);
     transition: border-color 0.15s, box-shadow 0.15s;
@@ -922,7 +922,7 @@
 .ffc-password-form .button-primary {
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-2xl);
     font-size: var(--ffc-font-size-sm);
-    border-radius: 6px;
+    border-radius: var(--ffc-radius-md);
 }
 
 /* ==========================================================================
@@ -1102,7 +1102,7 @@
 .ffc-audience-dot {
     width: 12px;
     height: 12px;
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     display: inline-block;
     flex-shrink: 0;
     /* Contorno sobre a cor arbitrária da audiência: precisa ser neutro
@@ -1115,7 +1115,7 @@
     padding: var(--ffc-spacing-5) var(--ffc-spacing-xl);
     font-size: var(--ffc-font-size-xs);
     font-weight: 500;
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     transition: all 0.15s;
     line-height: 1.4;
@@ -1217,7 +1217,7 @@
        botão em var(--ffc-bg-card) sumiria dentro dela. Mesma decisão do
        interruptor de ffc-common.css (#1126). */
     background: #fff;
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     transition: transform 0.2s;
     box-shadow: var(--ffc-shadow-sm);
 }
@@ -1244,7 +1244,7 @@
 .ffc-lgpd-export-btn {
     padding: var(--ffc-spacing-sm) 18px !important;
     font-size: var(--ffc-font-size-sm) !important;
-    border-radius: 6px !important;
+    border-radius: var(--ffc-radius-md) !important;
 }
 
 .ffc-lgpd-delete-btn {
@@ -1252,7 +1252,7 @@
     border-color: var(--ffc-danger) !important;
     padding: var(--ffc-spacing-sm) 18px !important;
     font-size: var(--ffc-font-size-sm) !important;
-    border-radius: 6px !important;
+    border-radius: var(--ffc-radius-md) !important;
 }
 
 .ffc-lgpd-delete-btn:hover {
@@ -1301,7 +1301,7 @@
     max-width: 450px;
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     font-size: var(--ffc-font-size-base);
     background: var(--ffc-bg);
     transition: border-color 0.15s, box-shadow 0.15s;
@@ -1329,7 +1329,7 @@
 .ffc-profile-edit-actions .button {
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-2xl);
     font-size: var(--ffc-font-size-sm);
-    border-radius: 6px;
+    border-radius: var(--ffc-radius-md);
 }
 
 /* ==========================================================================
@@ -1353,7 +1353,7 @@
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
     border: 1px solid var(--ffc-primary);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     transition: background 0.15s;
     line-height: 1.4;
@@ -1400,7 +1400,7 @@
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
     border: 1px solid var(--ffc-primary);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     white-space: nowrap;
     vertical-align: middle;
@@ -1426,7 +1426,7 @@
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md);
     box-shadow: var(--ffc-shadow-md);
-    z-index: 1000;
+    z-index: var(--ffc-z-overlay);
     overflow: hidden;
 }
 

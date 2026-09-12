@@ -108,10 +108,27 @@
     --ffc-spacing-15: 15px;
 
     /* Border Radius */
+    --ffc-radius-xs: 3px;
     --ffc-radius-sm: 4px;
     --ffc-radius-md: 6px;
     --ffc-radius-lg: 8px;
     --ffc-radius-full: 50%;
+
+    /* Camadas de empilhamento (#1171). Nomeadas pelo PAPEL, não pelo número.
+       `modal` é 100000 porque a barra do wp-admin é 99999 — esse é o único
+       número aqui que tem uma razão externa, e é a razão de ele existir.
+
+       QUATRO valores ficaram de fora, de propósito: 9999, 100001, 999999 e
+       2147483647 são quatro respostas diferentes para "fique acima da barra",
+       e são a assinatura de uma guerra de empilhamento. Colapsá-las MUDA a
+       ordem relativa nas telas onde convivem, o que não é conversão e sim
+       mudança de comportamento — precisa de verificação tela a tela. Ficam
+       literais e registradas no orçamento da guarda até alguém fazer isso. */
+    --ffc-z-raised: 1;
+    --ffc-z-sticky: 10;
+    --ffc-z-dropdown: 100;
+    --ffc-z-overlay: 1000;
+    --ffc-z-modal: 100000;
 
     /* Shadows */
     --ffc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -562,7 +579,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 100000;
+    z-index: var(--ffc-z-modal);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -765,7 +782,7 @@
     margin: -10px 0 0 -10px;
     border: 2px solid var(--ffc-border-light);
     border-top: 2px solid var(--ffc-primary);
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     animation: ffc-spin 1s linear infinite;
 }
 
@@ -872,7 +889,7 @@
     padding: var(--ffc-spacing-2xl);
     background: var(--ffc-warning-light);
     border: 1px solid var(--ffc-warning);
-    border-radius: 6px;
+    border-radius: var(--ffc-radius-md);
     text-align: center;
 }
 
@@ -916,7 +933,7 @@
     margin-bottom: var(--ffc-spacing-15);
     background: var(--ffc-info-light);
     border: 1px solid var(--ffc-info);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     font-size: 0.9em;
     color: var(--ffc-info);
 }
@@ -925,7 +942,7 @@
 .ffc-badge {
     display: inline-block;
     padding: 3px var(--ffc-spacing-sm);
-    border-radius: 3px;
+    border-radius: var(--ffc-radius-xs);
     font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
     text-transform: uppercase;
@@ -1018,7 +1035,7 @@
    ========================================================================== */
 .ffc-flex          { display: flex; }
 .ffc-mb-md         { margin-bottom: var(--ffc-spacing-lg); }
-.ffc-color-dot     { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: middle; background-color: var(--ffc-color, currentColor); }
+.ffc-color-dot     { display: inline-block; width: 12px; height: 12px; border-radius: var(--ffc-radius-full); vertical-align: middle; background-color: var(--ffc-color, currentColor); }
 
 /* ==========================================================================
    TOGGLE SWITCH — mobile-style ON/OFF for boolean settings.
@@ -1072,7 +1089,7 @@
     left: 2px;
     width: 18px;
     height: 18px;
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     /* O botão do interruptor fica branco nos dois temas de propósito: no tema
        escuro a pista é escura, e um botão em var(--ffc-bg-card) sumiria dentro
        dela. É literal por decisão, não por esquecimento (#1126 B). */

@@ -18,7 +18,7 @@
 .ffc-appointment-status {
     display: inline-block;
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
-    border-radius: 3px;
+    border-radius: var(--ffc-radius-xs);
     font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
     text-transform: uppercase;

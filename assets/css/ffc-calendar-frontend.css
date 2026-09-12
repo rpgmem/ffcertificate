@@ -52,7 +52,7 @@
 .ffc-shortcode .ffc-spinner {
     border: 4px solid var(--ffc-gray-200);
     border-top: 4px solid var(--ffc-primary);
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     width: 40px;
     height: 40px;
     animation: ffc-spin 1s linear infinite;
@@ -139,7 +139,7 @@
 .ffc-shortcode .ffc-waitlist-notice {
     margin: 0 0 var(--ffc-spacing-xl);
     padding: var(--ffc-spacing-lg) 14px;
-    border-radius: 6px;
+    border-radius: var(--ffc-radius-md);
     background: var(--ffc-gray-100);
     border: 1px solid var(--ffc-gray-200);
     font-size: var(--ffc-font-size-base);
@@ -338,7 +338,7 @@
     margin: 0 auto var(--ffc-spacing-2xl);
     background: var(--ffc-success);
     color: var(--ffc-text-on-success);
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     display: flex;
     align-items: center;
     justify-content: center;

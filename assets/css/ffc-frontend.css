@@ -1150,7 +1150,7 @@ details.ffc-consent-description > p {
     margin: 0 auto;
     border: 4px solid var(--ffc-border-light);
     border-top: 4px solid var(--ffc-primary);
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     animation: spin 1s linear infinite;
 }
 
@@ -1287,7 +1287,7 @@ details.ffc-consent-description > p {
     border: 1px solid var(--ffc-primary);
     background: transparent;
     color: var(--ffc-primary);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     font-family: inherit;
     font-size: var(--ffc-font-size-xs);
     font-weight: 600;
@@ -1355,7 +1355,7 @@ details.ffc-consent-description > p {
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
     padding: var(--ffc-spacing-xl) 18px;
-    border-radius: 6px;
+    border-radius: var(--ffc-radius-md);
     margin: var(--ffc-spacing-lg) 0;
     text-align: left;
 }
@@ -1386,7 +1386,7 @@ details.ffc-consent-description > p {
     background: transparent;
     color: var(--ffc-warning-text);
     border: 1px solid var(--ffc-warning-border);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     font-weight: 600;
     cursor: pointer;
     transition: background 0.15s ease;
@@ -1712,7 +1712,7 @@ details.ffc-consent-description > p {
     height: 22px;
     border: 3px solid var(--ffc-border-light);
     border-top: 3px solid var(--ffc-primary);
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     animation: spin 1s linear infinite;
 }
 
@@ -1789,7 +1789,7 @@ details.ffc-consent-description > p {
 
 .ffc-open-early-container {
     position: relative;
-    z-index: 1;
+    z-index: var(--ffc-z-raised);
     width: 92%;
     max-width: 540px;
     background: var(--ffc-bg-card);
@@ -1956,7 +1956,7 @@ details.ffc-consent-description > p {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 100000;
+    z-index: var(--ffc-z-modal);
     display: flex;
     align-items: center;
     justify-content: center;

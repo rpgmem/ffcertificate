@@ -9,7 +9,7 @@
 .ffc-status-badge {
     display: inline-block;
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
-    border-radius: 3px;
+    border-radius: var(--ffc-radius-xs);
     font-size: var(--ffc-font-size-xs);
     font-weight: 600;
     line-height: 1.5;
@@ -67,7 +67,7 @@
     display: inline-block;
     width: 10px;
     height: 10px;
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     margin-right: var(--ffc-spacing-2xs);
     vertical-align: middle;
     background-color: var(--ffc-color, currentColor);
@@ -83,7 +83,7 @@
     padding: var(--ffc-spacing-md) var(--ffc-spacing-15);
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    border-radius: 3px;
+    border-radius: var(--ffc-radius-xs);
 }
 
 .ffc-stat-item {
@@ -144,7 +144,7 @@ a.delete-link:hover {
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-secondary);
     padding: 1px var(--ffc-spacing-sm);
-    border-radius: 3px;
+    border-radius: var(--ffc-radius-xs);
     font-size: var(--ffc-font-size-xs);
     margin: 1px var(--ffc-spacing-3xs);
     white-space: nowrap;
@@ -161,7 +161,7 @@ a.delete-link:hover {
 .ffc-transfer-col {
     flex: 1;
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     background: var(--ffc-bg-card);
     display: flex;
     flex-direction: column;
@@ -174,14 +174,14 @@ a.delete-link:hover {
     font-size: var(--ffc-font-size-sm);
     background: var(--ffc-bg-alt);
     border-bottom: 1px solid var(--ffc-border);
-    border-radius: 4px 4px 0 0;
+    border-radius: var(--ffc-radius-sm) var(--ffc-radius-sm) 0 0;
 }
 
 .ffc-transfer-search {
     margin: var(--ffc-spacing-xs) var(--ffc-spacing-sm);
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
     border: 1px solid var(--ffc-border);
-    border-radius: 3px;
+    border-radius: var(--ffc-radius-xs);
     font-size: var(--ffc-font-size-xs);
     width: calc(100% - 16px);
     box-sizing: border-box;
@@ -252,7 +252,7 @@ a.delete-link:hover {
 .ffc-rereg-modal {
     position: fixed;
     inset: 0;
-    z-index: 100000;
+    z-index: var(--ffc-z-modal);
 }
 
 body.ffc-rereg-modal-open {
@@ -272,7 +272,7 @@ body.ffc-rereg-modal-open {
     max-height: calc(100vh - 60px);
     margin: 30px auto 0;
     background: var(--ffc-bg-card);
-    border-radius: 6px;
+    border-radius: var(--ffc-radius-md);
     box-shadow: var(--ffc-shadow-lg);
     display: flex;
     flex-direction: column;
@@ -285,7 +285,7 @@ body.ffc-rereg-modal-open {
     padding: 14px var(--ffc-spacing-2xl);
     border-bottom: 1px solid var(--ffc-border-light);
     background: var(--ffc-bg-alt);
-    border-radius: 6px 6px 0 0;
+    border-radius: var(--ffc-radius-md) var(--ffc-radius-md) 0 0;
 }
 
 .ffc-rereg-modal-header h2 {
@@ -334,7 +334,7 @@ body.ffc-rereg-modal-open {
 
 .ffc-details-fieldset {
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     padding: var(--ffc-spacing-sm) 14px var(--ffc-spacing-lg);
     margin: 0 0 14px;
     background: var(--ffc-bg-card);

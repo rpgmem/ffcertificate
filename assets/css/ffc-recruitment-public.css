@@ -92,7 +92,7 @@
     border: 1px solid var(--ffc-primary);
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     font-size: var(--ffc-font-size-sm);
     font-weight: 500;

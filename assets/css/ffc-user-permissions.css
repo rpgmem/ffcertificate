@@ -14,7 +14,7 @@
 	width: 100%;
 	margin: var(--ffc-spacing-sm) 0 var(--ffc-spacing-2xs);
 	border: 1px solid var(--ffc-border-light);
-	border-radius: 6px;
+	border-radius: var(--ffc-radius-md);
 	background: var(--ffc-bg-card);
 	overflow: hidden;
 }
@@ -101,7 +101,7 @@
 .ffc-cap-aud-dot {
 	width: 9px;
 	height: 9px;
-	border-radius: 50%;
+	border-radius: var(--ffc-radius-full);
 	flex: 0 0 auto;
 	background: var(--ffc-cap-chip-color, var(--ffc-border));
 }
@@ -292,7 +292,7 @@
 	gap: var(--ffc-spacing-xs);
 	margin-top: var(--ffc-spacing-xs);
 	padding: 3px 7px;
-	border-radius: 4px;
+	border-radius: var(--ffc-radius-sm);
 	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 	font-size: var(--ffc-font-size-xs);
 	color: var(--ffc-text-secondary);
@@ -378,7 +378,7 @@
 .ffc-cap-role-mark {
 	width: 16px;
 	height: 16px;
-	border-radius: 50%;
+	border-radius: var(--ffc-radius-full);
 	border: 1.5px solid var(--ffc-border);
 	display: inline-flex;
 	align-items: center;
@@ -589,7 +589,7 @@
 .ffc-blocked-roles__group--admin {
 	padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
 	border: 1px solid var(--ffc-border-light);
-	border-radius: 6px;
+	border-radius: var(--ffc-radius-md);
 	background: var(--ffc-bg-alt);
 }
 .ffc-blocked-roles__group--admin > summary {

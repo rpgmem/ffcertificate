@@ -48,7 +48,7 @@
 .ffc-wh-table input[type="time"] {
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xs);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     font-size: var(--ffc-font-size-sm);
     font-family: inherit;
 }
@@ -79,7 +79,7 @@
     font-size: var(--ffc-font-size-lg);
     line-height: 1;
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
 }
 
 .ffc-wh-remove:hover {
