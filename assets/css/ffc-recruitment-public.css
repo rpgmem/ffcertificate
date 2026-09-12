@@ -16,6 +16,25 @@
  * @since 6.1.0
  */
 
+/* Selo de status do edital, na superfície pública.
+ *
+ * ⚠ Só `text-transform` e `white-space`: todo o resto da forma
+ * (display/padding/radius/font-size/weight) vem do estilo INLINE que
+ * `Core\BadgeHtml::render()` escreve, porque o fundo é uma cor que o
+ * operador escolhe e o texto é calculado por `ContrastColor::on()`.
+ *
+ * Estas duas estão aqui porque eram as ÚNICAS que o inline não define, e
+ * até o #1183 elas chegavam do `.ffc-status-badge` genérico da
+ * `ffc-common.css` -- que o selo casava por dividir o nome com meio mundo.
+ * Com o nome próprio isso deixou de acontecer e o selo público passou a
+ * sair em caixa baixa e podendo quebrar linha. Declarar aqui restaura o
+ * render e o torna intencional, que é a mesma decisão do #1162.
+ */
+.ffc-recruitment-status-badge {
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
 .ffc-recruitment-queue {
     background: var(--ffc-bg);
     color: var(--ffc-text);
