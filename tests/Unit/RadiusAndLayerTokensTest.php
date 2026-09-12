@@ -52,7 +52,10 @@ final class RadiusAndLayerTokensTest extends TestCase {
 	/**
 	 * The declared steps of each scale.
 	 */
-	private const RADIUS_STEPS = array( 'xs', 'sm', 'md', 'lg', 'full' );
+	// `full` e `pill` não são degraus da escada -- são PAPÉIS, e por isso
+	// fecham a lista: círculo e pílula. `pill` entrou no #1193, quando a forma
+	// do selo saiu de um literal PHP para o `.ffc-pill` da base.
+	private const RADIUS_STEPS = array( 'xs', 'sm', 'md', 'lg', 'full', 'pill' );
 	private const LAYER_STEPS  = array( 'raised', 'sticky', 'dropdown', 'overlay', 'modal' );
 
 	/**

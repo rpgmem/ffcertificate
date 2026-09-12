@@ -32,10 +32,35 @@ class BadgeHtmlTest extends TestCase {
 		parent::tearDown();
 	}
 
-	public function test_emits_base_and_variant_classes(): void {
+	public function test_emits_shape_family_and_variant_classes(): void {
 		$html = BadgeHtml::render( 'ffc-badge', 'ffc-badge-success', '#d4edda', 'OK' );
 
-		$this->assertStringContainsString( 'class="ffc-badge ffc-badge-success"', $html );
+		$this->assertStringContainsString( 'class="ffc-pill ffc-badge ffc-badge-success"', $html );
+	}
+
+	/**
+	 * The shape is a class, not a `style` declaration — that is the whole point
+	 * of #1193, and an inline padding/radius would silently outrank `.ffc-pill`
+	 * on every screen.
+	 */
+	public function test_shape_is_not_emitted_inline(): void {
+		$html = BadgeHtml::render( 'b', 'v', '#fff', 'L' );
+
+		$this->assertStringNotContainsString( 'padding:', $html );
+		$this->assertStringNotContainsString( 'border-radius:', $html );
+		$this->assertStringNotContainsString( 'font-size:', $html );
+		$this->assertStringNotContainsString( 'font-weight:', $html );
+		$this->assertStringNotContainsString( 'display:', $html );
+	}
+
+	/**
+	 * An empty fragment must not leave a double space in `class`, which is how
+	 * the adjutancy badge renders: family only, no variant.
+	 */
+	public function test_empty_variant_leaves_no_stray_space(): void {
+		$html = BadgeHtml::render( 'ffc-recruitment-adjutancy-badge', '', '#fff', 'Adj' );
+
+		$this->assertStringContainsString( 'class="ffc-pill ffc-recruitment-adjutancy-badge"', $html );
 	}
 
 	public function test_emits_supplied_background_color(): void {

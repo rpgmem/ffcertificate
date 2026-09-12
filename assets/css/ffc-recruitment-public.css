@@ -18,10 +18,12 @@
 
 /* Selo de status do edital, na superfície pública.
  *
- * ⚠ Só `text-transform` e `white-space`: todo o resto da forma
- * (display/padding/radius/font-size/weight) vem do estilo INLINE que
- * `Core\BadgeHtml::render()` escreve, porque o fundo é uma cor que o
- * operador escolhe e o texto é calculado por `ContrastColor::on()`.
+ * ⚠ Só `text-transform` e `white-space`: o resto da forma
+ * (display/padding/radius/font-size/weight) vem da `.ffc-pill` da
+ * `ffc-common.css`, que `Core\BadgeHtml::render()` compõe com estas classes.
+ * Até o #1193 vinha de um literal inline que o helper escrevia em cada
+ * `<span>`; o que continua inline é só o par de cor, porque o fundo é uma cor
+ * que o operador escolhe e o texto é calculado por `ContrastColor::on()`.
  *
  * Estas duas estão aqui porque eram as ÚNICAS que o inline não define, e
  * até o #1183 elas chegavam do `.ffc-status-badge` genérico da

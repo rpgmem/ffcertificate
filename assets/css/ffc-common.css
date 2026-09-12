@@ -105,6 +105,13 @@
     --ffc-radius-md: 6px;
     --ffc-radius-lg: 8px;
     --ffc-radius-full: 50%;
+    /* `pill` é papel, não degrau — o par de `full`, que é o papel
+       "círculo". O valor é 12px e não `999px` de propósito: é o raio
+       que o selo já tinha quando morava num literal PHP (#1193), e
+       preservá-lo é o que torna a mudança auditável. Ele arredonda por
+       completo qualquer selo de até 24px de altura; um selo mais alto
+       que isso é que pede a troca por `999px`, com prova própria. */
+    --ffc-radius-pill: 12px;
 
     /* Camadas de empilhamento (#1171). Nomeadas pelo PAPEL, não pelo número.
        `modal` é 100000 porque a barra do wp-admin é 99999 — esse é o único
@@ -939,6 +946,24 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.3px;
+}
+
+/* Pílula — a segunda forma de selo da base (#1193).
+   Vinha de um literal PHP (`Core\BadgeHtml::BADGE_STYLE`), aplicado inline em
+   cada `<span>`, o que tornava letra morta qualquer classe de forma: inline
+   vence classe, sempre. As sete chamadas do helper compõem esta classe com a
+   família e a variante do módulo.
+
+   O par vertical `3px` é o mesmo do `.ffc-badge` acima: as duas formas de selo
+   da base têm a mesma altura de propósito, e é por isso que este literal fica
+   em vez de encostar num degrau da escada -- o orçamento que ele ocupa aqui é
+   o que a regra fóssil de `ffc-admin-submissions.css` devolveu no mesmo PR. */
+.ffc-pill {
+    display: inline-block;
+    padding: 3px var(--ffc-spacing-md);
+    border-radius: var(--ffc-radius-pill);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 500;
 }
 
 /* ==========================================================================

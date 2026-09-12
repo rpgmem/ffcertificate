@@ -150,24 +150,16 @@
    STATUS BADGES
    ========================================================================== */
 
-/* .ffc-badge base is in ffc-common.css — only admin-specific overrides here */
-.ffc-status-badge {
-    display: inline-block;
-    padding: 3px var(--ffc-spacing-sm);
-    border-radius: var(--ffc-radius-xs);
-    font-size: var(--ffc-font-size-2xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
-.ffc-status-badge.publish,
+/* .ffc-badge base is in ffc-common.css — only admin-specific overrides here.
+   O `.ffc-status-badge` que esta folha declarava saiu no #1193: a lista de
+   submissões já emitia `.ffc-badge`, e `.publish`/`.trash` não tinham emissor
+   em lugar nenhum -- era o fóssil da migração, com a forma byte a byte igual
+   à do `.ffc-badge` da base. O nome é do cartão de verificação público. */
 .ffc-badge-success {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
 }
 
-.ffc-status-badge.trash,
 .ffc-badge-muted {
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
@@ -474,9 +466,7 @@
     /* Selos de estado: o texto continua dizendo o estado; a borda
        devolve a eles a forma de selo. */
     .ffc-badge-muted,
-    .ffc-badge-success,
-    .ffc-status-badge.publish,
-    .ffc-status-badge.trash {
+    .ffc-badge-success {
         border: 1px solid CanvasText;
     }
 }

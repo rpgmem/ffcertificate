@@ -588,10 +588,18 @@ final class RecruitmentPublicShortcodeRenderer {
 	 *   Not_shown → soft red.
 	 *   Hired → soft green.
 	 *
-	 * Inline `style` is used (not a CSS variable) because each notice
-	 * could in theory render under a host theme without the recruitment
-	 * public CSS — keeping the color in the markup guarantees the badge
-	 * renders correctly even there.
+	 * The colour is still inline, and the reason has changed. It used to be
+	 * *"the recruitment public CSS could be absent"*, which measurement did not
+	 * support: {@see RecruitmentPublicShortcode::render()} enqueues it on its
+	 * first line and the sheet declares `array( 'ffc-common' )`. What was real
+	 * in that fear is timing, not absence — the enqueue ran inside
+	 * `the_content`, past `wp_head`, so the `<link>` came out in the footer;
+	 * that is what `maybe_enqueue_early()` now covers (#1193).
+	 *
+	 * It stays inline because the value is a hex an operator picked per status,
+	 * and no static sheet can know it. Moving the *rule* into the sheet — with
+	 * the value arriving as a custom property from `wp_add_inline_style()` — is
+	 * the second half of #1193.
 	 *
 	 * @param string $status Classification status enum value.
 	 * @return string Already-escaped HTML.

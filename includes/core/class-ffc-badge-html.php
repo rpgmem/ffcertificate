@@ -6,10 +6,9 @@
  * across admin and public surfaces of the plugin (recruitment status badges,
  * adjutancy badges, notice status, preview status, subscription type, etc.).
  *
- * The helper emits a `<span class=… style=…>` shape; visual treatment
- * (padding / radius / font-size / display) is captured in {@see self::BADGE_STYLE}
- * so future changes (dark-mode-aware text color, accessibility attributes,
- * padding tweaks) flow through every badge with one edit.
+ * The helper emits a `<span class=… style=…>`: the shape comes from the
+ * `.ffc-pill` base class in `ffc-common.css` ({@see self::BASE_CLASS}), and
+ * only the operator-chosen colour pair stays in the attribute (#1193).
  *
  * Originally introduced in the recruitment module as `RecruitmentBadgeHtml`
  * in 6.1.0; promoted to `Core\BadgeHtml` in 6.2.0 so other modules
@@ -33,20 +32,36 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class BadgeHtml {
 
 	/**
-	 * Shared layout declarations applied to every badge.
+	 * Base class carrying the badge's shape.
 	 *
-	 * The text colour used to live here as a literal `#333`. It does not any
-	 * more: the background is a colour an administrator picked, so no fixed
-	 * foreground is readable over all of them — {@see ContrastColor::on()}
-	 * computes it per badge (#1126). The layout stays inline because a badge
-	 * is rendered on screens whose stylesheets do not all overlap.
+	 * The shape used to be a literal here — `padding:3px 10px;border-radius:12px;…`
+	 * concatenated into every `<span>`'s `style` attribute. It moved to
+	 * `.ffc-pill` in `ffc-common.css` (#1193), because an inline declaration
+	 * beats any class: while it existed, no stylesheet could describe a badge,
+	 * and three sheets ended up describing three different ones under one name
+	 * (#1183).
+	 *
+	 * The docblock it replaced justified the inline with *"a badge is rendered
+	 * on screens whose stylesheets do not all overlap"*. Measured: all seven
+	 * call sites are the recruitment module's, and both of its sheets declare
+	 * `array( 'ffc-common' )` as a dependency, so the palette — and this class
+	 * with it — reaches every one of them.
+	 *
+	 * The colour stays inline because it is a hex an operator picked, per
+	 * status, in Settings or in the adjutancy row; the foreground is computed
+	 * from it by {@see ContrastColor::on()} (#1126). Moving the *rule* for it
+	 * into the sheets is #1193's second half.
 	 */
-	private const BADGE_STYLE = 'padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;display:inline-block;';
+	private const BASE_CLASS = 'ffc-pill';
 
 	/**
 	 * Render a badge `<span>` with the supplied attributes.
 	 *
-	 * - `$base_class`    base CSS class fragment (e.g. `ffc-recruitment-status-badge`).
+	 * The emitted `class` is `.ffc-pill` + the two fragments below, in that
+	 * order — shape, family, variant — which is the `.ffc-a.ffc-b` composition
+	 * the base already uses in ~108 places. An empty fragment is dropped.
+	 *
+	 * - `$base_class`    family CSS class fragment (e.g. `ffc-recruitment-status-badge`).
 	 * - `$variant_class` value-specific class fragment (e.g. `ffc-recruitment-status-empty`).
 	 * - `$bg`            pre-validated hex color (caller is responsible for hex validation;
 	 *                    use {@see ColorValidator::normalize()}).
@@ -65,14 +80,19 @@ final class BadgeHtml {
 		$has_tip = '' !== $tooltip;
 		$cursor  = $has_tip ? 'help' : 'default';
 		$title   = $has_tip ? ' title="' . esc_attr( $tooltip ) . '"' : '';
+		$classes = implode(
+			' ',
+			array_filter(
+				array( self::BASE_CLASS, $base_class, $variant_class ),
+				static fn ( string $fragment ): bool => '' !== $fragment
+			)
+		);
 		return sprintf(
-			'<span class="%1$s %2$s"%3$s style="background:%4$s;color:%5$s;%6$scursor:%7$s;">%8$s</span>',
-			esc_attr( $base_class ),
-			esc_attr( $variant_class ),
+			'<span class="%1$s"%2$s style="background:%3$s;color:%4$s;cursor:%5$s;">%6$s</span>',
+			esc_attr( $classes ),
 			$title,
 			esc_attr( $bg ),
 			esc_attr( ContrastColor::on( $bg ) ),
-			self::BADGE_STYLE,
 			esc_attr( $cursor ),
 			esc_html( $label )
 		);

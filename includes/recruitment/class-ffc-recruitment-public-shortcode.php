@@ -94,6 +94,46 @@ final class RecruitmentPublicShortcode {
 	public static function register(): void {
 		add_shortcode( self::SHORTCODE_TAG, array( self::class, 'render' ) );
 		add_action( self::CACHE_DIRTY_ACTION, array( self::class, 'invalidate_public_cache' ) );
+		add_action( 'wp_enqueue_scripts', array( self::class, 'maybe_enqueue_early' ) );
+	}
+
+	/**
+	 * Enqueue the public CSS from `wp_enqueue_scripts` when the queried post
+	 * carries the shortcode, so the `<link>` lands in `<head>`.
+	 *
+	 * {@see self::render()} enqueues too, but it runs inside `the_content` —
+	 * after `wp_head` has already been printed — so the stylesheet is emitted
+	 * in the footer and there is a window in which the badges are painted
+	 * without it. That window was invisible while every badge carried its whole
+	 * appearance in a `style` attribute; #1193 moved the shape into a class, so
+	 * it is not invisible any more.
+	 *
+	 * This does not replace the late enqueue and must not: `has_shortcode()`
+	 * only reads the queried post's content, so a shortcode inside a widget, a
+	 * block template or a theme part is invisible here. The two together are
+	 * "head when we can see it, footer when we cannot".
+	 *
+	 * Hooked on `wp_enqueue_scripts` (default priority) — the canonical hook
+	 * for frontend assets, and the last one that still runs before `wp_head`
+	 * prints the styles.
+	 *
+	 * @return void
+	 */
+	public static function maybe_enqueue_early(): void {
+		if ( is_admin() ) {
+			return;
+		}
+
+		$post = get_post();
+		if ( ! $post instanceof \WP_Post ) {
+			return;
+		}
+
+		if ( ! has_shortcode( (string) $post->post_content, self::SHORTCODE_TAG ) ) {
+			return;
+		}
+
+		self::enqueue_public_css();
 	}
 
 	/**
