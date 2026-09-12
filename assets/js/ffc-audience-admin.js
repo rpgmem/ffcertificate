@@ -68,7 +68,7 @@
                 clearTimeout(searchTimeout);
                 var query = $(this).val();
                 if (query.length < 2) {
-                    $('#user_results').removeClass('active').empty();
+                    $('#user_results').removeClass('is-active').empty();
                     return;
                 }
 
@@ -82,13 +82,13 @@
                                         html += '<div class="ffc-user-result" data-id="' + user.id + '" data-name="' + escHtml(user.name) + '">' + escHtml(user.name) + ' (' + escHtml(user.email) + ')</div>';
                                     }
                                 });
-                                $('#user_results').html(html).addClass('active');
+                                $('#user_results').html(html).addClass('is-active');
                             } else {
-                                $('#user_results').removeClass('active').empty();
+                                $('#user_results').removeClass('is-active').empty();
                             }
                         })
                         .catch(function() {
-                            $('#user_results').removeClass('active').empty();
+                            $('#user_results').removeClass('is-active').empty();
                         });
                 }, 300);
             });
@@ -98,11 +98,11 @@
                 var name = $(this).data('name');
                 selectedUsers[id] = name;
                 updateSelectedUsers();
-                $('#user_results').removeClass('active').empty();
+                $('#user_results').removeClass('is-active').empty();
                 $searchInput.val('');
             });
 
-            $(document).on('click', '.ffc-selected-user .remove', function() {
+            $(document).on('click', '.ffc-selected-user .ffc-selected-user-remove', function() {
                 var id = $(this).data('id');
                 delete selectedUsers[id];
                 updateSelectedUsers();
@@ -112,7 +112,7 @@
                 var html = '';
                 var ids = [];
                 for (var id in selectedUsers) {
-                    html += '<span class="ffc-selected-user">' + escHtml(selectedUsers[id]) + '<span class="remove" data-id="' + id + '">&times;</span></span>';
+                    html += '<span class="ffc-selected-user">' + escHtml(selectedUsers[id]) + '<span class="ffc-selected-user-remove" data-id="' + id + '">&times;</span></span>';
                     ids.push(id);
                 }
                 $('#selected_users').html(html);

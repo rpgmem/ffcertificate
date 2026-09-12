@@ -122,13 +122,13 @@
                             html += '<div class="ffc-user-result" data-id="' + user.id + '" data-name="' + escapeHtml(user.name) + '">' + escapeHtml(user.name) + ' (' + escapeHtml(user.email) + ')</div>';
                         }
                     });
-                    $('#booking-user-results').html(html).addClass('active');
+                    $('#booking-user-results').html(html).addClass('is-active');
                 } else {
-                    $('#booking-user-results').removeClass('active').empty();
+                    $('#booking-user-results').removeClass('is-active').empty();
                 }
             })
             .catch(function() {
-                $('#booking-user-results').removeClass('active').empty();
+                $('#booking-user-results').removeClass('is-active').empty();
             });
     }
 
@@ -139,7 +139,7 @@
         var html = '';
         var ids = [];
         for (var id in state.selectedUsers) {
-            html += '<span class="ffc-selected-user">' + escapeHtml(state.selectedUsers[id]) + '<span class="remove" data-id="' + id + '">&times;</span></span>';
+            html += '<span class="ffc-selected-user">' + escapeHtml(state.selectedUsers[id]) + '<span class="ffc-selected-user-remove" data-id="' + id + '">&times;</span></span>';
             ids.push(id);
         }
         $('#booking-selected-users').html(html);

@@ -256,7 +256,7 @@
     background: var(--ffc-bg-card);
 }
 
-.ffc-user-results.active {
+.ffc-user-results.is-active {
     display: block;
 }
 
@@ -288,13 +288,13 @@
     font-size: var(--ffc-font-size-sm);
 }
 
-.ffc-selected-user .remove {
+.ffc-selected-user .ffc-selected-user-remove {
     cursor: pointer;
     margin-left: var(--ffc-spacing-sm);
     opacity: 0.8;
 }
 
-.ffc-selected-user .remove:hover {
+.ffc-selected-user .ffc-selected-user-remove:hover {
     opacity: 1;
 }
 

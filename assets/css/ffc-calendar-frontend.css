@@ -95,7 +95,7 @@
     outline-offset: 2px;
 }
 
-.ffc-shortcode .ffc-timeslot.selected {
+.ffc-shortcode .ffc-timeslot.is-selected {
     border-color: var(--ffc-primary);
     border-width: 2px;
     background: var(--ffc-primary);

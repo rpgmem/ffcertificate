@@ -26,9 +26,9 @@
 					document.execCommand('copy');
 					document.body.removeChild(t);
 				}
-				this.classList.add('copied');
+				this.classList.add('is-copied');
 				var self = this;
-				setTimeout(function () { self.classList.remove('copied'); }, 1500);
+				setTimeout(function () { self.classList.remove('is-copied'); }, 1500);
 			});
 		});
 	}

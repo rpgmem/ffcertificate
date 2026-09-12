@@ -185,11 +185,11 @@ describe('ffc-calendar-frontend.js — selectTimeSlot', () => {
 		window.ffcCalendarFrontend.selectTimeSlot($slot);
 
 		expect(window.ffcCalendarFrontend.selectedTime).toBe('09:00');
-		expect($slot.hasClass('selected')).toBe(true);
+		expect($slot.hasClass('is-selected')).toBe(true);
 		expect($slot.attr('aria-selected')).toBe('true');
 		// Sibling that was previously selected gets cleared.
 		const $other = window.$('.ffc-timeslot[data-time="09:30"]');
-		expect($other.hasClass('selected')).toBe(false);
+		expect($other.hasClass('is-selected')).toBe(false);
 		expect($other.attr('aria-selected')).toBe('false');
 	});
 
@@ -245,7 +245,7 @@ describe('ffc-calendar-frontend.js — modal open/close', () => {
 		expect(window.getComputedStyle(modal).display).toBe('none');
 		expect(document.body.style.overflow).toBe('');
 		expect(window.ffcCalendarFrontend.selectedTime).toBeNull();
-		expect(document.querySelector('.ffc-timeslot.selected')).toBeNull();
+		expect(document.querySelector('.ffc-timeslot.is-selected')).toBeNull();
 	});
 });
 

@@ -166,7 +166,7 @@ describe('audience-admin — user search autocomplete', () => {
 		});
 
 		// Results dropdown populated.
-		expect(window.$('#user_results').hasClass('active')).toBe(true);
+		expect(window.$('#user_results').hasClass('is-active')).toBe(true);
 		expect(window.$('#user_results .ffc-user-result').length).toBe(1);
 	});
 
@@ -175,7 +175,7 @@ describe('audience-admin — user search autocomplete', () => {
 		await reload();
 		// Bypass the debounce: render a result row directly so the
 		// document-level click delegate can pick it up.
-		window.$('#user_results').html('<div class="ffc-user-result" data-id="9" data-name="Alice"></div>').addClass('active');
+		window.$('#user_results').html('<div class="ffc-user-result" data-id="9" data-name="Alice"></div>').addClass('is-active');
 
 		window.$('.ffc-user-result').trigger('click');
 		await flush();
@@ -183,7 +183,7 @@ describe('audience-admin — user search autocomplete', () => {
 		expect(window.$('#selected_user_ids').val()).toBe('9');
 		expect(window.$('#selected_users').text()).toContain('Alice');
 		expect(window.$('#user_search').val()).toBe('');
-		expect(window.$('#user_results').hasClass('active')).toBe(false);
+		expect(window.$('#user_results').hasClass('is-active')).toBe(false);
 	});
 
 	it('removing a selected user updates the hidden ids list', async () => {
@@ -195,7 +195,7 @@ describe('audience-admin — user search autocomplete', () => {
 		await flush();
 		expect(window.$('#selected_user_ids').val()).toBe('3');
 
-		window.$('#selected_users .ffc-selected-user .remove').trigger('click');
+		window.$('#selected_users .ffc-selected-user .ffc-selected-user-remove').trigger('click');
 		await flush();
 
 		expect(window.$('#selected_user_ids').val()).toBe('');
@@ -211,7 +211,7 @@ describe('audience-admin — user search autocomplete', () => {
 		vi.advanceTimersByTime(300);
 		await flush();
 
-		expect(window.$('#user_results').hasClass('active')).toBe(false);
+		expect(window.$('#user_results').hasClass('is-active')).toBe(false);
 		expect(window.$('#user_results').html()).toBe('');
 	});
 });
@@ -679,13 +679,13 @@ describe('audience-admin — residual branches', () => {
 		await reload();
 		vi.useFakeTimers();
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
-		window.$('#user_results').addClass('active').html('<div>old</div>');
+		window.$('#user_results').addClass('is-active').html('<div>old</div>');
 
 		window.$('#user_search').val('alice').trigger('input');
 		vi.advanceTimersByTime(300);
 		await flush();
 
-		expect(window.$('#user_results').hasClass('active')).toBe(false);
+		expect(window.$('#user_results').hasClass('is-active')).toBe(false);
 		expect(window.$('#user_results').html()).toBe('');
 	});
 
