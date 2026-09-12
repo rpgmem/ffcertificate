@@ -203,7 +203,7 @@ final class SpacingTokensTest extends TestCase {
 			$over,
 			"Literal de espaçamento acima do orçamento:\n\n  " . implode( "\n\n  ", $over )
 			. "\n\nLeia a escala: 2 · 4 · 6 · 8 · 10 · 12 · 16 · 20 · 24 são"
-			. "\n`var(--ffc-spacing-3xs .. 3xl)`; 5 e 15 têm token próprio, nomeado pelo valor."
+			. "\n`var(--ffc-spacing-3xs .. 3xl)` — é a escada inteira, não há outra."
 			. "\nUm valor fora disso é ajuste ótico ou distância avulsa — deixe literal E"
 			. "\naumente o orçamento nesta linha de base, com a razão."
 		);
@@ -241,10 +241,10 @@ final class SpacingTokensTest extends TestCase {
 	// ==================================================================
 
 	/**
-	 * The scale declares exactly the nine steps plus the two transitional.
+	 * The scale declares exactly the nine steps — no tenth, no second ladder.
 	 */
 	public function test_the_scale_declares_exactly_the_expected_steps(): void {
-		// PHP converte a chave de array `'5'` em int, então compara como string.
+		// Um degrau nomeado por número viraria chave int; compara como string.
 		$declared = array_map( 'strval', array_keys( self::declared_steps() ) );
 		sort( $declared );
 
