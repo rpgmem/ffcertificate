@@ -1297,3 +1297,47 @@ html:has(.ffc-settings-back-to-top) {
 .ffc-email-body-hub__item h3 {
     margin: 0 0 var(--ffc-spacing-md);
 }
+
+/* ==========================================================================
+   COMPONENTES DE ABA (movidos da gaveta de utilitários em #1171)
+
+   Os dois blocos abaixo são emitidos por `includes/settings/views/`, e esta
+   folha é enfileirada exatamente em `?page=ffc-settings` e
+   `?page=ffc-scheduling-settings` (AdminAssetsManager::is_settings_page).
+   ========================================================================== */
+
+/* 6.6.4 follow-up (#361 Sprint 4) — Debug toggles grouped into three
+   sub-sections (Client / Server / Admin). */
+.ffc-debug-group-title {
+    margin: var(--ffc-spacing-3xl) 0 var(--ffc-spacing-2xs);
+    padding-top: var(--ffc-spacing-lg);
+    border-top: 1px solid var(--ffc-border-light);
+    font-size: var(--ffc-font-size-base);
+    font-weight: 600;
+    color: var(--ffc-primary);
+}
+
+.ffc-debug-group-title:first-child,
+.card .ffc-debug-group-title:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.ffc-debug-group-blurb {
+    margin: 0 0 var(--ffc-spacing-sm) 0;
+    font-style: italic;
+    color: var(--ffc-text-muted);
+}
+
+/* 6.18.0 (#886) — URL Shortener settings: per-post-type Shorten/Expose grid
+   + backfill status line. */
+.ffc-url-shortener-types .ffc-col-center {
+    text-align: center;
+    width: 6em;
+}
+
+.ffc-inline-status {
+    margin-left: var(--ffc-spacing-sm);
+    font-style: italic;
+    color: var(--ffc-text-muted);
+}
