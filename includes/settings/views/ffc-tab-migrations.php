@@ -140,10 +140,10 @@ try {
 			);
 
 			$ffcertificate_status_class        = $ffcertificate_is_complete ? 'complete' : 'pending';
-			$ffcertificate_progress_color      = $ffcertificate_is_complete ? 'complete' : 'pending';
-			$ffcertificate_stat_pending_class  = $ffcertificate_is_complete ? 'success' : 'pending';
-			$ffcertificate_stat_progress_class = $ffcertificate_is_complete ? 'success' : 'info';
-			$ffcertificate_label_class         = $ffcertificate_percent > 50 ? 'dark' : 'light';
+			$ffcertificate_progress_color      = $ffcertificate_is_complete ? 'ffc-progress-complete' : 'ffc-progress-pending';
+			$ffcertificate_stat_pending_class  = $ffcertificate_is_complete ? 'ffc-migration-stat-success' : 'ffc-migration-stat-pending';
+			$ffcertificate_stat_progress_class = $ffcertificate_is_complete ? 'ffc-migration-stat-success' : 'ffc-migration-stat-info';
+			$ffcertificate_label_class         = $ffcertificate_percent > 50 ? 'ffc-progress-label-dark' : 'ffc-progress-label-light';
 			?>
 	
 	<div class="postbox ffc-migration-card ffc-migration-<?php echo esc_attr( $ffcertificate_status_class ); ?>">
@@ -188,7 +188,7 @@ try {
 					<div class="ffc-migration-stat-label">
 						<?php esc_html_e( 'Migrated', 'ffcertificate' ); ?>
 					</div>
-					<div class="ffc-migration-stat-value success">
+					<div class="ffc-migration-stat-value ffc-migration-stat-success">
 						<?php echo esc_html( $ffcertificate_migrated ); ?>
 					</div>
 				</div>
@@ -434,11 +434,11 @@ try {
 					</div>
 					<div>
 						<div class="ffc-migration-stat-label"><?php esc_html_e( 'Posts affected', 'ffcertificate' ); ?></div>
-						<div class="ffc-migration-stat-value info"><?php echo esc_html( number_format_i18n( $ffcertificate_report_affected ) ); ?></div>
+						<div class="ffc-migration-stat-value ffc-migration-stat-info"><?php echo esc_html( number_format_i18n( $ffcertificate_report_affected ) ); ?></div>
 					</div>
 					<div>
 						<div class="ffc-migration-stat-label"><?php esc_html_e( 'Shortcodes removed', 'ffcertificate' ); ?></div>
-						<div class="ffc-migration-stat-value success"><?php echo esc_html( number_format_i18n( $ffcertificate_report_removed ) ); ?></div>
+						<div class="ffc-migration-stat-value ffc-migration-stat-success"><?php echo esc_html( number_format_i18n( $ffcertificate_report_removed ) ); ?></div>
 					</div>
 				</div>
 
@@ -658,7 +658,7 @@ try {
 				<div class="ffc-migration-stats">
 					<div>
 						<div class="ffc-migration-stat-label"><?php esc_html_e( 'Candidates', 'ffcertificate' ); ?></div>
-						<div class="ffc-migration-stat-value info"><?php echo esc_html( number_format_i18n( $ffcertificate_url_candidates ) ); ?></div>
+						<div class="ffc-migration-stat-value ffc-migration-stat-info"><?php echo esc_html( number_format_i18n( $ffcertificate_url_candidates ) ); ?></div>
 					</div>
 					<div>
 						<div class="ffc-migration-stat-label"><?php esc_html_e( 'Orphaned', 'ffcertificate' ); ?></div>
@@ -674,7 +674,7 @@ try {
 					</div>
 					<div>
 						<div class="ffc-migration-stat-label"><?php echo $ffcertificate_url_is_dry ? esc_html__( 'Would delete', 'ffcertificate' ) : esc_html__( 'Deleted', 'ffcertificate' ); ?></div>
-						<div class="ffc-migration-stat-value success"><?php echo esc_html( number_format_i18n( $ffcertificate_url_is_dry ? $ffcertificate_url_candidates : $ffcertificate_url_deleted ) ); ?></div>
+						<div class="ffc-migration-stat-value ffc-migration-stat-success"><?php echo esc_html( number_format_i18n( $ffcertificate_url_is_dry ? $ffcertificate_url_candidates : $ffcertificate_url_deleted ) ); ?></div>
 					</div>
 				</div>
 
@@ -824,11 +824,11 @@ try {
 				<div class="ffc-migration-stats">
 					<div>
 						<div class="ffc-migration-stat-label"><?php esc_html_e( 'Forms with access enabled & expired', 'ffcertificate' ); ?></div>
-						<div class="ffc-migration-stat-value info"><?php echo esc_html( number_format_i18n( $ffcertificate_pa_candidates ) ); ?></div>
+						<div class="ffc-migration-stat-value ffc-migration-stat-info"><?php echo esc_html( number_format_i18n( $ffcertificate_pa_candidates ) ); ?></div>
 					</div>
 					<div>
 						<div class="ffc-migration-stat-label"><?php echo $ffcertificate_pa_is_dry ? esc_html__( 'Would disable', 'ffcertificate' ) : esc_html__( 'Disabled', 'ffcertificate' ); ?></div>
-						<div class="ffc-migration-stat-value success"><?php echo esc_html( number_format_i18n( $ffcertificate_pa_is_dry ? $ffcertificate_pa_candidates : $ffcertificate_pa_disabled ) ); ?></div>
+						<div class="ffc-migration-stat-value ffc-migration-stat-success"><?php echo esc_html( number_format_i18n( $ffcertificate_pa_is_dry ? $ffcertificate_pa_candidates : $ffcertificate_pa_disabled ) ); ?></div>
 					</div>
 				</div>
 
@@ -958,7 +958,7 @@ try {
 							<?php $ffcertificate_sa_c = isset( $ffcertificate_sa_checks[ $ffcertificate_sa_key ]['count'] ) ? (int) $ffcertificate_sa_checks[ $ffcertificate_sa_key ]['count'] : 0; ?>
 							<div>
 								<div class="ffc-migration-stat-label"><?php echo esc_html( $ffcertificate_sa_label ); ?></div>
-								<div class="ffc-migration-stat-value <?php echo $ffcertificate_sa_c > 0 ? 'info' : ''; ?>">
+								<div class="ffc-migration-stat-value <?php echo $ffcertificate_sa_c > 0 ? 'ffc-migration-stat-info' : ''; ?>">
 									<?php
 									echo esc_html( number_format_i18n( $ffcertificate_sa_c ) );
 									echo ( ! empty( $ffcertificate_sa_checks[ $ffcertificate_sa_key ]['truncated'] ) ) ? '+' : '';

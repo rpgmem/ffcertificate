@@ -161,22 +161,12 @@
     font-weight: 600;
 }
 
-.ffc-stats-box .stat-value {
+.ffc-stats-box .ffc-stat-value {
     font-family: 'SF Mono', Monaco, Consolas, monospace;
 }
 
-.ffc-stats-box .stat-value.success {
-    color: var(--ffc-success);
-    font-weight: 600;
-}
-
-.ffc-stats-box .stat-value.info {
+.ffc-stats-box .ffc-stat-value.ffc-stat-info {
     color: var(--ffc-primary);
-    font-weight: 600;
-}
-
-.ffc-stats-box .stat-value.warning {
-    color: var(--ffc-warning);
     font-weight: 600;
 }
 
@@ -197,16 +187,16 @@
     border-left: 4px solid var(--ffc-primary);
 }
 
-.ffc-provider-card.gmail {
+.ffc-provider-card.ffc-provider-gmail {
     border-left-color: var(--ffc-primary);
 }
 
-.ffc-provider-card.outlook {
+.ffc-provider-card.ffc-provider-outlook {
     /* Cor de marca do provedor, não papel da paleta (#1126). */
     border-left-color: #00a0d2;
 }
 
-.ffc-provider-card.sendgrid {
+.ffc-provider-card.ffc-provider-sendgrid {
     /* Cor de marca do provedor, não papel da paleta (#1126). */
     border-left-color: #9b51e0;
 }
@@ -235,11 +225,7 @@
     margin-bottom: var(--ffc-spacing-md);
 }
 
-.ffc-checkbox-group .checkbox-label-text {
-    font-weight: 600;
-}
-
-.ffc-checkbox-group .checkbox-sublabel {
+.ffc-checkbox-group .ffc-checkbox-sublabel {
     color: var(--ffc-primary);
     font-weight: 400;
     font-size: var(--ffc-font-size-sm);
@@ -260,19 +246,8 @@
     margin-top: var(--ffc-spacing-2xl);
 }
 
-.ffc-collapsible-section.inline {
-    margin-top: var(--ffc-spacing-15);
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
-    overflow: hidden;
-}
-
 .ffc-collapsible-content {
     padding: var(--ffc-spacing-15);
-}
-
-.ffc-collapsible-section.inline .ffc-collapsible-content {
-    background: var(--ffc-bg-alt);
 }
 
 /* ==========================================================================
@@ -370,15 +345,15 @@
     color: var(--ffc-text);
 }
 
-.ffc-migration-stat-value.success {
+.ffc-migration-stat-value.ffc-migration-stat-success {
     color: var(--ffc-success);
 }
 
-.ffc-migration-stat-value.pending {
+.ffc-migration-stat-value.ffc-migration-stat-pending {
     color: var(--ffc-warning);
 }
 
-.ffc-migration-stat-value.info {
+.ffc-migration-stat-value.ffc-migration-stat-info {
     color: var(--ffc-primary);
 }
 
@@ -402,11 +377,11 @@
     position: relative;
 }
 
-.ffc-progress-bar-fill.complete {
+.ffc-progress-bar-fill.ffc-progress-complete {
     background: linear-gradient(90deg, var(--ffc-success) 0%, var(--ffc-success-hover) 100%);
 }
 
-.ffc-progress-bar-fill.pending {
+.ffc-progress-bar-fill.ffc-progress-pending {
     background: linear-gradient(90deg, var(--ffc-warning) 0%, var(--ffc-warning-border) 100%);
 }
 
@@ -420,11 +395,11 @@
     white-space: nowrap;
 }
 
-.ffc-progress-bar-label.light {
+.ffc-progress-bar-label.ffc-progress-label-light {
     color: var(--ffc-text);
 }
 
-.ffc-progress-bar-label.dark {
+.ffc-progress-bar-label.ffc-progress-label-dark {
     color: var(--ffc-text-on-primary);
 }
 

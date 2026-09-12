@@ -251,19 +251,19 @@ if ( $ffcertificate_cf_behind ) :
 							<table>
 								<tr class="alternate">
 									<td><strong><?php esc_html_e( 'Backend:', 'ffcertificate' ); ?></strong></td>
-									<td class="stat-value"><?php echo esc_html( $ffcertificate_stats['backend'] ); ?></td>
+									<td class="ffc-stat-value"><?php echo esc_html( $ffcertificate_stats['backend'] ); ?></td>
 								</tr>
 								<tr>
 									<td><strong><?php esc_html_e( 'Group:', 'ffcertificate' ); ?></strong></td>
-									<td class="stat-value"><?php echo esc_html( $ffcertificate_stats['group'] ); ?></td>
+									<td class="ffc-stat-value"><?php echo esc_html( $ffcertificate_stats['group'] ); ?></td>
 								</tr>
 								<tr class="alternate">
 									<td><strong><?php esc_html_e( 'Expiration:', 'ffcertificate' ); ?></strong></td>
-									<td class="stat-value"><?php echo esc_html( $ffcertificate_stats['expiration'] ); ?></td>
+									<td class="ffc-stat-value"><?php echo esc_html( $ffcertificate_stats['expiration'] ); ?></td>
 								</tr>
 								<tr>
 									<td><strong><?php esc_html_e( 'Published Forms:', 'ffcertificate' ); ?></strong></td>
-									<td class="stat-value info"><?php echo esc_html( $ffcertificate_total_forms ); ?></td>
+									<td class="ffc-stat-value ffc-stat-info"><?php echo esc_html( $ffcertificate_total_forms ); ?></td>
 								</tr>
 							</table>
 							<?php if ( ! wp_using_ext_object_cache() ) : ?>
@@ -347,15 +347,15 @@ if ( $ffcertificate_cf_behind ) :
 								</tr>
 								<tr>
 									<td><strong><?php esc_html_e( 'Total Submissions:', 'ffcertificate' ); ?></strong></td>
-									<td class="stat-value"><?php echo esc_html( number_format_i18n( $ffcertificate_qr_stats['total_submissions'] ) ); ?></td>
+									<td class="ffc-stat-value"><?php echo esc_html( number_format_i18n( $ffcertificate_qr_stats['total_submissions'] ) ); ?></td>
 								</tr>
 								<tr class="alternate">
 									<td><strong><?php esc_html_e( 'Cached QR Codes:', 'ffcertificate' ); ?></strong></td>
-									<td class="stat-value info"><?php echo esc_html( number_format_i18n( $ffcertificate_qr_stats['cached_qr_codes'] ) ); ?></td>
+									<td class="ffc-stat-value ffc-stat-info"><?php echo esc_html( number_format_i18n( $ffcertificate_qr_stats['cached_qr_codes'] ) ); ?></td>
 								</tr>
 								<tr>
 									<td><strong><?php esc_html_e( 'Estimated Cache Size:', 'ffcertificate' ); ?></strong></td>
-									<td class="stat-value"><?php echo esc_html( $ffcertificate_qr_stats['cache_size'] ); ?></td>
+									<td class="ffc-stat-value"><?php echo esc_html( $ffcertificate_qr_stats['cache_size'] ); ?></td>
 								</tr>
 							</table>
 						</div>
