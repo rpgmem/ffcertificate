@@ -4,7 +4,7 @@
 // The panel reads from #tab-appointments and writes a filter bar + one
 // table per section (upcoming / past / cancelled). Tests cover: empty
 // state, sectioning by status, row counts, receipt-button visibility,
-// and the cancelled-row CSS class.
+// and the ffc-row-cancelled CSS class.
 //
 // Part of S4 of #163.
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
@@ -82,13 +82,13 @@ describe('FFCDashboard.panels.appointments.render', () => {
 		expect(document.querySelector('#tab-appointments h3').textContent).toBe('Upcoming');
 	});
 
-	it("applies 'cancelled-row' / 'past-row' classes to the right rows", () => {
+	it("applies 'ffc-row-cancelled' / 'ffc-row-past' classes to the right rows", () => {
 		panel().render([
 			makeAppt({ status: 'completed', appointment_date_raw: FAR_PAST, calendar_title: 'past one' }),
 			makeAppt({ status: 'cancelled', calendar_title: 'cancelled one' }),
 		], 1);
-		expect(document.querySelectorAll('#tab-appointments tr.past-row').length).toBe(1);
-		expect(document.querySelectorAll('#tab-appointments tr.cancelled-row').length).toBe(1);
+		expect(document.querySelectorAll('#tab-appointments tr.ffc-row-past').length).toBe(1);
+		expect(document.querySelectorAll('#tab-appointments tr.ffc-row-cancelled').length).toBe(1);
 	});
 
 	it('exports the appointment using the raw wall-clock end time, not the display-formatted end_time', () => {

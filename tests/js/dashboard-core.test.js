@@ -259,8 +259,8 @@ describe('FFCDashboard.tab dispatch', () => {
 		// Click the appointments tab.
 		window.$('.ffc-tab[data-tab="appointments"]').trigger('click');
 
-		expect(window.$('.ffc-tab.active').data('tab')).toBe('appointments');
-		expect(window.$('.ffc-tab-content.active').attr('id')).toBe('tab-appointments');
+		expect(window.$('.ffc-tab.is-active').data('tab')).toBe('appointments');
+		expect(window.$('.ffc-tab-content.is-active').attr('id')).toBe('tab-appointments');
 		expect(window.FFCDashboard.panels.appointments.load).toHaveBeenCalled();
 	});
 
@@ -273,23 +273,23 @@ describe('FFCDashboard.tab dispatch', () => {
 		$first.trigger(ev);
 
 		// After ArrowRight, second tab is active (after focus+click).
-		expect(window.$('.ffc-tab.active').data('tab')).toBe('appointments');
+		expect(window.$('.ffc-tab.is-active').data('tab')).toBe('appointments');
 
 		const $second = window.$('.ffc-tab').eq(1);
 		const ev2 = window.$.Event('keydown', { key: 'ArrowLeft' });
 		$second.trigger(ev2);
-		expect(window.$('.ffc-tab.active').data('tab')).toBe('certificates');
+		expect(window.$('.ffc-tab.is-active').data('tab')).toBe('certificates');
 	});
 
 	it('keyboard nav: Home / End jump to first / last tab', async () => {
 		installFakePanels();
 		const $first = window.$('.ffc-tab').eq(0);
 		$first.trigger(window.$.Event('keydown', { key: 'End' }));
-		expect(window.$('.ffc-tab.active').data('tab')).toBe('audience');
+		expect(window.$('.ffc-tab.is-active').data('tab')).toBe('audience');
 
 		const $last = window.$('.ffc-tab').eq(2);
 		$last.trigger(window.$.Event('keydown', { key: 'Home' }));
-		expect(window.$('.ffc-tab.active').data('tab')).toBe('certificates');
+		expect(window.$('.ffc-tab.is-active').data('tab')).toBe('certificates');
 	});
 
 	it('pagination button click dispatches render(state, page) to the panel', async () => {

@@ -99,13 +99,13 @@ describe('FFCDashboard.panels.audience.render', () => {
 		expect(headers).toEqual(['Upcoming', 'Past', 'Cancelled']);
 	});
 
-	it("applies 'past-row' and 'cancelled-row' classes appropriately", () => {
+	it("applies 'ffc-row-past' and 'ffc-row-cancelled' classes appropriately", () => {
 		panel().render([
 			makeBooking({ is_past: true,  status: 'confirmed' }),
 			makeBooking({ is_past: false, status: 'cancelled' }),
 		], 1);
-		expect(document.querySelectorAll('#tab-audience tr.past-row').length).toBe(1);
-		expect(document.querySelectorAll('#tab-audience tr.cancelled-row').length).toBe(1);
+		expect(document.querySelectorAll('#tab-audience tr.ffc-row-past').length).toBe(1);
+		expect(document.querySelectorAll('#tab-audience tr.ffc-row-cancelled').length).toBe(1);
 	});
 
 	it('filters by search query (environment / schedule / description substring)', () => {

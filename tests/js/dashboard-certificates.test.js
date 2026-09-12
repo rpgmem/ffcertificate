@@ -102,10 +102,10 @@ describe('FFCDashboard.panels.certificates.render', () => {
 		expect(link.getAttribute('rel')).toBe('noopener noreferrer');
 	});
 
-	it("applies 'consent-yes' / 'consent-no' classes based on consent_given", () => {
+	it("applies 'ffc-consent-yes' / 'ffc-consent-no' classes based on consent_given", () => {
 		panel().render([makeCert({ consent_given: 1, auth_code: 'A' }), makeCert({ consent_given: 0, auth_code: 'B' })], 1);
-		expect(document.querySelectorAll('#tab-certificates .consent-yes').length).toBe(1);
-		expect(document.querySelectorAll('#tab-certificates .consent-no').length).toBe(1);
+		expect(document.querySelectorAll('#tab-certificates .ffc-consent-yes').length).toBe(1);
+		expect(document.querySelectorAll('#tab-certificates .ffc-consent-no').length).toBe(1);
 	});
 
 	it('always renders the filter bar, even on the empty state', () => {

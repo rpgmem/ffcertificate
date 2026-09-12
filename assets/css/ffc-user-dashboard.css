@@ -105,7 +105,7 @@
     background: var(--ffc-bg-alt);
 }
 
-.ffc-tab.active {
+.ffc-tab.is-active {
     color: var(--ffc-primary);
     border-bottom-color: var(--ffc-primary);
     font-weight: 600;
@@ -122,7 +122,7 @@
     animation: ffcFadeIn 0.25s ease;
 }
 
-.ffc-tab-content.active {
+.ffc-tab-content.is-active {
     display: block;
 }
 
@@ -416,12 +416,12 @@
 .ffc-certificates-table th:nth-child(6),
 .ffc-certificates-table td:nth-child(6) { width: 13%; text-align: center; }
 
-.ffc-certificates-table .consent-yes {
+.ffc-certificates-table .ffc-consent-yes {
     color: var(--ffc-success);
     font-weight: 600;
 }
 
-.ffc-certificates-table .consent-no {
+.ffc-certificates-table .ffc-consent-no {
     color: var(--ffc-danger);
     font-weight: 600;
 }
@@ -594,10 +594,10 @@
    Medido: a 0,75 a linha passada dava 3,11:1 no tema claro e a palavra
    "Cancelado" dava 3,99:1, ambos abaixo do mínimo. O estado passa a ser dito
    pela cor do texto, que é medível, em vez de por desbotamento. */
-.ffc-appointments-table.past-appointments td { color: var(--ffc-text-muted); }
-.ffc-appointments-table .past-row { background: var(--ffc-bg-alt); }
-.ffc-appointments-table .cancelled-row { background: var(--ffc-danger-bg); }
-.ffc-appointments-table .cancelled-row td { color: var(--ffc-text-muted); }
+.ffc-appointments-table.ffc-table-past td { color: var(--ffc-text-muted); }
+.ffc-appointments-table .ffc-row-past { background: var(--ffc-bg-alt); }
+.ffc-appointments-table .ffc-row-cancelled { background: var(--ffc-danger-bg); }
+.ffc-appointments-table .ffc-row-cancelled td { color: var(--ffc-text-muted); }
 
 #tab-appointments h3,
 #tab-audience h3,
@@ -635,10 +635,10 @@
    Medido: a 0,75 a linha passada dava 3,11:1 no tema claro e a palavra
    "Cancelado" dava 3,99:1, ambos abaixo do mínimo. O estado passa a ser dito
    pela cor do texto, que é medível, em vez de por desbotamento. */
-.ffc-audience-bookings-table.past-bookings td { color: var(--ffc-text-muted); }
-.ffc-audience-bookings-table .past-row { background: var(--ffc-bg-alt); }
-.ffc-audience-bookings-table .cancelled-row { background: var(--ffc-danger-bg); }
-.ffc-audience-bookings-table .cancelled-row td { color: var(--ffc-text-muted); }
+.ffc-audience-bookings-table.ffc-table-past td { color: var(--ffc-text-muted); }
+.ffc-audience-bookings-table .ffc-row-past { background: var(--ffc-bg-alt); }
+.ffc-audience-bookings-table .ffc-row-cancelled { background: var(--ffc-danger-bg); }
+.ffc-audience-bookings-table .ffc-row-cancelled td { color: var(--ffc-text-muted); }
 
 .ffc-audience-bookings-table .ffc-audience-tag {
     display: block;
@@ -653,9 +653,9 @@
    REREGISTRATIONS TABLE
    ========================================================================== */
 
-.ffc-reregistrations-table.past-reregistrations { opacity: 0.75; }
-.ffc-reregistrations-table.past-reregistrations td { color: var(--ffc-text-muted); }
-.ffc-reregistrations-table .past-row { background: var(--ffc-bg-alt); }
+.ffc-reregistrations-table.ffc-table-past { opacity: 0.75; }
+.ffc-reregistrations-table.ffc-table-past td { color: var(--ffc-text-muted); }
+.ffc-reregistrations-table .ffc-row-past { background: var(--ffc-bg-alt); }
 
 .ffc-reregistrations-table .ffc-auth-code {
     font-family: 'Courier New', Courier, monospace;
@@ -779,33 +779,33 @@
     margin-bottom: var(--ffc-spacing-2xs);
 }
 
-.ffc-profile-field .value {
+.ffc-profile-field .ffc-field-value {
     color: var(--ffc-text);
     font-size: var(--ffc-font-size-base);
     font-weight: 500;
     line-height: 1.5;
 }
 
-.ffc-profile-field .email-list,
-.ffc-profile-field .name-list,
-.ffc-profile-field .cpf-list {
+.ffc-profile-field .ffc-email-list,
+.ffc-profile-field .ffc-name-list,
+.ffc-profile-field .ffc-cpf-list {
     list-style: none;
     padding: 0;
     margin: 0;
 }
 
-.ffc-profile-field .email-list li,
-.ffc-profile-field .name-list li,
-.ffc-profile-field .cpf-list li {
+.ffc-profile-field .ffc-email-list li,
+.ffc-profile-field .ffc-name-list li,
+.ffc-profile-field .ffc-cpf-list li {
     padding: var(--ffc-spacing-3xs) 0;
     color: var(--ffc-text);
     font-size: var(--ffc-font-size-base);
     font-weight: 500;
 }
 
-.ffc-profile-field .email-list li::before,
-.ffc-profile-field .name-list li::before,
-.ffc-profile-field .cpf-list li::before {
+.ffc-profile-field .ffc-email-list li::before,
+.ffc-profile-field .ffc-name-list li::before,
+.ffc-profile-field .ffc-cpf-list li::before {
     content: '';
     display: inline-block;
     width: 6px;
@@ -1430,7 +1430,7 @@
     overflow: hidden;
 }
 
-.ffc-cal-export-dropdown.open { display: block; }
+.ffc-cal-export-dropdown.is-open { display: block; }
 
 .ffc-cal-export-dropdown a {
     display: flex;
@@ -1531,7 +1531,7 @@
         margin-bottom: 0;
     }
 
-    .ffc-tab.active {
+    .ffc-tab.is-active {
         border-left: 3px solid var(--ffc-primary);
         border-bottom: 1px solid var(--ffc-border-light);
         background: var(--ffc-primary-light);

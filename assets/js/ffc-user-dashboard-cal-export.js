@@ -133,16 +133,16 @@
         e.preventDefault();
         e.stopPropagation();
         var $dropdown = $(this).siblings('.ffc-cal-export-dropdown');
-        $('.ffc-cal-export-dropdown.open').not($dropdown).removeClass('open');
-        $dropdown.toggleClass('open');
+        $('.ffc-cal-export-dropdown.is-open').not($dropdown).removeClass('is-open');
+        $dropdown.toggleClass('is-open');
     });
     $(document).on('click', '.ffc-cal-export-ics', function (e) {
         e.preventDefault();
         var eventData = $(this).data('event');
         if (eventData) downloadIcsFile(eventData);
-        $(this).closest('.ffc-cal-export-dropdown').removeClass('open');
+        $(this).closest('.ffc-cal-export-dropdown').removeClass('is-open');
     });
-    $(document).on('click', function () { $('.ffc-cal-export-dropdown.open').removeClass('open'); });
+    $(document).on('click', function () { $('.ffc-cal-export-dropdown.is-open').removeClass('is-open'); });
     $(document).on('click', '.ffc-cal-export-dropdown', function (e) { e.stopPropagation(); });
 
 })(jQuery);
