@@ -41,6 +41,21 @@ final class CssClassEmitters {
 	private const ROOTS = array( 'includes', 'templates', 'assets/js', 'libs/js' );
 
 	/**
+	 * Um literal de string COMPLETO, de qualquer das duas aspas.
+	 *
+	 * Casar `(["\'])(.*?)\1` por alternância perde a paridade no primeiro
+	 * apóstrofo dentro de aspas duplas e daí em diante lê o arquivo deslocado —
+	 * o cabeçalho desta classe já registra o fato, e mesmo assim a primeira
+	 * versão da forma 5b caiu nele: `ffc-has-geofence` ficava sem emissor
+	 * porque, varrendo `class-ffc-shortcodes.php` do começo, a paridade já
+	 * estava trocada quando a varredura chegava na linha 169.
+	 *
+	 * Cada alternativa aqui consome o literal INTEIRO, escapes inclusive, então
+	 * uma aspa do outro tipo lá dentro é conteúdo e não delimitador.
+	 */
+	private const STRING_LITERAL = '/"((?:[^"\\\\]|\\\\.)*)"|\'((?:[^\'\\\\]|\\\\.)*)\'/';
+
+	/**
 	 * Cache da varredura — ela lê centenas de arquivos.
 	 *
 	 * @var array{literals: array<string, array<int, string>>, prefixes: array<string, array<int, string>>}|null
@@ -150,6 +165,23 @@ final class CssClassEmitters {
 				foreach ( $m as $hit ) {
 					$value = (string) preg_replace( '/<\?(php|=).*?\?>/s', ' ', $hit[2] );
 					foreach ( preg_split( '/\s+/', trim( $value ) ) ?: array() as $token ) {
+						/*
+						 * O token chega com a PONTUAÇÃO DE CONCATENAÇÃO colada
+						 * quando o atributo é aberto e não fechado na mesma
+						 * string -- `'<table class="ffc-appointments-table' +
+						 * (past ? ' ffc-table-past' : '') + '">'`. A aspa que o
+						 * casamento acima encontra é a do FIM da expressão, e
+						 * o primeiro nome sai como `ffc-appointments-table'`,
+						 * que não passa na validação e some.
+						 *
+						 * É a irmã da forma que a #1170 ensinou: lá o token do
+						 * FIM chegava com o espaço separador, aqui o token do
+						 * COMEÇO chega com a aspa. Consertar um sem o outro é
+						 * por que quatro tabelas do painel ficaram anos na
+						 * lista de órfãs.
+						 */
+						$token = trim( $token, "\"'+., \t\n" );
+
 						if ( preg_match( '/^[A-Za-z_][A-Za-z0-9_-]*$/', $token ) ) {
 							$add_literal( $token, $file );
 						}
@@ -195,6 +227,24 @@ final class CssClassEmitters {
 				}
 			}
 
+			/*
+			 * ── Forma 7: opção de biblioteca cujo VALOR é uma classe.
+			 *
+			 * `$('#lista').sortable({ placeholder: 'ffc-sortable-placeholder' })`
+			 * -- o jQuery UI aplica essa string como classe no elemento fantasma
+			 * que ele insere. Não existe a palavra `class` em lugar nenhum ali,
+			 * então nenhuma janela de contexto alcança, e a classe ficava na lista
+			 * de órfãs parecendo morta.
+			 *
+			 * Casa só a forma de OPÇÃO (`placeholder:`), nunca o atributo HTML
+			 * (`placeholder="Digite o nome"`), que é texto livre do usuário.
+			 */
+			if ( preg_match_all( '/placeholder\s*:\s*(["\'])([A-Za-z_][A-Za-z0-9_-]*)\1/', $src, $m ) ) {
+				foreach ( $m[2] as $token ) {
+					$add_literal( $token, $file );
+				}
+			}
+
 			// ── Forma 4: `className = 'x'` e `className += ' x'`.
 			if ( preg_match_all( '/className\s*\+?=\s*(["\'])([^"\']*)\1/', $src, $m, PREG_SET_ORDER ) ) {
 				foreach ( $m as $hit ) {
@@ -229,6 +279,39 @@ final class CssClassEmitters {
 				if ( preg_match_all( '/(["\'])\s*((?:ffc-)?[a-z][a-z0-9]*(?:-[a-z0-9]+)+)\s*\1/i', $window, $m ) ) {
 					foreach ( $m[2] as $token ) {
 						$add_literal( $token, $file );
+					}
+				}
+
+				/*
+				 * ── Forma 5b: VÁRIAS classes numa string só.
+				 *
+				 * `'ffc-shortcode ffc-form-wrapper ffc-has-geofence'` e
+				 * `'ffc-hierarchy-child ffc-hierarchy-level-' . $level`. A forma
+				 * 5 ancora nas duas aspas, então enxerga só a string de um
+				 * token e perde estas -- ficava o PREFIXO do último nome, que a
+				 * forma 6 pega, e os nomes inteiros que vêm antes sumiam.
+				 *
+				 * O discriminante é ter DOIS OU MAIS tokens: a folga que a
+				 * forma 5 não pode dar existe porque um `handle` de
+				 * `wp_enqueue_style` é sempre um token só, e foi ele que fez a
+				 * primeira versão desta varredura dizer que nada era órfão.
+				 * Exigir o plural mantém a rede fechada para handles, chaves de
+				 * opção e slugs de capacidade.
+				 */
+				if ( preg_match_all( self::STRING_LITERAL, $window, $m, PREG_SET_ORDER ) ) {
+					foreach ( $m as $hit ) {
+						$value  = ( isset( $hit[2] ) && '' !== $hit[2] ) ? $hit[2] : $hit[1];
+						$tokens = preg_split( '/\s+/', trim( $value ) ) ?: array();
+
+						if ( count( $tokens ) < 2 ) {
+							continue;
+						}
+
+						foreach ( $tokens as $token ) {
+							if ( preg_match( '/^(?:ffc-)?[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/i', $token ) ) {
+								$add_literal( $token, $file );
+							}
+						}
 					}
 				}
 
@@ -312,7 +395,7 @@ final class CssClassEmitters {
 	private static function near_class_context( string $src ): array {
 		$out = array();
 
-		if ( ! preg_match_all( '/[A-Za-z]*class(?:List|Name)?[A-Za-z]*/i', $src, $m, PREG_OFFSET_CAPTURE ) ) {
+		if ( ! preg_match_all( '/[A-Za-z]*(?:class(?:List|Name)?|cls)[A-Za-z]*/i', $src, $m, PREG_OFFSET_CAPTURE ) ) {
 			return $out;
 		}
 

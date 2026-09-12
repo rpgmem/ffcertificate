@@ -28,45 +28,92 @@ use PHPUnit\Framework\TestCase;
 final class CssClassEmissionTest extends TestCase {
 
 	/**
+	 * Classes que o HTML do PRÓPRIO ADMINISTRADOR emite, não o nosso código.
+	 *
+	 * A `ffc-pdf-core.css` tem uma seção intitulada **"UTILITY CLASSES FOR
+	 * CERTIFICATE TEMPLATES"** e dois comentários que dizem, literalmente, *"Add
+	 * class `ffc-responsive-logo` to img tag to enable"*. São uma API para quem
+	 * monta o corpo do certificado — que vive no banco, não no repositório —, e
+	 * por isso nenhuma varredura de código pode achar emissor para elas.
+	 *
+	 * Não são pergunta em aberto e não são dívida: estão na terceira categoria
+	 * que o docblock de `WITHOUT_EMITTER` sempre previu ("aplicada por algo fora
+	 * do nosso código") e que, até esta medição, nunca tinha tido ocupante.
+	 *
+	 * **A #1170 as classificou como mortas** — "não aparecem em NENHUM lugar do
+	 * repositório" — e isso estava certo sobre o repositório e errado sobre o
+	 * mundo. Apagá-las quebraria silenciosamente todo certificado que já use
+	 * `class="ffc-txt-center"`, que é o uso para o qual foram publicadas.
+	 *
+	 * @var array<string, string>
+	 */
+	private const TEMPLATE_API = array(
+		'ffc-txt-center'      => 'seção 9 da folha: alinhamento para o corpo do certificado',
+		'ffc-txt-left'        => 'seção 9 da folha: alinhamento para o corpo do certificado',
+		'ffc-txt-right'       => 'seção 9 da folha: alinhamento para o corpo do certificado',
+		'ffc-txt-justify'     => 'seção 9 da folha: alinhamento para o corpo do certificado',
+		'ffc-full-width'      => 'seção 9 da folha: largura total para o corpo do certificado',
+		'ffc-full-width-img'  => 'comentário na folha: "Add class ffc-full-width-img to img tag to enable"',
+		'ffc-responsive-logo' => 'comentário na folha: "Add class ffc-responsive-logo to img tag to enable"',
+	);
+
+	/**
+	 * Shim de compatibilidade que a folha declara como tal.
+	 *
+	 * A `ffc-pdf-core.css` tem uma seção **13. LEGACY CLASSES (Backward
+	 * compatibility)**. Nenhuma delas foi emitida pelo nosso código em NENHUM
+	 * ponto da história do repositório (`git log -S` sobre `assets/js`,
+	 * `includes` e `templates` devolve zero), então aquilo com que elas mantêm
+	 * compatibilidade está fora daqui — corpo de certificado salvo no banco, do
+	 * mesmo jeito que a API acima.
+	 *
+	 * Cada uma tem a irmã viva que o JS emite hoje, e o par conta a renomeação:
+	 * `stage`→`wrapper`, `bg-img`→`bg`, `user-content`→`content`,
+	 * `temp-wrapper`→`temp-container`.
+	 *
+	 * **Ficam listadas aqui, e não em `WITHOUT_EMITTER`, porque não são pergunta
+	 * em aberto: são shim, e o `CLAUDE.md` §5 exige evidência de instalação —
+	 * nunca varredura de código — para retirar um.** O inventário de §5 passa a
+	 * registrá-las com a condição de saída.
+	 *
+	 * @var array<string, string>
+	 */
+	private const LEGACY_SHIM = array(
+		'ffc-pdf-stage'        => 'seção 13 da folha; irmã viva `ffc-pdf-wrapper`',
+		'ffc-pdf-bg-img'       => 'seção 13 da folha; irmã viva `ffc-pdf-bg`',
+		'ffc-pdf-user-content' => 'seção 13 da folha; irmã viva `ffc-pdf-content`',
+		'ffc-pdf-temp-wrapper' => 'pareada com a viva `ffc-pdf-temp-container` na regra do wp-admin',
+	);
+
+	/**
 	 * Classes declaradas nas folhas para as quais a varredura não acha emissor.
 	 *
 	 * Uma catraca que só encolhe. Não é uma lista de código morto — é uma lista
 	 * de **perguntas em aberto**, e cada entrada tem uma dessas três respostas:
 	 *
-	 *  - morta de verdade (`ffc-txt-center` e as três irmãs não aparecem em
-	 *    NENHUM lugar do repositório, nem como string nem como seletor);
+	 *  - morta de verdade;
 	 *  - emitida por uma forma que a varredura ainda não conhece — e aí a
 	 *    correção é ensinar a varredura, não baixar a guarda;
-	 *  - aplicada por algo fora do nosso código (uma biblioteca, o WordPress).
+	 *  - aplicada por algo fora do nosso código.
 	 *
-	 * Responder cada uma é o trabalho que esta lista existe para tornar
-	 * possível. Antes dela a pergunta não tinha como ser feita.
+	 * **Das 24 entradas originais, nove eram a segunda resposta** — tinham
+	 * emissor no repositório e a varredura é que não lia a forma. Ensiná-la
+	 * respondeu as nove de uma vez, e as três formas novas estão no
+	 * `provider_shapes()`. Outras onze eram a terceira: viraram `TEMPLATE_API` e
+	 * `LEGACY_SHIM` acima, cada uma com a evidência que a tirou daqui.
+	 *
+	 * Restam quatro, e todas as quatro são candidatas à PRIMEIRA resposta —
+	 * nunca emitidas na história, sem seção da folha que as reivindique. Ficam
+	 * como pergunta porque apagar CSS que o autor de template pode estar usando
+	 * é decisão de produto, não de varredura.
+	 *
+	 * @var array<int, string>
 	 */
 	private const WITHOUT_EMITTER = array(
-		'ffc-appointments-table',
-		'ffc-audience-bookings-table',
-		'ffc-audience-join-item',
 		'ffc-cap-chip--color',
 		'ffc-flex',
-		'ffc-full-width',
-		'ffc-full-width-img',
-		'ffc-has-event-list',
-		'ffc-has-geofence',
-		'ffc-hierarchy-child',
-		'ffc-pdf-bg-img',
 		'ffc-pdf-progress-overlay',
-		'ffc-pdf-stage',
-		'ffc-pdf-temp-wrapper',
-		'ffc-pdf-user-content',
 		'ffc-progress-spinner',
-		'ffc-reregistrations-table',
-		'ffc-responsive-logo',
-		'ffc-sortable-placeholder',
-		'ffc-transfer-child',
-		'ffc-txt-center',
-		'ffc-txt-justify',
-		'ffc-txt-left',
-		'ffc-txt-right',
 	);
 
 	/**
@@ -86,6 +133,9 @@ final class CssClassEmissionTest extends TestCase {
 			'placeholder de printf'       => array( 'ffc-cap-origin--user', 'prefixo' ),
 			'concatenação no fim da str'  => array( 'ffc-dashboard-status-confirmed', 'prefixo' ),
 			'interpolação do PHP'         => array( 'ffc-verification-status-cancelled', 'prefixo' ),
+			'atributo aberto e não fechado' => array( 'ffc-appointments-table', 'literal' ),
+			'várias classes numa string'  => array( 'ffc-has-geofence', 'literal' ),
+			'opção de biblioteca'         => array( 'ffc-sortable-placeholder', 'literal' ),
 		);
 	}
 
@@ -119,7 +169,11 @@ final class CssClassEmissionTest extends TestCase {
 			if ( 'nenhum' !== CssClassEmitters::of( $class )['how'] ) {
 				continue;
 			}
-			if ( ! in_array( $class, self::WITHOUT_EMITTER, true ) ) {
+			if (
+				! in_array( $class, self::WITHOUT_EMITTER, true )
+				&& ! isset( self::TEMPLATE_API[ $class ] )
+				&& ! isset( self::LEGACY_SHIM[ $class ] )
+			) {
 				$new[] = $class;
 			}
 		}
@@ -142,7 +196,7 @@ final class CssClassEmissionTest extends TestCase {
 	public function test_the_list_only_shrinks(): void {
 		$resolved = array();
 
-		foreach ( self::WITHOUT_EMITTER as $class ) {
+		foreach ( self::listed_classes() as $class ) {
 			$found = CssClassEmitters::of( $class );
 			if ( 'nenhum' !== $found['how'] ) {
 				$resolved[] = sprintf( '%s (agora por %s)', $class, $found['how'] );
@@ -152,7 +206,7 @@ final class CssClassEmissionTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$resolved,
-			"Estas ganharam emissor — tire-as de WITHOUT_EMITTER:\n  " . implode( "\n  ", $resolved )
+			"Estas ganharam emissor — tire-as da lista em que estão:\n  " . implode( "\n  ", $resolved )
 		);
 	}
 
@@ -162,12 +216,57 @@ final class CssClassEmissionTest extends TestCase {
 	public function test_every_listed_class_is_still_declared(): void {
 		$declared = CssClassEmitters::declared_ffc_classes();
 
-		foreach ( self::WITHOUT_EMITTER as $class ) {
+		foreach ( self::listed_classes() as $class ) {
 			$this->assertContains(
 				$class,
 				$declared,
 				"`{$class}` não é mais declarada em folha nenhuma. Tire-a da lista."
 			);
+		}
+	}
+
+	/**
+	 * As três listas juntas — nenhuma classe pode estar em duas.
+	 *
+	 * @return array<int, string>
+	 */
+	private static function listed_classes(): array {
+		return array_merge(
+			self::WITHOUT_EMITTER,
+			array_keys( self::TEMPLATE_API ),
+			array_keys( self::LEGACY_SHIM )
+		);
+	}
+
+	/**
+	 * Uma classe pertence a exatamente uma das três listas.
+	 *
+	 * As três dizem coisas diferentes — pergunta em aberto, API publicada,
+	 * shim com condição de saída —, então uma classe em duas delas é uma
+	 * afirmação contraditória sobre o que fazer com ela.
+	 */
+	public function test_no_class_is_listed_twice(): void {
+		$all  = self::listed_classes();
+		$dupe = array_keys( array_filter( array_count_values( $all ), static fn ( int $n ): bool => $n > 1 ) );
+
+		$this->assertSame( array(), $dupe, 'Classe em mais de uma lista: ' . implode( ', ', $dupe ) );
+	}
+
+	/**
+	 * Toda razão diz alguma coisa.
+	 *
+	 * O piso de 20 caracteres é contra "legado" e "não usada" — não é medida
+	 * de qualidade, é o mesmo piso que as outras guardas de supressão usam.
+	 */
+	public function test_every_reason_says_something(): void {
+		foreach ( array( 'TEMPLATE_API' => self::TEMPLATE_API, 'LEGACY_SHIM' => self::LEGACY_SHIM ) as $list => $entries ) {
+			foreach ( $entries as $class => $reason ) {
+				$this->assertGreaterThan(
+					20,
+					strlen( $reason ),
+					"A razão de `{$class}` em {$list} não diz o bastante: quem lê precisa saber POR QUE não há emissor."
+				);
+			}
 		}
 	}
 
