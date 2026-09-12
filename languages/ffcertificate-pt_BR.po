@@ -4424,7 +4424,7 @@ msgstr "Documentação Completa do Plugin"
 
 #: templates/emails/reregistration-invitation.php:35 includes/shortcodes/class-ffc-dashboard-shortcode.php:453
 msgid "Complete Reregistration"
-msgstr "Recadastramento Completo"
+msgstr "Fazer o Recadastramento"
 
 #: includes/settings/views/documentation/feature-certificates.php:75
 #| msgid "15. Complete Template Examples"
