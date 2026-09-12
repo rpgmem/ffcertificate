@@ -43,9 +43,11 @@ use PHPUnit\Framework\TestCase;
  *
  * 1. **`ffc-admin-submissions.css` carrega em TODA página `?page=ffc-*`**, não
  *    só na de submissões: o gate é `is_ffc_page()`, que casa qualquer menu
- *    `ffc-`. O docblock do enfileirador diz "submissions page". É por isso que
- *    o `.ffc-status-badge` dela ainda colide com o de recrutamento e o de
- *    recadastramento.
+ *    `ffc-`. O docblock do enfileirador diz "submissions page". Era por isso
+ *    que o `.ffc-status-badge` dela era a base acidental do selo de
+ *    recrutamento e do de recadastramento -- os dois ganharam nome próprio no
+ *    #1183 e a linha de base ficou VAZIA. A folha segue carregando em toda
+ *    tela `ffc-*`, então o portão continua sendo o mecanismo a vigiar.
  * 2. **O resultado não é "a de baixo vence": é uma FUSÃO.** O selo da audiência
  *    renderizava `text-transform: uppercase` e `letter-spacing` que só a folha
  *    de submissões declara, e `white-space: nowrap` que só `ffc-common.css`
@@ -90,7 +92,6 @@ class StylesheetOwnershipTest extends TestCase {
 		// contra `?page=ffc-reregistration*`/`ffc-custom-fields`.
 		'column-actions|ffc-audience-admin.css|ffc-reregistration-admin.css' => 'telas de admin distintas; nomes sem prefixo já na base do #1152',
 		'column-status|ffc-audience-admin.css|ffc-reregistration-admin.css'  => 'telas de admin distintas; nomes sem prefixo já na base do #1152',
-		'ffc-status-badge|ffc-recruitment-admin.css|ffc-reregistration-admin.css' => 'telas de admin distintas: recrutamento × recadastramento',
 
 		// `ffc-custom-fields-admin.css` sai no perfil de usuário e nas telas de
 		// audiência; `ffc-reregistration-admin.css`, nas de recadastramento.
@@ -107,15 +108,7 @@ class StylesheetOwnershipTest extends TestCase {
 	 *
 	 * @var array<string, string>
 	 */
-	private const BASELINE = array(
-		// `ffc-admin-submissions.css` carrega em toda página `?page=ffc-*`, de
-		// modo que o seu `.ffc-status-badge` é a base acidental do selo dos
-		// dois módulos. A correção é a mesma do #1162 para a audiência -- dar
-		// nome próprio a cada família -- e é unidade própria, porque mexe nos
-		// emissores de cada módulo.
-		'ffc-status-badge|ffc-admin-submissions.css|ffc-recruitment-admin.css' => 'selo de recrutamento sobre a base acidental da folha de submissões',
-		'ffc-status-badge|ffc-admin-submissions.css|ffc-reregistration-admin.css' => 'selo de recadastramento sobre a base acidental da folha de submissões',
-	);
+	private const BASELINE = array();
 
 	/**
 	 * Folhas que não passam por `wp_enqueue_style`, com o motivo.

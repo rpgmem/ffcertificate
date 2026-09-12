@@ -268,7 +268,7 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 
 		// Classification summary row.
 		$this->assertStringContainsString( 'ED-01', $html );
-		$this->assertStringContainsString( 'ffc-status-called', $html );
+		$this->assertStringContainsString( 'ffc-recruitment-status-called', $html );
 		// Adjutancy <select> branch (notice has ≥2 attached adjutancies).
 		$this->assertStringContainsString( 'ffc-adjutancy-swap-select', $html );
 		$this->assertStringContainsString( '>mat<', $html );

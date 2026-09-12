@@ -6,7 +6,16 @@
  */
 
 /* ── Status badges ───────────────────────────── */
-.ffc-status-badge {
+/* Nome próprio desde o #1183 -- ver a mesma nota em
+   `ffc-recruitment-admin.css`.
+
+   ⚠ A forma abaixo é a MEDIDA, e ela não é a que esta folha declarava:
+   `text-transform` e `letter-spacing` NUNCA foram declarados aqui e mesmo
+   assim o selo os renderizava, porque `ffc-admin-submissions.css` os
+   declara e carrega nesta tela por acidente de portão. Passam a ser
+   declarados, para o render continuar igual e passar a ser intencional --
+   é a mesma decisão do #1162. */
+.ffc-reregistration-status-badge {
     display: inline-block;
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
     border-radius: var(--ffc-radius-xs);
@@ -14,50 +23,52 @@
     font-weight: 600;
     line-height: 1.5;
     white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
-.ffc-status-draft {
+.ffc-reregistration-status-draft {
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-secondary);
 }
 
-.ffc-status-active {
+.ffc-reregistration-status-active {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
 }
 
-.ffc-status-expired {
+.ffc-reregistration-status-expired {
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
 }
 
-.ffc-status-closed {
+.ffc-reregistration-status-closed {
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-muted);
 }
 
 /* Submission statuses */
-.ffc-status-pending {
+.ffc-reregistration-status-pending {
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-secondary);
 }
 
-.ffc-status-in_progress {
+.ffc-reregistration-status-in_progress {
     background: var(--ffc-info-bg);
     color: var(--ffc-info-text);
 }
 
-.ffc-status-submitted {
+.ffc-reregistration-status-submitted {
     background: var(--ffc-primary-light);
     color: var(--ffc-primary-hover);
 }
 
-.ffc-status-approved {
+.ffc-reregistration-status-approved {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
 }
 
-.ffc-status-rejected {
+.ffc-reregistration-status-rejected {
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
 }
@@ -410,15 +421,15 @@ body.ffc-rereg-modal-open {
     /* Selos de estado: o texto continua dizendo o estado; a borda
        devolve a eles a forma de selo. */
     .ffc-audience-badge,
-    .ffc-status-active,
-    .ffc-status-approved,
-    .ffc-status-closed,
-    .ffc-status-draft,
-    .ffc-status-expired,
-    .ffc-status-in_progress,
-    .ffc-status-pending,
-    .ffc-status-rejected,
-    .ffc-status-submitted {
+    .ffc-reregistration-status-active,
+    .ffc-reregistration-status-approved,
+    .ffc-reregistration-status-closed,
+    .ffc-reregistration-status-draft,
+    .ffc-reregistration-status-expired,
+    .ffc-reregistration-status-in_progress,
+    .ffc-reregistration-status-pending,
+    .ffc-reregistration-status-rejected,
+    .ffc-reregistration-status-submitted {
         border: 1px solid CanvasText;
     }
 }

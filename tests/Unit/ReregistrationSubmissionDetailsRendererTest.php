@@ -91,7 +91,7 @@ class ReregistrationSubmissionDetailsRendererTest extends TestCase {
 			array()
 		);
 
-		$this->assertStringContainsString( 'ffc-status-pending', $html );
+		$this->assertStringContainsString( 'ffc-reregistration-status-pending', $html );
 		$this->assertStringContainsString( 'Pending Review', $html );
 	}
 
