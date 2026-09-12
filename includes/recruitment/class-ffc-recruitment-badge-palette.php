@@ -121,8 +121,13 @@ final class RecruitmentBadgePalette {
 		);
 
 		foreach ( self::VARIANTS as $class => $key ) {
-			$raw = isset( $settings[ $key ] ) && is_string( $settings[ $key ] ) ? $settings[ $key ] : '';
-			$bg  = ColorValidator::normalize( $raw, self::FALLBACK_BG );
+			// No `isset()`/`is_string()` guard: `RecruitmentSettings::all()` runs
+			// every key through `shape()`, which returns a string or the default,
+			// so the guard is dead code and PHPStan says so. The barrier that
+			// matters is below — the value is about to be interpolated into a
+			// `<style>` block, and `normalize()` is what refuses anything that
+			// is not a hex colour.
+			$bg = ColorValidator::normalize( $settings[ $key ], self::FALLBACK_BG );
 
 			$rules[] = sprintf(
 				'.%1$s{background:%2$s;color:%3$s}',
