@@ -55,45 +55,110 @@ final class BadgeHtml {
 	private const BASE_CLASS = 'ffc-pill';
 
 	/**
-	 * Render a badge `<span>` with the supplied attributes.
+	 * Class applied while a badge carries a tooltip.
+	 *
+	 * Was `cursor:help` inline. It is a property of the markup — the badge has
+	 * a `title` or it does not — so it is a class, and the stylesheet decides
+	 * what that looks like.
+	 */
+	private const TIP_CLASS = 'ffc-pill-has-tip';
+
+	/**
+	 * Class applied when the colour arrives as a custom property on the element.
+	 *
+	 * The rule that reads `--ffc-badge-row-bg` belongs with the property, and
+	 * the property is this class's — so both live in `ffc-common.css`, next to
+	 * `.ffc-pill`. Declaring it in the two module sheets instead would be the
+	 * same component with no owner that #1162 is about.
+	 */
+	private const ROW_COLOR_CLASS = 'ffc-pill-row-color';
+
+	/**
+	 * Render a badge `<span>` coloured by its own stylesheet.
 	 *
 	 * The emitted `class` is `.ffc-pill` + the two fragments below, in that
 	 * order — shape, family, variant — which is the `.ffc-a.ffc-b` composition
 	 * the base already uses in ~108 places. An empty fragment is dropped.
 	 *
-	 * - `$base_class`    family CSS class fragment (e.g. `ffc-recruitment-status-badge`).
-	 * - `$variant_class` value-specific class fragment (e.g. `ffc-recruitment-status-empty`).
-	 * - `$bg`            pre-validated hex color (caller is responsible for hex validation;
-	 *                    use {@see ColorValidator::normalize()}).
-	 * - `$label`         already-localized human-readable text; this method `esc_html()`s it.
-	 * - `$tooltip`       optional `title=""` content (`esc_attr()`'d). When non-empty,
-	 *                    `cursor:help` is added so visitors get a hover hint.
+	 * **No `style` attribute at all.** The colour of every status variant is a
+	 * rule the calling module generates from its own settings and appends to
+	 * its stylesheet (#1193). An inline declaration would outrank that rule,
+	 * which is the whole reason it is gone. Core deliberately does not name the
+	 * class that does it — not even in a docblock: `ModuleBoundaryTest` reads
+	 * the text, and it is right to, since a `Core → feature` reference is
+	 * coupling whether or not it compiles.
 	 *
-	 * @param string $base_class    Base CSS class.
-	 * @param string $variant_class Variant CSS class.
-	 * @param string $bg            Pre-validated hex color.
-	 * @param string $label         Localized human-readable label.
-	 * @param string $tooltip       Optional tooltip text (rendered as `title=""`).
+	 * @param string $base_class    Family CSS class (e.g. `ffc-recruitment-status-badge`).
+	 * @param string $variant_class Variant CSS class (e.g. `ffc-recruitment-status-empty`).
+	 * @param string $label         Localized human-readable label; this method `esc_html()`s it.
+	 * @param string $tooltip       Optional `title=""` content (`esc_attr()`'d).
 	 * @return string Already-escaped HTML.
 	 */
-	public static function render( string $base_class, string $variant_class, string $bg, string $label, string $tooltip = '' ): string {
+	public static function render( string $base_class, string $variant_class, string $label, string $tooltip = '' ): string {
+		return self::span( $base_class, $variant_class, $label, $tooltip, '' );
+	}
+
+	/**
+	 * Render a badge whose colour is a per-row value, not a per-status one.
+	 *
+	 * The adjutancy badge is the one case a generated rule cannot serve: the
+	 * hex lives in the adjutancy's own database row, so the number of values on
+	 * a page is the number of adjutancies on it. Here the value — and only the
+	 * value — rides the attribute, as a custom property; the rule that reads it
+	 * stays in the stylesheet, where `.ffc-recruitment-adjutancy-badge`
+	 * declares the pair.
+	 *
+	 * The foreground is computed rather than declared, for the same reason it
+	 * always was: the background is a colour somebody picked, and no fixed
+	 * foreground is readable over all of them (#1126).
+	 *
+	 * @param string $base_class Family CSS class.
+	 * @param string $bg         Hex colour from the row (validated here).
+	 * @param string $label      Localized human-readable label.
+	 * @param string $tooltip    Optional `title=""` content.
+	 * @return string Already-escaped HTML.
+	 */
+	public static function render_with_row_color( string $base_class, string $bg, string $label, string $tooltip = '' ): string {
+		$color = ColorValidator::normalize( $bg, self::FALLBACK_BG );
+		$style = sprintf(
+			'--ffc-badge-row-bg:%1$s;--ffc-badge-row-text:%2$s;',
+			$color,
+			ContrastColor::on( $color )
+		);
+
+		return self::span( $base_class, self::ROW_COLOR_CLASS, $label, $tooltip, $style );
+	}
+
+	/**
+	 * Background used when a row holds something that is not a hex colour.
+	 */
+	private const FALLBACK_BG = '#e9ecef';
+
+	/**
+	 * Compose the `<span>`.
+	 *
+	 * @param string $base_class    Family CSS class.
+	 * @param string $variant_class Variant CSS class, or empty.
+	 * @param string $label         Localized label.
+	 * @param string $tooltip       Optional tooltip.
+	 * @param string $style         Already-safe `style` content, or empty.
+	 * @return string Already-escaped HTML.
+	 */
+	private static function span( string $base_class, string $variant_class, string $label, string $tooltip, string $style ): string {
 		$has_tip = '' !== $tooltip;
-		$cursor  = $has_tip ? 'help' : 'default';
-		$title   = $has_tip ? ' title="' . esc_attr( $tooltip ) . '"' : '';
 		$classes = implode(
 			' ',
 			array_filter(
-				array( self::BASE_CLASS, $base_class, $variant_class ),
+				array( self::BASE_CLASS, $base_class, $variant_class, $has_tip ? self::TIP_CLASS : '' ),
 				static fn ( string $fragment ): bool => '' !== $fragment
 			)
 		);
+
 		return sprintf(
-			'<span class="%1$s"%2$s style="background:%3$s;color:%4$s;cursor:%5$s;">%6$s</span>',
+			'<span class="%1$s"%2$s%3$s>%4$s</span>',
 			esc_attr( $classes ),
-			$title,
-			esc_attr( $bg ),
-			esc_attr( ContrastColor::on( $bg ) ),
-			esc_attr( $cursor ),
+			$has_tip ? ' title="' . esc_attr( $tooltip ) . '"' : '',
+			'' !== $style ? ' style="' . esc_attr( $style ) . '"' : '',
 			esc_html( $label )
 		);
 	}

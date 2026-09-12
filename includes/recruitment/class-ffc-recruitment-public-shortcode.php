@@ -247,6 +247,12 @@ final class RecruitmentPublicShortcode {
 			array( 'ffc-common' ),
 			$ver
 		);
+
+		// As cores dos selos são hex que o operador escolhe, então nenhuma
+		// folha estática pode conhecê-las. Elas vêm daqui como regras geradas,
+		// impressas DEPOIS do arquivo deste handle -- que é o que faz a escolha
+		// dele vencer sem truque de especificidade (#1193).
+		RecruitmentBadgePalette::attach( 'ffc-recruitment-public' );
 	}
 
 	/**

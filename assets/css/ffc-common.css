@@ -142,6 +142,17 @@
     /* Semantic Tokens - Surfaces */
     --ffc-bg: #ffffff;
     --ffc-bg-alt: #f6f7f7;
+
+    /* Par do selo cuja cor vem de uma LINHA do banco (#1193). Declarado aqui
+       porque uma propriedade personalizada que nada declara invalida a
+       declaração inteira (#1126 defeito 2) -- o valor real chega no `style=`
+       do elemento e sobrescreve este, que é o neutro de quando não chega.
+
+       Aponta para os tokens neutros em vez de repetir o hex deles: uma
+       propriedade personalizada resolve no PONTO DE USO, então o par acompanha
+       o tema escuro sem precisar de uma segunda declaração lá. */
+    --ffc-badge-row-bg: var(--ffc-bg-alt);
+    --ffc-badge-row-text: var(--ffc-text);
     --ffc-bg-card: #ffffff;
     --ffc-bg-input: #ffffff;
     --ffc-bg-overlay: rgba(0, 0, 0, 0.5);
@@ -964,6 +975,33 @@
     border-radius: var(--ffc-radius-pill);
     font-size: var(--ffc-font-size-xs);
     font-weight: 500;
+    /* O literal inline escrevia `cursor:default` em TODO selo, com dica ou sem.
+       Sem esta linha o cursor volta ao `auto` do agente de usuário, que sobre
+       texto é o I-beam -- movimento visível em 50 medições. Fica preservado
+       porque o #1193 muda o ENDEREÇO da declaração, não a decisão; se um selo
+       deve ou não parecer texto selecionável é pergunta com argumento próprio,
+       e não se responde de carona numa mudança que promete zero movimento. */
+    cursor: default;
+}
+
+/* Selo com dica: era `cursor:help` inline. Ter ou não `title` é propriedade do
+   markup, então é classe -- e a folha decide o que isso parece. */
+.ffc-pill-has-tip {
+    cursor: help;
+}
+
+/* Selo cuja cor vem de uma LINHA do banco, não de um status: o número de
+   valores numa página é o número de linhas nela, então a regra fica aqui e só
+   o valor viaja no atributo, como propriedade personalizada que o
+   `Core\BadgeHtml::render_with_row_color()` escreve (#1193).
+
+   As duas propriedades são declaradas no `:root` com um par neutro, e não como
+   reserva dentro do `var()`: uma propriedade que nada declara invalida a
+   declaração INTEIRA (#1126 defeito 2), e um par declarado é o que permite às
+   guardas medirem o contraste dele como medem o de qualquer outro. */
+.ffc-pill-row-color {
+    background: var(--ffc-badge-row-bg);
+    color: var(--ffc-badge-row-text);
 }
 
 /* ==========================================================================
@@ -1314,6 +1352,9 @@
     .ffc-features-badge--error,
     .ffc-features-badge--saved,
     .ffc-features-badge--saving,
+    /* O selo de cor por linha pinta fundo e nada mais; no modo forçado o
+       sistema descarta esse fundo e sobra texto solto (#1193). */
+    .ffc-pill-row-color,
     .ffc-status-pending {
         border: 1px solid CanvasText;
     }

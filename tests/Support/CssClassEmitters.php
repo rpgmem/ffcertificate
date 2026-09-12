@@ -384,7 +384,12 @@ final class CssClassEmitters {
 	 *
 	 * O sinal é a palavra `class` em qualquer das suas formas de uso —
 	 * o atributo, `classList`, `addClass`, `className`, ou uma variável
-	 * batizada `rowClass`. A janela é generosa (240 caracteres para cada lado)
+	 * batizada `rowClass` — mais o nome de um AJUDANTE que recebe classes como
+	 * argumentos posicionais. `BadgeHtml::render( 'ffc-recruitment-subscription-badge', … )`
+	 * não tem a palavra `class` em lugar nenhum da chamada: ela está no nome do
+	 * PARÂMETRO, que fica na definição e não no site. Duas classes ficaram sem
+	 * emissor achável assim, e só apareceram quando o #1193 passou a declará-las
+	 * numa folha — antes disso ninguém as procurava. A janela é generosa (240 caracteres para cada lado)
 	 * porque o objetivo aqui é **não perder site**, não ser exato: quem lê a
 	 * saída é uma pessoa prestes a renomear, e um falso positivo custa uma
 	 * olhada enquanto um falso negativo custa um estilo que some.
@@ -395,7 +400,7 @@ final class CssClassEmitters {
 	private static function near_class_context( string $src ): array {
 		$out = array();
 
-		if ( ! preg_match_all( '/[A-Za-z]*(?:class(?:List|Name)?|cls)[A-Za-z]*/i', $src, $m, PREG_OFFSET_CAPTURE ) ) {
+		if ( ! preg_match_all( '/[A-Za-z]*(?:class(?:List|Name)?|cls)[A-Za-z]*|BadgeHtml/i', $src, $m, PREG_OFFSET_CAPTURE ) ) {
 			return $out;
 		}
 

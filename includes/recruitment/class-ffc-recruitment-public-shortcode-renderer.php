@@ -495,9 +495,8 @@ final class RecruitmentPublicShortcodeRenderer {
 			? $color_raw
 			: RecruitmentAdjutancyReader::DEFAULT_COLOR;
 		$name      = $adjutancy->name ?? '';
-		return BadgeHtml::render(
+		return BadgeHtml::render_with_row_color(
 			'ffc-recruitment-adjutancy-badge',
-			'',
 			$color,
 			is_string( $name ) ? $name : ''
 		);
@@ -514,15 +513,10 @@ final class RecruitmentPublicShortcodeRenderer {
 	 * @return string Already-escaped HTML.
 	 */
 	public static function render_subscription_badge( bool $is_pcd ): string {
-		$settings = RecruitmentSettings::all();
-		$bg       = $is_pcd
-			? (string) $settings['subscription_color_pcd']
-			: (string) $settings['subscription_color_geral'];
-		$label    = $is_pcd ? __( 'PCD', 'ffcertificate' ) : __( 'GERAL', 'ffcertificate' );
+		$label = $is_pcd ? __( 'PCD', 'ffcertificate' ) : __( 'GERAL', 'ffcertificate' );
 		return BadgeHtml::render(
 			'ffc-recruitment-subscription-badge',
 			'ffc-recruitment-subscription-' . ( $is_pcd ? 'pcd' : 'geral' ),
-			$bg,
 			$label
 		);
 	}
@@ -544,18 +538,9 @@ final class RecruitmentPublicShortcodeRenderer {
 	 * @return string Already-escaped HTML.
 	 */
 	private static function render_preview_status_badge( string $status, string $reason_label = '' ): string {
-		$settings = RecruitmentSettings::all();
-		$colors   = array(
-			'empty'          => (string) $settings['preview_color_empty'],
-			'denied'         => (string) $settings['preview_color_denied'],
-			'granted'        => (string) $settings['preview_color_granted'],
-			'appeal_denied'  => (string) $settings['preview_color_appeal_denied'],
-			'appeal_granted' => (string) $settings['preview_color_appeal_granted'],
-		);
 		return BadgeHtml::render(
 			'ffc-recruitment-preview-status-badge',
 			'ffc-recruitment-preview-status-' . $status,
-			$colors[ $status ] ?? '#e9ecef',
 			self::preview_status_label( $status ),
 			$reason_label
 		);
@@ -605,19 +590,9 @@ final class RecruitmentPublicShortcodeRenderer {
 	 * @return string Already-escaped HTML.
 	 */
 	private static function render_status_badge( string $status ): string {
-		$settings = RecruitmentSettings::all();
-		$colors   = array(
-			'empty'     => (string) $settings['status_color_empty'],
-			'called'    => (string) $settings['status_color_called'],
-			'accepted'  => (string) $settings['status_color_called'],
-			'hired'     => (string) $settings['status_color_hired'],
-			'not_shown' => (string) $settings['status_color_not_shown'],
-			'withdrew'  => (string) $settings['status_color_withdrew'],
-		);
 		return BadgeHtml::render(
 			'ffc-recruitment-status-badge',
 			'ffc-recruitment-status-' . $status,
-			$colors[ $status ] ?? '#e9ecef',
 			self::status_label( $status )
 		);
 	}
