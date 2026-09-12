@@ -669,3 +669,10 @@
         border: 1px solid CanvasText;
     }
 }
+
+/* Valor hexadecimal ao lado do seletor de cor, na aba de público-alvo. Estava
+   num `style="color:#666"` inline no PHP (#1126). */
+.ffc-color-value {
+    margin-left: var(--ffc-spacing-sm);
+    color: var(--ffc-text-muted);
+}

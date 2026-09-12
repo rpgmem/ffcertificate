@@ -404,6 +404,15 @@
     align-items: center;
 }
 
+/**
+ * Template loader controls
+ */
+.ffc-template-loader {
+    display: flex;
+    gap: var(--ffc-spacing-5);
+    align-items: center;
+}
+
 .ffc-action-group .button,
 .ffc-template-loader .button {
     display: inline-flex;
@@ -1142,4 +1151,53 @@ p.ffc-datetime-order-error {
     .ffc-status-pill--warning {
         border: 1px solid CanvasText;
     }
+}
+
+/* ==========================================================================
+   PRE-FLIGHT STATS METABOX (#361, movido da gaveta de utilitários em #1171)
+   ========================================================================== */
+
+/* 6.6.4 follow-up (#361 Sprint 3) — pre-flight stats badges in the
+   form-editor sidebar metabox. */
+.ffc-preflight-stats-badges {
+    margin: 0 0 var(--ffc-spacing-md) 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-xs);
+}
+
+.ffc-preflight-badge {
+    background: var(--ffc-bg-alt);
+    border-radius: var(--ffc-radius-sm);
+    border-left: 3px solid var(--ffc-primary);
+    padding: 0;
+}
+
+.ffc-preflight-badge a {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+    text-decoration: none;
+    color: var(--ffc-text);
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-preflight-badge a:hover,
+.ffc-preflight-badge a:focus {
+    background: var(--ffc-primary-light);
+}
+
+.ffc-preflight-badge-icon {
+    font-size: var(--ffc-font-size-lg);
+    line-height: 1;
+}
+
+.ffc-preflight-badge strong {
+    font-size: var(--ffc-font-size-lg);
+    color: var(--ffc-primary);
+    min-width: 2ch;
+    text-align: right;
 }
