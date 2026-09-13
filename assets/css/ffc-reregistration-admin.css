@@ -112,25 +112,31 @@
 }
 
 /* ── Table tweaks ────────────────────────────── */
-.column-status,
-.column-auto {
+.ffc-page-reregistration .column-status,
+.ffc-page-custom-fields .column-status,
+.ffc-page-reregistration .column-auto,
+.ffc-page-custom-fields .column-auto {
     width: 100px;
 }
 
-.column-submissions {
+.ffc-page-reregistration .column-submissions,
+.ffc-page-custom-fields .column-submissions {
     width: 110px;
 }
 
-.column-period {
+.ffc-page-reregistration .column-period,
+.ffc-page-custom-fields .column-period {
     width: 200px;
 }
 
-.column-actions {
+.ffc-page-reregistration .column-actions,
+.ffc-page-custom-fields .column-actions {
     width: 200px;
 }
 
 /* ── Custom Fields table columns ─────────────── */
-.column-fields {
+.ffc-page-reregistration .column-fields,
+.ffc-page-custom-fields .column-fields {
     width: 120px;
 }
 

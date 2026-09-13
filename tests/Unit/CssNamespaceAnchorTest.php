@@ -81,70 +81,14 @@ class CssNamespaceAnchorTest extends TestCase {
 	 * @var array<string, array<string, int>>
 	 */
 	private const BASELINE = array(
-		// `.card` e `code` alcançam a página inteira das Configurações -- e
-		// esta folha também carrega nas telas de recrutamento.
-		'ffc-admin-settings.css' => array(
-			'.card'    => 3,
-			'code'     => 1,
-			'pre code' => 1,
-		),
-		// `.button` é do WordPress. `.button::before` põe um dashicon em TODO
-		// botão da tela de submissões, inclusive os que o core desenha.
-		'ffc-admin-submissions.css' => array(
-			'.button::before'                         => 1,
-			'.button:focus'                           => 1,
-			'.button[href*="action=edit"]::before'    => 1,
-			'.button[href*="action=restore"]::before' => 1,
-			'.button[href*="action=trash"]::before'   => 1,
-			'.button[title*="PDF"]::before'           => 1,
-			'.button[title]'                          => 1,
-			'.button[title]:hover::after'             => 2,
-			'.button[title]:hover::before'            => 1,
-		),
-		// `.form-table` e `.tablenav` são do core; esta folha carrega em todas
-		// as telas do admin (`AdminUserColumns` a enfileira sem condição).
-		'ffc-admin.css' => array(
-			'.form-table .description strong'        => 1,
-			'.form-table td a[href*="token="]'       => 1,
-			'.form-table td a[href*="token="]:hover' => 1,
-			'.tablenav'                              => 1,
-			'.tablenav .actions'                     => 1,
-		),
-		// `.column-<slug>` é como se estiliza uma list table do WordPress --
-		// o que falta é a âncora de página, não o prefixo. `.status-active` e
-		// `.status-cancelled`, porém, são nome publicado por nós (emitidos em
-		// `AudienceAdminBookings` e `ffc-audience-admin.js`): renomeação, do
-		// tipo que a #1151 fez nas duas famílias de badge de estado.
-		'ffc-audience-admin.css' => array(
-			'.column-actions'                  => 1,
-			'.column-calendar'                 => 1,
-			'.column-color'                    => 2,
-			'.column-environments'             => 2,
-			'.column-members'                  => 2,
-			'.column-status'                   => 1,
-			'.column-visibility'               => 2,
-			'.tablenav.top'                    => 1,
-			'.tablenav.top input[type="date"]' => 1,
-			'.tablenav.top select'             => 1,
-		),
-		'ffc-calendar-editor.css' => array(
-			'.form-table .description'            => 1,
-			'.form-table td input[type="number"]' => 2,
-			'.form-table td input[type="text"]'   => 2,
-			'.form-table td textarea'             => 1,
-			'.form-table th'                      => 2,
-		),
-		'ffc-reregistration-admin.css' => array(
-			'.column-actions'     => 1,
-			'.column-auto'        => 1,
-			'.column-fields'      => 1,
-			'.column-period'      => 1,
-			'.column-status'      => 1,
-			'.column-submissions' => 1,
-		),
 		// Os seis ids que `DashboardShortcode` publica sem prefixo. Um id é
 		// único no documento: um tema com `#tab-profile` não repinta -- quebra
 		// `getElementById`, o `aria-controls` das abas e a delegação de evento.
+		//
+		// Únicos sobreviventes depois da #1184: aqui a correção NÃO é âncora,
+		// é renomear o id -- e isso é PHP, JS e `aria-controls` juntos, uma
+		// unidade própria. Ancorar num contêiner deixaria o id genérico no
+		// documento, que é justamente o risco.
 		'ffc-user-dashboard.css' => array(
 			'#tab-appointments h3'    => 1,
 			'#tab-audience h3'        => 1,

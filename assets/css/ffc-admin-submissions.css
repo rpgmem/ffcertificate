@@ -120,18 +120,18 @@
    EMOJI ICONS - MODERN STYLE
    ========================================================================== */
 
-.button[title*="PDF"]::before {
+.ffc-page-submissions .button[title*="PDF"]::before {
     display: inline-block;
     content: "📄 ";
     margin-right: var(--ffc-spacing-2xs);
 }
 
-.button[href*="action=edit"]::before {
+.ffc-page-submissions .button[href*="action=edit"]::before {
     content: "✏️ ";
     margin-right: var(--ffc-spacing-2xs);
 }
 
-.button[href*="action=trash"]::before {
+.ffc-page-submissions .button[href*="action=trash"]::before {
     content: "🗑️ ";
     margin-right: var(--ffc-spacing-2xs);
 }
@@ -141,7 +141,7 @@
     margin-right: var(--ffc-spacing-2xs);
 }
 
-.button[href*="action=restore"]::before {
+.ffc-page-submissions .button[href*="action=restore"]::before {
     content: "↩️ ";
     margin-right: var(--ffc-spacing-2xs);
 }
@@ -188,7 +188,7 @@
         padding: var(--ffc-spacing-md);
     }
     
-    .button::before {
+    .ffc-page-submissions .button::before {
         margin-right: var(--ffc-spacing-xs);
     }
 }
@@ -357,11 +357,11 @@
    HOVER TOOLTIPS
    ========================================================================== */
 
-.button[title] {
+.ffc-admin-page .button[title] {
     position: relative;
 }
 
-.button[title]:hover::after {
+.ffc-admin-page .button[title]:hover::after {
     content: attr(title);
     position: absolute;
     bottom: 100%;
@@ -393,8 +393,8 @@
 
 /* Hide tooltip on mobile */
 @media screen and (max-width: 782px) {
-    .button[title]:hover::after,
-    .button[title]:hover::before {
+    .ffc-admin-page .button[title]:hover::after,
+    .ffc-admin-page .button[title]:hover::before {
         display: none;
     }
 }
@@ -414,7 +414,7 @@
    ACCESSIBILITY
    ========================================================================== */
 
-.button:focus {
+.ffc-admin-page .button:focus {
     outline: 2px solid var(--ffc-primary);
     outline-offset: 2px;
 }

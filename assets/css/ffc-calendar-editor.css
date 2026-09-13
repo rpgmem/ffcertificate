@@ -42,22 +42,22 @@
 }
 
 /* Form Table Styles */
-.form-table th {
+.post-type-ffc_self_scheduling .form-table th {
     width: 200px;
 }
 
-.form-table td input[type="number"],
-.form-table td input[type="text"] {
+.post-type-ffc_self_scheduling .form-table td input[type="number"],
+.post-type-ffc_self_scheduling .form-table td input[type="text"] {
     width: 100px;
 }
 
-.form-table td textarea {
+.post-type-ffc_self_scheduling .form-table td textarea {
     width: 100%;
     max-width: 500px;
     height: 100px;
 }
 
-.form-table .description {
+.post-type-ffc_self_scheduling .form-table .description {
     margin-top: var(--ffc-spacing-2xs);
     font-style: italic;
     color: var(--ffc-text-muted);
@@ -148,12 +148,12 @@
         max-width: 100%;
     }
 
-    .form-table th {
+    .post-type-ffc_self_scheduling .form-table th {
         width: auto;
     }
 
-    .form-table td input[type="number"],
-    .form-table td input[type="text"] {
+    .post-type-ffc_self_scheduling .form-table td input[type="number"],
+    .post-type-ffc_self_scheduling .form-table td input[type="text"] {
         width: 100%;
     }
 }
