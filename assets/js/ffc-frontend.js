@@ -231,7 +231,7 @@
      * Show verification error — uses the same .ffc-certificate-preview
      * card structure as the success path so the visual identity stays
      * consistent across success / error states (6.7.4). The red-gradient
-     * header + the .ffc-status-badge.error pill live in CSS so the
+     * header + the .ffc-status-badge-error pill live in CSS so the
      * markup here is just structural.
      */
     function showVerificationError(message, $container) {
