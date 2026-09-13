@@ -168,7 +168,7 @@ class AdminActivityLogPage {
 		if ( file_exists( $view_file ) ) {
 			include $view_file;
 		} else {
-			echo '<div class="wrap"><h1>' . esc_html__( 'Activity Log', 'ffcertificate' ) . '</h1>';
+			echo '<div class="ffc-settings-wrap"><h2 class="wp-heading-inline">' . esc_html__( 'Activity Log', 'ffcertificate' ) . '</h2>';
 			wp_admin_notice(
 				esc_html__( 'View file not found.', 'ffcertificate' ),
 				array( 'type' => 'error' )

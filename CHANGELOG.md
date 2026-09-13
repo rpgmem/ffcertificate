@@ -9,10 +9,12 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Removed
 
+- **Seis seletores `.ffc-settings-page` que já eram alcançados** (#1202): cada um tinha um irmão `.ffc-settings-wrap` na mesma regra, e o div que carrega a classe é descendente daquele — então a regra já valia. Removidos; medido por render, zero divergência em 14.940 pares.
 - **Duas regras de `.tablenav` que não pintavam nada** (#1202): `clear: both` declarava exatamente o que o WordPress já declara em `wp-list-tables.css`, e `overflow: visible` é o valor inicial que nenhuma folha do admin — nem do core nem nossa — contradiz. Removidas; medido por render, zero divergência em 22.908 pares de elemento × propriedade.
 
 ### Fixed
 
+- **A aba de Acesso de Usuário saía 2px indentada e 22px mais estreita que as outras** (#1202): ela abria um `div.wrap` dentro do `.wrap` da tela de Configurações, e a margem horizontal do `.wrap` do core contava duas vezes. O div interno perde o `wrap`; a aba passa a alinhar exatamente com as irmãs. O fallback de view ausente do Log de Atividades, que também aninhava, passa a espelhar a view real da aba.
 - **Os seis painéis do painel do usuário publicavam ids sem prefixo** (#1202): `#tab-profile` e irmãos são únicos no documento, então um tema que use o mesmo id não repinta — quebra `getElementById`, o `aria-controls` das abas e a delegação de evento. Passam a `ffc-tabpanel-<slug>`, a convenção que o editor de formulário já usava. A catraca de âncora de namespace chega a zero.
 - **O painel do usuário não carregava nada até o visitante clicar numa aba** (#1170): a renomeação de `active` para `is-active` alcançou o PHP, o CSS e a troca de aba, mas não os dois sítios que leem `$('.ffc-tab.active')` — então `loadInitialTab()` procurava um painel de chave `undefined`, e o botão de tamanho de página ficou inerte. A fixture dos testes ainda usava a classe antiga, e era ela que segurava os dois casos verdes.
 - **O convite de recadastramento reconvidava quem já tinha recebido, e nunca alcançava quem entrou depois** (#1190): ele perguntava por `status = 'pending'` e tratava isso como "precisa de convite" — uma aproximação que erra nos dois sentidos. Agora existe `invited_at` por submissão, o envio é idempotente, e um botão na tela da campanha permite convidar sob demanda. Estender o prazo (só para frente) reabre o convite para quem não finalizou, incluindo quem foi recusado.
