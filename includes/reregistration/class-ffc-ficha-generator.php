@@ -76,6 +76,30 @@ class FichaGenerator {
 			$submitted_at = \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $submission->submitted_at, 'pdf' );
 		}
 
+		// Código de autenticação do rodapé (#1211).
+		//
+		// SÓ em submissão APROVADA, e isso é deliberado: o `auth_code` nasce
+		// na transição de status, então `draft` e `submitted` não têm nenhum.
+		// O `FichaGenerator` já lida com essa ausência no nome do arquivo,
+		// caindo num `S{id}` -- mas aquele fallback existe para manter o
+		// arquivo único, e imprimi-lo aqui faria `S12` passar por código de
+		// autenticação, que é pior que não ter linha nenhuma.
+		//
+		// `auth_code` é o dado (vazio quando não há), e `auth_code_line` é o
+		// trecho inteiro que o template padrão usa. Os dois existem porque o
+		// template é só substituição de `{{chave}}`, sem condicional: sem a
+		// linha pré-composta, um rascunho renderizaria "Autenticação:  /".
+		$auth_code      = '';
+		$auth_code_line = '';
+		if ( 'approved' === $submission->status && ! empty( $submission->auth_code ) ) {
+			$auth_code = \FreeFormCertificate\Core\DocumentFormatter::format_auth_code(
+				(string) $submission->auth_code,
+				\FreeFormCertificate\Core\DocumentFormatter::PREFIX_REREGISTRATION
+			);
+			/* translators: %s: formatted authentication code, e.g. R-MA6D-E5LH-PFTC. */
+			$auth_code_line = sprintf( __( 'Authentication: %s /', 'ffcertificate' ), $auth_code ) . ' ';
+		}
+
 		// Check if user has acúmulo de cargos.
 		$acumulo_value = $decrypted_values['acumulo_cargos'] ?? __( 'I do not hold', 'ffcertificate' );
 		$has_acumulo   = __( 'I hold', 'ffcertificate' ) === $acumulo_value;
@@ -98,6 +122,8 @@ class FichaGenerator {
 			'audience_name'        => $rereg->audience_name ?? '',
 			'submission_status'    => $status_labels[ $submission->status ] ?? $submission->status,
 			'submitted_at'         => $submitted_at,
+			'auth_code'            => $auth_code,
+			'auth_code_line'       => $auth_code_line,
 			'email'                => $user->user_email,
 			'site_name'            => get_bloginfo( 'name' ),
 			'reference_year'       => $reference_year,

@@ -21204,3 +21204,8 @@ msgstr "✅ Cache aquecido! %d formulário(s) pré-carregados."
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:479
 msgid "✓ authoritative"
 msgstr "✓ com autoridade"
+
+#. translators: %s: formatted authentication code, e.g. R-MA6D-E5LH-PFTC.
+#: includes/reregistration/class-ffc-ficha-generator.php
+msgid "Authentication: %s /"
+msgstr "Autenticação: %s /"

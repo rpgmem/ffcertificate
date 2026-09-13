@@ -686,6 +686,142 @@ class FichaGeneratorTest extends TestCase {
 	}
 
 	/**
+	 * Aprovada: o rodapé carrega o código no formato do plugin.
+	 *
+	 * Cobra o VALOR composto, não a presença da chave: `format_auth_code`
+	 * hifeniza um código de 12 caracteres em grupos de 4 e prefixa com `R-`,
+	 * que é o formato do e-mail de convite e do certificado. As variáveis são
+	 * lidas pelo filtro `ffcertificate_ficha_data`, que as expõe exatamente
+	 * como o template vai recebê-las.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_generate_ficha_data_composes_the_auth_code_line_when_approved(): void {
+		$captured = $this->runFichaWithStatus('approved', 'MA6DE5LHPFTC');
+
+		$this->assertSame('R-MA6D-E5LH-PFTC', $captured['auth_code']);
+		$this->assertSame('Authentication: R-MA6D-E5LH-PFTC / ', $captured['auth_code_line']);
+	}
+
+	/**
+	 * Não aprovada: nenhuma linha de autenticação.
+	 *
+	 * O `auth_code` nasce na transição de status, então `submitted` e `draft`
+	 * não têm código. A linha inteira tem de sair VAZIA -- se saísse só o
+	 * código vazio, o template padrão renderizaria "Autenticação:  /".
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_generate_ficha_data_omits_the_auth_code_line_when_not_approved(): void {
+		$captured = $this->runFichaWithStatus('submitted', 'MA6DE5LHPFTC');
+
+		$this->assertSame('', $captured['auth_code'], 'Submissão não aprovada não publica código.');
+		$this->assertSame('', $captured['auth_code_line'], 'Sem código, sem trecho -- nada de "Autenticação:  /".');
+	}
+
+	/**
+	 * O template padrão realmente consome o marcador, antes de "Preenchido em".
+	 *
+	 * A metade de cima prova a composição; esta prova a FIAÇÃO. Sem ela, as
+	 * duas primeiras passariam com o template ignorando a variável.
+	 *
+	 * @return void
+	 */
+	public function test_the_default_ficha_template_prints_the_auth_code_line(): void {
+		$template = (string) file_get_contents(
+			dirname(__DIR__, 2) . '/templates/documents/default_ficha_template.html'
+		);
+
+		$this->assertStringContainsString('{{auth_code_line}}', $template);
+		$this->assertMatchesRegularExpression(
+			'/\{\{auth_code_line\}\}\s*Preenchido em: \{\{submitted_at\}\}/',
+			$template,
+			'O trecho tem de vir imediatamente antes de "Preenchido em".'
+		);
+	}
+
+	/**
+	 * Roda `generate_ficha_data` capturando as variáveis do template.
+	 *
+	 * @param string $status    Status da submissão.
+	 * @param string $auth_code Código bruto gravado na linha.
+	 * @return array<string, mixed> Variáveis entregues ao template.
+	 */
+	private function runFichaWithStatus(string $status, string $auth_code): array {
+		Functions\when('__')->returnArg();
+		Functions\when('esc_html__')->returnArg();
+		Functions\when('esc_html')->returnArg();
+		Functions\when('esc_attr')->returnArg();
+		Functions\when('_x')->returnArg();
+		Functions\when('wp_kses')->alias(function ($v) { return $v; });
+		Functions\when('wp_kses_post')->returnArg();
+		Functions\when('get_bloginfo')->justReturn('My Site');
+		Functions\when('get_home_url')->justReturn('https://example.test');
+		Functions\when('untrailingslashit')->alias(function ($u) { return rtrim($u, '/'); });
+		Functions\when('sanitize_file_name')->alias(function ($n) {
+			return preg_replace('/[^a-zA-Z0-9_\-.]/', '_', $n);
+		});
+
+		$captured = array();
+		Functions\when('apply_filters')->alias(function ($tag, $value) use (&$captured) {
+			if ('ffcertificate_ficha_template_file' === $tag) {
+				return '/tmp/ffc-nonexistent-template.html';
+			}
+			if ('ffcertificate_ficha_data' === $tag) {
+				$captured = $value;
+			}
+			return $value;
+		});
+
+		$submission = (object) array(
+			'id'                => 42,
+			'reregistration_id' => 9,
+			'user_id'           => 7,
+			'data'              => json_encode(array('fields' => array('display_name' => 'João'))),
+			'status'            => $status,
+			'submitted_at'      => 1700000000,
+			'auth_code'         => $auth_code,
+		);
+		$rereg = (object) array(
+			'id'            => 9,
+			'title'         => 'Recadastramento 2026',
+			'audience_name' => 'Servidores',
+			'start_date'    => '2026-02-15 00:00:00',
+		);
+
+		$sr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader');
+		$sr->shouldReceive('get_by_id')->andReturn($submission);
+		$sr->shouldReceive('get_status_labels')->andReturn(array('approved' => 'Approved', 'submitted' => 'Submitted'));
+
+		$rr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationRepository');
+		$rr->shouldReceive('get_by_id')->andReturn($rereg);
+		$rr->shouldReceive('get_audience_ids')->andReturn(array(1));
+
+		$cfr = Mockery::mock('overload:FreeFormCertificate\Reregistration\CustomFieldReader');
+		$cfr->shouldReceive('get_by_audience_with_parents')->andReturn(array(
+			(object) array('id' => 100, 'field_key' => 'display_name', 'field_label' => 'Name', 'field_type' => 'text', 'field_source' => 'standard', 'is_sensitive' => 0),
+		));
+
+		$df = Mockery::mock('overload:FreeFormCertificate\Core\DateFormatter');
+		$df->shouldReceive('format_datetime')->andReturn('2023-11-14 22:13');
+
+		$fh = Mockery::mock('overload:FreeFormCertificate\Core\FilenameHelper');
+		$fh->shouldReceive('build_pdf_filename')->andReturn('ficha.pdf');
+
+		Functions\when('get_userdata')->justReturn((object) array(
+			'ID'           => 7,
+			'display_name' => 'João Silva',
+			'user_email'   => 'joao@example.test',
+		));
+
+		FichaGenerator::generate_ficha_data(42);
+
+		return $captured;
+	}
+
+	/**
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
