@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Removed
+
+- **Duas regras de `.tablenav` que não pintavam nada** (#1202): `clear: both` declarava exatamente o que o WordPress já declara em `wp-list-tables.css`, e `overflow: visible` é o valor inicial que nenhuma folha do admin — nem do core nem nossa — contradiz. Removidas; medido por render, zero divergência em 22.908 pares de elemento × propriedade.
+
 ### Fixed
 
 - **Os seis painéis do painel do usuário publicavam ids sem prefixo** (#1202): `#tab-profile` e irmãos são únicos no documento, então um tema que use o mesmo id não repinta — quebra `getElementById`, o `aria-controls` das abas e a delegação de evento. Passam a `ffc-tabpanel-<slug>`, a convenção que o editor de formulário já usava. A catraca de âncora de namespace chega a zero.
