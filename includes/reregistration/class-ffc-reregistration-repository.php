@@ -430,7 +430,10 @@ class ReregistrationRepository {
 			return false;
 		}
 
-		if ( isset( $update_data['end_date'] ) && self::is_deadline_extension( $id, (string) $update_data['end_date'] ) ) {
+		// `ArrayValue::string()` e não um cast: no nível 9 o valor é `mixed`, e
+		// converter `mixed` para string é justamente o que a guarda de formas de
+		// linha recusa. É o mesmo ajudante que o laço acima usa para `title`.
+		if ( isset( $update_data['end_date'] ) && self::is_deadline_extension( $id, ArrayValue::string( $update_data, 'end_date' ) ) ) {
 			$update_data['deadline_extended_at'] = time();
 			$format[]                            = '%d';
 		}

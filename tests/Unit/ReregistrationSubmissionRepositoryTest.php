@@ -1399,4 +1399,15 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$this->assertSame(0, ReregistrationSubmissionWriter::mark_invited(array()));
 	}
 
+	/**
+	 * `prepare()` returns `string|null`, and `query()` only takes a string. A
+	 * null must stop before the query rather than be cast to an empty one.
+	 */
+	public function test_mark_invited_stops_when_prepare_fails(): void {
+		$this->wpdb->shouldReceive('prepare')->andReturn(null);
+		$this->wpdb->shouldNotReceive('query');
+
+		$this->assertSame(0, ReregistrationSubmissionWriter::mark_invited(array(101)));
+	}
+
 }

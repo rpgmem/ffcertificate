@@ -356,14 +356,21 @@ class ReregistrationSubmissionWriter {
 		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- O `{$placeholders}` é `%d` repetido por `array_fill()` acima, não dado de requisição; todo valor passa por `prepare()`.
-		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- O sniff conta os `%s` do literal e não sabe que `prepare()` aceita um array único de argumentos, que é como a tabela e os ids chegam.
-		$result = $wpdb->query(
-			$wpdb->prepare(
-				"UPDATE %i SET invited_at = %d WHERE id IN ({$placeholders})",
-				array_merge( array( self::get_table_name(), time() ), $ids )
-			)
+		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- A consulta é a saída de `prepare()` guardada numa variável, que é como `ReregistrationRepository::expire_overdue()` faz pelo mesmo motivo: o retorno precisa ser testado antes de ir para `query()`.
+		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- O sniff conta os marcadores do literal e não sabe que `prepare()` aceita um array único de argumentos, que é como a tabela e os ids chegam.
+		$sql = $wpdb->prepare(
+			"UPDATE %i SET invited_at = %d WHERE id IN ({$placeholders})",
+			array_merge( array( self::get_table_name(), time() ), $ids )
 		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		// `prepare()` devolve `string|null`, e `query()` só aceita string -- o
+		// mesmo guarda que `expire_overdue()` usa pela mesma razão.
+		if ( ! is_string( $sql ) ) {
+			return 0;
+		}
+
+		$result = $wpdb->query( $sql );
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 		// Same invalidation the other mutators do: one key per row. There is no
 		// group flush on the trait, and inventing one here would be a second
