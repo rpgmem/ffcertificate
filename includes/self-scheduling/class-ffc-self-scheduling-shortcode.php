@@ -124,7 +124,7 @@ class SelfSchedulingShortcode {
 		// PDF Libraries for auto-download receipt on booking.
 		wp_enqueue_script(
 			'html2canvas',
-			FFC_PLUGIN_URL . 'libs/js/html2canvas.min.js',
+			FFC_PLUGIN_URL . 'libs/js/html2canvas-' . FFC_HTML2CANVAS_VERSION . '.min.js',
 			array(),
 			FFC_HTML2CANVAS_VERSION,
 			true
@@ -132,7 +132,7 @@ class SelfSchedulingShortcode {
 
 		wp_enqueue_script(
 			'jspdf',
-			FFC_PLUGIN_URL . 'libs/js/jspdf.umd.min.js',
+			FFC_PLUGIN_URL . 'libs/js/jspdf-' . FFC_JSPDF_VERSION . '.umd.min.js',
 			array(),
 			FFC_JSPDF_VERSION,
 			true
