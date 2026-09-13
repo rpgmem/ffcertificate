@@ -218,6 +218,67 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertStringContainsString( '11999999999', $html );
 	}
 
+	/**
+	 * Um rascunho devolvido tem de voltar LEGÍVEL, não como ciphertext.
+	 *
+	 * O valor sensível é gravado por `Encryption::encrypt` (ver
+	 * `ReregistrationDataProcessor`), então o que está no JSON da submissão é
+	 * ciphertext. O caminho do perfil já descriptografa; o do rascunho não
+	 * descriptografava, e o usuário via o blob no lugar do próprio CPF.
+	 *
+	 * O teste cobra o VALOR: o texto claro aparece e o ciphertext não. Uma
+	 * asserção de "renderizou sem erro" passaria com o defeito no lugar.
+	 *
+	 * @return void
+	 */
+	public function test_render_decrypts_a_sensitive_draft_value(): void {
+		$encryptionMock = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
+		$encryptionMock->shouldReceive( 'decrypt' )
+			->with( 'CIPHERTEXT-DO-CPF' )
+			->andReturn( '529.982.247-25' );
+		$encryptionMock->shouldReceive( 'decrypt' )->andReturn( null )->byDefault();
+
+		$this->mockRepositories( array(
+			$this->makeField( array(
+				'id'           => 1,
+				'field_key'    => 'cpf',
+				'field_label'  => 'CPF/CIN',
+				'field_type'   => 'text',
+				'field_group'  => 'personal',
+				'is_sensitive' => 1,
+			) ),
+			$this->makeField( array(
+				'id'          => 2,
+				'field_key'   => 'phone',
+				'field_label' => 'Home Phone',
+				'field_type'  => 'text',
+				'field_group' => 'contact',
+			) ),
+		) );
+
+		$rereg      = (object) array(
+			'id'       => 3,
+			'title'    => 'Devolvida para rascunho',
+			'end_date' => '2025-06-30 23:59:59',
+		);
+		$submission = (object) array(
+			'data' => json_encode(
+				array(
+					'fields' => array(
+						'cpf'   => 'CIPHERTEXT-DO-CPF',
+						'phone' => '11999999999',
+					),
+				)
+			),
+		);
+
+		$html = ReregistrationFormRenderer::render( $rereg, $submission, 10 );
+
+		$this->assertStringContainsString( '529.982.247-25', $html, 'O valor sensível tem de voltar em texto claro.' );
+		$this->assertStringNotContainsString( 'CIPHERTEXT-DO-CPF', $html, 'O ciphertext não pode chegar ao formulário.' );
+		$this->assertStringContainsString( '11999999999', $html, 'O campo não sensível segue intocado.' );
+	}
+
 	// ==================================================================
 	// render() — deadline is displayed
 	// ==================================================================

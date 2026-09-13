@@ -77,6 +77,21 @@ class ReregistrationFormRenderer {
 		$saved_data   = $submission->data ? json_decode( $submission->data, true ) : array();
 		$saved_values = is_array( $saved_data['fields'] ?? null ) ? $saved_data['fields'] : array();
 
+		// O rascunho guarda os campos sensíveis CRIPTOGRAFADOS -- é o que
+		// `ReregistrationDataProcessor` grava. Sem descriptografar aqui, uma
+		// submissão devolvida para rascunho voltava com o ciphertext dentro do
+		// input, e o usuário via o blob no lugar do próprio CPF.
+		//
+		// O caminho do perfil, logo abaixo, já fazia certo: passa
+		// `$sensitive_keys` para `UserManager::get_extended_profile()`. Só o
+		// degrau do rascunho não passava por aqui. O ajudante é o mesmo que o
+		// admin usa em `ReregistrationAjaxHandler`.
+		//
+		// Devolver em texto claro é correto porque quem lê é o TITULAR,
+		// autenticado, editando o próprio dado -- a regra de mascarar governa
+		// tela de terceiro olhando dado alheio. A gravação segue criptografada.
+		$saved_values = FichaGenerator::decrypt_field_values( $fields, $saved_values );
+
 		$values = self::build_field_values( $fields, $saved_values, $user_id, $user );
 
 		$end_ts   = strtotime( $rereg->end_date );
