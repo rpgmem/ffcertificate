@@ -75,7 +75,6 @@ final class ClassNamingIdiomTest extends TestCase {
 	 * folhas também — a entrada morta sai para travar o ganho.
 	 */
 	private const VENDOR_CLASSES = array(
-		'actions'          => 'célula de ações da list table do core (`.tablenav .actions`)',
 		'alternate'        => 'zebra de linha da list table do core',
 		'card'             => 'cartão do admin do core (about.php, cartões de plugin)',
 		'current'          => 'item corrente de paginação / subsubsub do core',
