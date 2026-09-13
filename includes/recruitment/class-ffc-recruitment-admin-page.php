@@ -279,7 +279,7 @@ final class RecruitmentAdminPage {
 			if ( ! $can_edit ) {
 				wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 			}
-			echo '<div class="wrap ffc-recruitment-admin">';
+			echo '<div class="wrap ffc-admin-page ffc-page-recruitment ffc-recruitment-admin">';
 			echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
 			$msg = RequestInput::get_get_key( 'ffc_msg' );
 			if ( '' !== $msg ) {
@@ -317,7 +317,7 @@ final class RecruitmentAdminPage {
 			$tab = 'notices';
 		}
 
-		echo '<div class="wrap ffc-recruitment-admin">';
+		echo '<div class="wrap ffc-admin-page ffc-page-recruitment ffc-recruitment-admin">';
 		echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
 
 		echo '<div class="ffc-settings-tabs" data-ffc-settings-tabs>';

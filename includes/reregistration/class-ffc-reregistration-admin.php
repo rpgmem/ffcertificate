@@ -260,7 +260,7 @@ class ReregistrationAdmin {
 
 		$can_edit = $this->can_edit();
 
-		echo '<div class="wrap">';
+		echo '<div class="wrap ffc-admin-page ffc-page-reregistration">';
 
 		switch ( $view ) {
 			case 'new':

@@ -47,7 +47,7 @@ class AudienceAdminCalendar {
 		$id     = RequestInput::get_get_int( 'id' );
 
 		?>
-		<div class="wrap">
+		<div class="wrap ffc-admin-page ffc-page-scheduling-calendars">
 			<?php
 			switch ( $action ) {
 				case 'new':

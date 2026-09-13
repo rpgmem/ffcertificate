@@ -37,6 +37,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Classe de escopo de página no `wrap` do admin** (#1184): os 23 `div.wrap` de tela que o plugin desenha, em 14 telas, passam a declarar `ffc-admin-page` mais a classe da própria tela, que é a âncora que faltava aos 41 seletores congelados pela catraca de namespace — `.tablenav`, `.column-*`, `.form-table`, `.button`, `code`, marcação do WordPress que não dá para prefixar. Uma guarda cobra a âncora na marcação e congela o mapa. Sem mudança de CSS: nada se move.
 - **Varredura de emissão de classe CSS** (#1170): renomear uma classe só é seguro quando se acha quem a emite, e um grep não acha — o nome costuma ser montado em runtime (`'ffc-dashboard-status-' + status`). A varredura conhece onze formas, cada uma achada por ter falhado antes.
 - **Guarda de idioma de nome de classe** (#1170): estado e variante eram ditos de três formas ao mesmo tempo. Agora a regra é por função — estado transitório fica `is-`/`has-`, variante e elemento levam `ffc-` — e a guarda recusa o terceiro idioma, com os nomes do WordPress e do CodeMirror listados com a razão.
 - **Raio e empilhamento passam a ler uma escala** (#1171): `border-radius` estava meio adotado (82 tokens contra 186 literais, e 71 desses eram exatamente o valor do token) e `z-index` não tinha escala nenhuma. 149 valores de raio e 16 de camada passaram a ler token, **sem mover um pixel**. Três classes utilitárias mortas removidas.

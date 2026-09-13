@@ -557,7 +557,7 @@ class Settings {
 		// viewable tab must land on an access notice, not an empty shell.
 		$visible_tabs = $this->visible_tabs();
 		if ( empty( $visible_tabs ) ) {
-			echo '<div class="wrap">';
+			echo '<div class="wrap ffc-admin-page ffc-page-settings">';
 			wp_admin_notice(
 				esc_html__( 'You do not have permission to view any settings.', 'ffcertificate' ),
 				array( 'type' => 'error' )
@@ -577,7 +577,7 @@ class Settings {
 		$this->render_cache_messages();
 
 		?>
-		<div class="wrap ffc-settings-wrap">
+		<div class="wrap ffc-admin-page ffc-page-settings ffc-settings-wrap">
 			<span id="ffc-settings-top" aria-hidden="true"></span>
 			<h1><?php esc_html_e( 'Certificate Settings', 'ffcertificate' ); ?></h1>
 			<?php settings_errors( 'ffc_settings' ); ?>

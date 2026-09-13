@@ -47,7 +47,7 @@ class AudienceAdminEnvironment {
 		$id     = RequestInput::get_get_int( 'id' );
 
 		?>
-		<div class="wrap">
+		<div class="wrap ffc-admin-page ffc-page-scheduling-environments">
 			<?php
 			switch ( $action ) {
 				case 'new':
