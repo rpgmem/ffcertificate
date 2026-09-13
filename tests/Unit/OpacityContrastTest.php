@@ -66,15 +66,15 @@ final class OpacityContrastTest extends TestCase {
 			'.ffc-selected-user .ffc-selected-user-remove' => 'o × de remover, glifo decorativo',
 		),
 		'ffc-audience.css'                => array(
-			'.ffc-shortcode .ffc-day.ffc-other-month'  => 'dia do mês vizinho: componente inativo, não é clicável',
-			'.ffc-shortcode .ffc-booking-cancelled'    => 'reserva cancelada no calendário público — o texto NÃO declara cor nossa, então o par não é nosso para medir (#1126 defeito 3); dar cor vem antes de tirar o desbotamento',
+			'.ffc-shortcode .ffc-day.ffc-other-month'  => 'dia do mês vizinho: componente inativo, não é clicável — medido no #1185, 5,74:1 no claro e 5,55:1 no escuro já com o desbotamento',
+			'.ffc-shortcode .ffc-booking-cancelled'    => 'reserva cancelada: componente inativo, isento pela SC 1.4.3 — e medido no #1185, 8,45:1 no claro e 7,04:1 no escuro JÁ com o desbotamento',
 		),
 		'ffc-calendar-frontend.css'       => array(
-			'.ffc-shortcode .ffc-timeslot-available' => 'contagem de vagas dentro do horário — mesmo caso: sem cor declarada nossa',
+			'.ffc-shortcode .ffc-timeslot-available' => 'contagem de vagas: medida no #1185, 12,63:1 no claro e 7,33:1 no escuro já com o desbotamento — o desbotamento aqui é hierarquia visual, não estado',
 		),
 		'ffc-certificates-dashboard.css'  => array(
 			'.ffc-certificates-submissions-link'        => 'link secundário do card, glifo + contagem',
-			'.ffc-calendar-core .ffc-day.ffc-other-month' => 'dia do mês vizinho: componente inativo',
+			'.ffc-calendar-core .ffc-day.ffc-other-month' => 'dia do mês vizinho: componente inativo — medido no #1185 no DOM real (o painel é tela de admin, logo sob `body.wp-admin`): 5,74:1 no claro e 4,87:1 no escuro já com o desbotamento',
 		),
 		'ffc-common.css'                  => array(
 			'.ffc-loading'                                            => 'estado de carregamento, transitório',
@@ -98,7 +98,7 @@ final class OpacityContrastTest extends TestCase {
 			'.ffc-btn-loading' => 'estado de carregamento, transitório',
 		),
 		'ffc-reregistration-frontend.css' => array(
-			'.ffc-rereg-header-subtitle' => 'subtítulo do cabeçalho — o texto não declara cor nossa, então o par não é nosso para medir (#1126 defeito 3)',
+			'.ffc-rereg-header-subtitle' => 'subtítulo do cabeçalho: medido no #1185, 17,58:1 no claro e 10,10:1 no escuro já com o desbotamento',
 		),
 		'ffc-url-shortener-admin.css'     => array(
 			'.ffc-shorturl-toast' => 'opacity: 0 — o aviso só aparece via animação',
