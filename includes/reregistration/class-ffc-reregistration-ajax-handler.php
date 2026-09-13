@@ -6,6 +6,7 @@
  * - ffc_generate_ficha             — PDF ficha generation
  * - ffc_view_submission_details    — submission details modal HTML
  * - ffc_rereg_count_members        — affected user count for an audience set
+ * - ffc_rereg_send_invitations     — invite whoever is still awaiting one (#1190)
  *
  * Hook registration still happens in ReregistrationAdmin::init() against an
  * instance of this class stored on the facade.
@@ -17,6 +18,8 @@
 declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
+
+use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -135,5 +138,55 @@ final class ReregistrationAjaxHandler {
 
 		$user_ids = ReregistrationRepository::get_user_ids_for_audiences( $audience_ids );
 		wp_send_json_success( array( 'count' => count( $user_ids ) ) );
+	}
+	/**
+	 * AJAX: send the invitation to whoever is still awaiting one.
+	 *
+	 * Idempotent, which is what makes it safe as a button an operator can press
+	 * twice (#1190): the work of deciding who is owed an email lives in
+	 * {@see ReregistrationSubmissionReader::get_awaiting_invitation()}, and the
+	 * send stamps `invited_at`, so a second press right after the first sends
+	 * nothing. Pressing it after the deadline is extended reaches whoever has
+	 * not finished, and only them.
+	 *
+	 * @return void
+	 */
+	public function ajax_send_invitations(): void {
+		check_ajax_referer( 'ffc_reregistration_nonce', 'nonce' );
+
+		if ( ! current_user_can( self::CAPABILITY ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ) );
+		}
+
+		$reregistration_id = RequestInput::get_post_int( 'reregistration_id' );
+		if ( $reregistration_id <= 0 ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid campaign.', 'ffcertificate' ) ) );
+		}
+
+		$rereg = ReregistrationRepository::get_by_id( $reregistration_id );
+		if ( ! $rereg ) {
+			wp_send_json_error( array( 'message' => __( 'Campaign not found.', 'ffcertificate' ) ) );
+		}
+
+		if ( empty( $rereg->email_invitation_enabled ) ) {
+			wp_send_json_error(
+				array( 'message' => __( 'Invitation emails are disabled for this campaign.', 'ffcertificate' ) )
+			);
+		}
+
+		$sent = ReregistrationEmailHandler::send_invitations( $reregistration_id );
+
+		wp_send_json_success(
+			array(
+				'sent'    => $sent,
+				'message' => 0 === $sent
+					? __( 'Nobody was awaiting an invitation.', 'ffcertificate' )
+					: sprintf(
+						/* translators: %d: number of invitations sent. */
+						_n( '%d invitation sent.', '%d invitations sent.', $sent, 'ffcertificate' ),
+						$sent
+					),
+			)
+		);
 	}
 }

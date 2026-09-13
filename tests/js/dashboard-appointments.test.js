@@ -4,7 +4,7 @@
 // The panel reads from #tab-appointments and writes a filter bar + one
 // table per section (upcoming / past / cancelled). Tests cover: empty
 // state, sectioning by status, row counts, receipt-button visibility,
-// and the cancelled-row CSS class.
+// and the ffc-row-cancelled CSS class.
 //
 // Part of S4 of #163.
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
@@ -82,13 +82,13 @@ describe('FFCDashboard.panels.appointments.render', () => {
 		expect(document.querySelector('#tab-appointments h3').textContent).toBe('Upcoming');
 	});
 
-	it("applies 'cancelled-row' / 'past-row' classes to the right rows", () => {
+	it("applies 'ffc-row-cancelled' / 'ffc-row-past' classes to the right rows", () => {
 		panel().render([
 			makeAppt({ status: 'completed', appointment_date_raw: FAR_PAST, calendar_title: 'past one' }),
 			makeAppt({ status: 'cancelled', calendar_title: 'cancelled one' }),
 		], 1);
-		expect(document.querySelectorAll('#tab-appointments tr.past-row').length).toBe(1);
-		expect(document.querySelectorAll('#tab-appointments tr.cancelled-row').length).toBe(1);
+		expect(document.querySelectorAll('#tab-appointments tr.ffc-row-past').length).toBe(1);
+		expect(document.querySelectorAll('#tab-appointments tr.ffc-row-cancelled').length).toBe(1);
 	});
 
 	it('exports the appointment using the raw wall-clock end time, not the display-formatted end_time', () => {
@@ -136,12 +136,23 @@ describe('FFCDashboard.panels.appointments.render', () => {
 		expect(link.getAttribute('rel')).toBe('noopener noreferrer');
 	});
 
-	it('attaches the appointment-status class with the status value', () => {
+	it('attaches the prefixed status class with the status value', () => {
 		panel().render([
 			makeAppt({ status: 'confirmed', status_label: 'Confirmed' }),
 			makeAppt({ status: 'completed', status_label: 'Done', appointment_date_raw: FAR_PAST }),
 		], 1);
-		expect(document.querySelectorAll('#tab-appointments .appointment-status.status-confirmed').length).toBe(1);
-		expect(document.querySelectorAll('#tab-appointments .appointment-status.status-completed').length).toBe(1);
+		expect(document.querySelectorAll('#tab-appointments .ffc-dashboard-status.ffc-dashboard-status-confirmed').length).toBe(1);
+		expect(document.querySelectorAll('#tab-appointments .ffc-dashboard-status.ffc-dashboard-status-completed').length).toBe(1);
+	});
+
+	// #1151: the badge was `appointment-status status-<state>` — the only
+	// unprefixed name this plugin published to the frontend, on a sheet that
+	// loads inside whatever theme the site runs. The unprefixed name must not
+	// come back, and it is not enough to assert the new one is present: both
+	// classes can coexist on one element.
+	it('publishes no unprefixed status class', () => {
+		panel().render([makeAppt({ status: 'confirmed', status_label: 'Confirmed' })], 1);
+		expect(document.querySelectorAll('#tab-appointments .appointment-status').length).toBe(0);
+		expect(document.querySelectorAll('#tab-appointments .status-confirmed').length).toBe(0);
 	});
 });

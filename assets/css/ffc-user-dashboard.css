@@ -21,8 +21,8 @@
 
 .ffc-user-dashboard {
     max-width: 1500px;
-    margin: 20px auto;
-    padding: 24px;
+    margin: var(--ffc-spacing-2xl) auto;
+    padding: var(--ffc-spacing-3xl);
     background: var(--ffc-bg);
     border-radius: var(--ffc-radius-lg);
     box-shadow: var(--ffc-shadow-md);
@@ -35,11 +35,11 @@
    ========================================================================== */
 
 .ffc-dashboard-notice {
-    padding: 14px 18px;
-    margin-bottom: 20px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
+    margin-bottom: var(--ffc-spacing-2xl);
     border-radius: var(--ffc-radius-md);
     border-left: 4px solid var(--ffc-border);
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     line-height: 1.5;
 }
 
@@ -71,7 +71,7 @@
 }
 
 .ffc-dashboard-notice .button {
-    margin-top: 8px;
+    margin-top: var(--ffc-spacing-sm);
 }
 
 /* ==========================================================================
@@ -80,18 +80,18 @@
 
 .ffc-dashboard-tabs {
     display: flex;
-    gap: 2px;
-    margin-bottom: 24px;
+    gap: var(--ffc-spacing-3xs);
+    margin-bottom: var(--ffc-spacing-3xl);
     border-bottom: 2px solid var(--ffc-border-light);
 }
 
 .ffc-tab {
-    padding: 10px 20px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-2xl);
     background: transparent;
     border: none;
     border-bottom: 3px solid transparent;
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     font-weight: 500;
     color: var(--ffc-text-muted);
     transition: color 0.2s, border-color 0.2s, background 0.2s;
@@ -105,7 +105,7 @@
     background: var(--ffc-bg-alt);
 }
 
-.ffc-tab.active {
+.ffc-tab.is-active {
     color: var(--ffc-primary);
     border-bottom-color: var(--ffc-primary);
     font-weight: 600;
@@ -118,11 +118,11 @@
 
 .ffc-tab-content {
     display: none;
-    padding: 4px 0;
+    padding: var(--ffc-spacing-2xs) 0;
     animation: ffcFadeIn 0.25s ease;
 }
 
-.ffc-tab-content.active {
+.ffc-tab-content.is-active {
     display: block;
 }
 
@@ -137,9 +137,9 @@
 
 .ffc-loading {
     text-align: center;
-    padding: 48px 20px;
+    padding: 48px var(--ffc-spacing-2xl);
     color: var(--ffc-text-muted);
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-loading::after {
@@ -147,10 +147,10 @@
     display: inline-block;
     width: 18px;
     height: 18px;
-    margin-left: 8px;
+    margin-left: var(--ffc-spacing-sm);
     border: 2px solid var(--ffc-border);
     border-top-color: var(--ffc-primary);
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     animation: ffcSpin 0.8s linear infinite;
     vertical-align: middle;
 }
@@ -166,8 +166,8 @@
 .ffc-dashboard-summary {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 14px;
-    margin-bottom: 24px;
+    gap: var(--ffc-spacing-lg);
+    margin-bottom: var(--ffc-spacing-3xl);
 }
 
 .ffc-dashboard-summary:empty {
@@ -178,7 +178,7 @@
     background: var(--ffc-bg-alt);
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-lg);
-    padding: 18px 16px;
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-xl);
     text-align: center;
     transition: box-shadow 0.2s, border-color 0.2s;
 }
@@ -188,6 +188,9 @@
     box-shadow: var(--ffc-shadow-sm);
 }
 
+/* 28px literal: número-herói do card de resumo, deliberadamente acima da
+   escala de texto. Um degrau usado uma vez não é escala. A variante
+   .ffc-summary-date, que é texto, lê o token `lg`. */
 .ffc-summary-number {
     font-size: 28px;
     font-weight: 700;
@@ -196,23 +199,23 @@
 }
 
 .ffc-summary-number.ffc-summary-date {
-    font-size: 15px;
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
 }
 
 .ffc-summary-detail {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-secondary);
-    margin-top: 2px;
+    margin-top: var(--ffc-spacing-3xs);
 }
 
 .ffc-summary-label {
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     color: var(--ffc-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.6px;
     font-weight: 600;
-    margin-top: 8px;
+    margin-top: var(--ffc-spacing-sm);
 }
 
 /* ==========================================================================
@@ -222,30 +225,30 @@
 .ffc-filter-bar {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--ffc-spacing-sm);
     flex-wrap: wrap;
-    padding: 12px 16px;
-    margin-bottom: 16px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
+    margin-bottom: var(--ffc-spacing-xl);
     background: var(--ffc-bg-alt);
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md);
 }
 
 .ffc-filter-bar label {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-secondary);
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: var(--ffc-spacing-xs);
     font-weight: 500;
 }
 
 .ffc-filter-bar input[type="date"],
 .ffc-filter-bar input[type="text"] {
-    padding: 6px 10px;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-md);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
-    font-size: 13px;
+    border-radius: var(--ffc-radius-sm);
+    font-size: var(--ffc-font-size-sm);
     background: var(--ffc-bg);
     color: var(--ffc-text);
     transition: border-color 0.15s, box-shadow 0.15s;
@@ -263,10 +266,10 @@
 }
 
 .ffc-filter-bar .button {
-    padding: 6px 14px;
-    font-size: 13px;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
+    font-size: var(--ffc-font-size-sm);
     font-weight: 500;
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     transition: all 0.15s;
     line-height: 1.4;
@@ -296,7 +299,7 @@
 
 /* Page Size Selector */
 .ffc-page-size-select {
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     color: var(--ffc-text-muted);
     margin-left: auto;
 }
@@ -304,8 +307,8 @@
 .ffc-page-size-select a {
     color: var(--ffc-primary);
     text-decoration: none;
-    padding: 2px 6px;
-    border-radius: 3px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
+    border-radius: var(--ffc-radius-xs);
     transition: background 0.15s;
 }
 
@@ -316,8 +319,8 @@
 .ffc-page-size-select strong {
     color: var(--ffc-text);
     background: var(--ffc-primary-light);
-    padding: 2px 8px;
-    border-radius: 3px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-xs);
     font-weight: 600;
 }
 
@@ -345,10 +348,10 @@
 .ffc-reregistrations-table th,
 .ffc-recruitment-table th {
     background: var(--ffc-bg-alt);
-    padding: 10px 12px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
     text-align: left;
     font-weight: 600;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     color: var(--ffc-text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -360,10 +363,10 @@
 .ffc-audience-bookings-table td,
 .ffc-reregistrations-table td,
 .ffc-recruitment-table td {
-    padding: 10px 12px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
     border-bottom: 1px solid var(--ffc-border-light);
     vertical-align: middle;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text);
 }
 
@@ -403,7 +406,7 @@
 .ffc-certificates-table td:nth-child(5) { width: 17%; }
 .ffc-certificates-table td:nth-child(5) {
     font-family: 'Courier New', Courier, monospace;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 500;
     letter-spacing: 0.3px;
     white-space: nowrap;
@@ -413,12 +416,12 @@
 .ffc-certificates-table th:nth-child(6),
 .ffc-certificates-table td:nth-child(6) { width: 13%; text-align: center; }
 
-.ffc-certificates-table .consent-yes {
+.ffc-certificates-table .ffc-consent-yes {
     color: var(--ffc-success);
     font-weight: 600;
 }
 
-.ffc-certificates-table .consent-no {
+.ffc-certificates-table .ffc-consent-no {
     color: var(--ffc-danger);
     font-weight: 600;
 }
@@ -432,13 +435,13 @@
 .ffc-btn-edit {
     display: inline-flex !important;
     align-items: center;
-    gap: 5px;
-    padding: 5px 14px !important;
-    font-size: 12px !important;
+    gap: var(--ffc-spacing-xs);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg) !important;
+    font-size: var(--ffc-font-size-xs) !important;
     font-weight: 500;
     text-decoration: none !important;
     white-space: nowrap;
-    border-radius: 4px !important;
+    border-radius: var(--ffc-radius-sm) !important;
     transition: all 0.15s;
     line-height: 1.4;
     cursor: pointer;
@@ -522,58 +525,58 @@
 
 .ffc-appointments-table td:last-child > * + *,
 .ffc-reregistrations-table td:last-child > * + * {
-    margin-left: 6px;
+    margin-left: var(--ffc-spacing-xs);
 }
 
 /* ==========================================================================
    APPOINTMENTS TABLE
    ========================================================================== */
 
-.appointment-status {
-    padding: 3px 10px;
+.ffc-dashboard-status {
+    padding: 3px var(--ffc-spacing-md);
     border-radius: 10px;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
     display: inline-block;
     letter-spacing: 0.2px;
     text-transform: capitalize;
 }
 
-.appointment-status.status-pending {
+.ffc-dashboard-status.ffc-dashboard-status-pending {
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
 }
 
-.appointment-status.status-confirmed {
+.ffc-dashboard-status.ffc-dashboard-status-confirmed {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
 }
 
-.appointment-status.status-cancelled {
+.ffc-dashboard-status.ffc-dashboard-status-cancelled {
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
 }
 
-.appointment-status.status-completed {
+.ffc-dashboard-status.ffc-dashboard-status-completed {
     background: var(--ffc-info-bg);
     color: var(--ffc-info-text);
 }
 
-.appointment-status.status-no_show {
+.ffc-dashboard-status.ffc-dashboard-status-no_show {
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-secondary);
 }
 
 .ffc-appointments-table .ffc-cancel-appointment {
     display: inline-block;
-    padding: 4px 12px;
-    font-size: 12px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
+    font-size: var(--ffc-font-size-xs);
     line-height: 1.4;
     min-height: 0;
     background: transparent;
     color: var(--ffc-danger);
     border: 1px solid var(--ffc-danger);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.15s;
@@ -591,21 +594,21 @@
    Medido: a 0,75 a linha passada dava 3,11:1 no tema claro e a palavra
    "Cancelado" dava 3,99:1, ambos abaixo do mínimo. O estado passa a ser dito
    pela cor do texto, que é medível, em vez de por desbotamento. */
-.ffc-appointments-table.past-appointments td { color: var(--ffc-text-muted); }
-.ffc-appointments-table .past-row { background: var(--ffc-bg-alt); }
-.ffc-appointments-table .cancelled-row { background: var(--ffc-danger-bg); }
-.ffc-appointments-table .cancelled-row td { color: var(--ffc-text-muted); }
+.ffc-appointments-table.ffc-table-past td { color: var(--ffc-text-muted); }
+.ffc-appointments-table .ffc-row-past { background: var(--ffc-bg-alt); }
+.ffc-appointments-table .ffc-row-cancelled { background: var(--ffc-danger-bg); }
+.ffc-appointments-table .ffc-row-cancelled td { color: var(--ffc-text-muted); }
 
 #tab-appointments h3,
 #tab-audience h3,
 #tab-reregistrations h3 {
     margin-top: 0;
-    margin-bottom: 12px;
+    margin-bottom: var(--ffc-spacing-lg);
     color: var(--ffc-text);
-    font-size: 15px;
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     border-bottom: 1px solid var(--ffc-border-light);
-    padding-bottom: 10px;
+    padding-bottom: var(--ffc-spacing-md);
 }
 
 /* ==========================================================================
@@ -632,14 +635,14 @@
    Medido: a 0,75 a linha passada dava 3,11:1 no tema claro e a palavra
    "Cancelado" dava 3,99:1, ambos abaixo do mínimo. O estado passa a ser dito
    pela cor do texto, que é medível, em vez de por desbotamento. */
-.ffc-audience-bookings-table.past-bookings td { color: var(--ffc-text-muted); }
-.ffc-audience-bookings-table .past-row { background: var(--ffc-bg-alt); }
-.ffc-audience-bookings-table .cancelled-row { background: var(--ffc-danger-bg); }
-.ffc-audience-bookings-table .cancelled-row td { color: var(--ffc-text-muted); }
+.ffc-audience-bookings-table.ffc-table-past td { color: var(--ffc-text-muted); }
+.ffc-audience-bookings-table .ffc-row-past { background: var(--ffc-bg-alt); }
+.ffc-audience-bookings-table .ffc-row-cancelled { background: var(--ffc-danger-bg); }
+.ffc-audience-bookings-table .ffc-row-cancelled td { color: var(--ffc-text-muted); }
 
 .ffc-audience-bookings-table .ffc-audience-tag {
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-audience-bookings-table .ffc-audience-tag:last-child {
@@ -650,43 +653,49 @@
    REREGISTRATIONS TABLE
    ========================================================================== */
 
-.ffc-reregistrations-table.past-reregistrations { opacity: 0.75; }
-.ffc-reregistrations-table.past-reregistrations td { color: var(--ffc-text-muted); }
-.ffc-reregistrations-table .past-row { background: var(--ffc-bg-alt); }
+/* A linha passada NÃO usa `opacity` -- ver #1126 e as duas tabelas irmãs acima.
+   Opacidade sobre uma linha desbota o TEXTO junto com o fundo, então ela
+   multiplica para baixo qualquer contraste que os tokens tenham garantido — e
+   o medidor de pares não enxerga isso, porque os tokens continuam certos.
+   Medido: a 0,75 a linha passada dava 3,11:1 no tema claro e 4,23:1 no escuro,
+   ambos abaixo do mínimo de 4,5:1; sem ela, 5,15:1 e 6,37:1. O estado passa a
+   ser dito pela cor do texto, que é medível, em vez de por desbotamento. */
+.ffc-reregistrations-table.ffc-table-past td { color: var(--ffc-text-muted); }
+.ffc-reregistrations-table .ffc-row-past { background: var(--ffc-bg-alt); }
 
 .ffc-reregistrations-table .ffc-auth-code {
     font-family: 'Courier New', Courier, monospace;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     font-weight: 600;
     letter-spacing: 0.5px;
     background: var(--ffc-bg-alt);
-    padding: 3px 8px;
-    border-radius: 4px;
+    padding: 3px var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-sm);
     border: 1px solid var(--ffc-border-light);
     white-space: nowrap;
 }
 
-.appointment-status.status-submitted {
+.ffc-dashboard-status.ffc-dashboard-status-submitted {
     background: var(--ffc-primary-light);
     color: var(--ffc-primary-hover);
 }
 
-.appointment-status.status-approved {
+.ffc-dashboard-status.ffc-dashboard-status-approved {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
 }
 
-.appointment-status.status-rejected {
+.ffc-dashboard-status.ffc-dashboard-status-rejected {
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
 }
 
-.appointment-status.status-expired {
+.ffc-dashboard-status.ffc-dashboard-status-expired {
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-secondary);
 }
 
-.appointment-status.status-in_progress {
+.ffc-dashboard-status.ffc-dashboard-status-in_progress {
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
 }
@@ -697,18 +706,18 @@
 
 .ffc-profile-logout {
     text-align: right;
-    margin-bottom: 12px;
+    margin-bottom: var(--ffc-spacing-lg);
 }
 
 .ffc-logout-link {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ffc-spacing-xs);
     color: var(--ffc-text-secondary);
     text-decoration: none;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     font-weight: 500;
-    padding: 6px 14px;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md);
     background: var(--ffc-bg);
@@ -747,7 +756,7 @@
 }
 
 .ffc-profile-field {
-    padding: 14px 18px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     margin: 0;
     border-bottom: 1px solid var(--ffc-border-light);
     border-right: 1px solid var(--ffc-border-light);
@@ -768,48 +777,48 @@
 
 .ffc-profile-field label {
     display: block;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
     color: var(--ffc-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 4px;
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
-.ffc-profile-field .value {
+.ffc-profile-field .ffc-field-value {
     color: var(--ffc-text);
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     font-weight: 500;
     line-height: 1.5;
 }
 
-.ffc-profile-field .email-list,
-.ffc-profile-field .name-list,
-.ffc-profile-field .cpf-list {
+.ffc-profile-field .ffc-email-list,
+.ffc-profile-field .ffc-name-list,
+.ffc-profile-field .ffc-cpf-list {
     list-style: none;
     padding: 0;
     margin: 0;
 }
 
-.ffc-profile-field .email-list li,
-.ffc-profile-field .name-list li,
-.ffc-profile-field .cpf-list li {
-    padding: 2px 0;
+.ffc-profile-field .ffc-email-list li,
+.ffc-profile-field .ffc-name-list li,
+.ffc-profile-field .ffc-cpf-list li {
+    padding: var(--ffc-spacing-3xs) 0;
     color: var(--ffc-text);
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     font-weight: 500;
 }
 
-.ffc-profile-field .email-list li::before,
-.ffc-profile-field .name-list li::before,
-.ffc-profile-field .cpf-list li::before {
+.ffc-profile-field .ffc-email-list li::before,
+.ffc-profile-field .ffc-name-list li::before,
+.ffc-profile-field .ffc-cpf-list li::before {
     content: '';
     display: inline-block;
     width: 6px;
     height: 6px;
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     background: var(--ffc-primary);
-    margin-right: 8px;
+    margin-right: var(--ffc-spacing-sm);
     vertical-align: middle;
 }
 
@@ -819,22 +828,22 @@
 
 .ffc-profile-actions {
     display: flex;
-    gap: 10px;
-    margin-top: 16px;
+    gap: var(--ffc-spacing-md);
+    margin-top: var(--ffc-spacing-xl);
 }
 
 .ffc-profile-actions .button {
-    padding: 9px 20px;
-    font-size: 13px;
+    padding: 9px var(--ffc-spacing-2xl);
+    font-size: var(--ffc-font-size-sm);
     font-weight: 500;
-    border-radius: 6px;
+    border-radius: var(--ffc-radius-md);
     cursor: pointer;
     transition: all 0.15s;
     line-height: 1.4;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ffc-spacing-xs);
 }
 
 .ffc-profile-actions .button-primary {
@@ -876,8 +885,8 @@
    ========================================================================== */
 
 .ffc-password-form {
-    margin-top: 14px;
-    padding: 20px;
+    margin-top: var(--ffc-spacing-lg);
+    padding: var(--ffc-spacing-2xl);
     background: var(--ffc-bg-alt);
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md);
@@ -886,26 +895,26 @@
 .ffc-password-form .ffc-profile-field {
     padding: 0;
     border: none;
-    margin-bottom: 14px;
+    margin-bottom: var(--ffc-spacing-lg);
 }
 
 .ffc-password-form .ffc-profile-field label {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     text-transform: none;
     letter-spacing: 0;
     font-weight: 600;
     color: var(--ffc-text);
-    margin-bottom: 5px;
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-password-form input[type="password"] {
     color: var(--ffc-text);
     width: 100%;
     max-width: 340px;
-    padding: 8px 12px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
-    font-size: 14px;
+    border-radius: var(--ffc-radius-sm);
+    font-size: var(--ffc-font-size-base);
     background: var(--ffc-bg);
     transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -917,9 +926,9 @@
 }
 
 .ffc-password-form .button-primary {
-    padding: 8px 20px;
-    font-size: 13px;
-    border-radius: 6px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-2xl);
+    font-size: var(--ffc-font-size-sm);
+    border-radius: var(--ffc-radius-md);
 }
 
 /* ==========================================================================
@@ -927,16 +936,16 @@
    ========================================================================== */
 
 .ffc-profile-section {
-    margin-top: 24px;
-    padding-top: 20px;
+    margin-top: var(--ffc-spacing-3xl);
+    padding-top: var(--ffc-spacing-2xl);
     border-top: 1px solid var(--ffc-border-light);
 }
 
 .ffc-profile-section h3 {
-    font-size: 15px;
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-text);
-    margin: 0 0 14px 0;
+    margin: 0 0 var(--ffc-spacing-lg) 0;
 }
 
 /* ==========================================================================
@@ -944,27 +953,27 @@
    ========================================================================== */
 
 .ffc-audience-join-section {
-    margin-top: 24px;
-    padding-top: 20px;
+    margin-top: var(--ffc-spacing-3xl);
+    padding-top: var(--ffc-spacing-2xl);
     border-top: 1px solid var(--ffc-border-light);
 }
 
 .ffc-audience-join-section h3 {
-    font-size: 15px;
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-text);
-    margin: 0 0 6px 0;
+    margin: 0 0 var(--ffc-spacing-xs) 0;
 }
 
 .ffc-audience-limit-msg {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-muted);
-    margin: 0 0 16px 0;
+    margin: 0 0 var(--ffc-spacing-xl) 0;
 }
 
 /* Parent group container */
 .ffc-audience-parent-group {
-    margin-bottom: 16px;
+    margin-bottom: var(--ffc-spacing-xl);
 }
 
 .ffc-audience-parent-group:last-child {
@@ -974,13 +983,13 @@
 .ffc-audience-parent-header {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
     width: 100%;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     font-weight: 600;
     font-family: inherit;
     color: var(--ffc-text);
-    padding: 8px 14px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     background: var(--ffc-bg-alt);
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md) var(--ffc-radius-md) 0 0;
@@ -1012,7 +1021,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     font-weight: 700;
     color: var(--ffc-text-muted);
     line-height: 1;
@@ -1029,9 +1038,9 @@
 }
 
 .ffc-audience-subgroup .ffc-audience-parent-header {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     font-weight: 500;
-    padding: 10px 14px 10px 28px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg) var(--ffc-spacing-md) 28px;
     min-height: 44px;
     box-sizing: border-box;
     background: var(--ffc-bg);
@@ -1071,7 +1080,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 14px 10px 28px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg) var(--ffc-spacing-md) 28px;
     min-height: 44px;
     box-sizing: border-box;
     background: var(--ffc-bg);
@@ -1089,17 +1098,17 @@
 
 .ffc-audience-join-item .ffc-audience-name {
     font-weight: 500;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     color: var(--ffc-text);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
 }
 
 .ffc-audience-dot {
     width: 12px;
     height: 12px;
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     display: inline-block;
     flex-shrink: 0;
     /* Contorno sobre a cor arbitrária da audiência: precisa ser neutro
@@ -1109,10 +1118,10 @@
 
 .ffc-audience-join-item .button {
     flex-shrink: 0;
-    padding: 5px 16px;
-    font-size: 12px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xl);
+    font-size: var(--ffc-font-size-xs);
     font-weight: 500;
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     transition: all 0.15s;
     line-height: 1.4;
@@ -1155,7 +1164,7 @@
 .ffc-audience-item-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--ffc-spacing-sm);
     flex-shrink: 0;
 }
 
@@ -1176,17 +1185,17 @@
 .ffc-notif-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
 }
 
 .ffc-toggle-label {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--ffc-spacing-lg);
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     color: var(--ffc-text);
-    padding: 6px 0;
+    padding: var(--ffc-spacing-xs) 0;
 }
 
 .ffc-toggle-label input[type="checkbox"] {
@@ -1214,7 +1223,7 @@
        botão em var(--ffc-bg-card) sumiria dentro dela. Mesma decisão do
        interruptor de ffc-common.css (#1126). */
     background: #fff;
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     transition: transform 0.2s;
     box-shadow: var(--ffc-shadow-sm);
 }
@@ -1232,24 +1241,24 @@
    ========================================================================== */
 
 .ffc-lgpd-section .ffc-lgpd-desc {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-secondary);
-    margin: 0 0 10px 0;
+    margin: 0 0 var(--ffc-spacing-md) 0;
     line-height: 1.5;
 }
 
 .ffc-lgpd-export-btn {
-    padding: 8px 18px !important;
-    font-size: 13px !important;
-    border-radius: 6px !important;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-xl) !important;
+    font-size: var(--ffc-font-size-sm) !important;
+    border-radius: var(--ffc-radius-md) !important;
 }
 
 .ffc-lgpd-delete-btn {
     color: var(--ffc-danger) !important;
     border-color: var(--ffc-danger) !important;
-    padding: 8px 18px !important;
-    font-size: 13px !important;
-    border-radius: 6px !important;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-xl) !important;
+    font-size: var(--ffc-font-size-sm) !important;
+    border-radius: var(--ffc-radius-md) !important;
 }
 
 .ffc-lgpd-delete-btn:hover {
@@ -1264,13 +1273,13 @@
 .ffc-profile-edit-form {
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md);
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
     background: var(--ffc-bg-alt);
 }
 
 .ffc-profile-edit-form h3 {
-    margin: 0 0 16px 0;
-    font-size: 16px;
+    margin: 0 0 var(--ffc-spacing-xl) 0;
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-text);
 }
@@ -1278,16 +1287,16 @@
 .ffc-profile-edit-form .ffc-profile-field {
     padding: 0;
     border: none;
-    margin-bottom: 14px;
+    margin-bottom: var(--ffc-spacing-lg);
 }
 
 .ffc-profile-edit-form .ffc-profile-field label {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     text-transform: none;
     letter-spacing: 0;
     font-weight: 600;
     color: var(--ffc-text);
-    margin-bottom: 5px;
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-profile-edit-form input[type="text"],
@@ -1296,10 +1305,10 @@
     color: var(--ffc-text);
     width: 100%;
     max-width: 450px;
-    padding: 8px 12px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
-    font-size: 14px;
+    border-radius: var(--ffc-radius-sm);
+    font-size: var(--ffc-font-size-base);
     background: var(--ffc-bg);
     transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -1319,14 +1328,14 @@
 .ffc-profile-edit-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-top: 18px;
+    gap: var(--ffc-spacing-md);
+    margin-top: var(--ffc-spacing-xl);
 }
 
 .ffc-profile-edit-actions .button {
-    padding: 8px 20px;
-    font-size: 13px;
-    border-radius: 6px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-2xl);
+    font-size: var(--ffc-font-size-sm);
+    border-radius: var(--ffc-radius-md);
 }
 
 /* ==========================================================================
@@ -1337,20 +1346,20 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    margin-top: 16px;
-    padding-top: 14px;
+    gap: var(--ffc-spacing-md);
+    margin-top: var(--ffc-spacing-xl);
+    padding-top: var(--ffc-spacing-lg);
     border-top: 1px solid var(--ffc-border-light);
 }
 
 .ffc-pagination-btn {
-    padding: 6px 16px;
-    font-size: 13px;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-xl);
+    font-size: var(--ffc-font-size-sm);
     font-weight: 500;
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
     border: 1px solid var(--ffc-primary);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     transition: background 0.15s;
     line-height: 1.4;
@@ -1369,7 +1378,7 @@
 }
 
 .ffc-pagination-info {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-muted);
 }
 
@@ -1390,14 +1399,14 @@
 .ffc-cal-export-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    font-size: 12px;
+    gap: var(--ffc-spacing-xs);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
+    font-size: var(--ffc-font-size-xs);
     line-height: 1.4;
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
     border: 1px solid var(--ffc-primary);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     white-space: nowrap;
     vertical-align: middle;
@@ -1417,26 +1426,26 @@
     position: absolute;
     right: 0;
     top: 100%;
-    margin-top: 4px;
+    margin-top: var(--ffc-spacing-2xs);
     min-width: 200px;
     background: var(--ffc-bg);
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md);
     box-shadow: var(--ffc-shadow-md);
-    z-index: 1000;
+    z-index: var(--ffc-z-overlay);
     overflow: hidden;
 }
 
-.ffc-cal-export-dropdown.open { display: block; }
+.ffc-cal-export-dropdown.is-open { display: block; }
 
 .ffc-cal-export-dropdown a {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
+    gap: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
     color: var(--ffc-text);
     text-decoration: none;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     transition: background 0.15s;
     border-bottom: 1px solid var(--ffc-border-light);
 }
@@ -1453,21 +1462,21 @@
     background: var(--ffc-danger-bg);
     border-left: 4px solid var(--ffc-danger);
     color: var(--ffc-danger-text);
-    padding: 14px 18px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     border-radius: var(--ffc-radius-md);
-    margin: 20px 0;
-    font-size: 14px;
+    margin: var(--ffc-spacing-2xl) 0;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-empty-state {
     text-align: center;
-    padding: 56px 20px;
+    padding: 56px var(--ffc-spacing-2xl);
     color: var(--ffc-text-muted);
 }
 
 .ffc-empty-state p {
-    font-size: 16px;
-    margin: 8px 0;
+    font-size: var(--ffc-font-size-lg);
+    margin: var(--ffc-spacing-sm) 0;
 }
 
 /* ==========================================================================
@@ -1476,8 +1485,8 @@
 
 @media (max-width: 768px) {
     .ffc-user-dashboard {
-        padding: 16px;
-        margin: 12px auto;
+        padding: var(--ffc-spacing-xl);
+        margin: var(--ffc-spacing-lg) auto;
     }
 
     .ffc-dashboard-summary {
@@ -1487,7 +1496,7 @@
     .ffc-filter-bar {
         flex-direction: column;
         align-items: stretch;
-        gap: 10px;
+        gap: var(--ffc-spacing-md);
     }
 
     .ffc-filter-bar label {
@@ -1507,7 +1516,7 @@
     .ffc-filter-bar .button {
         width: 100%;
         text-align: center;
-        padding: 8px 14px;
+        padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     }
 
     .ffc-page-size-select {
@@ -1528,7 +1537,7 @@
         margin-bottom: 0;
     }
 
-    .ffc-tab.active {
+    .ffc-tab.is-active {
         border-left: 3px solid var(--ffc-primary);
         border-bottom: 1px solid var(--ffc-border-light);
         background: var(--ffc-primary-light);
@@ -1573,17 +1582,21 @@
 
     .ffc-certificates-table th,
     .ffc-certificates-table td {
-        padding: 8px 6px;
-        font-size: 12px;
+        padding: var(--ffc-spacing-sm) var(--ffc-spacing-xs);
+        font-size: var(--ffc-font-size-xs);
     }
 
+    /* 10px literal: já dentro do @media de celular, esta é a quinta coluna
+       apertada da tabela — um degrau ABAIXO do `xs` que as outras células
+       acabaram de receber duas regras acima. Mapear para `2xs` (11px) não é
+       "o mais próximo": apagaria a distinção que a regra existe para fazer. */
     .ffc-certificates-table td:nth-child(5) {
         font-size: 10px;
     }
 
     .ffc-certificates-table .button {
-        padding: 4px 8px;
-        font-size: 11px;
+        padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
+        font-size: var(--ffc-font-size-2xs);
     }
 }
 
@@ -1592,8 +1605,8 @@
    ========================================================================== */
 
 #tab-recruitment .ffc-recruitment-my-calls > h2 {
-    margin: 0 0 16px;
-    font-size: 17px;
+    margin: 0 0 var(--ffc-spacing-xl);
+    font-size: var(--ffc-font-size-xl);
     font-weight: 600;
     color: var(--ffc-text);
 }
@@ -1602,26 +1615,26 @@
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md);
     background: var(--ffc-bg-card);
-    padding: 16px;
-    margin-bottom: 16px;
+    padding: var(--ffc-spacing-xl);
+    margin-bottom: var(--ffc-spacing-xl);
 }
 
 #tab-recruitment .ffc-recruitment-my-notice header {
-    margin-bottom: 12px;
+    margin-bottom: var(--ffc-spacing-lg);
     border-bottom: 1px solid var(--ffc-border-light);
-    padding-bottom: 12px;
+    padding-bottom: var(--ffc-spacing-lg);
 }
 
 #tab-recruitment .ffc-recruitment-my-notice header h3 {
-    margin: 0 0 8px;
-    font-size: 15px;
+    margin: 0 0 var(--ffc-spacing-sm);
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-text);
 }
 
 #tab-recruitment .ffc-recruitment-my-notice h4 {
-    margin: 16px 0 8px;
-    font-size: 12px;
+    margin: var(--ffc-spacing-xl) 0 var(--ffc-spacing-sm);
+    font-size: var(--ffc-font-size-xs);
     font-weight: 600;
     color: var(--ffc-text-secondary);
     text-transform: uppercase;
@@ -1630,9 +1643,9 @@
 
 #tab-recruitment .ffc-recruitment-banner {
     display: inline-block;
-    padding: 4px 10px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
     border-radius: var(--ffc-radius-md);
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     font-weight: 500;
 }
 
@@ -1656,4 +1669,27 @@
     .ffc-tab { transition: none; }
     .ffc-audience-join-item { transition: none; }
     .ffc-password-form input { transition: none; }
+}
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
+   O mecanismo está explicado em ffc-common.css (#1165).
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Selos de estado: o texto continua dizendo o estado; a borda
+       devolve a eles a forma de selo. */
+    .ffc-dashboard-status.ffc-dashboard-status-approved,
+    .ffc-dashboard-status.ffc-dashboard-status-cancelled,
+    .ffc-dashboard-status.ffc-dashboard-status-completed,
+    .ffc-dashboard-status.ffc-dashboard-status-confirmed,
+    .ffc-dashboard-status.ffc-dashboard-status-expired,
+    .ffc-dashboard-status.ffc-dashboard-status-in_progress,
+    .ffc-dashboard-status.ffc-dashboard-status-no_show,
+    .ffc-dashboard-status.ffc-dashboard-status-pending,
+    .ffc-dashboard-status.ffc-dashboard-status-rejected,
+    .ffc-dashboard-status.ffc-dashboard-status-submitted {
+        border: 1px solid CanvasText;
+    }
 }

@@ -86,7 +86,7 @@
                 html += '<tr>';
                 html += '<td>' + helpers.esc(cert.form_title) + '</td>';
                 html += '<td>' + cert.submission_date + '</td>';
-                html += '<td><span class="' + (cert.consent_given ? 'consent-yes' : 'consent-no') + '">';
+                html += '<td><span class="' + (cert.consent_given ? 'ffc-consent-yes' : 'ffc-consent-no') + '">';
                 html += (cert.consent_given ? ffcDashboard.strings.yes : ffcDashboard.strings.no);
                 html += '</span></td>';
                 html += '<td>' + helpers.esc(cert.email) + '</td>';

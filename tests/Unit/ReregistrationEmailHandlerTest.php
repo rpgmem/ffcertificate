@@ -285,15 +285,21 @@ class ReregistrationEmailHandlerTest extends TestCase {
 			'end_date'                 => '2026-12-31',
 		);
 
-		// get_by_id() → rereg; get_by_reregistration() (pending) → submissions.
+		// get_by_id() → rereg; get_awaiting_invitation() → submissions. As linhas
+		// carregam `id` porque o envio estampa `invited_at` nelas (#1190).
 		$this->wpdb->shouldReceive('prepare')->andReturn('query');
 		$this->wpdb->shouldReceive('get_row')->andReturn($rereg);
 		$this->wpdb->shouldReceive('get_results')->andReturn(
 			array(
-				(object) array( 'user_id' => 10 ),
-				(object) array( 'user_id' => 20 ),
+				(object) array( 'id' => 101, 'user_id' => 10 ),
+				(object) array( 'id' => 102, 'user_id' => 20 ),
 			)
 		);
+		$marked = array();
+		$this->wpdb->shouldReceive('query')->andReturnUsing(function () use (&$marked) {
+			$marked[] = true;
+			return 2;
+		});
 
 		Functions\when('get_userdata')->alias(function ($id) {
 			return (object) array(
@@ -309,6 +315,7 @@ class ReregistrationEmailHandlerTest extends TestCase {
 
 		$count = ReregistrationEmailHandler::send_invitations(1);
 		$this->assertSame(2, $count);
+		$this->assertNotEmpty($marked, 'Quem recebeu tem que ficar marcado, senão o próximo envio repete.');
 	}
 
 	// ==================================================================

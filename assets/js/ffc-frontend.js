@@ -241,7 +241,7 @@
         // (and any 3rd-party CSS hooking it) keep working.
         var html = '<div class="ffc-certificate-preview ffc-error ffc-verification-error">';
         html += '<div class="ffc-preview-header">';
-        html += '<span class="ffc-status-badge error ffc-icon-error">' + (s.certificateInvalid || 'Document Invalid') + '</span>';
+        html += '<span class="ffc-status-badge ffc-status-badge-error ffc-icon-error">' + (s.certificateInvalid || 'Document Invalid') + '</span>';
         html += '</div>';
         html += '<div class="ffc-preview-body">';
         html += '<p class="ffc-error-message">' + message + '</p>';

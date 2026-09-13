@@ -32,7 +32,7 @@ $ffc_auth_code  = isset( $auth_code ) ? (string) $auth_code : '';
 
 <div class="ffc-certificate-preview ffc-success-response" role="status" aria-live="polite">
 	<div class="ffc-preview-header">
-		<span class="ffc-status-badge success ffc-icon-success">
+		<span class="ffc-status-badge ffc-status-badge-success ffc-icon-success">
 			<?php esc_html_e( 'Certificate Issued', 'ffcertificate' ); ?>
 		</span>
 	</div>
@@ -42,8 +42,8 @@ $ffc_auth_code  = isset( $auth_code ) ? (string) $auth_code : '';
 
 		<?php if ( ! empty( $ffc_auth_code ) ) : ?>
 			<div class="ffc-detail-row ffc-success-auth-code">
-				<span class="label"><?php esc_html_e( 'Authentication Code:', 'ffcertificate' ); ?></span>
-				<span class="value code">
+				<span class="ffc-detail-label"><?php esc_html_e( 'Authentication Code:', 'ffcertificate' ); ?></span>
+				<span class="ffc-detail-value ffc-detail-value-code">
 					<code class="ffc-success-code"><?php echo esc_html( $ffc_auth_code ); ?></code>
 					<button type="button"
 						class="ffc-copy-btn"
@@ -59,13 +59,13 @@ $ffc_auth_code  = isset( $auth_code ) ? (string) $auth_code : '';
 		<?php endif; ?>
 
 		<div class="ffc-detail-row">
-			<span class="label"><?php esc_html_e( 'Form:', 'ffcertificate' ); ?></span>
-			<span class="value"><?php echo esc_html( $form_title ); ?></span>
+			<span class="ffc-detail-label"><?php esc_html_e( 'Form:', 'ffcertificate' ); ?></span>
+			<span class="ffc-detail-value"><?php echo esc_html( $form_title ); ?></span>
 		</div>
 
 		<div class="ffc-detail-row">
-			<span class="label"><?php esc_html_e( 'Date:', 'ffcertificate' ); ?></span>
-			<span class="value"><?php echo esc_html( $date_formatted ); ?></span>
+			<span class="ffc-detail-label"><?php esc_html_e( 'Date:', 'ffcertificate' ); ?></span>
+			<span class="ffc-detail-value"><?php echo esc_html( $date_formatted ); ?></span>
 		</div>
 
 		<?php if ( ! empty( $ffc_magic_link ) ) : ?>

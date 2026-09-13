@@ -85,11 +85,11 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 		expect(headers).toEqual(['Active', 'Completed']);
 	});
 
-	it("applies 'past-row' to completed rows", () => {
+	it("applies 'ffc-row-past' to completed rows", () => {
 		panel().render([
 			makeRereg({ is_active: false, title: 'Done' }),
 		], 1);
-		expect(document.querySelectorAll('#tab-reregistrations tr.past-row').length).toBe(1);
+		expect(document.querySelectorAll('#tab-reregistrations tr.ffc-row-past').length).toBe(1);
 	});
 
 	it('renders the Edit button when can_submit is true, omits it otherwise', () => {
@@ -110,6 +110,22 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 		], 1);
 		const buttons = document.querySelectorAll('#tab-reregistrations .ffc-btn-pdf');
 		expect(buttons.length).toBe(1);
+	});
+
+	it('attaches the prefixed status class with the status value', () => {
+		panel().render([
+			makeRereg({ status: 'approved', status_label: 'Approved', reregistration_id: 1 }),
+			makeRereg({ status: 'rejected', status_label: 'Rejected', reregistration_id: 2 }),
+		], 1);
+		expect(document.querySelectorAll('#tab-reregistrations .ffc-dashboard-status.ffc-dashboard-status-approved').length).toBe(1);
+		expect(document.querySelectorAll('#tab-reregistrations .ffc-dashboard-status.ffc-dashboard-status-rejected').length).toBe(1);
+	});
+
+	// #1151 — the same badge, the same rename, the second of its two emitters.
+	it('publishes no unprefixed status class', () => {
+		panel().render([makeRereg({ status: 'approved', status_label: 'Approved' })], 1);
+		expect(document.querySelectorAll('#tab-reregistrations .appointment-status').length).toBe(0);
+		expect(document.querySelectorAll('#tab-reregistrations .status-approved').length).toBe(0);
 	});
 
 	it('renders the auth_code in a <code> tag when present, dash when absent', () => {

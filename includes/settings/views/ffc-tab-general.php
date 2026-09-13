@@ -204,6 +204,22 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 				</tr>
 				<tr>
 					<th scope="row">
+						<label for="code_editor_theme"><?php esc_html_e( 'Code Editor Theme', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<?php $ffc_code_editor_theme = $ffcertificate_get_option( 'code_editor_theme', 'dark' ); ?>
+						<select name="ffc_settings[code_editor_theme]" id="code_editor_theme" class="regular-text" data-ffc-autosave-key="code_editor_theme">
+							<option value="auto" <?php selected( $ffc_code_editor_theme, 'auto' ); ?>><?php esc_html_e( 'Auto (follow Dark Mode above)', 'ffcertificate' ); ?></option>
+							<option value="light" <?php selected( $ffc_code_editor_theme, 'light' ); ?>><?php esc_html_e( 'Light', 'ffcertificate' ); ?></option>
+							<option value="dark" <?php selected( $ffc_code_editor_theme, 'dark' ); ?>><?php esc_html_e( 'Dark (VS Code style)', 'ffcertificate' ); ?></option>
+						</select>
+						<p class="description">
+							<?php esc_html_e( 'Applies to the Certificate HTML editor on the form edit screen. "Auto" mirrors the Dark Mode setting above; fresh installs default to Dark.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
 						<label><?php esc_html_e( 'Auto-delete old submissions', 'ffcertificate' ); ?></label>
 					</th>
 					<td>

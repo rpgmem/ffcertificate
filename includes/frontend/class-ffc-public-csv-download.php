@@ -203,7 +203,7 @@ class PublicCsvDownload {
 
 				<div class="ffc-form-field">
 					<label for="ffc-pcd-form-id">
-						<?php esc_html_e( 'Form ID', 'ffcertificate' ); ?> <span class="required">*</span>
+						<?php esc_html_e( 'Form ID', 'ffcertificate' ); ?> <span class="ffc-required">*</span>
 					</label>
 					<input
 						type="number"
@@ -219,7 +219,7 @@ class PublicCsvDownload {
 
 				<div class="ffc-form-field">
 					<label for="ffc-pcd-hash">
-						<?php esc_html_e( 'Access Hash', 'ffcertificate' ); ?> <span class="required">*</span>
+						<?php esc_html_e( 'Access Hash', 'ffcertificate' ); ?> <span class="ffc-required">*</span>
 					</label>
 					<input
 						type="text"
@@ -238,7 +238,7 @@ class PublicCsvDownload {
 							<label for="ffc-pcd-cpf" class="ffc-consent-text">
 								<?php esc_html_e( 'CPF', 'ffcertificate' ); ?>
 								<?php if ( 'optional' !== $cpf_mode ) : ?>
-									<span class="required">*</span>
+									<span class="ffc-required">*</span>
 								<?php endif; ?>
 							</label>
 							<input

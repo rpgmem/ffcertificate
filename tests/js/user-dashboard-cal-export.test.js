@@ -162,18 +162,18 @@ describe('ffc-user-dashboard-cal-export — dropdown interactions', () => {
 		);
 		const wraps = document.querySelectorAll('.ffc-cal-export-wrap');
 		// Force the second one open.
-		wraps[1].querySelector('.ffc-cal-export-dropdown').classList.add('open');
+		wraps[1].querySelector('.ffc-cal-export-dropdown').classList.add('is-open');
 
 		// Click the first trigger button.
 		window.$(wraps[0]).find('.ffc-cal-export-btn').trigger('click');
 
-		expect(wraps[0].querySelector('.ffc-cal-export-dropdown').classList.contains('open')).toBe(true);
+		expect(wraps[0].querySelector('.ffc-cal-export-dropdown').classList.contains('is-open')).toBe(true);
 		// The previously-open sibling was closed.
-		expect(wraps[1].querySelector('.ffc-cal-export-dropdown').classList.contains('open')).toBe(false);
+		expect(wraps[1].querySelector('.ffc-cal-export-dropdown').classList.contains('is-open')).toBe(false);
 
 		// A second click toggles it back closed.
 		window.$(wraps[0]).find('.ffc-cal-export-btn').trigger('click');
-		expect(wraps[0].querySelector('.ffc-cal-export-dropdown').classList.contains('open')).toBe(false);
+		expect(wraps[0].querySelector('.ffc-cal-export-dropdown').classList.contains('is-open')).toBe(false);
 	});
 
 	it('handles an ICS download for an event with an empty summary (escapeIcsText empty-string guard)', () => {

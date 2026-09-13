@@ -139,7 +139,14 @@ class DashboardAssetManager {
 		);
 
 		// Reregistration frontend assets.
-		wp_enqueue_style( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/css/ffc-reregistration-frontend{$s}.css", array( 'ffc-common', 'ffc-dashboard' ), FFC_VERSION );
+		//
+		// `ffc-working-hours` é dependência declarada, não decorativa (#1162):
+		// esta folha redeclara `.ffc-working-hours`, `.ffc-wh-table`,
+		// `.ffc-wh-add` e `.ffc-wh-remove` para o formulário do frontend, e as
+		// duas carregam nesta mesma tela. Sem a aresta, quem vence é a ordem de
+		// enfileiramento -- que hoje acerta por acaso, e inverteria se estas
+		// duas linhas trocassem de lugar.
+		wp_enqueue_style( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/css/ffc-reregistration-frontend{$s}.css", array( 'ffc-common', 'ffc-dashboard', 'ffc-working-hours' ), FFC_VERSION );
 		wp_enqueue_script( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/js/ffc-reregistration-frontend{$s}.js", array( 'jquery', 'ffc-dashboard', 'ffc-working-hours' ), FFC_VERSION, true );
 		wp_localize_script(
 			'ffc-reregistration-frontend',

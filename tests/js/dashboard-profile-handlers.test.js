@@ -427,9 +427,9 @@ describe('profile.render — multi-value list fields', () => {
 			emails: ['a@x.test', 'b@x.test'],
 			cpfs_masked: ['111.***', '222.***'],
 		});
-		expect(document.querySelectorAll('#tab-profile ul.name-list li').length).toBe(2);
-		expect(document.querySelectorAll('#tab-profile ul.email-list li').length).toBe(2);
-		expect(document.querySelectorAll('#tab-profile ul.cpf-list li').length).toBe(2);
+		expect(document.querySelectorAll('#tab-profile ul.ffc-name-list li').length).toBe(2);
+		expect(document.querySelectorAll('#tab-profile ul.ffc-email-list li').length).toBe(2);
+		expect(document.querySelectorAll('#tab-profile ul.ffc-cpf-list li').length).toBe(2);
 	});
 
 	it('renders the fallback value when a list field is empty', () => {

@@ -15,7 +15,45 @@
         initSubmissionDetailsModal();
         initTransferList();
         initCsvExport();
+        initSendInvitations();
     });
+
+    /**
+     * Manual invitation button (#1190).
+     *
+     * The server decides who is owed an email and stamps the ones it reached,
+     * so this is idempotent: a second press right after the first reports zero.
+     * Delegated from `document` and registered here rather than folded into
+     * another init that early-returns on this screen -- that is exactly how the
+     * audience-bookings handler was silently dropped (#783).
+     */
+    function initSendInvitations() {
+        $(document).on('click', '#ffc-rereg-send-invitations', function () {
+            var $btn = $(this);
+            var $msg = $btn.siblings('.ffc-rereg-invite-msg');
+            var cfg = window.ffcReregistrationAdmin || {};
+            var S = cfg.strings || {};
+
+            if ($btn.prop('disabled')) { return; }
+            $btn.prop('disabled', true);
+            $msg.text(S.inviteSending || 'Sending…');
+
+            FFC.request(
+                'ffc_rereg_send_invitations',
+                { reregistration_id: $btn.data('rereg-id') },
+                { nonce: cfg.adminNonce, ajaxUrl: cfg.ajaxUrl }
+            )
+                .then(function (data) {
+                    $msg.text((data && data.message) || '');
+                })
+                .catch(function (err) {
+                    $msg.text((err && err.message) || S.inviteError || 'An error occurred.');
+                })
+                .then(function () {
+                    $btn.prop('disabled', false);
+                });
+        });
+    }
 
     /**
      * Batched CSV export (#772). The "Export CSV" button drives the unified
@@ -155,17 +193,17 @@
         var $modal = $('#ffc-submission-details-modal');
         if (!$modal.length) return;
 
-        var $body = $modal.find('.ffc-modal-body');
+        var $body = $modal.find('.ffc-rereg-modal-body');
 
         function openModal() {
             $modal.show();
-            $('body').addClass('ffc-modal-open');
+            $('body').addClass('ffc-rereg-modal-open');
         }
 
         function closeModal() {
             $modal.hide();
-            $('body').removeClass('ffc-modal-open');
-            $body.html('<p class="ffc-modal-loading"></p>');
+            $('body').removeClass('ffc-rereg-modal-open');
+            $body.html('<p class="ffc-rereg-modal-loading"></p>');
         }
 
         $(document).on('click', '.ffc-view-details-btn', function (e) {
@@ -174,7 +212,7 @@
             if (!subId) return;
 
             var S = (window.ffcReregistrationAdmin && window.ffcReregistrationAdmin.strings) || {};
-            $body.html('<p class="ffc-modal-loading">' + (S.loadingDetails || 'Loading…') + '</p>');
+            $body.html('<p class="ffc-rereg-modal-loading">' + (S.loadingDetails || 'Loading…') + '</p>');
             openModal();
 
             FFC.request(
@@ -196,7 +234,7 @@
         });
 
         // Close handlers: X button, backdrop, ESC key
-        $modal.on('click', '.ffc-modal-close, .ffc-modal-backdrop', function () {
+        $modal.on('click', '.ffc-rereg-modal-close, .ffc-rereg-modal-backdrop', function () {
             closeModal();
         });
         $(document).on('keydown.ffcDetails', function (e) {

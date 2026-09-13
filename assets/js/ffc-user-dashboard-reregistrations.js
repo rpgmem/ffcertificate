@@ -97,7 +97,7 @@
                         : (s.completed || 'Completed');
 
                     html += '<h3' + (section !== 'active' ? ' style="margin-top: 30px;"' : '') + '>' + sectionLabel + '</h3>';
-                    html += '<table class="ffc-reregistrations-table' + (section !== 'active' ? ' past-reregistrations' : '') + '">';
+                    html += '<table class="ffc-reregistrations-table' + (section !== 'active' ? ' ffc-table-past' : '') + '">';
                     html += '<thead><tr>';
                     html += '<th>' + (s.reregistrationTitle || 'Campaign') + '</th>';
                     html += '<th>' + (s.period || 'Period') + '</th>';
@@ -108,11 +108,11 @@
                     html += '</tr></thead><tbody>';
                 }
 
-                var rowClass = section !== 'active' ? ' class="past-row"' : '';
+                var rowClass = section !== 'active' ? ' class="ffc-row-past"' : '';
                 html += '<tr' + rowClass + '>';
                 html += '<td>' + esc(item.title) + '</td>';
                 html += '<td>' + esc(item.start_date_formatted) + ' &mdash; ' + esc(item.end_date_formatted) + '</td>';
-                html += '<td><span class="appointment-status status-' + item.status + '">' + esc(item.status_label) + '</span></td>';
+                html += '<td><span class="ffc-dashboard-status ffc-dashboard-status-' + item.status + '">' + esc(item.status_label) + '</span></td>';
                 html += '<td>' + esc(item.submitted_at || '—') + '</td>';
                 html += '<td>';
                 if (item.auth_code) {

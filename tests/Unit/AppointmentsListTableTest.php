@@ -242,7 +242,7 @@ class AppointmentsListTableTest extends TestCase {
 	public function test_column_status_known_label_and_fallback(): void {
 		$table = new AppointmentsListTable();
 
-		$this->assertStringContainsString( 'ffc-status-confirmed', $table->column_status( array( 'status' => 'confirmed' ) ) );
+		$this->assertStringContainsString( 'ffc-appointment-status-confirmed', $table->column_status( array( 'status' => 'confirmed' ) ) );
 		// Unknown status → escaped raw value.
 		$this->assertSame( 'weird', $table->column_status( array( 'status' => 'weird' ) ) );
 	}

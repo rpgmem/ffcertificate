@@ -41,30 +41,93 @@
     --ffc-gray-700: #3c434a;
     --ffc-gray-800: #1d2327;
 
-    /* Typography
-       Font sizes use rem so they respect the user's browser base font size
-       (default 16px). Values match the previous px scale on a 16px root:
-       11→0.6875, 13→0.8125, 14→0.875, 16→1, 18→1.125, 24→1.5. */
+    /* Typography — cada degrau é `max(<piso px>, <rem>)`, e a forma é o ponto.
+
+       O `rem` respeita a preferência de tamanho de fonte do navegador, que é
+       o ganho de acessibilidade que queremos. Mas `rem` resolve contra a raiz
+       do DOCUMENTO, e no frontend a raiz é do tema do site: sob o idioma
+       comum `html { font-size: 62.5% }` a escala inteira encolhe junto.
+       O piso em px anula isso sem abrir mão do ganho.
+
+       Medido em Chromium (#1157), tamanho computado do degrau `sm`:
+
+                                    só rem   só px   max()
+         tema neutro (16px)           13px    13px    13px
+         tema 62.5%                  8,1px    13px    13px
+         usuário aumenta p/ 20px    16,3px    13px   16,3px
+
+       `max()` não é meio-termo: é melhor que `rem` no caso que quebra e
+       melhor que `px` no caso que importa. A única perda honesta é combinada
+       — sob um tema que encolhe a raiz, a preferência do usuário fica
+       absorvida pelo piso até ultrapassá-lo (com raiz a 62,5%, mesmo pedindo
+       24px ele recebe os 13px do piso). Ainda assim é melhor que os 12,2px
+       que o `rem` puro entregaria ali.
+
+       As duas metades têm de concordar a 16px — `max(13px, 0.8125rem)` é uma
+       identidade, não um intervalo. `TypographyTokensTest` falha se
+       divergirem, se o `max()` sumir, ou se um degrau sumir: uma custom
+       property não declarada invalida a declaração inteira.
+
+       O degrau `xs` era 11px e passou a ser 12px (#1148 item 4). O 12px tinha
+       69 usos e nenhum token — era o terceiro valor mais usado da base e a
+       escala pulava justamente ele, que é também o passo responsivo do `sm`
+       em quatro folhas. Renomear custou zero porque a escala tinha ZERO
+       consumidores: 415 declarações `font-size` e nenhuma lia um token. */
     --ffc-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-    --ffc-font-size-xs: 0.6875rem;
-    --ffc-font-size-sm: 0.8125rem;
-    --ffc-font-size-base: 0.875rem;
-    --ffc-font-size-lg: 1rem;
-    --ffc-font-size-xl: 1.125rem;
-    --ffc-font-size-2xl: 1.5rem;
+    --ffc-font-size-2xs: max(11px, 0.6875rem);
+    --ffc-font-size-xs: max(12px, 0.75rem);
+    --ffc-font-size-sm: max(13px, 0.8125rem);
+    --ffc-font-size-base: max(14px, 0.875rem);
+    --ffc-font-size-lg: max(16px, 1rem);
+    --ffc-font-size-xl: max(18px, 1.125rem);
+    --ffc-font-size-2xl: max(24px, 1.5rem);
 
     /* Spacing */
-    --ffc-spacing-xs: 5px;
-    --ffc-spacing-sm: 10px;
-    --ffc-spacing-md: 15px;
-    --ffc-spacing-lg: 20px;
-    --ffc-spacing-xl: 30px;
+    /* Escala de espaçamento (#1169). Uma progressão só; toda declaração de
+       margin/padding/gap lê um destes. A escala EXISTIA com estes nomes e
+       tinha 3 consumidores de 1.238 declarações — os degraus abaixo são os
+       valores que o código realmente usa, não os que a escala antiga
+       declarava. */
+    --ffc-spacing-3xs: 2px;
+    --ffc-spacing-2xs: 4px;
+    --ffc-spacing-xs: 6px;
+    --ffc-spacing-sm: 8px;
+    --ffc-spacing-md: 10px;
+    --ffc-spacing-lg: 12px;
+    --ffc-spacing-xl: 16px;
+    --ffc-spacing-2xl: 20px;
+    --ffc-spacing-3xl: 24px;
+
 
     /* Border Radius */
+    --ffc-radius-xs: 3px;
     --ffc-radius-sm: 4px;
     --ffc-radius-md: 6px;
     --ffc-radius-lg: 8px;
     --ffc-radius-full: 50%;
+    /* `pill` é papel, não degrau — o par de `full`, que é o papel
+       "círculo". O valor é 12px e não `999px` de propósito: é o raio
+       que o selo já tinha quando morava num literal PHP (#1193), e
+       preservá-lo é o que torna a mudança auditável. Ele arredonda por
+       completo qualquer selo de até 24px de altura; um selo mais alto
+       que isso é que pede a troca por `999px`, com prova própria. */
+    --ffc-radius-pill: 12px;
+
+    /* Camadas de empilhamento (#1171). Nomeadas pelo PAPEL, não pelo número.
+       `modal` é 100000 porque a barra do wp-admin é 99999 — esse é o único
+       número aqui que tem uma razão externa, e é a razão de ele existir.
+
+       QUATRO valores ficaram de fora, de propósito: 9999, 100001, 999999 e
+       2147483647 são quatro respostas diferentes para "fique acima da barra",
+       e são a assinatura de uma guerra de empilhamento. Colapsá-las MUDA a
+       ordem relativa nas telas onde convivem, o que não é conversão e sim
+       mudança de comportamento — precisa de verificação tela a tela. Ficam
+       literais e registradas no orçamento da guarda até alguém fazer isso. */
+    --ffc-z-raised: 1;
+    --ffc-z-sticky: 10;
+    --ffc-z-dropdown: 100;
+    --ffc-z-overlay: 1000;
+    --ffc-z-modal: 100000;
 
     /* Shadows */
     --ffc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -79,6 +142,17 @@
     /* Semantic Tokens - Surfaces */
     --ffc-bg: #ffffff;
     --ffc-bg-alt: #f6f7f7;
+
+    /* Par do selo cuja cor vem de uma LINHA do banco (#1193). Declarado aqui
+       porque uma propriedade personalizada que nada declara invalida a
+       declaração inteira (#1126 defeito 2) -- o valor real chega no `style=`
+       do elemento e sobrescreve este, que é o neutro de quando não chega.
+
+       Aponta para os tokens neutros em vez de repetir o hex deles: uma
+       propriedade personalizada resolve no PONTO DE USO, então o par acompanha
+       o tema escuro sem precisar de uma segunda declaração lá. */
+    --ffc-badge-row-bg: var(--ffc-bg-alt);
+    --ffc-badge-row-text: var(--ffc-text);
     --ffc-bg-card: #ffffff;
     --ffc-bg-input: #ffffff;
     --ffc-bg-overlay: rgba(0, 0, 0, 0.5);
@@ -492,9 +566,21 @@
    anexado ao `<body>`, fora do contêiner do shortcode, então ele carrega a
    classe de escopo em si mesmo.
 
-   A cópia do admin de recadastramento ficou onde está: seletores sem escopo,
-   outra tela, e mesclar as duas exigiria decidir o escopo de cada regra — é
-   um PR próprio, não um efeito colateral deste. */
+   O modal do admin de recadastramento, que dividia este nome, agora se chama
+   `ffc-rereg-modal*` (#1154). Duas redações anteriores aqui erraram sobre ele,
+   e as duas ficam registradas porque a correção de cada uma custou medição.
+   A primeira o chamou de "segunda cópia": medindo (#1148), são componentes
+   diferentes — um centraliza por flex e tem 500px; o outro posiciona por
+   `margin-top` e tem 820px, rola pelo body em vez do content, e titula com
+   `h2`. Unificar seria redesenhar uma tela, não refatorar. A segunda disse que
+   o prefixo `.ffc-shortcode` era o que mantinha os dois separados, e era
+   verdade — `ffc-common` é dependência DECLARADA de `ffc-reregistration-admin`,
+   então as duas folhas carregam na mesma tela. O que faltava é que seguir
+   separados não obrigava a continuar com o mesmo nome.
+
+   O prefixo fica, pelo motivo comum a toda regra de frontend: sem ele, estas
+   regras alcançam o que o tema do site chamar de modal.
+   `AdminStylesheetTokensTest` falha se ele sair. */
 
 .ffc-shortcode .ffc-modal,
 .ffc-shortcode.ffc-modal {
@@ -503,7 +589,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 100000;
+    z-index: var(--ffc-z-modal);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -533,23 +619,34 @@
     max-width: min(700px, 95vw);
 }
 
+/* O ajuste de telefone mora junto da base. Ele ficou para trás em
+   `ffc-audience.css` quando o componente veio para cá (#1140), o que partia o
+   modal em dois arquivos: a base aqui, a media query lá. Funcionava pela ordem
+   de carga e era exatamente o tipo de coisa que o próximo leitor não encontra. */
+@media screen and (max-width: 768px) {
+    .ffc-shortcode .ffc-modal-content {
+        width: 95%;
+        max-height: 95vh;
+    }
+}
+
 .ffc-shortcode .ffc-modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     border-bottom: 1px solid var(--ffc-gray-200);
 }
 
 .ffc-shortcode .ffc-modal-header h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
 }
 
 .ffc-shortcode .ffc-modal-close {
     background: none;
     border: none;
-    font-size: 24px;
+    font-size: var(--ffc-font-size-2xl);
     cursor: pointer;
     color: var(--ffc-gray-600);
     padding: 0;
@@ -561,14 +658,14 @@
 }
 
 .ffc-shortcode .ffc-modal-body {
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
 }
 
 .ffc-shortcode .ffc-modal-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
-    padding: 15px 20px;
+    gap: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     border-top: 1px solid var(--ffc-gray-200);
 }
 
@@ -577,13 +674,13 @@
 .ffc-shortcode .ffc-modal-body .ffc-form-group label {
     display: block;
     font-weight: 600;
-    margin-bottom: 5px;
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-shortcode .ffc-modal-body .ffc-form-group textarea {
     width: 100%;
     box-sizing: border-box;
-    padding: 8px 10px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
     color: var(--ffc-text);
     background: var(--ffc-bg-input);
     border: 1px solid var(--ffc-border);
@@ -658,9 +755,9 @@
  */
 .ffc-status-badge {
     display: inline-block;
-    padding: 2px 8px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
     border-radius: 10px;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
     text-transform: uppercase;
     white-space: nowrap;
@@ -695,7 +792,7 @@
     margin: -10px 0 0 -10px;
     border: 2px solid var(--ffc-border-light);
     border-top: 2px solid var(--ffc-primary);
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     animation: ffc-spin 1s linear infinite;
 }
 
@@ -716,15 +813,15 @@
     background: var(--ffc-warning-bg);
     border: 1px solid var(--ffc-warning-border);
     border-radius: var(--ffc-radius-sm);
-    padding: var(--ffc-spacing-md);
-    margin-bottom: var(--ffc-spacing-lg);
+    padding: var(--ffc-spacing-xl);
+    margin-bottom: var(--ffc-spacing-2xl);
     display: flex;
     align-items: center;
-    gap: var(--ffc-spacing-sm);
+    gap: var(--ffc-spacing-md);
 }
 
 .ffc-rate-limit-icon {
-    font-size: 24px;
+    font-size: var(--ffc-font-size-2xl);
 }
 
 .ffc-rate-limit-message {
@@ -799,15 +896,18 @@
 
 /* Private visibility restriction container */
 .ffc-visibility-restricted {
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
     background: var(--ffc-warning-light);
     border: 1px solid var(--ffc-warning);
-    border-radius: 6px;
+    border-radius: var(--ffc-radius-md);
     text-align: center;
 }
 
+/* 1.2em literal: relativo ao PAI de propósito — este componente é solto em
+   contextos de tamanhos diferentes e acompanha cada um. Um token absoluto
+   destruiria justamente essa relação. */
 .ffc-visibility-restricted .ffc-calendar-title {
-    margin: 0 0 10px;
+    margin: 0 0 var(--ffc-spacing-md);
     font-size: 1.2em;
     color: var(--ffc-text);
 }
@@ -823,7 +923,7 @@
 
 /* Scheduling restriction within modal */
 .ffc-scheduling-restricted {
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
     text-align: center;
 }
 
@@ -837,12 +937,13 @@
 }
 
 /* Admin bypass notice */
+/* 0.9em literal: relativo ao pai, mesma razão do .ffc-calendar-title acima. */
 .ffc-admin-bypass-notice {
-    padding: 10px 15px;
-    margin-bottom: 15px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-xl);
+    margin-bottom: var(--ffc-spacing-xl);
     background: var(--ffc-info-light);
     border: 1px solid var(--ffc-info);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     font-size: 0.9em;
     color: var(--ffc-info);
 }
@@ -850,12 +951,57 @@
 /* Badge — canonical base class (shared across admin + frontend) */
 .ffc-badge {
     display: inline-block;
-    padding: 3px 8px;
-    border-radius: 3px;
-    font-size: 11px;
+    padding: 3px var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-xs);
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.3px;
+}
+
+/* Pílula — a segunda forma de selo da base (#1193).
+   Vinha de um literal PHP (`Core\BadgeHtml::BADGE_STYLE`), aplicado inline em
+   cada `<span>`, o que tornava letra morta qualquer classe de forma: inline
+   vence classe, sempre. As sete chamadas do helper compõem esta classe com a
+   família e a variante do módulo.
+
+   O par vertical `3px` é o mesmo do `.ffc-badge` acima: as duas formas de selo
+   da base têm a mesma altura de propósito, e é por isso que este literal fica
+   em vez de encostar num degrau da escada -- o orçamento que ele ocupa aqui é
+   o que a regra fóssil de `ffc-admin-submissions.css` devolveu no mesmo PR. */
+.ffc-pill {
+    display: inline-block;
+    padding: 3px var(--ffc-spacing-md);
+    border-radius: var(--ffc-radius-pill);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 500;
+    /* O literal inline escrevia `cursor:default` em TODO selo, com dica ou sem.
+       Sem esta linha o cursor volta ao `auto` do agente de usuário, que sobre
+       texto é o I-beam -- movimento visível em 50 medições. Fica preservado
+       porque o #1193 muda o ENDEREÇO da declaração, não a decisão; se um selo
+       deve ou não parecer texto selecionável é pergunta com argumento próprio,
+       e não se responde de carona numa mudança que promete zero movimento. */
+    cursor: default;
+}
+
+/* Selo com dica: era `cursor:help` inline. Ter ou não `title` é propriedade do
+   markup, então é classe -- e a folha decide o que isso parece. */
+.ffc-pill-has-tip {
+    cursor: help;
+}
+
+/* Selo cuja cor vem de uma LINHA do banco, não de um status: o número de
+   valores numa página é o número de linhas nela, então a regra fica aqui e só
+   o valor viaja no atributo, como propriedade personalizada que o
+   `Core\BadgeHtml::render_with_row_color()` escreve (#1193).
+
+   As duas propriedades são declaradas no `:root` com um par neutro, e não como
+   reserva dentro do `var()`: uma propriedade que nada declara invalida a
+   declaração INTEIRA (#1126 defeito 2), e um par declarado é o que permite às
+   guardas medirem o contraste dele como medem o de qualquer outro. */
+.ffc-pill-row-color {
+    background: var(--ffc-badge-row-bg);
+    color: var(--ffc-badge-row-text);
 }
 
 /* ==========================================================================
@@ -864,11 +1010,11 @@
 
 .ffc-btn {
     display: inline-block;
-    padding: 10px 20px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-2xl);
     border: none;
     border-radius: var(--ffc-radius-sm);
     font-family: var(--ffc-font-family);
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     font-weight: 500;
     cursor: pointer;
     text-decoration: none;
@@ -934,7 +1080,7 @@
 
 .ffc-badge-private {
     background: var(--ffc-danger-light);
-    color: var(--ffc-danger);
+    color: var(--ffc-danger-text);
     border: 1px solid var(--ffc-danger);
 }
 
@@ -943,8 +1089,8 @@
    Sprint 2: Replace common inline style="" patterns
    ========================================================================== */
 .ffc-flex          { display: flex; }
-.ffc-mb-md         { margin-bottom: 12px; }
-.ffc-color-dot     { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: middle; background-color: var(--ffc-color, currentColor); }
+.ffc-mb-md         { margin-bottom: var(--ffc-spacing-lg); }
+.ffc-color-dot     { display: inline-block; width: 12px; height: 12px; border-radius: var(--ffc-radius-full); vertical-align: middle; background-color: var(--ffc-color, currentColor); }
 
 /* ==========================================================================
    TOGGLE SWITCH — mobile-style ON/OFF for boolean settings.
@@ -965,7 +1111,7 @@
        would otherwise collapse the toggle and overlap the label text. */
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
     cursor: pointer;
     user-select: none;
     line-height: 1.3;
@@ -998,7 +1144,7 @@
     left: 2px;
     width: 18px;
     height: 18px;
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     /* O botão do interruptor fica branco nos dois temas de propósito: no tema
        escuro a pista é escura, e um botão em var(--ffc-bg-card) sumiria dentro
        dela. É literal por decisão, não por esquecimento (#1126 B). */
@@ -1042,10 +1188,10 @@
    ========================================================================== */
 .ffc-autosave-badge {
     display: inline-block;
-    margin-left: 8px;
-    padding: 2px 8px;
+    margin-left: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
     border-radius: 10px;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     font-weight: 500;
     line-height: 1.5;
     vertical-align: middle;
@@ -1063,7 +1209,7 @@
 
 .ffc-autosave-badge--error {
     background: var(--ffc-danger-light);
-    color: var(--ffc-danger);
+    color: var(--ffc-danger-text);
 }
 
 /* ==========================================================================
@@ -1074,7 +1220,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 4px;
+    gap: var(--ffc-spacing-2xs);
 }
 
 .ffc-features-cell .ffc-toggle {
@@ -1083,10 +1229,10 @@
 
 .ffc-features-badge {
     display: inline-block;
-    margin-top: 4px;
-    padding: 2px 8px;
+    margin-top: var(--ffc-spacing-2xs);
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
     border-radius: 10px;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 500;
     line-height: 1.4;
 }
@@ -1103,7 +1249,7 @@
 
 .ffc-features-badge--error {
     background: var(--ffc-danger-light);
-    color: var(--ffc-danger);
+    color: var(--ffc-danger-text);
 }
 
 /* ==========================================================================
@@ -1120,7 +1266,7 @@
    Each mode carries a consequence rather than a preference, so the note
    sits with its option instead of in a paragraph above the group. */
 .ffc-captcha-mode {
-    margin: 0 0 18px;
+    margin: 0 0 var(--ffc-spacing-xl);
     max-width: 46em;
 }
 
@@ -1128,12 +1274,12 @@
 .ffc-captcha-mode-note {
     display: block;
     /* Indented under the radio so the note reads as belonging to its option. */
-    margin-left: 24px;
+    margin-left: var(--ffc-spacing-3xl);
 }
 
 .ffc-captcha-mode-note {
-    margin-top: 4px;
-    padding-left: 10px;
+    margin-top: var(--ffc-spacing-2xs);
+    padding-left: var(--ffc-spacing-md);
     border-left: 3px solid transparent;
 }
 
@@ -1157,8 +1303,8 @@
    ========================================================================== */
 
 .ffc-email-disabled-notice {
-    margin: 0 0 16px;
-    padding: 10px 14px;
+    margin: 0 0 var(--ffc-spacing-xl);
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
     border-left: 4px solid var(--ffc-warning-border);
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
@@ -1167,4 +1313,49 @@
 
 .ffc-email-disabled-notice p {
     margin: 0;
+}
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+
+   No modo de alto contraste o agente de usuário FORÇA `color`,
+   `background-color` e `border-color`, e descarta `box-shadow`. Um componente
+   cujo limite era só o fundo deixa de ter limite: medido em Chromium (#1165),
+   os cinco selos de estado do agendamento viravam um só, e o botão de envio
+   do formulário público virava uma palavra sem contorno.
+
+   A borda aqui não tem efeito nenhum fora do modo forçado -- foi por isso que
+   ela mora numa media query em vez de um `border: 1px solid transparent`, que
+   funciona igual mas muda as métricas da caixa no modo normal.
+
+   `ButtonText` para o que se clica, `CanvasText` para o que se lê: são as
+   cores que o próprio sistema usa para cada papel.
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Controles: sem contorno, um botão deixa de parecer clicável. */
+    .ffc-btn-danger,
+    .ffc-btn-primary,
+    .ffc-btn-secondary,
+    .ffc-btn-success,
+    :root.ffc-dark-mode .button,
+    :root.ffc-dark-mode .button-secondary,
+    :root.ffc-dark-mode .button.disabled {
+        border: 1px solid ButtonText;
+    }
+
+    /* Selos de estado: o texto continua dizendo o estado; a borda
+       devolve a eles a forma de selo. */
+    .ffc-autosave-badge--error,
+    .ffc-autosave-badge--saved,
+    .ffc-autosave-badge--saving,
+    .ffc-features-badge--error,
+    .ffc-features-badge--saved,
+    .ffc-features-badge--saving,
+    /* O selo de cor por linha pinta fundo e nada mais; no modo forçado o
+       sistema descarta esse fundo e sobra texto solto (#1193). */
+    .ffc-pill-row-color,
+    .ffc-status-pending {
+        border: 1px solid CanvasText;
+    }
 }

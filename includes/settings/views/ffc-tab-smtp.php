@@ -228,21 +228,21 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 	<h2 class="ffc-icon-bulb"><?php esc_html_e( 'Popular SMTP Providers', 'ffcertificate' ); ?></h2>
 
 	<div class="ffc-provider-grid">
-		<div class="ffc-provider-card gmail">
+		<div class="ffc-provider-card ffc-provider-gmail">
 			<h4>Gmail</h4>
 			<p><strong>Host:</strong> smtp.gmail.com</p>
 			<p><strong>Port:</strong> 587 (TLS)</p>
 			<p><strong>Note:</strong> <?php esc_html_e( 'Use app-specific password', 'ffcertificate' ); ?></p>
 		</div>
 		
-		<div class="ffc-provider-card outlook">
+		<div class="ffc-provider-card ffc-provider-outlook">
 			<h4>Outlook/Office 365</h4>
 			<p><strong>Host:</strong> smtp.office365.com</p>
 			<p><strong>Port:</strong> 587 (TLS)</p>
 			<p><strong>Note:</strong> <?php esc_html_e( 'Full email as username', 'ffcertificate' ); ?></p>
 		</div>
 		
-		<div class="ffc-provider-card sendgrid">
+		<div class="ffc-provider-card ffc-provider-sendgrid">
 			<h4>SendGrid</h4>
 			<p><strong>Host:</strong> smtp.sendgrid.net</p>
 			<p><strong>Port:</strong> 587 (TLS)</p>

@@ -6,58 +6,69 @@
  */
 
 /* ── Status badges ───────────────────────────── */
-.ffc-status-badge {
+/* Nome próprio desde o #1183 -- ver a mesma nota em
+   `ffc-recruitment-admin.css`.
+
+   ⚠ A forma abaixo é a MEDIDA, e ela não é a que esta folha declarava:
+   `text-transform` e `letter-spacing` NUNCA foram declarados aqui e mesmo
+   assim o selo os renderizava, porque `ffc-admin-submissions.css` os
+   declara e carrega nesta tela por acidente de portão. Passam a ser
+   declarados, para o render continuar igual e passar a ser intencional --
+   é a mesma decisão do #1162. */
+.ffc-reregistration-status-badge {
     display: inline-block;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 12px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-xs);
+    font-size: var(--ffc-font-size-xs);
     font-weight: 600;
     line-height: 1.5;
     white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
-.ffc-status-draft {
+.ffc-reregistration-status-draft {
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-secondary);
 }
 
-.ffc-status-active {
+.ffc-reregistration-status-active {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
 }
 
-.ffc-status-expired {
+.ffc-reregistration-status-expired {
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
 }
 
-.ffc-status-closed {
+.ffc-reregistration-status-closed {
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-muted);
 }
 
 /* Submission statuses */
-.ffc-status-pending {
+.ffc-reregistration-status-pending {
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-secondary);
 }
 
-.ffc-status-in_progress {
+.ffc-reregistration-status-in_progress {
     background: var(--ffc-info-bg);
     color: var(--ffc-info-text);
 }
 
-.ffc-status-submitted {
+.ffc-reregistration-status-submitted {
     background: var(--ffc-primary-light);
     color: var(--ffc-primary-hover);
 }
 
-.ffc-status-approved {
+.ffc-reregistration-status-approved {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
 }
 
-.ffc-status-rejected {
+.ffc-reregistration-status-rejected {
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
 }
@@ -67,8 +78,8 @@
     display: inline-block;
     width: 10px;
     height: 10px;
-    border-radius: 50%;
-    margin-right: 4px;
+    border-radius: var(--ffc-radius-full);
+    margin-right: var(--ffc-spacing-2xs);
     vertical-align: middle;
     background-color: var(--ffc-color, currentColor);
 }
@@ -77,26 +88,26 @@
 .ffc-rereg-stats {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: var(--ffc-spacing-lg);
     align-items: center;
-    margin: 15px 0;
-    padding: 10px 15px;
+    margin: var(--ffc-spacing-xl) 0;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-xl);
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    border-radius: 3px;
+    border-radius: var(--ffc-radius-xs);
 }
 
 .ffc-stat-item {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: var(--ffc-spacing-xs);
 }
 
 /* ── Filters ─────────────────────────────────── */
 .ffc-rereg-filters {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ffc-spacing-xs);
     flex-wrap: wrap;
 }
 
@@ -128,11 +139,11 @@
 }
 
 /* ── Delete link ─────────────────────────────── */
-a.delete-link {
+a.ffc-delete-link {
     color: var(--ffc-danger-text);
 }
 
-a.delete-link:hover {
+a.ffc-delete-link:hover {
     color: var(--ffc-danger);
 }
 
@@ -143,10 +154,10 @@ a.delete-link:hover {
     gap: 3px;
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-secondary);
-    padding: 1px 8px;
-    border-radius: 3px;
-    font-size: 12px;
-    margin: 1px 2px;
+    padding: 1px var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-xs);
+    font-size: var(--ffc-font-size-xs);
+    margin: 1px var(--ffc-spacing-3xs);
     white-space: nowrap;
 }
 
@@ -161,7 +172,7 @@ a.delete-link:hover {
 .ffc-transfer-col {
     flex: 1;
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     background: var(--ffc-bg-card);
     display: flex;
     flex-direction: column;
@@ -169,20 +180,20 @@ a.delete-link:hover {
 }
 
 .ffc-transfer-header {
-    padding: 8px 12px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     background: var(--ffc-bg-alt);
     border-bottom: 1px solid var(--ffc-border);
-    border-radius: 4px 4px 0 0;
+    border-radius: var(--ffc-radius-sm) var(--ffc-radius-sm) 0 0;
 }
 
 .ffc-transfer-search {
-    margin: 6px 8px;
-    padding: 4px 8px;
+    margin: var(--ffc-spacing-xs) var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
     border: 1px solid var(--ffc-border);
-    border-radius: 3px;
-    font-size: 12px;
+    border-radius: var(--ffc-radius-xs);
+    font-size: var(--ffc-font-size-xs);
     width: calc(100% - 16px);
     box-sizing: border-box;
 }
@@ -192,16 +203,16 @@ a.delete-link:hover {
     overflow-y: auto;
     min-height: 180px;
     max-height: 300px;
-    padding: 4px 0;
+    padding: var(--ffc-spacing-2xs) 0;
 }
 
 .ffc-transfer-item {
-    padding: 5px 10px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: var(--ffc-spacing-xs);
     user-select: none;
     transition: background 0.1s;
 }
@@ -220,21 +231,21 @@ a.delete-link:hover {
 }
 
 .ffc-transfer-child {
-    padding-left: 24px;
+    padding-left: var(--ffc-spacing-3xl);
 }
 
 .ffc-transfer-actions {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 4px;
-    padding: 0 6px;
+    gap: var(--ffc-spacing-2xs);
+    padding: 0 var(--ffc-spacing-xs);
 }
 
 .ffc-transfer-actions .button {
     min-width: 32px;
-    padding: 2px 8px;
-    font-size: 16px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+    font-size: var(--ffc-font-size-lg);
     line-height: 1.4;
     text-align: center;
 }
@@ -245,124 +256,126 @@ a.delete-link:hover {
 }
 
 .ffc-transfer-member-count {
-    margin-top: 8px;
+    margin-top: var(--ffc-spacing-sm);
 }
 
 /* ── Submission details modal ────────────────── */
-.ffc-modal {
+.ffc-rereg-modal {
     position: fixed;
     inset: 0;
-    z-index: 100000;
+    z-index: var(--ffc-z-modal);
 }
 
-body.ffc-modal-open {
+body.ffc-rereg-modal-open {
     overflow: hidden;
 }
 
-.ffc-modal-backdrop {
+.ffc-rereg-modal-backdrop {
     position: absolute;
     inset: 0;
     background: var(--ffc-bg-overlay);
 }
 
-.ffc-modal-content {
+.ffc-rereg-modal-content {
     position: relative;
     max-width: 820px;
     width: calc(100% - 40px);
     max-height: calc(100vh - 60px);
     margin: 30px auto 0;
     background: var(--ffc-bg-card);
-    border-radius: 6px;
+    border-radius: var(--ffc-radius-md);
     box-shadow: var(--ffc-shadow-lg);
     display: flex;
     flex-direction: column;
 }
 
-.ffc-modal-header {
+.ffc-rereg-modal-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 20px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-2xl);
     border-bottom: 1px solid var(--ffc-border-light);
     background: var(--ffc-bg-alt);
-    border-radius: 6px 6px 0 0;
+    border-radius: var(--ffc-radius-md) var(--ffc-radius-md) 0 0;
 }
 
-.ffc-modal-header h2 {
+.ffc-rereg-modal-header h2 {
     margin: 0;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
 }
 
-.ffc-modal-close {
+/* 28px literal: o glifo `&times;` do botão de fechar, dimensionado pelo
+   alvo de clique e não pela escala de texto. */
+.ffc-rereg-modal-close {
     background: none;
     border: none;
     font-size: 28px;
     line-height: 1;
     color: var(--ffc-text-secondary);
     cursor: pointer;
-    padding: 0 6px;
+    padding: 0 var(--ffc-spacing-xs);
 }
 
-.ffc-modal-close:hover {
+.ffc-rereg-modal-close:hover {
     color: var(--ffc-text);
 }
 
-.ffc-modal-body {
-    padding: 18px 22px;
+.ffc-rereg-modal-body {
+    padding: var(--ffc-spacing-xl) 22px;
     overflow-y: auto;
     flex: 1 1 auto;
 }
 
-.ffc-modal-loading {
+.ffc-rereg-modal-loading {
     color: var(--ffc-text-secondary);
     font-style: italic;
 }
 
 /* Submission details content */
 .ffc-submission-meta {
-    margin-bottom: 14px;
-    padding-bottom: 10px;
+    margin-bottom: var(--ffc-spacing-lg);
+    padding-bottom: var(--ffc-spacing-md);
     border-bottom: 1px solid var(--ffc-border-light);
 }
 
 .ffc-submission-meta p {
-    margin: 4px 0;
+    margin: var(--ffc-spacing-2xs) 0;
 }
 
 .ffc-details-fieldset {
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
-    padding: 8px 14px 12px;
-    margin: 0 0 14px;
+    border-radius: var(--ffc-radius-sm);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg) var(--ffc-spacing-lg);
+    margin: 0 0 var(--ffc-spacing-lg);
     background: var(--ffc-bg-card);
 }
 
 .ffc-details-fieldset > legend {
-    padding: 0 6px;
+    padding: 0 var(--ffc-spacing-xs);
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text);
 }
 
 .ffc-details-list {
     display: grid;
     grid-template-columns: minmax(140px, 30%) 1fr;
-    gap: 6px 14px;
+    gap: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
     margin: 0;
 }
 
 .ffc-details-list dt {
     font-weight: 600;
     color: var(--ffc-text-secondary);
-    font-size: 13px;
-    padding: 4px 0;
+    font-size: var(--ffc-font-size-sm);
+    padding: var(--ffc-spacing-2xs) 0;
     border-bottom: 1px dashed var(--ffc-border-light);
 }
 
 .ffc-details-list dd {
     margin: 0;
-    padding: 4px 0;
+    padding: var(--ffc-spacing-2xs) 0;
     border-bottom: 1px dashed var(--ffc-border-light);
     overflow-wrap: break-word;
 }
@@ -379,11 +392,11 @@ body.ffc-modal-open {
 
 .ffc-rereg-icon {
     vertical-align: middle;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-rereg-ml-10 {
-    margin-left: 10px;
+    margin-left: var(--ffc-spacing-md);
 }
 
 .ffc-rereg-inline {
@@ -396,4 +409,27 @@ body.ffc-modal-open {
 
 .ffc-rereg-muted {
     color: var(--ffc-text-light);
+}
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
+   O mecanismo está explicado em ffc-common.css (#1165).
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Selos de estado: o texto continua dizendo o estado; a borda
+       devolve a eles a forma de selo. */
+    .ffc-audience-badge,
+    .ffc-reregistration-status-active,
+    .ffc-reregistration-status-approved,
+    .ffc-reregistration-status-closed,
+    .ffc-reregistration-status-draft,
+    .ffc-reregistration-status-expired,
+    .ffc-reregistration-status-in_progress,
+    .ffc-reregistration-status-pending,
+    .ffc-reregistration-status-rejected,
+    .ffc-reregistration-status-submitted {
+        border: 1px solid CanvasText;
+    }
 }

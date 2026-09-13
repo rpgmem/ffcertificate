@@ -108,8 +108,8 @@
         selectTimeSlot: function($slot) {
             var time = $slot.data('time');
 
-            $('.ffc-timeslot').removeClass('selected').attr('aria-selected', 'false');
-            $slot.addClass('selected').attr('aria-selected', 'true');
+            $('.ffc-timeslot').removeClass('is-selected').attr('aria-selected', 'false');
+            $slot.addClass('is-selected').attr('aria-selected', 'true');
 
             this.selectedTime = time;
             // Whether the chosen slot is a waitlist join (full slot, queue open).
@@ -145,7 +145,7 @@
             // Reset modal to time slots view
             $('.ffc-booking-form-wrapper').hide();
             $('.ffc-timeslots-wrapper').show();
-            $('.ffc-timeslot').removeClass('selected').attr('aria-selected', 'false');
+            $('.ffc-timeslot').removeClass('is-selected').attr('aria-selected', 'false');
             this.selectedTime = null;
 
             // Return focus to the trigger element
@@ -541,7 +541,7 @@
             // Switch modal view: hide form, show time slots
             $('.ffc-booking-form-wrapper').hide();
             $('.ffc-timeslots-wrapper').show();
-            $('.ffc-timeslot').removeClass('selected');
+            $('.ffc-timeslot').removeClass('is-selected');
             this.selectedTime = null;
 
             // Restore modal title
@@ -568,7 +568,7 @@
             // Reset form
             $('#ffc-self-scheduling-form')[0].reset();
             $('.ffc-form-messages').html('');
-            $('.ffc-timeslot').removeClass('selected');
+            $('.ffc-timeslot').removeClass('is-selected');
 
             // Reset modal state
             $('.ffc-booking-form-wrapper').hide();

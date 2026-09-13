@@ -495,9 +495,8 @@ final class RecruitmentPublicShortcodeRenderer {
 			? $color_raw
 			: RecruitmentAdjutancyReader::DEFAULT_COLOR;
 		$name      = $adjutancy->name ?? '';
-		return BadgeHtml::render(
+		return BadgeHtml::render_with_row_color(
 			'ffc-recruitment-adjutancy-badge',
-			'',
 			$color,
 			is_string( $name ) ? $name : ''
 		);
@@ -514,15 +513,10 @@ final class RecruitmentPublicShortcodeRenderer {
 	 * @return string Already-escaped HTML.
 	 */
 	public static function render_subscription_badge( bool $is_pcd ): string {
-		$settings = RecruitmentSettings::all();
-		$bg       = $is_pcd
-			? (string) $settings['subscription_color_pcd']
-			: (string) $settings['subscription_color_geral'];
-		$label    = $is_pcd ? __( 'PCD', 'ffcertificate' ) : __( 'GERAL', 'ffcertificate' );
+		$label = $is_pcd ? __( 'PCD', 'ffcertificate' ) : __( 'GERAL', 'ffcertificate' );
 		return BadgeHtml::render(
 			'ffc-recruitment-subscription-badge',
 			'ffc-recruitment-subscription-' . ( $is_pcd ? 'pcd' : 'geral' ),
-			$bg,
 			$label
 		);
 	}
@@ -544,18 +538,9 @@ final class RecruitmentPublicShortcodeRenderer {
 	 * @return string Already-escaped HTML.
 	 */
 	private static function render_preview_status_badge( string $status, string $reason_label = '' ): string {
-		$settings = RecruitmentSettings::all();
-		$colors   = array(
-			'empty'          => (string) $settings['preview_color_empty'],
-			'denied'         => (string) $settings['preview_color_denied'],
-			'granted'        => (string) $settings['preview_color_granted'],
-			'appeal_denied'  => (string) $settings['preview_color_appeal_denied'],
-			'appeal_granted' => (string) $settings['preview_color_appeal_granted'],
-		);
 		return BadgeHtml::render(
 			'ffc-recruitment-preview-status-badge',
 			'ffc-recruitment-preview-status-' . $status,
-			$colors[ $status ] ?? '#e9ecef',
 			self::preview_status_label( $status ),
 			$reason_label
 		);
@@ -588,28 +573,26 @@ final class RecruitmentPublicShortcodeRenderer {
 	 *   Not_shown → soft red.
 	 *   Hired → soft green.
 	 *
-	 * Inline `style` is used (not a CSS variable) because each notice
-	 * could in theory render under a host theme without the recruitment
-	 * public CSS — keeping the color in the markup guarantees the badge
-	 * renders correctly even there.
+	 * The colour is still inline, and the reason has changed. It used to be
+	 * *"the recruitment public CSS could be absent"*, which measurement did not
+	 * support: {@see RecruitmentPublicShortcode::render()} enqueues it on its
+	 * first line and the sheet declares `array( 'ffc-common' )`. What was real
+	 * in that fear is timing, not absence — the enqueue ran inside
+	 * `the_content`, past `wp_head`, so the `<link>` came out in the footer;
+	 * that is what `maybe_enqueue_early()` now covers (#1193).
+	 *
+	 * It stays inline because the value is a hex an operator picked per status,
+	 * and no static sheet can know it. Moving the *rule* into the sheet — with
+	 * the value arriving as a custom property from `wp_add_inline_style()` — is
+	 * the second half of #1193.
 	 *
 	 * @param string $status Classification status enum value.
 	 * @return string Already-escaped HTML.
 	 */
 	private static function render_status_badge( string $status ): string {
-		$settings = RecruitmentSettings::all();
-		$colors   = array(
-			'empty'     => (string) $settings['status_color_empty'],
-			'called'    => (string) $settings['status_color_called'],
-			'accepted'  => (string) $settings['status_color_called'],
-			'hired'     => (string) $settings['status_color_hired'],
-			'not_shown' => (string) $settings['status_color_not_shown'],
-			'withdrew'  => (string) $settings['status_color_withdrew'],
-		);
 		return BadgeHtml::render(
 			'ffc-recruitment-status-badge',
 			'ffc-recruitment-status-' . $status,
-			$colors[ $status ] ?? '#e9ecef',
 			self::status_label( $status )
 		);
 	}

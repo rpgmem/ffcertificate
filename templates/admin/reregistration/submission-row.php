@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<td><?php echo esc_html( $sub->user_name ?? '—' ); ?></td>
 			<td><?php echo esc_html( $sub->user_email ?? '—' ); ?></td>
 			<td>
-				<span class="ffc-status-badge ffc-status-<?php echo esc_attr( $sub->status ); ?>">
+				<span class="ffc-reregistration-status-badge ffc-reregistration-status-<?php echo esc_attr( $sub->status ); ?>">
 					<?php echo esc_html( ReregistrationSubmissionReader::get_status_label( $sub->status ) ); ?>
 				</span>
 			</td>

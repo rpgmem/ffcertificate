@@ -98,7 +98,7 @@
                     else { sectionLabel = ffcDashboard.strings.cancelled || 'Cancelled'; isPastSection = true; }
 
                     html += '<h3' + (currentSection !== 'upcoming' ? ' style="margin-top: 30px;"' : '') + '>' + sectionLabel + '</h3>';
-                    html += '<table class="ffc-audience-bookings-table' + (isPastSection ? ' past-bookings' : '') + '">';
+                    html += '<table class="ffc-audience-bookings-table' + (isPastSection ? ' ffc-table-past' : '') + '">';
                     html += '<thead><tr>';
                     html += '<th>' + (ffcDashboard.strings.environment || 'Environment') + '</th>';
                     html += '<th>' + (ffcDashboard.strings.date || 'Date') + '</th>';
@@ -110,8 +110,8 @@
                 }
 
                 var rowClass = '';
-                if (booking.status === 'cancelled') rowClass = 'cancelled-row';
-                else if (booking.is_past) rowClass = 'past-row';
+                if (booking.status === 'cancelled') rowClass = 'ffc-row-cancelled';
+                else if (booking.is_past) rowClass = 'ffc-row-past';
 
                 html += '<tr' + (rowClass ? ' class="' + rowClass + '"' : '') + '>';
                 html += '<td>' + booking.environment_name;

@@ -334,4 +334,51 @@ class ReregistrationSubmissionWriter {
 
 		return $created;
 	}
+	/**
+	 * Stamp the invitation timestamp on the submissions that were just emailed.
+	 *
+	 * Written in one statement rather than per row: the caller loops to send,
+	 * and a failed send in the middle must not leave half the batch marked as
+	 * invited while the other half gets a second email on the next click.
+	 *
+	 * Category A (unix UTC) per CLAUDE.md — `time()`, never `current_time()`.
+	 *
+	 * @param array<int, int> $submission_ids Submission IDs.
+	 * @return int Rows updated.
+	 */
+	public static function mark_invited( array $submission_ids ): int {
+		$ids = array_values( array_filter( array_map( 'intval', $submission_ids ) ) );
+		if ( empty( $ids ) ) {
+			return 0;
+		}
+
+		$wpdb         = self::db();
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- O `{$placeholders}` é `%d` repetido por `array_fill()` acima, não dado de requisição; todo valor passa por `prepare()`.
+		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- A consulta é a saída de `prepare()` guardada numa variável, que é como `ReregistrationRepository::expire_overdue()` faz pelo mesmo motivo: o retorno precisa ser testado antes de ir para `query()`.
+		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- O sniff conta os marcadores do literal e não sabe que `prepare()` aceita um array único de argumentos, que é como a tabela e os ids chegam.
+		$sql = $wpdb->prepare(
+			"UPDATE %i SET invited_at = %d WHERE id IN ({$placeholders})",
+			array_merge( array( self::get_table_name(), time() ), $ids )
+		);
+
+		// `prepare()` devolve `string|null`, e `query()` só aceita string -- o
+		// mesmo guarda que `expire_overdue()` usa pela mesma razão.
+		if ( ! is_string( $sql ) ) {
+			return 0;
+		}
+
+		$result = $wpdb->query( $sql );
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		// Same invalidation the other mutators do: one key per row. There is no
+		// group flush on the trait, and inventing one here would be a second
+		// way to do what every sibling already does per id.
+		foreach ( $ids as $id ) {
+			static::cache_delete( "id_{$id}" );
+		}
+
+		return is_numeric( $result ) ? (int) $result : 0;
+	}
 }

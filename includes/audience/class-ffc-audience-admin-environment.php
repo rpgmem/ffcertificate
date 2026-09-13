@@ -182,14 +182,14 @@ class AudienceAdminEnvironment {
 								<?php echo esc_html( $schedule_name ); ?>
 							</td>
 							<td class="column-status">
-								<span class="ffc-status-badge ffc-status-<?php echo esc_attr( $env->status ); ?>">
+								<span class="ffc-audience-status ffc-audience-status-<?php echo esc_attr( $env->status ); ?>">
 									<?php echo $is_active ? esc_html__( 'Active', 'ffcertificate' ) : esc_html__( 'Inactive', 'ffcertificate' ); ?>
 								</span>
 							</td>
 							<td class="column-actions">
 								<a href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Edit', 'ffcertificate' ); ?></a> |
 								<?php if ( $is_active ) : ?>
-									<a href="<?php echo esc_url( $deactivate_url ); ?>" class="delete-link" onclick="return confirm('
+									<a href="<?php echo esc_url( $deactivate_url ); ?>" class="ffc-delete-link" onclick="return confirm('
 									<?php
 										/* translators: %s: environment label (singular) */
 										printf( esc_attr__( 'Are you sure you want to deactivate this %s?', 'ffcertificate' ), esc_attr( $env_label_singular ) );
@@ -198,7 +198,7 @@ class AudienceAdminEnvironment {
 										<?php esc_html_e( 'Deactivate', 'ffcertificate' ); ?>
 									</a>
 								<?php else : ?>
-									<a href="<?php echo esc_url( $delete_url ); ?>" class="delete-link" onclick="return confirm('
+									<a href="<?php echo esc_url( $delete_url ); ?>" class="ffc-delete-link" onclick="return confirm('
 									<?php
 										/* translators: %s: environment label (singular) */
 										printf( esc_attr__( 'Are you sure you want to permanently delete this %s?', 'ffcertificate' ), esc_attr( $env_label_singular ) );
@@ -276,7 +276,7 @@ class AudienceAdminEnvironment {
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
 					<th scope="row">
-						<label for="environment_schedule"><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?> <span class="required">*</span></label>
+						<label for="environment_schedule"><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label>
 					</th>
 					<td>
 						<select name="environment_schedule" id="environment_schedule" required>
@@ -291,7 +291,7 @@ class AudienceAdminEnvironment {
 				</tr>
 				<tr>
 					<th scope="row">
-						<label for="environment_name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="required">*</span></label>
+						<label for="environment_name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label>
 					</th>
 					<td>
 						<input type="text" name="environment_name" id="environment_name" class="regular-text"

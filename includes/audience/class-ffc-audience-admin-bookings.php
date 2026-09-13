@@ -207,7 +207,7 @@ class AudienceAdminBookings {
 						<?php foreach ( $bookings as $booking ) : ?>
 							<?php
 							$creator_name = $creators_map[ (int) $booking->created_by ] ?? __( 'Unknown', 'ffcertificate' );
-							$status_class = 'active' === $booking->status ? 'status-active' : 'status-cancelled';
+							$status_class = 'active' === $booking->status ? 'ffc-booking-status-active' : 'ffc-booking-status-cancelled';
 							?>
 							<tr>
 								<td><?php echo esc_html( $booking->id ); ?></td>
@@ -236,7 +236,7 @@ class AudienceAdminBookings {
 									</a>
 									<?php if ( 'active' === $booking->status ) : ?>
 										|
-										<a href="#" class="ffc-cancel-booking delete-link" data-booking-id="<?php echo esc_attr( $booking->id ); ?>">
+										<a href="#" class="ffc-cancel-booking ffc-delete-link" data-booking-id="<?php echo esc_attr( $booking->id ); ?>">
 											<?php esc_html_e( 'Cancel', 'ffcertificate' ); ?>
 										</a>
 									<?php endif; ?>

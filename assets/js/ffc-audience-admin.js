@@ -68,7 +68,7 @@
                 clearTimeout(searchTimeout);
                 var query = $(this).val();
                 if (query.length < 2) {
-                    $('#user_results').removeClass('active').empty();
+                    $('#user_results').removeClass('is-active').empty();
                     return;
                 }
 
@@ -82,13 +82,13 @@
                                         html += '<div class="ffc-user-result" data-id="' + user.id + '" data-name="' + escHtml(user.name) + '">' + escHtml(user.name) + ' (' + escHtml(user.email) + ')</div>';
                                     }
                                 });
-                                $('#user_results').html(html).addClass('active');
+                                $('#user_results').html(html).addClass('is-active');
                             } else {
-                                $('#user_results').removeClass('active').empty();
+                                $('#user_results').removeClass('is-active').empty();
                             }
                         })
                         .catch(function() {
-                            $('#user_results').removeClass('active').empty();
+                            $('#user_results').removeClass('is-active').empty();
                         });
                 }, 300);
             });
@@ -98,11 +98,11 @@
                 var name = $(this).data('name');
                 selectedUsers[id] = name;
                 updateSelectedUsers();
-                $('#user_results').removeClass('active').empty();
+                $('#user_results').removeClass('is-active').empty();
                 $searchInput.val('');
             });
 
-            $(document).on('click', '.ffc-selected-user .remove', function() {
+            $(document).on('click', '.ffc-selected-user .ffc-selected-user-remove', function() {
                 var id = $(this).data('id');
                 delete selectedUsers[id];
                 updateSelectedUsers();
@@ -112,7 +112,7 @@
                 var html = '';
                 var ids = [];
                 for (var id in selectedUsers) {
-                    html += '<span class="ffc-selected-user">' + escHtml(selectedUsers[id]) + '<span class="remove" data-id="' + id + '">&times;</span></span>';
+                    html += '<span class="ffc-selected-user">' + escHtml(selectedUsers[id]) + '<span class="ffc-selected-user-remove" data-id="' + id + '">&times;</span></span>';
                     ids.push(id);
                 }
                 $('#selected_users').html(html);
@@ -203,7 +203,7 @@
                         var timeDisplay = parseInt(b.is_all_day) ? (strings.allDay || 'All Day') : (b.start_time + ' - ' + b.end_time);
                         var typeDisplay = b.booking_type === 'audience' ? (strings.audience || 'Audience') : (strings.customUsers || 'Custom Users');
                         var statusDisplay = b.status === 'active' ? (strings.active || 'Active') : (strings.cancelled || 'Cancelled');
-                        var statusClass = b.status === 'active' ? 'status-active' : 'status-cancelled';
+                        var statusClass = b.status === 'active' ? 'ffc-booking-status-active' : 'ffc-booking-status-cancelled';
 
                         var html = '<table class="widefat fixed"><tbody>';
                         html += '<tr><th>' + esc(strings.date || 'Date') + '</th><td>' + esc(b.booking_date) + '</td></tr>';
@@ -272,7 +272,7 @@
                     .then(function() {
                         // Update the row status and remove cancel link
                         var $row = $link.closest('tr');
-                        $row.find('.status-active').removeClass('status-active').addClass('status-cancelled').text(strings.cancelled || 'Cancelled');
+                        $row.find('.ffc-booking-status-active').removeClass('ffc-booking-status-active').addClass('ffc-booking-status-cancelled').text(strings.cancelled || 'Cancelled');
                         $link.prev().remove(); // remove "|" separator
                         $link.remove();
                     })

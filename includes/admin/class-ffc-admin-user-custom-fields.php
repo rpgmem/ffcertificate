@@ -170,7 +170,7 @@ class AdminUserCustomFields {
 										<label for="<?php echo esc_attr( $input_name ); ?>">
 											<?php echo esc_html( $field->field_label ); ?>
 											<?php if ( ! empty( $field->is_required ) ) : ?>
-												<span class="required">*</span>
+												<span class="ffc-required">*</span>
 											<?php endif; ?>
 										</label>
 										<?php if ( (int) $field->source_audience_id !== (int) $audience->id ) : ?>
@@ -297,10 +297,10 @@ class AdminUserCustomFields {
 						<thead>
 							<tr>
 								<th><?php esc_html_e( 'Day', 'ffcertificate' ); ?></th>
-								<th><?php esc_html_e( 'Entry 1', 'ffcertificate' ); ?> <span class="required">*</span></th>
+								<th><?php esc_html_e( 'Entry 1', 'ffcertificate' ); ?> <span class="ffc-required">*</span></th>
 								<th><?php esc_html_e( 'Exit 1', 'ffcertificate' ); ?></th>
 								<th><?php esc_html_e( 'Entry 2', 'ffcertificate' ); ?></th>
-								<th><?php esc_html_e( 'Exit 2', 'ffcertificate' ); ?> <span class="required">*</span></th>
+								<th><?php esc_html_e( 'Exit 2', 'ffcertificate' ); ?> <span class="ffc-required">*</span></th>
 								<th></th>
 							</tr>
 						</thead>

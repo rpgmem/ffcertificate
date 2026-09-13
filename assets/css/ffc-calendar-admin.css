@@ -7,7 +7,7 @@
 
 /* Calendar admin list table adjustments */
 .post-type-ffc_self_scheduling .wp-list-table {
-    margin-top: 10px;
+    margin-top: var(--ffc-spacing-md);
 }
 
 /* Appointment Status Badges
@@ -15,36 +15,54 @@
    ficavam claros dentro do card escuro. Cada estado passa a usar o par
    surface/text da paleta de estado, que o medidor de contraste do
    DarkModeCssTest verifica nos dois temas. */
-.ffc-status {
+.ffc-appointment-status {
     display: inline-block;
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 11px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-xs);
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
     text-transform: uppercase;
 }
 
-.ffc-status-pending {
+.ffc-appointment-status-pending {
     background: var(--ffc-bg-alt);
     color: var(--ffc-text-muted);
 }
 
-.ffc-status-confirmed {
+.ffc-appointment-status-confirmed {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
 }
 
-.ffc-status-cancelled {
+.ffc-appointment-status-cancelled {
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
 }
 
-.ffc-status-completed {
+.ffc-appointment-status-completed {
     background: var(--ffc-info-bg);
     color: var(--ffc-info-text);
 }
 
-.ffc-status-noshow {
+.ffc-appointment-status-noshow {
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
+}
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
+   O mecanismo está explicado em ffc-common.css (#1165).
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Selos de estado: o texto continua dizendo o estado; a borda
+       devolve a eles a forma de selo. */
+    .ffc-appointment-status-cancelled,
+    .ffc-appointment-status-completed,
+    .ffc-appointment-status-confirmed,
+    .ffc-appointment-status-noshow,
+    .ffc-appointment-status-pending {
+        border: 1px solid CanvasText;
+    }
 }

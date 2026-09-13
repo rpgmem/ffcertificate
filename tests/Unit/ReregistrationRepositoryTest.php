@@ -43,10 +43,18 @@ class ReregistrationRepositoryTest extends TestCase {
 		Functions\when('sanitize_text_field')->alias('trim');
 		Functions\when('get_current_user_id')->justReturn(1);
 		Functions\when('current_time')->justReturn('2026-03-01 12:00:00');
+		// `get_user_ids_for_audiences()` desce a hierarquia desde o #1190, então
+		// alcança `AudienceReader::get_all()` pelo caminho de `get_children()`.
+		Functions\when('sanitize_sql_orderby')->returnArg();
+		Functions\when('absint')->alias(function ($v) { return abs((int) $v); });
 
 		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() {
 			return func_get_args()[0];
 		})->byDefault();
+		// Sem filhos, por padrão: quem quiser hierarquia sobrescreve. `get_col`
+		// fica sem padrão de propósito -- cada teste declara o que a consulta
+		// de membros devolve.
+		$this->wpdb->shouldReceive('get_results')->andReturn(array())->byDefault();
 	}
 
 	protected function tearDown(): void {
@@ -1310,6 +1318,42 @@ class ReregistrationRepositoryTest extends TestCase {
 		$this->assertCount(3, $result);
 	}
 
+	/**
+	 * The #1190 defect: a campaign pinned to a parent audience must reach the
+	 * members of its children.
+	 *
+	 * Asserted on the ids that reach the members query, not on the returned
+	 * array — a test that only checks "not empty" passes with the cascade
+	 * removed, which is exactly how this shipped.
+	 */
+	public function test_get_user_ids_for_audiences_reaches_members_of_child_audiences(): void {
+		$child = (object) array( 'id' => 11, 'name' => 'Child', 'parent_id' => 10 );
+
+		// get_descendant_ids( 10 ) → get_children( 10 ) = [ 11 ], then get_children( 11 ) = [].
+		$rows = 0;
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(function () use (&$rows, $child) {
+			$rows++;
+			return 1 === $rows ? array( $child ) : array();
+		});
+
+		$member_args = array();
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function () use (&$member_args) {
+			$args = func_get_args();
+			if ( isset( $args[1] ) && is_array( $args[1] ) && strpos( (string) $args[0], 'DISTINCT user_id' ) !== false ) {
+				$member_args = $args[1];
+			}
+			return $args[0];
+		});
+		$this->wpdb->shouldReceive('get_col')->andReturn(array('100'));
+
+		$result = ReregistrationRepository::get_user_ids_for_audiences(array(10));
+
+		// First arg is the table name; the audience ids follow.
+		$this->assertContains(10, $member_args, 'O público da campanha tem que entrar na consulta.');
+		$this->assertContains(11, $member_args, 'O filho também — é o defeito do #1190.');
+		$this->assertSame(array(100), array_values($result));
+	}
+
 	public function test_get_user_ids_for_audiences_empty_input(): void {
 		$result = ReregistrationRepository::get_user_ids_for_audiences(array());
 
@@ -1340,4 +1384,55 @@ class ReregistrationRepositoryTest extends TestCase {
 	public function test_statuses_constant_has_four_entries(): void {
 		$this->assertCount(4, ReregistrationRepository::STATUSES);
 	}
+	// ==================================================================
+	// deadline_extended_at — #1190
+	// ==================================================================
+
+	/**
+	 * Runs update() with a new end_date and returns what reached $wpdb->update.
+	 *
+	 * @param string $current_end_date The stored end_date.
+	 * @param string $new_end_date     The incoming end_date.
+	 * @return array<string, mixed>
+	 */
+	private function capture_update_with_end_date(string $current_end_date, string $new_end_date): array {
+		$this->wpdb->shouldReceive('get_row')->andReturn(
+			(object) array( 'id' => '5', 'end_date' => $current_end_date )
+		);
+
+		$captured = array();
+		$this->wpdb->shouldReceive('update')->andReturnUsing(function ($table, $data) use (&$captured) {
+			$captured = $data;
+			return 1;
+		});
+
+		ReregistrationRepository::update(5, array( 'end_date' => $new_end_date ));
+
+		return $captured;
+	}
+
+	public function test_pushing_the_deadline_forward_records_the_extension(): void {
+		$captured = $this->capture_update_with_end_date('2026-06-30 23:59:59', '2026-07-31 23:59:59');
+
+		$this->assertArrayHasKey('deadline_extended_at', $captured);
+		$this->assertGreaterThan(0, (int) $captured['deadline_extended_at']);
+	}
+
+	/**
+	 * Shortening a deadline must NOT record an extension — the invitation
+	 * button re-invites on one, and nobody should be emailed because the
+	 * operator corrected a date backwards.
+	 */
+	public function test_pulling_the_deadline_back_records_nothing(): void {
+		$captured = $this->capture_update_with_end_date('2026-06-30 23:59:59', '2026-05-31 23:59:59');
+
+		$this->assertArrayNotHasKey('deadline_extended_at', $captured);
+	}
+
+	public function test_an_unchanged_deadline_records_nothing(): void {
+		$captured = $this->capture_update_with_end_date('2026-06-30 23:59:59', '2026-06-30 23:59:59');
+
+		$this->assertArrayNotHasKey('deadline_extended_at', $captured);
+	}
+
 }

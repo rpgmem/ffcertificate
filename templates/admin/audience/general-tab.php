@@ -95,7 +95,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</form>
 
 			<?php if ( ! empty( $holidays ) ) : ?>
-				<table class="widefat striped ffc-mt-15">
+				<table class="widefat striped ffc-mt-xl">
 					<thead>
 						<tr>
 							<th><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th>
@@ -136,7 +136,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					</tbody>
 				</table>
 			<?php else : ?>
-				<p class="description ffc-mt-15">
+				<p class="description ffc-mt-xl">
 					<?php esc_html_e( 'No global holidays configured.', 'ffcertificate' ); ?>
 				</p>
 			<?php endif; ?>

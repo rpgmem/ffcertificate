@@ -65,6 +65,8 @@ class RecruitmentAdminAssetsManagerTest extends TestCase {
 		$style_calls  = 0;
 		$script_calls = 0;
 		Functions\when( 'wp_enqueue_style' )->alias( function () use ( &$style_calls ) { $style_calls++; } );
+		// O bloco de cores dos selos é anexado ao handle da folha (#1193).
+		Functions\when( 'wp_add_inline_style' )->justReturn( true );
 		Functions\when( 'wp_enqueue_script' )->alias( function () use ( &$script_calls ) { $script_calls++; } );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
 
@@ -77,6 +79,8 @@ class RecruitmentAdminAssetsManagerTest extends TestCase {
 	public function test_maybe_enqueue_enqueues_assets_on_recruitment_top_level_page(): void {
 		$enqueued_handles = array();
 		Functions\when( 'wp_enqueue_style' )->alias( function ( $handle ) use ( &$enqueued_handles ) {
+			// O bloco de cores dos selos é anexado ao handle da folha (#1193).
+			Functions\when( 'wp_add_inline_style' )->justReturn( true );
 			$enqueued_handles[] = "style:$handle";
 		} );
 		Functions\when( 'wp_enqueue_script' )->alias( function ( $handle ) use ( &$enqueued_handles ) {
@@ -100,6 +104,8 @@ class RecruitmentAdminAssetsManagerTest extends TestCase {
 	public function test_maybe_enqueue_enqueues_on_recruitment_sub_pages_too(): void {
 		$count = 0;
 		Functions\when( 'wp_enqueue_style' )->alias( function () use ( &$count ) { $count++; } );
+		// O bloco de cores dos selos é anexado ao handle da folha (#1193).
+		Functions\when( 'wp_add_inline_style' )->justReturn( true );
 		Functions\when( 'wp_enqueue_script' )->alias( function () use ( &$count ) { $count++; } );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
 

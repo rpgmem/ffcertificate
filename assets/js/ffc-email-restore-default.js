@@ -9,7 +9,6 @@
  * screens without such a button. Reused across the recruitment and
  * self-scheduling template editors (#662).
  */
-/* global ffcEmailRestoreDefaults */
 jQuery(function ($) {
 	'use strict';
 

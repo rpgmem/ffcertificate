@@ -139,6 +139,17 @@ class SettingsSaveHandler {
 			$clean['dark_mode'] = in_array( $new['dark_mode'], $allowed_modes, true ) ? $new['dark_mode'] : 'off';
 		}
 
+		// Code Editor theme (Certificate HTML editor via CodeMirror). Lives next to
+		// Dark Mode on the General tab since #1148 item 2 — its 'auto' value reads
+		// dark_mode, so the two only make sense side by side. Ungated like dark_mode:
+		// the key is written when it is posted, which only the General tab does.
+		if ( isset( $new['code_editor_theme'] ) ) {
+			$allowed_themes             = array( 'auto', 'light', 'dark' );
+			$clean['code_editor_theme'] = in_array( $new['code_editor_theme'], $allowed_themes, true )
+				? $new['code_editor_theme']
+				: 'dark';
+		}
+
 		// Submission auto-delete (#936). The enable toggle is a checkbox, so an
 		// unchecked switch is simply absent from POST — rebuild it every general
 		// save (no-clobber) from presence. The day window is clamped to >= 1;
@@ -223,14 +234,6 @@ class SettingsSaveHandler {
 			// Public CSV Download default limit.
 			if ( isset( $new['public_csv_default_limit'] ) ) {
 				$clean['public_csv_default_limit'] = max( 1, absint( $new['public_csv_default_limit'] ) );
-			}
-
-			// Code Editor theme (Certificate HTML editor via CodeMirror).
-			if ( isset( $new['code_editor_theme'] ) ) {
-				$allowed_themes             = array( 'auto', 'light', 'dark' );
-				$clean['code_editor_theme'] = in_array( $new['code_editor_theme'], $allowed_themes, true )
-					? $new['code_editor_theme']
-					: 'dark';
 			}
 		}
 

@@ -40,6 +40,7 @@ class ReregistrationActivator {
 		self::create_reregistration_audiences_table();
 		self::create_reregistration_submissions_table();
 		self::add_reregistration_submissions_columns();
+		self::add_reregistrations_columns();
 		self::migrate_reregistration_audience_to_junction();
 		self::drop_superseded_indexes();
 	}
@@ -119,6 +120,7 @@ class ReregistrationActivator {
             email_confirmation_enabled tinyint(1) NOT NULL DEFAULT 0,
             reminder_days int(11) NOT NULL DEFAULT 7,
             status varchar(20) NOT NULL DEFAULT 'draft',
+            deadline_extended_at bigint(20) unsigned DEFAULT NULL,
             created_by bigint(20) unsigned NOT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -239,6 +241,7 @@ class ReregistrationActivator {
             status varchar(20) NOT NULL DEFAULT 'pending',
             auth_code varchar(20) DEFAULT NULL,
             magic_token varchar(64) DEFAULT NULL,
+            invited_at bigint(20) unsigned DEFAULT NULL,
             submitted_at bigint(20) unsigned DEFAULT NULL,
             reviewed_at bigint(20) unsigned DEFAULT NULL,
             reviewed_by bigint(20) unsigned DEFAULT NULL,
@@ -283,6 +286,46 @@ class ReregistrationActivator {
 					'type'  => 'VARCHAR(64) DEFAULT NULL',
 					'after' => 'auth_code',
 					'index' => 'magic_token',
+				),
+				// When the invitation for this submission was sent — Category A
+				// (unix UTC), like `submitted_at` beside it. NULL means never
+				// invited, which is the only honest answer for every row that
+				// predates #1190: `status = 'pending'` was the proxy before, and
+				// it cannot tell "not invited yet" from "invited and ignored".
+				'invited_at'  => array(
+					'type'  => 'BIGINT(20) UNSIGNED DEFAULT NULL',
+					'after' => 'magic_token',
+				),
+			)
+		);
+	}
+	/**
+	 * Add columns the campaigns table gained after its first release.
+	 *
+	 * {@see self::create_reregistrations_table()} returns early when the table
+	 * exists, so an install created before a column was declared never gets it
+	 * from there — this is the only path that reaches an existing install.
+	 *
+	 * @since 6.24.0
+	 */
+	private static function add_reregistrations_columns(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_reregistrations';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		self::add_columns_if_missing(
+			$table_name,
+			array(
+				// When the campaign's `end_date` was last pushed FORWARD —
+				// Category A (unix UTC). Only an extension is recorded (#1190):
+				// shortening a deadline must not re-invite anybody, so a date
+				// that moves backwards leaves this untouched.
+				'deadline_extended_at' => array(
+					'type'  => 'BIGINT(20) UNSIGNED DEFAULT NULL',
+					'after' => 'status',
 				),
 			)
 		);

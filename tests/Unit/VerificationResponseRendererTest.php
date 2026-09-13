@@ -193,7 +193,7 @@ class VerificationResponseRendererTest extends TestCase {
 		$html = $this->renderer->format_appointment_verification_response( $result );
 
 		$this->assertStringContainsString( 'Pending Approval', $html );
-		$this->assertStringContainsString( 'ffc-status-pending', $html );
+		$this->assertStringContainsString( 'ffc-verification-status-pending', $html );
 	}
 
 	// ==================================================================
@@ -253,7 +253,7 @@ class VerificationResponseRendererTest extends TestCase {
 		$this->assertStringContainsString( 'Rematrícula 2025', $html );
 		$this->assertStringContainsString( 'Download Ficha (PDF)', $html );
 		// 6.7.5 — Status row in body (not header anymore) with colored pill.
-		$this->assertStringContainsString( 'ffc-status-approved', $html );
+		$this->assertStringContainsString( 'ffc-verification-status-approved', $html );
 		$this->assertStringContainsString( 'Approved', $html );
 		// 6.7.5 — Campaign period surfaced.
 		$this->assertStringContainsString( 'Campaign Period:', $html );
@@ -280,7 +280,7 @@ class VerificationResponseRendererTest extends TestCase {
 		$html = $this->renderer->format_reregistration_verification_response( $result );
 
 		$this->assertStringContainsString( 'error', $html ); // status class for rejected
-		$this->assertStringContainsString( 'ffc-status-rejected', $html );
+		$this->assertStringContainsString( 'ffc-verification-status-rejected', $html );
 	}
 
 	// ==================================================================
