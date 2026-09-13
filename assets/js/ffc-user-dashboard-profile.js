@@ -43,7 +43,7 @@
     }
 
     function showEditForm() {
-        var $container = $('#tab-profile');
+        var $container = $('#ffc-tabpanel-profile');
         var profile = FFCDashboard.panels.profile.state;
         if (!profile) return;
         var s = ffcDashboard.strings;
@@ -207,7 +207,7 @@
             $(document).on('click', '.ffc-password-save-btn', function (e) { e.preventDefault(); changePassword(); });
             $(document).on('click', '.ffc-password-toggle-btn', function (e) {
                 e.preventDefault();
-                $('#tab-profile .ffc-password-form').slideToggle(200);
+                $('#ffc-tabpanel-profile .ffc-password-form').slideToggle(200);
             });
 
             $(document).on('click', '.ffc-lgpd-export-btn', function (e) { e.preventDefault(); privacyRequest('export_personal_data'); });
@@ -222,7 +222,7 @@
         },
 
         load: function () {
-            var $container = $('#tab-profile');
+            var $container = $('#ffc-tabpanel-profile');
             if ($container.find('.ffc-profile-info').length > 0) return;
 
             $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
@@ -239,7 +239,7 @@
         },
 
         render: function (profile) {
-            var $container = $('#tab-profile');
+            var $container = $('#ffc-tabpanel-profile');
             this.state = profile;
             var s = ffcDashboard.strings;
 
@@ -335,7 +335,7 @@
         // Force-reload (bypass the cache guard in load).
         reload: function () {
             this.state = null;
-            var $container = $('#tab-profile');
+            var $container = $('#ffc-tabpanel-profile');
             $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
 
             var url = ffcDashboard.restUrl + 'user/profile';

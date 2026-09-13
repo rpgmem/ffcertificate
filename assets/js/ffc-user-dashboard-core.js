@@ -203,7 +203,7 @@
             $button.addClass('is-active').attr('aria-selected', 'true').attr('tabindex', '0');
 
             $('.ffc-tab-content').removeClass('is-active');
-            $('#tab-' + tab).addClass('is-active');
+            $('#ffc-tabpanel-' + tab).addClass('is-active');
 
             if (history.pushState) {
                 var url = new URL(window.location);

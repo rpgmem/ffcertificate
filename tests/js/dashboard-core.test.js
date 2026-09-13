@@ -260,7 +260,7 @@ describe('FFCDashboard.tab dispatch', () => {
 		window.$('.ffc-tab[data-tab="appointments"]').trigger('click');
 
 		expect(window.$('.ffc-tab.is-active').data('tab')).toBe('appointments');
-		expect(window.$('.ffc-tab-content.is-active').attr('id')).toBe('tab-appointments');
+		expect(window.$('.ffc-tab-content.is-active').attr('id')).toBe('ffc-tabpanel-appointments');
 		expect(window.FFCDashboard.panels.appointments.load).toHaveBeenCalled();
 	});
 

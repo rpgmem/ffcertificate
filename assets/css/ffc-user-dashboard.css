@@ -599,9 +599,9 @@
 .ffc-appointments-table .ffc-row-cancelled { background: var(--ffc-danger-bg); }
 .ffc-appointments-table .ffc-row-cancelled td { color: var(--ffc-text-muted); }
 
-#tab-appointments h3,
-#tab-audience h3,
-#tab-reregistrations h3 {
+#ffc-tabpanel-appointments h3,
+#ffc-tabpanel-audience h3,
+#ffc-tabpanel-reregistrations h3 {
     margin-top: 0;
     margin-bottom: var(--ffc-spacing-lg);
     color: var(--ffc-text);
@@ -1604,14 +1604,14 @@
    RECRUITMENT TAB — visual parity with the other dashboard tabs
    ========================================================================== */
 
-#tab-recruitment .ffc-recruitment-my-calls > h2 {
+#ffc-tabpanel-recruitment .ffc-recruitment-my-calls > h2 {
     margin: 0 0 var(--ffc-spacing-xl);
     font-size: var(--ffc-font-size-xl);
     font-weight: 600;
     color: var(--ffc-text);
 }
 
-#tab-recruitment .ffc-recruitment-my-notice {
+#ffc-tabpanel-recruitment .ffc-recruitment-my-notice {
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md);
     background: var(--ffc-bg-card);
@@ -1619,20 +1619,20 @@
     margin-bottom: var(--ffc-spacing-xl);
 }
 
-#tab-recruitment .ffc-recruitment-my-notice header {
+#ffc-tabpanel-recruitment .ffc-recruitment-my-notice header {
     margin-bottom: var(--ffc-spacing-lg);
     border-bottom: 1px solid var(--ffc-border-light);
     padding-bottom: var(--ffc-spacing-lg);
 }
 
-#tab-recruitment .ffc-recruitment-my-notice header h3 {
+#ffc-tabpanel-recruitment .ffc-recruitment-my-notice header h3 {
     margin: 0 0 var(--ffc-spacing-sm);
     font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-text);
 }
 
-#tab-recruitment .ffc-recruitment-my-notice h4 {
+#ffc-tabpanel-recruitment .ffc-recruitment-my-notice h4 {
     margin: var(--ffc-spacing-xl) 0 var(--ffc-spacing-sm);
     font-size: var(--ffc-font-size-xs);
     font-weight: 600;
@@ -1641,7 +1641,7 @@
     letter-spacing: 0.3px;
 }
 
-#tab-recruitment .ffc-recruitment-banner {
+#ffc-tabpanel-recruitment .ffc-recruitment-banner {
     display: inline-block;
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
     border-radius: var(--ffc-radius-md);
@@ -1649,12 +1649,12 @@
     font-weight: 500;
 }
 
-#tab-recruitment .ffc-banner-preliminary {
+#ffc-tabpanel-recruitment .ffc-banner-preliminary {
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
 }
 
-#tab-recruitment .ffc-banner-definitive {
+#ffc-tabpanel-recruitment .ffc-banner-definitive {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
 }

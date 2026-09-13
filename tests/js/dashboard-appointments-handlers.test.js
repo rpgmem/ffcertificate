@@ -47,7 +47,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-	document.getElementById('tab-appointments').innerHTML = '';
+	document.getElementById('ffc-tabpanel-appointments').innerHTML = '';
 	window.localStorage.setItem('ffc_page_size', '25');
 	window.FFCDashboard.panels.appointments.state = null;
 });
@@ -84,8 +84,8 @@ const panel = () => window.FFCDashboard.panels.appointments;
 // ----------------------------------------------------------------------
 
 describe('appointments.load', () => {
-	it('bails when #tab-appointments is missing', async () => {
-		document.getElementById('tab-appointments').remove();
+	it('bails when #ffc-tabpanel-appointments is missing', async () => {
+		document.getElementById('ffc-tabpanel-appointments').remove();
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
 
 		panel().load();
@@ -95,7 +95,7 @@ describe('appointments.load', () => {
 		// Restore container for subsequent tests.
 		document.getElementById('ffc-dashboard').insertAdjacentHTML(
 			'beforeend',
-			'<div id="tab-appointments" class="ffc-tab-content"></div>'
+			'<div id="ffc-tabpanel-appointments" class="ffc-tab-content"></div>'
 		);
 	});
 
@@ -107,7 +107,7 @@ describe('appointments.load', () => {
 		await flushPromises();
 
 		expect(ajaxSpy).not.toHaveBeenCalled();
-		expect(document.getElementById('tab-appointments').innerHTML).toContain('No permission');
+		expect(document.getElementById('ffc-tabpanel-appointments').innerHTML).toContain('No permission');
 	});
 
 	it('short-circuits when state is already populated', async () => {
@@ -133,7 +133,7 @@ describe('appointments.load', () => {
 		expect(opts.url).toBe('https://x.test/wp-json/ffc/v1/user/appointments');
 		expect(opts.method).toBe('GET');
 		expect(panel().state.length).toBe(1);
-		expect(document.getElementById('tab-appointments').textContent).toContain('A');
+		expect(document.getElementById('ffc-tabpanel-appointments').textContent).toContain('A');
 	});
 
 	it('sets X-WP-Nonce on the request', async () => {
@@ -169,7 +169,7 @@ describe('appointments.load', () => {
 
 		expect(panel().state).toEqual([]);
 		// Empty state markup renders.
-		expect(document.querySelector('#tab-appointments .ffc-empty-state')).not.toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-appointments .ffc-empty-state')).not.toBeNull();
 	});
 
 	it('renders the error notice when the AJAX call fails', async () => {
@@ -181,7 +181,7 @@ describe('appointments.load', () => {
 		panel().load();
 		await flushPromises();
 
-		expect(document.getElementById('tab-appointments').innerHTML).toContain('Error');
+		expect(document.getElementById('ffc-tabpanel-appointments').innerHTML).toContain('Error');
 	});
 });
 
@@ -197,7 +197,7 @@ describe('appointments.load', () => {
 
 describe('appointments cancellation dialog', () => {
 	function mountCancelButton(id = 55, over = {}) {
-		document.getElementById('tab-appointments').innerHTML =
+		document.getElementById('ffc-tabpanel-appointments').innerHTML =
 			`<button class="ffc-cancel-appointment" data-id="${id}">Cancel</button>`;
 		panel().state = [makeAppt(Object.assign({ id, can_cancel: true }, over))];
 	}
@@ -345,7 +345,7 @@ describe('appointments cancellation dialog', () => {
 		expect(dialog()).toBeNull();
 		expect(alertSpy).toHaveBeenCalledWith('Cancelled OK');
 		expect(panel().state).toBeNull();
-		expect(document.getElementById('tab-appointments').innerHTML).toContain('Loading');
+		expect(document.getElementById('ffc-tabpanel-appointments').innerHTML).toContain('Loading');
 		expect(loadSpy).toHaveBeenCalled();
 	});
 
@@ -412,7 +412,7 @@ describe('appointments.render — filter, pagination, extras', () => {
 
 		panel().render(items, 1);
 
-		const rows = document.querySelectorAll('#tab-appointments tbody tr');
+		const rows = document.querySelectorAll('#ffc-tabpanel-appointments tbody tr');
 		expect(rows.length).toBe(1);
 		expect(rows[0].textContent).toContain('Match');
 	});
@@ -426,19 +426,19 @@ describe('appointments.render — filter, pagination, extras', () => {
 		}
 		panel().render(items, 1);
 		// First 10 rows on page 1.
-		expect(document.querySelectorAll('#tab-appointments tbody tr').length).toBe(10);
+		expect(document.querySelectorAll('#ffc-tabpanel-appointments tbody tr').length).toBe(10);
 		// Pagination control is emitted with prev/next links.
-		expect(document.querySelector('#tab-appointments .ffc-pagination')).not.toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-appointments .ffc-pagination')).not.toBeNull();
 
 		// Page 2 → only the 11th row.
 		panel().render(items, 2);
-		expect(document.querySelectorAll('#tab-appointments tbody tr').length).toBe(1);
-		expect(document.querySelector('#tab-appointments tbody tr').textContent).toContain('C11');
+		expect(document.querySelectorAll('#ffc-tabpanel-appointments tbody tr').length).toBe(1);
+		expect(document.querySelector('#ffc-tabpanel-appointments tbody tr').textContent).toContain('C11');
 	});
 
 	it('renders the cancel button when can_cancel is true', async () => {
 		panel().render([makeAppt({ can_cancel: true, id: 77 })], 1);
-		const btn = document.querySelector('#tab-appointments .ffc-cancel-appointment');
+		const btn = document.querySelector('#ffc-tabpanel-appointments .ffc-cancel-appointment');
 		expect(btn).not.toBeNull();
 		expect(btn.getAttribute('data-id')).toBe('77');
 	});
@@ -452,7 +452,7 @@ describe('appointments.render — filter, pagination, extras', () => {
 		];
 		panel().render(items, 1);
 
-		const calButtons = document.querySelectorAll('#tab-appointments .ffc-cal-export-wrap');
+		const calButtons = document.querySelectorAll('#ffc-tabpanel-appointments .ffc-cal-export-wrap');
 		expect(calButtons.length).toBe(1);
 	});
 
@@ -476,6 +476,6 @@ describe('appointments.render — filter, pagination, extras', () => {
 		// state path is NOT hit — instead the page-items loop renders no
 		// sections and no table. Assert there's neither a table nor an
 		// empty-state element, which is the documented behaviour.
-		expect(document.querySelectorAll('#tab-appointments table').length).toBe(0);
+		expect(document.querySelectorAll('#ffc-tabpanel-appointments table').length).toBe(0);
 	});
 });

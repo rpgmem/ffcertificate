@@ -119,7 +119,7 @@
                 alert(ffcDashboard.strings.cancelSuccess);
                 var panel = FFCDashboard.panels.appointments;
                 panel.state = null;
-                $('#tab-appointments').html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
+                $('#ffc-tabpanel-appointments').html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
                 panel.load();
             })
             .catch(function (err) {
@@ -155,7 +155,7 @@
         },
 
         load: function () {
-            var $container = $('#tab-appointments');
+            var $container = $('#ffc-tabpanel-appointments');
             if ($container.length === 0) return;
 
             if (typeof ffcDashboard.canViewAppointments !== 'undefined' && !ffcDashboard.canViewAppointments) {
@@ -182,7 +182,7 @@
         },
 
         render: function (appointments, page) {
-            var $container = $('#tab-appointments');
+            var $container = $('#ffc-tabpanel-appointments');
             page = page || 1;
             var pageSize = helpers.getPageSize();
 

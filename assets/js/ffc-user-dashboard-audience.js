@@ -16,7 +16,7 @@
         state: null,
 
         load: function () {
-            var $container = $('#tab-audience');
+            var $container = $('#ffc-tabpanel-audience');
             if ($container.length === 0) return;
 
             if (typeof ffcDashboard.canViewAudienceBookings !== 'undefined' && !ffcDashboard.canViewAudienceBookings) {
@@ -43,7 +43,7 @@
         },
 
         render: function (bookings, page) {
-            var $container = $('#tab-audience');
+            var $container = $('#ffc-tabpanel-audience');
             page = page || 1;
             var pageSize = helpers.getPageSize();
 

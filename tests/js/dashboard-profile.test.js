@@ -34,9 +34,9 @@ beforeAll(() => {
 
 	// Inject the panel's tab container.
 	const dash = document.getElementById('ffc-dashboard');
-	if (dash && ! document.getElementById('tab-profile')) {
+	if (dash && ! document.getElementById('ffc-tabpanel-profile')) {
 		const el = document.createElement('div');
-		el.id = 'tab-profile';
+		el.id = 'ffc-tabpanel-profile';
 		el.className = 'ffc-tab-content';
 		dash.appendChild(el);
 	}
@@ -45,7 +45,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-	document.getElementById('tab-profile').innerHTML = '';
+	document.getElementById('ffc-tabpanel-profile').innerHTML = '';
 });
 
 const panel = () => window.FFCDashboard.panels.profile;
@@ -71,12 +71,12 @@ function makeProfile(over = {}) {
 describe('FFCDashboard.panels.profile.render', () => {
 	it('renders the profile container', () => {
 		panel().render(makeProfile());
-		expect(document.querySelector('#tab-profile .ffc-profile-info')).not.toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-profile .ffc-profile-info')).not.toBeNull();
 	});
 
 	it('renders the logout link when ffcDashboard.logoutUrl is set', () => {
 		panel().render(makeProfile());
-		const logout = document.querySelector('#tab-profile .ffc-logout-link');
+		const logout = document.querySelector('#ffc-tabpanel-profile .ffc-logout-link');
 		expect(logout).not.toBeNull();
 		expect(logout.getAttribute('href')).toBe('https://x.test/logout');
 	});
@@ -87,7 +87,7 @@ describe('FFCDashboard.panels.profile.render', () => {
 			department: 'TI',
 			organization: 'ACME',
 		}));
-		const text = document.querySelector('#tab-profile').textContent;
+		const text = document.querySelector('#ffc-tabpanel-profile').textContent;
 		expect(text).toContain('Phone:');
 		expect(text).toContain('11 99999-0000');
 		expect(text).toContain('Department:');
@@ -98,11 +98,11 @@ describe('FFCDashboard.panels.profile.render', () => {
 
 	it('renders the Notes block only when notes is non-empty', () => {
 		panel().render(makeProfile({ notes: '' }));
-		expect(document.querySelector('#tab-profile').textContent).not.toContain('Notes:');
+		expect(document.querySelector('#ffc-tabpanel-profile').textContent).not.toContain('Notes:');
 
 		panel().render(makeProfile({ notes: 'Important note' }));
-		expect(document.querySelector('#tab-profile').textContent).toContain('Notes:');
-		expect(document.querySelector('#tab-profile').textContent).toContain('Important note');
+		expect(document.querySelector('#ffc-tabpanel-profile').textContent).toContain('Notes:');
+		expect(document.querySelector('#ffc-tabpanel-profile').textContent).toContain('Important note');
 	});
 
 	it('renders audience-group chips when audience_groups has items', () => {
@@ -112,27 +112,27 @@ describe('FFCDashboard.panels.profile.render', () => {
 				{ name: 'Beta',  color: '#00aa00' },
 			],
 		}));
-		const container = document.querySelector('#tab-profile');
+		const container = document.querySelector('#ffc-tabpanel-profile');
 		expect(container.textContent).toContain('Alpha');
 		expect(container.textContent).toContain('Beta');
 		// "Leave all groups" button only when there are groups.
-		expect(document.querySelector('#tab-profile .ffc-leave-all-groups-btn')).not.toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-profile .ffc-leave-all-groups-btn')).not.toBeNull();
 	});
 
 	it('omits the "Leave all groups" button when audience_groups is empty', () => {
 		panel().render(makeProfile({ audience_groups: [] }));
-		expect(document.querySelector('#tab-profile .ffc-leave-all-groups-btn')).toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-profile .ffc-leave-all-groups-btn')).toBeNull();
 	});
 
 	it('renders the Edit Profile and Change Password buttons', () => {
 		panel().render(makeProfile());
-		expect(document.querySelector('#tab-profile .ffc-profile-edit-btn')).not.toBeNull();
-		expect(document.querySelector('#tab-profile .ffc-password-toggle-btn')).not.toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-profile .ffc-profile-edit-btn')).not.toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-profile .ffc-password-toggle-btn')).not.toBeNull();
 	});
 
 	it('renders the audience-join section placeholder', () => {
 		panel().render(makeProfile());
-		expect(document.querySelector('#tab-profile #ffc-audience-join-section')).not.toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-profile #ffc-audience-join-section')).not.toBeNull();
 	});
 
 	it('stores the profile on the panel state', () => {
