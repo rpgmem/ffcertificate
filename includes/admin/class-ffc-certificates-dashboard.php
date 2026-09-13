@@ -97,7 +97,7 @@ class CertificatesDashboard {
 		}
 
 		?>
-		<div class="wrap">
+		<div class="wrap ffc-admin-page ffc-page-certificates-dashboard">
 			<h1><?php esc_html_e( 'Certificates Dashboard', 'ffcertificate' ); ?></h1>
 			<p class="description">
 				<?php esc_html_e( 'Forms organised by GeoFence start date. Forms without a GeoFence start fall back to their publication date.', 'ffcertificate' ); ?>

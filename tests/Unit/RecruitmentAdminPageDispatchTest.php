@@ -166,7 +166,7 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 		foreach ( array( 'edit-candidate', 'edit-adjutancy', 'edit-reason' ) as $action ) {
 			$_GET = array( 'action' => $action );
 			$out  = $this->render();
-			$this->assertStringContainsString( 'wrap ffc-recruitment-admin', $out );
+			$this->assertStringContainsString( 'wrap ffc-admin-page ffc-page-recruitment ffc-recruitment-admin', $out );
 		}
 	}
 

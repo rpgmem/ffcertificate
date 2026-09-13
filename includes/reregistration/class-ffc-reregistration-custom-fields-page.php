@@ -42,7 +42,7 @@ class ReregistrationCustomFieldsPage {
 		$edit_base = admin_url( 'admin.php?page=ffc-scheduling-audiences&action=edit&id=' );
 
 		?>
-		<div class="wrap">
+		<div class="wrap ffc-admin-page ffc-page-custom-fields">
 			<h1><?php esc_html_e( 'Custom Fields', 'ffcertificate' ); ?></h1>
 			<p class="description">
 				<?php esc_html_e( 'Custom fields are defined per audience. Select an audience to manage its fields.', 'ffcertificate' ); ?>

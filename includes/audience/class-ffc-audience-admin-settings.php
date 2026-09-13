@@ -105,7 +105,7 @@ class AudienceAdminSettings {
 			$active_tab = 'general';
 		}
 		?>
-		<div class="wrap ffc-settings-wrap">
+		<div class="wrap ffc-admin-page ffc-page-scheduling-settings ffc-settings-wrap">
 			<h1><?php esc_html_e( 'Scheduling Settings', 'ffcertificate' ); ?></h1>
 
 			<div class="ffc-settings-tabs" data-ffc-settings-tabs>
