@@ -87,7 +87,7 @@ class AudienceAdminBookings {
 		}
 
 		?>
-		<div class="wrap">
+		<div class="wrap ffc-admin-page ffc-page-scheduling-bookings">
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Bookings', 'ffcertificate' ); ?></h1>
 			<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_audiences' ) ) : ?>
 				<?php

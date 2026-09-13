@@ -63,7 +63,7 @@ class AudienceAdminDashboard {
 		$self_stats = $this->get_self_scheduling_stats();
 
 		?>
-		<div class="wrap">
+		<div class="wrap ffc-admin-page ffc-page-scheduling-dashboard">
 			<h1><?php esc_html_e( 'Scheduling Dashboard', 'ffcertificate' ); ?></h1>
 
 			<div class="ffc-scheduling-dashboard">

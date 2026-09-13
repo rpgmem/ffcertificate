@@ -83,7 +83,7 @@ class AdminSubmissionEditPage {
 	public function render( int $submission_id ): void {
 		// Permission check.
 		if ( ! $this->can_edit_submission() ) {
-			echo '<div class="wrap">';
+			echo '<div class="wrap ffc-admin-page ffc-page-submissions">';
 			wp_admin_notice(
 				esc_html__( 'You do not have permission to edit submissions.', 'ffcertificate' ),
 				array( 'type' => 'error' )
@@ -96,7 +96,7 @@ class AdminSubmissionEditPage {
 		$sub = $this->submission_handler->get_submission( $submission_id );
 
 		if ( ! $sub ) {
-			echo '<div class="wrap"><p>' . esc_html__( 'Submission not found.', 'ffcertificate' ) . '</p></div>';
+			echo '<div class="wrap ffc-admin-page ffc-page-submissions"><p>' . esc_html__( 'Submission not found.', 'ffcertificate' ) . '</p></div>';
 			return;
 		}
 
@@ -108,7 +108,7 @@ class AdminSubmissionEditPage {
 
 		// Render page.
 		?>
-		<div class="wrap">
+		<div class="wrap ffc-admin-page ffc-page-submissions">
 			<h1>
 			<?php
 				/* translators: %s: submission ID */

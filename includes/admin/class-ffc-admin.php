@@ -220,7 +220,7 @@ class Admin {
 		$this->display_admin_notices();
 		$table->prepare_items();
 		?>
-		<div class="wrap">
+		<div class="wrap ffc-admin-page ffc-page-submissions">
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Submissions', 'ffcertificate' ); ?></h1>
 			<div class="ffc-admin-top-actions">
 				<?php

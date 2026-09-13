@@ -77,7 +77,7 @@ class SelfSchedulingAdmin {
 		try {
 			require_once plugin_dir_path( __FILE__ ) . 'views/appointments-list.php';
 		} catch ( \Throwable $e ) {
-			echo '<div class="wrap">';
+			echo '<div class="wrap ffc-admin-page ffc-page-appointments">';
 			wp_admin_notice(
 				'<strong>' . esc_html__( 'Error:', 'ffcertificate' ) . '</strong> '
 					. esc_html( $e->getMessage() )
