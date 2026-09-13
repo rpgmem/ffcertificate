@@ -501,7 +501,7 @@
 .ffc-collapsible-content,
 .ffc-provider-card,
 .ffc-progress-bar-fill,
-.card {
+.ffc-admin-page .card {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -513,7 +513,7 @@
         display: none;
     }
     
-    .card {
+    .ffc-admin-page .card {
         border: 1px solid var(--ffc-text);
         box-shadow: none;
         break-inside: avoid;
@@ -703,7 +703,7 @@
 }
 
 /* Code Tags */
-code {
+.ffc-admin-page code {
     background: var(--ffc-bg-alt);
     padding: 3px var(--ffc-spacing-xs);
     border-radius: var(--ffc-radius-xs);
@@ -713,7 +713,7 @@ code {
     border: 1px solid var(--ffc-border-light);
 }
 
-pre code {
+.ffc-admin-page pre code {
     background: transparent;
     border: none;
     padding: 0;
@@ -820,7 +820,7 @@ pre code {
     .ffc-collapsible-content,
     .ffc-provider-card,
     .ffc-progress-bar-fill,
-    .card,
+    .ffc-admin-page .card,
     .ffc-doc-toc-list li > a,
     .ffc-doc-toc-branch > details > summary::before {
         transition: none;

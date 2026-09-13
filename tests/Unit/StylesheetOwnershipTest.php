@@ -88,10 +88,13 @@ class StylesheetOwnershipTest extends TestCase {
 		// `ffc-admin` de `users.php` também não.
 		'ffc-shortcode-display|ffc-admin.css|ffc-calendar-editor.css' => 'telas distintas: a folha do editor só sai no CPT ffc_self_scheduling',
 
-		// Telas de admin distintas: `?page=ffc-audience*`/`ffc-scheduling*`
-		// contra `?page=ffc-reregistration*`/`ffc-custom-fields`.
-		'column-actions|ffc-audience-admin.css|ffc-reregistration-admin.css' => 'telas de admin distintas; nomes sem prefixo já na base do #1152',
-		'column-status|ffc-audience-admin.css|ffc-reregistration-admin.css'  => 'telas de admin distintas; nomes sem prefixo já na base do #1152',
+		// `column-actions` e `column-status` saíram daqui na #1184. Eles eram
+		// a exceção cujo motivo -- "telas distintas" -- vivia inteiro no
+		// PORTÃO de enfileiramento, que esta varredura não lê. Agora vive no
+		// seletor: a folha de audiência desce de `[class*="ffc-page-scheduling-"]`
+		// e a de recadastramento de `.ffc-page-reregistration` /
+		// `.ffc-page-custom-fields`, então a impossibilidade é estrutural e não
+		// precisa mais ser prometida aqui.
 
 		// `ffc-custom-fields-admin.css` sai no perfil de usuário e nas telas de
 		// audiência; `ffc-reregistration-admin.css`, nas de recadastramento.

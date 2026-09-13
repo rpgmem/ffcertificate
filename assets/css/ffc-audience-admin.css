@@ -115,19 +115,19 @@
 }
 
 /* Table Columns */
-.column-visibility,
-.column-environments,
-.column-status,
-.column-color,
-.column-members {
+[class*="ffc-page-scheduling-"] .column-visibility,
+[class*="ffc-page-scheduling-"] .column-environments,
+[class*="ffc-page-scheduling-"] .column-status,
+[class*="ffc-page-scheduling-"] .column-color,
+[class*="ffc-page-scheduling-"] .column-members {
     width: 100px;
 }
 
-.column-actions {
+[class*="ffc-page-scheduling-"] .column-actions {
     width: 140px;
 }
 
-.column-calendar {
+[class*="ffc-page-scheduling-"] .column-calendar {
     width: 200px;
 }
 
@@ -321,12 +321,12 @@
 }
 
 /* Bookings Filter Bar */
-.tablenav.top {
+[class*="ffc-page-scheduling-"] .tablenav.top {
     margin-bottom: var(--ffc-spacing-xl);
 }
 
-.tablenav.top select,
-.tablenav.top input[type="date"] {
+[class*="ffc-page-scheduling-"] .tablenav.top select,
+[class*="ffc-page-scheduling-"] .tablenav.top input[type="date"] {
     margin-right: var(--ffc-spacing-2xs);
 }
 
@@ -465,10 +465,10 @@
         width: 100%;
     }
 
-    .column-visibility,
-    .column-environments,
-    .column-color,
-    .column-members {
+    [class*="ffc-page-scheduling-"] .column-visibility,
+    [class*="ffc-page-scheduling-"] .column-environments,
+    [class*="ffc-page-scheduling-"] .column-color,
+    [class*="ffc-page-scheduling-"] .column-members {
         display: none;
     }
 
