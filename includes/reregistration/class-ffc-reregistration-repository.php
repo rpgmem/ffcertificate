@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Database repository for reregistration records.
  *
- * @phpstan-type ReregistrationRow \stdClass&object{id: string, title: string, audience_id: string, start_date: string, end_date: string, auto_approve: string, email_invitation_enabled: string, email_reminder_enabled: string, email_confirmation_enabled: string, reminder_days: string, status: string, created_by: string, created_at: string, updated_at: string, audience_ids?: list<int>}
+ * @phpstan-type ReregistrationRow \stdClass&object{id: string, title: string, audience_id: string, start_date: string, end_date: string, auto_approve: string, email_invitation_enabled: string, email_reminder_enabled: string, email_confirmation_enabled: string, reminder_days: string, status: string, deadline_extended_at: ?string, created_by: string, created_at: string, updated_at: string, audience_ids?: list<int>}
  */
 class ReregistrationRepository {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -430,6 +430,11 @@ class ReregistrationRepository {
 			return false;
 		}
 
+		if ( isset( $update_data['end_date'] ) && self::is_deadline_extension( $id, (string) $update_data['end_date'] ) ) {
+			$update_data['deadline_extended_at'] = time();
+			$format[]                            = '%d';
+		}
+
 		$result = $wpdb->update(
 			$table,
 			$update_data,
@@ -441,6 +446,30 @@ class ReregistrationRepository {
 		static::cache_delete( "id_{$id}" );
 
 		return false !== $result;
+	}
+
+	/**
+	 * Whether a new `end_date` pushes the campaign's deadline FORWARD.
+	 *
+	 * Only an extension is an event worth recording (#1190): the invitation
+	 * button re-invites whoever has not finished, and shortening a deadline —
+	 * or correcting a typo backwards — must not trigger that. A deadline that
+	 * does not move is not an extension either.
+	 *
+	 * `end_date` is wall-clock (Category B, `DATETIME` with no timezone
+	 * semantics), so the two are compared as stored rather than converted.
+	 *
+	 * @param int    $id       Campaign ID.
+	 * @param string $end_date The incoming `end_date`.
+	 * @return bool
+	 */
+	private static function is_deadline_extension( int $id, string $end_date ): bool {
+		$current = self::get_by_id( $id );
+		if ( ! $current || empty( $current->end_date ) ) {
+			return false;
+		}
+
+		return strtotime( $end_date ) > strtotime( (string) $current->end_date );
 	}
 
 	/**

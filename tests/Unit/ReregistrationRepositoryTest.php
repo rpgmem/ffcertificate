@@ -1384,4 +1384,55 @@ class ReregistrationRepositoryTest extends TestCase {
 	public function test_statuses_constant_has_four_entries(): void {
 		$this->assertCount(4, ReregistrationRepository::STATUSES);
 	}
+	// ==================================================================
+	// deadline_extended_at — #1190
+	// ==================================================================
+
+	/**
+	 * Runs update() with a new end_date and returns what reached $wpdb->update.
+	 *
+	 * @param string $current_end_date The stored end_date.
+	 * @param string $new_end_date     The incoming end_date.
+	 * @return array<string, mixed>
+	 */
+	private function capture_update_with_end_date(string $current_end_date, string $new_end_date): array {
+		$this->wpdb->shouldReceive('get_row')->andReturn(
+			(object) array( 'id' => '5', 'end_date' => $current_end_date )
+		);
+
+		$captured = array();
+		$this->wpdb->shouldReceive('update')->andReturnUsing(function ($table, $data) use (&$captured) {
+			$captured = $data;
+			return 1;
+		});
+
+		ReregistrationRepository::update(5, array( 'end_date' => $new_end_date ));
+
+		return $captured;
+	}
+
+	public function test_pushing_the_deadline_forward_records_the_extension(): void {
+		$captured = $this->capture_update_with_end_date('2026-06-30 23:59:59', '2026-07-31 23:59:59');
+
+		$this->assertArrayHasKey('deadline_extended_at', $captured);
+		$this->assertGreaterThan(0, (int) $captured['deadline_extended_at']);
+	}
+
+	/**
+	 * Shortening a deadline must NOT record an extension — the invitation
+	 * button re-invites on one, and nobody should be emailed because the
+	 * operator corrected a date backwards.
+	 */
+	public function test_pulling_the_deadline_back_records_nothing(): void {
+		$captured = $this->capture_update_with_end_date('2026-06-30 23:59:59', '2026-05-31 23:59:59');
+
+		$this->assertArrayNotHasKey('deadline_extended_at', $captured);
+	}
+
+	public function test_an_unchanged_deadline_records_nothing(): void {
+		$captured = $this->capture_update_with_end_date('2026-06-30 23:59:59', '2026-06-30 23:59:59');
+
+		$this->assertArrayNotHasKey('deadline_extended_at', $captured);
+	}
+
 }

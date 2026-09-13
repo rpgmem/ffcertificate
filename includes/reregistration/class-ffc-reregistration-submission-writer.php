@@ -334,4 +334,42 @@ class ReregistrationSubmissionWriter {
 
 		return $created;
 	}
+	/**
+	 * Stamp the invitation timestamp on the submissions that were just emailed.
+	 *
+	 * Written in one statement rather than per row: the caller loops to send,
+	 * and a failed send in the middle must not leave half the batch marked as
+	 * invited while the other half gets a second email on the next click.
+	 *
+	 * Category A (unix UTC) per CLAUDE.md — `time()`, never `current_time()`.
+	 *
+	 * @param array<int, int> $submission_ids Submission IDs.
+	 * @return int Rows updated.
+	 */
+	public static function mark_invited( array $submission_ids ): int {
+		$ids = array_values( array_filter( array_map( 'intval', $submission_ids ) ) );
+		if ( empty( $ids ) ) {
+			return 0;
+		}
+
+		$wpdb         = self::db();
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic IN() placeholders built from array_fill above; every value goes through prepare().
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE %i SET invited_at = %d WHERE id IN ({$placeholders})",
+				array_merge( array( self::get_table_name(), time() ), $ids )
+			)
+		);
+
+		// Same invalidation the other mutators do: one key per row. There is no
+		// group flush on the trait, and inventing one here would be a second
+		// way to do what every sibling already does per id.
+		foreach ( $ids as $id ) {
+			static::cache_delete( "id_{$id}" );
+		}
+
+		return is_numeric( $result ) ? (int) $result : 0;
+	}
 }
