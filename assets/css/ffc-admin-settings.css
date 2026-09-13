@@ -14,8 +14,7 @@
 /* ==========================================================================
    CARDS - Consistent Layout
    ========================================================================== */
-.ffc-settings-wrap .card,
-.ffc-settings-page .card {
+.ffc-settings-wrap .card {
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-sm);
@@ -26,15 +25,12 @@
     box-shadow: var(--ffc-shadow-sm);
 }
 
-.ffc-settings-wrap .card:last-child,
-.ffc-settings-page .card:last-child {
+.ffc-settings-wrap .card:last-child {
     margin-bottom: 0;
 }
 
 .ffc-settings-wrap .card h2,
-.ffc-settings-page .card h2,
-.ffc-settings-wrap .card > h3[id],
-.ffc-settings-page .card > h3[id] {
+.ffc-settings-wrap .card > h3[id] {
     margin-top: 0;
     margin-bottom: var(--ffc-spacing-xl);
     padding-bottom: var(--ffc-spacing-md);
@@ -76,16 +72,14 @@
     margin-top: 0;
 }
 
-.ffc-settings-wrap .form-table th,
-.ffc-settings-page .form-table th {
+.ffc-settings-wrap .form-table th {
     width: 200px;
     padding: var(--ffc-spacing-xl) var(--ffc-spacing-md) var(--ffc-spacing-xl) 0;
     font-weight: 600;
     vertical-align: top;
 }
 
-.ffc-settings-wrap .form-table td,
-.ffc-settings-page .form-table td {
+.ffc-settings-wrap .form-table td {
     padding: var(--ffc-spacing-xl) var(--ffc-spacing-md);
 }
 

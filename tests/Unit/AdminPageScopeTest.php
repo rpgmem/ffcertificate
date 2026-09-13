@@ -102,16 +102,20 @@ class AdminPageScopeTest extends TestCase {
 	/**
 	 * `div.wrap` que fica sem âncora, com o motivo.
 	 *
-	 * Arquivo => motivo. Não é dívida de âncora: é `wrap` aninhado, que é outra
-	 * dívida e tem correção própria (tirar o `wrap` de dentro move o render,
-	 * porque `.wrap` do core traz margem).
+	 * VAZIA desde a #1202 item 3. As duas entradas eram `wrap` aninhados
+	 * dentro do `.ffc-settings-wrap` da tela de Configurações, e os dois
+	 * deixaram de abrir `wrap`: a aba user-access passou a
+	 * `<div class="ffc-settings-page">`, e o fallback de view ausente do
+	 * activity log passou a espelhar a view real da própria aba
+	 * (`ffc-settings-wrap` + `h2`, em vez de `wrap` + `h1`).
+	 *
+	 * Uma entrada nova aqui é um `wrap` dentro de outro -- o que custa a
+	 * margem horizontal do `.wrap` do core duas vezes (medido: 22px de
+	 * largura na aba user-access). A vertical NÃO dobra, ela colapsa.
 	 *
 	 * @var array<string, string>
 	 */
-	private const NESTED = array(
-		'includes/settings/views/ffc-tab-user-access.php'      => 'aba das Configurações; este wrap está DENTRO de .ffc-settings-wrap',
-		'includes/admin/class-ffc-admin-activity-log-page.php' => 'aba das Configurações; wrap de erro, dentro de .ffc-settings-wrap',
-	);
+	private const NESTED = array();
 
 	/**
 	 * Diretórios varridos, relativos à raiz do repositório.

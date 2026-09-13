@@ -34,7 +34,7 @@ $ffcertificate_dashboard_page_id = get_option( 'ffc_dashboard_page_id' );
 $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permalink( $ffcertificate_dashboard_page_id ) : home_url( '/dashboard' );
 ?>
 
-<div class="wrap ffc-settings-page">
+<div class="ffc-settings-page">
 	<form method="post" action="">
 		<?php wp_nonce_field( 'ffc_user_access_settings', 'ffc_user_access_nonce' ); ?>
 
