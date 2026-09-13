@@ -173,11 +173,11 @@
 }
 
 /* Navegação da tabela */
-.tablenav {
+.ffc-admin-page .tablenav {
     clear: both;
 }
 
-.tablenav .actions {
+.ffc-admin-page .tablenav .actions {
     overflow: visible;
 }
 
@@ -334,7 +334,7 @@
 }
 
 /* Links de magic link - quebra de linha */
-.form-table td a[href*="token="] {
+.ffc-admin-page .form-table td a[href*="token="] {
     display: inline-block;
     max-width: 100%;
     word-break: break-all;
@@ -342,12 +342,12 @@
     text-decoration: underline;
 }
 
-.form-table td a[href*="token="]:hover {
+.ffc-admin-page .form-table td a[href*="token="]:hover {
     color: var(--ffc-link-hover);
 }
 
 /* Descrições mais legíveis */
-.form-table .description strong {
+.ffc-admin-page .form-table .description strong {
     color: var(--ffc-text);
 }
 
