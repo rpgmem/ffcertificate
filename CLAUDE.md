@@ -78,7 +78,23 @@ Dependabot is configured with `target-branch: develop` for all three ecosystems 
 
 **Rule — retarget to `develop`:** whenever a Dependabot PR opens against `main` (in practice, always a security update), change its base to `develop` and leave a one-line comment stating the reason (*correct flow: every change funnels through `develop` and ships in the consolidated release PR, never as an out-of-band `main` commit*). Then comment `@dependabot rebase` so the lockfile diff is recomputed against `develop`. The PR then rides the normal develop batch with auto-merge like any other.
 
+**An agent cannot issue that command, and the failure is silent (#1201).** A comment posted through the agent's GitHub tooling has separator characters injected into bot mentions — `@dependabot rebase` arrived on the PR as `·@·d·ependabot r·ebase`, which Dependabot never parses, so nothing happens and nothing reports an error. The PR simply sits. **Do not retry the comment**; it will be mangled the same way.
+
+What works instead, in this order:
+
+1. **Check whether a rebase is needed at all.** It is only needed when the lockfile actually differs between `main` and `develop`: `git diff origin/main origin/develop -- package-lock.json composer.lock`. On the #1201 retarget that diff was **empty** — develop's batch had never touched the lockfile — so the PR's hunks applied to `develop` unchanged and there was nothing to recompute.
+2. **If the PR is merely `behind`**, update the branch (`update_pull_request_branch`, the "Update branch" button). That is the whole fix in the common case, and it is what unblocked #1201: it had sat at `behind` for an hour with every gate already green, and merged 14 minutes after the update.
+3. **Only if the lockfile genuinely conflicts** does the rebase matter — ask the user to post `@dependabot rebase`, since `@dependabot recreate` from a mangled comment is not an option either.
+
+One thing #1201 suggests but does not prove, worth confirming in Settings → Branches if it bites again: `develop` may have **"Require branches to be up to date before merging"** on, which this section's protection list does not mention. That would explain the hour at `behind` with green checks, and it means every PR here needs the branch updated before it can merge, not just Dependabot's.
+
 **Exception — genuine hotfix:** if the security fix is in a **runtime dependency** (shipped inside the plugin, not dev/CI tooling) *and* is severe enough to ship to production immediately, treat it as a hotfix (`hotfix/* → main`) instead of retargeting, then sync develop per "Sync `develop` with `main`". Dev/CI-only deps (`vitest`, `@vitest/coverage-v8`, `undici`, `js-yaml`, PHPStan, etc.) never qualify — they always ride the develop batch.
+
+**That exception is unreachable through Dependabot today, and the reason is worth knowing** (measured on the #1201 retarget). The plugin ships **zero** managed third-party runtime dependencies: `composer.json`'s `require` is `php` alone, `package.json`'s `dependencies` is empty, and `.distignore` drops both `/vendor` and `/node_modules` from the zip. So every package Dependabot can see is dev/CI-only, and the decision is mechanical rather than a judgement call — check `require` / `dependencies` and the answer falls out.
+
+The flip side is the part that matters: **the code that actually ships is invisible to Dependabot.** Four third-party bundles are hand-vendored in `libs/js/` — `altcha-3.2.2.umd.js`, `thumbmark-1.10.1.umd.js`, `html2canvas-1.4.1.min.js`, `jspdf-4.2.1.umd.min.js` — all four enqueued at runtime, all four inside the distributable, none in any manifest. A CVE in any of them will never open a PR here; it has to be noticed by a person, so what is running has to be readable off the tree. Tracked in #1202.
+
+**That is why the version lives in the filename and the path is built from the constant**, never from a literal: `FFC_PLUGIN_URL . 'libs/js/jspdf-' . FFC_JSPDF_VERSION . '.umd.min.js'`. The two halves then cannot drift — bumping `FFC_JSPDF_VERSION` without renaming the file 404s the script, which breaks PDF generation loudly. With a literal path the constant is only the `?ver=` argument, so the same bump silently serves the **old** bundle under a new cache key, and nothing anywhere disagrees. `html2canvas` and `jspdf` were in exactly that state until #1203 renamed them. One thing that deliberately stays untouched: a vendored bundle's own `//# sourceMappingURL=` comment still names the upstream filename (`thumbmark` has had the same dangling comment since it was vendored, and no `.map` ships). Editing it would break byte-for-byte verification against upstream, which is the reason to vendor at all.
 
 #### Release PR (`develop → main`)
 

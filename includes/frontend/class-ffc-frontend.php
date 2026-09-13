@@ -214,8 +214,8 @@ class Frontend {
 			$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
 			// PDF Libraries - Using centralized version constants.
-			wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
-			wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'libs/js/jspdf.umd.min.js', array(), FFC_JSPDF_VERSION, true );
+			wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas-' . FFC_HTML2CANVAS_VERSION . '.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
+			wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'libs/js/jspdf-' . FFC_JSPDF_VERSION . '.umd.min.js', array(), FFC_JSPDF_VERSION, true );
 
 			// PDF Generator (shared module).
 			wp_enqueue_script( 'ffc-pdf-generator', FFC_PLUGIN_URL . "assets/js/ffc-pdf-generator{$s}.js", array( 'jquery', 'html2canvas', 'jspdf' ), FFC_VERSION, true );

@@ -39,6 +39,22 @@ if ( ! defined( 'FFC_VERSION' ) ) {
 	}
 }
 
+foreach ( array( 'FFC_HTML2CANVAS_VERSION', 'FFC_JSPDF_VERSION' ) as $ffc_lib_const ) {
+	// Same single-source-of-truth read as FFC_ALTCHA_VERSION below. These two
+	// became load-bearing in #1203, when the vendored bundles gained their
+	// version in the filename and the asset URL started being built from the
+	// constant — so a test that reaches a PDF enqueue now fatals without them.
+	if ( defined( $ffc_lib_const ) ) {
+		continue;
+	}
+	$plugin_contents = $plugin_contents ?? file_get_contents( dirname( __DIR__ ) . '/ffcertificate.php' );
+	if ( preg_match( "/define\(\s*'" . $ffc_lib_const . "',\s*'([^']+)'/", $plugin_contents, $ffc_lib_match ) ) {
+		define( $ffc_lib_const, $ffc_lib_match[1] );
+	} else {
+		define( $ffc_lib_const, 'dev' );
+	}
+}
+
 if ( ! defined( 'FFC_ALTCHA_VERSION' ) ) {
 	// Same single-source-of-truth read as FFC_VERSION above: the vendored
 	// widget's version is part of its asset URL, so a test that renders the
