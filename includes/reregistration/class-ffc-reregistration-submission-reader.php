@@ -530,13 +530,15 @@ class ReregistrationSubmissionReader {
 
 		$clause = implode( ' OR ', $where );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read immediately before a write that changes the same rows; a cached answer would re-send emails.
+		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- O sniff conta os marcadores do literal e não sabe que `prepare()` aceita um array único de argumentos, que é como a tabela, o id e os status chegam.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Leitura imediatamente antes da escrita que muda as mesmas linhas; uma resposta em cache reenviaria e-mail.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i WHERE reregistration_id = %d AND ( {$clause} )",
 				$values
 			)
 		);
+		// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 		/**
 		 * Cast wpdb result to the typed row shape.

@@ -355,13 +355,15 @@ class ReregistrationSubmissionWriter {
 		$wpdb         = self::db();
 		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic IN() placeholders built from array_fill above; every value goes through prepare().
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- O `{$placeholders}` é `%d` repetido por `array_fill()` acima, não dado de requisição; todo valor passa por `prepare()`.
+		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- O sniff conta os `%s` do literal e não sabe que `prepare()` aceita um array único de argumentos, que é como a tabela e os ids chegam.
 		$result = $wpdb->query(
 			$wpdb->prepare(
 				"UPDATE %i SET invited_at = %d WHERE id IN ({$placeholders})",
 				array_merge( array( self::get_table_name(), time() ), $ids )
 			)
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 		// Same invalidation the other mutators do: one key per row. There is no
 		// group flush on the trait, and inventing one here would be a second
