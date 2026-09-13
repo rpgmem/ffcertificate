@@ -172,15 +172,6 @@
     white-space: normal;
 }
 
-/* Navegação da tabela */
-.ffc-admin-page .tablenav {
-    clear: both;
-}
-
-.ffc-admin-page .tablenav .actions {
-    overflow: visible;
-}
-
 /* Responsivo para telas menores */
 @media screen and (max-width: 782px) {
     .ffc-table-responsive table.wp-list-table {
