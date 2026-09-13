@@ -85,6 +85,7 @@ class ReregistrationAdmin {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'wp_ajax_ffc_generate_ficha', array( $this->ajax_handler, 'ajax_generate_ficha' ) );
 		add_action( 'wp_ajax_ffc_rereg_count_members', array( $this->ajax_handler, 'ajax_count_members' ) );
+		add_action( 'wp_ajax_ffc_rereg_send_invitations', array( $this->ajax_handler, 'ajax_send_invitations' ) );
 		add_action( 'wp_ajax_ffc_view_submission_details', array( $this->ajax_handler, 'ajax_view_submission_details' ) );
 	}
 
@@ -208,6 +209,8 @@ class ReregistrationAdmin {
 				'viewDetailsNonce' => wp_create_nonce( 'ffc_view_submission_details' ),
 				'exportNonce'      => wp_create_nonce( 'ffc_reregistration_export' ),
 				'strings'          => array(
+					'inviteSending'        => __( 'Sending…', 'ffcertificate' ),
+					'inviteError'          => __( 'An error occurred.', 'ffcertificate' ),
 					'exportPreparing'      => __( 'Preparing…', 'ffcertificate' ),
 					/* translators: %1$d processed, %2$d total */
 					'exportProgress'       => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),

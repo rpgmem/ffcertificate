@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.12.0
  *
- * @phpstan-type ReregistrationSubmissionRow \stdClass&object{id: string, reregistration_id: string, user_id: string, status: string, submitted_at: numeric-string|int|null, reviewed_at: numeric-string|int|null, reviewed_by: string|null, notes: string|null, auth_code: string|null, magic_token: string|null, created_at: string, updated_at: string, data?: string|null}
+ * @phpstan-type ReregistrationSubmissionRow \stdClass&object{id: string, reregistration_id: string, user_id: string, status: string, submitted_at: numeric-string|int|null, reviewed_at: numeric-string|int|null, reviewed_by: string|null, notes: string|null, auth_code: string|null, magic_token: string|null, invited_at: numeric-string|int|null, created_at: string, updated_at: string, data?: string|null}
  */
 class ReregistrationSubmissionReader {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -473,6 +473,73 @@ class ReregistrationSubmissionReader {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Keyset pagination over an export; each page is read exactly once, so there is nothing a cache could serve twice.
 		$results = $wpdb->get_results( $wpdb->prepare( $sql, $prepare_values ) );
+		/**
+		 * Cast wpdb result to the typed row shape.
+		 *
+		 * @var list<ReregistrationSubmissionRow>
+		 */
+		return is_array( $results ) ? $results : array();
+	}
+	/**
+	 * Statuses that count as "has not finished" for a re-invitation.
+	 *
+	 * `submitted` and `approved` are out: the person did their part, and a
+	 * longer deadline is not news to them. `rejected` is IN — a rejection means
+	 * the process is not finished, so the new deadline is exactly the chance to
+	 * redo it, and they are the ones who most need to hear about it (#1190).
+	 *
+	 * @var array<int, string>
+	 */
+	public const UNFINISHED_STATUSES = array( 'pending', 'in_progress', 'expired', 'rejected' );
+
+	/**
+	 * Submissions the invitation should reach right now.
+	 *
+	 * Two populations, and they are different questions:
+	 *
+	 * 1. **Never invited** (`invited_at IS NULL`) — always. Covers the member
+	 *    who joined the audience after the campaign started, which is the
+	 *    #1190 case, and every row created before this column existed.
+	 * 2. **Invited before the deadline moved forward**, and still unfinished —
+	 *    only when the campaign records an extension.
+	 *
+	 * What this replaces is the reason it exists: the caller used to ask for
+	 * `status = 'pending'` and treat that as "needs an invitation". It is a
+	 * proxy that fails in both directions — somebody invited who never acted
+	 * stays `pending` and would be invited again on every run, and somebody who
+	 * started and stalled is never re-invited even when the deadline moves.
+	 *
+	 * @param int      $reregistration_id Campaign ID.
+	 * @param int|null $extended_at       Unix seconds of the last deadline
+	 *                                    extension, or null when there is none.
+	 * @return list<ReregistrationSubmissionRow>
+	 */
+	public static function get_awaiting_invitation( int $reregistration_id, ?int $extended_at = null ): array {
+		$wpdb  = self::db();
+		$table = self::get_table_name();
+
+		$where  = array( 'invited_at IS NULL' );
+		$values = array( $table, $reregistration_id );
+
+		if ( null !== $extended_at && $extended_at > 0 ) {
+			$placeholders = implode( ',', array_fill( 0, count( self::UNFINISHED_STATUSES ), '%s' ) );
+			$where[]      = "( invited_at < %d AND status IN ({$placeholders}) )";
+			$values[]     = $extended_at;
+			$values       = array_merge( $values, self::UNFINISHED_STATUSES );
+		}
+
+		$clause = implode( ' OR ', $where );
+
+		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- O sniff conta os marcadores do literal e não sabe que `prepare()` aceita um array único de argumentos, que é como a tabela, o id e os status chegam.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Leitura imediatamente antes da escrita que muda as mesmas linhas; uma resposta em cache reenviaria e-mail.
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM %i WHERE reregistration_id = %d AND ( {$clause} )",
+				$values
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
 		/**
 		 * Cast wpdb result to the typed row shape.
 		 *

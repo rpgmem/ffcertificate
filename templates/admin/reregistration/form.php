@@ -145,4 +145,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 			<?php submit_button( $id > 0 ? __( 'Update Reregistration', 'ffcertificate' ) : __( 'Create Reregistration', 'ffcertificate' ) ); ?>
 		</form>
+
+		<?php
+		/*
+		 * Convite manual (#1190). FORA do `<form>` de propósito: um `<button>`
+		 * dentro dele enviaria o formulário, e este não salva nada -- dispara
+		 * e-mail. Só aparece numa campanha que já existe, porque só aí há
+		 * submissões para convidar.
+		 */
+		if ( $id > 0 ) :
+			?>
+		<div class="postbox ffc-rereg-invite-box">
+			<h2 class="hndle"><span><?php esc_html_e( 'Invitations', 'ffcertificate' ); ?></span></h2>
+			<div class="inside">
+				<p class="description">
+					<?php esc_html_e( 'Sends the invitation to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished.', 'ffcertificate' ); ?>
+				</p>
+				<button type="button" class="button button-secondary" id="ffc-rereg-send-invitations" data-rereg-id="<?php echo esc_attr( (string) $id ); ?>">
+					<?php esc_html_e( 'Send invitations', 'ffcertificate' ); ?>
+				</button>
+				<span class="ffc-rereg-invite-msg" aria-live="polite"></span>
+			</div>
+		</div>
+			<?php
+		endif;
+		?>
 		<?php

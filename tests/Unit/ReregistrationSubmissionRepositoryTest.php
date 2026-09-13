@@ -1304,4 +1304,110 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
 		$this->assertSame(1, $count);
 	}
+	// ==================================================================
+	// get_awaiting_invitation() / mark_invited() — #1190
+	// ==================================================================
+
+	/**
+	 * Captures the SQL and the bound values of the eligibility query.
+	 *
+	 * @param int|null $extended_at Deadline extension, or null.
+	 * @return array{sql: string, values: array<int, mixed>}
+	 */
+	private function capture_awaiting_query(?int $extended_at): array {
+		$captured = array( 'sql' => '', 'values' => array() );
+
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function () use (&$captured) {
+			$args = func_get_args();
+			if ( strpos( (string) $args[0], 'invited_at' ) !== false ) {
+				$captured['sql']    = (string) $args[0];
+				$captured['values'] = isset( $args[1] ) && is_array( $args[1] ) ? $args[1] : array();
+			}
+			return $args[0];
+		});
+		$this->wpdb->shouldReceive('get_results')->andReturn(array());
+
+		ReregistrationSubmissionReader::get_awaiting_invitation(7, $extended_at);
+
+		return $captured;
+	}
+
+	/**
+	 * With no extension recorded, only the never-invited are owed an email —
+	 * which is what makes the button idempotent.
+	 */
+	public function test_get_awaiting_invitation_without_extension_asks_only_for_the_never_invited(): void {
+		$captured = $this->capture_awaiting_query(null);
+
+		$this->assertStringContainsString('invited_at IS NULL', $captured['sql']);
+		$this->assertStringNotContainsString('status IN', $captured['sql']);
+		$this->assertContains(7, $captured['values']);
+	}
+
+	/**
+	 * With an extension, whoever has not finished is owed one too — and the
+	 * comparison is against the extension timestamp, so somebody invited AFTER
+	 * it is left alone.
+	 */
+	public function test_get_awaiting_invitation_with_extension_adds_the_unfinished(): void {
+		$captured = $this->capture_awaiting_query(1780000000);
+
+		$this->assertStringContainsString('invited_at IS NULL', $captured['sql']);
+		$this->assertStringContainsString('invited_at < %d', $captured['sql']);
+		$this->assertStringContainsString('status IN', $captured['sql']);
+		$this->assertContains(1780000000, $captured['values']);
+
+		foreach ( ReregistrationSubmissionReader::UNFINISHED_STATUSES as $status ) {
+			$this->assertContains($status, $captured['values']);
+		}
+	}
+
+	/**
+	 * `submitted` and `approved` are out on purpose: the person did their part,
+	 * and a longer deadline is not news to them.
+	 */
+	public function test_finished_statuses_are_not_re_invited(): void {
+		$this->assertNotContains('submitted', ReregistrationSubmissionReader::UNFINISHED_STATUSES);
+		$this->assertNotContains('approved', ReregistrationSubmissionReader::UNFINISHED_STATUSES);
+		$this->assertContains('rejected', ReregistrationSubmissionReader::UNFINISHED_STATUSES);
+		$this->assertContains('expired', ReregistrationSubmissionReader::UNFINISHED_STATUSES);
+	}
+
+	public function test_mark_invited_stamps_only_the_supplied_rows(): void {
+		$captured = array();
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function () use (&$captured) {
+			$args = func_get_args();
+			if ( strpos( (string) $args[0], 'SET invited_at' ) !== false ) {
+				$captured = isset( $args[1] ) && is_array( $args[1] ) ? $args[1] : array();
+			}
+			return $args[0];
+		});
+		$this->wpdb->shouldReceive('query')->andReturn(2);
+
+		$this->assertSame(2, ReregistrationSubmissionWriter::mark_invited(array(101, 102)));
+		$this->assertContains(101, $captured);
+		$this->assertContains(102, $captured);
+	}
+
+	/**
+	 * An empty batch must not issue an `UPDATE … WHERE id IN ()` — which is a
+	 * syntax error, and on some builds a table-wide write.
+	 */
+	public function test_mark_invited_does_nothing_for_an_empty_batch(): void {
+		$this->wpdb->shouldNotReceive('query');
+
+		$this->assertSame(0, ReregistrationSubmissionWriter::mark_invited(array()));
+	}
+
+	/**
+	 * `prepare()` returns `string|null`, and `query()` only takes a string. A
+	 * null must stop before the query rather than be cast to an empty one.
+	 */
+	public function test_mark_invited_stops_when_prepare_fails(): void {
+		$this->wpdb->shouldReceive('prepare')->andReturn(null);
+		$this->wpdb->shouldNotReceive('query');
+
+		$this->assertSame(0, ReregistrationSubmissionWriter::mark_invited(array(101)));
+	}
+
 }

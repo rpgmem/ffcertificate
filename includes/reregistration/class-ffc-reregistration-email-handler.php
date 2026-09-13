@@ -31,7 +31,18 @@ class ReregistrationEmailHandler {
 	use \FreeFormCertificate\Core\EmailHelperTrait;
 
 	/**
-	 * Send invitation emails to all pending members.
+	 * Send invitation emails to whoever is still awaiting one.
+	 *
+	 * **Idempotent by construction** (#1190): it asks
+	 * {@see ReregistrationSubmissionReader::get_awaiting_invitation()} who is
+	 * owed an email and stamps `invited_at` on the ones it reached, so running
+	 * it twice in a row sends nothing the second time. It used to ask for
+	 * `status = 'pending'` and mail all of them — a proxy that re-invited
+	 * everybody who had ignored the first email, which is why it could only
+	 * ever be called on a status transition.
+	 *
+	 * A deadline that moved forward re-opens the door for whoever has not
+	 * finished; see that method and `UNFINISHED_STATUSES` for who that is.
 	 *
 	 * @param int $reregistration_id Reregistration ID.
 	 * @return int Number of emails sent.
@@ -46,11 +57,11 @@ class ReregistrationEmailHandler {
 			return 0;
 		}
 
-		$submissions = ReregistrationSubmissionReader::get_by_reregistration(
+		$extended_at = isset( $rereg->deadline_extended_at ) ? (int) $rereg->deadline_extended_at : 0;
+
+		$submissions = ReregistrationSubmissionReader::get_awaiting_invitation(
 			$reregistration_id,
-			array(
-				'status' => 'pending',
-			)
+			$extended_at > 0 ? $extended_at : null
 		);
 
 		$template = self::effective_template( 'reregistration-invitation' );
@@ -58,12 +69,18 @@ class ReregistrationEmailHandler {
 			return 0;
 		}
 
-		$count = 0;
+		$count  = 0;
+		$mailed = array();
 		foreach ( $submissions as $sub ) {
 			if ( self::send_to_user( (int) $sub->user_id, $rereg, $template ) ) {
 				++$count;
+				$mailed[] = (int) $sub->id;
 			}
 		}
+
+		// Only the ones that actually went out. A send that failed leaves the
+		// row unstamped, so the next run tries it again instead of burying it.
+		ReregistrationSubmissionWriter::mark_invited( $mailed );
 
 		// Activity log.
 		self::log(

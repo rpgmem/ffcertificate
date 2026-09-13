@@ -15,7 +15,45 @@
         initSubmissionDetailsModal();
         initTransferList();
         initCsvExport();
+        initSendInvitations();
     });
+
+    /**
+     * Manual invitation button (#1190).
+     *
+     * The server decides who is owed an email and stamps the ones it reached,
+     * so this is idempotent: a second press right after the first reports zero.
+     * Delegated from `document` and registered here rather than folded into
+     * another init that early-returns on this screen -- that is exactly how the
+     * audience-bookings handler was silently dropped (#783).
+     */
+    function initSendInvitations() {
+        $(document).on('click', '#ffc-rereg-send-invitations', function () {
+            var $btn = $(this);
+            var $msg = $btn.siblings('.ffc-rereg-invite-msg');
+            var cfg = window.ffcReregistrationAdmin || {};
+            var S = cfg.strings || {};
+
+            if ($btn.prop('disabled')) { return; }
+            $btn.prop('disabled', true);
+            $msg.text(S.inviteSending || 'Sending…');
+
+            FFC.request(
+                'ffc_rereg_send_invitations',
+                { reregistration_id: $btn.data('rereg-id') },
+                { nonce: cfg.adminNonce, ajaxUrl: cfg.ajaxUrl }
+            )
+                .then(function (data) {
+                    $msg.text((data && data.message) || '');
+                })
+                .catch(function (err) {
+                    $msg.text((err && err.message) || S.inviteError || 'An error occurred.');
+                })
+                .then(function () {
+                    $btn.prop('disabled', false);
+                });
+        });
+    }
 
     /**
      * Batched CSV export (#772). The "Export CSV" button drives the unified
