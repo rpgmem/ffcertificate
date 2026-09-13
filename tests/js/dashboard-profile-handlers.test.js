@@ -56,9 +56,9 @@ beforeAll(() => {
 	window.ffcDashboard.logoutUrl = 'https://x.test/logout';
 
 	const dash = document.getElementById('ffc-dashboard');
-	if (dash && ! document.getElementById('tab-profile')) {
+	if (dash && ! document.getElementById('ffc-tabpanel-profile')) {
 		const el = document.createElement('div');
-		el.id = 'tab-profile';
+		el.id = 'ffc-tabpanel-profile';
 		el.className = 'ffc-tab-content';
 		dash.appendChild(el);
 	}
@@ -87,7 +87,7 @@ const PROFILE_FIXTURE = {
 };
 
 beforeEach(() => {
-	document.getElementById('tab-profile').innerHTML = '';
+	document.getElementById('ffc-tabpanel-profile').innerHTML = '';
 	window.FFCDashboard.panels.profile.state = null;
 });
 
@@ -127,7 +127,7 @@ describe('profile.showEditForm', () => {
 	it('replaces the read view with an edit form populated from state', () => {
 		panel().render(PROFILE_FIXTURE);
 		window.$('.ffc-profile-edit-btn').trigger('click');
-		const form = document.querySelector('#tab-profile .ffc-profile-edit-form');
+		const form = document.querySelector('#ffc-tabpanel-profile .ffc-profile-edit-form');
 		expect(form).not.toBeNull();
 		expect(document.getElementById('ffc-edit-display-name').value).toBe('Maria Silva');
 		expect(document.getElementById('ffc-edit-phone').value).toBe('11 99999-0000');
@@ -137,19 +137,19 @@ describe('profile.showEditForm', () => {
 
 	it("does nothing when state is null (defensive — shouldn't happen at runtime)", () => {
 		panel().state = null;
-		document.getElementById('tab-profile').innerHTML = '<button class="ffc-profile-edit-btn">Edit</button>';
+		document.getElementById('ffc-tabpanel-profile').innerHTML = '<button class="ffc-profile-edit-btn">Edit</button>';
 		window.$('.ffc-profile-edit-btn').trigger('click');
-		expect(document.querySelector('#tab-profile .ffc-profile-edit-form')).toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-profile .ffc-profile-edit-form')).toBeNull();
 	});
 
 	it('cancel button re-renders the read view from the preserved state', () => {
 		panel().render(PROFILE_FIXTURE);
 		window.$('.ffc-profile-edit-btn').trigger('click');
-		expect(document.querySelector('#tab-profile .ffc-profile-edit-form')).not.toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-profile .ffc-profile-edit-form')).not.toBeNull();
 		window.$('.ffc-profile-cancel-btn').trigger('click');
 		// Read view is back.
-		expect(document.querySelector('#tab-profile .ffc-profile-info')).not.toBeNull();
-		expect(document.querySelector('#tab-profile .ffc-profile-edit-form')).toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-profile .ffc-profile-info')).not.toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-profile .ffc-profile-edit-form')).toBeNull();
 	});
 });
 
@@ -190,7 +190,7 @@ describe('profile.saveProfile', () => {
 
 		expect(panel().state).toEqual(updated);
 		// Read view rendered (the .ffc-profile-info container).
-		expect(document.querySelector('#tab-profile .ffc-profile-info')).not.toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-profile .ffc-profile-info')).not.toBeNull();
 	});
 
 	it('on error: shows the server message and re-enables the save button', async () => {
@@ -295,7 +295,7 @@ describe('profile.privacyRequest', () => {
 		// — render() emits it conditionally so the button may or may not
 		// be there. Check first whether it exists; if not, inject it.
 		if (! document.querySelector('.ffc-lgpd-export-btn')) {
-			document.getElementById('tab-profile').insertAdjacentHTML(
+			document.getElementById('ffc-tabpanel-profile').insertAdjacentHTML(
 				'beforeend',
 				'<button class="ffc-lgpd-export-btn"></button><span class="ffc-lgpd-status"></span>'
 			);
@@ -314,7 +314,7 @@ describe('profile.privacyRequest', () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(false);
 
 		if (! document.querySelector('.ffc-lgpd-delete-btn')) {
-			document.getElementById('tab-profile').insertAdjacentHTML(
+			document.getElementById('ffc-tabpanel-profile').insertAdjacentHTML(
 				'beforeend',
 				'<button class="ffc-lgpd-delete-btn"></button><span class="ffc-lgpd-status"></span>'
 			);
@@ -329,7 +329,7 @@ describe('profile.privacyRequest', () => {
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
 
 		if (! document.querySelector('.ffc-lgpd-delete-btn')) {
-			document.getElementById('tab-profile').insertAdjacentHTML(
+			document.getElementById('ffc-tabpanel-profile').insertAdjacentHTML(
 				'beforeend',
 				'<button class="ffc-lgpd-delete-btn"></button><span class="ffc-lgpd-status"></span>'
 			);
@@ -352,7 +352,7 @@ describe('profile.saveNotificationPreferences', () => {
 		// Inject a notification toggle if the rendered profile didn't
 		// include one (template logic varies by preference shape).
 		if (! document.querySelector('.ffc-notif-toggle')) {
-			document.getElementById('tab-profile').insertAdjacentHTML(
+			document.getElementById('ffc-tabpanel-profile').insertAdjacentHTML(
 				'beforeend',
 				'<input type="checkbox" class="ffc-notif-toggle" data-key="newsletter" /><span class="ffc-notif-status"></span>'
 			);
@@ -372,7 +372,7 @@ describe('profile.saveNotificationPreferences', () => {
 		Object.assign(window.ffcDashboard.strings, { saveError: 'Save failed' });
 		panel().render(PROFILE_FIXTURE);
 		if (! document.querySelector('.ffc-notif-toggle')) {
-			document.getElementById('tab-profile').insertAdjacentHTML(
+			document.getElementById('ffc-tabpanel-profile').insertAdjacentHTML(
 				'beforeend',
 				'<input type="checkbox" class="ffc-notif-toggle" data-key="newsletter" /><span class="ffc-notif-status"></span>'
 			);
@@ -389,7 +389,7 @@ describe('profile.saveNotificationPreferences', () => {
 		Object.assign(window.ffcDashboard.strings, { notifSaved: 'Saved!' });
 		panel().render(PROFILE_FIXTURE);
 		if (! document.querySelector('.ffc-notif-toggle')) {
-			document.getElementById('tab-profile').insertAdjacentHTML(
+			document.getElementById('ffc-tabpanel-profile').insertAdjacentHTML(
 				'beforeend',
 				'<input type="checkbox" class="ffc-notif-toggle" data-key="newsletter" /><span class="ffc-notif-status"></span>'
 			);
@@ -427,9 +427,9 @@ describe('profile.render — multi-value list fields', () => {
 			emails: ['a@x.test', 'b@x.test'],
 			cpfs_masked: ['111.***', '222.***'],
 		});
-		expect(document.querySelectorAll('#tab-profile ul.ffc-name-list li').length).toBe(2);
-		expect(document.querySelectorAll('#tab-profile ul.ffc-email-list li').length).toBe(2);
-		expect(document.querySelectorAll('#tab-profile ul.ffc-cpf-list li').length).toBe(2);
+		expect(document.querySelectorAll('#ffc-tabpanel-profile ul.ffc-name-list li').length).toBe(2);
+		expect(document.querySelectorAll('#ffc-tabpanel-profile ul.ffc-email-list li').length).toBe(2);
+		expect(document.querySelectorAll('#ffc-tabpanel-profile ul.ffc-cpf-list li').length).toBe(2);
 	});
 
 	it('renders the fallback value when a list field is empty', () => {
@@ -442,7 +442,7 @@ describe('profile.render — multi-value list fields', () => {
 			cpfs_masked: [],
 			cpf_masked: '999.***',
 		});
-		const text = document.querySelector('#tab-profile .ffc-profile-info').textContent;
+		const text = document.querySelector('#ffc-tabpanel-profile .ffc-profile-info').textContent;
 		expect(text).toContain('Fallback Name');
 		expect(text).toContain('fallback@x.test');
 		expect(text).toContain('999.***');
@@ -462,7 +462,7 @@ describe('profile.load / reload', () => {
 		mockAjaxSuccess(PROFILE_FIXTURE);
 		panel().load();
 		await flush();
-		expect(document.querySelector('#tab-profile .ffc-profile-info')).not.toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-profile .ffc-profile-info')).not.toBeNull();
 	});
 
 	it('load() short-circuits when .ffc-profile-info is already present', async () => {
@@ -478,7 +478,7 @@ describe('profile.load / reload', () => {
 		mockAjaxError({});
 		panel().load();
 		await flush();
-		expect(document.getElementById('tab-profile').innerHTML).toContain('Error');
+		expect(document.getElementById('ffc-tabpanel-profile').innerHTML).toContain('Error');
 	});
 
 	it('load() appends viewAsUserId to the request URL when impersonating', async () => {
@@ -495,7 +495,7 @@ describe('profile.load / reload', () => {
 		panel().reload();
 		await flush();
 		expect(panel().state).toEqual(PROFILE_FIXTURE);
-		expect(document.querySelector('#tab-profile .ffc-profile-info')).not.toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-profile .ffc-profile-info')).not.toBeNull();
 	});
 
 	it('reload() shows the error notice when the request fails', async () => {
@@ -503,7 +503,7 @@ describe('profile.load / reload', () => {
 		mockAjaxError({});
 		panel().reload();
 		await flush();
-		expect(document.getElementById('tab-profile').innerHTML).toContain('Error');
+		expect(document.getElementById('ffc-tabpanel-profile').innerHTML).toContain('Error');
 	});
 
 	it('reload() appends viewAsUserId when impersonating', async () => {
@@ -577,9 +577,9 @@ describe('profile — misc handler branches', () => {
 		window.$.fx.off = true;
 		panel().render(PROFILE_FIXTURE);
 		// Hidden initially.
-		expect(window.$('#tab-profile .ffc-password-form').css('display')).toBe('none');
+		expect(window.$('#ffc-tabpanel-profile .ffc-password-form').css('display')).toBe('none');
 		window.$('.ffc-password-toggle-btn').trigger('click');
-		expect(window.$('#tab-profile .ffc-password-form').css('display')).not.toBe('none');
+		expect(window.$('#ffc-tabpanel-profile .ffc-password-form').css('display')).not.toBe('none');
 	});
 
 	it('render schedules audienceJoin.load() when the helper is present', async () => {
@@ -619,7 +619,7 @@ describe('profile — attribute escaping (S12)', () => {
 			...PROFILE_FIXTURE,
 			audience_groups: [ { name: 'Alpha', color: payload } ],
 		});
-		const chip = document.querySelector('#tab-profile span[style*="background-color"]');
+		const chip = document.querySelector('#ffc-tabpanel-profile span[style*="background-color"]');
 		expect(chip).not.toBeNull();
 		// The group name still renders and no rogue handler broke out of style="…".
 		expect(chip.textContent).toBe('Alpha');

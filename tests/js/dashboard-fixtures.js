@@ -3,8 +3,8 @@
 // Each test that exercises a panel needs (a) a window.ffcDashboard.strings
 // payload (the panels treat absent keys as undefined, which produces
 // "undefined" literals in the HTML — not what we want to assert on), and
-// (b) the tab container the renderer writes into (`#tab-certificates`,
-// `#tab-appointments`, etc.). Centralising both keeps each test file
+// (b) the tab container the renderer writes into (`#ffc-tabpanel-certificates`,
+// `#ffc-tabpanel-appointments`, etc.). Centralising both keeps each test file
 // focused on its assertions.
 
 import { loadScript } from './helpers.js';
@@ -58,9 +58,9 @@ export function installDashboardFixtures() {
 				<a class="ffc-tab" data-tab="appointments">Appts</a>
 				<a class="ffc-tab" data-tab="audience">Audience</a>
 			</div>
-			<div id="tab-certificates" class="ffc-tab-content is-active"></div>
-			<div id="tab-appointments" class="ffc-tab-content"></div>
-			<div id="tab-audience" class="ffc-tab-content"></div>
+			<div id="ffc-tabpanel-certificates" class="ffc-tab-content is-active"></div>
+			<div id="ffc-tabpanel-appointments" class="ffc-tab-content"></div>
+			<div id="ffc-tabpanel-audience" class="ffc-tab-content"></div>
 		</div>
 	`;
 }

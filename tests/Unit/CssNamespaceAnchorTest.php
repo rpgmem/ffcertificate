@@ -81,19 +81,19 @@ class CssNamespaceAnchorTest extends TestCase {
 	 * @var array<string, array<string, int>>
 	 */
 	private const BASELINE = array(
-		// Os seis ids que `DashboardShortcode` publica sem prefixo. Um id é
-		// único no documento: um tema com `#tab-profile` não repinta -- quebra
-		// `getElementById`, o `aria-controls` das abas e a delegação de evento.
+		// VAZIA desde a #1202 item 1. As três últimas entradas eram os ids
+		// `#tab-*` que `DashboardShortcode` publicava sem prefixo, e ali a
+		// correção não era âncora: um id é único no documento, então ancorar
+		// num contêiner deixaria o nome genérico exposto -- um tema com
+		// `#tab-profile` não repinta nada, quebra `getElementById`, o
+		// `aria-controls` das abas e a delegação de evento. Os seis painéis
+		// passaram a `ffc-tabpanel-<slug>`, que é a convenção que o editor de
+		// formulário já usava (`ffc-tabnav-` / `ffc-tabpanel-`).
 		//
-		// Únicos sobreviventes depois da #1184: aqui a correção NÃO é âncora,
-		// é renomear o id -- e isso é PHP, JS e `aria-controls` juntos, uma
-		// unidade própria. Ancorar num contêiner deixaria o id genérico no
-		// documento, que é justamente o risco.
-		'ffc-user-dashboard.css' => array(
-			'#tab-appointments h3'    => 1,
-			'#tab-audience h3'        => 1,
-			'#tab-reregistrations h3' => 1,
-		),
+		// Zero não é o fim da guarda: quem cobra é
+		// `test_no_stylesheet_publishes_a_new_anchorless_selector()`, que varre
+		// as 28 folhas a cada corrida. Uma entrada nova aqui é uma decisão a
+		// defender, não uma linha a acrescentar.
 	);
 
 	/**

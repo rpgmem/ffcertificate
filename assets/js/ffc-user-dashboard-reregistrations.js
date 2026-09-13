@@ -16,7 +16,7 @@
         state: null,
 
         load: function () {
-            var $container = $('#tab-reregistrations');
+            var $container = $('#ffc-tabpanel-reregistrations');
             if ($container.length === 0) return;
 
             if (typeof ffcDashboard.canViewReregistrations !== 'undefined' && !ffcDashboard.canViewReregistrations) {
@@ -43,7 +43,7 @@
         },
 
         render: function (items, page) {
-            var $container = $('#tab-reregistrations');
+            var $container = $('#ffc-tabpanel-reregistrations');
             page = page || 1;
             var pageSize = helpers.getPageSize();
             var s = ffcDashboard.strings;

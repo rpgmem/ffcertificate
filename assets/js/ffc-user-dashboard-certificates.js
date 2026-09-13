@@ -13,7 +13,7 @@
         state: null,
 
         load: function () {
-            var $container = $('#tab-certificates');
+            var $container = $('#ffc-tabpanel-certificates');
             if ($container.length === 0) return;
 
             if (typeof ffcDashboard.canViewCertificates !== 'undefined' && !ffcDashboard.canViewCertificates) {
@@ -40,7 +40,7 @@
         },
 
         render: function (certificates, page) {
-            var $container = $('#tab-certificates');
+            var $container = $('#ffc-tabpanel-certificates');
             page = page || 1;
             var pageSize = helpers.getPageSize();
 
