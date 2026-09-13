@@ -670,16 +670,43 @@ class ReregistrationRepository {
 	}
 
 	/**
-	 * Get all user IDs that belong to the given audience IDs.
+	 * Get all user IDs a reregistration's audience set reaches — descendants
+	 * included.
 	 *
-	 * @param array<int> $audience_ids Audience IDs (individual, no cascading).
+	 * **The `true` is the whole point** (#1190). It used to be absent, and that
+	 * made this query disagree with {@see self::get_active_for_audience()},
+	 * which decides who *sees* the campaign: that one walks UP from the user's
+	 * own audiences to their parents, so a campaign pinned to a parent P shows
+	 * to a member of a child C. This one did not walk DOWN, so that same person
+	 * was not in the affected set — they saw the banner, had no submission row
+	 * and got no invitation.
+	 *
+	 * The two are not competing directions, which is how the issue framed it
+	 * and why it is worth writing down: *"the campaign reaches the descendants
+	 * of its audience"* seen from the user's side **is** *"walk up from my
+	 * audiences until I find a campaign"*. Walking up was already right; what
+	 * was missing was this side mirroring it. Siblings are reached by neither,
+	 * and a campaign on a child never reaches its parent — both correct.
+	 *
+	 * The rest of the codebase already read "members" as including descendants:
+	 * the audience-scheduling module passes `true` at four sites. This was the
+	 * one that did not.
+	 *
+	 * Three consumers share this, so they cannot disagree: the seeding
+	 * ({@see ReregistrationSubmissionWriter::create_for_audience_members()}),
+	 * the count the operator is shown while building the campaign
+	 * ({@see ReregistrationAjaxHandler}) — which used to *confirm* the wrong
+	 * seeding rather than contradict it — and
+	 * {@see self::get_affected_user_ids_for_reregistration()}.
+	 *
+	 * @param array<int> $audience_ids Audience IDs; each one cascades to its descendants.
 	 * @return array<int> User IDs.
 	 */
 	public static function get_user_ids_for_audiences( array $audience_ids ): array {
 		$user_ids = array();
 
 		foreach ( $audience_ids as $aud_id ) {
-			$members  = AudienceReader::get_members( (int) $aud_id );
+			$members  = AudienceReader::get_members( (int) $aud_id, true );
 			$user_ids = array_merge( $user_ids, $members );
 		}
 

@@ -43,10 +43,18 @@ class ReregistrationRepositoryTest extends TestCase {
 		Functions\when('sanitize_text_field')->alias('trim');
 		Functions\when('get_current_user_id')->justReturn(1);
 		Functions\when('current_time')->justReturn('2026-03-01 12:00:00');
+		// `get_user_ids_for_audiences()` desce a hierarquia desde o #1190, então
+		// alcança `AudienceReader::get_all()` pelo caminho de `get_children()`.
+		Functions\when('sanitize_sql_orderby')->returnArg();
+		Functions\when('absint')->alias(function ($v) { return abs((int) $v); });
 
 		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() {
 			return func_get_args()[0];
 		})->byDefault();
+		// Sem filhos, por padrão: quem quiser hierarquia sobrescreve. `get_col`
+		// fica sem padrão de propósito -- cada teste declara o que a consulta
+		// de membros devolve.
+		$this->wpdb->shouldReceive('get_results')->andReturn(array())->byDefault();
 	}
 
 	protected function tearDown(): void {
@@ -1308,6 +1316,42 @@ class ReregistrationRepositoryTest extends TestCase {
 
 		// Should have unique IDs: 10, 20, 30
 		$this->assertCount(3, $result);
+	}
+
+	/**
+	 * The #1190 defect: a campaign pinned to a parent audience must reach the
+	 * members of its children.
+	 *
+	 * Asserted on the ids that reach the members query, not on the returned
+	 * array — a test that only checks "not empty" passes with the cascade
+	 * removed, which is exactly how this shipped.
+	 */
+	public function test_get_user_ids_for_audiences_reaches_members_of_child_audiences(): void {
+		$child = (object) array( 'id' => 11, 'name' => 'Child', 'parent_id' => 10 );
+
+		// get_descendant_ids( 10 ) → get_children( 10 ) = [ 11 ], then get_children( 11 ) = [].
+		$rows = 0;
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(function () use (&$rows, $child) {
+			$rows++;
+			return 1 === $rows ? array( $child ) : array();
+		});
+
+		$member_args = array();
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function () use (&$member_args) {
+			$args = func_get_args();
+			if ( isset( $args[1] ) && is_array( $args[1] ) && strpos( (string) $args[0], 'DISTINCT user_id' ) !== false ) {
+				$member_args = $args[1];
+			}
+			return $args[0];
+		});
+		$this->wpdb->shouldReceive('get_col')->andReturn(array('100'));
+
+		$result = ReregistrationRepository::get_user_ids_for_audiences(array(10));
+
+		// First arg is the table name; the audience ids follow.
+		$this->assertContains(10, $member_args, 'O público da campanha tem que entrar na consulta.');
+		$this->assertContains(11, $member_args, 'O filho também — é o defeito do #1190.');
+		$this->assertSame(array(100), array_values($result));
 	}
 
 	public function test_get_user_ids_for_audiences_empty_input(): void {
