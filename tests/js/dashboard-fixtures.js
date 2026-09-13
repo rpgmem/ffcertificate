@@ -54,11 +54,11 @@ export function installDashboardFixtures() {
 	document.body.innerHTML = `
 		<div id="ffc-dashboard">
 			<div class="ffc-tabs">
-				<a class="ffc-tab active" data-tab="certificates">Certs</a>
+				<a class="ffc-tab is-active" data-tab="certificates">Certs</a>
 				<a class="ffc-tab" data-tab="appointments">Appts</a>
 				<a class="ffc-tab" data-tab="audience">Audience</a>
 			</div>
-			<div id="tab-certificates" class="ffc-tab-content active"></div>
+			<div id="tab-certificates" class="ffc-tab-content is-active"></div>
 			<div id="tab-appointments" class="ffc-tab-content"></div>
 			<div id="tab-audience" class="ffc-tab-content"></div>
 		</div>
