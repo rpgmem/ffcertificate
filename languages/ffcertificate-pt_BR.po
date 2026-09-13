@@ -1105,7 +1105,7 @@ msgstr "Acumulação de horas de trabalho"
 #: templates/reregistration/acknowledgment-fieldset.php:23 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:84 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:507 includes/reregistration/class-ffc-custom-field-reader.php:84
 #| msgid "6. Acknowledgment"
 msgid "Acknowledgment"
-msgstr "Agradecimentos"
+msgstr "Termo de Ciência"
 
 #: includes/settings/views/documentation/feature-ficha.php:49
 msgid "Acknowledgment notice (\"Termo de Ciência\") HTML — editable per-audience in the Reregistration Fields section, with a shipped default fallback."
@@ -19171,7 +19171,7 @@ msgstr "Desfazer decisão (administrador)"
 
 #: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:83 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:439 includes/settings/views/documentation/feature-ficha.php:130
 msgid "Union"
-msgstr "Estado"
+msgstr "Sindicato"
 
 #: includes/settings/views/documentation/reference-tokens.php:46
 msgid "Unique authentication code for validation"
@@ -21209,3 +21209,23 @@ msgstr "✓ com autoridade"
 #: includes/reregistration/class-ffc-ficha-generator.php
 msgid "Authentication: %s /"
 msgstr "Autenticação: %s /"
+
+#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php
+msgid "Functional Registry (RF)"
+msgstr "Registro Funcional (RF)"
+
+#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php
+msgid "Address Complement"
+msgstr "Complemento"
+
+#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php
+msgid "Emergency Contact Name"
+msgstr "Nome do Contato de Emergência"
+
+#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php
+msgid "Emergency Contact Phone"
+msgstr "Telefone do Contato de Emergência"
+
+#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php
+msgid "Institutional Email (@sme)"
+msgstr "E-mail Institucional (@sme)"

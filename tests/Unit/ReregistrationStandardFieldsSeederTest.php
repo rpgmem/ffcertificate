@@ -48,6 +48,134 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 	}
 
 	// ==================================================================
+	// Rótulos e obrigatoriedade revisados (#1209)
+	// ==================================================================
+
+	/**
+	 * Os cinco rótulos revisados carregam a string-fonte nova.
+	 *
+	 * `__()` devolve o argumento nos testes, então o que se lê aqui é a
+	 * string-FONTE. A tradução é cobrada pelo teste seguinte.
+	 *
+	 * @return void
+	 */
+	public function test_the_revised_fields_carry_the_new_source_label(): void {
+		$by_key = $this->definitionByKey();
+
+		$this->assertSame( 'Functional Registry (RF)', $by_key['rf']['field_label'] );
+		$this->assertSame( 'Address Complement', $by_key['endereco_complemento']['field_label'] );
+		$this->assertSame( 'Emergency Contact Name', $by_key['contato_emergencia']['field_label'] );
+		$this->assertSame( 'Emergency Contact Phone', $by_key['tel_emergencia']['field_label'] );
+		$this->assertSame( 'Institutional Email (@sme)', $by_key['email_institucional']['field_label'] );
+	}
+
+	/**
+	 * Os campos que passaram a obrigatórios, e o que segue opcional.
+	 *
+	 * `endereco_complemento` continua opcional DE PROPÓSITO -- complemento é
+	 * o campo que legitimamente não se aplica a muitos endereços.
+	 *
+	 * @return void
+	 */
+	public function test_the_revised_fields_are_required(): void {
+		$by_key = $this->definitionByKey();
+
+		foreach ( array( 'rf', 'endereco', 'endereco_numero', 'contato_emergencia', 'tel_emergencia', 'email_institucional', 'sindicato' ) as $key ) {
+			$this->assertSame( 1, (int) $by_key[ $key ]['required'], "`{$key}` deveria ser obrigatório." );
+		}
+
+		$this->assertSame( 0, (int) $by_key['endereco_complemento']['required'], 'Complemento segue opcional.' );
+	}
+
+	/**
+	 * Todo rótulo semeado tem tradução pt_BR. Bloqueia em ZERO.
+	 *
+	 * O seeder grava o resultado de `__()` NO BANCO, no momento em que o
+	 * público é criado. Então um rótulo sem tradução não degrada para
+	 * inglês só naquela tela: ele nasce em inglês na linha e fica assim até
+	 * alguém renomear na UI, público por público.
+	 *
+	 * Isto cobre a classe, não os cinco desta leva: mudar uma string-fonte
+	 * sem acrescentar a tradução é o engano natural, e foi o que quase
+	 * aconteceu ao escrever esta própria issue.
+	 *
+	 * @return void
+	 */
+	public function test_every_seeded_label_has_a_pt_br_translation(): void {
+		$messages = $this->ptBrMessages();
+
+		$labels = array();
+		foreach ( $this->definitionByKey() as $def ) {
+			$labels[] = (string) $def['field_label'];
+		}
+		foreach ( ReregistrationStandardFieldsSeeder::get_group_labels() as $label ) {
+			$labels[] = (string) $label;
+		}
+		$labels = array_values( array_unique( $labels ) );
+
+		$this->assertNotEmpty( $labels, 'A varredura não pode passar por vazia.' );
+
+		$missing = array();
+		foreach ( $labels as $label ) {
+			if ( ! isset( $messages[ $label ] ) ) {
+				$missing[] = $label;
+			}
+		}
+
+		$this->assertSame(
+			array(),
+			$missing,
+			"Rótulo semeado sem tradução pt_BR -- um público novo nasceria com ele em inglês:\n" . implode( "\n", $missing )
+		);
+	}
+
+	/**
+	 * As duas traduções que estavam ERRADAS, não apenas ausentes.
+	 *
+	 * `Union` ali é sindicato, e estava como "Estado" -- colidindo com o
+	 * `State` do endereço, de modo que o formulário mostrava duas coisas
+	 * diferentes sob a mesma palavra. `Acknowledgment` é ciência/aceite, e
+	 * estava como "Agradecimentos"; o próprio código já chamava a coisa de
+	 * `get_default_termo_ciencia_html()`.
+	 *
+	 * @return void
+	 */
+	public function test_the_two_corrected_translations(): void {
+		$messages = $this->ptBrMessages();
+
+		$this->assertSame( 'Sindicato', $messages['Union'] ?? null );
+		$this->assertSame( 'Termo de Ciência', $messages['Acknowledgment'] ?? null );
+	}
+
+	/**
+	 * Definições do seeder indexadas por `field_key`.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	private function definitionByKey(): array {
+		$ref = new \ReflectionMethod( ReregistrationStandardFieldsSeeder::class, 'get_standard_fields_definition' );
+		$ref->setAccessible( true );
+
+		$by_key = array();
+		foreach ( (array) $ref->invoke( null ) as $def ) {
+			$by_key[ (string) $def['field_key'] ] = $def;
+		}
+
+		return $by_key;
+	}
+
+	/**
+	 * Mensagens do catálogo pt_BR.
+	 *
+	 * @return array<string, string>
+	 */
+	private function ptBrMessages(): array {
+		$catalog = include dirname( __DIR__, 2 ) . '/languages/ffcertificate-pt_BR.l10n.php';
+
+		return is_array( $catalog['messages'] ?? null ) ? $catalog['messages'] : array();
+	}
+
+	// ==================================================================
 	// get_group_labels()
 	// ==================================================================
 
