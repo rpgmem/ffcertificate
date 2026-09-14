@@ -30,13 +30,18 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @phpstan-type ReregistrationSubmissionRow \stdClass&object{id: string, reregistration_id: string, user_id: string, status: string, submitted_at: numeric-string|int|null, reviewed_at: numeric-string|int|null, reviewed_by: string|null, notes: string|null, auth_code: string|null, magic_token: string|null, invited_at: numeric-string|int|null, created_at: string, updated_at: string, data?: string|null}
  *
  * A linha da submissao-fonte da importacao (#1213): a linha de submissao mais
- * as duas colunas que o JOIN traz da campanha de origem. Declarada como
- * interseccao para nao repetir a forma acima -- se uma coluna entrar la, entra
- * aqui tambem.
- * `data` e reafirmado como NAO-opcional: a consulta e `SELECT s.*`, entao a
- * coluna vem sempre -- diferente da forma acima, que a declara opcional porque
- * ha consultas que selecionam colunas avulsas.
- * @phpstan-type ReregistrationImportSourceRow ReregistrationSubmissionRow&object{data: string|null, reregistration_title: string, start_date: string|null}
+ * as duas colunas que o JOIN traz da campanha de origem, e `data` como
+ * NAO-opcional (a consulta e `SELECT s.*`, entao a coluna vem sempre; a forma
+ * acima a declara opcional porque ha consultas que selecionam colunas avulsas).
+ *
+ * Escrita por extenso, e nao como `ReregistrationSubmissionRow&object{...}`:
+ * uma interseccao NAO consegue tornar obrigatoria uma chave que o outro lado
+ * declara opcional, e o PHPStan rejeita o alias inteiro com
+ * `typeAlias.unresolvableType` -- o que degrada a assinatura de volta para
+ * `object` e faz reaparecerem exatamente os erros que este alias existe para
+ * remover. A duplicacao e o preco; se uma coluna entrar na forma acima, ela
+ * precisa entrar aqui tambem.
+ * @phpstan-type ReregistrationImportSourceRow \stdClass&object{id: string, reregistration_id: string, user_id: string, status: string, submitted_at: numeric-string|int|null, reviewed_at: numeric-string|int|null, reviewed_by: string|null, notes: string|null, auth_code: string|null, magic_token: string|null, invited_at: numeric-string|int|null, created_at: string, updated_at: string, data: string|null, reregistration_title: string, start_date: string|null}
  */
 class ReregistrationSubmissionReader {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -311,7 +316,7 @@ class ReregistrationSubmissionReader {
 			)
 		);
 
-		return $row instanceof \stdClass ? $row : null;
+		return $row;
 	}
 
 	/**
