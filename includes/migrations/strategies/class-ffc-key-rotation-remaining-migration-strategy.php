@@ -78,16 +78,44 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	private const BATCH_SIZE = 50;
 
 	/**
+	 * Target key for the recruitment candidate columns.
+	 */
+	private const TARGET_RECRUITMENT = 'recruitment_candidate';
+
+	/**
 	 * Targets this strategy walks, in order.
 	 *
-	 * Adding `ffc_recruitment_candidate` and the profile usermeta means adding
-	 * entries here plus a `migrate_*` method; the cursor, the status maths and
-	 * the completion latch already work per target.
+	 * Adding the profile usermeta means adding an entry here plus a `migrate_*`
+	 * method; the cursor, the status maths and the completion latch already work
+	 * per target.
 	 *
 	 * @return array<int, string>
 	 */
 	private function targets(): array {
-		return array( self::TARGET_REREGISTRATION );
+		return array( self::TARGET_RECRUITMENT, self::TARGET_REREGISTRATION );
+	}
+
+	/**
+	 * Encrypted column => paired searchable hash column, for the recruitment
+	 * candidate table.
+	 *
+	 * Rebuilding these hashes is the half that fixes a LIVE defect rather than
+	 * merely preventing a future one: `Encryption::hash()` reads
+	 * `FFC_HASH_SALT` as soon as it is defined, so every hash written before
+	 * the decoupling is unreachable by every lookup made after it --
+	 * `RecruitmentCandidateReader::get_by_cpf_hash()` compares for equality.
+	 * Four consumers break, and the fourth is not a search: the importer's
+	 * dedup (`CandidatePersister`), which on the next import would create a
+	 * second row for someone it cannot find.
+	 *
+	 * @return array<string, string>
+	 */
+	private function recruitment_columns(): array {
+		return array(
+			'cpf_encrypted'   => 'cpf_hash',
+			'rf_encrypted'    => 'rf_hash',
+			'email_encrypted' => 'email_hash',
+		);
 	}
 
 	/**
@@ -98,6 +126,16 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	private function reregistration_table(): string {
 		global $wpdb;
 		return $wpdb->prefix . 'ffc_reregistration_submissions';
+	}
+
+	/**
+	 * Full table name for the recruitment candidates.
+	 *
+	 * @return string
+	 */
+	private function recruitment_table(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'ffc_recruitment_candidate';
 	}
 
 	/**
@@ -147,44 +185,96 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	}
 
 	/**
-	 * Rows carrying at least one ciphertext, across every target.
+	 * Rows carrying at least one ciphertext, summed across every target.
 	 *
 	 * @return int
 	 */
 	private function count_total(): int {
-		global $wpdb;
-		$table = $this->reregistration_table();
-
-		if ( ! $this->table_exists( $table ) ) {
-			return 0;
+		$total = 0;
+		foreach ( $this->targets() as $target ) {
+			$total += $this->count_target( $target, false );
 		}
 
-		return (int) $wpdb->get_var(
-			$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE data LIKE %s', $table, '%' . $wpdb->esc_like( Encryption::V2_PREFIX ) . '%' )
-		);
+		return $total;
 	}
 
 	/**
-	 * Rows already behind the cursor.
+	 * Rows already behind the cursor, summed across every target.
 	 *
 	 * @return int
 	 */
 	private function count_migrated(): int {
-		global $wpdb;
-		$table = $this->reregistration_table();
+		$migrated = 0;
+		foreach ( $this->targets() as $target ) {
+			$migrated += $this->count_target( $target, true );
+		}
 
-		if ( ! $this->table_exists( $table ) ) {
+		return $migrated;
+	}
+
+	/**
+	 * Count rows of one target, optionally only those behind its cursor.
+	 *
+	 * @param string $target        Target key.
+	 * @param bool   $behind_cursor Restrict to rows already walked.
+	 * @return int
+	 */
+	private function count_target( string $target, bool $behind_cursor ): int {
+		global $wpdb;
+
+		$table = $this->table_for( $target );
+		if ( '' === $table || ! $this->table_exists( $table ) ) {
 			return 0;
 		}
 
-		return (int) $wpdb->get_var(
-			$wpdb->prepare(
-				'SELECT COUNT(*) FROM %i WHERE data LIKE %s AND id <= %d',
-				$table,
-				'%' . $wpdb->esc_like( Encryption::V2_PREFIX ) . '%',
-				$this->get_cursor( self::TARGET_REREGISTRATION )
-			)
-		);
+		$where  = $this->pending_predicate( $target );
+		$values = array( $table );
+
+		if ( self::TARGET_REREGISTRATION === $target ) {
+			$values[] = '%' . $wpdb->esc_like( Encryption::V2_PREFIX ) . '%';
+		}
+
+		if ( $behind_cursor ) {
+			$where   .= ' AND id <= %d';
+			$values[] = $this->get_cursor( $target );
+		}
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where comes only from pending_predicate(), which returns one of two hard-coded literals and never touches request data; every value, the table included, is bound through prepare().
+		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE {$where}", $values ) );
+	}
+
+	/**
+	 * The WHERE fragment that identifies rows this target still has to consider.
+	 *
+	 * Literal fragments only -- the bound values are appended by the caller.
+	 *
+	 * @param string $target Target key.
+	 * @return string
+	 */
+	private function pending_predicate( string $target ): string {
+		if ( self::TARGET_REREGISTRATION === $target ) {
+			return 'data LIKE %s';
+		}
+
+		return '( cpf_encrypted IS NOT NULL OR rf_encrypted IS NOT NULL OR email_encrypted IS NOT NULL )';
+	}
+
+	/**
+	 * Table backing one target.
+	 *
+	 * @param string $target Target key.
+	 * @return string Empty when the target has no table of its own.
+	 */
+	private function table_for( string $target ): string {
+		if ( self::TARGET_REREGISTRATION === $target ) {
+			return $this->reregistration_table();
+		}
+
+		if ( self::TARGET_RECRUITMENT === $target ) {
+			return $this->recruitment_table();
+		}
+
+		return '';
 	}
 
 	/**
@@ -211,7 +301,24 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 		// silently marked complete.
 		$this->stamp_fingerprint();
 
-		$result = $this->migrate_reregistration_batch();
+		// Um alvo por lote: o primeiro que ainda tenha linhas adiante do seu
+		// cursor. Misturar alvos num mesmo lote tornaria o cursor ambíguo e
+		// impediria retomar de onde parou.
+		$result = array(
+			'processed' => 0,
+			'errors'    => array(),
+		);
+
+		foreach ( $this->targets() as $target ) {
+			if ( $this->count_target( $target, false ) <= $this->count_target( $target, true ) ) {
+				continue;
+			}
+
+			$result = self::TARGET_RECRUITMENT === $target
+				? $this->migrate_recruitment_batch()
+				: $this->migrate_reregistration_batch();
+			break;
+		}
 
 		$status = $this->calculate_status( '', array() );
 		if ( 0 === $status['pending'] && empty( $result['errors'] ) ) {
@@ -311,6 +418,132 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	}
 
 	/**
+	 * Re-encrypt one batch of recruitment candidates and rebuild their hashes.
+	 *
+	 * REBUILDING THE HASH CANNOT COLLIDE, AND THAT IS NOT LUCK.
+	 *
+	 * `cpf_hash` and `rf_hash` carry UNIQUE constraints. A rebuild writes a
+	 * different value for the same person, so it could in principle hit the
+	 * hash of ANOTHER row -- except that two rows sharing a CPF are exactly what
+	 * those constraints already forbid, under the old salt as much as the new
+	 * one. Distinct inputs stay distinct through SHA-256, so a set that was
+	 * unique before is unique after, and a half-migrated table holds no
+	 * collision either: the two eras produce unrelated values.
+	 *
+	 * The hash is only written when it actually differs, mirroring the original
+	 * strategy -- a row already under the current salt costs no write.
+	 *
+	 * @return array{processed: int, errors: array<int, string>}
+	 */
+	private function migrate_recruitment_batch(): array {
+		global $wpdb;
+
+		$table  = $this->recruitment_table();
+		$cursor = $this->get_cursor( self::TARGET_RECRUITMENT );
+		$errors = array();
+
+		if ( ! $this->table_exists( $table ) ) {
+			return array(
+				'processed' => 0,
+				'errors'    => $errors,
+			);
+		}
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT id, cpf_encrypted, cpf_hash, rf_encrypted, rf_hash, email_encrypted, email_hash
+				 FROM %i WHERE id > %d ORDER BY id ASC LIMIT %d',
+				$table,
+				$cursor,
+				self::BATCH_SIZE
+			),
+			ARRAY_A
+		);
+
+		if ( ! is_array( $rows ) || array() === $rows ) {
+			$max_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(MAX(id), 0) FROM %i', $table ) );
+			if ( $max_id > $cursor ) {
+				$this->set_cursor( self::TARGET_RECRUITMENT, $max_id );
+			}
+
+			return array(
+				'processed' => 0,
+				'errors'    => $errors,
+			);
+		}
+
+		$processed = 0;
+		$last_id   = $cursor;
+
+		foreach ( $rows as $row ) {
+			$last_id = (int) $row['id'];
+			$update  = array();
+			$formats = array();
+
+			foreach ( $this->recruitment_columns() as $enc_col => $hash_col ) {
+				$ciphertext = (string) ( $row[ $enc_col ] ?? '' );
+				if ( '' === $ciphertext ) {
+					continue;
+				}
+
+				$plain = Encryption::decrypt( $ciphertext );
+				if ( null === $plain || '' === $plain ) {
+					$errors[] = sprintf(
+						/* translators: 1: column name, 2: candidate ID */
+						__( 'Could not decrypt %1$s for recruitment candidate %2$d — left unchanged (the key may be unrecoverable).', 'ffcertificate' ),
+						$enc_col,
+						$last_id
+					);
+					continue;
+				}
+
+				$fresh = Encryption::encrypt( $plain );
+				if ( null === $fresh ) {
+					continue;
+				}
+
+				$update[ $enc_col ] = $fresh;
+				$formats[]          = '%s';
+
+				$new_hash = Encryption::hash( $plain );
+				if ( null === $new_hash ) {
+					continue;
+				}
+
+				$current_hash = isset( $row[ $hash_col ] ) ? (string) $row[ $hash_col ] : '';
+				if ( '' === $current_hash || ! hash_equals( $new_hash, $current_hash ) ) {
+					$update[ $hash_col ] = $new_hash;
+					$formats[]           = '%s';
+				}
+			}
+
+			if ( array() === $update ) {
+				continue;
+			}
+
+			$written = $wpdb->update( $table, $update, array( 'id' => $last_id ), $formats, array( '%d' ) );
+
+			if ( false === $written ) {
+				$errors[] = sprintf(
+					/* translators: %d: candidate ID */
+					__( 'Could not write the re-encrypted values for recruitment candidate %d.', 'ffcertificate' ),
+					$last_id
+				);
+				continue;
+			}
+
+			++$processed;
+		}
+
+		$this->set_cursor( self::TARGET_RECRUITMENT, $last_id );
+
+		return array(
+			'processed' => $processed,
+			'errors'    => $errors,
+		);
+	}
+
+	/**
 	 * Re-encrypt every ciphertext inside one submission body.
 	 *
 	 * WHICH VALUES ARE CIPHERTEXT IS READ FROM THE VALUE, NOT FROM THE CONFIG.
@@ -400,9 +633,7 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	public function can_run( string $migration_key, array $migration_config ) {
 		unset( $migration_key, $migration_config );
 
-		$health = Encryption::key_health_report();
-
-		if ( empty( $health['encryption_decoupled'] ) || empty( $health['salt_decoupled'] ) ) {
+		if ( ! $this->is_decoupled() ) {
 			return new WP_Error(
 				'encryption_not_decoupled',
 				__( 'Define both FFC_ENCRYPTION_KEY and FFC_HASH_SALT (32+ chars each) in wp-config.php first. See Settings → Advanced → Encryption Key Health.', 'ffcertificate' )
@@ -410,6 +641,28 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 		}
 
 		return true;
+	}
+
+	/**
+	 * Whether BOTH decoupling constants are in place.
+	 *
+	 * A seam, and a deliberate one: `execute()` re-checks this even though
+	 * `MigrationStatusCalculator::execute_migration()` already gates on
+	 * `can_run()`. The redundancy is worth keeping because this path WRITES
+	 * ciphertext -- a caller that skipped the gate would not merely fail, it
+	 * would re-encrypt every row under the WordPress-derived key and persist
+	 * it, making the situation worse than doing nothing. Reading the flag
+	 * through an overridable method is what lets a test drive the guarded code
+	 * without defining `FFC_ENCRYPTION_KEY`, which is process-wide and would
+	 * change `Encryption` for every test that runs afterwards (the order
+	 * dependence the CLAUDE.md records).
+	 *
+	 * @return bool
+	 */
+	protected function is_decoupled(): bool {
+		$health = Encryption::key_health_report();
+
+		return ! empty( $health['encryption_decoupled'] ) && ! empty( $health['salt_decoupled'] );
 	}
 
 	/**

@@ -82,6 +82,20 @@ class MigrationRegistry {
 			'requires_column' => false,
 		);
 
+		// v6.24.0 (#1236): finish the rotation over the areas the S7b strategy
+		// never walked -- recruitment candidates and reregistration bodies. On an
+		// install that decoupled AFTER its data existed, those rows are still
+		// under the WordPress-derived key, and their search hashes still under
+		// the old salt, which breaks every hash lookup made since.
+		$this->migrations['key_rotation_remaining'] = array(
+			'name'            => __( 'Encryption Key Rotation — Remaining Areas', 'ffcertificate' ),
+			'description'     => __( 'Finish the key rotation over the areas the first pass never covered: recruitment candidates and reregistration submission bodies. Re-encrypts them under FFC_ENCRYPTION_KEY and rebuilds the CPF/RF/email search hashes under FFC_HASH_SALT — without this, candidate lookups by CPF or RF silently find nothing, and the data stays tied to the WordPress salts. Define both constants first (Settings → Advanced → Encryption Key Health).', 'ffcertificate' ),
+			'icon'            => 'ffc-icon-shield',
+			'batch_size'      => 50,
+			'order'           => 5,
+			'requires_column' => false,
+		);
+
 		// v5.4.1: Clear plaintext context on activity log rows that already
 		// hold a ciphertext, eliminating the dual-storage leak.
 		$this->migrations['activity_log_clear_plaintext'] = array(
