@@ -561,6 +561,15 @@ class ReregistrationSubmissionReader {
 	public const UNFINISHED_STATUSES = array( 'pending', 'in_progress', 'expired', 'rejected' );
 
 	/**
+	 * Quem o lembrete alcanca. Subconjunto deliberado de
+	 * {@see self::UNFINISHED_STATUSES} -- ver
+	 * {@see self::get_awaiting_reminder()} para o motivo.
+	 *
+	 * @var array<int, string>
+	 */
+	public const REMINDABLE_STATUSES = array( 'pending', 'in_progress' );
+
+	/**
 	 * Submissions the invitation should reach right now.
 	 *
 	 * Two populations, and they are different questions:
@@ -603,6 +612,75 @@ class ReregistrationSubmissionReader {
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i WHERE reregistration_id = %d AND ( {$clause} )",
+				$values
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		/**
+		 * Cast wpdb result to the typed row shape.
+		 *
+		 * @var list<ReregistrationSubmissionRow>
+		 */
+		return is_array( $results ) ? $results : array();
+	}
+
+	/**
+	 * As submissoes que ainda devem receber um LEMBRETE.
+	 *
+	 * Espelha {@see self::get_awaiting_invitation()} com `reminder_sent_at` no
+	 * lugar de `invited_at`, porque a regra e a mesma: um por campanha, mais um
+	 * a cada extensao de prazo.
+	 *
+	 * O QUE ISTO CONSERTA
+	 *
+	 * Ate aqui nao havia marca nenhuma, e o cron e DIARIO enquanto a consulta
+	 * de campanhas usa `DATEDIFF(end_date, CURDATE()) <= reminder_days` -- uma
+	 * JANELA, nao um dia. Com `reminder_days = 7`, cada participante pendente
+	 * recebia sete e-mails, um por dia (#1232).
+	 *
+	 * DUAS DIFERENCAS DELIBERADAS EM RELACAO AO CONVITE
+	 *
+	 * 1. O publico-base continua sendo `pending` + `in_progress`, que e
+	 *    exatamente quem o lembrete ja alcancava. O convite usa
+	 *    `UNFINISHED_STATUSES` (que inclui `expired` e `rejected`); adotar esse
+	 *    conjunto aqui ALARGARIA silenciosamente quem recebe lembrete, uma
+	 *    mudanca de comportamento que nao pertence a uma correcao de
+	 *    duplicidade.
+	 * 2. Na reabertura por extensao, porem, o conjunto e o mesmo do convite --
+	 *    se o prazo andou para frente, quem nao finalizou volta a ser
+	 *    lembravel pelo mesmo criterio que o torna convidavel.
+	 *
+	 * @param int      $reregistration_id ID da campanha.
+	 * @param int|null $extended_at       Unix da ultima extensao de prazo, ou
+	 *                                    null quando nao houve nenhuma.
+	 * @return list<ReregistrationSubmissionRow>
+	 */
+	public static function get_awaiting_reminder( int $reregistration_id, ?int $extended_at = null ): array {
+		$wpdb  = self::db();
+		$table = self::get_table_name();
+
+		$base         = self::REMINDABLE_STATUSES;
+		$placeholders = implode( ',', array_fill( 0, count( $base ), '%s' ) );
+
+		$where  = array( 'reminder_sent_at IS NULL' );
+		$values = array( $table, $reregistration_id );
+		$values = array_merge( $values, $base );
+
+		if ( null !== $extended_at && $extended_at > 0 ) {
+			$unfinished = implode( ',', array_fill( 0, count( self::UNFINISHED_STATUSES ), '%s' ) );
+			$where[]    = "( reminder_sent_at < %d AND status IN ({$unfinished}) )";
+			$values[]   = $extended_at;
+			$values     = array_merge( $values, self::UNFINISHED_STATUSES );
+		}
+
+		$clause = implode( ' OR ', $where );
+
+		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- O sniff conta os marcadores do literal e nao sabe que `prepare()` aceita um array unico de argumentos, que e como a tabela, o id e os status chegam.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Leitura imediatamente antes da escrita que muda as mesmas linhas; uma resposta em cache reenviaria e-mail.
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM %i WHERE reregistration_id = %d AND status IN ({$placeholders}) AND ( {$clause} ) ORDER BY id ASC",
 				$values
 			)
 		);

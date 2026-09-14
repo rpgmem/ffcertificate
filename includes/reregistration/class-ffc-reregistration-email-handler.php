@@ -122,19 +122,26 @@ class ReregistrationEmailHandler {
 			return 0;
 		}
 
-		// If specific user IDs given, filter to those. Otherwise get all pending/in-progress.
+		// Com ids explicitos o operador esta pedindo o envio para AQUELAS
+		// pessoas, entao a marca nao filtra -- e um reenvio deliberado. Sem
+		// eles, e o cron: ai quem ainda nao foi lembrado e o que decide.
 		if ( ! empty( $user_ids ) ) {
 			$submissions = array();
 			foreach ( $user_ids as $uid ) {
 				$sub = ReregistrationSubmissionReader::get_by_reregistration_and_user( $reregistration_id, (int) $uid );
-				if ( $sub && in_array( $sub->status, array( 'pending', 'in_progress' ), true ) ) {
+				if ( $sub && in_array( $sub->status, ReregistrationSubmissionReader::REMINDABLE_STATUSES, true ) ) {
 					$submissions[] = $sub;
 				}
 			}
 		} else {
-			$pending     = ReregistrationSubmissionReader::get_by_reregistration( $reregistration_id, array( 'status' => 'pending' ) );
-			$in_progress = ReregistrationSubmissionReader::get_by_reregistration( $reregistration_id, array( 'status' => 'in_progress' ) );
-			$submissions = array_merge( $pending, $in_progress );
+			// Um lembrete por campanha, mais um a cada extensao de prazo --
+			// a mesma regra que o convite ja aplica desde o #1190, agora com
+			// `reminder_sent_at` no lugar de `invited_at` (#1232).
+			$extended_at = isset( $rereg->deadline_extended_at ) ? (int) $rereg->deadline_extended_at : 0;
+			$submissions = ReregistrationSubmissionReader::get_awaiting_reminder(
+				$reregistration_id,
+				$extended_at > 0 ? $extended_at : null
+			);
 		}
 
 		$days_left = max( 0, (int) ( ( strtotime( $rereg->end_date ) - time() ) / 86400 ) );
@@ -148,6 +155,12 @@ class ReregistrationEmailHandler {
 				'set_password_url' => \FreeFormCertificate\Core\PasswordInvite::issue_for( (int) $sub->user_id ),
 			);
 			if ( self::send_to_user( (int) $sub->user_id, $rereg, $template, $extra ) ) {
+				// Carimbado IMEDIATAMENTE, nao ao final do laco: este metodo
+				// roda no wp-cron, dentro da requisicao de um visitante, e um
+				// timeout no meio deixaria todo mundo que ja recebeu sem marca
+				// -- reenviando na proxima execucao, que e o defeito que este
+				// trabalho conserta.
+				ReregistrationSubmissionWriter::mark_reminded( (int) $sub->id );
 				++$count;
 			}
 		}

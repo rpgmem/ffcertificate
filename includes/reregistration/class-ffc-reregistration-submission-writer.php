@@ -335,6 +335,53 @@ class ReregistrationSubmissionWriter {
 		return $created;
 	}
 	/**
+	 * Carimba o envio do LEMBRETE numa submissao.
+	 *
+	 * POR ITEM, e nao em lote como {@see self::mark_invited()} -- a diferenca e
+	 * deliberada e vem do caminho de chamada. O convite e disparado por um
+	 * clique do operador, que ve a tela e pode reagir; o lembrete roda no
+	 * wp-cron, DENTRO DA REQUISICAO DE UM VISITANTE, sobre um conjunto que pode
+	 * ter milhares de linhas e um `wp_mail()` sincrono por linha. Esse e
+	 * exatamente o caminho que expira no meio -- e o defeito que o #1232
+	 * descreve.
+	 *
+	 * Carimbar ao final significa que um timeout deixa NADA marcado, e todo
+	 * mundo que ja recebeu e-mail recebe de novo na proxima execucao.
+	 * Carimbando por item, uma interrupcao deixa marcado exatamente quem ja
+	 * recebeu, e a execucao seguinte retoma de onde parou.
+	 *
+	 * Categoria A (unix UTC) conforme o CLAUDE.md -- `time()`, nunca
+	 * `current_time()`.
+	 *
+	 * @param int $submission_id ID da submissao.
+	 * @return bool
+	 */
+	public static function mark_reminded( int $submission_id ): bool {
+		if ( $submission_id <= 0 ) {
+			return false;
+		}
+
+		$wpdb = self::db();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Escrita numa tabela `ffc_*` propria do plugin, para a qual o WordPress nao expoe API; a invalidacao do cache vem logo abaixo.
+		$result = $wpdb->update(
+			self::get_table_name(),
+			array( 'reminder_sent_at' => time() ),
+			array( 'id' => $submission_id ),
+			array( '%d' ),
+			array( '%d' )
+		);
+
+		if ( false === $result ) {
+			return false;
+		}
+
+		static::cache_delete( "id_{$submission_id}" );
+
+		return true;
+	}
+
+	/**
 	 * Stamp the invitation timestamp on the submissions that were just emailed.
 	 *
 	 * Written in one statement rather than per row: the caller loops to send,

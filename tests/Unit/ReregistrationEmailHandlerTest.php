@@ -66,6 +66,11 @@ class ReregistrationEmailHandlerTest extends TestCase {
 		$wpdb->prefix = 'wp_';
 		$wpdb->users = 'wp_users';
 		$wpdb->last_error = '';
+		// O envio de lembrete carimba `reminder_sent_at` na linha que acabou de
+		// receber e-mail (#1232). Um `byDefault()` para que um teste que queira
+		// COBRAR a escrita ainda possa sobrescrever com a sua propria
+		// expectativa.
+		$wpdb->shouldReceive('update')->andReturn(1)->byDefault();
 		$this->wpdb = $wpdb;
 
 		Functions\when('wp_cache_get')->justReturn(false);
@@ -335,9 +340,12 @@ class ReregistrationEmailHandlerTest extends TestCase {
 		$this->wpdb->shouldReceive('prepare')->andReturn('query');
 		$this->wpdb->shouldReceive('get_row')->andReturn(
 			$rereg,
-			(object) array( 'user_id' => 10, 'status' => 'pending' ),
+			// `id` e obrigatorio: o envio carimba `reminder_sent_at` na linha
+			// que acabou de receber e-mail (#1232), e uma linha real sempre o
+			// tem. A fixture nao tinha, e so a execucao mostrou.
+			(object) array( 'id' => 101, 'user_id' => 10, 'status' => 'pending' ),
 			// User 20 already submitted → filtered out.
-			(object) array( 'user_id' => 20, 'status' => 'submitted' )
+			(object) array( 'id' => 102, 'user_id' => 20, 'status' => 'submitted' )
 		);
 
 		Functions\when('get_userdata')->alias(fn($id) => (object) array(
