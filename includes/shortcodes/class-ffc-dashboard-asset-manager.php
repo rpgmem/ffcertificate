@@ -172,8 +172,6 @@ class DashboardAssetManager {
 					'invalidPhone'     => __( 'Invalid phone number.', 'ffcertificate' ),
 					'invalidFormat'    => __( 'Invalid format.', 'ffcertificate' ),
 					'select'           => __( 'Select', 'ffcertificate' ),
-					'selectDivisao'    => __( 'Select Division / Location', 'ffcertificate' ),
-					'selectSetor'      => __( 'Select', 'ffcertificate' ),
 					'sunday'           => __( 'Sunday', 'ffcertificate' ),
 					'monday'           => __( 'Monday', 'ffcertificate' ),
 					'tuesday'          => __( 'Tuesday', 'ffcertificate' ),

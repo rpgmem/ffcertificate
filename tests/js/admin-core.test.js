@@ -36,14 +36,7 @@ beforeAll(async () => {
 		},
 	};
 	window.ajaxurl = '/wp-admin/admin-ajax.php';
-	// The Migration Manager block in ffc-admin.js bails early if
-	// `#ffc-migrations-btn` and `#ffc-migrations-menu` are absent —
-	// and the restriction-toggle handlers are inside that same
-	// document-ready block, so they need these stubs to land.
-	document.body.innerHTML = `
-		<button id="ffc-migrations-btn"></button>
-		<div id="ffc-migrations-menu"></div>
-	`;
+	document.body.innerHTML = '';
 	// ffc-admin.js was migrated to FFC.request — load ffc-core.js so
 	// window.FFC is defined before the subject IIFE evaluates.
 	loadScript('assets/js/ffc-core.js');

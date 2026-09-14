@@ -55,8 +55,6 @@ beforeAll(async () => {
 			invalidEmail: 'Invalid email.',
 			invalidPhone: 'Invalid phone.',
 			invalidFormat: 'Invalid format.',
-			selectDivisao: 'Select Division',
-			selectSetor: 'Select Sector',
 			select: 'Select',
 			acumuloShowValue: 'I hold',
 			sunday: 'Sun',
@@ -412,73 +410,6 @@ describe('rereg blur validation', () => {
 		expect(() => window.$('[name="code"]').trigger('blur')).not.toThrow();
 		await flush();
 		expect(window.$('.ffc-field-error').text()).toBe('');
-	});
-});
-
-// ----------------------------------------------------------------------
-// Divisão → Setor cascade
-// ----------------------------------------------------------------------
-
-describe('rereg divisão→setor cascade', () => {
-	async function mountCascade(mapJson) {
-		document.body.innerHTML = `
-			<button class="ffc-rereg-open-form" data-reregistration-id="9"></button>
-		`;
-		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
-				success: true,
-				data: {
-					html: `
-						<form id="ffc-rereg-form">
-							<select id="ffc_rereg_divisao">
-								<option value="">--</option>
-								<option value="A">A</option>
-								<option value="B">B</option>
-							</select>
-							<select id="ffc_rereg_setor"></select>
-							<script id="ffc-divisao-setor-map" type="application/json">${mapJson}</script>
-						</form>
-					`,
-				},
-			} }));
-		window.$('.ffc-rereg-open-form').trigger('click');
-		await flush();
-	}
-
-	it('populates setor when divisão changes', async () => {
-		await mountCascade(JSON.stringify({ A: ['A1', 'A2'], B: ['B1'] }));
-		window.$('#ffc_rereg_divisao').val('A').trigger('change');
-		await flush();
-
-		const opts = window.$('#ffc_rereg_setor option').map((_, el) => el.textContent).get();
-		expect(opts).toEqual(['Select Sector', 'A1', 'A2']);
-	});
-
-	it('shows the placeholder when divisão has no children', async () => {
-		await mountCascade(JSON.stringify({ A: ['A1'] }));
-		window.$('#ffc_rereg_divisao').val('B').trigger('change');
-		await flush();
-
-		const opts = window.$('#ffc_rereg_setor option').map((_, el) => el.textContent).get();
-		expect(opts).toEqual(['Select Division']);
-	});
-
-	it('bails silently on malformed JSON', async () => {
-		// mountCascade is async; calling it with malformed JSON must not
-		// reject (the IIFE catches and degrades silently).
-		await mountCascade('{ invalid');
-	});
-
-	it('re-selects the previously chosen setor when it exists in the new list', async () => {
-		await mountCascade(JSON.stringify({ A: ['A1', 'A2'] }));
-		const $setor = window.$('#ffc_rereg_setor');
-		// Seed a current value that is also present under division A.
-		$setor.append('<option value="A2">A2</option>').val('A2');
-		window.$('#ffc_rereg_divisao').val('A').trigger('change');
-		await flush();
-
-		// The matching option is rendered selected (line 174).
-		expect($setor.val()).toBe('A2');
-		expect($setor.find('option[value="A2"]').prop('selected')).toBe(true);
 	});
 });
 
