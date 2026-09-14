@@ -430,11 +430,21 @@
    ACTION BUTTONS (Ver PDF, Ver Comprovante)
    ========================================================================== */
 
+/* `vertical-align: middle` nos três controles da célula de ações e no
+   invólucro do exportador (#1215). Sem ele cada caixa entra na linha pela sua
+   PRÓPRIA linha de base, e as três derivam a linha de base de formas
+   diferentes: um `inline-flex` a herda do primeiro item flex -- que aqui é o
+   `::before` do ícone, uma caixa de 14px sem texto --, enquanto um
+   `inline-block` a tira da última linha de texto que contém. Medido: na aba de
+   agendamentos os três tinham a MESMA altura (26,8px) e topos em 100,00 /
+   103,39 / 103,55, o que engordava a linha da tabela em 3,54px. A altura nunca
+   foi o problema; a linha de base era. */
 .ffc-btn-pdf,
 .ffc-btn-receipt,
 .ffc-btn-edit {
     display: inline-flex !important;
     align-items: center;
+    vertical-align: middle;
     gap: var(--ffc-spacing-xs);
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg) !important;
     font-size: var(--ffc-font-size-xs) !important;
@@ -569,6 +579,7 @@
 
 .ffc-appointments-table .ffc-cancel-appointment {
     display: inline-block;
+    vertical-align: middle;
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
     font-size: var(--ffc-font-size-xs);
     line-height: 1.4;
@@ -1391,9 +1402,16 @@
     overflow: visible;
 }
 
+/* O alinhamento pertence ao INVÓLUCRO, não ao botão de dentro. É o invólucro
+   que participa da linha da célula; o botão só participa da linha interna. E o
+   `vertical-align: middle` que estava no botão não era inerte -- era a causa:
+   deslocava o botão dentro do invólucro, o que movia a linha de base do
+   próprio invólucro. Medido: removê-lo sozinho já subia o invólucro de 103,55
+   para 100,00 (#1215). */
 .ffc-cal-export-wrap {
     position: relative;
     display: inline-block;
+    vertical-align: middle;
 }
 
 .ffc-cal-export-btn {
@@ -1409,7 +1427,6 @@
     border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     white-space: nowrap;
-    vertical-align: middle;
     transition: background 0.15s;
 }
 
