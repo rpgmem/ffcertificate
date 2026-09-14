@@ -20,6 +20,7 @@ use FreeFormCertificate\Admin\CertTemplateCpt;
 use FreeFormCertificate\Admin\CertTemplateReader;
 use FreeFormCertificate\Admin\CertTemplateFichaResolver;
 use FreeFormCertificate\Core\RequestInput;
+use FreeFormCertificate\Core\PasswordInvite;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -149,6 +150,31 @@ class TabReregistration extends SettingsTab {
 					</a>
 				<?php endif; ?>
 			</p>
+			<h2><?php esc_html_e( 'Invitation password link', 'ffcertificate' ); ?></h2>
+			<p class="description">
+				<?php esc_html_e( 'The invitation and reminder emails carry a link that lets the member define their own password and land straight in the dashboard. The link does not create a session by itself: it opens the password screen, and it can only be used once.', 'ffcertificate' ); ?>
+			</p>
+			<p>
+				<label for="ffc_invite_password_link_hours"><strong><?php esc_html_e( 'Link expires after (hours):', 'ffcertificate' ); ?></strong></label>
+				<input type="number" name="ffc_invite_password_link_hours" id="ffc_invite_password_link_hours"
+					class="small-text"
+					min="<?php echo esc_attr( (string) PasswordInvite::MIN_HOURS ); ?>"
+					max="<?php echo esc_attr( (string) PasswordInvite::MAX_HOURS ); ?>"
+					step="1"
+					required
+					value="<?php echo esc_attr( (string) PasswordInvite::expiration_hours() ); ?>">
+				<span class="description">
+					<?php
+					printf(
+						/* translators: 1: minimum hours, 2: maximum hours, 3: default hours */
+						esc_html__( 'Between %1$d and %2$d hours. Default: %3$d.', 'ffcertificate' ),
+						(int) PasswordInvite::MIN_HOURS,
+						(int) PasswordInvite::MAX_HOURS,
+						(int) PasswordInvite::DEFAULT_HOURS
+					);
+					?>
+				</span>
+			</p>
 			<?php submit_button( __( 'Save Changes', 'ffcertificate' ) ); ?>
 		</form>
 
@@ -181,6 +207,23 @@ class TabReregistration extends SettingsTab {
 		}
 
 		update_option( CertTemplateFichaResolver::OPTION, $id );
+
+		// Campo vazio é "não informado", NUNCA zero: `(int) ''` é 0, e zero
+		// aqui significaria "expira na hora" ou "nunca expira" -- dois
+		// desastres diferentes (a lição do #1114). O `required` na marcação é
+		// só a metade barata; o guarda é este branch.
+		$raw = RequestInput::get_post_string( 'ffc_invite_password_link_hours', '' );
+		if ( '' !== $raw && is_numeric( $raw ) ) {
+			$settings = get_option( 'ffc_settings', array() );
+			if ( ! is_array( $settings ) ) {
+				$settings = array();
+			}
+			// Merge, nunca reconstrução: esta aba não passa pelo
+			// `SettingsSaveHandler`, então precisa preservar por conta
+			// própria tudo o que as outras abas gravaram.
+			$settings['invite_password_link_hours'] = PasswordInvite::clamp_hours( (int) $raw );
+			update_option( 'ffc_settings', $settings );
+		}
 
 		wp_safe_redirect( admin_url( 'admin.php?page=ffc-settings&tab=' . $this->tab_id . '&ffc_saved=1' ) );
 		exit;

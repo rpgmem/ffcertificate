@@ -315,6 +315,19 @@ final class SettingsReader {
 		return self::get_int( 'activity_log_retention_days', 90 );
 	}
 
+	/**
+	 * Window of the reregistration invite's password-set link, in hours.
+	 *
+	 * O limite fica em `Core\PasswordInvite` (1..720) e é aplicado na leitura
+	 * além da escrita, como o `CLAUDE.md` exige: um valor gravado antes de um
+	 * limite se mover ainda precisa cair onde o código consegue usar. Este
+	 * acessor devolve o valor gravado; quem limita é `PasswordInvite`, para
+	 * que o limite viva num lugar só (#1212).
+	 */
+	public static function invite_password_link_hours(): int {
+		return self::get_int( 'invite_password_link_hours', 48 );
+	}
+
 	/** TTL for the WP object cache entries the plugin manages. */
 	public static function cache_expiration_seconds(): int {
 		return self::get_int( 'cache_expiration', 3600 );

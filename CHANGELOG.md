@@ -12,6 +12,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Seis seletores `.ffc-settings-page` que já eram alcançados** (#1202): cada um tinha um irmão `.ffc-settings-wrap` na mesma regra, e o div que carrega a classe é descendente daquele — então a regra já valia. Removidos; medido por render, zero divergência em 14.940 pares.
 - **Duas regras de `.tablenav` que não pintavam nada** (#1202): `clear: both` declarava exatamente o que o WordPress já declara em `wp-list-tables.css`, e `overflow: visible` é o valor inicial que nenhuma folha do admin — nem do core nem nossa — contradiz. Removidas; medido por render, zero divergência em 22.908 pares de elemento × propriedade.
 
+### Added
+
+- **O convite de recadastramento leva a uma tela de definição de senha** (#1212): a conta é criada com uma senha aleatória que ninguém conta ao usuário, então quem era convidado não tinha caminho de entrada — o botão levava ao painel, que exige login. O link não cria sessão: abre a tela, e a sessão só nasce depois que a senha existe. Usa o token do próprio WordPress (guardado com hash, com carimbo de emissão e de uso único) e a janela é configurável em Configurações → Recadastramento.
+
 ### Fixed
 
 - **Os botões da coluna Ações do painel desalinhavam entre si** (#1215): na aba de agendamentos os três tinham a MESMA altura (26,8px) e topos diferentes — cada caixa entrava na linha pela sua própria linha de base, e um `inline-flex` a herda do primeiro item flex (o `::before` do ícone) enquanto um `inline-block` a tira do texto. Os controles passam a declarar `vertical-align: middle`; a linha encolhe 3,54px e as quatro abas ficam com a mesma altura de linha.

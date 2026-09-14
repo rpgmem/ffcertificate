@@ -15,6 +15,9 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Shortcodes;
 
+use FreeFormCertificate\Core\PasswordInvite;
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -319,6 +322,17 @@ class DashboardShortcode {
 	 * @return string HTML output
 	 */
 	private static function render_login_required(): string {
+		// O link do convite chega aqui, sem sessão: é esse o caso normal
+		// (#1212). A tela de definir senha mora na página do painel de
+		// propósito -- nenhuma página nova, nenhuma opção nova, e portanto
+		// nada para o `uninstall.php` e para o gate de fresh-install.
+		if ( PasswordInvite::request_has_link() ) {
+			$password_screen = self::render_set_password();
+			if ( '' !== $password_screen ) {
+				return $password_screen;
+			}
+		}
+
 		ob_start();
 		?>
 		<div class="ffc-dashboard-notice ffc-notice-warning">
@@ -333,6 +347,36 @@ class DashboardShortcode {
 		<?php
 		$login_required_html = ob_get_clean();
 		return $login_required_html ? $login_required_html : '';
+	}
+
+	/**
+	 * Render the set-password screen for an invited member.
+	 *
+	 * Devolve '' quando a chave não vale -- aí o chamador segue para o aviso
+	 * normal de "faça login", que é a resposta certa para um link expirado:
+	 * quem tem senha entra por ali, quem não tem pede um novo convite.
+	 *
+	 * @return string HTML output, or '' when the link is not usable.
+	 */
+	private static function render_set_password(): string {
+		$pair = PasswordInvite::request_pair();
+		$user = PasswordInvite::validate( $pair['key'], $pair['login'] );
+		if ( is_wp_error( $user ) ) {
+			return '';
+		}
+
+		DashboardAssetManager::enqueue_assets( 0 );
+
+		$ffc_key     = $pair['key'];
+		$ffc_login   = $pair['login'];
+		$ffc_error   = RequestInput::get_get_string( 'ffc_password_error' );
+		$ffc_min_len = PasswordInvite::MIN_PASSWORD_LENGTH;
+
+		ob_start();
+		include FFC_PLUGIN_DIR . 'templates/public/set-password.php';
+		$html = ob_get_clean();
+
+		return is_string( $html ) ? $html : '';
 	}
 
 	/**

@@ -259,6 +259,14 @@ class Loader {
 		\FreeFormCertificate\Core\Captcha\AltchaChallengeEndpoint::init();
 
 		DashboardShortcode::init();
+
+		// Link de definição de senha do convite (#1212). Registrado
+		// incondicionalmente, ao lado do painel que o hospeda: o handler
+		// atende um link que já saiu por e-mail, e desligar o módulo de
+		// recadastramento depois do envio deixaria esses links num 400 mudo
+		// em vez de na tela que explica que expiraram.
+		\FreeFormCertificate\Core\PasswordInvite::init();
+
 		// Reregistration module — single bootstrap entry point (#563 B3).
 		// Toggleable via the Modules tab (default on).
 		if ( SettingsReader::module_enabled( 'reregistration' ) ) {
