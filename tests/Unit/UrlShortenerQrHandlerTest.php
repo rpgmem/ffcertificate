@@ -240,10 +240,23 @@ class UrlShortenerQrHandlerTest extends TestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_generate_qr_base64_returns_cached_when_present(): void {
+		// Desde o #1233 o cache guarda um ENVELOPE que declara o tamanho, e
+		// nao base64 cru: o acerto so vale quando o tamanho gravado e o
+		// pedido coincidem. Base64 cru aqui seria um miss — que e exatamente
+		// o caminho de upgrade coberto em UrlShortenerQrCacheSizeTest.
+		$envelope = (string) json_encode(
+			array(
+				'v'    => 1,
+				'size' => 200,
+				'png'  => 'CACHED64',
+			)
+		);
+
 		$repo = Mockery::mock( 'overload:FreeFormCertificate\UrlShortener\UrlShortenerRepository' );
-		$repo->shouldReceive( 'findQrCacheByShortCode' )->with( 'code1' )->andReturn( 'CACHED64' );
+		$repo->shouldReceive( 'findQrCacheByShortCode' )->with( 'code1' )->andReturn( $envelope );
 		// Generator must NOT run and cache must NOT be written on a hit.
 		$repo->shouldNotReceive( 'setQrCacheForShortCode' );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
 
 		$result = $this->handler->generate_qr_base64( 'https://example.com/x', 200, 'code1' );
 
@@ -259,8 +272,15 @@ class UrlShortenerQrHandlerTest extends TestCase {
 		$repo      = Mockery::mock( 'overload:FreeFormCertificate\UrlShortener\UrlShortenerRepository' );
 		$repo->shouldReceive( 'findQrCacheByShortCode' )->with( 'code2' )->andReturn( '' );
 		$repo->shouldReceive( 'setQrCacheForShortCode' )->andReturnUsing(
-			static function ( $code, $b64 ) use ( &$persisted ) {
-				$persisted = array( $code, $b64 );
+			static function ( $code, $payload ) use ( &$persisted ) {
+				$persisted = array( $code, $payload );
+			}
+		);
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+
+		Functions\when( 'wp_json_encode' )->alias(
+			static function ( $data ) {
+				return json_encode( $data );
 			}
 		);
 
@@ -270,7 +290,12 @@ class UrlShortenerQrHandlerTest extends TestCase {
 		$result = $this->handler->generate_qr_base64( 'https://example.com/x', 200, 'code2' );
 
 		$this->assertSame( 'FRESH64', $result );
-		$this->assertSame( array( 'code2', 'FRESH64' ), $persisted );
+
+		// O que foi gravado e o envelope, nao o base64 solto (#1233).
+		$this->assertSame( 'code2', $persisted[0] ?? null );
+		$decoded = json_decode( (string) ( $persisted[1] ?? '' ), true );
+		$this->assertSame( 200, $decoded['size'] ?? null );
+		$this->assertSame( 'FRESH64', $decoded['png'] ?? null );
 	}
 
 	/**
