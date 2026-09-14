@@ -254,14 +254,6 @@
     font-size: var(--ffc-font-size-sm);
 }
 
-/* ── Acúmulo de Cargos ──────────────────────── */
-
-.ffc-rereg-acumulo-fields {
-    margin-top: var(--ffc-spacing-xl);
-    padding-top: var(--ffc-spacing-xl);
-    border-top: 1px dashed var(--ffc-border-light);
-}
-
 /* ── Termo de Ciência ───────────────────────── */
 
 .ffc-rereg-termo-text {

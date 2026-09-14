@@ -180,16 +180,52 @@
     /* ─── Acúmulo de Cargos Toggle ────────────────────── */
 
     function initAcumuloCargos($container) {
-        var $select = $container.find('#ffc_rereg_acumulo');
-        var $fields = $container.find('.ffc-rereg-acumulo-fields');
+        // Os três campos dependentes só valem quando o participante declara
+        // que ACUMULA. Essa já é a regra do outro lado: o FichaGenerator
+        // zera `jornada_acumulo`, `cargo_funcao_acumulo` e
+        // `horario_trabalho_acumulo` a menos que o valor seja exatamente
+        // "I hold" -- "Pension" também zera. Sem esconder aqui, o
+        // participante preenche o que a ficha vai descartar.
+        //
+        // A seleção é por `data-field-key`, que TODO campo emite pelo
+        // wrapper. A versão anterior procurava `#ffc_rereg_acumulo` e
+        // `.ffc-rereg-acumulo-fields`, que nenhum PHP emite -- os dois
+        // conjuntos vinham vazios e o handler não fazia nada.
+        var $select = $container.find('[data-field-key="acumulo_cargos"] select');
+        var $fields = $container.find(
+            '[data-field-key="jornada_acumulo"],' +
+            '[data-field-key="cargo_funcao_acumulo"],' +
+            '[data-field-key="horario_trabalho_acumulo"]'
+        );
+
+        if (!$select.length || !$fields.length) {
+            return;
+        }
+
+        function apply(animate) {
+            var show = $select.val() === (S.acumuloShowValue || 'I hold');
+
+            if (animate) {
+                show ? $fields.slideDown(200) : $fields.slideUp(200);
+            } else {
+                show ? $fields.show() : $fields.hide();
+            }
+
+            // As linhas de horário trazem `required` nos campos de hora, e
+            // validação de constraint IGNORA visibilidade -- um required
+            // escondido trava o envio sem mostrar o que falta.
+            $fields.each(function () {
+                FFC.setRequiredWithin($(this), show);
+            });
+        }
 
         $select.on('change', function () {
-            if ($(this).val() === (S.acumuloShowValue || 'I hold')) {
-                $fields.slideDown(200);
-            } else {
-                $fields.slideUp(200);
-            }
+            apply(true);
         });
+
+        // Sem isto o handler só reagia à mudança, então o formulário abria
+        // com os campos VISÍVEIS qualquer que fosse o valor salvo.
+        apply(false);
     }
 
     /* ─── Working Hours (standard fields) ────────────── */
