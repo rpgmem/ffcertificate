@@ -46,6 +46,13 @@ class UrlShortenerActivatorTest extends TestCase {
 		if ( ! file_exists( $upgrade_file ) ) {
 			file_put_contents( $upgrade_file, "<?php\n// Stub for unit tests.\n" );
 		}
+
+		// A cadeia deste activator passou a ser guardada por `FFC_VERSION`
+		// (#1231), entao le e escreve uma opcao de versao. O valor devolvido
+		// aqui e DIFERENTE de `FFC_VERSION` de proposito: estes testes
+		// exercitam o corpo da cadeia, que so roda quando a guarda nao casa.
+		Functions\when( 'get_option' )->justReturn( '' );
+		Functions\when( 'update_option' )->justReturn( true );
 	}
 
 	protected function tearDown(): void {

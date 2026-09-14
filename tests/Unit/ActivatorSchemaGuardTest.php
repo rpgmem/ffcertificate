@@ -119,16 +119,48 @@ class ActivatorSchemaGuardTest extends TestCase {
 			 * @return string
 			 */
 			public function prepare( ...$args ): string {
-				return is_string( $args[0] ?? '' ) ? (string) $args[0] : '';
+				$this->sql   = is_string( $args[0] ?? '' ) ? (string) $args[0] : '';
+				$bound       = $args[1] ?? null;
+				$bound       = is_array( $bound ) ? ( $bound[0] ?? null ) : $bound;
+				$this->bound = is_string( $bound ) ? $bound : '';
+
+				return $this->sql;
 			}
 
 			/**
+			 * A ultima tabela ligada em `prepare()`, para que um
+			 * `SHOW TABLES LIKE` possa responder que ela existe.
+			 *
+			 * @var string
+			 */
+			private string $bound = '';
+
+			/**
+			 * @var string
+			 */
+			private string $sql = '';
+
+			/**
+			 * Responde ao `SHOW TABLES LIKE` que a tabela EXISTE.
+			 *
+			 * Nao e detalhe: com a tabela ausente, as cadeias iriam criar
+			 * schema e chamariam `dbDelta()`, que so existe em wp-admin. Stubar
+			 * `dbDelta` aqui definiria a funcao via Patchwork para o resto do
+			 * PROCESSO, e todo teste que rode depois e alcance um
+			 * `dbDelta()` sem expectativa propria passa a falhar com "is not
+			 * defined nor mocked" -- o raio de alcance que o CLAUDE.md
+			 * registra. Foi assim que este arquivo quebrou o `ActivityLogTest`.
+			 *
+			 * Reportar a tabela como existente evita o stub E mede o caso que
+			 * importa: uma instalacao estabelecida, onde nao ha nada a criar e
+			 * as 48 consultas eram puro desperdicio.
+			 *
 			 * @param mixed ...$args Ignorados.
-			 * @return null
+			 * @return string|null
 			 */
 			public function get_var( ...$args ) {
 				( $this->counter )();
-				return null;
+				return str_contains( $this->sql, 'SHOW TABLES' ) ? $this->bound : null;
 			}
 
 			/**
@@ -196,16 +228,18 @@ class ActivatorSchemaGuardTest extends TestCase {
 	private function run_chain( string $class, string $method, string $option, string $stored ): int {
 		$this->queries = 0;
 
+		// A opcao sob teste devolve o valor pedido; QUALQUER OUTRA devolve '1'.
+		// As demais leituras nestas cadeias sao marcadores one-shot (o do
+		// `AudienceEmailTokenMigration`, por exemplo), e numa instalacao
+		// estabelecida -- que e o caso que este teste mede -- eles ja rodaram.
+		// Sem isso a cadeia do audience entra num repositorio cujo `db()` e
+		// tipado `: wpdb`, e o duplo anonimo daqui nao satisfaz esse tipo.
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, $default_value = false ) use ( $option, $stored ) {
-				return $key === $option ? $stored : $default_value;
+				return $key === $option ? $stored : '1';
 			}
 		);
 		Functions\when( 'update_option' )->justReturn( true );
-
-		// `dbDelta()` mora em wp-admin/includes/upgrade.php, que nao existe
-		// aqui; as cadeias fazem `require_once ABSPATH . …` antes de chamar.
-		Functions\when( 'dbDelta' )->justReturn( array() );
 
 		call_user_func( array( $class, $method ) );
 
