@@ -17,6 +17,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -198,7 +200,11 @@ class ReregistrationFrontend {
 	public static function ajax_import_previous(): void {
 		check_ajax_referer( 'ffc_reregistration_frontend', 'nonce' );
 
-		$reregistration_id = isset( $_POST['reregistration_id'] ) ? absint( $_POST['reregistration_id'] ) : 0;
+		// Lido por `RequestInput`, nao por um cast direto sobre o superglobal:
+		// o helper guarda o escalar, entao um array postado le como 0 em vez
+		// de virar o numero 1 (#1087). As tres leituras antigas deste arquivo
+		// estao no baseline do `RequestInputCastTest`; esta nao precisa entrar.
+		$reregistration_id = RequestInput::get_post_int( 'reregistration_id' );
 		$user_id           = get_current_user_id();
 
 		if ( ! $reregistration_id || ! $user_id ) {

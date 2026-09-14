@@ -75,6 +75,13 @@ class ReregistrationFormRendererTest extends TestCase {
 	private static $mockFields = null;
 
 	/**
+	 * @var object|null Submissao-fonte que o alias do `ReregistrationSubmissionReader`
+	 *                  devolve. `null` -- nenhum recadastramento aprovado
+	 *                  anterior -- e o caso comum (#1213).
+	 */
+	private static $mockImportSource = null;
+
+	/**
 	 * Build a minimal field stdClass with renderer-safe defaults.
 	 *
 	 * @param array<string, mixed> $overrides
@@ -109,6 +116,13 @@ class ReregistrationFormRendererTest extends TestCase {
 
 		$reregRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' );
 		$reregRepoMock->shouldReceive( 'get_audience_ids' )->andReturn( empty( $fields ) ? array() : array( 1 ) );
+
+		// Sem este alias o renderer alcanca a consulta real do #1213 e o teste
+		// morre em `ReregistrationRepository::get_table_name()`. `null` e o
+		// caso comum: nao ha recadastramento aprovado anterior, logo nao ha
+		// oferta de importacao.
+		$submissionReaderMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' );
+		$submissionReaderMock->shouldReceive( 'get_latest_approved_for_user' )->andReturn( self::$mockImportSource );
 
 		$customFieldRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' );
 		$customFieldRepoMock->shouldReceive( 'get_by_audience_with_parents' )->andReturn( $fields );
@@ -146,6 +160,30 @@ class ReregistrationFormRendererTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-rereg-form', $html );
 		// No acknowledgment field present → the default notice fallback fires.
 		$this->assertStringContainsString( 'Default termo de ciência', $html );
+	}
+
+	public function test_render_offers_the_import_when_a_previous_approval_exists(): void {
+		self::$mockImportSource = (object) array( 'reregistration_title' => 'Recadastramento 2024' );
+		$this->mockRepositories();
+
+		$rereg      = (object) array( 'id' => 2, 'title' => 'Recadastramento 2025', 'end_date' => '2025-12-31 23:59:59' );
+		$submission = (object) array( 'data' => null );
+
+		$html = ReregistrationFormRenderer::render( $rereg, $submission, 10 );
+
+		$this->assertStringContainsString( 'ffc-rereg-import-notice', $html );
+		$this->assertStringContainsString( 'Recadastramento 2024', $html );
+	}
+
+	public function test_render_omits_the_import_offer_without_a_previous_approval(): void {
+		$this->mockRepositories();
+
+		$rereg      = (object) array( 'id' => 2, 'title' => 'Recadastramento 2025', 'end_date' => '2025-12-31 23:59:59' );
+		$submission = (object) array( 'data' => null );
+
+		$html = ReregistrationFormRenderer::render( $rereg, $submission, 10 );
+
+		$this->assertStringNotContainsString( 'ffc-rereg-import-notice', $html );
 	}
 
 	public function test_render_acknowledgment_field_outputs_its_html(): void {
