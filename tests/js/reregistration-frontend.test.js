@@ -58,7 +58,7 @@ beforeAll(async () => {
 			selectDivisao: 'Select Division',
 			selectSetor: 'Select Sector',
 			select: 'Select',
-			acumuloShowValue: 'Hold',
+			acumuloShowValue: 'I hold',
 			sunday: 'Sun',
 			monday: 'Mon',
 			tuesday: 'Tue',
@@ -496,12 +496,28 @@ describe('rereg acumulo toggle', () => {
 				data: {
 					html: `
 						<form id="ffc-rereg-form">
-							<select id="ffc_rereg_acumulo">
-								<option value="">--</option>
-								<option value="Hold">Hold</option>
-								<option value="None">None</option>
-							</select>
-							<div class="ffc-rereg-acumulo-fields" style="display:none">extra fields</div>
+							<div class="ffc-rereg-field" data-field-key="acumulo_cargos">
+								<select id="ffc_field_1" name="ffc_fields[acumulo_cargos]">
+									<option value="">Select</option>
+									<option value="I do not hold">I do not hold</option>
+									<option value="Pension (Payslip Attached)">Pension (Payslip Attached)</option>
+									<option value="I hold">I hold</option>
+								</select>
+							</div>
+							<div class="ffc-rereg-field" data-field-key="jornada_acumulo">
+								<select id="ffc_field_2" name="ffc_fields[jornada_acumulo]"><option value="">Select</option></select>
+							</div>
+							<div class="ffc-rereg-field" data-field-key="cargo_funcao_acumulo">
+								<input type="text" id="ffc_field_3" name="ffc_fields[cargo_funcao_acumulo]">
+							</div>
+							<div class="ffc-rereg-field" data-field-key="horario_trabalho_acumulo">
+								<div class="ffc-working-hours" data-target="ffc_field_4">
+									<table><tbody><tr>
+										<td><input type="time" class="ffc-wh-entry1" required></td>
+										<td><input type="time" class="ffc-wh-exit2" required></td>
+									</tr></tbody></table>
+								</div>
+							</div>
 						</form>
 					`,
 				},
@@ -510,22 +526,57 @@ describe('rereg acumulo toggle', () => {
 		await flush();
 	}
 
-	it('shows the extra fields when "Hold" is selected', async () => {
-		await mountAcumulo();
-		window.$('#ffc_rereg_acumulo').val('Hold').trigger('change');
-		await flush();
+	const $acumulo = () => window.$('[data-field-key="acumulo_cargos"] select');
+	const $dependents = () => window.$(
+		'[data-field-key="jornada_acumulo"],'
+		+ '[data-field-key="cargo_funcao_acumulo"],'
+		+ '[data-field-key="horario_trabalho_acumulo"]'
+	);
 
-		expect(window.$('.ffc-rereg-acumulo-fields').css('display')).not.toBe('none');
+	it('hides the dependent fields on init, before any change', async () => {
+		// O defeito que isto cobre: o handler só ligava `change`, então o
+		// formulário abria com os três campos VISÍVEIS qualquer que fosse o
+		// valor. Nenhum evento é disparado aqui de propósito.
+		await mountAcumulo();
+
+		$dependents().each((_, el) => {
+			expect(window.$(el).css('display')).toBe('none');
+		});
 	});
 
-	it('hides them when a non-hold value is selected', async () => {
+	it('shows them only for "I hold"', async () => {
 		await mountAcumulo();
-		window.$('#ffc_rereg_acumulo').val('Hold').trigger('change');
-		await flush();
-		window.$('#ffc_rereg_acumulo').val('None').trigger('change');
+		$acumulo().val('I hold').trigger('change');
 		await flush();
 
-		expect(window.$('.ffc-rereg-acumulo-fields').css('display')).toBe('none');
+		$dependents().each((_, el) => {
+			expect(window.$(el).css('display')).not.toBe('none');
+		});
+	});
+
+	it('keeps them hidden for "Pension", which the ficha also blanks', async () => {
+		await mountAcumulo();
+		$acumulo().val('Pension (Payslip Attached)').trigger('change');
+		await flush();
+
+		$dependents().each((_, el) => {
+			expect(window.$(el).css('display')).toBe('none');
+		});
+	});
+
+	it('lifts `required` off the hidden time inputs, and puts it back', async () => {
+		// Validação de constraint ignora visibilidade: um `required`
+		// escondido trava o envio sem mostrar o que falta.
+		await mountAcumulo();
+
+		expect(window.$('.ffc-wh-entry1').prop('required')).toBe(false);
+		expect(window.$('.ffc-wh-entry1').attr('data-ffc-required-off')).toBeDefined();
+
+		$acumulo().val('I hold').trigger('change');
+		await flush();
+
+		expect(window.$('.ffc-wh-entry1').prop('required')).toBe(true);
+		expect(window.$('.ffc-wh-exit2').prop('required')).toBe(true);
 	});
 });
 
