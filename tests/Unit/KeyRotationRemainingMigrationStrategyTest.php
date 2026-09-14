@@ -89,7 +89,6 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 		}
 
 		Functions\when( '__' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\__' )->returnArg();
 		Functions\when( 'is_wp_error' )->alias( static fn( $t ) => $t instanceof \WP_Error );
 
 		$get = function ( $key, $default_value = false ) {
@@ -99,12 +98,16 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 			$this->options[ $key ] = $value;
 			return true;
 		};
+		// SÓ as globais, deliberadamente. Uma chamada sem barra dentro de um
+		// namespace cai no global quando não existe a versão namespaced -- e
+		// stubar a namespaced a CRIA via Patchwork, para o resto do processo.
+		// A partir daí todo teste posterior que alcance aquele código passa a
+		// resolver a versão namespaced, que já não tem expectativa, e falha com
+		// "is not defined nor mocked". Foi assim que este arquivo quebrou o
+		// `RewriteHtmlImageRefsMigrationStrategyTest`, que stuba só a global.
 		Functions\when( 'get_option' )->alias( $get );
 		Functions\when( 'update_option' )->alias( $set );
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\get_option' )->alias( $get );
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\update_option' )->alias( $set );
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 
 		$this->strategy = new class() extends KeyRotationRemainingMigrationStrategy {
 			/**
