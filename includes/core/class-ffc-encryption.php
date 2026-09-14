@@ -56,6 +56,39 @@ class Encryption {
 	const V2_PREFIX = 'v2:';
 
 	/**
+	 * Memoizacao das duas chaves derivadas das constantes do WordPress.
+	 *
+	 * Cada uma custa um `hash_pbkdf2( 'sha256', …, 10000, … )` -- medido em
+	 * **11,56 ms** -- e `encrypt()` e `decrypt_internal()` pedem as DUAS por
+	 * chamada, entao um decrypt custava 23,1 ms de CPU pura. A tela de
+	 * Submissoes, que decripta 5 campos em 20 linhas, gastava 2,31 s so nisso.
+	 *
+	 * **Memoizar e correto por construcao, nao uma aposta:** a entrada da
+	 * derivacao sao `SECURE_AUTH_KEY`, `LOGGED_IN_KEY` e `NONCE_KEY`, que sao
+	 * constantes PHP -- imutaveis dentro do request. O valor recalculado nunca
+	 * pode divergir do memoizado.
+	 *
+	 * A memoizacao fica AQUI, nas derivadas, e nao em `get_encryption_key()` /
+	 * `get_hmac_key()`. O motivo e o fallback de rotacao: numa instalacao
+	 * desacoplada com linhas ainda sob a chave antiga, `decrypt_internal()`
+	 * falha na chave ativa (barata) e cai em `wp_derived_*()` por LINHA. Se a
+	 * memoizacao estivesse um nivel acima, esse caminho -- justamente o mais
+	 * caro dos tres -- continuaria pagando o PBKDF2 inteiro (#1230).
+	 *
+	 * @var string|null
+	 */
+	private static ?string $wp_derived_enc_key = null;
+
+	/**
+	 * Memoizacao da chave de HMAC derivada das constantes do WordPress.
+	 *
+	 * @see self::$wp_derived_enc_key para o motivo e o lugar da memoizacao.
+	 *
+	 * @var string|null
+	 */
+	private static ?string $wp_derived_mac_key = null;
+
+	/**
 	 * Encrypt a value
 	 *
 	 * Produces an authenticated (encrypt-then-MAC) ciphertext in the format
@@ -509,6 +542,10 @@ class Encryption {
 	 * @return string 32-byte encryption key
 	 */
 	private static function wp_derived_encryption_key(): string {
+		if ( null !== self::$wp_derived_enc_key ) {
+			return self::$wp_derived_enc_key;
+		}
+
 		$base_keys = array(
 			defined( 'SECURE_AUTH_KEY' ) ? SECURE_AUTH_KEY : '',
 			defined( 'LOGGED_IN_KEY' ) ? LOGGED_IN_KEY : '',
@@ -522,7 +559,9 @@ class Encryption {
 		// to keep existing ciphertexts decryptable without a data-migration step. Entropy is
 		// already provided by the underlying WordPress secret keys, so the PBKDF2 workload
 		// here is only a defense against accidental entropy loss rather than password cracking.
-		return hash_pbkdf2( 'sha256', $combined, 'ffc-encryption-salt', 10000, 32, true );
+		self::$wp_derived_enc_key = hash_pbkdf2( 'sha256', $combined, 'ffc-encryption-salt', 10000, 32, true );
+
+		return self::$wp_derived_enc_key;
 	}
 
 	/**
@@ -548,6 +587,10 @@ class Encryption {
 	 * @return string 32-byte HMAC key
 	 */
 	private static function wp_derived_hmac_key(): string {
+		if ( null !== self::$wp_derived_mac_key ) {
+			return self::$wp_derived_mac_key;
+		}
+
 		$base_keys = array(
 			defined( 'SECURE_AUTH_KEY' ) ? SECURE_AUTH_KEY : '',
 			defined( 'LOGGED_IN_KEY' ) ? LOGGED_IN_KEY : '',
@@ -555,7 +598,9 @@ class Encryption {
 		);
 		$combined  = implode( '|', $base_keys );
 
-		return hash_pbkdf2( 'sha256', $combined, 'ffc-hmac-salt', 10000, 32, true );
+		self::$wp_derived_mac_key = hash_pbkdf2( 'sha256', $combined, 'ffc-hmac-salt', 10000, 32, true );
+
+		return self::$wp_derived_mac_key;
 	}
 
 	/**
