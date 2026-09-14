@@ -193,11 +193,11 @@ class TabEmailTexts extends SettingsTab {
 			),
 			'reregistration-invitation'     => array(
 				'label'  => __( 'Reregistration invitation', 'ffcertificate' ),
-				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'start_date', 'end_date', 'dashboard_url', 'site_name' ),
+				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'start_date', 'end_date', 'dashboard_url', 'set_password_url', 'site_name' ),
 			),
 			'reregistration-reminder'       => array(
 				'label'  => __( 'Reregistration reminder', 'ffcertificate' ),
-				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'start_date', 'end_date', 'days_left', 'dashboard_url', 'site_name' ),
+				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'start_date', 'end_date', 'days_left', 'dashboard_url', 'set_password_url', 'site_name' ),
 			),
 			'reregistration-confirmation'   => array(
 				'label'  => __( 'Reregistration confirmation', 'ffcertificate' ),

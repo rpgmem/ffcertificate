@@ -72,7 +72,12 @@ class ReregistrationEmailHandler {
 		$count  = 0;
 		$mailed = array();
 		foreach ( $submissions as $sub ) {
-			if ( self::send_to_user( (int) $sub->user_id, $rereg, $template ) ) {
+			// O link de definição de senha é emitido POR USUÁRIO e por envio
+			// (#1212). Emitir rotaciona a chave, então o último e-mail é
+			// sempre o que vale -- que é o comportamento certo para um
+			// convite reenviado.
+			$extra = array( 'set_password_url' => \FreeFormCertificate\Core\PasswordInvite::issue_for( (int) $sub->user_id ) );
+			if ( self::send_to_user( (int) $sub->user_id, $rereg, $template, $extra ) ) {
 				++$count;
 				$mailed[] = (int) $sub->id;
 			}
@@ -136,7 +141,13 @@ class ReregistrationEmailHandler {
 
 		$count = 0;
 		foreach ( $submissions as $sub ) {
-			if ( self::send_to_user( (int) $sub->user_id, $rereg, $template, array( 'days_left' => (string) $days_left ) ) ) {
+			// Também no lembrete: quem nunca definiu senha não consegue agir
+			// no convite NEM no lembrete, e o botão do painel exige login.
+			$extra = array(
+				'days_left'        => (string) $days_left,
+				'set_password_url' => \FreeFormCertificate\Core\PasswordInvite::issue_for( (int) $sub->user_id ),
+			);
+			if ( self::send_to_user( (int) $sub->user_id, $rereg, $template, $extra ) ) {
 				++$count;
 			}
 		}
@@ -299,6 +310,14 @@ class ReregistrationEmailHandler {
 			),
 			$extra_vars
 		);
+
+		// Um `href` vazio é pior que um link comum: `issue_for()` só devolve
+		// '' quando a chave não pôde ser emitida, e nesse caso o e-mail ainda
+		// sai. Degradar para o painel mantém o botão útil para quem já tem
+		// senha e nunca produz um link morto (#1212).
+		if ( isset( $variables['set_password_url'] ) && '' === $variables['set_password_url'] ) {
+			$variables['set_password_url'] = $dashboard_url;
+		}
 
 		$tokens = array();
 		foreach ( $variables as $key => $value ) {

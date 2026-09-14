@@ -1710,3 +1710,70 @@
         border: 1px solid CanvasText;
     }
 }
+
+/* ==========================================================================
+   SET PASSWORD (convite, #1212)
+   Tela que o painel mostra no lugar do "faça login" quando a requisição
+   carrega o link do convite. Mora nesta folha porque mora nesta página: o
+   shortcode do painel é quem a renderiza, então não há enfileiramento novo.
+   ========================================================================== */
+
+.ffc-set-password-card {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: var(--ffc-spacing-3xl);
+    background: var(--ffc-bg);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-lg);
+}
+
+.ffc-set-password-card h2 {
+    margin: 0 0 var(--ffc-spacing-lg) 0;
+    font-size: var(--ffc-font-size-xl);
+    color: var(--ffc-text);
+}
+
+.ffc-set-password-card > p {
+    margin: 0 0 var(--ffc-spacing-2xl) 0;
+    font-size: var(--ffc-font-size-base);
+    color: var(--ffc-text-secondary);
+}
+
+.ffc-set-password-field {
+    margin: 0 0 var(--ffc-spacing-xl) 0;
+}
+
+.ffc-set-password-field label {
+    display: block;
+    margin-bottom: var(--ffc-spacing-xs);
+    font-size: var(--ffc-font-size-sm);
+    font-weight: 600;
+    color: var(--ffc-text);
+}
+
+/* Um controle que ganha fundo tem de ganhar texto: `input` não herda `color`,
+   ele pega `fieldtext` do agente de usuário, e no tema escuro isso rende
+   preto sobre escuro (#1126, defeito 4). */
+.ffc-set-password-field input[type="password"] {
+    width: 100%;
+    box-sizing: border-box;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
+    font-size: var(--ffc-font-size-base);
+    background: var(--ffc-bg);
+    color: var(--ffc-text);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+}
+
+.ffc-set-password-actions {
+    margin: 0;
+}
+
+.ffc-set-password-actions .button {
+    width: 100%;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-2xl);
+    font-size: var(--ffc-font-size-base);
+    font-weight: 600;
+    text-align: center;
+    vertical-align: middle;
+}
