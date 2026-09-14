@@ -167,6 +167,9 @@ $ffcertificate_options = array(
 	'ffc_recruitment_settings',
 	'ffc_recruitment_schema_version',
 	'ffc_recruitment_tables_version',
+	// Estado (cursor por alvo + fingerprint + conclusao) da migracao que
+	// termina a rotacao de chaves nas areas nao cobertas pela primeira (#1236).
+	'ffc_key_rotation_remaining_state',
 	'ffc_recruitment_public_cache_version',
 	'ffc_ip_diagnostics_settings',
 	'ffc_cloudflare_cidr_cache',

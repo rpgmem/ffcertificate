@@ -61,10 +61,16 @@ class MigrationRegistryTest extends TestCase {
 		$all = $registry->get_all_migrations();
 
 		$this->assertIsArray( $all );
-		$this->assertCount( 6, $all );
+		$this->assertCount( 7, $all );
 		$this->assertArrayHasKey( 'split_cpf_rf', $all );
 		$this->assertArrayHasKey( 'email_hash_rehash', $all );
 		$this->assertArrayHasKey( 'key_rotation', $all );
+		// A segunda passagem da rotação, sobre as áreas que a primeira nunca
+		// percorreu (#1236). É uma migração SEPARADA, e não alvos novos na
+		// `key_rotation`, porque aquela latcha um booleano `completed` e
+		// curto-circuita o status antes de olhar tabela alguma -- acrescentar
+		// alvos lá reportaria "completa" sem jamais tocá-los.
+		$this->assertArrayHasKey( 'key_rotation_remaining', $all );
 		$this->assertArrayHasKey( 'activity_log_clear_plaintext', $all );
 		$this->assertArrayHasKey( 'import_legacy_templates', $all );
 		$this->assertArrayHasKey( 'rewrite_html_image_refs', $all );
