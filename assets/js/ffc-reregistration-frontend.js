@@ -77,6 +77,73 @@
         initDraft($container);
         initSubmit($container);
         initCancel($container);
+        initImportPrevious($container);
+    }
+
+    /* ─── Importar o ciclo anterior ────────────────────── */
+
+    function initImportPrevious($container) {
+        var $notice = $container.find('.ffc-rereg-import-notice');
+        if (!$notice.length) {
+            return;
+        }
+
+        var $btn = $notice.find('.ffc-rereg-import-btn');
+        var $status = $notice.find('.ffc-rereg-import-status');
+        var reregistrationId = $container.find('.ffc-rereg-form-container').data('reregistration-id');
+
+        $btn.on('click', function () {
+            $btn.prop('disabled', true);
+            $status.text(S.importLoading || 'Loading…');
+
+            FFC.request(
+                'ffc_import_previous_reregistration',
+                { reregistration_id: reregistrationId },
+                { nonce: ffcReregistration.nonce, ajaxUrl: ffcReregistration.ajaxUrl }
+            )
+                .then(function (data) {
+                    var filled = applyImportedFields($container, (data && data.fields) || {});
+                    $notice.slideUp(200);
+                    $status.text('');
+                    if (filled) {
+                        // Os dependentes reagem ao valor, não à origem: sem
+                        // isto o acúmulo segue oculto com campo preenchido.
+                        $container.find('[data-field-key="acumulo_cargos"] select').trigger('change');
+                    }
+                })
+                .catch(function (err) {
+                    $btn.prop('disabled', false);
+                    $status.text((err && err.fromServer && err.message) || S.errorLoading || 'Error.');
+                });
+        });
+    }
+
+    /**
+     * Preenche os campos vindos da importação.
+     *
+     * Casa por `data-field-key`, que é o que o wrapper emite, e NÃO
+     * sobrescreve campo que já tem valor -- se o participante começou a
+     * preencher antes de aceitar, o que ele digitou ganha.
+     */
+    function applyImportedFields($container, fields) {
+        var filled = 0;
+
+        Object.keys(fields).forEach(function (key) {
+            var $input = $container
+                .find('[data-field-key="' + key + '"]')
+                .find('input, select, textarea')
+                .not('[type="hidden"]')
+                .first();
+
+            if (!$input.length || $input.val()) {
+                return;
+            }
+
+            $input.val(fields[key]);
+            filled++;
+        });
+
+        return filled;
     }
 
     /* ─── Input Masks ──────────────────────────────────── */

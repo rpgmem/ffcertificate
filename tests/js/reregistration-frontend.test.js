@@ -1043,3 +1043,88 @@ describe('rereg working hours', () => {
 		expect(hidden).toHaveLength(1);
 	});
 });
+
+// ----------------------------------------------------------------------
+// Importar o ciclo anterior (#1213)
+// ----------------------------------------------------------------------
+
+describe('rereg import previous', () => {
+	const FORM_HTML = `
+		<div class="ffc-rereg-form-container" data-reregistration-id="9">
+			<div class="ffc-rereg-import-notice">
+				<button type="button" class="button ffc-rereg-import-btn">Bring</button>
+				<span class="ffc-rereg-import-status"></span>
+			</div>
+			<form id="ffc-rereg-form">
+				<div class="ffc-rereg-field" data-field-key="display_name">
+					<input type="text" id="f1" name="ffc_fields[display_name]">
+				</div>
+				<div class="ffc-rereg-field" data-field-key="phone">
+					<input type="text" id="f2" name="ffc_fields[phone]" value="JÁ DIGITADO">
+				</div>
+			</form>
+		</div>
+	`;
+
+	// Uma resposta por AÇÃO: o carregamento do formulário e a importação são
+	// dois POSTs, e trocá-los é o erro fácil neste teste.
+	function mockByAction(importData) {
+		vi.spyOn(window.$, 'post').mockImplementation((url, payload) => {
+			if (payload && payload.action === 'ffc_import_previous_reregistration') {
+				return postChain({ done: { success: true, data: importData } });
+			}
+			return postChain({ done: { success: true, data: { html: FORM_HTML } } });
+		});
+	}
+
+	async function mountImport(importData) {
+		document.body.innerHTML = '<button class="ffc-rereg-open-form" data-reregistration-id="9"></button>';
+		mockByAction(importData);
+		window.$('.ffc-rereg-open-form').trigger('click');
+		await flush();
+	}
+
+	it('fills an empty field from the previous cycle', async () => {
+		await mountImport({ fields: { display_name: 'Maria Silva' } });
+
+		window.$('.ffc-rereg-import-btn').trigger('click');
+		await flush();
+
+		expect(window.$('#f1').val()).toBe('Maria Silva');
+	});
+
+	it('does NOT overwrite what the participant already typed', async () => {
+		// A regra que importa: quem começou a preencher antes de aceitar
+		// ganha. Sem ela, aceitar a oferta apagaria o trabalho já feito.
+		await mountImport({ fields: { display_name: 'Maria Silva', phone: 'DO CICLO ANTERIOR' } });
+
+		window.$('.ffc-rereg-import-btn').trigger('click');
+		await flush();
+
+		expect(window.$('#f2').val()).toBe('JÁ DIGITADO');
+		expect(window.$('#f1').val()).toBe('Maria Silva');
+	});
+
+	it('hides the offer after importing', async () => {
+		await mountImport({ fields: { display_name: 'Maria Silva' } });
+
+		window.$('.ffc-rereg-import-btn').trigger('click');
+		await flush();
+
+		expect(window.$('.ffc-rereg-import-notice').css('display')).toBe('none');
+	});
+
+	it('does nothing when the form carries no offer', async () => {
+		// O aviso só é impresso quando há origem. Sem ele o handler tem de
+		// sair cedo, não estourar.
+		document.body.innerHTML = '<button class="ffc-rereg-open-form" data-reregistration-id="9"></button>';
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
+			success: true,
+			data: { html: '<div class="ffc-rereg-form-container" data-reregistration-id="9"><form id="ffc-rereg-form"></form></div>' },
+		} }));
+		window.$('.ffc-rereg-open-form').trigger('click');
+		await flush();
+
+		expect(window.$('.ffc-rereg-import-btn').length).toBe(0);
+	});
+});

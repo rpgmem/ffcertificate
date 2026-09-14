@@ -17,6 +17,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -63,6 +65,7 @@ class ReregistrationFrontend {
 		add_action( 'wp_ajax_ffc_get_reregistration_form', array( __CLASS__, 'ajax_get_form' ) );
 		add_action( 'wp_ajax_ffc_submit_reregistration', array( __CLASS__, 'ajax_submit' ) );
 		add_action( 'wp_ajax_ffc_save_reregistration_draft', array( __CLASS__, 'ajax_save_draft' ) );
+		add_action( 'wp_ajax_ffc_import_previous_reregistration', array( __CLASS__, 'ajax_import_previous' ) );
 	}
 
 	/**
@@ -172,6 +175,90 @@ class ReregistrationFrontend {
 
 		$html = ReregistrationFormRenderer::render( $rereg, $submission, $user_id );
 		wp_send_json_success( array( 'html' => $html ) );
+	}
+
+	/**
+	 * AJAX: traz os valores da última submissão APROVADA do usuário.
+	 *
+	 * Só roda quando o participante PEDE -- a oferta é um aviso no formulário,
+	 * e sem o clique nada é buscado. Isso é de propósito: dado de um ciclo
+	 * anterior aceito sem conferir é recadastramento desatualizado com cara de
+	 * novo, e quem pediu sabe que pediu.
+	 *
+	 * **Devolve PII em texto claro**, então a autorização é a mesma de
+	 * `ajax_get_form()` e vale reler: nonce, usuário derivado de
+	 * `get_current_user_id()` -- nunca da requisição --, e a submissão de
+	 * ORIGEM é buscada POR esse usuário, não por um id que o cliente mande.
+	 * Não há como pedir o histórico de outra pessoa.
+	 *
+	 * Só campos que existem na campanha ATUAL voltam: o que não coincide é
+	 * ignorado, sem conversão e sem aviso.
+	 *
+	 * @since 6.25.0
+	 * @return void
+	 */
+	public static function ajax_import_previous(): void {
+		check_ajax_referer( 'ffc_reregistration_frontend', 'nonce' );
+
+		// Lido por `RequestInput`, nao por um cast direto sobre o superglobal:
+		// o helper guarda o escalar, entao um array postado le como 0 em vez
+		// de virar o numero 1 (#1087). As tres leituras antigas deste arquivo
+		// estao no baseline do `RequestInputCastTest`; esta nao precisa entrar.
+		$reregistration_id = RequestInput::get_post_int( 'reregistration_id' );
+		$user_id           = get_current_user_id();
+
+		if ( ! $reregistration_id || ! $user_id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid request.', 'ffcertificate' ) ) );
+		}
+
+		$rereg = ReregistrationRepository::get_by_id( $reregistration_id );
+		if ( ! $rereg || 'active' !== $rereg->status ) {
+			wp_send_json_error( array( 'message' => __( 'Reregistration not found or not active.', 'ffcertificate' ) ) );
+		}
+
+		// O mesmo portão do formulário: sem linha nesta campanha, sem importar.
+		if ( ! self::submission_for( $reregistration_id, $user_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'You are not part of this reregistration.', 'ffcertificate' ) ) );
+		}
+
+		$source = ReregistrationSubmissionReader::get_latest_approved_for_user( $user_id, $reregistration_id );
+		if ( ! $source ) {
+			wp_send_json_error( array( 'message' => __( 'No previous approved reregistration to import.', 'ffcertificate' ) ) );
+		}
+
+		$saved  = $source->data ? json_decode( (string) $source->data, true ) : array();
+		$values = is_array( $saved['fields'] ?? null ) ? $saved['fields'] : array();
+
+		// Os sensíveis vêm criptografados, como o #1210 estabeleceu. Os campos
+		// de DECIFRAGEM são os da campanha de ORIGEM -- é lá que a flag
+		// `is_sensitive` que governou a gravação vive.
+		$source_rereg = ReregistrationRepository::get_by_id( (int) $source->reregistration_id );
+		if ( $source_rereg ) {
+			$values = FichaGenerator::decrypt_field_values(
+				FichaGenerator::get_custom_fields_for_reregistration( $source_rereg ),
+				$values
+			);
+		}
+
+		// Interseção com a campanha atual. Chave que não existe aqui é ignorada.
+		$current_keys = array();
+		foreach ( FichaGenerator::get_custom_fields_for_reregistration( $rereg ) as $field ) {
+			$current_keys[ (string) $field->field_key ] = true;
+		}
+
+		$fields = array();
+		foreach ( $values as $key => $value ) {
+			if ( isset( $current_keys[ (string) $key ] ) && '' !== $value && null !== $value ) {
+				$fields[ (string) $key ] = $value;
+			}
+		}
+
+		wp_send_json_success(
+			array(
+				'fields' => $fields,
+				'source' => array( 'title' => (string) ( $source->reregistration_title ?? '' ) ),
+			)
+		);
 	}
 
 	/**

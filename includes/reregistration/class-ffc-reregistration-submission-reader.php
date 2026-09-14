@@ -28,6 +28,20 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 6.12.0
  *
  * @phpstan-type ReregistrationSubmissionRow \stdClass&object{id: string, reregistration_id: string, user_id: string, status: string, submitted_at: numeric-string|int|null, reviewed_at: numeric-string|int|null, reviewed_by: string|null, notes: string|null, auth_code: string|null, magic_token: string|null, invited_at: numeric-string|int|null, created_at: string, updated_at: string, data?: string|null}
+ *
+ * A linha da submissao-fonte da importacao (#1213): a linha de submissao mais
+ * as duas colunas que o JOIN traz da campanha de origem, e `data` como
+ * NAO-opcional (a consulta e `SELECT s.*`, entao a coluna vem sempre; a forma
+ * acima a declara opcional porque ha consultas que selecionam colunas avulsas).
+ *
+ * Escrita por extenso, e nao como `ReregistrationSubmissionRow&object{...}`:
+ * uma interseccao NAO consegue tornar obrigatoria uma chave que o outro lado
+ * declara opcional, e o PHPStan rejeita o alias inteiro com
+ * `typeAlias.unresolvableType` -- o que degrada a assinatura de volta para
+ * `object` e faz reaparecerem exatamente os erros que este alias existe para
+ * remover. A duplicacao e o preco; se uma coluna entrar na forma acima, ela
+ * precisa entrar aqui tambem.
+ * @phpstan-type ReregistrationImportSourceRow \stdClass&object{id: string, reregistration_id: string, user_id: string, status: string, submitted_at: numeric-string|int|null, reviewed_at: numeric-string|int|null, reviewed_by: string|null, notes: string|null, auth_code: string|null, magic_token: string|null, invited_at: numeric-string|int|null, created_at: string, updated_at: string, data: string|null, reregistration_title: string, start_date: string|null}
  */
 class ReregistrationSubmissionReader {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -249,6 +263,60 @@ class ReregistrationSubmissionReader {
 		 * @var list<ReregistrationSubmissionRow>
 		 */
 		return is_array( $results ) ? $results : array();
+	}
+
+	/**
+	 * A submissão APROVADA mais recente do usuário, fora da campanha atual.
+	 *
+	 * É a origem da importação da #1213. Só `approved` conta: rascunho,
+	 * devolvida e recusada não representam dado que a instituição aceitou, e
+	 * oferecer o conteúdo delas convidaria o participante a reenviar o que já
+	 * foi reprovado.
+	 *
+	 * A ordenação é por `r.start_date DESC` -- o ciclo mais recente --, e não
+	 * por data de submissão: quando o usuário tem submissões em campanhas
+	 * diferentes, o que importa é qual CICLO é o mais novo, não quem digitou
+	 * por último.
+	 *
+	 * @since 6.25.0
+	 * @param int $user_id                    Usuário dono das submissões.
+	 * @param int $exclude_reregistration_id  Campanha atual, que não é origem de si mesma.
+	 * @return ReregistrationImportSourceRow|null Linha da submissão com o título da campanha, ou null.
+	 */
+	public static function get_latest_approved_for_user( int $user_id, int $exclude_reregistration_id ): ?object {
+		if ( $user_id <= 0 ) {
+			return null;
+		}
+
+		$wpdb        = self::db();
+		$table       = self::get_table_name();
+		$rereg_table = ReregistrationRepository::get_table_name();
+
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var ReregistrationImportSourceRow|null $row
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- JOIN across two of the plugin's own ffc_* tables, which WordPress has no API for; this reader's cache group is invalidated by the matching writer.
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT s.*, r.title AS reregistration_title, r.start_date
+                 FROM %i s
+                 INNER JOIN %i r ON s.reregistration_id = r.id
+                 WHERE s.user_id = %d
+                   AND s.reregistration_id != %d
+                   AND s.status = %s
+                 ORDER BY r.start_date DESC, s.created_at DESC
+                 LIMIT 1',
+				$table,
+				$rereg_table,
+				$user_id,
+				$exclude_reregistration_id,
+				'approved'
+			)
+		);
+
+		return $row;
 	}
 
 	/**
