@@ -131,7 +131,12 @@ class UrlShortenerMetaBox {
 		// Generate QR Code pointing to the short URL so clicks are tracked.
 		// Pass short_code for database caching (avoids regeneration on every admin load).
 		$qr_handler = new UrlShortenerQrHandler( $this->service );
-		$qr_base64  = $qr_handler->generate_qr_base64( $short_url, 200, $record['short_code'] );
+		// O tamanho vem da constante, e nao de um literal, porque e ele que
+		// decide se esta chamada alcanca o cache: `generate_qr_base64()` so
+		// le e grava em `CACHE_SIZE` (#1233). Com um `200` escrito aqui, mudar
+		// a constante faria a metabox -- o unico chamador repetido, e a razao
+		// de o cache existir -- parar de cachear em silencio.
+		$qr_base64 = $qr_handler->generate_qr_base64( $short_url, UrlShortenerQrHandler::CACHE_SIZE, $record['short_code'] );
 
 		wp_nonce_field( 'ffc_short_url_meta_box', 'ffc_short_url_meta_nonce' );
 		?>

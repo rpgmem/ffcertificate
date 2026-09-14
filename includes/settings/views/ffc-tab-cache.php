@@ -295,7 +295,10 @@ if ( $ffcertificate_cf_behind ) :
 <div class="card">
 	<h2 class="ffc-icon-phone"><?php esc_html_e( 'QR Code Cache', 'ffcertificate' ); ?></h2>
 	<p class="description">
-		<?php esc_html_e( 'Store generated QR Codes in database to avoid regenerating them on each request.', 'ffcertificate' ); ?>
+		<?php esc_html_e( 'Store generated certificate QR Codes in database to avoid regenerating them on each request.', 'ffcertificate' ); ?>
+	</p>
+	<p class="description">
+		<?php esc_html_e( 'This card governs the certificate QR Code only. Short URLs cache their own QR Code separately, with no setting and no manual clearing — it refreshes itself when needed.', 'ffcertificate' ); ?>
 	</p>
 
 		<table class="form-table" role="presentation">

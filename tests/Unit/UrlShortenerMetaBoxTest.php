@@ -430,9 +430,10 @@ class UrlShortenerMetaBoxTest extends TestCase {
 		$post = $this->make_post( 6, 'publish', 'post' );
 
 		// Overload the repository so both the meta-box's findByPostId lookup
-		// and the QR handler's internal `new UrlShortenerRepository()` cache
-		// lookup resolve to the same stubbed class (the QR cache hit
-		// short-circuits the CPU-heavy generator).
+		// and the QR handler's cache lookup resolve to the same stubbed class
+		// (the QR cache hit short-circuits the CPU-heavy generator). Desde o
+		// #1233 o handler chega ao repositorio pelo service, como o resto da
+		// classe ja fazia, em vez de instanciar o seu proprio.
 		$overload = Mockery::mock( 'overload:FreeFormCertificate\UrlShortener\UrlShortenerRepository' );
 		$overload->shouldReceive( 'findByPostId' )->with( 6 )->andReturn(
 			array(
@@ -441,7 +442,18 @@ class UrlShortenerMetaBoxTest extends TestCase {
 				'click_count' => 12,
 			)
 		);
-		$overload->shouldReceive( 'findQrCacheByShortCode' )->andReturn( 'CACHEDBASE64' );
+		// O cache guarda um envelope que declara o tamanho (#1233); base64 cru
+		// seria lido como linha do esquema antigo, ou seja um miss, e a
+		// renderizacao cairia no gerador real.
+		$overload->shouldReceive( 'findQrCacheByShortCode' )->andReturn(
+			(string) json_encode(
+				array(
+					'v'    => 1,
+					'size' => \FreeFormCertificate\UrlShortener\UrlShortenerQrHandler::CACHE_SIZE,
+					'png'  => 'CACHEDBASE64',
+				)
+			)
+		);
 
 		$this->service->shouldReceive( 'get_repository' )->andReturn( $overload );
 		$this->service->shouldReceive( 'get_short_url' )->with( 'code60' )->andReturn( 'https://example.com/go/code60' );
