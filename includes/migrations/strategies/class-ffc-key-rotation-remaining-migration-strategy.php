@@ -353,6 +353,18 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 			);
 		}
 
+		/**
+		 * Tipagem explicita das linhas, o idioma que as outras classes que leem
+		 * linhas usam (ver `AbstractRepository`, `AppointmentReader`). Sem ela o
+		 * retorno de `get_results()` e `mixed` e o gate "Row shapes (level 9)"
+		 * reprova cada acesso de offset e cada cast -- tolerancia zero, por
+		 * decisao registrada no proprio workflow.
+		 *
+		 * `string|null` e nao um shape literal: o MySQL devolve toda coluna como
+		 * string, e `id` chega como numerico em texto.
+		 *
+		 * @var list<array<string, string|null>>|null $rows
+		 */
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT id, data FROM %i WHERE id > %d AND data LIKE %s ORDER BY id ASC LIMIT %d',
@@ -449,6 +461,17 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 			);
 		}
 
+		/**
+		 * Tipagem explicita das linhas deste alvo.
+		 *
+		 * @see self::migrate_reregistration_batch() para o motivo da anotacao.
+		 *
+		 * Aqui o mapa e generico de proposito -- `array<string, string|null>` e
+		 * nao um shape literal -- porque as colunas sao lidas por chave VARIAVEL
+		 * (`$row[ $enc_col ]`), e um shape literal recusa o acesso por variavel.
+		 *
+		 * @var list<array<string, string|null>>|null $rows
+		 */
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT id, cpf_encrypted, cpf_hash, rf_encrypted, rf_hash, email_encrypted, email_hash
