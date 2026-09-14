@@ -178,6 +178,7 @@ class MigrationDynamicReregFields {
             auth_code varchar(20) DEFAULT NULL,
             magic_token varchar(64) DEFAULT NULL,
             invited_at bigint(20) unsigned DEFAULT NULL,
+            reminder_sent_at bigint(20) unsigned DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),

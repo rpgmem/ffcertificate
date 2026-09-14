@@ -242,6 +242,7 @@ class ReregistrationActivator {
             auth_code varchar(20) DEFAULT NULL,
             magic_token varchar(64) DEFAULT NULL,
             invited_at bigint(20) unsigned DEFAULT NULL,
+            reminder_sent_at bigint(20) unsigned DEFAULT NULL,
             submitted_at bigint(20) unsigned DEFAULT NULL,
             reviewed_at bigint(20) unsigned DEFAULT NULL,
             reviewed_by bigint(20) unsigned DEFAULT NULL,
@@ -277,12 +278,12 @@ class ReregistrationActivator {
 		self::add_columns_if_missing(
 			$table_name,
 			array(
-				'auth_code'   => array(
+				'auth_code'        => array(
 					'type'  => 'VARCHAR(20) DEFAULT NULL',
 					'after' => 'status',
 					'index' => 'auth_code',
 				),
-				'magic_token' => array(
+				'magic_token'      => array(
 					'type'  => 'VARCHAR(64) DEFAULT NULL',
 					'after' => 'auth_code',
 					'index' => 'magic_token',
@@ -292,9 +293,21 @@ class ReregistrationActivator {
 				// invited, which is the only honest answer for every row that
 				// predates #1190: `status = 'pending'` was the proxy before, and
 				// it cannot tell "not invited yet" from "invited and ignored".
-				'invited_at'  => array(
+				'invited_at'       => array(
 					'type'  => 'BIGINT(20) UNSIGNED DEFAULT NULL',
 					'after' => 'magic_token',
+				),
+				// Quando o LEMBRETE desta submissao foi enviado -- Categoria A
+				// (unix UTC), irma de `invited_at`. NULL = nunca lembrado.
+				//
+				// Sem ela o lembrete reenviava TODO DIA: a consulta de campanhas
+				// usa `DATEDIFF(end_date, CURDATE()) <= reminder_days`, que e uma
+				// JANELA e nao um dia, e o cron e diario -- entao com
+				// `reminder_days = 7` cada participante pendente recebia sete
+				// e-mails, um por dia (#1232).
+				'reminder_sent_at' => array(
+					'type'  => 'BIGINT(20) UNSIGNED DEFAULT NULL',
+					'after' => 'invited_at',
 				),
 			)
 		);
