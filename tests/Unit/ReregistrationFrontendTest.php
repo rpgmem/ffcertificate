@@ -108,19 +108,37 @@ class ReregistrationFrontendTest extends TestCase {
 	protected function tearDown(): void {
 		Monkey\tearDown();
 		parent::tearDown();
-		unset($_POST['reregistration_id'], $_POST['nonce']);
+		unset($_POST['reregistration_id'], $_POST['nonce'], $_POST['user_id']);
 	}
 
 	// ==================================================================
 	// init()
 	// ==================================================================
 
-	public function test_init_registers_three_ajax_actions(): void {
+	public function test_init_registers_the_four_ajax_actions(): void {
 		ReregistrationFrontend::init();
 
 		$this->assertArrayHasKey('wp_ajax_ffc_get_reregistration_form', $this->registered_actions);
 		$this->assertArrayHasKey('wp_ajax_ffc_submit_reregistration', $this->registered_actions);
 		$this->assertArrayHasKey('wp_ajax_ffc_save_reregistration_draft', $this->registered_actions);
+		$this->assertArrayHasKey('wp_ajax_ffc_import_previous_reregistration', $this->registered_actions);
+	}
+
+	/**
+	 * Nenhum dos quatro aceita visitante anônimo.
+	 *
+	 * Só `wp_ajax_` está registrado, nunca `wp_ajax_nopriv_`. Vale cobrar
+	 * porque o novo devolve PII em texto claro: um `nopriv` acrescentado por
+	 * engano abriria histórico de recadastramento para quem não fez login.
+	 *
+	 * @return void
+	 */
+	public function test_no_handler_is_registered_for_anonymous_visitors(): void {
+		ReregistrationFrontend::init();
+
+		foreach ( array_keys( $this->registered_actions ) as $hook ) {
+			$this->assertStringStartsNotWith( 'wp_ajax_nopriv_', (string) $hook );
+		}
 	}
 
 	public function test_init_callbacks_point_to_class_methods(): void {
@@ -130,6 +148,89 @@ class ReregistrationFrontendTest extends TestCase {
 		$this->assertIsArray($get_form_cb);
 		$this->assertSame(ReregistrationFrontend::class, $get_form_cb[0]);
 		$this->assertSame('ajax_get_form', $get_form_cb[1]);
+	}
+
+	// ==================================================================
+	// ajax_import_previous() — a autorização, que é o que importa aqui
+	// ==================================================================
+
+	/**
+	 * Fora da campanha, não importa nada -- e nem chega a consultar histórico.
+	 *
+	 * Este é o teste que guarda o endpoint: ele devolve PII em TEXTO CLARO,
+	 * então a recusa tem de vir ANTES de qualquer leitura. O usuário vem de
+	 * `get_current_user_id()`, nunca do POST, e a submissão de origem é
+	 * buscada por esse usuário -- não há id de origem que o cliente possa
+	 * mandar.
+	 *
+	 * @return void
+	 */
+	public function test_ajax_import_previous_refuses_a_user_outside_the_campaign(): void {
+		Functions\when('get_current_user_id')->justReturn(1);
+
+		$_POST['reregistration_id'] = 1;
+
+		global $wpdb;
+		$rereg = (object) array('id' => 1, 'status' => 'active', 'title' => 'Atual');
+		// get_by_id -> campanha ativa; lookup da submissão -> nada.
+		$wpdb->shouldReceive('get_row')->andReturn($rereg, null);
+		$wpdb->shouldReceive('get_results')->andReturn(array());
+		$wpdb->shouldNotReceive('insert');
+
+		$ex = null;
+		try {
+			ReregistrationFrontend::ajax_import_previous();
+		} catch (FrontendJsonErrorException $e) {
+			$ex = $e;
+		}
+
+		$this->assertNotNull($ex);
+		$this->assertStringContainsString('not part of this reregistration', $ex->payload['message']);
+	}
+
+	/**
+	 * Sem id de campanha, recusa antes de tudo.
+	 *
+	 * @return void
+	 */
+	public function test_ajax_import_previous_errors_when_no_reregistration_id(): void {
+		Functions\when('get_current_user_id')->justReturn(1);
+		$_POST['reregistration_id'] = 0;
+
+		$ex = null;
+		try {
+			ReregistrationFrontend::ajax_import_previous();
+		} catch (FrontendJsonErrorException $e) {
+			$ex = $e;
+		}
+
+		$this->assertNotNull($ex);
+		$this->assertStringContainsString('Invalid request', $ex->payload['message']);
+	}
+
+	/**
+	 * Usuário deslogado é recusado mesmo com id válido no POST.
+	 *
+	 * @return void
+	 */
+	public function test_ajax_import_previous_errors_when_no_user(): void {
+		Functions\when('get_current_user_id')->justReturn(0);
+		$_POST['reregistration_id'] = 1;
+		// IDOR: o cliente MANDA um user_id, e ele tem de ser ignorado. Sem
+		// esta linha o teste passaria mesmo que o handler lesse do POST --
+		// foi o que a mutação mostrou. Com ela, ler do POST faz o handler
+		// seguir em frente com o usuário 99 e o teste quebra.
+		$_POST['user_id'] = 99;
+
+		$ex = null;
+		try {
+			ReregistrationFrontend::ajax_import_previous();
+		} catch (FrontendJsonErrorException $e) {
+			$ex = $e;
+		}
+
+		$this->assertNotNull($ex);
+		$this->assertStringContainsString('Invalid request', $ex->payload['message']);
 	}
 
 	// ==================================================================

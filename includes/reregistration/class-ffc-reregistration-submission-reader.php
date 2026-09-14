@@ -252,6 +252,55 @@ class ReregistrationSubmissionReader {
 	}
 
 	/**
+	 * A submissão APROVADA mais recente do usuário, fora da campanha atual.
+	 *
+	 * É a origem da importação da #1213. Só `approved` conta: rascunho,
+	 * devolvida e recusada não representam dado que a instituição aceitou, e
+	 * oferecer o conteúdo delas convidaria o participante a reenviar o que já
+	 * foi reprovado.
+	 *
+	 * A ordenação é por `r.start_date DESC` -- o ciclo mais recente --, e não
+	 * por data de submissão: quando o usuário tem submissões em campanhas
+	 * diferentes, o que importa é qual CICLO é o mais novo, não quem digitou
+	 * por último.
+	 *
+	 * @since 6.25.0
+	 * @param int $user_id                    Usuário dono das submissões.
+	 * @param int $exclude_reregistration_id  Campanha atual, que não é origem de si mesma.
+	 * @return object|null Linha da submissão com o título da campanha, ou null.
+	 */
+	public static function get_latest_approved_for_user( int $user_id, int $exclude_reregistration_id ): ?object {
+		if ( $user_id <= 0 ) {
+			return null;
+		}
+
+		$wpdb        = self::db();
+		$table       = self::get_table_name();
+		$rereg_table = ReregistrationRepository::get_table_name();
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- JOIN across two of the plugin's own ffc_* tables, which WordPress has no API for; this reader's cache group is invalidated by the matching writer.
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT s.*, r.title AS reregistration_title, r.start_date
+                 FROM %i s
+                 INNER JOIN %i r ON s.reregistration_id = r.id
+                 WHERE s.user_id = %d
+                   AND s.reregistration_id != %d
+                   AND s.status = %s
+                 ORDER BY r.start_date DESC, s.created_at DESC
+                 LIMIT 1',
+				$table,
+				$rereg_table,
+				$user_id,
+				$exclude_reregistration_id,
+				'approved'
+			)
+		);
+
+		return $row instanceof \stdClass ? $row : null;
+	}
+
+	/**
 	 * Get submissions for a reregistration with optional filters.
 	 *
 	 * @param int                  $reregistration_id Reregistration ID.

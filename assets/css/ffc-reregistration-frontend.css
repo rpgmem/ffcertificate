@@ -409,3 +409,23 @@
         transition: none;
     }
 }
+
+/* ── Importar o ciclo anterior ──────────────── */
+
+.ffc-rereg-import-notice {
+    margin-bottom: var(--ffc-spacing-xl);
+    padding: var(--ffc-spacing-lg);
+    border: 1px solid var(--ffc-info-border);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
+}
+
+.ffc-rereg-import-notice p {
+    margin: 0 0 var(--ffc-spacing-sm);
+}
+
+.ffc-rereg-import-status {
+    margin-left: var(--ffc-spacing-sm);
+    font-size: var(--ffc-font-size-sm);
+}

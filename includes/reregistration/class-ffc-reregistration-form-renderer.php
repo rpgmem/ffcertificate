@@ -101,6 +101,16 @@ class ReregistrationFormRenderer {
 		$grouped      = self::group_fields( $fields );
 		$group_labels = ReregistrationStandardFieldsSeeder::get_group_labels();
 
+		// Oferta de importar o último ciclo aprovado (#1213). Só o TÍTULO
+		// atravessa para o template -- os valores só são buscados se o
+		// participante clicar, pelo endpoint próprio, que é o que tem o
+		// portão de autorização. Renderizar o dado aqui o entregaria a quem
+		// nunca pediu.
+		$ffc_import_source       = ReregistrationSubmissionReader::get_latest_approved_for_user( $user_id, (int) $rereg->id );
+		$ffc_import_source_title = $ffc_import_source
+			? (string) ( $ffc_import_source->reregistration_title ?? '' )
+			: '';
+
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/reregistration/form.php';
 		$output = ob_get_clean();

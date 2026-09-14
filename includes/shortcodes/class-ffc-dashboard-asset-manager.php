@@ -182,6 +182,7 @@ class DashboardAssetManager {
 					'friday'           => __( 'Friday', 'ffcertificate' ),
 					'saturday'         => __( 'Saturday', 'ffcertificate' ),
 					'acumuloShowValue' => __( 'I hold', 'ffcertificate' ),
+					'importLoading'    => __( 'Bringing previous answers…', 'ffcertificate' ),
 				),
 			)
 		);
