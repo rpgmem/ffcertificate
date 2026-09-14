@@ -28,6 +28,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 6.12.0
  *
  * @phpstan-type ReregistrationSubmissionRow \stdClass&object{id: string, reregistration_id: string, user_id: string, status: string, submitted_at: numeric-string|int|null, reviewed_at: numeric-string|int|null, reviewed_by: string|null, notes: string|null, auth_code: string|null, magic_token: string|null, invited_at: numeric-string|int|null, created_at: string, updated_at: string, data?: string|null}
+ *
+ * A linha da submissao-fonte da importacao (#1213): a linha de submissao mais
+ * as duas colunas que o JOIN traz da campanha de origem. Declarada como
+ * interseccao para nao repetir a forma acima -- se uma coluna entrar la, entra
+ * aqui tambem.
+ * `data` e reafirmado como NAO-opcional: a consulta e `SELECT s.*`, entao a
+ * coluna vem sempre -- diferente da forma acima, que a declara opcional porque
+ * ha consultas que selecionam colunas avulsas.
+ * @phpstan-type ReregistrationImportSourceRow ReregistrationSubmissionRow&object{data: string|null, reregistration_title: string, start_date: string|null}
  */
 class ReregistrationSubmissionReader {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -267,7 +276,7 @@ class ReregistrationSubmissionReader {
 	 * @since 6.25.0
 	 * @param int $user_id                    Usuário dono das submissões.
 	 * @param int $exclude_reregistration_id  Campanha atual, que não é origem de si mesma.
-	 * @return object|null Linha da submissão com o título da campanha, ou null.
+	 * @return ReregistrationImportSourceRow|null Linha da submissão com o título da campanha, ou null.
 	 */
 	public static function get_latest_approved_for_user( int $user_id, int $exclude_reregistration_id ): ?object {
 		if ( $user_id <= 0 ) {
@@ -278,7 +287,12 @@ class ReregistrationSubmissionReader {
 		$table       = self::get_table_name();
 		$rereg_table = ReregistrationRepository::get_table_name();
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- JOIN across two of the plugin's own ffc_* tables, which WordPress has no API for; this reader's cache group is invalidated by the matching writer.
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var ReregistrationImportSourceRow|null $row
+		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- JOIN across two of the plugin's own ffc_* tables, which WordPress has no API for; this reader's cache group is invalidated by the matching writer.
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT s.*, r.title AS reregistration_title, r.start_date
