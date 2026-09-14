@@ -92,6 +92,20 @@ final class RequestInputCastTest extends TestCase {
 				continue;
 			}
 
+			// Prosa que CITA a forma não é a forma. A varredura lia o arquivo
+			// como texto puro, então um comentário explicando por que aquela
+			// leitura NÃO usa `absint()` sobre o superglobal era contado como
+			// um cast de chave dinâmica -- e reprovava o PR que escrevia o
+			// comentário (#1212 gastou uma corrida de CI nisso). É a mesma
+			// distinção que o `CLAUDE.md` já fixa para as anotações de
+			// supressão: só conta o token que ABRE o comentário, não o que
+			// aparece dentro dele.
+			//
+			// `token_get_all()` em vez de regex: reconhecer comentário com
+			// expressão regular exige saber quando `//` está dentro de uma
+			// string, e o lexer do PHP já sabe.
+			$text = self::strip_comments( $text );
+
 			// `absint( … )` / `intval( … )` and the `(int)` cast, each of them
 			// optionally wrapping a `wp_unslash()`, applied to a superglobal.
 			$pattern = '/(?:\b(?:absint|intval)\s*\(\s*|\(\s*int\s*\)\s*)'
@@ -121,6 +135,25 @@ final class RequestInputCastTest extends TestCase {
 
 		sort( $entries );
 		return $entries;
+	}
+
+	/**
+	 * Blank out comments, keeping everything else byte-for-byte.
+	 *
+	 * Substitui por um espaço, não por vazio: colar os dois lados poderia
+	 * juntar tokens que o comentário separava.
+	 */
+	private static function strip_comments( string $code ): string {
+		$out = '';
+		foreach ( token_get_all( $code ) as $token ) {
+			if ( is_array( $token ) ) {
+				$out .= ( T_COMMENT === $token[0] || T_DOC_COMMENT === $token[0] ) ? ' ' : $token[1];
+				continue;
+			}
+			$out .= $token;
+		}
+
+		return $out;
 	}
 
 	/**
