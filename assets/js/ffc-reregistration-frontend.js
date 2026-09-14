@@ -70,7 +70,6 @@
     function initForm($container) {
         initMasks($container);
         initBlurValidation($container);
-        initDivisaoSetor($container);
         initAcumuloCargos($container);
         initWorkingHours($container);
         initDependentSelects($container);
@@ -206,41 +205,6 @@
                 v = v.replace(/(\d{2})(\d{1,3})/, '$1.$2');
             }
             this.value = v;
-        });
-    }
-
-    /* ─── Divisão → Setor Cascading ───────────────────── */
-
-    function initDivisaoSetor($container) {
-        var $mapEl = $container.find('#ffc-divisao-setor-map');
-        if (!$mapEl.length) return;
-
-        var map;
-        try {
-            map = JSON.parse($mapEl.text());
-        } catch (e) {
-            return;
-        }
-
-        var $divisao = $container.find('#ffc_rereg_divisao');
-        var $setor = $container.find('#ffc_rereg_setor');
-
-        $divisao.on('change', function () {
-            var div = $(this).val();
-            var currentSetor = $setor.val();
-            $setor.empty();
-
-            if (!div || !map[div]) {
-                $setor.append('<option value="">' + (S.selectDivisao || 'Select Division / Location') + '</option>');
-                return;
-            }
-
-            $setor.append('<option value="">' + (S.selectSetor || 'Select') + '</option>');
-            $.each(map[div], function (_, setor) {
-                var $opt = $('<option>').val(setor).text(setor);
-                if (setor === currentSetor) $opt.prop('selected', true);
-                $setor.append($opt);
-            });
         });
     }
 

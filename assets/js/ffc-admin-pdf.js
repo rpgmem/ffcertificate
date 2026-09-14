@@ -431,7 +431,7 @@
             return;
         }
 
-        var bgImage = $('#ffc_bg_image_input, #ffc_bg_image_url').first().val() || '';
+        var bgImage = $('#ffc_bg_image_input').val() || '';
         var data = getSampleFieldData();
         var processedHtml = replacePlaceholders(htmlContent, data);
 
@@ -605,11 +605,13 @@
         mediaUploader.on('select', function() {
             var attachment = mediaUploader.state().get('selection').first().toJSON();
 
-            // Try to find BG image URL field
-            var $urlField = $('#ffc_bg_image_url');
-            if (!$urlField.length) {
-                $urlField = $('input[name*="bg_image"], input[name*="background"]').first();
-            }
+            // Both screens that mount this button name the field after
+            // `bg_image` — `ffc_config[bg_image]` in the form-editor layout
+            // box, `ffc_template_bg_image` on the certificate-template
+            // screen — so one attribute selector reaches both. A preferred
+            // `#ffc_bg_image_url` lookup used to sit in front of it; no
+            // screen has ever emitted that id (#1220).
+            var $urlField = $('input[name*="bg_image"], input[name*="background"]').first();
 
             if ($urlField.length) {
                 $urlField.val(attachment.url);
@@ -618,7 +620,12 @@
             // Try to find preview element
             var $preview = $('#ffc_bg_image_preview');
             if ($preview.length) {
-                $preview.html('').append($('<img>').attr('src', attachment.url).css({'max-width': '200px', 'height': 'auto'}));
+                // `alt=""`: the preview is decorative — the URL it shows sits
+                // in the text field immediately above it.
+                $preview.html('').append(
+                    $('<img>').attr({ src: attachment.url, alt: '' })
+                        .css({ 'max-width': '200px', 'height': 'auto' })
+                );
             }
 
             var successMsg = strings.backgroundImageSelected || 'Background image selected!';

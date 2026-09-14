@@ -53,37 +53,24 @@ class JsSelectorEmitterTest extends TestCase {
 	 * marcação, ou apague a busca); um id daqui que ganhou emissor também
 	 * falha (tire-o da lista para travar o ganho).
 	 *
-	 * Nenhum destes é defeito VIVO -- todos ficam atrás de uma checagem de
-	 * comprimento e falham em silêncio, que é exatamente por que ninguém
-	 * notou. São código morto à espera de decisão, e a guarda aponta; quem
-	 * decide é uma pessoa.
+	 * **Está vazia, e ficou vazia por decisão, não por acaso.** As sete
+	 * entradas que abriram a lista foram analisadas uma a uma em #1227:
+	 * seis eram código morto e saíram com o código que as procurava (o
+	 * select dependente por id, superado pela implementação por classe;
+	 * o dropdown de migrações, cuja marcação nunca existiu em revisão
+	 * alguma; e o `#ffc_bg_image_url`, cujo fallback por atributo `name`
+	 * já alcançava as duas telas reais). A sétima --
+	 * `#ffc_bg_image_preview` -- era o caso oposto: o código da prévia
+	 * estava escrito e correto, só faltava o contêiner, então as duas
+	 * telas passaram a emiti-lo.
+	 *
+	 * Vazia não desliga a guarda: o que cobra é o teste abaixo, que varre
+	 * `assets/js` inteiro a cada execução. Uma entrada nova aqui é uma
+	 * decisão a defender, não uma linha a acrescentar.
 	 *
 	 * @var array<string, string>
 	 */
-	private const WITHOUT_EMITTER = array(
-		// O select dependente tem DUAS implementações. A viva é por classe
-		// (`field-dependent-select.php` emite `.ffc-dependent-select` /
-		// `.ffc-dep-parent` / `.ffc-dep-child`, e o handler está em
-		// `ffc-reregistration-frontend.js`); esta por id é a anterior,
-		// superada e deixada para trás. Tem `if ( ! $mapEl.length ) return;`.
-		'ffc-divisao-setor-map' => 'Legado do select dependente, superado pela implementação por classe.',
-		'ffc_rereg_divisao'     => 'Idem -- o pai do select dependente na versão por id.',
-		'ffc_rereg_setor'       => 'Idem -- o filho do select dependente na versão por id.',
-
-		// O "Migration Manager Dropdown Controller v2.1.0" dirige um botão e
-		// um menu que NÃO EXISTEM: de `ffc-migrations` só há
-		// `.ffc-migrations-settings-wrap`, o invólucro da aba. O controlador
-		// retorna cedo, mas ANTES disso injeta `#ffc-migrations-overlay` no
-		// body de toda tela do wp-admin -- inofensivo, e real.
-		'ffc-migrations-btn'    => 'Gatilho de um dropdown de migrações cuja marcação não existe.',
-		'ffc-migrations-menu'   => 'O menu desse mesmo dropdown; nem por id nem por classe é emitido.',
-
-		// O seletor de imagem de fundo do PDF. O campo de URL tem inclusive
-		// um fallback documentado (`input[name*="bg_image"]`), o que sugere
-		// que o id já era incerto quando foi escrito.
-		'ffc_bg_image_url'      => 'Campo de URL da imagem de fundo; há fallback por atributo `name`.',
-		'ffc_bg_image_preview'  => 'Prévia da imagem de fundo; a busca é guardada por comprimento.',
-	);
+	private const WITHOUT_EMITTER = array();
 
 	public function test_every_id_the_javascript_looks_for_is_emitted_by_someone(): void {
 		$consumers = JsIdSelectors::consumers();

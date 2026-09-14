@@ -117,6 +117,8 @@ class FormEditorLayoutMetabox {
 					<div class="ffc-input-group ffc-mt-xl">
 						<label class="ffc-block-label"><strong><?php esc_html_e( 'Background Image URL:', 'ffcertificate' ); ?></strong></label>
 						<input type="text" name="ffc_config[bg_image]" id="ffc_bg_image_input" value="<?php echo esc_url( $bg_image ); ?>" class="ffc-w100">
+						<?php // Preenchido por `ffc-admin-pdf.js` quando o botao "Background Image" escolhe uma imagem; vazio ate la. ?>
+						<div id="ffc_bg_image_preview"></div>
 					</div>
 				</td>
 			</tr>
