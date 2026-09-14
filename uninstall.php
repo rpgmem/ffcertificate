@@ -141,6 +141,13 @@ $ffcertificate_options = array(
 	'ffc_foreign_keys_db_version',
 	'ffc_perf_indexes_db_version',
 	'ffc_submissions_db_version',
+	// Guardas por versao das quatro cadeias de activator que antes sondavam o
+	// schema a cada requisicao (#1231). Declaradas aqui porque o job
+	// `fresh-install` compara nos DOIS sentidos: uma opcao que a ativacao
+	// escreve e este manifesto nao declara reprova o CI.
+	'ffc_self_scheduling_schema_version',
+	'ffc_audience_schema_version',
+	'ffc_url_shortener_schema_version',
 	// Per-feature migration completion markers (audited gap).
 	'ffc_sibling_instants_unix_migrated',
 	'ffc_submission_date_unix_migrated',
@@ -159,6 +166,7 @@ $ffcertificate_options = array(
 	// Recruitment module (v6.0.0).
 	'ffc_recruitment_settings',
 	'ffc_recruitment_schema_version',
+	'ffc_recruitment_tables_version',
 	'ffc_recruitment_public_cache_version',
 	'ffc_ip_diagnostics_settings',
 	'ffc_cloudflare_cidr_cache',
