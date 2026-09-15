@@ -22,7 +22,7 @@
  * value rides the attribute.
  *
  * @package FreeFormCertificate\Recruitment
- * @since   6.24.0
+ * @since   6.25.0
  */
 
 declare(strict_types=1);

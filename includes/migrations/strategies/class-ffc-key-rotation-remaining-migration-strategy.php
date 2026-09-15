@@ -42,7 +42,7 @@
  * therefore evidence about the IMPORT HISTORY, never about the hashes.
  *
  * @package FreeFormCertificate
- * @since   6.24.0
+ * @since   6.25.0
  */
 
 namespace FreeFormCertificate\Migrations\Strategies;
