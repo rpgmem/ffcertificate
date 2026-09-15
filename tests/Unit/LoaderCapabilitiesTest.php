@@ -360,13 +360,13 @@ class LoaderCapabilitiesTest extends TestCase {
 
 		// A varredura de tickets expirados (#1234). Ela morava no
 		// `AdminLoader`, que so e construido dentro de `if ( is_admin() )` --
-		// e `wp-cron.php` define `DOING_CRON`, nunca `WP_ADMIN`, entao o
+		// and `wp-cron.php` defines `DOING_CRON`, never `WP_ADMIN`, so the
 		// callback nunca estava registrado no contexto que dispara o evento.
 		// Aqui e o metodo que roda em TODA requisicao, que e a correcao.
 		$this->assertContains(
 			\FreeFormCertificate\Admin\ExpiredTicketsCleanup::CRON_HOOK,
 			$added,
-			'Sem isto o evento diario dispara sem callback, como fez desde que foi escrito.'
+			'Without this the daily event fires with no callback, as it did since it was written.'
 		);
 
 		// Three daily-cleanup callbacks + two expiry callbacks registered.
@@ -405,9 +405,9 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added );
 		$this->assertNotContains( 'ffcertificate_reregistration_expire_hook', $added );
 		$this->assertNotContains( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, $added );
-		// Certificates continua ligado neste cenario, entao a varredura de
+		// Certificates is still on in this scenario, so the scan of
 		// tickets segue montada -- o que separa o gate de MODULO (deliberado)
-		// do defeito de CONTEXTO que o #1234 consertou.
+		// from the CONTEXT defect #1234 fixed.
 		$this->assertContains( \FreeFormCertificate\Admin\ExpiredTicketsCleanup::CRON_HOOK, $added );
 	}
 
@@ -415,9 +415,9 @@ class LoaderCapabilitiesTest extends TestCase {
 	 * Certificates desligado para a varredura de tickets -- o gate deliberado.
 	 *
 	 * Separado do teste acima de proposito: la o modulo esta ligado e o que se
-	 * prova e que o registro ACONTECE fora do `is_admin()`; aqui prova-se que
-	 * o gate de modulo continua valendo depois da mudanca de lugar. Confundir
-	 * os dois faria a correcao do #1234 parecer ter desligado o gate.
+	 * proves registration HAPPENS outside `is_admin()`; here what is proved is
+	 * that the module gate still holds after the move. Conflating the two would
+	 * make #1234's fix look as though it had switched the gate off.
 	 */
 	public function test_define_admin_hooks_skips_the_expired_tickets_cron_when_certificates_disabled(): void {
 		$loader = new Loader();
@@ -442,7 +442,7 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->invoke_private( $loader, 'define_admin_hooks' );
 
 		$this->assertNotContains( \FreeFormCertificate\Admin\ExpiredTicketsCleanup::CRON_HOOK, $added );
-		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added, 'A limpeza diaria do nucleo nao depende do modulo.' );
+		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added, 'The core daily cleanup does not depend on the module.' );
 	}
 
 	// ==================================================================

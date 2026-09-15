@@ -23,11 +23,11 @@ class CapabilityManagerTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
-		// `CapabilityMigrator::users_with_ffc_grants()` monta a chave da meta de
-		// capabilities a partir do prefixo do blog (#1254). Sem este duplo, o
-		// teste herda o `$wpdb` que OUTRO ficheiro deixou no global -- e foi
-		// assim que o CI reprovou com oito erros que nenhum `--filter` sobre os
-		// ficheiros tocados mostrava.
+		// `CapabilityMigrator::users_with_ffc_grants()` builds the capabilities
+		// meta key from the blog prefix (#1254). Without this double, the test
+		// inherits the `$wpdb` ANOTHER file left in the global -- and that is how
+		// CI failed with eight errors that no `--filter` over the touched files
+		// would show.
 		global $wpdb;
 		$wpdb         = Mockery::mock( 'wpdb' );
 		$wpdb->prefix = 'wp_';

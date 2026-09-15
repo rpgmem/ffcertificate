@@ -752,7 +752,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 			->with(
 				'wp_ffc_reregistration_submissions',
 				Mockery::on(function ($data) {
-					// `reviewed_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+					// `reviewed_at` is unix UTC int since 6.6.0 (#249 sub-scope d).
 					return $data['status'] === 'approved'
 						&& is_int($data['reviewed_at'])
 						&& $data['reviewed_at'] > time() - 10
@@ -787,7 +787,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 			->with(
 				'wp_ffc_reregistration_submissions',
 				Mockery::on(function ($data) {
-					// `reviewed_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
+					// `reviewed_at` is unix UTC int since 6.6.0 (#249 sub-scope d).
 					return $data['status'] === 'rejected'
 						&& is_int($data['reviewed_at'])
 						&& $data['reviewed_at'] > time() - 10
@@ -1211,11 +1211,11 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	// ==================================================================
 
 	/**
-	 * Um unico INSERT cobre a pagina inteira, e a contagem vem do banco.
+	 * A single INSERT covers the whole page, and the count comes from the database.
 	 *
-	 * E a asercao central do #1234: antes eram dois comandos POR USUARIO (um
-	 * SELECT de existencia e um INSERT); agora sao `ceil( N / 500 )` INSERTs.
-	 * Com tres usuarios, exatamente um.
+	 * This is #1234's central assertion: it used to be two statements PER USER
+	 * (an existence SELECT and an INSERT); now it is `ceil( N / 500 )` INSERTs.
+	 * With three users, exactly one.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
@@ -1235,27 +1235,28 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 			}
 		);
 
-		// A forma antiga nao pode sobreviver a esta mudanca sem ser vista.
+		// The old shape cannot survive this change without being seen.
 		$this->wpdb->shouldNotReceive('insert');
 		$this->wpdb->shouldNotReceive('get_row');
 
 		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100, 200));
 
-		$this->assertSame(3, $count, 'A contagem e o affected_rows do INSERT, nao um acumulador em PHP.');
+		$this->assertSame(3, $count, 'The count is the INSERT\'s affected_rows, not a PHP accumulator.');
 		$this->assertStringContainsString('INSERT IGNORE INTO', $captured);
 		$this->assertSame(
 			3,
 			substr_count($captured, '(%d, %d, %s)'),
-			'Uma tupla de marcadores por usuario -- uma lista desalinhada aqui vira dado errado, nao erro.'
+			'One placeholder tuple per user -- a misaligned list here becomes wrong data, not an error.'
 		);
 	}
 
 	/**
-	 * Quem ja tem submissao e descartado pela UNIQUE, nao por uma leitura previa.
+	 * Whoever already has a submission is dropped by the UNIQUE, not by a prior read.
 	 *
-	 * `INSERT IGNORE` insere duas tuplas e o banco aceita uma; o `affected_rows`
-	 * devolvido ja e a contagem de CRIADAS. Nenhum SELECT de existencia e
-	 * emitido -- era ele que custava metade das vinte mil consultas.
+	 * `INSERT IGNORE` sends two tuples and the database accepts one; the
+	 * `affected_rows` returned is already the count of rows CREATED. No
+	 * existence SELECT is emitted -- it was that one which cost half of the
+	 * twenty thousand queries.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
@@ -1282,17 +1283,17 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$this->assertStringContainsString(
 			'IGNORE',
 			$captured,
-			'Sem o IGNORE a linha duplicada derruba o lote inteiro, e nao so a si mesma.'
+			'Without the IGNORE the duplicate row brings down the whole batch, not just itself.'
 		);
 	}
 
 	/**
-	 * Acima do lote, uma consulta por pagina -- e nao uma so, gigante.
+	 * Above the batch size, one query per page -- not a single, giant one.
 	 *
-	 * E a metade da correcao que um teste de tres usuarios nao consegue ver:
-	 * sem o `array_chunk`, dez mil membros viram um unico INSERT de trinta mil
-	 * marcadores, que esbarra em `max_allowed_packet` e falha no cliente real
-	 * sem falhar aqui.
+	 * This is the half of the fix a three-user test cannot see: without the
+	 * `array_chunk`, ten thousand members become one INSERT of thirty thousand
+	 * placeholders, which hits `max_allowed_packet` and fails on the real
+	 * client without failing here.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
@@ -1318,16 +1319,16 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
 
 		$this->assertSame(array(500, 500, 201), $sizes);
-		$this->assertSame(1201, $count, 'A contagem soma as paginas.');
+		$this->assertSame(1201, $count, 'The count sums the pages.');
 		$this->assertSame(
 			500,
 			ReregistrationSubmissionWriter::SEED_CHUNK_SIZE,
-			'O tamanho e publico porque este teste o le -- mudar o numero exige rever as paginas acima.'
+			'The size is public because this test reads it -- changing the number means revising the pages above.'
 		);
 	}
 
 	/**
-	 * Sem usuarios, nenhuma consulta.
+	 * With no users, no query at all.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
@@ -1348,12 +1349,12 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	}
 
 	/**
-	 * Um id invalido nao vira uma tupla.
+	 * An invalid id does not become a tuple.
 	 *
-	 * `get_members()` devolve o que o driver entregou -- string, e eventualmente
-	 * `0` ou vazio. Sem a normalizacao, um `0` entraria como `user_id = 0`: uma
-	 * submissao pendente pertencente a ninguem, que a UNIQUE aceita uma vez por
-	 * campanha e que ninguem jamais preenche.
+	 * `get_members()` returns whatever the driver handed over -- a string, and
+	 * occasionally `0` or empty. Without the normalisation, a `0` would enter as
+	 * `user_id = 0`: a pending submission belonging to nobody, which the UNIQUE
+	 * accepts once per campaign and which nobody ever fills in.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
@@ -1379,19 +1380,19 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$this->assertSame(
 			2,
 			substr_count($captured, '(%d, %d, %s)'),
-			'Restam apenas 10 e 20: o zero, o vazio, o negativo e a repeticao saem antes do SQL.'
+			'Only 10 and 20 remain: the zero, the empty, the negative and the repeat leave before the SQL.'
 		);
 	}
 
 	/**
-	 * Uma pagina que falha nao derruba as outras nem inflaciona a contagem.
+	 * A page that fails brings down neither the others nor inflates the count.
 	 *
-	 * `wpdb::query()` devolve `false` em erro. MEDIDO: trocar
-	 * `is_int( $affected ) && $affected > 0` por so `$affected > 0` mantem este
-	 * teste verde, porque `false > 0` ja e falso -- o `is_int()` esta la para o
-	 * PHPStan (nivel 8 nao estreita `int|bool` por uma comparacao), nao para o
-	 * runtime. O que este teste prova e o comportamento: a pagina seguinte roda
-	 * e so ela conta.
+	 * `wpdb::query()` returns `false` on error. MEASURED: swapping
+	 * `is_int( $affected ) && $affected > 0` for just `$affected > 0` keeps this
+	 * test green, because `false > 0` is already false -- the `is_int()` is
+	 * there for PHPStan (level 8 does not narrow `int|bool` from a comparison),
+	 * not for the runtime. What this test proves is the behaviour: the next page
+	 * runs and only it counts.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled

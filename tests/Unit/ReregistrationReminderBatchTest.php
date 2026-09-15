@@ -11,34 +11,35 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationEmailHandler;
 
 /**
- * O lembrete de recadastramento sai em LOTES, e o lote avanca (#1232 passo 2).
+ * The reregistration reminder goes out in BATCHES, and the batch advances
+ * (#1232 step 2).
  *
- * POR QUE LOTEAR
+ * WHY BATCH
  *
- * `run_automated_reminders()` roda no wp-cron, isto e, dentro da requisicao de
- * um visitante. O carimbo por item entregue no passo 1 ja tornava o envio
- * retomavel ENTRE execucoes diarias, mas o alcance ficava limitado a
- * (quanto cabe numa execucao) x `reminder_days` -- numa campanha de milhares,
- * o prazo vence antes de todo mundo ser lembrado.
+ * `run_automated_reminders()` runs on wp-cron, that is, inside a visitor's
+ * request. The per-item stamp delivered in step 1 already made the send
+ * resumable BETWEEN daily runs, but the reach stayed bounded by (how much fits
+ * in one run) x `reminder_days` -- on a campaign of thousands, the deadline
+ * expires before everybody has been reminded.
  *
- * A PROPRIEDADE QUE ESTE ARQUIVO EXISTE PARA PRENDER
+ * THE PROPERTY THIS FILE EXISTS TO PIN
  *
- * Nao e "o lote tem 50 linhas": e que o lote **PROGRIDE**. O cursor keyset
- * avanca por linha VISTA, nao por envio bem-sucedido, e isso e o que separa
- * um loop que termina de um que nao termina.
+ * It is not "the batch holds 50 rows": it is that the batch **PROGRESSES**. The
+ * keyset cursor advances per row SEEN, not per successful send, and that is
+ * what separates a loop that terminates from one that does not.
  *
- * O caso nao e hipotetico e esta documentado no codigo: `user_id` em
- * `ffc_reregistration_submissions` e `NOT NULL` e ORFAO ACEITO (#822), entao
- * apagar a conta no WordPress deixa a submissao apontando para um usuario que
- * nao existe. `send_to_user()` devolve `false` em `get_userdata()`,
- * `mark_reminded()` nunca roda, e `reminder_sent_at` fica NULL para sempre.
- * Um loop guiado so por `reminder_sent_at IS NULL` rebuscaria essa linha a
- * cada lote e se reagendaria a cada 60 segundos, sem fim.
+ * The case is not hypothetical and is documented in the code: `user_id` in
+ * `ffc_reregistration_submissions` is `NOT NULL` and an ACCEPTED ORPHAN (#822),
+ * so deleting the account in WordPress leaves the submission pointing at a user
+ * that does not exist. `send_to_user()` returns `false` at `get_userdata()`,
+ * `mark_reminded()` never runs, and `reminder_sent_at` stays NULL forever. A
+ * loop driven only by `reminder_sent_at IS NULL` would fetch that row again on
+ * every batch and reschedule itself every 60 seconds, without end.
  *
- * O QUE ESTE ARQUIVO NAO PROVA
+ * WHAT THIS FILE DOES NOT PROVE
  *
- * Que o e-mail chega. O `SchedulingMailer` e um duplo; o que se observa aqui
- * e o agendamento e o cursor.
+ * That the email arrives. `SchedulingMailer` is a double; what is observed here
+ * is the scheduling and the cursor.
  *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationEmailHandler
  * @runClassInSeparateProcess
@@ -128,10 +129,10 @@ class ReregistrationReminderBatchTest extends TestCase {
 	}
 
 	/**
-	 * Arma a campanha e a pagina de submissoes que o reader devolve.
+	 * Stages the campaign and the page of submissions the reader returns.
 	 *
-	 * @param int       $rows      Quantas linhas a pagina traz.
-	 * @param list<int> $failing   `user_id`s cujo `get_userdata` falha.
+	 * @param int       $rows      How many rows the page brings.
+	 * @param list<int> $failing   `user_id`s whose `get_userdata` fails.
 	 * @return void
 	 */
 	private function stage( int $rows, array $failing = array() ): void {
@@ -175,24 +176,24 @@ class ReregistrationReminderBatchTest extends TestCase {
 	// ==================================================================
 
 	/**
-	 * Pagina menor que o lote encerra a fila: nada e reagendado.
+	 * A page smaller than the batch ends the queue: nothing is rescheduled.
 	 *
-	 * E o que mantem uma campanha pequena identica ao comportamento anterior
-	 * ao loteamento -- ela termina numa execucao so, sem enfileirar nada.
+	 * It is what keeps a small campaign identical to the behaviour before
+	 * batching -- it finishes in a single run, queueing nothing.
 	 */
 	public function test_a_short_page_does_not_reschedule(): void {
 		$this->stage( ReregistrationEmailHandler::REMINDER_BATCH_SIZE - 1 );
 
 		ReregistrationEmailHandler::send_reminder_batch( 7, 0 );
 
-		$this->assertSame( array(), $this->scheduled, 'Uma pagina incompleta significa fila vazia; reagendar ali gera execucao inutil para sempre.' );
+		$this->assertSame( array(), $this->scheduled, 'An incomplete page means an empty queue; rescheduling there produces a useless run forever.' );
 	}
 
 	/**
-	 * Pagina cheia reagenda, com a campanha e o cursor no payload.
+	 * A full page reschedules, with the campaign and the cursor in the payload.
 	 *
-	 * O par da asercao acima: sem ela, um driver que nunca reagenda passaria
-	 * nos dois testes e o loteamento nao existiria.
+	 * The pair of the assertion above: without it, a driver that never
+	 * reschedules would pass both tests and the batching would not exist.
 	 */
 	public function test_a_full_page_reschedules_with_the_cursor(): void {
 		$size = ReregistrationEmailHandler::REMINDER_BATCH_SIZE;
@@ -210,18 +211,17 @@ class ReregistrationReminderBatchTest extends TestCase {
 	// ==================================================================
 
 	/**
-	 * O cursor avanca alem de uma linha que NAO pode ser enviada.
+	 * The cursor advances past a row that CANNOT be sent.
 	 *
-	 * Esta e a asercao que o arquivo existe para sustentar. A ultima linha da
-	 * pagina tem um usuario apagado, entao ela nunca recebe carimbo. Se o
-	 * cursor fosse "o ultimo enviado com sucesso", o lote seguinte comecaria
-	 * antes dela, a rebuscaria, veria pagina cheia de novo e reagendaria --
-	 * a cada 60 segundos, para sempre.
+	 * This is the assertion the file exists to hold up. The page's last row has a
+	 * deleted user, so it never receives a stamp. If the cursor were "the last
+	 * successfully sent", the next batch would start before it, fetch it again,
+	 * see a full page again and reschedule -- every 60 seconds, forever.
 	 */
 	public function test_the_cursor_advances_past_a_row_that_cannot_be_sent(): void {
 		$size = ReregistrationEmailHandler::REMINDER_BATCH_SIZE;
-		// A ULTIMA linha da pagina e a que falha: e onde a diferenca entre
-		// "linha vista" e "envio bem-sucedido" fica visivel.
+		// The LAST row of the page is the one that fails: that is where the
+		// difference between "row seen" and "successful send" becomes visible.
 		$this->stage( $size, array( 1000 + $size ) );
 
 		ReregistrationEmailHandler::send_reminder_batch( 7, 0 );
@@ -230,16 +230,16 @@ class ReregistrationReminderBatchTest extends TestCase {
 		$this->assertSame(
 			array( 7, $size ),
 			$this->scheduled[0][2],
-			'O cursor parou numa linha que nunca sera carimbada — o lote seguinte a rebusca e o ciclo nao termina.'
+			'The cursor stopped on a row that will never be stamped — the next batch fetches it again and the cycle never ends.'
 		);
 	}
 
 	/**
-	 * O payload leva apenas escalares.
+	 * The payload carries scalars only.
 	 *
-	 * A opcao `cron` e autoloaded e desserializada em TODA requisicao do site,
-	 * entao um payload gordo custa em todo lugar, o tempo todo -- e nao so
-	 * aqui. Dois inteiros e o que o desenho pede.
+	 * The `cron` option is autoloaded and unserialised on EVERY request to the
+	 * site, so a fat payload costs everywhere, all the time -- not only here. Two
+	 * integers is what the design asks for.
 	 */
 	public function test_the_payload_carries_only_scalars(): void {
 		$this->stage( ReregistrationEmailHandler::REMINDER_BATCH_SIZE );
@@ -253,12 +253,11 @@ class ReregistrationReminderBatchTest extends TestCase {
 	}
 
 	/**
-	 * Um lote identico ja enfileirado nao e enfileirado de novo.
+	 * An identical batch already queued is not queued again.
 	 *
-	 * Dois visitantes podem disparar o wp-cron quase juntos; sem a guarda, a
-	 * mesma campanha entraria duas vezes na fila e cada participante levaria
-	 * dois e-mails -- exatamente a duplicidade que o passo 1 consertou,
-	 * reintroduzida pelo passo 2.
+	 * Two visitors can trigger wp-cron almost together; without the guard, the
+	 * same campaign would enter the queue twice and each participant would get
+	 * two emails -- exactly the duplication step 1 fixed, reintroduced by step 2.
 	 */
 	public function test_an_already_queued_batch_is_not_queued_twice(): void {
 		$this->next_scheduled = time() + 30;
@@ -270,11 +269,11 @@ class ReregistrationReminderBatchTest extends TestCase {
 	}
 
 	/**
-	 * O atraso entre lotes e o declarado.
+	 * The delay between batches is the declared one.
 	 *
-	 * Congela o valor contra uma mudanca acidental, e o docblock da constante
-	 * guarda a ressalva que o numero nao consegue expressar: com WP-Cron ele e
-	 * um piso, nao uma promessa.
+	 * It freezes the value against an accidental change, and the constant's
+	 * docblock holds the caveat the number cannot express: with WP-Cron it is a
+	 * floor, not a promise.
 	 */
 	public function test_the_next_batch_is_scheduled_after_the_declared_delay(): void {
 		$this->stage( ReregistrationEmailHandler::REMINDER_BATCH_SIZE );

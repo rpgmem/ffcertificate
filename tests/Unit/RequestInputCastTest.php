@@ -92,17 +92,17 @@ final class RequestInputCastTest extends TestCase {
 				continue;
 			}
 
-			// Prosa que CITA a forma não é a forma. A varredura lia o arquivo
-			// como texto puro, então um comentário explicando por que aquela
-			// leitura NÃO usa `absint()` sobre o superglobal era contado como
+			// Prose that QUOTES the shape is not the shape. The scan read the file
+			// as plain text, so a comment explaining why a given read does NOT use
+			// `absint()` on the superglobal was counted as
 			// um cast de chave dinâmica -- e reprovava o PR que escrevia o
-			// comentário (#1212 gastou uma corrida de CI nisso). É a mesma
-			// distinção que o `CLAUDE.md` já fixa para as anotações de
-			// supressão: só conta o token que ABRE o comentário, não o que
+			// a comment (#1212 spent a CI run on it). It is the same distinction
+			// CLAUDE.md already pins for suppression annotations: only the token
+			// that OPENS the comment counts, not the one
 			// aparece dentro dele.
 			//
 			// `token_get_all()` em vez de regex: reconhecer comentário com
-			// expressão regular exige saber quando `//` está dentro de uma
+			// regular expression requires knowing when `//` is inside a
 			// string, e o lexer do PHP já sabe.
 			$text = self::strip_comments( $text );
 
@@ -140,8 +140,8 @@ final class RequestInputCastTest extends TestCase {
 	/**
 	 * Blank out comments, keeping everything else byte-for-byte.
 	 *
-	 * Substitui por um espaço, não por vazio: colar os dois lados poderia
-	 * juntar tokens que o comentário separava.
+	 * It substitutes a space, not nothing: gluing the two sides could join
+	 * tokens the comment kept apart.
 	 */
 	private static function strip_comments( string $code ): string {
 		$out = '';

@@ -33,10 +33,10 @@ class PreflightStatsServiceTest extends TestCase {
 		class_exists( '\\FreeFormCertificate\\Admin\\PreflightStatsService' );
 		Functions\when( '__' )->returnArg();
 
-		// Stubados AQUI, e nao herdados de quem rodou antes: `get_form_stats()`
-		// passou a cachear em transiente (#1234), e o CLAUDE.md registra que uma
+		// Stubbed HERE, not inherited from whatever ran before: `get_form_stats()`
+		// now caches in a transient (#1234), and CLAUDE.md records that a
 		// funcao ensinada ao Patchwork por outro teste fica ensinada para o
-		// processo -- entao o ramo tem de ser ESCOLHIDO, nao herdado. O padrao e
+		// process -- so the branch has to be CHOSEN, not inherited. The default is
 		// "cache vazio", que e o caminho que estes testes medem.
 		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'set_transient' )->justReturn( true );
@@ -52,15 +52,15 @@ class PreflightStatsServiceTest extends TestCase {
 	}
 
 	/**
-	 * Um acerto de cache nao toca o log (#1234).
+	 * A cache hit does not touch the log (#1234).
 	 *
 	 * E a asercao que sustenta a correcao: a leitura descachada puxa ate 5.000
-	 * linhas para a memoria e faz um `json_decode` por linha, a cada render da
-	 * barra lateral do editor de formulario. Se o transiente nao curto-circuitar,
-	 * o cache existe no codigo e nao no comportamento.
+	 * rows into memory and does one `json_decode` per row, on every render of the
+	 * form editor's sidebar. If the transient does not short-circuit, the cache
+	 * exists in the code and not in the behaviour.
 	 *
-	 * `shouldNotReceive` e o que prende isso -- comparar o valor devolvido nao
-	 * bastaria, porque a leitura descachada devolveria os mesmos numeros.
+	 * `shouldNotReceive` is what pins this -- comparing the returned value would
+	 * not be enough, because the uncached read would return the same numbers.
 	 */
 	public function test_a_cache_hit_never_queries_the_activity_log(): void {
 		$cached = array(
@@ -81,8 +81,8 @@ class PreflightStatsServiceTest extends TestCase {
 	 * A chave leva o formulario E a janela em dias.
 	 *
 	 * Cachear so por formulario devolveria a contagem de 30 dias para quem
-	 * pediu 7 -- um numero errado servido com confianca, que e pior do que o
-	 * custo que o cache evita.
+	 * asked for 7 -- a wrong number served confidently, which is worse than the
+	 * cost the cache avoids.
 	 */
 	public function test_the_cache_key_carries_both_form_and_window(): void {
 		$seen = array();
