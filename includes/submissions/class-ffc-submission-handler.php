@@ -41,6 +41,25 @@ class SubmissionHandler {
 	private $lifecycle;
 
 	/**
+	 * Gancho INTERNO que o wp-cron dispara depois de uma submissao (#1248).
+	 *
+	 * Ele carrega um inteiro. O gancho PUBLICO
+	 * `ffcertificate_process_submission_hook` continua recebendo os mesmos oito
+	 * argumentos, disparado por {@see self::dispatch_async_pipeline()} depois de
+	 * reidratar -- e por isso a troca e invisivel para quem escuta de fora.
+	 *
+	 * @var string
+	 */
+	public const ASYNC_PIPELINE_HOOK = 'ffc_process_submission_async';
+
+	/**
+	 * Gancho PUBLICO do fim da linha, com a assinatura de oito argumentos.
+	 *
+	 * @var string
+	 */
+	public const PIPELINE_HOOK = 'ffcertificate_process_submission_hook';
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -294,18 +313,175 @@ class SubmissionHandler {
 		do_action( 'ffcertificate_after_submission_save', $submission_id, $form_id, $submission_data, $user_email );
 
 		// Dispatch the async email/notification pipeline. EmailHandler listens
-		// on this hook and decides whether the user email is enabled (and
-		// no-ops when emails are globally disabled). Restores the trigger that
-		// was orphaned — the hook was registered but never scheduled (#649).
+		// on `ffcertificate_process_submission_hook` and decides whether the
+		// user email is enabled (and no-ops when emails are globally
+		// disabled). Restores the trigger that was orphaned — the hook was
+		// registered but never scheduled (#649).
+		//
+		// O QUE VIAJA NO AGENDAMENTO E UM INTEIRO (#1248)
+		//
+		// Ate aqui iam oito argumentos, entre eles o `$submission_data`
+		// inteiro e o `$magic_token`. O agendamento mora na option `cron`, que
+		// e AUTOLOADED: enquanto o evento estivesse pendente, todo pedido ao
+		// site carregaria e desserializaria aquilo. E pior que custo -- vinte
+		// linhas acima este mesmo metodo CIFRA e-mail, CPF, RF e os dados
+		// extras antes do INSERT, e o payload gravava os originais em claro na
+		// `wp_options`, junto do `magic_token`, que e a autenticacao inteira do
+		// acesso ao certificado.
+		//
+		// `dispatch_async_pipeline()` reidrata os oito valores da linha e do
+		// formulario e dispara o gancho publico com eles, entao nenhum ouvinte
+		// externo percebe a mudanca.
 		if ( function_exists( 'wp_schedule_single_event' ) ) {
 			wp_schedule_single_event(
 				time() + 1,
-				'ffcertificate_process_submission_hook',
-				array( (int) $submission_id, $form_id, $form_title, $submission_data, $user_email, $fields_config, $form_config, $magic_token )
+				self::ASYNC_PIPELINE_HOOK,
+				array( (int) $submission_id )
 			);
 		}
 
 		return $submission_id;
+	}
+
+	/**
+	 * Reidrata o contexto de uma submissao e dispara o gancho publico (#1248).
+	 *
+	 * O wp-cron chama isto com um inteiro; daqui sai o `do_action` de oito
+	 * argumentos que `EmailHandler::async_process_submission()` -- e qualquer
+	 * integracao de terceiro -- sempre recebeu. Sao ganchos DIFERENTES, entao
+	 * nao ha recursao, e o ouvinte antigo continua registrado: eventos
+	 * agendados na forma velha, pendentes no momento da atualizacao, seguem
+	 * processando normalmente.
+	 *
+	 * DUAS NORMALIZACOES QUE NAO APARECEM -- MEDIDO, NAO SUPOSTO
+	 *
+	 * O banco guarda `cpf_rf` so com digitos e `auth_code` so com
+	 * alfanumericos, enquanto o visitante pode ter digitado
+	 * `123.456.789-00`. Isso nao muda e-mail nenhum porque os dois unicos
+	 * consumidores desses valores normalizam a ENTRADA antes de formatar:
+	 * `DocumentFormatter::format_document()` aplica `preg_replace('/\D/','')`
+	 * e `format_auth_code()` aplica `/[^A-Z0-9]/i`. Cru e normalizado saem
+	 * identicos.
+	 *
+	 * O QUE MUDA, E E DELIBERADO: A ORDEM DAS LINHAS NO AVISO AO ADMIN
+	 *
+	 * `EmailHandler::send_admin_notification()` desenha uma linha por chave, na
+	 * ordem do array. No original essa ordem era a do POST, com as quatro
+	 * chaves "obrigatorias" intercaladas entre os campos do formulario. O banco
+	 * as separou das demais, e a posicao original delas nao esta guardada em
+	 * lugar nenhum -- entao ela nao e recuperavel.
+	 *
+	 * A reconstrucao entao agrupa: identificacao primeiro, campos do formulario
+	 * no meio, codigo e consentimento no fim. Os campos do formulario mantem a
+	 * ordem original entre si, porque `array_diff_key()` preserva ordem e foi
+	 * assim que o JSON foi gravado.
+	 *
+	 * Uma consequencia menor da mesma origem: um `ffc_lgpd_consent` enviado
+	 * como `'0'` some da tabela, porque o banco guarda um booleano e um
+	 * consentimento negado e indistinguivel de um nao enviado.
+	 *
+	 * A CONFIGURACAO LIDA E A DE AGORA, NAO A DE UM SEGUNDO ATRAS
+	 *
+	 * `_ffc_form_fields` e `_ffc_form_config` sao lidos na hora do disparo. Se
+	 * alguem editar o formulario dentro da janela de ~1s, o e-mail sai com a
+	 * configuracao nova -- o que e mais correto que sair com a velha, e nao com
+	 * a fotografia que o payload antigo carregava.
+	 *
+	 * @param int $submission_id ID da submissao recem-criada.
+	 * @return void
+	 */
+	public function dispatch_async_pipeline( int $submission_id ): void {
+		if ( $submission_id <= 0 ) {
+			return;
+		}
+
+		$submission = $this->get_submission( $submission_id );
+		if ( ! is_array( $submission ) ) {
+			// A linha pode ter sido apagada entre o agendamento e o disparo.
+			return;
+		}
+
+		$form_id     = isset( $submission['form_id'] ) ? (int) $submission['form_id'] : 0;
+		$user_email  = isset( $submission['email'] ) ? (string) $submission['email'] : '';
+		$magic_token = isset( $submission['magic_token'] ) ? (string) $submission['magic_token'] : '';
+
+		$submission_data = $this->rebuild_submission_data( $submission );
+
+		$fields_config = $form_id > 0 ? get_post_meta( $form_id, '_ffc_form_fields', true ) : array();
+		$form_config   = $form_id > 0 ? get_post_meta( $form_id, '_ffc_form_config', true ) : array();
+
+		/**
+		 * Fires after a submission is saved, to run the async email pipeline.
+		 *
+		 * @since 4.6.4
+		 * @param int                  $submission_id   Submission ID.
+		 * @param int                  $form_id         Form ID.
+		 * @param string               $form_title      Form title.
+		 * @param array<string, mixed> $submission_data Submission data.
+		 * @param string               $user_email      User email.
+		 * @param array<string, mixed> $fields_config   Field configuration.
+		 * @param array<string, mixed> $form_config     Form configuration.
+		 * @param string               $magic_token     Magic token.
+		 */
+		do_action(
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- A constante guarda o literal `ffcertificate_process_submission_hook`, que ja carrega o prefixo do plugin; o sniff nao resolve constantes.
+			self::PIPELINE_HOOK,
+			$submission_id,
+			$form_id,
+			$form_id > 0 ? (string) get_the_title( $form_id ) : '',
+			$submission_data,
+			$user_email,
+			is_array( $fields_config ) ? $fields_config : array(),
+			is_array( $form_config ) ? $form_config : array(),
+			$magic_token
+		);
+	}
+
+	/**
+	 * Remonta o array que o visitante enviou, a partir da linha decifrada.
+	 *
+	 * A ordem das chaves e a contrapartida documentada em
+	 * {@see self::dispatch_async_pipeline()} -- ela e o que o aviso ao admin
+	 * desenha, entao esta fixada aqui e presa por teste.
+	 *
+	 * @param array<string, mixed> $submission Linha ja decifrada.
+	 * @return array<string, mixed>
+	 */
+	private function rebuild_submission_data( array $submission ): array {
+		$data = array();
+
+		$email = isset( $submission['email'] ) ? (string) $submission['email'] : '';
+		if ( '' !== $email ) {
+			$data['email'] = $email;
+		}
+
+		$cpf_rf = isset( $submission['cpf_rf'] ) ? (string) $submission['cpf_rf'] : '';
+		if ( '' !== $cpf_rf ) {
+			$data['cpf_rf'] = $cpf_rf;
+		}
+
+		// Os campos do formulario vivem no JSON da coluna `data`, e chegam na
+		// ordem em que foram gravados -- que e a ordem original entre si.
+		$raw = isset( $submission['data'] ) ? $submission['data'] : '';
+		if ( is_string( $raw ) && '' !== $raw ) {
+			$extra = json_decode( $raw, true );
+			if ( is_array( $extra ) ) {
+				foreach ( $extra as $key => $value ) {
+					$data[ (string) $key ] = $value;
+				}
+			}
+		}
+
+		$auth_code = isset( $submission['auth_code'] ) ? (string) $submission['auth_code'] : '';
+		if ( '' !== $auth_code ) {
+			$data['auth_code'] = $auth_code;
+		}
+
+		if ( ! empty( $submission['consent_given'] ) ) {
+			$data['ffc_lgpd_consent'] = '1';
+		}
+
+		return $data;
 	}
 
 	/**
