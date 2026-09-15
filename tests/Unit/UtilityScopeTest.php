@@ -1,27 +1,29 @@
 <?php
 /**
- * Escopo de `ffc-admin-utilities.css` (#1171).
+ * Scope of `ffc-admin-utilities.css` (#1171).
  *
- * O docblock da folha diz o que ela aceita; este teste é o que torna isso uma
- * regra em vez de um pedido. Um utilitário nomeia uma **propriedade** ou uma
- * forma visual genérica — `.ffc-mt-20`, `.ffc-w100`, `.ffc-monospace` — e se
- * resolve em **uma regra**, com um seletor de classe só: sem descendente, sem
- * pseudo-classe, sem sub-seletor de elemento.
+ * The sheet's docblock says what it accepts; this test is what turns that into
+ * a rule rather than a request. A utility names a **property** or a generic
+ * visual shape — `.ffc-mt-20`, `.ffc-w100`, `.ffc-monospace` — and resolves to
+ * **one rule**, with a single class selector: no descendant, no pseudo-class,
+ * no element sub-selector.
  *
- * Nove componentes de tela moravam aqui e saíram na #1171. O que os trouxe é o
- * modo de falha que o `CLAUDE.md` já nomeia para `services/` e `integrations/`:
- * **um nome genérico convida drift**, e a correção depois é cara. A defesa não
- * é um rename futuro, é o escopo escrito — e escrito de um jeito que falha.
+ * Nine screen components lived here and left in #1171. What brought them is the
+ * failure mode `CLAUDE.md` already names for `services/` and `integrations/`:
+ * **a generic name invites drift**, and fixing it later is expensive. The
+ * defence is not a future rename, it is the scope written down — and written in
+ * a way that can fail.
  *
- * **Por que mover custa verificação, e não é arrumação.** Esta folha é
- * DEPENDÊNCIA de `ffc-admin-css` e é enfileirada num lugar só
- * (`AdminAssetsManager::enqueue_admin_base_styles()`, que enfileira as duas em
- * seguida), então tudo aqui alcança toda tela FFC do admin. Levar um componente
- * para a folha do módulo dono **estreita** o alcance: se aquela folha não
- * carregar na tela que renderiza o componente, o estilo some sem que nada
- * acuse. Foi por isso que a #1171 mediu tela a tela antes de mover.
+ * **Why moving costs verification rather than being tidy-up.** This sheet is a
+ * DEPENDENCY of `ffc-admin-css` and is enqueued in exactly one place
+ * (`AdminAssetsManager::enqueue_admin_base_styles()`, which enqueues the two in
+ * consecutive statements), so everything here reaches every FFC admin screen.
+ * Moving a component to its owner module's sheet **narrows** that reach: if
+ * that sheet is not enqueued on the screen rendering the component, the styles
+ * vanish with nothing to report it. That is why #1171 measured screen by screen
+ * before moving anything.
  *
- * Sem dependência: lê o texto da folha.
+ * No dependency: it reads the sheet as text.
  *
  * @package FreeFormCertificate\Tests\Unit
  */
@@ -39,14 +41,14 @@ use PHPUnit\Framework\TestCase;
 final class UtilityScopeTest extends TestCase {
 
 	/**
-	 * Caminho absoluto da folha de utilitários.
+	 * Absolute path of the utilities sheet.
 	 */
 	private static function sheet(): string {
 		return dirname( __DIR__, 2 ) . '/assets/css/ffc-admin-utilities.css';
 	}
 
 	/**
-	 * Os seletores declarados na folha, um por entrada da lista.
+	 * The selectors the sheet declares, one per list entry.
 	 *
 	 * @return array<int, string>
 	 */
@@ -63,11 +65,11 @@ final class UtilityScopeTest extends TestCase {
 	}
 
 	/**
-	 * Todo seletor é uma classe crua — nada de componente.
+	 * Every selector is a bare class — no components.
 	 *
-	 * Um descendente (`.ffc-x .ffc-y`), uma pseudo-classe (`:hover`) ou um
-	 * sub-seletor de elemento (`.ffc-x strong`) é estrutura, e estrutura é
-	 * componente: pertence à folha do módulo que o renderiza.
+	 * A descendant (`.ffc-x .ffc-y`), a pseudo-class (`:hover`) or an element
+	 * sub-selector (`.ffc-x strong`) is structure, and structure is a
+	 * component: it belongs to the sheet of the module that renders it.
 	 */
 	public function test_every_selector_is_a_single_bare_class(): void {
 		$offenders = array();
@@ -81,20 +83,20 @@ final class UtilityScopeTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$offenders,
-			"Seletor que não é utilitário em `ffc-admin-utilities.css`:\n  " . implode( "\n  ", $offenders )
-			. "\n\nDescendente, pseudo-classe ou sub-seletor de elemento é ESTRUTURA, e"
-			. "\nestrutura é componente: vai para a folha do módulo que o renderiza."
-			. "\nAntes de mover, confira que aquela folha é enfileirada na tela que"
-			. "\nrenderiza o componente — esta folha alcança TODA tela FFC do admin, e"
-			. "\nmover estreita o alcance sem que nada acuse a perda."
+			"Selector that is not a utility in `ffc-admin-utilities.css`:\n  " . implode( "\n  ", $offenders )
+			. "\n\nA descendant, pseudo-class or element sub-selector is STRUCTURE, and"
+			. "\nstructure is a component: it goes to the sheet of the module that renders it."
+			. "\nBefore moving one, confirm that sheet is enqueued on the screen that"
+			. "\nrenders the component — this sheet reaches EVERY FFC admin screen, and"
+			. "\nmoving narrows that reach with nothing to report the loss."
 		);
 	}
 
 	/**
-	 * Cada classe se resolve em uma regra só.
+	 * Each class resolves to exactly one rule.
 	 *
-	 * Duas regras para o mesmo nome querem dizer que ele tem estados ou
-	 * variantes — de novo, componente.
+	 * Two rules for the same name mean it has states or variants — a component
+	 * again.
 	 */
 	public function test_every_class_is_declared_exactly_once(): void {
 		$counts = array_count_values( self::selectors() );
@@ -109,44 +111,44 @@ final class UtilityScopeTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$repeat,
-			"Classe declarada mais de uma vez na folha de utilitários:\n  " . implode( "\n  ", $repeat )
-			. "\n\nMais de uma regra para um nome é estado ou variante, ou seja, componente."
+			"Class declared more than once in the utilities sheet:\n  " . implode( "\n  ", $repeat )
+			. "\n\nMore than one rule for a name is a state or a variant, i.e. a component."
 		);
 	}
 
 	/**
-	 * Todo nome carrega o prefixo da casa.
+	 * Every name carries the house prefix.
 	 *
-	 * Redundante com o `ClassNamingIdiomTest` para esta folha, e de propósito:
-	 * é aqui que a pergunta "posso pôr uma classe genérica?" nasce.
+	 * Redundant with `ClassNamingIdiomTest` for this sheet, and deliberately so:
+	 * this is where the question "can I put a generic class here?" is born.
 	 */
 	public function test_every_utility_carries_the_prefix(): void {
 		foreach ( self::selectors() as $selector ) {
 			$this->assertStringStartsWith(
 				'.ffc-',
 				$selector,
-				"Utilitário sem prefixo: {$selector}"
+				"Utility without the prefix: {$selector}"
 			);
 		}
 	}
 
 	/**
-	 * A varredura não pode colapsar em silêncio.
+	 * The scan must not collapse in silence.
 	 *
-	 * Um seletor vazio satisfaz os três testes acima tão bem quanto uma folha
-	 * correta — a forma do #1071 / #1094.
+	 * An empty selector list satisfies the three tests above just as well as a
+	 * correct sheet — the #1071 / #1094 shape.
 	 */
 	public function test_the_scan_cannot_collapse_in_silence(): void {
 		$selectors = self::selectors();
 
 		$this->assertFileExists( self::sheet() );
-		$this->assertGreaterThan( 15, count( $selectors ), 'A leitura da folha colapsou.' );
+		$this->assertGreaterThan( 15, count( $selectors ), 'Reading the sheet collapsed.' );
 
-		// E precisa saber dizer NÃO: um seletor de componente é recusado.
+		// And it has to be able to say NO: a component selector is refused.
 		$this->assertSame(
 			0,
 			preg_match( '/^\.[A-Za-z_][A-Za-z0-9_-]*$/', '.ffc-preflight-badge a:hover' ),
-			'O padrão aceita um seletor de componente — a rede está pegando o oceano.'
+			'The pattern accepts a component selector — the net is catching the ocean.'
 		);
 	}
 }
