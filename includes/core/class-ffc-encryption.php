@@ -314,6 +314,15 @@ class Encryption {
 	 * @return void
 	 */
 	private static function log_decrypt_failure( string $ciphertext ): void {
+		++self::$decrypt_failure_count;
+
+		// Teto checado ANTES de qualquer outro trabalho: passado ele, nem
+		// `is_enabled()` (que le uma opcao) chega a rodar. Numa enxurrada e
+		// justamente o caminho quente.
+		if ( self::$decrypt_failure_count > self::DECRYPT_FAILURE_LOG_CAP + 1 ) {
+			return;
+		}
+
 		if ( ! function_exists( 'get_option' ) ) {
 			return;
 		}
@@ -325,13 +334,18 @@ class Encryption {
 			if ( ! ActivityLog::is_enabled() ) {
 				return;
 			}
+
+			$suppressing = self::DECRYPT_FAILURE_LOG_CAP + 1 === self::$decrypt_failure_count;
+
 			ActivityLog::log(
-				'decrypt_failure',
+				$suppressing ? 'decrypt_failure_suppressed' : 'decrypt_failure',
 				ActivityLog::LEVEL_WARNING,
-				array(
-					'ciphertext_length' => strlen( $ciphertext ),
-					'v2_prefix'         => 0 === strpos( $ciphertext, self::V2_PREFIX ),
-				),
+				$suppressing
+					? array( 'cap' => self::DECRYPT_FAILURE_LOG_CAP )
+					: array(
+						'ciphertext_length' => strlen( $ciphertext ),
+						'v2_prefix'         => 0 === strpos( $ciphertext, self::V2_PREFIX ),
+					),
 				0,
 				0
 			);
@@ -340,6 +354,52 @@ class Encryption {
 			unset( $e );
 		}
 	}
+
+	/**
+	 * Quantas linhas de `decrypt_failure` uma requisicao pode escrever (#1234).
+	 *
+	 * POR QUE UM TETO
+	 *
+	 * Cada falha de decrypt gravava um INSERT em `ffc_activity_log`, sem teto
+	 * nem amostragem. Com uma chave quebrada isso nao e uma linha: uma
+	 * exportacao de 5.000 submissoes escreve 5.000 linhas de log, e uma
+	 * migracao que percorre todos os usuarios faz o mesmo por lote. O custo de
+	 * escrita ultrapassa em muito o da leitura que falhou.
+	 *
+	 * POR QUE CINCO, E NAO UMA
+	 *
+	 * A informacao de auditoria esta quase toda na PRIMEIRA falha -- a
+	 * milesima nao diz nada que a primeira ja nao dissesse, porque o contexto
+	 * gravado e so comprimento e flag de prefixo. Cinco da margem para ver se
+	 * as falhas tem formas diferentes (v2 e nao-v2 misturados, por exemplo) sem
+	 * abrir a porta para a enxurrada.
+	 *
+	 * POR QUE POR REQUISICAO, E NAO POR JANELA DE TEMPO
+	 *
+	 * Um teto por janela precisaria de transiente, isto e, de uma LEITURA E
+	 * ESCRITA a cada falha -- pagando parte do custo que se quer evitar, no
+	 * caminho que se quer baratear. O estrago que importa e uma requisicao
+	 * escrevendo milhares de linhas; e essa que o contador estatico corta.
+	 *
+	 * POR QUE PUBLICA
+	 *
+	 * O teste do teto le a constante em vez de repetir o numero; assim mudar o
+	 * teto nao deixa uma asercao mentindo sobre o que ela verifica.
+	 *
+	 * @var int
+	 */
+	public const DECRYPT_FAILURE_LOG_CAP = 5;
+
+	/**
+	 * Falhas de decrypt vistas nesta requisicao.
+	 *
+	 * Continua contando depois do teto -- o custo e um incremento --, o que
+	 * mantem `decrypt_failure_suppressed` sendo escrita UMA vez so, na
+	 * travessia exata do teto.
+	 *
+	 * @var int
+	 */
+	private static int $decrypt_failure_count = 0;
 
 	/**
 	 * Generate hash for searchable field
