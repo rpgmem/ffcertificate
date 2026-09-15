@@ -319,7 +319,7 @@ class ReregistrationActivator {
 	 * exists, so an install created before a column was declared never gets it
 	 * from there — this is the only path that reaches an existing install.
 	 *
-	 * @since 6.24.0
+	 * @since 6.25.0
 	 */
 	private static function add_reregistrations_columns(): void {
 		global $wpdb;
