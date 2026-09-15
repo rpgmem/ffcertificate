@@ -452,6 +452,19 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 		$processed = 0;
 		$last_id   = $cursor;
 
+		// `column_exists()` e um `SHOW COLUMNS` sem cache, e a resposta e
+		// INVARIANTE dentro do lote: o schema nao muda enquanto 500 linhas sao
+		// reescritas. Sondar por (linha x coluna) custava ate 2.500 consultas
+		// superfluas por lote (#1234). Resolvido UMA vez aqui, e o mapa e
+		// recomputado a cada lote -- nao guardado entre execucoes --, entao uma
+		// coluna adicionada entre lotes continua sendo vista.
+		$hash_present = array();
+		foreach ( $field_map as $ffc_hash_col ) {
+			if ( is_string( $ffc_hash_col ) && '' !== $ffc_hash_col ) {
+				$hash_present[ $ffc_hash_col ] = self::column_exists( $table, $ffc_hash_col );
+			}
+		}
+
 		foreach ( $records as $record ) {
 			$last_id = (int) $record['id'];
 
@@ -487,7 +500,7 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 
 					// Rebuild the paired searchable hash under the active salt.
 					$hash_col = $field_map[ $enc_col ] ?? null;
-					if ( null !== $hash_col && self::column_exists( $table, $hash_col ) ) {
+					if ( null !== $hash_col && ! empty( $hash_present[ $hash_col ] ) ) {
 						$new_hash = \FreeFormCertificate\Core\Encryption::hash( $plain );
 						if ( null !== $new_hash ) {
 							$current_hash = isset( $record[ $hash_col ] ) ? (string) $record[ $hash_col ] : '';
