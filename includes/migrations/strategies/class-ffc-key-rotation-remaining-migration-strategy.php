@@ -51,7 +51,17 @@ use FreeFormCertificate\Core\ArrayValue;
 use FreeFormCertificate\Core\Encryption;
 use WP_Error;
 
-// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Data statements against the plugin's own ffc_* tables during a migration. WordPress exposes no API for them, and a cached read is exactly what a migration cursor must not take.
+/*
+ * SEM `phpcs:disable` de arquivo, de proposito (#1236).
+ *
+ * O #1035 colapsou anotacoes por linha em disables de arquivo onde a
+ * justificativa era propriedade da CLASSE: toda tabela tocada ali e `ffc_*`, para
+ * as quais o WordPress nao expoe API. Aqui isso deixou de valer -- o alvo de
+ * perfil le `wp_usermeta`, uma tabela do core --, e
+ * `PhpcsSuppressionTest::test_file_level_direct_query_disables_only_cover_plugin_tables()`
+ * cobra exatamente essa honestidade. Das duas saidas que o proprio guarda
+ * nomeia, esta e a segunda: largar o disable e anotar por linha.
+ */
 
 /**
  * Finishes the key rotation over the areas the original strategy never walked.
@@ -83,6 +93,38 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	private const TARGET_RECRUITMENT = 'recruitment_candidate';
 
 	/**
+	 * Target key for the sensitive user-profile usermeta.
+	 */
+	private const TARGET_USER_PROFILE = 'user_profile_meta';
+
+	/**
+	 * Chave de meta cifrada => meta de hash pareada (null quando o campo nao e
+	 * pesquisavel por hash).
+	 *
+	 * AS CHAVES SAO LITERAIS AQUI DE PROPOSITO. A fonte de verdade e
+	 * `UserProfileFieldMap`, no modulo UserDashboard -- e importa-la criaria a
+	 * aresta `Migrations > UserDashboard`, que nao existe na baseline do
+	 * `ModuleBoundaryTest`. A estrategia ja fixa nomes de coluna dos outros dois
+	 * alvos pela mesma razao; quem cobra a concordancia e
+	 * `KeyRotationUserProfileTargetTest`, que vive fora do grafo de modulos e
+	 * reprova se o mapa ganhar um campo sensivel que esta lista nao conheca.
+	 *
+	 * `ffc_user_profiles` NAO entra: suas seis colunas sao texto puro
+	 * (`sensitive => false` no mapa), entao nao ha o que recifrar la. A #1236
+	 * juntava as duas coisas numa linha so; medido, o ciphertext mora apenas na
+	 * usermeta.
+	 *
+	 * @return array<string, string|null>
+	 */
+	private function profile_meta_map(): array {
+		return array(
+			'ffc_user_cpf' => 'ffc_user_cpf_hash',
+			'ffc_user_rf'  => 'ffc_user_rf_hash',
+			'ffc_user_rg'  => null,
+		);
+	}
+
+	/**
 	 * Targets this strategy walks, in order.
 	 *
 	 * Adding the profile usermeta means adding an entry here plus a `migrate_*`
@@ -92,7 +134,7 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	 * @return array<int, string>
 	 */
 	private function targets(): array {
-		return array( self::TARGET_RECRUITMENT, self::TARGET_REREGISTRATION );
+		return array( self::TARGET_RECRUITMENT, self::TARGET_REREGISTRATION, self::TARGET_USER_PROFILE );
 	}
 
 	/**
@@ -222,6 +264,10 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	private function count_target( string $target, bool $behind_cursor ): int {
 		global $wpdb;
 
+		if ( self::TARGET_USER_PROFILE === $target ) {
+			return $this->count_user_profile_pending( $behind_cursor );
+		}
+
 		$table = $this->table_for( $target );
 		if ( '' === $table || ! $this->table_exists( $table ) ) {
 			return 0;
@@ -239,7 +285,7 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 			$values[] = $this->get_cursor( $target );
 		}
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where comes only from pending_predicate(), which returns one of two hard-coded literals and never touches request data; every value, the table included, is bound through prepare().
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $where comes only from pending_predicate(), which returns one of two hard-coded literals and never touches request data; every value, the table included, is bound through prepare().
 		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE {$where}", $values ) );
 	}
 
@@ -314,9 +360,13 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 				continue;
 			}
 
-			$result = self::TARGET_RECRUITMENT === $target
-				? $this->migrate_recruitment_batch()
-				: $this->migrate_reregistration_batch();
+			if ( self::TARGET_RECRUITMENT === $target ) {
+				$result = $this->migrate_recruitment_batch();
+			} elseif ( self::TARGET_REREGISTRATION === $target ) {
+				$result = $this->migrate_reregistration_batch();
+			} else {
+				$result = $this->migrate_user_profile_batch();
+			}
 			break;
 		}
 
@@ -365,6 +415,7 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 		 *
 		 * @var list<array<string, string|null>>|null $rows
 		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Statement de dados contra tabela `ffc_*` do plugin numa migracao: o WordPress nao expoe API para ela, e uma leitura em cache e exatamente o que um cursor de migracao nao pode tomar.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT id, data FROM %i WHERE id > %d AND data LIKE %s ORDER BY id ASC LIMIT %d',
@@ -379,6 +430,7 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 		if ( ! is_array( $rows ) || array() === $rows ) {
 			// Nothing left ahead of the cursor: park it at the end so the status
 			// maths reports complete instead of stalling one row short.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Statement de dados contra tabela `ffc_*` do plugin numa migracao: o WordPress nao expoe API para ela, e uma leitura em cache e exatamente o que um cursor de migracao nao pode tomar.
 			$max_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(MAX(id), 0) FROM %i', $table ) );
 			if ( $max_id > $cursor ) {
 				$this->set_cursor( self::TARGET_REREGISTRATION, $max_id );
@@ -401,6 +453,7 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 				continue;
 			}
 
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Statement de dados contra tabela `ffc_*` do plugin numa migracao: o WordPress nao expoe API para ela, e uma leitura em cache e exatamente o que um cursor de migracao nao pode tomar.
 			$updated = $wpdb->update(
 				$table,
 				array( 'data' => $rewritten ),
@@ -422,6 +475,163 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 		}
 
 		$this->set_cursor( self::TARGET_REREGISTRATION, $last_id );
+
+		return array(
+			'processed' => $processed,
+			'errors'    => $errors,
+		);
+	}
+
+	/**
+	 * Quantos USUARIOS ainda tem meta sensivel a considerar neste alvo.
+	 *
+	 * Conta usuarios distintos, e nao linhas de meta, porque e assim que o lote
+	 * pagina -- um usuario com tres metas e uma unidade de trabalho, nao tres.
+	 * Contar linhas faria a comparacao `count(false) > count(true)` do
+	 * `execute()` discordar do que o lote de fato consome.
+	 *
+	 * @param bool $behind_cursor Restringe ao que ja ficou para tras do cursor.
+	 * @return int
+	 */
+	private function count_user_profile_pending( bool $behind_cursor ): int {
+		global $wpdb;
+
+		$meta_keys    = array_keys( $this->profile_meta_map() );
+		$placeholders = implode( ',', array_fill( 0, count( $meta_keys ), '%s' ) );
+
+		$values   = array( $wpdb->usermeta );
+		$values   = array_merge( $values, $meta_keys );
+		$values[] = '%' . $wpdb->esc_like( Encryption::V2_PREFIX ) . '%';
+
+		$cursor_sql = '';
+		if ( $behind_cursor ) {
+			$cursor_sql = ' AND user_id <= %d';
+			$values[]   = $this->get_cursor( self::TARGET_USER_PROFILE );
+		}
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Os fragmentos interpolados sao marcadores gerados aqui a partir da contagem de chaves e um literal fixo de cursor; todo valor, a tabela inclusive, passa por prepare(). Leitura de migracao: uma resposta em cache e exatamente o que um cursor nao pode tomar.
+		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT user_id) FROM %i WHERE meta_key IN ({$placeholders}) AND meta_value LIKE %s{$cursor_sql}", $values ) );
+	}
+
+	/**
+	 * Recifra a meta sensivel de um lote de usuarios e refaz os hashes.
+	 *
+	 * POR QUE A PAGINA E DE USUARIOS, E NAO DE LINHAS DE META
+	 *
+	 * Um usuario carrega ate tres metas cifradas. Paginando por linha de meta e
+	 * avancando o cursor por `user_id`, um usuario partido entre dois lotes
+	 * perderia as metas que ficaram para tras -- o cursor ja teria passado por
+	 * ele. Paginar por usuario torna a unidade de trabalho indivisivel.
+	 *
+	 * POR QUE A ESCRITA VAI PELA API DO WordPress
+	 *
+	 * A unica consulta direta e o SELECT que resolve a pagina de `user_id`: um
+	 * keyset (`user_id > %d`) que `WP_User_Query` nao sabe expressar, e trocar o
+	 * keyset por `offset` arriscaria pular um usuario -- que aqui significa PII
+	 * ilegivel para sempre depois da rotacao de salts. Lido e escrito, porem,
+	 * vai por `get_user_meta()` / `update_user_meta()`, que passam pelo cache de
+	 * objeto e mantem o caminho de escrita identico ao do
+	 * `UserProfileService` -- inclusive o hash so gravado quando muda.
+	 *
+	 * @return array{processed: int, errors: array<int, string>}
+	 */
+	private function migrate_user_profile_batch(): array {
+		global $wpdb;
+
+		$cursor = $this->get_cursor( self::TARGET_USER_PROFILE );
+		$errors = array();
+		$map    = $this->profile_meta_map();
+
+		$meta_keys    = array_keys( $map );
+		$placeholders = implode( ',', array_fill( 0, count( $meta_keys ), '%s' ) );
+
+		$values   = array( $wpdb->usermeta );
+		$values   = array_merge( $values, $meta_keys );
+		$values[] = '%' . $wpdb->esc_like( Encryption::V2_PREFIX ) . '%';
+		$values[] = $cursor;
+		$values[] = self::BATCH_SIZE;
+
+		/**
+		 * Uma coluna de ids, tipada explicitamente porque `get_col()` devolve
+		 * `mixed` para o analisador.
+		 *
+		 * @var list<string>|null $ids
+		 */
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Como em count_user_profile_pending(): fragmentos gerados aqui, valores todos por prepare(), e cache proibido num cursor de migracao.
+		$ids = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT user_id FROM %i WHERE meta_key IN ({$placeholders}) AND meta_value LIKE %s AND user_id > %d ORDER BY user_id ASC LIMIT %d", $values ) );
+
+		if ( ! is_array( $ids ) || array() === $ids ) {
+			return array(
+				'processed' => 0,
+				'errors'    => $errors,
+			);
+		}
+
+		$processed = 0;
+		$last_id   = $cursor;
+
+		foreach ( $ids as $raw_id ) {
+			$user_id = (int) $raw_id;
+			$last_id = $user_id;
+
+			foreach ( $map as $meta_key => $hash_key ) {
+				$stored = get_user_meta( $user_id, $meta_key, true );
+
+				// O prefixo e um FILTRO DE CUSTO, nao de correcao: `decrypt()`
+				// ja devolveria null para o que nao sabe decifrar, e o guarda
+				// seguinte protegeria o valor de qualquer jeito (medido por
+				// mutacao). O que ele evita e a CHAMADA: abrir o envelope,
+				// derivar a comparacao HMAC e chamar `openssl_decrypt` para
+				// cada meta em texto claro, num laco que percorre todos os
+				// usuarios do site.
+				//
+				// Ate o #1234 havia um segundo motivo, maior: cada falha
+				// gravava uma linha em `ffc_activity_log`, sem teto. O teto
+				// agora existe (cinco por requisicao), entao o que sobra e o
+				// custo da decifragem em si -- suficiente, mas nao mais o
+				// argumento dramatico que este comentario carregava antes.
+				if ( ! is_string( $stored ) || 0 !== strpos( $stored, Encryption::V2_PREFIX ) ) {
+					continue;
+				}
+
+				$plain = Encryption::decrypt( $stored );
+				if ( null === $plain || '' === $plain ) {
+					$errors[] = sprintf(
+						/* translators: 1: meta key, 2: user ID */
+						__( 'Nao foi possivel decifrar %1$s do usuario %2$d — deixado intacto (a chave pode ser irrecuperavel).', 'ffcertificate' ),
+						$meta_key,
+						$user_id
+					);
+					continue;
+				}
+
+				$reencrypted = Encryption::encrypt( $plain );
+				if ( null === $reencrypted ) {
+					continue;
+				}
+				update_user_meta( $user_id, $meta_key, $reencrypted );
+
+				if ( null === $hash_key ) {
+					continue;
+				}
+
+				$hash = Encryption::hash( $plain );
+				if ( null === $hash ) {
+					continue;
+				}
+
+				// So escreve quando muda, espelhando os outros dois alvos: uma
+				// linha ja sob o salt atual nao custa escrita.
+				$current = get_user_meta( $user_id, $hash_key, true );
+				if ( ! is_string( $current ) || ! hash_equals( $hash, $current ) ) {
+					update_user_meta( $user_id, $hash_key, $hash );
+				}
+			}
+
+			++$processed;
+		}
+
+		$this->set_cursor( self::TARGET_USER_PROFILE, $last_id );
 
 		return array(
 			'processed' => $processed,
@@ -472,6 +682,7 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 		 *
 		 * @var list<array<string, string|null>>|null $rows
 		 */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Statement de dados contra tabela `ffc_*` do plugin numa migracao: o WordPress nao expoe API para ela, e uma leitura em cache e exatamente o que um cursor de migracao nao pode tomar.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT id, cpf_encrypted, cpf_hash, rf_encrypted, rf_hash, email_encrypted, email_hash
@@ -484,6 +695,7 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 		);
 
 		if ( ! is_array( $rows ) || array() === $rows ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Statement de dados contra tabela `ffc_*` do plugin numa migracao: o WordPress nao expoe API para ela, e uma leitura em cache e exatamente o que um cursor de migracao nao pode tomar.
 			$max_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(MAX(id), 0) FROM %i', $table ) );
 			if ( $max_id > $cursor ) {
 				$this->set_cursor( self::TARGET_RECRUITMENT, $max_id );
@@ -544,6 +756,7 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 				continue;
 			}
 
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Statement de dados contra tabela `ffc_*` do plugin numa migracao: o WordPress nao expoe API para ela, e uma leitura em cache e exatamente o que um cursor de migracao nao pode tomar.
 			$written = $wpdb->update( $table, $update, array( 'id' => $last_id ), $formats, array( '%d' ) );
 
 			if ( false === $written ) {
@@ -709,6 +922,7 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	 */
 	private function table_exists( string $table ): bool {
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Sonda de schema numa migracao: a resposta precisa refletir o schema vivo, entao cachear seria justamente o errado, e o WordPress nao expoe API para ela.
 		return $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table;
 	}
 
