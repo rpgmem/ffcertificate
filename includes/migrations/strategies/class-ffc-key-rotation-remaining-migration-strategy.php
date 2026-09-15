@@ -598,7 +598,7 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 				if ( null === $plain || '' === $plain ) {
 					$errors[] = sprintf(
 						/* translators: 1: meta key, 2: user ID */
-						__( 'Nao foi possivel decifrar %1$s do usuario %2$d — deixado intacto (a chave pode ser irrecuperavel).', 'ffcertificate' ),
+						__( 'Could not decrypt %1$s for user %2$d — left untouched (the key may be unrecoverable).', 'ffcertificate' ),
 						$meta_key,
 						$user_id
 					);
