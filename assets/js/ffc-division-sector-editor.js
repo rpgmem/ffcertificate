@@ -1,9 +1,15 @@
 /**
- * Divisão → Setor Map Editor
+ * Division -> Sector Map Editor
  *
- * Admin-only nested repeater for the reregistration divisao_setor map,
- * rendered in Settings → Reregistration. Each division holds a list of
+ * Admin-only nested repeater for the reregistration `divisao_setor` map,
+ * rendered in Settings -> Reregistration. Each division holds a list of
  * sectors; the editor keeps a hidden JSON input in sync on every change.
+ *
+ * The field key stays `divisao_setor` on purpose: it is written into
+ * `ffc_custom_fields` and into the `data` JSON of every stored submission,
+ * so renaming it would need a migration of every install. The file, the
+ * handle and the localized object carry no stored value, so they read in
+ * English -- the same split as `get_union_options()` feeding `sindicato`.
  *
  * HTML contract:
  *   <input type="hidden" id="TARGET_ID" name="..." value='{JSON}'>
@@ -32,7 +38,7 @@
 (function ($) {
     'use strict';
 
-    var i18n = (window.ffcDivisaoSetorEditor && window.ffcDivisaoSetorEditor.strings) || {};
+    var i18n = (window.ffcDivisionSectorEditor && window.ffcDivisionSectorEditor.strings) || {};
 
     function t(key, fallback) {
         return (i18n && i18n[key]) ? i18n[key] : fallback;
