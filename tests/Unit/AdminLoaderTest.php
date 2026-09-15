@@ -82,12 +82,6 @@ class AdminLoaderTest extends TestCase {
 	public function test_init_wires_every_admin_module_class(): void {
 		$this->mock_common_wiring();
 
-		// Certificates enabled → the cleanup cron callback is wired.
-		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
-			->shouldReceive( 'module_enabled' )->with( 'certificates' )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Admin\ExpiredTicketsCleanup' )
-			->shouldReceive( 'init' )->once();
-
 		$handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
 
 		( new AdminLoader( $handler ) )->init();
@@ -97,12 +91,26 @@ class AdminLoaderTest extends TestCase {
 		$this->assertTrue( true );
 	}
 
-	public function test_init_skips_expired_tickets_cleanup_when_certificates_disabled(): void {
+	/**
+	 * Este loader NAO pode montar a cron de tickets expirados (#1234).
+	 *
+	 * Ele montava, e por isso ela nunca rodou: `AdminLoader` so e construido
+	 * dentro de `if ( is_admin() )`, e `wp-cron.php` define `DOING_CRON` e
+	 * nunca `WP_ADMIN` -- entao `is_admin()` e falso em todo contexto que
+	 * EXECUTA o gancho. O registro mora agora em
+	 * `Loader::define_admin_hooks()`, que apesar do nome roda em toda
+	 * requisicao, e e la que os testes do gate de modulo vivem.
+	 *
+	 * O TESTE ANTIGO PROVAVA A COISA CERTA NO LUGAR ERRADO
+	 *
+	 * Ele cobrava que `AdminLoader::init()` chamasse
+	 * `ExpiredTicketsCleanup::init()`, o que era verdade e inutil: fixava uma
+	 * fiacao que nunca disparava. Uma expectativa verde nao diz que o gancho
+	 * chega a ser chamado -- so que o caminho que o teste encena o registra.
+	 */
+	public function test_init_does_not_wire_the_expired_tickets_cron(): void {
 		$this->mock_common_wiring();
 
-		// Certificates disabled → the cleanup cron callback is NOT wired.
-		Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' )
-			->shouldReceive( 'module_enabled' )->with( 'certificates' )->andReturn( false );
 		Mockery::mock( 'alias:FreeFormCertificate\Admin\ExpiredTicketsCleanup' )
 			->shouldReceive( 'init' )->never();
 

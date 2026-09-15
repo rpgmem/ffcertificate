@@ -381,6 +381,38 @@ class SubmissionLifecycleService {
 	}
 
 	/**
+	 * Linhas por DELETE na varredura de retencao (#1234).
+	 *
+	 * @var int
+	 */
+	private const CLEANUP_CHUNK_SIZE = 500;
+
+	/**
+	 * Quantos DELETEs uma execucao pode emitir (#1234).
+	 *
+	 * POR QUE HA UM TETO, E NAO UM LACO ATE ACABAR
+	 *
+	 * Isto roda no cron diario, isto e, DENTRO DA REQUISICAO DE UM VISITANTE.
+	 * Um `DELETE` sem limite sobre anos de submissoes segura a tabela pelo
+	 * tempo que levar, e o visitante paga. O teto limita o trabalho de uma
+	 * execucao; o resto sai na do dia seguinte, porque o corte por data nao se
+	 * move para tras.
+	 *
+	 * O RISCO ERA DORMENTE, E O DIA EM QUE ACORDA E O PIOR
+	 *
+	 * A retencao e opt-in duplo e a opcao legada nunca foi escrita, entao esta
+	 * varredura nunca rodou (#936). O dia em que um administrador liga o
+	 * toggle numa instalacao madura e exatamente quando o backlog e maior --
+	 * que e quando a forma sem limite seria mais cara.
+	 *
+	 * 10.000 linhas por dia drenam um backlog de cem mil em dez dias, sem
+	 * nenhum statement grande.
+	 *
+	 * @var int
+	 */
+	private const CLEANUP_MAX_CHUNKS = 20;
+
+	/**
 	 * Run data cleanup (old submissions)
 	 *
 	 * @return int Number of deleted submissions
@@ -408,17 +440,33 @@ class SubmissionLifecycleService {
 			$cutoff_ts = time();
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Retention cleanup over the plugin's own submissions table; WordPress has no API for it and a delete has no cache to read from.
-		$deleted = $wpdb->query(
-			$wpdb->prepare(
-				// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
-				"DELETE FROM %i WHERE submission_date < %d AND status = 'publish'",
-				$table,
-				$cutoff_ts
-			)
-		);
+		$deleted = 0;
 
-		if ( $deleted && class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
+		for ( $chunk = 0; $chunk < self::CLEANUP_MAX_CHUNKS; $chunk++ ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Retention cleanup over the plugin's own submissions table; WordPress has no API for it and a delete has no cache to read from.
+			$removed = $wpdb->query(
+				$wpdb->prepare(
+					// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
+					"DELETE FROM %i WHERE submission_date < %d AND status = 'publish' LIMIT %d",
+					$table,
+					$cutoff_ts,
+					self::CLEANUP_CHUNK_SIZE
+				)
+			);
+
+			if ( ! is_int( $removed ) || $removed <= 0 ) {
+				break;
+			}
+
+			$deleted += $removed;
+
+			// Pagina incompleta significa que acabou -- so uma CHEIA continua.
+			if ( $removed < self::CLEANUP_CHUNK_SIZE ) {
+				break;
+			}
+		}
+
+		if ( $deleted > 0 && class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
 			\FreeFormCertificate\Core\ActivityLog::log(
 				'data_cleanup',
 				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
@@ -429,6 +477,6 @@ class SubmissionLifecycleService {
 			);
 		}
 
-		return false !== $deleted ? (int) $deleted : 0;
+		return $deleted;
 	}
 }
