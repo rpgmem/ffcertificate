@@ -266,7 +266,7 @@ class ReregistrationFormRenderer {
 			$options = self::decode_options( $field );
 			$html    = isset( $options['html'] ) && '' !== $options['html']
 				? (string) $options['html']
-				: ReregistrationFieldOptions::get_default_termo_ciencia_html();
+				: ReregistrationFieldOptions::get_default_acknowledgment_html();
 			echo '<div class="ffc-rereg-termo-text">' . wp_kses_post( $html ) . '</div>';
 			return;
 		}

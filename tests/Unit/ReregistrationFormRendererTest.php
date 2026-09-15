@@ -129,7 +129,7 @@ class ReregistrationFormRendererTest extends TestCase {
 		$customFieldRepoMock->shouldReceive( 'get_user_data' )->andReturn( array() );
 
 		$fieldOptionsMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationFieldOptions' );
-		$fieldOptionsMock->shouldReceive( 'get_default_termo_ciencia_html' )->andReturn( '<p>Default termo de ciência</p>' );
+		$fieldOptionsMock->shouldReceive( 'get_default_acknowledgment_html' )->andReturn( '<p>Default termo de ciência</p>' );
 		$fieldOptionsMock->shouldIgnoreMissing( array() );
 
 		$seederMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );

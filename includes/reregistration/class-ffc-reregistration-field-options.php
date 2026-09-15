@@ -36,7 +36,7 @@ class ReregistrationFieldOptions {
 	 *
 	 * @return array<string, array<string>>
 	 */
-	public static function get_default_divisao_setor_map(): array {
+	public static function get_default_division_sector_map(): array {
 		return array(
 			'DRE - Gabinete'           => array( 'Assessoria', 'Diretor Regional' ),
 			'DRE - DIAF'               => array(
@@ -103,7 +103,7 @@ class ReregistrationFieldOptions {
 	 *
 	 * @return string Rich-text HTML (wp_kses_post-safe).
 	 */
-	public static function get_default_termo_ciencia_html(): string {
+	public static function get_default_acknowledgment_html(): string {
 		return '<p>Eu, em exercício na Diretoria Regional de Educação de São Miguel – DRE-MP, declaro estar ciente das orientações para o ano corrente:</p>'
 			. '<ol>'
 			. '<li><strong>Declaração de Família WEB:</strong> a Declaração de Família Web deverá ser feita dentro do mês de aniversário do servidor, por meio do site: <a href="https://www.declaracaofamilia.iprem.prefeitura.sp.gov.br/Login" target="_blank" rel="noopener noreferrer">https://www.declaracaofamilia.iprem.prefeitura.sp.gov.br/Login</a>. Após, deverá ser impressa e entregue no Setor de Vida Funcional, para arquivo em prontuário;</li>'
@@ -120,7 +120,7 @@ class ReregistrationFieldOptions {
 	 *
 	 * @return array<string>
 	 */
-	public static function get_sexo_options(): array {
+	public static function get_gender_options(): array {
 		return array(
 			__( 'Female', 'ffcertificate' ),
 			__( 'Male', 'ffcertificate' ),
@@ -133,7 +133,7 @@ class ReregistrationFieldOptions {
 	 *
 	 * @return array<string>
 	 */
-	public static function get_estado_civil_options(): array {
+	public static function get_marital_status_options(): array {
 		return array(
 			__( 'Married', 'ffcertificate' ),
 			__( 'Divorced', 'ffcertificate' ),
@@ -149,7 +149,7 @@ class ReregistrationFieldOptions {
 	 *
 	 * @return array<string>
 	 */
-	public static function get_sindicato_options(): array {
+	public static function get_union_options(): array {
 		return array(
 			__( 'NO UNION', 'ffcertificate' ),
 			'APROFEM',
@@ -165,7 +165,7 @@ class ReregistrationFieldOptions {
 	 *
 	 * @return array<string>
 	 */
-	public static function get_jornada_options(): array {
+	public static function get_work_schedule_options(): array {
 		return array(
 			'JB.30',
 			'JBD.30',
@@ -179,7 +179,7 @@ class ReregistrationFieldOptions {
 	 *
 	 * @return array<string>
 	 */
-	public static function get_acumulo_options(): array {
+	public static function get_dual_post_options(): array {
 		return array(
 			__( 'I do not hold', 'ffcertificate' ),
 			__( 'Pension (Payslip Attached)', 'ffcertificate' ),
@@ -192,7 +192,7 @@ class ReregistrationFieldOptions {
 	 *
 	 * @return array<string>
 	 */
-	public static function get_uf_options(): array {
+	public static function get_state_options(): array {
 		return array(
 			'AC',
 			'AL',

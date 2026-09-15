@@ -56,7 +56,7 @@ beforeAll(async () => {
 			invalidPhone: 'Invalid phone.',
 			invalidFormat: 'Invalid format.',
 			select: 'Select',
-			acumuloShowValue: 'I hold',
+			dualPostShowValue: 'I hold',
 			sunday: 'Sun',
 			monday: 'Mon',
 			tuesday: 'Tue',
@@ -457,7 +457,7 @@ describe('rereg acumulo toggle', () => {
 		await flush();
 	}
 
-	const $acumulo = () => window.$('[data-field-key="acumulo_cargos"] select');
+	const $dualPost = () => window.$('[data-field-key="acumulo_cargos"] select');
 	const $dependents = () => window.$(
 		'[data-field-key="jornada_acumulo"],'
 		+ '[data-field-key="cargo_funcao_acumulo"],'
@@ -477,7 +477,7 @@ describe('rereg acumulo toggle', () => {
 
 	it('shows them only for "I hold"', async () => {
 		await mountAcumulo();
-		$acumulo().val('I hold').trigger('change');
+		$dualPost().val('I hold').trigger('change');
 		await flush();
 
 		$dependents().each((_, el) => {
@@ -487,7 +487,7 @@ describe('rereg acumulo toggle', () => {
 
 	it('keeps them hidden for "Pension", which the ficha also blanks', async () => {
 		await mountAcumulo();
-		$acumulo().val('Pension (Payslip Attached)').trigger('change');
+		$dualPost().val('Pension (Payslip Attached)').trigger('change');
 		await flush();
 
 		$dependents().each((_, el) => {
@@ -503,7 +503,7 @@ describe('rereg acumulo toggle', () => {
 		expect(window.$('.ffc-wh-entry1').prop('required')).toBe(false);
 		expect(window.$('.ffc-wh-entry1').attr('data-ffc-required-off')).toBeDefined();
 
-		$acumulo().val('I hold').trigger('change');
+		$dualPost().val('I hold').trigger('change');
 		await flush();
 
 		expect(window.$('.ffc-wh-entry1').prop('required')).toBe(true);

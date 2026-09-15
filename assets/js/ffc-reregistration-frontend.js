@@ -70,7 +70,7 @@
     function initForm($container) {
         initMasks($container);
         initBlurValidation($container);
-        initAcumuloCargos($container);
+        initDualPostFields($container);
         initWorkingHours($container);
         initDependentSelects($container);
         initDraft($container);
@@ -210,7 +210,7 @@
 
     /* ─── Acúmulo de Cargos Toggle ────────────────────── */
 
-    function initAcumuloCargos($container) {
+    function initDualPostFields($container) {
         // Os três campos dependentes só valem quando o participante declara
         // que ACUMULA. Essa já é a regra do outro lado: o FichaGenerator
         // zera `jornada_acumulo`, `cargo_funcao_acumulo` e
@@ -234,7 +234,7 @@
         }
 
         function apply(animate) {
-            var show = $select.val() === (S.acumuloShowValue || 'I hold');
+            var show = $select.val() === (S.dualPostShowValue || 'I hold');
 
             if (animate) {
                 show ? $fields.slideDown(200) : $fields.slideUp(200);

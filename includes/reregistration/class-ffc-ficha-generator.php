@@ -101,8 +101,8 @@ class FichaGenerator {
 		}
 
 		// Check if user has acúmulo de cargos.
-		$acumulo_value = $decrypted_values['acumulo_cargos'] ?? __( 'I do not hold', 'ffcertificate' );
-		$has_acumulo   = __( 'I hold', 'ffcertificate' ) === $acumulo_value;
+		$dual_post_value   = $decrypted_values['acumulo_cargos'] ?? __( 'I do not hold', 'ffcertificate' );
+		$holds_second_post = __( 'I hold', 'ffcertificate' ) === $dual_post_value;
 
 		// 6.7.5 — Reference year for the ficha header. Pulled from the
 		// CAMPAIGN's start_date so the year matches the cycle of record
@@ -135,7 +135,7 @@ class FichaGenerator {
 
 		$variables = array_merge(
 			$variables,
-			self::build_standard_field_variables( $standard_fields, $decrypted_values, $has_acumulo )
+			self::build_standard_field_variables( $standard_fields, $decrypted_values, $holds_second_post )
 		);
 
 		// Sensible defaults for framework-level keys.
@@ -382,11 +382,11 @@ class FichaGenerator {
 	 *
 	 * @param array<int, object>   $standard_fields  Standard field definitions.
 	 * @param array<string, mixed> $decrypted_values field_key => plaintext value.
-	 * @param bool                 $has_acumulo      Whether the user holds a second post.
+	 * @param bool                 $holds_second_post      Whether the user holds a second post.
 	 * @phpstan-param list<CustomFieldRow> $standard_fields
 	 * @return array<string, string>
 	 */
-	public static function build_standard_field_variables( array $standard_fields, array $decrypted_values, bool $has_acumulo ): array {
+	public static function build_standard_field_variables( array $standard_fields, array $decrypted_values, bool $holds_second_post ): array {
 		$vars = array();
 
 		foreach ( $standard_fields as $field ) {
@@ -394,7 +394,7 @@ class FichaGenerator {
 			$value = $decrypted_values[ $key ] ?? '';
 
 			// Hide accumulation-related fields unless the user declared they hold another job.
-			if ( ! $has_acumulo && in_array( $key, array( 'jornada_acumulo', 'cargo_funcao_acumulo', 'horario_trabalho_acumulo' ), true ) ) {
+			if ( ! $holds_second_post && in_array( $key, array( 'jornada_acumulo', 'cargo_funcao_acumulo', 'horario_trabalho_acumulo' ), true ) ) {
 				$vars[ $key ] = '';
 				continue;
 			}
@@ -438,7 +438,7 @@ class FichaGenerator {
 		}
 
 		if ( '' === $html ) {
-			$html = ReregistrationFieldOptions::get_default_termo_ciencia_html();
+			$html = ReregistrationFieldOptions::get_default_acknowledgment_html();
 		}
 
 		return wp_kses_post( $html );

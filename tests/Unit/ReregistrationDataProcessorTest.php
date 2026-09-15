@@ -134,10 +134,10 @@ class ReregistrationDataProcessorTest extends TestCase {
 	 * @return array<object>
 	 */
 	private function standard_field_mocks(): array {
-		$divisao_map = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_default_divisao_setor_map();
-		$sexo        = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_sexo_options();
-		$estado      = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_estado_civil_options();
-		$jornada     = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_jornada_options();
+		$divisao_map = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_default_division_sector_map();
+		$sexo        = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_gender_options();
+		$estado      = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_marital_status_options();
+		$jornada     = \FreeFormCertificate\Reregistration\ReregistrationFieldOptions::get_work_schedule_options();
 
 		$id = 1;
 		return array(
