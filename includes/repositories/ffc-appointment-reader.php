@@ -497,6 +497,21 @@ class AppointmentReader extends AbstractRepository {
 	 * @return array<string, mixed>
 	 */
 	public function getStatistics( int $calendar_id, ?string $start_date = null, ?string $end_date = null ): array {
+		// O aviso que realmente ALCANCA quem chama (#1245). O `@deprecated` acima
+		// e invisivel em runtime, e a razao declarada deste ciclo e notificar
+		// consumidores que uma varredura de codigo nao enxerga -- entao um
+		// marcador que so o nosso proprio leitor ve nao serviria para o que ele
+		// existe. `_deprecated_function()` e o mecanismo do WordPress para
+		// isso: emite `E_USER_DEPRECATED` sob `WP_DEBUG` e fica silencioso em
+		// producao.
+		//
+		// Sem argumento de substituto de proposito: nao ha um. O WordPress
+		// entao imprime "with no alternative available", que e a verdade.
+		//
+		// A fachada e o reader avisam cada um por SI: quem chamar a fachada ve
+		// os dois, e isso esta certo, porque os dois vao embora.
+		_deprecated_function( __METHOD__, '6.25.0' );
+
 		$base_sql = "SELECT
                     COUNT(*) as total,
                     SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed,

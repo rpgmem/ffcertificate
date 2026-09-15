@@ -9,7 +9,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Deprecated
 
-- ⚠ **`AppointmentRepository::getStatistics()` e `AppointmentReader::getStatistics()`** (#1245): uma varredura sobre toda a árvore não acha chamador de produto nenhum — só os testes os mantêm verdes. Serão **removidos em 6.27.0**, a segunda release de feature após este aviso. Não há substituto porque não há consumidor conhecido; se a sua integração usa algum dos dois, abra uma issue antes dessa release. O ciclo existe em vez de deleção direta porque "morto" aqui é conclusão de varredura **estática**, e `AppointmentRepository` é uma classe pública que outro plugin no mesmo WordPress pode instanciar — o mesmo critério que retirou as chaves `success`/`fail` do `get_audit_log_summary()` (#730).
+- ⚠ **`AppointmentRepository::getStatistics()` e `AppointmentReader::getStatistics()`** (#1245): uma varredura sobre toda a árvore não acha chamador de produto nenhum — só os testes os mantêm verdes. Ambos passam a emitir `_deprecated_function()` — o aviso que de fato alcança quem chama, sob `WP_DEBUG`, já que um `@deprecated` no docblock só nós lemos. Serão **removidos em 6.27.0**, a segunda release de feature após este aviso. Não há substituto porque não há consumidor conhecido; se a sua integração usa algum dos dois, abra uma issue antes dessa release. O ciclo existe em vez de deleção direta porque "morto" aqui é conclusão de varredura **estática**, e `AppointmentRepository` é uma classe pública que outro plugin no mesmo WordPress pode instanciar — o mesmo critério que retirou as chaves `success`/`fail` do `get_audit_log_summary()` (#730).
 
 ### Removed
 
