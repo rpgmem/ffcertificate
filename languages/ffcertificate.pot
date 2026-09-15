@@ -12917,17 +12917,17 @@ msgstr ""
 
 #: includes/core/class-ffc-filename-helper.php:99
 msgctxt "pdf filename prefix - appointment receipt"
-msgid "recibo"
+msgid "receipt"
 msgstr ""
 
 #: includes/core/class-ffc-filename-helper.php:95
 msgctxt "pdf filename prefix - certificate"
-msgid "certificado"
+msgid "certificate"
 msgstr ""
 
 #: includes/core/class-ffc-filename-helper.php:103
 msgctxt "pdf filename prefix - reregistration record"
-msgid "ficha"
+msgid "record"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:244

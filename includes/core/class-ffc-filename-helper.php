@@ -58,7 +58,7 @@ class FilenameHelper {
 	 * Build a standardized PDF filename for all plugin-generated PDFs.
 	 *
 	 * Pattern: `{prefix}_{entity_id}_{code}.pdf` — e.g.
-	 * `certificado_666_C-MLQQZ9UX9MWF.pdf`. Replaces three divergent
+	 * `certificate_666_C-MLQQZ9UX9MWF.pdf` in English, `certificado_666_…` in pt_BR. Replaces three divergent
 	 * pre-6.6.11 patterns (kebab-lower-{auth}, `appointment-receipt_{code}`,
 	 * `Ficha_{Title}_{Display Name}`) with a single consistent shape.
 	 *
@@ -92,15 +92,15 @@ class FilenameHelper {
 		// dashes stripped for filesystem compactness).
 		switch ( $type ) {
 			case 'certificate':
-				$prefix_raw  = _x( 'certificado', 'pdf filename prefix - certificate', 'ffcertificate' );
+				$prefix_raw  = _x( 'certificate', 'pdf filename prefix - certificate', 'ffcertificate' );
 				$code_prefix = 'C';
 				break;
 			case 'appointment_receipt':
-				$prefix_raw  = _x( 'recibo', 'pdf filename prefix - appointment receipt', 'ffcertificate' );
+				$prefix_raw  = _x( 'receipt', 'pdf filename prefix - appointment receipt', 'ffcertificate' );
 				$code_prefix = 'A';
 				break;
 			case 'ficha':
-				$prefix_raw  = _x( 'ficha', 'pdf filename prefix - reregistration record', 'ffcertificate' );
+				$prefix_raw  = _x( 'record', 'pdf filename prefix - reregistration record', 'ffcertificate' );
 				$code_prefix = 'R';
 				break;
 			default:

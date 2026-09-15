@@ -12,6 +12,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **`CLAUDE.md` now states the language rule** (#1260): every versioned artifact is English — code, comments, assertion messages, CHANGELOG, commits, PR bodies — while the conversation with the maintainer is Brazilian Portuguese. A domain term stays Portuguese only when renaming it would break the database or need a migration.
 - **Four of `CLAUDE.md`'s own claims were wrong** (#1260): it said the remote refuses pushes to `develop` (it does not — the credential has bypass; what it genuinely cannot do is delete any ref), that a guard baseline held two entries (it is empty), and that the stylesheets weigh 382 KB (432).
 
+### Fixed
+
+- **PDF filenames were Portuguese for every install, translatable or not** (#1264): the three `_x()` prefixes shipped `certificado` / `recibo` / `ficha` as the **source** strings, each translating to itself, so an English site downloaded `certificado_123.pdf`. Sources are now `certificate` / `receipt` / `record`, with pt_BR translating back — nothing changes in Portuguese.
+- **The shipped `.mo` was stale, so WP 6.4 never received the #1209 label fix** (#1264): `.l10n.php` carried `Union` → "Sindicato" and `Acknowledgment` → "Termo de Ciência" while the `.mo` still said "Estado" and "Agradecimentos". WordPress reads `.l10n.php` only from 6.5 and this plugin's floor is **6.4**, so on the floor "Union" still collided with the address state — the exact defect #1209 fixed. Recompiled; 8 entries the `.mo` lacked are now in it.
+
 ## [6.25.0] (2026-09-15) — `59ccb2b`
 
 ### Added
