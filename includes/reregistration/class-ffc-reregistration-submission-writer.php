@@ -300,9 +300,44 @@ class ReregistrationSubmissionWriter {
 	}
 
 	/**
+	 * Quantas linhas a semeadura envia por INSERT (#1234).
+	 *
+	 * Quinhentas e o mesmo tamanho de pagina que o contrato de exportacao do
+	 * #772 usa: grande o bastante para que o numero de idas ao banco deixe de
+	 * importar, pequeno o bastante para nao esbarrar em `max_allowed_packet`
+	 * numa linha de tres inteiros.
+	 *
+	 * @var int
+	 */
+	public const SEED_CHUNK_SIZE = 500;
+
+	/**
 	 * Create pending submissions for all affected users of a reregistration.
 	 *
 	 * Skips users who already have a submission for this reregistration.
+	 *
+	 * EM LOTE, E NAO LINHA A LINHA (#1234)
+	 *
+	 * A forma anterior era um SELECT (existe?) mais um INSERT por usuario: dez
+	 * mil membros custavam vinte mil consultas DENTRO DE UMA REQUISICAO DE
+	 * ADMIN -- a que salva a campanha. Agora sao `ceil( N / 500 )` INSERTs, e os
+	 * mesmos dez mil membros custam vinte.
+	 *
+	 * POR QUE O `IGNORE` SUBSTITUI A CHECAGEM, E NAO APENAS A ESCONDE
+	 *
+	 * A tabela carrega `UNIQUE KEY idx_reregistration_user (reregistration_id,
+	 * user_id)`, entao "pular quem ja tem submissao" ja era a regra do banco --
+	 * o SELECT por linha apenas a repetia em PHP, e repetia com uma janela: entre
+	 * ler e inserir, um segundo clique no botao Salvar podia inserir a mesma
+	 * linha. A restricao fecha essa janela; a checagem nao fechava.
+	 *
+	 * `INSERT IGNORE` rebaixa TODO erro a aviso, o que normalmente e motivo para
+	 * nao usa-lo. Aqui nao ha outro erro possivel: as tres colunas escritas sao
+	 * dois inteiros que este metodo mesmo converte e o literal `pending`
+	 * escrito aqui. Nao ha texto de usuario para truncar.
+	 *
+	 * A contagem devolvida continua sendo a de linhas CRIADAS: `affected_rows`
+	 * de um INSERT multi-linha conta as que entraram, nao as ignoradas.
 	 *
 	 * @param int        $reregistration_id Reregistration ID.
 	 * @param array<int> $audience_ids      Audience IDs.
@@ -310,30 +345,62 @@ class ReregistrationSubmissionWriter {
 	 */
 	public static function create_for_audience_members( int $reregistration_id, array $audience_ids ): int {
 		$user_ids = ReregistrationRepository::get_user_ids_for_audiences( $audience_ids );
-		$created  = 0;
 
-		foreach ( $user_ids as $user_id ) {
-			// Check if submission already exists.
-			$existing = ReregistrationSubmissionReader::get_by_reregistration_and_user( $reregistration_id, $user_id );
-			if ( $existing ) {
+		// `get_user_ids_for_audiences()` concatena os membros de varias audiencias
+		// e ja deduplica, mas devolve o que o leitor de audiencia entregou -- que
+		// pode vir como string do driver. Normalizar aqui e o que permite confiar
+		// nos `%d` abaixo e no tamanho dos lotes.
+		$user_ids = array_values(
+			array_unique(
+				array_filter(
+					array_map( 'intval', $user_ids ),
+					static function ( int $user_id ): bool {
+						return $user_id > 0;
+					}
+				)
+			)
+		);
+
+		if ( empty( $user_ids ) ) {
+			return 0;
+		}
+
+		$wpdb    = self::db();
+		$table   = self::get_table_name();
+		$created = 0;
+
+		foreach ( array_chunk( $user_ids, self::SEED_CHUNK_SIZE ) as $chunk ) {
+			$rows = implode( ',', array_fill( 0, count( $chunk ), '(%d, %d, %s)' ) );
+			$sql  = "INSERT IGNORE INTO %i (reregistration_id, user_id, status) VALUES {$rows}";
+
+			$args = array( $table );
+			foreach ( $chunk as $user_id ) {
+				$args[] = $reregistration_id;
+				$args[] = $user_id;
+				// Mesmo estado inicial que o `create()` aplica por omissao.
+				$args[] = 'pending';
+			}
+
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- A lista VALUES e montada so com marcadores %d/%s; os valores viajam como argumentos de prepare().
+			$prepared = $wpdb->prepare( $sql, $args );
+			if ( ! is_string( $prepared ) ) {
 				continue;
 			}
 
-			$result = self::create(
-				array(
-					'reregistration_id' => $reregistration_id,
-					'user_id'           => $user_id,
-					'status'            => 'pending',
-				)
-			);
-
-			if ( $result ) {
-				++$created;
+			// `query()` devolve `int|bool`; `false > 0` ja e falso, entao o
+			// `is_int()` abaixo nao muda o comportamento -- ele existe para o
+			// PHPStan, que no nivel 8 nao estreita o `bool` por uma comparacao.
+			//
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.NoCaching -- O argumento e a string que prepare() devolveu acima; o sniff nao acompanha uma string preparada atraves de uma atribuicao.
+			$affected = $wpdb->query( $prepared );
+			if ( is_int( $affected ) && $affected > 0 ) {
+				$created += $affected;
 			}
 		}
 
 		return $created;
 	}
+
 	/**
 	 * Carimba o envio do LEMBRETE numa submissao.
 	 *

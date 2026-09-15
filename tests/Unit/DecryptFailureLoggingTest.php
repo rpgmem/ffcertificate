@@ -97,7 +97,24 @@ class DecryptFailureLoggingTest extends TestCase {
 		Functions\when( 'get_option' )->justReturn( array() );
 	}
 
+	/**
+	 * Zera o contador por requisicao do teto de `decrypt_failure` (#1234).
+	 *
+	 * E estado ESTATICO: a suite roda num processo so, entao sem este reset as
+	 * falhas de um teste contam para o teto do seguinte e o sexto teste deste
+	 * arquivo passaria a nao registrar nada -- uma falha que aponta para o
+	 * arquivo errado.
+	 */
+	private function resetDecryptFailureCounter(): void {
+		$ref = new \ReflectionClass( Encryption::class );
+		$p   = $ref->getProperty( 'decrypt_failure_count' );
+		$p->setAccessible( true );
+		$p->setValue( 0 );
+	}
+
 	private function resetActivityLogState(): void {
+		$this->resetDecryptFailureCounter();
+
 		$ref = new \ReflectionClass( ActivityLog::class );
 
 		$buffer = $ref->getProperty( 'write_buffer' );
@@ -199,5 +216,131 @@ class DecryptFailureLoggingTest extends TestCase {
 
 		// No buffer entry because ActivityLog::is_enabled() returned false.
 		$this->assertSame( array(), $this->getWriteBuffer() );
+	}
+
+	// ==================================================================
+	// Teto por requisicao (#1234)
+	// ==================================================================
+
+	/**
+	 * Ate o teto, uma linha por falha -- nada muda para o caso normal.
+	 */
+	public function test_failures_up_to_the_cap_each_get_their_own_entry(): void {
+		$this->enableActivityLog();
+
+		for ( $i = 0; $i < Encryption::DECRYPT_FAILURE_LOG_CAP; $i++ ) {
+			$this->assertNull( Encryption::decrypt( '!!!invalid-base64!!!' ) );
+		}
+
+		$buffer = $this->getWriteBuffer();
+		$this->assertCount( Encryption::DECRYPT_FAILURE_LOG_CAP, $buffer );
+		foreach ( $buffer as $entry ) {
+			$this->assertSame( 'decrypt_failure', $entry['action'] );
+		}
+	}
+
+	/**
+	 * Passado o teto, UMA marca de supressao -- e so uma, por mais que chova.
+	 *
+	 * E o defeito que o #1234 descreve: uma chave quebrada numa exportacao de
+	 * 5.000 submissoes escrevia 5.000 INSERTs em `ffc_activity_log`. O custo da
+	 * auditoria passava o da leitura que falhou.
+	 */
+	public function test_crossing_the_cap_writes_exactly_one_suppression_marker(): void {
+		$this->enableActivityLog();
+
+		for ( $i = 0; $i < Encryption::DECRYPT_FAILURE_LOG_CAP + 50; $i++ ) {
+			Encryption::decrypt( '!!!invalid-base64!!!' );
+		}
+
+		$buffer  = $this->getWriteBuffer();
+		$actions = array_column( $buffer, 'action' );
+
+		$this->assertCount(
+			Encryption::DECRYPT_FAILURE_LOG_CAP + 1,
+			$buffer,
+			'Cinquenta e cinco falhas devem render cinco linhas mais uma marca, nao cinquenta e cinco.'
+		);
+		$this->assertSame(
+			1,
+			count( array_keys( $actions, 'decrypt_failure_suppressed', true ) ),
+			'A marca e escrita na travessia do teto, uma unica vez.'
+		);
+		$this->assertSame( 'decrypt_failure_suppressed', $buffer[ Encryption::DECRYPT_FAILURE_LOG_CAP ]['action'] );
+	}
+
+	/**
+	 * A marca diz qual foi o teto, e nada alem disso.
+	 *
+	 * Quem le o log precisa saber que houve corte e onde; o comprimento do
+	 * texto cifrado da enesima falha nao acrescenta nada que a primeira ja nao
+	 * tenha dito.
+	 */
+	public function test_the_suppression_marker_carries_the_cap_and_nothing_else(): void {
+		$this->enableActivityLog();
+
+		for ( $i = 0; $i < Encryption::DECRYPT_FAILURE_LOG_CAP + 1; $i++ ) {
+			Encryption::decrypt( '!!!invalid-base64!!!' );
+		}
+
+		$buffer  = $this->getWriteBuffer();
+		$context = json_decode( $buffer[ Encryption::DECRYPT_FAILURE_LOG_CAP ]['context'], true );
+
+		$this->assertSame( array( 'cap' => Encryption::DECRYPT_FAILURE_LOG_CAP ), $context );
+		$this->assertFalse( SensitiveFieldRegistry::contains_sensitive( $context ) );
+	}
+
+	/**
+	 * Passado o teto, o caminho sai ANTES de ler a opcao do log.
+	 *
+	 * E a razao de o teto ser a PRIMEIRA coisa no metodo, e nao um filtro na
+	 * hora de gravar: numa enxurrada, `ActivityLog::is_enabled()` -- que le
+	 * `ffc_settings` -- passaria a ser o custo. Aqui contamos as leituras: elas
+	 * param de crescer junto com as linhas.
+	 */
+	public function test_past_the_cap_the_settings_option_is_no_longer_read(): void {
+		$reads = 0;
+		Functions\when( 'get_option' )->alias(
+			function ( $key, $default = false ) use ( &$reads ) {
+				if ( 'ffc_settings' === $key ) {
+					++$reads;
+					return array( 'enable_activity_log' => 1 );
+				}
+				return $default;
+			}
+		);
+
+		for ( $i = 0; $i < Encryption::DECRYPT_FAILURE_LOG_CAP + 1; $i++ ) {
+			Encryption::decrypt( '!!!invalid-base64!!!' );
+		}
+		$at_the_crossing = $reads;
+
+		for ( $i = 0; $i < 100; $i++ ) {
+			Encryption::decrypt( '!!!invalid-base64!!!' );
+		}
+
+		$this->assertSame(
+			$at_the_crossing,
+			$reads,
+			'Cem falhas depois do teto nao podem custar nem uma leitura de opcao.'
+		);
+	}
+
+	/**
+	 * O teto corta o LOG, nunca o resultado.
+	 *
+	 * `decrypt()` continua devolvendo null em toda falha -- se o teto mudasse
+	 * isso, uma chave quebrada passaria a devolver texto cifrado como se fosse
+	 * claro depois da quinta linha.
+	 */
+	public function test_the_cap_never_changes_what_decrypt_returns(): void {
+		$this->enableActivityLog();
+
+		for ( $i = 0; $i < Encryption::DECRYPT_FAILURE_LOG_CAP + 20; $i++ ) {
+			$this->assertNull(
+				Encryption::decrypt( '!!!invalid-base64!!!' ),
+				'A falha numero ' . ( $i + 1 ) . ' deixou de devolver null.'
+			);
+		}
 	}
 }
