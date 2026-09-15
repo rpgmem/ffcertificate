@@ -76,19 +76,21 @@ class FichaGenerator {
 			$submitted_at = \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $submission->submitted_at, 'pdf' );
 		}
 
-		// Código de autenticação do rodapé (#1211).
+		// The footer's authentication code (#1211).
 		//
-		// SÓ em submissão APROVADA, e isso é deliberado: o `auth_code` nasce
-		// na transição de status, então `draft` e `submitted` não têm nenhum.
-		// O `FichaGenerator` já lida com essa ausência no nome do arquivo,
-		// caindo num `S{id}` -- mas aquele fallback existe para manter o
-		// arquivo único, e imprimi-lo aqui faria `S12` passar por código de
-		// autenticação, que é pior que não ter linha nenhuma.
+		// ONLY on an APPROVED submission, and that is deliberate: the
+		// `auth_code` is born on the status transition, so `draft` and
+		// `submitted` have none. `FichaGenerator` already handles that absence
+		// in the filename, falling back to an `S{id}` -- but that fallback
+		// exists to keep the file unique, and printing it here would pass `S12`
+		// off as an authentication code, which is worse than having no line at
+		// all.
 		//
-		// `auth_code` é o dado (vazio quando não há), e `auth_code_line` é o
-		// trecho inteiro que o template padrão usa. Os dois existem porque o
-		// template é só substituição de `{{chave}}`, sem condicional: sem a
-		// linha pré-composta, um rascunho renderizaria "Autenticação:  /".
+		// `auth_code` is the datum (empty when there is none), and
+		// `auth_code_line` is the whole fragment the default template uses. Both
+		// exist because the template is only `{{key}}` substitution, with no
+		// conditional: without the pre-composed line, a draft would render
+		// "Authentication:  /".
 		$auth_code      = '';
 		$auth_code_line = '';
 		if ( 'approved' === $submission->status && ! empty( $submission->auth_code ) ) {

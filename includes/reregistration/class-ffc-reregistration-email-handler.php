@@ -31,40 +31,39 @@ class ReregistrationEmailHandler {
 	use \FreeFormCertificate\Core\EmailHelperTrait;
 
 	/**
-	 * Quantas submissoes um lote de lembrete processa (#1232 passo 2).
+	 * How many submissions one reminder batch processes (#1232 step 2).
 	 *
-	 * 50, e nao 100, porque o gargalo por participante nao e so o `wp_mail()`:
-	 * `PasswordInvite::issue_for()` faz um hash phpass -- deliberadamente
-	 * lento -- mais um `UPDATE wp_users`, e o envio escreve ainda uma linha de
-	 * log. Sao ~3 escritas por pessoa, numa requisicao de visitante.
+	 * 50 rather than 100, because the per-participant bottleneck is not just the
+	 * `wp_mail()`: `PasswordInvite::issue_for()` does a phpass hash --
+	 * deliberately slow -- plus an `UPDATE wp_users`, and the send writes a log
+	 * row on top. That is ~3 writes per person, inside a visitor's request.
 	 *
-	 * Com o plugin irmao `total-mail-queue` ativo o `wp_mail()` vira um INSERT
-	 * (ele curto-circuita em `pre_wp_mail`, sem handshake SMTP), mas as outras
-	 * escritas continuam la -- por isso o lote nao foi dimensionado supondo a
-	 * fila instalada.
+	 * With the sibling plugin `total-mail-queue` active the `wp_mail()` becomes
+	 * an INSERT (it short-circuits at `pre_wp_mail`, with no SMTP handshake),
+	 * but the other writes are still there -- which is why the batch was not
+	 * sized assuming the queue is installed.
 	 *
 	 * @var int
 	 */
 	public const REMINDER_BATCH_SIZE = 50;
 
 	/**
-	 * Evento unico que continua um lote de lembretes.
+	 * The single event that continues a reminder batch.
 	 *
-	 * Registrado no orquestrador (`Loader`), com os outros eventos agendados:
-	 * registro de cron e ciclo de vida do orquestrador, nao bootstrap de
-	 * modulo -- a distincao que o CLAUDE.md fixa para os `*Loader`.
+	 * Registered in the orchestrator (`Loader`), alongside the other scheduled
+	 * events: cron registration is orchestrator lifecycle, not module bootstrap
+	 * -- the distinction `CLAUDE.md` fixes for the `*Loader` classes.
 	 *
 	 * @var string
 	 */
 	public const REMINDER_BATCH_HOOK = 'ffc_reregistration_reminder_batch';
 
 	/**
-	 * Segundos entre um lote e o proximo.
+	 * Seconds between one batch and the next.
 	 *
-	 * E um PISO, nao uma promessa: o WP-Cron e disparado por requisicao de
-	 * visitante, entao num site parado o lote seguinte sai quando alguem
-	 * aparecer. Quem precisa de cadencia real configura `DISABLE_WP_CRON` mais
-	 * um cron de sistema.
+	 * It is a FLOOR, not a promise: WP-Cron is fired by a visitor's request, so
+	 * on an idle site the next batch goes out when somebody turns up. Whoever
+	 * needs a real cadence configures `DISABLE_WP_CRON` plus a system cron.
 	 *
 	 * @var int
 	 */
@@ -112,10 +111,10 @@ class ReregistrationEmailHandler {
 		$count  = 0;
 		$mailed = array();
 		foreach ( $submissions as $sub ) {
-			// O link de definição de senha é emitido POR USUÁRIO e por envio
-			// (#1212). Emitir rotaciona a chave, então o último e-mail é
-			// sempre o que vale -- que é o comportamento certo para um
-			// convite reenviado.
+			// The password-setting link is issued PER USER and per send
+			// (#1212). Issuing rotates the key, so the last email is always the
+			// one that counts -- which is the right behaviour for a resent
+			// invitation.
 			$extra = array( 'set_password_url' => \FreeFormCertificate\Core\PasswordInvite::issue_for( (int) $sub->user_id ) );
 			if ( self::send_to_user( (int) $sub->user_id, $rereg, $template, $extra ) ) {
 				++$count;
@@ -152,37 +151,37 @@ class ReregistrationEmailHandler {
 	}
 
 	/**
-	 * Um LOTE de lembretes, e o reagendamento do proximo quando sobra fila.
+	 * One BATCH of reminders, and the rescheduling of the next when queue remains.
 	 *
-	 * POR QUE LOTEAR
+	 * WHY BATCH AT ALL
 	 *
-	 * `run_automated_reminders()` roda no wp-cron, isto e, DENTRO DA
-	 * REQUISICAO DE UM VISITANTE. Sem limite, uma campanha de milhares de
-	 * participantes fazia esse visitante pagar milhares de `wp_mail()` --
-	 * e, por participante, ainda um hash phpass e um `UPDATE wp_users` vindos
-	 * de `PasswordInvite::issue_for()`. O carimbo por item entregue no passo 1
-	 * ja tornava o envio retomavel entre execucoes diarias, mas o alcance
-	 * ficava limitado a (quanto cabe numa execucao) x `reminder_days`: numa
-	 * campanha grande, o prazo vence antes de todo mundo ser lembrado.
+	 * `run_automated_reminders()` runs on wp-cron, that is, INSIDE A VISITOR'S
+	 * REQUEST. Unbounded, a campaign of thousands of participants made that
+	 * visitor pay for thousands of `wp_mail()` calls -- and, per participant, a
+	 * phpass hash and an `UPDATE wp_users` on top, from
+	 * `PasswordInvite::issue_for()`. The per-item stamp delivered in step 1
+	 * already made the send resumable between daily runs, but the reach stayed
+	 * limited to (what fits in one run) x `reminder_days`: on a large campaign
+	 * the deadline expires before everyone has been reminded.
 	 *
-	 * O PAYLOAD CARREGA O CURSOR, E ISSO NAO E OPCIONAL
+	 * THE PAYLOAD CARRIES THE CURSOR, AND THAT IS NOT OPTIONAL
 	 *
-	 * Ver o docblock de {@see ReregistrationSubmissionReader::get_awaiting_reminder()}:
-	 * uma submissao cujo usuario foi apagado nunca recebe carimbo, entao um
-	 * loop guiado apenas por `reminder_sent_at IS NULL` a rebuscaria para
-	 * sempre. Sao dois escalares -- id da campanha e cursor --, o que tambem
-	 * e o que a opcao `cron` suporta sem custo: ela e autoloaded e
-	 * desserializada em TODA requisicao do site, entao um payload grande sai
-	 * caro em todo lugar, o tempo todo.
+	 * See the docblock of {@see ReregistrationSubmissionReader::get_awaiting_reminder()}:
+	 * a submission whose user was deleted never receives a stamp, so a loop
+	 * driven by `reminder_sent_at IS NULL` alone would fetch it forever. These
+	 * are two scalars -- campaign id and cursor -- which is also what the `cron`
+	 * option can carry for free: it is autoloaded and unserialized on EVERY
+	 * request of the site, so a large payload is expensive everywhere, all the
+	 * time.
 	 *
-	 * A ULTIMA PAGINA E QUEM ENCERRA
+	 * THE LAST PAGE IS WHAT ENDS IT
 	 *
-	 * Uma pagina menor que o lote significa que a fila acabou; so uma pagina
-	 * CHEIA reagenda. Uma campanha de 50 ou menos termina numa execucao so,
-	 * exatamente como antes deste passo.
+	 * A page smaller than the batch means the queue ran out; only a FULL page
+	 * reschedules. A campaign of 50 or fewer finishes in a single run, exactly
+	 * as it did before this step.
 	 *
-	 * @param int $reregistration_id ID da campanha.
-	 * @param int $after_id          Cursor: so linhas com `id` maior que este.
+	 * @param int $reregistration_id The campaign ID.
+	 * @param int $after_id          Cursor: only rows with an `id` greater than this.
 	 * @return void
 	 */
 	public static function send_reminder_batch( int $reregistration_id, int $after_id = 0 ): void {
@@ -194,9 +193,9 @@ class ReregistrationEmailHandler {
 
 		$args = array( $reregistration_id, $result['last_id'] );
 
-		// Sem esta guarda, duas execucoes do cron sobre a mesma campanha --
-		// possivel quando dois visitantes disparam o wp-cron quase juntos --
-		// enfileirariam dois lotes identicos.
+		// Without this guard, two cron runs over the same campaign -- possible
+		// when two visitors fire wp-cron almost together -- would enqueue two
+		// identical batches.
 		if ( wp_next_scheduled( self::REMINDER_BATCH_HOOK, $args ) ) {
 			return;
 		}
@@ -205,18 +204,17 @@ class ReregistrationEmailHandler {
 	}
 
 	/**
-	 * O despacho propriamente dito, compartilhado pelo caminho manual e pelo
-	 * lote do cron.
+	 * The dispatch itself, shared by the manual path and by the cron batch.
 	 *
-	 * Devolve `seen` e `last_id` alem de `sent` porque quem decide reagendar
-	 * precisa saber do TAMANHO DA PAGINA, nao de quantos e-mails sairam: uma
-	 * pagina cheia em que tres envios falharam ainda tem fila adiante, e
-	 * parar ali deixaria o resto da campanha para o dia seguinte.
+	 * It returns `seen` and `last_id` besides `sent` because whoever decides to
+	 * reschedule needs the PAGE SIZE, not how many emails went out: a full page
+	 * on which three sends failed still has queue ahead of it, and stopping
+	 * there would leave the rest of the campaign to the following day.
 	 *
-	 * @param int        $reregistration_id ID da campanha.
-	 * @param array<int> $user_ids          IDs explicitos (caminho manual).
-	 * @param int        $after_id          Cursor keyset.
-	 * @param int        $limit             Tamanho da pagina; `0` e sem limite.
+	 * @param int        $reregistration_id The campaign ID.
+	 * @param array<int> $user_ids          Explicit IDs (the manual path).
+	 * @param int        $after_id          Keyset cursor.
+	 * @param int        $limit             Page size; `0` means no limit.
 	 * @return array{sent: int, seen: int, last_id: int}
 	 */
 	private static function dispatch_reminders( int $reregistration_id, array $user_ids, int $after_id, int $limit ): array {
@@ -240,9 +238,9 @@ class ReregistrationEmailHandler {
 			return $empty;
 		}
 
-		// Com ids explicitos o operador esta pedindo o envio para AQUELAS
-		// pessoas, entao a marca nao filtra -- e um reenvio deliberado. Sem
-		// eles, e o cron: ai quem ainda nao foi lembrado e o que decide.
+		// With explicit ids the operator is asking for a send to THOSE people,
+		// so the mark does not filter -- it is a deliberate resend. Without
+		// them it is the cron: there, who has not been reminded yet decides.
 		if ( ! empty( $user_ids ) ) {
 			$submissions = array();
 			foreach ( $user_ids as $uid ) {
@@ -252,9 +250,9 @@ class ReregistrationEmailHandler {
 				}
 			}
 		} else {
-			// Um lembrete por campanha, mais um a cada extensao de prazo --
-			// a mesma regra que o convite ja aplica desde o #1190, agora com
-			// `reminder_sent_at` no lugar de `invited_at` (#1232).
+			// One reminder per campaign, plus one on every deadline extension --
+			// the same rule the invitation has applied since #1190, now with
+			// `reminder_sent_at` in place of `invited_at` (#1232).
 			$extended_at = isset( $rereg->deadline_extended_at ) ? (int) $rereg->deadline_extended_at : 0;
 			$submissions = ReregistrationSubmissionReader::get_awaiting_reminder(
 				$reregistration_id,
@@ -269,23 +267,24 @@ class ReregistrationEmailHandler {
 		$count   = 0;
 		$last_id = $after_id;
 		foreach ( $submissions as $sub ) {
-			// O cursor avanca mesmo quando o envio falha. E o que impede uma
-			// submissao cujo usuario foi apagado de travar a fila: ela e
-			// ultrapassada hoje e volta a ser tentada na varredura de amanha.
+			// The cursor advances even when the send fails. That is what stops a
+			// submission whose user was deleted from jamming the queue: it is
+			// stepped past today and retried in tomorrow's sweep.
 			$last_id = (int) $sub->id;
 
-			// Também no lembrete: quem nunca definiu senha não consegue agir
-			// no convite NEM no lembrete, e o botão do painel exige login.
+			// In the reminder too: whoever never set a password can act on
+			// neither the invitation NOR the reminder, and the dashboard button
+			// requires a login.
 			$extra = array(
 				'days_left'        => (string) $days_left,
 				'set_password_url' => \FreeFormCertificate\Core\PasswordInvite::issue_for( (int) $sub->user_id ),
 			);
 			if ( self::send_to_user( (int) $sub->user_id, $rereg, $template, $extra ) ) {
-				// Carimbado IMEDIATAMENTE, nao ao final do laco: este metodo
-				// roda no wp-cron, dentro da requisicao de um visitante, e um
-				// timeout no meio deixaria todo mundo que ja recebeu sem marca
-				// -- reenviando na proxima execucao, que e o defeito que este
-				// trabalho conserta.
+				// Stamped IMMEDIATELY, not at the end of the loop: this method
+				// runs on wp-cron, inside a visitor's request, and a timeout
+				// partway through would leave everyone who already received it
+				// unmarked -- resending on the next run, which is the defect
+				// this work fixes.
 				ReregistrationSubmissionWriter::mark_reminded( (int) $sub->id );
 				++$count;
 			}
@@ -393,9 +392,9 @@ class ReregistrationEmailHandler {
 		}
 
 		foreach ( $campaigns as $campaign ) {
-			// Primeiro lote SINCRONO, o resto reagendado. Campanha de
-			// `REMINDER_BATCH_SIZE` ou menos termina aqui mesmo, identica ao
-			// comportamento anterior; so as grandes viram uma fila.
+			// The first batch is SYNCHRONOUS, the rest rescheduled. A campaign of
+			// `REMINDER_BATCH_SIZE` or fewer finishes right here, identical to
+			// the previous behaviour; only the large ones become a queue.
 			self::send_reminder_batch( (int) $campaign->id, 0 );
 		}
 	}
@@ -457,10 +456,11 @@ class ReregistrationEmailHandler {
 			$extra_vars
 		);
 
-		// Um `href` vazio é pior que um link comum: `issue_for()` só devolve
-		// '' quando a chave não pôde ser emitida, e nesse caso o e-mail ainda
-		// sai. Degradar para o painel mantém o botão útil para quem já tem
-		// senha e nunca produz um link morto (#1212).
+		// An empty `href` is worse than an ordinary link: `issue_for()` only
+		// returns '' when the key could not be issued, and in that case the
+		// email still goes out. Degrading to the dashboard keeps the button
+		// useful for whoever already has a password and never produces a dead
+		// link (#1212).
 		if ( isset( $variables['set_password_url'] ) && '' === $variables['set_password_url'] ) {
 			$variables['set_password_url'] = $dashboard_url;
 		}

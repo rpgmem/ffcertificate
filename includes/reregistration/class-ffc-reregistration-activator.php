@@ -297,14 +297,14 @@ class ReregistrationActivator {
 					'type'  => 'BIGINT(20) UNSIGNED DEFAULT NULL',
 					'after' => 'magic_token',
 				),
-				// Quando o LEMBRETE desta submissao foi enviado -- Categoria A
-				// (unix UTC), irma de `invited_at`. NULL = nunca lembrado.
+				// When this submission's REMINDER was sent -- Category A (unix
+				// UTC), sibling of `invited_at`. NULL = never reminded.
 				//
-				// Sem ela o lembrete reenviava TODO DIA: a consulta de campanhas
-				// usa `DATEDIFF(end_date, CURDATE()) <= reminder_days`, que e uma
-				// JANELA e nao um dia, e o cron e diario -- entao com
-				// `reminder_days = 7` cada participante pendente recebia sete
-				// e-mails, um por dia (#1232).
+				// Without it the reminder was resent EVERY DAY: the campaign
+				// query uses `DATEDIFF(end_date, CURDATE()) <= reminder_days`,
+				// which is a WINDOW and not a day, and the cron is daily -- so
+				// with `reminder_days = 7` every pending participant received
+				// seven emails, one a day (#1232).
 				'reminder_sent_at' => array(
 					'type'  => 'BIGINT(20) UNSIGNED DEFAULT NULL',
 					'after' => 'invited_at',
