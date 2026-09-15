@@ -1,6 +1,6 @@
 <?php
 /**
- * Ids que o JavaScript procura, e quem os emite.
+ * Ids the JavaScript looks for, and who emits them.
  *
  * @package FreeFormCertificate\Tests
  */
@@ -10,65 +10,64 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Support;
 
 /**
- * Cruza o id que o JS PROCURA com o id que alguém EMITE (#1220).
+ * Cross-checks the id the JS LOOKS FOR against the id somebody EMITS (#1220).
  *
- * A classe de defeito: uma fixture escrita à mão envelhece em silêncio. Quando
- * o produto muda, ela segue verde descrevendo um mundo que não existe mais --
- * foi assim que o painel do usuário passou a não carregar painel nenhum
- * (#1204, `.ffc-tab.active` após a renomeação do #1170) e que o grupo de
- * acúmulo nunca se ocultou (#1219, `#ffc_rereg_acumulo` que nenhum PHP emite).
+ * The defect class: a hand-written fixture ages in silence. When the product
+ * changes, it stays green describing a world that no longer exists -- that is
+ * how the user dashboard stopped loading any panel at all (#1204,
+ * `.ffc-tab.active` after #1170's rename) and how the dual-post group never hid
+ * itself (#1219, `#ffc_rereg_acumulo`, which no PHP emits).
  *
- * **Por que não basta varrer PHP.** Medido: dos ids que o JS procura, 42 não
- * aparecem em PHP nenhum -- e a maioria é DOM que o **próprio JS cria**
- * (`#ffc-pdf-overlay`, `#ffc-template-modal`, `#ffc-migrations-overlay`…).
- * Uma guarda que só olhasse PHP reportaria dezenas de falsos e seria desligada
- * na primeira semana. A varredura de emissão cobre PHP **e** JS, exatamente
- * como o `CssClassEmitters` já faz para classes.
+ * **Why scanning PHP is not enough.** Measured: of the ids the JS looks for, 42
+ * appear in no PHP at all -- and most are DOM the **JS itself creates**
+ * (`#ffc-pdf-overlay`, `#ffc-template-modal`, `#ffc-migrations-overlay`…). A
+ * guard that only looked at PHP would report dozens of false positives and be
+ * switched off in the first week. The emission scan covers PHP **and** JS,
+ * exactly as `CssClassEmitters` already does for classes.
  *
- * **Quatro formas de emissão que a primeira versão não conhecia**, cada uma
- * encontrada por um falso positivo que ela produziu:
+ * **Four emission shapes the first version did not know**, each found through a
+ * false positive it produced:
  *
- * 1. `wp_nonce_field( $acao, 'nome' )` emite `id="nome"` -- o id está no
- *    SEGUNDO argumento, e o primeiro é a ação, que tem outro valor. Três
- *    campos de nonce apareceram como órfãos por isso.
- * 2. Um literal guardado numa variável antes de virar id
- *    (`var inputId = 'x'; input.id = inputId`). Seguir a variável exigiria
- *    fluxo de dados; a varredura aceita o literal nu em JS como emissão
- *    possível, que é o mesmo lado para o qual o `CssClassEmitters` erra.
- * 3. Marcação do próprio WordPress (`#wpbody-content`, `#title`) -- exceção
- *    legítima, do mesmo tipo que as `VENDOR_CLASSES` do `ClassNamingIdiomTest`.
- * 4. Id montado em runtime, do lado da EMISSÃO (`id="linha-<?php echo ...`)
- *    e do lado do CONSUMO (`'#ffc-tabpanel-' + aba`). Um nome que nunca
- *    existe como literal só pode ser reconhecido por prefixo, a mesma
- *    limitação que o `CssClassEmitters` registra.
+ * 1. `wp_nonce_field( $action, 'name' )` emits `id="name"` -- the id is the
+ *    SECOND argument, and the first is the action, which has a different value.
+ *    Three nonce fields showed up as orphans because of this.
+ * 2. A literal held in a variable before becoming an id
+ *    (`var inputId = 'x'; input.id = inputId`). Following the variable would
+ *    need data flow; the scan accepts the bare literal in JS as a possible
+ *    emission, which is the same side `CssClassEmitters` errs towards.
+ * 3. WordPress's own markup (`#wpbody-content`, `#title`) -- a legitimate
+ *    exception, of the same kind as `ClassNamingIdiomTest`'s `VENDOR_CLASSES`.
+ * 4. An id assembled at runtime, on the EMISSION side (`id="row-<?php echo ...`)
+ *    and on the CONSUMPTION side (`'#ffc-tabpanel-' + tab`). A name that never
+ *    exists as a literal can only be recognised by prefix, the same limitation
+ *    `CssClassEmitters` records.
  *
- * **O que ela não vê**, e vale estar escrito: que a fixture de um teste
- * corresponda à marcação real. Nos três casos que a originaram o defeito
- * estava no produto E na fixture; isto enxerga só a metade do produto.
+ * **What it does not see**, and is worth writing down: whether a test's fixture
+ * matches the real markup. In the three cases that produced it the defect was in
+ * the product AND in the fixture; this sees only the product half.
  */
 final class JsIdSelectors {
 
-	/** Diretórios varridos em busca de quem EMITE um id. */
+	/** Directories scanned for whoever EMITS an id. */
 	private const EMITTER_ROOTS = array( 'includes', 'templates', 'assets/js', 'libs/js' );
 
-	/** Diretório varrido em busca de quem PROCURA um id. */
+	/** Directory scanned for whoever LOOKS FOR an id. */
 	private const CONSUMER_ROOT = 'assets/js';
 
 	/**
-	 * Um literal INTEIRO por vez, com escapes.
+	 * One WHOLE literal at a time, escapes included.
 	 *
-	 * Casar por alternância frouxa perde a paridade das aspas na primeira
-	 * apóstrofe dentro de uma string com aspas duplas e lê o resto do arquivo
-	 * deslocado -- a mesma razão pela qual `CssSelectors` precisa ser
-	 * consciente de aspas.
+	 * Matching by loose alternation loses quote parity at the first apostrophe
+	 * inside a double-quoted string and reads the rest of the file shifted -- the
+	 * same reason `CssSelectors` has to be quote-aware.
 	 */
 	private const STRING_LITERAL = '/"((?:[^"\\\\]|\\\\.)*)"|\'((?:[^\'\\\\]|\\\\.)*)\'/';
 
-	/** Chamadas que recebem um seletor como primeiro argumento. */
+	/** Calls that take a selector as their first argument. */
 	private const LOOKUP = '/(?:\$\(|jQuery\(|\.find\(|\.closest\(|\.is\(|\.filter\(|\.not\(|\.parents\(|\.siblings\(|\.children\(|\.has\(|querySelector\(|querySelectorAll\()\s*/';
 
 	/**
-	 * @var array<string, array<int, string>>|null Consumo: id => arquivos.
+	 * @var array<string, array<int, string>>|null Consumption: id => files.
 	 */
 	private static ?array $consumers = null;
 
@@ -83,8 +82,8 @@ final class JsIdSelectors {
 
 	/**
 	 * @param array<int, string> $dirs
-	 * @param string             $ext  Fragmento de regex da extensão.
-	 * @return array<string, string> Caminho relativo => conteúdo.
+	 * @param string             $ext  Regex fragment for the extension.
+	 * @return array<string, string> Relative path => contents.
 	 */
 	private static function files( array $dirs, string $ext ): array {
 		$out = array();
@@ -108,9 +107,9 @@ final class JsIdSelectors {
 	}
 
 	/**
-	 * Os ids que o JS procura, por id.
+	 * The ids the JS looks for, keyed by id.
 	 *
-	 * @return array<string, array<int, string>> Id (sem '#') => arquivos.
+	 * @return array<string, array<int, string>> Id (without '#') => files.
 	 */
 	public static function consumers(): array {
 		if ( null !== self::$consumers ) {
@@ -119,13 +118,12 @@ final class JsIdSelectors {
 
 		$found = array();
 		foreach ( self::files( array( self::CONSUMER_ROOT ), 'js' ) as $path => $src ) {
-			// Um exemplo de uso dentro de docblock NÃO é uma busca. O
-			// cabeçalho de `ffc-admin-autosave.js` documenta
-			// `FFC.Admin.autoSaveField($('#admin_bypass_geo'), …)`, e sem
-			// remover comentários a varredura o lê como consumo e cobra um
-			// emissor de um id que nenhuma tela procura. É a mesma distinção
-			// que o `CLAUDE.md` já faz para as anotações de supressão: prosa
-			// que menciona o token não é o token.
+			// A usage example inside a docblock is NOT a lookup. The header of
+			// `ffc-admin-autosave.js` documents
+			// `FFC.Admin.autoSaveField($('#admin_bypass_geo'), …)`, and without
+			// stripping comments the scan reads it as consumption and demands an
+			// emitter for an id no screen looks for. Same distinction CLAUDE.md
+			// makes for suppression annotations: prose naming the token is not it.
 			$src = self::strip_comments( $src );
 
 			foreach ( self::selector_literals( $src ) as $selector ) {
@@ -134,8 +132,8 @@ final class JsIdSelectors {
 					$found[ $id ][] = $path;
 				}
 			}
-			// `getElementById()` recebe o id SEM '#'; sem este ramo, metade
-			// do consumo do painel não seria vista.
+			// `getElementById()` takes the id WITHOUT the '#'; without this
+			// branch, half the dashboard's consumption would go unseen.
 			if ( preg_match_all( '/getElementById\(\s*(["\'])([^"\']*)\1/', $src, $m, PREG_SET_ORDER ) ) {
 				foreach ( $m as $one ) {
 					$id = self::simple_id( '#' . $one[2] );
@@ -156,11 +154,11 @@ final class JsIdSelectors {
 	}
 
 	/**
-	 * Remove comentários de um fonte JS, preservando strings.
+	 * Strips comments from a JS source, preserving strings.
 	 *
-	 * Precisa ser consciente de aspas: o `//` de `'https://exemplo'` não abre
-	 * comentário, e uma varredura ingênua apagaria o resto da linha -- e com
-	 * ela qualquer busca que viesse depois.
+	 * It has to be quote-aware: the `//` in `'https://example'` does not open a
+	 * comment, and a naive scan would erase the rest of the line -- and with it
+	 * any lookup that came after.
 	 */
 	private static function strip_comments( string $src ): string {
 		$out    = '';
@@ -214,7 +212,7 @@ final class JsIdSelectors {
 	}
 
 	/**
-	 * Literais que abrem imediatamente depois de uma chamada de busca.
+	 * Literals opening immediately after a lookup call.
 	 *
 	 * @return array<int, string>
 	 */
@@ -229,8 +227,8 @@ final class JsIdSelectors {
 			if ( ! preg_match( self::STRING_LITERAL, $tail, $lm, PREG_OFFSET_CAPTURE ) ) {
 				continue;
 			}
-			// O literal tem de ser o PRIMEIRO argumento. Sem esta checagem,
-			// `$( el ).attr( 'foo' )` contaria `'foo'` como seletor.
+			// The literal has to be the FIRST argument. Without this check,
+			// `$( el ).attr( 'foo' )` would count `'foo'` as a selector.
 			if ( $lm[0][1] > 0 ) {
 				continue;
 			}
@@ -241,11 +239,11 @@ final class JsIdSelectors {
 	}
 
 	/**
-	 * O id de um seletor que é SÓ um id simples, ou null.
+	 * The id of a selector that is ONLY a simple id, or null.
 	 *
-	 * Um literal terminado em `-` ou `_` é o começo de um nome montado em
-	 * runtime (`'#ffc-tabpanel-' + aba`), não um id inteiro: cobrar emissor
-	 * dele reportaria um órfão que nunca existiu como nome.
+	 * A literal ending in `-` or `_` is the start of a name assembled at runtime
+	 * (`'#ffc-tabpanel-' + tab`), not a whole id: demanding an emitter for it
+	 * would report an orphan that never existed as a name.
 	 */
 	private static function simple_id( string $selector ): ?string {
 		if ( ! preg_match( '/^#([A-Za-z][A-Za-z0-9_-]*)$/', $selector, $m ) ) {
@@ -259,7 +257,7 @@ final class JsIdSelectors {
 	}
 
 	/**
-	 * Tudo que pode emitir um id.
+	 * Everything that can emit an id.
 	 *
 	 * @return array{ids: array<string, bool>, prefixes: array<int, string>}
 	 */
@@ -274,7 +272,7 @@ final class JsIdSelectors {
 		foreach ( self::files( self::EMITTER_ROOTS, '(php|js)' ) as $path => $src ) {
 			$is_js = str_ends_with( $path, '.js' );
 
-			// `id="foo"` na marcação.
+			// `id="foo"` in the markup.
 			self::collect( '/\bid\s*=\s*(["\'])([A-Za-z][A-Za-z0-9_-]*)\1/', $src, 2, $ids );
 			// `'id' => 'foo'` e `id: 'foo'`.
 			self::collect( '/[\'"]?id[\'"]?\s*(?:=>|:)\s*(["\'])([A-Za-z][A-Za-z0-9_-]*)\1/', $src, 2, $ids );
@@ -282,23 +280,23 @@ final class JsIdSelectors {
 			self::collect( '/\.attr\(\s*(["\'])id\1\s*,\s*(["\'])([A-Za-z][A-Za-z0-9_-]*)\2/', $src, 3, $ids );
 			// `el.id = 'foo'`.
 			self::collect( '/\.id\s*=\s*(["\'])([A-Za-z][A-Za-z0-9_-]*)\1/', $src, 2, $ids );
-			// `wp_nonce_field( $acao, 'nome' )` -- o id é o SEGUNDO argumento.
+			// `wp_nonce_field( $action, 'name' )` -- the id is the SECOND argument.
 			self::collect( '/wp_nonce_field\(\s*[^,]+,\s*(["\'])([A-Za-z][A-Za-z0-9_-]*)\1/', $src, 2, $ids );
 
-			// Prefixo: nome seguido de eco PHP ou de concatenação.
+			// Prefix: a name followed by a PHP echo or by concatenation.
 			if ( preg_match_all( '/\bid\s*=\s*["\']([A-Za-z][A-Za-z0-9_-]*[-_])(?=\s*(?:\.|\+|<)|\{|\$)/', $src, $m, PREG_SET_ORDER ) ) {
 				foreach ( $m as $one ) {
 					$prefixes[] = $one[1];
 				}
 			}
 
-			// Em JS um literal vira id por uma variável:
-			// `var inputId = 'x'; input.id = inputId`. Aceitar QUALQUER
-			// literal nu resolveria o caso, e foi o que a primeira versão
-			// fez -- ao custo de inflar o conjunto de emissores de 578 para
-			// 2.082 nomes e de engolir um achado real (`#admin_bypass_geo`,
-			// cujo id emitido é `ffc_admin_bypass_geo`). A variável é
-			// seguida por UM salto, que é o que o caso exige e nada mais.
+			// In JS a literal becomes an id through a variable:
+			// `var inputId = 'x'; input.id = inputId`. Accepting ANY bare
+			// literal would solve the case, and that is what the first version
+			// did -- at the cost of inflating the emitter set from 578 to 2,082
+			// names and swallowing a real finding (`#admin_bypass_geo`, whose
+			// emitted id is `ffc_admin_bypass_geo`). The variable is followed by
+			// ONE hop, which is what the case requires and nothing more.
 			if ( $is_js ) {
 				self::collect_via_variable( $src, $ids );
 			}
@@ -313,21 +311,22 @@ final class JsIdSelectors {
 	}
 
 	/**
-	 * Literal que chega a um id por uma variável, um salto.
+	 * A literal that reaches an id through a variable, one hop.
 	 *
 	 * @param array<string, bool> $into
 	 */
 	private static function collect_via_variable( string $src, array &$into ): void {
-		// Nomes que a seguir aparecem como id. Duas formas, e a segunda é a
-		// que o caso real usa: `'<input id="' + inputId + '"'` -- o atributo
-		// é ABERTO num literal e o nome chega pela variável, que é o espelho
-		// exato da forma que o `CssClassEmitters` registra para classes.
+		// Names that afterwards appear as an id. Two shapes, and the second is
+		// the one the real case uses: `'<input id="' + inputId + '"'` -- the
+		// attribute is OPENED in a literal and the name arrives through the
+		// variable, which is the exact mirror of the shape `CssClassEmitters`
+		// records for classes.
 		$as_id = array();
 		$forms = array(
 			'/(?:\.id\s*=\s*|\.attr\(\s*["\']id["\']\s*,\s*)([A-Za-z_$][A-Za-z0-9_$]*)\s*[;),]/',
-			// Sem `\\?` aqui: numa string PHP entre aspas simples `\\?` colapsa
-			// para `\?`, que o regex lê como um `?` LITERAL -- e aí o padrão
-			// nunca casa. Custou uma medição.
+			// No `\\?` here: inside a single-quoted PHP string `\\?` collapses to
+			// `\?`, which the regex reads as a LITERAL `?` -- and then the
+			// pattern never matches. It cost a measurement.
 			'/\bid\s*=\s*["\']["\']\s*\+\s*([A-Za-z_$][A-Za-z0-9_$]*)/',
 		);
 		foreach ( $forms as $form ) {
@@ -341,7 +340,7 @@ final class JsIdSelectors {
 			return;
 		}
 
-		// E o literal que cada uma dessas variáveis recebeu.
+		// And the literal each of those variables was given.
 		if ( preg_match_all( '/(?:var|let|const)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(["\'])([A-Za-z][A-Za-z0-9_-]*)\2/', $src, $m, PREG_SET_ORDER ) ) {
 			foreach ( $m as $one ) {
 				if ( isset( $as_id[ $one[1] ] ) ) {
@@ -380,10 +379,10 @@ final class JsIdSelectors {
 	}
 
 	/**
-	 * Quantos ids distintos a varredura de emissão conhece.
+	 * How many distinct ids the emission scan knows.
 	 *
-	 * Existe para a autoverificação: uma varredura que voltou vazia não pode
-	 * ser lida como "limpa" (a lição do #1071 / #1094).
+	 * It exists for the self-check: a scan that came back empty must not read as
+	 * "clean" (the #1071 / #1094 lesson).
 	 */
 	public static function emitted_count(): int {
 		return count( self::emitters()['ids'] );
