@@ -26,6 +26,63 @@ if ( ! defined( 'ABSPATH' ) ) {
 class CapabilityMigrator {
 
 	/**
+	 * IDs dos usuarios que carregam ALGUM `ffc_*` pessoal (#1254).
+	 *
+	 * O QUE ISTO SUBSTITUI, E POR QUE NAO E UM LOTE
+	 *
+	 * Onze migracoes deste ficheiro chamavam `get_users( array( 'fields' =>
+	 * 'ID' ) )` -- todos os usuarios da instalacao -- e faziam um
+	 * `get_userdata()` por usuario. Rodando no `plugins_loaded`, isso podia
+	 * cair numa requisicao de frontend anonima; e como a flag de conclusao so
+	 * e gravada DEPOIS da varredura, um timeout no meio fazia a requisicao
+	 * seguinte recomecar do zero, indefinidamente.
+	 *
+	 * A resposta obvia seria lotear com cursor. A melhor e nao percorrer:
+	 * **toda** decisao dessas migracoes depende de uma capability ou papel
+	 * `ffc_*` PESSOAL, e a esmagadora maioria dos usuarios recebe capability
+	 * pelo PAPEL, nao pessoalmente. O trabalho passa a ser proporcional a quem
+	 * tem concessao propria -- os operadores --, e nao ao tamanho da base.
+	 *
+	 * POR QUE UMA SO CONSULTA COBRE CAPABILITIES E PAPEIS
+	 *
+	 * Os dois moram na MESMA meta serializada, `{prefixo}capabilities`: um
+	 * papel aparece nela como `s:13:"ffc_readonly";b:1;` exatamente como uma
+	 * capability. E os seis papeis antigos que {@see self::role_renames()}
+	 * renomeia comecam todos por `ffc_`. Entao o mesmo prefiltro serve para
+	 * `$user->caps` e para `$user->roles`.
+	 *
+	 * O PREFILTRO E UM SUPERCONJUNTO, DE PROPOSITO
+	 *
+	 * Ele devolve quem tem QUALQUER `ffc_*` na meta -- inclusive uma
+	 * capability gravada como `false`, que algumas destas migracoes ignoram. A
+	 * logica por usuario nao mudou nenhuma linha: ela continua decidindo com
+	 * `isset()` / `true ===` como antes. Um prefiltro mais estreito e que
+	 * poderia perder alguem.
+	 *
+	 * `get_users()` com `meta_compare` LIKE escapa o `_` do termo, entao
+	 * `ffc_` casa o prefixo literal e nao `ffcX`.
+	 *
+	 * @since 6.25.0
+	 * @return array<int, int>
+	 */
+	private static function users_with_ffc_grants(): array {
+		global $wpdb;
+
+		$ids = get_users(
+			array(
+				'fields'       => 'ID',
+				'meta_key'     => $wpdb->get_blog_prefix() . 'capabilities', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- A meta de capabilities e indexada por `meta_key`; esta consulta existe justamente para NAO varrer todos os usuarios (#1254).
+				'meta_value'   => 'ffc_', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Prefiltro deliberado; ver o docblock.
+				'meta_compare' => 'LIKE',
+				'orderby'      => 'ID',
+				'order'        => 'ASC',
+			)
+		);
+
+		return array_map( 'intval', (array) $ids );
+	}
+
+	/**
 	 * Taxonomy rename map (old => new) for the plugin-wide capability naming
 	 * standard `ffc_<action>_[own_]<domain>[_<qualifier>]`.
 	 *
@@ -70,7 +127,7 @@ class CapabilityMigrator {
 		$counts  = array();
 
 		// 1. User-meta grants.
-		$users = get_users( array( 'fields' => 'ID' ) );
+		$users = self::users_with_ffc_grants();
 		foreach ( $renames as $old => $new ) {
 			$counts[ $old ] = 0;
 			foreach ( $users as $user_id ) {
@@ -147,7 +204,7 @@ class CapabilityMigrator {
 		$counts = array();
 
 		// 1. User-meta grants.
-		$users = get_users( array( 'fields' => 'ID' ) );
+		$users = self::users_with_ffc_grants();
 		foreach ( $map as $manage => $delete ) {
 			$counts[ $delete ] = 0;
 			foreach ( $users as $user_id ) {
@@ -222,7 +279,7 @@ class CapabilityMigrator {
 		$counts = array();
 
 		// 1. User-meta grants.
-		$users = get_users( array( 'fields' => 'ID' ) );
+		$users = self::users_with_ffc_grants();
 		foreach ( $map as $source => $targets ) {
 			foreach ( $targets as $target ) {
 				if ( ! isset( $counts[ $target ] ) ) {
@@ -302,7 +359,7 @@ class CapabilityMigrator {
 		$counts = array();
 
 		// 1. User-meta grants.
-		$users = get_users( array( 'fields' => 'ID' ) );
+		$users = self::users_with_ffc_grants();
 		foreach ( $map as $source => $targets ) {
 			foreach ( $targets as $target ) {
 				if ( ! isset( $counts[ $target ] ) ) {
@@ -383,7 +440,7 @@ class CapabilityMigrator {
 		$counts = array();
 
 		// 1. User-meta grants.
-		$users = get_users( array( 'fields' => 'ID' ) );
+		$users = self::users_with_ffc_grants();
 		foreach ( $map as $manage => $export ) {
 			$counts[ $export ] = 0;
 			foreach ( $users as $user_id ) {
@@ -453,7 +510,7 @@ class CapabilityMigrator {
 		$counts = array();
 
 		// 1. User-meta grants.
-		$users = get_users( array( 'fields' => 'ID' ) );
+		$users = self::users_with_ffc_grants();
 		foreach ( $map as $source => $export ) {
 			$counts[ $export ] = 0;
 			foreach ( $users as $user_id ) {
@@ -520,7 +577,7 @@ class CapabilityMigrator {
 		$counts = array();
 
 		// 1. User-meta grants.
-		$users = get_users( array( 'fields' => 'ID' ) );
+		$users = self::users_with_ffc_grants();
 		foreach ( $map as $source => $export ) {
 			$counts[ $export ] = 0;
 			foreach ( $users as $user_id ) {
@@ -592,7 +649,7 @@ class CapabilityMigrator {
 		$counts = array();
 
 		// 1. User-meta grants.
-		$users = get_users( array( 'fields' => 'ID' ) );
+		$users = self::users_with_ffc_grants();
 		foreach ( $map as $manage => $import ) {
 			$counts[ $import ] = 0;
 			foreach ( $users as $user_id ) {
@@ -664,7 +721,7 @@ class CapabilityMigrator {
 		$counts = array();
 
 		// 1. User-meta grants.
-		$users = get_users( array( 'fields' => 'ID' ) );
+		$users = self::users_with_ffc_grants();
 		foreach ( $map as $source => $reasons_cap ) {
 			$counts[ $reasons_cap ] = 0;
 			foreach ( $users as $user_id ) {
@@ -794,7 +851,7 @@ class CapabilityMigrator {
 		$counts  = array();
 
 		// 1. User-meta grants.
-		$users = get_users( array( 'fields' => 'ID' ) );
+		$users = self::users_with_ffc_grants();
 		foreach ( $renames as $old => $new ) {
 			$counts[ $old ] = 0;
 			foreach ( $users as $user_id ) {
@@ -873,7 +930,7 @@ class CapabilityMigrator {
 		RoleRegistrar::register_module_roles();
 
 		$counts = array();
-		$users  = get_users( array( 'fields' => 'ID' ) );
+		$users  = self::users_with_ffc_grants();
 		foreach ( $renames as $old => $new ) {
 			$counts[ $old ] = 0;
 			foreach ( $users as $user_id ) {
