@@ -7,66 +7,65 @@ use FreeFormCertificate\Tests\Support\JsIdSelectors;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Um id que o JS procura tem de ser emitido por alguém (#1220).
+ * An id the JS looks for must be emitted by somebody (#1220).
  *
- * Três vezes numa sessão um teste passou verde sobre marcação que o produto
- * nunca renderizou: `.ffc-tab.active` depois da renomeação do #1170, que
- * deixou o painel do usuário sem carregar painel nenhum (#1204); marcação de
- * uma tela montada à mão na tela de outra (#1184); e `#ffc_rereg_acumulo`,
- * que nenhum PHP emite e que existia só no JS que o procurava e numa fixture
- * que o inventava (#1219). O padrão é sempre o mesmo: **uma fixture escrita à
- * mão envelhece em silêncio**.
+ * Three times in one session a test passed green over markup the product never
+ * rendered: `.ffc-tab.active` after #1170's rename, which left the user
+ * dashboard loading no panel at all (#1204); one screen's markup built by hand
+ * inside another screen's (#1184); and `#ffc_rereg_acumulo`, which no PHP emits
+ * and which existed only in the JS looking for it and in a fixture that invented
+ * it (#1219). The pattern is always the same: **a hand-written fixture ages in
+ * silence**.
  *
- * Esta guarda vê a metade do PRODUTO -- o seletor que ninguém emite. A outra
- * metade (a fixture corresponder à marcação real) exigiria comparar o HTML do
- * teste com o que o PHP emite através de templates com condicionais, e não
- * está aqui. Vale estar escrito, porque nos três casos o defeito estava nas
- * duas metades.
+ * This guard sees the PRODUCT half -- the selector nobody emits. The other half
+ * (the fixture matching the real markup) would mean comparing the test's HTML
+ * with what PHP emits through templates full of conditionals, and is not here.
+ * It is worth writing down, because in all three cases the defect was in both
+ * halves.
  *
- * **A forma ingênua não funciona, e a medição diz por quê.** Varrer só PHP
- * reportaria dezenas de falsos: a maior parte do DOM que o painel procura é
- * criada pelo próprio JS. A varredura cobre PHP e JS, e as formas que ela
- * precisou aprender estão no docblock de `JsIdSelectors` -- cada uma entrou
- * por causa de um falso positivo que ela produziu.
+ * **The naive shape does not work, and the measurement says why.** Scanning PHP
+ * alone would report dozens of false positives: most of the DOM the dashboard
+ * looks for is created by the JS itself. The scan covers PHP and JS, and the
+ * shapes it had to learn are in `JsIdSelectors`'s docblock -- each arrived
+ * because of a false positive it produced.
  *
  * @covers \FreeFormCertificate\Tests\Support\JsIdSelectors
  */
 class JsSelectorEmitterTest extends TestCase {
 
 	/**
-	 * Ids que o WordPress emite, não nós.
+	 * Ids WordPress emits, not us.
 	 *
-	 * Exceção do mesmo tipo que as `VENDOR_CLASSES` do `ClassNamingIdiomTest`:
-	 * a marcação existe, só não no nosso repositório.
+	 * An exception of the same kind as `ClassNamingIdiomTest`'s
+	 * `VENDOR_CLASSES`: the markup exists, just not in our repository.
 	 *
 	 * @var array<string, string>
 	 */
 	private const CORE_IDS = array(
-		'wpbody-content' => 'Contêiner de conteúdo do wp-admin, emitido por `wp-admin/admin-header.php`.',
-		'title'          => 'Campo de título do editor de post, emitido por `wp-admin/edit-form-advanced.php`.',
+		'wpbody-content' => 'The wp-admin content container, emitted by `wp-admin/admin-header.php`.',
+		'title'          => 'The post editor\'s title field, emitted by `wp-admin/edit-form-advanced.php`.',
 	);
 
 	/**
-	 * Ids que o JS procura e que ninguém emite.
+	 * Ids the JS looks for and nobody emits.
 	 *
-	 * **Ratchet de mão dupla**: um id novo sem emissor falha (escreva a
-	 * marcação, ou apague a busca); um id daqui que ganhou emissor também
-	 * falha (tire-o da lista para travar o ganho).
+	 * **A ratchet both ways**: a new id with no emitter fails (write the markup,
+	 * or delete the lookup); an id here that gained an emitter also fails (drop
+	 * it from the list to lock the win in).
 	 *
-	 * **Está vazia, e ficou vazia por decisão, não por acaso.** As sete
-	 * entradas que abriram a lista foram analisadas uma a uma em #1227:
-	 * seis eram código morto e saíram com o código que as procurava (o
-	 * select dependente por id, superado pela implementação por classe;
-	 * o dropdown de migrações, cuja marcação nunca existiu em revisão
-	 * alguma; e o `#ffc_bg_image_url`, cujo fallback por atributo `name`
-	 * já alcançava as duas telas reais). A sétima --
-	 * `#ffc_bg_image_preview` -- era o caso oposto: o código da prévia
-	 * estava escrito e correto, só faltava o contêiner, então as duas
-	 * telas passaram a emiti-lo.
+	 * **It is empty, and it stayed empty by decision, not by accident.** The
+	 * seven entries it opened with were analysed one by one in #1227: six were
+	 * dead code and left with the code that looked for them (the id-based
+	 * dependent select, superseded by the class-based implementation; the
+	 * migrations dropdown, whose markup never existed in any revision; and
+	 * `#ffc_bg_image_url`, whose `name`-attribute fallback already reached both
+	 * real screens). The seventh -- `#ffc_bg_image_preview` -- was the opposite
+	 * case: the preview code was written and correct, only the container was
+	 * missing, so both screens started emitting it.
 	 *
-	 * Vazia não desliga a guarda: o que cobra é o teste abaixo, que varre
-	 * `assets/js` inteiro a cada execução. Uma entrada nova aqui é uma
-	 * decisão a defender, não uma linha a acrescentar.
+	 * Empty does not switch the guard off: what charges it is the test below,
+	 * which scans the whole of `assets/js` on every run. A new entry here is a
+	 * decision to defend, not a line to add.
 	 *
 	 * @var array<string, string>
 	 */
@@ -75,18 +74,17 @@ class JsSelectorEmitterTest extends TestCase {
 	public function test_every_id_the_javascript_looks_for_is_emitted_by_someone(): void {
 		$consumers = JsIdSelectors::consumers();
 
-		// Autoverificação: uma varredura vazia jamais pode ser lida como
-		// "limpa" (a lição do #1071 / #1094). Os dois lados precisam ter
-		// encontrado população.
+		// Self-check: an empty scan must never read as "clean" (the #1071 /
+		// #1094 lesson). Both sides have to have found a population.
 		$this->assertGreaterThan(
 			100,
 			count( $consumers ),
-			'A varredura de consumo voltou quase vazia — o parser quebrou, e um verde aqui não significaria nada.'
+			'The consumption scan came back almost empty — the parser broke, and a green here would mean nothing.'
 		);
 		$this->assertGreaterThan(
 			300,
 			JsIdSelectors::emitted_count(),
-			'A varredura de emissão voltou quase vazia — todo id pareceria órfão, ou nenhum.'
+			'The emission scan came back almost empty — every id would look orphaned, or none would.'
 		);
 
 		$orphans = array();
@@ -103,38 +101,38 @@ class JsSelectorEmitterTest extends TestCase {
 		$this->assertSame(
 			array(),
 			array_map( static fn( array $p ): string => implode( ', ', $p ), $new ),
-			"Um id novo que o JavaScript procura e que NINGUÉM emite.\n"
-			. "Ou a marcação não existe (o defeito do #1219), ou foi renomeada e a busca ficou para trás (o do #1204).\n"
-			. 'Se a forma de emissão é nova, ensine a varredura em `JsIdSelectors` — nunca acrescente à lista para calar a guarda.'
+			"A new id the JavaScript looks for and NOBODY emits.\n"
+			. "Either the markup does not exist (#1219's defect), or it was renamed and the lookup was left behind (#1204's).\n"
+			. 'If the emission shape is new, teach the scan in `JsIdSelectors` — never add to the list to silence the guard.'
 		);
 
 		$fixed = array_diff_key( self::WITHOUT_EMITTER, $orphans );
 		$this->assertSame(
 			array(),
 			$fixed,
-			'Estes ids ganharam emissor (ou a busca foi apagada). Tire-os de `WITHOUT_EMITTER` para travar o ganho.'
+			'These ids gained an emitter (or the lookup was deleted). Drop them from `WITHOUT_EMITTER` to lock the win in.'
 		);
 	}
 
 	public function test_the_core_exceptions_still_match_a_real_lookup(): void {
-		// Uma exceção que deixou de casar com qualquer busca é lixo que
-		// esconde o próximo caso — a mesma regra das exceções do
-		// `DarkModeCssTest` e do `AdminPageScopeTest`.
+		// An exception that stopped matching any lookup is litter that hides the
+		// next case — the same rule as `DarkModeCssTest`'s and
+		// `AdminPageScopeTest`'s exceptions.
 		$consumers = JsIdSelectors::consumers();
 
 		foreach ( self::CORE_IDS as $id => $why ) {
 			$this->assertArrayHasKey(
 				$id,
 				$consumers,
-				"`#{$id}` está na lista de ids do WordPress, mas nenhum JS o procura mais. Remova a exceção. {$why}"
+				"`#{$id}` is in the WordPress id list, but no JS looks for it any more. Drop the exception. {$why}"
 			);
 		}
 	}
 
 	public function test_a_selector_assembled_at_runtime_is_not_charged_an_emitter(): void {
-		// `'#ffc-tabpanel-' + aba` nunca existe como nome inteiro, então
-		// cobrar emissor dele reportaria um órfão que jamais existiu. A
-		// mesma limitação que o `CssClassEmitters` registra para classes.
+		// `'#ffc-tabpanel-' + tab` never exists as a whole name, so demanding an
+		// emitter for it would report an orphan that never existed. The same
+		// limitation `CssClassEmitters` records for classes.
 		$this->assertArrayNotHasKey( 'ffc-tabpanel-', JsIdSelectors::consumers() );
 		$this->assertArrayNotHasKey( 'ffc-tabpanel', JsIdSelectors::consumers() );
 	}

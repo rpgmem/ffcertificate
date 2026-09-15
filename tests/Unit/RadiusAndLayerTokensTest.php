@@ -52,9 +52,9 @@ final class RadiusAndLayerTokensTest extends TestCase {
 	/**
 	 * The declared steps of each scale.
 	 */
-	// `full` e `pill` não são degraus da escada -- são PAPÉIS, e por isso
-	// fecham a lista: círculo e pílula. `pill` entrou no #1193, quando a forma
-	// do selo saiu de um literal PHP para o `.ffc-pill` da base.
+	// `full` and `pill` are not steps of the ladder -- they are ROLES, and that
+	// is why they close the list: circle and pill. `pill` arrived in #1193, when
+	// the badge's shape left a PHP literal for the base sheet's `.ffc-pill`.
 	private const RADIUS_STEPS = array( 'xs', 'sm', 'md', 'lg', 'full', 'pill' );
 	private const LAYER_STEPS  = array( 'raised', 'sticky', 'dropdown', 'overlay', 'modal' );
 
@@ -174,7 +174,7 @@ final class RadiusAndLayerTokensTest extends TestCase {
 
 			if ( count( $found ) > ( $budget[ $sheet ] ?? 0 ) ) {
 				$over[] = sprintf(
-					"%s: %d, orçamento %d\n      %s",
+					"%s: %d, budget %d\n      %s",
 					$sheet,
 					count( $found ),
 					$budget[ $sheet ] ?? 0,
@@ -186,10 +186,10 @@ final class RadiusAndLayerTokensTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$over,
-			"Literal de `{$property}` acima do orçamento:\n\n  " . implode( "\n\n  ", $over )
-			. "\n\nLeia a escala. Se o valor não estiver nela, deixe literal E suba o"
-			. "\norçamento com a razão — inventar um degrau por valor é como uma escala"
-			. "\nvira dicionário."
+			"Literal `{$property}` over budget:\n\n  " . implode( "\n\n  ", $over )
+			. "\n\nRead the scale. If the value is not in it, leave it literal AND raise the"
+			. "\nbudget with the reason — inventing a step per value is how a scale"
+			. "\nbecomes a dictionary."
 		);
 	}
 
@@ -208,11 +208,11 @@ final class RadiusAndLayerTokensTest extends TestCase {
 			$count = count( self::literals( $path, $property ) );
 
 			if ( $count < ( $budget[ $sheet ] ?? 0 ) ) {
-				$stale[] = sprintf( '%s: %d, orçamento ainda %d', $sheet, $count, $budget[ $sheet ] ?? 0 );
+				$stale[] = sprintf( '%s: %d, budget still %d', $sheet, $count, $budget[ $sheet ] ?? 0 );
 			}
 		}
 
-		$this->assertSame( array(), $stale, "Orçamento folgado — baixe e trave o ganho:\n  " . implode( "\n  ", $stale ) );
+		$this->assertSame( array(), $stale, "Slack in the budget — lower it and lock the win in:\n  " . implode( "\n  ", $stale ) );
 	}
 
 	/**
@@ -247,8 +247,8 @@ final class RadiusAndLayerTokensTest extends TestCase {
 			$this->assertDoesNotMatchRegularExpression(
 				'/var\(\s*--ffc-/i',
 				(string) file_get_contents( $path ),
-				"`{$sheet}` é enfileirada sem `ffc-common`, então um `var(--ffc-*)` ali "
-				. 'invalida a declaração inteira. Converta de volta para literal.'
+				"`{$sheet}` is enqueued without `ffc-common`, so a `var(--ffc-*)` there "
+				. 'invalidates the whole declaration. Convert it back to a literal.'
 			);
 		}
 	}
@@ -266,8 +266,8 @@ final class RadiusAndLayerTokensTest extends TestCase {
 			$layer  += preg_match_all( '/var\(\s*--ffc-z-/i', $css );
 		}
 
-		$this->assertGreaterThan( 200, $radius, 'Quase ninguém lê a escala de raio — era esse o estado que a #1171 encontrou.' );
-		$this->assertGreaterThan( 12, $layer, 'Quase ninguém lê a escala de camada.' );
-		$this->assertGreaterThan( 20, count( CssSelectors::sheets() ), 'A varredura não achou as folhas.' );
+		$this->assertGreaterThan( 200, $radius, 'Almost nobody reads the radius scale — that was the state #1171 found.' );
+		$this->assertGreaterThan( 12, $layer, 'Almost nobody reads the layer scale.' );
+		$this->assertGreaterThan( 20, count( CssSelectors::sheets() ), 'The scan did not find the sheets.' );
 	}
 }

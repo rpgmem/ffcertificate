@@ -165,16 +165,16 @@ final class AdminStylesheetTokensTest extends TestCase {
 					continue;
 				}
 
-				// Cor NOMEADA (#1168). `white` não casa com nenhum padrão acima
-				// e opta a declaração para fora da troca de tema tão
-				// completamente quanto um hex. Foi por aqui que quatro regras de
-				// `ffc-admin-submissions.css` — uma folha com orçamento ZERO,
-				// portanto certificada como totalmente convertida — pintaram
-				// branco sobre fundo escuro a 1,23 · 2,52 · 2,68 · 2,78:1.
+				// A NAMED colour (#1168). `white` matches none of the patterns
+				// above and opts the declaration out of the theme switch as
+				// completely as a hex does. This is how four rules in
+				// `ffc-admin-submissions.css` — a sheet with a ZERO budget, and
+				// therefore certified fully converted — painted white on a dark
+				// ground at 1.23 · 2.52 · 2.68 · 2.78:1.
 				//
-				// Casa só em propriedade de cor e só como palavra inteira:
-				// `font-family: 'Whitney'` não é literal de cor, e
-				// `background: url(white-bg.png)` também não.
+				// It matches only inside a colour property and only as a whole
+				// word: `font-family: 'Whitney'` is not a colour literal, and
+				// neither is `background: url(white-bg.png)`.
 				if ( preg_match( '/^[a-z-]*(?:color|background|border|outline|shadow|fill|stroke)[a-z-]*\s*:/i', $declaration )
 					&& preg_match( '/(?<![-\w#])(?:white|black|red|green|blue|yellow|orange|purple|gray|grey|silver|maroon|navy|teal|olive|lime|aqua|fuchsia)(?![-\w])/i', $declaration )
 				) {
@@ -204,7 +204,7 @@ final class AdminStylesheetTokensTest extends TestCase {
 			if ( count( $found ) > $budget ) {
 				$excess = array_slice( $found, $budget );
 				$over[] = sprintf(
-					"%s: %d literais, orçamento %d. Sobrando:\n      %s",
+					"%s: %d literals, budget %d. Over by:\n      %s",
 					$name,
 					count( $found ),
 					$budget,
@@ -216,10 +216,10 @@ final class AdminStylesheetTokensTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$over,
-			"Uma folha ganhou cor literal — ela ignora o modo escuro:\n  "
+			"A sheet gained a colour literal — it ignores dark mode:\n  "
 			. implode( "\n  ", $over )
-			. "\n\nUse var(--ffc-*). Se a paleta não tiver o papel, crie o token nos DOIS"
-			. "\nblocos (claro e escuro), nunca só no escuro."
+			. "\n\nUse var(--ffc-*). If the palette has no such role, create the token in BOTH"
+			. "\nblocks (light and dark), never in dark alone."
 		);
 	}
 
@@ -234,20 +234,20 @@ final class AdminStylesheetTokensTest extends TestCase {
 
 			$found = count( self::literals( $path ) );
 			if ( $found < $budget ) {
-				$slack[] = "{$name}: {$found} literais, orçamento {$budget} — baixe o orçamento.";
+				$slack[] = "{$name}: {$found} literals, budget {$budget} — lower the budget.";
 			}
 		}
 
 		$this->assertSame(
 			array(),
 			$slack,
-			"Uma folha perdeu literais e o orçamento não acompanhou. A catraca só encolhe:\n  "
+			"A sheet lost literals and the budget did not follow. The ratchet only shrinks:\n  "
 			. implode( "\n  ", $slack )
 		);
 	}
 
 	// ==================================================================
-	// Direção B — o token precisa existir na tela
+	// Direction B — the token has to exist on the screen
 	// ==================================================================
 
 	/**
@@ -329,15 +329,15 @@ final class AdminStylesheetTokensTest extends TestCase {
 		$this->assertSame(
 			array(),
 			array_values( array_unique( $offenders ) ),
-			"Uma folha que lê var(--ffc-*) é enfileirada sem depender de ffc-common:\n  "
+			"A sheet that reads var(--ffc-*) is enqueued without depending on ffc-common:\n  "
 			. implode( "\n  ", array_unique( $offenders ) )
-			. "\n\nSem ffc-common na página a propriedade não existe, e uma custom property"
-			. "\ninexistente INVALIDA a declaração inteira — não cai para o literal anterior."
+			. "\n\nWithout ffc-common on the page the property does not exist, and an undeclared"
+			. "\ncustom property INVALIDATES the whole declaration — it does not fall back."
 		);
 	}
 
 	// ==================================================================
-	// Direção B2 — o interruptor precisa chegar junto com a paleta
+	// Direction B2 — the toggle has to arrive with the palette
 	// ==================================================================
 
 	/**
@@ -351,26 +351,26 @@ final class AdminStylesheetTokensTest extends TestCase {
 	private const TOGGLE_NOT_NEEDED = array(
 		// `AdminAssetsManager::enqueue_admin_assets()` enqueues the toggle on
 		// every `is_ffc_page()` screen, and these all run on one.
-		'includes/admin/class-ffc-admin-activity-log-page.php::enqueue_scripts()' => 'AdminAssetsManager já enfileira o interruptor nesta tela',
-		'includes/admin/class-ffc-role-capability-editor.php::enqueue()' => 'idem',
-		'includes/self-scheduling/class-ffc-self-scheduling-editor.php::enqueue_scripts()' => 'idem',
-		'includes/self-scheduling/class-ffc-self-scheduling-admin.php::enqueue_admin_assets()' => 'idem',
-		'includes/url-shortener/class-ffc-url-shortener-admin-page.php::enqueue_assets()' => 'idem',
-		'includes/recruitment/class-ffc-recruitment-admin-assets-manager.php::maybe_enqueue()' => 'idem',
+		'includes/admin/class-ffc-admin-activity-log-page.php::enqueue_scripts()' => 'AdminAssetsManager already enqueues the toggle on this screen',
+		'includes/admin/class-ffc-role-capability-editor.php::enqueue()' => 'likewise',
+		'includes/self-scheduling/class-ffc-self-scheduling-editor.php::enqueue_scripts()' => 'likewise',
+		'includes/self-scheduling/class-ffc-self-scheduling-admin.php::enqueue_admin_assets()' => 'likewise',
+		'includes/url-shortener/class-ffc-url-shortener-admin-page.php::enqueue_assets()' => 'likewise',
+		'includes/recruitment/class-ffc-recruitment-admin-assets-manager.php::maybe_enqueue()' => 'likewise',
 
 		// This IS the method that enqueues the toggle, right below the palette.
-		'includes/admin/class-ffc-admin-assets-manager.php::enqueue_admin_base_styles()' => 'a própria origem do interruptor no admin',
+		'includes/admin/class-ffc-admin-assets-manager.php::enqueue_admin_base_styles()' => 'the origin of the toggle in the admin itself',
 
 		// The helper itself is not a screen: it is called BY the screens above.
-		'includes/core/class-ffc-asset-helper.php::enqueue_common_style()' => 'helper, não é uma tela',
+		'includes/core/class-ffc-asset-helper.php::enqueue_common_style()' => 'a helper, not a screen',
 
 		// Deliberately light (#1126): these paint a fragment inside a WordPress
 		// core screen that is not `is_ffc_page()` and stays light itself. A dark
 		// island inside a light profile page reads as broken, not as a theme.
-		'includes/admin/class-ffc-admin-user-custom-fields.php::enqueue_assets()' => 'perfil/usuário: tela do core, clara por decisão',
-		'includes/admin/class-ffc-admin-user-capabilities.php::enqueue_scripts()' => 'idem',
-		'includes/admin/class-ffc-admin-user-columns.php::enqueue_styles()' => 'users.php: tela do core, clara por decisão',
-		'includes/url-shortener/class-ffc-url-shortener-meta-box.php::enqueue_assets()' => 'metabox no editor de post: tela do core, clara por decisão',
+		'includes/admin/class-ffc-admin-user-custom-fields.php::enqueue_assets()' => 'user profile: a core screen, light by decision',
+		'includes/admin/class-ffc-admin-user-capabilities.php::enqueue_scripts()' => 'likewise',
+		'includes/admin/class-ffc-admin-user-columns.php::enqueue_styles()' => 'users.php: a core screen, light by decision',
+		'includes/url-shortener/class-ffc-url-shortener-meta-box.php::enqueue_assets()' => 'a metabox in the post editor: a core screen, light by decision',
 	);
 
 	/**
@@ -438,8 +438,8 @@ final class AdminStylesheetTokensTest extends TestCase {
 
 		$this->assertGreaterThan( 4, $seen, 'The enqueue-method scan collapsed — no method enqueues the palette?' );
 
-		// Uma entrada da allowlist que deixou de existir vira mentira herdada:
-		// o próximo leitor confia nela sem conferir.
+		// An allowlist entry that stopped existing becomes an inherited lie: the
+		// next reader trusts it without checking.
 		$stale = array();
 		foreach ( array_keys( $allowed ) as $entry ) {
 			list( $rel_path, $fn ) = explode( '::', $entry, 2 );
@@ -448,21 +448,21 @@ final class AdminStylesheetTokensTest extends TestCase {
 				$stale[] = $entry;
 			}
 		}
-		$this->assertSame( array(), $stale, "TOGGLE_NOT_NEEDED lista métodos que não existem mais:\n  " . implode( "\n  ", $stale ) );
+		$this->assertSame( array(), $stale, "TOGGLE_NOT_NEEDED lists methods that no longer exist:\n  " . implode( "\n  ", $stale ) );
 
 		$this->assertSame(
 			array(),
 			$offenders,
-			"Um método põe a paleta na página sem pôr o interruptor do modo escuro:\n  "
+			"A method puts the palette on the page without putting the dark-mode toggle:\n  "
 			. implode( "\n  ", $offenders )
-			. "\n\nSem AssetHelper::enqueue_dark_mode() a classe .ffc-dark-mode nunca chega ao"
-			. "\n<html>, e todo var(--ffc-*) resolve pelo bloco claro — a tela fica sempre"
-			. "\nclara por mais tokenizada que a folha esteja."
+			. "\n\nWithout AssetHelper::enqueue_dark_mode() the .ffc-dark-mode class never reaches"
+			. "\n<html>, and every var(--ffc-*) resolves through the light block — the screen stays"
+			. "\nlight however tokenized the sheet is."
 		);
 	}
 
 	// ==================================================================
-	// Direção C — o token precisa existir
+	// Direction C — the token has to exist
 	// ==================================================================
 
 	/**
@@ -525,11 +525,11 @@ final class AdminStylesheetTokensTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$orphans,
-			"var(--ffc-x) nomeia uma propriedade que nada declara — quem pinta é o fallback,"
-			. "\nnos DOIS temas, que é exatamente o defeito que o token existe para evitar:\n  "
+			"var(--ffc-x) names a property nothing declares — what paints is the fallback,"
+			. "\nin BOTH themes, which is exactly the defect the token exists to prevent:\n  "
 			. implode( "\n  ", $orphans )
-			. "\n\nUse um token declarado, ou declare o novo nos dois blocos de ffc-common.css."
-			. "\nSe a propriedade é escrita no style= do elemento, registre em INLINE_PROPERTIES."
+			. "\n\nUse a declared token, or declare the new one in both blocks of ffc-common.css."
+			. "\nIf the property is written in the element's style=, record it in INLINE_PROPERTIES."
 		);
 	}
 
@@ -569,7 +569,7 @@ final class AdminStylesheetTokensTest extends TestCase {
 			$this->assertStringContainsString(
 				'var(' . $token,
 				str_replace( ' ', '', $css_all ),
-				"INLINE_PROPERTIES lista {$token}, que nenhuma folha lê."
+				"INLINE_PROPERTIES lists {$token}, which no sheet reads."
 			);
 		}
 
@@ -610,19 +610,19 @@ final class AdminStylesheetTokensTest extends TestCase {
 		$this->assertMatchesRegularExpression(
 			'/:root\.ffc-dark-mode\s+body\.wp-admin\s*,/',
 			$css,
-			'A regra de base sumiu do bloco escuro — todo texto sem cor própria volta a herdar o #3c434a do core.'
+			'The base rule vanished from the dark block — every text with no colour of its own inherits core\'s #3c434a again.'
 		);
 
 		$this->assertStringNotContainsString(
 			":root.ffc-dark-mode body {",
 			$css,
-			'`body` sem `.wp-admin` também repinta o texto do TEMA nas páginas públicas, que não é nosso.'
+			'`body` without `.wp-admin` also repaints the THEME\'s text on public pages, which is not ours.'
 		);
 
 		$this->assertSame(
 			'var(--ffc-text)',
 			self::base_pair_colour( $css ),
-			'A regra de base tem de pintar por token — um literal aqui é o defeito que o bloco existe para corrigir.'
+			'The base rule must paint through a token — a literal here is the defect the block exists to fix.'
 		);
 	}
 
@@ -638,19 +638,19 @@ final class AdminStylesheetTokensTest extends TestCase {
 			}
 		}
 
-		$this->assertGreaterThanOrEqual( 3, count( $roots ), 'A varredura do seletor de base colapsou.' );
+		$this->assertGreaterThanOrEqual( 3, count( $roots ), 'The base-selector scan collapsed.' );
 
 		$markup = '';
 		foreach ( self::php_and_template_sources() as $path ) {
 			$markup .= (string) file_get_contents( $path );
 		}
-		$this->assertGreaterThan( 500000, strlen( $markup ), 'A varredura da marcação colapsou.' );
+		$this->assertGreaterThan( 500000, strlen( $markup ), 'The markup scan collapsed.' );
 
 		foreach ( $roots as $root ) {
 			$this->assertStringContainsString(
 				$root,
 				$markup,
-				"A regra de base nomeia .{$root}, que nenhuma marcação renderiza — ela cobre nada."
+				"The base rule names .{$root}, which no markup renders — it covers nothing."
 			);
 		}
 	}
@@ -708,7 +708,7 @@ final class AdminStylesheetTokensTest extends TestCase {
 	}
 
 	// ==================================================================
-	// Direção E — o controle de formulário, que não herda (#1126)
+	// Direction E — the form control, which does not inherit (#1126)
 	// ==================================================================
 
 	/**
@@ -770,7 +770,7 @@ final class AdminStylesheetTokensTest extends TestCase {
 		$this->assertSame(
 			array(),
 			self::controls_without_a_text_colour(),
-			'Um controle de formulário não herda `color`: quem pinta o fundo tem de pintar o texto, ou o navegador usa o quase-preto dele.'
+			'A form control does not inherit `color`: whoever paints the ground must paint the text, or the browser uses its own near-black.'
 		);
 	}
 
@@ -788,17 +788,17 @@ final class AdminStylesheetTokensTest extends TestCase {
 		$this->assertSame(
 			array(),
 			self::detect_controls( ".x button { color: var(--ffc-text); background: var(--ffc-bg-card); }" ),
-			'Uma regra que declara as duas metades está certa.'
+			'A rule that declares both halves is correct.'
 		);
 		$this->assertSame(
 			array(),
 			self::detect_controls( ".x button:disabled { background: var(--ffc-bg-alt); }" ),
-			'Um modificador de estado herda a cor da regra base que ele sobrescreve.'
+			'A state modifier inherits the colour of the base rule it overrides.'
 		);
 		$this->assertSame(
 			array(),
 			self::detect_controls( ".x .ffc-toggle-track { background: var(--ffc-bg-alt); }" ),
-			'Uma pista de interruptor não carrega texto.'
+			'A toggle track carries no text.'
 		);
 	}
 
@@ -874,29 +874,29 @@ final class AdminStylesheetTokensTest extends TestCase {
 		);
 
 		if ( ! preg_match( '/(:root\.ffc-dark-mode\s+\.notice\s+p\s*,[^{}]*)\{([^{}]*)\}/s', $css, $m ) ) {
-			$this->fail( 'A regra que nomeia os nós de texto da tarja sumiu — sem ela o texto volta a herdar, e nada mais falha.' );
+			$this->fail( 'The rule naming the notice\'s text nodes vanished — without it the text inherits again, and nothing else fails.' );
 		}
 
 		foreach ( array( '.notice p', '.notice li', '.notice strong' ) as $needed ) {
 			$this->assertStringContainsString(
 				$needed,
 				$m[1],
-				"A regra deixou de cobrir `{$needed}`."
+				"The rule stopped covering `{$needed}`."
 			);
 		}
 
 		$this->assertMatchesRegularExpression(
 			'/(?<![-\w])color\s*:\s*var\(--ffc-[\w-]+\)/',
 			$m[2],
-			'A tarja tem de pintar por token — literal aqui é o defeito que o bloco existe para corrigir.'
+			'The notice must paint through a token — a literal here is the defect the block exists to fix.'
 		);
 
-		// E nunca com `!important`: responder `!important` com `!important`
-		// começa uma guerra que a próxima folha de terceiro ganha (#1141).
+		// And never with `!important`: answering `!important` with `!important`
+		// starts a war the next third-party sheet wins (#1141).
 		$this->assertStringNotContainsString(
 			'!important',
 			$m[2],
-			'Escalar para `!important` aqui é uma guerra que a próxima folha ganha.'
+			'Escalating to `!important` here is a war the next sheet wins.'
 		);
 	}
 
@@ -945,11 +945,11 @@ final class AdminStylesheetTokensTest extends TestCase {
 			}
 		}
 
-		$this->assertNotSame( array(), $m[1] ?? array(), 'A varredura do modal colapsou.' );
+		$this->assertNotSame( array(), $m[1] ?? array(), 'The modal scan collapsed.' );
 		$this->assertSame(
 			array(),
 			$unscoped,
-			'Regra de modal sem `.ffc-shortcode` na paleta: a folha carrega no frontend, então ela alcança o que o tema do site chamar de modal.'
+			'A modal rule without `.ffc-shortcode` in the palette: the sheet loads on the frontend, so it reaches whatever the site theme calls a modal.'
 		);
 	}
 
@@ -977,13 +977,13 @@ final class AdminStylesheetTokensTest extends TestCase {
 		);
 
 		preg_match_all( '/(?<![\w-])\.ffc-rereg-modal[\w-]*/', $css, $renamed );
-		$this->assertNotSame( array(), $renamed[0], 'A varredura do modal do admin colapsou — nenhuma regra encontrada.' );
+		$this->assertNotSame( array(), $renamed[0], 'The admin modal scan collapsed — no rule found.' );
 
 		preg_match_all( '/(?<![\w-])\.?ffc-modal[\w-]*/', $css, $leftover );
 		$this->assertSame(
 			array(),
 			$leftover[0],
-			'Sobrou `ffc-modal` na folha do admin de recadastramento: o nome volta a colidir com o componente compartilhado de `ffc-common.css`.'
+			'`ffc-modal` is left over in the reregistration admin sheet: the name collides with `ffc-common.css`\'s shared component again.'
 		);
 	}
 
