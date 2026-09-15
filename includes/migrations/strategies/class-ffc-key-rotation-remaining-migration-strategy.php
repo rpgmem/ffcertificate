@@ -580,11 +580,16 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 				// O prefixo e um FILTRO DE CUSTO, nao de correcao: `decrypt()`
 				// ja devolveria null para o que nao sabe decifrar, e o guarda
 				// seguinte protegeria o valor de qualquer jeito (medido por
-				// mutacao). O que ele evita e a CHAMADA -- toda falha de
-				// decrypt cai em `log_decrypt_failure()`, que grava uma linha em
-				// `ffc_activity_log` por valor, sem throttle. Numa migracao que
-				// percorre todos os usuarios, cada meta em texto claro viraria
-				// uma linha de log por lote.
+				// mutacao). O que ele evita e a CHAMADA: abrir o envelope,
+				// derivar a comparacao HMAC e chamar `openssl_decrypt` para
+				// cada meta em texto claro, num laco que percorre todos os
+				// usuarios do site.
+				//
+				// Ate o #1234 havia um segundo motivo, maior: cada falha
+				// gravava uma linha em `ffc_activity_log`, sem teto. O teto
+				// agora existe (cinco por requisicao), entao o que sobra e o
+				// custo da decifragem em si -- suficiente, mas nao mais o
+				// argumento dramatico que este comentario carregava antes.
 				if ( ! is_string( $stored ) || 0 !== strpos( $stored, Encryption::V2_PREFIX ) ) {
 					continue;
 				}

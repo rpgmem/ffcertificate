@@ -349,10 +349,12 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 	 * observavel e o mesmo; o que muda e o CUSTO.
 	 *
 	 * E por isso que a checagem fica: sem ela, toda meta em texto claro entra em
-	 * `decrypt()`, falha, e cai em `log_decrypt_failure()` -- que grava uma
-	 * linha em `ffc_activity_log` POR VALOR, sem throttle nem amostragem (o item
-	 * que a #1234 classifica como "baixa hoje, catastrofica quando dispara").
-	 * Numa migracao que percorre todos os usuarios, isso e uma enxurrada de log.
+	 * `decrypt()` -- abrir o envelope, comparar o HMAC, chamar
+	 * `openssl_decrypt` -- num laco que percorre todos os usuarios do site.
+	 *
+	 * Ate o #1234 havia um segundo motivo, maior: cada falha gravava uma linha
+	 * em `ffc_activity_log`, sem teto. O teto agora existe (cinco por
+	 * requisicao), entao o que sobra e o custo da decifragem em si.
 	 *
 	 * Prender esse custo exigiria alias-mockar `ActivityLog`, uma classe real e
 	 * ja carregada -- fragil e dependente de ordem, que e o que o CLAUDE.md
