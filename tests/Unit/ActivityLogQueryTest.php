@@ -414,6 +414,48 @@ class ActivityLogQueryTest extends TestCase {
 		$this->assertSame( array(), ActivityLogQuery::distinct_actions() );
 	}
 
+	/**
+	 * Um acerto de cache nao consulta o banco (#1234).
+	 *
+	 * E a asercao que sustenta a correcao. O `<select>` de filtro da tela de
+	 * Log de Atividades e redesenhado a cada render, e esta e a tabela que
+	 * mais cresce no plugin -- o `DISTINCT` usa o indice `KEY action`, entao
+	 * percorre o INDICE e nao a tabela, mas ainda o percorre inteiro para
+	 * produzir algumas dezenas de valores.
+	 *
+	 * `shouldNotReceive` e o que prende isso: comparar o valor devolvido nao
+	 * bastaria, porque a leitura descachada devolveria a mesma lista.
+	 */
+	public function test_distinct_actions_cache_hit_never_touches_the_database(): void {
+		Functions\when( 'get_transient' )->justReturn( array( 'cached_action' ) );
+		$this->wpdb->shouldNotReceive( 'get_col' );
+
+		$this->assertSame( array( 'cached_action' ), ActivityLogQuery::distinct_actions() );
+	}
+
+	/**
+	 * O resultado calculado e gravado no transiente.
+	 *
+	 * O par da asercao acima: sem a gravacao, todo render seria um miss e o
+	 * cache existiria so no caminho de leitura.
+	 */
+	public function test_distinct_actions_stores_what_it_computed(): void {
+		$stored = null;
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->alias(
+			function ( $key, $value ) use ( &$stored ) {
+				$stored = $value;
+				return true;
+			}
+		);
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( fn ( $sql ) => $sql );
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( 'a', 'b' ) );
+
+		ActivityLogQuery::distinct_actions();
+
+		$this->assertSame( array( 'a', 'b' ), $stored );
+	}
+
 	// ------------------------------------------------------------------
 	// redact_user_id() — privacy / user-cleanup delegate
 	// ------------------------------------------------------------------
