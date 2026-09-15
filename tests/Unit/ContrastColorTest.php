@@ -73,7 +73,7 @@ final class ContrastColorTest extends TestCase {
 		$this->assertSame(
 			'#000000',
 			ContrastColor::on( '#ffffff' ),
-			'A ponta escura precisa ser preto puro: a conta de on() assume luminância 0.'
+			'The dark end must be pure black: on()\'s computation assumes luminance 0.'
 		);
 	}
 

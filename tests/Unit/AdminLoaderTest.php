@@ -94,9 +94,9 @@ class AdminLoaderTest extends TestCase {
 	/**
 	 * Este loader NAO pode montar a cron de tickets expirados (#1234).
 	 *
-	 * Ele montava, e por isso ela nunca rodou: `AdminLoader` so e construido
+	 * It did compose, and that is why it never ran: `AdminLoader` is only built
 	 * dentro de `if ( is_admin() )`, e `wp-cron.php` define `DOING_CRON` e
-	 * nunca `WP_ADMIN` -- entao `is_admin()` e falso em todo contexto que
+	 * never `WP_ADMIN` -- so `is_admin()` is false in every context that
 	 * EXECUTA o gancho. O registro mora agora em
 	 * `Loader::define_admin_hooks()`, que apesar do nome roda em toda
 	 * requisicao, e e la que os testes do gate de modulo vivem.
@@ -104,9 +104,9 @@ class AdminLoaderTest extends TestCase {
 	 * O TESTE ANTIGO PROVAVA A COISA CERTA NO LUGAR ERRADO
 	 *
 	 * Ele cobrava que `AdminLoader::init()` chamasse
-	 * `ExpiredTicketsCleanup::init()`, o que era verdade e inutil: fixava uma
-	 * fiacao que nunca disparava. Uma expectativa verde nao diz que o gancho
-	 * chega a ser chamado -- so que o caminho que o teste encena o registra.
+	 * `ExpiredTicketsCleanup::init()`, which was true and useless: it pinned a
+	 * wiring that never fired. A green expectation does not say the hook is ever
+	 * called -- only that the path the test stages registers it.
 	 */
 	public function test_init_does_not_wire_the_expired_tickets_cron(): void {
 		$this->mock_common_wiring();

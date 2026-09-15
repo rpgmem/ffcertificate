@@ -383,16 +383,16 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 
 	public function test_has_edit_info_true_when_column_present_and_has_data(): void {
 		// Primeiro get_var: a coluna existe ('1'). Segundo: a sonda de
-		// existencia. Desde o #1234 a consulta e `SELECT 1 ... LIMIT 1` e nao
-		// `COUNT(*)`, entao o retorno e '1' quando ha alguma linha e NULL
-		// quando nao ha -- nunca o '0' que um COUNT devolveria.
+		// existence. Since #1234 the query is `SELECT 1 ... LIMIT 1` and not
+		// `COUNT(*)`, so the return is '1' when some row exists and NULL when
+		// none does -- never the '0' a COUNT would return.
 		$this->wpdb->shouldReceive( 'get_var' )->twice()->andReturn( '1', '1' );
 
 		$this->assertTrue( $this->repo()->hasEditInfo() );
 	}
 
 	public function test_has_edit_info_false_when_column_present_but_no_data(): void {
-		// NULL, nao '0': `get_var()` devolve null quando a consulta nao traz
+		// NULL, not '0': `get_var()` returns null when the query brings back
 		// linha nenhuma, que e a forma que `LIMIT 1` tem de dizer "vazio".
 		$this->wpdb->shouldReceive( 'get_var' )->twice()->andReturn( '1', null );
 
@@ -400,12 +400,12 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 	}
 
 	/**
-	 * A sonda de existencia nao usa `COUNT(*)` (#1234).
+	 * The existence probe does not use `COUNT(*)` (#1234).
 	 *
-	 * `edited_at` nao e indexado, entao um COUNT percorre a tabela inteira --
+	 * `edited_at` is not indexed, so a COUNT walks the whole table --
 	 * a maior do plugin -- para produzir um numero que so e comparado com
-	 * zero. Esta asercao le o SQL emitido porque a diferenca nao aparece no
-	 * valor de retorno: as duas formas respondem o mesmo booleano.
+	 * zero. This assertion reads the emitted SQL because the difference does not
+	 * appear in the return value: both shapes answer the same boolean.
 	 */
 	public function test_has_edit_info_asks_for_existence_not_a_count(): void {
 		$captured = '';
@@ -421,7 +421,7 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 
 		$this->repo()->hasEditInfo();
 
-		$this->assertNotSame( '', $captured, 'Nao capturei a consulta — a verificacao nao rodou.' );
+		$this->assertNotSame( '', $captured, 'Did not capture the query — the check did not run.' );
 		$this->assertStringContainsString( 'LIMIT 1', $captured );
 		$this->assertStringNotContainsString( 'COUNT(', $captured );
 	}

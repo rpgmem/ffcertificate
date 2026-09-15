@@ -42,15 +42,15 @@ class AppointmentRepositoryTest extends TestCase {
 		$wpdb->insert_id = 0;
 		$this->wpdb = $wpdb;
 
-		// `getStatistics()` avisa em runtime que vai embora (#1245). Sem este
-		// duplo, todo teste que a exercita morre em funcao indefinida -- e com
-		// ele, `$this->deprecations` guarda o que foi avisado, que e o que o
-		// teste abaixo cobra.
+		// `getStatistics()` warns at runtime that it is going away (#1245).
+		// Without this double, every test exercising it dies on an undefined
+		// function -- and with it, `$this->deprecations` holds what was warned,
+		// which is what the test below charges.
 		//
-		// So a forma GLOBAL: `Functions\when()` a define, e a resolucao do PHP
-		// alcanca a chamada nao qualificada dentro do namespace. Definir a
-		// versao namespaced criaria uma funcao que passaria a sombrear a global
-		// para o resto do processo -- a armadilha que o CLAUDE.md descreve.
+		// The GLOBAL form only: `Functions\when()` defines it, and PHP's
+		// resolution reaches the unqualified call inside the namespace. Defining
+		// the namespaced version would create a function that then shadows the
+		// global for the rest of the process -- the trap CLAUDE.md describes.
 		$this->deprecations = array();
 		Functions\when('_deprecated_function')->alias(
 			function ( $function_name, $version, $replacement = '' ) {
@@ -1773,28 +1773,29 @@ class AppointmentRepositoryTest extends TestCase {
 	}
 
 	// ==================================================================
-	// Depreciacao de getStatistics() (#1245)
+	// getStatistics() deprecation (#1245)
 	// ==================================================================
 
 	/**
-	 * As duas superficies avisam em runtime que vao embora.
+	 * Both surfaces warn at runtime that they are going away.
 	 *
-	 * POR QUE ISTO E O ENTREGAVEL, E NAO O `@deprecated`
+	 * WHY THIS IS THE DELIVERABLE, AND NOT THE `@deprecated`
 	 *
-	 * A razao declarada deste ciclo e notificar consumidores que uma varredura
-	 * de codigo nao enxerga -- uma integracao externa que instancie
-	 * `AppointmentRepository`. Um `@deprecated` no docblock nao alcanca
-	 * ninguem em runtime, entao ele sozinho seria um aviso que so nos lemos.
+	 * This cycle's declared reason is to notify consumers a code scan cannot see
+	 * -- an external integration instantiating `AppointmentRepository`. A
+	 * `@deprecated` in the docblock reaches nobody at runtime, so on its own it
+	 * would be a warning only we read.
 	 *
-	 * `_deprecated_function()` e o mecanismo do WordPress: `E_USER_DEPRECATED`
-	 * sob `WP_DEBUG`, silencioso em producao.
+	 * `_deprecated_function()` is WordPress's mechanism: `E_USER_DEPRECATED`
+	 * under `WP_DEBUG`, silent in production.
 	 *
-	 * CADA UMA AVISA POR SI
+	 * EACH ONE WARNS FOR ITSELF
 	 *
-	 * A fachada delega ao reader, entao quem chamar a fachada ve DOIS avisos.
-	 * Esta certo: os dois metodos sao publicos, os dois vao embora, e nomear so
-	 * um deixaria o outro sair sem aviso para quem o chama direto -- que e o
-	 * idioma que o CLAUDE.md descreve para os readers.
+	 * The facade delegates to the reader, so whoever calls the facade sees TWO
+	 * warnings. That is correct: both methods are public, both are going away,
+	 * and naming only one would let the other leave without a warning for
+	 * whoever calls it directly -- which is the idiom CLAUDE.md describes for
+	 * the readers.
 	 */
 	public function test_get_statistics_announces_its_own_removal(): void {
 		$this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
@@ -1807,17 +1808,17 @@ class AppointmentRepositoryTest extends TestCase {
 		$this->assertContains(
 			'FreeFormCertificate\\Repositories\\AppointmentRepository::getStatistics',
 			$named,
-			'A fachada tem de nomear a SI, senao quem a chamou nao sabe o que parar de usar.'
+			'The facade has to name ITSELF, or whoever called it does not know what to stop using.'
 		);
 		$this->assertContains(
 			'FreeFormCertificate\\Repositories\\AppointmentReader::getStatistics',
 			$named,
-			'O reader e publico e chamado direto neste codebase; sair sem aviso proprio deixaria esses chamadores no escuro.'
+			'The reader is public and called directly in this codebase; leaving with no warning of its own would leave those callers in the dark.'
 		);
 
 		foreach ($this->deprecations as $call) {
-			$this->assertSame('6.25.0', $call[1], 'A versao do aviso e a do ANUNCIO, nao a da remocao.');
-			$this->assertSame('', $call[2], 'Nao ha substituto — o WordPress imprime "with no alternative available", que e a verdade.');
+			$this->assertSame('6.25.0', $call[1], 'The warned version is the ANNOUNCEMENT\'s, not the removal\'s.');
+			$this->assertSame('', $call[2], 'There is no replacement — WordPress prints "with no alternative available", which is the truth.');
 		}
 	}
 }

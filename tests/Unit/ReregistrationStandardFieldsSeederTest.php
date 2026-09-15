@@ -54,8 +54,8 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 	/**
 	 * Os cinco rótulos revisados carregam a string-fonte nova.
 	 *
-	 * `__()` devolve o argumento nos testes, então o que se lê aqui é a
-	 * string-FONTE. A tradução é cobrada pelo teste seguinte.
+	 * `__()` returns its argument in tests, so what is read here is the SOURCE
+	 * string. The translation is charged by the next test.
 	 *
 	 * @return void
 	 */
@@ -73,7 +73,7 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 	 * Os campos que passaram a obrigatórios, e o que segue opcional.
 	 *
 	 * `endereco_complemento` continua opcional DE PROPÓSITO -- complemento é
-	 * o campo que legitimamente não se aplica a muitos endereços.
+	 * the field that legitimately does not apply to many addresses.
 	 *
 	 * @return void
 	 */
@@ -90,12 +90,12 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 	/**
 	 * Todo rótulo semeado tem tradução pt_BR. Bloqueia em ZERO.
 	 *
-	 * O seeder grava o resultado de `__()` NO BANCO, no momento em que o
-	 * público é criado. Então um rótulo sem tradução não degrada para
+	 * The seeder writes `__()`'s result INTO THE DATABASE, at the moment the
+	 * audience is created. So an untranslated label does not degrade to
 	 * inglês só naquela tela: ele nasce em inglês na linha e fica assim até
 	 * alguém renomear na UI, público por público.
 	 *
-	 * Isto cobre a classe, não os cinco desta leva: mudar uma string-fonte
+	 * This covers the class, not the five in this batch: changing a source
 	 * sem acrescentar a tradução é o engano natural, e foi o que quase
 	 * aconteceu ao escrever esta própria issue.
 	 *
@@ -113,7 +113,7 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		}
 		$labels = array_values( array_unique( $labels ) );
 
-		$this->assertNotEmpty( $labels, 'A varredura não pode passar por vazia.' );
+		$this->assertNotEmpty( $labels, 'The scan must not pass by being empty.' );
 
 		$missing = array();
 		foreach ( $labels as $label ) {
@@ -130,10 +130,10 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 	}
 
 	/**
-	 * As duas traduções que estavam ERRADAS, não apenas ausentes.
+	 * The two translations that were WRONG, not merely absent.
 	 *
 	 * `Union` ali é sindicato, e estava como "Estado" -- colidindo com o
-	 * `State` do endereço, de modo que o formulário mostrava duas coisas
+	 * the address\'s `State`, so the form showed two different things
 	 * diferentes sob a mesma palavra. `Acknowledgment` é ciência/aceite, e
 	 * estava como "Agradecimentos"; o próprio código já chamava a coisa de
 	 * `get_default_acknowledgment_html()`.

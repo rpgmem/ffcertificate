@@ -28,10 +28,10 @@ class CapabilityMigratorTest extends TestCase {
 		class_exists( '\\FreeFormCertificate\\UserDashboard\\CapabilityMigrator' );
 		class_exists( '\\FreeFormCertificate\\UserDashboard\\CapabilityManager' );
 
-		// `users_with_ffc_grants()` monta a chave da meta de capabilities a
-		// partir do prefixo do blog (#1254) -- e essa dependencia e real, nao
-		// incidental: em multisite a meta e por blog, e usar o prefixo errado
-		// devolveria a lista vazia em silencio.
+		// `users_with_ffc_grants()` builds the capabilities meta key from the
+		// blog prefix (#1254) -- and that dependency is real, not incidental: on
+		// multisite the meta is per blog, and using the wrong prefix would return
+		// an empty list in silence.
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' );
 		$wpdb->prefix = 'wp_';
@@ -241,23 +241,22 @@ class CapabilityMigratorTest extends TestCase {
 	// ==================================================================
 
 	/**
-	 * A varredura pergunta por quem tem `ffc_*` pessoal, nao por todo mundo.
+	 * The scan asks for whoever holds a personal `ffc_*`, not for everybody.
 	 *
-	 * O DEFEITO QUE ISTO FECHA
+	 * THE DEFECT THIS CLOSES
 	 *
-	 * Onze migracoes deste ficheiro pediam `get_users( array( 'fields' => 'ID'
-	 * ) )` -- a base inteira -- e faziam um `get_userdata()` por usuario,
-	 * rodando no `plugins_loaded`, isto e, podendo cair numa requisicao de
-	 * frontend anonima. E a flag de conclusao so e gravada DEPOIS da
-	 * varredura: um timeout no meio fazia a requisicao seguinte recomecar do
-	 * zero, indefinidamente.
+	 * Eleven migrations in this file asked for `get_users( array( 'fields' =>
+	 * 'ID' ) )` -- the whole user base -- and did one `get_userdata()` per user,
+	 * running on `plugins_loaded`, that is, possibly inside an anonymous frontend
+	 * request. And the completion flag is only written AFTER the scan: a timeout
+	 * partway through made the next request start again from zero, indefinitely.
 	 *
-	 * POR QUE A ASERCAO E SOBRE OS ARGUMENTOS
+	 * WHY THE ASSERTION IS ABOUT THE ARGUMENTS
 	 *
-	 * Os testes desta classe encenam `get_users()` pelo retorno, entao um
-	 * pedido pela base inteira e um pedido estreito sao indistinguiveis para
-	 * eles -- e foi assim que a varredura sobreviveu a uma suite verde. O que
-	 * esta asercao le e o PEDIDO.
+	 * This class's tests stage `get_users()` by its return value, so a request
+	 * for the whole base and a narrow one are indistinguishable to them -- and
+	 * that is how the scan survived a green suite. What this assertion reads is
+	 * the REQUEST.
 	 */
 	public function test_the_user_scan_asks_only_for_holders_of_an_ffc_grant(): void {
 		$captured = array();
@@ -274,27 +273,26 @@ class CapabilityMigratorTest extends TestCase {
 		CapabilityMigrator::migrate_taxonomy_renames();
 
 		$this->assertSame( 'ID', $captured['fields'] ?? null );
-		$this->assertSame( 'wp_capabilities', $captured['meta_key'] ?? null, 'A meta de capabilities e por blog; o prefixo errado devolveria vazio em silencio.' );
+		$this->assertSame( 'wp_capabilities', $captured['meta_key'] ?? null, 'The capabilities meta is per blog; the wrong prefix would return empty in silence.' );
 		$this->assertSame( 'ffc_', $captured['meta_value'] ?? null );
 		$this->assertSame( 'LIKE', $captured['meta_compare'] ?? null );
 	}
 
 	/**
-	 * O prefiltro cobre PAPEIS tambem, e isso nao e coincidencia.
+	 * The prefilter covers ROLES too, and that is not a coincidence.
 	 *
-	 * Capabilities e papeis moram na mesma meta serializada: um papel aparece
-	 * nela como `s:13:"ffc_readonly";b:1;`, igual a uma capability. E todos os
-	 * seis papeis antigos que a renomeacao alcanca comecam por `ffc_` -- se um
-	 * futuro rename incluir um papel sem esse prefixo, ele sai do prefiltro e
-	 * a migracao deixa de encontra-lo em silencio. Esta asercao e onde isso
-	 * seria notado.
+	 * Capabilities and roles live in the same serialised meta: a role appears in
+	 * it as `s:13:"ffc_readonly";b:1;`, just like a capability. And all six old
+	 * roles the rename reaches start with `ffc_` -- if a future rename includes a
+	 * role without that prefix, it falls outside the prefilter and the migration
+	 * silently stops finding it. This assertion is where that would be noticed.
 	 */
 	public function test_every_renamed_role_is_reachable_by_the_prefilter(): void {
 		foreach ( array_keys( CapabilityMigrator::role_renames() ) as $old_role ) {
 			$this->assertStringStartsWith(
 				'ffc_',
 				$old_role,
-				'Um papel antigo sem o prefixo `ffc_` nao seria encontrado pelo prefiltro de `users_with_ffc_grants()`.'
+				'An old role without the `ffc_` prefix would not be found by `users_with_ffc_grants()`\'s prefilter.'
 			);
 		}
 	}

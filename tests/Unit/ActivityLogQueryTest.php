@@ -415,16 +415,16 @@ class ActivityLogQueryTest extends TestCase {
 	}
 
 	/**
-	 * Um acerto de cache nao consulta o banco (#1234).
+	 * A cache hit does not query the database (#1234).
 	 *
 	 * E a asercao que sustenta a correcao. O `<select>` de filtro da tela de
-	 * Log de Atividades e redesenhado a cada render, e esta e a tabela que
-	 * mais cresce no plugin -- o `DISTINCT` usa o indice `KEY action`, entao
-	 * percorre o INDICE e nao a tabela, mas ainda o percorre inteiro para
+	 * The Activity Log is redrawn on every render, and this is the fastest
+	 * growing table in the plugin -- the `DISTINCT` uses the `KEY action` index,
+	 * so it walks the INDEX and not the table, but it still walks all of it to
 	 * produzir algumas dezenas de valores.
 	 *
-	 * `shouldNotReceive` e o que prende isso: comparar o valor devolvido nao
-	 * bastaria, porque a leitura descachada devolveria a mesma lista.
+	 * `shouldNotReceive` is what pins this: comparing the returned value would
+	 * not be enough, because the uncached read would return the same list.
 	 */
 	public function test_distinct_actions_cache_hit_never_touches_the_database(): void {
 		Functions\when( 'get_transient' )->justReturn( array( 'cached_action' ) );

@@ -107,11 +107,11 @@ class RecruitmentBadgePaletteTest extends TestCase {
 	 */
 	public function test_the_scans_find_something(): void {
 		$this->assertGreaterThanOrEqual( 15, count( self::variants_from_label_maps() ), 'A varredura dos mapas de rótulo desabou.' );
-		$this->assertGreaterThanOrEqual( 15, count( self::emitted_variants() ), 'O gerador não emitiu regra nenhuma.' );
+		$this->assertGreaterThanOrEqual( 15, count( self::emitted_variants() ), 'The generator emitted no rule at all.' );
 	}
 
 	// ==================================================================
-	// As duas direções
+	// The two directions
 	// ==================================================================
 
 	/**
@@ -126,7 +126,7 @@ class RecruitmentBadgePaletteTest extends TestCase {
 		$this->assertSame(
 			array(),
 			array_values( $missing ),
-			"Status que o código renderiza e a paleta não colore:\n  " . implode( "\n  ", $missing )
+			"Statuses the code renders and the palette does not colour:\n  " . implode( "\n  ", $missing )
 		);
 	}
 
@@ -144,12 +144,12 @@ class RecruitmentBadgePaletteTest extends TestCase {
 		$this->assertSame(
 			array(),
 			array_values( $stale ),
-			"Regras geradas para status que não existem:\n  " . implode( "\n  ", $stale )
+			"Rules generated for statuses that do not exist:\n  " . implode( "\n  ", $stale )
 		);
 	}
 
 	// ==================================================================
-	// A forma do que é gerado
+	// The shape of what is generated
 	// ==================================================================
 
 	/**

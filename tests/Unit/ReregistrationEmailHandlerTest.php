@@ -291,7 +291,7 @@ class ReregistrationEmailHandlerTest extends TestCase {
 		);
 
 		// get_by_id() → rereg; get_awaiting_invitation() → submissions. As linhas
-		// carregam `id` porque o envio estampa `invited_at` nelas (#1190).
+		// carry an `id` because the send stamps `invited_at` on them (#1190).
 		$this->wpdb->shouldReceive('prepare')->andReturn('query');
 		$this->wpdb->shouldReceive('get_row')->andReturn($rereg);
 		$this->wpdb->shouldReceive('get_results')->andReturn(
@@ -341,8 +341,8 @@ class ReregistrationEmailHandlerTest extends TestCase {
 		$this->wpdb->shouldReceive('get_row')->andReturn(
 			$rereg,
 			// `id` e obrigatorio: o envio carimba `reminder_sent_at` na linha
-			// que acabou de receber e-mail (#1232), e uma linha real sempre o
-			// tem. A fixture nao tinha, e so a execucao mostrou.
+			// that has just been emailed (#1232), and a real row always has one.
+			// The fixture did not, and only running it showed that.
 			(object) array( 'id' => 101, 'user_id' => 10, 'status' => 'pending' ),
 			// User 20 already submitted → filtered out.
 			(object) array( 'id' => 102, 'user_id' => 20, 'status' => 'submitted' )

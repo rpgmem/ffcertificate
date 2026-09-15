@@ -688,10 +688,10 @@ class FichaGeneratorTest extends TestCase {
 	/**
 	 * Aprovada: o rodapé carrega o código no formato do plugin.
 	 *
-	 * Cobra o VALOR composto, não a presença da chave: `format_auth_code`
+	 * It charges the composed VALUE, not the key's presence: `format_auth_code`
 	 * hifeniza um código de 12 caracteres em grupos de 4 e prefixa com `R-`,
-	 * que é o formato do e-mail de convite e do certificado. As variáveis são
-	 * lidas pelo filtro `ffcertificate_ficha_data`, que as expõe exatamente
+	 * which is the format of the invitation email and of the certificate. The
+	 * variables are read through the `ffcertificate_ficha_data` filter, which
 	 * como o template vai recebê-las.
 	 *
 	 * @runInSeparateProcess
@@ -707,8 +707,8 @@ class FichaGeneratorTest extends TestCase {
 	/**
 	 * Não aprovada: nenhuma linha de autenticação.
 	 *
-	 * O `auth_code` nasce na transição de status, então `submitted` e `draft`
-	 * não têm código. A linha inteira tem de sair VAZIA -- se saísse só o
+	 * The `auth_code` is born on the status transition, so `submitted` and
+	 * `draft` have no code. The whole line has to come out EMPTY -- if only the
 	 * código vazio, o template padrão renderizaria "Autenticação:  /".
 	 *
 	 * @runInSeparateProcess
@@ -717,15 +717,15 @@ class FichaGeneratorTest extends TestCase {
 	public function test_generate_ficha_data_omits_the_auth_code_line_when_not_approved(): void {
 		$captured = $this->runFichaWithStatus('submitted', 'MA6DE5LHPFTC');
 
-		$this->assertSame('', $captured['auth_code'], 'Submissão não aprovada não publica código.');
-		$this->assertSame('', $captured['auth_code_line'], 'Sem código, sem trecho -- nada de "Autenticação:  /".');
+		$this->assertSame('', $captured['auth_code'], 'An unapproved submission publishes no code.');
+		$this->assertSame('', $captured['auth_code_line'], 'No code, no fragment -- no "Authentication:  /".');
 	}
 
 	/**
 	 * O template padrão realmente consome o marcador, antes de "Preenchido em".
 	 *
 	 * A metade de cima prova a composição; esta prova a FIAÇÃO. Sem ela, as
-	 * duas primeiras passariam com o template ignorando a variável.
+	 * first two would pass with the template ignoring the variable.
 	 *
 	 * @return void
 	 */

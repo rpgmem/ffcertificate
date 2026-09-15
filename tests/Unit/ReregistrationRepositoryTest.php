@@ -43,8 +43,8 @@ class ReregistrationRepositoryTest extends TestCase {
 		Functions\when('sanitize_text_field')->alias('trim');
 		Functions\when('get_current_user_id')->justReturn(1);
 		Functions\when('current_time')->justReturn('2026-03-01 12:00:00');
-		// `get_user_ids_for_audiences()` desce a hierarquia desde o #1190, então
-		// alcança `AudienceReader::get_all()` pelo caminho de `get_children()`.
+		// `get_user_ids_for_audiences()` walks down the hierarchy since #1190, so
+		// it reaches `AudienceReader::get_all()` through `get_children()`.
 		Functions\when('sanitize_sql_orderby')->returnArg();
 		Functions\when('absint')->alias(function ($v) { return abs((int) $v); });
 
@@ -52,7 +52,7 @@ class ReregistrationRepositoryTest extends TestCase {
 			return func_get_args()[0];
 		})->byDefault();
 		// Sem filhos, por padrão: quem quiser hierarquia sobrescreve. `get_col`
-		// fica sem padrão de propósito -- cada teste declara o que a consulta
+		// is left with no default on purpose -- each test declares what the query
 		// de membros devolve.
 		$this->wpdb->shouldReceive('get_results')->andReturn(array())->byDefault();
 	}
@@ -1350,7 +1350,7 @@ class ReregistrationRepositoryTest extends TestCase {
 
 		// First arg is the table name; the audience ids follow.
 		$this->assertContains(10, $member_args, 'O público da campanha tem que entrar na consulta.');
-		$this->assertContains(11, $member_args, 'O filho também — é o defeito do #1190.');
+		$this->assertContains(11, $member_args, 'The child too — that is #1190\'s defect.');
 		$this->assertSame(array(100), array_values($result));
 	}
 

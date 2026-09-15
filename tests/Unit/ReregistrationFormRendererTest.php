@@ -75,8 +75,8 @@ class ReregistrationFormRendererTest extends TestCase {
 	private static $mockFields = null;
 
 	/**
-	 * @var object|null Submissao-fonte que o alias do `ReregistrationSubmissionReader`
-	 *                  devolve. `null` -- nenhum recadastramento aprovado
+	 * @var object|null The source submission the `ReregistrationSubmissionReader`
+	 *                  alias returns. `null` -- no approved reregistration
 	 *                  anterior -- e o caso comum (#1213).
 	 */
 	private static $mockImportSource = null;
@@ -119,7 +119,7 @@ class ReregistrationFormRendererTest extends TestCase {
 
 		// Sem este alias o renderer alcanca a consulta real do #1213 e o teste
 		// morre em `ReregistrationRepository::get_table_name()`. `null` e o
-		// caso comum: nao ha recadastramento aprovado anterior, logo nao ha
+		// the common case: no earlier approved reregistration, so there is no
 		// oferta de importacao.
 		$submissionReaderMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' );
 		$submissionReaderMock->shouldReceive( 'get_latest_approved_for_user' )->andReturn( self::$mockImportSource );
@@ -257,14 +257,14 @@ class ReregistrationFormRendererTest extends TestCase {
 	}
 
 	/**
-	 * Um rascunho devolvido tem de voltar LEGÍVEL, não como ciphertext.
+	 * A returned draft has to come back READABLE, not as ciphertext.
 	 *
 	 * O valor sensível é gravado por `Encryption::encrypt` (ver
-	 * `ReregistrationDataProcessor`), então o que está no JSON da submissão é
-	 * ciphertext. O caminho do perfil já descriptografa; o do rascunho não
+	 * `ReregistrationDataProcessor`), so what sits in the submission's JSON is
+	 * ciphertext. The profile path already decrypts; the draft path did not
 	 * descriptografava, e o usuário via o blob no lugar do próprio CPF.
 	 *
-	 * O teste cobra o VALOR: o texto claro aparece e o ciphertext não. Uma
+	 * The test charges the VALUE: the plaintext appears and the ciphertext does
 	 * asserção de "renderizou sem erro" passaria com o defeito no lugar.
 	 *
 	 * @return void
@@ -313,8 +313,8 @@ class ReregistrationFormRendererTest extends TestCase {
 		$html = ReregistrationFormRenderer::render( $rereg, $submission, 10 );
 
 		$this->assertStringContainsString( '529.982.247-25', $html, 'O valor sensível tem de voltar em texto claro.' );
-		$this->assertStringNotContainsString( 'CIPHERTEXT-DO-CPF', $html, 'O ciphertext não pode chegar ao formulário.' );
-		$this->assertStringContainsString( '11999999999', $html, 'O campo não sensível segue intocado.' );
+		$this->assertStringNotContainsString( 'CIPHERTEXT-DO-CPF', $html, 'The ciphertext must not reach the form.' );
+		$this->assertStringContainsString( '11999999999', $html, 'The non-sensitive field is left untouched.' );
 	}
 
 	// ==================================================================

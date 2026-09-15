@@ -61,8 +61,8 @@ final class EmailHubCatalogTest extends TestCase {
 	 */
 	private const NOT_HUB_EDITABLE = array(
 		'appointment-admin-notification' => 'partial de sistema, enviada por AppointmentEmailHandler via ffc_render_email_partial()',
-		'submission-admin-notification'  => 'idem, por EmailHandler — notificação ao admin, não texto de usuário',
-		'layout'                         => 'a moldura configurável, não um e-mail',
+		'submission-admin-notification'  => 'likewise, through EmailHandler — an admin notification, not user-facing text',
+		'layout'                         => 'the configurable chrome, not an email',
 	);
 
 	/**
@@ -156,7 +156,7 @@ final class EmailHubCatalogTest extends TestCase {
 		$this->assertSame(
 			$allowlisted,
 			$catalogued,
-			'O hub salva via EmailTemplates::save_global(), que recusa nome fora da allowlist: uma entrada só no catálogo é um editor que não salva, e uma só na allowlist é um e-mail editável que ninguém alcança.'
+			'The hub saves through EmailTemplates::save_global(), which refuses a name outside the allowlist: an entry only in the catalogue is an editor that does not save, and one only in the allowlist is an editable email nobody can reach.'
 		);
 	}
 
@@ -175,7 +175,7 @@ final class EmailHubCatalogTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$missing,
-			'O corpo padrão usa um token que o hub não oferece — foi exatamente o {{cancel_button}} do #1143.'
+			'The default body uses a token the hub does not offer — that was exactly #1143\'s {{cancel_button}}.'
 		);
 	}
 
@@ -189,7 +189,7 @@ final class EmailHubCatalogTest extends TestCase {
 			$this->assertArrayHasKey(
 				$name,
 				$catalogue,
-				"templates/emails/{$name}.php não está no hub nem listado como partial de sistema."
+				"templates/emails/{$name}.php is neither in the hub nor listed as a system partial."
 			);
 		}
 	}
@@ -201,7 +201,7 @@ final class EmailHubCatalogTest extends TestCase {
 			$this->assertContains(
 				$name,
 				$files,
-				"NOT_HUB_EDITABLE lista {$name}, que não existe — allowlist que sobrevive ao próprio motivo."
+				"NOT_HUB_EDITABLE lists {$name}, which does not exist — an allowlist outliving its own reason."
 			);
 		}
 	}
@@ -213,9 +213,9 @@ final class EmailHubCatalogTest extends TestCase {
 		$this->assertGreaterThan( 10, count( self::allowlist() ), 'A varredura da allowlist colapsou.' );
 		$this->assertGreaterThan( 10, count( self::template_files() ), 'A varredura dos arquivos colapsou.' );
 
-		// O leitor de tokens tem de enxergar tokens onde eles vivem…
+		// The token reader has to see tokens where they live…
 		$this->assertContains( 'cancel_button', self::tokens_used( 'selfscheduling-confirmation' ) );
-		// …e não pode ler a prosa do docblock como corpo: este arquivo cita
+		// …and must not read the docblock's prose as a body: this file quotes
 		// {{receipt_button}} na documentação e o corpo NÃO o usa.
 		$this->assertNotContains( 'receipt_button', self::tokens_used( 'appointment-cancellation' ) );
 	}

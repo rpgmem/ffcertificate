@@ -20,6 +20,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Four of `CLAUDE.md`'s own claims were wrong** (#1260): it said the remote refuses pushes to `develop` (it does not — the credential has bypass; what it genuinely cannot do is delete any ref), that a guard baseline held two entries (it is empty), and that the stylesheets weigh 382 KB (432).
 - **`CLAUDE.md` records three process findings from the #1260 arc** (#1260): where a `[Unreleased]` bullet goes (append, so parallel branches stop colliding on one line), when the full local suite is evidence and when `--filter` plus CI is enough, and the measured cost of splitting a docs-only pass into four PRs instead of two.
 - **The remaining theme and JS-id guards now read in English** (#1260): `DarkModeCssTest`, `AdminStylesheetTokensTest`, `SpacingTokensTest`, `RadiusAndLayerTokensTest`, `DashboardActionAlignmentTest`, `JsIdSelectors` and `JsSelectorEmitterTest` — the seven files the first two CSS slices missed. Comments, reasons and messages, plus two `dataProvider` labels.
+- **The last 35 Portuguese test files now read in English** (#1260): loaders, capabilities, recruitment, reregistration, submissions and the URL shortener — docblocks, comments and assertion messages, plus six fixture values (`umaSenhaBoa1` → `aGoodPassword1`, `Fulano de Tal` → `John Doe`, …). The token skeleton of all 35 is unchanged; the full suite is green at 8,037 tests.
 
 ### Fixed
 
