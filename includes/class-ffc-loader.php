@@ -844,6 +844,32 @@ class Loader {
 		if ( SettingsReader::module_enabled( 'self_scheduling' ) ) {
 			add_action( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, array( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::class, 'run' ) );
 		}
+
+		// A varredura de tickets expirados vem do `AdminLoader` (#1234), e a
+		// mudanca de lugar E a correcao: la ela nunca rodou.
+		//
+		// POR QUE NUNCA RODOU
+		//
+		// `AdminLoader` so e construido dentro de `if ( is_admin() )`. O
+		// `wp-cron.php` define `DOING_CRON` e NUNCA `WP_ADMIN`, que e o que
+		// `is_admin()` le -- o mesmo vale para `wp cron event run`. Entao em
+		// todo contexto que EXECUTA o gancho a guarda era falsa: o activator
+		// agendava o evento, ele disparava todo dia, e nao havia callback.
+		//
+		// O comentario que ficava no `AdminLoader` dizia seguir "o mesmo padrao
+		// das crons de recadastramento / self-scheduling em
+		// `define_admin_hooks()`". O padrao e este metodo, que apesar do nome
+		// roda em toda requisicao -- e era exatamente a diferenca que faltava.
+		//
+		// O gate de MODULO continua, e esse sim e deliberado: um modulo
+		// desligado para a varredura, o evento segue agendado e dispara como
+		// no-op ate ele voltar.
+		if ( SettingsReader::module_enabled( 'certificates' ) ) {
+			// Pelo `init()` da propria classe, e nao por um `add_action` cru
+			// como os irmaos acima: ela ja encapsula o par gancho/callback, e
+			// duplica-lo aqui seria uma segunda fonte para o mesmo nome.
+			\FreeFormCertificate\Admin\ExpiredTicketsCleanup::init();
+		}
 	}
 
 	/**
