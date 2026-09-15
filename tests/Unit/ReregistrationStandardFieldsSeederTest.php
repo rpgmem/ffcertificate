@@ -136,7 +136,7 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 	 * `State` do endereço, de modo que o formulário mostrava duas coisas
 	 * diferentes sob a mesma palavra. `Acknowledgment` é ciência/aceite, e
 	 * estava como "Agradecimentos"; o próprio código já chamava a coisa de
-	 * `get_default_termo_ciencia_html()`.
+	 * `get_default_acknowledgment_html()`.
 	 *
 	 * @return void
 	 */
@@ -287,7 +287,7 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		$this->assertSame( 1, $cpf['required'] );
 	}
 
-	public function test_divisao_setor_is_dependent_select(): void {
+	public function test_division_sector_is_dependent_select(): void {
 		$defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
 		$found = false;
 		foreach ( $defs as $def ) {

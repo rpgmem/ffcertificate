@@ -22,6 +22,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<fieldset class="ffc-rereg-fieldset">
 			<legend><?php echo esc_html( sprintf( '%d. %s', $index, __( 'Acknowledgment', 'ffcertificate' ) ) ); ?></legend>
 			<div class="ffc-rereg-termo-text">
-				<?php echo wp_kses_post( ReregistrationFieldOptions::get_default_termo_ciencia_html() ); ?>
+				<?php echo wp_kses_post( ReregistrationFieldOptions::get_default_acknowledgment_html() ); ?>
 			</div>
 		</fieldset>

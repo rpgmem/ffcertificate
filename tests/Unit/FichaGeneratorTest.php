@@ -309,7 +309,7 @@ class FichaGeneratorTest extends TestCase {
 		$this->assertSame('', $vars['divisao_setor_child']);
 	}
 
-	public function test_build_standard_field_variables_hides_accumulation_fields_without_acumulo(): void {
+	public function test_build_standard_field_variables_hides_accumulation_fields_without_second_post(): void {
 		$field = (object) [
 			'id'         => 2,
 			'field_key'  => 'jornada_acumulo',
@@ -323,7 +323,7 @@ class FichaGeneratorTest extends TestCase {
 		$this->assertSame('', $vars['jornada_acumulo']);
 	}
 
-	public function test_build_standard_field_variables_keeps_accumulation_fields_with_acumulo(): void {
+	public function test_build_standard_field_variables_keeps_accumulation_fields_with_second_post(): void {
 		$field = (object) [
 			'id'         => 2,
 			'field_key'  => 'jornada_acumulo',
