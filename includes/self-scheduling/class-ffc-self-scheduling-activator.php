@@ -105,6 +105,8 @@ class SelfSchedulingActivator {
             max_blocks_per_user int(10) unsigned DEFAULT 0 COMMENT 'Custom mode: max blocks a single user may book in this calendar (0 = disabled)',
             visibility enum('public','private') DEFAULT 'public' COMMENT 'Calendar visibility: public or private',
             scheduling_visibility enum('public','private') DEFAULT 'public' COMMENT 'Booking access: public or private',
+            restrict_viewing_to_hours tinyint(1) DEFAULT 0 COMMENT 'Restrict viewing to working hours only',
+            restrict_booking_to_hours tinyint(1) DEFAULT 0 COMMENT 'Restrict booking to working hours only',
             email_config longtext DEFAULT NULL,
             status varchar(20) DEFAULT 'active' COMMENT 'active, inactive, archived',
             created_at datetime NOT NULL,

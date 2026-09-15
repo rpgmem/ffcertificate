@@ -59,6 +59,7 @@ class UrlShortenerActivator {
             created_at datetime NOT NULL,
             updated_at datetime NOT NULL,
             status varchar(20) DEFAULT 'active',
+            qr_cache longtext NULL COMMENT 'Cached QR code payload',
             PRIMARY KEY (id),
             UNIQUE KEY idx_short_code (short_code),
             KEY idx_post_id (post_id),
