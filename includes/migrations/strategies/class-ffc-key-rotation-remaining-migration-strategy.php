@@ -576,6 +576,15 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 
 			foreach ( $map as $meta_key => $hash_key ) {
 				$stored = get_user_meta( $user_id, $meta_key, true );
+
+				// O prefixo e um FILTRO DE CUSTO, nao de correcao: `decrypt()`
+				// ja devolveria null para o que nao sabe decifrar, e o guarda
+				// seguinte protegeria o valor de qualquer jeito (medido por
+				// mutacao). O que ele evita e a CHAMADA -- toda falha de
+				// decrypt cai em `log_decrypt_failure()`, que grava uma linha em
+				// `ffc_activity_log` por valor, sem throttle. Numa migracao que
+				// percorre todos os usuarios, cada meta em texto claro viraria
+				// uma linha de log por lote.
 				if ( ! is_string( $stored ) || 0 !== strpos( $stored, Encryption::V2_PREFIX ) ) {
 					continue;
 				}
