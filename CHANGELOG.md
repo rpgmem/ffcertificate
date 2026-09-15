@@ -10,6 +10,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - **`CLAUDE.md` now states the language rule** (#1260): every versioned artifact is English — code, comments, assertion messages, CHANGELOG, commits, PR bodies — while the conversation with the maintainer is Brazilian Portuguese. A domain term stays Portuguese only when renaming it would break the database or need a migration.
+- **A Portuguese error message shipped as an i18n source string** (#1260): the key-rotation migration reported `'Nao foi possivel decifrar…'`, so a non-Portuguese install had no way to read it and no translation could fix it — a source string is the one place the language is not a preference. Now English.
 - **Four of `CLAUDE.md`'s own claims were wrong** (#1260): it said the remote refuses pushes to `develop` (it does not — the credential has bypass; what it genuinely cannot do is delete any ref), that a guard baseline held two entries (it is empty), and that the stylesheets weigh 382 KB (432).
 
 ### Fixed
