@@ -730,8 +730,24 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		);
 		$noticeReader->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( null );
 
+		// O historico vem em UMA consulta em lote, nao uma por classificacao
+		// (#1234). A asercao `once()` com a lista COMPLETA de ids e o que
+		// prende isso: um retorno ao singular quebraria aqui.
+		//
+		// Os ids 101 e 102 entram no lote embora seus editais sejam descartados
+		// depois (rascunho e ausente). E consequencia deliberada de coletar os
+		// ids antes do filtro: uma consulta com algumas linhas descartadas, em
+		// vez de tres consultas.
 		$callReader = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCallReader' );
-		$callReader->shouldReceive( 'get_history_for_classification' )->with( 100 )->andReturn( array( 'call1' ) );
+		$callReader->shouldReceive( 'get_history_for_classifications' )
+			->once()
+			->with( array( 100, 101, 102 ) )
+			->andReturn(
+				array(
+					(object) array( 'id' => 900, 'classification_id' => 100 ),
+					(object) array( 'id' => 901, 'classification_id' => 102 ),
+				)
+			);
 
 		$response = $this->controller->get_my_recruitment();
 
@@ -742,7 +758,10 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$this->assertTrue( $data[0]['notice']['was_reopened'] );
 		$this->assertCount( 1, $data[0]['classifications'] );
 		$this->assertSame( 100, $data[0]['classifications'][0]['id'] );
-		$this->assertSame( array( 'call1' ), $data[0]['classifications'][0]['calls'] );
+		// A linha da classificacao 102 existe no retorno do lote mas nao chega
+		// aqui: o edital dela foi descartado. A da 100 chega, agrupada.
+		$this->assertCount( 1, $data[0]['classifications'][0]['calls'] );
+		$this->assertSame( 900, $data[0]['classifications'][0]['calls'][0]->id );
 	}
 
 	// ------------------------------------------------------------------
