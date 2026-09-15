@@ -651,12 +651,37 @@ class ReregistrationSubmissionReader {
 	 *    se o prazo andou para frente, quem nao finalizou volta a ser
 	 *    lembravel pelo mesmo criterio que o torna convidavel.
 	 *
+	 * O LOTEAMENTO, E POR QUE O CURSOR NAO E OPCIONAL (#1232 passo 2)
+	 *
+	 * `$after_id` + `$limit` formam um keyset em `id`, o mesmo padrao que o
+	 * contrato de exportacao do #772 usa, e aqui ele nao e so uma questao de
+	 * paginacao estavel: e o que garante PROGRESSO.
+	 *
+	 * A tentacao e dispensar o cursor, porque `reminder_sent_at IS NULL` ja
+	 * parece ser um -- cada envio carimba a linha, entao a proxima pagina
+	 * naturalmente exclui quem ja recebeu. Isso falha quando o envio NAO
+	 * carimba, e existe um caso documentado em que ele nunca vai carimbar:
+	 * `send_to_user()` devolve `false` quando `get_userdata()` nao acha o
+	 * usuario, e `user_id` aqui e `NOT NULL` e ORFAO ACEITO (#822) -- apagar a
+	 * conta no WordPress deixa a submissao apontando para um usuario que nao
+	 * existe mais. Essa linha fica `reminder_sent_at IS NULL` para sempre.
+	 *
+	 * Sem cursor, o lote seguinte rebusca a mesma linha, o driver ve pagina
+	 * cheia, reagenda, e o ciclo se repete a cada 60 segundos sem fim. Com
+	 * cursor, ela e ultrapassada dentro da varredura do dia e so volta a ser
+	 * tentada na execucao diaria seguinte -- que e a politica de retentativa
+	 * certa para uma falha que pode ser transitoria.
+	 *
 	 * @param int      $reregistration_id ID da campanha.
 	 * @param int|null $extended_at       Unix da ultima extensao de prazo, ou
 	 *                                    null quando nao houve nenhuma.
+	 * @param int      $after_id          So linhas com `id` MAIOR que este.
+	 *                                    `0` comeca do inicio.
+	 * @param int      $limit             Tamanho maximo da pagina. `0` e sem
+	 *                                    limite, que e o caminho manual.
 	 * @return list<ReregistrationSubmissionRow>
 	 */
-	public static function get_awaiting_reminder( int $reregistration_id, ?int $extended_at = null ): array {
+	public static function get_awaiting_reminder( int $reregistration_id, ?int $extended_at = null, int $after_id = 0, int $limit = 0 ): array {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
@@ -676,11 +701,26 @@ class ReregistrationSubmissionReader {
 
 		$clause = implode( ' OR ', $where );
 
+		// A ORDEM IMPORTA: `prepare()` recebe um array unico e substitui na
+		// ordem em que os marcadores aparecem no SQL. Cursor e limite entram
+		// DEPOIS das clausulas acima porque e ali que seus marcadores estao.
+		$cursor_sql = '';
+		if ( $after_id > 0 ) {
+			$cursor_sql = ' AND id > %d';
+			$values[]   = $after_id;
+		}
+
+		$limit_sql = '';
+		if ( $limit > 0 ) {
+			$limit_sql = ' LIMIT %d';
+			$values[]  = $limit;
+		}
+
 		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- O sniff conta os marcadores do literal e nao sabe que `prepare()` aceita um array unico de argumentos, que e como a tabela, o id e os status chegam.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Leitura imediatamente antes da escrita que muda as mesmas linhas; uma resposta em cache reenviaria e-mail.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM %i WHERE reregistration_id = %d AND status IN ({$placeholders}) AND ( {$clause} ) ORDER BY id ASC",
+				"SELECT * FROM %i WHERE reregistration_id = %d AND status IN ({$placeholders}) AND ( {$clause} ){$cursor_sql} ORDER BY id ASC{$limit_sql}",
 				$values
 			)
 		);

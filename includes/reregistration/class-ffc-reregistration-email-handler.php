@@ -31,6 +31,46 @@ class ReregistrationEmailHandler {
 	use \FreeFormCertificate\Core\EmailHelperTrait;
 
 	/**
+	 * Quantas submissoes um lote de lembrete processa (#1232 passo 2).
+	 *
+	 * 50, e nao 100, porque o gargalo por participante nao e so o `wp_mail()`:
+	 * `PasswordInvite::issue_for()` faz um hash phpass -- deliberadamente
+	 * lento -- mais um `UPDATE wp_users`, e o envio escreve ainda uma linha de
+	 * log. Sao ~3 escritas por pessoa, numa requisicao de visitante.
+	 *
+	 * Com o plugin irmao `total-mail-queue` ativo o `wp_mail()` vira um INSERT
+	 * (ele curto-circuita em `pre_wp_mail`, sem handshake SMTP), mas as outras
+	 * escritas continuam la -- por isso o lote nao foi dimensionado supondo a
+	 * fila instalada.
+	 *
+	 * @var int
+	 */
+	public const REMINDER_BATCH_SIZE = 50;
+
+	/**
+	 * Evento unico que continua um lote de lembretes.
+	 *
+	 * Registrado no orquestrador (`Loader`), com os outros eventos agendados:
+	 * registro de cron e ciclo de vida do orquestrador, nao bootstrap de
+	 * modulo -- a distincao que o CLAUDE.md fixa para os `*Loader`.
+	 *
+	 * @var string
+	 */
+	public const REMINDER_BATCH_HOOK = 'ffc_reregistration_reminder_batch';
+
+	/**
+	 * Segundos entre um lote e o proximo.
+	 *
+	 * E um PISO, nao uma promessa: o WP-Cron e disparado por requisicao de
+	 * visitante, entao num site parado o lote seguinte sai quando alguem
+	 * aparecer. Quem precisa de cadencia real configura `DISABLE_WP_CRON` mais
+	 * um cron de sistema.
+	 *
+	 * @var int
+	 */
+	public const REMINDER_BATCH_DELAY = 60;
+
+	/**
 	 * Send invitation emails to whoever is still awaiting one.
 	 *
 	 * **Idempotent by construction** (#1190): it asks
@@ -108,18 +148,96 @@ class ReregistrationEmailHandler {
 	 * @return int Number of emails sent.
 	 */
 	public static function send_reminders( int $reregistration_id, array $user_ids = array() ): int {
+		return self::dispatch_reminders( $reregistration_id, $user_ids, 0, 0 )['sent'];
+	}
+
+	/**
+	 * Um LOTE de lembretes, e o reagendamento do proximo quando sobra fila.
+	 *
+	 * POR QUE LOTEAR
+	 *
+	 * `run_automated_reminders()` roda no wp-cron, isto e, DENTRO DA
+	 * REQUISICAO DE UM VISITANTE. Sem limite, uma campanha de milhares de
+	 * participantes fazia esse visitante pagar milhares de `wp_mail()` --
+	 * e, por participante, ainda um hash phpass e um `UPDATE wp_users` vindos
+	 * de `PasswordInvite::issue_for()`. O carimbo por item entregue no passo 1
+	 * ja tornava o envio retomavel entre execucoes diarias, mas o alcance
+	 * ficava limitado a (quanto cabe numa execucao) x `reminder_days`: numa
+	 * campanha grande, o prazo vence antes de todo mundo ser lembrado.
+	 *
+	 * O PAYLOAD CARREGA O CURSOR, E ISSO NAO E OPCIONAL
+	 *
+	 * Ver o docblock de {@see ReregistrationSubmissionReader::get_awaiting_reminder()}:
+	 * uma submissao cujo usuario foi apagado nunca recebe carimbo, entao um
+	 * loop guiado apenas por `reminder_sent_at IS NULL` a rebuscaria para
+	 * sempre. Sao dois escalares -- id da campanha e cursor --, o que tambem
+	 * e o que a opcao `cron` suporta sem custo: ela e autoloaded e
+	 * desserializada em TODA requisicao do site, entao um payload grande sai
+	 * caro em todo lugar, o tempo todo.
+	 *
+	 * A ULTIMA PAGINA E QUEM ENCERRA
+	 *
+	 * Uma pagina menor que o lote significa que a fila acabou; so uma pagina
+	 * CHEIA reagenda. Uma campanha de 50 ou menos termina numa execucao so,
+	 * exatamente como antes deste passo.
+	 *
+	 * @param int $reregistration_id ID da campanha.
+	 * @param int $after_id          Cursor: so linhas com `id` maior que este.
+	 * @return void
+	 */
+	public static function send_reminder_batch( int $reregistration_id, int $after_id = 0 ): void {
+		$result = self::dispatch_reminders( $reregistration_id, array(), $after_id, self::REMINDER_BATCH_SIZE );
+
+		if ( $result['seen'] < self::REMINDER_BATCH_SIZE ) {
+			return;
+		}
+
+		$args = array( $reregistration_id, $result['last_id'] );
+
+		// Sem esta guarda, duas execucoes do cron sobre a mesma campanha --
+		// possivel quando dois visitantes disparam o wp-cron quase juntos --
+		// enfileirariam dois lotes identicos.
+		if ( wp_next_scheduled( self::REMINDER_BATCH_HOOK, $args ) ) {
+			return;
+		}
+
+		wp_schedule_single_event( time() + self::REMINDER_BATCH_DELAY, self::REMINDER_BATCH_HOOK, $args );
+	}
+
+	/**
+	 * O despacho propriamente dito, compartilhado pelo caminho manual e pelo
+	 * lote do cron.
+	 *
+	 * Devolve `seen` e `last_id` alem de `sent` porque quem decide reagendar
+	 * precisa saber do TAMANHO DA PAGINA, nao de quantos e-mails sairam: uma
+	 * pagina cheia em que tres envios falharam ainda tem fila adiante, e
+	 * parar ali deixaria o resto da campanha para o dia seguinte.
+	 *
+	 * @param int        $reregistration_id ID da campanha.
+	 * @param array<int> $user_ids          IDs explicitos (caminho manual).
+	 * @param int        $after_id          Cursor keyset.
+	 * @param int        $limit             Tamanho da pagina; `0` e sem limite.
+	 * @return array{sent: int, seen: int, last_id: int}
+	 */
+	private static function dispatch_reminders( int $reregistration_id, array $user_ids, int $after_id, int $limit ): array {
+		$empty = array(
+			'sent'    => 0,
+			'seen'    => 0,
+			'last_id' => $after_id,
+		);
+
 		if ( self::emails_disabled() ) {
-			return 0;
+			return $empty;
 		}
 
 		$rereg = ReregistrationRepository::get_by_id( $reregistration_id );
 		if ( ! $rereg || empty( $rereg->email_reminder_enabled ) ) {
-			return 0;
+			return $empty;
 		}
 
 		$template = self::effective_template( 'reregistration-reminder' );
 		if ( ! $template ) {
-			return 0;
+			return $empty;
 		}
 
 		// Com ids explicitos o operador esta pedindo o envio para AQUELAS
@@ -140,14 +258,22 @@ class ReregistrationEmailHandler {
 			$extended_at = isset( $rereg->deadline_extended_at ) ? (int) $rereg->deadline_extended_at : 0;
 			$submissions = ReregistrationSubmissionReader::get_awaiting_reminder(
 				$reregistration_id,
-				$extended_at > 0 ? $extended_at : null
+				$extended_at > 0 ? $extended_at : null,
+				$after_id,
+				$limit
 			);
 		}
 
 		$days_left = max( 0, (int) ( ( strtotime( $rereg->end_date ) - time() ) / 86400 ) );
 
-		$count = 0;
+		$count   = 0;
+		$last_id = $after_id;
 		foreach ( $submissions as $sub ) {
+			// O cursor avanca mesmo quando o envio falha. E o que impede uma
+			// submissao cujo usuario foi apagado de travar a fila: ela e
+			// ultrapassada hoje e volta a ser tentada na varredura de amanha.
+			$last_id = (int) $sub->id;
+
 			// Também no lembrete: quem nunca definiu senha não consegue agir
 			// no convite NEM no lembrete, e o botão do painel exige login.
 			$extra = array(
@@ -174,7 +300,11 @@ class ReregistrationEmailHandler {
 			)
 		);
 
-		return $count;
+		return array(
+			'sent'    => $count,
+			'seen'    => count( $submissions ),
+			'last_id' => $last_id,
+		);
 	}
 
 	/**
@@ -263,7 +393,10 @@ class ReregistrationEmailHandler {
 		}
 
 		foreach ( $campaigns as $campaign ) {
-			self::send_reminders( (int) $campaign->id );
+			// Primeiro lote SINCRONO, o resto reagendado. Campanha de
+			// `REMINDER_BATCH_SIZE` ou menos termina aqui mesmo, identica ao
+			// comportamento anterior; so as grandes viram uma fila.
+			self::send_reminder_batch( (int) $campaign->id, 0 );
 		}
 	}
 
