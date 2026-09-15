@@ -1,6 +1,6 @@
 <?php
 /**
- * Todo seletor que o plugin publica precisa nomear algo que o plugin possui.
+ * Every selector the plugin publishes must name something the plugin owns.
  *
  * @package FreeFormCertificate\Tests
  */
@@ -13,99 +13,103 @@ use FreeFormCertificate\Tests\Support\CssSelectors;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Catraca de namespace do CSS (#1152, sub-issue da #1148).
+ * CSS namespace ratchet (#1152, a sub-issue of #1148).
  *
- * Uma regra como `.button::before { content: '\f123' }` alcança QUALQUER botão
- * da tela, não só os nossos. Hoje o raio é pequeno porque a folha só carrega
- * em duas páginas — mas isso é **sorte de enfileiramento, não desenho**, e
- * enfileiramento muda: `AudienceAdminPage::print_menu_separator_css()` existe
- * exatamente porque uma regra precisou sair de `ffc-audience-admin.css` quando
- * o alvo dela passou a aparecer em telas onde a folha não carrega.
+ * A rule like `.button::before { content: '\f123' }` reaches ANY button on the
+ * screen, not only ours. The radius is small today because the sheet loads on
+ * two pages only — but that is **enqueue luck, not design**, and enqueueing
+ * changes: `AudienceAdminPage::print_menu_separator_css()` exists precisely
+ * because one rule had to leave `ffc-audience-admin.css` when its target started
+ * appearing on screens where that sheet does not load.
  *
- * A guarda congela os 60 seletores sem âncora que existem hoje, por folha e
- * por texto, e **só encolhe**: um seletor novo sem âncora falha, e um seletor
- * da linha de base que ganhou âncora também falha (tranque o ganho removendo-o
- * daqui). A lista é um registro de dívida, não um alvo a crescer.
+ * The guard freezes the anchorless selectors that exist, per sheet and per text,
+ * and **only shrinks**: a new anchorless selector fails, and a baselined
+ * selector that gained an anchor also fails (lock the win in by dropping it from
+ * here). The list is a debt register, not a target to grow. It opened at 60 and
+ * is now **empty** — #1170 took it to 51 by prefixing the ones that were ours,
+ * #1184 to 3 by giving the rest a page anchor, and #1202 item 1 to zero by
+ * renaming the last three.
  *
- * **Nada está quebrado hoje** — nenhuma colisão observada. Isto a distingue de
- * todas as outras guardas do arco do tema, onde cada uma nasceu de um defeito
- * já entregue. É prevenção, e por isso ela congela em vez de exigir a correção
- * agora: as correções são unidades próprias (renomear `.status-active`, dar
- * prefixo aos seis ids `#tab-*`, ancorar as `.column-*` numa classe de página)
- * e cada uma mexe em emissor, JS e teste de módulos diferentes.
+ * **Nothing was broken** — no collision was ever observed. That sets it apart
+ * from every other guard in the theme arc, each of which was born from a defect
+ * that had already shipped. It is prevention, which is why it froze the debt
+ * instead of demanding the fix at once: the fixes were units of their own
+ * (renaming `.status-active`, prefixing the six `#tab-*` ids, anchoring the
+ * `.column-*` rules on a page class) and each touched an emitter, JS and tests
+ * in different modules.
  *
- * Duas armadilhas de medição, ambas caídas antes de acertar:
+ * Two measurement traps, both fallen into before getting it right:
  *
- * 1. **Contar classe a classe reporta falso positivo.** Em
- *    `.appointment-status.status-pending`, a classe `.status-pending` nunca
- *    aparece sozinha — o composto expõe UM nome, não dois. Varra seletor, não
- *    classe. É o que `test_a_compound_selector_counts_once()` fixa.
+ * 1. **Counting class by class reports a false positive.** In
+ *    `.appointment-status.status-pending`, `.status-pending` never appears on
+ *    its own — the compound exposes ONE name, not two. Scan selectors, not
+ *    classes. That is what `test_a_compound_selector_counts_once()` pins down.
  *
- * 2. **"Tem `ffc` em algum lugar" não é o mesmo que "está ancorado", e a
- *    fronteira do token importa.** `a[href^="#ffc-separator-"]` está ancorado
- *    (não pode casar nada que não seja nosso), mas o caractere antes de `ffc`
- *    ali é `#`, não `-`: um padrão `(?:^|[-_])ffc[-_]` deixa sete seletores de
- *    fora e a contagem sobe de 60 para 67. A regra precisa ser decidida ANTES
- *    de medir, ou o número descreve o padrão em vez do CSS.
+ * 2. **"It has `ffc` somewhere" is not the same as "it is anchored", and the
+ *    token boundary matters.** `a[href^="#ffc-separator-"]` is anchored (it
+ *    cannot match anything that is not ours), but the character before `ffc`
+ *    there is `#`, not `-`: a `(?:^|[-_])ffc[-_]` pattern drops seven selectors
+ *    and the count rises from 60 to 67. The rule has to be decided BEFORE
+ *    measuring, or the number describes the pattern instead of the CSS.
  *
- * O que ela NÃO vê: CSS inline impresso por PHP (`print_menu_separator_css()`,
- * o recibo de agendamento) e o `style=""` de atributo. Varre só as folhas de
- * `assets/css/`. Também não vê duplicação — a mesma varredura achou 19 classes
- * `ffc-*` declaradas cruas em mais de uma folha (`.ffc-status-badge` em cinco),
- * que é problema de componente sem dono único, não de namespace, e está na
- * #1162.
+ * What it does NOT see: inline CSS printed from PHP
+ * (`print_menu_separator_css()`, the appointment receipt) and the `style=""`
+ * attribute. It scans the sheets in `assets/css/` only. Nor does it see
+ * duplication — the same scan found 19 `ffc-*` classes declared bare in more
+ * than one sheet (`.ffc-status-badge` in five), which is a component without a
+ * single owner rather than a namespace problem, and lives in #1162.
  */
 class CssNamespaceAnchorTest extends TestCase {
 
 	/**
-	 * Seletores sem âncora que ficam, com o motivo.
+	 * Anchorless selectors that stay, with the reason.
 	 *
-	 * Diferente da linha de base abaixo: aqui não há dívida a pagar.
+	 * Different from the baseline below: there is no debt to pay here.
 	 *
 	 * @var array<string, array<string, string>>
 	 */
 	private const ALLOWED = array(
 		'ffc-common.css' => array(
-			// A paleta. `:root` é COMO se declara custom property -- não há
-			// variante ancorada, e toda propriedade declarada ali é `--ffc-*`.
-			// O bloco escuro, `:root.ffc-dark-mode`, já é ancorado.
-			':root' => 'declaração da paleta; as propriedades são todas --ffc-*',
+			// The palette. `:root` is HOW a custom property is declared -- there
+			// is no anchored variant, and every property declared there is
+			// `--ffc-*`. The dark block, `:root.ffc-dark-mode`, is anchored.
+			':root' => 'palette declaration; the properties are all --ffc-*',
 		),
 	);
 
 	/**
-	 * Linha de base: seletor sem âncora => quantas vezes aparece na folha.
+	 * Baseline: anchorless selector => how many times it appears in the sheet.
 	 *
-	 * Registro de dívida. Só encolhe.
+	 * A debt register. It only shrinks.
 	 *
 	 * @var array<string, array<string, int>>
 	 */
 	private const BASELINE = array(
-		// VAZIA desde a #1202 item 1. As três últimas entradas eram os ids
-		// `#tab-*` que `DashboardShortcode` publicava sem prefixo, e ali a
-		// correção não era âncora: um id é único no documento, então ancorar
-		// num contêiner deixaria o nome genérico exposto -- um tema com
-		// `#tab-profile` não repinta nada, quebra `getElementById`, o
-		// `aria-controls` das abas e a delegação de evento. Os seis painéis
-		// passaram a `ffc-tabpanel-<slug>`, que é a convenção que o editor de
-		// formulário já usava (`ffc-tabnav-` / `ffc-tabpanel-`).
+		// EMPTY since #1202 item 1. The last three entries were the `#tab-*` ids
+		// `DashboardShortcode` published unprefixed, and there the fix was not an
+		// anchor: an id is unique in the document, so anchoring inside a
+		// container would leave the generic name exposed -- a theme declaring
+		// `#tab-profile` does not merely repaint, it breaks `getElementById`, the
+		// tabs' `aria-controls` and the event delegation. The six panels became
+		// `ffc-tabpanel-<slug>`, which is the convention the form editor already
+		// used (`ffc-tabnav-` / `ffc-tabpanel-`).
 		//
-		// Zero não é o fim da guarda: quem cobra é
-		// `test_no_stylesheet_publishes_a_new_anchorless_selector()`, que varre
-		// as 28 folhas a cada corrida. Uma entrada nova aqui é uma decisão a
-		// defender, não uma linha a acrescentar.
+		// Zero is not the end of the guard: what charges it is
+		// `test_no_stylesheet_publishes_a_new_anchorless_selector()`, which scans
+		// all 28 sheets every run. A new entry here is a decision to defend, not
+		// a line to add.
 	);
 
 	/**
-	 * Um seletor está ancorado quando nomeia algo que o plugin possui.
+	 * A selector is anchored when it names something the plugin owns.
 	 *
-	 * Classe, id ou VALOR DE ATRIBUTO contendo o token `ffc` seguido de `-` ou
-	 * `_`, precedido de qualquer coisa que não seja letra ou dígito. Cobre as
-	 * cinco formas que a base usa: `.ffc-x`, `#ffc_x`, `.post-type-ffc_form`,
-	 * `.cm-s-ffc-dark` (o tema do CodeMirror, nosso) e
+	 * A class, an id or an ATTRIBUTE VALUE containing the token `ffc` followed by
+	 * `-` or `_`, preceded by anything that is not a letter or a digit. It covers
+	 * the five shapes the codebase uses: `.ffc-x`, `#ffc_x`, `.post-type-ffc_form`,
+	 * `.cm-s-ffc-dark` (CodeMirror's theme, which is ours) and
 	 * `a[href^="#ffc-separator-"]`.
 	 *
-	 * @param string $selector Um seletor único, já separado da lista.
+	 * @param string $selector A single selector, already split off the list.
 	 * @return bool
 	 */
 	private function is_anchored( string $selector ): bool {
@@ -113,14 +117,14 @@ class CssNamespaceAnchorTest extends TestCase {
 	}
 
 	/**
-	 * Extrai os seletores de uma folha, um por entrada da lista.
+	 * Extracts a sheet's selectors, one per list entry.
 	 *
-	 * Delega ao parser compartilhado: a guarda de posse de componente (#1162)
-	 * mede sobre as MESMAS folhas, e duas varreduras que discordassem sobre o
-	 * que é um seletor mediriam conjuntos diferentes -- o motivo pelo qual
-	 * `.github/scripts/ffc-create-statements.php` também é compartilhado.
+	 * It delegates to the shared parser: the component-ownership guard (#1162)
+	 * measures over the SAME sheets, and two scans disagreeing about what a
+	 * selector is would measure different sets -- the reason
+	 * `.github/scripts/ffc-create-statements.php` is shared too.
 	 *
-	 * @param string $css Conteúdo da folha.
+	 * @param string $css Sheet contents.
 	 * @return array<int, string>
 	 */
 	private function selectors( string $css ): array {
@@ -128,7 +132,7 @@ class CssNamespaceAnchorTest extends TestCase {
 	}
 
 	/**
-	 * Varre `assets/css/*.css` e agrupa os seletores sem âncora.
+	 * Scans `assets/css/*.css` and groups the anchorless selectors.
 	 *
 	 * @return array{anchorless: array<string, array<string, int>>, total: int, sheets: int}
 	 */
@@ -158,7 +162,7 @@ class CssNamespaceAnchorTest extends TestCase {
 	}
 
 	/**
-	 * Nada de novo sem âncora.
+	 * Nothing new without an anchor.
 	 *
 	 * @return void
 	 */
@@ -172,7 +176,7 @@ class CssNamespaceAnchorTest extends TestCase {
 				}
 				$known = self::BASELINE[ $sheet ][ $selector ] ?? 0;
 				if ( $count > $known ) {
-					$new[] = "{$sheet}: `{$selector}` aparece {$count}x, linha de base {$known}.";
+					$new[] = "{$sheet}: `{$selector}` appears {$count}x, baseline {$known}.";
 				}
 			}
 		}
@@ -180,14 +184,14 @@ class CssNamespaceAnchorTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$new,
-			"Seletor sem âncora `ffc`. Ancore numa classe nossa, numa classe de página ou "
-				. "no `body.post-type-*`; se a regra precisa mesmo alcançar um nome de terceiro, "
-				. "acrescente em ALLOWED com o motivo:\n" . implode( "\n", $new )
+			"Selector with no `ffc` anchor. Anchor it on a class of ours, on a page class or "
+				. "on `body.post-type-*`; if the rule genuinely has to reach a third-party name, "
+				. "add it to ALLOWED with the reason:\n" . implode( "\n", $new )
 		);
 	}
 
 	/**
-	 * O que foi ancorado sai da linha de base.
+	 * What gained an anchor leaves the baseline.
 	 *
 	 * @return void
 	 */
@@ -199,7 +203,7 @@ class CssNamespaceAnchorTest extends TestCase {
 			foreach ( $selectors as $selector => $count ) {
 				$now = $scan[ $sheet ][ $selector ] ?? 0;
 				if ( $now < $count ) {
-					$stale[] = "{$sheet}: `{$selector}` aparece {$now}x, linha de base ainda {$count}.";
+					$stale[] = "{$sheet}: `{$selector}` appears {$now}x, baseline still {$count}.";
 				}
 			}
 		}
@@ -207,13 +211,13 @@ class CssNamespaceAnchorTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$stale,
-			"Um seletor ganhou âncora e a linha de base não acompanhou — baixe-a para trancar o ganho:\n"
+			"A selector gained an anchor and the baseline did not follow — lower it to lock the win in:\n"
 				. implode( "\n", $stale )
 		);
 	}
 
 	/**
-	 * Toda entrada de ALLOWED ainda existe e carrega motivo.
+	 * Every ALLOWED entry still exists and carries a reason.
 	 *
 	 * @return void
 	 */
@@ -224,10 +228,10 @@ class CssNamespaceAnchorTest extends TestCase {
 		foreach ( self::ALLOWED as $sheet => $selectors ) {
 			foreach ( $selectors as $selector => $reason ) {
 				if ( strlen( trim( $reason ) ) < 15 ) {
-					$problems[] = "{$sheet}: `{$selector}` sem motivo escrito.";
+					$problems[] = "{$sheet}: `{$selector}` has no written reason.";
 				}
 				if ( ! isset( $scan[ $sheet ][ $selector ] ) ) {
-					$problems[] = "{$sheet}: `{$selector}` não existe mais — remova de ALLOWED.";
+					$problems[] = "{$sheet}: `{$selector}` no longer exists — drop it from ALLOWED.";
 				}
 			}
 		}
@@ -236,11 +240,11 @@ class CssNamespaceAnchorTest extends TestCase {
 	}
 
 	/**
-	 * A regra de âncora reconhece as cinco formas que a base usa.
+	 * The anchor rule recognises the five shapes the codebase uses.
 	 *
-	 * Isto é o que impede a contagem de descrever o padrão em vez do CSS. Os
-	 * negativos importam tanto quanto os positivos: `.buffalo` contém as
-	 * letras `ff` e não é nosso.
+	 * This is what stops the count from describing the pattern instead of the
+	 * CSS. The negatives matter as much as the positives: `.buffalo` contains the
+	 * letters `ff` and is not ours.
 	 *
 	 * @return void
 	 */
@@ -267,21 +271,21 @@ class CssNamespaceAnchorTest extends TestCase {
 		);
 
 		foreach ( $anchored as $selector ) {
-			$this->assertTrue( $this->is_anchored( $selector ), "`{$selector}` deveria contar como ancorado." );
+			$this->assertTrue( $this->is_anchored( $selector ), "`{$selector}` should count as anchored." );
 		}
 
 		foreach ( $anchorless as $selector ) {
-			$this->assertFalse( $this->is_anchored( $selector ), "`{$selector}` não deveria contar como ancorado." );
+			$this->assertFalse( $this->is_anchored( $selector ), "`{$selector}` should not count as anchored." );
 		}
 	}
 
 	/**
-	 * Um composto expõe um nome, não um por classe.
+	 * A compound exposes one name, not one per class.
 	 *
-	 * A armadilha que inflou a medição original: `.appointment-status.status-
-	 * pending` foi contado como dois nomes sem dono, e a folha reportou onze
-	 * onde havia um. Uma lista separada por vírgula, ao contrário, é uma
-	 * entrada por seletor.
+	 * The trap that inflated the original measurement:
+	 * `.appointment-status.status-pending` was counted as two ownerless names,
+	 * and the sheet reported eleven where there was one. A comma-separated list,
+	 * by contrast, is one entry per selector.
 	 *
 	 * @return void
 	 */
@@ -298,39 +302,39 @@ class CssNamespaceAnchorTest extends TestCase {
 	}
 
 	/**
-	 * A varredura não colapsou.
+	 * The scan did not collapse.
 	 *
-	 * Um resultado vazio nunca pode ler como "limpo" — é a lição do #1071 /
-	 * #1094. Mede as três formas de colapso: parar de achar folha, parar de
-	 * achar seletor, e passar a classificar tudo como sem âncora (ou tudo como
-	 * ancorado, que é o silencioso).
+	 * An empty result must never read as "clean" — the #1071 / #1094 lesson. It
+	 * measures the three shapes of collapse: no longer finding sheets, no longer
+	 * finding selectors, and classifying everything as anchorless (or everything
+	 * as anchored, which is the silent one).
 	 *
 	 * @return void
 	 */
 	public function test_the_scan_still_reads_every_stylesheet(): void {
 		$scan = $this->scan();
 
-		$this->assertGreaterThanOrEqual( 25, $scan['sheets'], 'A varredura perdeu folhas.' );
-		$this->assertGreaterThanOrEqual( 2000, $scan['total'], 'A varredura perdeu seletores.' );
+		$this->assertGreaterThanOrEqual( 25, $scan['sheets'], 'The scan lost sheets.' );
+		$this->assertGreaterThanOrEqual( 2000, $scan['total'], 'The scan lost selectors.' );
 
 		$anchorless = 0;
 		foreach ( $scan['anchorless'] as $selectors ) {
 			$anchorless += array_sum( $selectors );
 		}
 
-		$this->assertGreaterThan( 0, $anchorless, 'Zero sem âncora: a regra de âncora está casando tudo.' );
+		$this->assertGreaterThan( 0, $anchorless, 'Zero anchorless: the anchor rule is matching everything.' );
 		$this->assertLessThan(
 			(int) ( $scan['total'] * 0.1 ),
 			$anchorless,
-			'Mais de 10% sem âncora: a regra de âncora parou de casar.'
+			'More than 10% anchorless: the anchor rule stopped matching.'
 		);
 	}
 
 	/**
-	 * O `@keyframes` não entra na conta.
+	 * `@keyframes` does not count.
 	 *
-	 * `0%` e `from` são passos, não seletores — e nenhum tem âncora, então uma
-	 * varredura que os lesse reportaria dívida em toda folha animada.
+	 * `0%` and `from` are steps, not selectors — and neither has an anchor, so a
+	 * scan that read them would report debt in every animated sheet.
 	 *
 	 * @return void
 	 */
@@ -345,11 +349,11 @@ class CssNamespaceAnchorTest extends TestCase {
 	}
 
 	/**
-	 * Um `;` dentro de string não corta o seletor.
+	 * A `;` inside a string does not split the selector.
 	 *
-	 * `img[src^="data:image/png;base64"]` existe em `ffc-pdf-core.css`, e lido
-	 * fora de contexto o `;` deixava metade do seletor virar uma entrada
-	 * fantasma chamada `base64"]`.
+	 * `img[src^="data:image/png;base64"]` exists in `ffc-pdf-core.css`, and read
+	 * out of context that `;` turned half the selector into a phantom entry
+	 * called `base64"]`.
 	 *
 	 * @return void
 	 */

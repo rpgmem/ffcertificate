@@ -1,27 +1,27 @@
 <?php
 /**
- * Onde cada classe CSS é EMITIDA, no PHP e no JS.
+ * Where each CSS class is EMITTED, in PHP and in JS.
  *
- * Existe porque renomear uma classe é seguro exatamente na medida em que se
- * consegue achar quem a emite, e um grep não consegue. Medindo para a #1170,
- * três recortes diferentes deram três respostas, e duas estavam erradas:
+ * It exists because renaming a class is safe exactly as far as you can find who
+ * emits it, and a grep cannot. Measuring for #1170, three different nets gave
+ * three answers, and two of them were wrong:
  *
- *  1. Grep da palavra solta — `.error`, `.value`, `.top` casam em qualquer PHP
- *     por motivo nenhum.
- *  2. Grep com `\b` — pior, e em silêncio: em CSS **`-` é limite de palavra**,
- *     então `ffc-error` casa como `error` e infla justamente os nomes
- *     genéricos que se quer renomear.
- *  3. Token delimitado — o número real, e a base desta classe.
+ *  1. Grepping the bare word — `.error`, `.value`, `.top` match in any PHP file
+ *     for no reason at all.
+ *  2. Grepping with `\b` — worse, and silently so: in CSS **`-` is a word
+ *     boundary**, so `ffc-error` matches as `error` and inflates precisely the
+ *     generic names one wants to rename.
+ *  3. A delimited token — the real number, and the basis of this class.
  *
- * **O caso que decide tudo é o nome montado em runtime.** `'ffc-dashboard-status-'
- * . $status` não existe como literal em lugar nenhum; procurar
- * `ffc-dashboard-status-confirmed` não acha nada, e renomeá-lo quebra sem aviso.
- * Por isso a varredura registra também os PREFIXOS dinâmicos, e uma classe conta
- * como emitida quando começa por um deles.
+ * **The case that decides everything is a name assembled at runtime.**
+ * `'ffc-dashboard-status-' . $status` exists as a literal nowhere; searching for
+ * `ffc-dashboard-status-confirmed` finds nothing, and renaming it breaks with no
+ * warning. So the scan also records the dynamic PREFIXES, and a class counts as
+ * emitted when it starts with one of them.
  *
- * É a mesma escolha que `AjaxWiringTest` já documenta para nome de ação — casar
- * as formas exatamente reportava todas como órfãs —, e pelo mesmo motivo:
- * **frouxo demais reporta pouco; restrito demais reporta o mundo.**
+ * It is the same choice `AjaxWiringTest` already documents for action names —
+ * matching the shapes exactly reported all of them as orphans — and for the same
+ * reason: **too loose reports too little; too strict reports the world.**
  *
  * @package FreeFormCertificate\Tests\Support
  */
@@ -31,48 +31,48 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Support;
 
 /**
- * Varredura das fontes que emitem classe.
+ * Scan of the sources that emit classes.
  */
 final class CssClassEmitters {
 
 	/**
-	 * Diretórios varridos, relativos à raiz do repositório.
+	 * Directories scanned, relative to the repository root.
 	 */
 	private const ROOTS = array( 'includes', 'templates', 'assets/js', 'libs/js' );
 
 	/**
-	 * Um literal de string COMPLETO, de qualquer das duas aspas.
+	 * A COMPLETE string literal, in either quote style.
 	 *
-	 * Casar `(["\'])(.*?)\1` por alternância perde a paridade no primeiro
-	 * apóstrofo dentro de aspas duplas e daí em diante lê o arquivo deslocado —
-	 * o cabeçalho desta classe já registra o fato, e mesmo assim a primeira
-	 * versão da forma 5b caiu nele: `ffc-has-geofence` ficava sem emissor
-	 * porque, varrendo `class-ffc-shortcodes.php` do começo, a paridade já
-	 * estava trocada quando a varredura chegava na linha 169.
+	 * Matching `(["\'])(.*?)\1` by alternation loses parity at the first
+	 * apostrophe inside a double-quoted string and reads the rest of the file
+	 * shifted — this class's own header already records the fact, and even so
+	 * the first version of shape 5b fell for it: `ffc-has-geofence` had no
+	 * findable emitter because, scanning `class-ffc-shortcodes.php` from the
+	 * start, parity was already swapped by the time the scan reached line 169.
 	 *
-	 * Cada alternativa aqui consome o literal INTEIRO, escapes inclusive, então
-	 * uma aspa do outro tipo lá dentro é conteúdo e não delimitador.
+	 * Each alternative here consumes the WHOLE literal, escapes included, so a
+	 * quote of the other kind inside it is content, not a delimiter.
 	 */
 	private const STRING_LITERAL = '/"((?:[^"\\\\]|\\\\.)*)"|\'((?:[^\'\\\\]|\\\\.)*)\'/';
 
 	/**
-	 * Cache da varredura — ela lê centenas de arquivos.
+	 * Cache of the scan — it reads hundreds of files.
 	 *
 	 * @var array{literals: array<string, array<int, string>>, prefixes: array<string, array<int, string>>}|null
 	 */
 	private static ?array $cache = null;
 
 	/**
-	 * Caminho absoluto da raiz do repositório.
+	 * Absolute path of the repository root.
 	 */
 	private static function root(): string {
 		return dirname( __DIR__, 2 );
 	}
 
 	/**
-	 * Todo arquivo PHP/JS que pode emitir classe.
+	 * Every PHP/JS file that can emit a class.
 	 *
-	 * @return array<string, string> Caminho relativo => conteúdo.
+	 * @return array<string, string> Relative path => contents.
 	 */
 	private static function sources(): array {
 		$out = array();
@@ -98,7 +98,7 @@ final class CssClassEmitters {
 	}
 
 	/**
-	 * Varre uma vez e guarda literais e prefixos dinâmicos.
+	 * Scans once and stores literals and dynamic prefixes.
 	 *
 	 * @return array{literals: array<string, array<int, string>>, prefixes: array<string, array<int, string>>}
 	 */
@@ -111,18 +111,19 @@ final class CssClassEmitters {
 		$prefixes = array();
 
 		/*
-		 * Um acumulador por mapa, capturando o array por referência.
+		 * One accumulator per map, capturing the array by reference.
 		 *
-		 * O óbvio seria UM fechamento recebendo `array &$bucket`, e ele quebra —
-		 * mas só quando algum teste anterior no mesmo processo tiver registrado
-		 * um patch. O Patchwork instrumenta a chamada dinâmica e a despacha por
-		 * `call_user_func_array()`, que não passa por referência: a chamada morre
-		 * com "Argument #1 (\$bucket) must be passed by reference".
+		 * The obvious shape would be ONE closure taking `array &$bucket`, and it
+		 * breaks — but only once some earlier test in the same process has
+		 * registered a patch. Patchwork instruments the dynamic call and
+		 * dispatches it through `call_user_func_array()`, which cannot pass by
+		 * reference: the call dies with
+		 * "Argument #1 (\$bucket) must be passed by reference".
 		 *
-		 * Rodar este arquivo sozinho passa, e rodá-lo depois de qualquer classe
-		 * que use Brain\Monkey falha — foi assim que o verde local mentiu e a CI
-		 * pegou. Variável capturada por `use ( &… )` não é parâmetro, então o
-		 * despacho não a toca.
+		 * Running this file alone passes, and running it after any class that
+		 * uses Brain\Monkey fails — that is how the local green lied and CI
+		 * caught it. A variable captured with `use ( &… )` is not a parameter,
+		 * so the dispatch never touches it.
 		 */
 		$add_literal = static function ( string $key, string $file ) use ( &$literals ): void {
 			if ( '' === $key ) {
@@ -150,35 +151,37 @@ final class CssClassEmitters {
 
 		foreach ( self::sources() as $file => $src ) {
 			/*
-			 * ── Forma 1 e 2: o atributo `class="…"`.
+			 * ── Shapes 1 and 2: the `class="…"` attribute.
 			 *
-			 * O valor pode carregar um bloco PHP no meio; os literais em volta
-			 * dele ainda são tokens de classe, e o que estiver DENTRO é tratado
-			 * pelas formas de string mais abaixo.
+			 * The value may carry a PHP block in the middle; the literals around
+			 * it are still class tokens, and whatever is INSIDE is handled by the
+			 * string shapes further down.
 			 *
-			 * Este comentário é de BLOCO por necessidade: um `//` termina na tag
-			 * de fechamento do PHP, então citar uma aqui fecharia a tag no meio
-			 * da função — o mesmo fato que o CLAUDE.md registra sobre anotações
-			 * do PHPCS, e no qual eu tropecei ao escrever isto.
+			 * This comment is a BLOCK out of necessity: a `//` comment ends at
+			 * the PHP closing tag, so quoting one here would close the tag in the
+			 * middle of the function — the same fact CLAUDE.md records about
+			 * PHPCS annotations, and the one I tripped over writing this.
 			 */
 			if ( preg_match_all( '/class\s*=\s*(["\'])(.*?)\1/s', $src, $m, PREG_SET_ORDER ) ) {
 				foreach ( $m as $hit ) {
 					$value = (string) preg_replace( '/<\?(php|=).*?\?>/s', ' ', $hit[2] );
 					foreach ( preg_split( '/\s+/', trim( $value ) ) ?: array() as $token ) {
 						/*
-						 * O token chega com a PONTUAÇÃO DE CONCATENAÇÃO colada
-						 * quando o atributo é aberto e não fechado na mesma
-						 * string -- `'<table class="ffc-appointments-table' +
-						 * (past ? ' ffc-table-past' : '') + '">'`. A aspa que o
-						 * casamento acima encontra é a do FIM da expressão, e
-						 * o primeiro nome sai como `ffc-appointments-table'`,
-						 * que não passa na validação e some.
+						 * The token arrives with the CONCATENATION PUNCTUATION
+						 * glued to it when the attribute is opened and not
+						 * closed in the same string --
+						 * `'<table class="ffc-appointments-table' +
+						 * (past ? ' ffc-table-past' : '') + '">'`. The quote the
+						 * match above finds is the one at the END of the
+						 * expression, and the first name comes out as
+						 * `ffc-appointments-table'`, which fails validation and
+						 * disappears.
 						 *
-						 * É a irmã da forma que a #1170 ensinou: lá o token do
-						 * FIM chegava com o espaço separador, aqui o token do
-						 * COMEÇO chega com a aspa. Consertar um sem o outro é
-						 * por que quatro tabelas do painel ficaram anos na
-						 * lista de órfãs.
+						 * It is the mirror image of the shape #1170 taught:
+						 * there the END token arrived with its separator space,
+						 * here the START token arrives with the quote. Fixing
+						 * one without the other is why four dashboard tables sat
+						 * in the orphan list for as long as it existed.
 						 */
 						$token = trim( $token, "\"'+., \t\n" );
 
@@ -189,9 +192,9 @@ final class CssClassEmitters {
 				}
 			}
 
-			// ── Forma 3: API de classe, no DOM e no jQuery.
-			// `classList.add('a','b')` e `addClass('a b')` — o argumento pode
-			// trazer mais de um nome.
+			// ── Shape 3: the class API, in the DOM and in jQuery.
+			// `classList.add('a','b')` and `addClass('a b')` — the argument may
+			// carry more than one name.
 			if ( preg_match_all( '/(?:classList\.(?:add|remove|toggle|contains|replace)|(?:add|remove|toggle|has)Class)\s*\(([^)]*)\)/i', $src, $m ) ) {
 				foreach ( $m[1] as $args ) {
 					if ( preg_match_all( '/(["\'])([^"\']*)\1/', $args, $strings ) ) {
@@ -207,19 +210,20 @@ final class CssClassEmitters {
 			}
 
 			/*
-			 * ── Forma 3b: a classe como SELETOR numa string.
+			 * ── Shape 3b: the class as a SELECTOR inside a string.
 			 *
 			 * `$(document).on('click', '.ffc-timeslot:not(.ffc-timeslot-full)')`
-			 * é um site de emissão para efeito de renomeação: mudar a classe sem
-			 * mudar o seletor quebra o handler, e nada acusa. Não precisa de
-			 * contexto de classe em volta — o ponto antes do nome já é o sinal.
+			 * is an emission site as far as renaming goes: changing the class
+			 * without changing the selector breaks the handler, and nothing
+			 * reports it. It needs no class context around it — the dot before
+			 * the name is the signal.
 			 *
-			 * Procura no fonte inteiro em vez de dentro de strings casadas, e
-			 * isso é deliberado: casar `"…"` e `'…'` por alternância PERDE A
-			 * SINCRONIA no primeiro apóstrofo dentro de aspas duplas (`"don't"`),
-			 * e daí em diante lê o arquivo com a paridade trocada. Foi assim que
-			 * a primeira versão não achou `.ffc-timeslot-full`. É a mesma razão
-			 * pela qual `CssSelectors` precisa ser ciente de aspas.
+			 * It searches the whole source rather than inside matched strings,
+			 * and that is deliberate: matching `"…"` and `'…'` by alternation
+			 * LOSES SYNC at the first apostrophe inside a double-quoted string
+			 * (`"don't"`), and from there on reads the file with parity swapped.
+			 * That is how the first version failed to find `.ffc-timeslot-full`.
+			 * It is the same reason `CssSelectors` has to be quote-aware.
 			 */
 			if ( preg_match_all( '/\.(ffc-[a-z0-9]+(?:-{1,2}[a-z0-9]+)*)/i', $src, $m ) ) {
 				foreach ( $m[1] as $token ) {
@@ -228,16 +232,15 @@ final class CssClassEmitters {
 			}
 
 			/*
-			 * ── Forma 7: opção de biblioteca cujo VALOR é uma classe.
+			 * ── Shape 7: a library option whose VALUE is a class.
 			 *
-			 * `$('#lista').sortable({ placeholder: 'ffc-sortable-placeholder' })`
-			 * -- o jQuery UI aplica essa string como classe no elemento fantasma
-			 * que ele insere. Não existe a palavra `class` em lugar nenhum ali,
-			 * então nenhuma janela de contexto alcança, e a classe ficava na lista
-			 * de órfãs parecendo morta.
+			 * `$('#list').sortable({ placeholder: 'ffc-sortable-placeholder' })`
+			 * -- jQuery UI applies that string as a class on the phantom element
+			 * it inserts. The word `class` appears nowhere near it, so no context
+			 * window reaches, and the class sat in the orphan list looking dead.
 			 *
-			 * Casa só a forma de OPÇÃO (`placeholder:`), nunca o atributo HTML
-			 * (`placeholder="Digite o nome"`), que é texto livre do usuário.
+			 * It matches only the OPTION form (`placeholder:`), never the HTML
+			 * attribute (`placeholder="Enter the name"`), which is free user text.
 			 */
 			if ( preg_match_all( '/placeholder\s*:\s*(["\'])([A-Za-z_][A-Za-z0-9_-]*)\1/', $src, $m ) ) {
 				foreach ( $m[2] as $token ) {
@@ -245,7 +248,7 @@ final class CssClassEmitters {
 				}
 			}
 
-			// ── Forma 4: `className = 'x'` e `className += ' x'`.
+			// ── Shape 4: `className = 'x'` and `className += ' x'`.
 			if ( preg_match_all( '/className\s*\+?=\s*(["\'])([^"\']*)\1/', $src, $m, PREG_SET_ORDER ) ) {
 				foreach ( $m as $hit ) {
 					foreach ( preg_split( '/\s+/', trim( $hit[2] ) ) ?: array() as $token ) {
@@ -257,24 +260,25 @@ final class CssClassEmitters {
 			}
 
 			/*
-			 * ── Forma 5: string solta num contexto de classe.
+			 * ── Shape 5: a loose string in a class context.
 			 *
-			 * É o que apanha o ternário dentro de `esc_attr()`, o
-			 * `var rowClass = 'past-row'` e o `sprintf( '…class="%s"…', $c )`.
+			 * This is what catches the ternary inside `esc_attr()`, the
+			 * `var rowClass = 'past-row'` and the `sprintf( '…class="%s"…', $c )`.
 			 *
-			 * A PROXIMIDADE é o que faz esta forma valer. Sem ela a varredura
-			 * conta como classe todo `handle` de `wp_enqueue_style( 'ffc-…' )`
-			 * e toda chave de opção — e passa a reportar que tudo tem emissor,
-			 * que foi o primeiro resultado ao escrever isto: zero classe órfã,
-			 * porque a rede pegava o oceano.
+			 * PROXIMITY is what makes this shape worth anything. Without it the
+			 * scan counts every `wp_enqueue_style( 'ffc-…' )` handle and every
+			 * option key as a class — and starts reporting that everything has an
+			 * emitter, which was the first result when this was written: zero
+			 * orphaned classes, because the net was catching the ocean.
 			 */
 			foreach ( self::near_class_context( $src ) as $window ) {
 				/*
-				 * O `\s*` de cada lado não é folga: o token vem com o espaço
-				 * SEPARADOR quando é concatenado a um atributo que já existe —
+				 * The `\s*` on each side is not slack: the token arrives with its
+				 * SEPARATOR space when it is concatenated onto an attribute that
+				 * already exists —
 				 * `'<table class="ffc-appointments-table' + (past ? ' past-appointments' : '') + '">'`.
-				 * Sem ele a varredura não achava emissor para as três classes
-				 * `past-*` do painel, e a #1170 ia renomeá-las às cegas.
+				 * Without it the scan found no emitter for the dashboard's three
+				 * `past-*` classes, and #1170 would have renamed them blind.
 				 */
 				if ( preg_match_all( '/(["\'])\s*((?:ffc-)?[a-z][a-z0-9]*(?:-[a-z0-9]+)+)\s*\1/i', $window, $m ) ) {
 					foreach ( $m[2] as $token ) {
@@ -283,20 +287,21 @@ final class CssClassEmitters {
 				}
 
 				/*
-				 * ── Forma 5b: VÁRIAS classes numa string só.
+				 * ── Shape 5b: SEVERAL classes in one string.
 				 *
-				 * `'ffc-shortcode ffc-form-wrapper ffc-has-geofence'` e
-				 * `'ffc-hierarchy-child ffc-hierarchy-level-' . $level`. A forma
-				 * 5 ancora nas duas aspas, então enxerga só a string de um
-				 * token e perde estas -- ficava o PREFIXO do último nome, que a
-				 * forma 6 pega, e os nomes inteiros que vêm antes sumiam.
+				 * `'ffc-shortcode ffc-form-wrapper ffc-has-geofence'` and
+				 * `'ffc-hierarchy-child ffc-hierarchy-level-' . $level`. Shape 5
+				 * anchors on both quotes, so it sees only a single-token string
+				 * and misses these -- what survived was the PREFIX of the last
+				 * name, which shape 6 catches, while the whole names before it
+				 * vanished.
 				 *
-				 * O discriminante é ter DOIS OU MAIS tokens: a folga que a
-				 * forma 5 não pode dar existe porque um `handle` de
-				 * `wp_enqueue_style` é sempre um token só, e foi ele que fez a
-				 * primeira versão desta varredura dizer que nada era órfão.
-				 * Exigir o plural mantém a rede fechada para handles, chaves de
-				 * opção e slugs de capacidade.
+				 * The discriminator is having TWO OR MORE tokens: the slack shape
+				 * 5 cannot afford exists because a `wp_enqueue_style` handle is
+				 * always a single token, and it is what made the first version of
+				 * this scan say nothing was orphaned. Requiring the plural keeps
+				 * the net closed against handles, option keys and capability
+				 * slugs.
 				 */
 				if ( preg_match_all( self::STRING_LITERAL, $window, $m, PREG_SET_ORDER ) ) {
 					foreach ( $m as $hit ) {
@@ -316,22 +321,23 @@ final class CssClassEmitters {
 				}
 
 				/*
-				 * ── Forma 6, a que decide: o PREFIXO de um nome montado em
-				 * runtime. `'ffc-dashboard-status-' . $status` e
-				 * `'ffc-status-' + item.status`. O nome completo não existe em
-				 * lugar nenhum, então procurá-lo não acha nada — e renomeá-lo
-				 * quebra sem aviso.
+				 * ── Shape 6, the one that decides: the PREFIX of a name
+				 * assembled at runtime. `'ffc-dashboard-status-' . $status` and
+				 * `'ffc-status-' + item.status`. The full name exists nowhere, so
+				 * searching for it finds nothing — and renaming it breaks with no
+				 * warning.
 				 *
-				 * Exige `ffc-` MAIS um segmento: o prefixo nu `ffc-` cobriria as
-				 * 1.046 classes e diria que nenhuma é órfã. Ele apareceu de
-				 * verdade, em `'ffc-' + Date.now()` — que monta o UID de um
-				 * evento iCal, não uma classe.
+				 * It requires `ffc-` PLUS a segment: the bare prefix `ffc-` would
+				 * cover all 1,046 classes and declare none of them orphaned. It
+				 * genuinely showed up, in `'ffc-' + Date.now()` — which builds an
+				 * iCal event's UID, not a class.
 				 */
 				/*
-				 * O prefixo pode estar no FIM de uma string maior, e não ser a
-				 * string inteira — é a forma mais comum no JS que monta HTML:
-				 * `'<td><span class="… ffc-dashboard-status-' + item.status`.
-				 * Ancorar na abertura da aspa perdia justamente esses.
+				 * The prefix may sit at the END of a longer string rather than be
+				 * the whole string — it is the commonest shape in JS that builds
+				 * HTML: `'<td><span class="… ffc-dashboard-status-' +
+				 * item.status`. Anchoring on the opening quote missed exactly
+				 * those.
 				 */
 				if ( preg_match_all( '/(ffc-[a-z0-9]+(?:-{1,2}[a-z0-9]+)*-{1,2})(["\'])\s*[.+]/i', $window, $m ) ) {
 					foreach ( $m[1] as $prefix ) {
@@ -345,13 +351,13 @@ final class CssClassEmitters {
 				}
 
 				/*
-				 * Duas formas de prefixo que NÃO são concatenação e por isso
-				 * escaparam da primeira versão desta varredura. Cada uma
-				 * corresponde a uma renomeação que teria quebrado em silêncio:
+				 * Two prefix shapes that are NOT concatenation and so escaped the
+				 * first version of this scan. Each corresponds to a rename that
+				 * would have broken in silence:
 				 *
-				 *  - o eco embutido no próprio atributo,
-				 *    `class="ffc-audience-status-` seguido de um bloco PHP;
-				 *  - o placeholder de `printf`,
+				 *  - the echo embedded in the attribute itself,
+				 *    `class="ffc-audience-status-` followed by a PHP block;
+				 *  - the `printf` placeholder,
 				 *    `class="ffc-cap-origin--%7$s"`.
 				 */
 				if ( preg_match_all( '/(ffc-[a-z0-9]+(?:-{1,2}[a-z0-9]+)*-{1,2})<\?/i', $window, $m ) ) {
@@ -380,21 +386,22 @@ final class CssClassEmitters {
 
 
 	/**
-	 * Trechos do fonte em torno de algo que fala de classe.
+	 * Slices of the source around something that talks about classes.
 	 *
-	 * O sinal é a palavra `class` em qualquer das suas formas de uso —
-	 * o atributo, `classList`, `addClass`, `className`, ou uma variável
-	 * batizada `rowClass` — mais o nome de um AJUDANTE que recebe classes como
-	 * argumentos posicionais. `BadgeHtml::render( 'ffc-recruitment-subscription-badge', … )`
-	 * não tem a palavra `class` em lugar nenhum da chamada: ela está no nome do
-	 * PARÂMETRO, que fica na definição e não no site. Duas classes ficaram sem
-	 * emissor achável assim, e só apareceram quando o #1193 passou a declará-las
-	 * numa folha — antes disso ninguém as procurava. A janela é generosa (240 caracteres para cada lado)
-	 * porque o objetivo aqui é **não perder site**, não ser exato: quem lê a
-	 * saída é uma pessoa prestes a renomear, e um falso positivo custa uma
-	 * olhada enquanto um falso negativo custa um estilo que some.
+	 * The signal is the word `class` in any of its forms of use — the attribute,
+	 * `classList`, `addClass`, `className`, or a variable named `rowClass` —
+	 * plus the name of a HELPER that takes classes as positional arguments.
+	 * `BadgeHtml::render( 'ffc-recruitment-subscription-badge', … )` has the word
+	 * `class` nowhere in the call: it is in the PARAMETER's name, which lives in
+	 * the definition and not at the site. Two classes had no findable emitter
+	 * that way, and surfaced only when #1193 started declaring them in a sheet —
+	 * before that nobody was looking for them. The window is generous (240
+	 * characters each side) because the goal here is **not to lose a site**, not
+	 * to be exact: whoever reads the output is a person about to rename
+	 * something, and a false positive costs a glance while a false negative
+	 * costs a style that disappears.
 	 *
-	 * @param string $src Conteúdo do arquivo.
+	 * @param string $src File contents.
 	 * @return array<int, string>
 	 */
 	private static function near_class_context( string $src ): array {
@@ -413,7 +420,7 @@ final class CssClassEmitters {
 	}
 
 	/**
-	 * Classe => arquivos que a emitem como literal.
+	 * Class => the files that emit it as a literal.
 	 *
 	 * @return array<string, array<int, string>>
 	 */
@@ -422,7 +429,7 @@ final class CssClassEmitters {
 	}
 
 	/**
-	 * Prefixo dinâmico => arquivos que o concatenam.
+	 * Dynamic prefix => the files that concatenate it.
 	 *
 	 * @return array<string, array<int, string>>
 	 */
@@ -431,13 +438,13 @@ final class CssClassEmitters {
 	}
 
 	/**
-	 * Onde uma classe é emitida — literalmente ou por prefixo.
+	 * Where a class is emitted — literally, or through a prefix.
 	 *
-	 * O segundo caso devolve o prefixo que a cobre, porque é essa a informação
-	 * que interessa a quem vai renomear: o site de emissão nomeia o prefixo, não
-	 * a classe, e é o prefixo que precisa mudar.
+	 * The second case returns the prefix that covers it, because that is the
+	 * information a renamer needs: the emission site names the prefix, not the
+	 * class, and it is the prefix that has to change.
 	 *
-	 * @param string $class Nome da classe, sem o ponto.
+	 * @param string $class Class name, without the dot.
 	 * @return array{how: string, prefix: string, files: array<int, string>}
 	 */
 	public static function of( string $class ): array {
@@ -451,8 +458,8 @@ final class CssClassEmitters {
 			);
 		}
 
-		// O prefixo mais LONGO que cobre — o mais específico é o que descreve
-		// de verdade o site de emissão.
+		// The LONGEST prefix that covers it — the most specific one is what
+		// actually describes the emission site.
 		$best = '';
 		foreach ( array_keys( $scan['prefixes'] ) as $prefix ) {
 			if ( str_starts_with( $class, $prefix ) && strlen( $prefix ) > strlen( $best ) ) {
@@ -462,21 +469,21 @@ final class CssClassEmitters {
 
 		if ( '' !== $best ) {
 			return array(
-				'how'    => 'prefixo',
+				'how'    => 'prefix',
 				'prefix' => $best,
 				'files'  => $scan['prefixes'][ $best ],
 			);
 		}
 
 		return array(
-			'how'    => 'nenhum',
+			'how'    => 'none',
 			'prefix' => '',
 			'files'  => array(),
 		);
 	}
 
 	/**
-	 * Toda classe `ffc-*` declarada nas folhas.
+	 * Every `ffc-*` class the sheets declare.
 	 *
 	 * @return array<int, string>
 	 */

@@ -1,6 +1,6 @@
 <?php
 /**
- * Leitor de seletores das folhas de `assets/css/`.
+ * Selector reader for the sheets in `assets/css/`.
  *
  * @package FreeFormCertificate\Tests
  */
@@ -10,31 +10,31 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Support;
 
 /**
- * O parser de CSS compartilhado pelas guardas de folha de estilo.
+ * The CSS parser shared by the stylesheet guards.
  *
- * Existe pelo mesmo motivo que `.github/scripts/ffc-create-statements.php`:
- * duas guardas que medem a mesma coisa não podem discordar sobre o conjunto
- * medido. `CssNamespaceAnchorTest` (#1152) conta seletor sem âncora,
- * `StylesheetOwnershipTest` (#1162) conta classe declarada crua -- as duas
- * precisam do mesmo recorte de "o que é um seletor nesta folha".
+ * It exists for the same reason `.github/scripts/ffc-create-statements.php`
+ * does: two guards measuring the same thing must not disagree about the set
+ * they measure. `CssNamespaceAnchorTest` (#1152) counts anchorless selectors,
+ * `StylesheetOwnershipTest` (#1162) counts bare class declarations -- both need
+ * the same definition of "what a selector is in this sheet".
  *
- * Três coisas que o parser precisa fazer e que um `([^{]+)\{` não faz:
+ * Three things the parser has to do that a `([^{]+)\{` does not:
  *
- * 1. **Pular prelúdio de at-rule e passo de `@keyframes`.** `0%` e `from` não
- *    são seletores; uma varredura que os lesse reportaria dívida em toda folha
- *    animada.
- * 2. **Não ler `{`, `}` ou `;` de dentro de string.** O `;` de
- *    `img[src^="data:image/png;base64"]` corta o seletor ao meio e produz uma
- *    entrada fantasma chamada `base64"]`.
- * 3. **Quebrar a lista na vírgula de nível zero**, para que um composto
- *    (`.a.b`) conte uma vez e uma lista (`.a, .b`) conte duas.
+ * 1. **Skip at-rule preludes and `@keyframes` steps.** `0%` and `from` are not
+ *    selectors; a scan that read them would report debt in every animated
+ *    sheet.
+ * 2. **Never read a `{`, `}` or `;` from inside a string.** The `;` in
+ *    `img[src^="data:image/png;base64"]` cuts the selector in half and produces
+ *    a phantom entry called `base64"]`.
+ * 3. **Split the list on top-level commas**, so a compound (`.a.b`) counts once
+ *    and a list (`.a, .b`) counts twice.
  */
 final class CssSelectors {
 
 	/**
-	 * As folhas não minificadas de `assets/css/`, em ordem.
+	 * The non-minified sheets in `assets/css/`, in order.
 	 *
-	 * @return array<int, string> Caminhos absolutos.
+	 * @return array<int, string> Absolute paths.
 	 */
 	public static function sheets(): array {
 		$found = array();
@@ -48,17 +48,17 @@ final class CssSelectors {
 	}
 
 	/**
-	 * Regras de estilo de uma folha, com o corpo.
+	 * A sheet's style rules, with their bodies.
 	 *
-	 * Enxerga DENTRO de `@media` e `@supports`, como `of()` sempre enxergou —
-	 * e isso não é detalhe. Um parser de uso único escrito para medir a
-	 * exposição a `forced-colors` (#1165) só lia o nível de topo e enxergou
-	 * 270 das 2.111 regras da base, porque o responsivo mora quase todo dentro
-	 * de `@media`. O erro foi do script, não desta classe; ele está registrado
-	 * aqui porque é a razão de esta função existir em vez de cada guarda
-	 * escrever a sua.
+	 * It sees INSIDE `@media` and `@supports`, as `of()` always has — and that
+	 * is not a detail. A single-use parser written to measure `forced-colors`
+	 * exposure (#1165) read only the top level and saw 270 of the codebase's
+	 * 2,111 rules, because almost all the responsive CSS lives inside `@media`.
+	 * The mistake was the script's, not this class's; it is recorded here
+	 * because it is the reason this function exists instead of every guard
+	 * writing its own.
 	 *
-	 * @param string $css Conteúdo da folha.
+	 * @param string $css Sheet contents.
 	 * @return array<int, array{selector: string, body: string}>
 	 */
 	public static function rules( string $css ): array {
@@ -71,9 +71,9 @@ final class CssSelectors {
 	}
 
 	/**
-	 * Extrai os seletores de uma folha, um por entrada da lista.
+	 * Extracts a sheet's selectors, one per list entry.
 	 *
-	 * @param string $css Conteúdo da folha.
+	 * @param string $css Sheet contents.
 	 * @return array<int, string>
 	 */
 	public static function of( string $css ): array {
@@ -88,9 +88,9 @@ final class CssSelectors {
 	}
 
 	/**
-	 * Percorre as regras, devolvendo seletor bruto + corpo.
+	 * Walks the rules, returning the raw selector plus body.
 	 *
-	 * @param string $css Conteúdo da folha.
+	 * @param string $css Sheet contents.
 	 * @return array<int, array{selector: string, body: string}>
 	 */
 	private static function walk( string $css ): array {
@@ -157,9 +157,9 @@ final class CssSelectors {
 	}
 
 	/**
-	 * Quebra uma lista de seletores nas vírgulas de nível zero.
+	 * Splits a selector list on its top-level commas.
 	 *
-	 * @param string $list Prelúdio da regra.
+	 * @param string $list The rule's prelude.
 	 * @return array<int, string>
 	 */
 	public static function split_list( string $list ): array {
@@ -211,15 +211,14 @@ final class CssSelectors {
 	}
 
 	/**
-	 * Nome da classe quando o seletor inteiro é uma classe só.
+	 * The class name when the whole selector is a single class.
 	 *
-	 * "Crua" = uma classe, sem ancestral, sem segunda classe, sem elemento --
-	 * apenas pseudo-classes e pseudo-elementos são tolerados. É a forma que
-	 * alcança qualquer elemento que carregue a classe, venha ele de qual
-	 * componente vier.
+	 * "Bare" = one class, no ancestor, no second class, no element -- only
+	 * pseudo-classes and pseudo-elements are tolerated. It is the form that
+	 * reaches any element carrying the class, whichever component it came from.
 	 *
-	 * @param string $selector Seletor único.
-	 * @return string|null Nome da classe, ou null se não for declaração crua.
+	 * @param string $selector A single selector.
+	 * @return string|null The class name, or null if it is not a bare declaration.
 	 */
 	public static function bare_class( string $selector ): ?string {
 		$matched = preg_match(

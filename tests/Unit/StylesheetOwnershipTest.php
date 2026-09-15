@@ -1,6 +1,6 @@
 <?php
 /**
- * Duas folhas que declaram a mesma classe precisam concordar sobre quem vence.
+ * Two sheets declaring the same class must agree on which one wins.
  *
  * @package FreeFormCertificate\Tests
  */
@@ -13,126 +13,128 @@ use FreeFormCertificate\Tests\Support\CssSelectors;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Guarda de posse de componente (#1162, sub-issue da #1148).
+ * Component-ownership guard (#1162, a sub-issue of #1148).
  *
- * Quando duas folhas declaram `.ffc-x` **cruas** — sem ancestral, sem segunda
- * classe — e as duas carregam na mesma tela, quem vence é a ordem em que o
- * WordPress imprime os `<link>`. Essa ordem é determinística **só** quando uma
- * declara a outra como dependência no `wp_enqueue_style`; sem a aresta ela é a
- * ordem de enfileiramento, que por sua vez é a ordem em que os módulos são
- * ligados no `Loader`. Trocar duas linhas de bootstrap repinta uma tela.
+ * When two sheets declare `.ffc-x` **bare** — no ancestor, no second class — and
+ * both load on the same screen, the winner is the order in which WordPress
+ * prints the `<link>` tags. That order is deterministic **only** when one
+ * declares the other as a dependency in `wp_enqueue_style`; without the edge it
+ * is enqueue order, which in turn is the order the modules are wired in
+ * `Loader`. Moving two bootstrap lines repaints a screen.
  *
- * A guarda mede exatamente isso: classe declarada crua em duas folhas **sem
- * aresta de dependência entre elas**, em qualquer direção, direta ou
- * transitiva. Pares que não podem coexistir numa tela (admin × frontend, telas
- * de admin distintas) ficam em `ALLOWED` com o motivo — a impossibilidade é
- * uma propriedade dos *gates* de enfileiramento, que esta varredura não lê.
+ * The guard measures exactly that: a class declared bare in two sheets **with no
+ * dependency edge between them**, in either direction, direct or transitive.
+ * Pairs that cannot coexist on one screen (admin × frontend, distinct admin
+ * screens) go in `ALLOWED` with the reason — that impossibility is a property of
+ * the enqueue *gates*, which this scan does not read.
  *
- * **Isto não era prevenção: o defeito estava no ar.** `.ffc-status-cancelled`
- * era declarado por `ffc-calendar-admin.css` (vermelho, `--ffc-danger-*`) e por
- * `ffc-audience-admin.css` (âmbar, `--ffc-warning-*`). Na tela de Agendamentos
- * as duas carregam — Appointments é submenu de `ffc-scheduling`, então o gate
- * da folha de audiência (`strpos( $hook, 'ffc-scheduling' )`) casa lá também — e
- * como o `AudienceLoader` é ligado depois do `SelfSchedulingLoader`, a âmbar
- * vencia. Resultado: na coluna Status, "Cancelled" saía âmbar enquanto os seus
- * quatro irmãos saíam como a folha do próprio módulo pedia. As duas famílias
- * ganharam nome próprio (`ffc-appointment-status-*` e `ffc-audience-status-*`),
- * no molde do #1151 e do #1154.
+ * **This was not prevention: the defect was live.** `.ffc-status-cancelled` was
+ * declared by `ffc-calendar-admin.css` (red, `--ffc-danger-*`) and by
+ * `ffc-audience-admin.css` (amber, `--ffc-warning-*`). On the Appointments
+ * screen both load — Appointments is a submenu of `ffc-scheduling`, so the
+ * audience sheet's gate (`strpos( $hook, 'ffc-scheduling' )`) matches there too
+ * — and since `AudienceLoader` is wired after `SelfSchedulingLoader`, amber won.
+ * The result: in the Status column, "Cancelled" rendered amber while its four
+ * siblings rendered as the module's own sheet asked. Both families were given
+ * their own names (`ffc-appointment-status-*` and `ffc-audience-status-*`), in
+ * the #1151 / #1154 mould.
  *
- * Três coisas que a medição ensinou, nenhuma adivinhável:
+ * Three things the measurement taught, none of them guessable:
  *
- * 1. **`ffc-admin-submissions.css` carrega em TODA página `?page=ffc-*`**, não
- *    só na de submissões: o gate é `is_ffc_page()`, que casa qualquer menu
- *    `ffc-`. O docblock do enfileirador diz "submissions page". Era por isso
- *    que o `.ffc-status-badge` dela era a base acidental do selo de
- *    recrutamento e do de recadastramento -- os dois ganharam nome próprio no
- *    #1183 e a linha de base ficou VAZIA. A folha segue carregando em toda
- *    tela `ffc-*`, então o portão continua sendo o mecanismo a vigiar.
- * 2. **O resultado não é "a de baixo vence": é uma FUSÃO.** O selo da audiência
- *    renderizava `text-transform: uppercase` e `letter-spacing` que só a folha
- *    de submissões declara, e `white-space: nowrap` que só `ffc-common.css`
- *    declara. Nenhuma das três propriedades estava escrita na folha do
- *    componente. Nem "a última vence" nem "a primeira vale" descreve isso.
- * 3. **Um mesmo handle pode ser enfileirado com listas de dependência
- *    diferentes em sites diferentes** (`ffc-admin-settings` é um), e o WordPress
- *    guarda a primeira que registrar. A varredura une as listas de propósito:
- *    para esta guarda importa se a aresta é *declarada em algum lugar*, não
- *    qual site ganhou a corrida.
+ * 1. **`ffc-admin-submissions.css` loads on EVERY `?page=ffc-*` screen**, not
+ *    only the submissions one: its gate is `is_ffc_page()`, which matches any
+ *    `ffc-` menu. The enqueuer's own docblock says "submissions page". That is
+ *    why its `.ffc-status-badge` was the accidental base of the recruitment and
+ *    reregistration badges -- both were given their own names in #1183 and the
+ *    baseline went EMPTY. The sheet still loads on every `ffc-*` screen, so the
+ *    gate remains the mechanism to watch.
+ * 2. **The result is not "the lower one wins": it is a MERGE.** The audience
+ *    badge was rendering `text-transform: uppercase` and `letter-spacing` that
+ *    only the submissions sheet declares, and `white-space: nowrap` that only
+ *    `ffc-common.css` declares. None of the three properties was written in the
+ *    component's own sheet. Neither "last wins" nor "first applies" describes
+ *    that.
+ * 3. **One handle can be enqueued with different dependency lists at different
+ *    sites** (`ffc-admin-settings` is one), and WordPress keeps whichever
+ *    registered first. The scan unions the lists deliberately: what matters to
+ *    this guard is whether the edge is *declared anywhere*, not which site won
+ *    the race.
  *
- * O que ela NÃO vê: se as duas folhas realmente coexistem numa tela (isso são
- * os gates), CSS inline impresso por PHP, e colisão por seletor composto — só
- * a declaração crua, que é a forma que alcança qualquer componente.
+ * What it does NOT see: whether the two sheets genuinely coexist on a screen
+ * (that is the gates), inline CSS printed from PHP, and collisions through a
+ * compound selector — only the bare declaration, which is the form that reaches
+ * any component.
  */
 class StylesheetOwnershipTest extends TestCase {
 
 	/**
-	 * Pares que ficam, porque não podem coexistir numa tela.
+	 * Pairs that stay, because they cannot coexist on one screen.
 	 *
-	 * Chave: `classe|folhaA|folhaB` (folhas em ordem alfabética).
+	 * Key: `class|sheetA|sheetB` (sheets in alphabetical order).
 	 *
 	 * @var array<string, string>
 	 */
 	private const ALLOWED = array(
-		// `ffc-admin.css` é admin (`users.php` e telas `?page=ffc-*`);
-		// `ffc-frontend.css` só sai no frontend. O componente de preview do
-		// certificado é o mesmo dos dois lados, e é candidato a folha
-		// compartilhada -- mas isso é decisão de arquitetura, não de ordem.
-		'ffc-preview-backdrop|ffc-admin.css|ffc-frontend.css'  => 'admin × frontend: nunca coexistem numa tela',
-		'ffc-preview-container|ffc-admin.css|ffc-frontend.css' => 'admin × frontend: nunca coexistem numa tela',
-		'ffc-preview-stage|ffc-admin.css|ffc-frontend.css'     => 'admin × frontend: nunca coexistem numa tela',
-		'ffc-checkbox-label|ffc-admin.css|ffc-reregistration-frontend.css' => 'admin × frontend: nunca coexistem numa tela',
+		// `ffc-admin.css` is admin (`users.php` and `?page=ffc-*` screens);
+		// `ffc-frontend.css` only ships on the frontend. The certificate preview
+		// component is the same on both sides, and is a candidate for a shared
+		// sheet -- but that is an architecture decision, not an ordering one.
+		'ffc-preview-backdrop|ffc-admin.css|ffc-frontend.css'  => 'admin × frontend: they never coexist on one screen',
+		'ffc-preview-container|ffc-admin.css|ffc-frontend.css' => 'admin × frontend: they never coexist on one screen',
+		'ffc-preview-stage|ffc-admin.css|ffc-frontend.css'     => 'admin × frontend: they never coexist on one screen',
+		'ffc-checkbox-label|ffc-admin.css|ffc-reregistration-frontend.css' => 'admin × frontend: they never coexist on one screen',
 
-		// `ffc-calendar-editor.css` só carrega na edição do CPT
-		// `ffc_self_scheduling`, onde `is_ffc_page()` é falso (o post type não
-		// é `ffc_form`) -- então `ffc-admin.css` não entra por lá, e o handle
-		// `ffc-admin` de `users.php` também não.
-		'ffc-shortcode-display|ffc-admin.css|ffc-calendar-editor.css' => 'telas distintas: a folha do editor só sai no CPT ffc_self_scheduling',
+		// `ffc-calendar-editor.css` only loads when editing the
+		// `ffc_self_scheduling` CPT, where `is_ffc_page()` is false (the post
+		// type is not `ffc_form`) -- so `ffc-admin.css` does not get in there,
+		// and neither does the `ffc-admin` handle from `users.php`.
+		'ffc-shortcode-display|ffc-admin.css|ffc-calendar-editor.css' => 'distinct screens: the editor sheet only ships on the ffc_self_scheduling CPT',
 
-		// `column-actions` e `column-status` saíram daqui na #1184. Eles eram
-		// a exceção cujo motivo -- "telas distintas" -- vivia inteiro no
-		// PORTÃO de enfileiramento, que esta varredura não lê. Agora vive no
-		// seletor: a folha de audiência desce de `[class*="ffc-page-scheduling-"]`
-		// e a de recadastramento de `.ffc-page-reregistration` /
-		// `.ffc-page-custom-fields`, então a impossibilidade é estrutural e não
-		// precisa mais ser prometida aqui.
+		// `column-actions` and `column-status` left here in #1184. They were the
+		// exception whose reason -- "distinct screens" -- lived entirely in the
+		// enqueue GATE, which this scan does not read. It now lives in the
+		// selector: the audience sheet descends from
+		// `[class*="ffc-page-scheduling-"]` and the reregistration one from
+		// `.ffc-page-reregistration` / `.ffc-page-custom-fields`, so the
+		// impossibility is structural and no longer has to be promised here.
 
-		// `ffc-custom-fields-admin.css` sai no perfil de usuário e nas telas de
-		// audiência; `ffc-reregistration-admin.css`, nas de recadastramento.
-		'ffc-color-dot|ffc-custom-fields-admin.css|ffc-reregistration-admin.css' => 'telas distintas: perfil/audiência × recadastramento',
+		// `ffc-custom-fields-admin.css` ships on the user profile and the audience
+		// screens; `ffc-reregistration-admin.css`, on the reregistration ones.
+		'ffc-color-dot|ffc-custom-fields-admin.css|ffc-reregistration-admin.css' => 'distinct screens: profile/audience × reregistration',
 
-		// `ffc-working-hours.css` sai no perfil de usuário e no painel do
-		// frontend; `ffc-audience-admin.css`, nas telas de audiência.
-		'ffc-working-hours|ffc-audience-admin.css|ffc-reregistration-frontend.css' => 'admin × frontend: nunca coexistem numa tela',
-		'ffc-working-hours|ffc-audience-admin.css|ffc-working-hours.css' => 'telas distintas: audiência × perfil de usuário e painel',
-		// O selo de status do edital existe nas duas superfícies do
-		// recrutamento, e elas não podem coexistir: a folha de admin tem
-		// portão `is_recruitment_screen( $hook_suffix )`, que é um hook do
-		// wp-admin, e a pública é enfileirada no render do shortcode.
-		'ffc-recruitment-status-badge|ffc-recruitment-admin.css|ffc-recruitment-public.css' => 'admin × frontend: nunca coexistem numa tela',
+		// `ffc-working-hours.css` ships on the user profile and on the frontend
+		// dashboard; `ffc-audience-admin.css`, on the audience screens.
+		'ffc-working-hours|ffc-audience-admin.css|ffc-reregistration-frontend.css' => 'admin × frontend: they never coexist on one screen',
+		'ffc-working-hours|ffc-audience-admin.css|ffc-working-hours.css' => 'distinct screens: audience × user profile and dashboard',
+		// The call's status badge exists on both recruitment surfaces, and they
+		// cannot coexist: the admin sheet is gated on
+		// `is_recruitment_screen( $hook_suffix )`, which is a wp-admin hook, and
+		// the public one is enqueued while the shortcode renders.
+		'ffc-recruitment-status-badge|ffc-recruitment-admin.css|ffc-recruitment-public.css' => 'admin × frontend: they never coexist on one screen',
 	);
 
 	/**
-	 * Pares que coexistem e não têm aresta. Registro de dívida; só encolhe.
+	 * Pairs that coexist and have no edge. A debt register; it only shrinks.
 	 *
 	 * @var array<string, string>
 	 */
 	private const BASELINE = array();
 
 	/**
-	 * Folhas que não passam por `wp_enqueue_style`, com o motivo.
+	 * Sheets that do not go through `wp_enqueue_style`, with the reason.
 	 *
 	 * @var array<string, string>
 	 */
 	private const NO_HANDLE = array(
-		// O cancelamento de agendamento monta um documento próprio e imprime os
-		// `<link>` na mão, em ordem explícita (paleta primeiro) -- justamente
-		// para que a ordem seja um valor testável em vez de um `echo` atrás de
-		// um `exit()`. Não há fila do WordPress para ter aresta.
-		'ffc-appointment-cancellation.css' => 'documento próprio do handler de cancelamento; ordem impressa na mão',
+		// Appointment cancellation builds a document of its own and prints the
+		// `<link>` tags by hand, in explicit order (palette first) -- precisely
+		// so that the order is a testable value rather than an `echo` behind an
+		// `exit()`. There is no WordPress queue for an edge to live in.
+		'ffc-appointment-cancellation.css' => 'the cancellation handler\'s own document; order printed by hand',
 	);
 
 	/**
-	 * Handle => folha, e handle => dependências declaradas.
+	 * Handle => sheet, and handle => declared dependencies.
 	 *
 	 * @return array{files: array<string, string>, deps: array<string, array<int, string>>}
 	 */
@@ -186,14 +188,14 @@ class StylesheetOwnershipTest extends TestCase {
 	}
 
 	/**
-	 * Argumentos de nível zero de uma chamada, dado o índice do `(`.
+	 * A call's top-level arguments, given the index of its `(`.
 	 *
-	 * Um `explode( ',', … )` não serve: o segundo argumento costuma ser uma
-	 * concatenação com `plugins_url( …, dirname( __DIR__, 1 ) )`, cuja vírgula
-	 * interna cortaria a lista no lugar errado e faria a folha sumir da conta.
+	 * An `explode( ',', … )` will not do: the second argument is usually a
+	 * concatenation with `plugins_url( …, dirname( __DIR__, 1 ) )`, whose inner
+	 * comma would cut the list in the wrong place, dropping the sheet from the count.
 	 *
-	 * @param string $source Conteúdo do arquivo.
-	 * @param int    $open   Índice do parêntese de abertura.
+	 * @param string $source File contents.
+	 * @param int    $open   Index of the opening parenthesis.
 	 * @return array<int, string>
 	 */
 	private function arguments( string $source, int $open ): array {
@@ -246,7 +248,7 @@ class StylesheetOwnershipTest extends TestCase {
 	}
 
 	/**
-	 * Todo `.php` de `includes/`.
+	 * Every `.php` file in `includes/`.
 	 *
 	 * @return array<int, string>
 	 */
@@ -265,12 +267,12 @@ class StylesheetOwnershipTest extends TestCase {
 	}
 
 	/**
-	 * `$from` alcança `$to` pela cadeia de dependências?
+	 * Does `$from` reach `$to` through the dependency chain?
 	 *
-	 * @param string                          $from Handle de origem.
-	 * @param string                          $to   Handle de destino.
-	 * @param array<string, array<int,string>> $deps Grafo.
-	 * @param array<string, bool>             $seen Visitados.
+	 * @param string                          $from Source handle.
+	 * @param string                          $to   Target handle.
+	 * @param array<string, array<int,string>> $deps The graph.
+	 * @param array<string, bool>             $seen Already visited.
 	 * @return bool
 	 */
 	private function reaches( string $from, string $to, array $deps, array &$seen ): bool {
@@ -289,12 +291,12 @@ class StylesheetOwnershipTest extends TestCase {
 	}
 
 	/**
-	 * Existe aresta entre duas folhas, em qualquer direção?
+	 * Is there an edge between two sheets, in either direction?
 	 *
-	 * @param string                          $a     Folha A.
-	 * @param string                          $b     Folha B.
-	 * @param array<string, string>           $files Handle => folha.
-	 * @param array<string, array<int,string>> $deps  Grafo.
+	 * @param string                          $a     Sheet A.
+	 * @param string                          $b     Sheet B.
+	 * @param array<string, string>           $files Handle => sheet.
+	 * @param array<string, array<int,string>> $deps  The graph.
 	 * @return bool
 	 */
 	private function linked( string $a, string $b, array $files, array $deps ): bool {
@@ -318,9 +320,9 @@ class StylesheetOwnershipTest extends TestCase {
 	}
 
 	/**
-	 * Pares (classe, folhaA, folhaB) declarados cruas sem aresta.
+	 * (class, sheetA, sheetB) pairs declared bare with no edge.
 	 *
-	 * @return array<int, string> Chaves `classe|folhaA|folhaB`.
+	 * @return array<int, string> Keys of the form `class|sheetA|sheetB`.
 	 */
 	private function unlinked_pairs(): array {
 		$graph = $this->graph();
@@ -356,7 +358,7 @@ class StylesheetOwnershipTest extends TestCase {
 	}
 
 	/**
-	 * Nada de novo sem aresta.
+	 * Nothing new without an edge.
 	 *
 	 * @return void
 	 */
@@ -371,15 +373,15 @@ class StylesheetOwnershipTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$new,
-			"Classe declarada crua em duas folhas sem aresta de dependência entre elas — "
-				. "quem vence é a ordem de enfileiramento. Declare a dependência no "
-				. "`wp_enqueue_style`, dê nome próprio ao componente, ou registre em ALLOWED "
-				. "com o motivo pelo qual as duas nunca carregam juntas:\n" . implode( "\n", $new )
+			"Class declared bare in two sheets with no dependency edge between them — the "
+				. "winner is enqueue order. Declare the dependency in `wp_enqueue_style`, give "
+				. "the component its own name, or record it in ALLOWED with the reason the two "
+				. "never load together:\n" . implode( "\n", $new )
 		);
 	}
 
 	/**
-	 * O que ganhou aresta (ou nome próprio) sai das listas.
+	 * What gained an edge (or its own name) leaves the lists.
 	 *
 	 * @return void
 	 */
@@ -401,13 +403,13 @@ class StylesheetOwnershipTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$stale,
-			"Um par foi resolvido e a lista não acompanhou — remova para trancar o ganho:\n"
+			"A pair was resolved and the list did not follow — drop it to lock the win in:\n"
 				. implode( "\n", $stale )
 		);
 	}
 
 	/**
-	 * Toda entrada das duas listas carrega motivo.
+	 * Every entry in the lists carries a reason.
 	 *
 	 * @return void
 	 */
@@ -419,16 +421,16 @@ class StylesheetOwnershipTest extends TestCase {
 			}
 		}
 
-		$this->assertSame( array(), $thin, 'Entrada sem motivo escrito: ' . implode( ', ', $thin ) );
+		$this->assertSame( array(), $thin, 'Entry with no written reason: ' . implode( ', ', $thin ) );
 	}
 
 	/**
-	 * Toda folha tem um handle, ou está em NO_HANDLE com o motivo.
+	 * Every sheet has a handle, or sits in NO_HANDLE with the reason.
 	 *
-	 * É a metade que impede a guarda de passar por ignorância: uma folha que o
-	 * extrator não achasse teria grafo vazio, e todo par dela contaria como
-	 * "sem aresta" — ou, pior, uma mudança na forma da chamada faria uma folha
-	 * inteira sumir da conta sem nada ficar vermelho.
+	 * This is the half that stops the guard passing out of ignorance: a sheet the
+	 * extractor could not find would have an empty graph, and every pair of its
+	 * would count as "no edge" — or, worse, a change in the call's shape would
+	 * drop a whole sheet from the count with nothing going red.
 	 *
 	 * @return void
 	 */
@@ -447,43 +449,43 @@ class StylesheetOwnershipTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$missing,
-			"Folha sem `wp_enqueue_style` que o extrator reconheça. Se ela realmente não "
-				. "passa pela fila do WordPress, registre em NO_HANDLE com o motivo:\n"
+			"Sheet with no `wp_enqueue_style` the extractor recognises. If it genuinely does "
+				. "not go through the WordPress queue, record it in NO_HANDLE with the reason:\n"
 				. implode( "\n", $missing )
 		);
 
 		foreach ( array_keys( self::NO_HANDLE ) as $name ) {
-			$this->assertNotContains( $name, $known, "{$name} ganhou handle — remova de NO_HANDLE." );
+			$this->assertNotContains( $name, $known, "{$name} gained a handle — drop it from NO_HANDLE." );
 		}
 	}
 
 	/**
-	 * A leitura do grafo não colapsou.
+	 * Reading the graph did not collapse.
 	 *
 	 * @return void
 	 */
 	public function test_the_dependency_graph_is_still_being_read(): void {
 		$graph = $this->graph();
 
-		$this->assertGreaterThanOrEqual( 25, count( $graph['files'] ), 'O extrator perdeu handles.' );
+		$this->assertGreaterThanOrEqual( 25, count( $graph['files'] ), 'The extractor lost handles.' );
 		$this->assertSame( 'ffc-admin.css', $graph['files']['ffc-admin-css'] ?? null );
 		$this->assertContains( 'ffc-admin-utilities', $graph['deps']['ffc-admin-css'] ?? array() );
 
-		// `ffc-calendar-admin` só é alcançável porque o extrator lê o argumento
-		// de nível zero: a chamada usa `plugins_url( "…", dirname( __DIR__, 1 ) )`,
-		// cuja vírgula interna quebraria um `explode`.
+		// `ffc-calendar-admin` is only reachable because the extractor reads
+		// top-level arguments: the call uses `plugins_url( "…", dirname( __DIR__, 1 ) )`,
+		// whose inner comma would break an `explode`.
 		$this->assertSame( 'ffc-calendar-admin.css', $graph['files']['ffc-calendar-admin'] ?? null );
 
-		// `ffc-recruitment-admin` só é alcançável porque o extrator resolve
-		// `self::HANDLE_CSS` contra as constantes do próprio arquivo.
+		// `ffc-recruitment-admin` is only reachable because the extractor
+		// resolves `self::HANDLE_CSS` against the file's own constants.
 		$this->assertSame( 'ffc-recruitment-admin.css', $graph['files']['ffc-recruitment-admin'] ?? null );
 	}
 
 	/**
-	 * Uma aresta transitiva conta como aresta.
+	 * A transitive edge counts as an edge.
 	 *
-	 * `ffc-admin-settings` → `ffc-admin-css` → `ffc-admin-utilities`: as folhas
-	 * das pontas têm ordem determinística sem se citarem.
+	 * `ffc-admin-settings` → `ffc-admin-css` → `ffc-admin-utilities`: the sheets
+	 * at the ends have a deterministic order without naming each other.
 	 *
 	 * @return void
 	 */
@@ -499,10 +501,10 @@ class StylesheetOwnershipTest extends TestCase {
 	}
 
 	/**
-	 * Só a declaração crua conta.
+	 * Only the bare declaration counts.
 	 *
-	 * Um composto ou um descendente já nomeia o dono; é a declaração solitária
-	 * que alcança qualquer componente que carregue a classe.
+	 * A compound or a descendant already names the owner; it is the lone
+	 * declaration that reaches any component carrying the class.
 	 *
 	 * @return void
 	 */
