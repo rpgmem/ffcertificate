@@ -18,6 +18,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The schema and activation guards now read in English** (#1260): `SchemaAgreementTest`, `ActivatorSchemaGuardTest`, `MigrationRegistryTest`, `DeactivatorTest` and the four `*ActivatorTest` files. Comments and messages, plus two test-fixture version strings; no assertion, pattern or option key moved.
 - **The key-rotation and encryption guards now read in English** (#1260): the two `KeyRotation*` strategy tests, `EncryptionKeyMemoizationTest` and `DecryptFailureLoggingTest`. Comments and messages, plus four Portuguese local variables and five fixture values; the `'nome'` key stays, because it is a stored key of the reregistration JSON body.
 - **Four of `CLAUDE.md`'s own claims were wrong** (#1260): it said the remote refuses pushes to `develop` (it does not — the credential has bypass; what it genuinely cannot do is delete any ref), that a guard baseline held two entries (it is empty), and that the stylesheets weigh 382 KB (432).
+- **`CLAUDE.md` records three process findings from the #1260 arc** (#1260): where a `[Unreleased]` bullet goes (append, so parallel branches stop colliding on one line), when the full local suite is evidence and when `--filter` plus CI is enough, and the measured cost of splitting a docs-only pass into four PRs instead of two.
 
 ### Fixed
 
