@@ -184,21 +184,11 @@ class Loader {
 		$this->submission_handler = new SubmissionHandler();
 		$this->email_handler      = new EmailHandler();
 
-		// O wp-cron agenda `ffc_process_submission_async` com um inteiro; este
+		// O wp-cron agenda `ffc_process_submission_async` com um inteiro; o
 		// ouvinte reidrata a submissao e dispara o gancho publico de oito
-		// argumentos que o `EmailHandler` escuta (#1248).
-		//
-		// Registrado AQUI, e nao no construtor do handler: `SubmissionHandler`
-		// e instanciado em sete lugares, e um `add_action` no construtor
-		// deixaria sete ouvintes -- objetos distintos, que o WordPress nao
-		// deduplica --, isto e, sete e-mails por submissao. Aqui ha uma
-		// instancia so.
-		add_action(
-			SubmissionHandler::ASYNC_PIPELINE_HOOK,
-			array( $this->submission_handler, 'dispatch_async_pipeline' ),
-			10,
-			1
-		);
+		// argumentos que o `EmailHandler` escuta (#1248). Chamado daqui porque
+		// esta e a instancia unica -- a razao esta no proprio metodo.
+		$this->submission_handler->register_async_pipeline();
 
 		// Certificates module — the `ffc_form` CPT + public form rendering.
 		// Toggleable via the Modules tab (default on). The certificate ADMIN

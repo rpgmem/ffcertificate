@@ -344,6 +344,29 @@ class SubmissionHandler {
 	}
 
 	/**
+	 * Liga o ouvinte do wp-cron a {@see self::dispatch_async_pipeline()} (#1248).
+	 *
+	 * POR QUE UM METODO, E NAO O CONSTRUTOR
+	 *
+	 * `SubmissionHandler` e instanciado em SETE lugares, e o WordPress nao
+	 * deduplica callbacks de objetos distintos: um `add_action` no construtor
+	 * deixaria sete ouvintes, isto e, sete e-mails por submissao. Quem chama
+	 * isto e o `Loader`, que guarda a instancia unica.
+	 *
+	 * POR QUE AQUI, E NAO UM `add_action` SOLTO NO `Loader`
+	 *
+	 * O nome do gancho fica num lugar so, ao lado de quem o agenda. Escrito no
+	 * `Loader` como literal, renomear a constante desregistraria o ouvinte em
+	 * silencio -- e um ouvinte ausente aqui nao da erro: so para de mandar
+	 * e-mail, que e a forma do defeito do #649.
+	 *
+	 * @return void
+	 */
+	public function register_async_pipeline(): void {
+		add_action( self::ASYNC_PIPELINE_HOOK, array( $this, 'dispatch_async_pipeline' ), 10, 1 );
+	}
+
+	/**
 	 * Reidrata o contexto de uma submissao e dispara o gancho publico (#1248).
 	 *
 	 * O wp-cron chama isto com um inteiro; daqui sai o `do_action` de oito

@@ -431,7 +431,8 @@ class LoaderCapabilitiesTest extends TestCase {
 			->shouldReceive( 'maybe_migrate' )->zeroOrMoreTimes();
 
 		// Shared runtime classes.
-		Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' );
+		Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' )
+			->shouldReceive( 'register_async_pipeline' )->zeroOrMoreTimes();
 		Mockery::mock( 'overload:FreeFormCertificate\Integrations\EmailHandler' );
 		Mockery::mock( 'overload:FreeFormCertificate\Admin\CPT' );
 		Mockery::mock( 'overload:FreeFormCertificate\Frontend\Frontend' );
@@ -523,7 +524,8 @@ class LoaderCapabilitiesTest extends TestCase {
 			->shouldReceive( 'create_tables' )->atLeast()->once()
 			->shouldReceive( 'maybe_migrate' )->atLeast()->once();
 
-		Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' );
+		Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' )
+			->shouldReceive( 'register_async_pipeline' )->zeroOrMoreTimes();
 		Mockery::mock( 'overload:FreeFormCertificate\Integrations\EmailHandler' );
 
 		// Certificates OFF → CPT + Frontend must never be constructed.
