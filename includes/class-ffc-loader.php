@@ -827,6 +827,13 @@ class Loader {
 		if ( SettingsReader::module_enabled( 'reregistration' ) ) {
 			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationRepository::class, 'expire_overdue' ) );
 			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_automated_reminders' ) );
+
+			// Continuação de um lote de lembretes (#1232 passo 2). Precisa de
+			// `2` argumentos aceitos: o payload carrega o id da campanha e o
+			// cursor keyset. Fica sob o mesmo gate de módulo dos irmãos acima
+			// — um evento já enfileirado quando o módulo é desligado dispara
+			// como no-op e retoma quando ele volta.
+			add_action( ReregistrationEmailHandler::REMINDER_BATCH_HOOK, array( ReregistrationEmailHandler::class, 'send_reminder_batch' ), 10, 2 );
 		}
 		if ( SettingsReader::module_enabled( 'self_scheduling' ) ) {
 			add_action( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, array( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::class, 'run' ) );

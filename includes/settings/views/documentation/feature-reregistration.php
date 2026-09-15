@@ -54,6 +54,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</div>
 
 	<div class="ffc-doc-example">
+		<h4><?php esc_html_e( 'Large campaigns: reminders go out in batches', 'ffcertificate' ); ?></h4>
+		<p><?php esc_html_e( 'A campaign with up to 50 members awaiting a reminder is sent in one go, exactly as before. Above that, the daily sweep sends the first 50 and queues the rest, 50 at a time, about a minute apart. Nobody receives two emails: each send is stamped on the member the moment it goes out, so a batch that is interrupted resumes where it stopped instead of starting over.', 'ffcertificate' ); ?></p>
+		<p class="description"><strong><?php esc_html_e( 'The one-minute spacing is a floor, not a promise.', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'WordPress runs scheduled tasks when a visitor loads a page, so on a quiet site the next batch goes out when the next visitor arrives. If a large campaign has to finish within a set window, ask your host to run WP-Cron from the server (DISABLE_WP_CRON plus a system cron) instead of relying on visitor traffic.', 'ffcertificate' ); ?></p>
+		<p class="description"><?php esc_html_e( 'If the sibling total-mail-queue plugin is installed, these emails land in its queue rather than being sent one by one — check its own settings for how many it releases per interval, since its defaults are deliberately slow and a large campaign can outrun them.', 'ffcertificate' ); ?></p>
+	</div>
+
+	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'The member form', 'ffcertificate' ); ?></h4>
 		<p><?php esc_html_e( 'There is no separate reregistration shortcode. Active campaigns appear as a banner on the member\'s personal dashboard (the user_dashboard_personal shortcode); the form loads and submits there over AJAX. Members are targeted by audience membership, not by matching a CPF/RF. On submit, the plugin generates an authentication code and a Ficha magic link, syncs mapped fields to the user profile, and sends the confirmation email.', 'ffcertificate' ); ?></p>
 	</div>

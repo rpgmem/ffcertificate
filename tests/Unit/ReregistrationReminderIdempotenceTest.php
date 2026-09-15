@@ -150,11 +150,66 @@ class ReregistrationReminderIdempotenceTest extends TestCase {
 	/**
 	 * A ordem e por `id`, estavel sob insercao concorrente -- a mesma escolha
 	 * que o contrato de exportacao do #772 faz, e o que permite lotear este
-	 * envio depois sem que uma linha nova empurre outra para fora da pagina.
+	 * envio sem que uma linha nova empurre outra para fora da pagina.
 	 */
 	public function test_rows_come_back_in_a_stable_order(): void {
 		ReregistrationSubmissionReader::get_awaiting_reminder( 7, null );
 
 		$this->assertStringContainsString( 'ORDER BY id ASC', $this->captured );
+	}
+
+	/**
+	 * Sem cursor e sem limite a consulta nao os menciona.
+	 *
+	 * E a autoverificacao das duas asercoes abaixo: sem ela, um `LIMIT`
+	 * grudado no literal passaria nos dois testes seguintes sem que parametro
+	 * nenhum estivesse sendo lido.
+	 */
+	public function test_the_unbatched_read_carries_neither_cursor_nor_limit(): void {
+		ReregistrationSubmissionReader::get_awaiting_reminder( 7, null );
+
+		$this->assertStringNotContainsString( 'id > ', $this->captured );
+		$this->assertStringNotContainsString( 'LIMIT', $this->captured );
+	}
+
+	/**
+	 * O cursor keyset vira `id > N` (#1232 passo 2).
+	 *
+	 * Nao e so paginacao estavel: e o que garante PROGRESSO. Uma submissao
+	 * cujo usuario foi apagado nunca recebe carimbo -- `user_id` e `NOT NULL`
+	 * e orfao aceito (#822) --, entao sem o cursor o lote seguinte a rebusca e
+	 * o reagendamento nao termina nunca.
+	 */
+	public function test_a_cursor_narrows_the_page_to_rows_after_it(): void {
+		ReregistrationSubmissionReader::get_awaiting_reminder( 7, null, 120, 50 );
+
+		$this->assertStringContainsString( 'id > 120', $this->captured );
+	}
+
+	/**
+	 * O limite vira `LIMIT N`, depois do `ORDER BY`.
+	 *
+	 * A ordem no SQL importa porque `prepare()` recebe um array unico e
+	 * substitui na ordem em que os marcadores aparecem: cursor e limite entram
+	 * depois das clausulas de status e de extensao.
+	 */
+	public function test_a_limit_bounds_the_page(): void {
+		ReregistrationSubmissionReader::get_awaiting_reminder( 7, null, 120, 50 );
+
+		$this->assertStringContainsString( 'ORDER BY id ASC LIMIT 50', $this->captured );
+	}
+
+	/**
+	 * Com extensao de prazo, cursor e limite continuam no fim da consulta.
+	 *
+	 * O caminho com mais marcadores e onde um `prepare()` desalinhado
+	 * apareceria -- e ele apareceria como dado errado, nao como erro.
+	 */
+	public function test_cursor_and_limit_survive_an_extension(): void {
+		ReregistrationSubmissionReader::get_awaiting_reminder( 7, 1771000000, 120, 50 );
+
+		$this->assertStringContainsString( 'reminder_sent_at < 1771000000', $this->captured );
+		$this->assertStringContainsString( 'id > 120', $this->captured );
+		$this->assertStringContainsString( 'ORDER BY id ASC LIMIT 50', $this->captured );
 	}
 }
