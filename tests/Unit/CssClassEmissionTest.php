@@ -1,16 +1,16 @@
 <?php
 /**
- * Guarda de emissão de classe CSS (#1170).
+ * CSS class-emission guard (#1170).
  *
- * Renomear uma classe é seguro exatamente na medida em que se consegue achar
- * quem a emite — e um grep não consegue, porque o nome costuma ser montado em
- * runtime. `tests/Support/CssClassEmitters.php` é a varredura; este arquivo é
- * o que a mantém honesta.
+ * Renaming a class is safe exactly as far as you can find who emits it — and a
+ * grep cannot, because the name is usually assembled at runtime.
+ * `tests/Support/CssClassEmitters.php` is the scan; this file is what keeps it
+ * honest.
  *
- * **Os testes de forma são o conteúdo, não cerimônia.** Cada um deles nasceu de
- * uma classe que a varredura NÃO achava, e cada uma dessas seria uma renomeação
- * quebrando em silêncio. Eles estão aqui para que a próxima mudança na
- * varredura não desfaça nenhuma sem ninguém notar.
+ * **The shape tests are the content, not ceremony.** Every one of them was born
+ * from a class the scan did NOT find, and each of those would have been a rename
+ * breaking in silence. They are here so that the next change to the scan does
+ * not undo one of them without anybody noticing.
  *
  * @package FreeFormCertificate\Tests\Unit
  */
@@ -28,84 +28,86 @@ use PHPUnit\Framework\TestCase;
 final class CssClassEmissionTest extends TestCase {
 
 	/**
-	 * Classes que o HTML do PRÓPRIO ADMINISTRADOR emite, não o nosso código.
+	 * Classes the ADMINISTRATOR's own HTML emits, not our code.
 	 *
-	 * A `ffc-pdf-core.css` tem uma seção intitulada **"UTILITY CLASSES FOR
-	 * CERTIFICATE TEMPLATES"** e dois comentários que dizem, literalmente, *"Add
-	 * class `ffc-responsive-logo` to img tag to enable"*. São uma API para quem
-	 * monta o corpo do certificado — que vive no banco, não no repositório —, e
-	 * por isso nenhuma varredura de código pode achar emissor para elas.
+	 * `ffc-pdf-core.css` has a section headed **"UTILITY CLASSES FOR CERTIFICATE
+	 * TEMPLATES"** and two comments reading, literally, *"Add class
+	 * `ffc-responsive-logo` to img tag to enable"*. They are an API for whoever
+	 * writes the certificate body — which lives in the database, not in the
+	 * repository — and so no code scan can ever find an emitter for them.
 	 *
-	 * Não são pergunta em aberto e não são dívida: estão na terceira categoria
-	 * que o docblock de `WITHOUT_EMITTER` sempre previu ("aplicada por algo fora
-	 * do nosso código") e que, até esta medição, nunca tinha tido ocupante.
+	 * They are not open questions and they are not debt: they are the third
+	 * category `WITHOUT_EMITTER`'s docblock always allowed for ("applied by
+	 * something outside our code") and that, until this measurement, had never
+	 * had an occupant.
 	 *
-	 * **A #1170 as classificou como mortas** — "não aparecem em NENHUM lugar do
-	 * repositório" — e isso estava certo sobre o repositório e errado sobre o
-	 * mundo. Apagá-las quebraria silenciosamente todo certificado que já use
-	 * `class="ffc-txt-center"`, que é o uso para o qual foram publicadas.
+	 * **#1170 classified them as dead** — "they appear NOWHERE in the
+	 * repository" — and that was right about the repository and wrong about the
+	 * world. Deleting them would silently break every certificate already using
+	 * `class="ffc-txt-center"`, which is the use they were published for.
 	 *
 	 * @var array<string, string>
 	 */
 	private const TEMPLATE_API = array(
-		'ffc-txt-center'      => 'seção 9 da folha: alinhamento para o corpo do certificado',
-		'ffc-txt-left'        => 'seção 9 da folha: alinhamento para o corpo do certificado',
-		'ffc-txt-right'       => 'seção 9 da folha: alinhamento para o corpo do certificado',
-		'ffc-txt-justify'     => 'seção 9 da folha: alinhamento para o corpo do certificado',
-		'ffc-full-width'      => 'seção 9 da folha: largura total para o corpo do certificado',
-		'ffc-full-width-img'  => 'comentário na folha: "Add class ffc-full-width-img to img tag to enable"',
-		'ffc-responsive-logo' => 'comentário na folha: "Add class ffc-responsive-logo to img tag to enable"',
+		'ffc-txt-center'      => 'section 9 of the sheet: alignment for the certificate body',
+		'ffc-txt-left'        => 'section 9 of the sheet: alignment for the certificate body',
+		'ffc-txt-right'       => 'section 9 of the sheet: alignment for the certificate body',
+		'ffc-txt-justify'     => 'section 9 of the sheet: alignment for the certificate body',
+		'ffc-full-width'      => 'section 9 of the sheet: full width for the certificate body',
+		'ffc-full-width-img'  => 'comment in the sheet: "Add class ffc-full-width-img to img tag to enable"',
+		'ffc-responsive-logo' => 'comment in the sheet: "Add class ffc-responsive-logo to img tag to enable"',
 	);
 
 	/**
-	 * Shim de compatibilidade que a folha declara como tal.
+	 * A compatibility shim the sheet declares as such.
 	 *
-	 * A `ffc-pdf-core.css` tem uma seção **13. LEGACY CLASSES (Backward
-	 * compatibility)**. Nenhuma delas foi emitida pelo nosso código em NENHUM
-	 * ponto da história do repositório (`git log -S` sobre `assets/js`,
-	 * `includes` e `templates` devolve zero), então aquilo com que elas mantêm
-	 * compatibilidade está fora daqui — corpo de certificado salvo no banco, do
-	 * mesmo jeito que a API acima.
+	 * `ffc-pdf-core.css` has a section **13. LEGACY CLASSES (Backward
+	 * compatibility)**. None of them has been emitted by our code at ANY point in
+	 * the repository's history (`git log -S` over `assets/js`, `includes` and
+	 * `templates` returns zero), so what they stay compatible with is outside
+	 * here — a certificate body saved in the database, the same way the API above
+	 * is.
 	 *
-	 * Cada uma tem a irmã viva que o JS emite hoje, e o par conta a renomeação:
+	 * Each has a live sibling the JS emits today, and the pair names the rename:
 	 * `stage`→`wrapper`, `bg-img`→`bg`, `user-content`→`content`,
 	 * `temp-wrapper`→`temp-container`.
 	 *
-	 * **Ficam listadas aqui, e não em `WITHOUT_EMITTER`, porque não são pergunta
-	 * em aberto: são shim, e o `CLAUDE.md` §5 exige evidência de instalação —
-	 * nunca varredura de código — para retirar um.** O inventário de §5 passa a
-	 * registrá-las com a condição de saída.
+	 * **They are listed here rather than in `WITHOUT_EMITTER` because they are
+	 * not open questions: they are a shim, and `CLAUDE.md` §5 requires install
+	 * evidence — never a code scan — to retire one.** §5's inventory now records
+	 * them with their exit condition.
 	 *
 	 * @var array<string, string>
 	 */
 	private const LEGACY_SHIM = array(
-		'ffc-pdf-stage'        => 'seção 13 da folha; irmã viva `ffc-pdf-wrapper`',
-		'ffc-pdf-bg-img'       => 'seção 13 da folha; irmã viva `ffc-pdf-bg`',
-		'ffc-pdf-user-content' => 'seção 13 da folha; irmã viva `ffc-pdf-content`',
-		'ffc-pdf-temp-wrapper' => 'pareada com a viva `ffc-pdf-temp-container` na regra do wp-admin',
+		'ffc-pdf-stage'        => 'section 13 of the sheet; live sibling `ffc-pdf-wrapper`',
+		'ffc-pdf-bg-img'       => 'section 13 of the sheet; live sibling `ffc-pdf-bg`',
+		'ffc-pdf-user-content' => 'section 13 of the sheet; live sibling `ffc-pdf-content`',
+		'ffc-pdf-temp-wrapper' => 'paired with the live `ffc-pdf-temp-container` in the wp-admin rule',
 	);
 
 	/**
-	 * Classes declaradas nas folhas para as quais a varredura não acha emissor.
+	 * Classes the sheets declare for which the scan finds no emitter.
 	 *
-	 * Uma catraca que só encolhe. Não é uma lista de código morto — é uma lista
-	 * de **perguntas em aberto**, e cada entrada tem uma dessas três respostas:
+	 * A ratchet that only shrinks. It is not a list of dead code — it is a list
+	 * of **open questions**, and every entry has one of three answers:
 	 *
-	 *  - morta de verdade;
-	 *  - emitida por uma forma que a varredura ainda não conhece — e aí a
-	 *    correção é ensinar a varredura, não baixar a guarda;
-	 *  - aplicada por algo fora do nosso código.
+	 *  - genuinely dead;
+	 *  - emitted by a shape the scan does not know yet — and there the fix is to
+	 *    teach the scan, never to lower the guard;
+	 *  - applied by something outside our code.
 	 *
-	 * **Das 24 entradas originais, nove eram a segunda resposta** — tinham
-	 * emissor no repositório e a varredura é que não lia a forma. Ensiná-la
-	 * respondeu as nove de uma vez, e as três formas novas estão no
-	 * `provider_shapes()`. Outras onze eram a terceira: viraram `TEMPLATE_API` e
-	 * `LEGACY_SHIM` acima, cada uma com a evidência que a tirou daqui.
+	 * **Of the original 24 entries, nine were the second answer** — they had an
+	 * emitter in the repository and it was the scan that could not read the
+	 * shape. Teaching it answered all nine at once, and the three new shapes are
+	 * in `provider_shapes()`. Another eleven were the third: they became
+	 * `TEMPLATE_API` and `LEGACY_SHIM` above, each with the evidence that took it
+	 * out of here.
 	 *
-	 * Restam quatro, e todas as quatro são candidatas à PRIMEIRA resposta —
-	 * nunca emitidas na história, sem seção da folha que as reivindique. Ficam
-	 * como pergunta porque apagar CSS que o autor de template pode estar usando
-	 * é decisão de produto, não de varredura.
+	 * Four remain, and all four are candidates for the FIRST answer — never
+	 * emitted in the repository's history, with no section of the sheet claiming
+	 * them. They stay as questions because deleting CSS a template author may be
+	 * using is a product decision, not a scan's.
 	 *
 	 * @var array<int, string>
 	 */
@@ -117,34 +119,34 @@ final class CssClassEmissionTest extends TestCase {
 	);
 
 	/**
-	 * As formas que a varredura precisa conhecer, com um caso real de cada.
+	 * The shapes the scan has to know, with a real case of each.
 	 *
-	 * A coluna do meio é a classe; a última é a forma que a emite. Toda entrada
-	 * aqui já falhou uma vez.
+	 * The middle column is the class; the last one is the shape that emits it.
+	 * Every entry here has failed once.
 	 *
 	 * @return array<string, array{0: string, 1: string}>
 	 */
 	public static function provider_shapes(): array {
 		return array(
-			'atributo literal'            => array( 'ffc-status-badge', 'literal' ),
-			'API de classe do jQuery'     => array( 'ffc-collapsed', 'literal' ),
-			'seletor dentro de string'    => array( 'ffc-timeslot-full', 'literal' ),
-			'eco embutido no atributo'    => array( 'ffc-audience-status-active', 'prefixo' ),
-			'placeholder de printf'       => array( 'ffc-cap-origin--user', 'prefixo' ),
-			'concatenação no fim da str'  => array( 'ffc-dashboard-status-confirmed', 'prefixo' ),
-			'interpolação do PHP'         => array( 'ffc-verification-status-cancelled', 'prefixo' ),
-			'atributo aberto e não fechado' => array( 'ffc-appointments-table', 'literal' ),
-			'várias classes numa string'  => array( 'ffc-has-geofence', 'literal' ),
-			'opção de biblioteca'         => array( 'ffc-sortable-placeholder', 'literal' ),
+			'literal attribute'           => array( 'ffc-status-badge', 'literal' ),
+			'jQuery class API'            => array( 'ffc-collapsed', 'literal' ),
+			'selector inside a string'    => array( 'ffc-timeslot-full', 'literal' ),
+			'echo embedded in attribute'  => array( 'ffc-audience-status-active', 'prefix' ),
+			'printf placeholder'          => array( 'ffc-cap-origin--user', 'prefix' ),
+			'concatenation at str end'    => array( 'ffc-dashboard-status-confirmed', 'prefix' ),
+			'PHP interpolation'           => array( 'ffc-verification-status-cancelled', 'prefix' ),
+			'attribute opened not closed' => array( 'ffc-appointments-table', 'literal' ),
+			'several classes in a string' => array( 'ffc-has-geofence', 'literal' ),
+			'library option'              => array( 'ffc-sortable-placeholder', 'literal' ),
 		);
 	}
 
 	/**
-	 * Cada forma conhecida continua sendo achada.
+	 * Every known shape is still found.
 	 *
 	 * @dataProvider provider_shapes
-	 * @param string $class Classe real declarada nas folhas.
-	 * @param string $how   `literal` ou `prefixo`.
+	 * @param string $class A real class declared in the sheets.
+	 * @param string $how   `literal` or `prefix`.
 	 */
 	public function test_every_known_shape_is_still_found( string $class, string $how ): void {
 		$found = CssClassEmitters::of( $class );
@@ -152,21 +154,21 @@ final class CssClassEmissionTest extends TestCase {
 		$this->assertSame(
 			$how,
 			$found['how'],
-			"A varredura deixou de achar `{$class}` por `{$how}`.\n"
-			. "Essa forma já falhou uma vez e cada falha dela é uma renomeação que quebra\n"
-			. 'em silêncio — ensine a varredura de volta, não relaxe o teste.'
+			"The scan stopped finding `{$class}` by `{$how}`.\n"
+			. "That shape has failed once already, and each of its failures is a rename that\n"
+			. 'breaks in silence — teach the scan back, do not relax the test.'
 		);
-		$this->assertNotEmpty( $found['files'], "Achou `{$class}` mas não sabe dizer onde." );
+		$this->assertNotEmpty( $found['files'], "Found `{$class}` but cannot say where." );
 	}
 
 	/**
-	 * Nenhuma classe nova entra sem emissor conhecido.
+	 * No new class enters without a known emitter.
 	 */
 	public function test_no_new_class_lacks_an_emitter(): void {
 		$new = array();
 
 		foreach ( CssClassEmitters::declared_ffc_classes() as $class ) {
-			if ( 'nenhum' !== CssClassEmitters::of( $class )['how'] ) {
+			if ( 'none' !== CssClassEmitters::of( $class )['how'] ) {
 				continue;
 			}
 			if (
@@ -181,37 +183,37 @@ final class CssClassEmissionTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$new,
-			"Classe declarada que ninguém emite:\n  ." . implode( "\n  .", $new )
-			. "\n\nOu ela é morta, ou é emitida por uma forma que a varredura não conhece."
-			. "\nSe for o segundo caso, ensine `CssClassEmitters` — acrescentar à lista"
-			. "\nesconde exatamente o que ela existe para mostrar."
+			"Declared class nobody emits:\n  ." . implode( "\n  .", $new )
+			. "\n\nEither it is dead, or it is emitted by a shape the scan does not know."
+			. "\nIf it is the second case, teach `CssClassEmitters` — adding it to the list"
+			. "\nhides exactly what the list exists to show."
 		);
 	}
 
 	/**
-	 * Uma entrada da lista que ganhou emissor sai da lista.
+	 * A listed entry that gained an emitter leaves the list.
 	 *
-	 * A direção que trava o ganho, como nas outras catracas.
+	 * The direction that locks the win in, as in the other ratchets.
 	 */
 	public function test_the_list_only_shrinks(): void {
 		$resolved = array();
 
 		foreach ( self::listed_classes() as $class ) {
 			$found = CssClassEmitters::of( $class );
-			if ( 'nenhum' !== $found['how'] ) {
-				$resolved[] = sprintf( '%s (agora por %s)', $class, $found['how'] );
+			if ( 'none' !== $found['how'] ) {
+				$resolved[] = sprintf( '%s (now by %s)', $class, $found['how'] );
 			}
 		}
 
 		$this->assertSame(
 			array(),
 			$resolved,
-			"Estas ganharam emissor — tire-as da lista em que estão:\n  " . implode( "\n  ", $resolved )
+			"These gained an emitter — drop them from whichever list they are in:\n  " . implode( "\n  ", $resolved )
 		);
 	}
 
 	/**
-	 * Toda entrada da lista ainda é uma classe declarada.
+	 * Every listed entry is still a declared class.
 	 */
 	public function test_every_listed_class_is_still_declared(): void {
 		$declared = CssClassEmitters::declared_ffc_classes();
@@ -220,13 +222,13 @@ final class CssClassEmissionTest extends TestCase {
 			$this->assertContains(
 				$class,
 				$declared,
-				"`{$class}` não é mais declarada em folha nenhuma. Tire-a da lista."
+				"`{$class}` is no longer declared in any sheet. Drop it from the list."
 			);
 		}
 	}
 
 	/**
-	 * As três listas juntas — nenhuma classe pode estar em duas.
+	 * The three lists together — no class may be in two of them.
 	 *
 	 * @return array<int, string>
 	 */
@@ -239,24 +241,24 @@ final class CssClassEmissionTest extends TestCase {
 	}
 
 	/**
-	 * Uma classe pertence a exatamente uma das três listas.
+	 * A class belongs to exactly one of the three lists.
 	 *
-	 * As três dizem coisas diferentes — pergunta em aberto, API publicada,
-	 * shim com condição de saída —, então uma classe em duas delas é uma
-	 * afirmação contraditória sobre o que fazer com ela.
+	 * The three say different things — open question, published API, shim with
+	 * an exit condition — so a class in two of them is a contradictory statement
+	 * about what to do with it.
 	 */
 	public function test_no_class_is_listed_twice(): void {
 		$all  = self::listed_classes();
 		$dupe = array_keys( array_filter( array_count_values( $all ), static fn ( int $n ): bool => $n > 1 ) );
 
-		$this->assertSame( array(), $dupe, 'Classe em mais de uma lista: ' . implode( ', ', $dupe ) );
+		$this->assertSame( array(), $dupe, 'Class in more than one list: ' . implode( ', ', $dupe ) );
 	}
 
 	/**
-	 * Toda razão diz alguma coisa.
+	 * Every reason says something.
 	 *
-	 * O piso de 20 caracteres é contra "legado" e "não usada" — não é medida
-	 * de qualidade, é o mesmo piso que as outras guardas de supressão usam.
+	 * The 20-character floor is against "legacy" and "unused" — it is not a
+	 * quality measure, it is the same floor the other suppression guards use.
 	 */
 	public function test_every_reason_says_something(): void {
 		foreach ( array( 'TEMPLATE_API' => self::TEMPLATE_API, 'LEGACY_SHIM' => self::LEGACY_SHIM ) as $list => $entries ) {
@@ -264,29 +266,29 @@ final class CssClassEmissionTest extends TestCase {
 				$this->assertGreaterThan(
 					20,
 					strlen( $reason ),
-					"A razão de `{$class}` em {$list} não diz o bastante: quem lê precisa saber POR QUE não há emissor."
+					"The reason for `{$class}` in {$list} does not say enough: the reader needs to know WHY there is no emitter."
 				);
 			}
 		}
 	}
 
 	/**
-	 * A varredura não pode colapsar em silêncio.
+	 * The scan must not collapse in silence.
 	 *
-	 * Um mapa vazio satisfaz `assertSame( array(), $new )` tão bem quanto um
-	 * mapa correto — a forma do #1071 / #1094. Os pisos são folgados de
-	 * propósito: dizem "a varredura funcionou", não o tamanho do código.
+	 * An empty map satisfies `assertSame( array(), $new )` just as well as a
+	 * correct one — the #1071 / #1094 shape. The floors are deliberately loose:
+	 * they say "the scan worked", not how big the codebase is.
 	 */
 	public function test_the_scan_cannot_collapse_in_silence(): void {
-		$this->assertGreaterThan( 800, count( CssClassEmitters::declared_ffc_classes() ), 'A leitura das folhas colapsou.' );
-		$this->assertGreaterThan( 500, count( CssClassEmitters::literals() ), 'O mapa de literais colapsou.' );
-		$this->assertGreaterThan( 10, count( CssClassEmitters::prefixes() ), 'O mapa de prefixos colapsou.' );
+		$this->assertGreaterThan( 800, count( CssClassEmitters::declared_ffc_classes() ), 'Reading the sheets collapsed.' );
+		$this->assertGreaterThan( 500, count( CssClassEmitters::literals() ), 'The literal map collapsed.' );
+		$this->assertGreaterThan( 10, count( CssClassEmitters::prefixes() ), 'The prefix map collapsed.' );
 
-		// E a varredura precisa saber dizer NÃO: um nome inventado não tem emissor.
+		// And the scan has to be able to say NO: an invented name has no emitter.
 		$this->assertSame(
-			'nenhum',
-			CssClassEmitters::of( 'ffc-classe-que-nao-existe-em-lugar-nenhum' )['how'],
-			'A varredura acha emissor para qualquer coisa — a rede está pegando o oceano.'
+			'none',
+			CssClassEmitters::of( 'ffc-class-that-exists-nowhere' )['how'],
+			'The scan finds an emitter for anything — the net is catching the ocean.'
 		);
 	}
 }
