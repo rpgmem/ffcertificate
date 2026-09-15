@@ -9,35 +9,35 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 
 /**
- * As quatro cadeias de activator que o `Loader` chama em `plugins_loaded`
- * sondam o schema no maximo uma vez por `FFC_VERSION` (#1231).
+ * The four activator chains `Loader` calls on `plugins_loaded` probe the schema
+ * at most once per `FFC_VERSION` (#1231).
  *
- * O QUE ESTAVA ERRADO
+ * WHAT WAS WRONG
  *
- * `table_exists()` e um `SHOW TABLES LIKE` sem cache e todo
- * `add_column_if_missing()` dispara um `SHOW COLUMNS` antes de decidir nao
- * fazer nada. Somadas, as quatro cadeias custavam 48 queries DDL por
- * requisicao HTTP -- frontend anonimo incluido -- numa instalacao onde nao
- * havia nada a migrar.
+ * `table_exists()` is an uncached `SHOW TABLES LIKE`, and every
+ * `add_column_if_missing()` fires a `SHOW COLUMNS` before deciding to do
+ * nothing. Together, the four chains cost 48 DDL queries per HTTP request --
+ * anonymous frontend included -- on an install where there was nothing to
+ * migrate.
  *
- * POR QUE A GUARDA E `FFC_VERSION` E NAO UM MARCADOR ONE-SHOT
+ * WHY THE GUARD IS `FFC_VERSION` AND NOT A ONE-SHOT MARKER
  *
- * Estas chamadas existem porque um update in-place do plugin NAO dispara
- * `register_activation_hook`. A propriedade a preservar e "o schema se cura
- * depois de um update", nao "roda a cada request" -- e so a guarda por versao
- * preserva as duas metades. Por isso este teste cobra as DUAS direcoes: a
- * segunda chamada na mesma versao nao sonda nada, e uma versao diferente
- * re-arma. Um teste que so verificasse a primeira passaria com um booleano
- * one-shot, que e justamente a implementacao errada.
+ * These calls exist because an in-place plugin update does NOT fire
+ * `register_activation_hook`. The property to preserve is "the schema heals
+ * after an update", not "it runs on every request" -- and only the per-version
+ * guard preserves both halves. So this test charges BOTH directions: the second
+ * call on the same version probes nothing, and a different version re-arms. A
+ * test that only checked the first would pass with a one-shot boolean, which is
+ * precisely the wrong implementation.
  *
- * COMO A SONDAGEM E OBSERVADA
+ * HOW THE PROBING IS OBSERVED
  *
- * Sem banco, o que se pode observar sao as chamadas a `$wpdb`. O duplo abaixo
- * conta toda consulta que chegue nele; a cadeia guardada nao deve emitir
- * nenhuma, e a nao guardada tem de emitir pelo menos uma -- senao o teste
- * estaria verde sobre uma cadeia que nunca sondou coisa alguma, que e o
- * defeito de medicao que o CLAUDE.md registra (uma varredura vazia nunca pode
- * ser lida como "limpa").
+ * With no database, what can be observed are the calls to `$wpdb`. The double
+ * below counts every query that reaches it; the guarded chain must emit none,
+ * and the unguarded one must emit at least one -- otherwise the test would be
+ * green over a chain that never probed anything at all, which is the
+ * measurement defect CLAUDE.md records (an empty scan must never read as
+ * "clean").
  *
  * @covers \FreeFormCertificate\SelfScheduling\SelfSchedulingActivator
  * @covers \FreeFormCertificate\Audience\AudienceActivator
@@ -49,11 +49,11 @@ class ActivatorSchemaGuardTest extends TestCase {
 	use MockeryPHPUnitIntegration;
 
 	/**
-	 * Cadeia => opcao de versao que a guarda.
+	 * Chain => the version option that guards it.
 	 *
-	 * Congelado de proposito: uma cadeia nova chamada de `plugins_loaded` sem
-	 * guarda nao aparece aqui sozinha, mas o teste de manifesto abaixo cobra
-	 * que toda opcao listada esteja declarada em `uninstall.php`.
+	 * Frozen on purpose: a new chain called from `plugins_loaded` without a guard
+	 * does not appear here on its own, but the manifest test below charges that
+	 * every listed option is declared in `uninstall.php`.
 	 *
 	 * @var array<string, array{0: class-string, 1: string, 2: string}>
 	 */
@@ -65,7 +65,7 @@ class ActivatorSchemaGuardTest extends TestCase {
 	);
 
 	/**
-	 * Contagem de consultas que chegaram ao duplo de `$wpdb`.
+	 * Count of queries that reached the `$wpdb` double.
 	 *
 	 * @var int
 	 */
@@ -92,8 +92,8 @@ class ActivatorSchemaGuardTest extends TestCase {
 	}
 
 	/**
-	 * Um `$wpdb` que apenas CONTA — nao simula schema nenhum. O que este teste
-	 * mede e se a cadeia chegou a falar com o banco, nao o que ela perguntou.
+	 * A `$wpdb` that only COUNTS — it simulates no schema at all. What this test
+	 * measures is whether the chain spoke to the database, not what it asked.
 	 */
 	private function install_wpdb_double(): void {
 		$counter = function (): void {
@@ -108,14 +108,14 @@ class ActivatorSchemaGuardTest extends TestCase {
 			private $counter;
 
 			/**
-			 * @param callable $counter Incrementa a contagem.
+			 * @param callable $counter Increments the count.
 			 */
 			public function __construct( callable $counter ) {
 				$this->counter = $counter;
 			}
 
 			/**
-			 * @param mixed ...$args Ignorados.
+			 * @param mixed ...$args Ignored.
 			 * @return string
 			 */
 			public function prepare( ...$args ): string {
@@ -128,8 +128,8 @@ class ActivatorSchemaGuardTest extends TestCase {
 			}
 
 			/**
-			 * A ultima tabela ligada em `prepare()`, para que um
-			 * `SHOW TABLES LIKE` possa responder que ela existe.
+			 * The last table bound in `prepare()`, so that a `SHOW TABLES LIKE`
+			 * can answer that it exists.
 			 *
 			 * @var string
 			 */
@@ -141,21 +141,21 @@ class ActivatorSchemaGuardTest extends TestCase {
 			private string $sql = '';
 
 			/**
-			 * Responde ao `SHOW TABLES LIKE` que a tabela EXISTE.
+			 * Answers the `SHOW TABLES LIKE` saying the table EXISTS.
 			 *
-			 * Nao e detalhe: com a tabela ausente, as cadeias iriam criar
-			 * schema e chamariam `dbDelta()`, que so existe em wp-admin. Stubar
-			 * `dbDelta` aqui definiria a funcao via Patchwork para o resto do
-			 * PROCESSO, e todo teste que rode depois e alcance um
-			 * `dbDelta()` sem expectativa propria passa a falhar com "is not
-			 * defined nor mocked" -- o raio de alcance que o CLAUDE.md
-			 * registra. Foi assim que este arquivo quebrou o `ActivityLogTest`.
+			 * Not a detail: with the table absent, the chains would create schema
+			 * and call `dbDelta()`, which only exists in wp-admin. Stubbing
+			 * `dbDelta` here would define the function through Patchwork for the
+			 * rest of the PROCESS, and every test running afterwards that reaches
+			 * a `dbDelta()` without an expectation of its own starts failing with
+			 * "is not defined nor mocked" -- the blast radius CLAUDE.md records.
+			 * That is how this file broke `ActivityLogTest`.
 			 *
-			 * Reportar a tabela como existente evita o stub E mede o caso que
-			 * importa: uma instalacao estabelecida, onde nao ha nada a criar e
-			 * as 48 consultas eram puro desperdicio.
+			 * Reporting the table as existing avoids the stub AND measures the
+			 * case that matters: an established install, where there is nothing
+			 * to create and the 48 queries were pure waste.
 			 *
-			 * @param mixed ...$args Ignorados.
+			 * @param mixed ...$args Ignored.
 			 * @return string|null
 			 */
 			public function get_var( ...$args ) {
@@ -164,7 +164,7 @@ class ActivatorSchemaGuardTest extends TestCase {
 			}
 
 			/**
-			 * @param mixed ...$args Ignorados.
+			 * @param mixed ...$args Ignored.
 			 * @return array<int, mixed>
 			 */
 			public function get_results( ...$args ): array {
@@ -173,7 +173,7 @@ class ActivatorSchemaGuardTest extends TestCase {
 			}
 
 			/**
-			 * @param mixed ...$args Ignorados.
+			 * @param mixed ...$args Ignored.
 			 * @return int
 			 */
 			public function query( ...$args ): int {
@@ -189,7 +189,7 @@ class ActivatorSchemaGuardTest extends TestCase {
 			}
 
 			/**
-			 * @param string $value Valor.
+			 * @param string $value The value.
 			 * @return string
 			 */
 			public function esc_like( string $value ): string {
@@ -197,7 +197,7 @@ class ActivatorSchemaGuardTest extends TestCase {
 			}
 
 			/**
-			 * @param bool $suppress Suprimir.
+			 * @param bool $suppress Whether to suppress.
 			 * @return bool
 			 */
 			public function suppress_errors( bool $suppress = true ): bool {
@@ -205,7 +205,7 @@ class ActivatorSchemaGuardTest extends TestCase {
 			}
 
 			/**
-			 * @param string $message Mensagem.
+			 * @param string $message The message.
 			 * @return void
 			 */
 			public function print_error( string $message = '' ): void {
@@ -216,24 +216,24 @@ class ActivatorSchemaGuardTest extends TestCase {
 	}
 
 	/**
-	 * Roda a cadeia com a opcao num valor dado e devolve quantas consultas
-	 * chegaram ao banco.
+	 * Runs the chain with the option at a given value and returns how many
+	 * queries reached the database.
 	 *
-	 * @param string $class    Classe do activator.
-	 * @param string $method   Metodo da cadeia.
-	 * @param string $option   Opcao de versao.
-	 * @param string $stored   Valor que a opcao ja tem.
+	 * @param string $class    The activator class.
+	 * @param string $method   The chain's method.
+	 * @param string $option   The version option.
+	 * @param string $stored   The value the option already holds.
 	 * @return int
 	 */
 	private function run_chain( string $class, string $method, string $option, string $stored ): int {
 		$this->queries = 0;
 
-		// A opcao sob teste devolve o valor pedido; QUALQUER OUTRA devolve '1'.
-		// As demais leituras nestas cadeias sao marcadores one-shot (o do
-		// `AudienceEmailTokenMigration`, por exemplo), e numa instalacao
-		// estabelecida -- que e o caso que este teste mede -- eles ja rodaram.
-		// Sem isso a cadeia do audience entra num repositorio cujo `db()` e
-		// tipado `: wpdb`, e o duplo anonimo daqui nao satisfaz esse tipo.
+		// The option under test returns the requested value; ANY OTHER returns '1'.
+		// The remaining reads in these chains are one-shot markers (the
+		// `AudienceEmailTokenMigration` one, for instance), and on an established
+		// install -- the case this test measures -- they have already run.
+		// Without that, the audience chain enters a repository whose `db()` is
+		// typed `: wpdb`, and the anonymous double here does not satisfy it.
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, $default_value = false ) use ( $option, $stored ) {
 				return $key === $option ? $stored : '1';
@@ -249,49 +249,49 @@ class ActivatorSchemaGuardTest extends TestCase {
 	/**
 	 * @dataProvider guarded_chains
 	 *
-	 * @param string $class  Classe do activator.
-	 * @param string $method Metodo da cadeia.
-	 * @param string $option Opcao de versao.
+	 * @param string $class  The activator class.
+	 * @param string $method The chain's method.
+	 * @param string $option The version option.
 	 */
 	public function test_chain_does_not_probe_the_schema_on_the_current_version( string $class, string $method, string $option ): void {
-		// Autoverificacao: sem a guarda a cadeia TEM de falar com o banco.
-		// Se nao falasse, um zero abaixo nao significaria nada.
-		$unguarded = $this->run_chain( $class, $method, $option, 'uma-versao-antiga' );
+		// Self-check: without the guard the chain MUST speak to the database. If
+		// it did not, a zero below would mean nothing.
+		$unguarded = $this->run_chain( $class, $method, $option, 'an-older-version' );
 		$this->assertGreaterThan(
 			0,
 			$unguarded,
-			sprintf( '%s::%s() nao sondou o schema nem sem a guarda — a medicao esta quebrada, nao a cadeia.', $class, $method )
+			sprintf( '%s::%s() did not probe the schema even without the guard — the measurement is broken, not the chain.', $class, $method )
 		);
 
 		$guarded = $this->run_chain( $class, $method, $option, FFC_VERSION );
 		$this->assertSame(
 			0,
 			$guarded,
-			sprintf( '%s::%s() sondou o schema com a opcao ja em FFC_VERSION (%d consultas).', $class, $method, $guarded )
+			sprintf( '%s::%s() probed the schema with the option already at FFC_VERSION (%d queries).', $class, $method, $guarded )
 		);
 	}
 
 	/**
-	 * A outra direcao da guarda: uma versao diferente RE-ARMA a cadeia.
+	 * The guard's other direction: a different version RE-ARMS the chain.
 	 *
-	 * E o que separa a guarda por versao de um marcador one-shot — e o que
-	 * preserva a cura de schema depois de um update in-place, que e a razao
-	 * de estas chamadas existirem.
+	 * This is what separates a per-version guard from a one-shot marker — and
+	 * what preserves schema healing after an in-place update, which is the reason
+	 * these calls exist at all.
 	 *
 	 * @dataProvider guarded_chains
 	 *
-	 * @param string $class  Classe do activator.
-	 * @param string $method Metodo da cadeia.
-	 * @param string $option Opcao de versao.
+	 * @param string $class  The activator class.
+	 * @param string $method The chain's method.
+	 * @param string $option The version option.
 	 */
 	public function test_a_version_bump_rearms_the_chain( string $class, string $method, string $option ): void {
-		$after_bump = $this->run_chain( $class, $method, $option, FFC_VERSION . '-anterior' );
+		$after_bump = $this->run_chain( $class, $method, $option, FFC_VERSION . '-previous' );
 
 		$this->assertGreaterThan(
 			0,
 			$after_bump,
 			sprintf(
-				'%s::%s() nao re-armou numa versao diferente: um update in-place deixaria de curar o schema.',
+				'%s::%s() did not re-arm on a different version: an in-place update would stop healing the schema.',
 				$class,
 				$method
 			)
@@ -299,23 +299,23 @@ class ActivatorSchemaGuardTest extends TestCase {
 	}
 
 	/**
-	 * Toda opcao de guarda tem de estar declarada em `uninstall.php`.
+	 * Every guard option must be declared in `uninstall.php`.
 	 *
-	 * O job `fresh-install` compara nos dois sentidos (#994): uma opcao que a
-	 * ativacao escreve e o manifesto nao declara reprova o CI. Cobrar aqui
-	 * tambem faz a falha aparecer no PHPUnit, que e onde quem escreveu a
-	 * guarda esta olhando.
+	 * The `fresh-install` job compares in both directions (#994): an option the
+	 * activation writes and the manifest does not declare fails CI. Charging it
+	 * here too makes the failure appear in PHPUnit, which is where whoever wrote
+	 * the guard is looking.
 	 */
 	public function test_every_guard_option_is_declared_in_the_uninstall_manifest(): void {
 		$manifest = (string) file_get_contents( dirname( __DIR__, 2 ) . '/uninstall.php' );
 
-		$this->assertNotSame( '', $manifest, 'Nao consegui ler uninstall.php — a verificacao nao rodou.' );
+		$this->assertNotSame( '', $manifest, 'Could not read uninstall.php — the check did not run.' );
 
 		foreach ( self::GUARDED_CHAINS as $chain ) {
 			$this->assertStringContainsString(
 				"'" . $chain[2] . "'",
 				$manifest,
-				sprintf( 'A opcao %s nao esta declarada em uninstall.php — o gate fresh-install vai reprovar.', $chain[2] )
+				sprintf( 'The option %s is not declared in uninstall.php — the fresh-install gate will fail.', $chain[2] )
 			);
 		}
 	}
