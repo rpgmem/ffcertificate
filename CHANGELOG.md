@@ -7,7 +7,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.25.0] (2026-09-15)
+## [6.25.0] (2026-09-15) — `59ccb2b`
 
 ### Added
 
@@ -385,7 +385,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Removed
 - **⚠ Breaking (#730) — legacy audit-log summary keys + `UserDataRestController` facade.** `PublicCsvDownload::get_audit_log_summary()` / `CsvDownloadAuditLog::get_summary()` no longer return the deprecated `success` / `fail` keys — use `access_success` / `failed_access` (`count` stays). The 12 `@deprecated` `get_user_*` delegate methods on `UserDataRestController` are removed — call the sub-controllers (`UserProfileRestController`, `UserCertificatesRestController`, …) directly. Both were deprecated in 6.15.0; the removal window (2nd feature release after) has closed. Zero internal callers; external integrators on the old names must migrate.
 
-## [6.16.0] (2026-07-22)
+## [6.16.0] (2026-07-22) — `4d3c4e0`
 
 ### Added
 - PII reveal capabilities `ffc_view_certificates_pii` and `ffc_view_appointments_pii` (#739) — carve the decrypted CPF / RF / email out of the plain `view` tier, mirroring recruitment. A shared 3-tier resolver (`Core\PiiAccessPolicy`) grants *unmasked* plaintext to the domain `_admin` role (and WP super-admins), an audited *reveal* tier to holders of the `_pii` cap and to the record's owner, and *masked* to everyone else. The caps ship on the `manager` + new `_admin` tiers; the certificates/appointments ladders gain their fourth (`_admin`) tier.
