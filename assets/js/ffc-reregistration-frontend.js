@@ -105,8 +105,9 @@
                     $notice.slideUp(200);
                     $status.text('');
                     if (filled) {
-                        // Os dependentes reagem ao valor, não à origem: sem
-                        // isto o acúmulo segue oculto com campo preenchido.
+                        // The dependents react to the value, not to its origin:
+                        // without this the accumulation stays hidden with the
+                        // field filled in.
                         $container.find('[data-field-key="acumulo_cargos"] select').trigger('change');
                     }
                 })
@@ -118,11 +119,11 @@
     }
 
     /**
-     * Preenche os campos vindos da importação.
+     * Fills in the fields coming from the import.
      *
-     * Casa por `data-field-key`, que é o que o wrapper emite, e NÃO
-     * sobrescreve campo que já tem valor -- se o participante começou a
-     * preencher antes de aceitar, o que ele digitou ganha.
+     * It matches by `data-field-key`, which is what the wrapper emits, and does
+     * NOT overwrite a field that already has a value -- if the participant
+     * started filling in before accepting, what they typed wins.
      */
     function applyImportedFields($container, fields) {
         var filled = 0;
@@ -211,17 +212,17 @@
     /* ─── Acúmulo de Cargos Toggle ────────────────────── */
 
     function initDualPostFields($container) {
-        // Os três campos dependentes só valem quando o participante declara
-        // que ACUMULA. Essa já é a regra do outro lado: o FichaGenerator
-        // zera `jornada_acumulo`, `cargo_funcao_acumulo` e
-        // `horario_trabalho_acumulo` a menos que o valor seja exatamente
-        // "I hold" -- "Pension" também zera. Sem esconder aqui, o
-        // participante preenche o que a ficha vai descartar.
+        // The three dependent fields only count when the participant declares
+        // that they ACCUMULATE. That is already the rule on the other side: the
+        // FichaGenerator blanks `jornada_acumulo`, `cargo_funcao_acumulo` and
+        // `horario_trabalho_acumulo` unless the value is exactly "I hold" --
+        // "Pension" blanks them too. Without hiding here, the participant fills
+        // in what the record will discard.
         //
-        // A seleção é por `data-field-key`, que TODO campo emite pelo
-        // wrapper. A versão anterior procurava `#ffc_rereg_acumulo` e
-        // `.ffc-rereg-acumulo-fields`, que nenhum PHP emite -- os dois
-        // conjuntos vinham vazios e o handler não fazia nada.
+        // The selection is by `data-field-key`, which EVERY field emits through
+        // the wrapper. The previous version looked for `#ffc_rereg_acumulo` and
+        // `.ffc-rereg-acumulo-fields`, which no PHP emits -- both sets came back
+        // empty and the handler did nothing.
         var $select = $container.find('[data-field-key="acumulo_cargos"] select');
         var $fields = $container.find(
             '[data-field-key="jornada_acumulo"],' +
@@ -242,9 +243,9 @@
                 show ? $fields.show() : $fields.hide();
             }
 
-            // As linhas de horário trazem `required` nos campos de hora, e
-            // validação de constraint IGNORA visibilidade -- um required
-            // escondido trava o envio sem mostrar o que falta.
+            // The schedule rows carry `required` on their time fields, and
+            // constraint validation IGNORES visibility -- a hidden required
+            // blocks the submit without showing what is missing.
             $fields.each(function () {
                 FFC.setRequiredWithin($(this), show);
             });
@@ -254,8 +255,8 @@
             apply(true);
         });
 
-        // Sem isto o handler só reagia à mudança, então o formulário abria
-        // com os campos VISÍVEIS qualquer que fosse o valor salvo.
+        // Without this the handler only reacted to the change, so the form
+        // opened with the fields VISIBLE whatever the stored value was.
         apply(false);
     }
 

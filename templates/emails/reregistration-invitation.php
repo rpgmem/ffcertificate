@@ -12,10 +12,11 @@
  *   {{start_date}}, {{end_date}}, {{dashboard_url}}, {{site_name}},
  *   {{set_password_url}}
  *
- * `{{set_password_url}}` abre a tela de definição de senha (#1212). O link não
- * cria sessão: a sessão só nasce depois que a senha existe. Ele expira e vale
- * uma vez só -- a janela é configurável em Configurações → Recadastramento.
- * Quem já tem senha pode ignorá-lo e entrar pelo botão principal.
+ * `{{set_password_url}}` opens the set-password screen (#1212). The link does
+ * not create a session: the session is only born once the password exists. It
+ * expires and is single-use -- the window is configurable under Settings →
+ * Reregistration. Whoever already has a password can ignore it and sign in
+ * through the main button.
  *
  * @since 4.11.0
  * @package FreeFormCertificate\Reregistration

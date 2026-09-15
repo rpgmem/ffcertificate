@@ -238,35 +238,34 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Get appointment statistics for calendar
 	 *
-	 * @deprecated 6.25.0 Sem chamador no produto; sera removido em 6.27.0 (#1245).
+	 * @deprecated 6.25.0 No product caller; to be removed in 6.27.0 (#1245).
 	 *
-	 * POR QUE CICLO DE DEPRECIACAO, E NAO DELECAO DIRETA
+	 * WHY A DEPRECATION CYCLE AND NOT A DIRECT DELETION
 	 *
-	 * Uma varredura sobre toda a arvore nao acha chamador nenhum -- so os
-	 * testes o mantem verde. Mas "morto" aqui e conclusao de varredura
-	 * ESTATICA, e o CLAUDE.md §5 declara essa evidencia insuficiente para esta
-	 * forma: o ciclo existe justamente "para superficies cujos consumidores uma
-	 * varredura de codigo nao enxerga -- um metodo publico que uma integracao
-	 * externa pode chamar". `AppointmentRepository` e uma classe publica que
-	 * outro plugin no mesmo WordPress pode instanciar.
+	 * A sweep over the whole tree finds no caller at all -- only the tests keep
+	 * it green. But "dead" here is the conclusion of a STATIC sweep, and
+	 * `CLAUDE.md` §5 declares that evidence insufficient for this shape: the
+	 * cycle exists precisely "for surfaces whose consumers a code scan cannot
+	 * see -- a public method an external integration might call".
+	 * `AppointmentRepository` is a public class another plugin on the same
+	 * WordPress can instantiate.
 	 *
-	 * Precedente direto: as chaves `success`/`fail` do
-	 * `get_audit_log_summary()` (#730), que tinham zero consumidores internos e
-	 * ainda assim sairam por ciclo anunciado, removidas na 2a release de
-	 * feature apos o aviso.
+	 * Direct precedent: the `success`/`fail` keys of `get_audit_log_summary()`
+	 * (#730), which had zero internal consumers and still left through an
+	 * announced cycle, removed at the 2nd feature release after the notice.
 	 *
-	 * QUANDO SAI
+	 * WHEN IT GOES
 	 *
-	 * O aviso vai na release que consumir este `[Unreleased]` -- 6.25.0 pelo
-	 * ritmo atual. A remocao e na SEGUNDA release de feature apos o aviso, o
-	 * que da 6.27.0. Se o bump real divergir, vale a REGRA e nao o numero:
-	 * duas releases de feature depois do aviso.
+	 * The notice ships in the release that consumes this `[Unreleased]` --
+	 * 6.25.0 at the current pace. The removal is at the SECOND feature release
+	 * after the notice, which makes 6.27.0. Should the real bump diverge, the
+	 * RULE holds and not the number: two feature releases after the notice.
 	 *
-	 * Manter ate la custa ~35 linhas de produto e 8 testes, e **zero em
-	 * runtime** -- nao ha pressa.
+	 * Keeping it until then costs ~35 lines of product and 8 tests, and **zero
+	 * at runtime** -- there is no hurry.
 	 *
-	 * A implementacao esta em {@see AppointmentReader::getStatistics()}, que
-	 * carrega a mesma marca -- os dois sao publicos e alcancaveis.
+	 * The implementation is in {@see AppointmentReader::getStatistics()}, which
+	 * carries the same notice -- both are public and reachable.
 	 *
 	 * @param int         $calendar_id Calendar ID.
 	 * @param string|null $start_date Start date.
@@ -274,19 +273,18 @@ class AppointmentRepository extends AbstractRepository {
 	 * @return array<string, mixed>
 	 */
 	public function getStatistics( int $calendar_id, ?string $start_date = null, ?string $end_date = null ): array {
-		// O aviso que realmente ALCANCA quem chama (#1245). O `@deprecated` acima
-		// e invisivel em runtime, e a razao declarada deste ciclo e notificar
-		// consumidores que uma varredura de codigo nao enxerga -- entao um
-		// marcador que so o nosso proprio leitor ve nao serviria para o que ele
-		// existe. `_deprecated_function()` e o mecanismo do WordPress para
-		// isso: emite `E_USER_DEPRECATED` sob `WP_DEBUG` e fica silencioso em
-		// producao.
+		// The notice that actually REACHES the caller (#1245). The `@deprecated`
+		// above is invisible at runtime, and this cycle's stated reason is to
+		// notify consumers a code scan cannot see -- so a marker only our own
+		// reader sees would not serve what it exists for.
+		// `_deprecated_function()` is WordPress's mechanism for this: it emits
+		// `E_USER_DEPRECATED` under `WP_DEBUG` and stays silent in production.
 		//
-		// Sem argumento de substituto de proposito: nao ha um. O WordPress
-		// entao imprime "with no alternative available", que e a verdade.
+		// No replacement argument, on purpose: there is none. WordPress then
+		// prints "with no alternative available", which is the truth.
 		//
-		// A fachada e o reader avisam cada um por SI: quem chamar a fachada ve
-		// os dois, e isso esta certo, porque os dois vao embora.
+		// The facade and the reader each warn for THEMSELVES: whoever calls the
+		// facade sees both, and that is right, because both are going away.
 		_deprecated_function( __METHOD__, '6.25.0' );
 
 		return $this->reader->getStatistics( $calendar_id, $start_date, $end_date );

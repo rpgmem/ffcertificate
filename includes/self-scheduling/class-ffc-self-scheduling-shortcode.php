@@ -63,10 +63,10 @@ class SelfSchedulingShortcode {
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
-		// A paleta sozinha não faz o tema: quem põe `.ffc-dark-mode` no <html> é
-		// este script, e sem ele os tokens ficam congelados no tema claro por
-		// mais tokenizada que a folha esteja. O calendário público saiu claro no
-		// smoke da 6.24.0 exatamente por isto (#1126).
+		// The palette alone is not the theme: this script is what puts
+		// `.ffc-dark-mode` on <html>, and without it the tokens stay frozen in
+		// the light theme however tokenized the sheet is. The public calendar
+		// came out light in the 6.24.0 smoke for exactly this reason (#1126).
 		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
 
 		// Enqueue FFC common styles (includes CSS variables, honeypot, captcha, etc.).

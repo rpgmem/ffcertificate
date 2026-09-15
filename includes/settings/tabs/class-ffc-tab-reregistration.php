@@ -208,19 +208,19 @@ class TabReregistration extends SettingsTab {
 
 		update_option( CertTemplateFichaResolver::OPTION, $id );
 
-		// Campo vazio é "não informado", NUNCA zero: `(int) ''` é 0, e zero
-		// aqui significaria "expira na hora" ou "nunca expira" -- dois
-		// desastres diferentes (a lição do #1114). O `required` na marcação é
-		// só a metade barata; o guarda é este branch.
+		// An empty field means "not supplied", NEVER zero: `(int) ''` is 0, and
+		// zero here would mean either "expires immediately" or "never expires"
+		// -- two different disasters (the #1114 lesson). The `required` in the
+		// markup is only the cheap half; the guard is this branch.
 		$raw = RequestInput::get_post_string( 'ffc_invite_password_link_hours', '' );
 		if ( '' !== $raw && is_numeric( $raw ) ) {
 			$settings = get_option( 'ffc_settings', array() );
 			if ( ! is_array( $settings ) ) {
 				$settings = array();
 			}
-			// Merge, nunca reconstrução: esta aba não passa pelo
-			// `SettingsSaveHandler`, então precisa preservar por conta
-			// própria tudo o que as outras abas gravaram.
+			// Merge, never a rebuild: this tab does not go through
+			// `SettingsSaveHandler`, so it has to preserve everything the
+			// other tabs wrote on its own.
 			$settings['invite_password_link_hours'] = PasswordInvite::clamp_hours( (int) $raw );
 			update_option( 'ffc_settings', $settings );
 		}

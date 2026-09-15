@@ -140,12 +140,12 @@ class DashboardAssetManager {
 
 		// Reregistration frontend assets.
 		//
-		// `ffc-working-hours` é dependência declarada, não decorativa (#1162):
-		// esta folha redeclara `.ffc-working-hours`, `.ffc-wh-table`,
-		// `.ffc-wh-add` e `.ffc-wh-remove` para o formulário do frontend, e as
-		// duas carregam nesta mesma tela. Sem a aresta, quem vence é a ordem de
-		// enfileiramento -- que hoje acerta por acaso, e inverteria se estas
-		// duas linhas trocassem de lugar.
+		// `ffc-working-hours` is a declared dependency, not a decorative one
+		// (#1162): this sheet redeclares `.ffc-working-hours`, `.ffc-wh-table`,
+		// `.ffc-wh-add` and `.ffc-wh-remove` for the frontend form, and both
+		// load on this same screen. Without the edge, the winner is enqueue
+		// order -- which gets it right by accident today, and would invert if
+		// these two lines swapped places.
 		wp_enqueue_style( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/css/ffc-reregistration-frontend{$s}.css", array( 'ffc-common', 'ffc-dashboard', 'ffc-working-hours' ), FFC_VERSION );
 		wp_enqueue_script( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/js/ffc-reregistration-frontend{$s}.js", array( 'jquery', 'ffc-dashboard', 'ffc-working-hours' ), FFC_VERSION, true );
 		wp_localize_script(

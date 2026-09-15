@@ -322,10 +322,10 @@ class DashboardShortcode {
 	 * @return string HTML output
 	 */
 	private static function render_login_required(): string {
-		// O link do convite chega aqui, sem sessão: é esse o caso normal
-		// (#1212). A tela de definir senha mora na página do painel de
-		// propósito -- nenhuma página nova, nenhuma opção nova, e portanto
-		// nada para o `uninstall.php` e para o gate de fresh-install.
+		// The invitation's link arrives here, with no session: that is the
+		// normal case (#1212). The password-setting screen lives on the
+		// dashboard's page on purpose -- no new page, no new option, and
+		// therefore nothing for `uninstall.php` and the fresh-install gate.
 		if ( PasswordInvite::request_has_link() ) {
 			$password_screen = self::render_set_password();
 			if ( '' !== $password_screen ) {
@@ -352,9 +352,10 @@ class DashboardShortcode {
 	/**
 	 * Render the set-password screen for an invited member.
 	 *
-	 * Devolve '' quando a chave não vale -- aí o chamador segue para o aviso
-	 * normal de "faça login", que é a resposta certa para um link expirado:
-	 * quem tem senha entra por ali, quem não tem pede um novo convite.
+	 * Returns '' when the key is not valid -- the caller then falls through to
+	 * the normal "please log in" notice, which is the right answer for an
+	 * expired link: whoever has a password gets in there, whoever does not asks
+	 * for a new invitation.
 	 *
 	 * @return string HTML output, or '' when the link is not usable.
 	 */

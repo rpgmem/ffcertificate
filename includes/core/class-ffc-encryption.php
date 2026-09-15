@@ -56,33 +56,34 @@ class Encryption {
 	const V2_PREFIX = 'v2:';
 
 	/**
-	 * Memoizacao das duas chaves derivadas das constantes do WordPress.
+	 * Memoisation of the two keys derived from WordPress's constants.
 	 *
-	 * Cada uma custa um `hash_pbkdf2( 'sha256', …, 10000, … )` -- medido em
-	 * **11,56 ms** -- e `encrypt()` e `decrypt_internal()` pedem as DUAS por
-	 * chamada, entao um decrypt custava 23,1 ms de CPU pura. A tela de
-	 * Submissoes, que decripta 5 campos em 20 linhas, gastava 2,31 s so nisso.
+	 * Each costs a `hash_pbkdf2( 'sha256', …, 10000, … )` -- measured at
+	 * **11.56 ms** -- and `encrypt()` and `decrypt_internal()` ask for BOTH per
+	 * call, so one decrypt cost 23.1 ms of pure CPU. The Submissions screen,
+	 * which decrypts 5 fields across 20 rows, spent 2.31 s on that alone.
 	 *
-	 * **Memoizar e correto por construcao, nao uma aposta:** a entrada da
-	 * derivacao sao `SECURE_AUTH_KEY`, `LOGGED_IN_KEY` e `NONCE_KEY`, que sao
-	 * constantes PHP -- imutaveis dentro do request. O valor recalculado nunca
-	 * pode divergir do memoizado.
+	 * **Memoising is correct by construction, not a bet:** the derivation's
+	 * inputs are `SECURE_AUTH_KEY`, `LOGGED_IN_KEY` and `NONCE_KEY`, which are
+	 * PHP constants -- immutable within the request. The recomputed value can
+	 * never diverge from the memoised one.
 	 *
-	 * A memoizacao fica AQUI, nas derivadas, e nao em `get_encryption_key()` /
-	 * `get_hmac_key()`. O motivo e o fallback de rotacao: numa instalacao
-	 * desacoplada com linhas ainda sob a chave antiga, `decrypt_internal()`
-	 * falha na chave ativa (barata) e cai em `wp_derived_*()` por LINHA. Se a
-	 * memoizacao estivesse um nivel acima, esse caminho -- justamente o mais
-	 * caro dos tres -- continuaria pagando o PBKDF2 inteiro (#1230).
+	 * The memoisation sits HERE, on the derived keys, and not in
+	 * `get_encryption_key()` / `get_hmac_key()`. The reason is the rotation
+	 * fallback: on a decoupled install with rows still under the old key,
+	 * `decrypt_internal()` fails on the active key (cheap) and falls back to
+	 * `wp_derived_*()` PER ROW. Were the memoisation one level up, that path --
+	 * precisely the most expensive of the three -- would keep paying the whole
+	 * PBKDF2 (#1230).
 	 *
 	 * @var string|null
 	 */
 	private static ?string $wp_derived_enc_key = null;
 
 	/**
-	 * Memoizacao da chave de HMAC derivada das constantes do WordPress.
+	 * Memoisation of the HMAC key derived from WordPress's constants.
 	 *
-	 * @see self::$wp_derived_enc_key para o motivo e o lugar da memoizacao.
+	 * @see self::$wp_derived_enc_key for the reason and the placement.
 	 *
 	 * @var string|null
 	 */
@@ -316,9 +317,9 @@ class Encryption {
 	private static function log_decrypt_failure( string $ciphertext ): void {
 		++self::$decrypt_failure_count;
 
-		// Teto checado ANTES de qualquer outro trabalho: passado ele, nem
-		// `is_enabled()` (que le uma opcao) chega a rodar. Numa enxurrada e
-		// justamente o caminho quente.
+		// The ceiling is checked BEFORE any other work: past it, not even
+		// `is_enabled()` (which reads an option) gets to run. In a flood that is
+		// precisely the hot path.
 		if ( self::$decrypt_failure_count > self::DECRYPT_FAILURE_LOG_CAP + 1 ) {
 			return;
 		}
@@ -356,46 +357,46 @@ class Encryption {
 	}
 
 	/**
-	 * Quantas linhas de `decrypt_failure` uma requisicao pode escrever (#1234).
+	 * How many `decrypt_failure` rows one request may write (#1234).
 	 *
-	 * POR QUE UM TETO
+	 * WHY A CEILING
 	 *
-	 * Cada falha de decrypt gravava um INSERT em `ffc_activity_log`, sem teto
-	 * nem amostragem. Com uma chave quebrada isso nao e uma linha: uma
-	 * exportacao de 5.000 submissoes escreve 5.000 linhas de log, e uma
-	 * migracao que percorre todos os usuarios faz o mesmo por lote. O custo de
-	 * escrita ultrapassa em muito o da leitura que falhou.
+	 * Every decrypt failure wrote an INSERT into `ffc_activity_log`, with no
+	 * ceiling and no sampling. With a broken key that is not one row: an export
+	 * of 5,000 submissions writes 5,000 log rows, and a migration walking every
+	 * user does the same per batch. The write cost far exceeds that of the read
+	 * which failed.
 	 *
-	 * POR QUE CINCO, E NAO UMA
+	 * WHY FIVE AND NOT ONE
 	 *
-	 * A informacao de auditoria esta quase toda na PRIMEIRA falha -- a
-	 * milesima nao diz nada que a primeira ja nao dissesse, porque o contexto
-	 * gravado e so comprimento e flag de prefixo. Cinco da margem para ver se
-	 * as falhas tem formas diferentes (v2 e nao-v2 misturados, por exemplo) sem
-	 * abrir a porta para a enxurrada.
+	 * Almost all the audit information is in the FIRST failure -- the thousandth
+	 * says nothing the first did not, because the recorded context is only a
+	 * length and a prefix flag. Five leaves room to see whether the failures
+	 * have different shapes (v2 and non-v2 mixed, for instance) without opening
+	 * the door to the flood.
 	 *
-	 * POR QUE POR REQUISICAO, E NAO POR JANELA DE TEMPO
+	 * WHY PER REQUEST AND NOT PER TIME WINDOW
 	 *
-	 * Um teto por janela precisaria de transiente, isto e, de uma LEITURA E
-	 * ESCRITA a cada falha -- pagando parte do custo que se quer evitar, no
-	 * caminho que se quer baratear. O estrago que importa e uma requisicao
-	 * escrevendo milhares de linhas; e essa que o contador estatico corta.
+	 * A per-window ceiling would need a transient, that is, a READ AND a WRITE
+	 * on every failure -- paying part of the cost it means to avoid, on the path
+	 * it means to make cheaper. The damage that matters is one request writing
+	 * thousands of rows; that is what the static counter cuts.
 	 *
-	 * POR QUE PUBLICA
+	 * WHY PUBLIC
 	 *
-	 * O teste do teto le a constante em vez de repetir o numero; assim mudar o
-	 * teto nao deixa uma asercao mentindo sobre o que ela verifica.
+	 * The ceiling's test reads the constant rather than repeating the number, so
+	 * changing the ceiling never leaves an assertion lying about what it checks.
 	 *
 	 * @var int
 	 */
 	public const DECRYPT_FAILURE_LOG_CAP = 5;
 
 	/**
-	 * Falhas de decrypt vistas nesta requisicao.
+	 * Decrypt failures seen in this request.
 	 *
-	 * Continua contando depois do teto -- o custo e um incremento --, o que
-	 * mantem `decrypt_failure_suppressed` sendo escrita UMA vez so, na
-	 * travessia exata do teto.
+	 * It keeps counting past the ceiling -- the cost is one increment -- which
+	 * is what keeps `decrypt_failure_suppressed` written exactly ONCE, on the
+	 * precise crossing of the ceiling.
 	 *
 	 * @var int
 	 */

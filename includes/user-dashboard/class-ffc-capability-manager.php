@@ -144,8 +144,8 @@ class CapabilityManager {
 		// directly. See issue #139.
 		'ffc_view_forms_api',
 
-		// Read-only "view" caps — the *só vê* tier of the 3-state permission
-		// model (não vê / só vê / vê e edita). Each pairs with a `manage`
+		// Read-only "view" caps — the *view only* tier of the 3-state permission
+		// model (no access / view only / view and edit). Each pairs with a `manage`
 		// cap above so a surface can be shown read-only without granting
 		// edit. Gate helper: `canView = manage_options || view || manage`.
 		'ffc_view_certificates',
@@ -709,7 +709,7 @@ class CapabilityManager {
 				'label' => __( 'FFC Administrator', 'ffcertificate' ),
 				'caps'  => self::get_all_capabilities(),
 			),
-			// Cross-domain read-only: the *só vê* tier across every module.
+			// Cross-domain read-only: the *view only* tier across every module.
 			'ffc_readonly'                => array(
 				'label' => __( 'FFC Read-Only (all modules)', 'ffcertificate' ),
 				'caps'  => array(
