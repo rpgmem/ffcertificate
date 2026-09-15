@@ -642,15 +642,33 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	/**
 	 * Re-encrypt one batch of recruitment candidates and rebuild their hashes.
 	 *
-	 * REBUILDING THE HASH CANNOT COLLIDE, AND THAT IS NOT LUCK.
+	 * RECONSTRUIR O HASH PODE COLIDIR -- E O CASO EM QUE ISSO ACONTECE E
+	 * EXATAMENTE O QUE A #1236 DESCREVE.
 	 *
-	 * `cpf_hash` and `rf_hash` carry UNIQUE constraints. A rebuild writes a
-	 * different value for the same person, so it could in principle hit the
-	 * hash of ANOTHER row -- except that two rows sharing a CPF are exactly what
-	 * those constraints already forbid, under the old salt as much as the new
-	 * one. Distinct inputs stay distinct through SHA-256, so a set that was
-	 * unique before is unique after, and a half-migrated table holds no
-	 * collision either: the two eras produce unrelated values.
+	 * Este bloco ja afirmou o contrario, e a afirmacao estava errada. Ela dizia
+	 * que duas linhas da mesma pessoa sao "o que as restricoes ja proibem".
+	 * Nao sao: `cpf_hash` e `rf_hash` sao UNIQUE sobre o VALOR do hash, nao
+	 * sobre a pessoa. Sob salts diferentes a mesma pessoa produz valores
+	 * diferentes, e o par passa pela restricao sem esbarrar nela.
+	 *
+	 * E esse par existe justamente pelo defeito que esta migracao conserta. A
+	 * parte 2 da #1236 levanta a hipotese: depois do desacoplamento,
+	 * `RecruitmentCandidateReader::get_by_cpf_hash()` deixou de achar o
+	 * candidato antigo, entao o dedup do importador (`CandidatePersister`)
+	 * criou uma linha NOVA em vez de atualizar a existente.
+	 *
+	 * Onde isso aconteceu, reconstruir o hash da linha antiga produz o valor
+	 * que a linha nova ja tem, e o `UPDATE` bate na UNIQUE. A consequencia nao
+	 * e perda: o erro entra em `$errors`, o laco segue, e a linha simplesmente
+	 * nao migra -- mas o card nunca chega a 0 pendentes ate que os duplicados
+	 * sejam reconciliados a mao. Por isso a mensagem de erro carrega o
+	 * `last_error` do banco: e ele que nomeia a chave e o valor duplicados.
+	 *
+	 * O que continua verdadeiro, e vale dizer para nao confundir os dois
+	 * casos: uma tabela que nunca recebeu um par desses nao pode colidir aqui.
+	 * Entradas distintas seguem distintas por SHA-256, e as duas eras produzem
+	 * valores sem relacao entre si, entao uma tabela meio migrada tambem esta
+	 * a salvo. A colisao e uma propriedade dos DADOS, nao do algoritmo.
 	 *
 	 * The hash is only written when it actually differs, mirroring the original
 	 * strategy -- a row already under the current salt costs no write.
@@ -760,11 +778,27 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 			$written = $wpdb->update( $table, $update, array( 'id' => $last_id ), $formats, array( '%d' ) );
 
 			if ( false === $written ) {
-				$errors[] = sprintf(
-					/* translators: %d: candidate ID */
-					__( 'Could not write the re-encrypted values for recruitment candidate %d.', 'ffcertificate' ),
-					$last_id
-				);
+				// `last_error` nomeia a chave e o valor quando o motivo e a
+				// UNIQUE de `cpf_hash`/`rf_hash` -- o caso descrito no
+				// docblock, que precisa de reconciliacao manual e nao de nova
+				// tentativa. Sem ele a mensagem nao distingue isso de uma
+				// falha de escrita qualquer.
+				$detail = isset( $wpdb->last_error ) && '' !== (string) $wpdb->last_error
+					? (string) $wpdb->last_error
+					: '';
+
+				$errors[] = '' !== $detail
+					? sprintf(
+						/* translators: 1: candidate ID, 2: database error message */
+						__( 'Could not write the re-encrypted values for recruitment candidate %1$d: %2$s', 'ffcertificate' ),
+						$last_id,
+						$detail
+					)
+					: sprintf(
+						/* translators: %d: candidate ID */
+						__( 'Could not write the re-encrypted values for recruitment candidate %d.', 'ffcertificate' ),
+						$last_id
+					);
 				continue;
 			}
 

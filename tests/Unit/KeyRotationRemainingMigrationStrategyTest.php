@@ -302,6 +302,79 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 		$this->assertArrayHasKey( 'cpf_encrypted', $written );
 	}
 
+	/**
+	 * Uma colisão de UNIQUE é reportada com o texto do banco, não como falha genérica.
+	 *
+	 * POR QUE ESTE CASO EXISTE
+	 *
+	 * `cpf_hash` e `rf_hash` são UNIQUE sobre o VALOR do hash, não sobre a
+	 * pessoa. Sob salts diferentes a mesma pessoa produz valores diferentes,
+	 * então duas linhas dela passam pela restrição — e é exatamente isso que a
+	 * parte 2 da #1236 descreve: depois do desacoplamento a busca deixou de
+	 * achar o candidato antigo e o dedup do importador criou uma linha nova.
+	 *
+	 * Onde esse par existe, reconstruir o hash da linha antiga produz o valor
+	 * que a nova já tem, e o UPDATE bate na restrição. O docblock do método
+	 * afirmava o contrário; esta asserção é o que o mantém honesto.
+	 *
+	 * O QUE ELA PROVA, E O QUE NÃO PROVA
+	 *
+	 * Prova que a falha é reportada com o texto do banco — que nomeia a chave
+	 * e o valor duplicados, e é o que distingue "reconcilie os duplicados à
+	 * mão" de "tente de novo" — e que o laço sobrevive a ela.
+	 *
+	 * Não prova que a colisão acontece: isso é o servidor aplicando a UNIQUE,
+	 * e nenhum duplo de `$wpdb` a reproduz. O que existe aqui é a falha
+	 * SIMULADA, que é o único lado deste caso que o código controla.
+	 */
+	public function test_a_unique_collision_is_reported_with_the_database_message(): void {
+		global $wpdb;
+
+		$this->rows[ self::CANDIDATES ][] = array_merge(
+			$this->candidate( 1, '11111111111' ),
+			array( 'cpf_hash' => 'hash-sob-o-salt-antigo' )
+		);
+
+		$wpdb->last_error = "Duplicate entry 'abc123' for key 'cpf_hash'";
+		$wpdb->shouldReceive( 'update' )->andReturn( false );
+
+		$result = $this->strategy->execute( 'key_rotation_remaining', array() );
+
+		$this->assertCount( 1, $result['errors'] );
+		$this->assertStringContainsString( "Duplicate entry 'abc123' for key 'cpf_hash'", $result['errors'][0] );
+		$this->assertStringContainsString( '1', $result['errors'][0], 'O id do candidato tem de estar na mensagem.' );
+	}
+
+	/**
+	 * Sem texto do banco, a mensagem antiga continua valendo.
+	 *
+	 * `last_error` pode vir vazio — uma falha de conexão, um driver que não o
+	 * preenche. Interpolar vazio produziria uma frase terminando em dois
+	 * pontos e nada, que é pior que a mensagem curta.
+	 */
+	public function test_a_write_failure_without_a_database_message_still_reports_the_candidate(): void {
+		global $wpdb;
+
+		$this->rows[ self::CANDIDATES ][] = array_merge(
+			$this->candidate( 7, '11111111111' ),
+			array( 'cpf_hash' => 'hash-sob-o-salt-antigo' )
+		);
+
+		$wpdb->last_error = '';
+		$wpdb->shouldReceive( 'update' )->andReturn( false );
+
+		$result = $this->strategy->execute( 'key_rotation_remaining', array() );
+
+		$this->assertCount( 1, $result['errors'] );
+		$this->assertStringContainsString( '7', $result['errors'][0] );
+
+		// A forma curta termina em ponto final. Interpolar um detalhe vazio
+		// produziria uma frase terminando em `: ` e nada -- que e o que esta
+		// asercao reprova. MEDIDO: a primeira versao procurava `': .'`, que a
+		// mutacao nunca produz, entao ela passava verde sem medir nada.
+		$this->assertStringEndsWith( '.', $result['errors'][0] );
+	}
+
 	// ------------------------------------------------------------------
 	// Recadastramento: o despacho é pelo valor, não pela configuração
 	// ------------------------------------------------------------------
