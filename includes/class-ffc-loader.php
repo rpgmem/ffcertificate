@@ -184,6 +184,12 @@ class Loader {
 		$this->submission_handler = new SubmissionHandler();
 		$this->email_handler      = new EmailHandler();
 
+		// O wp-cron agenda `ffc_process_submission_async` com um inteiro; o
+		// ouvinte reidrata a submissao e dispara o gancho publico de oito
+		// argumentos que o `EmailHandler` escuta (#1248). Chamado daqui porque
+		// esta e a instancia unica -- a razao esta no proprio metodo.
+		$this->submission_handler->register_async_pipeline();
+
 		// Certificates module — the `ffc_form` CPT + public form rendering.
 		// Toggleable via the Modules tab (default on). The certificate ADMIN
 		// screens (Submissions, Dashboard) hang off the CPT menu, so they

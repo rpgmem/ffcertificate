@@ -133,7 +133,15 @@ class SubmissionHandlerTest extends TestCase {
 		$this->assertSame( 42, $result );
 	}
 
-	public function test_process_submission_schedules_email_dispatch(): void {
+	/**
+	 * O agendamento carrega UM inteiro, e o gancho interno (#1248).
+	 *
+	 * Antes iam oito argumentos, entre eles o `$submission_data` inteiro. O
+	 * agendamento mora na option `cron`, que e autoloaded: enquanto o evento
+	 * estivesse pendente, todo pedido ao site carregaria e desserializaria
+	 * aquilo.
+	 */
+	public function test_process_submission_schedules_only_the_submission_id(): void {
 		$this->mockRepo->shouldReceive( 'insert' )->once()->andReturn( 77 );
 
 		$captured = null;
@@ -148,10 +156,53 @@ class SubmissionHandlerTest extends TestCase {
 		$this->handler->process_submission( 3, 'Test Form', $data, 'test@example.com', array(), array( 'send_user_email' => '1' ) );
 
 		$this->assertNotNull( $captured, 'the async email/notification hook must be scheduled' );
-		$this->assertSame( 'ffcertificate_process_submission_hook', $captured['hook'] );
-		$this->assertSame( 77, $captured['args'][0], 'submission id passed' );
-		$this->assertSame( 3, $captured['args'][1], 'form id passed' );
-		$this->assertNotEmpty( $captured['args'][7], 'magic token passed to the email pipeline' );
+		$this->assertSame( SubmissionHandler::ASYNC_PIPELINE_HOOK, $captured['hook'] );
+		$this->assertSame( array( 77 ), $captured['args'], 'O payload e o id, e nada mais.' );
+	}
+
+	/**
+	 * O payload nao carrega PII nem a credencial de acesso ao certificado.
+	 *
+	 * E a metade do #1248 que nao e desempenho. Vinte linhas antes deste
+	 * agendamento o proprio `save_submission()` CIFRA e-mail, CPF, RF e os
+	 * dados extras para gravar; o payload antigo escrevia os originais em
+	 * claro na `wp_options`, junto do `magic_token` -- que e a autenticacao
+	 * inteira de `?token=...`.
+	 *
+	 * A asercao e sobre a forma SERIALIZADA de proposito: e assim que o valor
+	 * chega ao banco, e uma busca por substring encontra o dado esteja ele
+	 * aninhado onde estiver.
+	 */
+	public function test_the_scheduled_payload_carries_neither_pii_nor_the_magic_token(): void {
+		$this->mockRepo->shouldReceive( 'insert' )->once()->andReturn( 77 );
+
+		$captured = null;
+		Functions\when( 'wp_schedule_single_event' )->alias(
+			function ( $ts, $hook, $args ) use ( &$captured ) {
+				$captured = $args;
+				return true;
+			}
+		);
+
+		$data = array(
+			'name'   => 'Fulano de Tal',
+			'cpf_rf' => '123.456.789-00',
+			'ticket' => 'ABC123',
+		);
+		$this->handler->process_submission( 3, 'Test Form', $data, 'segredo@example.com', array(), array( 'send_user_email' => '1' ) );
+
+		$serialized = serialize( $captured );
+
+		$this->assertStringNotContainsString( 'segredo@example.com', $serialized );
+		$this->assertStringNotContainsString( '123.456.789-00', $serialized );
+		$this->assertStringNotContainsString( '12345678900', $serialized );
+		$this->assertStringNotContainsString( 'Fulano de Tal', $serialized );
+		$this->assertStringNotContainsString( 'ABC123', $serialized );
+		$this->assertDoesNotMatchRegularExpression(
+			'/[0-9a-f]{32}/',
+			$serialized,
+			'O magic_token e 32 hex; nenhum valor com essa forma pode estar no payload.'
+		);
 	}
 
 	public function test_process_submission_returns_wp_error_on_insert_failure(): void {
@@ -752,4 +803,194 @@ class SubmissionHandlerTest extends TestCase {
 		// Should use the provided auth code (cleaned) instead of generating a new one
 		$this->assertSame( 'MYCUSTOMCODE', $captured['auth_code'] );
 	}
+
+	// ==================================================================
+	// dispatch_async_pipeline() — a reidratacao do #1248
+	// ==================================================================
+
+	/**
+	 * Monta uma linha de submissao com os campos cifrados de verdade.
+	 *
+	 * As constantes de cripto vivem no `bootstrap.php`, entao
+	 * `Encryption::is_configured()` e true e o caminho exercitado e o real --
+	 * nao um duplo que devolveria texto claro e esconderia um erro de coluna.
+	 *
+	 * @param array<string, mixed> $overrides Campos a sobrescrever.
+	 * @return array<string, mixed>
+	 */
+	private function encryptedRow( array $overrides = array() ): array {
+		return array_merge(
+			array(
+				'id'              => 77,
+				'form_id'         => 3,
+				'auth_code'       => 'ABCD1234EFGH',
+				'magic_token'     => str_repeat( 'a', 32 ),
+				'consent_given'   => 1,
+				'email_encrypted' => Encryption::encrypt( 'pessoa@example.com' ),
+				'cpf_encrypted'   => Encryption::encrypt( '12345678900' ),
+				'rf_encrypted'    => null,
+				'data_encrypted'  => Encryption::encrypt( '{"name":"Fulano de Tal","ticket":"ABC123"}' ),
+				'user_ip_encrypted' => null,
+			),
+			$overrides
+		);
+	}
+
+	/**
+	 * Captura o `do_action` do gancho publico.
+	 *
+	 * @return array<int, mixed>|null
+	 */
+	private function capturedPipelineArgs( int $submission_id = 77 ): ?array {
+		$captured = null;
+		Functions\when( 'do_action' )->alias(
+			function () use ( &$captured ) {
+				$args = func_get_args();
+				if ( SubmissionHandler::PIPELINE_HOOK === $args[0] ) {
+					$captured = array_slice( $args, 1 );
+				}
+				return null;
+			}
+		);
+
+		$this->handler->dispatch_async_pipeline( $submission_id );
+
+		return $captured;
+	}
+
+	/**
+	 * O gancho PUBLICO continua recebendo os mesmos oito argumentos.
+	 *
+	 * E a asercao que sustenta a compatibilidade: um
+	 * `add_action( 'ffcertificate_process_submission_hook', ..., 10, 8 )` de
+	 * terceiro nao pode perceber que o payload do cron encolheu. Se as
+	 * POSICOES escorregarem, o ouvinte externo recebe dado trocado sem erro
+	 * algum -- por isso cada uma e conferida, e nao so a contagem.
+	 */
+	public function test_dispatch_async_pipeline_fires_the_public_hook_with_all_eight_arguments(): void {
+		$this->mockRepo->shouldReceive( 'findById' )->once()->with( 77 )->andReturn( $this->encryptedRow() );
+
+		Functions\when( 'get_the_title' )->justReturn( 'Formulario de Teste' );
+		Functions\when( 'get_post_meta' )->alias(
+			function ( $post_id, $key ) {
+				return '_ffc_form_fields' === $key
+					? array( array( 'key' => 'name' ) )
+					: array( 'send_user_email' => '1' );
+			}
+		);
+
+		$args = $this->capturedPipelineArgs();
+
+		$this->assertIsArray( $args, 'O gancho publico tem de ser disparado.' );
+		$this->assertCount( 8, $args );
+
+		$this->assertSame( 77, $args[0], 'submission_id' );
+		$this->assertSame( 3, $args[1], 'form_id' );
+		$this->assertSame( 'Formulario de Teste', $args[2], 'form_title' );
+		$this->assertIsArray( $args[3], 'submission_data' );
+		$this->assertSame( 'pessoa@example.com', $args[4], 'user_email' );
+		$this->assertSame( array( array( 'key' => 'name' ) ), $args[5], 'fields_config' );
+		$this->assertSame( array( 'send_user_email' => '1' ), $args[6], 'form_config' );
+		$this->assertSame( str_repeat( 'a', 32 ), $args[7], 'magic_token' );
+	}
+
+	/**
+	 * A remontagem agrupa: identificacao, campos do formulario, codigo, consentimento.
+	 *
+	 * A ordem do POST original nao e recuperavel -- o banco separou as quatro
+	 * chaves obrigatorias das demais e nao guardou a posicao delas. Esta
+	 * asercao fixa a ordem ESCOLHIDA, porque e ela que o aviso ao admin
+	 * desenha, uma linha por chave.
+	 *
+	 * Os campos do formulario mantem a ordem entre si, que veio do JSON.
+	 */
+	public function test_the_rebuilt_submission_data_groups_identity_then_form_fields(): void {
+		$this->mockRepo->shouldReceive( 'findById' )->once()->andReturn( $this->encryptedRow() );
+
+		Functions\when( 'get_the_title' )->justReturn( '' );
+		Functions\when( 'get_post_meta' )->justReturn( array() );
+
+		$args = $this->capturedPipelineArgs();
+
+		$this->assertSame(
+			array( 'email', 'cpf_rf', 'name', 'ticket', 'auth_code', 'ffc_lgpd_consent' ),
+			array_keys( $args[3] )
+		);
+		$this->assertSame( '12345678900', $args[3]['cpf_rf'] );
+		$this->assertSame( 'Fulano de Tal', $args[3]['name'] );
+		$this->assertSame( 'ABCD1234EFGH', $args[3]['auth_code'] );
+		$this->assertSame( '1', $args[3]['ffc_lgpd_consent'] );
+	}
+
+	/**
+	 * Sem consentimento gravado, a chave nao entra.
+	 *
+	 * O banco guarda um booleano, entao um `ffc_lgpd_consent` enviado como
+	 * `'0'` e indistinguivel de um nao enviado -- e a linha some da tabela do
+	 * aviso. Contrapartida documentada, nao acidente.
+	 */
+	public function test_a_refused_consent_leaves_no_row(): void {
+		$this->mockRepo->shouldReceive( 'findById' )->once()->andReturn(
+			$this->encryptedRow( array( 'consent_given' => 0 ) )
+		);
+
+		Functions\when( 'get_the_title' )->justReturn( '' );
+		Functions\when( 'get_post_meta' )->justReturn( array() );
+
+		$args = $this->capturedPipelineArgs();
+
+		$this->assertArrayNotHasKey( 'ffc_lgpd_consent', $args[3] );
+	}
+
+	/**
+	 * Linha apagada entre o agendamento e o disparo: silencio, nao fatal.
+	 *
+	 * A janela e de ~1 segundo, mas o wp-cron so roda quando um visitante
+	 * chega -- num site parado ela e tao longa quanto o intervalo entre duas
+	 * visitas.
+	 */
+	public function test_dispatch_async_pipeline_stays_silent_when_the_row_is_gone(): void {
+		$this->mockRepo->shouldReceive( 'findById' )->once()->andReturn( null );
+
+		$this->assertNull( $this->capturedPipelineArgs() );
+	}
+
+	/**
+	 * Um id invalido nem consulta o banco.
+	 */
+	public function test_dispatch_async_pipeline_ignores_a_non_positive_id(): void {
+		$this->mockRepo->shouldNotReceive( 'findById' );
+
+		$this->assertNull( $this->capturedPipelineArgs( 0 ) );
+	}
+
+	/**
+	 * AS DUAS NORMALIZACOES SAO INVISIVEIS -- e este teste e a medicao.
+	 *
+	 * O banco guarda `cpf_rf` so com digitos e `auth_code` so com
+	 * alfanumericos, enquanto o visitante pode ter digitado `123.456.789-00`.
+	 * A duvida legitima era se o aviso ao admin mudaria de conteudo.
+	 *
+	 * Nao muda, e nao por sorte: os dois unicos consumidores desses valores
+	 * limpam a ENTRADA antes de formatar -- `format_document()` com
+	 * `preg_replace('/\D/','')` e `format_auth_code()` com `/[^A-Z0-9]/i`.
+	 * Cru e normalizado convergem para a mesma saida.
+	 *
+	 * A asercao mora aqui, e nao num teste do `DocumentFormatter`, porque o
+	 * que ela protege e a reidratacao: se um dia esses formatadores pararem de
+	 * limpar a entrada, e o #1248 que passa a mudar e-mail.
+	 */
+	public function test_the_two_normalizations_are_invisible_to_the_formatters(): void {
+		$this->assertSame(
+			\FreeFormCertificate\Core\DocumentFormatter::format_document( '123.456.789-00' ),
+			\FreeFormCertificate\Core\DocumentFormatter::format_document( '12345678900' ),
+			'Se isto divergir, a reidratacao passa a mudar o CPF no aviso ao admin.'
+		);
+		$this->assertSame(
+			\FreeFormCertificate\Core\DocumentFormatter::format_auth_code( 'abcd-1234-efgh', 'CERT' ),
+			\FreeFormCertificate\Core\DocumentFormatter::format_auth_code( 'ABCD1234EFGH', 'CERT' ),
+			'Idem para o codigo de autenticacao.'
+		);
+	}
+
 }

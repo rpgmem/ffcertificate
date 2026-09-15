@@ -66,6 +66,9 @@ class Deactivator {
 		// 3. Clear scheduled CRON tasks.
 		wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 		wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
+		// O gancho interno do #1248, que substituiu o de cima no agendamento.
+		// O antigo fica: pode haver evento pendente da forma velha.
+		wp_clear_scheduled_hook( 'ffc_process_submission_async' );
 		wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
 		wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::unschedule();
