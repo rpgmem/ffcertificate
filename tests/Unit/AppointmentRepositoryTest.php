@@ -28,6 +28,9 @@ class AppointmentRepositoryTest extends TestCase {
 	/** @var AppointmentRepository */
 	private $repo;
 
+	/** @var array<int, array{0: string, 1: string, 2: string}> */
+	private array $deprecations = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -38,6 +41,22 @@ class AppointmentRepositoryTest extends TestCase {
 		$wpdb->last_error = '';
 		$wpdb->insert_id = 0;
 		$this->wpdb = $wpdb;
+
+		// `getStatistics()` avisa em runtime que vai embora (#1245). Sem este
+		// duplo, todo teste que a exercita morre em funcao indefinida -- e com
+		// ele, `$this->deprecations` guarda o que foi avisado, que e o que o
+		// teste abaixo cobra.
+		//
+		// So a forma GLOBAL: `Functions\when()` a define, e a resolucao do PHP
+		// alcanca a chamada nao qualificada dentro do namespace. Definir a
+		// versao namespaced criaria uma funcao que passaria a sombrear a global
+		// para o resto do processo -- a armadilha que o CLAUDE.md descreve.
+		$this->deprecations = array();
+		Functions\when('_deprecated_function')->alias(
+			function ( $function_name, $version, $replacement = '' ) {
+				$this->deprecations[] = array( $function_name, $version, $replacement );
+			}
+		);
 
 		Functions\when('wp_cache_get')->justReturn(false);
 		Functions\when('wp_cache_set')->justReturn(true);
@@ -1751,5 +1770,54 @@ class AppointmentRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive('get_results')->once()->andReturn(null);
 
 		$this->assertSame([], $this->repo->getExportBatch(null, [], null, null, 10, 50));
+	}
+
+	// ==================================================================
+	// Depreciacao de getStatistics() (#1245)
+	// ==================================================================
+
+	/**
+	 * As duas superficies avisam em runtime que vao embora.
+	 *
+	 * POR QUE ISTO E O ENTREGAVEL, E NAO O `@deprecated`
+	 *
+	 * A razao declarada deste ciclo e notificar consumidores que uma varredura
+	 * de codigo nao enxerga -- uma integracao externa que instancie
+	 * `AppointmentRepository`. Um `@deprecated` no docblock nao alcanca
+	 * ninguem em runtime, entao ele sozinho seria um aviso que so nos lemos.
+	 *
+	 * `_deprecated_function()` e o mecanismo do WordPress: `E_USER_DEPRECATED`
+	 * sob `WP_DEBUG`, silencioso em producao.
+	 *
+	 * CADA UMA AVISA POR SI
+	 *
+	 * A fachada delega ao reader, entao quem chamar a fachada ve DOIS avisos.
+	 * Esta certo: os dois metodos sao publicos, os dois vao embora, e nomear so
+	 * um deixaria o outro sair sem aviso para quem o chama direto -- que e o
+	 * idioma que o CLAUDE.md descreve para os readers.
+	 */
+	public function test_get_statistics_announces_its_own_removal(): void {
+		$this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
+		$this->wpdb->shouldReceive('get_row')->andReturn(null);
+
+		$this->repo->getStatistics(1);
+
+		$named = array_column($this->deprecations, 0);
+
+		$this->assertContains(
+			'FreeFormCertificate\\Repositories\\AppointmentRepository::getStatistics',
+			$named,
+			'A fachada tem de nomear a SI, senao quem a chamou nao sabe o que parar de usar.'
+		);
+		$this->assertContains(
+			'FreeFormCertificate\\Repositories\\AppointmentReader::getStatistics',
+			$named,
+			'O reader e publico e chamado direto neste codebase; sair sem aviso proprio deixaria esses chamadores no escuro.'
+		);
+
+		foreach ($this->deprecations as $call) {
+			$this->assertSame('6.25.0', $call[1], 'A versao do aviso e a do ANUNCIO, nao a da remocao.');
+			$this->assertSame('', $call[2], 'Nao ha substituto — o WordPress imprime "with no alternative available", que e a verdade.');
+		}
 	}
 }

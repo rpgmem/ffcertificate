@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Deprecated
+
+- ⚠ **`AppointmentRepository::getStatistics()` e `AppointmentReader::getStatistics()`** (#1245): uma varredura sobre toda a árvore não acha chamador de produto nenhum — só os testes os mantêm verdes. Ambos passam a emitir `_deprecated_function()` — o aviso que de fato alcança quem chama, sob `WP_DEBUG`, já que um `@deprecated` no docblock só nós lemos. Serão **removidos em 6.27.0**, a segunda release de feature após este aviso. Não há substituto porque não há consumidor conhecido; se a sua integração usa algum dos dois, abra uma issue antes dessa release. O ciclo existe em vez de deleção direta porque "morto" aqui é conclusão de varredura **estática**, e `AppointmentRepository` é uma classe pública que outro plugin no mesmo WordPress pode instanciar — o mesmo critério que retirou as chaves `success`/`fail` do `get_audit_log_summary()` (#730).
+
 ### Removed
 
 - **Os seis ids que o JavaScript procurava e ninguém emitia** (#1227): o guarda do #1220 congelou sete; a análise de cada um deixou a lista vazia. Saíram o select dependente por id (superado pela implementação por classe no mesmo commit que o introduziu), o controlador do dropdown de migrações (cuja marcação não existe em revisão alguma da história, nem CSS) e a busca por `#ffc_bg_image_url` (o fallback por atributo `name` já alcançava as duas telas reais). Com eles saíram 8 testes que só exercitavam código morto — dois deles passavam por acidente, sem handler algum.

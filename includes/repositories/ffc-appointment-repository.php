@@ -238,12 +238,57 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Get appointment statistics for calendar
 	 *
+	 * @deprecated 6.25.0 Sem chamador no produto; sera removido em 6.27.0 (#1245).
+	 *
+	 * POR QUE CICLO DE DEPRECIACAO, E NAO DELECAO DIRETA
+	 *
+	 * Uma varredura sobre toda a arvore nao acha chamador nenhum -- so os
+	 * testes o mantem verde. Mas "morto" aqui e conclusao de varredura
+	 * ESTATICA, e o CLAUDE.md §5 declara essa evidencia insuficiente para esta
+	 * forma: o ciclo existe justamente "para superficies cujos consumidores uma
+	 * varredura de codigo nao enxerga -- um metodo publico que uma integracao
+	 * externa pode chamar". `AppointmentRepository` e uma classe publica que
+	 * outro plugin no mesmo WordPress pode instanciar.
+	 *
+	 * Precedente direto: as chaves `success`/`fail` do
+	 * `get_audit_log_summary()` (#730), que tinham zero consumidores internos e
+	 * ainda assim sairam por ciclo anunciado, removidas na 2a release de
+	 * feature apos o aviso.
+	 *
+	 * QUANDO SAI
+	 *
+	 * O aviso vai na release que consumir este `[Unreleased]` -- 6.25.0 pelo
+	 * ritmo atual. A remocao e na SEGUNDA release de feature apos o aviso, o
+	 * que da 6.27.0. Se o bump real divergir, vale a REGRA e nao o numero:
+	 * duas releases de feature depois do aviso.
+	 *
+	 * Manter ate la custa ~35 linhas de produto e 8 testes, e **zero em
+	 * runtime** -- nao ha pressa.
+	 *
+	 * A implementacao esta em {@see AppointmentReader::getStatistics()}, que
+	 * carrega a mesma marca -- os dois sao publicos e alcancaveis.
+	 *
 	 * @param int         $calendar_id Calendar ID.
 	 * @param string|null $start_date Start date.
 	 * @param string|null $end_date End date.
 	 * @return array<string, mixed>
 	 */
 	public function getStatistics( int $calendar_id, ?string $start_date = null, ?string $end_date = null ): array {
+		// O aviso que realmente ALCANCA quem chama (#1245). O `@deprecated` acima
+		// e invisivel em runtime, e a razao declarada deste ciclo e notificar
+		// consumidores que uma varredura de codigo nao enxerga -- entao um
+		// marcador que so o nosso proprio leitor ve nao serviria para o que ele
+		// existe. `_deprecated_function()` e o mecanismo do WordPress para
+		// isso: emite `E_USER_DEPRECATED` sob `WP_DEBUG` e fica silencioso em
+		// producao.
+		//
+		// Sem argumento de substituto de proposito: nao ha um. O WordPress
+		// entao imprime "with no alternative available", que e a verdade.
+		//
+		// A fachada e o reader avisam cada um por SI: quem chamar a fachada ve
+		// os dois, e isso esta certo, porque os dois vao embora.
+		_deprecated_function( __METHOD__, '6.25.0' );
+
 		return $this->reader->getStatistics( $calendar_id, $start_date, $end_date );
 	}
 
