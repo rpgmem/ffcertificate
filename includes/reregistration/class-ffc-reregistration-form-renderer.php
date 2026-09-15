@@ -77,19 +77,20 @@ class ReregistrationFormRenderer {
 		$saved_data   = $submission->data ? json_decode( $submission->data, true ) : array();
 		$saved_values = is_array( $saved_data['fields'] ?? null ) ? $saved_data['fields'] : array();
 
-		// O rascunho guarda os campos sensíveis CRIPTOGRAFADOS -- é o que
-		// `ReregistrationDataProcessor` grava. Sem descriptografar aqui, uma
-		// submissão devolvida para rascunho voltava com o ciphertext dentro do
-		// input, e o usuário via o blob no lugar do próprio CPF.
+		// The draft stores the sensitive fields ENCRYPTED -- that is what
+		// `ReregistrationDataProcessor` writes. Without decrypting here, a
+		// submission returned to draft came back with the ciphertext inside the
+		// input, and the user saw the blob in place of their own CPF.
 		//
-		// O caminho do perfil, logo abaixo, já fazia certo: passa
-		// `$sensitive_keys` para `UserManager::get_extended_profile()`. Só o
-		// degrau do rascunho não passava por aqui. O ajudante é o mesmo que o
-		// admin usa em `ReregistrationAjaxHandler`.
+		// The profile path, just below, already did it right: it passes
+		// `$sensitive_keys` to `UserManager::get_extended_profile()`. Only the
+		// draft step did not come through here. The helper is the same one the
+		// admin uses in `ReregistrationAjaxHandler`.
 		//
-		// Devolver em texto claro é correto porque quem lê é o TITULAR,
-		// autenticado, editando o próprio dado -- a regra de mascarar governa
-		// tela de terceiro olhando dado alheio. A gravação segue criptografada.
+		// Returning clear text is correct because the reader is the SUBJECT,
+		// authenticated, editing their own data -- the masking rule governs a
+		// third party's screen looking at somebody else's data. The write stays
+		// encrypted.
 		$saved_values = FichaGenerator::decrypt_field_values( $fields, $saved_values );
 
 		$values = self::build_field_values( $fields, $saved_values, $user_id, $user );
@@ -101,11 +102,11 @@ class ReregistrationFormRenderer {
 		$grouped      = self::group_fields( $fields );
 		$group_labels = ReregistrationStandardFieldsSeeder::get_group_labels();
 
-		// Oferta de importar o último ciclo aprovado (#1213). Só o TÍTULO
-		// atravessa para o template -- os valores só são buscados se o
-		// participante clicar, pelo endpoint próprio, que é o que tem o
-		// portão de autorização. Renderizar o dado aqui o entregaria a quem
-		// nunca pediu.
+		// The offer to import the last approved cycle (#1213). Only the TITLE
+		// crosses over to the template -- the values are only fetched if the
+		// participant clicks, through its own endpoint, which is what carries
+		// the authorization gate. Rendering the data here would hand it to
+		// whoever never asked.
 		$ffc_import_source       = ReregistrationSubmissionReader::get_latest_approved_for_user( $user_id, (int) $rereg->id );
 		$ffc_import_source_title = $ffc_import_source
 			? (string) ( $ffc_import_source->reregistration_title ?? '' )

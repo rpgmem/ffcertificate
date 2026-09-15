@@ -23,6 +23,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The last 35 Portuguese test files now read in English** (#1260): loaders, capabilities, recruitment, reregistration, submissions and the URL shortener — docblocks, comments and assertion messages, plus six fixture values (`umaSenhaBoa1` → `aGoodPassword1`, `Fulano de Tal` → `John Doe`, …). The token skeleton of all 35 is unchanged; the full suite is green at 8,037 tests.
 - **The 6.23.0, 6.24.0 and 6.25.0 sections now read in English** (#1260): 126 bullets, the last Portuguese prose in the file. Headings, bullet positions and line count are unchanged — only the prose inside each bullet. The three published Release bodies still carry the Portuguese text: an agent cannot edit one, so the replacement text ships as generated output for the maintainer to paste.
 - **The division/sector editor's JavaScript reads in English** (#1260): `ffc-divisao-setor-editor.js` becomes `ffc-division-sector-editor.js`, with its script handle and localized object renamed to match. The `divisao_setor` **field key stays** — it is written into `ffc_custom_fields` and into every stored submission's `data` JSON, so renaming it would need a migration.
+- **The reregistration, migrations, submissions and URL-shortener comments read in English** (#1260): 434 lines of Portuguese docblocks and inline comments across 15 production classes. Comments only — the PHP token skeleton of all 15 is unchanged and not one string literal moved, so no behaviour, message or query is touched.
 
 ### Fixed
 

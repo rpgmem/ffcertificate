@@ -52,15 +52,15 @@ use FreeFormCertificate\Core\Encryption;
 use WP_Error;
 
 /*
- * SEM `phpcs:disable` de arquivo, de proposito (#1236).
+ * NO file-level `phpcs:disable`, on purpose (#1236).
  *
- * O #1035 colapsou anotacoes por linha em disables de arquivo onde a
- * justificativa era propriedade da CLASSE: toda tabela tocada ali e `ffc_*`, para
- * as quais o WordPress nao expoe API. Aqui isso deixou de valer -- o alvo de
- * perfil le `wp_usermeta`, uma tabela do core --, e
+ * #1035 collapsed per-line annotations into file-level disables where the
+ * justification was a property of the CLASS: every table touched there is
+ * `ffc_*`, for which WordPress exposes no API. That stopped holding here -- the
+ * profile target reads `wp_usermeta`, a core table --, and
  * `PhpcsSuppressionTest::test_file_level_direct_query_disables_only_cover_plugin_tables()`
- * cobra exatamente essa honestidade. Das duas saidas que o proprio guarda
- * nomeia, esta e a segunda: largar o disable e anotar por linha.
+ * enforces exactly that honesty. Of the two ways out the guard itself names,
+ * this is the second: drop the disable and annotate per line.
  */
 
 /**
@@ -98,21 +98,22 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	private const TARGET_USER_PROFILE = 'user_profile_meta';
 
 	/**
-	 * Chave de meta cifrada => meta de hash pareada (null quando o campo nao e
-	 * pesquisavel por hash).
+	 * Encrypted meta key => its paired hash meta (null when the field is not
+	 * searchable by hash).
 	 *
-	 * AS CHAVES SAO LITERAIS AQUI DE PROPOSITO. A fonte de verdade e
-	 * `UserProfileFieldMap`, no modulo UserDashboard -- e importa-la criaria a
-	 * aresta `Migrations > UserDashboard`, que nao existe na baseline do
-	 * `ModuleBoundaryTest`. A estrategia ja fixa nomes de coluna dos outros dois
-	 * alvos pela mesma razao; quem cobra a concordancia e
-	 * `KeyRotationUserProfileTargetTest`, que vive fora do grafo de modulos e
-	 * reprova se o mapa ganhar um campo sensivel que esta lista nao conheca.
+	 * THE KEYS ARE LITERALS HERE ON PURPOSE. The source of truth is
+	 * `UserProfileFieldMap`, in the UserDashboard module -- and importing it
+	 * would create the `Migrations > UserDashboard` edge, which does not exist
+	 * in `ModuleBoundaryTest`'s baseline. The strategy already pins the column
+	 * names of the other two targets for the same reason; what enforces the
+	 * agreement is `KeyRotationUserProfileTargetTest`, which lives outside the
+	 * module graph and fails when the map gains a sensitive field this list
+	 * does not know about.
 	 *
-	 * `ffc_user_profiles` NAO entra: suas seis colunas sao texto puro
-	 * (`sensitive => false` no mapa), entao nao ha o que recifrar la. A #1236
-	 * juntava as duas coisas numa linha so; medido, o ciphertext mora apenas na
-	 * usermeta.
+	 * `ffc_user_profiles` is NOT in: its six columns are plain text
+	 * (`sensitive => false` in the map), so there is nothing to re-encrypt
+	 * there. #1236 conflated the two in a single line; measured, the ciphertext
+	 * lives in the usermeta alone.
 	 *
 	 * @return array<string, string|null>
 	 */
@@ -347,9 +348,9 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 		// silently marked complete.
 		$this->stamp_fingerprint();
 
-		// Um alvo por lote: o primeiro que ainda tenha linhas adiante do seu
-		// cursor. Misturar alvos num mesmo lote tornaria o cursor ambíguo e
-		// impediria retomar de onde parou.
+		// One target per batch: the first that still has rows ahead of its own
+		// cursor. Mixing targets inside one batch would make the cursor
+		// ambiguous and stop it resuming from where it left off.
 		$result = array(
 			'processed' => 0,
 			'errors'    => array(),
@@ -404,18 +405,18 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 		}
 
 		/**
-		 * Tipagem explicita das linhas, o idioma que as outras classes que leem
-		 * linhas usam (ver `AbstractRepository`, `AppointmentReader`). Sem ela o
-		 * retorno de `get_results()` e `mixed` e o gate "Row shapes (level 9)"
-		 * reprova cada acesso de offset e cada cast -- tolerancia zero, por
-		 * decisao registrada no proprio workflow.
+		 * Explicit row typing, the idiom the other row-reading classes use (see
+		 * `AbstractRepository`, `AppointmentReader`). Without it the return of
+		 * `get_results()` is `mixed` and the "Row shapes (level 9)" gate fails
+		 * every offset access and every cast -- zero tolerance, by a decision
+		 * recorded in the workflow itself.
 		 *
-		 * `string|null` e nao um shape literal: o MySQL devolve toda coluna como
-		 * string, e `id` chega como numerico em texto.
+		 * `string|null` rather than a literal shape: MySQL returns every column
+		 * as a string, and `id` arrives as a number in text.
 		 *
 		 * @var list<array<string, string|null>>|null $rows
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Statement de dados contra tabela `ffc_*` do plugin numa migracao: o WordPress nao expoe API para ela, e uma leitura em cache e exatamente o que um cursor de migracao nao pode tomar.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Data statement against the plugin's own `ffc_*` table inside a migration: WordPress exposes no API for it, and a cached read is exactly what a migration cursor must not take.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT id, data FROM %i WHERE id > %d AND data LIKE %s ORDER BY id ASC LIMIT %d',
@@ -430,7 +431,7 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 		if ( ! is_array( $rows ) || array() === $rows ) {
 			// Nothing left ahead of the cursor: park it at the end so the status
 			// maths reports complete instead of stalling one row short.
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Statement de dados contra tabela `ffc_*` do plugin numa migracao: o WordPress nao expoe API para ela, e uma leitura em cache e exatamente o que um cursor de migracao nao pode tomar.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Data statement against the plugin's own `ffc_*` table inside a migration: WordPress exposes no API for it, and a cached read is exactly what a migration cursor must not take.
 			$max_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(MAX(id), 0) FROM %i', $table ) );
 			if ( $max_id > $cursor ) {
 				$this->set_cursor( self::TARGET_REREGISTRATION, $max_id );
@@ -453,7 +454,7 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 				continue;
 			}
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Statement de dados contra tabela `ffc_*` do plugin numa migracao: o WordPress nao expoe API para ela, e uma leitura em cache e exatamente o que um cursor de migracao nao pode tomar.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Data statement against the plugin's own `ffc_*` table inside a migration: WordPress exposes no API for it, and a cached read is exactly what a migration cursor must not take.
 			$updated = $wpdb->update(
 				$table,
 				array( 'data' => $rewritten ),
@@ -483,14 +484,14 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	}
 
 	/**
-	 * Quantos USUARIOS ainda tem meta sensivel a considerar neste alvo.
+	 * How many USERS still have sensitive meta to consider in this target.
 	 *
-	 * Conta usuarios distintos, e nao linhas de meta, porque e assim que o lote
-	 * pagina -- um usuario com tres metas e uma unidade de trabalho, nao tres.
-	 * Contar linhas faria a comparacao `count(false) > count(true)` do
-	 * `execute()` discordar do que o lote de fato consome.
+	 * It counts distinct users, not meta rows, because that is how the batch
+	 * pages -- a user with three metas is one unit of work, not three. Counting
+	 * rows would make `execute()`'s `count(false) > count(true)` comparison
+	 * disagree with what the batch actually consumes.
 	 *
-	 * @param bool $behind_cursor Restringe ao que ja ficou para tras do cursor.
+	 * @param bool $behind_cursor Restrict to what already fell behind the cursor.
 	 * @return int
 	 */
 	private function count_user_profile_pending( bool $behind_cursor ): int {
@@ -509,29 +510,29 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 			$values[]   = $this->get_cursor( self::TARGET_USER_PROFILE );
 		}
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Os fragmentos interpolados sao marcadores gerados aqui a partir da contagem de chaves e um literal fixo de cursor; todo valor, a tabela inclusive, passa por prepare(). Leitura de migracao: uma resposta em cache e exatamente o que um cursor nao pode tomar.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The interpolated fragments are placeholders generated here from the key count plus a fixed cursor literal; every value, the table included, goes through prepare(). A migration read: a cached answer is exactly what a cursor must not take.
 		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT user_id) FROM %i WHERE meta_key IN ({$placeholders}) AND meta_value LIKE %s{$cursor_sql}", $values ) );
 	}
 
 	/**
-	 * Recifra a meta sensivel de um lote de usuarios e refaz os hashes.
+	 * Re-encrypt one batch of users' sensitive meta and rebuild the hashes.
 	 *
-	 * POR QUE A PAGINA E DE USUARIOS, E NAO DE LINHAS DE META
+	 * WHY THE PAGE IS OF USERS, NOT OF META ROWS
 	 *
-	 * Um usuario carrega ate tres metas cifradas. Paginando por linha de meta e
-	 * avancando o cursor por `user_id`, um usuario partido entre dois lotes
-	 * perderia as metas que ficaram para tras -- o cursor ja teria passado por
-	 * ele. Paginar por usuario torna a unidade de trabalho indivisivel.
+	 * A user carries up to three encrypted metas. Paging by meta row while
+	 * advancing the cursor by `user_id` would lose the metas left behind for a
+	 * user split across two batches -- the cursor would already have passed
+	 * them. Paging by user makes the unit of work indivisible.
 	 *
-	 * POR QUE A ESCRITA VAI PELA API DO WordPress
+	 * WHY THE WRITE GOES THROUGH THE WordPress API
 	 *
-	 * A unica consulta direta e o SELECT que resolve a pagina de `user_id`: um
-	 * keyset (`user_id > %d`) que `WP_User_Query` nao sabe expressar, e trocar o
-	 * keyset por `offset` arriscaria pular um usuario -- que aqui significa PII
-	 * ilegivel para sempre depois da rotacao de salts. Lido e escrito, porem,
-	 * vai por `get_user_meta()` / `update_user_meta()`, que passam pelo cache de
-	 * objeto e mantem o caminho de escrita identico ao do
-	 * `UserProfileService` -- inclusive o hash so gravado quando muda.
+	 * The only direct query is the SELECT that resolves the page of `user_id`:
+	 * a keyset (`user_id > %d`) that `WP_User_Query` cannot express, and
+	 * swapping the keyset for an `offset` would risk skipping a user -- which
+	 * here means PII unreadable forever after a salt rotation. The read and the
+	 * write, though, go through `get_user_meta()` / `update_user_meta()`, which
+	 * pass through the object cache and keep the write path identical to
+	 * `UserProfileService`'s -- including writing the hash only when it changes.
 	 *
 	 * @return array{processed: int, errors: array<int, string>}
 	 */
@@ -552,12 +553,12 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 		$values[] = self::BATCH_SIZE;
 
 		/**
-		 * Uma coluna de ids, tipada explicitamente porque `get_col()` devolve
-		 * `mixed` para o analisador.
+		 * A column of ids, typed explicitly because `get_col()` returns `mixed`
+		 * to the analyser.
 		 *
 		 * @var list<string>|null $ids
 		 */
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Como em count_user_profile_pending(): fragmentos gerados aqui, valores todos por prepare(), e cache proibido num cursor de migracao.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- As in count_user_profile_pending(): fragments generated here, every value through prepare(), and caching forbidden inside a migration cursor.
 		$ids = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT user_id FROM %i WHERE meta_key IN ({$placeholders}) AND meta_value LIKE %s AND user_id > %d ORDER BY user_id ASC LIMIT %d", $values ) );
 
 		if ( ! is_array( $ids ) || array() === $ids ) {
@@ -577,19 +578,19 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 			foreach ( $map as $meta_key => $hash_key ) {
 				$stored = get_user_meta( $user_id, $meta_key, true );
 
-				// O prefixo e um FILTRO DE CUSTO, nao de correcao: `decrypt()`
-				// ja devolveria null para o que nao sabe decifrar, e o guarda
-				// seguinte protegeria o valor de qualquer jeito (medido por
-				// mutacao). O que ele evita e a CHAMADA: abrir o envelope,
-				// derivar a comparacao HMAC e chamar `openssl_decrypt` para
-				// cada meta em texto claro, num laco que percorre todos os
-				// usuarios do site.
+				// The prefix is a COST filter, not a correctness one:
+				// `decrypt()` would already return null for what it cannot
+				// decrypt, and the guard below would protect the value anyway
+				// (measured by mutation). What it avoids is the CALL: opening
+				// the envelope, deriving the HMAC comparison and calling
+				// `openssl_decrypt` for every plaintext meta, inside a loop
+				// that walks every user of the site.
 				//
-				// Ate o #1234 havia um segundo motivo, maior: cada falha
-				// gravava uma linha em `ffc_activity_log`, sem teto. O teto
-				// agora existe (cinco por requisicao), entao o que sobra e o
-				// custo da decifragem em si -- suficiente, mas nao mais o
-				// argumento dramatico que este comentario carregava antes.
+				// Until #1234 there was a second, larger reason: every failure
+				// wrote a row into `ffc_activity_log`, with no ceiling. The
+				// ceiling now exists (five per request), so what remains is the
+				// cost of the decryption itself -- enough, but no longer the
+				// dramatic argument this comment used to carry.
 				if ( ! is_string( $stored ) || 0 !== strpos( $stored, Encryption::V2_PREFIX ) ) {
 					continue;
 				}
@@ -620,8 +621,8 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 					continue;
 				}
 
-				// So escreve quando muda, espelhando os outros dois alvos: uma
-				// linha ja sob o salt atual nao custa escrita.
+				// Written only when it changes, mirroring the other two
+				// targets: a row already under the current salt costs no write.
 				$current = get_user_meta( $user_id, $hash_key, true );
 				if ( ! is_string( $current ) || ! hash_equals( $hash, $current ) ) {
 					update_user_meta( $user_id, $hash_key, $hash );
@@ -642,33 +643,34 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	/**
 	 * Re-encrypt one batch of recruitment candidates and rebuild their hashes.
 	 *
-	 * RECONSTRUIR O HASH PODE COLIDIR -- E O CASO EM QUE ISSO ACONTECE E
-	 * EXATAMENTE O QUE A #1236 DESCREVE.
+	 * REBUILDING THE HASH CAN COLLIDE -- AND THE CASE WHERE IT DOES IS EXACTLY
+	 * THE ONE #1236 DESCRIBES.
 	 *
-	 * Este bloco ja afirmou o contrario, e a afirmacao estava errada. Ela dizia
-	 * que duas linhas da mesma pessoa sao "o que as restricoes ja proibem".
-	 * Nao sao: `cpf_hash` e `rf_hash` sao UNIQUE sobre o VALOR do hash, nao
-	 * sobre a pessoa. Sob salts diferentes a mesma pessoa produz valores
-	 * diferentes, e o par passa pela restricao sem esbarrar nela.
+	 * This block once claimed the opposite, and the claim was wrong. It said
+	 * two rows for the same person are "what the constraints already forbid".
+	 * They are not: `cpf_hash` and `rf_hash` are UNIQUE over the hash VALUE,
+	 * not over the person. Under different salts the same person produces
+	 * different values, and the pair passes the constraint without touching it.
 	 *
-	 * E esse par existe justamente pelo defeito que esta migracao conserta. A
-	 * parte 2 da #1236 levanta a hipotese: depois do desacoplamento,
-	 * `RecruitmentCandidateReader::get_by_cpf_hash()` deixou de achar o
-	 * candidato antigo, entao o dedup do importador (`CandidatePersister`)
-	 * criou uma linha NOVA em vez de atualizar a existente.
+	 * And that pair exists precisely because of the defect this migration
+	 * fixes. Part 2 of #1236 raises the hypothesis: after the decoupling,
+	 * `RecruitmentCandidateReader::get_by_cpf_hash()` stopped finding the old
+	 * candidate, so the importer's dedup (`CandidatePersister`) created a NEW
+	 * row instead of updating the existing one.
 	 *
-	 * Onde isso aconteceu, reconstruir o hash da linha antiga produz o valor
-	 * que a linha nova ja tem, e o `UPDATE` bate na UNIQUE. A consequencia nao
-	 * e perda: o erro entra em `$errors`, o laco segue, e a linha simplesmente
-	 * nao migra -- mas o card nunca chega a 0 pendentes ate que os duplicados
-	 * sejam reconciliados a mao. Por isso a mensagem de erro carrega o
-	 * `last_error` do banco: e ele que nomeia a chave e o valor duplicados.
+	 * Where that happened, rebuilding the old row's hash produces the value the
+	 * new row already has, and the `UPDATE` hits the UNIQUE. The consequence is
+	 * not loss: the error enters `$errors`, the loop carries on, and the row
+	 * simply does not migrate -- but the card never reaches 0 pending until the
+	 * duplicates are reconciled by hand. That is why the error message carries
+	 * the database's `last_error`: it is what names the duplicated key and
+	 * value.
 	 *
-	 * O que continua verdadeiro, e vale dizer para nao confundir os dois
-	 * casos: uma tabela que nunca recebeu um par desses nao pode colidir aqui.
-	 * Entradas distintas seguem distintas por SHA-256, e as duas eras produzem
-	 * valores sem relacao entre si, entao uma tabela meio migrada tambem esta
-	 * a salvo. A colisao e uma propriedade dos DADOS, nao do algoritmo.
+	 * What remains true, and is worth saying so the two cases are not
+	 * confused: a table that never received such a pair cannot collide here.
+	 * Distinct inputs stay distinct under SHA-256, and the two salt eras
+	 * produce values unrelated to each other, so a half-migrated table is safe
+	 * too. The collision is a property of the DATA, not of the algorithm.
 	 *
 	 * The hash is only written when it actually differs, mirroring the original
 	 * strategy -- a row already under the current salt costs no write.
@@ -690,17 +692,17 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 		}
 
 		/**
-		 * Tipagem explicita das linhas deste alvo.
+		 * Explicit row typing for this target.
 		 *
-		 * @see self::migrate_reregistration_batch() para o motivo da anotacao.
+		 * @see self::migrate_reregistration_batch() for why the annotation is here.
 		 *
-		 * Aqui o mapa e generico de proposito -- `array<string, string|null>` e
-		 * nao um shape literal -- porque as colunas sao lidas por chave VARIAVEL
-		 * (`$row[ $enc_col ]`), e um shape literal recusa o acesso por variavel.
+		 * The map is generic on purpose -- `array<string, string|null>` rather
+		 * than a literal shape -- because the columns are read by a VARIABLE key
+		 * (`$row[ $enc_col ]`), and a literal shape refuses access by variable.
 		 *
 		 * @var list<array<string, string|null>>|null $rows
 		 */
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Statement de dados contra tabela `ffc_*` do plugin numa migracao: o WordPress nao expoe API para ela, e uma leitura em cache e exatamente o que um cursor de migracao nao pode tomar.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Data statement against the plugin's own `ffc_*` table inside a migration: WordPress exposes no API for it, and a cached read is exactly what a migration cursor must not take.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT id, cpf_encrypted, cpf_hash, rf_encrypted, rf_hash, email_encrypted, email_hash
@@ -713,7 +715,7 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 		);
 
 		if ( ! is_array( $rows ) || array() === $rows ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Statement de dados contra tabela `ffc_*` do plugin numa migracao: o WordPress nao expoe API para ela, e uma leitura em cache e exatamente o que um cursor de migracao nao pode tomar.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Data statement against the plugin's own `ffc_*` table inside a migration: WordPress exposes no API for it, and a cached read is exactly what a migration cursor must not take.
 			$max_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(MAX(id), 0) FROM %i', $table ) );
 			if ( $max_id > $cursor ) {
 				$this->set_cursor( self::TARGET_RECRUITMENT, $max_id );
@@ -774,15 +776,15 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 				continue;
 			}
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Statement de dados contra tabela `ffc_*` do plugin numa migracao: o WordPress nao expoe API para ela, e uma leitura em cache e exatamente o que um cursor de migracao nao pode tomar.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Data statement against the plugin's own `ffc_*` table inside a migration: WordPress exposes no API for it, and a cached read is exactly what a migration cursor must not take.
 			$written = $wpdb->update( $table, $update, array( 'id' => $last_id ), $formats, array( '%d' ) );
 
 			if ( false === $written ) {
-				// `last_error` nomeia a chave e o valor quando o motivo e a
-				// UNIQUE de `cpf_hash`/`rf_hash` -- o caso descrito no
-				// docblock, que precisa de reconciliacao manual e nao de nova
-				// tentativa. Sem ele a mensagem nao distingue isso de uma
-				// falha de escrita qualquer.
+				// `last_error` names the key and the value when the reason is
+				// the `cpf_hash`/`rf_hash` UNIQUE -- the case described in the
+				// docblock, which needs manual reconciliation rather than a
+				// retry. Without it the message cannot tell that apart from any
+				// other write failure.
 				$detail = isset( $wpdb->last_error ) && '' !== (string) $wpdb->last_error
 					? (string) $wpdb->last_error
 					: '';
@@ -956,7 +958,7 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	 */
 	private function table_exists( string $table ): bool {
 		global $wpdb;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Sonda de schema numa migracao: a resposta precisa refletir o schema vivo, entao cachear seria justamente o errado, e o WordPress nao expoe API para ela.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema probe inside a migration: the answer must reflect the live schema, so caching would be precisely wrong, and WordPress exposes no API for it.
 		return $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table;
 	}
 
