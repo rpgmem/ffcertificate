@@ -1,38 +1,39 @@
 <?php
 /**
- * Guarda do idioma de nome de classe (#1170).
+ * Class-naming idiom guard (#1170).
  *
- * A #1167 mediu três idiomas vivos dizendo a MESMA coisa — modificador com
- * prefixo (`.ffc-day.ffc-selected`), modificador sem prefixo
- * (`.ffc-consent-status.consent-given`) e estado SMACSS (`.ffc-cap-role.is-on`)
- * — e a #1170 os converge em dois, por função:
+ * #1167 measured three live idioms saying the SAME thing — a prefixed modifier
+ * (`.ffc-day.ffc-selected`), an unprefixed one
+ * (`.ffc-consent-status.consent-given`) and a SMACSS state
+ * (`.ffc-cap-role.is-on`) — and #1170 converges them into two, by function:
  *
- *  - **estado transitório**, o que a interação liga e desliga (aberto, ativo,
- *    colapsado, selecionado, copiado), fica SEM prefixo, como `is-` / `has-`.
- *    É a convenção SMACSS, é legível, e o nome só aparece composto — uma
- *    `.is-open` crua não tem âncora e falha no `CssNamespaceAnchorTest`.
- *  - **tudo o mais nosso** — variante que vem do dado, e elemento do
- *    componente — leva `ffc-`.
+ *  - **transient state**, what the interaction turns on and off (open, active,
+ *    collapsed, selected, copied), stays UNPREFIXED, as `is-` / `has-`.
+ *    That is the SMACSS convention, it reads well, and the name only ever
+ *    appears compounded — a bare `.is-open` has no anchor and fails
+ *    `CssNamespaceAnchorTest`.
+ *  - **everything else of ours** — a variant the data dictates, and an element
+ *    of the component — takes `ffc-`.
  *
- * Esta guarda recusa o terceiro idioma: uma classe nossa sem prefixo e sem
- * `is-`/`has-`. Os 38 nomes que existiam foram convertidos na #1170; o que
- * sobra sem prefixo é emitido pelo WordPress ou pelo CodeMirror, e está aqui
- * com a razão.
+ * This guard refuses the third idiom: a class of ours with no prefix and no
+ * `is-`/`has-`. The 38 names that existed were converted in #1170; what stays
+ * unprefixed is emitted by WordPress or by CodeMirror, and is listed here with
+ * its reason.
  *
- * **Não é sobre colisão** — todos os 38 apareciam compostos com uma classe
- * `ffc-`, que é por isso que a catraca de âncora do #1152 nunca os viu. É sobre
- * LEITURA: `.value`, `.top`, `.remove`, `.label`, `.open` não dizem de quem
- * são, e quem lê a folha reconstrói o contexto pelo seletor inteiro. Pela regra
- * de prioridade do `CLAUDE.md`, isso é inconsistência recorrente e voltada ao
- * leitor, não cosmética.
+ * **It is not about collision** — all 38 appeared compounded with an `ffc-`
+ * class, which is why #1152's anchor ratchet never saw them. It is about
+ * READING: `.value`, `.top`, `.remove`, `.label`, `.open` do not say whose they
+ * are, and whoever reads the sheet reconstructs the context from the whole
+ * selector. By `CLAUDE.md`'s priority rule, that is a recurring, reader-facing
+ * inconsistency, not a cosmetic one.
  *
- * E há um ganho que não é de leitura, medido na passada: uma variante montada
- * em runtime a partir de palavra solta (`$progress_color = 'complete'`) é
- * INVISÍVEL para `CssClassEmitters` por construção — a varredura só registra
- * prefixo `ffc-`. Com prefixo, a variável passa a guardar um literal e a
- * varredura a acha. Foi assim que três regras mortas apareceram.
+ * And there is a gain that is not about reading, measured in the same pass: a
+ * variant assembled at runtime out of a bare word (`$progress_color =
+ * 'complete'`) is INVISIBLE to `CssClassEmitters` by construction — the scan
+ * only records an `ffc-` prefix. With the prefix the variable holds a literal
+ * and the scan finds it. That is how three dead rules surfaced.
  *
- * Sem dependência: lê o texto das folhas.
+ * No dependency: it reads the sheets as text.
  *
  * @package FreeFormCertificate\Tests\Unit
  */
@@ -50,58 +51,58 @@ use PHPUnit\Framework\TestCase;
 final class ClassNamingIdiomTest extends TestCase {
 
 	/**
-	 * Famílias inteiras que o WordPress (ou o CodeMirror) emite.
+	 * Whole families that WordPress (or CodeMirror) emits.
 	 *
-	 * Prefixo => razão. Estilizá-las é legítimo: são o markup que o core
-	 * entrega e que o plugin decora. Prefixá-las é impossível — quem emite
-	 * não é nosso.
+	 * Prefix => reason. Styling them is legitimate: they are the markup core
+	 * hands over and the plugin decorates. Prefixing them is impossible — we
+	 * are not the ones emitting them.
 	 */
 	private const VENDOR_PREFIXES = array(
-		'cm-'         => 'o CodeMirror emite; o tema `cm-s-ffc-dark` é nosso e já é ancorado',
-		'CodeMirror'  => 'idem — a raiz do editor',
-		'column-'     => 'coluna de list table do WordPress; o slug vem do core ou da nossa CPT',
-		'wp-'         => 'classe do core (`wp-list-table`, `wp-admin`, `wp-submenu`, …)',
-		'post-type-'  => 'classe de body do core; a nossa já carrega `ffc_` e é ancorada',
-		'nav-tab'     => 'abas do core (`nav-tab`, `nav-tab-active`, `nav-tab-wrapper`)',
-		'postbox'     => 'metabox do core (`postbox`, `postbox-header`)',
-		'tablenav'    => 'barra de navegação de list table do core',
-		'button'      => 'botão do core (`button`, `button-primary`, `button-secondary`)',
+		'cm-'         => 'CodeMirror emits it; the `cm-s-ffc-dark` theme is ours and is already anchored',
+		'CodeMirror'  => 'likewise — the editor root',
+		'column-'     => 'WordPress list-table column; the slug comes from core or from our CPT',
+		'wp-'         => 'core class (`wp-list-table`, `wp-admin`, `wp-submenu`, …)',
+		'post-type-'  => 'core body class; ours already carries `ffc_` and is anchored',
+		'nav-tab'     => 'core tabs (`nav-tab`, `nav-tab-active`, `nav-tab-wrapper`)',
+		'postbox'     => 'core metabox (`postbox`, `postbox-header`)',
+		'tablenav'    => 'core list-table navigation bar',
+		'button'      => 'core button (`button`, `button-primary`, `button-secondary`)',
 	);
 
 	/**
-	 * Nomes avulsos que o WordPress emite, com a razão de cada um.
+	 * Standalone names WordPress emits, each with its reason.
 	 *
-	 * Catraca nos dois sentidos: um nome novo aqui falha, e um que sumiu das
-	 * folhas também — a entrada morta sai para travar o ganho.
+	 * A ratchet both ways: a new name here fails, and one that vanished from
+	 * the sheets fails too — the dead entry leaves to lock the win in.
 	 */
 	private const VENDOR_CLASSES = array(
-		'alternate'        => 'zebra de linha da list table do core',
-		'card'             => 'cartão do admin do core (about.php, cartões de plugin)',
-		'current'          => 'item corrente de paginação / subsubsub do core',
-		'dashicons'        => 'fonte de ícone do core',
-		'description'      => 'texto de apoio de campo do core',
-		'disabled'         => 'estado de botão do core (`.button.disabled`), escrito pelo próprio core',
-		'displaying-num'   => 'contagem de itens da list table do core',
-		'error'            => 'aviso do core (`div.error`) — não confundir com estado nosso, que é `has-error`',
-		'form-table'       => 'tabela de formulário do admin do core',
-		'hndle'            => 'título de metabox do core',
-		'howto'            => 'texto de instrução do core',
-		'inside'           => 'corpo de metabox do core',
-		'large-text'       => 'modificador de largura de input do core',
-		'misc-pub-section' => 'seção da caixa de publicação do core',
-		'notice'           => 'aviso do admin do core',
-		'spinner'          => 'indicador de carregamento do core',
-		'striped'          => 'modificador de list table do core',
-		'subsubsub'        => 'filtros de topo de list table do core',
-		'tablenav-pages'   => 'paginação da list table do core',
-		'top'              => 'metade de cima da `tablenav` do core (o par é `bottom`)',
-		'updated'          => 'aviso do admin do core',
-		'widefat'          => 'modificador de tabela do core',
-		'wrap'             => 'invólucro de página do admin do core',
+		'alternate'        => 'core list-table row striping',
+		'card'             => 'core admin card (about.php, plugin cards)',
+		'current'          => 'core current pagination / subsubsub item',
+		'dashicons'        => 'core icon font',
+		'description'      => 'core field helper text',
+		'disabled'         => 'core button state (`.button.disabled`), written by core itself',
+		'displaying-num'   => 'core list-table item count',
+		'error'            => 'core admin notice (`div.error`) — not to be confused with a state of ours, which is `has-error`',
+		'form-table'       => 'core admin form table',
+		'hndle'            => 'core metabox title',
+		'howto'            => 'core instruction text',
+		'inside'           => 'core metabox body',
+		'large-text'       => 'core input width modifier',
+		'misc-pub-section' => 'core publish-box section',
+		'notice'           => 'core admin notice',
+		'spinner'          => 'core loading indicator',
+		'striped'          => 'core list-table modifier',
+		'subsubsub'        => 'core list-table top filters',
+		'tablenav-pages'   => 'core list-table pagination',
+		'top'              => 'the top half of core\'s `tablenav` (the pair is `bottom`)',
+		'updated'          => 'core admin notice',
+		'widefat'          => 'core table modifier',
+		'wrap'             => 'core admin page wrapper',
 	);
 
 	/**
-	 * Toda classe declarada nas folhas, com as folhas onde aparece.
+	 * Every class the sheets declare, with the sheets it appears in.
 	 *
 	 * @return array<string, array<int, string>>
 	 */
@@ -134,9 +135,9 @@ final class ClassNamingIdiomTest extends TestCase {
 	}
 
 	/**
-	 * A classe segue um dos dois idiomas, ou é de terceiro.
+	 * The class follows one of the two idioms, or belongs to a third party.
 	 *
-	 * @param string $class Nome da classe, sem o ponto.
+	 * @param string $class Class name, without the dot.
 	 */
 	private static function is_allowed( string $class ): bool {
 		if ( str_starts_with( $class, 'ffc-' ) || str_starts_with( $class, 'ffc_' ) ) {
@@ -158,7 +159,7 @@ final class ClassNamingIdiomTest extends TestCase {
 	}
 
 	/**
-	 * Nenhuma classe nossa fica sem prefixo e sem `is-`/`has-`.
+	 * No class of ours goes without a prefix and without `is-`/`has-`.
 	 */
 	public function test_no_class_uses_the_third_idiom(): void {
 		$offenders = array();
@@ -172,18 +173,18 @@ final class ClassNamingIdiomTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$offenders,
-			"Classe sem prefixo e sem `is-`/`has-`:\n  " . implode( "\n  ", $offenders )
-			. "\n\nDecida pela FUNÇÃO, não pela palavra:"
-			. "\n  estado que a interação liga e desliga  → `is-` / `has-`"
-			. "\n  variante que vem do dado, ou elemento  → `ffc-`"
-			. "\nSe quem emite for o WordPress, acrescente a VENDOR_CLASSES com a razão."
+			"Class with no prefix and no `is-`/`has-`:\n  " . implode( "\n  ", $offenders )
+			. "\n\nDecide by FUNCTION, not by the word:"
+			. "\n  state the interaction turns on and off  → `is-` / `has-`"
+			. "\n  variant the data dictates, or element   → `ffc-`"
+			. "\nIf WordPress is the one emitting it, add it to VENDOR_CLASSES with the reason."
 		);
 	}
 
 	/**
-	 * Uma entrada de terceiro que sumiu das folhas sai da lista.
+	 * A third-party entry that vanished from the sheets leaves the list.
 	 *
-	 * A direção que trava o ganho, como nas outras catracas.
+	 * The direction that locks the win in, as in the other ratchets.
 	 */
 	public function test_the_vendor_list_only_shrinks(): void {
 		$declared = self::declared();
@@ -198,18 +199,18 @@ final class ClassNamingIdiomTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$stale,
-			"Nenhuma folha declara mais estas — tire-as de VENDOR_CLASSES:\n  ." . implode( "\n  .", $stale )
+			"No sheet declares these any more — drop them from VENDOR_CLASSES:\n  ." . implode( "\n  .", $stale )
 		);
 	}
 
 	/**
-	 * O estado SMACSS nunca é declarado cru.
+	 * A SMACSS state is never declared bare.
 	 *
-	 * `.is-open` sozinha alcança qualquer elemento da tela, inclusive os do
-	 * tema. O `CssNamespaceAnchorTest` já recusaria o seletor por falta de
-	 * âncora; isto é a mesma regra dita do lado do idioma, para que a resposta
-	 * a "então posso usar `is-` em qualquer lugar?" esteja escrita onde a
-	 * pergunta nasce.
+	 * `.is-open` on its own reaches any element on the screen, the theme's
+	 * included. `CssNamespaceAnchorTest` would already refuse the selector for
+	 * want of an anchor; this is the same rule stated from the idiom's side, so
+	 * that the answer to "so can I use `is-` anywhere?" is written where the
+	 * question is born.
 	 */
 	public function test_state_classes_are_never_declared_bare(): void {
 		$bare = array();
@@ -231,30 +232,30 @@ final class ClassNamingIdiomTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$bare,
-			"Estado declarado cru — componha com a classe do componente:\n  " . implode( "\n  ", $bare )
+			"State declared bare — compound it with the component's class:\n  " . implode( "\n  ", $bare )
 		);
 	}
 
 	/**
-	 * A varredura não pode colapsar em silêncio.
+	 * The scan must not collapse in silence.
 	 *
-	 * Um mapa vazio satisfaz os três testes acima tão bem quanto um mapa
-	 * correto — a forma do #1071 / #1094.
+	 * An empty map satisfies the three tests above just as well as a correct
+	 * one — the #1071 / #1094 shape.
 	 */
 	public function test_the_scan_cannot_collapse_in_silence(): void {
 		$declared = self::declared();
 
-		$this->assertGreaterThan( 1000, count( $declared ), 'A leitura das folhas colapsou.' );
+		$this->assertGreaterThan( 1000, count( $declared ), 'Reading the sheets collapsed.' );
 
 		$states = array_filter(
 			array_keys( $declared ),
 			static fn ( string $c ): bool => str_starts_with( $c, 'is-' ) || str_starts_with( $c, 'has-' )
 		);
-		$this->assertGreaterThan( 10, count( $states ), 'O idioma de estado sumiu das folhas.' );
+		$this->assertGreaterThan( 10, count( $states ), 'The state idiom vanished from the sheets.' );
 
 		$this->assertFalse(
 			self::is_allowed( 'consent-given' ),
-			'A guarda aceita qualquer nome — foi exatamente `consent-given` que a #1170 converteu.'
+			'The guard accepts any name — `consent-given` is exactly what #1170 converted.'
 		);
 		$this->assertTrue( self::is_allowed( 'is-open' ) );
 		$this->assertTrue( self::is_allowed( 'ffc-detail-value' ) );
