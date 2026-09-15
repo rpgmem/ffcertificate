@@ -464,6 +464,33 @@ class AppointmentReader extends AbstractRepository {
 	/**
 	 * Get appointment statistics for calendar
 	 *
+	 * @deprecated 6.25.0 Sem chamador no produto; sera removido em 6.27.0 (#1245).
+	 *
+	 * POR QUE CICLO DE DEPRECIACAO, E NAO DELECAO DIRETA
+	 *
+	 * Uma varredura sobre toda a arvore nao acha chamador nenhum -- so os
+	 * testes o mantem verde. Mas "morto" aqui e conclusao de varredura
+	 * ESTATICA, e o CLAUDE.md §5 declara essa evidencia insuficiente para esta
+	 * forma: o ciclo existe justamente "para superficies cujos consumidores uma
+	 * varredura de codigo nao enxerga -- um metodo publico que uma integracao
+	 * externa pode chamar". `AppointmentRepository` e uma classe publica que
+	 * outro plugin no mesmo WordPress pode instanciar.
+	 *
+	 * Precedente direto: as chaves `success`/`fail` do
+	 * `get_audit_log_summary()` (#730), que tinham zero consumidores internos e
+	 * ainda assim sairam por ciclo anunciado, removidas na 2a release de
+	 * feature apos o aviso.
+	 *
+	 * QUANDO SAI
+	 *
+	 * O aviso vai na release que consumir este `[Unreleased]` -- 6.25.0 pelo
+	 * ritmo atual. A remocao e na SEGUNDA release de feature apos o aviso, o
+	 * que da 6.27.0. Se o bump real divergir, vale a REGRA e nao o numero:
+	 * duas releases de feature depois do aviso.
+	 *
+	 * Manter ate la custa ~35 linhas de produto e 8 testes, e **zero em
+	 * runtime** -- nao ha pressa.
+	 *
 	 * @param int         $calendar_id Calendar ID.
 	 * @param string|null $start_date Start date.
 	 * @param string|null $end_date End date.
