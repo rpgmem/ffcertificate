@@ -32,6 +32,15 @@ class PreflightStatsServiceTest extends TestCase {
 		Monkey\setUp();
 		class_exists( '\\FreeFormCertificate\\Admin\\PreflightStatsService' );
 		Functions\when( '__' )->returnArg();
+
+		// Stubados AQUI, e nao herdados de quem rodou antes: `get_form_stats()`
+		// passou a cachear em transiente (#1234), e o CLAUDE.md registra que uma
+		// funcao ensinada ao Patchwork por outro teste fica ensinada para o
+		// processo -- entao o ramo tem de ser ESCOLHIDO, nao herdado. O padrao e
+		// "cache vazio", que e o caminho que estes testes medem.
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+
 		if ( ! defined( 'DAY_IN_SECONDS' ) ) {
 			define( 'DAY_IN_SECONDS', 86400 );
 		}
@@ -40,6 +49,58 @@ class PreflightStatsServiceTest extends TestCase {
 	protected function tearDown(): void {
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * Um acerto de cache nao toca o log (#1234).
+	 *
+	 * E a asercao que sustenta a correcao: a leitura descachada puxa ate 5.000
+	 * linhas para a memoria e faz um `json_decode` por linha, a cada render da
+	 * barra lateral do editor de formulario. Se o transiente nao curto-circuitar,
+	 * o cache existe no codigo e nao no comportamento.
+	 *
+	 * `shouldNotReceive` e o que prende isso -- comparar o valor devolvido nao
+	 * bastaria, porque a leitura descachada devolveria os mesmos numeros.
+	 */
+	public function test_a_cache_hit_never_queries_the_activity_log(): void {
+		$cached = array(
+			'cookies'    => 3,
+			'gps_denied' => 2,
+			'gps_prompt' => 1,
+			'total'      => 6,
+		);
+		Functions\when( 'get_transient' )->justReturn( $cached );
+
+		$query = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLogQuery' );
+		$query->shouldNotReceive( 'get_activities' );
+
+		$this->assertSame( $cached, PreflightStatsService::get_form_stats( 7 ) );
+	}
+
+	/**
+	 * A chave leva o formulario E a janela em dias.
+	 *
+	 * Cachear so por formulario devolveria a contagem de 30 dias para quem
+	 * pediu 7 -- um numero errado servido com confianca, que e pior do que o
+	 * custo que o cache evita.
+	 */
+	public function test_the_cache_key_carries_both_form_and_window(): void {
+		$seen = array();
+		Functions\when( 'get_transient' )->alias(
+			function ( $key ) use ( &$seen ) {
+				$seen[] = (string) $key;
+				return false;
+			}
+		);
+
+		$this->stub_activity_log_rows( array() );
+
+		PreflightStatsService::get_form_stats( 7, 30 );
+		PreflightStatsService::get_form_stats( 7, 7 );
+
+		$this->assertCount( 2, $seen );
+		$this->assertNotSame( $seen[0], $seen[1], 'Duas janelas diferentes compartilharam chave — a de 7 dias serviria a contagem de 30.' );
+		$this->assertStringContainsString( '7', $seen[0] );
 	}
 
 	/**

@@ -41,6 +41,28 @@ class PreflightStatsService {
 	private const MAX_ROWS = 5000;
 
 	/**
+	 * Prefixo do transiente por formulario (#1234).
+	 *
+	 * A chave leva `form_id` E a janela em dias, porque as duas fazem parte da
+	 * pergunta: cachear so por formulario devolveria a contagem de 30 dias
+	 * para quem pediu 7.
+	 *
+	 * @var string
+	 */
+	private const STATS_CACHE_PREFIX = 'ffc_preflight_stats_';
+
+	/**
+	 * Vida do transiente acima -- 5 minutos, o mesmo que
+	 * `SubmissionReader::COUNT_CACHE_TTL`, e pelo mesmo motivo: e um contador
+	 * que o admin le numa tela, nao um valor que decide algo. A leitura custa
+	 * ate 5.000 linhas na memoria mais um `json_decode` por linha, entao
+	 * mesmo 5 minutos eliminam quase todo o trabalho repetido.
+	 *
+	 * @var int
+	 */
+	private const STATS_CACHE_TTL = 5 * MINUTE_IN_SECONDS;
+
+	/**
 	 * Get aggregated pre-flight bail counts for one form.
 	 *
 	 * @param int $form_id Form post ID to filter.
@@ -57,6 +79,19 @@ class PreflightStatsService {
 
 		if ( $form_id <= 0 ) {
 			return $counts;
+		}
+
+		$cache_key = self::STATS_CACHE_PREFIX . $form_id . '_' . max( 1, $days );
+
+		/**
+		 * Um transiente e `mixed` por construcao -- `is_array()` estreita o
+		 * recipiente, nunca os valores.
+		 *
+		 * @var array{cookies:int, gps_denied:int, gps_prompt:int, total:int}|false $cached
+		 */
+		$cached = \get_transient( $cache_key );
+		if ( is_array( $cached ) ) {
+			return $cached;
 		}
 
 		$date_from = gmdate( 'Y-m-d H:i:s', time() - max( 1, $days ) * DAY_IN_SECONDS );
@@ -87,6 +122,8 @@ class PreflightStatsService {
 				++$counts['total'];
 			}
 		}
+
+		\set_transient( $cache_key, $counts, self::STATS_CACHE_TTL );
 
 		return $counts;
 	}

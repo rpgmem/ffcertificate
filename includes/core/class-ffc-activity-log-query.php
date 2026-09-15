@@ -42,6 +42,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ActivityLogQuery {
 
 	/**
+	 * Transiente do vocabulario de acoes (#1234).
+	 *
+	 * @var string
+	 */
+	private const ACTIONS_CACHE_KEY = 'ffc_activity_log_distinct_actions';
+
+	/**
+	 * Vida do transiente acima.
+	 *
+	 * Uma HORA, e nao os 5 minutos que `countByStatus` usa, porque o que se
+	 * cacheia aqui muda de natureza diferente: os valores de `action` sao
+	 * definidos no CODIGO, nao nos dados. Um valor novo so aparece quando uma
+	 * feature nova passa a registra-lo -- isto e, num deploy --, entao a
+	 * janela de desatualizacao nao e "quanto tempo ate o numero mudar", e sim
+	 * "quanto tempo depois de um deploy ate o filtro oferecer a acao nova".
+	 *
+	 * @var int
+	 */
+	private const ACTIONS_CACHE_TTL = HOUR_IN_SECONDS;
+
+	/**
 	 * Get recent activities with filters
 	 *
 	 * @param array<string, mixed> $args Query arguments.
@@ -201,10 +222,30 @@ class ActivityLogQuery {
 	 * action` query that previously sat in the admin page (issue #331
 	 * "candidate history service" cleanup).
 	 *
+	 * CACHEADO EM TRANSIENTE (#1234). O chamador e o `<select>` de filtro da
+	 * tela de Log de Atividades, redesenhado a cada render, e esta e a tabela
+	 * que mais cresce no plugin. O `DISTINCT` usa o indice `KEY action`, entao
+	 * nao e varredura da TABELA -- mas ainda percorre o indice inteiro para
+	 * produzir algumas dezenas de valores.
+	 *
+	 * Sem invalidacao por escrita, de proposito: a tabela e append-only e o
+	 * conjunto muda por deploy, nao por uso. Ver {@see self::ACTIONS_CACHE_TTL}.
+	 *
 	 * @since 6.6.2
 	 * @return list<string>
 	 */
 	public static function distinct_actions(): array {
+		/**
+		 * Um transiente e `mixed` por construcao -- `is_array()` estreita o
+		 * recipiente, nunca os valores.
+		 *
+		 * @var list<string>|false $cached
+		 */
+		$cached = \get_transient( self::ACTIONS_CACHE_KEY );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'ffc_activity_log';
 
@@ -214,12 +255,20 @@ class ActivityLogQuery {
 		if ( ! is_array( $actions ) ) {
 			return array();
 		}
-		return array_values(
+
+		$list = array_values(
 			array_map(
 				static fn( $action ): string => is_scalar( $action ) ? (string) $action : '',
 				$actions
 			)
 		);
+
+		// Uma consulta que falhou devolve algo que nao e array e sai acima sem
+		// gravar; chegar aqui com lista VAZIA e uma resposta legitima (log
+		// ainda sem linhas) e vale cachear como qualquer outra.
+		\set_transient( self::ACTIONS_CACHE_KEY, $list, self::ACTIONS_CACHE_TTL );
+
+		return $list;
 	}
 
 	/**
