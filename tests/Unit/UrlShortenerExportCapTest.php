@@ -26,6 +26,16 @@ class UrlShortenerExportCapTest extends TestCase {
 		Monkey\setUp();
 		class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' );
 		class_exists( '\FreeFormCertificate\UserDashboard\CapabilityMigrator' );
+
+		// `CapabilityMigrator::users_with_ffc_grants()` monta a chave da meta de
+		// capabilities a partir do prefixo do blog (#1254). Sem este duplo, o
+		// teste herda o `$wpdb` que OUTRO ficheiro deixou no global -- e foi
+		// assim que o CI reprovou com oito erros que nenhum `--filter` sobre os
+		// ficheiros tocados mostrava.
+		global $wpdb;
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'get_blog_prefix' )->andReturn( 'wp_' );
 	}
 
 	protected function tearDown(): void {

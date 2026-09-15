@@ -12,9 +12,9 @@
 
 .ffc-cap-panel {
 	width: 100%;
-	margin: 8px 0 4px;
+	margin: var(--ffc-spacing-sm) 0 var(--ffc-spacing-2xs);
 	border: 1px solid var(--ffc-border-light);
-	border-radius: 6px;
+	border-radius: var(--ffc-radius-md);
 	background: var(--ffc-bg-card);
 	overflow: hidden;
 }
@@ -31,13 +31,13 @@
 .ffc-cap-context-item {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
-	padding: 12px 16px;
+	gap: var(--ffc-spacing-2xs);
+	padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
 	background: var(--ffc-bg-alt);
 }
 
 .ffc-cap-context-label {
-	font-size: 11px;
+	font-size: var(--ffc-font-size-2xs);
 	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: 0.4px;
@@ -47,20 +47,20 @@
 .ffc-cap-context-val {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px;
+	gap: var(--ffc-spacing-xs);
 	align-items: center;
 }
 
 .ffc-cap-context-hint {
-	font-size: 12px;
+	font-size: var(--ffc-font-size-xs);
 	color: var(--ffc-text-muted);
 }
 
 .ffc-cap-chip {
 	display: inline-block;
-	padding: 2px 10px;
+	padding: var(--ffc-spacing-3xs) var(--ffc-spacing-md);
 	border-radius: 11px;
-	font-size: 12px;
+	font-size: var(--ffc-font-size-xs);
 	background: var(--ffc-bg-alt);
 	border: 1px solid var(--ffc-border);
 	color: var(--ffc-text);
@@ -79,10 +79,10 @@
 .ffc-cap-audience-list {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-	gap: 2px 14px;
+	gap: var(--ffc-spacing-3xs) var(--ffc-spacing-lg);
 	max-height: 180px;
 	overflow-y: auto;
-	padding: 2px 0;
+	padding: var(--ffc-spacing-3xs) 0;
 }
 
 .ffc-cap-aud {
@@ -90,7 +90,7 @@
 	align-items: center;
 	gap: 7px;
 	padding: 3px 0;
-	font-size: 13px;
+	font-size: var(--ffc-font-size-sm);
 	cursor: pointer;
 }
 
@@ -101,7 +101,7 @@
 .ffc-cap-aud-dot {
 	width: 9px;
 	height: 9px;
-	border-radius: 50%;
+	border-radius: var(--ffc-radius-full);
 	flex: 0 0 auto;
 	background: var(--ffc-cap-chip-color, var(--ffc-border));
 }
@@ -116,10 +116,10 @@
 .ffc-cap-toolbar {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 8px;
+	gap: var(--ffc-spacing-sm);
 	align-items: center;
 	justify-content: space-between;
-	padding: 12px 16px;
+	padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
 	border-bottom: 1px solid var(--ffc-border-light);
 }
 
@@ -127,12 +127,12 @@
 	flex: 1 1 220px;
 	min-width: 180px;
 	max-width: 360px;
-	padding: 6px 10px;
+	padding: var(--ffc-spacing-xs) var(--ffc-spacing-md);
 }
 
 .ffc-cap-presets {
 	display: inline-flex;
-	gap: 6px;
+	gap: var(--ffc-spacing-xs);
 }
 
 /* ---- group cards ----------------------------------------------------- */
@@ -147,9 +147,9 @@
 .ffc-cap-group-h {
 	display: flex;
 	align-items: center;
-	gap: 10px;
+	gap: var(--ffc-spacing-md);
 	width: 100%;
-	padding: 11px 16px;
+	padding: 11px var(--ffc-spacing-xl);
 	background: var(--ffc-bg-alt);
 	border: 0;
 	border-bottom: 1px solid var(--ffc-bg-alt);
@@ -178,11 +178,11 @@
 
 .ffc-cap-gtitle {
 	font-weight: 600;
-	font-size: 13.5px;
+	font-size: var(--ffc-font-size-sm);
 }
 
 .ffc-cap-badge-admin {
-	font-size: 10px;
+	font-size: var(--ffc-font-size-2xs);
 	font-weight: 700;
 	text-transform: uppercase;
 	letter-spacing: 0.4px;
@@ -195,10 +195,10 @@
 
 /* Section divider between the self-service and administration tiers. */
 .ffc-cap-section {
-	margin: 18px 0 8px;
-	padding-bottom: 4px;
+	margin: var(--ffc-spacing-xl) 0 var(--ffc-spacing-sm);
+	padding-bottom: var(--ffc-spacing-2xs);
 	border-bottom: 1px solid var(--ffc-border-light);
-	font-size: 11px;
+	font-size: var(--ffc-font-size-2xs);
 	font-weight: 700;
 	text-transform: uppercase;
 	letter-spacing: 0.6px;
@@ -213,10 +213,10 @@
    obvious from the section (REST API, frontend booking-flow bypass). */
 .ffc-cap-badge-surface {
 	display: inline-block;
-	margin-left: 6px;
-	padding: 1px 6px;
+	margin-left: var(--ffc-spacing-xs);
+	padding: 1px var(--ffc-spacing-xs);
 	border-radius: 9px;
-	font-size: 9.5px;
+	font-size: var(--ffc-font-size-2xs);
 	font-weight: 700;
 	text-transform: uppercase;
 	letter-spacing: 0.3px;
@@ -244,7 +244,7 @@
 
 .ffc-cap-gmeta {
 	margin-left: auto;
-	font-size: 12px;
+	font-size: var(--ffc-font-size-xs);
 	color: var(--ffc-text-muted);
 }
 
@@ -256,9 +256,9 @@
 .ffc-cap-row {
 	display: grid;
 	grid-template-columns: 48px 1fr auto;
-	gap: 12px;
+	gap: var(--ffc-spacing-lg);
 	align-items: start;
-	padding: 11px 16px;
+	padding: 11px var(--ffc-spacing-xl);
 	border-top: 1px solid var(--ffc-border-light);
 }
 
@@ -281,20 +281,20 @@
 
 .ffc-cap-row-desc {
 	display: block;
-	margin-top: 2px;
-	font-size: 12.5px;
+	margin-top: var(--ffc-spacing-3xs);
+	font-size: var(--ffc-font-size-xs);
 	color: var(--ffc-text-muted);
 }
 
 .ffc-cap-slug {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
-	margin-top: 6px;
+	gap: var(--ffc-spacing-xs);
+	margin-top: var(--ffc-spacing-xs);
 	padding: 3px 7px;
-	border-radius: 4px;
+	border-radius: var(--ffc-radius-sm);
 	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-	font-size: 11.5px;
+	font-size: var(--ffc-font-size-xs);
 	color: var(--ffc-text-secondary);
 	background: var(--ffc-bg-alt);
 	border: 1px solid var(--ffc-border);
@@ -305,7 +305,7 @@
 	background: none;
 	padding: 0;
 	cursor: pointer;
-	font-size: 12px;
+	font-size: var(--ffc-font-size-xs);
 	line-height: 1;
 	color: var(--ffc-text-muted);
 }
@@ -318,9 +318,9 @@
 .ffc-cap-origin {
 	align-self: center;
 	white-space: nowrap;
-	font-size: 10.5px;
+	font-size: var(--ffc-font-size-2xs);
 	font-weight: 600;
-	padding: 2px 9px;
+	padding: var(--ffc-spacing-3xs) 9px;
 	border-radius: 11px;
 }
 
@@ -346,15 +346,15 @@
 .ffc-cap-role-chips {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 8px;
-	margin: 2px 0 6px;
+	gap: var(--ffc-spacing-sm);
+	margin: var(--ffc-spacing-3xs) 0 var(--ffc-spacing-xs);
 }
 
 .ffc-cap-role {
 	display: inline-flex;
 	align-items: center;
-	gap: 8px;
-	padding: 5px 12px;
+	gap: var(--ffc-spacing-sm);
+	padding: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
 	border-radius: 20px;
 	border: 1px solid var(--ffc-border);
 	background: var(--ffc-bg-card);
@@ -378,7 +378,7 @@
 .ffc-cap-role-mark {
 	width: 16px;
 	height: 16px;
-	border-radius: 50%;
+	border-radius: var(--ffc-radius-full);
 	border: 1.5px solid var(--ffc-border);
 	display: inline-flex;
 	align-items: center;
@@ -393,17 +393,17 @@
 .ffc-cap-role.is-on .ffc-cap-role-mark::after {
 	content: "✓";
 	color: var(--ffc-bg-card);
-	font-size: 11px;
+	font-size: var(--ffc-font-size-2xs);
 	line-height: 1;
 }
 
 .ffc-cap-role-nm {
 	font-weight: 600;
-	font-size: 13px;
+	font-size: var(--ffc-font-size-sm);
 }
 
 .ffc-cap-role-ct {
-	font-size: 11px;
+	font-size: var(--ffc-font-size-2xs);
 	color: var(--ffc-text-muted);
 }
 
@@ -418,8 +418,8 @@
 
 .ffc-cap-role-other {
 	display: block;
-	margin-top: 4px;
-	font-size: 12px;
+	margin-top: var(--ffc-spacing-2xs);
+	font-size: var(--ffc-font-size-xs);
 	color: var(--ffc-text-muted);
 }
 
@@ -446,8 +446,8 @@
 
 .ffc-cap-role-tag {
 	display: none;
-	margin-left: 8px;
-	font-size: 10.5px;
+	margin-left: var(--ffc-spacing-sm);
+	font-size: var(--ffc-font-size-2xs);
 	font-weight: 600;
 	color: var(--ffc-warning-text);
 	background: var(--ffc-warning-bg);
@@ -463,7 +463,7 @@
 
 /* ---- role → capability editor (Settings → User Access) --------------- */
 .ffc-role-editor-sep {
-	margin: 28px 0 12px;
+	margin: 28px 0 var(--ffc-spacing-lg);
 }
 
 .ffc-role-impact {
@@ -475,7 +475,7 @@
 }
 
 .ffc-role-pick select {
-	margin-left: 4px;
+	margin-left: var(--ffc-spacing-2xs);
 	max-width: 320px;
 }
 
@@ -483,7 +483,7 @@
 	align-self: center;
 	min-width: 48px;
 	text-align: right;
-	font-size: 11.5px;
+	font-size: var(--ffc-font-size-xs);
 	font-weight: 600;
 	color: var(--ffc-success-text);
 }
@@ -560,23 +560,23 @@
    Groups the wp-admin block list so it reads as sections instead of one
    flat wrap of ~30 checkboxes. */
 .ffc-blocked-roles__group {
-	margin: 0 0 14px;
+	margin: 0 0 var(--ffc-spacing-lg);
 }
 .ffc-blocked-roles__legend {
-	margin: 0 0 6px;
+	margin: 0 0 var(--ffc-spacing-xs);
 	font-weight: 600;
 }
 .ffc-blocked-roles__grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-	gap: 4px 20px;
+	gap: var(--ffc-spacing-2xs) var(--ffc-spacing-2xl);
 }
 .ffc-blocked-roles__grid .ffc-checkbox-label {
 	display: flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--ffc-spacing-xs);
 	margin: 0;
-	padding: 2px 0;
+	padding: var(--ffc-spacing-3xs) 0;
 }
 .ffc-blocked-roles__group--recommended .ffc-blocked-roles__legend {
 	color: var(--ffc-success-text);
@@ -584,12 +584,12 @@
 .ffc-blocked-roles__group--recommended em {
 	color: var(--ffc-success-text);
 	font-style: normal;
-	font-size: 12px;
+	font-size: var(--ffc-font-size-xs);
 }
 .ffc-blocked-roles__group--admin {
-	padding: 8px 12px;
+	padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
 	border: 1px solid var(--ffc-border-light);
-	border-radius: 6px;
+	border-radius: var(--ffc-radius-md);
 	background: var(--ffc-bg-alt);
 }
 .ffc-blocked-roles__group--admin > summary {
@@ -598,5 +598,22 @@
 	list-style: revert;
 }
 .ffc-blocked-roles__hint {
-	margin: 6px 0 10px;
+	margin: var(--ffc-spacing-xs) 0 var(--ffc-spacing-md);
+}
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
+   O mecanismo está explicado em ffc-common.css (#1165).
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Selos de estado: o texto continua dizendo o estado; a borda
+       devolve a eles a forma de selo. */
+    .ffc-cap-badge-surface--admin,
+    .ffc-cap-badge-surface--api,
+    .ffc-cap-badge-surface--frontend,
+    .ffc-cap-chip--muted {
+        border: 1px solid CanvasText;
+    }
 }

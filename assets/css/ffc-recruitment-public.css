@@ -16,41 +16,62 @@
  * @since 6.1.0
  */
 
+/* Selo de status do edital, na superfície pública.
+ *
+ * ⚠ Só `text-transform` e `white-space`: o resto da forma
+ * (display/padding/radius/font-size/weight) vem da `.ffc-pill` da
+ * `ffc-common.css`, que `Core\BadgeHtml::render()` compõe com estas classes.
+ * Até o #1193 vinha de um literal inline que o helper escrevia em cada
+ * `<span>`; o que continua inline é só o par de cor, porque o fundo é uma cor
+ * que o operador escolhe e o texto é calculado por `ContrastColor::on()`.
+ *
+ * Estas duas estão aqui porque eram as ÚNICAS que o inline não define, e
+ * até o #1183 elas chegavam do `.ffc-status-badge` genérico da
+ * `ffc-common.css` -- que o selo casava por dividir o nome com meio mundo.
+ * Com o nome próprio isso deixou de acontecer e o selo público passou a
+ * sair em caixa baixa e podendo quebrar linha. Declarar aqui restaura o
+ * render e o torna intencional, que é a mesma decisão do #1162.
+ */
+.ffc-recruitment-status-badge {
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
 .ffc-recruitment-queue {
     background: var(--ffc-bg);
     color: var(--ffc-text);
     border-radius: var(--ffc-radius-lg);
-    padding: 24px;
+    padding: var(--ffc-spacing-3xl);
     box-shadow: var(--ffc-shadow-sm);
-    margin: 24px 0;
-    font-size: 14px;
+    margin: var(--ffc-spacing-3xl) 0;
+    font-size: var(--ffc-font-size-base);
     line-height: 1.5;
 }
 
 .ffc-recruitment-queue h2,
 .ffc-recruitment-queue h3 {
     color: var(--ffc-text);
-    margin: 0 0 12px;
+    margin: 0 0 var(--ffc-spacing-lg);
 }
 
 .ffc-recruitment-queue .ffc-recruitment-header {
     border-bottom: 1px solid var(--ffc-border-light);
-    margin-bottom: 16px;
-    padding-bottom: 12px;
+    margin-bottom: var(--ffc-spacing-xl);
+    padding-bottom: var(--ffc-spacing-lg);
     text-align: center;
 }
 
 .ffc-recruitment-queue .ffc-recruitment-notice-title {
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
     font-weight: 600;
-    margin: 8px 0 0;
+    margin: var(--ffc-spacing-sm) 0 0;
 }
 
 .ffc-recruitment-queue .ffc-recruitment-banner {
     display: block;
-    padding: 6px 12px;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
     border-radius: var(--ffc-radius-md);
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
     font-weight: 600;
     text-align: center;
 }
@@ -73,28 +94,28 @@
 .ffc-recruitment-queue .ffc-recruitment-filters {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: var(--ffc-spacing-lg);
     align-items: center;
-    margin: 12px 0;
+    margin: var(--ffc-spacing-lg) 0;
 }
 
 .ffc-recruitment-queue .ffc-recruitment-filters label {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ffc-spacing-xs);
 }
 
 .ffc-recruitment-queue .ffc-recruitment-search-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
+    gap: var(--ffc-spacing-xs);
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
     border: 1px solid var(--ffc-primary);
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     cursor: pointer;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     font-weight: 500;
     line-height: 1.4;
     transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
@@ -113,33 +134,33 @@
 }
 
 .ffc-recruitment-queue .ffc-recruitment-section {
-    margin-top: 24px;
+    margin-top: var(--ffc-spacing-3xl);
 }
 
 .ffc-recruitment-queue .ffc-recruitment-section h3 {
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.3px;
-    margin-bottom: 8px;
+    margin-bottom: var(--ffc-spacing-sm);
 }
 
 .ffc-recruitment-queue .ffc-recruitment-section-heading {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--ffc-spacing-lg);
     flex-wrap: wrap;
 }
 
 .ffc-recruitment-queue .ffc-recruitment-section-count {
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     font-weight: 600;
     color: var(--ffc-text-secondary);
     background: var(--ffc-bg-alt);
     border-radius: 999px;
-    padding: 2px 10px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-md);
     text-transform: none;
     letter-spacing: 0;
 }
@@ -155,10 +176,10 @@
 
 .ffc-recruitment-queue .ffc-recruitment-table th {
     background: var(--ffc-bg-alt);
-    padding: 10px 12px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
     text-align: left;
     font-weight: 600;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     color: var(--ffc-text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -166,10 +187,10 @@
 }
 
 .ffc-recruitment-queue .ffc-recruitment-table td {
-    padding: 10px 12px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
     border-bottom: 1px solid var(--ffc-border-light);
     vertical-align: middle;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text);
 }
 
@@ -182,20 +203,20 @@
 }
 
 .ffc-recruitment-queue .ffc-recruitment-pagination {
-    margin-top: 12px;
+    margin-top: var(--ffc-spacing-lg);
     display: flex;
-    gap: 6px;
+    gap: var(--ffc-spacing-xs);
     flex-wrap: wrap;
 }
 
 .ffc-recruitment-queue .ffc-recruitment-pagination a,
 .ffc-recruitment-queue .ffc-recruitment-pagination .current {
     display: inline-block;
-    padding: 6px 10px;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-md);
     border: 1px solid var(--ffc-border-light);
     border-radius: var(--ffc-radius-md);
     text-decoration: none;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text);
     background: var(--ffc-bg);
     min-width: 32px;
@@ -216,23 +237,23 @@
 }
 
 .ffc-recruitment-queue form {
-    margin-bottom: 16px;
+    margin-bottom: var(--ffc-spacing-xl);
 }
 
 .ffc-recruitment-queue form select {
     color: var(--ffc-text);
-    padding: 6px 10px;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-md);
     border-radius: var(--ffc-radius-md);
     border: 1px solid var(--ffc-border-light);
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     background: var(--ffc-bg);
 }
 
 .ffc-recruitment-queue .ffc-recruitment-message {
-    padding: 12px 16px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     border-radius: var(--ffc-radius-md);
-    font-size: 14px;
-    margin: 16px 0;
+    font-size: var(--ffc-font-size-base);
+    margin: var(--ffc-spacing-xl) 0;
 }
 
 .ffc-recruitment-queue .ffc-recruitment-message-info {
@@ -248,4 +269,23 @@
 .ffc-recruitment-queue .ffc-recruitment-message-error {
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
+}
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
+   O mecanismo está explicado em ffc-common.css (#1165).
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* As quatro famílias de selo desta tela. Faltavam aqui desde o #1165 --
+       o #1191 registrou a lacuna nas variantes de classificação e não a
+       fechou. Casam a FAMÍLIA, não os nomes de status, para que uma variante
+       nova nasça coberta (#1193). */
+    .ffc-recruitment-adjutancy-badge,
+    .ffc-recruitment-preview-status-badge,
+    .ffc-recruitment-status-badge,
+    .ffc-recruitment-subscription-badge {
+        border: 1px solid CanvasText;
+    }
 }

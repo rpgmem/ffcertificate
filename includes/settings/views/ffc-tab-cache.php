@@ -251,23 +251,23 @@ if ( $ffcertificate_cf_behind ) :
 							<table>
 								<tr class="alternate">
 									<td><strong><?php esc_html_e( 'Backend:', 'ffcertificate' ); ?></strong></td>
-									<td class="stat-value"><?php echo esc_html( $ffcertificate_stats['backend'] ); ?></td>
+									<td class="ffc-stat-value"><?php echo esc_html( $ffcertificate_stats['backend'] ); ?></td>
 								</tr>
 								<tr>
 									<td><strong><?php esc_html_e( 'Group:', 'ffcertificate' ); ?></strong></td>
-									<td class="stat-value"><?php echo esc_html( $ffcertificate_stats['group'] ); ?></td>
+									<td class="ffc-stat-value"><?php echo esc_html( $ffcertificate_stats['group'] ); ?></td>
 								</tr>
 								<tr class="alternate">
 									<td><strong><?php esc_html_e( 'Expiration:', 'ffcertificate' ); ?></strong></td>
-									<td class="stat-value"><?php echo esc_html( $ffcertificate_stats['expiration'] ); ?></td>
+									<td class="ffc-stat-value"><?php echo esc_html( $ffcertificate_stats['expiration'] ); ?></td>
 								</tr>
 								<tr>
 									<td><strong><?php esc_html_e( 'Published Forms:', 'ffcertificate' ); ?></strong></td>
-									<td class="stat-value info"><?php echo esc_html( $ffcertificate_total_forms ); ?></td>
+									<td class="ffc-stat-value ffc-stat-info"><?php echo esc_html( $ffcertificate_total_forms ); ?></td>
 								</tr>
 							</table>
 							<?php if ( ! wp_using_ext_object_cache() ) : ?>
-								<p class="ffc-text-warning ffc-mt-20">
+								<p class="ffc-text-warning ffc-mt-2xl">
 									<span class="ffc-icon-bulb"></span><?php esc_html_e( 'Tip: Install Redis or Memcached for better performance.', 'ffcertificate' ); ?>
 								</p>
 							<?php endif; ?>
@@ -295,7 +295,10 @@ if ( $ffcertificate_cf_behind ) :
 <div class="card">
 	<h2 class="ffc-icon-phone"><?php esc_html_e( 'QR Code Cache', 'ffcertificate' ); ?></h2>
 	<p class="description">
-		<?php esc_html_e( 'Store generated QR Codes in database to avoid regenerating them on each request.', 'ffcertificate' ); ?>
+		<?php esc_html_e( 'Store generated certificate QR Codes in database to avoid regenerating them on each request.', 'ffcertificate' ); ?>
+	</p>
+	<p class="description">
+		<?php esc_html_e( 'This card governs the certificate QR Code only. Short URLs cache their own QR Code separately, with no setting and no manual clearing — it refreshes itself when needed.', 'ffcertificate' ); ?>
 	</p>
 
 		<table class="form-table" role="presentation">
@@ -347,15 +350,15 @@ if ( $ffcertificate_cf_behind ) :
 								</tr>
 								<tr>
 									<td><strong><?php esc_html_e( 'Total Submissions:', 'ffcertificate' ); ?></strong></td>
-									<td class="stat-value"><?php echo esc_html( number_format_i18n( $ffcertificate_qr_stats['total_submissions'] ) ); ?></td>
+									<td class="ffc-stat-value"><?php echo esc_html( number_format_i18n( $ffcertificate_qr_stats['total_submissions'] ) ); ?></td>
 								</tr>
 								<tr class="alternate">
 									<td><strong><?php esc_html_e( 'Cached QR Codes:', 'ffcertificate' ); ?></strong></td>
-									<td class="stat-value info"><?php echo esc_html( number_format_i18n( $ffcertificate_qr_stats['cached_qr_codes'] ) ); ?></td>
+									<td class="ffc-stat-value ffc-stat-info"><?php echo esc_html( number_format_i18n( $ffcertificate_qr_stats['cached_qr_codes'] ) ); ?></td>
 								</tr>
 								<tr>
 									<td><strong><?php esc_html_e( 'Estimated Cache Size:', 'ffcertificate' ); ?></strong></td>
-									<td class="stat-value"><?php echo esc_html( $ffcertificate_qr_stats['cache_size'] ); ?></td>
+									<td class="ffc-stat-value"><?php echo esc_html( $ffcertificate_qr_stats['cache_size'] ); ?></td>
 								</tr>
 							</table>
 						</div>
@@ -384,7 +387,7 @@ if ( $ffcertificate_cf_behind ) :
 							onclick="return confirm('<?php echo esc_js( __( 'Clear all cached QR Codes?\n\nThey will be regenerated automatically when needed.', 'ffcertificate' ) ); ?>');">
 							<span class="ffc-icon-delete"></span><?php esc_html_e( 'Clear All QR Code Cache', 'ffcertificate' ); ?>
 						</a>
-						<p class="description ffc-mt-10">
+						<p class="description ffc-mt-md">
 							<?php esc_html_e( 'QR Codes will be regenerated automatically when needed. This action is safe and reversible.', 'ffcertificate' ); ?>
 						</p>
 					</td>

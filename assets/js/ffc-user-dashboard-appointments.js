@@ -119,7 +119,7 @@
                 alert(ffcDashboard.strings.cancelSuccess);
                 var panel = FFCDashboard.panels.appointments;
                 panel.state = null;
-                $('#tab-appointments').html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
+                $('#ffc-tabpanel-appointments').html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
                 panel.load();
             })
             .catch(function (err) {
@@ -155,7 +155,7 @@
         },
 
         load: function () {
-            var $container = $('#tab-appointments');
+            var $container = $('#ffc-tabpanel-appointments');
             if ($container.length === 0) return;
 
             if (typeof ffcDashboard.canViewAppointments !== 'undefined' && !ffcDashboard.canViewAppointments) {
@@ -182,7 +182,7 @@
         },
 
         render: function (appointments, page) {
-            var $container = $('#tab-appointments');
+            var $container = $('#ffc-tabpanel-appointments');
             page = page || 1;
             var pageSize = helpers.getPageSize();
 
@@ -242,7 +242,7 @@
                     else { sectionLabel = ffcDashboard.strings.cancelled || 'Cancelled'; isPastSection = true; }
 
                     html += '<h3' + (section !== 'upcoming' ? ' style="margin-top: 30px;"' : '') + '>' + sectionLabel + '</h3>';
-                    html += '<table class="ffc-appointments-table' + (isPastSection ? ' past-appointments' : '') + '">';
+                    html += '<table class="ffc-appointments-table' + (isPastSection ? ' ffc-table-past' : '') + '">';
                     html += '<thead><tr>';
                     html += '<th>' + ffcDashboard.strings.calendar + '</th>';
                     html += '<th>' + ffcDashboard.strings.date + '</th>';
@@ -253,14 +253,14 @@
                 }
 
                 var rowClass = '';
-                if (apt.status === 'cancelled') rowClass = 'cancelled-row';
-                else if (section === 'past') rowClass = 'past-row';
+                if (apt.status === 'cancelled') rowClass = 'ffc-row-cancelled';
+                else if (section === 'past') rowClass = 'ffc-row-past';
 
                 html += '<tr' + (rowClass ? ' class="' + rowClass + '"' : '') + '>';
                 html += '<td>' + helpers.esc(apt.calendar_title) + '</td>';
                 html += '<td>' + apt.appointment_date + '</td>';
                 html += '<td>' + apt.start_time + '</td>';
-                html += '<td><span class="appointment-status status-' + apt.status + '">' + apt.status_label + '</span></td>';
+                html += '<td><span class="ffc-dashboard-status ffc-dashboard-status-' + apt.status + '">' + apt.status_label + '</span></td>';
                 html += '<td>';
 
                 if (apt.receipt_url) {

@@ -31,25 +31,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <div class="ffc-certificate-preview">
 	<div class="ffc-preview-header">
-		<span class="ffc-status-badge success ffc-icon-success"><?php esc_html_e( 'Valid Certificate', 'ffcertificate' ); ?></span>
+		<span class="ffc-status-badge ffc-status-badge-success ffc-icon-success"><?php esc_html_e( 'Valid Certificate', 'ffcertificate' ); ?></span>
 	</div>
 
 	<div class="ffc-preview-body">
 		<h3><?php esc_html_e( 'Certificate Details', 'ffcertificate' ); ?></h3>
 
 		<div class="ffc-detail-row">
-			<span class="label"><?php esc_html_e( 'Authentication Code:', 'ffcertificate' ); ?></span>
-			<span class="value code"><?php echo esc_html( $display_code ); ?></span>
+			<span class="ffc-detail-label"><?php esc_html_e( 'Authentication Code:', 'ffcertificate' ); ?></span>
+			<span class="ffc-detail-value ffc-detail-value-code"><?php echo esc_html( $display_code ); ?></span>
 		</div>
 
 		<div class="ffc-detail-row">
-			<span class="label"><?php esc_html_e( 'Event:', 'ffcertificate' ); ?></span>
-			<span class="value"><?php echo esc_html( $form_title ); ?></span>
+			<span class="ffc-detail-label"><?php esc_html_e( 'Event:', 'ffcertificate' ); ?></span>
+			<span class="ffc-detail-value"><?php echo esc_html( $form_title ); ?></span>
 		</div>
 
 		<div class="ffc-detail-row">
-			<span class="label"><?php esc_html_e( 'Issued on:', 'ffcertificate' ); ?></span>
-			<span class="value"><?php echo esc_html( $date_generated ); ?></span>
+			<span class="ffc-detail-label"><?php esc_html_e( 'Issued on:', 'ffcertificate' ); ?></span>
+			<span class="ffc-detail-value"><?php echo esc_html( $date_generated ); ?></span>
 		</div>
 
 		<h4><?php esc_html_e( 'Participant Data:', 'ffcertificate' ); ?></h4>
@@ -67,8 +67,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 				$ffcertificate_display = call_user_func( $format_field_value_callback, $ffcertificate_field, $ffcertificate_value );
 				?>
 				<div class="ffc-detail-row">
-					<span class="label"><?php echo esc_html( $ffcertificate_label ); ?>:</span>
-					<span class="value"><?php echo esc_html( $ffcertificate_display ); ?></span>
+					<span class="ffc-detail-label"><?php echo esc_html( $ffcertificate_label ); ?>:</span>
+					<span class="ffc-detail-value"><?php echo esc_html( $ffcertificate_display ); ?></span>
 				</div>
 				<?php
 			}
@@ -84,8 +84,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 				$ffcertificate_display = call_user_func( $format_field_value_callback, $ffcertificate_key, $ffcertificate_value );
 				?>
 				<div class="ffc-detail-row">
-					<span class="label"><?php echo esc_html( $ffcertificate_label ); ?>:</span>
-					<span class="value"><?php echo esc_html( $ffcertificate_display ); ?></span>
+					<span class="ffc-detail-label"><?php echo esc_html( $ffcertificate_label ); ?>:</span>
+					<span class="ffc-detail-value"><?php echo esc_html( $ffcertificate_display ); ?></span>
 				</div>
 				<?php
 			}
@@ -104,23 +104,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<?php esc_html_e( 'This certificate was issued with a schedule different from the form\'s default. The adjustment was recorded by the on-site operator at the time of submission.', 'ffcertificate' ); ?>
 				</p>
 				<div class="ffc-detail-row">
-					<span class="label"><?php esc_html_e( 'Original schedule:', 'ffcertificate' ); ?></span>
-					<span class="value"><?php echo esc_html( $schedule_exception_block['before_range'] ); ?></span>
+					<span class="ffc-detail-label"><?php esc_html_e( 'Original schedule:', 'ffcertificate' ); ?></span>
+					<span class="ffc-detail-value"><?php echo esc_html( $schedule_exception_block['before_range'] ); ?></span>
 				</div>
 				<div class="ffc-detail-row">
-					<span class="label"><?php esc_html_e( 'Recorded schedule:', 'ffcertificate' ); ?></span>
-					<span class="value"><?php echo esc_html( $schedule_exception_block['after_range'] ); ?></span>
+					<span class="ffc-detail-label"><?php esc_html_e( 'Recorded schedule:', 'ffcertificate' ); ?></span>
+					<span class="ffc-detail-value"><?php echo esc_html( $schedule_exception_block['after_range'] ); ?></span>
 				</div>
 				<?php if ( '' !== $schedule_exception_block['operator'] ) : ?>
 					<div class="ffc-detail-row">
-						<span class="label"><?php esc_html_e( 'Adjusted by operator:', 'ffcertificate' ); ?></span>
-						<span class="value"><?php echo esc_html( $schedule_exception_block['operator'] ); ?></span>
+						<span class="ffc-detail-label"><?php esc_html_e( 'Adjusted by operator:', 'ffcertificate' ); ?></span>
+						<span class="ffc-detail-value"><?php echo esc_html( $schedule_exception_block['operator'] ); ?></span>
 					</div>
 				<?php endif; ?>
 				<?php if ( '' !== $schedule_exception_block['ts_label'] ) : ?>
 					<div class="ffc-detail-row">
-						<span class="label"><?php esc_html_e( 'Adjusted on:', 'ffcertificate' ); ?></span>
-						<span class="value"><?php echo esc_html( $schedule_exception_block['ts_label'] ); ?></span>
+						<span class="ffc-detail-label"><?php esc_html_e( 'Adjusted on:', 'ffcertificate' ); ?></span>
+						<span class="ffc-detail-value"><?php echo esc_html( $schedule_exception_block['ts_label'] ); ?></span>
 					</div>
 				<?php endif; ?>
 			</div>

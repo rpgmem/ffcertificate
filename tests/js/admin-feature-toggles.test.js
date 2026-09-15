@@ -3,20 +3,15 @@
 //
 //   - Generate codes (#ffc_btn_generate_codes) — success + 403 / 400 / 500 branches
 //   - CSV export click (#ffc-csv-export-btn) — start + batch + iframe download
-//   - Migration menu (toggle, ESC, overlay click)
 //   - Filter overlay (open / close / backdrop)
 //   - Quiz Mode toggle (#ffc_quiz_enabled)
 //   - CSV Public toggle (#ffc_csv_public_enabled)
 //   - Device Fingerprint Limit toggle (#ffc_device_limit_enabled), incl.
 //     the globally-off branch
 //
-// The admin.js IIFE wraps three jQuery `.ready` blocks. The Migration
-// Manager + Restriction toggle block requires `#ffc-migrations-btn` /
-// `#ffc-migrations-menu` to be present at load time (otherwise it bails
-// before reaching the restriction handlers — that's also why
-// admin-core.test.js seeds those nodes). The other IIFE blocks are
-// guarded by `.length` checks on specific IDs, so each suite below
-// re-loads the script in a beforeAll with the exact fixture it wants.
+// The admin.js IIFE blocks are guarded by `.length` checks on specific
+// IDs, so each suite below re-loads the script in a beforeAll with the
+// exact fixture it wants.
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
@@ -64,8 +59,6 @@ describe('admin generate-codes — AJAX result branches', () => {
 		};
 		window.ajaxurl = '/wp-admin/admin-ajax.php';
 		document.body.innerHTML = `
-			<button id="ffc-migrations-btn"></button>
-			<div id="ffc-migrations-menu"></div>
 		`;
 		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
 		loadScript('assets/js/ffc-batched-export.js');
@@ -166,8 +159,6 @@ describe('admin generate-codes — AJAX result branches', () => {
 describe('admin CSV export — batched flow', () => {
 	function setupExport({ formIds = [], status = 'publish' } = {}) {
 		document.body.innerHTML = `
-			<button id="ffc-migrations-btn"></button>
-			<div id="ffc-migrations-menu"></div>
 			<button id="ffc-csv-export-btn"
 				data-form-ids='${JSON.stringify(formIds)}'
 				data-status="${status}">Export</button>
@@ -271,80 +262,12 @@ describe('admin CSV export — batched flow', () => {
 });
 
 // ----------------------------------------------------------------------
-// Migration Manager dropdown — load with the migrations buttons present
-// ----------------------------------------------------------------------
-
-describe('admin migration manager dropdown', () => {
-	beforeAll(async () => {
-		document.body.innerHTML = `
-			<div class="ffc-migrations-dropdown">
-				<button id="ffc-migrations-btn">Migrations</button>
-				<div id="ffc-migrations-menu" class="ffc-migrations-menu"></div>
-			</div>
-		`;
-		// Reload admin.js after mounting these so the dropdown ready-block
-		// finds the elements and wires its private handlers.
-		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
-		loadScript('assets/js/ffc-batched-export.js');
-		loadScript('assets/js/ffc-admin.js');
-		await new Promise((r) => setTimeout(r, 0));
-	});
-
-	it('clicking #ffc-migrations-btn toggles the menu visible', async () => {
-		window.$('#ffc-migrations-btn').trigger('click');
-		await flush();
-		expect(window.$('#ffc-migrations-menu').hasClass('ffc-visible')).toBe(true);
-
-		window.$('#ffc-migrations-btn').trigger('click');
-		await flush();
-		expect(window.$('#ffc-migrations-menu').hasClass('ffc-visible')).toBe(false);
-	});
-
-	it('ESC closes the menu when it is open', async () => {
-		window.$('#ffc-migrations-btn').trigger('click');
-		await flush();
-		expect(window.$('#ffc-migrations-menu').hasClass('ffc-visible')).toBe(true);
-
-		const ev = window.$.Event('keydown', { key: 'Escape' });
-		window.$(document).trigger(ev);
-		await flush();
-
-		expect(window.$('#ffc-migrations-menu').hasClass('ffc-visible')).toBe(false);
-	});
-
-	it('clicking the overlay closes the menu', async () => {
-		window.$('#ffc-migrations-btn').trigger('click');
-		await flush();
-		expect(window.$('#ffc-migrations-menu').hasClass('ffc-visible')).toBe(true);
-
-		window.$('#ffc-migrations-overlay').trigger('click');
-		await flush();
-
-		expect(window.$('#ffc-migrations-menu').hasClass('ffc-visible')).toBe(false);
-	});
-
-	it('clicking inside the menu keeps it open (stopPropagation)', async () => {
-		window.$('#ffc-migrations-btn').trigger('click');
-		await flush();
-		expect(window.$('#ffc-migrations-menu').hasClass('ffc-visible')).toBe(true);
-
-		// A click inside the menu must not bubble to the document handler
-		// that would otherwise close it.
-		window.$('#ffc-migrations-menu').trigger('click');
-		await flush();
-		expect(window.$('#ffc-migrations-menu').hasClass('ffc-visible')).toBe(true);
-	});
-});
-
-// ----------------------------------------------------------------------
 // Filter Overlay (Submissions page)
 // ----------------------------------------------------------------------
 
 describe('admin filter overlay', () => {
 	beforeAll(async () => {
 		document.body.innerHTML = `
-			<button id="ffc-migrations-btn"></button>
-			<div id="ffc-migrations-menu"></div>
 			<button id="ffc-open-filter-overlay">Filters</button>
 			<div id="ffc-filter-overlay">
 				<button class="ffc-filter-overlay-close">x</button>
@@ -385,8 +308,6 @@ describe('admin filter overlay', () => {
 describe('admin quiz mode toggle', () => {
 	beforeAll(async () => {
 		document.body.innerHTML = `
-			<button id="ffc-migrations-btn"></button>
-			<div id="ffc-migrations-menu"></div>
 			<input type="checkbox" id="ffc_quiz_enabled">
 			<div class="ffc-quiz-setting ffc-hidden">
 				setting
@@ -440,8 +361,6 @@ describe('admin quiz mode toggle', () => {
 describe('admin CSV public toggle', () => {
 	beforeAll(async () => {
 		document.body.innerHTML = `
-			<button id="ffc-migrations-btn"></button>
-			<div id="ffc-migrations-menu"></div>
 			<input type="checkbox" id="ffc_csv_public_enabled" checked>
 			<div class="ffc-collapsed-target" data-ffc-master="ffc_csv_public_enabled">
 				<table class="ffc-csv-public-table">
@@ -473,8 +392,6 @@ describe('admin device-limit toggle', () => {
 		// When global is off, PHP renders the master with `disabled` attr.
 		// JS does not need to enforce it; we just verify the static state.
 		document.body.innerHTML = `
-			<button id="ffc-migrations-btn"></button>
-			<div id="ffc-migrations-menu"></div>
 			<table class="ffc-device-limit-table">
 				<tr><td><input type="checkbox" id="ffc_device_limit_enabled" disabled></td></tr>
 			</table>
@@ -493,8 +410,6 @@ describe('admin device-limit toggle', () => {
 
 	it('collapses the sub-options wrapper when the per-form toggle is off, reveals on', async () => {
 		document.body.innerHTML = `
-			<button id="ffc-migrations-btn"></button>
-			<div id="ffc-migrations-menu"></div>
 			<input type="checkbox" id="ffc_device_limit_enabled">
 			<div class="ffc-collapsed-target ffc-collapsed" data-ffc-master="ffc_device_limit_enabled">
 				<input type="text" name="dl-sub">
@@ -599,8 +514,6 @@ describe('admin copy-to-clipboard', () => {
 describe('admin document.ready field-builder bootstrap', () => {
 	it('warns when #ffc-fields-container is present but FieldBuilder is missing', async () => {
 		document.body.innerHTML = `
-			<button id="ffc-migrations-btn"></button>
-			<div id="ffc-migrations-menu"></div>
 			<div id="ffc-fields-container"></div>
 		`;
 		// Force the FieldBuilder lookup to fail.
@@ -617,8 +530,6 @@ describe('admin document.ready field-builder bootstrap', () => {
 
 	it('calls FieldBuilder.init when present', async () => {
 		document.body.innerHTML = `
-			<button id="ffc-migrations-btn"></button>
-			<div id="ffc-migrations-menu"></div>
 			<div id="ffc-fields-container"></div>
 		`;
 		window.FFC = window.FFC || {};
@@ -701,8 +612,6 @@ describe('admin notification + status timers', () => {
 describe('admin CSV export — connection errors', () => {
 	function setupExport() {
 		document.body.innerHTML = `
-			<button id="ffc-migrations-btn"></button>
-			<div id="ffc-migrations-menu"></div>
 			<button id="ffc-csv-export-btn" data-form-ids='[]' data-status="publish">Export</button>
 			<span id="ffc-csv-export-progress" style="display:none"></span>
 		`;

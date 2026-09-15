@@ -189,10 +189,14 @@ class DeactivatorTest extends TestCase {
 
 		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $cleared );
 		$this->assertContains( 'ffcertificate_process_submission_hook', $cleared );
+		// O gancho interno do #1248 e o que passou a ser AGENDADO; o publico
+		// acima fica na limpeza porque pode haver evento pendente da forma
+		// antiga no momento da desinstalacao.
+		$this->assertContains( 'ffc_process_submission_async', $cleared );
 		$this->assertContains( 'ffcertificate_self_scheduling_reminder_scan', $cleared );
 		$this->assertContains( 'ffcertificate_reregistration_expire_hook', $cleared );
 		$this->assertContains( 'ffc_cloudflare_cidr_refresh', $cleared );
-		$this->assertCount( 5, $cleared );
+		$this->assertCount( 6, $cleared );
 	}
 
 	public function test_uninstall_cleanup_deletes_form_posts(): void {

@@ -362,12 +362,34 @@ final class RecruitmentCandidatesRestController {
 			return new \WP_REST_Response( array(), 200 );
 		}
 
+		// UMA leitura por candidato, guardada: o laco de montagem abaixo reusa
+		// em vez de reconsultar. Candidaturas por usuario sao poucas, entao o
+		// N+1 que importa aqui nao e este -- e o do historico de chamadas.
+		$by_candidate = array();
+		$class_ids    = array();
+		foreach ( $candidates as $candidate ) {
+			$classifications = RecruitmentClassificationRepository::get_for_candidate( (int) $candidate->id );
+			$by_candidate[]  = $classifications;
+			foreach ( $classifications as $cls ) {
+				$class_ids[] = (int) $cls->id;
+			}
+		}
+
+		// UMA consulta para todo o historico, em vez de uma por classificacao
+		// dentro de laco aninhado (#1234). O ajudante em lote ja existia e ja
+		// era usado pelo painel (`RecruitmentDashboardSection::collect_calls`);
+		// so este sitio tinha ficado com a versao singular.
+		//
+		// A ordem nao muda: as duas versoes emitem `ORDER BY called_at DESC`, e
+		// agrupar uma lista ja ordenada preserva a ordem DENTRO de cada grupo.
+		$calls_by_class = array();
+		foreach ( RecruitmentCallReader::get_history_for_classifications( $class_ids ) as $ffc_call ) {
+			$calls_by_class[ (int) $ffc_call->classification_id ][] = $ffc_call;
+		}
+
 		// Group classifications by notice for the §9.2 grouped payload.
 		$out = array();
-		foreach ( $candidates as $candidate ) {
-			$candidate_id    = (int) $candidate->id;
-			$classifications = RecruitmentClassificationRepository::get_for_candidate( $candidate_id );
-
+		foreach ( $by_candidate as $classifications ) {
 			foreach ( $classifications as $cls ) {
 				$notice_id = (int) $cls->notice_id;
 				$notice    = RecruitmentNoticeReader::get_by_id( $notice_id );
@@ -394,7 +416,7 @@ final class RecruitmentCandidatesRestController {
 					'rank'      => (int) $cls->rank,
 					'score'     => $cls->score,
 					'status'    => $cls->status,
-					'calls'     => RecruitmentCallReader::get_history_for_classification( (int) $cls->id ),
+					'calls'     => $calls_by_class[ (int) $cls->id ] ?? array(),
 				);
 			}
 		}

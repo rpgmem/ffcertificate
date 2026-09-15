@@ -55,10 +55,8 @@ beforeAll(async () => {
 			invalidEmail: 'Invalid email.',
 			invalidPhone: 'Invalid phone.',
 			invalidFormat: 'Invalid format.',
-			selectDivisao: 'Select Division',
-			selectSetor: 'Select Sector',
 			select: 'Select',
-			acumuloShowValue: 'Hold',
+			acumuloShowValue: 'I hold',
 			sunday: 'Sun',
 			monday: 'Mon',
 			tuesday: 'Tue',
@@ -416,73 +414,6 @@ describe('rereg blur validation', () => {
 });
 
 // ----------------------------------------------------------------------
-// Divisão → Setor cascade
-// ----------------------------------------------------------------------
-
-describe('rereg divisão→setor cascade', () => {
-	async function mountCascade(mapJson) {
-		document.body.innerHTML = `
-			<button class="ffc-rereg-open-form" data-reregistration-id="9"></button>
-		`;
-		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
-				success: true,
-				data: {
-					html: `
-						<form id="ffc-rereg-form">
-							<select id="ffc_rereg_divisao">
-								<option value="">--</option>
-								<option value="A">A</option>
-								<option value="B">B</option>
-							</select>
-							<select id="ffc_rereg_setor"></select>
-							<script id="ffc-divisao-setor-map" type="application/json">${mapJson}</script>
-						</form>
-					`,
-				},
-			} }));
-		window.$('.ffc-rereg-open-form').trigger('click');
-		await flush();
-	}
-
-	it('populates setor when divisão changes', async () => {
-		await mountCascade(JSON.stringify({ A: ['A1', 'A2'], B: ['B1'] }));
-		window.$('#ffc_rereg_divisao').val('A').trigger('change');
-		await flush();
-
-		const opts = window.$('#ffc_rereg_setor option').map((_, el) => el.textContent).get();
-		expect(opts).toEqual(['Select Sector', 'A1', 'A2']);
-	});
-
-	it('shows the placeholder when divisão has no children', async () => {
-		await mountCascade(JSON.stringify({ A: ['A1'] }));
-		window.$('#ffc_rereg_divisao').val('B').trigger('change');
-		await flush();
-
-		const opts = window.$('#ffc_rereg_setor option').map((_, el) => el.textContent).get();
-		expect(opts).toEqual(['Select Division']);
-	});
-
-	it('bails silently on malformed JSON', async () => {
-		// mountCascade is async; calling it with malformed JSON must not
-		// reject (the IIFE catches and degrades silently).
-		await mountCascade('{ invalid');
-	});
-
-	it('re-selects the previously chosen setor when it exists in the new list', async () => {
-		await mountCascade(JSON.stringify({ A: ['A1', 'A2'] }));
-		const $setor = window.$('#ffc_rereg_setor');
-		// Seed a current value that is also present under division A.
-		$setor.append('<option value="A2">A2</option>').val('A2');
-		window.$('#ffc_rereg_divisao').val('A').trigger('change');
-		await flush();
-
-		// The matching option is rendered selected (line 174).
-		expect($setor.val()).toBe('A2');
-		expect($setor.find('option[value="A2"]').prop('selected')).toBe(true);
-	});
-});
-
-// ----------------------------------------------------------------------
 // Acúmulo de Cargos toggle
 // ----------------------------------------------------------------------
 
@@ -496,12 +427,28 @@ describe('rereg acumulo toggle', () => {
 				data: {
 					html: `
 						<form id="ffc-rereg-form">
-							<select id="ffc_rereg_acumulo">
-								<option value="">--</option>
-								<option value="Hold">Hold</option>
-								<option value="None">None</option>
-							</select>
-							<div class="ffc-rereg-acumulo-fields" style="display:none">extra fields</div>
+							<div class="ffc-rereg-field" data-field-key="acumulo_cargos">
+								<select id="ffc_field_1" name="ffc_fields[acumulo_cargos]">
+									<option value="">Select</option>
+									<option value="I do not hold">I do not hold</option>
+									<option value="Pension (Payslip Attached)">Pension (Payslip Attached)</option>
+									<option value="I hold">I hold</option>
+								</select>
+							</div>
+							<div class="ffc-rereg-field" data-field-key="jornada_acumulo">
+								<select id="ffc_field_2" name="ffc_fields[jornada_acumulo]"><option value="">Select</option></select>
+							</div>
+							<div class="ffc-rereg-field" data-field-key="cargo_funcao_acumulo">
+								<input type="text" id="ffc_field_3" name="ffc_fields[cargo_funcao_acumulo]">
+							</div>
+							<div class="ffc-rereg-field" data-field-key="horario_trabalho_acumulo">
+								<div class="ffc-working-hours" data-target="ffc_field_4">
+									<table><tbody><tr>
+										<td><input type="time" class="ffc-wh-entry1" required></td>
+										<td><input type="time" class="ffc-wh-exit2" required></td>
+									</tr></tbody></table>
+								</div>
+							</div>
 						</form>
 					`,
 				},
@@ -510,22 +457,57 @@ describe('rereg acumulo toggle', () => {
 		await flush();
 	}
 
-	it('shows the extra fields when "Hold" is selected', async () => {
-		await mountAcumulo();
-		window.$('#ffc_rereg_acumulo').val('Hold').trigger('change');
-		await flush();
+	const $acumulo = () => window.$('[data-field-key="acumulo_cargos"] select');
+	const $dependents = () => window.$(
+		'[data-field-key="jornada_acumulo"],'
+		+ '[data-field-key="cargo_funcao_acumulo"],'
+		+ '[data-field-key="horario_trabalho_acumulo"]'
+	);
 
-		expect(window.$('.ffc-rereg-acumulo-fields').css('display')).not.toBe('none');
+	it('hides the dependent fields on init, before any change', async () => {
+		// O defeito que isto cobre: o handler só ligava `change`, então o
+		// formulário abria com os três campos VISÍVEIS qualquer que fosse o
+		// valor. Nenhum evento é disparado aqui de propósito.
+		await mountAcumulo();
+
+		$dependents().each((_, el) => {
+			expect(window.$(el).css('display')).toBe('none');
+		});
 	});
 
-	it('hides them when a non-hold value is selected', async () => {
+	it('shows them only for "I hold"', async () => {
 		await mountAcumulo();
-		window.$('#ffc_rereg_acumulo').val('Hold').trigger('change');
-		await flush();
-		window.$('#ffc_rereg_acumulo').val('None').trigger('change');
+		$acumulo().val('I hold').trigger('change');
 		await flush();
 
-		expect(window.$('.ffc-rereg-acumulo-fields').css('display')).toBe('none');
+		$dependents().each((_, el) => {
+			expect(window.$(el).css('display')).not.toBe('none');
+		});
+	});
+
+	it('keeps them hidden for "Pension", which the ficha also blanks', async () => {
+		await mountAcumulo();
+		$acumulo().val('Pension (Payslip Attached)').trigger('change');
+		await flush();
+
+		$dependents().each((_, el) => {
+			expect(window.$(el).css('display')).toBe('none');
+		});
+	});
+
+	it('lifts `required` off the hidden time inputs, and puts it back', async () => {
+		// Validação de constraint ignora visibilidade: um `required`
+		// escondido trava o envio sem mostrar o que falta.
+		await mountAcumulo();
+
+		expect(window.$('.ffc-wh-entry1').prop('required')).toBe(false);
+		expect(window.$('.ffc-wh-entry1').attr('data-ffc-required-off')).toBeDefined();
+
+		$acumulo().val('I hold').trigger('change');
+		await flush();
+
+		expect(window.$('.ffc-wh-entry1').prop('required')).toBe(true);
+		expect(window.$('.ffc-wh-exit2').prop('required')).toBe(true);
 	});
 });
 
@@ -990,5 +972,90 @@ describe('rereg working hours', () => {
 		expect(window.$('.ffc-working-hours tbody tr').length).toBe(1);
 		const hidden = JSON.parse(window.$('#wh-hidden').val());
 		expect(hidden).toHaveLength(1);
+	});
+});
+
+// ----------------------------------------------------------------------
+// Importar o ciclo anterior (#1213)
+// ----------------------------------------------------------------------
+
+describe('rereg import previous', () => {
+	const FORM_HTML = `
+		<div class="ffc-rereg-form-container" data-reregistration-id="9">
+			<div class="ffc-rereg-import-notice">
+				<button type="button" class="button ffc-rereg-import-btn">Bring</button>
+				<span class="ffc-rereg-import-status"></span>
+			</div>
+			<form id="ffc-rereg-form">
+				<div class="ffc-rereg-field" data-field-key="display_name">
+					<input type="text" id="f1" name="ffc_fields[display_name]">
+				</div>
+				<div class="ffc-rereg-field" data-field-key="phone">
+					<input type="text" id="f2" name="ffc_fields[phone]" value="JÁ DIGITADO">
+				</div>
+			</form>
+		</div>
+	`;
+
+	// Uma resposta por AÇÃO: o carregamento do formulário e a importação são
+	// dois POSTs, e trocá-los é o erro fácil neste teste.
+	function mockByAction(importData) {
+		vi.spyOn(window.$, 'post').mockImplementation((url, payload) => {
+			if (payload && payload.action === 'ffc_import_previous_reregistration') {
+				return postChain({ done: { success: true, data: importData } });
+			}
+			return postChain({ done: { success: true, data: { html: FORM_HTML } } });
+		});
+	}
+
+	async function mountImport(importData) {
+		document.body.innerHTML = '<button class="ffc-rereg-open-form" data-reregistration-id="9"></button>';
+		mockByAction(importData);
+		window.$('.ffc-rereg-open-form').trigger('click');
+		await flush();
+	}
+
+	it('fills an empty field from the previous cycle', async () => {
+		await mountImport({ fields: { display_name: 'Maria Silva' } });
+
+		window.$('.ffc-rereg-import-btn').trigger('click');
+		await flush();
+
+		expect(window.$('#f1').val()).toBe('Maria Silva');
+	});
+
+	it('does NOT overwrite what the participant already typed', async () => {
+		// A regra que importa: quem começou a preencher antes de aceitar
+		// ganha. Sem ela, aceitar a oferta apagaria o trabalho já feito.
+		await mountImport({ fields: { display_name: 'Maria Silva', phone: 'DO CICLO ANTERIOR' } });
+
+		window.$('.ffc-rereg-import-btn').trigger('click');
+		await flush();
+
+		expect(window.$('#f2').val()).toBe('JÁ DIGITADO');
+		expect(window.$('#f1').val()).toBe('Maria Silva');
+	});
+
+	it('hides the offer after importing', async () => {
+		await mountImport({ fields: { display_name: 'Maria Silva' } });
+
+		window.$('.ffc-rereg-import-btn').trigger('click');
+		await flush();
+
+		expect(window.$('.ffc-rereg-import-notice').css('display')).toBe('none');
+	});
+
+	it('does nothing when the form carries no offer', async () => {
+		// O aviso só é impresso quando há origem. Sem ele o handler tem de
+		// sair cedo, não estourar.
+		document.body.innerHTML = '<button class="ffc-rereg-open-form" data-reregistration-id="9"></button>';
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
+			success: true,
+			data: { html: '<div class="ffc-rereg-form-container" data-reregistration-id="9"><form id="ffc-rereg-form"></form></div>' },
+		} }));
+		window.$('.ffc-rereg-open-form').trigger('click');
+		await flush();
+
+		expect(window.$('.ffc-rereg-import-btn').length).toBe(0);
 	});
 });

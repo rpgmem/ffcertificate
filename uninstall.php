@@ -41,6 +41,9 @@ if ( ! $ffcertificate_purge ) {
 	// scheduled events that point at code about to be removed.
 	wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 	wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
+	// O gancho interno do #1248, que substituiu o de cima no agendamento.
+	// O antigo fica: pode haver evento pendente da forma velha.
+	wp_clear_scheduled_hook( 'ffc_process_submission_async' );
 	wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
 	wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 	wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
@@ -141,6 +144,13 @@ $ffcertificate_options = array(
 	'ffc_foreign_keys_db_version',
 	'ffc_perf_indexes_db_version',
 	'ffc_submissions_db_version',
+	// Guardas por versao das quatro cadeias de activator que antes sondavam o
+	// schema a cada requisicao (#1231). Declaradas aqui porque o job
+	// `fresh-install` compara nos DOIS sentidos: uma opcao que a ativacao
+	// escreve e este manifesto nao declara reprova o CI.
+	'ffc_self_scheduling_schema_version',
+	'ffc_audience_schema_version',
+	'ffc_url_shortener_schema_version',
 	// Per-feature migration completion markers (audited gap).
 	'ffc_sibling_instants_unix_migrated',
 	'ffc_submission_date_unix_migrated',
@@ -159,6 +169,10 @@ $ffcertificate_options = array(
 	// Recruitment module (v6.0.0).
 	'ffc_recruitment_settings',
 	'ffc_recruitment_schema_version',
+	'ffc_recruitment_tables_version',
+	// Estado (cursor por alvo + fingerprint + conclusao) da migracao que
+	// termina a rotacao de chaves nas areas nao cobertas pela primeira (#1236).
+	'ffc_key_rotation_remaining_state',
 	'ffc_recruitment_public_cache_version',
 	'ffc_ip_diagnostics_settings',
 	'ffc_cloudflare_cidr_cache',
@@ -213,6 +227,9 @@ $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient
 // ──────────────────────────────────────
 wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
+// O gancho interno do #1248, que substituiu o de cima no agendamento.
+// O antigo fica: pode haver evento pendente da forma velha.
+wp_clear_scheduled_hook( 'ffc_process_submission_async' );
 wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );

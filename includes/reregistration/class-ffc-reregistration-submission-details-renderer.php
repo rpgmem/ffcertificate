@@ -68,7 +68,7 @@ final class ReregistrationSubmissionDetailsRenderer {
 			<div class="ffc-submission-meta">
 				<p>
 					<strong><?php esc_html_e( 'Status:', 'ffcertificate' ); ?></strong>
-					<span class="ffc-status-badge ffc-status-<?php echo esc_attr( $submission->status ); ?>">
+					<span class="ffc-reregistration-status-badge ffc-reregistration-status-<?php echo esc_attr( $submission->status ); ?>">
 						<?php echo esc_html( ReregistrationSubmissionReader::get_status_label( $submission->status ) ); ?>
 					</span>
 				</p>

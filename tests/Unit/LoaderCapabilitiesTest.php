@@ -357,6 +357,18 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added );
 		$this->assertContains( 'ffcertificate_reregistration_expire_hook', $added );
 		$this->assertContains( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, $added );
+
+		// A varredura de tickets expirados (#1234). Ela morava no
+		// `AdminLoader`, que so e construido dentro de `if ( is_admin() )` --
+		// e `wp-cron.php` define `DOING_CRON`, nunca `WP_ADMIN`, entao o
+		// callback nunca estava registrado no contexto que dispara o evento.
+		// Aqui e o metodo que roda em TODA requisicao, que e a correcao.
+		$this->assertContains(
+			\FreeFormCertificate\Admin\ExpiredTicketsCleanup::CRON_HOOK,
+			$added,
+			'Sem isto o evento diario dispara sem callback, como fez desde que foi escrito.'
+		);
+
 		// Three daily-cleanup callbacks + two expiry callbacks registered.
 		$daily = array_filter( $added, static fn ( $h ) => 'ffcertificate_daily_cleanup_hook' === $h );
 		$this->assertCount( 3, $daily, 'submission cleanup + CSV reap + schedule-exception reap.' );
@@ -393,6 +405,44 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added );
 		$this->assertNotContains( 'ffcertificate_reregistration_expire_hook', $added );
 		$this->assertNotContains( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, $added );
+		// Certificates continua ligado neste cenario, entao a varredura de
+		// tickets segue montada -- o que separa o gate de MODULO (deliberado)
+		// do defeito de CONTEXTO que o #1234 consertou.
+		$this->assertContains( \FreeFormCertificate\Admin\ExpiredTicketsCleanup::CRON_HOOK, $added );
+	}
+
+	/**
+	 * Certificates desligado para a varredura de tickets -- o gate deliberado.
+	 *
+	 * Separado do teste acima de proposito: la o modulo esta ligado e o que se
+	 * prova e que o registro ACONTECE fora do `is_admin()`; aqui prova-se que
+	 * o gate de modulo continua valendo depois da mudanca de lugar. Confundir
+	 * os dois faria a correcao do #1234 parecer ter desligado o gate.
+	 */
+	public function test_define_admin_hooks_skips_the_expired_tickets_cron_when_certificates_disabled(): void {
+		$loader = new Loader();
+
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) {
+				if ( \FreeFormCertificate\Settings\SettingsReader::OPTION_KEY === $key ) {
+					return array( 'module_certificates_enabled' => 0 );
+				}
+				return $default;
+			}
+		);
+
+		$added = array();
+		Functions\when( 'add_action' )->alias(
+			function ( $hook, $callback = null ) use ( &$added ) {
+				$added[] = $hook;
+				return true;
+			}
+		);
+
+		$this->invoke_private( $loader, 'define_admin_hooks' );
+
+		$this->assertNotContains( \FreeFormCertificate\Admin\ExpiredTicketsCleanup::CRON_HOOK, $added );
+		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added, 'A limpeza diaria do nucleo nao depende do modulo.' );
 	}
 
 	// ==================================================================
@@ -431,7 +481,8 @@ class LoaderCapabilitiesTest extends TestCase {
 			->shouldReceive( 'maybe_migrate' )->zeroOrMoreTimes();
 
 		// Shared runtime classes.
-		Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' );
+		Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' )
+			->shouldReceive( 'register_async_pipeline' )->zeroOrMoreTimes();
 		Mockery::mock( 'overload:FreeFormCertificate\Integrations\EmailHandler' );
 		Mockery::mock( 'overload:FreeFormCertificate\Admin\CPT' );
 		Mockery::mock( 'overload:FreeFormCertificate\Frontend\Frontend' );
@@ -523,7 +574,8 @@ class LoaderCapabilitiesTest extends TestCase {
 			->shouldReceive( 'create_tables' )->atLeast()->once()
 			->shouldReceive( 'maybe_migrate' )->atLeast()->once();
 
-		Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' );
+		Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' )
+			->shouldReceive( 'register_async_pipeline' )->zeroOrMoreTimes();
 		Mockery::mock( 'overload:FreeFormCertificate\Integrations\EmailHandler' );
 
 		// Certificates OFF → CPT + Frontend must never be constructed.

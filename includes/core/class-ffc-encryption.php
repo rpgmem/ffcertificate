@@ -56,6 +56,39 @@ class Encryption {
 	const V2_PREFIX = 'v2:';
 
 	/**
+	 * Memoizacao das duas chaves derivadas das constantes do WordPress.
+	 *
+	 * Cada uma custa um `hash_pbkdf2( 'sha256', …, 10000, … )` -- medido em
+	 * **11,56 ms** -- e `encrypt()` e `decrypt_internal()` pedem as DUAS por
+	 * chamada, entao um decrypt custava 23,1 ms de CPU pura. A tela de
+	 * Submissoes, que decripta 5 campos em 20 linhas, gastava 2,31 s so nisso.
+	 *
+	 * **Memoizar e correto por construcao, nao uma aposta:** a entrada da
+	 * derivacao sao `SECURE_AUTH_KEY`, `LOGGED_IN_KEY` e `NONCE_KEY`, que sao
+	 * constantes PHP -- imutaveis dentro do request. O valor recalculado nunca
+	 * pode divergir do memoizado.
+	 *
+	 * A memoizacao fica AQUI, nas derivadas, e nao em `get_encryption_key()` /
+	 * `get_hmac_key()`. O motivo e o fallback de rotacao: numa instalacao
+	 * desacoplada com linhas ainda sob a chave antiga, `decrypt_internal()`
+	 * falha na chave ativa (barata) e cai em `wp_derived_*()` por LINHA. Se a
+	 * memoizacao estivesse um nivel acima, esse caminho -- justamente o mais
+	 * caro dos tres -- continuaria pagando o PBKDF2 inteiro (#1230).
+	 *
+	 * @var string|null
+	 */
+	private static ?string $wp_derived_enc_key = null;
+
+	/**
+	 * Memoizacao da chave de HMAC derivada das constantes do WordPress.
+	 *
+	 * @see self::$wp_derived_enc_key para o motivo e o lugar da memoizacao.
+	 *
+	 * @var string|null
+	 */
+	private static ?string $wp_derived_mac_key = null;
+
+	/**
 	 * Encrypt a value
 	 *
 	 * Produces an authenticated (encrypt-then-MAC) ciphertext in the format
@@ -281,6 +314,15 @@ class Encryption {
 	 * @return void
 	 */
 	private static function log_decrypt_failure( string $ciphertext ): void {
+		++self::$decrypt_failure_count;
+
+		// Teto checado ANTES de qualquer outro trabalho: passado ele, nem
+		// `is_enabled()` (que le uma opcao) chega a rodar. Numa enxurrada e
+		// justamente o caminho quente.
+		if ( self::$decrypt_failure_count > self::DECRYPT_FAILURE_LOG_CAP + 1 ) {
+			return;
+		}
+
 		if ( ! function_exists( 'get_option' ) ) {
 			return;
 		}
@@ -292,13 +334,18 @@ class Encryption {
 			if ( ! ActivityLog::is_enabled() ) {
 				return;
 			}
+
+			$suppressing = self::DECRYPT_FAILURE_LOG_CAP + 1 === self::$decrypt_failure_count;
+
 			ActivityLog::log(
-				'decrypt_failure',
+				$suppressing ? 'decrypt_failure_suppressed' : 'decrypt_failure',
 				ActivityLog::LEVEL_WARNING,
-				array(
-					'ciphertext_length' => strlen( $ciphertext ),
-					'v2_prefix'         => 0 === strpos( $ciphertext, self::V2_PREFIX ),
-				),
+				$suppressing
+					? array( 'cap' => self::DECRYPT_FAILURE_LOG_CAP )
+					: array(
+						'ciphertext_length' => strlen( $ciphertext ),
+						'v2_prefix'         => 0 === strpos( $ciphertext, self::V2_PREFIX ),
+					),
 				0,
 				0
 			);
@@ -307,6 +354,52 @@ class Encryption {
 			unset( $e );
 		}
 	}
+
+	/**
+	 * Quantas linhas de `decrypt_failure` uma requisicao pode escrever (#1234).
+	 *
+	 * POR QUE UM TETO
+	 *
+	 * Cada falha de decrypt gravava um INSERT em `ffc_activity_log`, sem teto
+	 * nem amostragem. Com uma chave quebrada isso nao e uma linha: uma
+	 * exportacao de 5.000 submissoes escreve 5.000 linhas de log, e uma
+	 * migracao que percorre todos os usuarios faz o mesmo por lote. O custo de
+	 * escrita ultrapassa em muito o da leitura que falhou.
+	 *
+	 * POR QUE CINCO, E NAO UMA
+	 *
+	 * A informacao de auditoria esta quase toda na PRIMEIRA falha -- a
+	 * milesima nao diz nada que a primeira ja nao dissesse, porque o contexto
+	 * gravado e so comprimento e flag de prefixo. Cinco da margem para ver se
+	 * as falhas tem formas diferentes (v2 e nao-v2 misturados, por exemplo) sem
+	 * abrir a porta para a enxurrada.
+	 *
+	 * POR QUE POR REQUISICAO, E NAO POR JANELA DE TEMPO
+	 *
+	 * Um teto por janela precisaria de transiente, isto e, de uma LEITURA E
+	 * ESCRITA a cada falha -- pagando parte do custo que se quer evitar, no
+	 * caminho que se quer baratear. O estrago que importa e uma requisicao
+	 * escrevendo milhares de linhas; e essa que o contador estatico corta.
+	 *
+	 * POR QUE PUBLICA
+	 *
+	 * O teste do teto le a constante em vez de repetir o numero; assim mudar o
+	 * teto nao deixa uma asercao mentindo sobre o que ela verifica.
+	 *
+	 * @var int
+	 */
+	public const DECRYPT_FAILURE_LOG_CAP = 5;
+
+	/**
+	 * Falhas de decrypt vistas nesta requisicao.
+	 *
+	 * Continua contando depois do teto -- o custo e um incremento --, o que
+	 * mantem `decrypt_failure_suppressed` sendo escrita UMA vez so, na
+	 * travessia exata do teto.
+	 *
+	 * @var int
+	 */
+	private static int $decrypt_failure_count = 0;
 
 	/**
 	 * Generate hash for searchable field
@@ -509,6 +602,10 @@ class Encryption {
 	 * @return string 32-byte encryption key
 	 */
 	private static function wp_derived_encryption_key(): string {
+		if ( null !== self::$wp_derived_enc_key ) {
+			return self::$wp_derived_enc_key;
+		}
+
 		$base_keys = array(
 			defined( 'SECURE_AUTH_KEY' ) ? SECURE_AUTH_KEY : '',
 			defined( 'LOGGED_IN_KEY' ) ? LOGGED_IN_KEY : '',
@@ -522,7 +619,9 @@ class Encryption {
 		// to keep existing ciphertexts decryptable without a data-migration step. Entropy is
 		// already provided by the underlying WordPress secret keys, so the PBKDF2 workload
 		// here is only a defense against accidental entropy loss rather than password cracking.
-		return hash_pbkdf2( 'sha256', $combined, 'ffc-encryption-salt', 10000, 32, true );
+		self::$wp_derived_enc_key = hash_pbkdf2( 'sha256', $combined, 'ffc-encryption-salt', 10000, 32, true );
+
+		return self::$wp_derived_enc_key;
 	}
 
 	/**
@@ -548,6 +647,10 @@ class Encryption {
 	 * @return string 32-byte HMAC key
 	 */
 	private static function wp_derived_hmac_key(): string {
+		if ( null !== self::$wp_derived_mac_key ) {
+			return self::$wp_derived_mac_key;
+		}
+
 		$base_keys = array(
 			defined( 'SECURE_AUTH_KEY' ) ? SECURE_AUTH_KEY : '',
 			defined( 'LOGGED_IN_KEY' ) ? LOGGED_IN_KEY : '',
@@ -555,7 +658,9 @@ class Encryption {
 		);
 		$combined  = implode( '|', $base_keys );
 
-		return hash_pbkdf2( 'sha256', $combined, 'ffc-hmac-salt', 10000, 32, true );
+		self::$wp_derived_mac_key = hash_pbkdf2( 'sha256', $combined, 'ffc-hmac-salt', 10000, 32, true );
+
+		return self::$wp_derived_mac_key;
 	}
 
 	/**

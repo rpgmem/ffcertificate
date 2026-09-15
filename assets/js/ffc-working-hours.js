@@ -188,9 +188,9 @@
         e.preventDefault();
 
         // Open any collapsed ancestor before pointing at the row.
-        blocked.parents('.ffc-cf-section-body.collapsed').each(function () {
+        blocked.parents('.ffc-cf-section-body.is-collapsed').each(function () {
             var $body = $(this);
-            $body.removeClass('collapsed');
+            $body.removeClass('is-collapsed');
             $('[data-target="' + $body.attr('id') + '"]').attr('aria-expanded', 'true');
         });
 

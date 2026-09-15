@@ -85,6 +85,7 @@ class ReregistrationAdmin {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'wp_ajax_ffc_generate_ficha', array( $this->ajax_handler, 'ajax_generate_ficha' ) );
 		add_action( 'wp_ajax_ffc_rereg_count_members', array( $this->ajax_handler, 'ajax_count_members' ) );
+		add_action( 'wp_ajax_ffc_rereg_send_invitations', array( $this->ajax_handler, 'ajax_send_invitations' ) );
 		add_action( 'wp_ajax_ffc_view_submission_details', array( $this->ajax_handler, 'ajax_view_submission_details' ) );
 	}
 
@@ -208,6 +209,8 @@ class ReregistrationAdmin {
 				'viewDetailsNonce' => wp_create_nonce( 'ffc_view_submission_details' ),
 				'exportNonce'      => wp_create_nonce( 'ffc_reregistration_export' ),
 				'strings'          => array(
+					'inviteSending'        => __( 'Sending…', 'ffcertificate' ),
+					'inviteError'          => __( 'An error occurred.', 'ffcertificate' ),
 					'exportPreparing'      => __( 'Preparing…', 'ffcertificate' ),
 					/* translators: %1$d processed, %2$d total */
 					'exportProgress'       => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
@@ -229,8 +232,8 @@ class ReregistrationAdmin {
 		// Enqueue PDF libraries on submissions view.
 		$view = \FreeFormCertificate\Core\RequestInput::get_get_string( 'view' );
 		if ( 'submissions' === $view ) {
-			wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
-			wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'libs/js/jspdf.umd.min.js', array(), FFC_JSPDF_VERSION, true );
+			wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas-' . FFC_HTML2CANVAS_VERSION . '.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
+			wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'libs/js/jspdf-' . FFC_JSPDF_VERSION . '.umd.min.js', array(), FFC_JSPDF_VERSION, true );
 			wp_enqueue_script( 'ffc-pdf-generator', FFC_PLUGIN_URL . 'assets/js/ffc-pdf-generator.min.js', array( 'html2canvas', 'jspdf' ), FFC_VERSION, true );
 		}
 	}
@@ -257,7 +260,7 @@ class ReregistrationAdmin {
 
 		$can_edit = $this->can_edit();
 
-		echo '<div class="wrap">';
+		echo '<div class="wrap ffc-admin-page ffc-page-reregistration">';
 
 		switch ( $view ) {
 			case 'new':

@@ -31,10 +31,10 @@
 			heading.addEventListener('click', function () {
 				var targetId    = this.getAttribute('data-target');
 				var body        = targetId ? document.getElementById(targetId) : null;
-				var isCollapsed = this.classList.toggle('collapsed');
+				var isCollapsed = this.classList.toggle('is-collapsed');
 				this.setAttribute('aria-expanded', String(!isCollapsed));
 				if (body) {
-					body.classList.toggle('collapsed', isCollapsed);
+					body.classList.toggle('is-collapsed', isCollapsed);
 					setRequired(body, !isCollapsed);
 				}
 			});
@@ -50,7 +50,7 @@
 			var initialTarget = heading.getAttribute('data-target');
 			var initialBody   = initialTarget ? document.getElementById(initialTarget) : null;
 			if (initialBody) {
-				setRequired(initialBody, !initialBody.classList.contains('collapsed'));
+				setRequired(initialBody, !initialBody.classList.contains('is-collapsed'));
 			}
 		});
 	}

@@ -300,9 +300,44 @@ class ReregistrationSubmissionWriter {
 	}
 
 	/**
+	 * Quantas linhas a semeadura envia por INSERT (#1234).
+	 *
+	 * Quinhentas e o mesmo tamanho de pagina que o contrato de exportacao do
+	 * #772 usa: grande o bastante para que o numero de idas ao banco deixe de
+	 * importar, pequeno o bastante para nao esbarrar em `max_allowed_packet`
+	 * numa linha de tres inteiros.
+	 *
+	 * @var int
+	 */
+	public const SEED_CHUNK_SIZE = 500;
+
+	/**
 	 * Create pending submissions for all affected users of a reregistration.
 	 *
 	 * Skips users who already have a submission for this reregistration.
+	 *
+	 * EM LOTE, E NAO LINHA A LINHA (#1234)
+	 *
+	 * A forma anterior era um SELECT (existe?) mais um INSERT por usuario: dez
+	 * mil membros custavam vinte mil consultas DENTRO DE UMA REQUISICAO DE
+	 * ADMIN -- a que salva a campanha. Agora sao `ceil( N / 500 )` INSERTs, e os
+	 * mesmos dez mil membros custam vinte.
+	 *
+	 * POR QUE O `IGNORE` SUBSTITUI A CHECAGEM, E NAO APENAS A ESCONDE
+	 *
+	 * A tabela carrega `UNIQUE KEY idx_reregistration_user (reregistration_id,
+	 * user_id)`, entao "pular quem ja tem submissao" ja era a regra do banco --
+	 * o SELECT por linha apenas a repetia em PHP, e repetia com uma janela: entre
+	 * ler e inserir, um segundo clique no botao Salvar podia inserir a mesma
+	 * linha. A restricao fecha essa janela; a checagem nao fechava.
+	 *
+	 * `INSERT IGNORE` rebaixa TODO erro a aviso, o que normalmente e motivo para
+	 * nao usa-lo. Aqui nao ha outro erro possivel: as tres colunas escritas sao
+	 * dois inteiros que este metodo mesmo converte e o literal `pending`
+	 * escrito aqui. Nao ha texto de usuario para truncar.
+	 *
+	 * A contagem devolvida continua sendo a de linhas CRIADAS: `affected_rows`
+	 * de um INSERT multi-linha conta as que entraram, nao as ignoradas.
 	 *
 	 * @param int        $reregistration_id Reregistration ID.
 	 * @param array<int> $audience_ids      Audience IDs.
@@ -310,28 +345,154 @@ class ReregistrationSubmissionWriter {
 	 */
 	public static function create_for_audience_members( int $reregistration_id, array $audience_ids ): int {
 		$user_ids = ReregistrationRepository::get_user_ids_for_audiences( $audience_ids );
-		$created  = 0;
 
-		foreach ( $user_ids as $user_id ) {
-			// Check if submission already exists.
-			$existing = ReregistrationSubmissionReader::get_by_reregistration_and_user( $reregistration_id, $user_id );
-			if ( $existing ) {
+		// `get_user_ids_for_audiences()` concatena os membros de varias audiencias
+		// e ja deduplica, mas devolve o que o leitor de audiencia entregou -- que
+		// pode vir como string do driver. Normalizar aqui e o que permite confiar
+		// nos `%d` abaixo e no tamanho dos lotes.
+		$user_ids = array_values(
+			array_unique(
+				array_filter(
+					array_map( 'intval', $user_ids ),
+					static function ( int $user_id ): bool {
+						return $user_id > 0;
+					}
+				)
+			)
+		);
+
+		if ( empty( $user_ids ) ) {
+			return 0;
+		}
+
+		$wpdb    = self::db();
+		$table   = self::get_table_name();
+		$created = 0;
+
+		foreach ( array_chunk( $user_ids, self::SEED_CHUNK_SIZE ) as $chunk ) {
+			$rows = implode( ',', array_fill( 0, count( $chunk ), '(%d, %d, %s)' ) );
+			$sql  = "INSERT IGNORE INTO %i (reregistration_id, user_id, status) VALUES {$rows}";
+
+			$args = array( $table );
+			foreach ( $chunk as $user_id ) {
+				$args[] = $reregistration_id;
+				$args[] = $user_id;
+				// Mesmo estado inicial que o `create()` aplica por omissao.
+				$args[] = 'pending';
+			}
+
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- A lista VALUES e montada so com marcadores %d/%s; os valores viajam como argumentos de prepare().
+			$prepared = $wpdb->prepare( $sql, $args );
+			if ( ! is_string( $prepared ) ) {
 				continue;
 			}
 
-			$result = self::create(
-				array(
-					'reregistration_id' => $reregistration_id,
-					'user_id'           => $user_id,
-					'status'            => 'pending',
-				)
-			);
-
-			if ( $result ) {
-				++$created;
+			// `query()` devolve `int|bool`; `false > 0` ja e falso, entao o
+			// `is_int()` abaixo nao muda o comportamento -- ele existe para o
+			// PHPStan, que no nivel 8 nao estreita o `bool` por uma comparacao.
+			//
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.NoCaching -- O argumento e a string que prepare() devolveu acima; o sniff nao acompanha uma string preparada atraves de uma atribuicao.
+			$affected = $wpdb->query( $prepared );
+			if ( is_int( $affected ) && $affected > 0 ) {
+				$created += $affected;
 			}
 		}
 
 		return $created;
+	}
+
+	/**
+	 * Carimba o envio do LEMBRETE numa submissao.
+	 *
+	 * POR ITEM, e nao em lote como {@see self::mark_invited()} -- a diferenca e
+	 * deliberada e vem do caminho de chamada. O convite e disparado por um
+	 * clique do operador, que ve a tela e pode reagir; o lembrete roda no
+	 * wp-cron, DENTRO DA REQUISICAO DE UM VISITANTE, sobre um conjunto que pode
+	 * ter milhares de linhas e um `wp_mail()` sincrono por linha. Esse e
+	 * exatamente o caminho que expira no meio -- e o defeito que o #1232
+	 * descreve.
+	 *
+	 * Carimbar ao final significa que um timeout deixa NADA marcado, e todo
+	 * mundo que ja recebeu e-mail recebe de novo na proxima execucao.
+	 * Carimbando por item, uma interrupcao deixa marcado exatamente quem ja
+	 * recebeu, e a execucao seguinte retoma de onde parou.
+	 *
+	 * Categoria A (unix UTC) conforme o CLAUDE.md -- `time()`, nunca
+	 * `current_time()`.
+	 *
+	 * @param int $submission_id ID da submissao.
+	 * @return bool
+	 */
+	public static function mark_reminded( int $submission_id ): bool {
+		if ( $submission_id <= 0 ) {
+			return false;
+		}
+
+		$wpdb = self::db();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Escrita numa tabela `ffc_*` propria do plugin, para a qual o WordPress nao expoe API; a invalidacao do cache vem logo abaixo.
+		$result = $wpdb->update(
+			self::get_table_name(),
+			array( 'reminder_sent_at' => time() ),
+			array( 'id' => $submission_id ),
+			array( '%d' ),
+			array( '%d' )
+		);
+
+		if ( false === $result ) {
+			return false;
+		}
+
+		static::cache_delete( "id_{$submission_id}" );
+
+		return true;
+	}
+
+	/**
+	 * Stamp the invitation timestamp on the submissions that were just emailed.
+	 *
+	 * Written in one statement rather than per row: the caller loops to send,
+	 * and a failed send in the middle must not leave half the batch marked as
+	 * invited while the other half gets a second email on the next click.
+	 *
+	 * Category A (unix UTC) per CLAUDE.md — `time()`, never `current_time()`.
+	 *
+	 * @param array<int, int> $submission_ids Submission IDs.
+	 * @return int Rows updated.
+	 */
+	public static function mark_invited( array $submission_ids ): int {
+		$ids = array_values( array_filter( array_map( 'intval', $submission_ids ) ) );
+		if ( empty( $ids ) ) {
+			return 0;
+		}
+
+		$wpdb         = self::db();
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- O `{$placeholders}` é `%d` repetido por `array_fill()` acima, não dado de requisição; todo valor passa por `prepare()`.
+		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- A consulta é a saída de `prepare()` guardada numa variável, que é como `ReregistrationRepository::expire_overdue()` faz pelo mesmo motivo: o retorno precisa ser testado antes de ir para `query()`.
+		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- O sniff conta os marcadores do literal e não sabe que `prepare()` aceita um array único de argumentos, que é como a tabela e os ids chegam.
+		$sql = $wpdb->prepare(
+			"UPDATE %i SET invited_at = %d WHERE id IN ({$placeholders})",
+			array_merge( array( self::get_table_name(), time() ), $ids )
+		);
+
+		// `prepare()` devolve `string|null`, e `query()` só aceita string -- o
+		// mesmo guarda que `expire_overdue()` usa pela mesma razão.
+		if ( ! is_string( $sql ) ) {
+			return 0;
+		}
+
+		$result = $wpdb->query( $sql );
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		// Same invalidation the other mutators do: one key per row. There is no
+		// group flush on the trait, and inventing one here would be a second
+		// way to do what every sibling already does per id.
+		foreach ( $ids as $id ) {
+			static::cache_delete( "id_{$id}" );
+		}
+
+		return is_numeric( $result ) ? (int) $result : 0;
 	}
 }

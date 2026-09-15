@@ -298,13 +298,15 @@ final class RecruitmentCandidateEditPage {
 	 *     classifications: array<int, object>,
 	 *     calls_by_class: array<int, list<object>>,
 	 *     notice_labels: array<int, string>,
-	 *     adjutancy_cells: array<int, string>
+	 *     adjutancy_cells: array<int, string>,
+	 *     status_cells: array<int, string>
 	 * }
 	 * @phpstan-return array{
 	 *     classifications: array<int, ClassificationRow>,
 	 *     calls_by_class: array<int, list<CallRow>>,
 	 *     notice_labels: array<int, string>,
-	 *     adjutancy_cells: array<int, string>
+	 *     adjutancy_cells: array<int, string>,
+	 *     status_cells: array<int, string>
 	 * }
 	 */
 	private static function prepare_classifications_section_data( object $candidate ): array {
@@ -313,6 +315,7 @@ final class RecruitmentCandidateEditPage {
 		$calls_by_class  = array();
 		$notice_labels   = array();
 		$adjutancy_cells = array();
+		$status_cells    = array();
 
 		if ( ! empty( $classifications ) ) {
 			$classification_ids = array_map( static fn( $c ) => (int) $c->id, $classifications );
@@ -334,6 +337,12 @@ final class RecruitmentCandidateEditPage {
 				$notice_obj                      = RecruitmentNoticeReader::get_by_id( (int) $c->notice_id );
 				$notice_labels[ (int) $c->id ]   = null !== $notice_obj ? (string) $notice_obj->code : '#' . (int) $c->notice_id;
 				$adjutancy_cells[ (int) $c->id ] = self::render_adjutancy_cell( $c, $adjutancies_by_notice );
+				// The status cell used to be built in the view as a bare
+				// `<span class="ffc-recruitment-status-badge …">` carrying the
+				// raw enum — the only emitter of those classes that did not go
+				// through the helper, so it rendered a differently-shaped badge,
+				// with no colour and an untranslated label (#1193).
+				$status_cells[ (int) $c->id ] = RecruitmentAdminPage::classification_status_badge( (string) $c->status );
 			}
 		}
 
@@ -342,6 +351,7 @@ final class RecruitmentCandidateEditPage {
 			'calls_by_class'  => $calls_by_class,
 			'notice_labels'   => $notice_labels,
 			'adjutancy_cells' => $adjutancy_cells,
+			'status_cells'    => $status_cells,
 		);
 	}
 
@@ -363,6 +373,7 @@ final class RecruitmentCandidateEditPage {
 		$calls_by_class  = $data['calls_by_class'];
 		$notice_labels   = $data['notice_labels'];
 		$adjutancy_cells = $data['adjutancy_cells'];
+		$status_cells    = $data['status_cells'];
 
 		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/candidate-edit/classifications-section.php';
 	}

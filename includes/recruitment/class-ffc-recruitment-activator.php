@@ -66,7 +66,35 @@ class RecruitmentActivator {
 	 *
 	 * @return void
 	 */
+	/**
+	 * Guarda por versao: a cadeia abaixo so precisa rodar uma vez por
+	 * `FFC_VERSION` (#1231).
+	 *
+	 * Sem ela, `RecruitmentActivator::create_tables()` sondava o schema a CADA requisicao -- frontend anonimo
+	 * incluido -- porque `table_exists()` e um `SHOW TABLES LIKE` sem cache e
+	 * todo `add_column_if_missing()` dispara um `SHOW COLUMNS` antes de
+	 * decidir nao fazer nada. Somadas as quatro cadeias do `Loader`, eram 48
+	 * queries DDL por pagina numa instalacao sem nada a migrar.
+	 *
+	 * **A guarda e `FFC_VERSION`, e NAO um marcador one-shot, de proposito.**
+	 * Estas chamadas existem porque um update in-place do plugin (o botao
+	 * "Atualizar" do wp-admin) NAO dispara `register_activation_hook` -- a
+	 * propriedade a preservar e "o schema se cura depois de um update", nao
+	 * "roda a cada request". Com `FFC_VERSION` a constante muda no update e a
+	 * cadeia roda uma vez no primeiro request seguinte, identica ao que fazia
+	 * antes. Com um booleano one-shot, uma coluna introduzida numa release
+	 * futura nunca alcancaria quem ja tivesse o marcador gravado.
+	 *
+	 * A opcao e escrita **depois** do corpo, para que uma falha no meio nao
+	 * trave a cadeia numa versao que ela nao chegou a aplicar.
+	 */
 	public static function create_tables(): void {
+		// Guarda por versao (#1231) -- ver a nota logo acima da assinatura.
+		$ffc_schema_option = 'ffc_recruitment_tables_version';
+		if ( get_option( $ffc_schema_option, '' ) === FFC_VERSION ) {
+			return;
+		}
+
 		self::create_adjutancy_table();
 		self::create_notice_table();
 		self::create_notice_adjutancy_table();
@@ -76,6 +104,8 @@ class RecruitmentActivator {
 		self::create_reason_table();
 		self::create_import_jobs_table();
 		self::create_import_staging_table();
+
+		update_option( $ffc_schema_option, FFC_VERSION );
 	}
 
 	/**

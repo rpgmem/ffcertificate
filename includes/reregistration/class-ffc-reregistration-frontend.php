@@ -17,12 +17,16 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Reregistration;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
  * Reregistration Frontend.
+ *
+ * @phpstan-import-type ReregistrationSubmissionRow from ReregistrationSubmissionReader
  */
 class ReregistrationFrontend {
 
@@ -61,6 +65,83 @@ class ReregistrationFrontend {
 		add_action( 'wp_ajax_ffc_get_reregistration_form', array( __CLASS__, 'ajax_get_form' ) );
 		add_action( 'wp_ajax_ffc_submit_reregistration', array( __CLASS__, 'ajax_submit' ) );
 		add_action( 'wp_ajax_ffc_save_reregistration_draft', array( __CLASS__, 'ajax_save_draft' ) );
+		add_action( 'wp_ajax_ffc_import_previous_reregistration', array( __CLASS__, 'ajax_import_previous' ) );
+	}
+
+	/**
+	 * The user's submission row for a campaign, created on demand.
+	 *
+	 * **`no_submission` was submittable in name only.** #1125 put it in
+	 * `SUBMITTABLE_STATUSES`, so `can_submit` is true and the dashboard draws
+	 * the button — and then all three AJAX handlers refused, because each
+	 * required a row to exist and none created one. The button was a dead end
+	 * by construction for the exact state the constant declares submittable.
+	 *
+	 * Three populations reach it, not the two the constant's docblock names:
+	 *
+	 *  - a user added to an audience **after** the campaign went active, since
+	 *    seeding is a one-shot on that transition;
+	 *  - a submission an administrator deleted;
+	 *  - a member of a **child** audience of one attached to the campaign —
+	 *    `get_active_for_audience()` walks UP to parents, so the campaign is
+	 *    visible to them, while seeding reads `get_members()` without
+	 *    `include_children`, so they are never seeded. That asymmetry is
+	 *    systematic in any hierarchy and is tracked apart; creating on demand
+	 *    covers it without touching the seeding side.
+	 *
+	 * Entitlement is not re-derived: it asks the **same query that decided the
+	 * user could see the campaign at all** (`get_active_for_user`), so no new
+	 * authorization surface is introduced and the two can never disagree.
+	 *
+	 * The table carries `UNIQUE KEY (reregistration_id, user_id)`, so two
+	 * concurrent opens cannot duplicate — the loser's INSERT fails and the
+	 * re-read below returns the winner's row.
+	 *
+	 * @param int $reregistration_id Campaign id.
+	 * @param int $user_id           Current user.
+	 * @return ReregistrationSubmissionRow|null The row, or null when the user is not entitled.
+	 */
+	private static function submission_for( int $reregistration_id, int $user_id ): ?object {
+		$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( $reregistration_id, $user_id );
+		if ( $submission ) {
+			return $submission;
+		}
+
+		if ( ! self::user_may_reregister( $reregistration_id, $user_id ) ) {
+			return null;
+		}
+
+		ReregistrationSubmissionWriter::create(
+			array(
+				'reregistration_id' => $reregistration_id,
+				'user_id'           => $user_id,
+				'status'            => 'pending',
+			)
+		);
+
+		return ReregistrationSubmissionReader::get_by_reregistration_and_user( $reregistration_id, $user_id );
+	}
+
+	/**
+	 * Whether this campaign is one the user is entitled to fill.
+	 *
+	 * Reuses the visibility query rather than re-deriving membership: it is
+	 * what `get_user_reregistrations()` lists and therefore what put the
+	 * button on the screen. Deriving it a second way is how the two halves
+	 * of #1125 came to disagree in the first place.
+	 *
+	 * @param int $reregistration_id Campaign id.
+	 * @param int $user_id           Current user.
+	 * @return bool
+	 */
+	private static function user_may_reregister( int $reregistration_id, int $user_id ): bool {
+		foreach ( ReregistrationRepository::get_active_for_user( $user_id ) as $rereg ) {
+			if ( (int) $rereg->id === $reregistration_id ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -83,9 +164,9 @@ class ReregistrationFrontend {
 			wp_send_json_error( array( 'message' => __( 'Reregistration not found or not active.', 'ffcertificate' ) ) );
 		}
 
-		$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( $reregistration_id, $user_id );
+		$submission = self::submission_for( $reregistration_id, $user_id );
 		if ( ! $submission ) {
-			wp_send_json_error( array( 'message' => __( 'No submission found for this user.', 'ffcertificate' ) ) );
+			wp_send_json_error( array( 'message' => __( 'You are not part of this reregistration.', 'ffcertificate' ) ) );
 		}
 
 		if ( in_array( $submission->status, array( 'approved', 'expired' ), true ) ) {
@@ -94,6 +175,90 @@ class ReregistrationFrontend {
 
 		$html = ReregistrationFormRenderer::render( $rereg, $submission, $user_id );
 		wp_send_json_success( array( 'html' => $html ) );
+	}
+
+	/**
+	 * AJAX: traz os valores da última submissão APROVADA do usuário.
+	 *
+	 * Só roda quando o participante PEDE -- a oferta é um aviso no formulário,
+	 * e sem o clique nada é buscado. Isso é de propósito: dado de um ciclo
+	 * anterior aceito sem conferir é recadastramento desatualizado com cara de
+	 * novo, e quem pediu sabe que pediu.
+	 *
+	 * **Devolve PII em texto claro**, então a autorização é a mesma de
+	 * `ajax_get_form()` e vale reler: nonce, usuário derivado de
+	 * `get_current_user_id()` -- nunca da requisição --, e a submissão de
+	 * ORIGEM é buscada POR esse usuário, não por um id que o cliente mande.
+	 * Não há como pedir o histórico de outra pessoa.
+	 *
+	 * Só campos que existem na campanha ATUAL voltam: o que não coincide é
+	 * ignorado, sem conversão e sem aviso.
+	 *
+	 * @since 6.25.0
+	 * @return void
+	 */
+	public static function ajax_import_previous(): void {
+		check_ajax_referer( 'ffc_reregistration_frontend', 'nonce' );
+
+		// Lido por `RequestInput`, nao por um cast direto sobre o superglobal:
+		// o helper guarda o escalar, entao um array postado le como 0 em vez
+		// de virar o numero 1 (#1087). As tres leituras antigas deste arquivo
+		// estao no baseline do `RequestInputCastTest`; esta nao precisa entrar.
+		$reregistration_id = RequestInput::get_post_int( 'reregistration_id' );
+		$user_id           = get_current_user_id();
+
+		if ( ! $reregistration_id || ! $user_id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid request.', 'ffcertificate' ) ) );
+		}
+
+		$rereg = ReregistrationRepository::get_by_id( $reregistration_id );
+		if ( ! $rereg || 'active' !== $rereg->status ) {
+			wp_send_json_error( array( 'message' => __( 'Reregistration not found or not active.', 'ffcertificate' ) ) );
+		}
+
+		// O mesmo portão do formulário: sem linha nesta campanha, sem importar.
+		if ( ! self::submission_for( $reregistration_id, $user_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'You are not part of this reregistration.', 'ffcertificate' ) ) );
+		}
+
+		$source = ReregistrationSubmissionReader::get_latest_approved_for_user( $user_id, $reregistration_id );
+		if ( ! $source ) {
+			wp_send_json_error( array( 'message' => __( 'No previous approved reregistration to import.', 'ffcertificate' ) ) );
+		}
+
+		$saved  = $source->data ? json_decode( (string) $source->data, true ) : array();
+		$values = is_array( $saved['fields'] ?? null ) ? $saved['fields'] : array();
+
+		// Os sensíveis vêm criptografados, como o #1210 estabeleceu. Os campos
+		// de DECIFRAGEM são os da campanha de ORIGEM -- é lá que a flag
+		// `is_sensitive` que governou a gravação vive.
+		$source_rereg = ReregistrationRepository::get_by_id( (int) $source->reregistration_id );
+		if ( $source_rereg ) {
+			$values = FichaGenerator::decrypt_field_values(
+				FichaGenerator::get_custom_fields_for_reregistration( $source_rereg ),
+				$values
+			);
+		}
+
+		// Interseção com a campanha atual. Chave que não existe aqui é ignorada.
+		$current_keys = array();
+		foreach ( FichaGenerator::get_custom_fields_for_reregistration( $rereg ) as $field ) {
+			$current_keys[ (string) $field->field_key ] = true;
+		}
+
+		$fields = array();
+		foreach ( $values as $key => $value ) {
+			if ( isset( $current_keys[ (string) $key ] ) && '' !== $value && null !== $value ) {
+				$fields[ (string) $key ] = $value;
+			}
+		}
+
+		wp_send_json_success(
+			array(
+				'fields' => $fields,
+				'source' => array( 'title' => (string) ( $source->reregistration_title ?? '' ) ),
+			)
+		);
 	}
 
 	/**
@@ -121,9 +286,9 @@ class ReregistrationFrontend {
 			wp_send_json_error( array( 'message' => __( 'Reregistration not found or not active.', 'ffcertificate' ) ) );
 		}
 
-		$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( $reregistration_id, $user_id );
+		$submission = self::submission_for( $reregistration_id, $user_id );
 		if ( ! $submission ) {
-			wp_send_json_error( array( 'message' => __( 'No submission found.', 'ffcertificate' ) ) );
+			wp_send_json_error( array( 'message' => __( 'You are not part of this reregistration.', 'ffcertificate' ) ) );
 		}
 
 		if ( in_array( $submission->status, array( 'approved', 'expired' ), true ) ) {
@@ -174,7 +339,7 @@ class ReregistrationFrontend {
 			wp_send_json_error( array( 'message' => __( 'Reregistration not active.', 'ffcertificate' ) ) );
 		}
 
-		$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( $reregistration_id, $user_id );
+		$submission = self::submission_for( $reregistration_id, $user_id );
 		if ( ! $submission || in_array( $submission->status, array( 'approved', 'expired' ), true ) ) {
 			wp_send_json_error( array( 'message' => __( 'Cannot save draft.', 'ffcertificate' ) ) );
 		}

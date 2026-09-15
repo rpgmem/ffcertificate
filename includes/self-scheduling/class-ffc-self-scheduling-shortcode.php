@@ -124,7 +124,7 @@ class SelfSchedulingShortcode {
 		// PDF Libraries for auto-download receipt on booking.
 		wp_enqueue_script(
 			'html2canvas',
-			FFC_PLUGIN_URL . 'libs/js/html2canvas.min.js',
+			FFC_PLUGIN_URL . 'libs/js/html2canvas-' . FFC_HTML2CANVAS_VERSION . '.min.js',
 			array(),
 			FFC_HTML2CANVAS_VERSION,
 			true
@@ -132,7 +132,7 @@ class SelfSchedulingShortcode {
 
 		wp_enqueue_script(
 			'jspdf',
-			FFC_PLUGIN_URL . 'libs/js/jspdf.umd.min.js',
+			FFC_PLUGIN_URL . 'libs/js/jspdf-' . FFC_JSPDF_VERSION . '.umd.min.js',
 			array(),
 			FFC_JSPDF_VERSION,
 			true
@@ -578,7 +578,7 @@ class SelfSchedulingShortcode {
 
 								<div class="ffc-form-row">
 									<label for="ffc-booking-name">
-										<?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="required">*</span>
+										<?php esc_html_e( 'Name', 'ffcertificate' ); ?> <span class="ffc-required">*</span>
 									</label>
 									<input
 										type="text"
@@ -592,7 +592,7 @@ class SelfSchedulingShortcode {
 
 								<div class="ffc-form-row">
 									<label for="ffc-booking-email">
-										<?php esc_html_e( 'Email', 'ffcertificate' ); ?> <span class="required">*</span>
+										<?php esc_html_e( 'Email', 'ffcertificate' ); ?> <span class="ffc-required">*</span>
 									</label>
 									<input
 										type="email"
@@ -606,7 +606,7 @@ class SelfSchedulingShortcode {
 
 								<div class="ffc-form-row">
 									<label for="ffc-booking-cpf-rf">
-										<?php esc_html_e( 'CPF / RF', 'ffcertificate' ); ?> <span class="required">*</span>
+										<?php esc_html_e( 'CPF / RF', 'ffcertificate' ); ?> <span class="ffc-required">*</span>
 									</label>
 									<input
 										type="tel"
@@ -647,7 +647,7 @@ class SelfSchedulingShortcode {
 											)
 										);
 										?>
-										<span class="required">*</span>
+										<span class="ffc-required">*</span>
 									</label>
 									<input type="hidden" name="consent_text" value="<?php echo esc_attr( __( 'User consented to data collection for appointment booking.', 'ffcertificate' ) ); ?>">
 								</div>

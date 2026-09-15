@@ -1211,58 +1211,124 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	// ==================================================================
 
 	/**
+	 * Um unico INSERT cobre a pagina inteira, e a contagem vem do banco.
+	 *
+	 * E a asercao central do #1234: antes eram dois comandos POR USUARIO (um
+	 * SELECT de existencia e um INSERT); agora sao `ceil( N / 500 )` INSERTs.
+	 * Com tres usuarios, exatamente um.
+	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_create_for_audience_members_creates_submissions_for_new_users(): void {
-		// Mock ReregistrationRepository::get_user_ids_for_audiences.
+	public function test_create_for_audience_members_seeds_every_user_in_one_statement(): void {
 		$repoMock = Mockery::mock('alias:FreeFormCertificate\Reregistration\ReregistrationRepository');
 		$repoMock->shouldReceive('get_user_ids_for_audiences')
 			->once()
 			->with(array(100, 200))
 			->andReturn(array(10, 20, 30));
 
-		// For each user, get_by_reregistration_and_user returns null (no existing submission).
-		$this->wpdb->shouldReceive('get_row')->andReturn(null);
+		$captured = '';
+		$this->wpdb->shouldReceive('query')->once()->andReturnUsing(
+			function ($sql) use (&$captured) {
+				$captured = (string) $sql;
+				return 3;
+			}
+		);
 
-		// Each create call succeeds.
-		$this->wpdb->shouldReceive('insert')->times(3)->andReturn(1);
-		$this->wpdb->insert_id = 1;
+		// A forma antiga nao pode sobreviver a esta mudanca sem ser vista.
+		$this->wpdb->shouldNotReceive('insert');
+		$this->wpdb->shouldNotReceive('get_row');
 
 		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100, 200));
 
-		$this->assertSame(3, $count);
+		$this->assertSame(3, $count, 'A contagem e o affected_rows do INSERT, nao um acumulador em PHP.');
+		$this->assertStringContainsString('INSERT IGNORE INTO', $captured);
+		$this->assertSame(
+			3,
+			substr_count($captured, '(%d, %d, %s)'),
+			'Uma tupla de marcadores por usuario -- uma lista desalinhada aqui vira dado errado, nao erro.'
+		);
 	}
 
 	/**
+	 * Quem ja tem submissao e descartado pela UNIQUE, nao por uma leitura previa.
+	 *
+	 * `INSERT IGNORE` insere duas tuplas e o banco aceita uma; o `affected_rows`
+	 * devolvido ja e a contagem de CRIADAS. Nenhum SELECT de existencia e
+	 * emitido -- era ele que custava metade das vinte mil consultas.
+	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_create_for_audience_members_skips_existing_submissions(): void {
+	public function test_create_for_audience_members_lets_the_unique_key_skip_existing_rows(): void {
 		$repoMock = Mockery::mock('alias:FreeFormCertificate\Reregistration\ReregistrationRepository');
 		$repoMock->shouldReceive('get_user_ids_for_audiences')
 			->once()
 			->with(array(100))
 			->andReturn(array(10, 20));
 
-		// User 10 already has a submission, user 20 does not.
-		$existingSubmission = (object) array('id' => 50, 'user_id' => 10);
-		$call_count = 0;
-		$this->wpdb->shouldReceive('get_row')->andReturnUsing(function () use (&$call_count, $existingSubmission) {
-			$call_count++;
-			return $call_count === 1 ? $existingSubmission : null;
-		});
-
-		// Only one insert should happen (for user 20).
-		$this->wpdb->shouldReceive('insert')->once()->andReturn(1);
-		$this->wpdb->insert_id = 51;
+		$captured = '';
+		$this->wpdb->shouldReceive('query')->once()->andReturnUsing(
+			function ($sql) use (&$captured) {
+				$captured = (string) $sql;
+				return 1;
+			}
+		);
+		$this->wpdb->shouldNotReceive('get_row');
 
 		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
 
 		$this->assertSame(1, $count);
+		$this->assertStringContainsString(
+			'IGNORE',
+			$captured,
+			'Sem o IGNORE a linha duplicada derruba o lote inteiro, e nao so a si mesma.'
+		);
 	}
 
 	/**
+	 * Acima do lote, uma consulta por pagina -- e nao uma so, gigante.
+	 *
+	 * E a metade da correcao que um teste de tres usuarios nao consegue ver:
+	 * sem o `array_chunk`, dez mil membros viram um unico INSERT de trinta mil
+	 * marcadores, que esbarra em `max_allowed_packet` e falha no cliente real
+	 * sem falhar aqui.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_create_for_audience_members_splits_large_audiences_into_pages(): void {
+		$user_ids = range(1, 1201);
+
+		$repoMock = Mockery::mock('alias:FreeFormCertificate\Reregistration\ReregistrationRepository');
+		$repoMock->shouldReceive('get_user_ids_for_audiences')
+			->once()
+			->with(array(100))
+			->andReturn($user_ids);
+
+		$sizes = array();
+		$this->wpdb->shouldReceive('query')->times(3)->andReturnUsing(
+			function ($sql) use (&$sizes) {
+				$rows    = substr_count((string) $sql, '(%d, %d, %s)');
+				$sizes[] = $rows;
+				return $rows;
+			}
+		);
+
+		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
+
+		$this->assertSame(array(500, 500, 201), $sizes);
+		$this->assertSame(1201, $count, 'A contagem soma as paginas.');
+		$this->assertSame(
+			500,
+			ReregistrationSubmissionWriter::SEED_CHUNK_SIZE,
+			'O tamanho e publico porque este teste o le -- mudar o numero exige rever as paginas acima.'
+		);
+	}
+
+	/**
+	 * Sem usuarios, nenhuma consulta.
+	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
@@ -1273,6 +1339,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 			->with(array(100))
 			->andReturn(array());
 
+		$this->wpdb->shouldNotReceive('query');
 		$this->wpdb->shouldNotReceive('insert');
 
 		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
@@ -1281,27 +1348,172 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	}
 
 	/**
+	 * Um id invalido nao vira uma tupla.
+	 *
+	 * `get_members()` devolve o que o driver entregou -- string, e eventualmente
+	 * `0` ou vazio. Sem a normalizacao, um `0` entraria como `user_id = 0`: uma
+	 * submissao pendente pertencente a ninguem, que a UNIQUE aceita uma vez por
+	 * campanha e que ninguem jamais preenche.
+	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_create_for_audience_members_handles_insert_failures(): void {
+	public function test_create_for_audience_members_drops_non_positive_and_duplicate_ids(): void {
 		$repoMock = Mockery::mock('alias:FreeFormCertificate\Reregistration\ReregistrationRepository');
 		$repoMock->shouldReceive('get_user_ids_for_audiences')
 			->once()
 			->with(array(100))
-			->andReturn(array(10, 20));
+			->andReturn(array('10', 0, '10', '', 20, -3));
 
-		// No existing submissions.
-		$this->wpdb->shouldReceive('get_row')->andReturn(null);
-
-		// First insert succeeds, second fails.
-		$this->wpdb->shouldReceive('insert')
-			->twice()
-			->andReturn(1, false);
-		$this->wpdb->insert_id = 1;
+		$captured = '';
+		$this->wpdb->shouldReceive('query')->once()->andReturnUsing(
+			function ($sql) use (&$captured) {
+				$captured = (string) $sql;
+				return 2;
+			}
+		);
 
 		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
 
-		$this->assertSame(1, $count);
+		$this->assertSame(2, $count);
+		$this->assertSame(
+			2,
+			substr_count($captured, '(%d, %d, %s)'),
+			'Restam apenas 10 e 20: o zero, o vazio, o negativo e a repeticao saem antes do SQL.'
+		);
 	}
+
+	/**
+	 * Uma pagina que falha nao derruba as outras nem inflaciona a contagem.
+	 *
+	 * `wpdb::query()` devolve `false` em erro. MEDIDO: trocar
+	 * `is_int( $affected ) && $affected > 0` por so `$affected > 0` mantem este
+	 * teste verde, porque `false > 0` ja e falso -- o `is_int()` esta la para o
+	 * PHPStan (nivel 8 nao estreita `int|bool` por uma comparacao), nao para o
+	 * runtime. O que este teste prova e o comportamento: a pagina seguinte roda
+	 * e so ela conta.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_create_for_audience_members_survives_a_failed_page(): void {
+		$repoMock = Mockery::mock('alias:FreeFormCertificate\Reregistration\ReregistrationRepository');
+		$repoMock->shouldReceive('get_user_ids_for_audiences')
+			->once()
+			->with(array(100))
+			->andReturn(range(1, 600));
+
+		$this->wpdb->shouldReceive('query')->twice()->andReturn(false, 100);
+
+		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
+
+		$this->assertSame(100, $count);
+	}
+
+	// ==================================================================
+	// get_awaiting_invitation() / mark_invited() — #1190
+	// ==================================================================
+
+	/**
+	 * Captures the SQL and the bound values of the eligibility query.
+	 *
+	 * @param int|null $extended_at Deadline extension, or null.
+	 * @return array{sql: string, values: array<int, mixed>}
+	 */
+	private function capture_awaiting_query(?int $extended_at): array {
+		$captured = array( 'sql' => '', 'values' => array() );
+
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function () use (&$captured) {
+			$args = func_get_args();
+			if ( strpos( (string) $args[0], 'invited_at' ) !== false ) {
+				$captured['sql']    = (string) $args[0];
+				$captured['values'] = isset( $args[1] ) && is_array( $args[1] ) ? $args[1] : array();
+			}
+			return $args[0];
+		});
+		$this->wpdb->shouldReceive('get_results')->andReturn(array());
+
+		ReregistrationSubmissionReader::get_awaiting_invitation(7, $extended_at);
+
+		return $captured;
+	}
+
+	/**
+	 * With no extension recorded, only the never-invited are owed an email —
+	 * which is what makes the button idempotent.
+	 */
+	public function test_get_awaiting_invitation_without_extension_asks_only_for_the_never_invited(): void {
+		$captured = $this->capture_awaiting_query(null);
+
+		$this->assertStringContainsString('invited_at IS NULL', $captured['sql']);
+		$this->assertStringNotContainsString('status IN', $captured['sql']);
+		$this->assertContains(7, $captured['values']);
+	}
+
+	/**
+	 * With an extension, whoever has not finished is owed one too — and the
+	 * comparison is against the extension timestamp, so somebody invited AFTER
+	 * it is left alone.
+	 */
+	public function test_get_awaiting_invitation_with_extension_adds_the_unfinished(): void {
+		$captured = $this->capture_awaiting_query(1780000000);
+
+		$this->assertStringContainsString('invited_at IS NULL', $captured['sql']);
+		$this->assertStringContainsString('invited_at < %d', $captured['sql']);
+		$this->assertStringContainsString('status IN', $captured['sql']);
+		$this->assertContains(1780000000, $captured['values']);
+
+		foreach ( ReregistrationSubmissionReader::UNFINISHED_STATUSES as $status ) {
+			$this->assertContains($status, $captured['values']);
+		}
+	}
+
+	/**
+	 * `submitted` and `approved` are out on purpose: the person did their part,
+	 * and a longer deadline is not news to them.
+	 */
+	public function test_finished_statuses_are_not_re_invited(): void {
+		$this->assertNotContains('submitted', ReregistrationSubmissionReader::UNFINISHED_STATUSES);
+		$this->assertNotContains('approved', ReregistrationSubmissionReader::UNFINISHED_STATUSES);
+		$this->assertContains('rejected', ReregistrationSubmissionReader::UNFINISHED_STATUSES);
+		$this->assertContains('expired', ReregistrationSubmissionReader::UNFINISHED_STATUSES);
+	}
+
+	public function test_mark_invited_stamps_only_the_supplied_rows(): void {
+		$captured = array();
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function () use (&$captured) {
+			$args = func_get_args();
+			if ( strpos( (string) $args[0], 'SET invited_at' ) !== false ) {
+				$captured = isset( $args[1] ) && is_array( $args[1] ) ? $args[1] : array();
+			}
+			return $args[0];
+		});
+		$this->wpdb->shouldReceive('query')->andReturn(2);
+
+		$this->assertSame(2, ReregistrationSubmissionWriter::mark_invited(array(101, 102)));
+		$this->assertContains(101, $captured);
+		$this->assertContains(102, $captured);
+	}
+
+	/**
+	 * An empty batch must not issue an `UPDATE … WHERE id IN ()` — which is a
+	 * syntax error, and on some builds a table-wide write.
+	 */
+	public function test_mark_invited_does_nothing_for_an_empty_batch(): void {
+		$this->wpdb->shouldNotReceive('query');
+
+		$this->assertSame(0, ReregistrationSubmissionWriter::mark_invited(array()));
+	}
+
+	/**
+	 * `prepare()` returns `string|null`, and `query()` only takes a string. A
+	 * null must stop before the query rather than be cast to an empty one.
+	 */
+	public function test_mark_invited_stops_when_prepare_fails(): void {
+		$this->wpdb->shouldReceive('prepare')->andReturn(null);
+		$this->wpdb->shouldNotReceive('query');
+
+		$this->assertSame(0, ReregistrationSubmissionWriter::mark_invited(array(101)));
+	}
+
 }

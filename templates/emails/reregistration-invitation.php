@@ -9,7 +9,13 @@
  *
  * Available placeholders:
  *   {{user_name}}, {{reregistration_title}}, {{audience_name}},
- *   {{start_date}}, {{end_date}}, {{dashboard_url}}, {{site_name}}
+ *   {{start_date}}, {{end_date}}, {{dashboard_url}}, {{site_name}},
+ *   {{set_password_url}}
+ *
+ * `{{set_password_url}}` abre a tela de definição de senha (#1212). O link não
+ * cria sessão: a sessão só nasce depois que a senha existe. Ele expira e vale
+ * uma vez só -- a janela é configurável em Configurações → Recadastramento.
+ * Quem já tem senha pode ignorá-lo e entrar pelo botão principal.
  *
  * @since 4.11.0
  * @package FreeFormCertificate\Reregistration
@@ -33,5 +39,9 @@ return array(
 		. '<p style="text-align:center;margin:24px 0;">'
 		. '<a href="{{dashboard_url}}" style="display:inline-block;padding:12px 28px;background:#2271b1;color:#fff;text-decoration:none;border-radius:4px;font-weight:600;">'
 		. __( 'Complete Reregistration', 'ffcertificate' )
-		. '</a></p>',
+		. '</a></p>'
+		. '<p style="margin:0;font-size:13px;color:#50575e;text-align:center;">'
+		. __( 'First time here, or forgot your password?', 'ffcertificate' )
+		. ' <a href="{{set_password_url}}" style="color:#2271b1;">' . __( 'Define your password', 'ffcertificate' ) . '</a>.'
+		. '</p>',
 );

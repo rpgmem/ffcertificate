@@ -330,4 +330,70 @@ class SubmissionLifecycleServiceTest extends TestCase {
 
 		$this->assertSame( 0, $this->service->run_data_cleanup() );
 	}
+
+	/**
+	 * O DELETE e limitado, e a limitacao esta no SQL (#1234).
+	 *
+	 * Isto roda no cron diario, isto e, dentro da requisicao de um visitante.
+	 * Sem `LIMIT`, o dia em que um administrador liga a retencao numa
+	 * instalacao madura segura a tabela pelo tempo que levar apagar anos de
+	 * submissoes -- e esse dia e justamente quando o backlog e maior, porque a
+	 * varredura nunca rodou antes (#936).
+	 */
+	public function test_run_data_cleanup_bounds_each_delete(): void {
+		$reader = $this->stubActivityLog();
+		$reader->shouldReceive( 'get_bool' )->with( 'cleanup_enabled', false )->andReturn( true );
+		$reader->shouldReceive( 'get_int' )->with( 'cleanup_days', 365 )->andReturn( 30 );
+
+		$captured = '';
+		global $wpdb;
+		$wpdb->shouldReceive( 'query' )->once()->andReturnUsing(
+			function ( $sql ) use ( &$captured ) {
+				$captured = (string) $sql;
+				return 8;
+			}
+		);
+
+		$this->service->run_data_cleanup();
+
+		$this->assertStringContainsString( 'LIMIT', $captured );
+	}
+
+	/**
+	 * Uma pagina CHEIA continua; uma incompleta encerra.
+	 *
+	 * E a metade que um teste de uma pagina so nao ve: sem a continuacao, uma
+	 * execucao apaga 500 linhas e para, e o backlog leva uma eternidade de dias
+	 * para drenar; sem a parada, uma tabela ja limpa custaria vinte DELETEs por
+	 * dia para nao apagar nada.
+	 */
+	public function test_run_data_cleanup_continues_only_after_a_full_page(): void {
+		$reader = $this->stubActivityLog();
+		$reader->shouldReceive( 'get_bool' )->with( 'cleanup_enabled', false )->andReturn( true );
+		$reader->shouldReceive( 'get_int' )->with( 'cleanup_days', 365 )->andReturn( 30 );
+
+		global $wpdb;
+		// Duas paginas cheias, depois uma parcial: tres consultas e para.
+		$wpdb->shouldReceive( 'query' )->times( 3 )->andReturn( 500, 500, 120 );
+
+		$this->assertSame( 1120, $this->service->run_data_cleanup() );
+	}
+
+	/**
+	 * O teto encerra a execucao mesmo com backlog sobrando.
+	 *
+	 * Sem ele o laco viraria o `DELETE` sem limite de volta, so que em
+	 * prestacoes -- e o visitante pagaria a soma.
+	 */
+	public function test_run_data_cleanup_stops_at_the_chunk_cap(): void {
+		$reader = $this->stubActivityLog();
+		$reader->shouldReceive( 'get_bool' )->with( 'cleanup_enabled', false )->andReturn( true );
+		$reader->shouldReceive( 'get_int' )->with( 'cleanup_days', 365 )->andReturn( 30 );
+
+		global $wpdb;
+		// Toda pagina volta CHEIA: so o teto encerra.
+		$wpdb->shouldReceive( 'query' )->times( 20 )->andReturn( 500 );
+
+		$this->assertSame( 10000, $this->service->run_data_cleanup() );
+	}
 }

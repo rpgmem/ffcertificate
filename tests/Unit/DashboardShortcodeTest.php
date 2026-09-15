@@ -145,7 +145,7 @@ class DashboardShortcodeTest extends TestCase {
 		$output = DashboardShortcode::render();
 
 		$this->assertStringContainsString( 'ffc-user-dashboard', $output );
-		$this->assertStringContainsString( 'tab-profile', $output );
+		$this->assertStringContainsString( 'ffc-tabpanel-profile', $output );
 		$this->assertStringContainsString( 'Profile', $output );
 	}
 
@@ -326,8 +326,8 @@ class DashboardShortcodeTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-tab-audience', $output );
 		$this->assertStringContainsString( 'ffc-tab-reregistrations', $output );
 		$this->assertStringContainsString( 'ffc-tab-recruitment', $output );
-		$this->assertStringContainsString( 'tab-certificates', $output );
-		$this->assertStringContainsString( 'tab-recruitment', $output );
+		$this->assertStringContainsString( 'ffc-tabpanel-certificates', $output );
+		$this->assertStringContainsString( 'ffc-tabpanel-recruitment', $output );
 		// Server-rendered recruitment body reused as tab content.
 		$this->assertStringContainsString( 'ffc-recruitment-body', $output );
 		// Reregistration form panel present when reregistrations tab visible.

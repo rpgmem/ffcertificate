@@ -30,7 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-		<div class="wrap">
+		<div class="wrap ffc-admin-page ffc-page-short-urls">
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Short URLs', 'ffcertificate' ); ?></h1>
 			<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_settings' ) ) : ?>
 				<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=url_shortener' ) ); ?>" class="page-title-action">

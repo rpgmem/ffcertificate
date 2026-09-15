@@ -30,21 +30,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
-					<th scope="row"><label for="rereg_title"><?php esc_html_e( 'Title', 'ffcertificate' ); ?> <span class="required">*</span></label></th>
+					<th scope="row"><label for="rereg_title"><?php esc_html_e( 'Title', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label></th>
 					<td><input type="text" name="rereg_title" id="rereg_title" class="regular-text" value="<?php echo esc_attr( $item->title ?? '' ); ?>" required></td>
 				</tr>
 				<tr>
-					<th scope="row"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?> <span class="required">*</span></th>
+					<th scope="row"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?> <span class="ffc-required">*</span></th>
 					<td>
 						<?php self::render_audience_transfer_list( $audiences, $selected_ids ); ?>
 					</td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="rereg_start"><?php esc_html_e( 'Start Date', 'ffcertificate' ); ?> <span class="required">*</span></label></th>
+					<th scope="row"><label for="rereg_start"><?php esc_html_e( 'Start Date', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label></th>
 					<td><input type="datetime-local" name="rereg_start_date" id="rereg_start" value="<?php echo esc_attr( $item ? gmdate( 'Y-m-d\TH:i', (int) strtotime( $item->start_date ) ) : '' ); ?>" required></td>
 				</tr>
 				<tr>
-					<th scope="row"><label for="rereg_end"><?php esc_html_e( 'End Date', 'ffcertificate' ); ?> <span class="required">*</span></label></th>
+					<th scope="row"><label for="rereg_end"><?php esc_html_e( 'End Date', 'ffcertificate' ); ?> <span class="ffc-required">*</span></label></th>
 					<td><input type="datetime-local" name="rereg_end_date" id="rereg_end" value="<?php echo esc_attr( $item ? gmdate( 'Y-m-d\TH:i', (int) strtotime( $item->end_date ) ) : '' ); ?>" required></td>
 				</tr>
 				<tr>
@@ -145,4 +145,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 			<?php submit_button( $id > 0 ? __( 'Update Reregistration', 'ffcertificate' ) : __( 'Create Reregistration', 'ffcertificate' ) ); ?>
 		</form>
+
+		<?php
+		/*
+		 * Convite manual (#1190). FORA do `<form>` de propósito: um `<button>`
+		 * dentro dele enviaria o formulário, e este não salva nada -- dispara
+		 * e-mail. Só aparece numa campanha que já existe, porque só aí há
+		 * submissões para convidar.
+		 */
+		if ( $id > 0 ) :
+			?>
+		<div class="postbox ffc-rereg-invite-box">
+			<h2 class="hndle"><span><?php esc_html_e( 'Invitations', 'ffcertificate' ); ?></span></h2>
+			<div class="inside">
+				<p class="description">
+					<?php esc_html_e( 'Sends the invitation to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished.', 'ffcertificate' ); ?>
+				</p>
+				<button type="button" class="button button-secondary" id="ffc-rereg-send-invitations" data-rereg-id="<?php echo esc_attr( (string) $id ); ?>">
+					<?php esc_html_e( 'Send invitations', 'ffcertificate' ); ?>
+				</button>
+				<span class="ffc-rereg-invite-msg" aria-live="polite"></span>
+			</div>
+		</div>
+			<?php
+		endif;
+		?>
 		<?php

@@ -5,7 +5,7 @@
 .ffc-email-model-layout {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 24px;
+	gap: var(--ffc-spacing-3xl);
 	align-items: flex-start;
 }
 
@@ -16,21 +16,21 @@
 
 .ffc-email-model-group {
 	border: 1px solid var(--ffc-border-light);
-	border-radius: 4px;
-	padding: 8px 14px 14px;
-	margin: 0 0 16px;
+	border-radius: var(--ffc-radius-sm);
+	padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg) var(--ffc-spacing-lg);
+	margin: 0 0 var(--ffc-spacing-xl);
 }
 
 .ffc-email-model-group legend {
 	font-weight: 600;
-	padding: 0 6px;
+	padding: 0 var(--ffc-spacing-xs);
 }
 
 .ffc-email-model-row {
 	display: flex;
 	align-items: center;
-	gap: 12px;
-	margin: 8px 0;
+	gap: var(--ffc-spacing-lg);
+	margin: var(--ffc-spacing-sm) 0;
 }
 
 .ffc-email-model-row > label {
@@ -41,19 +41,19 @@
 .ffc-email-model-logo {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--ffc-spacing-xs);
 	flex-wrap: wrap;
 }
 
 .ffc-email-model-tokens code {
-	font-size: 11px;
+	font-size: var(--ffc-font-size-2xs);
 }
 
 .ffc-email-model-actions {
 	display: flex;
 	align-items: center;
-	gap: 12px;
-	margin-top: 16px;
+	gap: var(--ffc-spacing-lg);
+	margin-top: var(--ffc-spacing-xl);
 }
 
 .ffc-email-model-preview {
@@ -64,14 +64,14 @@
 }
 
 .ffc-email-model-preview h4 {
-	margin: 0 0 8px;
+	margin: 0 0 var(--ffc-spacing-sm);
 }
 
 .ffc-email-model-preview-frame {
 	width: 100%;
 	height: 460px;
 	border: 1px solid var(--ffc-border-light);
-	border-radius: 4px;
+	border-radius: var(--ffc-radius-sm);
 	background: var(--ffc-bg-card);
 }
 

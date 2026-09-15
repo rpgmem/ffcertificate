@@ -255,10 +255,15 @@ class RecruitmentPublicShortcodeRendererTest extends TestCase {
 		$this->assertSame( '', $this->invoke( 'render_adjutancy_badge', null ) );
 	}
 
-	public function test_render_adjutancy_badge_uses_color_and_falls_back(): void {
+	/**
+	 * The adjutancy colour is per database row, so it is the one badge whose
+	 * value still travels with the element — through
+	 * `render_with_row_color()`, which writes it as a custom property (#1193).
+	 */
+	public function test_render_adjutancy_badge_uses_row_color_and_falls_back(): void {
 		$badge = Mockery::mock( 'alias:FreeFormCertificate\Core\BadgeHtml' );
-		$badge->shouldReceive( 'render' )->andReturnUsing(
-			fn( $base, $cls, $color, $label ) => "[$color|$label]"
+		$badge->shouldReceive( 'render_with_row_color' )->andReturnUsing(
+			fn( $base, $color, $label ) => "[$color|$label]"
 		);
 
 		$this->assertSame(
@@ -273,65 +278,53 @@ class RecruitmentPublicShortcodeRendererTest extends TestCase {
 		);
 	}
 
+	/**
+	 * The status badges no longer carry a colour at all: the renderer supplies
+	 * family and variant, and the generated palette colours the variant. What
+	 * is worth pinning here is that the variant class is right — the mapping
+	 * from status to colour is pinned, in both directions, in
+	 * {@see RecruitmentBadgePaletteTest}.
+	 */
 	public function test_render_subscription_badge_pcd_and_geral(): void {
-		$this->settingsMock->shouldReceive( 'all' )->andReturn(
-			array(
-				'subscription_color_pcd'   => '#pcd',
-				'subscription_color_geral' => '#geral',
-			)
-		);
 		$badge = Mockery::mock( 'alias:FreeFormCertificate\Core\BadgeHtml' );
 		$badge->shouldReceive( 'render' )->andReturnUsing(
-			fn( $base, $cls, $color, $label ) => "[$cls|$color|$label]"
+			fn( $base, $cls, $label ) => "[$base|$cls|$label]"
 		);
 
 		$pcd   = RecruitmentPublicShortcodeRenderer::render_subscription_badge( true );
 		$geral = RecruitmentPublicShortcodeRenderer::render_subscription_badge( false );
 
-		$this->assertStringContainsString( 'pcd', $pcd );
-		$this->assertStringContainsString( '#pcd', $pcd );
-		$this->assertStringContainsString( 'geral', $geral );
-		$this->assertStringContainsString( '#geral', $geral );
+		$this->assertSame( '[ffc-recruitment-subscription-badge|ffc-recruitment-subscription-pcd|PCD]', $pcd );
+		$this->assertSame( '[ffc-recruitment-subscription-badge|ffc-recruitment-subscription-geral|GERAL]', $geral );
 	}
 
-	public function test_render_status_badge_maps_color_by_status(): void {
-		$this->settingsMock->shouldReceive( 'all' )->andReturn(
-			array(
-				'status_color_empty'     => '#e1',
-				'status_color_called'    => '#c1',
-				'status_color_hired'     => '#h1',
-				'status_color_not_shown' => '#n1',
-				'status_color_withdrew'  => '#w1',
-			)
-		);
+	public function test_render_status_badge_names_the_variant_class(): void {
 		$badge = Mockery::mock( 'alias:FreeFormCertificate\Core\BadgeHtml' );
 		$badge->shouldReceive( 'render' )->andReturnUsing(
-			fn( $base, $cls, $color, $label ) => "[$color]"
+			fn( $base, $cls, $label ) => "[$cls|$label]"
 		);
 
-		$this->assertSame( '[#c1]', $this->invoke( 'render_status_badge', 'called' ) );
-		// accepted shares the called color.
-		$this->assertSame( '[#c1]', $this->invoke( 'render_status_badge', 'accepted' ) );
-		// Unknown status → neutral fallback.
-		$this->assertSame( '[#e9ecef]', $this->invoke( 'render_status_badge', 'bogus' ) );
+		$this->assertSame( '[ffc-recruitment-status-called|Called]', $this->invoke( 'render_status_badge', 'called' ) );
+		// `accepted` keeps its own class and shares `called`'s colour in the palette.
+		$this->assertSame( '[ffc-recruitment-status-accepted|Called]', $this->invoke( 'render_status_badge', 'accepted' ) );
+		// Unknown status still names a class; the family rule floors its colour.
+		$this->assertSame( '[ffc-recruitment-status-bogus|bogus]', $this->invoke( 'render_status_badge', 'bogus' ) );
 	}
 
-	public function test_render_preview_status_badge_maps_color_and_passes_reason(): void {
-		$this->settingsMock->shouldReceive( 'all' )->andReturn(
-			array(
-				'preview_color_empty'          => '#pe',
-				'preview_color_denied'         => '#pd',
-				'preview_color_granted'        => '#pg',
-				'preview_color_appeal_denied'  => '#pad',
-				'preview_color_appeal_granted' => '#pag',
-			)
-		);
+	public function test_render_preview_status_badge_names_the_variant_and_passes_reason(): void {
 		$badge = Mockery::mock( 'alias:FreeFormCertificate\Core\BadgeHtml' );
 		$badge->shouldReceive( 'render' )->andReturnUsing(
-			fn( $base, $cls, $color, $label, $reason = '' ) => "[$color|$label|$reason]"
+			fn( $base, $cls, $label, $reason = '' ) => "[$cls|$label|$reason]"
 		);
 
-		$this->assertSame( '[#pg|Granted|]', $this->invoke( 'render_preview_status_badge', 'granted', '' ) );
-		$this->assertSame( '[#e9ecef|weird|hint]', $this->invoke( 'render_preview_status_badge', 'weird', 'hint' ) );
+		$this->assertSame(
+			'[ffc-recruitment-preview-status-granted|Granted|]',
+			$this->invoke( 'render_preview_status_badge', 'granted', '' )
+		);
+		$this->assertSame(
+			'[ffc-recruitment-preview-status-weird|weird|hint]',
+			$this->invoke( 'render_preview_status_badge', 'weird', 'hint' )
+		);
 	}
+
 }

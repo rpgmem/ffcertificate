@@ -20,7 +20,6 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
-use FreeFormCertificate\Settings\SettingsReader;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -98,14 +97,12 @@ class AdminLoader {
 		MigrationActionsAjaxEndpoint::init();
 		ActivityLogAjaxEndpoint::init();
 		SubmissionsBulkActionsAjaxEndpoint::init();
-		// Expired-tickets cleanup is a Certificates-module cron (sweeps
-		// `ffc_form` posts). Gate its callback on the module toggle so a
-		// disabled Certificates module halts the daily sweep: the event stays
-		// scheduled and fires as a no-op, matching the reregistration /
-		// self-scheduling cron gating in Loader::define_admin_hooks().
-		if ( SettingsReader::module_enabled( 'certificates' ) ) {
-			ExpiredTicketsCleanup::init();
-		}
+		// A cron de tickets expirados NAO mora aqui (#1234). Ela morou, e por
+		// isso nunca rodou: este loader so e construido dentro de
+		// `if ( is_admin() )`, e `wp-cron.php` define `DOING_CRON`, nunca
+		// `WP_ADMIN` -- entao `is_admin()` e falso em todo contexto que executa
+		// o gancho. O registro esta em `Loader::define_admin_hooks()`, que
+		// apesar do nome roda em toda requisicao.
 		FormListColumns::init();
 		AdminUserCustomFields::init();
 	}

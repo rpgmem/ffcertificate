@@ -29,6 +29,12 @@
 /* ==========================================================================
    2. PDF WRAPPER (Main container)
    ========================================================================== */
+/* 14px literal, e NÃO o token: esta folha é a BASE da cadeia, enfileirada com
+   `array()` — não declara dependência de `ffc-common`, e tem um segundo local
+   de enfileiramento no frontend (`class-ffc-frontend.php`). Uma custom property
+   não declarada INVALIDA a declaração inteira, então aqui o token não cairia
+   para 14px: o wrapper herdaria o tamanho de fora. A tokenização foi tentada e
+   revertida — `AdminStylesheetTokensTest` (direção B) é quem apontou. */
 .ffc-pdf-wrapper {
     position: relative !important;
     background-color: #ffffff !important;

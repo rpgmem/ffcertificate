@@ -7,7 +7,64 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.24.0] (2026-09-10)
+## [6.25.0] (2026-09-15)
+
+### Added
+
+- **A tela de definição de senha no convite de recadastramento** (#1212): a conta nascia com senha aleatória que ninguém contava ao convidado, e o botão levava ao painel, que exige login. O link abre a tela; a sessão só nasce depois que a senha existe.
+- **Importar as respostas do último recadastramento aprovado** (#1213): ao entrar numa campanha nova, quem já teve um ciclo aprovado vê um aviso oferecendo trazer os dados. Só voltam campos que existem na campanha atual, e o que já foi digitado não é sobrescrito.
+- **Código de autenticação no rodapé da ficha de recadastramento** (#1211): `R-XXXX-XXXX-XXXX`, o mesmo formato do e-mail de convite e do certificado. Só em submissão aprovada.
+- **Espaçamento, raio e empilhamento passam a ler uma escala** (#1169, #1171, #1176): 1.147 declarações de espaçamento (eram **3 de 1.238**), 149 de raio e 16 de camada — sem mover um pixel, provado pelos valores resolvidos antes e depois.
+- **Escopo de página no admin, e a catraca de âncora de namespace vai de 60 a 3** (#1152, #1184): os 23 `div.wrap` do plugin passam a declarar a tela a que pertencem, e 48 seletores sobre marcação do WordPress descem dessa âncora em vez de alcançar toda tela onde a folha por acaso carrega.
+- **Seis guardas novas** (#1152, #1162, #1168, #1170, #1220): um id que o JavaScript procura tem de ter emissor; um seletor tem de nomear algo nosso; uma classe crua em duas folhas sem aresta entre elas é proibida; o medidor de contraste deriva os pares das folhas em vez de ler uma lista escrita à mão.
+
+### Changed
+
+- **Cinco rótulos e cinco obrigatoriedades dos campos padrão de recadastramento** (#1209): RF vira "Registro Funcional (RF)", "Apto/Bl" vira "Complemento", e `rf`, `endereco`, `endereco_numero`, `email_institucional` e `sindicato` passam a obrigatórios. Vale para **públicos novos**.
+- **Os bundles de PDF levam a versão no nome do arquivo** (#1202, #1203): subir a constante sem renomear o arquivo passa a dar 404 alto em vez de servir o bundle velho sob chave nova — era o que o recibo de agendamento fazia, anunciando `?ver=2.5.1` para um jsPDF 4.2.1.
+- **A tipografia passa a ler a escala, com piso em px** (#1148, #1157): eram 415 declarações `font-size` e nenhuma lia um token. Cada degrau vira `max(13px, 0.8125rem)`: imune a um tema com `html { font-size: 62.5% }`, que renderizava o corpo a 8,1px.
+- **Componentes ganham nome próprio** (#1151, #1154, #1170, #1171): 38 classes nossas eram declaradas sem prefixo, o modal do recadastramento dividia `.ffc-modal` com o componente compartilhado, e nove componentes de tela moravam na gaveta de utilitários. Sem mover um pixel.
+- **Tema do editor de código foi para a aba Geral, ao lado do Modo Escuro** (#1148): estava em Avançado, e um dos três valores é `auto`, que segue o Modo Escuro. Quem procurava o tema do editor procurava junto do tema.
+- **Correções nas próprias guardas e no `CLAUDE.md`** (#1182, #1185, #1187, #1193, #1201): duas varreduras liam o fonte errado e escondiam o que deviam medir; a de emissão dava nove classes como órfãs tendo o emissor no repositório; e o fluxo de Dependabot mandava um agente postar um comando que falha em silêncio.
+
+### Deprecated
+
+- ⚠ **`AppointmentRepository::getStatistics()` e `AppointmentReader::getStatistics()`** (#1245): sem chamador de produto em toda a árvore. Ambos passam a emitir `_deprecated_function()` sob `WP_DEBUG` e serão **removidos em 6.27.0**. Não há substituto; se a sua integração usa algum dos dois, abra uma issue antes dessa release.
+
+### Removed
+
+- **Os seis ids que o JavaScript procurava e ninguém emitia** (#1227): o select dependente por id, o controlador do dropdown de migrações (cuja marcação não existe em revisão alguma da história) e a busca por `#ffc_bg_image_url`. Com eles saíram 8 testes que só exercitavam código morto.
+- **Oito regras de CSS que não pintavam nada** (#1193, #1202): seis seletores `.ffc-settings-page` que um irmão na mesma regra já alcançava, e as duas de `.tablenav` — uma repetia o que o WordPress já declara, a outra era o valor inicial da propriedade.
+
+### Fixed
+
+- **As migrações de capability varriam todos os usuários da instalação a cada requisição** (#1254): onze delas, no `plugins_loaded` — podendo cair numa requisição de frontend anônima. E a flag de conclusão só é gravada **depois** da varredura, então um timeout no meio fazia a seguinte recomeçar do zero, indefinidamente.
+- **Cada `encrypt()`/`decrypt()` refazia duas derivações PBKDF2 de 10.000 rounds** (#1230): 11,56 ms por derivação e **2.384 ms para desenhar a tela de Submissões** — que agora custa 0,7 ms. As entradas são constantes PHP, então memoizar não pode divergir.
+- **A varredura diária de tickets expirados nunca rodou** (#1234): o callback era registrado dentro de `if ( is_admin() )`, e o `wp-cron.php` define `DOING_CRON` e **nunca** `WP_ADMIN`. E a varredura de retenção emitia um `DELETE` sem limite — passa a páginas de 500, no máximo 20 por execução.
+- **Seis consultas cujo custo crescia com a tabela** (#1234): `SELECT DISTINCT` no Log de Atividades a cada render, 5.000 linhas com um `json_decode` cada por render do editor, `COUNT(*)` na maior tabela para responder um booleano, o histórico do candidato em N+1, a semeadura de campanha por membro, e o log de falha de decriptação sem teto.
+- **Quatro cadeias de activator sondavam o schema em toda requisição** (#1231, #1234): 48 consultas DDL não cacheadas por página, frontend anônimo incluído, numa instalação sem nada a migrar. Passam a ser guardadas por `FFC_VERSION`; e o `column_exists()` do lote de rotação de chaves passa a ser resolvido uma vez por lote.
+- **Lembretes de recadastramento saem em lotes de 50** (#1232): a varredura diária roda **dentro da requisição de um visitante** — sem limite, uma campanha de milhares fazia esse visitante pagar milhares de `wp_mail()`. O cursor keyset ultrapassa a linha órfã que nunca recebe carimbo.
+- **O lembrete de recadastramento era reenviado todo dia** (#1232): a consulta usa uma **janela** e o cron é diário, sem marca por submissão — com `reminder_days = 7`, cada participante pendente recebia sete e-mails. Agora há `reminder_sent_at`, e a Documentação registra que um reenvio manual **substitui** o automático.
+- **O convite de recadastramento reconvidava quem já recebera e nunca alcançava quem entrou depois** (#1190): ele lia `status = 'pending'` como "precisa de convite", aproximação que erra nos dois sentidos; e quem pertencia só a um público filho via o banner sem ter linha de submissão. Agora há `invited_at` e o envio é idempotente.
+- **Quem entrou no público depois da campanha ativa não conseguia se recadastrar** (#1188): o painel desenhava o botão e os três handlers AJAX exigiam uma linha que ninguém criava. A linha passa a nascer sob demanda. E o botão, que dizia "Recadastramento Completo" — um estado inexistente —, vira "Fazer o Recadastramento".
+- **O grupo de acúmulo de cargos nunca se ocultava** (#1209): o handler procurava um id e uma classe que nenhum PHP emite, e só reagia ao `change`. Passa a selecionar por `data-field-key` e a rodar na inicialização. Junto, "Union" deixa de ser traduzido como "Estado", que colidia com o Estado do endereço.
+- **Rascunho devolvido voltava com o ciphertext dos campos sensíveis** (#1210): o usuário via o blob no lugar do próprio CPF e não conseguia editar. Quem lê é o titular autenticado editando o próprio dado; a gravação segue criptografada.
+- **`SchemaAgreementTest` media 2 dos 6 activators, e a autoverificação não pegava** (#1241): ela lia só o plural de `add_columns_if_missing()` e exigia um `CREATE TABLE` de forma fixa, o que tornava invisíveis os 9 statements do recrutamento. Doze colunas existiam só na migração e foram declaradas; três não podem ser, por serem colunas de estágio do #249.
+- **Dez pares de texto abaixo do piso de contraste do WCAG AA** (#1168, #1170): quatro regras cravavam `color: white` sobre fundos tokenizados e mediam 1,23 a 2,78:1 no tema escuro; seis usavam a cor de sinal como texto. E a linha passada da recadastração media 3,11:1 por dizer "passado" com `opacity`.
+- **Componentes perdiam a forma no modo de alto contraste** (#1165, #1193): no `forced-colors` o sistema descarta sombras, então quem tinha limite só no fundo ficava sem limite — os cinco selos de estado do agendamento viravam um só. 88 controles e selos ganham contorno.
+- **Os selos de recrutamento e recadastramento eram pintados por três folhas e pelo atributo `style`** (#1162, #1183, #1193): inline vence classe, então a mesma dupla de classes rendia formas diferentes conforme o emissor; "Definitive" ficou sem cor quando o ENUM migrou e a folha não; e "Cancelado" saía âmbar na lista de Agendamentos. Cada família ganha nome próprio.
+- **A aba de Acesso de Usuário saía 2px indentada e 22px mais estreita que as outras** (#1202): ela abria um `div.wrap` dentro do `.wrap` da tela, e a margem do core contava duas vezes. Junto, os seis painéis do painel do usuário deixam de publicar ids sem prefixo — `#tab-profile` é único no documento.
+- **O painel do usuário não carregava nada até o visitante clicar numa aba** (#1170): a renomeação de `active` para `is-active` não alcançou os dois sítios que leem `$('.ffc-tab.active')`. A fixture dos testes ainda usava a classe antiga, e era ela que segurava os dois casos verdes.
+- **Os botões da coluna Ações do painel desalinhavam entre si** (#1215): os três tinham a mesma altura e topos diferentes — um `inline-flex` herda a linha de base do primeiro item flex, um `inline-block` a tira do texto. Passam a declarar `vertical-align: middle`.
+- **A prévia da imagem de fundo nunca aparecia** (#1227): o código que a desenha está correto desde sempre, mas nenhuma das duas telas emitia o contêiner que ele procura — a busca falhava em silêncio, guardada por uma checagem de comprimento.
+- **O cache de QR do encurtador servia o tamanho errado** (#1233): indexado só pelo `short_code`, uma chamada REST com `size=1000` recebia o PNG de 200px da metabox e, com o cache vazio, gravava 1000px lá. Agora o cache serve um único tamanho e o grava junto do PNG.
+
+### Security
+
+- **O agendamento de cada submissão gravava PII e a credencial do certificado em claro na `wp_options`** (#1248): o payload do cron levava o `submission_data` inteiro e o `magic_token` — a autenticação de `?token=…` — vinte linhas depois de o mesmo método ter cifrado e-mail, CPF e RF. E a option `cron` é autoloaded. Agora viaja só o id.
+- **A rotação de chaves passa a cobrir a PII de perfil dos usuários** (#1236): `ffc_user_cpf`, `ffc_user_rf` e `ffc_user_rg` estavam cifradas sob a chave derivada dos salts do WordPress — rotacionar `SECURE_AUTH_KEY` as tornaria ilegíveis para sempre. E o erro sobre candidatos duplicados deixa de ser silencioso.
+
+## [6.24.0] (2026-09-10) — `c08e59a`
 
 ### Fixed
 

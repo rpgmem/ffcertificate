@@ -34,7 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php endif; ?>
 			</td>
 			<td class="column-status">
-				<span class="ffc-status-badge ffc-status-<?php echo esc_attr( $item->status ); ?>">
+				<span class="ffc-reregistration-status-badge ffc-reregistration-status-<?php echo esc_attr( $item->status ); ?>">
 					<?php echo esc_html( ReregistrationRepository::get_status_label( $item->status ) ); ?>
 				</span>
 			</td>
@@ -61,7 +61,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<a href="<?php echo esc_url( $subs_url ); ?>"><?php esc_html_e( 'Submissions', 'ffcertificate' ); ?></a>
 				<?php if ( $can_edit ) : ?>
 				|
-				<a href="<?php echo esc_url( $delete_url ); ?>" class="delete-link"
+				<a href="<?php echo esc_url( $delete_url ); ?>" class="ffc-delete-link"
 					onclick="return confirm(ffcReregistrationAdmin?.strings?.confirmDelete || 'Delete?');">
 					<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
 				</a>

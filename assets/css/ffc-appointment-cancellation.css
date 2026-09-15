@@ -18,13 +18,13 @@
 	padding: 2rem;
 	background: var(--ffc-bg-card);
 	border: 1px solid var(--ffc-border-light);
-	border-radius: 8px;
+	border-radius: var(--ffc-radius-lg);
 	box-shadow: var(--ffc-shadow-sm);
 }
 
 .ffc-cancel-card h1 {
 	margin-top: 0;
-	font-size: 1.5rem;
+	font-size: var(--ffc-font-size-2xl);
 }
 
 /* `.ffc-cancel-summary` mora em ffc-common.css (#1140): o mesmo par
@@ -40,21 +40,34 @@
 	box-sizing: border-box;
 	padding: 0.5rem;
 	border: 1px solid var(--ffc-border);
-	border-radius: 4px;
+	border-radius: var(--ffc-radius-sm);
 }
 
 .ffc-cancel-confirm-btn {
 	display: inline-block;
 	padding: 0.6rem 1.25rem;
-	font-size: 1rem;
+	font-size: var(--ffc-font-size-lg);
 	color: var(--ffc-text-on-danger);
 	background: var(--ffc-danger);
 	border: 0;
-	border-radius: 4px;
+	border-radius: var(--ffc-radius-sm);
 	cursor: pointer;
 }
 
 .ffc-cancel-confirm-btn:hover,
 .ffc-cancel-confirm-btn:focus {
 	background: var(--ffc-danger-hover);
+}
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
+   O mecanismo está explicado em ffc-common.css (#1165).
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Controles: sem contorno, um botão deixa de parecer clicável. */
+    .ffc-cancel-confirm-btn {
+        border: 1px solid ButtonText;
+    }
 }

@@ -26,6 +26,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\CssSelectors;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -372,6 +373,242 @@ final class DarkModeCssTest extends TestCase {
 			'claro'  => array( 'light' ),
 			'escuro' => array( 'dark' ),
 		);
+	}
+
+	// ==================================================================
+	// Pares DERIVADOS da varredura (#1168)
+	// ==================================================================
+	//
+	// `pairs()` acima é uma lista escrita à mão. Ela mede o que alguém
+	// lembrou de listar, e o `CLAUDE.md` a descrevia como "every painted
+	// pair" — o que não era verdade. `--ffc-danger` sobre `--ffc-danger-bg`
+	// nunca entrou na lista e shipava a 4,25:1 no tema CLARO, abaixo do
+	// piso AA, num aviso do fluxo público de CSV.
+	//
+	// Isto deriva os pares do próprio CSS: toda regra que declara `color` E
+	// um fundo na MESMA regra é um par pintado, medido nos dois temas.
+	//
+	// As duas listas são complementares, não substitutas. A varredura só vê
+	// o par que uma regra declara junto; o par que a HERANÇA cria — o texto
+	// de base sobre `--ffc-gray-100`, o rótulo de um botão cuja cor vem do
+	// contêiner — nenhuma varredura estática alcança, e é isso que a lista
+	// curada cobre. Apagar uma em favor da outra perde cobertura.
+
+	/**
+	 * Pares abaixo do piso que são isentos, com a razão.
+	 *
+	 * A SC 1.4.3 isenta texto que faz parte de um **componente de interface
+	 * inativo**. As duas entradas aqui são exatamente isso, e ambas dizem
+	 * `cursor: not-allowed` na própria regra. Qualquer outra entrada precisa
+	 * de uma razão que sobreviva a ser lida em voz alta.
+	 */
+	private const DERIVED_EXCEPTIONS = array(
+		'var(--ffc-gray-400) || var(--ffc-gray-100)'    => 'horário esgotado no calendário público: `cursor: not-allowed`, componente inativo isento pela SC 1.4.3',
+		'var(--ffc-text-light) || var(--ffc-bg-alt)'    => 'campo `readonly`/`disabled` da recadastração: componente inativo isento pela SC 1.4.3',
+	);
+
+	/**
+	 * Resolve um valor CSS de cor até [r, g, b], atravessando `var()`.
+	 *
+	 * Precisa aceitar três coisas que `to_rgb()` sozinho não aceita, e as
+	 * três apareceram no CSS real: o sufixo `!important`, a cadeia de
+	 * `var()` (um token pode apontar para outro) e a cor NOMEADA.
+	 *
+	 * A cor nomeada é a que importa. A primeira versão desta varredura não a
+	 * lia e reportou quatro pares como "não resolvíveis" — que eram
+	 * `color: white` sobre `--ffc-primary`, `--ffc-danger`, `--ffc-success` e
+	 * `--ffc-inverse-surface`, medindo 2,52 · 2,68 · 2,78 e **1,23:1** no
+	 * tema escuro. Passar em silêncio sobre o que não se consegue ler é como
+	 * um medidor mente; por isso `null` aqui FALHA o teste, nunca pula.
+	 *
+	 * @param string               $value   Valor CSS.
+	 * @param array<string,string> $palette Token => valor, do tema medido.
+	 * @param int                  $depth   Profundidade da recursão.
+	 * @return array{0: int, 1: int, 2: int}|null
+	 */
+	private static function resolve_colour( string $value, array $palette, int $depth = 0 ): ?array {
+		if ( $depth > 8 ) {
+			return null;
+		}
+
+		$value = trim( (string) preg_replace( '/\s*!important\s*$/i', '', trim( $value ) ) );
+
+		$named = array( 'white' => '#ffffff', 'black' => '#000000' );
+		if ( isset( $named[ strtolower( $value ) ] ) ) {
+			$value = $named[ strtolower( $value ) ];
+		}
+
+		if ( preg_match( '/^var\(\s*(--ffc-[a-z0-9-]+)\s*(?:,\s*(.+))?\)$/i', $value, $m ) ) {
+			if ( isset( $palette[ $m[1] ] ) ) {
+				return self::resolve_colour( $palette[ $m[1] ], $palette, $depth + 1 );
+			}
+			return isset( $m[2] ) ? self::resolve_colour( $m[2], $palette, $depth + 1 ) : null;
+		}
+
+		return self::to_rgb( $value );
+	}
+
+	/**
+	 * Pares `color` + fundo declarados na MESMA regra, em todas as folhas.
+	 *
+	 * Um fundo em atalho (`background: linear-gradient(...)`) é medido
+	 * contra a primeira cor que ele nomeia — aproximação declarada, não
+	 * exatidão: o único gradiente que hoje pinta texto passa nas duas pontas
+	 * (5,17 e 6,84:1). Um par onde nenhum dos dois lados é token não entra:
+	 * é literal de ponta a ponta, e a catraca de literais é quem cuida dele.
+	 *
+	 * @return array<string, array{fg: string, bg: string, sites: array<int, string>}>
+	 */
+	private static function derived_pairs(): array {
+		$pairs = array();
+
+		foreach ( CssSelectors::sheets() as $path ) {
+			foreach ( CssSelectors::rules( (string) file_get_contents( $path ) ) as $rule ) {
+				$body = (string) preg_replace( '#/\*.*?\*/#s', '', $rule['body'] );
+				$fg   = null;
+				$bg   = null;
+
+				foreach ( explode( ';', $body ) as $declaration ) {
+					if ( ! str_contains( $declaration, ':' ) ) {
+						continue;
+					}
+					list( $property, $value ) = explode( ':', $declaration, 2 );
+					$property = strtolower( trim( $property ) );
+					$value    = trim( (string) preg_replace( '/\s+/', ' ', $value ) );
+
+					if ( 'color' === $property ) {
+						$fg = $value;
+					}
+					if ( 'background' === $property || 'background-color' === $property ) {
+						if ( preg_match( '/(var\(\s*--ffc-[a-z0-9-]+\s*(?:,[^)]*)?\)|#[0-9a-fA-F]{3,8}|rgba?\([^)]*\))/', $value, $m ) ) {
+							$bg = $m[1];
+						}
+					}
+				}
+
+				if ( null === $fg || null === $bg ) {
+					continue;
+				}
+				if ( ! str_contains( $fg, 'var(--ffc-' ) && ! str_contains( $bg, 'var(--ffc-' ) ) {
+					continue;
+				}
+
+				$key = $fg . ' || ' . $bg;
+				$pairs[ $key ]['fg']      = $fg;
+				$pairs[ $key ]['bg']      = $bg;
+				$pairs[ $key ]['sites'][] = basename( $path ) . ' :: ' . trim( (string) preg_replace( '/\s+/', ' ', $rule['selector'] ) );
+			}
+		}
+
+		return $pairs;
+	}
+
+	/**
+	 * Todo par que uma regra declara junto precisa atingir 4,5:1.
+	 *
+	 * O piso é o de TEXTO, sem exceção de papel: a regra declarou `color`,
+	 * então está pintando texto. Um contorno é `border-color` e não entra
+	 * nesta varredura.
+	 *
+	 * Bloqueia em zero. O que a varredura achar se conserta trocando o token
+	 * pelo par que a paleta já garante (`--ffc-X` → `--ffc-X-text` sobre um
+	 * fundo `--ffc-X-bg`); não existe linha de base para crescer.
+	 *
+	 * @dataProvider provider_themes
+	 * @param string $theme Nome do tema.
+	 */
+	public function test_every_derived_pair_meets_the_text_floor( string $theme ): void {
+		$palette  = self::palette( $theme );
+		$failures = array();
+
+		foreach ( self::derived_pairs() as $key => $pair ) {
+			$a = self::resolve_colour( $pair['fg'], $palette );
+			$b = self::resolve_colour( $pair['bg'], $palette );
+
+			// Ilegível NÃO é "pula": é falha. Ver o docblock de resolve_colour().
+			$this->assertNotNull(
+				$a,
+				"Não consegui resolver a cor `{$pair['fg']}` no tema {$theme}.\n"
+				. "Ensine `resolve_colour()` a lê-la — não a deixe passar em silêncio.\n"
+				. '  ' . implode( "\n  ", array_slice( $pair['sites'], 0, 3 ) )
+			);
+			$this->assertNotNull(
+				$b,
+				"Não consegui resolver o fundo `{$pair['bg']}` no tema {$theme}.\n"
+				. "Ensine `resolve_colour()` a lê-lo — não o deixe passar em silêncio.\n"
+				. '  ' . implode( "\n  ", array_slice( $pair['sites'], 0, 3 ) )
+			);
+
+			$ratio = self::contrast( $a, $b );
+			if ( $ratio >= 4.5 ) {
+				continue;
+			}
+			if ( isset( self::DERIVED_EXCEPTIONS[ $key ] ) ) {
+				continue;
+			}
+
+			$failures[] = sprintf(
+				'%.2f:1  %s' . "\n      " . '%s',
+				$ratio,
+				$key,
+				implode( "\n      ", array_slice( $pair['sites'], 0, 4 ) )
+			);
+		}
+
+		$this->assertSame(
+			array(),
+			$failures,
+			"Par declarado numa mesma regra abaixo de 4,5:1 no tema {$theme}:\n\n  "
+			. implode( "\n\n  ", $failures )
+			. "\n\nTroque o token de texto pelo par que a paleta garante — `--ffc-X` sobre"
+			. "\num fundo `--ffc-X-bg`/`--ffc-X-light` quer dizer `--ffc-X-text`. Se for"
+			. "\ncomponente INATIVO (a SC 1.4.3 isenta), entre em DERIVED_EXCEPTIONS com a razão."
+		);
+	}
+
+	/**
+	 * Toda exceção declarada precisa existir e trazer razão.
+	 *
+	 * Uma exceção que o CSS não produz mais é ruído que sobrevive a quem a
+	 * escreveu — a mesma catraca das outras guardas, na direção que só
+	 * encolhe.
+	 */
+	public function test_the_derived_exceptions_are_all_live(): void {
+		$keys = array_keys( self::derived_pairs() );
+
+		foreach ( self::DERIVED_EXCEPTIONS as $key => $reason ) {
+			$this->assertContains(
+				$key,
+				$keys,
+				"A exceção `{$key}` não corresponde a nenhum par pintado. Remova-a."
+			);
+			$this->assertGreaterThan(
+				30,
+				strlen( $reason ),
+				"A exceção `{$key}` precisa de uma razão que se sustente ao ser lida."
+			);
+		}
+	}
+
+	/**
+	 * Autoverificação da varredura derivada.
+	 *
+	 * Uma varredura que devolve zero par também satisfaz `assertSame(
+	 * array(), $failures )` — a lição do #1071 / #1094. Os pisos são folgados
+	 * de propósito: descrevem "a varredura funcionou", não o tamanho exato.
+	 */
+	public function test_the_derived_scan_cannot_collapse_in_silence(): void {
+		$pairs = self::derived_pairs();
+		$sites = array_sum( array_map( static fn( array $p ): int => count( $p['sites'] ), $pairs ) );
+
+		$this->assertGreaterThan( 30, count( $pairs ), 'A varredura de pares derivados colapsou.' );
+		$this->assertGreaterThan( 150, $sites, 'A varredura achou pares demais de menos regras.' );
+
+		// A resolução precisa atravessar `var()` e a cor nomeada, não só hex.
+		$palette = self::palette( 'light' );
+		$this->assertNotNull( self::resolve_colour( 'var(--ffc-text)', $palette ), '`var()` deixou de resolver.' );
+		$this->assertNotNull( self::resolve_colour( 'white !important', $palette ), 'Cor nomeada deixou de resolver.' );
+		$this->assertSame( array( 255, 255, 255 ), self::resolve_colour( 'white', $palette ) );
 	}
 
 	/**

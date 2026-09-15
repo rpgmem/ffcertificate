@@ -1,9 +1,40 @@
 /**
  * FFC Admin Utilities
- * v3.1.0 - Admin-specific utility classes
  *
- * This file contains utility classes used exclusively in the WordPress admin area.
- * For shared utilities used in both admin and frontend, see ffc-common.css
+ * Utility classes for the WordPress admin. For utilities shared with the
+ * frontend, see ffc-common.css.
+ *
+ * WHAT BELONGS HERE (#1171) — the scope, written down, because a generic name
+ * invites drift and the defence against the next one is this paragraph, not a
+ * rename later:
+ *
+ *   A class here names a PROPERTY or a generic visual shape, not a feature.
+ *   `.ffc-mt-2xl`, `.ffc-w100`, `.ffc-text-warning`, `.ffc-monospace` qualify.
+ *   One rule, no `:hover`, no descendant selectors, no element sub-selectors.
+ *
+ * WHAT DOES NOT: anything whose name carries a feature, and anything that needs
+ * more than one rule to render. `UtilityScopeTest` enforces exactly that — one
+ * bare class per rule, no descendant, no pseudo-class, no element sub-selector
+ * — so the scope above is a rule rather than a request.
+ *
+ * The nine components that used to live here moved out in #1171:
+ *
+ *   ffc-admin.css           `ffc-preflight-badge` (+ `-icon`, `-stats-badges`)
+ *                           and `ffc-template-loader`
+ *   ffc-admin-settings.css  `ffc-debug-group-title` / `-blurb`,
+ *                           `ffc-url-shortener-types`, `ffc-inline-status`
+ *   ffc-audience-admin.css  `ffc-color-value`
+ *
+ * Why each move needed measuring, in case another one is proposed: this sheet
+ * is a DEPENDENCY of `ffc-admin-css` and is enqueued in exactly ONE place
+ * (`AdminAssetsManager::enqueue_admin_base_styles()`, which enqueues the two in
+ * consecutive statements), so everything here reaches every FFC admin screen.
+ * Moving a component to its owner sheet NARROWS its reach, and if that sheet is
+ * not enqueued on the screen that renders the component, the styles vanish with
+ * nothing to catch it — no guard sees that. The four that went to
+ * `ffc-admin.css` are therefore reach-IDENTICAL by construction; the five that
+ * narrowed had their target's enqueue gate read against the emitting screen and
+ * were re-rendered per screen with only that screen's sheets loaded.
  *
  * @since 3.1.0
  */
@@ -26,57 +57,41 @@
 /**
  * Margin top utilities
  */
-.ffc-mt-5 {
-    margin-top: 5px;
+.ffc-mt-2xs {
+    margin-top: var(--ffc-spacing-2xs);
 }
 
 /**
  * Margin bottom utilities
  */
-.ffc-mb-5 {
-    margin-bottom: 5px;
+.ffc-mb-2xs {
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
-.ffc-mt-10 {
-    margin-top: 10px;
+.ffc-mt-md {
+    margin-top: var(--ffc-spacing-md);
 }
 
-.ffc-mt-15 {
-    margin-top: 15px;
+.ffc-mt-xl {
+    margin-top: var(--ffc-spacing-xl);
 }
 
-.ffc-mt-20 {
-    margin-top: 20px;
+.ffc-mt-2xl {
+    margin-top: var(--ffc-spacing-2xl);
 }
 
-.ffc-mb-15 {
-    margin-bottom: 15px;
+.ffc-mb-xl {
+    margin-bottom: var(--ffc-spacing-xl);
 }
 
 /* 6.18.0 (#890 slice 1) — spacing/layout utilities lifted from inline styles
    across the admin/settings views. */
-.ffc-mt-8 {
-    margin-top: 8px;
+.ffc-mt-sm {
+    margin-top: var(--ffc-spacing-sm);
 }
 
-.ffc-mt-12 {
-    margin-top: 12px;
-}
-
-.ffc-mt-16 {
-    margin-top: 16px;
-}
-
-.ffc-mb-2 {
-    margin-bottom: 2px;
-}
-
-.ffc-mb-4 {
-    margin-bottom: 4px;
-}
-
-.ffc-ml-18 {
-    margin-left: 18px;
+.ffc-ml-xl {
+    margin-left: var(--ffc-spacing-xl);
 }
 
 .ffc-inline {
@@ -86,7 +101,7 @@
 /* Disc bullet list with indent (WP admin resets ul list-style). */
 .ffc-list-disc {
     list-style: disc;
-    margin-left: 20px;
+    margin-left: var(--ffc-spacing-2xl);
 }
 
 /* ==========================================================================
@@ -99,7 +114,7 @@
 .ffc-block-label {
     display: block;
     font-weight: 600;
-    margin-bottom: 5px;
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 /**
@@ -122,7 +137,7 @@
  * Form input grouping
  */
 .ffc-input-group {
-    margin-bottom: 15px;
+    margin-bottom: var(--ffc-spacing-xl);
 }
 
 /* ==========================================================================
@@ -134,7 +149,7 @@
  */
 .ffc-admin-flex-row {
     display: flex;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
     align-items: center;
 }
 
@@ -150,16 +165,7 @@
  */
 .ffc-action-group {
     display: flex;
-    gap: 5px;
-}
-
-/**
- * Template loader controls
- */
-.ffc-template-loader {
-    display: flex;
-    gap: 5px;
-    align-items: center;
+    gap: var(--ffc-spacing-xs);
 }
 
 /* ==========================================================================
@@ -196,92 +202,4 @@
  */
 .ffc-monospace {
     font-family: 'SF Mono', Monaco, Consolas, monospace;
-}
-
-/* 6.6.4 follow-up (#361 Sprint 3) — pre-flight stats badges in the
-   form-editor sidebar metabox. */
-.ffc-preflight-stats-badges {
-    margin: 0 0 10px 0;
-    padding: 0;
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.ffc-preflight-badge {
-    background: var(--ffc-bg-alt);
-    border-radius: 4px;
-    border-left: 3px solid var(--ffc-primary);
-    padding: 0;
-}
-
-.ffc-preflight-badge a {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    text-decoration: none;
-    color: var(--ffc-text);
-    font-size: 13px;
-}
-
-.ffc-preflight-badge a:hover,
-.ffc-preflight-badge a:focus {
-    background: var(--ffc-primary-light);
-}
-
-.ffc-preflight-badge-icon {
-    font-size: 16px;
-    line-height: 1;
-}
-
-.ffc-preflight-badge strong {
-    font-size: 16px;
-    color: var(--ffc-primary);
-    min-width: 2ch;
-    text-align: right;
-}
-
-/* 6.6.4 follow-up (#361 Sprint 4) — Debug toggles grouped into three
-   sub-sections (Client / Server / Admin). */
-.ffc-debug-group-title {
-    margin: 24px 0 4px;
-    padding-top: 12px;
-    border-top: 1px solid var(--ffc-border-light);
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--ffc-primary);
-}
-
-.ffc-debug-group-title:first-child,
-.card .ffc-debug-group-title:first-of-type {
-    border-top: 0;
-    padding-top: 0;
-}
-
-.ffc-debug-group-blurb {
-    margin: 0 0 8px 0;
-    font-style: italic;
-    color: var(--ffc-text-muted);
-}
-
-/* 6.18.0 (#886) — URL Shortener settings: per-post-type Shorten/Expose grid
-   + backfill status line. */
-.ffc-url-shortener-types .ffc-col-center {
-    text-align: center;
-    width: 6em;
-}
-
-.ffc-inline-status {
-    margin-left: 8px;
-    font-style: italic;
-    color: var(--ffc-text-muted);
-}
-
-/* Valor hexadecimal ao lado do seletor de cor, na aba de público-alvo. Estava
-   num `style="color:#666"` inline no PHP (#1126). */
-.ffc-color-value {
-    margin-left: 8px;
-    color: var(--ffc-text-muted);
 }

@@ -76,7 +76,7 @@ class FormEditorRestrictionMetabox {
 			<tr>
 				<th><label><?php esc_html_e( 'Form Restrictions', 'ffcertificate' ); ?></label></th>
 				<td>
-					<p class="description ffc-mb-15">
+					<p class="description ffc-mb-xl">
 						<?php esc_html_e( 'Select which restrictions to apply (can combine multiple):', 'ffcertificate' ); ?>
 					</p>
 
@@ -118,7 +118,7 @@ class FormEditorRestrictionMetabox {
 					}
 					?>
 
-					<p class="description ffc-mt-15">
+					<p class="description ffc-mt-xl">
 						<em><?php esc_html_e( 'Note: If no restriction is selected, form is Open (no restrictions).', 'ffcertificate' ); ?></em>
 					</p>
 				</td>
@@ -171,7 +171,7 @@ class FormEditorRestrictionMetabox {
 				aria-hidden="<?php echo $ticket_active ? 'false' : 'true'; ?>">
 				<th><label class="ffc-label-accent"><?php esc_html_e( 'Ticket Generator', 'ffcertificate' ); ?></label></th>
 				<td>
-					<div class="ffc-admin-flex-row ffc-mb-5">
+					<div class="ffc-admin-flex-row ffc-mb-2xs">
 						<input type="number" id="ffc_qty_codes" value="10" min="1" max="500" class="ffc-input-small">
 						<button type="button" class="button button-secondary" id="ffc_btn_generate_codes"><?php esc_html_e( 'Generate Tickets', 'ffcertificate' ); ?></button>
 						<span id="ffc_gen_status" class="ffc-gen-status"></span>

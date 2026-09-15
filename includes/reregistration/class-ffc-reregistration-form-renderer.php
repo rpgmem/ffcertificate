@@ -77,6 +77,21 @@ class ReregistrationFormRenderer {
 		$saved_data   = $submission->data ? json_decode( $submission->data, true ) : array();
 		$saved_values = is_array( $saved_data['fields'] ?? null ) ? $saved_data['fields'] : array();
 
+		// O rascunho guarda os campos sensíveis CRIPTOGRAFADOS -- é o que
+		// `ReregistrationDataProcessor` grava. Sem descriptografar aqui, uma
+		// submissão devolvida para rascunho voltava com o ciphertext dentro do
+		// input, e o usuário via o blob no lugar do próprio CPF.
+		//
+		// O caminho do perfil, logo abaixo, já fazia certo: passa
+		// `$sensitive_keys` para `UserManager::get_extended_profile()`. Só o
+		// degrau do rascunho não passava por aqui. O ajudante é o mesmo que o
+		// admin usa em `ReregistrationAjaxHandler`.
+		//
+		// Devolver em texto claro é correto porque quem lê é o TITULAR,
+		// autenticado, editando o próprio dado -- a regra de mascarar governa
+		// tela de terceiro olhando dado alheio. A gravação segue criptografada.
+		$saved_values = FichaGenerator::decrypt_field_values( $fields, $saved_values );
+
 		$values = self::build_field_values( $fields, $saved_values, $user_id, $user );
 
 		$end_ts   = strtotime( $rereg->end_date );
@@ -85,6 +100,16 @@ class ReregistrationFormRenderer {
 		// Group fields by field_group, preserving sort order.
 		$grouped      = self::group_fields( $fields );
 		$group_labels = ReregistrationStandardFieldsSeeder::get_group_labels();
+
+		// Oferta de importar o último ciclo aprovado (#1213). Só o TÍTULO
+		// atravessa para o template -- os valores só são buscados se o
+		// participante clicar, pelo endpoint próprio, que é o que tem o
+		// portão de autorização. Renderizar o dado aqui o entregaria a quem
+		// nunca pediu.
+		$ffc_import_source       = ReregistrationSubmissionReader::get_latest_approved_for_user( $user_id, (int) $rereg->id );
+		$ffc_import_source_title = $ffc_import_source
+			? (string) ( $ffc_import_source->reregistration_title ?? '' )
+			: '';
 
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/reregistration/form.php';
@@ -318,7 +343,7 @@ class ReregistrationFormRenderer {
 					esc_attr( $field_name ),
 					checked( (string) $value, '1', false ),
 					esc_html( (string) $field->field_label ),
-					$required ? ' <span class="required">*</span>' : ''
+					$required ? ' <span class="ffc-required">*</span>' : ''
 				);
 				break;
 

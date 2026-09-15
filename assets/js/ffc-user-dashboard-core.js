@@ -123,7 +123,7 @@
             $(document).on('click', '.ffc-page-size-btn', function (e) {
                 e.preventDefault();
                 localStorage.setItem('ffc_page_size', parseInt($(this).data('size'), 10));
-                FFCDashboard.applyTabFilter($('.ffc-tab.active').data('tab'));
+                FFCDashboard.applyTabFilter($('.ffc-tab.is-active').data('tab'));
             });
         },
 
@@ -190,7 +190,7 @@
         // ---- Tab dispatch (table-driven via this.panels) ----
 
         loadInitialTab: function () {
-            var panel = this.panels[$('.ffc-tab.active').data('tab')];
+            var panel = this.panels[$('.ffc-tab.is-active').data('tab')];
             if (panel && typeof panel.load === 'function') panel.load();
         },
 
@@ -199,11 +199,11 @@
             var $button = $(e.currentTarget);
             var tab = $button.data('tab');
 
-            $('.ffc-tab').removeClass('active').attr('aria-selected', 'false').attr('tabindex', '-1');
-            $button.addClass('active').attr('aria-selected', 'true').attr('tabindex', '0');
+            $('.ffc-tab').removeClass('is-active').attr('aria-selected', 'false').attr('tabindex', '-1');
+            $button.addClass('is-active').attr('aria-selected', 'true').attr('tabindex', '0');
 
-            $('.ffc-tab-content').removeClass('active');
-            $('#tab-' + tab).addClass('active');
+            $('.ffc-tab-content').removeClass('is-active');
+            $('#ffc-tabpanel-' + tab).addClass('is-active');
 
             if (history.pushState) {
                 var url = new URL(window.location);

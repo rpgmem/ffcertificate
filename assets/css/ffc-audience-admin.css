@@ -9,15 +9,15 @@
 .ffc-stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
+    gap: var(--ffc-spacing-2xl);
     margin-bottom: 30px;
 }
 
 .ffc-stat-card {
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
-    padding: 20px;
+    border-radius: var(--ffc-radius-sm);
+    padding: var(--ffc-spacing-2xl);
     display: flex;
     flex-direction: column;
 }
@@ -25,14 +25,19 @@
 .ffc-stat-number {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--ffc-spacing-lg);
 }
 
+/* 32px literal: é o glifo do ícone, não texto — um ícone dimensionado por
+   font-size é uma caixa de glifo, e a escala tipográfica não o governa. */
 .ffc-stat-icon {
     font-size: 32px;
     color: var(--ffc-primary);
 }
 
+/* 36px literal: número-herói do card, deliberadamente acima da escala de
+   texto, pareado com o ícone de 32px ao lado. Um degrau usado uma vez não
+   é escala. */
 .ffc-stat-value {
     font-size: 36px;
     font-weight: 600;
@@ -41,11 +46,11 @@
 
 .ffc-stat-label {
     color: var(--ffc-text-secondary);
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-stat-link {
-    margin-top: 15px;
+    margin-top: var(--ffc-spacing-xl);
     color: var(--ffc-link);
     text-decoration: none;
 }
@@ -58,8 +63,8 @@
 .ffc-quick-actions {
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
-    padding: 20px;
+    border-radius: var(--ffc-radius-sm);
+    padding: var(--ffc-spacing-2xl);
 }
 
 .ffc-quick-actions h2 {
@@ -68,69 +73,83 @@
 
 .ffc-action-buttons {
     display: flex;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
     flex-wrap: wrap;
 }
 
-/* Status Badges */
-.ffc-status-badge {
-    padding: 3px 8px;
-    border-radius: 3px;
-    font-size: 12px;
+/* Status Badges — nome próprio desde o #1162.
+   Antes chamavam-se `.ffc-status-badge` + `.ffc-status-<estado>`, e o
+   `.ffc-status-cancelled` daqui colidia com o do `ffc-calendar-admin.css` na
+   tela de Agendamentos: Appointments é submenu de `ffc-scheduling`, então o
+   gate desta folha (`strpos($hook, 'ffc-scheduling')`) casa lá também, as duas
+   carregam sem aresta de dependência entre si e a ordem decidia a cor.
+   A forma abaixo é declarada por inteiro de propósito: as quatro propriedades
+   que faltavam (`display`, `text-transform`, `letter-spacing`, `white-space`)
+   vinham por herança acidental de `ffc-common.css` e `ffc-admin-submissions.css`
+   -- esta última carrega em TODA página `?page=ffc-*`, não só em submissões.
+   Declarar o conjunto mantém o render idêntico e o torna intencional. */
+.ffc-audience-status {
+    display: inline-block;
+    padding: 3px var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-xs);
+    font-size: var(--ffc-font-size-xs);
     font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
 }
 
-.ffc-status-active {
+.ffc-audience-status-active {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
 }
 
-.ffc-status-inactive {
+.ffc-audience-status-inactive {
     background: var(--ffc-danger-bg);
     color: var(--ffc-danger-text);
 }
 
-.ffc-status-cancelled {
+.ffc-audience-status-cancelled {
     background: var(--ffc-warning-bg);
     color: var(--ffc-warning-text);
 }
 
 /* Table Columns */
-.column-visibility,
-.column-environments,
-.column-status,
-.column-color,
-.column-members {
+[class*="ffc-page-scheduling-"] .column-visibility,
+[class*="ffc-page-scheduling-"] .column-environments,
+[class*="ffc-page-scheduling-"] .column-status,
+[class*="ffc-page-scheduling-"] .column-color,
+[class*="ffc-page-scheduling-"] .column-members {
     width: 100px;
 }
 
-.column-actions {
+[class*="ffc-page-scheduling-"] .column-actions {
     width: 140px;
 }
 
-.column-calendar {
+[class*="ffc-page-scheduling-"] .column-calendar {
     width: 200px;
 }
 
 /* Delete Link */
-.delete-link {
+.ffc-delete-link {
     color: var(--ffc-danger);
 }
 
-.delete-link:hover {
+.ffc-delete-link:hover {
     color: var(--ffc-danger-text);
 }
 
 /* Filter Form */
 .ffc-filter-form {
-    margin: 15px 0;
+    margin: var(--ffc-spacing-xl) 0;
     display: flex;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
     align-items: center;
 }
 
 /* Form Styles */
-.ffc-form .required {
+.ffc-form .ffc-required {
     color: var(--ffc-danger);
 }
 
@@ -139,7 +158,7 @@
 .ffc-color-swatch {
     width: 24px;
     height: 24px;
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     display: inline-block;
     border: 1px solid var(--ffc-border);
     background-color: var(--ffc-color);
@@ -164,22 +183,22 @@
 }
 
 .ffc-hierarchy-parent > .column-name > strong > a {
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-member-total {
     color: var(--ffc-text-light);
-    font-size: 12px;
-    margin-left: 2px;
+    font-size: var(--ffc-font-size-xs);
+    margin-left: var(--ffc-spacing-3xs);
 }
 
 /* Breadcrumb */
 .ffc-breadcrumb {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin: 8px 0 0;
-    font-size: 13px;
+    gap: var(--ffc-spacing-xs);
+    margin: var(--ffc-spacing-sm) 0 0;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-secondary);
 }
 
@@ -194,21 +213,21 @@
 
 .ffc-breadcrumb-sep {
     color: var(--ffc-text-light);
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
 }
 
 /* Working Hours */
 .ffc-working-hours {
     background: var(--ffc-bg-alt);
-    padding: 15px;
-    border-radius: 4px;
+    padding: var(--ffc-spacing-xl);
+    border-radius: var(--ffc-radius-sm);
 }
 
 .ffc-day-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
+    gap: var(--ffc-spacing-md);
+    margin-bottom: var(--ffc-spacing-md);
 }
 
 .ffc-day-label {
@@ -223,10 +242,10 @@
 /* Members Section */
 .ffc-members-section {
     background: var(--ffc-bg-card);
-    padding: 20px;
-    margin: 20px 0;
+    padding: var(--ffc-spacing-2xl);
+    margin: var(--ffc-spacing-2xl) 0;
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
 }
 
 .ffc-user-results {
@@ -237,12 +256,12 @@
     background: var(--ffc-bg-card);
 }
 
-.ffc-user-results.active {
+.ffc-user-results.is-active {
     display: block;
 }
 
 .ffc-user-result {
-    padding: 8px 12px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     cursor: pointer;
     border-bottom: 1px solid var(--ffc-border-light);
 }
@@ -256,26 +275,26 @@
 }
 
 .ffc-selected-users {
-    margin: 15px 0;
+    margin: var(--ffc-spacing-xl) 0;
 }
 
 .ffc-selected-user {
     display: inline-block;
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
-    padding: 5px 10px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
     margin: 3px;
-    border-radius: 3px;
-    font-size: 13px;
+    border-radius: var(--ffc-radius-xs);
+    font-size: var(--ffc-font-size-sm);
 }
 
-.ffc-selected-user .remove {
+.ffc-selected-user .ffc-selected-user-remove {
     cursor: pointer;
-    margin-left: 8px;
+    margin-left: var(--ffc-spacing-sm);
     opacity: 0.8;
 }
 
-.ffc-selected-user .remove:hover {
+.ffc-selected-user .ffc-selected-user-remove:hover {
     opacity: 1;
 }
 
@@ -291,24 +310,24 @@
  * (must be inline because menu is visible on ALL admin pages, not just scheduling pages) */
 
 /* Booking Status (non-prefixed -- used in bookings list) */
-.status-active {
+.ffc-booking-status-active {
     color: var(--ffc-success);
     font-weight: 600;
 }
 
-.status-cancelled {
+.ffc-booking-status-cancelled {
     color: var(--ffc-danger);
     font-weight: 600;
 }
 
 /* Bookings Filter Bar */
-.tablenav.top {
-    margin-bottom: 15px;
+[class*="ffc-page-scheduling-"] .tablenav.top {
+    margin-bottom: var(--ffc-spacing-xl);
 }
 
-.tablenav.top select,
-.tablenav.top input[type="date"] {
-    margin-right: 5px;
+[class*="ffc-page-scheduling-"] .tablenav.top select,
+[class*="ffc-page-scheduling-"] .tablenav.top input[type="date"] {
+    margin-right: var(--ffc-spacing-2xs);
 }
 
 /* Admin Modal Overlay (booking details) */
@@ -319,7 +338,7 @@
     right: 0;
     bottom: 0;
     background: var(--ffc-bg-overlay);
-    z-index: 100000;
+    z-index: var(--ffc-z-modal);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -327,7 +346,7 @@
 
 .ffc-admin-modal {
     background: var(--ffc-bg-card);
-    border-radius: 6px;
+    border-radius: var(--ffc-radius-md);
     box-shadow: var(--ffc-shadow-lg);
     max-width: 600px;
     width: 90%;
@@ -340,20 +359,20 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 14px 18px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     border-bottom: 1px solid var(--ffc-border);
 }
 
 .ffc-admin-modal-header h3 {
     margin: 0;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
 }
 
 .ffc-admin-modal-close {
     background: none;
     border: none;
-    font-size: 22px;
+    font-size: var(--ffc-font-size-2xl);
     cursor: pointer;
     color: var(--ffc-text-muted);
     padding: 0;
@@ -365,18 +384,18 @@
 }
 
 .ffc-admin-modal-body {
-    padding: 18px;
+    padding: var(--ffc-spacing-xl);
     overflow-y: auto;
 }
 
 .ffc-admin-modal-body table.widefat th {
     width: 140px;
     font-weight: 600;
-    padding: 10px 12px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
 }
 
 .ffc-admin-modal-body table.widefat td {
-    padding: 10px 12px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
 }
 
 /* Import Page */
@@ -384,14 +403,14 @@
     display: flex;
     flex-wrap: wrap;
     gap: 30px;
-    margin-top: 20px;
+    margin-top: var(--ffc-spacing-2xl);
 }
 
 .ffc-import-section {
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
-    padding: 20px;
+    border-radius: var(--ffc-radius-sm);
+    padding: var(--ffc-spacing-2xl);
     flex: 1;
     min-width: 400px;
 }
@@ -401,30 +420,30 @@
 }
 
 .ffc-sample-csv {
-    margin-top: 20px;
-    padding-top: 20px;
+    margin-top: var(--ffc-spacing-2xl);
+    padding-top: var(--ffc-spacing-2xl);
     border-top: 1px solid var(--ffc-border);
 }
 
 .ffc-sample-csv pre {
     background: var(--ffc-bg-alt);
-    padding: 15px;
+    padding: var(--ffc-spacing-xl);
     overflow-x: auto;
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
 }
 
 .ffc-sample-csv h4 {
-    margin-bottom: 10px;
+    margin-bottom: var(--ffc-spacing-md);
 }
 
 /* Dashboard Headings */
 .ffc-scheduling-dashboard {
-    margin-top: 20px;
+    margin-top: var(--ffc-spacing-2xl);
 }
 
 .ffc-scheduling-dashboard > h2 {
-    margin: 25px 0 15px;
-    padding-bottom: 8px;
+    margin: 25px 0 var(--ffc-spacing-xl);
+    padding-bottom: var(--ffc-spacing-sm);
     border-bottom: 1px solid var(--ffc-border);
 }
 
@@ -446,10 +465,10 @@
         width: 100%;
     }
 
-    .column-visibility,
-    .column-environments,
-    .column-color,
-    .column-members {
+    [class*="ffc-page-scheduling-"] .column-visibility,
+    [class*="ffc-page-scheduling-"] .column-environments,
+    [class*="ffc-page-scheduling-"] .column-color,
+    [class*="ffc-page-scheduling-"] .column-members {
         display: none;
     }
 
@@ -472,13 +491,13 @@
     pointer-events: none;
     cursor: default;
     color: #a7aaad !important;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border-top: 1px solid rgba(255,255,255,0.1);
-    margin-top: 6px;
-    padding-top: 8px;
+    margin-top: var(--ffc-spacing-xs);
+    padding-top: var(--ffc-spacing-sm);
 }
 #adminmenu .wp-submenu a[href^="#ffc-separator-"]:hover {
     color: #a7aaad !important;
@@ -486,8 +505,8 @@
 }
 #adminmenu .wp-submenu a[href^="#ffc-separator-"]::before {
     font-family: dashicons;
-    font-size: 14px;
-    margin-right: 4px;
+    font-size: var(--ffc-font-size-base);
+    margin-right: var(--ffc-spacing-2xs);
     vertical-align: middle;
     position: relative;
     top: -1px;
@@ -503,8 +522,8 @@
 }
 #adminmenu .wp-submenu a[href$="ffc-scheduling-dashboard"]::before {
     font-family: dashicons;
-    font-size: 14px;
-    margin-right: 4px;
+    font-size: var(--ffc-font-size-base);
+    margin-right: var(--ffc-spacing-2xs);
     vertical-align: middle;
     position: relative;
     top: -1px;
@@ -519,13 +538,13 @@
 
 .ffc-aud-flex-center {
     display: flex;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
     align-items: center;
 }
 
 .ffc-aud-flex-end {
     display: flex;
-    gap: 15px;
+    gap: var(--ffc-spacing-xl);
     align-items: flex-end;
     flex-wrap: wrap;
 }
@@ -541,8 +560,8 @@
 }
 
 .ffc-aud-panel {
-    margin-bottom: 20px;
-    padding: 15px;
+    margin-bottom: var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-xl);
     background: var(--ffc-bg-alt);
     border: 1px solid var(--ffc-border);
 }
@@ -550,7 +569,7 @@
 .ffc-aud-user-dropdown {
     display: none;
     position: absolute;
-    z-index: 100;
+    z-index: var(--ffc-z-dropdown);
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
     max-height: 200px;
@@ -610,7 +629,7 @@
     display: inline-block;
     width: 20px;
     height: 20px;
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     background-color: var(--ffc-color);
     /* Contorno neutro sobre a cor arbitrária do ambiente: precisa funcionar
        contra qualquer matiz, então não é papel da paleta (#1126). */
@@ -621,16 +640,39 @@
 .ffc-color-input {
     width: 60px;
     height: 36px;
-    padding: 2px;
+    padding: var(--ffc-spacing-3xs);
     cursor: pointer;
 }
 
 .ffc-color-input-value {
     vertical-align: middle;
-    margin-left: 8px;
+    margin-left: var(--ffc-spacing-sm);
 }
 
 /* Bookings list: total-count note under the table. */
 .ffc-audience-total-note {
-    margin-top: 15px;
+    margin-top: var(--ffc-spacing-xl);
+}
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
+   O mecanismo está explicado em ffc-common.css (#1165).
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Selos de estado: o texto continua dizendo o estado; a borda
+       devolve a eles a forma de selo. */
+    .ffc-audience-status-active,
+    .ffc-audience-status-cancelled,
+    .ffc-audience-status-inactive {
+        border: 1px solid CanvasText;
+    }
+}
+
+/* Valor hexadecimal ao lado do seletor de cor, na aba de público-alvo. Estava
+   num `style="color:#666"` inline no PHP (#1126). */
+.ffc-color-value {
+    margin-left: var(--ffc-spacing-sm);
+    color: var(--ffc-text-muted);
 }

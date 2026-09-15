@@ -34,22 +34,22 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     background: var(--ffc-gray-100);
     border-bottom: 1px solid var(--ffc-gray-200);
     flex-wrap: wrap;
-    gap: 15px;
+    gap: var(--ffc-spacing-xl);
 }
 
 .ffc-shortcode .ffc-calendar-nav {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
 }
 
 .ffc-shortcode .ffc-current-month {
     margin: 0;
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
     font-weight: 600;
     min-width: 180px;
     text-align: center;
@@ -63,9 +63,9 @@
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-gray-300);
     border-radius: var(--ffc-radius-sm);
-    padding: 8px 12px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     cursor: pointer;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     transition: all 0.2s ease;
 }
 
@@ -80,29 +80,29 @@
 }
 
 .ffc-shortcode .ffc-today-btn {
-    font-size: 13px;
-    padding: 6px 12px;
-    margin-left: 10px;
+    font-size: var(--ffc-font-size-sm);
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
+    margin-left: var(--ffc-spacing-md);
 }
 
 .ffc-shortcode .ffc-calendar-filters {
     display: flex;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
 }
 
 .ffc-shortcode .ffc-calendar-filters select {
     color: var(--ffc-text);
-    padding: 8px 12px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     border: 1px solid var(--ffc-gray-300);
     border-radius: var(--ffc-radius-sm);
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     background: var(--ffc-bg-card);
     min-width: 150px;
 }
 
 .ffc-shortcode .ffc-calendar-title {
-    padding: 8px 12px;
-    font-size: 14px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+    font-size: var(--ffc-font-size-base);
     font-weight: 600;
     color: var(--ffc-gray-700);
     border: 1px solid var(--ffc-gray-300);
@@ -112,28 +112,28 @@
 
 /* Calendar Grid */
 .ffc-shortcode .ffc-calendar-grid {
-    padding: 15px;
+    padding: var(--ffc-spacing-xl);
 }
 
 .ffc-shortcode .ffc-calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 5px;
-    margin-bottom: 10px;
+    gap: var(--ffc-spacing-xs);
+    margin-bottom: var(--ffc-spacing-md);
 }
 
 .ffc-shortcode .ffc-weekday {
     text-align: center;
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-gray-600);
-    padding: 10px 5px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-2xs);
 }
 
 .ffc-shortcode .ffc-calendar-days {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 5px;
+    gap: var(--ffc-spacing-xs);
 }
 
 /* Calendar Day */
@@ -142,7 +142,7 @@
     min-height: 0;
     border: 1px solid var(--ffc-gray-200);
     border-radius: var(--ffc-radius-sm);
-    padding: 5px;
+    padding: var(--ffc-spacing-2xs);
     background: var(--ffc-bg-card);
     cursor: pointer;
     transition: all 0.2s ease;
@@ -219,7 +219,7 @@
 
 .ffc-shortcode .ffc-day-number {
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     color: var(--ffc-gray-800);
 }
 
@@ -229,14 +229,18 @@
 
 /* Day Content */
 .ffc-shortcode .ffc-day-content {
-    margin-top: 5px;
-    font-size: 11px;
+    margin-top: var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-2xs);
     overflow: hidden;
 }
 
+/* 10px literal, e 9px no @media adiante: o selo cabe DENTRO da célula de um
+   dia do calendário — é dimensionado pelo espaço, não para ser lido como
+   texto, e tem o próprio passo responsivo. Mapear os dois para `2xs` (11px)
+   tornaria aquele @media um no-op, pior que a deriva que ele corrige. */
 .ffc-shortcode .ffc-day-badge {
     display: inline-block;
-    padding: 2px 6px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
     border-radius: 10px;
     font-size: 10px;
     font-weight: 600;
@@ -265,11 +269,11 @@
 /* Calendar Legend */
 .ffc-shortcode .ffc-calendar-legend {
     display: flex;
-    gap: 20px;
-    padding: 15px 20px;
+    gap: var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     background: var(--ffc-gray-100);
     border-top: 1px solid var(--ffc-gray-200);
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     justify-content: center;
     flex-wrap: wrap;
 }
@@ -277,13 +281,13 @@
 .ffc-shortcode .ffc-legend-item {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: var(--ffc-spacing-xs);
 }
 
 .ffc-shortcode .ffc-legend-dot {
     width: 12px;
     height: 12px;
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
 }
 
 .ffc-shortcode .ffc-legend-dot.ffc-available {
@@ -314,9 +318,9 @@
 
 /* Notice Messages */
 .ffc-shortcode .ffc-audience-notice {
-    padding: 20px;
+    padding: var(--ffc-spacing-2xl);
     border-radius: var(--ffc-radius-sm);
-    margin: 20px 0;
+    margin: var(--ffc-spacing-2xl) 0;
     text-align: center;
 }
 
@@ -338,24 +342,24 @@
 
 /* Form Styles */
 .ffc-shortcode .ffc-form-group {
-    margin-bottom: 15px;
+    margin-bottom: var(--ffc-spacing-xl);
 }
 
 .ffc-shortcode .ffc-form-group label {
     display: block;
     font-weight: 600;
-    margin-bottom: 5px;
-    font-size: 14px;
+    margin-bottom: var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-shortcode .ffc-form-group input,
 .ffc-shortcode .ffc-form-group select,
 .ffc-shortcode .ffc-form-group textarea {
     width: 100%;
-    padding: 10px;
+    padding: var(--ffc-spacing-md);
     border: 1px solid var(--ffc-gray-300);
     border-radius: var(--ffc-radius-sm);
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
 }
 
 .ffc-shortcode .ffc-form-group input:focus,
@@ -369,14 +373,14 @@
 .ffc-shortcode .ffc-form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 15px;
+    gap: var(--ffc-spacing-xl);
 }
 
 .ffc-shortcode .ffc-char-count {
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     color: var(--ffc-gray-600);
     float: right;
-    margin-top: 5px;
+    margin-top: var(--ffc-spacing-2xs);
 }
 
 /* User Search/Select */
@@ -386,15 +390,15 @@
     border: 1px solid var(--ffc-gray-200);
     border-radius: var(--ffc-radius-sm);
     display: none;
-    margin-top: 5px;
+    margin-top: var(--ffc-spacing-2xs);
 }
 
-.ffc-shortcode .ffc-user-results.active {
+.ffc-shortcode .ffc-user-results.is-active {
     display: block;
 }
 
 .ffc-shortcode .ffc-user-result {
-    padding: 8px 10px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
     cursor: pointer;
     border-bottom: 1px solid var(--ffc-gray-100);
 }
@@ -408,10 +412,10 @@
 }
 
 .ffc-shortcode .ffc-selected-users {
-    margin-top: 10px;
+    margin-top: var(--ffc-spacing-md);
     display: flex;
     flex-wrap: wrap;
-    gap: 5px;
+    gap: var(--ffc-spacing-xs);
 }
 
 .ffc-shortcode .ffc-selected-user {
@@ -419,13 +423,13 @@
     align-items: center;
     background: var(--ffc-primary);
     color: var(--ffc-text-on-primary);
-    padding: 5px 10px;
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
     border-radius: 20px;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
 }
 
-.ffc-shortcode .ffc-selected-user .remove {
-    margin-left: 8px;
+.ffc-shortcode .ffc-selected-user .ffc-selected-user-remove {
+    margin-left: var(--ffc-spacing-sm);
     cursor: pointer;
     font-weight: 700;
 }
@@ -441,39 +445,39 @@
     background: var(--ffc-warning-bg);
     border: 1px solid var(--ffc-warning);
     border-radius: var(--ffc-radius-sm);
-    padding: 15px;
-    margin-top: 15px;
+    padding: var(--ffc-spacing-xl);
+    margin-top: var(--ffc-spacing-xl);
 }
 
 .ffc-shortcode .ffc-conflict-warning .dashicons {
     color: var(--ffc-warning);
     float: left;
-    margin-right: 10px;
-    font-size: 24px;
+    margin-right: var(--ffc-spacing-md);
+    font-size: var(--ffc-font-size-2xl);
 }
 
 .ffc-shortcode .ffc-conflict-warning p {
-    margin: 0 0 10px;
+    margin: 0 0 var(--ffc-spacing-md);
 }
 
 .ffc-shortcode .ffc-conflict-details {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-gray-600);
-    margin-top: 10px;
+    margin-top: var(--ffc-spacing-md);
 }
 
 .ffc-shortcode .ffc-conflict-acknowledge {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
-    margin-top: 12px;
-    font-size: 13px;
+    gap: var(--ffc-spacing-sm);
+    margin-top: var(--ffc-spacing-lg);
+    font-size: var(--ffc-font-size-sm);
     font-weight: 600;
     cursor: pointer;
 }
 
 .ffc-shortcode .ffc-conflict-acknowledge input[type="checkbox"] {
-    margin-top: 2px;
+    margin-top: var(--ffc-spacing-3xs);
 }
 
 /* Hard Conflict Error */
@@ -481,21 +485,21 @@
     background: var(--ffc-danger-bg);
     border: 1px solid var(--ffc-danger);
     border-radius: var(--ffc-radius-sm);
-    padding: 15px;
-    margin-top: 15px;
+    padding: var(--ffc-spacing-xl);
+    margin-top: var(--ffc-spacing-xl);
 }
 
 .ffc-shortcode .ffc-conflict-error .dashicons {
     color: var(--ffc-danger);
     float: left;
-    margin-right: 10px;
-    font-size: 24px;
+    margin-right: var(--ffc-spacing-md);
+    font-size: var(--ffc-font-size-2xl);
 }
 
 .ffc-shortcode .ffc-conflict-error-details {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-gray-700);
-    margin-top: 5px;
+    margin-top: var(--ffc-spacing-2xs);
 }
 
 /* Day Detail Bookings */
@@ -507,8 +511,8 @@
 .ffc-shortcode .ffc-booking-item {
     border: 1px solid var(--ffc-gray-200);
     border-radius: var(--ffc-radius-sm);
-    padding: 15px;
-    margin-bottom: 10px;
+    padding: var(--ffc-spacing-xl);
+    margin-bottom: var(--ffc-spacing-md);
     background: var(--ffc-gray-100);
 }
 
@@ -518,35 +522,35 @@
 
 .ffc-shortcode .ffc-booking-time {
     font-weight: 600;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     color: var(--ffc-primary);
-    margin-bottom: 5px;
+    margin-bottom: var(--ffc-spacing-2xs);
 }
 
 .ffc-shortcode .ffc-booking-description {
-    margin: 10px 0;
+    margin: var(--ffc-spacing-md) 0;
 }
 
 .ffc-shortcode .ffc-booking-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
-    font-size: 13px;
+    gap: var(--ffc-spacing-xl);
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-gray-600);
 }
 
 .ffc-shortcode .ffc-booking-audiences {
     display: flex;
     flex-wrap: wrap;
-    gap: 5px;
-    margin-top: 10px;
+    gap: var(--ffc-spacing-xs);
+    margin-top: var(--ffc-spacing-md);
 }
 
 .ffc-shortcode .ffc-audience-tag {
     display: inline-block;
-    padding: 3px 8px;
-    border-radius: 3px;
-    font-size: 12px;
+    padding: 3px var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-xs);
+    font-size: var(--ffc-font-size-xs);
     /* O fundo desta etiqueta vem da cor da audiência, escrita no style= do
        elemento: branco é a única escolha segura contra um matiz arbitrário,
        então não é papel da paleta (#1126). */
@@ -554,24 +558,24 @@
 }
 
 .ffc-shortcode .ffc-booking-actions {
-    margin-top: 15px;
-    padding-top: 10px;
+    margin-top: var(--ffc-spacing-xl);
+    padding-top: var(--ffc-spacing-md);
     border-top: 1px solid var(--ffc-gray-200);
 }
 
 /* Day Filter */
 .ffc-shortcode .ffc-day-filter {
-    margin-bottom: 15px;
-    padding-bottom: 10px;
+    margin-bottom: var(--ffc-spacing-xl);
+    padding-bottom: var(--ffc-spacing-md);
     border-bottom: 1px solid var(--ffc-gray-200);
 }
 
 .ffc-shortcode .ffc-day-filter label {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--ffc-spacing-sm);
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     color: var(--ffc-gray-600);
 }
 
@@ -581,7 +585,7 @@
 
 .ffc-shortcode .ffc-status-cancelled {
     color: var(--ffc-danger);
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     font-weight: 400;
 }
 
@@ -618,8 +622,8 @@
     }
 
     .ffc-shortcode .ffc-weekday {
-        font-size: 11px;
-        padding: 5px 2px;
+        font-size: var(--ffc-font-size-2xs);
+        padding: var(--ffc-spacing-2xs) var(--ffc-spacing-3xs);
     }
 
     .ffc-shortcode .ffc-form-row {
@@ -628,13 +632,8 @@
 
     .ffc-shortcode .ffc-calendar-legend {
         justify-content: flex-start;
-        gap: 10px;
-        font-size: 11px;
-    }
-
-    .ffc-shortcode .ffc-modal-content {
-        width: 95%;
-        max-height: 95vh;
+        gap: var(--ffc-spacing-md);
+        font-size: var(--ffc-font-size-2xs);
     }
 
     /* Side layout becomes below on mobile */
@@ -650,16 +649,16 @@
 
 @media screen and (max-width: 480px) {
     .ffc-shortcode .ffc-day-number {
-        font-size: 12px;
+        font-size: var(--ffc-font-size-xs);
     }
 
     .ffc-shortcode .ffc-day-badge {
         font-size: 9px;
-        padding: 1px 4px;
+        padding: 1px var(--ffc-spacing-2xs);
     }
 
     .ffc-shortcode .ffc-current-month {
-        font-size: 15px;
+        font-size: var(--ffc-font-size-lg);
         min-width: auto;
     }
 }
@@ -680,7 +679,7 @@
 
 .ffc-shortcode .ffc-calendar-wrapper.ffc-has-event-list.ffc-event-list-side {
     display: flex;
-    gap: 20px;
+    gap: var(--ffc-spacing-2xl);
     align-items: flex-start;
 }
 
@@ -710,35 +709,35 @@
 
 .ffc-shortcode .ffc-event-list-below .ffc-event-list-panel {
     max-width: 600px;
-    margin-top: 20px;
+    margin-top: var(--ffc-spacing-2xl);
 }
 
 .ffc-shortcode .ffc-event-list-header {
-    padding: 12px 15px;
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     background: var(--ffc-gray-100);
     border-bottom: 1px solid var(--ffc-gray-200);
 }
 
 .ffc-shortcode .ffc-event-list-header h3 {
     margin: 0;
-    font-size: 15px;
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-gray-800);
 }
 
 .ffc-shortcode .ffc-event-list-content {
-    padding: 10px;
+    padding: var(--ffc-spacing-md);
 }
 
 /* Event list date group header */
 .ffc-shortcode .ffc-event-list-date {
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     font-weight: 600;
     color: var(--ffc-gray-600);
     text-transform: uppercase;
-    padding: 8px 5px 4px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-2xs) var(--ffc-spacing-2xs);
     border-bottom: 1px solid var(--ffc-gray-200);
-    margin-top: 8px;
+    margin-top: var(--ffc-spacing-sm);
 }
 
 .ffc-shortcode .ffc-event-list-date:first-child {
@@ -750,7 +749,7 @@
     display: flex;
     flex-direction: column;
     gap: 3px;
-    padding: 8px;
+    padding: var(--ffc-spacing-sm);
     border-radius: var(--ffc-radius-sm);
     cursor: pointer;
     transition: background 0.15s ease;
@@ -766,7 +765,7 @@
 }
 
 .ffc-shortcode .ffc-event-list-time {
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     font-weight: 600;
     color: var(--ffc-primary);
 }
@@ -776,13 +775,13 @@
 }
 
 .ffc-shortcode .ffc-event-list-env {
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     color: var(--ffc-gray-600);
     font-weight: 500;
 }
 
 .ffc-shortcode .ffc-event-list-desc {
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     color: var(--ffc-gray-500);
     line-height: 1.3;
 }
@@ -791,14 +790,14 @@
     display: flex;
     flex-wrap: wrap;
     gap: 3px;
-    margin-top: 2px;
+    margin-top: var(--ffc-spacing-3xs);
 }
 
 .ffc-shortcode .ffc-audience-tag-sm {
     display: inline-block;
-    padding: 1px 6px;
-    border-radius: 3px;
-    font-size: 10px;
+    padding: 1px var(--ffc-spacing-xs);
+    border-radius: var(--ffc-radius-xs);
+    font-size: var(--ffc-font-size-2xs);
     /* Idem à etiqueta grande acima: fundo data-driven (#1126). */
     color: #fff;
 }
@@ -806,8 +805,8 @@
 .ffc-shortcode .ffc-no-events {
     text-align: center;
     color: var(--ffc-gray-500);
-    font-size: 13px;
-    padding: 20px 10px;
+    font-size: var(--ffc-font-size-sm);
+    padding: var(--ffc-spacing-2xl) var(--ffc-spacing-md);
     margin: 0;
 }
 
@@ -825,5 +824,21 @@
     .ffc-shortcode .ffc-nav-btn,
     .ffc-shortcode .ffc-day {
         transition: none;
+    }
+}
+
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
+   O mecanismo está explicado em ffc-common.css (#1165).
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Selos de estado: o texto continua dizendo o estado; a borda
+       devolve a eles a forma de selo. */
+    .ffc-shortcode .ffc-badge-bookings,
+    .ffc-shortcode .ffc-badge-closed,
+    .ffc-shortcode .ffc-badge-holiday {
+        border: 1px solid CanvasText;
     }
 }

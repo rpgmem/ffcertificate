@@ -7,7 +7,8 @@
  * prepares the locals and includes this file (method locals + self::
  * sibling renderers resolve in the including method scope).
  *
- * Expected in scope: $rereg, $end_date, $grouped, $group_labels, $values.
+ * Expected in scope: $rereg, $end_date, $grouped, $group_labels, $values,
+ * $ffc_import_source_title.
  *
  * @package FreeFormCertificate\Reregistration
  * @since   6.16.0
@@ -30,6 +31,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 				echo esc_html( sprintf( __( 'Deadline: %s', 'ffcertificate' ), $end_date ) );
 				?>
 			</p>
+
+			<?php
+			if ( '' !== $ffc_import_source_title ) {
+				include FFC_PLUGIN_DIR . 'templates/reregistration/import-previous-notice.php';
+			}
+			?>
 
 			<form id="ffc-rereg-form" novalidate>
 				<input type="hidden" name="reregistration_id" value="<?php echo esc_attr( (string) $rereg->id ); ?>">

@@ -99,6 +99,7 @@ class AudienceActivator {
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             name varchar(255) NOT NULL,
             description text DEFAULT NULL,
+            environment_label varchar(100) DEFAULT NULL COMMENT 'Custom label for environments (default: Environments)',
             visibility enum('public','private') DEFAULT 'private',
             future_days_limit int(10) unsigned DEFAULT NULL COMMENT 'NULL = no limit, only applies to non-admin',
             notify_on_booking tinyint(1) DEFAULT 1,
@@ -109,10 +110,16 @@ class AudienceActivator {
             email_template_booking text DEFAULT NULL,
             email_template_cancellation text DEFAULT NULL,
             include_ics tinyint(1) DEFAULT 0,
+            show_event_list tinyint(1) DEFAULT 0 COMMENT 'Show event list alongside calendar',
+            event_list_position enum('side','below') DEFAULT 'side' COMMENT 'Position of event list',
             status enum('active','inactive') DEFAULT 'active',
             created_by bigint(20) unsigned NOT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            booking_label_singular varchar(50) DEFAULT NULL COMMENT 'Custom singular label for booking badge',
+            booking_label_plural varchar(50) DEFAULT NULL COMMENT 'Custom plural label for booking badge',
+            audience_badge_format enum('name','parent_name') DEFAULT 'name' COMMENT 'How audience badges display: name only or parent: child',
+            is_isolated tinyint(1) DEFAULT 0 COMMENT 'Ignore conflicts from other schedules',
             PRIMARY KEY (id),
             KEY idx_status (status),
             KEY idx_created_by (created_by)
@@ -246,6 +253,7 @@ class AudienceActivator {
             created_by bigint(20) unsigned NOT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            allow_self_join tinyint(1) DEFAULT 0 COMMENT 'Allow users to join/leave from dashboard',
             PRIMARY KEY (id),
             KEY idx_parent (parent_id),
             KEY idx_status (status)
@@ -307,6 +315,7 @@ class AudienceActivator {
             booking_date date NOT NULL,
             start_time time NOT NULL,
             end_time time NOT NULL,
+            is_all_day tinyint(1) DEFAULT 0 COMMENT 'All-day event flag',
             booking_type enum('audience','individual') NOT NULL,
             description varchar(300) NOT NULL COMMENT 'Required, 15-300 chars',
             status enum('active','cancelled') DEFAULT 'active',
@@ -392,7 +401,35 @@ class AudienceActivator {
 	 * @since 4.7.0
 	 * @return void
 	 */
+	/**
+	 * Guarda por versao: a cadeia abaixo so precisa rodar uma vez por
+	 * `FFC_VERSION` (#1231).
+	 *
+	 * Sem ela, `AudienceActivator::maybe_migrate()` sondava o schema a CADA requisicao -- frontend anonimo
+	 * incluido -- porque `table_exists()` e um `SHOW TABLES LIKE` sem cache e
+	 * todo `add_column_if_missing()` dispara um `SHOW COLUMNS` antes de
+	 * decidir nao fazer nada. Somadas as quatro cadeias do `Loader`, eram 48
+	 * queries DDL por pagina numa instalacao sem nada a migrar.
+	 *
+	 * **A guarda e `FFC_VERSION`, e NAO um marcador one-shot, de proposito.**
+	 * Estas chamadas existem porque um update in-place do plugin (o botao
+	 * "Atualizar" do wp-admin) NAO dispara `register_activation_hook` -- a
+	 * propriedade a preservar e "o schema se cura depois de um update", nao
+	 * "roda a cada request". Com `FFC_VERSION` a constante muda no update e a
+	 * cadeia roda uma vez no primeiro request seguinte, identica ao que fazia
+	 * antes. Com um booleano one-shot, uma coluna introduzida numa release
+	 * futura nunca alcancaria quem ja tivesse o marcador gravado.
+	 *
+	 * A opcao e escrita **depois** do corpo, para que uma falha no meio nao
+	 * trave a cadeia numa versao que ela nao chegou a aplicar.
+	 */
 	public static function maybe_migrate(): void {
+		// Guarda por versao (#1231) -- ver a nota logo acima da assinatura.
+		$ffc_schema_option = 'ffc_audience_schema_version';
+		if ( get_option( $ffc_schema_option, '' ) === FFC_VERSION ) {
+			return;
+		}
+
 		global $wpdb;
 
 		$schedules_table = $wpdb->prefix . 'ffc_audience_schedules';
@@ -411,6 +448,8 @@ class AudienceActivator {
 		}
 
 		self::migrate_audience_self_join_column();
+
+		update_option( $ffc_schema_option, FFC_VERSION );
 	}
 
 	/**

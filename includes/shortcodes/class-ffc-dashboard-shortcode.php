@@ -15,6 +15,9 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Shortcodes;
 
+use FreeFormCertificate\Core\PasswordInvite;
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -171,79 +174,79 @@ class DashboardShortcode {
 
 			<nav class="ffc-dashboard-tabs" role="tablist" aria-label="<?php esc_attr_e( 'Dashboard', 'ffcertificate' ); ?>">
 				<?php if ( $can_view_certificates ) : ?>
-					<button class="ffc-tab <?php echo esc_attr( 'certificates' === $current_tab ? 'active' : '' ); ?>"
+					<button class="ffc-tab <?php echo esc_attr( 'certificates' === $current_tab ? 'is-active' : '' ); ?>"
 							data-tab="certificates"
 							role="tab"
 							id="ffc-tab-certificates"
 							aria-selected="<?php echo esc_attr( 'certificates' === $current_tab ? 'true' : 'false' ); ?>"
-							aria-controls="tab-certificates"
+							aria-controls="ffc-tabpanel-certificates"
 							tabindex="<?php echo esc_attr( 'certificates' === $current_tab ? '0' : '-1' ); ?>">
 						<span class="ffc-icon-scroll" aria-hidden="true"></span> <?php esc_html_e( 'Certificates', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
 
 				<?php if ( $can_view_appointments ) : ?>
-					<button class="ffc-tab <?php echo esc_attr( 'appointments' === $current_tab ? 'active' : '' ); ?>"
+					<button class="ffc-tab <?php echo esc_attr( 'appointments' === $current_tab ? 'is-active' : '' ); ?>"
 							data-tab="appointments"
 							role="tab"
 							id="ffc-tab-appointments"
 							aria-selected="<?php echo esc_attr( 'appointments' === $current_tab ? 'true' : 'false' ); ?>"
-							aria-controls="tab-appointments"
+							aria-controls="ffc-tabpanel-appointments"
 							tabindex="<?php echo esc_attr( 'appointments' === $current_tab ? '0' : '-1' ); ?>">
 						<span class="ffc-icon-calendar" aria-hidden="true"></span> <?php esc_html_e( 'Personal Schedule', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
 
 				<?php if ( $can_view_audience_bookings ) : ?>
-					<button class="ffc-tab <?php echo esc_attr( 'audience' === $current_tab ? 'active' : '' ); ?>"
+					<button class="ffc-tab <?php echo esc_attr( 'audience' === $current_tab ? 'is-active' : '' ); ?>"
 							data-tab="audience"
 							role="tab"
 							id="ffc-tab-audience"
 							aria-selected="<?php echo esc_attr( 'audience' === $current_tab ? 'true' : 'false' ); ?>"
-							aria-controls="tab-audience"
+							aria-controls="ffc-tabpanel-audience"
 							tabindex="<?php echo esc_attr( 'audience' === $current_tab ? '0' : '-1' ); ?>">
 						<span class="ffc-icon-users" aria-hidden="true"></span> <?php esc_html_e( 'Group Schedule', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
 
 				<?php if ( $can_view_reregistrations ) : ?>
-					<button class="ffc-tab <?php echo esc_attr( 'reregistrations' === $current_tab ? 'active' : '' ); ?>"
+					<button class="ffc-tab <?php echo esc_attr( 'reregistrations' === $current_tab ? 'is-active' : '' ); ?>"
 							data-tab="reregistrations"
 							role="tab"
 							id="ffc-tab-reregistrations"
 							aria-selected="<?php echo esc_attr( 'reregistrations' === $current_tab ? 'true' : 'false' ); ?>"
-							aria-controls="tab-reregistrations"
+							aria-controls="ffc-tabpanel-reregistrations"
 							tabindex="<?php echo esc_attr( 'reregistrations' === $current_tab ? '0' : '-1' ); ?>">
 						<span class="ffc-icon-file" aria-hidden="true"></span> <?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
 
 				<?php if ( $can_view_recruitment ) : ?>
-					<button class="ffc-tab <?php echo esc_attr( 'recruitment' === $current_tab ? 'active' : '' ); ?>"
+					<button class="ffc-tab <?php echo esc_attr( 'recruitment' === $current_tab ? 'is-active' : '' ); ?>"
 							data-tab="recruitment"
 							role="tab"
 							id="ffc-tab-recruitment"
 							aria-selected="<?php echo esc_attr( 'recruitment' === $current_tab ? 'true' : 'false' ); ?>"
-							aria-controls="tab-recruitment"
+							aria-controls="ffc-tabpanel-recruitment"
 							tabindex="<?php echo esc_attr( 'recruitment' === $current_tab ? '0' : '-1' ); ?>">
 						<span aria-hidden="true">📣</span> <?php esc_html_e( 'My Calls', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
 
-				<button class="ffc-tab <?php echo esc_attr( 'profile' === $current_tab ? 'active' : '' ); ?>"
+				<button class="ffc-tab <?php echo esc_attr( 'profile' === $current_tab ? 'is-active' : '' ); ?>"
 						data-tab="profile"
 						role="tab"
 						id="ffc-tab-profile"
 						aria-selected="<?php echo esc_attr( 'profile' === $current_tab ? 'true' : 'false' ); ?>"
-						aria-controls="tab-profile"
+						aria-controls="ffc-tabpanel-profile"
 						tabindex="<?php echo esc_attr( 'profile' === $current_tab ? '0' : '-1' ); ?>">
 					<span aria-hidden="true">👤</span> <?php esc_html_e( 'Profile', 'ffcertificate' ); ?>
 				</button>
 			</nav>
 
 			<?php if ( $can_view_certificates ) : ?>
-				<div class="ffc-tab-content <?php echo esc_attr( 'certificates' === $current_tab ? 'active' : '' ); ?>"
-					id="tab-certificates"
+				<div class="ffc-tab-content <?php echo esc_attr( 'certificates' === $current_tab ? 'is-active' : '' ); ?>"
+					id="ffc-tabpanel-certificates"
 					role="tabpanel"
 					aria-labelledby="ffc-tab-certificates">
 					<div class="ffc-loading" role="status">
@@ -253,8 +256,8 @@ class DashboardShortcode {
 			<?php endif; ?>
 
 			<?php if ( $can_view_appointments ) : ?>
-				<div class="ffc-tab-content <?php echo esc_attr( 'appointments' === $current_tab ? 'active' : '' ); ?>"
-					id="tab-appointments"
+				<div class="ffc-tab-content <?php echo esc_attr( 'appointments' === $current_tab ? 'is-active' : '' ); ?>"
+					id="ffc-tabpanel-appointments"
 					role="tabpanel"
 					aria-labelledby="ffc-tab-appointments">
 					<div class="ffc-loading" role="status">
@@ -264,8 +267,8 @@ class DashboardShortcode {
 			<?php endif; ?>
 
 			<?php if ( $can_view_audience_bookings ) : ?>
-				<div class="ffc-tab-content <?php echo esc_attr( 'audience' === $current_tab ? 'active' : '' ); ?>"
-					id="tab-audience"
+				<div class="ffc-tab-content <?php echo esc_attr( 'audience' === $current_tab ? 'is-active' : '' ); ?>"
+					id="ffc-tabpanel-audience"
 					role="tabpanel"
 					aria-labelledby="ffc-tab-audience">
 					<div class="ffc-loading" role="status">
@@ -275,8 +278,8 @@ class DashboardShortcode {
 			<?php endif; ?>
 
 			<?php if ( $can_view_reregistrations ) : ?>
-				<div class="ffc-tab-content <?php echo esc_attr( 'reregistrations' === $current_tab ? 'active' : '' ); ?>"
-					id="tab-reregistrations"
+				<div class="ffc-tab-content <?php echo esc_attr( 'reregistrations' === $current_tab ? 'is-active' : '' ); ?>"
+					id="ffc-tabpanel-reregistrations"
 					role="tabpanel"
 					aria-labelledby="ffc-tab-reregistrations">
 					<div class="ffc-loading" role="status">
@@ -286,8 +289,8 @@ class DashboardShortcode {
 			<?php endif; ?>
 
 			<?php if ( $can_view_recruitment ) : ?>
-				<div class="ffc-tab-content <?php echo esc_attr( 'recruitment' === $current_tab ? 'active' : '' ); ?>"
-					id="tab-recruitment"
+				<div class="ffc-tab-content <?php echo esc_attr( 'recruitment' === $current_tab ? 'is-active' : '' ); ?>"
+					id="ffc-tabpanel-recruitment"
 					role="tabpanel"
 					aria-labelledby="ffc-tab-recruitment">
 					<?php
@@ -298,8 +301,8 @@ class DashboardShortcode {
 				</div>
 			<?php endif; ?>
 
-			<div class="ffc-tab-content <?php echo esc_attr( 'profile' === $current_tab ? 'active' : '' ); ?>"
-				id="tab-profile"
+			<div class="ffc-tab-content <?php echo esc_attr( 'profile' === $current_tab ? 'is-active' : '' ); ?>"
+				id="ffc-tabpanel-profile"
 				role="tabpanel"
 				aria-labelledby="ffc-tab-profile">
 				<div class="ffc-loading" role="status">
@@ -319,6 +322,17 @@ class DashboardShortcode {
 	 * @return string HTML output
 	 */
 	private static function render_login_required(): string {
+		// O link do convite chega aqui, sem sessão: é esse o caso normal
+		// (#1212). A tela de definir senha mora na página do painel de
+		// propósito -- nenhuma página nova, nenhuma opção nova, e portanto
+		// nada para o `uninstall.php` e para o gate de fresh-install.
+		if ( PasswordInvite::request_has_link() ) {
+			$password_screen = self::render_set_password();
+			if ( '' !== $password_screen ) {
+				return $password_screen;
+			}
+		}
+
 		ob_start();
 		?>
 		<div class="ffc-dashboard-notice ffc-notice-warning">
@@ -333,6 +347,36 @@ class DashboardShortcode {
 		<?php
 		$login_required_html = ob_get_clean();
 		return $login_required_html ? $login_required_html : '';
+	}
+
+	/**
+	 * Render the set-password screen for an invited member.
+	 *
+	 * Devolve '' quando a chave não vale -- aí o chamador segue para o aviso
+	 * normal de "faça login", que é a resposta certa para um link expirado:
+	 * quem tem senha entra por ali, quem não tem pede um novo convite.
+	 *
+	 * @return string HTML output, or '' when the link is not usable.
+	 */
+	private static function render_set_password(): string {
+		$pair = PasswordInvite::request_pair();
+		$user = PasswordInvite::validate( $pair['key'], $pair['login'] );
+		if ( is_wp_error( $user ) ) {
+			return '';
+		}
+
+		DashboardAssetManager::enqueue_assets( 0 );
+
+		$ffc_key     = $pair['key'];
+		$ffc_login   = $pair['login'];
+		$ffc_error   = RequestInput::get_get_string( 'ffc_password_error' );
+		$ffc_min_len = PasswordInvite::MIN_PASSWORD_LENGTH;
+
+		ob_start();
+		include FFC_PLUGIN_DIR . 'templates/public/set-password.php';
+		$html = ob_get_clean();
+
+		return is_string( $html ) ? $html : '';
 	}
 
 	/**
@@ -386,7 +430,7 @@ class DashboardShortcode {
 						<div class="ffc-dashboard-header">
 							<div>
 								<strong><?php echo esc_html( $rereg['title'] ); ?></strong>
-								<p class="ffc-m-5-0"><?php esc_html_e( 'Your reregistration has been approved.', 'ffcertificate' ); ?></p>
+								<p class="ffc-m-2xs-0"><?php esc_html_e( 'Your reregistration has been approved.', 'ffcertificate' ); ?></p>
 							</div>
 							<?php if ( ! empty( $rereg['magic_link'] ) ) : ?>
 							<div>
@@ -404,7 +448,7 @@ class DashboardShortcode {
 						<div class="ffc-dashboard-header">
 							<div>
 								<strong><?php echo esc_html( $rereg['title'] ); ?></strong>
-								<p class="ffc-m-5-0"><?php esc_html_e( 'Your reregistration has been submitted and is pending review.', 'ffcertificate' ); ?></p>
+								<p class="ffc-m-2xs-0"><?php esc_html_e( 'Your reregistration has been submitted and is pending review.', 'ffcertificate' ); ?></p>
 							</div>
 							<?php if ( ! empty( $rereg['magic_link'] ) ) : ?>
 							<div>
@@ -437,7 +481,7 @@ class DashboardShortcode {
 						<div class="ffc-dashboard-header">
 							<div>
 								<strong><?php echo esc_html( $rereg['title'] ); ?></strong>
-								<p class="ffc-m-5-0">
+								<p class="ffc-m-2xs-0">
 									<?php
 									echo esc_html(
 										sprintf(
@@ -465,7 +509,7 @@ class DashboardShortcode {
 				<div class="ffc-dashboard-header">
 					<div>
 						<strong><?php echo esc_html( $rereg['title'] ); ?></strong>
-						<p class="ffc-m-5-0">
+						<p class="ffc-m-2xs-0">
 							<?php
 							/* translators: %s: deadline date */
 							echo esc_html( sprintf( __( 'Deadline: %s', 'ffcertificate' ), $end_date ) );

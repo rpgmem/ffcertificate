@@ -166,6 +166,20 @@ class MigrationStatusCalculator {
 					unset( $this->strategy_errors['key_rotation'] );
 					break;
 
+				case 'key_rotation_remaining':
+					$strategy_dir = __DIR__ . '/strategies/';
+
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\KeyRotationRemainingMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-key-rotation-remaining-migration-strategy.php';
+					}
+
+					$this->strategies['key_rotation_remaining'] = new \FreeFormCertificate\Migrations\Strategies\KeyRotationRemainingMigrationStrategy();
+					unset( $this->strategy_errors['key_rotation_remaining'] );
+					break;
+
 				case 'import_legacy_templates':
 					$strategy_dir = __DIR__ . '/strategies/';
 

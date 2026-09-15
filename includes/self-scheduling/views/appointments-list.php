@@ -117,7 +117,7 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 		try {
 			$ffcertificate_appointment = $ffcertificate_repo->findById( $ffc_self_scheduling_appointment_id );
 			if ( ! $ffcertificate_appointment ) {
-				echo '<div class="wrap">';
+				echo '<div class="wrap ffc-admin-page ffc-page-appointments">';
 				wp_admin_notice(
 					esc_html__( 'Appointment not found.', 'ffcertificate' ),
 					array( 'type' => 'error' )
@@ -231,7 +231,7 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 
 			// Render detail view.
 			?>
-			<div class="wrap">
+			<div class="wrap ffc-admin-page ffc-page-appointments">
 				<h1 class="wp-heading-inline">
 					<?php
 					printf(
@@ -298,7 +298,7 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 			</div>
 			<?php
 		} catch ( \Throwable $e ) {
-			echo '<div class="wrap">';
+			echo '<div class="wrap ffc-admin-page ffc-page-appointments">';
 			echo '<h1>' . esc_html__( 'Appointment Details', 'ffcertificate' ) . '</h1>';
 			wp_admin_notice(
 				'<strong>' . esc_html__( 'Error loading appointment:', 'ffcertificate' ) . '</strong> ' . esc_html( $e->getMessage() ),
@@ -342,7 +342,7 @@ $ffcertificate_table = new \FreeFormCertificate\SelfScheduling\AppointmentsListT
 $ffcertificate_table->prepare_items();
 
 ?>
-<div class="wrap">
+<div class="wrap ffc-admin-page ffc-page-appointments">
 	<h1 class="wp-heading-inline"><?php esc_html_e( 'Appointments', 'ffcertificate' ); ?></h1>
 	<?php
 	// Export CSV — batched engine (#772): the button drives the shared

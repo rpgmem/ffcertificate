@@ -140,6 +140,9 @@ final class AdminStylesheetTokensTest extends TestCase {
 	 * raw text reports every `#ffc-…` element as a colour. Comments go first
 	 * for the same reason — this file's own prose cites `#1126`.
 	 *
+	 * Counts hex, `rgb()`/`hsl()` **and the named colour** (#1168) — the last
+	 * one only inside a colour-valued property, because `white` is a word.
+	 *
 	 * @param string $path Absolute path.
 	 * @return array<int, string> The offending declarations, in file order.
 	 */
@@ -158,6 +161,23 @@ final class AdminStylesheetTokensTest extends TestCase {
 					continue;
 				}
 				if ( preg_match( '/#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/', $declaration ) ) {
+					$out[] = $declaration;
+					continue;
+				}
+
+				// Cor NOMEADA (#1168). `white` não casa com nenhum padrão acima
+				// e opta a declaração para fora da troca de tema tão
+				// completamente quanto um hex. Foi por aqui que quatro regras de
+				// `ffc-admin-submissions.css` — uma folha com orçamento ZERO,
+				// portanto certificada como totalmente convertida — pintaram
+				// branco sobre fundo escuro a 1,23 · 2,52 · 2,68 · 2,78:1.
+				//
+				// Casa só em propriedade de cor e só como palavra inteira:
+				// `font-family: 'Whitney'` não é literal de cor, e
+				// `background: url(white-bg.png)` também não.
+				if ( preg_match( '/^[a-z-]*(?:color|background|border|outline|shadow|fill|stroke)[a-z-]*\s*:/i', $declaration )
+					&& preg_match( '/(?<![-\w#])(?:white|black|red|green|blue|yellow|orange|purple|gray|grey|silver|maroon|navy|teal|olive|lime|aqua|fuchsia)(?![-\w])/i', $declaration )
+				) {
 					$out[] = $declaration;
 				}
 			}
@@ -822,6 +842,149 @@ final class AdminStylesheetTokensTest extends TestCase {
 		rmdir( $dir );
 
 		return $out;
+	}
+
+	/**
+	 * The notice's text nodes are named, and painted through a token.
+	 *
+	 * The rule above them paints the box and every child inherits it — which is
+	 * how it reads in isolation, and how it measured at 13:1 in a Chromium
+	 * loaded with WordPress's real admin CSS. On a live install with other
+	 * plugins it did not hold: something declares a colour on those nodes
+	 * directly, and ANY direct declaration beats an inherited value however
+	 * specific its source. Naming the children at 0,3,1 is what fixed it, and
+	 * the fix was confirmed on the real install.
+	 *
+	 * The rule is therefore load-bearing and invisible: delete these five
+	 * selectors and nothing else fails, because the box rule still measures
+	 * fine and the pair meter compares declared pairs. Same shape as the base
+	 * pair of Direction D, and the same reason for pinning it.
+	 *
+	 * What it does not see — deliberately — is WHICH rule was losing. That was
+	 * never identified: the scan ruled out all 28 of our stylesheets and the
+	 * five core files that could plausibly carry it. A guard cannot assert
+	 * against a rule nobody can name; it can assert that our answer to it is
+	 * still here.
+	 */
+	public function test_the_notice_text_nodes_are_named_and_use_a_token(): void {
+		$css = (string) preg_replace(
+			'#/\*.*?\*/#s',
+			'',
+			(string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-common.css' )
+		);
+
+		if ( ! preg_match( '/(:root\.ffc-dark-mode\s+\.notice\s+p\s*,[^{}]*)\{([^{}]*)\}/s', $css, $m ) ) {
+			$this->fail( 'A regra que nomeia os nós de texto da tarja sumiu — sem ela o texto volta a herdar, e nada mais falha.' );
+		}
+
+		foreach ( array( '.notice p', '.notice li', '.notice strong' ) as $needed ) {
+			$this->assertStringContainsString(
+				$needed,
+				$m[1],
+				"A regra deixou de cobrir `{$needed}`."
+			);
+		}
+
+		$this->assertMatchesRegularExpression(
+			'/(?<![-\w])color\s*:\s*var\(--ffc-[\w-]+\)/',
+			$m[2],
+			'A tarja tem de pintar por token — literal aqui é o defeito que o bloco existe para corrigir.'
+		);
+
+		// E nunca com `!important`: responder `!important` com `!important`
+		// começa uma guerra que a próxima folha de terceiro ganha (#1141).
+		$this->assertStringNotContainsString(
+			'!important',
+			$m[2],
+			'Escalar para `!important` aqui é uma guerra que a próxima folha ganha.'
+		);
+	}
+
+	/**
+	 * The shared modal keeps its `.ffc-shortcode` scope.
+	 *
+	 * This guard was written in #1150 for a reason that no longer applies, and
+	 * the history is the useful part. There was a second `.ffc-modal` in
+	 * `ffc-reregistration-admin.css`, written WITHOUT a scope prefix, and since
+	 * `ffc-common` is a DECLARED dependency of that sheet, both loaded on the
+	 * same screen. The prefix was then the ONLY thing keeping the shared rules
+	 * off the admin modal — drop it "to tidy up" and that screen inherited a
+	 * 500px flex-centred box it was never built for, with nothing red: the
+	 * literal ratchet, the pair meter and the dependency direction all stayed
+	 * green, because every rule involved was still tokenised and still declared.
+	 *
+	 * #1154 renamed the admin one to `ffc-rereg-modal*`, so the two names no
+	 * longer meet. What #1150 measured is still true — they are different
+	 * components, one centring by flex at 500px and the other positioning by
+	 * `margin-top` at 820px with an `h2` title — but "separate" no longer rests
+	 * on a selector continuing to exist.
+	 *
+	 * The guard stays, for the ordinary reason every frontend rule has one: a
+	 * `.ffc-modal` rule without the prefix reaches whatever the site's theme
+	 * calls a modal. That is a weaker claim than the one it was born with, and
+	 * it is the honest one.
+	 *
+	 * @return void
+	 */
+	public function test_the_shared_modal_keeps_its_scope_prefix(): void {
+		$css = (string) preg_replace(
+			'#/\*.*?\*/#s',
+			'',
+			(string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-common.css' )
+		);
+
+		$unscoped = array();
+		if ( preg_match_all( '/^([^{}\n]*\.ffc-modal[\w-]*[^{}\n]*)\{/m', $css, $m ) ) {
+			foreach ( $m[1] as $selector ) {
+				foreach ( explode( ',', $selector ) as $part ) {
+					$part = trim( $part );
+					if ( '' !== $part && ! str_contains( $part, '.ffc-shortcode' ) ) {
+						$unscoped[] = $part;
+					}
+				}
+			}
+		}
+
+		$this->assertNotSame( array(), $m[1] ?? array(), 'A varredura do modal colapsou.' );
+		$this->assertSame(
+			array(),
+			$unscoped,
+			'Regra de modal sem `.ffc-shortcode` na paleta: a folha carrega no frontend, então ela alcança o que o tema do site chamar de modal.'
+		);
+	}
+
+
+	/**
+	 * The reregistration admin modal keeps a name of its own.
+	 *
+	 * It was `.ffc-modal` — the same name as the shared component, on a sheet
+	 * that loads alongside it. #1150 established they are different components
+	 * and kept them apart with the `.ffc-shortcode` prefix; #1154 finished the
+	 * job by renaming this one, so the separation rests on the names rather
+	 * than on a selector continuing to exist.
+	 *
+	 * The assertion is the absence, not the presence: a half-done rename that
+	 * left one `.ffc-modal` rule behind would satisfy a check for the new name
+	 * while the old one still collides.
+	 *
+	 * @return void
+	 */
+	public function test_the_reregistration_admin_modal_keeps_its_own_name(): void {
+		$css = (string) preg_replace(
+			'#/\*.*?\*/#s',
+			'',
+			(string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-reregistration-admin.css' )
+		);
+
+		preg_match_all( '/(?<![\w-])\.ffc-rereg-modal[\w-]*/', $css, $renamed );
+		$this->assertNotSame( array(), $renamed[0], 'A varredura do modal do admin colapsou — nenhuma regra encontrada.' );
+
+		preg_match_all( '/(?<![\w-])\.?ffc-modal[\w-]*/', $css, $leftover );
+		$this->assertSame(
+			array(),
+			$leftover[0],
+			'Sobrou `ffc-modal` na folha do admin de recadastramento: o nome volta a colidir com o componente compartilhado de `ffc-common.css`.'
+		);
 	}
 
 	public function test_every_budget_entry_names_a_real_stylesheet(): void {

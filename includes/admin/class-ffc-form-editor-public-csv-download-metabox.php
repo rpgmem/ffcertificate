@@ -133,7 +133,7 @@ class FormEditorPublicCsvDownloadMetabox {
 					<?php esc_html_e( 'Operator features', 'ffcertificate' ); ?>
 				</th>
 				<td>
-					<p class="description ffc-mb-15">
+					<p class="description ffc-mb-xl">
 						<?php esc_html_e( 'Pick which operator actions this form exposes (can combine multiple):', 'ffcertificate' ); ?>
 					</p>
 
@@ -197,7 +197,7 @@ class FormEditorPublicCsvDownloadMetabox {
 						<span class="description"> — <?php esc_html_e( 'Allow the operator to push the close time later (one-shot per form).', 'ffcertificate' ); ?></span>
 					</div>
 
-					<p class="description ffc-mt-15">
+					<p class="description ffc-mt-xl">
 						<em><?php esc_html_e( 'Note: if none of the three is selected, the public page renders the access screen but exposes no actions.', 'ffcertificate' ); ?></em>
 					</p>
 				</td>
@@ -298,7 +298,7 @@ class FormEditorPublicCsvDownloadMetabox {
 						<?php endif; ?>
 					<?php endif; ?>
 
-					<p class="ffc-mt-10">
+					<p class="ffc-mt-md">
 						<?php
 						\FreeFormCertificate\Admin\AdminUI::render_toggle(
 							array(

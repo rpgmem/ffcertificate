@@ -37,7 +37,7 @@ describe('ffc-form-list-copy-shortcode', () => {
 		expect(writeText).toHaveBeenCalledWith('[ffc_form id=42]');
 	});
 
-	it('flashes the .copied class and clears it after the timeout', () => {
+	it('flashes the .is-copied class and clears it after the timeout', () => {
 		vi.useFakeTimers();
 		installButtons();
 		Object.defineProperty(navigator, 'clipboard', {
@@ -49,9 +49,9 @@ describe('ffc-form-list-copy-shortcode', () => {
 		const btn = document.querySelector('.ffc-copy-shortcode');
 		btn.click();
 
-		expect(btn.classList.contains('copied')).toBe(true);
+		expect(btn.classList.contains('is-copied')).toBe(true);
 		vi.advanceTimersByTime(1500);
-		expect(btn.classList.contains('copied')).toBe(false);
+		expect(btn.classList.contains('is-copied')).toBe(false);
 	});
 
 	it('falls back to execCommand when the Clipboard API is unavailable', () => {

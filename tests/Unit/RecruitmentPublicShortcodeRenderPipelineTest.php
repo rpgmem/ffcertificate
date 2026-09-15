@@ -86,8 +86,14 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 		)->byDefault();
 
 		$badge = Mockery::mock( 'alias:FreeFormCertificate\Core\BadgeHtml' );
+		// A cor saiu da assinatura no #1193: as variantes de status são pintadas
+		// por regra gerada. O selo de adjutância, cuja cor é por linha, tem
+		// método próprio.
 		$badge->shouldReceive( 'render' )->andReturnUsing(
-			fn( $base, $cls, $color, $label, $title = '' ) => "[BADGE:{$cls}:{$color}:{$label}:{$title}]"
+			fn( $base, $cls, $label, $title = '' ) => "[BADGE:{$cls}::{$label}:{$title}]"
+		);
+		$badge->shouldReceive( 'render_with_row_color' )->andReturnUsing(
+			fn( $base, $color, $label, $title = '' ) => "[BADGE:{$base}:{$color}:{$label}:{$title}]"
 		);
 
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );

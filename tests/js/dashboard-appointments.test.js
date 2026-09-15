@@ -1,10 +1,10 @@
 // Render tests for the Appointments panel
 // (assets/js/ffc-user-dashboard-appointments.js).
 //
-// The panel reads from #tab-appointments and writes a filter bar + one
+// The panel reads from #ffc-tabpanel-appointments and writes a filter bar + one
 // table per section (upcoming / past / cancelled). Tests cover: empty
 // state, sectioning by status, row counts, receipt-button visibility,
-// and the cancelled-row CSS class.
+// and the ffc-row-cancelled CSS class.
 //
 // Part of S4 of #163.
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
@@ -28,7 +28,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-	document.getElementById('tab-appointments').innerHTML = '';
+	document.getElementById('ffc-tabpanel-appointments').innerHTML = '';
 	window.localStorage.setItem('ffc_page_size', '25');
 });
 
@@ -56,7 +56,7 @@ function makeAppt(over = {}) {
 describe('FFCDashboard.panels.appointments.render', () => {
 	it('renders the empty state when there are no appointments', () => {
 		panel().render([], 1);
-		const container = document.getElementById('tab-appointments');
+		const container = document.getElementById('ffc-tabpanel-appointments');
 		expect(container.querySelector('.ffc-empty-state')).not.toBeNull();
 		expect(container.textContent).toContain('No appointments');
 		expect(container.querySelector('table')).toBeNull();
@@ -69,7 +69,7 @@ describe('FFCDashboard.panels.appointments.render', () => {
 			makeAppt({ status: 'cancelled', appointment_date_raw: FAR_FUTURE }),
 		];
 		panel().render(items, 1);
-		const headers = document.querySelectorAll('#tab-appointments h3');
+		const headers = document.querySelectorAll('#ffc-tabpanel-appointments h3');
 		expect(headers.length).toBe(3);
 		const labels = Array.from(headers).map((h) => h.textContent);
 		expect(labels).toEqual(['Upcoming', 'Past', 'Cancelled']);
@@ -78,17 +78,17 @@ describe('FFCDashboard.panels.appointments.render', () => {
 	it('omits sections that have no items', () => {
 		// Only upcoming → only one section.
 		panel().render([makeAppt(), makeAppt()], 1);
-		expect(document.querySelectorAll('#tab-appointments h3').length).toBe(1);
-		expect(document.querySelector('#tab-appointments h3').textContent).toBe('Upcoming');
+		expect(document.querySelectorAll('#ffc-tabpanel-appointments h3').length).toBe(1);
+		expect(document.querySelector('#ffc-tabpanel-appointments h3').textContent).toBe('Upcoming');
 	});
 
-	it("applies 'cancelled-row' / 'past-row' classes to the right rows", () => {
+	it("applies 'ffc-row-cancelled' / 'ffc-row-past' classes to the right rows", () => {
 		panel().render([
 			makeAppt({ status: 'completed', appointment_date_raw: FAR_PAST, calendar_title: 'past one' }),
 			makeAppt({ status: 'cancelled', calendar_title: 'cancelled one' }),
 		], 1);
-		expect(document.querySelectorAll('#tab-appointments tr.past-row').length).toBe(1);
-		expect(document.querySelectorAll('#tab-appointments tr.cancelled-row').length).toBe(1);
+		expect(document.querySelectorAll('#ffc-tabpanel-appointments tr.ffc-row-past').length).toBe(1);
+		expect(document.querySelectorAll('#ffc-tabpanel-appointments tr.ffc-row-cancelled').length).toBe(1);
 	});
 
 	it('exports the appointment using the raw wall-clock end time, not the display-formatted end_time', () => {
@@ -96,7 +96,7 @@ describe('FFCDashboard.panels.appointments.render', () => {
 		// TZ-shifted (e.g. 13:25 rendered as 10:25 in UTC-3). The calendar
 		// export must use end_time_raw so the exported end matches the booking.
 		panel().render([makeAppt({ start_time_raw: '13:00', end_time: '10:25', end_time_raw: '13:25' })], 1);
-		const googleLink = document.querySelector('#tab-appointments .ffc-cal-export-dropdown a[href*="calendar.google.com"]');
+		const googleLink = document.querySelector('#ffc-tabpanel-appointments .ffc-cal-export-dropdown a[href*="calendar.google.com"]');
 		expect(googleLink).not.toBeNull();
 		const href = decodeURIComponent(googleLink.getAttribute('href'));
 		expect(href).toContain('T130000/'); // raw start
@@ -109,39 +109,50 @@ describe('FFCDashboard.panels.appointments.render', () => {
 			makeAppt({ receipt_url: 'https://x.test/receipt/1' }),
 			makeAppt({ receipt_url: '' }),
 		], 1);
-		const buttons = document.querySelectorAll('#tab-appointments .ffc-btn-receipt');
+		const buttons = document.querySelectorAll('#ffc-tabpanel-appointments .ffc-btn-receipt');
 		expect(buttons.length).toBe(1);
 		expect(buttons[0].getAttribute('href')).toBe('https://x.test/receipt/1');
 	});
 
 	it('escapes HTML in the calendar_title cell so injected markup cannot execute', () => {
 		panel().render([makeAppt({ calendar_title: '<img src=x onerror=alert(1)>' })], 1);
-		const container = document.getElementById('tab-appointments');
+		const container = document.getElementById('ffc-tabpanel-appointments');
 		expect(container.querySelector('img')).toBeNull();
 		expect(container.textContent).toContain('<img src=x onerror=alert(1)>');
 	});
 
 	it('keeps a quote-breakout receipt_url inside the href and sets rel=noopener', () => {
 		panel().render([makeAppt({ receipt_url: 'https://x.test/"><img src=x onerror=alert(1)>' })], 1);
-		const buttons = document.querySelectorAll('#tab-appointments .ffc-btn-receipt');
+		const buttons = document.querySelectorAll('#ffc-tabpanel-appointments .ffc-btn-receipt');
 		// escAttr() neutralises the closing quote: one anchor, no smuggled <img>.
 		expect(buttons.length).toBe(1);
-		expect(document.querySelector('#tab-appointments td img')).toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-appointments td img')).toBeNull();
 	});
 
 	it('adds rel="noopener noreferrer" to the target=_blank receipt link', () => {
 		panel().render([makeAppt({ receipt_url: 'https://x.test/receipt/1' })], 1);
-		const link = document.querySelector('#tab-appointments .ffc-btn-receipt');
+		const link = document.querySelector('#ffc-tabpanel-appointments .ffc-btn-receipt');
 		expect(link.getAttribute('target')).toBe('_blank');
 		expect(link.getAttribute('rel')).toBe('noopener noreferrer');
 	});
 
-	it('attaches the appointment-status class with the status value', () => {
+	it('attaches the prefixed status class with the status value', () => {
 		panel().render([
 			makeAppt({ status: 'confirmed', status_label: 'Confirmed' }),
 			makeAppt({ status: 'completed', status_label: 'Done', appointment_date_raw: FAR_PAST }),
 		], 1);
-		expect(document.querySelectorAll('#tab-appointments .appointment-status.status-confirmed').length).toBe(1);
-		expect(document.querySelectorAll('#tab-appointments .appointment-status.status-completed').length).toBe(1);
+		expect(document.querySelectorAll('#ffc-tabpanel-appointments .ffc-dashboard-status.ffc-dashboard-status-confirmed').length).toBe(1);
+		expect(document.querySelectorAll('#ffc-tabpanel-appointments .ffc-dashboard-status.ffc-dashboard-status-completed').length).toBe(1);
+	});
+
+	// #1151: the badge was `appointment-status status-<state>` — the only
+	// unprefixed name this plugin published to the frontend, on a sheet that
+	// loads inside whatever theme the site runs. The unprefixed name must not
+	// come back, and it is not enough to assert the new one is present: both
+	// classes can coexist on one element.
+	it('publishes no unprefixed status class', () => {
+		panel().render([makeAppt({ status: 'confirmed', status_label: 'Confirmed' })], 1);
+		expect(document.querySelectorAll('#ffc-tabpanel-appointments .appointment-status').length).toBe(0);
+		expect(document.querySelectorAll('#ffc-tabpanel-appointments .status-confirmed').length).toBe(0);
 	});
 });

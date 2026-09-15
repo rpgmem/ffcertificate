@@ -208,106 +208,6 @@
         // console.log('[FFC Admin] Initialization complete');
     });
 
-    /**
-     * Migration Manager Dropdown Controller
-     * v2.1.0
-     *
-     * Controls opening/closing of migrations dropdown
-     */
-
-    jQuery(document).ready(function($) {
-
-        // Create overlay if it doesn't exist
-        if (!$('#ffc-migrations-overlay').length) {
-            $('body').append('<div id="ffc-migrations-overlay" class="ffc-migrations-overlay"></div>');
-        }
-
-        var $btn = $('#ffc-migrations-btn');
-        var $menu = $('#ffc-migrations-menu');
-        var $overlay = $('#ffc-migrations-overlay');
-
-        if (!$btn.length || !$menu.length) {
-            return; // Elements not found
-        }
-
-        /**
-         * Open menu
-         */
-        function openMenu() {
-            // Close other WordPress dropdowns
-            $('.ffc-migrations-menu').not($menu).removeClass('ffc-visible');
-
-            // Show overlay
-            $overlay.addClass('ffc-visible');
-
-            // Show menu
-            $menu.addClass('ffc-visible');
-
-            // console.log('Migration menu opened');
-        }
-
-        /**
-         * Close menu
-         */
-        function closeMenu() {
-            $menu.removeClass('ffc-visible');
-            $overlay.removeClass('ffc-visible');
-
-            // console.log('Migration menu closed');
-        }
-
-        /**
-         * Toggle menu
-         */
-        function toggleMenu(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            if ($menu.hasClass('ffc-visible')) {
-                closeMenu();
-            } else {
-                openMenu();
-            }
-        }
-
-        // Click on button
-        $btn.on('click', toggleMenu);
-
-        // Click on overlay closes menu
-        $overlay.on('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            closeMenu();
-        });
-
-        // Click outside menu closes (fallback)
-        $(document).on('click', function(e) {
-            if (!$(e.target).closest('.ffc-migrations-dropdown').length) {
-                closeMenu();
-            }
-        });
-
-        // ESC closes menu
-        $(document).on('keydown', function(e) {
-            if (e.key === 'Escape' || e.keyCode === 27) {
-                if ($menu.hasClass('ffc-visible')) {
-                    closeMenu();
-                }
-            }
-        });
-
-        // Prevent clicks inside menu from closing it
-        $menu.on('click', function(e) {
-            e.stopPropagation();
-        });
-
-        // Restriction field visibility (password/allowlist/denylist/ticket)
-        // is handled by the generic `.ffc-collapsed-target` initializer
-        // at the end of this file. Master toggles drive their dependent
-        // <tr>s via data-ffc-master, with `.ffc-collapsed` collapsing
-        // them when off.
-    });
-
     // =========================================================================
     // Filter Overlay (Submissions page)
     // =========================================================================
@@ -362,6 +262,10 @@
     // collapsed into this single initializer to keep behavior uniform,
     // including the formerly-save-required spots (Email send_user_email,
     // CPF whitelist mode, IP-Areas permissive).
+    //
+    // The form editor's restriction fields (password / allowlist / denylist /
+    // ticket) are driven from here too: their master toggles carry
+    // `data-ffc-master` and the dependent <tr>s collapse with `.ffc-collapsed`.
     // =========================================================================
     $('.ffc-collapsed-target').each(function() {
         var $target   = $(this);

@@ -1,7 +1,7 @@
 // Render tests for the Reregistrations panel
 // (assets/js/ffc-user-dashboard-reregistrations.js).
 //
-// The panel reads from #tab-reregistrations and writes a filter bar +
+// The panel reads from #ffc-tabpanel-reregistrations and writes a filter bar +
 // table(s) split by `is_active` (Active / Completed). Tests cover empty
 // state, sectioning, row classes, validation-code rendering, edit button
 // visibility, and search filtering.
@@ -32,9 +32,9 @@ beforeAll(() => {
 	window.ffcDashboard.nonce = 'rest-nonce';
 	// Inject the panel's tab container, which install... doesn't include.
 	const dash = document.getElementById('ffc-dashboard');
-	if (dash && ! document.getElementById('tab-reregistrations')) {
+	if (dash && ! document.getElementById('ffc-tabpanel-reregistrations')) {
 		const el = document.createElement('div');
-		el.id = 'tab-reregistrations';
+		el.id = 'ffc-tabpanel-reregistrations';
 		el.className = 'ffc-tab-content';
 		dash.appendChild(el);
 	}
@@ -43,7 +43,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-	document.getElementById('tab-reregistrations').innerHTML = '';
+	document.getElementById('ffc-tabpanel-reregistrations').innerHTML = '';
 	window.localStorage.setItem('ffc_page_size', '25');
 });
 
@@ -71,7 +71,7 @@ function makeRereg(over = {}) {
 describe('FFCDashboard.panels.reregistrations.render', () => {
 	it('renders the empty state when there are no items', () => {
 		panel().render([], 1);
-		const container = document.getElementById('tab-reregistrations');
+		const container = document.getElementById('ffc-tabpanel-reregistrations');
 		expect(container.querySelector('.ffc-empty-state')).not.toBeNull();
 		expect(container.textContent).toContain('No reregistrations found.');
 	});
@@ -81,15 +81,15 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 			makeRereg({ is_active: true, title: 'Open' }),
 			makeRereg({ is_active: false, title: 'Done' }),
 		], 1);
-		const headers = Array.from(document.querySelectorAll('#tab-reregistrations h3')).map((h) => h.textContent);
+		const headers = Array.from(document.querySelectorAll('#ffc-tabpanel-reregistrations h3')).map((h) => h.textContent);
 		expect(headers).toEqual(['Active', 'Completed']);
 	});
 
-	it("applies 'past-row' to completed rows", () => {
+	it("applies 'ffc-row-past' to completed rows", () => {
 		panel().render([
 			makeRereg({ is_active: false, title: 'Done' }),
 		], 1);
-		expect(document.querySelectorAll('#tab-reregistrations tr.past-row').length).toBe(1);
+		expect(document.querySelectorAll('#ffc-tabpanel-reregistrations tr.ffc-row-past').length).toBe(1);
 	});
 
 	it('renders the Edit button when can_submit is true, omits it otherwise', () => {
@@ -97,7 +97,7 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 			makeRereg({ can_submit: true, reregistration_id: 10 }),
 			makeRereg({ can_submit: false, reregistration_id: 20 }),
 		], 1);
-		const buttons = document.querySelectorAll('#tab-reregistrations .ffc-rereg-open-form');
+		const buttons = document.querySelectorAll('#ffc-tabpanel-reregistrations .ffc-rereg-open-form');
 		expect(buttons.length).toBe(1);
 		expect(buttons[0].getAttribute('data-reregistration-id')).toBe('10');
 	});
@@ -108,8 +108,24 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 			makeRereg({ can_download: false, magic_link: 'https://x.test/m' }),
 			makeRereg({ can_download: true, magic_link: '' }),
 		], 1);
-		const buttons = document.querySelectorAll('#tab-reregistrations .ffc-btn-pdf');
+		const buttons = document.querySelectorAll('#ffc-tabpanel-reregistrations .ffc-btn-pdf');
 		expect(buttons.length).toBe(1);
+	});
+
+	it('attaches the prefixed status class with the status value', () => {
+		panel().render([
+			makeRereg({ status: 'approved', status_label: 'Approved', reregistration_id: 1 }),
+			makeRereg({ status: 'rejected', status_label: 'Rejected', reregistration_id: 2 }),
+		], 1);
+		expect(document.querySelectorAll('#ffc-tabpanel-reregistrations .ffc-dashboard-status.ffc-dashboard-status-approved').length).toBe(1);
+		expect(document.querySelectorAll('#ffc-tabpanel-reregistrations .ffc-dashboard-status.ffc-dashboard-status-rejected').length).toBe(1);
+	});
+
+	// #1151 — the same badge, the same rename, the second of its two emitters.
+	it('publishes no unprefixed status class', () => {
+		panel().render([makeRereg({ status: 'approved', status_label: 'Approved' })], 1);
+		expect(document.querySelectorAll('#ffc-tabpanel-reregistrations .appointment-status').length).toBe(0);
+		expect(document.querySelectorAll('#ffc-tabpanel-reregistrations .status-approved').length).toBe(0);
 	});
 
 	it('renders the auth_code in a <code> tag when present, dash when absent', () => {
@@ -117,8 +133,8 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 			makeRereg({ auth_code: 'ABC123' }),
 			makeRereg({ auth_code: '' }),
 		], 1);
-		expect(document.querySelectorAll('#tab-reregistrations code.ffc-auth-code').length).toBe(1);
-		expect(document.querySelectorAll('#tab-reregistrations code.ffc-auth-code')[0].textContent).toBe('ABC123');
+		expect(document.querySelectorAll('#ffc-tabpanel-reregistrations code.ffc-auth-code').length).toBe(1);
+		expect(document.querySelectorAll('#ffc-tabpanel-reregistrations code.ffc-auth-code')[0].textContent).toBe('ABC123');
 	});
 
 	it('filters by search query (title / status_label / auth_code substring)', () => {
@@ -127,9 +143,9 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 			makeRereg({ title: 'Beta campaign',  auth_code: 'BBB', reregistration_id: 2 }),
 		];
 		panel().render(items, 1);
-		document.querySelector('#tab-reregistrations .ffc-filter-search').value = 'beta';
+		document.querySelector('#ffc-tabpanel-reregistrations .ffc-filter-search').value = 'beta';
 		panel().render(items, 1);
-		const rows = document.querySelectorAll('#tab-reregistrations table tbody tr');
+		const rows = document.querySelectorAll('#ffc-tabpanel-reregistrations table tbody tr');
 		expect(rows.length).toBe(1);
 		expect(rows[0].textContent).toContain('Beta');
 	});
@@ -144,10 +160,10 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 			makeRereg({ start_date: '2026-06-01', end_date: '2026-12-31', title: 'LateCamp', reregistration_id: 3 }),
 		];
 		panel().render(items, 1);
-		document.querySelector('#tab-reregistrations .ffc-filter-from').value = '2026-03-01';
-		document.querySelector('#tab-reregistrations .ffc-filter-to').value = '2026-09-01';
+		document.querySelector('#ffc-tabpanel-reregistrations .ffc-filter-from').value = '2026-03-01';
+		document.querySelector('#ffc-tabpanel-reregistrations .ffc-filter-to').value = '2026-09-01';
 		panel().render(items, 1);
-		const rows = document.querySelectorAll('#tab-reregistrations table tbody tr');
+		const rows = document.querySelectorAll('#ffc-tabpanel-reregistrations table tbody tr');
 		expect(rows.length).toBe(1);
 		expect(rows[0].textContent).toContain('MidCamp');
 	});
@@ -165,8 +181,8 @@ describe('FFCDashboard.panels.reregistrations.load', () => {
 		delete window.ffcDashboard.canViewReregistrations;
 	});
 
-	it('bails when #tab-reregistrations is missing', async () => {
-		document.getElementById('tab-reregistrations').remove();
+	it('bails when #ffc-tabpanel-reregistrations is missing', async () => {
+		document.getElementById('ffc-tabpanel-reregistrations').remove();
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
 
 		panel().load();
@@ -175,7 +191,7 @@ describe('FFCDashboard.panels.reregistrations.load', () => {
 		expect(ajaxSpy).not.toHaveBeenCalled();
 		document.getElementById('ffc-dashboard').insertAdjacentHTML(
 			'beforeend',
-			'<div id="tab-reregistrations" class="ffc-tab-content"></div>'
+			'<div id="ffc-tabpanel-reregistrations" class="ffc-tab-content"></div>'
 		);
 	});
 
@@ -187,7 +203,7 @@ describe('FFCDashboard.panels.reregistrations.load', () => {
 		await flushPromises();
 
 		expect(ajaxSpy).not.toHaveBeenCalled();
-		expect(document.getElementById('tab-reregistrations').innerHTML).toContain('No permission');
+		expect(document.getElementById('ffc-tabpanel-reregistrations').innerHTML).toContain('No permission');
 	});
 
 	it('short-circuits when state is already populated', async () => {
@@ -215,7 +231,7 @@ describe('FFCDashboard.panels.reregistrations.load', () => {
 		const opts = ajaxSpy.mock.calls[0][0];
 		expect(opts.url).toBe('https://x.test/wp-json/ffc/v1/user/reregistrations');
 		expect(panel().state.length).toBe(1);
-		expect(document.getElementById('tab-reregistrations').textContent).toContain('LoadedCampaign');
+		expect(document.getElementById('ffc-tabpanel-reregistrations').textContent).toContain('LoadedCampaign');
 	});
 
 	it('appends viewAsUserId query string when impersonating', async () => {
@@ -238,7 +254,7 @@ describe('FFCDashboard.panels.reregistrations.load', () => {
 		await flushPromises();
 
 		expect(panel().state).toEqual([]);
-		expect(document.querySelector('#tab-reregistrations .ffc-empty-state')).not.toBeNull();
+		expect(document.querySelector('#ffc-tabpanel-reregistrations .ffc-empty-state')).not.toBeNull();
 	});
 
 	it('renders the error notice when the AJAX call fails', async () => {
@@ -250,6 +266,6 @@ describe('FFCDashboard.panels.reregistrations.load', () => {
 		panel().load();
 		await flushPromises();
 
-		expect(document.getElementById('tab-reregistrations').innerHTML).toContain('Error');
+		expect(document.getElementById('ffc-tabpanel-reregistrations').innerHTML).toContain('Error');
 	});
 });

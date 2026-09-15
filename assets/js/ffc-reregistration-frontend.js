@@ -70,13 +70,79 @@
     function initForm($container) {
         initMasks($container);
         initBlurValidation($container);
-        initDivisaoSetor($container);
         initAcumuloCargos($container);
         initWorkingHours($container);
         initDependentSelects($container);
         initDraft($container);
         initSubmit($container);
         initCancel($container);
+        initImportPrevious($container);
+    }
+
+    /* ─── Importar o ciclo anterior ────────────────────── */
+
+    function initImportPrevious($container) {
+        var $notice = $container.find('.ffc-rereg-import-notice');
+        if (!$notice.length) {
+            return;
+        }
+
+        var $btn = $notice.find('.ffc-rereg-import-btn');
+        var $status = $notice.find('.ffc-rereg-import-status');
+        var reregistrationId = $container.find('.ffc-rereg-form-container').data('reregistration-id');
+
+        $btn.on('click', function () {
+            $btn.prop('disabled', true);
+            $status.text(S.importLoading || 'Loading…');
+
+            FFC.request(
+                'ffc_import_previous_reregistration',
+                { reregistration_id: reregistrationId },
+                { nonce: ffcReregistration.nonce, ajaxUrl: ffcReregistration.ajaxUrl }
+            )
+                .then(function (data) {
+                    var filled = applyImportedFields($container, (data && data.fields) || {});
+                    $notice.slideUp(200);
+                    $status.text('');
+                    if (filled) {
+                        // Os dependentes reagem ao valor, não à origem: sem
+                        // isto o acúmulo segue oculto com campo preenchido.
+                        $container.find('[data-field-key="acumulo_cargos"] select').trigger('change');
+                    }
+                })
+                .catch(function (err) {
+                    $btn.prop('disabled', false);
+                    $status.text((err && err.fromServer && err.message) || S.errorLoading || 'Error.');
+                });
+        });
+    }
+
+    /**
+     * Preenche os campos vindos da importação.
+     *
+     * Casa por `data-field-key`, que é o que o wrapper emite, e NÃO
+     * sobrescreve campo que já tem valor -- se o participante começou a
+     * preencher antes de aceitar, o que ele digitou ganha.
+     */
+    function applyImportedFields($container, fields) {
+        var filled = 0;
+
+        Object.keys(fields).forEach(function (key) {
+            var $input = $container
+                .find('[data-field-key="' + key + '"]')
+                .find('input, select, textarea')
+                .not('[type="hidden"]')
+                .first();
+
+            if (!$input.length || $input.val()) {
+                return;
+            }
+
+            $input.val(fields[key]);
+            filled++;
+        });
+
+        return filled;
     }
 
     /* ─── Input Masks ──────────────────────────────────── */
@@ -142,54 +208,55 @@
         });
     }
 
-    /* ─── Divisão → Setor Cascading ───────────────────── */
-
-    function initDivisaoSetor($container) {
-        var $mapEl = $container.find('#ffc-divisao-setor-map');
-        if (!$mapEl.length) return;
-
-        var map;
-        try {
-            map = JSON.parse($mapEl.text());
-        } catch (e) {
-            return;
-        }
-
-        var $divisao = $container.find('#ffc_rereg_divisao');
-        var $setor = $container.find('#ffc_rereg_setor');
-
-        $divisao.on('change', function () {
-            var div = $(this).val();
-            var currentSetor = $setor.val();
-            $setor.empty();
-
-            if (!div || !map[div]) {
-                $setor.append('<option value="">' + (S.selectDivisao || 'Select Division / Location') + '</option>');
-                return;
-            }
-
-            $setor.append('<option value="">' + (S.selectSetor || 'Select') + '</option>');
-            $.each(map[div], function (_, setor) {
-                var $opt = $('<option>').val(setor).text(setor);
-                if (setor === currentSetor) $opt.prop('selected', true);
-                $setor.append($opt);
-            });
-        });
-    }
-
     /* ─── Acúmulo de Cargos Toggle ────────────────────── */
 
     function initAcumuloCargos($container) {
-        var $select = $container.find('#ffc_rereg_acumulo');
-        var $fields = $container.find('.ffc-rereg-acumulo-fields');
+        // Os três campos dependentes só valem quando o participante declara
+        // que ACUMULA. Essa já é a regra do outro lado: o FichaGenerator
+        // zera `jornada_acumulo`, `cargo_funcao_acumulo` e
+        // `horario_trabalho_acumulo` a menos que o valor seja exatamente
+        // "I hold" -- "Pension" também zera. Sem esconder aqui, o
+        // participante preenche o que a ficha vai descartar.
+        //
+        // A seleção é por `data-field-key`, que TODO campo emite pelo
+        // wrapper. A versão anterior procurava `#ffc_rereg_acumulo` e
+        // `.ffc-rereg-acumulo-fields`, que nenhum PHP emite -- os dois
+        // conjuntos vinham vazios e o handler não fazia nada.
+        var $select = $container.find('[data-field-key="acumulo_cargos"] select');
+        var $fields = $container.find(
+            '[data-field-key="jornada_acumulo"],' +
+            '[data-field-key="cargo_funcao_acumulo"],' +
+            '[data-field-key="horario_trabalho_acumulo"]'
+        );
+
+        if (!$select.length || !$fields.length) {
+            return;
+        }
+
+        function apply(animate) {
+            var show = $select.val() === (S.acumuloShowValue || 'I hold');
+
+            if (animate) {
+                show ? $fields.slideDown(200) : $fields.slideUp(200);
+            } else {
+                show ? $fields.show() : $fields.hide();
+            }
+
+            // As linhas de horário trazem `required` nos campos de hora, e
+            // validação de constraint IGNORA visibilidade -- um required
+            // escondido trava o envio sem mostrar o que falta.
+            $fields.each(function () {
+                FFC.setRequiredWithin($(this), show);
+            });
+        }
 
         $select.on('change', function () {
-            if ($(this).val() === (S.acumuloShowValue || 'I hold')) {
-                $fields.slideDown(200);
-            } else {
-                $fields.slideUp(200);
-            }
+            apply(true);
         });
+
+        // Sem isto o handler só reagia à mudança, então o formulário abria
+        // com os campos VISÍVEIS qualquer que fosse o valor salvo.
+        apply(false);
     }
 
     /* ─── Working Hours (standard fields) ────────────── */

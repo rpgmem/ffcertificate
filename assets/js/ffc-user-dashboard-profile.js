@@ -26,9 +26,9 @@
             items.forEach(function (item) { html += '<li>' + esc(item) + '</li>'; });
             html += '</ul>';
         } else if (items && items.length === 1) {
-            html += '<div class="value">' + esc(items[0]) + '</div>';
+            html += '<div class="ffc-field-value">' + esc(items[0]) + '</div>';
         } else {
-            html += '<div class="value">' + esc(fallback || '-') + '</div>';
+            html += '<div class="ffc-field-value">' + esc(fallback || '-') + '</div>';
         }
         html += '</div>';
         return html;
@@ -43,7 +43,7 @@
     }
 
     function showEditForm() {
-        var $container = $('#tab-profile');
+        var $container = $('#ffc-tabpanel-profile');
         var profile = FFCDashboard.panels.profile.state;
         if (!profile) return;
         var s = ffcDashboard.strings;
@@ -207,7 +207,7 @@
             $(document).on('click', '.ffc-password-save-btn', function (e) { e.preventDefault(); changePassword(); });
             $(document).on('click', '.ffc-password-toggle-btn', function (e) {
                 e.preventDefault();
-                $('#tab-profile .ffc-password-form').slideToggle(200);
+                $('#ffc-tabpanel-profile .ffc-password-form').slideToggle(200);
             });
 
             $(document).on('click', '.ffc-lgpd-export-btn', function (e) { e.preventDefault(); privacyRequest('export_personal_data'); });
@@ -222,7 +222,7 @@
         },
 
         load: function () {
-            var $container = $('#tab-profile');
+            var $container = $('#ffc-tabpanel-profile');
             if ($container.find('.ffc-profile-info').length > 0) return;
 
             $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
@@ -239,7 +239,7 @@
         },
 
         render: function (profile) {
-            var $container = $('#tab-profile');
+            var $container = $('#ffc-tabpanel-profile');
             this.state = profile;
             var s = ffcDashboard.strings;
 
@@ -251,28 +251,28 @@
 
             html += '<div class="ffc-profile-info">';
 
-            html += renderListField(s.name, 'name-list', profile.names, profile.display_name);
-            html += renderListField(s.linkedEmails, 'email-list', profile.emails, profile.email);
-            html += renderListField(s.cpfRf, 'cpf-list', profile.cpfs_masked, profile.cpf_masked);
+            html += renderListField(s.name, 'ffc-name-list', profile.names, profile.display_name);
+            html += renderListField(s.linkedEmails, 'ffc-email-list', profile.emails, profile.email);
+            html += renderListField(s.cpfRf, 'ffc-cpf-list', profile.cpfs_masked, profile.cpf_masked);
 
             html += '<div class="ffc-profile-field"><label>' + (s.phone || 'Phone:') + '</label>';
-            html += '<div class="value">' + esc(profile.phone || '-') + '</div></div>';
+            html += '<div class="ffc-field-value">' + esc(profile.phone || '-') + '</div></div>';
 
             html += '<div class="ffc-profile-field"><label>' + (s.department || 'Department:') + '</label>';
-            html += '<div class="value">' + esc(profile.department || '-') + '</div></div>';
+            html += '<div class="ffc-field-value">' + esc(profile.department || '-') + '</div></div>';
 
             html += '<div class="ffc-profile-field"><label>' + (s.organization || 'Organization:') + '</label>';
-            html += '<div class="value">' + esc(profile.organization || '-') + '</div></div>';
+            html += '<div class="ffc-field-value">' + esc(profile.organization || '-') + '</div></div>';
 
             if (profile.notes) {
                 html += '<div class="ffc-profile-field"><label>' + (s.notesLabel || 'Notes:') + '</label>';
-                html += '<div class="value">' + esc(profile.notes) + '</div></div>';
+                html += '<div class="ffc-field-value">' + esc(profile.notes) + '</div></div>';
             }
 
             if (profile.audience_groups && profile.audience_groups.length > 0) {
                 html += '<div class="ffc-profile-field">';
                 html += '<label>' + (s.audienceGroups || 'Groups') + '</label>';
-                html += '<div class="value" style="display: flex; flex-wrap: wrap; gap: 6px;">';
+                html += '<div class="ffc-field-value" style="display: flex; flex-wrap: wrap; gap: 6px;">';
                 profile.audience_groups.forEach(function (group) {
                     html += '<span style="background-color: ' + escAttr(group.color || '#2271b1') + '; color: #fff; padding: 4px 12px; border-radius: 3px; font-size: 13px;">' + esc(group.name) + '</span>';
                 });
@@ -280,7 +280,7 @@
             }
 
             html += '<div class="ffc-profile-field"><label>' + s.memberSince + '</label>';
-            html += '<div class="value">' + esc(profile.member_since || '-') + '</div></div>';
+            html += '<div class="ffc-field-value">' + esc(profile.member_since || '-') + '</div></div>';
 
             html += '</div>';
 
@@ -335,7 +335,7 @@
         // Force-reload (bypass the cache guard in load).
         reload: function () {
             this.state = null;
-            var $container = $('#tab-profile');
+            var $container = $('#ffc-tabpanel-profile');
             $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
 
             var url = ffcDashboard.restUrl + 'user/profile';

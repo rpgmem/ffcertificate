@@ -394,6 +394,21 @@ class QRCodeGenerator {
 	/**
 	 * Check if cache is enabled
 	 *
+	 * **Este toggle governa o cache do QR de CERTIFICADO** —
+	 * `ffc_submissions.qr_code_cache`, indexado por `submission_id` — e mais
+	 * nada. O QR da URL curta tem um cache proprio e homonimo,
+	 * `ffc_short_urls.qr_cache`, que nao passa por aqui: ele nao tem toggle e
+	 * serve um unico tamanho, declarado na constante `CACHE_SIZE` do
+	 * `UrlShortenerQrHandler` (#1233). O botao "Clear All QR Code Cache" da
+	 * aba Cache tambem limpa so este aqui.
+	 *
+	 * O nome da outra classe fica SEM o namespace de proposito. O
+	 * `ModuleBoundaryTest` monta o grafo de modulos varrendo o TEXTO dos
+	 * arquivos, entao um `@see` totalmente qualificado apontando para o modulo
+	 * do encurtador cria ali uma aresta de saida deste modulo e reprova o CI —
+	 * um docblock acopla tanto quanto um `use`. A dependencia real existe so
+	 * no sentido contrario: o encurtador usa este gerador.
+	 *
 	 * @return bool
 	 */
 	private function is_cache_enabled(): bool {

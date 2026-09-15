@@ -17,15 +17,15 @@
 .ffc-certificates-dashboard {
     display: grid;
     grid-template-columns: 2fr 1fr;
-    gap: 20px;
-    margin-top: 20px;
+    gap: var(--ffc-spacing-2xl);
+    margin-top: var(--ffc-spacing-2xl);
     align-items: start;
 }
 
 .ffc-certificates-dashboard-calendar {
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
+    border-radius: var(--ffc-radius-sm);
     padding: 0;
     overflow: hidden;
 }
@@ -33,13 +33,13 @@
 .ffc-certificates-dashboard-side {
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
-    padding: 16px;
+    border-radius: var(--ffc-radius-sm);
+    padding: var(--ffc-spacing-xl);
 }
 
 .ffc-certificates-side-title {
-    margin: 0 0 12px;
-    font-size: 16px;
+    margin: 0 0 var(--ffc-spacing-lg);
+    font-size: var(--ffc-font-size-lg);
 }
 
 .ffc-certificates-side-empty {
@@ -58,8 +58,8 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    padding: 10px 0;
+    gap: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-md) 0;
     border-bottom: 1px solid var(--ffc-border-light);
 }
 
@@ -68,11 +68,11 @@
 }
 
 .ffc-certificates-source-badge {
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.3px;
-    padding: 2px 8px;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
     border-radius: 10px;
     line-height: 1.6;
 }
@@ -99,7 +99,7 @@
 }
 
 .ffc-certificates-status {
-    font-size: 12px;
+    font-size: var(--ffc-font-size-xs);
     color: var(--ffc-text-secondary);
 }
 
@@ -121,7 +121,7 @@
 }
 
 .ffc-certificates-submissions-link .dashicons {
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
     width: 18px;
     height: 18px;
 }
@@ -139,22 +139,22 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     background: var(--ffc-bg-alt);
     border-bottom: 1px solid var(--ffc-border-light);
     flex-wrap: wrap;
-    gap: 15px;
+    gap: var(--ffc-spacing-xl);
 }
 
 .ffc-calendar-core .ffc-calendar-nav {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--ffc-spacing-md);
 }
 
 .ffc-calendar-core .ffc-current-month {
     margin: 0;
-    font-size: 18px;
+    font-size: var(--ffc-font-size-xl);
     font-weight: 600;
     min-width: 180px;
     text-align: center;
@@ -164,10 +164,10 @@
     color: var(--ffc-text);
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
-    padding: 8px 12px;
+    border-radius: var(--ffc-radius-sm);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     cursor: pointer;
-    font-size: 16px;
+    font-size: var(--ffc-font-size-lg);
     transition: all 0.2s ease;
     line-height: 1;
 }
@@ -183,42 +183,42 @@
 }
 
 .ffc-calendar-core .ffc-today-btn {
-    font-size: 13px;
-    padding: 6px 12px;
-    margin-left: 10px;
+    font-size: var(--ffc-font-size-sm);
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
+    margin-left: var(--ffc-spacing-md);
 }
 
 .ffc-calendar-core .ffc-calendar-grid {
-    padding: 15px;
+    padding: var(--ffc-spacing-xl);
 }
 
 .ffc-calendar-core .ffc-calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 5px;
-    margin-bottom: 10px;
+    gap: var(--ffc-spacing-xs);
+    margin-bottom: var(--ffc-spacing-md);
 }
 
 .ffc-calendar-core .ffc-weekday {
     text-align: center;
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     color: var(--ffc-text-secondary);
-    padding: 10px 5px;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-2xs);
 }
 
 .ffc-calendar-core .ffc-calendar-days {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 5px;
+    gap: var(--ffc-spacing-xs);
 }
 
 .ffc-calendar-core .ffc-day {
     aspect-ratio: 1;
     min-height: 0;
     border: 1px solid var(--ffc-border);
-    border-radius: 4px;
-    padding: 5px;
+    border-radius: var(--ffc-radius-sm);
+    padding: var(--ffc-spacing-2xs);
     background: var(--ffc-bg-card);
     cursor: pointer;
     transition: all 0.2s ease;
@@ -250,7 +250,7 @@
 
 .ffc-calendar-core .ffc-day-number {
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--ffc-font-size-base);
     color: var(--ffc-text);
 }
 
@@ -260,18 +260,18 @@
 
 .ffc-calendar-core .ffc-day-content {
     margin-top: auto;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     overflow: hidden;
     align-self: flex-end;
 }
 
 .ffc-calendar-core .ffc-calendar-legend {
     display: flex;
-    gap: 20px;
-    padding: 15px 20px;
+    gap: var(--ffc-spacing-2xl);
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl);
     background: var(--ffc-bg-alt);
     border-top: 1px solid var(--ffc-border-light);
-    font-size: 13px;
+    font-size: var(--ffc-font-size-sm);
     justify-content: center;
     flex-wrap: wrap;
 }
@@ -279,13 +279,13 @@
 .ffc-calendar-core .ffc-legend-item {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: var(--ffc-spacing-xs);
 }
 
 .ffc-calendar-core .ffc-legend-dot {
     width: 12px;
     height: 12px;
-    border-radius: 50%;
+    border-radius: var(--ffc-radius-full);
     display: inline-block;
 }
 
@@ -296,9 +296,9 @@
 .ffc-calendar-core .ffc-day .ffc-cert-count {
     display: inline-block;
     min-width: 20px;
-    padding: 1px 6px;
+    padding: 1px var(--ffc-spacing-xs);
     border-radius: 10px;
-    font-size: 11px;
+    font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
     line-height: 1.5;
     /* Pílula cheia neutra: o par inverso é o que a mantém legível nos dois
@@ -344,3 +344,17 @@
     }
 }
 
+/* ==========================================================================
+   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
+   O mecanismo está explicado em ffc-common.css (#1165).
+   ========================================================================== */
+
+@media (forced-colors: active) {
+    /* Selos de estado: o texto continua dizendo o estado; a borda
+       devolve a eles a forma de selo. */
+    .ffc-certificates-source-badge.is-fallback,
+    .ffc-certificates-source-badge.is-geofence {
+        border: 1px solid CanvasText;
+    }
+}
