@@ -67,26 +67,27 @@ class RecruitmentActivator {
 	 * @return void
 	 */
 	/**
-	 * Guarda por versao: a cadeia abaixo so precisa rodar uma vez por
-	 * `FFC_VERSION` (#1231).
+	 * Version gate: the chain below only needs to run once per `FFC_VERSION`
+	 * (#1231).
 	 *
-	 * Sem ela, `RecruitmentActivator::create_tables()` sondava o schema a CADA requisicao -- frontend anonimo
-	 * incluido -- porque `table_exists()` e um `SHOW TABLES LIKE` sem cache e
-	 * todo `add_column_if_missing()` dispara um `SHOW COLUMNS` antes de
-	 * decidir nao fazer nada. Somadas as quatro cadeias do `Loader`, eram 48
-	 * queries DDL por pagina numa instalacao sem nada a migrar.
+	 * Without it, `RecruitmentActivator::create_tables()` probed the schema on
+	 * EVERY request -- anonymous frontend included -- because `table_exists()`
+	 * is an uncached `SHOW TABLES LIKE` and every `add_column_if_missing()`
+	 * fires a `SHOW COLUMNS` before deciding to do nothing. Summed across the
+	 * `Loader`'s four chains, that was 48 DDL queries per page on an install
+	 * with nothing to migrate.
 	 *
-	 * **A guarda e `FFC_VERSION`, e NAO um marcador one-shot, de proposito.**
-	 * Estas chamadas existem porque um update in-place do plugin (o botao
-	 * "Atualizar" do wp-admin) NAO dispara `register_activation_hook` -- a
-	 * propriedade a preservar e "o schema se cura depois de um update", nao
-	 * "roda a cada request". Com `FFC_VERSION` a constante muda no update e a
-	 * cadeia roda uma vez no primeiro request seguinte, identica ao que fazia
-	 * antes. Com um booleano one-shot, uma coluna introduzida numa release
-	 * futura nunca alcancaria quem ja tivesse o marcador gravado.
+	 * **The gate is `FFC_VERSION`, and NOT a one-shot marker, on purpose.**
+	 * These calls exist because an in-place plugin update (wp-admin's "Update"
+	 * button) does NOT fire `register_activation_hook` -- the property to
+	 * preserve is "the schema heals itself after an update", not "it runs on
+	 * every request". With `FFC_VERSION` the constant changes on the update and
+	 * the chain runs once on the first request after it, identical to what it
+	 * did before. With a one-shot boolean, a column introduced in a future
+	 * release would never reach whoever already had the marker stored.
 	 *
-	 * A opcao e escrita **depois** do corpo, para que uma falha no meio nao
-	 * trave a cadeia numa versao que ela nao chegou a aplicar.
+	 * The option is written **after** the body, so a failure partway through
+	 * does not lock the chain at a version it never finished applying.
 	 */
 	public static function create_tables(): void {
 		// Guarda por versao (#1231) -- ver a nota logo acima da assinatura.

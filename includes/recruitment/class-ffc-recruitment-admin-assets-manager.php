@@ -99,10 +99,10 @@ final class RecruitmentAdminAssetsManager {
 			$css_ver
 		);
 
-		// As cores dos selos são hex que o operador escolhe, então nenhuma
-		// folha estática pode conhecê-las. Elas vêm daqui como regras geradas,
-		// impressas DEPOIS do arquivo deste handle -- que é o que faz a escolha
-		// dele vencer sem truque de especificidade (#1193).
+		// The badge colours are hex values the operator picks, so no static
+		// sheet can know them. They come from here as generated rules, printed
+		// AFTER this handle's file -- which is what makes the operator's choice
+		// win with no specificity trick (#1193).
 		RecruitmentBadgePalette::attach( self::HANDLE_CSS );
 
 		wp_enqueue_script(

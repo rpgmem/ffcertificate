@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ReregistrationFieldOptions {
 
 	/**
-	 * Hardcoded Divisão → Setor default (DRE São Miguel MP org structure).
+	 * Hardcoded Division → Department default (DRE São Miguel MP org structure).
 	 *
 	 * The shipped default used to seed a new audience's `divisao_setor`
 	 * field_options['groups']. After seeding, each audience owns its own

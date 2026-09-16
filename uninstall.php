@@ -41,8 +41,8 @@ if ( ! $ffcertificate_purge ) {
 	// scheduled events that point at code about to be removed.
 	wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 	wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
-	// O gancho interno do #1248, que substituiu o de cima no agendamento.
-	// O antigo fica: pode haver evento pendente da forma velha.
+	// #1248's internal hook, which replaced the one above in the scheduling.
+	// The old one stays: there may be an event pending in the old shape.
 	wp_clear_scheduled_hook( 'ffc_process_submission_async' );
 	wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
 	wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
@@ -144,10 +144,10 @@ $ffcertificate_options = array(
 	'ffc_foreign_keys_db_version',
 	'ffc_perf_indexes_db_version',
 	'ffc_submissions_db_version',
-	// Guardas por versao das quatro cadeias de activator que antes sondavam o
-	// schema a cada requisicao (#1231). Declaradas aqui porque o job
-	// `fresh-install` compara nos DOIS sentidos: uma opcao que a ativacao
-	// escreve e este manifesto nao declara reprova o CI.
+	// Version gates of the four activator chains that used to probe the schema
+	// on every request (#1231). Declared here because the `fresh-install` job
+	// compares in BOTH directions: an option the activation writes and this
+	// manifest does not declare fails CI.
 	'ffc_self_scheduling_schema_version',
 	'ffc_audience_schema_version',
 	'ffc_url_shortener_schema_version',
@@ -170,8 +170,9 @@ $ffcertificate_options = array(
 	'ffc_recruitment_settings',
 	'ffc_recruitment_schema_version',
 	'ffc_recruitment_tables_version',
-	// Estado (cursor por alvo + fingerprint + conclusao) da migracao que
-	// termina a rotacao de chaves nas areas nao cobertas pela primeira (#1236).
+	// State (per-target cursor + fingerprint + completion) of the migration that
+	// finishes the key rotation over the areas the first one did not cover
+	// (#1236).
 	'ffc_key_rotation_remaining_state',
 	'ffc_recruitment_public_cache_version',
 	'ffc_ip_diagnostics_settings',
@@ -227,8 +228,8 @@ $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient
 // ──────────────────────────────────────
 wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
-// O gancho interno do #1248, que substituiu o de cima no agendamento.
-// O antigo fica: pode haver evento pendente da forma velha.
+// #1248's internal hook, which replaced the one above in the scheduling.
+// The old one stays: an event scheduled the old way may still be pending.
 wp_clear_scheduled_hook( 'ffc_process_submission_async' );
 wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );

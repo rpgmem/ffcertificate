@@ -1,12 +1,12 @@
 <?php
 /**
- * Template: oferta de importar o último recadastramento aprovado.
+ * Template: the offer to import the last approved reregistration.
  *
- * O aviso só é incluído quando existe origem, então aqui não há condicional:
- * quem decide é o renderizador. Nada é buscado até o participante clicar --
- * o botão dispara `ffc_import_previous_reregistration`.
+ * The notice is only included when a source exists, so there is no conditional
+ * here: the renderer is what decides. Nothing is fetched until the participant
+ * clicks -- the button fires `ffc_import_previous_reregistration`.
  *
- * Esperado em escopo: $ffc_import_source_title.
+ * Expected in scope: $ffc_import_source_title.
  *
  * @package FreeFormCertificate\Reregistration
  * @since   6.25.0

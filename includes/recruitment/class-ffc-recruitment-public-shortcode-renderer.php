@@ -414,10 +414,11 @@ final class RecruitmentPublicShortcodeRenderer {
 			);
 			$bg       = $colors[ $notice->status ];
 			$banner   = sprintf(
-				// A cor de fundo é escolhida pelo administrador nas configurações,
-				// então nenhum texto fixo é legível sobre todas elas — o `#333`
-				// que ficava aqui era loteria de contraste, e por ser inline ainda
-				// vencia as regras tokenizadas da própria classe (#1126).
+				// The background colour is picked by the administrator in the
+				// settings, so no fixed text colour is legible over all of them --
+				// the `#333` that used to sit here was a contrast lottery, and
+				// being inline it also beat the class's own tokenized rules
+				// (#1126).
 				'<div class="ffc-recruitment-banner ffc-recruitment-banner-%1$s" role="status" style="background:%2$s;color:%3$s;">%4$s</div>',
 				esc_attr( $notice->status ),
 				esc_attr( $bg ),

@@ -547,12 +547,13 @@ class SubmissionReader extends AbstractRepository {
 			return false;
 		}
 
-		// `LIMIT 1`, e nao `COUNT(*)`: a pergunta e "existe alguma?", e um
-		// COUNT percorre TODAS as linhas que casam para produzir um numero que
-		// so e comparado com zero. `edited_at` nao e indexado, entao o COUNT e
-		// um scan completo da tabela de submissoes -- a maior do plugin -- a
-		// cada renderizacao da tela que decide se mostra a coluna de edicao.
-		// Com `LIMIT 1` o servidor para na primeira linha que satisfaz (#1234).
+		// `LIMIT 1`, not `COUNT(*)`: the question is "is there any?", and a
+		// COUNT walks EVERY matching row to produce a number that is only
+		// compared against zero. `edited_at` is not indexed, so the COUNT is a
+		// full scan of the submissions table -- the largest in the plugin -- on
+		// every render of the screen that decides whether to show the edit
+		// column. With `LIMIT 1` the server stops at the first row that
+		// satisfies it (#1234).
 		$has_data = $this->wpdb->get_var(
 			$this->wpdb->prepare( 'SELECT 1 FROM %i WHERE edited_at IS NOT NULL LIMIT 1', $this->table )
 		);

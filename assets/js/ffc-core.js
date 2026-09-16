@@ -339,19 +339,20 @@
          *   - error normalisation that surfaces `response.message` from
          *     a WP_REST_Response error body when available.
          *
-         * @param {string} url URL completa. Callers passam
+         * @param {string} url Full URL. Callers pass
          *                     `ffcDashboard.restUrl + 'user/profile'` etc.
-         *                     O helper não monta a URL para não acoplar
-         *                     FFC.config a vars localizadas dashboard/audience.
+         *                     The helper does not build the URL, so FFC.config
+         *                     stays decoupled from the dashboard/audience
+         *                     localized vars.
          * @param {Object} [options]
          * @param {string} [options.method='GET'] HTTP verb.
          * @param {Object} [options.data] Payload. GET/HEAD → query string;
-         *                                outros → JSON body.
-         * @param {string} [options.nonce] X-WP-Nonce override. Default vem
-         *                                 de `FFC.config.restNonce` se setado.
-         * @returns {Promise<*>} Resolve com response body parseado;
-         *                       rejeita com `Error` (campo `.xhr` preserva
-         *                       o jqXHR para introspection).
+         *                                anything else → JSON body.
+         * @param {string} [options.nonce] X-WP-Nonce override. Defaults to
+         *                                 `FFC.config.restNonce` when set.
+         * @returns {Promise<*>} Resolves with the parsed response body;
+         *                       rejects with an `Error` (its `.xhr` field
+         *                       keeps the jqXHR for introspection).
          */
         rest: function(url, options) {
             options = options || {};

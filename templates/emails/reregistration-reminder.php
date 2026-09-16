@@ -12,9 +12,10 @@
  *   {{start_date}}, {{end_date}}, {{days_left}}, {{dashboard_url}}, {{site_name}},
  *   {{set_password_url}}
  *
- * `{{set_password_url}}` abre a tela de definição de senha (#1212). Está aqui
- * além do convite porque quem nunca definiu senha também não consegue agir no
- * lembrete: o botão principal leva ao painel, que exige login.
+ * `{{set_password_url}}` opens the set-password screen (#1212). It is here as
+ * well as in the invitation because whoever never set a password cannot act on
+ * the reminder either: the main button leads to the dashboard, which requires
+ * a login.
  *
  * @since 4.11.0
  * @package FreeFormCertificate\Reregistration

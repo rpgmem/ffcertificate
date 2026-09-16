@@ -49,7 +49,7 @@ class ReregistrationAdmin {
 	private const CAPABILITY = 'ffc_manage_reregistration';
 
 	/**
-	 * Read-only "view" capability — the *só vê* tier of the 3-state model.
+	 * Read-only "view" capability — the *view only* tier of the 3-state model.
 	 * Opens the campaigns list/submissions read-only; every write still
 	 * requires {@see self::CAPABILITY}.
 	 */

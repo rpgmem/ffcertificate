@@ -148,10 +148,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<?php
 		/*
-		 * Convite manual (#1190). FORA do `<form>` de propósito: um `<button>`
-		 * dentro dele enviaria o formulário, e este não salva nada -- dispara
-		 * e-mail. Só aparece numa campanha que já existe, porque só aí há
-		 * submissões para convidar.
+		 * Manual invitation (#1190). OUTSIDE the `<form>` on purpose: a
+		 * `<button>` inside it would submit the form, and this one saves
+		 * nothing -- it sends email. It only appears on a campaign that already
+		 * exists, because only then are there submissions to invite.
 		 */
 		if ( $id > 0 ) :
 			?>

@@ -56,10 +56,10 @@ final class EmailDisabledNotice {
 			$link
 		);
 
-		// As cores e o espaçamento viviam num `style=""` aqui e por isso este
-		// aviso ignorava o modo escuro — amarelo claro sobre a tela escura, em
-		// toda superfície que edita e-mail. Agora estão em ffc-admin.css, com
-		// tokens (#1126).
+		// The colours and the spacing used to live in a `style=""` here, which
+		// is why this notice ignored dark mode -- pale yellow on the dark
+		// screen, on every surface that edits an email. They are in
+		// ffc-admin.css now, as tokens (#1126).
 		$html = '<div class="ffc-email-disabled-notice">'
 			. '<p>' . $message . '</p>'
 			. '</div>';

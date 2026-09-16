@@ -49,14 +49,14 @@ class ActivityLogQuery {
 	private const ACTIONS_CACHE_KEY = 'ffc_activity_log_distinct_actions';
 
 	/**
-	 * Vida do transiente acima.
+	 * Lifetime of the transient above.
 	 *
-	 * Uma HORA, e nao os 5 minutos que `countByStatus` usa, porque o que se
-	 * cacheia aqui muda de natureza diferente: os valores de `action` sao
-	 * definidos no CODIGO, nao nos dados. Um valor novo so aparece quando uma
-	 * feature nova passa a registra-lo -- isto e, num deploy --, entao a
-	 * janela de desatualizacao nao e "quanto tempo ate o numero mudar", e sim
-	 * "quanto tempo depois de um deploy ate o filtro oferecer a acao nova".
+	 * One HOUR, and not the 5 minutes `countByStatus` uses, because what is
+	 * cached here changes by a different nature: the `action` values are defined
+	 * in the CODE, not in the data. A new value only appears when a new feature
+	 * starts recording it -- that is, on a deploy -- so the staleness window is
+	 * not "how long until the number changes" but "how long after a deploy until
+	 * the filter offers the new action".
 	 *
 	 * @var int
 	 */
@@ -222,14 +222,14 @@ class ActivityLogQuery {
 	 * action` query that previously sat in the admin page (issue #331
 	 * "candidate history service" cleanup).
 	 *
-	 * CACHEADO EM TRANSIENTE (#1234). O chamador e o `<select>` de filtro da
-	 * tela de Log de Atividades, redesenhado a cada render, e esta e a tabela
-	 * que mais cresce no plugin. O `DISTINCT` usa o indice `KEY action`, entao
-	 * nao e varredura da TABELA -- mas ainda percorre o indice inteiro para
-	 * produzir algumas dezenas de valores.
+	 * CACHED IN A TRANSIENT (#1234). The caller is the Activity Log screen's
+	 * filter `<select>`, redrawn on every render, and this is the fastest
+	 * growing table in the plugin. The `DISTINCT` uses the `KEY action` index,
+	 * so it is not a TABLE scan -- but it still walks the whole index to produce
+	 * a few dozen values.
 	 *
-	 * Sem invalidacao por escrita, de proposito: a tabela e append-only e o
-	 * conjunto muda por deploy, nao por uso. Ver {@see self::ACTIONS_CACHE_TTL}.
+	 * No invalidation on write, on purpose: the table is append-only and the set
+	 * changes by deploy, not by use. See {@see self::ACTIONS_CACHE_TTL}.
 	 *
 	 * @since 6.6.2
 	 * @return list<string>
@@ -263,9 +263,10 @@ class ActivityLogQuery {
 			)
 		);
 
-		// Uma consulta que falhou devolve algo que nao e array e sai acima sem
-		// gravar; chegar aqui com lista VAZIA e uma resposta legitima (log
-		// ainda sem linhas) e vale cachear como qualquer outra.
+		// A query that failed returns something that is not an array and leaves
+		// above without writing; arriving here with an EMPTY list is a
+		// legitimate answer (a log with no rows yet) and is worth caching like
+		// any other.
 		\set_transient( self::ACTIONS_CACHE_KEY, $list, self::ACTIONS_CACHE_TTL );
 
 		return $list;

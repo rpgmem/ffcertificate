@@ -97,12 +97,12 @@ class AdminLoader {
 		MigrationActionsAjaxEndpoint::init();
 		ActivityLogAjaxEndpoint::init();
 		SubmissionsBulkActionsAjaxEndpoint::init();
-		// A cron de tickets expirados NAO mora aqui (#1234). Ela morou, e por
-		// isso nunca rodou: este loader so e construido dentro de
-		// `if ( is_admin() )`, e `wp-cron.php` define `DOING_CRON`, nunca
-		// `WP_ADMIN` -- entao `is_admin()` e falso em todo contexto que executa
-		// o gancho. O registro esta em `Loader::define_admin_hooks()`, que
-		// apesar do nome roda em toda requisicao.
+		// The expired-ticket cron does NOT live here (#1234). It did, and that
+		// is why it never ran: this loader is only constructed inside
+		// `if ( is_admin() )`, and `wp-cron.php` defines `DOING_CRON`, never
+		// `WP_ADMIN` -- so `is_admin()` is false in every context that executes
+		// the hook. The registration is in `Loader::define_admin_hooks()`, which
+		// despite its name runs on every request.
 		FormListColumns::init();
 		AdminUserCustomFields::init();
 	}

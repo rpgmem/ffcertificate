@@ -2,16 +2,16 @@
 /**
  * Set-password screen for an invited member.
  *
- * Renderizada pelo shortcode do painel quando a requisição carrega o link do
- * convite (#1212). Só marcação: quem valida a chave, decide a mensagem e grava
- * a senha é `Core\PasswordInvite`.
+ * Rendered by the dashboard shortcode when the request carries the invitation
+ * link (#1212). Markup only: `Core\PasswordInvite` is what validates the key,
+ * decides the message and writes the password.
  *
- * Variáveis vindas do escopo do chamador:
+ * Variables coming from the caller's scope:
  *
- * @var string $ffc_key     Chave de redefinição, já validada.
- * @var string $ffc_login    Login do usuário a quem a chave pertence.
- * @var string $ffc_error    Slug do erro a mostrar, ou ''.
- * @var int    $ffc_min_len  Comprimento mínimo da senha.
+ * @var string $ffc_key     Reset key, already validated.
+ * @var string $ffc_login    Login of the user the key belongs to.
+ * @var string $ffc_error    Slug of the error to show, or ''.
+ * @var int    $ffc_min_len  Minimum password length.
  *
  * @package FreeFormCertificate\Templates
  * @since 6.25.0
