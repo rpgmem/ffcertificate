@@ -231,7 +231,7 @@ class ReregistrationActivator {
 		// `data` body, not the FK. Consumers that JOIN `wp_users` already
 		// degrade gracefully (the admin listing renders "—" for a deleted
 		// user). `reviewed_by` follows the same retain-the-row rule. See
-		// CLAUDE.md §4 "User-deletion integrity" for the plugin-wide policy +
+		// CLAUDE.md "Security & PII conventions" for the plugin-wide policy +
 		// gap inventory.
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,

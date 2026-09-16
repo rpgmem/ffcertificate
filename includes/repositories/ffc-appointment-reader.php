@@ -470,7 +470,7 @@ class AppointmentReader extends AbstractRepository {
 	 *
 	 * A sweep over the whole tree finds no caller at all -- only the tests keep
 	 * it green. But "dead" here is the conclusion of a STATIC sweep, and
-	 * `CLAUDE.md` §5 declares that evidence insufficient for this shape: the
+	 * `CLAUDE.md` "Legacy and tech debt" declares that evidence insufficient here: the
 	 * cycle exists precisely "for surfaces whose consumers a code scan cannot
 	 * see -- a public method an external integration might call".
 	 * `AppointmentRepository` is a public class another plugin on the same

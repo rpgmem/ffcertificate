@@ -73,8 +73,9 @@ final class CssClassEmissionTest extends TestCase {
 	 * `temp-wrapper`→`temp-container`.
 	 *
 	 * **They are listed here rather than in `WITHOUT_EMITTER` because they are
-	 * not open questions: they are a shim, and `CLAUDE.md` §5 requires install
-	 * evidence — never a code scan — to retire one.** §5's inventory now records
+	 * not open questions: they are a shim, and `CLAUDE.md` "Legacy and tech debt"
+	 * requires install evidence — never a code scan — to retire one.** Its
+	 * inventory now records
 	 * them with their exit condition.
 	 *
 	 * @var array<string, string>
