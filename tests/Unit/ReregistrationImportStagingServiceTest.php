@@ -18,7 +18,16 @@ use FreeFormCertificate\Reregistration\ReregistrationImportStagingService;
  * and reported, and a required field with no column at all refuses the file
  * before anything is staged.
  *
+ * The three collaborators are alias mocks, so each test needs a process in
+ * which the real class was never loaded — Mockery refuses an alias for a class
+ * that already exists, and in the full suite something earlier loads all three.
+ * Under `--filter` nothing does, which is why these passed filtered and errored
+ * thirteen times in the full run. Same annotation every sibling that alias-mocks
+ * `CustomFieldReader` carries.
+ *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationImportStagingService
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class ReregistrationImportStagingServiceTest extends TestCase {
 
