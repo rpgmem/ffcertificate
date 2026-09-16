@@ -146,6 +146,12 @@ msgstr ""
 msgid "%1$s to %2$s. This submission will be recorded with the adjusted schedule."
 msgstr ""
 
+#. 1: custom field label, 2: weekday name, 3: comma-separated list of missing time labels.
+#: includes/admin/class-ffc-admin-user-custom-fields.php:517
+#, php-format
+msgid "%1$s — %2$s: missing %3$s"
+msgstr ""
+
 #. 1: migration name, 2: number of records migrated
 #: includes/admin/class-ffc-admin.php:395
 #, php-format
@@ -196,6 +202,14 @@ msgstr ""
 #: includes/core/class-ffc-date-formatter.php:368 includes/security/class-ffc-rate-limit-checker.php:450
 msgid "%d hour"
 msgid_plural "%d hours"
+msgstr[0] ""
+msgstr[1] ""
+
+#. %d: number of invitations sent.
+#: includes/reregistration/class-ffc-reregistration-ajax-handler.php:186
+#, php-format
+msgid "%d invitation sent."
+msgid_plural "%d invitations sent."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -615,6 +629,10 @@ msgstr ""
 msgid "0 disables the per-IP rate limit."
 msgstr ""
 
+#: includes/settings/views/ffc-tab-rate-limit.php:70
+msgid "0 disables this cap — the clean way out when many visitors share one address."
+msgstr ""
+
 #: includes/settings/views/ffc-tab-general.php:20
 msgid "04 of January, 2026"
 msgstr ""
@@ -743,6 +761,10 @@ msgstr ""
 msgid "A campaign shows the union of the custom fields of its linked audiences (standard identity/contact fields plus any custom ones). Each submission can be exported as a Record PDF."
 msgstr ""
 
+#: includes/settings/views/documentation/feature-reregistration.php:58
+msgid "A campaign with up to 50 members awaiting a reminder is sent in one go, exactly as before. Above that, the daily sweep sends the first 50 and queues the rest, 50 at a time, about a minute apart. Nobody receives two emails: each send is stamped on the member the moment it goes out, so a batch that is interrupted resumes where it stopped instead of starting over."
+msgstr ""
+
 #: includes/frontend/class-ffc-frontend.php:357
 msgid "A certificate image failed to load (cross-origin restriction). This is a configuration problem on the server, not on your device. Please contact the organizer with your authentication code."
 msgstr ""
@@ -835,6 +857,10 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:231
 msgid "A justification is required to proceed."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:53
+msgid "A manual resend replaces that member's automatic reminder — it does not add to it."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php:50
@@ -1032,6 +1058,10 @@ msgstr ""
 
 #: templates/emails/access-granted.php:23
 msgid "Access granted"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-smtp.php:99
+msgid "Access Granted Notification"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:215 includes/settings/tabs/class-ffc-tab-email-texts.php:499
@@ -1346,6 +1376,10 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-record.php:89
 msgid "Address complement"
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:276
+msgid "Address Complement"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-record.php:88
@@ -2017,6 +2051,10 @@ msgstr ""
 msgid "Applies to the Certificate HTML editor on the form edit screen. \"Auto\" mirrors the admin Dark Mode setting (General tab); fresh installs default to Dark."
 msgstr ""
 
+#: includes/settings/views/ffc-tab-general.php:217
+msgid "Applies to the Certificate HTML editor on the form edit screen. \"Auto\" mirrors the Dark Mode setting above; fresh installs default to Dark."
+msgstr ""
+
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:612
 msgid "Applies when the secure strategy is effective."
 msgstr ""
@@ -2603,8 +2641,18 @@ msgstr ""
 msgid "Authentication code:"
 msgstr ""
 
+#. %s: formatted authentication code, e.g. R-MA6D-E5LH-PFTC.
+#: includes/reregistration/class-ffc-record-generator.php:102
+#, php-format
+msgid "Authentication: %s /"
+msgstr ""
+
 #: includes/generators/class-ffc-pdf-html-renderer.php:275
 msgid "Authenticity:"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-general.php:212
+msgid "Auto (follow Dark Mode above)"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-general.php:197
@@ -2909,6 +2957,12 @@ msgstr ""
 msgid "Best-effort: a loopback request to the front page reads the edge cf-cache-status header. Cached up to 6 hours."
 msgstr ""
 
+#. 1: minimum hours, 2: maximum hours, 3: default hours
+#: includes/settings/tabs/class-ffc-tab-reregistration.php:170
+#, php-format
+msgid "Between %1$d and %2$d hours. Default: %3$d."
+msgstr ""
+
 #: includes/settings/views/documentation/feature-record.php:67
 msgid "Birth date"
 msgstr ""
@@ -3163,6 +3217,14 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:328
 msgid "Brief description of this calendar (optional)"
+msgstr ""
+
+#: templates/reregistration/import-previous-notice.php:33
+msgid "Bring previous answers"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:183
+msgid "Bringing previous answers…"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:380
@@ -3500,6 +3562,10 @@ msgstr ""
 msgid "Campaign name"
 msgstr ""
 
+#: includes/reregistration/class-ffc-reregistration-ajax-handler.php:168
+msgid "Campaign not found."
+msgstr ""
+
 #: includes/frontend/class-ffc-verification-response-renderer.php:404
 msgid "Campaign Period:"
 msgstr ""
@@ -3780,6 +3846,10 @@ msgstr ""
 msgid "Captcha and nonces are automatically refreshed via AJAX on page load. Forms work correctly even when served from a page cache."
 msgstr ""
 
+#: includes/settings/views/ffc-tab-rate-limit.php:57
+msgid "Captcha Challenges"
+msgstr ""
+
 #: includes/settings/views/ffc-tab-captcha.php:86
 msgid "Captcha mode"
 msgstr ""
@@ -3832,6 +3902,10 @@ msgstr ""
 
 #: templates/certificate-preview.php:38 templates/submission-success.php:41
 msgid "Certificate Details"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-advanced.php:169
+msgid "Certificate Editor"
 msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php:29
@@ -4012,6 +4086,10 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-audiences.php:65
 msgid "Child audiences inherit fields from parent audiences"
+msgstr ""
+
+#: templates/public/set-password.php:35
+msgid "Choose a password to finish setting up your account. You will go straight to your dashboard."
 msgstr ""
 
 #: templates/admin/settings/email-body-hub.php:81
@@ -4777,6 +4855,24 @@ msgstr ""
 msgid "Could not decrypt %1$s for ID %2$d in %3$s — left unchanged (key may be unrecoverable)."
 msgstr ""
 
+#. 1: column name, 2: candidate ID
+#: includes/migrations/strategies/class-ffc-key-rotation-remaining-migration-strategy.php:748
+#, php-format
+msgid "Could not decrypt %1$s for recruitment candidate %2$d — left unchanged (the key may be unrecoverable)."
+msgstr ""
+
+#. 1: meta key, 2: user ID
+#: includes/migrations/strategies/class-ffc-key-rotation-remaining-migration-strategy.php:602
+#, php-format
+msgid "Could not decrypt %1$s for user %2$d — left untouched (the key may be unrecoverable)."
+msgstr ""
+
+#. 1: field key, 2: submission ID
+#: includes/migrations/strategies/class-ffc-key-rotation-remaining-migration-strategy.php:867
+#, php-format
+msgid "Could not decrypt %1$s on reregistration submission %2$d — left unchanged (the key may be unrecoverable)."
+msgstr ""
+
 #. 1: record ID, 2: table name
 #: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:332
 #, php-format
@@ -4877,6 +4973,24 @@ msgstr ""
 
 #: includes/core/captcha/class-ffc-altcha-captcha.php:192
 msgid "Could not verify that you are human. Reload the page and try again."
+msgstr ""
+
+#. %d: submission ID
+#: includes/migrations/strategies/class-ffc-key-rotation-remaining-migration-strategy.php:469
+#, php-format
+msgid "Could not write the re-encrypted body for reregistration submission %d."
+msgstr ""
+
+#. 1: candidate ID, 2: database error message
+#: includes/migrations/strategies/class-ffc-key-rotation-remaining-migration-strategy.php:795
+#, php-format
+msgid "Could not write the re-encrypted values for recruitment candidate %1$d: %2$s"
+msgstr ""
+
+#. %d: candidate ID
+#: includes/migrations/strategies/class-ffc-key-rotation-remaining-migration-strategy.php:801
+#, php-format
+msgid "Could not write the re-encrypted values for recruitment candidate %d."
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:352
@@ -5672,6 +5786,10 @@ msgstr ""
 msgid "Decryption Failure"
 msgstr ""
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:309
+msgid "Decryption Failures Suppressed"
+msgstr ""
+
 #: includes/admin/class-ffc-cert-template-admin-screen.php:178 includes/settings/views/documentation/feature-url-shortener.php:60
 msgid "Default"
 msgstr ""
@@ -5778,6 +5896,10 @@ msgstr ""
 msgid "Define both FFC_ENCRYPTION_KEY and FFC_HASH_SALT (32+ chars each) in wp-config.php first, then run this migration to re-encrypt existing data and rebuild the search hashes under them. See Settings → Advanced → Encryption Key Health."
 msgstr ""
 
+#: includes/migrations/strategies/class-ffc-key-rotation-remaining-migration-strategy.php:911
+msgid "Define both FFC_ENCRYPTION_KEY and FFC_HASH_SALT (32+ chars each) in wp-config.php first. See Settings → Advanced → Encryption Key Health."
+msgstr ""
+
 #: includes/settings/views/documentation/feature-audiences.php:23
 msgid "Define custom data fields per audience group. These fields are shown during reregistration and on the WordPress user profile."
 msgstr ""
@@ -5804,6 +5926,10 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:474
 msgid "Define which days and times appointments can be booked:"
+msgstr ""
+
+#: templates/emails/reregistration-invitation.php:46 templates/emails/reregistration-reminder.php:45 templates/public/set-password.php:34
+msgid "Define your password"
 msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php:57
@@ -6903,6 +7029,10 @@ msgstr ""
 msgid "Email texts saved."
 msgstr ""
 
+#: includes/settings/views/ffc-tab-smtp.php:100
+msgid "Email the user when they are granted access to certificates, appointments or audience groups. Edit the text under Settings → Email Texts → Account access."
+msgstr ""
+
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:462 includes/reregistration/class-ffc-record-generator.php:499 includes/frontend/class-ffc-verification-response-renderer.php:430
 msgid "Email:"
 msgstr ""
@@ -6943,8 +7073,16 @@ msgstr ""
 msgid "Emergency contact name"
 msgstr ""
 
+#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:363
+msgid "Emergency Contact Name"
+msgstr ""
+
 #: includes/settings/views/documentation/feature-record.php:111
 msgid "Emergency contact phone"
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:375
+msgid "Emergency Contact Phone"
 msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:375
@@ -7209,6 +7347,10 @@ msgstr ""
 msgid "Encryption Key Rotation Batch"
 msgstr ""
 
+#: includes/migrations/class-ffc-migration-registry.php:91 includes/migrations/strategies/class-ffc-key-rotation-remaining-migration-strategy.php:946
+msgid "Encryption Key Rotation — Remaining Areas"
+msgstr ""
+
 #: includes/settings/views/ffc-tab-advanced.php:694
 msgid "Encryption key source"
 msgstr ""
@@ -7285,8 +7427,16 @@ msgstr ""
 msgid "enter a destination URL and an optional title; the short code is generated automatically (there is no custom-slug field)."
 msgstr ""
 
+#: includes/admin/class-ffc-settings-ajax-endpoint.php:572
+msgid "Enter a number — an empty field leaves the setting unchanged."
+msgstr ""
+
 #: includes/frontend/class-ffc-frontend.php:309 includes/frontend/class-ffc-frontend.php:583
 msgid "Enter a valid CPF (11 digits) or RF (7 digits)"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-ui.php:44
+msgid "Enter a valid value"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-certificates.php:69
@@ -8253,6 +8403,101 @@ msgstr ""
 
 #: includes/core/class-ffc-email-source.php:84
 msgid "FFCertificate — Scheduling"
+msgstr ""
+
+#: includes/migrations/class-ffc-migration-registry.php:92
+msgid "Finish the key rotation over the areas the first pass never covered: recruitment candidates and reregistration submission bodies. Re-encrypts them under FFC_ENCRYPTION_KEY and rebuilds the CPF/RF/email search hashes under FFC_HASH_SALT — without this, candidate lookups by CPF or RF silently find nothing, and the data stays tied to the WordPress salts. Define both constants first (Settings → Advanced → Encryption Key Health)."
+msgstr ""
+
+#: templates/emails/reregistration-invitation.php:45 templates/emails/reregistration-reminder.php:44
+msgid "First time here, or forgot your password?"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:81
+msgid "Fixed windows, not sliding: the count resets on the boundary, so an address that hits the cap waits at most one window."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:150
+msgid "Functional Registry (RF)"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:795
+msgid ""
+"Hello {{user_name}},\n"
+"\n"
+"Your appointment has been scheduled:\n"
+"\n"
+"Calendar: {{calendar_title}}\n"
+"Date: {{appointment_date}}\n"
+"Time: {{appointment_time}}\n"
+"\n"
+"Thank you!"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:59
+msgid "How many ALTCHA challenges one address may request, and over how long. Only applies to the captcha modes that show the widget; the math mode never asks the server for one. Past the cap the widget cannot load a challenge and the form is unusable for everyone on that address — which behind institutional NAT is everyone in the building."
+msgstr ""
+
+#. %s: link to the Rate Limit settings tab
+#: includes/settings/views/ffc-tab-captcha.php:172
+#, php-format
+msgid "How many challenges one address may request, and over how long, is set under %s — raise it there when many visitors share one address."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:60
+msgid "If the sibling total-mail-queue plugin is installed, these emails land in its queue rather than being sent one by one — check its own settings for how many it releases per interval, since its defaults are deliberately slow and a large campaign can outrun them."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:387
+msgid "Institutional Email (@sme)"
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-ajax-handler.php:163
+msgid "Invalid campaign."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-ajax-handler.php:173
+msgid "Invitation emails are disabled for this campaign."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php:153
+msgid "Invitation password link"
+msgstr ""
+
+#: templates/admin/reregistration/form.php:159
+msgid "Invitations"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:248
+msgid "Keep appointment"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:57
+msgid "Large campaigns: reminders go out in batches"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php:158
+msgid "Link expires after (hours):"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:63
+msgid "Max per window"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:50
+msgid "moving the end date forward reopens the reminder for everyone who has not finished, once per extension. Extending twice sends twice. This mirrors how the invitation already behaves."
+msgstr ""
+
+#: templates/public/set-password.php:50
+msgid "New password"
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php:227
+msgid "No previous approved reregistration to import."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-ajax-handler.php:183
+msgid "Nobody was awaiting an invitation."
 msgstr ""
 
 #: includes/admin/class-ffc-cert-template-seeder.php:295 includes/admin/class-ffc-cert-template-admin-screen.php:439 templates/admin/reregistration/submission-row.php:57 includes/settings/views/documentation/document-templates-hub.php:36 includes/reregistration/class-ffc-reregistration-admin.php:221
@@ -14611,6 +14856,10 @@ msgstr ""
 msgid "Reopening later requires a reason and permanently freezes hired/withdrew/not_shown classifications."
 msgstr ""
 
+#: templates/public/set-password.php:56
+msgid "Repeat the password"
+msgstr ""
+
 #: includes/settings/views/documentation/reference-shortcodes.php:31
 msgid "Replace \"123\" with your Form ID from the \"All Forms\" list."
 msgstr ""
@@ -14874,6 +15123,10 @@ msgstr ""
 msgid "Reregistration updated successfully."
 msgstr ""
 
+#: includes/settings/views/documentation/feature-reregistration.php:51
+msgid "resending to specific members from the campaign screen always goes out, whether or not they were already reminded."
+msgstr ""
+
 #: templates/admin/recruitment/notice-edit/classification-filters-form.php:63
 msgid "Reset"
 msgstr ""
@@ -15036,6 +15289,10 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-email.php:28
 msgid "reveals the per-form subject/body fields (pre-seeded with the current global text so you edit from real content) so this one form can differ. Switching back to Global clears the per-form copy — behind a confirmation — so the form tracks the global again."
+msgstr ""
+
+#: templates/reregistration/import-previous-notice.php:30
+msgid "Review every field afterwards — the data is from a previous cycle and may be out of date."
 msgstr ""
 
 #. %s: admin menu path, e.g. "Erase Personal Data"
@@ -15285,6 +15542,10 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-adjutancy-edit-page.php:121
 msgid "Save adjutancy"
+msgstr ""
+
+#: templates/public/set-password.php:62
+msgid "Save and enter"
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-layout-metabox.php:75
@@ -15973,6 +16234,10 @@ msgstr ""
 msgid "Send invitation email when activated"
 msgstr ""
 
+#: templates/admin/reregistration/form.php:165
+msgid "Send invitations"
+msgstr ""
+
 #: templates/admin/recruitment/admin-page/settings-tab.php:54
 msgid "Send mode"
 msgstr ""
@@ -16033,6 +16298,14 @@ msgstr ""
 msgid "Send welcome email when a new WordPress user is created via form submission. The email contains a password reset link."
 msgstr ""
 
+#: includes/reregistration/class-ffc-reregistration-admin.php:221
+msgid "Sending…"
+msgstr ""
+
+#: templates/admin/reregistration/form.php:162
+msgid "Sends the invitation to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished."
+msgstr ""
+
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:436 includes/audience/class-ffc-audience-admin-audience-renderer.php:573
 msgid "Sensitive"
 msgstr ""
@@ -16067,6 +16340,10 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-reregistration.php:40
 msgid "sent automatically when the deadline is within N days (default 7)."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:40
+msgid "sent automatically when the deadline is within N days (default 7). Each member receives it ONCE per campaign, not once a day: the send is stamped on the submission, and the daily sweep skips whoever already has that stamp."
 msgstr ""
 
 #: includes/core/class-ffc-email-template-options.php:93
@@ -16803,6 +17080,12 @@ msgstr ""
 msgid "Status:"
 msgstr ""
 
+#. %s: submission status label.
+#: includes/shortcodes/class-ffc-dashboard-shortcode.php:490
+#, php-format
+msgid "Status: %s"
+msgstr ""
+
 #: includes/settings/views/documentation/feature-reregistration.php:52
 msgid "Statuses"
 msgstr ""
@@ -16833,6 +17116,10 @@ msgstr ""
 
 #: includes/settings/views/documentation/overview.php:34
 msgid "Stop fraud and duplicates"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-cache.php:298
+msgid "Store generated certificate QR Codes in database to avoid regenerating them on each request."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-cache.php:314
@@ -17488,6 +17775,12 @@ msgstr ""
 msgid "The base URL of the page hosting the [ffc_csv_download] shortcode. When set, the form editor shows the full operator link instead of just the query string."
 msgstr ""
 
+#. %d: submission ID
+#: includes/migrations/strategies/class-ffc-key-rotation-remaining-migration-strategy.php:845
+#, php-format
+msgid "The body of reregistration submission %d is not valid JSON — left unchanged."
+msgstr ""
+
 #: includes/admin/class-ffc-submissions-bulk-actions-ajax-endpoint.php:123
 msgid "The bulk operation failed."
 msgstr ""
@@ -17671,6 +17964,22 @@ msgstr ""
 
 #: templates/admin/recruitment/notice-edit/promote-to-definitive-options.php:34
 msgid "The existing definitive list is preserved as-is."
+msgstr ""
+
+#: templates/public/set-password.php:28
+msgid "The form expired before it was sent. Try again."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-reregistration.php:155
+msgid "The invitation and reminder emails carry a link that lets the member define their own password and land straight in the dashboard. The link does not create a session by itself: it opens the password screen, and it can only be used once."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:53
+msgid "The manual send stamps the submission just like the automatic one, so the daily sweep will skip that member for the rest of the campaign. Someone you remind by hand today will not also be reminded by the system tomorrow."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:59
+msgid "The one-minute spacing is a floor, not a promise."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-record.php:153
@@ -17962,6 +18271,10 @@ msgstr ""
 msgid "The release lookup is cached for 12 hours and uses conditional requests, so the update check does not hammer the source on every admin page load. A new release can therefore take up to ~12 hours to appear, or use \"Check again\" on the Updates screen to refresh immediately."
 msgstr ""
 
+#: includes/settings/views/documentation/feature-reregistration.php:48
+msgid "The reminder is sent once per member per campaign. There are exactly two ways it goes out a second time, and both are deliberate:"
+msgstr ""
+
 #: includes/settings/views/documentation/feature-user-dashboard.php:32
 msgid "The reregistration banner and \"Download Record\" action when a reregistration applies to them"
 msgstr ""
@@ -18078,6 +18391,10 @@ msgstr ""
 msgid "the transport (how mail leaves the server) plus the global \"Disable all emails\" switch."
 msgstr ""
 
+#: templates/public/set-password.php:25
+msgid "The two passwords did not match. Try again."
+msgstr ""
+
 #: includes/settings/views/documentation/operations-updates.php:26
 msgid "The update installs the built release ZIP (not the source snapshot) and verifies its SHA-256 checksum before installing. If the checksum does not match, the install is aborted with \"Update package integrity check (SHA-256) failed. Installation aborted.\" — retry the update; a persistent failure means a corrupted or tampered download."
 msgstr ""
@@ -18150,12 +18467,22 @@ msgstr ""
 msgid "These options only appear when a mode that shows the widget is selected. The widget follows the site's colours and its light/dark mode on its own."
 msgstr ""
 
+#. %s: comma-separated list of required custom field labels.
+#: includes/admin/class-ffc-admin-user-custom-fields.php:479
+#, php-format
+msgid "These required fields arrived empty and kept their previous value: %s"
+msgstr ""
+
 #: includes/settings/views/ffc-tab-user-access.php:189
 msgid "These roles operate through wp-admin. Block one only if its users should be redirected away from the dashboard — blocking an administrative role locks it out of the screens it is meant to use."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:217
 msgid "These toggles affect logging that fires in the visitor’s browser console — useful when triaging UX or asset-loading reports from a screenshot of the F12 console."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-user-custom-fields.php:530
+msgid "These working-hours rows were incomplete and were not saved. The first entry and the last exit are required; the middle shift is optional."
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:623
@@ -18245,6 +18572,10 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-reasons-list-table.php:135 includes/recruitment/class-ffc-recruitment-adjutancies-list-table.php:96 includes/recruitment/class-ffc-recruitment-candidates-list-table.php:154 includes/recruitment/class-ffc-recruitment-notices-list-table.php:97 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:549
 msgid "This cannot be undone."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-cache.php:301
+msgid "This card governs the certificate QR Code only. Short URLs cache their own QR Code separately, with no setting and no manual clearing — it refreshes itself when needed."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor.php:170
@@ -18415,6 +18746,10 @@ msgstr ""
 msgid "This is the form/submission device limit; the broader request throttling lives in Settings → Rate Limit."
 msgstr ""
 
+#: includes/core/class-ffc-password-invite.php:162 templates/public/set-password.php:29
+msgid "This link is not valid."
+msgstr ""
+
 #: includes/settings/views/documentation/reference-emails.php:26
 msgid "This means every email shares the same branded look, and one global switch can turn all of them off."
 msgstr ""
@@ -18467,6 +18802,12 @@ msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-frontend.php:66 includes/reregistration/class-ffc-reregistration-frontend.php:104
 msgid "This reregistration has already been completed or expired."
+msgstr ""
+
+#. %s: comma-separated list of missing time labels.
+#: includes/admin/class-ffc-admin-user-custom-fields.php:79
+#, php-format
+msgid "This row has a time but is missing: %s. Fill it in, or clear the row to remove the day."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:284
@@ -19147,6 +19488,10 @@ msgstr ""
 msgid "Unlike personal calendars, an audience booking has a free start/end time. Two bookings that overlap the same environment are a hard conflict (blocked); overlaps for the same audience or user are soft conflicts the booker can acknowledge. Each booking needs a short description (15–300 characters)."
 msgstr ""
 
+#: includes/settings/views/ffc-tab-rate-limit.php:292
+msgid "Unlike the limits above, 0 is a value here: it lifts the cap on that axis entirely, leaving the other one to do the work. Set both to 0 and this endpoint is unlimited even with the toggle on."
+msgstr ""
+
 #: includes/frontend/class-ffc-frontend.php:489
 msgid "Unlimited"
 msgstr ""
@@ -19297,6 +19642,12 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-smtp.php:226
 msgid "Use app-specific password"
+msgstr ""
+
+#. %d: minimum number of characters
+#: templates/public/set-password.php:27
+#, php-format
+msgid "Use at least %d characters."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-import.php:97
@@ -19627,12 +19978,20 @@ msgstr ""
 msgid "Validation Options:"
 msgstr ""
 
+#: includes/settings/views/ffc-tab-advanced.php:171
+msgid "Validation rules for the Certificate HTML editor. Its colour theme is on the General tab, next to Dark Mode."
+msgstr ""
+
 #: includes/settings/views/ffc-tab-documentation.php:84 includes/settings/views/documentation/feature-certificates.php:28 includes/settings/views/documentation/reference-validation-url.php:17 includes/settings/views/documentation/forms-email.php:33
 msgid "Validation URL"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:490
 msgid "Value received"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:83
+msgid "Values under 60 seconds are allowed but not recommended: the count resets so often that an address never really reaches the cap — it just paces its requests across boundaries, and the limit becomes decorative."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-quiz.php:24 includes/settings/views/documentation/feature-self-scheduling.php:77 includes/settings/views/documentation/reference-tokens.php:23 includes/settings/views/documentation/feature-record.php:38 includes/settings/views/documentation/feature-record.php:59 includes/settings/views/documentation/feature-record.php:82 includes/settings/views/documentation/feature-record.php:101 includes/settings/views/documentation/feature-record.php:119
@@ -20143,6 +20502,10 @@ msgstr ""
 msgid "When a form uses quiz/evaluation mode, these additional variables are available in the PDF template:"
 msgstr ""
 
+#: includes/settings/views/documentation/feature-reregistration.php:47
+msgid "When a reminder is sent again"
+msgstr ""
+
 #: includes/settings/views/documentation/email-texts-hub.php:38
 msgid "When a shipped default text changes, a per-form / per-schedule / per-calendar body that still holds the OLD default is detected as Custom and keeps its old wording until you press \"Restore Default Text\"; blank (Global-tracking) entities render the new standard automatically."
 msgstr ""
@@ -20417,6 +20780,10 @@ msgstr ""
 msgid "Widowed"
 msgstr ""
 
+#: includes/settings/views/ffc-tab-rate-limit.php:74
+msgid "Window (sec)"
+msgstr ""
+
 #. %s: forged sentinel IP address
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:516
 #, php-format
@@ -20453,6 +20820,10 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-user-access.php:153
 msgid "WordPress roles"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:59
+msgid "WordPress runs scheduled tasks when a visitor loads a page, so on a quiet site the next batch goes out when the next visitor arrives. If a large campaign has to finish within a set window, ask your host to run WP-Cron from the server (DISABLE_WP_CRON plus a system cron) instead of relying on visitor traffic."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-tokens.php:76 includes/settings/views/documentation/feature-record.php:50
@@ -20605,6 +20976,10 @@ msgstr ""
 
 #: includes/api/class-ffc-operator-certificates-rest-controller.php:297
 msgid "You are not allowed to access this certificate."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-frontend.php:169 includes/reregistration/class-ffc-reregistration-frontend.php:222 includes/reregistration/class-ffc-reregistration-frontend.php:292
+msgid "You are not part of this reregistration."
 msgstr ""
 
 #: templates/emails/appointment-waitlisted.php:21
@@ -20824,6 +21199,16 @@ msgstr ""
 msgid "You edit the body only."
 msgstr ""
 
+#: includes/settings/views/documentation/feature-reregistration.php:50
+msgid "You extend the deadline"
+msgstr ""
+
+#. %s: title of the previous approved campaign.
+#: templates/reregistration/import-previous-notice.php:24
+#, php-format
+msgid "You have an approved reregistration from %s. Do you want to bring those answers into this form?"
+msgstr ""
+
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:177
 msgid "You have been added to the waitlist. We will notify you if a spot opens up."
 msgstr ""
@@ -20919,6 +21304,10 @@ msgstr ""
 #: templates/emails/access-granted.php:25
 #, php-format
 msgid "You now have access to %1$s on %2$s."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:51
+msgid "You send it by hand"
 msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-shortcode.php:349 includes/user-dashboard/class-ffc-access-control.php:117 includes/settings/views/ffc-tab-user-access.php:21
