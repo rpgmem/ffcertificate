@@ -203,7 +203,7 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 	 *
 	 * @dataProvider valid_json_that_is_not_an_envelope
 	 *
-	 * @param string $stored Valor cru na coluna.
+	 * @param string $stored Raw value in the column.
 	 */
 	public function test_legacy_base64_that_parses_as_json_is_still_a_miss( string $stored ): void {
 		$this->repo->shouldReceive( 'findQrCacheByShortCode' )->with( 'abc123' )->andReturn( $stored );

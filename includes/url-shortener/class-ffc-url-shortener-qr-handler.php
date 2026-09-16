@@ -41,7 +41,7 @@ class UrlShortenerQrHandler {
 	public const CACHE_SIZE = 200;
 
 	/**
-	 * Versao do envelope gravado na coluna `qr_cache`.
+	 * Version of the envelope stored in the `qr_cache` column.
 	 *
 	 * @var int
 	 */
