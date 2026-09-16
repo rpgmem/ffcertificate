@@ -1190,16 +1190,19 @@ class CapabilityManagerTest extends TestCase {
 
 	public function test_admin_capabilities_contains_import_tier(): void {
 		// ffc_import_audiences is new (GAP H); ffc_import_recruitment predates
-		// it but is now strictly enforced.
+		// it but is now strictly enforced; ffc_import_reregistration joined in
+		// 6.26.0 (#1214).
 		$this->assertContains( 'ffc_import_audiences', CapabilityManager::ADMIN_CAPABILITIES );
 		$this->assertContains( 'ffc_import_recruitment', CapabilityManager::ADMIN_CAPABILITIES );
+		$this->assertContains( 'ffc_import_reregistration', CapabilityManager::ADMIN_CAPABILITIES );
 	}
 
 	public function test_import_cap_grant_map_pairs_each_manage_to_its_import(): void {
 		$map = CapabilityMigrator::import_cap_grant_map();
-		$this->assertCount( 2, $map );
+		$this->assertCount( 3, $map );
 		$this->assertSame( 'ffc_import_audiences', $map['ffc_manage_audiences'] );
 		$this->assertSame( 'ffc_import_recruitment', $map['ffc_manage_recruitment'] );
+		$this->assertSame( 'ffc_import_reregistration', $map['ffc_manage_reregistration'] );
 		foreach ( $map as $manage => $import ) {
 			$this->assertStringStartsWith( 'ffc_manage_', $manage );
 			$this->assertStringStartsWith( 'ffc_import_', $import );

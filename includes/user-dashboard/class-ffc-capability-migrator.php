@@ -621,13 +621,22 @@ class CapabilityMigrator {
 	 * (custom roles relying on `ffc_manage_recruitment` to import keep working).
 	 * To take import away from a manager, remove the import cap afterward.
 	 *
+	 * `ffc_import_reregistration` joined the map in 6.26.0 (#1214). **A new pair
+	 * here does not reach an install on its own**: the migration is flagged
+	 * once, so an install that already wrote `ffc_import_caps_granted_v1` would
+	 * never run it again and the new cap would silently reach nobody. The flag
+	 * is therefore bumped alongside the pair (`_v2` in `Loader`), which is safe
+	 * because every grant below is guarded on the cap not already being
+	 * present — re-running seeds only what is missing.
+	 *
 	 * @since 6.9.0
 	 * @return array<string, string>
 	 */
 	public static function import_cap_grant_map(): array {
 		return array(
-			'ffc_manage_audiences'   => 'ffc_import_audiences',
-			'ffc_manage_recruitment' => 'ffc_import_recruitment',
+			'ffc_manage_audiences'      => 'ffc_import_audiences',
+			'ffc_manage_recruitment'    => 'ffc_import_recruitment',
+			'ffc_manage_reregistration' => 'ffc_import_reregistration',
 		);
 	}
 

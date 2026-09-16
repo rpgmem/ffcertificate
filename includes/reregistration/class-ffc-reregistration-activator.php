@@ -31,7 +31,9 @@ class ReregistrationActivator {
 	 *
 	 * Called during plugin activation. Order matches the previous inline
 	 * sequence in Activator::activate(): campaigns → audiences junction →
-	 * submissions → submission columns back-fill → audience junction migration.
+	 * submissions → submission columns back-fill → audience junction migration,
+	 * then the two CSV-import tables (#1214), which depend on nothing above and
+	 * are created last for that reason.
 	 *
 	 * @return void
 	 */
@@ -43,6 +45,8 @@ class ReregistrationActivator {
 		self::add_reregistrations_columns();
 		self::migrate_reregistration_audience_to_junction();
 		self::drop_superseded_indexes();
+		self::create_import_jobs_table();
+		self::create_import_staging_table();
 	}
 
 	/**
@@ -342,5 +346,117 @@ class ReregistrationActivator {
 				),
 			)
 		);
+	}
+
+	/**
+	 * Create the CSV-import job header table (#1214).
+	 *
+	 * The import is a four-phase job (ingest → validate → promote → commit),
+	 * so the header lives apart from the staged rows: it carries the phase
+	 * (`status`), the progress pair the client polls, the `user_id` fence that
+	 * `authorize_*` checks on every phase, and the `created_at` the stale-job
+	 * sweep orders by. Same split as the recruitment importer's
+	 * `ffc_recruitment_import_jobs`, for the same reasons.
+	 *
+	 * **Both tables are in-flight state with a TTL, never a record.** They are
+	 * emptied at commit and swept when a job is abandoned, which is why they
+	 * carry cleartext identifiers (see the staging table) and why `ENGINE`
+	 * is stated explicitly, matching the recruitment pair rather than the
+	 * reregistration tables above.
+	 *
+	 * @since 6.26.0
+	 * @return void
+	 */
+	private static function create_import_jobs_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_reregistration_import_jobs';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		$sql = "CREATE TABLE {$table_name} (
+            job_id varchar(40) NOT NULL,
+            reregistration_id bigint(20) unsigned NOT NULL,
+            audience_id bigint(20) unsigned NOT NULL,
+            status varchar(20) NOT NULL DEFAULT 'ingested',
+            total int(10) unsigned NOT NULL DEFAULT 0,
+            processed_count int(10) unsigned NOT NULL DEFAULT 0,
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            created_at datetime NOT NULL,
+            updated_at datetime NOT NULL,
+            PRIMARY KEY (job_id),
+            KEY idx_campaign_status (reregistration_id, status),
+            KEY idx_cleanup (created_at)
+        ) ENGINE=InnoDB {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Create the CSV-import staging table (#1214).
+	 *
+	 * **It stages the row as JSON, and that is the one structural way this
+	 * importer cannot copy recruitment's.** There the staged columns are typed
+	 * (`rank_value`, `score`, `adjutancy_slug`) because the domain fixes them.
+	 * Here the columns are rows of `ffc_custom_fields` keyed by `audience_id`,
+	 * defined per audience by the operator, so no fixed column list can hold
+	 * them — `payload` carries the header→`field_key` map applied to the row.
+	 * `longtext`, never `json`: MariaDB implements `json` as `LONGTEXT` plus a
+	 * CHECK, so a `json` column can never match its own statement (the dbDelta
+	 * idempotence gate).
+	 *
+	 * The resolution columns beside it are the ones validation and promotion
+	 * query on, and they are deliberately **cleartext**: this is in-flight data
+	 * with a TTL, and hashing before validation would make "this CPF is
+	 * malformed" unreportable to the operator. `RecruitmentActivator` reached
+	 * the same conclusion and recreated its staging table plaintext (V11).
+	 * Nothing here survives commit.
+	 *
+	 * `user_id` and `submission_id` are filled by the validate phase, so the
+	 * promote phase re-reads a decision instead of taking it twice; `0` means
+	 * unresolved rather than "user zero".
+	 *
+	 * @since 6.26.0
+	 * @return void
+	 */
+	private static function create_import_staging_table(): void {
+		global $wpdb;
+		$table_name      = $wpdb->prefix . 'ffc_reregistration_import_staging';
+		$charset_collate = $wpdb->get_charset_collate();
+
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		$sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            job_id varchar(40) NOT NULL,
+            row_no int(10) unsigned NOT NULL,
+            line_no int(10) unsigned NOT NULL,
+            reregistration_id bigint(20) unsigned NOT NULL,
+            audience_id bigint(20) unsigned NOT NULL,
+            payload longtext DEFAULT NULL,
+            cpf_normalized varchar(11) NOT NULL DEFAULT '',
+            rf_normalized varchar(7) NOT NULL DEFAULT '',
+            email varchar(255) NOT NULL DEFAULT '',
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            submission_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            row_status varchar(20) NOT NULL DEFAULT 'staged',
+            error text DEFAULT NULL,
+            processed tinyint(1) NOT NULL DEFAULT 0,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_job_row (job_id, row_no),
+            KEY idx_job_processed (job_id, processed),
+            KEY idx_job_status (job_id, row_status),
+            KEY idx_job_cpf (job_id, cpf_normalized),
+            KEY idx_job_rf (job_id, rf_normalized),
+            KEY idx_job_email (job_id, email)
+        ) ENGINE=InnoDB {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
 	}
 }

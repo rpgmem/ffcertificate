@@ -72,7 +72,13 @@ $ffcertificate_tables = array(
 	$wpdb->prefix . 'ffc_recruitment_notice',
 	$wpdb->prefix . 'ffc_recruitment_adjutancy',
 	$wpdb->prefix . 'ffc_recruitment_reason',
-	// Reregistration (children first).
+	// Reregistration (children first). The two CSV-import tables (#1214) hold
+	// only in-flight job state with a TTL, but they are created by
+	// ReregistrationActivator like the rest, so they belong here — the
+	// fresh-install gate compares this manifest against what activation
+	// actually creates, in BOTH directions.
+	$wpdb->prefix . 'ffc_reregistration_import_staging',
+	$wpdb->prefix . 'ffc_reregistration_import_jobs',
 	$wpdb->prefix . 'ffc_reregistration_submissions',
 	$wpdb->prefix . 'ffc_reregistration_audiences',
 	$wpdb->prefix . 'ffc_reregistrations',
@@ -196,6 +202,10 @@ $ffcertificate_options = array(
 	'ffc_export_caps_granted_v1',
 	'ffc_false_caps_stripped_v1',
 	'ffc_import_caps_granted_v1',
+	// _v2 re-runs the same idempotent seeding so `ffc_import_reregistration`
+	// (#1214) reaches installs that already flagged _v1 as done. The old flag
+	// stays listed: an install upgraded through 6.9.0 carries both.
+	'ffc_import_caps_granted_v2',
 	'ffc_migration_custom_fields_tables_completed',
 	'ffc_migration_dynamic_rereg_fields_completed',
 	'ffc_migration_rename_capabilities_completed',
@@ -377,8 +387,9 @@ $ffcertificate_caps = array(
 	'ffc_export_reregistration',
 	'ffc_export_audiences',
 
-	// Granular import tier (GAP H).
+	// Granular import tier (GAP H), plus reregistration from 6.26.0 (#1214).
 	'ffc_import_audiences',
+	'ffc_import_reregistration',
 
 	// Removed 6.2.0 placeholder, kept here for cleanup on installs
 	// that activated it before the placeholder was retired.

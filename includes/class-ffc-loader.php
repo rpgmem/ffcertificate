@@ -611,7 +611,12 @@ class Loader {
 	 * @since 6.9.0
 	 */
 	private function ensure_import_caps_granted(): void {
-		$flag = 'ffc_import_caps_granted_v1';
+		// _v2 (#1214): the map gained `ffc_import_reregistration`, and a flagged
+		// one-shot never revisits an install that already recorded _v1 — so the
+		// new cap would have reached only fresh installs. Re-running is safe by
+		// construction: every grant in `migrate_import_caps_grant()` is guarded
+		// on the cap not already being present.
+		$flag = 'ffc_import_caps_granted_v2';
 		if ( '1' === get_option( $flag, '' ) ) {
 			return;
 		}
