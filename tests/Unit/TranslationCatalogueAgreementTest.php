@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\PoCatalogue;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -97,64 +98,23 @@ class TranslationCatalogueAgreementTest extends TestCase {
 	/**
 	 * Reads the `.po` into `key => array{forms, plural_id, fuzzy}`.
 	 *
-	 * Handles what a single-line regex does not: a literal continued over
-	 * following lines (one `msgid` here contains a newline), `msgstr[n]` plural
-	 * forms, and the `#,` flag line.
+	 * The parsing lives in {@see PoCatalogue}, shared with
+	 * `TranslationSourceCoverageTest` (#1284) for the reason
+	 * `.github/scripts/ffc-create-statements.php` is shared: two guards reading
+	 * the same file must not disagree about what an entry is. What stays here is
+	 * only the shape this comparison wants.
 	 *
 	 * @return array<string, array{forms: array<int, string>, plural_id: string|null, fuzzy: bool}>
 	 */
 	private function po(): array {
 		$entries = array();
-		$cur     = array();
-		$field   = null;
-
-		$flush = static function () use ( &$cur, &$entries, &$field ): void {
-			if ( isset( $cur['msgid'] ) ) {
-				$key   = isset( $cur['msgctxt'] ) ? $cur['msgctxt'] . "\x04" . $cur['msgid'] : $cur['msgid'];
-				$forms = array();
-				if ( isset( $cur['msgid_plural'] ) ) {
-					for ( $i = 0; isset( $cur[ 'msgstr[' . $i . ']' ] ); $i++ ) {
-						$forms[] = $cur[ 'msgstr[' . $i . ']' ];
-					}
-				} else {
-					$forms[] = $cur['msgstr'] ?? '';
-				}
-				$entries[ $key ] = array(
-					'forms'     => $forms,
-					'plural_id' => $cur['msgid_plural'] ?? null,
-					'fuzzy'     => (bool) ( $cur['fuzzy'] ?? false ),
-				);
-			}
-			$cur   = array();
-			$field = null;
-		};
-
-		foreach ( explode( "\n", (string) file_get_contents( $this->path( 'ffcertificate-pt_BR.po' ) ) ) as $line ) {
-			$trimmed = trim( $line );
-
-			if ( '' === $trimmed ) {
-				$flush();
-				continue;
-			}
-			if ( str_starts_with( $trimmed, '#' ) ) {
-				if ( str_starts_with( $trimmed, '#,' ) && str_contains( $trimmed, 'fuzzy' ) ) {
-					$cur['fuzzy'] = true;
-				}
-				continue;
-			}
-			if ( preg_match( '/^(msgctxt|msgid|msgid_plural|msgstr(?:\[\d+\])?)\s+"(.*)"$/s', $trimmed, $m ) ) {
-				$field         = $m[1];
-				$cur[ $field ] = ( $cur[ $field ] ?? '' ) . stripcslashes( $m[2] );
-				continue;
-			}
-			// A continuation line: the literal keeps going on its own.
-			if ( null !== $field && preg_match( '/^"(.*)"$/s', $trimmed, $m ) ) {
-				$cur[ $field ] .= stripcslashes( $m[1] );
-			}
+		foreach ( PoCatalogue::read( $this->path( 'ffcertificate-pt_BR.po' ) ) as $entry ) {
+			$entries[ $entry['key'] ] = array(
+				'forms'     => $entry['forms'],
+				'plural_id' => $entry['msgid_plural'],
+				'fuzzy'     => $entry['fuzzy'],
+			);
 		}
-		$flush();
-
-		unset( $entries[''] );
 
 		return $entries;
 	}
