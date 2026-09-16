@@ -6,7 +6,7 @@ Project conventions for Claude (Anthropic CLI / agent sessions) working on this 
 
 **Priority when anti-churn and consistency collide:** consistency wins when the inconsistency is *recurring and reader-facing* (every new reader re-pays it); anti-churn wins only when the change is *purely cosmetic* — a rename or reshuffle that removes no confusion. "Earn its keep" is **not** counted in functional gain alone: a persistent inconsistency is a real, compounding cost, not a cosmetic one. This leans consistency-first on purpose, because the project is now mature — low debt, high coverage, the #563-era refactor closed — and churn is cheap on clean, well-tested code, so a consistency fix that disturbs the module-boundary baseline or a namespace is usually worth it. (This is a shift from the refactor era, when churn fought an in-flight baseline and stability rightly came first.)
 
-**A number in this file is a claim about a value something else owns, and it goes stale in silence (#1261).** Nothing warns anybody: the PR that shrinks a ratchet edits the constant, never the paragraph in another section that describes it — the guard still passes, because a docblock is not an assertion. Measured on this file, the class is live in three shapes at once. A **contradiction**: §2 said the `CssNamespaceAnchorTest` baseline was empty (true) while §3 said *"the three survivors … stay on purpose"* (false — #1202 renamed them, which is what emptied it). A **stale count**: `ffc-common.css` was described as 1,226 lines carrying 135 tokens across 206 selectors; measured, 1,361 / 91 / 232. And the worst shape, an **unverifiable** one: neither 135 nor the theme section's 78 matches any reading of the file anybody can reproduce, so the method was never written down and the number could not be checked even when it was written.
+**A number in this file is a claim about a value something else owns, and it goes stale in silence (#1261).** Nothing warns anybody: the PR that shrinks a ratchet edits the constant, never the paragraph in another section that describes it — the guard still passes, because a docblock is not an assertion. Measured on this file, the class is live in three shapes at once. A **contradiction**: §2 said the `CssNamespaceAnchorTest` baseline was empty (true) while §4 said *"the three survivors … stay on purpose"* (false — #1202 renamed them, which is what emptied it). A **stale count**: `ffc-common.css` was described as 1,226 lines carrying 135 tokens across 206 selectors; measured, 1,361 / 91 / 232. And the worst shape, an **unverifiable** one: neither 135 nor the theme section's 78 matches any reading of the file anybody can reproduce, so the method was never written down and the number could not be checked even when it was written.
 
 **So: state the invariant, not the reading.** *"The baseline blocks at zero"* survives a shrink; *"the baseline holds 3 entries"* does not. *"The dark block redefines the colour tokens and only the colour tokens"* survives a new token; *"57 of the 78"* does not. Where the count genuinely carries the lesson — the 60 → 51 → 3 → 0 arc **is** the story — keep it and write it as **history**, in the past tense, which cannot go stale; the contradiction above was a history sentence written in the present. And where a number stays, make it re-measurable: say *what* was counted (`91 tokens declared on :root`), because a figure whose method is unrecorded cannot be confirmed or refuted by the next reader. A count that drifts with every edit and carries nothing — a line count, a selector count — is better deleted than refreshed.
 
@@ -24,9 +24,10 @@ Project conventions for Claude (Anthropic CLI / agent sessions) working on this 
 
 1. **[Contributing workflow](#1-contributing-workflow)** — git / PR / release: pull-request workflow, branch naming, develop-branch workflow, versioning, CHANGELOG conventions, what not to do.
 2. **[Quality gates and testing](#2-quality-gates-and-testing)** — the CI gate list + coverage floors, the guards (one subsection each), config-level exclusions, test infrastructure, build & assets.
-3. **[Architecture and patterns](#3-architecture-and-patterns)** — repository pattern, module bootstrap (loaders), shared-service directories, email pipeline, CSV export, captcha, stylesheet architecture, naming and composition, light/dark theme.
-4. **[Domain conventions](#4-domain-conventions)** — date/time storage, settings reads, capability naming, security & PII.
-5. **[Legacy and tech debt](#5-legacy-and-tech-debt)** — compat shims + evidence-gating.
+3. **[Architecture and patterns](#3-architecture-and-patterns)** — repository pattern, module bootstrap (loaders), shared-service directories, email pipeline, CSV export, captcha.
+4. **[Stylesheets and theme](#4-stylesheets-and-theme)** — how many sheets and why, naming and composition, page scope on the admin `wrap`, the light/dark palette.
+5. **[Domain conventions](#5-domain-conventions)** — date/time storage, settings reads and writes, admin number inputs, capability naming, security & PII.
+6. **[Legacy and tech debt](#6-legacy-and-tech-debt)** — compat shims + evidence-gating.
 
 ---
 
@@ -355,7 +356,7 @@ What it does not see: inline CSS printed from PHP (`print_menu_separator_css()`,
 
 #### Page-scope guard (#1184)
 
-`tests/Unit/AdminPageScopeTest.php` fails when a `div.wrap` the plugin prints does not carry `ffc-admin-page` plus exactly one registered `ffc-page-<slug>`, when a registered screen class is emitted nowhere, or when a `NESTED` exception stops matching a real `wrap`. It is the markup half of the #1152 fix — the anchor those 41 baselined selectors need in order to be rewritten — and it deliberately proves only that the anchor is *there*, never that a rule reads it; that is `CssNamespaceAnchorTest`'s job. The convention, the 14-screen map and the three things the measurement found are in §3, "Page scope on the admin `wrap`".
+`tests/Unit/AdminPageScopeTest.php` fails when a `div.wrap` the plugin prints does not carry `ffc-admin-page` plus exactly one registered `ffc-page-<slug>`, when a registered screen class is emitted nowhere, or when a `NESTED` exception stops matching a real `wrap`. It is the markup half of the #1152 fix — the anchor those 41 baselined selectors need in order to be rewritten — and it deliberately proves only that the anchor is *there*, never that a rule reads it; that is `CssNamespaceAnchorTest`'s job. The convention, the 14-screen map and the three things the measurement found are in §4, "Page scope on the admin `wrap`".
 
 #### Component-ownership guard (#1162)
 
@@ -546,6 +547,14 @@ Every public form is guarded by the same block: a honeypot (provider-independent
 
 **Signing and single use are shared, not per-strategy:** `Core\Captcha\ChallengeSigner` (key derived from `wp_salt('nonce')` — no option, nothing for `uninstall.php` or the fresh-install manifest) and `Core\Captcha\ChallengeStore` (transient ledger; `redeem()` spends, `is_spent()` reads). A new strategy reuses both rather than inventing its own.
 
+---
+
+## 4. Stylesheets and theme
+
+The plugin is a **guest in someone else's document** — the site's theme owns `<html>` on the frontend, WordPress owns it in wp-admin — and almost everything below follows from that one fact. It is its own section because §3 is about how the PHP is composed and this is about what reaches the browser; a reader answering a question about repositories, email or CSV does not need the stylesheets, and a reader answering one about a selector should not have to find it inside a section named for something else.
+
+Four subsections, in the order a question usually arrives: **how many sheets there are and why**, **how a class is named**, **how a rule is scoped to a screen**, and **how colour works**. Each records the measurement behind a standing decision, so a proposal framed as "adopt BEM" or "collapse the sheets into a bundle" is answered from what was measured rather than from scratch.
+
 ### Stylesheet architecture (28 sheets, one per screen — deliberately not a bundle)
 
 `assets/css/` holds **28 non-minified sheets, 432 KB** — 17 admin-only, 7 frontend-only, 4 both — and each is enqueued by the screens that need it. **`wp_enqueue_style` is the entry-point mechanism.** There is no bundler and no preprocessor: `npm run build:css` runs `cleancss` over each sheet in place, and `build:js` does the same with `terser`. The stack is plain CSS, PHP templates and jQuery.
@@ -601,7 +610,7 @@ Two mechanics from that pass. **The parity warning below is not theoretical, and
 
 Three things it measured, all of them a trap the first version fell into. **Too loose reports nothing wrong**: the first run said zero classes were orphaned, because the bare prefix `ffc-` — from `'ffc-' + Date.now()`, which builds an iCal UID — covered all 1,046. A prefix now needs `ffc-` plus a segment, and the loose forms need the word `class` nearby, or every `wp_enqueue_style` handle counts as a class. **Matching quoted strings by alternation loses quote parity** at the first apostrophe inside a double-quoted string and reads the rest of the file shifted — the same reason `CssSelectors` has to be quote-aware; the selector form scans the source directly instead. And the output is **26 classes with no known emitter**, which is a list of open questions rather than of dead code: each is either genuinely dead, emitted by a shape the scan does not know yet — in which case teach the scan, never add to the list — or applied by something outside our code.
 
-**All three answers turned out to have occupants, and the third one is the one nobody expected** (#1182). `ffc-txt-center` and its three siblings were recorded here as the example of *genuinely dead* — "appear nowhere at all" — and that was true of the repository and false of the world: `ffc-pdf-core.css` carries a section headed **UTILITY CLASSES FOR CERTIFICATE TEMPLATES** and two comments reading *"Add class `ffc-responsive-logo` to img tag to enable"*. They are a **published API for the certificate body an administrator writes**, which lives in the database, so no code scan can ever find their emitter and deleting them breaks every certificate already using them. The same sheet has a section headed **LEGACY CLASSES (Backward compatibility)**, four of whose classes were never emitted by our code at any point in the repository's history — so what they stay compatible with is also outside it, and they are a shim, subject to §5's evidence rule rather than to a scan. The list is therefore **three lists** now: `TEMPLATE_API` (7, published, not debt), `LEGACY_SHIM` (4, logged in §5), and `WITHOUT_EMITTER` (4, still open). The lesson generalises past CSS: **read the file before concluding from a grep** — the answer was written in the sheet, in a section heading, the whole time.
+**All three answers turned out to have occupants, and the third one is the one nobody expected** (#1182). `ffc-txt-center` and its three siblings were recorded here as the example of *genuinely dead* — "appear nowhere at all" — and that was true of the repository and false of the world: `ffc-pdf-core.css` carries a section headed **UTILITY CLASSES FOR CERTIFICATE TEMPLATES** and two comments reading *"Add class `ffc-responsive-logo` to img tag to enable"*. They are a **published API for the certificate body an administrator writes**, which lives in the database, so no code scan can ever find their emitter and deleting them breaks every certificate already using them. The same sheet has a section headed **LEGACY CLASSES (Backward compatibility)**, four of whose classes were never emitted by our code at any point in the repository's history — so what they stay compatible with is also outside it, and they are a shim, subject to §6's evidence rule rather than to a scan. The list is therefore **three lists** now: `TEMPLATE_API` (7, published, not debt), `LEGACY_SHIM` (4, logged in §6), and `WITHOUT_EMITTER` (4, still open). The lesson generalises past CSS: **read the file before concluding from a grep** — the answer was written in the sheet, in a section heading, the whole time.
 
 **Three idioms said the same thing; #1170 left two.** The measurement found a prefixed modifier (`.ffc-day.ffc-selected`, 108 occurrences), an unprefixed one (`.ffc-consent-status.consent-given`, 38 names) and a SMACSS state (`.ffc-cap-role.is-on`, 12). The rule now is **by function, not by word**: what the interaction turns on and off is a **state** and stays unprefixed as `is-` / `has-`; everything else of ours — a **variant** the data dictates, and an **element** of the component — takes `ffc-`. `tests/Unit/ClassNamingIdiomTest.php` refuses the third idiom, with the vendor names that legitimately stay unprefixed listed by family and by name, each with its reason.
 
@@ -671,7 +680,7 @@ Every colour the plugin paints comes from a `var(--ffc-*)` token declared in `as
 
 **That register said four, the list said three, and #1185 re-measured by render: five elements, and not one of them is a defect.** All five sit under a root the base pair already names, so in the dark theme their colour *is* ours; in the light theme they inherit, and that is the design — the base pair is written for the dark theme because that is where inheriting near-black lands at 1,28:1, while on a light ground inheriting is what being a guest in someone else's document means. With the fade included they measure between **5,55:1 and 21:1** in both themes, so the fade stays and the entries now carry the number instead of a promise to look later.
 
-**The lesson is about the harness, not the CSS, and it cost two wrong conclusions before it was caught.** Measuring those elements in a bare page — no `body.wp-admin`, no `.ffc-shortcode` wrapper — reproduces defect 3 perfectly, because the base pair is keyed on exactly those roots. The dashboard calendar "measured" 1,64:1 that way and a fix for it was written and then reverted: with the real DOM (it is an `add_submenu_page` screen, so `body.wp-admin` is its root) the number is 10,46:1 and nothing was ever wrong. **Read the emitter for the root before believing a contrast measurement** — the same rule §3 already states for CSS class names, and the same trap as the `setContent` one, one level up: there the sheets never loaded, here the DOM was missing the one ancestor that does the work.
+**The lesson is about the harness, not the CSS, and it cost two wrong conclusions before it was caught.** Measuring those elements in a bare page — no `body.wp-admin`, no `.ffc-shortcode` wrapper — reproduces defect 3 perfectly, because the base pair is keyed on exactly those roots. The dashboard calendar "measured" 1,64:1 that way and a fix for it was written and then reverted: with the real DOM (it is an `add_submenu_page` screen, so `body.wp-admin` is its root) the number is 10,46:1 and nothing was ever wrong. **Read the emitter for the root before believing a contrast measurement** — the same rule §4 already states for CSS class names, and the same trap as the `setContent` one, one level up: there the sheets never loaded, here the DOM was missing the one ancestor that does the work.
 
 A static guard cannot replace that render, and the numbers say why: **122 rules across the sheets paint a surface token without declaring text, 75 of them on a single-class selector**, and nearly all are correct because their text descends from a root that IS on the list. What separates a real defect from those is the computed colour under the real ancestors — DOM, not stylesheet.
 6. **An inline `style=""` beats the tokenized class.** Tokenizing is dead code while an inline colour exists. Where the background is a colour the *operator* picks, no token can work — the foreground comes from `Core\ContrastColor::on()`, which computes it by WCAG luminance. Its two candidates are pure black and white on purpose: the palette's near-black `#1d2327` drops the worst mid-tone of the RGB cube to **3,99:1**, while black holds **4,58:1** over any colour.
@@ -711,10 +720,9 @@ Three things the derived scan measured, none of them guessable:
 
 Open items and the measurements behind them are in #1148 — among them the typography scale, which already exists and is already semantic, and the trade that makes multiple themes cost more than it looks.
 
-
 ---
 
-## 4. Domain conventions
+## 5. Domain conventions
 
 ### Date / time storage convention
 
@@ -855,7 +863,7 @@ A full security audit confirmed these hold plugin-wide — keep them that way (t
 
 ---
 
-## 5. Legacy and tech debt
+## 6. Legacy and tech debt
 
 ### Legacy compat shims — audit log
 
