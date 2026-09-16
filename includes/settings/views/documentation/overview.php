@@ -40,7 +40,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</li>
 		<li>
 			<strong><?php esc_html_e( 'Run campaigns and tenders', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'Collect updated data with reregistration campaigns (and a Ficha PDF), or manage classified candidate queues with public rankings and call-ups.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Collect updated data with reregistration campaigns (and a Record PDF), or manage classified candidate queues with public rankings and call-ups.', 'ffcertificate' ); ?>
 		</li>
 		<li>
 			<strong><?php esc_html_e( 'Protect personal data (LGPD)', 'ffcertificate' ); ?></strong><br>

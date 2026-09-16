@@ -19,7 +19,7 @@ namespace FreeFormCertificate\Settings\Tabs;
 
 use FreeFormCertificate\Settings\SettingsTab;
 use FreeFormCertificate\Admin\CertTemplateCpt;
-use FreeFormCertificate\Admin\CertTemplateFichaResolver;
+use FreeFormCertificate\Admin\CertTemplateRecordResolver;
 use FreeFormCertificate\Admin\CertTemplateReceiptResolver;
 use FreeFormCertificate\Core\Capabilities;
 
@@ -103,7 +103,7 @@ class TabTemplates extends SettingsTab {
 	 * where the assignment is changed.
 	 *
 	 * This is display-only — the selection controls (and their capabilities)
-	 * stay in each feature's settings (Settings → Reregistration for the ficha;
+	 * stay in each feature's settings (Settings → Reregistration for the record;
 	 * Scheduling → Settings → Receipt for the per-mode receipt). Each row is
 	 * gated by that feature's own view cap, so a row appears only for a feature
 	 * the current user can actually see; the whole panel is suppressed when no
@@ -150,8 +150,8 @@ class TabTemplates extends SettingsTab {
 				<?php endif; ?>
 				<?php if ( $can_reregistration ) : ?>
 					<tr>
-						<td><?php esc_html_e( 'Reregistration ficha', 'ffcertificate' ); ?></td>
-						<td><?php echo esc_html( self::assigned_label( CertTemplateFichaResolver::selected_id() ) ); ?></td>
+						<td><?php esc_html_e( 'Reregistration record', 'ffcertificate' ); ?></td>
+						<td><?php echo esc_html( self::assigned_label( CertTemplateRecordResolver::selected_id() ) ); ?></td>
 						<td><a href="<?php echo esc_url( $reregistration_url ); ?>"><?php echo esc_html( $change_label ); ?></a></td>
 					</tr>
 				<?php endif; ?>
@@ -209,19 +209,19 @@ class TabTemplates extends SettingsTab {
 			</span>
 		</p>
 
-		<h3><?php esc_html_e( 'Fichas (reregistration)', 'ffcertificate' ); ?></h3>
+		<h3><?php esc_html_e( 'Records (reregistration)', 'ffcertificate' ); ?></h3>
 		<p>
-			<a class="button" href="<?php echo esc_url( self::hub_url( CertTemplateCpt::KIND_FICHA ) ); ?>">
-				<?php esc_html_e( 'Manage ficha templates', 'ffcertificate' ); ?>
+			<a class="button" href="<?php echo esc_url( self::hub_url( CertTemplateCpt::KIND_RECORD ) ); ?>">
+				<?php esc_html_e( 'Manage record templates', 'ffcertificate' ); ?>
 			</a>
 			<?php if ( $can_manage ) : ?>
-				<a class="button" href="<?php echo esc_url( self::new_url( CertTemplateCpt::KIND_FICHA ) ); ?>">
-					<?php esc_html_e( '+ New ficha template', 'ffcertificate' ); ?>
+				<a class="button" href="<?php echo esc_url( self::new_url( CertTemplateCpt::KIND_RECORD ) ); ?>">
+					<?php esc_html_e( '+ New record template', 'ffcertificate' ); ?>
 				</a>
 			<?php endif; ?>
 			<br>
 			<span class="description">
-				<?php esc_html_e( 'Which ficha template the reregistration PDF uses is chosen in Settings → Reregistration.', 'ffcertificate' ); ?>
+				<?php esc_html_e( 'Which record template the reregistration PDF uses is chosen in Settings → Reregistration.', 'ffcertificate' ); ?>
 			</span>
 		</p>
 		<?php

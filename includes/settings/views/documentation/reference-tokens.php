@@ -125,7 +125,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</table>
 	<p class="description">
 		<strong><?php esc_html_e( 'Participant profile fields:', 'ffcertificate' ); ?></strong>
-		<?php esc_html_e( 'Any identity, contact, address or employment field your form collects can also be used as a placeholder by its field key — e.g. {{rg}}, {{celular}}, {{endereco}}, {{bairro}}, {{cargo_funcao_acumulo}}. The full catalog of these standard keys is listed on the Ficha PDF page; they resolve in any PDF template when the form captures them.', 'ffcertificate' ); ?>
+		<?php esc_html_e( 'Any identity, contact, address or employment field your form collects can also be used as a placeholder by its field key — e.g. {{rg}}, {{celular}}, {{endereco}}, {{bairro}}, {{cargo_funcao_acumulo}}. The full catalog of these standard keys is listed on the Record PDF page; they resolve in any PDF template when the form captures them.', 'ffcertificate' ); ?>
 	</p>
 
 	<div class="ffc-doc-example">

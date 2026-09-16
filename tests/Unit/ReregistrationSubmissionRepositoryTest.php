@@ -217,7 +217,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	public function test_get_by_auth_code_query_allows_expired_status(): void {
 		// 6.7.4 — Submissions whose parent campaign closed get their
 		// `status` flipped from `approved` to `expired` for housekeeping,
-		// but the auth_code printed on the ficha must keep resolving.
+		// but the auth_code printed on the record must keep resolving.
 		// Pin the SQL whitelist by capturing the prepared statement and
 		// asserting `'expired'` is in the `status IN (...)` clause.
 		$captured_sql = '';
@@ -269,7 +269,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
 	public function test_get_by_magic_token_query_allows_expired_status(): void {
 		// 6.7.4 — Same SQL whitelist as get_by_auth_code (see above):
-		// a magic link printed on / emailed for a once-approved ficha
+		// a magic link printed on / emailed for a once-approved record
 		// must keep resolving after the parent campaign expires.
 		$captured_sql = '';
 		$this->wpdb->shouldReceive('prepare')

@@ -435,7 +435,7 @@ class PdfGenerator {
 		 * Filters the appointment receipt PDF filename.
 		 *
 		 * Paired with `ffcertificate_certificate_filename` and
-		 * `ffcertificate_ficha_filename`. New in 6.6.11 — this hook
+		 * `ffcertificate_record_filename`. New in 6.6.11 — this hook
 		 * did not exist in pre-6.6.11 releases.
 		 *
 		 * @since 6.6.11

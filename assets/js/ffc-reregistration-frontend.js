@@ -214,7 +214,7 @@
     function initDualPostFields($container) {
         // The three dependent fields only count when the participant declares
         // that they ACCUMULATE. That is already the rule on the other side: the
-        // FichaGenerator blanks `jornada_acumulo`, `cargo_funcao_acumulo` and
+        // RecordGenerator blanks `jornada_acumulo`, `cargo_funcao_acumulo` and
         // `horario_trabalho_acumulo` unless the value is exactly "I hold" --
         // "Pension" blanks them too. Without hiding here, the participant fills
         // in what the record will discard.

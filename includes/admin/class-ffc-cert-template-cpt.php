@@ -91,9 +91,9 @@ class CertTemplateCpt {
 	public const KIND_APPOINTMENT_RECEIPT = 'appointment_receipt';
 
 	/**
-	 * Kind value: a reregistration ficha template (#951 phase 2).
+	 * Kind value: a reregistration record template (#951 phase 2).
 	 */
-	public const KIND_FICHA = 'ficha';
+	public const KIND_RECORD = 'ficha';
 
 	/**
 	 * Whether a string is one of the known template kinds. Guards a
@@ -104,7 +104,7 @@ class CertTemplateCpt {
 	 * @return bool
 	 */
 	public static function is_valid_kind( string $kind ): bool {
-		return in_array( $kind, array( self::KIND_CERTIFICATE, self::KIND_APPOINTMENT_RECEIPT, self::KIND_FICHA ), true );
+		return in_array( $kind, array( self::KIND_CERTIFICATE, self::KIND_APPOINTMENT_RECEIPT, self::KIND_RECORD ), true );
 	}
 
 	/**

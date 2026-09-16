@@ -98,7 +98,7 @@ class ReregistrationFieldOptions {
 	 * editor and propagated to descendants via "Replicate to children". It is
 	 * also the render-time fallback for audiences that predate the field.
 	 *
-	 * Authored in pt-BR (the deployment locale) so the form and the ficha PDF
+	 * Authored in pt-BR (the deployment locale) so the form and the record PDF
 	 * share a single source of truth for the notice.
 	 *
 	 * @return string Rich-text HTML (wp_kses_post-safe).

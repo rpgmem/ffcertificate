@@ -52,9 +52,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<?php esc_html_e( 'View Details', 'ffcertificate' ); ?>
 				</button>
 				<?php if ( in_array( $sub->status, array( 'submitted', 'approved' ), true ) ) : ?>
-					<button type="button" class="button button-small ffc-ficha-btn" data-submission-id="<?php echo esc_attr( $sub->id ); ?>">
+					<button type="button" class="button button-small ffc-record-btn" data-submission-id="<?php echo esc_attr( $sub->id ); ?>">
 						<span class="dashicons dashicons-media-document ffc-rereg-icon"></span>
-						<?php esc_html_e( 'Ficha', 'ffcertificate' ); ?>
+						<?php esc_html_e( 'Record', 'ffcertificate' ); ?>
 					</button>
 				<?php endif; ?>
 			</td>

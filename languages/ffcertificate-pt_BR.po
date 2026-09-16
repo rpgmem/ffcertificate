@@ -594,7 +594,7 @@ msgid "+ New certificate template"
 msgstr "+ Novo modelo de certificado"
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:219 includes/settings/tabs/class-ffc-tab-reregistration.php:160
-msgid "+ New ficha template"
+msgid "+ New record template"
 msgstr "+ Novo modelo de ficha"
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:203
@@ -738,7 +738,7 @@ msgid "A calendar uses one of two availability models:"
 msgstr "Um calendário utiliza um de dois modelos de disponibilidade:"
 
 #: includes/settings/views/documentation/feature-reregistration.php:66
-msgid "A campaign shows the union of the custom fields of its linked audiences (standard identity/contact fields plus any custom ones). Each submission can be exported as a Ficha PDF."
+msgid "A campaign shows the union of the custom fields of its linked audiences (standard identity/contact fields plus any custom ones). Each submission can be exported as a Record PDF."
 msgstr "Uma campanha exibe a combinação dos campos personalizados de seus públicos vinculados (campos padrão de identidade/contato, além de quaisquer campos personalizados). Cada envio pode ser exportado como uma ficha em PDF."
 
 #: includes/frontend/class-ffc-frontend.php:357
@@ -767,7 +767,7 @@ msgstr "Um mecanismo de segurança baseado em chaves estrangeiras no banco de da
 msgid "A definitive list already exists for this notice. Promoting just flips the status to `definitive` (the existing definitive list is preserved)."
 msgstr "Já existe uma lista definitiva para este edital. A promoção apenas altera o status para \"definitiva\" (a lista definitiva existente é preservada)."
 
-#: includes/settings/views/documentation/feature-ficha.php:138
+#: includes/settings/views/documentation/feature-record.php:138
 msgid "A dependent_select custom field (e.g. divisao_setor) exposes three placeholders: the combined value plus its two halves. Use whichever the layout needs."
 msgstr "Um campo personalizado dependent_select (por exemplo, divisao_setor) expõe três espaços reservados: o valor combinado mais suas duas metades. Use aquele que o layout exigir."
 
@@ -969,7 +969,7 @@ msgid "a switch that decides where this form's certificate email text comes from
 msgstr "uma chave seletora que determina a origem do texto do e-mail do certificado deste formulário."
 
 #: includes/settings/views/documentation/document-templates-hub.php:56
-msgid "A template with no kind marker is treated as a certificate, so installs that predate the pool render exactly as before. Developer filters still let code override the resolved HTML for the ficha and receipt where a bundled layout was used previously."
+msgid "A template with no kind marker is treated as a certificate, so installs that predate the pool render exactly as before. Developer filters still let code override the resolved HTML for the record and receipt where a bundled layout was used previously."
 msgstr "Um modelo sem marcador de tipo é tratado como um certificado; portanto, instalações anteriores à introdução do pool são renderizadas exatamente como antes. Filtros para desenvolvedores ainda permitem que o código substitua o HTML resolvido da ficha e do recibo nos casos em que, anteriormente, se utilizava um layout integrado."
 
 #: includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:861
@@ -1082,11 +1082,11 @@ msgstr "Acesso à conta"
 msgid "Account deletion anonymises the link so records stay verifiable; it deliberately leaves the encrypted personal data in the retained records untouched. To also clear that encrypted data, run the Erase Personal Data tool above — that is the path that honours an actual erasure request."
 msgstr "A exclusão da conta torna anônimo o vínculo, permitindo que os registros permaneçam verificáveis; ela deixa intocados, deliberadamente, os dados pessoais criptografados contidos nos registros retidos. Para também remover esses dados criptografados, utilize a ferramenta \"Apagar Dados Pessoais\" acima — esse é o procedimento que atende a uma solicitação efetiva de exclusão de dados."
 
-#: includes/settings/views/documentation/feature-ficha.php:128
+#: includes/settings/views/documentation/feature-record.php:128
 msgid "Accumulated position/function"
 msgstr "Posição/função acumulada"
 
-#: includes/settings/views/documentation/feature-ficha.php:129
+#: includes/settings/views/documentation/feature-record.php:129
 msgid "Accumulated work schedule (HTML section)"
 msgstr "Cronograma de trabalho acumulado (seção HTML)"
 
@@ -1098,7 +1098,7 @@ msgstr "Horário do Acúmulo"
 msgid "Accumulation Working Hours"
 msgstr "Horário de Trabalho do Acúmulo"
 
-#: includes/settings/views/documentation/feature-ficha.php:127
+#: includes/settings/views/documentation/feature-record.php:127
 msgid "Accumulation working hours"
 msgstr "Acumulação de horas de trabalho"
 
@@ -1107,7 +1107,7 @@ msgstr "Acumulação de horas de trabalho"
 msgid "Acknowledgment"
 msgstr "Termo de Ciência"
 
-#: includes/settings/views/documentation/feature-ficha.php:49
+#: includes/settings/views/documentation/feature-record.php:49
 msgid "Acknowledgment notice (\"Termo de Ciência\") HTML — editable per-audience in the Reregistration Fields section, with a shipped default fallback."
 msgstr "Aviso de reconhecimento (\"Termo de Ciência\") HTML — editável por público na seção Campos de Recadastramento, com um modelo padrão fornecido como alternativa."
 
@@ -1333,7 +1333,7 @@ msgstr "Adicionado à lista de espera: {{calendar_title}}"
 msgid "Adding the dashboard"
 msgstr "Adicionando o painel de usuário"
 
-#: templates/reregistration/form.php:48 includes/reregistration/class-ffc-ficha-generator.php:292
+#: templates/reregistration/form.php:48 includes/reregistration/class-ffc-record-generator.php:292
 msgid "Additional Information"
 msgstr "Informações Adicionais"
 
@@ -1341,15 +1341,15 @@ msgstr "Informações Adicionais"
 msgid "Address"
 msgstr "Endereço"
 
-#: includes/settings/views/documentation/feature-ficha.php:78
+#: includes/settings/views/documentation/feature-record.php:78
 msgid "Address (Endereço)"
 msgstr "Endereço"
 
-#: includes/settings/views/documentation/feature-ficha.php:89
+#: includes/settings/views/documentation/feature-record.php:89
 msgid "Address complement"
 msgstr "Complemento de endereço"
 
-#: includes/settings/views/documentation/feature-ficha.php:88
+#: includes/settings/views/documentation/feature-record.php:88
 msgid "Address number"
 msgstr "Número do endereço"
 
@@ -1493,7 +1493,7 @@ msgstr "Guias de administração"
 msgid "Admin View Mode"
 msgstr "Modo de Visualização do Administrador"
 
-#: includes/settings/views/documentation/feature-ficha.php:25
+#: includes/settings/views/documentation/feature-record.php:25
 msgid "Admin:"
 msgstr "Administrador:"
 
@@ -1972,7 +1972,7 @@ msgstr "Qualquer campo personalizado que você criar no Construtor de Formulári
 
 #: includes/settings/views/documentation/reference-tokens.php:128
 #| msgid "Any identity, contact, address or employment field your form collects can also be used as a placeholder by its field key — e.g. {{rg}}, {{celular}}, {{endereco}}, {{bairro}}, {{cargo_funcao_acumulo}}. The full catalog of these standard keys is listed in section 11 (Ficha PDF); they resolve in any PDF template when the form captures them."
-msgid "Any identity, contact, address or employment field your form collects can also be used as a placeholder by its field key — e.g. {{rg}}, {{celular}}, {{endereco}}, {{bairro}}, {{cargo_funcao_acumulo}}. The full catalog of these standard keys is listed on the Ficha PDF page; they resolve in any PDF template when the form captures them."
+msgid "Any identity, contact, address or employment field your form collects can also be used as a placeholder by its field key — e.g. {{rg}}, {{celular}}, {{endereco}}, {{bairro}}, {{cargo_funcao_acumulo}}. The full catalog of these standard keys is listed on the Record PDF page; they resolve in any PDF template when the form captures them."
 msgstr "Qualquer campo de identidade, contato, endereço ou vínculo empregatício coletado pelo seu formulário também pode ser utilizado como *placeholder* por meio de sua chave de campo — por exemplo: {{rg}}, {{celular}}, {{endereco}}, {{bairro}}, {{cargo_funcao_acumulo}}. A lista completa dessas chaves padrão encontra-se na página da Ficha em PDF; elas são preenchidas automaticamente em qualquer modelo de PDF assim que os dados são capturados pelo formulário."
 
 #: includes/settings/views/ffc-tab-rate-limit.php:220
@@ -2381,7 +2381,7 @@ msgstr "solicite o CPF e registre-o, mas nunca bloqueie."
 msgid "Ask — decide per call via a \"Notify by email\" checkbox on the call action"
 msgstr "Perguntar — decidir a cada chamada por meio de uma caixa de seleção \"Notificar por e-mail\" na ação de chamada."
 
-#: includes/settings/views/documentation/feature-ficha.php:71
+#: includes/settings/views/documentation/feature-record.php:71
 msgid "Assigned unit"
 msgstr "Unidade designada"
 
@@ -2491,7 +2491,7 @@ msgstr "Público-alvo desativado com sucesso."
 msgid "Audience deleted successfully."
 msgstr "Público-alvo excluído com sucesso."
 
-#: includes/settings/views/documentation/feature-ficha.php:45
+#: includes/settings/views/documentation/feature-record.php:45
 msgid "Audience group name"
 msgstr "Nome do grupo de público-alvo"
 
@@ -2664,7 +2664,7 @@ msgstr "excluir automaticamente entradas mais antigas que isto (padrão 90; 0 as
 msgid "Auto-delete old submissions"
 msgstr "Excluir automaticamente envios antigos"
 
-#: includes/settings/views/documentation/feature-ficha.php:48
+#: includes/settings/views/documentation/feature-record.php:48
 msgid "Auto-generated section with all custom field values"
 msgstr "Seção gerada automaticamente com todos os valores dos campos personalizados."
 
@@ -2918,7 +2918,7 @@ msgstr "Abaixo"
 msgid "Best-effort: a loopback request to the front page reads the edge cf-cache-status header. Cached up to 6 hours."
 msgstr "Best-effort: uma requisição de loopback para a página inicial lê o cabeçalho de borda `cf-cache-status`. Armazenado em cache por até 6 horas."
 
-#: includes/settings/views/documentation/feature-ficha.php:67
+#: includes/settings/views/documentation/feature-record.php:67
 msgid "Birth date"
 msgstr "Data de nascimento"
 
@@ -3506,7 +3506,7 @@ msgstr "Convite, lembrete e confirmação de campanha"
 msgid "Campaign lifecycle emails — text edited globally in the hub above; each still on/off per campaign."
 msgstr "E-mails do ciclo da campanha — texto editado globalmente na caixa acima; cada um ainda liga/desliga por campanha."
 
-#: includes/settings/views/documentation/feature-ficha.php:44
+#: includes/settings/views/documentation/feature-record.php:44
 msgid "Campaign name"
 msgstr "Nome da campanha"
 
@@ -3519,7 +3519,7 @@ msgstr "Período da Campanha:"
 msgid "Campaign settings"
 msgstr "Configurações da campanha"
 
-#: templates/emails/reregistration-confirmation.php:29 templates/emails/reregistration-invitation.php:28 templates/emails/reregistration-reminder.php:28 includes/reregistration/class-ffc-ficha-generator.php:500 includes/settings/views/documentation/feature-reregistration.php:53
+#: templates/emails/reregistration-confirmation.php:29 templates/emails/reregistration-invitation.php:28 templates/emails/reregistration-reminder.php:28 includes/reregistration/class-ffc-record-generator.php:500 includes/settings/views/documentation/feature-reregistration.php:53
 msgid "Campaign:"
 msgstr "Campanha:"
 
@@ -3907,7 +3907,7 @@ msgid "Certificate not found"
 msgstr "Certificado não encontrado"
 
 #: includes/settings/views/documentation/feature-certificates.php:35
-msgid "Certificate PDF layouts are managed as reusable, duplicable templates in the Document Templates hub — not edited inline per form only. The form editor selects which pool template it issues; the same pool also backs the reregistration ficha and the appointment receipt. Build or duplicate a layout once and reuse it across forms."
+msgid "Certificate PDF layouts are managed as reusable, duplicable templates in the Document Templates hub — not edited inline per form only. The form editor selects which pool template it issues; the same pool also backs the reregistration record and the appointment receipt. Build or duplicate a layout once and reuse it across forms."
 msgstr "Os layouts de certificados em PDF são gerenciados como modelos reutilizáveis ​​e duplicáveis ​​no hub de Modelos de Documento — e não editados diretamente dentro de cada formulário individual. O editor de formulários seleciona qual modelo do repositório será emitido; esse mesmo repositório também serve de base para a ficha de renovação de cadastro e para o comprovante de agendamento. Crie ou duplique um layout uma única vez e reutilize-o em diversos formulários."
 
 #: includes/admin/class-ffc-admin-assets-manager.php:673 includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:147 includes/frontend/class-ffc-frontend.php:516
@@ -4056,7 +4056,7 @@ msgid "Choose which template the appointment receipt (comprovante) PDF uses, sep
 msgstr "Escolha qual modelo o PDF do comprovante de agendamento usa, separadamente para calendários Regulares e Personalizados. Crie, edite e duplique modelos na central de Modelos de Documentos."
 
 #: includes/settings/tabs/class-ffc-tab-reregistration.php:124
-msgid "Choose which template the reregistration ficha PDF uses. Create, edit and duplicate ficha templates in the Document Templates hub."
+msgid "Choose which template the reregistration record PDF uses. Create, edit and duplicate record templates in the Document Templates hub."
 msgstr "Escolha qual modelo o PDF da ficha de recadastramento usa. Crie, edite e duplique modelos de ficha no hub de Modelos de Documento."
 
 #: includes/settings/views/documentation/document-templates-hub.php:48
@@ -4075,7 +4075,7 @@ msgstr "selecionado por formulário no editor de formulários."
 msgid "Chrome tokens"
 msgstr "Tokens do Chrome"
 
-#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:300 includes/frontend/class-ffc-verification-response-renderer.php:469 includes/settings/views/documentation/feature-ficha.php:91
+#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:300 includes/frontend/class-ffc-verification-response-renderer.php:469 includes/settings/views/documentation/feature-record.php:91
 msgid "City"
 msgstr "Cidade"
 
@@ -4200,8 +4200,8 @@ msgstr "Limpar cache do WordPress"
 msgid "Cleared plaintext context on %d activity log rows."
 msgstr "Contexto de texto simples e linhas de registro de atividades foram limpas."
 
-#: includes/settings/views/documentation/feature-ficha.php:26
-msgid "Click \"Download Ficha\" on the reregistration banner after submitting"
+#: includes/settings/views/documentation/feature-record.php:26
+msgid "Click \"Download Record\" on the reregistration banner after submitting"
 msgstr "Após o envio, clique em \"Baixar Ficha\" no banner de recadastramento."
 
 #. %s: number of pending records
@@ -4210,8 +4210,8 @@ msgstr "Após o envio, clique em \"Baixar Ficha\" no banner de recadastramento."
 msgid "Click once to process all records automatically. %s records remaining."
 msgstr "Clique uma vez para processar todos os registros automaticamente. %s registros restantes."
 
-#: includes/settings/views/documentation/feature-ficha.php:25
-msgid "Click the \"Ficha\" button next to any submission in the Reregistration > Submissions list"
+#: includes/settings/views/documentation/feature-record.php:25
+msgid "Click the \"Record\" button next to any submission in the Reregistration > Submissions list"
 msgstr "Clique no botão \"Ficha\" ao lado de qualquer inscrição na lista de Recadastramento > Inscrições"
 
 #: templates/emails/reregistration-confirmation.php:38
@@ -4347,7 +4347,7 @@ msgid "codes generated"
 msgstr "códigos gerados"
 
 #: includes/settings/views/documentation/overview.php:43
-msgid "Collect updated data with reregistration campaigns (and a Ficha PDF), or manage classified candidate queues with public rankings and call-ups."
+msgid "Collect updated data with reregistration campaigns (and a Record PDF), or manage classified candidate queues with public rankings and call-ups."
 msgstr "Colete dados atualizados por meio de campanhas de recadastramento (e um formulário em PDF) ou gerencie filas de candidatos classificados com listas de classificação pública e convocações."
 
 #: includes/audience/class-ffc-audience-admin-environment.php:132 includes/audience/class-ffc-audience-admin-environment.php:311 includes/audience/class-ffc-audience-admin-audience-renderer.php:56 includes/audience/class-ffc-audience-admin-audience-renderer.php:221
@@ -4366,7 +4366,7 @@ msgstr "Cor utilizada para identificação visual nos calendários."
 msgid "Color used to identify this environment in the calendar."
 msgstr "Cor utilizada para identificar este ambiente no calendário."
 
-#: includes/settings/views/documentation/feature-ficha.php:141
+#: includes/settings/views/documentation/feature-record.php:141
 msgid "combined \"Parent - Child\" value."
 msgstr "valor combinado \"Pai - Filho\"."
 
@@ -4606,7 +4606,7 @@ msgstr "Texto de Consentimento"
 msgid "Consequences of changing this:"
 msgstr "Consequências de alterar isso:"
 
-#: includes/settings/views/documentation/feature-ficha.php:97
+#: includes/settings/views/documentation/feature-record.php:97
 msgid "Contact (Contatos)"
 msgstr "Contatos"
 
@@ -4812,7 +4812,7 @@ msgid "Could not delete the reason. Please try again."
 msgstr "Não foi possível excluir o motivo. Tente novamente."
 
 #: includes/reregistration/class-ffc-reregistration-ajax-handler.php:68
-msgid "Could not generate ficha."
+msgid "Could not generate record."
 msgstr "Não foi possível gerar a ficha."
 
 #: includes/url-shortener/class-ffc-url-shortener-meta-box.php:125
@@ -4967,7 +4967,7 @@ msgstr "É necessário um CPF para baixar este arquivo CSV."
 msgid "CPF must contain digits only."
 msgstr "O CPF deve conter apenas dígitos."
 
-#: includes/settings/views/documentation/feature-ficha.php:68
+#: includes/settings/views/documentation/feature-record.php:68
 msgid "CPF number"
 msgstr "Número CPF"
 
@@ -5173,7 +5173,7 @@ msgid "create, edit, enable/disable and regenerate links."
 msgstr "criar, editar, ativar/desativar e regenerar links."
 
 #: includes/settings/views/documentation/feature-reregistration.php:90
-msgid "create/edit campaigns, approve/reject, manage custom fields, generate Fichas."
+msgid "create/edit campaigns, approve/reject, manage custom fields, generate Records."
 msgstr "criar/editar campanhas, aprovar/rejeitar, gerenciar campos personalizados, gerar fichas."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:80 includes/self-scheduling/views/appointments-list.php:276
@@ -5325,7 +5325,7 @@ msgstr "Fechamento programado atual:"
 msgid "Current state:"
 msgstr "Estado atual:"
 
-#: includes/settings/views/documentation/feature-ficha.php:46
+#: includes/settings/views/documentation/feature-record.php:46
 msgid "Current status (Submitted, Approved, etc.)"
 msgstr "Status atual (Enviado, Aprovado, etc.)"
 
@@ -5433,7 +5433,7 @@ msgstr "Personalizado — confiar nos CIDRs de proxy abaixo"
 msgid "Custom:"
 msgstr "Personalizado:"
 
-#: includes/settings/views/documentation/feature-ficha.php:151
+#: includes/settings/views/documentation/feature-record.php:151
 msgid "Customization:"
 msgstr "Personalização:"
 
@@ -5585,7 +5585,7 @@ msgstr "Data para assumir:"
 msgid "Date when submission was created (from database)"
 msgstr "Data de criação do envio (a partir do banco de dados)"
 
-#: includes/settings/views/documentation/feature-ficha.php:51
+#: includes/settings/views/documentation/feature-record.php:51
 msgid "Date when the PDF was generated"
 msgstr "Data em que o PDF foi gerado."
 
@@ -5617,7 +5617,7 @@ msgstr "Data: %s"
 msgid "Date: plugin uses %1$s, WordPress uses %2$s."
 msgstr "Data: o plugin usa %1$s, o WordPress usa %2$s."
 
-#: templates/reregistration/field-working-hours.php:26 includes/admin/class-ffc-admin-user-custom-fields.php:266 includes/self-scheduling/class-ffc-self-scheduling-editor.php:479 includes/reregistration/class-ffc-ficha-generator.php:248
+#: templates/reregistration/field-working-hours.php:26 includes/admin/class-ffc-admin-user-custom-fields.php:266 includes/self-scheduling/class-ffc-self-scheduling-editor.php:479 includes/reregistration/class-ffc-record-generator.php:248
 msgid "Day"
 msgstr "Dia"
 
@@ -6047,7 +6047,7 @@ msgstr "Departamento:"
 msgid "Dependent Select"
 msgstr "Seleção Dependente"
 
-#: includes/settings/views/documentation/feature-ficha.php:136
+#: includes/settings/views/documentation/feature-record.php:136
 msgid "Dependent-select fields (Division / Sector):"
 msgstr "Campos Condicionais (Divisão / Setor):"
 
@@ -6055,7 +6055,7 @@ msgstr "Campos Condicionais (Divisão / Setor):"
 msgid "Describe the purpose of this booking (15-300 characters)"
 msgstr "Descreva o objetivo desta reserva (15-300 caracteres)"
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:239 includes/privacy/class-ffc-privacy-exporters.php:488 includes/self-scheduling/class-ffc-self-scheduling-editor.php:325 includes/audience/class-ffc-audience-admin-bookings.php:169 includes/audience/class-ffc-audience-admin-environment.php:303 includes/audience/class-ffc-audience-admin-calendar.php:221 includes/audience/class-ffc-audience-admin-calendar.php:578 includes/audience/class-ffc-audience-loader.php:418 includes/audience/class-ffc-audience-booking-export-source.php:201 includes/audience/class-ffc-audience-notification-handler.php:412 includes/audience/class-ffc-audience-shortcode.php:390 templates/admin/audience/general-tab.php:77 templates/admin/audience/general-tab.php:102 includes/settings/views/documentation/reference-shortcodes.php:23 includes/settings/views/documentation/feature-certificates.php:51 includes/settings/views/documentation/feature-quiz.php:25 includes/settings/views/documentation/feature-self-scheduling.php:78 includes/settings/views/documentation/reference-validation-url.php:24 includes/settings/views/documentation/feature-audiences.php:32 includes/settings/views/documentation/reference-tokens.php:24 includes/settings/views/documentation/feature-ficha.php:39 includes/settings/views/documentation/feature-ficha.php:60 includes/settings/views/documentation/feature-ficha.php:83 includes/settings/views/documentation/feature-ficha.php:102 includes/settings/views/documentation/feature-ficha.php:120 includes/settings/views/documentation/reference-qr-codes.php:24
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:239 includes/privacy/class-ffc-privacy-exporters.php:488 includes/self-scheduling/class-ffc-self-scheduling-editor.php:325 includes/audience/class-ffc-audience-admin-bookings.php:169 includes/audience/class-ffc-audience-admin-environment.php:303 includes/audience/class-ffc-audience-admin-calendar.php:221 includes/audience/class-ffc-audience-admin-calendar.php:578 includes/audience/class-ffc-audience-loader.php:418 includes/audience/class-ffc-audience-booking-export-source.php:201 includes/audience/class-ffc-audience-notification-handler.php:412 includes/audience/class-ffc-audience-shortcode.php:390 templates/admin/audience/general-tab.php:77 templates/admin/audience/general-tab.php:102 includes/settings/views/documentation/reference-shortcodes.php:23 includes/settings/views/documentation/feature-certificates.php:51 includes/settings/views/documentation/feature-quiz.php:25 includes/settings/views/documentation/feature-self-scheduling.php:78 includes/settings/views/documentation/reference-validation-url.php:24 includes/settings/views/documentation/feature-audiences.php:32 includes/settings/views/documentation/reference-tokens.php:24 includes/settings/views/documentation/feature-record.php:39 includes/settings/views/documentation/feature-record.php:60 includes/settings/views/documentation/feature-record.php:83 includes/settings/views/documentation/feature-record.php:102 includes/settings/views/documentation/feature-record.php:120 includes/settings/views/documentation/reference-qr-codes.php:24
 msgid "Description"
 msgstr "Descrição"
 
@@ -6115,7 +6115,7 @@ msgstr "Desenvolvedor"
 msgid "Developer hooks:"
 msgstr "Hooks para desenvolvedores:"
 
-#: includes/settings/views/documentation/feature-ficha.php:157
+#: includes/settings/views/documentation/feature-record.php:157
 msgid "Developers can also override the resolved HTML via the filter"
 msgstr "Os desenvolvedores também podem substituir o HTML resolvido por meio do filtro."
 
@@ -6272,7 +6272,7 @@ msgstr "Exibe a fila pública de candidatos (lista de classificação) para um e
 msgid "Displays the public verification page."
 msgstr "Exibe a página de verificação pública."
 
-#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:243 includes/settings/views/documentation/feature-ficha.php:73
+#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:243 includes/settings/views/documentation/feature-record.php:73
 msgid "Division"
 msgstr "Divisão"
 
@@ -6402,11 +6402,11 @@ msgid "Download example CSV"
 msgstr "Baixar exemplo de CSV"
 
 #: includes/shortcodes/class-ffc-dashboard-shortcode.php:394 includes/shortcodes/class-ffc-dashboard-shortcode.php:412 includes/shortcodes/class-ffc-dashboard-asset-manager.php:314
-msgid "Download Ficha"
+msgid "Download Record"
 msgstr "Baixar Ficha"
 
 #: includes/frontend/class-ffc-verification-response-renderer.php:443
-msgid "Download Ficha (PDF)"
+msgid "Download Record (PDF)"
 msgstr "Baixar Ficha (PDF)"
 
 #: includes/frontend/class-ffc-public-csv-download.php:159
@@ -6925,7 +6925,7 @@ msgstr "Central de textos de e-mail"
 msgid "Email texts saved."
 msgstr "Textos dos e-mails salvos."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:462 includes/reregistration/class-ffc-ficha-generator.php:499 includes/frontend/class-ffc-verification-response-renderer.php:430
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:462 includes/reregistration/class-ffc-record-generator.php:499 includes/frontend/class-ffc-verification-response-renderer.php:430
 msgid "Email:"
 msgstr "E-mail:"
 
@@ -6961,11 +6961,11 @@ msgstr "Mídia incorporada — apenas para exibição; não coleta valores."
 msgid "Emergency Contact"
 msgstr "Contato de Emergência"
 
-#: includes/settings/views/documentation/feature-ficha.php:110
+#: includes/settings/views/documentation/feature-record.php:110
 msgid "Emergency contact name"
 msgstr "Nome do contato de emergência"
 
-#: includes/settings/views/documentation/feature-ficha.php:111
+#: includes/settings/views/documentation/feature-record.php:111
 msgid "Emergency contact phone"
 msgstr "Telefone de contato de emergência"
 
@@ -6977,7 +6977,7 @@ msgstr "Telefone de Emergência"
 msgid "Employment Bond"
 msgstr "Contrato de Trabalho"
 
-#: includes/settings/views/documentation/feature-ficha.php:70
+#: includes/settings/views/documentation/feature-record.php:70
 msgid "Employment relationship"
 msgstr "Relação de emprego"
 
@@ -7346,7 +7346,7 @@ msgstr "Insira sua chave de API do ipinfo.io"
 msgid "Enter your unique ticket code"
 msgstr "Insira seu código de ingresso exclusivo."
 
-#: includes/reregistration/class-ffc-ficha-generator.php:249
+#: includes/reregistration/class-ffc-record-generator.php:249
 msgid "Entry"
 msgstr "Entrada"
 
@@ -7431,7 +7431,7 @@ msgid "Error generating codes."
 msgstr "Erro ao gerar códigos."
 
 #: includes/reregistration/class-ffc-reregistration-admin.php:220
-msgid "Error generating ficha."
+msgid "Error generating record."
 msgstr "Error generating ficha."
 
 #: includes/admin/class-ffc-admin-assets-manager.php:579 includes/frontend/class-ffc-frontend.php:327
@@ -7755,7 +7755,7 @@ msgstr "Os formulários existentes criados antes desta funcionalidade utilizam p
 msgid "Existing pages"
 msgstr "Páginas existentes"
 
-#: includes/reregistration/class-ffc-ficha-generator.php:252
+#: includes/reregistration/class-ffc-record-generator.php:252
 msgid "Exit"
 msgstr "Saída"
 
@@ -8283,33 +8283,33 @@ msgstr "FFCertificate — Recrutamento"
 msgid "FFCertificate — Scheduling"
 msgstr "FFCertificate — Agendamento"
 
-#: includes/admin/class-ffc-cert-template-seeder.php:295 includes/admin/class-ffc-cert-template-admin-screen.php:439 templates/admin/reregistration/submission-row.php:57 includes/settings/views/documentation/document-templates-hub.php:36
-msgid "Ficha"
+#: includes/admin/class-ffc-cert-template-seeder.php:295 includes/admin/class-ffc-cert-template-admin-screen.php:439 templates/admin/reregistration/submission-row.php:57 includes/settings/views/documentation/document-templates-hub.php:36 includes/reregistration/class-ffc-reregistration-admin.php:221
+msgid "Record"
 msgstr "Ficha"
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:760
-msgid "Ficha HTML"
+msgid "Record HTML"
 msgstr "HTML da ficha"
 
-#: includes/settings/views/ffc-tab-documentation.php:290 includes/settings/views/documentation/feature-reregistration.php:66 includes/settings/views/documentation/feature-ficha.php:18
+#: includes/settings/views/ffc-tab-documentation.php:290 includes/settings/views/documentation/feature-reregistration.php:66 includes/settings/views/documentation/feature-record.php:18
 #| msgid "Ficha PDF:"
-msgid "Ficha PDF"
+msgid "Record PDF"
 msgstr "Ficha PDF"
 
 #: includes/settings/tabs/class-ffc-tab-reregistration.php:122
-msgid "Ficha Template"
+msgid "Record Template"
 msgstr "Modelo de ficha"
 
 #: includes/settings/tabs/class-ffc-tab-reregistration.php:114
-msgid "Ficha template saved."
+msgid "Record template saved."
 msgstr "Modelo de ficha salvo."
 
 #: includes/settings/views/documentation/document-templates-hub.php:48
-msgid "Ficha:"
+msgid "Record:"
 msgstr "Ficha:"
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:212
-msgid "Fichas (reregistration)"
+msgid "Records (reregistration)"
 msgstr "Fichas (recadastramento)"
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:216 includes/settings/views/documentation/feature-certificates.php:50
@@ -8362,7 +8362,7 @@ msgid "Fields"
 msgstr "Campos"
 
 #: includes/settings/views/documentation/feature-reregistration.php:65
-msgid "Fields & Ficha"
+msgid "Fields & Record"
 msgstr "Fields & Ficha"
 
 #: includes/settings/views/documentation/feature-audiences.php:64
@@ -8420,8 +8420,8 @@ msgid "Filter by level"
 msgstr "Filtrar por nível"
 
 #: includes/settings/views/documentation/developer-hooks-api.php:38
-msgid "Filter the Ficha PDF tokens, final HTML, the pool-resolved template HTML, or the legacy template file."
-msgstr "Filtre os tokens do PDF da ficha, o HTML final, o HTML do modelo com o pool resolvido ou o arquivo de modelo legado."
+msgid "Filter the Record PDF tokens, final HTML, filename, the pool-resolved template HTML, or the legacy template file. Renamed from the ffcertificate_ficha_* family in 6.26.0; the old names keep firing until 6.28.0."
+msgstr "Filtre os tokens do PDF da ficha, o HTML final, o nome do arquivo, o HTML do modelo com o pool resolvido ou o arquivo de modelo legado. Renomeados da família ffcertificate_ficha_* na 6.26.0; os nomes antigos continuam disparando até a 6.28.0."
 
 #: includes/settings/views/documentation/developer-hooks-api.php:42
 msgid "Filter the payload of GET /forms/{id}/schema."
@@ -8746,7 +8746,7 @@ msgstr "Free Form Certificate — e-mail de teste"
 msgid "Free-form times, not fixed slots."
 msgstr "Horários flexíveis, não blocos fixos."
 
-#: includes/admin/class-ffc-admin-conditional-assets.php:217 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:194 includes/reregistration/class-ffc-ficha-generator.php:239 includes/audience/class-ffc-audience-shortcode.php:287
+#: includes/admin/class-ffc-admin-conditional-assets.php:217 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:194 includes/reregistration/class-ffc-record-generator.php:239 includes/audience/class-ffc-audience-shortcode.php:287
 msgid "Fri"
 msgstr "Sex"
 
@@ -8823,7 +8823,7 @@ msgstr "Limite de Dias Futuros"
 msgid "Future:"
 msgstr "Futuros:"
 
-#: includes/settings/views/documentation/feature-ficha.php:64
+#: includes/settings/views/documentation/feature-record.php:64
 msgid "Gender"
 msgstr "Gênero"
 
@@ -8847,8 +8847,8 @@ msgstr "Arquivo de visualização das configurações gerais não encontrado."
 msgid "Generate a new short code? The old one will stop working."
 msgstr "Gerar um novo código curto? O antigo deixará de funcionar."
 
-#: includes/settings/views/documentation/feature-ficha.php:20
-msgid "Generate a PDF record (ficha) for reregistration submissions. Available for submitted and approved submissions."
+#: includes/settings/views/documentation/feature-record.php:20
+msgid "Generate a PDF record (record) for reregistration submissions. Available for submitted and approved submissions."
 msgstr "Gere um registro em PDF (ficha) para solicitações de recadastramento. Disponível para solicitações enviadas e aprovadas."
 
 #: includes/settings/views/ffc-tab-advanced.php:848 includes/settings/views/ffc-tab-advanced.php:904
@@ -9549,7 +9549,7 @@ msgstr "Estou ciente dos conflitos e desejo prosseguir."
 msgid "I am not a robot"
 msgstr "Eu não sou um robô"
 
-#: includes/reregistration/class-ffc-ficha-generator.php:80 includes/reregistration/class-ffc-reregistration-field-options.php:184
+#: includes/reregistration/class-ffc-record-generator.php:80 includes/reregistration/class-ffc-reregistration-field-options.php:184
 msgid "I do not hold"
 msgstr "Eu não tenho"
 
@@ -9559,7 +9559,7 @@ msgstr "Eu não tenho"
 msgid "I have read and agree to the %s and authorize the storage of my personal data for certificate issuance."
 msgstr "Li e concordo com os %s e autorizo ​​o armazenamento dos meus dados pessoais para a emissão do certificado."
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:177 includes/reregistration/class-ffc-ficha-generator.php:81 includes/reregistration/class-ffc-reregistration-field-options.php:186
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:177 includes/reregistration/class-ffc-record-generator.php:81 includes/reregistration/class-ffc-reregistration-field-options.php:186
 msgid "I hold"
 msgstr "Eu tenho"
 
@@ -9845,7 +9845,7 @@ msgstr "Endereço institucional em Configurações > Geral"
 msgid "Institutional Email"
 msgstr "E-mail Institucional"
 
-#: includes/settings/views/documentation/feature-ficha.php:108
+#: includes/settings/views/documentation/feature-record.php:108
 msgid "Institutional email"
 msgstr "E-mail Institucional"
 
@@ -10267,7 +10267,7 @@ msgstr "Janeiro 4, 2026 (Mês, Dia, Ano)"
 msgid "JavaScript and HTTPS"
 msgstr "JavaScript e HTTPS"
 
-#: includes/settings/views/documentation/feature-ficha.php:126
+#: includes/settings/views/documentation/feature-record.php:126
 msgid "Job accumulation status"
 msgstr "Status de acumulação de tarefas"
 
@@ -10849,11 +10849,11 @@ msgstr "baixa entropia; geralmente idêntica em muitos dispositivos do mesmo mod
 msgid "Lower = more aggressive. Leave empty to inherit the global default — currently %s."
 msgstr "Menor valor = mais agressivo. Deixe em branco para herdar o padrão global — atualmente %s."
 
-#: includes/reregistration/class-ffc-ficha-generator.php:251
+#: includes/reregistration/class-ffc-record-generator.php:251
 msgid "Lunch In"
 msgstr "Refeição em"
 
-#: includes/reregistration/class-ffc-ficha-generator.php:250
+#: includes/reregistration/class-ffc-record-generator.php:250
 msgid "Lunch Out"
 msgstr "Retorno refeição"
 
@@ -10939,7 +10939,7 @@ msgid "Manage email templates"
 msgstr "Gerenciar modelos de e-mail"
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:215 includes/settings/tabs/class-ffc-tab-reregistration.php:157
-msgid "Manage ficha templates"
+msgid "Manage record templates"
 msgstr "Gerenciar modelos de ficha"
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:208
@@ -11038,7 +11038,7 @@ msgstr "Margens/preenchimento"
 msgid "Marital Status"
 msgstr "Estado Civil"
 
-#: includes/settings/views/documentation/feature-ficha.php:65
+#: includes/settings/views/documentation/feature-record.php:65
 msgid "Marital status"
 msgstr "Estado civil"
 
@@ -11431,7 +11431,7 @@ msgstr "Chave de configuração ausente."
 msgid "Missing toggle key."
 msgstr "Tecla de alternância ausente."
 
-#: includes/settings/views/documentation/feature-ficha.php:107
+#: includes/settings/views/documentation/feature-record.php:107
 msgid "Mobile phone"
 msgstr "Celular"
 
@@ -11455,7 +11455,7 @@ msgstr "Módulos"
 msgid "Modules settings view file not found."
 msgstr "Arquivo de visualização das configurações dos módulos não encontrado."
 
-#: includes/admin/class-ffc-admin-conditional-assets.php:213 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:190 includes/reregistration/class-ffc-ficha-generator.php:235 includes/audience/class-ffc-audience-shortcode.php:283
+#: includes/admin/class-ffc-admin-conditional-assets.php:213 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:190 includes/reregistration/class-ffc-record-generator.php:235 includes/audience/class-ffc-audience-shortcode.php:283
 msgid "Mon"
 msgstr "Seg"
 
@@ -11600,7 +11600,7 @@ msgstr "Somente o nome"
 msgid "Name to display as sender"
 msgstr "Nome a ser exibido como remetente"
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:222 includes/generators/class-ffc-pdf-html-renderer.php:338 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:457 includes/reregistration/class-ffc-ficha-generator.php:498 includes/frontend/class-ffc-verification-response-renderer.php:279 includes/frontend/class-ffc-verification-response-renderer.php:416
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:222 includes/generators/class-ffc-pdf-html-renderer.php:338 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:457 includes/reregistration/class-ffc-record-generator.php:498 includes/frontend/class-ffc-verification-response-renderer.php:279 includes/frontend/class-ffc-verification-response-renderer.php:416
 msgid "Name:"
 msgstr "Nome:"
 
@@ -11628,7 +11628,7 @@ msgstr "Precisa de mais ajuda?"
 msgid "Need to cancel?"
 msgstr "Precisa cancelar?"
 
-#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:288 includes/settings/views/documentation/feature-ficha.php:90
+#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:288 includes/settings/views/documentation/feature-record.php:90
 msgid "Neighborhood"
 msgstr "Bairro"
 
@@ -11792,7 +11792,7 @@ msgstr "Próxima página"
 msgid "nine"
 msgstr "nove"
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:209 includes/admin/class-ffc-submissions-export-source.php:423 includes/privacy/class-ffc-privacy-exporters.php:205 includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:419 includes/reregistration/class-ffc-reregistration-export-source.php:394 includes/reregistration/class-ffc-ficha-generator.php:434 includes/recruitment/class-ffc-recruitment-email-dispatcher.php:242 includes/audience/class-ffc-audience-booking-export-source.php:283 includes/settings/views/documentation/feature-recruitment.php:51
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:209 includes/admin/class-ffc-submissions-export-source.php:423 includes/privacy/class-ffc-privacy-exporters.php:205 includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:419 includes/reregistration/class-ffc-reregistration-export-source.php:394 includes/reregistration/class-ffc-record-generator.php:434 includes/recruitment/class-ffc-recruitment-email-dispatcher.php:242 includes/audience/class-ffc-audience-booking-export-source.php:283 includes/settings/views/documentation/feature-recruitment.php:51
 msgid "No"
 msgstr "Não"
 
@@ -12240,7 +12240,7 @@ msgid "Notice not found."
 msgstr "Edital não encontrado."
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:583
-msgid "Notice shown at the end of the reregistration form and printed on the ficha PDF. Use \"Replicate lists to children\" to push it to descendant audiences."
+msgid "Notice shown at the end of the reregistration form and printed on the record PDF. Use \"Replicate lists to children\" to push it to descendant audiences."
 msgstr "Aviso exibido no final do formulário de recadastramento e impresso na ficha PDF. Use \"Replicar listas para filhos\" para enviá-lo aos públicos descendentes."
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:115
@@ -13160,7 +13160,7 @@ msgstr "Calendários Pessoais (Compromissos)"
 msgid "Personal Data"
 msgstr "Dados Pessoais"
 
-#: includes/settings/views/documentation/feature-ficha.php:55
+#: includes/settings/views/documentation/feature-record.php:55
 msgid "Personal Data (Dados Pessoais)"
 msgstr "Dados Pessoais"
 
@@ -13172,7 +13172,7 @@ msgstr "Dados pessoais em repouso"
 msgid "Personal Email"
 msgstr "E-mail Pessoal"
 
-#: includes/settings/views/documentation/feature-ficha.php:109
+#: includes/settings/views/documentation/feature-record.php:109
 msgid "Personal email"
 msgstr "E-mail pessoal"
 
@@ -13196,7 +13196,7 @@ msgstr "Personalização"
 msgid "Phone"
 msgstr "Telefone"
 
-#: includes/settings/views/documentation/feature-ficha.php:106
+#: includes/settings/views/documentation/feature-record.php:106
 msgid "Phone number"
 msgstr "Número de telefone"
 
@@ -13497,7 +13497,7 @@ msgstr "Calendário Pessoal"
 msgid "Post Types"
 msgstr "Tipos Post"
 
-#: includes/settings/views/documentation/feature-ficha.php:93
+#: includes/settings/views/documentation/feature-record.php:93
 msgid "Postal code"
 msgstr "Código postal"
 
@@ -14323,10 +14323,6 @@ msgstr "Recomendado: 100-200px para certificados"
 msgid "Recompute email_hash with the salted Encryption::hash() so lookups match cross-table writes."
 msgstr "Recalcule o hash do email com o Encryption::hash() com salt para que as pesquisas correspondam às gravações entre tabelas."
 
-#: includes/reregistration/class-ffc-reregistration-admin.php:221
-msgid "Record"
-msgstr "Registro"
-
 #: includes/settings/views/ffc-tab-rate-limit.php:446
 msgid "Record blocked device-fingerprint attempts in the rate-limit log"
 msgstr "Registre as tentativas bloqueadas de identificação do dispositivo no log de limite de taxa."
@@ -14871,7 +14867,7 @@ msgid "Reregistration deleted successfully."
 msgstr "Recadastramento excluído com sucesso."
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:153
-msgid "Reregistration ficha"
+msgid "Reregistration record"
 msgstr "Ficha de recadastramento"
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:357
@@ -14915,7 +14911,7 @@ msgstr "Recadastramento Aberto: {{reregistration_title}}"
 msgid "Reregistration received"
 msgstr "Recadastramento recebido"
 
-#: includes/reregistration/class-ffc-ficha-generator.php:497
+#: includes/reregistration/class-ffc-record-generator.php:497
 msgid "Reregistration Record"
 msgstr "Registro de Recadastramento"
 
@@ -14972,11 +14968,11 @@ msgid "Resolved via WP_User lookup (numeric → ID, contains @ → email, otherw
 msgstr "Resolvido através da pesquisa WP_User (numérico → ID, contém @ → e-mail, caso contrário, login). NÃO cria usuários; apenas vincula os existentes."
 
 #: includes/settings/views/ffc-tab-general.php:423
-msgid "Resolves the {{logo_gov}} placeholder in the default ficha and appointment-receipt templates. Falls back to a generic placeholder when empty."
+msgid "Resolves the {{logo_gov}} placeholder in the default record and appointment-receipt templates. Falls back to a generic placeholder when empty."
 msgstr "Resolve o marcador de posição {{logo_gov}} nos modelos padrão de ficha e de comprovante de agendamento. Utiliza um marcador genérico como alternativa quando estiver vazio."
 
 #: includes/settings/views/ffc-tab-general.php:436
-msgid "Resolves the {{logo_org}} placeholder in the default ficha and appointment-receipt templates. Falls back to a generic placeholder when empty."
+msgid "Resolves the {{logo_org}} placeholder in the default record and appointment-receipt templates. Falls back to a generic placeholder when empty."
 msgstr "Resolve o marcador de posição {{logo_org}} nos modelos padrão de ficha e de recibo de agendamento. Utiliza um marcador genérico como alternativa quando estiver vazio."
 
 #: includes/settings/views/ffc-tab-rate-limit.php:200
@@ -15165,7 +15161,7 @@ msgstr "RF (somente dígitos)"
 msgid "RF (masked)"
 msgstr "RF (mascarado)"
 
-#: includes/settings/views/documentation/feature-ficha.php:66
+#: includes/settings/views/documentation/feature-record.php:66
 msgid "RF identifier"
 msgstr "Identificador RF"
 
@@ -15177,7 +15173,7 @@ msgstr "O código RF deve conter apenas dígitos."
 msgid "RG"
 msgstr "RG"
 
-#: includes/settings/views/documentation/feature-ficha.php:69
+#: includes/settings/views/documentation/feature-record.php:69
 msgid "RG number"
 msgstr "Número RG"
 
@@ -15342,7 +15338,7 @@ msgstr "Formato CSV de Exemplo"
 msgid "Sample email"
 msgstr "Exemplo de e-mail"
 
-#: includes/admin/class-ffc-admin-conditional-assets.php:218 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:195 includes/reregistration/class-ffc-ficha-generator.php:240 includes/audience/class-ffc-audience-shortcode.php:288
+#: includes/admin/class-ffc-admin-conditional-assets.php:218 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:195 includes/reregistration/class-ffc-record-generator.php:240 includes/audience/class-ffc-audience-shortcode.php:288
 msgid "Sat"
 msgstr "Sáb"
 
@@ -15687,7 +15683,7 @@ msgstr "Pesquisar..."
 msgid "seconds"
 msgstr "segundos"
 
-#: includes/settings/views/documentation/feature-ficha.php:74
+#: includes/settings/views/documentation/feature-record.php:74
 msgid "Sector"
 msgstr "Setor"
 
@@ -15776,7 +15772,7 @@ msgid "See Emails & Delivery for the whole pipeline."
 msgstr "Consulte E-mails e Entrega para ver todo o fluxo."
 
 #: includes/settings/views/documentation/document-templates-hub.php:48
-msgid "See Ficha PDF."
+msgid "See Record PDF."
 msgstr "Consulte Ficha PDF."
 
 #: includes/settings/views/documentation/config-geolocation.php:20
@@ -15811,7 +15807,7 @@ msgstr "Consulte Segurança e Restrições."
 msgid "See the \"Emails &amp; Delivery\" reference page for the full pipeline"
 msgstr "Consulte a página de referência \"E-mails e Entrega\" para ver o pipeline completo."
 
-#: includes/settings/views/documentation/feature-certificates.php:35 includes/settings/views/documentation/feature-self-scheduling.php:72 includes/settings/views/documentation/feature-ficha.php:154
+#: includes/settings/views/documentation/feature-certificates.php:35 includes/settings/views/documentation/feature-self-scheduling.php:72 includes/settings/views/documentation/feature-record.php:154
 msgid "See the Document Templates hub."
 msgstr "Consulte o hub de modelos de documentos."
 
@@ -16142,7 +16138,7 @@ msgid "Sensitive identifiers — e-mail, CPF and RF — are encrypted (AES-256-C
 msgstr "Identificadores sensíveis — e-mail, CPF e RF — são criptografados (AES-256-CBC com um IV aleatório por registro e uma verificação de integridade do tipo *encrypt-then-HMAC*) e nunca armazenados em texto simples."
 
 #: includes/settings/views/documentation/feature-reregistration.php:41
-msgid "sent after a member submits; carries the Ficha magic link."
+msgid "sent after a member submits; carries the Record magic link."
 msgstr "enviado após o envio pelo membro; contém o link de acesso direto (magic link) do formulário."
 
 #: includes/settings/tabs/class-ffc-tab-email-texts.php:437
@@ -16301,7 +16297,7 @@ msgid "Settings → Data Migrations hosts a set of one-off maintenance tools for
 msgstr "Configurações → Migrações de Dados, você encontrará um conjunto de ferramentas de manutenção pontuais para organizar os dados acumulados. Cada ferramenta que altera dados executa uma pré-visualização (simulação) primeiro: ela informa exatamente o que seria afetado, e o botão de destruição só fica disponível por 5 minutos após uma pré-visualização bem-sucedida."
 
 #: includes/settings/views/documentation/document-templates-hub.php:21
-msgid "Settings → Document Templates is the single library of PDF layouts. Every document the plugin renders — a certificate, a reregistration ficha, an appointment receipt — draws from this shared pool instead of a hardcoded or bundled file, so a layout is built or duplicated once and reused wherever it fits."
+msgid "Settings → Document Templates is the single library of PDF layouts. Every document the plugin renders — a certificate, a reregistration record, an appointment receipt — draws from this shared pool instead of a hardcoded or bundled file, so a layout is built or duplicated once and reused wherever it fits."
 msgstr "A seção \"Configurações → Modelos de Documento\" funciona como uma biblioteca centralizada de layouts em PDF. Todos os documentos gerados pelo plugin — como certificados, fichas de renovação de cadastro ou comprovantes de agendamento — utilizam esse repositório compartilhado em vez de dependerem de arquivos fixos ou embutidos no código; assim, um layout é criado ou duplicado uma única vez e pode ser reutilizado onde quer que seja necessário."
 
 #: includes/settings/views/documentation/email-texts-hub.php:20
@@ -16498,7 +16494,7 @@ msgid "Show in the appointment-receipt selection"
 msgstr "Exibir na seleção de comprovante de agendamento"
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:806
-msgid "Show in the ficha selection"
+msgid "Show in the record selection"
 msgstr "Exibir na seleção de ficha"
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:809
@@ -16827,7 +16823,7 @@ msgstr "Iniciando o download…"
 msgid "Starting…"
 msgstr "Iniciando..."
 
-#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:312 includes/frontend/class-ffc-verification-response-renderer.php:470 includes/settings/views/documentation/feature-ficha.php:92
+#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:312 includes/frontend/class-ffc-verification-response-renderer.php:470 includes/settings/views/documentation/feature-record.php:92
 msgid "State"
 msgstr "Estado"
 
@@ -16887,7 +16883,7 @@ msgstr "Transição de status rejeitada: esta transição requer um motivo (pree
 msgid "Status updated."
 msgstr "Status atualizado."
 
-#: templates/emails/reregistration-confirmation.php:31 templates/emails/selfscheduling-confirmation.php:39 includes/reregistration/class-ffc-reregistration-submission-details-renderer.php:70 includes/reregistration/class-ffc-ficha-generator.php:501 includes/frontend/class-ffc-verification-response-renderer.php:389
+#: templates/emails/reregistration-confirmation.php:31 templates/emails/selfscheduling-confirmation.php:39 includes/reregistration/class-ffc-reregistration-submission-details-renderer.php:70 includes/reregistration/class-ffc-record-generator.php:501 includes/frontend/class-ffc-verification-response-renderer.php:389
 msgid "Status:"
 msgstr "Status:"
 
@@ -16931,7 +16927,7 @@ msgstr "Armazene os Códigos QR gerados no banco de dados."
 msgid "Store generated QR Codes in database to avoid regenerating them on each request."
 msgstr "Armazene os códigos QR gerados no banco de dados para evitar regenerá-los a cada solicitação."
 
-#: includes/settings/views/documentation/feature-ficha.php:87
+#: includes/settings/views/documentation/feature-record.php:87
 msgid "Street address"
 msgstr "Endereço"
 
@@ -16999,7 +16995,7 @@ msgstr "Envio criado antes dos links mágicos"
 msgid "Submission Date"
 msgstr "Data de Envio"
 
-#: includes/settings/views/documentation/feature-ficha.php:47
+#: includes/settings/views/documentation/feature-record.php:47
 msgid "Submission date"
 msgstr "Data de submissão"
 
@@ -17241,7 +17237,7 @@ msgstr "Sugestão de texto para a política de privacidade"
 msgid "Suggested text:"
 msgstr "Texto sugerido:"
 
-#: includes/admin/class-ffc-admin-conditional-assets.php:212 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:189 includes/reregistration/class-ffc-ficha-generator.php:234 includes/audience/class-ffc-audience-shortcode.php:282
+#: includes/admin/class-ffc-admin-conditional-assets.php:212 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:189 includes/reregistration/class-ffc-record-generator.php:234 includes/audience/class-ffc-audience-shortcode.php:282
 msgid "Sun"
 msgstr "Dom"
 
@@ -17313,7 +17309,7 @@ msgstr "Informações do sistema"
 msgid "System unavailable."
 msgstr "Sistema indisponível."
 
-#: includes/settings/views/documentation/feature-ficha.php:34
+#: includes/settings/views/documentation/feature-record.php:34
 msgid "System Variables"
 msgstr "Variáveis ​​do Sistema"
 
@@ -17453,7 +17449,7 @@ msgstr "Modelo salvo!"
 msgid "Template Variables / Tokens"
 msgstr "Variáveis/Tokens de Modelo"
 
-#: includes/settings/views/documentation/feature-ficha.php:31
+#: includes/settings/views/documentation/feature-record.php:31
 msgid "Template Variables:"
 msgstr "Variáveis ​​de Modelo:"
 
@@ -17627,7 +17623,7 @@ msgstr "O certificado é um PDF gerado pelo formulário após o envio (o tipo pa
 msgid "The challenge that guards public forms: certificate submissions, certificate verification, appointment booking and the public CSV download. It applies to all of them at once."
 msgstr "O desafio que protege os formulários públicos: envio de certificados, verificação de certificados, agendamento de horários e download público de CSV. Ele se aplica a todos eles simultaneamente."
 
-#: includes/settings/views/documentation/feature-ficha.php:143
+#: includes/settings/views/documentation/feature-record.php:143
 msgid "the child half only (e.g. the Sector)."
 msgstr "apenas os filhos (por exemplo, o Setor)."
 
@@ -17764,12 +17760,12 @@ msgstr "O ambiente está fechado neste horário."
 msgid "The existing definitive list is preserved as-is."
 msgstr "A lista definitiva existente será mantida tal como está."
 
-#: includes/settings/views/documentation/feature-ficha.php:153
-msgid "The ficha layout draws from the shared certificate template pool (a \"ficha\" template kind) — edit or duplicate it in the Document Templates hub instead of shipping a bundled file. A shipped default seeds automatically. The Reregistration settings tab selects, globally, which ficha template the PDF uses (falling back to the shipped default when unset)."
-msgstr "O layout da ficha utiliza o repositório compartilhado de modelos de certificado (um tipo de modelo de \"ficha\"); edite-o ou duplique-o no hub de Modelos de Documento em vez de distribuir um arquivo embutido. Um modelo padrão fornecido pelo sistema é carregado automaticamente. A aba de configurações de Rematrícula define, globalmente, qual modelo de ficha o PDF utilizará (recorrendo ao padrão do sistema caso nenhuma opção seja selecionada)."
+#: includes/settings/views/documentation/feature-record.php:153
+msgid "The record layout draws from the shared certificate template pool (the template kind is still stored as \"ficha\", because that value is written into every pooled template) — edit or duplicate it in the Document Templates hub instead of shipping a bundled file. A shipped default seeds automatically. The Reregistration settings tab selects, globally, which record template the PDF uses (falling back to the shipped default when unset)."
+msgstr "O layout da ficha utiliza o repositório compartilhado de modelos de certificado (o tipo de modelo continua gravado como \"ficha\", porque esse valor é escrito em todos os modelos do repositório); edite-o ou duplique-o no hub de Modelos de Documento em vez de distribuir um arquivo embutido. Um modelo padrão fornecido pelo sistema é carregado automaticamente. A aba de configurações de Rematrícula define, globalmente, qual modelo de ficha o PDF utilizará (recorrendo ao padrão do sistema caso nenhuma opção seja selecionada)."
 
-#: includes/settings/views/documentation/feature-ficha.php:32
-msgid "The ficha template supports these variables:"
+#: includes/settings/views/documentation/feature-record.php:32
+msgid "The record template supports these variables:"
 msgstr "O modelo de ficha suporta estas variáveis:"
 
 #: includes/settings/views/documentation/forms-schedule.php:33
@@ -17837,7 +17833,7 @@ msgid "the identifier (required). See the note below on CPF/RF validation."
 msgstr "o identificador (obrigatório). Veja a observação abaixo sobre a validação de CPF/RF."
 
 #: includes/settings/views/documentation/feature-user-dashboard.php:48
-msgid "The identity/contact/address/employment fields shown on the dashboard live on the WordPress user profile and are mapped to the reregistration and audience data, so a user's details stay consistent across a certificate PDF, a ficha and their profile."
+msgid "The identity/contact/address/employment fields shown on the dashboard live on the WordPress user profile and are mapped to the reregistration and audience data, so a user's details stay consistent across a certificate PDF, a record and their profile."
 msgstr "Os campos de identidade, contato, endereço e vínculo profissional exibidos no painel residem no perfil de usuário do WordPress e estão mapeados para os dados de recadastramento e de público; assim, as informações do usuário permanecem consistentes entre o certificado em PDF, a ficha e o perfil."
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:228
@@ -17957,7 +17953,7 @@ msgstr "O prefixo `own_` identifica uma funcionalidade do usuário final com esc
 msgid "The page is excluded from full-page caching automatically, because it renders user-specific data that must never be served from a shared cache."
 msgstr "A página é automaticamente excluída do cache de página inteira, pois renderiza dados específicos do usuário que nunca devem ser servidos a partir de um cache compartilhado."
 
-#: includes/settings/views/documentation/feature-ficha.php:142
+#: includes/settings/views/documentation/feature-record.php:142
 msgid "the parent half only (e.g. the Division)."
 msgstr "apenas a mãe (por exemplo, a Divisão)."
 
@@ -18054,7 +18050,7 @@ msgid "The release lookup is cached for 12 hours and uses conditional requests, 
 msgstr "A consulta de versão é armazenada em cache por 12 horas e utiliza requisições condicionais; assim, a verificação de atualizações não sobrecarrega a fonte a cada carregamento de página administrativa. Portanto, uma nova versão pode levar até cerca de 12 horas para aparecer, ou você pode usar a opção \"Verificar novamente\" na tela de Atualizações para atualizar imediatamente."
 
 #: includes/settings/views/documentation/feature-user-dashboard.php:32
-msgid "The reregistration banner and \"Download Ficha\" action when a reregistration applies to them"
+msgid "The reregistration banner and \"Download Record\" action when a reregistration applies to them"
 msgstr "O banner de recadastramento e a ação \"Baixar Ficha\" quando um recadastramento se aplica a eles."
 
 #: includes/settings/views/ffc-tab-modulos.php:39
@@ -18062,14 +18058,14 @@ msgid "The reregistration campaign flow and its admin."
 msgstr "O fluxo da campanha de recadastramento e sua administração."
 
 #: includes/settings/views/documentation/document-templates-hub.php:36
-msgid "The reregistration ficha PDF."
+msgid "The reregistration record PDF."
 msgstr "A Ficha PDF do recadastramento."
 
 #: includes/settings/views/documentation/config-advanced.php:68
 msgid "The rotation is only available when both FFC_ENCRYPTION_KEY and FFC_HASH_SALT are defined, and only one previous key is supported at a time — finish one rotation before starting the next. FFC_HASH_SALT needs no \"previous\": the search hashes are rebuilt from the decrypted values during the rotation."
 msgstr "A rotação só está disponível quando tanto `FFC_ENCRYPTION_KEY` quanto `FFC_HASH_SALT` estão definidos, e apenas uma chave anterior é suportada por vez — conclua uma rotação antes de iniciar a próxima. O `FFC_HASH_SALT` não requer uma versão \"anterior\": os hashes de pesquisa são reconstruídos a partir dos valores descriptografados durante a rotação."
 
-#: includes/settings/views/documentation/feature-ficha.php:146
+#: includes/settings/views/documentation/feature-record.php:146
 msgid "The same _parent / _child split is available for any dependent_select field by appending those suffixes to its field key."
 msgstr "A mesma divisão _parent / _child está disponível para qualquer campo dependent_select, adicionando esses sufixos à sua chave de campo."
 
@@ -18234,7 +18230,7 @@ msgid "There are no preliminary rows to promote."
 msgstr "Não há linhas preliminares para promover."
 
 #: includes/settings/views/documentation/feature-reregistration.php:48
-msgid "There is no separate reregistration shortcode. Active campaigns appear as a banner on the member's personal dashboard (the user_dashboard_personal shortcode); the form loads and submits there over AJAX. Members are targeted by audience membership, not by matching a CPF/RF. On submit, the plugin generates an authentication code and a Ficha magic link, syncs mapped fields to the user profile, and sends the confirmation email."
+msgid "There is no separate reregistration shortcode. Active campaigns appear as a banner on the member's personal dashboard (the user_dashboard_personal shortcode); the form loads and submits there over AJAX. Members are targeted by audience membership, not by matching a CPF/RF. On submit, the plugin generates an authentication code and a Record magic link, syncs mapped fields to the user profile, and sends the confirmation email."
 msgstr "Não existe um shortcode separado para o recadastramento. Campanhas ativas aparecem como um banner no painel pessoal do membro (o shortcode `user_dashboard_personal`); o formulário é carregado e enviado nesse local via AJAX. A segmentação dos membros baseia-se na participação em públicos, e não na correspondência de CPF/RF. Ao realizar o envio, o plugin gera um código de autenticação e um link mágico da Ficha, sincroniza os campos mapeados com o perfil do usuário e envia o e-mail de confirmação."
 
 #: includes/settings/views/documentation/config-captcha.php:63
@@ -18671,7 +18667,7 @@ msgstr "Três abas de e-mail."
 msgid "Throttling dimensions"
 msgstr "Dimensões de limitação de taxa"
 
-#: includes/admin/class-ffc-admin-conditional-assets.php:216 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:193 includes/reregistration/class-ffc-ficha-generator.php:238 includes/audience/class-ffc-audience-shortcode.php:286
+#: includes/admin/class-ffc-admin-conditional-assets.php:216 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:193 includes/reregistration/class-ffc-record-generator.php:238 includes/audience/class-ffc-audience-shortcode.php:286
 msgid "Thu"
 msgstr "Qui"
 
@@ -19061,7 +19057,7 @@ msgstr "Tentar mesmo assim"
 msgid "Try deactivating and reactivating the plugin, or clearing any server-side cache (OPcache)."
 msgstr "Tente desativar e reativar o plugin ou limpar o cache do servidor (OPcache)."
 
-#: includes/admin/class-ffc-admin-conditional-assets.php:214 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:191 includes/reregistration/class-ffc-ficha-generator.php:236 includes/audience/class-ffc-audience-shortcode.php:284
+#: includes/admin/class-ffc-admin-conditional-assets.php:214 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:191 includes/reregistration/class-ffc-record-generator.php:236 includes/audience/class-ffc-audience-shortcode.php:284
 msgid "Tue"
 msgstr "Ter"
 
@@ -19169,7 +19165,7 @@ msgstr "Texto sublinhado:"
 msgid "Undo decision (admin)"
 msgstr "Desfazer decisão (administrador)"
 
-#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:83 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:439 includes/settings/views/documentation/feature-ficha.php:130
+#: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:83 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:439 includes/settings/views/documentation/feature-record.php:130
 msgid "Union"
 msgstr "Sindicato"
 
@@ -19539,7 +19535,7 @@ msgstr "E-mails de criação de usuário (Submissão)"
 msgid "User Dashboard & Access"
 msgstr "Painel do Usuário e Acesso"
 
-#: includes/settings/views/documentation/feature-ficha.php:26
+#: includes/settings/views/documentation/feature-record.php:26
 msgid "User Dashboard:"
 msgstr "Painel do Usuário:"
 
@@ -19567,7 +19563,7 @@ msgstr "E-mail do Usuário Alterado"
 msgid "User explicitly agreed to data storage and privacy policy."
 msgstr "O usuário concordou explicitamente com o armazenamento de dados e a política de privacidade."
 
-#: includes/settings/views/documentation/feature-ficha.php:43
+#: includes/settings/views/documentation/feature-record.php:43
 msgid "User full name"
 msgstr "Nome completo do usuário"
 
@@ -19729,7 +19725,7 @@ msgstr "URL de Validação"
 msgid "Value received"
 msgstr "Valor recebido"
 
-#: includes/settings/views/documentation/feature-quiz.php:24 includes/settings/views/documentation/feature-self-scheduling.php:77 includes/settings/views/documentation/reference-tokens.php:23 includes/settings/views/documentation/feature-ficha.php:38 includes/settings/views/documentation/feature-ficha.php:59 includes/settings/views/documentation/feature-ficha.php:82 includes/settings/views/documentation/feature-ficha.php:101 includes/settings/views/documentation/feature-ficha.php:119
+#: includes/settings/views/documentation/feature-quiz.php:24 includes/settings/views/documentation/feature-self-scheduling.php:77 includes/settings/views/documentation/reference-tokens.php:23 includes/settings/views/documentation/feature-record.php:38 includes/settings/views/documentation/feature-record.php:59 includes/settings/views/documentation/feature-record.php:82 includes/settings/views/documentation/feature-record.php:101 includes/settings/views/documentation/feature-record.php:119
 msgid "Variable"
 msgstr "Variável"
 
@@ -19830,7 +19826,7 @@ msgid "View All Calendars"
 msgstr "Ver Todos os Calendários"
 
 #: templates/emails/reregistration-confirmation.php:36
-msgid "View and Download Ficha"
+msgid "View and Download Record"
 msgstr "Veja e Baixe a Ficha."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:219
@@ -20141,7 +20137,7 @@ msgstr "A opção mais frágil contra a automação: o espaço de respostas é r
 msgid "WebGL renderer/vendor"
 msgstr "Renderizador/fornecedor WebGL"
 
-#: includes/admin/class-ffc-admin-conditional-assets.php:215 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:192 includes/reregistration/class-ffc-ficha-generator.php:237 includes/audience/class-ffc-audience-shortcode.php:285
+#: includes/admin/class-ffc-admin-conditional-assets.php:215 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:192 includes/reregistration/class-ffc-record-generator.php:237 includes/audience/class-ffc-audience-shortcode.php:285
 msgid "Wed"
 msgstr "Qua"
 
@@ -20383,7 +20379,7 @@ msgid "When on, this template can be chosen as the appointment receipt in Self-s
 msgstr "Quando ativado, este modelo pode ser escolhido como comprovante de agendamento nas configurações de Autoagendamento."
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:807
-msgid "When on, this template can be chosen as the ficha in Reregistration settings."
+msgid "When on, this template can be chosen as the record in Reregistration settings."
 msgstr "Quando ativado, este modelo pode ser escolhido como ficha nas configurações de Recadastramento."
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:346
@@ -20426,7 +20422,7 @@ msgstr "Onde"
 msgid "Where each feature selects its template"
 msgstr "Onde cada recurso seleciona seu modelo"
 
-#: includes/settings/views/documentation/feature-ficha.php:23
+#: includes/settings/views/documentation/feature-record.php:23
 msgid "Where to Download:"
 msgstr "Onde fazer o Download:"
 
@@ -20441,7 +20437,7 @@ msgid "Whether users can cancel, and the minimum hours before the appointment (d
 msgstr "Se os usuários podem cancelar e o número mínimo de horas de antecedência em relação ao agendamento (padrão: 24)."
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:224
-msgid "Which ficha template the reregistration PDF uses is chosen in Settings → Reregistration."
+msgid "Which record template the reregistration PDF uses is chosen in Settings → Reregistration."
 msgstr "Qual modelo de ficha o PDF de recadastramento usa é definido em Configurações → Recadastramento."
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:314
@@ -20550,7 +20546,7 @@ msgstr "A Biblioteca de Mídia do WordPress não está disponível. Por favor, r
 msgid "WordPress roles"
 msgstr "Funções do WordPress"
 
-#: includes/settings/views/documentation/reference-tokens.php:76 includes/settings/views/documentation/feature-ficha.php:50
+#: includes/settings/views/documentation/reference-tokens.php:76 includes/settings/views/documentation/feature-record.php:50
 msgid "WordPress site name"
 msgstr "Nome do site WordPress"
 
@@ -20562,15 +20558,15 @@ msgstr "Fator de trabalho"
 msgid "Work Schedule"
 msgstr "Horário de Trabalho"
 
-#: includes/settings/views/documentation/feature-ficha.php:125
+#: includes/settings/views/documentation/feature-record.php:125
 msgid "Work schedule (HTML section)"
 msgstr "Horário de trabalho (seção HTML)"
 
-#: includes/settings/views/documentation/feature-ficha.php:115
+#: includes/settings/views/documentation/feature-record.php:115
 msgid "Work Schedule (Jornada)"
 msgstr "Jornada"
 
-#: includes/settings/views/documentation/feature-ficha.php:72
+#: includes/settings/views/documentation/feature-record.php:72
 msgid "Work unit"
 msgstr "Unidade de trabalho"
 
@@ -20583,7 +20579,7 @@ msgstr "Fluxo de trabalho"
 msgid "Working Hours"
 msgstr "Horários de Funcionamento"
 
-#: includes/settings/views/documentation/feature-self-scheduling.php:42 includes/settings/views/documentation/feature-ficha.php:124
+#: includes/settings/views/documentation/feature-self-scheduling.php:42 includes/settings/views/documentation/feature-record.php:124
 msgid "Working hours"
 msgstr "Horas de trabalho"
 
@@ -20635,7 +20631,7 @@ msgstr "Escrever um e-mail personalizado para este formulário (em vez do padrã
 msgid "Wrong CPF + wrong CAPTCHA + other errors."
 msgstr "CPF incorreto + CAPTCHA incorreto + outros erros."
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:208 includes/admin/class-ffc-submissions-export-source.php:423 includes/admin/class-ffc-submissions-export-source.php:436 includes/privacy/class-ffc-privacy-exporters.php:205 includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:419 includes/reregistration/class-ffc-reregistration-export-source.php:393 includes/reregistration/class-ffc-ficha-generator.php:433 includes/recruitment/class-ffc-recruitment-email-dispatcher.php:242 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:154 includes/recruitment/class-ffc-recruitment-notices-list-table.php:135 includes/audience/class-ffc-audience-booking-export-source.php:283 includes/frontend/csv/class-ffc-public-csv-row-formatter.php:121 templates/admin/recruitment/candidate-edit/classifications-section.php:88 includes/settings/views/documentation/feature-recruitment.php:52 includes/settings/views/documentation/feature-recruitment.php:53 includes/settings/views/documentation/feature-recruitment.php:54
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:208 includes/admin/class-ffc-submissions-export-source.php:423 includes/admin/class-ffc-submissions-export-source.php:436 includes/privacy/class-ffc-privacy-exporters.php:205 includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:419 includes/reregistration/class-ffc-reregistration-export-source.php:393 includes/reregistration/class-ffc-record-generator.php:433 includes/recruitment/class-ffc-recruitment-email-dispatcher.php:242 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:154 includes/recruitment/class-ffc-recruitment-notices-list-table.php:135 includes/audience/class-ffc-audience-booking-export-source.php:283 includes/frontend/csv/class-ffc-public-csv-row-formatter.php:121 templates/admin/recruitment/candidate-edit/classifications-section.php:88 includes/settings/views/documentation/feature-recruitment.php:52 includes/settings/views/documentation/feature-recruitment.php:53 includes/settings/views/documentation/feature-recruitment.php:54
 msgid "Yes"
 msgstr "Sim"
 
@@ -21206,7 +21202,7 @@ msgid "✓ authoritative"
 msgstr "✓ com autoridade"
 
 #. translators: %s: formatted authentication code, e.g. R-MA6D-E5LH-PFTC.
-#: includes/reregistration/class-ffc-ficha-generator.php
+#: includes/reregistration/class-ffc-record-generator.php
 msgid "Authentication: %s /"
 msgstr "Autenticação: %s /"
 

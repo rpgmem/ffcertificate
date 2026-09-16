@@ -8,17 +8,17 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
-use FreeFormCertificate\Reregistration\FichaGenerator;
+use FreeFormCertificate\Reregistration\RecordGenerator;
 
 /**
- * Tests for FichaGenerator: working-hours formatting, custom-fields section
- * building, template loading, and ficha data generation.
+ * Tests for RecordGenerator: working-hours formatting, custom-fields section
+ * building, template loading, and record data generation.
  *
  * Uses ReflectionMethod to access private static helpers directly.
  *
- * @covers \FreeFormCertificate\Reregistration\FichaGenerator
+ * @covers \FreeFormCertificate\Reregistration\RecordGenerator
  */
-class FichaGeneratorTest extends TestCase {
+class RecordGeneratorTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
@@ -27,7 +27,7 @@ class FichaGeneratorTest extends TestCase {
 		Monkey\setUp();
 
 		// pcov attribution preload (CLAUDE.md pcov gotcha).
-		class_exists('\FreeFormCertificate\Reregistration\FichaGenerator');
+		class_exists('\FreeFormCertificate\Reregistration\RecordGenerator');
 
 		Functions\when('__')->returnArg();
 		Functions\when('esc_html__')->returnArg();
@@ -35,7 +35,7 @@ class FichaGeneratorTest extends TestCase {
 		Functions\when('esc_attr')->returnArg();
 		Functions\when('wp_kses_post')->returnArg();
 		Functions\when('sanitize_text_field')->alias('trim');
-		// #865 Phase 2: FichaGenerator now resolves {{logo_gov}}/{{logo_org}} via
+		// #865 Phase 2: RecordGenerator now resolves {{logo_gov}}/{{logo_org}} via
 		// BrandingTokens → SettingsReader::get() → get_option( 'ffc_settings' ).
 		Functions\when('get_option')->justReturn(array(
 			'logo_gov' => 'https://cdn.example/gov.png',
@@ -43,6 +43,18 @@ class FichaGeneratorTest extends TestCase {
 		));
 		Functions\when('sanitize_file_name')->alias(function ($name) {
 			return preg_replace('/[^a-zA-Z0-9_\-.]/', '_', $name);
+		});
+
+		// The five `ffcertificate_ficha_*` hooks became `ffcertificate_record_*`
+		// in 6.26.0 (#1264), with the old names kept alive through
+		// `apply_filters_deprecated()` until 6.28.0. Every test here drives the
+		// NEW name; this stub makes the deprecated call a pass-through so it
+		// does not swallow the value on its way to the live filter. What the
+		// alias itself is worth is pinned by
+		// `test_the_deprecated_record_hooks_still_reach_a_listener()`, which
+		// stubs it for real.
+		Functions\when('apply_filters_deprecated')->alias(function ($tag, $args) {
+			return $args[0];
 		});
 	}
 
@@ -59,7 +71,7 @@ class FichaGeneratorTest extends TestCase {
 	 * @return mixed
 	 */
 	private function invokePrivateStatic(string $method, array $args = []) {
-		$ref = new \ReflectionMethod(FichaGenerator::class, $method);
+		$ref = new \ReflectionMethod(RecordGenerator::class, $method);
 		$ref->setAccessible(true);
 		return $ref->invokeArgs(null, $args);
 	}
@@ -290,7 +302,7 @@ class FichaGeneratorTest extends TestCase {
 
 		// Combined value stays available for back-compat templates.
 		$this->assertSame('DRE - DIAF - Contabilidade', $vars['divisao_setor']);
-		// Split halves drive the two separate cells in the default ficha.
+		// Split halves drive the two separate cells in the default record.
 		$this->assertSame('DRE - DIAF', $vars['divisao_setor_parent']);
 		$this->assertSame('Contabilidade', $vars['divisao_setor_child']);
 	}
@@ -399,7 +411,7 @@ class FichaGeneratorTest extends TestCase {
 	public function test_load_template_returns_fallback_when_file_missing(): void {
 		// Make the filter return a path that does not exist.
 		Functions\when('apply_filters')->alias(function ($tag, $value) {
-			if ($tag === 'ffcertificate_ficha_template_file') {
+			if ($tag === 'ffcertificate_record_template_file') {
 				return '/tmp/nonexistent_template_file.html';
 			}
 			return $value;
@@ -446,20 +458,20 @@ class FichaGeneratorTest extends TestCase {
 
 	public function test_format_field_value_default_array_joins_with_comma(): void {
 		$field = (object) ['field_type' => 'multiselect'];
-		$result = FichaGenerator::format_field_value($field, ['A', 'B', 'C']);
+		$result = RecordGenerator::format_field_value($field, ['A', 'B', 'C']);
 		$this->assertSame('A, B, C', $result);
 	}
 
 	public function test_format_field_value_default_non_scalar_returns_empty(): void {
 		$field = (object) ['field_type' => 'text'];
-		$result = FichaGenerator::format_field_value($field, (object) ['x' => 1]);
+		$result = RecordGenerator::format_field_value($field, (object) ['x' => 1]);
 		$this->assertSame('', $result);
 	}
 
 	public function test_format_field_value_dependent_select_non_array_returns_empty(): void {
 		$field = (object) ['field_type' => 'dependent_select'];
 		// A plain string that is not JSON decodes to null → not an array.
-		$result = FichaGenerator::format_field_value($field, 'plain-string');
+		$result = RecordGenerator::format_field_value($field, 'plain-string');
 		$this->assertSame('', $result);
 	}
 
@@ -470,7 +482,7 @@ class FichaGeneratorTest extends TestCase {
 	public function test_decrypt_field_values_passes_through_non_sensitive(): void {
 		$field  = (object) ['field_key' => 'hobby', 'is_sensitive' => 0];
 		$values = ['hobby' => 'Reading'];
-		$result = FichaGenerator::decrypt_field_values([$field], $values);
+		$result = RecordGenerator::decrypt_field_values([$field], $values);
 		$this->assertSame('Reading', $result['hobby']);
 	}
 
@@ -481,7 +493,7 @@ class FichaGeneratorTest extends TestCase {
 			(object) ['field_key' => 'c', 'is_sensitive' => 1],
 		];
 		$values = ['a' => '', 'b' => ['x'], 'c' => null];
-		$result = FichaGenerator::decrypt_field_values($fields, $values);
+		$result = RecordGenerator::decrypt_field_values($fields, $values);
 		// Untouched — decryption skipped for empty / non-string values.
 		$this->assertSame('', $result['a']);
 		$this->assertSame(['x'], $result['b']);
@@ -498,7 +510,7 @@ class FichaGeneratorTest extends TestCase {
 
 		$field  = (object) ['field_key' => 'cpf', 'is_sensitive' => 1];
 		$values = ['cpf' => 'CIPHER'];
-		$result = FichaGenerator::decrypt_field_values([$field], $values);
+		$result = RecordGenerator::decrypt_field_values([$field], $values);
 
 		$this->assertSame('plain-cpf', $result['cpf']);
 	}
@@ -513,7 +525,7 @@ class FichaGeneratorTest extends TestCase {
 
 		$field  = (object) ['field_key' => 'cpf', 'is_sensitive' => 1];
 		$values = ['cpf' => 'CIPHER'];
-		$result = FichaGenerator::decrypt_field_values([$field], $values);
+		$result = RecordGenerator::decrypt_field_values([$field], $values);
 
 		$this->assertSame('CIPHER', $result['cpf']);
 	}
@@ -543,46 +555,46 @@ class FichaGeneratorTest extends TestCase {
 		])->byDefault();
 
 		$rereg  = (object) ['id' => 5];
-		$fields = FichaGenerator::get_custom_fields_for_reregistration($rereg);
+		$fields = RecordGenerator::get_custom_fields_for_reregistration($rereg);
 
 		$this->assertCount(1, $fields);
 		$this->assertSame(10, (int) $fields[0]->id);
 	}
 
 	// ==================================================================
-	// generate_ficha_data() — early returns
+	// generate_record_data() — early returns
 	// ==================================================================
 
 	/**
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_generate_ficha_data_returns_null_when_submission_missing(): void {
+	public function test_generate_record_data_returns_null_when_submission_missing(): void {
 		$reader = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader');
 		$reader->shouldReceive('get_by_id')->andReturn(null);
 
-		$this->assertNull(FichaGenerator::generate_ficha_data(1));
+		$this->assertNull(RecordGenerator::generate_record_data(1));
 	}
 
 	/**
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_generate_ficha_data_returns_null_when_rereg_missing(): void {
+	public function test_generate_record_data_returns_null_when_rereg_missing(): void {
 		$sr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader');
 		$sr->shouldReceive('get_by_id')->andReturn((object) ['reregistration_id' => 9]);
 
 		$rr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationRepository');
 		$rr->shouldReceive('get_by_id')->andReturn(null);
 
-		$this->assertNull(FichaGenerator::generate_ficha_data(1));
+		$this->assertNull(RecordGenerator::generate_record_data(1));
 	}
 
 	/**
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_generate_ficha_data_returns_null_when_user_missing(): void {
+	public function test_generate_record_data_returns_null_when_user_missing(): void {
 		Functions\when('get_userdata')->justReturn(false);
 
 		$sr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader');
@@ -591,18 +603,18 @@ class FichaGeneratorTest extends TestCase {
 		$rr = Mockery::mock('overload:FreeFormCertificate\Reregistration\ReregistrationRepository');
 		$rr->shouldReceive('get_by_id')->andReturn((object) ['id' => 9, 'title' => 'C']);
 
-		$this->assertNull(FichaGenerator::generate_ficha_data(1));
+		$this->assertNull(RecordGenerator::generate_record_data(1));
 	}
 
 	// ==================================================================
-	// generate_ficha_data() — happy path
+	// generate_record_data() — happy path
 	// ==================================================================
 
 	/**
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_generate_ficha_data_builds_full_payload(): void {
+	public function test_generate_record_data_builds_full_payload(): void {
 		Functions\when('__')->returnArg();
 		Functions\when('esc_html__')->returnArg();
 		Functions\when('esc_html')->returnArg();
@@ -619,7 +631,7 @@ class FichaGeneratorTest extends TestCase {
 		Functions\when('apply_filters')->alias(function ($tag, $value) {
 			// Force the fallback template so no filesystem read is needed and
 			// the placeholder replacement loop runs against known markers.
-			if ($tag === 'ffcertificate_ficha_template_file') {
+			if ($tag === 'ffcertificate_record_template_file') {
 				return '/tmp/ffc-nonexistent-template.html';
 			}
 			return $value;
@@ -659,7 +671,7 @@ class FichaGeneratorTest extends TestCase {
 		$df->shouldReceive('format_datetime')->andReturn('2023-11-14 22:13');
 
 		$fh = Mockery::mock('overload:FreeFormCertificate\Core\FilenameHelper');
-		$fh->shouldReceive('build_pdf_filename')->andReturn('ficha_9_R-ABCD1234.pdf');
+		$fh->shouldReceive('build_pdf_filename')->andReturn('record_9_R-ABCD1234.pdf');
 
 		$user = (object) [
 			'ID'           => 7,
@@ -668,12 +680,12 @@ class FichaGeneratorTest extends TestCase {
 		];
 		Functions\when('get_userdata')->justReturn($user);
 
-		$result = FichaGenerator::generate_ficha_data(42);
+		$result = RecordGenerator::generate_record_data(42);
 
 		$this->assertIsArray($result);
 		$this->assertSame('ficha', $result['type']);
 		$this->assertSame('portrait', $result['orientation']);
-		$this->assertSame('ficha_9_R-ABCD1234.pdf', $result['filename']);
+		$this->assertSame('record_9_R-ABCD1234.pdf', $result['filename']);
 		$this->assertSame('joao@example.test', $result['user']['email']);
 		$this->assertSame(7, $result['user']['id']);
 		// Fallback template markers were replaced with the participant data.
@@ -691,14 +703,14 @@ class FichaGeneratorTest extends TestCase {
 	 * It charges the composed VALUE, not the key's presence: `format_auth_code`
 	 * hifeniza um código de 12 caracteres em grupos de 4 e prefixa com `R-`,
 	 * which is the format of the invitation email and of the certificate. The
-	 * variables are read through the `ffcertificate_ficha_data` filter, which
+	 * variables are read through the `ffcertificate_record_data` filter, which
 	 * como o template vai recebê-las.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_generate_ficha_data_composes_the_auth_code_line_when_approved(): void {
-		$captured = $this->runFichaWithStatus('approved', 'MA6DE5LHPFTC');
+	public function test_generate_record_data_composes_the_auth_code_line_when_approved(): void {
+		$captured = $this->runRecordWithStatus('approved', 'MA6DE5LHPFTC');
 
 		$this->assertSame('R-MA6D-E5LH-PFTC', $captured['auth_code']);
 		$this->assertSame('Authentication: R-MA6D-E5LH-PFTC / ', $captured['auth_code_line']);
@@ -714,8 +726,8 @@ class FichaGeneratorTest extends TestCase {
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_generate_ficha_data_omits_the_auth_code_line_when_not_approved(): void {
-		$captured = $this->runFichaWithStatus('submitted', 'MA6DE5LHPFTC');
+	public function test_generate_record_data_omits_the_auth_code_line_when_not_approved(): void {
+		$captured = $this->runRecordWithStatus('submitted', 'MA6DE5LHPFTC');
 
 		$this->assertSame('', $captured['auth_code'], 'An unapproved submission publishes no code.');
 		$this->assertSame('', $captured['auth_code_line'], 'No code, no fragment -- no "Authentication:  /".');
@@ -745,13 +757,13 @@ class FichaGeneratorTest extends TestCase {
 	}
 
 	/**
-	 * Runs `generate_ficha_data` capturing the template's variables.
+	 * Runs `generate_record_data` capturing the template's variables.
 	 *
 	 * @param string $status    Submission status.
 	 * @param string $auth_code Raw code stored on the row.
 	 * @return array<string, mixed> Variables handed to the template.
 	 */
-	private function runFichaWithStatus(string $status, string $auth_code): array {
+	private function runRecordWithStatus(string $status, string $auth_code): array {
 		Functions\when('__')->returnArg();
 		Functions\when('esc_html__')->returnArg();
 		Functions\when('esc_html')->returnArg();
@@ -768,10 +780,10 @@ class FichaGeneratorTest extends TestCase {
 
 		$captured = array();
 		Functions\when('apply_filters')->alias(function ($tag, $value) use (&$captured) {
-			if ('ffcertificate_ficha_template_file' === $tag) {
+			if ('ffcertificate_record_template_file' === $tag) {
 				return '/tmp/ffc-nonexistent-template.html';
 			}
-			if ('ffcertificate_ficha_data' === $tag) {
+			if ('ffcertificate_record_data' === $tag) {
 				$captured = $value;
 			}
 			return $value;
@@ -810,7 +822,7 @@ class FichaGeneratorTest extends TestCase {
 		$df->shouldReceive('format_datetime')->andReturn('2023-11-14 22:13');
 
 		$fh = Mockery::mock('overload:FreeFormCertificate\Core\FilenameHelper');
-		$fh->shouldReceive('build_pdf_filename')->andReturn('ficha.pdf');
+		$fh->shouldReceive('build_pdf_filename')->andReturn('record.pdf');
 
 		Functions\when('get_userdata')->justReturn((object) array(
 			'ID'           => 7,
@@ -818,7 +830,7 @@ class FichaGeneratorTest extends TestCase {
 			'user_email'   => 'joao@example.test',
 		));
 
-		FichaGenerator::generate_ficha_data(42);
+		RecordGenerator::generate_record_data(42);
 
 		return $captured;
 	}
@@ -827,7 +839,7 @@ class FichaGeneratorTest extends TestCase {
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_generate_ficha_data_uses_synthetic_code_without_auth_code(): void {
+	public function test_generate_record_data_uses_synthetic_code_without_auth_code(): void {
 		Functions\when('__')->returnArg();
 		Functions\when('esc_html__')->returnArg();
 		Functions\when('esc_html')->returnArg();
@@ -840,7 +852,7 @@ class FichaGeneratorTest extends TestCase {
 		Functions\when('sanitize_file_name')->alias(function ($n) { return $n; });
 		$captured_code = null;
 		Functions\when('apply_filters')->alias(function ($tag, $value) {
-			if ($tag === 'ffcertificate_ficha_template_file') {
+			if ($tag === 'ffcertificate_record_template_file') {
 				return '/tmp/ffc-nonexistent-template.html';
 			}
 			return $value;
@@ -877,7 +889,7 @@ class FichaGeneratorTest extends TestCase {
 		$fh = Mockery::mock('overload:FreeFormCertificate\Core\FilenameHelper');
 		$fh->shouldReceive('build_pdf_filename')->andReturnUsing(function ($type, $id, $code) use (&$captured_code) {
 			$captured_code = $code;
-			return 'ficha.pdf';
+			return 'record.pdf';
 		});
 
 		Functions\when('get_userdata')->justReturn((object) [
@@ -886,7 +898,7 @@ class FichaGeneratorTest extends TestCase {
 			'user_email'   => 'ana@e.test',
 		]);
 
-		$result = FichaGenerator::generate_ficha_data(55);
+		$result = RecordGenerator::generate_record_data(55);
 
 		$this->assertIsArray($result);
 		// Status with no label falls back to the raw status key.
@@ -895,8 +907,91 @@ class FichaGeneratorTest extends TestCase {
 		$this->assertSame('S55', $captured_code);
 	}
 
+	// ==================================================================
+	// The 6.26.0 hook rename and its deprecation cycle (#1264)
+	// ==================================================================
+
+	/**
+	 * The five old `ffcertificate_ficha_*` names still reach a listener.
+	 *
+	 * This is the whole point of the cycle, and the only part of #1264 that
+	 * needs one: renaming a public filter breaks an external integration in
+	 * SILENCE -- no error, the hook simply stops firing. Every other rename in
+	 * that issue is internal, so a grep settles it.
+	 *
+	 * The assertion charges the OLD name, the version and the replacement,
+	 * because `apply_filters_deprecated()` is what both keeps the old hook
+	 * alive and emits the notice; calling it with a wrong replacement would
+	 * still fire the listener and still pass a test that only checked the
+	 * value came back.
+	 *
+	 * @return void
+	 */
+	public function test_the_deprecated_record_hooks_still_reach_a_listener(): void {
+		$seen = array();
+
+		Functions\when('apply_filters_deprecated')->alias(
+			function ($tag, $args, $version, $replacement) use (&$seen) {
+				$seen[ $tag ] = array($version, $replacement);
+				return $args[0];
+			}
+		);
+		Functions\when('apply_filters')->alias(function ($tag, $value) {
+			if ('ffcertificate_record_template_file' === $tag) {
+				return '/tmp/ffc-nonexistent-template.html';
+			}
+			return $value;
+		});
+
+		$this->invokePrivateStatic('load_template', []);
+
+		$this->assertSame(
+			array('6.26.0', 'ffcertificate_record_template_html'),
+			$seen['ffcertificate_ficha_template_html'] ?? null,
+			'The pool-resolver hook lost its deprecated alias -- a listener on the old name goes silent.'
+		);
+		$this->assertSame(
+			array('6.26.0', 'ffcertificate_record_template_file'),
+			$seen['ffcertificate_ficha_template_file'] ?? null,
+			'The template-file hook lost its deprecated alias.'
+		);
+	}
+
+	/**
+	 * The three generation hooks carry the alias too.
+	 *
+	 * Separate from the pair above because these live inside
+	 * `generate_record_data()`, which needs the whole fixture: covering all
+	 * five in one test would mean the cheap two only run when the expensive
+	 * three do.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 *
+	 * @return void
+	 */
+	public function test_the_deprecated_generation_hooks_still_reach_a_listener(): void {
+		$seen = array();
+		Functions\when('apply_filters_deprecated')->alias(
+			function ($tag, $args, $version, $replacement) use (&$seen) {
+				$seen[ $tag ] = array($version, $replacement);
+				return $args[0];
+			}
+		);
+
+		$this->runRecordWithStatus('approved', 'MA6DE5LHPFTC');
+
+		foreach (array('data', 'html', 'filename') as $hook) {
+			$this->assertSame(
+				array('6.26.0', "ffcertificate_record_{$hook}"),
+				$seen[ "ffcertificate_ficha_{$hook}" ] ?? null,
+				"The `{$hook}` hook lost its deprecated alias -- a listener on the old name goes silent."
+			);
+		}
+	}
+
 	public function test_default_document_templates_relocated_out_of_html(): void {
-		// #865: the ficha + appointment-receipt defaults moved out of the
+		// #865: the record + appointment-receipt defaults moved out of the
 		// update-fragile html/ folder to the versioned templates/documents/.
 		$root = dirname(__DIR__, 2);
 		$this->assertFileExists($root . '/templates/documents/default_ficha_template.html');

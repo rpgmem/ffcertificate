@@ -436,7 +436,7 @@ class DashboardShortcode {
 							<?php if ( ! empty( $rereg['magic_link'] ) ) : ?>
 							<div>
 								<a href="<?php echo esc_url( $rereg['magic_link'] ); ?>" class="button ffc-btn-pdf" target="_blank" rel="noopener">
-									<?php esc_html_e( 'Download Ficha', 'ffcertificate' ); ?>
+									<?php esc_html_e( 'Download Record', 'ffcertificate' ); ?>
 								</a>
 							</div>
 							<?php endif; ?>
@@ -454,7 +454,7 @@ class DashboardShortcode {
 							<?php if ( ! empty( $rereg['magic_link'] ) ) : ?>
 							<div>
 								<a href="<?php echo esc_url( $rereg['magic_link'] ); ?>" class="button ffc-btn-pdf" target="_blank" rel="noopener">
-									<?php esc_html_e( 'Download Ficha', 'ffcertificate' ); ?>
+									<?php esc_html_e( 'Download Record', 'ffcertificate' ); ?>
 								</a>
 							</div>
 							<?php endif; ?>

@@ -3,8 +3,8 @@
  * Reregistration Tab
  *
  * Settings tab for the Reregistration feature (#951 phase 2). Currently hosts
- * the global **ficha template** selector: which pool template (kind `ficha`)
- * the reregistration ficha PDF uses. Editing/creating/duplicating the templates
+ * the global **record template** selector: which pool template (kind `record`)
+ * the reregistration record PDF uses. Editing/creating/duplicating the templates
  * themselves happens in the Document Templates hub — this tab only assigns one.
  *
  * @package FreeFormCertificate\Settings\Tabs
@@ -18,7 +18,7 @@ namespace FreeFormCertificate\Settings\Tabs;
 use FreeFormCertificate\Settings\SettingsTab;
 use FreeFormCertificate\Admin\CertTemplateCpt;
 use FreeFormCertificate\Admin\CertTemplateReader;
-use FreeFormCertificate\Admin\CertTemplateFichaResolver;
+use FreeFormCertificate\Admin\CertTemplateRecordResolver;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Core\PasswordInvite;
 
@@ -27,19 +27,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Reregistration settings tab (ficha template selector).
+ * Reregistration settings tab (record template selector).
  */
 class TabReregistration extends SettingsTab {
 
 	/**
 	 * `admin_post_{$action}` slug for the save handler.
 	 */
-	private const SAVE_ACTION = 'ffc_save_ficha_template';
+	private const SAVE_ACTION = 'ffc_save_record_template';
 
 	/**
 	 * Nonce action for the save form.
 	 */
-	private const NONCE = 'ffc_ficha_template';
+	private const NONCE = 'ffc_record_template';
 
 	/**
 	 * Init.
@@ -73,21 +73,21 @@ class TabReregistration extends SettingsTab {
 	}
 
 	/**
-	 * Hub list URL, pre-filtered to ficha templates.
+	 * Hub list URL, pre-filtered to record templates.
 	 *
 	 * @return string
 	 */
 	private static function hub_list_url(): string {
-		return admin_url( 'edit.php?post_type=' . CertTemplateCpt::POST_TYPE . '&ffc_kind=' . CertTemplateCpt::KIND_FICHA );
+		return admin_url( 'edit.php?post_type=' . CertTemplateCpt::POST_TYPE . '&ffc_kind=' . CertTemplateCpt::KIND_RECORD );
 	}
 
 	/**
-	 * New ficha-template URL (kind preset).
+	 * New record-template URL (kind preset).
 	 *
 	 * @return string
 	 */
 	private static function hub_new_url(): string {
-		return admin_url( 'post-new.php?post_type=' . CertTemplateCpt::POST_TYPE . '&ffc_kind=' . CertTemplateCpt::KIND_FICHA );
+		return admin_url( 'post-new.php?post_type=' . CertTemplateCpt::POST_TYPE . '&ffc_kind=' . CertTemplateCpt::KIND_RECORD );
 	}
 
 	/**
@@ -101,18 +101,18 @@ class TabReregistration extends SettingsTab {
 	}
 
 	/**
-	 * Render the ficha selector + hub links.
+	 * Render the record selector + hub links.
 	 *
 	 * @return void
 	 */
 	public function render(): void {
-		$templates = CertTemplateReader::list_for_editor( CertTemplateCpt::KIND_FICHA );
-		$selected  = CertTemplateFichaResolver::selected_id();
+		$templates = CertTemplateReader::list_for_editor( CertTemplateCpt::KIND_RECORD );
+		$selected  = CertTemplateRecordResolver::selected_id();
 		$can_edit  = $selected > 0 && ! CertTemplateReader::is_default( $selected );
 
 		if ( RequestInput::has_get( 'ffc_saved' ) ) {
 			wp_admin_notice(
-				esc_html__( 'Ficha template saved.', 'ffcertificate' ),
+				esc_html__( 'Record template saved.', 'ffcertificate' ),
 				array(
 					'type'        => 'success',
 					'dismissible' => true,
@@ -120,16 +120,16 @@ class TabReregistration extends SettingsTab {
 			);
 		}
 		?>
-		<h2><?php esc_html_e( 'Ficha Template', 'ffcertificate' ); ?></h2>
+		<h2><?php esc_html_e( 'Record Template', 'ffcertificate' ); ?></h2>
 		<p class="description">
-			<?php esc_html_e( 'Choose which template the reregistration ficha PDF uses. Create, edit and duplicate ficha templates in the Document Templates hub.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Choose which template the reregistration record PDF uses. Create, edit and duplicate record templates in the Document Templates hub.', 'ffcertificate' ); ?>
 		</p>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-ficha-form">
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-record-form">
 			<input type="hidden" name="action" value="<?php echo esc_attr( self::SAVE_ACTION ); ?>">
 			<?php wp_nonce_field( self::NONCE ); ?>
 			<p>
-				<label for="ffc_ficha_template"><strong><?php esc_html_e( 'Template:', 'ffcertificate' ); ?></strong></label>
-				<select name="ffc_ficha_template" id="ffc_ficha_template">
+				<label for="ffc_record_template"><strong><?php esc_html_e( 'Template:', 'ffcertificate' ); ?></strong></label>
+				<select name="ffc_record_template" id="ffc_record_template">
 					<option value="0"<?php selected( $selected, 0 ); ?>><?php esc_html_e( 'Shipped default', 'ffcertificate' ); ?></option>
 					<?php foreach ( $templates as $tpl ) : ?>
 						<option value="<?php echo esc_attr( (string) $tpl['id'] ); ?>"<?php selected( $selected, (int) $tpl['id'] ); ?>>
@@ -180,17 +180,17 @@ class TabReregistration extends SettingsTab {
 
 		<p>
 			<a class="button" href="<?php echo esc_url( self::hub_list_url() ); ?>" target="_blank" rel="noopener">
-				<?php esc_html_e( 'Manage ficha templates', 'ffcertificate' ); ?>
+				<?php esc_html_e( 'Manage record templates', 'ffcertificate' ); ?>
 			</a>
 			<a class="button" href="<?php echo esc_url( self::hub_new_url() ); ?>" target="_blank" rel="noopener">
-				<?php esc_html_e( '+ New ficha template', 'ffcertificate' ); ?>
+				<?php esc_html_e( '+ New record template', 'ffcertificate' ); ?>
 			</a>
 		</p>
 		<?php
 	}
 
 	/**
-	 * Persist the selected ficha template id, then redirect to the tab.
+	 * Persist the selected record template id, then redirect to the tab.
 	 *
 	 * @return void
 	 */
@@ -200,13 +200,13 @@ class TabReregistration extends SettingsTab {
 		}
 		check_admin_referer( self::NONCE );
 
-		$id = \FreeFormCertificate\Core\RequestInput::get_post_int( 'ffc_ficha_template', 0 );
-		// Keep only an id that actually points at a ficha template (0 otherwise).
-		if ( $id > 0 && CertTemplateCpt::KIND_FICHA !== CertTemplateReader::get_kind( $id ) ) {
+		$id = \FreeFormCertificate\Core\RequestInput::get_post_int( 'ffc_record_template', 0 );
+		// Keep only an id that actually points at a record template (0 otherwise).
+		if ( $id > 0 && CertTemplateCpt::KIND_RECORD !== CertTemplateReader::get_kind( $id ) ) {
 			$id = 0;
 		}
 
-		update_option( CertTemplateFichaResolver::OPTION, $id );
+		update_option( CertTemplateRecordResolver::OPTION, $id );
 
 		// An empty field means "not supplied", NEVER zero: `(int) ''` is 0, and
 		// zero here would mean either "expires immediately" or "never expires"

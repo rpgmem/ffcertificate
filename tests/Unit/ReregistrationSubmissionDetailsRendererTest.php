@@ -51,8 +51,8 @@ class ReregistrationSubmissionDetailsRendererTest extends TestCase {
 			function ( $ts ) { return '[FORMATTED ' . (int) $ts . ']'; }
 		);
 
-		$fichaMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\FichaGenerator' );
-		$fichaMock->shouldReceive( 'format_field_value' )->andReturnUsing(
+		$recordMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\RecordGenerator' );
+		$recordMock->shouldReceive( 'format_field_value' )->andReturnUsing(
 			function ( $field, $value ) { return (string) $value; }
 		);
 	}

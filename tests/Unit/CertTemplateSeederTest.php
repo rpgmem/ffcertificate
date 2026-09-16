@@ -49,7 +49,7 @@ class CertTemplateSeederTest extends TestCase {
 		// create-only seed() (which would leave the stale body in place).
 		Functions\when( 'get_option' )->justReturn( 1 );
 		// All six shipped defaults already present (3 certificate + 2 receipt +
-		// 1 ficha) → restore() refreshes every body, inserts nothing.
+		// 1 record) → restore() refreshes every body, inserts nothing.
 		Functions\when( 'get_posts' )->justReturn( array( 11, 12, 13, 14, 15, 16 ) );
 		Functions\when( 'get_post_meta' )->alias(
 			static function ( $id ) {
@@ -132,13 +132,13 @@ class CertTemplateSeederTest extends TestCase {
 
 		CertTemplateSeeder::maybe_seed();
 
-		// 3 certificate defaults + 2 appointment-receipt defaults (#945) + 1 ficha (#951).
+		// 3 certificate defaults + 2 appointment-receipt defaults (#945) + 1 record (#951).
 		$this->assertSame( 6, $inserted, 'seeds all six shipped defaults' );
 		$this->assertCount( 6, $meta );
 
 		$certificates = array();
 		$receipts     = array();
-		$fichas       = array();
+		$records       = array();
 		foreach ( $meta as $kv ) {
 			$this->assertSame( '1', $kv[ CertTemplateCpt::META_IS_DEFAULT ] );
 			$this->assertSame( '1', $kv[ CertTemplateCpt::META_VISIBLE ] );
@@ -148,8 +148,8 @@ class CertTemplateSeederTest extends TestCase {
 
 			if ( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT === $kv[ CertTemplateCpt::META_KIND ] ) {
 				$receipts[] = $kv;
-			} elseif ( CertTemplateCpt::KIND_FICHA === $kv[ CertTemplateCpt::META_KIND ] ) {
-				$fichas[] = $kv;
+			} elseif ( CertTemplateCpt::KIND_RECORD === $kv[ CertTemplateCpt::META_KIND ] ) {
+				$records[] = $kv;
 			} else {
 				$certificates[] = $kv;
 			}
@@ -157,7 +157,7 @@ class CertTemplateSeederTest extends TestCase {
 
 		$this->assertCount( 3, $certificates, 'three certificate defaults' );
 		$this->assertCount( 2, $receipts, 'two appointment-receipt defaults' );
-		$this->assertCount( 1, $fichas, 'one ficha default' );
+		$this->assertCount( 1, $records, 'one record default' );
 
 		foreach ( $certificates as $kv ) {
 			// Certificate defaults carry the shipped background in the dedicated field.
@@ -226,7 +226,7 @@ class CertTemplateSeederTest extends TestCase {
 		$this->assertNotEmpty( $refreshed, 'existing default HTML is refreshed' );
 
 		// The five missing defaults were (re)created (cert_2, cert_3, the two
-		// receipt defaults + the ficha default); the present one (#11) was not.
+		// receipt defaults + the record default); the present one (#11) was not.
 		$this->assertSame( 5, $inserted, 'the five missing defaults are inserted' );
 	}
 

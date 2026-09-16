@@ -4,14 +4,14 @@
  *
  * Resolves the site-level branding logo tokens `{{logo_gov}}` (government /
  * institution) and `{{logo_org}}` (organization) used by the default
- * certificate, ficha and appointment-receipt templates (issue #865, Phase 2).
+ * certificate, record and appointment-receipt templates (issue #865, Phase 2).
  *
  * Each token resolves to a URL configured in **Settings → General → Branding**
  * (`logo_gov` / `logo_org`, a Media Library URL), falling back to a generic
  * shipped placeholder under `assets/img/certificate-defaults/` when unset — so
  * the default templates never render a broken image, and no instance-specific
  * logo is hardcoded into the plugin. Both PDF renderers (the certificate/receipt
- * renderer and the reregistration ficha generator) route through this one
+ * renderer and the reregistration record generator) route through this one
  * helper so the fallback stays uniform.
  *
  * @package FreeFormCertificate\Core

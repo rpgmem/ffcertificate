@@ -11,7 +11,7 @@
         initSelectAll();
         initBulkConfirm();
         initReturnToDraftConfirm();
-        initFichaDownload();
+        initRecordDownload();
         initSubmissionDetailsModal();
         initTransferList();
         initCsvExport();
@@ -148,10 +148,10 @@
     }
 
     /**
-     * Ficha PDF download via AJAX + client-side generation
+     * Record PDF download via AJAX + client-side generation
      */
-    function initFichaDownload() {
-        $(document).on('click', '.ffc-ficha-btn', function () {
+    function initRecordDownload() {
+        $(document).on('click', '.ffc-record-btn', function () {
             var $btn = $(this);
             var subId = $btn.data('submission-id');
             var S = (window.ffcReregistrationAdmin && window.ffcReregistrationAdmin.strings) || {};
@@ -162,26 +162,26 @@
 
             function restoreBtn() {
                 $btn.prop('disabled', false).html(
-                    '<span class="dashicons dashicons-media-document" style="vertical-align:middle;font-size:14px"></span> ' + (S.ficha || 'Record')
+                    '<span class="dashicons dashicons-media-document" style="vertical-align:middle;font-size:14px"></span> ' + (S.record || 'Record')
                 );
             }
 
             FFC.request(
-                'ffc_generate_ficha',
+                'ffc_generate_record',
                 { submission_id: subId },
-                { nonce: ffcReregistrationAdmin.fichaNonce, ajaxUrl: ffcReregistrationAdmin.ajaxUrl }
+                { nonce: ffcReregistrationAdmin.recordNonce, ajaxUrl: ffcReregistrationAdmin.ajaxUrl }
             )
                 .then(function (data) {
                     restoreBtn();
                     if (data && data.pdf_data && typeof window.ffcGeneratePDF === 'function') {
-                        window.ffcGeneratePDF(data.pdf_data, data.pdf_data.filename || 'ficha.pdf');
+                        window.ffcGeneratePDF(data.pdf_data, data.pdf_data.filename || 'record.pdf');
                     } else {
                         alert(S.errorGenerating || 'PDF generator not available.');
                     }
                 })
                 .catch(function (err) {
                     restoreBtn();
-                    alert((err && err.fromServer && err.message) || S.errorGenerating || 'Error generating ficha.');
+                    alert((err && err.fromServer && err.message) || S.errorGenerating || 'Error generating record.');
                 });
         });
     }
