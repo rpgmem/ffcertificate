@@ -90,7 +90,7 @@ class RecruitmentActivator {
 	 * does not lock the chain at a version it never finished applying.
 	 */
 	public static function create_tables(): void {
-		// Guarda por versao (#1231) -- ver a nota logo acima da assinatura.
+		// Version gate (#1231) -- see the note just above the signature.
 		$ffc_schema_option = 'ffc_recruitment_tables_version';
 		if ( get_option( $ffc_schema_option, '' ) === FFC_VERSION ) {
 			return;

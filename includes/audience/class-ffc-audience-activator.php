@@ -425,7 +425,7 @@ class AudienceActivator {
 	 * does not lock the chain at a version it never finished applying.
 	 */
 	public static function maybe_migrate(): void {
-		// Guarda por versao (#1231) -- ver a nota logo acima da assinatura.
+		// Version gate (#1231) -- see the note just above the signature.
 		$ffc_schema_option = 'ffc_audience_schema_version';
 		if ( get_option( $ffc_schema_option, '' ) === FFC_VERSION ) {
 			return;

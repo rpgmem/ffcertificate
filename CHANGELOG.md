@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **A CI guard that blocks Portuguese prose in comments and i18n source strings** (#1260): `CommentLanguageTest` flags a line carrying two distinct Portuguese function words, after quoted spans are removed. Requiring two is what separates a sentence from `example.com` or `DoS`; the use/mention rule is what lets an example the code operates on stay quoted. Tuned against the 160 lines #1278 removed: 59 of their 60 blocks, zero false positives — and it found six more Portuguese lines on a tree three passes had called clean.
+
 ### Changed
 
 - **Eleven Portuguese identifiers renamed to English** (#1260): eight `ReregistrationFieldOptions` methods (`get_sexo_options` → `get_gender_options`, `get_uf_options` → `get_state_options`, …), two local variables and one JS function. Pure rename: no stored row, option or template token is touched, so the diff is symmetric — 98 lines in, 98 out.
