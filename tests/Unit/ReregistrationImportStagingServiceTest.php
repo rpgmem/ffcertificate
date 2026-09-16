@@ -103,6 +103,15 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	private function with_campaign( array $fields, array $audience_ids = array( 7 ) ): void {
 		$reader = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\CustomFieldReader' );
 		$reader->shouldReceive( 'get_by_audience_with_parents' )->andReturn( $fields );
+		$reader->shouldReceive( 'validate_field_value' )->andReturnUsing(
+			function ( object $field, $value ) {
+				$key = (string) $field->field_key;
+				if ( array_key_exists( $key, $this->field_validity ) && false === $this->field_validity[ $key ] ) {
+					return new \WP_Error( 'field_invalid_number', 'bad' );
+				}
+				return true;
+			}
+		);
 
 		$repo = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' );
 		$repo->shouldReceive( 'get_audience_ids' )->andReturn( $audience_ids );
@@ -110,6 +119,49 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$sanitizer = Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' );
 		$sanitizer->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing(
 			static fn( string $v ) => (string) preg_replace( '/\D/', '', $v )
+		);
+	}
+
+	/**
+	 * Wire the validate phase's collaborators.
+	 *
+	 * @param array<string, int>    $resolves    cpf|rf|email => user id (0 = would create).
+	 * @param array<int, ?object>   $submissions user id => seeded submission, or null.
+	 * @param array<string, bool>   $valid       field key => whether validation passes.
+	 * @return void
+	 */
+	private function with_validation( array $resolves, array $submissions = array(), array $valid = array() ): void {
+		$encryption = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$encryption->shouldReceive( 'hash' )->andReturnUsing( static fn( string $v ) => 'h:' . $v );
+
+		$manager = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' );
+		$manager->shouldReceive( 'resolve_existing_user' )->andReturnUsing(
+			static function ( ?string $cpf_hash, ?string $rf_hash, string $email ) use ( $resolves ): int {
+				foreach ( array( $cpf_hash, $rf_hash ) as $hash ) {
+					if ( null !== $hash && isset( $resolves[ $hash ] ) ) {
+						return $resolves[ $hash ];
+					}
+				}
+				return $resolves[ $email ] ?? 0;
+			}
+		);
+
+		$reader = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' );
+		$reader->shouldReceive( 'get_by_reregistration_and_user' )->andReturnUsing(
+			static fn( int $rereg_id, int $user_id ) => $submissions[ $user_id ] ?? null
+		);
+
+		$this->field_validity = $valid;
+	}
+
+	/** @var array<string, bool> */
+	private array $field_validity = array();
+
+	/** A seeded submission row. */
+	private function submission( int $id, string $status ): object {
+		return (object) array(
+			'id'     => (string) $id,
+			'status' => $status,
 		);
 	}
 
@@ -329,5 +381,202 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$values  = $this->staging_insert()['values'];
 		$second  = json_decode( (string) $values[15], true );
 		$this->assertSame( array( 'cpf' => '333', 'rf' => '' ), $second );
+	}
+
+	// ==================================================================
+	// validate_job() — the all-or-nothing boundary (#1214)
+	// ==================================================================
+
+	/**
+	 * Run validate over a fixed set of staged rows.
+	 *
+	 * @param list<array<string, string>> $staged Each row's cpf/rf/email/payload.
+	 * @return array<string, mixed>
+	 */
+	private function run_validate( array $staged ): array {
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
+			(object) array(
+				'job_id'            => 'job-uuid-0001',
+				'reregistration_id' => '1',
+				'audience_id'       => '7',
+				'status'            => 'ingested',
+			)
+		);
+
+		$rows = array();
+		foreach ( $staged as $i => $row ) {
+			$rows[] = (object) array(
+				'id'             => (string) ( $i + 1 ),
+				'row_no'         => (string) ( $i + 1 ),
+				'line_no'        => (string) ( $i + 2 ),
+				'payload'        => $row['payload'] ?? '{}',
+				'cpf_normalized' => $row['cpf'] ?? '',
+				'rf_normalized'  => $row['rf'] ?? '',
+				'email'          => $row['email'] ?? '',
+			);
+		}
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( $rows );
+
+		$this->updates = array();
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data ) {
+				$this->updates[] = $data;
+				return 1;
+			}
+		);
+
+		return ReregistrationImportStagingService::validate_job( 'job-uuid-0001' );
+	}
+
+	/** @var list<array<string, mixed>> */
+	private array $updates = array();
+
+	/** The row_status written for the Nth staged row (0-based). */
+	private function row_status( int $index ): string {
+		return (string) ( $this->updates[ $index ]['row_status'] ?? '' );
+	}
+
+	public function test_a_clean_job_validates_and_is_ready_to_promote(): void {
+		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
+		$this->with_validation( array( 'h:11111111111' => 42 ), array( 42 => $this->submission( 900, 'pending' ) ) );
+
+		$result = $this->run_validate( array( array( 'cpf' => '11111111111', 'payload' => '{"cpf":"111"}' ) ) );
+
+		$this->assertTrue( $result['ok'] );
+		$this->assertSame( 'validated', $result['status'] );
+		$this->assertSame( 1, $result['ready'] );
+		$this->assertSame( 0, $result['failed'] );
+		$this->assertSame( 42, $this->updates[0]['user_id'] );
+		$this->assertSame( 900, $this->updates[0]['submission_id'], 'The seeded submission is recorded so promote re-reads a decision.' );
+	}
+
+	/**
+	 * The #1214 decision: one bad row blocks the whole job. Promotion is
+	 * batched across requests and cannot roll back an earlier batch, so this
+	 * boundary is the only place all-or-nothing can hold.
+	 */
+	public function test_one_invalid_row_blocks_the_entire_job(): void {
+		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ), $this->field( 'idade', 'Idade' ) ) );
+		$this->with_validation(
+			array( 'h:111' => 42, 'h:222' => 43 ),
+			array( 42 => null, 43 => null ),
+			array( 'idade' => false )
+		);
+
+		$result = $this->run_validate(
+			array(
+				array( 'cpf' => '111', 'payload' => '{"cpf":"111","idade":"x"}' ),
+				array( 'cpf' => '222', 'payload' => '{"cpf":"222","idade":"y"}' ),
+			)
+		);
+
+		$this->assertFalse( $result['ok'], 'A job with any failure must not be promotable.' );
+		$this->assertSame( 'blocked', $result['status'] );
+		$this->assertSame( 2, $result['failed'] );
+		$this->assertSame( 'field_invalid_number:idade', $result['failures'][0]['error'] );
+		$this->assertSame( 2, $result['failures'][0]['line'], 'The operator reads the line in the file, not the row ordinal.' );
+	}
+
+	/**
+	 * The other half of the decision: "already submitted" is expected state,
+	 * not a defect in the spreadsheet, so it skips its row and does NOT block.
+	 * The person got there first and their own answers are theirs to keep.
+	 */
+	public function test_an_already_submitted_row_skips_without_blocking(): void {
+		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
+		$this->with_validation(
+			array( 'h:111' => 42, 'h:222' => 43 ),
+			array(
+				42 => $this->submission( 900, 'approved' ),
+				43 => $this->submission( 901, 'pending' ),
+			)
+		);
+
+		$result = $this->run_validate(
+			array(
+				array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ),
+				array( 'cpf' => '222', 'payload' => '{"cpf":"222"}' ),
+			)
+		);
+
+		$this->assertTrue( $result['ok'], 'A skip is not a failure.' );
+		$this->assertSame( 'validated', $result['status'] );
+		$this->assertSame( 1, $result['skipped'] );
+		$this->assertSame( 1, $result['ready'] );
+		$this->assertSame( 'skipped', $this->row_status( 0 ) );
+		$this->assertSame( 'ready', $this->row_status( 1 ) );
+	}
+
+	public function test_a_draft_submission_is_still_fillable(): void {
+		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
+		$this->with_validation( array( 'h:111' => 42 ), array( 42 => $this->submission( 900, 'draft' ) ) );
+
+		$result = $this->run_validate( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
+
+		$this->assertSame( 1, $result['ready'], 'A draft is the user having started, not having submitted.' );
+	}
+
+	/**
+	 * Two rows resolving to one account is certainly wrong, and it is exactly
+	 * how a shared institutional mailbox presents: e-mail matching binds every
+	 * one of them to whichever account that address hits (#1295). Catching it
+	 * here means the operator sees it before a single write.
+	 */
+	public function test_two_rows_resolving_to_one_user_block_the_job(): void {
+		$this->with_campaign( array( $this->field( 'email', 'E-mail' ) ) );
+		$this->with_validation( array( 'shared@unit.example' => 42 ), array( 42 => null ) );
+
+		$result = $this->run_validate(
+			array(
+				array( 'email' => 'shared@unit.example', 'payload' => '{"email":"shared@unit.example"}' ),
+				array( 'email' => 'shared@unit.example', 'payload' => '{"email":"shared@unit.example"}' ),
+			)
+		);
+
+		$this->assertFalse( $result['ok'] );
+		$this->assertSame( 1, $result['failed'] );
+		$this->assertSame( 'rereg_import_duplicate_identity:2', $result['failures'][0]['error'], 'The error names the line that claimed the user first.' );
+		$this->assertSame( 3, $result['failures'][0]['line'] );
+	}
+
+	/**
+	 * A row that matches nobody and carries no e-mail cannot be promoted:
+	 * `wp_create_user` rejects an empty address, so it fails here rather than
+	 * halfway through a batch.
+	 */
+	public function test_a_row_with_no_identifier_and_no_email_fails(): void {
+		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
+		$this->with_validation( array() );
+
+		$result = $this->run_validate( array( array( 'cpf' => '', 'email' => '', 'payload' => '{}' ) ) );
+
+		$this->assertFalse( $result['ok'] );
+		$this->assertSame( 'rereg_import_no_identifier', $result['failures'][0]['error'] );
+	}
+
+	/**
+	 * A row for somebody who does not exist yet is valid — promotion creates
+	 * them. Recording `user_id` as 0 is what lets the operator see, before any
+	 * write, how many accounts the import would open.
+	 */
+	public function test_a_row_that_would_create_a_user_is_ready_and_visible(): void {
+		$this->with_campaign( array( $this->field( 'email', 'E-mail' ) ) );
+		$this->with_validation( array() );
+
+		$result = $this->run_validate( array( array( 'email' => 'new@example.com', 'payload' => '{"email":"new@example.com"}' ) ) );
+
+		$this->assertTrue( $result['ok'] );
+		$this->assertSame( 1, $result['ready'] );
+		$this->assertSame( 0, $this->updates[0]['user_id'], '0 means "promotion would create this one".' );
+	}
+
+	public function test_an_unknown_job_is_refused(): void {
+		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
+
+		$result = ReregistrationImportStagingService::validate_job( 'nope' );
+
+		$this->assertFalse( $result['ok'] );
+		$this->assertSame( array( 'rereg_import_job_not_found' ), $result['errors'] );
 	}
 }

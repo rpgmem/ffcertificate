@@ -140,36 +140,8 @@ class UserCreator {
 			return new \WP_Error( 'ffc_user_no_identifier', 'No identifier provided.' );
 		}
 
-		global $wpdb;
-		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
-
 		// STEP 1: Submissions lookup against the supplied hashes.
-		// Build a `cpf_hash = %s OR rf_hash = %s` clause that includes
-		// only the columns we actually have a value for.
-		$existing_user_id = null;
-		if ( null !== $cpf_hash || null !== $rf_hash ) {
-			$where_parts = array();
-			$params      = array();
-			if ( null !== $cpf_hash ) {
-				$where_parts[] = 'cpf_hash = %s';
-				$params[]      = $cpf_hash;
-			}
-			if ( null !== $rf_hash ) {
-				$where_parts[] = 'rf_hash = %s';
-				$params[]      = $rf_hash;
-			}
-			$where = implode( ' OR ', $where_parts );
-
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $where built from hard-coded fragments above with matching placeholder count.
-			$existing_user_id = $wpdb->get_var(
-				$wpdb->prepare(
-					"SELECT user_id FROM %i WHERE ({$where}) AND user_id IS NOT NULL LIMIT 1",
-					$table,
-					...$params
-				)
-			);
-			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
-		}
+		$existing_user_id = self::find_user_id_by_hashes( $cpf_hash, $rf_hash );
 
 		if ( $existing_user_id ) {
 			$uid = (int) $existing_user_id;
@@ -203,6 +175,102 @@ class UserCreator {
 
 		self::link_orphaned_records_dual( $cpf_hash, $rf_hash, (int) $user_id );
 		return (int) $user_id;
+	}
+
+	/**
+	 * The user a CPF and/or RF hash already belongs to, or null.
+	 *
+	 * Extracted from {@see self::get_or_create_user_dual()}'s step 1 so the
+	 * read-only probe below and the create-if-missing resolver cannot drift:
+	 * a probe that looked in MORE places than the resolver would report a match
+	 * and then watch promotion create a duplicate anyway. One lookup, two
+	 * callers.
+	 *
+	 * **It reads `ffc_submissions` alone**, which is the known gap, not a
+	 * decision taken here: appointments and recruitment candidacies carry the
+	 * same hash columns and are consulted by neither — while this class's own
+	 * `link_orphaned_records_dual()` happily ADOPTS appointment rows once the
+	 * user is identified some other way. Measured and tracked in #1295; when
+	 * that widens, it widens here, for both callers at once.
+	 *
+	 * @since 6.26.0
+	 * @param string|null $cpf_hash CPF hash, or null to skip that column.
+	 * @param string|null $rf_hash  RF hash, or null to skip that column.
+	 * @return int|null User id, or null when neither hash is known.
+	 */
+	private static function find_user_id_by_hashes( ?string $cpf_hash, ?string $rf_hash ): ?int {
+		if ( null === $cpf_hash && null === $rf_hash ) {
+			return null;
+		}
+
+		global $wpdb;
+		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
+
+		// Build a `cpf_hash = %s OR rf_hash = %s` clause that includes only the
+		// columns we actually have a value for.
+		$where_parts = array();
+		$params      = array();
+		if ( null !== $cpf_hash ) {
+			$where_parts[] = 'cpf_hash = %s';
+			$params[]      = $cpf_hash;
+		}
+		if ( null !== $rf_hash ) {
+			$where_parts[] = 'rf_hash = %s';
+			$params[]      = $rf_hash;
+		}
+		$where = implode( ' OR ', $where_parts );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $where built from hard-coded fragments above with matching placeholder count.
+		$found = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT user_id FROM %i WHERE ({$where}) AND user_id IS NOT NULL LIMIT 1",
+				$table,
+				...$params
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		return $found ? (int) $found : null;
+	}
+
+	/**
+	 * Resolve an identity to an EXISTING user, creating nothing.
+	 *
+	 * The read-only sibling of {@see self::get_or_create_user_dual()}: it runs
+	 * that method's first two steps — hash lookup, then e-mail — and stops
+	 * before the third. Callers that must report what resolution WOULD do,
+	 * without doing it, need exactly this: the reregistration CSV import
+	 * validates every row before promoting any (#1214), and the job may be
+	 * blocked immediately afterwards, so a probe that created users would leave
+	 * accounts behind for an import that never ran.
+	 *
+	 * It is the same distinction the captcha contract draws in this codebase
+	 * between `verify()`, which spends the challenge, and `peek()`, which
+	 * checks it without spending.
+	 *
+	 * **Deliberately no side effects**: no capability grant, no role, no
+	 * orphan adoption. Those belong to the act, not to the question.
+	 *
+	 * @since 6.26.0
+	 * @param string|null $cpf_hash CPF hash, or null.
+	 * @param string|null $rf_hash  RF hash, or null.
+	 * @param string      $email    Plain e-mail, or '' when unknown.
+	 * @return int User id, or 0 when resolution would create one.
+	 */
+	public static function resolve_existing_user( ?string $cpf_hash, ?string $rf_hash, string $email ): int {
+		$by_hash = self::find_user_id_by_hashes( $cpf_hash, $rf_hash );
+		if ( null !== $by_hash ) {
+			return $by_hash;
+		}
+
+		if ( '' !== $email ) {
+			$user = get_user_by( 'email', $email );
+			if ( $user ) {
+				return (int) $user->ID;
+			}
+		}
+
+		return 0;
 	}
 
 	/**

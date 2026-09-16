@@ -23,6 +23,8 @@ namespace FreeFormCertificate\Reregistration;
 
 use FreeFormCertificate\Core\Csv;
 use FreeFormCertificate\Core\DataSanitizer;
+use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\UserDashboard\UserManager;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -217,6 +219,216 @@ class ReregistrationImportStagingService {
 			'total'   => count( $rows ),
 			'mapped'  => $map['mapped'],
 			'ignored' => $map['ignored'],
+		);
+	}
+
+
+	/**
+	 * Resolve a staged row to an existing user, creating nothing.
+	 *
+	 * Thin wrapper over `UserManager::resolve_existing_user()`, which is the
+	 * read-only sibling of the resolver promotion will use. Keeping the lookup
+	 * THERE rather than here is what makes the two impossible to drift apart —
+	 * and the module-boundary guard is what surfaced it: reimplementing the
+	 * query here opened a `Reregistration → Repositories` edge that did not
+	 * exist, which was the smell before it was an argument.
+	 *
+	 * @param string $cpf_normalized Digits-only CPF, or ''.
+	 * @param string $rf_normalized  Digits-only RF, or ''.
+	 * @param string $email          Lowercased e-mail, or ''.
+	 * @return int User id, or 0 when promotion would create one.
+	 */
+	public static function resolve_existing_user( string $cpf_normalized, string $rf_normalized, string $email ): int {
+		$cpf_hash = '' !== $cpf_normalized ? Encryption::hash( $cpf_normalized ) : null;
+		$rf_hash  = '' !== $rf_normalized ? Encryption::hash( $rf_normalized ) : null;
+
+		return UserManager::resolve_existing_user( $cpf_hash, $rf_hash, $email );
+	}
+
+	/**
+	 * Validate every staged row of a job and decide whether it may promote.
+	 *
+	 * **All or nothing, and the boundary is here (#1214).** Promotion is batched
+	 * across requests precisely because of timeouts, so a failure in batch five
+	 * cannot undo what batches one to four wrote. The only place the guarantee
+	 * can hold is this one: validate everything, and refuse to promote at all if
+	 * anything failed. That is what the stage-all → validate → promote shape
+	 * exists for.
+	 *
+	 * So a row outcome is one of three, and only the middle one is tolerated:
+	 *
+	 * - `ready` — will be written.
+	 * - `skipped` — the person has already submitted. **Expected state, not a
+	 *   defect in the spreadsheet**, so it does not block: the operator's file
+	 *   simply contains someone who got there first, and their own answers are
+	 *   theirs to keep (#1214).
+	 * - `failed` — anything else. Blocks the whole job.
+	 *
+	 * @param string $job_id Job UUID from {@see self::ingest_job()}.
+	 * @return array{ok: bool, status: string, total: int, ready: int, skipped: int, failed: int, failures: list<array{line: int, error: string}>}|array{ok: false, errors: list<string>}
+	 */
+	public static function validate_job( string $job_id ) {
+		global $wpdb;
+
+		$job = self::get_job( $job_id );
+		if ( null === $job ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'rereg_import_job_not_found' ),
+			);
+		}
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT id, row_no, line_no, payload, cpf_normalized, rf_normalized, email FROM %i WHERE job_id = %s ORDER BY row_no ASC',
+				self::staging_table(),
+				$job_id
+			)
+		);
+
+		if ( ! is_array( $rows ) || array() === $rows ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( 'rereg_import_job_has_no_rows' ),
+			);
+		}
+
+		$fields = array();
+		foreach ( CustomFieldReader::get_by_audience_with_parents( (int) $job->audience_id, true ) as $field ) {
+			$fields[ (string) $field->field_key ] = $field;
+		}
+
+		$counts    = array(
+			'ready'   => 0,
+			'skipped' => 0,
+			'failed'  => 0,
+		);
+		$failures  = array();
+		$seen_user = array();
+
+		foreach ( $rows as $row ) {
+			$line    = (int) $row->line_no;
+			$payload = json_decode( (string) $row->payload, true );
+			$payload = is_array( $payload ) ? $payload : array();
+
+			$user_id       = self::resolve_existing_user( (string) $row->cpf_normalized, (string) $row->rf_normalized, (string) $row->email );
+			$submission_id = 0;
+			$status        = 'ready';
+			$error         = '';
+
+			// Two rows resolving to one account is certainly wrong, and it is
+			// how a shared institutional mailbox presents: e-mail matching binds
+			// every one of them to whichever account that address hits (#1295).
+			// Catching it here means the operator sees it before a single write.
+			if ( 0 !== $user_id && isset( $seen_user[ $user_id ] ) ) {
+				$status = 'failed';
+				$error  = sprintf( 'rereg_import_duplicate_identity:%d', $seen_user[ $user_id ] );
+			} elseif ( 0 === $user_id && '' === (string) $row->email ) {
+				// No identifier matched and no e-mail to create an account
+				// from. `wp_create_user` would reject the empty address, so
+				// promotion cannot succeed for this row.
+				$status = 'failed';
+				$error  = 'rereg_import_no_identifier';
+			}
+
+			if ( 'ready' === $status && 0 !== $user_id ) {
+				$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( (int) $job->reregistration_id, $user_id );
+				if ( null !== $submission ) {
+					$submission_id = (int) $submission->id;
+					if ( ! in_array( (string) $submission->status, array( 'pending', 'draft' ), true ) ) {
+						$status = 'skipped';
+						$error  = sprintf( 'rereg_import_already_submitted:%s', (string) $submission->status );
+					}
+				}
+			}
+
+			if ( 'ready' === $status ) {
+				foreach ( $fields as $key => $field ) {
+					$check = CustomFieldReader::validate_field_value( $field, $payload[ $key ] ?? '' );
+					if ( is_wp_error( $check ) ) {
+						$status = 'failed';
+						$error  = sprintf( '%s:%s', (string) $check->get_error_code(), $key );
+						break;
+					}
+				}
+			}
+
+			if ( 0 !== $user_id && 'failed' !== $status ) {
+				$seen_user[ $user_id ] = $line;
+			}
+
+			++$counts[ $status ];
+			if ( 'failed' === $status ) {
+				$failures[] = array(
+					'line'  => $line,
+					'error' => $error,
+				);
+			}
+
+			$wpdb->update(
+				self::staging_table(),
+				array(
+					'user_id'       => $user_id,
+					'submission_id' => $submission_id,
+					'row_status'    => $status,
+					'error'         => '' !== $error ? $error : null,
+				),
+				array( 'id' => (int) $row->id ),
+				array( '%d', '%d', '%s', '%s' ),
+				array( '%d' )
+			);
+		}
+
+		$blocked = $counts['failed'] > 0;
+		$status  = $blocked ? 'blocked' : 'validated';
+		self::set_job_status( $job_id, $status );
+
+		return array(
+			'ok'       => ! $blocked,
+			'status'   => $status,
+			'total'    => count( $rows ),
+			'ready'    => $counts['ready'],
+			'skipped'  => $counts['skipped'],
+			'failed'   => $counts['failed'],
+			'failures' => $failures,
+		);
+	}
+
+	/**
+	 * Read a job header.
+	 *
+	 * @param string $job_id Job UUID.
+	 * @return object|null
+	 */
+	public static function get_job( string $job_id ): ?object {
+		global $wpdb;
+
+		$row = $wpdb->get_row(
+			$wpdb->prepare( 'SELECT * FROM %i WHERE job_id = %s LIMIT 1', self::jobs_table(), $job_id )
+		);
+
+		return is_object( $row ) ? $row : null;
+	}
+
+	/**
+	 * Move a job to a new phase.
+	 *
+	 * @param string $job_id Job UUID.
+	 * @param string $status New status.
+	 * @return void
+	 */
+	private static function set_job_status( string $job_id, string $status ): void {
+		global $wpdb;
+
+		$wpdb->update(
+			self::jobs_table(),
+			array(
+				'status'     => $status,
+				'updated_at' => gmdate( 'Y-m-d H:i:s' ),
+			),
+			array( 'job_id' => $job_id ),
+			array( '%s', '%s' ),
+			array( '%s' )
 		);
 	}
 
