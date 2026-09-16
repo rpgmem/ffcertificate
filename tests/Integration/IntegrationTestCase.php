@@ -320,6 +320,11 @@ abstract class IntegrationTestCase extends TestCase {
 				'ffc_url_shortener_export_cap_v1',
 				'ffc_export_caps_granted_v1',
 				'ffc_import_caps_granted_v1',
+				// _v1 stays seeded for installs that carry it; _v2 is what the
+				// Loader reads since #1214 widened the map, and an unseeded flag
+				// makes the migration RUN here — against the null `wp_roles()`
+				// this harness deliberately stubs.
+				'ffc_import_caps_granted_v2',
 				'ffc_reasons_caps_wired_v1',
 				'ffc_admin_role_assigned_v1',
 				'ffc_rbac_caps_renamed_v1',

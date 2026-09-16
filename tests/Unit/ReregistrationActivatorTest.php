@@ -236,14 +236,152 @@ class ReregistrationActivatorTest extends TestCase {
 
 		ReregistrationActivator::create_tables();
 
-		// Three CREATE TABLE statements ran (campaigns, junction, submissions).
+		// Five CREATE TABLE statements ran: campaigns, junction, submissions,
+		// and the two CSV-import tables (#1214).
 		$joined = implode( "\n", $ddl );
 		$this->assertStringContainsString( 'ffc_reregistrations', $joined );
 		$this->assertStringContainsString( 'ffc_reregistration_audiences', $joined );
 		$this->assertStringContainsString( 'ffc_reregistration_submissions', $joined );
+		$this->assertStringContainsString( 'ffc_reregistration_import_jobs', $joined );
+		$this->assertStringContainsString( 'ffc_reregistration_import_staging', $joined );
 		$this->assertStringContainsString( 'auto_approve', $joined );
 		$this->assertStringContainsString( 'submitted_at bigint(20) unsigned', $joined );
-		$this->assertCount( 3, $ddl );
+		$this->assertCount( 5, $ddl );
+	}
+
+	// ==================================================================
+	// The CSV-import tables (#1214)
+	// ==================================================================
+
+	/**
+	 * The staging row is JSON, and that is the one thing this importer cannot
+	 * copy from recruitment's.
+	 *
+	 * There the staged columns are typed because the domain fixes them; here
+	 * the columns are rows of `ffc_custom_fields` keyed by `audience_id`, so
+	 * they cannot be a column list. `longtext` rather than `json` is not a
+	 * style choice either: MariaDB stores `json` as `LONGTEXT` plus a CHECK,
+	 * so a `json` column can never match its own statement and the dbDelta
+	 * idempotence gate would re-ALTER it on every run.
+	 */
+	public function test_staging_stages_the_row_as_longtext_json(): void {
+		$ddl = $this->capture_fresh_install_ddl();
+
+		$staging = $this->statement_for( $ddl, 'ffc_reregistration_import_staging' );
+		$this->assertNotNull( $staging, 'No CREATE TABLE ran for the staging table.' );
+		$this->assertStringContainsString( 'payload longtext', $staging );
+		$this->assertStringNotContainsString( ' json', $staging );
+	}
+
+	/**
+	 * The resolution columns are cleartext on purpose, and the promote phase
+	 * re-reads a decision the validate phase already took.
+	 *
+	 * Hashing before validation would make "this CPF is malformed" impossible
+	 * to report; `RecruitmentActivator` reached the same conclusion (its V11
+	 * migration recreated the staging table plaintext). `user_id` and
+	 * `submission_id` carry the validate phase's answer so promotion does not
+	 * resolve identity a second time.
+	 */
+	public function test_staging_carries_the_resolution_columns(): void {
+		$staging = $this->statement_for( $this->capture_fresh_install_ddl(), 'ffc_reregistration_import_staging' );
+
+		foreach ( array( 'cpf_normalized varchar(11)', 'rf_normalized varchar(7)', 'email varchar(255)' ) as $cleartext ) {
+			$this->assertStringContainsString( $cleartext, (string) $staging );
+		}
+		$this->assertStringContainsString( 'user_id bigint(20) unsigned NOT NULL DEFAULT 0', (string) $staging );
+		$this->assertStringContainsString( 'submission_id bigint(20) unsigned NOT NULL DEFAULT 0', (string) $staging );
+		// One staged row per (job, row number): re-ingesting cannot double a row.
+		$this->assertStringContainsString( 'UNIQUE KEY uq_job_row (job_id, row_no)', (string) $staging );
+	}
+
+	/**
+	 * The job header carries the phase, the progress pair and the ownership
+	 * fence every `authorize_*` reads.
+	 */
+	public function test_import_jobs_carries_phase_progress_and_owner(): void {
+		$jobs = $this->statement_for( $this->capture_fresh_install_ddl(), 'ffc_reregistration_import_jobs' );
+
+		$this->assertNotNull( $jobs, 'No CREATE TABLE ran for the jobs table.' );
+		$this->assertStringContainsString( "status varchar(20) NOT NULL DEFAULT 'ingested'", $jobs );
+		$this->assertStringContainsString( 'total int(10) unsigned', $jobs );
+		$this->assertStringContainsString( 'processed_count int(10) unsigned', $jobs );
+		$this->assertStringContainsString( 'user_id bigint(20) unsigned', $jobs );
+		// The stale-job sweep orders by this.
+		$this->assertStringContainsString( 'KEY idx_cleanup (created_at)', $jobs );
+		// One import is scoped to one audience — that is what makes the
+		// header => field_key map determinate (#1214).
+		$this->assertStringContainsString( 'audience_id bigint(20) unsigned NOT NULL', $jobs );
+	}
+
+	/**
+	 * Both tables early-return when they already exist, like every sibling.
+	 *
+	 * The mock has to substitute the prepared argument for this to mean
+	 * anything: with the default stub `get_var` receives the format string
+	 * `SHOW TABLES LIKE %s` rather than the table name, so it cannot echo the
+	 * name back and `table_exists()` is false for every table. That is why the
+	 * sibling test above can only assert a bool.
+	 */
+	public function test_import_tables_are_not_recreated_when_present(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () {
+			$args = func_get_args();
+			// 'SHOW TABLES LIKE %s' + the table name => return the name, so
+			// get_var below can report it as existing.
+			return $args[1] ?? $args[0];
+		} );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing( function ( $arg ) {
+			return $arg;
+		} );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+		$ddl = array();
+		Functions\when( 'dbDelta' )->alias( function ( $sql ) use ( &$ddl ) {
+			$ddl[] = $sql;
+		} );
+
+		ReregistrationActivator::create_tables();
+
+		$this->assertNull( $this->statement_for( $ddl, 'ffc_reregistration_import_jobs' ) );
+		$this->assertNull( $this->statement_for( $ddl, 'ffc_reregistration_import_staging' ) );
+		// And nothing else was recreated either — the whole module is idempotent.
+		$this->assertSame( array(), $ddl );
+	}
+
+	/**
+	 * Run `create_tables()` against an empty database and return the DDL.
+	 *
+	 * @return array<int, string>
+	 */
+	private function capture_fresh_install_ddl(): array {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null )->byDefault();
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
+
+		$ddl = array();
+		Functions\when( 'dbDelta' )->alias( function ( $sql ) use ( &$ddl ) {
+			$ddl[] = $sql;
+		} );
+
+		ReregistrationActivator::create_tables();
+
+		return $ddl;
+	}
+
+	/**
+	 * The captured statement that creates `$table`, or null when none did.
+	 *
+	 * @param array<int, string> $ddl   Captured statements.
+	 * @param string             $table Unprefixed table name.
+	 * @return string|null
+	 */
+	private function statement_for( array $ddl, string $table ): ?string {
+		foreach ( $ddl as $sql ) {
+			if ( str_contains( $sql, $table . ' (' ) ) {
+				return $sql;
+			}
+		}
+
+		return null;
 	}
 
 	// ==================================================================

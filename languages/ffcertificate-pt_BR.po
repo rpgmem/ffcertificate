@@ -8007,6 +8007,14 @@ msgstr "Exportar Dados Pessoais"
 msgid "Export reregistration submissions"
 msgstr "Exportar submissões de recadastramento"
 
+#: includes/user-dashboard/class-ffc-capability-catalog.php:310
+msgid "Import reregistration submissions"
+msgstr "Importar submissões de recadastramento"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:311
+msgid "Bulk-load a campaign's answers from CSV, creating the users a row needs."
+msgstr "Carregue em massa as respostas de uma campanha a partir de um CSV, criando os usuários que cada linha precisar."
+
 #: includes/user-dashboard/class-ffc-capability-catalog.php:352
 msgid "Export short URLs"
 msgstr "Exportar URLs curtas"

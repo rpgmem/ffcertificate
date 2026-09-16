@@ -7999,6 +7999,14 @@ msgstr ""
 msgid "Export reregistration submissions"
 msgstr ""
 
+#: includes/user-dashboard/class-ffc-capability-catalog.php:310
+msgid "Import reregistration submissions"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:311
+msgid "Bulk-load a campaign's answers from CSV, creating the users a row needs."
+msgstr ""
+
 #: includes/user-dashboard/class-ffc-capability-catalog.php:352
 msgid "Export short URLs"
 msgstr ""

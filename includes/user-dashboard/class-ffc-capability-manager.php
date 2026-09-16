@@ -224,6 +224,12 @@ class CapabilityManager {
 		// cap onto every holder of the matching `manage` cap, preserving current
 		// behavior on upgrade. See `import_cap_grant_map()`.
 		'ffc_import_audiences',
+		// Reregistration joins the import tier in 6.26.0 (#1214): loading a
+		// campaign's answers from a spreadsheet writes encrypted PII for people
+		// who never touched the form, which is a strictly larger act than
+		// managing the campaign. Seeded onto current `ffc_manage_reregistration`
+		// holders by the same one-shot migration, re-run under `_v2`.
+		'ffc_import_reregistration',
 
 		// Settings sub-caps (#711). Carve the two most sensitive Settings
 		// surfaces out of the blanket `ffc_manage_settings` so each can be
@@ -793,7 +799,7 @@ class CapabilityManager {
 			),
 			'ffc_reregistration_manager'  => array(
 				'label' => __( 'FFC Reregistration - Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration', 'ffc_delete_reregistration', 'ffc_export_reregistration' ),
+				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration', 'ffc_delete_reregistration', 'ffc_export_reregistration', 'ffc_import_reregistration' ),
 			),
 
 			// ── Calendars (self-scheduling structure) ────────────────────
