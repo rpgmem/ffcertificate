@@ -134,12 +134,12 @@ class SubmissionHandlerTest extends TestCase {
 	}
 
 	/**
-	 * O agendamento carrega UM inteiro, e o gancho interno (#1248).
+	 * The schedule carries ONE integer, and the internal hook (#1248).
 	 *
-	 * Antes iam oito argumentos, entre eles o `$submission_data` inteiro. O
-	 * agendamento mora na option `cron`, que e autoloaded: enquanto o evento
-	 * estivesse pendente, todo pedido ao site carregaria e desserializaria
-	 * aquilo.
+	 * Eight arguments used to travel, among them the whole `$submission_data`.
+	 * The schedule lives in the `cron` option, which is autoloaded: while the
+	 * event was pending, every request to the site would load and unserialize
+	 * that.
 	 */
 	public function test_process_submission_schedules_only_the_submission_id(): void {
 		$this->mockRepo->shouldReceive( 'insert' )->once()->andReturn( 77 );

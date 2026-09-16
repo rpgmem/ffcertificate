@@ -97,9 +97,9 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 	}
 
 	/**
-	 * Captura o payload que `set_qr_cache()` manda para o repositorio.
+	 * Captures the payload `set_qr_cache()` sends to the repository.
 	 *
-	 * @param int    $size   Tamanho declarado.
+	 * @param int    $size   Declared size.
 	 * @param string $base64 PNG.
 	 * @return string
 	 */

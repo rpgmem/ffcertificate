@@ -251,7 +251,7 @@ final class SpacingTokensTest extends TestCase {
 	 * The scale declares exactly the nine steps — no tenth, no second ladder.
 	 */
 	public function test_the_scale_declares_exactly_the_expected_steps(): void {
-		// Um degrau nomeado por número viraria chave int; compara como string.
+		// A step named by a number would become an int key; compare as strings.
 		$declared = array_map( 'strval', array_keys( self::declared_steps() ) );
 		sort( $declared );
 

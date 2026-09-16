@@ -382,8 +382,8 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 	}
 
 	public function test_has_edit_info_true_when_column_present_and_has_data(): void {
-		// Primeiro get_var: a coluna existe ('1'). Segundo: a sonda de
-		// existence. Since #1234 the query is `SELECT 1 ... LIMIT 1` and not
+		// First get_var: the column exists ('1'). Second: the existence probe.
+		// Since #1234 the query is `SELECT 1 ... LIMIT 1` and not
 		// `COUNT(*)`, so the return is '1' when some row exists and NULL when
 		// none does -- never the '0' a COUNT would return.
 		$this->wpdb->shouldReceive( 'get_var' )->twice()->andReturn( '1', '1' );
@@ -392,8 +392,8 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 	}
 
 	public function test_has_edit_info_false_when_column_present_but_no_data(): void {
-		// NULL, not '0': `get_var()` returns null when the query brings back
-		// linha nenhuma, que e a forma que `LIMIT 1` tem de dizer "vazio".
+		// NULL, not '0': `get_var()` returns null when the query brings back no
+		// row at all, which is how `LIMIT 1` says "empty".
 		$this->wpdb->shouldReceive( 'get_var' )->twice()->andReturn( '1', null );
 
 		$this->assertFalse( $this->repo()->hasEditInfo() );
@@ -403,7 +403,7 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 	 * The existence probe does not use `COUNT(*)` (#1234).
 	 *
 	 * `edited_at` is not indexed, so a COUNT walks the whole table --
-	 * a maior do plugin -- para produzir um numero que so e comparado com
+	 * the largest in the plugin -- to produce a number that is only compared with
 	 * zero. This assertion reads the emitted SQL because the difference does not
 	 * appear in the return value: both shapes answer the same boolean.
 	 */

@@ -60,7 +60,7 @@ class ReregistrationReminderBatchTest extends TestCase {
 	private array $scheduled = array();
 
 	/**
-	 * O que `wp_next_scheduled` responde.
+	 * What `wp_next_scheduled` answers.
 	 *
 	 * @var int|false
 	 */
@@ -159,8 +159,9 @@ class ReregistrationReminderBatchTest extends TestCase {
 		Functions\when( 'get_userdata' )->alias(
 			static function ( $id ) use ( $failing ) {
 				if ( in_array( (int) $id, $failing, true ) ) {
-					// Submissao cujo usuario foi apagado: o orfao aceito do
-					// #822. E o caso que trava a fila sem o cursor.
+					// A submission whose user was deleted: #822's accepted
+					// orphan. It is the case that jams the queue without the
+					// cursor.
 					return false;
 				}
 				return (object) array(

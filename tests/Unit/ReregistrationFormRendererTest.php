@@ -117,10 +117,10 @@ class ReregistrationFormRendererTest extends TestCase {
 		$reregRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' );
 		$reregRepoMock->shouldReceive( 'get_audience_ids' )->andReturn( empty( $fields ) ? array() : array( 1 ) );
 
-		// Sem este alias o renderer alcanca a consulta real do #1213 e o teste
-		// morre em `ReregistrationRepository::get_table_name()`. `null` e o
-		// the common case: no earlier approved reregistration, so there is no
-		// oferta de importacao.
+		// Without this alias the renderer reaches #1213's real query and the test
+		// dies in `ReregistrationRepository::get_table_name()`. `null` is the
+		// common case: no earlier approved reregistration, so there is no import
+		// offer.
 		$submissionReaderMock = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' );
 		$submissionReaderMock->shouldReceive( 'get_latest_approved_for_user' )->andReturn( self::$mockImportSource );
 
@@ -259,13 +259,14 @@ class ReregistrationFormRendererTest extends TestCase {
 	/**
 	 * A returned draft has to come back READABLE, not as ciphertext.
 	 *
-	 * O valor sensível é gravado por `Encryption::encrypt` (ver
+	 * The sensitive value is written by `Encryption::encrypt` (see
 	 * `ReregistrationDataProcessor`), so what sits in the submission's JSON is
-	 * ciphertext. The profile path already decrypts; the draft path did not
-	 * descriptografava, e o usuário via o blob no lugar do próprio CPF.
+	 * ciphertext. The profile path already decrypts; the draft path did not, and
+	 * the user saw the blob in place of their own CPF.
 	 *
 	 * The test charges the VALUE: the plaintext appears and the ciphertext does
-	 * asserção de "renderizou sem erro" passaria com o defeito no lugar.
+	 * not. An assertion of "rendered without error" would pass with the defect
+	 * in place.
 	 *
 	 * @return void
 	 */

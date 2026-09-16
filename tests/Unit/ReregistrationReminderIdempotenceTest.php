@@ -80,11 +80,11 @@ class ReregistrationReminderIdempotenceTest extends TestCase {
 	}
 
 	/**
-	 * Sem extensao de prazo, so quem nunca foi lembrado entra.
+	 * With no deadline extension, only those never reminded come in.
 	 *
-	 * E a asercao que reprova a volta do defeito: sem `reminder_sent_at IS
-	 * NULL` no predicado, a consulta devolve todo mundo em toda execucao
-	 * diaria.
+	 * This is the assertion that fails if the defect returns: without
+	 * `reminder_sent_at IS NULL` in the predicate, the query returns everybody
+	 * on every daily run.
 	 */
 	public function test_without_an_extension_only_the_never_reminded_are_selected(): void {
 		ReregistrationSubmissionReader::get_awaiting_reminder( 7, null );

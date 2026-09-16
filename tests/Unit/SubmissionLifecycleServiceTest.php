@@ -332,13 +332,13 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	}
 
 	/**
-	 * O DELETE e limitado, e a limitacao esta no SQL (#1234).
+	 * The DELETE is bounded, and the bound is in the SQL (#1234).
 	 *
-	 * This runs on the daily cron, that is, inside a visitor's request.
-	 * Sem `LIMIT`, o dia em que um administrador liga a retencao numa
-	 * mature install holds the table for as long as it takes to delete years of
-	 * submissions -- and that day is exactly when the backlog is largest, because
-	 * varredura nunca rodou antes (#936).
+	 * This runs on the daily cron, that is, inside a visitor's request. Without
+	 * `LIMIT`, the day an administrator turns retention on in a mature install
+	 * holds the table for as long as it takes to delete years of submissions --
+	 * and that day is exactly when the backlog is largest, because the scan has
+	 * never run before (#936).
 	 */
 	public function test_run_data_cleanup_bounds_each_delete(): void {
 		$reader = $this->stubActivityLog();
@@ -382,8 +382,8 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	/**
 	 * The cap ends the run even with backlog left over.
 	 *
-	 * Sem ele o laco viraria o `DELETE` sem limite de volta, so que em
-	 * prestacoes -- e o visitante pagaria a soma.
+	 * Without it the loop would turn the unbounded `DELETE` back on, only in
+	 * instalments -- and the visitor would pay the sum.
 	 */
 	public function test_run_data_cleanup_stops_at_the_chunk_cap(): void {
 		$reader = $this->stubActivityLog();

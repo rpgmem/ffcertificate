@@ -70,10 +70,10 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 	}
 
 	/**
-	 * Os campos que passaram a obrigatórios, e o que segue opcional.
+	 * The fields that became required, and the one that stays optional.
 	 *
-	 * `endereco_complemento` continua opcional DE PROPÓSITO -- complemento é
-	 * the field that legitimately does not apply to many addresses.
+	 * `endereco_complemento` stays optional ON PURPOSE -- the address complement
+	 * is the field that legitimately does not apply to many addresses.
 	 *
 	 * @return void
 	 */
@@ -81,23 +81,23 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		$by_key = $this->definitionByKey();
 
 		foreach ( array( 'rf', 'endereco', 'endereco_numero', 'contato_emergencia', 'tel_emergencia', 'email_institucional', 'sindicato' ) as $key ) {
-			$this->assertSame( 1, (int) $by_key[ $key ]['required'], "`{$key}` deveria ser obrigatório." );
+			$this->assertSame( 1, (int) $by_key[ $key ]['required'], "`{$key}` should be required." );
 		}
 
-		$this->assertSame( 0, (int) $by_key['endereco_complemento']['required'], 'Complemento segue opcional.' );
+		$this->assertSame( 0, (int) $by_key['endereco_complemento']['required'], 'The address complement stays optional.' );
 	}
 
 	/**
-	 * Todo rótulo semeado tem tradução pt_BR. Bloqueia em ZERO.
+	 * Every seeded label has a pt_BR translation. Blocks at ZERO.
 	 *
 	 * The seeder writes `__()`'s result INTO THE DATABASE, at the moment the
-	 * audience is created. So an untranslated label does not degrade to
-	 * inglês só naquela tela: ele nasce em inglês na linha e fica assim até
-	 * alguém renomear na UI, público por público.
+	 * audience is created. So an untranslated label does not degrade to English
+	 * on that one screen: it is born in English in the row and stays that way
+	 * until somebody renames it in the UI, audience by audience.
 	 *
 	 * This covers the class, not the five in this batch: changing a source
-	 * sem acrescentar a tradução é o engano natural, e foi o que quase
-	 * aconteceu ao escrever esta própria issue.
+	 * without adding the translation is the natural slip, and it is what nearly
+	 * happened while writing this very issue.
 	 *
 	 * @return void
 	 */
@@ -125,17 +125,17 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$missing,
-			"Rótulo semeado sem tradução pt_BR -- um público novo nasceria com ele em inglês:\n" . implode( "\n", $missing )
+			"Seeded label with no pt_BR translation -- a new audience would be born with it in English:\n" . implode( "\n", $missing )
 		);
 	}
 
 	/**
 	 * The two translations that were WRONG, not merely absent.
 	 *
-	 * `Union` ali é sindicato, e estava como "Estado" -- colidindo com o
-	 * the address\'s `State`, so the form showed two different things
-	 * diferentes sob a mesma palavra. `Acknowledgment` é ciência/aceite, e
-	 * estava como "Agradecimentos"; o próprio código já chamava a coisa de
+	 * `Union` there means the labour union, and it read "Estado" -- colliding
+	 * with the address\'s `State`, so the form showed two different things under
+	 * the same word. `Acknowledgment` means the acceptance term, and it read
+	 * "Agradecimentos"; the code itself already called the thing
 	 * `get_default_acknowledgment_html()`.
 	 *
 	 * @return void

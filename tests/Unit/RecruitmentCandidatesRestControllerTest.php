@@ -731,13 +731,13 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$noticeReader->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( null );
 
 		// The history comes in ONE batched query, not one per ranking
-		// (#1234). A asercao `once()` com a lista COMPLETA de ids e o que
+		// (#1234). The `once()` expectation with the COMPLETE list of ids is what
 		// pins this: a return to the singular would break here.
 		//
-		// Os ids 101 e 102 entram no lote embora seus editais sejam descartados
-		// afterwards (draft and absent). It is the deliberate consequence of
-		// collecting the ids before the filter: one query with a few rows
-		// vez de tres consultas.
+		// The ids 101 and 102 enter the batch even though their notices are
+		// discarded afterwards (draft and absent). It is the deliberate
+		// consequence of collecting the ids before the filter: one query with a
+		// few extra rows instead of three queries.
 		$callReader = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCallReader' );
 		$callReader->shouldReceive( 'get_history_for_classifications' )
 			->once()

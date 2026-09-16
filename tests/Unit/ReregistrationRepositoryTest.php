@@ -51,9 +51,9 @@ class ReregistrationRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() {
 			return func_get_args()[0];
 		})->byDefault();
-		// Sem filhos, por padrão: quem quiser hierarquia sobrescreve. `get_col`
-		// is left with no default on purpose -- each test declares what the query
-		// de membros devolve.
+		// No children, by default: whoever wants a hierarchy overrides it.
+		// `get_col` is left with no default on purpose -- each test declares what
+		// the members query returns.
 		$this->wpdb->shouldReceive('get_results')->andReturn(array())->byDefault();
 	}
 

@@ -455,7 +455,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 	}
 
 	public function test_validate_detects_rf_only_row_matching_prior_cpf_plus_rf_row(): void {
-		// Linha 1 carries both CPF + RF; linha 2 is RF-only (CPF blank).
+		// Row 1 carries both CPF + RF; row 2 is RF-only (CPF blank).
 		// The upsert would find the existing candidate via rf_hash and
 		// reuse the id. Must be caught by the pre-pass.
 		$rows = array(

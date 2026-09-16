@@ -279,9 +279,9 @@ final class DarkModeCssTest extends TestCase {
 	}
 
 	/**
-	 * `#rgb`, `#rrggbb` ou `rgba()` para [r, g, b]; null para o resto.
+	 * `#rgb`, `#rrggbb` or `rgba()` to [r, g, b]; null for anything else.
 	 *
-	 * @param string $value Valor CSS.
+	 * @param string $value CSS value.
 	 * @return array{0: int, 1: int, 2: int}|null
 	 */
 	private static function to_rgb( string $value ): ?array {
