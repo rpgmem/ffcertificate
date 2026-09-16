@@ -164,7 +164,7 @@ class ReregistrationSubmissionReader {
 			// before the campaign closed still surfaces from its auth code.
 			// The status flip approved → expired happens for housekeeping
 			// when the campaign window ends; the auth code stays valid and
-			// the participant must keep the ability to reach the ficha
+			// the participant must keep the ability to reach the record
 			// they earned. `rejected` / `pending` / `in_progress` still
 			// excluded — those never had a code generated anyway.
 			$wpdb->prepare( "SELECT * FROM %i WHERE auth_code = %s AND status IN ('submitted', 'approved', 'expired')", $table, $auth_code )
@@ -194,7 +194,7 @@ class ReregistrationSubmissionReader {
 		 */
 		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Token lookup: a consumed or revoked magic token must never be served from cache, so this read is deliberately uncached.
 			// 6.7.4 — Same `expired` inclusion as get_by_auth_code() above.
-			// Magic links printed on (or emailed about) an approved ficha
+			// Magic links printed on (or emailed about) an approved record
 			// must keep working after the parent campaign ends.
 			$wpdb->prepare( "SELECT * FROM %i WHERE magic_token = %s AND status IN ('submitted', 'approved', 'expired')", $table, $token )
 		);

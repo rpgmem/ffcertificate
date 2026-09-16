@@ -328,7 +328,7 @@ class DashboardAssetManager {
 					'period'                   => __( 'Period', 'ffcertificate' ),
 					'submittedAt'              => __( 'Submitted', 'ffcertificate' ),
 					'validationCode'           => __( 'Validation Code', 'ffcertificate' ),
-					'downloadFicha'            => __( 'Download Ficha', 'ffcertificate' ),
+					'downloadRecord'           => __( 'Download Record', 'ffcertificate' ),
 					'active'                   => __( 'Active', 'ffcertificate' ),
 					'completed'                => __( 'Completed', 'ffcertificate' ),
 					'editReregistration'       => __( 'Edit', 'ffcertificate' ),

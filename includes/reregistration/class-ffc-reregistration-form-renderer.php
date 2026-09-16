@@ -91,7 +91,7 @@ class ReregistrationFormRenderer {
 		// authenticated, editing their own data -- the masking rule governs a
 		// third party's screen looking at somebody else's data. The write stays
 		// encrypted.
-		$saved_values = FichaGenerator::decrypt_field_values( $fields, $saved_values );
+		$saved_values = RecordGenerator::decrypt_field_values( $fields, $saved_values );
 
 		$values = self::build_field_values( $fields, $saved_values, $user_id, $user );
 

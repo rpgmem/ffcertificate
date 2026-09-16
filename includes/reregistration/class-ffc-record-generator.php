@@ -1,8 +1,8 @@
 <?php
 /**
- * Ficha Generator
+ * Record Generator
  *
- * Generates reregistration ficha (data sheet) PDF data.
+ * Generates reregistration record (data sheet) PDF data.
  * Uses the same HTML→canvas→PDF pipeline as certificates.
  *
  * @package FreeFormCertificate\Reregistration
@@ -18,20 +18,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Generator for ficha output.
+ * Generator for record output.
  *
  * @phpstan-import-type ReregistrationRow from ReregistrationRepository
  * @phpstan-import-type CustomFieldRow from CustomFieldReader
  */
-class FichaGenerator {
+class RecordGenerator {
 
 	/**
-	 * Generate ficha data for a submission.
+	 * Generate record data for a submission.
 	 *
 	 * @param int $submission_id Submission ID.
 	 * @return array<string, mixed>|null Null on failure.
 	 */
-	public static function generate_ficha_data( int $submission_id ): ?array {
+	public static function generate_record_data( int $submission_id ): ?array {
 		$submission = ReregistrationSubmissionReader::get_by_id( $submission_id );
 		if ( ! $submission ) {
 			return null;
@@ -80,7 +80,7 @@ class FichaGenerator {
 		//
 		// ONLY on an APPROVED submission, and that is deliberate: the
 		// `auth_code` is born on the status transition, so `draft` and
-		// `submitted` have none. `FichaGenerator` already handles that absence
+		// `submitted` have none. `RecordGenerator` already handles that absence
 		// in the filename, falling back to an `S{id}` -- but that fallback
 		// exists to keep the file unique, and printing it here would pass `S12`
 		// off as an authentication code, which is worse than having no line at
@@ -106,7 +106,7 @@ class FichaGenerator {
 		$dual_post_value   = $decrypted_values['acumulo_cargos'] ?? __( 'I do not hold', 'ffcertificate' );
 		$holds_second_post = __( 'I hold', 'ffcertificate' ) === $dual_post_value;
 
-		// 6.7.5 — Reference year for the ficha header. Pulled from the
+		// 6.7.5 — Reference year for the record header. Pulled from the
 		// CAMPAIGN's start_date so the year matches the cycle of record
 		// (e.g. a campaign that opened 2026-02-15 yields "2026"), not
 		// the moment the participant happened to download / regenerate.
@@ -149,18 +149,26 @@ class FichaGenerator {
 		}
 
 		/**
-		 * Filters ficha template variables before HTML generation.
+		 * Filters record template variables before HTML generation.
 		 *
 		 * @since 4.11.0
+		 * @since 6.26.0 Renamed from `ffcertificate_ficha_data`, which stays alive
+		 *               through `apply_filters_deprecated()` until 6.28.0 (#1264).
 		 * @param array  $variables     Template variables.
 		 * @param int    $submission_id Submission ID.
 		 * @param object $submission    Submission object.
 		 * @param object $rereg         Reregistration object.
 		 */
-		$variables = apply_filters( 'ffcertificate_ficha_data', $variables, $submission_id, $submission, $rereg );
+		$variables = apply_filters_deprecated(
+			'ffcertificate_ficha_data',
+			array( $variables, $submission_id, $submission, $rereg ),
+			'6.26.0',
+			'ffcertificate_record_data'
+		);
+		$variables = apply_filters( 'ffcertificate_record_data', $variables, $submission_id, $submission, $rereg );
 
 		// Branding logo tokens {{logo_gov}} / {{logo_org}} (#865 Phase 2): shared
-		// resolver + shipped fallback with the certificate renderer, so the ficha
+		// resolver + shipped fallback with the certificate renderer, so the record
 		// template no longer hardcodes the instance-specific logos.
 		if ( ! isset( $variables['logo_gov'] ) ) {
 			$variables['logo_gov'] = \FreeFormCertificate\Core\BrandingTokens::logo_gov_url();
@@ -199,14 +207,22 @@ class FichaGenerator {
 		$template = preg_replace( '/(src|href|background)=["\']\/([^"\']+)["\']/i', '$1="' . $site_url . '/$2"', $template ) ?? $template;
 
 		/**
-		 * Filters the generated ficha HTML.
+		 * Filters the generated record HTML.
 		 *
 		 * @since 4.11.0
+		 * @since 6.26.0 Renamed from `ffcertificate_ficha_html`, which stays alive
+		 *               through `apply_filters_deprecated()` until 6.28.0 (#1264).
 		 * @param string $template      Generated HTML.
 		 * @param array  $variables     Template variables.
 		 * @param int    $submission_id Submission ID.
 		 */
-		$html = apply_filters( 'ffcertificate_ficha_html', $template, $variables, $submission_id );
+		$html = apply_filters_deprecated(
+			'ffcertificate_ficha_html',
+			array( $template, $variables, $submission_id ),
+			'6.26.0',
+			'ffcertificate_record_html'
+		);
+		$html = apply_filters( 'ffcertificate_record_html', $html, $variables, $submission_id );
 
 		// 6.6.11 — standardized filename pattern via the shared helper.
 		// Approved submissions get a real auth_code populated by
@@ -222,14 +238,22 @@ class FichaGenerator {
 		$filename = \FreeFormCertificate\Core\FilenameHelper::build_pdf_filename( 'ficha', (int) $rereg->id, $code );
 
 		/**
-		 * Filters the ficha PDF filename.
+		 * Filters the record PDF filename.
 		 *
 		 * @since 4.11.0
+		 * @since 6.26.0 Renamed from `ffcertificate_ficha_filename`, which stays alive
+		 *               through `apply_filters_deprecated()` until 6.28.0 (#1264).
 		 * @param string $filename      Generated filename.
 		 * @param int    $submission_id Submission ID.
 		 * @param object $submission    Submission object.
 		 */
-		$filename = apply_filters( 'ffcertificate_ficha_filename', $filename, $submission_id, $submission );
+		$filename = apply_filters_deprecated(
+			'ffcertificate_ficha_filename',
+			array( $filename, $submission_id, $submission ),
+			'6.26.0',
+			'ffcertificate_record_filename'
+		);
+		$filename = apply_filters( 'ffcertificate_record_filename', $filename, $submission_id, $submission );
 
 		return array(
 			'html'        => $html,
@@ -245,7 +269,7 @@ class FichaGenerator {
 	}
 
 	/**
-	 * Format working hours JSON into a readable HTML table for ficha.
+	 * Format working hours JSON into a readable HTML table for record.
 	 *
 	 * @param string $json_or_empty Working hours JSON or empty string.
 	 * @return string Formatted HTML table or empty.
@@ -341,7 +365,7 @@ class FichaGenerator {
 	 * Decrypt sensitive fields in a value map.
 	 *
 	 * Fields with is_sensitive=1 are persisted as AES-256-CBC ciphertext in
-	 * the submission JSON. Ficha rendering needs the plaintext value.
+	 * the submission JSON. Record rendering needs the plaintext value.
 	 *
 	 * @param array<int, object>   $fields Field definitions.
 	 * @param array<string, mixed> $values field_key => persisted value (may be encrypted).
@@ -378,7 +402,7 @@ class FichaGenerator {
 	 * Each field exposes its formatted value under its `field_key`. A
 	 * dependent_select additionally exposes `<key>_parent` / `<key>_child`
 	 * so a template can place the two halves in separate cells (the default
-	 * ficha prints Divisão and Setor side by side from `divisao_setor`).
+	 * record prints Divisão and Setor side by side from `divisao_setor`).
 	 * Accumulation-only fields collapse to empty unless the participant
 	 * declared a second post.
 	 *
@@ -414,7 +438,7 @@ class FichaGenerator {
 	}
 
 	/**
-	 * Resolve the acknowledgment (termo de ciência) HTML for the ficha.
+	 * Resolve the acknowledgment (termo de ciência) HTML for the record.
 	 *
 	 * Uses the first standard `acknowledgment` field's `field_options['html']`
 	 * (audiences sharing a tree carry the same notice via replication). Falls
@@ -482,22 +506,30 @@ class FichaGenerator {
 	}
 
 	/**
-	 * Load the ficha HTML template.
+	 * Load the record HTML template.
 	 *
 	 * @return string HTML template with placeholders.
 	 */
 	private static function load_template(): string {
 		/**
-		 * Filters the ficha template HTML directly, before the bundled file is
+		 * Filters the record template HTML directly, before the bundled file is
 		 * read. A listener — the template-pool resolver (#951 phase 2) — can
-		 * supply the admin-selected ficha template's HTML; returning '' (the
+		 * supply the admin-selected record template's HTML; returning '' (the
 		 * default) falls through to the `ffcertificate_ficha_template_file`
 		 * path + the bundled default, so nothing changes when unconfigured.
 		 *
 		 * @since 6.20.0
-		 * @param string $html Ficha template HTML ('' = use the file below).
+		 * @since 6.26.0 Renamed from `ffcertificate_ficha_template_html`, which stays
+		 *               alive through `apply_filters_deprecated()` until 6.28.0 (#1264).
+		 * @param string $html Record template HTML ('' = use the file below).
 		 */
-		$pool_html = (string) apply_filters( 'ffcertificate_ficha_template_html', '' );
+		$pool_html = (string) apply_filters_deprecated(
+			'ffcertificate_ficha_template_html',
+			array( '' ),
+			'6.26.0',
+			'ffcertificate_record_template_html'
+		);
+		$pool_html = (string) apply_filters( 'ffcertificate_record_template_html', $pool_html );
 		if ( '' !== $pool_html ) {
 			return $pool_html;
 		}
@@ -505,12 +537,20 @@ class FichaGenerator {
 		$template_file = FFC_PLUGIN_DIR . 'templates/documents/default_ficha_template.html';
 
 		/**
-		 * Filters the ficha template file path.
+		 * Filters the record template file path.
 		 *
 		 * @since 4.11.0
+		 * @since 6.26.0 Renamed from `ffcertificate_ficha_template_file`, which stays
+		 *               alive through `apply_filters_deprecated()` until 6.28.0 (#1264).
 		 * @param string $template_file Template file path.
 		 */
-		$template_file = apply_filters( 'ffcertificate_ficha_template_file', $template_file );
+		$template_file = apply_filters_deprecated(
+			'ffcertificate_ficha_template_file',
+			array( $template_file ),
+			'6.26.0',
+			'ffcertificate_record_template_file'
+		);
+		$template_file = apply_filters( 'ffcertificate_record_template_file', $template_file );
 
 		if ( file_exists( $template_file ) ) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local template file.

@@ -193,7 +193,7 @@ class ReregistrationFieldOptionsTest extends TestCase {
 		$html = ReregistrationFieldOptions::get_default_acknowledgment_html();
 
 		// The notice references external systems; the anchors must survive so
-		// the ficha PDF (which bypasses the link-stripping allowlist) keeps them.
+		// the record PDF (which bypasses the link-stripping allowlist) keeps them.
 		$this->assertStringContainsString( '<a href="https://www.declaracaofamilia', $html );
 		$this->assertStringContainsString( 'SISPATRI', $html );
 	}

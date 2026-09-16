@@ -59,9 +59,9 @@ class CertTemplateSeeder {
 	 * restore() adds the two missing receipt defaults without touching user
 	 * templates (and re-tags any existing default with its kind).
 	 *
-	 * Version 5 seeds the **ficha** default (#951 phase 2) — tagged
-	 * `META_KIND = ficha`, so the reregistration ficha can be chosen from the
-	 * pool. Same non-destructive bump: adds the one missing ficha default.
+	 * Version 5 seeds the **record** default (#951 phase 2) — tagged
+	 * `META_KIND = record`, so the reregistration record can be chosen from the
+	 * pool. Same non-destructive bump: adds the one missing record default.
 	 */
 	private const SEED_VERSION = 5;
 
@@ -289,13 +289,19 @@ class CertTemplateSeeder {
 				'kind'  => CertTemplateCpt::KIND_APPOINTMENT_RECEIPT,
 				'dir'   => 'templates/documents/',
 			),
-			// Reregistration ficha default (#951 phase 2) — HTML under
-			// templates/documents/, no background image, tagged `ficha`.
+			// Reregistration record default (#951 phase 2) — HTML under
+			// templates/documents/, no background image, tagged `record`.
+			//
+			// The KEY stays `default_ficha` (#1264). It is written to post meta
+			// as `META_DEFAULT_SLUG` and read back to build the "already
+			// seeded?" map, so renaming it makes every existing install miss its
+			// own default and insert a SECOND one. Same stored-value exception
+			// as `CertTemplateCpt::KIND_RECORD = 'ficha'`.
 			'default_ficha'                       => array(
-				'title' => __( 'Ficha', 'ffcertificate' ),
+				'title' => __( 'Record', 'ffcertificate' ),
 				'file'  => 'default_ficha_template.html',
 				'bg'    => '',
-				'kind'  => CertTemplateCpt::KIND_FICHA,
+				'kind'  => CertTemplateCpt::KIND_RECORD,
 				'dir'   => 'templates/documents/',
 			),
 		);

@@ -25,7 +25,7 @@ beforeAll(() => {
 		validationCode: 'Validation Code',
 		actions: 'Actions',
 		editReregistration: 'Edit',
-		downloadFicha: 'Download Ficha',
+		downloadRecord: 'Download Record',
 		noPermission: 'No permission',
 	});
 	window.ffcDashboard.restUrl = 'https://x.test/wp-json/ffc/v1/';
@@ -102,7 +102,7 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 		expect(buttons[0].getAttribute('data-reregistration-id')).toBe('10');
 	});
 
-	it('renders the Download Ficha link only when both can_download and magic_link present', () => {
+	it('renders the Download Record link only when both can_download and magic_link present', () => {
 		panel().render([
 			makeRereg({ can_download: true, magic_link: 'https://x.test/m' }),
 			makeRereg({ can_download: false, magic_link: 'https://x.test/m' }),

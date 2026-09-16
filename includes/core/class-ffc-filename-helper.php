@@ -60,7 +60,7 @@ class FilenameHelper {
 	 * Pattern: `{prefix}_{entity_id}_{code}.pdf` — e.g.
 	 * `certificate_666_C-MLQQZ9UX9MWF.pdf` in English, `certificado_666_…` in pt_BR. Replaces three divergent
 	 * pre-6.6.11 patterns (kebab-lower-{auth}, `appointment-receipt_{code}`,
-	 * `Ficha_{Title}_{Display Name}`) with a single consistent shape.
+	 * `Record_{Title}_{Display Name}`) with a single consistent shape.
 	 *
 	 * The prefix is **translatable by default** via `_x()` with the
 	 * `pdf filename prefix` context. Sites that need stable filenames for
@@ -127,7 +127,7 @@ class FilenameHelper {
 
 		// Attach the virtual document prefix to the auth code when it is
 		// a "real" auth code (raw 12-char from DB OR already display-formatted).
-		// Synthetic fallbacks like `S{submission_id}` for draft fichas
+		// Synthetic fallbacks like `S{submission_id}` for draft records
 		// stay un-prefixed — they already encode their nature in the
 		// leading `S` and adding `R-` would imply a verifiable auth
 		// code where there is none.
@@ -152,15 +152,15 @@ class FilenameHelper {
 		 * Filters the standardized PDF filename produced by all FFC generators.
 		 *
 		 * Fires for every PDF the plugin generates (certificate, appointment
-		 * receipt, ficha). Per-type filters (`ffcertificate_certificate_filename`,
-		 * `ffcertificate_ficha_filename`, `ffcertificate_appointment_receipt_filename`)
+		 * receipt, record). Per-type filters (`ffcertificate_certificate_filename`,
+		 * `ffcertificate_record_filename`, `ffcertificate_appointment_receipt_filename`)
 		 * fire AFTER this one with their original arg shapes preserved for
 		 * back-compat — chain accordingly.
 		 *
 		 * @since 6.6.11
 		 *
 		 * @param string $filename  The generated `prefix_id_code.pdf` filename.
-		 * @param string $type      Internal type slug (certificate / appointment_receipt / ficha).
+		 * @param string $type      Internal type slug (certificate / appointment_receipt / record).
 		 * @param int    $entity_id Form / calendar / reregistration post ID.
 		 * @param string $code      Code component after sanitisation (uppercase, no padding).
 		 */

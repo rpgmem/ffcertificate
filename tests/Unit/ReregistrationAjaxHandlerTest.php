@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationAjaxHandler;
 
 /**
- * Tests for the reregistration admin AJAX endpoints: ficha generation,
+ * Tests for the reregistration admin AJAX endpoints: record generation,
  * submission-details modal and the affected-member count. Covers the
  * nonce/capability/input guards directly; the count happy-path drives the
  * repository via an alias mock in an isolated process.
@@ -79,19 +79,19 @@ class ReregistrationAjaxHandlerTest extends TestCase {
 		$this->assertInstanceOf( ReregistrationAjaxHandler::class, new ReregistrationAjaxHandler() );
 	}
 
-	// --- generate_ficha guards -------------------------------------------
+	// --- generate_record guards -------------------------------------------
 
-	public function test_generate_ficha_denies_without_capability(): void {
+	public function test_generate_record_denies_without_capability(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
-		$this->invoke( new ReregistrationAjaxHandler(), 'ajax_generate_ficha' );
+		$this->invoke( new ReregistrationAjaxHandler(), 'ajax_generate_record' );
 		$this->assertSame( 'error', $this->last()['type'] );
 		$this->assertSame( 'Permission denied.', $this->lastData()['message'] );
 	}
 
-	public function test_generate_ficha_rejects_missing_submission_id(): void {
+	public function test_generate_record_rejects_missing_submission_id(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		$_POST = array(); // no submission_id
-		$this->invoke( new ReregistrationAjaxHandler(), 'ajax_generate_ficha' );
+		$this->invoke( new ReregistrationAjaxHandler(), 'ajax_generate_record' );
 		$this->assertSame( 'error', $this->last()['type'] );
 		$this->assertSame( 'Invalid submission.', $this->lastData()['message'] );
 	}

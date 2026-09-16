@@ -7,7 +7,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Settings\Tabs\TabReregistration;
-use FreeFormCertificate\Admin\CertTemplateFichaResolver;
+use FreeFormCertificate\Admin\CertTemplateRecordResolver;
 use FreeFormCertificate\Admin\CertTemplateCpt;
 
 /**
@@ -57,7 +57,7 @@ class TabReregistrationTest extends TestCase {
 
 	public function test_render_shows_the_selector_and_hub_links(): void {
 		Functions\when( 'get_option' )->justReturn( 0 );        // nothing selected.
-		Functions\when( 'get_posts' )->justReturn( array() );   // no ficha templates yet.
+		Functions\when( 'get_posts' )->justReturn( array() );   // no record templates yet.
 		Functions\when( 'get_post_meta' )->justReturn( '' );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
@@ -67,15 +67,15 @@ class TabReregistrationTest extends TestCase {
 		$this->tab->render();
 		$out = ob_get_clean();
 
-		$this->assertStringContainsString( 'name="ffc_ficha_template"', $out );
-		$this->assertStringContainsString( 'ffc_kind=' . CertTemplateCpt::KIND_FICHA, $out );
+		$this->assertStringContainsString( 'name="ffc_record_template"', $out );
+		$this->assertStringContainsString( 'ffc_kind=' . CertTemplateCpt::KIND_RECORD, $out );
 		$this->assertStringContainsString( 'post-new.php?post_type=' . CertTemplateCpt::POST_TYPE, $out );
 	}
 
-	public function test_handle_save_persists_a_valid_ficha_id(): void {
+	public function test_handle_save_persists_a_valid_record_id(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->justReturn( true );
-		Functions\when( 'get_post_meta' )->justReturn( CertTemplateCpt::KIND_FICHA );
+		Functions\when( 'get_post_meta' )->justReturn( CertTemplateCpt::KIND_RECORD );
 		Functions\when( 'wp_safe_redirect' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'redirected' );
@@ -89,17 +89,17 @@ class TabReregistrationTest extends TestCase {
 			}
 		);
 
-		$_POST['ffc_ficha_template'] = '42';
+		$_POST['ffc_record_template'] = '42';
 		try {
 			$this->tab->handle_save();
 		} catch ( \RuntimeException $e ) {
 			$this->assertSame( 'redirected', $e->getMessage() );
 		}
 
-		$this->assertSame( CertTemplateFichaResolver::OPTION, $saved[0] );
+		$this->assertSame( CertTemplateRecordResolver::OPTION, $saved[0] );
 		$this->assertSame( 42, $saved[1] );
 
-		unset( $_POST['ffc_ficha_template'] );
+		unset( $_POST['ffc_record_template'] );
 	}
 
 	public function test_handle_save_drops_an_id_of_the_wrong_kind(): void {
@@ -119,7 +119,7 @@ class TabReregistrationTest extends TestCase {
 			}
 		);
 
-		$_POST['ffc_ficha_template'] = '42';
+		$_POST['ffc_record_template'] = '42';
 		try {
 			$this->tab->handle_save();
 		} catch ( \RuntimeException $e ) {
@@ -128,6 +128,6 @@ class TabReregistrationTest extends TestCase {
 
 		$this->assertSame( 0, $saved[1] );
 
-		unset( $_POST['ffc_ficha_template'] );
+		unset( $_POST['ffc_record_template'] );
 	}
 }

@@ -485,7 +485,7 @@ describe('rereg acumulo toggle', () => {
 		});
 	});
 
-	it('keeps them hidden for "Pension", which the ficha also blanks', async () => {
+	it('keeps them hidden for "Pension", which the record also blanks', async () => {
 		await mountAcumulo();
 		$dualPost().val('Pension (Payslip Attached)').trigger('change');
 		await flush();

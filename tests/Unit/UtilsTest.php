@@ -328,18 +328,18 @@ class UtilsTest extends TestCase {
 		);
 	}
 
-	public function test_build_pdf_filename_ficha_attaches_R_prefix_for_real_authcode(): void {
+	public function test_build_pdf_filename_record_attaches_R_prefix_for_real_authcode(): void {
 		$this->stub_pdf_filename_helpers();
-		// Approved ficha → real auth code from AuthCodeService.
+		// Approved record → real auth code from AuthCodeService.
 		$this->assertSame(
 			'record_99_R-ABCDEF123456.pdf',
 			FilenameHelper::build_pdf_filename( 'ficha', 99, 'ABCDEF123456' )
 		);
 	}
 
-	public function test_build_pdf_filename_ficha_synthetic_code_skips_prefix(): void {
+	public function test_build_pdf_filename_record_synthetic_code_skips_prefix(): void {
 		$this->stub_pdf_filename_helpers();
-		// Draft / submitted ficha (auth_code not yet generated) — synthetic
+		// Draft / submitted record (auth_code not yet generated) — synthetic
 		// S{id} stays as-is, no `R-` prefix, since it's not a verifiable code.
 		$this->assertSame(
 			'record_99_S12345.pdf',

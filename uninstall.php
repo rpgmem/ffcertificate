@@ -175,6 +175,11 @@ $ffcertificate_options = array(
 	// (#1236).
 	'ffc_key_rotation_remaining_state',
 	'ffc_recruitment_public_cache_version',
+	// The admin's chosen record (ficha) template, written only when the
+	// Reregistration tab is saved -- which is why the fresh-install gate never
+	// saw it: that gate compares what ACTIVATION writes, and nothing here is
+	// written at activation. Found while renaming the family in #1264.
+	'ffc_reregistration_ficha_template',
 	'ffc_ip_diagnostics_settings',
 	'ffc_cloudflare_cidr_cache',
 	// One-shot capability / role / migration markers, all written during

@@ -235,15 +235,15 @@ class ReregistrationFrontend {
 		// `is_sensitive` flag which governed the write lives.
 		$source_rereg = ReregistrationRepository::get_by_id( (int) $source->reregistration_id );
 		if ( $source_rereg ) {
-			$values = FichaGenerator::decrypt_field_values(
-				FichaGenerator::get_custom_fields_for_reregistration( $source_rereg ),
+			$values = RecordGenerator::decrypt_field_values(
+				RecordGenerator::get_custom_fields_for_reregistration( $source_rereg ),
 				$values
 			);
 		}
 
 		// Intersection with the current campaign. A key that does not exist here is ignored.
 		$current_keys = array();
-		foreach ( FichaGenerator::get_custom_fields_for_reregistration( $rereg ) as $field ) {
+		foreach ( RecordGenerator::get_custom_fields_for_reregistration( $rereg ) as $field ) {
 			$current_keys[ (string) $field->field_key ] = true;
 		}
 

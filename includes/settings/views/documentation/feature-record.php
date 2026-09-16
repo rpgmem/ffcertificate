@@ -1,8 +1,8 @@
 <?php
 /**
- * Documentation partial — Feature: Ficha PDF.
+ * Documentation partial — Feature: Record PDF.
  *
- * The reregistration ficha PDF: where to download it, its template
+ * The reregistration record PDF: where to download it, its template
  * placeholders, and how the layout is edited (now pool-backed via the
  * Document Templates hub + the Reregistration settings tab).
  *
@@ -13,23 +13,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-<!-- 11. Ficha PDF Section -->
+<!-- 11. Record PDF Section -->
 <div class="card">
-	<h3 id="feature-ficha"><span class="dashicons dashicons-media-document" aria-hidden="true"></span> <?php esc_html_e( 'Ficha PDF', 'ffcertificate' ); ?></h3>
+	<h3 id="feature-record"><span class="dashicons dashicons-media-document" aria-hidden="true"></span> <?php esc_html_e( 'Record PDF', 'ffcertificate' ); ?></h3>
 
-	<p><?php esc_html_e( 'Generate a PDF record (ficha) for reregistration submissions. Available for submitted and approved submissions.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Generate a PDF record (record) for reregistration submissions. Available for submitted and approved submissions.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Where to Download:', 'ffcertificate' ); ?></h4>
 		<ul>
-			<li><strong><?php esc_html_e( 'Admin:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Click the "Ficha" button next to any submission in the Reregistration > Submissions list', 'ffcertificate' ); ?></li>
-			<li><strong><?php esc_html_e( 'User Dashboard:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Click "Download Ficha" on the reregistration banner after submitting', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Admin:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Click the "Record" button next to any submission in the Reregistration > Submissions list', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'User Dashboard:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Click "Download Record" on the reregistration banner after submitting', 'ffcertificate' ); ?></li>
 		</ul>
 	</div>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Template Variables:', 'ffcertificate' ); ?></h4>
-		<p><?php esc_html_e( 'The ficha template supports these variables:', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'The record template supports these variables:', 'ffcertificate' ); ?></p>
 
 		<h5><?php esc_html_e( 'System Variables', 'ffcertificate' ); ?></h5>
 		<table class="widefat striped">
@@ -150,12 +150,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Customization:', 'ffcertificate' ); ?></h4>
 		<p>
-			<?php esc_html_e( 'The ficha layout draws from the shared certificate template pool (a "ficha" template kind) — edit or duplicate it in the Document Templates hub instead of shipping a bundled file. A shipped default seeds automatically. The Reregistration settings tab selects, globally, which ficha template the PDF uses (falling back to the shipped default when unset).', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'The record layout draws from the shared certificate template pool (the template kind is still stored as "ficha", because that value is written into every pooled template) — edit or duplicate it in the Document Templates hub instead of shipping a bundled file. A shipped default seeds automatically. The Reregistration settings tab selects, globally, which record template the PDF uses (falling back to the shipped default when unset).', 'ffcertificate' ); ?>
 			<a href="#document-templates-hub"><?php esc_html_e( 'See the Document Templates hub.', 'ffcertificate' ); ?></a>
 		</p>
 		<p>
 			<?php esc_html_e( 'Developers can also override the resolved HTML via the filter', 'ffcertificate' ); ?>
-			<code>ffcertificate_ficha_template_html</code>.
+			<code>ffcertificate_record_template_html</code>.
 		</p>
 	</div>
 </div>

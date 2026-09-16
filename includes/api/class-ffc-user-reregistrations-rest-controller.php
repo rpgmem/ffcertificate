@@ -107,10 +107,10 @@ class UserReregistrationsRestController {
 				// `auth_code`, not by the submission's CURRENT status.
 				// AuthCodeService writes the code at the transition into
 				// `submitted` / `approved`; the code is canonical proof
-				// the ficha was generated. When the parent campaign
+				// the record was generated. When the parent campaign
 				// expires later, the submission row's status flips to
 				// `expired` but the participant should still be able to
-				// download the ficha they earned. Rejected submissions
+				// download the record they earned. Rejected submissions
 				// (which never get an auth_code) and still-pending /
 				// in-progress drafts (likewise) stay non-downloadable
 				// automatically — no extra status check needed.

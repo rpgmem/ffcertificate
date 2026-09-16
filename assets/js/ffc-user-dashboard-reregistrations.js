@@ -126,7 +126,7 @@
                     html += '<button type="button" class="button ffc-btn-edit ffc-rereg-open-form" data-reregistration-id="' + item.reregistration_id + '">' + (s.editReregistration || 'Edit') + '</button> ';
                 }
                 if (item.can_download && item.magic_link) {
-                    html += '<a href="' + esc(item.magic_link) + '" class="button ffc-btn-pdf" target="_blank" rel="noopener">' + (s.downloadFicha || 'Download Ficha') + '</a>';
+                    html += '<a href="' + esc(item.magic_link) + '" class="button ffc-btn-pdf" target="_blank" rel="noopener">' + (s.downloadRecord || 'Download Record') + '</a>';
                 }
                 html += '</td>';
                 html += '</tr>';

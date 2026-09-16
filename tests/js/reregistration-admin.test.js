@@ -22,7 +22,7 @@ function flush() { return Promise.resolve().then(() => Promise.resolve()); }
 beforeAll(() => {
 	window.ffcReregistrationAdmin = {
 		ajaxUrl: '/wp-admin/admin-ajax.php',
-		fichaNonce: 'ficha-nonce',
+		recordNonce: 'record-nonce',
 		viewDetailsNonce: 'details-nonce',
 		adminNonce: 'admin-nonce',
 		exportNonce: 'export-nonce',
@@ -34,7 +34,7 @@ beforeAll(() => {
 			confirmApprove: 'Approve?',
 			confirmReturnToDraft: 'Return to draft?',
 			generatingPdf: 'Generating…',
-			ficha: 'Ficha',
+			record: 'Record',
 			errorGenerating: 'PDF error',
 			loadingDetails: 'Loading…',
 			errorLoadingDetails: 'Failed to load',
@@ -216,19 +216,19 @@ describe('rereg-admin — single row return-to-draft button', () => {
 });
 
 // ----------------------------------------------------------------------
-// initFichaDownload
+// initRecordDownload
 // ----------------------------------------------------------------------
 
-describe('rereg-admin — ficha PDF download', () => {
+describe('rereg-admin — record PDF download', () => {
 	function mountBtn() {
-		document.body.innerHTML = `<button type="button" class="ffc-ficha-btn" data-submission-id="42">Ficha</button>`;
+		document.body.innerHTML = `<button type="button" class="ffc-record-btn" data-submission-id="42">Record</button>`;
 	}
 
 	it('bails when the button has no submission-id', async () => {
-		document.body.innerHTML = `<button class="ffc-ficha-btn">Ficha</button>`;
+		document.body.innerHTML = `<button class="ffc-record-btn">Record</button>`;
 		await reload();
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
-		window.$('.ffc-ficha-btn').trigger('click');
+		window.$('.ffc-record-btn').trigger('click');
 		await flush();
 		expect(postSpy).not.toHaveBeenCalled();
 	});
@@ -242,7 +242,7 @@ describe('rereg-admin — ficha PDF download', () => {
 				data: { pdf_data: { template: 'x', filename: 'rec.pdf' } },
 			} }));
 
-		window.$('.ffc-ficha-btn').trigger('click');
+		window.$('.ffc-record-btn').trigger('click');
 		await flush();
 
 		expect(window.ffcGeneratePDF).toHaveBeenCalledWith(
@@ -258,7 +258,7 @@ describe('rereg-admin — ficha PDF download', () => {
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { pdf_data: { template: 'x' } } } }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
-		window.$('.ffc-ficha-btn').trigger('click');
+		window.$('.ffc-record-btn').trigger('click');
 		await flush();
 
 		expect(alertSpy).toHaveBeenCalledWith('PDF error');
@@ -270,19 +270,19 @@ describe('rereg-admin — ficha PDF download', () => {
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Submission not found' } } }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
-		window.$('.ffc-ficha-btn').trigger('click');
+		window.$('.ffc-record-btn').trigger('click');
 		await flush();
 
 		expect(alertSpy).toHaveBeenCalledWith('Submission not found');
 	});
 
-	it('on network failure: alerts the generic ficha-error string', async () => {
+	it('on network failure: alerts the generic record-error string', async () => {
 		mountBtn();
 		await reload();
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
-		window.$('.ffc-ficha-btn').trigger('click');
+		window.$('.ffc-record-btn').trigger('click');
 		await flush();
 
 		expect(alertSpy).toHaveBeenCalledWith('PDF error');

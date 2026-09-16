@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<ul>
 			<li><?php esc_html_e( 'Their own issued certificates, with download / verification links', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Their self-scheduling appointments (with receipt / cancel actions where allowed)', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'The reregistration banner and "Download Ficha" action when a reregistration applies to them', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'The reregistration banner and "Download Record" action when a reregistration applies to them', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Their profile fields (identity, contact, address, employment) sourced from the WordPress user profile', 'ffcertificate' ); ?></li>
 		</ul>
 	</div>
@@ -45,6 +45,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Profile custom fields', 'ffcertificate' ); ?></h4>
-		<p><?php esc_html_e( 'The identity/contact/address/employment fields shown on the dashboard live on the WordPress user profile and are mapped to the reregistration and audience data, so a user\'s details stay consistent across a certificate PDF, a ficha and their profile.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'The identity/contact/address/employment fields shown on the dashboard live on the WordPress user profile and are mapped to the reregistration and audience data, so a user\'s details stay consistent across a certificate PDF, a record and their profile.', 'ffcertificate' ); ?></p>
 	</div>
 </div>

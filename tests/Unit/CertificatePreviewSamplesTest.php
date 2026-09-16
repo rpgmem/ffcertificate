@@ -36,7 +36,7 @@ class CertificatePreviewSamplesTest extends TestCase {
 		parent::tearDown();
 	}
 
-	public function test_map_includes_system_and_ficha_placeholders(): void {
+	public function test_map_includes_system_and_record_placeholders(): void {
 		$map = CertificatePreviewSamples::get_map();
 
 		// System placeholders that are NOT builder fields — the gap the
@@ -45,7 +45,7 @@ class CertificatePreviewSamplesTest extends TestCase {
 		$this->assertArrayHasKey( 'site_name', $map );
 		$this->assertArrayHasKey( 'validation_code', $map );
 		$this->assertArrayHasKey( 'reference_year', $map );
-		// Ficha / atestado block.
+		// Record / atestado block.
 		$this->assertArrayHasKey( 'bairro', $map );
 		$this->assertArrayHasKey( 'unidade_lotacao', $map );
 		// Appointment receipt.

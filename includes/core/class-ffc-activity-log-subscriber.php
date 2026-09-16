@@ -189,7 +189,7 @@ class ActivityLogSubscriber {
 	}
 
 	/**
-	 * Log a PDF generation (certificate, ficha or appointment receipt).
+	 * Log a PDF generation (certificate, record or appointment receipt).
 	 *
 	 * @param mixed $pdf_data      The generated PDF payload (unused).
 	 * @param int   $submission_id Source submission ID.

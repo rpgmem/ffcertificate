@@ -8,7 +8,7 @@
  * (localized as `ffc_ajax.previewSamples`) and the public CSV-download
  * preview (in the `ajax_cert_preview` payload) — so neither browser-side
  * preview re-declares its own list or drifts from the placeholders the
- * real generators (`PdfGenerator`, `FichaGenerator`, appointment receipts)
+ * real generators (`PdfGenerator`, `RecordGenerator`, appointment receipts)
  * actually fill.
  *
  * Live-editable values that PHP can't know at enqueue time — the form
@@ -36,7 +36,7 @@ class CertificatePreviewSamples {
 	 * Build the placeholder → sample-value map.
 	 *
 	 * Keys mirror every `{{placeholder}}` the bundled HTML templates use
-	 * (certificate, declaration, internship, ficha / atestado, appointment
+	 * (certificate, declaration, internship, record / atestado, appointment
 	 * receipt) plus the system placeholders the generators inject. Two
 	 * placeholder families are intentionally absent because the JS handles
 	 * them specially: `{{qr_code…}}` (rendered as a placeholder SVG) and
@@ -91,7 +91,7 @@ class CertificatePreviewSamples {
 			'cep'                      => '01001-000',
 			'main_address'             => 'Rua Exemplo, 123 - Centro, São Paulo/SP',
 
-			// Employment / school context (ficha / atestado).
+			// Employment / school context (record / atestado).
 			'vinculo'                  => 'Efetivo',
 			'cargo_funcao_acumulo'     => 'Professor de Educação Básica',
 			'acumulo_cargos'           => 'Não',
@@ -117,7 +117,7 @@ class CertificatePreviewSamples {
 			'site_name'                => get_bloginfo( 'name' ),
 
 			// Site branding logos (#865 / #903): mirror the URLs the real
-			// generators inject (PdfHtmlRenderer / FichaGenerator) so the
+			// generators inject (PdfHtmlRenderer / RecordGenerator) so the
 			// client-side previews (form-editor + public download) substitute
 			// {{logo_gov}} / {{logo_org}} instead of leaving them raw. The
 			// server-side cert-template preview already resolves them via the

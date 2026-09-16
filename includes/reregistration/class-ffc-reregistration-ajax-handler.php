@@ -3,7 +3,7 @@
  * Reregistration AJAX Handler
  *
  * Hosts the wp_ajax callbacks for the reregistration admin:
- * - ffc_generate_ficha             — PDF ficha generation
+ * - ffc_generate_ficha             — PDF record generation
  * - ffc_view_submission_details    — submission details modal HTML
  * - ffc_rereg_count_members        — affected user count for an audience set
  * - ffc_rereg_send_invitations     — invite whoever is still awaiting one (#1190)
@@ -50,11 +50,11 @@ final class ReregistrationAjaxHandler {
 	}
 
 	/**
-	 * AJAX: Generate ficha PDF data for a submission.
+	 * AJAX: Generate record PDF data for a submission.
 	 *
 	 * @return void
 	 */
-	public function ajax_generate_ficha(): void {
+	public function ajax_generate_record(): void {
 		check_ajax_referer( 'ffc_generate_ficha', 'nonce' );
 
 		if ( ! current_user_can( self::CAPABILITY ) ) {
@@ -66,19 +66,19 @@ final class ReregistrationAjaxHandler {
 			wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'ffcertificate' ) ) );
 		}
 
-		$ficha_data = FichaGenerator::generate_ficha_data( $submission_id );
-		if ( ! $ficha_data ) {
-			wp_send_json_error( array( 'message' => __( 'Could not generate ficha.', 'ffcertificate' ) ) );
+		$record_data = RecordGenerator::generate_record_data( $submission_id );
+		if ( ! $record_data ) {
+			wp_send_json_error( array( 'message' => __( 'Could not generate record.', 'ffcertificate' ) ) );
 		}
 
-		wp_send_json_success( array( 'pdf_data' => $ficha_data ) );
+		wp_send_json_success( array( 'pdf_data' => $record_data ) );
 	}
 
 	/**
 	 * AJAX: return HTML with the full submission detail grouped by fieldset.
 	 *
 	 * Used by the "View Details" modal on the submissions list. Decrypts
-	 * sensitive values (CPF/RF/RG) via FichaGenerator helpers and renders
+	 * sensitive values (CPF/RF/RG) via RecordGenerator helpers and renders
 	 * them grouped by field_group with labels from wp_ffc_custom_fields.
 	 *
 	 * @return void
@@ -109,8 +109,8 @@ final class ReregistrationAjaxHandler {
 		$sub_data   = $submission->data ? json_decode( $submission->data, true ) : array();
 		$raw_values = is_array( $sub_data['fields'] ?? null ) ? $sub_data['fields'] : array();
 
-		$all_fields       = FichaGenerator::get_custom_fields_for_reregistration( $rereg );
-		$decrypted_values = FichaGenerator::decrypt_field_values( $all_fields, $raw_values );
+		$all_fields       = RecordGenerator::get_custom_fields_for_reregistration( $rereg );
+		$decrypted_values = RecordGenerator::decrypt_field_values( $all_fields, $raw_values );
 
 		$html = $this->details_renderer->build_submission_details_html( $submission, $all_fields, $decrypted_values );
 
