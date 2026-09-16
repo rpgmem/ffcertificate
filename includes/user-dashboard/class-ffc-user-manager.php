@@ -76,6 +76,19 @@ class UserManager {
 	}
 
 	/**
+	 * Read-only identity resolution — see {@see UserCreator::resolve_existing_user()}.
+	 *
+	 * @since 6.26.0
+	 * @param string|null $cpf_hash CPF hash, or null.
+	 * @param string|null $rf_hash  RF hash, or null.
+	 * @param string      $email    Plain e-mail, or ''.
+	 * @return int User id, or 0 when resolution would create one.
+	 */
+	public static function resolve_existing_user( ?string $cpf_hash, ?string $rf_hash, string $email ): int {
+		return UserCreator::resolve_existing_user( $cpf_hash, $rf_hash, $email );
+	}
+
+	/**
 	 * Generate a username from email and submission data.
 	 *
 	 * @see UserCreator::generate_username()
