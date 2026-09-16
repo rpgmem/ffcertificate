@@ -271,7 +271,7 @@ class BatchedCsvExport {
 
 		// `.htaccess` is Apache-only. On nginx the temp dir must be denied at the
 		// server block (e.g. `location ^~ /wp-content/uploads/ffc-tmp/ { deny all; }`)
-		// — see docs/DEPLOYMENT.md (nginx deploy note, #839 S8) and CLAUDE.md §3
+		// — see docs/DEPLOYMENT.md (nginx deploy note, #839 S8) and CLAUDE.md
 		// "CSV export architecture". Defence in depth here: random-UUID filenames +
 		// `unlink` post-download + daily cleanup cron mean a leaked path is
 		// short-lived even without the server rule.

@@ -132,7 +132,7 @@ class UserCleanup {
 		// who only created or approved) or a promoted candidate can have zero
 		// footprint of their own — so this runs on every deletion. Only nullable
 		// columns are touched; the NOT NULL attribution columns are accepted
-		// orphans on retained records (see CLAUDE.md §4). The encrypted row-body
+		// orphans on retained records (see CLAUDE.md "Security & PII"). The encrypted row-body
 		// PII is deliberately NOT scrubbed here — that is the manual PrivacyErasers
 		// (LGPD erasure) path, kept distinct from routine account deletion.
 		self::anonymize_authorship( $user_id, $anonymized );

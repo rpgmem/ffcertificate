@@ -22,7 +22,7 @@
  * JS is assured). It does not become a {@see \FreeFormCertificate\Core\SyncSourceInterface}
  * because (a) it is a direct `admin_post` streaming handler, not an AJAX job, and
  * (b) over the row cap it emits an HTML 413 page (`render_sync_limit_exceeded()`),
- * which does not fit the `rows(): iterable` contract. See CLAUDE.md §3 "CSV export
+ * which does not fit the `rows(): iterable` contract. See CLAUDE.md "CSV export
  * architecture" (the audit-grep note).
  *
  * @package FreeFormCertificate\Frontend

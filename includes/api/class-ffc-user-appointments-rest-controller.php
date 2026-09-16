@@ -143,7 +143,7 @@ class UserAppointmentsRestController {
 				// semantics) — render them with the wall-clock formatter. The old
 				// strtotime()+format_time() path re-interpreted the literal time as
 				// a UTC instant and then applied the site TZ, shifting it by the
-				// offset (e.g. 13:00 → 10:00 in UTC-3). See CLAUDE.md §4 Category B.
+				// offset (e.g. 13:00 → 10:00 in UTC-3). See CLAUDE.md Category B.
 				$time_formatted = ! empty( $appointment['start_time'] )
 					? \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $appointment['start_time'] )
 					: '';
