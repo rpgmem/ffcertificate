@@ -33,6 +33,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.DirectDatabaseQuery -- Staging writes against the plugin's own ffc_* tables; WordPress exposes no API for a chunked multi-row INSERT and there is nothing to cache on an import path.
 /**
  * Stages a reregistration import CSV into `ffc_reregistration_import_staging`.
+ *
+ * Both row shapes below spell the numeric columns as `numeric-string`, which
+ * is what `$wpdb` actually hands back: WordPress talks to mysqli without
+ * native types, so a `bigint` arrives as `'7'` and only `NULL` stays null.
+ * Declaring them `int` would satisfy level 9 and keep the bug (#1060).
+ *
+ * @phpstan-type ReregistrationImportJobRow \stdClass&object{job_id: string, reregistration_id: numeric-string, audience_id: numeric-string, status: string, total: numeric-string, processed_count: numeric-string, user_id: numeric-string, created_at: string, updated_at: string}
+ * @phpstan-type ReregistrationImportValidationRow \stdClass&object{id: numeric-string, row_no: numeric-string, line_no: numeric-string, payload: string|null, cpf_normalized: string, rf_normalized: string, email: string}
  */
 class ReregistrationImportStagingService {
 
@@ -278,6 +286,11 @@ class ReregistrationImportStagingService {
 			);
 		}
 
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<ReregistrationImportValidationRow>|null $rows
+		 */
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT id, row_no, line_no, payload, cpf_normalized, rf_normalized, email FROM %i WHERE job_id = %s ORDER BY row_no ASC',
@@ -398,11 +411,16 @@ class ReregistrationImportStagingService {
 	 * Read a job header.
 	 *
 	 * @param string $job_id Job UUID.
-	 * @return object|null
+	 * @return ReregistrationImportJobRow|null
 	 */
 	public static function get_job( string $job_id ): ?object {
 		global $wpdb;
 
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var ReregistrationImportJobRow|null $row
+		 */
 		$row = $wpdb->get_row(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE job_id = %s LIMIT 1', self::jobs_table(), $job_id )
 		);
