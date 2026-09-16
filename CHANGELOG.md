@@ -10,6 +10,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **A CI guard that blocks Portuguese prose in comments and i18n source strings** (#1260): `CommentLanguageTest` flags a line carrying two distinct Portuguese function words, after quoted spans are removed. Requiring two is what separates a sentence from `example.com` or `DoS`; the use/mention rule is what lets an example the code operates on stay quoted. Tuned against the 160 lines #1278 removed: 59 of their 60 blocks, zero false positives — and it found six more Portuguese lines on a tree three passes had called clean.
+- **A guard that the three translation catalogues agree** (#1266): `TranslationCatalogueAgreementTest` compares `.po` ↔ `.mo` ↔ `.l10n.php` by `(msgctxt, msgid)` in both directions, plural forms included. They had disagreed in production for two releases — the `.po` carried #1209's fix and the shipped `.mo` did not, so on this plugin's WP 6.4 floor the string was still wrong. Proven by mutation: a dropped entry, a changed value and an orphan each fail it.
 
 ### Changed
 
