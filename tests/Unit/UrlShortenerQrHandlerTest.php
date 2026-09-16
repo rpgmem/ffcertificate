@@ -240,10 +240,10 @@ class UrlShortenerQrHandlerTest extends TestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_generate_qr_base64_returns_cached_when_present(): void {
-		// Desde o #1233 o cache guarda um ENVELOPE que declara o tamanho, e
-		// not raw base64: the hit only counts when the stored size and the
-		// requested one match. Raw base64 here would be a miss — which is exactly
-		// o caminho de upgrade coberto em UrlShortenerQrCacheSizeTest.
+		// Since #1233 the cache stores an ENVELOPE that declares the size, not
+		// raw base64: the hit only counts when the stored size and the requested
+		// one match. Raw base64 here would be a miss -- which is exactly the
+		// upgrade path covered in UrlShortenerQrCacheSizeTest.
 		$envelope = (string) json_encode(
 			array(
 				'v'    => 1,

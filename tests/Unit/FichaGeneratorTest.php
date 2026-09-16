@@ -705,11 +705,11 @@ class FichaGeneratorTest extends TestCase {
 	}
 
 	/**
-	 * Não aprovada: nenhuma linha de autenticação.
+	 * Not approved: no authentication line.
 	 *
 	 * The `auth_code` is born on the status transition, so `submitted` and
 	 * `draft` have no code. The whole line has to come out EMPTY -- if only the
-	 * código vazio, o template padrão renderizaria "Autenticação:  /".
+	 * code were empty, the default template would render "Authentication:  /".
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
@@ -722,10 +722,12 @@ class FichaGeneratorTest extends TestCase {
 	}
 
 	/**
-	 * O template padrão realmente consome o marcador, antes de "Preenchido em".
+	 * The default template really does consume the placeholder, before
+	 * "Preenchido em".
 	 *
-	 * A metade de cima prova a composição; esta prova a FIAÇÃO. Sem ela, as
-	 * first two would pass with the template ignoring the variable.
+	 * The half above proves the composition; this one proves the WIRING.
+	 * Without it, the first two would pass with the template ignoring the
+	 * variable.
 	 *
 	 * @return void
 	 */
@@ -743,11 +745,11 @@ class FichaGeneratorTest extends TestCase {
 	}
 
 	/**
-	 * Roda `generate_ficha_data` capturando as variáveis do template.
+	 * Runs `generate_ficha_data` capturing the template's variables.
 	 *
-	 * @param string $status    Status da submissão.
-	 * @param string $auth_code Código bruto gravado na linha.
-	 * @return array<string, mixed> Variáveis entregues ao template.
+	 * @param string $status    Submission status.
+	 * @param string $auth_code Raw code stored on the row.
+	 * @return array<string, mixed> Variables handed to the template.
 	 */
 	private function runFichaWithStatus(string $status, string $auth_code): array {
 		Functions\when('__')->returnArg();

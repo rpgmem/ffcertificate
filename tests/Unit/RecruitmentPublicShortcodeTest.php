@@ -37,7 +37,7 @@ class RecruitmentPublicShortcodeTest extends TestCase {
 		$this->wpdb   = $wpdb;
 
 		Functions\when( 'wp_enqueue_style' )->justReturn( true );
-		// O bloco de cores dos selos é anexado ao handle da folha (#1193).
+		// The badge colour block is attached to the sheet's handle (#1193).
 		Functions\when( 'wp_add_inline_style' )->justReturn( true );
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();

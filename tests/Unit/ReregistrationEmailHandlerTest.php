@@ -66,10 +66,9 @@ class ReregistrationEmailHandlerTest extends TestCase {
 		$wpdb->prefix = 'wp_';
 		$wpdb->users = 'wp_users';
 		$wpdb->last_error = '';
-		// O envio de lembrete carimba `reminder_sent_at` na linha que acabou de
-		// receber e-mail (#1232). Um `byDefault()` para que um teste que queira
-		// COBRAR a escrita ainda possa sobrescrever com a sua propria
-		// expectativa.
+		// Sending a reminder stamps `reminder_sent_at` on the row that has just
+		// been emailed (#1232). A `byDefault()` so that a test wanting to CHARGE
+		// the write can still override it with its own expectation.
 		$wpdb->shouldReceive('update')->andReturn(1)->byDefault();
 		$this->wpdb = $wpdb;
 
@@ -340,7 +339,7 @@ class ReregistrationEmailHandlerTest extends TestCase {
 		$this->wpdb->shouldReceive('prepare')->andReturn('query');
 		$this->wpdb->shouldReceive('get_row')->andReturn(
 			$rereg,
-			// `id` e obrigatorio: o envio carimba `reminder_sent_at` na linha
+			// `id` is required: sending stamps `reminder_sent_at` on the row
 			// that has just been emailed (#1232), and a real row always has one.
 			// The fixture did not, and only running it showed that.
 			(object) array( 'id' => 101, 'user_id' => 10, 'status' => 'pending' ),

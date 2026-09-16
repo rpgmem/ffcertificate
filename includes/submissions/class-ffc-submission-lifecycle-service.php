@@ -381,7 +381,7 @@ class SubmissionLifecycleService {
 	}
 
 	/**
-	 * Linhas por DELETE na varredura de retencao (#1234).
+	 * Rows per DELETE in the retention scan (#1234).
 	 *
 	 * @var int
 	 */

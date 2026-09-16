@@ -148,8 +148,8 @@ class PasswordInviteTest extends TestCase {
 	}
 
 	public function test_validate_removes_the_filter_even_when_the_key_is_rejected(): void {
-		// Um filtro que sobrevive à rejeição vaza para o reset de senha de
-		// qualquer outro usuário do site.
+		// A filter that survives the rejection leaks into the password reset of
+		// every other user on the site.
 		$this->mockSettings();
 		Functions\expect( 'add_filter' )->once();
 		Functions\expect( 'remove_filter' )->once();

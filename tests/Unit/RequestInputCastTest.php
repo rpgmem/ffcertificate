@@ -94,16 +94,15 @@ final class RequestInputCastTest extends TestCase {
 
 			// Prose that QUOTES the shape is not the shape. The scan read the file
 			// as plain text, so a comment explaining why a given read does NOT use
-			// `absint()` on the superglobal was counted as
-			// um cast de chave dinâmica -- e reprovava o PR que escrevia o
-			// a comment (#1212 spent a CI run on it). It is the same distinction
-			// CLAUDE.md already pins for suppression annotations: only the token
-			// that OPENS the comment counts, not the one
-			// aparece dentro dele.
+			// `absint()` on the superglobal was counted as a dynamic-key cast --
+			// failing the very PR that wrote the comment (#1212 spent a CI run on
+			// it). It is the same distinction CLAUDE.md already pins for
+			// suppression annotations: only the token that OPENS the comment
+			// counts, not one that appears inside it.
 			//
-			// `token_get_all()` em vez de regex: reconhecer comentário com
-			// regular expression requires knowing when `//` is inside a
-			// string, e o lexer do PHP já sabe.
+			// `token_get_all()` rather than a regex: recognising a comment with a
+			// regular expression requires knowing when `//` is inside a string,
+			// and PHP's lexer already knows.
 			$text = self::strip_comments( $text );
 
 			// `absint( … )` / `intval( … )` and the `(int)` cast, each of them

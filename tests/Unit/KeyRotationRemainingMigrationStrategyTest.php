@@ -189,9 +189,9 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 	}
 
 	/**
-	 * Linhas do alvo que satisfazem os recortes presentes no SQL.
+	 * Target rows that satisfy the filters present in the SQL.
 	 *
-	 * @param string $table Tabela.
+	 * @param string $table Table.
 	 * @param string $sql   The interpolated SQL.
 	 * @return array<int, array<string, mixed>>
 	 */
@@ -412,8 +412,7 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 		// broken. What does NOT survive is the conclusion: every plaintext field
 		// becomes an error, and `mark_completed()` requires an empty list, so the
 		// migration would never reach 100%. Measured by mutation: removing the
-		// prefix check, this is the assertion that
-		// reprova, e só ela.
+		// prefix check, this is the assertion that fails, and only this one.
 		$this->assertSame(
 			array(),
 			$result['errors'],

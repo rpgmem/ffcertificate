@@ -316,8 +316,8 @@ class Settings {
 			'url_cleanup_trashed'        => 1,    // Short-URL cleanup: status = 'trashed'.
 			'public_access_disable_days' => 90, // Grace window (days) for disabling Public Operator Access on old forms.
 			'code_editor_theme'          => 'dark', // 'dark' | 'light' | 'auto' (auto follows dark_mode).
-			// Janela do link de definição de senha do convite, em horas (#1212).
-			// Limitada a 1..720 na leitura e na escrita por `PasswordInvite`.
+			// Window of the invitation's password-set link, in hours (#1212).
+			// Clamped to 1..720 on read and on save by `PasswordInvite`.
 			'invite_password_link_hours' => 48,
 			// Captcha (#1053). `math` on upgrade and on a fresh install: the
 			// arithmetic challenge is the only one that runs without

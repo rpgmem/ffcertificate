@@ -56,8 +56,8 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 		Functions\when( 'absint' )->alias( static fn ( $v ) => (int) $v );
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'current_user_can' )->justReturn( true );
-		// A célula de status passou a vir de `RecruitmentAdminPage::classification_status_badge()`,
-		// que lê as cores configuráveis das Settings (#1193). Vazio = defaults.
+		// The status cell now comes from `RecruitmentAdminPage::classification_status_badge()`,
+		// which reads the configurable colours from Settings (#1193). Empty = defaults.
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'add_query_arg' )->alias(

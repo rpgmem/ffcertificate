@@ -222,7 +222,7 @@ class PasswordInvite {
 		$key   = RequestInput::get_post_string( self::ARG_KEY );
 		$login = RequestInput::get_post_string( self::ARG_LOGIN );
 
-		// O usuário vem do TOKEN, nunca de um id da requisição.
+		// The user comes from the TOKEN, never from a request-supplied id.
 		$user = self::validate( $key, $login );
 		if ( is_wp_error( $user ) ) {
 			self::bail( $redirect, 'expired_key' === $user->get_error_code() ? 'expired' : 'invalid' );
@@ -232,7 +232,7 @@ class PasswordInvite {
 		// being altered, so it is read raw and validated by length.
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- a password cannot be sanitised without being altered; the nonce and the reset key were both verified above, and this read is exactly the value they authorise.
 		$pass1 = isset( $_POST['ffc_pass1'] ) ? (string) wp_unslash( $_POST['ffc_pass1'] ) : '';
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- mesma razão da linha acima: sanitizar a confirmação mudaria o valor comparado.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- same reason as the line above: sanitising the confirmation would change the value being compared.
 		$pass2 = isset( $_POST['ffc_pass2'] ) ? (string) wp_unslash( $_POST['ffc_pass2'] ) : '';
 
 		if ( '' === $pass1 || $pass1 !== $pass2 ) {

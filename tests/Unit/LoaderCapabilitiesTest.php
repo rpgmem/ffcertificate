@@ -358,11 +358,11 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->assertContains( 'ffcertificate_reregistration_expire_hook', $added );
 		$this->assertContains( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, $added );
 
-		// A varredura de tickets expirados (#1234). Ela morava no
-		// `AdminLoader`, que so e construido dentro de `if ( is_admin() )` --
-		// and `wp-cron.php` defines `DOING_CRON`, never `WP_ADMIN`, so the
-		// callback nunca estava registrado no contexto que dispara o evento.
-		// Aqui e o metodo que roda em TODA requisicao, que e a correcao.
+		// The expired-tickets scan (#1234). It used to live in `AdminLoader`,
+		// which is only built inside `if ( is_admin() )` -- and `wp-cron.php`
+		// defines `DOING_CRON`, never `WP_ADMIN`, so the callback was never
+		// registered in the context that fires the event. This is the method
+		// that runs on EVERY request, which is the fix.
 		$this->assertContains(
 			\FreeFormCertificate\Admin\ExpiredTicketsCleanup::CRON_HOOK,
 			$added,
@@ -406,16 +406,16 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->assertNotContains( 'ffcertificate_reregistration_expire_hook', $added );
 		$this->assertNotContains( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, $added );
 		// Certificates is still on in this scenario, so the scan of
-		// tickets segue montada -- o que separa o gate de MODULO (deliberado)
-		// from the CONTEXT defect #1234 fixed.
+		// tickets is still composed -- which separates the MODULE gate
+		// (deliberate) from the CONTEXT defect #1234 fixed.
 		$this->assertContains( \FreeFormCertificate\Admin\ExpiredTicketsCleanup::CRON_HOOK, $added );
 	}
 
 	/**
-	 * Certificates desligado para a varredura de tickets -- o gate deliberado.
+	 * Certificates off for the ticket scan -- the deliberate gate.
 	 *
-	 * Separado do teste acima de proposito: la o modulo esta ligado e o que se
-	 * proves registration HAPPENS outside `is_admin()`; here what is proved is
+	 * Separate from the test above on purpose: there the module is on and what it
+	 * proves is that registration HAPPENS outside `is_admin()`; here what is proved is
 	 * that the module gate still holds after the move. Conflating the two would
 	 * make #1234's fix look as though it had switched the gate off.
 	 */

@@ -417,11 +417,11 @@ class ActivityLogQueryTest extends TestCase {
 	/**
 	 * A cache hit does not query the database (#1234).
 	 *
-	 * E a asercao que sustenta a correcao. O `<select>` de filtro da tela de
-	 * The Activity Log is redrawn on every render, and this is the fastest
+	 * This is the assertion that carries the fix. The filter `<select>` of the
+	 * Activity Log screen is redrawn on every render, and this is the fastest
 	 * growing table in the plugin -- the `DISTINCT` uses the `KEY action` index,
 	 * so it walks the INDEX and not the table, but it still walks all of it to
-	 * produzir algumas dezenas de valores.
+	 * produce a few dozen values.
 	 *
 	 * `shouldNotReceive` is what pins this: comparing the returned value would
 	 * not be enough, because the uncached read would return the same list.
@@ -434,10 +434,10 @@ class ActivityLogQueryTest extends TestCase {
 	}
 
 	/**
-	 * O resultado calculado e gravado no transiente.
+	 * The computed result is written to the transient.
 	 *
-	 * O par da asercao acima: sem a gravacao, todo render seria um miss e o
-	 * cache existiria so no caminho de leitura.
+	 * The pair of the assertion above: without the write, every render would be
+	 * a miss and the cache would exist only on the read path.
 	 */
 	public function test_distinct_actions_stores_what_it_computed(): void {
 		$stored = null;
