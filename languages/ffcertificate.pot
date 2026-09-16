@@ -8421,19 +8421,6 @@ msgstr ""
 msgid "Functional Registry (RF)"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:795
-msgid ""
-"Hello {{user_name}},\n"
-"\n"
-"Your appointment has been scheduled:\n"
-"\n"
-"Calendar: {{calendar_title}}\n"
-"Date: {{appointment_date}}\n"
-"Time: {{appointment_time}}\n"
-"\n"
-"Thank you!"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-rate-limit.php:59
 msgid "How many ALTCHA challenges one address may request, and over how long. Only applies to the captcha modes that show the widget; the math mode never asks the server for one. Past the cap the widget cannot load a challenge and the form is unusable for everyone on that address — which behind institutional NAT is everyone in the building."
 msgstr ""
@@ -9445,7 +9432,7 @@ msgstr ""
 msgid "Hello {{user_name}},"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:784
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:784 includes/self-scheduling/class-ffc-self-scheduling-editor.php:795
 msgid ""
 "Hello {{user_name}},\n"
 "\n"
