@@ -411,11 +411,17 @@ foreach ( $ffcertificate_user_ids as $ffcertificate_uid ) {
 	}
 }
 
-// Roles are the second residue, and it is not a corner case. Section 6 deletes
-// the FFC roles wholesale, which takes their capabilities with them — but FFC
-// capabilities also sit on roles this plugin does not own.
+// Roles are the second residue, and it is not a corner case — it is guaranteed.
+// Section 6 deletes the FFC roles wholesale, which takes their capabilities with
+// them, but FFC capabilities also sit on roles this plugin does not own.
 //
-// One is `administrator`, on any install that passed through a release before
+// The certain one is `subscriber`: `AudienceActivator::register_capabilities()`
+// grants it `ffc_view_own_audience_bookings` at activation, so EVERY install
+// has carried an FFC capability on a WordPress core role since the day it was
+// activated, and nothing removed it. Measured on a fresh CI install, not
+// inferred.
+//
+// Another is `administrator`, on any install that passed through a release before
 // 6.16.0 (#747): `Loader::ensure_admin_capabilities()` granted every
 // `ADMIN_CAPABILITIES` entry to the native administrator role until that
 // release moved the admin tier onto `ffc_administrator`. It stopped granting,
