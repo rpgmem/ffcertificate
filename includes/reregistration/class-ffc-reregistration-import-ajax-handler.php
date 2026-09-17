@@ -134,8 +134,11 @@ final class ReregistrationImportAjaxHandler {
 		$result = ReregistrationImportStagingService::validate_job( $job_id );
 
 		if ( ! isset( $result['status'] ) ) {
-			// The refusal shape: `{ok: false, errors: […]}` with no report.
-			$this->fail_with_codes( $result['errors'] ?? array() );
+			// The refusal shape: `{ok: false, errors: […]}` with no report, and
+			// `errors` is always present in it — the union's other arm is the
+			// one carrying `status`, so narrowing on that has already picked
+			// this one. A `?? array()` here reads as caution and is dead code.
+			$this->fail_with_codes( $result['errors'] );
 		}
 
 		$failures = array();
