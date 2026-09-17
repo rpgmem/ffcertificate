@@ -128,9 +128,13 @@ class UserCreator {
 	 * @param string               $email           Plain email.
 	 * @param array<string, mixed> $submission_data Optional metadata for user creation.
 	 * @param string               $context         Capability context.
+	 * @param bool                 $notify          Whether a CREATED user is sent
+	 *                                              the account notification. Has
+	 *                                              no effect on the two matching
+	 *                                              branches, which create nobody.
 	 * @return int|\WP_Error User ID or error. Returns a WP_Error('ffc_user_no_identifier') when both hashes AND email are empty.
 	 */
-	public static function get_or_create_user_dual( ?string $cpf_hash, ?string $rf_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE ) {
+	public static function get_or_create_user_dual( ?string $cpf_hash, ?string $rf_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE, bool $notify = true ) {
 		// Normalize empty strings to null so downstream branches can rely
 		// on `null !== $cpf_hash` semantics.
 		$cpf_hash = ( is_string( $cpf_hash ) && '' !== $cpf_hash ) ? $cpf_hash : null;
@@ -168,7 +172,7 @@ class UserCreator {
 		// STEP 3: Create. Empty email here means we have at least one
 		// hash but no email — `wp_create_user` will reject the empty
 		// address with a WP_Error, which we propagate.
-		$user_id = self::create_ffc_user( $email, $submission_data, $context );
+		$user_id = self::create_ffc_user( $email, $submission_data, $context, $notify );
 		if ( is_wp_error( $user_id ) ) {
 			return $user_id;
 		}
@@ -338,9 +342,13 @@ class UserCreator {
 	 * @param string               $email           Email address.
 	 * @param array<string, mixed> $submission_data Submission data for user metadata.
 	 * @param string               $context         Context for capability granting.
+	 * @param bool                 $notify          Whether to send the account
+	 *                                              notification. `false` only on
+	 *                                              the bulk import path — see
+	 *                                              the send site below.
 	 * @return int|\WP_Error User ID or error
 	 */
-	private static function create_ffc_user( string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE ) {
+	private static function create_ffc_user( string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE, bool $notify = true ) {
 		$password = wp_generate_password( 24, true, true );
 		$username = self::generate_username( $email, $submission_data );
 		$user_id  = wp_create_user( $username, $password, $email );
@@ -363,6 +371,16 @@ class UserCreator {
 		CapabilityManager::grant_context_capabilities( $user_id, $context );
 		self::sync_user_metadata( $user_id, $submission_data );
 		self::create_user_profile( $user_id );
+
+		// **Bulk creation passes `$notify = false`** (#1214). This send is
+		// unconditional otherwise, so an import of 500 rows is 500 synchronous
+		// account notifications from inside a batch loop. Suppressing it here is
+		// deliberately NOT the same as the global "disable all emails" switch,
+		// which has a different blast radius; the campaign's own invitation
+		// flow is what tells an imported user their account exists.
+		if ( ! $notify ) {
+			return $user_id;
+		}
 
 		if ( ! class_exists( '\FreeFormCertificate\Integrations\EmailHandler' ) ) {
 			$email_handler_file = FFC_PLUGIN_DIR . 'includes/integrations/class-ffc-email-handler.php';

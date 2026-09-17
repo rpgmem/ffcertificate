@@ -11,12 +11,14 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationImportStagingService;
 
 /**
- * Tests for the reregistration CSV import's ingest phase (#1214 sprint 2).
+ * Tests for the reregistration CSV import (#1214, sprints 2 to 4).
  *
  * The decisions under test are the ones #1214 took explicitly, so each has a
  * test that fails if the decision is reversed: an unknown column is ignored
- * and reported, and a required field with no column at all refuses the file
- * before anything is staged.
+ * and reported, a required field with no column at all refuses the file
+ * before anything is staged, one failed row blocks the whole job, and the
+ * promote phase writes through `process_submission()` with both e-mails
+ * suppressed.
  *
  * The three collaborators are alias mocks, so each test needs a process in
  * which the real class was never loaded — Mockery refuses an alias for a class
@@ -578,5 +580,444 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 
 		$this->assertFalse( $result['ok'] );
 		$this->assertSame( array( 'rereg_import_job_not_found' ), $result['errors'] );
+	}
+
+	// ==================================================================
+	// promote_batch() / commit_job() — sprint 4
+	// ==================================================================
+
+	/** @var array<string, list<array<int, mixed>>> */
+	private array $calls = array();
+
+	/**
+	 * Wire the promote phase's collaborators.
+	 *
+	 * Every write the phase makes is recorded rather than performed, so a test
+	 * can assert the SEQUENCE — which is what this phase is: resolve, add to the
+	 * audience, seed the row, write through the processor.
+	 *
+	 * @param int          $resolved_user Id `get_or_create_user_dual()` answers with.
+	 * @param object|null  $seeded        Existing seeded submission, or null.
+	 * @return void
+	 */
+	private function with_promotion( int $resolved_user = 42, ?object $seeded = null ): void {
+		$this->calls = array();
+
+		$record = function ( string $name ): callable {
+			return function ( ...$args ) use ( $name ) {
+				$this->calls[ $name ][] = $args;
+				return true;
+			};
+		};
+
+		$encryption = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$encryption->shouldReceive( 'hash' )->andReturnUsing( static fn( string $v ) => 'h:' . $v );
+
+		$manager = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' );
+		$manager->shouldReceive( 'get_or_create_user_dual' )->andReturnUsing(
+			function ( ...$args ) use ( $resolved_user ) {
+				$this->calls['get_or_create_user_dual'][] = $args;
+				return $resolved_user;
+			}
+		);
+
+		$audience = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$audience->shouldReceive( 'add_member' )->andReturnUsing( $record( 'add_member' ) );
+
+		$reader = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' );
+		$reader->shouldReceive( 'get_by_reregistration_and_user' )->andReturnUsing(
+			function ( int $rereg_id, int $user_id ) use ( &$seeded ) {
+				$this->calls['get_by_reregistration_and_user'][] = array( $rereg_id, $user_id );
+				return $seeded;
+			}
+		);
+
+		$writer = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' );
+		$writer->shouldReceive( 'create' )->andReturnUsing(
+			function ( array $data ) use ( &$seeded ) {
+				$this->calls['create'][] = array( $data );
+				// A real seed makes the row findable on the re-read that follows.
+				$seeded = $this->submission( 777, 'pending' );
+				return 777;
+			}
+		);
+
+		$processor = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationDataProcessor' );
+		$processor->shouldReceive( 'sanitize_values' )->andReturnUsing(
+			function ( array $raw, object $rereg ) {
+				$this->calls['sanitize_values'][] = array( $raw );
+				return array( 'fields' => array( 'sanitized' => true ) );
+			}
+		);
+		$processor->shouldReceive( 'process_submission' )->andReturnUsing( $record( 'process_submission' ) );
+	}
+
+	/**
+	 * Run one promote batch over a fixed set of staged rows.
+	 *
+	 * @param list<array<string, string>> $staged     Each row's status/payload/identifiers.
+	 * @param string                      $job_status Job phase.
+	 * @param int                         $total      Rows in the job.
+	 * @return array<string, mixed>
+	 */
+	private function run_promote( array $staged, string $job_status = 'validated', int $total = 0 ): array {
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' );
+		$repo->shouldReceive( 'get_by_id' )->andReturn(
+			(object) array(
+				'id'           => '1',
+				'auto_approve' => '0',
+			)
+		);
+
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
+			(object) array(
+				'job_id'            => 'job-uuid-0001',
+				'reregistration_id' => '1',
+				'audience_id'       => '7',
+				'status'            => $job_status,
+				'total'             => (string) ( 0 === $total ? count( $staged ) : $total ),
+				'processed_count'   => '0',
+			)
+		);
+
+		$rows = array();
+		foreach ( $staged as $i => $row ) {
+			$rows[] = (object) array(
+				'id'             => (string) ( $i + 1 ),
+				'line_no'        => (string) ( $i + 2 ),
+				'payload'        => $row['payload'] ?? '{}',
+				'cpf_normalized' => $row['cpf'] ?? '',
+				'rf_normalized'  => $row['rf'] ?? '',
+				'email'          => $row['email'] ?? '',
+				'user_id'        => $row['user_id'] ?? '0',
+				'submission_id'  => $row['submission_id'] ?? '0',
+				'row_status'     => $row['row_status'] ?? 'ready',
+			);
+		}
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( $rows );
+
+		$this->updates = array();
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data ) {
+				$this->updates[] = $data;
+				return 1;
+			}
+		);
+
+		return ReregistrationImportStagingService::promote_batch( 'job-uuid-0001', 10 );
+	}
+
+	/** Arguments of the Nth recorded call to $name. */
+	private function call( string $name, int $index = 0 ): array {
+		return $this->calls[ $name ][ $index ] ?? array();
+	}
+
+	/**
+	 * The Nth STAGING-ROW update, skipping the job-header ones.
+	 *
+	 * `promote_batch()` flips the job to `promoting` on its first non-empty
+	 * batch, so the first recorded update is the header's, not a row's.
+	 * Indexing by position would make every assertion here depend on that flip
+	 * — which is a different fact, tested on its own.
+	 *
+	 * @param int $index 0-based row-update ordinal.
+	 * @return array<string, mixed>
+	 */
+	private function row_update( int $index = 0 ): array {
+		$rows = array_values(
+			array_filter(
+				$this->updates,
+				static fn( array $data ): bool => array_key_exists( 'processed', $data )
+			)
+		);
+
+		return $rows[ $index ] ?? array();
+	}
+
+	public function test_a_ready_row_is_written_through_the_processor(): void {
+		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
+
+		$result = $this->run_promote( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
+
+		$this->assertTrue( $result['ok'] );
+		$this->assertSame( 1, $result['processed'] );
+		$this->assertTrue( $result['done'] );
+		$this->assertCount( 1, $this->calls['process_submission'] ?? array() );
+		$this->assertSame( 1, $this->row_update()['processed'] );
+		$this->assertSame( 42, $this->row_update()['user_id'] );
+		$this->assertSame( 900, $this->row_update()['submission_id'] );
+	}
+
+	/**
+	 * The load-bearing rule of the whole phase (#1214): promotion writes through
+	 * `process_submission()` and never touches the `data` JSON itself, because
+	 * that method is where every `is_sensitive` value is encrypted.
+	 */
+	public function test_the_import_never_writes_the_submission_json_itself(): void {
+		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
+
+		$this->run_promote( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
+
+		foreach ( $this->updates as $data ) {
+			$this->assertArrayNotHasKey( 'data', $data, 'Only process_submission() may write the submission body.' );
+		}
+		$this->assertNotEmpty( $this->calls['process_submission'] ?? array() );
+	}
+
+	/**
+	 * The gap sprint 4 measured: `process_submission()` encrypts and persists,
+	 * it does NOT sanitize — the public form's sanitizer lives in
+	 * `collect_form_data()`. Handing it the raw staged payload would write past
+	 * a boundary the form submit never skips.
+	 */
+	public function test_the_payload_is_sanitized_the_way_a_form_submit_is(): void {
+		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
+
+		$this->run_promote( array( array( 'cpf' => '111', 'payload' => '{"cpf":"<b>111</b>"}' ) ) );
+
+		$this->assertSame( array( 'cpf' => '<b>111</b>' ), $this->call( 'sanitize_values' )[0], 'The raw payload reaches the sanitizer.' );
+		$this->assertSame(
+			array( 'fields' => array( 'sanitized' => true ) ),
+			$this->call( 'process_submission' )[2],
+			'What reaches the processor is the sanitizer output, never the raw payload.'
+		);
+	}
+
+	/**
+	 * Both e-mails are suppressed on this path, and each for its own reason —
+	 * the account notification because 500 rows is 500 synchronous sends, the
+	 * confirmation because it tells somebody their submission was received when
+	 * an operator filed it for them. The campaign's invitation still reaches
+	 * them (`get_awaiting_invitation()` selects on `invited_at IS NULL`,
+	 * whatever the status).
+	 */
+	public function test_promotion_sends_no_email(): void {
+		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
+
+		$this->run_promote( array( array( 'cpf' => '111', 'payload' => '{"cpf":"111"}' ) ) );
+
+		$this->assertFalse( $this->call( 'get_or_create_user_dual' )[5], 'A created account is not mailed by the importer.' );
+		$this->assertFalse( $this->call( 'process_submission' )[4], 'No confirmation per imported row.' );
+	}
+
+	/**
+	 * A user this import creates has no seeded row — saving the campaign seeds
+	 * one per audience member (#1234), and they were not a member then.
+	 */
+	public function test_a_missing_seeded_row_is_created_before_the_write(): void {
+		$this->with_promotion( 42, null );
+
+		$result = $this->run_promote( array( array( 'email' => 'new@example.com', 'payload' => '{}' ) ) );
+
+		$this->assertTrue( $result['ok'] );
+		$this->assertSame(
+			array(
+				'reregistration_id' => 1,
+				'user_id'           => 42,
+				'status'            => 'pending',
+			),
+			$this->call( 'create' )[0],
+			'Seeded on the same terms the campaign save uses.'
+		);
+		$this->assertSame( 777, $this->row_update()['submission_id'] );
+	}
+
+	/**
+	 * The flat staged payload reaches `get_or_create_user_dual()` unwrapped,
+	 * because `generate_username()` and `sync_user_metadata()` look for
+	 * `nome_completo` and its siblings AT THE TOP LEVEL. Wrapping it would give
+	 * every created account a random username with no visible failure.
+	 */
+	public function test_the_payload_reaches_the_resolver_flat(): void {
+		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
+
+		$this->run_promote( array( array( 'email' => 'jo@example.com', 'payload' => '{"nome_completo":"Jo Silva"}' ) ) );
+
+		$this->assertSame(
+			array( 'nome_completo' => 'Jo Silva' ),
+			$this->call( 'get_or_create_user_dual' )[3],
+			'A wrapper here costs the created account its display name.'
+		);
+	}
+
+	public function test_the_audience_the_operator_chose_gets_the_member(): void {
+		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
+
+		$this->run_promote( array( array( 'cpf' => '111', 'payload' => '{}' ) ) );
+
+		$this->assertSame( array( 7, 42 ), $this->call( 'add_member' ) );
+	}
+
+	/**
+	 * A skipped row is counted so the progress bar reaches the end, and written
+	 * nowhere so the person who submitted first keeps their own answers.
+	 */
+	public function test_a_skipped_row_advances_progress_and_writes_nothing(): void {
+		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
+
+		$result = $this->run_promote(
+			array(
+				array( 'cpf' => '111', 'row_status' => 'skipped', 'user_id' => '43', 'submission_id' => '901' ),
+				array( 'cpf' => '222', 'row_status' => 'ready', 'payload' => '{}' ),
+			)
+		);
+
+		$this->assertSame( 2, $result['processed'] );
+		$this->assertCount( 1, $this->calls['process_submission'] ?? array(), 'Only the ready row is written.' );
+		$this->assertSame( 43, $this->row_update()['user_id'], 'The skipped row keeps what validate resolved.' );
+		$this->assertSame( 1, $this->row_update()['processed'] );
+	}
+
+	/**
+	 * The flip the `row_update()` helper exists to look past: a job moves to
+	 * `promoting` on its first non-empty batch, so a `commit_job()` or a second
+	 * `validate_job()` arriving mid-promote sees the phase it is really in.
+	 */
+	public function test_the_first_batch_moves_the_job_to_promoting(): void {
+		$this->with_promotion( 42, $this->submission( 900, 'pending' ) );
+
+		$this->run_promote( array( array( 'cpf' => '111', 'payload' => '{}' ) ) );
+
+		$statuses = array_column( $this->updates, 'status' );
+		$this->assertContains( 'promoting', $statuses );
+	}
+
+	/**
+	 * The request-level half of all-or-nothing: `validate_job()` refuses to
+	 * label a job with any failure as `validated`, and this refuses to promote
+	 * anything that is not.
+	 */
+	public function test_a_blocked_job_cannot_promote(): void {
+		$this->with_promotion();
+
+		$result = $this->run_promote( array( array( 'cpf' => '111' ) ), 'blocked' );
+
+		$this->assertFalse( $result['ok'] );
+		$this->assertSame( array( 'rereg_import_job_invalid_state_for_promote' ), $result['errors'] );
+		$this->assertEmpty( $this->calls['process_submission'] ?? array() );
+	}
+
+	public function test_a_failed_resolution_aborts_the_batch_naming_the_file_line(): void {
+		$this->with_promotion( 0, $this->submission( 900, 'pending' ) );
+
+		$result = $this->run_promote(
+			array(
+				array( 'cpf' => '111', 'payload' => '{}' ),
+				array( 'cpf' => '222', 'payload' => '{}' ),
+			)
+		);
+
+		$this->assertFalse( $result['ok'] );
+		$this->assertSame( array( 'rereg_import_user_resolution_failed:2' ), $result['errors'], 'The line in the file is what makes it actionable.' );
+		$this->assertEmpty( $this->calls['process_submission'] ?? array() );
+	}
+
+	/**
+	 * An over-iterating client gets the job's own counters back rather than
+	 * whatever it thought it had sent.
+	 */
+	public function test_an_exhausted_job_answers_with_its_own_counters(): void {
+		$this->with_promotion();
+
+		$result = $this->run_promote( array(), 'promoting', 5 );
+
+		$this->assertTrue( $result['ok'] );
+		$this->assertTrue( $result['done'] );
+		$this->assertSame( 5, $result['total'] );
+	}
+
+	/**
+	 * Run commit over a job whose staging holds $unprocessed pending rows.
+	 *
+	 * @param int    $unprocessed Rows still to promote.
+	 * @param string $job_status  Job phase.
+	 * @return array<string, mixed>
+	 */
+	private function run_commit( int $unprocessed, string $job_status = 'promoting' ): array {
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
+			(object) array(
+				'job_id'            => 'job-uuid-0001',
+				'reregistration_id' => '1',
+				'audience_id'       => '7',
+				'status'            => $job_status,
+				'total'             => '3',
+				'processed_count'   => '3',
+			)
+		);
+
+		$counts = array( (string) $unprocessed, '2', '1' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function () use ( &$counts ) {
+				return array_shift( $counts ) ?? '0';
+			}
+		);
+
+		$this->deletes = array();
+		$this->wpdb->shouldReceive( 'delete' )->andReturnUsing(
+			function ( $table ) {
+				$this->deletes[] = (string) $table;
+				return 1;
+			}
+		);
+		$this->wpdb->shouldReceive( 'update' )->andReturn( 1 );
+
+		return ReregistrationImportStagingService::commit_job( 'job-uuid-0001' );
+	}
+
+	/** @var list<string> */
+	private array $deletes = array();
+
+	public function test_commit_drops_the_cleartext_staging_and_reports(): void {
+		$result = $this->run_commit( 0 );
+
+		$this->assertTrue( $result['ok'] );
+		$this->assertSame( 2, $result['promoted'] );
+		$this->assertSame( 1, $result['skipped'] );
+		$this->assertContains( 'wp_ffc_reregistration_import_staging', $this->deletes, 'Cleartext CPF/RF/e-mail must not survive the job.' );
+		$this->assertContains( 'wp_ffc_reregistration_import_jobs', $this->deletes );
+	}
+
+	/**
+	 * A hand-rolled POST must not be able to discard the half of a file that
+	 * has not been written yet.
+	 */
+	public function test_commit_refuses_while_rows_are_unpromoted(): void {
+		$result = $this->run_commit( 4 );
+
+		$this->assertFalse( $result['ok'] );
+		$this->assertSame( array( 'rereg_import_job_not_finished' ), $result['errors'] );
+		$this->assertSame( array(), $this->deletes );
+	}
+
+	/**
+	 * @dataProvider provide_non_promoting_states
+	 * @param string $status Job phase commit must refuse.
+	 */
+	public function test_commit_refuses_a_job_that_is_not_promoting( string $status ): void {
+		$result = $this->run_commit( 0, $status );
+
+		$this->assertFalse( $result['ok'] );
+		$this->assertSame( array( 'rereg_import_job_invalid_state_for_commit' ), $result['errors'] );
+	}
+
+	/** @return array<string, array{string}> */
+	public function provide_non_promoting_states(): array {
+		return array(
+			'never promoted'       => array( 'validated' ),
+			'never even validated' => array( 'ingested' ),
+			'blocked'              => array( 'blocked' ),
+		);
+	}
+
+	/**
+	 * A crash mid-delete leaves the header at `promoting` with no staging rows.
+	 * That is the only retry shape this phase has — there is no `committed`
+	 * state to accept, because the cleanup IS the whole phase.
+	 */
+	public function test_commit_finishes_a_half_deleted_job(): void {
+		$result = $this->run_commit( 0, 'promoting' );
+
+		$this->assertTrue( $result['ok'] );
+		$this->assertContains( 'wp_ffc_reregistration_import_jobs', $this->deletes );
 	}
 }

@@ -47,6 +47,24 @@ class CapabilityManager {
 	public const CONTEXT_RECRUITMENT = 'recruitment';
 
 	/**
+	 * Context key: reregistration CSV import (#1214).
+	 *
+	 * A no-op for capability granting, for the same reason
+	 * {@see self::CONTEXT_RECRUITMENT} is: the reregistration user surface has
+	 * no per-user caps of its own — it rides the `ffc_end_user` role's baseline
+	 * `read` cap, and `ffc_manage_reregistration` / `ffc_import_reregistration`
+	 * are admin caps registered on activation, never granted at import time.
+	 *
+	 * It exists rather than the import reusing `CONTEXT_CERTIFICATE`, which
+	 * would grant the three certificate caps to somebody who may hold no
+	 * certificate — a grant nothing asked for, recorded in the grant log as if
+	 * it had been.
+	 *
+	 * @since 6.26.0
+	 */
+	public const CONTEXT_REREGISTRATION = 'reregistration';
+
+	/**
 	 * All certificate-related capabilities.
 	 *
 	 * @since 4.4.0
@@ -336,6 +354,11 @@ class CapabilityManager {
 			case self::CONTEXT_AUDIENCE:
 				self::grant_audience_capabilities( $user_id );
 				break;
+			case self::CONTEXT_REREGISTRATION:
+				// Intentional no-op — see the constant for why. Listed rather
+				// than left to `default` so that a context added later without
+				// a decision still falls through to nothing silently, while
+				// these two are on record as having been decided.
 			case self::CONTEXT_RECRUITMENT:
 				// Intentional no-op: recruitment candidates rely on the
 				// `ffc_end_user` role's baseline `read` cap. The admin-side

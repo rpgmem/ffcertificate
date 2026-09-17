@@ -831,7 +831,11 @@ class ReregistrationDataProcessorTest extends TestCase {
 
 		Functions\when( 'get_user_meta' )->justReturn( array() );
 
-		$emailer = Mockery::mock( 'overload:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' );
+		// `alias:` for the reason written on the suppression test below: an
+		// `overload:` mock does not verify a STATIC expectation, so the `once()`
+		// this line used to carry was inert — it passed whether or not the send
+		// happened. Found while adding that test (#1214).
+		$emailer = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' );
 		$emailer->shouldReceive( 'send_confirmation' )->once();
 
 		$submission = (object) array( 'id' => 99 );
@@ -894,7 +898,7 @@ class ReregistrationDataProcessorTest extends TestCase {
 		$cfw = Mockery::mock( 'overload:FreeFormCertificate\Reregistration\CustomFieldWriter' );
 		$cfw->shouldReceive( 'save_user_data' );
 
-		$emailer = Mockery::mock( 'overload:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' );
+		$emailer = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' );
 		$emailer->shouldReceive( 'send_confirmation' );
 
 		$submission = (object) array( 'id' => 5 );
@@ -906,5 +910,105 @@ class ReregistrationDataProcessorTest extends TestCase {
 		$this->assertArrayHasKey( 'reviewed_at', $captured );
 		$this->assertSame( 0, $captured['reviewed_by'] );
 		$this->assertArrayHasKey( 'notes', $captured );
+	}
+
+	/**
+	 * The bulk-import path (#1214) passes `$notify = false`: the confirmation
+	 * reads "we received your reregistration" to somebody who did nothing — an
+	 * operator filed the record for them — and at import scale it is one
+	 * synchronous `wp_mail` per row inside a batch loop.
+	 *
+	 * The submission itself is still written; only the e-mail goes.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_process_submission_can_suppress_the_confirmation(): void {
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_user_meta' )->justReturn( array() );
+
+		global $wpdb;
+		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () {
+			return func_get_args()[0];
+		} )->byDefault();
+		$wpdb->shouldReceive( 'get_col' )->andReturn( array() )->byDefault();
+		$wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
+		$wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();
+
+		Mockery::mock( 'overload:FreeFormCertificate\Core\Encryption' );
+		$auth = Mockery::mock( 'overload:FreeFormCertificate\Core\AuthCodeService' );
+		$auth->shouldReceive( 'generate_globally_unique_auth_code' )->andReturn( 'QQQ11111' );
+
+		$writer = Mockery::mock( 'overload:FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' );
+		$writer->shouldReceive( 'update' )->once()->andReturn( true );
+
+		$cfw = Mockery::mock( 'overload:FreeFormCertificate\Reregistration\CustomFieldWriter' );
+		$cfw->shouldReceive( 'save_user_data' );
+
+		// **`alias:`, not `overload:` — measured, and the difference is total.**
+		// An `overload:` mock intercepts `new`; a STATIC call passes straight
+		// through it and its expectations are never verified, so
+		// `shouldReceive( … )->once()` on one is green with zero calls and
+		// `shouldNotReceive()` is green with a hundred. `send_confirmation()` is
+		// static. The first version of this test used `overload:` and passed
+		// with the guard under test deleted.
+		$emailer = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationEmailHandler' );
+		$emailer->shouldReceive( 'send_confirmation' )->never();
+
+		$submission = (object) array( 'id' => 5 );
+		$rereg      = (object) array( 'id' => 1, 'auto_approve' => 0 );
+
+		ReregistrationDataProcessor::process_submission( $submission, $rereg, array( 'fields' => array() ), 3, false );
+	}
+
+	// ==================================================================
+	// sanitize_values() — the sanitizer, reachable without $_POST
+	// ==================================================================
+
+	/**
+	 * `collect_form_data()` is `sanitize_values()` over `$_POST`, and the
+	 * extraction (#1214) exists so the CSV import sanitizes exactly what a form
+	 * submit sanitizes. This asserts the two agree on the same input.
+	 */
+	public function test_sanitize_values_matches_what_collect_form_data_produces(): void {
+		$this->setup_wpdb_with_fields( array(
+			$this->make_field( array( 'id' => 1, 'field_key' => 'nickname', 'field_type' => 'text' ) ),
+			$this->make_field( array( 'id' => 2, 'field_key' => 'age', 'field_type' => 'number' ) ),
+		) );
+
+		$raw = array( 'nickname' => '  <b>Jo</b> ', 'age' => '41' );
+
+		$_POST = array( 'fields' => $raw );
+		$from_post = ReregistrationDataProcessor::collect_form_data( $this->make_rereg() );
+		$_POST     = array();
+
+		$direct = ReregistrationDataProcessor::sanitize_values( $raw, $this->make_rereg() );
+
+		$this->assertSame( $from_post, $direct );
+	}
+
+	/**
+	 * The field set comes from the campaign, not from the supplied keys — so a
+	 * column the import invented is dropped and a field nobody filled lands
+	 * empty, which is what the form submit does with `$_POST`.
+	 */
+	public function test_sanitize_values_is_bounded_by_the_campaign_fields(): void {
+		$this->setup_wpdb_with_fields( array(
+			$this->make_field( array( 'id' => 1, 'field_key' => 'nickname', 'field_type' => 'text' ) ),
+			$this->make_field( array( 'id' => 2, 'field_key' => 'untouched', 'field_type' => 'text' ) ),
+		) );
+
+		$out = ReregistrationDataProcessor::sanitize_values(
+			array( 'nickname' => 'Jo', 'not_a_field' => 'x' ),
+			$this->make_rereg()
+		);
+
+		$this->assertSame( array( 'nickname' => 'Jo', 'untouched' => '' ), $out['fields'] );
 	}
 }

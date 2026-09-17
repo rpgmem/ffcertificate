@@ -390,6 +390,37 @@ class CapabilityManagerTest extends TestCase {
 		CapabilityManager::grant_context_capabilities( 30, 'audience' );
 	}
 
+	/**
+	 * The two no-op contexts, asserted as no-ops rather than left to
+	 * `default`. Recruitment candidates and reregistration importees ride the
+	 * `ffc_end_user` role's baseline `read` cap; granting either the three
+	 * certificate caps — which is what reusing `CONTEXT_CERTIFICATE` would do —
+	 * puts a grant nobody asked for in the log as if it had been decided.
+	 *
+	 * @dataProvider provide_no_op_contexts
+	 * @param string $context Context key.
+	 */
+	public function test_grant_context_capabilities_grants_nothing_for( string $context ): void {
+		$mock_user = Mockery::mock( 'WP_User' );
+		$mock_user->shouldReceive( 'has_cap' )->andReturn( false );
+		$mock_user->shouldNotReceive( 'add_cap' );
+		$mock_user->ID           = 50;
+		$mock_user->user_email   = '';
+		$mock_user->display_name = 'Test';
+
+		Functions\when( 'get_userdata' )->justReturn( $mock_user );
+
+		CapabilityManager::grant_context_capabilities( 50, $context );
+	}
+
+	/** @return array<string, array{string}> */
+	public function provide_no_op_contexts(): array {
+		return array(
+			'recruitment'    => array( CapabilityManager::CONTEXT_RECRUITMENT ),
+			'reregistration' => array( CapabilityManager::CONTEXT_REREGISTRATION ),
+		);
+	}
+
 	public function test_grant_context_sends_chromed_access_email_when_enabled(): void {
 		$mock_user = Mockery::mock( 'WP_User' );
 		$mock_user->shouldReceive( 'has_cap' )->andReturn( false );
