@@ -313,7 +313,7 @@ describe('frontend.verificationForm submit', () => {
 		expect(window.$('.ffc-accessible-alert').length).toBe(1);
 	});
 
-	it('POSTs ffc_verify_certificate with the gathered fields when authCode is set', async () => {
+	it('POSTs ffc_verify_certificate with the serialized form when authCode is set', async () => {
 		mountForm();
 		window.$('input[name="ffc_auth_code"]').val('AAAA-1111');
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
@@ -326,21 +326,91 @@ describe('frontend.verificationForm submit', () => {
 		// of them; each call carries the same payload. Assert on the first
 		// captured call rather than the call count.
 		expect(postSpy).toHaveBeenCalled();
-		expect(postSpy.mock.calls[0][1]).toMatchObject({
-			action: 'ffc_verify_certificate',
-			ffc_auth_code: 'AAAA-1111',
-			ffc_captcha_ans: 'abc',
-			ffc_captcha_hash: 'hash-1',
-		});
+		const sent = postSpy.mock.calls[0][1];
+		expect(typeof sent).toBe('string');
+		expect(sent).toContain('action=ffc_verify_certificate');
+		expect(sent).toContain('ffc_auth_code=AAAA-1111');
+		expect(sent).toContain('ffc_captcha_ans=abc');
+		expect(sent).toContain('ffc_captcha_hash=hash-1');
+	});
+
+	/**
+	 * The defect this replaces (#1305).
+	 *
+	 * The handler used to build its payload from four named inputs, two of them
+	 * the math captcha's. ALTCHA posts a single field named `altcha`, which
+	 * appeared in no list — so a visitor who had just watched the widget turn
+	 * green was told "Please complete the verification", every time, on every
+	 * browser, because the proof was never sent.
+	 *
+	 * The field is reachable by `serialize()` because the widget is registered
+	 * without a shadow root, so its hidden input sits in the light DOM inside
+	 * the form. That is asserted here with a plain input of the same name: what
+	 * this test pins is that the handler sends WHATEVER the form carries, which
+	 * is the property that stops the next provider from being forgotten too.
+	 */
+	it('sends a provider field the old hand-written list never knew about', async () => {
+		mountForm();
+		window.$('.ffc-verification-form').append('<input type="hidden" name="altcha" value="eyJhbGciOiJ9" />');
+		window.$('input[name="ffc_auth_code"]').val('AAAA-1111');
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+
+		window.$('.ffc-verification-form').trigger('submit');
+		await flush();
+
+		expect(postSpy.mock.calls[0][1]).toContain('altcha=eyJhbGciOiJ9');
+	});
+
+	it('trims the code in place, so what is submitted is what the visitor sees', async () => {
+		mountForm();
+		window.$('input[name="ffc_auth_code"]').val('  AAAA-1111  ');
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+
+		window.$('.ffc-verification-form').trigger('submit');
+		await flush();
+
+		expect(window.$('input[name="ffc_auth_code"]').val()).toBe('AAAA-1111');
+		expect(postSpy.mock.calls[0][1]).toContain('ffc_auth_code=AAAA-1111');
+	});
+
+	/**
+	 * The public CSV download's form carries the same class and is a NATIVE
+	 * post to admin-post.php — the no-JavaScript path #1053 documents. Both
+	 * shortcodes can share a page, and then this delegated handler sees it.
+	 *
+	 * Before the guard it called `preventDefault()` and then threw on
+	 * `undefined.trim()`, leaving the form dead; with the serialized payload it
+	 * would have been worse, posting that form's fields to
+	 * `ffc_verify_certificate`.
+	 */
+	it('lets a verification-class form without an auth code submit natively', async () => {
+		document.body.innerHTML = `
+			<form class="ffc-verification-form" method="post" action="/wp-admin/admin-post.php">
+				<input type="hidden" name="action" value="ffc_public_csv_download" />
+				<input type="number" name="form_id" value="7" />
+			</form>
+		`;
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+		const submitEvent = window.$.Event('submit');
+
+		window.$('.ffc-verification-form').trigger(submitEvent);
+		await flush();
+
+		expect(postSpy).not.toHaveBeenCalled();
+		expect(submitEvent.isDefaultPrevented()).toBe(false);
 	});
 
 	it('refreshes the captcha when response.data.refresh_captcha is set', async () => {
 		mountForm();
 		window.$('input[name="ffc_auth_code"]').val('CODE');
+		// `provider` is what the server actually sends — `with_fresh_challenge()`
+		// merges the strategy's own `challenge_payload()`, and the client
+		// dispatches on it (#1305).
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
 				success: false,
 				data: {
 					refresh_captcha: true,
+					provider: 'math',
 					new_label: 'New Question',
 					new_hash: 'new-hash',
 					message: 'Wrong captcha',
