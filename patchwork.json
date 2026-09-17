@@ -1,3 +1,3 @@
 {
-    "redefinable-internals": ["error_log", "setcookie"]
+    "redefinable-internals": ["error_log", "setcookie", "is_uploaded_file"]
 }

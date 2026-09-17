@@ -120,7 +120,38 @@ final class ReregistrationAdminRenderer {
 		$selected_ids = $id > 0 ? ReregistrationRepository::get_audience_ids( $id ) : array();
 		$back_url     = admin_url( 'admin.php?page=' . $menu_slug );
 
+		// The import panel offers THIS campaign's audiences and no others
+		// (#1214): `ingest_job()` refuses one the campaign does not reach, so a
+		// wider list would be an error the operator could only discover by
+		// uploading a file first. Empty for a campaign being created, which is
+		// also when there is nothing to import into.
+		$import_audiences = self::import_audience_choices( $selected_ids );
+
 		include FFC_PLUGIN_DIR . 'templates/admin/reregistration/form.php';
+	}
+
+	/**
+	 * Name the campaign's audiences for the import picker.
+	 *
+	 * An id whose audience has since been deleted is dropped rather than shown
+	 * with a blank label: the campaign row keeps the link, and offering a
+	 * nameless option is how an operator picks the wrong one.
+	 *
+	 * @param array<int, int|string> $audience_ids Ids linked to the campaign.
+	 * @return array<int, string> id => name, in the order given.
+	 */
+	private static function import_audience_choices( array $audience_ids ): array {
+		$choices = array();
+
+		foreach ( $audience_ids as $audience_id ) {
+			$audience = AudienceReader::get_by_id( (int) $audience_id );
+			if ( null === $audience ) {
+				continue;
+			}
+			$choices[ (int) $audience_id ] = (string) $audience->name;
+		}
+
+		return $choices;
 	}
 
 	// ─────────────────────────────────────────────.

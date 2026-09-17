@@ -21492,3 +21492,190 @@ msgstr ""
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:479
 msgid "✓ authoritative"
 msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-admin.php:288
+msgid "Already submitted, kept as is:"
+msgstr ""
+
+#: templates/admin/reregistration/import-panel.php:60
+msgid "Check file"
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-admin.php:283
+msgid "Checking every row…"
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-ajax-handler.php:275
+msgid "Choose a CSV file to import."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-admin.php:281
+msgid "Choose a CSV file."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-ajax-handler.php:100
+msgid "Choose a campaign and an audience."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-admin.php:289
+msgid "Failing:"
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-admin.php:292
+msgid "Finishing…"
+msgstr ""
+
+#: templates/admin/reregistration/import-panel.php:26
+msgid "Import answers from a spreadsheet"
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-admin.php:294
+#, php-format
+msgid "Imported %1$d. Skipped %2$d."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-admin.php:291
+#, php-format
+msgid "Importing %1$d/%2$d…"
+msgstr ""
+
+#: templates/admin/reregistration/import-panel.php:29
+msgid "Loads this campaign's answers for people of one audience. The file is checked in full before anything is written: if any row fails, nothing is imported."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:121
+msgid "No CPF, RF or e-mail, so there is nobody to match or create."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:58
+msgid "None of the columns match a field of this audience. Check that the header carries the field names or their labels."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-admin.php:285
+msgid "Nothing was imported. Fix these lines and check the file again:"
+msgstr ""
+
+#: templates/admin/reregistration/import-panel.php:46
+msgid "One import covers one audience — the columns are that audience's fields."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-admin.php:282
+msgid "Reading the file…"
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-admin.php:284
+msgid "Ready. Press Import to write these rows."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:128
+msgid "Resolves to the same account as an earlier row."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:127
+#, php-format
+msgid "Resolves to the same account as line %s. A shared mailbox does this — give each person their own address, or their CPF/RF."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-admin.php:286
+msgid "Rows in the file:"
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:82
+msgid "Some rows have not been applied yet."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:49
+msgid "That audience does not belong to this campaign."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:90
+msgid "The account for this row could not be resolved or created."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:73
+msgid "The campaign no longer exists."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-ajax-handler.php:302
+msgid "The file could not be read, or it is empty."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:86
+msgid "The file could not be staged. Please try again."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:55
+msgid "The file has a header but no data rows."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:63
+#, php-format
+msgid "The file has no column for these required fields: %s."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:52
+msgid "The file has no header row."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:64
+msgid "The file is missing a column for a required field."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-ajax-handler.php:293
+#, php-format
+msgid "The file is too large (max %s)."
+msgstr ""
+
+#: templates/admin/reregistration/import-panel.php:54
+msgid "The header names the fields, by key or by label. A column that matches nothing is ignored and reported."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-admin.php:296
+msgid "The server could not be reached."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:142
+#, php-format
+msgid "The value in column \"%s\" is not valid for that field."
+msgstr ""
+
+#: templates/admin/reregistration/import-panel.php:34
+msgid "This campaign reaches no audience yet. Add one above and save before importing."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:76
+msgid "This import cannot be applied: it has not been validated, or it was blocked."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:79
+msgid "This import cannot be finished yet: it has not been applied."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:70
+msgid "This import has no staged rows."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:67
+msgid "This import is no longer available. It may have expired — start again."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:101
+msgid "This import was started by another user."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:132
+msgid "This person has already submitted; their own answers are kept."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:96
+msgid "This row has no record to write into and one could not be created."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-messages.php:200
+#, php-format
+msgid "Unexpected error (%s)."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-admin.php:287
+msgid "Will be imported:"
+msgstr ""
