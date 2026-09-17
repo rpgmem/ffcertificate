@@ -73,6 +73,16 @@ class ReregistrationAdmin {
 	private ?ReregistrationAjaxHandler $ajax_handler = null;
 
 	/**
+	 * CSV-import endpoints (#1214).
+	 *
+	 * Held so PHPStan does not read it as write-only; the object registers its
+	 * own four actions and is otherwise never touched from here.
+	 *
+	 * @var ReregistrationImportAjaxHandler|null
+	 */
+	private ?ReregistrationImportAjaxHandler $import_ajax_handler = null;
+
+	/**
 	 * Initialize admin hooks.
 	 *
 	 * @return void
@@ -92,6 +102,13 @@ class ReregistrationAdmin {
 		add_action( 'wp_ajax_ffc_rereg_count_members', array( $this->ajax_handler, 'ajax_count_members' ) );
 		add_action( 'wp_ajax_ffc_rereg_send_invitations', array( $this->ajax_handler, 'ajax_send_invitations' ) );
 		add_action( 'wp_ajax_ffc_view_submission_details', array( $this->ajax_handler, 'ajax_view_submission_details' ) );
+
+		// Registered HERE rather than from `add_menu()`, because `admin_menu`
+		// does not fire on `admin-ajax.php` -- which is the only request these
+		// four ever serve. The same mistake the #772 export contract records
+		// for a source registered too late.
+		$this->import_ajax_handler = new ReregistrationImportAjaxHandler();
+		$this->import_ajax_handler->register();
 	}
 
 	/**
@@ -238,8 +255,51 @@ class ReregistrationAdmin {
 			)
 		);
 
-		// Enqueue PDF libraries on submissions view.
 		$view = \FreeFormCertificate\Core\RequestInput::get_get_string( 'view' );
+
+		// The import client rides only the campaign editor, which is the one
+		// screen that prints the panel. Gating it on the view rather than on
+		// the capability keeps the two halves in step: a user without the cap
+		// gets no panel from `render_form()` either, and a script with no
+		// markup to bind to is dead weight on every other screen of the menu.
+		if ( in_array( $view, array( 'new', 'edit' ), true ) ) {
+			wp_enqueue_script(
+				'ffc-reregistration-import',
+				FFC_PLUGIN_URL . "assets/js/ffc-reregistration-import{$s}.js",
+				array( 'jquery', 'ffc-core' ),
+				FFC_VERSION,
+				true
+			);
+
+			wp_localize_script(
+				'ffc-reregistration-import',
+				'ffcReregImport',
+				array(
+					'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+					'nonce'   => wp_create_nonce( ReregistrationImportAjaxHandler::NONCE_ACTION ),
+					'strings' => array(
+						'chooseFile'   => __( 'Choose a CSV file.', 'ffcertificate' ),
+						'staging'      => __( 'Reading the file…', 'ffcertificate' ),
+						'validating'   => __( 'Checking every row…', 'ffcertificate' ),
+						'ready'        => __( 'Ready. Press Import to write these rows.', 'ffcertificate' ),
+						'blocked'      => __( 'Nothing was imported. Fix these lines and check the file again:', 'ffcertificate' ),
+						'countTotal'   => __( 'Rows in the file:', 'ffcertificate' ),
+						'countReady'   => __( 'Will be imported:', 'ffcertificate' ),
+						'countSkipped' => __( 'Already submitted, kept as is:', 'ffcertificate' ),
+						'countFailed'  => __( 'Failing:', 'ffcertificate' ),
+						/* translators: 1: rows written so far, 2: rows in the file. */
+						'importing'    => __( 'Importing %1$d/%2$d…', 'ffcertificate' ),
+						'finishing'    => __( 'Finishing…', 'ffcertificate' ),
+						/* translators: 1: rows written, 2: rows skipped because the person had already submitted. */
+						'done'         => __( 'Imported %1$d. Skipped %2$d.', 'ffcertificate' ),
+						'error'        => __( 'An error occurred.', 'ffcertificate' ),
+						'network'      => __( 'The server could not be reached.', 'ffcertificate' ),
+					),
+				)
+			);
+		}
+
+		// Enqueue PDF libraries on submissions view.
 		if ( 'submissions' === $view ) {
 			wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas-' . FFC_HTML2CANVAS_VERSION . '.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
 			wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'libs/js/jspdf-' . FFC_JSPDF_VERSION . '.umd.min.js', array(), FFC_JSPDF_VERSION, true );

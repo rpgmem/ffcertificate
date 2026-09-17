@@ -439,3 +439,88 @@ body.ffc-rereg-modal-open {
         border: 1px solid CanvasText;
     }
 }
+
+/* ==========================================================================
+   CSV IMPORT PANEL (#1214)
+   The counts are the deliverable of the validate phase, so each reads its own
+   colour pair rather than a shared skin: "will be imported" and "failing" mean
+   opposite things and an operator scans for the second.
+   ========================================================================== */
+
+.ffc-rereg-import-box .ffc-rereg-import-controls label {
+    font-weight: 600;
+}
+
+.ffc-rereg-import-box .ffc-rereg-import-status {
+    display: inline-block;
+    margin-left: var(--ffc-spacing-sm);
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-rereg-import-box .ffc-rereg-import-empty {
+    color: var(--ffc-text-light);
+    font-style: italic;
+}
+
+.ffc-rereg-import-report {
+    margin-top: var(--ffc-spacing-lg);
+    padding-top: var(--ffc-spacing-lg);
+    border-top: 1px solid var(--ffc-border);
+}
+
+.ffc-rereg-import-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-sm);
+    margin: 0;
+}
+
+.ffc-rereg-import-count {
+    margin: 0;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-sm);
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-rereg-import-count-total {
+    background: var(--ffc-gray-100);
+    color: var(--ffc-text);
+}
+
+.ffc-rereg-import-count-ready {
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+}
+
+.ffc-rereg-import-count-skipped {
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+}
+
+.ffc-rereg-import-count-failed {
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+}
+
+.ffc-rereg-import-blocked {
+    margin-top: var(--ffc-spacing-lg);
+    font-weight: 600;
+    color: var(--ffc-danger-text);
+}
+
+.ffc-rereg-import-failures {
+    margin: var(--ffc-spacing-sm) 0 0;
+    padding-left: var(--ffc-spacing-2xl);
+    max-height: 240px;
+    overflow-y: auto;
+    list-style: disc;
+    font-size: var(--ffc-font-size-sm);
+}
+
+@media (forced-colors: active) {
+    /* Same mechanism as the badges above: the count keeps its word, the
+       border gives it back its shape when the ground is dropped. */
+    .ffc-rereg-import-count {
+        border: 1px solid CanvasText;
+    }
+}

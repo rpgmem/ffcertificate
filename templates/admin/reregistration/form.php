@@ -155,6 +155,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 		 */
 		if ( $id > 0 ) :
 			?>
+			<?php
+			/*
+			 * Import panel (#1214). Same two reasons as the box below: outside
+			 * the `<form>` because its buttons would otherwise save the
+			 * campaign, and only on one that exists because an import needs an
+			 * audience the campaign already reaches.
+			 */
+			if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( \FreeFormCertificate\Reregistration\ReregistrationImportAjaxHandler::CAPABILITY ) ) {
+				include FFC_PLUGIN_DIR . 'templates/admin/reregistration/import-panel.php';
+			}
+			?>
+
 		<div class="postbox ffc-rereg-invite-box">
 			<h2 class="hndle"><span><?php esc_html_e( 'Invitations', 'ffcertificate' ); ?></span></h2>
 			<div class="inside">
