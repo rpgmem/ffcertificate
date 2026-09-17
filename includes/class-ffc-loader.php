@@ -179,6 +179,20 @@ class Loader {
 			UrlShortenerActivator::maybe_migrate();
 		}
 
+		// The two modules whose schema only ever existed after an ACTIVATION
+		// (#1311). Plugin activation is not something an update or an rsync
+		// deploy performs, so a table added to either one reached a fresh
+		// install and nothing else -- which is how the reregistration CSV
+		// import shipped with no tables on every upgraded install. Each method
+		// is gated on `FFC_VERSION` and is a no-op once current; the
+		// user-dashboard one heals SCHEMA only, for the reason written on it.
+		if ( class_exists( '\FreeFormCertificate\Reregistration\ReregistrationActivator' ) ) {
+			\FreeFormCertificate\Reregistration\ReregistrationActivator::maybe_migrate();
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserDashboardActivator' ) ) {
+			\FreeFormCertificate\UserDashboard\UserDashboardActivator::maybe_migrate();
+		}
+
 		// Recruitment schema — orchestrator-level lifecycle (relocated out of
 		// RecruitmentLoader so the Modules-tab toggle can skip the recruitment
 		// feature bootstrap without dropping its tables). create → migrate order;

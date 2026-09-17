@@ -50,6 +50,52 @@ class ReregistrationActivator {
 	}
 
 	/**
+	 * Heal the reregistration schema on an install that was never re-activated.
+	 *
+	 * **`create_tables()` alone is not enough, and #1311 is what that costs.**
+	 * Its only caller is `Activator::activate()`, which runs on plugin
+	 * ACTIVATION -- and neither a WordPress plugin update nor the rsync deploy
+	 * to the testes host activates anything. So the two CSV-import tables added
+	 * in #1214 existed on a fresh install and on no upgraded one, which made the
+	 * import write into tables that were not there. The post-deploy smoke said
+	 * so on twelve consecutive deploys before anybody read it; the `fresh-install`
+	 * job stayed green the whole time, correctly, because it performs a real
+	 * activation -- the one path that did create them.
+	 *
+	 * Four sibling modules already had this method for the same reason. This
+	 * module and `UserDashboardActivator` were the two that did not.
+	 *
+	 * **Why the whole chain is safe to re-run**, which is what lets this call
+	 * `create_tables()` rather than a hand-picked subset: every `create_*_table()`
+	 * returns early on `table_exists()`, both `add_*_columns()` are
+	 * `add_column_if_missing`, `drop_superseded_indexes()` returns on a missing
+	 * table and only drops an index whose canonical replacement it has already
+	 * seen, and `migrate_reregistration_audience_to_junction()` returns the
+	 * moment the column it moves is gone. `UserDashboardActivator::maybe_migrate()`
+	 * deliberately does NOT do this -- see the reason written there.
+	 *
+	 * **The gate is `FFC_VERSION`, not a one-shot boolean** (#1231): the property
+	 * to preserve is "the schema heals itself after an update", not "it runs on
+	 * every request". A boolean marker would mean a column introduced in a future
+	 * release never reaches whoever already stored it. The option is written
+	 * AFTER the body, so a failure partway through does not lock the chain at a
+	 * version it never finished applying.
+	 *
+	 * @since 6.26.0
+	 * @return void
+	 */
+	public static function maybe_migrate(): void {
+		$ffc_schema_option = 'ffc_reregistration_schema_version';
+		if ( get_option( $ffc_schema_option, '' ) === FFC_VERSION ) {
+			return;
+		}
+
+		self::create_tables();
+
+		update_option( $ffc_schema_option, FFC_VERSION );
+	}
+
+	/**
 	 * Drop the duplicate indexes the two declaration paths left behind (#1087).
 	 *
 	 * `ffc_reregistration_submissions` was declared by this activator **and** by
