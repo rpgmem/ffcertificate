@@ -103,6 +103,61 @@ class UserDashboardActivatorTest extends TestCase {
 		parent::tearDown();
 	}
 
+	// ==================================================================
+	// maybe_migrate() — schema healing, and the two steps it must NOT do
+	// ==================================================================
+
+	public function test_maybe_migrate_does_nothing_when_the_stored_version_is_current(): void {
+		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+
+		Functions\expect( 'update_option' )->never();
+		Functions\expect( 'dbDelta' )->never();
+
+		UserDashboardActivator::maybe_migrate();
+	}
+
+	public function test_maybe_migrate_creates_both_tables_when_the_version_is_stale(): void {
+		Functions\when( 'get_option' )->justReturn( '6.20.0' );
+		// Neither table exists yet.
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+
+		$statements = array();
+		Functions\when( 'dbDelta' )->alias( function ( $sql ) use ( &$statements ) {
+			$statements[] = (string) $sql;
+		} );
+
+		UserDashboardActivator::maybe_migrate();
+
+		$all = implode( "\n", $statements );
+		$this->assertStringContainsString( 'ffc_user_profiles', $all );
+		$this->assertStringContainsString( 'ffc_custom_fields', $all );
+	}
+
+	/**
+	 * The reason this method exists instead of calling `create_tables()`.
+	 *
+	 * `create_dashboard_page()` inserts a page when it finds none at the
+	 * `dashboard` slug. That is right on activation and wrong on every release
+	 * afterwards: an administrator who deleted or renamed that page would have
+	 * it silently resurrected by an upgrade. `register_user_role()` is the same
+	 * shape -- role lifecycle the orchestrator already owns.
+	 *
+	 * Both are asserted as NEVER, with the version deliberately stale so the
+	 * body actually runs; a test that let the gate short-circuit would pass
+	 * without proving anything.
+	 */
+	public function test_maybe_migrate_neither_recreates_the_page_nor_registers_the_role(): void {
+		Functions\when( 'get_option' )->justReturn( '6.20.0' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		Functions\when( 'dbDelta' )->justReturn( array() );
+
+		Functions\expect( 'get_page_by_path' )->never();
+		Functions\expect( 'wp_insert_post' )->never();
+		Functions\expect( 'get_role' )->never();
+
+		UserDashboardActivator::maybe_migrate();
+	}
+
 	/** Alias-mock the role deps so the register_user_role() block runs. */
 	private function stub_role_deps(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\UserDashboard\UserManager' );

@@ -192,13 +192,17 @@ $ffcertificate_options = array(
 	'ffc_foreign_keys_db_version',
 	'ffc_perf_indexes_db_version',
 	'ffc_submissions_db_version',
-	// Version gates of the four activator chains that used to probe the schema
-	// on every request (#1231). Declared here because the `fresh-install` job
-	// compares in BOTH directions: an option the activation writes and this
-	// manifest does not declare fails CI.
+	// Version gates of the activator chains `Loader` runs on `plugins_loaded`,
+	// so the schema heals after an in-place update without probing on every
+	// request (#1231). Declared here because the `fresh-install` job compares in
+	// BOTH directions: an option the activation writes and this manifest does
+	// not declare fails CI.
 	'ffc_self_scheduling_schema_version',
 	'ffc_audience_schema_version',
 	'ffc_url_shortener_schema_version',
+	// The two chains #1311 added, which had no runtime caller at all until then.
+	'ffc_reregistration_schema_version',
+	'ffc_user_dashboard_schema_version',
 	// Per-feature migration completion markers (audited gap).
 	'ffc_sibling_instants_unix_migrated',
 	'ffc_submission_date_unix_migrated',

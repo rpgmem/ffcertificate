@@ -482,6 +482,18 @@ class LoaderCapabilitiesTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentActivator' )
 			->shouldReceive( 'create_tables' )->zeroOrMoreTimes()
 			->shouldReceive( 'maybe_migrate' )->zeroOrMoreTimes();
+		// The two modules whose schema only ever existed after an activation,
+		// wired here in #1311. Without these the real activators run against a
+		// $wpdb this test does not build, which is how the omission announced
+		// itself rather than passing quietly.
+		// `->once()`, not `zeroOrMoreTimes()`, and that distinction is the whole
+		// delivery: with the loose expectation, DELETING the two lines from
+		// `Loader` left every test in this file green -- measured by mutation.
+		// The wiring IS the fix, so it is the thing that has to be pinned.
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationActivator' )
+			->shouldReceive( 'maybe_migrate' )->once();
+		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserDashboardActivator' )
+			->shouldReceive( 'maybe_migrate' )->once();
 
 		// Shared runtime classes.
 		Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' )
@@ -622,6 +634,14 @@ class LoaderCapabilitiesTest extends TestCase {
 		Functions\when( 'get_option' )->alias(
 			static function ( $key, $default = false ) {
 				if ( 'ffc_admin_caps_version_v6' === $key ) {
+					return FFC_VERSION;
+				}
+				// The #1311 schema gates report an install that is already
+				// current, so they short-circuit: this test is about which
+				// module bootstraps are SKIPPED when the toggles are off, and
+				// schema healing runs regardless of any toggle by design.
+				if ( 'ffc_reregistration_schema_version' === $key
+					|| 'ffc_user_dashboard_schema_version' === $key ) {
 					return FFC_VERSION;
 				}
 				if ( \FreeFormCertificate\Settings\SettingsReader::OPTION_KEY === $key ) {

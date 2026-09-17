@@ -41,6 +41,54 @@ class UserDashboardActivator {
 	}
 
 	/**
+	 * Heal the user-dashboard SCHEMA on an install that was never re-activated.
+	 *
+	 * Same gap as `ReregistrationActivator::maybe_migrate()` (#1311):
+	 * `create_tables()` had exactly one caller, `Activator::activate()`, which
+	 * runs on plugin ACTIVATION -- and a WordPress plugin update does not
+	 * activate. So a table or column added here would have reached a fresh
+	 * install and no upgraded one. Nothing is broken today; this is the same
+	 * shape as the defect #1311 found next door, caught while it was still
+	 * latent.
+	 *
+	 * **It deliberately does NOT call `create_tables()`, and that is the whole
+	 * point of this method existing separately.** Healing the schema is not
+	 * re-running activation: two of those four steps are one-shot SETUP that
+	 * must not repeat.
+	 *
+	 * - `create_dashboard_page()` looks the page up by the `dashboard` slug and
+	 *   inserts one when it finds none. On activation that is the intent. Run
+	 *   again after every release it would RESURRECT a page the administrator
+	 *   deleted or renamed on purpose -- a behaviour change nobody asked for,
+	 *   silently, on an upgrade.
+	 * - `register_user_role()` is role lifecycle, which `CLAUDE.md` ("Module
+	 *   bootstrap") assigns to the orchestrator; `Loader::register_ffc_roles_safe()`
+	 *   already owns it, and doing it twice from two places is how the two
+	 *   drift.
+	 *
+	 * What is left is the two table creations, both of which return early on an
+	 * existing table, so the chain is a no-op on an install that is current.
+	 *
+	 * The `FFC_VERSION` gate and the write-after-body ordering carry the same
+	 * reasoning as the sibling method; see it for why a one-shot boolean is the
+	 * wrong marker (#1231).
+	 *
+	 * @since 6.26.0
+	 * @return void
+	 */
+	public static function maybe_migrate(): void {
+		$ffc_schema_option = 'ffc_user_dashboard_schema_version';
+		if ( get_option( $ffc_schema_option, '' ) === FFC_VERSION ) {
+			return;
+		}
+
+		self::create_user_profiles_table();
+		self::create_custom_fields_table();
+
+		update_option( $ffc_schema_option, FFC_VERSION );
+	}
+
+	/**
 	 * Register the ffc_end_user role and grant admin-level FFC caps to the
 	 * administrator role.
 	 */

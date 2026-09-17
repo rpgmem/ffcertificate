@@ -68,6 +68,86 @@ class ReregistrationActivatorTest extends TestCase {
 	}
 
 	// ==================================================================
+	// maybe_migrate() — the runtime path an upgraded install takes (#1311)
+	// ==================================================================
+
+	/**
+	 * Teach `$wpdb` that every table already exists, so the chain is a pure
+	 * no-op apart from the gate. `SHOW COLUMNS` answers with the column named
+	 * in the query, which keeps `add_column_if_missing()` quiet and makes
+	 * `migrate_reregistration_audience_to_junction()` see the column it moves
+	 * as already gone -- both of which this method must survive.
+	 */
+	private function stub_current_schema(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing( function ( $query ) {
+			return preg_match( '/SHOW TABLES LIKE/', (string) $query ) ? 'wp_ffc_x' : null;
+		} )->byDefault();
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 )->byDefault();
+		Functions\when( 'update_option' )->justReturn( true );
+	}
+
+	public function test_maybe_migrate_does_nothing_when_the_stored_version_is_current(): void {
+		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+
+		// Neither the schema nor the option may be touched. `$wpdb` carries no
+		// expectations at all here, so any query would fail the mock outright.
+		Functions\expect( 'update_option' )->never();
+		Functions\expect( 'dbDelta' )->never();
+
+		ReregistrationActivator::maybe_migrate();
+	}
+
+	public function test_maybe_migrate_creates_the_import_tables_when_the_version_is_stale(): void {
+		Functions\when( 'get_option' )->justReturn( '6.20.0' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null )->byDefault();
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 )->byDefault();
+		Functions\when( 'update_option' )->justReturn( true );
+
+		$statements = array();
+		Functions\when( 'dbDelta' )->alias( function ( $sql ) use ( &$statements ) {
+			$statements[] = (string) $sql;
+		} );
+
+		ReregistrationActivator::maybe_migrate();
+
+		$all = implode( "\n", $statements );
+
+		// The two tables #1214 added are the ones that were missing on every
+		// upgraded install, so they are the ones named here.
+		$this->assertStringContainsString( 'ffc_reregistration_import_jobs', $all );
+		$this->assertStringContainsString( 'ffc_reregistration_import_staging', $all );
+	}
+
+	public function test_maybe_migrate_records_the_version_only_after_the_chain_has_run(): void {
+		Functions\when( 'get_option' )->justReturn( '6.20.0' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null )->byDefault();
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 )->byDefault();
+
+		$order = array();
+		Functions\when( 'dbDelta' )->alias( function () use ( &$order ) {
+			$order[] = 'schema';
+		} );
+		Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$order ) {
+			$order[] = $key . '=' . $value;
+			return true;
+		} );
+
+		ReregistrationActivator::maybe_migrate();
+
+		// Write-after-body: a failure partway through must not leave the gate
+		// claiming a version the chain never finished applying.
+		$this->assertSame(
+			'ffc_reregistration_schema_version=' . FFC_VERSION,
+			end( $order ),
+			'The schema version must be stored last, after every DDL statement.'
+		);
+		$this->assertContains( 'schema', $order, 'The chain did not run at all.' );
+	}
+
+	// ==================================================================
 	// create_tables() — all tables already present (no-op DDL path)
 	// ==================================================================
 

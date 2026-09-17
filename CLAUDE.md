@@ -416,6 +416,16 @@ It exists because `languages/` was **internally consistent** throughout the two 
 
 The extractor lives in `tests/Support/I18nCalls.php` and the `.po` reader in `tests/Support/PoCatalogue.php`, shared with the guard above for the reason `.github/scripts/ffc-create-statements.php` is shared. `PoCatalogue::read()` returns an ordered **list**, not a keyed map, because keying makes a duplicate `msgid` vanish rather than fail — and `ffcertificate.pot` carried one, which `msgfmt` would have rejected outright.
 
+#### Schema-reachability guard (#1311)
+
+`tests/Unit/ActivatorSchemaGuardTest.php` also fails when a table declared under `includes/` has no declarer the `Loader` names. **`Activator::activate()` runs on plugin ACTIVATION, and nothing else performs one** — not an in-place WordPress update, not the rsync deploy to testes — so a module whose schema is reachable only from there gets its tables on a fresh install and on no upgraded one. That is not hypothetical: the two CSV-import tables of #1214 were in exactly that state, and the `fresh-install` job stayed green throughout, correctly, because it performs a real activation.
+
+**The rule is per TABLE, not per class**, which is what lets it block at zero with no allowlist: a one-shot migration may legitimately stay unwired while the tables it declares are creatable through an activator that is wired. A class-level rule would have needed `MigrationDynamicReregFields` carved out by name.
+
+Two things the measurement said that the issue did not. **The exposure was five tables wide before anyone noticed**, because reverting the fix makes the guard name seven — #1292 was simply the first commit to add a *new* table under a gap that already existed. And **the alarm worked and nobody read it**: the post-deploy smoke reported the missing tables on twelve consecutive deploys over about a day, which is the failure mode `CLAUDE.md` already warns about when it explains why a timeout stays green — an alarm people learn to skip is worse than none.
+
+**Healing the schema is not re-running activation**, and `UserDashboardActivator::maybe_migrate()` is where that distinction is written down. Its `create_tables()` also creates the front-end dashboard page and registers a role; re-running those on every release would resurrect a page an administrator deleted and duplicate lifecycle the orchestrator owns. The method heals the two tables and nothing else. When wiring a new module, take the schema half only.
+
 #### Deprecation-due guard (#1309)
 
 `tests/Unit/DeprecationDueTest.php` fails when the plugin's own version reaches a recorded removal release, and fails when a WordPress deprecation call records none. It reads one marker, `@removal X.Y.Z`, written on the code that is still there — the convention, why the date cannot be prose, and the two token shapes the scan resolves are under "Deprecation cycles" in "Legacy and tech debt".

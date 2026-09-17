@@ -9,14 +9,14 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The four activator chains `Loader` calls on `plugins_loaded` probe the schema
- * at most once per `FFC_VERSION` (#1231).
+ * Every activator chain `Loader` calls on `plugins_loaded` probes the schema at
+ * most once per `FFC_VERSION` (#1231).
  *
  * WHAT WAS WRONG
  *
  * `table_exists()` is an uncached `SHOW TABLES LIKE`, and every
  * `add_column_if_missing()` fires a `SHOW COLUMNS` before deciding to do
- * nothing. Together, the four chains cost 48 DDL queries per HTTP request --
+ * nothing. Together, the chains then wired cost 48 DDL queries per HTTP request --
  * anonymous frontend included -- on an install where there was nothing to
  * migrate.
  *
@@ -43,6 +43,8 @@ use PHPUnit\Framework\TestCase;
  * @covers \FreeFormCertificate\Audience\AudienceActivator
  * @covers \FreeFormCertificate\UrlShortener\UrlShortenerActivator
  * @covers \FreeFormCertificate\Recruitment\RecruitmentActivator
+ * @covers \FreeFormCertificate\Reregistration\ReregistrationActivator
+ * @covers \FreeFormCertificate\UserDashboard\UserDashboardActivator
  */
 class ActivatorSchemaGuardTest extends TestCase {
 
@@ -62,6 +64,11 @@ class ActivatorSchemaGuardTest extends TestCase {
 		'audience'        => array( '\FreeFormCertificate\Audience\AudienceActivator', 'maybe_migrate', 'ffc_audience_schema_version' ),
 		'url-shortener'   => array( '\FreeFormCertificate\UrlShortener\UrlShortenerActivator', 'maybe_migrate', 'ffc_url_shortener_schema_version' ),
 		'recruitment'     => array( '\FreeFormCertificate\Recruitment\RecruitmentActivator', 'create_tables', 'ffc_recruitment_tables_version' ),
+		// The two chains #1311 added. They were not unguarded -- they were not
+		// called from `plugins_loaded` AT ALL, so their schema reached a fresh
+		// install and no upgraded one. Same guard, same both-directions charge.
+		'reregistration'  => array( '\FreeFormCertificate\Reregistration\ReregistrationActivator', 'maybe_migrate', 'ffc_reregistration_schema_version' ),
+		'user-dashboard'  => array( '\FreeFormCertificate\UserDashboard\UserDashboardActivator', 'maybe_migrate', 'ffc_user_dashboard_schema_version' ),
 	);
 
 	/**
@@ -306,6 +313,81 @@ class ActivatorSchemaGuardTest extends TestCase {
 	 * here too makes the failure appear in PHPUnit, which is where whoever wrote
 	 * the guard is looking.
 	 */
+	/**
+	 * Every declared table must have a declarer the runtime can reach (#1311).
+	 *
+	 * This is the direction the register above cannot see. `GUARDED_CHAINS` is
+	 * frozen by hand, so a module that is not wired at all does not appear in it
+	 * and nothing notices -- which is exactly how the two reregistration import
+	 * tables shipped. They were declared by `ReregistrationActivator`, whose only
+	 * caller was `Activator::activate()`, and plugin activation is not something
+	 * an in-place update or an rsync deploy performs. Fresh installs had them;
+	 * every upgraded install did not.
+	 *
+	 * **The rule is about the TABLE, not the class**, and that distinction is
+	 * what lets it block at zero with no allowlist. `MigrationDynamicReregFields`
+	 * declares `ffc_custom_fields` and `ffc_reregistration_submissions` and is
+	 * not named in `Loader` -- correctly, since it is a one-shot migration. Both
+	 * of its tables are also declared by a class the runtime reaches, so the
+	 * table is creatable and nothing is wrong. A class-level rule would have had
+	 * to carve it out by name; a table-level one simply does not fire.
+	 *
+	 * What it deliberately does NOT prove: that the reachable declarer is called
+	 * on the right hook, that its version gate lets it through, or that the DDL
+	 * succeeds. Those are the two tests above and the `fresh-install` job. This
+	 * one answers a narrower question -- *is there any runtime path to this
+	 * table at all* -- which is the one nobody was asking.
+	 *
+	 * Statements come from `.github/scripts/ffc-create-statements.php`, shared
+	 * with `ActivatorSqlTest` and the dbDelta gate for the reason `CLAUDE.md`
+	 * gives: two guards measuring the same declarations must not disagree about
+	 * what one is.
+	 */
+	public function test_every_declared_table_has_a_declarer_the_runtime_reaches(): void {
+		$root = dirname( __DIR__, 2 );
+		require_once $root . '/.github/scripts/ffc-create-statements.php';
+
+		$statements = ffc_create_statements( $root . '/includes' );
+		$loader     = (string) file_get_contents( $root . '/includes/class-ffc-loader.php' );
+
+		// Self-check: an empty scan, or one that resolved no table name, must
+		// fail rather than read as clean (the #1071 / #1094 rule).
+		$this->assertNotEmpty( $statements, 'No CREATE TABLE statement was found — the collector is broken.' );
+		$this->assertNotSame( '', $loader, 'Could not read the Loader — the reachability half did not run.' );
+
+		$reachable = array();
+		$declared  = array();
+
+		foreach ( $statements as $statement ) {
+			$table = $statement['table'];
+			if ( null === $table ) {
+				continue;
+			}
+
+			$declared[ $table ] = true;
+
+			$source = (string) file_get_contents( $statement['file'] );
+			if ( 1 !== preg_match( '/^class\s+(\w+)/m', $source, $m ) ) {
+				continue;
+			}
+
+			if ( false !== strpos( $loader, $m[1] ) ) {
+				$reachable[ $table ] = true;
+			}
+		}
+
+		$this->assertNotEmpty( $declared, 'No statement resolved to a table name — the scan collapsed.' );
+
+		$orphans = array_keys( array_diff_key( $declared, $reachable ) );
+		sort( $orphans );
+
+		$this->assertSame(
+			array(),
+			$orphans,
+			'These tables are declared only by classes nothing calls at runtime, so they reach a fresh install and no upgraded one. Wire the declaring activator into Loader behind a version gate, as ReregistrationActivator and UserDashboardActivator are.'
+		);
+	}
+
 	public function test_every_guard_option_is_declared_in_the_uninstall_manifest(): void {
 		$manifest = (string) file_get_contents( dirname( __DIR__, 2 ) . '/uninstall.php' );
 
