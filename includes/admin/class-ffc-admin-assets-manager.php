@@ -656,8 +656,8 @@ class AdminAssetsManager {
 				'loadingTemplate'         => __( 'Loading template...', 'ffcertificate' ),
 				/* translators: %s: error message, %s: error message */
 				'templateLoadedSuccess'   => __( 'Template "%s" loaded successfully!', 'ffcertificate' ),
-				'templateFileNotFound'    => __( 'Template file not found. Check if file exists in html/ folder.', 'ffcertificate' ),
-				'accessDenied'            => __( 'Access denied. Check file permissions.', 'ffcertificate' ),
+				'templateFileNotFound'    => __( 'Template not found. It may have been removed from the template pool.', 'ffcertificate' ),
+				'accessDenied'            => __( 'Access denied. Reload the page and try again.', 'ffcertificate' ),
 				'networkError'            => __( 'Network error. Check your connection.', 'ffcertificate' ),
 				/* translators: %s: error message */
 				'errorLoadingTemplate'    => __( 'Error loading template: %s', 'ffcertificate' ),

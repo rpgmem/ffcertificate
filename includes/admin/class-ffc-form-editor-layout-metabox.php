@@ -37,10 +37,9 @@ class FormEditorLayoutMetabox {
 
 		// Populate the layout-editor "Load" dropdown from the DB-backed
 		// template pool (#865): visible templates, defaults first, addressed
-		// by post id. The legacy `html/` glob is retained only as the modal's
-		// deprecated fallback (AdminAssetsManager::discover_layout_templates,
-		// #865 phase-4) — this server-rendered select is pool-only, since the
-		// pool is seeded on admin_init before the editor renders.
+		// by post id. The modal's picker reads the same pool — the legacy
+		// `html/` glob it once fell back to was removed in 6.23.0 (#1087), so
+		// both surfaces are pool-only now (#1309).
 		$templates    = CertTemplateReader::list_for_editor();
 		$default_tpls = array_values( array_filter( $templates, static fn( array $t ): bool => $t['is_default'] ) );
 		$user_tpls    = array_values( array_filter( $templates, static fn( array $t ): bool => ! $t['is_default'] ) );

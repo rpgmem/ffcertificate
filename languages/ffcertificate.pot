@@ -1053,7 +1053,7 @@ msgid "Access denied."
 msgstr ""
 
 #: includes/admin/class-ffc-admin-assets-manager.php:656
-msgid "Access denied. Check file permissions."
+msgid "Access denied. Reload the page and try again."
 msgstr ""
 
 #: templates/emails/access-granted.php:23
@@ -17615,7 +17615,7 @@ msgid "Template \"%s\" loaded successfully!"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-assets-manager.php:655
-msgid "Template file not found. Check if file exists in html/ folder."
+msgid "Template not found. It may have been removed from the template pool."
 msgstr ""
 
 #: includes/admin/class-ffc-admin-assets-manager.php:565

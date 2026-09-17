@@ -464,7 +464,8 @@ class AppointmentReader extends AbstractRepository {
 	/**
 	 * Get appointment statistics for calendar
 	 *
-	 * @deprecated 6.25.0 No product caller; to be removed in 6.27.0 (#1245).
+	 * @deprecated 6.25.0 No product caller (#1245).
+	 * @removal    6.27.0
 	 *
 	 * WHY A DEPRECATION CYCLE AND NOT A DIRECT DELETION
 	 *

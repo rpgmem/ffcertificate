@@ -153,7 +153,8 @@ class RecordGenerator {
 		 *
 		 * @since 4.11.0
 		 * @since 6.26.0 Renamed from `ffcertificate_ficha_data`, which stays alive
-		 *               through `apply_filters_deprecated()` until 6.28.0 (#1264).
+		 *               through `apply_filters_deprecated()` (#1264).
+		 * @removal 6.28.0
 		 * @param array  $variables     Template variables.
 		 * @param int    $submission_id Submission ID.
 		 * @param object $submission    Submission object.
@@ -211,7 +212,8 @@ class RecordGenerator {
 		 *
 		 * @since 4.11.0
 		 * @since 6.26.0 Renamed from `ffcertificate_ficha_html`, which stays alive
-		 *               through `apply_filters_deprecated()` until 6.28.0 (#1264).
+		 *               through `apply_filters_deprecated()` (#1264).
+		 * @removal 6.28.0
 		 * @param string $template      Generated HTML.
 		 * @param array  $variables     Template variables.
 		 * @param int    $submission_id Submission ID.
@@ -242,7 +244,8 @@ class RecordGenerator {
 		 *
 		 * @since 4.11.0
 		 * @since 6.26.0 Renamed from `ffcertificate_ficha_filename`, which stays alive
-		 *               through `apply_filters_deprecated()` until 6.28.0 (#1264).
+		 *               through `apply_filters_deprecated()` (#1264).
+		 * @removal 6.28.0
 		 * @param string $filename      Generated filename.
 		 * @param int    $submission_id Submission ID.
 		 * @param object $submission    Submission object.
@@ -520,7 +523,8 @@ class RecordGenerator {
 		 *
 		 * @since 6.20.0
 		 * @since 6.26.0 Renamed from `ffcertificate_ficha_template_html`, which stays
-		 *               alive through `apply_filters_deprecated()` until 6.28.0 (#1264).
+		 *               alive through `apply_filters_deprecated()` (#1264).
+		 * @removal 6.28.0
 		 * @param string $html Record template HTML ('' = use the file below).
 		 */
 		$pool_html = (string) apply_filters_deprecated(
@@ -541,7 +545,8 @@ class RecordGenerator {
 		 *
 		 * @since 4.11.0
 		 * @since 6.26.0 Renamed from `ffcertificate_ficha_template_file`, which stays
-		 *               alive through `apply_filters_deprecated()` until 6.28.0 (#1264).
+		 *               alive through `apply_filters_deprecated()` (#1264).
+		 * @removal 6.28.0
 		 * @param string $template_file Template file path.
 		 */
 		$template_file = apply_filters_deprecated(

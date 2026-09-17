@@ -58,11 +58,12 @@
         // translatable via Loco. The fallback list mirrors the PHP default
         // for the rare case where ffc_ajax hasn't loaded yet.
         var ajaxData = (typeof ffc_ajax !== 'undefined') ? ffc_ajax : {};
-        // The PHP side (AdminAssetsManager::discover_layout_templates) globs
-        // html/ and keeps any *.html whose basename contains "certificate".
-        // An empty fallback is correct: if ffc_ajax never localized, the
-        // modal simply shows no options instead of pretending hardcoded
-        // legacy filenames exist on disk.
+        // The PHP side (AdminAssetsManager::discover_layout_templates) returns
+        // the certificate template POOL -- post ids, since the html/ glob it
+        // used to read went with that directory in 6.23.0 (#1087). An empty
+        // fallback is correct: if ffc_ajax never localized, the modal simply
+        // shows no options instead of inventing entries the server cannot
+        // resolve.
         var templates = Array.isArray(ajaxData.templates) ? ajaxData.templates : [];
 
         // Get localized strings with fallbacks
@@ -100,11 +101,10 @@
                     '<div style="color:#666;font-size:13px;margin-top:5px;"></div>' +
                 '</div>'
             );
-            // Templates are addressed by DB post id (#865). Legacy html/ glob
-            // fallback entries carry id 0 + a `file` basename; both attributes
-            // are stored so loadTemplateFile can pick the right POST param.
+            // Templates are addressed by DB post id (#865). `data-file` went
+            // with the `html/` glob (#1309): `discover_layout_templates()`
+            // returns `'file' => ''` for every entry it produces.
             $opt.attr('data-id', (template.id != null) ? template.id : 0);
-            $opt.attr('data-file', template.file || '');
             $opt.find('strong').text(template.label);
             $opt.find('div').text(template.is_default ? defaultBadge : customBadge);
             $list.append($opt);
@@ -141,7 +141,6 @@
         // Template selection
         $('.ffc-template-option').on('click', function() {
             var templateId = $(this).data('id');
-            var templateFile = $(this).data('file');
             var templateName = $(this).find('strong').text();
 
             $('#ffc-template-modal').remove();
@@ -155,7 +154,7 @@
                 return;
             }
 
-            loadTemplateFile(templateId, templateFile, templateName);
+            loadTemplateFile(templateId, templateName);
         });
     });
 
@@ -163,12 +162,17 @@
     //
     // Primary path (#865): POST ffc_load_template with the DB pool post id
     // (template_id) — the server resolves the HTML via CertTemplateReader.
-    // When the id is 0 (a legacy html/ glob fallback entry) it posts the
-    // `filename` param instead, which the handler serves from html/ as a
-    // deprecated shim (#865 phase-4). Replaces the old direct fetch() of
-    // /wp-content/plugins/.../html/<file>, so template resolution is now
-    // gated by the nonce + capability check server-side.
-    function loadTemplateFile(templateId, filename, displayName) {
+    // Replaces the old direct fetch() of
+    // /wp-content/plugins/.../html/<file>, so template resolution is gated by
+    // the nonce + capability check server-side.
+    //
+    // The by-filename branch this used to carry is gone with the `html/` glob
+    // it fed (#1309). That shim was removed server-side in 6.23.0 (#1087), and
+    // `ajax_load_template()` has said so in its own body ever since — the
+    // client kept posting a `filename` the handler no longer reads, on a path
+    // that could not be reached anyway: `discover_layout_templates()` returns
+    // pool entries only, each with a real post id, so the id is never 0.
+    function loadTemplateFile(templateId, displayName) {
         var showNotification = window.FFC.Admin.showNotification || function() {};
         var ajaxData = (typeof ffc_ajax !== 'undefined') ? ffc_ajax : {};
         var strings = ajaxData.strings || {};
@@ -178,13 +182,11 @@
         var loadingText = strings.loadingTemplate || 'Loading template...';
         showNotification(loadingText, 'info', 0);
 
-        var postData = { action: 'ffc_load_template', nonce: ajaxData.nonce || '' };
-        templateId = parseInt(templateId, 10) || 0;
-        if (templateId > 0) {
-            postData.template_id = templateId;
-        } else {
-            postData.filename = filename || '';
-        }
+        var postData = {
+            action: 'ffc_load_template',
+            nonce: ajaxData.nonce || '',
+            template_id: parseInt(templateId, 10) || 0,
+        };
 
         $.post(ajaxUrl, postData)
             .done(function(response) {
@@ -204,23 +206,23 @@
                             $('#ffc_bg_image_input').val(data.bg_image || '').trigger('change');
                         }
                         var successTemplate = strings.templateLoadedSuccess || 'Template "%s" loaded successfully!';
-                        var successMsg = successTemplate.replace('%s', displayName || filename || '');
+                        var successMsg = successTemplate.replace('%s', displayName || '');
                         showNotification('✓ ' + successMsg, 'success', 3000);
                     } else {
                         var fieldMsg = strings.htmlFieldNotFound || 'HTML field not found.';
                         showNotification('✗ ' + fieldMsg, 'error');
                     }
                 } else {
-                    var notFoundMsg = strings.templateFileNotFound || 'Template file not found. Check if file exists in html/ folder.';
+                    var notFoundMsg = strings.templateFileNotFound || 'Template not found. It may have been removed from the template pool.';
                     showNotification('✗ ' + notFoundMsg, 'error', 8000);
                 }
             })
             .fail(function(jqXHR) {
                 var errorMsg;
                 if (jqXHR && jqXHR.status === 403) {
-                    errorMsg = strings.accessDenied || 'Access denied. Check file permissions.';
+                    errorMsg = strings.accessDenied || 'Access denied. Reload the page and try again.';
                 } else if (jqXHR && jqXHR.status === 404) {
-                    errorMsg = strings.templateFileNotFound || 'Template file not found. Check if file exists in html/ folder.';
+                    errorMsg = strings.templateFileNotFound || 'Template not found. It may have been removed from the template pool.';
                 } else {
                     errorMsg = strings.networkError || 'Network error. Check your connection.';
                 }

@@ -134,12 +134,14 @@ class CertTemplateSeeder {
 	 * packaging slip that dropped the seed files — leaves the pool permanently
 	 * empty and never retries.
 	 *
-	 * That is not a cosmetic failure: an empty pool is exactly the condition
+	 * That was not a cosmetic failure: an empty pool was exactly the condition
 	 * under which
 	 * {@see \FreeFormCertificate\Admin\AdminAssetsManager::discover_layout_templates()}
-	 * falls back to the deprecated legacy `html/` glob, so the fallback's stated
-	 * exit condition — "removed once the pool seeds on every install" — could
-	 * not be met while this hole existed (#865 phase-4).
+	 * fell back to the legacy `html/` glob, so that fallback's stated exit
+	 * condition — "removed once the pool seeds on every install" — could not be
+	 * met while this hole existed (#865 phase-4). The retry closed the hole in
+	 * 6.22.0 and the glob went in 6.23.0 (#1087); this paragraph is why the
+	 * retry is here, in the past tense because the fallback it names is gone.
 	 *
 	 * Deliberately narrow: it asks whether the pool is *empty*, not whether every
 	 * definition seeded. A partial seed still populates the picker and keeps the

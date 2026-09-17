@@ -331,11 +331,15 @@ class FormEditor {
 	/**
 	 * AJAX: Loads a certificate template's HTML for the layout editor.
 	 *
-	 * Primary path (#865): resolve a template from the DB-backed pool by post
-	 * id via {@see CertTemplateReader::get_html()}. Falls back to the legacy
-	 * `html/` glob by filename — a deprecated shim (#865 phase-4) kept for the
-	 * transition window (a site whose pool hasn't seeded yet, or a third-party
-	 * drop-in under `html/`); it is removed once the pool is the sole source.
+	 * Resolves a template from the DB-backed pool by post id, via
+	 * {@see CertTemplateReader::get_html()}. That is the only path: the legacy
+	 * `html/` glob this used to fall back to was removed in 6.23.0 (#1087),
+	 * once its written exit condition — the pool seeding on every install — was
+	 * met by the `CertTemplateSeeder::pool_has_defaults()` retry.
+	 *
+	 * This docblock claimed the fallback was still here until #1309, while the
+	 * body below already said it was gone. A docblock is not an assertion, so
+	 * nothing reported the contradiction.
 	 */
 	public function ajax_load_template(): void {
 		check_ajax_referer( 'ffc_admin_pdf_nonce', 'nonce' );
