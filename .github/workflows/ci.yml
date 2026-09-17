@@ -428,6 +428,38 @@ jobs:
         # freshly created schema: the statement is replayed against the table it
         # just built, so an empty change list is the only correct answer.
         run: php .github/scripts/dbdelta-idempotence-check.php "$HOME/wp"
+      - name: Plant the capability residue the sweep must remove
+        # #1290: removal used to intersect a hand-written list, and the list
+        # named 31 of the 60 live capabilities, so 40 survived every uninstall.
+        # Four shapes go in, each reachable only by a different rule:
+        #   - a LIVE capability, on a user and on `editor` — a role the plugin
+        #     does not own, which the migrator's back-fills write to anyway
+        #     because they walk wp_user_roles in full;
+        #   - a RETIRED slug, of the kind the old list still carried;
+        #   - the unprefixed pre-6.2.0 name, which no prefix rule can reach and
+        #     which is only found because it sits beside a prefixed grant;
+        #   - `ffc_zz_synthetic`, named in no list anywhere in this repository.
+        #     That last one is the mutation: only a prefix sweep removes it, so
+        #     reintroducing a list of names turns the final step red. It is
+        #     `FFC_FRESH_SYNTHETIC_CAP` in fresh-install-check.php, and the
+        #     `planted` step below fails if the two ever diverge.
+        run: |
+          wp eval --path="$HOME/wp" '
+            $u = new WP_User( 1 );
+            $u->add_cap( "ffc_manage_settings", true );
+            $u->add_cap( "ffc_import_recruitment_csv", true );
+            $u->add_cap( "ffc_zz_synthetic", true );
+            $u->add_cap( "view_own_certificates", true );
+            $r = get_role( "editor" );
+            $r->add_cap( "ffc_view_certificates", true );
+            $r->add_cap( "ffc_zz_synthetic", true );
+          '
+      - name: Check the capability reader sees the planted grants
+        # The positive control. "0 remaining" after the uninstall reads the same
+        # whether the sweep worked or the reader is broken, so the reader is run
+        # against the same database while the residue is known to be there.
+        # Without this step the final check could pass vacuously forever.
+        run: php .github/scripts/fresh-install-check.php "$HOME/wp" uninstall.php planted
       - name: Delete the plugin with the Danger Zone opt-in on
         run: |
           # `wp plugin uninstall` removes the plugin directory, and these scripts

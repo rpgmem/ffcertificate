@@ -61,3 +61,32 @@ function ffc_manifest_options( string $uninstall_file ): array {
 	sort( $options );
 	return $options;
 }
+
+/**
+ * Capability names the uninstaller removes BY NAME rather than by prefix.
+ *
+ * Capability removal is a prefix sweep — every `ffc_*` key on every user and
+ * every role — so there is no list of live capabilities to parse and no list to
+ * fall behind (#1290). What remains is the handful of pre-6.2.0 names that
+ * carry no prefix, which the sweep cannot reach; that is what this returns.
+ *
+ * An empty result is a parse failure, not "the plugin removes nothing by name":
+ * callers must treat it as such, the way the two functions above are treated.
+ *
+ * @param string $uninstall_file Absolute path to uninstall.php.
+ * @return array<int, string> Sorted, unique; empty when the parse fails.
+ */
+function ffc_manifest_legacy_capabilities( string $uninstall_file ): array {
+	$text = (string) file_get_contents( $uninstall_file );
+	if ( ! preg_match( '/\$ffcertificate_legacy_caps\s*=\s*array\((.*?)\n\);/s', $text, $block ) ) {
+		return array();
+	}
+	// Quoted only, so the `// ffc_view_own_certificates` comment naming each
+	// replacement is not read back as a member of the list.
+	if ( ! preg_match_all( "/'([a-z0-9_]+)'/", $block[1], $m ) ) {
+		return array();
+	}
+	$caps = array_values( array_unique( $m[1] ) );
+	sort( $caps );
+	return $caps;
+}
