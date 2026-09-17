@@ -442,13 +442,10 @@ class UserAudienceRestController {
 				);
 			}
 
-			// Join the group.
+			// Join the group. The audience capability comes with the
+			// membership — `add_member()` grants it, so every entry point gets
+			// it and not just this one (#1302).
 			\FreeFormCertificate\Audience\AudienceWriter::add_member( $group_id, $user_id );
-
-			// Grant audience capabilities if needed.
-			if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
-				\FreeFormCertificate\UserDashboard\CapabilityManager::grant_audience_capabilities( $user_id );
-			}
 
 			return rest_ensure_response(
 				array(

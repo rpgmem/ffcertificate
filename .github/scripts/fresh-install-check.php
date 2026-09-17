@@ -279,6 +279,38 @@ if ( 'activate' === $phase ) {
 			: implode( ', ', $stray_options ) . ' — add to uninstall.php'
 	) || $failed;
 
+	// No FFC capability may sit on a role WordPress owns (#1302).
+	//
+	// This is the direction no static scan reaches: the role is resolved at
+	// runtime (`get_role( 'subscriber' )->add_cap( … )`), so only a real
+	// activation shows where the capability landed. It would have caught the
+	// defect it was written for on the day it shipped — `AudienceActivator`
+	// granted `ffc_view_own_audience_bookings` to `subscriber`, on every
+	// install, from activation.
+	//
+	// A fresh install is what makes the reading honest: every role here was
+	// either created by this activation or shipped with WordPress, so there is
+	// no third party to blame for a stray grant.
+	$core_role_grants = array_values(
+		array_filter(
+			ffc_fresh_live_capabilities( $legacy_caps ),
+			static function ( string $entry ): bool {
+				if ( 0 !== strpos( $entry, 'role ' ) ) {
+					return false;
+				}
+				$slug = substr( $entry, strlen( 'role ' ), (int) strpos( $entry, ':' ) - strlen( 'role ' ) );
+				return 0 !== strpos( $slug, 'ffc_' );
+			}
+		)
+	);
+	$failed = ! ffc_fresh_check(
+		array() === $core_role_grants,
+		'no FFC capability on a core role',
+		array() === $core_role_grants
+			? 'none'
+			: implode( ' | ', $core_role_grants ) . ' — grant it to the user, or to an ffc_ role'
+	) || $failed;
+
 	// Declared-but-absent options are NOT a failure: most are written later by a
 	// migration or a settings save, not by activation. Reported so the list's
 	// dead weight stays visible.

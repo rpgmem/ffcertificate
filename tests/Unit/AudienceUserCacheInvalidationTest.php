@@ -91,6 +91,11 @@ final class AudienceUserCacheInvalidationTest extends TestCase {
 		);
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'sanitize_sql_orderby' )->returnArg();
+		// `add_member()` also grants the audience capability (#1302), and
+		// `grant_audience_capabilities()` opens with `get_userdata()`. Returning
+		// false makes it return immediately, which keeps this file on the one
+		// invariant it is about; the grant has its own file.
+		Functions\when( 'get_userdata' )->justReturn( false );
 		Functions\when( 'wp_parse_args' )->alias(
 			static function ( $args, $defaults = array() ) {
 				return array_merge( $defaults, is_array( $args ) ? $args : array() );

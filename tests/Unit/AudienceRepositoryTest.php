@@ -66,6 +66,12 @@ class AudienceRepositoryTest extends TestCase {
 			return false;
 		});
 		Functions\when('wp_json_encode')->alias('json_encode');
+		// `add_member()` grants the audience capability (#1302), and
+		// `grant_audience_capabilities()` opens with `get_userdata()`. Returning
+		// false makes it return at once, so this file keeps measuring the
+		// repository rather than the capability grant, which has its own tests
+		// in `AudienceMembershipCapabilityTest`.
+		Functions\when('get_userdata')->justReturn(false);
 
 		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() {
 			return func_get_args()[0];
