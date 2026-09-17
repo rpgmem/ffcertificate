@@ -1053,8 +1053,8 @@ msgid "Access denied."
 msgstr "Acesso negado."
 
 #: includes/admin/class-ffc-admin-assets-manager.php:656
-msgid "Access denied. Check file permissions."
-msgstr "Acesso negado. Verifique as permissões do arquivo."
+msgid "Access denied. Reload the page and try again."
+msgstr "Acesso negado. Recarregue a página e tente novamente."
 
 #: templates/emails/access-granted.php:23
 msgid "Access granted"
@@ -17674,8 +17674,8 @@ msgid "Template \"%s\" loaded successfully!"
 msgstr "Template \"%s\" carregado com sucesso!"
 
 #: includes/admin/class-ffc-admin-assets-manager.php:655
-msgid "Template file not found. Check if file exists in html/ folder."
-msgstr "Arquivo de modelo não encontrado. Verifique se o arquivo existe na pasta html/."
+msgid "Template not found. It may have been removed from the template pool."
+msgstr "Modelo não encontrado. Ele pode ter sido removido do pool de modelos."
 
 #: includes/admin/class-ffc-admin-assets-manager.php:565
 msgid "Template loaded successfully!"

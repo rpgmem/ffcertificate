@@ -135,7 +135,7 @@ describe('ffc-admin-pdf.js — loadTemplate (ajax path)', () => {
 	it('POSTs ffc_load_template with template_id and writes the pool HTML', () => {
 		stubPost({ success: true, data: '<h1>Certificado</h1>' });
 
-		window.FFC.Admin.PDF.loadTemplate(5, '', 'Modelo 1');
+		window.FFC.Admin.PDF.loadTemplate(5, 'Modelo 1');
 
 		expect(window.$.post).toHaveBeenCalled();
 		const [url, data] = window.$.post.mock.calls[0];
@@ -152,14 +152,27 @@ describe('ffc-admin-pdf.js — loadTemplate (ajax path)', () => {
 		expect(window.FFC.Admin.showNotification).toHaveBeenCalledTimes(2);
 	});
 
-	it('posts the legacy filename when the id is 0 (deprecated fallback)', () => {
-		stubPost({ success: true, data: '<p>legacy</p>' });
+	// What used to sit here asserted the by-filename POST the `html/` glob fed.
+	// The server stopped reading `filename` in 6.23.0 (#1087), so the test was
+	// pinning a contract production would have rejected -- green, and describing
+	// something that could not work. It went with the branch in #1309.
 
-		window.FFC.Admin.PDF.loadTemplate(0, 'legacy_certificate.html', 'Legacy');
+	it('still reports success when the template has no name', () => {
+		stubPost({ success: true, data: '<h1>Cert</h1>' });
 
-		const [, data] = window.$.post.mock.calls[0];
-		expect(data.template_id).toBeUndefined();
-		expect(data.filename).toBe('legacy_certificate.html');
+		// The name comes from `$(this).find('strong').text()` on the modal row,
+		// so a pool template with an empty title reaches here as ''. The success
+		// message read `displayName || filename || ''` and `filename` was a
+		// variable of the deleted by-filename branch -- removing that branch
+		// alone left a ReferenceError on exactly this path. A truthy name hides
+		// it, because `||` never evaluates its right side.
+		window.FFC.Admin.PDF.loadTemplate(5, '');
+
+		expect(window.FFC.Admin.showNotification).toHaveBeenLastCalledWith(
+			'✓ Template "" loaded!',
+			'success',
+			3000
+		);
 	});
 
 	it('carries the structured payload {html,bg_image} into the layout + bg field', () => {
@@ -169,7 +182,7 @@ describe('ffc-admin-pdf.js — loadTemplate (ajax path)', () => {
 			data: { html: '<h1>Cert</h1>', bg_image: 'https://example.com/bg.png' },
 		});
 
-		window.FFC.Admin.PDF.loadTemplate(7, '', 'Modelo');
+		window.FFC.Admin.PDF.loadTemplate(7, 'Modelo');
 
 		expect(document.querySelector('#ffc_pdf_layout').value).toBe('<h1>Cert</h1>');
 		expect(document.querySelector('#ffc_bg_image_input').value).toBe(
@@ -184,7 +197,7 @@ describe('ffc-admin-pdf.js — loadTemplate (ajax path)', () => {
 		);
 		stubPost({ success: true, data: { html: '<h1>X</h1>', bg_image: '' } });
 
-		window.FFC.Admin.PDF.loadTemplate(8, '', 'Modelo');
+		window.FFC.Admin.PDF.loadTemplate(8, 'Modelo');
 
 		expect(document.querySelector('#ffc_bg_image_input').value).toBe('');
 	});
@@ -196,7 +209,7 @@ describe('ffc-admin-pdf.js — loadTemplate (ajax path)', () => {
 		);
 		stubPost({ success: true, data: '<p>legacy</p>' });
 
-		window.FFC.Admin.PDF.loadTemplate(9, '', 'Legacy');
+		window.FFC.Admin.PDF.loadTemplate(9, 'Legacy');
 
 		expect(document.querySelector('#ffc_pdf_layout').value).toBe('<p>legacy</p>');
 		// A string payload has no bg_image key → the field is not written.
@@ -206,7 +219,7 @@ describe('ffc-admin-pdf.js — loadTemplate (ajax path)', () => {
 	it('surfaces a not-found error when the server responds unsuccessfully', () => {
 		stubPost({ success: false });
 
-		window.FFC.Admin.PDF.loadTemplate(999, '', 'Missing');
+		window.FFC.Admin.PDF.loadTemplate(999, 'Missing');
 
 		const calls = window.FFC.Admin.showNotification.mock.calls;
 		const errorCall = calls.find((c) => c[1] === 'error');

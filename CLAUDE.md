@@ -33,7 +33,7 @@ Project conventions for Claude (Anthropic CLI / agent sessions) working on this 
 3. **[Architecture and patterns](#3-architecture-and-patterns)** — repository pattern, module bootstrap (loaders), shared-service directories, email pipeline, CSV export, captcha.
 4. **[Stylesheets and theme](#4-stylesheets-and-theme)** — how many sheets and why, naming and composition, page scope on the admin `wrap`, the light/dark palette.
 5. **[Domain conventions](#5-domain-conventions)** — date/time storage, settings reads and writes, admin number inputs, capability naming, security & PII.
-6. **[Legacy and tech debt](#6-legacy-and-tech-debt)** — compat shims + evidence-gating.
+6. **[Legacy and tech debt](#6-legacy-and-tech-debt)** — compat shims + evidence-gating, deprecation cycles and the `@removal` marker.
 
 ---
 
@@ -415,6 +415,10 @@ It exists because `languages/` was **internally consistent** throughout the two 
 **A mis-tuned extractor freezes a wrong baseline, and a baseline is believed.** The first scan matched only `T_STRING`, so `\__( 'I am not a robot', 'ffcertificate' )` — `T_NAME_FULLY_QUALIFIED`, one token carrying the backslash — was invisible: 30 strings, the whole ALTCHA block. Direction A was unaffected; direction B reported 52 orphans instead of 22, so the register would have declared 30 live strings dead. A canary pins that shape.
 
 The extractor lives in `tests/Support/I18nCalls.php` and the `.po` reader in `tests/Support/PoCatalogue.php`, shared with the guard above for the reason `.github/scripts/ffc-create-statements.php` is shared. `PoCatalogue::read()` returns an ordered **list**, not a keyed map, because keying makes a duplicate `msgid` vanish rather than fail — and `ffcertificate.pot` carried one, which `msgfmt` would have rejected outright.
+
+#### Deprecation-due guard (#1309)
+
+`tests/Unit/DeprecationDueTest.php` fails when the plugin's own version reaches a recorded removal release, and fails when a WordPress deprecation call records none. It reads one marker, `@removal X.Y.Z`, written on the code that is still there — the convention, why the date cannot be prose, and the two token shapes the scan resolves are under "Deprecation cycles" in "Legacy and tech debt".
 
 ### Config-level exclusions — audited verdicts
 
@@ -886,6 +890,18 @@ _The chain that makes deleting the images safe is worth keeping, because it is n
 _Two related things to know if this ever comes up again. The seeder reads `templates/certificate-defaults/`, **not** `html/` — had it read the latter, deleting those three files would have broken seeding on every fresh install, which is the very condition that authorised the removal. And both migrations degrade without the directory rather than fatal: `glob()` on a missing path returns nothing (status "100% complete"), and the rewrite records a "Missing html/ file" error per target instead of throwing._
 
 When a new shim is added, log it here (Shim · Location · Risk if removed · Why it stays), and when a new feature makes one unsafe or inadequate, open a specific sub-issue + a breaking-change banner in the CHANGELOG.
+
+### Deprecation cycles — `@removal` is the date, and it fires (#1309)
+
+A shim in the log above is retired by **evidence**; a *deprecation cycle* is retired by a **release**, and that release has to be written somewhere a machine reads. None of the WordPress deprecation functions carries it — `apply_filters_deprecated( $hook, $args, '6.26.0', $replacement )` and `_deprecated_function( __METHOD__, '6.25.0' )` both take the version the thing was **deprecated in**, which is the string WordPress prints to whoever is still listening. The removal release has no field at all, so before #1309 it lived in prose and depended on somebody re-reading the issue at the right moment.
+
+**Write `@removal X.Y.Z` on the surviving code** — a docblock tag on the method or the documented hook, a `// @removal X.Y.Z -- <why>.` line where the thing is a bare registration with no docblock of its own. `DeprecationDueTest` reads it and fails when `FFC_VERSION` reaches that release, naming every site; a second direction refuses any `apply_filters_deprecated()` / `_deprecated_*()` call that carries no marker, which is what stops the first from measuring only what somebody remembered to mark. Deferring a cycle on purpose means **moving the date in the file** — that is the decision, and the code is where it is worth arguing.
+
+**The prose must not restate the number.** The marker is the one place; a sentence saying the same thing is the #1261 class, and one such sentence lives in a *translated* string on the hooks documentation page, which is why that line carries its own marker.
+
+**And prose cannot be the source, which cost the first implementation.** It read the `until X` idiom that was already in the tree and reported two `Security` docblocks as overdue — both past-tense history about the `$token` argument that **was** removed in 6.24.0 (#1048). `until 6.24.0` is a live promise or a finished story depending on the tense of a verb several clauses away, and the classifier that tells those apart is the "dictionary describes itself" trap `CommentLanguageTest` records. History in the past tense is *correct* and stays; it simply is not a field.
+
+Two mechanics worth not re-deriving. The scan reads **comment tokens**, never raw lines, so a version inside a string literal or a piece of markup can never be mistaken for a marker. And it resolves `T_NAME_FULLY_QUALIFIED` beside `T_STRING`, because `\_deprecated_function(` is one token carrying the backslash — the #1284 trap, pinned here by a canary over synthetic source rather than by what the tree happens to contain.
 
 #### Resolved exemplar — how the `html/` fallback was retired (evidence, not a deprecation cycle)
 
