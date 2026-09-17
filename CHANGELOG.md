@@ -19,6 +19,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **A guard that every created table has a name the sweep can find** (#1291): `ActivatorSqlTest` fails when a `CREATE TABLE` under `includes/` resolves to no `ffc_` name — which covers both a table outside the namespace and one written in an idiom the shared collector cannot follow. Blocks at zero; all 36 statements resolve.
 
+- **A guard that only a refresher may name a captcha field** (#1307): `CaptchaFieldNameTest` fails when a script outside the two registered refreshers reaches for `ffc_captcha_ans`, `ffc_captcha_hash` or a `name="altcha"` position — the shape #1305 shipped in, where a hand-written field list left ALTCHA's proof unsendable on a public page. A shrink-only register of two, blocking at zero.
+
 ### Changed
 
 - **Eleven Portuguese identifiers renamed to English** (#1260): eight `ReregistrationFieldOptions` methods (`get_sexo_options` → `get_gender_options`, `get_uf_options` → `get_state_options`, …), two local variables and one JS function. Pure rename: no stored row, option or template token is touched, so the diff is symmetric — 98 lines in, 98 out.
