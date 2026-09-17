@@ -62,6 +62,19 @@ declare(strict_types=1);
 const FFC_FRESH_ALLOWED_OPTIONS = array();
 
 /**
+ * The capability planted by the workflow purely to be swept away (#1290).
+ *
+ * It names nothing: no list in this repository contains it, and no code path
+ * grants it. That is the point — only a removal rule keyed on the `ffc_`
+ * prefix can take it out, so its disappearance is what distinguishes a sweep
+ * from a list of names that happens to be complete today.
+ *
+ * The workflow writes it literally in a `wp eval`; the `planted` phase below is
+ * what fails if the two ever diverge.
+ */
+const FFC_FRESH_SYNTHETIC_CAP = 'ffc_zz_synthetic';
+
+/**
  * Print a check result.
  *
  * @param bool   $ok     Whether the check passed.
@@ -173,8 +186,8 @@ $wp_root   = isset( $argv[1] ) ? rtrim( (string) $argv[1], '/' ) : '';
 $manifest  = isset( $argv[2] ) ? (string) $argv[2] : '';
 $phase     = isset( $argv[3] ) ? (string) $argv[3] : '';
 
-if ( '' === $wp_root || '' === $manifest || ! in_array( $phase, array( 'activate', 'uninstall' ), true ) ) {
-	fwrite( STDERR, "usage: fresh-install-check.php <wp-root> <uninstall.php> activate|uninstall\n" );
+if ( '' === $wp_root || '' === $manifest || ! in_array( $phase, array( 'activate', 'planted', 'uninstall' ), true ) ) {
+	fwrite( STDERR, "usage: fresh-install-check.php <wp-root> <uninstall.php> activate|planted|uninstall\n" );
 	exit( 1 );
 }
 
@@ -276,6 +289,66 @@ if ( 'activate' === $phase ) {
 		(string) count( $unwritten ) . ' (written on demand, not at activation)',
 		false
 	);
+
+} elseif ( 'planted' === $phase ) {
+
+	// THE POSITIVE CONTROL, and the reason it is a phase of its own.
+	//
+	// `no capabilities left behind` reports `0 remaining` when the sweep worked
+	// AND when the reader is broken — an empty scan reading as clean is the
+	// #1071 / #1094 class, and the first version of this check had exactly that
+	// shape: it shipped green without anyone knowing whether the instrument
+	// could see a grant at all.
+	//
+	// So the same function runs against the same database moments BEFORE the
+	// uninstall, when the residue is known to be there. A non-zero here is what
+	// makes the zero afterwards a measurement rather than a collapse.
+	$planted = ffc_fresh_live_capabilities( $legacy_caps );
+
+	$failed = ! ffc_fresh_check(
+		array() !== $planted,
+		'the capability reader sees grants',
+		array() !== $planted ? count( $planted ) . ' found' : 'NOTHING — the reader is broken, so the uninstall phase would pass vacuously'
+	) || $failed;
+
+	// Each shape separately, because they are three different code paths and a
+	// reader that sees only user meta would still look healthy above.
+	foreach ( array(
+		'user ' => 'on a user',
+		'role ' => 'on a role',
+	) as $where => $label ) {
+		$hits   = array_filter(
+			$planted,
+			static fn( string $entry ): bool => 0 === strpos( $entry, $where )
+		);
+		$failed = ! ffc_fresh_check(
+			array() !== $hits,
+			'planted grants seen ' . $label,
+			array() !== $hits ? implode( ' | ', $hits ) : 'none — the workflow stopped planting them, or this branch is dead'
+		) || $failed;
+	}
+
+	$synthetic = array_filter(
+		$planted,
+		static fn( string $entry ): bool => false !== strpos( $entry, FFC_FRESH_SYNTHETIC_CAP )
+	);
+	$failed    = ! ffc_fresh_check(
+		array() !== $synthetic,
+		'the synthetic capability is planted',
+		array() !== $synthetic
+			? implode( ' | ', $synthetic )
+			: FFC_FRESH_SYNTHETIC_CAP . ' was not granted — without it the uninstall phase cannot tell a prefix sweep from a complete list'
+	) || $failed;
+
+	$legacy_seen = array_filter(
+		$planted,
+		static fn( string $entry ): bool => (bool) preg_match( '/: (' . implode( '|', array_map( 'preg_quote', $legacy_caps ) ) . ')$/', $entry )
+	);
+	$failed      = ! ffc_fresh_check(
+		array() !== $legacy_seen,
+		'an unprefixed legacy name is planted',
+		array() !== $legacy_seen ? implode( ' | ', $legacy_seen ) : 'none — the unprefixed half of the sweep is untested'
+	) || $failed;
 
 } else {
 
