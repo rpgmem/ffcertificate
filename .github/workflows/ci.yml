@@ -444,6 +444,30 @@ jobs:
             $s["delete_data_on_uninstall"] = "1";
             update_option( "ffc_settings", $s );
           '
+          # Plant the capability residue #1290 measured, so the next step can
+          # prove the sweep removes it. Three shapes, each unreachable by the
+          # others' mechanism:
+          #   - a LIVE capability, on a user and on a role the plugin does not
+          #     own (`editor`) — the migrator's back-fills write to every role
+          #     in wp_user_roles, so this is a state real installs reach;
+          #   - a RETIRED slug, which the old hand-written list still named;
+          #   - `ffc_zz_synthetic`, which appears in no list anywhere in this
+          #     repository. Only a prefix sweep can remove it, which makes it
+          #     the mutation: reintroduce a name list and this step goes red.
+          # The unprefixed pre-6.2.0 name goes on the same user, which is the
+          # only way it is reachable — the uninstaller finds users by the
+          # `ffc_` prefix, so it is swept alongside a prefixed grant, never
+          # alone.
+          wp eval --path="$HOME/wp" '
+            $u = new WP_User( 1 );
+            $u->add_cap( "ffc_manage_settings", true );
+            $u->add_cap( "ffc_import_recruitment_csv", true );
+            $u->add_cap( "ffc_zz_synthetic", true );
+            $u->add_cap( "view_own_certificates", true );
+            $r = get_role( "editor" );
+            $r->add_cap( "ffc_view_certificates", true );
+            $r->add_cap( "ffc_zz_synthetic", true );
+          '
           wp plugin uninstall ffcertificate --deactivate --path="$HOME/wp"
       - name: Check nothing was left behind
         run: php "$HOME/checks/fresh-install-check.php" "$HOME/wp" "$HOME/checks/uninstall.php" uninstall

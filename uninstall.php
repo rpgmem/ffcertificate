@@ -341,62 +341,51 @@ $wpdb->delete( $wpdb->usermeta, array( 'meta_key' => 'ffc_registration_date' ) )
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk statement over the plugin's own ffc_* user-meta keys, matched by prefix — the WordPress meta API cannot filter by key prefix, and doing it per user per key would be thousands of queries.
 $wpdb->delete( $wpdb->usermeta, array( 'meta_key' => 'ffc_custom_fields_data' ) );
 
-// Remove FFC-specific capabilities from all users.
-$ffcertificate_caps = array(
-	// Legacy (pre-6.2.0) cap names — kept here so uninstalls of installs
-	// that never ran the 6.2.0 rename migration still strip the old caps.
-	'view_own_certificates',
-	'download_own_certificates',
-	'view_certificate_history',
-	// 6.2.0 namespaced replacements.
-	'ffc_view_own_certificates',
-	'ffc_download_own_certificates',
-	'ffc_view_certificate_history',
-
-	'ffc_book_appointments',
-	'ffc_view_self_scheduling',
-	'ffc_cancel_own_appointments',
-	'ffc_view_audience_bookings',
-	'ffc_scheduling_bypass',
-	'ffc_manage_reregistration',
-	'ffc_manage_recruitment',
-
-	// 6.2.0 module-management caps.
-	'ffc_manage_certificates',
-	'ffc_export_certificates',
-	'ffc_manage_self_scheduling',
-	'ffc_manage_audiences',
-	'ffc_view_activity_log',
-	'ffc_manage_user_custom_fields',
-	'ffc_view_as_user',
-	'ffc_manage_settings',
-
-	// 6.2.0 per-domain recruitment caps.
-	'ffc_view_recruitment',
-	'ffc_import_recruitment_csv',
-	'ffc_call_recruitment_candidates',
-	'ffc_view_recruitment_pii',
-	'ffc_manage_recruitment_settings',
-	'ffc_manage_recruitment_reasons',
-
-	// Reactivated submission-edit cap (6.2.0).
-	'ffc_certificate_update',
-
-	// Granular export tier (GAP G).
-	'ffc_export_appointments',
-	'ffc_export_reregistration',
-	'ffc_export_audiences',
-
-	// Granular import tier (GAP H), plus reregistration from 6.26.0 (#1214).
-	'ffc_import_audiences',
-	'ffc_import_reregistration',
-
-	// Removed 6.2.0 placeholder, kept here for cleanup on installs
-	// that activated it before the placeholder was retired.
-	'ffc_reregistration',
+// ──────────────────────────────────────
+// 8. Remove FFC capabilities from users and roles
+// ──────────────────────────────────────
+//
+// **Removal is by PREFIX, not by a list of names.** `ffc_` is this plugin's
+// namespace, so every capability it has ever created carries it — which makes
+// "remove every `ffc_*` key" both complete and impossible to fall behind. The
+// list this replaced named 31 of the 60 live capabilities, so 40 survived
+// uninstall on every install; the sharpest case was `ffc_import_recruitment`,
+// live and unremoved, while `ffc_import_recruitment_csv` — its own pre-rename
+// slug, dead since `CapabilityMigrator::taxonomy_cap_renames()` retired it —
+// *was* listed. The dead name was cleaned up and the live one was not (#1290).
+//
+// The precondition the sweep rests on — every live capability starts with
+// `ffc_` — is not assumed here: `UninstallCapabilitySweepTest` asserts it
+// against `CapabilityManager::get_all_capabilities()`, so a capability named
+// without the prefix fails CI rather than silently outliving the plugin.
+//
+// The three names below are the only ones the sweep cannot reach, and they are
+// the reason this array still exists.
+$ffcertificate_legacy_caps = array(
+	// Pre-6.2.0 certificate capabilities, from before the plugin namespaced
+	// its capability names. The rename migration that retired them was itself
+	// removed in 6.18.0 (#809), so an install upgrading from before 6.2.0
+	// straight to a current release still carries them. Each is followed by
+	// the name that replaced it.
+	'view_own_certificates', // ffc_view_own_certificates.
+	'download_own_certificates', // ffc_download_own_certificates.
+	'view_certificate_history', // ffc_view_own_certificate_history, via ffc_view_certificate_history (6.9.0).
 );
 
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk statement over the plugin's own ffc_* user-meta keys, matched by prefix — the WordPress meta API cannot filter by key prefix, and doing it per user per key would be thousands of queries.
+// Users carrying ANY `ffc_*` grant. Capabilities and roles share this one
+// serialized meta — a role appears in it as `s:12:"ffc_end_user";b:1;`, exactly
+// like a capability — so the prefix finds both, and the sweep below removes a
+// stale membership row of a role that section 6 has just deleted.
+//
+// The three legacy names have no prefix and so cannot widen this filter, which
+// is a limit worth stating rather than working around: they were only ever
+// granted to users who already held the `ffc_user` role (the 4.4.0 migration
+// that seeded them ran over `'role' => 'ffc_user'`, and the profile screen that
+// granted them by hand only rendered for that role), and `ffc_user` matches the
+// prefix. So a user carrying them without any `ffc_*` token is not a state this
+// plugin ever produced.
+//
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk statement over the plugin's own ffc_* grants, matched by prefix — the WordPress meta API cannot filter by value prefix, and walking every user of the install instead would be unbounded.
 $ffcertificate_user_ids = $wpdb->get_col(
 	$wpdb->prepare(
 		'SELECT user_id FROM %i WHERE meta_key = %s AND meta_value LIKE %s',
@@ -408,7 +397,54 @@ $ffcertificate_user_ids = $wpdb->get_col(
 
 foreach ( $ffcertificate_user_ids as $ffcertificate_uid ) {
 	$ffcertificate_user = new WP_User( (int) $ffcertificate_uid );
-	foreach ( $ffcertificate_caps as $ffcertificate_cap ) {
+
+	// `array_keys()` snapshots before the loop: `remove_cap()` rebuilds
+	// `$user->caps`, so iterating it directly would mutate what is being read.
+	foreach ( array_keys( (array) $ffcertificate_user->caps ) as $ffcertificate_cap ) {
+		if ( 0 === strpos( (string) $ffcertificate_cap, 'ffc_' ) ) {
+			$ffcertificate_user->remove_cap( (string) $ffcertificate_cap );
+		}
+	}
+
+	foreach ( $ffcertificate_legacy_caps as $ffcertificate_cap ) {
 		$ffcertificate_user->remove_cap( $ffcertificate_cap );
+	}
+}
+
+// Roles are the second residue, and it is not a corner case. Section 6 deletes
+// the FFC roles wholesale, which takes their capabilities with them — but FFC
+// capabilities also sit on roles this plugin does not own.
+//
+// One is `administrator`, on any install that passed through a release before
+// 6.16.0 (#747): `Loader::ensure_admin_capabilities()` granted every
+// `ADMIN_CAPABILITIES` entry to the native administrator role until that
+// release moved the admin tier onto `ffc_administrator`. It stopped granting,
+// and nothing ever removed what it had granted.
+//
+// The other is any custom role holding a `manage` capability, because the
+// one-shot back-fills in `CapabilityMigrator` walk `wp_roles()->roles` in full
+// and seed the matching `delete` / `export` / `import` capability onto every
+// role that qualifies — administrator and custom roles included.
+//
+// Same sweep, same reason. `remove_cap()` writes the role option per call,
+// which is a handful of writes on a handful of roles, once, during uninstall.
+$ffcertificate_roles = wp_roles();
+
+foreach ( array_keys( $ffcertificate_roles->roles ) as $ffcertificate_role_slug ) {
+	$ffcertificate_role = get_role( (string) $ffcertificate_role_slug );
+	if ( ! $ffcertificate_role instanceof WP_Role ) {
+		continue;
+	}
+
+	foreach ( array_keys( (array) $ffcertificate_role->capabilities ) as $ffcertificate_cap ) {
+		if ( 0 === strpos( (string) $ffcertificate_cap, 'ffc_' ) ) {
+			$ffcertificate_role->remove_cap( (string) $ffcertificate_cap );
+		}
+	}
+
+	foreach ( $ffcertificate_legacy_caps as $ffcertificate_cap ) {
+		if ( isset( $ffcertificate_role->capabilities[ $ffcertificate_cap ] ) ) {
+			$ffcertificate_role->remove_cap( $ffcertificate_cap );
+		}
 	}
 }
