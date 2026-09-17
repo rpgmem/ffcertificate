@@ -350,6 +350,27 @@ class AudienceWriter {
 		// `bulk_add_members()` too — it is a loop over this method.
 		self::invalidate_user_audiences( array( $user_id ) );
 
+		// Membership is what earns `ffc_view_own_audience_bookings`, so the
+		// grant belongs at the single point every entry passes through — the
+		// same reason the invalidation above sits here (#1302).
+		//
+		// It used to sit at ONE of the two entries: the self-join REST route
+		// called this method and then granted, while the admin-side paths
+		// (`AudienceAjaxController` → `set_members()` / `bulk_add_members()`)
+		// granted nothing. What covered the gap was
+		// `AudienceActivator::register_capabilities()` giving the capability to
+		// WordPress's own `subscriber` role, i.e. to every subscriber on the
+		// site whether or not they belong to any audience — an FFC capability
+		// living on a role this plugin does not own, on every install since
+		// activation.
+		//
+		// `grant_audience_capabilities()` is idempotent and checks `has_cap()`,
+		// so a member who already holds it through `ffc_end_user` gets no
+		// redundant personal grant.
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityManager::grant_audience_capabilities( $user_id );
+		}
+
 		return $wpdb->insert_id;
 	}
 

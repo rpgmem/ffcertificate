@@ -160,6 +160,15 @@ class Loader {
 		// early but after WP loads the textdomain.
 		add_action( 'init', array( $this, 'register_ffc_roles_safe' ), 1 );
 
+		// Keep `ffc_administrator` on every administrator, for users who do not
+		// exist yet. The back-fill below is one-shot by design; this is the half
+		// that stays true afterwards (#1302). Registered here rather than inside
+		// `register_ffc_roles_safe()` because these are `add_action` calls with
+		// no translated string, so they need no `init` deferral.
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\RoleRegistrar' ) ) {
+			\FreeFormCertificate\UserDashboard\RoleRegistrar::init_admin_role_sync();
+		}
+
 		if ( class_exists( '\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator' ) ) {
 			\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::maybe_migrate();
 		}
@@ -753,7 +762,13 @@ class Loader {
 	 * @return void
 	 */
 	private function ensure_admin_role_assigned(): void {
-		$flag = 'ffc_admin_role_assigned_v1';
+		// v2 (#1302): re-run once. Between the v1 run and the continuous sync
+		// added in the same release, any administrator created on this install
+		// received neither `ffc_administrator` nor the FFC capabilities that had
+		// been stripped from the native role — so they saw FFC Settings and none
+		// of the six feature menus. Re-running catches exactly those users; the
+		// migration is idempotent for everyone else.
+		$flag = 'ffc_admin_role_assigned_v2';
 		if ( '1' === get_option( $flag, '' ) ) {
 			return;
 		}

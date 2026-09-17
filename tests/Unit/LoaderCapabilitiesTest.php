@@ -213,7 +213,7 @@ class LoaderCapabilitiesTest extends TestCase {
 
 		$this->invoke_private( $loader, 'ensure_admin_role_assigned' );
 
-		$this->assertArrayNotHasKey( 'ffc_admin_role_assigned_v1', $updated );
+		$this->assertArrayNotHasKey( 'ffc_admin_role_assigned_v2', $updated );
 	}
 
 	public function test_ensure_admin_role_assigned_delegates_and_writes_flag(): void {
@@ -233,7 +233,10 @@ class LoaderCapabilitiesTest extends TestCase {
 
 		$this->invoke_private( $loader, 'ensure_admin_role_assigned' );
 
-		$this->assertSame( '1', $updated['ffc_admin_role_assigned_v1'] ?? null );
+		// v2 (#1302): the flag was bumped so the back-fill re-runs once, for the
+		// administrators created between the v1 run and the continuous sync
+		// that now keeps `ffc_administrator` on the role.
+		$this->assertSame( '1', $updated['ffc_admin_role_assigned_v2'] ?? null );
 	}
 
 	// ==================================================================
