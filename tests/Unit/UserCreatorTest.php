@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\UserDashboard\CapabilityManager;
 use FreeFormCertificate\UserDashboard\UserCreator;
 
 /**
@@ -448,5 +449,62 @@ class UserCreatorTest extends TestCase {
 
 		$result = UserCreator::get_or_create_user_dual( 'NEW-CPF', 'NEW-RF', 'brand@new.com', array( 'name' => 'Brand New' ) );
 		$this->assertSame( 555, $result );
+	}
+
+	/**
+	 * The bulk-import path (#1214) passes `$notify = false`, because creating
+	 * 500 accounts otherwise means 500 synchronous account notifications from
+	 * inside a batch loop. The user is created either way; only the mail goes.
+	 *
+	 * **`overload:` is right here and `alias:` is not** — the opposite of the
+	 * reregistration confirmation, which is static. `create_ffc_user()` reaches
+	 * the notification through `new EmailHandler()`, and `overload:` is what
+	 * intercepts a constructor.
+	 *
+	 * @dataProvider provide_notify_flag
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 * @param bool $notify   What the caller asks for.
+	 * @param int  $expected How many notifications should go out.
+	 */
+	public function test_dual_creation_mails_only_when_asked( bool $notify, int $expected ): void {
+		global $wpdb;
+		$wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$wpdb->shouldReceive( 'query' )->andReturn( 0 );
+		$wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+		Functions\when( 'get_user_by' )->justReturn( false );
+		Functions\when( 'wp_generate_password' )->justReturn( 'pw' );
+		Functions\when( 'sanitize_user' )->returnArg();
+		Functions\when( 'remove_accents' )->returnArg();
+		Functions\when( 'username_exists' )->justReturn( false );
+		Functions\when( 'wp_create_user' )->justReturn( 556 );
+		Functions\when( 'get_userdata' )->justReturn( null );
+		Functions\when( 'wp_update_user' )->justReturn( 556 );
+		Functions\when( 'update_user_meta' )->justReturn( true );
+		Functions\when( 'wp_new_user_notification' )->justReturn( null );
+
+		$handler = Mockery::mock( 'overload:FreeFormCertificate\Integrations\EmailHandler' );
+		$handler->shouldReceive( 'send_wp_user_notification' )->times( $expected );
+
+		$result = UserCreator::get_or_create_user_dual(
+			'BULK-CPF',
+			'BULK-RF',
+			'bulk@new.com',
+			array( 'name' => 'Bulk New' ),
+			CapabilityManager::CONTEXT_REREGISTRATION,
+			$notify
+		);
+
+		$this->assertSame( 556, $result, 'The account is created either way.' );
+	}
+
+	/** @return array<string, array{bool, int}> */
+	public function provide_notify_flag(): array {
+		return array(
+			'default behaviour mails' => array( true, 1 ),
+			'bulk import does not'    => array( false, 0 ),
+		);
 	}
 }
