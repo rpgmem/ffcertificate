@@ -21770,3 +21770,147 @@ msgstr "Erro inesperado (%s)."
 #: includes/reregistration/class-ffc-reregistration-admin.php:287
 msgid "Will be imported:"
 msgstr "Serão importadas:"
+
+#: includes/settings/views/documentation/feature-reregistration.php:101
+msgid "\"Check file\" reads the whole file and reports without writing anything. Only then does \"Import\" become available. The report counts four things:"
+msgstr "\"Conferir arquivo\" lê o arquivo inteiro e informa sem gravar nada. Só então \"Importar\" fica disponível. O relatório conta quatro coisas:"
+
+#: includes/settings/views/documentation/feature-reregistration.php:88
+msgid "A campaign's edit screen carries an import panel: pick one of the campaign's audiences, choose a CSV, and the answers are filled in on behalf of those people. It is for the case where the information was already collected elsewhere — on paper, or in a spreadsheet a department keeps — and asking everyone to retype it into the form is not reasonable."
+msgstr "A tela de edição da campanha traz um painel de importação: escolha um dos públicos-alvo da campanha, escolha um CSV, e as respostas são preenchidas em nome dessas pessoas. Serve para o caso em que a informação já foi coletada em outro lugar — no papel, ou numa planilha que um setor mantém — e pedir que todo mundo redigite no formulário não é razoável."
+
+#: includes/settings/views/documentation/feature-reregistration.php:95
+msgid "A column matching no field is ignored and listed back to you. Working notes and columns that are none of the plugin's business do not have to be removed first."
+msgstr "Uma coluna que não corresponde a nenhum campo é ignorada e listada de volta para você. Anotações de trabalho e colunas que não são da conta do plugin não precisam ser removidas antes."
+
+#: includes/settings/views/documentation/feature-reregistration.php:96
+msgid "A required field with no column at all refuses the file immediately, naming the missing columns — every row would fail, so saying it once beats saying it five thousand times."
+msgstr "Um campo obrigatório sem nenhuma coluna recusa o arquivo de imediato, nomeando as colunas que faltam — toda linha falharia, então dizer uma vez é melhor que dizer cinco mil vezes."
+
+#: includes/settings/views/documentation/feature-reregistration.php:111
+msgid "A row is matched to an existing account by CPF, then by RF, then by e-mail — the same resolution certificates and appointments use, so somebody already known to the plugin is matched rather than duplicated. Only when none of the three matches is an account created, and the person is added to the chosen audience either way."
+msgstr "Uma linha é vinculada a uma conta existente por CPF, depois por RF, depois por e-mail — a mesma resolução que certificados e agendamentos usam, então alguém já conhecido do plugin é vinculado em vez de duplicado. Só quando nenhum dos três corresponde é que uma conta é criada, e a pessoa é adicionada ao público-alvo escolhido de qualquer forma."
+
+#: includes/settings/views/documentation/feature-reregistration.php:105
+msgid "Already submitted, kept as is"
+msgstr "Já enviaram, mantidos como estão"
+
+#: includes/settings/views/documentation/feature-reregistration.php:122
+msgid "An import in progress belongs to whoever started it. A second operator cannot continue or finish it."
+msgstr "Uma importação em andamento pertence a quem a iniciou. Um segundo operador não pode continuá-la nem concluí-la."
+
+#: includes/settings/views/documentation/feature-reregistration.php:115
+msgid "An import sends no e-mail — neither the \"your account was created\" notice nor the submission confirmation. A confirmation would tell somebody their reregistration was received when an operator filed it for them, and at import scale it is one message per row. Use the campaign's own invitation to tell people: it reaches imported rows too, and carries the link they need to set a password."
+msgstr "Uma importação não envia e-mail nenhum — nem o aviso de \"sua conta foi criada\" nem a confirmação de envio. Uma confirmação diria a alguém que o recadastramento dela foi recebido quando na verdade um operador o preencheu por ela, e na escala de uma importação é uma mensagem por linha. Use o convite da própria campanha para avisar as pessoas: ele alcança também as linhas importadas e leva o link de que elas precisam para definir uma senha."
+
+#: includes/settings/views/documentation/feature-reregistration.php:97
+msgid "CSV or TXT, up to 10 MB, UTF-8 (a byte-order mark is tolerated)."
+msgstr "CSV ou TXT, até 10 MB, UTF-8 (marca de ordem de bytes é tolerada)."
+
+#: includes/settings/views/documentation/feature-reregistration.php:100
+msgid "Check first, then import"
+msgstr "Confira primeiro, depois importe"
+
+#: includes/settings/views/documentation/feature-reregistration.php:106
+msgid "Failing"
+msgstr "Com erro"
+
+#: includes/settings/views/documentation/feature-reregistration.php:87
+msgid "Importing answers from a spreadsheet"
+msgstr "Importando respostas de uma planilha"
+
+#: includes/settings/views/documentation/feature-reregistration.php:119
+msgid "Importing needs its own capability, ffc_import_reregistration — holding \"manage\" is not enough. Loading answers for people who never opened the form writes personal data on their behalf, so it is granted separately."
+msgstr "Importar exige capacidade própria, ffc_import_reregistration — ter \"gerenciar\" não basta. Carregar respostas de pessoas que nunca abriram o formulário grava dados pessoais em nome delas, então a concessão é separada."
+
+#: includes/settings/views/documentation/feature-reregistration.php:108
+msgid "Nothing is imported until every row passes. That is deliberate: the writing happens in batches across several requests and cannot be undone halfway, so the only honest place to guarantee all-or-nothing is before the first write. Fix the lines the report names and check the file again."
+msgstr "Nada é importado enquanto todas as linhas não passarem. Isso é proposital: a gravação acontece em lotes ao longo de várias requisições e não pode ser desfeita pela metade, então o único lugar honesto para garantir tudo-ou-nada é antes da primeira gravação. Corrija as linhas que o relatório nomeia e confira o arquivo de novo."
+
+#: includes/settings/views/documentation/feature-reregistration.php:108
+msgid "One failing row stops the whole file."
+msgstr "Uma linha com erro interrompe o arquivo inteiro."
+
+#: includes/settings/views/documentation/feature-reregistration.php:90
+msgid "One import covers one audience."
+msgstr "Uma importação cobre um público-alvo."
+
+#: includes/settings/views/documentation/feature-reregistration.php:123
+msgid "Re-importing the same file cannot duplicate anybody: there is one record per person per campaign, enforced by the database."
+msgstr "Reimportar o mesmo arquivo não duplica ninguém: há um registro por pessoa por campanha, garantido pelo banco de dados."
+
+#: includes/settings/views/documentation/submissions-list.php:45
+msgid "Reveal the decrypted CPF / RF / email instead of the masked values (audited). Without it the list and the PDF stay masked, whatever else the operator holds."
+msgstr "Revela o CPF / RF / e-mail decifrado em vez dos valores mascarados (auditado). Sem ela, a lista e o PDF continuam mascarados, independentemente do que mais o operador tenha."
+
+#: includes/settings/views/documentation/feature-reregistration.php:103
+msgid "Rows in the file"
+msgstr "Linhas no arquivo"
+
+#: includes/settings/views/documentation/feature-reregistration.php:117
+msgid "Safety and privacy"
+msgstr "Segurança e privacidade"
+
+#: includes/settings/views/documentation/feature-reregistration.php:121
+msgid "Sensitive fields are encrypted exactly as they are when a member submits the form — the import writes through the same code path, never around it."
+msgstr "Campos sensíveis são cifrados exatamente como quando um membro envia o formulário — a importação grava pelo mesmo caminho de código, nunca por fora dele."
+
+#: includes/settings/views/documentation/feature-reregistration.php:112
+msgid "That is what a shared department mailbox looks like from here: matching by e-mail binds every one of those rows to whoever owns the address. Give each person their own address, or their CPF/RF."
+msgstr "É assim que uma caixa de e-mail compartilhada de um setor aparece daqui: o vínculo por e-mail liga todas essas linhas a quem for dono do endereço. Dê a cada pessoa o próprio endereço, ou o CPF/RF dela."
+
+#: includes/settings/views/documentation/feature-reregistration.php:90
+msgid "The columns of the file are that audience's fields, which is what makes the header unambiguous. A campaign that reaches three audiences takes three imports."
+msgstr "As colunas do arquivo são os campos daquele público-alvo, e é isso que torna o cabeçalho inequívoco. Uma campanha que alcança três públicos-alvo leva três importações."
+
+#: includes/settings/views/documentation/feature-reregistration.php:92
+msgid "The file"
+msgstr "O arquivo"
+
+#: includes/settings/views/documentation/feature-reregistration.php:94
+msgid "The first row is the header. Each column is named by a field key or by the field label, matched exactly after trimming and ignoring case — never approximately, because a near-match on a mistyped column would silently fill the wrong field."
+msgstr "A primeira linha é o cabeçalho. Cada coluna é nomeada por uma chave de campo ou pelo rótulo do campo, com correspondência exata após remover espaços e ignorar maiúsculas — nunca aproximada, porque uma correspondência parecida numa coluna digitada errado preencheria o campo errado em silêncio."
+
+#: includes/settings/views/documentation/feature-reregistration.php:120
+msgid "The uploaded file is never stored. It is read into a temporary staging area in the database, which is emptied when the import finishes and swept automatically after a day if it is abandoned."
+msgstr "O arquivo enviado nunca é armazenado. Ele é lido para uma área temporária de preparo no banco de dados, que é esvaziada quando a importação termina e limpa automaticamente após um dia se for abandonada."
+
+#: includes/settings/views/documentation/feature-reregistration.php:112
+msgid "Two rows resolving to the same account fail the file."
+msgstr "Duas linhas que resolvem para a mesma conta reprovam o arquivo."
+
+#: includes/settings/views/documentation/feature-reregistration.php:114
+msgid "What it does not send"
+msgstr "O que ela não envia"
+
+#: includes/settings/views/documentation/feature-reregistration.php:110
+msgid "Who each row belongs to"
+msgstr "De quem é cada linha"
+
+#: includes/settings/views/documentation/feature-reregistration.php:104
+msgid "Will be imported"
+msgstr "Serão importadas"
+
+#: includes/settings/views/documentation/feature-reregistration.php:103
+msgid "everything below the header."
+msgstr "tudo abaixo do cabeçalho."
+
+#: includes/settings/views/documentation/feature-reregistration.php:150
+msgid "load answers from a spreadsheet. Separate from manage on purpose: it writes personal data for people who never opened the form."
+msgstr "carrega respostas de uma planilha. Separada de gerenciar de propósito: grava dados pessoais de pessoas que nunca abriram o formulário."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:66
+msgid "reveal the decrypted CPF / RF / e-mail on an appointment, which is audited. Without it those values stay masked, even for an operator who can manage appointments."
+msgstr "revela o CPF / RF / e-mail decifrado num agendamento, o que é auditado. Sem ela, esses valores continuam mascarados, mesmo para um operador que pode gerenciar agendamentos."
+
+#: includes/settings/views/documentation/feature-reregistration.php:104
+msgid "rows that will be written."
+msgstr "linhas que serão gravadas."
+
+#: includes/settings/views/documentation/feature-reregistration.php:106
+msgid "rows with a problem, listed by line number with what is wrong."
+msgstr "linhas com problema, listadas por número de linha e o que está errado."
+
+#: includes/settings/views/documentation/feature-reregistration.php:105
+msgid "that person answered the form themselves. Their own answers are kept and the row is skipped; this is expected, not an error, and it does not stop the import."
+msgstr "essa pessoa respondeu o formulário por conta própria. As respostas dela são mantidas e a linha é pulada; isso é esperado, não é erro, e não interrompe a importação."

@@ -63,6 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<ul>
 		<li><code>ffc_view_appointments</code> / <code>ffc_manage_appointments</code> — <?php esc_html_e( 'view or configure calendars and appointments.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_export_appointments</code> / <code>ffc_delete_appointments</code> — <?php esc_html_e( 'export or delete.', 'ffcertificate' ); ?></li>
+		<li><code>ffc_view_appointments_pii</code> — <?php esc_html_e( 'reveal the decrypted CPF / RF / e-mail on an appointment, which is audited. Without it those values stay masked, even for an operator who can manage appointments.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_bypass_appointments</code> — <?php esc_html_e( 'book outside the normal private/past/out-of-hours/blocked restrictions.', 'ffcertificate' ); ?></li>
 		<li><code>ffc_bypass_appointment_capacity</code> — <?php esc_html_e( 'overbook a full slot or block (skips the capacity check, and the per-user block cap, for an authorised operator).', 'ffcertificate' ); ?></li>
 		<li><code>ffc_book_own_appointments</code> / <code>ffc_view_own_appointments</code> / <code>ffc_cancel_own_appointments</code> — <?php esc_html_e( 'the end-user self-service caps.', 'ffcertificate' ); ?></li>

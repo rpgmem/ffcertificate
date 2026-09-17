@@ -84,6 +84,47 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</div>
 
 	<div class="ffc-doc-example">
+		<h4><?php esc_html_e( 'Importing answers from a spreadsheet', 'ffcertificate' ); ?></h4>
+		<p><?php esc_html_e( 'A campaign\'s edit screen carries an import panel: pick one of the campaign\'s audiences, choose a CSV, and the answers are filled in on behalf of those people. It is for the case where the information was already collected elsewhere — on paper, or in a spreadsheet a department keeps — and asking everyone to retype it into the form is not reasonable.', 'ffcertificate' ); ?></p>
+
+		<p><strong><?php esc_html_e( 'One import covers one audience.', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'The columns of the file are that audience\'s fields, which is what makes the header unambiguous. A campaign that reaches three audiences takes three imports.', 'ffcertificate' ); ?></p>
+
+		<h4><?php esc_html_e( 'The file', 'ffcertificate' ); ?></h4>
+		<ul>
+			<li><?php esc_html_e( 'The first row is the header. Each column is named by a field key or by the field label, matched exactly after trimming and ignoring case — never approximately, because a near-match on a mistyped column would silently fill the wrong field.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'A column matching no field is ignored and listed back to you. Working notes and columns that are none of the plugin\'s business do not have to be removed first.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'A required field with no column at all refuses the file immediately, naming the missing columns — every row would fail, so saying it once beats saying it five thousand times.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'CSV or TXT, up to 10 MB, UTF-8 (a byte-order mark is tolerated).', 'ffcertificate' ); ?></li>
+		</ul>
+
+		<h4><?php esc_html_e( 'Check first, then import', 'ffcertificate' ); ?></h4>
+		<p><?php esc_html_e( '"Check file" reads the whole file and reports without writing anything. Only then does "Import" become available. The report counts four things:', 'ffcertificate' ); ?></p>
+		<ul>
+			<li><strong><?php esc_html_e( 'Rows in the file', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'everything below the header.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Will be imported', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'rows that will be written.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Already submitted, kept as is', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'that person answered the form themselves. Their own answers are kept and the row is skipped; this is expected, not an error, and it does not stop the import.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Failing', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'rows with a problem, listed by line number with what is wrong.', 'ffcertificate' ); ?></li>
+		</ul>
+		<p><strong><?php esc_html_e( 'One failing row stops the whole file.', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Nothing is imported until every row passes. That is deliberate: the writing happens in batches across several requests and cannot be undone halfway, so the only honest place to guarantee all-or-nothing is before the first write. Fix the lines the report names and check the file again.', 'ffcertificate' ); ?></p>
+
+		<h4><?php esc_html_e( 'Who each row belongs to', 'ffcertificate' ); ?></h4>
+		<p><?php esc_html_e( 'A row is matched to an existing account by CPF, then by RF, then by e-mail — the same resolution certificates and appointments use, so somebody already known to the plugin is matched rather than duplicated. Only when none of the three matches is an account created, and the person is added to the chosen audience either way.', 'ffcertificate' ); ?></p>
+		<p class="description"><strong><?php esc_html_e( 'Two rows resolving to the same account fail the file.', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'That is what a shared department mailbox looks like from here: matching by e-mail binds every one of those rows to whoever owns the address. Give each person their own address, or their CPF/RF.', 'ffcertificate' ); ?></p>
+
+		<h4><?php esc_html_e( 'What it does not send', 'ffcertificate' ); ?></h4>
+		<p><?php esc_html_e( 'An import sends no e-mail — neither the "your account was created" notice nor the submission confirmation. A confirmation would tell somebody their reregistration was received when an operator filed it for them, and at import scale it is one message per row. Use the campaign\'s own invitation to tell people: it reaches imported rows too, and carries the link they need to set a password.', 'ffcertificate' ); ?></p>
+
+		<h4><?php esc_html_e( 'Safety and privacy', 'ffcertificate' ); ?></h4>
+		<ul>
+			<li><?php esc_html_e( 'Importing needs its own capability, ffc_import_reregistration — holding "manage" is not enough. Loading answers for people who never opened the form writes personal data on their behalf, so it is granted separately.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'The uploaded file is never stored. It is read into a temporary staging area in the database, which is emptied when the import finishes and swept automatically after a day if it is abandoned.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Sensitive fields are encrypted exactly as they are when a member submits the form — the import writes through the same code path, never around it.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'An import in progress belongs to whoever started it. A second operator cannot continue or finish it.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Re-importing the same file cannot duplicate anybody: there is one record per person per campaign, enforced by the database.', 'ffcertificate' ); ?></li>
+		</ul>
+	</div>
+
+	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Integrations (read-only REST)', 'ffcertificate' ); ?></h4>
 		<table class="widefat striped">
 			<thead>
@@ -106,6 +147,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><code>ffc_view_reregistration</code> — <?php esc_html_e( 'view campaigns and submissions.', 'ffcertificate' ); ?></li>
 			<li><code>ffc_manage_reregistration</code> — <?php esc_html_e( 'create/edit campaigns, approve/reject, manage custom fields, generate Records.', 'ffcertificate' ); ?></li>
 			<li><code>ffc_export_reregistration</code> / <code>ffc_delete_reregistration</code> — <?php esc_html_e( 'export CSV / delete a campaign.', 'ffcertificate' ); ?></li>
+			<li><code>ffc_import_reregistration</code> — <?php esc_html_e( 'load answers from a spreadsheet. Separate from manage on purpose: it writes personal data for people who never opened the form.', 'ffcertificate' ); ?></li>
 		</ul>
 		<p class="description"><?php esc_html_e( 'The member form itself is gated by login + audience membership, not a capability.', 'ffcertificate' ); ?></p>
 	</div>
