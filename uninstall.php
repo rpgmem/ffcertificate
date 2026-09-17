@@ -56,13 +56,44 @@ if ( ! $ffcertificate_purge ) {
 
 // ──────────────────────────────────────
 // 1. Drop all plugin database tables
-// (order: child tables first to avoid FK issues)
 // ──────────────────────────────────────
+//
+// **The set is discovered, and the list below is the declaration** (#1291).
+// `ffc_` is this plugin's namespace and `$wpdb->prefix` scopes the pattern to
+// this site, so `SHOW TABLES LIKE` names exactly what the plugin owns —
+// including a table somebody forgot to declare, which is the failure this
+// replaces: `ffc_recruitment_import_staging` and `ffc_recruitment_import_jobs`
+// were created by their activator like every other table and left behind on
+// every install until the CI fresh-install check (#994) found them. The guard
+// caught that after it shipped; discovery makes it unshippable.
+//
+// **The two sets are UNIONED, not swapped.** A scan that returns nothing —
+// a permission error, a server that answers oddly — would otherwise read as
+// "no tables to drop" and delete nothing at all, which is the #1071 / #1094
+// rule applied to a deletion. The declared names are attempted either way, and
+// `DROP TABLE IF EXISTS` makes the overlap free.
+//
+// **Drop order does not matter, and the previous "children first" ordering was
+// protecting against something that does not exist.** Measured: the only path
+// in this plugin that ever creates a FOREIGN KEY is `MigrationForeignKeys`
+// (`dbDelta()` cannot emit them and no `CREATE TABLE` declares one), and all
+// seven of its constraints point at `wp_users`. No `ffc_*` table references
+// another, and dropping the child side of a constraint is never blocked — so
+// there is nothing to order and no reason to touch `FOREIGN_KEY_CHECKS`.
+//
+// **Single site, by construction.** `$wpdb->prefix` resolves to the site
+// running the uninstall, so a multisite network keeps its siblings'
+// `wp_<id>_ffc_*` tables. That matches what the plugin is rather than falling
+// short of a promise: `includes/` contains zero occurrences of
+// `is_multisite()`, `switch_to_blog()` or `get_sites()`, and `ffcertificate.php`
+// declares no `Network:` header. A discovered set would not change this — it
+// resolves one prefix either way. Recorded here so the next reader does not
+// mistake it for a regression introduced by the sweep.
 $ffcertificate_tables = array(
-	// Recruitment (children first).
-	// The two CSV-import tables were never on this list: they are created by
-	// RecruitmentActivator like the rest, so deleting the plugin left them
-	// behind on every install (found by the CI fresh-install check, #994).
+	// Recruitment.
+	// The two CSV-import tables were once missing from this list, which is the
+	// defect the discovery above now makes unshippable; they stay declared
+	// because the fresh-install gate reads this list as the manifest.
 	$wpdb->prefix . 'ffc_recruitment_import_staging',
 	$wpdb->prefix . 'ffc_recruitment_import_jobs',
 	$wpdb->prefix . 'ffc_recruitment_call',
@@ -72,7 +103,7 @@ $ffcertificate_tables = array(
 	$wpdb->prefix . 'ffc_recruitment_notice',
 	$wpdb->prefix . 'ffc_recruitment_adjutancy',
 	$wpdb->prefix . 'ffc_recruitment_reason',
-	// Reregistration (children first). The two CSV-import tables (#1214) hold
+	// Reregistration. The two CSV-import tables (#1214) hold
 	// only in-flight job state with a TTL, but they are created by
 	// ReregistrationActivator like the rest, so they belong here — the
 	// fresh-install gate compares this manifest against what activation
@@ -82,9 +113,9 @@ $ffcertificate_tables = array(
 	$wpdb->prefix . 'ffc_reregistration_submissions',
 	$wpdb->prefix . 'ffc_reregistration_audiences',
 	$wpdb->prefix . 'ffc_reregistrations',
-	// Custom fields (depends on audiences).
+	// Custom fields.
 	$wpdb->prefix . 'ffc_custom_fields',
-	// Audience (children first).
+	// Audience.
 	$wpdb->prefix . 'ffc_audience_booking_users',
 	$wpdb->prefix . 'ffc_audience_booking_audiences',
 	$wpdb->prefix . 'ffc_audience_bookings',
@@ -111,8 +142,19 @@ $ffcertificate_tables = array(
 	$wpdb->prefix . 'ffc_submissions',
 );
 
-foreach ( $ffcertificate_tables as $ffcertificate_table ) {
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Drops the plugin's own ffc_* tables; WordPress has no API for them and there is nothing left to cache once they are gone.
+// The discovered half. `esc_like()` is load-bearing on the underscore: `_` is a
+// LIKE wildcard, so an unescaped `ffc_` would also match `ffcX` — a table
+// belonging to somebody else.
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Resolves the plugin's own ffc_* tables by prefix; WordPress has no API for this and there is nothing to cache during an uninstall.
+$ffcertificate_found = $wpdb->get_col(
+	$wpdb->prepare(
+		'SHOW TABLES LIKE %s',
+		$wpdb->esc_like( $wpdb->prefix . 'ffc_' ) . '%'
+	)
+);
+
+foreach ( array_unique( array_merge( $ffcertificate_tables, array_map( 'strval', (array) $ffcertificate_found ) ) ) as $ffcertificate_table ) {
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Drops the plugin's own ffc_* tables; WordPress has no API for them and there is nothing left to cache once they are gone.
 	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $ffcertificate_table ) );
 }
 

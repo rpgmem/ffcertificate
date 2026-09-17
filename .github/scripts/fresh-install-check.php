@@ -75,6 +75,19 @@ const FFC_FRESH_ALLOWED_OPTIONS = array();
 const FFC_FRESH_SYNTHETIC_CAP = 'ffc_zz_synthetic';
 
 /**
+ * The table planted by the workflow purely to be dropped (#1291).
+ *
+ * Unprefixed, like everything `ffc_fresh_live_tables()` returns. It appears in
+ * no list in this repository and no activator creates it, so only a removal
+ * rule that DISCOVERS its set can drop it — which is what distinguishes the
+ * sweep from a hand-written list that happens to be complete today.
+ *
+ * It is created after the activate phase has run, so it never reaches the
+ * "created tables all declared" comparison.
+ */
+const FFC_FRESH_SYNTHETIC_TABLE = 'ffc_zz_synthetic';
+
+/**
  * Print a check result.
  *
  * @param bool   $ok     Whether the check passed.
@@ -372,6 +385,15 @@ if ( 'activate' === $phase ) {
 			: FFC_FRESH_SYNTHETIC_CAP . ' was not granted — without it the uninstall phase cannot tell a prefix sweep from a complete list'
 	) || $failed;
 
+	$planted_table = in_array( FFC_FRESH_SYNTHETIC_TABLE, ffc_fresh_live_tables(), true );
+	$failed        = ! ffc_fresh_check(
+		$planted_table,
+		'the synthetic table is planted',
+		$planted_table
+			? FFC_FRESH_SYNTHETIC_TABLE
+			: FFC_FRESH_SYNTHETIC_TABLE . ' was not created — without it the uninstall phase cannot tell a discovered set from a complete list'
+	) || $failed;
+
 	$legacy_seen = array_filter(
 		$planted,
 		static fn( string $entry ): bool => (bool) preg_match( '/: (' . implode( '|', array_map( 'preg_quote', $legacy_caps ) ) . ')$/', $entry )
@@ -387,6 +409,10 @@ if ( 'activate' === $phase ) {
 	// The uninstaller ran with the Danger Zone opt-in on, so the footprint must
 	// be gone. This also proves the manifest above is the one the uninstaller
 	// acts on, not a list that merely looks right.
+	// The synthetic table planted before the uninstall is the mutation (#1291):
+	// it is in no list, so a removal that intersected a hand-written set would
+	// leave it here. The reader itself needs no separate control — the activate
+	// phase ran the same function and found all 34 declared tables.
 	$failed = ! ffc_fresh_check(
 		array() === $live_tables,
 		'no tables left behind',

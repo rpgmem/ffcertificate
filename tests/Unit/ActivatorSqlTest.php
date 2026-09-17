@@ -229,4 +229,43 @@ final class ActivatorSqlTest extends TestCase {
 			. "\ntable. Move the documentation to a PHP comment above the statement."
 		);
 	}
+
+	/**
+	 * The table sweep's precondition (#1291).
+	 *
+	 * `uninstall.php` discovers what to drop with
+	 * `SHOW TABLES LIKE '<prefix>ffc\_%'`, and `ffc_manifest_tables()` reads the
+	 * same prefix out of the declaration. A table created under any other name
+	 * is therefore invisible to BOTH — it survives an uninstall with nothing
+	 * reporting it.
+	 *
+	 * **The check is that the name RESOLVES, and that is not the obvious
+	 * phrasing.** The first version of this test asserted
+	 * `0 === strpos( $table, 'ffc_' )`, which can never fail: the collector's
+	 * own pattern is `'(ffc_[a-z_]+)'`, so it returns an `ffc_`-prefixed name or
+	 * nothing at all. Renaming a table off the prefix does not produce a
+	 * different string — it produces `null`. Found by mutation, which is the
+	 * only way an unfalsifiable assertion shows itself.
+	 *
+	 * So `null` is the signal, and it covers two failures at once: a table
+	 * named outside the namespace, and a `CREATE` written in an idiom the
+	 * collector cannot follow — which `test_the_guard_sees_every_create_statement()`
+	 * cannot see, because that one counts statements rather than resolutions.
+	 * Blocks at zero: all 36 resolve today.
+	 */
+	public function test_every_created_table_resolves_to_a_name_the_sweep_can_find(): void {
+		$unreachable = array();
+
+		foreach ( self::create_statements() as $statement ) {
+			if ( null === $statement['table'] ) {
+				$unreachable[] = sprintf( '%s:%d', $statement['file'], $statement['line'] );
+			}
+		}
+
+		$this->assertSame(
+			array(),
+			$unreachable,
+			'uninstall.php drops tables by the `ffc_` prefix and the manifest parser reads the same prefix, so a name that does not resolve is a table that survives deletion unreported. Rename it into the namespace, or teach ffc_resolve_table_name() the idiom.'
+		);
+	}
 }
