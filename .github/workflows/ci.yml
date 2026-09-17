@@ -428,7 +428,7 @@ jobs:
         # freshly created schema: the statement is replayed against the table it
         # just built, so an empty change list is the only correct answer.
         run: php .github/scripts/dbdelta-idempotence-check.php "$HOME/wp"
-      - name: Plant the capability residue the sweep must remove
+      - name: Plant the residue the sweeps must remove
         # #1290: removal used to intersect a hand-written list, and the list
         # named 31 of the 60 live capabilities, so 40 survived every uninstall.
         # Four shapes go in, each reachable only by a different rule:
@@ -454,7 +454,18 @@ jobs:
             $r->add_cap( "ffc_view_certificates", true );
             $r->add_cap( "ffc_zz_synthetic", true );
           '
-      - name: Check the capability reader sees the planted grants
+          # And a table no list in this repository contains, for the same
+          # reason (#1291): only a removal that DISCOVERS its set can drop it,
+          # so a return to intersecting a hand-written list turns the final
+          # step red. It is `FFC_FRESH_SYNTHETIC_TABLE` in
+          # fresh-install-check.php, and the `planted` step below fails if the
+          # two ever diverge. Created after the activate phase, so it never
+          # reaches the "created tables all declared" comparison.
+          wp eval --path="$HOME/wp" '
+            global $wpdb;
+            $wpdb->query( "CREATE TABLE {$wpdb->prefix}ffc_zz_synthetic ( id bigint(20) unsigned NOT NULL AUTO_INCREMENT, PRIMARY KEY (id) )" );
+          '
+      - name: Check the readers see the planted residue
         # The positive control. "0 remaining" after the uninstall reads the same
         # whether the sweep worked or the reader is broken, so the reader is run
         # against the same database while the residue is known to be there.
