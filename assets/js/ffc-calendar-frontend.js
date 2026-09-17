@@ -371,7 +371,12 @@
                     $submitBtn.data('submitting', false);
                     if (err && err.fromServer) {
                         if (err.data && err.data.refresh_captcha) {
-                            self.refreshCaptcha($form, err.data.new_label, err.data.new_hash);
+                            // The shared implementation, not a private copy:
+                            // this bundle already declares `ffc-frontend-helpers`
+                            // as a dependency, so the duplicate it used to carry
+                            // was the reason the ALTCHA fix had to be written
+                            // twice (#1305).
+                            FFC.Frontend.UI.refreshCaptcha($form, err.data);
                         }
                         self.showError(err.message || ffcCalendar.strings.error);
                     } else {
@@ -506,31 +511,6 @@
             }
         },
 
-        /**
-         * Refresh captcha with new question, scoped to the submitted form.
-         *
-         * Was page-global (#1056): it rewrote the question in *every* captcha
-         * row on the page but, matching by id, updated only the *first* hidden
-         * token. With two forms on one page — a configuration the plugin
-         * supports on purpose — the second ended up showing the new question
-         * while holding the old token, so answering what was on screen failed
-         * with "the math answer is incorrect", which is true and useless.
-         *
-         * Now scoped to $form and matched by name, like ffc-frontend-helpers.
-         *
-         * @param {Object} $form    jQuery object for the form being refreshed.
-         * @param {string} newLabel New challenge question.
-         * @param {string} newHash  New challenge token.
-         */
-        refreshCaptcha: function($form, newLabel, newHash) {
-            if (!$form || !$form.length || !newLabel || !newHash) {
-                return;
-            }
-
-            $form.find('.ffc-captcha-row .ffc-captcha-label-text').text(newLabel);
-            $form.find('input[name="ffc_captcha_hash"]').val(newHash);
-            $form.find('input[name="ffc_captcha_ans"]').val('').focus();
-        },
 
         /**
          * Back to time slots (within modal)

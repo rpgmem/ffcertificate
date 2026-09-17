@@ -272,6 +272,10 @@ describe('frontend.handleFormSubmission', () => {
 				data: {
 					message: 'Bad captcha',
 					refresh_captcha: true,
+					// `provider` is what the server sends — `with_fresh_challenge()`
+					// merges the strategy's own payload, and the client
+					// dispatches on it rather than assuming math (#1305).
+					provider: 'math',
 					new_label: 'new-label',
 					new_hash: 'new-hash',
 				},

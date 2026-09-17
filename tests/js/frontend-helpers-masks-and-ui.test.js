@@ -288,7 +288,13 @@ describe('FFC.Frontend.UI.showFormSuccess (generic branch)', () => {
 // ----------------------------------------------------------------------
 
 describe('FFC.Frontend.UI.refreshCaptcha', () => {
-	function mountCaptcha() {
+	// The payloads are the real ones: `MathCaptcha::challenge_payload()` returns
+	// {provider, new_label, new_hash} and `AltchaCaptcha::challenge_payload()`
+	// returns {provider} and nothing else — which is exactly why the old
+	// math-shaped signature did nothing under ALTCHA (#1305).
+	const MATH = { provider: 'math', new_label: 'New Question', new_hash: 'new-hash' };
+
+	function mountMath() {
 		document.body.innerHTML = `
 			<form class="ffc-form">
 				<span class="ffc-captcha-label-text">Old Question</span>
@@ -299,18 +305,37 @@ describe('FFC.Frontend.UI.refreshCaptcha', () => {
 		return window.$('.ffc-form');
 	}
 
+	/**
+	 * A form holding an `<altcha-widget>` whose `reset()` is recorded.
+	 *
+	 * The vendored 3.2.2 element exposes `reset()` on its public API; that was
+	 * read off the bundle and is NOT exercised here. What these tests prove is
+	 * that our dispatch reaches it — the vendor's implementation is its own.
+	 */
+	function mountAltcha() {
+		document.body.innerHTML = `
+			<form class="ffc-form">
+				<input type="text" name="ffc_auth_code" value="ABC-123" />
+				<div class="ffc-security-row ffc-altcha-row"><altcha-widget></altcha-widget></div>
+			</form>
+		`;
+		const widget = document.querySelector('altcha-widget');
+		widget.reset = vi.fn();
+		return { $form: window.$('.ffc-form'), widget };
+	}
+
 	it('updates the label text and hash and clears the answer input', () => {
-		const $form = mountCaptcha();
-		window.FFC.Frontend.UI.refreshCaptcha($form, 'New Question', 'new-hash');
+		const $form = mountMath();
+		window.FFC.Frontend.UI.refreshCaptcha($form, MATH);
 
 		expect($form.find('.ffc-captcha-label-text').text()).toBe('New Question');
 		expect($form.find('input[name="ffc_captcha_hash"]').val()).toBe('new-hash');
 		expect($form.find('input[name="ffc_captcha_ans"]').val()).toBe('');
 	});
 
-	it('leaves label/hash alone when called with empty values', () => {
-		const $form = mountCaptcha();
-		window.FFC.Frontend.UI.refreshCaptcha($form, '', '');
+	it('leaves label/hash alone when the payload carries empty values', () => {
+		const $form = mountMath();
+		window.FFC.Frontend.UI.refreshCaptcha($form, { provider: 'math', new_label: '', new_hash: '' });
 
 		expect($form.find('.ffc-captcha-label-text').text()).toBe('Old Question');
 		expect($form.find('input[name="ffc_captcha_hash"]').val()).toBe('old-hash');
@@ -318,15 +343,98 @@ describe('FFC.Frontend.UI.refreshCaptcha', () => {
 
 	it('flashes the captcha input then resets its background after 100ms', () => {
 		vi.useFakeTimers();
-		const $form = mountCaptcha();
-		window.FFC.Frontend.UI.refreshCaptcha($form, 'Q', 'h');
+		const $form = mountMath();
+		window.FFC.Frontend.UI.refreshCaptcha($form, MATH);
 		const $ans = $form.find('input[name="ffc_captcha_ans"]');
 		// Flash colour applied immediately.
 		expect($ans.css('background-color')).toBe('rgb(255, 251, 204)');
 		vi.advanceTimersByTime(100);
-		// Reset background runs in the timeout body (line 546).
 		expect($ans.css('background-color')).toBe('rgb(255, 255, 255)');
 		vi.useRealTimers();
+	});
+
+	/**
+	 * The defect this replaces (#1305).
+	 *
+	 * `verify()` spends the challenge, so after any refused submission — a
+	 * wrong code, a document simply not found — the widget is holding a burned
+	 * token. Left green, the next submit is rejected with "already used" and
+	 * ticking the box again does nothing, because `auto` defaults to `off`.
+	 */
+	it('resets the ALTCHA widget so the visitor can solve a fresh challenge', () => {
+		const { $form, widget } = mountAltcha();
+
+		window.FFC.Frontend.UI.refreshCaptcha($form, { provider: 'altcha' });
+
+		expect(widget.reset).toHaveBeenCalledTimes(1);
+	});
+
+	/**
+	 * The `both` mode is not a third branch: `CompositeCaptcha` delegates its
+	 * payload to the ALTCHA half, so it arrives here already named `altcha`.
+	 * Pinned so nobody adds a `'both'` case that would never be reached.
+	 */
+	it('never receives a "both" provider, and would ignore one', () => {
+		const { $form, widget } = mountAltcha();
+
+		window.FFC.Frontend.UI.refreshCaptcha($form, { provider: 'both' });
+
+		expect(widget.reset).not.toHaveBeenCalled();
+	});
+
+	it('leaves an unrecognised provider alone rather than half-applying it', () => {
+		const $form = mountMath();
+
+		window.FFC.Frontend.UI.refreshCaptcha($form, { provider: 'turnstile', new_label: 'X' });
+
+		expect($form.find('.ffc-captcha-label-text').text()).toBe('Old Question');
+		expect($form.find('input[name="ffc_captcha_hash"]').val()).toBe('old-hash');
+		expect($form.find('input[name="ffc_captcha_ans"]').val()).toBe('old');
+	});
+
+	it('does nothing without a payload', () => {
+		const $form = mountMath();
+
+		window.FFC.Frontend.UI.refreshCaptcha($form, undefined);
+
+		expect($form.find('.ffc-captcha-label-text').text()).toBe('Old Question');
+	});
+
+	/**
+	 * Scoped to `$form`, which is the #1056 lesson applied to ALTCHA.
+	 *
+	 * Two forms on one page is a configuration this plugin supports on purpose,
+	 * and the math half was once page-global: it rewrote every question while
+	 * updating only the first token. Resetting every widget on the page would
+	 * be the same mistake — it would discard a proof of work the visitor
+	 * already paid for in a form they have not submitted.
+	 */
+	it('resets only the widget inside the form that failed', () => {
+		document.body.innerHTML = `
+			<form class="ffc-form-a"><altcha-widget id="a"></altcha-widget></form>
+			<form class="ffc-form-b"><altcha-widget id="b"></altcha-widget></form>
+		`;
+		const a = document.getElementById('a');
+		const b = document.getElementById('b');
+		a.reset = vi.fn();
+		b.reset = vi.fn();
+
+		window.FFC.Frontend.UI.refreshCaptcha(window.$('.ffc-form-a'), { provider: 'altcha' });
+
+		expect(a.reset).toHaveBeenCalledTimes(1);
+		expect(b.reset).not.toHaveBeenCalled();
+	});
+
+	/**
+	 * A bundle without `reset()` must leave the widget as it is — today's
+	 * behaviour — rather than throw, which would also swallow the error
+	 * message the visitor needs to read.
+	 */
+	it('survives a widget that exposes no reset()', () => {
+		const { $form } = mountAltcha();
+		delete document.querySelector('altcha-widget').reset;
+
+		expect(() => window.FFC.Frontend.UI.refreshCaptcha($form, { provider: 'altcha' })).not.toThrow();
 	});
 });
 

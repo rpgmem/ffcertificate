@@ -514,33 +514,81 @@ $inputs.each(function() {
         },
         
         /**
-         * Refresh captcha question and hash
+         * Hand the visitor a fresh challenge after the server refused one.
          *
-         * @param {jQuery} $form - Form element
-         * @param {string} newLabel - New captcha question text (plain text, no HTML)
-         * @param {string} newHash - New captcha hash
+         * `verify()` SPENDS the challenge, so every error path answers through
+         * `SecurityService::with_fresh_challenge()` and sets `refresh_captcha`
+         * — including "document not found", which is not a security failure at
+         * all. Whatever this does not do, the visitor is left holding a token
+         * the server has already burned.
+         *
+         * **It dispatches on `provider`, and that is the whole fix (#1305).**
+         * This used to take `(newLabel, newHash)` — the math shape — so under
+         * ALTCHA it found none of its selectors, received `undefined` for both
+         * arguments, and did nothing while the widget stayed green with a spent
+         * token. The next submission was then refused with "This verification
+         * was already used", and ticking the box again did nothing because
+         * `auto` defaults to `off` and the widget considered itself solved.
+         *
+         * The rule matches `applyChallenge()` in `ffc-dynamic-fragments.js`,
+         * deliberately: an unrecognised provider is left alone rather than
+         * half-applied. That client is the page-load half and correctly SKIPS
+         * ALTCHA — there the widget is fresh and unsolved, and its challenge
+         * lives behind a URL rather than in the cached HTML. Only this error
+         * path has something to undo.
+         *
+         * `CompositeCaptcha` delegates its payload to the ALTCHA half, so the
+         * `both` mode arrives here as `altcha`. There is no third branch to
+         * add.
+         *
+         * **Everything is scoped to `$form` and matched by NAME, and that is
+         * load-bearing (#1056).** `ffc-calendar-frontend.js` carried its own
+         * copy of this until #1305 folded it back here, and that copy existed
+         * because an earlier page-global version rewrote the question in every
+         * captcha row on the page while updating only the *first* hidden token
+         * — so with two forms on one page, which this plugin supports on
+         * purpose, the second showed a new question beside the old token and
+         * answering what was on screen failed with "the math answer is
+         * incorrect": true, and useless. A rewrite that widens these selectors
+         * past `$form` brings that back.
+         *
+         * @param {jQuery} $form   Form element.
+         * @param {Object} payload Challenge payload from the server; names
+         *                         itself in `provider`.
          */
-        refreshCaptcha: function($form, newLabel, newHash) {
+        refreshCaptcha: function($form, payload) {
+            if (!$form || !$form.length || !payload || !payload.provider) {
+                return;
+            }
+
+            if (payload.provider === 'altcha') {
+                UI.resetAltchaWidget($form);
+                return;
+            }
+
+            if (payload.provider !== 'math') {
+                return;
+            }
+
             // Find captcha elements
             var $captchaLabelText = $form.find('.ffc-captcha-label-text').first();
             var $captchaInput = $form.find('input[name="ffc_captcha_ans"]');
             var $captchaHash = $form.find('input[name="ffc_captcha_hash"]');
 
             // Update label text only (required span stays intact)
-            if ($captchaLabelText.length && newLabel) {
-                $captchaLabelText.text(newLabel);
+            if ($captchaLabelText.length && payload.new_label) {
+                $captchaLabelText.text(payload.new_label);
             }
 
             // Update hash
-            if ($captchaHash.length && newHash) {
-                $captchaHash.val(newHash);
-                // console.log('[FFC UI] Captcha hash updated');
+            if ($captchaHash.length && payload.new_hash) {
+                $captchaHash.val(payload.new_hash);
             }
-            
+
             // Clear and focus input
             if ($captchaInput.length) {
                 $captchaInput.val('').focus();
-                
+
                 // Add visual feedback (flash animation)
                 $captchaInput.css('background-color', '#fffbcc');
                 setTimeout(function() {
@@ -550,6 +598,36 @@ $inputs.each(function() {
                     });
                 }, 100);
             }
+        },
+
+        /**
+         * Put an `<altcha-widget>` back to its unsolved state.
+         *
+         * `reset()` is the widget's own public API: the 3.2.2 component returns
+         * `{configure, getConfiguration, getState, hide, log, reset, setState,
+         * show, updateUI, verify}` and the custom element carries it. That was
+         * read off the vendored bundle rather than taken from documentation,
+         * and it is not executed here — the tests cover OUR dispatch reaching
+         * `reset()`, not the vendor's implementation of it.
+         *
+         * Hence the `typeof` guard: on a bundle where the method is absent the
+         * widget is left exactly as it is today, so the worst case is the
+         * current behaviour rather than a thrown error that would also swallow
+         * the error message the visitor needs to read.
+         *
+         * `form.reset()` would also work — the widget listens for the form's
+         * native `reset` event — and is NOT used: it would clear the code the
+         * visitor just typed, on the one screen where retyping it is the whole
+         * task.
+         *
+         * @param {jQuery} $form Form element.
+         */
+        resetAltchaWidget: function($form) {
+            $form.find('altcha-widget').each(function() {
+                if (typeof this.reset === 'function') {
+                    this.reset();
+                }
+            });
         }
     };
     
