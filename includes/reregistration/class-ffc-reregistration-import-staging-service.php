@@ -611,19 +611,23 @@ class ReregistrationImportStagingService {
 
 		$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( (int) $rereg->id, $user_id );
 		if ( null === $submission ) {
-			$created = ReregistrationSubmissionWriter::create(
+			// **The INSERT's own return is deliberately not checked, and the
+			// re-read is the guard.** The table carries
+			// `UNIQUE KEY idx_reregistration_user`, so a concurrent promote —
+			// or the campaign being saved in another tab, which seeds the same
+			// pair (#1234) — makes this INSERT fail while leaving the row
+			// there. Refusing on `false` would abort the batch over a row that
+			// exists; asking "is there a row now?" is the question that
+			// actually decides whether promotion can proceed. Found by
+			// mutation: deleting a `! $created` guard here changed nothing,
+			// which is what a redundant check looks like.
+			ReregistrationSubmissionWriter::create(
 				array(
 					'reregistration_id' => (int) $rereg->id,
 					'user_id'           => $user_id,
 					'status'            => 'pending',
 				)
 			);
-			if ( ! $created ) {
-				return array(
-					'ok'    => false,
-					'error' => 'rereg_import_submission_seed_failed',
-				);
-			}
 
 			$submission = ReregistrationSubmissionReader::get_by_reregistration_and_user( (int) $rereg->id, $user_id );
 			if ( null === $submission ) {

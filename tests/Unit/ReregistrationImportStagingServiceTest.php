@@ -600,7 +600,7 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 	 * @param object|null  $seeded        Existing seeded submission, or null.
 	 * @return void
 	 */
-	private function with_promotion( int $resolved_user = 42, ?object $seeded = null ): void {
+	private function with_promotion( int $resolved_user = 42, ?object $seeded = null, string $seed_result = 'ok' ): void {
 		$this->calls = array();
 
 		$record = function ( string $name ): callable {
@@ -634,8 +634,19 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 
 		$writer = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter' );
 		$writer->shouldReceive( 'create' )->andReturnUsing(
-			function ( array $data ) use ( &$seeded ) {
+			function ( array $data ) use ( &$seeded, $seed_result ) {
 				$this->calls['create'][] = array( $data );
+				if ( 'nothing_there' === $seed_result ) {
+					// The INSERT did not land AND no row appeared: nothing to
+					// write into, so promotion of this row cannot proceed.
+					return false;
+				}
+				if ( 'lost_the_race' === $seed_result ) {
+					// The INSERT lost to `idx_reregistration_user` — and the
+					// row the winner created is right there.
+					$seeded = $this->submission( 888, 'pending' );
+					return false;
+				}
 				// A real seed makes the row findable on the re-read that follows.
 				$seeded = $this->submission( 777, 'pending' );
 				return 777;
@@ -1019,5 +1030,90 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 
 		$this->assertTrue( $result['ok'] );
 		$this->assertContains( 'wp_ffc_reregistration_import_jobs', $this->deletes );
+	}
+
+	// ------------------------------------------------------------------
+	// The refusals. Each is a branch this phase can take on a real install,
+	// and CLAUDE.md does not allow adding an uncovered path in a
+	// coverage-aware PR — so each is exercised rather than deferred.
+	// ------------------------------------------------------------------
+
+	public function test_promote_refuses_an_unknown_job(): void {
+		$this->with_promotion();
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
+
+		$result = ReregistrationImportStagingService::promote_batch( 'nope', 10 );
+
+		$this->assertFalse( $result['ok'] );
+		$this->assertSame( array( 'rereg_import_job_not_found' ), $result['errors'] );
+		$this->assertEmpty( $this->calls['process_submission'] ?? array() );
+	}
+
+	/**
+	 * The campaign can be deleted between validate and promote — the job
+	 * carries its id, not the row.
+	 */
+	public function test_promote_refuses_when_the_campaign_is_gone(): void {
+		$this->with_promotion();
+
+		$repo = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationRepository' );
+		$repo->shouldReceive( 'get_by_id' )->andReturn( null );
+
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
+			(object) array(
+				'job_id'            => 'job-uuid-0001',
+				'reregistration_id' => '1',
+				'audience_id'       => '7',
+				'status'            => 'validated',
+				'total'             => '1',
+				'processed_count'   => '0',
+			)
+		);
+
+		$result = ReregistrationImportStagingService::promote_batch( 'job-uuid-0001', 10 );
+
+		$this->assertFalse( $result['ok'] );
+		$this->assertSame( array( 'rereg_import_campaign_not_found' ), $result['errors'] );
+	}
+
+	public function test_commit_refuses_an_unknown_job(): void {
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
+
+		$result = ReregistrationImportStagingService::commit_job( 'nope' );
+
+		$this->assertFalse( $result['ok'] );
+		$this->assertSame( array( 'rereg_import_job_not_found' ), $result['errors'] );
+	}
+
+	/**
+	 * With no row to write into, promotion of that row aborts the batch rather
+	 * than calling `process_submission()` with a null — which would write the
+	 * campaign's answers onto whatever id a null happened to cast to.
+	 */
+	public function test_a_seed_that_leaves_no_row_aborts_the_batch(): void {
+		$this->with_promotion( 42, null, 'nothing_there' );
+
+		$result = $this->run_promote( array( array( 'email' => 'new@example.com', 'payload' => '{}' ) ) );
+
+		$this->assertFalse( $result['ok'] );
+		$this->assertSame( array( 'rereg_import_submission_seed_failed:2' ), $result['errors'] );
+		$this->assertEmpty( $this->calls['process_submission'] ?? array() );
+	}
+
+	/**
+	 * The other half, and the reason the INSERT's return value is not the
+	 * guard: `idx_reregistration_user` makes a concurrent seed — another
+	 * promote, or the campaign being saved in a second tab (#1234) — fail this
+	 * INSERT while leaving the row there. Aborting on `false` would refuse a
+	 * row that exists.
+	 */
+	public function test_a_seed_that_lost_the_unique_race_still_promotes(): void {
+		$this->with_promotion( 42, null, 'lost_the_race' );
+
+		$result = $this->run_promote( array( array( 'email' => 'new@example.com', 'payload' => '{}' ) ) );
+
+		$this->assertTrue( $result['ok'] );
+		$this->assertCount( 1, $this->calls['process_submission'] ?? array() );
+		$this->assertSame( 888, $this->row_update()['submission_id'], 'The winner\'s row is the one written into.' );
 	}
 }
