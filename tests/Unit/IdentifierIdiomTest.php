@@ -5,6 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\DataSanitizer;
+use FreeFormCertificate\Tests\Support\PhpSource;
 
 /**
  * One idiom per identifier, and a register for every site that keeps its own (#1314).
@@ -99,56 +100,21 @@ class IdentifierIdiomTest extends TestCase {
 	 * @return list<string>
 	 */
 	private function source_files(): array {
-		$root  = dirname( __DIR__, 2 );
-		$files = array();
-
-		$iterator = new \RecursiveIteratorIterator(
-			new \RecursiveDirectoryIterator( $root . '/includes', \FilesystemIterator::SKIP_DOTS )
-		);
-
-		foreach ( $iterator as $file ) {
-			if ( $file instanceof \SplFileInfo && 'php' === $file->getExtension() ) {
-				$files[] = str_replace( $root . '/', '', $file->getPathname() );
-			}
-		}
-
-		sort( $files );
-
-		return $files;
+		return PhpSource::files_under( 'includes' );
 	}
 
 	/**
 	 * A file's code with every comment blanked and line numbers preserved.
 	 *
-	 * Read through `token_get_all()` rather than as text, for the reason
-	 * `DeprecationDueTest` reads tokens: prose that MENTIONS an idiom is not an
-	 * occurrence of it, and this file's own docblocks quote both idioms
-	 * verbatim. A text scan reports them and the register grows to describe the
-	 * documentation rather than the code.
+	 * Shared with the other guards since 6.26.0, for the reason `CssSelectors`
+	 * is shared: prose that MENTIONS an idiom is not an occurrence of it, and
+	 * two guards reading the same files must not disagree about what they say.
 	 *
 	 * @param string $relative Repository-relative path.
 	 * @return list<string> One entry per source line, 0-indexed.
 	 */
 	private function code_lines( string $relative ): array {
-		$source = (string) file_get_contents( dirname( __DIR__, 2 ) . '/' . $relative );
-		$code   = '';
-
-		foreach ( token_get_all( $source ) as $token ) {
-			if ( ! is_array( $token ) ) {
-				$code .= $token;
-				continue;
-			}
-
-			if ( T_COMMENT === $token[0] || T_DOC_COMMENT === $token[0] ) {
-				// Keep the newlines so a reported line number is the real one.
-				$code .= str_repeat( "\n", substr_count( $token[1], "\n" ) );
-				continue;
-			}
-
-			$code .= $token[1];
-		}
-
-		return explode( "\n", $code );
+		return PhpSource::code_lines( $relative );
 	}
 
 	/**
@@ -158,17 +124,7 @@ class IdentifierIdiomTest extends TestCase {
 	 * @return array<string, list<string>>
 	 */
 	private function files_matching( string $pattern ): array {
-		$hits = array();
-
-		foreach ( $this->source_files() as $relative ) {
-			foreach ( $this->code_lines( $relative ) as $number => $line ) {
-				if ( 1 === preg_match( $pattern, $line ) ) {
-					$hits[ $relative ][] = ( $number + 1 ) . ': ' . trim( $line );
-				}
-			}
-		}
-
-		return $hits;
+		return PhpSource::lines_matching( $this->source_files(), $pattern );
 	}
 
 	/**
