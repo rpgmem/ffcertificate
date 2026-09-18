@@ -63,6 +63,30 @@ function ffc_manifest_options( string $uninstall_file ): array {
 }
 
 /**
+ * The user-meta key PREFIX the uninstaller sweeps (#1316).
+ *
+ * A prefix rather than a list, because a list could never have been complete:
+ * every `ffc_*` meta key but one is assembled at runtime from
+ * `UserManager::EXTENDED_META_PREFIX` plus a field name, and the dynamic
+ * reregistration fields append a `sanitize_key()`'d name that is declared
+ * nowhere in the source. So what the manifest can carry is the RULE, and what
+ * the CI checks compare against it is the live database.
+ *
+ * An empty result is a parse failure, never "the plugin sweeps nothing":
+ * callers must treat it as such, as with the three functions above.
+ *
+ * @param string $uninstall_file Absolute path to uninstall.php.
+ * @return string Empty when the parse fails.
+ */
+function ffc_manifest_user_meta_prefix( string $uninstall_file ): string {
+	$text = (string) file_get_contents( $uninstall_file );
+	if ( ! preg_match( '/\$ffcertificate_user_meta_prefix\s*=\s*\'([a-z0-9_]+)\'/', $text, $m ) ) {
+		return '';
+	}
+	return $m[1];
+}
+
+/**
  * Capability names the uninstaller removes BY NAME rather than by prefix.
  *
  * Capability removal is a prefix sweep — every `ffc_*` key on every user and

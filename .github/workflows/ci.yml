@@ -465,6 +465,24 @@ jobs:
             global $wpdb;
             $wpdb->query( "CREATE TABLE {$wpdb->prefix}ffc_zz_synthetic ( id bigint(20) unsigned NOT NULL AUTO_INCREMENT, PRIMARY KEY (id) )" );
           '
+          # And the user meta (#1316), where the same correction was needed for
+          # a sharper reason: step 7 of uninstall.php deleted two keys BY NAME
+          # while its own comments claimed it swept by prefix, so the encrypted
+          # CPF/RF/RG survived every opt-in uninstall. Three shapes:
+          #   - a LIVE key the profile writes, which is ciphertext in production;
+          #   - the legacy hash key beside it, which nothing writes any more;
+          #   - `ffc_zz_synthetic_meta`, named in no list anywhere here. That is
+          #     the mutation: only a prefix sweep removes it. It is
+          #     `FFC_FRESH_SYNTHETIC_META` in fresh-install-check.php, and the
+          #     `planted` step below fails if the two ever diverge.
+          # Written after the activate phase, like the table above, because an
+          # activation writes no user meta and this must not be mistaken for
+          # something the install created.
+          wp eval --path="$HOME/wp" '
+            update_user_meta( 1, "ffc_user_cpf", "v2:synthetic-ciphertext" );
+            update_user_meta( 1, "ffc_user_cpf_hash", "synthetic-hash" );
+            update_user_meta( 1, "ffc_zz_synthetic_meta", "1" );
+          '
       - name: Check the readers see the planted residue
         # The positive control. "0 remaining" after the uninstall reads the same
         # whether the sweep worked or the reader is broken, so the reader is run

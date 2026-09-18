@@ -88,6 +88,21 @@ const FFC_FRESH_SYNTHETIC_CAP = 'ffc_zz_synthetic';
 const FFC_FRESH_SYNTHETIC_TABLE = 'ffc_zz_synthetic';
 
 /**
+ * The user-meta key planted by the workflow purely to be swept away (#1316).
+ *
+ * Same role as the synthetic capability and the synthetic table: it appears in
+ * no list anywhere in this repository and no code path writes it, so only a
+ * removal keyed on the `ffc_` prefix takes it out. Returning to a list of names
+ * -- which is what step 7 of `uninstall.php` actually was until #1316, while
+ * its own comments claimed otherwise -- leaves it behind and fails the
+ * uninstall phase.
+ *
+ * The workflow writes it literally in a `wp eval`; the `planted` phase is what
+ * fails if the two ever diverge.
+ */
+const FFC_FRESH_SYNTHETIC_META = 'ffc_zz_synthetic_meta';
+
+/**
  * Print a check result.
  *
  * @param bool   $ok     Whether the check passed.
@@ -134,6 +149,45 @@ function ffc_fresh_live_options(): array {
 	);
 	$found = array_map( 'strval', (array) $rows );
 	sort( $found );
+	return $found;
+}
+
+/**
+ * Every `ffc_*` user-meta row in the database, as `user <id>: <key>` strings.
+ *
+ * ESCAPED LIKE THE SWEEP ESCAPES, OR IT MEASURES A DIFFERENT SET
+ *
+ * `_` is a LIKE wildcard, so a bare `ffc_%` also matches an `ffcx_` key. The
+ * uninstaller escapes it deliberately -- over-deleting another plugin's meta is
+ * worse than leaving residue -- and a reader that did not would report rows the
+ * sweep never promised to remove, which is a false failure rather than a
+ * finding.
+ *
+ * `{$prefix}capabilities` carries no `ffc_` prefix, so it is outside this set by
+ * construction: grants are swept separately, and the two must not be conflated.
+ *
+ * There is no `activate`-phase counterpart to this: user meta is written per
+ * user at RUNTIME, never by an activation, so a fresh install legitimately has
+ * none and a both-ways comparison would compare two empty sets. What it is
+ * worth checking is the deletion direction, which is where the defect was.
+ *
+ * @param string $prefix Meta-key prefix, from the manifest.
+ * @return array<int, string>
+ */
+function ffc_fresh_live_user_meta( string $prefix ): array {
+	global $wpdb;
+	$like  = $wpdb->esc_like( $prefix ) . '%';
+	$rows  = (array) $wpdb->get_results(
+		$wpdb->prepare(
+			'SELECT user_id, meta_key FROM %i WHERE meta_key LIKE %s ORDER BY user_id, meta_key',
+			$wpdb->usermeta,
+			$like
+		)
+	);
+	$found = array();
+	foreach ( $rows as $row ) {
+		$found[] = 'user ' . (int) $row->user_id . ': ' . (string) $row->meta_key;
+	}
 	return $found;
 }
 
@@ -214,11 +268,12 @@ require_once __DIR__ . '/ffc-uninstall-manifest.php';
 $expected_tables  = ffc_manifest_tables( $manifest );
 $expected_options = ffc_manifest_options( $manifest );
 $legacy_caps      = ffc_manifest_legacy_capabilities( $manifest );
+$meta_prefix      = ffc_manifest_user_meta_prefix( $manifest );
 
 // A parser that quietly returns nothing would turn every check below into a
 // vacuous pass, which is worse than no check at all.
-if ( array() === $expected_tables || array() === $expected_options || array() === $legacy_caps ) {
-	fwrite( STDERR, "could not parse the table/option/capability manifest out of uninstall.php — fix the parser.\n" );
+if ( array() === $expected_tables || array() === $expected_options || array() === $legacy_caps || '' === $meta_prefix ) {
+	fwrite( STDERR, "could not parse the table/option/capability/user-meta manifest out of uninstall.php — fix the parser.\n" );
 	exit( 1 );
 }
 
@@ -404,6 +459,32 @@ if ( 'activate' === $phase ) {
 		array() !== $legacy_seen ? implode( ' | ', $legacy_seen ) : 'none — the unprefixed half of the sweep is untested'
 	) || $failed;
 
+	// The user-meta reader needs its own control for a reason the others do
+	// not: there is no `activate` phase in which it runs against a known
+	// non-empty set, because an activation writes no user meta at all. Its only
+	// other appearance is the uninstall phase, where it is expected to find
+	// nothing — so without this step a broken reader would read as a clean
+	// sweep forever (#1316).
+	$planted_meta = ffc_fresh_live_user_meta( $meta_prefix );
+
+	$failed = ! ffc_fresh_check(
+		array() !== $planted_meta,
+		'the user-meta reader sees rows',
+		array() !== $planted_meta ? implode( ' | ', $planted_meta ) : 'NOTHING — the reader is broken, so the uninstall phase would pass vacuously'
+	) || $failed;
+
+	$synthetic_meta = array_filter(
+		$planted_meta,
+		static fn( string $entry ): bool => false !== strpos( $entry, FFC_FRESH_SYNTHETIC_META )
+	);
+	$failed         = ! ffc_fresh_check(
+		array() !== $synthetic_meta,
+		'the synthetic user meta is planted',
+		array() !== $synthetic_meta
+			? implode( ' | ', $synthetic_meta )
+			: FFC_FRESH_SYNTHETIC_META . ' was not written — without it the uninstall phase cannot tell a prefix sweep from a complete list'
+	) || $failed;
+
 } else {
 
 	// The uninstaller ran with the Danger Zone opt-in on, so the footprint must
@@ -441,6 +522,27 @@ if ( 'activate' === $phase ) {
 		array() === $live_caps,
 		'no capabilities left behind',
 		array() === $live_caps ? '0 remaining' : implode( ' | ', $live_caps )
+	) || $failed;
+
+	// The residue #1316 measured. Step 7 of `uninstall.php` deleted two meta
+	// keys BY NAME while both of its own `phpcs:ignore` justifications claimed
+	// it matched a prefix, so everything the user profile writes survived an
+	// opt-in uninstall -- including `ffc_user_cpf` / `_rf` / `_rg`, which hold
+	// AES-256-CBC ciphertext of the document numbers.
+	//
+	// No static scan could have caught it: exactly ONE literal `ffc_*` meta key
+	// exists under `includes/`, because every other one is assembled at runtime
+	// from a prefix plus a field name. And no gate could either -- this job read
+	// user meta only for `{$prefix}capabilities`, so the blind spot was
+	// structural rather than an oversight in one run.
+	//
+	// `ffc_zz_synthetic_meta`, planted before the uninstall, is the mutation:
+	// it is in no list, so a return to naming keys leaves it here.
+	$live_meta = ffc_fresh_live_user_meta( $meta_prefix );
+	$failed    = ! ffc_fresh_check(
+		array() === $live_meta,
+		'no user meta left behind',
+		array() === $live_meta ? '0 remaining' : implode( ' | ', $live_meta )
 	) || $failed;
 
 	$transients = (array) $wpdb->get_col(
