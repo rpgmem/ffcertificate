@@ -56,6 +56,35 @@ class IdentityConflictQuery {
 	private const COLUMNS = array( 'cpf_hash', 'rf_hash' );
 
 	/**
+	 * The count column `shared_identities()` returns.
+	 *
+	 * A CONSTANT rather than a literal because a consumer has to read it by
+	 * name, and a consumer reading a name this class does not emit gets an
+	 * empty column with nothing to say it is empty. That shipped: the export
+	 * looked for `identifier_count` while this class emitted `identity_count`,
+	 * and the test that should have caught it supplied the wrong name too --
+	 * asserting against the value the test itself provides, which is the shape
+	 * `AssertionCoverageTest` exists for and which no static checker sees.
+	 *
+	 * @var string
+	 */
+	public const ALIAS_USER_COUNT = 'user_count';
+
+	/**
+	 * The count column `multiple_identities()` returns. See above.
+	 *
+	 * @var string
+	 */
+	public const ALIAS_IDENTITY_COUNT = 'identity_count';
+
+	/**
+	 * The column naming which stores an identifier was found in.
+	 *
+	 * @var string
+	 */
+	public const COLUMN_STORES = 'stores';
+
+	/**
 	 * The stores that carry an identifier alongside a `user_id`.
 	 *
 	 * Resolved against the live schema rather than assumed: a site that never
@@ -87,7 +116,30 @@ class IdentityConflictQuery {
 	}
 
 	/**
-	 * Every `(user_id, hash)` pair the plugin holds, as one derived table.
+	 * A store's name without the site's table prefix, for a report a person
+	 * reads. `wp_ffc_submissions` becomes `submissions`.
+	 *
+	 * @param string $table Full table name.
+	 * @return string
+	 */
+	private function label( string $table ): string {
+		global $wpdb;
+
+		$short = $table;
+		if ( 0 === strpos( $short, $wpdb->prefix ) ) {
+			$short = substr( $short, strlen( $wpdb->prefix ) );
+		}
+		if ( 0 === strpos( $short, 'ffc_' ) ) {
+			$short = substr( $short, 4 );
+		}
+
+		return $short;
+	}
+
+	/**
+	 * Every `(user_id, hash, src)` triple the plugin holds, as one derived
+	 * table. `src` is the store's short label, so a finding can name where the
+	 * rows are rather than only that they disagree.
 	 *
 	 * @param string $column Identifier column.
 	 * @return array{sql: string, values: list<mixed>}|null Null when no store exists.
@@ -102,8 +154,14 @@ class IdentityConflictQuery {
 		$values = array();
 
 		foreach ( $stores as $table ) {
-			$parts[]  = "SELECT user_id, %i AS h FROM %i WHERE user_id IS NOT NULL AND user_id <> 0 AND %i IS NOT NULL AND %i <> ''";
+			// The table name travels WITH the pair, so a finding can say where
+			// to look. Without it the union answers "this person has two CPFs"
+			// and leaves the operator to search four screens for the rows --
+			// the same "a lead you cannot act on is not a lead" that made the
+			// export necessary in the first place (#1295).
+			$parts[]  = "SELECT user_id, %i AS h, %s AS src FROM %i WHERE user_id IS NOT NULL AND user_id <> 0 AND %i IS NOT NULL AND %i <> ''";
 			$values[] = $column;
+			$values[] = $this->label( $table );
 			$values[] = $table;
 			$values[] = $column;
 			$values[] = $column;
@@ -126,7 +184,7 @@ class IdentityConflictQuery {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function shared_identities( int $limit = 50 ): array {
-		return $this->grouped( 'h', 'user_id', 'user_count', max( 1, $limit ) );
+		return $this->grouped( 'h', 'user_id', self::ALIAS_USER_COUNT, max( 1, $limit ) );
 	}
 
 	/**
@@ -140,7 +198,7 @@ class IdentityConflictQuery {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function multiple_identities( int $limit = 50 ): array {
-		return $this->grouped( 'user_id', 'h', 'identity_count', max( 1, $limit ) );
+		return $this->grouped( 'user_id', 'h', self::ALIAS_IDENTITY_COUNT, max( 1, $limit ) );
 	}
 
 	/**
@@ -148,9 +206,20 @@ class IdentityConflictQuery {
 	 *
 	 * What #1313's backfill exists to empty, reported for a real install: until
 	 * this reads zero, resolving a person still falls through to scanning the
-	 * module tables. A row whose user holds a DIFFERENT hash is not counted
-	 * here -- that is a conflict, and `shared_identities()` above is where it
-	 * belongs.
+	 * module tables.
+	 *
+	 * `HAVING COUNT(DISTINCT p.h) = 1` IS THE WHOLE POINT, AND IT WAS MISSING
+	 *
+	 * The backfill leaves a column empty when the user carries more than one
+	 * distinct hash for it, on purpose -- picking would destroy the evidence
+	 * that the conflict exists. Without this clause every such account is ALSO
+	 * reported here, so the check could never reach zero and read as a failure
+	 * to an operator who had just run the backfill to completion. It did, on
+	 * the first production run (#1333).
+	 *
+	 * Narrowed to what the backfill COULD have resolved, zero means what it was
+	 * always supposed to mean, and this check becomes disjoint from
+	 * `multiple_identities()` rather than a second voice for the same rows.
 	 *
 	 * @param int $limit Sample size.
 	 * @return array<int, array<string, mixed>>
@@ -176,10 +245,14 @@ class IdentityConflictQuery {
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The union is built from the hard-coded fragment in `pairs()`, once per table this class resolved itself, with its placeholders and values filled in the same loop. An audit read must reflect the live rows, never a cache.
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT DISTINCT p.user_id, %s AS identifier_column
+					"SELECT p.user_id,
+                            GROUP_CONCAT(DISTINCT p.src ORDER BY p.src SEPARATOR '|') AS stores,
+                            %s AS identifier_column
                      FROM ({$pairs['sql']}) AS p
                      LEFT JOIN %i AS idx ON idx.user_id = p.user_id
                      WHERE idx.user_id IS NULL OR idx.%i IS NULL OR idx.%i = ''
+                     GROUP BY p.user_id
+                     HAVING COUNT(DISTINCT p.h) = 1
                      ORDER BY p.user_id ASC
                      LIMIT %d",
 					...array_merge( array( $column ), $pairs['values'], array( $profiles, $column, $column, $limit ) )
@@ -219,7 +292,9 @@ class IdentityConflictQuery {
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- As in `unindexed_links()`: `$group_by`, `$count_over` and `$alias` are this class's own literals, never request data, and the union comes from `pairs()`.
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT {$group_by} AS subject, COUNT(DISTINCT {$count_over}) AS {$alias}, %s AS identifier_column
+					"SELECT {$group_by} AS subject, COUNT(DISTINCT {$count_over}) AS {$alias},
+                            GROUP_CONCAT(DISTINCT p.src ORDER BY p.src SEPARATOR '|') AS stores,
+                            %s AS identifier_column
                      FROM ({$pairs['sql']}) AS p
                      GROUP BY {$group_by}
                      HAVING COUNT(DISTINCT {$count_over}) > 1

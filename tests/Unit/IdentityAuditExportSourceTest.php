@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Maintenance\IdentityAuditExportSource;
+use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 
 /**
  * The link audit's CSV export (#1295).
@@ -110,12 +111,12 @@ class IdentityAuditExportSourceTest extends TestCase {
 					'cross_store_shared_identities'   => array(
 						'count'     => 1,
 						'truncated' => false,
-						'rows'      => array( array( 'subject' => $hash, 'user_count' => 2, 'identifier_column' => 'cpf_hash' ) ),
+						'rows'      => array( array( 'subject' => $hash, IdentityConflictQuery::ALIAS_USER_COUNT => 2, 'identifier_column' => 'cpf_hash' ) ),
 					),
 					'cross_store_multiple_identities' => array(
 						'count'     => 1,
 						'truncated' => false,
-						'rows'      => array( array( 'subject' => 77, 'identifier_count' => 3, 'identifier_column' => 'rf_hash' ) ),
+						'rows'      => array( array( 'subject' => 77, IdentityConflictQuery::ALIAS_IDENTITY_COUNT => 3, 'identifier_column' => 'rf_hash' ) ),
 					),
 				),
 				$seen
@@ -145,7 +146,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 					'shared_identities' => array(
 						'count'     => 1,
 						'truncated' => false,
-						'rows'      => array( array( 'cpf_hash' => $hash, 'user_count' => 2 ) ),
+						'rows'      => array( array( 'cpf_hash' => $hash, IdentityConflictQuery::ALIAS_USER_COUNT => 2 ) ),
 					),
 				),
 				$seen
@@ -265,6 +266,75 @@ class IdentityAuditExportSourceTest extends TestCase {
 
 		$this->expectException( \RuntimeException::class );
 		( new IdentityAuditExportSource() )->authorize();
+	}
+
+
+	/**
+	 * The count columns are read by CONSTANT, and this is the canary for the
+	 * defect that shipped.
+	 *
+	 * The export looked for `identifier_count`; `IdentityConflictQuery` emits
+	 * `identity_count`. Every cross-store row therefore reached the operator
+	 * with an empty count, and the original test agreed with the bug because
+	 * its own fixture carried the same invented name — asserting against the
+	 * value the test supplies, which passes any checker.
+	 *
+	 * Hard-coding the strings HERE would reintroduce exactly that. The fixture
+	 * takes them from the class that emits them, so a rename moves both sides
+	 * or fails loudly.
+	 */
+	public function test_the_count_alias_comes_from_the_query_that_emits_it(): void {
+		$seen   = array();
+		$source = new IdentityAuditExportSource(
+			$this->auditor(
+				array(
+					'cross_store_multiple_identities' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array( array( 'subject' => 4103, IdentityConflictQuery::ALIAS_IDENTITY_COUNT => 2, 'identifier_column' => 'cpf_hash' ) ),
+					),
+				),
+				$seen
+			)
+		);
+
+		$this->assertSame(
+			'2',
+			$this->rows( $source )[0]['related_count'],
+			'A finding with no count is a row the operator cannot act on.'
+		);
+	}
+
+	/**
+	 * A finding says WHERE the rows are.
+	 *
+	 * "This account has two CPFs" leaves an operator to search certificates,
+	 * appointments, candidacies and the index by hand. The store labels turn it
+	 * into one place to look.
+	 */
+	public function test_a_finding_names_the_stores_it_was_found_in(): void {
+		$seen   = array();
+		$source = new IdentityAuditExportSource(
+			$this->auditor(
+				array(
+					'cross_store_multiple_identities' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array(
+							array(
+								'subject'                             => 4103,
+								IdentityConflictQuery::ALIAS_IDENTITY_COUNT => 2,
+								'identifier_column'                   => 'cpf_hash',
+								IdentityConflictQuery::COLUMN_STORES  => 'appointments|submissions',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$this->assertSame( 'appointments|submissions', $this->rows( $source )[0]['stores'] );
 	}
 
 	/**
