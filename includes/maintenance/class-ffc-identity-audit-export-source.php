@@ -165,6 +165,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 			'related_count',
 			'submission_id',
 			'form_id',
+			'stores',
 			'note',
 		);
 	}
@@ -199,28 +200,42 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 			}
 
 			if ( ! empty( $data['truncated'] ) ) {
-				$out[] = array(
+				$out[] = $this->note_row(
 					(string) $check,
-					'',
-					'',
-					'',
-					'',
-					'',
-					'',
 					sprintf(
 						/* translators: %d: the per-check row cap. */
 						__( 'TRUNCATED: this check reached the %d-row export cap, so more findings exist than are listed here.', 'ffcertificate' ),
 						self::EXPORT_LIMIT
-					),
+					)
 				);
 			}
 		}
 
 		if ( array() === $out ) {
-			$out[] = array( '', '', '', '', '', '', '', __( 'No link problems found.', 'ffcertificate' ) );
+			$out[] = $this->note_row( '', __( 'No link problems found.', 'ffcertificate' ) );
 		}
 
 		return $out;
+	}
+
+	/**
+	 * A full-width row carrying only a check name and a note.
+	 *
+	 * Built from {@see self::header()} rather than typed out, because a row
+	 * whose width drifts from the header is a broken CSV -- and hand-counting
+	 * empty strings is exactly how that drift happens. Adding a column now
+	 * moves these rows with it.
+	 *
+	 * @param string $check Check key, or an empty string.
+	 * @param string $note  The sentence.
+	 * @return array<int, mixed>
+	 */
+	private function note_row( string $check, string $note ): array {
+		$row                      = array_fill( 0, count( $this->header() ), '' );
+		$row[0]                   = $check;
+		$row[ count( $row ) - 1 ] = $note;
+
+		return $row;
 	}
 
 	/**
@@ -247,6 +262,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 		$hash    = isset( $row['cpf_hash'] ) ? (string) $row['cpf_hash'] : '';
 		$sub_id  = isset( $row['id'] ) ? (string) $row['id'] : '';
 		$form_id = isset( $row['form_id'] ) ? (string) $row['form_id'] : '';
+		$stores  = isset( $row[ IdentityConflictQuery::COLUMN_STORES ] ) ? (string) $row[ IdentityConflictQuery::COLUMN_STORES ] : '';
 
 		if ( '' !== $hash ) {
 			$column = '' !== $column ? $column : 'cpf_hash';
@@ -260,7 +276,11 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 			}
 		}
 
-		foreach ( array( 'user_count', 'identifier_count' ) as $key ) {
+		// Read the alias by CONSTANT, never by a literal typed here. This read
+		// `identifier_count` while the query emitted `identity_count`, so every
+		// cross-store row shipped with an empty count -- and the test agreed,
+		// because its fixture carried the same wrong name.
+		foreach ( array( IdentityConflictQuery::ALIAS_USER_COUNT, IdentityConflictQuery::ALIAS_IDENTITY_COUNT ) as $key ) {
 			if ( isset( $row[ $key ] ) ) {
 				$count = (string) $row[ $key ];
 			}
@@ -281,6 +301,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 			$count,
 			$sub_id,
 			$form_id,
+			$stores,
 			'',
 		);
 	}
