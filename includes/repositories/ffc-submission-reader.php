@@ -136,6 +136,22 @@ class SubmissionReader extends AbstractRepository {
 	 * linked user" (CPF/RF are not stored on the user side to compare against).
 	 * Read-only.
 	 *
+	 * CPF AND RF ARE COUNTED SEPARATELY, AND THAT IS THE POINT
+	 *
+	 * One CPF plus one RF is an ordinary person, not a conflict. Each column
+	 * gets its own `COUNT(DISTINCT)` and the `HAVING` asks for more than one
+	 * of EITHER, so a user with one of each scores 1 and 1 and is not reported.
+	 *
+	 * `NULLIF( …, '' )` IS NOT DECORATION
+	 *
+	 * `COUNT(DISTINCT)` ignores NULL but counts the empty string as a value, so
+	 * a user with a real hash on some rows and `''` on others scored 2 and was
+	 * reported as holding two identities. Both siblings in this class filter
+	 * `<> ''` and this one did not, which is how the asymmetry was found; the
+	 * fix is here rather than in a `WHERE` because a row whose CPF is empty may
+	 * still carry a real RF, and a `WHERE` would drop it from both counts
+	 * (#1295).
+	 *
 	 * @param int $limit Max rows.
 	 * @return array<int, array<string, mixed>>
 	 */
@@ -143,7 +159,7 @@ class SubmissionReader extends AbstractRepository {
 		$limit = max( 1, $limit );
 		$rows  = $this->wpdb->get_results(
 			$this->wpdb->prepare(
-				'SELECT user_id, COUNT(DISTINCT cpf_hash) AS cpf_count, COUNT(DISTINCT rf_hash) AS rf_count FROM %i WHERE user_id IS NOT NULL AND user_id <> 0 GROUP BY user_id HAVING COUNT(DISTINCT cpf_hash) > 1 OR COUNT(DISTINCT rf_hash) > 1 ORDER BY user_id ASC LIMIT %d',
+				"SELECT user_id, COUNT(DISTINCT NULLIF( cpf_hash, '' )) AS cpf_count, COUNT(DISTINCT NULLIF( rf_hash, '' )) AS rf_count FROM %i WHERE user_id IS NOT NULL AND user_id <> 0 GROUP BY user_id HAVING COUNT(DISTINCT NULLIF( cpf_hash, '' )) > 1 OR COUNT(DISTINCT NULLIF( rf_hash, '' )) > 1 ORDER BY user_id ASC LIMIT %d",
 				$this->table,
 				$limit
 			),

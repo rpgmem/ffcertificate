@@ -14,6 +14,13 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Changed
 - **Compatibility declared against WordPress 7.1.1**: `readme.txt` `Tested up to` moves from 7.1. The plugin updates from GitHub, so `GitHubUpdater::compat()` reads this value at runtime and it is what the update screen shows — a stale one told 7.1 sites that a release verified against 7.1 was untested (#1022). The floor stays at 6.4.
 - **`SubmissionLinkAuditor::run()` takes the row cap as an argument** (#1295): the screen wants a 50-row sample and the export wants the list, and the alternative was a second class issuing the same seven queries with its own number — the parallel-reader shape the `cpf_rf_encrypted` precedent rejects. One place still knows what the checks are.
+- **Every audit finding now names the stores it was found in** (#1295): a conflict said *this account holds two CPFs* and left an operator to search certificates, appointments, candidacies and the index by hand. The union carries each store with the pair, and both the screen's queries and the CSV report them — the same *a lead you cannot act on is not a lead* that made the export necessary.
+
+### Fixed
+
+- **The audit counted an empty hash as an identity** (#1295): `COUNT(DISTINCT)` ignores `NULL` but counts `''` as a value, so a user with a real CPF on some submissions and an empty string on others was reported as holding two. Its two siblings in the same class already filtered `<> ''`. Fixed with `NULLIF` rather than a `WHERE`, because a row with an empty CPF may still carry a real RF and a `WHERE` would drop it from both counts. CPF and RF were always counted separately — one of each is a person, never a conflict.
+- **`Linked identifier missing from the identity index` could never read zero** (#1333): the backfill leaves a column empty when an account carries two different hashes, deliberately, and the check counted every such account as a missing link — so it reported 50+ immediately after a backfill that completed, reading as a failure to an operator who had done everything right. Narrowed to the links the backfill could have resolved; the unresolvable ones are already counted under *One account, two identifiers*.
+- **The CSV export shipped an empty count on every cross-store row** (#1333): it read `identifier_count` while the query emits `identity_count`, and the test agreed because its fixture carried the same invented name — asserting against the value the test itself supplies. Both aliases are constants now, referenced by the query that emits them and the export that reads them.
 
 
 ## [6.26.0] (2026-09-18) — `f667b67`
