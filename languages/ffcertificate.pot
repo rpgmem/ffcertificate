@@ -21823,3 +21823,35 @@ msgstr ""
 #: includes/settings/views/documentation/feature-reregistration.php:105
 msgid "that person answered the form themselves. Their own answers are kept and the row is skipped; this is expected, not an error, and it does not stop the import."
 msgstr ""
+
+#: includes/migrations/strategies/class-ffc-identity-normalization-migration-strategy.php
+msgid "%1$s for user %2$d holds no identifier once canonicalised — left untouched for a human to look at."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-identity-normalization-migration-strategy.php
+msgid "%1$s on %2$s row %3$d holds no identifier once canonicalised — left untouched for a human to look at."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-identity-normalization-migration-strategy.php
+msgid "Candidate %d could not be canonicalised: another candidate already carries the same CPF or RF once punctuation is removed. Two rows for one person — merge them, then re-run."
+msgstr ""
+
+#: includes/migrations/class-ffc-migration-registry.php
+msgid "Canonicalise Stored Identifiers"
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-identity-normalization-migration-strategy.php
+msgid "Could not decrypt %1$s on %2$s row %3$d — left untouched (the key may be unrecoverable)."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-identity-normalization-migration-strategy.php
+msgid "Could not write the canonicalised identifiers for %1$s row %2$d."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-identity-normalization-migration-strategy.php
+msgid "Encryption is not configured, so the stored identifiers cannot be read. See Settings → Advanced → Encryption Key Health."
+msgstr ""
+
+#: includes/migrations/class-ffc-migration-registry.php
+msgid "Rewrite stored CPF, RF and e-mail values into the one canonical form every module now hashes — digits only for CPF/RF, lowercase for e-mail — and rebuild their search hashes. Without it, an appointment booked as Joao@Escola.gov.br stays invisible to every lookup made elsewhere, and a CPF stored with its punctuation never matches the same person's certificate. Idempotent: a row already canonical is read and left alone."
+msgstr ""

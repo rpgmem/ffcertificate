@@ -61,7 +61,7 @@ class MigrationRegistryTest extends TestCase {
 		$all = $registry->get_all_migrations();
 
 		$this->assertIsArray( $all );
-		$this->assertCount( 7, $all );
+		$this->assertCount( 8, $all );
 		$this->assertArrayHasKey( 'split_cpf_rf', $all );
 		$this->assertArrayHasKey( 'email_hash_rehash', $all );
 		$this->assertArrayHasKey( 'key_rotation', $all );
@@ -71,6 +71,11 @@ class MigrationRegistryTest extends TestCase {
 		// status before looking at any table -- adding targets there would report
 		// "complete" without ever touching them.
 		$this->assertArrayHasKey( 'key_rotation_remaining', $all );
+		// The card that rewrites stored identifiers into their canonical form
+		// (#1313). Separate from `email_hash_rehash` for the reason above: that
+		// one latches complete, and it repaired a SALT rather than the string the
+		// salt was applied to.
+		$this->assertArrayHasKey( 'identity_normalization', $all );
 		$this->assertArrayHasKey( 'activity_log_clear_plaintext', $all );
 		$this->assertArrayHasKey( 'import_legacy_templates', $all );
 		$this->assertArrayHasKey( 'rewrite_html_image_refs', $all );

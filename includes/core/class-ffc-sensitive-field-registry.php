@@ -82,15 +82,15 @@ final class SensitiveFieldRegistry {
 	 * e-mail and two did not. A call site that has to remember is a call site
 	 * that can forget, and both of those had already forgotten.
 	 *
-	 * A field absent from this map is hashed as given, which is correct for
-	 * values that carry no canonical form.
+	 * **`email` was declared `null` until this rule got its migration**, and
+	 * the pairing is the reason: lowercasing it changes every `email_hash`
+	 * already stored, so a lookup would canonicalise while the rows did not and
+	 * the appointment module would stop finding its own history for anyone with
+	 * a capital in their address. The `identity_normalization` card (#1313 PR 3)
+	 * rewrites those rows, and the two landed in the same commit.
 	 *
-	 * **`email` is declared `null` on purpose, and it is NOT the final
-	 * answer.** Lowercasing it changes every `email_hash` already stored, so
-	 * the rule and the rehash migration have to land together or a lookup
-	 * normalises while the rows do not and stops matching. The flip belongs to
-	 * the migration PR of #1313; this entry exists so the decision is written
-	 * down instead of inferred from silence.
+	 * A field absent from this map is hashed as given, which is correct for a
+	 * value that carries no canonical form.
 	 *
 	 * @var array<string, string|null>
 	 */
@@ -98,7 +98,7 @@ final class SensitiveFieldRegistry {
 		'cpf'    => 'cpf_rf',
 		'rf'     => 'cpf_rf',
 		'ticket' => 'ticket',
-		'email'  => null,
+		'email'  => 'lowercase_trim',
 	);
 
 	private const FIELDS = array(
@@ -269,7 +269,7 @@ final class SensitiveFieldRegistry {
 		switch ( $kind ) {
 			case 'cpf_rf':
 				return DataSanitizer::normalize_cpf_rf( $value );
-			case 'email':
+			case 'lowercase_trim':
 				return DataSanitizer::normalize_email( $value );
 			case 'ticket':
 				return DataSanitizer::normalize_ticket( $value );
@@ -316,6 +316,31 @@ final class SensitiveFieldRegistry {
 	 */
 	public static function normalized_field_keys(): array {
 		return array_keys( self::NORMALIZERS );
+	}
+
+	/**
+	 * A fingerprint of the canonical-form RULES, not of any value.
+	 *
+	 * The `identity_normalization` migration (#1313 PR 3) rewrites rows whose
+	 * stored plaintext is not canonical, and "canonical" is defined by the map
+	 * above. So the card's completion is only meaningful relative to the rules
+	 * that were in force when it ran: change a rule and every row it approved
+	 * has to be re-examined, exactly as the key-rotation card re-arms when the
+	 * encryption key changes.
+	 *
+	 * This makes that automatic. The alternative -- remembering to reset the
+	 * card by hand -- is the shape `CLAUDE.md` records as going stale in
+	 * silence, and here the silence would mean rows nobody can find.
+	 *
+	 * It fingerprints the rules alone. A new CONTEXT or a new column changes
+	 * which rows are walked, not what canonical means, and re-arming for that
+	 * would rewrite a whole database for no correction.
+	 *
+	 * @since 6.26.0
+	 * @return string
+	 */
+	public static function normalizer_fingerprint(): string {
+		return hash( 'sha256', (string) wp_json_encode( self::NORMALIZERS ) );
 	}
 
 	/**

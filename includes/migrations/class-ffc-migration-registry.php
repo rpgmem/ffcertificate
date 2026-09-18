@@ -96,6 +96,19 @@ class MigrationRegistry {
 			'requires_column' => false,
 		);
 
+		// v6.26.0 (#1313): bring the identifiers already stored into the canonical
+		// form the registry now applies on every write. Pairs with the `email`
+		// normalization rule that landed in the same release -- the rule alone
+		// would make a lookup canonicalise while the rows did not.
+		$this->migrations['identity_normalization'] = array(
+			'name'            => __( 'Canonicalise Stored Identifiers', 'ffcertificate' ),
+			'description'     => __( 'Rewrite stored CPF, RF and e-mail values into the one canonical form every module now hashes — digits only for CPF/RF, lowercase for e-mail — and rebuild their search hashes. Without it, an appointment booked as Joao@Escola.gov.br stays invisible to every lookup made elsewhere, and a CPF stored with its punctuation never matches the same person\'s certificate. Idempotent: a row already canonical is read and left alone.', 'ffcertificate' ),
+			'icon'            => 'ffc-icon-shield',
+			'batch_size'      => 25,
+			'order'           => 6,
+			'requires_column' => false,
+		);
+
 		// v5.4.1: Clear plaintext context on activity log rows that already
 		// hold a ciphertext, eliminating the dual-storage leak.
 		$this->migrations['activity_log_clear_plaintext'] = array(
