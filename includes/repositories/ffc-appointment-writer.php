@@ -182,10 +182,9 @@ class AppointmentWriter extends AbstractRepository {
 		if ( ! empty( $data['cpf_rf'] ) ) {
 			$clean_id = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( (string) $data['cpf_rf'] );
 			if ( '' !== $clean_id ) {
-				if ( 7 === strlen( $clean_id ) ) {
+				if ( 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $clean_id ) ) {
 					$data['rf'] = $clean_id;
 				} else {
-					// 11 digits (CPF) or unknown length — default to CPF.
 					$data['cpf'] = $clean_id;
 				}
 			}

@@ -100,7 +100,7 @@ class AppointmentAjaxHandler {
 				'appointment_date' => $date,
 				'start_time'       => $time,
 				'name'             => $this->get_post_param( 'name' ),
-				'email'            => isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '',
+				'email'            => isset( $_POST['email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( wp_unslash( $_POST['email'] ) ) ) : '',
 				'cpf_rf'           => $this->get_post_param( 'cpf_rf' ),
 				'user_notes'       => isset( $_POST['notes'] ) ? sanitize_textarea_field( wp_unslash( $_POST['notes'] ) ) : '',
 				'custom_data'      => $this->get_post_array( 'custom_data' ),

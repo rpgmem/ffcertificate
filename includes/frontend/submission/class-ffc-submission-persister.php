@@ -375,7 +375,7 @@ class SubmissionPersister {
 
 		if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
 			$id_hash     = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $clean_cpf );
-			$hash_column = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
+			$hash_column = 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $clean_cpf ) ? 'rf_hash' : 'cpf_hash';
 
 			// Search the specific split column based on digit count.
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $hash_column is derived from strlen() check, not user input.

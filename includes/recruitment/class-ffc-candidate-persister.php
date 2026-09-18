@@ -53,7 +53,7 @@ final class CandidatePersister {
 	public static function upsert_candidate( array $row ) {
 		$cpf   = is_string( $row['cpf'] ) ? trim( $row['cpf'] ) : '';
 		$rf    = is_string( $row['rf'] ) ? trim( $row['rf'] ) : '';
-		$email = is_string( $row['email'] ) ? strtolower( trim( $row['email'] ) ) : '';
+		$email = is_string( $row['email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( $row['email'] ) : '';
 		$name  = is_string( $row['name'] ) ? trim( $row['name'] ) : '';
 		$phone = is_string( $row['phone'] ) ? trim( $row['phone'] ) : '';
 		$pcd   = CsvParser::parse_pcd_flag( $row['pcd'] );

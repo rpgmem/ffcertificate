@@ -303,7 +303,7 @@ class SubmissionReader extends AbstractRepository {
 	public function findByCpfRf( string $cpf, int $limit = 10 ): array {
 		$clean_cpf   = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
 		$id_hash     = $this->hash( 'cpf', $clean_cpf );
-		$hash_column = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
+		$hash_column = 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $clean_cpf ) ? 'rf_hash' : 'cpf_hash';
 
 		// Search the specific split column based on digit count.
 		$results = $this->wpdb->get_results(

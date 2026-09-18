@@ -378,7 +378,7 @@ class PublicCsvDownload {
 		// audit record, and runs in every mode (CPF + anonymous).
 		// Captures the CPF digits when provided so the exported audit
 		// CSV always identifies who pulled the file.
-		$cpf_digits = preg_replace( '/\D/', '', (string) $cpf_input );
+		$cpf_digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( (string) $cpf_input );
 		$this->validator->record_download_log_entry(
 			$form_id,
 			(string) get_post_meta( $form_id, '_ffc_csv_public_cpf_mode', true ),
@@ -572,8 +572,7 @@ class PublicCsvDownload {
 		if ( null !== $cpf_error ) {
 			wp_send_json_error( array( 'message' => $cpf_error ), 403 );
 		}
-		$cpf_digits_clean = preg_replace( '/\D/', '', (string) $cpf_input );
-		$cpf_digits_clean = is_string( $cpf_digits_clean ) ? $cpf_digits_clean : '';
+		$cpf_digits_clean = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( (string) $cpf_input );
 
 		$result = EarlyOpenAction::execute( $form_id, $posted_hash, $audit_meta, $cpf_digits_clean );
 
@@ -645,8 +644,7 @@ class PublicCsvDownload {
 		if ( null !== $cpf_error ) {
 			wp_send_json_error( array( 'message' => $cpf_error ), 403 );
 		}
-		$cpf_digits_clean = preg_replace( '/\D/', '', (string) $cpf_input );
-		$cpf_digits_clean = is_string( $cpf_digits_clean ) ? $cpf_digits_clean : '';
+		$cpf_digits_clean = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( (string) $cpf_input );
 
 		$result = ExtendEndAction::execute( $form_id, $posted_hash, $new_time_end, $audit_meta, $cpf_digits_clean );
 
@@ -717,8 +715,7 @@ class PublicCsvDownload {
 		if ( null !== $cpf_error ) {
 			wp_send_json_error( array( 'message' => $cpf_error ), 403 );
 		}
-		$cpf_digits_clean = preg_replace( '/\D/', '', (string) $cpf_input );
-		$cpf_digits_clean = is_string( $cpf_digits_clean ) ? $cpf_digits_clean : '';
+		$cpf_digits_clean = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( (string) $cpf_input );
 
 		$result = ScheduleExceptionAction::execute( $form_id, $posted_hash, $start_override, $end_override, $cpf_digits_clean );
 

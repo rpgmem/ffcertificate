@@ -122,6 +122,8 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		$sanitizer->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing(
 			static fn( string $v ) => (string) preg_replace( '/\D/', '', $v )
 		);
+		$sanitizer->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) );
+		$sanitizer->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
 	}
 
 	/**

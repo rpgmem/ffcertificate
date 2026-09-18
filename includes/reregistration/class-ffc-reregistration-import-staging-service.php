@@ -931,7 +931,7 @@ class ReregistrationImportStagingService {
 
 				$cpf   = DataSanitizer::normalize_cpf_rf( (string) ( $payload['cpf'] ?? '' ) );
 				$rf    = DataSanitizer::normalize_cpf_rf( (string) ( $payload['rf'] ?? '' ) );
-				$email = strtolower( trim( (string) ( $payload['email'] ?? '' ) ) );
+				$email = DataSanitizer::normalize_email( (string) ( $payload['email'] ?? '' ) );
 
 				$placeholders[] = '(%s, %d, %d, %d, %d, %s, %s, %s, %s, %s)';
 				$values[]       = $job_id;

@@ -66,7 +66,7 @@ final class CsvValidator {
 		foreach ( $rows as $idx => $row ) {
 			$row_cpf   = is_string( $row['cpf'] ?? null ) ? CsvParser::normalise_id( trim( $row['cpf'] ), 11 )['value'] : '';
 			$row_rf    = is_string( $row['rf'] ?? null ) ? CsvParser::normalise_id( trim( $row['rf'] ), 7 )['value'] : '';
-			$row_email = is_string( $row['email'] ?? null ) ? strtolower( trim( $row['email'] ) ) : '';
+			$row_email = is_string( $row['email'] ?? null ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( $row['email'] ) : '';
 
 			$tags = array();
 			if ( '' !== $row_cpf ) {

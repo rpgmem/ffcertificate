@@ -362,6 +362,7 @@ class SubmissionPersisterTest extends TestCase {
 
 		$ds = Mockery::mock( 'alias:FreeFormCertificate\\Core\\DataSanitizer' );
 		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678909' );
+		$ds->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
 
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
 		$this->wpdb->shouldReceive( 'get_row' )->andReturn( $existing );
@@ -413,6 +414,7 @@ class SubmissionPersisterTest extends TestCase {
 
 		$ds = Mockery::mock( 'alias:FreeFormCertificate\\Core\\DataSanitizer' );
 		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678909' );
+		$ds->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
 
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
 		$this->wpdb->shouldReceive( 'get_row' )->andReturn( $existing );
@@ -477,6 +479,7 @@ class SubmissionPersisterTest extends TestCase {
 
 		$ds = Mockery::mock( 'alias:FreeFormCertificate\\Core\\DataSanitizer' );
 		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678909' );
+		$ds->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
 
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
 		$this->wpdb->shouldReceive( 'get_row' )->andReturn( $existing );
@@ -590,6 +593,7 @@ class SubmissionPersisterTest extends TestCase {
 
 		$ds = Mockery::mock( 'alias:FreeFormCertificate\\Core\\DataSanitizer' );
 		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '1234567' );
+		$ds->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
 
 		$row = (object) array( 'id' => '11' );
 		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
@@ -613,6 +617,7 @@ class SubmissionPersisterTest extends TestCase {
 
 		$ds = Mockery::mock( 'alias:FreeFormCertificate\\Core\\DataSanitizer' );
 		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678909' );
+		$ds->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
 
 		$persister = new SubmissionPersister( $this->bareHandler() );
 		$this->assertNull( $persister->find_quiz_submission( 5, '12345678909' ) );

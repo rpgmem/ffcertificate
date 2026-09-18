@@ -51,7 +51,7 @@ class AccessRestrictionChecker {
 		$restrictions = isset( $form_config['restrictions'] ) ? $form_config['restrictions'] : array();
 
 		// Clean CPF/RF (remove any mask).
-		$clean_cpf = preg_replace( '/\D/', '', $val_cpf );
+		$clean_cpf = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $val_cpf );
 
 		// ========================================.
 		// 1. PASSWORD CHECK (if active)
@@ -87,7 +87,7 @@ class AccessRestrictionChecker {
 			// Clean masks from denylist before comparing.
 			$denied_clean = array_map(
 				function ( $d ) {
-					return preg_replace( '/\D/', '', $d );
+					return \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $d );
 				},
 				$denied_list
 			);
@@ -111,7 +111,7 @@ class AccessRestrictionChecker {
 			// Clean masks from allowlist before comparing.
 			$allowed_clean = array_map(
 				function ( $a ) {
-					return preg_replace( '/\D/', '', $a );
+					return \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $a );
 				},
 				$allowed_list
 			);

@@ -159,8 +159,7 @@ class AppointmentReader extends AbstractRepository {
 			return array();
 		}
 
-		// Classify by digit count: 7 digits = RF, else CPF.
-		$hash_column = strlen( $cpf_rf_clean ) === 7 ? 'rf_hash' : 'cpf_hash';
+		$hash_column = 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $cpf_rf_clean ) ? 'rf_hash' : 'cpf_hash';
 
 		// Search targeted split column first.
 		if ( $limit ) {

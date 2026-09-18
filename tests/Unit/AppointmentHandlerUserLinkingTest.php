@@ -166,7 +166,8 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 
 	public function test_links_created_user_id_into_appointment(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678901' );
+			->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678901' )
+			->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'hash' )->andReturn( 'hashed-cpf' );
 		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' )
@@ -183,7 +184,8 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 
 	public function test_wp_error_from_user_manager_leaves_user_id_unset(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678901' );
+			->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678901' )
+			->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'hash' )->andReturn( 'hashed-cpf' );
 		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' )
@@ -199,7 +201,8 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 
 	public function test_user_manager_exception_is_swallowed(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678901' );
+			->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678901' )
+			->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'hash' )->andReturn( 'hashed-cpf' );
 		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' )
@@ -216,7 +219,8 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 
 	public function test_empty_normalized_cpf_rf_skips_user_linking(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'normalize_cpf_rf' )->andReturn( '' );
+			->shouldReceive( 'normalize_cpf_rf' )->andReturn( '' )
+			->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
 		// Encryption / UserManager must never be reached.
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'hash' )->never();

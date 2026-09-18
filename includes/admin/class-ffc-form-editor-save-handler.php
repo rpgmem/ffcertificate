@@ -520,8 +520,8 @@ class FormEditorSaveHandler {
 						$lines         = preg_split( '/[\r\n,]+/', $wl_raw );
 						$lines         = is_array( $lines ) ? $lines : array();
 						foreach ( $lines as $line ) {
-							$digits = preg_replace( '/\D/', '', (string) $line );
-							if ( is_string( $digits ) && 11 === strlen( $digits ) ) {
+							$digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( (string) $line );
+							if ( 11 === strlen( $digits ) ) {
 								$cleaned_lines[ $digits ] = $digits;
 							}
 						}
