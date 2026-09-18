@@ -111,6 +111,11 @@ class ActivatorSchemaGuardTest extends TestCase {
 			// phpcs:ignore Squiz.Commenting.VariableComment.Missing
 			public string $prefix = 'wp_';
 
+			// The user-dashboard chain's identity-index backfill (#1313) names
+			// wp_usermeta, which real wpdb exposes as a property.
+			// phpcs:ignore Squiz.Commenting.VariableComment.Missing
+			public string $usermeta = 'wp_usermeta';
+
 			/** @var callable */
 			private $counter;
 

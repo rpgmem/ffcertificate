@@ -158,6 +158,95 @@ class UserDashboardActivatorTest extends TestCase {
 		UserDashboardActivator::maybe_migrate();
 	}
 
+	/**
+	 * The identity index reaches an EXISTING install (#1313 PR 2).
+	 *
+	 * `create_user_profiles_table()` returns early when the table is there,
+	 * which is every install that needs these two columns -- so the `CREATE`
+	 * covers fresh installs and nothing covered the rest. The version is stale
+	 * and the table exists, which is the exact combination the incremental
+	 * path was written for.
+	 */
+	public function test_maybe_migrate_adds_the_identity_index_columns_to_an_existing_table(): void {
+		Functions\when( 'get_option' )->justReturn( '6.20.0' );
+
+		$queries = array();
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing( function ( $sql ) use ( &$queries ) {
+			$queries[] = (string) $sql;
+			return 1;
+		} );
+
+		UserDashboardActivator::maybe_migrate();
+
+		$all = implode( "\n", $queries );
+		$this->assertStringContainsString( 'ADD COLUMN', $all );
+		$this->assertStringContainsString( 'cpf_hash', $all );
+		$this->assertStringContainsString( 'rf_hash', $all );
+		$this->assertStringContainsString(
+			'idx_cpf_hash',
+			$all,
+			'The column without its index is a scan wearing a column name — the whole reason for the move.'
+		);
+		$this->assertStringContainsString( 'idx_rf_hash', $all );
+	}
+
+	/**
+	 * The hashes already stored in wp_usermeta move into the columns.
+	 *
+	 * Without this the column is NULL for every existing user until an
+	 * operator runs the PR 3 card, which may sit unrun for months -- so the
+	 * move would be a regression rather than a relocation. It copies the value
+	 * exactly as stored, including a hash written before #1313 PR 1 normalised
+	 * the input; correcting that needs the ciphertext, which is PR 3's job.
+	 */
+	public function test_maybe_migrate_backfills_the_index_from_the_legacy_usermeta(): void {
+		Functions\when( 'get_option' )->justReturn( '6.20.0' );
+
+		$queries = array();
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing( function ( $sql ) use ( &$queries ) {
+			$queries[] = (string) $sql;
+			return 1;
+		} );
+
+		UserDashboardActivator::maybe_migrate();
+
+		$all = implode( "\n", $queries );
+
+		foreach ( array( 'ffc_user_cpf_hash', 'ffc_user_rf_hash' ) as $meta_key ) {
+			$this->assertStringContainsString(
+				$meta_key,
+				$all,
+				"The backfill never read {$meta_key} — the existing hash would be left behind."
+			);
+		}
+
+		$this->assertStringContainsString(
+			'UPDATE',
+			$all,
+			'Users who already have a profile row are filled by the UPDATE.'
+		);
+		$this->assertStringContainsString(
+			'INSERT INTO',
+			$all,
+			'Users who carry the meta but have no profile row need the row created, or the index answers for a subset nobody can state.'
+		);
+	}
+
+	/**
+	 * A current install pays neither of the two steps above.
+	 *
+	 * They are idempotent, so running them again would be harmless -- but the
+	 * version gate is what keeps `maybe_migrate()` free on every request, and
+	 * a step that slipped outside it would be four statements per page load.
+	 */
+	public function test_maybe_migrate_runs_no_backfill_on_a_current_install(): void {
+		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+
+		$this->wpdb->shouldReceive( 'query' )->never();
+
+		UserDashboardActivator::maybe_migrate();
+	}
+
 	/** Alias-mock the role deps so the register_user_role() block runs. */
 	private function stub_role_deps(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\UserDashboard\UserManager' );
