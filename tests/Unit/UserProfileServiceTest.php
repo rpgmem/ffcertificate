@@ -41,11 +41,28 @@ class UserProfileServiceTest extends TestCase {
 	/** @var array<string, array<string, mixed>> */
 	private array $usermeta_store;
 
+	/**
+	 * The one ffc_user_profiles row this harness models.
+	 *
+	 * ONE ROW, NOT A TABLE, AND THAT IS DELIBERATE
+	 *
+	 * `prepare()` is stubbed to return the SQL TEMPLATE, so a `get_row()`
+	 * double cannot tell which user was asked for -- the id never reaches it.
+	 * Every test in this file writes and reads user 42, so modelling one row
+	 * is exactly as expressive as modelling a keyed table would be, and it
+	 * cannot silently answer for the wrong user the way a keyed store whose
+	 * key is guessed would.
+	 *
+	 * @var array<string, mixed>|null
+	 */
+	private ?array $profile_row;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
 		$this->usermeta_store = array();
+		$this->profile_row    = null;
 
 		global $wpdb;
 		$wpdb             = Mockery::mock( 'wpdb' )->makePartial();
@@ -56,6 +73,28 @@ class UserProfileServiceTest extends TestCase {
 		// Generic stubs used across tests.
 		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () {
 			return func_get_args()[0];
+		} )->byDefault();
+
+		// Stateful ffc_user_profiles row, so the identity index (#1313) is
+		// observable the same way the usermeta store makes the ciphertext
+		// observable. `byDefault()`: a test that sets its own expectation on
+		// any of these four wins.
+		$profile =& $this->profile_row;
+		$this->wpdb->shouldReceive( 'get_row' )->andReturnUsing( function () use ( &$profile ) {
+			return $profile;
+		} )->byDefault();
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing( function () use ( &$profile ) {
+			return null === $profile ? null : '1';
+		} )->byDefault();
+		$this->wpdb->shouldReceive( 'insert' )->andReturnUsing( function ( $table, $data ) use ( &$profile ) {
+			unset( $table );
+			$profile = $data;
+			return 1;
+		} )->byDefault();
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing( function ( $table, $data ) use ( &$profile ) {
+			unset( $table );
+			$profile = array_merge( is_array( $profile ) ? $profile : array(), $data );
+			return 1;
 		} )->byDefault();
 
 		Functions\when( 'sanitize_text_field' )->returnArg();
@@ -180,15 +219,41 @@ class UserProfileServiceTest extends TestCase {
 		$this->assertSame( '12345678901', $result['cpf'] );
 	}
 
+	/**
+	 * HASHED_ONLY reads the INDEX, which since #1313 is a column.
+	 *
+	 * The hash used to sit in `ffc_user_cpf_hash` beside the ciphertext, where
+	 * wp_usermeta indexes `meta_key` and never `meta_value` -- so the question
+	 * this policy exists to answer, *which user carries this identifier*, was
+	 * a scan. The ciphertext stays in the meta, which is what that table is
+	 * indexed for.
+	 */
 	public function test_read_usermeta_returns_lookup_hash_for_hashed_only_policy(): void {
-		$this->usermeta_store[42] = array(
-			'ffc_user_cpf'      => 'ENC_CPF',
-			'ffc_user_cpf_hash' => 'HASH_VALUE',
+		$this->usermeta_store[42] = array( 'ffc_user_cpf' => 'ENC_CPF' );
+		$this->profile_row        = array(
+			'user_id'  => 42,
+			'cpf_hash' => 'HASH_VALUE',
 		);
 
 		$result = UserProfileService::read( 42, array( 'cpf' ), ViewPolicy::HASHED_ONLY );
 
 		$this->assertSame( 'HASH_VALUE', $result['cpf'] );
+	}
+
+	/**
+	 * A user with no profile row answers null rather than the empty string.
+	 *
+	 * An identifier lookup compares for equality, so `''` would make every
+	 * user who has no row match every other one -- the exact shape #1313's
+	 * boundary refuses when a value normalises to nothing.
+	 */
+	public function test_read_hashed_only_returns_null_when_the_user_has_no_profile_row(): void {
+		$this->usermeta_store[42] = array( 'ffc_user_cpf' => 'ENC_CPF' );
+		$this->profile_row        = null;
+
+		$result = UserProfileService::read( 42, array( 'cpf' ), ViewPolicy::HASHED_ONLY );
+
+		$this->assertNull( $result['cpf'] );
 	}
 
 	public function test_read_does_not_audit_masked_reads_even_for_sensitive_fields(): void {
@@ -293,7 +358,12 @@ class UserProfileServiceTest extends TestCase {
 
 		$this->assertTrue( $result );
 		$this->assertSame( 'ENC', $this->usermeta_store[42]['ffc_user_cpf'] );
-		$this->assertSame( 'HASH', $this->usermeta_store[42]['ffc_user_cpf_hash'] );
+		$this->assertSame( 'HASH', $this->profile_row['cpf_hash'] );
+		$this->assertArrayNotHasKey(
+			'ffc_user_cpf_hash',
+			$this->usermeta_store[42],
+			'The hash must leave the meta entirely, or two stores answer the same question.'
+		);
 	}
 
 	/**
@@ -323,7 +393,7 @@ class UserProfileServiceTest extends TestCase {
 		$this->assertSame( 'ENC', $this->usermeta_store[42]['ffc_user_cpf'] );
 		$this->assertSame(
 			'HASH',
-			$this->usermeta_store[42]['ffc_user_cpf_hash'],
+			$this->profile_row['cpf_hash'],
 			'The profile must hash the canonical form, or it can never match the hash the other modules store for the same person.'
 		);
 	}
@@ -343,20 +413,24 @@ class UserProfileServiceTest extends TestCase {
 		UserProfileService::write( 42, array( 'cpf' => '...---' ) );
 
 		$this->assertArrayNotHasKey( 'ffc_user_cpf', $this->usermeta_store[42] ?? array() );
-		$this->assertArrayNotHasKey( 'ffc_user_cpf_hash', $this->usermeta_store[42] ?? array() );
+		$this->assertNull( $this->profile_row );
 	}
 
-	public function test_write_deletes_sensitive_meta_and_hash_when_value_empty(): void {
-		$this->usermeta_store[42] = array(
-			'ffc_user_cpf'      => 'PREVIOUS_ENC',
-			'ffc_user_cpf_hash' => 'PREVIOUS_HASH',
+	public function test_write_deletes_sensitive_meta_and_clears_the_index_when_value_empty(): void {
+		$this->usermeta_store[42] = array( 'ffc_user_cpf' => 'PREVIOUS_ENC' );
+		$this->profile_row        = array(
+			'user_id'  => 42,
+			'cpf_hash' => 'PREVIOUS_HASH',
 		);
 
 		$result = UserProfileService::write( 42, array( 'cpf' => '' ) );
 
 		$this->assertTrue( $result );
 		$this->assertArrayNotHasKey( 'ffc_user_cpf', $this->usermeta_store[42] );
-		$this->assertArrayNotHasKey( 'ffc_user_cpf_hash', $this->usermeta_store[42] );
+		$this->assertNull(
+			$this->profile_row['cpf_hash'],
+			'Clearing the value must clear the index, or the row keeps answering for an identifier the user no longer carries.'
+		);
 	}
 
 	public function test_write_non_sensitive_usermeta_does_not_call_encryption(): void {

@@ -58,17 +58,53 @@ class UserProfileFieldMapTest extends TestCase {
 		$this->assertNotContains( 'phone', $sensitive );
 	}
 
-	public function test_hash_meta_key_returns_suffix_for_hashable_fields(): void {
-		$this->assertSame( 'ffc_user_cpf_hash', UserProfileFieldMap::hash_meta_key( 'cpf' ) );
-		$this->assertSame( 'ffc_user_rf_hash', UserProfileFieldMap::hash_meta_key( 'rf' ) );
+	public function test_hash_column_names_the_index_for_hashable_fields(): void {
+		$this->assertSame( 'cpf_hash', UserProfileFieldMap::hash_column( 'cpf' ) );
+		$this->assertSame( 'rf_hash', UserProfileFieldMap::hash_column( 'rf' ) );
 	}
 
-	public function test_hash_meta_key_is_null_for_non_hashable_or_non_usermeta(): void {
+	public function test_hash_column_is_null_for_non_hashable_or_non_usermeta(): void {
 		// RG is sensitive but not hashable.
-		$this->assertNull( UserProfileFieldMap::hash_meta_key( 'rg' ) );
+		$this->assertNull( UserProfileFieldMap::hash_column( 'rg' ) );
 		// display_name lives in the profile table, not usermeta.
-		$this->assertNull( UserProfileFieldMap::hash_meta_key( 'display_name' ) );
-		$this->assertNull( UserProfileFieldMap::hash_meta_key( 'unknown_field' ) );
+		$this->assertNull( UserProfileFieldMap::hash_column( 'display_name' ) );
+		$this->assertNull( UserProfileFieldMap::hash_column( 'unknown_field' ) );
+	}
+
+	/**
+	 * Every hashable field declares BOTH halves of the move (#1313 PR 2).
+	 *
+	 * The column is where the hash is written; the legacy meta key is where
+	 * the backfill reads the existing value from. A field declaring one and
+	 * not the other backfills from nowhere, or writes to nowhere -- and both
+	 * fail in silence, because a missing hash reads as "this user carries no
+	 * such identifier", which is a legitimate answer.
+	 */
+	public function test_every_hashable_field_declares_a_column_and_a_legacy_meta_key(): void {
+		$hashable = array();
+
+		foreach ( UserProfileFieldMap::sensitive_field_keys() as $field ) {
+			$column = UserProfileFieldMap::hash_column( $field );
+			if ( null === $column ) {
+				continue;
+			}
+			$hashable[] = $field;
+			$this->assertNotNull(
+				UserProfileFieldMap::legacy_hash_meta_key( $field ),
+				"Field '{$field}' declares a hash column but no legacy meta key — the backfill would skip it."
+			);
+		}
+
+		$this->assertNotEmpty(
+			$hashable,
+			'No field is hashable — the scan measured nothing and would pass on an empty map.'
+		);
+	}
+
+	public function test_legacy_hash_meta_key_still_names_where_the_hash_used_to_live(): void {
+		$this->assertSame( 'ffc_user_cpf_hash', UserProfileFieldMap::legacy_hash_meta_key( 'cpf' ) );
+		$this->assertSame( 'ffc_user_rf_hash', UserProfileFieldMap::legacy_hash_meta_key( 'rf' ) );
+		$this->assertNull( UserProfileFieldMap::legacy_hash_meta_key( 'rg' ) );
 	}
 
 	public function test_group_by_storage_splits_keys_across_layers(): void {

@@ -65,8 +65,10 @@ final class UserProfileFieldMap {
 	 *   - column:        column name for STORAGE_WP_USER / STORAGE_PROFILE_TABLE.
 	 *   - meta_key:      full meta_key for STORAGE_USERMETA.
 	 *   - sensitive:     bool — the service encrypts on write, decrypts on read.
-	 *   - hashable:      bool — service also writes a lookup hash under
-	 *                    meta_key . '_hash' (only meaningful when storage is usermeta).
+	 *   - hashable:      bool — service also writes a lookup hash (only
+	 *                    meaningful when storage is usermeta).
+	 *   - hash_column:   column on wp_ffc_user_profiles that holds that hash.
+	 *                    Required whenever hashable is true.
 	 *   - mirrors:       list of secondary write targets. The primary location is
 	 *                    canonical for reads; mirrors exist to keep legacy code
 	 *                    paths (e.g. wp_users.display_name) in sync.
@@ -123,22 +125,26 @@ final class UserProfileFieldMap {
 			'sensitive' => false,
 		),
 
-		// Sensitive user-meta fields. CPF and RF are hashable so the
-		// service can build deterministic lookup columns alongside the
-		// ciphertext. RG is encrypted but not commonly looked up by hash.
+		// Sensitive user-meta fields. CPF and RF are hashable, so the
+		// service also writes a deterministic lookup hash -- into the
+		// `hash_column` on ffc_user_profiles, NOT beside the ciphertext
+		// (#1313 PR 2; see hash_column() for why the two stores split).
+		// RG is encrypted but not looked up by hash.
 		'cpf'          => array(
-			'storage'   => self::STORAGE_USERMETA,
-			'meta_key'  => self::EXTENDED_META_PREFIX . 'cpf',
-			'sensitive' => true,
-			'hashable'  => true,
-			'masker'    => 'cpf',
+			'storage'     => self::STORAGE_USERMETA,
+			'meta_key'    => self::EXTENDED_META_PREFIX . 'cpf',
+			'sensitive'   => true,
+			'hashable'    => true,
+			'hash_column' => 'cpf_hash',
+			'masker'      => 'cpf',
 		),
 		'rf'           => array(
-			'storage'   => self::STORAGE_USERMETA,
-			'meta_key'  => self::EXTENDED_META_PREFIX . 'rf',
-			'sensitive' => true,
-			'hashable'  => true,
-			'masker'    => 'cpf',
+			'storage'     => self::STORAGE_USERMETA,
+			'meta_key'    => self::EXTENDED_META_PREFIX . 'rf',
+			'sensitive'   => true,
+			'hashable'    => true,
+			'hash_column' => 'rf_hash',
+			'masker'      => 'cpf',
 		),
 		'rg'           => array(
 			'storage'   => self::STORAGE_USERMETA,
@@ -209,13 +215,52 @@ final class UserProfileFieldMap {
 	}
 
 	/**
-	 * Hash lookup meta key for a hashable usermeta field, or null when
-	 * the field is not hashable.
+	 * Column on wp_ffc_user_profiles that holds the lookup hash for a
+	 * hashable usermeta field, or null when the field is not hashable.
+	 *
+	 * WHY THE HASH AND THE CIPHERTEXT LIVE IN DIFFERENT STORES (#1313)
+	 *
+	 * They answer different questions. The ciphertext is an ATTRIBUTE of one
+	 * user: it is read by user id and never searched, which is exactly what
+	 * wp_usermeta is indexed for. The hash is an INDEX: the question asked of
+	 * it is "which user carries this identifier", and wp_usermeta indexes
+	 * `user_id` and `meta_key` and never `meta_value` -- so asking it there is
+	 * a scan of every row of the key, on a table that also holds every other
+	 * plugin's meta. On ffc_user_profiles it is one indexed column on a table
+	 * with one row per user.
+	 *
+	 * The split is therefore by ACCESS PATTERN, which is the ordinary shape of
+	 * an index sitting beside a record, not a store that drifted in two. What
+	 * keeps the two in step is that a single write path produces both.
 	 *
 	 * @param string $field_key Logical field key.
 	 * @return string|null
 	 */
-	public static function hash_meta_key( string $field_key ): ?string {
+	public static function hash_column( string $field_key ): ?string {
+		$spec = self::FIELDS[ $field_key ] ?? null;
+		if ( null === $spec
+			|| self::STORAGE_USERMETA !== $spec['storage']
+			|| empty( $spec['hashable'] )
+			|| empty( $spec['hash_column'] )
+		) {
+			return null;
+		}
+		return (string) $spec['hash_column'];
+	}
+
+	/**
+	 * LEGACY location of the lookup hash: the usermeta key it was written to
+	 * before #1313 PR 2 moved it to {@see self::hash_column()}.
+	 *
+	 * Nothing writes it any more. It survives because the backfill in
+	 * `UserDashboardActivator` has to know where to read the existing value
+	 * from, and because naming it here is what lets a guard check that the
+	 * backfill and the map agree rather than each carrying its own literal.
+	 *
+	 * @param string $field_key Logical field key.
+	 * @return string|null
+	 */
+	public static function legacy_hash_meta_key( string $field_key ): ?string {
 		$spec = self::FIELDS[ $field_key ] ?? null;
 		// Every registered descriptor carries 'storage'; usermeta entries
 		// always carry 'meta_key'. Only 'hashable' is optional, so that is

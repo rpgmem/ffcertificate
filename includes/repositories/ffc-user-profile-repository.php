@@ -35,7 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * and `user_id` is declared without `NOT NULL` — a `DEFAULT ''` does
  * not make a column non-nullable — so it is `string|null` (#1060).
  *
- * @phpstan-type UserProfileRow array{id: numeric-string, user_id: numeric-string, display_name: string|null, phone: string|null, department: string|null, organization: string|null, notes: string|null, preferences: string|null, created_at: string|null, updated_at: string|null}
+ * @phpstan-type UserProfileRow array{id: numeric-string, user_id: numeric-string, display_name: string|null, phone: string|null, department: string|null, organization: string|null, notes: string|null, preferences: string|null, cpf_hash: string|null, rf_hash: string|null, created_at: string|null, updated_at: string|null}
  */
 class UserProfileRepository extends AbstractRepository {
 

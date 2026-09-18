@@ -49,6 +49,7 @@ namespace FreeFormCertificate\Migrations\Strategies;
 
 use FreeFormCertificate\Core\ArrayValue;
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Repositories\UserProfileRepository;
 use WP_Error;
 
 /*
@@ -98,29 +99,42 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	private const TARGET_USER_PROFILE = 'user_profile_meta';
 
 	/**
-	 * Encrypted meta key => its paired hash meta (null when the field is not
-	 * searchable by hash).
+	 * Encrypted meta key => the ffc_user_profiles COLUMN carrying its lookup
+	 * hash (null when the field is not searchable by hash).
 	 *
-	 * THE KEYS ARE LITERALS HERE ON PURPOSE. The source of truth is
+	 * THE TWO SIDES LIVE IN DIFFERENT STORES, AND THAT IS THE POINT (#1313)
+	 *
+	 * The ciphertext stays in wp_usermeta, which is indexed for "read this
+	 * user's attribute". The hash moved to a column on ffc_user_profiles,
+	 * which is indexed for "which user carries this identifier" -- the
+	 * question wp_usermeta cannot answer without scanning, because it indexes
+	 * `meta_key` and never `meta_value`. So this map now spans both, and a
+	 * rotation that rebuilt only one of them would leave the index answering
+	 * under a salt the ciphertext no longer uses: every lookup silently
+	 * finding nobody, which is worse than the PII being unreadable because
+	 * nothing reports it.
+	 *
+	 * THE NAMES ARE LITERALS HERE ON PURPOSE. The source of truth is
 	 * `UserProfileFieldMap`, in the UserDashboard module -- and importing it
 	 * would create the `Migrations > UserDashboard` edge, which does not exist
 	 * in `ModuleBoundaryTest`'s baseline. The strategy already pins the column
 	 * names of the other two targets for the same reason; what enforces the
 	 * agreement is `KeyRotationUserProfileTargetTest`, which lives outside the
 	 * module graph and fails when the map gains a sensitive field this list
-	 * does not know about.
+	 * does not know about, or names a hash column this list spells differently.
 	 *
-	 * `ffc_user_profiles` is NOT in: its six columns are plain text
+	 * `ffc_user_profiles`'s other columns are NOT in: they are plain text
 	 * (`sensitive => false` in the map), so there is nothing to re-encrypt
 	 * there. #1236 conflated the two in a single line; measured, the ciphertext
-	 * lives in the usermeta alone.
+	 * lives in the usermeta alone -- which is still true, and is why the
+	 * columns above hold a hash rather than an envelope.
 	 *
 	 * @return array<string, string|null>
 	 */
 	private function profile_meta_map(): array {
 		return array(
-			'ffc_user_cpf' => 'ffc_user_cpf_hash',
-			'ffc_user_rf'  => 'ffc_user_rf_hash',
+			'ffc_user_cpf' => 'cpf_hash',
+			'ffc_user_rf'  => 'rf_hash',
 			'ffc_user_rg'  => null,
 		);
 	}
@@ -532,7 +546,10 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	 * here means PII unreadable forever after a salt rotation. The read and the
 	 * write, though, go through `get_user_meta()` / `update_user_meta()`, which
 	 * pass through the object cache and keep the write path identical to
-	 * `UserProfileService`'s -- including writing the hash only when it changes.
+	 * `UserProfileService`'s. The rebuilt hashes leave through
+	 * {@see self::rebuild_identity_index()}, which takes that same service's
+	 * write path for the index -- `UserProfileRepository` -- for the same
+	 * reason.
 	 *
 	 * @return array{processed: int, errors: array<int, string>}
 	 */
@@ -575,7 +592,14 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 			$user_id = (int) $raw_id;
 			$last_id = $user_id;
 
-			foreach ( $map as $meta_key => $hash_key ) {
+			/**
+			 * Rebuilt hashes for this user, flushed in one upsert below.
+			 *
+			 * @var array<string, string> $index
+			 */
+			$index = array();
+
+			foreach ( $map as $meta_key => $hash_column ) {
 				$stored = get_user_meta( $user_id, $meta_key, true );
 
 				// The prefix is a COST filter, not a correctness one:
@@ -612,7 +636,7 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 				}
 				update_user_meta( $user_id, $meta_key, $reencrypted );
 
-				if ( null === $hash_key ) {
+				if ( null === $hash_column ) {
 					continue;
 				}
 
@@ -621,13 +645,10 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 					continue;
 				}
 
-				// Written only when it changes, mirroring the other two
-				// targets: a row already under the current salt costs no write.
-				$current = get_user_meta( $user_id, $hash_key, true );
-				if ( ! is_string( $current ) || ! hash_equals( $hash, $current ) ) {
-					update_user_meta( $user_id, $hash_key, $hash );
-				}
+				$index[ $hash_column ] = $hash;
 			}
+
+			$this->rebuild_identity_index( $user_id, $index );
 
 			++$processed;
 		}
@@ -638,6 +659,52 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 			'processed' => $processed,
 			'errors'    => $errors,
 		);
+	}
+
+	/**
+	 * Write one user's rebuilt hashes to ffc_user_profiles.
+	 *
+	 * It goes through `UserProfileRepository` rather than a direct statement,
+	 * which is the same write path `UserProfileService` takes -- so the
+	 * rotation and the ordinary write cannot disagree about how a row is
+	 * created, and the repository's cache is invalidated either way. The
+	 * `Migrations > Repositories` edge already exists in the boundary
+	 * baseline; `Migrations > UserDashboard` does not, which is why the column
+	 * names above are literals.
+	 *
+	 * Written only when it changes, mirroring the other two targets: a row
+	 * already under the current salt costs no write. That costs one SELECT per
+	 * user -- `findByUserId()` reads the row directly and is NOT one of the
+	 * repository's cached paths -- which is the same trade the meta-side guard
+	 * made with `get_user_meta()`, against a write that would otherwise touch
+	 * every row of the index on every rotation.
+	 *
+	 * @param int                   $user_id WordPress user ID.
+	 * @param array<string, string> $index   Hash column => rebuilt hash.
+	 * @return void
+	 */
+	private function rebuild_identity_index( int $user_id, array $index ): void {
+		if ( empty( $index ) ) {
+			return;
+		}
+
+		$repository = new UserProfileRepository();
+		$row        = $repository->findByUserId( $user_id );
+		$changed    = array();
+
+		foreach ( $index as $column => $hash ) {
+			$stored  = null !== $row ? ( $row[ $column ] ?? null ) : null;
+			$current = is_string( $stored ) ? $stored : '';
+			if ( ! hash_equals( $hash, $current ) ) {
+				$changed[ $column ] = $hash;
+			}
+		}
+
+		if ( empty( $changed ) ) {
+			return;
+		}
+
+		$repository->upsertForUserId( $user_id, $changed );
 	}
 
 	/**

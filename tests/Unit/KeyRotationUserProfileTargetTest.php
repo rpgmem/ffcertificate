@@ -45,6 +45,18 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 	/** @var array<int, array<string, string>> */
 	private array $meta = array();
 
+	/**
+	 * The ffc_user_profiles rows, keyed by user id.
+	 *
+	 * The target grew a second store in #1313: the ciphertext stays in the
+	 * usermeta, the rebuilt HASH goes to an indexed column. A rotation that
+	 * rewrote only the first would leave every identifier lookup silently
+	 * finding nobody, so the harness has to see both.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private array $profiles = array();
+
 	/** @var array<string, mixed> */
 	private array $options = array();
 
@@ -57,8 +69,9 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 		class_exists( '\FreeFormCertificate\Migrations\Strategies\KeyRotationRemainingMigrationStrategy' );
 		class_exists( '\FreeFormCertificate\UserDashboard\UserProfileFieldMap' );
 
-		$this->meta    = array();
-		$this->options = array();
+		$this->meta     = array();
+		$this->options  = array();
+		$this->profiles = array();
 
 		global $wpdb;
 		$wpdb           = Mockery::mock( 'wpdb' )->makePartial();
@@ -87,7 +100,37 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 				if ( str_contains( $sql, 'COUNT(DISTINCT user_id)' ) ) {
 					return count( $this->pending_users( $sql ) );
 				}
+				// UserProfileRepository::existsForUserId().
+				if ( str_contains( $sql, 'ffc_user_profiles' ) ) {
+					$user_id = $this->user_id_of( $sql );
+					return isset( $this->profiles[ $user_id ] ) ? '1' : null;
+				}
 				return 0;
+			}
+		)->byDefault();
+
+		// UserProfileRepository, reading and writing the identity index. The
+		// double's `prepare()` interpolates, so the user id is readable off the
+		// statement -- which is what lets this model a TABLE rather than the
+		// single row a template-returning `prepare()` would force.
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				return $this->profiles[ $this->user_id_of( (string) $sql ) ] ?? null;
+			}
+		)->byDefault();
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) {
+				unset( $table );
+				$this->profiles[ (int) $data['user_id'] ] = $data;
+				return 1;
+			}
+		)->byDefault();
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				unset( $table );
+				$user_id                    = (int) $where['user_id'];
+				$this->profiles[ $user_id ] = array_merge( $this->profiles[ $user_id ] ?? array(), $data );
+				return 1;
 			}
 		)->byDefault();
 
@@ -100,6 +143,9 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 		if ( ! class_exists( 'FreeFormCertificate\Migrations\Strategies\WP_Error' ) ) {
 			class_alias( 'WP_Error', 'FreeFormCertificate\Migrations\Strategies\WP_Error' );
 		}
+
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_cache_flush' )->justReturn( true );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'is_wp_error' )->alias( static fn( $t ) => $t instanceof \WP_Error );
@@ -148,6 +194,16 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 	protected function tearDown(): void {
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * The `user_id` an interpolated single-row statement asks for.
+	 *
+	 * @param string $sql SQL already interpolated by the double's `prepare()`.
+	 * @return int
+	 */
+	private function user_id_of( string $sql ): int {
+		return 1 === preg_match( '/user_id = (\d+)/', $sql, $m ) ? (int) $m[1] : 0;
 	}
 
 	/**
@@ -212,7 +268,7 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 				continue;
 			}
 			$meta_key              = (string) $spec['meta_key'];
-			$expected[ $meta_key ] = empty( $spec['hashable'] ) ? null : $meta_key . '_hash';
+			$expected[ $meta_key ] = UserProfileFieldMap::hash_column( $field );
 		}
 
 		$this->assertNotSame( array(), $expected, 'Read no sensitive field from the map — the check did not run.' );
@@ -235,6 +291,10 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 	 * encrypted would corrupt it. This assertion freezes the measurement.
 	 */
 	public function test_the_profile_table_columns_are_not_sensitive(): void {
+		// The identity-index columns #1313 added are deliberately absent from
+		// this list: they are not FIELDS of the map at all, they are where a
+		// usermeta field's hash is written. A hash is not an envelope, so
+		// re-encrypting it would be exactly the corruption this test freezes.
 		$table_fields = array( 'display_name', 'phone', 'department', 'organization', 'notes', 'preferences' );
 
 		foreach ( $table_fields as $field ) {
@@ -305,13 +365,61 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 
 		$this->strategy->execute( '', array() );
 
-		$this->assertSame( Encryption::hash( '11122233344' ), $this->meta[10]['ffc_user_cpf_hash'] ?? null );
-		$this->assertSame( Encryption::hash( '7654321' ), $this->meta[10]['ffc_user_rf_hash'] ?? null );
+		$this->assertSame( Encryption::hash( '11122233344' ), $this->profiles[10]['cpf_hash'] ?? null );
+		$this->assertSame( Encryption::hash( '7654321' ), $this->profiles[10]['rf_hash'] ?? null );
 		$this->assertArrayNotHasKey(
-			'ffc_user_rg_hash',
-			$this->meta[10],
-			'RG is not hash-searchable in the map; writing one creates a key nothing reads.'
+			'rg_hash',
+			$this->profiles[10],
+			'RG is not hash-searchable in the map; writing one creates a column nothing reads.'
 		);
+		$this->assertArrayNotHasKey(
+			'ffc_user_cpf_hash',
+			$this->meta[10],
+			'The hash must not be written to the meta as well — two stores answering one question is what #1313 removed.'
+		);
+	}
+
+	/**
+	 * The user had no profile row, and the rotation still leaves the index
+	 * answering for them.
+	 *
+	 * The index has to exist for whoever carries the identifier, not for
+	 * whoever also happened to fill in a display name -- otherwise a rotation
+	 * is the moment a subset of users silently stops being findable, and the
+	 * subset is not one anybody can state.
+	 */
+	public function test_a_user_without_a_profile_row_gets_one(): void {
+		$this->seed_user( 10, array( 'ffc_user_cpf' => '11122233344' ) );
+		$this->assertArrayNotHasKey( 10, $this->profiles );
+
+		$this->strategy->execute( '', array() );
+
+		$this->assertSame( Encryption::hash( '11122233344' ), $this->profiles[10]['cpf_hash'] ?? null );
+		$this->assertSame( 10, (int) $this->profiles[10]['user_id'] );
+	}
+
+	/**
+	 * A hash already under the current salt costs no write.
+	 *
+	 * The same property the other two targets hold. Without it every rotation
+	 * rewrites every row of the index, which on a large install is the
+	 * difference between a migration that finishes and one that times out on
+	 * work it did not need to do.
+	 */
+	public function test_an_index_already_current_is_not_rewritten(): void {
+		$this->seed_user( 10, array( 'ffc_user_cpf' => '11122233344' ) );
+		$this->profiles[10] = array(
+			'user_id'  => 10,
+			'cpf_hash' => Encryption::hash( '11122233344' ),
+		);
+
+		global $wpdb;
+		$wpdb->shouldReceive( 'update' )->never();
+		$wpdb->shouldReceive( 'insert' )->never();
+
+		$this->strategy->execute( '', array() );
+
+		$this->assertSame( Encryption::hash( '11122233344' ), $this->profiles[10]['cpf_hash'] );
 	}
 
 	/**
