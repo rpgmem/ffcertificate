@@ -98,6 +98,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A masked CPF stored through the user profile hashed the punctuation** (#1313): `UserProfileService` hashed the value exactly as handed to it, so a reregistration submitting `123.456.789-09` — what the form's own mask produces — wrote a hash no other module could match, while submissions, appointments and recruitment all hashed the digits. Same person, two values.
 - **Admin submission search by a masked CPF matched nothing** (#1313): one hash of the raw term was compared against `email_hash`, `cpf_hash` and `rf_hash` alike, so pasting `123.456.789-09` hashed the punctuation while the column holds the digits. Each column is now compared against the hash of its own canonical form.
 
+### Security
+
+- **Uninstall left the encrypted CPF/RF/RG in `wp_usermeta`** (#1316): step 7 deleted two meta keys by name while both of its own annotations claimed it swept by prefix, so everything the user profile writes survived an opt-in "Delete all plugin data" — ciphertext whose key material was gone with the rest. It is one prefix sweep now, with the underscore escaped so it cannot reach another plugin's keys. A list could not have worked: only three `ffc_*` meta keys exist as literals in the source.
+
 ## [6.25.0] (2026-09-15) — `59ccb2b`
 
 ### Added
