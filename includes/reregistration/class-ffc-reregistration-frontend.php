@@ -178,21 +178,21 @@ class ReregistrationFrontend {
 	}
 
 	/**
-	 * AJAX: traz os valores da última submissão APROVADA do usuário.
+	 * AJAX: brings back the values of the user's last APPROVED submission.
 	 *
-	 * Só roda quando o participante PEDE -- a oferta é um aviso no formulário,
-	 * e sem o clique nada é buscado. Isso é de propósito: dado de um ciclo
-	 * anterior aceito sem conferir é recadastramento desatualizado com cara de
-	 * novo, e quem pediu sabe que pediu.
+	 * It only runs when the participant ASKS -- the offer is a notice on the
+	 * form, and without the click nothing is fetched. That is on purpose: data
+	 * from a previous cycle accepted without checking is a stale reregistration
+	 * wearing a new one's face, and whoever asked knows they asked.
 	 *
-	 * **Devolve PII em texto claro**, então a autorização é a mesma de
-	 * `ajax_get_form()` e vale reler: nonce, usuário derivado de
-	 * `get_current_user_id()` -- nunca da requisição --, e a submissão de
-	 * ORIGEM é buscada POR esse usuário, não por um id que o cliente mande.
-	 * Não há como pedir o histórico de outra pessoa.
+	 * **It returns PII in clear text**, so the authorization is the same as
+	 * `ajax_get_form()`'s and is worth re-reading: a nonce, the user derived
+	 * from `get_current_user_id()` -- never from the request -- and the SOURCE
+	 * submission looked up BY that user, not by an id the client sends. There
+	 * is no way to ask for somebody else's history.
 	 *
-	 * Só campos que existem na campanha ATUAL voltam: o que não coincide é
-	 * ignorado, sem conversão e sem aviso.
+	 * Only fields that exist in the CURRENT campaign come back: whatever does
+	 * not match is ignored, with no conversion and no warning.
 	 *
 	 * @since 6.25.0
 	 * @return void
@@ -200,10 +200,11 @@ class ReregistrationFrontend {
 	public static function ajax_import_previous(): void {
 		check_ajax_referer( 'ffc_reregistration_frontend', 'nonce' );
 
-		// Lido por `RequestInput`, nao por um cast direto sobre o superglobal:
-		// o helper guarda o escalar, entao um array postado le como 0 em vez
-		// de virar o numero 1 (#1087). As tres leituras antigas deste arquivo
-		// estao no baseline do `RequestInputCastTest`; esta nao precisa entrar.
+		// Read through `RequestInput`, not by a direct cast over the
+		// superglobal: the helper guards the scalar, so a posted array reads as
+		// 0 instead of becoming the number 1 (#1087). This file's three older
+		// reads are in `RequestInputCastTest`'s baseline; this one need not
+		// enter it.
 		$reregistration_id = RequestInput::get_post_int( 'reregistration_id' );
 		$user_id           = get_current_user_id();
 
@@ -216,7 +217,7 @@ class ReregistrationFrontend {
 			wp_send_json_error( array( 'message' => __( 'Reregistration not found or not active.', 'ffcertificate' ) ) );
 		}
 
-		// O mesmo portão do formulário: sem linha nesta campanha, sem importar.
+		// The same gate as the form's: no row in this campaign, no import.
 		if ( ! self::submission_for( $reregistration_id, $user_id ) ) {
 			wp_send_json_error( array( 'message' => __( 'You are not part of this reregistration.', 'ffcertificate' ) ) );
 		}
@@ -229,20 +230,20 @@ class ReregistrationFrontend {
 		$saved  = $source->data ? json_decode( (string) $source->data, true ) : array();
 		$values = is_array( $saved['fields'] ?? null ) ? $saved['fields'] : array();
 
-		// Os sensíveis vêm criptografados, como o #1210 estabeleceu. Os campos
-		// de DECIFRAGEM são os da campanha de ORIGEM -- é lá que a flag
-		// `is_sensitive` que governou a gravação vive.
+		// The sensitive ones come encrypted, as #1210 established. The fields
+		// used for DECRYPTION are the SOURCE campaign's -- that is where the
+		// `is_sensitive` flag which governed the write lives.
 		$source_rereg = ReregistrationRepository::get_by_id( (int) $source->reregistration_id );
 		if ( $source_rereg ) {
-			$values = FichaGenerator::decrypt_field_values(
-				FichaGenerator::get_custom_fields_for_reregistration( $source_rereg ),
+			$values = RecordGenerator::decrypt_field_values(
+				RecordGenerator::get_custom_fields_for_reregistration( $source_rereg ),
 				$values
 			);
 		}
 
-		// Interseção com a campanha atual. Chave que não existe aqui é ignorada.
+		// Intersection with the current campaign. A key that does not exist here is ignored.
 		$current_keys = array();
-		foreach ( FichaGenerator::get_custom_fields_for_reregistration( $rereg ) as $field ) {
+		foreach ( RecordGenerator::get_custom_fields_for_reregistration( $rereg ) as $field ) {
 			$current_keys[ (string) $field->field_key ] = true;
 		}
 

@@ -88,9 +88,8 @@ final class SpacingTokensTest extends TestCase {
 	private const BUDGET = array(
 		'ffc-admin-move-submissions.css'   => 1,
 		'ffc-admin-settings.css'           => 7,
-		// O único literal desta folha saiu com a regra fóssil do
-		// `.ffc-status-badge` (#1193): sem emissor desde a migração da lista
-		// para `.ffc-badge`.
+		// This sheet's only literal left with the fossil `.ffc-status-badge` rule
+		// (#1193): with no emitter since the list migrated to `.ffc-badge`.
 		'ffc-admin-submissions.css'        => 0,
 		'ffc-admin.css'                    => 2,
 		'ffc-audience-admin.css'           => 8,
@@ -98,11 +97,11 @@ final class SpacingTokensTest extends TestCase {
 		'ffc-calendar-frontend.css'        => 4,
 		'ffc-certificates-dashboard.css'   => 1,
 		'ffc-code-editor-dark.css'         => 1,
-		// Dois: o `3px` vertical do `.ffc-badge` e o do `.ffc-pill`, que têm a
-		// mesma altura de propósito. O segundo não é literal novo no
-		// repositório -- é o que estava escondido num literal PHP até o #1193,
-		// e o saldo do PR é zero porque `ffc-admin-submissions.css` devolveu o
-		// seu na mesma passada.
+		// Two: `.ffc-badge`'s vertical `3px` and `.ffc-pill`'s, which are the
+		// same height on purpose. The second is not a new literal in the
+		// repository -- it is what was hidden inside a PHP literal until #1193,
+		// and the PR's net is zero because `ffc-admin-submissions.css` gave its
+		// own back in the same pass.
 		'ffc-common.css'                   => 2,
 		'ffc-custom-fields-admin.css'      => 3,
 		'ffc-frontend.css'                 => 19,
@@ -197,7 +196,7 @@ final class SpacingTokensTest extends TestCase {
 
 			if ( $count > $budget ) {
 				$over[] = sprintf(
-					"%s: %d literais, orçamento %d\n      %s",
+					"%s: %d literals, budget %d\n      %s",
 					$sheet,
 					$count,
 					$budget,
@@ -209,11 +208,11 @@ final class SpacingTokensTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$over,
-			"Literal de espaçamento acima do orçamento:\n\n  " . implode( "\n\n  ", $over )
-			. "\n\nLeia a escala: 2 · 4 · 6 · 8 · 10 · 12 · 16 · 20 · 24 são"
-			. "\n`var(--ffc-spacing-3xs .. 3xl)` — é a escada inteira, não há outra."
-			. "\nUm valor fora disso é ajuste ótico ou distância avulsa — deixe literal E"
-			. "\naumente o orçamento nesta linha de base, com a razão."
+			"Spacing literal over budget:\n\n  " . implode( "\n\n  ", $over )
+			. "\n\nRead the scale: 2 · 4 · 6 · 8 · 10 · 12 · 16 · 20 · 24 are"
+			. "\n`var(--ffc-spacing-3xs .. 3xl)` — that is the whole ladder, there is no other."
+			. "\nA value outside it is an optical nudge or a one-off distance — leave it literal AND"
+			. "\nraise the budget on this baseline line, with the reason."
 		);
 	}
 
@@ -232,14 +231,14 @@ final class SpacingTokensTest extends TestCase {
 			$count  = count( self::literals( $path ) );
 
 			if ( $count < $budget ) {
-				$stale[] = sprintf( '%s: %d literais, orçamento ainda %d', $sheet, $count, $budget );
+				$stale[] = sprintf( '%s: %d literals, budget still %d', $sheet, $count, $budget );
 			}
 		}
 
 		$this->assertSame(
 			array(),
 			$stale,
-			"Orçamento folgado — baixe-o para o valor medido e trave o ganho:\n  "
+			"Slack in the budget — lower it to the measured value and lock the win in:\n  "
 			. implode( "\n  ", $stale )
 		);
 	}
@@ -252,7 +251,7 @@ final class SpacingTokensTest extends TestCase {
 	 * The scale declares exactly the nine steps — no tenth, no second ladder.
 	 */
 	public function test_the_scale_declares_exactly_the_expected_steps(): void {
-		// Um degrau nomeado por número viraria chave int; compara como string.
+		// A step named by a number would become an int key; compare as strings.
 		$declared = array_map( 'strval', array_keys( self::declared_steps() ) );
 		sort( $declared );
 
@@ -304,7 +303,7 @@ final class SpacingTokensTest extends TestCase {
 	 */
 	public function test_the_scan_still_sees_the_stylesheets(): void {
 		$sheets = CssSelectors::sheets();
-		$this->assertGreaterThan( 20, count( $sheets ), 'A varredura não achou as folhas.' );
+		$this->assertGreaterThan( 20, count( $sheets ), 'The scan did not find the sheets.' );
 
 		$reads = 0;
 		foreach ( $sheets as $path ) {
@@ -314,8 +313,8 @@ final class SpacingTokensTest extends TestCase {
 		$this->assertGreaterThan(
 			900,
 			$reads,
-			'Quase ninguém lê a escala — foi exatamente esse o estado que a #1169 encontrou '
-			. '(3 consumidores de 1.238) e que esta guarda existe para impedir de voltar.'
+			'Almost nobody reads the scale — that is exactly the state #1169 found '
+			. '(3 consumers out of 1,238) and that this guard exists to stop coming back.'
 		);
 	}
 
@@ -326,7 +325,7 @@ final class SpacingTokensTest extends TestCase {
 		$real = array_map( 'basename', CssSelectors::sheets() );
 
 		foreach ( array_keys( self::BUDGET ) as $sheet ) {
-			$this->assertContains( $sheet, $real, "O orçamento cita `{$sheet}`, que não existe." );
+			$this->assertContains( $sheet, $real, "The budget names `{$sheet}`, which does not exist." );
 		}
 	}
 }

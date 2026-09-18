@@ -98,12 +98,12 @@ class DecryptFailureLoggingTest extends TestCase {
 	}
 
 	/**
-	 * Zera o contador por requisicao do teto de `decrypt_failure` (#1234).
+	 * Resets the per-request counter behind the `decrypt_failure` cap (#1234).
 	 *
-	 * E estado ESTATICO: a suite roda num processo so, entao sem este reset as
-	 * falhas de um teste contam para o teto do seguinte e o sexto teste deste
-	 * arquivo passaria a nao registrar nada -- uma falha que aponta para o
-	 * arquivo errado.
+	 * It is STATIC state: the suite runs in a single process, so without this
+	 * reset one test's failures count towards the next one's cap and the sixth
+	 * test in this file would start logging nothing -- a failure that points at
+	 * the wrong file.
 	 */
 	private function resetDecryptFailureCounter(): void {
 		$ref = new \ReflectionClass( Encryption::class );
@@ -219,11 +219,11 @@ class DecryptFailureLoggingTest extends TestCase {
 	}
 
 	// ==================================================================
-	// Teto por requisicao (#1234)
+	// Per-request cap (#1234)
 	// ==================================================================
 
 	/**
-	 * Ate o teto, uma linha por falha -- nada muda para o caso normal.
+	 * Up to the cap, one entry per failure -- nothing changes for the normal case.
 	 */
 	public function test_failures_up_to_the_cap_each_get_their_own_entry(): void {
 		$this->enableActivityLog();
@@ -240,11 +240,11 @@ class DecryptFailureLoggingTest extends TestCase {
 	}
 
 	/**
-	 * Passado o teto, UMA marca de supressao -- e so uma, por mais que chova.
+	 * Past the cap, ONE suppression marker -- and only one, however hard it rains.
 	 *
-	 * E o defeito que o #1234 descreve: uma chave quebrada numa exportacao de
-	 * 5.000 submissoes escrevia 5.000 INSERTs em `ffc_activity_log`. O custo da
-	 * auditoria passava o da leitura que falhou.
+	 * It is the defect #1234 describes: a broken key during an export of 5,000
+	 * submissions wrote 5,000 INSERTs into `ffc_activity_log`. The cost of the
+	 * audit exceeded that of the read that failed.
 	 */
 	public function test_crossing_the_cap_writes_exactly_one_suppression_marker(): void {
 		$this->enableActivityLog();
@@ -259,22 +259,22 @@ class DecryptFailureLoggingTest extends TestCase {
 		$this->assertCount(
 			Encryption::DECRYPT_FAILURE_LOG_CAP + 1,
 			$buffer,
-			'Cinquenta e cinco falhas devem render cinco linhas mais uma marca, nao cinquenta e cinco.'
+			'Fifty-five failures must yield five entries plus one marker, not fifty-five.'
 		);
 		$this->assertSame(
 			1,
 			count( array_keys( $actions, 'decrypt_failure_suppressed', true ) ),
-			'A marca e escrita na travessia do teto, uma unica vez.'
+			'The marker is written when the cap is crossed, exactly once.'
 		);
 		$this->assertSame( 'decrypt_failure_suppressed', $buffer[ Encryption::DECRYPT_FAILURE_LOG_CAP ]['action'] );
 	}
 
 	/**
-	 * A marca diz qual foi o teto, e nada alem disso.
+	 * The marker says what the cap was, and nothing beyond that.
 	 *
-	 * Quem le o log precisa saber que houve corte e onde; o comprimento do
-	 * texto cifrado da enesima falha nao acrescenta nada que a primeira ja nao
-	 * tenha dito.
+	 * Whoever reads the log needs to know a cut happened and where; the
+	 * ciphertext length of the nth failure adds nothing the first one did not
+	 * already say.
 	 */
 	public function test_the_suppression_marker_carries_the_cap_and_nothing_else(): void {
 		$this->enableActivityLog();
@@ -291,12 +291,12 @@ class DecryptFailureLoggingTest extends TestCase {
 	}
 
 	/**
-	 * Passado o teto, o caminho sai ANTES de ler a opcao do log.
+	 * Past the cap, the path returns BEFORE reading the log's option.
 	 *
-	 * E a razao de o teto ser a PRIMEIRA coisa no metodo, e nao um filtro na
-	 * hora de gravar: numa enxurrada, `ActivityLog::is_enabled()` -- que le
-	 * `ffc_settings` -- passaria a ser o custo. Aqui contamos as leituras: elas
-	 * param de crescer junto com as linhas.
+	 * It is the reason the cap is the FIRST thing in the method, not a filter at
+	 * write time: in a flood, `ActivityLog::is_enabled()` -- which reads
+	 * `ffc_settings` -- would become the cost. Here we count the reads: they stop
+	 * growing along with the entries.
 	 */
 	public function test_past_the_cap_the_settings_option_is_no_longer_read(): void {
 		$reads = 0;
@@ -322,16 +322,16 @@ class DecryptFailureLoggingTest extends TestCase {
 		$this->assertSame(
 			$at_the_crossing,
 			$reads,
-			'Cem falhas depois do teto nao podem custar nem uma leitura de opcao.'
+			'A hundred failures past the cap must not cost even one option read.'
 		);
 	}
 
 	/**
-	 * O teto corta o LOG, nunca o resultado.
+	 * The cap cuts the LOG, never the result.
 	 *
-	 * `decrypt()` continua devolvendo null em toda falha -- se o teto mudasse
-	 * isso, uma chave quebrada passaria a devolver texto cifrado como se fosse
-	 * claro depois da quinta linha.
+	 * `decrypt()` keeps returning null on every failure -- if the cap changed
+	 * that, a broken key would start returning ciphertext as though it were
+	 * plaintext after the fifth entry.
 	 */
 	public function test_the_cap_never_changes_what_decrypt_returns(): void {
 		$this->enableActivityLog();
@@ -339,7 +339,7 @@ class DecryptFailureLoggingTest extends TestCase {
 		for ( $i = 0; $i < Encryption::DECRYPT_FAILURE_LOG_CAP + 20; $i++ ) {
 			$this->assertNull(
 				Encryption::decrypt( '!!!invalid-base64!!!' ),
-				'A falha numero ' . ( $i + 1 ) . ' deixou de devolver null.'
+				'Failure number ' . ( $i + 1 ) . ' stopped returning null.'
 			);
 		}
 	}

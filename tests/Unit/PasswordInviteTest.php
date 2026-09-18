@@ -11,18 +11,19 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 
 /**
- * O link que deixa um convidado definir a própria senha (#1212).
+ * The link that lets an invited user set their own password (#1212).
  *
- * Três invariantes carregam o peso de segurança e cada uma tem o seu teste:
+ * Three invariants carry the security weight and each has its own test:
  *
- * 1. **O usuário vem do TOKEN, nunca da requisição.** `test_*_ignores_a_posted_user_id`
- *    põe um `user_id` no POST; ler dali quebra o teste.
- * 2. **O filtro de expiração é escopado.** `password_reset_expiration` não
- *    recebe o usuário, então um registro permanente mudaria a expiração de
- *    qualquer reset do site. O teste exige `add_filter` E `remove_filter`.
- * 3. **O token morre na redefinição bem-sucedida, não antes.** Senhas que não
- *    conferem NÃO podem chamar `reset_password`, senão um erro de digitação
- *    queima o convite.
+ * 1. **The user comes from the TOKEN, never from the request.**
+ *    `test_*_ignores_a_posted_user_id` puts a `user_id` in the POST; reading it
+ *    from there breaks the test.
+ * 2. **The expiration filter is scoped.** `password_reset_expiration` does not
+ *    receive the user, so a permanent registration would change the expiration
+ *    of every reset on the site. The test requires `add_filter` AND
+ *    `remove_filter`.
+ * 3. **The token dies on a successful reset, not before.** Passwords that do
+ *    not match must NOT call `reset_password`, or a typo burns the invitation.
  *
  * @covers \FreeFormCertificate\Core\PasswordInvite
  * @runTestsInSeparateProcesses
@@ -45,10 +46,10 @@ class PasswordInviteTest extends TestCase {
 		} );
 		Functions\when( 'get_option' )->justReturn( 0 );
 		Functions\when( 'home_url' )->justReturn( 'https://example.test/dashboard' );
-		// `add_query_arg()` do core aceita DUAS formas -- `( array, url )` e
-		// `( chave, valor, url )`. Um duplo que só conhece a primeira embaralha
-		// os argumentos da segunda e faz o teste afirmar sobre uma string que
-		// o produto nunca gera.
+		// Core's `add_query_arg()` accepts TWO shapes -- `( array, url )` and
+		// `( key, value, url )`. A double that only knows the first scrambles the
+		// second's arguments and makes the test assert about a string the product
+		// never generates.
 		Functions\when( 'add_query_arg' )->alias( static function ( $a, $b = '', $c = '' ) {
 			if ( is_array( $a ) ) {
 				return $b . '|' . http_build_query( $a );
@@ -78,11 +79,10 @@ class PasswordInviteTest extends TestCase {
 	private function mockSettings( int $hours = 48 ): void {
 		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
 		$reader->shouldReceive( 'invite_password_link_hours' )->andReturn( $hours );
-		// O `ActivityLog` REAL é carregado de propósito: um alias do Mockery
-		// não declara constantes de classe, e `log()` usa `LEVEL_INFO`.
-		// Desligá-lo pelo próprio portão que ele consulta é mais fiel que
-		// substituí-lo -- e é o mesmo caminho que uma instalação com o log
-		// desativado percorre.
+		// The REAL `ActivityLog` is loaded on purpose: a Mockery alias does not
+		// declare class constants, and `log()` uses `LEVEL_INFO`. Switching it off
+		// through the very gate it consults is more faithful than replacing it --
+		// and it is the same path an install with the log disabled takes.
 		$reader->shouldReceive( 'activity_log_enabled' )->andReturn( false );
 	}
 
@@ -98,8 +98,8 @@ class PasswordInviteTest extends TestCase {
 	}
 
 	public function test_expiration_is_clamped_on_read_not_only_on_write(): void {
-		// Um valor gravado antes de um limite se mover ainda precisa cair
-		// onde o código consegue usar.
+		// A value written before a bound moved still has to land somewhere the
+		// code can use.
 		$this->mockSettings( 99999 );
 		$this->assertSame( PasswordInvite::MAX_HOURS, PasswordInvite::expiration_hours() );
 	}
@@ -148,8 +148,8 @@ class PasswordInviteTest extends TestCase {
 	}
 
 	public function test_validate_removes_the_filter_even_when_the_key_is_rejected(): void {
-		// Um filtro que sobrevive à rejeição vaza para o reset de senha de
-		// qualquer outro usuário do site.
+		// A filter that survives the rejection leaks into the password reset of
+		// every other user on the site.
 		$this->mockSettings();
 		Functions\expect( 'add_filter' )->once();
 		Functions\expect( 'remove_filter' )->once();
@@ -221,8 +221,8 @@ class PasswordInviteTest extends TestCase {
 	}
 
 	public function test_handle_submit_does_not_spend_the_token_when_the_passwords_differ(): void {
-		// O token TEM de sobreviver: um erro de digitação não pode queimar o
-		// convite. `reset_password` é o que o gastaria.
+		// The token MUST survive: a typo cannot burn the invitation.
+		// `reset_password` is what would spend it.
 		$this->mockSettings();
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'add_filter' )->justReturn( true );
@@ -236,7 +236,7 @@ class PasswordInviteTest extends TestCase {
 				'_ffc_nonce'              => 'ok',
 				PasswordInvite::ARG_KEY   => 'ABC123',
 				PasswordInvite::ARG_LOGIN => 'maria',
-				'ffc_pass1'               => 'umaSenhaBoa1',
+				'ffc_pass1'               => 'aGoodPassword1',
 				'ffc_pass2'               => 'outraSenha99',
 			),
 			'ffc_password_error=mismatch'
@@ -273,9 +273,9 @@ class PasswordInviteTest extends TestCase {
 		Functions\when( 'add_filter' )->justReturn( true );
 		Functions\when( 'remove_filter' )->justReturn( true );
 		Functions\when( 'check_password_reset_key' )->justReturn( $user );
-		Functions\expect( 'reset_password' )->once()->with( $user, 'umaSenhaBoa1' );
+		Functions\expect( 'reset_password' )->once()->with( $user, 'aGoodPassword1' );
 		Functions\expect( 'wp_set_current_user' )->once()->with( 7 );
-		// A sessão nasce DEPOIS que a senha existe, nunca do link sozinho.
+		// The session is born AFTER the password exists, never from the link alone.
 		Functions\expect( 'wp_set_auth_cookie' )->once()->with( 7, false );
 
 		$this->submitExpectingRedirect(
@@ -283,16 +283,16 @@ class PasswordInviteTest extends TestCase {
 				'_ffc_nonce'              => 'ok',
 				PasswordInvite::ARG_KEY   => 'ABC123',
 				PasswordInvite::ARG_LOGIN => 'maria',
-				'ffc_pass1'               => 'umaSenhaBoa1',
-				'ffc_pass2'               => 'umaSenhaBoa1',
+				'ffc_pass1'               => 'aGoodPassword1',
+				'ffc_pass2'               => 'aGoodPassword1',
 			),
 			'ffc_password=set'
 		);
 	}
 
 	public function test_handle_submit_ignores_a_posted_user_id(): void {
-		// O usuário vem do token. Se algum dia alguém ler `user_id` do POST,
-		// este teste quebra: o id postado (99) não é o do token (7).
+		// The user comes from the token. If anybody ever reads `user_id` from the
+		// POST, this test breaks: the posted id (99) is not the token's (7).
 		$this->mockSettings();
 		$user = $this->makeUser( 7, 'maria' );
 
@@ -300,7 +300,7 @@ class PasswordInviteTest extends TestCase {
 		Functions\when( 'add_filter' )->justReturn( true );
 		Functions\when( 'remove_filter' )->justReturn( true );
 		Functions\when( 'check_password_reset_key' )->justReturn( $user );
-		Functions\expect( 'reset_password' )->once()->with( $user, 'umaSenhaBoa1' );
+		Functions\expect( 'reset_password' )->once()->with( $user, 'aGoodPassword1' );
 		Functions\expect( 'wp_set_auth_cookie' )->once()->with( 7, false );
 		Functions\when( 'wp_set_current_user' )->justReturn( null );
 
@@ -310,8 +310,8 @@ class PasswordInviteTest extends TestCase {
 				PasswordInvite::ARG_KEY   => 'ABC123',
 				PasswordInvite::ARG_LOGIN => 'maria',
 				'user_id'                 => '99',
-				'ffc_pass1'               => 'umaSenhaBoa1',
-				'ffc_pass2'               => 'umaSenhaBoa1',
+				'ffc_pass1'               => 'aGoodPassword1',
+				'ffc_pass2'               => 'aGoodPassword1',
 			),
 			'ffc_password=set'
 		);

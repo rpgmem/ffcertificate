@@ -1,6 +1,7 @@
 <?php
 /**
- * Um controle ou selo que só tinha fundo precisa de contorno no alto contraste.
+ * A control or badge whose only boundary was its background needs a contour in
+ * forced-colors mode.
  *
  * @package FreeFormCertificate\Tests
  */
@@ -13,73 +14,76 @@ use FreeFormCertificate\Tests\Support\CssSelectors;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Guarda de contorno sob `forced-colors` (#1165, sub-issue da #1148).
+ * Forced-colors contour guard (#1165, a sub-issue of #1148).
  *
- * No modo de alto contraste o agente de usuário **força** `color`,
- * `background-color` e `border-color` para as cores do sistema e descarta
- * `box-shadow`. Um componente cujo limite era só o fundo deixa de ter limite.
+ * In forced-colors mode the user agent **forces** `color`, `background-color`
+ * and `border-color` to the system colours and discards `box-shadow`. A
+ * component whose only boundary was its background stops having one.
  *
- * **Não era hipótese.** Medido em Chromium sobre a paleta e a folha pública
- * reais: os cinco selos de estado do agendamento colapsavam em **um só**
- * (mesmo branco, mesmo preto, zero bordas), e o botão de envio do formulário
- * público — a ação primária da tela — virava uma palavra sem contorno.
+ * **It was not a hypothesis.** Measured in Chromium against the real palette
+ * and the real public sheet: the five scheduling status badges collapsed into
+ * **one** (same white, same black, zero borders), and the public form's submit
+ * button — the screen's primary action — became a word with no outline.
  *
- * A guarda **bloqueia em zero**: todo seletor de controle ou selo que declara
- * fundo e nenhum contorno precisa estar coberto por uma regra
- * `@media (forced-colors: active)`. Exceções vão em `ALLOWED` com o motivo.
+ * The guard **blocks at zero**: every control or badge selector that declares a
+ * background and no contour must be covered by an
+ * `@media (forced-colors: active)` rule. Exceptions go in `ALLOWED` with the
+ * reason.
  *
- * **Por que só controle e selo, e não todo fundo.** A varredura acha 274
- * seletores com fundo e sem contorno; a maioria é decorativa (listra de
- * tabela, fundo de página, véu de modal) e perder o fundo ali não custa nada.
- * Exigir borda de todos seria ruído, e ruído é como uma guarda vira algo que
- * se aprende a ignorar. Os outros 187 estão medidos e registrados na #1165 —
- * entre eles há casos que carregam significado (dia selecionado do calendário,
- * linha cancelada) e que precisam de julgamento caso a caso, não de regra.
+ * **Why only controls and badges, and not every background.** The scan finds
+ * 274 selectors with a background and no contour; most are decorative (table
+ * striping, a page background, a modal veil) and losing the background there
+ * costs nothing. Demanding a border from all of them would be noise, and noise
+ * is how a guard becomes something people learn to skip. The other 187 are
+ * measured and recorded in #1165 — among them are cases that carry meaning (a
+ * selected calendar day, a cancelled row) and that need case-by-case judgement,
+ * not a rule.
  *
- * Três defeitos da própria medição, todos corrigidos e nenhum adivinhável:
+ * Three defects in the measurement itself, all fixed and none guessable:
  *
- * 1. **O anel de foco não é contorno permanente.** A primeira varredura contou
- *    `outline` de `:focus-visible` como se o componente tivesse limite, e por
- *    isso excluiu justamente `.ffc-submit-btn` — o pior caso. Contorno só
- *    conta no estado neutro.
- * 2. **Ler só `border-top-width` mente.** O probe reportou
- *    `.ffc-form-info-block` como "some", quando ele tem `border-left: 4px` e
- *    nunca esteve quebrado. Um componente pode ter limite em um lado só.
- * 3. **`border-radius` não é borda**, e um seletor como `.ffc-pdf-stage` casa
- *    "tag" por substring. A categoria precisa de fronteira de segmento.
+ * 1. **The focus ring is not a permanent contour.** The first scan counted a
+ *    `:focus-visible` `outline` as if the component had a boundary, and so
+ *    excluded `.ffc-submit-btn` of all things — the worst case. A contour only
+ *    counts in the resting state.
+ * 2. **Reading only `border-top-width` lies.** The probe reported
+ *    `.ffc-form-info-block` as broken when it has `border-left: 4px` and was
+ *    never broken at all. A component can have its boundary on one side only.
+ * 3. **`border-radius` is not a border**, and a selector like `.ffc-pdf-stage`
+ *    matches "tag" by substring. The category needs a segment boundary.
  *
- * O que ela NÃO vê: se o contorno é *bonito*, se a cor do sistema escolhida é
- * a certa para o papel, e o que acontece numa máquina Windows de verdade —
- * isto mede declaração, e a evidência de render veio do Chromium em emulação.
+ * What it does NOT see: whether the contour is *good-looking*, whether the
+ * chosen system colour is the right one for the role, and what happens on a
+ * real Windows machine — this measures declarations, and the render evidence
+ * came from Chromium under emulation.
  */
 class ForcedColorsContourTest extends TestCase {
 
 	/**
-	 * Seletores que ficam sem regra de contorno, com o motivo.
+	 * Selectors left without a contour rule, each with its reason.
 	 *
 	 * @var array<string, string>
 	 */
 	private const ALLOWED = array(
-		// O papel do PDF, não um selo — casou a categoria por substring
-		// ("s-tag-e"). Impressão e PDF são claros por definição (CLAUDE.md).
-		'.ffc-pdf-stage' => 'papel do PDF; impressão é clara por definição, e a categoria casou por substring',
+		// The PDF's paper, not a badge — it matched the category by substring
+		// ("s-tag-e"). Print and PDF are light by definition (CLAUDE.md).
+		'.ffc-pdf-stage' => 'the PDF paper; print is light by definition, and the category matched by substring',
 	);
 
 	/**
-	 * Um token de categoria precisa ser um segmento inteiro, não um pedaço.
+	 * A category token must be a whole segment, not a fragment.
 	 */
 	private const CONTROL = '/(?:^|[-.\s])(?:btn|button)(?:[-.\s]|$)/';
 	private const BADGE   = '/(?:^|[-.\s])(?:status|badge|pill|tag|chip)(?:[-.\s]|$)/';
 
 	/**
-	 * Estados: o que eles declaram não descreve o componente em repouso.
+	 * States: what they declare does not describe the component at rest.
 	 */
 	private const STATE = '/:(hover|focus|focus-visible|focus-within|active|visited|disabled|checked|target)\b/';
 
 	/**
-	 * Reduz um seletor ao componente: sem pseudo-elemento, sem estado.
+	 * Reduces a selector to the component: no pseudo-element, no state.
 	 *
-	 * @param string $selector Seletor único.
+	 * @param string $selector A single selector.
 	 * @return string
 	 */
 	private function component( string $selector ): string {
@@ -90,7 +94,8 @@ class ForcedColorsContourTest extends TestCase {
 	}
 
 	/**
-	 * Varre as folhas: quem tem fundo, quem tem contorno, quem tem regra forçada.
+	 * Scans the sheets: who has a background, who has a contour, who has a
+	 * forced-colors rule.
 	 *
 	 * @return array{background: array<string, true>, contour: array<string, true>, forced: array<string, true>, rules: int}
 	 */
@@ -103,17 +108,17 @@ class ForcedColorsContourTest extends TestCase {
 		foreach ( CssSelectors::sheets() as $path ) {
 			$css = (string) file_get_contents( $path );
 
-			// Os seletores que vivem dentro de um bloco `forced-colors`.
+			// The selectors that live inside a `forced-colors` block.
 			foreach ( $this->forced_blocks( $css ) as $block ) {
 				foreach ( CssSelectors::of( '@media x {' . $block . '}' ) as $one ) {
 					$forced[ $this->component( $one ) ] = true;
 				}
 			}
 
-			// …e o resto é lido SEM esses blocos. Sem isto a guarda se
-			// autossabota: a própria borda que ela exige passa a contar como
-			// contorno, o componente deixa de parecer necessitado, e apagar a
-			// regra depois não falharia mais.
+			// …and the rest is read WITHOUT those blocks. Without this the guard
+			// sabotages itself: the very border it demands starts counting as a
+			// contour, the component stops looking like it needs one, and
+			// deleting the rule later would no longer fail.
 			foreach ( CssSelectors::rules( $this->without_forced_blocks( $css ) ) as $rule ) {
 				++$count;
 				$declarations = array();
@@ -164,9 +169,9 @@ class ForcedColorsContourTest extends TestCase {
 	}
 
 	/**
-	 * A folha sem os blocos `forced-colors`.
+	 * The sheet with the `forced-colors` blocks removed.
 	 *
-	 * @param string $css Conteúdo da folha.
+	 * @param string $css Sheet contents.
 	 * @return string
 	 */
 	private function without_forced_blocks( string $css ): string {
@@ -192,9 +197,9 @@ class ForcedColorsContourTest extends TestCase {
 	}
 
 	/**
-	 * Corpos dos blocos `@media (forced-colors: active)` de uma folha.
+	 * Bodies of a sheet's `@media (forced-colors: active)` blocks.
 	 *
-	 * @param string $css Conteúdo da folha.
+	 * @param string $css Sheet contents.
 	 * @return array<int, string>
 	 */
 	private function forced_blocks( string $css ): array {
@@ -223,7 +228,7 @@ class ForcedColorsContourTest extends TestCase {
 	}
 
 	/**
-	 * Todo controle e selo sem contorno tem regra de alto contraste.
+	 * Every control and badge without a contour has a forced-colors rule.
 	 *
 	 * @return void
 	 */
@@ -247,16 +252,16 @@ class ForcedColorsContourTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$missing,
-			"Controle ou selo que declara fundo, não declara contorno e não tem regra "
-				. "`@media (forced-colors: active)`. No alto contraste ele perde o limite e "
-				. "deixa de ser um componente. Acrescente a regra na mesma folha "
-				. "(`ButtonText` para o que se clica, `CanvasText` para o que se lê), ou "
-				. "registre em ALLOWED com o motivo:\n" . implode( "\n", $missing )
+			"Control or badge that declares a background, declares no contour and has no "
+				. "`@media (forced-colors: active)` rule. In forced-colors mode it loses its "
+				. "boundary and stops being a component. Add the rule to the same sheet "
+				. "(`ButtonText` for what is clicked, `CanvasText` for what is read), or "
+				. "record it in ALLOWED with the reason:\n" . implode( "\n", $missing )
 		);
 	}
 
 	/**
-	 * Toda entrada de ALLOWED ainda existe e carrega motivo.
+	 * Every ALLOWED entry still exists and carries a reason.
 	 *
 	 * @return void
 	 */
@@ -266,10 +271,10 @@ class ForcedColorsContourTest extends TestCase {
 
 		foreach ( self::ALLOWED as $component => $reason ) {
 			if ( strlen( trim( $reason ) ) < 15 ) {
-				$problems[] = "{$component}: sem motivo escrito.";
+				$problems[] = "{$component}: no written reason.";
 			}
 			if ( ! isset( $scan['background'][ $component ] ) ) {
-				$problems[] = "{$component}: não declara mais fundo — remova de ALLOWED.";
+				$problems[] = "{$component}: no longer declares a background — drop it from ALLOWED.";
 			}
 		}
 
@@ -277,10 +282,11 @@ class ForcedColorsContourTest extends TestCase {
 	}
 
 	/**
-	 * O anel de foco não conta como contorno permanente.
+	 * A focus ring does not count as a permanent contour.
 	 *
-	 * É o defeito que escondeu `.ffc-submit-btn` da primeira medição: ele tem
-	 * `outline` no `:focus-visible`, e a varredura leu isso como "tem limite".
+	 * This is the defect that hid `.ffc-submit-btn` from the first measurement:
+	 * it has an `outline` on `:focus-visible`, and the scan read that as "it has
+	 * a boundary".
 	 *
 	 * @return void
 	 */
@@ -290,25 +296,25 @@ class ForcedColorsContourTest extends TestCase {
 		$this->assertArrayHasKey(
 			'.ffc-shortcode .ffc-submit-btn',
 			$scan['background'],
-			'O botão de envio precisa continuar sendo visto como componente com fundo.'
+			'The submit button must keep being seen as a component with a background.'
 		);
 		$this->assertArrayNotHasKey(
 			'.ffc-shortcode .ffc-submit-btn',
 			$scan['contour'],
-			'O botão de envio não tem borda em repouso — só anel de foco, que não conta.'
+			'The submit button has no border at rest — only a focus ring, which does not count.'
 		);
 		$this->assertArrayHasKey(
 			'.ffc-shortcode .ffc-submit-btn',
 			$scan['forced'],
-			'…e por isso ele precisa da regra de alto contraste.'
+			'…and that is why it needs the forced-colors rule.'
 		);
 	}
 
 	/**
-	 * Uma borda de um lado só é contorno.
+	 * A border on one side only is a contour.
 	 *
-	 * `.ffc-form-info-block` foi reportado como quebrado por um probe que lia
-	 * só `border-top-width`. Ele tem `border-left` e nunca esteve quebrado.
+	 * `.ffc-form-info-block` was reported as broken by a probe that read only
+	 * `border-top-width`. It has `border-left` and was never broken.
 	 *
 	 * @return void
 	 */
@@ -318,25 +324,25 @@ class ForcedColorsContourTest extends TestCase {
 		$this->assertArrayHasKey(
 			'.ffc-shortcode .ffc-form-info-block',
 			$scan['contour'],
-			'`border-left` é contorno: o componente não perde a forma no alto contraste.'
+			'`border-left` is a contour: the component does not lose its shape in forced colors.'
 		);
 	}
 
 	/**
-	 * A varredura não colapsou.
+	 * The scan did not collapse.
 	 *
 	 * @return void
 	 */
 	public function test_the_scan_still_reads_the_stylesheets(): void {
 		$scan = $this->scan();
 
-		$this->assertGreaterThanOrEqual( 2000, $scan['rules'], 'A varredura perdeu regras — vê dentro de @media?' );
-		$this->assertGreaterThanOrEqual( 400, count( $scan['background'] ), 'A varredura perdeu seletores com fundo.' );
-		$this->assertGreaterThanOrEqual( 80, count( $scan['forced'] ), 'A varredura perdeu os blocos forced-colors.' );
+		$this->assertGreaterThanOrEqual( 2000, $scan['rules'], 'The scan lost rules — does it see inside @media?' );
+		$this->assertGreaterThanOrEqual( 400, count( $scan['background'] ), 'The scan lost selectors with a background.' );
+		$this->assertGreaterThanOrEqual( 80, count( $scan['forced'] ), 'The scan lost the forced-colors blocks.' );
 	}
 
 	/**
-	 * A categoria casa segmento, não pedaço de palavra.
+	 * The category matches a segment, not a fragment of a word.
 	 *
 	 * @return void
 	 */
@@ -345,7 +351,7 @@ class ForcedColorsContourTest extends TestCase {
 		$this->assertSame( 1, preg_match( self::BADGE, '.ffc-cap-chip--muted' ) );
 		$this->assertSame( 1, preg_match( self::CONTROL, '.ffc-shortcode .ffc-submit-btn' ) );
 
-		// "s-tag-e" não é uma tag, e "debutante" não é um botão.
+		// "s-tag-e" is not a tag, and "debutante" is not a button.
 		$this->assertSame( 0, preg_match( self::BADGE, '.ffc-pdf-stage' ) );
 		$this->assertSame( 0, preg_match( self::CONTROL, '.ffc-debutante' ) );
 	}

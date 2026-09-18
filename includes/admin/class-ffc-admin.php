@@ -137,7 +137,7 @@ class Admin {
 		}
 
 		// Write actions (trash/restore/delete + bulk) require the manage cap —
-		// the *vê e edita* tier. Read-only viewers (ffc_view_certificates) reach
+		// the *view and edit* tier. Read-only viewers (ffc_view_certificates) reach
 		// the page but never run these branches.
 		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_certificates' ) ) {
 			return;

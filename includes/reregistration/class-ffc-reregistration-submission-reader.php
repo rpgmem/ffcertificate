@@ -29,18 +29,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @phpstan-type ReregistrationSubmissionRow \stdClass&object{id: string, reregistration_id: string, user_id: string, status: string, submitted_at: numeric-string|int|null, reviewed_at: numeric-string|int|null, reviewed_by: string|null, notes: string|null, auth_code: string|null, magic_token: string|null, invited_at: numeric-string|int|null, created_at: string, updated_at: string, data?: string|null}
  *
- * A linha da submissao-fonte da importacao (#1213): a linha de submissao mais
- * as duas colunas que o JOIN traz da campanha de origem, e `data` como
- * NAO-opcional (a consulta e `SELECT s.*`, entao a coluna vem sempre; a forma
- * acima a declara opcional porque ha consultas que selecionam colunas avulsas).
+ * The import source submission row (#1213): the submission row plus the two
+ * columns the JOIN brings from the source campaign, and `data` as NON-optional
+ * (the query is `SELECT s.*`, so the column always comes; the shape above
+ * declares it optional because some queries select individual columns).
  *
- * Escrita por extenso, e nao como `ReregistrationSubmissionRow&object{...}`:
- * uma interseccao NAO consegue tornar obrigatoria uma chave que o outro lado
- * declara opcional, e o PHPStan rejeita o alias inteiro com
- * `typeAlias.unresolvableType` -- o que degrada a assinatura de volta para
- * `object` e faz reaparecerem exatamente os erros que este alias existe para
- * remover. A duplicacao e o preco; se uma coluna entrar na forma acima, ela
- * precisa entrar aqui tambem.
+ * Written out in full rather than as `ReregistrationSubmissionRow&object{...}`:
+ * an intersection CANNOT make required a key the other side declares optional,
+ * and PHPStan rejects the whole alias with `typeAlias.unresolvableType` -- which
+ * degrades the signature back to `object` and brings back exactly the errors
+ * this alias exists to remove. The duplication is the price; if a column enters
+ * the shape above, it has to enter here too.
  * @phpstan-type ReregistrationImportSourceRow \stdClass&object{id: string, reregistration_id: string, user_id: string, status: string, submitted_at: numeric-string|int|null, reviewed_at: numeric-string|int|null, reviewed_by: string|null, notes: string|null, auth_code: string|null, magic_token: string|null, invited_at: numeric-string|int|null, created_at: string, updated_at: string, data: string|null, reregistration_title: string, start_date: string|null}
  */
 class ReregistrationSubmissionReader {
@@ -165,7 +164,7 @@ class ReregistrationSubmissionReader {
 			// before the campaign closed still surfaces from its auth code.
 			// The status flip approved → expired happens for housekeeping
 			// when the campaign window ends; the auth code stays valid and
-			// the participant must keep the ability to reach the ficha
+			// the participant must keep the ability to reach the record
 			// they earned. `rejected` / `pending` / `in_progress` still
 			// excluded — those never had a code generated anyway.
 			$wpdb->prepare( "SELECT * FROM %i WHERE auth_code = %s AND status IN ('submitted', 'approved', 'expired')", $table, $auth_code )
@@ -195,7 +194,7 @@ class ReregistrationSubmissionReader {
 		 */
 		$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Token lookup: a consumed or revoked magic token must never be served from cache, so this read is deliberately uncached.
 			// 6.7.4 — Same `expired` inclusion as get_by_auth_code() above.
-			// Magic links printed on (or emailed about) an approved ficha
+			// Magic links printed on (or emailed about) an approved record
 			// must keep working after the parent campaign ends.
 			$wpdb->prepare( "SELECT * FROM %i WHERE magic_token = %s AND status IN ('submitted', 'approved', 'expired')", $table, $token )
 		);
@@ -266,22 +265,21 @@ class ReregistrationSubmissionReader {
 	}
 
 	/**
-	 * A submissão APROVADA mais recente do usuário, fora da campanha atual.
+	 * The user's most recent APPROVED submission, outside the current campaign.
 	 *
-	 * É a origem da importação da #1213. Só `approved` conta: rascunho,
-	 * devolvida e recusada não representam dado que a instituição aceitou, e
-	 * oferecer o conteúdo delas convidaria o participante a reenviar o que já
-	 * foi reprovado.
+	 * This is #1213's import source. Only `approved` counts: a draft, a returned
+	 * and a rejected submission do not represent data the institution accepted,
+	 * and offering their content would invite the participant to resend what has
+	 * already been refused.
 	 *
-	 * A ordenação é por `r.start_date DESC` -- o ciclo mais recente --, e não
-	 * por data de submissão: quando o usuário tem submissões em campanhas
-	 * diferentes, o que importa é qual CICLO é o mais novo, não quem digitou
-	 * por último.
+	 * The ordering is by `r.start_date DESC` -- the most recent cycle -- and not
+	 * by submission date: when the user has submissions in different campaigns,
+	 * what matters is which CYCLE is the newest, not who typed last.
 	 *
 	 * @since 6.25.0
-	 * @param int $user_id                    Usuário dono das submissões.
-	 * @param int $exclude_reregistration_id  Campanha atual, que não é origem de si mesma.
-	 * @return ReregistrationImportSourceRow|null Linha da submissão com o título da campanha, ou null.
+	 * @param int $user_id                    The user who owns the submissions.
+	 * @param int $exclude_reregistration_id  The current campaign, which is not its own source.
+	 * @return ReregistrationImportSourceRow|null The submission row with the campaign title, or null.
 	 */
 	public static function get_latest_approved_for_user( int $user_id, int $exclude_reregistration_id ): ?object {
 		if ( $user_id <= 0 ) {
@@ -561,9 +559,9 @@ class ReregistrationSubmissionReader {
 	public const UNFINISHED_STATUSES = array( 'pending', 'in_progress', 'expired', 'rejected' );
 
 	/**
-	 * Quem o lembrete alcanca. Subconjunto deliberado de
-	 * {@see self::UNFINISHED_STATUSES} -- ver
-	 * {@see self::get_awaiting_reminder()} para o motivo.
+	 * Who the reminder reaches. A deliberate subset of
+	 * {@see self::UNFINISHED_STATUSES} -- see
+	 * {@see self::get_awaiting_reminder()} for why.
 	 *
 	 * @var array<int, string>
 	 */
@@ -607,8 +605,8 @@ class ReregistrationSubmissionReader {
 
 		$clause = implode( ' OR ', $where );
 
-		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- O sniff conta os marcadores do literal e não sabe que `prepare()` aceita um array único de argumentos, que é como a tabela, o id e os status chegam.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Leitura imediatamente antes da escrita que muda as mesmas linhas; uma resposta em cache reenviaria e-mail.
+		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The sniff counts the literal's placeholders and does not know `prepare()` accepts a single array of arguments, which is how the table, the id and the statuses arrive.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- A read immediately before the write that changes the same rows; a cached answer would resend email.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i WHERE reregistration_id = %d AND ( {$clause} )",
@@ -626,59 +624,58 @@ class ReregistrationSubmissionReader {
 	}
 
 	/**
-	 * As submissoes que ainda devem receber um LEMBRETE.
+	 * The submissions that are still owed a REMINDER.
 	 *
-	 * Espelha {@see self::get_awaiting_invitation()} com `reminder_sent_at` no
-	 * lugar de `invited_at`, porque a regra e a mesma: um por campanha, mais um
-	 * a cada extensao de prazo.
+	 * Mirrors {@see self::get_awaiting_invitation()} with `reminder_sent_at` in
+	 * place of `invited_at`, because the rule is the same: one per campaign,
+	 * plus one on every deadline extension.
 	 *
-	 * O QUE ISTO CONSERTA
+	 * WHAT THIS FIXES
 	 *
-	 * Ate aqui nao havia marca nenhuma, e o cron e DIARIO enquanto a consulta
-	 * de campanhas usa `DATEDIFF(end_date, CURDATE()) <= reminder_days` -- uma
-	 * JANELA, nao um dia. Com `reminder_days = 7`, cada participante pendente
-	 * recebia sete e-mails, um por dia (#1232).
+	 * Until now there was no mark at all, and the cron is DAILY while the
+	 * campaign query uses `DATEDIFF(end_date, CURDATE()) <= reminder_days` -- a
+	 * WINDOW, not a day. With `reminder_days = 7`, every pending participant
+	 * received seven emails, one a day (#1232).
 	 *
-	 * DUAS DIFERENCAS DELIBERADAS EM RELACAO AO CONVITE
+	 * TWO DELIBERATE DIFFERENCES FROM THE INVITATION
 	 *
-	 * 1. O publico-base continua sendo `pending` + `in_progress`, que e
-	 *    exatamente quem o lembrete ja alcancava. O convite usa
-	 *    `UNFINISHED_STATUSES` (que inclui `expired` e `rejected`); adotar esse
-	 *    conjunto aqui ALARGARIA silenciosamente quem recebe lembrete, uma
-	 *    mudanca de comportamento que nao pertence a uma correcao de
-	 *    duplicidade.
-	 * 2. Na reabertura por extensao, porem, o conjunto e o mesmo do convite --
-	 *    se o prazo andou para frente, quem nao finalizou volta a ser
-	 *    lembravel pelo mesmo criterio que o torna convidavel.
+	 * 1. The base audience stays `pending` + `in_progress`, which is exactly who
+	 *    the reminder already reached. The invitation uses
+	 *    `UNFINISHED_STATUSES` (which includes `expired` and `rejected`);
+	 *    adopting that set here would silently WIDEN who gets a reminder, a
+	 *    behaviour change that does not belong in a duplication fix.
+	 * 2. On the reopening by extension, however, the set is the invitation's --
+	 *    if the deadline moved forward, whoever did not finish becomes
+	 *    remindable by the same criterion that makes them invitable.
 	 *
-	 * O LOTEAMENTO, E POR QUE O CURSOR NAO E OPCIONAL (#1232 passo 2)
+	 * THE BATCHING, AND WHY THE CURSOR IS NOT OPTIONAL (#1232 step 2)
 	 *
-	 * `$after_id` + `$limit` formam um keyset em `id`, o mesmo padrao que o
-	 * contrato de exportacao do #772 usa, e aqui ele nao e so uma questao de
-	 * paginacao estavel: e o que garante PROGRESSO.
+	 * `$after_id` + `$limit` form a keyset on `id`, the same pattern #772's
+	 * export contract uses, and here it is not merely a matter of stable
+	 * pagination: it is what guarantees PROGRESS.
 	 *
-	 * A tentacao e dispensar o cursor, porque `reminder_sent_at IS NULL` ja
-	 * parece ser um -- cada envio carimba a linha, entao a proxima pagina
-	 * naturalmente exclui quem ja recebeu. Isso falha quando o envio NAO
-	 * carimba, e existe um caso documentado em que ele nunca vai carimbar:
-	 * `send_to_user()` devolve `false` quando `get_userdata()` nao acha o
-	 * usuario, e `user_id` aqui e `NOT NULL` e ORFAO ACEITO (#822) -- apagar a
-	 * conta no WordPress deixa a submissao apontando para um usuario que nao
-	 * existe mais. Essa linha fica `reminder_sent_at IS NULL` para sempre.
+	 * The temptation is to drop the cursor, because `reminder_sent_at IS NULL`
+	 * already looks like one -- every send stamps the row, so the next page
+	 * naturally excludes whoever already received it. That fails when the send
+	 * does NOT stamp, and there is a documented case where it never will:
+	 * `send_to_user()` returns `false` when `get_userdata()` cannot find the
+	 * user, and `user_id` here is `NOT NULL` and an ACCEPTED ORPHAN (#822) --
+	 * deleting the WordPress account leaves the submission pointing at a user
+	 * that no longer exists. That row stays `reminder_sent_at IS NULL` forever.
 	 *
-	 * Sem cursor, o lote seguinte rebusca a mesma linha, o driver ve pagina
-	 * cheia, reagenda, e o ciclo se repete a cada 60 segundos sem fim. Com
-	 * cursor, ela e ultrapassada dentro da varredura do dia e so volta a ser
-	 * tentada na execucao diaria seguinte -- que e a politica de retentativa
-	 * certa para uma falha que pode ser transitoria.
+	 * With no cursor the next batch fetches the same row again, the driver sees
+	 * a full page, reschedules, and the cycle repeats every 60 seconds without
+	 * end. With the cursor it is stepped past inside the day's sweep and is only
+	 * retried on the next daily run -- which is the right retry policy for a
+	 * failure that may be transient.
 	 *
-	 * @param int      $reregistration_id ID da campanha.
-	 * @param int|null $extended_at       Unix da ultima extensao de prazo, ou
-	 *                                    null quando nao houve nenhuma.
-	 * @param int      $after_id          So linhas com `id` MAIOR que este.
-	 *                                    `0` comeca do inicio.
-	 * @param int      $limit             Tamanho maximo da pagina. `0` e sem
-	 *                                    limite, que e o caminho manual.
+	 * @param int      $reregistration_id The campaign ID.
+	 * @param int|null $extended_at       Unix time of the last deadline
+	 *                                    extension, or null when there was none.
+	 * @param int      $after_id          Only rows with an `id` GREATER than
+	 *                                    this. `0` starts from the beginning.
+	 * @param int      $limit             Maximum page size. `0` means no limit,
+	 *                                    which is the manual path.
 	 * @return list<ReregistrationSubmissionRow>
 	 */
 	public static function get_awaiting_reminder( int $reregistration_id, ?int $extended_at = null, int $after_id = 0, int $limit = 0 ): array {
@@ -701,9 +698,9 @@ class ReregistrationSubmissionReader {
 
 		$clause = implode( ' OR ', $where );
 
-		// A ORDEM IMPORTA: `prepare()` recebe um array unico e substitui na
-		// ordem em que os marcadores aparecem no SQL. Cursor e limite entram
-		// DEPOIS das clausulas acima porque e ali que seus marcadores estao.
+		// ORDER MATTERS: `prepare()` takes a single array and substitutes in the
+		// order the placeholders appear in the SQL. Cursor and limit come AFTER
+		// the clauses above because that is where their placeholders are.
 		$cursor_sql = '';
 		if ( $after_id > 0 ) {
 			$cursor_sql = ' AND id > %d';
@@ -716,8 +713,8 @@ class ReregistrationSubmissionReader {
 			$values[]  = $limit;
 		}
 
-		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- O sniff conta os marcadores do literal e nao sabe que `prepare()` aceita um array unico de argumentos, que e como a tabela, o id e os status chegam.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Leitura imediatamente antes da escrita que muda as mesmas linhas; uma resposta em cache reenviaria e-mail.
+		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The sniff counts the literal's placeholders and does not know `prepare()` accepts a single array of arguments, which is how the table, the id and the statuses arrive.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- A read immediately before the write that changes the same rows; a cached answer would resend email.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM %i WHERE reregistration_id = %d AND status IN ({$placeholders}) AND ( {$clause} ){$cursor_sql} ORDER BY id ASC{$limit_sql}",

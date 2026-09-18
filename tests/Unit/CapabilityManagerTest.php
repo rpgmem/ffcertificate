@@ -23,11 +23,11 @@ class CapabilityManagerTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
-		// `CapabilityMigrator::users_with_ffc_grants()` monta a chave da meta de
-		// capabilities a partir do prefixo do blog (#1254). Sem este duplo, o
-		// teste herda o `$wpdb` que OUTRO ficheiro deixou no global -- e foi
-		// assim que o CI reprovou com oito erros que nenhum `--filter` sobre os
-		// ficheiros tocados mostrava.
+		// `CapabilityMigrator::users_with_ffc_grants()` builds the capabilities
+		// meta key from the blog prefix (#1254). Without this double, the test
+		// inherits the `$wpdb` ANOTHER file left in the global -- and that is how
+		// CI failed with eight errors that no `--filter` over the touched files
+		// would show.
 		global $wpdb;
 		$wpdb         = Mockery::mock( 'wpdb' );
 		$wpdb->prefix = 'wp_';
@@ -388,6 +388,37 @@ class CapabilityManagerTest extends TestCase {
 		Functions\when( 'get_userdata' )->justReturn( $mock_user );
 
 		CapabilityManager::grant_context_capabilities( 30, 'audience' );
+	}
+
+	/**
+	 * The two no-op contexts, asserted as no-ops rather than left to
+	 * `default`. Recruitment candidates and reregistration importees ride the
+	 * `ffc_end_user` role's baseline `read` cap; granting either the three
+	 * certificate caps — which is what reusing `CONTEXT_CERTIFICATE` would do —
+	 * puts a grant nobody asked for in the log as if it had been decided.
+	 *
+	 * @dataProvider provide_no_op_contexts
+	 * @param string $context Context key.
+	 */
+	public function test_grant_context_capabilities_grants_nothing_for( string $context ): void {
+		$mock_user = Mockery::mock( 'WP_User' );
+		$mock_user->shouldReceive( 'has_cap' )->andReturn( false );
+		$mock_user->shouldNotReceive( 'add_cap' );
+		$mock_user->ID           = 50;
+		$mock_user->user_email   = '';
+		$mock_user->display_name = 'Test';
+
+		Functions\when( 'get_userdata' )->justReturn( $mock_user );
+
+		CapabilityManager::grant_context_capabilities( 50, $context );
+	}
+
+	/** @return array<string, array{string}> */
+	public function provide_no_op_contexts(): array {
+		return array(
+			'recruitment'    => array( CapabilityManager::CONTEXT_RECRUITMENT ),
+			'reregistration' => array( CapabilityManager::CONTEXT_REREGISTRATION ),
+		);
 	}
 
 	public function test_grant_context_sends_chromed_access_email_when_enabled(): void {
@@ -1190,16 +1221,19 @@ class CapabilityManagerTest extends TestCase {
 
 	public function test_admin_capabilities_contains_import_tier(): void {
 		// ffc_import_audiences is new (GAP H); ffc_import_recruitment predates
-		// it but is now strictly enforced.
+		// it but is now strictly enforced; ffc_import_reregistration joined in
+		// 6.26.0 (#1214).
 		$this->assertContains( 'ffc_import_audiences', CapabilityManager::ADMIN_CAPABILITIES );
 		$this->assertContains( 'ffc_import_recruitment', CapabilityManager::ADMIN_CAPABILITIES );
+		$this->assertContains( 'ffc_import_reregistration', CapabilityManager::ADMIN_CAPABILITIES );
 	}
 
 	public function test_import_cap_grant_map_pairs_each_manage_to_its_import(): void {
 		$map = CapabilityMigrator::import_cap_grant_map();
-		$this->assertCount( 2, $map );
+		$this->assertCount( 3, $map );
 		$this->assertSame( 'ffc_import_audiences', $map['ffc_manage_audiences'] );
 		$this->assertSame( 'ffc_import_recruitment', $map['ffc_manage_recruitment'] );
+		$this->assertSame( 'ffc_import_reregistration', $map['ffc_manage_reregistration'] );
 		foreach ( $map as $manage => $import ) {
 			$this->assertStringStartsWith( 'ffc_manage_', $manage );
 			$this->assertStringStartsWith( 'ffc_import_', $import );

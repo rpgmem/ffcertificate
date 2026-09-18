@@ -54,8 +54,8 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 	/**
 	 * Os cinco rótulos revisados carregam a string-fonte nova.
 	 *
-	 * `__()` devolve o argumento nos testes, então o que se lê aqui é a
-	 * string-FONTE. A tradução é cobrada pelo teste seguinte.
+	 * `__()` returns its argument in tests, so what is read here is the SOURCE
+	 * string. The translation is charged by the next test.
 	 *
 	 * @return void
 	 */
@@ -70,10 +70,10 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 	}
 
 	/**
-	 * Os campos que passaram a obrigatórios, e o que segue opcional.
+	 * The fields that became required, and the one that stays optional.
 	 *
-	 * `endereco_complemento` continua opcional DE PROPÓSITO -- complemento é
-	 * o campo que legitimamente não se aplica a muitos endereços.
+	 * `endereco_complemento` stays optional ON PURPOSE -- the address complement
+	 * is the field that legitimately does not apply to many addresses.
 	 *
 	 * @return void
 	 */
@@ -81,23 +81,23 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		$by_key = $this->definitionByKey();
 
 		foreach ( array( 'rf', 'endereco', 'endereco_numero', 'contato_emergencia', 'tel_emergencia', 'email_institucional', 'sindicato' ) as $key ) {
-			$this->assertSame( 1, (int) $by_key[ $key ]['required'], "`{$key}` deveria ser obrigatório." );
+			$this->assertSame( 1, (int) $by_key[ $key ]['required'], "`{$key}` should be required." );
 		}
 
-		$this->assertSame( 0, (int) $by_key['endereco_complemento']['required'], 'Complemento segue opcional.' );
+		$this->assertSame( 0, (int) $by_key['endereco_complemento']['required'], 'The address complement stays optional.' );
 	}
 
 	/**
-	 * Todo rótulo semeado tem tradução pt_BR. Bloqueia em ZERO.
+	 * Every seeded label has a pt_BR translation. Blocks at ZERO.
 	 *
-	 * O seeder grava o resultado de `__()` NO BANCO, no momento em que o
-	 * público é criado. Então um rótulo sem tradução não degrada para
-	 * inglês só naquela tela: ele nasce em inglês na linha e fica assim até
-	 * alguém renomear na UI, público por público.
+	 * The seeder writes `__()`'s result INTO THE DATABASE, at the moment the
+	 * audience is created. So an untranslated label does not degrade to English
+	 * on that one screen: it is born in English in the row and stays that way
+	 * until somebody renames it in the UI, audience by audience.
 	 *
-	 * Isto cobre a classe, não os cinco desta leva: mudar uma string-fonte
-	 * sem acrescentar a tradução é o engano natural, e foi o que quase
-	 * aconteceu ao escrever esta própria issue.
+	 * This covers the class, not the five in this batch: changing a source
+	 * without adding the translation is the natural slip, and it is what nearly
+	 * happened while writing this very issue.
 	 *
 	 * @return void
 	 */
@@ -113,7 +113,7 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		}
 		$labels = array_values( array_unique( $labels ) );
 
-		$this->assertNotEmpty( $labels, 'A varredura não pode passar por vazia.' );
+		$this->assertNotEmpty( $labels, 'The scan must not pass by being empty.' );
 
 		$missing = array();
 		foreach ( $labels as $label ) {
@@ -125,18 +125,18 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$missing,
-			"Rótulo semeado sem tradução pt_BR -- um público novo nasceria com ele em inglês:\n" . implode( "\n", $missing )
+			"Seeded label with no pt_BR translation -- a new audience would be born with it in English:\n" . implode( "\n", $missing )
 		);
 	}
 
 	/**
-	 * As duas traduções que estavam ERRADAS, não apenas ausentes.
+	 * The two translations that were WRONG, not merely absent.
 	 *
-	 * `Union` ali é sindicato, e estava como "Estado" -- colidindo com o
-	 * `State` do endereço, de modo que o formulário mostrava duas coisas
-	 * diferentes sob a mesma palavra. `Acknowledgment` é ciência/aceite, e
-	 * estava como "Agradecimentos"; o próprio código já chamava a coisa de
-	 * `get_default_termo_ciencia_html()`.
+	 * `Union` there means the labour union, and it read "Estado" -- colliding
+	 * with the address\'s `State`, so the form showed two different things under
+	 * the same word. `Acknowledgment` means the acceptance term, and it read
+	 * "Agradecimentos"; the code itself already called the thing
+	 * `get_default_acknowledgment_html()`.
 	 *
 	 * @return void
 	 */
@@ -287,7 +287,7 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		$this->assertSame( 1, $cpf['required'] );
 	}
 
-	public function test_divisao_setor_is_dependent_select(): void {
+	public function test_division_sector_is_dependent_select(): void {
 		$defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
 		$found = false;
 		foreach ( $defs as $def ) {

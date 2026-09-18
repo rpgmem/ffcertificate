@@ -580,7 +580,7 @@ final class AudienceAdminAudienceRenderer {
 				</div>
 				<?php if ( 'acknowledgment' === $field->field_type ) : ?>
 					<div class="ffc-field-html-container">
-						<p class="description"><?php esc_html_e( 'Notice shown at the end of the reregistration form and printed on the ficha PDF. Use "Replicate lists to children" to push it to descendant audiences.', 'ffcertificate' ); ?></p>
+						<p class="description"><?php esc_html_e( 'Notice shown at the end of the reregistration form and printed on the record PDF. Use "Replicate lists to children" to push it to descendant audiences.', 'ffcertificate' ); ?></p>
 						<?php
 						wp_editor(
 							isset( $options['html'] ) ? (string) $options['html'] : '',

@@ -84,7 +84,7 @@ class AudienceAdminImport {
 								<td>
 									<input type="file" name="members_csv" id="members_csv" accept=".csv" required>
 									<p class="description">
-										<?php esc_html_e( 'Required columns: email. Optional: name, audience_id or audience_name.', 'ffcertificate' ); ?>
+										<?php esc_html_e( 'Required columns: email. Optional: name, audience_id or audience_name, cpf, rf. When a row carries a CPF or RF, the person is matched by it first, so someone already registered under a different address is not given a second account.', 'ffcertificate' ); ?>
 									</p>
 								</td>
 							</tr>

@@ -239,7 +239,10 @@ class SubmissionGuardsTest extends TestCase {
 
 	public function test_field_sanitizer_rejects_bad_cpf_length(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault();
+			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault()
+			->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing( static fn( $v ) => (string) preg_replace( '/\D/', '', (string) $v ) )->byDefault()
+			->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) )->byDefault()
+			->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' )->byDefault();
 		$_POST              = array( 'cpf_rf' => '123' );
 		$ctx                = $this->ctx();
 		$ctx->fields_config = array( array( 'name' => 'cpf_rf', 'type' => 'text' ) );
@@ -253,7 +256,10 @@ class SubmissionGuardsTest extends TestCase {
 
 	public function test_field_sanitizer_rejects_when_email_empty(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault();
+			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault()
+			->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing( static fn( $v ) => (string) preg_replace( '/\D/', '', (string) $v ) )->byDefault()
+			->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) )->byDefault()
+			->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' )->byDefault();
 		Functions\when( 'sanitize_email' )->justReturn( '' );
 		$_POST              = array( 'email' => 'not-an-email' );
 		$ctx                = $this->ctx();
@@ -268,7 +274,10 @@ class SubmissionGuardsTest extends TestCase {
 
 	public function test_field_sanitizer_populates_context_on_happy_path(): void {
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault();
+			->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $v ) => $v )->byDefault()
+			->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing( static fn( $v ) => (string) preg_replace( '/\D/', '', (string) $v ) )->byDefault()
+			->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) )->byDefault()
+			->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' )->byDefault();
 		$_POST              = array( 'email' => 'USER@EX.CO', 'ffc_ticket' => 'abc' );
 		$ctx                = $this->ctx();
 		$ctx->fields_config = array( array( 'name' => 'email', 'type' => 'email' ) );

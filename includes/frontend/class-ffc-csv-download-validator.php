@@ -171,8 +171,7 @@ final class CsvDownloadValidator {
 			// shortcode renders the field for safety (no prefill in URL) and a
 			// well-meaning user fills it anyway. Junk input is silently dropped
 			// — we don't want garbage rows competing for DOWNLOAD_LOG_MAX slots.
-			$voluntary_digits = preg_replace( '/\D/', '', $cpf_input );
-			$voluntary_digits = is_string( $voluntary_digits ) ? $voluntary_digits : '';
+			$voluntary_digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf_input );
 			if ( '' !== $voluntary_digits
 				&& \FreeFormCertificate\Core\DocumentFormatter::validate_cpf( $voluntary_digits ) ) {
 				if ( ! $silent_audit ) {
@@ -182,8 +181,7 @@ final class CsvDownloadValidator {
 			return null;
 		}
 
-		$digits = preg_replace( '/\D/', '', $cpf_input );
-		$digits = is_string( $digits ) ? $digits : '';
+		$digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf_input );
 
 		// Format gate: we require a syntactically valid 11-digit CPF before
 		// touching the database.
@@ -213,7 +211,7 @@ final class CsvDownloadValidator {
 			$lines  = preg_split( '/[\r\n,]+/', $wl_raw );
 			$lines  = is_array( $lines ) ? $lines : array();
 			foreach ( $lines as $line ) {
-				$candidate = preg_replace( '/\D/', '', (string) $line );
+				$candidate = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( (string) $line );
 				if ( $candidate === $digits ) {
 					$found = true;
 					break;
@@ -240,8 +238,8 @@ final class CsvDownloadValidator {
 				return __( 'Form has no author to validate against.', 'ffcertificate' );
 			}
 			$author_cpf = (string) get_user_meta( $author_id, 'ffc_user_cpf', true );
-			$author_dig = preg_replace( '/\D/', '', $author_cpf );
-			if ( ! is_string( $author_dig ) || $author_dig !== $digits ) {
+			$author_dig = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $author_cpf );
+			if ( $author_dig !== $digits ) {
 				if ( ! $silent_audit ) {
 					$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
 				}
@@ -256,7 +254,7 @@ final class CsvDownloadValidator {
 		if ( 'participants' === $mode ) {
 			$encryption_class = '\FreeFormCertificate\Core\Encryption';
 			$cpf_hash         = ( class_exists( $encryption_class ) && $encryption_class::is_configured() )
-				? $encryption_class::hash( $digits )
+				? \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $digits )
 				: hash( 'sha256', $digits );
 			$count            = ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->countByFormAndCpfHash( $form_id, (string) $cpf_hash );
 			if ( $count <= 0 ) {

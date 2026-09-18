@@ -25,6 +25,79 @@ if ( ! defined( 'ABSPATH' ) ) {
 class RoleRegistrar {
 
 	/**
+	 * Keep `ffc_administrator` on every WordPress administrator, continuously.
+	 *
+	 * #747 moved the admin tier off the native `administrator` role and onto
+	 * `ffc_administrator`: it back-filled the role onto every administrator and
+	 * then stripped the FFC capabilities from the core role. Both halves are
+	 * right, but the back-fill runs **once**, behind an option flag — so an
+	 * administrator created afterwards received neither, and the capabilities
+	 * were no longer on the role they would have inherited them through.
+	 *
+	 * That was visible rather than theoretical. Every FFC top-level menu
+	 * registers against a raw capability slug (`ffc_view_certificates`,
+	 * `ffc_view_appointments`, `ffc_view_audiences`, `ffc_view_reregistration`,
+	 * `ffc_view_recruitment`, `ffc_view_url_shortener`); only the Settings page
+	 * has a `manage_options` escape, through its `ffc_view_settings_page`
+	 * meta-cap. So a newly created administrator opened wp-admin and found
+	 * FFC Settings alone, with six feature menus missing (#1302).
+	 *
+	 * Hooked rather than re-run on a flag, so the answer stays true for users
+	 * who do not exist yet.
+	 *
+	 * @since 6.26.0
+	 * @return void
+	 */
+	public static function init_admin_role_sync(): void {
+		add_action( 'user_register', array( __CLASS__, 'sync_admin_role' ) );
+		add_action( 'set_user_role', array( __CLASS__, 'sync_admin_role' ) );
+		add_action( 'add_user_role', array( __CLASS__, 'sync_admin_role' ) );
+	}
+
+	/**
+	 * Give `ffc_administrator` to a user who holds `administrator`.
+	 *
+	 * **Three hooks, deliberately overlapping.** `wp_insert_user()` sets the
+	 * role before firing `user_register`, so `set_user_role` covers most
+	 * registrations on its own — but a caller that assigns the role separately,
+	 * or later, is covered by the other two. Running twice costs one `in_array`
+	 * because the method is idempotent.
+	 *
+	 * **The re-entry is intentional and terminates.** `add_role()` fires
+	 * `add_user_role`, which calls this method again; the second pass sees the
+	 * role already present and returns.
+	 *
+	 * @since 6.26.0
+	 * @param int $user_id WordPress user ID.
+	 * @return void
+	 */
+	public static function sync_admin_role( $user_id ): void {
+		$user = get_userdata( (int) $user_id );
+
+		if ( ! $user instanceof \WP_User ) {
+			return;
+		}
+
+		$roles = (array) $user->roles;
+
+		if ( ! in_array( 'administrator', $roles, true ) ) {
+			return;
+		}
+		if ( in_array( 'ffc_administrator', $roles, true ) ) {
+			return;
+		}
+		// A role that was never registered cannot be assigned: `add_role()`
+		// would write a membership row pointing at nothing, which is worse than
+		// doing nothing, because the one-shot back-fill would then skip the user
+		// as already handled.
+		if ( ! get_role( 'ffc_administrator' ) instanceof \WP_Role ) {
+			return;
+		}
+
+		$user->add_role( 'ffc_administrator' );
+	}
+
+	/**
 	 * Register ffc_end_user role on plugin activation
 	 *
 	 * @return void

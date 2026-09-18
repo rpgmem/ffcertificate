@@ -440,7 +440,7 @@ class VerificationResponseRenderer {
 		$html .= '</div>'; // .ffc-preview-body
 
 		$html .= '<div class="ffc-preview-actions">';
-		$html .= '<button class="ffc-download-btn ffc-download-pdf-btn ffc-icon-download">' . esc_html__( 'Download Ficha (PDF)', 'ffcertificate' ) . '</button>';
+		$html .= '<button class="ffc-download-btn ffc-download-pdf-btn ffc-icon-download">' . esc_html__( 'Download Record (PDF)', 'ffcertificate' ) . '</button>';
 		$html .= '</div>';
 
 		$html .= '</div>'; // .ffc-certificate-preview

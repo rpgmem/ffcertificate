@@ -98,7 +98,7 @@ class RecruitmentRecruitmentAdjutancyRepositoryTest extends TestCase {
 	public function test_get_by_slug_returns_null_when_slug_unknown(): void {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
 
-		$this->assertNull( RecruitmentAdjutancyReader::get_by_slug( 'nao-existe' ) );
+		$this->assertNull( RecruitmentAdjutancyReader::get_by_slug( 'does-not-exist' ) );
 	}
 
 	public function test_get_by_slug_returns_row(): void {

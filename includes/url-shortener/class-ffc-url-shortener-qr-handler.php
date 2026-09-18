@@ -28,40 +28,40 @@ class UrlShortenerQrHandler {
 	use AjaxTrait;
 
 	/**
-	 * O UNICO tamanho que o cache de QR serve.
+	 * The ONLY size the QR cache serves.
 	 *
-	 * O cache existe por causa de um chamador so: a metabox do editor de post,
-	 * que redesenha o mesmo QR a cada abertura da tela. REST e download sao
-	 * acoes eventuais do operador, sobre uma URL de cada vez -- nao ha repeticao
-	 * para amortizar, e cachear os 901 tamanhos que o REST aceita (100 a 1000)
-	 * trocaria um custo de CPU que ninguem mediu por um de armazenamento real.
+	 * The cache exists because of a single caller: the post editor's metabox,
+	 * which redraws the same QR every time the screen opens. REST and download
+	 * are occasional operator actions, over one URL at a time -- there is no
+	 * repetition to amortise, and caching the 901 sizes REST accepts (100 to
+	 * 1000) would trade a CPU cost nobody measured for a real storage one.
 	 *
 	 * @var int
 	 */
 	public const CACHE_SIZE = 200;
 
 	/**
-	 * Versao do envelope gravado na coluna `qr_cache`.
+	 * Version of the envelope stored in the `qr_cache` column.
 	 *
 	 * @var int
 	 */
 	private const CACHE_FORMAT = 1;
 
 	/*
-	 * DOIS CACHES DE QR COM O MESMO NOME POPULAR -- nao os confunda (#1233).
+	 * TWO QR CACHES SHARING ONE POPULAR NAME -- do not confuse them (#1233).
 	 *
-	 * 1. ESTE: `ffc_short_urls.qr_cache`, o QR da URL curta. Sem toggle --
-	 *    grava sempre que recebe um `short_code` no tamanho canonico. Nao ha
-	 *    botao no admin que o limpe: ele se auto-corrige, porque um envelope
-	 *    que nao casa com o tamanho pedido e descartado na leitura.
+	 * 1. THIS ONE: `ffc_short_urls.qr_cache`, the short URL's QR. No toggle --
+	 *    it writes whenever it receives a `short_code` at the canonical size.
+	 *    There is no admin button that clears it: it self-corrects, because an
+	 *    envelope that does not match the requested size is discarded on read.
 	 *
-	 * 2. `ffc_submissions.qr_code_cache`, o QR do certificado, em
-	 *    {@see \FreeFormCertificate\Generators\QRCodeGenerator}. Indexado por
-	 *    `submission_id`, governado pelo toggle `qr_cache_enabled`
-	 *    (Configuracoes -> Cache), que esta DESLIGADO por decisao.
+	 * 2. `ffc_submissions.qr_code_cache`, the certificate's QR, in
+	 *    {@see \FreeFormCertificate\Generators\QRCodeGenerator}. Indexed by
+	 *    `submission_id`, governed by the `qr_cache_enabled` toggle
+	 *    (Settings -> Cache), which is OFF by decision.
 	 *
-	 * O botao "Clear All QR Code Cache" daquela aba chama
-	 * `SubmissionRepository::clearQrCodeCache()` e atinge somente o (2).
+	 * That tab's "Clear All QR Code Cache" button calls
+	 * `SubmissionRepository::clearQrCodeCache()` and reaches only (2).
 	 */
 
 	/**
@@ -91,20 +91,20 @@ class UrlShortenerQrHandler {
 	/**
 	 * Generate a QR Code as base64 PNG, with database caching.
 	 *
-	 * O cache serve EXCLUSIVAMENTE {@see self::CACHE_SIZE}: qualquer outro
-	 * tamanho passa ao largo dele, na leitura e na gravacao. Ate o #1233 a
-	 * chave era so o `short_code`, ignorando o tamanho pedido -- entao uma
-	 * chamada REST com `size=1000` lia o PNG de 200px que a metabox havia
-	 * gravado, e, com o cache vazio, gravava 1000px la para a metabox renderizar
-	 * num espaco de 200. Corrupcao de conteudo entre chamadores, silenciosa.
+	 * The cache serves {@see self::CACHE_SIZE} EXCLUSIVELY: any other size goes
+	 * straight past it, on read and on write. Until #1233 the key was the
+	 * `short_code` alone, ignoring the requested size -- so a REST call with
+	 * `size=1000` read the 200px PNG the metabox had written, and, with an
+	 * empty cache, wrote 1000px there for the metabox to render inside a 200px
+	 * space. Silent content corruption between callers.
 	 *
-	 * **A ordem da correcao importou.** A leitura obvia do defeito era "dois
-	 * chamadores furam o cache, basta passar o `short_code`" -- e era o
-	 * contrario: `handle_download_png()` era o unico sitio que nao podia ser
-	 * envenenado, justamente por omitir o codigo. Ligar os chamadores antes de
-	 * corrigir a chave transformaria o unico sitio sao no terceiro doente.
-	 * Com o portao por tamanho isso deixa de depender de quem passa o que: um
-	 * chamador que peca 400 nao alcanca o cache nem querendo.
+	 * **The order of the fix mattered.** The obvious reading of the defect was
+	 * "two callers miss the cache, just pass the `short_code`" -- and it was the
+	 * opposite: `handle_download_png()` was the one site that could not be
+	 * poisoned, precisely because it omitted the code. Wiring the callers before
+	 * fixing the key would have turned the only healthy site into the third sick
+	 * one. With the size gate this stops depending on who passes what: a caller
+	 * asking for 400 cannot reach the cache even if it tries.
 	 *
 	 * @param string $url        The URL to encode.
 	 * @param int    $size       Image size in pixels.
@@ -143,31 +143,31 @@ class UrlShortenerQrHandler {
 	/**
 	 * Retrieve cached QR code from the ffc_short_urls table.
 	 *
-	 * Devolve '' -- isto e, MISS -- para tudo que nao seja um envelope desta
-	 * versao declarando exatamente o tamanho pedido. Isso cobre o caminho de
-	 * upgrade sem migracao nenhuma: uma linha gravada no esquema antigo e
-	 * base64 puro, que nunca decodifica para um ARRAY, entao e descartada e
-	 * regravada no formato novo na primeira leitura.
+	 * Returns '' -- that is, a MISS -- for anything that is not an envelope of
+	 * this version declaring exactly the requested size. That covers the upgrade
+	 * path with no migration at all: a row written under the old scheme is plain
+	 * base64, which never decodes to an ARRAY, so it is discarded and rewritten
+	 * in the new format on the first read.
 	 *
-	 * "Nunca decodifica para um array" e mais forte do que parece, porque o
-	 * alfabeto do base64 produz JSON VALIDO em alguns casos: um payload so de
-	 * digitos decodifica para um numero, e um de quatro caracteres pode ser
-	 * literalmente `true`. O que garante o miss nesses casos nao e o
-	 * `is_array()` -- e a validacao do envelope logo abaixo, que reprova
-	 * qualquer coisa sem `v`, `size` e `png` coerentes. Medido: trocar o
-	 * `is_array()` por um `null === $payload` mantem os tres casos como miss.
+	 * "Never decodes to an array" is stronger than it looks, because the base64
+	 * alphabet produces VALID JSON in some cases: a digits-only payload decodes
+	 * to a number, and a four-character one can literally be `true`. What
+	 * guarantees the miss in those cases is not the `is_array()` -- it is the
+	 * envelope validation just below, which refuses anything without a coherent
+	 * `v`, `size` and `png`. Measured: swapping the `is_array()` for a
+	 * `null === $payload` keeps all three cases a miss.
 	 *
-	 * O `is_array()` esta aqui como guarda de TIPO, nao de conteudo: sem ele,
-	 * `12345['v']` emite "Trying to access array offset on value of type int"
-	 * a cada leitura de uma linha antiga. Nao o remova achando que e redundante
-	 * -- o que ele evita e o warning, nao o cache errado.
+	 * The `is_array()` is here as a TYPE guard, not a content one: without it,
+	 * `12345['v']` emits "Trying to access array offset on value of type int" on
+	 * every read of an old row. Do not remove it thinking it is redundant --
+	 * what it avoids is the warning, not the wrong cache.
 	 *
-	 * E tambem o que torna {@see self::CACHE_SIZE} seguro de mudar: as linhas
-	 * gravadas sob o valor anterior passam a errar o tamanho e sao descartadas,
-	 * em vez de servidas.
+	 * It is also what makes {@see self::CACHE_SIZE} safe to change: the rows
+	 * written under the previous value start failing the size check and are
+	 * discarded rather than served.
 	 *
 	 * @param string $short_code Short code.
-	 * @param int    $size       Tamanho exigido, em pixels.
+	 * @param int    $size       The required size, in pixels.
 	 * @return string Base64 data or empty string.
 	 */
 	private function get_qr_cache( string $short_code, int $size ): string {
@@ -195,14 +195,14 @@ class UrlShortenerQrHandler {
 	/**
 	 * Store QR code cache in the ffc_short_urls table.
 	 *
-	 * Grava o tamanho JUNTO do PNG. A alternativa -- uma coluna
-	 * `qr_cache_size` -- diria a mesma coisa ao custo de uma mudanca de schema
-	 * que atravessa o `SchemaAgreementTest`, o portao de idempotencia do
-	 * `dbDelta` e o manifesto do `uninstall.php`, sem que nada alem deste cache
-	 * leia o valor.
+	 * Stores the size ALONGSIDE the PNG. The alternative -- a `qr_cache_size`
+	 * column -- would say the same thing at the cost of a schema change that
+	 * crosses `SchemaAgreementTest`, the `dbDelta` idempotence gate and the
+	 * `uninstall.php` manifest, with nothing beyond this cache reading the
+	 * value.
 	 *
 	 * @param string $short_code Short code.
-	 * @param int    $size       Tamanho do PNG, em pixels.
+	 * @param int    $size       The PNG's size, in pixels.
 	 * @param string $base64     Base64-encoded PNG.
 	 */
 	private function set_qr_cache( string $short_code, int $size, string $base64 ): void {

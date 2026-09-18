@@ -560,7 +560,7 @@ class AdminSubmissionEditPage {
 
 		$id = isset( $_POST['submission_id'] ) ? absint( wp_unslash( $_POST['submission_id'] ) ) : 0;
 		// Normalize email to lowercase for consistent storage and lookups.
-		$new_email = isset( $_POST['user_email'] ) ? strtolower( sanitize_email( wp_unslash( $_POST['user_email'] ) ) ) : '';
+		$new_email = isset( $_POST['user_email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( wp_unslash( $_POST['user_email'] ) ) ) : '';
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field sanitized individually below.
 		$raw_data   = isset( $_POST['data'] ) ? wp_unslash( $_POST['data'] ) : array();
 		$clean_data = array();

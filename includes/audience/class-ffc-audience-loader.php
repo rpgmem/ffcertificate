@@ -237,15 +237,15 @@ class AudienceLoader {
 			);
 
 			wp_enqueue_script(
-				'ffc-divisao-setor-editor',
-				FFC_PLUGIN_URL . "assets/js/ffc-divisao-setor-editor{$s}.js",
+				'ffc-division-sector-editor',
+				FFC_PLUGIN_URL . "assets/js/ffc-division-sector-editor{$s}.js",
 				array( 'jquery' ),
 				FFC_VERSION,
 				true
 			);
 			wp_localize_script(
-				'ffc-divisao-setor-editor',
-				'ffcDivisaoSetorEditor',
+				'ffc-division-sector-editor',
+				'ffcDivisionSectorEditor',
 				array(
 					'strings' => array(
 						'divisionName'   => __( 'Division name', 'ffcertificate' ),
@@ -260,7 +260,7 @@ class AudienceLoader {
 			wp_enqueue_script(
 				'ffc-custom-fields-admin',
 				FFC_PLUGIN_URL . "assets/js/ffc-custom-fields-admin{$s}.js",
-				array( 'jquery', 'jquery-ui-sortable', 'wp-util', 'ffc-audience-admin', 'ffc-divisao-setor-editor' ),
+				array( 'jquery', 'jquery-ui-sortable', 'wp-util', 'ffc-audience-admin', 'ffc-division-sector-editor' ),
 				FFC_VERSION,
 				true
 			);
@@ -365,8 +365,8 @@ class AudienceLoader {
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
-		// Sem isto `.ffc-dark-mode` nunca chega ao <html> desta página e a
-		// paleta fica congelada no tema claro (#1126).
+		// Without this `.ffc-dark-mode` never reaches this page's <html> and the
+		// palette stays frozen in the light theme (#1126).
 		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
 
 		// Frontend CSS.

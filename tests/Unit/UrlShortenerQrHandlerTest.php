@@ -240,10 +240,10 @@ class UrlShortenerQrHandlerTest extends TestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_generate_qr_base64_returns_cached_when_present(): void {
-		// Desde o #1233 o cache guarda um ENVELOPE que declara o tamanho, e
-		// nao base64 cru: o acerto so vale quando o tamanho gravado e o
-		// pedido coincidem. Base64 cru aqui seria um miss — que e exatamente
-		// o caminho de upgrade coberto em UrlShortenerQrCacheSizeTest.
+		// Since #1233 the cache stores an ENVELOPE that declares the size, not
+		// raw base64: the hit only counts when the stored size and the requested
+		// one match. Raw base64 here would be a miss -- which is exactly the
+		// upgrade path covered in UrlShortenerQrCacheSizeTest.
 		$envelope = (string) json_encode(
 			array(
 				'v'    => 1,
@@ -291,7 +291,7 @@ class UrlShortenerQrHandlerTest extends TestCase {
 
 		$this->assertSame( 'FRESH64', $result );
 
-		// O que foi gravado e o envelope, nao o base64 solto (#1233).
+		// What was stored is the envelope, not the loose base64 (#1233).
 		$this->assertSame( 'code2', $persisted[0] ?? null );
 		$decoded = json_decode( (string) ( $persisted[1] ?? '' ), true );
 		$this->assertSame( 200, $decoded['size'] ?? null );

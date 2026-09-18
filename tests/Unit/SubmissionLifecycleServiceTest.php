@@ -332,13 +332,13 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	}
 
 	/**
-	 * O DELETE e limitado, e a limitacao esta no SQL (#1234).
+	 * The DELETE is bounded, and the bound is in the SQL (#1234).
 	 *
-	 * Isto roda no cron diario, isto e, dentro da requisicao de um visitante.
-	 * Sem `LIMIT`, o dia em que um administrador liga a retencao numa
-	 * instalacao madura segura a tabela pelo tempo que levar apagar anos de
-	 * submissoes -- e esse dia e justamente quando o backlog e maior, porque a
-	 * varredura nunca rodou antes (#936).
+	 * This runs on the daily cron, that is, inside a visitor's request. Without
+	 * `LIMIT`, the day an administrator turns retention on in a mature install
+	 * holds the table for as long as it takes to delete years of submissions --
+	 * and that day is exactly when the backlog is largest, because the scan has
+	 * never run before (#936).
 	 */
 	public function test_run_data_cleanup_bounds_each_delete(): void {
 		$reader = $this->stubActivityLog();
@@ -360,12 +360,12 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	}
 
 	/**
-	 * Uma pagina CHEIA continua; uma incompleta encerra.
+	 * A FULL page continues; an incomplete one ends the run.
 	 *
-	 * E a metade que um teste de uma pagina so nao ve: sem a continuacao, uma
-	 * execucao apaga 500 linhas e para, e o backlog leva uma eternidade de dias
-	 * para drenar; sem a parada, uma tabela ja limpa custaria vinte DELETEs por
-	 * dia para nao apagar nada.
+	 * It is the half a single-page test does not see: without the continuation, a
+	 * run deletes 500 rows and stops, and the backlog takes an eternity of days
+	 * to drain; without the stop, an already-clean table would cost twenty
+	 * DELETEs a day to delete nothing.
 	 */
 	public function test_run_data_cleanup_continues_only_after_a_full_page(): void {
 		$reader = $this->stubActivityLog();
@@ -373,17 +373,17 @@ class SubmissionLifecycleServiceTest extends TestCase {
 		$reader->shouldReceive( 'get_int' )->with( 'cleanup_days', 365 )->andReturn( 30 );
 
 		global $wpdb;
-		// Duas paginas cheias, depois uma parcial: tres consultas e para.
+		// Two full pages, then a partial one: three queries and it stops.
 		$wpdb->shouldReceive( 'query' )->times( 3 )->andReturn( 500, 500, 120 );
 
 		$this->assertSame( 1120, $this->service->run_data_cleanup() );
 	}
 
 	/**
-	 * O teto encerra a execucao mesmo com backlog sobrando.
+	 * The cap ends the run even with backlog left over.
 	 *
-	 * Sem ele o laco viraria o `DELETE` sem limite de volta, so que em
-	 * prestacoes -- e o visitante pagaria a soma.
+	 * Without it the loop would turn the unbounded `DELETE` back on, only in
+	 * instalments -- and the visitor would pay the sum.
 	 */
 	public function test_run_data_cleanup_stops_at_the_chunk_cap(): void {
 		$reader = $this->stubActivityLog();

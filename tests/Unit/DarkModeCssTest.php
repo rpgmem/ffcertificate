@@ -160,101 +160,102 @@ final class DarkModeCssTest extends TestCase {
 	// Contraste medido (#1132)
 	// ==================================================================
 	//
-	// O guarda acima vê PRESENÇA — se a declaração usa token ou literal.
-	// Não vê se o par resultante é legível, e foi por aí que dez pares
-	// chegaram ao repositório reprovando o WCAG AA, o `on-primary` do tema
-	// escuro entre eles: branco sobre a primária clara, 2,52:1, desde o dia
-	// em que o tema escuro foi escrito. Nada media, então nada acusou.
+	// The guard above sees PRESENCE — whether the declaration uses a token or a
+	// literal. It does not see whether the resulting pair is legible, and that
+	// is how ten pairs reached the repository failing WCAG AA, the dark theme's
+	// `on-primary` among them: white on the light primary, 2.52:1, since the day
+	// the dark theme was written. Nothing measured it, so nothing reported it.
 	//
-	// Isto calcula a razão a partir do próprio CSS. Bloqueia em zero.
+	// This computes the ratio from the CSS itself. It blocks at zero.
 
 	/**
-	 * Pares que o CSS realmente pinta, com o piso de cada um.
+	 * Pairs the CSS actually paints, each with its floor.
 	 *
-	 * O piso não é uma opinião: 4,5:1 é o mínimo do WCAG AA para texto
-	 * normal, 3:1 para o que identifica um componente (SC 1.4.11) — e é o
-	 * mesmo piso que o Material 3 adota. Um par que não aparece na tela não
-	 * entra aqui; a lista descreve composições reais, não o produto
-	 * cartesiano dos tokens.
+	 * The floor is not an opinion: 4.5:1 is WCAG AA's minimum for normal text,
+	 * 3:1 for what identifies a component (SC 1.4.11) — and it is the same floor
+	 * Material 3 adopts. A pair that does not appear on screen does not go here;
+	 * the list describes real compositions, not the cartesian product of the
+	 * tokens.
 	 *
 	 * @return array<int, array{0: string, 1: string, 2: float, 3: string}>
 	 */
 	private static function pairs(): array {
 		return array(
-			array( '--ffc-text', '--ffc-bg', 4.5, 'texto sobre o fundo' ),
-			array( '--ffc-text', '--ffc-bg-alt', 4.5, 'texto sobre o fundo alternado' ),
-			array( '--ffc-text', '--ffc-bg-card', 4.5, 'texto sobre card' ),
-			array( '--ffc-text', '--ffc-bg-input', 4.5, 'texto dentro de um campo' ),
-			array( '--ffc-text-secondary', '--ffc-bg-card', 4.5, 'texto secundário sobre card' ),
-			array( '--ffc-text-muted', '--ffc-bg-card', 4.5, 'descrição sobre card' ),
-			array( '--ffc-text-muted', '--ffc-bg-alt', 4.5, 'descrição sobre o fundo alternado' ),
-			array( '--ffc-text-light', '--ffc-bg-input', 4.5, 'placeholder dentro de um campo' ),
-			array( '--ffc-link', '--ffc-bg-card', 4.5, 'link sobre card' ),
-			array( '--ffc-text-on-primary', '--ffc-primary', 4.5, 'rótulo do botão primário' ),
-			array( '--ffc-success-text', '--ffc-success-bg', 4.5, 'texto de sucesso' ),
-			array( '--ffc-warning-text', '--ffc-warning-bg', 4.5, 'texto de aviso' ),
-			array( '--ffc-danger-text', '--ffc-danger-bg', 4.5, 'texto de perigo' ),
-			array( '--ffc-info-text', '--ffc-info-bg', 4.5, 'texto informativo' ),
-			// Pares que as sete folhas de admin passaram a pintar (#1126 B).
-			// Duas delas já reprovavam antes da conversão: --ffc-danger como
-			// texto sobre card (4,29:1 no escuro) e o rótulo branco do botão
-			// .ffc-btn-success (3,35:1 no claro). Nenhum guarda media isso.
-			array( '--ffc-text-secondary', '--ffc-bg-alt', 4.5, 'badge de estado neutro' ),
-			array( '--ffc-text-muted', '--ffc-bg-alt', 4.5, 'badge de estado encerrado' ),
-			array( '--ffc-text-secondary', '--ffc-bg-card', 4.5, 'rótulo dentro do modal' ),
-			array( '--ffc-primary-hover', '--ffc-primary-light', 4.5, 'badge "enviado"' ),
-			array( '--ffc-success-text', '--ffc-bg-card', 4.5, 'estado positivo como texto' ),
-			array( '--ffc-danger-text', '--ffc-bg-card', 4.5, 'link de exclusão' ),
-			array( '--ffc-danger', '--ffc-bg-card', 4.5, 'perigo como texto sobre card' ),
-			array( '--ffc-text-light', '--ffc-bg-card', 4.5, 'vazio dentro do modal' ),
-			array( '--ffc-primary', '--ffc-bg-card', 4.5, 'primária como texto sobre card' ),
-			array( '--ffc-text-on-primary', '--ffc-primary-hover', 4.5, 'botão primário sob o mouse' ),
-			array( '--ffc-text-on-danger', '--ffc-danger', 4.5, 'rótulo do botão destrutivo' ),
-			array( '--ffc-text-on-danger', '--ffc-danger-hover', 4.5, 'botão destrutivo sob o mouse' ),
-			array( '--ffc-text-on-success', '--ffc-success', 4.5, 'rótulo do botão de sucesso' ),
-			array( '--ffc-text-on-success', '--ffc-success-hover', 4.5, 'botão de sucesso sob o mouse' ),
-			// O rótulo do botão de aviso era branco sobre --ffc-warning: 3,04:1
-			// no tema claro, desde sempre, e nada media (#1126, 2ª passada).
-			array( '--ffc-text-on-warning', '--ffc-warning', 4.5, 'rótulo do botão de aviso' ),
-			// Pares do smoke da 6.24.0: a linha cancelada da agenda e o rótulo
-			// de aviso usado como TEXTO (--ffc-warning é cor de sinal, piso 3:1,
-			// e dava 3,04:1 sobre branco quando usado em .ffc-text-warning).
-			array( '--ffc-text-muted', '--ffc-danger-bg', 4.5, 'linha cancelada da agenda' ),
-			array( '--ffc-warning-text', '--ffc-bg', 4.5, 'aviso como texto' ),
-			array( '--ffc-warning-text', '--ffc-bg-card', 4.5, 'aviso como texto sobre card' ),
-			array( '--ffc-inverse-on-surface', '--ffc-inverse-surface', 4.5, 'balão de toast' ),
-			// Par de base (#1126, 5ª passada). O texto que não declara cor
-			// herda de FORA daqui — do `body { color: #3c434a }` do core no
-			// admin, do tema numa página pública — e cai em 1,28:1 sobre um
-			// fundo escuro. A regra de base o traz para --ffc-text; estes são
-			// os fundos que ela precisa cobrir, agora medidos como qualquer
-			// outro par em vez de dependerem de herança.
-			array( '--ffc-text', '--ffc-gray-100', 4.5, 'texto herdado sobre o cabeçalho do calendário' ),
-			array( '--ffc-text', '--ffc-gray-50', 4.5, 'texto herdado sobre a superfície mais rasa' ),
-			// Não-texto: o contorno que identifica o componente, e as cores
-			// de estado usadas como sinal (o ponto colorido de um badge).
-			array( '--ffc-border', '--ffc-bg', 3.0, 'contorno sobre o fundo' ),
-			array( '--ffc-border', '--ffc-bg-card', 3.0, 'contorno sobre card' ),
-			array( '--ffc-border', '--ffc-bg-input', 3.0, 'contorno de campo' ),
-			array( '--ffc-border', '--ffc-bg-alt', 3.0, 'contorno sobre o fundo alternado' ),
-			array( '--ffc-primary', '--ffc-bg', 3.0, 'primária como sinal' ),
-			array( '--ffc-danger', '--ffc-bg', 3.0, 'perigo como sinal' ),
-			array( '--ffc-success', '--ffc-bg', 3.0, 'sucesso como sinal' ),
-			array( '--ffc-warning', '--ffc-bg', 3.0, 'aviso como sinal' ),
-			array( '--ffc-info', '--ffc-bg', 3.0, 'info como sinal' ),
+			array( '--ffc-text', '--ffc-bg', 4.5, 'text on the background' ),
+			array( '--ffc-text', '--ffc-bg-alt', 4.5, 'text on the alternate background' ),
+			array( '--ffc-text', '--ffc-bg-card', 4.5, 'text on a card' ),
+			array( '--ffc-text', '--ffc-bg-input', 4.5, 'text inside a field' ),
+			array( '--ffc-text-secondary', '--ffc-bg-card', 4.5, 'secondary text on a card' ),
+			array( '--ffc-text-muted', '--ffc-bg-card', 4.5, 'a description on a card' ),
+			array( '--ffc-text-muted', '--ffc-bg-alt', 4.5, 'a description on the alternate background' ),
+			array( '--ffc-text-light', '--ffc-bg-input', 4.5, 'a placeholder inside a field' ),
+			array( '--ffc-link', '--ffc-bg-card', 4.5, 'a link on a card' ),
+			array( '--ffc-text-on-primary', '--ffc-primary', 4.5, 'the primary button label' ),
+			array( '--ffc-success-text', '--ffc-success-bg', 4.5, 'success text' ),
+			array( '--ffc-warning-text', '--ffc-warning-bg', 4.5, 'warning text' ),
+			array( '--ffc-danger-text', '--ffc-danger-bg', 4.5, 'danger text' ),
+			array( '--ffc-info-text', '--ffc-info-bg', 4.5, 'informational text' ),
+			// Pairs the seven admin sheets started painting (#1126 B). Two of
+			// them already failed before the conversion: --ffc-danger as text on
+			// a card (4.29:1 in dark) and the white label of the .ffc-btn-success
+			// button (3.35:1 in light). No guard measured that.
+			array( '--ffc-text-secondary', '--ffc-bg-alt', 4.5, 'neutral status badge' ),
+			array( '--ffc-text-muted', '--ffc-bg-alt', 4.5, 'closed status badge' ),
+			array( '--ffc-text-secondary', '--ffc-bg-card', 4.5, 'a label inside the modal' ),
+			array( '--ffc-primary-hover', '--ffc-primary-light', 4.5, '"sent" badge' ),
+			array( '--ffc-success-text', '--ffc-bg-card', 4.5, 'a positive state as text' ),
+			array( '--ffc-danger-text', '--ffc-bg-card', 4.5, 'a delete link' ),
+			array( '--ffc-danger', '--ffc-bg-card', 4.5, 'danger as text on a card' ),
+			array( '--ffc-text-light', '--ffc-bg-card', 4.5, 'an empty state inside the modal' ),
+			array( '--ffc-primary', '--ffc-bg-card', 4.5, 'primary as text on a card' ),
+			array( '--ffc-text-on-primary', '--ffc-primary-hover', 4.5, 'the primary button hovered' ),
+			array( '--ffc-text-on-danger', '--ffc-danger', 4.5, 'the destructive button label' ),
+			array( '--ffc-text-on-danger', '--ffc-danger-hover', 4.5, 'the destructive button hovered' ),
+			array( '--ffc-text-on-success', '--ffc-success', 4.5, 'the success button label' ),
+			array( '--ffc-text-on-success', '--ffc-success-hover', 4.5, 'the success button hovered' ),
+			// The warning button's label was white on --ffc-warning: 3.04:1 in
+			// the light theme, from the start, and nothing measured it (#1126,
+			// 2nd pass).
+			array( '--ffc-text-on-warning', '--ffc-warning', 4.5, 'the warning button label' ),
+			// Pairs from the 6.24.0 smoke: the schedule's cancelled row and the
+			// warning label used as TEXT (--ffc-warning is a signal colour, 3:1
+			// floor, and gave 3.04:1 on white when used in .ffc-text-warning).
+			array( '--ffc-text-muted', '--ffc-danger-bg', 4.5, 'the schedule\'s cancelled row' ),
+			array( '--ffc-warning-text', '--ffc-bg', 4.5, 'warning as text' ),
+			array( '--ffc-warning-text', '--ffc-bg-card', 4.5, 'warning as text on a card' ),
+			array( '--ffc-inverse-on-surface', '--ffc-inverse-surface', 4.5, 'a toast bubble' ),
+			// The base pair (#1126, 5th pass). Text that declares no colour
+			// inherits from OUTSIDE here — from core's `body { color: #3c434a }`
+			// in the admin, from the theme on a public page — and lands at
+			// 1.28:1 on a dark ground. The base rule brings it to --ffc-text;
+			// these are the backgrounds it has to cover, now measured like any
+			// other pair instead of depending on inheritance.
+			array( '--ffc-text', '--ffc-gray-100', 4.5, 'inherited text on the calendar header' ),
+			array( '--ffc-text', '--ffc-gray-50', 4.5, 'inherited text on the shallowest surface' ),
+			// Non-text: the contour that identifies the component, and the state
+			// colours used as a signal (a badge's coloured dot).
+			array( '--ffc-border', '--ffc-bg', 3.0, 'a contour on the background' ),
+			array( '--ffc-border', '--ffc-bg-card', 3.0, 'a contour on a card' ),
+			array( '--ffc-border', '--ffc-bg-input', 3.0, 'a field contour' ),
+			array( '--ffc-border', '--ffc-bg-alt', 3.0, 'a contour on the alternate background' ),
+			array( '--ffc-primary', '--ffc-bg', 3.0, 'primary as a signal' ),
+			array( '--ffc-danger', '--ffc-bg', 3.0, 'danger as a signal' ),
+			array( '--ffc-success', '--ffc-bg', 3.0, 'success as a signal' ),
+			array( '--ffc-warning', '--ffc-bg', 3.0, 'warning as a signal' ),
+			array( '--ffc-info', '--ffc-bg', 3.0, 'info as a signal' ),
 		);
 	}
 
 	/**
-	 * Os tokens de cor de um dos dois temas.
+	 * The colour tokens of one of the two themes.
 	 *
-	 * O tema escuro é o claro **sobrescrito**, não um conjunto próprio: o
-	 * bloco `:root.ffc-dark-mode` só redefine parte dos tokens, e o resto
-	 * segue valendo. Ler o bloco escuro isolado mediria um tema que não
-	 * existe — daí a mesclagem.
+	 * The dark theme is the light one **overridden**, not a set of its own: the
+	 * `:root.ffc-dark-mode` block redefines only part of the tokens, and the rest
+	 * still hold. Reading the dark block in isolation would measure a theme that
+	 * does not exist — hence the merge.
 	 *
-	 * @param string $theme 'light' ou 'dark'.
-	 * @return array<string, string> Token => valor.
+	 * @param string $theme 'light' or 'dark'.
+	 * @return array<string, string> Token => value.
 	 */
 	private static function palette( string $theme ): array {
 		$css = (string) preg_replace( '#/\*.*?\*/#s', '', (string) file_get_contents( self::stylesheet() ) );
@@ -278,9 +279,9 @@ final class DarkModeCssTest extends TestCase {
 	}
 
 	/**
-	 * `#rgb`, `#rrggbb` ou `rgba()` para [r, g, b]; null para o resto.
+	 * `#rgb`, `#rrggbb` or `rgba()` to [r, g, b]; null for anything else.
 	 *
-	 * @param string $value Valor CSS.
+	 * @param string $value CSS value.
 	 * @return array{0: int, 1: int, 2: int}|null
 	 */
 	private static function to_rgb( string $value ): ?array {
@@ -304,10 +305,10 @@ final class DarkModeCssTest extends TestCase {
 	}
 
 	/**
-	 * Razão de contraste do WCAG 2.x entre duas cores.
+	 * The WCAG 2.x contrast ratio between two colours.
 	 *
-	 * @param array{0: int, 1: int, 2: int} $a Primeira cor.
-	 * @param array{0: int, 1: int, 2: int} $b Segunda cor.
+	 * @param array{0: int, 1: int, 2: int} $a The first colour.
+	 * @param array{0: int, 1: int, 2: int} $b The second colour.
 	 */
 	private static function contrast( array $a, array $b ): float {
 		$luminance = static function ( array $c ): float {
@@ -325,10 +326,10 @@ final class DarkModeCssTest extends TestCase {
 	}
 
 	/**
-	 * Todo par pintado precisa atingir o piso do WCAG AA, nos dois temas.
+	 * Every painted pair must reach its WCAG AA floor, in both themes.
 	 *
 	 * @dataProvider provider_themes
-	 * @param string $theme Nome do tema.
+	 * @param string $theme The theme name.
 	 */
 	public function test_every_painted_pair_meets_its_contrast_floor( string $theme ): void {
 		$palette  = self::palette( $theme );
@@ -338,13 +339,13 @@ final class DarkModeCssTest extends TestCase {
 			$a = self::to_rgb( $palette[ $fg ] ?? '' );
 			$b = self::to_rgb( $palette[ $bg ] ?? '' );
 
-			$this->assertNotNull( $a, "Token {$fg} ausente ou ilegível no tema {$theme}." );
-			$this->assertNotNull( $b, "Token {$bg} ausente ou ilegível no tema {$theme}." );
+			$this->assertNotNull( $a, "Token {$fg} missing or unreadable in the {$theme} theme." );
+			$this->assertNotNull( $b, "Token {$bg} missing or unreadable in the {$theme} theme." );
 
 			$ratio = self::contrast( $a, $b );
 			if ( $ratio < $floor ) {
 				$failures[] = sprintf(
-					'%s: %s sobre %s = %.2f:1, mínimo %.1f:1  (%s / %s)',
+					'%s: %s on %s = %.2f:1, minimum %.1f:1  (%s / %s)',
 					$what,
 					$palette[ $fg ],
 					$palette[ $bg ],
@@ -359,9 +360,9 @@ final class DarkModeCssTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$failures,
-			"Pares abaixo do piso do WCAG AA no tema {$theme}:\n  " . implode( "\n  ", $failures )
-			. "\n\nAjuste a LUMINOSIDADE do token preservando o matiz, e confira contra TODOS os"
-			. "\nfundos em que ele aparece — um token costuma ser pintado sobre mais de um."
+			"Pairs below the WCAG AA floor in the {$theme} theme:\n  " . implode( "\n  ", $failures )
+			. "\n\nAdjust the token's LIGHTNESS while keeping its hue, and check it against ALL the"
+			. "\nbackgrounds it appears on — a token is usually painted over more than one."
 		);
 	}
 
@@ -370,60 +371,61 @@ final class DarkModeCssTest extends TestCase {
 	 */
 	public static function provider_themes(): array {
 		return array(
-			'claro'  => array( 'light' ),
-			'escuro' => array( 'dark' ),
+			'light' => array( 'light' ),
+			'dark'  => array( 'dark' ),
 		);
 	}
 
 	// ==================================================================
-	// Pares DERIVADOS da varredura (#1168)
+	// Pairs DERIVED from the scan (#1168)
 	// ==================================================================
 	//
-	// `pairs()` acima é uma lista escrita à mão. Ela mede o que alguém
-	// lembrou de listar, e o `CLAUDE.md` a descrevia como "every painted
-	// pair" — o que não era verdade. `--ffc-danger` sobre `--ffc-danger-bg`
-	// nunca entrou na lista e shipava a 4,25:1 no tema CLARO, abaixo do
-	// piso AA, num aviso do fluxo público de CSV.
+	// `pairs()` above is a hand-written list. It measures what somebody
+	// remembered to list, and CLAUDE.md described it as "every painted pair" —
+	// which was not true. `--ffc-danger` over `--ffc-danger-bg` never made the
+	// list and shipped at 4.25:1 in the LIGHT theme, below the AA floor, on a
+	// warning in the public CSV flow.
 	//
-	// Isto deriva os pares do próprio CSS: toda regra que declara `color` E
-	// um fundo na MESMA regra é um par pintado, medido nos dois temas.
+	// This derives the pairs from the CSS itself: every rule that declares
+	// `color` AND a background in the SAME rule is a painted pair, measured in
+	// both themes.
 	//
-	// As duas listas são complementares, não substitutas. A varredura só vê
-	// o par que uma regra declara junto; o par que a HERANÇA cria — o texto
-	// de base sobre `--ffc-gray-100`, o rótulo de um botão cuja cor vem do
-	// contêiner — nenhuma varredura estática alcança, e é isso que a lista
-	// curada cobre. Apagar uma em favor da outra perde cobertura.
+	// The two lists are complementary, not substitutes. The scan only sees the
+	// pair one rule declares together; the pair INHERITANCE creates — the base
+	// text over `--ffc-gray-100`, a button label whose colour comes from its
+	// container — is beyond any static scan, and that is what the curated list
+	// covers. Deleting either in favour of the other loses coverage.
 
 	/**
-	 * Pares abaixo do piso que são isentos, com a razão.
+	 * Pairs below the floor that are exempt, with the reason.
 	 *
-	 * A SC 1.4.3 isenta texto que faz parte de um **componente de interface
-	 * inativo**. As duas entradas aqui são exatamente isso, e ambas dizem
-	 * `cursor: not-allowed` na própria regra. Qualquer outra entrada precisa
-	 * de uma razão que sobreviva a ser lida em voz alta.
+	 * SC 1.4.3 exempts text that is part of an **inactive user interface
+	 * component**. The two entries here are exactly that, and both say
+	 * `cursor: not-allowed` in the rule itself. Any other entry needs a reason
+	 * that survives being read aloud.
 	 */
 	private const DERIVED_EXCEPTIONS = array(
-		'var(--ffc-gray-400) || var(--ffc-gray-100)'    => 'horário esgotado no calendário público: `cursor: not-allowed`, componente inativo isento pela SC 1.4.3',
-		'var(--ffc-text-light) || var(--ffc-bg-alt)'    => 'campo `readonly`/`disabled` da recadastração: componente inativo isento pela SC 1.4.3',
+		'var(--ffc-gray-400) || var(--ffc-gray-100)'    => 'a full time slot in the public calendar: `cursor: not-allowed`, an inactive component exempt under SC 1.4.3',
+		'var(--ffc-text-light) || var(--ffc-bg-alt)'    => 'a `readonly`/`disabled` reregistration field: an inactive component exempt under SC 1.4.3',
 	);
 
 	/**
-	 * Resolve um valor CSS de cor até [r, g, b], atravessando `var()`.
+	 * Resolves a CSS colour value down to [r, g, b], crossing `var()`.
 	 *
-	 * Precisa aceitar três coisas que `to_rgb()` sozinho não aceita, e as
-	 * três apareceram no CSS real: o sufixo `!important`, a cadeia de
-	 * `var()` (um token pode apontar para outro) e a cor NOMEADA.
+	 * It has to accept three things `to_rgb()` alone does not, and all three
+	 * appeared in the real CSS: the `!important` suffix, the `var()` chain (a
+	 * token can point at another) and the NAMED colour.
 	 *
-	 * A cor nomeada é a que importa. A primeira versão desta varredura não a
-	 * lia e reportou quatro pares como "não resolvíveis" — que eram
-	 * `color: white` sobre `--ffc-primary`, `--ffc-danger`, `--ffc-success` e
-	 * `--ffc-inverse-surface`, medindo 2,52 · 2,68 · 2,78 e **1,23:1** no
-	 * tema escuro. Passar em silêncio sobre o que não se consegue ler é como
-	 * um medidor mente; por isso `null` aqui FALHA o teste, nunca pula.
+	 * The named colour is the one that matters. The first version of this scan
+	 * could not read it and reported four pairs as "unresolvable" — which were
+	 * `color: white` over `--ffc-primary`, `--ffc-danger`, `--ffc-success` and
+	 * `--ffc-inverse-surface`, measuring 2.52 · 2.68 · 2.78 and **1.23:1** in the
+	 * dark theme. Passing silently over what cannot be read is how a meter lies;
+	 * that is why `null` here FAILS the test, never skips.
 	 *
-	 * @param string               $value   Valor CSS.
-	 * @param array<string,string> $palette Token => valor, do tema medido.
-	 * @param int                  $depth   Profundidade da recursão.
+	 * @param string               $value   The CSS value.
+	 * @param array<string,string> $palette Token => value, for the measured theme.
+	 * @param int                  $depth   Recursion depth.
 	 * @return array{0: int, 1: int, 2: int}|null
 	 */
 	private static function resolve_colour( string $value, array $palette, int $depth = 0 ): ?array {
@@ -449,13 +451,13 @@ final class DarkModeCssTest extends TestCase {
 	}
 
 	/**
-	 * Pares `color` + fundo declarados na MESMA regra, em todas as folhas.
+	 * `color` + background pairs declared in the SAME rule, across all sheets.
 	 *
-	 * Um fundo em atalho (`background: linear-gradient(...)`) é medido
-	 * contra a primeira cor que ele nomeia — aproximação declarada, não
-	 * exatidão: o único gradiente que hoje pinta texto passa nas duas pontas
-	 * (5,17 e 6,84:1). Um par onde nenhum dos dois lados é token não entra:
-	 * é literal de ponta a ponta, e a catraca de literais é quem cuida dele.
+	 * A shorthand background (`background: linear-gradient(...)`) is measured
+	 * against the first colour it names — a declared approximation, not exactness:
+	 * the one gradient that paints text today passes at both ends (5.17 and
+	 * 6.84:1). A pair where neither side is a token does not enter: it is literal
+	 * end to end, and the literal ratchet is what looks after it.
 	 *
 	 * @return array<string, array{fg: string, bg: string, sites: array<int, string>}>
 	 */
@@ -504,18 +506,18 @@ final class DarkModeCssTest extends TestCase {
 	}
 
 	/**
-	 * Todo par que uma regra declara junto precisa atingir 4,5:1.
+	 * Every pair a rule declares together must reach 4.5:1.
 	 *
-	 * O piso é o de TEXTO, sem exceção de papel: a regra declarou `color`,
-	 * então está pintando texto. Um contorno é `border-color` e não entra
-	 * nesta varredura.
+	 * The floor is the TEXT one, with no exception by role: the rule declared
+	 * `color`, so it is painting text. A contour is `border-color` and does not
+	 * enter this scan.
 	 *
-	 * Bloqueia em zero. O que a varredura achar se conserta trocando o token
-	 * pelo par que a paleta já garante (`--ffc-X` → `--ffc-X-text` sobre um
-	 * fundo `--ffc-X-bg`); não existe linha de base para crescer.
+	 * It blocks at zero. Whatever the scan finds is fixed by swapping the token
+	 * for the pair the palette already guarantees (`--ffc-X` → `--ffc-X-text`
+	 * over a `--ffc-X-bg` ground); there is no baseline to grow.
 	 *
 	 * @dataProvider provider_themes
-	 * @param string $theme Nome do tema.
+	 * @param string $theme The theme name.
 	 */
 	public function test_every_derived_pair_meets_the_text_floor( string $theme ): void {
 		$palette  = self::palette( $theme );
@@ -525,17 +527,17 @@ final class DarkModeCssTest extends TestCase {
 			$a = self::resolve_colour( $pair['fg'], $palette );
 			$b = self::resolve_colour( $pair['bg'], $palette );
 
-			// Ilegível NÃO é "pula": é falha. Ver o docblock de resolve_colour().
+			// Unreadable is NOT "skip": it is a failure. See resolve_colour()'s docblock.
 			$this->assertNotNull(
 				$a,
-				"Não consegui resolver a cor `{$pair['fg']}` no tema {$theme}.\n"
-				. "Ensine `resolve_colour()` a lê-la — não a deixe passar em silêncio.\n"
+				"Could not resolve the colour `{$pair['fg']}` in the {$theme} theme.\n"
+				. "Teach `resolve_colour()` to read it — do not let it pass in silence.\n"
 				. '  ' . implode( "\n  ", array_slice( $pair['sites'], 0, 3 ) )
 			);
 			$this->assertNotNull(
 				$b,
-				"Não consegui resolver o fundo `{$pair['bg']}` no tema {$theme}.\n"
-				. "Ensine `resolve_colour()` a lê-lo — não o deixe passar em silêncio.\n"
+				"Could not resolve the background `{$pair['bg']}` in the {$theme} theme.\n"
+				. "Teach `resolve_colour()` to read it — do not let it pass in silence.\n"
 				. '  ' . implode( "\n  ", array_slice( $pair['sites'], 0, 3 ) )
 			);
 
@@ -558,20 +560,20 @@ final class DarkModeCssTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$failures,
-			"Par declarado numa mesma regra abaixo de 4,5:1 no tema {$theme}:\n\n  "
+			"A pair declared in one rule below 4.5:1 in the {$theme} theme:\n\n  "
 			. implode( "\n\n  ", $failures )
-			. "\n\nTroque o token de texto pelo par que a paleta garante — `--ffc-X` sobre"
-			. "\num fundo `--ffc-X-bg`/`--ffc-X-light` quer dizer `--ffc-X-text`. Se for"
-			. "\ncomponente INATIVO (a SC 1.4.3 isenta), entre em DERIVED_EXCEPTIONS com a razão."
+			. "\n\nSwap the text token for the pair the palette guarantees — `--ffc-X` over"
+			. "\na `--ffc-X-bg`/`--ffc-X-light` ground means `--ffc-X-text`. If it is an"
+			. "\nINACTIVE component (SC 1.4.3 exempts it), add it to DERIVED_EXCEPTIONS with the reason."
 		);
 	}
 
 	/**
-	 * Toda exceção declarada precisa existir e trazer razão.
+	 * Every declared exception must exist and carry a reason.
 	 *
-	 * Uma exceção que o CSS não produz mais é ruído que sobrevive a quem a
-	 * escreveu — a mesma catraca das outras guardas, na direção que só
-	 * encolhe.
+	 * An exception the CSS no longer produces is noise that outlives whoever
+	 * wrote it — the same ratchet as the other guards, in the direction that only
+	 * shrinks.
 	 */
 	public function test_the_derived_exceptions_are_all_live(): void {
 		$keys = array_keys( self::derived_pairs() );
@@ -580,55 +582,55 @@ final class DarkModeCssTest extends TestCase {
 			$this->assertContains(
 				$key,
 				$keys,
-				"A exceção `{$key}` não corresponde a nenhum par pintado. Remova-a."
+				"The exception `{$key}` matches no painted pair. Drop it."
 			);
 			$this->assertGreaterThan(
 				30,
 				strlen( $reason ),
-				"A exceção `{$key}` precisa de uma razão que se sustente ao ser lida."
+				"The exception `{$key}` needs a reason that holds up when read."
 			);
 		}
 	}
 
 	/**
-	 * Autoverificação da varredura derivada.
+	 * Self-check for the derived scan.
 	 *
-	 * Uma varredura que devolve zero par também satisfaz `assertSame(
-	 * array(), $failures )` — a lição do #1071 / #1094. Os pisos são folgados
-	 * de propósito: descrevem "a varredura funcionou", não o tamanho exato.
+	 * A scan that returns zero pairs also satisfies `assertSame( array(),
+	 * $failures )` — the #1071 / #1094 lesson. The floors are deliberately loose:
+	 * they describe "the scan worked", not the exact size.
 	 */
 	public function test_the_derived_scan_cannot_collapse_in_silence(): void {
 		$pairs = self::derived_pairs();
 		$sites = array_sum( array_map( static fn( array $p ): int => count( $p['sites'] ), $pairs ) );
 
-		$this->assertGreaterThan( 30, count( $pairs ), 'A varredura de pares derivados colapsou.' );
-		$this->assertGreaterThan( 150, $sites, 'A varredura achou pares demais de menos regras.' );
+		$this->assertGreaterThan( 30, count( $pairs ), 'The derived-pair scan collapsed.' );
+		$this->assertGreaterThan( 150, $sites, 'The scan found too many pairs from too few rules.' );
 
-		// A resolução precisa atravessar `var()` e a cor nomeada, não só hex.
+		// Resolution has to cross `var()` and the named colour, not just hex.
 		$palette = self::palette( 'light' );
-		$this->assertNotNull( self::resolve_colour( 'var(--ffc-text)', $palette ), '`var()` deixou de resolver.' );
-		$this->assertNotNull( self::resolve_colour( 'white !important', $palette ), 'Cor nomeada deixou de resolver.' );
+		$this->assertNotNull( self::resolve_colour( 'var(--ffc-text)', $palette ), '`var()` stopped resolving.' );
+		$this->assertNotNull( self::resolve_colour( 'white !important', $palette ), 'A named colour stopped resolving.' );
 		$this->assertSame( array( 255, 255, 255 ), self::resolve_colour( 'white', $palette ) );
 	}
 
 	/**
-	 * Autoverificação do medidor.
+	 * Self-check for the meter.
 	 *
-	 * `assertSame( array(), $failures )` também é satisfeito por uma paleta
-	 * que não foi lida — a forma que o #1094 achou em quatro guardas de uma
-	 * vez. Aqui a checagem é dupla: a paleta precisa ter tamanho plausível,
-	 * o tema escuro precisa de fato diferir do claro, e o cálculo precisa
-	 * reproduzir dois valores conhecidos.
+	 * `assertSame( array(), $failures )` is also satisfied by a palette that was
+	 * never read — the shape #1094 found in four guards at once. The check here
+	 * is threefold: the palette has to have a plausible size, the dark theme has
+	 * to genuinely differ from the light one, and the computation has to
+	 * reproduce two known values.
 	 */
 	public function test_the_meter_cannot_collapse_in_silence(): void {
 		$light = self::palette( 'light' );
 		$dark  = self::palette( 'dark' );
 
-		$this->assertGreaterThan( 30, count( $light ), 'A paleta clara não foi lida.' );
-		$this->assertGreaterThan( 30, count( $dark ), 'A paleta escura não foi lida.' );
-		$this->assertNotSame( $light, $dark, 'O tema escuro leu igual ao claro — a mesclagem quebrou.' );
+		$this->assertGreaterThan( 30, count( $light ), 'The light palette was not read.' );
+		$this->assertGreaterThan( 30, count( $dark ), 'The dark palette was not read.' );
+		$this->assertNotSame( $light, $dark, 'The dark theme read the same as the light one — the merge broke.' );
 
-		// Preto sobre branco é 21:1 e branco sobre branco é 1:1, por definição.
+		// Black on white is 21:1 and white on white is 1:1, by definition.
 		$this->assertEqualsWithDelta( 21.0, self::contrast( array( 0, 0, 0 ), array( 255, 255, 255 ) ), 0.01 );
 		$this->assertEqualsWithDelta( 1.0, self::contrast( array( 255, 255, 255 ), array( 255, 255, 255 ) ), 0.01 );
 	}

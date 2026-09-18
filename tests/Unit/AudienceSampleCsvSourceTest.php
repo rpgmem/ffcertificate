@@ -25,9 +25,14 @@ class AudienceSampleCsvSourceTest extends TestCase {
 	public function test_members_variant(): void {
 		$source = new AudienceSampleCsvSource( 'members' );
 		$this->assertSame( 'members-sample.csv', $source->filename() );
-		$this->assertSame( array( 'email', 'name', 'audience_name' ), $source->header() );
+		$this->assertSame( array( 'email', 'name', 'audience_name', 'cpf', 'rf' ), $source->header() );
 		$rows = $source->rows();
-		$this->assertContains( array( 'john@example.com', 'John Doe', 'Group A' ), $rows );
+		$this->assertContains( array( 'john@example.com', 'John Doe', 'Group A', '529.982.247-25', '' ), $rows );
+
+		// A blank identifier is part of the template, not an omission: the
+		// registry hashes an empty cell to null, so the row resolves by
+		// e-mail. Showing it is what tells an operator the column is optional.
+		$this->assertContains( array( 'bob@example.com', 'Bob Johnson', 'Group B', '', '' ), $rows );
 	}
 
 	public function test_audiences_variant(): void {
@@ -43,7 +48,7 @@ class AudienceSampleCsvSourceTest extends TestCase {
 	public function test_unknown_type_falls_back_to_members(): void {
 		$source = new AudienceSampleCsvSource( 'garbage' );
 		$this->assertSame( 'members-sample.csv', $source->filename() );
-		$this->assertSame( array( 'email', 'name', 'audience_name' ), $source->header() );
+		$this->assertSame( array( 'email', 'name', 'audience_name', 'cpf', 'rf' ), $source->header() );
 	}
 
 	public function test_authorize_is_noop(): void {

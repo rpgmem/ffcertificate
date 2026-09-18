@@ -363,7 +363,7 @@ class DashboardShortcodeTest extends TestCase {
 				'title'             => 'Approved Campaign',
 				'can_submit'        => false,
 				'submission_status' => 'approved',
-				'magic_link'        => 'https://example.com/ficha/10',
+				'magic_link'        => 'https://example.com/record/10',
 				'end_date'          => '2030-01-01',
 			),
 			// Submitted / pending review (can_submit false, no magic link).

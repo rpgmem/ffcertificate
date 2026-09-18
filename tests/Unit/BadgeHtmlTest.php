@@ -95,7 +95,7 @@ class BadgeHtmlTest extends TestCase {
 	}
 
 	// ==================================================================
-	// Cor por linha do banco
+	// Per-row colour from the database
 	// ==================================================================
 
 	/**

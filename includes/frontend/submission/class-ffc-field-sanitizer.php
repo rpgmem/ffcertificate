@@ -58,7 +58,7 @@ class FieldSanitizer {
 
 				// Special validation for CPF/RF.
 				if ( 'cpf_rf' === $name ) {
-					$value = preg_replace( '/\D/', '', $value );
+					$value = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $value );
 
 					// Validate length.
 					if ( strlen( $value ) !== 7 && strlen( $value ) !== 11 ) {
@@ -84,7 +84,7 @@ class FieldSanitizer {
 
 				if ( isset( $field['type'] ) && 'email' === $field['type'] ) {
 					// Normalize email to lowercase for consistent storage and lookups.
-					$user_email = strtolower( sanitize_email( $value ) );
+					$user_email = \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( $value ) );
 				}
 			}
 		}

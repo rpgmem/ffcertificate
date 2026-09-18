@@ -70,11 +70,14 @@ class AudienceActivator {
 			$ffc_user_role->add_cap( 'ffc_view_own_audience_bookings' );
 		}
 
-		// Also add to subscriber role.
-		$subscriber_role = get_role( 'subscriber' );
-		if ( $subscriber_role ) {
-			$subscriber_role->add_cap( 'ffc_view_own_audience_bookings' );
-		}
+		// WordPress's own `subscriber` role is deliberately NOT given this
+		// capability (#1302). It used to be, which put an FFC capability on a
+		// core role on every install — and it reached every subscriber on the
+		// site, member of an audience or not. What it was covering is that only
+		// the self-join route granted the capability; the admin-side paths did
+		// not. `AudienceWriter::add_member()` now grants it at the single point
+		// all of them pass through, so membership carries the capability and no
+		// role WordPress owns has to.
 
 		// Administrator already has all caps via manage_options.
 	}
@@ -402,29 +405,30 @@ class AudienceActivator {
 	 * @return void
 	 */
 	/**
-	 * Guarda por versao: a cadeia abaixo so precisa rodar uma vez por
-	 * `FFC_VERSION` (#1231).
+	 * Version gate: the chain below only needs to run once per `FFC_VERSION`
+	 * (#1231).
 	 *
-	 * Sem ela, `AudienceActivator::maybe_migrate()` sondava o schema a CADA requisicao -- frontend anonimo
-	 * incluido -- porque `table_exists()` e um `SHOW TABLES LIKE` sem cache e
-	 * todo `add_column_if_missing()` dispara um `SHOW COLUMNS` antes de
-	 * decidir nao fazer nada. Somadas as quatro cadeias do `Loader`, eram 48
-	 * queries DDL por pagina numa instalacao sem nada a migrar.
+	 * Without it, `AudienceActivator::maybe_migrate()` probed the schema on
+	 * EVERY request -- anonymous frontend included -- because `table_exists()`
+	 * is an uncached `SHOW TABLES LIKE` and every `add_column_if_missing()`
+	 * fires a `SHOW COLUMNS` before deciding to do nothing. Summed across the
+	 * `Loader`'s four chains, that was 48 DDL queries per page on an install
+	 * with nothing to migrate.
 	 *
-	 * **A guarda e `FFC_VERSION`, e NAO um marcador one-shot, de proposito.**
-	 * Estas chamadas existem porque um update in-place do plugin (o botao
-	 * "Atualizar" do wp-admin) NAO dispara `register_activation_hook` -- a
-	 * propriedade a preservar e "o schema se cura depois de um update", nao
-	 * "roda a cada request". Com `FFC_VERSION` a constante muda no update e a
-	 * cadeia roda uma vez no primeiro request seguinte, identica ao que fazia
-	 * antes. Com um booleano one-shot, uma coluna introduzida numa release
-	 * futura nunca alcancaria quem ja tivesse o marcador gravado.
+	 * **The gate is `FFC_VERSION`, and NOT a one-shot marker, on purpose.**
+	 * These calls exist because an in-place plugin update (wp-admin's "Update"
+	 * button) does NOT fire `register_activation_hook` -- the property to
+	 * preserve is "the schema heals itself after an update", not "it runs on
+	 * every request". With `FFC_VERSION` the constant changes on the update and
+	 * the chain runs once on the first request after it, identical to what it
+	 * did before. With a one-shot boolean, a column introduced in a future
+	 * release would never reach whoever already had the marker stored.
 	 *
-	 * A opcao e escrita **depois** do corpo, para que uma falha no meio nao
-	 * trave a cadeia numa versao que ela nao chegou a aplicar.
+	 * The option is written **after** the body, so a failure partway through
+	 * does not lock the chain at a version it never finished applying.
 	 */
 	public static function maybe_migrate(): void {
-		// Guarda por versao (#1231) -- ver a nota logo acima da assinatura.
+		// Version gate (#1231) -- see the note just above the signature.
 		$ffc_schema_option = 'ffc_audience_schema_version';
 		if ( get_option( $ffc_schema_option, '' ) === FFC_VERSION ) {
 			return;
@@ -448,8 +452,58 @@ class AudienceActivator {
 		}
 
 		self::migrate_audience_self_join_column();
+		self::migrate_subscriber_cap_to_members();
 
 		update_option( $ffc_schema_option, FFC_VERSION );
+	}
+
+	/**
+	 * Move `ffc_view_own_audience_bookings` off the `subscriber` role and onto
+	 * the people who actually belong to an audience (#1302).
+	 *
+	 * **The order is forced and is the opposite of the intuitive one.**
+	 * `CapabilityManager::grant_audience_capabilities()` skips a user who
+	 * already `has_cap()`, and a capability inherited from a role answers that
+	 * question yes — so back-filling while `subscriber` still carries the
+	 * capability grants nothing at all to the very users this exists for. The
+	 * role is stripped first, and only then are the members seeded.
+	 *
+	 * The flag is written last, so an interrupted run is retried on the next
+	 * request rather than leaving members without the capability forever.
+	 *
+	 * The walk is over `ffc_audience_members`, not over the user base: work is
+	 * proportional to how many people belong to an audience, which is the
+	 * prefilter rule #1254 established for the capability migrations.
+	 *
+	 * @since 6.26.0
+	 * @return void
+	 */
+	private static function migrate_subscriber_cap_to_members(): void {
+		$flag = 'ffc_audience_cap_off_subscriber_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+
+		$subscriber_role = get_role( 'subscriber' );
+		if ( $subscriber_role instanceof \WP_Role ) {
+			$subscriber_role->remove_cap( 'ffc_view_own_audience_bookings' );
+		}
+
+		global $wpdb;
+		$members_table = $wpdb->prefix . 'ffc_audience_members';
+
+		if ( self::table_exists( $members_table ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot migration over the plugin's own table; there is no WordPress API for it and the result is used once.
+			$member_ids = $wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT user_id FROM %i', $members_table ) );
+
+			foreach ( (array) $member_ids as $member_id ) {
+				if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+					\FreeFormCertificate\UserDashboard\CapabilityManager::grant_audience_capabilities( (int) $member_id );
+				}
+			}
+		}
+
+		update_option( $flag, '1', true );
 	}
 
 	/**

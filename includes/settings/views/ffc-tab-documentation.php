@@ -285,10 +285,10 @@ $ffc_doc_tree = array(
 				'file'   => 'feature-reregistration.php',
 			),
 			array(
-				'anchor' => 'feature-ficha',
+				'anchor' => 'feature-record',
 				'icon'   => 'dashicons-media-document',
-				'title'  => __( 'Ficha PDF', 'ffcertificate' ),
-				'file'   => 'feature-ficha.php',
+				'title'  => __( 'Record PDF', 'ffcertificate' ),
+				'file'   => 'feature-record.php',
 			),
 		),
 	),

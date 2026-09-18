@@ -41,22 +41,22 @@ class PreflightStatsService {
 	private const MAX_ROWS = 5000;
 
 	/**
-	 * Prefixo do transiente por formulario (#1234).
+	 * Per-form transient prefix (#1234).
 	 *
-	 * A chave leva `form_id` E a janela em dias, porque as duas fazem parte da
-	 * pergunta: cachear so por formulario devolveria a contagem de 30 dias
-	 * para quem pediu 7.
+	 * The key carries `form_id` AND the window in days, because both are part of
+	 * the question: caching by form alone would return the 30-day count to
+	 * whoever asked for 7.
 	 *
 	 * @var string
 	 */
 	private const STATS_CACHE_PREFIX = 'ffc_preflight_stats_';
 
 	/**
-	 * Vida do transiente acima -- 5 minutos, o mesmo que
-	 * `SubmissionReader::COUNT_CACHE_TTL`, e pelo mesmo motivo: e um contador
-	 * que o admin le numa tela, nao um valor que decide algo. A leitura custa
-	 * ate 5.000 linhas na memoria mais um `json_decode` por linha, entao
-	 * mesmo 5 minutos eliminam quase todo o trabalho repetido.
+	 * Lifetime of the transient above -- 5 minutes, the same as
+	 * `SubmissionReader::COUNT_CACHE_TTL`, and for the same reason: it is a
+	 * counter the admin reads on a screen, not a value that decides anything.
+	 * The read costs up to 5,000 rows in memory plus one `json_decode` per row,
+	 * so even 5 minutes eliminate almost all the repeated work.
 	 *
 	 * @var int
 	 */

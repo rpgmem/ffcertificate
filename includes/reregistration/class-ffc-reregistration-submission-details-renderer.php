@@ -90,7 +90,7 @@ final class ReregistrationSubmissionDetailsRenderer {
 							<?php
 							$key           = (string) $field->field_key;
 							$raw_value     = $decrypted_values[ $key ] ?? '';
-							$formatted     = FichaGenerator::format_field_value( $field, $raw_value );
+							$formatted     = RecordGenerator::format_field_value( $field, $raw_value );
 							$is_html_field = ( (string) 'working_hours' === $field->field_type );
 							?>
 							<dt><?php echo esc_html( (string) $field->field_label ); ?></dt>

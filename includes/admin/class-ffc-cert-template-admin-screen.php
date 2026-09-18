@@ -435,8 +435,8 @@ class CertTemplateAdminScreen {
 		if ( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT === $kind ) {
 			return __( 'Appointment receipt', 'ffcertificate' );
 		}
-		if ( CertTemplateCpt::KIND_FICHA === $kind ) {
-			return __( 'Ficha', 'ffcertificate' );
+		if ( CertTemplateCpt::KIND_RECORD === $kind ) {
+			return __( 'Record', 'ffcertificate' );
 		}
 		return __( 'Certificate', 'ffcertificate' );
 	}
@@ -457,7 +457,7 @@ class CertTemplateAdminScreen {
 			''                                        => __( 'All categories', 'ffcertificate' ),
 			CertTemplateCpt::KIND_CERTIFICATE         => self::kind_label( CertTemplateCpt::KIND_CERTIFICATE ),
 			CertTemplateCpt::KIND_APPOINTMENT_RECEIPT => self::kind_label( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT ),
-			CertTemplateCpt::KIND_FICHA               => self::kind_label( CertTemplateCpt::KIND_FICHA ),
+			CertTemplateCpt::KIND_RECORD              => self::kind_label( CertTemplateCpt::KIND_RECORD ),
 		);
 
 		echo '<select name="ffc_kind">';
@@ -714,7 +714,7 @@ class CertTemplateAdminScreen {
 		$is_default = CertTemplateReader::is_default( (int) $post->ID );
 		$kind       = CertTemplateReader::get_kind( (int) $post->ID );
 		$is_receipt = CertTemplateCpt::KIND_APPOINTMENT_RECEIPT === $kind;
-		$is_ficha   = CertTemplateCpt::KIND_FICHA === $kind;
+		$is_record  = CertTemplateCpt::KIND_RECORD === $kind;
 
 		wp_nonce_field( self::SAVE_NONCE, 'ffc_cert_template_nonce' );
 
@@ -756,8 +756,8 @@ class CertTemplateAdminScreen {
 			<?php
 			if ( $is_receipt ) {
 				esc_html_e( 'Receipt HTML', 'ffcertificate' );
-			} elseif ( $is_ficha ) {
-				esc_html_e( 'Ficha HTML', 'ffcertificate' );
+			} elseif ( $is_record ) {
+				esc_html_e( 'Record HTML', 'ffcertificate' );
 			} else {
 				esc_html_e( 'Certificate HTML', 'ffcertificate' );
 			}
@@ -769,7 +769,7 @@ class CertTemplateAdminScreen {
 		<p class="description">
 			<?php if ( $is_receipt ) : ?>
 				<?php esc_html_e( 'Common tags:', 'ffcertificate' ); ?> <code>{{name}}</code>, <code>{{cpf_rf}}</code>, <code>{{calendar_title}}</code>, <code>{{appointment_date}}</code>, <code>{{appointment_time}}</code>, <code>{{appointment_time_range}}</code>, <code>{{validation_code}}</code>, <code>{{qr_code:size=140}}</code>, <code>{{validation_url}}</code>.
-			<?php elseif ( $is_ficha ) : ?>
+			<?php elseif ( $is_record ) : ?>
 				<?php esc_html_e( 'Common tags:', 'ffcertificate' ); ?> <code>{{name}}</code>, <code>{{cpf_rf}}</code>, <code>{{custom_fields_section}}</code>, <code>{{termo_ciencia}}</code>, <code>{{submitted_at}}</code>.
 			<?php else : ?>
 				<?php esc_html_e( 'Mandatory Tags:', 'ffcertificate' ); ?> <code>{{auth_code}}</code>, <code>{{name}}</code>, <code>{{cpf_rf}}</code>.
@@ -804,9 +804,9 @@ class CertTemplateAdminScreen {
 		if ( CertTemplateCpt::KIND_APPOINTMENT_RECEIPT === $kind ) {
 			$toggle_label = __( 'Show in the appointment-receipt selection', 'ffcertificate' );
 			$toggle_help  = __( 'When on, this template can be chosen as the appointment receipt in Self-scheduling settings.', 'ffcertificate' );
-		} elseif ( CertTemplateCpt::KIND_FICHA === $kind ) {
-			$toggle_label = __( 'Show in the ficha selection', 'ffcertificate' );
-			$toggle_help  = __( 'When on, this template can be chosen as the ficha in Reregistration settings.', 'ffcertificate' );
+		} elseif ( CertTemplateCpt::KIND_RECORD === $kind ) {
+			$toggle_label = __( 'Show in the record selection', 'ffcertificate' );
+			$toggle_help  = __( 'When on, this template can be chosen as the record in Reregistration settings.', 'ffcertificate' );
 		} else {
 			$toggle_label = __( 'Show in the form editor’s “Load” list', 'ffcertificate' );
 			$toggle_help  = __( 'When on, this template appears in the certificate form editor’s “Load” dropdown.', 'ffcertificate' );

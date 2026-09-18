@@ -160,6 +160,15 @@ class Loader {
 		// early but after WP loads the textdomain.
 		add_action( 'init', array( $this, 'register_ffc_roles_safe' ), 1 );
 
+		// Keep `ffc_administrator` on every administrator, for users who do not
+		// exist yet. The back-fill below is one-shot by design; this is the half
+		// that stays true afterwards (#1302). Registered here rather than inside
+		// `register_ffc_roles_safe()` because these are `add_action` calls with
+		// no translated string, so they need no `init` deferral.
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\RoleRegistrar' ) ) {
+			\FreeFormCertificate\UserDashboard\RoleRegistrar::init_admin_role_sync();
+		}
+
 		if ( class_exists( '\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator' ) ) {
 			\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::maybe_migrate();
 		}
@@ -168,6 +177,20 @@ class Loader {
 		}
 		if ( class_exists( UrlShortenerActivator::class ) ) {
 			UrlShortenerActivator::maybe_migrate();
+		}
+
+		// The two modules whose schema only ever existed after an ACTIVATION
+		// (#1311). Plugin activation is not something an update or an rsync
+		// deploy performs, so a table added to either one reached a fresh
+		// install and nothing else -- which is how the reregistration CSV
+		// import shipped with no tables on every upgraded install. Each method
+		// is gated on `FFC_VERSION` and is a no-op once current; the
+		// user-dashboard one heals SCHEMA only, for the reason written on it.
+		if ( class_exists( '\FreeFormCertificate\Reregistration\ReregistrationActivator' ) ) {
+			\FreeFormCertificate\Reregistration\ReregistrationActivator::maybe_migrate();
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserDashboardActivator' ) ) {
+			\FreeFormCertificate\UserDashboard\UserDashboardActivator::maybe_migrate();
 		}
 
 		// Recruitment schema — orchestrator-level lifecycle (relocated out of
@@ -184,10 +207,10 @@ class Loader {
 		$this->submission_handler = new SubmissionHandler();
 		$this->email_handler      = new EmailHandler();
 
-		// O wp-cron agenda `ffc_process_submission_async` com um inteiro; o
-		// ouvinte reidrata a submissao e dispara o gancho publico de oito
-		// argumentos que o `EmailHandler` escuta (#1248). Chamado daqui porque
-		// esta e a instancia unica -- a razao esta no proprio metodo.
+		// wp-cron schedules `ffc_process_submission_async` with an integer; the
+		// listener rehydrates the submission and fires the eight-argument public
+		// hook `EmailHandler` listens on (#1248). Called from here because this
+		// is the single instance -- the reason is in the method itself.
 		$this->submission_handler->register_async_pipeline();
 
 		// Certificates module — the `ffc_form` CPT + public form rendering.
@@ -208,11 +231,11 @@ class Loader {
 			// pool template for the calendar's mode. Harmless when unconfigured
 			// (falls back to the shipped default file).
 			( new \FreeFormCertificate\Admin\CertTemplateReceiptResolver() )->register();
-			// Ficha template resolution (#951 phase 2): the reregistration ficha
+			// Record template resolution (#951 phase 2): the reregistration record
 			// PDF (frontend verification + admin AJAX) picks the admin-selected
 			// pool template. Harmless when unconfigured (falls back to the bundled
 			// default file).
-			( new \FreeFormCertificate\Admin\CertTemplateFichaResolver() )->register();
+			( new \FreeFormCertificate\Admin\CertTemplateRecordResolver() )->register();
 			if ( is_admin() ) {
 				add_action( 'admin_init', array( \FreeFormCertificate\Admin\CertTemplateSeeder::class, 'maybe_seed' ) );
 				// Management UI: list-table columns + visibility toggle (#865).
@@ -266,11 +289,11 @@ class Loader {
 
 		DashboardShortcode::init();
 
-		// Link de definição de senha do convite (#1212). Registrado
-		// incondicionalmente, ao lado do painel que o hospeda: o handler
-		// atende um link que já saiu por e-mail, e desligar o módulo de
-		// recadastramento depois do envio deixaria esses links num 400 mudo
-		// em vez de na tela que explica que expiraram.
+		// The invitation's password-setting link (#1212). Registered
+		// unconditionally, next to the dashboard that hosts it: the handler
+		// serves a link that has already gone out by email, and turning the
+		// reregistration module off after the send would leave those links at a
+		// silent 400 instead of the screen explaining they expired.
 		\FreeFormCertificate\Core\PasswordInvite::init();
 
 		// Reregistration module — single bootstrap entry point (#563 B3).
@@ -611,7 +634,12 @@ class Loader {
 	 * @since 6.9.0
 	 */
 	private function ensure_import_caps_granted(): void {
-		$flag = 'ffc_import_caps_granted_v1';
+		// _v2 (#1214): the map gained `ffc_import_reregistration`, and a flagged
+		// one-shot never revisits an install that already recorded _v1 — so the
+		// new cap would have reached only fresh installs. Re-running is safe by
+		// construction: every grant in `migrate_import_caps_grant()` is guarded
+		// on the cap not already being present.
+		$flag = 'ffc_import_caps_granted_v2';
 		if ( '1' === get_option( $flag, '' ) ) {
 			return;
 		}
@@ -748,7 +776,13 @@ class Loader {
 	 * @return void
 	 */
 	private function ensure_admin_role_assigned(): void {
-		$flag = 'ffc_admin_role_assigned_v1';
+		// v2 (#1302): re-run once. Between the v1 run and the continuous sync
+		// added in the same release, any administrator created on this install
+		// received neither `ffc_administrator` nor the FFC capabilities that had
+		// been stripped from the native role — so they saw FFC Settings and none
+		// of the six feature menus. Re-running catches exactly those users; the
+		// migration is idempotent for everyone else.
+		$flag = 'ffc_admin_role_assigned_v2';
 		if ( '1' === get_option( $flag, '' ) ) {
 			return;
 		}
@@ -834,40 +868,43 @@ class Loader {
 			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationRepository::class, 'expire_overdue' ) );
 			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_automated_reminders' ) );
 
-			// Continuação de um lote de lembretes (#1232 passo 2). Precisa de
-			// `2` argumentos aceitos: o payload carrega o id da campanha e o
-			// cursor keyset. Fica sob o mesmo gate de módulo dos irmãos acima
-			// — um evento já enfileirado quando o módulo é desligado dispara
-			// como no-op e retoma quando ele volta.
+			// Continuation of a reminder batch (#1232 step 2). It needs `2`
+			// accepted arguments: the payload carries the campaign id and the
+			// keyset cursor. It sits under the same module gate as its siblings
+			// above -- an event already enqueued when the module is turned off
+			// fires as a no-op and resumes when it comes back.
 			add_action( ReregistrationEmailHandler::REMINDER_BATCH_HOOK, array( ReregistrationEmailHandler::class, 'send_reminder_batch' ), 10, 2 );
 		}
 		if ( SettingsReader::module_enabled( 'self_scheduling' ) ) {
 			add_action( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, array( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::class, 'run' ) );
 		}
 
-		// A varredura de tickets expirados vem do `AdminLoader` (#1234), e a
-		// mudanca de lugar E a correcao: la ela nunca rodou.
+		// The expired-ticket sweep comes from `AdminLoader` (#1234), and the
+		// move IS the fix: there it never ran.
 		//
-		// POR QUE NUNCA RODOU
+		// WHY IT NEVER RAN
 		//
-		// `AdminLoader` so e construido dentro de `if ( is_admin() )`. O
-		// `wp-cron.php` define `DOING_CRON` e NUNCA `WP_ADMIN`, que e o que
-		// `is_admin()` le -- o mesmo vale para `wp cron event run`. Entao em
-		// todo contexto que EXECUTA o gancho a guarda era falsa: o activator
-		// agendava o evento, ele disparava todo dia, e nao havia callback.
+		// `AdminLoader` is only constructed inside `if ( is_admin() )`.
+		// `wp-cron.php` defines `DOING_CRON` and NEVER `WP_ADMIN`, which is what
+		// `is_admin()` reads -- the same holds for `wp cron event run`. So in
+		// every context that EXECUTES the hook the guard was false: the
+		// activator scheduled the event, it fired every day, and there was no
+		// callback.
 		//
-		// O comentario que ficava no `AdminLoader` dizia seguir "o mesmo padrao
-		// das crons de recadastramento / self-scheduling em
-		// `define_admin_hooks()`". O padrao e este metodo, que apesar do nome
-		// roda em toda requisicao -- e era exatamente a diferenca que faltava.
+		// The comment that used to sit in `AdminLoader` claimed to follow "the
+		// same pattern as the reregistration / self-scheduling crons in
+		// `define_admin_hooks()`". The pattern is this method, which despite its
+		// name runs on every request -- and that was exactly the difference that
+		// was missing.
 		//
-		// O gate de MODULO continua, e esse sim e deliberado: um modulo
-		// desligado para a varredura, o evento segue agendado e dispara como
-		// no-op ate ele voltar.
+		// The MODULE gate stays, and that one is deliberate: a module turned off
+		// stops the sweep, the event remains scheduled and fires as a no-op
+		// until it comes back.
 		if ( SettingsReader::module_enabled( 'certificates' ) ) {
-			// Pelo `init()` da propria classe, e nao por um `add_action` cru
-			// como os irmaos acima: ela ja encapsula o par gancho/callback, e
-			// duplica-lo aqui seria uma segunda fonte para o mesmo nome.
+			// Through the class's own `init()`, and not a bare `add_action` like
+			// its siblings above: it already encapsulates the hook/callback
+			// pair, and duplicating it here would be a second source for the
+			// same name.
 			\FreeFormCertificate\Admin\ExpiredTicketsCleanup::init();
 		}
 	}

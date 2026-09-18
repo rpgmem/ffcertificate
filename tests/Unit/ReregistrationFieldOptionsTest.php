@@ -29,18 +29,18 @@ class ReregistrationFieldOptionsTest extends TestCase {
 	}
 
 	// ==================================================================
-	// get_default_divisao_setor_map() — shipped seed default
+	// get_default_division_sector_map() — shipped seed default
 	// ==================================================================
 
-	public function test_divisao_setor_map_returns_non_empty_array(): void {
-		$map = ReregistrationFieldOptions::get_default_divisao_setor_map();
+	public function test_division_sector_map_returns_non_empty_array(): void {
+		$map = ReregistrationFieldOptions::get_default_division_sector_map();
 
 		$this->assertIsArray( $map );
 		$this->assertNotEmpty( $map );
 	}
 
-	public function test_divisao_setor_map_contains_expected_divisions(): void {
-		$map = ReregistrationFieldOptions::get_default_divisao_setor_map();
+	public function test_division_sector_map_contains_expected_divisions(): void {
+		$map = ReregistrationFieldOptions::get_default_division_sector_map();
 
 		$this->assertArrayHasKey( 'DRE - Gabinete', $map );
 		$this->assertArrayHasKey( 'DRE - DIAF', $map );
@@ -53,8 +53,8 @@ class ReregistrationFieldOptionsTest extends TestCase {
 		$this->assertArrayHasKey( 'ESCOLA - Quadro de Apoio', $map );
 	}
 
-	public function test_divisao_setor_map_values_are_string_arrays(): void {
-		$map = ReregistrationFieldOptions::get_default_divisao_setor_map();
+	public function test_division_sector_map_values_are_string_arrays(): void {
+		$map = ReregistrationFieldOptions::get_default_division_sector_map();
 
 		foreach ( $map as $division => $sectors ) {
 			$this->assertIsArray( $sectors, "Sectors for '$division' should be an array" );
@@ -65,8 +65,8 @@ class ReregistrationFieldOptionsTest extends TestCase {
 		}
 	}
 
-	public function test_divisao_setor_map_diaf_has_many_sectors(): void {
-		$map = ReregistrationFieldOptions::get_default_divisao_setor_map();
+	public function test_division_sector_map_diaf_has_many_sectors(): void {
+		$map = ReregistrationFieldOptions::get_default_division_sector_map();
 		$diaf = $map['DRE - DIAF'];
 
 		$this->assertGreaterThan( 10, count( $diaf ), 'DIAF should have many sectors' );
@@ -79,30 +79,30 @@ class ReregistrationFieldOptionsTest extends TestCase {
 	// Field option methods — structure and content
 	// ==================================================================
 
-	public function test_sexo_options_non_empty(): void {
-		$options = ReregistrationFieldOptions::get_sexo_options();
+	public function test_gender_options_non_empty(): void {
+		$options = ReregistrationFieldOptions::get_gender_options();
 
 		$this->assertIsArray( $options );
 		$this->assertGreaterThanOrEqual( 3, count( $options ) );
 	}
 
-	public function test_estado_civil_options_non_empty(): void {
-		$options = ReregistrationFieldOptions::get_estado_civil_options();
+	public function test_marital_status_options_non_empty(): void {
+		$options = ReregistrationFieldOptions::get_marital_status_options();
 
 		$this->assertIsArray( $options );
 		$this->assertGreaterThanOrEqual( 5, count( $options ) );
 	}
 
-	public function test_sindicato_options_contains_known_unions(): void {
-		$options = ReregistrationFieldOptions::get_sindicato_options();
+	public function test_union_options_contains_known_unions(): void {
+		$options = ReregistrationFieldOptions::get_union_options();
 
 		$this->assertContains( 'APROFEM', $options );
 		$this->assertContains( 'SINPEEM', $options );
 		$this->assertContains( 'SINESP', $options );
 	}
 
-	public function test_jornada_options_non_empty(): void {
-		$options = ReregistrationFieldOptions::get_jornada_options();
+	public function test_work_schedule_options_non_empty(): void {
+		$options = ReregistrationFieldOptions::get_work_schedule_options();
 
 		$this->assertIsArray( $options );
 		$this->assertNotEmpty( $options );
@@ -110,15 +110,15 @@ class ReregistrationFieldOptionsTest extends TestCase {
 		$this->assertContains( 'JEIF.40', $options );
 	}
 
-	public function test_acumulo_options_non_empty(): void {
-		$options = ReregistrationFieldOptions::get_acumulo_options();
+	public function test_dual_post_options_non_empty(): void {
+		$options = ReregistrationFieldOptions::get_dual_post_options();
 
 		$this->assertIsArray( $options );
 		$this->assertGreaterThanOrEqual( 3, count( $options ) );
 	}
 
-	public function test_uf_options_has_27_states(): void {
-		$options = ReregistrationFieldOptions::get_uf_options();
+	public function test_state_options_has_27_states(): void {
+		$options = ReregistrationFieldOptions::get_state_options();
 
 		$this->assertCount( 27, $options, 'Brazil has 26 states + 1 DF = 27 UFs' );
 		$this->assertContains( 'SP', $options );
@@ -127,8 +127,8 @@ class ReregistrationFieldOptionsTest extends TestCase {
 		$this->assertContains( 'AM', $options );
 	}
 
-	public function test_uf_options_are_two_letter_codes(): void {
-		$options = ReregistrationFieldOptions::get_uf_options();
+	public function test_state_options_are_two_letter_codes(): void {
+		$options = ReregistrationFieldOptions::get_state_options();
 
 		foreach ( $options as $uf ) {
 			$this->assertSame( 2, strlen( $uf ), "UF '$uf' should be exactly 2 characters" );
@@ -177,11 +177,11 @@ class ReregistrationFieldOptionsTest extends TestCase {
 	}
 
 	// ==================================================================
-	// get_default_termo_ciencia_html() — shipped acknowledgment default
+	// get_default_acknowledgment_html() — shipped acknowledgment default
 	// ==================================================================
 
-	public function test_default_termo_ciencia_html_is_non_empty_html(): void {
-		$html = ReregistrationFieldOptions::get_default_termo_ciencia_html();
+	public function test_default_acknowledgment_html_is_non_empty_html(): void {
+		$html = ReregistrationFieldOptions::get_default_acknowledgment_html();
 
 		$this->assertIsString( $html );
 		$this->assertNotEmpty( $html );
@@ -189,11 +189,11 @@ class ReregistrationFieldOptionsTest extends TestCase {
 		$this->assertStringContainsString( '<li>', $html );
 	}
 
-	public function test_default_termo_ciencia_html_preserves_links(): void {
-		$html = ReregistrationFieldOptions::get_default_termo_ciencia_html();
+	public function test_default_acknowledgment_html_preserves_links(): void {
+		$html = ReregistrationFieldOptions::get_default_acknowledgment_html();
 
 		// The notice references external systems; the anchors must survive so
-		// the ficha PDF (which bypasses the link-stripping allowlist) keeps them.
+		// the record PDF (which bypasses the link-stripping allowlist) keeps them.
 		$this->assertStringContainsString( '<a href="https://www.declaracaofamilia', $html );
 		$this->assertStringContainsString( 'SISPATRI', $html );
 	}

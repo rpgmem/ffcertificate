@@ -155,7 +155,7 @@ final class RecruitmentCandidatesRestController {
 		if ( is_string( $cpf ) && '' !== $cpf ) {
 			$cpf_digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
 			if ( '' !== $cpf_digits ) {
-				$candidate = RecruitmentCandidateReader::get_by_cpf_hash( (string) Encryption::hash( $cpf_digits ) );
+				$candidate = RecruitmentCandidateReader::get_by_cpf_hash( (string) SensitiveFieldRegistry::hash_identifier( 'cpf', $cpf_digits ) );
 				return new \WP_REST_Response( null === $candidate ? array() : array( $this->shape_candidate_admin( $candidate ) ), 200 );
 			}
 		}
@@ -164,7 +164,7 @@ final class RecruitmentCandidatesRestController {
 		if ( is_string( $rf ) && '' !== $rf ) {
 			$rf_digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $rf );
 			if ( '' !== $rf_digits ) {
-				$candidate = RecruitmentCandidateReader::get_by_rf_hash( (string) Encryption::hash( $rf_digits ) );
+				$candidate = RecruitmentCandidateReader::get_by_rf_hash( (string) SensitiveFieldRegistry::hash_identifier( 'rf', $rf_digits ) );
 				return new \WP_REST_Response( null === $candidate ? array() : array( $this->shape_candidate_admin( $candidate ) ), 200 );
 			}
 		}
@@ -362,9 +362,9 @@ final class RecruitmentCandidatesRestController {
 			return new \WP_REST_Response( array(), 200 );
 		}
 
-		// UMA leitura por candidato, guardada: o laco de montagem abaixo reusa
-		// em vez de reconsultar. Candidaturas por usuario sao poucas, entao o
-		// N+1 que importa aqui nao e este -- e o do historico de chamadas.
+		// ONE read per candidate, held: the assembly loop below reuses it rather
+		// than querying again. Candidacies per user are few, so the N+1 that
+		// matters here is not this one -- it is the call history's.
 		$by_candidate = array();
 		$class_ids    = array();
 		foreach ( $candidates as $candidate ) {
@@ -375,13 +375,15 @@ final class RecruitmentCandidatesRestController {
 			}
 		}
 
-		// UMA consulta para todo o historico, em vez de uma por classificacao
-		// dentro de laco aninhado (#1234). O ajudante em lote ja existia e ja
-		// era usado pelo painel (`RecruitmentDashboardSection::collect_calls`);
-		// so este sitio tinha ficado com a versao singular.
+		// ONE query for the whole history, instead of one per classification
+		// inside a nested loop (#1234). The batched helper already existed and
+		// was already used by the dashboard
+		// (`RecruitmentDashboardSection::collect_calls`); only this site had been
+		// left on the singular version.
 		//
-		// A ordem nao muda: as duas versoes emitem `ORDER BY called_at DESC`, e
-		// agrupar uma lista ja ordenada preserva a ordem DENTRO de cada grupo.
+		// The order does not change: both versions emit `ORDER BY called_at
+		// DESC`, and grouping an already ordered list preserves the order WITHIN
+		// each group.
 		$calls_by_class = array();
 		foreach ( RecruitmentCallReader::get_history_for_classifications( $class_ids ) as $ffc_call ) {
 			$calls_by_class[ (int) $ffc_call->classification_id ][] = $ffc_call;

@@ -55,10 +55,10 @@ class RecruitmentActivatorTest extends TestCase {
 
 		Functions\when( 'dbDelta' )->justReturn( array() );
 
-		// A cadeia deste activator passou a ser guardada por `FFC_VERSION`
-		// (#1231), entao le e escreve uma opcao de versao. O valor devolvido
-		// aqui e DIFERENTE de `FFC_VERSION` de proposito: estes testes
-		// exercitam o corpo da cadeia, que so roda quando a guarda nao casa.
+		// This activator's chain became guarded by `FFC_VERSION` (#1231), so it
+		// reads and writes a version option. The value returned here is
+		// DIFFERENT from `FFC_VERSION` on purpose: these tests exercise the
+		// chain's body, which only runs when the guard does not match.
 		Functions\when( 'get_option' )->justReturn( '' );
 		Functions\when( 'update_option' )->justReturn( true );
 	}

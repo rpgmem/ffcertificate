@@ -153,7 +153,7 @@ class RecruitmentCandidateReader {
 	 * matching `cpf_hash` reuses the existing candidate row (with new
 	 * classifications added) instead of creating a duplicate.
 	 *
-	 * @param string $cpf_hash Hash produced by `Encryption::hash()`.
+	 * @param string $cpf_hash Hash produced by `SensitiveFieldRegistry::hash_identifier()`.
 	 * @return CandidateRow|null
 	 */
 	public static function get_by_cpf_hash( string $cpf_hash ): ?object {
@@ -175,7 +175,7 @@ class RecruitmentCandidateReader {
 	/**
 	 * Look up a candidate by RF hash.
 	 *
-	 * @param string $rf_hash Hash produced by `Encryption::hash()`.
+	 * @param string $rf_hash Hash produced by `SensitiveFieldRegistry::hash_identifier()`.
 	 * @return CandidateRow|null
 	 */
 	public static function get_by_rf_hash( string $rf_hash ): ?object {
@@ -203,7 +203,7 @@ class RecruitmentCandidateReader {
 	 * candidates share the same email, the FIRST inserted is returned;
 	 * callers needing all matches should use a different query.
 	 *
-	 * @param string $email_hash Hash produced by `Encryption::hash()`.
+	 * @param string $email_hash Hash produced by `SensitiveFieldRegistry::hash_identifier()`.
 	 * @return CandidateRow|null
 	 */
 	public static function get_by_email_hash( string $email_hash ): ?object {
@@ -405,7 +405,7 @@ class RecruitmentCandidateReader {
 	 * candidates can legitimately share it (family members, etc.).
 	 *
 	 * @since 6.6.2
-	 * @param string $email_hash Hash produced by `Encryption::hash()`.
+	 * @param string $email_hash Hash produced by `SensitiveFieldRegistry::hash_identifier()`.
 	 * @return list<int> Candidate IDs matching the hash (empty array on no match).
 	 */
 	public static function get_ids_by_email_hash( string $email_hash ): array {

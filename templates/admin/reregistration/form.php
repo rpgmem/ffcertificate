@@ -148,13 +148,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<?php
 		/*
-		 * Convite manual (#1190). FORA do `<form>` de propósito: um `<button>`
-		 * dentro dele enviaria o formulário, e este não salva nada -- dispara
-		 * e-mail. Só aparece numa campanha que já existe, porque só aí há
-		 * submissões para convidar.
+		 * Manual invitation (#1190). OUTSIDE the `<form>` on purpose: a
+		 * `<button>` inside it would submit the form, and this one saves
+		 * nothing -- it sends email. It only appears on a campaign that already
+		 * exists, because only then are there submissions to invite.
 		 */
 		if ( $id > 0 ) :
 			?>
+			<?php
+			/*
+			 * Import panel (#1214). Same two reasons as the box below: outside
+			 * the `<form>` because its buttons would otherwise save the
+			 * campaign, and only on one that exists because an import needs an
+			 * audience the campaign already reaches.
+			 */
+			if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( \FreeFormCertificate\Reregistration\ReregistrationImportAjaxHandler::CAPABILITY ) ) {
+				include FFC_PLUGIN_DIR . 'templates/admin/reregistration/import-panel.php';
+			}
+			?>
+
 		<div class="postbox ffc-rereg-invite-box">
 			<h2 class="hndle"><span><?php esc_html_e( 'Invitations', 'ffcertificate' ); ?></span></h2>
 			<div class="inside">

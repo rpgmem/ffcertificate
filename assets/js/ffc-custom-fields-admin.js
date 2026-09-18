@@ -103,7 +103,7 @@
             var choices = choicesText.split('\n').filter(function (c) { return c.trim() !== ''; });
 
             // Collect dependent_select groups from the synced hidden input
-            // (kept in sync by ffc-divisao-setor-editor.js). null for rows
+            // (kept in sync by ffc-division-sector-editor.js). null for rows
             // without a groups editor — the server ignores non-arrays.
             var groups = null;
             var $dsMap = $row.find('.ffc-ds-map-json');

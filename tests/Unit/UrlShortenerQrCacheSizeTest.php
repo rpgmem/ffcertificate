@@ -13,32 +13,32 @@ use FreeFormCertificate\UrlShortener\UrlShortenerRepository;
 use FreeFormCertificate\UrlShortener\UrlShortenerService;
 
 /**
- * O cache de QR do encurtador so serve o tamanho que declarou (#1233).
+ * The shortener's QR cache only serves the size it declared (#1233).
  *
- * O DEFEITO QUE ISTO CONSERTA
+ * THE DEFECT THIS FIXES
  *
- * `qr_cache` era indexado apenas pelo `short_code`, ignorando o tamanho
- * pedido. Os chamadores pedem tamanhos diferentes -- 200 na metabox, 100 a
- * 1000 no REST, 400 no download --, entao uma chamada REST com `size=1000`
- * lia o PNG de 200px gravado pela metabox; com o cache vazio, gravava 1000px
- * la e a metabox passava a renderizar um PNG de 1000 num espaco de 200.
- * Corrupcao de conteudo entre chamadores, sem erro e sem log.
+ * `qr_cache` was keyed on the `short_code` alone, ignoring the requested size.
+ * The callers ask for different sizes -- 200 in the metabox, 100 to 1000 in
+ * REST, 400 on download -- so a REST call with `size=1000` read the 200px PNG
+ * the metabox had stored; with an empty cache, it stored 1000px there and the
+ * metabox started rendering a 1000px PNG in a 200px space. Content corruption
+ * between callers, with no error and no log.
  *
- * AS DUAS METADES, E POR QUE AMBAS SAO NECESSARIAS
+ * THE TWO HALVES, AND WHY BOTH ARE NEEDED
  *
- * O portao por tamanho em `generate_qr_base64()` decide QUEM fala com o
- * cache; o envelope em `set_qr_cache()`/`get_qr_cache()` decide o que conta
- * como acerto. So o portao nao bastaria: as linhas gravadas ANTES desta
- * correcao estao la, em base64 puro e num tamanho que ninguem registrou, e
- * seriam servidas como se fossem 200. So o envelope tambem nao bastaria: sem
- * o portao, o REST continuaria gravando 901 variantes possiveis por URL,
- * cada uma sobrescrevendo a anterior.
+ * The size gate in `generate_qr_base64()` decides WHO talks to the cache; the
+ * envelope in `set_qr_cache()`/`get_qr_cache()` decides what counts as a hit.
+ * The gate alone would not be enough: the rows stored BEFORE this fix are still
+ * there, in bare base64 and at a size nobody recorded, and would be served as
+ * though they were 200. The envelope alone would not be enough either: without
+ * the gate, REST would keep storing 901 possible variants per URL, each one
+ * overwriting the last.
  *
- * O QUE ESTE ARQUIVO NAO PROVA
+ * WHAT THIS FILE DOES NOT PROVE
  *
- * Que o PNG sai correto -- isso depende de GD e do phpqrcode, e nao e o que
- * regride aqui. As asercoes falam do contrato do cache, que e onde o defeito
- * morava.
+ * That the PNG comes out correct -- that depends on GD and on phpqrcode, and is
+ * not what regresses here. The assertions speak about the cache's contract,
+ * which is where the defect lived.
  *
  * @covers \FreeFormCertificate\UrlShortener\UrlShortenerQrHandler
  */
@@ -60,10 +60,10 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 
 		class_exists( '\FreeFormCertificate\UrlShortener\UrlShortenerQrHandler' );
 
-		// `Debug::is_enabled()` guarda em `function_exists( 'get_option' )`, e
-		// o gerador chama `Debug::log_qrcode()` na saida por URL vazia que
-		// estes testes usam como costura. Stubado aqui de proposito, e nao
-		// herdado de quem rodou antes -- ver a nota de ordem no CLAUDE.md.
+		// `Debug::is_enabled()` guards on `function_exists( 'get_option' )`, and
+		// the generator calls `Debug::log_qrcode()` on the empty-URL exit these
+		// tests use as a seam. Stubbed here on purpose, and not inherited from
+		// whatever ran before -- see the ordering note in CLAUDE.md.
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'wp_json_encode' )->alias(
 			static function ( $data ) {
@@ -97,9 +97,9 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 	}
 
 	/**
-	 * Captura o payload que `set_qr_cache()` manda para o repositorio.
+	 * Captures the payload `set_qr_cache()` sends to the repository.
 	 *
-	 * @param int    $size   Tamanho declarado.
+	 * @param int    $size   Declared size.
 	 * @param string $base64 PNG.
 	 * @return string
 	 */
@@ -118,32 +118,32 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 	}
 
 	// ==================================================================
-	// O envelope
+	// The envelope
 	// ==================================================================
 
 	/**
-	 * O que vai para o banco declara o tamanho junto do PNG.
+	 * What goes into the database declares the size alongside the PNG.
 	 *
-	 * E a asercao que sustenta todas as outras: sem o tamanho gravado, nao ha
-	 * como uma leitura futura saber se o que esta la serve.
+	 * It is the assertion holding all the others up: without the stored size,
+	 * there is no way for a later read to know whether what is there serves.
 	 */
 	public function test_the_stored_payload_declares_its_size(): void {
 		$payload = $this->stored_payload( 200, 'PNGDATA' );
 
 		$decoded = json_decode( $payload, true );
 
-		$this->assertIsArray( $decoded, 'O cache precisa gravar um envelope legivel, nao base64 cru.' );
+		$this->assertIsArray( $decoded, 'The cache must store a readable envelope, not raw base64.' );
 		$this->assertSame( 200, $decoded['size'] ?? null );
 		$this->assertSame( 'PNGDATA', $decoded['png'] ?? null );
 	}
 
 	/**
-	 * Round-trip no tamanho declarado: grava 200, le 200, volta o PNG.
+	 * Round trip at the declared size: store 200, read 200, get the PNG back.
 	 *
-	 * Autoverificacao do arquivo. Sem ela, um `assertSame( '', ... )` nos
-	 * testes abaixo passaria mesmo que a leitura estivesse quebrada para
-	 * TODOS os casos -- que e o defeito de medicao que o CLAUDE.md registra:
-	 * uma varredura vazia nunca pode ser lida como "limpa".
+	 * The file's self-check. Without it, an `assertSame( '', ... )` in the tests
+	 * below would pass even if the read were broken for ALL cases -- which is the
+	 * measurement defect CLAUDE.md records: an empty scan must never read as
+	 * "clean".
 	 */
 	public function test_a_matching_size_reads_back_the_cached_png(): void {
 		$payload = $this->stored_payload( 200, 'PNGDATA' );
@@ -171,13 +171,13 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 	}
 
 	/**
-	 * Uma linha gravada no esquema ANTIGO (base64 cru) e um miss.
+	 * A row stored in the OLD scheme (bare base64) is a miss.
 	 *
-	 * E o caminho de upgrade, e ele nao custa migracao nenhuma: o alfabeto do
-	 * base64 nunca comeca por `{`, entao a linha antiga falha o `json_decode`
-	 * e e regravada no formato novo na primeira leitura. Sem esta asercao, o
-	 * conserto deixaria de fora justamente as instalacoes que ja carregam o
-	 * cache envenenado.
+	 * It is the upgrade path, and it costs no migration at all: the base64
+	 * alphabet never starts with `{`, so the old row fails `json_decode` and is
+	 * rewritten in the new format on the first read. Without this assertion, the
+	 * fix would leave out precisely the installs already carrying the poisoned
+	 * cache.
 	 */
 	public function test_a_legacy_bare_base64_row_is_a_miss(): void {
 		$this->repo->shouldReceive( 'findQrCacheByShortCode' )->with( 'abc123' )
@@ -187,23 +187,23 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 	}
 
 	/**
-	 * Base64 antigo que por acidente e JSON VALIDO tambem e um miss.
+	 * Old base64 that happens to be VALID JSON is a miss too.
 	 *
-	 * O alfabeto do base64 produz JSON valido em alguns casos -- um payload so
-	 * de digitos decodifica para um numero, e um de quatro caracteres pode ser
-	 * literalmente `true`. Sem estas asercoes, "linha antiga e sempre miss"
-	 * seria uma afirmacao sobre o caso facil apenas.
+	 * The base64 alphabet produces valid JSON in some cases -- an all-digit
+	 * payload decodes to a number, and a four-character one can literally be
+	 * `true`. Without these assertions, "an old row is always a miss" would be a
+	 * statement about the easy case only.
 	 *
-	 * O QUE ESTAS ASERCOES NAO PRENDEM, e vale saber antes de mexer: elas
-	 * provam o COMPORTAMENTO (miss), nao o mecanismo. Medido por mutacao --
-	 * trocar o `is_array()` do produto por `null === $payload` mantem os tres
-	 * casos verdes, porque quem reprova de fato e a validacao do envelope
-	 * adiante. O `is_array()` e guarda de tipo, contra o warning de acesso a
-	 * offset em int; a razao esta escrita no proprio metodo.
+	 * WHAT THESE ASSERTIONS DO NOT PIN, and it is worth knowing before touching
+	 * them: they prove the BEHAVIOUR (a miss), not the mechanism. Measured by
+	 * mutation -- swapping the product's `is_array()` for `null === $payload`
+	 * keeps all three cases green, because what actually refuses is the envelope
+	 * validation further on. The `is_array()` is a type guard, against the
+	 * offset-access-on-int warning; the reason is written in the method itself.
 	 *
 	 * @dataProvider valid_json_that_is_not_an_envelope
 	 *
-	 * @param string $stored Valor cru na coluna.
+	 * @param string $stored Raw value in the column.
 	 */
 	public function test_legacy_base64_that_parses_as_json_is_still_a_miss( string $stored ): void {
 		$this->repo->shouldReceive( 'findQrCacheByShortCode' )->with( 'abc123' )->andReturn( $stored );
@@ -223,10 +223,10 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 	}
 
 	/**
-	 * Um envelope de versao desconhecida e um miss.
+	 * An envelope of unknown version is a miss.
 	 *
-	 * E o que torna `CACHE_SIZE` seguro de mudar depois: a validacao nao
-	 * depende de ninguem lembrar de limpar a coluna.
+	 * It is what makes `CACHE_SIZE` safe to change later: the validation does not
+	 * depend on anybody remembering to clear the column.
 	 */
 	public function test_an_unknown_envelope_version_is_a_miss(): void {
 		$this->repo->shouldReceive( 'findQrCacheByShortCode' )->with( 'abc123' )
@@ -236,17 +236,17 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 	}
 
 	// ==================================================================
-	// O portao por tamanho
+	// The size gate
 	// ==================================================================
 
 	/**
-	 * Um tamanho fora do canonico nao fala com o cache — nem para ler, nem
-	 * para gravar.
+	 * A non-canonical size does not talk to the cache — neither to read nor to
+	 * write.
 	 *
-	 * A URL vazia e a costura: `QRCodeGenerator::generate()` devolve '' antes
-	 * de tocar em tempfile ou GD, entao o teste observa o portao sem depender
-	 * de extensao nenhuma. Se o portao regredisse, a leitura aconteceria
-	 * ANTES do gerador e o `shouldNotReceive` reprovaria.
+	 * The empty URL is the seam: `QRCodeGenerator::generate()` returns '' before
+	 * touching a tempfile or GD, so the test observes the gate without depending
+	 * on any extension. If the gate regressed, the read would happen BEFORE the
+	 * generator and the `shouldNotReceive` would fail.
 	 */
 	public function test_a_non_canonical_size_bypasses_the_cache_entirely(): void {
 		$this->repo->shouldNotReceive( 'findQrCacheByShortCode' );
@@ -256,10 +256,10 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 	}
 
 	/**
-	 * No tamanho canonico o cache E consultado.
+	 * At the canonical size the cache IS consulted.
 	 *
-	 * O par da asercao acima: sem ela, um portao fechado para todo mundo
-	 * passaria nos dois testes e o cache estaria morto.
+	 * The pair of the assertion above: without it, a gate closed to everybody
+	 * would pass both tests and the cache would be dead.
 	 */
 	public function test_the_canonical_size_does_reach_the_cache(): void {
 		$this->repo->shouldReceive( 'findQrCacheByShortCode' )->with( 'abc123' )->once()->andReturn( '' );
@@ -268,11 +268,11 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 	}
 
 	/**
-	 * Sem `short_code` nao ha cache, qualquer que seja o tamanho.
+	 * With no `short_code` there is no cache, whatever the size.
 	 *
-	 * E o que mantem `handle_download_png()` fora do cache; desde o portao por
-	 * tamanho isso deixou de ser a unica coisa que o protegia, mas continua
-	 * sendo verdade e vale estar preso.
+	 * It is what keeps `handle_download_png()` out of the cache; since the size
+	 * gate that stopped being the only thing protecting it, but it is still true
+	 * and worth pinning.
 	 */
 	public function test_no_short_code_means_no_cache(): void {
 		$this->repo->shouldNotReceive( 'findQrCacheByShortCode' );
@@ -282,19 +282,18 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 	}
 
 	/**
-	 * A metabox — o unico chamador repetido, e a razao de o cache existir —
-	 * pede exatamente o tamanho que o cache serve.
+	 * The metabox — the only repeated caller, and the reason the cache exists —
+	 * asks for exactly the size the cache serves.
 	 *
-	 * Congela o acoplamento que o literal `200` escondia: os dois lados agora
-	 * leem a mesma constante, entao muda-la nao pode desligar o cache em
-	 * silencio.
+	 * It freezes the coupling the literal `200` hid: both sides now read the same
+	 * constant, so changing it cannot switch the cache off in silence.
 	 */
 	public function test_the_metabox_asks_for_the_size_the_cache_serves(): void {
 		$source = (string) file_get_contents(
 			dirname( __DIR__, 2 ) . '/includes/url-shortener/class-ffc-url-shortener-meta-box.php'
 		);
 
-		$this->assertNotSame( '', $source, 'Nao consegui ler a metabox — a verificacao nao rodou.' );
+		$this->assertNotSame( '', $source, 'Could not read the metabox — the check did not run.' );
 		$this->assertStringContainsString(
 			'UrlShortenerQrHandler::CACHE_SIZE',
 			$source,

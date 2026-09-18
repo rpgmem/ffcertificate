@@ -140,12 +140,12 @@ class DashboardAssetManager {
 
 		// Reregistration frontend assets.
 		//
-		// `ffc-working-hours` é dependência declarada, não decorativa (#1162):
-		// esta folha redeclara `.ffc-working-hours`, `.ffc-wh-table`,
-		// `.ffc-wh-add` e `.ffc-wh-remove` para o formulário do frontend, e as
-		// duas carregam nesta mesma tela. Sem a aresta, quem vence é a ordem de
-		// enfileiramento -- que hoje acerta por acaso, e inverteria se estas
-		// duas linhas trocassem de lugar.
+		// `ffc-working-hours` is a declared dependency, not a decorative one
+		// (#1162): this sheet redeclares `.ffc-working-hours`, `.ffc-wh-table`,
+		// `.ffc-wh-add` and `.ffc-wh-remove` for the frontend form, and both
+		// load on this same screen. Without the edge, the winner is enqueue
+		// order -- which gets it right by accident today, and would invert if
+		// these two lines swapped places.
 		wp_enqueue_style( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/css/ffc-reregistration-frontend{$s}.css", array( 'ffc-common', 'ffc-dashboard', 'ffc-working-hours' ), FFC_VERSION );
 		wp_enqueue_script( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/js/ffc-reregistration-frontend{$s}.js", array( 'jquery', 'ffc-dashboard', 'ffc-working-hours' ), FFC_VERSION, true );
 		wp_localize_script(
@@ -155,32 +155,32 @@ class DashboardAssetManager {
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'ffc_reregistration_frontend' ),
 				'strings' => array(
-					'loading'          => __( 'Loading form...', 'ffcertificate' ),
-					'saving'           => __( 'Saving...', 'ffcertificate' ),
-					'submitting'       => __( 'Submitting...', 'ffcertificate' ),
-					'saveDraft'        => __( 'Save Draft', 'ffcertificate' ),
-					'submit'           => __( 'Submit', 'ffcertificate' ),
-					'draftSaved'       => __( 'Draft saved.', 'ffcertificate' ),
-					'submitted'        => __( 'Reregistration submitted successfully!', 'ffcertificate' ),
-					'errorLoading'     => __( 'Error loading form.', 'ffcertificate' ),
-					'errorSaving'      => __( 'Error saving draft.', 'ffcertificate' ),
-					'errorSubmitting'  => __( 'Error submitting.', 'ffcertificate' ),
-					'fixErrors'        => __( 'Please fix the errors below.', 'ffcertificate' ),
-					'required'         => __( 'This field is required.', 'ffcertificate' ),
-					'invalidCpf'       => __( 'Invalid CPF.', 'ffcertificate' ),
-					'invalidEmail'     => __( 'Invalid email.', 'ffcertificate' ),
-					'invalidPhone'     => __( 'Invalid phone number.', 'ffcertificate' ),
-					'invalidFormat'    => __( 'Invalid format.', 'ffcertificate' ),
-					'select'           => __( 'Select', 'ffcertificate' ),
-					'sunday'           => __( 'Sunday', 'ffcertificate' ),
-					'monday'           => __( 'Monday', 'ffcertificate' ),
-					'tuesday'          => __( 'Tuesday', 'ffcertificate' ),
-					'wednesday'        => __( 'Wednesday', 'ffcertificate' ),
-					'thursday'         => __( 'Thursday', 'ffcertificate' ),
-					'friday'           => __( 'Friday', 'ffcertificate' ),
-					'saturday'         => __( 'Saturday', 'ffcertificate' ),
-					'acumuloShowValue' => __( 'I hold', 'ffcertificate' ),
-					'importLoading'    => __( 'Bringing previous answers…', 'ffcertificate' ),
+					'loading'           => __( 'Loading form...', 'ffcertificate' ),
+					'saving'            => __( 'Saving...', 'ffcertificate' ),
+					'submitting'        => __( 'Submitting...', 'ffcertificate' ),
+					'saveDraft'         => __( 'Save Draft', 'ffcertificate' ),
+					'submit'            => __( 'Submit', 'ffcertificate' ),
+					'draftSaved'        => __( 'Draft saved.', 'ffcertificate' ),
+					'submitted'         => __( 'Reregistration submitted successfully!', 'ffcertificate' ),
+					'errorLoading'      => __( 'Error loading form.', 'ffcertificate' ),
+					'errorSaving'       => __( 'Error saving draft.', 'ffcertificate' ),
+					'errorSubmitting'   => __( 'Error submitting.', 'ffcertificate' ),
+					'fixErrors'         => __( 'Please fix the errors below.', 'ffcertificate' ),
+					'required'          => __( 'This field is required.', 'ffcertificate' ),
+					'invalidCpf'        => __( 'Invalid CPF.', 'ffcertificate' ),
+					'invalidEmail'      => __( 'Invalid email.', 'ffcertificate' ),
+					'invalidPhone'      => __( 'Invalid phone number.', 'ffcertificate' ),
+					'invalidFormat'     => __( 'Invalid format.', 'ffcertificate' ),
+					'select'            => __( 'Select', 'ffcertificate' ),
+					'sunday'            => __( 'Sunday', 'ffcertificate' ),
+					'monday'            => __( 'Monday', 'ffcertificate' ),
+					'tuesday'           => __( 'Tuesday', 'ffcertificate' ),
+					'wednesday'         => __( 'Wednesday', 'ffcertificate' ),
+					'thursday'          => __( 'Thursday', 'ffcertificate' ),
+					'friday'            => __( 'Friday', 'ffcertificate' ),
+					'saturday'          => __( 'Saturday', 'ffcertificate' ),
+					'dualPostShowValue' => __( 'I hold', 'ffcertificate' ),
+					'importLoading'     => __( 'Bringing previous answers…', 'ffcertificate' ),
 				),
 			)
 		);
@@ -328,7 +328,7 @@ class DashboardAssetManager {
 					'period'                   => __( 'Period', 'ffcertificate' ),
 					'submittedAt'              => __( 'Submitted', 'ffcertificate' ),
 					'validationCode'           => __( 'Validation Code', 'ffcertificate' ),
-					'downloadFicha'            => __( 'Download Ficha', 'ffcertificate' ),
+					'downloadRecord'           => __( 'Download Record', 'ffcertificate' ),
 					'active'                   => __( 'Active', 'ffcertificate' ),
 					'completed'                => __( 'Completed', 'ffcertificate' ),
 					'editReregistration'       => __( 'Edit', 'ffcertificate' ),

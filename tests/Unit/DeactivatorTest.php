@@ -189,9 +189,9 @@ class DeactivatorTest extends TestCase {
 
 		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $cleared );
 		$this->assertContains( 'ffcertificate_process_submission_hook', $cleared );
-		// O gancho interno do #1248 e o que passou a ser AGENDADO; o publico
-		// acima fica na limpeza porque pode haver evento pendente da forma
-		// antiga no momento da desinstalacao.
+		// #1248's internal hook is the one that is now SCHEDULED; the public one
+		// above stays in the cleanup because a pending event of the old shape may
+		// still exist at uninstall time.
 		$this->assertContains( 'ffc_process_submission_async', $cleared );
 		$this->assertContains( 'ffcertificate_self_scheduling_reminder_scan', $cleared );
 		$this->assertContains( 'ffcertificate_reregistration_expire_hook', $cleared );

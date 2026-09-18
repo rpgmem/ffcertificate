@@ -300,12 +300,11 @@ class ReregistrationSubmissionWriter {
 	}
 
 	/**
-	 * Quantas linhas a semeadura envia por INSERT (#1234).
+	 * How many rows the seeding sends per INSERT (#1234).
 	 *
-	 * Quinhentas e o mesmo tamanho de pagina que o contrato de exportacao do
-	 * #772 usa: grande o bastante para que o numero de idas ao banco deixe de
-	 * importar, pequeno o bastante para nao esbarrar em `max_allowed_packet`
-	 * numa linha de tres inteiros.
+	 * Five hundred is the same page size #772's export contract uses: large
+	 * enough that the number of round trips to the database stops mattering,
+	 * small enough not to hit `max_allowed_packet` on a row of three integers.
 	 *
 	 * @var int
 	 */
@@ -316,28 +315,29 @@ class ReregistrationSubmissionWriter {
 	 *
 	 * Skips users who already have a submission for this reregistration.
 	 *
-	 * EM LOTE, E NAO LINHA A LINHA (#1234)
+	 * IN BATCHES, NOT ROW BY ROW (#1234)
 	 *
-	 * A forma anterior era um SELECT (existe?) mais um INSERT por usuario: dez
-	 * mil membros custavam vinte mil consultas DENTRO DE UMA REQUISICAO DE
-	 * ADMIN -- a que salva a campanha. Agora sao `ceil( N / 500 )` INSERTs, e os
-	 * mesmos dez mil membros custam vinte.
+	 * The previous shape was a SELECT (does it exist?) plus an INSERT per user:
+	 * ten thousand members cost twenty thousand queries INSIDE AN ADMIN REQUEST
+	 * -- the one that saves the campaign. Now it is `ceil( N / 500 )` INSERTs,
+	 * and the same ten thousand members cost twenty.
 	 *
-	 * POR QUE O `IGNORE` SUBSTITUI A CHECAGEM, E NAO APENAS A ESCONDE
+	 * WHY THE `IGNORE` REPLACES THE CHECK RATHER THAN MERELY HIDING IT
 	 *
-	 * A tabela carrega `UNIQUE KEY idx_reregistration_user (reregistration_id,
-	 * user_id)`, entao "pular quem ja tem submissao" ja era a regra do banco --
-	 * o SELECT por linha apenas a repetia em PHP, e repetia com uma janela: entre
-	 * ler e inserir, um segundo clique no botao Salvar podia inserir a mesma
-	 * linha. A restricao fecha essa janela; a checagem nao fechava.
+	 * The table carries `UNIQUE KEY idx_reregistration_user (reregistration_id,
+	 * user_id)`, so "skip whoever already has a submission" was already the
+	 * database's rule -- the per-row SELECT only repeated it in PHP, and
+	 * repeated it with a window: between reading and inserting, a second click
+	 * on the Save button could insert the same row. The constraint closes that
+	 * window; the check did not.
 	 *
-	 * `INSERT IGNORE` rebaixa TODO erro a aviso, o que normalmente e motivo para
-	 * nao usa-lo. Aqui nao ha outro erro possivel: as tres colunas escritas sao
-	 * dois inteiros que este metodo mesmo converte e o literal `pending`
-	 * escrito aqui. Nao ha texto de usuario para truncar.
+	 * `INSERT IGNORE` downgrades EVERY error to a warning, which is normally a
+	 * reason not to use it. Here no other error is possible: the three columns
+	 * written are two integers this method itself converts and the `pending`
+	 * literal written here. There is no user text to truncate.
 	 *
-	 * A contagem devolvida continua sendo a de linhas CRIADAS: `affected_rows`
-	 * de um INSERT multi-linha conta as que entraram, nao as ignoradas.
+	 * The count returned is still of rows CREATED: `affected_rows` of a
+	 * multi-row INSERT counts the ones that went in, not the ignored ones.
 	 *
 	 * @param int        $reregistration_id Reregistration ID.
 	 * @param array<int> $audience_ids      Audience IDs.
@@ -346,10 +346,11 @@ class ReregistrationSubmissionWriter {
 	public static function create_for_audience_members( int $reregistration_id, array $audience_ids ): int {
 		$user_ids = ReregistrationRepository::get_user_ids_for_audiences( $audience_ids );
 
-		// `get_user_ids_for_audiences()` concatena os membros de varias audiencias
-		// e ja deduplica, mas devolve o que o leitor de audiencia entregou -- que
-		// pode vir como string do driver. Normalizar aqui e o que permite confiar
-		// nos `%d` abaixo e no tamanho dos lotes.
+		// `get_user_ids_for_audiences()` concatenates the members of several
+		// audiences and already deduplicates, but returns what the audience
+		// reader handed over -- which may come as a string from the driver.
+		// Normalising here is what allows trusting the `%d` below and the batch
+		// sizes.
 		$user_ids = array_values(
 			array_unique(
 				array_filter(
@@ -377,21 +378,21 @@ class ReregistrationSubmissionWriter {
 			foreach ( $chunk as $user_id ) {
 				$args[] = $reregistration_id;
 				$args[] = $user_id;
-				// Mesmo estado inicial que o `create()` aplica por omissao.
+				// The same initial state `create()` applies by default.
 				$args[] = 'pending';
 			}
 
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- A lista VALUES e montada so com marcadores %d/%s; os valores viajam como argumentos de prepare().
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The VALUES list is assembled from %d/%s placeholders alone; the values travel as arguments of prepare().
 			$prepared = $wpdb->prepare( $sql, $args );
 			if ( ! is_string( $prepared ) ) {
 				continue;
 			}
 
-			// `query()` devolve `int|bool`; `false > 0` ja e falso, entao o
-			// `is_int()` abaixo nao muda o comportamento -- ele existe para o
-			// PHPStan, que no nivel 8 nao estreita o `bool` por uma comparacao.
+			// `query()` returns `int|bool`; `false > 0` is already false, so the
+			// `is_int()` below changes no behaviour -- it exists for PHPStan,
+			// which at level 8 does not narrow the `bool` from a comparison.
 			//
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.NoCaching -- O argumento e a string que prepare() devolveu acima; o sniff nao acompanha uma string preparada atraves de uma atribuicao.
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.NoCaching -- The argument is the string prepare() returned above; the sniff does not follow a prepared string through an assignment.
 			$affected = $wpdb->query( $prepared );
 			if ( is_int( $affected ) && $affected > 0 ) {
 				$created += $affected;
@@ -402,25 +403,25 @@ class ReregistrationSubmissionWriter {
 	}
 
 	/**
-	 * Carimba o envio do LEMBRETE numa submissao.
+	 * Stamps the REMINDER's send on a submission.
 	 *
-	 * POR ITEM, e nao em lote como {@see self::mark_invited()} -- a diferenca e
-	 * deliberada e vem do caminho de chamada. O convite e disparado por um
-	 * clique do operador, que ve a tela e pode reagir; o lembrete roda no
-	 * wp-cron, DENTRO DA REQUISICAO DE UM VISITANTE, sobre um conjunto que pode
-	 * ter milhares de linhas e um `wp_mail()` sincrono por linha. Esse e
-	 * exatamente o caminho que expira no meio -- e o defeito que o #1232
-	 * descreve.
+	 * PER ITEM, not in a batch like {@see self::mark_invited()} -- the
+	 * difference is deliberate and comes from the call path. The invitation is
+	 * fired by an operator's click, who sees the screen and can react; the
+	 * reminder runs on wp-cron, INSIDE A VISITOR'S REQUEST, over a set that may
+	 * hold thousands of rows and a synchronous `wp_mail()` per row. That is
+	 * exactly the path that times out partway through -- the defect #1232
+	 * describes.
 	 *
-	 * Carimbar ao final significa que um timeout deixa NADA marcado, e todo
-	 * mundo que ja recebeu e-mail recebe de novo na proxima execucao.
-	 * Carimbando por item, uma interrupcao deixa marcado exatamente quem ja
-	 * recebeu, e a execucao seguinte retoma de onde parou.
+	 * Stamping at the end means a timeout leaves NOTHING marked, and everyone
+	 * who already received an email receives it again on the next run. Stamping
+	 * per item, an interruption leaves marked exactly who already received it,
+	 * and the next run resumes from where it stopped.
 	 *
-	 * Categoria A (unix UTC) conforme o CLAUDE.md -- `time()`, nunca
+	 * Category A (unix UTC) per `CLAUDE.md` -- `time()`, never
 	 * `current_time()`.
 	 *
-	 * @param int $submission_id ID da submissao.
+	 * @param int $submission_id The submission's ID.
 	 * @return bool
 	 */
 	public static function mark_reminded( int $submission_id ): bool {
@@ -430,7 +431,7 @@ class ReregistrationSubmissionWriter {
 
 		$wpdb = self::db();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Escrita numa tabela `ffc_*` propria do plugin, para a qual o WordPress nao expoe API; a invalidacao do cache vem logo abaixo.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- A write to the plugin's own `ffc_*` table, for which WordPress exposes no API; the cache invalidation comes just below.
 		$result = $wpdb->update(
 			self::get_table_name(),
 			array( 'reminder_sent_at' => time() ),
@@ -469,16 +470,16 @@ class ReregistrationSubmissionWriter {
 		$wpdb         = self::db();
 		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- O `{$placeholders}` é `%d` repetido por `array_fill()` acima, não dado de requisição; todo valor passa por `prepare()`.
-		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- A consulta é a saída de `prepare()` guardada numa variável, que é como `ReregistrationRepository::expire_overdue()` faz pelo mesmo motivo: o retorno precisa ser testado antes de ir para `query()`.
-		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- O sniff conta os marcadores do literal e não sabe que `prepare()` aceita um array único de argumentos, que é como a tabela e os ids chegam.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The `{$placeholders}` is `%d` repeated by `array_fill()` above, not request data; every value goes through `prepare()`.
+		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- The query is `prepare()`'s output held in a variable, which is how `ReregistrationRepository::expire_overdue()` does it for the same reason: the return has to be tested before going to `query()`.
+		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The sniff counts the literal's placeholders and does not know `prepare()` accepts a single array of arguments, which is how the table and the ids arrive.
 		$sql = $wpdb->prepare(
 			"UPDATE %i SET invited_at = %d WHERE id IN ({$placeholders})",
 			array_merge( array( self::get_table_name(), time() ), $ids )
 		);
 
-		// `prepare()` devolve `string|null`, e `query()` só aceita string -- o
-		// mesmo guarda que `expire_overdue()` usa pela mesma razão.
+		// `prepare()` returns `string|null`, and `query()` only accepts a string
+		// -- the same guard `expire_overdue()` uses for the same reason.
 		if ( ! is_string( $sql ) ) {
 			return 0;
 		}

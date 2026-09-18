@@ -15,7 +15,7 @@ use FreeFormCertificate\Submissions\SubmissionHandler;
  * AJAX-handler coverage for VerificationHandler — handle_verification_ajax()
  * and handle_magic_verification_ajax(). These paths fan out into static
  * collaborators (RateLimiter, SecurityService, ActivityLog, PdfGenerator,
- * FichaGenerator, MagicLinkHelper), so each test runs in its own process
+ * RecordGenerator, MagicLinkHelper), so each test runs in its own process
  * with alias/overload mocks; wp_send_json_* are stubbed to throw so the
  * handler short-circuits and we can assert the captured payload.
  *
@@ -354,8 +354,8 @@ class VerificationHandlerAjaxTest extends TestCase {
 		$this->rate_limiter_allowed();
 
 		Mockery::mock( 'overload:\FreeFormCertificate\Generators\PdfGenerator' );
-		Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\FichaGenerator' )
-			->shouldReceive( 'generate_ficha_data' )->andReturn( array( 'filename' => 'ficha.pdf' ) );
+		Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\RecordGenerator' )
+			->shouldReceive( 'generate_record_data' )->andReturn( array( 'filename' => 'record.pdf' ) );
 		$this->renderer->shouldReceive( 'format_reregistration_verification_response' )
 			->andReturn( '<div>rr-ajax</div>' );
 
@@ -366,7 +366,7 @@ class VerificationHandlerAjaxTest extends TestCase {
 			$this->fail( 'expected halt' );
 		} catch ( \RuntimeException $e ) {
 			$this->assertStringContainsString( 'rr-ajax', $this->captured_success['html'] );
-			$this->assertSame( array( 'filename' => 'ficha.pdf' ), $this->captured_success['pdf_data'] );
+			$this->assertSame( array( 'filename' => 'record.pdf' ), $this->captured_success['pdf_data'] );
 		}
 	}
 

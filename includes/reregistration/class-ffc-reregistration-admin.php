@@ -49,7 +49,7 @@ class ReregistrationAdmin {
 	private const CAPABILITY = 'ffc_manage_reregistration';
 
 	/**
-	 * Read-only "view" capability — the *só vê* tier of the 3-state model.
+	 * Read-only "view" capability — the *view only* tier of the 3-state model.
 	 * Opens the campaigns list/submissions read-only; every write still
 	 * requires {@see self::CAPABILITY}.
 	 */
@@ -73,6 +73,16 @@ class ReregistrationAdmin {
 	private ?ReregistrationAjaxHandler $ajax_handler = null;
 
 	/**
+	 * CSV-import endpoints (#1214).
+	 *
+	 * Held so PHPStan does not read it as write-only; the object registers its
+	 * own four actions and is otherwise never touched from here.
+	 *
+	 * @var ReregistrationImportAjaxHandler|null
+	 */
+	private ?ReregistrationImportAjaxHandler $import_ajax_handler = null;
+
+	/**
 	 * Initialize admin hooks.
 	 *
 	 * @return void
@@ -83,10 +93,23 @@ class ReregistrationAdmin {
 		add_action( 'admin_menu', array( $this, 'add_menu' ), 30 );
 		add_action( 'admin_init', array( $this, 'handle_actions' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
-		add_action( 'wp_ajax_ffc_generate_ficha', array( $this->ajax_handler, 'ajax_generate_ficha' ) );
+		add_action( 'wp_ajax_ffc_generate_record', array( $this->ajax_handler, 'ajax_generate_record' ) );
+		// The old action name, kept for one cycle (#1264). An `action` value
+		// travels from the browser, so a rename breaks anything posting the old
+		// one to `admin-ajax.php` in SILENCE -- the same category as the five
+		// filters, and registering both costs one line instead of a cycle.
+		// @removal 6.28.0 -- one release after the rename, with the filters.
+		add_action( 'wp_ajax_ffc_generate_ficha', array( $this->ajax_handler, 'ajax_generate_record' ) );
 		add_action( 'wp_ajax_ffc_rereg_count_members', array( $this->ajax_handler, 'ajax_count_members' ) );
 		add_action( 'wp_ajax_ffc_rereg_send_invitations', array( $this->ajax_handler, 'ajax_send_invitations' ) );
 		add_action( 'wp_ajax_ffc_view_submission_details', array( $this->ajax_handler, 'ajax_view_submission_details' ) );
+
+		// Registered HERE rather than from `add_menu()`, because `admin_menu`
+		// does not fire on `admin-ajax.php` -- which is the only request these
+		// four ever serve. The same mistake the #772 export contract records
+		// for a source registered too late.
+		$this->import_ajax_handler = new ReregistrationImportAjaxHandler();
+		$this->import_ajax_handler->register();
 	}
 
 	/**
@@ -205,7 +228,11 @@ class ReregistrationAdmin {
 			array(
 				'ajaxUrl'          => admin_url( 'admin-ajax.php' ),
 				'adminNonce'       => wp_create_nonce( 'ffc_reregistration_nonce' ),
-				'fichaNonce'       => wp_create_nonce( 'ffc_generate_ficha' ),
+				// The nonce ACTION string stays `ffc_generate_ficha` on purpose
+				// (#1264): it is an opaque salt nobody reads, and renaming it
+				// would reject the nonce on every page already rendered at
+				// upgrade time -- a real breakage window bought for nothing.
+				'recordNonce'      => wp_create_nonce( 'ffc_generate_ficha' ),
 				'viewDetailsNonce' => wp_create_nonce( 'ffc_view_submission_details' ),
 				'exportNonce'      => wp_create_nonce( 'ffc_reregistration_export' ),
 				'strings'          => array(
@@ -220,8 +247,8 @@ class ReregistrationAdmin {
 					'confirmApprove'       => __( 'Approve selected submissions?', 'ffcertificate' ),
 					'confirmReturnToDraft' => __( 'Return this submission to draft? The user will be able to edit and resubmit.', 'ffcertificate' ),
 					'generatingPdf'        => __( 'Generating PDF...', 'ffcertificate' ),
-					'errorGenerating'      => __( 'Error generating ficha.', 'ffcertificate' ),
-					'ficha'                => __( 'Record', 'ffcertificate' ),
+					'errorGenerating'      => __( 'Error generating record.', 'ffcertificate' ),
+					'record'               => __( 'Record', 'ffcertificate' ),
 					'affectedUsers'        => __( 'Affected users:', 'ffcertificate' ),
 					'loadingDetails'       => __( 'Loading…', 'ffcertificate' ),
 					'errorLoadingDetails'  => __( 'Failed to load submission details.', 'ffcertificate' ),
@@ -229,8 +256,57 @@ class ReregistrationAdmin {
 			)
 		);
 
-		// Enqueue PDF libraries on submissions view.
 		$view = \FreeFormCertificate\Core\RequestInput::get_get_string( 'view' );
+
+		// The import client rides only the campaign editor, which is the one
+		// screen that prints the panel. Gating it on the view rather than on
+		// the capability keeps the two halves in step: a user without the cap
+		// gets no panel from `render_form()` either, and a script with no
+		// markup to bind to is dead weight on every other screen of the menu.
+		if ( in_array( $view, array( 'new', 'edit' ), true ) ) {
+			wp_enqueue_script(
+				'ffc-reregistration-import',
+				FFC_PLUGIN_URL . "assets/js/ffc-reregistration-import{$s}.js",
+				array( 'jquery', 'ffc-core' ),
+				FFC_VERSION,
+				true
+			);
+
+			wp_localize_script(
+				'ffc-reregistration-import',
+				'ffcReregImport',
+				array(
+					'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+					'nonce'   => wp_create_nonce( ReregistrationImportAjaxHandler::NONCE_ACTION ),
+					'strings' => array(
+						'chooseFile'   => __( 'Choose a CSV file.', 'ffcertificate' ),
+						'staging'      => __( 'Reading the file…', 'ffcertificate' ),
+						'validating'   => __( 'Checking every row…', 'ffcertificate' ),
+						'ready'        => __( 'Ready. Press Import to write these rows.', 'ffcertificate' ),
+						'blocked'      => __( 'Nothing was imported. Fix these lines and check the file again:', 'ffcertificate' ),
+						'countTotal'   => __( 'Rows in the file:', 'ffcertificate' ),
+						'countReady'   => __( 'Will be imported:', 'ffcertificate' ),
+						'countSkipped' => __( 'Already submitted, kept as is:', 'ffcertificate' ),
+						'countFailed'  => __( 'Failing:', 'ffcertificate' ),
+						/* translators: 1: rows written so far, 2: rows in the file. */
+						'importing'    => __( 'Importing %1$d/%2$d…', 'ffcertificate' ),
+						'finishing'    => __( 'Finishing…', 'ffcertificate' ),
+						/* translators: 1: rows written, 2: rows skipped because the person had already submitted. */
+						'done'         => __( 'Imported %1$d. Skipped %2$d.', 'ffcertificate' ),
+						// Said HERE because it is the only moment before the
+						// invitation is sent (#1300). The e-mail itself adapts
+						// its wording per recipient, so this states what the
+						// operator is about to cause rather than warning them
+						// off doing it.
+						'afterImport'  => __( 'If you send the campaign invitation, these people receive it too — it will tell them their reregistration is already recorded and link to their dashboard, not ask them to fill anything in.', 'ffcertificate' ),
+						'error'        => __( 'An error occurred.', 'ffcertificate' ),
+						'network'      => __( 'The server could not be reached.', 'ffcertificate' ),
+					),
+				)
+			);
+		}
+
+		// Enqueue PDF libraries on submissions view.
 		if ( 'submissions' === $view ) {
 			wp_enqueue_script( 'html2canvas', FFC_PLUGIN_URL . 'libs/js/html2canvas-' . FFC_HTML2CANVAS_VERSION . '.min.js', array(), FFC_HTML2CANVAS_VERSION, true );
 			wp_enqueue_script( 'jspdf', FFC_PLUGIN_URL . 'libs/js/jspdf-' . FFC_JSPDF_VERSION . '.umd.min.js', array(), FFC_JSPDF_VERSION, true );
@@ -468,15 +544,15 @@ class ReregistrationAdmin {
 	}
 
 	/**
-	 * AJAX: Generate ficha PDF data for a submission.
+	 * AJAX: Generate record PDF data for a submission.
 	 *
 	 * Thin delegator to ReregistrationAjaxHandler; preserves the facade's
 	 * public surface so existing direct callers keep working.
 	 *
 	 * @return void
 	 */
-	public function ajax_generate_ficha(): void {
-		$this->get_ajax_handler()->ajax_generate_ficha();
+	public function ajax_generate_record(): void {
+		$this->get_ajax_handler()->ajax_generate_record();
 	}
 
 	/**

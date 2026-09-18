@@ -19,40 +19,40 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Emits and consumes the link that lets an invited user define their password.
  *
- * **Por que isto existe.** `UserCreator::create_ffc_user()` cria a conta com
- * `wp_generate_password( 24 )` e nunca conta essa senha a ninguém. Quem é
- * convidado para um recadastramento, portanto, não tem caminho de entrada
- * nenhum: o botão do e-mail leva ao painel, que exige login. Isto é a metade
- * que faltava da criação de usuário, não uma conveniência (#1212).
+ * **Why this exists.** `UserCreator::create_ffc_user()` creates the account
+ * with `wp_generate_password( 24 )` and never tells that password to anybody.
+ * Whoever is invited to a reregistration therefore has no way in at all: the
+ * email's button leads to the dashboard, which requires a login. This is the
+ * missing half of user creation, not a convenience (#1212).
  *
- * **O link NÃO cria sessão.** Ele abre a definição de senha; a sessão só nasce
- * depois que a senha existe e foi escolhida pelo próprio usuário, na mesma
- * requisição. Um link que logasse direto seria um token equivalente a
- * credencial viajando por e-mail, num sistema sob LGPD com CPF e RF
- * criptografados.
+ * **The link does NOT create a session.** It opens the password-setting screen;
+ * the session is only born once the password exists and has been chosen by the
+ * user themselves, in the same request. A link that logged straight in would be
+ * a token equivalent to a credential travelling by email, in a system under the
+ * LGPD with encrypted CPF and RF.
  *
- * **O token é o do WordPress, de propósito.** `get_password_reset_key()` grava
- * `time() . ':' . $wp_hasher->HashPassword( $key )` em `user_activation_key`
- * -- ou seja, HASHEADO e com carimbo de emissão --, `check_password_reset_key()`
- * compara contra a expiração, e `reset_password()` chama `wp_set_password()`,
- * que grava `user_activation_key = ''`. Uso único sai de graça. Um token
- * próprio guardaria o segredo EM CLARO onde o core guarda um hash: estritamente
- * pior, além de ser a armadilha da fachada que o `CLAUDE.md` descreve.
+ * **The token is WordPress's, on purpose.** `get_password_reset_key()` stores
+ * `time() . ':' . $wp_hasher->HashPassword( $key )` in `user_activation_key`
+ * -- that is, HASHED and with an issue stamp --, `check_password_reset_key()`
+ * compares against the expiry, and `reset_password()` calls `wp_set_password()`,
+ * which writes `user_activation_key = ''`. Single use comes for free. A token
+ * of our own would store the secret IN CLEAR where core stores a hash: strictly
+ * worse, besides being the facade trap `CLAUDE.md` describes.
  *
- * **O filtro de expiração é global, e por isso é escopado.**
- * `password_reset_expiration` não recebe o usuário
- * (`apply_filters( 'password_reset_expiration', DAY_IN_SECONDS )`, verificado no
- * core 6.4), então registrá-lo de forma permanente mudaria a expiração de
- * QUALQUER reset do site -- inclusive o de um administrador usando o
- * "perdi minha senha" do WordPress. Ele é registrado imediatamente antes da
- * nossa chamada e removido logo depois: o raio de ação é uma chamada de função.
+ * **The expiry filter is global, which is why it is scoped.**
+ * `password_reset_expiration` does not receive the user
+ * (`apply_filters( 'password_reset_expiration', DAY_IN_SECONDS )`, verified in
+ * core 6.4), so registering it permanently would change the expiry of EVERY
+ * reset on the site -- including an administrator using WordPress's own "lost
+ * my password". It is registered immediately before our call and removed right
+ * after: the blast radius is one function call.
  *
- * **Quando o token morre.** Na redefinição bem-sucedida, não na exibição do
- * formulário. Uma validação que falha -- as duas senhas não conferem -- deixa
- * o token vivo de propósito, senão um erro de digitação tornaria o convite
- * irrecuperável. É o mesmo princípio que o `CLAUDE.md` já fixa para o captcha:
- * *o desafio é consumido pela ação que ele autoriza, não pela leitura que a
- * precede*.
+ * **When the token dies.** On the successful reset, not on the form's display.
+ * A validation that fails -- the two passwords do not match -- leaves the token
+ * alive on purpose, otherwise a typo would make the invitation unrecoverable.
+ * It is the same principle `CLAUDE.md` already fixes for the captcha: *the
+ * challenge is consumed by the action it authorises, not by the read that
+ * precedes it*.
  */
 class PasswordInvite {
 
@@ -68,24 +68,25 @@ class PasswordInvite {
 	/** Nonce action for the form. */
 	private const NONCE = 'ffc_set_invite_password';
 
-	/** Menor janela aceita. Abaixo de uma hora o convite morre antes de ser lido. */
+	/** The smallest accepted window. Under an hour the invitation dies before it is read. */
 	public const MIN_HOURS = 1;
 
-	/** Maior janela aceita: 30 dias. Acima disso o link deixa de ser um convite. */
+	/** The largest accepted window: 30 days. Above that the link stops being an invitation. */
 	public const MAX_HOURS = 720;
 
 	/** Default window, in hours. Declarado em `Settings::get_default_settings()`. */
 	public const DEFAULT_HOURS = 48;
 
-	/** Menor senha aceita. O WordPress não impõe mínimo; este impõe. */
+	/** The shortest accepted password. WordPress imposes no minimum; this does. */
 	public const MIN_PASSWORD_LENGTH = 8;
 
 	/**
 	 * Register the submit handler.
 	 *
-	 * `nopriv` é o caminho normal -- quem chega aqui não tem sessão. O par
-	 * com sessão existe porque um usuário já logado pode abrir o link do
-	 * próprio e-mail, e um 400 mudo ali seria pior que redirecionar.
+	 * `nopriv` is the normal path -- whoever arrives here has no session. The
+	 * logged-in pair exists because a user who is already signed in may open the
+	 * link from their own email, and a silent 400 there would be worse than a
+	 * redirect.
 	 *
 	 * @return void
 	 */
@@ -97,9 +98,8 @@ class PasswordInvite {
 	/**
 	 * Expiration window for the link, in hours.
 	 *
-	 * Limitado na LEITURA além da escrita, como o `CLAUDE.md` exige: um valor
-	 * gravado antes de um limite se mover ainda precisa cair onde o código
-	 * consegue usar.
+	 * Clamped on READ as well as on write, as `CLAUDE.md` requires: a value
+	 * stored before a bound moved still has to land somewhere the code can use.
 	 *
 	 * @return int
 	 */
@@ -120,10 +120,10 @@ class PasswordInvite {
 	/**
 	 * Issue a password-set link for a user.
 	 *
-	 * Emitir uma chave INVALIDA qualquer chave anterior daquele usuário --
-	 * `user_activation_key` é uma coluna só. Um "perdi minha senha" pedido
-	 * minutos antes do convite morre aqui; é o comportamento do próprio
-	 * WordPress e não vale contornar.
+	 * Issuing a key INVALIDATES any previous key for that user --
+	 * `user_activation_key` is a single column. A "lost my password" requested
+	 * minutes before the invitation dies here; it is WordPress's own behaviour
+	 * and not worth working around.
 	 *
 	 * @param int $user_id User to invite.
 	 * @return string URL, or '' when the key could not be issued.
@@ -167,8 +167,8 @@ class PasswordInvite {
 			return $seconds;
 		};
 
-		// Escopado: o filtro do core não recebe o usuário, então só pode
-		// valer durante a nossa própria chamada. Ver o docblock da classe.
+		// Scoped: core's filter does not receive the user, so it can only hold
+		// during our own call. See the class docblock.
 		add_filter( 'password_reset_expiration', $filter );
 		$user = check_password_reset_key( $key, $login );
 		remove_filter( 'password_reset_expiration', $filter );
@@ -222,22 +222,22 @@ class PasswordInvite {
 		$key   = RequestInput::get_post_string( self::ARG_KEY );
 		$login = RequestInput::get_post_string( self::ARG_LOGIN );
 
-		// O usuário vem do TOKEN, nunca de um id da requisição.
+		// The user comes from the TOKEN, never from a request-supplied id.
 		$user = self::validate( $key, $login );
 		if ( is_wp_error( $user ) ) {
 			self::bail( $redirect, 'expired_key' === $user->get_error_code() ? 'expired' : 'invalid' );
 		}
 
-		// `get_post_string()` sanitiza; a senha não pode ser sanitizada sem
-		// ser alterada, então é lida crua e validada por comprimento.
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- uma senha não pode ser sanitizada sem ser alterada; o nonce e a chave de reset já foram verificados acima, e esta leitura é exatamente o valor que eles autorizam.
+		// `get_post_string()` sanitises; a password cannot be sanitised without
+		// being altered, so it is read raw and validated by length.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- a password cannot be sanitised without being altered; the nonce and the reset key were both verified above, and this read is exactly the value they authorise.
 		$pass1 = isset( $_POST['ffc_pass1'] ) ? (string) wp_unslash( $_POST['ffc_pass1'] ) : '';
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- mesma razão da linha acima: sanitizar a confirmação mudaria o valor comparado.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- same reason as the line above: sanitising the confirmation would change the value being compared.
 		$pass2 = isset( $_POST['ffc_pass2'] ) ? (string) wp_unslash( $_POST['ffc_pass2'] ) : '';
 
 		if ( '' === $pass1 || $pass1 !== $pass2 ) {
-			// O token segue vivo: um erro de digitação não pode queimar o
-			// convite. Ver o docblock da classe.
+			// The token stays alive: a typo must not burn the invitation. See
+			// the class docblock.
 			self::bail( self::link_url( $key, $login ), 'mismatch' );
 		}
 
@@ -248,8 +248,8 @@ class PasswordInvite {
 		reset_password( $user, $pass1 );
 		self::log( 'password_invite_consumed', (int) $user->ID );
 
-		// A sessão nasce AQUI, depois que a senha existe e foi escolhida pelo
-		// próprio usuário nesta mesma requisição (#1212).
+		// The session is born HERE, once the password exists and has been chosen
+		// by the user themselves in this same request (#1212).
 		wp_set_current_user( (int) $user->ID );
 		wp_set_auth_cookie( (int) $user->ID, false );
 
@@ -289,9 +289,9 @@ class PasswordInvite {
 	/**
 	 * The dashboard page URL.
 	 *
-	 * Mesma resolução que `ReregistrationEmailHandler::send_to_user()` usa: a
-	 * opção é gravada pelo activator como id de post, e o que não for número
-	 * cai no fallback em vez de ser convertido (#1060).
+	 * The same resolution `ReregistrationEmailHandler::send_to_user()` uses: the
+	 * option is written by the activator as a post id, and anything that is not
+	 * a number falls back instead of being converted (#1060).
 	 *
 	 * @return string
 	 */

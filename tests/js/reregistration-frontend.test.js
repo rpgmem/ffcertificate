@@ -56,7 +56,7 @@ beforeAll(async () => {
 			invalidPhone: 'Invalid phone.',
 			invalidFormat: 'Invalid format.',
 			select: 'Select',
-			acumuloShowValue: 'I hold',
+			dualPostShowValue: 'I hold',
 			sunday: 'Sun',
 			monday: 'Mon',
 			tuesday: 'Tue',
@@ -457,7 +457,7 @@ describe('rereg acumulo toggle', () => {
 		await flush();
 	}
 
-	const $acumulo = () => window.$('[data-field-key="acumulo_cargos"] select');
+	const $dualPost = () => window.$('[data-field-key="acumulo_cargos"] select');
 	const $dependents = () => window.$(
 		'[data-field-key="jornada_acumulo"],'
 		+ '[data-field-key="cargo_funcao_acumulo"],'
@@ -465,9 +465,9 @@ describe('rereg acumulo toggle', () => {
 	);
 
 	it('hides the dependent fields on init, before any change', async () => {
-		// O defeito que isto cobre: o handler só ligava `change`, então o
-		// formulário abria com os três campos VISÍVEIS qualquer que fosse o
-		// valor. Nenhum evento é disparado aqui de propósito.
+		// The defect this covers: the handler only bound `change`, so the form
+		// opened with the three fields VISIBLE whatever the value was. No event
+		// is fired here on purpose.
 		await mountAcumulo();
 
 		$dependents().each((_, el) => {
@@ -477,7 +477,7 @@ describe('rereg acumulo toggle', () => {
 
 	it('shows them only for "I hold"', async () => {
 		await mountAcumulo();
-		$acumulo().val('I hold').trigger('change');
+		$dualPost().val('I hold').trigger('change');
 		await flush();
 
 		$dependents().each((_, el) => {
@@ -485,9 +485,9 @@ describe('rereg acumulo toggle', () => {
 		});
 	});
 
-	it('keeps them hidden for "Pension", which the ficha also blanks', async () => {
+	it('keeps them hidden for "Pension", which the record also blanks', async () => {
 		await mountAcumulo();
-		$acumulo().val('Pension (Payslip Attached)').trigger('change');
+		$dualPost().val('Pension (Payslip Attached)').trigger('change');
 		await flush();
 
 		$dependents().each((_, el) => {
@@ -496,14 +496,14 @@ describe('rereg acumulo toggle', () => {
 	});
 
 	it('lifts `required` off the hidden time inputs, and puts it back', async () => {
-		// Validação de constraint ignora visibilidade: um `required`
-		// escondido trava o envio sem mostrar o que falta.
+		// Constraint validation ignores visibility: a hidden `required` blocks
+		// the submit without showing what is missing.
 		await mountAcumulo();
 
 		expect(window.$('.ffc-wh-entry1').prop('required')).toBe(false);
 		expect(window.$('.ffc-wh-entry1').attr('data-ffc-required-off')).toBeDefined();
 
-		$acumulo().val('I hold').trigger('change');
+		$dualPost().val('I hold').trigger('change');
 		await flush();
 
 		expect(window.$('.ffc-wh-entry1').prop('required')).toBe(true);
@@ -991,14 +991,14 @@ describe('rereg import previous', () => {
 					<input type="text" id="f1" name="ffc_fields[display_name]">
 				</div>
 				<div class="ffc-rereg-field" data-field-key="phone">
-					<input type="text" id="f2" name="ffc_fields[phone]" value="JÁ DIGITADO">
+					<input type="text" id="f2" name="ffc_fields[phone]" value="ALREADY TYPED">
 				</div>
 			</form>
 		</div>
 	`;
 
-	// Uma resposta por AÇÃO: o carregamento do formulário e a importação são
-	// dois POSTs, e trocá-los é o erro fácil neste teste.
+	// One response per ACTION: loading the form and importing are two POSTs, and
+	// swapping them is the easy mistake in this test.
 	function mockByAction(importData) {
 		vi.spyOn(window.$, 'post').mockImplementation((url, payload) => {
 			if (payload && payload.action === 'ffc_import_previous_reregistration') {
@@ -1025,14 +1025,14 @@ describe('rereg import previous', () => {
 	});
 
 	it('does NOT overwrite what the participant already typed', async () => {
-		// A regra que importa: quem começou a preencher antes de aceitar
-		// ganha. Sem ela, aceitar a oferta apagaria o trabalho já feito.
-		await mountImport({ fields: { display_name: 'Maria Silva', phone: 'DO CICLO ANTERIOR' } });
+		// The rule that matters: whoever started filling in before accepting
+		// wins. Without it, accepting the offer would erase work already done.
+		await mountImport({ fields: { display_name: 'Maria Silva', phone: 'FROM THE PREVIOUS CYCLE' } });
 
 		window.$('.ffc-rereg-import-btn').trigger('click');
 		await flush();
 
-		expect(window.$('#f2').val()).toBe('JÁ DIGITADO');
+		expect(window.$('#f2').val()).toBe('ALREADY TYPED');
 		expect(window.$('#f1').val()).toBe('Maria Silva');
 	});
 
@@ -1046,8 +1046,8 @@ describe('rereg import previous', () => {
 	});
 
 	it('does nothing when the form carries no offer', async () => {
-		// O aviso só é impresso quando há origem. Sem ele o handler tem de
-		// sair cedo, não estourar.
+		// The notice is only printed when a source exists. Without it the handler
+		// has to bail early, not blow up.
 		document.body.innerHTML = '<button class="ffc-rereg-open-form" data-reregistration-id="9"></button>';
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: {
 			success: true,

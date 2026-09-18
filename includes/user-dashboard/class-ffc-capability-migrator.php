@@ -26,41 +26,40 @@ if ( ! defined( 'ABSPATH' ) ) {
 class CapabilityMigrator {
 
 	/**
-	 * IDs dos usuarios que carregam ALGUM `ffc_*` pessoal (#1254).
+	 * IDs of the users carrying ANY personal `ffc_*` (#1254).
 	 *
-	 * O QUE ISTO SUBSTITUI, E POR QUE NAO E UM LOTE
+	 * WHAT THIS REPLACES, AND WHY IT IS NOT A BATCH
 	 *
-	 * Onze migracoes deste ficheiro chamavam `get_users( array( 'fields' =>
-	 * 'ID' ) )` -- todos os usuarios da instalacao -- e faziam um
-	 * `get_userdata()` por usuario. Rodando no `plugins_loaded`, isso podia
-	 * cair numa requisicao de frontend anonima; e como a flag de conclusao so
-	 * e gravada DEPOIS da varredura, um timeout no meio fazia a requisicao
-	 * seguinte recomecar do zero, indefinidamente.
+	 * Eleven migrations in this file called `get_users( array( 'fields' =>
+	 * 'ID' ) )` -- every user of the install -- and did one `get_userdata()`
+	 * per user. Running on `plugins_loaded`, that could land in an anonymous
+	 * frontend request; and since the completion flag is only written AFTER the
+	 * sweep, a timeout partway through made the next request start again from
+	 * zero, indefinitely.
 	 *
-	 * A resposta obvia seria lotear com cursor. A melhor e nao percorrer:
-	 * **toda** decisao dessas migracoes depende de uma capability ou papel
-	 * `ffc_*` PESSOAL, e a esmagadora maioria dos usuarios recebe capability
-	 * pelo PAPEL, nao pessoalmente. O trabalho passa a ser proporcional a quem
-	 * tem concessao propria -- os operadores --, e nao ao tamanho da base.
+	 * The obvious answer would be to batch with a cursor. The better one is not
+	 * to walk at all: **every** decision in these migrations depends on a
+	 * PERSONAL `ffc_*` capability or role, and the overwhelming majority of
+	 * users receive capabilities through their ROLE, not personally. The work
+	 * becomes proportional to whoever has a grant of their own -- the operators
+	 * -- and not to the size of the user base.
 	 *
-	 * POR QUE UMA SO CONSULTA COBRE CAPABILITIES E PAPEIS
+	 * WHY ONE QUERY COVERS BOTH CAPABILITIES AND ROLES
 	 *
-	 * Os dois moram na MESMA meta serializada, `{prefixo}capabilities`: um
-	 * papel aparece nela como `s:13:"ffc_readonly";b:1;` exatamente como uma
-	 * capability. E os seis papeis antigos que {@see self::role_renames()}
-	 * renomeia comecam todos por `ffc_`. Entao o mesmo prefiltro serve para
-	 * `$user->caps` e para `$user->roles`.
+	 * Both live in the SAME serialized meta, `{prefix}capabilities`: a role
+	 * appears in it as `s:13:"ffc_readonly";b:1;` exactly like a capability. And
+	 * the six old roles {@see self::role_renames()} renames all begin with
+	 * `ffc_`. So the same prefilter serves `$user->caps` and `$user->roles`.
 	 *
-	 * O PREFILTRO E UM SUPERCONJUNTO, DE PROPOSITO
+	 * THE PREFILTER IS A SUPERSET, ON PURPOSE
 	 *
-	 * Ele devolve quem tem QUALQUER `ffc_*` na meta -- inclusive uma
-	 * capability gravada como `false`, que algumas destas migracoes ignoram. A
-	 * logica por usuario nao mudou nenhuma linha: ela continua decidindo com
-	 * `isset()` / `true ===` como antes. Um prefiltro mais estreito e que
-	 * poderia perder alguem.
+	 * It returns whoever has ANY `ffc_*` in the meta -- including a capability
+	 * stored as `false`, which some of these migrations ignore. The per-user
+	 * logic did not change a single line: it still decides with `isset()` /
+	 * `true ===` as before. A narrower prefilter is what could miss somebody.
 	 *
-	 * `get_users()` com `meta_compare` LIKE escapa o `_` do termo, entao
-	 * `ffc_` casa o prefixo literal e nao `ffcX`.
+	 * `get_users()` with `meta_compare` LIKE escapes the term's `_`, so `ffc_`
+	 * matches the literal prefix and not `ffcX`.
 	 *
 	 * @since 6.25.0
 	 * @return array<int, int>
@@ -622,13 +621,22 @@ class CapabilityMigrator {
 	 * (custom roles relying on `ffc_manage_recruitment` to import keep working).
 	 * To take import away from a manager, remove the import cap afterward.
 	 *
+	 * `ffc_import_reregistration` joined the map in 6.26.0 (#1214). **A new pair
+	 * here does not reach an install on its own**: the migration is flagged
+	 * once, so an install that already wrote `ffc_import_caps_granted_v1` would
+	 * never run it again and the new cap would silently reach nobody. The flag
+	 * is therefore bumped alongside the pair (`_v2` in `Loader`), which is safe
+	 * because every grant below is guarded on the cap not already being
+	 * present — re-running seeds only what is missing.
+	 *
 	 * @since 6.9.0
 	 * @return array<string, string>
 	 */
 	public static function import_cap_grant_map(): array {
 		return array(
-			'ffc_manage_audiences'   => 'ffc_import_audiences',
-			'ffc_manage_recruitment' => 'ffc_import_recruitment',
+			'ffc_manage_audiences'      => 'ffc_import_audiences',
+			'ffc_manage_recruitment'    => 'ffc_import_recruitment',
+			'ffc_manage_reregistration' => 'ffc_import_reregistration',
 		);
 	}
 

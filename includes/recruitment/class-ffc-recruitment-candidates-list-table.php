@@ -20,6 +20,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Recruitment;
 
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\SensitiveFieldRegistry;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -255,7 +256,7 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$rf = isset( $_REQUEST['rf'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['rf'] ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
-		$email = isset( $_REQUEST['email'] ) ? sanitize_email( wp_unslash( (string) $_REQUEST['email'] ) ) : '';
+		$email = isset( $_REQUEST['email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( wp_unslash( (string) $_REQUEST['email'] ) ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$search = isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['s'] ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
@@ -370,7 +371,7 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$rf = isset( $_REQUEST['rf'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['rf'] ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
-		$email = isset( $_REQUEST['email'] ) ? sanitize_email( wp_unslash( (string) $_REQUEST['email'] ) ) : '';
+		$email = isset( $_REQUEST['email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( wp_unslash( (string) $_REQUEST['email'] ) ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$adjutancy_id = isset( $_REQUEST['adjutancy_id'] ) ? absint( wp_unslash( (string) $_REQUEST['adjutancy_id'] ) ) : 0;
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
@@ -446,7 +447,7 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 			$sets[] = self::resolve_cpf_or_rf_to_ids( $rf, 'rf' );
 		}
 		if ( '' !== $email ) {
-			$hash   = (string) Encryption::hash( $email );
+			$hash   = (string) SensitiveFieldRegistry::hash_identifier( 'email', $email );
 			$sets[] = '' === $hash ? array() : RecruitmentCandidateReader::get_ids_by_email_hash( $hash );
 		}
 
@@ -479,7 +480,7 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 		if ( '' === $digits ) {
 			return array();
 		}
-		$hash = (string) Encryption::hash( $digits );
+		$hash = (string) SensitiveFieldRegistry::hash_identifier( 'cpf', $digits );
 		$row  = 'cpf' === $kind
 			? RecruitmentCandidateReader::get_by_cpf_hash( $hash )
 			: RecruitmentCandidateReader::get_by_rf_hash( $hash );

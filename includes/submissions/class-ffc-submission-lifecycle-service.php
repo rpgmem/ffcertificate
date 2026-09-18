@@ -381,32 +381,32 @@ class SubmissionLifecycleService {
 	}
 
 	/**
-	 * Linhas por DELETE na varredura de retencao (#1234).
+	 * Rows per DELETE in the retention scan (#1234).
 	 *
 	 * @var int
 	 */
 	private const CLEANUP_CHUNK_SIZE = 500;
 
 	/**
-	 * Quantos DELETEs uma execucao pode emitir (#1234).
+	 * How many DELETEs one run may issue (#1234).
 	 *
-	 * POR QUE HA UM TETO, E NAO UM LACO ATE ACABAR
+	 * WHY THERE IS A CEILING RATHER THAN A LOOP UNTIL DONE
 	 *
-	 * Isto roda no cron diario, isto e, DENTRO DA REQUISICAO DE UM VISITANTE.
-	 * Um `DELETE` sem limite sobre anos de submissoes segura a tabela pelo
-	 * tempo que levar, e o visitante paga. O teto limita o trabalho de uma
-	 * execucao; o resto sai na do dia seguinte, porque o corte por data nao se
-	 * move para tras.
+	 * This runs on the daily cron, that is, INSIDE A VISITOR'S REQUEST. An
+	 * unbounded `DELETE` over years of submissions holds the table for as long
+	 * as it takes, and the visitor pays. The ceiling bounds one run's work; the
+	 * rest goes out in the following day's, because the date cutoff does not
+	 * move backwards.
 	 *
-	 * O RISCO ERA DORMENTE, E O DIA EM QUE ACORDA E O PIOR
+	 * THE RISK WAS DORMANT, AND THE DAY IT WAKES IS THE WORST ONE
 	 *
-	 * A retencao e opt-in duplo e a opcao legada nunca foi escrita, entao esta
-	 * varredura nunca rodou (#936). O dia em que um administrador liga o
-	 * toggle numa instalacao madura e exatamente quando o backlog e maior --
-	 * que e quando a forma sem limite seria mais cara.
+	 * The retention is a double opt-in and the legacy option was never written,
+	 * so this sweep never ran (#936). The day an administrator turns the toggle
+	 * on in a mature install is exactly when the backlog is largest -- which is
+	 * when the unbounded shape would cost the most.
 	 *
-	 * 10.000 linhas por dia drenam um backlog de cem mil em dez dias, sem
-	 * nenhum statement grande.
+	 * 10,000 rows a day drain a backlog of a hundred thousand in ten days, with
+	 * no large statement at all.
 	 *
 	 * @var int
 	 */
@@ -460,7 +460,7 @@ class SubmissionLifecycleService {
 
 			$deleted += $removed;
 
-			// Pagina incompleta significa que acabou -- so uma CHEIA continua.
+			// An incomplete page means it is done -- only a FULL one continues.
 			if ( $removed < self::CLEANUP_CHUNK_SIZE ) {
 				break;
 			}

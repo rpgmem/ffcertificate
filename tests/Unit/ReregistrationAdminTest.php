@@ -273,16 +273,16 @@ class ReregistrationAdminTest extends TestCase {
 	}
 
 	// ==================================================================
-	// ajax_generate_ficha() — permission denied
+	// ajax_generate_record() — permission denied
 	// ==================================================================
 
-	public function test_ajax_generate_ficha_returns_error_without_capability(): void {
+	public function test_ajax_generate_record_returns_error_without_capability(): void {
 		Functions\when( 'check_ajax_referer' )->justReturn( true );
 		Functions\when( 'current_user_can' )->justReturn( false );
 
 		$admin = new ReregistrationAdmin();
 		try {
-			$admin->ajax_generate_ficha();
+			$admin->ajax_generate_record();
 		} catch ( \RuntimeException $e ) {
 			// Expected
 		}
@@ -292,17 +292,17 @@ class ReregistrationAdminTest extends TestCase {
 	}
 
 	// ==================================================================
-	// ajax_generate_ficha() — missing submission ID
+	// ajax_generate_record() — missing submission ID
 	// ==================================================================
 
-	public function test_ajax_generate_ficha_returns_error_for_missing_id(): void {
+	public function test_ajax_generate_record_returns_error_for_missing_id(): void {
 		Functions\when( 'check_ajax_referer' )->justReturn( true );
 		Functions\when( 'current_user_can' )->justReturn( true );
 		$_POST['submission_id'] = 0;
 
 		$admin = new ReregistrationAdmin();
 		try {
-			$admin->ajax_generate_ficha();
+			$admin->ajax_generate_record();
 		} catch ( \RuntimeException $e ) {
 			// Expected
 		}

@@ -407,86 +407,52 @@ describe('ffc-calendar-frontend.js — submitBooking nonce plumbing', () => {
 	});
 });
 
-describe('ffc-calendar-frontend.js — refreshCaptcha scoping (#1056)', () => {
+describe('ffc-calendar-frontend.js — captcha refresh delegates to the shared UI (#1305)', () => {
 	beforeEach(() => {
 		reset();
 		installGlobals();
+		// Both, in dependency order — which is the point. In production
+		// `ffc-calendar-frontend` declares `ffc-frontend-helpers` as a
+		// dependency (class-ffc-self-scheduling-shortcode.php), and that is
+		// what makes the shared implementation reachable here instead of a
+		// private copy.
+		loadScript('assets/js/ffc-frontend-helpers.js');
 		loadScript('assets/js/ffc-calendar-frontend.js');
 	});
 
-	function mountTwoForms() {
-		// Two booking forms on one page — a configuration the plugin supports
-		// on purpose: DynamicFragments has a branch that mints a distinct
-		// challenge per form. Ids are per-instance since #1056, so the markup
-		// mirrors that: same `name`, different `id`.
+	/**
+	 * This file used to carry its own `refreshCaptcha`, and the four tests here
+	 * pinned the #1056 scoping lesson on it. The copy is gone: this bundle
+	 * already declared `ffc-frontend-helpers` as a dependency, so it was
+	 * duplication rather than isolation — and duplication is why the ALTCHA fix
+	 * would otherwise have had to be written twice.
+	 *
+	 * The scoping lesson did not go with it. It is pinned on the shared
+	 * implementation now, in `frontend-helpers-masks-and-ui.test.js`, where the
+	 * code that owns it lives. What is left to check here is the delegation.
+	 */
+	it('no longer carries a private copy', () => {
+		expect(window.ffcCalendarFrontend.refreshCaptcha).toBeUndefined();
+	});
+
+	it('reaches the shared implementation with the server payload', () => {
 		document.body.innerHTML = `
 			<form class="ffc-booking-form" id="form-a">
 				<div class="ffc-captcha-row">
-					<label for="ffc_captcha_ans_1"><span class="ffc-captcha-label-text">1 + 1</span></label>
-					<input type="number" name="ffc_captcha_ans" id="ffc_captcha_ans_1">
-					<input type="hidden" name="ffc_captcha_hash" id="ffc_captcha_hash_1" value="token-a">
-				</div>
-			</form>
-			<form class="ffc-booking-form" id="form-b">
-				<div class="ffc-captcha-row">
-					<label for="ffc_captcha_ans_2"><span class="ffc-captcha-label-text">2 + 2</span></label>
-					<input type="number" name="ffc_captcha_ans" id="ffc_captcha_ans_2">
-					<input type="hidden" name="ffc_captcha_hash" id="ffc_captcha_hash_2" value="token-b">
+					<span class="ffc-captcha-label-text">1 + 1</span>
+					<input type="number" name="ffc_captcha_ans" value="11">
+					<input type="hidden" name="ffc_captcha_hash" value="token-a">
 				</div>
 			</form>`;
-		return {
-			$a: window.$('#form-a'),
-			$b: window.$('#form-b'),
-		};
-	}
 
-	it('updates only the form it was given', () => {
-		const { $a, $b } = mountTwoForms();
+		window.FFC.Frontend.UI.refreshCaptcha(window.$('#form-a'), {
+			provider: 'math',
+			new_label: '9 + 9',
+			new_hash: 'token-a2',
+		});
 
-		window.ffcCalendarFrontend.refreshCaptcha($a, '9 + 9', 'token-a2');
-
-		expect($a.find('.ffc-captcha-label-text').text()).toBe('9 + 9');
-		expect($a.find('input[name="ffc_captcha_hash"]').val()).toBe('token-a2');
-
-		// The regression: the label used to be rewritten page-wide while only
-		// the first token was replaced, so this form would display a question
-		// its token did not answer.
-		expect($b.find('.ffc-captcha-label-text').text()).toBe('2 + 2');
-		expect($b.find('input[name="ffc_captcha_hash"]').val()).toBe('token-b');
-	});
-
-	it('keeps label and token coherent in the untouched form', () => {
-		const { $a, $b } = mountTwoForms();
-
-		window.ffcCalendarFrontend.refreshCaptcha($b, '7 + 7', 'token-b2');
-
-		// Each form's displayed question must belong to the token it carries.
-		expect($a.find('.ffc-captcha-label-text').text()).toBe('1 + 1');
-		expect($a.find('input[name="ffc_captcha_hash"]').val()).toBe('token-a');
-		expect($b.find('.ffc-captcha-label-text').text()).toBe('7 + 7');
-		expect($b.find('input[name="ffc_captcha_hash"]').val()).toBe('token-b2');
-	});
-
-	it('clears the answer field of the refreshed form only', () => {
-		const { $a, $b } = mountTwoForms();
-		$a.find('input[name="ffc_captcha_ans"]').val('11');
-		$b.find('input[name="ffc_captcha_ans"]').val('22');
-
-		window.ffcCalendarFrontend.refreshCaptcha($a, '3 + 3', 'token-a3');
-
-		expect($a.find('input[name="ffc_captcha_ans"]').val()).toBe('');
-		expect($b.find('input[name="ffc_captcha_ans"]').val()).toBe('22');
-	});
-
-	it('is a no-op without a form or without challenge data', () => {
-		const { $a } = mountTwoForms();
-
-		window.ffcCalendarFrontend.refreshCaptcha(null, '5 + 5', 'x');
-		window.ffcCalendarFrontend.refreshCaptcha($a, '', 'x');
-		window.ffcCalendarFrontend.refreshCaptcha($a, '5 + 5', '');
-		window.ffcCalendarFrontend.refreshCaptcha(window.$('#nope'), '5 + 5', 'x');
-
-		expect($a.find('.ffc-captcha-label-text').text()).toBe('1 + 1');
-		expect($a.find('input[name="ffc_captcha_hash"]').val()).toBe('token-a');
+		expect(window.$('#form-a').find('.ffc-captcha-label-text').text()).toBe('9 + 9');
+		expect(window.$('#form-a').find('input[name="ffc_captcha_hash"]').val()).toBe('token-a2');
+		expect(window.$('#form-a').find('input[name="ffc_captcha_ans"]').val()).toBe('');
 	});
 });

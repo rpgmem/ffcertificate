@@ -256,8 +256,13 @@ class RecruitmentCandidatesListTableTest extends TestCase {
 	}
 
 	public function test_resolve_id_constraint_intersects_cpf_and_email(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678900' );
+		// `normalize_email` too, since #1313 gave the e-mail a canonical form:
+		// the operator search hashes through the registry, which reaches it.
+		// An alias mock answers only what it declares, so the omission surfaces
+		// as a BadMethodCallException rather than a wrong value.
+		$sanitizer = Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' );
+		$sanitizer->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678900' );
+		$sanitizer->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'hash' )->andReturn( 'hashval' );
 
@@ -270,8 +275,13 @@ class RecruitmentCandidatesListTableTest extends TestCase {
 	}
 
 	public function test_resolve_id_constraint_empty_when_intersection_disjoint(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678900' );
+		// `normalize_email` too, since #1313 gave the e-mail a canonical form:
+		// the operator search hashes through the registry, which reaches it.
+		// An alias mock answers only what it declares, so the omission surfaces
+		// as a BadMethodCallException rather than a wrong value.
+		$sanitizer = Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' );
+		$sanitizer->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678900' );
+		$sanitizer->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) );
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'hash' )->andReturn( 'hashval' );
 

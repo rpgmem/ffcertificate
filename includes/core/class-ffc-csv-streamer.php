@@ -5,7 +5,7 @@
  * The **synchronous-delivery adapter** of the unified CSV export contract (#772):
  * `Core\SyncCsvExport` streams a {@see SyncSourceInterface} through this class for
  * bounded outputs, the timeout-safe counterpart being {@see BatchedCsvExport}.
- * See CLAUDE.md §3 "CSV export architecture (one contract, two adapters)".
+ * See CLAUDE.md "CSV export architecture (one contract, two adapters)".
  *
  * Orchestrates a streamed CSV download: send headers, write the header row, then
  * write each data row from an iterable straight to the output stream, and close.

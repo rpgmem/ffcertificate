@@ -170,7 +170,7 @@ final class CsvStagingService {
 			foreach ( $chunk as $row ) {
 				$cpf_raw = is_string( $row['cpf'] ?? null ) ? CsvParser::normalise_id( trim( $row['cpf'] ), 11 )['value'] : '';
 				$rf_raw  = is_string( $row['rf'] ?? null ) ? CsvParser::normalise_id( trim( $row['rf'] ), 7 )['value'] : '';
-				$email   = is_string( $row['email'] ?? null ) ? strtolower( trim( $row['email'] ) ) : '';
+				$email   = is_string( $row['email'] ?? null ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( $row['email'] ) : '';
 				$phone   = is_string( $row['phone'] ?? null ) ? trim( $row['phone'] ) : '';
 				$slug    = is_string( $row['adjutancy'] ?? null ) ? trim( $row['adjutancy'] ) : '';
 				// adjutancy_id may not exist in the map (the validation

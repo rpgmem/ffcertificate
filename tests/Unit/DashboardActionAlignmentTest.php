@@ -7,35 +7,35 @@ use FreeFormCertificate\Tests\Support\CssSelectors;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Os controles da coluna AÇÕES do painel declaram o seu alinhamento (#1215).
+ * The dashboard's ACTIONS column controls declare their alignment (#1215).
  *
- * A metade barata, no molde do #1184: prova que a DECLARAÇÃO está lá, nunca
- * que o render sai alinhado. O que provou o render foi o harness em Chromium
- * do #1215 -- 4 abas x 2 temas x 2 larguras, par (elemento x propriedade) --,
- * e ele não cabe no CI, que não tem navegador.
+ * The cheap half, in the #1184 mould: it proves the DECLARATION is there, never
+ * that the render comes out aligned. What proved the render was #1215's Chromium
+ * harness -- 4 tabs x 2 themes x 2 widths, per (element x property) pair -- and
+ * that does not fit in CI, which has no browser.
  *
- * O defeito que a originou já tinha embarcado, e não era o que parecia. Os
- * três controles da aba de agendamentos tinham a MESMA altura (26,8px) e topos
- * em 100,00 / 103,39 / 103,55: cada caixa entrava na linha pela sua PRÓPRIA
- * linha de base, e as três derivam a linha de base de formas diferentes -- um
- * `inline-flex` a herda do primeiro item flex (aqui o `::before` do ícone, uma
- * caixa de 14px sem texto), um `inline-block` a tira da última linha de texto.
- * Só a aba de agendamentos mistura as três construções, que é por isso que era
- * a única fora do lugar.
+ * The defect that produced it had already shipped, and was not what it looked
+ * like. The appointments tab's three controls had the SAME height (26.8px) and
+ * tops at 100.00 / 103.39 / 103.55: each box joined the line on its OWN
+ * baseline, and the three derive their baseline differently -- an `inline-flex`
+ * inherits it from the first flex item (here the icon's `::before`, a 14px box
+ * with no text), an `inline-block` takes it from the last line of text. Only the
+ * appointments tab mixes all three constructions, which is why it was the only
+ * one out of place.
  *
- * Duas coisas que a medição decidiu e que não vale redescobrir:
+ * Two things the measurement settled and that are not worth rediscovering:
  *
- * 1. **`display: flex` na célula NÃO serve.** É a resposta convencional e ela
- *    quebra a tabela: um `<td>` com `display: flex` sai do contexto de
- *    formatação da tabela e encolhe até o conteúdo. Medido, a última célula
- *    caía de 162,59px para 45,13px (certificados) e de 242,83px para 72,56px
- *    (públicos), enquanto o `<th>` seguia na largura cheia. Passava nas outras
- *    duas abas só porque o conteúdo delas já enchia a coluna.
- * 2. **O alinhamento pertence ao INVÓLUCRO do exportador, não ao botão de
- *    dentro** -- e o `vertical-align: middle` que estava no botão não era
- *    inerte, era a causa: deslocava o botão dentro do invólucro, o que movia a
- *    linha de base do próprio invólucro. Removê-lo sozinho já subia o
- *    invólucro de 103,55 para 100,00.
+ * 1. **`display: flex` on the cell does NOT work.** It is the conventional
+ *    answer and it breaks the table: a `<td>` with `display: flex` leaves the
+ *    table formatting context and shrinks to its content. Measured, the last
+ *    cell fell from 162.59px to 45.13px (certificates) and from 242.83px to
+ *    72.56px (public forms), while the `<th>` stayed at full width. It passed on
+ *    the other two tabs only because their content already filled the column.
+ * 2. **The alignment belongs to the exporter's WRAPPER, not to the button
+ *    inside** -- and the `vertical-align: middle` that sat on the button was not
+ *    inert, it was the cause: it shifted the button inside the wrapper, which
+ *    moved the wrapper's own baseline. Removing it alone already raised the
+ *    wrapper from 103.55 to 100.00.
  *
  * @covers \FreeFormCertificate\Tests\Support\CssSelectors
  */
@@ -44,41 +44,41 @@ class DashboardActionAlignmentTest extends TestCase {
 	private const SHEET = 'assets/css/ffc-user-dashboard.css';
 
 	/**
-	 * Os controles que dividem uma linha na célula de ações, e por quê.
+	 * The controls that share a line in the actions cell, and why.
 	 *
-	 * Um controle novo na coluna AÇÕES entra aqui. Não é lista decorativa: é
-	 * o conjunto cujo alinhamento precisa ser DECLARADO, porque o padrão
-	 * (`baseline`) depende da construção de cada caixa e as construções aqui
-	 * são diferentes de propósito.
+	 * A new control in the ACTIONS column goes here. It is not a decorative
+	 * list: it is the set whose alignment has to be DECLARED, because the default
+	 * (`baseline`) depends on each box's construction and the constructions here
+	 * differ on purpose.
 	 *
 	 * @var array<string, string>
 	 */
 	private const CONTROLS = array(
-		'.ffc-btn-pdf'      => 'Baixar PDF / Baixar Ficha -- `inline-flex` com ícone `::before` (certificados e recadastramentos).',
-		'.ffc-btn-receipt'  => 'Ver Comprovante -- `inline-flex` com ícone `::before` (agendamentos).',
-		'.ffc-btn-edit'     => 'Editar -- `inline-flex` com ícone `::before` (recadastramentos).',
-		'.ffc-appointments-table .ffc-cancel-appointment' => 'Cancelar -- `inline-block` sem ícone, cuja linha de base vem do texto.',
-		'.ffc-cal-export-wrap' => 'Exportar Calendário -- `inline-block` que envolve o botão; é ELE que participa da linha da célula.',
+		'.ffc-btn-pdf'      => 'Download PDF / Download Record -- `inline-flex` with an `::before` icon (certificates and reregistrations).',
+		'.ffc-btn-receipt'  => 'View Receipt -- `inline-flex` with an `::before` icon (appointments).',
+		'.ffc-btn-edit'     => 'Edit -- `inline-flex` with an `::before` icon (reregistrations).',
+		'.ffc-appointments-table .ffc-cancel-appointment' => 'Cancel -- `inline-block` with no icon, whose baseline comes from the text.',
+		'.ffc-cal-export-wrap' => 'Export Calendar -- an `inline-block` wrapping the button; IT is what joins the cell\'s line.',
 	);
 
 	/**
-	 * O botão interno do exportador não declara alinhamento.
+	 * The exporter's inner button declares no alignment.
 	 *
-	 * Ver o item 2 do docblock da classe: ali a declaração não era inerte, era
-	 * a causa de 3,55px de desalinhamento.
+	 * See item 2 of the class docblock: there the declaration was not inert, it
+	 * was the cause of 3.55px of misalignment.
 	 */
 	private const MUST_NOT_DECLARE = '.ffc-cal-export-btn';
 
 	private function sheet(): string {
 		$path = dirname( __DIR__, 2 ) . '/' . self::SHEET;
 		$css  = file_get_contents( $path );
-		$this->assertIsString( $css, self::SHEET . ' não pôde ser lida.' );
+		$this->assertIsString( $css, self::SHEET . ' could not be read.' );
 
 		return $css;
 	}
 
 	/**
-	 * @return array<string, string> Seletor => corpo concatenado das regras que o declaram.
+	 * @return array<string, string> Selector => concatenated body of the rules declaring it.
 	 */
 	private function bodies_by_selector( string $css ): array {
 		$out = array();
@@ -95,25 +95,25 @@ class DashboardActionAlignmentTest extends TestCase {
 	public function test_every_action_control_declares_vertical_align_middle(): void {
 		$bodies = $this->bodies_by_selector( $this->sheet() );
 
-		// Autoverificação: uma varredura que não achou nada não pode passar
-		// como "limpa" (a lição do #1071 / #1094).
+		// Self-check: a scan that found nothing must not pass as "clean" (the
+		// #1071 / #1094 lesson).
 		$this->assertGreaterThan(
 			100,
 			count( $bodies ),
-			'A varredura da folha voltou quase vazia — o parser quebrou, e um verde aqui não significaria nada.'
+			'The sheet scan came back almost empty — the parser broke, and a green here would mean nothing.'
 		);
 
 		foreach ( self::CONTROLS as $selector => $why ) {
 			$this->assertArrayHasKey(
 				$selector,
 				$bodies,
-				"O seletor `{$selector}` não existe mais em " . self::SHEET . ". Se o controle foi renomeado, atualize o registro; se saiu da célula de ações, remova-o. {$why}"
+				"Selector `{$selector}` no longer exists in " . self::SHEET . ". If the control was renamed, update the register; if it left the actions cell, drop it. {$why}"
 			);
 
 			$this->assertMatchesRegularExpression(
 				'/vertical-align\s*:\s*middle\s*(!important)?\s*;/',
 				$bodies[ $selector ],
-				"`{$selector}` divide uma linha na coluna AÇÕES e não declara `vertical-align: middle`. Sem isso ele entra na linha pela sua própria linha de base, que depende da construção da caixa. {$why}"
+				"`{$selector}` shares a line in the ACTIONS column and declares no `vertical-align: middle`. Without it, it joins the line on its own baseline, which depends on the box's construction. {$why}"
 			);
 		}
 	}
@@ -124,13 +124,13 @@ class DashboardActionAlignmentTest extends TestCase {
 		$this->assertArrayHasKey(
 			self::MUST_NOT_DECLARE,
 			$bodies,
-			'`' . self::MUST_NOT_DECLARE . '` sumiu da folha; se o exportador foi reescrito, revise este registro.'
+			'`' . self::MUST_NOT_DECLARE . '` vanished from the sheet; if the exporter was rewritten, revise this register.'
 		);
 
 		$this->assertDoesNotMatchRegularExpression(
 			'/vertical-align\s*:/',
 			$bodies[ self::MUST_NOT_DECLARE ],
-			'`' . self::MUST_NOT_DECLARE . '` voltou a declarar `vertical-align`. Quem participa da linha da célula é `.ffc-cal-export-wrap`; alinhar o botão de dentro desloca a linha de base do invólucro (#1215).'
+			'`' . self::MUST_NOT_DECLARE . '` declares `vertical-align` again. What joins the cell\'s line is `.ffc-cal-export-wrap`; aligning the inner button shifts the wrapper\'s baseline (#1215).'
 		);
 	}
 }

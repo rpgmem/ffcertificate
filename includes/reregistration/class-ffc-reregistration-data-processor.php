@@ -84,6 +84,31 @@ class ReregistrationDataProcessor {
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- Nonce verified in AJAX handler; sanitized per-field below.
 		$raw = isset( $_POST[ self::POST_ROOT ] ) ? (array) wp_unslash( $_POST[ self::POST_ROOT ] ) : array();
 
+		return self::sanitize_values( $raw, $rereg );
+	}
+
+	/**
+	 * Sanitize a raw `field_key => value` map against a campaign's fields.
+	 *
+	 * The body of {@see self::collect_form_data()}, extracted so the CSV import
+	 * (#1214) sanitizes exactly what a form submit sanitizes. It is the same
+	 * property `process_submission()` relies on and does NOT provide: that
+	 * method encrypts and persists, it never sanitizes, so a caller handing it
+	 * values straight out of a file would write past the sanitizer the public
+	 * form goes through. One loop, two entry points.
+	 *
+	 * **Every field of the campaign is written, not every key supplied.** The
+	 * set comes from the campaign — the union across its audiences — so a key
+	 * with no value lands as `''` and a supplied key that is not a field of the
+	 * campaign is dropped. That is what the form submit does with `$_POST`, and
+	 * the import inherits it rather than declaring its own rule.
+	 *
+	 * @param array<string, mixed> $raw   Raw values keyed by `field_key`.
+	 * @param object               $rereg Reregistration object.
+	 * @phpstan-param ReregistrationRow $rereg
+	 * @return array<string, mixed> Structured data { fields: { key => value } }.
+	 */
+	public static function sanitize_values( array $raw, object $rereg ): array {
 		$fields    = self::get_fields_for_reregistration( $rereg );
 		$collected = array();
 
@@ -234,9 +259,12 @@ class ReregistrationDataProcessor {
 	 * @phpstan-param ReregistrationRow $rereg
 	 * @param array<string, mixed> $data       Validated collected data.
 	 * @param int                  $user_id    User ID.
+	 * @param bool                 $notify     Whether to send the confirmation
+	 *                                         email. `false` only on the bulk
+	 *                                         import path — see below.
 	 * @return void
 	 */
-	public static function process_submission( object $submission, object $rereg, array $data, int $user_id ): void {
+	public static function process_submission( object $submission, object $rereg, array $data, int $user_id, bool $notify = true ): void {
 		$new_status = ! empty( $rereg->auto_approve ) ? 'approved' : 'submitted';
 
 		$fields = self::get_fields_for_reregistration( $rereg );
@@ -298,7 +326,20 @@ class ReregistrationDataProcessor {
 		self::store_user_snapshot( $user_id, $fields, $values );
 
 		// Confirmation email.
-		ReregistrationEmailHandler::send_confirmation( (int) $submission->id );
+		//
+		// **The CSV import passes `false`, and that is a decision, not an
+		// optimisation** (#1214). Two reasons, and the second is the one that
+		// would bite: the message reads "we received your reregistration" to
+		// somebody who did nothing — an operator filed the record on their
+		// behalf — and at import scale it is one synchronous `wp_mail` per row
+		// inside a batch loop, which is the timeout the batching exists to
+		// avoid. The user is not left in the dark: `get_awaiting_invitation()`
+		// selects on `invited_at IS NULL` regardless of status, so the
+		// campaign's own invitation still reaches an imported row and carries
+		// the password-setting link (#1212) a created account needs.
+		if ( $notify ) {
+			ReregistrationEmailHandler::send_confirmation( (int) $submission->id );
+		}
 
 		// Activity log.
 		if ( class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {

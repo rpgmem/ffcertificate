@@ -56,8 +56,8 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 		Functions\when( 'absint' )->alias( static fn ( $v ) => (int) $v );
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'current_user_can' )->justReturn( true );
-		// A célula de status passou a vir de `RecruitmentAdminPage::classification_status_badge()`,
-		// que lê as cores configuráveis das Settings (#1193). Vazio = defaults.
+		// The status cell now comes from `RecruitmentAdminPage::classification_status_badge()`,
+		// which reads the configurable colours from Settings (#1193). Empty = defaults.
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'add_query_arg' )->alias(
@@ -272,10 +272,10 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 		// Classification summary row.
 		$this->assertStringContainsString( 'ED-01', $html );
 		$this->assertStringContainsString( 'ffc-recruitment-status-called', $html );
-		// A célula passa pelo helper desde o #1193: forma pela classe da base e
-		// rótulo traduzido — antes saía o enum cru, sem cor e com uma forma que
-		// nenhum outro selo daquela tela tinha. A cor vem de regra gerada, então
-		// o `<span>` não carrega estilo nenhum.
+		// The cell goes through the helper since #1193: shape from the base class
+		// and a translated label — before, the raw enum came out, colourless and
+		// with a shape no other badge on that screen had. The colour comes from a
+		// generated rule, so the `<span>` carries no style at all.
 		$this->assertStringContainsString(
 			'<span class="ffc-pill ffc-recruitment-status-badge ffc-recruitment-status-called">Called</span>',
 			$html

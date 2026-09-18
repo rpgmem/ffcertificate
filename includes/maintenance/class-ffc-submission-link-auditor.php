@@ -86,7 +86,7 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 	 * {@inheritDoc}
 	 */
 	public function get_description(): string {
-		return __( 'Report-only scan for submissions wrongly linked to WordPress users: links to deleted users, one user bound to multiple CPF/RF identities, unlinked submissions whose CPF matches a linked one, and a single CPF shared across multiple users. Nothing is changed — review and fix each case manually.', 'ffcertificate' );
+		return __( 'Report-only scan of how people are linked to WordPress users. Four checks over certificate submissions: links to deleted users, one user bound to multiple CPF/RF identities, unlinked submissions whose CPF matches a linked one, and a single CPF shared across multiple users. Three more across every store — submissions, appointments, recruitment candidacies and the identity index — reporting one identifier held by two accounts, one account holding two identifiers, and identifiers the index does not yet carry. Nothing is changed: review and fix each case manually.', 'ffcertificate' );
 	}
 
 	/**
@@ -119,11 +119,25 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 	public function run( array $options ): array {
 		$repo = $this->repository();
 
+		$conflicts = $this->conflicts();
+
 		$checks = array(
-			'orphan_links'        => $repo->find_orphan_user_links( self::SAMPLE_LIMIT ),
-			'multiple_identities' => $repo->find_users_with_multiple_identities( self::SAMPLE_LIMIT ),
-			'should_be_linked'    => $repo->find_unlinked_with_matching_identity( self::SAMPLE_LIMIT ),
-			'shared_identities'   => $repo->find_shared_identities( self::SAMPLE_LIMIT ),
+			// The four submission-scoped checks. `should_be_linked` in
+			// particular is a question about `ffc_submissions` rows and only
+			// makes sense there.
+			'orphan_links'                    => $repo->find_orphan_user_links( self::SAMPLE_LIMIT ),
+			'multiple_identities'             => $repo->find_users_with_multiple_identities( self::SAMPLE_LIMIT ),
+			'should_be_linked'                => $repo->find_unlinked_with_matching_identity( self::SAMPLE_LIMIT ),
+			'shared_identities'               => $repo->find_shared_identities( self::SAMPLE_LIMIT ),
+
+			// The three that only exist ACROSS the stores (#1313 PR 10). The
+			// submission-scoped pair above cannot see a person whose two
+			// accounts were created by different modules, which is the case
+			// #1313 exists to make visible -- and the one its backfill
+			// deliberately declines to resolve.
+			'cross_store_shared_identities'   => $conflicts->shared_identities( self::SAMPLE_LIMIT ),
+			'cross_store_multiple_identities' => $conflicts->multiple_identities( self::SAMPLE_LIMIT ),
+			'unindexed_links'                 => $conflicts->unindexed_links( self::SAMPLE_LIMIT ),
 		);
 
 		$report = array(
@@ -142,5 +156,18 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 		}
 
 		return $report;
+	}
+
+	/**
+	 * The cross-store identity questions.
+	 *
+	 * A seam for the same reason the repository above has one: these reach four
+	 * tables through the global `$wpdb`, and a test needs to drive the report
+	 * without standing all four up.
+	 *
+	 * @return IdentityConflictQuery
+	 */
+	protected function conflicts(): IdentityConflictQuery {
+		return new IdentityConflictQuery();
 	}
 }

@@ -12,19 +12,19 @@ use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Migrations\Strategies\KeyRotationRemainingMigrationStrategy;
 
 /**
- * A migração que termina a rotação de chaves nas áreas que a primeira nunca
- * percorreu (#1236).
+ * The migration that finishes the key rotation over the areas the first one
+ * never covered (#1236).
  *
- * A `Encryption` REAL é usada, não um alias mock: a estratégia lê
- * `Encryption::V2_PREFIX`, e um alias do Mockery não declara constantes de
- * classe (a armadilha que o CLAUDE.md registra). Com a classe real, o
- * ciphertext das fixtures é genuíno e o ida-e-volta é verificável de verdade.
+ * The REAL `Encryption` is used, not an alias mock: the strategy reads
+ * `Encryption::V2_PREFIX`, and a Mockery alias does not declare class constants
+ * (the trap CLAUDE.md records). With the real class the fixtures' ciphertext is
+ * genuine and the round trip is genuinely verifiable.
  *
- * O portão de desacoplamento é atravessado por uma SUBCLASSE que sobrescreve
- * `is_decoupled()`, e não definindo `FFC_ENCRYPTION_KEY`: uma constante é do
- * processo inteiro e mudaria o comportamento de `Encryption` para todo teste
- * que rodasse depois deste, alfabeticamente -- exatamente o tipo de
- * dependência de ordem que o CLAUDE.md manda evitar.
+ * The decoupling gate is crossed by a SUBCLASS overriding `is_decoupled()`,
+ * rather than by defining `FFC_ENCRYPTION_KEY`: a constant belongs to the whole
+ * process and would change `Encryption`'s behaviour for every test running after
+ * this one, alphabetically -- exactly the kind of order dependence CLAUDE.md
+ * says to avoid.
  *
  * @covers \FreeFormCertificate\Migrations\Strategies\KeyRotationRemainingMigrationStrategy
  */
@@ -98,20 +98,20 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 			$this->options[ $key ] = $value;
 			return true;
 		};
-		// SÓ as globais, deliberadamente. Uma chamada sem barra dentro de um
-		// namespace cai no global quando não existe a versão namespaced -- e
-		// stubar a namespaced a CRIA via Patchwork, para o resto do processo.
-		// A partir daí todo teste posterior que alcance aquele código passa a
-		// resolver a versão namespaced, que já não tem expectativa, e falha com
-		// "is not defined nor mocked". Foi assim que este arquivo quebrou o
-		// `RewriteHtmlImageRefsMigrationStrategyTest`, que stuba só a global.
+		// The GLOBALS only, deliberately. An unqualified call inside a namespace
+		// falls back to the global one when no namespaced version exists -- and
+		// stubbing the namespaced one CREATES it through Patchwork, for the rest
+		// of the process. Every later test reaching that code then resolves the
+		// namespaced version, which has no expectation, and fails with "is not
+		// defined nor mocked". That is how this file broke
+		// `RewriteHtmlImageRefsMigrationStrategyTest`, which stubs only the global.
 		Functions\when( 'get_option' )->alias( $get );
 		Functions\when( 'update_option' )->alias( $set );
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 
 		$this->strategy = new class() extends KeyRotationRemainingMigrationStrategy {
 			/**
-			 * Atravessa o portão sem definir constante de processo.
+			 * Crosses the gate without defining a process constant.
 			 *
 			 * @return bool
 			 */
@@ -127,10 +127,10 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 	}
 
 	/**
-	 * `prepare()` ingênuo: interpola para que o duplo possa ler a intenção.
+	 * A naive `prepare()`: it interpolates so the double can read the intent.
 	 *
-	 * @param string $sql  SQL com marcadores.
-	 * @param mixed  ...$a Valores.
+	 * @param string $sql  SQL with placeholders.
+	 * @param mixed  ...$a The values.
 	 * @return string
 	 */
 	public function fake_prepare( $sql, ...$a ): string {
@@ -144,7 +144,7 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 	}
 
 	/**
-	 * @param string $sql SQL interpolado.
+	 * @param string $sql The interpolated SQL.
 	 * @return mixed
 	 */
 	public function fake_get_var( $sql ) {
@@ -169,14 +169,14 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 			return $ids ? max( $ids ) : 0;
 		}
 
-		// COUNT(*) — com ou sem o recorte pelo cursor.
+		// COUNT(*) — with or without the cursor's slice.
 		$matching = $this->matching_rows( $table, $sql );
 
 		return count( $matching );
 	}
 
 	/**
-	 * @param string $sql SQL interpolado.
+	 * @param string $sql The interpolated SQL.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function fake_get_results( $sql ) {
@@ -189,10 +189,10 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 	}
 
 	/**
-	 * Linhas do alvo que satisfazem os recortes presentes no SQL.
+	 * Target rows that satisfy the filters present in the SQL.
 	 *
-	 * @param string $table Tabela.
-	 * @param string $sql   SQL interpolado.
+	 * @param string $table Table.
+	 * @param string $sql   The interpolated SQL.
 	 * @return array<int, array<string, mixed>>
 	 */
 	private function matching_rows( string $table, string $sql ): array {
@@ -231,12 +231,12 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 	}
 
 	// ------------------------------------------------------------------
-	// O portão
+	// The gate
 	// ------------------------------------------------------------------
 
 	public function test_can_run_refuses_while_the_site_is_not_decoupled(): void {
-		// Esta usa a estratégia REAL, sem a subclasse: o ambiente de teste não
-		// define nenhuma das duas constantes, que é o estado a recusar.
+		// This one uses the REAL strategy, without the subclass: the test
+		// environment defines neither constant, which is the state to refuse.
 		$real   = new KeyRotationRemainingMigrationStrategy();
 		$result = $real->can_run( 'key_rotation_remaining', array() );
 
@@ -253,18 +253,18 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 		$result = $real->execute( 'key_rotation_remaining', array() );
 
 		$this->assertFalse( $result['success'] );
-		$this->assertSame( array(), $this->updates, 'Nada pode ser escrito quando o portão recusa.' );
+		$this->assertSame( array(), $this->updates, 'Nothing may be written when the gate refuses.' );
 	}
 
 	// ------------------------------------------------------------------
-	// Recrutamento: re-cifra e reconstrói o hash
+	// Recruitment: re-encrypt and rebuild the hash
 	// ------------------------------------------------------------------
 
 	public function test_recruitment_row_is_reencrypted_and_its_hash_rebuilt(): void {
 		$cpf = '11111111111';
 
 		$row               = $this->candidate( 1, $cpf );
-		$row['cpf_hash']   = 'hash-sob-o-salt-antigo';
+		$row['cpf_hash']   = 'hash-under-the-old-salt';
 		$this->rows[ self::CANDIDATES ][] = $row;
 
 		$this->strategy->execute( 'key_rotation_remaining', array() );
@@ -279,7 +279,7 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 		$this->assertSame(
 			$cpf,
 			Encryption::decrypt( (string) $written['cpf_encrypted'] ),
-			'O ciphertext reescrito tem de continuar decifrando para o mesmo valor.'
+			'The rewritten ciphertext must still decrypt to the same value.'
 		);
 	}
 
@@ -297,42 +297,43 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 		$this->assertArrayNotHasKey(
 			'cpf_hash',
 			$written,
-			'Um hash já sob o salt corrente não deve custar uma escrita.'
+			'A hash already under the current salt must not cost a write.'
 		);
 		$this->assertArrayHasKey( 'cpf_encrypted', $written );
 	}
 
 	/**
-	 * Uma colisão de UNIQUE é reportada com o texto do banco, não como falha genérica.
+	 * A UNIQUE collision is reported with the database's message, not as a
+	 * generic failure.
 	 *
-	 * POR QUE ESTE CASO EXISTE
+	 * WHY THIS CASE EXISTS
 	 *
-	 * `cpf_hash` e `rf_hash` são UNIQUE sobre o VALOR do hash, não sobre a
-	 * pessoa. Sob salts diferentes a mesma pessoa produz valores diferentes,
-	 * então duas linhas dela passam pela restrição — e é exatamente isso que a
-	 * parte 2 da #1236 descreve: depois do desacoplamento a busca deixou de
-	 * achar o candidato antigo e o dedup do importador criou uma linha nova.
+	 * `cpf_hash` and `rf_hash` are UNIQUE over the hash VALUE, not over the
+	 * person. Under different salts the same person produces different values, so
+	 * two rows for them pass the constraint — and that is exactly what part 2 of
+	 * #1236 describes: after the decoupling the search stopped finding the old
+	 * candidate and the importer's dedup created a new row.
 	 *
-	 * Onde esse par existe, reconstruir o hash da linha antiga produz o valor
-	 * que a nova já tem, e o UPDATE bate na restrição. O docblock do método
-	 * afirmava o contrário; esta asserção é o que o mantém honesto.
+	 * Where that pair exists, rebuilding the old row's hash produces the value
+	 * the new one already has, and the UPDATE hits the constraint. The method's
+	 * docblock claimed the opposite; this assertion is what keeps it honest.
 	 *
-	 * O QUE ELA PROVA, E O QUE NÃO PROVA
+	 * WHAT IT PROVES, AND WHAT IT DOES NOT
 	 *
-	 * Prova que a falha é reportada com o texto do banco — que nomeia a chave
-	 * e o valor duplicados, e é o que distingue "reconcilie os duplicados à
-	 * mão" de "tente de novo" — e que o laço sobrevive a ela.
+	 * It proves the failure is reported with the database's message — which names
+	 * the duplicated key and value, and is what separates "reconcile the
+	 * duplicates by hand" from "try again" — and that the loop survives it.
 	 *
-	 * Não prova que a colisão acontece: isso é o servidor aplicando a UNIQUE,
-	 * e nenhum duplo de `$wpdb` a reproduz. O que existe aqui é a falha
-	 * SIMULADA, que é o único lado deste caso que o código controla.
+	 * It does not prove the collision happens: that is the server enforcing the
+	 * UNIQUE, and no `$wpdb` double reproduces it. What exists here is the
+	 * SIMULATED failure, which is the only side of this case the code controls.
 	 */
 	public function test_a_unique_collision_is_reported_with_the_database_message(): void {
 		global $wpdb;
 
 		$this->rows[ self::CANDIDATES ][] = array_merge(
 			$this->candidate( 1, '11111111111' ),
-			array( 'cpf_hash' => 'hash-sob-o-salt-antigo' )
+			array( 'cpf_hash' => 'hash-under-the-old-salt' )
 		);
 
 		$wpdb->last_error = "Duplicate entry 'abc123' for key 'cpf_hash'";
@@ -342,22 +343,22 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 
 		$this->assertCount( 1, $result['errors'] );
 		$this->assertStringContainsString( "Duplicate entry 'abc123' for key 'cpf_hash'", $result['errors'][0] );
-		$this->assertStringContainsString( '1', $result['errors'][0], 'O id do candidato tem de estar na mensagem.' );
+		$this->assertStringContainsString( '1', $result['errors'][0], 'The candidate id must be in the message.' );
 	}
 
 	/**
-	 * Sem texto do banco, a mensagem antiga continua valendo.
+	 * With no database message, the old wording still holds.
 	 *
-	 * `last_error` pode vir vazio — uma falha de conexão, um driver que não o
-	 * preenche. Interpolar vazio produziria uma frase terminando em dois
-	 * pontos e nada, que é pior que a mensagem curta.
+	 * `last_error` may come back empty — a connection failure, a driver that does
+	 * not fill it. Interpolating empty would produce a sentence ending in a colon
+	 * and nothing, which is worse than the short message.
 	 */
 	public function test_a_write_failure_without_a_database_message_still_reports_the_candidate(): void {
 		global $wpdb;
 
 		$this->rows[ self::CANDIDATES ][] = array_merge(
 			$this->candidate( 7, '11111111111' ),
-			array( 'cpf_hash' => 'hash-sob-o-salt-antigo' )
+			array( 'cpf_hash' => 'hash-under-the-old-salt' )
 		);
 
 		$wpdb->last_error = '';
@@ -368,24 +369,24 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 		$this->assertCount( 1, $result['errors'] );
 		$this->assertStringContainsString( '7', $result['errors'][0] );
 
-		// A forma curta termina em ponto final. Interpolar um detalhe vazio
-		// produziria uma frase terminando em `: ` e nada -- que e o que esta
-		// asercao reprova. MEDIDO: a primeira versao procurava `': .'`, que a
-		// mutacao nunca produz, entao ela passava verde sem medir nada.
+		// The short form ends in a full stop. Interpolating an empty detail would
+		// produce a sentence ending in `: ` and nothing -- which is what this
+		// assertion refuses. MEASURED: the first version looked for `': .'`, which
+		// the mutation never produces, so it passed green measuring nothing.
 		$this->assertStringEndsWith( '.', $result['errors'][0] );
 	}
 
 	// ------------------------------------------------------------------
-	// Recadastramento: o despacho é pelo valor, não pela configuração
+	// Reregistration: the dispatch is by value, not by configuration
 	// ------------------------------------------------------------------
 
 	public function test_only_values_carrying_the_ciphertext_prefix_are_touched(): void {
-		$segredo = 'cpf-do-participante';
+		$secret = 'participant-cpf';
 
 		$body = array(
 			'fields' => array(
-				'cpf'  => (string) Encryption::encrypt( $segredo ),
-				'nome' => 'Texto claro que nunca foi cifrado',
+				'cpf'  => (string) Encryption::encrypt( $secret ),
+				'nome' => 'Plaintext that was never encrypted',
 			),
 		);
 
@@ -400,27 +401,26 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 		$saved = json_decode( (string) $this->updates[0]['data']['data'], true );
 
 		$this->assertSame(
-			'Texto claro que nunca foi cifrado',
+			'Plaintext that was never encrypted',
 			$saved['fields']['nome'],
-			'Um valor em texto claro não pode ser cifrado pela migração.'
+			'A plaintext value must not be encrypted by the migration.'
 		);
 
-		// A asserção que realmente cobra o despacho pelo prefixo. Sem ele, o
-		// texto claro vai parar em `decrypt()`, que devolve null, e o valor
-		// sobrevive intacto -- então a asserção acima passa mesmo com o
-		// despacho quebrado. O que NÃO sobrevive é a conclusão: cada campo em
-		// claro vira uma mensagem de erro, e `mark_completed()` exige a lista
-		// vazia, de modo que a migração nunca chegaria a 100%. Medido por
-		// mutação: removendo a checagem do prefixo, é esta asserção que
-		// reprova, e só ela.
+		// The assertion that really charges the dispatch by prefix. Without it,
+		// the plaintext ends up in `decrypt()`, which returns null, and the value
+		// survives intact -- so the assertion above passes even with the dispatch
+		// broken. What does NOT survive is the conclusion: every plaintext field
+		// becomes an error, and `mark_completed()` requires an empty list, so the
+		// migration would never reach 100%. Measured by mutation: removing the
+		// prefix check, this is the assertion that fails, and only this one.
 		$this->assertSame(
 			array(),
 			$result['errors'],
-			'Texto claro não é uma falha de decifragem: reportá-lo como erro impediria a migração de concluir.'
+			'Plaintext is not a decryption failure: reporting it as an error would stop the migration completing.'
 		);
 		$this->assertTrue( $result['has_more'] === false || 0 === $result['pending'] );
 		$this->assertStringStartsWith( Encryption::V2_PREFIX, $saved['fields']['cpf'] );
-		$this->assertSame( $segredo, Encryption::decrypt( $saved['fields']['cpf'] ) );
+		$this->assertSame( $secret, Encryption::decrypt( $saved['fields']['cpf'] ) );
 	}
 
 	public function test_a_body_without_ciphertext_is_never_written(): void {
@@ -435,28 +435,28 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 	}
 
 	// ------------------------------------------------------------------
-	// Estado: fingerprint e conclusão
+	// State: fingerprint and completion
 	// ------------------------------------------------------------------
 
 	public function test_a_changed_key_rearms_instead_of_reporting_complete(): void {
 		$this->rows[ self::CANDIDATES ][] = $this->candidate( 1, '33333333333' );
 
 		$this->strategy->execute( 'key_rotation_remaining', array() );
-		$concluida = $this->strategy->calculate_status( 'key_rotation_remaining', array() );
-		$this->assertTrue( $concluida['is_complete'] );
+		$completed = $this->strategy->calculate_status( 'key_rotation_remaining', array() );
+		$this->assertTrue( $completed['is_complete'] );
 
-		// A chave muda: o que já foi reescrito virou legado de novo.
-		$estado                = $this->options['ffc_key_rotation_remaining_state'];
-		$estado['fingerprint'] = 'impressao-de-outra-chave';
-		$this->options['ffc_key_rotation_remaining_state'] = $estado;
+		// The key changes: what was already rewritten is legacy again.
+		$state                 = $this->options['ffc_key_rotation_remaining_state'];
+		$state['fingerprint']  = 'fingerprint-of-another-key';
+		$this->options['ffc_key_rotation_remaining_state'] = $state;
 
-		$depois = $this->strategy->calculate_status( 'key_rotation_remaining', array() );
+		$after = $this->strategy->calculate_status( 'key_rotation_remaining', array() );
 
 		$this->assertFalse(
-			$depois['is_complete'],
-			'Uma chave diferente tem de re-armar; reportar "completa" deixaria dados sob a chave antiga.'
+			$after['is_complete'],
+			'A different key must re-arm; reporting "complete" would leave data under the old key.'
 		);
-		$this->assertSame( 1, $depois['pending'] );
+		$this->assertSame( 1, $after['pending'] );
 	}
 
 	public function test_an_empty_install_reports_complete_without_writing(): void {
@@ -472,17 +472,17 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 	}
 
 	/**
-	 * Uma linha de candidato com CPF cifrado de verdade.
+	 * A candidate row with a genuinely encrypted CPF.
 	 *
-	 * @param int    $id  Id.
-	 * @param string $cpf CPF em claro.
+	 * @param int    $id  The id.
+	 * @param string $cpf The CPF in plaintext.
 	 * @return array<string, mixed>
 	 */
 	private function candidate( int $id, string $cpf ): array {
 		return array(
 			'id'              => $id,
 			'cpf_encrypted'   => (string) Encryption::encrypt( $cpf ),
-			'cpf_hash'        => 'hash-antigo',
+			'cpf_hash'        => 'old-hash',
 			'rf_encrypted'    => null,
 			'rf_hash'         => null,
 			'email_encrypted' => null,

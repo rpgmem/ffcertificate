@@ -101,6 +101,8 @@ class UserManagerTest extends TestCase {
 				'organization' => 'Acme',
 				'notes'        => '',
 				'preferences'  => null,
+				'cpf_hash'     => null,
+				'rf_hash'      => null,
 				'created_at'   => '2025-01-01 00:00:00',
 				'updated_at'   => '2025-01-01 00:00:00',
 			),
@@ -1292,6 +1294,17 @@ class UserManagerTest extends TestCase {
 			return true;
 		} );
 
+		// The user has no profile row yet, so the index write creates one.
+		$this->wpdb->shouldReceive( 'get_var' )
+			->with( 'SELECT id FROM %i WHERE user_id = %d' )
+			->andReturn( null );
+		$inserted = array();
+		$this->wpdb->shouldReceive( 'insert' )->andReturnUsing( function ( $table, $data ) use ( &$inserted ) {
+			unset( $table );
+			$inserted = $data;
+			return 1;
+		} );
+
 		$result = UserManager::update_extended_profile(
 			42,
 			array( 'cpf' => '12345678901' ),
@@ -1299,9 +1312,16 @@ class UserManagerTest extends TestCase {
 		);
 
 		$this->assertTrue( $result );
-		// Sensitive key: ciphertext stored under ffc_user_<key>, hash under ffc_user_<key>_hash.
+		// The ciphertext is an attribute of one user, so it stays in the meta;
+		// the hash is an index, so it goes to its column (#1313).
 		$this->assertSame( 'ENC', $captured['ffc_user_cpf'] );
-		$this->assertSame( 'HASH', $captured['ffc_user_cpf_hash'] );
+		$this->assertArrayNotHasKey( 'ffc_user_cpf_hash', $captured );
+		$this->assertSame( 'HASH', $inserted['cpf_hash'] ?? null );
+		$this->assertSame(
+			42,
+			(int) ( $inserted['user_id'] ?? 0 ),
+			'A user whose first profile write is an identifier still has to enter the index.'
+		);
 	}
 
 	public function test_update_extended_profile_deletes_usermeta_when_sensitive_value_empty(): void {
@@ -1315,17 +1335,30 @@ class UserManagerTest extends TestCase {
 		} );
 		Functions\when( 'update_user_meta' )->justReturn( true );
 
+		// The row exists, so clearing the value updates the index in place.
+		$this->wpdb->shouldReceive( 'get_var' )
+			->with( 'SELECT id FROM %i WHERE user_id = %d' )
+			->andReturn( '1' );
+		$updated = array();
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing( function ( $table, $data ) use ( &$updated ) {
+			unset( $table );
+			$updated = $data;
+			return 1;
+		} );
+
 		UserManager::update_extended_profile(
 			42,
 			array( 'cpf' => '' ),
 			array( 'cpf' )
 		);
 
-		// Empty sensitive value must delete BOTH the ciphertext meta and
-		// its lookup hash so a stale hash never survives the field being
-		// cleared.
+		// Clearing a sensitive value must delete the ciphertext AND clear the
+		// index, or the row keeps answering for an identifier the user no
+		// longer carries. NULL rather than '': an identifier lookup compares
+		// for equality, so an empty column would match every other empty one.
 		$this->assertContains( 'ffc_user_cpf', $deleted_keys );
-		$this->assertContains( 'ffc_user_cpf_hash', $deleted_keys );
+		$this->assertArrayHasKey( 'cpf_hash', $updated );
+		$this->assertNull( $updated['cpf_hash'] );
 	}
 
 	// ==================================================================

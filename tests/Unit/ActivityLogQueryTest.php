@@ -415,16 +415,16 @@ class ActivityLogQueryTest extends TestCase {
 	}
 
 	/**
-	 * Um acerto de cache nao consulta o banco (#1234).
+	 * A cache hit does not query the database (#1234).
 	 *
-	 * E a asercao que sustenta a correcao. O `<select>` de filtro da tela de
-	 * Log de Atividades e redesenhado a cada render, e esta e a tabela que
-	 * mais cresce no plugin -- o `DISTINCT` usa o indice `KEY action`, entao
-	 * percorre o INDICE e nao a tabela, mas ainda o percorre inteiro para
-	 * produzir algumas dezenas de valores.
+	 * This is the assertion that carries the fix. The filter `<select>` of the
+	 * Activity Log screen is redrawn on every render, and this is the fastest
+	 * growing table in the plugin -- the `DISTINCT` uses the `KEY action` index,
+	 * so it walks the INDEX and not the table, but it still walks all of it to
+	 * produce a few dozen values.
 	 *
-	 * `shouldNotReceive` e o que prende isso: comparar o valor devolvido nao
-	 * bastaria, porque a leitura descachada devolveria a mesma lista.
+	 * `shouldNotReceive` is what pins this: comparing the returned value would
+	 * not be enough, because the uncached read would return the same list.
 	 */
 	public function test_distinct_actions_cache_hit_never_touches_the_database(): void {
 		Functions\when( 'get_transient' )->justReturn( array( 'cached_action' ) );
@@ -434,10 +434,10 @@ class ActivityLogQueryTest extends TestCase {
 	}
 
 	/**
-	 * O resultado calculado e gravado no transiente.
+	 * The computed result is written to the transient.
 	 *
-	 * O par da asercao acima: sem a gravacao, todo render seria um miss e o
-	 * cache existiria so no caminho de leitura.
+	 * The pair of the assertion above: without the write, every render would be
+	 * a miss and the cache would exist only on the read path.
 	 */
 	public function test_distinct_actions_stores_what_it_computed(): void {
 		$stored = null;

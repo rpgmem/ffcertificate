@@ -452,12 +452,12 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 		$processed = 0;
 		$last_id   = $cursor;
 
-		// `column_exists()` e um `SHOW COLUMNS` sem cache, e a resposta e
-		// INVARIANTE dentro do lote: o schema nao muda enquanto 500 linhas sao
-		// reescritas. Sondar por (linha x coluna) custava ate 2.500 consultas
-		// superfluas por lote (#1234). Resolvido UMA vez aqui, e o mapa e
-		// recomputado a cada lote -- nao guardado entre execucoes --, entao uma
-		// coluna adicionada entre lotes continua sendo vista.
+		// `column_exists()` is an uncached `SHOW COLUMNS`, and the answer is
+		// INVARIANT inside the batch: the schema does not change while 500 rows
+		// are rewritten. Probing per (row x column) cost up to 2,500 superfluous
+		// queries per batch (#1234). Resolved ONCE here, and the map is
+		// recomputed on every batch -- not held between runs -- so a column
+		// added between batches is still seen.
 		$hash_present = array();
 		foreach ( $field_map as $ffc_hash_col ) {
 			if ( is_string( $ffc_hash_col ) && '' !== $ffc_hash_col ) {

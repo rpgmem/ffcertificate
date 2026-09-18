@@ -280,7 +280,7 @@ class SubmissionReader extends AbstractRepository {
 			$this->wpdb->prepare(
 				'SELECT * FROM %i WHERE email_hash = %s ORDER BY id DESC LIMIT %d',
 				$this->table,
-				$this->hash( $email ),
+				$this->hash( 'email', $email ),
 				$limit
 			),
 			ARRAY_A
@@ -302,8 +302,8 @@ class SubmissionReader extends AbstractRepository {
 	 */
 	public function findByCpfRf( string $cpf, int $limit = 10 ): array {
 		$clean_cpf   = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
-		$id_hash     = $this->hash( $clean_cpf );
-		$hash_column = strlen( $clean_cpf ) === 7 ? 'rf_hash' : 'cpf_hash';
+		$id_hash     = $this->hash( 'cpf', $clean_cpf );
+		$hash_column = 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $clean_cpf ) ? 'rf_hash' : 'cpf_hash';
 
 		// Search the specific split column based on digit count.
 		$results = $this->wpdb->get_results(
@@ -547,12 +547,13 @@ class SubmissionReader extends AbstractRepository {
 			return false;
 		}
 
-		// `LIMIT 1`, e nao `COUNT(*)`: a pergunta e "existe alguma?", e um
-		// COUNT percorre TODAS as linhas que casam para produzir um numero que
-		// so e comparado com zero. `edited_at` nao e indexado, entao o COUNT e
-		// um scan completo da tabela de submissoes -- a maior do plugin -- a
-		// cada renderizacao da tela que decide se mostra a coluna de edicao.
-		// Com `LIMIT 1` o servidor para na primeira linha que satisfaz (#1234).
+		// `LIMIT 1`, not `COUNT(*)`: the question is "is there any?", and a
+		// COUNT walks EVERY matching row to produce a number that is only
+		// compared against zero. `edited_at` is not indexed, so the COUNT is a
+		// full scan of the submissions table -- the largest in the plugin -- on
+		// every render of the screen that decides whether to show the edit
+		// column. With `LIMIT 1` the server stops at the first row that
+		// satisfies it (#1234).
 		$has_data = $this->wpdb->get_var(
 			$this->wpdb->prepare( 'SELECT 1 FROM %i WHERE edited_at IS NOT NULL LIMIT 1', $this->table )
 		);
@@ -616,11 +617,24 @@ class SubmissionReader extends AbstractRepository {
 				$search_term
 			);
 
-			// 3. Search by email/CPF/RF hash (for encrypted data)
-			$search_hash         = $this->hash( $search_term );
-			$search_conditions[] = $this->wpdb->prepare( 'email_hash = %s', $search_hash );
-			$search_conditions[] = $this->wpdb->prepare( 'cpf_hash = %s', $search_hash );
-			$search_conditions[] = $this->wpdb->prepare( 'rf_hash = %s', $search_hash );
+			// 3. Search by email/CPF/RF hash (for encrypted data).
+			//
+			// One hash PER COLUMN, not one hash for all three (#1313): each
+			// identifier now has its own canonical form, so a single hash of
+			// the raw term can only ever match the column whose form happens
+			// to be the identity. That also repairs a defect this line carried
+			// -- an operator pasting `123.456.789-09` hashed the punctuation
+			// and matched no row, because `cpf_hash` holds the digits.
+			$email_hash = $this->hash( 'email', $search_term );
+			$id_hash    = $this->hash( 'cpf', $search_term );
+
+			if ( null !== $email_hash ) {
+				$search_conditions[] = $this->wpdb->prepare( 'email_hash = %s', $email_hash );
+			}
+			if ( null !== $id_hash ) {
+				$search_conditions[] = $this->wpdb->prepare( 'cpf_hash = %s', $id_hash );
+				$search_conditions[] = $this->wpdb->prepare( 'rf_hash = %s', $id_hash );
+			}
 
 			// 4. Search in unencrypted data field (legacy/fallback).
 			// Skipped for terms shorter than 4 chars: a leading-wildcard LIKE
@@ -804,10 +818,11 @@ class SubmissionReader extends AbstractRepository {
 	 * plugin; the older raw hash() fallback was unreachable in any
 	 * working install.
 	 *
-	 * @param string $value Value.
+	 * @param string $field_key Logical field key (`cpf`, `rf`, `email`, …).
+	 * @param string $value     Value.
 	 * @return string|null
 	 */
-	private function hash( string $value ): ?string {
-		return \FreeFormCertificate\Core\Encryption::hash( $value );
+	private function hash( string $field_key, string $value ): ?string {
+		return \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( $field_key, $value );
 	}
 }

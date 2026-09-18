@@ -394,20 +394,20 @@ class QRCodeGenerator {
 	/**
 	 * Check if cache is enabled
 	 *
-	 * **Este toggle governa o cache do QR de CERTIFICADO** —
-	 * `ffc_submissions.qr_code_cache`, indexado por `submission_id` — e mais
-	 * nada. O QR da URL curta tem um cache proprio e homonimo,
-	 * `ffc_short_urls.qr_cache`, que nao passa por aqui: ele nao tem toggle e
-	 * serve um unico tamanho, declarado na constante `CACHE_SIZE` do
-	 * `UrlShortenerQrHandler` (#1233). O botao "Clear All QR Code Cache" da
-	 * aba Cache tambem limpa so este aqui.
+	 * **This toggle governs the CERTIFICATE QR's cache** --
+	 * `ffc_submissions.qr_code_cache`, indexed by `submission_id` -- and nothing
+	 * else. The short URL's QR has a cache of its own sharing the name,
+	 * `ffc_short_urls.qr_cache`, which does not come through here: it has no
+	 * toggle and serves a single size, declared in `UrlShortenerQrHandler`'s
+	 * `CACHE_SIZE` constant (#1233). The Cache tab's "Clear All QR Code Cache"
+	 * button also clears only this one.
 	 *
-	 * O nome da outra classe fica SEM o namespace de proposito. O
-	 * `ModuleBoundaryTest` monta o grafo de modulos varrendo o TEXTO dos
-	 * arquivos, entao um `@see` totalmente qualificado apontando para o modulo
-	 * do encurtador cria ali uma aresta de saida deste modulo e reprova o CI —
-	 * um docblock acopla tanto quanto um `use`. A dependencia real existe so
-	 * no sentido contrario: o encurtador usa este gerador.
+	 * The other class's name is left WITHOUT its namespace on purpose.
+	 * `ModuleBoundaryTest` builds the module graph by scanning the TEXT of the
+	 * files, so a fully qualified `@see` pointing at the shortener's module
+	 * creates an outbound edge from this module there and fails CI -- a docblock
+	 * couples as much as a `use`. The real dependency exists only in the other
+	 * direction: the shortener uses this generator.
 	 *
 	 * @return bool
 	 */

@@ -37,11 +37,11 @@ class AudienceShortcodeTest extends TestCase {
 			return abs(intval($val));
 		});
 		Functions\when('sanitize_text_field')->returnArg();
-		// `AssetHelper::enqueue_dark_mode()` lê a configuração do modo escuro
-		// para decidir se enfileira o interruptor (#1126). Sem este stub o
-		// caminho de enfileiramento morre em `get_option()` — e ele não é
-		// `byDefault()` nos testes que declaram o seu próprio `get_option`,
-		// porque lá o alias específico já responde.
+		// `AssetHelper::enqueue_dark_mode()` reads the dark-mode setting to decide
+		// whether to enqueue the toggle (#1126). Without this stub the enqueue
+		// path dies at `get_option()` — and it is not `byDefault()` in the tests
+		// that declare their own `get_option`, because there the specific alias
+		// already answers.
 		Functions\when('get_option')->justReturn(false);
 	}
 

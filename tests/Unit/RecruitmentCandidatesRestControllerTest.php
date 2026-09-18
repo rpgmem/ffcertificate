@@ -730,14 +730,14 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		);
 		$noticeReader->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( null );
 
-		// O historico vem em UMA consulta em lote, nao uma por classificacao
-		// (#1234). A asercao `once()` com a lista COMPLETA de ids e o que
-		// prende isso: um retorno ao singular quebraria aqui.
+		// The history comes in ONE batched query, not one per ranking
+		// (#1234). The `once()` expectation with the COMPLETE list of ids is what
+		// pins this: a return to the singular would break here.
 		//
-		// Os ids 101 e 102 entram no lote embora seus editais sejam descartados
-		// depois (rascunho e ausente). E consequencia deliberada de coletar os
-		// ids antes do filtro: uma consulta com algumas linhas descartadas, em
-		// vez de tres consultas.
+		// The ids 101 and 102 enter the batch even though their notices are
+		// discarded afterwards (draft and absent). It is the deliberate
+		// consequence of collecting the ids before the filter: one query with a
+		// few extra rows instead of three queries.
 		$callReader = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCallReader' );
 		$callReader->shouldReceive( 'get_history_for_classifications' )
 			->once()
@@ -758,8 +758,8 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$this->assertTrue( $data[0]['notice']['was_reopened'] );
 		$this->assertCount( 1, $data[0]['classifications'] );
 		$this->assertSame( 100, $data[0]['classifications'][0]['id'] );
-		// A linha da classificacao 102 existe no retorno do lote mas nao chega
-		// aqui: o edital dela foi descartado. A da 100 chega, agrupada.
+		// Ranking 102's row exists in the batch's return but does not reach here:
+		// its call was discarded. Ranking 100's does, grouped.
 		$this->assertCount( 1, $data[0]['classifications'][0]['calls'] );
 		$this->assertSame( 900, $data[0]['classifications'][0]['calls'][0]->id );
 	}

@@ -723,7 +723,7 @@ class VerificationHandler {
 		if ( ! empty( $result['type'] ) && 'appointment' === $result['type'] && ! empty( $result['appointment'] ) ) {
 			$pdf_data = $this->renderer->generate_appointment_verification_pdf( $result, $pdf_generator );
 		} elseif ( ! empty( $result['type'] ) && 'reregistration' === $result['type'] ) {
-			$pdf_data = \FreeFormCertificate\Reregistration\FichaGenerator::generate_ficha_data( (int) $result['reregistration']['submission_id'] );
+			$pdf_data = \FreeFormCertificate\Reregistration\RecordGenerator::generate_record_data( (int) $result['reregistration']['submission_id'] );
 		} else {
 			// Certificate: use standard PDF generator.
 			$pdf_data = $pdf_generator->generate_pdf_data(
@@ -821,7 +821,7 @@ class VerificationHandler {
 		if ( ! empty( $result['type'] ) && 'appointment' === $result['type'] && ! empty( $result['appointment'] ) ) {
 			$pdf_data = $this->renderer->generate_appointment_verification_pdf( $result, $pdf_generator );
 		} elseif ( ! empty( $result['type'] ) && 'reregistration' === $result['type'] ) {
-			$pdf_data = \FreeFormCertificate\Reregistration\FichaGenerator::generate_ficha_data( (int) $result['reregistration']['submission_id'] );
+			$pdf_data = \FreeFormCertificate\Reregistration\RecordGenerator::generate_record_data( (int) $result['reregistration']['submission_id'] );
 		} else {
 			// Certificate: use standard PDF generator.
 			$pdf_data = $pdf_generator->generate_pdf_data(

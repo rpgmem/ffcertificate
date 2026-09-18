@@ -50,7 +50,7 @@ final class RecruitmentAdminPage {
 	/** Manage cap — every write (edit screens, dispatch, status changes). */
 	private const CAP = 'ffc_manage_recruitment';
 
-	/** Read-only "view" cap — opens the admin UI as the *só vê* tier. */
+	/** Read-only "view" cap — opens the admin UI as the *view only* tier. */
 	private const VIEW_CAP = 'ffc_view_recruitment';
 
 	/**
@@ -306,7 +306,7 @@ final class RecruitmentAdminPage {
 		if ( ! in_array( $tab, array( 'notices', 'adjutancies', 'reasons', 'candidates', 'settings' ), true ) ) {
 			$tab = 'notices';
 		}
-		// 3-state: the Settings tab needs its own view cap (só vê) — the umbrella
+		// 3-state: the Settings tab needs its own view cap (view only) — the umbrella
 		// alone (held by a plain Recruitment Manager) is not enough.
 		if ( 'settings' === $tab && ! self::can_view_settings() ) {
 			$tab = 'notices';

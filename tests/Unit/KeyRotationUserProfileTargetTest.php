@@ -13,28 +13,28 @@ use FreeFormCertificate\Migrations\Strategies\KeyRotationRemainingMigrationStrat
 use FreeFormCertificate\UserDashboard\UserProfileFieldMap;
 
 /**
- * O terceiro alvo da rotacao de chaves: a usermeta sensivel de perfil (#1236).
+ * The key rotation's third target: the sensitive profile usermeta (#1236).
  *
- * POR QUE ISTO EXISTE
+ * WHY THIS EXISTS
  *
- * `ffc_user_cpf`, `ffc_user_rf` e `ffc_user_rg` guardam PII cifrada sob a chave
- * DERIVADA dos salts do WordPress. Enquanto estiverem assim, trocar
- * `SECURE_AUTH_KEY` / `LOGGED_IN_KEY` / `NONCE_KEY` -- coisa que varias
- * hospedagens oferecem num clique -- torna esses valores ilegiveis para
- * sempre, porque a chave E derivada deles. Nao e item de desempenho.
+ * `ffc_user_cpf`, `ffc_user_rf` and `ffc_user_rg` hold PII encrypted under the
+ * key DERIVED from the WordPress salts. While they stay that way, rotating
+ * `SECURE_AUTH_KEY` / `LOGGED_IN_KEY` / `NONCE_KEY` -- something several hosts
+ * offer in one click -- makes those values unreadable forever, because the key
+ * IS derived from them. This is not a performance item.
  *
- * O ARQUIVO SEPARADO E DELIBERADO
+ * THE SEPARATE FILE IS DELIBERATE
  *
- * `KeyRotationRemainingMigrationStrategyTest` monta um duplo de `$wpdb`
- * orientado a LINHAS DE TABELA, que e a forma dos outros dois alvos. Este alvo
- * nao tem tabela propria: pagina por `user_id` com `get_col()` e le e escreve
- * valor pela API de meta do WordPress. Encaixar as duas formas num harness so
- * deixaria ambas menos legiveis.
+ * `KeyRotationRemainingMigrationStrategyTest` builds a `$wpdb` double oriented
+ * around TABLE ROWS, which is the shape of the other two targets. This target
+ * has no table of its own: it pages by `user_id` with `get_col()` and reads and
+ * writes values through the WordPress meta API. Fitting both shapes into one
+ * harness would make both less readable.
  *
- * A `Encryption` REAL e usada, nao um alias mock -- a estrategia le
- * `Encryption::V2_PREFIX`, e um alias do Mockery nao declara constantes de
- * classe. Com a classe real o ciphertext das fixtures e genuino e o
- * ida-e-volta e verificavel.
+ * The REAL `Encryption` is used, not an alias mock -- the strategy reads
+ * `Encryption::V2_PREFIX`, and a Mockery alias does not declare class
+ * constants. With the real class the fixtures' ciphertext is genuine and the
+ * round trip is verifiable.
  *
  * @covers \FreeFormCertificate\Migrations\Strategies\KeyRotationRemainingMigrationStrategy
  */
@@ -44,6 +44,18 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 
 	/** @var array<int, array<string, string>> */
 	private array $meta = array();
+
+	/**
+	 * The ffc_user_profiles rows, keyed by user id.
+	 *
+	 * The target grew a second store in #1313: the ciphertext stays in the
+	 * usermeta, the rebuilt HASH goes to an indexed column. A rotation that
+	 * rewrote only the first would leave every identifier lookup silently
+	 * finding nobody, so the harness has to see both.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private array $profiles = array();
 
 	/** @var array<string, mixed> */
 	private array $options = array();
@@ -57,8 +69,9 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 		class_exists( '\FreeFormCertificate\Migrations\Strategies\KeyRotationRemainingMigrationStrategy' );
 		class_exists( '\FreeFormCertificate\UserDashboard\UserProfileFieldMap' );
 
-		$this->meta    = array();
-		$this->options = array();
+		$this->meta     = array();
+		$this->options  = array();
+		$this->profiles = array();
 
 		global $wpdb;
 		$wpdb           = Mockery::mock( 'wpdb' )->makePartial();
@@ -75,9 +88,9 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 			}
 		)->byDefault();
 
-		// Nenhum dos OUTROS dois alvos tem tabela neste harness, entao ambos
-		// contam zero e o despacho cai neste. E o que permite exercitar um alvo
-		// isoladamente sem encenar os outros.
+		// Neither of the OTHER two targets has a table in this harness, so both
+		// count zero and the dispatch falls to this one. That is what allows
+		// exercising one target in isolation without staging the others.
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			function ( $sql ) {
 				$sql = (string) $sql;
@@ -87,7 +100,37 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 				if ( str_contains( $sql, 'COUNT(DISTINCT user_id)' ) ) {
 					return count( $this->pending_users( $sql ) );
 				}
+				// UserProfileRepository::existsForUserId().
+				if ( str_contains( $sql, 'ffc_user_profiles' ) ) {
+					$user_id = $this->user_id_of( $sql );
+					return isset( $this->profiles[ $user_id ] ) ? '1' : null;
+				}
 				return 0;
+			}
+		)->byDefault();
+
+		// UserProfileRepository, reading and writing the identity index. The
+		// double's `prepare()` interpolates, so the user id is readable off the
+		// statement -- which is what lets this model a TABLE rather than the
+		// single row a template-returning `prepare()` would force.
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				return $this->profiles[ $this->user_id_of( (string) $sql ) ] ?? null;
+			}
+		)->byDefault();
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) {
+				unset( $table );
+				$this->profiles[ (int) $data['user_id'] ] = $data;
+				return 1;
+			}
+		)->byDefault();
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				unset( $table );
+				$user_id                    = (int) $where['user_id'];
+				$this->profiles[ $user_id ] = array_merge( $this->profiles[ $user_id ] ?? array(), $data );
+				return 1;
 			}
 		)->byDefault();
 
@@ -101,14 +144,17 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 			class_alias( 'WP_Error', 'FreeFormCertificate\Migrations\Strategies\WP_Error' );
 		}
 
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_cache_flush' )->justReturn( true );
+
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'is_wp_error' )->alias( static fn( $t ) => $t instanceof \WP_Error );
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 
-		// So as GLOBAIS: stubar a versao namespaced a CRIA via Patchwork para o
-		// resto do processo, e todo teste posterior que alcance aquele codigo
-		// passa a resolver uma funcao sem expectativa. O CLAUDE.md registra o
-		// caso, que ja quebrou um teste vizinho nesta mesma familia.
+		// The GLOBALS only: stubbing the namespaced version CREATES it through
+		// Patchwork for the rest of the process, and every later test reaching
+		// that code resolves a function with no expectation. CLAUDE.md records
+		// the case, which already broke a neighbour in this very family.
 		Functions\when( 'get_option' )->alias(
 			function ( $key, $default_value = false ) {
 				return $this->options[ $key ] ?? $default_value;
@@ -134,8 +180,8 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 
 		$this->strategy = new class() extends KeyRotationRemainingMigrationStrategy {
 			/**
-			 * Atravessa o portao de desacoplamento sem definir constante de
-			 * processo -- uma constante valeria para todo teste posterior.
+			 * Passes the decoupling gate without defining a process constant --
+			 * a constant would hold for every later test.
 			 *
 			 * @return bool
 			 */
@@ -151,10 +197,20 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 	}
 
 	/**
-	 * Os `user_id` que o SQL capturado selecionaria, lidos do armazenamento em
-	 * memoria. Honra o cursor (`user_id > N`) e o recorte (`user_id <= N`).
+	 * The `user_id` an interpolated single-row statement asks for.
 	 *
-	 * @param string $sql SQL ja interpolado pelo `prepare()` do duplo.
+	 * @param string $sql SQL already interpolated by the double's `prepare()`.
+	 * @return int
+	 */
+	private function user_id_of( string $sql ): int {
+		return 1 === preg_match( '/user_id = (\d+)/', $sql, $m ) ? (int) $m[1] : 0;
+	}
+
+	/**
+	 * The `user_id`s the captured SQL would select, read from the in-memory
+	 * store. It honours the cursor (`user_id > N`) and the slice (`user_id <= N`).
+	 *
+	 * @param string $sql SQL already interpolated by the double's `prepare()`.
 	 * @return list<int>
 	 */
 	private function pending_users( string $sql ): array {
@@ -188,20 +244,20 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 	}
 
 	// ==================================================================
-	// A guarda de concordancia
+	// The agreement guard
 	// ==================================================================
 
 	/**
-	 * O mapa da migracao conhece TODO campo sensivel de usermeta do
-	 * `UserProfileFieldMap` -- nem mais, nem menos.
+	 * The migration's map knows EVERY sensitive usermeta field in
+	 * `UserProfileFieldMap` -- no more, no fewer.
 	 *
-	 * E a asercao que justifica os literais no produto. Importar o mapa la
-	 * criaria a aresta `Migrations > UserDashboard`, que nao existe na baseline
-	 * do `ModuleBoundaryTest`; um teste vive fora do grafo e pode cobrar a
-	 * concordancia sem acoplar os modulos.
+	 * It is the assertion that justifies the literals in the production code.
+	 * Importing the map there would create the `Migrations > UserDashboard` edge,
+	 * which is not in `ModuleBoundaryTest`'s baseline; a test lives outside the
+	 * graph and can charge the agreement without coupling the modules.
 	 *
-	 * Sem isto, um quarto campo sensivel adicionado ao mapa ficaria fora da
-	 * rotacao em silencio -- e o silencio aqui custa PII ilegivel.
+	 * Without this, a fourth sensitive field added to the map would fall outside
+	 * the rotation in silence -- and silence here costs unreadable PII.
 	 */
 	public function test_the_migration_knows_every_sensitive_usermeta_field(): void {
 		$expected = array();
@@ -212,10 +268,10 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 				continue;
 			}
 			$meta_key              = (string) $spec['meta_key'];
-			$expected[ $meta_key ] = empty( $spec['hashable'] ) ? null : $meta_key . '_hash';
+			$expected[ $meta_key ] = UserProfileFieldMap::hash_column( $field );
 		}
 
-		$this->assertNotSame( array(), $expected, 'Nao li campo sensivel nenhum do mapa — a verificacao nao rodou.' );
+		$this->assertNotSame( array(), $expected, 'Read no sensitive field from the map — the check did not run.' );
 
 		$ref = new \ReflectionMethod( KeyRotationRemainingMigrationStrategy::class, 'profile_meta_map' );
 		$ref->setAccessible( true );
@@ -224,57 +280,61 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 		ksort( $expected );
 		ksort( $actual );
 
-		$this->assertSame( $expected, $actual, 'O mapa da migracao divergiu do UserProfileFieldMap — um campo sensivel ficaria sem rotacao.' );
+		$this->assertSame( $expected, $actual, 'The migration map diverged from UserProfileFieldMap — a sensitive field would go unrotated.' );
 	}
 
 	/**
-	 * As colunas de `ffc_user_profiles` NAO entram no alvo.
+	 * The `ffc_user_profiles` columns are NOT part of the target.
 	 *
-	 * A #1236 junta "ffc_user_profiles / wp_usermeta" numa linha so. Medido, as
-	 * seis colunas daquela tabela sao texto puro, e recifrar o que nunca foi
-	 * cifrado seria corromper. Esta asercao congela a medicao.
+	 * #1236 groups "ffc_user_profiles / wp_usermeta" on one line. Measured, that
+	 * table's six columns are plain text, and re-encrypting what was never
+	 * encrypted would corrupt it. This assertion freezes the measurement.
 	 */
 	public function test_the_profile_table_columns_are_not_sensitive(): void {
+		// The identity-index columns #1313 added are deliberately absent from
+		// this list: they are not FIELDS of the map at all, they are where a
+		// usermeta field's hash is written. A hash is not an envelope, so
+		// re-encrypting it would be exactly the corruption this test freezes.
 		$table_fields = array( 'display_name', 'phone', 'department', 'organization', 'notes', 'preferences' );
 
 		foreach ( $table_fields as $field ) {
 			$spec = UserProfileFieldMap::get( $field );
 
-			$this->assertNotNull( $spec, sprintf( 'O campo %s sumiu do mapa — re-medir antes de confiar nesta asercao.', $field ) );
+			$this->assertNotNull( $spec, sprintf( 'The field %s vanished from the map — re-measure before trusting this assertion.', $field ) );
 			$this->assertSame( UserProfileFieldMap::STORAGE_PROFILE_TABLE, $spec['storage'] );
 			$this->assertEmpty(
 				$spec['sensitive'] ?? false,
-				sprintf( 'O campo %s virou sensivel: a migracao de rotacao precisa passar a cobrir a tabela de perfis.', $field )
+				sprintf( 'The field %s became sensitive: the rotation migration must start covering the profile table.', $field )
 			);
 		}
 	}
 
 	// ==================================================================
-	// O lote
+	// The batch
 	// ==================================================================
 
 	/**
-	 * Semeia a meta de um usuario com ciphertext genuino.
+	 * Seeds a user's meta with genuine ciphertext.
 	 *
-	 * @param int                   $user_id Usuario.
-	 * @param array<string, string> $plain   Chave de meta => valor em claro.
+	 * @param int                   $user_id The user.
+	 * @param array<string, string> $plain   Meta key => plaintext value.
 	 * @return void
 	 */
 	private function seed_user( int $user_id, array $plain ): void {
 		foreach ( $plain as $key => $value ) {
 			$cipher = Encryption::encrypt( $value );
-			$this->assertIsString( $cipher, 'A fixture precisa de ciphertext real.' );
+			$this->assertIsString( $cipher, 'The fixture needs real ciphertext.' );
 			$this->meta[ $user_id ][ $key ] = $cipher;
 		}
 	}
 
 	/**
-	 * Um usuario com tres metas tem as TRES recifradas no mesmo lote.
+	 * A user with three metas has all THREE re-encrypted in the same batch.
 	 *
-	 * E a propriedade que sustenta a paginacao por usuario. Se a pagina fosse de
-	 * linhas de meta e o cursor avancasse por `user_id`, um usuario partido
-	 * entre dois lotes perderia as metas que ficaram para tras -- o cursor ja
-	 * teria passado por ele, e ninguem voltaria.
+	 * It is the property that holds up paging by user. If the page were of meta
+	 * rows and the cursor advanced by `user_id`, a user split across two batches
+	 * would lose the metas left behind -- the cursor would already have passed
+	 * them, and nobody would come back.
 	 */
 	public function test_every_meta_of_a_user_is_rewritten_in_one_batch(): void {
 		$this->seed_user( 10, array( 'ffc_user_cpf' => '11122233344', 'ffc_user_rf' => '7654321', 'ffc_user_rg' => '12345678' ) );
@@ -283,43 +343,91 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 		$this->strategy->execute( '', array() );
 
 		foreach ( array( 'ffc_user_cpf', 'ffc_user_rf', 'ffc_user_rg' ) as $key ) {
-			$this->assertNotSame( $before[ $key ], $this->meta[10][ $key ], sprintf( '%s nao foi recifrada.', $key ) );
+			$this->assertNotSame( $before[ $key ], $this->meta[10][ $key ], sprintf( '%s was not re-encrypted.', $key ) );
 			$this->assertSame(
 				Encryption::decrypt( $before[ $key ] ),
 				Encryption::decrypt( $this->meta[10][ $key ] ),
-				sprintf( '%s mudou de VALOR, nao so de cifra — a migracao corrompeu o dado.', $key )
+				sprintf( '%s changed its VALUE, not just its ciphertext — the migration corrupted the data.', $key )
 			);
 		}
 	}
 
 	/**
-	 * Os campos pesquisaveis ganham o hash pareado; o nao pesquisavel, nao.
+	 * The searchable fields get their paired hash; the non-searchable one does not.
 	 *
-	 * O hash e a metade que conserta um defeito VIVO, e nao apenas previne um
-	 * futuro: `Encryption::hash()` le `FFC_HASH_SALT` assim que ela existe,
-	 * entao todo hash gravado antes do desacoplamento e inalcancavel por
-	 * qualquer busca feita depois.
+	 * The hash is the half that fixes a LIVE defect rather than merely preventing
+	 * a future one: `Encryption::hash()` reads `FFC_HASH_SALT` as soon as it
+	 * exists, so every hash written before the decoupling is unreachable by any
+	 * search made afterwards.
 	 */
 	public function test_hashes_are_rebuilt_only_for_the_searchable_fields(): void {
 		$this->seed_user( 10, array( 'ffc_user_cpf' => '11122233344', 'ffc_user_rf' => '7654321', 'ffc_user_rg' => '12345678' ) );
 
 		$this->strategy->execute( '', array() );
 
-		$this->assertSame( Encryption::hash( '11122233344' ), $this->meta[10]['ffc_user_cpf_hash'] ?? null );
-		$this->assertSame( Encryption::hash( '7654321' ), $this->meta[10]['ffc_user_rf_hash'] ?? null );
+		$this->assertSame( Encryption::hash( '11122233344' ), $this->profiles[10]['cpf_hash'] ?? null );
+		$this->assertSame( Encryption::hash( '7654321' ), $this->profiles[10]['rf_hash'] ?? null );
 		$this->assertArrayNotHasKey(
-			'ffc_user_rg_hash',
+			'rg_hash',
+			$this->profiles[10],
+			'RG is not hash-searchable in the map; writing one creates a column nothing reads.'
+		);
+		$this->assertArrayNotHasKey(
+			'ffc_user_cpf_hash',
 			$this->meta[10],
-			'RG nao e pesquisavel por hash no mapa; gravar um cria uma chave que nada le.'
+			'The hash must not be written to the meta as well — two stores answering one question is what #1313 removed.'
 		);
 	}
 
 	/**
-	 * O cursor avanca, entao o lote seguinte nao reprocessa quem ja passou.
+	 * The user had no profile row, and the rotation still leaves the index
+	 * answering for them.
 	 *
-	 * Sem isto a migracao nunca termina: o predicado de pendencia e
-	 * `meta_value LIKE '%v2:%'`, e um valor RECIFRADO continua casando com ele.
-	 * E o cursor -- nao o predicado -- que faz o trabalho progredir.
+	 * The index has to exist for whoever carries the identifier, not for
+	 * whoever also happened to fill in a display name -- otherwise a rotation
+	 * is the moment a subset of users silently stops being findable, and the
+	 * subset is not one anybody can state.
+	 */
+	public function test_a_user_without_a_profile_row_gets_one(): void {
+		$this->seed_user( 10, array( 'ffc_user_cpf' => '11122233344' ) );
+		$this->assertArrayNotHasKey( 10, $this->profiles );
+
+		$this->strategy->execute( '', array() );
+
+		$this->assertSame( Encryption::hash( '11122233344' ), $this->profiles[10]['cpf_hash'] ?? null );
+		$this->assertSame( 10, (int) $this->profiles[10]['user_id'] );
+	}
+
+	/**
+	 * A hash already under the current salt costs no write.
+	 *
+	 * The same property the other two targets hold. Without it every rotation
+	 * rewrites every row of the index, which on a large install is the
+	 * difference between a migration that finishes and one that times out on
+	 * work it did not need to do.
+	 */
+	public function test_an_index_already_current_is_not_rewritten(): void {
+		$this->seed_user( 10, array( 'ffc_user_cpf' => '11122233344' ) );
+		$this->profiles[10] = array(
+			'user_id'  => 10,
+			'cpf_hash' => Encryption::hash( '11122233344' ),
+		);
+
+		global $wpdb;
+		$wpdb->shouldReceive( 'update' )->never();
+		$wpdb->shouldReceive( 'insert' )->never();
+
+		$this->strategy->execute( '', array() );
+
+		$this->assertSame( Encryption::hash( '11122233344' ), $this->profiles[10]['cpf_hash'] );
+	}
+
+	/**
+	 * The cursor advances, so the next batch does not reprocess what already passed.
+	 *
+	 * Without this the migration never finishes: the pending predicate is
+	 * `meta_value LIKE '%v2:%'`, and a RE-ENCRYPTED value still matches it. It is
+	 * the cursor -- not the predicate -- that makes the work progress.
 	 */
 	public function test_the_cursor_advances_so_a_second_batch_moves_on(): void {
 		$this->seed_user( 10, array( 'ffc_user_cpf' => '11122233344' ) );
@@ -332,40 +440,41 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 
 		$json = wp_json_encode( $state );
 		$this->assertIsString( $json );
-		$this->assertStringContainsString( '20', $json, 'O cursor nao chegou ao ultimo usuario do lote.' );
+		$this->assertStringContainsString( '20', $json, 'The cursor did not reach the last user in the batch.' );
 	}
 
 	/**
-	 * Valor que nao esta sob o esquema `v2:` e deixado intacto.
+	 * A value outside the `v2:` scheme is left untouched.
 	 *
-	 * Uma meta em texto claro -- ou sob um esquema que esta migracao nao
-	 * conhece -- nao e dela para reescrever. Recifrar texto claro o tornaria
-	 * ilegivel para o proprio `UserProfileService`.
+	 * A plaintext meta -- or one under a scheme this migration does not know --
+	 * is not its to rewrite. Re-encrypting plaintext would make it unreadable to
+	 * `UserProfileService` itself.
 	 *
-	 * O QUE ESTA ASERCAO NAO PRENDE, medido por mutacao: trocar a checagem de
-	 * prefixo por um simples `'' === $stored` mantem os 6 testes verdes. E que
-	 * `Encryption::decrypt()` ja devolve null para o que nao sabe decifrar, e o
-	 * `continue` seguinte protege o valor de qualquer jeito. O comportamento
-	 * observavel e o mesmo; o que muda e o CUSTO.
+	 * WHAT THIS ASSERTION DOES NOT PIN, measured by mutation: replacing the
+	 * prefix check with a plain `'' === $stored` keeps all 6 tests green. That is
+	 * because `Encryption::decrypt()` already returns null for what it cannot
+	 * decrypt, and the `continue` that follows protects the value either way. The
+	 * observable behaviour is the same; what changes is the COST.
 	 *
-	 * E por isso que a checagem fica: sem ela, toda meta em texto claro entra em
-	 * `decrypt()` -- abrir o envelope, comparar o HMAC, chamar
-	 * `openssl_decrypt` -- num laco que percorre todos os usuarios do site.
+	 * That is why the check stays: without it, every plaintext meta enters
+	 * `decrypt()` -- opening the envelope, comparing the HMAC, calling
+	 * `openssl_decrypt` -- in a loop that walks every user on the site.
 	 *
-	 * Ate o #1234 havia um segundo motivo, maior: cada falha gravava uma linha
-	 * em `ffc_activity_log`, sem teto. O teto agora existe (cinco por
-	 * requisicao), entao o que sobra e o custo da decifragem em si.
+	 * Until #1234 there was a second, larger reason: each failure wrote a row
+	 * into `ffc_activity_log`, uncapped. The cap now exists (five per request),
+	 * so what remains is the cost of the decryption itself.
 	 *
-	 * Prender esse custo exigiria alias-mockar `ActivityLog`, uma classe real e
-	 * ja carregada -- fragil e dependente de ordem, que e o que o CLAUDE.md
-	 * manda evitar. A razao fica escrita no metodo do produto em vez disso.
+	 * Pinning that cost would mean alias-mocking `ActivityLog`, a real and
+	 * already-loaded class -- fragile and order-dependent, which is what
+	 * CLAUDE.md says to avoid. The reason is written in the production method
+	 * instead.
 	 */
 	public function test_a_value_outside_the_v2_scheme_is_left_alone(): void {
-		$this->meta[10] = array( 'ffc_user_cpf' => 'texto-em-claro' );
+		$this->meta[10] = array( 'ffc_user_cpf' => 'plain-text' );
 
 		$this->strategy->execute( '', array() );
 
-		$this->assertSame( 'texto-em-claro', $this->meta[10]['ffc_user_cpf'] );
+		$this->assertSame( 'plain-text', $this->meta[10]['ffc_user_cpf'] );
 		$this->assertArrayNotHasKey( 'ffc_user_cpf_hash', $this->meta[10] );
 	}
 }

@@ -251,7 +251,7 @@ class VerificationResponseRendererTest extends TestCase {
 		$this->assertStringContainsString( '@example.com', $html );
 		$this->assertStringContainsString( '*', $html );
 		$this->assertStringContainsString( 'Rematrícula 2025', $html );
-		$this->assertStringContainsString( 'Download Ficha (PDF)', $html );
+		$this->assertStringContainsString( 'Download Record (PDF)', $html );
 		// 6.7.5 — Status row in body (not header anymore) with colored pill.
 		$this->assertStringContainsString( 'ffc-verification-status-approved', $html );
 		$this->assertStringContainsString( 'Approved', $html );

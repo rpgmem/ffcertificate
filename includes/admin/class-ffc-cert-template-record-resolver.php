@@ -1,11 +1,11 @@
 <?php
 /**
- * CertTemplateFichaResolver
+ * CertTemplateRecordResolver
  *
- * Bridges the template pool (#865) and the reregistration ficha (#951 phase 2):
- * when a ficha PDF is generated, this listener supplies the admin-selected pool
- * template (kind `ficha`), chosen globally in Reregistration settings. It hooks
- * the generator's `ffcertificate_ficha_template_html` filter, so the ficha
+ * Bridges the template pool (#865) and the reregistration record (#951 phase 2):
+ * when a record PDF is generated, this listener supplies the admin-selected pool
+ * template (kind `record`), chosen globally in Reregistration settings. It hooks
+ * the generator's `ffcertificate_record_template_html` filter, so the record
  * generator stays decoupled from the pool (no cross-module reference) and simply
  * falls back to the bundled default file when nothing is configured.
  *
@@ -22,9 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Resolves the global reregistration-ficha template from the pool.
+ * Resolves the global reregistration-record template from the pool.
  */
-class CertTemplateFichaResolver {
+class CertTemplateRecordResolver {
 
 	/**
 	 * Dedicated option storing the selected pool template id (0 = bundled
@@ -32,15 +32,25 @@ class CertTemplateFichaResolver {
 	 * settings tab can rebuild it without a merge/clobber dance — matching the
 	 * appointment-receipt selection precedent.
 	 */
+	/**
+	 * The option holding the admin's chosen record template.
+	 *
+	 * The KEY keeps `ficha` (#1264): it is a live WordPress option on every
+	 * install, so renaming it would silently reset the selection to the shipped
+	 * default and orphan the old row -- the stored-value exception `CLAUDE.md`
+	 * states, and the same one as `CertTemplateCpt::KIND_RECORD`.
+	 *
+	 * @var string
+	 */
 	public const OPTION = 'ffc_reregistration_ficha_template';
 
 	/**
-	 * Register the ficha-template filter.
+	 * Register the record-template filter.
 	 *
 	 * @return void
 	 */
 	public function register(): void {
-		add_filter( 'ffcertificate_ficha_template_html', array( $this, 'resolve' ) );
+		add_filter( 'ffcertificate_record_template_html', array( $this, 'resolve' ) );
 	}
 
 	/**
@@ -54,12 +64,12 @@ class CertTemplateFichaResolver {
 	}
 
 	/**
-	 * Supply the selected pool template's HTML for the ficha.
+	 * Supply the selected pool template's HTML for the record.
 	 *
 	 * @param mixed $html Current value (empty string unless another listener
 	 *                    already supplied HTML).
 	 * @return string The pool template HTML, or the incoming value unchanged when
-	 *                nothing is configured / the id is not a ficha template (⇒ the
+	 *                nothing is configured / the id is not a record template (⇒ the
 	 *                generator falls back to the bundled file).
 	 */
 	public function resolve( $html ): string {
@@ -73,9 +83,9 @@ class CertTemplateFichaResolver {
 			return $current;
 		}
 
-		// Only honour a template that is actually a ficha kind — guards against a
+		// Only honour a template that is actually a record kind — guards against a
 		// stale id pointing at a deleted/re-typed template.
-		if ( CertTemplateCpt::KIND_FICHA !== CertTemplateReader::get_kind( $id ) ) {
+		if ( CertTemplateCpt::KIND_RECORD !== CertTemplateReader::get_kind( $id ) ) {
 			return $current;
 		}
 

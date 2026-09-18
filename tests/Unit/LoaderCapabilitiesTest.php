@@ -213,7 +213,7 @@ class LoaderCapabilitiesTest extends TestCase {
 
 		$this->invoke_private( $loader, 'ensure_admin_role_assigned' );
 
-		$this->assertArrayNotHasKey( 'ffc_admin_role_assigned_v1', $updated );
+		$this->assertArrayNotHasKey( 'ffc_admin_role_assigned_v2', $updated );
 	}
 
 	public function test_ensure_admin_role_assigned_delegates_and_writes_flag(): void {
@@ -233,7 +233,10 @@ class LoaderCapabilitiesTest extends TestCase {
 
 		$this->invoke_private( $loader, 'ensure_admin_role_assigned' );
 
-		$this->assertSame( '1', $updated['ffc_admin_role_assigned_v1'] ?? null );
+		// v2 (#1302): the flag was bumped so the back-fill re-runs once, for the
+		// administrators created between the v1 run and the continuous sync
+		// that now keeps `ffc_administrator` on the role.
+		$this->assertSame( '1', $updated['ffc_admin_role_assigned_v2'] ?? null );
 	}
 
 	// ==================================================================
@@ -358,15 +361,15 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->assertContains( 'ffcertificate_reregistration_expire_hook', $added );
 		$this->assertContains( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, $added );
 
-		// A varredura de tickets expirados (#1234). Ela morava no
-		// `AdminLoader`, que so e construido dentro de `if ( is_admin() )` --
-		// e `wp-cron.php` define `DOING_CRON`, nunca `WP_ADMIN`, entao o
-		// callback nunca estava registrado no contexto que dispara o evento.
-		// Aqui e o metodo que roda em TODA requisicao, que e a correcao.
+		// The expired-tickets scan (#1234). It used to live in `AdminLoader`,
+		// which is only built inside `if ( is_admin() )` -- and `wp-cron.php`
+		// defines `DOING_CRON`, never `WP_ADMIN`, so the callback was never
+		// registered in the context that fires the event. This is the method
+		// that runs on EVERY request, which is the fix.
 		$this->assertContains(
 			\FreeFormCertificate\Admin\ExpiredTicketsCleanup::CRON_HOOK,
 			$added,
-			'Sem isto o evento diario dispara sem callback, como fez desde que foi escrito.'
+			'Without this the daily event fires with no callback, as it did since it was written.'
 		);
 
 		// Three daily-cleanup callbacks + two expiry callbacks registered.
@@ -405,19 +408,19 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added );
 		$this->assertNotContains( 'ffcertificate_reregistration_expire_hook', $added );
 		$this->assertNotContains( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, $added );
-		// Certificates continua ligado neste cenario, entao a varredura de
-		// tickets segue montada -- o que separa o gate de MODULO (deliberado)
-		// do defeito de CONTEXTO que o #1234 consertou.
+		// Certificates is still on in this scenario, so the scan of
+		// tickets is still composed -- which separates the MODULE gate
+		// (deliberate) from the CONTEXT defect #1234 fixed.
 		$this->assertContains( \FreeFormCertificate\Admin\ExpiredTicketsCleanup::CRON_HOOK, $added );
 	}
 
 	/**
-	 * Certificates desligado para a varredura de tickets -- o gate deliberado.
+	 * Certificates off for the ticket scan -- the deliberate gate.
 	 *
-	 * Separado do teste acima de proposito: la o modulo esta ligado e o que se
-	 * prova e que o registro ACONTECE fora do `is_admin()`; aqui prova-se que
-	 * o gate de modulo continua valendo depois da mudanca de lugar. Confundir
-	 * os dois faria a correcao do #1234 parecer ter desligado o gate.
+	 * Separate from the test above on purpose: there the module is on and what it
+	 * proves is that registration HAPPENS outside `is_admin()`; here what is proved is
+	 * that the module gate still holds after the move. Conflating the two would
+	 * make #1234's fix look as though it had switched the gate off.
 	 */
 	public function test_define_admin_hooks_skips_the_expired_tickets_cron_when_certificates_disabled(): void {
 		$loader = new Loader();
@@ -442,7 +445,7 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->invoke_private( $loader, 'define_admin_hooks' );
 
 		$this->assertNotContains( \FreeFormCertificate\Admin\ExpiredTicketsCleanup::CRON_HOOK, $added );
-		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added, 'A limpeza diaria do nucleo nao depende do modulo.' );
+		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added, 'The core daily cleanup does not depend on the module.' );
 	}
 
 	// ==================================================================
@@ -479,6 +482,18 @@ class LoaderCapabilitiesTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentActivator' )
 			->shouldReceive( 'create_tables' )->zeroOrMoreTimes()
 			->shouldReceive( 'maybe_migrate' )->zeroOrMoreTimes();
+		// The two modules whose schema only ever existed after an activation,
+		// wired here in #1311. Without these the real activators run against a
+		// $wpdb this test does not build, which is how the omission announced
+		// itself rather than passing quietly.
+		// `->once()`, not `zeroOrMoreTimes()`, and that distinction is the whole
+		// delivery: with the loose expectation, DELETING the two lines from
+		// `Loader` left every test in this file green -- measured by mutation.
+		// The wiring IS the fix, so it is the thing that has to be pinned.
+		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationActivator' )
+			->shouldReceive( 'maybe_migrate' )->once();
+		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserDashboardActivator' )
+			->shouldReceive( 'maybe_migrate' )->once();
 
 		// Shared runtime classes.
 		Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' )
@@ -619,6 +634,14 @@ class LoaderCapabilitiesTest extends TestCase {
 		Functions\when( 'get_option' )->alias(
 			static function ( $key, $default = false ) {
 				if ( 'ffc_admin_caps_version_v6' === $key ) {
+					return FFC_VERSION;
+				}
+				// The #1311 schema gates report an install that is already
+				// current, so they short-circuit: this test is about which
+				// module bootstraps are SKIPPED when the toggles are off, and
+				// schema healing runs regardless of any toggle by design.
+				if ( 'ffc_reregistration_schema_version' === $key
+					|| 'ffc_user_dashboard_schema_version' === $key ) {
 					return FFC_VERSION;
 				}
 				if ( \FreeFormCertificate\Settings\SettingsReader::OPTION_KEY === $key ) {

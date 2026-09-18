@@ -75,6 +75,91 @@ class DataSanitizer {
 	}
 
 	/**
+	 * Whether a Brazilian identifier is a CPF or an RF, by digit count.
+	 *
+	 * **The rule is one line and it was written nine times** (#1314). Each of
+	 * those sites routed a value to a storage column or a field key with
+	 * `strlen( $clean ) === 7 ? 'rf…' : 'cpf…'`, and the rule they share is the
+	 * only thing that has to agree: an RF is seven digits, and everything else
+	 * is treated as a CPF.
+	 *
+	 * **The fallback is a ROUTING decision, not a claim about the value.**
+	 * Returning `cpf` for a nine-digit string does not assert that the string
+	 * is a valid CPF — it says which column a lookup for it must read, which
+	 * is the column the write path already used for it. That is the behaviour
+	 * every one of those nine sites had, and preserving it is deliberate:
+	 * changing the fallback changes which rows an existing install can find.
+	 * Validity is a separate layer that lives at the entry points
+	 * ({@see DocumentFormatter::validate_cpf()} / `validate_rf()`), and on the
+	 * public form and REST paths it rejects anything that is not 7 or 11
+	 * digits before this function is ever reached. The fallback is therefore
+	 * only reachable where no such validation runs — the operator search being
+	 * the one measured today.
+	 *
+	 * The input is normalised here rather than trusted, so a caller holding a
+	 * masked value gets the same answer as one holding digits.
+	 *
+	 * **Callers keep their own column literals on purpose.** Assembling the
+	 * name (`classify_cpf_rf( $v ) . '_hash'`) would read better and would make
+	 * `cpf_hash` / `rf_hash` invisible to the schema greps this repository
+	 * relies on, so the sites spell the two columns out and only the rule is
+	 * shared.
+	 *
+	 * @since 6.26.0
+	 * @param string $value Raw or normalised CPF/RF.
+	 * @return string `'rf'` when the value carries exactly seven digits, `'cpf'` otherwise.
+	 */
+	public static function classify_cpf_rf( string $value ): string {
+		return 7 === strlen( self::normalize_cpf_rf( $value ) ) ? 'rf' : 'cpf';
+	}
+
+	/**
+	 * Canonical form of an e-mail address for hashing and comparison.
+	 *
+	 * **The sibling above is why this exists.** `normalize_cpf_rf()` is one
+	 * function, so CPF ever only diverged where a site forgot to call it. The
+	 * e-mail address had no such function and grew three spellings instead --
+	 * `strtolower( sanitize_email( … ) )` on the certificate path,
+	 * `strtolower( trim( … ) )` on the three import paths, and a bare
+	 * `sanitize_email()` on the appointment handler and the recruitment
+	 * operator search. `sanitize_email()` strips invalid characters and does
+	 * NOT lowercase, so the third spelling produces a different value, a
+	 * different hash, and a person who cannot be matched across modules
+	 * (#1313).
+	 *
+	 * Lowercase plus trim, and deliberately nothing else. The local part of an
+	 * address is case-sensitive per RFC 5321, so lowercasing it is a decision
+	 * about THIS system -- every provider these forms actually see treats it
+	 * case-insensitively, and an operator typing `Joao@…` must reach the same
+	 * person as `joao@…`. Validity is a separate concern that stays with
+	 * `sanitize_email()` / `is_email()`: this function normalises, it does not
+	 * judge.
+	 *
+	 * @since 6.26.0
+	 * @param string $value Raw e-mail address.
+	 * @return string Canonical address (may be empty if the input was blank).
+	 */
+	public static function normalize_email( string $value ): string {
+		return strtolower( trim( $value ) );
+	}
+
+	/**
+	 * Canonical form of a certificate ticket code.
+	 *
+	 * Uppercase plus trim, mirroring what `ReprintDetector` has always done
+	 * inline before hashing into `ticket_hash`. Named here so the hash
+	 * boundary can apply it rather than trusting a call site to remember
+	 * (#1313).
+	 *
+	 * @since 6.26.0
+	 * @param string $value Raw ticket code.
+	 * @return string Canonical ticket code.
+	 */
+	public static function normalize_ticket( string $value ): string {
+		return strtoupper( trim( $value ) );
+	}
+
+	/**
 	 * Normalize Brazilian Portuguese names to title case while keeping
 	 * connectives (`de`, `da`, `do`, `das`, `dos`, `e`) lowercase.
 	 *

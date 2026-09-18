@@ -47,6 +47,24 @@ class CapabilityManager {
 	public const CONTEXT_RECRUITMENT = 'recruitment';
 
 	/**
+	 * Context key: reregistration CSV import (#1214).
+	 *
+	 * A no-op for capability granting, for the same reason
+	 * {@see self::CONTEXT_RECRUITMENT} is: the reregistration user surface has
+	 * no per-user caps of its own — it rides the `ffc_end_user` role's baseline
+	 * `read` cap, and `ffc_manage_reregistration` / `ffc_import_reregistration`
+	 * are admin caps registered on activation, never granted at import time.
+	 *
+	 * It exists rather than the import reusing `CONTEXT_CERTIFICATE`, which
+	 * would grant the three certificate caps to somebody who may hold no
+	 * certificate — a grant nothing asked for, recorded in the grant log as if
+	 * it had been.
+	 *
+	 * @since 6.26.0
+	 */
+	public const CONTEXT_REREGISTRATION = 'reregistration';
+
+	/**
 	 * All certificate-related capabilities.
 	 *
 	 * @since 4.4.0
@@ -144,8 +162,8 @@ class CapabilityManager {
 		// directly. See issue #139.
 		'ffc_view_forms_api',
 
-		// Read-only "view" caps — the *só vê* tier of the 3-state permission
-		// model (não vê / só vê / vê e edita). Each pairs with a `manage`
+		// Read-only "view" caps — the *view only* tier of the 3-state permission
+		// model (no access / view only / view and edit). Each pairs with a `manage`
 		// cap above so a surface can be shown read-only without granting
 		// edit. Gate helper: `canView = manage_options || view || manage`.
 		'ffc_view_certificates',
@@ -224,6 +242,12 @@ class CapabilityManager {
 		// cap onto every holder of the matching `manage` cap, preserving current
 		// behavior on upgrade. See `import_cap_grant_map()`.
 		'ffc_import_audiences',
+		// Reregistration joins the import tier in 6.26.0 (#1214): loading a
+		// campaign's answers from a spreadsheet writes encrypted PII for people
+		// who never touched the form, which is a strictly larger act than
+		// managing the campaign. Seeded onto current `ffc_manage_reregistration`
+		// holders by the same one-shot migration, re-run under `_v2`.
+		'ffc_import_reregistration',
 
 		// Settings sub-caps (#711). Carve the two most sensitive Settings
 		// surfaces out of the blanket `ffc_manage_settings` so each can be
@@ -330,6 +354,11 @@ class CapabilityManager {
 			case self::CONTEXT_AUDIENCE:
 				self::grant_audience_capabilities( $user_id );
 				break;
+			case self::CONTEXT_REREGISTRATION:
+				// Intentional no-op — see the constant for why. Listed rather
+				// than left to `default` so that a context added later without
+				// a decision still falls through to nothing silently, while
+				// these two are on record as having been decided.
 			case self::CONTEXT_RECRUITMENT:
 				// Intentional no-op: recruitment candidates rely on the
 				// `ffc_end_user` role's baseline `read` cap. The admin-side
@@ -709,7 +738,7 @@ class CapabilityManager {
 				'label' => __( 'FFC Administrator', 'ffcertificate' ),
 				'caps'  => self::get_all_capabilities(),
 			),
-			// Cross-domain read-only: the *só vê* tier across every module.
+			// Cross-domain read-only: the *view only* tier across every module.
 			'ffc_readonly'                => array(
 				'label' => __( 'FFC Read-Only (all modules)', 'ffcertificate' ),
 				'caps'  => array(
@@ -793,7 +822,7 @@ class CapabilityManager {
 			),
 			'ffc_reregistration_manager'  => array(
 				'label' => __( 'FFC Reregistration - Manager', 'ffcertificate' ),
-				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration', 'ffc_delete_reregistration', 'ffc_export_reregistration' ),
+				'caps'  => array( 'ffc_view_reregistration', 'ffc_manage_reregistration', 'ffc_delete_reregistration', 'ffc_export_reregistration', 'ffc_import_reregistration' ),
 			),
 
 			// ── Calendars (self-scheduling structure) ────────────────────

@@ -260,25 +260,53 @@
      * Handle manual verification form submit
      */
     $(document).on('submit', '.ffc-verification-form', function(e) {
-        e.preventDefault();
-        
         var $form = $(this);
-        var authCode = $form.find('input[name="ffc_auth_code"]').val().trim();
-        var captchaAns = $form.find('input[name="ffc_captcha_ans"]').val();
-        var captchaHash = $form.find('input[name="ffc_captcha_hash"]').val();
-        var honeypot = $form.find('input[name="ffc_honeypot_trap"]').val();
-        
+        var $authCode = $form.find('input[name="ffc_auth_code"]');
+
+        // `.ffc-verification-form` is also the class on the public CSV
+        // download's form, which is a NATIVE post to admin-post.php — the
+        // no-JavaScript path that exists on purpose. This handler is delegated
+        // from `document`, so it sees that form whenever both shortcodes share
+        // a page, and it must let it through untouched: the guard runs BEFORE
+        // preventDefault(), and it tests for the field's existence rather than
+        // its value, because `.val()` on an empty set is `undefined` and
+        // `undefined.trim()` throws — after the submit was already cancelled.
+        if (!$authCode.length) {
+            return;
+        }
+
+        e.preventDefault();
+
+        var authCode = ($authCode.val() || '').trim();
+
         if (!authCode) {
             showAccessibleAlert(ffc_ajax.strings.enterCode || 'Please enter the code', $form);
             return;
         }
-        
-        FFC.request('ffc_verify_certificate', {
-            ffc_auth_code: authCode,
-            ffc_captcha_ans: captchaAns,
-            ffc_captcha_hash: captchaHash,
-            ffc_honeypot_trap: honeypot
-        })
+
+        // Normalised in place, so what is submitted is what the visitor sees.
+        $authCode.val(authCode);
+
+        // SERIALIZE THE FORM — do not list the fields (#1305).
+        //
+        // This used to hand-build the payload from four named inputs, two of
+        // them the math captcha's. Under ALTCHA the widget posts a single field
+        // named `altcha`, which appeared in no list, so the solved proof was
+        // never sent and the server answered "Please complete the
+        // verification" — with the widget sitting there green.
+        //
+        // The widget's hidden input IS reachable this way: the element is
+        // registered without a shadow root (the `use_shadow_dom` argument of
+        // its `create_custom_element` call is absent in the vendored 3.2.2
+        // bundle), so the input lands in the light DOM inside the form. That is
+        // also why the two sibling paths — `ffc_submit_form` here and the
+        // booking form in ffc-calendar-frontend.js — were never affected: both
+        // already serialize.
+        //
+        // Serializing rather than adding `altcha` to the list is the point: a
+        // field a future provider introduces travels on its own, and this class
+        // of defect cannot come back.
+        FFC.request('ffc_verify_certificate', $form.serialize())
             .then(function (data) {
                 displayVerificationResult(data, $form.closest('.ffc-verification-container'));
             })
@@ -289,7 +317,7 @@
                 }
                 // Refresh captcha if the server signalled it.
                 if (err.data && err.data.refresh_captcha) {
-                    FFC.Frontend.UI.refreshCaptcha($form, err.data.new_label, err.data.new_hash);
+                    FFC.Frontend.UI.refreshCaptcha($form, err.data);
                 }
                 // Show error inline without destroying the form.
                 var errorMsg = err.message || (ffc_ajax.strings.error || 'Error');
@@ -514,7 +542,7 @@
                     if (err && err.fromServer) {
                         FFC.Frontend.UI.showFormError($form, err.message || ffc_ajax.strings.error || 'Error occurred');
                         if (err.data && err.data.refresh_captcha) {
-                            FFC.Frontend.UI.refreshCaptcha($form, err.data.new_label, err.data.new_hash);
+                            FFC.Frontend.UI.refreshCaptcha($form, err.data);
                         }
                     } else {
                         showAccessibleAlert(ffc_ajax.strings.connectionError || 'Connection error', $form);

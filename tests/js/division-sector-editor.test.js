@@ -1,4 +1,4 @@
-// Tests for assets/js/ffc-divisao-setor-editor.js — the admin nested
+// Tests for assets/js/ffc-division-sector-editor.js — the admin nested
 // repeater that edits the reregistration divisao_setor map in
 // Settings → Reregistration.
 //
@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
-	loadScript('assets/js/ffc-divisao-setor-editor.js');
+	loadScript('assets/js/ffc-division-sector-editor.js');
 });
 
 beforeEach(() => {
@@ -53,7 +53,7 @@ function hidden() {
 	return JSON.parse(window.$('#ffc_ds_map_json').val());
 }
 
-describe('ffc-divisao-setor-editor — sync', () => {
+describe('ffc-division-sector-editor — sync', () => {
 	it('serializes named divisions and their sectors to the hidden input', () => {
 		mount({ 'Div A': ['S1', 'S2'] });
 		window.$('.ffc-ds-division-name').trigger('input');
@@ -92,7 +92,7 @@ describe('ffc-divisao-setor-editor — sync', () => {
 	});
 });
 
-describe('ffc-divisao-setor-editor — add', () => {
+describe('ffc-division-sector-editor — add', () => {
 	it('adds a division block with one empty sector', () => {
 		mount({});
 		window.$('.ffc-ds-division-add').trigger('click');
@@ -114,7 +114,7 @@ describe('ffc-divisao-setor-editor — add', () => {
 	});
 });
 
-describe('ffc-divisao-setor-editor — remove', () => {
+describe('ffc-division-sector-editor — remove', () => {
 	it('removes a sector and resyncs', () => {
 		mount({ 'Div A': ['S1', 'S2'] });
 		window.$('.ffc-ds-sector-remove').first().trigger('click');

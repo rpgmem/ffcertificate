@@ -105,7 +105,7 @@ class ReregistrationStandardFieldsSeeder {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public static function get_standard_fields_definition(): array {
-		$divisao_map = ReregistrationFieldOptions::get_default_divisao_setor_map();
+		$divisao_map = ReregistrationFieldOptions::get_default_division_sector_map();
 
 		return array(
 			// ───── Personal Data ─────.
@@ -130,7 +130,7 @@ class ReregistrationStandardFieldsSeeder {
 				'is_sensitive' => 0,
 				'mask'         => null,
 				'required'     => 1,
-				'options'      => array( 'choices' => ReregistrationFieldOptions::get_sexo_options() ),
+				'options'      => array( 'choices' => ReregistrationFieldOptions::get_gender_options() ),
 				'validation'   => null,
 			),
 			array(
@@ -142,7 +142,7 @@ class ReregistrationStandardFieldsSeeder {
 				'is_sensitive' => 0,
 				'mask'         => null,
 				'required'     => 1,
-				'options'      => array( 'choices' => ReregistrationFieldOptions::get_estado_civil_options() ),
+				'options'      => array( 'choices' => ReregistrationFieldOptions::get_marital_status_options() ),
 				'validation'   => null,
 			),
 			array(
@@ -317,7 +317,7 @@ class ReregistrationStandardFieldsSeeder {
 				'mask'         => null,
 				'required'     => 0,
 				'options'      => array(
-					'choices' => ReregistrationFieldOptions::get_uf_options(),
+					'choices' => ReregistrationFieldOptions::get_state_options(),
 					'default' => 'SP',
 				),
 				'validation'   => null,
@@ -417,7 +417,7 @@ class ReregistrationStandardFieldsSeeder {
 				'is_sensitive' => 0,
 				'mask'         => null,
 				'required'     => 1,
-				'options'      => array( 'choices' => ReregistrationFieldOptions::get_jornada_options() ),
+				'options'      => array( 'choices' => ReregistrationFieldOptions::get_work_schedule_options() ),
 				'validation'   => null,
 			),
 			array(
@@ -443,7 +443,7 @@ class ReregistrationStandardFieldsSeeder {
 				'is_sensitive' => 0,
 				'mask'         => null,
 				'required'     => 1,
-				'options'      => array( 'choices' => ReregistrationFieldOptions::get_sindicato_options() ),
+				'options'      => array( 'choices' => ReregistrationFieldOptions::get_union_options() ),
 				'validation'   => null,
 			),
 
@@ -457,7 +457,7 @@ class ReregistrationStandardFieldsSeeder {
 				'is_sensitive' => 0,
 				'mask'         => null,
 				'required'     => 0,
-				'options'      => array( 'choices' => ReregistrationFieldOptions::get_acumulo_options() ),
+				'options'      => array( 'choices' => ReregistrationFieldOptions::get_dual_post_options() ),
 				'validation'   => null,
 			),
 			array(
@@ -469,7 +469,7 @@ class ReregistrationStandardFieldsSeeder {
 				'is_sensitive' => 0,
 				'mask'         => null,
 				'required'     => 0,
-				'options'      => array( 'choices' => ReregistrationFieldOptions::get_jornada_options() ),
+				'options'      => array( 'choices' => ReregistrationFieldOptions::get_work_schedule_options() ),
 				'validation'   => null,
 			),
 			array(
@@ -511,7 +511,7 @@ class ReregistrationStandardFieldsSeeder {
 				'is_sensitive' => 0,
 				'mask'         => null,
 				'required'     => 0,
-				'options'      => array( 'html' => ReregistrationFieldOptions::get_default_termo_ciencia_html() ),
+				'options'      => array( 'html' => ReregistrationFieldOptions::get_default_acknowledgment_html() ),
 				'validation'   => null,
 			),
 		);

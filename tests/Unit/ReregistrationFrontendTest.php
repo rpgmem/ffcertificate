@@ -125,11 +125,12 @@ class ReregistrationFrontendTest extends TestCase {
 	}
 
 	/**
-	 * Nenhum dos quatro aceita visitante anônimo.
+	 * None of the four accepts an anonymous visitor.
 	 *
-	 * Só `wp_ajax_` está registrado, nunca `wp_ajax_nopriv_`. Vale cobrar
-	 * porque o novo devolve PII em texto claro: um `nopriv` acrescentado por
-	 * engano abriria histórico de recadastramento para quem não fez login.
+	 * Only `wp_ajax_` is registered, never `wp_ajax_nopriv_`. It is worth
+	 * asserting because the new handler returns PII in clear text: a `nopriv`
+	 * added by mistake would open reregistration history to whoever is not
+	 * logged in.
 	 *
 	 * @return void
 	 */
@@ -151,17 +152,16 @@ class ReregistrationFrontendTest extends TestCase {
 	}
 
 	// ==================================================================
-	// ajax_import_previous() — a autorização, que é o que importa aqui
+	// ajax_import_previous() — the authorization, which is what matters here
 	// ==================================================================
 
 	/**
-	 * Fora da campanha, não importa nada -- e nem chega a consultar histórico.
+	 * Outside the campaign nothing is imported -- and no history is even read.
 	 *
-	 * Este é o teste que guarda o endpoint: ele devolve PII em TEXTO CLARO,
-	 * então a recusa tem de vir ANTES de qualquer leitura. O usuário vem de
-	 * `get_current_user_id()`, nunca do POST, e a submissão de origem é
-	 * buscada por esse usuário -- não há id de origem que o cliente possa
-	 * mandar.
+	 * This is the test that guards the endpoint: it returns PII in CLEAR TEXT,
+	 * so the refusal has to come BEFORE any read. The user comes from
+	 * `get_current_user_id()`, never from the POST, and the source submission
+	 * is looked up by that user -- there is no source id the client can send.
 	 *
 	 * @return void
 	 */
@@ -171,8 +171,8 @@ class ReregistrationFrontendTest extends TestCase {
 		$_POST['reregistration_id'] = 1;
 
 		global $wpdb;
-		$rereg = (object) array('id' => 1, 'status' => 'active', 'title' => 'Atual');
-		// get_by_id -> campanha ativa; lookup da submissão -> nada.
+		$rereg = (object) array('id' => 1, 'status' => 'active', 'title' => 'Current');
+		// get_by_id -> active campaign; submission lookup -> nothing.
 		$wpdb->shouldReceive('get_row')->andReturn($rereg, null);
 		$wpdb->shouldReceive('get_results')->andReturn(array());
 		$wpdb->shouldNotReceive('insert');
@@ -189,7 +189,7 @@ class ReregistrationFrontendTest extends TestCase {
 	}
 
 	/**
-	 * Sem id de campanha, recusa antes de tudo.
+	 * With no campaign id, it refuses before anything else.
 	 *
 	 * @return void
 	 */
@@ -209,17 +209,17 @@ class ReregistrationFrontendTest extends TestCase {
 	}
 
 	/**
-	 * Usuário deslogado é recusado mesmo com id válido no POST.
+	 * A logged-out user is refused even with a valid id in the POST.
 	 *
 	 * @return void
 	 */
 	public function test_ajax_import_previous_errors_when_no_user(): void {
 		Functions\when('get_current_user_id')->justReturn(0);
 		$_POST['reregistration_id'] = 1;
-		// IDOR: o cliente MANDA um user_id, e ele tem de ser ignorado. Sem
-		// esta linha o teste passaria mesmo que o handler lesse do POST --
-		// foi o que a mutação mostrou. Com ela, ler do POST faz o handler
-		// seguir em frente com o usuário 99 e o teste quebra.
+		// IDOR: the client DOES send a user_id, and it has to be ignored.
+		// Without this line the test would pass even if the handler read from
+		// the POST -- that is what the mutation showed. With it, reading from
+		// the POST makes the handler carry on with user 99 and the test breaks.
 		$_POST['user_id'] = 99;
 
 		$ex = null;
@@ -287,17 +287,17 @@ class ReregistrationFrontendTest extends TestCase {
 	}
 
 	/**
-	 * Sem linha E fora dos públicos da campanha: recusa, e NADA é criado.
+	 * No row AND outside the campaign's audiences: refuse, and create NOTHING.
 	 *
-	 * Este teste afirmava o defeito. Ele congelava a mensagem "No submission
-	 * found for this user." como comportamento correto — e era ela o beco sem
-	 * saída: a #1125 pôs `no_submission` em SUBMITTABLE_STATUSES, o painel
-	 * desenhou o botão, e o handler recusava justamente o estado declarado
-	 * submissível. A recusa continua existindo, mas só para quem de fato não
-	 * pertence à campanha.
+	 * This test used to assert the defect. It froze the message "No submission
+	 * found for this user." as correct behaviour -- and that message was the
+	 * dead end: #1125 put `no_submission` in SUBMITTABLE_STATUSES, the
+	 * dashboard drew the button, and the handler refused precisely the state
+	 * declared submittable. The refusal still exists, but only for whoever
+	 * genuinely does not belong to the campaign.
 	 *
-	 * A metade que importa aqui é a de segurança: criar sob demanda não pode
-	 * virar "qualquer usuário logado ganha uma linha ao postar um id".
+	 * The half that matters here is the security one: creating on demand must
+	 * not become "any logged-in user earns a row by posting an id".
 	 */
 	public function test_ajax_get_form_refuses_a_user_outside_the_campaign_audiences(): void {
 		Functions\when('get_current_user_id')->justReturn(1);
@@ -306,9 +306,9 @@ class ReregistrationFrontendTest extends TestCase {
 
 		global $wpdb;
 		$rereg = (object) array('id' => 1, 'status' => 'active', 'title' => 'Test');
-		// get_by_id -> campanha ativa; lookup da submissão -> nada.
+		// get_by_id -> active campaign; submission lookup -> nothing.
 		$wpdb->shouldReceive('get_row')->andReturn($rereg, null);
-		// get_active_for_user não devolve a campanha: usuário sem público.
+		// get_active_for_user does not return the campaign: user with no audience.
 		$wpdb->shouldReceive('get_results')->andReturn(array());
 		$wpdb->shouldNotReceive('insert');
 
@@ -324,17 +324,17 @@ class ReregistrationFrontendTest extends TestCase {
 	}
 
 	/**
-	 * Sem linha mas DENTRO da campanha: a linha nasce, e o fluxo segue.
+	 * No row but INSIDE the campaign: the row is born, and the flow carries on.
 	 *
-	 * O caminho feliz que faltava. A suíte só tinha testes de recusa para os
-	 * três handlers — inclusive o que afirmava a recusa errada —, e o único
-	 * teste da #1125 afirma que `no_submission` está na constante. Ou seja: a
-	 * declaração estava provada e o comportamento nunca.
+	 * The happy path that was missing. The suite only had refusal tests for the
+	 * three handlers -- including the one that asserted the wrong refusal --,
+	 * and the single #1125 test asserts that `no_submission` is in the
+	 * constant. That is: the declaration was proven and the behaviour never was.
 	 *
-	 * Vai pelo `save_draft` de propósito: é o handler mais raso depois de
-	 * `submission_for()`, então prova a criação sem precisar de alias mock no
-	 * renderizador — que é global de processo e quebraria testes vizinhos pela
-	 * ordem (a lição do #1053 / #1177).
+	 * It goes through `save_draft` on purpose: it is the shallowest handler
+	 * after `submission_for()`, so it proves the creation without needing an
+	 * alias mock on the renderer -- which is process-global and would break
+	 * neighbouring tests by order (the #1053 / #1177 lesson).
 	 */
 	public function test_ajax_save_draft_creates_the_missing_row_for_an_entitled_user(): void {
 		Functions\when('get_current_user_id')->justReturn(7);
@@ -346,14 +346,14 @@ class ReregistrationFrontendTest extends TestCase {
 
 		$_POST['reregistration_id'] = 5;
 
-		$rereg      = (object) array('id' => 5, 'status' => 'active', 'title' => 'Campanha');
-		$audience   = (object) array('id' => 3, 'parent_id' => null, 'name' => 'Público');
+		$rereg      = (object) array('id' => 5, 'status' => 'active', 'title' => 'Campaign');
+		$audience   = (object) array('id' => 3, 'parent_id' => null, 'name' => 'Audience');
 		$created    = (object) array('id' => 42, 'reregistration_id' => '5', 'user_id' => '7', 'status' => 'pending');
 		$lookups    = 0;
 
 		global $wpdb;
-		// `prepare` devolvendo o SQL cru não distingue as duas consultas
-		// `WHERE id = %d` (campanha e público), então aqui ele interpola.
+		// `prepare` returning the raw SQL does not tell the two `WHERE id = %d`
+		// queries apart (campaign and audience), so here it interpolates.
 		$wpdb->shouldReceive('prepare')->andReturnUsing(function (...$args) {
 			$sql  = array_shift($args);
 			$flat = array();
@@ -371,7 +371,7 @@ class ReregistrationFrontendTest extends TestCase {
 			function ($sql) use ($rereg, $audience, $created, &$lookups) {
 				if (false !== strpos($sql, 'reregistration_id = 5 AND user_id = 7')) {
 					++$lookups;
-					// Antes do INSERT não existe; depois dele, existe.
+					// Before the INSERT it does not exist; after it, it does.
 					return $lookups > 1 ? $created : null;
 				}
 				if (false !== strpos($sql, 'ffc_reregistrations WHERE id = 5')) {
@@ -386,11 +386,11 @@ class ReregistrationFrontendTest extends TestCase {
 
 		$wpdb->shouldReceive('get_results')->andReturnUsing(
 			function ($sql) use ($rereg, $audience) {
-				// Públicos do usuário.
+				// The user's audiences.
 				if (false !== strpos($sql, 'm.user_id = 7')) {
 					return array($audience);
 				}
-				// Campanhas ativas do público.
+				// The audience's active campaigns.
 				if (false !== strpos($sql, 'SELECT DISTINCT r.*')) {
 					return array($rereg);
 				}
@@ -414,11 +414,11 @@ class ReregistrationFrontendTest extends TestCase {
 			$ex = $e;
 		}
 
-		$this->assertNotNull($ex, 'o rascunho deveria ter sido salvo sobre a linha recém-criada');
+		$this->assertNotNull($ex, 'the draft should have been saved onto the freshly created row');
 		$this->assertSame(5, $inserted['reregistration_id']);
 		$this->assertSame(7, $inserted['user_id']);
-		$this->assertSame('pending', $inserted['status'], 'a linha nasce no mesmo estado que a semeadura escreve');
-		$this->assertSame(2, $lookups, 'lê, cria, relê — a releitura é o que resolve a corrida contra o UNIQUE');
+		$this->assertSame('pending', $inserted['status'], 'the row is born in the same state the seeding writes');
+		$this->assertSame(2, $lookups, 'read, create, re-read — the re-read is what resolves the race against the UNIQUE');
 	}
 
 	public function test_ajax_get_form_errors_when_submission_already_approved(): void {

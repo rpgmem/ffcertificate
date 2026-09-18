@@ -74,20 +74,20 @@ use PHPUnit\Framework\TestCase;
 final class SchemaAgreementTest extends TestCase {
 
 	/**
-	 * Ficheiros que declaram uma tabela E a completam incrementalmente.
+	 * Files that declare a table AND complete it incrementally.
 	 *
-	 * DOIS IDIOMAS, E O SINGULAR E A MAIORIA (#1241)
+	 * TWO IDIOMS, AND THE SINGULAR IS THE MAJORITY (#1241)
 	 *
-	 * `DatabaseHelperTrait` expoe `add_column_if_missing()` e
-	 * `add_columns_if_missing()`, e nada obriga um activator a escolher um.
-	 * Esta varredura procurava so o PLURAL, que tem 4 ocorrencias, contra 40
-	 * do singular -- entao media 2 dos 6 activators.
+	 * `DatabaseHelperTrait` exposes `add_column_if_missing()` and
+	 * `add_columns_if_missing()`, and nothing forces an activator to pick one.
+	 * This scan looked for the PLURAL only, which has 4 occurrences against the
+	 * singular's 40 -- so it measured 2 of the 6 activators.
 	 *
-	 * A autoverificacao nao pegou porque ela cobrava que a lista nao fosse
-	 * vazia, e o idioma plural existe em dois arquivos. Uma minoria medida
-	 * sustentava a aparencia de varredura viva. E a forma que o CLAUDE.md
-	 * descreve como "nunca conte como limpo o que nao foi olhado", com o
-	 * agravante de parecer olhado.
+	 * The self-check did not catch it because it charged that the list was not
+	 * empty, and the plural idiom exists in two files. A measured minority
+	 * sustained the appearance of a live scan. It is the shape CLAUDE.md
+	 * describes as "never count as clean what it did not look at", with the
+	 * aggravation of looking as though it had.
 	 *
 	 * @return list<string> Absolute paths.
 	 */
@@ -108,9 +108,9 @@ final class SchemaAgreementTest extends TestCase {
 
 			$source = (string) file_get_contents( $path );
 
-			// `add_columns_if_missing(` contem `add_column` como prefixo? Nao:
-			// `column` e `columns` divergem antes do parentese, entao as duas
-			// buscas sao independentes.
+			// Does `add_columns_if_missing(` contain `add_column` as a prefix? No:
+			// `column` and `columns` diverge before the parenthesis, so the two
+			// searches are independent.
 			$has_incremental = false !== strpos( $source, 'add_column_if_missing(' )
 				|| false !== strpos( $source, 'add_columns_if_missing(' );
 
@@ -125,30 +125,29 @@ final class SchemaAgreementTest extends TestCase {
 	}
 
 	/**
-	 * Colunas de todo `CREATE TABLE` de um ficheiro, somadas.
+	 * Columns of every `CREATE TABLE` in a file, summed.
 	 *
-	 * Somadas de proposito: um activator pode declarar varias tabelas, e casar
-	 * cada chamada incremental com o seu proprio statement exigiria resolver a
-	 * variavel de tabela. Uma coluna presente em QUALQUER create do mesmo
-	 * ficheiro basta para dizer que ela nao falta numa instalacao nova -- que e
-	 * a falha que isto guarda.
+	 * Summed on purpose: an activator may declare several tables, and matching
+	 * each incremental call to its own statement would mean resolving the table
+	 * variable. A column present in ANY create in the same file is enough to say
+	 * it is not missing from a fresh install -- which is the failure this guards.
 	 *
-	 * LE O PARSER COMPARTILHADO, E NAO UM REGEX PROPRIO (#1241)
+	 * IT READS THE SHARED PARSER, NOT A REGEX OF ITS OWN (#1241)
 	 *
-	 * Este metodo tinha o seu proprio regex, exigindo literalmente
-	 * `CREATE TABLE {$table_name} (...) {$charset_collate}`. Duas formas reais
-	 * escapavam dele, e o docblock de {@see self::declarations_by_table()} ja
-	 * dizia por que isso aconteceria: *"uma segunda varredura privada aqui e
-	 * como os tres acabariam medindo conjuntos diferentes"*.
+	 * This method used to have its own regex, requiring literally
+	 * `CREATE TABLE {$table_name} (...) {$charset_collate}`. Two real shapes
+	 * escaped it, and {@see self::declarations_by_table()}'s docblock already
+	 * said why that would happen: *"a private second scan here is how the three
+	 * would end up measuring different sets"*.
 	 *
-	 *   - `RateLimitActivator` nomeia as tabelas `$table_limits`, `$table_logs`
-	 *     e `$table_signals` -- 3 statements invisiveis.
-	 *   - `RecruitmentActivator` fecha com `) ENGINE=InnoDB {$charset_collate};`
-	 *     -- 9 statements invisiveis, e esse e o caso que produz FALSO
-	 *     POSITIVO: sem enxergar o create, toda coluna incremental do ficheiro
-	 *     parece ausente dele.
+	 *   - `RateLimitActivator` names its tables `$table_limits`, `$table_logs`
+	 *     and `$table_signals` -- 3 invisible statements.
+	 *   - `RecruitmentActivator` closes with `) ENGINE=InnoDB {$charset_collate};`
+	 *     -- 9 invisible statements, and that is the case that produces a FALSE
+	 *     POSITIVE: without seeing the create, every incremental column in the
+	 *     file looks absent from it.
 	 *
-	 * @param string $path Caminho do ficheiro.
+	 * @param string $path The file path.
 	 * @return list<string>
 	 */
 	private function create_table_columns( string $path ): array {
@@ -166,39 +165,39 @@ final class SchemaAgreementTest extends TestCase {
 	}
 
 	/**
-	 * Colunas que os dois idiomas incrementais entregam, num ficheiro.
+	 * Columns the two incremental idioms deliver, in one file.
 	 *
-	 * AS DUAS FORMAS DE ASPAS SAO O DETALHE QUE CUSTA (#1241)
+	 * THE TWO QUOTE FORMS ARE THE DETAIL THAT COSTS (#1241)
 	 *
-	 * O tipo aparece entre aspas SIMPLES quando e simples (`'LONGTEXT NULL'`) e
-	 * entre aspas DUPLAS quando carrega um `COMMENT '...'` dentro. Um extrator
-	 * que aceite so o primeiro caso derruba justamente as declaracoes mais
-	 * ricas -- as 13 do `AudienceActivator` --, e o numero cai de forma que
-	 * parece boa noticia. E o extrator tendo parado de olhar.
+	 * The type appears in SINGLE quotes when it is simple (`'LONGTEXT NULL'`) and
+	 * in DOUBLE quotes when it carries a `COMMENT '...'` inside. An extractor
+	 * that accepts only the first case drops precisely the richest declarations
+	 * -- `AudienceActivator`'s 13 -- and the number falls in a way that looks
+	 * like good news. It is the extractor having stopped looking.
 	 *
-	 * O TIPO E O DISCRIMINADOR, E NAO O NOME
+	 * THE TYPE IS THE DISCRIMINATOR, NOT THE NAME
 	 *
-	 * Ancorar so no nome da coluna faria um esquema de argumento do REST
-	 * (`'code' => array( 'type' => 'string' )`) contar como coluna. O que
-	 * separa os dois e a chamada: o idioma singular exige literalmente
-	 * `add_column_if_missing(`, e o plural exige a chave `'type'` na linha
-	 * seguinte a `array(`.
+	 * Anchoring on the column name alone would make a REST argument schema
+	 * (`'code' => array( 'type' => 'string' )`) count as a column. What separates
+	 * the two is the call: the singular idiom requires a literal
+	 * `add_column_if_missing(`, and the plural requires the `'type'` key on the
+	 * line after `array(`.
 	 *
-	 * @param string $source Conteudo do ficheiro.
+	 * @param string $source File contents.
 	 * @return list<string>
 	 */
 	private function incremental_columns( string $source ): array {
 		$names = array();
 
-		// Singular: `add_column_if_missing( $tabela, 'coluna', 'tipo' ...`.
+		// Singular: `add_column_if_missing( $table, 'column', 'type' ...`.
 		preg_match_all(
 			'/add_column_if_missing\s*\(\s*[^,]{1,120}?,\s*[\'"]([a-z_][a-z0-9_]*)[\'"]\s*,/s',
 			$source,
 			$singular
 		);
 
-		// Plural: `'coluna' => array( 'type' => ...`, que e o que distingue uma
-		// chave de coluna de qualquer outra string citada por perto.
+		// Plural: `'column' => array( 'type' => ...`, which is what tells a column
+		// key apart from any other quoted string nearby.
 		preg_match_all(
 			'/[\'"]([a-z_][a-z0-9_]*)[\'"]\s*=>\s*array\(\s*\n\s*[\'"]type[\'"]\s*=>/m',
 			$source,
@@ -215,30 +214,30 @@ final class SchemaAgreementTest extends TestCase {
 	}
 
 	/**
-	 * Colunas de ESTAGIO, que nao podem estar no `CREATE TABLE` (#1241).
+	 * STAGING columns, which must NOT be in the `CREATE TABLE` (#1241).
 	 *
-	 * POR QUE ELAS SAO O CONTRARIO DE DIVIDA
+	 * WHY THEY ARE THE OPPOSITE OF DEBT
 	 *
-	 * A migracao DATETIME -> BIGINT do #249 adiciona uma coluna temporaria,
-	 * preenche-a, e no fim a RENOMEIA para o nome definitivo
-	 * (`ALTER TABLE ... CHANGE submission_date_ts submission_date ...`). O
-	 * helper compartilhado monta o nome como `$column . '_ts'`.
+	 * #249's DATETIME -> BIGINT migration adds a temporary column, fills it, and
+	 * at the end RENAMES it to the final name
+	 * (`ALTER TABLE ... CHANGE submission_date_ts submission_date ...`). The
+	 * shared helper builds the name as `$column . '_ts'`.
 	 *
-	 * Ela e adicionada por `add_column_if_missing()`, entao a varredura a
-	 * encontra -- mas declara-la numa instalacao nova criaria uma coluna
-	 * permanente sobre a qual o `CHANGE` tentaria renomear outra. O passo 3 da
-	 * #1241, seguido ao pe da letra, introduziria esse defeito em tres das
-	 * quinze colunas que ela lista.
+	 * It is added by `add_column_if_missing()`, so the scan finds it -- but
+	 * declaring it on a fresh install would create a permanent column onto which
+	 * the `CHANGE` would then try to rename another. #1241's step 3, followed to
+	 * the letter, would introduce that defect in three of the fifteen columns it
+	 * lists.
 	 *
-	 * O SINAL ESTA NO PROPRIO FICHEIRO, E NAO NUM SUFIXO
+	 * THE SIGNAL IS IN THE FILE ITSELF, NOT IN A SUFFIX
 	 *
-	 * Excluir tudo que termina em `_ts` seria uma regra sobre o NOME, e uma
-	 * coluna legitima com esse sufixo passaria a ser ignorada em silencio. O
-	 * que se procura aqui e a evidencia de que o ficheiro a renomeia embora: o
-	 * nome aparecendo como ORIGEM de um `CHANGE`. Uma coluna que fica nao tem
-	 * essa linha.
+	 * Excluding everything ending in `_ts` would be a rule about the NAME, and a
+	 * legitimate column with that suffix would start being ignored in silence.
+	 * What is looked for here is the evidence that the file renames it away: the
+	 * name appearing as the SOURCE of a `CHANGE`. A column that stays has no such
+	 * line.
 	 *
-	 * @param string $source Conteudo do ficheiro.
+	 * @param string $source File contents.
 	 * @return list<string>
 	 */
 	private function staging_columns( string $source ): array {
@@ -252,7 +251,7 @@ final class SchemaAgreementTest extends TestCase {
 	}
 
 	/**
-	 * Todo `CREATE TABLE` de `includes/`, pelo parser compartilhado.
+	 * Every `CREATE TABLE` in `includes/`, through the shared parser.
 	 *
 	 * @return list<array{table: string|null, sql: string, file: string}>
 	 */
@@ -266,14 +265,14 @@ final class SchemaAgreementTest extends TestCase {
 	}
 
 	/**
-	 * Nomes de coluna do corpo de um `CREATE TABLE`.
+	 * Column names from a `CREATE TABLE` body.
 	 *
-	 * O `ENGINE=...` opcional antes do `{$charset_collate}` e o que faltava
-	 * (#1241): sem ele, os nove statements do `RecruitmentActivator` nao tinham
-	 * corpo extraido -- nas DUAS direcoes desta guarda, porque
-	 * {@see self::declarations_by_table()} usa o mesmo regex.
+	 * The optional `ENGINE=...` before `{$charset_collate}` is what was missing
+	 * (#1241): without it, `RecruitmentActivator`'s nine statements had no body
+	 * extracted -- in BOTH directions of this guard, because
+	 * {@see self::declarations_by_table()} uses the same regex.
 	 *
-	 * @param string $sql Statement completo.
+	 * @param string $sql The complete statement.
 	 * @return list<string>
 	 */
 	private function columns_of( string $sql ): array {
@@ -299,16 +298,15 @@ final class SchemaAgreementTest extends TestCase {
 	}
 
 	/**
-	 * A varredura tem de MEDIR todo ficheiro que declara e completa uma tabela.
+	 * The scan must MEASURE every file that declares and completes a table.
 	 *
-	 * A autoverificacao anterior cobrava so que a lista nao fosse vazia -- e
-	 * ela nunca era, porque o idioma plural existe em dois ficheiros. Dois
-	 * medidos de seis pareciam varredura viva (#1241).
+	 * The previous self-check charged only that the list was not empty -- and it
+	 * never was, because the plural idiom exists in two files. Two measured out
+	 * of six looked like a live scan (#1241).
 	 *
-	 * Esta cobra a mesma coisa que o portao do `dbDelta` cobra: que a contagem
-	 * vista bata com a de uma REDE MAIS LARGA, montada aqui de forma
-	 * deliberadamente ingenua. Se as duas divergirem, alguem estreitou a
-	 * varredura sem perceber.
+	 * This one charges what the dbDelta gate charges: that the count seen matches
+	 * that of a WIDER NET, built here in a deliberately naive way. If the two
+	 * diverge, somebody narrowed the scan without noticing.
 	 */
 	public function test_the_scan_measures_every_file_that_declares_and_completes_a_table(): void {
 		$measured = $this->activator_files();
@@ -343,25 +341,25 @@ final class SchemaAgreementTest extends TestCase {
 		$this->assertSame(
 			$wide,
 			$measured,
-			"A rede larga acha ficheiros que a varredura nao mede — ela foi estreitada."
+			"The wide net finds files the scan does not measure — it has been narrowed."
 		);
 	}
 
 	/**
-	 * Todo `CREATE TABLE` que o parser compartilhado acha tem de ter corpo lido.
+	 * Every `CREATE TABLE` the shared parser finds must have a readable body.
 	 *
-	 * E a regra que o portao do `dbDelta` enuncia -- *"nunca conte como limpo o
-	 * que nao foi olhado"* -- aplicada ao regex de corpo, que e onde as duas
-	 * direcoes desta guarda se encontram.
+	 * It is the rule the dbDelta gate states -- *"never count as clean what it
+	 * did not look at"* -- applied to the body regex, which is where this guard's
+	 * two directions meet.
 	 *
-	 * Ela teria pego a cegueira do `ENGINE=InnoDB` no dia em que ela entrou: o
-	 * parser achava 34 statements e o regex extraia 25, e os 9 que faltavam
-	 * eram todos do `RecruitmentActivator` -- em AMBAS as direcoes.
+	 * It would have caught the `ENGINE=InnoDB` blindness the day it arrived: the
+	 * parser found 34 statements and the regex extracted 25, and the 9 missing
+	 * were all `RecruitmentActivator`'s -- in BOTH directions.
 	 */
 	public function test_every_create_statement_the_parser_finds_has_a_readable_body(): void {
 		$statements = $this->create_statements();
 
-		$this->assertNotEmpty( $statements, 'O parser compartilhado nao achou statement nenhum.' );
+		$this->assertNotEmpty( $statements, 'The shared parser found no statement at all.' );
 
 		$unreadable = array();
 
@@ -374,7 +372,7 @@ final class SchemaAgreementTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$unreadable,
-			"Statements que o parser acha e este ficheiro nao consegue ler — a varredura os conta como limpos sem olhar:\n  "
+			"Statements the parser finds and this file cannot read — the scan counts them clean without looking:\n  "
 			. implode( "\n  ", $unreadable )
 		);
 	}
@@ -387,11 +385,11 @@ final class SchemaAgreementTest extends TestCase {
 			$create      = $this->create_table_columns( $path );
 			$incremental = $this->incremental_columns( $source );
 
-			// A vacuidade e medida ANTES da exclusao de estagio. "O extrator nao
-			// achou nada" e defeito; "tudo que achou era coluna de estagio" e
-			// estado legitimo -- e o caso do `RecruitmentActivator`, cuja unica
-			// chamada incremental e a da migracao #249. Cobrar a lista ja
-			// filtrada confundiria os dois (#1241).
+			// Vacuity is measured BEFORE the staging exclusion. "The extractor
+			// found nothing" is a defect; "everything it found was a staging
+			// column" is a legitimate state -- it is `RecruitmentActivator`'s
+			// case, whose only incremental call is #249's migration. Charging the
+			// already-filtered list would conflate the two (#1241).
 			$this->assertNotEmpty(
 				array_merge( $incremental, $this->staging_columns( $source ) ),
 				basename( $path ) . ': the incremental-column scan found nothing, so its check is vacuous.'
@@ -430,8 +428,8 @@ final class SchemaAgreementTest extends TestCase {
 				continue;
 			}
 
-			// O `ENGINE=` opcional e o que faltava (#1241): sem ele os nove
-			// statements do `RecruitmentActivator` saiam desta direcao tambem.
+			// The optional `ENGINE=` is what was missing (#1241): without it the
+			// nine `RecruitmentActivator` statements dropped out of this one too.
 			if ( ! preg_match( '/CREATE TABLE [^(]*\((.*)\)\s*(?:ENGINE=\w+\s*)?\{?\$charset_collate/s', $statement['sql'], $body ) ) {
 				continue;
 			}

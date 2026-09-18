@@ -61,3 +61,56 @@ function ffc_manifest_options( string $uninstall_file ): array {
 	sort( $options );
 	return $options;
 }
+
+/**
+ * The user-meta key PREFIX the uninstaller sweeps (#1316).
+ *
+ * A prefix rather than a list, because a list could never have been complete:
+ * every `ffc_*` meta key but one is assembled at runtime from
+ * `UserManager::EXTENDED_META_PREFIX` plus a field name, and the dynamic
+ * reregistration fields append a `sanitize_key()`'d name that is declared
+ * nowhere in the source. So what the manifest can carry is the RULE, and what
+ * the CI checks compare against it is the live database.
+ *
+ * An empty result is a parse failure, never "the plugin sweeps nothing":
+ * callers must treat it as such, as with the three functions above.
+ *
+ * @param string $uninstall_file Absolute path to uninstall.php.
+ * @return string Empty when the parse fails.
+ */
+function ffc_manifest_user_meta_prefix( string $uninstall_file ): string {
+	$text = (string) file_get_contents( $uninstall_file );
+	if ( ! preg_match( '/\$ffcertificate_user_meta_prefix\s*=\s*\'([a-z0-9_]+)\'/', $text, $m ) ) {
+		return '';
+	}
+	return $m[1];
+}
+
+/**
+ * Capability names the uninstaller removes BY NAME rather than by prefix.
+ *
+ * Capability removal is a prefix sweep — every `ffc_*` key on every user and
+ * every role — so there is no list of live capabilities to parse and no list to
+ * fall behind (#1290). What remains is the handful of pre-6.2.0 names that
+ * carry no prefix, which the sweep cannot reach; that is what this returns.
+ *
+ * An empty result is a parse failure, not "the plugin removes nothing by name":
+ * callers must treat it as such, the way the two functions above are treated.
+ *
+ * @param string $uninstall_file Absolute path to uninstall.php.
+ * @return array<int, string> Sorted, unique; empty when the parse fails.
+ */
+function ffc_manifest_legacy_capabilities( string $uninstall_file ): array {
+	$text = (string) file_get_contents( $uninstall_file );
+	if ( ! preg_match( '/\$ffcertificate_legacy_caps\s*=\s*array\((.*?)\n\);/s', $text, $block ) ) {
+		return array();
+	}
+	// Quoted only, so the `// ffc_view_own_certificates` comment naming each
+	// replacement is not read back as a member of the list.
+	if ( ! preg_match_all( "/'([a-z0-9_]+)'/", $block[1], $m ) ) {
+		return array();
+	}
+	$caps = array_values( array_unique( $m[1] ) );
+	sort( $caps );
+	return $caps;
+}

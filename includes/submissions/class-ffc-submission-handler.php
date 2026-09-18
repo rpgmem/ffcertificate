@@ -41,19 +41,19 @@ class SubmissionHandler {
 	private $lifecycle;
 
 	/**
-	 * Gancho INTERNO que o wp-cron dispara depois de uma submissao (#1248).
+	 * The INTERNAL hook wp-cron fires after a submission (#1248).
 	 *
-	 * Ele carrega um inteiro. O gancho PUBLICO
-	 * `ffcertificate_process_submission_hook` continua recebendo os mesmos oito
-	 * argumentos, disparado por {@see self::dispatch_async_pipeline()} depois de
-	 * reidratar -- e por isso a troca e invisivel para quem escuta de fora.
+	 * It carries one integer. The PUBLIC hook
+	 * `ffcertificate_process_submission_hook` still receives the same eight
+	 * arguments, fired by {@see self::dispatch_async_pipeline()} after
+	 * rehydrating -- which is why the swap is invisible to outside listeners.
 	 *
 	 * @var string
 	 */
 	public const ASYNC_PIPELINE_HOOK = 'ffc_process_submission_async';
 
 	/**
-	 * Gancho PUBLICO do fim da linha, com a assinatura de oito argumentos.
+	 * The PUBLIC end-of-line hook, with the eight-argument signature.
 	 *
 	 * @var string
 	 */
@@ -174,13 +174,9 @@ class SubmissionHandler {
 		$clean_cpf = null;
 		$clean_rf  = null;
 		if ( ! empty( $clean_cpf_rf ) ) {
-			$id_len = strlen( $clean_cpf_rf );
-			if ( 11 === $id_len ) {
-				$clean_cpf = $clean_cpf_rf;
-			} elseif ( 7 === $id_len ) {
+			if ( 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $clean_cpf_rf ) ) {
 				$clean_rf = $clean_cpf_rf;
 			} else {
-				// Unknown length — default to CPF (most common).
 				$clean_cpf = $clean_cpf_rf;
 			}
 		}
@@ -235,10 +231,20 @@ class SubmissionHandler {
 		$consent_text  = $consent_given ? __( 'User agreed to Privacy Policy and data storage', 'ffcertificate' ) : null;
 
 		// 8. Link to WordPress user (v3.1.0)
-		$lookup_cpf_hash = $cpf_hash_val ?? $rf_hash_val;
-		$identifier_type = ! empty( $cpf_hash_val ) ? 'cpf' : ( ! empty( $rf_hash_val ) ? 'rf' : 'auto' );
-		$user_id         = null;
-		if ( ! empty( $lookup_cpf_hash ) && ! empty( $user_email ) ) {
+		//
+		// Through the DUAL entry point since 6.26.0 (#1313 PR 7). The lookup is
+		// unchanged -- the form carries one `cpf_rf` field, split above into
+		// `$clean_cpf` XOR `$clean_rf`, so exactly one of these hashes is ever
+		// non-null and the dual resolver queries the same single column the
+		// legacy entry point did. What changes is the two things only the dual
+		// path does: it asks `ffc_user_profiles` BEFORE the module table, and
+		// it feeds that index with whatever it resolved. Certificates are the
+		// highest-volume writer of `cpf_hash`, so while this call stayed on the
+		// legacy entry point the invariant #1313 exists to create -- whenever a
+		// record gains a link to a user, that user's identity index receives
+		// the identifiers -- was false for most of the rows in the database.
+		$user_id = null;
+		if ( ( ! empty( $cpf_hash_val ) || ! empty( $rf_hash_val ) ) && ! empty( $user_email ) ) {
 			// Load User Manager if not already loaded.
 			if ( ! class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
 				$user_manager_file = FFC_PLUGIN_DIR . 'includes/user-dashboard/class-ffc-user-manager.php';
@@ -248,12 +254,12 @@ class SubmissionHandler {
 			}
 
 			if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
-				$user_result = \FreeFormCertificate\UserDashboard\UserManager::get_or_create_user(
-					$lookup_cpf_hash,
+				$user_result = \FreeFormCertificate\UserDashboard\UserManager::get_or_create_user_dual(
+					$cpf_hash_val,
+					$rf_hash_val,
 					$user_email,
 					$submission_data,
-					\FreeFormCertificate\UserDashboard\CapabilityManager::CONTEXT_CERTIFICATE,
-					$identifier_type
+					\FreeFormCertificate\UserDashboard\CapabilityManager::CONTEXT_CERTIFICATE
 				);
 
 				if ( ! is_wp_error( $user_result ) ) {
@@ -318,20 +324,21 @@ class SubmissionHandler {
 		// disabled). Restores the trigger that was orphaned — the hook was
 		// registered but never scheduled (#649).
 		//
-		// O QUE VIAJA NO AGENDAMENTO E UM INTEIRO (#1248)
+		// WHAT TRAVELS IN THE SCHEDULE IS ONE INTEGER (#1248)
 		//
-		// Ate aqui iam oito argumentos, entre eles o `$submission_data`
-		// inteiro e o `$magic_token`. O agendamento mora na option `cron`, que
-		// e AUTOLOADED: enquanto o evento estivesse pendente, todo pedido ao
-		// site carregaria e desserializaria aquilo. E pior que custo -- vinte
-		// linhas acima este mesmo metodo CIFRA e-mail, CPF, RF e os dados
-		// extras antes do INSERT, e o payload gravava os originais em claro na
-		// `wp_options`, junto do `magic_token`, que e a autenticacao inteira do
-		// acesso ao certificado.
+		// Until now eight arguments went, among them the whole
+		// `$submission_data` and the `$magic_token`. The schedule lives in the
+		// `cron` option, which is AUTOLOADED: while the event was pending,
+		// every request to the site would load and unserialize that. And it is
+		// worse than cost -- twenty lines above, this same method ENCRYPTS
+		// email, CPF, RF and the extra data before the INSERT, and the payload
+		// wrote the originals in clear text into `wp_options`, alongside the
+		// `magic_token`, which is the entire authentication behind certificate
+		// access.
 		//
-		// `dispatch_async_pipeline()` reidrata os oito valores da linha e do
-		// formulario e dispara o gancho publico com eles, entao nenhum ouvinte
-		// externo percebe a mudanca.
+		// `dispatch_async_pipeline()` rehydrates the eight values from the row
+		// and the form and fires the public hook with them, so no external
+		// listener notices the change.
 		if ( function_exists( 'wp_schedule_single_event' ) ) {
 			wp_schedule_single_event(
 				time() + 1,
@@ -344,21 +351,22 @@ class SubmissionHandler {
 	}
 
 	/**
-	 * Liga o ouvinte do wp-cron a {@see self::dispatch_async_pipeline()} (#1248).
+	 * Wires the wp-cron listener to {@see self::dispatch_async_pipeline()} (#1248).
 	 *
-	 * POR QUE UM METODO, E NAO O CONSTRUTOR
+	 * WHY A METHOD AND NOT THE CONSTRUCTOR
 	 *
-	 * `SubmissionHandler` e instanciado em SETE lugares, e o WordPress nao
-	 * deduplica callbacks de objetos distintos: um `add_action` no construtor
-	 * deixaria sete ouvintes, isto e, sete e-mails por submissao. Quem chama
-	 * isto e o `Loader`, que guarda a instancia unica.
+	 * `SubmissionHandler` is instantiated in SEVEN places, and WordPress does
+	 * not deduplicate callbacks of distinct objects: an `add_action` in the
+	 * constructor would leave seven listeners, that is, seven emails per
+	 * submission. What calls this is the `Loader`, which holds the single
+	 * instance.
 	 *
-	 * POR QUE AQUI, E NAO UM `add_action` SOLTO NO `Loader`
+	 * WHY HERE AND NOT A LOOSE `add_action` IN THE `Loader`
 	 *
-	 * O nome do gancho fica num lugar so, ao lado de quem o agenda. Escrito no
-	 * `Loader` como literal, renomear a constante desregistraria o ouvinte em
-	 * silencio -- e um ouvinte ausente aqui nao da erro: so para de mandar
-	 * e-mail, que e a forma do defeito do #649.
+	 * The hook name stays in one place, next to whoever schedules it. Written
+	 * in the `Loader` as a literal, renaming the constant would unregister the
+	 * listener in silence -- and a missing listener here raises no error: it
+	 * simply stops sending email, which is the shape of #649's defect.
 	 *
 	 * @return void
 	 */
@@ -367,50 +375,50 @@ class SubmissionHandler {
 	}
 
 	/**
-	 * Reidrata o contexto de uma submissao e dispara o gancho publico (#1248).
+	 * Rehydrates a submission's context and fires the public hook (#1248).
 	 *
-	 * O wp-cron chama isto com um inteiro; daqui sai o `do_action` de oito
-	 * argumentos que `EmailHandler::async_process_submission()` -- e qualquer
-	 * integracao de terceiro -- sempre recebeu. Sao ganchos DIFERENTES, entao
-	 * nao ha recursao, e o ouvinte antigo continua registrado: eventos
-	 * agendados na forma velha, pendentes no momento da atualizacao, seguem
-	 * processando normalmente.
+	 * The wp-cron listener calls this with an integer; out of here comes the eight-argument
+	 * `do_action` that `EmailHandler::async_process_submission()` -- and any
+	 * third-party integration -- has always received. They are DIFFERENT hooks,
+	 * so there is no recursion, and the old listener stays registered: events
+	 * scheduled in the old shape, pending at the moment of the update, keep
+	 * processing normally.
 	 *
-	 * DUAS NORMALIZACOES QUE NAO APARECEM -- MEDIDO, NAO SUPOSTO
+	 * TWO NORMALISATIONS THAT DO NOT SHOW -- MEASURED, NOT ASSUMED
 	 *
-	 * O banco guarda `cpf_rf` so com digitos e `auth_code` so com
-	 * alfanumericos, enquanto o visitante pode ter digitado
-	 * `123.456.789-00`. Isso nao muda e-mail nenhum porque os dois unicos
-	 * consumidores desses valores normalizam a ENTRADA antes de formatar:
-	 * `DocumentFormatter::format_document()` aplica `preg_replace('/\D/','')`
-	 * e `format_auth_code()` aplica `/[^A-Z0-9]/i`. Cru e normalizado saem
-	 * identicos.
+	 * The database stores `cpf_rf` as digits only and `auth_code` as
+	 * alphanumerics only, while the visitor may have typed `123.456.789-00`.
+	 * That changes no email, because the only two consumers of those values
+	 * normalise the INPUT before formatting:
+	 * `DocumentFormatter::format_document()` applies `preg_replace('/\D/','')`
+	 * and `format_auth_code()` applies `/[^A-Z0-9]/i`. Raw and normalised come
+	 * out identical.
 	 *
-	 * O QUE MUDA, E E DELIBERADO: A ORDEM DAS LINHAS NO AVISO AO ADMIN
+	 * WHAT DOES CHANGE, DELIBERATELY: THE ROW ORDER IN THE ADMIN NOTIFICATION
 	 *
-	 * `EmailHandler::send_admin_notification()` desenha uma linha por chave, na
-	 * ordem do array. No original essa ordem era a do POST, com as quatro
-	 * chaves "obrigatorias" intercaladas entre os campos do formulario. O banco
-	 * as separou das demais, e a posicao original delas nao esta guardada em
-	 * lugar nenhum -- entao ela nao e recuperavel.
+	 * `EmailHandler::send_admin_notification()` draws one row per key, in the
+	 * array's order. In the original that order was the POST's, with the four
+	 * "mandatory" keys interleaved among the form fields. The database split
+	 * them from the rest, and their original position is stored nowhere -- so
+	 * it is not recoverable.
 	 *
-	 * A reconstrucao entao agrupa: identificacao primeiro, campos do formulario
-	 * no meio, codigo e consentimento no fim. Os campos do formulario mantem a
-	 * ordem original entre si, porque `array_diff_key()` preserva ordem e foi
-	 * assim que o JSON foi gravado.
+	 * The reconstruction therefore groups: identification first, form fields in
+	 * the middle, code and consent at the end. The form fields keep their
+	 * original order among themselves, because `array_diff_key()` preserves
+	 * order and that is how the JSON was written.
 	 *
-	 * Uma consequencia menor da mesma origem: um `ffc_lgpd_consent` enviado
-	 * como `'0'` some da tabela, porque o banco guarda um booleano e um
-	 * consentimento negado e indistinguivel de um nao enviado.
+	 * A minor consequence of the same origin: an `ffc_lgpd_consent` posted as
+	 * `'0'` disappears from the table, because the database stores a boolean and
+	 * a refused consent is indistinguishable from one never sent.
 	 *
-	 * A CONFIGURACAO LIDA E A DE AGORA, NAO A DE UM SEGUNDO ATRAS
+	 * THE CONFIGURATION READ IS TODAY'S, NOT THE ONE FROM A SECOND AGO
 	 *
-	 * `_ffc_form_fields` e `_ffc_form_config` sao lidos na hora do disparo. Se
-	 * alguem editar o formulario dentro da janela de ~1s, o e-mail sai com a
-	 * configuracao nova -- o que e mais correto que sair com a velha, e nao com
-	 * a fotografia que o payload antigo carregava.
+	 * `_ffc_form_fields` and `_ffc_form_config` are read at fire time. If
+	 * somebody edits the form inside the ~1s window, the email goes out with
+	 * the new configuration -- which is more correct than going out with the
+	 * old one, and than the snapshot the previous payload carried.
 	 *
-	 * @param int $submission_id ID da submissao recem-criada.
+	 * @param int $submission_id The freshly created submission's ID.
 	 * @return void
 	 */
 	public function dispatch_async_pipeline( int $submission_id ): void {
@@ -420,7 +428,7 @@ class SubmissionHandler {
 
 		$submission = $this->get_submission( $submission_id );
 		if ( ! is_array( $submission ) ) {
-			// A linha pode ter sido apagada entre o agendamento e o disparo.
+			// The row may have been deleted between the schedule and the fire.
 			return;
 		}
 
@@ -447,7 +455,7 @@ class SubmissionHandler {
 		 * @param string               $magic_token     Magic token.
 		 */
 		do_action(
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- A constante guarda o literal `ffcertificate_process_submission_hook`, que ja carrega o prefixo do plugin; o sniff nao resolve constantes.
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- The constant holds the literal `ffcertificate_process_submission_hook`, which already carries the plugin's prefix; the sniff does not resolve constants.
 			self::PIPELINE_HOOK,
 			$submission_id,
 			$form_id,
@@ -461,13 +469,13 @@ class SubmissionHandler {
 	}
 
 	/**
-	 * Remonta o array que o visitante enviou, a partir da linha decifrada.
+	 * Rebuilds the array the visitor posted, out of the decrypted row.
 	 *
-	 * A ordem das chaves e a contrapartida documentada em
-	 * {@see self::dispatch_async_pipeline()} -- ela e o que o aviso ao admin
-	 * desenha, entao esta fixada aqui e presa por teste.
+	 * The key order is the counterpart documented in
+	 * {@see self::dispatch_async_pipeline()} -- it is what the admin
+	 * notification draws, so it is pinned here and held by a test.
 	 *
-	 * @param array<string, mixed> $submission Linha ja decifrada.
+	 * @param array<string, mixed> $submission The already decrypted row.
 	 * @return array<string, mixed>
 	 */
 	private function rebuild_submission_data( array $submission ): array {
@@ -483,8 +491,9 @@ class SubmissionHandler {
 			$data['cpf_rf'] = $cpf_rf;
 		}
 
-		// Os campos do formulario vivem no JSON da coluna `data`, e chegam na
-		// ordem em que foram gravados -- que e a ordem original entre si.
+		// The form fields live in the `data` column's JSON, and arrive in the
+		// order they were written -- which is their original order among
+		// themselves.
 		$raw = isset( $submission['data'] ) ? $submission['data'] : '';
 		if ( is_string( $raw ) && '' !== $raw ) {
 			$extra = json_decode( $raw, true );

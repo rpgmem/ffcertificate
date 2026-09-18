@@ -33,7 +33,7 @@ return array(
 		. '</div>'
 		. '<p style="text-align:center;margin:24px 0;">'
 		. '<a href="{{magic_link_url}}" style="display:inline-block;padding:12px 28px;background:#2271b1;color:#fff;text-decoration:none;border-radius:4px;font-weight:600;">'
-		. __( 'View and Download Ficha', 'ffcertificate' )
+		. __( 'View and Download Record', 'ffcertificate' )
 		. '</a></p>'
 		. '<p style="margin: 0 0 15px 0;">' . __( 'Click the button above to verify and download your reregistration record (PDF). You can also review your submission details in your dashboard at any time.', 'ffcertificate' ) . '</p>'
 		. '<p style="text-align:center;margin:16px 0;">'

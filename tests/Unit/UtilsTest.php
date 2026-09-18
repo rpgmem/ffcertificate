@@ -244,7 +244,11 @@ class UtilsTest extends TestCase {
 
 	/**
 	 * Helper: stub `_x` + `apply_filters` so the helper runs deterministically.
-	 * The default mapping mirrors the production PT-BR labels.
+	 *
+	 * `_x` returns its source string untranslated, so every expectation below
+	 * is what an install with NO translation loaded receives -- English, since
+	 * #1264. To exercise the translated path instead, see
+	 * `stub_pdf_filename_helpers_pt_br()`.
 	 */
 	private function stub_pdf_filename_helpers(): void {
 		Functions\when( '_x' )->alias( function ( $text, $context, $domain ) {
@@ -255,13 +259,63 @@ class UtilsTest extends TestCase {
 		} );
 	}
 
+	/**
+	 * Helper: same, but `_x` answers with the pt_BR translation.
+	 *
+	 * The map mirrors the three entries in `ffcertificate-pt_BR.po`, so a
+	 * source string renamed here without the catalogue is a red test rather
+	 * than a filename that silently changes for Brazilian installs.
+	 */
+	private function stub_pdf_filename_helpers_pt_br(): void {
+		$pt_br = array(
+			'certificate' => 'certificado',
+			'receipt'     => 'recibo',
+			'record'      => 'ficha',
+		);
+		Functions\when( '_x' )->alias( function ( $text, $context, $domain ) use ( $pt_br ) {
+			return $pt_br[ $text ] ?? $text;
+		} );
+		Functions\when( 'apply_filters' )->alias( function ( $hook, $value ) {
+			return $value;
+		} );
+	}
+
+	/**
+	 * The whole premise of #1264: flipping the sources to English changes
+	 * NOTHING for a Brazilian install.
+	 *
+	 * The prefixes used to be Portuguese source strings translating to
+	 * themselves, so an English site downloaded `certificado_123.pdf`. The
+	 * sources are English now and pt_BR translates back -- which is only true
+	 * while the catalogue carries the three entries, and that is what this
+	 * test holds. Without it, renaming a source and forgetting the `.po` would
+	 * pass every other assertion in this file while quietly renaming every PDF
+	 * the plugin's actual users download.
+	 */
+	public function test_build_pdf_filename_keeps_portuguese_names_when_translated(): void {
+		$this->stub_pdf_filename_helpers_pt_br();
+
+		$this->assertSame(
+			'certificado_666_C-MLQQZ9UX9MWF.pdf',
+			FilenameHelper::build_pdf_filename( 'certificate', 666, 'MLQQZ9UX9MWF' )
+		);
+		$this->assertSame(
+			'recibo_42_A-7K3M9P2XQRST.pdf',
+			FilenameHelper::build_pdf_filename( 'appointment_receipt', 42, '7K3M9P2XQRST' )
+		);
+		$this->assertSame(
+			'ficha_99_R-ABCDEF123456.pdf',
+			FilenameHelper::build_pdf_filename( 'ficha', 99, 'ABCDEF123456' )
+		);
+	}
+
 	public function test_build_pdf_filename_certificate_attaches_C_prefix(): void {
 		$this->stub_pdf_filename_helpers();
 		// Raw 12-char auth code from DB → helper prepends "C-" to match
 		// DocumentFormatter::PREFIX_CERTIFICATE, and strips inner dashes
 		// from the code body for filesystem compactness.
 		$this->assertSame(
-			'certificado_666_C-MLQQZ9UX9MWF.pdf',
+			'certificate_666_C-MLQQZ9UX9MWF.pdf',
 			FilenameHelper::build_pdf_filename( 'certificate', 666, 'MLQQZ9UX9MWF' )
 		);
 	}
@@ -269,26 +323,26 @@ class UtilsTest extends TestCase {
 	public function test_build_pdf_filename_appointment_receipt_attaches_A_prefix(): void {
 		$this->stub_pdf_filename_helpers();
 		$this->assertSame(
-			'recibo_42_A-7K3M9P2XQRST.pdf',
+			'receipt_42_A-7K3M9P2XQRST.pdf',
 			FilenameHelper::build_pdf_filename( 'appointment_receipt', 42, '7K3M9P2XQRST' )
 		);
 	}
 
-	public function test_build_pdf_filename_ficha_attaches_R_prefix_for_real_authcode(): void {
+	public function test_build_pdf_filename_record_attaches_R_prefix_for_real_authcode(): void {
 		$this->stub_pdf_filename_helpers();
-		// Approved ficha → real auth code from AuthCodeService.
+		// Approved record → real auth code from AuthCodeService.
 		$this->assertSame(
-			'ficha_99_R-ABCDEF123456.pdf',
+			'record_99_R-ABCDEF123456.pdf',
 			FilenameHelper::build_pdf_filename( 'ficha', 99, 'ABCDEF123456' )
 		);
 	}
 
-	public function test_build_pdf_filename_ficha_synthetic_code_skips_prefix(): void {
+	public function test_build_pdf_filename_record_synthetic_code_skips_prefix(): void {
 		$this->stub_pdf_filename_helpers();
-		// Draft / submitted ficha (auth_code not yet generated) — synthetic
+		// Draft / submitted record (auth_code not yet generated) — synthetic
 		// S{id} stays as-is, no `R-` prefix, since it's not a verifiable code.
 		$this->assertSame(
-			'ficha_99_S12345.pdf',
+			'record_99_S12345.pdf',
 			FilenameHelper::build_pdf_filename( 'ficha', 99, 'S12345' )
 		);
 	}
@@ -299,7 +353,7 @@ class UtilsTest extends TestCase {
 		// shape). Helper detects the existing `C-` prefix and only strips
 		// inner dashes — does not re-prepend, does not duplicate.
 		$this->assertSame(
-			'certificado_666_C-MLQQZ9UX9MWF.pdf',
+			'certificate_666_C-MLQQZ9UX9MWF.pdf',
 			FilenameHelper::build_pdf_filename( 'certificate', 666, 'C-MLQQ-Z9UX-9MWF' )
 		);
 	}
@@ -307,7 +361,7 @@ class UtilsTest extends TestCase {
 	public function test_build_pdf_filename_code_is_uppercased(): void {
 		$this->stub_pdf_filename_helpers();
 		$this->assertSame(
-			'certificado_1_C-ABC123.pdf',
+			'certificate_1_C-ABC123.pdf',
 			FilenameHelper::build_pdf_filename( 'certificate', 1, 'abc123' )
 		);
 	}
@@ -317,7 +371,7 @@ class UtilsTest extends TestCase {
 		// Spaces, slashes stripped — alphanumerics preserved, dashes from
 		// the original input collapsed by the compact-body step.
 		$this->assertSame(
-			'certificado_1_C-ABCDEF123.pdf',
+			'certificate_1_C-ABCDEF123.pdf',
 			FilenameHelper::build_pdf_filename( 'certificate', 1, 'abc def/123' )
 		);
 	}
@@ -325,7 +379,7 @@ class UtilsTest extends TestCase {
 	public function test_build_pdf_filename_empty_code_drops_segment(): void {
 		$this->stub_pdf_filename_helpers();
 		$this->assertSame(
-			'ficha_99.pdf',
+			'record_99.pdf',
 			FilenameHelper::build_pdf_filename( 'ficha', 99, '' )
 		);
 	}
@@ -333,7 +387,7 @@ class UtilsTest extends TestCase {
 	public function test_build_pdf_filename_negative_id_clamped_to_zero(): void {
 		$this->stub_pdf_filename_helpers();
 		$this->assertSame(
-			'certificado_0_C-X.pdf',
+			'certificate_0_C-X.pdf',
 			FilenameHelper::build_pdf_filename( 'certificate', -5, 'X' )
 		);
 	}

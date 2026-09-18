@@ -306,6 +306,10 @@ final class CapabilityCatalog {
 						'label'       => __( 'Export reregistration submissions', 'ffcertificate' ),
 						'description' => __( 'Download a campaign\'s submissions as CSV.', 'ffcertificate' ),
 					),
+					'ffc_import_reregistration' => array(
+						'label'       => __( 'Import reregistration submissions', 'ffcertificate' ),
+						'description' => __( 'Bulk-load a campaign\'s answers from CSV, creating the users a row needs.', 'ffcertificate' ),
+					),
 					'ffc_delete_reregistration' => array(
 						'label'       => __( 'Delete reregistration campaigns', 'ffcertificate' ),
 						'description' => __( 'Delete campaigns and their submissions (cascade).', 'ffcertificate' ),

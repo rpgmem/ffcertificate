@@ -180,6 +180,40 @@ class MigrationStatusCalculator {
 					unset( $this->strategy_errors['key_rotation_remaining'] );
 					break;
 
+				case 'identity_normalization':
+					$strategy_dir = __DIR__ . '/strategies/';
+
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\IdentityNormalizationMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-identity-normalization-migration-strategy.php';
+					}
+
+					$this->strategies['identity_normalization'] = new \FreeFormCertificate\Migrations\Strategies\IdentityNormalizationMigrationStrategy();
+					unset( $this->strategy_errors['identity_normalization'] );
+					break;
+
+				case 'identity_index_backfill':
+					$strategy_dir = __DIR__ . '/strategies/';
+
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+					// The backfill's `can_run()` asks the canonicalisation card
+					// for its pending count, so that class has to be loadable
+					// too -- here rather than by autoload chance.
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\IdentityNormalizationMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-identity-normalization-migration-strategy.php';
+					}
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\IdentityIndexBackfillMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-identity-index-backfill-migration-strategy.php';
+					}
+
+					$this->strategies['identity_index_backfill'] = new \FreeFormCertificate\Migrations\Strategies\IdentityIndexBackfillMigrationStrategy();
+					unset( $this->strategy_errors['identity_index_backfill'] );
+					break;
+
 				case 'import_legacy_templates':
 					$strategy_dir = __DIR__ . '/strategies/';
 

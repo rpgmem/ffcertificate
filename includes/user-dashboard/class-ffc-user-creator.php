@@ -35,6 +35,17 @@ class UserCreator {
 	/**
 	 * Get or create WordPress user based on CPF/RF and email
 	 *
+	 * @deprecated 6.26.0 Use {@see self::get_or_create_user_dual()} (#1313).
+	 * @removal    6.28.0
+	 *
+	 * The implementation behind {@see UserManager::get_or_create_user()}, which
+	 * carries the same notice -- both are public and reachable, so both notify,
+	 * the way `AppointmentRepository` and `AppointmentReader` do for #1245.
+	 *
+	 * What it does NOT do is the reason: step 1 below queries `ffc_submissions`
+	 * alone and `link_orphaned_records()` writes to no identity index, so a
+	 * caller still on this entry point leaves `ffc_user_profiles` incomplete.
+	 *
 	 * Flow:
 	 * 1. Check if identifier hash already has user_id in submissions table
 	 * 2. If yes: return existing user_id (and add context-specific capabilities)
@@ -50,6 +61,10 @@ class UserCreator {
 	 * @return int|\WP_Error User ID or error
 	 */
 	public static function get_or_create_user( string $identifier_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE, string $identifier_type = self::TYPE_AUTO ) {
+		// See the note on `UserManager::get_or_create_user()`: the runtime
+		// notice is what reaches a consumer this repository cannot scan for.
+		_deprecated_function( __METHOD__, '6.26.0', __CLASS__ . '::get_or_create_user_dual()' );
+
 		global $wpdb;
 		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
@@ -128,9 +143,13 @@ class UserCreator {
 	 * @param string               $email           Plain email.
 	 * @param array<string, mixed> $submission_data Optional metadata for user creation.
 	 * @param string               $context         Capability context.
+	 * @param bool                 $notify          Whether a CREATED user is sent
+	 *                                              the account notification. Has
+	 *                                              no effect on the two matching
+	 *                                              branches, which create nobody.
 	 * @return int|\WP_Error User ID or error. Returns a WP_Error('ffc_user_no_identifier') when both hashes AND email are empty.
 	 */
-	public static function get_or_create_user_dual( ?string $cpf_hash, ?string $rf_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE ) {
+	public static function get_or_create_user_dual( ?string $cpf_hash, ?string $rf_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE, bool $notify = true ) {
 		// Normalize empty strings to null so downstream branches can rely
 		// on `null !== $cpf_hash` semantics.
 		$cpf_hash = ( is_string( $cpf_hash ) && '' !== $cpf_hash ) ? $cpf_hash : null;
@@ -140,36 +159,8 @@ class UserCreator {
 			return new \WP_Error( 'ffc_user_no_identifier', 'No identifier provided.' );
 		}
 
-		global $wpdb;
-		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
-
 		// STEP 1: Submissions lookup against the supplied hashes.
-		// Build a `cpf_hash = %s OR rf_hash = %s` clause that includes
-		// only the columns we actually have a value for.
-		$existing_user_id = null;
-		if ( null !== $cpf_hash || null !== $rf_hash ) {
-			$where_parts = array();
-			$params      = array();
-			if ( null !== $cpf_hash ) {
-				$where_parts[] = 'cpf_hash = %s';
-				$params[]      = $cpf_hash;
-			}
-			if ( null !== $rf_hash ) {
-				$where_parts[] = 'rf_hash = %s';
-				$params[]      = $rf_hash;
-			}
-			$where = implode( ' OR ', $where_parts );
-
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $where built from hard-coded fragments above with matching placeholder count.
-			$existing_user_id = $wpdb->get_var(
-				$wpdb->prepare(
-					"SELECT user_id FROM %i WHERE ({$where}) AND user_id IS NOT NULL LIMIT 1",
-					$table,
-					...$params
-				)
-			);
-			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
-		}
+		$existing_user_id = self::find_user_id_by_hashes( $cpf_hash, $rf_hash );
 
 		if ( $existing_user_id ) {
 			$uid = (int) $existing_user_id;
@@ -196,13 +187,172 @@ class UserCreator {
 		// STEP 3: Create. Empty email here means we have at least one
 		// hash but no email — `wp_create_user` will reject the empty
 		// address with a WP_Error, which we propagate.
-		$user_id = self::create_ffc_user( $email, $submission_data, $context );
+		$user_id = self::create_ffc_user( $email, $submission_data, $context, $notify );
 		if ( is_wp_error( $user_id ) ) {
 			return $user_id;
 		}
 
 		self::link_orphaned_records_dual( $cpf_hash, $rf_hash, (int) $user_id );
 		return (int) $user_id;
+	}
+
+	/**
+	 * The user a CPF and/or RF hash already belongs to, or null.
+	 *
+	 * Extracted from {@see self::get_or_create_user_dual()}'s step 1 so the
+	 * read-only probe below and the create-if-missing resolver cannot drift:
+	 * a probe that looked in MORE places than the resolver would report a match
+	 * and then watch promotion create a duplicate anyway. One lookup, two
+	 * callers.
+	 *
+	 * **It asks the identity index first, then `ffc_submissions`** (#1313 PR 4).
+	 *
+	 * **Why the index does not REPLACE the submissions query, which is what
+	 * #1313 proposed.** `ffc_user_profiles` is the right place to ask "which
+	 * user carries this identifier": one row per user, both columns indexed,
+	 * and `user_id` is the answer rather than a link that may be null. But it
+	 * is NOT a superset of the module tables on an existing install, and
+	 * nothing makes it one. A certificate submission writes
+	 * `ffc_submissions.cpf_hash` and never touches the profile, so a user known
+	 * only through a submission has no profile row — and reading the index
+	 * ALONE would stop finding them and create a duplicate, which is the exact
+	 * defect this work exists to remove. The invariant that fills the index
+	 * starts below, at the moment a record is linked; it says nothing about
+	 * records linked before it existed.
+	 *
+	 * So the index leads and submissions remain the fallback. When measurement
+	 * shows the fallback finding nothing the index missed, that is the trigger
+	 * to collapse this to one query — extracted from a proven fact rather than
+	 * on spec, the criterion `CLAUDE.md` records for #788 / #902 / #993.
+	 *
+	 * **Appointments and candidacies are still consulted by neither**, while
+	 * this class's own `link_orphaned_records_dual()` happily ADOPTS an
+	 * appointment row once the user is identified some other way — so the
+	 * plugin declines to RECOGNISE someone it is willing to adopt a record for
+	 * a moment later. That asymmetry is #1295's, not this PR's: widening to
+	 * them means a `SHOW TABLES` probe per lookup on a path every certificate
+	 * submission takes, and it should be decided with that cost measured
+	 * rather than folded into a change about the index.
+	 *
+	 * @since 6.26.0
+	 * @param string|null $cpf_hash CPF hash, or null to skip that column.
+	 * @param string|null $rf_hash  RF hash, or null to skip that column.
+	 * @return int|null User id, or null when neither hash is known.
+	 */
+	private static function find_user_id_by_hashes( ?string $cpf_hash, ?string $rf_hash ): ?int {
+		if ( null === $cpf_hash && null === $rf_hash ) {
+			return null;
+		}
+
+		global $wpdb;
+
+		// Build a `cpf_hash = %s OR rf_hash = %s` clause that includes only the
+		// columns we actually have a value for.
+		$where_parts = array();
+		$values      = array();
+		if ( null !== $cpf_hash ) {
+			$where_parts[] = 'cpf_hash = %s';
+			$values[]      = $cpf_hash;
+		}
+		if ( null !== $rf_hash ) {
+			$where_parts[] = 'rf_hash = %s';
+			$values[]      = $rf_hash;
+		}
+		$where = implode( ' OR ', $where_parts );
+
+		foreach ( self::identity_sources() as $table ) {
+			// `user_id IS NOT NULL` is always true on the profile, where the
+			// column is the primary fact rather than a link that may be
+			// missing. One statement shape for both is worth more than saving
+			// that predicate on one of them.
+			//
+			// No `table_exists()` probe: both tables are created by activators
+			// that #1311 wired into the runtime healing path, and probing would
+			// cost a `SHOW TABLES` per lookup on a path every certificate
+			// submission takes. Same exposure, and the same answer, as
+			// `UserProfileService`'s own index write.
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $where built from hard-coded fragments above with matching placeholder count.
+			$found = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT user_id FROM %i WHERE ({$where}) AND user_id IS NOT NULL LIMIT 1",
+					$table,
+					...$values
+				)
+			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+			if ( $found ) {
+				return (int) $found;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * The stores that can answer "which user carries this identifier", in the
+	 * order they are asked.
+	 *
+	 * Both carry `cpf_hash`, `rf_hash` and `user_id`, which is what lets one
+	 * statement serve them — the difference between them is not the shape of
+	 * the question but how complete the answer is.
+	 *
+	 * The identity index leads because it is the only one built for this
+	 * question, and because a hit there costs one key probe on a table with one
+	 * row per user. Submissions follow because that is where an identifier most
+	 * often first appears, and on an existing install it is the only store that
+	 * knows about anyone who never edited a profile field.
+	 *
+	 * @since 6.26.0
+	 * @return array<int, string> Full table names, in lookup order.
+	 */
+	private static function identity_sources(): array {
+		global $wpdb;
+
+		return array(
+			$wpdb->prefix . 'ffc_user_profiles',
+			\FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table(),
+		);
+	}
+
+	/**
+	 * Resolve an identity to an EXISTING user, creating nothing.
+	 *
+	 * The read-only sibling of {@see self::get_or_create_user_dual()}: it runs
+	 * that method's first two steps — hash lookup, then e-mail — and stops
+	 * before the third. Callers that must report what resolution WOULD do,
+	 * without doing it, need exactly this: the reregistration CSV import
+	 * validates every row before promoting any (#1214), and the job may be
+	 * blocked immediately afterwards, so a probe that created users would leave
+	 * accounts behind for an import that never ran.
+	 *
+	 * It is the same distinction the captcha contract draws in this codebase
+	 * between `verify()`, which spends the challenge, and `peek()`, which
+	 * checks it without spending.
+	 *
+	 * **Deliberately no side effects**: no capability grant, no role, no
+	 * orphan adoption. Those belong to the act, not to the question.
+	 *
+	 * @since 6.26.0
+	 * @param string|null $cpf_hash CPF hash, or null.
+	 * @param string|null $rf_hash  RF hash, or null.
+	 * @param string      $email    Plain e-mail, or '' when unknown.
+	 * @return int User id, or 0 when resolution would create one.
+	 */
+	public static function resolve_existing_user( ?string $cpf_hash, ?string $rf_hash, string $email ): int {
+		$by_hash = self::find_user_id_by_hashes( $cpf_hash, $rf_hash );
+		if ( null !== $by_hash ) {
+			return $by_hash;
+		}
+
+		if ( '' !== $email ) {
+			$user = get_user_by( 'email', $email );
+			if ( $user ) {
+				return (int) $user->ID;
+			}
+		}
+
+		return 0;
 	}
 
 	/**
@@ -262,6 +412,67 @@ class UserCreator {
 				CapabilityManager::grant_appointment_capabilities( $user_id );
 			}
 		}
+
+		self::feed_identity_index( $cpf_hash, $rf_hash, $user_id );
+	}
+
+	/**
+	 * Record this user's identifiers in the identity index (#1313 PR 4).
+	 *
+	 * THE INVARIANT: whenever a record gains a link to a user, that user's
+	 * identity index receives the identifiers. Without it the index only ever
+	 * learns about someone who edits a profile field, which is a subset nobody
+	 * can state — and the resolver above would keep falling through to the
+	 * module tables forever, never able to collapse to one query.
+	 *
+	 * **It fills, it never overwrites.** A column that already holds a
+	 * different hash is a person with two identifiers on record, and the
+	 * honest answer to that is not to pick one silently: it is the conflict
+	 * #1313 wants COUNTED before anyone designs a merge policy. Overwriting
+	 * would destroy the evidence and leave the index asserting whichever write
+	 * happened last. So the index grows monotonically and a disagreement
+	 * survives to be found.
+	 *
+	 * The hashes arrive already canonical: every caller of this method obtained
+	 * them through `SensitiveFieldRegistry::hash_identifier()`, which is the
+	 * whole point of PR 1.
+	 *
+	 * @since 6.26.0
+	 * @param string|null $cpf_hash CPF hash, or null.
+	 * @param string|null $rf_hash  RF hash, or null.
+	 * @param int         $user_id  The user the record was linked to.
+	 * @return void
+	 */
+	private static function feed_identity_index( ?string $cpf_hash, ?string $rf_hash, int $user_id ): void {
+		if ( $user_id <= 0 || ( null === $cpf_hash && null === $rf_hash ) ) {
+			return;
+		}
+
+		$repository = new \FreeFormCertificate\Repositories\UserProfileRepository();
+		$row        = $repository->findByUserId( $user_id );
+		$index      = array();
+
+		foreach ( array(
+			'cpf_hash' => $cpf_hash,
+			'rf_hash'  => $rf_hash,
+		) as $column => $hash ) {
+			if ( null === $hash ) {
+				continue;
+			}
+
+			$stored = null !== $row ? ( $row[ $column ] ?? null ) : null;
+			if ( is_string( $stored ) && '' !== $stored ) {
+				continue;
+			}
+
+			$index[ $column ] = $hash;
+		}
+
+		if ( array() === $index ) {
+			return;
+		}
+
+		$repository->upsertForUserId( $user_id, $index );
 	}
 
 	/**
@@ -270,9 +481,13 @@ class UserCreator {
 	 * @param string               $email           Email address.
 	 * @param array<string, mixed> $submission_data Submission data for user metadata.
 	 * @param string               $context         Context for capability granting.
+	 * @param bool                 $notify          Whether to send the account
+	 *                                              notification. `false` only on
+	 *                                              the bulk import path — see
+	 *                                              the send site below.
 	 * @return int|\WP_Error User ID or error
 	 */
-	private static function create_ffc_user( string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE ) {
+	private static function create_ffc_user( string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE, bool $notify = true ) {
 		$password = wp_generate_password( 24, true, true );
 		$username = self::generate_username( $email, $submission_data );
 		$user_id  = wp_create_user( $username, $password, $email );
@@ -295,6 +510,16 @@ class UserCreator {
 		CapabilityManager::grant_context_capabilities( $user_id, $context );
 		self::sync_user_metadata( $user_id, $submission_data );
 		self::create_user_profile( $user_id );
+
+		// **Bulk creation passes `$notify = false`** (#1214). This send is
+		// unconditional otherwise, so an import of 500 rows is 500 synchronous
+		// account notifications from inside a batch loop. Suppressing it here is
+		// deliberately NOT the same as the global "disable all emails" switch,
+		// which has a different blast radius; the campaign's own invitation
+		// flow is what tells an imported user their account exists.
+		if ( ! $notify ) {
+			return $user_id;
+		}
 
 		if ( ! class_exists( '\FreeFormCertificate\Integrations\EmailHandler' ) ) {
 			$email_handler_file = FFC_PLUGIN_DIR . 'includes/integrations/class-ffc-email-handler.php';

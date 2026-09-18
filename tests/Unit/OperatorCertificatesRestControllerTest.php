@@ -96,6 +96,8 @@ class OperatorCertificatesRestControllerTest extends TestCase {
 		$sanitizer = Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' );
 		$sanitizer->shouldReceive( 'recursive_sanitize' )->andReturnUsing( static fn( $d ) => $d )->byDefault();
 		$sanitizer->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing( static fn( $v ) => preg_replace( '/[^0-9]/', '', (string) $v ) ?? '' )->byDefault();
+		$sanitizer->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) )->byDefault();
+		$sanitizer->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' )->byDefault();
 
 		// ActivityLog runs for real but short-circuits on the disabled setting.
 		if ( ! class_exists( 'FreeFormCertificate\Settings\SettingsReader', false ) ) {

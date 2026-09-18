@@ -277,10 +277,25 @@ class AltchaChallengeEndpointTest extends TestCase {
 		);
 		$this->mock_ip( '203.0.113.24' );
 
+		// The bucket is read on BOTH sides of the call, because the assertion
+		// below used to compute it only afterwards and so was racy by
+		// construction: `floor( time() / 120 )` changes under the test roughly
+		// once every 120 runs, and when it did the expectation was one bucket
+		// ahead of the key the endpoint had just written. Observed on CI as
+		// `..._14914270` against an expected `_14914271` -- a one-second
+		// difference, not a defect in the code under test. Accepting either
+		// side keeps what the assertion is for (the key is suffixed with the
+		// window bucket, at the configured 120 seconds) and removes the race.
+		$bucket_before = (int) floor( time() / 120 );
 		$this->call_handle();
+		$bucket_after = (int) floor( time() / 120 );
 
 		$this->assertSame( array( 120 ), $this->transient_ttls(), 'The counter must expire with its own window.' );
-		$this->assertStringEndsWith( '_' . (int) floor( time() / 120 ), array_key_first( $this->transients ) );
+		$this->assertMatchesRegularExpression(
+			'/_(' . $bucket_before . '|' . $bucket_after . ')$/',
+			(string) array_key_first( $this->transients ),
+			'The counter key is not suffixed with the 120-second window bucket, so two windows would share one counter.'
+		);
 	}
 
 	public function test_an_out_of_range_window_is_clamped_rather_than_taken_literally(): void {

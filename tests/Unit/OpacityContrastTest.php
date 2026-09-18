@@ -1,34 +1,35 @@
 <?php
 /**
- * Catraca de `opacity` sobre texto (#1126, #1170).
+ * Ratchet on `opacity` over text (#1126, #1170).
  *
- * O `DarkModeCssTest` mede pares de cor e é cego para esta classe de defeito
- * **por construção**: `opacity` desbota o texto E o fundo juntos, então ela
- * multiplica para baixo qualquer contraste que os tokens tenham garantido
- * enquanto os tokens continuam certos. É a lição 5 do arco do tema — "diga
- * estado com cor, não com desbotamento" — e foi medida de novo aqui: a linha
- * passada da tabela de recadastração dava **3,11:1** no tema claro e **4,23:1**
- * no escuro a `opacity: 0.75`; sem ela, 5,15:1 e 6,37:1.
+ * `DarkModeCssTest` measures colour pairs and is blind to this defect class
+ * **by construction**: `opacity` fades the text AND the ground together, so it
+ * multiplies down whatever contrast the tokens guaranteed while the tokens
+ * stay correct. It is lesson 5 of the theme arc — "say state with colour, not
+ * with fading" — and it was measured again here: the past row of the
+ * reregistration table gave **3.11:1** in the light theme and **4.23:1** in
+ * dark at `opacity: 0.75`; without it, 5.15:1 and 6.37:1.
  *
- * A guarda congela toda declaração de `opacity` abaixo de 1 nas folhas, por
- * folha e por seletor, com a razão de cada uma. Catraca nos dois sentidos: uma
- * declaração nova falha (justifique ou use cor), e uma que sumiu também (o
- * ganho fica travado).
+ * The guard freezes every `opacity` declaration below 1 in the sheets, per
+ * sheet and per selector, each with its reason. A ratchet both ways: a new
+ * declaration fails (justify it or use colour), and one that vanished fails
+ * too (the win gets locked in).
  *
- * **Ela não sabe ler contraste** — não tem como: o que `opacity` faz depende do
- * que está ATRÁS do elemento, que é DOM, não folha. O que ela garante é que
- * nenhuma entra sem alguém ter olhado. As categorias legítimas são três:
+ * **It cannot read contrast** — it has no way to: what `opacity` does depends
+ * on what is BEHIND the element, which is DOM, not stylesheet. What it
+ * guarantees is that none enters without somebody having looked. Three
+ * categories are legitimate:
  *
- *  - **componente inativo** (`:disabled`, `[disabled]`, linha desativada): a
- *    SC 1.4.3 isenta texto de componente inativo, a mesma razão que o
- *    `DarkModeCssTest::DERIVED_EXCEPTIONS` já usa;
- *  - **estado transitório** (carregando, `:hover`): não é o estado de repouso
- *    que alguém lê;
- *  - **`opacity: 0`**: o elemento não é pintado — esconder não é desbotar.
+ *  - **inactive component** (`:disabled`, `[disabled]`, a disabled row):
+ *    SC 1.4.3 exempts text that is part of an inactive component, the same
+ *    reason `DarkModeCssTest::DERIVED_EXCEPTIONS` already uses;
+ *  - **transient state** (loading, `:hover`): not the resting state anyone
+ *    reads;
+ *  - **`opacity: 0`**: the element is not painted — hiding is not fading.
  *
- * Fora dessas, `opacity` sobre texto de repouso é o defeito.
+ * Outside those, `opacity` over resting text is the defect.
  *
- * Sem dependência: lê o texto das folhas.
+ * No dependency: it reads the sheets as text.
  *
  * @package FreeFormCertificate\Tests\Unit
  */
@@ -46,75 +47,75 @@ use PHPUnit\Framework\TestCase;
 final class OpacityContrastTest extends TestCase {
 
 	/**
-	 * Toda declaração de `opacity` abaixo de 1, com a razão.
+	 * Every `opacity` declaration below 1, with its reason.
 	 *
-	 * Folha => seletor => razão. O seletor é o do primeiro seletor da regra,
-	 * normalizado em espaços simples.
+	 * Sheet => selector => reason. The selector is the rule's first selector,
+	 * normalised to single spaces.
 	 */
 	private const ALLOWED = array(
 		'ffc-admin-settings.css'          => array(
-			'.ffc-settings-tabs__external' => 'ícone de link externo, glifo decorativo ao lado do rótulo',
-			'.ffc-settings-back-to-top'    => 'botão flutuante de voltar ao topo; o rótulo é um glifo',
+			'.ffc-settings-tabs__external' => 'external-link icon, decorative glyph beside the label',
+			'.ffc-settings-back-to-top'    => 'floating back-to-top button; its label is a glyph',
 		),
 		'ffc-admin-submission-edit.css'   => array(
-			'.ffc-consent-header:hover' => 'realimentação de :hover, estado transitório',
+			'.ffc-consent-header:hover' => '`:hover` feedback, a transient state',
 		),
 		'ffc-admin.css'                   => array(
-			'#ffc-preview-modal' => 'opacity: 0 — o modal fechado não é pintado',
+			'#ffc-preview-modal' => 'opacity: 0 — the closed modal is not painted',
 		),
 		'ffc-audience-admin.css'          => array(
-			'.ffc-selected-user .ffc-selected-user-remove' => 'o × de remover, glifo decorativo',
+			'.ffc-selected-user .ffc-selected-user-remove' => 'the remove ×, a decorative glyph',
 		),
 		'ffc-audience.css'                => array(
-			'.ffc-shortcode .ffc-day.ffc-other-month'  => 'dia do mês vizinho: componente inativo, não é clicável — medido no #1185, 5,74:1 no claro e 5,55:1 no escuro já com o desbotamento',
-			'.ffc-shortcode .ffc-booking-cancelled'    => 'reserva cancelada: componente inativo, isento pela SC 1.4.3 — e medido no #1185, 8,45:1 no claro e 7,04:1 no escuro JÁ com o desbotamento',
+			'.ffc-shortcode .ffc-day.ffc-other-month'  => 'neighbouring-month day: inactive component, not clickable — measured in #1185, 5.74:1 light and 5.55:1 dark with the fade included',
+			'.ffc-shortcode .ffc-booking-cancelled'    => 'cancelled booking: inactive component, exempt under SC 1.4.3 — and measured in #1185, 8.45:1 light and 7.04:1 dark WITH the fade included',
 		),
 		'ffc-calendar-frontend.css'       => array(
-			'.ffc-shortcode .ffc-timeslot-available' => 'contagem de vagas: medida no #1185, 12,63:1 no claro e 7,33:1 no escuro já com o desbotamento — o desbotamento aqui é hierarquia visual, não estado',
+			'.ffc-shortcode .ffc-timeslot-available' => 'seats-left count: measured in #1185, 12.63:1 light and 7.33:1 dark with the fade included — the fade here is visual hierarchy, not state',
 		),
 		'ffc-certificates-dashboard.css'  => array(
-			'.ffc-certificates-submissions-link'        => 'link secundário do card, glifo + contagem',
-			'.ffc-calendar-core .ffc-day.ffc-other-month' => 'dia do mês vizinho: componente inativo — medido no #1185 no DOM real (o painel é tela de admin, logo sob `body.wp-admin`): 5,74:1 no claro e 4,87:1 no escuro já com o desbotamento',
+			'.ffc-certificates-submissions-link'        => 'secondary card link, glyph plus a count',
+			'.ffc-calendar-core .ffc-day.ffc-other-month' => 'neighbouring-month day: inactive component — measured in #1185 against the real DOM (the dashboard is an admin screen, so under `body.wp-admin`): 5.74:1 light and 4.87:1 dark with the fade included',
 		),
 		'ffc-common.css'                  => array(
-			'.ffc-loading'                                            => 'estado de carregamento, transitório',
-			'.ffc-form button[type="submit"]:disabled'                => 'componente inativo, isento pela SC 1.4.3',
-			'.ffc-btn:disabled'                                       => 'componente inativo, isento pela SC 1.4.3',
-			'.ffc-toggle input[type="checkbox"]'                      => 'opacity: 0 — o input real fica invisível sob a trilha desenhada',
-			'.ffc-toggle input[type="checkbox"]:disabled + .ffc-toggle-track' => 'componente inativo, isento pela SC 1.4.3',
-			'#ffc-activity-log-table.ffc-loading'                     => 'estado de carregamento, transitório',
+			'.ffc-loading'                                            => 'loading state, transient',
+			'.ffc-form button[type="submit"]:disabled'                => 'inactive component, exempt under SC 1.4.3',
+			'.ffc-btn:disabled'                                       => 'inactive component, exempt under SC 1.4.3',
+			'.ffc-toggle input[type="checkbox"]'                      => 'opacity: 0 — the real input is invisible under the drawn track',
+			'.ffc-toggle input[type="checkbox"]:disabled + .ffc-toggle-track' => 'inactive component, exempt under SC 1.4.3',
+			'#ffc-activity-log-table.ffc-loading'                     => 'loading state, transient',
 		),
 		'ffc-custom-fields-admin.css'     => array(
-			'.ffc-custom-field-row.ffc-field-inactive' => 'campo desativado: componente inativo, isento pela SC 1.4.3',
+			'.ffc-custom-field-row.ffc-field-inactive' => 'disabled field: inactive component, exempt under SC 1.4.3',
 		),
 		'ffc-frontend.css'                => array(
-			'.ffc-submit-btn.ffc-btn-loading' => 'estado de carregamento, transitório',
-			'.ffc-public-csv-download .ffc-info-btn-primary[disabled], .ffc-open-early-modal .ffc-info-btn-primary[disabled], .ffc-extend-end-modal .ffc-info-btn-primary[disabled]'   => 'componente inativo, isento pela SC 1.4.3',
-			'.ffc-public-csv-download .ffc-info-btn-secondary[disabled], .ffc-open-early-modal .ffc-info-btn-secondary[disabled], .ffc-extend-end-modal .ffc-info-btn-secondary[disabled]' => 'componente inativo, isento pela SC 1.4.3',
-			'.ffc-public-csv-download .ffc-info-btn-warning[disabled], .ffc-open-early-modal .ffc-info-btn-warning[disabled], .ffc-extend-end-modal .ffc-info-btn-warning[disabled]'   => 'componente inativo, isento pela SC 1.4.3',
-			'#ffc-preview-modal' => 'opacity: 0 — o modal fechado não é pintado',
+			'.ffc-submit-btn.ffc-btn-loading' => 'loading state, transient',
+			'.ffc-public-csv-download .ffc-info-btn-primary[disabled], .ffc-open-early-modal .ffc-info-btn-primary[disabled], .ffc-extend-end-modal .ffc-info-btn-primary[disabled]'   => 'inactive component, exempt under SC 1.4.3',
+			'.ffc-public-csv-download .ffc-info-btn-secondary[disabled], .ffc-open-early-modal .ffc-info-btn-secondary[disabled], .ffc-extend-end-modal .ffc-info-btn-secondary[disabled]' => 'inactive component, exempt under SC 1.4.3',
+			'.ffc-public-csv-download .ffc-info-btn-warning[disabled], .ffc-open-early-modal .ffc-info-btn-warning[disabled], .ffc-extend-end-modal .ffc-info-btn-warning[disabled]'   => 'inactive component, exempt under SC 1.4.3',
+			'#ffc-preview-modal' => 'opacity: 0 — the closed modal is not painted',
 		),
 		'ffc-pdf-core.css'                => array(
-			'.ffc-btn-loading' => 'estado de carregamento, transitório',
+			'.ffc-btn-loading' => 'loading state, transient',
 		),
 		'ffc-reregistration-frontend.css' => array(
-			'.ffc-rereg-header-subtitle' => 'subtítulo do cabeçalho: medido no #1185, 17,58:1 no claro e 10,10:1 no escuro já com o desbotamento',
+			'.ffc-rereg-header-subtitle' => 'header subtitle: measured in #1185, 17.58:1 light and 10.10:1 dark with the fade included',
 		),
 		'ffc-url-shortener-admin.css'     => array(
-			'.ffc-shorturl-toast' => 'opacity: 0 — o aviso só aparece via animação',
+			'.ffc-shorturl-toast' => 'opacity: 0 — the toast only appears through animation',
 		),
 		'ffc-user-dashboard.css'          => array(
-			'.ffc-audience-join-item .button.button-primary:disabled' => 'componente inativo, isento pela SC 1.4.3',
+			'.ffc-audience-join-item .button.button-primary:disabled' => 'inactive component, exempt under SC 1.4.3',
 		),
 		'ffc-user-permissions.css'        => array(
-			'.ffc-cap-role[disabled]' => 'componente inativo, isento pela SC 1.4.3',
+			'.ffc-cap-role[disabled]' => 'inactive component, exempt under SC 1.4.3',
 		),
 	);
 
 	/**
-	 * Cada declaração de `opacity` abaixo de 1, por folha.
+	 * Each `opacity` declaration below 1, per sheet.
 	 *
-	 * @return array<string, array<string, string>> Folha => seletor => valor.
+	 * @return array<string, array<string, string>> Sheet => selector => value.
 	 */
 	private static function found(): array {
 		$out = array();
@@ -141,7 +142,7 @@ final class OpacityContrastTest extends TestCase {
 	}
 
 	/**
-	 * Nenhuma declaração nova de `opacity` entra sem razão escrita.
+	 * No new `opacity` declaration enters without a written reason.
 	 */
 	public function test_no_new_opacity_fades_text(): void {
 		$new = array();
@@ -157,16 +158,16 @@ final class OpacityContrastTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$new,
-			"`opacity` nova, sem razão escrita:\n  " . implode( "\n  ", $new )
-			. "\n\nO medidor de pares NÃO enxerga isto: o desbotamento multiplica o contraste"
-			. "\npara baixo enquanto os tokens continuam certos. Diga estado com COR."
-			. "\nSe for componente inativo, estado transitório ou `opacity: 0`, acrescente"
-			. "\na ALLOWED com a razão."
+			"New `opacity`, with no written reason:\n  " . implode( "\n  ", $new )
+			. "\n\nThe pair meter does NOT see this: fading multiplies the contrast down"
+			. "\nwhile the tokens stay correct. Say state with COLOUR."
+			. "\nIf it is an inactive component, a transient state or `opacity: 0`, add it"
+			. "\nto ALLOWED with the reason."
 		);
 	}
 
 	/**
-	 * Uma entrada que sumiu das folhas sai da lista.
+	 * An entry that vanished from the sheets leaves the list.
 	 */
 	public function test_the_list_only_shrinks(): void {
 		$found = self::found();
@@ -183,15 +184,15 @@ final class OpacityContrastTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$stale,
-			"Estas não existem mais — tire-as de ALLOWED para travar o ganho:\n  " . implode( "\n  ", $stale )
+			"These no longer exist — drop them from ALLOWED to lock the win in:\n  " . implode( "\n  ", $stale )
 		);
 	}
 
 	/**
-	 * Toda razão diz alguma coisa.
+	 * Every reason says something.
 	 *
-	 * Piso contra "ok" / "ver acima" — nunca uma régua de qualidade, o mesmo
-	 * critério das guardas de supressão (#1027 / #1035).
+	 * A floor against "ok" / "see above" — never a quality bar, the same
+	 * criterion the suppression guards use (#1027 / #1035).
 	 */
 	public function test_every_reason_says_something(): void {
 		$short = array();
@@ -204,14 +205,14 @@ final class OpacityContrastTest extends TestCase {
 			}
 		}
 
-		$this->assertSame( array(), $short, "Razão curta demais:\n  " . implode( "\n  ", $short ) );
+		$this->assertSame( array(), $short, "Reason too short:\n  " . implode( "\n  ", $short ) );
 	}
 
 	/**
-	 * A varredura não pode colapsar em silêncio.
+	 * The scan must not collapse in silence.
 	 *
-	 * Um mapa vazio satisfaz o primeiro teste tão bem quanto um mapa correto —
-	 * a forma do #1071 / #1094.
+	 * An empty map satisfies the first test just as well as a correct one —
+	 * the #1071 / #1094 shape.
 	 */
 	public function test_the_scan_cannot_collapse_in_silence(): void {
 		$found = self::found();
@@ -220,14 +221,14 @@ final class OpacityContrastTest extends TestCase {
 			$total += count( $rules );
 		}
 
-		$this->assertGreaterThan( 20, $total, 'A varredura de `opacity` colapsou.' );
-		$this->assertGreaterThan( 20, count( CssSelectors::sheets() ), 'A leitura das folhas colapsou.' );
+		$this->assertGreaterThan( 20, $total, 'The `opacity` scan collapsed.' );
+		$this->assertGreaterThan( 20, count( CssSelectors::sheets() ), 'Reading the sheets collapsed.' );
 
-		// E a tabela que motivou a guarda não pode voltar a desbotar.
+		// And the table that motivated the guard must not fade again.
 		$this->assertArrayNotHasKey(
 			'.ffc-reregistrations-table.ffc-table-past',
 			$found['ffc-user-dashboard.css'] ?? array(),
-			'A linha passada da recadastração voltou a usar `opacity` — era 3,11:1 no tema claro.'
+			'The reregistration past row went back to `opacity` — it was 3.11:1 in the light theme.'
 		);
 	}
 }

@@ -194,7 +194,7 @@ class AppointmentRestController {
 				'appointment_date' => sanitize_text_field( $params['date'] ),
 				'start_time'       => sanitize_text_field( $params['time'] ),
 				'name'             => sanitize_text_field( $params['name'] ),
-				'email'            => sanitize_email( $params['email'] ),
+				'email'            => \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( $params['email'] ) ),
 				'phone'            => isset( $params['phone'] ) ? sanitize_text_field( $params['phone'] ) : '',
 				'user_notes'       => isset( $params['notes'] ) ? sanitize_textarea_field( $params['notes'] ) : '',
 				'custom_data'      => isset( $params['custom_data'] ) ? $params['custom_data'] : array(),

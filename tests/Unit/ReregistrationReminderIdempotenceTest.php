@@ -11,27 +11,29 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationSubmissionReader;
 
 /**
- * O lembrete de recadastramento e enviado UMA VEZ por campanha, mais uma a
- * cada extensao de prazo (#1232).
+ * The reregistration reminder is sent ONCE per campaign, plus once per deadline
+ * extension (#1232).
  *
- * O DEFEITO QUE ISTO CONSERTA
+ * THE DEFECT THIS FIXES
  *
- * `run_automated_reminders()` seleciona campanhas com
- * `DATEDIFF(end_date, CURDATE()) <= reminder_days`, que e uma JANELA e nao um
- * dia, e o cron e DIARIO. Sem marca por submissao, cada participante pendente
- * recebia `reminder_days` e-mails -- sete, na configuracao mais comum. Nao era
- * risco teorico: rodava assim em producao, sem erro e sem log.
+ * `run_automated_reminders()` selects campaigns with
+ * `DATEDIFF(end_date, CURDATE()) <= reminder_days`, which is a WINDOW and not a
+ * day, and the cron is DAILY. With no per-submission mark, every pending
+ * participant received `reminder_days` emails -- seven, in the commonest
+ * configuration. It was not a theoretical risk: it ran that way in production,
+ * with no error and no log.
  *
- * O QUE ESTE ARQUIVO TESTA, E POR QUE NAO PELO HANDLER
+ * WHAT THIS FILE TESTS, AND WHY NOT THROUGH THE HANDLER
  *
- * A decisao de QUEM recebe mora inteira no predicado do reader, e e la que ela
- * pode regredir. Exercitar o handler exigiria encenar wp_mail, templates,
- * `PasswordInvite` e o cron -- muita encenacao para observar uma clausula
- * WHERE. Aqui o `$wpdb` e um duplo que apenas CAPTURA o SQL preparado, entao
- * as asercoes falam da consulta que o produto realmente emite.
+ * The decision of WHO receives one lives entirely in the reader's predicate,
+ * and that is where it can regress. Exercising the handler would mean staging
+ * wp_mail, templates, `PasswordInvite` and the cron -- a lot of staging to
+ * observe a WHERE clause. Here `$wpdb` is a double that merely CAPTURES the
+ * prepared SQL, so the assertions speak about the query the product really
+ * emits.
  *
- * A contrapartida esta dita: isto prova o predicado, nao o envio. Que o
- * carimbo acontece por item apos cada envio e coberto em
+ * The trade-off is stated: this proves the predicate, not the send. That the
+ * stamp happens per item after each send is covered in
  * `ReregistrationEmailHandlerTest`.
  *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader
@@ -53,9 +55,9 @@ class ReregistrationReminderIdempotenceTest extends TestCase {
 		$wpdb         = Mockery::mock( 'wpdb' );
 		$wpdb->prefix = 'wp_';
 
-		// `prepare()` ingenuo: interpola para que o teste leia a INTENCAO da
-		// consulta. O duplo nao simula banco -- o que importa aqui e o
-		// predicado emitido, nao linhas devolvidas.
+		// A naive `prepare()`: it interpolates so the test reads the query's
+		// INTENT. The double simulates no database -- what matters here is the
+		// emitted predicate, not the rows returned.
 		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
 			function ( $sql, ...$args ) {
 				$values = ( 1 === count( $args ) && is_array( $args[0] ) ) ? $args[0] : $args;
@@ -78,11 +80,11 @@ class ReregistrationReminderIdempotenceTest extends TestCase {
 	}
 
 	/**
-	 * Sem extensao de prazo, so quem nunca foi lembrado entra.
+	 * With no deadline extension, only those never reminded come in.
 	 *
-	 * E a asercao que reprova a volta do defeito: sem `reminder_sent_at IS
-	 * NULL` no predicado, a consulta devolve todo mundo em toda execucao
-	 * diaria.
+	 * This is the assertion that fails if the defect returns: without
+	 * `reminder_sent_at IS NULL` in the predicate, the query returns everybody
+	 * on every daily run.
 	 */
 	public function test_without_an_extension_only_the_never_reminded_are_selected(): void {
 		ReregistrationSubmissionReader::get_awaiting_reminder( 7, null );
@@ -90,21 +92,21 @@ class ReregistrationReminderIdempotenceTest extends TestCase {
 		$this->assertStringContainsString(
 			'reminder_sent_at IS NULL',
 			$this->captured,
-			'Sem esta clausula o lembrete volta a ser reenviado a cada execucao do cron.'
+			'Without this clause the reminder goes back to being resent on every cron run.'
 		);
 		$this->assertStringNotContainsString(
 			'reminder_sent_at <',
 			$this->captured,
-			'A reabertura so pode aparecer quando ha extensao de prazo.'
+			'The reopening may only appear when there is a deadline extension.'
 		);
 	}
 
 	/**
-	 * Com extensao, quem foi lembrado ANTES dela volta a ser lembravel -- uma
-	 * vez, porque a comparacao e contra o carimbo mais recente da extensao.
+	 * With an extension, whoever was reminded BEFORE it becomes remindable again
+	 * -- once, because the comparison is against the extension's own timestamp.
 	 *
-	 * E a mesma forma que o convite usa desde o #1190, com `reminder_sent_at`
-	 * no lugar de `invited_at`.
+	 * It is the same shape the invitation has used since #1190, with
+	 * `reminder_sent_at` in place of `invited_at`.
 	 */
 	public function test_an_extension_reopens_the_reminder_once(): void {
 		$extended_at = 1771000000;
@@ -115,26 +117,26 @@ class ReregistrationReminderIdempotenceTest extends TestCase {
 		$this->assertStringContainsString(
 			'reminder_sent_at < ' . $extended_at,
 			$this->captured,
-			'A reabertura compara contra o carimbo da extensao; sem isso, estender o prazo nao lembra ninguem.'
+			'The reopening compares against the extension\'s timestamp; without it, extending the deadline reminds nobody.'
 		);
 	}
 
 	/**
-	 * O publico-base do lembrete e um subconjunto DELIBERADO do que o convite
-	 * alcanca.
+	 * The reminder's base audience is a DELIBERATE subset of what the invitation
+	 * reaches.
 	 *
-	 * O convite reabre para `UNFINISHED_STATUSES`, que inclui `expired` e
-	 * `rejected`. Adotar esse conjunto como base do lembrete ALARGARIA quem
-	 * recebe e-mail -- uma mudanca de comportamento que nao pertence a uma
-	 * correcao de duplicidade. Esta asercao existe para que esse alargamento
-	 * nao entre sem alguem decidir por ele.
+	 * The invitation reopens for `UNFINISHED_STATUSES`, which includes `expired`
+	 * and `rejected`. Adopting that set as the reminder's base would WIDEN who
+	 * gets an email -- a behaviour change that does not belong in a duplication
+	 * fix. This assertion exists so that widening cannot enter without somebody
+	 * deciding on it.
 	 */
 	public function test_the_base_audience_stays_pending_and_in_progress(): void {
 		ReregistrationSubmissionReader::get_awaiting_reminder( 7, null );
 
-		// O `prepare()` do duplo interpola sem aspas, entao a forma capturada e
-		// `IN (pending,in_progress)`. O que importa aqui e QUAIS status entram,
-		// nao como o driver os cita.
+		// The double's `prepare()` interpolates without quoting, so the captured
+		// shape is `IN (pending,in_progress)`. What matters here is WHICH statuses
+		// enter, not how the driver quotes them.
 		$this->assertStringContainsString( 'status IN (pending,in_progress)', $this->captured );
 		$this->assertSame(
 			array( 'pending', 'in_progress' ),
@@ -143,14 +145,14 @@ class ReregistrationReminderIdempotenceTest extends TestCase {
 		$this->assertNotSame(
 			ReregistrationSubmissionReader::UNFINISHED_STATUSES,
 			ReregistrationSubmissionReader::REMINDABLE_STATUSES,
-			'Se os dois conjuntos convergirem, foi por decisao — e esta asercao e onde ela se argumenta.'
+			'If the two sets converge, it was by decision — and this assertion is where that is argued.'
 		);
 	}
 
 	/**
-	 * A ordem e por `id`, estavel sob insercao concorrente -- a mesma escolha
-	 * que o contrato de exportacao do #772 faz, e o que permite lotear este
-	 * envio sem que uma linha nova empurre outra para fora da pagina.
+	 * The order is by `id`, stable under concurrent inserts -- the same choice
+	 * #772's export contract makes, and what allows batching this send without a
+	 * new row pushing another off the page.
 	 */
 	public function test_rows_come_back_in_a_stable_order(): void {
 		ReregistrationSubmissionReader::get_awaiting_reminder( 7, null );
@@ -159,11 +161,11 @@ class ReregistrationReminderIdempotenceTest extends TestCase {
 	}
 
 	/**
-	 * Sem cursor e sem limite a consulta nao os menciona.
+	 * With no cursor and no limit the query mentions neither.
 	 *
-	 * E a autoverificacao das duas asercoes abaixo: sem ela, um `LIMIT`
-	 * grudado no literal passaria nos dois testes seguintes sem que parametro
-	 * nenhum estivesse sendo lido.
+	 * It is the self-check for the two assertions below: without it, a `LIMIT`
+	 * glued into the literal would pass the next two tests without any parameter
+	 * being read at all.
 	 */
 	public function test_the_unbatched_read_carries_neither_cursor_nor_limit(): void {
 		ReregistrationSubmissionReader::get_awaiting_reminder( 7, null );
@@ -173,12 +175,12 @@ class ReregistrationReminderIdempotenceTest extends TestCase {
 	}
 
 	/**
-	 * O cursor keyset vira `id > N` (#1232 passo 2).
+	 * The keyset cursor becomes `id > N` (#1232 step 2).
 	 *
-	 * Nao e so paginacao estavel: e o que garante PROGRESSO. Uma submissao
-	 * cujo usuario foi apagado nunca recebe carimbo -- `user_id` e `NOT NULL`
-	 * e orfao aceito (#822) --, entao sem o cursor o lote seguinte a rebusca e
-	 * o reagendamento nao termina nunca.
+	 * It is not only stable pagination: it is what guarantees PROGRESS. A
+	 * submission whose user was deleted never gets a stamp -- `user_id` is
+	 * `NOT NULL` and an accepted orphan (#822) -- so without the cursor the next
+	 * batch fetches it again and the rescheduling never ends.
 	 */
 	public function test_a_cursor_narrows_the_page_to_rows_after_it(): void {
 		ReregistrationSubmissionReader::get_awaiting_reminder( 7, null, 120, 50 );
@@ -187,11 +189,11 @@ class ReregistrationReminderIdempotenceTest extends TestCase {
 	}
 
 	/**
-	 * O limite vira `LIMIT N`, depois do `ORDER BY`.
+	 * The limit becomes `LIMIT N`, after the `ORDER BY`.
 	 *
-	 * A ordem no SQL importa porque `prepare()` recebe um array unico e
-	 * substitui na ordem em que os marcadores aparecem: cursor e limite entram
-	 * depois das clausulas de status e de extensao.
+	 * The order in the SQL matters because `prepare()` takes a single array and
+	 * substitutes in the order the placeholders appear: cursor and limit come
+	 * after the status and extension clauses.
 	 */
 	public function test_a_limit_bounds_the_page(): void {
 		ReregistrationSubmissionReader::get_awaiting_reminder( 7, null, 120, 50 );
@@ -200,10 +202,10 @@ class ReregistrationReminderIdempotenceTest extends TestCase {
 	}
 
 	/**
-	 * Com extensao de prazo, cursor e limite continuam no fim da consulta.
+	 * With a deadline extension, cursor and limit stay at the end of the query.
 	 *
-	 * O caminho com mais marcadores e onde um `prepare()` desalinhado
-	 * apareceria -- e ele apareceria como dado errado, nao como erro.
+	 * The path with the most placeholders is where a misaligned `prepare()` would
+	 * show up -- and it would show up as wrong data, not as an error.
 	 */
 	public function test_cursor_and_limit_survive_an_extension(): void {
 		ReregistrationSubmissionReader::get_awaiting_reminder( 7, 1771000000, 120, 50 );

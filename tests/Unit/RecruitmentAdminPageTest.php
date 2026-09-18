@@ -77,9 +77,10 @@ class RecruitmentAdminPageTest extends TestCase {
 		)->byDefault();
 
 		$this->badgeMock = Mockery::mock( 'alias:FreeFormCertificate\Core\BadgeHtml' );
-		// A cor saiu da assinatura no #1193: as variantes de status são pintadas
-		// por regra gerada, não por atributo, então o ajudante só recebe classes
-		// e rótulo. A adjutância, cuja cor é por linha, tem método próprio.
+		// The colour left the signature in #1193: status variants are painted by
+		// a generated rule, not by an attribute, so the helper only takes classes
+		// and a label. The adjutancy badge, whose colour is per row, has its own
+		// method.
 		$this->badgeMock->shouldReceive( 'render' )->andReturnUsing(
 			fn( $base, $cls, $label ) => "[BADGE:$cls:$label]"
 		);

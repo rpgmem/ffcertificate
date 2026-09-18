@@ -29,6 +29,7 @@ namespace FreeFormCertificate\UserDashboard;
 use FreeFormCertificate\Core\ActivityLog;
 use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\SensitiveFieldRegistry;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -42,7 +43,7 @@ final class UserProfileService {
 	/**
 	 * Per-call overrides for fields that are not registered in the
 	 * static UserProfileFieldMap. Populated by write() and consumed by
-	 * resolve_spec() / resolve_hash_meta_key() inside the helpers.
+	 * resolve_spec() / resolve_hash_column() inside the helpers.
 	 * Cleared at the end of the write() call via try/finally so it
 	 * never leaks between requests.
 	 *
@@ -205,23 +206,29 @@ final class UserProfileService {
 	}
 
 	/**
-	 * Resolve the hash meta key for a hashable usermeta field under the
-	 * current override context. Mirrors UserProfileFieldMap::hash_meta_key
+	 * Resolve the identity-index column for a hashable usermeta field under
+	 * the current override context. Mirrors UserProfileFieldMap::hash_column
 	 * but respects runtime overrides.
+	 *
+	 * A runtime descriptor (a dynamic reregistration field) declares
+	 * `hashable => false` today, so it resolves to null and writes no index.
+	 * Should one ever need an index, it declares `hash_column` like any other
+	 * field -- the column has to exist on the table either way, which is what
+	 * stops this from being reachable by accident.
 	 *
 	 * @param string $field_key Logical field key.
 	 * @return string|null
 	 */
-	private static function resolve_hash_meta_key( string $field_key ): ?string {
+	private static function resolve_hash_column( string $field_key ): ?string {
 		$spec = self::resolve_spec( $field_key );
 		if ( null === $spec
 			|| UserProfileFieldMap::STORAGE_USERMETA !== ( $spec['storage'] ?? null )
 			|| empty( $spec['hashable'] )
-			|| empty( $spec['meta_key'] )
+			|| empty( $spec['hash_column'] )
 		) {
 			return null;
 		}
-		return $spec['meta_key'] . '_hash';
+		return (string) $spec['hash_column'];
 	}
 
 	// ==================================================================
@@ -300,8 +307,8 @@ final class UserProfileService {
 			$sensitive = ! empty( $spec['sensitive'] );
 
 			if ( $sensitive && ViewPolicy::HASHED_ONLY === $policy ) {
-				$hash_key      = UserProfileFieldMap::hash_meta_key( $field );
-				$out[ $field ] = null !== $hash_key ? get_user_meta( $user_id, $hash_key, true ) : null;
+				$column        = UserProfileFieldMap::hash_column( $field );
+				$out[ $field ] = null !== $column ? self::read_identity_index( $user_id, $column ) : null;
 				continue;
 			}
 
@@ -380,8 +387,10 @@ final class UserProfileService {
 	}
 
 	/**
-	 * Write to wp_usermeta, encrypting sensitive values and writing the
-	 * lookup hash for hashable fields.
+	 * Write to wp_usermeta, encrypting sensitive values -- and accumulating
+	 * the lookup hash of every hashable field for the single index write that
+	 * closes the method. The ciphertext and the hash land in different stores
+	 * on purpose; {@see UserProfileFieldMap::hash_column()} says why.
 	 *
 	 * @param int                  $user_id WordPress user ID.
 	 * @param array<string, mixed> $slice   Fields known to target usermeta.
@@ -389,6 +398,14 @@ final class UserProfileService {
 	 */
 	private static function write_usermeta( int $user_id, array $slice ): bool {
 		$any = false;
+
+		/**
+		 * Identity-index columns accumulated across the slice, flushed once
+		 * below.
+		 *
+		 * @var array<string, string|null> $index
+		 */
+		$index = array();
 		foreach ( $slice as $field => $value ) {
 			$spec = self::resolve_spec( $field );
 			if ( null === $spec || empty( $spec['meta_key'] ) ) {
@@ -406,9 +423,11 @@ final class UserProfileService {
 			if ( '' === $scalar ) {
 				delete_user_meta( $user_id, $meta_key );
 				if ( $sensitive ) {
-					$hash_key = self::resolve_hash_meta_key( $field );
-					if ( null !== $hash_key ) {
-						delete_user_meta( $user_id, $hash_key );
+					$column = self::resolve_hash_column( $field );
+					if ( null !== $column ) {
+						// NULL, not '': the column is an index, and an empty
+						// string is a value two users could share.
+						$index[ $column ] = null;
 					}
 				}
 				$any = true;
@@ -425,23 +444,96 @@ final class UserProfileService {
 				continue;
 			}
 
+			// #1313: normalise BEFORE encrypting and hashing, through the same
+			// boundary every other module uses. This method used to hash
+			// `$scalar` exactly as handed to it, so a reregistration storing a
+			// masked `123.456.789-09` wrote a hash of the punctuation while
+			// submissions, appointments and recruitment all hashed the digits
+			// -- the same person, two values, never matching. The store was
+			// write-only at the time, which is why nothing broke visibly and
+			// why nothing caught it either.
+			$scalar = SensitiveFieldRegistry::normalize( $field, $scalar );
+			if ( '' === $scalar ) {
+				continue;
+			}
+
 			$encrypted = Encryption::encrypt( $scalar );
 			if ( null === $encrypted ) {
 				continue;
 			}
 			update_user_meta( $user_id, $meta_key, $encrypted );
 
-			$hash_key = self::resolve_hash_meta_key( $field );
-			if ( null !== $hash_key ) {
-				$hash = Encryption::hash( $scalar );
+			$column = self::resolve_hash_column( $field );
+			if ( null !== $column ) {
+				// Through the boundary, not past it (#1313 PR 9). `$scalar` is
+				// already normalised above, so `Encryption::hash()` would
+				// produce the identical value -- and that is exactly the shape
+				// this arc exists to remove: a call site that is correct
+				// because it remembered. The normalisation inside
+				// `hash_identifier()` is idempotent, so routing through it
+				// costs nothing and makes the agreement enforceable rather
+				// than promised in a comment.
+				$hash = SensitiveFieldRegistry::hash_identifier( $field, $scalar );
 				if ( null !== $hash ) {
-					update_user_meta( $user_id, $hash_key, $hash );
+					$index[ $column ] = $hash;
 				}
 			}
 
 			$any = true;
 		}
+
+		self::write_identity_index( $user_id, $index );
+
 		return $any;
+	}
+
+	/**
+	 * Write the identity-index columns of ffc_user_profiles in one upsert.
+	 *
+	 * ONE UPSERT PER write(), NOT ONE PER FIELD
+	 *
+	 * A patch carrying both CPF and RF is one person's identity, and splitting
+	 * it into two writes would leave a window in which the row answers for one
+	 * identifier and not the other. The accumulator also means a write that
+	 * touches no hashable field costs no query at all.
+	 *
+	 * The upsert creates the profile row when the user has none: an identifier
+	 * arriving before any other profile field is the normal order for a user
+	 * created by a reregistration, and an index that only exists for users who
+	 * happened to fill in a display name would answer for a subset nobody can
+	 * state.
+	 *
+	 * @param int                        $user_id WordPress user ID.
+	 * @param array<string, string|null> $index  Column => hash (null clears it).
+	 * @return void
+	 */
+	private static function write_identity_index( int $user_id, array $index ): void {
+		if ( empty( $index ) ) {
+			return;
+		}
+
+		( new \FreeFormCertificate\Repositories\UserProfileRepository() )->upsertForUserId( $user_id, $index );
+	}
+
+	/**
+	 * Read one identity-index column. Null when the user has no profile row
+	 * or the column was never written.
+	 *
+	 * @param int    $user_id WordPress user ID.
+	 * @param string $column  Column name from UserProfileFieldMap::hash_column().
+	 * @return string|null
+	 */
+	private static function read_identity_index( int $user_id, string $column ): ?string {
+		$row   = ( new \FreeFormCertificate\Repositories\UserProfileRepository() )->findByUserId( $user_id );
+		$value = null !== $row ? ( $row[ $column ] ?? null ) : null;
+
+		// '' is refused as hard as null: an identifier lookup compares for
+		// equality, so an empty column would match every other empty one.
+		if ( ! is_string( $value ) || '' === $value ) {
+			return null;
+		}
+
+		return $value;
 	}
 
 	/**
