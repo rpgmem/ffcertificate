@@ -190,12 +190,34 @@ class UserCreator {
 	 * and then watch promotion create a duplicate anyway. One lookup, two
 	 * callers.
 	 *
-	 * **It reads `ffc_submissions` alone**, which is the known gap, not a
-	 * decision taken here: appointments and recruitment candidacies carry the
-	 * same hash columns and are consulted by neither — while this class's own
-	 * `link_orphaned_records_dual()` happily ADOPTS appointment rows once the
-	 * user is identified some other way. Measured and tracked in #1295; when
-	 * that widens, it widens here, for both callers at once.
+	 * **It asks the identity index first, then `ffc_submissions`** (#1313 PR 4).
+	 *
+	 * **Why the index does not REPLACE the submissions query, which is what
+	 * #1313 proposed.** `ffc_user_profiles` is the right place to ask "which
+	 * user carries this identifier": one row per user, both columns indexed,
+	 * and `user_id` is the answer rather than a link that may be null. But it
+	 * is NOT a superset of the module tables on an existing install, and
+	 * nothing makes it one. A certificate submission writes
+	 * `ffc_submissions.cpf_hash` and never touches the profile, so a user known
+	 * only through a submission has no profile row — and reading the index
+	 * ALONE would stop finding them and create a duplicate, which is the exact
+	 * defect this work exists to remove. The invariant that fills the index
+	 * starts below, at the moment a record is linked; it says nothing about
+	 * records linked before it existed.
+	 *
+	 * So the index leads and submissions remain the fallback. When measurement
+	 * shows the fallback finding nothing the index missed, that is the trigger
+	 * to collapse this to one query — extracted from a proven fact rather than
+	 * on spec, the criterion `CLAUDE.md` records for #788 / #902 / #993.
+	 *
+	 * **Appointments and candidacies are still consulted by neither**, while
+	 * this class's own `link_orphaned_records_dual()` happily ADOPTS an
+	 * appointment row once the user is identified some other way — so the
+	 * plugin declines to RECOGNISE someone it is willing to adopt a record for
+	 * a moment later. That asymmetry is #1295's, not this PR's: widening to
+	 * them means a `SHOW TABLES` probe per lookup on a path every certificate
+	 * submission takes, and it should be decided with that cost measured
+	 * rather than folded into a change about the index.
 	 *
 	 * @since 6.26.0
 	 * @param string|null $cpf_hash CPF hash, or null to skip that column.
@@ -208,33 +230,74 @@ class UserCreator {
 		}
 
 		global $wpdb;
-		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		// Build a `cpf_hash = %s OR rf_hash = %s` clause that includes only the
 		// columns we actually have a value for.
 		$where_parts = array();
-		$params      = array();
+		$values      = array();
 		if ( null !== $cpf_hash ) {
 			$where_parts[] = 'cpf_hash = %s';
-			$params[]      = $cpf_hash;
+			$values[]      = $cpf_hash;
 		}
 		if ( null !== $rf_hash ) {
 			$where_parts[] = 'rf_hash = %s';
-			$params[]      = $rf_hash;
+			$values[]      = $rf_hash;
 		}
 		$where = implode( ' OR ', $where_parts );
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $where built from hard-coded fragments above with matching placeholder count.
-		$found = $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT user_id FROM %i WHERE ({$where}) AND user_id IS NOT NULL LIMIT 1",
-				$table,
-				...$params
-			)
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+		foreach ( self::identity_sources() as $table ) {
+			// `user_id IS NOT NULL` is always true on the profile, where the
+			// column is the primary fact rather than a link that may be
+			// missing. One statement shape for both is worth more than saving
+			// that predicate on one of them.
+			//
+			// No `table_exists()` probe: both tables are created by activators
+			// that #1311 wired into the runtime healing path, and probing would
+			// cost a `SHOW TABLES` per lookup on a path every certificate
+			// submission takes. Same exposure, and the same answer, as
+			// `UserProfileService`'s own index write.
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $where built from hard-coded fragments above with matching placeholder count.
+			$found = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT user_id FROM %i WHERE ({$where}) AND user_id IS NOT NULL LIMIT 1",
+					$table,
+					...$values
+				)
+			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
-		return $found ? (int) $found : null;
+			if ( $found ) {
+				return (int) $found;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * The stores that can answer "which user carries this identifier", in the
+	 * order they are asked.
+	 *
+	 * Both carry `cpf_hash`, `rf_hash` and `user_id`, which is what lets one
+	 * statement serve them — the difference between them is not the shape of
+	 * the question but how complete the answer is.
+	 *
+	 * The identity index leads because it is the only one built for this
+	 * question, and because a hit there costs one key probe on a table with one
+	 * row per user. Submissions follow because that is where an identifier most
+	 * often first appears, and on an existing install it is the only store that
+	 * knows about anyone who never edited a profile field.
+	 *
+	 * @since 6.26.0
+	 * @return array<int, string> Full table names, in lookup order.
+	 */
+	private static function identity_sources(): array {
+		global $wpdb;
+
+		return array(
+			$wpdb->prefix . 'ffc_user_profiles',
+			\FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table(),
+		);
 	}
 
 	/**
@@ -334,6 +397,67 @@ class UserCreator {
 				CapabilityManager::grant_appointment_capabilities( $user_id );
 			}
 		}
+
+		self::feed_identity_index( $cpf_hash, $rf_hash, $user_id );
+	}
+
+	/**
+	 * Record this user's identifiers in the identity index (#1313 PR 4).
+	 *
+	 * THE INVARIANT: whenever a record gains a link to a user, that user's
+	 * identity index receives the identifiers. Without it the index only ever
+	 * learns about someone who edits a profile field, which is a subset nobody
+	 * can state — and the resolver above would keep falling through to the
+	 * module tables forever, never able to collapse to one query.
+	 *
+	 * **It fills, it never overwrites.** A column that already holds a
+	 * different hash is a person with two identifiers on record, and the
+	 * honest answer to that is not to pick one silently: it is the conflict
+	 * #1313 wants COUNTED before anyone designs a merge policy. Overwriting
+	 * would destroy the evidence and leave the index asserting whichever write
+	 * happened last. So the index grows monotonically and a disagreement
+	 * survives to be found.
+	 *
+	 * The hashes arrive already canonical: every caller of this method obtained
+	 * them through `SensitiveFieldRegistry::hash_identifier()`, which is the
+	 * whole point of PR 1.
+	 *
+	 * @since 6.26.0
+	 * @param string|null $cpf_hash CPF hash, or null.
+	 * @param string|null $rf_hash  RF hash, or null.
+	 * @param int         $user_id  The user the record was linked to.
+	 * @return void
+	 */
+	private static function feed_identity_index( ?string $cpf_hash, ?string $rf_hash, int $user_id ): void {
+		if ( $user_id <= 0 || ( null === $cpf_hash && null === $rf_hash ) ) {
+			return;
+		}
+
+		$repository = new \FreeFormCertificate\Repositories\UserProfileRepository();
+		$row        = $repository->findByUserId( $user_id );
+		$index      = array();
+
+		foreach ( array(
+			'cpf_hash' => $cpf_hash,
+			'rf_hash'  => $rf_hash,
+		) as $column => $hash ) {
+			if ( null === $hash ) {
+				continue;
+			}
+
+			$stored = null !== $row ? ( $row[ $column ] ?? null ) : null;
+			if ( is_string( $stored ) && '' !== $stored ) {
+				continue;
+			}
+
+			$index[ $column ] = $hash;
+		}
+
+		if ( array() === $index ) {
+			return;
+		}
+
+		$repository->upsertForUserId( $user_id, $index );
 	}
 
 	/**
