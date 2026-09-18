@@ -444,9 +444,20 @@ class IdentityIndexBackfillMigrationStrategy implements MigrationStrategyInterfa
 	 * @return int
 	 */
 	protected function canonicalisation_pending(): int {
-		$status = ( new IdentityNormalizationMigrationStrategy() )->calculate_status( '', array() );
+		$status  = ( new IdentityNormalizationMigrationStrategy() )->calculate_status( '', array() );
+		$pending = $status['pending'] ?? null;
 
-		return isset( $status['pending'] ) ? (int) $status['pending'] : 0;
+		// Checked rather than cast. The sibling's status array is
+		// `array<string, mixed>`, so a blind `(int)` would turn anything at all
+		// into a number -- and the number this reads decides whether a write
+		// that cannot be undone is allowed. A shape that is not numeric means
+		// the question was not answered, which is not the same as "zero
+		// pending", so it fails closed on 1 rather than open on 0.
+		if ( is_numeric( $pending ) ) {
+			return (int) $pending;
+		}
+
+		return 1;
 	}
 
 	/**
@@ -508,9 +519,14 @@ class IdentityIndexBackfillMigrationStrategy implements MigrationStrategyInterfa
 	 * @return int
 	 */
 	private function get_cursor(): int {
-		$state = $this->get_state();
+		$state  = $this->get_state();
+		$cursor = $state['cursor'] ?? null;
 
-		return isset( $state['cursor'] ) ? (int) $state['cursor'] : 0;
+		// `get_option()` returns whatever is stored, so the value is checked
+		// before it is trusted -- the idiom `IdentityNormalizationMigrationStrategy`
+		// uses for its own cursors. A non-numeric cursor restarts the walk,
+		// which is safe here: every step is idempotent.
+		return is_numeric( $cursor ) ? (int) $cursor : 0;
 	}
 
 	/**

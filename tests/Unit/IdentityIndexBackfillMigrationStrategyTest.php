@@ -257,6 +257,29 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 		$this->assertSame( array(), $this->writes, 'A refused run still wrote to the index.' );
 	}
 
+	/**
+	 * An unreadable answer from the other card is a refusal, not a zero.
+	 *
+	 * This exercises the REAL `canonicalisation_pending()`, which every other
+	 * test replaces through the seam. The number it reads decides whether a
+	 * write that cannot be undone is allowed, and the sibling's status array is
+	 * `array<string, mixed>` — so a shape that is not numeric means the
+	 * question was not answered, which is not the same as "nothing pending".
+	 * Level 9 is what forced the value to be checked rather than cast; failing
+	 * CLOSED is the decision that check then had to make, and this is what
+	 * stops a later edit from quietly turning it into `return 0`.
+	 */
+	public function test_an_unreadable_pending_count_refuses_rather_than_assuming_zero(): void {
+		Mockery::mock( 'overload:FreeFormCertificate\Migrations\Strategies\IdentityNormalizationMigrationStrategy' )
+			->shouldReceive( 'calculate_status' )
+			->andReturn( array( 'pending' => 'not a number' ) );
+
+		$result = ( new IdentityIndexBackfillMigrationStrategy() )->can_run( '', array() );
+
+		$this->assertInstanceOf( \WP_Error::class, $result, 'An unreadable pending count was treated as "nothing pending", which opens the gate this card exists to keep shut.' );
+		$this->assertSame( 'canonicalisation_pending', $result->get_error_code() );
+	}
+
 	// =====================================================================
 	// The decision
 	// =====================================================================
