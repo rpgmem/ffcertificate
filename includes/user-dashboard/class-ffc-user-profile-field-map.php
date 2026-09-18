@@ -233,6 +233,24 @@ final class UserProfileFieldMap {
 	 * an index sitting beside a record, not a store that drifted in two. What
 	 * keeps the two in step is that a single write path produces both.
 	 *
+	 * THERE IS NO `empty( $spec['hash_column'] )` GUARD, AND THAT IS CHECKED
+	 *
+	 * PHPStan reads FIELDS as the literal it is: by the time the `hashable`
+	 * test has passed, the union is exactly `cpf` and `rf`, and both declare
+	 * the offset -- so such a guard is provably dead
+	 * (`empty.offset: always exists and is not falsy`), and keeping it would
+	 * leave a line a reader would trust. The cost is real -- a hashable field
+	 * added with no `hash_column` reaches the return with the offset missing
+	 * -- so the omission is caught twice instead: PHPStan flags the access the
+	 * moment the union stops guaranteeing it, and
+	 * `UserProfileFieldMapTest::test_every_hashable_field_declares_a_column_and_a_legacy_meta_key()`
+	 * fails on the same map. Same trade as `SensitiveFieldRegistry::normalize()`
+	 * in PR 1, for the same reason.
+	 *
+	 * The return is uncast on purpose: PHPStan already knows it is a string,
+	 * and a `(string)` cast would silently coerce a future non-string
+	 * declaration instead of reporting it.
+	 *
 	 * @param string $field_key Logical field key.
 	 * @return string|null
 	 */
@@ -241,11 +259,10 @@ final class UserProfileFieldMap {
 		if ( null === $spec
 			|| self::STORAGE_USERMETA !== $spec['storage']
 			|| empty( $spec['hashable'] )
-			|| empty( $spec['hash_column'] )
 		) {
 			return null;
 		}
-		return (string) $spec['hash_column'];
+		return $spec['hash_column'];
 	}
 
 	/**

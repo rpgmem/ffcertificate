@@ -83,15 +83,29 @@ class UserProfileFieldMapTest extends TestCase {
 	public function test_every_hashable_field_declares_a_column_and_a_legacy_meta_key(): void {
 		$hashable = array();
 
+		// THE POPULATION IS READ FROM `hashable`, NEVER FROM `hash_column()`.
+		//
+		// Selecting on the accessor's own answer is what makes this kind of
+		// check unfalsifiable: a field that lost its `hash_column` would
+		// return null, be skipped as "not hashable", and the test would stay
+		// green over exactly the defect it exists for. Proven by mutation —
+		// with the previous wording, deleting `hash_column` from `rf` changed
+		// nothing.
 		foreach ( UserProfileFieldMap::sensitive_field_keys() as $field ) {
-			$column = UserProfileFieldMap::hash_column( $field );
-			if ( null === $column ) {
+			$spec = UserProfileFieldMap::get( $field );
+			if ( null === $spec || empty( $spec['hashable'] ) ) {
 				continue;
 			}
+
 			$hashable[] = $field;
+
+			$this->assertNotNull(
+				UserProfileFieldMap::hash_column( $field ),
+				"Field '{$field}' is hashable but declares no hash column — the hash would be written nowhere."
+			);
 			$this->assertNotNull(
 				UserProfileFieldMap::legacy_hash_meta_key( $field ),
-				"Field '{$field}' declares a hash column but no legacy meta key — the backfill would skip it."
+				"Field '{$field}' is hashable but declares no legacy meta key — the backfill would skip it."
 			);
 		}
 
