@@ -382,7 +382,7 @@ class PublicCsvDownload {
 		$this->validator->record_download_log_entry(
 			$form_id,
 			(string) get_post_meta( $form_id, '_ffc_csv_public_cpf_mode', true ),
-			is_string( $cpf_digits ) ? $cpf_digits : '',
+			$cpf_digits,
 			'download_delivered'
 		);
 

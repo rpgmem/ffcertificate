@@ -181,7 +181,7 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 		return array(
 			'ip_hash'    => sha1( RequestInput::get_user_ip() ),
 			'form_id'    => $this->request_form_id(),
-			'cpf_digits' => is_string( $cpf_digits ) ? $cpf_digits : '',
+			'cpf_digits' => $cpf_digits,
 		);
 	}
 
