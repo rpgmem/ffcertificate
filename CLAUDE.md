@@ -113,7 +113,7 @@ What works instead, in this order:
 2. **If the PR is merely `behind`**, update the branch (`update_pull_request_branch`, the "Update branch" button). That is the whole fix in the common case, and it is what unblocked #1201: it had sat at `behind` for an hour with every gate already green, and merged 14 minutes after the update.
 3. **Only if the lockfile genuinely conflicts** does the rebase matter — ask the user to post `@dependabot rebase`, since `@dependabot recreate` from a mangled comment is not an option either.
 
-One thing #1201 suggests but does not prove, worth confirming in Settings → Branches if it bites again: `develop` may have **"Require branches to be up to date before merging"** on, which this section's protection list does not mention. That would explain the hour at `behind` with green checks, and it means every PR here needs the branch updated before it can merge, not just Dependabot's.
+**#1201's open question is closed, and by observation rather than by reading the setting: `develop` requires a branch to be up to date before merging.** That is what the hour at `behind` with every gate green was — a property of the branch, not of Dependabot's flow or of the retarget. #1336 reproduced it on an ordinary two-line docs PR, which merged only after `update_pull_request_branch`, and its history carries the resulting `Merge branch 'develop' into …` commit — so the evidence lives in the PR rather than in anybody's memory. The rule that follows applies to **every** PR here: read `mergeable_state`, and treat `behind` as a step to take, never a state to wait out. Step 2 above is therefore the common fix on this repository generally, and `behind` is the expected state for any PR that `develop` moved under.
 
 **Exception — genuine hotfix:** if the security fix is in a **runtime dependency** (shipped inside the plugin, not dev/CI tooling) *and* is severe enough to ship to production immediately, treat it as a hotfix (`hotfix/* → main`) instead of retargeting, then sync develop per "Sync `develop` with `main`". Dev/CI-only deps (`vitest`, `@vitest/coverage-v8`, `undici`, `js-yaml`, PHPStan, etc.) never qualify — they always ride the develop batch.
 
@@ -199,15 +199,20 @@ Confirm nothing is lost first with `git log --oneline origin/main..develop` — 
 
 #### Branch protection (`develop`)
 
-Configured in Settings → Branches with intentionally lighter rules than `main`:
+Intentionally lighter rules than `main`:
 
 - ✅ Require a pull request before merging (no required reviewers — solo maintainer).
 - ✅ Require status checks to pass before merging — all gating jobs listed under "CI gates".
+- ✅ Require branches to be **up to date** before merging (strict checks). Observed, not read — see the limit below.
 - ❌ Require linear history — left off so the rebase workflow above doesn't need admin bypass.
 - ❌ Restrict who can push to matching branches — leaving force-push permitted is what makes the rebase sync above mechanical.
 - ❌ Require deployments to succeed — `deploy-develop.yml` runs *after* merge, not as a merge gate.
 
-Reasoning: develop is single-maintainer integration territory, not a shared production branch. Stronger protection here would force admin bypass for routine syncs and provide negligible safety benefit.
+Reasoning: develop is single-maintainer integration territory, not a shared production branch. Stronger protection here would force admin bypass for routine syncs and provide negligible safety benefit. The strict-checks line is the one rule here that is not lighter, and it is the one this list did not carry until #1337 — whether it was chosen or inherited is not recorded anywhere a reader can check. Its cost is concrete either way: every branch update re-runs every gate.
+
+**An agent cannot read this configuration, so the list above is a record and not a reading.** The GitHub MCP server exposes no branch-protection or ruleset endpoint — `list_branches` answers `protected: true` for `develop` and for `main`, and nothing further — and there is no `gh`. Each line here is therefore either the maintainer's own record of the UI or, for strict checks, an inference from behaviour that a PR's own history preserves. Treat it the way "Branch naming" treats the push rules: check before relying on it, because a written-down wall that nobody can re-read is exactly how that section came to claim a wall that was not there.
+
+**Which UI page, though, is itself uncertain, and the evidence points away from the obvious one.** This section used to open "Configured in Settings → Branches". But the post-6.25.0 sync force-push reported `Bypassed rule violations for refs/heads/develop` — *rule violations* is **ruleset** wording, not classic branch-protection wording — so at least part of what governs `develop` lives in Settings → Rules → Rulesets. The two mechanisms stack and both can require status checks, so a setting that seems missing from one page may simply be on the other. Check both before concluding a rule is absent.
 
 #### Deploy to testes
 
