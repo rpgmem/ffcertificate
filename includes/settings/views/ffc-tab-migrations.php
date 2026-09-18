@@ -897,6 +897,14 @@ try {
 		'ffc_submission_audit_scan'
 	);
 
+	// The export re-runs the same seven checks at a far higher cap rather than
+	// dumping the transient the scan stored: that one is a 50-row sample, and
+	// the whole point of the download is the rows the sample leaves out.
+	$ffcertificate_sa_export_url = wp_nonce_url(
+		add_query_arg( 'ffc_submission_audit', 'export', $ffcertificate_base_url ),
+		\FreeFormCertificate\Maintenance\IdentityAuditExportSource::NONCE
+	);
+
 	// Every key the auditor returns needs a label here or its count is computed
 	// and never shown -- the "built but never wired" class `AjaxWiringTest`
 	// exists for. `SubmissionLinkAuditorTest` asserts this map covers the
@@ -951,6 +959,10 @@ try {
 					<span class="dashicons dashicons-search"></span>
 					<?php esc_html_e( 'Run audit', 'ffcertificate' ); ?>
 				</a>
+				<a href="<?php echo esc_url( $ffcertificate_sa_export_url ); ?>" class="button button-secondary">
+					<span class="dashicons dashicons-download"></span>
+					<?php esc_html_e( 'Export findings (CSV)', 'ffcertificate' ); ?>
+				</a>
 			</div>
 
 			<?php
@@ -976,7 +988,7 @@ try {
 						<?php endforeach; ?>
 					</div>
 					<p class="description ffc-set-mt-10">
-						<?php esc_html_e( 'Counts are capped at 50 per check (a “+” means there may be more). These are leads to investigate, not automatic fixes.', 'ffcertificate' ); ?>
+						<?php esc_html_e( 'Counts are capped at 50 per check (a “+” means there may be more). Export the findings to see the accounts behind each number — the CSV carries ids, counts and a grouping prefix, never anyone\'s CPF, RF or e-mail. These are leads to investigate, not automatic fixes.', 'ffcertificate' ); ?>
 					</p>
 				<?php endif; ?>
 			<?php endif; ?>

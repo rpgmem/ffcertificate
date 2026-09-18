@@ -7,6 +7,15 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **The link audit's findings download as a CSV** (#1295): the counts are capped at 50 on screen, and `50+` is the one value where the list matters most and the screen shows least — so the findings an operator has to review one by one were unreachable. One row per finding across all seven checks, at a much higher cap, streamed in a single request so identity findings never land in a temp file. It carries **no PII**: ids, counts and a 16-character hash prefix that groups rows belonging to one identity, never a CPF, RF, e-mail or login. A check that reaches the cap says so in its own row, so a partial list cannot be read as a complete one.
+
+### Changed
+
+- **`SubmissionLinkAuditor::run()` takes the row cap as an argument** (#1295): the screen wants a 50-row sample and the export wants the list, and the alternative was a second class issuing the same seven queries with its own number — the parallel-reader shape the `cpf_rf_encrypted` precedent rejects. One place still knows what the checks are.
+
+
 ## [6.26.0] (2026-09-18) — `f667b67`
 
 ### Added

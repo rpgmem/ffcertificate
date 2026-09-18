@@ -5002,7 +5002,7 @@ msgid "Countdown timer"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:971
-msgid "Counts are capped at 50 per check (a “+” means there may be more). These are leads to investigate, not automatic fixes."
+msgid "Counts are capped at 50 per check (a “+” means there may be more). Export the findings to see the accounts behind each number — the CSV carries ids, counts and a grouping prefix, never anyone's CPF, RF or e-mail. These are leads to investigate, not automatic fixes."
 msgstr ""
 
 #: includes/admin/class-ffc-preflight-stats-service.php:141
@@ -21914,4 +21914,24 @@ msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-admin.php
 msgid "If you send the campaign invitation, these people receive it too — it will tell them their reregistration is already recorded and link to their dashboard, not ask them to fill anything in."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-migrations.php
+msgid "Export findings (CSV)"
+msgstr ""
+
+#: includes/maintenance/class-ffc-identity-audit-export-source.php
+msgid "You do not have permission to export this audit."
+msgstr ""
+
+#: includes/maintenance/class-ffc-identity-audit-export-source.php
+msgid "The audit tool is not available on this install."
+msgstr ""
+
+#: includes/maintenance/class-ffc-identity-audit-export-source.php
+msgid "TRUNCATED: this check reached the %d-row export cap, so more findings exist than are listed here."
+msgstr ""
+
+#: includes/maintenance/class-ffc-identity-audit-export-source.php
+msgid "No link problems found."
 msgstr ""
