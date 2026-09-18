@@ -275,6 +275,108 @@ class AudienceCsvImporterTest extends TestCase {
 	}
 
 	/**
+	 * Creation goes through `UserCreator`, the plugin's one creation path.
+	 *
+	 * This was the only `wp_insert_user()` outside it (#1313 PR 5), and the
+	 * two had drifted: this one generated a 12-character password with no
+	 * special characters against `UserCreator`'s 24 with, and it created no
+	 * `ffc_user_profiles` row at all, so an imported member was invisible to
+	 * the identity index from birth.
+	 *
+	 * The capability context stays `CONTEXT_CERTIFICATE`, which is what this
+	 * flow granted before. `CONTEXT_AUDIENCE` exists and is passed by nobody;
+	 * whether an imported audience member should get audience capabilities
+	 * instead is a product question, not a consolidation.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_import_members_creates_through_user_creator(): void {
+		$path = $this->create_csv( "email,name\nnew@example.com,New Person\n" );
+
+		Functions\when( 'get_user_by' )->justReturn( false );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+
+		$creator = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserCreator' );
+		$creator->shouldReceive( 'get_or_create_user_dual' )
+			->once()
+			->with(
+				null,
+				null,
+				'new@example.com',
+				array( 'name' => 'New Person' ),
+				\FreeFormCertificate\UserDashboard\CapabilityManager::CONTEXT_CERTIFICATE,
+				false
+			)
+			->andReturn( 77 );
+
+		// `overload:`, not `alias:`: the importer does `new EmailHandler()` and
+		// calls an INSTANCE method, which an alias mock does not intercept.
+		Mockery::mock( 'overload:FreeFormCertificate\Integrations\EmailHandler' )
+			->shouldReceive( 'send_wp_user_notification' )->andReturn( true );
+
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' )
+			->shouldReceive( 'add_member' )->with( 5, 77 )->once()->andReturn( true );
+
+		$result = AudienceCsvImporter::import_members( $path, 5, true );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( 1, $result['imported'] );
+	}
+
+	/**
+	 * The CSV-import notification survives the move, under its own setting.
+	 *
+	 * `UserCreator` would send the `submission` one, and the two are separate
+	 * keys in Settings → SMTP whose defaults are OPPOSITE: submission is on,
+	 * csv_import is off. Letting it send would start mailing every row of a
+	 * bulk import on installs that never asked for it, so this flow passes
+	 * `$notify = false` and sends its own.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_import_members_sends_the_csv_import_notification(): void {
+		$path = $this->create_csv( "email,name\nnew@example.com,New Person\n" );
+
+		Functions\when( 'get_user_by' )->justReturn( false );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+
+		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserCreator' )
+			->shouldReceive( 'get_or_create_user_dual' )->andReturn( 77 );
+
+		// CAPTURED, NOT EXPECTED, AND THE DIFFERENCE IS THE WHOLE TEST.
+		//
+		// An `overload:` mock's expectations are only verified once an instance
+		// is built, so a `->once()` here passes when the call is DELETED —
+		// nothing instantiates the class, nothing checks the prototype. Proven
+		// by mutation: with `->once()`, removing the notification entirely left
+		// this green. Asserting on captured state cannot be skipped that way.
+		$sent = array();
+		Mockery::mock( 'overload:FreeFormCertificate\Integrations\EmailHandler' )
+			->shouldReceive( 'send_wp_user_notification' )
+			->andReturnUsing(
+				function ( $user_id, $context ) use ( &$sent ) {
+					$sent[] = array( $user_id, $context );
+					return true;
+				}
+			);
+
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' )
+			->shouldReceive( 'add_member' )->andReturn( true );
+
+		AudienceCsvImporter::import_members( $path, 5, true );
+
+		$this->assertSame(
+			array( array( 77, 'csv_import' ) ),
+			$sent,
+			'The imported user must be told under the csv_import setting, which defaults OFF — not under submission, which defaults on.'
+		);
+	}
+
+	/**
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
