@@ -680,14 +680,28 @@ class AppointmentHandler {
 			return;
 		}
 
-		// Always salted SHA-256 via Encryption::hash so the lookup matches
-		// the hash SubmissionHandler/AppointmentRepository write. The plugin
-		// requires Encryption to be configured at runtime; the older raw
-		// hash() fallback only ran in synthetic environments and produced a
-		// hash that no other call site could match.
-		$cpf_rf_hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $cpf_rf_clean ) ?? '';
+		// The form carries one combined `cpf_rf` field; the column the row will
+		// be stored in is decided by `AppointmentWriter::createAppointment()`
+		// from the same classifier, so the lookup asks for the hash of the same
+		// KIND and lands in the same column.
+		//
+		// Asking the registry for `rf` rather than always `cpf` matters even
+		// though both share the `cpf_rf` normaliser and so produce an identical
+		// hash today: the previous code depended on that sharing without
+		// anything stating it, and a normaliser that ever diverged would have
+		// broken the RF lookup silently.
+		$identifier_kind = \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $cpf_rf_clean );
+		$identifier_hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( $identifier_kind, $cpf_rf_clean );
 
-		$identifier_type = \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $cpf_rf_clean );
+		// A null hash means the value could not be hashed at all, and the
+		// previous code passed the empty string on rather than stopping: the
+		// resolver then matched no row, fell through to its e-mail lookup and
+		// still linked or created the person. Both hashes go as null here to
+		// keep exactly that, because the appointment is booked either way and
+		// silently dropping the user link would be a worse answer than the one
+		// this path already had.
+		$cpf_hash = 'rf' === $identifier_kind ? null : $identifier_hash;
+		$rf_hash  = 'rf' === $identifier_kind ? $identifier_hash : null;
 
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
 			try {
@@ -696,12 +710,16 @@ class AppointmentHandler {
 					'name'          => $data['name'] ?? '',
 				);
 
-				$user_id = \FreeFormCertificate\UserDashboard\UserManager::get_or_create_user(
-					$cpf_rf_hash,
-					$data['email'],
+				// The dual entry point since 6.26.0 (#1313 PR 7): it asks
+				// `ffc_user_profiles` before the module tables and feeds that
+				// index with what it resolved, which the legacy single-hash
+				// entry point never did.
+				$user_id = \FreeFormCertificate\UserDashboard\UserManager::get_or_create_user_dual(
+					$cpf_hash,
+					$rf_hash,
+					(string) $data['email'],
 					$submission_data,
-					\FreeFormCertificate\UserDashboard\CapabilityManager::CONTEXT_APPOINTMENT,
-					$identifier_type
+					\FreeFormCertificate\UserDashboard\CapabilityManager::CONTEXT_APPOINTMENT
 				);
 
 				if ( ! is_wp_error( $user_id ) && $user_id > 0 ) {

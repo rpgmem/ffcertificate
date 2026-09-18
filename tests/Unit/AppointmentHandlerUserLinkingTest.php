@@ -164,6 +164,64 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 		);
 	}
 
+	/**
+	 * The hash goes in the argument its KIND names (#1313 PR 7).
+	 *
+	 * This is the whole point of leaving the legacy single-hash entry point:
+	 * there the column was chosen by a separate `$identifier_type` argument,
+	 * and a caller could pass a type that disagreed with the value. In the dual
+	 * entry point the POSITION is the type, so the lookup and the column the
+	 * row is written to are decided by the same classifier.
+	 *
+	 * Both directions are asserted, because a mutation that swaps the two
+	 * arguments passes any test that only checks one.
+	 *
+	 * @dataProvider identifier_position_provider
+	 * @param string $typed    What the visitor types in the single `cpf_rf` field.
+	 * @param string $digits   Its digits-only form.
+	 * @param int    $cpf_slot Argument index expected to carry the hash, 0 for CPF.
+	 */
+	public function test_the_hash_goes_in_the_argument_its_kind_names( string $typed, string $digits, int $cpf_slot ): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
+			->shouldReceive( 'normalize_cpf_rf' )->andReturn( $digits )
+			->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
+		Mockery::mock( 'alias:FreeFormCertificate\Core\SensitiveFieldRegistry' )
+			->shouldReceive( 'hash_identifier' )->andReturn( 'the-hash' );
+
+		$seen = array();
+		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' )
+			->shouldReceive( 'get_or_create_user_dual' )
+			->andReturnUsing(
+				static function ( ...$args ) use ( &$seen ) {
+					$seen = $args;
+					return 42;
+				}
+			);
+
+		$this->expect_successful_insert( 320 );
+
+		$data           = $this->booking_data();
+		$data['cpf_rf'] = $typed;
+		$this->handler->process_appointment( $data );
+
+		$this->assertNotSame( array(), $seen, 'The resolver was never called, so nothing about its arguments was measured.' );
+
+		$rf_slot = 0 === $cpf_slot ? 1 : 0;
+
+		$this->assertSame( 'the-hash', $seen[ $cpf_slot ], "The hash of '{$typed}' is not in the argument its kind names, so the lookup reads the wrong column." );
+		$this->assertNull( $seen[ $rf_slot ], "The other identifier argument is not null for '{$typed}', so the resolver would search a column this value was never written to." );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string, 2: int}>
+	 */
+	public static function identifier_position_provider(): array {
+		return array(
+			'a CPF goes in the first argument' => array( '123.456.789-01', '12345678901', 0 ),
+			'an RF goes in the second'         => array( '123.456-7', '1234567', 1 ),
+		);
+	}
+
 	public function test_links_created_user_id_into_appointment(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
 			->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678901' )
@@ -171,7 +229,7 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'hash' )->andReturn( 'hashed-cpf' );
 		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' )
-			->shouldReceive( 'get_or_create_user' )->andReturn( 42 );
+			->shouldReceive( 'get_or_create_user_dual' )->andReturn( 42 );
 
 		$this->expect_successful_insert( 300 );
 
@@ -189,7 +247,7 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'hash' )->andReturn( 'hashed-cpf' );
 		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' )
-			->shouldReceive( 'get_or_create_user' )->andReturn( new \WP_Error( 'dup', 'exists' ) );
+			->shouldReceive( 'get_or_create_user_dual' )->andReturn( new \WP_Error( 'dup', 'exists' ) );
 
 		$this->expect_successful_insert( 301 );
 
@@ -206,7 +264,7 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'hash' )->andReturn( 'hashed-cpf' );
 		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' )
-			->shouldReceive( 'get_or_create_user' )->andThrow( new \RuntimeException( 'db down' ) );
+			->shouldReceive( 'get_or_create_user_dual' )->andThrow( new \RuntimeException( 'db down' ) );
 
 		$this->expect_successful_insert( 302 );
 
