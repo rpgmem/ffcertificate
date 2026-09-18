@@ -39,6 +39,13 @@ class UserCreatorTest extends TestCase {
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
 
+		// The identity index (#1313 PR 4) writes through UserProfileRepository,
+		// whose AbstractRepository invalidates the object cache after a write.
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_cache_flush' )->justReturn( true );
+
 		// Namespaced stubs: prevent "is not defined" errors when Sprint 27 tests run first.
 		// Core namespace (Debug calls get_option/get_current_user_id).
 	}
@@ -380,11 +387,13 @@ class UserCreatorTest extends TestCase {
 		$this->assertSame( 321, $result );
 
 		// SELECT step must reference both columns AND both placeholder values.
+		// The table is the identity index: since #1313 PR 4 it is asked first,
+		// and a hit there means `ffc_submissions` is never queried at all.
 		$lookup = $captured[0];
 		$this->assertStringContainsString( 'cpf_hash = %s', (string) $lookup['sql'] );
 		$this->assertStringContainsString( 'rf_hash = %s', (string) $lookup['sql'] );
 		// Args after the %i table name are the two hash values, in order.
-		$this->assertSame( array( 'wp_ffc_submissions', 'CPF-HASH', 'RF-HASH' ), $lookup['args'] );
+		$this->assertSame( array( 'wp_ffc_user_profiles', 'CPF-HASH', 'RF-HASH' ), $lookup['args'] );
 	}
 
 	public function test_dual_omits_missing_hash_from_lookup(): void {
@@ -405,7 +414,134 @@ class UserCreatorTest extends TestCase {
 		$lookup = $captured[0];
 		$this->assertStringContainsString( 'rf_hash = %s', (string) $lookup['sql'] );
 		$this->assertStringNotContainsString( 'cpf_hash', (string) $lookup['sql'] );
-		$this->assertSame( array( 'wp_ffc_submissions', 'ONLY-RF' ), $lookup['args'] );
+		$this->assertSame( array( 'wp_ffc_user_profiles', 'ONLY-RF' ), $lookup['args'] );
+	}
+
+	/**
+	 * Linking a record to a user feeds that user's identity index (#1313 PR 4).
+	 *
+	 * THE INVARIANT. Without it the index only ever learns about someone who
+	 * edits a profile field — a subset nobody can state — and the resolver
+	 * above could never collapse to one query, because the fallback would keep
+	 * finding people the index had never heard of.
+	 */
+	public function test_linking_a_record_feeds_the_identity_index(): void {
+		global $wpdb;
+		$writes = array();
+		$wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$wpdb->shouldReceive( 'get_var' )->andReturn( '321' );
+		$wpdb->shouldReceive( 'get_row' )->andReturn( null );
+		$wpdb->shouldReceive( 'query' )->andReturn( 0 );
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) use ( &$writes ) {
+				$writes[] = array(
+					'table' => $table,
+					'data'  => $data,
+					'where' => $where,
+				);
+				return 1;
+			}
+		);
+		Functions\when( 'get_userdata' )->justReturn( null );
+
+		UserCreator::get_or_create_user_dual( 'CPF-HASH', 'RF-HASH', 'who@cares.com' );
+
+		$index = array_values(
+			array_filter(
+				$writes,
+				static fn( array $w ): bool => 'wp_ffc_user_profiles' === $w['table']
+			)
+		);
+
+		$this->assertCount( 1, $index, 'The identity index was not written, so the user stays invisible to the indexed lookup.' );
+		$this->assertSame( 'CPF-HASH', $index[0]['data']['cpf_hash'] );
+		$this->assertSame( 'RF-HASH', $index[0]['data']['rf_hash'] );
+		$this->assertSame( 321, (int) $index[0]['where']['user_id'] );
+	}
+
+	/**
+	 * The index FILLS; it never overwrites a value already there.
+	 *
+	 * A column holding a different hash is a person with two identifiers on
+	 * record, and the honest answer is not to pick one silently — it is the
+	 * conflict #1313 wants counted before anyone designs a merge policy.
+	 * Overwriting would destroy that evidence and leave the index asserting
+	 * whichever write happened last.
+	 */
+	public function test_the_index_is_filled_but_never_overwritten(): void {
+		global $wpdb;
+		$writes = array();
+		$wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$wpdb->shouldReceive( 'get_var' )->andReturn( '321' );
+		$wpdb->shouldReceive( 'get_row' )->andReturn(
+			array(
+				'user_id'  => '321',
+				'cpf_hash' => 'ALREADY-ON-RECORD',
+				'rf_hash'  => null,
+			)
+		);
+		$wpdb->shouldReceive( 'query' )->andReturn( 0 );
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data ) use ( &$writes ) {
+				$writes[] = array(
+					'table' => $table,
+					'data'  => $data,
+				);
+				return 1;
+			}
+		);
+		Functions\when( 'get_userdata' )->justReturn( null );
+
+		UserCreator::get_or_create_user_dual( 'A-DIFFERENT-CPF', 'RF-HASH', 'who@cares.com' );
+
+		$index = array_values(
+			array_filter(
+				$writes,
+				static fn( array $w ): bool => 'wp_ffc_user_profiles' === $w['table']
+			)
+		);
+
+		$this->assertCount( 1, $index );
+		$this->assertArrayNotHasKey(
+			'cpf_hash',
+			$index[0]['data'],
+			'A CPF already on record was overwritten, which destroys the very conflict the index exists to surface.'
+		);
+		$this->assertSame( 'RF-HASH', $index[0]['data']['rf_hash'], 'The empty column should still have been filled.' );
+	}
+
+	/**
+	 * The index is asked first and `ffc_submissions` is the fallback (#1313).
+	 *
+	 * Reading the index ALONE is what the issue proposed and what measurement
+	 * refused: a certificate submission writes `ffc_submissions.cpf_hash` and
+	 * never touches the profile, so a user known only through a submission has
+	 * no profile row. Dropping the fallback would stop finding them and create
+	 * a duplicate — the exact defect this work exists to remove.
+	 *
+	 * Both halves are asserted: the ORDER, because a submissions-first lookup
+	 * would never exercise the index; and that the fallback runs at all, which
+	 * is what the collapse to one query would remove.
+	 */
+	public function test_dual_falls_back_to_submissions_when_the_index_misses(): void {
+		global $wpdb;
+		$captured = array();
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) use ( &$captured ) {
+				$captured[] = array( 'sql' => $sql, 'args' => $args );
+				return 'QUERY';
+			}
+		);
+		// The index misses, the submissions table answers.
+		$wpdb->shouldReceive( 'get_var' )->andReturnValues( array( null, '55' ) );
+		$wpdb->shouldReceive( 'query' )->andReturn( 0 );
+		Functions\when( 'get_userdata' )->justReturn( null );
+
+		$result = UserCreator::get_or_create_user_dual( 'CPF-HASH', null, 'who@cares.com' );
+
+		$this->assertSame( 55, $result );
+		$this->assertSame( 'wp_ffc_user_profiles', $captured[0]['args'][0] );
+		$this->assertSame( 'wp_ffc_submissions', $captured[1]['args'][0] );
 	}
 
 	public function test_dual_falls_back_to_email_when_no_submission_hash_match(): void {
