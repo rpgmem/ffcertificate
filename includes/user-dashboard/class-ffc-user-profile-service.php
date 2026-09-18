@@ -465,9 +465,15 @@ final class UserProfileService {
 
 			$column = self::resolve_hash_column( $field );
 			if ( null !== $column ) {
-				// `$scalar` is already normalised above, so this and
-				// `hash_identifier()` agree by construction.
-				$hash = Encryption::hash( $scalar );
+				// Through the boundary, not past it (#1313 PR 9). `$scalar` is
+				// already normalised above, so `Encryption::hash()` would
+				// produce the identical value -- and that is exactly the shape
+				// this arc exists to remove: a call site that is correct
+				// because it remembered. The normalisation inside
+				// `hash_identifier()` is idempotent, so routing through it
+				// costs nothing and makes the agreement enforceable rather
+				// than promised in a comment.
+				$hash = SensitiveFieldRegistry::hash_identifier( $field, $scalar );
 				if ( null !== $hash ) {
 					$index[ $column ] = $hash;
 				}

@@ -428,6 +428,19 @@ jobs:
         # freshly created schema: the statement is replayed against the table it
         # just built, so an empty change list is the only correct answer.
         run: php .github/scripts/dbdelta-idempotence-check.php "$HOME/wp"
+      - name: Check the identity index receives what the resolver links
+        # #1313 guard 3, and the only one of that issue's three that no static
+        # scan can check: "whenever a record gains a link to a user, that user's
+        # identity index receives the identifiers" is a statement about ROWS.
+        #
+        # It runs here because the resolver writes through a repository, adopts
+        # orphaned rows with an UPDATE and creates a WordPress user — none of
+        # which exists in the unit suite, where it would be asserted against the
+        # double supplying the values.
+        #
+        # The script PLANTS an orphaned row before looking, because on a fresh
+        # install every table is empty and the invariant would hold vacuously.
+        run: php .github/scripts/identity-index-invariant-check.php "$HOME/wp"
       - name: Plant the residue the sweeps must remove
         # #1290: removal used to intersect a hand-written list, and the list
         # named 31 of the 60 live capabilities, so 40 survived every uninstall.
