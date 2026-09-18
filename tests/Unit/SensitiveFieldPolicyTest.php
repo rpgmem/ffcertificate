@@ -237,7 +237,12 @@ class SensitiveFieldPolicyTest extends TestCase {
 		$submission = array( 'email' => $email, 'cpf_rf' => $cpf );
 		$handler->process_submission( 1, 'F', $submission, $email, array(), array() );
 
-		$this->assertSame( Encryption::hash( $email ), $captured['email_hash'] );
+		// The fixture is deliberately mixed-case: since #1313 the stored hash is
+		// of the CANONICAL form, not of the string that happened to arrive.
+		// `strtolower()` is spelled out rather than routed through the registry,
+		// so the expectation is an independent statement of what canonical means
+		// and not the code under test agreeing with itself.
+		$this->assertSame( Encryption::hash( strtolower( $email ) ), $captured['email_hash'] );
 		$this->assertSame( Encryption::hash( $cpf ), $captured['cpf_hash'] );
 	}
 
@@ -329,7 +334,12 @@ class SensitiveFieldPolicyTest extends TestCase {
 			'cpf_rf'             => $cpf,
 		) );
 
-		$this->assertSame( Encryption::hash( $email ), $captured['email_hash'] );
+		// The fixture is deliberately mixed-case: since #1313 the stored hash is
+		// of the CANONICAL form, not of the string that happened to arrive.
+		// `strtolower()` is spelled out rather than routed through the registry,
+		// so the expectation is an independent statement of what canonical means
+		// and not the code under test agreeing with itself.
+		$this->assertSame( Encryption::hash( strtolower( $email ) ), $captured['email_hash'] );
 		$this->assertSame( Encryption::hash( $cpf ), $captured['cpf_hash'] );
 	}
 }

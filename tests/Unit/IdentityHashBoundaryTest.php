@@ -128,19 +128,51 @@ class IdentityHashBoundaryTest extends TestCase {
 	}
 
 	/**
-	 * A field with no declared canonical form is passed through untouched.
+	 * An e-mail is canonicalised to lowercase, with the whitespace trimmed.
 	 *
-	 * `email` is deliberately in that state right now, and this test is what
-	 * stops the flip from happening by accident: lowercasing it changes every
-	 * `email_hash` already stored, so the rule and the rehash migration land
-	 * together (#1313). Until then, the boundary must not silently start
-	 * canonicalising it.
+	 * This was `null` until #1313 PR 3, and the previous version of this test
+	 * existed to REFUSE the flip. `sanitize_email()` does not lowercase, so the
+	 * appointment module wrote `Joao@Escola.gov.br` while every other module
+	 * wrote the lowercased form, and the two never matched.
 	 */
-	public function test_email_is_passed_through_until_its_migration_lands(): void {
+	public function test_an_email_is_canonicalised_to_lowercase(): void {
 		$this->assertSame(
-			'Joao@Escola.gov.br',
-			SensitiveFieldRegistry::normalize( 'email', 'Joao@Escola.gov.br' ),
-			'email declares no canonical form yet; changing that without the rehash migration splits the stored hashes.'
+			'joao@escola.gov.br',
+			SensitiveFieldRegistry::normalize( 'email', '  Joao@Escola.gov.BR  ' )
+		);
+	}
+
+	/**
+	 * The rule and its repair ship together, and this is what enforces it.
+	 *
+	 * Lowercasing changes every `email_hash` already stored. Shipping the rule
+	 * without the card that rewrites those rows makes a lookup canonicalise
+	 * while the rows do not -- the appointment module would stop finding its
+	 * own history for anyone with a capital in their address, which is a
+	 * REGRESSION introduced by a correctness fix.
+	 *
+	 * So the assertion is not "email is lowercased" (the test above says that)
+	 * but "no field has a canonical form unless the card that repairs the
+	 * stored values exists". A future identifier gaining a rule trips this
+	 * until its repair is wired, which is the same pairing stated as a rule
+	 * rather than as a promise in a docblock.
+	 */
+	public function test_no_canonical_form_ships_without_the_card_that_repairs_it(): void {
+		$this->assertNotSame(
+			array(),
+			SensitiveFieldRegistry::normalized_field_keys(),
+			'No field declares a canonical form — the check measured nothing.'
+		);
+
+		$this->assertFileExists(
+			dirname( __DIR__, 2 ) . '/includes/migrations/strategies/class-ffc-identity-normalization-migration-strategy.php',
+			'A canonical form is declared but the migration that rewrites the rows already stored is gone. The rule alone makes every lookup canonicalise against rows that did not.'
+		);
+
+		$this->assertStringContainsString(
+			"'identity_normalization'",
+			(string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/migrations/class-ffc-migration-registry.php' ),
+			'The repair exists but is not registered, so no administrator can run it.'
 		);
 	}
 

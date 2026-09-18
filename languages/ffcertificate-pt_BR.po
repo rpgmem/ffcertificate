@@ -21914,3 +21914,35 @@ msgstr "linhas com problema, listadas por número de linha e o que está errado.
 #: includes/settings/views/documentation/feature-reregistration.php:105
 msgid "that person answered the form themselves. Their own answers are kept and the row is skipped; this is expected, not an error, and it does not stop the import."
 msgstr "essa pessoa respondeu o formulário por conta própria. As respostas dela são mantidas e a linha é pulada; isso é esperado, não é erro, e não interrompe a importação."
+
+#: includes/migrations/strategies/class-ffc-identity-normalization-migration-strategy.php
+msgid "%1$s for user %2$d holds no identifier once canonicalised — left untouched for a human to look at."
+msgstr "%1$s do usuário %2$d não contém identificador algum depois de canonizado — mantido intacto para análise humana."
+
+#: includes/migrations/strategies/class-ffc-identity-normalization-migration-strategy.php
+msgid "%1$s on %2$s row %3$d holds no identifier once canonicalised — left untouched for a human to look at."
+msgstr "%1$s na linha %3$d de %2$s não contém identificador algum depois de canonizado — mantido intacto para análise humana."
+
+#: includes/migrations/strategies/class-ffc-identity-normalization-migration-strategy.php
+msgid "Candidate %d could not be canonicalised: another candidate already carries the same CPF or RF once punctuation is removed. Two rows for one person — merge them, then re-run."
+msgstr "Não foi possível canonizar o candidato %d: outro candidato já carrega o mesmo CPF ou RF quando a pontuação é removida. São duas linhas para uma pessoa — una as duas e execute novamente."
+
+#: includes/migrations/class-ffc-migration-registry.php
+msgid "Canonicalise Stored Identifiers"
+msgstr "Canonizar Identificadores Armazenados"
+
+#: includes/migrations/strategies/class-ffc-identity-normalization-migration-strategy.php
+msgid "Could not decrypt %1$s on %2$s row %3$d — left untouched (the key may be unrecoverable)."
+msgstr "Não foi possível decifrar %1$s na linha %3$d de %2$s — mantido intacto (a chave pode estar irrecuperável)."
+
+#: includes/migrations/strategies/class-ffc-identity-normalization-migration-strategy.php
+msgid "Could not write the canonicalised identifiers for %1$s row %2$d."
+msgstr "Não foi possível gravar os identificadores canonizados da linha %2$d de %1$s."
+
+#: includes/migrations/strategies/class-ffc-identity-normalization-migration-strategy.php
+msgid "Encryption is not configured, so the stored identifiers cannot be read. See Settings → Advanced → Encryption Key Health."
+msgstr "A criptografia não está configurada, então os identificadores armazenados não podem ser lidos. Veja Configurações → Avançado → Saúde da Chave de Criptografia."
+
+#: includes/migrations/class-ffc-migration-registry.php
+msgid "Rewrite stored CPF, RF and e-mail values into the one canonical form every module now hashes — digits only for CPF/RF, lowercase for e-mail — and rebuild their search hashes. Without it, an appointment booked as Joao@Escola.gov.br stays invisible to every lookup made elsewhere, and a CPF stored with its punctuation never matches the same person's certificate. Idempotent: a row already canonical is read and left alone."
+msgstr "Reescreve os valores de CPF, RF e e-mail armazenados na única forma canônica que todo módulo agora usa para gerar hash — apenas dígitos para CPF/RF, minúsculas para e-mail — e reconstrói seus hashes de busca. Sem isso, um agendamento feito como Joao@Escola.gov.br fica invisível para qualquer busca feita em outro lugar, e um CPF armazenado com pontuação nunca corresponde ao certificado da mesma pessoa. Idempotente: uma linha já canônica é lida e deixada como está."
