@@ -15022,8 +15022,8 @@ msgid "Required column \"name\" not found."
 msgstr "Coluna obrigatória \"name\" não encontrada."
 
 #: includes/audience/class-ffc-audience-admin-import.php:87
-msgid "Required columns: email. Optional: name, audience_id or audience_name."
-msgstr "Colunas obrigatórias: email. Opcionais: name, audience_id ou audience_name."
+msgid "Required columns: email. Optional: name, audience_id or audience_name, cpf, rf. When a row carries a CPF or RF, the person is matched by it first, so someone already registered under a different address is not given a second account."
+msgstr "Colunas obrigatórias: email. Opcionais: name, audience_id ou audience_name, cpf, rf. Quando uma linha traz um CPF ou RF, a pessoa é localizada por ele primeiro, de modo que alguém já cadastrado com outro endereço não ganha uma segunda conta."
 
 #: includes/audience/class-ffc-audience-admin-import.php:166
 msgid "Required columns: name. Optional: color, parent (parent audience name)."

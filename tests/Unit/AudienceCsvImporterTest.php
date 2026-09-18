@@ -304,6 +304,7 @@ class AudienceCsvImporterTest extends TestCase {
 		Functions\when( 'is_wp_error' )->justReturn( false );
 
 		$creator = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserCreator' );
+		$creator->shouldReceive( 'resolve_existing_user' )->andReturn( 0 );
 		$creator->shouldReceive( 'get_or_create_user_dual' )
 			->once()
 			->with(
@@ -349,8 +350,9 @@ class AudienceCsvImporterTest extends TestCase {
 		Functions\when( 'get_user_by' )->justReturn( false );
 		Functions\when( 'is_wp_error' )->justReturn( false );
 
-		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserCreator' )
-			->shouldReceive( 'get_or_create_user_dual' )->andReturn( 77 );
+		$creator = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserCreator' );
+		$creator->shouldReceive( 'resolve_existing_user' )->andReturn( 0 );
+		$creator->shouldReceive( 'get_or_create_user_dual' )->andReturn( 77 );
 
 		// CAPTURED, NOT EXPECTED, AND THE DIFFERENCE IS THE WHOLE TEST.
 		//
@@ -380,6 +382,114 @@ class AudienceCsvImporterTest extends TestCase {
 			$sent,
 			'The imported user must be told under the csv_import setting, which defaults OFF — not under submission, which defaults on.'
 		);
+	}
+
+	/**
+	 * A `cpf` column answers WHO the row is about, and the answer wins.
+	 *
+	 * Before #1313 PR 11 this import asked `get_user_by( 'email', … )` and
+	 * nothing else, so a person already in the system under a different
+	 * address was given a SECOND account -- the outcome the identity index
+	 * exists to make impossible. The column is optional and the hash is
+	 * computed through `SensitiveFieldRegistry`, so the question this module
+	 * asks is byte-for-byte the one every other module asks.
+	 *
+	 * The e-mail here deliberately belongs to nobody (`get_user_by` returns
+	 * false), so the only thing that can resolve this row is the identifier.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_import_members_resolves_an_existing_user_by_cpf(): void {
+		$path = $this->create_csv( "email,name,cpf\nother@example.com,Same Person,529.982.247-25\n" );
+
+		Functions\when( 'get_user_by' )->justReturn( false );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+
+		Mockery::mock( 'alias:FreeFormCertificate\Core\SensitiveFieldRegistry' )
+			->shouldReceive( 'hash_identifier' )
+			->andReturnUsing(
+				function ( $field, $value ) {
+					return 'hash:' . $field . ':' . preg_replace( '/\D/', '', (string) $value );
+				}
+			);
+
+		$asked   = array();
+		$creator = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserCreator' );
+		$creator->shouldReceive( 'resolve_existing_user' )
+			->andReturnUsing(
+				function ( $cpf_hash, $rf_hash, $email ) use ( &$asked ) {
+					$asked[] = array( $cpf_hash, $rf_hash, $email );
+					return 91;
+				}
+			);
+		$creator->shouldNotReceive( 'get_or_create_user_dual' );
+
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		$added = array();
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' )
+			->shouldReceive( 'add_member' )
+			->andReturnUsing(
+				function ( $audience_id, $user_id ) use ( &$added ) {
+					$added[] = array( $audience_id, $user_id );
+					return true;
+				}
+			);
+
+		$result = AudienceCsvImporter::import_members( $path, 5, true );
+
+		$this->assertSame(
+			array( array( 'hash:cpf:52998224725', null, 'other@example.com' ) ),
+			$asked,
+			'The CPF must reach the resolver as a registry hash, with the e-mail as the fallback the resolver tries second.'
+		);
+		$this->assertSame(
+			array( array( 5, 91 ) ),
+			$added,
+			'The person the identifier names is the one added to the audience -- no second account.'
+		);
+		$this->assertSame( 1, $result['imported'] );
+	}
+
+	/**
+	 * With creation OFF, an identifier the system knows is no longer a skip.
+	 *
+	 * This is the half that loses data silently: an operator importing into an
+	 * audience without `create_users` got "User not found" for every person
+	 * whose address had changed, and the row was dropped. Resolving by hash
+	 * first means the membership is recorded for the account that already
+	 * exists, and creation is still never reached.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_import_members_without_creation_still_imports_a_known_identifier(): void {
+		$path = $this->create_csv( "email,name,rf\nchanged@example.com,Known Person,1234567\n" );
+
+		Functions\when( 'get_user_by' )->justReturn( false );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+
+		Mockery::mock( 'alias:FreeFormCertificate\Core\SensitiveFieldRegistry' )
+			->shouldReceive( 'hash_identifier' )
+			->andReturnUsing(
+				function ( $field, $value ) {
+					return 'hash:' . $field . ':' . preg_replace( '/\D/', '', (string) $value );
+				}
+			);
+
+		$creator = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserCreator' );
+		$creator->shouldReceive( 'resolve_existing_user' )->with( null, 'hash:rf:1234567', 'changed@example.com' )->andReturn( 64 );
+		$creator->shouldNotReceive( 'get_or_create_user_dual' );
+
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' )
+			->shouldReceive( 'add_member' )->with( 5, 64 )->once()->andReturn( true );
+
+		$result = AudienceCsvImporter::import_members( $path, 5, false );
+
+		$this->assertSame( 1, $result['imported'] );
+		$this->assertSame( 0, $result['skipped'] );
+		$this->assertSame( array(), $result['errors'], 'A row the index can resolve must not be reported as "User not found".' );
 	}
 
 	/**

@@ -35,6 +35,21 @@ class AudienceCsvImporter {
 	/**
 	 * Import members from CSV
 	 *
+	 * COLUMNS. `email` is required. `name`, `audience_id` / `audience_name`,
+	 * `cpf` and `rf` are optional, matched case-insensitively after
+	 * non-alphanumerics are folded to `_`.
+	 *
+	 * `cpf` / `rf` carry the identifier in PLAINTEXT, as a person would read
+	 * it -- masked or not, the registry normalises either -- and are used only
+	 * to answer WHO the row is about. The audience module stores no identifier
+	 * of its own: the hash goes to the resolver, which matches an existing
+	 * person or records it in their identity index (#1313).
+	 *
+	 * The members EXPORT deliberately does not gain these columns. It would
+	 * put decrypted CPFs in a file an operator downloads, which is a new
+	 * PII-on-disk surface and a decision of its own; a round trip through
+	 * export → import still works, it simply resolves by e-mail as before.
+	 *
 	 * @param string $file_path Path to CSV file.
 	 * @param int    $audience_id Target audience ID (optional, can be in CSV).
 	 * @param bool   $create_users Whether to create users if they don't exist.
@@ -82,8 +97,16 @@ class AudienceCsvImporter {
 		);
 
 		// Find required columns.
-		$email_col         = array_search( 'email', $header, true );
-		$name_col          = array_search( 'name', $header, true );
+		$email_col = array_search( 'email', $header, true );
+		$name_col  = array_search( 'name', $header, true );
+
+		// Optional, and separate rather than one combined `cpf_rf` column:
+		// that is the shape the recruitment CSV already uses, and a
+		// spreadsheet exported from anywhere else has one column per field.
+		// The plugin's combined `cpf_rf` input is a FORM idiom -- one box a
+		// person types into -- and importing is not that.
+		$cpf_col           = array_search( 'cpf', $header, true );
+		$rf_col            = array_search( 'rf', $header, true );
 		$audience_col      = array_search( 'audience_id', $header, true );
 		$audience_name_col = array_search( 'audience_name', $header, true );
 		$audience_name_col = false !== $audience_name_col ? $audience_name_col : array_search( 'audience', $header, true );
@@ -106,7 +129,7 @@ class AudienceCsvImporter {
 		// Process rows.
 		$row_num = 1;
 		$reader->each(
-			function ( array $data ) use ( &$row_num, &$result, $email_col, $name_col, $audience_col, $audience_name_col, $audience_id, $create_users ): void {
+			function ( array $data ) use ( &$row_num, &$result, $email_col, $name_col, $cpf_col, $rf_col, $audience_col, $audience_name_col, $audience_id, $create_users ): void {
 				++$row_num;
 
 				// Skip empty rows.
@@ -141,9 +164,27 @@ class AudienceCsvImporter {
 					return;
 				}
 
-				// Find or create user.
-				$user = get_user_by( 'email', $email );
-				if ( ! $user ) {
+				// The identifier, when the sheet carries one (#1313). Hashed
+				// through the registry, so this import asks the same question
+				// with the same string every other module asks it with.
+				$cpf_hash = false !== $cpf_col && isset( $data[ $cpf_col ] )
+					? \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', (string) $data[ $cpf_col ] )
+					: null;
+				$rf_hash  = false !== $rf_col && isset( $data[ $rf_col ] )
+					? \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'rf', (string) $data[ $rf_col ] )
+					: null;
+
+				// IDENTIFIER FIRST, THEN E-MAIL. This import used to ask
+				// `get_user_by( 'email', … )` and nothing else, so a person
+				// already in the system under a DIFFERENT address was given a
+				// second account -- and with `create_users` off, their row was
+				// skipped as "user not found" while their CPF sat in the index.
+				// `resolve_existing_user()` runs the hash lookup and then the
+				// e-mail one, with no side effects: it answers who this is
+				// without deciding to create anybody.
+				$user_id = UserCreator::resolve_existing_user( $cpf_hash, $rf_hash, $email );
+
+				if ( 0 === $user_id ) {
 					if ( $create_users ) {
 						$name = ( false !== $name_col && isset( $data[ $name_col ] ) ) ? sanitize_text_field( $data[ $name_col ] ) : '';
 
@@ -173,8 +214,8 @@ class AudienceCsvImporter {
 						// submits a certificate is granted the certificate
 						// capabilities then, by the certificate flow.
 						$user_id = UserCreator::get_or_create_user_dual(
-							null,
-							null,
+							$cpf_hash,
+							$rf_hash,
 							$email,
 							array( 'name' => $name ),
 							CapabilityManager::CONTEXT_AUDIENCE,
@@ -194,8 +235,6 @@ class AudienceCsvImporter {
 						++$result['skipped'];
 						return;
 					}
-				} else {
-					$user_id = $user->ID;
 				}
 
 				// Add member to audience.
@@ -524,12 +563,19 @@ class AudienceCsvImporter {
 		}
 
 		// Default: members.
+		//
+		// `cpf` and `rf` are optional, and the sample shows them EMPTY on one
+		// row on purpose: an operator has to be able to see that a blank cell
+		// is allowed, since an identifier nobody knows is optional gets filled
+		// with a placeholder. The importer asks the registry to hash the cell,
+		// and the registry answers `null` for an empty one, so a blank column
+		// resolves by e-mail exactly as it did before #1313 PR 11.
 		return array(
-			'header' => array( 'email', 'name', 'audience_name' ),
+			'header' => array( 'email', 'name', 'audience_name', 'cpf', 'rf' ),
 			'rows'   => array(
-				array( 'john@example.com', 'John Doe', 'Group A' ),
-				array( 'jane@example.com', 'Jane Smith', 'Subgroup A1' ),
-				array( 'bob@example.com', 'Bob Johnson', 'Group B' ),
+				array( 'john@example.com', 'John Doe', 'Group A', '529.982.247-25', '' ),
+				array( 'jane@example.com', 'Jane Smith', 'Subgroup A1', '', '1234567' ),
+				array( 'bob@example.com', 'Bob Johnson', 'Group B', '', '' ),
 			),
 		);
 	}

@@ -14983,7 +14983,7 @@ msgid "Required column \"name\" not found."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-import.php:87
-msgid "Required columns: email. Optional: name, audience_id or audience_name."
+msgid "Required columns: email. Optional: name, audience_id or audience_name, cpf, rf. When a row carries a CPF or RF, the person is matched by it first, so someone already registered under a different address is not given a second account."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-import.php:166
