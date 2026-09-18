@@ -384,10 +384,46 @@ foreach (
 // ──────────────────────────────────────
 // 7. Clean up user meta
 // ──────────────────────────────────────
+//
+// **Removal is by PREFIX, not by a list of names** — the same correction #1290
+// made to the capability sweep and #1291 to the tables, and it was needed here
+// for a sharper reason than either: until #1316 this step deleted exactly
+// `ffc_registration_date` and `ffc_custom_fields_data`, while both of its
+// `phpcs:ignore` justifications already claimed it matched a prefix. Everything
+// the user profile writes survived — `ffc_user_cpf`, `ffc_user_rf` and
+// `ffc_user_rg` hold AES-256-CBC ciphertext of the document numbers — so an
+// administrator who ticked "Delete all plugin data on uninstall" and watched
+// every `ffc_*` table drop still had encrypted PII in `wp_usermeta`, with the
+// key material gone.
+//
+// A list could not have tracked it. Every one of those keys is built at runtime
+// from `UserManager::EXTENDED_META_PREFIX`, and the dynamic reregistration
+// fields append a `sanitize_key()`'d name nobody declares anywhere — `grep`
+// finds exactly ONE literal `ffc_*` meta key in the whole of `includes/`.
+//
+// `esc_like()` is load-bearing on the underscore, as it is on the table sweep:
+// `_` is a LIKE wildcard, so an unescaped `ffc_` would also match the meta of a
+// plugin named `ffcx_`. Over-deleting another plugin's data is worse than
+// leaving residue.
+//
+// **Network-wide, and that is an asymmetry with the table sweep rather than an
+// oversight.** `wp_usermeta` is shared across a multisite network — it carries
+// no `$wpdb->prefix`, so unlike a table there is nothing to resolve to one
+// site. Deleting a plugin removes it from the whole network at once, so no site
+// is left that needs these rows. Fencing to "users of the current site" (a
+// `{$prefix}capabilities` row, which is what site membership IS) would leave
+// the meta of anyone who also belongs to a sibling site, for a plugin that is
+// no longer installed anywhere. Recorded next to the single-site paragraph
+// above so the two are not read as contradicting each other.
+$ffcertificate_user_meta_prefix = 'ffc_';
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk statement over the plugin's own ffc_* user-meta keys, matched by prefix — the WordPress meta API cannot filter by key prefix, and doing it per user per key would be thousands of queries.
-$wpdb->delete( $wpdb->usermeta, array( 'meta_key' => 'ffc_registration_date' ) );
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk statement over the plugin's own ffc_* user-meta keys, matched by prefix — the WordPress meta API cannot filter by key prefix, and doing it per user per key would be thousands of queries.
-$wpdb->delete( $wpdb->usermeta, array( 'meta_key' => 'ffc_custom_fields_data' ) );
+$wpdb->query(
+	$wpdb->prepare(
+		'DELETE FROM %i WHERE meta_key LIKE %s',
+		$wpdb->usermeta,
+		$wpdb->esc_like( $ffcertificate_user_meta_prefix ) . '%'
+	)
+);
 
 // ──────────────────────────────────────
 // 8. Remove FFC capabilities from users and roles
