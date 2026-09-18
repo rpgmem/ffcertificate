@@ -108,15 +108,31 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 	}
 
 	/**
-	 * Run the four read-only checks and return a structured report.
+	 * Run the seven read-only checks and return a structured report.
 	 *
-	 * @param array<string, mixed> $options Unused (report-only).
+	 * THE LIMIT IS AN ARGUMENT BECAUSE THE EXPORT NEEDS A DIFFERENT ONE
+	 *
+	 * The screen wants a cheap sample -- 50 per check, enough to say whether a
+	 * problem exists. The CSV export (#1295) wants the list itself, because a
+	 * lead nobody can take out of the page is not a lead. Rather than a second
+	 * class issuing the same seven queries with its own number, the caller
+	 * passes `limit` and this stays the one place that knows what the checks
+	 * ARE -- the `cpf_rf_encrypted` rule against a parallel reader of one fact.
+	 *
+	 * `truncated` is per check and says the cap was reached, so a consumer can
+	 * state that its list is partial instead of implying it is complete.
+	 *
+	 * @param array<string, mixed> $options Optional `limit` (defaults to {@see self::SAMPLE_LIMIT}).
 	 * @return array{
 	 *     checks: array<string, array{count:int, truncated:bool, rows:array<int, array<string, mixed>>}>,
 	 *     total: int
 	 * }
 	 */
 	public function run( array $options ): array {
+		$limit = isset( $options['limit'] ) && is_numeric( $options['limit'] )
+			? max( 1, (int) $options['limit'] )
+			: self::SAMPLE_LIMIT;
+
 		$repo = $this->repository();
 
 		$conflicts = $this->conflicts();
@@ -125,19 +141,19 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 			// The four submission-scoped checks. `should_be_linked` in
 			// particular is a question about `ffc_submissions` rows and only
 			// makes sense there.
-			'orphan_links'                    => $repo->find_orphan_user_links( self::SAMPLE_LIMIT ),
-			'multiple_identities'             => $repo->find_users_with_multiple_identities( self::SAMPLE_LIMIT ),
-			'should_be_linked'                => $repo->find_unlinked_with_matching_identity( self::SAMPLE_LIMIT ),
-			'shared_identities'               => $repo->find_shared_identities( self::SAMPLE_LIMIT ),
+			'orphan_links'                    => $repo->find_orphan_user_links( $limit ),
+			'multiple_identities'             => $repo->find_users_with_multiple_identities( $limit ),
+			'should_be_linked'                => $repo->find_unlinked_with_matching_identity( $limit ),
+			'shared_identities'               => $repo->find_shared_identities( $limit ),
 
 			// The three that only exist ACROSS the stores (#1313 PR 10). The
 			// submission-scoped pair above cannot see a person whose two
 			// accounts were created by different modules, which is the case
 			// #1313 exists to make visible -- and the one its backfill
 			// deliberately declines to resolve.
-			'cross_store_shared_identities'   => $conflicts->shared_identities( self::SAMPLE_LIMIT ),
-			'cross_store_multiple_identities' => $conflicts->multiple_identities( self::SAMPLE_LIMIT ),
-			'unindexed_links'                 => $conflicts->unindexed_links( self::SAMPLE_LIMIT ),
+			'cross_store_shared_identities'   => $conflicts->shared_identities( $limit ),
+			'cross_store_multiple_identities' => $conflicts->multiple_identities( $limit ),
+			'unindexed_links'                 => $conflicts->unindexed_links( $limit ),
 		);
 
 		$report = array(
@@ -149,7 +165,7 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 			$count                    = count( $rows );
 			$report['checks'][ $key ] = array(
 				'count'     => $count,
-				'truncated' => $count >= self::SAMPLE_LIMIT,
+				'truncated' => $count >= $limit,
 				'rows'      => $rows,
 			);
 			$report['total']         += $count;
