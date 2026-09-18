@@ -296,6 +296,56 @@ class UserProfileServiceTest extends TestCase {
 		$this->assertSame( 'HASH', $this->usermeta_store[42]['ffc_user_cpf_hash'] );
 	}
 
+	/**
+	 * A masked CPF is stored and hashed in its canonical form (#1313).
+	 *
+	 * **This is the defect that made #1313 necessary, stated as an
+	 * assertion.** This method used to encrypt and hash the value exactly as
+	 * handed to it, so a reregistration submitting the masked
+	 * `123.456.789-09` — which is what the form's own input mask produces —
+	 * wrote a hash of the punctuation, while submissions, appointments and
+	 * recruitment all wrote a hash of the digits. One person, two values,
+	 * never matching.
+	 *
+	 * The test above passes a value that is ALREADY digits, so it was green
+	 * throughout and could never have caught this. That is why the mask is the
+	 * whole point of this one: `with( '12345678909' )` fails if the raw string
+	 * reaches `Encryption` again.
+	 */
+	public function test_write_normalizes_a_masked_cpf_before_encrypting_and_hashing(): void {
+		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$enc->shouldReceive( 'encrypt' )->with( '12345678909' )->once()->andReturn( 'ENC' );
+		$enc->shouldReceive( 'hash' )->with( '12345678909' )->once()->andReturn( 'HASH' );
+
+		$result = UserProfileService::write( 42, array( 'cpf' => '123.456.789-09' ) );
+
+		$this->assertTrue( $result );
+		$this->assertSame( 'ENC', $this->usermeta_store[42]['ffc_user_cpf'] );
+		$this->assertSame(
+			'HASH',
+			$this->usermeta_store[42]['ffc_user_cpf_hash'],
+			'The profile must hash the canonical form, or it can never match the hash the other modules store for the same person.'
+		);
+	}
+
+	/**
+	 * A sensitive value that carries no identifier is not stored at all.
+	 *
+	 * `...---` normalises to the empty string. Encrypting and hashing that
+	 * would make every such row share one searchable value, which is the
+	 * opposite of an identifier.
+	 */
+	public function test_write_skips_a_sensitive_value_that_normalizes_to_nothing(): void {
+		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$enc->shouldReceive( 'encrypt' )->never();
+		$enc->shouldReceive( 'hash' )->never();
+
+		UserProfileService::write( 42, array( 'cpf' => '...---' ) );
+
+		$this->assertArrayNotHasKey( 'ffc_user_cpf', $this->usermeta_store[42] ?? array() );
+		$this->assertArrayNotHasKey( 'ffc_user_cpf_hash', $this->usermeta_store[42] ?? array() );
+	}
+
 	public function test_write_deletes_sensitive_meta_and_hash_when_value_empty(): void {
 		$this->usermeta_store[42] = array(
 			'ffc_user_cpf'      => 'PREVIOUS_ENC',

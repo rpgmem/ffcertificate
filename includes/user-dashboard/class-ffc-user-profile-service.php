@@ -29,6 +29,7 @@ namespace FreeFormCertificate\UserDashboard;
 use FreeFormCertificate\Core\ActivityLog;
 use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\SensitiveFieldRegistry;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -425,6 +426,19 @@ final class UserProfileService {
 				continue;
 			}
 
+			// #1313: normalise BEFORE encrypting and hashing, through the same
+			// boundary every other module uses. This method used to hash
+			// `$scalar` exactly as handed to it, so a reregistration storing a
+			// masked `123.456.789-09` wrote a hash of the punctuation while
+			// submissions, appointments and recruitment all hashed the digits
+			// -- the same person, two values, never matching. The store was
+			// write-only at the time, which is why nothing broke visibly and
+			// why nothing caught it either.
+			$scalar = SensitiveFieldRegistry::normalize( $field, $scalar );
+			if ( '' === $scalar ) {
+				continue;
+			}
+
 			$encrypted = Encryption::encrypt( $scalar );
 			if ( null === $encrypted ) {
 				continue;
@@ -433,6 +447,8 @@ final class UserProfileService {
 
 			$hash_key = self::resolve_hash_meta_key( $field );
 			if ( null !== $hash_key ) {
+				// `$scalar` is already normalised above, so this and
+				// `hash_identifier()` agree by construction.
 				$hash = Encryption::hash( $scalar );
 				if ( null !== $hash ) {
 					update_user_meta( $user_id, $hash_key, $hash );

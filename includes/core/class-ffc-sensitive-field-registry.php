@@ -66,6 +66,41 @@ final class SensitiveFieldRegistry {
 	 *
 	 * @var array<string, array<string, array{encrypted_column: ?string, hash_column: ?string}>>
 	 */
+	/**
+	 * How each identifier is canonicalised before it is encrypted or hashed.
+	 *
+	 * **Keyed by field, not by context, and that is the point.** The same CPF
+	 * must produce the same hash whether it arrives through a certificate, an
+	 * appointment, a candidacy or a profile edit -- so the rule cannot live
+	 * inside the per-context entries below, where it would be fifteen copies
+	 * to keep in step. One map, consulted by every context.
+	 *
+	 * **Why this map exists at all** (#1313): the hash function was already
+	 * uniform -- one salted SHA-256, called from everywhere. What was not
+	 * uniform was the string fed into it. Five sites normalised CPF to digits
+	 * and `UserProfileService` hashed the raw value; three sites lowercased an
+	 * e-mail and two did not. A call site that has to remember is a call site
+	 * that can forget, and both of those had already forgotten.
+	 *
+	 * A field absent from this map is hashed as given, which is correct for
+	 * values that carry no canonical form.
+	 *
+	 * **`email` is declared `null` on purpose, and it is NOT the final
+	 * answer.** Lowercasing it changes every `email_hash` already stored, so
+	 * the rule and the rehash migration have to land together or a lookup
+	 * normalises while the rows do not and stops matching. The flip belongs to
+	 * the migration PR of #1313; this entry exists so the decision is written
+	 * down instead of inferred from silence.
+	 *
+	 * @var array<string, string|null>
+	 */
+	private const NORMALIZERS = array(
+		'cpf'    => 'cpf_rf',
+		'rf'     => 'cpf_rf',
+		'ticket' => 'ticket',
+		'email'  => null,
+	);
+
 	private const FIELDS = array(
 		self::CONTEXT_SUBMISSION            => array(
 			'email'   => array(
@@ -183,7 +218,15 @@ final class SensitiveFieldRegistry {
 				continue;
 			}
 
-			$plain = is_string( $value ) ? $value : (string) $value;
+			$plain = self::normalize( $field_key, is_string( $value ) ? $value : (string) $value );
+
+			// A value that normalises to nothing carried no identifier -- a
+			// CPF field holding only punctuation, say. Writing a ciphertext
+			// and a hash of the empty string would make it findable, so it is
+			// skipped exactly like an empty input.
+			if ( '' === $plain ) {
+				continue;
+			}
 
 			if ( ! empty( $spec['encrypted_column'] ) ) {
 				$out[ $spec['encrypted_column'] ] = Encryption::encrypt( $plain );
@@ -192,6 +235,112 @@ final class SensitiveFieldRegistry {
 				$out[ $spec['hash_column'] ] = Encryption::hash( $plain );
 			}
 		}
+
+		return $out;
+	}
+
+	/**
+	 * Canonical form of one identifier, by field key.
+	 *
+	 * Public because READERS need it too: a search that normalises the typed
+	 * value while the write did not -- or the reverse -- simply stops matching.
+	 * One function serves both sides.
+	 *
+	 * @since 6.26.0
+	 * @param string $field_key Logical field key (`cpf`, `rf`, `email`, …).
+	 * @param string $value     Raw value.
+	 * @return string Canonical value, or the input unchanged when the field
+	 *                declares no canonical form.
+	 */
+	public static function normalize( string $field_key, string $value ): string {
+		$kind = self::NORMALIZERS[ $field_key ] ?? null;
+
+		if ( null === $kind || ! class_exists( DataSanitizer::class ) ) {
+			return $value;
+		}
+
+		// No trailing pass-through on purpose: every kind the map declares has
+		// an arm here, so PHPStan proves a fall-through unreachable and reports
+		// it as dead code -- which is the good outcome, because it means the
+		// switch is exhaustive over what is actually declared. A kind added to
+		// NORMALIZERS without an arm is caught by
+		// `IdentityHashBoundaryTest::test_every_declared_field_resolves_to_a_normalizer()`
+		// before it can reach a request.
+		switch ( $kind ) {
+			case 'cpf_rf':
+				return DataSanitizer::normalize_cpf_rf( $value );
+			case 'email':
+				return DataSanitizer::normalize_email( $value );
+			case 'ticket':
+				return DataSanitizer::normalize_ticket( $value );
+		}
+	}
+
+	/**
+	 * The lookup hash of one identifier -- normalise, then hash.
+	 *
+	 * **This is the boundary.** Every site that turns an identifier into a
+	 * hash goes through here, on the read side as much as the write side, so
+	 * that "what gets hashed" stops being a decision each caller makes for
+	 * itself (#1313). Calling `Encryption::hash()` directly on a CPF, RF,
+	 * e-mail or ticket is the defect this method exists to remove.
+	 *
+	 * Returns null for an empty value, mirroring `Encryption::hash()`, so a
+	 * caller can keep using `null` to mean "no identifier supplied" rather
+	 * than storing the hash of an empty string.
+	 *
+	 * @since 6.26.0
+	 * @param string $field_key Logical field key.
+	 * @param string $value     Raw value, masked or not.
+	 * @return string|null Hash, or null when the value is empty.
+	 */
+	public static function hash_identifier( string $field_key, string $value ): ?string {
+		$plain = self::normalize( $field_key, $value );
+
+		if ( '' === $plain || ! class_exists( Encryption::class ) ) {
+			return null;
+		}
+
+		return Encryption::hash( $plain );
+	}
+
+	/**
+	 * Field keys that declare a canonical form.
+	 *
+	 * Exposed for the guard that charges every hash-bearing field against this
+	 * map, so a new identifier cannot be added to `FIELDS` with a hash column
+	 * and no decision about its canonical form.
+	 *
+	 * @since 6.26.0
+	 * @return list<string>
+	 */
+	public static function normalized_field_keys(): array {
+		return array_keys( self::NORMALIZERS );
+	}
+
+	/**
+	 * Every field key that carries a lookup hash, across all contexts.
+	 *
+	 * The set the normalizer map must cover: a field whose value becomes a
+	 * searchable hash has to have decided what form it is searched in, or the
+	 * spelling that happened to arrive is the one stored (#1313).
+	 *
+	 * @since 6.26.0
+	 * @return list<string>
+	 */
+	public static function hashed_field_keys(): array {
+		$keys = array();
+
+		foreach ( self::FIELDS as $fields ) {
+			foreach ( $fields as $field_key => $spec ) {
+				if ( ! empty( $spec['hash_column'] ) ) {
+					$keys[ $field_key ] = true;
+				}
+			}
+		}
+
+		$out = array_keys( $keys );
+		sort( $out );
 
 		return $out;
 	}

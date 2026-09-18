@@ -114,7 +114,7 @@ class AppointmentReader extends AbstractRepository {
 	 */
 	public function findByEmail( string $email, ?int $limit = null, int $offset = 0 ): array {
 		// Use Encryption::hash without normalization to match SubmissionHandler convention.
-		$email_hash = \FreeFormCertificate\Core\Encryption::hash( $email );
+		$email_hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'email', $email );
 		if ( null === $email_hash ) {
 			return array();
 		}
@@ -154,7 +154,7 @@ class AppointmentReader extends AbstractRepository {
 	 */
 	public function findByCpfRf( string $cpf_rf, ?int $limit = null, int $offset = 0 ): array {
 		$cpf_rf_clean = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf_rf );
-		$cpf_rf_hash  = \FreeFormCertificate\Core\Encryption::hash( $cpf_rf_clean );
+		$cpf_rf_hash  = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $cpf_rf_clean );
 		if ( null === $cpf_rf_hash ) {
 			return array();
 		}

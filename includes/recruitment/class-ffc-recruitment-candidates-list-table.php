@@ -20,6 +20,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Recruitment;
 
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\SensitiveFieldRegistry;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -446,7 +447,7 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 			$sets[] = self::resolve_cpf_or_rf_to_ids( $rf, 'rf' );
 		}
 		if ( '' !== $email ) {
-			$hash   = (string) Encryption::hash( $email );
+			$hash   = (string) SensitiveFieldRegistry::hash_identifier( 'email', $email );
 			$sets[] = '' === $hash ? array() : RecruitmentCandidateReader::get_ids_by_email_hash( $hash );
 		}
 
@@ -479,7 +480,7 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 		if ( '' === $digits ) {
 			return array();
 		}
-		$hash = (string) Encryption::hash( $digits );
+		$hash = (string) SensitiveFieldRegistry::hash_identifier( 'cpf', $digits );
 		$row  = 'cpf' === $kind
 			? RecruitmentCandidateReader::get_by_cpf_hash( $hash )
 			: RecruitmentCandidateReader::get_by_rf_hash( $hash );

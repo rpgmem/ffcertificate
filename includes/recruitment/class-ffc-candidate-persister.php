@@ -22,6 +22,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Recruitment;
 
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\SensitiveFieldRegistry;
 use FreeFormCertificate\UserDashboard\CapabilityManager;
 use FreeFormCertificate\UserDashboard\UserCreator;
 
@@ -57,9 +58,9 @@ final class CandidatePersister {
 		$phone = is_string( $row['phone'] ) ? trim( $row['phone'] ) : '';
 		$pcd   = CsvParser::parse_pcd_flag( $row['pcd'] );
 
-		$cpf_hash   = '' !== $cpf ? Encryption::hash( $cpf ) : null;
-		$rf_hash    = '' !== $rf ? Encryption::hash( $rf ) : null;
-		$email_hash = '' !== $email ? Encryption::hash( $email ) : null;
+		$cpf_hash   = SensitiveFieldRegistry::hash_identifier( 'cpf', $cpf );
+		$rf_hash    = SensitiveFieldRegistry::hash_identifier( 'rf', $rf );
+		$email_hash = SensitiveFieldRegistry::hash_identifier( 'email', $email );
 
 		// Look up existing candidate by cpf, then rf.
 		$existing = null;

@@ -256,7 +256,7 @@ final class CsvDownloadValidator {
 		if ( 'participants' === $mode ) {
 			$encryption_class = '\FreeFormCertificate\Core\Encryption';
 			$cpf_hash         = ( class_exists( $encryption_class ) && $encryption_class::is_configured() )
-				? $encryption_class::hash( $digits )
+				? \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $digits )
 				: hash( 'sha256', $digits );
 			$count            = ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->countByFormAndCpfHash( $form_id, (string) $cpf_hash );
 			if ( $count <= 0 ) {

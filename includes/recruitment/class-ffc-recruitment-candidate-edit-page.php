@@ -37,6 +37,7 @@ namespace FreeFormCertificate\Recruitment;
 use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\SensitiveFieldRegistry;
 use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -613,7 +614,7 @@ final class RecruitmentCandidateEditPage {
 				$update['email_hash']      = null;
 			} else {
 				$update['email_encrypted'] = Encryption::encrypt( $email );
-				$update['email_hash']      = Encryption::hash( $email );
+				$update['email_hash']      = SensitiveFieldRegistry::hash_identifier( 'email', $email );
 			}
 		}
 
@@ -675,7 +676,7 @@ final class RecruitmentCandidateEditPage {
 		}
 		if ( null !== $email ) {
 			$old_email_hash = null === $before->email_hash ? '' : (string) $before->email_hash;
-			$new_email_hash = '' === $email ? '' : (string) Encryption::hash( $email );
+			$new_email_hash = '' === $email ? '' : (string) SensitiveFieldRegistry::hash_identifier( 'email', $email );
 			if ( $old_email_hash !== $new_email_hash ) {
 				$changes['email_hash'] = array(
 					'old' => $old_email_hash,
