@@ -18,6 +18,9 @@ class UserCreatorTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var list<array{0: string, 1: string, 2: string}> Notices emitted during a test. */
+	private array $deprecations = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -38,6 +41,18 @@ class UserCreatorTest extends TestCase {
 		Functions\when( 'do_action' )->justReturn( null );
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
+
+		// `get_or_create_user()` is deprecated since 6.26.0 (#1313 PR 7) and emits
+		// the runtime notice. Stubbed here so the branch is CHOSEN rather than
+		// inherited from whichever earlier test in the process happened to define
+		// the function -- the GLOBAL form only, never `Ns\_deprecated_function`,
+		// which would shadow it for the rest of the run.
+		$this->deprecations = array();
+		Functions\when( '_deprecated_function' )->alias(
+			function ( $function_name, $version, $replacement = '' ) {
+				$this->deprecations[] = array( $function_name, $version, $replacement );
+			}
+		);
 
 		// The identity index (#1313 PR 4) writes through UserProfileRepository,
 		// whose AbstractRepository invalidates the object cache after a write.
@@ -163,6 +178,47 @@ class UserCreatorTest extends TestCase {
 	}
 
 	// ------------------------------------------------------------------
+	/**
+	 * The deprecation cycle's notice is the part that reaches a consumer.
+	 *
+	 * `@deprecated` in a docblock is invisible at runtime, and this cycle
+	 * exists for callers a static scan cannot see -- another plugin on the same
+	 * WordPress calling a `public static` method. So the notice IS the delivery,
+	 * and a test that never looks at it would let a later edit delete it in
+	 * silence while `DeprecationDueTest` stayed green: that guard reads the
+	 * `@removal` marker, not whether anything is emitted.
+	 *
+	 * The dual entry point must stay quiet, or every certificate submission
+	 * would warn.
+	 */
+	public function test_the_legacy_entry_point_announces_its_replacement(): void {
+		$GLOBALS['wpdb']->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$GLOBALS['wpdb']->shouldReceive( 'get_var' )->andReturn( 5 );
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'get_user_by' )->justReturn( false );
+
+		UserCreator::get_or_create_user( 'hash123', 'test@example.com', array() );
+
+		$this->assertCount( 1, $this->deprecations, 'The legacy entry point emitted no deprecation notice, so a consumer this cycle exists for is never told.' );
+		$this->assertSame( 'FreeFormCertificate\\UserDashboard\\UserCreator::get_or_create_user', $this->deprecations[0][0] );
+		$this->assertSame( '6.26.0', $this->deprecations[0][1] );
+		$this->assertStringContainsString( 'get_or_create_user_dual', $this->deprecations[0][2], 'The notice does not name the replacement, which is the only actionable half of it.' );
+	}
+
+	/**
+	 * The path every certificate and appointment now takes must not warn.
+	 */
+	public function test_the_dual_entry_point_is_silent(): void {
+		$GLOBALS['wpdb']->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$GLOBALS['wpdb']->shouldReceive( 'get_var' )->andReturn( 5 );
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'get_user_by' )->justReturn( false );
+
+		UserCreator::get_or_create_user_dual( 'cpfhash', null, 'test@example.com', array() );
+
+		$this->assertSame( array(), $this->deprecations, 'The replacement warns too, so every submission would emit a notice under WP_DEBUG.' );
+	}
+
 	// get_or_create_user() — step 1: existing user_id found via CPF hash
 	// ------------------------------------------------------------------
 

@@ -35,6 +35,17 @@ class UserCreator {
 	/**
 	 * Get or create WordPress user based on CPF/RF and email
 	 *
+	 * @deprecated 6.26.0 Use {@see self::get_or_create_user_dual()} (#1313).
+	 * @removal    6.28.0
+	 *
+	 * The implementation behind {@see UserManager::get_or_create_user()}, which
+	 * carries the same notice -- both are public and reachable, so both notify,
+	 * the way `AppointmentRepository` and `AppointmentReader` do for #1245.
+	 *
+	 * What it does NOT do is the reason: step 1 below queries `ffc_submissions`
+	 * alone and `link_orphaned_records()` writes to no identity index, so a
+	 * caller still on this entry point leaves `ffc_user_profiles` incomplete.
+	 *
 	 * Flow:
 	 * 1. Check if identifier hash already has user_id in submissions table
 	 * 2. If yes: return existing user_id (and add context-specific capabilities)
@@ -50,6 +61,10 @@ class UserCreator {
 	 * @return int|\WP_Error User ID or error
 	 */
 	public static function get_or_create_user( string $identifier_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE, string $identifier_type = self::TYPE_AUTO ) {
+		// See the note on `UserManager::get_or_create_user()`: the runtime
+		// notice is what reaches a consumer this repository cannot scan for.
+		_deprecated_function( __METHOD__, '6.26.0', __CLASS__ . '::get_or_create_user_dual()' );
+
 		global $wpdb;
 		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 

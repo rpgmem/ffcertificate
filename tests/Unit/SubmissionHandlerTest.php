@@ -55,6 +55,11 @@ class SubmissionHandlerTest extends TestCase {
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		// Reached since 6.26.0: the certificate path resolves through the DUAL
+		// entry point, which feeds `ffc_user_profiles` and so invalidates that
+		// repository's cache group (#1313 PR 7).
+		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		Functions\when( 'wp_cache_add_global_groups' )->justReturn( null );
 		Functions\when( 'current_time' )->justReturn( '2026-02-17 12:00:00' );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
@@ -760,6 +765,79 @@ class SubmissionHandlerTest extends TestCase {
 
 		$this->assertSame( 0, $captured['consent_given'] );
 		$this->assertNull( $captured['consent_date'] );
+	}
+
+	/**
+	 * The certificate path resolves through the DUAL entry point (#1313 PR 7).
+	 *
+	 * WHAT THIS PINS THAT THE OLD CALL COULD NOT
+	 *
+	 * The legacy entry point chose the column from a separate
+	 * `$identifier_type` argument, so the value and the type it was declared to
+	 * be could disagree. Here the POSITION is the type, and the hash in it must
+	 * be the one the row is written with -- the same `cpf_hash` this very
+	 * submission stores, not a second hash of the same value.
+	 *
+	 * Both directions are asserted: a mutation swapping the two arguments
+	 * passes any test that only looks at one.
+	 *
+	 * `@runInSeparateProcess` so the `alias:` mock on `UserManager` cannot
+	 * reach the rest of this class, which drives the real one.
+	 *
+	 * @dataProvider dual_argument_provider
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 * @param string $typed    The single `cpf_rf` field as the visitor types it.
+	 * @param int    $slot     Argument index expected to carry the hash.
+	 * @param string $column   The row column that must hold the same hash.
+	 */
+	public function test_the_resolver_receives_the_hash_in_the_argument_its_kind_names( string $typed, int $slot, string $column ): void {
+		$captured = null;
+		$this->mockRepo->shouldReceive( 'insert' )
+			->once()
+			->withArgs( function( $data ) use ( &$captured ) {
+				$captured = $data;
+				return true;
+			} )
+			->andReturn( 31 );
+
+		$seen = array();
+		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' )
+			->shouldReceive( 'get_or_create_user_dual' )
+			->andReturnUsing(
+				static function ( ...$args ) use ( &$seen ) {
+					$seen = $args;
+					return 7;
+				}
+			);
+
+		// The third argument is by reference, so it must be a variable.
+		$data = array( 'name' => 'X', 'cpf_rf' => $typed );
+		$this->handler->process_submission( 1, 'Form', $data, 'x@test.com', array(), array() );
+
+		$this->assertNotSame( array(), $seen, 'The resolver was never called, so nothing about its arguments was measured.' );
+
+		$other = 0 === $slot ? 1 : 0;
+
+		$this->assertSame(
+			$captured[ $column ],
+			$seen[ $slot ],
+			"The resolver was handed a different hash from the one written to {$column}, so a lookup for this person cannot find this row."
+		);
+		$this->assertNull(
+			$seen[ $other ],
+			"The other identifier argument is not null for '{$typed}', so the resolver searches a column this value was never written to."
+		);
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: int, 2: string}>
+	 */
+	public static function dual_argument_provider(): array {
+		return array(
+			'a CPF goes in the first argument' => array( '123.456.789-01', 0, 'cpf_hash' ),
+			'an RF goes in the second'         => array( '123.456-7', 1, 'rf_hash' ),
+		);
 	}
 
 	public function test_process_submission_cleans_cpf_rf(): void {

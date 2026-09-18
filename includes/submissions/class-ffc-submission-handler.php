@@ -231,10 +231,20 @@ class SubmissionHandler {
 		$consent_text  = $consent_given ? __( 'User agreed to Privacy Policy and data storage', 'ffcertificate' ) : null;
 
 		// 8. Link to WordPress user (v3.1.0)
-		$lookup_cpf_hash = $cpf_hash_val ?? $rf_hash_val;
-		$identifier_type = ! empty( $cpf_hash_val ) ? 'cpf' : ( ! empty( $rf_hash_val ) ? 'rf' : 'auto' );
-		$user_id         = null;
-		if ( ! empty( $lookup_cpf_hash ) && ! empty( $user_email ) ) {
+		//
+		// Through the DUAL entry point since 6.26.0 (#1313 PR 7). The lookup is
+		// unchanged -- the form carries one `cpf_rf` field, split above into
+		// `$clean_cpf` XOR `$clean_rf`, so exactly one of these hashes is ever
+		// non-null and the dual resolver queries the same single column the
+		// legacy entry point did. What changes is the two things only the dual
+		// path does: it asks `ffc_user_profiles` BEFORE the module table, and
+		// it feeds that index with whatever it resolved. Certificates are the
+		// highest-volume writer of `cpf_hash`, so while this call stayed on the
+		// legacy entry point the invariant #1313 exists to create -- whenever a
+		// record gains a link to a user, that user's identity index receives
+		// the identifiers -- was false for most of the rows in the database.
+		$user_id = null;
+		if ( ( ! empty( $cpf_hash_val ) || ! empty( $rf_hash_val ) ) && ! empty( $user_email ) ) {
 			// Load User Manager if not already loaded.
 			if ( ! class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
 				$user_manager_file = FFC_PLUGIN_DIR . 'includes/user-dashboard/class-ffc-user-manager.php';
@@ -244,12 +254,12 @@ class SubmissionHandler {
 			}
 
 			if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
-				$user_result = \FreeFormCertificate\UserDashboard\UserManager::get_or_create_user(
-					$lookup_cpf_hash,
+				$user_result = \FreeFormCertificate\UserDashboard\UserManager::get_or_create_user_dual(
+					$cpf_hash_val,
+					$rf_hash_val,
 					$user_email,
 					$submission_data,
-					\FreeFormCertificate\UserDashboard\CapabilityManager::CONTEXT_CERTIFICATE,
-					$identifier_type
+					\FreeFormCertificate\UserDashboard\CapabilityManager::CONTEXT_CERTIFICATE
 				);
 
 				if ( ! is_wp_error( $user_result ) ) {

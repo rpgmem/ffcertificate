@@ -49,6 +49,34 @@ class UserManager {
 	/**
 	 * Get or create a WordPress user for the given credentials.
 	 *
+	 * @deprecated 6.26.0 Use {@see self::get_or_create_user_dual()} (#1313).
+	 * @removal    6.28.0
+	 *
+	 * WHY IT IS DEPRECATED RATHER THAN DELETED
+	 *
+	 * Every product caller is gone -- certificates and appointments, the last
+	 * two, moved to the dual entry point in this same change. But this is a
+	 * `public static` method on a class another plugin on the same WordPress
+	 * can call, which is exactly the surface `CLAUDE.md` "Legacy and tech debt"
+	 * says a static sweep cannot see. Direct precedent:
+	 * `AppointmentRepository::getStatistics()` (#1245), and the `success`/`fail`
+	 * keys of `get_audit_log_summary()` (#730) before it, both removed at the
+	 * second feature release after the notice.
+	 *
+	 * WHY THE DUAL ONE IS NOT MERELY A WIDER SIGNATURE
+	 *
+	 * It resolves through `ffc_user_profiles` before the module tables and
+	 * feeds that index with whatever it resolved. This one queries
+	 * `ffc_submissions` alone and writes to no index, so a caller still using
+	 * it leaves the identity index incomplete -- silently, and in a way only a
+	 * later duplicate account reveals.
+	 *
+	 * HOW TO MOVE
+	 *
+	 * Pass the hash in the argument its kind names and leave the other null;
+	 * `DataSanitizer::classify_cpf_rf()` answers which. The `$identifier_type`
+	 * argument then has no counterpart, because the position IS the type.
+	 *
 	 * @see UserCreator::get_or_create_user()
 	 * @param string               $cpf_rf_hash     CPF/RF hash.
 	 * @param string               $email           Email address.
@@ -58,6 +86,21 @@ class UserManager {
 	 * @return int|\WP_Error User ID on success, WP_Error on failure
 	 */
 	public static function get_or_create_user( string $cpf_rf_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE, string $identifier_type = UserCreator::TYPE_AUTO ) {
+		// The notice that actually reaches a consumer: `@deprecated` above is
+		// invisible at runtime, and this cycle exists for callers no scan can
+		// see. `_deprecated_function()` emits `E_USER_DEPRECATED` under
+		// `WP_DEBUG` and stays silent in production.
+		//
+		// Called unguarded, like the #1245 notices. A `function_exists()` guard
+		// around it looks defensive and is worse than useless: WordPress always
+		// defines this, while under Brain\Monkey whether it is defined depends
+		// on whether an EARLIER test in the process stubbed it -- so the guard
+		// makes the branch inherited rather than chosen, which is the
+		// order-dependence `CLAUDE.md` records for `function_exists()`. It was
+		// written with the guard first and cost seven errors in a test file
+		// this change never touched.
+		_deprecated_function( __METHOD__, '6.26.0', __CLASS__ . '::get_or_create_user_dual()' );
+
 		return UserCreator::get_or_create_user( $cpf_rf_hash, $email, $submission_data, $context, $identifier_type );
 	}
 

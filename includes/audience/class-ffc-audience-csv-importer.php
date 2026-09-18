@@ -156,12 +156,28 @@ class AudienceCsvImporter {
 						// `$notify = false` because the notification this flow
 						// owes is the CSV-import one, which is a DIFFERENT
 						// admin setting from the one `UserCreator` would send.
+						//
+						// The context is `CONTEXT_AUDIENCE` since 6.26.0. It
+						// had been `CONTEXT_CERTIFICATE`, which is what this
+						// flow granted before #1313 PR 5 and was preserved
+						// there rather than decided in passing. It grants
+						// nothing this person needs: they are being imported
+						// into an audience, and the capability that lets them
+						// see their own bookings is granted where it belongs,
+						// by `AudienceWriter::add_member()` at the moment
+						// membership is recorded (#1302). The context is
+						// therefore the truthful one, its grant is idempotent
+						// against that one, and NOTHING IS TAKEN AWAY from
+						// anyone: every grant path adds capabilities the holder
+						// lacks and no path removes one, so a member who later
+						// submits a certificate is granted the certificate
+						// capabilities then, by the certificate flow.
 						$user_id = UserCreator::get_or_create_user_dual(
 							null,
 							null,
 							$email,
 							array( 'name' => $name ),
-							CapabilityManager::CONTEXT_CERTIFICATE,
+							CapabilityManager::CONTEXT_AUDIENCE,
 							false
 						);
 						if ( is_wp_error( $user_id ) ) {

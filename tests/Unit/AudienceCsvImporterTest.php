@@ -283,10 +283,16 @@ class AudienceCsvImporterTest extends TestCase {
 	 * `ffc_user_profiles` row at all, so an imported member was invisible to
 	 * the identity index from birth.
 	 *
-	 * The capability context stays `CONTEXT_CERTIFICATE`, which is what this
-	 * flow granted before. `CONTEXT_AUDIENCE` exists and is passed by nobody;
-	 * whether an imported audience member should get audience capabilities
-	 * instead is a product question, not a consolidation.
+	 * The capability context is `CONTEXT_AUDIENCE` since 6.26.0 (#1313 PR 7).
+	 * PR 5 left it at `CONTEXT_CERTIFICATE` -- what the flow granted before --
+	 * rather than decide a product question in passing, and this is that
+	 * decision: the person is being imported into an audience, so that is what
+	 * the context says. It grants them nothing they need, because the
+	 * capability that shows a member their own bookings is granted where it
+	 * belongs, by `AudienceWriter::add_member()` (#1302), and nothing is taken
+	 * away either -- every grant path adds what the holder lacks and no path
+	 * removes a capability, so the certificate flow grants the certificate
+	 * capabilities if this person ever submits one.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
@@ -305,7 +311,7 @@ class AudienceCsvImporterTest extends TestCase {
 				null,
 				'new@example.com',
 				array( 'name' => 'New Person' ),
-				\FreeFormCertificate\UserDashboard\CapabilityManager::CONTEXT_CERTIFICATE,
+				\FreeFormCertificate\UserDashboard\CapabilityManager::CONTEXT_AUDIENCE,
 				false
 			)
 			->andReturn( 77 );
