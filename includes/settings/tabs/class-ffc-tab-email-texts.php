@@ -193,7 +193,10 @@ class TabEmailTexts extends SettingsTab {
 			),
 			'reregistration-invitation'     => array(
 				'label'  => __( 'Reregistration invitation', 'ffcertificate' ),
-				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'start_date', 'end_date', 'dashboard_url', 'set_password_url', 'site_name' ),
+				// `status_line` and `action_label` are supplied per recipient and
+				// their two values are not editable here (#1300) -- the operator
+				// can move or remove them, not reword them.
+				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'start_date', 'end_date', 'dashboard_url', 'set_password_url', 'status_line', 'action_label', 'site_name' ),
 			),
 			'reregistration-reminder'       => array(
 				'label'  => __( 'Reregistration reminder', 'ffcertificate' ),

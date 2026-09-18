@@ -21903,3 +21903,15 @@ msgstr ""
 #: includes/maintenance/class-ffc-submission-link-auditor.php
 msgid "Report-only scan of how people are linked to WordPress users. Four checks over certificate submissions: links to deleted users, one user bound to multiple CPF/RF identities, unlinked submissions whose CPF matches a linked one, and a single CPF shared across multiple users. Three more across every store — submissions, appointments, recruitment candidacies and the identity index — reporting one identifier held by two accounts, one account holding two identifiers, and identifiers the index does not yet carry. Nothing is changed: review and fix each case manually."
 msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-email-handler.php
+msgid "Your reregistration is already recorded — you can review it on your dashboard."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-email-handler.php
+msgid "View My Reregistration"
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "If you send the campaign invitation, these people receive it too — it will tell them their reregistration is already recorded and link to their dashboard, not ask them to fill anything in."
+msgstr ""

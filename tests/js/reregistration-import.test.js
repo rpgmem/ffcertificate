@@ -236,7 +236,28 @@ describe('reregistration import — applying it', () => {
 			'ffc_rereg_import_promote',
 			'ffc_rereg_import_commit',
 		]);
-		expect(status()).toBe('Imported 3. Skipped 1.');
+		expect(status()).toContain('Imported 3. Skipped 1.');
+	});
+
+	it('warns that the campaign invitation will reach the people just imported', async () => {
+		// The one moment before the invitation goes out (#1300). The e-mail
+		// itself adapts its wording per recipient, so this states what the
+		// operator is about to cause rather than warning them off doing it —
+		// and it rides the SAME status line, because a second element would
+		// need markup and CSS for one sentence.
+		const spy = await armed();
+		spy.mockImplementation((action) => {
+			if (action === 'ffc_rereg_import_promote') {
+				return Promise.resolve({ processed: 4, total: 4, done: true });
+			}
+			return Promise.resolve({ promoted: 3, skipped: 1 });
+		});
+
+		window.$('#ffc-rereg-import-apply').trigger('click');
+		await settle(12);
+
+		expect(status()).toContain('If you send the campaign invitation');
+		expect(status()).toContain('already recorded');
 	});
 
 	it('does nothing without a checked job', async () => {

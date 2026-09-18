@@ -21994,3 +21994,15 @@ msgstr "Varredura somente de leitura de como as pessoas estão vinculadas a usu�
 #: includes/maintenance/class-ffc-submission-link-auditor.php
 msgid "Report-only scan of how people are linked to WordPress users. Four checks over certificate submissions: links to deleted users, one user bound to multiple CPF/RF identities, unlinked submissions whose CPF matches a linked one, and a single CPF shared across multiple users. Three more across every store — submissions, appointments, recruitment candidacies and the identity index — reporting one identifier held by two accounts, one account holding two identifiers, and identifiers the index does not yet carry. Nothing is changed: review and fix each case manually."
 msgstr "Varredura somente de leitura de como as pessoas estão vinculadas a usuários do WordPress. Quatro verificações sobre submissões de certificado: vínculos com usuários excluídos, um usuário ligado a múltiplas identidades de CPF/RF, submissões sem vínculo cujo CPF corresponde a uma vinculada, e um mesmo CPF compartilhado entre vários usuários. Mais três sobre todos os armazenamentos — submissões, agendamentos, candidaturas de recrutamento e o índice de identidade — reportando um identificador em duas contas, uma conta com dois identificadores, e identificadores que o índice ainda não carrega. Nada é alterado: revise e corrija cada caso manualmente."
+
+#: includes/reregistration/class-ffc-reregistration-email-handler.php
+msgid "Your reregistration is already recorded — you can review it on your dashboard."
+msgstr "Seu recadastramento já está registrado — você pode consultá-lo no seu painel."
+
+#: includes/reregistration/class-ffc-reregistration-email-handler.php
+msgid "View My Reregistration"
+msgstr "Ver Meu Recadastramento"
+
+#: includes/reregistration/class-ffc-reregistration-admin.php
+msgid "If you send the campaign invitation, these people receive it too — it will tell them their reregistration is already recorded and link to their dashboard, not ask them to fill anything in."
+msgstr "Se você enviar o convite da campanha, estas pessoas também o recebem — ele dirá que o recadastramento delas já está registrado e levará ao painel, sem pedir que preencham nada."
