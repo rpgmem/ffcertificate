@@ -897,11 +897,19 @@ try {
 		'ffc_submission_audit_scan'
 	);
 
+	// Every key the auditor returns needs a label here or its count is computed
+	// and never shown -- the "built but never wired" class `AjaxWiringTest`
+	// exists for. `SubmissionLinkAuditorTest` asserts this map covers the
+	// report, so a check added without a label fails CI rather than going
+	// quietly missing from the screen.
 	$ffcertificate_sa_labels = array(
-		'orphan_links'        => __( 'Linked to a deleted user', 'ffcertificate' ),
-		'multiple_identities' => __( 'User bound to multiple CPF/RF', 'ffcertificate' ),
-		'should_be_linked'    => __( 'Unlinked but CPF matches a linked record', 'ffcertificate' ),
-		'shared_identities'   => __( 'Same CPF shared across users', 'ffcertificate' ),
+		'orphan_links'                    => __( 'Linked to a deleted user', 'ffcertificate' ),
+		'multiple_identities'             => __( 'User bound to multiple CPF/RF', 'ffcertificate' ),
+		'should_be_linked'                => __( 'Unlinked but CPF matches a linked record', 'ffcertificate' ),
+		'shared_identities'               => __( 'Same CPF shared across users', 'ffcertificate' ),
+		'cross_store_shared_identities'   => __( 'Same identifier on two accounts (all modules)', 'ffcertificate' ),
+		'cross_store_multiple_identities' => __( 'One account, two identifiers (all modules)', 'ffcertificate' ),
+		'unindexed_links'                 => __( 'Linked identifier missing from the identity index', 'ffcertificate' ),
 	);
 	?>
 	<div class="postbox ffc-migration-card ffc-submission-audit-card">
@@ -912,7 +920,7 @@ try {
 		</div>
 		<div class="inside">
 			<p class="description">
-				<?php esc_html_e( 'Report-only scan for submissions wrongly linked to WordPress users. Nothing is changed — review each finding and fix it manually. Detection uses the stored CPF/RF hashes, so no decryption is involved.', 'ffcertificate' ); ?>
+				<?php esc_html_e( 'Report-only scan of how people are linked to WordPress users — across certificate submissions, appointments, recruitment candidacies and the identity index. Nothing is changed: review each finding and fix it manually. Detection uses the stored CPF/RF hashes, so no decryption is involved.', 'ffcertificate' ); ?>
 			</p>
 
 			<?php if ( $ffcertificate_sa_msg ) : ?>
@@ -951,7 +959,7 @@ try {
 				$ffcertificate_sa_checks = isset( $ffcertificate_sa_report['checks'] ) && is_array( $ffcertificate_sa_report['checks'] ) ? $ffcertificate_sa_report['checks'] : array();
 				?>
 				<?php if ( 0 === $ffcertificate_sa_total ) : ?>
-					<p class="description"><?php esc_html_e( 'No link problems found. Submissions and users look consistent.', 'ffcertificate' ); ?></p>
+					<p class="description"><?php esc_html_e( 'No link problems found: no identifier is held by two accounts, no account holds two identifiers, and the identity index carries every identifier already linked to a user.', 'ffcertificate' ); ?></p>
 				<?php else : ?>
 					<div class="ffc-migration-stats">
 						<?php foreach ( $ffcertificate_sa_labels as $ffcertificate_sa_key => $ffcertificate_sa_label ) : ?>

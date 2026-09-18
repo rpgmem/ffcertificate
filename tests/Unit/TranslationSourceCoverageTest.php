@@ -103,6 +103,9 @@ class TranslationSourceCoverageTest extends TestCase {
 		'Applies to the Certificate HTML editor on the form edit screen. "Auto" mirrors the admin Dark Mode setting (General tab); fresh installs default to Dark.' => 'Superseded by the "…the Dark Mode setting above" wording, same move.',
 		'Store generated QR Codes in database to avoid regenerating them on each request.' => 'Superseded by "Store generated certificate QR Codes…", which says which QR Code it means.',
 		'sent automatically when the deadline is within N days (default 7).' => 'Superseded by the longer paragraph #1283 added to the reregistration documentation.',
+		'Report-only scan for submissions wrongly linked to WordPress users: links to deleted users, one user bound to multiple CPF/RF identities, unlinked submissions whose CPF matches a linked one, and a single CPF shared across multiple users. Nothing is changed — review and fix each case manually.' => 'Superseded by the wording that also names the three cross-store checks #1313 added to the tool.',
+		'Report-only scan for submissions wrongly linked to WordPress users. Nothing is changed — review each finding and fix it manually. Detection uses the stored CPF/RF hashes, so no decryption is involved.' => 'Superseded by the Migrations-tab card wording that says the scan now covers appointments, candidacies and the identity index (#1313).',
+		'No link problems found. Submissions and users look consistent.' => 'Superseded by the clean-result wording that states what was checked, now that the audit is wider than submissions (#1313).',
 
 		// Seeded field labels whose text moved.
 		'Emergency Contact'                       => 'Seeded label, now "Emergency Contact Name".',

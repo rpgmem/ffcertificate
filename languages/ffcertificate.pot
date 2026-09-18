@@ -21879,3 +21879,27 @@ msgstr ""
 #: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
 msgid "Run \"Canonicalise Stored Identifiers\" to completion first: %d rows are still pending. A hash copied into the index before then is a hash of whatever spelling arrived, and nothing can repair it afterwards."
 msgstr ""
+
+#: includes/settings/views/ffc-tab-migrations.php
+msgid "Same identifier on two accounts (all modules)"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-migrations.php
+msgid "One account, two identifiers (all modules)"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-migrations.php
+msgid "Linked identifier missing from the identity index"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-migrations.php
+msgid "No link problems found: no identifier is held by two accounts, no account holds two identifiers, and the identity index carries every identifier already linked to a user."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-migrations.php
+msgid "Report-only scan of how people are linked to WordPress users — across certificate submissions, appointments, recruitment candidacies and the identity index. Nothing is changed: review each finding and fix it manually. Detection uses the stored CPF/RF hashes, so no decryption is involved."
+msgstr ""
+
+#: includes/maintenance/class-ffc-submission-link-auditor.php
+msgid "Report-only scan of how people are linked to WordPress users. Four checks over certificate submissions: links to deleted users, one user bound to multiple CPF/RF identities, unlinked submissions whose CPF matches a linked one, and a single CPF shared across multiple users. Three more across every store — submissions, appointments, recruitment candidacies and the identity index — reporting one identifier held by two accounts, one account holding two identifiers, and identifiers the index does not yet carry. Nothing is changed: review and fix each case manually."
+msgstr ""

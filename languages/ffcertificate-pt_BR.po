@@ -21970,3 +21970,27 @@ msgstr "A tabela do índice de identidade ainda não existe. Reative o plugin pa
 #: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
 msgid "Run \"Canonicalise Stored Identifiers\" to completion first: %d rows are still pending. A hash copied into the index before then is a hash of whatever spelling arrived, and nothing can repair it afterwards."
 msgstr "Execute \"Canonizar Identificadores Armazenados\" até o fim primeiro: %d linhas ainda estão pendentes. Um hash copiado para o índice antes disso é o hash da grafia que chegou, e nada consegue repará-lo depois."
+
+#: includes/settings/views/ffc-tab-migrations.php
+msgid "Same identifier on two accounts (all modules)"
+msgstr "Mesmo identificador em duas contas (todos os módulos)"
+
+#: includes/settings/views/ffc-tab-migrations.php
+msgid "One account, two identifiers (all modules)"
+msgstr "Uma conta, dois identificadores (todos os módulos)"
+
+#: includes/settings/views/ffc-tab-migrations.php
+msgid "Linked identifier missing from the identity index"
+msgstr "Identificador vinculado ausente do índice de identidade"
+
+#: includes/settings/views/ffc-tab-migrations.php
+msgid "No link problems found: no identifier is held by two accounts, no account holds two identifiers, and the identity index carries every identifier already linked to a user."
+msgstr "Nenhum problema de vínculo encontrado: nenhum identificador está em duas contas, nenhuma conta tem dois identificadores, e o índice de identidade carrega todo identificador já vinculado a um usuário."
+
+#: includes/settings/views/ffc-tab-migrations.php
+msgid "Report-only scan of how people are linked to WordPress users — across certificate submissions, appointments, recruitment candidacies and the identity index. Nothing is changed: review each finding and fix it manually. Detection uses the stored CPF/RF hashes, so no decryption is involved."
+msgstr "Varredura somente de leitura de como as pessoas estão vinculadas a usuários do WordPress — em submissões de certificado, agendamentos, candidaturas de recrutamento e no índice de identidade. Nada é alterado: revise cada achado e corrija manualmente. A detecção usa os hashes de CPF/RF armazenados, então não há descriptografia envolvida."
+
+#: includes/maintenance/class-ffc-submission-link-auditor.php
+msgid "Report-only scan of how people are linked to WordPress users. Four checks over certificate submissions: links to deleted users, one user bound to multiple CPF/RF identities, unlinked submissions whose CPF matches a linked one, and a single CPF shared across multiple users. Three more across every store — submissions, appointments, recruitment candidacies and the identity index — reporting one identifier held by two accounts, one account holding two identifiers, and identifiers the index does not yet carry. Nothing is changed: review and fix each case manually."
+msgstr "Varredura somente de leitura de como as pessoas estão vinculadas a usuários do WordPress. Quatro verificações sobre submissões de certificado: vínculos com usuários excluídos, um usuário ligado a múltiplas identidades de CPF/RF, submissões sem vínculo cujo CPF corresponde a uma vinculada, e um mesmo CPF compartilhado entre vários usuários. Mais três sobre todos os armazenamentos — submissões, agendamentos, candidaturas de recrutamento e o índice de identidade — reportando um identificador em duas contas, uma conta com dois identificadores, e identificadores que o índice ainda não carrega. Nada é alterado: revise e corrija cada caso manualmente."
