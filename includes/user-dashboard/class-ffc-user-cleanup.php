@@ -253,7 +253,7 @@ class UserCleanup {
 
 		// Reindex email_hash for submissions linked to this user_id.
 		// Must mirror SubmissionHandler exactly: Encryption::hash without normalization.
-		$new_email_hash = \FreeFormCertificate\Core\Encryption::hash( $new_email );
+		$new_email_hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'email', $new_email );
 
 		if ( null !== $new_email_hash ) {
 			$wpdb->query(

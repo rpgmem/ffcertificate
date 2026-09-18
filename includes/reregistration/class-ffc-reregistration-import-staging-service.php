@@ -25,6 +25,7 @@ use FreeFormCertificate\Audience\AudienceWriter;
 use FreeFormCertificate\Core\Csv;
 use FreeFormCertificate\Core\DataSanitizer;
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\SensitiveFieldRegistry;
 use FreeFormCertificate\UserDashboard\CapabilityManager;
 use FreeFormCertificate\UserDashboard\UserManager;
 
@@ -252,8 +253,8 @@ class ReregistrationImportStagingService {
 	 * @return int User id, or 0 when promotion would create one.
 	 */
 	public static function resolve_existing_user( string $cpf_normalized, string $rf_normalized, string $email ): int {
-		$cpf_hash = '' !== $cpf_normalized ? Encryption::hash( $cpf_normalized ) : null;
-		$rf_hash  = '' !== $rf_normalized ? Encryption::hash( $rf_normalized ) : null;
+		$cpf_hash = SensitiveFieldRegistry::hash_identifier( 'cpf', $cpf_normalized );
+		$rf_hash  = SensitiveFieldRegistry::hash_identifier( 'rf', $rf_normalized );
 
 		return UserManager::resolve_existing_user( $cpf_hash, $rf_hash, $email );
 	}
@@ -572,8 +573,8 @@ class ReregistrationImportStagingService {
 	 * @return array{ok: true, user_id: int, submission_id: int}|array{ok: false, error: string}
 	 */
 	private static function promote_row( object $row, object $rereg, int $audience_id ): array {
-		$cpf_hash = '' !== (string) $row->cpf_normalized ? Encryption::hash( (string) $row->cpf_normalized ) : null;
-		$rf_hash  = '' !== (string) $row->rf_normalized ? Encryption::hash( (string) $row->rf_normalized ) : null;
+		$cpf_hash = SensitiveFieldRegistry::hash_identifier( 'cpf', (string) $row->cpf_normalized );
+		$rf_hash  = SensitiveFieldRegistry::hash_identifier( 'rf', (string) $row->rf_normalized );
 
 		$payload = json_decode( (string) $row->payload, true );
 		$payload = is_array( $payload ) ? $payload : array();

@@ -63,7 +63,7 @@ final class RecruitmentClassificationFilterManager {
 		if ( '' !== $cpf ) {
 			$cpf_digits = $digits( $cpf );
 			if ( '' !== $cpf_digits ) {
-				$hash             = (string) \FreeFormCertificate\Core\Encryption::hash( $cpf_digits );
+				$hash             = (string) \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $cpf_digits );
 				$candidate        = RecruitmentCandidateReader::get_by_cpf_hash( $hash );
 				$cpf_candidate_id = null === $candidate ? -1 : (int) $candidate->id;
 			}
@@ -71,7 +71,7 @@ final class RecruitmentClassificationFilterManager {
 		if ( '' !== $rf ) {
 			$rf_digits = $digits( $rf );
 			if ( '' !== $rf_digits ) {
-				$hash            = (string) \FreeFormCertificate\Core\Encryption::hash( $rf_digits );
+				$hash            = (string) \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'rf', $rf_digits );
 				$candidate       = RecruitmentCandidateReader::get_by_rf_hash( $hash );
 				$rf_candidate_id = null === $candidate ? -1 : (int) $candidate->id;
 			}

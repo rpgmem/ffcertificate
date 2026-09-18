@@ -155,7 +155,7 @@ final class RecruitmentCandidatesRestController {
 		if ( is_string( $cpf ) && '' !== $cpf ) {
 			$cpf_digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
 			if ( '' !== $cpf_digits ) {
-				$candidate = RecruitmentCandidateReader::get_by_cpf_hash( (string) Encryption::hash( $cpf_digits ) );
+				$candidate = RecruitmentCandidateReader::get_by_cpf_hash( (string) SensitiveFieldRegistry::hash_identifier( 'cpf', $cpf_digits ) );
 				return new \WP_REST_Response( null === $candidate ? array() : array( $this->shape_candidate_admin( $candidate ) ), 200 );
 			}
 		}
@@ -164,7 +164,7 @@ final class RecruitmentCandidatesRestController {
 		if ( is_string( $rf ) && '' !== $rf ) {
 			$rf_digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $rf );
 			if ( '' !== $rf_digits ) {
-				$candidate = RecruitmentCandidateReader::get_by_rf_hash( (string) Encryption::hash( $rf_digits ) );
+				$candidate = RecruitmentCandidateReader::get_by_rf_hash( (string) SensitiveFieldRegistry::hash_identifier( 'rf', $rf_digits ) );
 				return new \WP_REST_Response( null === $candidate ? array() : array( $this->shape_candidate_admin( $candidate ) ), 200 );
 			}
 		}
