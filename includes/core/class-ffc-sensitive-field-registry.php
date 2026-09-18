@@ -259,6 +259,13 @@ final class SensitiveFieldRegistry {
 			return $value;
 		}
 
+		// No trailing pass-through on purpose: every kind the map declares has
+		// an arm here, so PHPStan proves a fall-through unreachable and reports
+		// it as dead code -- which is the good outcome, because it means the
+		// switch is exhaustive over what is actually declared. A kind added to
+		// NORMALIZERS without an arm is caught by
+		// `IdentityHashBoundaryTest::test_every_declared_field_resolves_to_a_normalizer()`
+		// before it can reach a request.
 		switch ( $kind ) {
 			case 'cpf_rf':
 				return DataSanitizer::normalize_cpf_rf( $value );
@@ -267,8 +274,6 @@ final class SensitiveFieldRegistry {
 			case 'ticket':
 				return DataSanitizer::normalize_ticket( $value );
 		}
-
-		return $value;
 	}
 
 	/**

@@ -182,6 +182,37 @@ class IdentityHashBoundaryTest extends TestCase {
 	}
 
 	/**
+	 * Every declared field resolves to a normalizer that exists.
+	 *
+	 * `SensitiveFieldRegistry::normalize()` deliberately carries no trailing
+	 * pass-through: every kind the map declares has an arm, so PHPStan proves
+	 * a fall-through unreachable and a dead line cannot sit there rotting.
+	 * The cost of that is real and this test is what pays it — a kind added to
+	 * the map with no arm would fall off the end of a `: string` method and
+	 * raise a TypeError at runtime, on a public form.
+	 *
+	 * Driving every declared field through the method is what turns that into
+	 * a CI failure instead. It asserts nothing about the VALUE, on purpose:
+	 * what the canonical form is belongs to the tests above, and what this one
+	 * charges is only that a normalizer is reachable at all.
+	 */
+	public function test_every_declared_field_resolves_to_a_normalizer(): void {
+		$fields = SensitiveFieldRegistry::normalized_field_keys();
+
+		$this->assertNotEmpty( $fields, 'The normalizer map is empty — the scan collapsed.' );
+
+		foreach ( $fields as $field_key ) {
+			$this->assertIsString(
+				SensitiveFieldRegistry::normalize( $field_key, 'ABC-123.456' ),
+				sprintf(
+					'%s is declared in NORMALIZERS but normalize() has no arm for its kind, so the method falls off its own end.',
+					$field_key
+				)
+			);
+		}
+	}
+
+	/**
 	 * Self-check: every field carrying a hash column declares a canonical
 	 * form, or is named here as deliberately having none.
 	 *
