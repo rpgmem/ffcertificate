@@ -52,34 +52,31 @@ class MigrationRegistry {
 
 		// v5.0.0: CPF/RF split migration (only active migration).
 		$this->migrations['split_cpf_rf'] = array(
-			'name'            => __( 'Split CPF/RF', 'ffcertificate' ),
-			'description'     => __( 'Separate combined CPF/RF column into individual CPF and RF columns', 'ffcertificate' ),
-			'icon'            => 'ffc-icon-id',
-			'batch_size'      => 50,
-			'order'           => 1,
-			'requires_column' => true,
+			'name'        => __( 'Split CPF/RF', 'ffcertificate' ),
+			'description' => __( 'Separate combined CPF/RF column into individual CPF and RF columns', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-id',
+			'batch_size'  => 50,
+			'order'       => 1,
 		);
 
 		// v5.3.1: Rehash legacy unsalted email_hash values in submissions and appointments.
 		$this->migrations['email_hash_rehash'] = array(
-			'name'            => __( 'Rehash Email Lookup Hashes', 'ffcertificate' ),
-			'description'     => __( 'Recompute email_hash with the salted Encryption::hash() so lookups match cross-table writes.', 'ffcertificate' ),
-			'icon'            => 'ffc-icon-shield',
-			'batch_size'      => 100,
-			'order'           => 2,
-			'requires_column' => false,
+			'name'        => __( 'Rehash Email Lookup Hashes', 'ffcertificate' ),
+			'description' => __( 'Recompute email_hash with the salted Encryption::hash() so lookups match cross-table writes.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-shield',
+			'batch_size'  => 100,
+			'order'       => 2,
 		);
 
 		// v6.19.0 (#857 S7b): Re-encrypt submissions + appointments PII under a
 		// newly-defined FFC_ENCRYPTION_KEY and rebuild search hashes under
 		// FFC_HASH_SALT. Only runnable once the key is decoupled in wp-config.php.
 		$this->migrations['key_rotation'] = array(
-			'name'            => __( 'Encryption Key Rotation', 'ffcertificate' ),
-			'description'     => __( 'Re-encrypt stored personal data (submissions and appointments) under a strong FFC_ENCRYPTION_KEY defined in wp-config.php, rebuilding CPF/RF/email search hashes. Define the key first (Settings → Advanced → Encryption Key Health); run during low traffic, as hash-based lookups may transiently miss un-migrated rows until it completes.', 'ffcertificate' ),
-			'icon'            => 'ffc-icon-shield',
-			'batch_size'      => 100,
-			'order'           => 4,
-			'requires_column' => false,
+			'name'        => __( 'Encryption Key Rotation', 'ffcertificate' ),
+			'description' => __( 'Re-encrypt stored personal data (submissions and appointments) under a strong FFC_ENCRYPTION_KEY defined in wp-config.php, rebuilding CPF/RF/email search hashes. Define the key first (Settings → Advanced → Encryption Key Health); run during low traffic, as hash-based lookups may transiently miss un-migrated rows until it completes.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-shield',
+			'batch_size'  => 100,
+			'order'       => 4,
 		);
 
 		// v6.24.0 (#1236): finish the rotation over the areas the S7b strategy
@@ -88,12 +85,11 @@ class MigrationRegistry {
 		// under the WordPress-derived key, and their search hashes still under
 		// the old salt, which breaks every hash lookup made since.
 		$this->migrations['key_rotation_remaining'] = array(
-			'name'            => __( 'Encryption Key Rotation — Remaining Areas', 'ffcertificate' ),
-			'description'     => __( 'Finish the key rotation over the areas the first pass never covered: recruitment candidates and reregistration submission bodies. Re-encrypts them under FFC_ENCRYPTION_KEY and rebuilds the CPF/RF/email search hashes under FFC_HASH_SALT — without this, candidate lookups by CPF or RF silently find nothing, and the data stays tied to the WordPress salts. Define both constants first (Settings → Advanced → Encryption Key Health).', 'ffcertificate' ),
-			'icon'            => 'ffc-icon-shield',
-			'batch_size'      => 50,
-			'order'           => 5,
-			'requires_column' => false,
+			'name'        => __( 'Encryption Key Rotation — Remaining Areas', 'ffcertificate' ),
+			'description' => __( 'Finish the key rotation over the areas the first pass never covered: recruitment candidates and reregistration submission bodies. Re-encrypts them under FFC_ENCRYPTION_KEY and rebuilds the CPF/RF/email search hashes under FFC_HASH_SALT — without this, candidate lookups by CPF or RF silently find nothing, and the data stays tied to the WordPress salts. Define both constants first (Settings → Advanced → Encryption Key Health).', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-shield',
+			'batch_size'  => 50,
+			'order'       => 5,
 		);
 
 		// v6.26.0 (#1313): bring the identifiers already stored into the canonical
@@ -101,46 +97,55 @@ class MigrationRegistry {
 		// normalization rule that landed in the same release -- the rule alone
 		// would make a lookup canonicalise while the rows did not.
 		$this->migrations['identity_normalization'] = array(
-			'name'            => __( 'Canonicalise Stored Identifiers', 'ffcertificate' ),
-			'description'     => __( 'Rewrite stored CPF, RF and e-mail values into the one canonical form every module now hashes — digits only for CPF/RF, lowercase for e-mail — and rebuild their search hashes. Without it, an appointment booked as Joao@Escola.gov.br stays invisible to every lookup made elsewhere, and a CPF stored with its punctuation never matches the same person\'s certificate. Idempotent: a row already canonical is read and left alone.', 'ffcertificate' ),
-			'icon'            => 'ffc-icon-shield',
-			'batch_size'      => 25,
-			'order'           => 6,
-			'requires_column' => false,
+			'name'        => __( 'Canonicalise Stored Identifiers', 'ffcertificate' ),
+			'description' => __( 'Rewrite stored CPF, RF and e-mail values into the one canonical form every module now hashes — digits only for CPF/RF, lowercase for e-mail — and rebuild their search hashes. Without it, an appointment booked as Joao@Escola.gov.br stays invisible to every lookup made elsewhere, and a CPF stored with its punctuation never matches the same person\'s certificate. Idempotent: a row already canonical is read and left alone.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-shield',
+			'batch_size'  => 25,
+			'order'       => 6,
+		);
+
+		// v6.26.0 (#1313 PR 8): project the identifiers already linked to a user
+		// in the module tables into the identity index. Ordered AFTER the
+		// canonicalisation card because it refuses to run before that one is
+		// done -- see the strategy's `can_run()` for why there is no second
+		// chance to fix a hash copied too early.
+		$this->migrations['identity_index_backfill'] = array(
+			'name'        => __( 'Backfill the Identity Index', 'ffcertificate' ),
+			'description' => __( 'Copy the CPF and RF hashes already linked to a user in submissions, appointments and recruitment candidacies into the indexed identity columns, so resolving a person is one indexed lookup instead of a scan of every module. Fills an empty column only: where one account carries two different identifiers the column is left empty, because that is a conflict to review rather than one to resolve by picking. Run "Canonicalise Stored Identifiers" first — this card refuses until it is complete.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-id',
+			'batch_size'  => 50,
+			'order'       => 7,
 		);
 
 		// v5.4.1: Clear plaintext context on activity log rows that already
 		// hold a ciphertext, eliminating the dual-storage leak.
 		$this->migrations['activity_log_clear_plaintext'] = array(
-			'name'            => __( 'Activity Log: Clear Plaintext on Encrypted Rows', 'ffcertificate' ),
-			'description'     => __( 'NULL the plaintext context column on activity log rows that already store the JSON in context_encrypted.', 'ffcertificate' ),
-			'icon'            => 'ffc-icon-shield',
-			'batch_size'      => 200,
-			'order'           => 3,
-			'requires_column' => false,
+			'name'        => __( 'Activity Log: Clear Plaintext on Encrypted Rows', 'ffcertificate' ),
+			'description' => __( 'NULL the plaintext context column on activity log rows that already store the JSON in context_encrypted.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-shield',
+			'batch_size'  => 200,
+			'order'       => 3,
 		);
 
 		// v6.18.0 (#865): import certificate layouts left in the legacy `html/`
 		// drop-folder into the database-backed template pool, then retire the glob.
 		$this->migrations['import_legacy_templates'] = array(
-			'name'            => __( 'Import Legacy Certificate Templates', 'ffcertificate' ),
-			'description'     => __( 'Import certificate layouts left in the plugin\'s html/ drop-folder into the reusable template pool (Certificate → Templates). Non-destructive and idempotent: shipped defaults are skipped and each file is imported once.', 'ffcertificate' ),
-			'icon'            => 'ffc-icon-scroll',
-			'batch_size'      => 20,
-			'order'           => 5,
-			'requires_column' => false,
+			'name'        => __( 'Import Legacy Certificate Templates', 'ffcertificate' ),
+			'description' => __( 'Import certificate layouts left in the plugin\'s html/ drop-folder into the reusable template pool (Certificate → Templates). Non-destructive and idempotent: shipped defaults are skipped and each file is imported once.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-scroll',
+			'batch_size'  => 20,
+			'order'       => 5,
 		);
 
 		// v6.18.0 (#865): move images referenced from the legacy `html/` folder
 		// into the Media Library and rewrite stored form layouts / backgrounds /
 		// pool templates to point at the new attachments.
 		$this->migrations['rewrite_html_image_refs'] = array(
-			'name'            => __( 'Rewrite html/ Image References', 'ffcertificate' ),
-			'description'     => __( 'Move images referenced from the legacy html/ folder into the Media Library and update stored certificate layouts, backgrounds and template-pool bodies to point at the new attachments. Idempotent; missing files are reported as errors.', 'ffcertificate' ),
-			'icon'            => 'ffc-icon-palette',
-			'batch_size'      => 10,
-			'order'           => 6,
-			'requires_column' => false,
+			'name'        => __( 'Rewrite html/ Image References', 'ffcertificate' ),
+			'description' => __( 'Move images referenced from the legacy html/ folder into the Media Library and update stored certificate layouts, backgrounds and template-pool bodies to point at the new attachments. Idempotent; missing files are reported as errors.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-palette',
+			'batch_size'  => 10,
+			'order'       => 6,
 		);
 
 		// Allow plugins to add custom migrations.

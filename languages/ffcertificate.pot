@@ -21855,3 +21855,27 @@ msgstr ""
 #: includes/migrations/class-ffc-migration-registry.php
 msgid "Rewrite stored CPF, RF and e-mail values into the one canonical form every module now hashes — digits only for CPF/RF, lowercase for e-mail — and rebuild their search hashes. Without it, an appointment booked as Joao@Escola.gov.br stays invisible to every lookup made elsewhere, and a CPF stored with its punctuation never matches the same person's certificate. Idempotent: a row already canonical is read and left alone."
 msgstr ""
+
+#: includes/migrations/class-ffc-migration-registry.php
+msgid "Backfill the Identity Index"
+msgstr ""
+
+#: includes/migrations/class-ffc-migration-registry.php
+msgid "Copy the CPF and RF hashes already linked to a user in submissions, appointments and recruitment candidacies into the indexed identity columns, so resolving a person is one indexed lookup instead of a scan of every module. Fills an empty column only: where one account carries two different identifiers the column is left empty, because that is a conflict to review rather than one to resolve by picking. Run \"Canonicalise Stored Identifiers\" first — this card refuses until it is complete."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
+msgid "Every linked identifier is in the index."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
+msgid "Examined %1$d users, filled %2$d index columns, left %3$d unresolved because one account carries two different identifiers."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
+msgid "The identity index table does not exist yet. Reactivate the plugin so it is created, then run this again."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
+msgid "Run \"Canonicalise Stored Identifiers\" to completion first: %d rows are still pending. A hash copied into the index before then is a hash of whatever spelling arrived, and nothing can repair it afterwards."
+msgstr ""

@@ -25,6 +25,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **One canonical form per identifier, owned by the hash boundary** (#1313): `SensitiveFieldRegistry` now declares how each identifier is canonicalised and applies it before encrypting or hashing, and every read and write of a CPF/RF/ticket hash routes through `hash_identifier()`. The hash function was already uniform; the string fed into it was decided by each call site, and two had decided differently.
 - **A migration that canonicalises the identifiers already stored** (#1313): Settings → Migrations gains *Canonicalise Stored Identifiers*, which decrypts each CPF, RF and e-mail across submissions, appointments, candidates and the user profile, rewrites it in the one canonical form and rebuilds its search hash. Idempotent on the plaintext, never on the ciphertext — a random IV means a ciphertext comparison would never converge. A refused write names two rows that are one person.
 - **A guard that no identifier rule can be written twice** (#1314): `IdentifierIdiomTest` fails when a file classifies a CPF/RF by its own length test, strips a value to digits with its own expression, or case-folds an address with its own chain — and when a registered exception stops matching. Four ratchets, so an entry cannot outlive the code it describes; proven by mutation on four call sites, the register and the rule itself.
+- **A migration that backfills the identity index** (#1313): Settings → Migrations gains *Backfill the Identity Index*, which copies the CPF and RF hashes already linked to a user in submissions, appointments and recruitment candidacies into `ffc_user_profiles`. Nothing did this: the activator's backfill reads `wp_usermeta` only, so a person whose sole record is a certificate stayed invisible to the index. It fills an empty column and never picks — an account carrying two different identifiers is left unresolved, because that is a conflict to count, not a tie to break — and it refuses to run until *Canonicalise Stored Identifiers* is complete, since a hash copied before then lands where nothing can repair it.
 
 ### Changed
 
@@ -80,6 +81,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Deprecated
 
 - **`UserManager::get_or_create_user()` and `UserCreator::get_or_create_user()`** (#1313): the single-hash entry point, superseded by `get_or_create_user_dual()`, where the argument position is the identifier kind rather than a separate `$identifier_type` that could disagree with the value. No product caller remains. Both are `public static` on classes another plugin can call, so they leave through an announced cycle: notice in 6.26.0, **removal in 6.28.0**, the second feature release after — the #1245 / #730 precedent.
+
+### Removed
+
+- **A registry key nothing read** (#1313): `requires_column` was declared on all eight migration cards and consulted nowhere in product code; the real prerequisite check has always been each strategy's `can_run()`. Removed from the registry and from the tests that asserted its presence.
 
 ### Fixed
 
