@@ -101,6 +101,8 @@ class FormRestControllerTest extends TestCase {
 		$data_sanitizer_mock->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing( function( $value ) {
 			return preg_replace( '/[^0-9]/', '', (string) $value ) ?? '';
 		} )->byDefault();
+		$data_sanitizer_mock->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) )->byDefault();
+		$data_sanitizer_mock->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' )->byDefault();
 
 		$this->geofence_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\Geofence' );
 		$this->geofence_mock->shouldReceive( 'get_form_config' )->andReturn( null )->byDefault();

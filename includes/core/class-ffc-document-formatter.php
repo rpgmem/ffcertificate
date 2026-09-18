@@ -64,7 +64,7 @@ class DocumentFormatter {
 	 * @return bool True if valid
 	 */
 	public static function validate_cpf( string $cpf ): bool {
-		$cpf = preg_replace( '/\D/', '', $cpf ) ?? '';
+		$cpf = DataSanitizer::normalize_cpf_rf( $cpf );
 
 		if ( strlen( $cpf ) !== 11 ) {
 			return false;
@@ -94,7 +94,7 @@ class DocumentFormatter {
 	 * @return bool True if valid
 	 */
 	public static function validate_rf( string $rf ): bool {
-		$rf = preg_replace( '/\D/', '', $rf ) ?? '';
+		$rf = DataSanitizer::normalize_cpf_rf( $rf );
 		return strlen( $rf ) === 7 && is_numeric( $rf );
 	}
 
@@ -117,7 +117,7 @@ class DocumentFormatter {
 	 * @return string Formatted CPF (XXX.XXX.XXX-XX)
 	 */
 	public static function format_cpf( string $cpf ): string {
-		$cpf = preg_replace( '/\D/', '', $cpf ) ?? '';
+		$cpf = DataSanitizer::normalize_cpf_rf( $cpf );
 
 		if ( strlen( $cpf ) === 11 ) {
 			return preg_replace( '/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $cpf ) ?? $cpf;
@@ -133,7 +133,7 @@ class DocumentFormatter {
 	 * @return string Formatted RF (XXX.XXX-X)
 	 */
 	public static function format_rf( string $rf ): string {
-		$rf = preg_replace( '/\D/', '', $rf ) ?? '';
+		$rf = DataSanitizer::normalize_cpf_rf( $rf );
 
 		if ( strlen( $rf ) === 7 ) {
 			return preg_replace( '/(\d{3})(\d{3})(\d{1})/', '$1.$2-$3', $rf ) ?? $rf;
@@ -174,7 +174,7 @@ class DocumentFormatter {
 	 * @return string Formatted document
 	 */
 	public static function format_document( string $value, string $type = 'auto' ): string {
-		$clean = preg_replace( '/\D/', '', $value ) ?? '';
+		$clean = DataSanitizer::normalize_cpf_rf( $value );
 		$len   = strlen( $clean );
 
 		if ( 'auto' === $type ) {

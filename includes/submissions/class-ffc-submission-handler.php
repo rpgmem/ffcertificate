@@ -174,13 +174,9 @@ class SubmissionHandler {
 		$clean_cpf = null;
 		$clean_rf  = null;
 		if ( ! empty( $clean_cpf_rf ) ) {
-			$id_len = strlen( $clean_cpf_rf );
-			if ( 11 === $id_len ) {
-				$clean_cpf = $clean_cpf_rf;
-			} elseif ( 7 === $id_len ) {
+			if ( 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $clean_cpf_rf ) ) {
 				$clean_rf = $clean_cpf_rf;
 			} else {
-				// Unknown length — default to CPF (most common).
 				$clean_cpf = $clean_cpf_rf;
 			}
 		}

@@ -608,7 +608,7 @@ final class RecruitmentCandidateEditPage {
 		// email" — repository nulls both columns. Untouched for the lower tiers.
 		$email = null;
 		if ( $email_editable ) {
-			$email = isset( $_POST['email'] ) ? strtolower( sanitize_email( wp_unslash( (string) $_POST['email'] ) ) ) : '';
+			$email = isset( $_POST['email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( wp_unslash( (string) $_POST['email'] ) ) ) : '';
 			if ( '' === $email ) {
 				$update['email_encrypted'] = null;
 				$update['email_hash']      = null;

@@ -278,7 +278,7 @@ class AdminAjax {
 
 		// Generate hash and classify by digit count.
 		$cpf_rf_hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $cpf_rf_clean );
-		$hash_column = strlen( $cpf_rf_clean ) === 7 ? 'rf_hash' : 'cpf_hash';
+		$hash_column = 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $cpf_rf_clean ) ? 'rf_hash' : 'cpf_hash';
 
 		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 

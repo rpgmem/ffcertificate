@@ -129,16 +129,33 @@ final class RateLimitRepository {
 		$dw = 'day' === $period ? 'AND submission_date >= DATE_SUB(NOW(), INTERVAL 1 DAY)' : ( 'week' === $period ? 'AND submission_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)' : 'AND submission_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)' );
 		$fw = $form_id ? $wpdb->prepare( 'AND form_id=%d', $form_id ) : '';
 
+		// The value arrives as the visitor typed it, and the hash it is
+		// compared against was written from the CANONICAL form (#1314). Hashing
+		// the raw address here meant an address typed with a capital letter
+		// matched nothing, so the per-address limit counted zero prior
+		// submissions for exactly the person it exists to stop. Both branches
+		// now canonicalise first; the configured one goes through the registry,
+		// which is the single hash boundary (#1313).
 		if ( 'email' === $field ) {
 			$email_hash = class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured()
-				? \FreeFormCertificate\Core\Encryption::hash( $value )
-				: hash( 'sha256', strtolower( trim( $value ) ) );
+				? \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'email', $value )
+				: hash( 'sha256', \FreeFormCertificate\Core\DataSanitizer::normalize_email( $value ) );
+
+			if ( null === $email_hash ) {
+				return 0;
+			}
+
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $dw and $fw are pre-validated date window and form clauses.
 			return intval( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE email_hash=%s $dw $fw", $t, $email_hash ) ) );
 		} elseif ( 'cpf' === $field ) {
 			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-				$h  = \FreeFormCertificate\Core\Encryption::hash( $value );
-				$hc = strlen( \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $value ) ) === 7 ? 'rf_hash' : 'cpf_hash';
+				$h  = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $value );
+				$hc = 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $value ) ? 'rf_hash' : 'cpf_hash';
+
+				if ( null === $h ) {
+					return 0;
+				}
+
 				// Search the specific split column based on digit count.
                 // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
 				return intval( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE {$hc}=%s $dw $fw", $t, $h ) ) );

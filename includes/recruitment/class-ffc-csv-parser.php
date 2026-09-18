@@ -185,10 +185,7 @@ final class CsvParser {
 	 * @phpstan-return NormalisedId
 	 */
 	public static function normalise_id( string $raw, int $expected_length ): array {
-		$digits = preg_replace( '/\D+/', '', $raw );
-		if ( ! is_string( $digits ) ) {
-			$digits = '';
-		}
+		$digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $raw );
 		if ( '' === $digits ) {
 			return array(
 				'value'    => '',

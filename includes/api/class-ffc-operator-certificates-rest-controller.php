@@ -222,7 +222,7 @@ class OperatorCertificatesRestController {
 			}
 
 			$handler    = new \FreeFormCertificate\Submissions\SubmissionHandler();
-			$user_email = isset( $submission_data['email'] ) ? sanitize_email( (string) $submission_data['email'] ) : '';
+			$user_email = isset( $submission_data['email'] ) ? DataSanitizer::normalize_email( sanitize_email( (string) $submission_data['email'] ) ) : '';
 			$result     = $handler->process_submission( $form_id, (string) $form->post_title, $submission_data, $user_email, $form_fields, $form_config );
 
 			if ( is_wp_error( $result ) ) {

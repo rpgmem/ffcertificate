@@ -114,7 +114,7 @@ class AudienceCsvImporter {
 					return;
 				}
 
-				$email = isset( $data[ $email_col ] ) ? sanitize_email( $data[ $email_col ] ) : '';
+				$email = isset( $data[ $email_col ] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( $data[ $email_col ] ) ) : '';
 
 				if ( empty( $email ) || ! is_email( $email ) ) {
 					/* translators: %d: row number */

@@ -687,8 +687,7 @@ class AppointmentHandler {
 		// hash that no other call site could match.
 		$cpf_rf_hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $cpf_rf_clean ) ?? '';
 
-		// Determine identifier type by digit count: 11 = CPF, 7 = RF.
-		$identifier_type = strlen( $cpf_rf_clean ) === 7 ? 'rf' : 'cpf';
+		$identifier_type = \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $cpf_rf_clean );
 
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
 			try {

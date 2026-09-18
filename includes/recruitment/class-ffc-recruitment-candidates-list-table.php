@@ -256,7 +256,7 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$rf = isset( $_REQUEST['rf'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['rf'] ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
-		$email = isset( $_REQUEST['email'] ) ? sanitize_email( wp_unslash( (string) $_REQUEST['email'] ) ) : '';
+		$email = isset( $_REQUEST['email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( wp_unslash( (string) $_REQUEST['email'] ) ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$search = isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['s'] ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
@@ -371,7 +371,7 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$rf = isset( $_REQUEST['rf'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['rf'] ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
-		$email = isset( $_REQUEST['email'] ) ? sanitize_email( wp_unslash( (string) $_REQUEST['email'] ) ) : '';
+		$email = isset( $_REQUEST['email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( wp_unslash( (string) $_REQUEST['email'] ) ) ) : '';
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
 		$adjutancy_id = isset( $_REQUEST['adjutancy_id'] ) ? absint( wp_unslash( (string) $_REQUEST['adjutancy_id'] ) ) : 0;
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.

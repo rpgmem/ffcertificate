@@ -177,11 +177,11 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 	 * @return array<string, mixed>
 	 */
 	public function job_owner_fields(): array {
-		$cpf_digits = preg_replace( '/\D/', '', RequestInput::get_post_string( 'cpf' ) );
+		$cpf_digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( RequestInput::get_post_string( 'cpf' ) );
 		return array(
 			'ip_hash'    => sha1( RequestInput::get_user_ip() ),
 			'form_id'    => $this->request_form_id(),
-			'cpf_digits' => is_string( $cpf_digits ) ? $cpf_digits : '',
+			'cpf_digits' => $cpf_digits,
 		);
 	}
 
