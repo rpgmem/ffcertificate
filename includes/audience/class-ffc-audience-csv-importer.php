@@ -20,6 +20,8 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Audience;
 
 use FreeFormCertificate\Core\ColorValidator;
+use FreeFormCertificate\UserDashboard\CapabilityManager;
+use FreeFormCertificate\UserDashboard\UserCreator;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -143,14 +145,33 @@ class AudienceCsvImporter {
 				$user = get_user_by( 'email', $email );
 				if ( ! $user ) {
 					if ( $create_users ) {
-						$name    = ( false !== $name_col && isset( $data[ $name_col ] ) ) ? sanitize_text_field( $data[ $name_col ] ) : '';
-						$user_id = self::create_ffc_user( $email, $name );
+						$name = ( false !== $name_col && isset( $data[ $name_col ] ) ) ? sanitize_text_field( $data[ $name_col ] ) : '';
+
+						// #1313 PR 5: creation goes through `UserCreator`, the
+						// one place in the plugin that creates an FFC user.
+						// This was the only site outside it, and it had drifted
+						// -- see `notify_imported_user()` for the one piece of
+						// the lifecycle that deliberately stays here.
+						//
+						// `$notify = false` because the notification this flow
+						// owes is the CSV-import one, which is a DIFFERENT
+						// admin setting from the one `UserCreator` would send.
+						$user_id = UserCreator::get_or_create_user_dual(
+							null,
+							null,
+							$email,
+							array( 'name' => $name ),
+							CapabilityManager::CONTEXT_CERTIFICATE,
+							false
+						);
 						if ( is_wp_error( $user_id ) ) {
 							/* translators: %1$d: row number, %2$s: error message */
 							$result['errors'][] = sprintf( __( 'Row %1$d: Could not create user: %2$s', 'ffcertificate' ), $row_num, $user_id->get_error_message() );
 							++$result['skipped'];
 							return;
 						}
+
+						self::notify_imported_user( (int) $user_id );
 					} else {
 						/* translators: %1$d: row number, %2$s: email address */
 						$result['errors'][] = sprintf( __( 'Row %1$d: User not found: %2$s', 'ffcertificate' ), $row_num, $email );
@@ -369,53 +390,34 @@ class AudienceCsvImporter {
 	}
 
 	/**
-	 * Create FFC user
+	 * Tell a freshly imported member their account exists.
 	 *
-	 * @param string $email User email.
-	 * @param string $name User name.
-	 * @return int|\WP_Error User ID or error
+	 * THE ONE PIECE OF USER CREATION THAT STAYS HERE, AND WHY (#1313 PR 5)
+	 *
+	 * `UserCreator` sends its own account notification under the
+	 * `submission` or `appointment` context. This flow owes the `csv_import`
+	 * one, and those are not two names for the same thing: each is a separate
+	 * key in Settings → SMTP, and their DEFAULTS are opposite --
+	 * `send_wp_user_email_submission` defaults to **on**,
+	 * `send_wp_user_email_csv_import` to **off**.
+	 *
+	 * So letting `UserCreator` send it would start mailing every row of a bulk
+	 * import on installs that had deliberately left that switch alone, and
+	 * suppressing it outright with `$notify = false` and nothing else would
+	 * take away the administrator's ability to turn it back on. Sending it here
+	 * keeps the setting exactly as it was.
+	 *
+	 * @since 6.26.0
+	 * @param int $user_id The user just created.
+	 * @return void
 	 */
-	private static function create_ffc_user( string $email, string $name = '' ) {
-		// Generate username from email.
-		$at_pos   = strpos( $email, '@' );
-		$username = sanitize_user( substr( $email, 0, false !== $at_pos ? $at_pos : null ), true );
-
-		// Ensure unique username.
-		$original_username = $username;
-		$counter           = 1;
-		while ( username_exists( $username ) ) {
-			$username = $original_username . $counter;
-			++$counter;
+	private static function notify_imported_user( int $user_id ): void {
+		if ( $user_id <= 0 || ! class_exists( '\FreeFormCertificate\Integrations\EmailHandler' ) ) {
+			return;
 		}
 
-		// Generate password.
-		$password = wp_generate_password( 12, false );
-
-		// Create user.
-		$user_id = wp_insert_user(
-			array(
-				'user_login'   => $username,
-				'user_email'   => $email,
-				'user_pass'    => $password,
-				'display_name' => $name ? $name : $username,
-				'role'         => 'ffc_end_user',
-			)
-		);
-
-		if ( is_wp_error( $user_id ) ) {
-			return $user_id;
-		}
-
-		// Grant certificate capabilities via centralized UserManager.
-		\FreeFormCertificate\UserDashboard\CapabilityManager::grant_certificate_capabilities( $user_id );
-
-		// Send welcome email (respects per-context settings, default: disabled for CSV).
-		if ( class_exists( '\FreeFormCertificate\Integrations\EmailHandler' ) ) {
-			$email_handler = new \FreeFormCertificate\Integrations\EmailHandler();
-			$email_handler->send_wp_user_notification( $user_id, 'csv_import' );
-		}
-
-		return $user_id;
+		$email_handler = new \FreeFormCertificate\Integrations\EmailHandler();
+		$email_handler->send_wp_user_notification( $user_id, 'csv_import' );
 	}
 
 	/**
