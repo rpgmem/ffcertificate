@@ -70,6 +70,21 @@ class ReregistrationEmailHandler {
 	public const REMINDER_BATCH_DELAY = 60;
 
 	/**
+	 * Statuses for which the invitation must not ask the person to complete
+	 * anything, because the campaign already holds their answer (#1300).
+	 *
+	 * It is deliberately NOT the complement of
+	 * {@see ReregistrationSubmissionReader::UNFINISHED_STATUSES}: that list
+	 * carries `expired` and `rejected`, and both of those people DO still have
+	 * something to do -- `rejected` is even in the frontend's
+	 * `SUBMITTABLE_STATUSES`. Only `submitted` and `approved` mean "recorded".
+	 *
+	 * @since 6.26.0
+	 * @var list<string>
+	 */
+	private const INVITATION_RECORDED_STATUSES = array( 'submitted', 'approved' );
+
+	/**
 	 * Send invitation emails to whoever is still awaiting one.
 	 *
 	 * **Idempotent by construction** (#1190): it asks
@@ -115,7 +130,19 @@ class ReregistrationEmailHandler {
 			// (#1212). Issuing rotates the key, so the last email is always the
 			// one that counts -- which is the right behaviour for a resent
 			// invitation.
-			$extra = array( 'set_password_url' => \FreeFormCertificate\Core\PasswordInvite::issue_for( (int) $sub->user_id ) );
+			//
+			// The other two travel together, because a sentence saying the
+			// reregistration is already recorded under a button saying
+			// "Complete Reregistration" makes the email contradict itself --
+			// which is worse than the single wrong sentence this fixes. The
+			// DESTINATION is right for both audiences (the dashboard shows the
+			// form to whoever can still submit and the record to whoever
+			// cannot), so only the label moves.
+			$extra = array(
+				'set_password_url' => \FreeFormCertificate\Core\PasswordInvite::issue_for( (int) $sub->user_id ),
+			);
+			$extra = array_merge( $extra, self::invitation_status_vars( (string) $sub->status ) );
+
 			if ( self::send_to_user( (int) $sub->user_id, $rereg, $template, $extra ) ) {
 				++$count;
 				$mailed[] = (int) $sub->id;
@@ -137,6 +164,52 @@ class ReregistrationEmailHandler {
 		);
 
 		return $count;
+	}
+
+	/**
+	 * The two invitation variables that depend on what the person has already
+	 * done, keyed on the submission's status at send time.
+	 *
+	 * WHY STATUS AND NOT PROVENANCE (#1300)
+	 *
+	 * The obvious reading is "this row was imported, so do not tell them to
+	 * fill anything in", and it is the wrong discriminator. Anyone who used
+	 * the dashboard banner before the operator pressed *Send invitations* is
+	 * in exactly the same position, and has been since long before the CSV
+	 * import existed -- the banner shows for any active campaign, independently
+	 * of `invited_at`. One sentence keyed on the status covers both, and needs
+	 * no "was imported" marker: `send_invitations()` already holds each row.
+	 *
+	 * The alternative that was rejected is excluding these people from the
+	 * invitation altogether. It would strand a created account without
+	 * `{{set_password_url}}`, which is the one thing it actually needs (#1212).
+	 *
+	 * THE HONEST LIMITATION
+	 *
+	 * The invitation body is operator-editable, and these two tokens are a new
+	 * kind of thing in that editor: the operator can move them or delete them,
+	 * but not change what they say. An install that has ALREADY customised the
+	 * body carries its own copy of the old fixed sentence, so nothing there
+	 * changes either -- the tokens are simply absent. Both are accepted rather
+	 * than worked around; two tokens with editable defaults would mean teaching
+	 * `EmailTemplateOptions` about per-value defaults, which is a larger change
+	 * to make pre-emptively for a one-sentence difference.
+	 *
+	 * @since 6.26.0
+	 * @param string $status Submission status at send time.
+	 * @return array<string, string>
+	 */
+	private static function invitation_status_vars( string $status ): array {
+		$recorded = in_array( $status, self::INVITATION_RECORDED_STATUSES, true );
+
+		return array(
+			'status_line'  => $recorded
+				? __( 'Your reregistration is already recorded — you can review it on your dashboard.', 'ffcertificate' )
+				: __( 'Please complete your reregistration before the deadline.', 'ffcertificate' ),
+			'action_label' => $recorded
+				? __( 'View My Reregistration', 'ffcertificate' )
+				: __( 'Complete Reregistration', 'ffcertificate' ),
+		);
 	}
 
 	/**

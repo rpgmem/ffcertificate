@@ -293,6 +293,12 @@ class ReregistrationAdmin {
 						'finishing'    => __( 'Finishing…', 'ffcertificate' ),
 						/* translators: 1: rows written, 2: rows skipped because the person had already submitted. */
 						'done'         => __( 'Imported %1$d. Skipped %2$d.', 'ffcertificate' ),
+						// Said HERE because it is the only moment before the
+						// invitation is sent (#1300). The e-mail itself adapts
+						// its wording per recipient, so this states what the
+						// operator is about to cause rather than warning them
+						// off doing it.
+						'afterImport'  => __( 'If you send the campaign invitation, these people receive it too — it will tell them their reregistration is already recorded and link to their dashboard, not ask them to fill anything in.', 'ffcertificate' ),
 						'error'        => __( 'An error occurred.', 'ffcertificate' ),
 						'network'      => __( 'The server could not be reached.', 'ffcertificate' ),
 					),

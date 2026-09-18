@@ -212,7 +212,17 @@
                 setStatus(
                     str('done', 'Imported %1$d. Skipped %2$d.')
                         .replace('%1$d', done.promoted)
-                        .replace('%2$d', done.skipped)
+                        .replace('%2$d', done.skipped) +
+                        // The invitation is the next thing the operator does,
+                        // and this is the only moment before it goes out
+                        // (#1300). The fallback is spelled out here like every
+                        // other string in this file, so the panel still says it
+                        // when the localized payload is missing.
+                        ' ' +
+                        str(
+                            'afterImport',
+                            'If you send the campaign invitation, these people receive it too — it will tell them their reregistration is already recorded and link to their dashboard, not ask them to fill anything in.'
+                        )
                 );
                 setBusy(false);
                 $('#ffc-rereg-import-apply').prop('disabled', true);
