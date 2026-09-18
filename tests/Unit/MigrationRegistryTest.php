@@ -61,7 +61,9 @@ class MigrationRegistryTest extends TestCase {
 		$all = $registry->get_all_migrations();
 
 		$this->assertIsArray( $all );
-		$this->assertCount( 8, $all );
+		// Nine since 6.26.0: the identity-index backfill joined the card list
+		// (#1313 PR 8).
+		$this->assertCount( 9, $all );
 		$this->assertArrayHasKey( 'split_cpf_rf', $all );
 		$this->assertArrayHasKey( 'email_hash_rehash', $all );
 		$this->assertArrayHasKey( 'key_rotation', $all );
@@ -77,6 +79,7 @@ class MigrationRegistryTest extends TestCase {
 		// salt was applied to.
 		$this->assertArrayHasKey( 'identity_normalization', $all );
 		$this->assertArrayHasKey( 'activity_log_clear_plaintext', $all );
+		$this->assertArrayHasKey( 'identity_index_backfill', $all );
 		$this->assertArrayHasKey( 'import_legacy_templates', $all );
 		$this->assertArrayHasKey( 'rewrite_html_image_refs', $all );
 	}
@@ -85,7 +88,7 @@ class MigrationRegistryTest extends TestCase {
 		$registry  = new MigrationRegistry();
 		$migration = $registry->get_all_migrations()['rewrite_html_image_refs'];
 
-		$expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order', 'requires_column' );
+		$expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order' );
 
 		foreach ( $expected_keys as $key ) {
 			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
@@ -94,14 +97,13 @@ class MigrationRegistryTest extends TestCase {
 		$this->assertSame( 'ffc-icon-palette', $migration['icon'] );
 		$this->assertSame( 10, $migration['batch_size'] );
 		$this->assertSame( 6, $migration['order'] );
-		$this->assertFalse( $migration['requires_column'] );
 	}
 
 	public function test_import_legacy_templates_migration_has_expected_keys(): void {
 		$registry  = new MigrationRegistry();
 		$migration = $registry->get_all_migrations()['import_legacy_templates'];
 
-		$expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order', 'requires_column' );
+		$expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order' );
 
 		foreach ( $expected_keys as $key ) {
 			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
@@ -110,14 +112,13 @@ class MigrationRegistryTest extends TestCase {
 		$this->assertSame( 'ffc-icon-scroll', $migration['icon'] );
 		$this->assertSame( 20, $migration['batch_size'] );
 		$this->assertSame( 5, $migration['order'] );
-		$this->assertFalse( $migration['requires_column'] );
 	}
 
 	public function test_activity_log_clear_plaintext_migration_has_expected_keys(): void {
 		$registry  = new MigrationRegistry();
 		$migration = $registry->get_all_migrations()['activity_log_clear_plaintext'];
 
-		$expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order', 'requires_column' );
+		$expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order' );
 
 		foreach ( $expected_keys as $key ) {
 			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
@@ -126,14 +127,13 @@ class MigrationRegistryTest extends TestCase {
 		$this->assertSame( 'ffc-icon-shield', $migration['icon'] );
 		$this->assertSame( 200, $migration['batch_size'] );
 		$this->assertSame( 3, $migration['order'] );
-		$this->assertFalse( $migration['requires_column'] );
 	}
 
 	public function test_split_cpf_rf_migration_has_expected_keys(): void {
 		$registry   = new MigrationRegistry();
 		$migration  = $registry->get_all_migrations()['split_cpf_rf'];
 
-		$expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order', 'requires_column' );
+		$expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order' );
 
 		foreach ( $expected_keys as $key ) {
 			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
@@ -144,14 +144,13 @@ class MigrationRegistryTest extends TestCase {
 		$this->assertSame( 'ffc-icon-id', $migration['icon'] );
 		$this->assertSame( 50, $migration['batch_size'] );
 		$this->assertSame( 1, $migration['order'] );
-		$this->assertTrue( $migration['requires_column'] );
 	}
 
 	public function test_email_hash_rehash_migration_has_expected_keys(): void {
 		$registry  = new MigrationRegistry();
 		$migration = $registry->get_all_migrations()['email_hash_rehash'];
 
-		$expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order', 'requires_column' );
+		$expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order' );
 
 		foreach ( $expected_keys as $key ) {
 			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
@@ -161,7 +160,28 @@ class MigrationRegistryTest extends TestCase {
 		$this->assertSame( 'ffc-icon-shield', $migration['icon'] );
 		$this->assertSame( 100, $migration['batch_size'] );
 		$this->assertSame( 2, $migration['order'] );
-		$this->assertFalse( $migration['requires_column'] );
+	}
+
+	public function test_identity_index_backfill_migration_has_expected_keys(): void {
+		$registry  = new MigrationRegistry();
+		$migration = $registry->get_all_migrations()['identity_index_backfill'];
+
+		foreach ( array( 'name', 'description', 'icon', 'batch_size', 'order' ) as $key ) {
+			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
+		}
+
+		$this->assertSame( 50, $migration['batch_size'] );
+
+		// It must be ordered AFTER the canonicalisation card it refuses to run
+		// before, so the Migrations tab lists them in the order they can
+		// actually be run. The gate itself is in the strategy's `can_run()`;
+		// this only stops the screen from reading as though the order were
+		// free.
+		$this->assertGreaterThan(
+			$registry->get_all_migrations()['identity_normalization']['order'],
+			$migration['order'],
+			'The backfill is listed before the card it depends on, so an operator meets them in an order neither can satisfy.'
+		);
 	}
 
 	// ==================================================================
@@ -176,7 +196,6 @@ class MigrationRegistryTest extends TestCase {
 		$this->assertSame( 'Split CPF/RF', $migration['name'] );
 		$this->assertSame( 50, $migration['batch_size'] );
 		$this->assertSame( 1, $migration['order'] );
-		$this->assertTrue( $migration['requires_column'] );
 	}
 
 	public function test_get_migration_returns_null_for_nonexistent_key(): void {
@@ -272,7 +291,6 @@ class MigrationRegistryTest extends TestCase {
 					'icon'            => 'ffc-icon-custom',
 					'batch_size'      => 25,
 					'order'           => 2,
-					'requires_column' => false,
 				);
 				return $migrations;
 			} );

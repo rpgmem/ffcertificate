@@ -21946,3 +21946,27 @@ msgstr "A criptografia não está configurada, então os identificadores armazen
 #: includes/migrations/class-ffc-migration-registry.php
 msgid "Rewrite stored CPF, RF and e-mail values into the one canonical form every module now hashes — digits only for CPF/RF, lowercase for e-mail — and rebuild their search hashes. Without it, an appointment booked as Joao@Escola.gov.br stays invisible to every lookup made elsewhere, and a CPF stored with its punctuation never matches the same person's certificate. Idempotent: a row already canonical is read and left alone."
 msgstr "Reescreve os valores de CPF, RF e e-mail armazenados na única forma canônica que todo módulo agora usa para gerar hash — apenas dígitos para CPF/RF, minúsculas para e-mail — e reconstrói seus hashes de busca. Sem isso, um agendamento feito como Joao@Escola.gov.br fica invisível para qualquer busca feita em outro lugar, e um CPF armazenado com pontuação nunca corresponde ao certificado da mesma pessoa. Idempotente: uma linha já canônica é lida e deixada como está."
+
+#: includes/migrations/class-ffc-migration-registry.php
+msgid "Backfill the Identity Index"
+msgstr "Preencher o Índice de Identidade"
+
+#: includes/migrations/class-ffc-migration-registry.php
+msgid "Copy the CPF and RF hashes already linked to a user in submissions, appointments and recruitment candidacies into the indexed identity columns, so resolving a person is one indexed lookup instead of a scan of every module. Fills an empty column only: where one account carries two different identifiers the column is left empty, because that is a conflict to review rather than one to resolve by picking. Run \"Canonicalise Stored Identifiers\" first — this card refuses until it is complete."
+msgstr "Copia os hashes de CPF e RF já vinculados a um usuário em submissões, agendamentos e candidaturas para as colunas indexadas de identidade, de modo que identificar uma pessoa seja uma consulta indexada em vez de uma varredura de todos os módulos. Preenche apenas coluna vazia: quando uma conta carrega dois identificadores diferentes, a coluna fica vazia, porque isso é um conflito a revisar e não um a resolver escolhendo. Execute \"Canonizar Identificadores Armazenados\" antes — este cartão se recusa a rodar enquanto aquele não estiver completo."
+
+#: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
+msgid "Every linked identifier is in the index."
+msgstr "Todo identificador vinculado está no índice."
+
+#: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
+msgid "Examined %1$d users, filled %2$d index columns, left %3$d unresolved because one account carries two different identifiers."
+msgstr "Examinados %1$d usuários, preenchidas %2$d colunas do índice, %3$d deixadas sem resolver porque uma conta carrega dois identificadores diferentes."
+
+#: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
+msgid "The identity index table does not exist yet. Reactivate the plugin so it is created, then run this again."
+msgstr "A tabela do índice de identidade ainda não existe. Reative o plugin para que ela seja criada e então execute isto de novo."
+
+#: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
+msgid "Run \"Canonicalise Stored Identifiers\" to completion first: %d rows are still pending. A hash copied into the index before then is a hash of whatever spelling arrived, and nothing can repair it afterwards."
+msgstr "Execute \"Canonizar Identificadores Armazenados\" até o fim primeiro: %d linhas ainda estão pendentes. Um hash copiado para o índice antes disso é o hash da grafia que chegou, e nada consegue repará-lo depois."
