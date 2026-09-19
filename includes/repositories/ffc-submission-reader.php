@@ -152,6 +152,14 @@ class SubmissionReader extends AbstractRepository {
 	 * still carry a real RF, and a `WHERE` would drop it from both counts
 	 * (#1295).
 	 *
+	 * IT NAMES THE HASHES, NOT ONLY HOW MANY
+	 *
+	 * A count alone says an account holds two identifiers and withholds which
+	 * two, so there is nothing to choose between -- the same half-answer the
+	 * cross-store sibling gave until #1344. The `GROUP_CONCAT` carries the
+	 * values the `COUNT` aggregates away, per column, so the consumer that
+	 * picks a column by count picks the matching list with it.
+	 *
 	 * @param int $limit Max rows.
 	 * @return array<int, array<string, mixed>>
 	 */
@@ -159,13 +167,52 @@ class SubmissionReader extends AbstractRepository {
 		$limit = max( 1, $limit );
 		$rows  = $this->wpdb->get_results(
 			$this->wpdb->prepare(
-				"SELECT user_id, COUNT(DISTINCT NULLIF( cpf_hash, '' )) AS cpf_count, COUNT(DISTINCT NULLIF( rf_hash, '' )) AS rf_count FROM %i WHERE user_id IS NOT NULL AND user_id <> 0 GROUP BY user_id HAVING COUNT(DISTINCT NULLIF( cpf_hash, '' )) > 1 OR COUNT(DISTINCT NULLIF( rf_hash, '' )) > 1 ORDER BY user_id ASC LIMIT %d",
+				"SELECT user_id, COUNT(DISTINCT NULLIF( cpf_hash, '' )) AS cpf_count, COUNT(DISTINCT NULLIF( rf_hash, '' )) AS rf_count, GROUP_CONCAT(DISTINCT NULLIF( cpf_hash, '' ) ORDER BY cpf_hash SEPARATOR '|') AS cpf_related, GROUP_CONCAT(DISTINCT NULLIF( rf_hash, '' ) ORDER BY rf_hash SEPARATOR '|') AS rf_related FROM %i WHERE user_id IS NOT NULL AND user_id <> 0 GROUP BY user_id HAVING COUNT(DISTINCT NULLIF( cpf_hash, '' )) > 1 OR COUNT(DISTINCT NULLIF( rf_hash, '' )) > 1 ORDER BY user_id ASC LIMIT %d",
 				$this->table,
 				$limit
 			),
 			ARRAY_A
 		);
-		return is_array( $rows ) ? $rows : array();
+
+		$out = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$row                          = (array) $row;
+			$row['cpf_related_truncated'] = self::list_is_short( $row, 'cpf_related', 'cpf_count' );
+			$row['rf_related_truncated']  = self::list_is_short( $row, 'rf_related', 'rf_count' );
+			$out[]                        = $row;
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Whether a `GROUP_CONCAT` list holds fewer values than its own count.
+	 *
+	 * `GROUP_CONCAT` stops at `group_concat_max_len` and drops the tail with no
+	 * error, so a short list reads exactly like a complete one; the count is
+	 * aggregated separately and is never truncated, which makes their
+	 * disagreement the only signal that exists (#1344).
+	 *
+	 * `IdentityConflictQuery` carries the same three lines rather than sharing
+	 * them: it lives in `Maintenance` and this class in `Repositories`, and a
+	 * helper would buy four lines at the price of a new edge on the
+	 * module-boundary baseline. The producer flags its own aggregate, because
+	 * a consumer cannot tell a short list from a complete one.
+	 *
+	 * @param array<string, mixed> $row    One grouped row.
+	 * @param string               $values Key holding the concatenated values.
+	 * @param string               $count  Key holding the count of those values.
+	 * @return bool
+	 */
+	private static function list_is_short( array $row, string $values, string $count ): bool {
+		$raw    = $row[ $values ] ?? '';
+		$joined = is_string( $raw ) ? $raw : '';
+		$listed = '' === $joined ? 0 : count( explode( '|', $joined ) );
+
+		$total   = $row[ $count ] ?? 0;
+		$counted = is_numeric( $total ) ? (int) $total : 0;
+
+		return $counted !== $listed;
 	}
 
 	/**
@@ -196,6 +243,12 @@ class SubmissionReader extends AbstractRepository {
 	 * Audit: a single `cpf_hash` shared across more than one linked `user_id`
 	 * — an identity collision (same CPF on multiple WP accounts). Read-only.
 	 *
+	 * IT NAMES THE ACCOUNTS, NOT ONLY HOW MANY
+	 *
+	 * Knowing that a CPF belongs to two accounts without knowing which two is
+	 * not something anyone can act on, and a merge cannot start from it. The
+	 * `GROUP_CONCAT` carries the ids the `COUNT` aggregates away (#1344).
+	 *
 	 * @param int $limit Max rows.
 	 * @return array<int, array<string, mixed>>
 	 */
@@ -203,13 +256,21 @@ class SubmissionReader extends AbstractRepository {
 		$limit = max( 1, $limit );
 		$rows  = $this->wpdb->get_results(
 			$this->wpdb->prepare(
-				"SELECT cpf_hash, COUNT(DISTINCT user_id) AS user_count FROM %i WHERE cpf_hash IS NOT NULL AND cpf_hash <> '' AND user_id IS NOT NULL AND user_id <> 0 GROUP BY cpf_hash HAVING COUNT(DISTINCT user_id) > 1 ORDER BY user_count DESC LIMIT %d",
+				"SELECT cpf_hash, COUNT(DISTINCT user_id) AS user_count, GROUP_CONCAT(DISTINCT user_id ORDER BY user_id SEPARATOR '|') AS related FROM %i WHERE cpf_hash IS NOT NULL AND cpf_hash <> '' AND user_id IS NOT NULL AND user_id <> 0 GROUP BY cpf_hash HAVING COUNT(DISTINCT user_id) > 1 ORDER BY user_count DESC LIMIT %d",
 				$this->table,
 				$limit
 			),
 			ARRAY_A
 		);
-		return is_array( $rows ) ? $rows : array();
+
+		$out = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$row                      = (array) $row;
+			$row['related_truncated'] = self::list_is_short( $row, 'related', 'user_count' );
+			$out[]                    = $row;
+		}
+
+		return $out;
 	}
 
 	/**

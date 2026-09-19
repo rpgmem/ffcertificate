@@ -90,18 +90,27 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 	public const NONCE = 'ffc_submission_audit_export';
 
 	/**
-	 * Which value the grouped cross-store checks put in `subject`.
+	 * What each grouped check GROUPED BY, and therefore what it counted.
 	 *
 	 * `IdentityConflictQuery::grouped()` aliases whatever it grouped BY as
 	 * `subject`, so the same column name means a hash in one check and a user
 	 * id in the other. Mapping it here is what stops the CSV from putting a
 	 * hash in the `user_id` column.
 	 *
+	 * Since #1344 it answers a second question from the same fact: `related`
+	 * holds the OTHER half -- the values the count aggregated away -- so a
+	 * check grouped by hash carries account ids there, and one grouped by
+	 * account carries hashes. The two legacy checks group the same two ways
+	 * without emitting a literal `subject`, and are listed for the second
+	 * reading.
+	 *
 	 * @var array<string, string>
 	 */
 	private const SUBJECT_IS = array(
 		'cross_store_shared_identities'   => 'hash',
 		'cross_store_multiple_identities' => 'user_id',
+		'shared_identities'               => 'hash',
+		'multiple_identities'             => 'user_id',
 	);
 
 	/**
@@ -160,8 +169,8 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 		return array(
 			'check',
 			'identifier_column',
-			'user_id',
-			'identifier_hash_prefix',
+			'user_ids',
+			'identifier_hash_prefixes',
 			'related_count',
 			'submission_id',
 			'form_id',
@@ -251,28 +260,55 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 	 * it belongs to, because a row that said `2` without saying two of what is
 	 * not a lead anybody can act on.
 	 *
+	 * SINCE #1344 THE TWO IDENTITY COLUMNS HOLD LISTS
+	 *
+	 * A grouped check destroys one half of its own pair, so `user_ids` was
+	 * blank on every shared row and `identifier_hash_prefixes` blank on every
+	 * multiple row -- the report named a conflict and withheld what it is
+	 * between. Both now carry every value the count covers, separated by
+	 * {@see IdentityConflictQuery::RELATED_SEPARATOR}, which is why the two
+	 * headers are plural: a column named in the singular that sometimes holds
+	 * a list is a name that lies to every later reader.
+	 *
 	 * @param string               $check Check key.
 	 * @param array<string, mixed> $row   One finding.
 	 * @return array<int, mixed>
 	 */
 	private function line( string $check, array $row ): array {
-		$user_id = isset( $row['user_id'] ) ? (string) $row['user_id'] : '';
 		$column  = isset( $row['identifier_column'] ) ? (string) $row['identifier_column'] : '';
-		$count   = '';
-		$hash    = isset( $row['cpf_hash'] ) ? (string) $row['cpf_hash'] : '';
 		$sub_id  = isset( $row['id'] ) ? (string) $row['id'] : '';
 		$form_id = isset( $row['form_id'] ) ? (string) $row['form_id'] : '';
 		$stores  = isset( $row[ IdentityConflictQuery::COLUMN_STORES ] ) ? (string) $row[ IdentityConflictQuery::COLUMN_STORES ] : '';
+		$count   = '';
+		$short   = ! empty( $row[ IdentityConflictQuery::COLUMN_RELATED_TRUNCATED ] );
 
-		if ( '' !== $hash ) {
-			$column = '' !== $column ? $column : 'cpf_hash';
+		$users  = isset( $row['user_id'] ) ? array( (string) $row['user_id'] ) : array();
+		$hashes = array();
+
+		if ( isset( $row['cpf_hash'] ) && '' !== (string) $row['cpf_hash'] ) {
+			$hashes[] = (string) $row['cpf_hash'];
+			$column   = '' !== $column ? $column : 'cpf_hash';
 		}
 
+		$grouped_by = self::SUBJECT_IS[ $check ] ?? '';
+
 		if ( isset( $row['subject'] ) ) {
-			if ( 'hash' === ( self::SUBJECT_IS[ $check ] ?? '' ) ) {
-				$hash = (string) $row['subject'];
+			if ( 'hash' === $grouped_by ) {
+				$hashes = array( (string) $row['subject'] );
 			} else {
-				$user_id = (string) $row['subject'];
+				$users = array( (string) $row['subject'] );
+			}
+		}
+
+		// The half the `COUNT` aggregated away. A check grouped by hash names
+		// the accounts here; one grouped by account names the hashes (#1344).
+		if ( isset( $row[ IdentityConflictQuery::COLUMN_RELATED ] ) ) {
+			$related = self::split( (string) $row[ IdentityConflictQuery::COLUMN_RELATED ] );
+
+			if ( 'hash' === $grouped_by ) {
+				$users = $related;
+			} else {
+				$hashes = $related;
 			}
 		}
 
@@ -291,19 +327,44 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 			$rf     = isset( $row['rf_count'] ) ? (int) $row['rf_count'] : 0;
 			$count  = (string) max( $cpf, $rf );
 			$column = $cpf >= $rf ? 'cpf_hash' : 'rf_hash';
+
+			// This check counts both columns on one row, so it carries one
+			// list per column. The list has to follow the same pick as the
+			// count, or the row would name one column and list the other's.
+			$pick   = $cpf >= $rf ? 'cpf' : 'rf';
+			$hashes = self::split( isset( $row[ $pick . '_related' ] ) ? (string) $row[ $pick . '_related' ] : '' );
+			$short  = ! empty( $row[ $pick . '_related_truncated' ] );
+		}
+
+		$prefixed = array();
+		foreach ( $hashes as $hash ) {
+			$prefixed[] = $this->prefix( (string) $hash );
 		}
 
 		return array(
 			$check,
 			$column,
-			$user_id,
-			$this->prefix( $hash ),
+			implode( IdentityConflictQuery::RELATED_SEPARATOR, $users ),
+			implode( IdentityConflictQuery::RELATED_SEPARATOR, $prefixed ),
 			$count,
 			$sub_id,
 			$form_id,
 			$stores,
-			'',
+			$short ? __( 'INCOMPLETE: the database truncated this row\'s list, so it names fewer values than the count beside it.', 'ffcertificate' ) : '',
 		);
+	}
+
+	/**
+	 * A separated list as an array, with an empty string meaning no values.
+	 *
+	 * `explode()` on `''` returns a one-element array holding the empty
+	 * string, which would make every row without a list name one blank value.
+	 *
+	 * @param string $joined Separated values.
+	 * @return array<int, string>
+	 */
+	private static function split( string $joined ): array {
+		return '' === $joined ? array() : explode( IdentityConflictQuery::RELATED_SEPARATOR, $joined );
 	}
 
 	/**

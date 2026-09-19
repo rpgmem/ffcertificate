@@ -7,6 +7,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The audit names the accounts and identifiers behind each finding** (#1344): a grouped check emitted whichever half it grouped by and aggregated the other away, so every shared row said an identifier belongs to two accounts without naming them and every multiple row said an account holds two identifiers without naming those — 13 and 73 rows respectively on the first production export. Both halves now travel with the count, so the CSV's own promise to *show the accounts behind each number* is true.
+
+### Changed
+
+- **Two export columns are plural, because they now hold lists** (#1344): `user_id` → `user_ids` and `identifier_hash_prefix` → `identifier_hash_prefixes` in the identity-audit CSV. Every hash is still cut to the grouping prefix, inside a list as much as alone. A `GROUP_CONCAT` shorter than its own count is declared in the row's `note` rather than printed as if complete — it truncates at 1024 bytes with no error, which is 15 hashes against an account already holding 11.
+
 ## [6.27.0] (2026-09-19) — `9ac9eb9`
 
 ### Added

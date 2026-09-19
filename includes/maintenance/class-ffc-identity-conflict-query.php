@@ -85,6 +85,46 @@ class IdentityConflictQuery {
 	public const COLUMN_STORES = 'stores';
 
 	/**
+	 * The column carrying the values the count above only COUNTED.
+	 *
+	 * `grouped()` aliases whatever it grouped BY as `subject` and aggregates
+	 * the other half away, so each direction used to destroy exactly what the
+	 * other half needs: the shared checks said an identifier belongs to two
+	 * accounts without naming them, and the multiple checks said an account
+	 * holds two identifiers without naming those. Neither is a lead anybody
+	 * can act on, which is the property this class's own note claims for the
+	 * report (#1344).
+	 *
+	 * @var string
+	 */
+	public const COLUMN_RELATED = 'related';
+
+	/**
+	 * Set when `related` holds FEWER values than the count beside it.
+	 *
+	 * `GROUP_CONCAT` stops at `group_concat_max_len` -- 1024 bytes by default
+	 * -- and drops the tail WITHOUT an error, so a short list reads exactly
+	 * like a complete one. At 65 bytes per hash that is 15 identifiers, and
+	 * production already holds an account with 11: the headroom is four, not a
+	 * theoretical margin. The count is aggregated separately and is never
+	 * truncated, so comparing the two costs nothing and is the only way to see
+	 * it happen. Never count as clean what was not fully read.
+	 *
+	 * @var string
+	 */
+	public const COLUMN_RELATED_TRUNCATED = 'related_truncated';
+
+	/**
+	 * What separates the values inside `related` and `stores`.
+	 *
+	 * Safe for both payloads by construction: a hex hash and a decimal id can
+	 * contain neither this character nor any other delimiter.
+	 *
+	 * @var string
+	 */
+	public const RELATED_SEPARATOR = '|';
+
+	/**
 	 * The stores that carry an identifier alongside a `user_id`.
 	 *
 	 * Resolved against the live schema rather than assumed: a site that never
@@ -293,6 +333,7 @@ class IdentityConflictQuery {
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT {$group_by} AS subject, COUNT(DISTINCT {$count_over}) AS {$alias},
+                            GROUP_CONCAT(DISTINCT {$count_over} ORDER BY {$count_over} SEPARATOR '|') AS related,
                             GROUP_CONCAT(DISTINCT p.src ORDER BY p.src SEPARATOR '|') AS stores,
                             %s AS identifier_column
                      FROM ({$pairs['sql']}) AS p
@@ -307,10 +348,36 @@ class IdentityConflictQuery {
 			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 			foreach ( (array) $rows as $row ) {
-				$out[] = (array) $row;
+				$out[] = self::flag_truncated_list( (array) $row, $alias );
 			}
 		}
 
 		return array_slice( $out, 0, $limit );
+	}
+
+	/**
+	 * Mark a row whose `related` list is shorter than its own count.
+	 *
+	 * See {@see self::COLUMN_RELATED_TRUNCATED}: the concatenation truncates in
+	 * silence and the count does not, so their disagreement is the only signal
+	 * that exists. The row is kept -- dropping it would hide the finding
+	 * entirely -- and the flag is what stops a partial list from being read as
+	 * the whole one.
+	 *
+	 * @param array<string, mixed> $row   One grouped row.
+	 * @param string               $alias Name of the count column on that row.
+	 * @return array<string, mixed>
+	 */
+	private static function flag_truncated_list( array $row, string $alias ): array {
+		$joined  = $row[ self::COLUMN_RELATED ] ?? '';
+		$related = is_string( $joined ) ? $joined : '';
+		$listed  = '' === $related ? 0 : count( explode( self::RELATED_SEPARATOR, $related ) );
+
+		$total   = $row[ $alias ] ?? 0;
+		$counted = is_numeric( $total ) ? (int) $total : 0;
+
+		$row[ self::COLUMN_RELATED_TRUNCATED ] = ( $listed !== $counted );
+
+		return $row;
 	}
 }

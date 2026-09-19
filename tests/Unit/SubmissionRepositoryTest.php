@@ -318,7 +318,15 @@ class SubmissionRepositoryTest extends TestCase {
 
 	public function test_find_users_with_multiple_identities_returns_rows(): void {
 		global $wpdb;
-		$rows = array( array( 'user_id' => 5, 'cpf_count' => 2, 'rf_count' => 1 ) );
+		$rows = array(
+			array(
+				'user_id'     => 5,
+				'cpf_count'   => 2,
+				'rf_count'    => 1,
+				'cpf_related' => 'aaaa|bbbb',
+				'rf_related'  => 'cccc',
+			),
+		);
 
 		$wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
 			function () {
@@ -327,7 +335,13 @@ class SubmissionRepositoryTest extends TestCase {
 		);
 		$wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
 
-		$this->assertSame( $rows, $this->repo->find_users_with_multiple_identities( 50 ) );
+		$out = $this->repo->find_users_with_multiple_identities( 50 );
+
+		// The reader flags each list against its own count (#1344), so the row
+		// it returns is the fixture plus that verdict -- asserted on a key the
+		// fixture deliberately does not supply.
+		$this->assertSame( 'aaaa|bbbb', $out[0]['cpf_related'] );
+		$this->assertFalse( $out[0]['cpf_related_truncated'] );
 	}
 
 	public function test_find_unlinked_with_matching_identity_returns_rows(): void {

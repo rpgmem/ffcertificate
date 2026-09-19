@@ -21929,6 +21929,10 @@ msgid "The audit tool is not available on this install."
 msgstr ""
 
 #: includes/maintenance/class-ffc-identity-audit-export-source.php
+msgid "INCOMPLETE: the database truncated this row's list, so it names fewer values than the count beside it."
+msgstr ""
+
+#: includes/maintenance/class-ffc-identity-audit-export-source.php
 msgid "TRUNCATED: this check reached the %d-row export cap, so more findings exist than are listed here."
 msgstr ""
 

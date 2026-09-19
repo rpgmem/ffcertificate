@@ -146,6 +146,128 @@ class IdentityConflictQueryTest extends TestCase {
 	}
 
 	/**
+	 * A finding names the values its own count covers.
+	 *
+	 * `grouped()` aliases whatever it grouped BY as `subject` and aggregates
+	 * the other half away, so each direction used to destroy exactly what the
+	 * other half needs: an identifier belonging to two accounts without naming
+	 * them, an account holding two identifiers without naming those. Neither
+	 * is a lead anybody can act on, and neither remediation can start from one
+	 * (#1344).
+	 */
+	public function test_every_finding_names_the_values_its_count_covers(): void {
+		$seen = $this->statements(
+			function ( IdentityConflictQuery $q ) {
+				$q->shared_identities( 10 );
+				$q->multiple_identities( 10 );
+			}
+		);
+
+		$this->assertNotEmpty( $seen, 'An empty capture here would pass over the whole assertion.' );
+
+		$shared   = array_slice( $seen, 0, 2 );
+		$multiple = array_slice( $seen, 2, 2 );
+
+		$this->assertCount( 2, $shared, 'One statement per identifier column.' );
+		$this->assertCount( 2, $multiple );
+
+		foreach ( $shared as $statement ) {
+			$this->assertStringContainsString(
+				'GROUP_CONCAT(DISTINCT user_id',
+				$statement,
+				'A check grouped by hash has to name the ACCOUNTS it counted.'
+			);
+			$this->assertStringContainsString( 'AS ' . IdentityConflictQuery::COLUMN_RELATED, $statement );
+		}
+
+		foreach ( $multiple as $statement ) {
+			$this->assertStringContainsString(
+				'GROUP_CONCAT(DISTINCT h',
+				$statement,
+				'A check grouped by account has to name the IDENTIFIERS it counted.'
+			);
+			$this->assertStringContainsString( 'AS ' . IdentityConflictQuery::COLUMN_RELATED, $statement );
+		}
+	}
+
+	/**
+	 * `unindexed_links()` is deliberately untouched.
+	 *
+	 * It names one account and one column and has no counterpart to emit, so
+	 * a list there would be a column that is always empty — the shape #1344
+	 * exists to remove, reintroduced by symmetry.
+	 */
+	public function test_the_unindexed_check_gains_no_list(): void {
+		$seen = $this->statements(
+			function ( IdentityConflictQuery $q ) {
+				$q->unindexed_links( 10 );
+			}
+		);
+
+		$this->assertNotEmpty( $seen );
+
+		foreach ( $seen as $statement ) {
+			$this->assertStringNotContainsString( 'AS ' . IdentityConflictQuery::COLUMN_RELATED, $statement );
+		}
+	}
+
+	/**
+	 * A list shorter than its own count is declared rather than printed.
+	 *
+	 * `GROUP_CONCAT` stops at `group_concat_max_len` — 1024 bytes by default —
+	 * and drops the tail with NO error, so a short list reads exactly like a
+	 * complete one. At 65 bytes per hash that is 15 identifiers and production
+	 * already holds an account with 11, so the headroom is four. The count is
+	 * aggregated separately and is never truncated, which is what makes the
+	 * comparison possible at all.
+	 *
+	 * The flag is asserted on a key the fixture does NOT supply — the shape
+	 * `AssertionCoverageTest` exists for, and the one this class's own alias
+	 * defect slipped through.
+	 */
+	public function test_a_short_list_is_flagged_against_its_own_count(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn(
+			array(
+				array(
+					'subject'                                 => 438,
+					IdentityConflictQuery::ALIAS_IDENTITY_COUNT => 11,
+					IdentityConflictQuery::COLUMN_RELATED     => 'aaaa|bbbb',
+					'identifier_column'                       => 'rf_hash',
+				),
+			)
+		);
+
+		$rows = ( new IdentityConflictQuery() )->multiple_identities( 10 );
+
+		$this->assertNotEmpty( $rows );
+		$this->assertTrue(
+			$rows[0][ IdentityConflictQuery::COLUMN_RELATED_TRUNCATED ],
+			'Two values under a count of eleven is a truncated list, and it must never read as the whole one.'
+		);
+	}
+
+	/**
+	 * …and a complete list is not flagged, or the signal means nothing.
+	 */
+	public function test_a_complete_list_is_not_flagged(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn(
+			array(
+				array(
+					'subject'                             => 'abcd',
+					IdentityConflictQuery::ALIAS_USER_COUNT => 2,
+					IdentityConflictQuery::COLUMN_RELATED => '85|107',
+					'identifier_column'                   => 'cpf_hash',
+				),
+			)
+		);
+
+		$rows = ( new IdentityConflictQuery() )->shared_identities( 10 );
+
+		$this->assertNotEmpty( $rows );
+		$this->assertFalse( $rows[0][ IdentityConflictQuery::COLUMN_RELATED_TRUNCATED ] );
+	}
+
+	/**
 	 * CPF and RF are separate universes.
 	 *
 	 * One of each is an ordinary person. The class runs one statement per
