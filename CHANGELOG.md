@@ -7,7 +7,29 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.26.0] (2026-09-18)
+## [6.27.0] (2026-09-19)
+
+### Added
+
+- **The link audit's findings download as a CSV** (#1295): the screen caps each check at 50, and `50+` is the value where the list matters most and the screen shows least. One row per finding across all seven checks, streamed in a single request so identity findings never touch a temp file. **No PII** — ids, counts and a 16-character hash prefix that groups the rows of one identity. A check that hits the cap says so in its own row.
+- **The update screen now says what the release does** (#1340): `readme.txt`'s `== Upgrade Notice ==` had never been read by anything, so an operator saw a version number and no warning. It now reaches Dashboard → Updates, carries one entry for the version being offered, and stays within the 300-character norm, with the detail left to this file.
+
+### Changed
+
+- **Compatibility declared against WordPress 7.1.1** (#1022): `Tested up to` moves from 7.1. The plugin updates from GitHub, so the updater reads this at runtime and it is what the update screen shows. The floor stays at 6.4.
+- **The audit reports where each conflict lives, and its cap is an argument** (#1295): a finding said *this account holds two CPFs* and left the operator to search certificates, appointments, candidacies and the index by hand — every finding now names its stores. The row cap moved to `run()` so the screen's sample and the export's list come from one class rather than two issuing the same seven queries.
+
+### Fixed
+
+- **Two audit checks reported numbers nobody could act on** (#1295, #1333): `COUNT(DISTINCT)` ignores `NULL` but counts `''`, so one person with an empty hash on some rows read as two identities — fixed with `NULLIF` rather than a `WHERE`, since a row with no CPF may still carry a real RF. And *Linked identifier missing from the identity index* counted accounts the backfill deliberately leaves empty, so it reported `50+` right after a backfill that had completed correctly.
+- **The CSV export shipped an empty count on every cross-store row** (#1333): it read `identifier_count` while the query emits `identity_count`, and the test agreed because its fixture carried the same invented name — asserting against the value the test itself supplies. Both aliases are constants now, shared by the query and the export.
+
+### Removed
+
+- **⚠ Breaking for external integrations — `AppointmentRepository::getStatistics()` and `AppointmentReader::getStatistics()` are gone** (#1245): announced in 6.25.0 with a runtime `_deprecated_function()` notice on each, and removed here at the second feature release after that notice, as the cycle stated. No product caller existed at any point; both were public methods an external integration could reach, which is why they left through a cycle rather than a deletion. There is no replacement.
+
+
+## [6.26.0] (2026-09-18) — `f667b67`
 
 ### Added
 

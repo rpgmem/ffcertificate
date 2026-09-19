@@ -531,9 +531,12 @@ class SettingsActionHandler {
 	/**
 	 * Handle the Submission ↔ user link audit (Settings → Data Migrations).
 	 *
-	 * Report-only: a single `scan` mode (nonce `ffc_submission_audit_scan`,
-	 * `ffc_manage_settings`) runs the read-only {@see SubmissionLinkAuditor}
-	 * and stores the report in a transient. Nothing is mutated.
+	 * Report-only, two modes. `scan` (nonce `ffc_submission_audit_scan`) runs
+	 * the read-only {@see SubmissionLinkAuditor} and stores the report in a
+	 * transient; `export` (nonce {@see IdentityAuditExportSource::NONCE})
+	 * streams the same seven checks as a CSV at a much higher per-check cap,
+	 * because the screen's 50 is a sample and the list is what an operator
+	 * needs to act (#1295). Nothing is mutated by either.
 	 *
 	 * @since 6.8.0
 	 */
@@ -547,8 +550,20 @@ class SettingsActionHandler {
 		}
 
 		$mode = sanitize_key( wp_unslash( $_REQUEST['ffc_submission_audit'] ) );
-		if ( 'scan' !== $mode ) {
+		if ( ! in_array( $mode, array( 'scan', 'export' ), true ) ) {
 			wp_die( esc_html__( 'Invalid action.', 'ffcertificate' ) );
+		}
+
+		// The export streams a CSV and exits, so it must not fall through to
+		// the transient-and-redirect path below. It runs its OWN gate inside
+		// `authorize()` -- the capability check above is deliberately repeated
+		// there, because the source is the thing `SyncCsvExport` calls and a
+		// source that trusts its caller is one refactor away from ungated.
+		if ( 'export' === $mode ) {
+			( new \FreeFormCertificate\Core\SyncCsvExport() )->handle(
+				new \FreeFormCertificate\Maintenance\IdentityAuditExportSource()
+			);
+			return;
 		}
 
 		$nonce = isset( $_REQUEST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ) : '';

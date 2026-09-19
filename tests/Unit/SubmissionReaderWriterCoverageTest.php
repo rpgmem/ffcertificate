@@ -132,6 +132,42 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 		$this->assertSame( $rows, $this->repo()->find_users_with_multiple_identities() );
 	}
 
+	/**
+	 * One CPF and one RF is a person, not a conflict — and an empty string is
+	 * not an identity.
+	 *
+	 * `COUNT(DISTINCT)` ignores NULL but counts `''` as a value, so a user with
+	 * a real hash on some rows and `''` on others scored 2 and was reported as
+	 * holding two identities. Both siblings in this class filter `<> ''`; this
+	 * one did not (#1295).
+	 *
+	 * `NULLIF` rather than a `WHERE`: a row whose CPF is empty may still carry
+	 * a real RF, and a `WHERE` would drop it from BOTH counts.
+	 *
+	 * This asserts the clause is in the statement. That the server then behaves
+	 * as described is MySQL's contract, not something a mocked `$wpdb` can show
+	 * — the same "presence, never truth" limit the suppression guards record.
+	 */
+	public function test_multiple_identities_does_not_count_an_empty_hash(): void {
+		$sql = '';
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturnUsing(
+			function ( $query ) use ( &$sql ) {
+				$sql = (string) $query;
+				return array();
+			}
+		);
+
+		$this->repo()->find_users_with_multiple_identities();
+
+		$this->assertStringContainsString( "COUNT(DISTINCT NULLIF( cpf_hash, '' ))", $sql );
+		$this->assertStringContainsString( "COUNT(DISTINCT NULLIF( rf_hash, '' ))", $sql );
+		$this->assertStringContainsString(
+			'OR',
+			$sql,
+			'The two columns are counted separately and either one over 1 is the finding; ANDing them would hide a user with two CPFs and one RF.'
+		);
+	}
+
 	public function test_find_unlinked_with_matching_identity_returns_rows(): void {
 		$rows = array( array( 'id' => 7, 'form_id' => 2, 'cpf_hash' => 'abc' ) );
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );

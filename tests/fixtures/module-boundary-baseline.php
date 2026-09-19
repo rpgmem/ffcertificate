@@ -59,6 +59,7 @@ return array(
 	'Integrations>Core',
 	'Integrations>Generators',
 	'Integrations>Settings',
+	'Maintenance>Core',
 	'Maintenance>Migrations',
 	'Maintenance>Repositories',
 	'Maintenance>Security',

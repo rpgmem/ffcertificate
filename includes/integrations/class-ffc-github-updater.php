@@ -250,18 +250,84 @@ class GithubUpdater {
 	 * @return \stdClass
 	 */
 	private static function build_update_object( array $release, string $new_version ): \stdClass {
-		$obj               = new \stdClass();
-		$obj->id           = 'github.com/' . self::REPO;
-		$obj->slug         = self::SLUG;
-		$obj->plugin       = self::PLUGIN_FILE;
-		$obj->new_version  = $new_version;
-		$obj->url          = $release['url'];
-		$obj->package      = $release['package'];
-		$compat            = self::compat();
-		$obj->requires     = $compat['requires'];
-		$obj->tested       = $compat['tested'];
-		$obj->requires_php = $compat['requires_php'];
+		$obj                 = new \stdClass();
+		$obj->id             = 'github.com/' . self::REPO;
+		$obj->slug           = self::SLUG;
+		$obj->plugin         = self::PLUGIN_FILE;
+		$obj->new_version    = $new_version;
+		$obj->url            = $release['url'];
+		$obj->package        = $release['package'];
+		$compat              = self::compat();
+		$obj->requires       = $compat['requires'];
+		$obj->tested         = $compat['tested'];
+		$obj->requires_php   = $compat['requires_php'];
+		$obj->upgrade_notice = self::upgrade_notice();
 		return $obj;
+	}
+
+	/**
+	 * The release summary WordPress shows under the plugin on Dashboard →
+	 * Updates, read from `readme.txt`'s `== Upgrade Notice ==` section.
+	 *
+	 * WHY THIS IS READ AT ALL
+	 *
+	 * The section existed for three years and reached nobody: `compat()` reads
+	 * `readme.txt` through `get_file_data()`, which sees HEADERS and not
+	 * sections, and nothing else opened the file. So an operator deciding
+	 * whether to apply an update saw a version number and nothing else -- not
+	 * even a breaking-change warning, which is the one case where the decision
+	 * is not automatic.
+	 *
+	 * WHY THE SECTION HOLDS EXACTLY ONE ENTRY
+	 *
+	 * `get_latest_release()` fetches `releases/latest`, so the only version
+	 * this updater ever offers is the newest one. An entry for any older
+	 * release is therefore text no code path can display -- documentation that
+	 * looks like history. Keeping one entry also keeps `readme.txt` from
+	 * becoming a second changelog, which this file's own `== Changelog ==`
+	 * section records as a drift problem it already solved once by deleting
+	 * the mirror. `CHANGELOG.md` stays the historical record; this is the
+	 * summary of the version being offered, and it says so.
+	 *
+	 * `ReadmeUpgradeNoticeTest` enforces the shape: one entry, naming the
+	 * version `Stable tag` declares, within the 300-character norm.
+	 *
+	 * The parse is deliberately forgiving about WHICH version it finds. It
+	 * returns the single entry's body whatever version heads it, because a
+	 * mismatch between that heading and the release being offered is the
+	 * guard's to fail in CI, not this method's to hide at runtime by
+	 * returning nothing.
+	 *
+	 * @return string Plain text; empty when the section is absent or malformed.
+	 */
+	private static function upgrade_notice(): string {
+		$readme = FFC_PLUGIN_DIR . 'readme.txt';
+
+		if ( ! is_readable( $readme ) ) {
+			return '';
+		}
+
+		$contents = file_get_contents( $readme ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a file this plugin ships, not a remote resource; `WP_Filesystem` would need credentials on an update check.
+
+		if ( ! is_string( $contents ) ) {
+			return '';
+		}
+
+		if ( ! preg_match( '/^==\s*Upgrade Notice\s*==\s*$(.*?)(?=^==\s|\z)/ms', $contents, $section ) ) {
+			return '';
+		}
+
+		// Stop at the first blank line, not at the end of the section: the
+		// section also carries a trailer pointing at `CHANGELOG.md`, which is
+		// prose ABOUT the notice and not part of it. A notice is one
+		// paragraph -- at 300 characters it cannot usefully be more -- and
+		// `ReadmeUpgradeNoticeTest` fails if this swallows the trailer again,
+		// which is how the bug was caught in the first place.
+		if ( ! preg_match( '/^=\s*\S+\s*=\s*$\R+(.+?)(?=\R\s*\R|\z)/ms', $section[1], $entry ) ) {
+			return '';
+		}
+
+		return trim( $entry[1] );
 	}
 
 	/**
