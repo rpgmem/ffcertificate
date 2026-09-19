@@ -175,6 +175,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 			'submission_id',
 			'form_id',
 			'stores',
+			'email_verdict',
 			'note',
 		);
 	}
@@ -189,9 +190,10 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 		$tool = $this->tool ?? MaintenanceToolRegistry::create_default()->get( 'submission_link_audit' );
 
 		if ( ! $tool instanceof MaintenanceToolInterface ) {
-			return array(
-				array( 'error', '', '', '', '', '', '', __( 'The audit tool is not available on this install.', 'ffcertificate' ) ),
-			);
+			// Through `note_row()`, never hand-counted: this row was written out
+			// by hand and was already one column SHORT of the header before
+			// #1345 widened it, which is the drift that method exists to stop.
+			return array( $this->note_row( 'error', __( 'The audit tool is not available on this install.', 'ffcertificate' ) ) );
 		}
 
 		$report = $tool->run( array( 'limit' => self::EXPORT_LIMIT ) );
@@ -270,6 +272,12 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 	 * headers are plural: a column named in the singular that sometimes holds
 	 * a list is a name that lies to every later reader.
 	 *
+	 * `email_verdict` is filled on the one check that can have one -- an
+	 * account holding several identifiers -- and is a machine value rather
+	 * than a sentence, so an operator can filter the file by it. Deliberately
+	 * NOT in `note`: prose there reports a CONDITION (the row cap, a
+	 * truncated list), while this classifies the finding itself (#1345).
+	 *
 	 * @param string               $check Check key.
 	 * @param array<string, mixed> $row   One finding.
 	 * @return array<int, mixed>
@@ -279,6 +287,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 		$sub_id  = isset( $row['id'] ) ? (string) $row['id'] : '';
 		$form_id = isset( $row['form_id'] ) ? (string) $row['form_id'] : '';
 		$stores  = isset( $row[ IdentityConflictQuery::COLUMN_STORES ] ) ? (string) $row[ IdentityConflictQuery::COLUMN_STORES ] : '';
+		$verdict = isset( $row[ IdentityConflictQuery::COLUMN_EMAIL_VERDICT ] ) ? (string) $row[ IdentityConflictQuery::COLUMN_EMAIL_VERDICT ] : '';
 		$count   = '';
 		$short   = ! empty( $row[ IdentityConflictQuery::COLUMN_RELATED_TRUNCATED ] );
 
@@ -350,6 +359,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 			$sub_id,
 			$form_id,
 			$stores,
+			$verdict,
 			$short ? __( 'INCOMPLETE: the database truncated this row\'s list, so it names fewer values than the count beside it.', 'ffcertificate' ) : '',
 		);
 	}

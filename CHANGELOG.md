@@ -7,8 +7,13 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **The audit says whether a multi-identifier account is one person or two** (#1345): a person holds one CPF and one RF, so an account carrying two of either is two people, one mistyped value, or one value spelled two ways — and the first is an exposure while the others are not. No hash can tell them apart, but the `email_hash` stored beside each identifier can: two identifiers used from one address is one person typing, an address each is two people. Reported as `email_verdict` on the export, with `unknown` kept separate from `distinct_emails` because a missing address is not evidence of a second person.
+
 ### Fixed
 
+- **Every export row is as wide as its header** (#1345): the tool-unavailable fallback was the one row written out by hand and had been a column short since before the header grew. It goes through the helper that builds a row from the header, which is what that helper exists for, and a test now fails on any row that drifts.
 - **The audit names the accounts and identifiers behind each finding** (#1344): a grouped check emitted whichever half it grouped by and aggregated the other away, so every shared row said an identifier belongs to two accounts without naming them and every multiple row said an account holds two identifiers without naming those — 13 and 73 rows respectively on the first production export. Both halves now travel with the count, so the CSV's own promise to *show the accounts behind each number* is true.
 
 ### Changed
