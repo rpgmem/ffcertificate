@@ -7,26 +7,26 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.27.0] (2026-09-19)
+
 ### Added
 
-- **The link audit's findings download as a CSV** (#1295): the counts are capped at 50 on screen, and `50+` is the one value where the list matters most and the screen shows least — so the findings an operator has to review one by one were unreachable. One row per finding across all seven checks, at a much higher cap, streamed in a single request so identity findings never land in a temp file. It carries **no PII**: ids, counts and a 16-character hash prefix that groups rows belonging to one identity, never a CPF, RF, e-mail or login. A check that reaches the cap says so in its own row, so a partial list cannot be read as a complete one.
+- **The link audit's findings download as a CSV** (#1295): the screen caps each check at 50, and `50+` is the value where the list matters most and the screen shows least. One row per finding across all seven checks, streamed in a single request so identity findings never touch a temp file. **No PII** — ids, counts and a 16-character hash prefix that groups the rows of one identity. A check that hits the cap says so in its own row.
+- **The update screen now says what the release does** (#1340): `readme.txt`'s `== Upgrade Notice ==` had never been read by anything, so an operator saw a version number and no warning. It now reaches Dashboard → Updates, carries one entry for the version being offered, and stays within the 300-character norm, with the detail left to this file.
 
 ### Changed
-- **Compatibility declared against WordPress 7.1.1**: `readme.txt` `Tested up to` moves from 7.1. The plugin updates from GitHub, so `GitHubUpdater::compat()` reads this value at runtime and it is what the update screen shows — a stale one told 7.1 sites that a release verified against 7.1 was untested (#1022). The floor stays at 6.4.
-- **`SubmissionLinkAuditor::run()` takes the row cap as an argument** (#1295): the screen wants a 50-row sample and the export wants the list, and the alternative was a second class issuing the same seven queries with its own number — the parallel-reader shape the `cpf_rf_encrypted` precedent rejects. One place still knows what the checks are.
-- **Every audit finding now names the stores it was found in** (#1295): a conflict said *this account holds two CPFs* and left an operator to search certificates, appointments, candidacies and the index by hand. The union carries each store with the pair, and both the screen's queries and the CSV report them — the same *a lead you cannot act on is not a lead* that made the export necessary.
+
+- **Compatibility declared against WordPress 7.1.1** (#1022): `Tested up to` moves from 7.1. The plugin updates from GitHub, so the updater reads this at runtime and it is what the update screen shows. The floor stays at 6.4.
+- **The audit reports where each conflict lives, and its cap is an argument** (#1295): a finding said *this account holds two CPFs* and left the operator to search certificates, appointments, candidacies and the index by hand — every finding now names its stores. The row cap moved to `run()` so the screen's sample and the export's list come from one class rather than two issuing the same seven queries.
 
 ### Fixed
 
-- **The audit counted an empty hash as an identity** (#1295): `COUNT(DISTINCT)` ignores `NULL` but counts `''` as a value, so a user with a real CPF on some submissions and an empty string on others was reported as holding two. Its two siblings in the same class already filtered `<> ''`. Fixed with `NULLIF` rather than a `WHERE`, because a row with an empty CPF may still carry a real RF and a `WHERE` would drop it from both counts. CPF and RF were always counted separately — one of each is a person, never a conflict.
-- **`Linked identifier missing from the identity index` could never read zero** (#1333): the backfill leaves a column empty when an account carries two different hashes, deliberately, and the check counted every such account as a missing link — so it reported 50+ immediately after a backfill that completed, reading as a failure to an operator who had done everything right. Narrowed to the links the backfill could have resolved; the unresolvable ones are already counted under *One account, two identifiers*.
-- **The CSV export shipped an empty count on every cross-store row** (#1333): it read `identifier_count` while the query emits `identity_count`, and the test agreed because its fixture carried the same invented name — asserting against the value the test itself supplies. Both aliases are constants now, referenced by the query that emits them and the export that reads them.
-
-- **The update screen now shows what the release does** (#1340): `readme.txt`'s `== Upgrade Notice ==` section had never been read by anything — the updater parses that file for headers only — so an operator deciding whether to update saw a version number and nothing else, not even a breaking-change warning. It now reaches Dashboard → Updates, holds one entry for the version being offered (an older one could never be displayed), and stays within the 300-character WordPress.org norm, with the detail left to this file.
+- **Two audit checks reported numbers nobody could act on** (#1295, #1333): `COUNT(DISTINCT)` ignores `NULL` but counts `''`, so one person with an empty hash on some rows read as two identities — fixed with `NULLIF` rather than a `WHERE`, since a row with no CPF may still carry a real RF. And *Linked identifier missing from the identity index* counted accounts the backfill deliberately leaves empty, so it reported `50+` right after a backfill that had completed correctly.
+- **The CSV export shipped an empty count on every cross-store row** (#1333): it read `identifier_count` while the query emits `identity_count`, and the test agreed because its fixture carried the same invented name — asserting against the value the test itself supplies. Both aliases are constants now, shared by the query and the export.
 
 ### Removed
 
-- **⚠ Breaking for external integrations — `AppointmentRepository::getStatistics()` and `AppointmentReader::getStatistics()` are gone** (#1245): announced deprecated in 6.25.0 with a runtime `_deprecated_function()` notice on each, and removed here at the second feature release after that notice, as the cycle stated. No product caller existed at any point in the cycle; both were public methods an external integration could reach, which is why they left through a cycle rather than a deletion. There is no replacement — nothing in the plugin consumed the aggregate.
+- **⚠ Breaking for external integrations — `AppointmentRepository::getStatistics()` and `AppointmentReader::getStatistics()` are gone** (#1245): announced in 6.25.0 with a runtime `_deprecated_function()` notice on each, and removed here at the second feature release after that notice, as the cycle stated. No product caller existed at any point; both were public methods an external integration could reach, which is why they left through a cycle rather than a deletion. There is no replacement.
 
 
 ## [6.26.0] (2026-09-18) — `f667b67`
