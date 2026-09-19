@@ -317,13 +317,19 @@ class DeprecationDueTest extends TestCase {
 		$this->assertNotEmpty( $calls, 'No deprecation call was found anywhere -- the token scan is broken.' );
 
 		// Named rather than counted, so a shrinking cycle does not have to
-		// touch this file (`CLAUDE.md`: state the invariant, not the reading).
+		// touch this file -- except when the cycle NAMED here is the one that
+		// closes, which is what #1245 did in 6.27.0: naming a version is itself
+		// a claim about a value another file owns, so it goes stale exactly the
+		// way `CLAUDE.md` says a number does. Prefer the OLDEST open cycle here,
+		// because that is the one a reader most needs to see the scan still
+		// reaching, and re-point it when it closes.
 		$versions = array_values( $markers );
-		$this->assertContains( '6.27.0', $versions, 'The #1245 cycle lost its @removal marker.' );
-		$this->assertContains( '6.28.0', $versions, 'The #1264 cycle lost its @removal marker.' );
+		$this->assertContains( '6.28.0', $versions, 'The #1264 / #1313 cycles lost their @removal markers.' );
 
+		// Both call shapes stay covered: the filter aliases are #1264's, and
+		// the method notices are #1313's, which outlived #1245's.
 		$this->assertContains( 'apply_filters_deprecated', array_values( $calls ), 'The #1264 filter aliases stopped resolving as calls.' );
-		$this->assertContains( '_deprecated_function', array_values( $calls ), 'The #1245 method notices stopped resolving as calls.' );
+		$this->assertContains( '_deprecated_function', array_values( $calls ), 'The #1313 method notices stopped resolving as calls.' );
 	}
 
 	/**
