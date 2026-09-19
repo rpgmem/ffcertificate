@@ -214,16 +214,13 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.23.0 =
-New ALTCHA proof-of-work captcha (self-hosted, no CDN) alongside the existing math challenge; the math token is now signed, expiring and single-use. ⚠️ Breaking: the legacy `html/` directory and its layout fallback are removed — the layout picker is served exclusively by the template pool. If you still rely on a file in `html/`, import it into the pool before updating. No data migrations otherwise.
+= 6.26.0 =
+Identity resolution now reads one indexed identity across every module, so the same person stops producing duplicate accounts. Adds reregistration CSV import and a wider link audit. Two migrations run from Settings → Migrations; run both. No breaking changes.
 
-= 6.20.0 =
-Unified "Email texts" hub (edit every email in one place), a single visual + subject standard for all emails, self-scheduling custom calendars + waitlist, and pool-backed certificate/ficha/receipt templates. ⚠️ Breaking: the spoofable `ffc_trust_forwarded_headers` and interim `ffc_rate_limit_ip_source` filters are removed — set the IP strategy to `secure` (Settings → IP Diagnostics) if you relied on them. Because the shipped email defaults changed, a per-form/schedule/calendar body still holding an old default now shows as Custom until you click "Restore Default Text"; blank (Global-tracking) bodies update automatically. No data migrations; otherwise a safe upgrade.
-
-= 6.11.0 =
-Privacy Policy Guide integration (Settings → Privacy → Policy Guide), a reorganized Public Operator Access info screen, and the schedule-exception flow now previews the participant-form URL at validation time. Completes full namespace compliance (every plugin class now lives under `FreeFormCertificate\`). No data migrations; safe upgrade.
-
-For older releases, see [CHANGELOG.md](CHANGELOG.md).
+This section carries a short summary of the version being offered, and only
+that one — the updater never offers an older release, so an entry for one
+could never be shown. For what changed in any release, and for the issues
+each change references, see [CHANGELOG.md](CHANGELOG.md).
 
 == Privacy & Data Handling ==
 
