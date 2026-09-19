@@ -12,7 +12,7 @@ use FreeFormCertificate\Repositories\AppointmentRepository;
 
 /**
  * Tests for AppointmentRepository: CRUD operations, query methods,
- * status transitions, slot availability, statistics, and appointment creation.
+ * status transitions, slot availability, and appointment creation.
  *
  * @covers \FreeFormCertificate\Repositories\AppointmentRepository
  * @covers \FreeFormCertificate\Repositories\AppointmentReader
@@ -28,9 +28,6 @@ class AppointmentRepositoryTest extends TestCase {
 	/** @var AppointmentRepository */
 	private $repo;
 
-	/** @var array<int, array{0: string, 1: string, 2: string}> */
-	private array $deprecations = array();
-
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -41,22 +38,6 @@ class AppointmentRepositoryTest extends TestCase {
 		$wpdb->last_error = '';
 		$wpdb->insert_id = 0;
 		$this->wpdb = $wpdb;
-
-		// `getStatistics()` warns at runtime that it is going away (#1245).
-		// Without this double, every test exercising it dies on an undefined
-		// function -- and with it, `$this->deprecations` holds what was warned,
-		// which is what the test below charges.
-		//
-		// The GLOBAL form only: `Functions\when()` defines it, and PHP's
-		// resolution reaches the unqualified call inside the namespace. Defining
-		// the namespaced version would create a function that then shadows the
-		// global for the rest of the process -- the trap CLAUDE.md describes.
-		$this->deprecations = array();
-		Functions\when('_deprecated_function')->alias(
-			function ( $function_name, $version, $replacement = '' ) {
-				$this->deprecations[] = array( $function_name, $version, $replacement );
-			}
-		);
 
 		Functions\when('wp_cache_get')->justReturn(false);
 		Functions\when('wp_cache_set')->justReturn(true);
@@ -1167,107 +1148,6 @@ class AppointmentRepositoryTest extends TestCase {
 	}
 
 	// ==================================================================
-	// getStatistics
-	// ==================================================================
-
-	public function test_get_statistics_returns_stats_for_calendar(): void {
-		$stats = [
-			'total' => '50',
-			'confirmed' => '20',
-			'pending' => '10',
-			'cancelled' => '5',
-			'completed' => '12',
-			'no_show' => '3',
-		];
-
-		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() {
-			return func_get_args()[0];
-		});
-		$this->wpdb->shouldReceive('get_row')->once()->andReturn($stats);
-
-		$result = $this->repo->getStatistics(5);
-
-		$this->assertSame($stats, $result);
-		$this->assertArrayHasKey('total', $result);
-		$this->assertArrayHasKey('confirmed', $result);
-		$this->assertArrayHasKey('pending', $result);
-		$this->assertArrayHasKey('cancelled', $result);
-		$this->assertArrayHasKey('completed', $result);
-		$this->assertArrayHasKey('no_show', $result);
-	}
-
-	public function test_get_statistics_with_date_range(): void {
-		$captured_sql = '';
-		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$captured_sql) {
-			$captured_sql = func_get_args()[0];
-			return $captured_sql;
-		});
-		$this->wpdb->shouldReceive('get_row')->once()->andReturn([
-			'total' => '10',
-			'confirmed' => '5',
-			'pending' => '2',
-			'cancelled' => '1',
-			'completed' => '2',
-			'no_show' => '0',
-		]);
-
-		$this->repo->getStatistics(5, '2026-03-01', '2026-03-31');
-
-		$this->assertStringContainsString('BETWEEN', $captured_sql);
-	}
-
-	public function test_get_statistics_without_date_range(): void {
-		$captured_sql = '';
-		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$captured_sql) {
-			$captured_sql = func_get_args()[0];
-			return $captured_sql;
-		});
-		$this->wpdb->shouldReceive('get_row')->once()->andReturn([
-			'total' => '10',
-			'confirmed' => '5',
-			'pending' => '2',
-			'cancelled' => '1',
-			'completed' => '2',
-			'no_show' => '0',
-		]);
-
-		$this->repo->getStatistics(5);
-
-		$this->assertStringNotContainsString('BETWEEN', $captured_sql);
-	}
-
-	public function test_get_statistics_returns_defaults_when_null(): void {
-		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() {
-			return func_get_args()[0];
-		});
-		$this->wpdb->shouldReceive('get_row')->once()->andReturn(null);
-
-		$result = $this->repo->getStatistics(999);
-
-		$this->assertSame(0, $result['total']);
-		$this->assertSame(0, $result['confirmed']);
-		$this->assertSame(0, $result['pending']);
-		$this->assertSame(0, $result['cancelled']);
-		$this->assertSame(0, $result['completed']);
-		$this->assertSame(0, $result['no_show']);
-	}
-
-	public function test_get_statistics_query_includes_count_and_sums(): void {
-		$captured_sql = '';
-		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$captured_sql) {
-			$captured_sql = func_get_args()[0];
-			return $captured_sql;
-		});
-		$this->wpdb->shouldReceive('get_row')->once()->andReturn(null);
-
-		$this->repo->getStatistics(5);
-
-		$this->assertStringContainsString('COUNT(*)', $captured_sql);
-		$this->assertStringContainsString('SUM(CASE WHEN status', $captured_sql);
-		$this->assertStringContainsString('calendar_id = %d', $captured_sql);
-	}
-
-	// ==================================================================
 	// createAppointment (without encryption - class_exists returns false)
 	// ==================================================================
 
@@ -1590,33 +1470,6 @@ class AppointmentRepositoryTest extends TestCase {
 		$this->assertIsArray($result);
 	}
 
-	public function test_get_statistics_requires_both_dates_for_range_filter(): void {
-		// When only start_date is provided but end_date is null, BETWEEN should not appear
-		$captured_sql = '';
-		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$captured_sql) {
-			$captured_sql = func_get_args()[0];
-			return $captured_sql;
-		});
-		$this->wpdb->shouldReceive('get_row')->once()->andReturn(null);
-
-		$this->repo->getStatistics(5, '2026-03-01', null);
-
-		$this->assertStringNotContainsString('BETWEEN', $captured_sql);
-	}
-
-	public function test_get_statistics_with_only_end_date_does_not_filter(): void {
-		$captured_sql = '';
-		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$captured_sql) {
-			$captured_sql = func_get_args()[0];
-			return $captured_sql;
-		});
-		$this->wpdb->shouldReceive('get_row')->once()->andReturn(null);
-
-		$this->repo->getStatistics(5, null, '2026-03-31');
-
-		$this->assertStringNotContainsString('BETWEEN', $captured_sql);
-	}
-
 	public function test_find_by_email_returns_empty_array_for_no_matches(): void {
 		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() {
 			return func_get_args()[0];
@@ -1772,53 +1625,4 @@ class AppointmentRepositoryTest extends TestCase {
 		$this->assertSame([], $this->repo->getExportBatch(null, [], null, null, 10, 50));
 	}
 
-	// ==================================================================
-	// getStatistics() deprecation (#1245)
-	// ==================================================================
-
-	/**
-	 * Both surfaces warn at runtime that they are going away.
-	 *
-	 * WHY THIS IS THE DELIVERABLE, AND NOT THE `@deprecated`
-	 *
-	 * This cycle's declared reason is to notify consumers a code scan cannot see
-	 * -- an external integration instantiating `AppointmentRepository`. A
-	 * `@deprecated` in the docblock reaches nobody at runtime, so on its own it
-	 * would be a warning only we read.
-	 *
-	 * `_deprecated_function()` is WordPress's mechanism: `E_USER_DEPRECATED`
-	 * under `WP_DEBUG`, silent in production.
-	 *
-	 * EACH ONE WARNS FOR ITSELF
-	 *
-	 * The facade delegates to the reader, so whoever calls the facade sees TWO
-	 * warnings. That is correct: both methods are public, both are going away,
-	 * and naming only one would let the other leave without a warning for
-	 * whoever calls it directly -- which is the idiom CLAUDE.md describes for
-	 * the readers.
-	 */
-	public function test_get_statistics_announces_its_own_removal(): void {
-		$this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
-		$this->wpdb->shouldReceive('get_row')->andReturn(null);
-
-		$this->repo->getStatistics(1);
-
-		$named = array_column($this->deprecations, 0);
-
-		$this->assertContains(
-			'FreeFormCertificate\\Repositories\\AppointmentRepository::getStatistics',
-			$named,
-			'The facade has to name ITSELF, or whoever called it does not know what to stop using.'
-		);
-		$this->assertContains(
-			'FreeFormCertificate\\Repositories\\AppointmentReader::getStatistics',
-			$named,
-			'The reader is public and called directly in this codebase; leaving with no warning of its own would leave those callers in the dark.'
-		);
-
-		foreach ($this->deprecations as $call) {
-			$this->assertSame('6.25.0', $call[1], 'The warned version is the ANNOUNCEMENT\'s, not the removal\'s.');
-			$this->assertSame('', $call[2], 'There is no replacement — WordPress prints "with no alternative available", which is the truth.');
-		}
-	}
 }

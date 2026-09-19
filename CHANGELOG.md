@@ -22,6 +22,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **`Linked identifier missing from the identity index` could never read zero** (#1333): the backfill leaves a column empty when an account carries two different hashes, deliberately, and the check counted every such account as a missing link — so it reported 50+ immediately after a backfill that completed, reading as a failure to an operator who had done everything right. Narrowed to the links the backfill could have resolved; the unresolvable ones are already counted under *One account, two identifiers*.
 - **The CSV export shipped an empty count on every cross-store row** (#1333): it read `identifier_count` while the query emits `identity_count`, and the test agreed because its fixture carried the same invented name — asserting against the value the test itself supplies. Both aliases are constants now, referenced by the query that emits them and the export that reads them.
 
+### Removed
+
+- **⚠ Breaking for external integrations — `AppointmentRepository::getStatistics()` and `AppointmentReader::getStatistics()` are gone** (#1245): announced deprecated in 6.25.0 with a runtime `_deprecated_function()` notice on each, and removed here at the second feature release after that notice, as the cycle stated. No product caller existed at any point in the cycle; both were public methods an external integration could reach, which is why they left through a cycle rather than a deletion. There is no replacement — nothing in the plugin consumed the aggregate.
+
 
 ## [6.26.0] (2026-09-18) — `f667b67`
 
