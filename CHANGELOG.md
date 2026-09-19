@@ -7,7 +7,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.27.0] (2026-09-19)
+## [6.27.0] (2026-09-19) — `9ac9eb9`
 
 ### Added
 
