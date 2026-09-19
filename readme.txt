@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.4
 Tested up to: 7.1.1
-Stable tag: 6.26.0
+Stable tag: 6.27.0
 Requires PHP: 8.3
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -214,8 +214,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.26.0 =
-Identity resolution now reads one indexed identity across every module, so the same person stops producing duplicate accounts. Adds reregistration CSV import and a wider link audit. Two migrations run from Settings → Migrations; run both. No breaking changes.
+= 6.27.0 =
+A CSV export for the link audit's findings, and this notice itself now reaches the update screen. ⚠ External integrations only: `AppointmentRepository::getStatistics()` and its reader sibling are removed as announced in 6.25.0, with no replacement. No migrations to run.
 
 This section carries a short summary of the version being offered, and only
 that one — the updater never offers an older release, so an entry for one
