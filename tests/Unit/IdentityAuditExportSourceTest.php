@@ -330,6 +330,157 @@ class IdentityAuditExportSourceTest extends TestCase {
 	}
 
 	/**
+	 * What the addresses said about the account travels to its own column.
+	 *
+	 * A machine value rather than prose, so an operator can filter the file by
+	 * it — which is how the measurement this issue asks for gets taken at all
+	 * (#1345).
+	 */
+	public function test_the_email_verdict_travels_to_its_own_column(): void {
+		$seen   = array();
+		$source = new IdentityAuditExportSource(
+			$this->auditor(
+				array(
+					'cross_store_multiple_identities' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array(
+							array(
+								'subject' => 438,
+								IdentityConflictQuery::ALIAS_IDENTITY_COUNT => 2,
+								IdentityConflictQuery::COLUMN_EMAIL_VERDICT => IdentityConflictQuery::VERDICT_DISTINCT_EMAILS,
+								'identifier_column' => 'rf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$this->assertSame(
+			IdentityConflictQuery::VERDICT_DISTINCT_EMAILS,
+			$this->rows( $source )[0]['email_verdict']
+		);
+	}
+
+	/**
+	 * A check that cannot have a verdict leaves the column empty, not absent.
+	 *
+	 * A row narrower than the header is a broken CSV, so "no verdict" has to
+	 * be an empty cell rather than a missing one.
+	 */
+	public function test_a_check_without_a_verdict_leaves_the_column_empty(): void {
+		$seen   = array();
+		$source = new IdentityAuditExportSource(
+			$this->auditor(
+				array(
+					'cross_store_shared_identities' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array(
+							array(
+								'subject' => str_repeat( 'a', 64 ),
+								IdentityConflictQuery::ALIAS_USER_COUNT => 2,
+								'identifier_column' => 'cpf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$row = $this->rows( $source )[0];
+
+		$this->assertArrayHasKey( 'email_verdict', $row );
+		$this->assertSame( '', $row['email_verdict'] );
+	}
+
+	/**
+	 * EVERY row is exactly as wide as the header.
+	 *
+	 * `note_row()` exists because a row whose width drifts from the header is
+	 * a broken CSV and hand-counting empty strings is how that drift happens —
+	 * and the one row that was hand-counted, the tool-unavailable fallback,
+	 * was ALREADY one column short before #1345 widened the header. It went
+	 * through `note_row()` with this test, so the next column added cannot
+	 * reintroduce it.
+	 *
+	 * `array_combine()` in `rows()` would itself fail on a mismatch, so this
+	 * asserts the width directly on the raw rows instead.
+	 */
+	public function test_every_row_is_as_wide_as_the_header(): void {
+		$seen   = array();
+		$source = new IdentityAuditExportSource(
+			$this->auditor(
+				array(
+					'cross_store_multiple_identities' => array(
+						'count'     => 1,
+						'truncated' => true,
+						'rows'      => array(
+							array(
+								'subject' => 438,
+								IdentityConflictQuery::ALIAS_IDENTITY_COUNT => 2,
+								'identifier_column' => 'rf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$width = count( $source->header() );
+		$rows  = iterator_to_array( ( function () use ( $source ) {
+			yield from $source->rows();
+		} )() );
+
+		// A data row and the cap's note row, so the assertion covers both shapes.
+		$this->assertCount( 2, $rows, 'Expected one finding plus the truncation note.' );
+
+		foreach ( $rows as $index => $row ) {
+			$this->assertCount( $width, $row, "Row {$index} is not as wide as the header." );
+		}
+	}
+
+	/**
+	 * …and including the fallback row, which is the one that was wrong.
+	 *
+	 * It is the only row the class ever wrote out by hand, and it had drifted
+	 * a column behind the header before anyone widened it. Reaching it needs
+	 * the registry to hand back something that is not a tool, which is why
+	 * this alias-mocks the registry rather than injecting — the constructor is
+	 * typed, so a non-tool cannot be passed in.
+	 */
+	public function test_the_tool_unavailable_row_is_as_wide_as_the_header(): void {
+		$registry = Mockery::mock( 'alias:\\FreeFormCertificate\\Maintenance\\MaintenanceToolRegistry' );
+		$registry->shouldReceive( 'create_default' )->andReturnSelf();
+		$registry->shouldReceive( 'get' )->andReturn( null );
+
+		$source = new IdentityAuditExportSource();
+		$rows   = $source->rows();
+
+		foreach ( $rows as $row ) {
+			$this->assertCount( count( $source->header() ), $row );
+		}
+
+		$this->assertCount( 1, (array) $rows, 'The fallback emits exactly one row.' );
+	}
+
+	/**
+	 * …including the empty report, whose only row is a note.
+	 */
+	public function test_the_empty_report_row_is_as_wide_as_the_header(): void {
+		$seen   = array();
+		$source = new IdentityAuditExportSource( $this->auditor( array(), $seen ) );
+
+		foreach ( $source->rows() as $row ) {
+			$this->assertCount( count( $source->header() ), $row );
+		}
+	}
+
+	/**
 	 * `multiple_identities` carries two counts, and a row saying "2" without
 	 * saying two of WHAT is not a lead anybody can act on.
 	 */
