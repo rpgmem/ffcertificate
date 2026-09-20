@@ -168,6 +168,84 @@ class IdentityConflictQuery {
 	public const VERDICT_UNKNOWN = 'unknown';
 
 	/**
+	 * The column saying whether each account a finding names still EXISTS.
+	 *
+	 * Every check here reads `user_id` off the plugin's own stores and none of
+	 * them has ever joined `wp_users`, so a reported id was only ever "a number
+	 * written in an FFC row". An operator told that account 9129 holds two CPFs
+	 * could not tell whether to merge it, repair it or delete a row pointing at
+	 * somebody who was deleted years ago -- which is the same "a lead you
+	 * cannot act on is not a lead" that #1344 fixed for the identifiers
+	 * (#1354).
+	 *
+	 * Positional, like every list column here: the nth value answers for the
+	 * nth account the finding names.
+	 *
+	 * @var string
+	 */
+	public const COLUMN_ACCOUNT_STATUS = 'account_status';
+
+	/**
+	 * A `wp_users` row exists for that id.
+	 *
+	 * @var string
+	 */
+	public const STATUS_EXISTS = 'exists';
+
+	/**
+	 * No `wp_users` row exists for that id.
+	 *
+	 * Structurally possible on exactly one of the four stores:
+	 * `MigrationForeignKeys` installs `user_id -> wp_users.ID` on submissions,
+	 * appointments and the profile index, and deliberately not on
+	 * `ffc_recruitment_candidate` (a candidate is not a user until promotion).
+	 * So a missing account is either a candidacy row or evidence that the
+	 * foreign-key migration never completed on this install -- which is why
+	 * the export reports the live constraint state beside these values rather
+	 * than leaving the reader to guess between the two.
+	 *
+	 * @var string
+	 */
+	public const STATUS_MISSING = 'missing';
+
+	/**
+	 * The column saying how much data hangs off each account, per store.
+	 *
+	 * What separates *merge this pair* from *delete this orphan row* from
+	 * *leave it alone*, and the reason it ships in the same release as the
+	 * status rather than after it: the install this diagnoses is production,
+	 * where the only way to ask a second question is another release.
+	 *
+	 * @var string
+	 */
+	public const COLUMN_ACCOUNT_ROWS = 'account_rows';
+
+	/**
+	 * What separates one account's per-store counts from the next account's.
+	 *
+	 * A different character from {@see self::RELATED_SEPARATOR} on purpose:
+	 * the value is a list of lists, and reusing one separator for both levels
+	 * makes it unparseable.
+	 *
+	 * @var string
+	 */
+	public const ACCOUNT_ROWS_SEPARATOR = ',';
+
+	/**
+	 * What separates an account id from its per-store counts.
+	 *
+	 * @var string
+	 */
+	public const ACCOUNT_ROWS_ASSIGN = '=';
+
+	/**
+	 * What separates a store's label from its count.
+	 *
+	 * @var string
+	 */
+	public const ACCOUNT_ROWS_COUNT = ':';
+
+	/**
 	 * What separates the values inside `related` and `stores`.
 	 *
 	 * Safe for both payloads by construction: a hex hash and a decimal id can
@@ -360,6 +438,146 @@ class IdentityConflictQuery {
 		}
 
 		return array_slice( $out, 0, $limit );
+	}
+
+	/**
+	 * What is true of each account a finding names: does it exist, and how
+	 * much data hangs off it.
+	 *
+	 * ONE STATEMENT PER QUESTION, NOT FIVE PER ACCOUNT
+	 *
+	 * The obvious shape -- ask `wp_users` once per id, then `COUNT(*)` once
+	 * per id per store -- is 5 statements an account, or 360 for the 72 the
+	 * first production export named. Both questions are set questions, so
+	 * both are asked once: existence through `get_users()` bounded by
+	 * `include`, and the counts as one `UNION ALL` grouping by account and
+	 * store. That second one is the same union the rest of this class already
+	 * builds, widened to count rows instead of pairing identifiers.
+	 *
+	 * EXISTENCE GOES THROUGH THE WP API, AND `blog_id` IS WHY IT IS NOT SQL
+	 *
+	 * A hand-rolled `SELECT ID FROM wp_users` is what `PhpcsSuppressionTest`
+	 * refuses in a file carrying a `DirectDatabaseQuery` disable, and it is
+	 * right to: the sniff has something real to say here, because core owns
+	 * that table. `get_users()` answers the same question -- and `blog_id => 0`
+	 * is load-bearing rather than tidy, since the default scopes the query to
+	 * users holding a role on the CURRENT site, which on multisite would
+	 * report a live account as deleted.
+	 *
+	 * The counts are of EVERY row the account owns in a store, not only the
+	 * rows carrying the identifier the finding is about. The question they
+	 * answer is "what would a merge move, or a deletion destroy", and that is
+	 * all of it.
+	 *
+	 * An account is reported `missing` until `wp_users` says otherwise, so a
+	 * query that returns nothing reads as "no account found" rather than
+	 * silently leaving every status blank -- an empty result must never read
+	 * as clean.
+	 *
+	 * @param array<int, mixed> $user_ids Accounts a finding names; non-positive values are dropped.
+	 * @return array<int, array{status: string, rows: array<string, int>}> Account id -> facts.
+	 */
+	public function account_facts( array $user_ids ): array {
+		global $wpdb;
+
+		$wanted = array();
+		foreach ( $user_ids as $candidate ) {
+			$id = is_numeric( $candidate ) ? (int) $candidate : 0;
+			if ( $id > 0 ) {
+				$wanted[ $id ] = true;
+			}
+		}
+
+		$ids = array_keys( $wanted );
+		if ( array() === $ids ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( $ids as $id ) {
+			$out[ $id ] = array(
+				'status' => self::STATUS_MISSING,
+				'rows'   => array(),
+			);
+		}
+
+		$found = get_users(
+			array(
+				'include'     => $ids,
+				'fields'      => 'ID',
+				'blog_id'     => 0,
+				'number'      => count( $ids ),
+				'count_total' => false,
+			)
+		);
+
+		foreach ( (array) $found as $id ) {
+			$id = is_numeric( $id ) ? (int) $id : 0;
+			if ( isset( $out[ $id ] ) ) {
+				$out[ $id ]['status'] = self::STATUS_EXISTS;
+			}
+		}
+
+		$stores = $this->stores();
+
+		if ( array() === $stores ) {
+			return $out;
+		}
+
+		foreach ( array_chunk( $ids, self::USERS_PER_STATEMENT ) as $chunk ) {
+			$slots = implode( ', ', array_fill( 0, count( $chunk ), '%d' ) );
+
+			$parts  = array();
+			$values = array();
+
+			foreach ( $stores as $table ) {
+				$parts[]  = "SELECT user_id, %s AS src, COUNT(*) AS n FROM %i WHERE user_id IN ({$slots}) GROUP BY user_id";
+				$values[] = $this->label( $table );
+				$values[] = $table;
+				foreach ( $chunk as $user_id ) {
+					$values[] = (int) $user_id;
+				}
+			}
+
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The fragment is this class's own literal, repeated once per table it resolved itself through `stores()`; `$slots` is `%d` placeholders counted off `$chunk`. These are the plugin's own `ffc_*` tables, for which WordPress exposes no API, and an audit read must reflect the live rows.
+			$counts = $wpdb->get_results( $wpdb->prepare( implode( ' UNION ALL ', $parts ), ...$values ), ARRAY_A );
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+			foreach ( (array) $counts as $row ) {
+				$row   = (array) $row;
+				$id    = isset( $row['user_id'] ) && is_numeric( $row['user_id'] ) ? (int) $row['user_id'] : 0;
+				$src   = isset( $row['src'] ) && is_string( $row['src'] ) ? $row['src'] : '';
+				$total = isset( $row['n'] ) && is_numeric( $row['n'] ) ? (int) $row['n'] : 0;
+
+				if ( isset( $out[ $id ] ) && '' !== $src && $total > 0 ) {
+					$out[ $id ]['rows'][ $src ] = $total;
+				}
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * One account's per-store counts as the string the report carries.
+	 *
+	 * `submissions:12,user_profiles:1`, or an empty string when the account
+	 * owns no row in any store -- which is itself a finding, since an account
+	 * named by this audit is named BECAUSE rows point at it. An empty value
+	 * there means every such row sits in a store {@see self::stores()} does
+	 * not resolve on this install.
+	 *
+	 * @param array<string, int> $rows Store label -> row count.
+	 * @return string
+	 */
+	public static function format_account_rows( array $rows ): string {
+		$parts = array();
+
+		foreach ( $rows as $store => $total ) {
+			$parts[] = $store . self::ACCOUNT_ROWS_COUNT . (string) (int) $total;
+		}
+
+		return implode( self::ACCOUNT_ROWS_SEPARATOR, $parts );
 	}
 
 	/**

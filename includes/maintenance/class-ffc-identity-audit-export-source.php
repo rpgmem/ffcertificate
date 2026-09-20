@@ -56,6 +56,7 @@ namespace FreeFormCertificate\Maintenance;
 use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Core\SyncSourceInterface;
+use FreeFormCertificate\Migrations\MigrationForeignKeys;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -176,6 +177,9 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 			'form_id',
 			'stores',
 			'email_verdict',
+			'account_status',
+			'account_rows',
+			'account_urls',
 			'note',
 		);
 	}
@@ -225,6 +229,12 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 		if ( array() === $out ) {
 			$out[] = $this->note_row( '', __( 'No link problems found.', 'ffcertificate' ) );
 		}
+
+		// Last, and unconditional: it explains the `account_status` column
+		// above it, so it is worth reading even on a clean report -- a file
+		// that says nothing is wrong AND that no constraint is installed says
+		// something a clean report alone does not.
+		$out[] = $this->foreign_key_note();
 
 		return $out;
 	}
@@ -350,6 +360,13 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 			$prefixed[] = $this->prefix( (string) $hash );
 		}
 
+		// Positional against `user_ids`, and built from the SAME list: reading
+		// the status off the row while deriving the ids again here is how the
+		// two would drift apart on a check nobody re-checked.
+		$status       = isset( $row[ IdentityConflictQuery::COLUMN_ACCOUNT_STATUS ] ) ? (string) $row[ IdentityConflictQuery::COLUMN_ACCOUNT_STATUS ] : '';
+		$account_rows = isset( $row[ IdentityConflictQuery::COLUMN_ACCOUNT_ROWS ] ) ? (string) $row[ IdentityConflictQuery::COLUMN_ACCOUNT_ROWS ] : '';
+		$urls         = $this->account_urls( $users, $status );
+
 		return array(
 			$check,
 			$column,
@@ -360,8 +377,115 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 			$form_id,
 			$stores,
 			$verdict,
+			$status,
+			$account_rows,
+			implode( IdentityConflictQuery::RELATED_SEPARATOR, $urls ),
 			$short ? __( 'INCOMPLETE: the database truncated this row\'s list, so it names fewer values than the count beside it.', 'ffcertificate' ) : '',
 		);
+	}
+
+	/**
+	 * One admin URL per account, empty where the account is gone.
+	 *
+	 * A link to a deleted user is a 404 dressed as a lead, so a `missing`
+	 * account gets an empty slot rather than a URL -- the position is kept so
+	 * the column stays aligned with `user_ids`, which is what lets a
+	 * spreadsheet read the two side by side.
+	 *
+	 * Full URLs rather than paths because the file is opened in a spreadsheet,
+	 * where only a full URL is clickable.
+	 *
+	 * @param array<int, string> $users  Account ids, in report order.
+	 * @param string             $status The positional status list.
+	 * @return array<int, string>
+	 */
+	private function account_urls( array $users, string $status ): array {
+		$statuses = self::split( $status );
+		$out      = array();
+
+		foreach ( array_values( $users ) as $index => $id ) {
+			$known = $statuses[ $index ] ?? '';
+
+			$out[] = ( IdentityConflictQuery::STATUS_EXISTS === $known )
+				? admin_url( 'user-edit.php?user_id=' . rawurlencode( (string) $id ) )
+				: '';
+		}
+
+		return $out;
+	}
+
+	/**
+	 * What the database actually enforces between `user_id` and `wp_users`.
+	 *
+	 * Reported ONCE, as a note, because it is a property of the install rather
+	 * than of any finding -- and without it a `missing` account is ambiguous
+	 * between the two readings that matter. `ffc_recruitment_candidate` is
+	 * deliberately never constrained (a candidate is not a user until
+	 * promotion), so a missing account there is ordinary; a missing one
+	 * anywhere else means the foreign key is not in place, and the operator
+	 * should be told which rather than left to infer it.
+	 *
+	 * The live constraints are read from the schema rather than the
+	 * `ffc_foreign_keys_db_version` option, because that flag records that the
+	 * migration RAN, not that every `ALTER` inside it succeeded -- and the
+	 * difference is exactly the case this row exists to report.
+	 *
+	 * @return array<int, mixed>
+	 */
+	private function foreign_key_note(): array {
+		$status = $this->foreign_key_status();
+
+		$installed = isset( $status['existing_constraints'] ) && is_numeric( $status['existing_constraints'] )
+			? (int) $status['existing_constraints']
+			: 0;
+		$total     = isset( $status['total_constraints'] ) && is_numeric( $status['total_constraints'] )
+			? (int) $status['total_constraints']
+			: 0;
+
+		if ( ! empty( $status['is_complete'] ) ) {
+			return $this->note_row(
+				'foreign_keys',
+				sprintf(
+					/* translators: %d: how many user_id foreign keys are installed. */
+					__( 'FOREIGN KEYS: all %d user_id constraints are installed, so an account reported missing above can only belong to a table no constraint covers — recruitment candidacies, which are deliberately unconstrained because a candidate is not a WordPress user until promotion.', 'ffcertificate' ),
+					$installed
+				)
+			);
+		}
+
+		// The names that ARE there, never a list of the ones that are not:
+		// the canonical set lives in `MigrationForeignKeys` and is not public,
+		// so restating it here would be a claim about a value another file
+		// owns — exactly the kind that goes stale in silence.
+		$names = ( isset( $status['existing'] ) && is_array( $status['existing'] ) ) ? $status['existing'] : array();
+		$names = array_map( 'strval', $names );
+		sort( $names );
+
+		return $this->note_row(
+			'foreign_keys',
+			sprintf(
+				/* translators: 1: installed count, 2: total count, 3: comma-separated constraint names, or a dash. */
+				__( 'FOREIGN KEYS: only %1$d of %2$d user_id constraints are installed (%3$s), so a missing account above is NOT necessarily a recruitment candidacy — the database is not enforcing the link on every table it should. Run the foreign-key migration before reading these statuses.', 'ffcertificate' ),
+				$installed,
+				$total,
+				array() === $names ? '—' : implode( ', ', $names )
+			)
+		);
+	}
+
+	/**
+	 * The live foreign-key state.
+	 *
+	 * A seam for the same reason the auditor is injectable: this reaches
+	 * `information_schema` through the global `$wpdb`, and a test about which
+	 * COLUMN a value lands in should not have to stand a database up to get
+	 * there. Overridden in tests that are not about this; driven for real by
+	 * the ones that are.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function foreign_key_status(): array {
+		return MigrationForeignKeys::get_status();
 	}
 
 	/**

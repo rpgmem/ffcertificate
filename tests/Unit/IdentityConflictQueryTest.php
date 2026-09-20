@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -543,4 +544,118 @@ class IdentityConflictQueryTest extends TestCase {
 		$this->assertStringContainsString( IdentityConflictQuery::ALIAS_IDENTITY_COUNT, $sql );
 		$this->assertStringContainsString( IdentityConflictQuery::ALIAS_USER_COUNT, $sql );
 	}
+	/**
+	 * An account is `missing` until `wp_users` says otherwise.
+	 *
+	 * The seeded default is the whole safety property: a query that returns
+	 * nothing must read as "no account found", never as a blank that a later
+	 * reader takes for "fine". An empty result must never read as clean.
+	 */
+	public function test_account_facts_seed_missing_and_only_wp_users_lifts_it(): void {
+		Functions\when( 'get_users' )->justReturn( array( '355' ) );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+		$facts = ( new IdentityConflictQuery() )->account_facts( array( 355, 5276 ) );
+
+		$this->assertSame( IdentityConflictQuery::STATUS_EXISTS, $facts[355]['status'] );
+		$this->assertSame(
+			IdentityConflictQuery::STATUS_MISSING,
+			$facts[5276]['status'],
+			'An id `wp_users` did not return is missing, not unknown and not blank.'
+		);
+	}
+
+	/**
+	 * The counts are of every row an account owns in a store.
+	 *
+	 * That is the question they answer -- what a merge would move, or a
+	 * deletion destroy -- so they deliberately do NOT narrow to the rows
+	 * carrying the identifier the finding is about.
+	 */
+	public function test_account_facts_report_rows_per_store(): void {
+		Functions\when( 'get_users' )->justReturn( array( '355' ) );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn(
+			array(
+				array( 'user_id' => '355', 'src' => 'submissions', 'n' => '3' ),
+				array( 'user_id' => '355', 'src' => 'user_profiles', 'n' => '1' ),
+			)
+		);
+
+		$facts = ( new IdentityConflictQuery() )->account_facts( array( 355 ) );
+
+		$this->assertSame( array( 'submissions' => 3, 'user_profiles' => 1 ), $facts[355]['rows'] );
+		$this->assertSame(
+			'submissions:3,user_profiles:1',
+			IdentityConflictQuery::format_account_rows( $facts[355]['rows'] )
+		);
+	}
+
+	/**
+	 * Two statements per chunk, not five per account.
+	 *
+	 * The obvious shape -- ask `wp_users` once per id, then `COUNT(*)` once
+	 * per id per store -- is 360 statements for the 72 accounts the first
+	 * production export named. Both questions are set questions, so both are
+	 * one `IN` list, and the counts are a single `UNION ALL`.
+	 */
+	public function test_account_facts_ask_in_one_statement_per_question(): void {
+		$asked = array();
+		Functions\when( 'get_users' )->alias(
+			function ( $args ) use ( &$asked ) {
+				$asked[] = $args;
+				return array();
+			}
+		);
+
+		$seen = array();
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $query ) use ( &$seen ) {
+				$seen[] = (string) $query;
+				return array();
+			}
+		);
+
+		( new IdentityConflictQuery() )->account_facts( array( 1, 2, 3 ) );
+
+		$this->assertCount( 1, $asked, 'Existence is one call for the whole set, bounded by `include`.' );
+		$this->assertSame( array( 1, 2, 3 ), $asked[0]['include'] );
+		$this->assertSame( 'ID', $asked[0]['fields'] );
+
+		// Load-bearing, not tidy: the default scopes the query to users with a
+		// role on the CURRENT site, so on multisite a live account with no
+		// role here would be reported as deleted.
+		$this->assertSame( 0, $asked[0]['blog_id'] );
+
+		$this->assertCount( 1, $seen, 'The counts are one statement for the whole chunk.' );
+		$this->assertStringContainsString( 'UNION ALL', $seen[0] );
+		$this->assertStringContainsString( 'GROUP BY user_id', $seen[0] );
+		$this->assertSame(
+			4,
+			substr_count( $seen[0], 'COUNT(*)' ),
+			'One counted branch per store the probe resolved.'
+		);
+	}
+
+	/**
+	 * An id that is not a positive integer names no account and is dropped
+	 * before any statement runs.
+	 */
+	public function test_account_facts_ignore_what_is_not_an_account(): void {
+		Functions\expect( 'get_users' )->never();
+		$this->wpdb->shouldReceive( 'get_results' )->never();
+
+		$this->assertSame( array(), ( new IdentityConflictQuery() )->account_facts( array( 0, -3, '', 'abc' ) ) );
+	}
+
+	/**
+	 * An account owning no row anywhere formats as an empty string.
+	 *
+	 * Which is itself a finding: an account named by this audit is named
+	 * BECAUSE rows point at it, so an empty value means every such row sits in
+	 * a store the probe did not resolve on this install.
+	 */
+	public function test_an_account_owning_nothing_formats_empty(): void {
+		$this->assertSame( '', IdentityConflictQuery::format_account_rows( array() ) );
+	}
+
 }

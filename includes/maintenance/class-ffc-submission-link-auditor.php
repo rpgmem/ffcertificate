@@ -41,6 +41,34 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 	const SAMPLE_LIMIT = 50;
 
 	/**
+	 * Where each check's row keeps the accounts it names.
+	 *
+	 * ONE MAP, BECAUSE ONLY THE PRODUCER KNOWS
+	 *
+	 * `IdentityConflictQuery::grouped()` aliases whatever it grouped BY as
+	 * `subject`, so that key holds a user id in one check and a hash in the
+	 * other, and the half it aggregated away lands in `related` the other way
+	 * round. Nothing in a row says which it is -- and shape cannot decide it
+	 * either, since a 16-character hex prefix can be all digits and read as
+	 * numeric. This class is the one place that knows what the checks ARE, so
+	 * the answer lives here rather than being re-derived by every consumer.
+	 *
+	 * `should_be_linked` is absent deliberately: its rows are submissions with
+	 * NO user, which is the whole finding. An entry naming a key it does not
+	 * carry would annotate nothing while claiming to.
+	 *
+	 * @var array<string, string>
+	 */
+	public const ACCOUNTS_IN = array(
+		'orphan_links'                    => 'user_id',
+		'multiple_identities'             => 'user_id',
+		'shared_identities'               => 'related',
+		'cross_store_shared_identities'   => 'related',
+		'cross_store_multiple_identities' => 'subject',
+		'unindexed_links'                 => 'user_id',
+	);
+
+	/**
 	 * Lazily-built data access layer.
 	 *
 	 * @var SubmissionRepository|null
@@ -156,6 +184,8 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 			'unindexed_links'                 => $conflicts->unindexed_links( $limit ),
 		);
 
+		$checks = $this->with_account_facts( $checks );
+
 		$report = array(
 			'checks' => array(),
 			'total'  => 0,
@@ -172,6 +202,120 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 		}
 
 		return $report;
+	}
+
+	/**
+	 * Annotate every finding with what is true of the accounts it names.
+	 *
+	 * ONE PASS OVER ALL SEVEN CHECKS, NOT ONE PER CHECK
+	 *
+	 * The same account is named by several checks -- production's export had
+	 * 66 of the 73 multi-identifier findings duplicated between the
+	 * submissions-scoped check and the cross-store one -- so collecting the
+	 * ids across the whole report before asking is both fewer statements and
+	 * one consistent answer. Asking per check would let two rows about account
+	 * 9129 disagree if a user were deleted between them.
+	 *
+	 * `orphan_links` is the built-in control: its query already selects rows
+	 * whose `user_id` has no `wp_users` match, so every one of its findings
+	 * must come back `missing`. An `exists` there means this annotation is
+	 * reading the wrong rows, which is what `SubmissionLinkAuditorTest` pins.
+	 *
+	 * @param array<string, array<int, array<string, mixed>>> $checks Rows per check.
+	 * @return array<string, array<int, array<string, mixed>>>
+	 */
+	private function with_account_facts( array $checks ): array {
+		$wanted = array();
+
+		foreach ( $checks as $check => $rows ) {
+			foreach ( $rows as $row ) {
+				foreach ( self::accounts_named_by( (string) $check, (array) $row ) as $id ) {
+					$wanted[ $id ] = true;
+				}
+			}
+		}
+
+		if ( array() === $wanted ) {
+			return $checks;
+		}
+
+		$facts = $this->conflicts()->account_facts( array_keys( $wanted ) );
+
+		foreach ( $checks as $check => $rows ) {
+			foreach ( $rows as $index => $row ) {
+				$accounts = self::accounts_named_by( (string) $check, (array) $row );
+
+				if ( array() === $accounts ) {
+					continue;
+				}
+
+				$statuses = array();
+				$counts   = array();
+
+				foreach ( $accounts as $id ) {
+					$fact = $facts[ $id ] ?? array();
+
+					// An account the facts pass did not answer for stays
+					// `missing`, which is the same default `account_facts()`
+					// seeds: an absent answer must never read as a live
+					// account.
+					$statuses[] = $fact['status'] ?? IdentityConflictQuery::STATUS_MISSING;
+
+					$rows_for = $fact['rows'] ?? array();
+
+					$counts[] = (string) $id
+						. IdentityConflictQuery::ACCOUNT_ROWS_ASSIGN
+						. IdentityConflictQuery::format_account_rows( $rows_for );
+				}
+
+				$checks[ $check ][ $index ][ IdentityConflictQuery::COLUMN_ACCOUNT_STATUS ] = implode(
+					IdentityConflictQuery::RELATED_SEPARATOR,
+					$statuses
+				);
+				$checks[ $check ][ $index ][ IdentityConflictQuery::COLUMN_ACCOUNT_ROWS ]   = implode(
+					IdentityConflictQuery::RELATED_SEPARATOR,
+					$counts
+				);
+			}
+		}
+
+		return $checks;
+	}
+
+	/**
+	 * The accounts one finding names, in the order the report lists them.
+	 *
+	 * Order matters: the status and row-count columns are POSITIONAL against
+	 * `user_ids` in the export, so a set here would silently misalign them.
+	 *
+	 * @param string               $check Check key.
+	 * @param array<string, mixed> $row   One finding.
+	 * @return array<int, int>
+	 */
+	public static function accounts_named_by( string $check, array $row ): array {
+		$key = self::ACCOUNTS_IN[ $check ] ?? '';
+
+		if ( '' === $key || ! isset( $row[ $key ] ) ) {
+			return array();
+		}
+
+		$raw = $row[ $key ];
+
+		$values = is_string( $raw ) && false !== strpos( $raw, IdentityConflictQuery::RELATED_SEPARATOR )
+			? explode( IdentityConflictQuery::RELATED_SEPARATOR, $raw )
+			: array( $raw );
+
+		$out = array();
+
+		foreach ( $values as $value ) {
+			$id = is_numeric( $value ) ? (int) $value : 0;
+
+			if ( $id > 0 && ! in_array( $id, $out, true ) ) {
+				$out[] = $id;
+			}
+		}
+
+		return $out;
 	}
 
 	/**
