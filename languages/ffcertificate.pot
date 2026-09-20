@@ -21960,6 +21960,10 @@ msgstr ""
 msgid "Stores"
 msgstr ""
 
+#: includes/settings/views/ffc-tab-migrations.php:1063
+msgid "Last activity"
+msgstr ""
+
 #: includes/settings/views/ffc-tab-migrations.php:1057
 msgid "Reading"
 msgstr ""

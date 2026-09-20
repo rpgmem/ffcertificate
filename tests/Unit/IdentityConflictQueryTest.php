@@ -47,6 +47,13 @@ class IdentityConflictQueryTest extends TestCase {
 	 */
 	private array $without_ciphertext = array();
 
+	/**
+	 * Stores whose activity timestamp column the probe must not resolve.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $without_activity_column = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -84,9 +91,13 @@ class IdentityConflictQueryTest extends TestCase {
 				$sql = (string) $query;
 
 				if ( false !== strpos( $sql, 'SHOW COLUMNS' ) ) {
-					$absent = ( false !== strpos( $sql, '_encrypted' ) )
-						? $this->without_ciphertext
-						: $this->without_email;
+					if ( false !== strpos( $sql, '_encrypted' ) ) {
+						$absent = $this->without_ciphertext;
+					} elseif ( false !== strpos( $sql, 'email_hash' ) ) {
+						$absent = $this->without_email;
+					} else {
+						$absent = $this->without_activity_column;
+					}
 
 					foreach ( $absent as $table ) {
 						if ( false !== strpos( $sql, $table ) ) {
@@ -641,13 +652,36 @@ class IdentityConflictQueryTest extends TestCase {
 		// role here would be reported as deleted.
 		$this->assertSame( 0, $asked[0]['blog_id'] );
 
-		$this->assertCount( 1, $seen, 'The counts are one statement for the whole chunk.' );
-		$this->assertStringContainsString( 'UNION ALL', $seen[0] );
-		$this->assertStringContainsString( 'GROUP BY user_id', $seen[0] );
+		foreach ( $seen as $statement ) {
+			$this->assertStringContainsString( 'UNION ALL', $statement );
+			$this->assertStringContainsString( 'GROUP BY user_id', $statement );
+		}
+
 		$this->assertSame(
 			4,
-			substr_count( $seen[0], 'COUNT(*)' ),
+			substr_count( implode( ' ', $seen ), 'COUNT(*)' ),
 			'One counted branch per store the probe resolved.'
+		);
+		$this->assertSame(
+			4,
+			substr_count( implode( ' ', $seen ), 'MAX(' ),
+			'One activity branch per store whose timestamp column the probe resolved.'
+		);
+
+		// The INVARIANT, not the count: what must hold is that asking about
+		// more accounts does not issue more statements -- the questions are
+		// fixed and the accounts ride inside an `IN` list. Asserting "one
+		// statement" instead was a reading of how many questions there were
+		// at the time, and it went stale the moment #1346 added a second.
+		$before = count( $seen );
+		$seen   = array();
+
+		( new IdentityConflictQuery() )->account_facts( range( 1, 9 ) );
+
+		$this->assertSame(
+			$before,
+			count( $seen ),
+			'Three times the accounts must cost the same number of statements.'
 		);
 	}
 
@@ -929,6 +963,147 @@ class IdentityConflictQueryTest extends TestCase {
 		foreach ( $ciphertext_reads as $sql ) {
 			$this->assertStringNotContainsString( 'wp_ffc_user_profiles', $sql );
 		}
+	}
+
+	/**
+	 * Drive `account_facts()` with an existence answer and store rows.
+	 *
+	 * The two statements are told apart by what they select: the counting
+	 * union names `COUNT(*)`, the activity union names `MAX(`.
+	 *
+	 * @param array<int, int>                  $ids      Accounts to ask about.
+	 * @param array<int, array<string, mixed>> $counts   Rows for the counting union.
+	 * @param array<int, array<string, mixed>> $activity Rows for the activity union.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function facts_with_activity( array $ids, array $counts, array $activity ): array {
+		Functions\when( 'get_users' )->justReturn( $ids );
+
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $query ) use ( $counts, $activity ) {
+				$sql = (string) $query;
+
+				return ( false !== strpos( $sql, 'MAX(' ) ) ? $activity : $counts;
+			}
+		);
+
+		return ( new IdentityConflictQuery() )->account_facts( $ids );
+	}
+
+	/**
+	 * The latest date across every store is what the account reports.
+	 *
+	 * #1346 chooses the surviving account **by use, never by id**, so the
+	 * question is which account holds the person's records -- and that is the
+	 * most recent activity anywhere, not the most recent in whichever store
+	 * happens to be read first.
+	 */
+	public function test_the_account_reports_its_latest_activity_anywhere(): void {
+		Functions\when( 'wp_date' )->justReturn( '2024-01-05' );
+
+		$early = array( 'user_id' => 438, 'src' => 'wp_ffc_user_profiles', 'last_seen' => '2025-11-30 23:59:59' );
+		$late  = array( 'user_id' => 438, 'src' => 'wp_ffc_recruitment_candidate', 'last_seen' => '2026-03-02 09:00:00' );
+
+		// BOTH orders, and that is the whole point of the test. With the late
+		// row first, "keep the latest" and "keep the first" agree and a
+		// first-wins bug passes -- which is exactly what the mutation run
+		// caught here before this assertion existed.
+		$this->assertSame(
+			'2026-03-02',
+			$this->facts_with_activity( array( 438 ), array(), array( $late, $early ) )[438]['activity'],
+			'Latest first.'
+		);
+
+		$this->wpdb->mockery_verify();
+		$this->setUp();
+		Functions\when( 'wp_date' )->justReturn( '2024-01-05' );
+
+		$this->assertSame(
+			'2026-03-02',
+			$this->facts_with_activity( array( 438 ), array(), array( $early, $late ) )[438]['activity'],
+			'Latest last -- a first-wins reduction returns the earlier date here.'
+		);
+	}
+
+	/**
+	 * A unix instant is rendered through the site timezone, never sliced.
+	 *
+	 * `ffc_submissions.submission_date` is a Category A instant -- unix UTC
+	 * seconds -- while the other three stores hold housekeeping DATETIMEs the
+	 * site's own timezone already wrote. Treating the two the same is how a
+	 * comparison silently skews three stores against one.
+	 */
+	public function test_a_unix_store_is_rendered_through_the_site_timezone(): void {
+		$asked = array();
+		Functions\when( 'wp_date' )->alias(
+			function ( $format, $stamp ) use ( &$asked ) {
+				$asked[] = array( $format, $stamp );
+				return '2026-07-04';
+			}
+		);
+
+		$facts = $this->facts_with_activity(
+			array( 438 ),
+			array(),
+			array( array( 'user_id' => 438, 'src' => 'wp_ffc_submissions', 'last_seen' => '1782172800' ) )
+		);
+
+		$this->assertSame( '2026-07-04', $facts[438]['activity'] );
+		$this->assertSame( array( array( 'Y-m-d', 1782172800 ) ), $asked, 'The instant must reach wp_date() as an int.' );
+	}
+
+	/**
+	 * An account with nothing anywhere reports an empty date, not a fake one.
+	 */
+	public function test_an_account_with_no_activity_reports_nothing(): void {
+		$facts = $this->facts_with_activity( array( 438 ), array(), array() );
+
+		$this->assertSame( '', $facts[438]['activity'] );
+	}
+
+	/**
+	 * A zero DATETIME is not a date and must not be reported as one.
+	 */
+	public function test_a_zero_datetime_is_not_reported_as_a_date(): void {
+		$facts = $this->facts_with_activity(
+			array( 438 ),
+			array(),
+			array( array( 'user_id' => 438, 'src' => 'wp_ffc_user_profiles', 'last_seen' => '0000-00-00 00:00:00' ) )
+		);
+
+		$this->assertSame( '', $facts[438]['activity'] );
+	}
+
+	/**
+	 * A store whose timestamp column is absent is skipped, never fatal.
+	 *
+	 * The column each store is read on is a MAP and not a probe -- nothing in
+	 * a schema says which of an appointment's seven timestamps means "was
+	 * used" -- so the column it names is probed before being read, and a
+	 * store that lost it degrades to "no activity here".
+	 */
+	public function test_a_store_without_its_timestamp_column_is_skipped(): void {
+		$this->without_activity_column = array( 'wp_ffc_user_profiles' );
+
+		$seen = array();
+		Functions\when( 'get_users' )->justReturn( array( 438 ) );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $query ) use ( &$seen ) {
+				$sql = (string) $query;
+
+				if ( false !== strpos( $sql, 'MAX(' ) ) {
+					$seen[] = $sql;
+				}
+
+				return array();
+			}
+		);
+
+		( new IdentityConflictQuery() )->account_facts( array( 438 ) );
+
+		$this->assertNotEmpty( $seen, 'No activity statement ran at all, so this proves nothing.' );
+		$this->assertStringNotContainsString( 'wp_ffc_user_profiles', $seen[0] );
+		$this->assertSame( 3, substr_count( $seen[0], 'MAX(' ), 'The other three stores must still be read.' );
 	}
 
 }

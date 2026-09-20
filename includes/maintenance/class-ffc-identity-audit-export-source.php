@@ -180,6 +180,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 			'identifier_shape',
 			'account_status',
 			'account_rows',
+			'account_activity',
 			'account_urls',
 			'note',
 		);
@@ -375,6 +376,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 		// two would drift apart on a check nobody re-checked.
 		$status       = isset( $row[ IdentityConflictQuery::COLUMN_ACCOUNT_STATUS ] ) ? (string) $row[ IdentityConflictQuery::COLUMN_ACCOUNT_STATUS ] : '';
 		$account_rows = isset( $row[ IdentityConflictQuery::COLUMN_ACCOUNT_ROWS ] ) ? (string) $row[ IdentityConflictQuery::COLUMN_ACCOUNT_ROWS ] : '';
+		$account_seen = isset( $row[ IdentityConflictQuery::COLUMN_ACCOUNT_ACTIVITY ] ) ? (string) $row[ IdentityConflictQuery::COLUMN_ACCOUNT_ACTIVITY ] : '';
 		$urls         = $this->account_urls( $users, $status );
 
 		return array(
@@ -390,6 +392,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 			$shape,
 			$status,
 			$account_rows,
+			$account_seen,
 			implode( IdentityConflictQuery::RELATED_SEPARATOR, $urls ),
 			$short ? __( 'INCOMPLETE: the database truncated this row\'s list, so it names fewer values than the count beside it.', 'ffcertificate' ) : '',
 		);

@@ -22051,6 +22051,10 @@ msgstr "Contas"
 msgid "Stores"
 msgstr "Origens"
 
+#: includes/settings/views/ffc-tab-migrations.php:1063
+msgid "Last activity"
+msgstr "Última atividade"
+
 #: includes/settings/views/ffc-tab-migrations.php:1057
 msgid "Reading"
 msgstr "Leitura"

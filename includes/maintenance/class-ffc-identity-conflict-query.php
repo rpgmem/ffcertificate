@@ -369,6 +369,69 @@ class IdentityConflictQuery {
 	public const ACCOUNT_ROWS_COUNT = ':';
 
 	/**
+	 * The column saying WHEN each account a finding names was last used.
+	 *
+	 * Merging two accounts that share an identifier means choosing which one
+	 * survives, and #1346 is explicit that the choice is **by use, never by
+	 * id**: the newer account is typically the accidental duplicate, created
+	 * precisely because the resolver failed to match, while the older one
+	 * holds the history and the password the person knows.
+	 *
+	 * **It reports last ACTIVITY, not last login, and that is the stronger
+	 * signal rather than a substitute for a weaker one.** WordPress core does
+	 * not record a last login and neither does this plugin -- so no amount of
+	 * new instrumentation could answer it for the pairs that already exist,
+	 * which are historical. What the question actually asks is which account
+	 * holds the person's records, and a login that left no record does not
+	 * answer that while a submission does.
+	 *
+	 * Positional against `account_status` and `account_rows`, in the order the
+	 * finding names the accounts, so the three columns read across.
+	 *
+	 * @var string
+	 */
+	public const COLUMN_ACCOUNT_ACTIVITY = 'account_activity';
+
+	/**
+	 * Where each store records that something happened.
+	 *
+	 * A map and not a probe, unlike {@see self::stores()}, because nothing in
+	 * a schema says which of several timestamps means "was used" -- the
+	 * appointment table alone carries seven. The column each entry names is
+	 * still probed before it is read, so a store that loses it degrades to
+	 * "no activity here" instead of failing the whole audit.
+	 *
+	 * @var array<string, string>
+	 */
+	private const ACTIVITY_COLUMNS = array(
+		'ffc_submissions'                  => 'submission_date',
+		'ffc_self_scheduling_appointments' => 'created_at',
+		'ffc_recruitment_candidate'        => 'created_at',
+		'ffc_user_profiles'                => 'updated_at',
+	);
+
+	/**
+	 * The stores whose activity column is a unix instant rather than a DATETIME.
+	 *
+	 * **This split is the whole reason the comparison is not done in SQL.**
+	 * `submission_date` is a Category A instant -- unix UTC seconds, written
+	 * by `time()`. The other three are the housekeeping DATETIMEs that
+	 * `CLAUDE.md`'s date convention carves out, written through
+	 * `current_time( 'mysql' )` and therefore already in the SITE's timezone.
+	 *
+	 * `UNIX_TIMESTAMP()` would reinterpret those DATETIMEs in the MySQL
+	 * server's timezone, which is not necessarily WordPress's, so a single
+	 * `MAX()` across the union would silently skew three stores against one.
+	 * Both categories render to the same site-local calendar date, so the
+	 * comparison happens on `Y-m-d` strings instead: chronological, because
+	 * that format sorts lexicographically, and with no timezone arithmetic
+	 * anywhere.
+	 *
+	 * @var array<string, bool>
+	 */
+	private const ACTIVITY_UNIX_STORES = array( 'ffc_submissions' => true );
+
+	/**
 	 * What separates the values inside `related` and `stores`.
 	 *
 	 * Safe for both payloads by construction: a hex hash and a decimal id can
@@ -600,7 +663,7 @@ class IdentityConflictQuery {
 	 * as clean.
 	 *
 	 * @param array<int, mixed> $user_ids Accounts a finding names; non-positive values are dropped.
-	 * @return array<int, array{status: string, rows: array<string, int>}> Account id -> facts.
+	 * @return array<int, array{status: string, rows: array<string, int>, activity: string}> Account id -> facts.
 	 */
 	public function account_facts( array $user_ids ): array {
 		global $wpdb;
@@ -621,8 +684,9 @@ class IdentityConflictQuery {
 		$out = array();
 		foreach ( $ids as $id ) {
 			$out[ $id ] = array(
-				'status' => self::STATUS_MISSING,
-				'rows'   => array(),
+				'status'   => self::STATUS_MISSING,
+				'rows'     => array(),
+				'activity' => '',
 			);
 		}
 
@@ -647,6 +711,12 @@ class IdentityConflictQuery {
 
 		if ( array() === $stores ) {
 			return $out;
+		}
+
+		foreach ( $this->activity_per_account( $ids ) as $id => $date ) {
+			if ( isset( $out[ $id ] ) ) {
+				$out[ $id ]['activity'] = $date;
+			}
 		}
 
 		foreach ( array_chunk( $ids, self::USERS_PER_STATEMENT ) as $chunk ) {
@@ -681,6 +751,146 @@ class IdentityConflictQuery {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * The most recent calendar date each account was active on, anywhere.
+	 *
+	 * One `MAX()` per store, then the latest of those per account. The
+	 * comparison is on `Y-m-d` strings rather than on timestamps, for the
+	 * reason {@see self::ACTIVITY_UNIX_STORES} records: the stores disagree
+	 * about how a moment is stored, and only the rendered site-local date is
+	 * a like-for-like value across all four.
+	 *
+	 * A store missing its mapped column is skipped rather than fatal, and an
+	 * account with nothing anywhere is simply absent from the result -- which
+	 * {@see self::account_facts()} leaves as the empty string it seeded.
+	 *
+	 * @param array<int, int> $user_ids Accounts to ask about.
+	 * @return array<int, string> Account id -> `Y-m-d`.
+	 */
+	private function activity_per_account( array $user_ids ): array {
+		global $wpdb;
+
+		$out    = array();
+		$stores = $this->stores_with_activity();
+
+		if ( array() === $stores || array() === $user_ids ) {
+			return $out;
+		}
+
+		foreach ( array_chunk( $user_ids, self::USERS_PER_STATEMENT ) as $chunk ) {
+			$slots  = implode( ', ', array_fill( 0, count( $chunk ), '%d' ) );
+			$parts  = array();
+			$values = array();
+
+			foreach ( $stores as $table => $column ) {
+				$parts[]  = "SELECT user_id, %s AS src, MAX(%i) AS last_seen FROM %i WHERE user_id IN ({$slots}) GROUP BY user_id";
+				$values[] = (string) $table;
+				$values[] = $column;
+				$values[] = (string) $table;
+				foreach ( $chunk as $user_id ) {
+					$values[] = (int) $user_id;
+				}
+			}
+
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The fragment is this class's own literal, repeated once per table it resolved itself; `$slots` is `%d` placeholders counted off `$chunk`, never request data. These are the plugin's own `ffc_*` tables, and an audit read must reflect the live rows.
+			$rows = $wpdb->get_results( $wpdb->prepare( implode( ' UNION ALL ', $parts ), ...$values ), ARRAY_A );
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+			foreach ( (array) $rows as $row ) {
+				$row  = (array) $row;
+				$id   = isset( $row['user_id'] ) && is_numeric( $row['user_id'] ) ? (int) $row['user_id'] : 0;
+				$src  = isset( $row['src'] ) && is_string( $row['src'] ) ? $row['src'] : '';
+				$last = isset( $row['last_seen'] ) ? (string) $row['last_seen'] : '';
+				$date = self::activity_date( $src, $last );
+
+				// `Y-m-d` sorts lexicographically, so the later string is the
+				// later date and no parsing is needed to compare them.
+				if ( $id > 0 && '' !== $date && ( ! isset( $out[ $id ] ) || $date > $out[ $id ] ) ) {
+					$out[ $id ] = $date;
+				}
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * The stores whose activity column this install actually has.
+	 *
+	 * @return array<string, string> Prefixed table -> column.
+	 */
+	private function stores_with_activity(): array {
+		global $wpdb;
+
+		$out = array();
+
+		foreach ( $this->stores() as $table ) {
+			$column = '';
+
+			foreach ( self::ACTIVITY_COLUMNS as $suffix => $candidate ) {
+				if ( substr( $table, -strlen( $suffix ) ) === $suffix ) {
+					$column = $candidate;
+					break;
+				}
+			}
+
+			if ( '' === $column ) {
+				continue;
+			}
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema probe, as in `stores()`.
+			$found = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, $column ) );
+
+			if ( $column === $found ) {
+				$out[ $table ] = $column;
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * One store's stored value as the site-local calendar date it means.
+	 *
+	 * The two shapes are not interchangeable and the difference is not
+	 * cosmetic: a unix instant has to be rendered through the site timezone
+	 * to become a date, while a housekeeping DATETIME was written in that
+	 * timezone already and only needs its date half.
+	 *
+	 * `wp_date()` rather than `DateFormatter::format_date()` on purpose. This
+	 * is a machine column -- it is compared, sorted and filtered in a CSV --
+	 * so it needs the stable `Y-m-d` that the site's display format is not,
+	 * the same documented-reason carve-out `CLAUDE.md` grants an iCal
+	 * `DTSTAMP`. The screen shows the identical string, which is what keeps
+	 * the file and the table corroborating each other.
+	 *
+	 * @param string $table Prefixed table the value came from.
+	 * @param string $value Stored value, as the driver returned it.
+	 * @return string `Y-m-d`, or '' when there is nothing to report.
+	 */
+	private static function activity_date( string $table, string $value ): string {
+		if ( '' === $value ) {
+			return '';
+		}
+
+		foreach ( self::ACTIVITY_UNIX_STORES as $suffix => $is_unix ) {
+			if ( $is_unix && substr( $table, -strlen( $suffix ) ) === $suffix ) {
+				$stamp = (int) $value;
+
+				return ( $stamp > 0 && function_exists( 'wp_date' ) )
+					? (string) wp_date( 'Y-m-d', $stamp )
+					: '';
+			}
+		}
+
+		// A DATETIME the site's own timezone already wrote. Anything that is
+		// not one -- a zero date, a driver oddity -- reports nothing rather
+		// than a date nobody can trace back to a row.
+		return ( 1 === preg_match( '/^(\d{4}-\d{2}-\d{2})/', $value, $match ) && '0000-00-00' !== $match[1] )
+			? $match[1]
+			: '';
 	}
 
 	/**
