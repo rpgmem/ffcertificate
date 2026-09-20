@@ -42,6 +42,7 @@ class SubmissionLinkAuditorTest extends TestCase {
 		$this->conflicts->shouldReceive( 'shared_identities' )->andReturn( array() )->byDefault();
 		$this->conflicts->shouldReceive( 'multiple_identities' )->andReturn( array() )->byDefault();
 		$this->conflicts->shouldReceive( 'unindexed_links' )->andReturn( array() )->byDefault();
+		$this->conflicts->shouldReceive( 'rf_check_digit_failures' )->andReturn( array() )->byDefault();
 
 		// The account-facts pass runs over every check's rows, so it is part
 		// of `run()` now and not of any one check. Answering nothing by

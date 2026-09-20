@@ -35,6 +35,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Maintenance;
 
+use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Core\SensitiveFieldRegistry;
 
@@ -79,6 +80,106 @@ class IdentityConflictQuery {
 	 * @var string
 	 */
 	public const ALIAS_IDENTITY_COUNT = 'identity_count';
+
+	/**
+	 * The one entry of {@see self::COLUMNS} the check-digit scan reads.
+	 *
+	 * Named rather than indexed off that list, which is ordered for the
+	 * checks that walk BOTH columns: `self::COLUMNS[1]` would be a claim
+	 * about an order nothing asserts.
+	 *
+	 * @since 6.29.0
+	 * @var string
+	 */
+	private const COLUMN_RF_HASH = 'rf_hash';
+
+	/**
+	 * The count column `rf_check_digit_failures()` returns: how many stored
+	 * rows carry the value, across every store.
+	 *
+	 * @since 6.29.0
+	 * @var string
+	 */
+	public const ALIAS_ROW_COUNT = 'row_count';
+
+	/**
+	 * The column naming the rows to go and look at, as `store:id,id`.
+	 *
+	 * SELF-DESCRIBING RATHER THAN POSITIONAL, UNLIKE ITS NEIGHBOURS
+	 *
+	 * `account_status` and the columns beside it align positionally against
+	 * `user_ids`, which works because every account has exactly one of each
+	 * fact. Rows do not: one store can hold six and another one, so a
+	 * positional list would need padding nobody could read. Each chunk names
+	 * its own store instead.
+	 *
+	 * It exists because this is the one check whose finding may name NO
+	 * account at all -- an unpromoted candidacy has `user_id` NULL -- and
+	 * "which row" is then the only handle an operator has.
+	 *
+	 * @since 6.29.0
+	 * @var string
+	 */
+	public const COLUMN_ROW_IDS = 'row_ids';
+
+	/**
+	 * Whether the row-id list above is shorter than the row count beside it.
+	 *
+	 * @since 6.29.0
+	 * @var string
+	 */
+	public const COLUMN_ROW_IDS_TRUNCATED = 'row_ids_truncated';
+
+	/**
+	 * Whether the scan itself stopped at its cap rather than at the data.
+	 *
+	 * A cap that is reached must be REPORTED or a partial list reads as a
+	 * complete one -- the rule the identity audit's synchronous export was
+	 * argued from (#1295). Distinct from `truncated` on the check, which says
+	 * the FINDINGS were cut: this one says values went unexamined, so a
+	 * failure may exist that nothing here has looked at.
+	 *
+	 * It rides a row of ITS OWN rather than a column on the findings, and
+	 * {@see self::rf_check_digit_failures()} records why: a capped scan that
+	 * found nothing has no finding to carry a flag, and would report clean.
+	 *
+	 * @since 6.29.0
+	 * @var string
+	 */
+	public const COLUMN_SCAN_TRUNCATED = 'scan_truncated';
+
+	/**
+	 * How many distinct RFs one scan will decrypt.
+	 *
+	 * Bounded by DISTINCT values rather than by rows, which is what makes the
+	 * number generous: production carries 3,036 of them across roughly 23,000
+	 * rows, because `Encryption::encrypt()` uses a random IV and one hash
+	 * answers for every row sharing it.
+	 *
+	 * @since 6.29.0
+	 * @var int
+	 */
+	private const RF_SCAN_LIMIT = 20000;
+
+	/**
+	 * Separator between row ids of one store.
+	 *
+	 * Deliberately NOT {@see self::RELATED_SEPARATOR}: that one separates the
+	 * per-store chunks, and reusing it would make `submissions:1,2` and two
+	 * stores indistinguishable once joined.
+	 *
+	 * @since 6.29.0
+	 * @var string
+	 */
+	private const ROW_ID_SEPARATOR = ',';
+
+	/**
+	 * Separator between a store's name and its row ids.
+	 *
+	 * @since 6.29.0
+	 * @var string
+	 */
+	private const STORE_ID_SEPARATOR = ':';
 
 	/**
 	 * The column naming which stores an identifier was found in.
@@ -631,6 +732,236 @@ class IdentityConflictQuery {
 		}
 
 		return array_slice( $out, 0, $limit );
+	}
+
+	/**
+	 * Stored RFs whose seventh digit disagrees with their own first six.
+	 *
+	 * THE ONLY CHECK HERE THAT IS NOT ABOUT AN ACCOUNT
+	 *
+	 * Every other check groups rows by a person and reports an account that
+	 * has accumulated two identifiers. This one asks something narrower and
+	 * wider at once: is each stored RF internally consistent? Narrower,
+	 * because it judges one value on its own; wider, because a person who
+	 * mistyped their RF **once, on their only submission** is invisible to
+	 * every other check by construction and visible to this one. Measured on
+	 * production the difference is 16 ambiguous RF findings against roughly
+	 * 79 wrong values (#1345).
+	 *
+	 * IT DELIBERATELY DOES NOT FILTER ON `user_id`, AND THAT IS THE POINT
+	 *
+	 * {@see self::pairs()} carries `user_id IS NOT NULL AND user_id <> 0`,
+	 * correctly, because the checks built on it ask about accounts. Here that
+	 * filter would drop exactly the population most likely to be wrong: a
+	 * recruitment candidacy is not linked to a WP user until promotion, and
+	 * that store holds thousands of rows against the appointment store's one.
+	 * So the scan reads unlinked rows too, and a finding with no account is
+	 * ordinary rather than a defect -- which is why it carries row ids.
+	 *
+	 * WHY THIS CANNOT BE SQL
+	 *
+	 * The RF is encrypted at rest, so the check digit is unreadable to the
+	 * database. Each distinct value is decrypted through {@see self::decrypt()},
+	 * the same seam the shape verdict uses, and nothing but a verdict leaves
+	 * this method. Cost is bounded by DISTINCT hashes rather than by rows:
+	 * `Encryption::encrypt()` uses a random IV, so a value submitted four
+	 * hundred times has four hundred ciphertexts and one hash, and one
+	 * decryption answers for all of them.
+	 *
+	 * @since 6.29.0
+	 * @param int $limit Sample size.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function rf_check_digit_failures( int $limit = 50 ): array {
+		global $wpdb;
+
+		$limit  = max( 1, $limit );
+		$column = self::COLUMN_RF_HASH;
+		$cipher = self::ciphertext_column_of( $column );
+		$stores = $this->stores_for_rf_scan( $cipher );
+		$out    = array();
+
+		if ( array() === $stores || '' === $cipher ) {
+			return $out;
+		}
+
+		$parts  = array();
+		$values = array();
+
+		foreach ( $stores as $table ) {
+			$parts[] = "SELECT %i AS h, MIN(%i) AS c, %s AS src, COUNT(*) AS n,
+                               GROUP_CONCAT(DISTINCT user_id ORDER BY user_id SEPARATOR '" . self::RELATED_SEPARATOR . "') AS users,
+                               GROUP_CONCAT(id ORDER BY id SEPARATOR '" . self::ROW_ID_SEPARATOR . "') AS ids
+                          FROM %i
+                         WHERE %i IS NOT NULL AND %i <> '' AND %i IS NOT NULL AND %i <> ''
+                      GROUP BY %i";
+
+			$values[] = $column;
+			$values[] = $cipher;
+			$values[] = $this->label( $table );
+			$values[] = $table;
+			$values[] = $column;
+			$values[] = $column;
+			$values[] = $cipher;
+			$values[] = $cipher;
+			$values[] = $column;
+		}
+
+		$union = implode( ' UNION ALL ', $parts );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The union is this method's own literal, repeated once per table it resolved by probing the live schema; every identifier travels as a placeholder and none of it is request data. An audit read must reflect the live rows, never a cache.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT p.h AS subject, MIN(p.c) AS c, SUM(p.n) AS ' . self::ALIAS_ROW_COUNT . ",
+                        GROUP_CONCAT(DISTINCT p.src ORDER BY p.src SEPARATOR '" . self::RELATED_SEPARATOR . "') AS stores,
+                        GROUP_CONCAT(p.users SEPARATOR '" . self::RELATED_SEPARATOR . "') AS related,
+                        GROUP_CONCAT(CONCAT(p.src, '" . self::STORE_ID_SEPARATOR . "', p.ids) ORDER BY p.src SEPARATOR '" . self::RELATED_SEPARATOR . "') AS " . self::COLUMN_ROW_IDS . ",
+                        %s AS identifier_column
+                   FROM ({$union}) AS p
+               GROUP BY p.h
+               ORDER BY p.h ASC
+                  LIMIT %d",
+				...array_merge( $values, array( $column, self::RF_SCAN_LIMIT ) )
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		$rows    = (array) $rows;
+		$scanned = count( $rows );
+
+		foreach ( $rows as $row ) {
+			$row    = (array) $row;
+			$stored = isset( $row['c'] ) && is_string( $row['c'] ) ? $row['c'] : '';
+			$plain  = '' === $stored ? null : $this->decrypt( $stored );
+
+			// A value that cannot be read is NOT a failure. The mirror of
+			// `SHAPE_NOT_DECRYPTABLE`, and for its reason: not having read a
+			// value is not evidence that it is wrong, and this finding's
+			// action is to contact a person about their own number.
+			if ( ! is_string( $plain ) || DocumentFormatter::rf_check_digit_matches( $plain ) ) {
+				continue;
+			}
+
+			unset( $row['c'] );
+
+			$row[ self::COLUMN_RELATED ] = self::unique_related( $row[ self::COLUMN_RELATED ] ?? '' );
+
+			$out[] = self::flag_truncated_row_ids( $row );
+
+			if ( count( $out ) >= $limit ) {
+				break;
+			}
+		}
+
+		// A ROW OF ITS OWN, NEVER A COLUMN ON THE FINDINGS
+		//
+		// The obvious shape is a flag beside each failure, and it has a hole
+		// that only appeared when a test tried to reach it: a scan that stops
+		// at its cap having found nothing emits no findings, so a flag riding
+		// on them says nothing and the report reads CLEAN while values went
+		// unexamined. That is the exact failure `#1295` argues against. As its
+		// own row the signal does not depend on a failure existing, and it is
+		// counted as a finding because it is one -- there is something for an
+		// operator to do about it.
+		if ( $scanned >= self::RF_SCAN_LIMIT ) {
+			$out[] = array(
+				'identifier_column'         => $column,
+				self::COLUMN_STORES         => implode( self::RELATED_SEPARATOR, array_map( array( $this, 'label' ), $stores ) ),
+				self::COLUMN_SCAN_TRUNCATED => true,
+			);
+		}
+
+		return $out;
+	}
+
+	/**
+	 * The stores this scan can read an RF out of.
+	 *
+	 * Three columns are required and each exclusion is structural rather than
+	 * incidental. `rf_hash` is what groups the value; `rf_encrypted` is the
+	 * only way to see the digits at all, which is why `ffc_user_profiles` --
+	 * the identity index, hashes and nothing else -- can never be scanned;
+	 * and `id` is what a finding without an account has instead of one.
+	 *
+	 * Probed, never listed, for the reason {@see self::stores()} probes: a
+	 * list would be a claim about a schema this class does not own.
+	 *
+	 * @since 6.29.0
+	 * @param string $cipher_column Ciphertext column to require.
+	 * @return list<string>
+	 */
+	private function stores_for_rf_scan( string $cipher_column ): array {
+		global $wpdb;
+
+		$out = array();
+
+		foreach ( $this->stores_with_ciphertext( $cipher_column ) as $table ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema probe, as in `stores_with_ciphertext()`: the answer must reflect the live schema, so a cached one would be precisely wrong.
+			if ( 'id' === $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, 'id' ) ) ) {
+				$out[] = $table;
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Collapse the per-store account lists into one, without repeats.
+	 *
+	 * The outer `GROUP_CONCAT` joins each store's own list, so a person whose
+	 * account carries the RF in two stores is named twice. `DISTINCT` cannot
+	 * do it there -- it would deduplicate the LISTS, not the ids inside them.
+	 *
+	 * @since 6.29.0
+	 * @param mixed $related Joined account ids, as the statement returned them.
+	 * @return string
+	 */
+	private static function unique_related( $related ): string {
+		if ( ! is_string( $related ) || '' === $related ) {
+			return '';
+		}
+
+		$ids = array_filter(
+			array_unique( explode( self::RELATED_SEPARATOR, $related ) ),
+			static fn( $id ) => '' !== $id
+		);
+
+		sort( $ids, SORT_NUMERIC );
+
+		return implode( self::RELATED_SEPARATOR, $ids );
+	}
+
+	/**
+	 * Mark a finding whose row-id list is shorter than its own row count.
+	 *
+	 * `GROUP_CONCAT` truncates at `group_concat_max_len` in silence while
+	 * `COUNT(*)` does not, so their disagreement is the only signal that
+	 * exists -- the same reasoning as {@see self::flag_truncated_list()}, over
+	 * a different pair of columns. A partial list of rows to go and fix reads
+	 * exactly like a complete one otherwise.
+	 *
+	 * @since 6.29.0
+	 * @param array<string, mixed> $row One finding.
+	 * @return array<string, mixed>
+	 */
+	private static function flag_truncated_row_ids( array $row ): array {
+		$joined = $row[ self::COLUMN_ROW_IDS ] ?? '';
+		$listed = 0;
+
+		if ( is_string( $joined ) && '' !== $joined ) {
+			foreach ( explode( self::RELATED_SEPARATOR, $joined ) as $chunk ) {
+				$ids     = strstr( $chunk, self::STORE_ID_SEPARATOR );
+				$listed += ( false === $ids ) ? 0 : count( explode( self::ROW_ID_SEPARATOR, substr( $ids, 1 ) ) );
+			}
+		}
+
+		$total   = $row[ self::ALIAS_ROW_COUNT ] ?? 0;
+		$counted = is_numeric( $total ) ? (int) $total : 0;
+
+		$row[ self::COLUMN_ROW_IDS_TRUNCATED ] = ( $listed !== $counted );
+
+		return $row;
 	}
 
 	/**
