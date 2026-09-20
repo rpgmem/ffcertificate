@@ -16860,6 +16860,10 @@ msgstr "Sinais coletados"
 msgid "Signature with fixed height, proportional width"
 msgstr "Assinatura com altura fixa e largura proporcional."
 
+#: includes/settings/views/documentation/developer-hooks-api.php
+msgid "After a person is resolved to a WordPress user, so a module can claim its own records that carry the same CPF/RF hash and no user yet — args ( cpf_hash, rf_hash, user_id ). Submissions and appointments are adopted directly; recruitment candidacies subscribe to this."
+msgstr "Depois que uma pessoa é resolvida para um usuário do WordPress, para que um módulo possa reivindicar seus próprios registros que carregam o mesmo hash de CPF/RF e ainda não têm usuário — argumentos ( cpf_hash, rf_hash, user_id ). Submissões e agendamentos são adotados diretamente; candidaturas de recrutamento assinam este gancho."
+
 #: includes/settings/views/documentation/developer-hooks-api.php:66
 msgid "Signatures vary — check the source for the exact argument list before hooking."
 msgstr "As assinaturas variam — verifique a fonte para obter a lista exata de argumentos antes de realizar o *hooking*."

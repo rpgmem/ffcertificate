@@ -62,6 +62,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><code>ffcertificate_audience_booking_created</code> / <code>ffcertificate_audience_booking_cancelled</code></td><td><?php esc_html_e( 'Audience booking lifecycle ( booking_id ).', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_before_short_redirect</code></td><td><?php esc_html_e( 'Before a short-URL redirect is sent.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffc_export_completed</code></td><td><?php esc_html_e( 'After a CSV export finishes ( renamed from ffcertificate_csv_export_completed in 6.17.0 ).', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffc_adopt_orphaned_identity_records</code></td><td><?php esc_html_e( 'After a person is resolved to a WordPress user, so a module can claim its own records that carry the same CPF/RF hash and no user yet — args ( cpf_hash, rf_hash, user_id ). Submissions and appointments are adopted directly; recruitment candidacies subscribe to this.', 'ffcertificate' ); ?></td></tr>
 			</tbody>
 		</table>
 		<p class="description"><?php esc_html_e( 'Signatures vary — check the source for the exact argument list before hooking.', 'ffcertificate' ); ?></p>

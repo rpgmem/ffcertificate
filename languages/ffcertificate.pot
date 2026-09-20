@@ -16802,6 +16802,10 @@ msgstr ""
 msgid "Signature with fixed height, proportional width"
 msgstr ""
 
+#: includes/settings/views/documentation/developer-hooks-api.php
+msgid "After a person is resolved to a WordPress user, so a module can claim its own records that carry the same CPF/RF hash and no user yet — args ( cpf_hash, rf_hash, user_id ). Submissions and appointments are adopted directly; recruitment candidacies subscribe to this."
+msgstr ""
+
 #: includes/settings/views/documentation/developer-hooks-api.php:66
 msgid "Signatures vary — check the source for the exact argument list before hooking."
 msgstr ""

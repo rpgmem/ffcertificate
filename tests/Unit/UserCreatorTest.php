@@ -219,6 +219,45 @@ class UserCreatorTest extends TestCase {
 		$this->assertSame( array(), $this->deprecations, 'The replacement warns too, so every submission would emit a notice under WP_DEBUG.' );
 	}
 
+	/**
+	 * Resolving a person announces it, so other modules can claim their own
+	 * unlinked records.
+	 *
+	 * This class adopts submissions and appointments directly, because both
+	 * live in `Repositories`. A candidacy does not: its writer is in the
+	 * recruitment module, which already depends on THIS one, so calling it
+	 * from here would close a cycle. The action inverts that, and it is the
+	 * only thing on this side of the boundary a test can observe (#1345).
+	 */
+	public function test_resolving_a_person_announces_it_for_adoption(): void {
+		$fired = array();
+		Functions\when( 'do_action' )->alias(
+			function ( $hook, ...$args ) use ( &$fired ) {
+				$fired[] = array( $hook, $args );
+			}
+		);
+
+		$GLOBALS['wpdb']->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$GLOBALS['wpdb']->shouldReceive( 'get_var' )->andReturn( 5 );
+		$GLOBALS['wpdb']->shouldReceive( 'query' )->andReturn( 0 );
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'get_user_by' )->justReturn( false );
+
+		UserCreator::get_or_create_user_dual( 'cpfhash', 'rfhash', 'test@example.com', array() );
+
+		$adoption = array_values(
+			array_filter(
+				$fired,
+				static function ( $call ) {
+					return 'ffc_adopt_orphaned_identity_records' === $call[0];
+				}
+			)
+		);
+
+		$this->assertCount( 1, $adoption, 'Nothing announced the resolution, so a candidacy stays orphaned with nothing to claim it.' );
+		$this->assertSame( array( 'cpfhash', 'rfhash', 5 ), $adoption[0][1], 'Both hashes and the resolved user travel with it.' );
+	}
+
 	// get_or_create_user() — step 1: existing user_id found via CPF hash
 	// ------------------------------------------------------------------
 
