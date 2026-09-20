@@ -804,10 +804,18 @@ class IdentityConflictQuery {
 			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 			foreach ( (array) $rows as $row ) {
-				$row  = (array) $row;
-				$id   = isset( $row['user_id'] ) && is_numeric( $row['user_id'] ) ? (int) $row['user_id'] : 0;
-				$src  = isset( $row['src'] ) && is_string( $row['src'] ) ? $row['src'] : '';
-				$last = isset( $row['last_seen'] ) ? (string) $row['last_seen'] : '';
+				$row = (array) $row;
+				$id  = isset( $row['user_id'] ) && is_numeric( $row['user_id'] ) ? (int) $row['user_id'] : 0;
+				$src = isset( $row['src'] ) && is_string( $row['src'] ) ? $row['src'] : '';
+				// Two arms where its siblings need one, and the reason is the
+				// union itself: `MAX()` over a bigint branch and a DATETIME branch
+				// can come back as either, depending on the driver. What must not
+				// happen is casting the `mixed` a row offset yields without
+				// establishing its type first -- which is what the level-9 gate
+				// caught here, and what every other read in this class already does.
+				$last = ( isset( $row['last_seen'] ) && ( is_string( $row['last_seen'] ) || is_int( $row['last_seen'] ) ) )
+					? (string) $row['last_seen']
+					: '';
 				$date = self::activity_date( $src, $last );
 
 				// `Y-m-d` sorts lexicographically, so the later string is the
