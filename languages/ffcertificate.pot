@@ -12828,6 +12828,10 @@ msgstr ""
 msgid "Opt in (off by default) to log where the legacy and secure IP strategies diverge, to validate a switch before flipping."
 msgstr ""
 
+#: includes/settings/views/documentation/developer-hooks-api.php:42
+msgid "Opt in (off by default) to make validate_rf() also require the RF check digit, rejecting a mistyped number at the form instead of storing it."
+msgstr ""
+
 #: includes/settings/views/documentation/reference-shortcodes.php:46 includes/settings/views/documentation/reference-shortcodes.php:79
 msgid "Optional attribute:"
 msgstr ""
