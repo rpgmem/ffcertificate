@@ -251,6 +251,7 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 
 				$statuses = array();
 				$counts   = array();
+				$activity = array();
 
 				foreach ( $accounts as $id ) {
 					$fact = $facts[ $id ] ?? array();
@@ -266,15 +267,27 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 					$counts[] = (string) $id
 						. IdentityConflictQuery::ACCOUNT_ROWS_ASSIGN
 						. IdentityConflictQuery::format_account_rows( $rows_for );
+
+					// An account with no activity anywhere reports an empty
+					// value in its own position rather than dropping out of
+					// the list, which is what keeps the three columns reading
+					// across against the same account.
+					$activity[] = (string) $id
+						. IdentityConflictQuery::ACCOUNT_ROWS_ASSIGN
+						. (string) ( $fact['activity'] ?? '' );
 				}
 
-				$checks[ $check ][ $index ][ IdentityConflictQuery::COLUMN_ACCOUNT_STATUS ] = implode(
+				$checks[ $check ][ $index ][ IdentityConflictQuery::COLUMN_ACCOUNT_STATUS ]   = implode(
 					IdentityConflictQuery::RELATED_SEPARATOR,
 					$statuses
 				);
-				$checks[ $check ][ $index ][ IdentityConflictQuery::COLUMN_ACCOUNT_ROWS ]   = implode(
+				$checks[ $check ][ $index ][ IdentityConflictQuery::COLUMN_ACCOUNT_ROWS ]     = implode(
 					IdentityConflictQuery::RELATED_SEPARATOR,
 					$counts
+				);
+				$checks[ $check ][ $index ][ IdentityConflictQuery::COLUMN_ACCOUNT_ACTIVITY ] = implode(
+					IdentityConflictQuery::RELATED_SEPARATOR,
+					$activity
 				);
 			}
 		}

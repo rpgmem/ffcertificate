@@ -399,6 +399,43 @@ class IdentityAuditExportSourceTest extends TestCase {
 	}
 
 	/**
+	 * When each account was last used travels positionally, beside its id.
+	 *
+	 * #1346 chooses the surviving account by use and never by id, so the
+	 * evidence has to line up with the accounts the finding names -- a date
+	 * that could belong to either one decides nothing.
+	 */
+	public function test_the_account_activity_lines_up_with_the_ids(): void {
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'cross_store_shared_identities' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array(
+							array(
+								'subject' => 'abc123',
+								IdentityConflictQuery::ALIAS_USER_COUNT => 2,
+								IdentityConflictQuery::COLUMN_RELATED => '438|5537',
+								IdentityConflictQuery::COLUMN_ACCOUNT_ACTIVITY => '438=2026-03-02|5537=2019-08-14',
+								'identifier_column' => 'cpf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$row = $this->rows( $source )[0];
+
+		$this->assertSame( '438=2026-03-02|5537=2019-08-14', $row['account_activity'] );
+		$this->assertStringContainsString( '438', (string) $row['user_ids'] );
+		$this->assertStringContainsString( '5537', (string) $row['user_ids'] );
+	}
+
+	/**
 	 * How the two identifiers differ travels to its own column too.
 	 *
 	 * Beside `email_verdict` and not inside it, because they answer different

@@ -1027,6 +1027,9 @@ try {
 								'rows'     => isset( $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_ACCOUNT_ROWS ] )
 									? explode( \FreeFormCertificate\Maintenance\IdentityConflictQuery::RELATED_SEPARATOR, (string) $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_ACCOUNT_ROWS ] )
 									: array(),
+								'seen'     => isset( $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_ACCOUNT_ACTIVITY ] )
+									? explode( \FreeFormCertificate\Maintenance\IdentityConflictQuery::RELATED_SEPARATOR, (string) $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_ACCOUNT_ACTIVITY ] )
+									: array(),
 								'verdict'  => isset( $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_EMAIL_VERDICT ] )
 									? (string) $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_EMAIL_VERDICT ]
 									: '',
@@ -1057,6 +1060,7 @@ try {
 										<th scope="col"><?php esc_html_e( 'Check', 'ffcertificate' ); ?></th>
 										<th scope="col"><?php esc_html_e( 'Accounts', 'ffcertificate' ); ?></th>
 										<th scope="col"><?php esc_html_e( 'Stores', 'ffcertificate' ); ?></th>
+										<th scope="col"><?php esc_html_e( 'Last activity', 'ffcertificate' ); ?></th>
 										<th scope="col"><?php esc_html_e( 'Reading', 'ffcertificate' ); ?></th>
 										<th scope="col"><?php esc_html_e( 'Difference', 'ffcertificate' ); ?></th>
 									</tr>
@@ -1091,6 +1095,11 @@ try {
 											<?php endforeach; ?>
 										</td>
 										<td><?php echo esc_html( $ffcertificate_sa_find['stores'] ); ?></td>
+										<td>
+											<?php foreach ( $ffcertificate_sa_find['seen'] as $ffcertificate_sa_when ) : ?>
+												<div><?php echo esc_html( $ffcertificate_sa_when ); ?></div>
+											<?php endforeach; ?>
+										</td>
 										<td><?php echo esc_html( $ffcertificate_sa_find['verdict'] ); ?></td>
 										<td><?php echo esc_html( $ffcertificate_sa_find['shape'] ); ?></td>
 									</tr>
