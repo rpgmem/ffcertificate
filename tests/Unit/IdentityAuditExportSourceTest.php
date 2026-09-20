@@ -125,12 +125,12 @@ class IdentityAuditExportSourceTest extends TestCase {
 
 		$rows = $this->rows( $source );
 
-		$this->assertSame( '', $rows[0]['user_id'], 'A shared-identity row groups by HASH; its subject is not a user id.' );
-		$this->assertSame( substr( $hash, 0, IdentityAuditExportSource::HASH_PREFIX_CHARS ), $rows[0]['identifier_hash_prefix'] );
+		$this->assertSame( '', $rows[0]['user_ids'], 'A shared-identity row groups by HASH; its subject is not a user id.' );
+		$this->assertSame( substr( $hash, 0, IdentityAuditExportSource::HASH_PREFIX_CHARS ), $rows[0]['identifier_hash_prefixes'] );
 		$this->assertSame( '2', $rows[0]['related_count'] );
 
-		$this->assertSame( '77', $rows[1]['user_id'], 'A multiple-identity row groups by USER; its subject is the user id.' );
-		$this->assertSame( '', $rows[1]['identifier_hash_prefix'] );
+		$this->assertSame( '77', $rows[1]['user_ids'], 'A multiple-identity row groups by USER; its subject is the user id.' );
+		$this->assertSame( '', $rows[1]['identifier_hash_prefixes'] );
 		$this->assertSame( '3', $rows[1]['related_count'] );
 	}
 
@@ -153,10 +153,331 @@ class IdentityAuditExportSourceTest extends TestCase {
 			)
 		);
 
-		$prefix = $this->rows( $source )[0]['identifier_hash_prefix'];
+		$prefix = $this->rows( $source )[0]['identifier_hash_prefixes'];
 
 		$this->assertSame( IdentityAuditExportSource::HASH_PREFIX_CHARS, strlen( $prefix ) );
 		$this->assertNotSame( $hash, $prefix, 'The full hash must not reach the file.' );
+	}
+
+	/**
+	 * A shared row names the accounts that share the identifier.
+	 *
+	 * The finding said an RF belongs to two accounts and withheld which two,
+	 * so a merge had nowhere to start. Measured on the production export of
+	 * 2026-09-19: all 13 shared rows carried an empty account column (#1344).
+	 */
+	public function test_a_shared_row_names_the_accounts(): void {
+		$seen   = array();
+		$source = new IdentityAuditExportSource(
+			$this->auditor(
+				array(
+					'cross_store_shared_identities' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array(
+							array(
+								'subject'                                => str_repeat( 'a', 64 ),
+								IdentityConflictQuery::ALIAS_USER_COUNT  => 2,
+								IdentityConflictQuery::COLUMN_RELATED    => '85|107',
+								'identifier_column'                      => 'cpf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$this->assertSame( '85|107', $this->rows( $source )[0]['user_ids'] );
+	}
+
+	/**
+	 * A multiple row names the identifiers the account holds — truncated.
+	 *
+	 * The mirror gap: the row said an account holds eleven RFs and named none
+	 * of them, so there was nothing to choose between. The values are hashes,
+	 * so each one is cut to the grouping prefix on the way out — the export's
+	 * standing rule, which a LIST must not quietly escape.
+	 */
+	public function test_a_multiple_row_names_the_identifiers_and_prefixes_each(): void {
+		$seen   = array();
+		$first  = str_repeat( 'a', 64 );
+		$second = str_repeat( 'b', 64 );
+		$source = new IdentityAuditExportSource(
+			$this->auditor(
+				array(
+					'cross_store_multiple_identities' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array(
+							array(
+								'subject'                                   => 438,
+								IdentityConflictQuery::ALIAS_IDENTITY_COUNT => 2,
+								IdentityConflictQuery::COLUMN_RELATED       => $first . '|' . $second,
+								'identifier_column'                         => 'rf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$row  = $this->rows( $source )[0];
+		$cut  = IdentityAuditExportSource::HASH_PREFIX_CHARS;
+		$want = substr( $first, 0, $cut ) . '|' . substr( $second, 0, $cut );
+
+		$this->assertSame( '438', $row['user_ids'] );
+		$this->assertSame( $want, $row['identifier_hash_prefixes'] );
+		$this->assertStringNotContainsString( $first, $row['identifier_hash_prefixes'], 'No full hash reaches the file, in a list either.' );
+	}
+
+	/**
+	 * A row with no list names one value, not one blank one.
+	 *
+	 * `explode()` on an empty string returns a one-element array holding the
+	 * empty string, so a naive split would make every listless row report a
+	 * value it does not have.
+	 */
+	public function test_a_row_without_a_list_stays_empty(): void {
+		$seen   = array();
+		$source = new IdentityAuditExportSource(
+			$this->auditor(
+				array(
+					'unindexed_links' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array( array( 'user_id' => 12, 'identifier_column' => 'rf_hash', 'stores' => 'submissions' ) ),
+					),
+				),
+				$seen
+			)
+		);
+
+		$row = $this->rows( $source )[0];
+
+		$this->assertSame( '12', $row['user_ids'] );
+		$this->assertSame( '', $row['identifier_hash_prefixes'] );
+	}
+
+	/**
+	 * A truncated list is declared in the row, never printed short.
+	 *
+	 * The export already refuses to let its own row cap pass silently; a
+	 * `GROUP_CONCAT` that dropped its tail is the same defect one level down,
+	 * and the note is where an operator sees it (#1344).
+	 */
+	public function test_a_truncated_list_is_declared_in_the_note(): void {
+		$seen   = array();
+		$source = new IdentityAuditExportSource(
+			$this->auditor(
+				array(
+					'cross_store_multiple_identities' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array(
+							array(
+								'subject'                                      => 438,
+								IdentityConflictQuery::ALIAS_IDENTITY_COUNT    => 11,
+								IdentityConflictQuery::COLUMN_RELATED          => 'aaaa|bbbb',
+								IdentityConflictQuery::COLUMN_RELATED_TRUNCATED => true,
+								'identifier_column'                            => 'rf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$this->assertStringContainsString( 'INCOMPLETE', $this->rows( $source )[0]['note'] );
+	}
+
+	/**
+	 * The two-count check lists the column it decided to report.
+	 *
+	 * It carries one list per column, so a row that picked `cpf_hash` by count
+	 * and then printed the RF list would name one column and list the other's
+	 * — worse than the blank column it replaces, because it looks answered.
+	 */
+	public function test_the_two_count_check_lists_the_column_it_picked(): void {
+		$seen   = array();
+		$source = new IdentityAuditExportSource(
+			$this->auditor(
+				array(
+					'multiple_identities' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array(
+							array(
+								'user_id'     => 5,
+								'cpf_count'   => 1,
+								'rf_count'    => 3,
+								'cpf_related' => str_repeat( 'c', 64 ),
+								'rf_related'  => str_repeat( 'r', 64 ),
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$row = $this->rows( $source )[0];
+
+		$this->assertSame( 'rf_hash', $row['identifier_column'] );
+		$this->assertSame( str_repeat( 'r', IdentityAuditExportSource::HASH_PREFIX_CHARS ), $row['identifier_hash_prefixes'] );
+	}
+
+	/**
+	 * What the addresses said about the account travels to its own column.
+	 *
+	 * A machine value rather than prose, so an operator can filter the file by
+	 * it — which is how the measurement this issue asks for gets taken at all
+	 * (#1345).
+	 */
+	public function test_the_email_verdict_travels_to_its_own_column(): void {
+		$seen   = array();
+		$source = new IdentityAuditExportSource(
+			$this->auditor(
+				array(
+					'cross_store_multiple_identities' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array(
+							array(
+								'subject' => 438,
+								IdentityConflictQuery::ALIAS_IDENTITY_COUNT => 2,
+								IdentityConflictQuery::COLUMN_EMAIL_VERDICT => IdentityConflictQuery::VERDICT_DISTINCT_EMAILS,
+								'identifier_column' => 'rf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$this->assertSame(
+			IdentityConflictQuery::VERDICT_DISTINCT_EMAILS,
+			$this->rows( $source )[0]['email_verdict']
+		);
+	}
+
+	/**
+	 * A check that cannot have a verdict leaves the column empty, not absent.
+	 *
+	 * A row narrower than the header is a broken CSV, so "no verdict" has to
+	 * be an empty cell rather than a missing one.
+	 */
+	public function test_a_check_without_a_verdict_leaves_the_column_empty(): void {
+		$seen   = array();
+		$source = new IdentityAuditExportSource(
+			$this->auditor(
+				array(
+					'cross_store_shared_identities' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array(
+							array(
+								'subject' => str_repeat( 'a', 64 ),
+								IdentityConflictQuery::ALIAS_USER_COUNT => 2,
+								'identifier_column' => 'cpf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$row = $this->rows( $source )[0];
+
+		$this->assertArrayHasKey( 'email_verdict', $row );
+		$this->assertSame( '', $row['email_verdict'] );
+	}
+
+	/**
+	 * EVERY row is exactly as wide as the header.
+	 *
+	 * `note_row()` exists because a row whose width drifts from the header is
+	 * a broken CSV and hand-counting empty strings is how that drift happens —
+	 * and the one row that was hand-counted, the tool-unavailable fallback,
+	 * was ALREADY one column short before #1345 widened the header. It went
+	 * through `note_row()` with this test, so the next column added cannot
+	 * reintroduce it.
+	 *
+	 * `array_combine()` in `rows()` would itself fail on a mismatch, so this
+	 * asserts the width directly on the raw rows instead.
+	 */
+	public function test_every_row_is_as_wide_as_the_header(): void {
+		$seen   = array();
+		$source = new IdentityAuditExportSource(
+			$this->auditor(
+				array(
+					'cross_store_multiple_identities' => array(
+						'count'     => 1,
+						'truncated' => true,
+						'rows'      => array(
+							array(
+								'subject' => 438,
+								IdentityConflictQuery::ALIAS_IDENTITY_COUNT => 2,
+								'identifier_column' => 'rf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$width = count( $source->header() );
+		$rows  = iterator_to_array( ( function () use ( $source ) {
+			yield from $source->rows();
+		} )() );
+
+		// A data row and the cap's note row, so the assertion covers both shapes.
+		$this->assertCount( 2, $rows, 'Expected one finding plus the truncation note.' );
+
+		foreach ( $rows as $index => $row ) {
+			$this->assertCount( $width, $row, "Row {$index} is not as wide as the header." );
+		}
+	}
+
+	/**
+	 * …and including the fallback row, which is the one that was wrong.
+	 *
+	 * It is the only row the class ever wrote out by hand, and it had drifted
+	 * a column behind the header before anyone widened it. Reaching it needs
+	 * the registry to hand back something that is not a tool, which is why
+	 * this alias-mocks the registry rather than injecting — the constructor is
+	 * typed, so a non-tool cannot be passed in.
+	 */
+	public function test_the_tool_unavailable_row_is_as_wide_as_the_header(): void {
+		$registry = Mockery::mock( 'alias:\\FreeFormCertificate\\Maintenance\\MaintenanceToolRegistry' );
+		$registry->shouldReceive( 'create_default' )->andReturnSelf();
+		$registry->shouldReceive( 'get' )->andReturn( null );
+
+		$source = new IdentityAuditExportSource();
+		$rows   = $source->rows();
+
+		foreach ( $rows as $row ) {
+			$this->assertCount( count( $source->header() ), $row );
+		}
+
+		$this->assertCount( 1, (array) $rows, 'The fallback emits exactly one row.' );
+	}
+
+	/**
+	 * …including the empty report, whose only row is a note.
+	 */
+	public function test_the_empty_report_row_is_as_wide_as_the_header(): void {
+		$seen   = array();
+		$source = new IdentityAuditExportSource( $this->auditor( array(), $seen ) );
+
+		foreach ( $source->rows() as $row ) {
+			$this->assertCount( count( $source->header() ), $row );
+		}
 	}
 
 	/**

@@ -85,6 +85,99 @@ class IdentityConflictQuery {
 	public const COLUMN_STORES = 'stores';
 
 	/**
+	 * The column carrying the values the count above only COUNTED.
+	 *
+	 * `grouped()` aliases whatever it grouped BY as `subject` and aggregates
+	 * the other half away, so each direction used to destroy exactly what the
+	 * other half needs: the shared checks said an identifier belongs to two
+	 * accounts without naming them, and the multiple checks said an account
+	 * holds two identifiers without naming those. Neither is a lead anybody
+	 * can act on, which is the property this class's own note claims for the
+	 * report (#1344).
+	 *
+	 * @var string
+	 */
+	public const COLUMN_RELATED = 'related';
+
+	/**
+	 * Set when `related` holds FEWER values than the count beside it.
+	 *
+	 * `GROUP_CONCAT` stops at `group_concat_max_len` -- 1024 bytes by default
+	 * -- and drops the tail WITHOUT an error, so a short list reads exactly
+	 * like a complete one. At 65 bytes per hash that is 15 identifiers, and
+	 * production already holds an account with 11: the headroom is four, not a
+	 * theoretical margin. The count is aggregated separately and is never
+	 * truncated, so comparing the two costs nothing and is the only way to see
+	 * it happen. Never count as clean what was not fully read.
+	 *
+	 * @var string
+	 */
+	public const COLUMN_RELATED_TRUNCATED = 'related_truncated';
+
+	/**
+	 * The column carrying what the addresses say about a multi-identifier
+	 * account.
+	 *
+	 * A person holds one CPF and one RF, so an account carrying two of either
+	 * is never history -- it is two people, one mistyped value, or one value
+	 * written two ways. The first is a live exposure (the dashboard lists by
+	 * `user_id`); the other two are not. Nothing in the hashes tells them
+	 * apart, because a hash is one-way.
+	 *
+	 * The addresses do, and without a key: `email_hash` is stored beside the
+	 * identifier on every store that has one. Two identifiers used from the
+	 * same address are one person typing; two identifiers each with their own
+	 * address are two people (#1345).
+	 *
+	 * @var string
+	 */
+	public const COLUMN_EMAIL_VERDICT = 'email_verdict';
+
+	/**
+	 * An address appears under more than one of the account's identifiers.
+	 *
+	 * One person, so the rows are theirs and detaching them would take their
+	 * own records away. Which of the two remaining readings it is -- a typo or
+	 * a spelling the canonicaliser missed -- no hash can say; that needs the
+	 * values themselves.
+	 *
+	 * @var string
+	 */
+	public const VERDICT_SHARED_EMAIL = 'shared_email';
+
+	/**
+	 * Every identifier has its own address and none is shared.
+	 *
+	 * Two people under one account, which is the reading that exposes one
+	 * person's records to the other.
+	 *
+	 * @var string
+	 */
+	public const VERDICT_DISTINCT_EMAILS = 'distinct_emails';
+
+	/**
+	 * At least one identifier carries no address anywhere.
+	 *
+	 * Deliberately NOT folded into `distinct_emails`: absence of an address is
+	 * not evidence of a second person, and a verdict that said so would send
+	 * an operator to detach rows on nothing at all. `user_profiles` is the
+	 * ordinary cause -- it is the identity index and stores no address.
+	 *
+	 * @var string
+	 */
+	public const VERDICT_UNKNOWN = 'unknown';
+
+	/**
+	 * What separates the values inside `related` and `stores`.
+	 *
+	 * Safe for both payloads by construction: a hex hash and a decimal id can
+	 * contain neither this character nor any other delimiter.
+	 *
+	 * @var string
+	 */
+	public const RELATED_SEPARATOR = '|';
+
+	/**
 	 * The stores that carry an identifier alongside a `user_id`.
 	 *
 	 * Resolved against the live schema rather than assumed: a site that never
@@ -198,7 +291,7 @@ class IdentityConflictQuery {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function multiple_identities( int $limit = 50 ): array {
-		return $this->grouped( 'user_id', 'h', self::ALIAS_IDENTITY_COUNT, max( 1, $limit ) );
+		return $this->with_email_verdict( $this->grouped( 'user_id', 'h', self::ALIAS_IDENTITY_COUNT, max( 1, $limit ) ) );
 	}
 
 	/**
@@ -293,6 +386,7 @@ class IdentityConflictQuery {
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT {$group_by} AS subject, COUNT(DISTINCT {$count_over}) AS {$alias},
+                            GROUP_CONCAT(DISTINCT {$count_over} ORDER BY {$count_over} SEPARATOR '|') AS related,
                             GROUP_CONCAT(DISTINCT p.src ORDER BY p.src SEPARATOR '|') AS stores,
                             %s AS identifier_column
                      FROM ({$pairs['sql']}) AS p
@@ -307,10 +401,246 @@ class IdentityConflictQuery {
 			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 			foreach ( (array) $rows as $row ) {
-				$out[] = (array) $row;
+				$out[] = self::flag_truncated_list( (array) $row, $alias );
 			}
 		}
 
 		return array_slice( $out, 0, $limit );
+	}
+
+	/**
+	 * The column holding the hashed address, where a store has one.
+	 *
+	 * @var string
+	 */
+	private const COLUMN_EMAIL_HASH = 'email_hash';
+
+	/**
+	 * Accounts per statement when asking about a set of them.
+	 *
+	 * The findings are capped by the caller, so this only ever bounds how wide
+	 * ONE `IN` list gets rather than how many accounts are examined.
+	 *
+	 * @var int
+	 */
+	private const USERS_PER_STATEMENT = 500;
+
+	/**
+	 * Annotate each finding with what the addresses say about it.
+	 *
+	 * See {@see self::COLUMN_EMAIL_VERDICT}. This runs over the accounts the
+	 * scan ALREADY flagged rather than over every account, so its cost is the
+	 * finding count and not the table size.
+	 *
+	 * @param array<int, array<string, mixed>> $rows Findings from `grouped()`.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function with_email_verdict( array $rows ): array {
+		$wanted = array();
+
+		foreach ( $rows as $row ) {
+			$column = self::read_column( $row );
+			$user   = self::read_subject_user( $row );
+
+			if ( '' !== $column && $user > 0 ) {
+				$wanted[ $column ][ $user ] = true;
+			}
+		}
+
+		$seen = array();
+		foreach ( $wanted as $column => $users ) {
+			$seen[ $column ] = $this->addresses_per_identifier( (string) $column, array_keys( $users ) );
+		}
+
+		foreach ( $rows as $index => $row ) {
+			$column   = self::read_column( $row );
+			$user     = self::read_subject_user( $row );
+			$total    = $row[ self::ALIAS_IDENTITY_COUNT ] ?? 0;
+			$expected = is_numeric( $total ) ? (int) $total : 0;
+
+			$rows[ $index ][ self::COLUMN_EMAIL_VERDICT ] = self::verdict(
+				$seen[ $column ][ $user ] ?? array(),
+				$expected
+			);
+		}
+
+		return $rows;
+	}
+
+	/**
+	 * The identifier column a finding is about, or an empty string.
+	 *
+	 * @param array<string, mixed> $row One finding.
+	 * @return string
+	 */
+	private static function read_column( array $row ): string {
+		$column = $row['identifier_column'] ?? '';
+
+		return ( is_string( $column ) && in_array( $column, self::COLUMNS, true ) ) ? $column : '';
+	}
+
+	/**
+	 * The account a finding is about, or 0 when its subject is not one.
+	 *
+	 * @param array<string, mixed> $row One finding.
+	 * @return int
+	 */
+	private static function read_subject_user( array $row ): int {
+		$subject = $row['subject'] ?? null;
+
+		return is_numeric( $subject ) ? (int) $subject : 0;
+	}
+
+	/**
+	 * Which hashed addresses were used with each of an account's identifiers.
+	 *
+	 * `SELECT DISTINCT` because the answer is a SET: a person with four
+	 * hundred submissions is one address repeated, and grouping in PHP over
+	 * four hundred rows to reach the same two values is work the server can
+	 * skip entirely.
+	 *
+	 * A row whose address is missing or empty is left out, so an identifier
+	 * with no address at all simply has no group -- which is what
+	 * {@see self::verdict()} reads as `unknown` rather than as evidence.
+	 *
+	 * @param string          $column   Identifier column.
+	 * @param array<int, int> $user_ids Accounts to ask about.
+	 * @return array<int, array<string, array<int, string>>> user id → hash → addresses.
+	 */
+	private function addresses_per_identifier( string $column, array $user_ids ): array {
+		global $wpdb;
+
+		$stores = $this->stores_with_addresses();
+		$out    = array();
+
+		if ( array() === $stores || array() === $user_ids ) {
+			return $out;
+		}
+
+		foreach ( array_chunk( $user_ids, self::USERS_PER_STATEMENT ) as $chunk ) {
+			$parts  = array();
+			$values = array();
+			$slots  = implode( ', ', array_fill( 0, count( $chunk ), '%d' ) );
+
+			foreach ( $stores as $table ) {
+				$parts[]  = "SELECT DISTINCT user_id, %i AS h, %i AS e FROM %i WHERE user_id IN ({$slots}) AND %i IS NOT NULL AND %i <> '' AND %i IS NOT NULL AND %i <> ''";
+				$values[] = $column;
+				$values[] = self::COLUMN_EMAIL_HASH;
+				$values[] = $table;
+				foreach ( $chunk as $user_id ) {
+					$values[] = (int) $user_id;
+				}
+				$values[] = $column;
+				$values[] = $column;
+				$values[] = self::COLUMN_EMAIL_HASH;
+				$values[] = self::COLUMN_EMAIL_HASH;
+			}
+
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The fragment is this class's own literal, repeated once per table it resolved itself; `$slots` is `%d` placeholders counted off `$chunk`, never request data. An audit read must reflect the live rows, never a cache.
+			$rows = $wpdb->get_results( $wpdb->prepare( implode( ' UNION ', $parts ), ...$values ), ARRAY_A );
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+			foreach ( (array) $rows as $row ) {
+				$row  = (array) $row;
+				$user = isset( $row['user_id'] ) && is_numeric( $row['user_id'] ) ? (int) $row['user_id'] : 0;
+				$hash = isset( $row['h'] ) && is_string( $row['h'] ) ? $row['h'] : '';
+				$mail = isset( $row['e'] ) && is_string( $row['e'] ) ? $row['e'] : '';
+
+				if ( $user > 0 && '' !== $hash && '' !== $mail ) {
+					$out[ $user ][ $hash ][] = $mail;
+				}
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * The stores that carry a hashed address beside the identifier.
+	 *
+	 * Probed rather than listed, for the reason {@see self::stores()} probes
+	 * the tables: a list written here is a claim about a schema this file does
+	 * not own, and it goes stale in silence. `ffc_user_profiles` is the
+	 * ordinary miss -- it is the identity index and stores no address.
+	 *
+	 * @return list<string>
+	 */
+	private function stores_with_addresses(): array {
+		global $wpdb;
+
+		$out = array();
+
+		foreach ( $this->stores() as $table ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema probe, as in `stores()`.
+			$found = $wpdb->get_var( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, self::COLUMN_EMAIL_HASH ) );
+
+			if ( self::COLUMN_EMAIL_HASH === $found ) {
+				$out[] = $table;
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * What one account's addresses say about its identifiers.
+	 *
+	 * The question is deliberately "is any address SHARED", not "are the sets
+	 * equal": a person who changed address between two submissions still has
+	 * the old one under both identifiers if they are really one person's, and
+	 * demanding equality would call that two people.
+	 *
+	 * @param array<string, array<int, string>> $by_hash  Hash → addresses used with it.
+	 * @param int                               $expected How many identifiers the finding counted.
+	 * @return string One of the `VERDICT_*` constants.
+	 */
+	private static function verdict( array $by_hash, int $expected ): string {
+		// Fewer groups than identifiers means at least one identifier has no
+		// address on any row, so there is nothing to compare it against.
+		if ( $expected < 2 || count( $by_hash ) < $expected ) {
+			return self::VERDICT_UNKNOWN;
+		}
+
+		$groups_per_address = array();
+
+		foreach ( $by_hash as $addresses ) {
+			foreach ( array_unique( $addresses ) as $address ) {
+				$groups_per_address[ $address ] = ( $groups_per_address[ $address ] ?? 0 ) + 1;
+			}
+		}
+
+		foreach ( $groups_per_address as $groups ) {
+			if ( $groups > 1 ) {
+				return self::VERDICT_SHARED_EMAIL;
+			}
+		}
+
+		return self::VERDICT_DISTINCT_EMAILS;
+	}
+
+	/**
+	 * Mark a row whose `related` list is shorter than its own count.
+	 *
+	 * See {@see self::COLUMN_RELATED_TRUNCATED}: the concatenation truncates in
+	 * silence and the count does not, so their disagreement is the only signal
+	 * that exists. The row is kept -- dropping it would hide the finding
+	 * entirely -- and the flag is what stops a partial list from being read as
+	 * the whole one.
+	 *
+	 * @param array<string, mixed> $row   One grouped row.
+	 * @param string               $alias Name of the count column on that row.
+	 * @return array<string, mixed>
+	 */
+	private static function flag_truncated_list( array $row, string $alias ): array {
+		$joined  = $row[ self::COLUMN_RELATED ] ?? '';
+		$related = is_string( $joined ) ? $joined : '';
+		$listed  = '' === $related ? 0 : count( explode( self::RELATED_SEPARATOR, $related ) );
+
+		$total   = $row[ $alias ] ?? 0;
+		$counted = is_numeric( $total ) ? (int) $total : 0;
+
+		$row[ self::COLUMN_RELATED_TRUNCATED ] = ( $listed !== $counted );
+
+		return $row;
 	}
 }

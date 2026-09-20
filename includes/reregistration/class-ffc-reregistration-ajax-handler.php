@@ -3,7 +3,9 @@
  * Reregistration AJAX Handler
  *
  * Hosts the wp_ajax callbacks for the reregistration admin:
- * - ffc_generate_ficha             — PDF record generation
+ * - ffc_generate_record            — PDF record generation (the old
+ *   `ffc_generate_ficha` action was removed in 6.28.0; only the NONCE action
+ *   string still carries that name, deliberately — see ReregistrationAdmin)
  * - ffc_view_submission_details    — submission details modal HTML
  * - ffc_rereg_count_members        — affected user count for an audience set
  * - ffc_rereg_send_invitations     — invite whoever is still awaiting one (#1190)

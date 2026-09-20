@@ -178,7 +178,7 @@ class RecruitmentCandidateWriter {
 	/**
 	 * Set or clear the linked `wp_users.ID` (promotion / un-link).
 	 *
-	 * Called by the service layer after `UserCreator::get_or_create_user()`
+	 * Called by the service layer after `UserCreator::get_or_create_user_dual()`
 	 * resolves a `wp_user` ID. Pass `null` to detach (rare; mostly for tests).
 	 *
 	 * @param int      $id Candidate ID.
@@ -203,6 +203,119 @@ class RecruitmentCandidateWriter {
 		static::cache_delete( "id_{$id}" );
 
 		return false !== $result;
+	}
+
+	/**
+	 * The `ffc_adopt_orphaned_identity_records` entry point.
+	 *
+	 * A thin `void` wrapper, because a WordPress action callback must not
+	 * return a value while {@see self::link_orphans_by_hash()} deliberately
+	 * does: the count is what a caller reports, and what the tests assert
+	 * against. Named for the hook so the registration in `Loader` reads as
+	 * what it is, and so the pair stays removable by `remove_action()`.
+	 *
+	 * @since 6.28.0
+	 * @param string|null $cpf_hash CPF hash, or null.
+	 * @param string|null $rf_hash  RF hash, or null.
+	 * @param int         $user_id  The resolved WP user.
+	 * @return void
+	 */
+	public static function adopt_orphaned_identity_records( ?string $cpf_hash, ?string $rf_hash, int $user_id ): void {
+		self::link_orphans_by_hash( $cpf_hash, $rf_hash, $user_id );
+	}
+
+	/**
+	 * Claim every unlinked candidacy carrying one of these identifier hashes.
+	 *
+	 * The recruitment half of identity adoption (#1345).
+	 * `UserCreator::link_orphaned_records_dual()` adopts unlinked submissions
+	 * and appointments the moment a person is resolved, and nothing did the
+	 * same for candidacies -- while `UserCleanup` happily NULLs `user_id` here
+	 * on account deletion. So the plugin could drop the link and never restore
+	 * it, which made detaching a candidacy permanent loss. Fifteen of the 73
+	 * conflicting accounts measured in production touch this table, two of
+	 * them exclusively.
+	 *
+	 * EVERY MATCHING ROW, NEVER ONE
+	 *
+	 * One person applying to two positions is two rows under the same
+	 * identifier -- legitimate, and the reason `COUNT(DISTINCT)` does not flag
+	 * them as a conflict. A `LIMIT 1` here would adopt one candidacy and leave
+	 * its sibling orphaned, which is the defect wearing a smaller size.
+	 *
+	 * THE IDS ARE READ BEFORE THE WRITE, FOR THE CACHE
+	 *
+	 * {@see RecruitmentCandidateReader::get_by_id()} caches under `id_<id>`,
+	 * so a bulk `UPDATE` alone would leave a cached row still claiming no
+	 * user -- invisible without a persistent object cache and permanent with
+	 * one. Reading the ids first is what makes the invalidation possible, and
+	 * it is why this lives on the writer rather than being issued as SQL by
+	 * the caller: the cache group is this class's own.
+	 *
+	 * @since 6.28.0
+	 * @param string|null $cpf_hash CPF hash, or null to skip that column.
+	 * @param string|null $rf_hash  RF hash, or null to skip that column.
+	 * @param int         $user_id  The resolved WP user.
+	 * @return int Rows claimed.
+	 */
+	public static function link_orphans_by_hash( ?string $cpf_hash, ?string $rf_hash, int $user_id ): int {
+		$cpf_hash = ( is_string( $cpf_hash ) && '' !== $cpf_hash ) ? $cpf_hash : null;
+		$rf_hash  = ( is_string( $rf_hash ) && '' !== $rf_hash ) ? $rf_hash : null;
+
+		if ( $user_id <= 0 || ( null === $cpf_hash && null === $rf_hash ) ) {
+			return 0;
+		}
+
+		$wpdb  = self::db();
+		$table = self::get_table_name();
+
+		$where  = array();
+		$values = array();
+		if ( null !== $cpf_hash ) {
+			$where[]  = 'cpf_hash = %s';
+			$values[] = $cpf_hash;
+		}
+		if ( null !== $rf_hash ) {
+			$where[]  = 'rf_hash = %s';
+			$values[] = $rf_hash;
+		}
+		$clause = implode( ' OR ', $where );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- `$clause` is built from this method's own fragments with matching placeholders, and `$sql` holds the result of `prepare()` two statements up -- held in a variable only so a null return can be refused before it reaches `query()`. `WordPress.DB.DirectDatabaseQuery` is deliberately NOT named here: the file-level disable already covers it, and re-enabling it below would switch it back on for the rest of the file no matter who turned it off.
+		$ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT id FROM %i WHERE ({$clause}) AND user_id IS NULL",
+				$table,
+				...$values
+			)
+		);
+
+		if ( empty( $ids ) ) {
+			return 0;
+		}
+
+		// `prepare()` answers null when its placeholders and values disagree,
+		// and `query( null )` would be a silent no-op wearing a success.
+		$sql = $wpdb->prepare(
+			"UPDATE %i SET user_id = %d, updated_at = %s WHERE ({$clause}) AND user_id IS NULL",
+			$table,
+			$user_id,
+			current_time( 'mysql' ),
+			...$values
+		);
+
+		if ( ! is_string( $sql ) ) {
+			return 0;
+		}
+
+		$updated = $wpdb->query( $sql );
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		foreach ( $ids as $id ) {
+			static::cache_delete( 'id_' . (int) $id );
+		}
+
+		return is_numeric( $updated ) ? (int) $updated : 0;
 	}
 
 	/**

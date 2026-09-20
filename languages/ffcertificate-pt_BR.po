@@ -8634,8 +8634,8 @@ msgid "Filter by level"
 msgstr "Filtrar por nível"
 
 #: includes/settings/views/documentation/developer-hooks-api.php:38
-msgid "Filter the Record PDF tokens, final HTML, filename, the pool-resolved template HTML, or the legacy template file. Renamed from the ffcertificate_ficha_* family in 6.26.0; the old names keep firing until 6.28.0."
-msgstr "Filtre os tokens do PDF da ficha, o HTML final, o nome do arquivo, o HTML do modelo com o pool resolvido ou o arquivo de modelo legado. Renomeados da família ffcertificate_ficha_* na 6.26.0; os nomes antigos continuam disparando até a 6.28.0."
+msgid "Filter the Record PDF tokens, final HTML, filename, the pool-resolved template HTML, or the legacy template file. Renamed from the ffcertificate_ficha_* family in 6.26.0; the old names stopped firing in 6.28.0."
+msgstr "Filtra os tokens do PDF de Registro, o HTML final, o nome do arquivo, o HTML do modelo resolvido pelo pool ou o arquivo de modelo legado. Renomeados da família ffcertificate_ficha_* em 6.26.0; os nomes antigos pararam de disparar em 6.28.0."
 
 #: includes/settings/views/documentation/developer-hooks-api.php:42
 msgid "Filter the payload of GET /forms/{id}/schema."
@@ -16860,6 +16860,10 @@ msgstr "Sinais coletados"
 msgid "Signature with fixed height, proportional width"
 msgstr "Assinatura com altura fixa e largura proporcional."
 
+#: includes/settings/views/documentation/developer-hooks-api.php
+msgid "After a person is resolved to a WordPress user, so a module can claim its own records that carry the same CPF/RF hash and no user yet — args ( cpf_hash, rf_hash, user_id ). Submissions and appointments are adopted directly; recruitment candidacies subscribe to this."
+msgstr "Depois que uma pessoa é resolvida para um usuário do WordPress, para que um módulo possa reivindicar seus próprios registros que carregam o mesmo hash de CPF/RF e ainda não têm usuário — argumentos ( cpf_hash, rf_hash, user_id ). Submissões e agendamentos são adotados diretamente; candidaturas de recrutamento assinam este gancho."
+
 #: includes/settings/views/documentation/developer-hooks-api.php:66
 msgid "Signatures vary — check the source for the exact argument list before hooking."
 msgstr "As assinaturas variam — verifique a fonte para obter a lista exata de argumentos antes de realizar o *hooking*."
@@ -21956,8 +21960,8 @@ msgid "Copy the CPF and RF hashes already linked to a user in submissions, appoi
 msgstr "Copia os hashes de CPF e RF já vinculados a um usuário em submissões, agendamentos e candidaturas para as colunas indexadas de identidade, de modo que identificar uma pessoa seja uma consulta indexada em vez de uma varredura de todos os módulos. Preenche apenas coluna vazia: quando uma conta carrega dois identificadores diferentes, a coluna fica vazia, porque isso é um conflito a revisar e não um a resolver escolhendo. Execute \"Canonizar Identificadores Armazenados\" antes — este cartão se recusa a rodar enquanto aquele não estiver completo."
 
 #: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
-msgid "Every linked identifier is in the index."
-msgstr "Todo identificador vinculado está no índice."
+msgid "Every linked identifier a backfill may resolve is in the index."
+msgstr "Todo identificador vinculado que um backfill pode resolver está no índice."
 
 #: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
 msgid "Examined %1$d users, filled %2$d index columns, left %3$d unresolved because one account carries two different identifiers."
@@ -22018,6 +22022,10 @@ msgstr "Você não tem permissão para exportar esta auditoria."
 #: includes/maintenance/class-ffc-identity-audit-export-source.php
 msgid "The audit tool is not available on this install."
 msgstr "A ferramenta de auditoria não está disponível nesta instalação."
+
+#: includes/maintenance/class-ffc-identity-audit-export-source.php
+msgid "INCOMPLETE: the database truncated this row's list, so it names fewer values than the count beside it."
+msgstr "INCOMPLETO: o banco truncou a lista desta linha, então ela nomeia menos valores do que a contagem ao lado."
 
 #: includes/maintenance/class-ffc-identity-audit-export-source.php
 msgid "TRUNCATED: this check reached the %d-row export cap, so more findings exist than are listed here."

@@ -1122,8 +1122,9 @@ class UserManagerTest extends TestCase {
 	// ==================================================================
 
 	public function test_delegation_methods_exist(): void {
+		// `get_or_create_user()` is deliberately absent: deprecated in 6.26.0
+		// and removed in 6.28.0 (#1313). The dual entry point is the only one.
 		$delegation_methods = array(
-			'get_or_create_user',
 			'get_or_create_user_dual',
 			'generate_username',
 		);

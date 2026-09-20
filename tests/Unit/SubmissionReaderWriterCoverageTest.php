@@ -126,10 +126,66 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 	}
 
 	public function test_find_users_with_multiple_identities_returns_rows(): void {
-		$rows = array( array( 'user_id' => 5, 'cpf_count' => 2, 'rf_count' => 1 ) );
+		$rows = array(
+			array(
+				'user_id'     => 5,
+				'cpf_count'   => 2,
+				'rf_count'    => 1,
+				'cpf_related' => 'aaaa|bbbb',
+				'rf_related'  => 'cccc',
+			),
+		);
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
 
-		$this->assertSame( $rows, $this->repo()->find_users_with_multiple_identities() );
+		$out = $this->repo()->find_users_with_multiple_identities();
+
+		$this->assertSame( 5, $out[0]['user_id'] );
+		$this->assertSame( 'aaaa|bbbb', $out[0]['cpf_related'], 'The hashes the count covers travel with it.' );
+	}
+
+	/**
+	 * A `GROUP_CONCAT` shorter than its own count is declared, not printed.
+	 *
+	 * `group_concat_max_len` truncates the tail with NO error, so a short list
+	 * reads exactly like a complete one. The count is aggregated separately
+	 * and is never truncated, which makes their disagreement the only signal
+	 * there is. Asserted on a key the fixture does not supply, per the rule
+	 * `AssertionCoverageTest` exists for (#1344).
+	 */
+	public function test_a_short_identity_list_is_flagged_against_its_own_count(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
+			array(
+				array(
+					'user_id'     => 5,
+					'cpf_count'   => 9,
+					'rf_count'    => 2,
+					'cpf_related' => 'aaaa|bbbb',
+					'rf_related'  => 'cccc|dddd',
+				),
+			)
+		);
+
+		$row = $this->repo()->find_users_with_multiple_identities()[0];
+
+		$this->assertTrue( $row['cpf_related_truncated'], 'Two values under a count of nine is a truncated list.' );
+		$this->assertFalse( $row['rf_related_truncated'], 'Two values under a count of two is complete.' );
+	}
+
+	/**
+	 * The shared check names the accounts, not only how many.
+	 *
+	 * Knowing a CPF belongs to two accounts without knowing which two is not
+	 * something a merge can start from (#1344).
+	 */
+	public function test_find_shared_identities_names_the_accounts(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
+			array( array( 'cpf_hash' => 'abcd', 'user_count' => 2, 'related' => '85|107' ) )
+		);
+
+		$row = $this->repo()->find_shared_identities()[0];
+
+		$this->assertSame( '85|107', $row['related'] );
+		$this->assertFalse( $row['related_truncated'] );
 	}
 
 	/**

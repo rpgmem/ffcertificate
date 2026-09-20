@@ -7,7 +7,29 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.27.0] (2026-09-19)
+## [6.28.0] (2026-09-20)
+
+### Removed
+
+- **⚠ Breaking — the `ffcertificate_ficha_*` filters and the `ffc_generate_ficha` action stop firing** (#1264): the aliases kept since the 6.26.0 rename are gone, and a listener on an old name goes silent with no error. Move to `ffcertificate_record_*` and `ffc_generate_record`. The nonce action string keeps the old name deliberately.
+- **⚠ Breaking — `get_or_create_user()` is removed from `UserManager` and `UserCreator`** (#1313): deprecated in 6.26.0. Use `get_or_create_user_dual()` — the argument position is the identifier's kind, so `$identifier_type` and the `TYPE_*` constants go with it.
+
+### Added
+
+- **The audit says whether a multi-identifier account is one person or two** (#1345): no hash can tell a second person from a mistyped value, but the `email_hash` beside each identifier can, without a key. Reported as `email_verdict`; `unknown` stays distinct from `distinct_emails`.
+- **A recruitment candidacy is adopted when its person is recognised** (#1345): submissions and appointments were claimed and candidacies never were, while account deletion dropped that link — so detaching one was permanent loss. Every matching row is claimed, not one.
+
+### Changed
+
+- **Two identity-audit CSV columns are plural** (#1344): `user_id` → `user_ids` and `identifier_hash_prefix` → `identifier_hash_prefixes`, because they hold lists now. Hashes are still cut to the grouping prefix.
+
+### Fixed
+
+- **The audit names both halves of every conflict** (#1344): a grouped check counted one half away, so 13 findings named no accounts and 73 named no identifiers. Both now travel with the count, and a truncated list is declared rather than printed short.
+- **The identity-index card can tell on its own whether there is work left** (#1345): it answered 100% from a stored flag nothing could clear, so a user linked after the walk stayed invisible. It measures now, and costs one statement where the unlatched path ran two.
+- **Every identity-audit export row is as wide as its header** (#1345): the tool-unavailable fallback was written out by hand and had been a column short since before the header grew.
+
+## [6.27.0] (2026-09-19) — `9ac9eb9`
 
 ### Added
 

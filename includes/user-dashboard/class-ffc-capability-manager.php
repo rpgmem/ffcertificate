@@ -34,7 +34,7 @@ class CapabilityManager {
 	/**
 	 * Context key: recruitment-module candidate promotion path.
 	 *
-	 * Used by `UserCreator::get_or_create_user()` when the candidate is
+	 * Used by `UserCreator::get_or_create_user_dual()` when the candidate is
 	 * being linked or created via the recruitment CSV importer (sprint 4) or
 	 * a manual admin edit (sprint 9.1). No per-user caps are granted on this
 	 * context — candidates rely on the `ffc_end_user` role's baseline `read` cap

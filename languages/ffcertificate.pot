@@ -8630,7 +8630,7 @@ msgid "Filter by level"
 msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:38
-msgid "Filter the Record PDF tokens, final HTML, filename, the pool-resolved template HTML, or the legacy template file. Renamed from the ffcertificate_ficha_* family in 6.26.0; the old names keep firing until 6.28.0."
+msgid "Filter the Record PDF tokens, final HTML, filename, the pool-resolved template HTML, or the legacy template file. Renamed from the ffcertificate_ficha_* family in 6.26.0; the old names stopped firing in 6.28.0."
 msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:42
@@ -16802,6 +16802,10 @@ msgstr ""
 msgid "Signature with fixed height, proportional width"
 msgstr ""
 
+#: includes/settings/views/documentation/developer-hooks-api.php
+msgid "After a person is resolved to a WordPress user, so a module can claim its own records that carry the same CPF/RF hash and no user yet — args ( cpf_hash, rf_hash, user_id ). Submissions and appointments are adopted directly; recruitment candidacies subscribe to this."
+msgstr ""
+
 #: includes/settings/views/documentation/developer-hooks-api.php:66
 msgid "Signatures vary — check the source for the exact argument list before hooking."
 msgstr ""
@@ -21865,7 +21869,7 @@ msgid "Copy the CPF and RF hashes already linked to a user in submissions, appoi
 msgstr ""
 
 #: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
-msgid "Every linked identifier is in the index."
+msgid "Every linked identifier a backfill may resolve is in the index."
 msgstr ""
 
 #: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
@@ -21926,6 +21930,10 @@ msgstr ""
 
 #: includes/maintenance/class-ffc-identity-audit-export-source.php
 msgid "The audit tool is not available on this install."
+msgstr ""
+
+#: includes/maintenance/class-ffc-identity-audit-export-source.php
+msgid "INCOMPLETE: the database truncated this row's list, so it names fewer values than the count beside it."
 msgstr ""
 
 #: includes/maintenance/class-ffc-identity-audit-export-source.php

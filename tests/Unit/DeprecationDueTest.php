@@ -48,7 +48,12 @@ use PHPUnit\Framework\TestCase;
  *
  * What neither sees: a thing kept alive by nothing but an extra `add_action()`
  * -- there is no call for B to anchor on, so the marker there is voluntary. The
- * `ffc_generate_ficha` alias carries one because it was written by hand.
+ * `ffc_generate_ficha` alias carried one because it was written by hand, and
+ * 6.28.0 removed it along with everything else that had a date.
+ *
+ * The tree currently holds NO open cycle, which is a legitimate state and not a
+ * broken scan -- see the self-check below for why the difference is proven by
+ * the canaries rather than by what happens to be in `includes/`.
  *
  * @coversNothing
  */
@@ -301,35 +306,42 @@ class DeprecationDueTest extends TestCase {
 	}
 
 	/**
-	 * Self-check: an empty scan must fail rather than read as clean.
+	 * Self-check: the scan REACHES the tree.
 	 *
-	 * The #1071 / #1094 rule every guard here carries. A renamed directory, a
-	 * tokenizer that stopped resolving, or a marker spelling that drifted would
-	 * otherwise turn both directions green for as long as nobody looked.
+	 * The #1071 / #1094 rule every guard here carries, in the only form that
+	 * survives the tree having no open cycle at all -- which is where 6.28.0
+	 * left it, closing #1264's five filter aliases and #1313's two method
+	 * notices in one pass.
+	 *
+	 * WHY IT NO LONGER NAMES A VERSION
+	 *
+	 * It used to assert that a specific removal release was still present,
+	 * "named rather than counted so a shrinking cycle does not have to touch
+	 * this file". That was already known to break when the named cycle closed
+	 * -- #1245 did it once in 6.27.0 -- and the answer then was to re-point it
+	 * at the oldest open cycle. With ZERO cycles open there is nothing honest
+	 * left to point at, and a marker kept alive so this assertion has something
+	 * to find would be a cycle existing for the guard's convenience.
+	 *
+	 * So the tree is no longer the evidence that the SCANNERS work: the two
+	 * canaries below are, over synthetic source that contains both call shapes
+	 * and every place a marker must not be read from. That split is what makes
+	 * an empty result mean "nothing is deprecated" instead of "the scan broke",
+	 * which is the distinction the rule is actually about. It is the same move
+	 * `TranslationSourceCoverageTest` makes for the token shape it cannot find
+	 * in the tree.
+	 *
+	 * What stays here is the half the canaries cannot cover: that the version
+	 * this guard compares against parses, and that the file walk is reaching
+	 * `includes/` rather than an empty or renamed directory.
 	 */
-	public function test_the_scan_finds_the_live_cycles(): void {
+	public function test_the_scan_reaches_the_tree(): void {
 		$this->assertNotSame( '', $this->plugin_version(), 'The plugin header version did not parse.' );
 
-		$markers = $this->markers();
-		$calls   = $this->deprecation_calls();
+		$files = $this->php_files();
 
-		$this->assertNotEmpty( $markers, 'No @removal marker was found anywhere -- the comment scan is broken.' );
-		$this->assertNotEmpty( $calls, 'No deprecation call was found anywhere -- the token scan is broken.' );
-
-		// Named rather than counted, so a shrinking cycle does not have to
-		// touch this file -- except when the cycle NAMED here is the one that
-		// closes, which is what #1245 did in 6.27.0: naming a version is itself
-		// a claim about a value another file owns, so it goes stale exactly the
-		// way `CLAUDE.md` says a number does. Prefer the OLDEST open cycle here,
-		// because that is the one a reader most needs to see the scan still
-		// reaching, and re-point it when it closes.
-		$versions = array_values( $markers );
-		$this->assertContains( '6.28.0', $versions, 'The #1264 / #1313 cycles lost their @removal markers.' );
-
-		// Both call shapes stay covered: the filter aliases are #1264's, and
-		// the method notices are #1313's, which outlived #1245's.
-		$this->assertContains( 'apply_filters_deprecated', array_values( $calls ), 'The #1264 filter aliases stopped resolving as calls.' );
-		$this->assertContains( '_deprecated_function', array_values( $calls ), 'The #1313 method notices stopped resolving as calls.' );
+		$this->assertNotEmpty( $files, 'The file walk found no PHP under includes/ -- both directions below would be vacuously green.' );
+		$this->assertGreaterThan( 100, count( $files ), 'The file walk reached only part of the tree.' );
 	}
 
 	/**
