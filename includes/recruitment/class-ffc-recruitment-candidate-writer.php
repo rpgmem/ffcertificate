@@ -178,7 +178,7 @@ class RecruitmentCandidateWriter {
 	/**
 	 * Set or clear the linked `wp_users.ID` (promotion / un-link).
 	 *
-	 * Called by the service layer after `UserCreator::get_or_create_user()`
+	 * Called by the service layer after `UserCreator::get_or_create_user_dual()`
 	 * resolves a `wp_user` ID. Pass `null` to detach (rare; mostly for tests).
 	 *
 	 * @param int      $id Candidate ID.

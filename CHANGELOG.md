@@ -7,6 +7,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Removed
+
+- **⚠ Breaking — the `ffcertificate_ficha_*` filters stop firing** (#1264): the five aliases kept alive since the 6.26.0 rename are gone, along with the `wp_ajax_ffc_generate_ficha` action. An integration still listening on an old name goes silent with no error, which is what the cycle existed to warn about — move to `ffcertificate_record_data` / `_html` / `_filename` / `_template_html` / `_template_file`, and post `ffc_generate_record`. The nonce action string stays `ffc_generate_ficha`: it is an opaque salt nobody reads, and renaming it would reject every nonce already rendered.
+- **⚠ Breaking — `UserManager::get_or_create_user()` and `UserCreator::get_or_create_user()` are removed** (#1313): deprecated in 6.26.0, with the notice that reaches a caller no code scan can see. Use `get_or_create_user_dual()`, passing each hash in the argument its kind names — the position is the type, so the old `$identifier_type` argument has no counterpart, and its `TYPE_CPF` / `TYPE_RF` / `TYPE_AUTO` constants go with it. The replacement resolves through the identity index and feeds it; the removed one queried `ffc_submissions` alone and wrote to no index.
+
 ### Added
 
 - **A recruitment candidacy is adopted when its person is recognised** (#1345): resolving someone already claimed their unlinked submissions and appointments, and never their candidacies — while account deletion happily dropped that same link. So the plugin could detach a candidacy and never restore it, and orphaning one was permanent loss; fifteen of the 73 conflicting accounts measured in production touch that table, two of them only. Every matching row is claimed, not one, because applying to two positions is two rows under one identifier.

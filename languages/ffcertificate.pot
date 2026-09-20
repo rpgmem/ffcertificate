@@ -8630,7 +8630,7 @@ msgid "Filter by level"
 msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:38
-msgid "Filter the Record PDF tokens, final HTML, filename, the pool-resolved template HTML, or the legacy template file. Renamed from the ffcertificate_ficha_* family in 6.26.0; the old names keep firing until 6.28.0."
+msgid "Filter the Record PDF tokens, final HTML, filename, the pool-resolved template HTML, or the legacy template file. Renamed from the ffcertificate_ficha_* family in 6.26.0; the old names stopped firing in 6.28.0."
 msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:42

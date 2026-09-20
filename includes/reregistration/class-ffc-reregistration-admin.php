@@ -94,12 +94,6 @@ class ReregistrationAdmin {
 		add_action( 'admin_init', array( $this, 'handle_actions' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'wp_ajax_ffc_generate_record', array( $this->ajax_handler, 'ajax_generate_record' ) );
-		// The old action name, kept for one cycle (#1264). An `action` value
-		// travels from the browser, so a rename breaks anything posting the old
-		// one to `admin-ajax.php` in SILENCE -- the same category as the five
-		// filters, and registering both costs one line instead of a cycle.
-		// @removal 6.28.0 -- one release after the rename, with the filters.
-		add_action( 'wp_ajax_ffc_generate_ficha', array( $this->ajax_handler, 'ajax_generate_record' ) );
 		add_action( 'wp_ajax_ffc_rereg_count_members', array( $this->ajax_handler, 'ajax_count_members' ) );
 		add_action( 'wp_ajax_ffc_rereg_send_invitations', array( $this->ajax_handler, 'ajax_send_invitations' ) );
 		add_action( 'wp_ajax_ffc_view_submission_details', array( $this->ajax_handler, 'ajax_view_submission_details' ) );

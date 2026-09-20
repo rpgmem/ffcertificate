@@ -42,10 +42,13 @@ class UserCreatorTest extends TestCase {
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
 
-		// `get_or_create_user()` is deprecated since 6.26.0 (#1313 PR 7) and emits
-		// the runtime notice. Stubbed here so the branch is CHOSEN rather than
-		// inherited from whichever earlier test in the process happened to define
-		// the function -- the GLOBAL form only, never `Ns\_deprecated_function`,
+		// Nothing in this class emits a deprecation notice since 6.28.0 removed
+		// the single-hash entry point (#1313). The stub stays because
+		// `test_the_dual_entry_point_is_silent()` asserts that NOTHING called
+		// it, which needs the function to be defined and recording -- and
+		// because defining it here makes the branch CHOSEN rather than
+		// inherited from whichever earlier test in the process happened to
+		// define it. The GLOBAL form only, never `Ns\_deprecated_function`,
 		// which would shadow it for the rest of the run.
 		$this->deprecations = array();
 		Functions\when( '_deprecated_function' )->alias(
@@ -178,32 +181,6 @@ class UserCreatorTest extends TestCase {
 	}
 
 	// ------------------------------------------------------------------
-	/**
-	 * The deprecation cycle's notice is the part that reaches a consumer.
-	 *
-	 * `@deprecated` in a docblock is invisible at runtime, and this cycle
-	 * exists for callers a static scan cannot see -- another plugin on the same
-	 * WordPress calling a `public static` method. So the notice IS the delivery,
-	 * and a test that never looks at it would let a later edit delete it in
-	 * silence while `DeprecationDueTest` stayed green: that guard reads the
-	 * `@removal` marker, not whether anything is emitted.
-	 *
-	 * The dual entry point must stay quiet, or every certificate submission
-	 * would warn.
-	 */
-	public function test_the_legacy_entry_point_announces_its_replacement(): void {
-		$GLOBALS['wpdb']->shouldReceive( 'prepare' )->andReturn( 'SQL' );
-		$GLOBALS['wpdb']->shouldReceive( 'get_var' )->andReturn( 5 );
-		Functions\when( 'get_userdata' )->justReturn( false );
-		Functions\when( 'get_user_by' )->justReturn( false );
-
-		UserCreator::get_or_create_user( 'hash123', 'test@example.com', array() );
-
-		$this->assertCount( 1, $this->deprecations, 'The legacy entry point emitted no deprecation notice, so a consumer this cycle exists for is never told.' );
-		$this->assertSame( 'FreeFormCertificate\\UserDashboard\\UserCreator::get_or_create_user', $this->deprecations[0][0] );
-		$this->assertSame( '6.26.0', $this->deprecations[0][1] );
-		$this->assertStringContainsString( 'get_or_create_user_dual', $this->deprecations[0][2], 'The notice does not name the replacement, which is the only actionable half of it.' );
-	}
 
 	/**
 	 * The path every certificate and appointment now takes must not warn.
@@ -258,206 +235,38 @@ class UserCreatorTest extends TestCase {
 		$this->assertSame( array( 'cpfhash', 'rfhash', 5 ), $adoption[0][1], 'Both hashes and the resolved user travel with it.' );
 	}
 
-	// get_or_create_user() — step 1: existing user_id found via CPF hash
+	// ------------------------------------------------------------------
+	// get_or_create_user_dual() — the only entry point since 6.28.0
 	// ------------------------------------------------------------------
 
-	public function test_get_or_create_user_returns_existing_user_when_cpf_matched(): void {
-		global $wpdb;
-
-		// Allow flexible calls to prepare and get_var
-		$wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-		$wpdb->shouldReceive( 'get_var' )->andReturn( '42' );
-		$wpdb->shouldReceive( 'query' )->andReturn( 0 );
-
-		// grant_context_capabilities → get_userdata returns null (skip grant)
-		Functions\when( 'get_userdata' )->justReturn( null );
-
-		$result = UserCreator::get_or_create_user( 'hash123', 'test@example.com', array() );
-
-		$this->assertSame( 42, $result );
-	}
-
-	public function test_get_or_create_user_links_to_existing_wp_user_by_email(): void {
-		global $wpdb;
-
-		$wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-		$wpdb->shouldReceive( 'get_var' )->andReturn( null );
-		$wpdb->shouldReceive( 'query' )->andReturn( 0 );
-
-		$mock_user = Mockery::mock( 'WP_User' );
-		$mock_user->ID = 55;
-		$mock_user->display_name = 'Existing User';
-		$mock_user->user_login = 'existinguser';
-		$mock_user->shouldReceive( 'add_role' )->with( 'ffc_end_user' )->once();
-
-		Functions\when( 'get_user_by' )->justReturn( $mock_user );
-		Functions\when( 'get_userdata' )->justReturn( null );
-		Functions\when( 'wp_update_user' )->justReturn( 55 );
-		Functions\when( 'update_user_meta' )->justReturn( true );
-
-		$result = UserCreator::get_or_create_user( 'newhash', 'existing@example.com', array() );
-
-		$this->assertSame( 55, $result );
-	}
-
-	public function test_get_or_create_user_creates_new_user_when_email_not_found(): void {
-		global $wpdb;
-
-		$wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-		$wpdb->shouldReceive( 'get_var' )->andReturn( null );
-		$wpdb->shouldReceive( 'query' )->andReturn( 0 );
-		$wpdb->shouldReceive( 'get_results' )->andReturn( array() );
-
-		Functions\when( 'get_user_by' )->justReturn( false );
-		Functions\when( 'wp_generate_password' )->justReturn( 'SecurePass123!' );
-		Functions\when( 'sanitize_user' )->returnArg();
-		Functions\when( 'remove_accents' )->returnArg();
-		Functions\when( 'username_exists' )->justReturn( false );
-		Functions\when( 'wp_create_user' )->justReturn( 100 );
-		Functions\when( 'get_userdata' )->justReturn( null );
-		Functions\when( 'wp_update_user' )->justReturn( 100 );
-		Functions\when( 'update_user_meta' )->justReturn( true );
-		Functions\when( 'wp_new_user_notification' )->justReturn( null );
-
-		$result = UserCreator::get_or_create_user(
-			'brandhash',
-			'brand@new.com',
-			array( 'nome_completo' => 'Brand New User' )
-		);
-
-		$this->assertSame( 100, $result );
-	}
-
-	public function test_get_or_create_user_returns_wp_error_on_create_failure(): void {
-		global $wpdb;
-
-		$wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-		$wpdb->shouldReceive( 'get_var' )->andReturn( null );
-
-		Functions\when( 'get_user_by' )->justReturn( false );
-		Functions\when( 'wp_generate_password' )->justReturn( 'Pass123!' );
-		Functions\when( 'sanitize_user' )->returnArg();
-		Functions\when( 'remove_accents' )->returnArg();
-		Functions\when( 'username_exists' )->justReturn( false );
-
-		$wp_error = new \WP_Error( 'create_failed', 'User creation failed' );
-		Functions\when( 'wp_create_user' )->justReturn( $wp_error );
-
-		$result = UserCreator::get_or_create_user(
-			'failhash',
-			'fail@example.com',
-			array( 'nome_completo' => 'Fail User' )
-		);
-
-		$this->assertInstanceOf( \WP_Error::class, $result );
-	}
-
-	// ------------------------------------------------------------------
-	// get_or_create_user() — capability granting via context
-	// ------------------------------------------------------------------
-
-	public function test_get_or_create_user_grants_appointment_capabilities_for_appointment_context(): void {
+	/**
+	 * Resolving by hash grants the caller's context capabilities.
+	 *
+	 * Carried over from the single-hash entry point removed in 6.28.0
+	 * (#1313): the branch is the same one, and dropping its test with the
+	 * method would have left the grant uncovered on the path that replaced it.
+	 */
+	public function test_resolving_by_hash_grants_the_context_capabilities(): void {
 		global $wpdb;
 
 		$wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
 		$wpdb->shouldReceive( 'get_var' )->andReturn( '42' );
 		$wpdb->shouldReceive( 'query' )->andReturn( 0 );
 
-		$mock_user = Mockery::mock( 'WP_User' );
-		$mock_user->shouldReceive( 'has_cap' )->andReturn( false );
-		$mock_user->shouldReceive( 'add_cap' )->times( 3 ); // 3 appointment caps
-		$mock_user->ID = 42;
-		$mock_user->user_email = 'test@example.com';
+		$mock_user               = Mockery::mock( 'WP_User' );
+		$mock_user->ID           = 42;
+		$mock_user->user_email   = 'test@example.com';
 		$mock_user->display_name = 'Test User';
+		$mock_user->shouldReceive( 'has_cap' )->andReturn( false );
+		$mock_user->shouldReceive( 'add_cap' )->times( 3 );
 
 		Functions\when( 'get_userdata' )->justReturn( $mock_user );
 
-		$result = UserCreator::get_or_create_user( 'hash123', 'test@example.com', array(), 'appointment' );
-
-		$this->assertSame( 42, $result );
+		$this->assertSame(
+			42,
+			UserCreator::get_or_create_user_dual( 'hash123', null, 'test@example.com', array(), 'appointment' )
+		);
 	}
-
-	// ------------------------------------------------------------------
-	// get_or_create_user() — identifier_type parameter
-	// ------------------------------------------------------------------
-
-	public function test_get_or_create_user_accepts_cpf_identifier_type(): void {
-		global $wpdb;
-
-		$wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-		$wpdb->shouldReceive( 'get_var' )->andReturn( '77' );
-		$wpdb->shouldReceive( 'query' )->andReturn( 0 );
-
-		Functions\when( 'get_userdata' )->justReturn( null );
-
-		$result = UserCreator::get_or_create_user( 'cpfhash', 'cpf@example.com', array(), 'certificate', UserCreator::TYPE_CPF );
-
-		$this->assertSame( 77, $result );
-	}
-
-	public function test_get_or_create_user_accepts_rf_identifier_type(): void {
-		global $wpdb;
-
-		$wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-		$wpdb->shouldReceive( 'get_var' )->andReturn( '88' );
-		$wpdb->shouldReceive( 'query' )->andReturn( 0 );
-
-		Functions\when( 'get_userdata' )->justReturn( null );
-
-		$result = UserCreator::get_or_create_user( 'rfhash', 'rf@example.com', array(), 'certificate', UserCreator::TYPE_RF );
-
-		$this->assertSame( 88, $result );
-	}
-
-	// ------------------------------------------------------------------
-	// build_hash_where_clause / build_hash_params — via reflection
-	// ------------------------------------------------------------------
-
-	public function test_build_hash_where_clause_cpf(): void {
-		$method = new \ReflectionMethod( UserCreator::class, 'build_hash_where_clause' );
-		$method->setAccessible( true );
-
-		$clause = $method->invoke( null, UserCreator::TYPE_CPF );
-		$this->assertSame( 'cpf_hash = %s', $clause );
-	}
-
-	public function test_build_hash_where_clause_rf(): void {
-		$method = new \ReflectionMethod( UserCreator::class, 'build_hash_where_clause' );
-		$method->setAccessible( true );
-
-		$clause = $method->invoke( null, UserCreator::TYPE_RF );
-		$this->assertSame( 'rf_hash = %s', $clause );
-	}
-
-	public function test_build_hash_where_clause_auto(): void {
-		$method = new \ReflectionMethod( UserCreator::class, 'build_hash_where_clause' );
-		$method->setAccessible( true );
-
-		$clause = $method->invoke( null, UserCreator::TYPE_AUTO );
-		$this->assertSame( 'cpf_hash = %s OR rf_hash = %s', $clause );
-	}
-
-	public function test_build_hash_params_cpf_returns_one(): void {
-		$method = new \ReflectionMethod( UserCreator::class, 'build_hash_params' );
-		$method->setAccessible( true );
-
-		$params = $method->invoke( null, 'myhash', UserCreator::TYPE_CPF );
-		$this->assertCount( 1, $params );
-		$this->assertSame( array( 'myhash' ), $params );
-	}
-
-	public function test_build_hash_params_auto_returns_two(): void {
-		$method = new \ReflectionMethod( UserCreator::class, 'build_hash_params' );
-		$method->setAccessible( true );
-
-		$params = $method->invoke( null, 'myhash', UserCreator::TYPE_AUTO );
-		$this->assertCount( 2, $params );
-		$this->assertSame( array( 'myhash', 'myhash' ), $params );
-	}
-
-	// ------------------------------------------------------------------
-	// get_or_create_user_dual() — recruitment-style two-hash entry point
-	// ------------------------------------------------------------------
 
 	public function test_dual_returns_wp_error_when_everything_empty(): void {
 		$result = UserCreator::get_or_create_user_dual( null, null, '' );

@@ -152,20 +152,11 @@ class RecordGenerator {
 		 * Filters record template variables before HTML generation.
 		 *
 		 * @since 4.11.0
-		 * @since 6.26.0 Renamed from `ffcertificate_ficha_data`, which stays alive
-		 *               through `apply_filters_deprecated()` (#1264).
-		 * @removal 6.28.0
 		 * @param array  $variables     Template variables.
 		 * @param int    $submission_id Submission ID.
 		 * @param object $submission    Submission object.
 		 * @param object $rereg         Reregistration object.
 		 */
-		$variables = apply_filters_deprecated(
-			'ffcertificate_ficha_data',
-			array( $variables, $submission_id, $submission, $rereg ),
-			'6.26.0',
-			'ffcertificate_record_data'
-		);
 		$variables = apply_filters( 'ffcertificate_record_data', $variables, $submission_id, $submission, $rereg );
 
 		// Branding logo tokens {{logo_gov}} / {{logo_org}} (#865 Phase 2): shared
@@ -211,20 +202,11 @@ class RecordGenerator {
 		 * Filters the generated record HTML.
 		 *
 		 * @since 4.11.0
-		 * @since 6.26.0 Renamed from `ffcertificate_ficha_html`, which stays alive
-		 *               through `apply_filters_deprecated()` (#1264).
-		 * @removal 6.28.0
 		 * @param string $template      Generated HTML.
 		 * @param array  $variables     Template variables.
 		 * @param int    $submission_id Submission ID.
 		 */
-		$html = apply_filters_deprecated(
-			'ffcertificate_ficha_html',
-			array( $template, $variables, $submission_id ),
-			'6.26.0',
-			'ffcertificate_record_html'
-		);
-		$html = apply_filters( 'ffcertificate_record_html', $html, $variables, $submission_id );
+		$html = apply_filters( 'ffcertificate_record_html', $template, $variables, $submission_id );
 
 		// 6.6.11 — standardized filename pattern via the shared helper.
 		// Approved submissions get a real auth_code populated by
@@ -243,19 +225,10 @@ class RecordGenerator {
 		 * Filters the record PDF filename.
 		 *
 		 * @since 4.11.0
-		 * @since 6.26.0 Renamed from `ffcertificate_ficha_filename`, which stays alive
-		 *               through `apply_filters_deprecated()` (#1264).
-		 * @removal 6.28.0
 		 * @param string $filename      Generated filename.
 		 * @param int    $submission_id Submission ID.
 		 * @param object $submission    Submission object.
 		 */
-		$filename = apply_filters_deprecated(
-			'ffcertificate_ficha_filename',
-			array( $filename, $submission_id, $submission ),
-			'6.26.0',
-			'ffcertificate_record_filename'
-		);
 		$filename = apply_filters( 'ffcertificate_record_filename', $filename, $submission_id, $submission );
 
 		return array(
@@ -518,22 +491,13 @@ class RecordGenerator {
 		 * Filters the record template HTML directly, before the bundled file is
 		 * read. A listener — the template-pool resolver (#951 phase 2) — can
 		 * supply the admin-selected record template's HTML; returning '' (the
-		 * default) falls through to the `ffcertificate_ficha_template_file`
+		 * default) falls through to the `ffcertificate_record_template_file`
 		 * path + the bundled default, so nothing changes when unconfigured.
 		 *
 		 * @since 6.20.0
-		 * @since 6.26.0 Renamed from `ffcertificate_ficha_template_html`, which stays
-		 *               alive through `apply_filters_deprecated()` (#1264).
-		 * @removal 6.28.0
 		 * @param string $html Record template HTML ('' = use the file below).
 		 */
-		$pool_html = (string) apply_filters_deprecated(
-			'ffcertificate_ficha_template_html',
-			array( '' ),
-			'6.26.0',
-			'ffcertificate_record_template_html'
-		);
-		$pool_html = (string) apply_filters( 'ffcertificate_record_template_html', $pool_html );
+		$pool_html = (string) apply_filters( 'ffcertificate_record_template_html', '' );
 		if ( '' !== $pool_html ) {
 			return $pool_html;
 		}
@@ -544,17 +508,8 @@ class RecordGenerator {
 		 * Filters the record template file path.
 		 *
 		 * @since 4.11.0
-		 * @since 6.26.0 Renamed from `ffcertificate_ficha_template_file`, which stays
-		 *               alive through `apply_filters_deprecated()` (#1264).
-		 * @removal 6.28.0
 		 * @param string $template_file Template file path.
 		 */
-		$template_file = apply_filters_deprecated(
-			'ffcertificate_ficha_template_file',
-			array( $template_file ),
-			'6.26.0',
-			'ffcertificate_record_template_file'
-		);
 		$template_file = apply_filters( 'ffcertificate_record_template_file', $template_file );
 
 		if ( file_exists( $template_file ) ) {
