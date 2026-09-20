@@ -5008,8 +5008,8 @@ msgid "Countdown timer"
 msgstr "Contagem regressiva"
 
 #: includes/settings/views/ffc-tab-migrations.php:1098
-msgid "Counts are capped at 50 per check (a “+” means there may be more). Hover an account to see how many rows it owns per store. An account marked deleted has no WordPress user behind it — the CSV export reports which foreign keys the database actually enforces, which is what says whether that is expected. The CSV carries ids, counts and a grouping prefix, never anyone's CPF, RF or e-mail. These are leads to investigate, not automatic fixes."
-msgstr "As contagens são limitadas a 50 por verificação (um “+” indica que pode haver mais). Passe o mouse sobre uma conta para ver quantas linhas ela tem em cada origem. Uma conta marcada como excluída não tem usuário do WordPress por trás — a exportação CSV informa quais chaves estrangeiras o banco realmente garante, e é isso que diz se aquilo era esperado. O CSV traz ids, contagens e um prefixo de agrupamento, nunca o CPF, RF ou e-mail de ninguém. São pistas a investigar, não correções automáticas."
+msgid "Counts are capped at 50 per check (a “+” means there may be more). Hover an account to see how many rows it owns per store. An account marked deleted has no WordPress user behind it — the CSV export reports which foreign keys the database actually enforces, which is what says whether that is expected. Reading says whether the account is one person or two; Difference says how that person's two identifiers differ — a typo, or a spelling the canonicaliser does not collapse. The CSV carries ids, counts, a grouping prefix and those two categories, never anyone's CPF, RF or e-mail. These are leads to investigate, not automatic fixes."
+msgstr "As contagens são limitadas a 50 por verificação (um “+” indica que pode haver mais). Passe o mouse sobre uma conta para ver quantas linhas ela tem em cada origem. Uma conta marcada como excluída não tem usuário do WordPress por trás — a exportação CSV informa quais chaves estrangeiras o banco realmente garante, e é isso que diz se aquilo era esperado. Leitura diz se a conta é uma pessoa ou duas; Diferença diz como os dois identificadores dessa pessoa diferem — um erro de digitação, ou uma grafia que o canonicalizador não unifica. O CSV traz ids, contagens, um prefixo de agrupamento e essas duas categorias, nunca o CPF, RF ou e-mail de ninguém. São pistas a investigar, não correções automáticas."
 
 #: includes/admin/class-ffc-preflight-stats-service.php:141
 msgid "Counts visitors who hit a pre-flight banner on this form (last 30 days). High numbers may indicate a setup issue — e.g. GPS denied dominating means visitors can't pass the geofence, cookie wall dominating means cached HTML is being served with wrong nonces."
@@ -22054,6 +22054,10 @@ msgstr "Origens"
 #: includes/settings/views/ffc-tab-migrations.php:1057
 msgid "Reading"
 msgstr "Leitura"
+
+#: includes/settings/views/ffc-tab-migrations.php:1058
+msgid "Difference"
+msgstr "Diferença"
 
 #: includes/settings/views/ffc-tab-migrations.php:1079
 msgid "#%s (deleted)"

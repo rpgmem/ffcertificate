@@ -1030,6 +1030,9 @@ try {
 								'verdict'  => isset( $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_EMAIL_VERDICT ] )
 									? (string) $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_EMAIL_VERDICT ]
 									: '',
+								'shape'    => isset( $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_SHAPE_VERDICT ] )
+									? (string) $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_SHAPE_VERDICT ]
+									: '',
 								'stores'   => isset( $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_STORES ] )
 									? (string) $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_STORES ]
 									: '',
@@ -1055,6 +1058,7 @@ try {
 										<th scope="col"><?php esc_html_e( 'Accounts', 'ffcertificate' ); ?></th>
 										<th scope="col"><?php esc_html_e( 'Stores', 'ffcertificate' ); ?></th>
 										<th scope="col"><?php esc_html_e( 'Reading', 'ffcertificate' ); ?></th>
+										<th scope="col"><?php esc_html_e( 'Difference', 'ffcertificate' ); ?></th>
 									</tr>
 								</thead>
 								<tbody>
@@ -1088,6 +1092,7 @@ try {
 										</td>
 										<td><?php echo esc_html( $ffcertificate_sa_find['stores'] ); ?></td>
 										<td><?php echo esc_html( $ffcertificate_sa_find['verdict'] ); ?></td>
+										<td><?php echo esc_html( $ffcertificate_sa_find['shape'] ); ?></td>
 									</tr>
 								<?php endforeach; ?>
 								</tbody>
@@ -1095,7 +1100,7 @@ try {
 						</details>
 					<?php endif; ?>
 					<p class="description ffc-set-mt-10">
-						<?php esc_html_e( 'Counts are capped at 50 per check (a “+” means there may be more). Hover an account to see how many rows it owns per store. An account marked deleted has no WordPress user behind it — the CSV export reports which foreign keys the database actually enforces, which is what says whether that is expected. The CSV carries ids, counts and a grouping prefix, never anyone\'s CPF, RF or e-mail. These are leads to investigate, not automatic fixes.', 'ffcertificate' ); ?>
+						<?php esc_html_e( 'Counts are capped at 50 per check (a “+” means there may be more). Hover an account to see how many rows it owns per store. An account marked deleted has no WordPress user behind it — the CSV export reports which foreign keys the database actually enforces, which is what says whether that is expected. Reading says whether the account is one person or two; Difference says how that person\'s two identifiers differ — a typo, or a spelling the canonicaliser does not collapse. The CSV carries ids, counts, a grouping prefix and those two categories, never anyone\'s CPF, RF or e-mail. These are leads to investigate, not automatic fixes.', 'ffcertificate' ); ?>
 					</p>
 				<?php endif; ?>
 			<?php endif; ?>

@@ -5002,7 +5002,7 @@ msgid "Countdown timer"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:1098
-msgid "Counts are capped at 50 per check (a “+” means there may be more). Hover an account to see how many rows it owns per store. An account marked deleted has no WordPress user behind it — the CSV export reports which foreign keys the database actually enforces, which is what says whether that is expected. The CSV carries ids, counts and a grouping prefix, never anyone's CPF, RF or e-mail. These are leads to investigate, not automatic fixes."
+msgid "Counts are capped at 50 per check (a “+” means there may be more). Hover an account to see how many rows it owns per store. An account marked deleted has no WordPress user behind it — the CSV export reports which foreign keys the database actually enforces, which is what says whether that is expected. Reading says whether the account is one person or two; Difference says how that person's two identifiers differ — a typo, or a spelling the canonicaliser does not collapse. The CSV carries ids, counts, a grouping prefix and those two categories, never anyone's CPF, RF or e-mail. These are leads to investigate, not automatic fixes."
 msgstr ""
 
 #: includes/admin/class-ffc-preflight-stats-service.php:141
@@ -21962,6 +21962,10 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:1057
 msgid "Reading"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-migrations.php:1058
+msgid "Difference"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:1079

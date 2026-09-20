@@ -399,6 +399,89 @@ class IdentityAuditExportSourceTest extends TestCase {
 	}
 
 	/**
+	 * How the two identifiers differ travels to its own column too.
+	 *
+	 * Beside `email_verdict` and not inside it, because they answer different
+	 * questions: that one separates one person from two, and this one
+	 * separates the two readings that remain once the answer is "one person"
+	 * — a typo, whose rows stay linked, from a spelling the canonicaliser does
+	 * not collapse. Measured on production, 71 of the 73 findings sit in that
+	 * bucket, so this column is what 97% of them turns on (#1345).
+	 */
+	public function test_the_identifier_shape_travels_to_its_own_column(): void {
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'cross_store_multiple_identities' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array(
+							array(
+								'subject' => 438,
+								IdentityConflictQuery::ALIAS_IDENTITY_COUNT => 2,
+								IdentityConflictQuery::COLUMN_EMAIL_VERDICT => IdentityConflictQuery::VERDICT_SHARED_EMAIL,
+								IdentityConflictQuery::COLUMN_SHAPE_VERDICT => IdentityConflictQuery::SHAPE_SINGLE_DIGIT_EDIT,
+								'identifier_column' => 'rf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$row = $this->rows( $source )[0];
+
+		$this->assertSame( IdentityConflictQuery::SHAPE_SINGLE_DIGIT_EDIT, $row['identifier_shape'] );
+		$this->assertSame(
+			IdentityConflictQuery::VERDICT_SHARED_EMAIL,
+			$row['email_verdict'],
+			'The two verdicts must not overwrite each other: they are adjacent columns answering different questions.'
+		);
+	}
+
+	/**
+	 * The file carries categories and ids, never an identifier.
+	 *
+	 * The whole pass decrypts, so this is the property that makes it
+	 * publishable at all: what reaches the CSV is a `SHAPE_*` word and never
+	 * a value, a length or a position — a position beside a distance would
+	 * narrow the unseen half of a pair to a handful of candidates (#1345).
+	 */
+	public function test_the_shape_column_carries_no_identifier(): void {
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'cross_store_multiple_identities' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array(
+							array(
+								'subject' => 438,
+								IdentityConflictQuery::ALIAS_IDENTITY_COUNT => 2,
+								IdentityConflictQuery::COLUMN_SHAPE_VERDICT => IdentityConflictQuery::SHAPE_TRANSPOSITION,
+								'identifier_column' => 'rf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$shape = (string) $this->rows( $source )[0]['identifier_shape'];
+
+		$this->assertSame( IdentityConflictQuery::SHAPE_TRANSPOSITION, $shape );
+		$this->assertDoesNotMatchRegularExpression(
+			'/\d/',
+			$shape,
+			'A digit in this column is an identifier leaking through a verdict that promised never to carry one.'
+		);
+	}
+
+	/**
 	 * A check that cannot have a verdict leaves the column empty, not absent.
 	 *
 	 * A row narrower than the header is a broken CSV, so "no verdict" has to
