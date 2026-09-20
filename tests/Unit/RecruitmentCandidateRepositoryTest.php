@@ -156,6 +156,86 @@ class RecruitmentCandidateRepositoryTest extends TestCase {
 		$this->assertArrayNotHasKey( 'pcd_hash', $captured, 'PCD value is CSV-only per §12' );
 	}
 
+	/**
+	 * Every unlinked candidacy carrying the hash is claimed, not one.
+	 *
+	 * One person applying to two positions is two rows under the same
+	 * identifier — legitimate, and the reason `COUNT(DISTINCT)` does not flag
+	 * it as a conflict. A `LIMIT 1` here would adopt one candidacy and leave
+	 * its sibling orphaned (#1345).
+	 */
+	public function test_link_orphans_claims_every_matching_row(): void {
+		$statements = array();
+
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( '7', '9', '11' ) );
+		$this->wpdb->shouldReceive( 'query' )->once()->andReturnUsing(
+			function ( $sql ) use ( &$statements ) {
+				$statements[] = (string) $sql;
+				return 3;
+			}
+		);
+
+		$claimed = RecruitmentCandidateWriter::link_orphans_by_hash( 'cpfhash', 'rfhash', 100 );
+
+		$this->assertSame( 3, $claimed );
+		$this->assertNotEmpty( $statements );
+		$this->assertStringNotContainsStringIgnoringCase( 'limit', $statements[0], 'Claiming one row would orphan its sibling candidacy.' );
+		$this->assertStringContainsString( 'user_id IS NULL', $statements[0], 'A candidacy already linked to somebody is never taken.' );
+	}
+
+	/**
+	 * Each claimed row's cached copy is dropped.
+	 *
+	 * `RecruitmentCandidateReader::get_by_id()` caches under `id_<id>`, so a
+	 * bulk `UPDATE` alone leaves a cached row still claiming no user —
+	 * invisible without a persistent object cache and permanent with one.
+	 * Reading the ids before the write is what makes this possible, and it is
+	 * why the method lives here rather than as SQL issued by the caller: the
+	 * cache group is this class's own.
+	 */
+	public function test_link_orphans_invalidates_each_claimed_row(): void {
+		$deleted = array();
+		Functions\when( 'wp_cache_delete' )->alias(
+			function ( $key, $group = '' ) use ( &$deleted ) {
+				$deleted[] = $key;
+				return true;
+			}
+		);
+
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( '7', '9' ) );
+		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 2 );
+
+		RecruitmentCandidateWriter::link_orphans_by_hash( null, 'rfhash', 100 );
+
+		$this->assertSame( array( 'id_7', 'id_9' ), $deleted );
+	}
+
+	/**
+	 * Nothing matching means no write at all.
+	 */
+	public function test_link_orphans_writes_nothing_when_no_row_matches(): void {
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array() );
+		$this->wpdb->shouldNotReceive( 'query' );
+
+		$this->assertSame( 0, RecruitmentCandidateWriter::link_orphans_by_hash( 'cpfhash', null, 100 ) );
+	}
+
+	/**
+	 * A call with nothing to match on never reaches the database.
+	 *
+	 * Both hashes empty would build an empty `WHERE`, and a missing user id
+	 * would write a link to nobody — either one claims every orphan in the
+	 * table.
+	 */
+	public function test_link_orphans_refuses_a_call_it_cannot_scope(): void {
+		$this->wpdb->shouldNotReceive( 'get_col' );
+		$this->wpdb->shouldNotReceive( 'query' );
+
+		$this->assertSame( 0, RecruitmentCandidateWriter::link_orphans_by_hash( null, null, 100 ) );
+		$this->assertSame( 0, RecruitmentCandidateWriter::link_orphans_by_hash( '', '', 100 ) );
+		$this->assertSame( 0, RecruitmentCandidateWriter::link_orphans_by_hash( 'cpfhash', 'rfhash', 0 ) );
+	}
+
 	public function test_set_user_id_writes_link(): void {
 		$captured = array();
 		$this->wpdb->shouldReceive( 'update' )

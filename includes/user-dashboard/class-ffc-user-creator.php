@@ -229,7 +229,9 @@ class UserCreator {
 	 * this class's own `link_orphaned_records_dual()` happily ADOPTS an
 	 * appointment row once the user is identified some other way — so the
 	 * plugin declines to RECOGNISE someone it is willing to adopt a record for
-	 * a moment later. That asymmetry is #1295's, not this PR's: widening to
+	 * a moment later. Since #1345 a candidacy IS adopted, through the
+	 * `ffc_adopt_orphaned_identity_records` action fired below; recognition
+	 * still consults neither. That asymmetry is #1295's, not this PR's: widening to
 	 * them means a `SHOW TABLES` probe per lookup on a path every certificate
 	 * submission takes, and it should be decided with that cost measured
 	 * rather than folded into a change about the index.
@@ -412,6 +414,30 @@ class UserCreator {
 				CapabilityManager::grant_appointment_capabilities( $user_id );
 			}
 		}
+
+		/**
+		 * Let other modules claim their own unlinked records for this person.
+		 *
+		 * This class adopts submissions and appointments directly, because
+		 * both live in `Repositories`. A candidacy does not: its writer is in
+		 * the recruitment module, which already depends on THIS one, so
+		 * calling it from here would close a cycle between the two. The
+		 * action inverts that -- the same reasoning the CSV export registry
+		 * uses to keep Core from naming a feature class (#1345).
+		 *
+		 * Registered by `Loader::init_plugin()` rather than by
+		 * `RecruitmentLoader`, deliberately: that loader is gated on the
+		 * Modules-tab toggle, and an adoption that a toggle can skip leaves a
+		 * candidacy orphaned with nothing to ever claim it -- the same reason
+		 * the recruitment SCHEMA and role registration were relocated to the
+		 * orchestrator.
+		 *
+		 * @since 6.28.0
+		 * @param string|null $cpf_hash CPF hash, or null.
+		 * @param string|null $rf_hash  RF hash, or null.
+		 * @param int         $user_id  The resolved WP user.
+		 */
+		do_action( 'ffc_adopt_orphaned_identity_records', $cpf_hash, $rf_hash, $user_id );
 
 		self::feed_identity_index( $cpf_hash, $rf_hash, $user_id );
 	}

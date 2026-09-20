@@ -9,6 +9,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **A recruitment candidacy is adopted when its person is recognised** (#1345): resolving someone already claimed their unlinked submissions and appointments, and never their candidacies — while account deletion happily dropped that same link. So the plugin could detach a candidacy and never restore it, and orphaning one was permanent loss; fifteen of the 73 conflicting accounts measured in production touch that table, two of them only. Every matching row is claimed, not one, because applying to two positions is two rows under one identifier.
+
 - **The audit says whether a multi-identifier account is one person or two** (#1345): a person holds one CPF and one RF, so an account carrying two of either is two people, one mistyped value, or one value spelled two ways — and the first is an exposure while the others are not. No hash can tell them apart, but the `email_hash` stored beside each identifier can: two identifiers used from one address is one person typing, an address each is two people. Reported as `email_verdict` on the export, with `unknown` kept separate from `distinct_emails` because a missing address is not evidence of a second person.
 
 ### Fixed

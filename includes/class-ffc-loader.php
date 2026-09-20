@@ -203,6 +203,25 @@ class Loader {
 			\FreeFormCertificate\Recruitment\RecruitmentActivator::maybe_migrate();
 		}
 
+		// Recruitment adoption — orchestrator-level for the SAME reason as the
+		// schema above. `UserCreator::link_orphaned_records_dual()` fires this
+		// action whenever a person is resolved; the recruitment writer claims
+		// their unlinked candidacies. It cannot live in `RecruitmentLoader`:
+		// that loader is gated on the Modules-tab toggle, and an adoption a
+		// toggle can skip leaves a candidacy orphaned with nothing to ever
+		// claim it -- `UserCleanup` will still NULL the link on deletion
+		// either way. Nor can `UserCreator` call the writer directly:
+		// `Recruitment > UserDashboard` already exists, so that would close a
+		// cycle (#1345).
+		if ( class_exists( '\FreeFormCertificate\Recruitment\RecruitmentCandidateWriter' ) ) {
+			add_action(
+				'ffc_adopt_orphaned_identity_records',
+				array( '\FreeFormCertificate\Recruitment\RecruitmentCandidateWriter', 'adopt_orphaned_identity_records' ),
+				10,
+				3
+			);
+		}
+
 		// Shared classes (needed in both admin and frontend contexts).
 		$this->submission_handler = new SubmissionHandler();
 		$this->email_handler      = new EmailHandler();
