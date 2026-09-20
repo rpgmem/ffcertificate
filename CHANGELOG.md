@@ -14,6 +14,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **The audit screen lists the accounts behind its counts, and they are clickable** (#1354): it showed seven numbers and nothing else, so reaching an account meant exporting the CSV and searching for the id by hand. Hovering one says how many rows it owns per store.
+- **The four vendored JavaScript bundles are frozen against an inventory** (#1208): nothing that ships is in a manifest, so no Dependabot alert can reach them and a fifth one arriving was detected by nobody. CI now fails on that, and on a filename that stops matching its version constant.
 
 ### Fixed
 
