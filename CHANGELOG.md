@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security
+
+- **The ALTCHA challenge expiry is now signed** (#1357): the signature covered only the hash, which covers `salt . number` — a boundary an attacker moves by shifting a digit from the counter into `expires`, leaving the concatenation identical. Proofs verified centuries past expiry; the parsed value is now signed beside the hash.
+
 ### Added
 
 - **The audit screen lists the accounts behind its counts, and they are clickable** (#1354): it showed seven numbers and nothing else, so reaching an account meant exporting the CSV and searching for the id by hand. Hovering one says how many rows it owns per store.

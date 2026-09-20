@@ -10,7 +10,12 @@
  * option: there is nothing to create on activation, nothing to declare in
  * `uninstall.php`, and nothing for the fresh-install manifest gate to
  * reconcile. Rotating the site salts invalidates challenges already in
- * flight, which is harmless at the ten-minute lifetime they carry.
+ * flight, which is bounded by whatever lifetime they carry -- and that is
+ * `CaptchaSettings::ttl()`, an administrator setting, not the ten minutes
+ * this line used to state as though it were a property of the code. The
+ * ceiling is `CaptchaSettings::TTL_MAX`; naming the owner rather than the
+ * number is what stops this sentence going stale the next time the bound
+ * moves.
  *
  * @package FreeFormCertificate\Core\Captcha
  * @since 6.23.0

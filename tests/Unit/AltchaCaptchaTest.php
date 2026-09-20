@@ -137,6 +137,116 @@ class AltchaCaptchaTest extends TestCase {
 	}
 
 	// ==================================================================
+	// create_challenge() — the expiry is signed (#1357)
+	// ==================================================================
+
+	/**
+	 * Re-splitting the salt/number boundary must not move the expiry.
+	 *
+	 * This is CVE-2025-68113 in our own reimplementation, inverted into a
+	 * test. `challenge` binds `salt . number`, and the boundary between the
+	 * two is not fixed, so moving one digit from the front of `number` onto
+	 * the end of `expires` leaves the concatenation IDENTICAL byte for byte:
+	 * the hash still matches, and so does any signature taken over the hash
+	 * alone. Only the parsed expiry changes — by a factor of ten.
+	 *
+	 * No preimage is involved. The attacker does not change the hashed string
+	 * at all; they change where it is cut. That is why the fix is to bind the
+	 * parsed expiry into the signature rather than to harden the hash.
+	 */
+	public function test_a_spliced_expiry_is_refused(): void {
+		$provider = new AltchaCaptcha();
+
+		// The splice needs a digit to donate, so the secret must have at
+		// least two. It is drawn at random, so this retries rather than
+		// asserting the precondition: a one-in-twenty-thousand red is a flake,
+		// and this project does not accept a flaky test as a cost of doing
+		// business.
+		$challenge = null;
+		$number    = null;
+		for ( $attempt = 0; $attempt < 8 && null === $number; $attempt++ ) {
+			$candidate = AltchaCaptcha::create_challenge();
+			$solution  = $this->secret_of( $candidate );
+
+			if ( null !== $solution && strlen( $solution ) > 1 ) {
+				$challenge = $candidate;
+				$number    = $solution;
+			}
+		}
+
+		$this->assertNotNull( $number, 'No challenge in eight draws carried a multi-digit secret, which the work factor makes all but impossible.' );
+
+		$salt   = (string) $challenge['salt'];
+		$prefix = substr( $salt, 0, (int) strpos( $salt, '?' ) );
+		$issued = (string) $this->expires_in( $salt );
+
+		// Move exactly one digit across the boundary. The concatenation is
+		// unchanged, which is the whole trick.
+		$tail    = $issued . $number;
+		$forged  = substr( $tail, 0, strlen( $issued ) + 1 );
+		$rest    = substr( $tail, strlen( $issued ) + 1 );
+		$spliced = $prefix . '?expires=' . $forged;
+
+		$this->assertSame(
+			$salt . $number,
+			$spliced . $rest,
+			'The forged split must reproduce the original concatenation, or this test is not exercising the flaw.'
+		);
+		$this->assertGreaterThan(
+			(int) $issued,
+			(int) $forged,
+			'The forged expiry must be further in the future than the one issued.'
+		);
+
+		$result = $provider->verify(
+			array(
+				AltchaCaptcha::FIELD => $this->encode(
+					array(
+						'algorithm' => $challenge['algorithm'],
+						'challenge' => $challenge['challenge'],
+						'number'    => $rest,
+						'salt'      => $spliced,
+						'signature' => $challenge['signature'],
+						'took'      => 12,
+					)
+				),
+			)
+		);
+
+		$this->assertIsString( $result, 'A spliced expiry must be refused: the signature binds the parsed expiry, not the hash alone.' );
+	}
+
+	/**
+	 * The secret number behind a challenge, found the way the widget finds it.
+	 *
+	 * @param array<string, mixed> $challenge Challenge as issued.
+	 * @return string|null Decimal string, or null when unsolvable as issued.
+	 */
+	private function secret_of( array $challenge ): ?string {
+		$salt = (string) $challenge['salt'];
+
+		for ( $n = 0; $n <= (int) $challenge['maxnumber']; $n++ ) {
+			if ( hash( 'sha256', $salt . (string) $n ) === $challenge['challenge'] ) {
+				return (string) $n;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * The expiry a salt carries, read the way the provider reads it.
+	 *
+	 * @param string $salt Salt as issued.
+	 * @return int
+	 */
+	private function expires_in( string $salt ): int {
+		parse_str( explode( '?', $salt, 2 )[1], $params );
+
+		return (int) $params['expires'];
+	}
+
+	// ==================================================================
 	// verify() — single use
 	// ==================================================================
 

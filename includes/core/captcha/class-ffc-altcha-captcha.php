@@ -95,10 +95,22 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 	 * to this site is the signature; what bounds its life is the `expires`
 	 * parameter carried inside the salt.
 	 *
-	 * The salt is not signed directly, and does not need to be: `challenge`
-	 * is the hash of salt plus secret number, so editing the salt — to push
-	 * the expiry out, say — breaks the solution check unless the attacker can
-	 * find a preimage.
+	 * THE EXPIRY IS SIGNED, AND SIGNING ONLY THE HASH WAS NOT ENOUGH
+	 *
+	 * This used to sign `challenge` alone, reasoning that editing the salt to
+	 * push the expiry out would break the solution check unless the attacker
+	 * could find a preimage. That was wrong, and it is the flaw ALTCHA
+	 * published upstream as CVE-2025-68113: no preimage is needed, because
+	 * the attacker does not change the hashed string at all — they change
+	 * where it is CUT. `challenge` binds `salt . number`, and the boundary
+	 * between the two is not fixed, so moving one digit from the front of
+	 * `number` onto the end of `expires` leaves the concatenation identical
+	 * byte for byte. The hash matches, the signature over it matches, and
+	 * `expiry_of()` parses a timestamp centuries away (#1357).
+	 *
+	 * So the signature binds the PARSED expiry beside the hash, with a
+	 * delimiter that neither field can contain. A re-split changes the parsed
+	 * value, which changes the signed payload, which fails the signature.
 	 *
 	 * @return array<string, mixed> Challenge in ALTCHA's v1 wire format.
 	 */
@@ -118,7 +130,7 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 			// ALTCHA clients still read it.
 			'maxnumber' => $complexity,
 			'salt'      => $salt,
-			'signature' => ChallengeSigner::sign( $hash ),
+			'signature' => ChallengeSigner::sign( self::signed_payload( $hash, $expires ) ),
 		);
 	}
 
@@ -333,7 +345,16 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 			return $generic;
 		}
 
-		if ( ! ChallengeSigner::matches( $payload['challenge'], $payload['signature'] ) ) {
+		// The expiry is parsed BEFORE the signature is checked, because it is
+		// part of what the signature binds (#1357). A salt carrying no usable
+		// `expires` is refused as a forgery rather than as an expiry: we never
+		// issued one, so telling the visitor it ran out would be a lie.
+		$expires = $this->expiry_of( $payload['salt'] );
+		if ( null === $expires ) {
+			return $generic;
+		}
+
+		if ( ! ChallengeSigner::matches( self::signed_payload( $payload['challenge'], $expires ), $payload['signature'] ) ) {
 			return $generic;
 		}
 
@@ -341,8 +362,7 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 			return $generic;
 		}
 
-		$expires = $this->expiry_of( $payload['salt'] );
-		if ( null === $expires || $expires <= time() ) {
+		if ( $expires <= time() ) {
 			return \__( 'Error: The verification expired. Please try again.', 'ffcertificate' );
 		}
 
@@ -403,6 +423,43 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 			'salt'      => $decoded['salt'],
 			'signature' => $decoded['signature'],
 		);
+	}
+
+	/**
+	 * What the signature binds: the challenge hash and the expiry it was
+	 * issued with.
+	 *
+	 * ONE METHOD BECAUSE BOTH SIDES MUST COMPOSE IT IDENTICALLY
+	 *
+	 * Issuing and verifying building this string separately is how the two
+	 * drift, and a drift here does not fail loudly — it rejects every
+	 * legitimate visitor while still accepting nothing, which looks like a
+	 * widget problem rather than a signing one.
+	 *
+	 * The delimiter is what makes the binding unambiguous, and its absence is
+	 * the whole of CVE-2025-68113. `|` cannot appear in either field — the
+	 * hash is lowercase hex and the expiry is `^\d+$`, checked by
+	 * {@see self::expiry_of()} before this is ever composed on the verifying
+	 * side — so there is exactly one way to read the result.
+	 *
+	 * THE SHAPE IS THE MATH STRATEGY'S, WHICH HAD IT RIGHT FIRST
+	 *
+	 * `SecurityService::payload()` has always composed `math|answer|expires|
+	 * nonce` — every field delimited, and the strategy named up front. This
+	 * path went wrong by reusing a HASH as the signed payload, which looks
+	 * safe because a digest is fixed-length and is not, because what the
+	 * digest itself covers is not. The leading `altcha|` makes the domain
+	 * separation explicit rather than incidental: today a math payload and an
+	 * ALTCHA one cannot collide only because 64 hex characters never spell
+	 * `math`, which is an accident to rely on and a trap for whoever adds a
+	 * third strategy.
+	 *
+	 * @param string $hash    Challenge hash.
+	 * @param int    $expires Unix UTC timestamp the challenge dies at.
+	 * @return string Canonical payload for {@see ChallengeSigner}.
+	 */
+	private static function signed_payload( string $hash, int $expires ): string {
+		return self::ID . '|' . $hash . '|' . (string) $expires;
 	}
 
 	/**
