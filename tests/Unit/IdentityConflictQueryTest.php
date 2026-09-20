@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -551,10 +552,7 @@ class IdentityConflictQueryTest extends TestCase {
 	 * reader takes for "fine". An empty result must never read as clean.
 	 */
 	public function test_account_facts_seed_missing_and_only_wp_users_lifts_it(): void {
-		global $wpdb;
-		$wpdb->users = 'wp_users';
-
-		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array( '355' ) );
+		Functions\when( 'get_users' )->justReturn( array( '355' ) );
 		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
 
 		$facts = ( new IdentityConflictQuery() )->account_facts( array( 355, 5276 ) );
@@ -575,10 +573,7 @@ class IdentityConflictQueryTest extends TestCase {
 	 * carrying the identifier the finding is about.
 	 */
 	public function test_account_facts_report_rows_per_store(): void {
-		global $wpdb;
-		$wpdb->users = 'wp_users';
-
-		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array( '355' ) );
+		Functions\when( 'get_users' )->justReturn( array( '355' ) );
 		$this->wpdb->shouldReceive( 'get_results' )->andReturn(
 			array(
 				array( 'user_id' => '355', 'src' => 'submissions', 'n' => '3' ),
@@ -604,13 +599,10 @@ class IdentityConflictQueryTest extends TestCase {
 	 * one `IN` list, and the counts are a single `UNION ALL`.
 	 */
 	public function test_account_facts_ask_in_one_statement_per_question(): void {
-		global $wpdb;
-		$wpdb->users = 'wp_users';
-
-		$cols = array();
-		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing(
-			function ( $query ) use ( &$cols ) {
-				$cols[] = (string) $query;
+		$asked = array();
+		Functions\when( 'get_users' )->alias(
+			function ( $args ) use ( &$asked ) {
+				$asked[] = $args;
 				return array();
 			}
 		);
@@ -625,9 +617,14 @@ class IdentityConflictQueryTest extends TestCase {
 
 		( new IdentityConflictQuery() )->account_facts( array( 1, 2, 3 ) );
 
-		$this->assertCount( 1, $cols, 'Existence is one statement for the whole chunk.' );
-		$this->assertStringContainsString( 'FROM wp_users', $cols[0] );
-		$this->assertStringContainsString( 'ID IN (1, 2, 3)', $cols[0] );
+		$this->assertCount( 1, $asked, 'Existence is one call for the whole set, bounded by `include`.' );
+		$this->assertSame( array( 1, 2, 3 ), $asked[0]['include'] );
+		$this->assertSame( 'ID', $asked[0]['fields'] );
+
+		// Load-bearing, not tidy: the default scopes the query to users with a
+		// role on the CURRENT site, so on multisite a live account with no
+		// role here would be reported as deleted.
+		$this->assertSame( 0, $asked[0]['blog_id'] );
 
 		$this->assertCount( 1, $seen, 'The counts are one statement for the whole chunk.' );
 		$this->assertStringContainsString( 'UNION ALL', $seen[0] );
@@ -644,10 +641,7 @@ class IdentityConflictQueryTest extends TestCase {
 	 * before any statement runs.
 	 */
 	public function test_account_facts_ignore_what_is_not_an_account(): void {
-		global $wpdb;
-		$wpdb->users = 'wp_users';
-
-		$this->wpdb->shouldReceive( 'get_col' )->never();
+		Functions\expect( 'get_users' )->never();
 		$this->wpdb->shouldReceive( 'get_results' )->never();
 
 		$this->assertSame( array(), ( new IdentityConflictQuery() )->account_facts( array( 0, -3, '', 'abc' ) ) );

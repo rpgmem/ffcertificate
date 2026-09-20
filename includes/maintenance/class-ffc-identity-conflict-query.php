@@ -444,15 +444,25 @@ class IdentityConflictQuery {
 	 * What is true of each account a finding names: does it exist, and how
 	 * much data hangs off it.
 	 *
-	 * TWO STATEMENTS PER CHUNK, NOT TWO PER ACCOUNT
+	 * ONE STATEMENT PER QUESTION, NOT FIVE PER ACCOUNT
 	 *
 	 * The obvious shape -- ask `wp_users` once per id, then `COUNT(*)` once
 	 * per id per store -- is 5 statements an account, or 360 for the 72 the
-	 * first production export named. Both questions are set questions, so both
-	 * are one `IN` list: existence is a single `SELECT ID`, and the counts are
-	 * one `UNION ALL` grouping by account and store. That is the same union
-	 * the rest of this class already builds, widened to count rows instead of
-	 * pairing identifiers.
+	 * first production export named. Both questions are set questions, so
+	 * both are asked once: existence through `get_users()` bounded by
+	 * `include`, and the counts as one `UNION ALL` grouping by account and
+	 * store. That second one is the same union the rest of this class already
+	 * builds, widened to count rows instead of pairing identifiers.
+	 *
+	 * EXISTENCE GOES THROUGH THE WP API, AND `blog_id` IS WHY IT IS NOT SQL
+	 *
+	 * A hand-rolled `SELECT ID FROM wp_users` is what `PhpcsSuppressionTest`
+	 * refuses in a file carrying a `DirectDatabaseQuery` disable, and it is
+	 * right to: the sniff has something real to say here, because core owns
+	 * that table. `get_users()` answers the same question -- and `blog_id => 0`
+	 * is load-bearing rather than tidy, since the default scopes the query to
+	 * users holding a role on the CURRENT site, which on multisite would
+	 * report a live account as deleted.
 	 *
 	 * The counts are of EVERY row the account owns in a store, not only the
 	 * rows carrying the identifier the finding is about. The question they
@@ -491,30 +501,31 @@ class IdentityConflictQuery {
 			);
 		}
 
+		$found = get_users(
+			array(
+				'include'     => $ids,
+				'fields'      => 'ID',
+				'blog_id'     => 0,
+				'number'      => count( $ids ),
+				'count_total' => false,
+			)
+		);
+
+		foreach ( (array) $found as $id ) {
+			$id = is_numeric( $id ) ? (int) $id : 0;
+			if ( isset( $out[ $id ] ) ) {
+				$out[ $id ]['status'] = self::STATUS_EXISTS;
+			}
+		}
+
 		$stores = $this->stores();
+
+		if ( array() === $stores ) {
+			return $out;
+		}
 
 		foreach ( array_chunk( $ids, self::USERS_PER_STATEMENT ) as $chunk ) {
 			$slots = implode( ', ', array_fill( 0, count( $chunk ), '%d' ) );
-
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- `$slots` is `%d` placeholders counted off `$chunk`, never request data; the table travels as `%i`. WordPress exposes no API that answers "which of these ids exist" in one statement, and an audit read must reflect the live rows rather than a cache.
-			$found = $wpdb->get_col(
-				$wpdb->prepare(
-					"SELECT ID FROM %i WHERE ID IN ({$slots})",
-					...array_merge( array( $wpdb->users ), $chunk )
-				)
-			);
-			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-
-			foreach ( (array) $found as $id ) {
-				$id = is_numeric( $id ) ? (int) $id : 0;
-				if ( isset( $out[ $id ] ) ) {
-					$out[ $id ]['status'] = self::STATUS_EXISTS;
-				}
-			}
-
-			if ( array() === $stores ) {
-				continue;
-			}
 
 			$parts  = array();
 			$values = array();
