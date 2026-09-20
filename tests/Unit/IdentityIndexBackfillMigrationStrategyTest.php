@@ -107,6 +107,25 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 			}
 		)->byDefault();
 
+		// The status counter: one statement answering both numbers. `cursor_in()`
+		// reads the FIRST `user_id > N` in the text, which is the conditional
+		// count's own bound -- the union below it is always built at 0 now, so
+		// one scan serves both figures.
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				$sql = (string) $sql;
+
+				if ( ! str_contains( $sql, 'AS beyond' ) ) {
+					return null;
+				}
+
+				return array(
+					'total'  => (string) count( $this->users_after( 0 ) ),
+					'beyond' => (string) count( $this->users_after( $this->cursor_in( $sql ) ) ),
+				);
+			}
+		)->byDefault();
+
 		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
 			function ( $sql ) {
 				$sql = (string) $sql;
@@ -382,6 +401,50 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 		$this->assertTrue( $result['success'] );
 		$this->assertSame( 0, $result['processed'] );
 		$this->assertTrue( $this->strategy()->calculate_status( '', array() )['is_complete'] );
+	}
+
+	/**
+	 * A user linked after the walk finished re-arms the card.
+	 *
+	 * This is the whole point of the change. The card used to latch on a
+	 * stored `completed` boolean and answer 100% WITHOUT counting, so the walk
+	 * finishing once made it complete forever -- the only migration in the
+	 * plugin that could not tell on its own whether there was work to do.
+	 * Nothing here writes that flag any more, and nothing reads it.
+	 */
+	public function test_a_user_linked_after_the_walk_re_arms_the_card(): void {
+		$this->source = array( 1 => array( 'cpf_hash' => array( 'a' ) ) );
+
+		// Walk to the end: the batch runs, then an empty one finishes it.
+		$this->strategy()->execute( '', array(), 0 );
+		$this->strategy()->execute( '', array(), 0 );
+
+		$this->assertTrue(
+			$this->strategy()->calculate_status( '', array() )['is_complete'],
+			'The walk reached the end, so the card should read complete.'
+		);
+
+		// Somebody transacts and is linked with a higher id.
+		$this->source[9] = array( 'cpf_hash' => array( 'b' ) );
+
+		$status = $this->strategy()->calculate_status( '', array() );
+
+		$this->assertFalse( $status['is_complete'], 'A latched card would still claim complete here.' );
+		$this->assertSame( 1, $status['pending'] );
+		$this->assertSame( 2, $status['total'] );
+	}
+
+	/**
+	 * Completion is never recorded, so nothing can disagree with the data.
+	 */
+	public function test_finishing_the_walk_writes_no_completion_flag(): void {
+		$this->source = array();
+
+		$this->strategy()->execute( '', array(), 0 );
+
+		$state = $this->options['ffc_identity_index_backfill_state'] ?? array();
+
+		$this->assertArrayNotHasKey( 'completed', (array) $state, 'A stored completion flag is what made this card unable to re-arm.' );
 	}
 
 	public function test_status_reports_the_walk_rather_than_the_content(): void {

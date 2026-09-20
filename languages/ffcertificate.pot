@@ -21869,7 +21869,7 @@ msgid "Copy the CPF and RF hashes already linked to a user in submissions, appoi
 msgstr ""
 
 #: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
-msgid "Every linked identifier is in the index."
+msgid "Every linked identifier a backfill may resolve is in the index."
 msgstr ""
 
 #: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php

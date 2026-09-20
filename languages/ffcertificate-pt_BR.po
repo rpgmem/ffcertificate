@@ -21960,8 +21960,8 @@ msgid "Copy the CPF and RF hashes already linked to a user in submissions, appoi
 msgstr "Copia os hashes de CPF e RF já vinculados a um usuário em submissões, agendamentos e candidaturas para as colunas indexadas de identidade, de modo que identificar uma pessoa seja uma consulta indexada em vez de uma varredura de todos os módulos. Preenche apenas coluna vazia: quando uma conta carrega dois identificadores diferentes, a coluna fica vazia, porque isso é um conflito a revisar e não um a resolver escolhendo. Execute \"Canonizar Identificadores Armazenados\" antes — este cartão se recusa a rodar enquanto aquele não estiver completo."
 
 #: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
-msgid "Every linked identifier is in the index."
-msgstr "Todo identificador vinculado está no índice."
+msgid "Every linked identifier a backfill may resolve is in the index."
+msgstr "Todo identificador vinculado que um backfill pode resolver está no índice."
 
 #: includes/migrations/strategies/class-ffc-identity-index-backfill-migration-strategy.php
 msgid "Examined %1$d users, filled %2$d index columns, left %3$d unresolved because one account carries two different identifiers."

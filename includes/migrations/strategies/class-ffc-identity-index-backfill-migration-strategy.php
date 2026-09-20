@@ -73,7 +73,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class IdentityIndexBackfillMigrationStrategy implements MigrationStrategyInterface {
 
 	/**
-	 * Where the cursor and the completion flag live.
+	 * Where the cursor lives.
+	 *
+	 * The cursor and nothing else. This option also carried a `completed`
+	 * boolean until the card was made to measure instead of latch; an install
+	 * upgraded from before that still has the key and it is simply never read.
+	 * It is not deleted, because a write to remove a value nobody consults
+	 * buys nothing.
 	 */
 	private const STATE_OPTION = 'ffc_identity_index_backfill_state';
 
@@ -107,22 +113,28 @@ class IdentityIndexBackfillMigrationStrategy implements MigrationStrategyInterfa
 	public function calculate_status( string $migration_key, array $migration_config ): array {
 		unset( $migration_key, $migration_config );
 
-		$total = $this->count_linked_users( 0 );
-
-		if ( $this->is_completed() ) {
-			return array(
-				'total'       => $total,
-				'migrated'    => $total,
-				'pending'     => 0,
-				'percent'     => 100.0,
-				'is_complete' => true,
-			);
-		}
-
-		// PROGRESS IS THE CURSOR, the convention the sibling cards use: a
-		// count of users who still NEED a column filled would mean joining the
-		// whole index against every source on every page load, to draw a bar.
-		$pending  = $this->count_linked_users( $this->get_cursor() );
+		// NOTHING IS LATCHED, AND THE MEASUREMENT IS CHEAPER THAN THE FLAG WAS
+		//
+		// This card used to short-circuit on a stored `completed` boolean and
+		// answer 100% WITHOUT counting -- the only migration in the plugin
+		// that could not tell on its own whether there was work to do. Five
+		// siblings compute `pending` from the data; three latch but anchor on
+		// the encryption-key fingerprint, so a key change re-arms them. This
+		// one latched on nothing, so the walk finishing once made it complete
+		// forever, and a user linked afterwards was invisible.
+		//
+		// Removing it costs nothing: the flagged path still ran one union for
+		// the total, and the unflagged path ran two. One statement now answers
+		// both counts, so the card is never more expensive than before and is
+		// half the cost while the walk is in progress.
+		//
+		// PROGRESS IS STILL THE CURSOR. A count of users who still NEED a
+		// column filled would mean joining the index against every source, and
+		// it would answer a different question anyway -- see the note on
+		// `execute()` about what "complete" means for THIS card.
+		$counts   = $this->counts( $this->get_cursor() );
+		$total    = $counts['total'];
+		$pending  = $counts['beyond'];
 		$migrated = max( 0, $total - $pending );
 
 		return array(
@@ -160,12 +172,24 @@ class IdentityIndexBackfillMigrationStrategy implements MigrationStrategyInterfa
 		$users = $this->next_users( $this->get_cursor(), self::BATCH_SIZE );
 
 		if ( array() === $users ) {
-			$this->mark_completed();
-
+			// Nothing is recorded. The cursor already sits past the last user
+			// that carried a linked identifier, so `calculate_status()` reads
+			// zero beyond it and says complete -- and it says so again, or
+			// stops saying so, every time it is asked.
+			//
+			// WHAT "COMPLETE" MEANS HERE, PRECISELY
+			//
+			// That this card filled everything IT can fill. An account holding
+			// two different hashes for one field is left empty on purpose (see
+			// the class note), so a hundred per cent here never claims the
+			// index is whole -- only that nothing is left that a backfill is
+			// allowed to decide. Reporting those conflicts is the audit's job,
+			// and folding them into this bar would hide a decision behind a
+			// progress percentage.
 			return array(
 				'success'   => true,
 				'processed' => 0,
-				'message'   => __( 'Every linked identifier is in the index.', 'ffcertificate' ),
+				'message'   => __( 'Every linked identifier a backfill may resolve is in the index.', 'ffcertificate' ),
 			);
 		}
 
@@ -320,22 +344,56 @@ class IdentityIndexBackfillMigrationStrategy implements MigrationStrategyInterfa
 	}
 
 	/**
-	 * How many linked users sit beyond a cursor.
+	 * How many linked users there are, and how many sit beyond the cursor.
 	 *
-	 * @param int $after Cursor; `0` counts them all.
-	 * @return int
+	 * ONE STATEMENT, BECAUSE THE UNION IS THE EXPENSIVE PART
+	 *
+	 * The two numbers used to be two calls, each building and scanning the
+	 * same union over every source table. They differ only in a predicate on
+	 * `user_id`, so a conditional `COUNT(DISTINCT …)` answers both from one
+	 * scan -- which is what makes dropping the completion flag free: the card
+	 * now issues ONE union where it previously issued two mid-walk and one
+	 * when latched.
+	 *
+	 * `COUNT(DISTINCT CASE WHEN … END)` and not a `SUM`, because the same user
+	 * appears once per source table that carries an identifier for them, and
+	 * the question is how many USERS are left rather than how many rows.
+	 *
+	 * @param int $after Cursor.
+	 * @return array{total: int, beyond: int}
 	 */
-	private function count_linked_users( int $after ): int {
+	private function counts( int $after ): array {
 		global $wpdb;
 
-		$union = $this->linked_users_union( $after );
+		$union = $this->linked_users_union( 0 );
 		if ( null === $union ) {
-			return 0;
+			return array(
+				'total'  => 0,
+				'beyond' => 0,
+			);
 		}
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- As in `distinct_hashes()`: a union of hard-coded fragments over tables this class resolves itself, and a migration count that must reflect the live tables rather than a cache.
-		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM (SELECT DISTINCT user_id FROM ({$union['sql']}) u) c", ...$union['values'] ) );
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- As in `distinct_hashes()`: a union of hard-coded fragments over tables this class resolves itself. `$after` is bound first because its placeholder comes first in the statement. A migration count must reflect the live tables rather than a cache.
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT COUNT(DISTINCT user_id) AS total,
+                        COUNT(DISTINCT CASE WHEN user_id > %d THEN user_id END) AS beyond
+                   FROM ({$union['sql']}) u",
+				$after,
+				...$union['values']
+			),
+			ARRAY_A
+		);
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		$row    = is_array( $row ) ? $row : array();
+		$total  = $row['total'] ?? 0;
+		$beyond = $row['beyond'] ?? 0;
+
+		return array(
+			'total'  => is_numeric( $total ) ? (int) $total : 0,
+			'beyond' => is_numeric( $beyond ) ? (int) $beyond : 0,
+		);
 	}
 
 	/**
@@ -538,28 +596,6 @@ class IdentityIndexBackfillMigrationStrategy implements MigrationStrategyInterfa
 	private function set_cursor( int $user_id ): void {
 		$state           = $this->get_state();
 		$state['cursor'] = $user_id;
-		$this->put_state( $state );
-	}
-
-	/**
-	 * Whether the walk finished.
-	 *
-	 * @return bool
-	 */
-	private function is_completed(): bool {
-		$state = $this->get_state();
-
-		return ! empty( $state['completed'] );
-	}
-
-	/**
-	 * Record that the walk finished.
-	 *
-	 * @return void
-	 */
-	private function mark_completed(): void {
-		$state              = $this->get_state();
-		$state['completed'] = true;
 		$this->put_state( $state );
 	}
 }
