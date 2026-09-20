@@ -12,6 +12,40 @@ use FreeFormCertificate\Maintenance\IdentityAuditExportSource;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 
 /**
+ * The export with the schema probe stubbed out.
+ *
+ * `foreign_key_note()` reaches `information_schema` through the global
+ * `$wpdb`, which a test about WHICH COLUMN a value lands in has no business
+ * standing up -- and which returned `null` for every test in this file the
+ * moment the note was added. The probe is driven for real by
+ * {@see IdentityAuditExportSourceTest::test_the_foreign_key_note_reads_the_live_constraints()},
+ * so stubbing it here hides nothing.
+ */
+class ExportSourceWithStubbedSchemaProbe extends IdentityAuditExportSource {
+
+	/**
+	 * What the stubbed probe answers.
+	 *
+	 * @var array<string, mixed>
+	 */
+	public array $fk_status = array(
+		'total_constraints'    => 7,
+		'existing_constraints' => 7,
+		'is_complete'          => true,
+		'existing'             => array(),
+	);
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function foreign_key_status(): array {
+		return $this->fk_status;
+	}
+}
+
+/**
  * The link audit's CSV export (#1295).
  *
  * Every assertion here is on the ROWS the source hands the streamer, because
@@ -84,7 +118,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 */
 	public function test_it_asks_the_auditor_for_the_export_cap(): void {
 		$seen   = array();
-		$source = new IdentityAuditExportSource( $this->auditor( array(), $seen ) );
+		$source = new ExportSourceWithStubbedSchemaProbe( $this->auditor( array(), $seen ) );
 		$this->rows( $source );
 
 		$this->assertSame(
@@ -105,7 +139,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 	public function test_subject_lands_in_the_column_its_check_means(): void {
 		$seen   = array();
 		$hash   = str_repeat( 'a', 64 );
-		$source = new IdentityAuditExportSource(
+		$source = new ExportSourceWithStubbedSchemaProbe(
 			$this->auditor(
 				array(
 					'cross_store_shared_identities'   => array(
@@ -140,7 +174,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 	public function test_the_hash_is_truncated_to_a_grouping_prefix(): void {
 		$seen   = array();
 		$hash   = str_repeat( 'b', 64 );
-		$source = new IdentityAuditExportSource(
+		$source = new ExportSourceWithStubbedSchemaProbe(
 			$this->auditor(
 				array(
 					'shared_identities' => array(
@@ -168,7 +202,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 */
 	public function test_a_shared_row_names_the_accounts(): void {
 		$seen   = array();
-		$source = new IdentityAuditExportSource(
+		$source = new ExportSourceWithStubbedSchemaProbe(
 			$this->auditor(
 				array(
 					'cross_store_shared_identities' => array(
@@ -203,7 +237,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 		$seen   = array();
 		$first  = str_repeat( 'a', 64 );
 		$second = str_repeat( 'b', 64 );
-		$source = new IdentityAuditExportSource(
+		$source = new ExportSourceWithStubbedSchemaProbe(
 			$this->auditor(
 				array(
 					'cross_store_multiple_identities' => array(
@@ -241,7 +275,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 */
 	public function test_a_row_without_a_list_stays_empty(): void {
 		$seen   = array();
-		$source = new IdentityAuditExportSource(
+		$source = new ExportSourceWithStubbedSchemaProbe(
 			$this->auditor(
 				array(
 					'unindexed_links' => array(
@@ -269,7 +303,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 */
 	public function test_a_truncated_list_is_declared_in_the_note(): void {
 		$seen   = array();
-		$source = new IdentityAuditExportSource(
+		$source = new ExportSourceWithStubbedSchemaProbe(
 			$this->auditor(
 				array(
 					'cross_store_multiple_identities' => array(
@@ -302,7 +336,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 */
 	public function test_the_two_count_check_lists_the_column_it_picked(): void {
 		$seen   = array();
-		$source = new IdentityAuditExportSource(
+		$source = new ExportSourceWithStubbedSchemaProbe(
 			$this->auditor(
 				array(
 					'multiple_identities' => array(
@@ -338,7 +372,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 */
 	public function test_the_email_verdict_travels_to_its_own_column(): void {
 		$seen   = array();
-		$source = new IdentityAuditExportSource(
+		$source = new ExportSourceWithStubbedSchemaProbe(
 			$this->auditor(
 				array(
 					'cross_store_multiple_identities' => array(
@@ -365,6 +399,126 @@ class IdentityAuditExportSourceTest extends TestCase {
 	}
 
 	/**
+	 * When each account was last used travels positionally, beside its id.
+	 *
+	 * #1346 chooses the surviving account by use and never by id, so the
+	 * evidence has to line up with the accounts the finding names -- a date
+	 * that could belong to either one decides nothing.
+	 */
+	public function test_the_account_activity_lines_up_with_the_ids(): void {
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'cross_store_shared_identities' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array(
+							array(
+								'subject' => 'abc123',
+								IdentityConflictQuery::ALIAS_USER_COUNT => 2,
+								IdentityConflictQuery::COLUMN_RELATED => '438|5537',
+								IdentityConflictQuery::COLUMN_ACCOUNT_ACTIVITY => '438=2026-03-02|5537=2019-08-14',
+								'identifier_column' => 'cpf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$row = $this->rows( $source )[0];
+
+		$this->assertSame( '438=2026-03-02|5537=2019-08-14', $row['account_activity'] );
+		$this->assertStringContainsString( '438', (string) $row['user_ids'] );
+		$this->assertStringContainsString( '5537', (string) $row['user_ids'] );
+	}
+
+	/**
+	 * How the two identifiers differ travels to its own column too.
+	 *
+	 * Beside `email_verdict` and not inside it, because they answer different
+	 * questions: that one separates one person from two, and this one
+	 * separates the two readings that remain once the answer is "one person"
+	 * — a typo, whose rows stay linked, from a spelling the canonicaliser does
+	 * not collapse. Measured on production, 71 of the 73 findings sit in that
+	 * bucket, so this column is what 97% of them turns on (#1345).
+	 */
+	public function test_the_identifier_shape_travels_to_its_own_column(): void {
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'cross_store_multiple_identities' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array(
+							array(
+								'subject' => 438,
+								IdentityConflictQuery::ALIAS_IDENTITY_COUNT => 2,
+								IdentityConflictQuery::COLUMN_EMAIL_VERDICT => IdentityConflictQuery::VERDICT_SHARED_EMAIL,
+								IdentityConflictQuery::COLUMN_SHAPE_VERDICT => IdentityConflictQuery::SHAPE_SINGLE_DIGIT_EDIT,
+								'identifier_column' => 'rf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$row = $this->rows( $source )[0];
+
+		$this->assertSame( IdentityConflictQuery::SHAPE_SINGLE_DIGIT_EDIT, $row['identifier_shape'] );
+		$this->assertSame(
+			IdentityConflictQuery::VERDICT_SHARED_EMAIL,
+			$row['email_verdict'],
+			'The two verdicts must not overwrite each other: they are adjacent columns answering different questions.'
+		);
+	}
+
+	/**
+	 * The file carries categories and ids, never an identifier.
+	 *
+	 * The whole pass decrypts, so this is the property that makes it
+	 * publishable at all: what reaches the CSV is a `SHAPE_*` word and never
+	 * a value, a length or a position — a position beside a distance would
+	 * narrow the unseen half of a pair to a handful of candidates (#1345).
+	 */
+	public function test_the_shape_column_carries_no_identifier(): void {
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'cross_store_multiple_identities' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array(
+							array(
+								'subject' => 438,
+								IdentityConflictQuery::ALIAS_IDENTITY_COUNT => 2,
+								IdentityConflictQuery::COLUMN_SHAPE_VERDICT => IdentityConflictQuery::SHAPE_TRANSPOSITION,
+								'identifier_column' => 'rf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$shape = (string) $this->rows( $source )[0]['identifier_shape'];
+
+		$this->assertSame( IdentityConflictQuery::SHAPE_TRANSPOSITION, $shape );
+		$this->assertDoesNotMatchRegularExpression(
+			'/\d/',
+			$shape,
+			'A digit in this column is an identifier leaking through a verdict that promised never to carry one.'
+		);
+	}
+
+	/**
 	 * A check that cannot have a verdict leaves the column empty, not absent.
 	 *
 	 * A row narrower than the header is a broken CSV, so "no verdict" has to
@@ -372,7 +526,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 */
 	public function test_a_check_without_a_verdict_leaves_the_column_empty(): void {
 		$seen   = array();
-		$source = new IdentityAuditExportSource(
+		$source = new ExportSourceWithStubbedSchemaProbe(
 			$this->auditor(
 				array(
 					'cross_store_shared_identities' => array(
@@ -412,7 +566,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 */
 	public function test_every_row_is_as_wide_as_the_header(): void {
 		$seen   = array();
-		$source = new IdentityAuditExportSource(
+		$source = new ExportSourceWithStubbedSchemaProbe(
 			$this->auditor(
 				array(
 					'cross_store_multiple_identities' => array(
@@ -436,8 +590,9 @@ class IdentityAuditExportSourceTest extends TestCase {
 			yield from $source->rows();
 		} )() );
 
-		// A data row and the cap's note row, so the assertion covers both shapes.
-		$this->assertCount( 2, $rows, 'Expected one finding plus the truncation note.' );
+		// A data row, the cap's note row and the closing foreign-key note, so
+		// the assertion covers every shape this class emits.
+		$this->assertCount( 3, $rows, 'Expected one finding, the truncation note and the foreign-key note.' );
 
 		foreach ( $rows as $index => $row ) {
 			$this->assertCount( $width, $row, "Row {$index} is not as wide as the header." );
@@ -458,7 +613,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 		$registry->shouldReceive( 'create_default' )->andReturnSelf();
 		$registry->shouldReceive( 'get' )->andReturn( null );
 
-		$source = new IdentityAuditExportSource();
+		$source = new ExportSourceWithStubbedSchemaProbe();
 		$rows   = $source->rows();
 
 		foreach ( $rows as $row ) {
@@ -473,7 +628,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 */
 	public function test_the_empty_report_row_is_as_wide_as_the_header(): void {
 		$seen   = array();
-		$source = new IdentityAuditExportSource( $this->auditor( array(), $seen ) );
+		$source = new ExportSourceWithStubbedSchemaProbe( $this->auditor( array(), $seen ) );
 
 		foreach ( $source->rows() as $row ) {
 			$this->assertCount( count( $source->header() ), $row );
@@ -486,7 +641,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 */
 	public function test_the_two_count_check_names_the_column_it_reports(): void {
 		$seen   = array();
-		$source = new IdentityAuditExportSource(
+		$source = new ExportSourceWithStubbedSchemaProbe(
 			$this->auditor(
 				array(
 					'multiple_identities' => array(
@@ -517,7 +672,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 */
 	public function test_a_truncated_check_says_so_in_the_file(): void {
 		$seen   = array();
-		$source = new IdentityAuditExportSource(
+		$source = new ExportSourceWithStubbedSchemaProbe(
 			$this->auditor(
 				array(
 					'unindexed_links' => array(
@@ -532,8 +687,9 @@ class IdentityAuditExportSourceTest extends TestCase {
 
 		$rows = $this->rows( $source );
 
-		$this->assertCount( 2, $rows, 'A truncated check emits its finding plus the truncation note.' );
+		$this->assertCount( 3, $rows, 'A truncated check emits its finding, the truncation note and the closing foreign-key note.' );
 		$this->assertStringContainsString( 'TRUNCATED', $rows[1]['note'] );
+		$this->assertStringContainsString( 'FOREIGN KEYS', $rows[2]['note'] );
 		$this->assertSame( 'unindexed_links', $rows[1]['check'], 'The note has to name which check was cut.' );
 	}
 
@@ -542,12 +698,157 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 */
 	public function test_an_empty_report_still_says_so(): void {
 		$seen   = array();
-		$source = new IdentityAuditExportSource( $this->auditor( array(), $seen ) );
+		$source = new ExportSourceWithStubbedSchemaProbe( $this->auditor( array(), $seen ) );
 
 		$rows = $this->rows( $source );
 
-		$this->assertCount( 1, $rows );
+		// Two rows, not one: a file that says nothing is wrong AND that every
+		// constraint is in place says something the first line alone does not
+		// -- which is why the foreign-key note is unconditional.
+		$this->assertCount( 2, $rows );
 		$this->assertStringContainsString( 'No link problems found', $rows[0]['note'] );
+		$this->assertStringContainsString( 'FOREIGN KEYS', $rows[1]['note'] );
+	}
+
+	/**
+	 * The three account columns carry what the auditor worked out, and are
+	 * POSITIONAL against `user_ids`.
+	 *
+	 * The whole point of #1354 is that an operator can act on a finding, and
+	 * acting means knowing which of the ids is still an account, how much each
+	 * owns, and where to click. Misaligning any of the three by one slot
+	 * answers about the wrong person.
+	 */
+	public function test_the_account_columns_line_up_with_the_ids(): void {
+		Functions\when( 'admin_url' )->alias(
+			static function ( $path ) {
+				return 'https://example.test/wp-admin/' . $path;
+			}
+		);
+
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'cross_store_shared_identities' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array(
+							array(
+								'subject'           => 'hash-of-one-cpf',
+								IdentityConflictQuery::ALIAS_USER_COUNT => 2,
+								IdentityConflictQuery::COLUMN_RELATED   => '355|5276',
+								'identifier_column' => 'cpf_hash',
+								IdentityConflictQuery::COLUMN_ACCOUNT_STATUS => 'exists|missing',
+								IdentityConflictQuery::COLUMN_ACCOUNT_ROWS   => '355=submissions:3,user_profiles:1|5276=',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$rows = $this->rows( $source );
+
+		$this->assertSame( '355|5276', $rows[0]['user_ids'] );
+		$this->assertSame( 'exists|missing', $rows[0]['account_status'] );
+		$this->assertSame( '355=submissions:3,user_profiles:1|5276=', $rows[0]['account_rows'] );
+
+		// A link to a deleted user is a 404 dressed as a lead, so the second
+		// slot is EMPTY rather than absent: dropping it would shift every
+		// later URL onto the wrong account.
+		$this->assertSame(
+			'https://example.test/wp-admin/user-edit.php?user_id=355|',
+			$rows[0]['account_urls']
+		);
+	}
+
+	/**
+	 * A row from a check that names no account leaves all three columns empty
+	 * rather than inventing a slot.
+	 */
+	public function test_a_check_without_accounts_leaves_the_columns_empty(): void {
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'should_be_linked' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array( array( 'id' => 4, 'form_id' => 2, 'cpf_hash' => 'abc' ) ),
+					),
+				),
+				$seen
+			)
+		);
+
+		$rows = $this->rows( $source );
+
+		$this->assertSame( '', $rows[0]['account_status'] );
+		$this->assertSame( '', $rows[0]['account_rows'] );
+		$this->assertSame( '', $rows[0]['account_urls'] );
+	}
+
+	/**
+	 * The closing note reads the LIVE constraints, not the option flag.
+	 *
+	 * `ffc_foreign_keys_db_version` records that the migration RAN, not that
+	 * every `ALTER` inside it succeeded — and the difference is precisely the
+	 * case this row exists to report. This test drives the real seam, so the
+	 * 21 tests above that stub it hide nothing.
+	 */
+	public function test_the_foreign_key_note_reads_the_live_constraints(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Migrations\MigrationForeignKeys' )
+			->shouldReceive( 'get_status' )
+			->once()
+			->andReturn(
+				array(
+					'total_constraints'    => 7,
+					'existing_constraints' => 7,
+					'is_complete'          => true,
+					'existing'             => array( 'fk_ffc_submissions_user' ),
+				)
+			);
+
+		$seen   = array();
+		$source = new IdentityAuditExportSource( $this->auditor( array(), $seen ) );
+
+		$rows = $this->rows( $source );
+		$last = end( $rows );
+
+		$this->assertSame( 'foreign_keys', $last['check'] );
+		$this->assertStringContainsString( 'all 7', $last['note'] );
+	}
+
+	/**
+	 * An incomplete constraint set names the ones that ARE installed.
+	 *
+	 * Never the missing ones: the canonical list lives in
+	 * `MigrationForeignKeys` and is not public, so restating it here would be
+	 * a claim about a value another file owns — the kind that goes stale in
+	 * silence while still reading as authoritative.
+	 */
+	public function test_an_incomplete_constraint_set_names_what_is_installed(): void {
+		Mockery::mock( 'alias:FreeFormCertificate\Migrations\MigrationForeignKeys' )
+			->shouldReceive( 'get_status' )
+			->andReturn(
+				array(
+					'total_constraints'    => 7,
+					'existing_constraints' => 2,
+					'is_complete'          => false,
+					'existing'             => array( 'fk_ffc_user_profiles_user', 'fk_ffc_submissions_user' ),
+				)
+			);
+
+		$seen   = array();
+		$source = new IdentityAuditExportSource( $this->auditor( array(), $seen ) );
+
+		$rows = $this->rows( $source );
+		$last = end( $rows );
+
+		$this->assertStringContainsString( 'only 2 of 7', $last['note'] );
+		$this->assertStringContainsString( 'fk_ffc_submissions_user, fk_ffc_user_profiles_user', $last['note'] );
 	}
 
 	/**
@@ -565,7 +866,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 		);
 
 		$this->expectException( \RuntimeException::class );
-		( new IdentityAuditExportSource() )->authorize();
+		( new ExportSourceWithStubbedSchemaProbe() )->authorize();
 	}
 
 	/**
@@ -586,7 +887,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 		);
 
 		$this->expectException( \RuntimeException::class );
-		( new IdentityAuditExportSource() )->authorize();
+		( new ExportSourceWithStubbedSchemaProbe() )->authorize();
 	}
 
 
@@ -606,7 +907,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 */
 	public function test_the_count_alias_comes_from_the_query_that_emits_it(): void {
 		$seen   = array();
-		$source = new IdentityAuditExportSource(
+		$source = new ExportSourceWithStubbedSchemaProbe(
 			$this->auditor(
 				array(
 					'cross_store_multiple_identities' => array(
@@ -635,7 +936,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 */
 	public function test_a_finding_names_the_stores_it_was_found_in(): void {
 		$seen   = array();
-		$source = new IdentityAuditExportSource(
+		$source = new ExportSourceWithStubbedSchemaProbe(
 			$this->auditor(
 				array(
 					'cross_store_multiple_identities' => array(
@@ -665,7 +966,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 	public function test_filename_is_dated(): void {
 		$this->assertMatchesRegularExpression(
 			'/^ffc-identity-audit-\d{4}-\d{2}-\d{2}-\d{6}\.csv$/',
-			( new IdentityAuditExportSource() )->filename()
+			( new ExportSourceWithStubbedSchemaProbe() )->filename()
 		);
 	}
 }

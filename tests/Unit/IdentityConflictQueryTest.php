@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -34,6 +35,24 @@ class IdentityConflictQueryTest extends TestCase {
 	 * @var array<int, string>
 	 */
 	private array $without_email = array();
+
+	/**
+	 * Stores the ciphertext probe must not resolve.
+	 *
+	 * The sibling of `$without_email`, and it has a real occupant:
+	 * `ffc_user_profiles` declares `cpf_hash` and `rf_hash` with no
+	 * `*_encrypted` column at all, because it is the identity index.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $without_ciphertext = array();
+
+	/**
+	 * Stores whose activity timestamp column the probe must not resolve.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $without_activity_column = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -72,7 +91,15 @@ class IdentityConflictQueryTest extends TestCase {
 				$sql = (string) $query;
 
 				if ( false !== strpos( $sql, 'SHOW COLUMNS' ) ) {
-					foreach ( $this->without_email as $table ) {
+					if ( false !== strpos( $sql, '_encrypted' ) ) {
+						$absent = $this->without_ciphertext;
+					} elseif ( false !== strpos( $sql, 'email_hash' ) ) {
+						$absent = $this->without_email;
+					} else {
+						$absent = $this->without_activity_column;
+					}
+
+					foreach ( $absent as $table ) {
 						if ( false !== strpos( $sql, $table ) ) {
 							return null;
 						}
@@ -543,4 +570,540 @@ class IdentityConflictQueryTest extends TestCase {
 		$this->assertStringContainsString( IdentityConflictQuery::ALIAS_IDENTITY_COUNT, $sql );
 		$this->assertStringContainsString( IdentityConflictQuery::ALIAS_USER_COUNT, $sql );
 	}
+	/**
+	 * An account is `missing` until `wp_users` says otherwise.
+	 *
+	 * The seeded default is the whole safety property: a query that returns
+	 * nothing must read as "no account found", never as a blank that a later
+	 * reader takes for "fine". An empty result must never read as clean.
+	 */
+	public function test_account_facts_seed_missing_and_only_wp_users_lifts_it(): void {
+		Functions\when( 'get_users' )->justReturn( array( '355' ) );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+		$facts = ( new IdentityConflictQuery() )->account_facts( array( 355, 5276 ) );
+
+		$this->assertSame( IdentityConflictQuery::STATUS_EXISTS, $facts[355]['status'] );
+		$this->assertSame(
+			IdentityConflictQuery::STATUS_MISSING,
+			$facts[5276]['status'],
+			'An id `wp_users` did not return is missing, not unknown and not blank.'
+		);
+	}
+
+	/**
+	 * The counts are of every row an account owns in a store.
+	 *
+	 * That is the question they answer -- what a merge would move, or a
+	 * deletion destroy -- so they deliberately do NOT narrow to the rows
+	 * carrying the identifier the finding is about.
+	 */
+	public function test_account_facts_report_rows_per_store(): void {
+		Functions\when( 'get_users' )->justReturn( array( '355' ) );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn(
+			array(
+				array( 'user_id' => '355', 'src' => 'submissions', 'n' => '3' ),
+				array( 'user_id' => '355', 'src' => 'user_profiles', 'n' => '1' ),
+			)
+		);
+
+		$facts = ( new IdentityConflictQuery() )->account_facts( array( 355 ) );
+
+		$this->assertSame( array( 'submissions' => 3, 'user_profiles' => 1 ), $facts[355]['rows'] );
+		$this->assertSame(
+			'submissions:3,user_profiles:1',
+			IdentityConflictQuery::format_account_rows( $facts[355]['rows'] )
+		);
+	}
+
+	/**
+	 * Two statements per chunk, not five per account.
+	 *
+	 * The obvious shape -- ask `wp_users` once per id, then `COUNT(*)` once
+	 * per id per store -- is 360 statements for the 72 accounts the first
+	 * production export named. Both questions are set questions, so both are
+	 * one `IN` list, and the counts are a single `UNION ALL`.
+	 */
+	public function test_account_facts_ask_in_one_statement_per_question(): void {
+		$asked = array();
+		Functions\when( 'get_users' )->alias(
+			function ( $args ) use ( &$asked ) {
+				$asked[] = $args;
+				return array();
+			}
+		);
+
+		$seen = array();
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $query ) use ( &$seen ) {
+				$seen[] = (string) $query;
+				return array();
+			}
+		);
+
+		( new IdentityConflictQuery() )->account_facts( array( 1, 2, 3 ) );
+
+		$this->assertCount( 1, $asked, 'Existence is one call for the whole set, bounded by `include`.' );
+		$this->assertSame( array( 1, 2, 3 ), $asked[0]['include'] );
+		$this->assertSame( 'ID', $asked[0]['fields'] );
+
+		// Load-bearing, not tidy: the default scopes the query to users with a
+		// role on the CURRENT site, so on multisite a live account with no
+		// role here would be reported as deleted.
+		$this->assertSame( 0, $asked[0]['blog_id'] );
+
+		foreach ( $seen as $statement ) {
+			$this->assertStringContainsString( 'UNION ALL', $statement );
+			$this->assertStringContainsString( 'GROUP BY user_id', $statement );
+		}
+
+		$this->assertSame(
+			4,
+			substr_count( implode( ' ', $seen ), 'COUNT(*)' ),
+			'One counted branch per store the probe resolved.'
+		);
+		$this->assertSame(
+			4,
+			substr_count( implode( ' ', $seen ), 'MAX(' ),
+			'One activity branch per store whose timestamp column the probe resolved.'
+		);
+
+		// The INVARIANT, not the count: what must hold is that asking about
+		// more accounts does not issue more statements -- the questions are
+		// fixed and the accounts ride inside an `IN` list. Asserting "one
+		// statement" instead was a reading of how many questions there were
+		// at the time, and it went stale the moment #1346 added a second.
+		$before = count( $seen );
+		$seen   = array();
+
+		( new IdentityConflictQuery() )->account_facts( range( 1, 9 ) );
+
+		$this->assertSame(
+			$before,
+			count( $seen ),
+			'Three times the accounts must cost the same number of statements.'
+		);
+	}
+
+	/**
+	 * An id that is not a positive integer names no account and is dropped
+	 * before any statement runs.
+	 */
+	public function test_account_facts_ignore_what_is_not_an_account(): void {
+		Functions\expect( 'get_users' )->never();
+		$this->wpdb->shouldReceive( 'get_results' )->never();
+
+		$this->assertSame( array(), ( new IdentityConflictQuery() )->account_facts( array( 0, -3, '', 'abc' ) ) );
+	}
+
+	/**
+	 * An account owning no row anywhere formats as an empty string.
+	 *
+	 * Which is itself a finding: an account named by this audit is named
+	 * BECAUSE rows point at it, so an empty value means every such row sits in
+	 * a store the probe did not resolve on this install.
+	 */
+	public function test_an_account_owning_nothing_formats_empty(): void {
+		$this->assertSame( '', IdentityConflictQuery::format_account_rows( array() ) );
+	}
+
+	/**
+	 * Drive `multiple_identities()` with findings, addresses and ciphertexts.
+	 *
+	 * One `get_results` expectation dispatching on the statement, for the
+	 * reason {@see self::findings_with_addresses()} records. The two unions
+	 * are told apart by their alias -- the address read names its column
+	 * `AS e`, the ciphertext read names its own `AS c` -- which is why the
+	 * production query bothers to use a different one.
+	 *
+	 * Decryption is supplied by overriding the class's own seam rather than by
+	 * an alias mock on `Encryption`: an alias mock replaces that class for the
+	 * whole PROCESS, so every later test in the run would get the double too.
+	 *
+	 * @param array<int, array<string, mixed>> $findings Rows for the `rf_hash` grouping.
+	 * @param array<int, array<string, mixed>> $ciphers  Rows for the ciphertext union.
+	 * @param array<string, string>            $plain    Ciphertext → what it decrypts to.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function findings_with_ciphertexts( array $findings, array $ciphers, array $plain ): array {
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $query ) use ( $findings, $ciphers ) {
+				$sql = (string) $query;
+
+				if ( false !== strpos( $sql, 'AS c FROM' ) ) {
+					return $ciphers;
+				}
+
+				if ( false !== strpos( $sql, 'AS e FROM' ) ) {
+					return array();
+				}
+
+				return false !== strpos( $sql, 'rf_hash' ) ? $findings : array();
+			}
+		);
+
+		$query = new class( $plain ) extends IdentityConflictQuery {
+
+			/**
+			 * @var array<string, string>
+			 */
+			private array $plain;
+
+			/**
+			 * @param array<string, string> $plain Ciphertext → plaintext.
+			 */
+			public function __construct( array $plain ) {
+				$this->plain = $plain;
+			}
+
+			protected function decrypt( string $cipher ): ?string {
+				return $this->plain[ $cipher ] ?? null;
+			}
+		};
+
+		return $query->multiple_identities( 10 );
+	}
+
+	/**
+	 * The shape of one finding for an account holding two RFs.
+	 *
+	 * @param string $a One stored identifier.
+	 * @param string $b The other.
+	 * @return string The `SHAPE_*` value reported.
+	 */
+	private function shape_of( string $a, string $b ): string {
+		$rows = $this->findings_with_ciphertexts(
+			$this->two_rf_finding(),
+			array(
+				array( 'user_id' => 438, 'h' => 'hashA', 'c' => 'cipherA' ),
+				array( 'user_id' => 438, 'h' => 'hashB', 'c' => 'cipherB' ),
+			),
+			array( 'cipherA' => $a, 'cipherB' => $b )
+		);
+
+		$this->assertNotEmpty( $rows, 'An empty result would pass over the whole assertion.' );
+
+		return (string) $rows[0][ IdentityConflictQuery::COLUMN_SHAPE_VERDICT ];
+	}
+
+	/**
+	 * One digit different is a typo, so the rows stay the account holder's.
+	 *
+	 * The reading #1345 predicts should dominate the RF conflicts:
+	 * `validate_rf()` checks only `strlen === 7 && is_numeric`, so a mistyped
+	 * RF passes validation almost always and lands as a second hash on one
+	 * person's account.
+	 */
+	public function test_one_digit_apart_reads_as_a_typo(): void {
+		$this->assertSame(
+			IdentityConflictQuery::SHAPE_SINGLE_DIGIT_EDIT,
+			$this->shape_of( '1234567', '1234577' )
+		);
+	}
+
+	/**
+	 * A dropped digit is the same reading, and the lengths differ by one.
+	 */
+	public function test_a_dropped_digit_reads_as_a_typo(): void {
+		$this->assertSame(
+			IdentityConflictQuery::SHAPE_SINGLE_DIGIT_EDIT,
+			$this->shape_of( '1234567', '123456' )
+		);
+	}
+
+	/**
+	 * Two adjacent digits swapped is reported as the transposition it is.
+	 */
+	public function test_two_adjacent_digits_swapped_read_as_a_transposition(): void {
+		$this->assertSame(
+			IdentityConflictQuery::SHAPE_TRANSPOSITION,
+			$this->shape_of( '1234567', '1243567' )
+		);
+	}
+
+	/**
+	 * A leading zero is a canonicaliser gap, NOT a dropped digit.
+	 *
+	 * `0123456` against `123456` satisfies the single-deletion test too, and
+	 * the order the classifier checks them in is what decides which of the two
+	 * an operator is told. Only one of them names a rule the canonicaliser is
+	 * missing: `normalize_cpf_rf()` strips non-digits and stops, so the two
+	 * hash differently -- and `classify()` routes by `strlen() === 7`, so an
+	 * RF written with a leading zero is filed under the CPF column entirely.
+	 */
+	public function test_a_leading_zero_reads_as_a_canonicaliser_gap(): void {
+		$this->assertSame(
+			IdentityConflictQuery::SHAPE_LEADING_ZEROS,
+			$this->shape_of( '0123456', '123456' )
+		);
+	}
+
+	/**
+	 * Two unrelated numbers are reported as unrelated.
+	 */
+	public function test_two_unrelated_numbers_read_as_unrelated(): void {
+		$this->assertSame(
+			IdentityConflictQuery::SHAPE_UNRELATED,
+			$this->shape_of( '1234567', '7654321' )
+		);
+	}
+
+	/**
+	 * Values that canonicalise to one are reported, though none should exist.
+	 *
+	 * This is #1345's own verdict, and the premise that says it cannot occur
+	 * is that `IdentityNormalizationMigrationStrategy` (#1313 PR 3) has
+	 * rewritten every row of all four stores. A production row reporting this
+	 * means that card is not complete -- which is the whole reason the verdict
+	 * is emitted rather than assumed away.
+	 */
+	public function test_values_that_canonicalise_to_one_are_still_reported(): void {
+		$this->assertSame(
+			IdentityConflictQuery::SHAPE_SAME_AFTER_CANONICALISATION,
+			$this->shape_of( '123.456.789-09', '12345678909' )
+		);
+	}
+
+	/**
+	 * The set verdict is the WORST pair, never the closest.
+	 *
+	 * The operator's question is "can I treat these as one person's typos?",
+	 * and one value the classifier cannot explain answers no however many
+	 * near-misses sit beside it. Reporting the closest relation would read as
+	 * reassurance about a set containing something nobody accounted for --
+	 * the same reason `unknown` was never folded into `distinct_emails`.
+	 */
+	public function test_one_unrelated_value_decides_the_whole_set(): void {
+		$rows = $this->findings_with_ciphertexts(
+			array(
+				array(
+					'subject' => 438,
+					IdentityConflictQuery::ALIAS_IDENTITY_COUNT => 3,
+					IdentityConflictQuery::COLUMN_RELATED => 'hashA|hashB|hashC',
+					'identifier_column' => 'rf_hash',
+				),
+			),
+			array(
+				array( 'user_id' => 438, 'h' => 'hashA', 'c' => 'cipherA' ),
+				array( 'user_id' => 438, 'h' => 'hashB', 'c' => 'cipherB' ),
+				array( 'user_id' => 438, 'h' => 'hashC', 'c' => 'cipherC' ),
+			),
+			// A and B are one digit apart; C is neither's near-miss.
+			array( 'cipherA' => '1234567', 'cipherB' => '1234577', 'cipherC' => '9876543' )
+		);
+
+		$this->assertSame(
+			IdentityConflictQuery::SHAPE_UNRELATED,
+			$rows[0][ IdentityConflictQuery::COLUMN_SHAPE_VERDICT ]
+		);
+	}
+
+	/**
+	 * An identifier that cannot be read is said so, never guessed at.
+	 *
+	 * The mirror of `VERDICT_UNKNOWN`. A ciphertext this install's key no
+	 * longer opens, or an identifier carried only by `ffc_user_profiles`,
+	 * must not leave the remaining value looking conclusive: not having read
+	 * a value is not evidence that it differs.
+	 */
+	public function test_an_identifier_that_cannot_be_read_is_not_decryptable(): void {
+		$rows = $this->findings_with_ciphertexts(
+			$this->two_rf_finding(),
+			array(
+				array( 'user_id' => 438, 'h' => 'hashA', 'c' => 'cipherA' ),
+				array( 'user_id' => 438, 'h' => 'hashB', 'c' => 'cipherB' ),
+			),
+			array( 'cipherA' => '1234567' )
+		);
+
+		$this->assertSame(
+			IdentityConflictQuery::SHAPE_NOT_DECRYPTABLE,
+			$rows[0][ IdentityConflictQuery::COLUMN_SHAPE_VERDICT ]
+		);
+	}
+
+	/**
+	 * The identity index carries no ciphertext, so it resolves no store.
+	 *
+	 * `ffc_user_profiles` declares `cpf_hash` and `rf_hash` and nothing else,
+	 * which is why the probe is a probe: a list written into this class would
+	 * be a claim about a schema it does not own.
+	 */
+	public function test_a_store_without_a_ciphertext_column_is_not_read(): void {
+		$this->without_ciphertext = array( 'wp_ffc_user_profiles' );
+
+		// `statements()` answers every read with an empty set, so no finding
+		// would reach the annotation and no ciphertext statement would run at
+		// all -- the self-check below caught exactly that. The capture has to
+		// return findings for the grouping pass.
+		$findings         = $this->two_rf_finding();
+		$ciphertext_reads = array();
+
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $query ) use ( $findings, &$ciphertext_reads ) {
+				$sql = (string) $query;
+
+				if ( false !== strpos( $sql, 'AS c FROM' ) ) {
+					$ciphertext_reads[] = $sql;
+					return array();
+				}
+
+				if ( false !== strpos( $sql, 'AS e FROM' ) ) {
+					return array();
+				}
+
+				return false !== strpos( $sql, 'rf_hash' ) ? $findings : array();
+			}
+		);
+
+		( new IdentityConflictQuery() )->multiple_identities( 10 );
+
+		$this->assertNotEmpty( $ciphertext_reads, 'No ciphertext statement ran at all, so this proves nothing.' );
+
+		foreach ( $ciphertext_reads as $sql ) {
+			$this->assertStringNotContainsString( 'wp_ffc_user_profiles', $sql );
+		}
+	}
+
+	/**
+	 * Drive `account_facts()` with an existence answer and store rows.
+	 *
+	 * The two statements are told apart by what they select: the counting
+	 * union names `COUNT(*)`, the activity union names `MAX(`.
+	 *
+	 * @param array<int, int>                  $ids      Accounts to ask about.
+	 * @param array<int, array<string, mixed>> $counts   Rows for the counting union.
+	 * @param array<int, array<string, mixed>> $activity Rows for the activity union.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function facts_with_activity( array $ids, array $counts, array $activity ): array {
+		Functions\when( 'get_users' )->justReturn( $ids );
+
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $query ) use ( $counts, $activity ) {
+				$sql = (string) $query;
+
+				return ( false !== strpos( $sql, 'MAX(' ) ) ? $activity : $counts;
+			}
+		);
+
+		return ( new IdentityConflictQuery() )->account_facts( $ids );
+	}
+
+	/**
+	 * The latest date across every store is what the account reports.
+	 *
+	 * #1346 chooses the surviving account **by use, never by id**, so the
+	 * question is which account holds the person's records -- and that is the
+	 * most recent activity anywhere, not the most recent in whichever store
+	 * happens to be read first.
+	 */
+	public function test_the_account_reports_its_latest_activity_anywhere(): void {
+		Functions\when( 'wp_date' )->justReturn( '2024-01-05' );
+
+		$early = array( 'user_id' => 438, 'src' => 'wp_ffc_user_profiles', 'last_seen' => '2025-11-30 23:59:59' );
+		$late  = array( 'user_id' => 438, 'src' => 'wp_ffc_recruitment_candidate', 'last_seen' => '2026-03-02 09:00:00' );
+
+		// BOTH orders, and that is the whole point of the test. With the late
+		// row first, "keep the latest" and "keep the first" agree and a
+		// first-wins bug passes -- which is exactly what the mutation run
+		// caught here before this assertion existed.
+		$this->assertSame(
+			'2026-03-02',
+			$this->facts_with_activity( array( 438 ), array(), array( $late, $early ) )[438]['activity'],
+			'Latest first.'
+		);
+
+		$this->wpdb->mockery_verify();
+		$this->setUp();
+		Functions\when( 'wp_date' )->justReturn( '2024-01-05' );
+
+		$this->assertSame(
+			'2026-03-02',
+			$this->facts_with_activity( array( 438 ), array(), array( $early, $late ) )[438]['activity'],
+			'Latest last -- a first-wins reduction returns the earlier date here.'
+		);
+	}
+
+	/**
+	 * A unix instant is rendered through the site timezone, never sliced.
+	 *
+	 * `ffc_submissions.submission_date` is a Category A instant -- unix UTC
+	 * seconds -- while the other three stores hold housekeeping DATETIMEs the
+	 * site's own timezone already wrote. Treating the two the same is how a
+	 * comparison silently skews three stores against one.
+	 */
+	public function test_a_unix_store_is_rendered_through_the_site_timezone(): void {
+		$asked = array();
+		Functions\when( 'wp_date' )->alias(
+			function ( $format, $stamp ) use ( &$asked ) {
+				$asked[] = array( $format, $stamp );
+				return '2026-07-04';
+			}
+		);
+
+		$facts = $this->facts_with_activity(
+			array( 438 ),
+			array(),
+			array( array( 'user_id' => 438, 'src' => 'wp_ffc_submissions', 'last_seen' => '1782172800' ) )
+		);
+
+		$this->assertSame( '2026-07-04', $facts[438]['activity'] );
+		$this->assertSame( array( array( 'Y-m-d', 1782172800 ) ), $asked, 'The instant must reach wp_date() as an int.' );
+	}
+
+	/**
+	 * An account with nothing anywhere reports an empty date, not a fake one.
+	 */
+	public function test_an_account_with_no_activity_reports_nothing(): void {
+		$facts = $this->facts_with_activity( array( 438 ), array(), array() );
+
+		$this->assertSame( '', $facts[438]['activity'] );
+	}
+
+	/**
+	 * A zero DATETIME is not a date and must not be reported as one.
+	 */
+	public function test_a_zero_datetime_is_not_reported_as_a_date(): void {
+		$facts = $this->facts_with_activity(
+			array( 438 ),
+			array(),
+			array( array( 'user_id' => 438, 'src' => 'wp_ffc_user_profiles', 'last_seen' => '0000-00-00 00:00:00' ) )
+		);
+
+		$this->assertSame( '', $facts[438]['activity'] );
+	}
+
+	/**
+	 * A store whose timestamp column is absent is skipped, never fatal.
+	 *
+	 * The column each store is read on is a MAP and not a probe -- nothing in
+	 * a schema says which of an appointment's seven timestamps means "was
+	 * used" -- so the column it names is probed before being read, and a
+	 * store that lost it degrades to "no activity here".
+	 */
+	public function test_a_store_without_its_timestamp_column_is_skipped(): void {
+		$this->without_activity_column = array( 'wp_ffc_user_profiles' );
+
+		$seen = array();
+		Functions\when( 'get_users' )->justReturn( array( 438 ) );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $query ) use ( &$seen ) {
+				$sql = (string) $query;
+
+				if ( false !== strpos( $sql, 'MAX(' ) ) {
+					$seen[] = $sql;
+				}
+
+				return array();
+			}
+		);
+
+		( new IdentityConflictQuery() )->account_facts( array( 438 ) );
+
+		$this->assertNotEmpty( $seen, 'No activity statement ran at all, so this proves nothing.' );
+		$this->assertStringNotContainsString( 'wp_ffc_user_profiles', $seen[0] );
+		$this->assertSame( 3, substr_count( $seen[0], 'MAX(' ), 'The other three stores must still be read.' );
+	}
+
 }

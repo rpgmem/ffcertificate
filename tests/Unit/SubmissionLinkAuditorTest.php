@@ -42,6 +42,13 @@ class SubmissionLinkAuditorTest extends TestCase {
 		$this->conflicts->shouldReceive( 'shared_identities' )->andReturn( array() )->byDefault();
 		$this->conflicts->shouldReceive( 'multiple_identities' )->andReturn( array() )->byDefault();
 		$this->conflicts->shouldReceive( 'unindexed_links' )->andReturn( array() )->byDefault();
+
+		// The account-facts pass runs over every check's rows, so it is part
+		// of `run()` now and not of any one check. Answering nothing by
+		// default leaves each finding at `missing`, which is the seeded
+		// default and what a test that says nothing about accounts should
+		// see.
+		$this->conflicts->shouldReceive( 'account_facts' )->andReturn( array() )->byDefault();
 	}
 
 	protected function tearDown(): void {
@@ -219,6 +226,205 @@ class SubmissionLinkAuditorTest extends TestCase {
 				"'{$key}'",
 				$m[1],
 				"The audit computes '{$key}' and the Migrations tab has no label for it, so its count is never shown."
+			);
+		}
+	}
+
+	/**
+	 * Every finding that names an account says whether it still exists and
+	 * what it owns.
+	 *
+	 * Before #1354 a finding named a bare integer read off the plugin's own
+	 * rows, and nothing had ever asked `wp_users` whether an account was
+	 * behind it -- so an operator told that an account held two CPFs could not
+	 * tell merge from repair from deleting a row pointing at somebody removed
+	 * years ago.
+	 */
+	public function test_every_finding_names_what_is_true_of_its_accounts(): void {
+		$this->repo->shouldReceive( 'find_orphan_user_links' )->andReturn( array() );
+		$this->repo->shouldReceive( 'find_users_with_multiple_identities' )->andReturn( array() );
+		$this->repo->shouldReceive( 'find_unlinked_with_matching_identity' )->andReturn( array() );
+		$this->repo->shouldReceive( 'find_shared_identities' )->andReturn( array() );
+
+		$this->conflicts->shouldReceive( 'multiple_identities' )->andReturn(
+			array(
+				array(
+					'subject'           => 438,
+					'identity_count'    => 2,
+					'identifier_column' => 'cpf_hash',
+				),
+			)
+		);
+		$this->conflicts->shouldReceive( 'shared_identities' )->andReturn(
+			array(
+				array(
+					'subject'           => 'hash-of-one-cpf',
+					'user_count'        => 2,
+					'related'           => '355|5276',
+					'identifier_column' => 'cpf_hash',
+				),
+			)
+		);
+
+		$asked = array();
+		$this->conflicts->shouldReceive( 'account_facts' )->once()->andReturnUsing(
+			function ( array $ids ) use ( &$asked ) {
+				$asked = $ids;
+
+				return array(
+					438  => array( 'status' => IdentityConflictQuery::STATUS_EXISTS, 'rows' => array( 'submissions' => 12 ) ),
+					355  => array( 'status' => IdentityConflictQuery::STATUS_EXISTS, 'rows' => array( 'submissions' => 3, 'user_profiles' => 1 ) ),
+					5276 => array( 'status' => IdentityConflictQuery::STATUS_MISSING, 'rows' => array() ),
+				);
+			}
+		);
+
+		$report = $this->auditor()->run( array() );
+
+		sort( $asked );
+		$this->assertSame(
+			array( 355, 438, 5276 ),
+			$asked,
+			'Every account named anywhere in the report is asked about in ONE pass, so two rows about the same account cannot disagree.'
+		);
+
+		$multiple = $report['checks']['cross_store_multiple_identities']['rows'][0];
+		$this->assertSame( IdentityConflictQuery::STATUS_EXISTS, $multiple[ IdentityConflictQuery::COLUMN_ACCOUNT_STATUS ] );
+		$this->assertSame( '438=submissions:12', $multiple[ IdentityConflictQuery::COLUMN_ACCOUNT_ROWS ] );
+
+		// Positional against the ids the finding names, in that order: a set
+		// would misalign the status from the account it answers for.
+		$shared = $report['checks']['cross_store_shared_identities']['rows'][0];
+		$this->assertSame(
+			IdentityConflictQuery::STATUS_EXISTS . '|' . IdentityConflictQuery::STATUS_MISSING,
+			$shared[ IdentityConflictQuery::COLUMN_ACCOUNT_STATUS ]
+		);
+		$this->assertSame(
+			'355=submissions:3,user_profiles:1|5276=',
+			$shared[ IdentityConflictQuery::COLUMN_ACCOUNT_ROWS ],
+			'An account owning no row still holds its slot, or the list stops lining up with the ids.'
+		);
+	}
+
+	/**
+	 * The control: `orphan_links` selects rows whose `user_id` has no
+	 * `wp_users` match, so every one of its findings MUST read `missing`.
+	 *
+	 * An `exists` here would mean the annotation is reading accounts off the
+	 * wrong key -- which no assertion about the other checks could catch,
+	 * because there the answer is whatever the facts pass supplies.
+	 */
+	public function test_an_orphan_link_can_only_be_missing(): void {
+		$this->repo->shouldReceive( 'find_orphan_user_links' )->andReturn(
+			array( array( 'id' => 5, 'user_id' => 99, 'form_id' => 2 ) )
+		);
+		$this->repo->shouldReceive( 'find_users_with_multiple_identities' )->andReturn( array() );
+		$this->repo->shouldReceive( 'find_unlinked_with_matching_identity' )->andReturn( array() );
+		$this->repo->shouldReceive( 'find_shared_identities' )->andReturn( array() );
+
+		// The facts pass answers honestly for an id no `wp_users` row backs.
+		$this->conflicts->shouldReceive( 'account_facts' )->andReturn(
+			array( 99 => array( 'status' => IdentityConflictQuery::STATUS_MISSING, 'rows' => array( 'submissions' => 1 ) ) )
+		);
+
+		$report = $this->auditor()->run( array() );
+		$row    = $report['checks']['orphan_links']['rows'][0];
+
+		$this->assertSame( IdentityConflictQuery::STATUS_MISSING, $row[ IdentityConflictQuery::COLUMN_ACCOUNT_STATUS ] );
+		$this->assertSame( '99=submissions:1', $row[ IdentityConflictQuery::COLUMN_ACCOUNT_ROWS ] );
+	}
+
+	/**
+	 * Each row shape is read where its accounts actually are.
+	 *
+	 * `grouped()` aliases whatever it grouped BY as `subject`, so that key is
+	 * a user id in one check and a hash in the other, and nothing in the row
+	 * says which. Shape cannot decide it either: a 16-character hex prefix can
+	 * be all digits and read as numeric, which is why the map is explicit.
+	 */
+	public function test_accounts_named_by_reads_each_row_shape(): void {
+		$this->assertSame(
+			array( 438 ),
+			SubmissionLinkAuditor::accounts_named_by( 'cross_store_multiple_identities', array( 'subject' => 438 ) )
+		);
+		$this->assertSame(
+			array( 355, 5276 ),
+			SubmissionLinkAuditor::accounts_named_by( 'cross_store_shared_identities', array( 'related' => '355|5276' ) )
+		);
+		$this->assertSame(
+			array( 9 ),
+			SubmissionLinkAuditor::accounts_named_by( 'unindexed_links', array( 'user_id' => 9 ) )
+		);
+
+		// A hash that happens to be all digits is never read as an account,
+		// because the map says this check groups by hash.
+		$this->assertSame(
+			array(),
+			SubmissionLinkAuditor::accounts_named_by( 'cross_store_shared_identities', array( 'subject' => '1234567890123456' ) )
+		);
+
+		// The one check with no account at all: its findings ARE submissions
+		// with no user, so annotating them would claim an answer it lacks.
+		$this->assertSame(
+			array(),
+			SubmissionLinkAuditor::accounts_named_by( 'should_be_linked', array( 'id' => 4, 'cpf_hash' => 'abc' ) )
+		);
+	}
+
+	/**
+	 * The two maps that say which half of a grouped row is which must agree.
+	 *
+	 * The export keeps its own map because it formats BOTH halves; this class
+	 * keeps one because only the producer knows where the accounts are. They
+	 * encode the same fact from opposite ends, so a check added to one and not
+	 * the other would put a hash in a column meant for account ids -- the
+	 * defect #1344 fixed, wearing a new name. Read as text: the export is
+	 * about formatting and standing it up here would prove nothing.
+	 */
+	public function test_the_account_map_agrees_with_the_export_subject_map(): void {
+		$source = file_get_contents( __DIR__ . '/../../includes/maintenance/class-ffc-identity-audit-export-source.php' );
+		$this->assertIsString( $source );
+
+		$block = array();
+		if ( preg_match( '/SUBJECT_IS\s*=\s*array\((.*?)\);/s', $source, $m ) ) {
+			preg_match_all( "/'([a-z_]+)'\s*=>\s*'([a-z_]+)'/", $m[1], $pairs, PREG_SET_ORDER );
+			foreach ( $pairs as $pair ) {
+				$block[ $pair[1] ] = $pair[2];
+			}
+		}
+
+		$this->assertNotEmpty( $block, 'The export map could not be read, so this comparison proves nothing.' );
+
+		foreach ( $block as $check => $subject_is ) {
+			$this->assertArrayHasKey(
+				$check,
+				SubmissionLinkAuditor::ACCOUNTS_IN,
+				"The export formats `{$check}` but this class does not say where its accounts are."
+			);
+
+			// Grouped by HASH is the direction that must match exactly: the
+			// accounts are then the half the count aggregated away, and
+			// reading them off `subject` instead would put a hash where
+			// account ids belong -- the #1344 defect wearing a new name.
+			//
+			// Grouped by ACCOUNT admits two keys, and deliberately so: the
+			// cross-store checks alias their grouping column as `subject`,
+			// while the two legacy ones emit a literal `user_id` and no
+			// `subject` at all. What must never happen is `related`, which
+			// holds hashes in that direction.
+			if ( 'hash' === $subject_is ) {
+				$this->assertSame(
+					'related',
+					SubmissionLinkAuditor::ACCOUNTS_IN[ $check ],
+					"`{$check}` groups by hash, so its accounts are in `related` and nowhere else."
+				);
+				continue;
+			}
+
+			$this->assertContains(
+				SubmissionLinkAuditor::ACCOUNTS_IN[ $check ],
+				array( 'subject', 'user_id' ),
+				"`{$check}` groups by account, so `related` there holds hashes, never accounts."
 			);
 		}
 	}

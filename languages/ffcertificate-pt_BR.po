@@ -5007,9 +5007,9 @@ msgstr "Não foi possível gerar o certificado."
 msgid "Countdown timer"
 msgstr "Contagem regressiva"
 
-#: includes/settings/views/ffc-tab-migrations.php:971
-msgid "Counts are capped at 50 per check (a “+” means there may be more). Export the findings to see the accounts behind each number — the CSV carries ids, counts and a grouping prefix, never anyone's CPF, RF or e-mail. These are leads to investigate, not automatic fixes."
-msgstr "As contagens são limitadas a 50 por verificação (um “+” indica que pode haver mais). Exporte os achados para ver as contas por trás de cada número — o CSV traz ids, contagens e um prefixo de agrupamento, nunca o CPF, RF ou e-mail de ninguém. São pistas a investigar, não correções automáticas."
+#: includes/settings/views/ffc-tab-migrations.php:1098
+msgid "Counts are capped at 50 per check (a “+” means there may be more). Hover an account to see how many rows it owns per store. An account marked deleted has no WordPress user behind it — the CSV export reports which foreign keys the database actually enforces, which is what says whether that is expected. Reading says whether the account is one person or two; Difference says how that person's two identifiers differ — a typo, or a spelling the canonicaliser does not collapse. The CSV carries ids, counts, a grouping prefix and those two categories, never anyone's CPF, RF or e-mail. These are leads to investigate, not automatic fixes."
+msgstr "As contagens são limitadas a 50 por verificação (um “+” indica que pode haver mais). Passe o mouse sobre uma conta para ver quantas linhas ela tem em cada origem. Uma conta marcada como excluída não tem usuário do WordPress por trás — a exportação CSV informa quais chaves estrangeiras o banco realmente garante, e é isso que diz se aquilo era esperado. Leitura diz se a conta é uma pessoa ou duas; Diferença diz como os dois identificadores dessa pessoa diferem — um erro de digitação, ou uma grafia que o canonicalizador não unifica. O CSV traz ids, contagens, um prefixo de agrupamento e essas duas categorias, nunca o CPF, RF ou e-mail de ninguém. São pistas a investigar, não correções automáticas."
 
 #: includes/admin/class-ffc-preflight-stats-service.php:141
 msgid "Counts visitors who hit a pre-flight banner on this form (last 30 days). High numbers may indicate a setup issue — e.g. GPS denied dominating means visitors can't pass the geofence, cookie wall dominating means cached HTML is being served with wrong nonces."
@@ -22034,3 +22034,43 @@ msgstr "TRUNCADO: esta verificação atingiu o limite de %d linhas da exportaç�
 #: includes/maintenance/class-ffc-identity-audit-export-source.php
 msgid "No link problems found."
 msgstr "Nenhum problema de vínculo encontrado."
+
+#: includes/settings/views/ffc-tab-migrations.php:1046
+msgid "Show the %s findings that name an account"
+msgstr "Mostrar os %s achados que nomeiam uma conta"
+
+#: includes/settings/views/ffc-tab-migrations.php:1054
+msgid "Check"
+msgstr "Verificação"
+
+#: includes/settings/views/ffc-tab-migrations.php:1055
+msgid "Accounts"
+msgstr "Contas"
+
+#: includes/settings/views/ffc-tab-migrations.php:1056
+msgid "Stores"
+msgstr "Origens"
+
+#: includes/settings/views/ffc-tab-migrations.php:1063
+msgid "Last activity"
+msgstr "Última atividade"
+
+#: includes/settings/views/ffc-tab-migrations.php:1057
+msgid "Reading"
+msgstr "Leitura"
+
+#: includes/settings/views/ffc-tab-migrations.php:1058
+msgid "Difference"
+msgstr "Diferença"
+
+#: includes/settings/views/ffc-tab-migrations.php:1079
+msgid "#%s (deleted)"
+msgstr "#%s (excluída)"
+
+#: includes/maintenance/class-ffc-identity-audit-export-source.php:450
+msgid "FOREIGN KEYS: all %d user_id constraints are installed, so an account reported missing above can only belong to a table no constraint covers — recruitment candidacies, which are deliberately unconstrained because a candidate is not a WordPress user until promotion."
+msgstr "CHAVES ESTRANGEIRAS: todas as %d restrições de user_id estão instaladas, então uma conta relatada como ausente acima só pode pertencer a uma tabela que nenhuma restrição cobre — candidaturas de recrutamento, deliberadamente sem restrição porque um candidato não é usuário do WordPress até ser promovido."
+
+#: includes/maintenance/class-ffc-identity-audit-export-source.php:468
+msgid "FOREIGN KEYS: only %1$d of %2$d user_id constraints are installed (%3$s), so a missing account above is NOT necessarily a recruitment candidacy — the database is not enforcing the link on every table it should. Run the foreign-key migration before reading these statuses."
+msgstr "CHAVES ESTRANGEIRAS: apenas %1$d de %2$d restrições de user_id estão instaladas (%3$s), então uma conta ausente acima NÃO é necessariamente uma candidatura de recrutamento — o banco não está garantindo o vínculo em toda tabela em que deveria. Rode a migração de chaves estrangeiras antes de ler esses status."

@@ -987,8 +987,129 @@ try {
 							</div>
 						<?php endforeach; ?>
 					</div>
+					<?php
+					// The accounts behind the counts, clickable. Until #1354
+					// this card showed numbers and nothing else, so reaching
+					// an account meant exporting the CSV, reading an id out of
+					// it and searching for it by hand -- and the audit never
+					// checked the id resolved to a live account at all.
+					//
+					// A report cached before that release carries no
+					// `account_status`, so every read below falls back rather
+					// than assuming the key is there.
+					$ffcertificate_sa_findings = array();
+
+					foreach ( $ffcertificate_sa_checks as $ffcertificate_sa_key => $ffcertificate_sa_data ) {
+						$ffcertificate_sa_rows = ( is_array( $ffcertificate_sa_data ) && isset( $ffcertificate_sa_data['rows'] ) && is_array( $ffcertificate_sa_data['rows'] ) )
+							? $ffcertificate_sa_data['rows']
+							: array();
+
+						foreach ( $ffcertificate_sa_rows as $ffcertificate_sa_row ) {
+							if ( ! is_array( $ffcertificate_sa_row ) ) {
+								continue;
+							}
+
+							$ffcertificate_sa_ids = \FreeFormCertificate\Maintenance\SubmissionLinkAuditor::accounts_named_by(
+								(string) $ffcertificate_sa_key,
+								$ffcertificate_sa_row
+							);
+
+							if ( array() === $ffcertificate_sa_ids ) {
+								continue;
+							}
+
+							$ffcertificate_sa_findings[] = array(
+								'check'    => (string) $ffcertificate_sa_key,
+								'ids'      => $ffcertificate_sa_ids,
+								'statuses' => isset( $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_ACCOUNT_STATUS ] )
+									? explode( \FreeFormCertificate\Maintenance\IdentityConflictQuery::RELATED_SEPARATOR, (string) $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_ACCOUNT_STATUS ] )
+									: array(),
+								'rows'     => isset( $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_ACCOUNT_ROWS ] )
+									? explode( \FreeFormCertificate\Maintenance\IdentityConflictQuery::RELATED_SEPARATOR, (string) $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_ACCOUNT_ROWS ] )
+									: array(),
+								'seen'     => isset( $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_ACCOUNT_ACTIVITY ] )
+									? explode( \FreeFormCertificate\Maintenance\IdentityConflictQuery::RELATED_SEPARATOR, (string) $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_ACCOUNT_ACTIVITY ] )
+									: array(),
+								'verdict'  => isset( $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_EMAIL_VERDICT ] )
+									? (string) $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_EMAIL_VERDICT ]
+									: '',
+								'shape'    => isset( $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_SHAPE_VERDICT ] )
+									? (string) $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_SHAPE_VERDICT ]
+									: '',
+								'stores'   => isset( $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_STORES ] )
+									? (string) $ffcertificate_sa_row[ \FreeFormCertificate\Maintenance\IdentityConflictQuery::COLUMN_STORES ]
+									: '',
+							);
+						}
+					}
+					?>
+					<?php if ( array() !== $ffcertificate_sa_findings ) : ?>
+						<details class="ffc-set-mt-10">
+							<summary>
+								<?php
+								printf(
+									/* translators: %s: how many findings name at least one account. */
+									esc_html__( 'Show the %s findings that name an account', 'ffcertificate' ),
+									esc_html( number_format_i18n( count( $ffcertificate_sa_findings ) ) )
+								);
+								?>
+							</summary>
+							<table class="wp-list-table widefat striped ffc-set-mt-10">
+								<thead>
+									<tr>
+										<th scope="col"><?php esc_html_e( 'Check', 'ffcertificate' ); ?></th>
+										<th scope="col"><?php esc_html_e( 'Accounts', 'ffcertificate' ); ?></th>
+										<th scope="col"><?php esc_html_e( 'Stores', 'ffcertificate' ); ?></th>
+										<th scope="col"><?php esc_html_e( 'Last activity', 'ffcertificate' ); ?></th>
+										<th scope="col"><?php esc_html_e( 'Reading', 'ffcertificate' ); ?></th>
+										<th scope="col"><?php esc_html_e( 'Difference', 'ffcertificate' ); ?></th>
+									</tr>
+								</thead>
+								<tbody>
+								<?php foreach ( $ffcertificate_sa_findings as $ffcertificate_sa_find ) : ?>
+									<tr>
+										<td><?php echo esc_html( $ffcertificate_sa_labels[ $ffcertificate_sa_find['check'] ] ?? $ffcertificate_sa_find['check'] ); ?></td>
+										<td>
+											<?php foreach ( $ffcertificate_sa_find['ids'] as $ffcertificate_sa_i => $ffcertificate_sa_id ) : ?>
+												<?php
+												$ffcertificate_sa_state = $ffcertificate_sa_find['statuses'][ $ffcertificate_sa_i ] ?? '';
+												$ffcertificate_sa_owns  = $ffcertificate_sa_find['rows'][ $ffcertificate_sa_i ] ?? '';
+												$ffcertificate_sa_live  = ( \FreeFormCertificate\Maintenance\IdentityConflictQuery::STATUS_EXISTS === $ffcertificate_sa_state );
+												?>
+												<?php if ( $ffcertificate_sa_live ) : ?>
+													<a href="<?php echo esc_url( admin_url( 'user-edit.php?user_id=' . rawurlencode( (string) $ffcertificate_sa_id ) ) ); ?>"
+														title="<?php echo esc_attr( $ffcertificate_sa_owns ); ?>">#<?php echo esc_html( (string) $ffcertificate_sa_id ); ?></a>
+												<?php elseif ( \FreeFormCertificate\Maintenance\IdentityConflictQuery::STATUS_MISSING === $ffcertificate_sa_state ) : ?>
+													<span title="<?php echo esc_attr( $ffcertificate_sa_owns ); ?>">
+														<?php
+														printf(
+															/* translators: %s: the account id that no longer resolves to a WordPress user. */
+															esc_html__( '#%s (deleted)', 'ffcertificate' ),
+															esc_html( (string) $ffcertificate_sa_id )
+														);
+														?>
+													</span>
+												<?php else : ?>
+													<span>#<?php echo esc_html( (string) $ffcertificate_sa_id ); ?></span>
+												<?php endif; ?>
+											<?php endforeach; ?>
+										</td>
+										<td><?php echo esc_html( $ffcertificate_sa_find['stores'] ); ?></td>
+										<td>
+											<?php foreach ( $ffcertificate_sa_find['seen'] as $ffcertificate_sa_when ) : ?>
+												<div><?php echo esc_html( $ffcertificate_sa_when ); ?></div>
+											<?php endforeach; ?>
+										</td>
+										<td><?php echo esc_html( $ffcertificate_sa_find['verdict'] ); ?></td>
+										<td><?php echo esc_html( $ffcertificate_sa_find['shape'] ); ?></td>
+									</tr>
+								<?php endforeach; ?>
+								</tbody>
+							</table>
+						</details>
+					<?php endif; ?>
 					<p class="description ffc-set-mt-10">
-						<?php esc_html_e( 'Counts are capped at 50 per check (a “+” means there may be more). Export the findings to see the accounts behind each number — the CSV carries ids, counts and a grouping prefix, never anyone\'s CPF, RF or e-mail. These are leads to investigate, not automatic fixes.', 'ffcertificate' ); ?>
+						<?php esc_html_e( 'Counts are capped at 50 per check (a “+” means there may be more). Hover an account to see how many rows it owns per store. An account marked deleted has no WordPress user behind it — the CSV export reports which foreign keys the database actually enforces, which is what says whether that is expected. Reading says whether the account is one person or two; Difference says how that person\'s two identifiers differ — a typo, or a spelling the canonicaliser does not collapse. The CSV carries ids, counts, a grouping prefix and those two categories, never anyone\'s CPF, RF or e-mail. These are leads to investigate, not automatic fixes.', 'ffcertificate' ); ?>
 					</p>
 				<?php endif; ?>
 			<?php endif; ?>

@@ -7,7 +7,25 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.28.0] (2026-09-20)
+## [6.28.1] (2026-09-20)
+
+### Security
+
+- **The ALTCHA challenge expiry is now signed** (#1357): the signature covered only the hash, which covers `salt . number` — a boundary an attacker moves by shifting a digit from the counter into `expires`, leaving the concatenation identical. Proofs verified centuries past expiry; the parsed value is now signed beside the hash.
+
+### Added
+
+- **The audit screen lists the accounts behind its counts, and they are clickable** (#1354): it showed seven numbers and nothing else, so reaching an account meant exporting the CSV and searching for the id by hand. Hovering one says how many rows it owns per store.
+- **The four vendored JavaScript bundles are frozen against an inventory** (#1208): nothing that ships is in a manifest, so no Dependabot alert can reach them and a fifth one arriving was detected by nobody. CI now fails on that, and on a filename that stops matching its version constant.
+- **The identity audit says how an account's two identifiers differ** (#1345): `email_verdict` separates one person from two and stops, leaving 71 of 73 findings unresolved between a typo and a spelling the canonicaliser misses. A new `identifier_shape` column reports the category, never a value.
+- **The identity audit reports when each account it names was last used** (#1346): merging two accounts means choosing which survives, and the choice is by use, never by id. A new `account_activity` column carries the latest date per account, positional against the ids beside it.
+
+### Fixed
+
+- **The audit says whether the accounts it names still exist** (#1354): every check read `user_id` off the plugin's own stores and none had ever joined `wp_users`, so a finding pointed at a bare integer. Each account now reports `exists`/`missing` and what it owns, positionally against the ids.
+- **The CSV closes with the foreign keys the database actually enforces** (#1354): read from the schema, not the migration's flag, which records that it ran rather than that every `ALTER` succeeded. Without it a missing account is ambiguous between an unconstrained table and an unfinished migration.
+
+## [6.28.0] (2026-09-20) — `3ebfea4`
 
 ### Removed
 
