@@ -12855,6 +12855,10 @@ msgstr "Operador — Senha de Aplicativo + ffc_manage_certificates (o caminho do
 msgid "Opt in (off by default) to log where the legacy and secure IP strategies diverge, to validate a switch before flipping."
 msgstr "Opte por ativar (desativado por padrão) o registro de onde as estratégias de IP legadas e seguras divergem, para validar uma mudança antes de efetivá-la."
 
+#: includes/settings/views/documentation/developer-hooks-api.php:42
+msgid "Opt in (off by default) to make validate_rf() also require the RF check digit, rejecting a mistyped number at the form instead of storing it."
+msgstr "Opte por ativar (desativado por padrão) para que validate_rf() também exija o dígito verificador do RF, rejeitando um número digitado errado no formulário em vez de armazená-lo."
+
 #: includes/settings/views/documentation/reference-shortcodes.php:46 includes/settings/views/documentation/reference-shortcodes.php:79
 msgid "Optional attribute:"
 msgstr "Atributo opcional:"

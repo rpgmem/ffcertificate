@@ -39,6 +39,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><code>ffc_ip_resolver_mode</code></td><td><?php esc_html_e( 'Client-IP resolution strategy for ClientIpResolver — "legacy" (default) or "secure" (trusted-proxy + Cloudflare autodetect). Normally set from the IP Diagnostics tab.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffc_trusted_proxies</code> / <code>ffc_cloudflare_ip_ranges</code></td><td><?php esc_html_e( 'Extend the trusted reverse-proxy CIDRs, or the Cloudflare edge ranges, the secure strategy honours when walking X-Forwarded-For / CF-Connecting-IP.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffc_ip_shadow_logging</code></td><td><?php esc_html_e( 'Opt in (off by default) to log where the legacy and secure IP strategies diverge, to validate a switch before flipping.', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffc_validate_rf_check_digit</code></td><td><?php esc_html_e( 'Opt in (off by default) to make validate_rf() also require the RF check digit, rejecting a mistyped number at the form instead of storing it.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_rest_form_schema</code></td><td><?php esc_html_e( 'Filter the payload of GET /forms/{id}/schema.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffcertificate_settings_tabs</code></td><td><?php esc_html_e( 'Register a custom settings tab.', 'ffcertificate' ); ?></td></tr>
 			</tbody>

@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **The RF has a check digit and the plugin can read it** (#1345): `validate_rf()` took any seven digits, so a mistyped RF reached storage where a mistyped CPF does not. `rf_check_digit_matches()` classifies; rejecting at the form is opt-in via `ffc_validate_rf_check_digit`.
+
 ## [6.28.1] (2026-09-20) — `58e498a`
 
 ### Security

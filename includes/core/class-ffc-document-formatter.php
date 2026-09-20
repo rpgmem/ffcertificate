@@ -90,12 +90,131 @@ class DocumentFormatter {
 	/**
 	 * Validate RF (7-digit registration)
 	 *
+	 * **Structure only, by default.** Seven digits and nothing else -- which
+	 * is what this method has always checked, and why a mistyped RF reaches
+	 * storage where a mistyped CPF does not: `validate_cpf()` verifies two
+	 * check digits, so it rejects a typo roughly 99 times in 100, while this
+	 * accepts almost every one. Measured on the identity audit, that
+	 * asymmetry is total -- 32 of 48 RF conflicts are a single digit or an
+	 * adjacent transposition apart, against 1 of 25 on CPF (#1345).
+	 *
+	 * **The RF does have a check digit** ({@see self::rf_check_digit()}), and
+	 * enforcing it here would close that gap at the form. It is off unless
+	 * something turns it on:
+	 *
+	 * ```php
+	 * add_filter( 'ffc_validate_rf_check_digit', '__return_true' );
+	 * ```
+	 *
+	 * **Off is the deliberate default, and the reason is asymmetric cost.**
+	 * The rule is inferred from this install's own data rather than read from
+	 * an HR specification, so rejecting on it risks turning away a person
+	 * whose RF is genuinely unusual -- and a blocked registration is worse
+	 * than a stored typo, which the audit finds later either way. The
+	 * classification half needs no such licence and is always available
+	 * through {@see self::rf_check_digit_matches()}; this filter is only
+	 * about refusing input. The same shape as `ffc_ip_shadow_logging`: a
+	 * stronger signal is made available first and made binding separately.
+	 *
+	 * @since 6.29.0 The `ffc_validate_rf_check_digit` opt-in.
 	 * @param string $rf RF to validate.
 	 * @return bool True if valid
 	 */
 	public static function validate_rf( string $rf ): bool {
 		$rf = DataSanitizer::normalize_cpf_rf( $rf );
-		return strlen( $rf ) === 7 && is_numeric( $rf );
+
+		if ( strlen( $rf ) !== 7 || ! is_numeric( $rf ) ) {
+			return false;
+		}
+
+		/**
+		 * Whether `validate_rf()` also requires the check digit to agree.
+		 *
+		 * @since 6.29.0
+		 * @param bool $enforce False by default -- structure only.
+		 */
+		if ( ! apply_filters( 'ffc_validate_rf_check_digit', false ) ) {
+			return true;
+		}
+
+		return self::rf_check_digit_matches( $rf );
+	}
+
+	/**
+	 * Positional weights of the RF check digit, most significant first.
+	 *
+	 * @since 6.29.0
+	 * @var array<int, int>
+	 */
+	public const RF_CHECK_WEIGHTS = array( 7, 6, 5, 4, 3, 2 );
+
+	/**
+	 * The check digit the first six digits of an RF imply.
+	 *
+	 * ```
+	 * s  = 7*d0 + 6*d1 + 5*d2 + 4*d3 + 3*d4 + 2*d5
+	 * r  = s mod 11
+	 * dv = (11 - r) mod 10
+	 * ```
+	 *
+	 * **Why the second modulus is 10 and not 11.** `11 - r` ranges over 1..11,
+	 * and neither 10 nor 11 is a digit. Taking it mod 10 sends 11 to 1 and 10
+	 * to 0, which is what the data does: `r = 1` yields 0, and `r = 0` and
+	 * `r = 10` BOTH yield 1. That collapse is the rule's one blind spot -- a
+	 * single-digit error in the body that moves `r` between 0 and 10 produces
+	 * the same check digit and passes undetected. It is small and real, and
+	 * saying so here is cheaper than rediscovering it from a false negative.
+	 *
+	 * **Where the rule comes from, because it is not a published spec.** It
+	 * was derived from 3,036 distinct RFs decrypted in memory from this
+	 * install's own stores (2026-09-20), which 97.40% of them satisfy, and
+	 * then reproduced against 96 RFs of independent provenance, which
+	 * satisfy it at **100%** and exercise all eleven residues -- including
+	 * the two that collapse onto `dv = 1`, which is what a derivation from
+	 * one base cannot check on itself. The shortfall on the first base is
+	 * therefore stored values that are wrong, not a gap in the rule.
+	 * Reasoning and both measurements: issue #1345.
+	 *
+	 * @since 6.29.0
+	 * @param string $rf RF, with or without formatting.
+	 * @return int|null Expected check digit 0-9, or null when the input is not
+	 *                  a seven-digit RF and there is nothing to compute from.
+	 */
+	public static function rf_check_digit( string $rf ): ?int {
+		$rf = DataSanitizer::normalize_cpf_rf( $rf );
+
+		if ( strlen( $rf ) !== 7 ) {
+			return null;
+		}
+
+		$sum = 0;
+		foreach ( self::RF_CHECK_WEIGHTS as $position => $weight ) {
+			$sum += (int) $rf[ $position ] * $weight;
+		}
+
+		return ( 11 - ( $sum % 11 ) ) % 10;
+	}
+
+	/**
+	 * Whether an RF's seventh digit is the one its first six imply.
+	 *
+	 * Structure is checked first, so this answers false for anything that is
+	 * not a seven-digit RF at all -- a caller asking "is this RF consistent"
+	 * never has to ask "is it an RF" separately.
+	 *
+	 * This is the classification half of the check digit and it is always on.
+	 * Rejecting a registration is the other half, and it is not: see
+	 * {@see self::validate_rf()}.
+	 *
+	 * @since 6.29.0
+	 * @param string $rf RF, with or without formatting.
+	 * @return bool True when the check digit agrees with the body.
+	 */
+	public static function rf_check_digit_matches( string $rf ): bool {
+		$rf       = DataSanitizer::normalize_cpf_rf( $rf );
+		$expected = self::rf_check_digit( $rf );
+
+		return null !== $expected && (int) $rf[6] === $expected;
 	}
 
 	/**
