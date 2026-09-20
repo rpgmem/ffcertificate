@@ -427,9 +427,14 @@ class IdentityConflictQuery {
 	 * that format sorts lexicographically, and with no timezone arithmetic
 	 * anywhere.
 	 *
-	 * @var array<string, bool>
+	 * A list and not a map: the only thing an entry carries is membership, so
+	 * a `=> true` beside each name would be a value that says nothing -- and
+	 * PHPStan is right to call the `$is_unix &&` it invites a condition that
+	 * is always true.
+	 *
+	 * @var array<int, string>
 	 */
-	private const ACTIVITY_UNIX_STORES = array( 'ffc_submissions' => true );
+	private const ACTIVITY_UNIX_STORES = array( 'ffc_submissions' );
 
 	/**
 	 * What separates the values inside `related` and `stores`.
@@ -875,8 +880,8 @@ class IdentityConflictQuery {
 			return '';
 		}
 
-		foreach ( self::ACTIVITY_UNIX_STORES as $suffix => $is_unix ) {
-			if ( $is_unix && substr( $table, -strlen( $suffix ) ) === $suffix ) {
+		foreach ( self::ACTIVITY_UNIX_STORES as $suffix ) {
+			if ( substr( $table, -strlen( $suffix ) ) === $suffix ) {
 				$stamp = (int) $value;
 
 				return ( $stamp > 0 && function_exists( 'wp_date' ) )
