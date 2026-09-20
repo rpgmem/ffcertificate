@@ -7,6 +7,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.28.1] (2026-09-20)
+
 ### Security
 
 - **The ALTCHA challenge expiry is now signed** (#1357): the signature covered only the hash, which covers `salt . number` — a boundary an attacker moves by shifting a digit from the counter into `expires`, leaving the concatenation identical. Proofs verified centuries past expiry; the parsed value is now signed beside the hash.
