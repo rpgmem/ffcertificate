@@ -7,6 +7,15 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **The audit screen lists the accounts behind its counts, and they are clickable** (#1354): it showed seven numbers and nothing else, so reaching an account meant exporting the CSV and searching for the id by hand. Hovering one says how many rows it owns per store.
+
+### Fixed
+
+- **The audit says whether the accounts it names still exist** (#1354): every check read `user_id` off the plugin's own stores and none had ever joined `wp_users`, so a finding pointed at a bare integer. Each account now reports `exists`/`missing` and what it owns, positionally against the ids.
+- **The CSV closes with the foreign keys the database actually enforces** (#1354): read from the schema, not the migration's flag, which records that it ran rather than that every `ALTER` succeeded. Without it a missing account is ambiguous between an unconstrained table and an unfinished migration.
+
 ## [6.28.0] (2026-09-20) — `3ebfea4`
 
 ### Removed
