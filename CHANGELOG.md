@@ -7,29 +7,27 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Fixed
-
-- **The identity-index card can tell on its own whether there is work left** (#1345): it short-circuited on a stored flag and answered 100% *without counting*, so the walk finishing once made it complete forever and a user linked afterwards stayed invisible — the only migration here that could not re-arm, against five that compute pending from the data and three anchored on the key fingerprint. The flag is gone, and the card is cheaper than before: one statement answers both counts where the unlatched path ran two. A hundred per cent still means "everything a backfill may decide", never "the index is whole" — an account holding two different hashes is left for the audit to report.
+## [6.28.0] (2026-09-20)
 
 ### Removed
 
-- **⚠ Breaking — the `ffcertificate_ficha_*` filters stop firing** (#1264): the five aliases kept alive since the 6.26.0 rename are gone, along with the `wp_ajax_ffc_generate_ficha` action. An integration still listening on an old name goes silent with no error, which is what the cycle existed to warn about — move to `ffcertificate_record_data` / `_html` / `_filename` / `_template_html` / `_template_file`, and post `ffc_generate_record`. The nonce action string stays `ffc_generate_ficha`: it is an opaque salt nobody reads, and renaming it would reject every nonce already rendered.
-- **⚠ Breaking — `UserManager::get_or_create_user()` and `UserCreator::get_or_create_user()` are removed** (#1313): deprecated in 6.26.0, with the notice that reaches a caller no code scan can see. Use `get_or_create_user_dual()`, passing each hash in the argument its kind names — the position is the type, so the old `$identifier_type` argument has no counterpart, and its `TYPE_CPF` / `TYPE_RF` / `TYPE_AUTO` constants go with it. The replacement resolves through the identity index and feeds it; the removed one queried `ffc_submissions` alone and wrote to no index.
+- **⚠ Breaking — the `ffcertificate_ficha_*` filters and the `ffc_generate_ficha` action stop firing** (#1264): the aliases kept since the 6.26.0 rename are gone, and a listener on an old name goes silent with no error. Move to `ffcertificate_record_*` and `ffc_generate_record`. The nonce action string keeps the old name deliberately.
+- **⚠ Breaking — `get_or_create_user()` is removed from `UserManager` and `UserCreator`** (#1313): deprecated in 6.26.0. Use `get_or_create_user_dual()` — the argument position is the identifier's kind, so `$identifier_type` and the `TYPE_*` constants go with it.
 
 ### Added
 
-- **A recruitment candidacy is adopted when its person is recognised** (#1345): resolving someone already claimed their unlinked submissions and appointments, and never their candidacies — while account deletion happily dropped that same link. So the plugin could detach a candidacy and never restore it, and orphaning one was permanent loss; fifteen of the 73 conflicting accounts measured in production touch that table, two of them only. Every matching row is claimed, not one, because applying to two positions is two rows under one identifier.
-
-- **The audit says whether a multi-identifier account is one person or two** (#1345): a person holds one CPF and one RF, so an account carrying two of either is two people, one mistyped value, or one value spelled two ways — and the first is an exposure while the others are not. No hash can tell them apart, but the `email_hash` stored beside each identifier can: two identifiers used from one address is one person typing, an address each is two people. Reported as `email_verdict` on the export, with `unknown` kept separate from `distinct_emails` because a missing address is not evidence of a second person.
-
-### Fixed
-
-- **Every export row is as wide as its header** (#1345): the tool-unavailable fallback was the one row written out by hand and had been a column short since before the header grew. It goes through the helper that builds a row from the header, which is what that helper exists for, and a test now fails on any row that drifts.
-- **The audit names the accounts and identifiers behind each finding** (#1344): a grouped check emitted whichever half it grouped by and aggregated the other away, so every shared row said an identifier belongs to two accounts without naming them and every multiple row said an account holds two identifiers without naming those — 13 and 73 rows respectively on the first production export. Both halves now travel with the count, so the CSV's own promise to *show the accounts behind each number* is true.
+- **The audit says whether a multi-identifier account is one person or two** (#1345): no hash can tell a second person from a mistyped value, but the `email_hash` beside each identifier can, without a key. Reported as `email_verdict`; `unknown` stays distinct from `distinct_emails`.
+- **A recruitment candidacy is adopted when its person is recognised** (#1345): submissions and appointments were claimed and candidacies never were, while account deletion dropped that link — so detaching one was permanent loss. Every matching row is claimed, not one.
 
 ### Changed
 
-- **Two export columns are plural, because they now hold lists** (#1344): `user_id` → `user_ids` and `identifier_hash_prefix` → `identifier_hash_prefixes` in the identity-audit CSV. Every hash is still cut to the grouping prefix, inside a list as much as alone. A `GROUP_CONCAT` shorter than its own count is declared in the row's `note` rather than printed as if complete — it truncates at 1024 bytes with no error, which is 15 hashes against an account already holding 11.
+- **Two identity-audit CSV columns are plural** (#1344): `user_id` → `user_ids` and `identifier_hash_prefix` → `identifier_hash_prefixes`, because they hold lists now. Hashes are still cut to the grouping prefix.
+
+### Fixed
+
+- **The audit names both halves of every conflict** (#1344): a grouped check counted one half away, so 13 findings named no accounts and 73 named no identifiers. Both now travel with the count, and a truncated list is declared rather than printed short.
+- **The identity-index card can tell on its own whether there is work left** (#1345): it answered 100% from a stored flag nothing could clear, so a user linked after the walk stayed invisible. It measures now, and costs one statement where the unlatched path ran two.
+- **Every identity-audit export row is as wide as its header** (#1345): the tool-unavailable fallback was written out by hand and had been a column short since before the header grew.
 
 ## [6.27.0] (2026-09-19) — `9ac9eb9`
 
