@@ -46,13 +46,11 @@ class RecordGeneratorTest extends TestCase {
 		});
 
 		// The five `ffcertificate_ficha_*` hooks became `ffcertificate_record_*`
-		// in 6.26.0 (#1264), with the old names kept alive through
-		// `apply_filters_deprecated()` until 6.28.0. Every test here drives the
-		// NEW name; this stub makes the deprecated call a pass-through so it
-		// does not swallow the value on its way to the live filter. What the
-		// alias itself is worth is pinned by
-		// `test_the_deprecated_record_hooks_still_reach_a_listener()`, which
-		// stubs it for real.
+		// in 6.26.0 (#1264) and their aliases were removed in 6.28.0, so
+		// nothing here calls `apply_filters_deprecated()` any more. The stub
+		// stays as a pass-through: without it, an alias reintroduced by a
+		// revert would fatal on an undefined function instead of being
+		// reported by the two tests that assert it is gone.
 		Functions\when('apply_filters_deprecated')->alias(function ($tag, $args) {
 			return $args[0];
 		});
@@ -763,7 +761,7 @@ class RecordGeneratorTest extends TestCase {
 	 * @param string $auth_code Raw code stored on the row.
 	 * @return array<string, mixed> Variables handed to the template.
 	 */
-	private function runRecordWithStatus(string $status, string $auth_code): array {
+	private function runRecordWithStatus(string $status, string $auth_code, ?array &$seen = null): array {
 		Functions\when('__')->returnArg();
 		Functions\when('esc_html__')->returnArg();
 		Functions\when('esc_html')->returnArg();
@@ -779,7 +777,13 @@ class RecordGeneratorTest extends TestCase {
 		});
 
 		$captured = array();
-		Functions\when('apply_filters')->alias(function ($tag, $value) use (&$captured) {
+
+		// `$seen` is how a caller observes the hooks, because THIS stub would
+		// silently replace one the caller declared first: `Functions\when()`
+		// defines the function, and the last definition wins.
+		$seen = array();
+		Functions\when('apply_filters')->alias(function ($tag, $value) use (&$captured, &$seen) {
+			$seen[ $tag ] = $value;
 			if ('ffcertificate_record_template_file' === $tag) {
 				return '/tmp/ffc-nonexistent-template.html';
 			}
@@ -908,35 +912,41 @@ class RecordGeneratorTest extends TestCase {
 	}
 
 	// ==================================================================
-	// The 6.26.0 hook rename and its deprecation cycle (#1264)
+	// The 6.26.0 hook rename, whose cycle closed in 6.28.0 (#1264)
 	// ==================================================================
 
 	/**
-	 * The five old `ffcertificate_ficha_*` names still reach a listener.
+	 * The two template hooks fire under their new names and nothing else.
 	 *
-	 * This is the whole point of the cycle, and the only part of #1264 that
-	 * needs one: renaming a public filter breaks an external integration in
-	 * SILENCE -- no error, the hook simply stops firing. Every other rename in
-	 * that issue is internal, so a grep settles it.
+	 * These used to assert the OPPOSITE -- that the old `ffcertificate_ficha_*`
+	 * names still reached a listener through `apply_filters_deprecated()`. The
+	 * cycle closed in 6.28.0, so the assertion inverts: an alias reappearing
+	 * would mean the removal was reverted, and a new name that stopped firing
+	 * would mean the removal took the live hook with it.
 	 *
-	 * The assertion charges the OLD name, the version and the replacement,
-	 * because `apply_filters_deprecated()` is what both keeps the old hook
-	 * alive and emits the notice; calling it with a wrong replacement would
-	 * still fire the listener and still pass a test that only checked the
-	 * value came back.
+	 * IT CHARGES THE VALUE, NOT ONLY THE NAME
+	 *
+	 * Removing an alias is not a deletion here. The deprecated call SEEDED the
+	 * variable the live filter then received -- `apply_filters_deprecated( …,
+	 * array( '' ) )` feeding `$pool_html` -- so deleting the statement without
+	 * moving its seed into the survivor leaves an undefined variable. Two of
+	 * the five were that shape, and only an assertion on the value can tell a
+	 * hook that fires with the right input from one that fires with nothing.
 	 *
 	 * @return void
 	 */
-	public function test_the_deprecated_record_hooks_still_reach_a_listener(): void {
-		$seen = array();
+	public function test_the_template_hooks_fire_under_their_new_names_only(): void {
+		$deprecated = array();
+		$seen       = array();
 
 		Functions\when('apply_filters_deprecated')->alias(
-			function ($tag, $args, $version, $replacement) use (&$seen) {
-				$seen[ $tag ] = array($version, $replacement);
+			function ($tag, $args) use (&$deprecated) {
+				$deprecated[] = $tag;
 				return $args[0];
 			}
 		);
-		Functions\when('apply_filters')->alias(function ($tag, $value) {
+		Functions\when('apply_filters')->alias(function ($tag, $value) use (&$seen) {
+			$seen[ $tag ] = $value;
 			if ('ffcertificate_record_template_file' === $tag) {
 				return '/tmp/ffc-nonexistent-template.html';
 			}
@@ -945,20 +955,15 @@ class RecordGeneratorTest extends TestCase {
 
 		$this->invokePrivateStatic('load_template', []);
 
-		$this->assertSame(
-			array('6.26.0', 'ffcertificate_record_template_html'),
-			$seen['ffcertificate_ficha_template_html'] ?? null,
-			'The pool-resolver hook lost its deprecated alias -- a listener on the old name goes silent.'
-		);
-		$this->assertSame(
-			array('6.26.0', 'ffcertificate_record_template_file'),
-			$seen['ffcertificate_ficha_template_file'] ?? null,
-			'The template-file hook lost its deprecated alias.'
-		);
+		$this->assertSame(array(), $deprecated, 'A deprecated alias is back -- the 6.28.0 removal was reverted.');
+		$this->assertArrayHasKey('ffcertificate_record_template_html', $seen, 'The pool-resolver hook stopped firing.');
+		$this->assertSame('', $seen['ffcertificate_record_template_html'], 'It must receive the empty default the removed alias used to seed.');
+		$this->assertArrayHasKey('ffcertificate_record_template_file', $seen, 'The template-file hook stopped firing.');
+		$this->assertStringContainsString('default_ficha_template.html', (string) $seen['ffcertificate_record_template_file']);
 	}
 
 	/**
-	 * The three generation hooks carry the alias too.
+	 * The three generation hooks likewise, with the same value check.
 	 *
 	 * Separate from the pair above because these live inside
 	 * `generate_record_data()`, which needs the whole fixture: covering all
@@ -970,24 +975,32 @@ class RecordGeneratorTest extends TestCase {
 	 *
 	 * @return void
 	 */
-	public function test_the_deprecated_generation_hooks_still_reach_a_listener(): void {
-		$seen = array();
+	public function test_the_generation_hooks_fire_under_their_new_names_only(): void {
+		$deprecated = array();
+		$seen       = array();
+
 		Functions\when('apply_filters_deprecated')->alias(
-			function ($tag, $args, $version, $replacement) use (&$seen) {
-				$seen[ $tag ] = array($version, $replacement);
+			function ($tag, $args) use (&$deprecated) {
+				$deprecated[] = $tag;
 				return $args[0];
 			}
 		);
 
-		$this->runRecordWithStatus('approved', 'MA6DE5LHPFTC');
+		// The hooks are observed through the fixture, not through a stub
+		// declared here: `runRecordWithStatus()` defines its own
+		// `apply_filters` and would replace one this test set up first.
+		$this->runRecordWithStatus('approved', 'MA6DE5LHPFTC', $seen);
+
+		$this->assertSame(array(), $deprecated, 'A deprecated alias is back -- the 6.28.0 removal was reverted.');
 
 		foreach (array('data', 'html', 'filename') as $hook) {
-			$this->assertSame(
-				array('6.26.0', "ffcertificate_record_{$hook}"),
-				$seen[ "ffcertificate_ficha_{$hook}" ] ?? null,
-				"The `{$hook}` hook lost its deprecated alias -- a listener on the old name goes silent."
-			);
+			$this->assertArrayHasKey("ffcertificate_record_{$hook}", $seen, "The `{$hook}` hook stopped firing.");
 		}
+
+		// `record_html` is the second seeding case: its removed alias supplied
+		// `$template`, and the live filter now takes it directly.
+		$this->assertNotSame('', (string) $seen['ffcertificate_record_html'], 'The HTML hook fired with nothing -- the removed alias was seeding it.');
+		$this->assertIsArray($seen['ffcertificate_record_data']);
 	}
 
 	public function test_default_document_templates_relocated_out_of_html(): void {

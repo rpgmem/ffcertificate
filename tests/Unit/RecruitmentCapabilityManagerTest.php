@@ -16,7 +16,7 @@ use FreeFormCertificate\UserDashboard\RoleRegistrar;
  *
  * Sprint 3 adds:
  *
- *   - `CONTEXT_RECRUITMENT` constant for `UserCreator::get_or_create_user()`.
+ *   - `CONTEXT_RECRUITMENT` constant for `UserCreator::get_or_create_user_dual()`.
  *   - `ffc_manage_recruitment` cap added to `ADMIN_CAPABILITIES`, which is
  *     auto-granted to the `administrator` role on activation by
  *     `Activator::activate()`.

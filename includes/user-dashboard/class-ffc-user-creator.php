@@ -26,111 +26,14 @@ class UserCreator {
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
 	/**
-	 * Identifier type constants
-	 */
-	public const TYPE_CPF  = 'cpf';
-	public const TYPE_RF   = 'rf';
-	public const TYPE_AUTO = 'auto';
-
-	/**
-	 * Get or create WordPress user based on CPF/RF and email
-	 *
-	 * @deprecated 6.26.0 Use {@see self::get_or_create_user_dual()} (#1313).
-	 * @removal    6.28.0
-	 *
-	 * The implementation behind {@see UserManager::get_or_create_user()}, which
-	 * carries the same notice -- both are public and reachable, so both notify,
-	 * the way `AppointmentRepository` and `AppointmentReader` do for #1245.
-	 *
-	 * What it does NOT do is the reason: step 1 below queries `ffc_submissions`
-	 * alone and `link_orphaned_records()` writes to no identity index, so a
-	 * caller still on this entry point leaves `ffc_user_profiles` incomplete.
-	 *
-	 * Flow:
-	 * 1. Check if identifier hash already has user_id in submissions table
-	 * 2. If yes: return existing user_id (and add context-specific capabilities)
-	 * 3. If no: check if email exists in WordPress
-	 * 4. If yes: link to existing user (add role + context-specific capabilities)
-	 * 5. If no: create new user (with only context-specific capabilities)
-	 *
-	 * @param string               $identifier_hash Hash of CPF or RF.
-	 * @param string               $email           Plain email address.
-	 * @param array<string, mixed> $submission_data Optional submission data for user creation.
-	 * @param string               $context         Context for capability granting.
-	 * @param string               $identifier_type 'cpf', 'rf', or 'auto' (searches all columns).
-	 * @return int|\WP_Error User ID or error
-	 */
-	public static function get_or_create_user( string $identifier_hash, string $email, array $submission_data = array(), string $context = CapabilityManager::CONTEXT_CERTIFICATE, string $identifier_type = self::TYPE_AUTO ) {
-		// See the note on `UserManager::get_or_create_user()`: the runtime
-		// notice is what reaches a consumer this repository cannot scan for.
-		_deprecated_function( __METHOD__, '6.26.0', __CLASS__ . '::get_or_create_user_dual()' );
-
-		global $wpdb;
-		$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
-
-		// STEP 1: Check if identifier hash already has user_id in submissions.
-		// When type is known, search the specific column + legacy fallback.
-		$hash_where  = self::build_hash_where_clause( $identifier_type );
-		$hash_params = self::build_hash_params( $identifier_hash, $identifier_type );
-
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $hash_where and $hash_params built together in build_hash_* helpers with matching placeholder count.
-		$existing_user_id = $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT user_id FROM %i
-             WHERE ({$hash_where})
-             AND user_id IS NOT NULL
-             LIMIT 1",
-				$table,
-				...$hash_params
-			)
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
-
-		if ( $existing_user_id ) {
-			CapabilityManager::grant_context_capabilities( (int) $existing_user_id, $context );
-			self::link_orphaned_records( $identifier_hash, (int) $existing_user_id, $identifier_type );
-			return (int) $existing_user_id;
-		}
-
-		// STEP 2: Identifier is new → check if email exists in WordPress.
-		$existing_user = get_user_by( 'email', $email );
-
-		if ( $existing_user ) {
-			$user_id = $existing_user->ID;
-			$existing_user->add_role( 'ffc_end_user' );
-			CapabilityManager::grant_context_capabilities( $user_id, $context );
-
-			if ( empty( $existing_user->display_name ) || $existing_user->display_name === $existing_user->user_login ) {
-				self::sync_user_metadata( $user_id, $submission_data );
-			}
-
-			self::link_orphaned_records( $identifier_hash, $user_id, $identifier_type );
-			return $user_id;
-		}
-
-		// STEP 3: Email is also new → create new user.
-		$user_id = self::create_ffc_user( $email, $submission_data, $context );
-
-		if ( is_wp_error( $user_id ) ) {
-			return $user_id;
-		}
-
-		self::link_orphaned_records( $identifier_hash, $user_id, $identifier_type );
-		return $user_id;
-	}
-
-	/**
 	 * Get or create a WordPress user when BOTH a CPF and an RF are
 	 * available for the same person.
 	 *
-	 * The legacy {@see self::get_or_create_user()} entry point only takes
-	 * one identifier hash. When recruitment imports a CSV row that
-	 * carries both a CPF and an RF (the only flow in the plugin where
-	 * the operator-provided identity can be dual), passing only one of
-	 * them misses a previously-registered submission keyed on the OTHER
-	 * — and falls through to email matching or, worse, a duplicate
-	 * user. This entry point fixes that by checking both columns against
-	 * both hashes in a single SQL pass.
+	 * The only entry point. A single-hash predecessor took one identifier
+	 * and missed a previously-registered submission keyed on the OTHER --
+	 * falling through to email matching or, worse, a duplicate user. It was
+	 * deprecated in 6.26.0 and removed in 6.28.0 (#1313); this one checks both
+	 * columns against both hashes in a single SQL pass.
 	 *
 	 * Flow is identical to the single-hash path otherwise:
 	 *   1. Lookup against `ffc_submissions` where any of the supplied
@@ -358,8 +261,9 @@ class UserCreator {
 	}
 
 	/**
-	 * Dual-hash variant of {@see self::link_orphaned_records()}. Updates
-	 * any orphaned `ffc_submissions` / `ffc_self_scheduling_appointments`
+	 * Link orphaned records to a user.
+	 *
+	 * Updates any orphaned `ffc_submissions` / `ffc_self_scheduling_appointments`
 	 * row that matches EITHER of the supplied hashes against its
 	 * respective column.
 	 *
@@ -561,114 +465,6 @@ class UserCreator {
 		}
 
 		return $user_id;
-	}
-
-	/**
-	 * Build WHERE clause for hash column lookup
-	 *
-	 * Targets the specific split column based on identifier type.
-	 * When 'auto', searches both cpf_hash and rf_hash.
-	 *
-	 * @param string $identifier_type 'cpf', 'rf', or 'auto'.
-	 * @return string SQL WHERE fragment
-	 */
-	private static function build_hash_where_clause( string $identifier_type ): string {
-		switch ( $identifier_type ) {
-			case self::TYPE_CPF:
-				return 'cpf_hash = %s';
-			case self::TYPE_RF:
-				return 'rf_hash = %s';
-			default:
-				return 'cpf_hash = %s OR rf_hash = %s';
-		}
-	}
-
-	/**
-	 * Build parameter array for hash column lookup
-	 *
-	 * @param string $hash            The hash value.
-	 * @param string $identifier_type 'cpf', 'rf', or 'auto'.
-	 * @return array<int, string> Parameters matching build_hash_where_clause placeholders
-	 */
-	private static function build_hash_params( string $hash, string $identifier_type ): array {
-		switch ( $identifier_type ) {
-			case self::TYPE_CPF:
-			case self::TYPE_RF:
-				return array( $hash );
-			default:
-				return array( $hash, $hash );
-		}
-	}
-
-	/**
-	 * Hash columns to try when linking orphaned appointment rows by a
-	 * single identifier hash. Mirrors `build_hash_where_clause()` for
-	 * the per-column repository call path. Issue #340 centralization.
-	 *
-	 * @param string $identifier_type One of TYPE_CPF / TYPE_RF / TYPE_AUTO.
-	 * @return list<string>
-	 */
-	private static function hash_columns_for_type( string $identifier_type ): array {
-		switch ( $identifier_type ) {
-			case self::TYPE_CPF:
-				return array( 'cpf_hash' );
-			case self::TYPE_RF:
-				return array( 'rf_hash' );
-			default:
-				return array( 'cpf_hash', 'rf_hash' );
-		}
-	}
-
-	/**
-	 * Link orphaned records (submissions and appointments) to a user
-	 *
-	 * @since 4.9.6
-	 * @param string $identifier_hash Hash of CPF or RF.
-	 * @param int    $user_id         WordPress user ID.
-	 * @param string $identifier_type 'cpf', 'rf', or 'auto'.
-	 * @return void
-	 */
-	private static function link_orphaned_records( string $identifier_hash, int $user_id, string $identifier_type = self::TYPE_AUTO ): void {
-		global $wpdb;
-
-		$hash_where  = self::build_hash_where_clause( $identifier_type );
-		$hash_params = self::build_hash_params( $identifier_hash, $identifier_type );
-
-		$submissions_table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $hash_where and $hash_params built together in build_hash_* helpers with matching placeholder count.
-		$linked_submissions = $wpdb->query(
-			$wpdb->prepare(
-				"UPDATE %i SET user_id = %d WHERE ({$hash_where}) AND user_id IS NULL",
-				$submissions_table,
-				$user_id,
-				...$hash_params
-			)
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
-
-		$appointments_table  = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-		$linked_appointments = 0;
-		if ( self::table_exists( $appointments_table ) ) {
-			$apt_repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
-			foreach ( self::hash_columns_for_type( $identifier_type ) as $column ) {
-				$linked_appointments += $apt_repo->linkByIdentifierHash( $user_id, $column, $identifier_hash );
-			}
-
-			if ( $linked_appointments > 0 ) {
-				CapabilityManager::grant_appointment_capabilities( $user_id );
-			}
-		}
-
-		if ( ( $linked_submissions > 0 || $linked_appointments > 0 ) && class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
-			\FreeFormCertificate\Core\Debug::log_user_manager(
-				'Linked orphaned records',
-				array(
-					'user_id'             => $user_id,
-					'submissions_linked'  => $linked_submissions,
-					'appointments_linked' => $linked_appointments,
-				)
-			);
-		}
 	}
 
 	/**
