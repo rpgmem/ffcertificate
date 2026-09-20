@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The identity-index card can tell on its own whether there is work left** (#1345): it short-circuited on a stored flag and answered 100% *without counting*, so the walk finishing once made it complete forever and a user linked afterwards stayed invisible — the only migration here that could not re-arm, against five that compute pending from the data and three anchored on the key fingerprint. The flag is gone, and the card is cheaper than before: one statement answers both counts where the unlatched path ran two. A hundred per cent still means "everything a backfill may decide", never "the index is whole" — an account holding two different hashes is left for the audit to report.
+
 ### Removed
 
 - **⚠ Breaking — the `ffcertificate_ficha_*` filters stop firing** (#1264): the five aliases kept alive since the 6.26.0 rename are gone, along with the `wp_ajax_ffc_generate_ficha` action. An integration still listening on an old name goes silent with no error, which is what the cycle existed to warn about — move to `ffcertificate_record_data` / `_html` / `_filename` / `_template_html` / `_template_file`, and post `ffc_generate_record`. The nonce action string stays `ffc_generate_ficha`: it is an opaque salt nobody reads, and renaming it would reject every nonce already rendered.
