@@ -177,6 +177,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 			'form_id',
 			'stores',
 			'email_verdict',
+			'identifier_shape',
 			'account_status',
 			'account_rows',
 			'account_urls',
@@ -288,6 +289,14 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 	 * NOT in `note`: prose there reports a CONDITION (the row cap, a
 	 * truncated list), while this classifies the finding itself (#1345).
 	 *
+	 * `identifier_shape` sits beside it and answers the question it cannot:
+	 * `email_verdict` separates one person from two, and this separates the
+	 * two readings that remain for one person -- a typo, whose rows stay
+	 * linked, from a spelling the canonicaliser does not collapse. It is a
+	 * category and never a value, a length or a position, because a position
+	 * beside a distance would narrow the unseen half of a pair to a handful
+	 * of candidates (#1345).
+	 *
 	 * @param string               $check Check key.
 	 * @param array<string, mixed> $row   One finding.
 	 * @return array<int, mixed>
@@ -298,6 +307,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 		$form_id = isset( $row['form_id'] ) ? (string) $row['form_id'] : '';
 		$stores  = isset( $row[ IdentityConflictQuery::COLUMN_STORES ] ) ? (string) $row[ IdentityConflictQuery::COLUMN_STORES ] : '';
 		$verdict = isset( $row[ IdentityConflictQuery::COLUMN_EMAIL_VERDICT ] ) ? (string) $row[ IdentityConflictQuery::COLUMN_EMAIL_VERDICT ] : '';
+		$shape   = isset( $row[ IdentityConflictQuery::COLUMN_SHAPE_VERDICT ] ) ? (string) $row[ IdentityConflictQuery::COLUMN_SHAPE_VERDICT ] : '';
 		$count   = '';
 		$short   = ! empty( $row[ IdentityConflictQuery::COLUMN_RELATED_TRUNCATED ] );
 
@@ -377,6 +387,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 			$form_id,
 			$stores,
 			$verdict,
+			$shape,
 			$status,
 			$account_rows,
 			implode( IdentityConflictQuery::RELATED_SEPARATOR, $urls ),

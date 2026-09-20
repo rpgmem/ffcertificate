@@ -36,6 +36,17 @@ class IdentityConflictQueryTest extends TestCase {
 	 */
 	private array $without_email = array();
 
+	/**
+	 * Stores the ciphertext probe must not resolve.
+	 *
+	 * The sibling of `$without_email`, and it has a real occupant:
+	 * `ffc_user_profiles` declares `cpf_hash` and `rf_hash` with no
+	 * `*_encrypted` column at all, because it is the identity index.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $without_ciphertext = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -73,7 +84,11 @@ class IdentityConflictQueryTest extends TestCase {
 				$sql = (string) $query;
 
 				if ( false !== strpos( $sql, 'SHOW COLUMNS' ) ) {
-					foreach ( $this->without_email as $table ) {
+					$absent = ( false !== strpos( $sql, '_encrypted' ) )
+						? $this->without_ciphertext
+						: $this->without_email;
+
+					foreach ( $absent as $table ) {
 						if ( false !== strpos( $sql, $table ) ) {
 							return null;
 						}
@@ -656,6 +671,264 @@ class IdentityConflictQueryTest extends TestCase {
 	 */
 	public function test_an_account_owning_nothing_formats_empty(): void {
 		$this->assertSame( '', IdentityConflictQuery::format_account_rows( array() ) );
+	}
+
+	/**
+	 * Drive `multiple_identities()` with findings, addresses and ciphertexts.
+	 *
+	 * One `get_results` expectation dispatching on the statement, for the
+	 * reason {@see self::findings_with_addresses()} records. The two unions
+	 * are told apart by their alias -- the address read names its column
+	 * `AS e`, the ciphertext read names its own `AS c` -- which is why the
+	 * production query bothers to use a different one.
+	 *
+	 * Decryption is supplied by overriding the class's own seam rather than by
+	 * an alias mock on `Encryption`: an alias mock replaces that class for the
+	 * whole PROCESS, so every later test in the run would get the double too.
+	 *
+	 * @param array<int, array<string, mixed>> $findings Rows for the `rf_hash` grouping.
+	 * @param array<int, array<string, mixed>> $ciphers  Rows for the ciphertext union.
+	 * @param array<string, string>            $plain    Ciphertext → what it decrypts to.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function findings_with_ciphertexts( array $findings, array $ciphers, array $plain ): array {
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $query ) use ( $findings, $ciphers ) {
+				$sql = (string) $query;
+
+				if ( false !== strpos( $sql, 'AS c FROM' ) ) {
+					return $ciphers;
+				}
+
+				if ( false !== strpos( $sql, 'AS e FROM' ) ) {
+					return array();
+				}
+
+				return false !== strpos( $sql, 'rf_hash' ) ? $findings : array();
+			}
+		);
+
+		$query = new class( $plain ) extends IdentityConflictQuery {
+
+			/**
+			 * @var array<string, string>
+			 */
+			private array $plain;
+
+			/**
+			 * @param array<string, string> $plain Ciphertext → plaintext.
+			 */
+			public function __construct( array $plain ) {
+				$this->plain = $plain;
+			}
+
+			protected function decrypt( string $cipher ): ?string {
+				return $this->plain[ $cipher ] ?? null;
+			}
+		};
+
+		return $query->multiple_identities( 10 );
+	}
+
+	/**
+	 * The shape of one finding for an account holding two RFs.
+	 *
+	 * @param string $a One stored identifier.
+	 * @param string $b The other.
+	 * @return string The `SHAPE_*` value reported.
+	 */
+	private function shape_of( string $a, string $b ): string {
+		$rows = $this->findings_with_ciphertexts(
+			$this->two_rf_finding(),
+			array(
+				array( 'user_id' => 438, 'h' => 'hashA', 'c' => 'cipherA' ),
+				array( 'user_id' => 438, 'h' => 'hashB', 'c' => 'cipherB' ),
+			),
+			array( 'cipherA' => $a, 'cipherB' => $b )
+		);
+
+		$this->assertNotEmpty( $rows, 'An empty result would pass over the whole assertion.' );
+
+		return (string) $rows[0][ IdentityConflictQuery::COLUMN_SHAPE_VERDICT ];
+	}
+
+	/**
+	 * One digit different is a typo, so the rows stay the account holder's.
+	 *
+	 * The reading #1345 predicts should dominate the RF conflicts:
+	 * `validate_rf()` checks only `strlen === 7 && is_numeric`, so a mistyped
+	 * RF passes validation almost always and lands as a second hash on one
+	 * person's account.
+	 */
+	public function test_one_digit_apart_reads_as_a_typo(): void {
+		$this->assertSame(
+			IdentityConflictQuery::SHAPE_SINGLE_DIGIT_EDIT,
+			$this->shape_of( '1234567', '1234577' )
+		);
+	}
+
+	/**
+	 * A dropped digit is the same reading, and the lengths differ by one.
+	 */
+	public function test_a_dropped_digit_reads_as_a_typo(): void {
+		$this->assertSame(
+			IdentityConflictQuery::SHAPE_SINGLE_DIGIT_EDIT,
+			$this->shape_of( '1234567', '123456' )
+		);
+	}
+
+	/**
+	 * Two adjacent digits swapped is reported as the transposition it is.
+	 */
+	public function test_two_adjacent_digits_swapped_read_as_a_transposition(): void {
+		$this->assertSame(
+			IdentityConflictQuery::SHAPE_TRANSPOSITION,
+			$this->shape_of( '1234567', '1243567' )
+		);
+	}
+
+	/**
+	 * A leading zero is a canonicaliser gap, NOT a dropped digit.
+	 *
+	 * `0123456` against `123456` satisfies the single-deletion test too, and
+	 * the order the classifier checks them in is what decides which of the two
+	 * an operator is told. Only one of them names a rule the canonicaliser is
+	 * missing: `normalize_cpf_rf()` strips non-digits and stops, so the two
+	 * hash differently -- and `classify()` routes by `strlen() === 7`, so an
+	 * RF written with a leading zero is filed under the CPF column entirely.
+	 */
+	public function test_a_leading_zero_reads_as_a_canonicaliser_gap(): void {
+		$this->assertSame(
+			IdentityConflictQuery::SHAPE_LEADING_ZEROS,
+			$this->shape_of( '0123456', '123456' )
+		);
+	}
+
+	/**
+	 * Two unrelated numbers are reported as unrelated.
+	 */
+	public function test_two_unrelated_numbers_read_as_unrelated(): void {
+		$this->assertSame(
+			IdentityConflictQuery::SHAPE_UNRELATED,
+			$this->shape_of( '1234567', '7654321' )
+		);
+	}
+
+	/**
+	 * Values that canonicalise to one are reported, though none should exist.
+	 *
+	 * This is #1345's own verdict, and the premise that says it cannot occur
+	 * is that `IdentityNormalizationMigrationStrategy` (#1313 PR 3) has
+	 * rewritten every row of all four stores. A production row reporting this
+	 * means that card is not complete -- which is the whole reason the verdict
+	 * is emitted rather than assumed away.
+	 */
+	public function test_values_that_canonicalise_to_one_are_still_reported(): void {
+		$this->assertSame(
+			IdentityConflictQuery::SHAPE_SAME_AFTER_CANONICALISATION,
+			$this->shape_of( '123.456.789-09', '12345678909' )
+		);
+	}
+
+	/**
+	 * The set verdict is the WORST pair, never the closest.
+	 *
+	 * The operator's question is "can I treat these as one person's typos?",
+	 * and one value the classifier cannot explain answers no however many
+	 * near-misses sit beside it. Reporting the closest relation would read as
+	 * reassurance about a set containing something nobody accounted for --
+	 * the same reason `unknown` was never folded into `distinct_emails`.
+	 */
+	public function test_one_unrelated_value_decides_the_whole_set(): void {
+		$rows = $this->findings_with_ciphertexts(
+			array(
+				array(
+					'subject' => 438,
+					IdentityConflictQuery::ALIAS_IDENTITY_COUNT => 3,
+					IdentityConflictQuery::COLUMN_RELATED => 'hashA|hashB|hashC',
+					'identifier_column' => 'rf_hash',
+				),
+			),
+			array(
+				array( 'user_id' => 438, 'h' => 'hashA', 'c' => 'cipherA' ),
+				array( 'user_id' => 438, 'h' => 'hashB', 'c' => 'cipherB' ),
+				array( 'user_id' => 438, 'h' => 'hashC', 'c' => 'cipherC' ),
+			),
+			// A and B are one digit apart; C is neither's near-miss.
+			array( 'cipherA' => '1234567', 'cipherB' => '1234577', 'cipherC' => '9876543' )
+		);
+
+		$this->assertSame(
+			IdentityConflictQuery::SHAPE_UNRELATED,
+			$rows[0][ IdentityConflictQuery::COLUMN_SHAPE_VERDICT ]
+		);
+	}
+
+	/**
+	 * An identifier that cannot be read is said so, never guessed at.
+	 *
+	 * The mirror of `VERDICT_UNKNOWN`. A ciphertext this install's key no
+	 * longer opens, or an identifier carried only by `ffc_user_profiles`,
+	 * must not leave the remaining value looking conclusive: not having read
+	 * a value is not evidence that it differs.
+	 */
+	public function test_an_identifier_that_cannot_be_read_is_not_decryptable(): void {
+		$rows = $this->findings_with_ciphertexts(
+			$this->two_rf_finding(),
+			array(
+				array( 'user_id' => 438, 'h' => 'hashA', 'c' => 'cipherA' ),
+				array( 'user_id' => 438, 'h' => 'hashB', 'c' => 'cipherB' ),
+			),
+			array( 'cipherA' => '1234567' )
+		);
+
+		$this->assertSame(
+			IdentityConflictQuery::SHAPE_NOT_DECRYPTABLE,
+			$rows[0][ IdentityConflictQuery::COLUMN_SHAPE_VERDICT ]
+		);
+	}
+
+	/**
+	 * The identity index carries no ciphertext, so it resolves no store.
+	 *
+	 * `ffc_user_profiles` declares `cpf_hash` and `rf_hash` and nothing else,
+	 * which is why the probe is a probe: a list written into this class would
+	 * be a claim about a schema it does not own.
+	 */
+	public function test_a_store_without_a_ciphertext_column_is_not_read(): void {
+		$this->without_ciphertext = array( 'wp_ffc_user_profiles' );
+
+		// `statements()` answers every read with an empty set, so no finding
+		// would reach the annotation and no ciphertext statement would run at
+		// all -- the self-check below caught exactly that. The capture has to
+		// return findings for the grouping pass.
+		$findings         = $this->two_rf_finding();
+		$ciphertext_reads = array();
+
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $query ) use ( $findings, &$ciphertext_reads ) {
+				$sql = (string) $query;
+
+				if ( false !== strpos( $sql, 'AS c FROM' ) ) {
+					$ciphertext_reads[] = $sql;
+					return array();
+				}
+
+				if ( false !== strpos( $sql, 'AS e FROM' ) ) {
+					return array();
+				}
+
+				return false !== strpos( $sql, 'rf_hash' ) ? $findings : array();
+			}
+		);
+
+		( new IdentityConflictQuery() )->multiple_identities( 10 );
+
+		$this->assertNotEmpty( $ciphertext_reads, 'No ciphertext statement ran at all, so this proves nothing.' );
+
+		foreach ( $ciphertext_reads as $sql ) {
+			$this->assertStringNotContainsString( 'wp_ffc_user_profiles', $sql );
+		}
 	}
 
 }
