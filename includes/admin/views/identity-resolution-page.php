@@ -11,6 +11,7 @@
  * @since 6.29.0
  *
  * @var array<int, array<string, mixed>> $ffc_identity_findings Findings from the check-digit scan.
+ * @var array{type: string, text: string}|false                 $ffc_identity_outcome  Outcome of the last write, if any.
  */
 
 // No `declare(strict_types=1)` here on purpose: none of the 17 view and
@@ -19,6 +20,7 @@
 // different calling convention from every sibling is a trap for anybody
 // moving markup between them.
 
+use FreeFormCertificate\Admin\IdentityResolutionPage;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -39,6 +41,18 @@ foreach ( $ffc_identity_findings as $ffc_identity_finding ) {
 ?>
 <div class="wrap ffc-admin-page ffc-page-identities">
 	<h1><?php esc_html_e( 'Identity Resolution', 'ffcertificate' ); ?></h1>
+
+	<?php if ( is_array( $ffc_identity_outcome ) && ! empty( $ffc_identity_outcome['text'] ) ) : ?>
+		<?php
+		wp_admin_notice(
+			esc_html( (string) $ffc_identity_outcome['text'] ),
+			array(
+				'type'               => (string) ( $ffc_identity_outcome['type'] ?? 'info' ),
+				'additional_classes' => array( 'inline' ),
+			)
+		);
+		?>
+	<?php endif; ?>
 
 	<p class="description">
 		<?php esc_html_e( 'Stored RF numbers whose own check digit does not match, so the value cannot be anybody\'s: it was mistyped on the way in. The digit says a number is wrong, never what the right one is — each row is a question for HR, answered one at a time. Grouping is by the stored hash; the digit is checked in memory and only a verdict leaves the scan, never a value.', 'ffcertificate' ); ?>
@@ -68,6 +82,7 @@ foreach ( $ffc_identity_findings as $ffc_identity_finding ) {
 					<th scope="col"><?php esc_html_e( 'Stores', 'ffcertificate' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Rows', 'ffcertificate' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Which rows', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Correct it', 'ffcertificate' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -107,6 +122,35 @@ foreach ( $ffc_identity_findings as $ffc_identity_finding ) {
 							</div>
 						<?php endforeach; ?>
 					</td>
+					<td>
+						<?php if ( count( $ffc_identity_accounts ) > 1 ) : ?>
+							<span class="description">
+								<?php esc_html_e( 'Names more than one account — the same wrong number was typed by more than one person, so one corrected value cannot serve it.', 'ffcertificate' ); ?>
+							</span>
+						<?php else : ?>
+							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+								<?php wp_nonce_field( IdentityResolutionPage::REPAIR_NONCE . (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>
+								<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::REPAIR_ACTION ); ?>">
+								<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
+								<?php
+								// `text` with `inputmode`, never `number`: an RF is a
+								// fixed-width identifier, and a number input drops a
+								// leading zero -- which `rf_normalized varchar(7)` says
+								// is a digit, not formatting. That is also why the
+								// screen is outside `RequiredNumericInputTest`'s scope.
+								?>
+								<label class="screen-reader-text" for="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
+									<?php esc_html_e( 'Corrected RF', 'ffcertificate' ); ?>
+								</label>
+								<input type="text" inputmode="numeric" pattern="[0-9]{7}" maxlength="7" size="8" required
+									id="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
+									name="ffc_rf" placeholder="<?php esc_attr_e( '7 digits', 'ffcertificate' ); ?>">
+								<button type="submit" class="button button-secondary">
+									<?php esc_html_e( 'Correct', 'ffcertificate' ); ?>
+								</button>
+							</form>
+						<?php endif; ?>
+					</td>
 				</tr>
 			<?php endforeach; ?>
 			</tbody>
@@ -114,6 +158,6 @@ foreach ( $ffc_identity_findings as $ffc_identity_finding ) {
 	<?php endif; ?>
 
 	<p class="description ffc-set-mt-10">
-		<?php esc_html_e( 'A row naming no account is ordinary rather than an error: a recruitment candidacy carries no WordPress user until it is promoted, so its row ids are the only handle on it. Correcting a value is not offered here yet — confirm the right number with HR first.', 'ffcertificate' ); ?>
+		<?php esc_html_e( 'A row naming no account is ordinary rather than an error: a recruitment candidacy carries no WordPress user until it is promoted, so its row ids are the only handle on it. Confirm the corrected number with HR before entering it: the check digit says a number is wrong, never what the right one is.', 'ffcertificate' ); ?>
 	</p>
 </div>

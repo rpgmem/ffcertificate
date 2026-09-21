@@ -22063,5 +22063,54 @@ msgstr ""
 msgid "Too many rows to list."
 msgstr ""
 
-msgid "A row naming no account is ordinary rather than an error: a recruitment candidacy carries no WordPress user until it is promoted, so its row ids are the only handle on it. Correcting a value is not offered here yet — confirm the right number with HR first."
+
+msgid "Corrected. The rows, the identity index and the account's certificate access were updated together."
+msgstr ""
+
+msgid "Correct it"
+msgstr ""
+
+msgid "Names more than one account — the same wrong number was typed by more than one person, so one corrected value cannot serve it."
+msgstr ""
+
+msgid "Corrected RF"
+msgstr ""
+
+msgid "7 digits"
+msgstr ""
+
+msgid "Correct"
+msgstr ""
+
+msgid "A row naming no account is ordinary rather than an error: a recruitment candidacy carries no WordPress user until it is promoted, so its row ids are the only handle on it. Confirm the corrected number with HR before entering it: the check digit says a number is wrong, never what the right one is."
+msgstr ""
+
+msgid "No finding was named."
+msgstr ""
+
+msgid "That number does not satisfy the RF check digit, so it cannot be the corrected value either. Confirm it with HR."
+msgstr ""
+
+msgid "Encryption is not configured, so an identifier cannot be rewritten."
+msgstr ""
+
+msgid "The value stored is already the one you confirmed."
+msgstr ""
+
+msgid "Nothing carries that value any more — it was repaired already. Reload the queue."
+msgstr ""
+
+msgid "This finding names %d accounts, so one corrected value cannot serve it: the same wrong number was typed by more than one person. Resolve them separately."
+msgstr ""
+
+msgid "That value is already stored against other records, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision."
+msgstr ""
+
+msgid "The store %s refused the write, so nothing was changed."
+msgstr ""
+
+msgid "The rows were rewritten but the identity index refused the same value, so nothing was changed. The two must never disagree."
+msgstr ""
+
+msgid "Stored RF Corrected"
 msgstr ""

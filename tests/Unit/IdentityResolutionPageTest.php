@@ -183,22 +183,58 @@ class IdentityResolutionPageTest extends TestCase {
 	}
 
 	/**
-	 * The screen writes nothing.
+	 * The screen never touches the database itself.
 	 *
-	 * The repair is the next PR, and a read-only claim is worth a test rather
-	 * than a sentence: this is what makes the delivery provably safe to ship
-	 * ahead of it.
+	 * It DOES write now — that is what the repair is — but every write goes
+	 * through `IdentityRepair`, which owns the transaction, the refusals and
+	 * the ordering. A `$wpdb` call appearing on this side would be a second
+	 * write path with none of that, and it would look fine in review.
+	 *
+	 * This replaces the read-only assertion PR 2 carried: that claim stopped
+	 * being true the moment the repair landed, and a test whose premise is
+	 * false still passes.
 	 */
-	public function test_the_screen_performs_no_write(): void {
+	public function test_the_screen_never_writes_directly(): void {
 		$source = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' )
 			. (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
 
-		foreach ( array( '$wpdb->query', '$wpdb->update', '$wpdb->insert', '$wpdb->delete', 'update_option', 'update_user_meta', 'wp_update_user' ) as $write ) {
+		// The CALL shapes, never the bare token: this class's own docblock
+		// explains why the query seam exists and says `$wpdb` doing it, and a
+		// test that cannot tell prose from a call is the trap CLAUDE.md
+		// records for suppression scanners.
+		foreach ( array( '$wpdb->', 'global $wpdb', 'update_option(', 'update_user_meta(', 'wp_update_user(' ) as $direct ) {
 			$this->assertStringNotContainsString(
-				$write,
+				$direct,
 				$source,
-				sprintf( 'The queue screen is read-only; `%s` does not belong in it.', $write )
+				sprintf( 'Every write belongs to IdentityRepair; `%s` on this side is a second path without its transaction.', $direct )
 			);
 		}
+	}
+
+	/**
+	 * The write is gated on the capability AND a nonce keyed to the finding.
+	 *
+	 * Keyed per finding on purpose: a nonce valid for any row would let a
+	 * correction confirmed for one person be replayed against another.
+	 */
+	public function test_the_write_is_gated_on_the_capability_and_a_keyed_nonce(): void {
+		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
+
+		$this->assertStringContainsString( 'Capabilities::current_user_can_admin_or( self::CAPABILITY )', $page );
+		$this->assertStringContainsString( 'check_admin_referer( self::REPAIR_NONCE . $subject )', $page );
+	}
+
+	/**
+	 * The handler hands the repair the HASH and the value, never the row ids.
+	 *
+	 * Re-evaluation at confirmation time is the whole point: between listing a
+	 * finding and confirming it the operator went and asked a person, and rows
+	 * may have arrived or left.
+	 */
+	public function test_the_handler_passes_no_row_ids(): void {
+		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
+
+		$this->assertStringNotContainsString( 'ffc_row_ids', $page );
+		$this->assertStringContainsString( "RequestInput::get_post_string( 'ffc_subject', '' )", $page );
 	}
 }
