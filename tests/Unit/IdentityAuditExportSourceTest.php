@@ -969,4 +969,115 @@ class IdentityAuditExportSourceTest extends TestCase {
 			( new ExportSourceWithStubbedSchemaProbe() )->filename()
 		);
 	}
+
+	// ==================================================================
+	// rf_check_digit -- #1345
+	// ==================================================================
+
+	/**
+	 * Build a source over one `rf_check_digit` finding.
+	 *
+	 * @param array<string, mixed> $row One finding.
+	 * @return array<int, array<string, string>>
+	 */
+	private function check_digit_rows( array $row ): array {
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'rf_check_digit' => array(
+						'count'     => 1,
+						'truncated' => false,
+						'rows'      => array( $row ),
+					),
+				),
+				$seen
+			)
+		);
+
+		return $this->rows( $source );
+	}
+
+	/**
+	 * The handle for a finding that names no account, which is ordinary on
+	 * this check: a candidacy carries no `user_id` before promotion, so
+	 * "which row" is the only lead an operator has.
+	 */
+	public function test_the_row_ids_travel_to_their_own_column(): void {
+		$rows = $this->check_digit_rows(
+			array(
+				'subject'                              => 'abc123',
+				'identifier_column'                    => 'rf_hash',
+				IdentityConflictQuery::ALIAS_ROW_COUNT => 3,
+				IdentityConflictQuery::COLUMN_STORES   => 'recruitment_candidate|submissions',
+				IdentityConflictQuery::COLUMN_ROW_IDS  => 'recruitment_candidate:7,9|submissions:12',
+			)
+		);
+
+		$this->assertSame( 'recruitment_candidate:7,9|submissions:12', $rows[0]['row_ids'] );
+		$this->assertSame( '3', $rows[0]['related_count'], 'The row count is read by constant, like its two siblings.' );
+		$this->assertSame( '', $rows[0]['user_ids'], 'No account is a legitimate answer on this check.' );
+		$this->assertSame( 'rf_hash', $rows[0]['identifier_column'] );
+	}
+
+	public function test_a_truncated_row_id_list_is_declared_in_the_note(): void {
+		$rows = $this->check_digit_rows(
+			array(
+				'subject'          => 'abc123',
+				'identifier_column' => 'rf_hash',
+				IdentityConflictQuery::ALIAS_ROW_COUNT => 9,
+				IdentityConflictQuery::COLUMN_ROW_IDS  => 'submissions:12,34',
+				IdentityConflictQuery::COLUMN_ROW_IDS_TRUNCATED => true,
+			)
+		);
+
+		$this->assertStringContainsString( 'fewer rows than the count', $rows[0]['note'] );
+	}
+
+	/**
+	 * The row the query emits INSTEAD of a finding when it stops at its cap.
+	 * A capped scan that found nothing would otherwise read as a clean one.
+	 */
+	public function test_a_truncated_scan_is_declared_in_the_note(): void {
+		$rows = $this->check_digit_rows(
+			array(
+				'identifier_column'                          => 'rf_hash',
+				IdentityConflictQuery::COLUMN_STORES         => 'submissions',
+				IdentityConflictQuery::COLUMN_SCAN_TRUNCATED => true,
+			)
+		);
+
+		$this->assertStringContainsString( 'never examined', $rows[0]['note'] );
+		$this->assertSame( '', $rows[0]['identifier_hash_prefixes'], 'It reports the scan, not a value.' );
+	}
+
+	/**
+	 * The mirror of `test_the_shape_column_carries_no_identifier()`. This
+	 * check READS every RF in the install, so the one thing it must never do
+	 * is write one into a file.
+	 */
+	public function test_the_check_digit_row_carries_no_identifier(): void {
+		$rows = $this->check_digit_rows(
+			array(
+				'subject'                              => 'abc123',
+				'identifier_column'                    => 'rf_hash',
+				IdentityConflictQuery::ALIAS_ROW_COUNT => 1,
+				IdentityConflictQuery::COLUMN_STORES   => 'submissions',
+				IdentityConflictQuery::COLUMN_ROW_IDS  => 'submissions:12',
+			)
+		);
+
+		foreach ( $rows[0] as $column => $value ) {
+			if ( 'row_ids' === $column || 'account_urls' === $column ) {
+				continue;
+			}
+
+			$this->assertDoesNotMatchRegularExpression(
+				'/\d{7}/',
+				$value,
+				"Column '{$column}' carries something the length of an RF."
+			);
+		}
+	}
+
 }

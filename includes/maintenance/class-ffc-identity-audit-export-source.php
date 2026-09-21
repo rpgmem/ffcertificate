@@ -112,6 +112,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 		'cross_store_multiple_identities' => 'user_id',
 		'shared_identities'               => 'hash',
 		'multiple_identities'             => 'user_id',
+		'rf_check_digit'                  => 'hash',
 	);
 
 	/**
@@ -176,6 +177,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 			'submission_id',
 			'form_id',
 			'stores',
+			'row_ids',
 			'email_verdict',
 			'identifier_shape',
 			'account_status',
@@ -307,6 +309,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 		$sub_id  = isset( $row['id'] ) ? (string) $row['id'] : '';
 		$form_id = isset( $row['form_id'] ) ? (string) $row['form_id'] : '';
 		$stores  = isset( $row[ IdentityConflictQuery::COLUMN_STORES ] ) ? (string) $row[ IdentityConflictQuery::COLUMN_STORES ] : '';
+		$rows_at = isset( $row[ IdentityConflictQuery::COLUMN_ROW_IDS ] ) ? (string) $row[ IdentityConflictQuery::COLUMN_ROW_IDS ] : '';
 		$verdict = isset( $row[ IdentityConflictQuery::COLUMN_EMAIL_VERDICT ] ) ? (string) $row[ IdentityConflictQuery::COLUMN_EMAIL_VERDICT ] : '';
 		$shape   = isset( $row[ IdentityConflictQuery::COLUMN_SHAPE_VERDICT ] ) ? (string) $row[ IdentityConflictQuery::COLUMN_SHAPE_VERDICT ] : '';
 		$count   = '';
@@ -346,7 +349,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 		// `identifier_count` while the query emitted `identity_count`, so every
 		// cross-store row shipped with an empty count -- and the test agreed,
 		// because its fixture carried the same wrong name.
-		foreach ( array( IdentityConflictQuery::ALIAS_USER_COUNT, IdentityConflictQuery::ALIAS_IDENTITY_COUNT ) as $key ) {
+		foreach ( array( IdentityConflictQuery::ALIAS_USER_COUNT, IdentityConflictQuery::ALIAS_IDENTITY_COUNT, IdentityConflictQuery::ALIAS_ROW_COUNT ) as $key ) {
 			if ( isset( $row[ $key ] ) ) {
 				$count = (string) $row[ $key ];
 			}
@@ -388,14 +391,49 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 			$sub_id,
 			$form_id,
 			$stores,
+			$rows_at,
 			$verdict,
 			$shape,
 			$status,
 			$account_rows,
 			$account_seen,
 			implode( IdentityConflictQuery::RELATED_SEPARATOR, $urls ),
-			$short ? __( 'INCOMPLETE: the database truncated this row\'s list, so it names fewer values than the count beside it.', 'ffcertificate' ) : '',
+			self::incompleteness_note( $row, $short ),
 		);
+	}
+
+	/**
+	 * What this row does NOT say, in one sentence or none.
+	 *
+	 * THREE DIFFERENT SILENCES, AND MERGING THEM WOULD MISREPRESENT TWO
+	 *
+	 * A truncated list names fewer values than its own count; a truncated
+	 * row-id list names fewer ROWS than its count; and a truncated scan means
+	 * values were never examined at all, so a failure may exist that nothing
+	 * here has looked at. The first two are about this finding being partial,
+	 * the third about the report being partial -- and a cap that is reached
+	 * has to be reported or a partial list reads as a complete one (#1295).
+	 *
+	 * @param array<string, mixed> $row   One finding.
+	 * @param bool                 $short Whether its `related` list truncated.
+	 * @return string
+	 */
+	private static function incompleteness_note( array $row, bool $short ): string {
+		$notes = array();
+
+		if ( $short ) {
+			$notes[] = __( 'INCOMPLETE: the database truncated this row\'s list, so it names fewer values than the count beside it.', 'ffcertificate' );
+		}
+
+		if ( ! empty( $row[ IdentityConflictQuery::COLUMN_ROW_IDS_TRUNCATED ] ) ) {
+			$notes[] = __( 'INCOMPLETE: the database truncated this row\'s id list, so it names fewer rows than the count beside it.', 'ffcertificate' );
+		}
+
+		if ( ! empty( $row[ IdentityConflictQuery::COLUMN_SCAN_TRUNCATED ] ) ) {
+			$notes[] = __( 'INCOMPLETE: the scan reached its cap, so identifiers exist that were never examined.', 'ffcertificate' );
+		}
+
+		return implode( ' ', $notes );
 	}
 
 	/**

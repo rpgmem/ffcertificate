@@ -734,6 +734,21 @@ msgstr "Concede as permissões de certificado a toda conta que possui um certifi
 #: includes/migrations/class-ffc-migration-registry.php:122
 msgid "Restore Access to Owned Certificates"
 msgstr "Restaurar acesso aos certificados do próprio titular"
+#: includes/maintenance/class-ffc-identity-audit-export-source.php:416
+msgid "INCOMPLETE: the database truncated this row's id list, so it names fewer rows than the count beside it."
+msgstr "INCOMPLETO: o banco truncou a lista de ids desta linha, então ela nomeia menos linhas do que a contagem ao lado."
+
+#: includes/maintenance/class-ffc-identity-audit-export-source.php:420
+msgid "INCOMPLETE: the scan reached its cap, so identifiers exist that were never examined."
+msgstr "INCOMPLETO: a varredura atingiu seu limite, então existem identificadores que nunca foram examinados."
+
+#: includes/settings/views/ffc-tab-migrations.php:931
+msgid "Report-only scan of how people are linked to WordPress users — across certificate submissions, appointments, recruitment candidacies and the identity index. Nothing is changed: review each finding and fix it manually. Detection groups by the stored CPF/RF hashes; the columns that classify a difference decrypt in memory and report a category only — never a value, and nothing is written."
+msgstr "Varredura somente de leitura de como as pessoas estão vinculadas a usuários do WordPress — entre submissões de certificado, agendamentos, candidaturas e o índice de identidade. Nada é alterado: revise cada achado e corrija manualmente. A detecção agrupa pelos hashes de CPF/RF armazenados; as colunas que classificam uma diferença decifram em memória e reportam apenas uma categoria — nunca um valor, e nada é gravado."
+
+#: includes/settings/views/ffc-tab-migrations.php:921
+msgid "Stored RF whose check digit does not match"
+msgstr "RF armazenado cujo dígito verificador não confere"
 
 #. 1: Environment name, 2: Date
 #: includes/audience/class-ffc-audience-notification-handler.php:434
@@ -22006,10 +22021,6 @@ msgstr "Identificador vinculado ausente do índice de identidade"
 #: includes/settings/views/ffc-tab-migrations.php
 msgid "No link problems found: no identifier is held by two accounts, no account holds two identifiers, and the identity index carries every identifier already linked to a user."
 msgstr "Nenhum problema de vínculo encontrado: nenhum identificador está em duas contas, nenhuma conta tem dois identificadores, e o índice de identidade carrega todo identificador já vinculado a um usuário."
-
-#: includes/settings/views/ffc-tab-migrations.php
-msgid "Report-only scan of how people are linked to WordPress users — across certificate submissions, appointments, recruitment candidacies and the identity index. Nothing is changed: review each finding and fix it manually. Detection uses the stored CPF/RF hashes, so no decryption is involved."
-msgstr "Varredura somente de leitura de como as pessoas estão vinculadas a usuários do WordPress — em submissões de certificado, agendamentos, candidaturas de recrutamento e no índice de identidade. Nada é alterado: revise cada achado e corrija manualmente. A detecção usa os hashes de CPF/RF armazenados, então não há descriptografia envolvida."
 
 #: includes/maintenance/class-ffc-submission-link-auditor.php
 msgid "Report-only scan of how people are linked to WordPress users. Four checks over certificate submissions: links to deleted users, one user bound to multiple CPF/RF identities, unlinked submissions whose CPF matches a linked one, and a single CPF shared across multiple users. Three more across every store — submissions, appointments, recruitment candidacies and the identity index — reporting one identifier held by two accounts, one account holding two identifiers, and identifiers the index does not yet carry. Nothing is changed: review and fix each case manually."

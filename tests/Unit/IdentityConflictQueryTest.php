@@ -54,6 +54,18 @@ class IdentityConflictQueryTest extends TestCase {
 	 */
 	private array $without_activity_column = array();
 
+	/**
+	 * Stores the row-id probe must not resolve.
+	 *
+	 * Its own bucket rather than a share of the activity one: both land in
+	 * the same `SHOW COLUMNS` branch, so without the split a test suppressing
+	 * an activity column would silently suppress the `id` probe too and the
+	 * scan would report an empty store as clean.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $without_row_id = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -95,6 +107,8 @@ class IdentityConflictQueryTest extends TestCase {
 						$absent = $this->without_ciphertext;
 					} elseif ( false !== strpos( $sql, 'email_hash' ) ) {
 						$absent = $this->without_email;
+					} elseif ( (bool) preg_match( '/LIKE id$/', $sql ) ) {
+						$absent = $this->without_row_id;
 					} else {
 						$absent = $this->without_activity_column;
 					}
@@ -742,7 +756,21 @@ class IdentityConflictQueryTest extends TestCase {
 			}
 		);
 
-		$query = new class( $plain ) extends IdentityConflictQuery {
+		return $this->query_reading( $plain )->multiple_identities( 10 );
+	}
+
+	/**
+	 * A query whose one key-touching seam answers from a map.
+	 *
+	 * Overriding `decrypt()` is what lets every verdict be driven without a
+	 * key, and it is the same seam the production class keeps named so that
+	 * "emits a verdict, never a value" can be checked by reading.
+	 *
+	 * @param array<string, string> $plain Ciphertext → plaintext.
+	 * @return IdentityConflictQuery
+	 */
+	private function query_reading( array $plain ): IdentityConflictQuery {
+		return new class( $plain ) extends IdentityConflictQuery {
 
 			/**
 			 * @var array<string, string>
@@ -760,8 +788,6 @@ class IdentityConflictQueryTest extends TestCase {
 				return $this->plain[ $cipher ] ?? null;
 			}
 		};
-
-		return $query->multiple_identities( 10 );
 	}
 
 	/**
@@ -1104,6 +1130,246 @@ class IdentityConflictQueryTest extends TestCase {
 		$this->assertNotEmpty( $seen, 'No activity statement ran at all, so this proves nothing.' );
 		$this->assertStringNotContainsString( 'wp_ffc_user_profiles', $seen[0] );
 		$this->assertSame( 3, substr_count( $seen[0], 'MAX(' ), 'The other three stores must still be read.' );
+	}
+
+
+	// ==================================================================
+	// rf_check_digit_failures() -- #1345
+	// ==================================================================
+
+	/**
+	 * Drive the check-digit scan with a row set and a decryption map.
+	 *
+	 * @param array<int, array<string, mixed>> $rows  Rows the grouped statement returns.
+	 * @param array<string, string>            $plain Ciphertext → plaintext.
+	 * @param int                              $limit Sample size.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function scan( array $rows, array $plain, int $limit = 50 ): array {
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $query ) use ( $rows ) {
+				return ( false !== strpos( (string) $query, 'rf_encrypted' ) ) ? $rows : array();
+			}
+		);
+
+		return $this->query_reading( $plain )->rf_check_digit_failures( $limit );
+	}
+
+	/**
+	 * One grouped row as the statement returns it.
+	 *
+	 * @param array<string, mixed> $over Keys to replace.
+	 * @return array<string, mixed>
+	 */
+	private static function scan_row( array $over = array() ): array {
+		return array_merge(
+			array(
+				'subject'                                 => 'hashA',
+				'c'                                       => 'cipherA',
+				IdentityConflictQuery::ALIAS_ROW_COUNT    => 1,
+				IdentityConflictQuery::COLUMN_STORES      => 'submissions',
+				IdentityConflictQuery::COLUMN_RELATED     => '5',
+				IdentityConflictQuery::COLUMN_ROW_IDS     => 'submissions:12',
+				'identifier_column'                       => 'rf_hash',
+			),
+			$over
+		);
+	}
+
+	/**
+	 * `1234567` has a weighted sum of 77, residue 0, so its check digit should
+	 * be 1 and is 7. The value this whole slice exists to surface.
+	 */
+	public function test_a_stored_rf_whose_check_digit_disagrees_is_reported(): void {
+		$rows = $this->scan( array( self::scan_row() ), array( 'cipherA' => '1234567' ) );
+
+		$this->assertCount( 1, $rows );
+		$this->assertSame( 'hashA', $rows[0]['subject'] );
+		$this->assertSame( 'rf_hash', $rows[0]['identifier_column'] );
+	}
+
+	public function test_a_consistent_rf_is_not_reported(): void {
+		$this->assertSame(
+			array(),
+			$this->scan( array( self::scan_row() ), array( 'cipherA' => '1000021' ) ),
+			'1000021 satisfies the rule, so it is not a finding.'
+		);
+	}
+
+	/**
+	 * The mirror of `SHAPE_NOT_DECRYPTABLE`, and for its reason: not having
+	 * read a value is not evidence that it is wrong. This finding's action is
+	 * to contact a person about their own number, so acting on a
+	 * classification that was never made is the irreversible mistake here.
+	 */
+	public function test_a_value_that_cannot_be_read_is_not_reported(): void {
+		$this->assertSame(
+			array(),
+			$this->scan( array( self::scan_row() ), array() ),
+			'A null from the decrypt seam must not read as a failure.'
+		);
+	}
+
+	/**
+	 * The handle for a finding that names no account -- which is ordinary
+	 * here, since a candidacy carries no `user_id` before promotion.
+	 */
+	public function test_the_finding_names_the_rows_to_look_at(): void {
+		$rows = $this->scan(
+			array(
+				self::scan_row(
+					array(
+						IdentityConflictQuery::COLUMN_RELATED => '',
+						IdentityConflictQuery::COLUMN_ROW_IDS => 'recruitment_candidate:7,9',
+						IdentityConflictQuery::ALIAS_ROW_COUNT => 2,
+					)
+				),
+			),
+			array( 'cipherA' => '1234567' )
+		);
+
+		$this->assertCount( 1, $rows );
+		$this->assertSame( 'recruitment_candidate:7,9', $rows[0][ IdentityConflictQuery::COLUMN_ROW_IDS ] );
+		$this->assertSame( '', $rows[0][ IdentityConflictQuery::COLUMN_RELATED ], 'No account is a legitimate answer here.' );
+		$this->assertFalse( $rows[0][ IdentityConflictQuery::COLUMN_ROW_IDS_TRUNCATED ] );
+	}
+
+	/**
+	 * `GROUP_CONCAT` truncates at `group_concat_max_len` in silence while
+	 * `COUNT(*)` does not, so their disagreement is the only signal there is.
+	 */
+	public function test_a_short_row_id_list_is_flagged_against_its_own_count(): void {
+		$rows = $this->scan(
+			array(
+				self::scan_row(
+					array(
+						IdentityConflictQuery::COLUMN_ROW_IDS  => 'submissions:12,34',
+						IdentityConflictQuery::ALIAS_ROW_COUNT => 9,
+					)
+				),
+			),
+			array( 'cipherA' => '1234567' )
+		);
+
+		$this->assertTrue(
+			$rows[0][ IdentityConflictQuery::COLUMN_ROW_IDS_TRUNCATED ],
+			'Two ids listed against a count of nine is a partial list.'
+		);
+	}
+
+	/**
+	 * The outer `GROUP_CONCAT` joins each store's own list, so an account
+	 * holding the RF in two stores is named twice. `DISTINCT` cannot fix it
+	 * there -- it deduplicates the LISTS, not the ids inside them.
+	 */
+	public function test_an_account_named_by_two_stores_is_listed_once(): void {
+		$rows = $this->scan(
+			array(
+				self::scan_row(
+					array(
+						IdentityConflictQuery::COLUMN_RELATED => '5|7|5',
+						IdentityConflictQuery::COLUMN_STORES  => 'recruitment_candidate|submissions',
+					)
+				),
+			),
+			array( 'cipherA' => '1234567' )
+		);
+
+		$this->assertSame( '5|7', $rows[0][ IdentityConflictQuery::COLUMN_RELATED ] );
+	}
+
+	/**
+	 * A capped scan that found nothing still has to say so.
+	 *
+	 * THE CASE THAT MOVED THE FLAG OFF THE FINDINGS
+	 *
+	 * With the signal as a column on each failure, this exact run -- cap
+	 * reached, every value consistent -- emits no rows at all and the report
+	 * reads CLEAN while values went unexamined. That is the failure mode
+	 * `#1295` argues against, so the signal is a row of its own.
+	 */
+	public function test_a_capped_scan_reports_itself_even_with_no_failures(): void {
+		$rows = array();
+		for ( $i = 0; $i < 20000; $i++ ) {
+			$rows[] = self::scan_row( array( 'subject' => 'hash' . $i ) );
+		}
+
+		$out = $this->scan( $rows, array( 'cipherA' => '1000021' ) );
+
+		$this->assertCount( 1, $out, 'The scan found no failure and must still report that it did not finish.' );
+		$this->assertTrue( $out[0][ IdentityConflictQuery::COLUMN_SCAN_TRUNCATED ] );
+		$this->assertArrayNotHasKey( 'subject', $out[0], 'It is a report about the scan, not a finding about a value.' );
+	}
+
+	/**
+	 * The identity index stores `rf_hash` with no `rf_encrypted` beside it, so
+	 * there is nothing there to read a check digit out of.
+	 */
+	public function test_the_identity_index_is_never_scanned(): void {
+		$this->without_ciphertext = array( 'wp_ffc_user_profiles' );
+
+		$seen = $this->statements(
+			static function ( IdentityConflictQuery $query ): void {
+				$query->rf_check_digit_failures( 10 );
+			}
+		);
+
+		$this->assertNotEmpty( $seen, 'No statement ran at all, so this proves nothing.' );
+		$this->assertStringNotContainsString( 'wp_ffc_user_profiles', $seen[0] );
+	}
+
+	/**
+	 * A store with the ciphertext but no `id` cannot name the rows to look at,
+	 * which is the one handle a finding without an account has.
+	 */
+	public function test_a_store_without_a_row_id_is_not_scanned(): void {
+		$this->without_ciphertext = array( 'wp_ffc_user_profiles' );
+		$this->without_row_id     = array( 'wp_ffc_self_scheduling_appointments' );
+
+		$seen = $this->statements(
+			static function ( IdentityConflictQuery $query ): void {
+				$query->rf_check_digit_failures( 10 );
+			}
+		);
+
+		$this->assertNotEmpty( $seen, 'No statement ran at all, so this proves nothing.' );
+		$this->assertStringNotContainsString( 'wp_ffc_self_scheduling_appointments', $seen[0] );
+		$this->assertStringContainsString( 'wp_ffc_submissions', $seen[0], 'The stores that CAN be scanned still must be.' );
+	}
+
+	/**
+	 * The scan reads rows a candidacy owns before promotion, so it must not
+	 * inherit `pairs()`'s account filter -- which would drop exactly the
+	 * population most likely to carry a wrong value.
+	 */
+	public function test_the_scan_does_not_filter_on_an_account(): void {
+		$seen = $this->statements(
+			static function ( IdentityConflictQuery $query ): void {
+				$query->rf_check_digit_failures( 10 );
+			}
+		);
+
+		$this->assertNotEmpty( $seen, 'No statement ran at all, so this proves nothing.' );
+		$this->assertStringNotContainsString( 'user_id IS NOT NULL', $seen[0] );
+	}
+
+	/**
+	 * Nothing the scan emits is a value. The column an operator reads names a
+	 * hash, a store and a row -- never a digit of the identifier itself.
+	 */
+	public function test_the_scan_emits_no_identifier(): void {
+		$rows = $this->scan( array( self::scan_row() ), array( 'cipherA' => '1234567' ) );
+
+		$this->assertCount( 1, $rows );
+		$this->assertArrayNotHasKey( 'c', $rows[0], 'The ciphertext must not travel with the finding.' );
+
+		foreach ( $rows[0] as $key => $value ) {
+			$this->assertStringNotContainsString(
+				'1234567',
+				(string) $value,
+				"Column '{$key}' carries the identifier the scan read."
+			);
+		}
 	}
 
 }
