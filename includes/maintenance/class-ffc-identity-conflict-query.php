@@ -1260,6 +1260,95 @@ class IdentityConflictQuery {
 	}
 
 	/**
+	 * Unpack {@see self::COLUMN_ROW_IDS} into store label => list of row ids.
+	 *
+	 * The inverse of what `rf_check_digit_failures()` packs, and it lives
+	 * beside {@see self::format_account_rows()} for that method's reason: the
+	 * class that writes a wire format is the one that can still read it after
+	 * a separator changes. Both separators it needs are private, which is the
+	 * mechanical half of the same argument.
+	 *
+	 * The format is `label:1,2,3|label:4`. A store LABEL contains neither
+	 * separator -- {@see self::label()} maps a table name to a bare word --
+	 * which is what keeps it unambiguous.
+	 *
+	 * A value this cannot read yields an empty array rather than a partial
+	 * one: these ids are what an operator opens, so half a list is worse
+	 * than none.
+	 *
+	 * @since 6.29.0
+	 * @param mixed $raw Packed value as a finding carries it.
+	 * @return array<string, list<int>>
+	 */
+	public static function parse_row_ids( $raw ): array {
+		$out = array();
+
+		if ( ! is_string( $raw ) || '' === $raw ) {
+			return $out;
+		}
+
+		foreach ( explode( self::RELATED_SEPARATOR, $raw ) as $chunk ) {
+			$at = strpos( $chunk, self::STORE_ID_SEPARATOR );
+
+			if ( false === $at ) {
+				continue;
+			}
+
+			$store = substr( $chunk, 0, $at );
+			$ids   = array();
+
+			foreach ( explode( self::ROW_ID_SEPARATOR, substr( $chunk, $at + 1 ) ) as $id ) {
+				$id = trim( $id );
+
+				if ( '' !== $id && ctype_digit( $id ) ) {
+					$ids[] = (int) $id;
+				}
+			}
+
+			if ( '' === $store || array() === $ids ) {
+				continue;
+			}
+
+			$out[ $store ] = isset( $out[ $store ] ) ? array_merge( $out[ $store ], $ids ) : $ids;
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Unpack a `|`-separated list of account ids.
+	 *
+	 * A finding naming NO account is ordinary for the check-digit scan rather
+	 * than a defect -- a recruitment candidacy carries no `user_id` until
+	 * promotion -- so an empty list here is an answer, never a failure.
+	 *
+	 * @since 6.29.0
+	 * @param mixed $raw Packed value as a finding carries it.
+	 * @return list<int>
+	 */
+	public static function parse_accounts( $raw ): array {
+		$out = array();
+
+		if ( ! is_string( $raw ) || '' === $raw ) {
+			return $out;
+		}
+
+		foreach ( explode( self::RELATED_SEPARATOR, $raw ) as $value ) {
+			$value = trim( $value );
+
+			if ( '' === $value || ! ctype_digit( $value ) ) {
+				continue;
+			}
+
+			if ( ! in_array( (int) $value, $out, true ) ) {
+				$out[] = (int) $value;
+			}
+		}
+
+		return $out;
+	}
+
+	/**
 	 * Group the `(user_id, hash)` pairs one way and report the collisions.
 	 *
 	 * @param string $group_by   Column to group by, `h` or `user_id`.

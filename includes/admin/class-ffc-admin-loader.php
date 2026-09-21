@@ -60,6 +60,13 @@ class AdminLoader {
 	protected ?AdminAjax $admin_ajax = null;
 
 	/**
+	 * Identity Resolution screen — held to keep the instance alive for its hooks.
+	 *
+	 * @var IdentityResolutionPage|null
+	 */
+	protected ?IdentityResolutionPage $identity_resolution_page = null;
+
+	/**
 	 * Inject the shared submission handler the Admin screens depend on.
 	 *
 	 * @param SubmissionHandler $submission_handler Shared handler the Admin screens depend on.
@@ -105,5 +112,11 @@ class AdminLoader {
 		// despite its name runs on every request.
 		FormListColumns::init();
 		AdminUserCustomFields::init();
+
+		// Held, not fire-and-forget: the page registers its submenu on
+		// `admin_menu` and renders from an instance method, so the instance
+		// has to outlive this call.
+		$this->identity_resolution_page = new IdentityResolutionPage();
+		$this->identity_resolution_page->init();
 	}
 }

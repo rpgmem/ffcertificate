@@ -1372,4 +1372,69 @@ class IdentityConflictQueryTest extends TestCase {
 		}
 	}
 
+	/**
+	 * The packed row ids round-trip, per store.
+	 *
+	 * These ids are what an operator opens, and the format is this class's
+	 * own -- so the parser lives beside the packer for the reason
+	 * `format_account_rows()` does.
+	 */
+	public function test_it_unpacks_row_ids_per_store(): void {
+		$this->assertSame(
+			array(
+				'submissions'  => array( 4, 9 ),
+				'appointments' => array( 12 ),
+			),
+			IdentityConflictQuery::parse_row_ids( 'submissions:4,9|appointments:12' )
+		);
+	}
+
+	/**
+	 * A store named twice accumulates rather than overwriting.
+	 *
+	 * The scan groups by store before packing, so this should not arise --
+	 * which is exactly why dropping the first half on a malformed value would
+	 * go unnoticed until an operator worked a row that was silently short.
+	 */
+	public function test_a_repeated_store_accumulates(): void {
+		$this->assertSame(
+			array( 'submissions' => array( 1, 2 ) ),
+			IdentityConflictQuery::parse_row_ids( 'submissions:1|submissions:2' )
+		);
+	}
+
+	/**
+	 * Unreadable input yields nothing, never a partial list.
+	 *
+	 * Half a list of row ids is worse than none: an operator who works it
+	 * believes they finished the finding.
+	 */
+	public function test_unreadable_row_ids_yield_nothing(): void {
+		foreach ( array( '', 'submissions', 'submissions:', ':4', 'submissions:abc', null, 42, array() ) as $bad ) {
+			$this->assertSame(
+				array(),
+				IdentityConflictQuery::parse_row_ids( $bad ),
+				sprintf( 'A value the parser cannot read must yield an empty array: %s', var_export( $bad, true ) )
+			);
+		}
+	}
+
+	/**
+	 * Accounts unpack, deduplicated and in order.
+	 */
+	public function test_it_unpacks_accounts(): void {
+		$this->assertSame( array( 7, 9 ), IdentityConflictQuery::parse_accounts( '7|9|7' ) );
+	}
+
+	/**
+	 * A finding naming NO account is an answer, not a failure.
+	 *
+	 * This is the case the Migrations card drops by construction and the
+	 * resolution screen exists to show: a recruitment candidacy carries no
+	 * `user_id` until promotion.
+	 */
+	public function test_no_account_is_an_answer(): void {
+		$this->assertSame( array(), IdentityConflictQuery::parse_accounts( '' ) );
+		$this->assertSame( array(), IdentityConflictQuery::parse_accounts( null ) );
+	}
 }
