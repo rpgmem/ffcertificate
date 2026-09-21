@@ -725,6 +725,18 @@ msgstr ""
 msgid "6"
 msgstr ""
 
+#: includes/migrations/strategies/class-ffc-certificate-capability-backfill-migration-strategy.php:136
+msgid "Accounts that can now read the certificates they own: %d"
+msgstr ""
+
+#: includes/migrations/class-ffc-migration-registry.php:123
+msgid "Grant the certificate capabilities to every account that owns a certificate and cannot open it. The permission used to come from whichever path created the account, while ownership comes from the record itself — so a person whose old submissions were claimed after their account was created by a candidacy, a reregistration import or an appointment ended up holding certificates the dashboard refused to show them. Measures the remaining accounts on every read, so running it again once it reports zero does nothing."
+msgstr ""
+
+#: includes/migrations/class-ffc-migration-registry.php:122
+msgid "Restore Access to Owned Certificates"
+msgstr ""
+
 #. 1: Environment name, 2: Date
 #: includes/audience/class-ffc-audience-notification-handler.php:434
 #, php-format

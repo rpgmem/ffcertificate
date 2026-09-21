@@ -117,6 +117,18 @@ class MigrationRegistry {
 			'order'       => 7,
 		);
 
+		// v6.29.0 (#1345): repair accounts that own a certificate and hold no
+		// capability to read it. Ordered AFTER the identity cards because it
+		// is their consequence -- adoption is what linked these rows, and the
+		// grant it should have carried is what this card supplies.
+		$this->migrations['certificate_capability_backfill'] = array(
+			'name'        => __( 'Restore Access to Owned Certificates', 'ffcertificate' ),
+			'description' => __( 'Grant the certificate capabilities to every account that owns a certificate and cannot open it. The permission used to come from whichever path created the account, while ownership comes from the record itself — so a person whose old submissions were claimed after their account was created by a candidacy, a reregistration import or an appointment ended up holding certificates the dashboard refused to show them. Measures the remaining accounts on every read, so running it again once it reports zero does nothing.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-shield',
+			'batch_size'  => 100,
+			'order'       => 8,
+		);
+
 		// v5.4.1: Clear plaintext context on activity log rows that already
 		// hold a ciphertext, eliminating the dual-storage leak.
 		$this->migrations['activity_log_clear_plaintext'] = array(

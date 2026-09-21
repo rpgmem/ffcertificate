@@ -10,6 +10,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **The RF has a check digit and the plugin can read it** (#1345): `validate_rf()` took any seven digits, so a mistyped RF reached storage where a mistyped CPF does not. `rf_check_digit_matches()` classifies; rejecting at the form is opt-in via `ffc_validate_rf_check_digit`.
+- **A migration card restores access for accounts that own a certificate and cannot open it** (#1345): 1,478 of them on production. It measures what is left on every read, so running it again once it reports zero does nothing.
+
+### Fixed
+
+- **⚠ Adopting a certificate now grants the capability that reads it** (#1345): claiming somebody's old submissions moved ownership without moving permission, so an account created by a candidacy, a reregistration import or an appointment held certificates the dashboard refused to show — client-side and with a 403. The appointment half of the same method had always granted on what it claimed; this half never did.
 
 ## [6.28.1] (2026-09-20) — `58e498a`
 
