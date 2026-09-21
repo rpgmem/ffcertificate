@@ -781,6 +781,14 @@ class IdentityConflictQuery {
 		$stores = $this->stores_for_rf_scan( $cipher );
 		$out    = array();
 
+		// Reset first: a caller reading coverage after a scan that bailed
+		// must see this call's zero, never the previous call's numbers.
+		$this->rf_scan_coverage = array(
+			'stores'     => count( $stores ),
+			'examined'   => 0,
+			'unreadable' => 0,
+		);
+
 		if ( array() === $stores || '' === $cipher ) {
 			return $out;
 		}
@@ -830,6 +838,8 @@ class IdentityConflictQuery {
 		$rows    = (array) $rows;
 		$scanned = count( $rows );
 
+		$this->rf_scan_coverage['examined'] = $scanned;
+
 		foreach ( $rows as $row ) {
 			$row    = (array) $row;
 			$stored = isset( $row['c'] ) && is_string( $row['c'] ) ? $row['c'] : '';
@@ -839,7 +849,12 @@ class IdentityConflictQuery {
 			// `SHAPE_NOT_DECRYPTABLE`, and for its reason: not having read a
 			// value is not evidence that it is wrong, and this finding's
 			// action is to contact a person about their own number.
-			if ( ! is_string( $plain ) || DocumentFormatter::rf_check_digit_matches( $plain ) ) {
+			if ( ! is_string( $plain ) ) {
+				++$this->rf_scan_coverage['unreadable'];
+				continue;
+			}
+
+			if ( DocumentFormatter::rf_check_digit_matches( $plain ) ) {
 				continue;
 			}
 
@@ -873,6 +888,48 @@ class IdentityConflictQuery {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * What the last {@see self::rf_check_digit_failures()} call actually read.
+	 *
+	 * A SCAN THAT READ NOTHING MUST NOT RENDER AS CLEAN.
+	 *
+	 * That method returns failures, so it returns none in three unrelated
+	 * states: no store carries the three columns it needs, nothing it read
+	 * could be decrypted, and every value genuinely satisfies its digit. Only
+	 * the third justifies telling an operator the data is fine -- and the
+	 * first two are the ordinary state of a staging site whose encryption key
+	 * does not match the data it holds.
+	 *
+	 * Kept beside the scan rather than returned from it, because the auditor
+	 * counts every returned row as a FINDING: a coverage row would read as one
+	 * permanent open item on an install with nothing wrong. The truncation
+	 * signal IS a row for the opposite reason -- there is something to do
+	 * about it.
+	 *
+	 * @since 6.29.0
+	 * @var array{stores: int, examined: int, unreadable: int}
+	 */
+	private array $rf_scan_coverage = array(
+		'stores'     => 0,
+		'examined'   => 0,
+		'unreadable' => 0,
+	);
+
+	/**
+	 * What the last check-digit scan read.
+	 *
+	 * `examined` counts DISTINCT hashes, not rows -- the scan groups before
+	 * decrypting, which is what bounds its cost. `unreadable` is how many of
+	 * those could not be decrypted; equal to `examined` means the key does not
+	 * open this data, and an empty failure list says nothing at all.
+	 *
+	 * @since 6.29.0
+	 * @return array{stores: int, examined: int, unreadable: int}
+	 */
+	public function rf_scan_coverage(): array {
+		return $this->rf_scan_coverage;
 	}
 
 	/**

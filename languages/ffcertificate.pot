@@ -22048,8 +22048,6 @@ msgstr ""
 msgid "The scan reached its cap before reading every stored value, so this list is partial. Work it down and run the screen again."
 msgstr ""
 
-msgid "Nothing to resolve: every stored RF satisfies its check digit."
-msgstr ""
 
 msgid "Rows"
 msgstr ""
@@ -22113,4 +22111,13 @@ msgid "The rows were rewritten but the identity index refused the same value, so
 msgstr ""
 
 msgid "Stored RF Corrected"
+msgstr ""
+
+msgid "Nothing was scanned: no store on this install carries an RF in a form this check can read, which needs the hash, the ciphertext and a row id on the same table. This is not a clean result."
+msgstr ""
+
+msgid "Found %s stored values and could not read any of them, so nothing was checked. That is what an encryption key which does not match this data looks like — this is not a clean result."
+msgstr ""
+
+msgid "Nothing to resolve: %1$s stored values checked and every one satisfies its check digit. %2$s could not be read and were not checked."
 msgstr ""
