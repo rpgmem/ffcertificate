@@ -61,6 +61,13 @@ class IdentityResolutionPageTest extends TestCase {
 			->once()
 			->with( IdentityResolutionPage::LIMIT )
 			->andReturn( $findings );
+		$query->shouldReceive( 'rf_scan_coverage' )->andReturn(
+			array(
+				'stores'     => 3,
+				'examined'   => count( $findings ),
+				'unreadable' => 0,
+			)
+		);
 
 		return new class( $query ) extends IdentityResolutionPage {
 
@@ -236,5 +243,83 @@ class IdentityResolutionPageTest extends TestCase {
 
 		$this->assertStringNotContainsString( 'ffc_row_ids', $page );
 		$this->assertStringContainsString( "RequestInput::get_post_string( 'ffc_subject', '' )", $page );
+	}
+
+	/**
+	 * The screen knows what the scan READ, not only what it reported.
+	 *
+	 * An empty failure list means three unrelated things — no store carries
+	 * the columns, nothing decrypted, or the data is genuinely fine — and only
+	 * the third justifies telling an operator so. This is the `#1071` /
+	 * `#1094` rule applied to a screen rather than to a guard.
+	 */
+	public function test_the_queue_carries_what_the_scan_read(): void {
+		$query = Mockery::mock( IdentityConflictQuery::class );
+		$query->shouldReceive( 'rf_check_digit_failures' )->once()->andReturn( array() );
+		$query->shouldReceive( 'rf_scan_coverage' )->once()->andReturn(
+			array(
+				'stores'     => 3,
+				'examined'   => 40,
+				'unreadable' => 40,
+			)
+		);
+
+		$page = new class( $query ) extends IdentityResolutionPage {
+
+			/** @var IdentityConflictQuery */
+			private $double;
+
+			/**
+			 * @param IdentityConflictQuery $double Stand-in for the real query.
+			 */
+			public function __construct( $double ) {
+				$this->double = $double;
+			}
+
+			/**
+			 * @return IdentityConflictQuery
+			 */
+			protected function conflicts(): IdentityConflictQuery {
+				return $this->double;
+			}
+		};
+
+		$this->assertSame( array(), $page->queue() );
+		$this->assertSame(
+			array(
+				'stores'     => 3,
+				'examined'   => 40,
+				'unreadable' => 40,
+			),
+			$page->coverage(),
+			'An empty list with nothing readable must not be presentable as a clean result.'
+		);
+	}
+
+	/**
+	 * The view refuses to call an unread scan clean.
+	 *
+	 * Asserted against the markup because the branch is in the view, which is
+	 * outside the coverage scope by the same carve-out `phpstan.neon.dist`
+	 * makes — so what can be pinned is that the three states exist and that
+	 * the reassuring sentence is reachable only from the third.
+	 */
+	public function test_the_view_separates_the_three_empty_states(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertStringContainsString( '0 === $ffc_identity_stores', $view, 'No store scanned is its own state.' );
+		$this->assertStringContainsString( '$ffc_identity_examined === $ffc_identity_unreadable', $view, 'Nothing readable is its own state.' );
+		$this->assertStringContainsString( 'this is not a clean result', $view, 'Both unread states must say so.' );
+
+		$reassuring = strpos( $view, 'every one satisfies its check digit' );
+		$unreadable = strpos( $view, 'could not read any of them' );
+
+		$this->assertIsInt( $reassuring );
+		$this->assertIsInt( $unreadable );
+		$this->assertGreaterThan(
+			$unreadable,
+			$reassuring,
+			'The reassuring sentence must sit in the LAST branch, reachable only once the other two are ruled out.'
+		);
 	}
 }

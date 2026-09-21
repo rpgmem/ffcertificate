@@ -134,6 +134,17 @@ class IdentityResolutionPage {
 	}
 
 	/**
+	 * What the last scan read, for the empty state.
+	 *
+	 * @var array{stores: int, examined: int, unreadable: int}
+	 */
+	private array $coverage = array(
+		'stores'     => 0,
+		'examined'   => 0,
+		'unreadable' => 0,
+	);
+
+	/**
 	 * The cross-store identity questions.
 	 *
 	 * A seam for the reason `SubmissionLinkAuditor::conflicts()` has one: the
@@ -163,7 +174,23 @@ class IdentityResolutionPage {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function queue(): array {
-		return $this->conflicts()->rf_check_digit_failures( self::LIMIT );
+		$query = $this->conflicts();
+		$out   = $query->rf_check_digit_failures( self::LIMIT );
+
+		// Read AFTER the scan, from the same instance: what the list does not
+		// carry is whether it is empty because the data is fine.
+		$this->coverage = $query->rf_scan_coverage();
+
+		return $out;
+	}
+
+	/**
+	 * What the last `queue()` call actually read.
+	 *
+	 * @return array{stores: int, examined: int, unreadable: int}
+	 */
+	public function coverage(): array {
+		return $this->coverage;
 	}
 
 	/**
@@ -241,6 +268,7 @@ class IdentityResolutionPage {
 		delete_transient( $ffc_identity_key );
 
 		$ffc_identity_findings = $this->queue();
+		$ffc_identity_coverage = $this->coverage();
 
 		require __DIR__ . '/views/identity-resolution-page.php';
 	}

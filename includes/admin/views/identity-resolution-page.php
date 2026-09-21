@@ -12,6 +12,7 @@
  *
  * @var array<int, array<string, mixed>> $ffc_identity_findings Findings from the check-digit scan.
  * @var array{type: string, text: string}|false                 $ffc_identity_outcome  Outcome of the last write, if any.
+ * @var array{stores: int, examined: int, unreadable: int}       $ffc_identity_coverage What the scan actually read.
  */
 
 // No `declare(strict_types=1)` here on purpose: none of the 17 view and
@@ -71,9 +72,56 @@ foreach ( $ffc_identity_findings as $ffc_identity_finding ) {
 	<?php endif; ?>
 
 	<?php if ( array() === $ffc_identity_rows ) : ?>
-		<p class="description">
-			<?php esc_html_e( 'Nothing to resolve: every stored RF satisfies its check digit.', 'ffcertificate' ); ?>
-		</p>
+		<?php
+		// AN EMPTY LIST MEANS THREE DIFFERENT THINGS AND ONLY ONE IS GOOD NEWS.
+		//
+		// The scan returns failures, so it returns none when no store carries
+		// the columns it needs, when nothing it read could be decrypted, and
+		// when every value is genuinely fine. Reporting the third when it was
+		// one of the first two is the `#1071` / `#1094` rule broken on a
+		// screen instead of in a guard.
+		$ffc_identity_examined   = (int) ( $ffc_identity_coverage['examined'] ?? 0 );
+		$ffc_identity_unreadable = (int) ( $ffc_identity_coverage['unreadable'] ?? 0 );
+		$ffc_identity_stores     = (int) ( $ffc_identity_coverage['stores'] ?? 0 );
+		?>
+		<?php if ( 0 === $ffc_identity_stores ) : ?>
+			<?php
+			wp_admin_notice(
+				esc_html__( 'Nothing was scanned: no store on this install carries an RF in a form this check can read, which needs the hash, the ciphertext and a row id on the same table. This is not a clean result.', 'ffcertificate' ),
+				array(
+					'type'               => 'warning',
+					'additional_classes' => array( 'inline' ),
+				)
+			);
+			?>
+		<?php elseif ( $ffc_identity_examined > 0 && $ffc_identity_examined === $ffc_identity_unreadable ) : ?>
+			<?php
+			wp_admin_notice(
+				esc_html(
+					sprintf(
+						/* translators: %s: how many distinct stored values were found. */
+						__( 'Found %s stored values and could not read any of them, so nothing was checked. That is what an encryption key which does not match this data looks like — this is not a clean result.', 'ffcertificate' ),
+						number_format_i18n( $ffc_identity_examined )
+					)
+				),
+				array(
+					'type'               => 'error',
+					'additional_classes' => array( 'inline' ),
+				)
+			);
+			?>
+		<?php else : ?>
+			<p class="description">
+				<?php
+				printf(
+					/* translators: 1: values checked, 2: values that could not be read. */
+					esc_html__( 'Nothing to resolve: %1$s stored values checked and every one satisfies its check digit. %2$s could not be read and were not checked.', 'ffcertificate' ),
+					esc_html( number_format_i18n( $ffc_identity_examined ) ),
+					esc_html( number_format_i18n( $ffc_identity_unreadable ) )
+				);
+				?>
+			</p>
+		<?php endif; ?>
 	<?php else : ?>
 		<table class="wp-list-table widefat striped">
 			<thead>

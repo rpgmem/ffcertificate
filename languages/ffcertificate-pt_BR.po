@@ -22139,8 +22139,6 @@ msgstr "RFs armazenados cujo próprio dígito verificador não confere, então o
 msgid "The scan reached its cap before reading every stored value, so this list is partial. Work it down and run the screen again."
 msgstr "A varredura atingiu seu limite antes de ler todos os valores armazenados, então esta lista está parcial. Reduza a fila e abra a tela de novo."
 
-msgid "Nothing to resolve: every stored RF satisfies its check digit."
-msgstr "Nada a resolver: todo RF armazenado satisfaz seu dígito verificador."
 
 msgid "Rows"
 msgstr "Linhas"
@@ -22205,3 +22203,12 @@ msgstr "As linhas foram reescritas mas o índice de identidade recusou o mesmo v
 
 msgid "Stored RF Corrected"
 msgstr "RF armazenado corrigido"
+
+msgid "Nothing was scanned: no store on this install carries an RF in a form this check can read, which needs the hash, the ciphertext and a row id on the same table. This is not a clean result."
+msgstr "Nada foi varrido: nenhum store desta instalação guarda um RF numa forma que esta checagem consiga ler, o que exige o hash, o ciphertext e um id de linha na mesma tabela. Isto não é um resultado limpo."
+
+msgid "Found %s stored values and could not read any of them, so nothing was checked. That is what an encryption key which does not match this data looks like — this is not a clean result."
+msgstr "Foram encontrados %s valores armazenados e nenhum deles pôde ser lido, então nada foi checado. É assim que se parece uma chave de criptografia que não corresponde a estes dados — isto não é um resultado limpo."
+
+msgid "Nothing to resolve: %1$s stored values checked and every one satisfies its check digit. %2$s could not be read and were not checked."
+msgstr "Nada a resolver: %1$s valores armazenados checados e todos satisfazem seu dígito verificador. %2$s não puderam ser lidos e não foram checados."

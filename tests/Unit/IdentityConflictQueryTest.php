@@ -1437,4 +1437,68 @@ class IdentityConflictQueryTest extends TestCase {
 		$this->assertSame( array(), IdentityConflictQuery::parse_accounts( '' ) );
 		$this->assertSame( array(), IdentityConflictQuery::parse_accounts( null ) );
 	}
+
+	/**
+	 * The scan reports what it READ, so an empty result is never ambiguous.
+	 *
+	 * A value it cannot decrypt is correctly not a failure -- not having read
+	 * a number is no evidence that it is wrong. But then an empty failure list
+	 * means either "all fine" or "read nothing", and a screen cannot tell
+	 * them apart without this. `#1071` / `#1094`.
+	 */
+	public function test_it_reports_values_it_could_not_read(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $query ) {
+				return ( false !== strpos( (string) $query, 'rf_encrypted' ) )
+					? array(
+						self::scan_row(),
+						self::scan_row( array( 'subject' => 'hashB', 'c' => 'cipherB' ) ),
+					)
+					: array();
+			}
+		);
+
+		// Neither ciphertext is in the map, so neither decrypts.
+		$query    = $this->query_reading( array() );
+		$findings = $query->rf_check_digit_failures( 50 );
+		$coverage = $query->rf_scan_coverage();
+
+		$this->assertSame( array(), $findings, 'An unreadable value is not a failure.' );
+		$this->assertSame( 2, $coverage['examined'], 'Both distinct hashes were read.' );
+		$this->assertSame( 2, $coverage['unreadable'], 'Neither could be decrypted, and that must be visible.' );
+		$this->assertGreaterThan( 0, $coverage['stores'] );
+	}
+
+	/**
+	 * A readable value that passes the digit is examined and NOT unreadable.
+	 *
+	 * The other half: without it, always incrementing `unreadable` would pass
+	 * the test above and make every clean install look broken.
+	 */
+	public function test_a_readable_value_is_not_counted_unreadable(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $query ) {
+				return ( false !== strpos( (string) $query, 'rf_encrypted' ) ) ? array( self::scan_row() ) : array();
+			}
+		);
+
+		// 1234561 satisfies the digit: 7·1+6·2+5·3+4·4+3·5+2·6 = 77, 77 mod 11 = 0, dv = 1.
+		$query = $this->query_reading( array( 'cipherA' => '1234561' ) );
+		$query->rf_check_digit_failures( 50 );
+		$coverage = $query->rf_scan_coverage();
+
+		$this->assertSame( 1, $coverage['examined'] );
+		$this->assertSame( 0, $coverage['unreadable'] );
+	}
+
+	/**
+	 * Coverage from a scan that bailed is this call's zero, never the last
+	 * call's numbers.
+	 */
+	public function test_coverage_starts_at_zero_before_a_scan(): void {
+		$coverage = ( new IdentityConflictQuery() )->rf_scan_coverage();
+
+		$this->assertSame( 0, $coverage['examined'] );
+		$this->assertSame( 0, $coverage['unreadable'] );
+	}
 }

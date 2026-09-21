@@ -30,7 +30,7 @@ Project conventions for Claude (Anthropic CLI / agent sessions) working on this 
 
 1. **[Contributing workflow](#1-contributing-workflow)** — git / PR / release: pull-request workflow, branch naming, develop-branch workflow, versioning, CHANGELOG conventions, what not to do.
 2. **[Quality gates and testing](#2-quality-gates-and-testing)** — the CI gate list + coverage floors, the guards (one subsection each), config-level exclusions, test infrastructure, build & assets.
-3. **[Architecture and patterns](#3-architecture-and-patterns)** — repository pattern, module bootstrap (loaders), shared-service directories, email pipeline, CSV export, captcha.
+3. **[Architecture and patterns](#3-architecture-and-patterns)** — repository pattern, module bootstrap (loaders), shared-service directories, email pipeline, CSV export, captcha, batched migrations.
 4. **[Stylesheets and theme](#4-stylesheets-and-theme)** — how many sheets and why, naming and composition, page scope on the admin `wrap`, the light/dark palette.
 5. **[Domain conventions](#5-domain-conventions)** — date/time storage, settings reads and writes, admin number inputs, capability naming, security & PII.
 6. **[Legacy and tech debt](#6-legacy-and-tech-debt)** — compat shims + evidence-gating, deprecation cycles and the `@removal` marker.
@@ -549,6 +549,26 @@ Every plugin CSV export flows through **one source contract with two delivery ad
 **When auditing, grep every legacy output site** (`php://output`, `fopen(`, `header( 'Content-Type: text/csv`, `CsvStreamer`, `->stream(`) and confirm each export routes through a source + one of the two adapters — the #772 consolidation retired seven bespoke exporters this way. **One deliberate exception survives the grep:** `Frontend\PublicCsvExporter::stream_form_csv()` still writes to `php://output` directly. It is the graceful-degradation half of the only *public/frontend* export — a plain `<form>` POST to `admin-post.php` that works with JS disabled (admin exports need no such fallback; they run in wp-admin where JS is assured). It is **not** a `SyncSourceInterface` because it is a direct `admin_post` streaming handler (not an AJAX job) and it emits an HTML 413 page over the row cap, which does not fit the `rows(): iterable` contract. Leave it bespoke — do not "fix" it to satisfy the grep.
 
 **The no-JS half is now conditional, and that is deliberate (#1053).** Under the ALTCHA-only captcha mode this path exists but cannot be completed: the widget needs JavaScript, so a visitor without it has no way to pass the challenge and `handle_request()` refuses. That is an accepted consequence rather than a regression — the audience for this export is operators working on a desktop, so the mode is defensible for them — but it does mean "works with JS disabled" is a property of the *math* and *composite* modes only. Keep the handler: it is the whole no-JS path in the two modes that have one, and it is also the rollback that needs no redeploy.
+
+### Batched migrations — what makes a batch stop (#1378)
+
+A migration card runs its batch again and again until the batch reports it did nothing. So **termination is a property of what `execute()` counts**, and counting the wrong thing produces a loop that no test sees and no gate catches, because everything involved is individually correct.
+
+**Measured, on the testes site.** The certificate-capability card reported `TOTAL 10 · PENDING 1` while its button had processed **1,848 records** — about 185 passes over the same ten accounts. `execute()` returned the number of accounts **selected**, not the number **changed**; `CapabilityManager::grant_certificate_capabilities()` skips a capability the user already holds, so a grant that did nothing still reported progress. The method's own docblock asserted the opposite — *"a batch that grants nothing therefore means the work is done"* — and the code could never produce that condition.
+
+The account it could never clear held the capability through a **role**. A role's capabilities live in the `wp_user_roles` option; a user's `wp_capabilities` meta carries the role NAME plus per-user grants and nothing else. So a `LIKE` over that meta cannot see the capability, while `has_cap()` resolves it fine: **the pending query and the grant were asking different questions**, and an account could sit in the pending set that the work would never move. It stayed invisible through the 1,478-account repair because `ffc_end_user` carries no FFC capability at all — there the grant really is per user, and the `LIKE` is the right question.
+
+**So the rule is about the counter, not about the query.** A cursor-free batch terminates only when its processing provably negates its own pending predicate — and proving that for every future edit is not something a reviewer can keep doing. Count what **changed**: then a batch that changes nothing returns zero and stops, whatever the predicate later drifts into. Termination must not depend on the measure being right, because the measure is the part that goes wrong.
+
+**All eleven strategies were checked against it, and each of the other ten is safe by one of three means** — worth knowing which, because they are not interchangeable:
+
+- **A cursor or keyset** (`identity_normalization`, both key rotations, `email_hash_rehash`, `identity_index_backfill`, `activity_log_clear_plaintext`) — advances whatever the work does.
+- **A write that negates the predicate** (`cpf_rf_split`) — it filters on `cpf_rf_hash IS NOT NULL` and writes `NULL` into that very column, *and* increments only on a successful `update()`. Both halves are needed: the second is what the looping card lacked.
+- **An explicit visited register** (`rewrite_html_image_refs`, `import_legacy_templates`) — the key is recorded even when the item fails, so progress does not depend on success.
+
+The looping card had none of the three.
+
+**The neighbouring rule, from the same arc: a scan that read nothing must never render as clean.** `IdentityConflictQuery::rf_check_digit_failures()` returns failures only, and returns none when no store carries the three columns it needs *and* when nothing decrypts — which is the ordinary state of a staging site whose key does not match the data. A screen that prints "every stored RF satisfies its check digit" off an empty list is claiming something it never measured. That is the #1071 / #1094 rule reaching past the guards it was written for: it binds any surface that reports an absence, not only CI.
 
 ### Captcha architecture (one contract, three modes — #1053)
 
