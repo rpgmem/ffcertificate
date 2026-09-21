@@ -420,6 +420,7 @@ class Loader {
 		$this->ensure_reasons_caps_wired();
 		$this->ensure_settings_split_caps_granted();
 		$this->ensure_email_templates_cap_granted();
+		$this->ensure_identities_cap_granted();
 		$this->ensure_recruitment_email_migrated();
 		$this->ensure_activity_log_export_cap_granted();
 		$this->ensure_url_shortener_export_cap_granted();
@@ -559,6 +560,25 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_settings_split_caps_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time grant (#1368) seeding `ffc_manage_identities` onto every holder
+	 * of `ffc_manage_settings_dangerzone`, so the identity queue is reachable
+	 * by whoever could already run the destructive maintenance -- and can then
+	 * be delegated on its own, which is the point of carving it out.
+	 *
+	 * @return void
+	 */
+	private function ensure_identities_cap_granted(): void {
+		$flag = 'ffc_identities_cap_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_identities_cap_grant();
 		}
 		update_option( $flag, '1', true );
 	}

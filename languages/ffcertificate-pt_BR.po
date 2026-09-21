@@ -747,6 +747,10 @@ msgstr "Dígito verificador do RF"
 msgid "Reject an RF whose check digit does not match"
 msgstr "Recusar RF cujo dígito verificador não confere"
 
+#: includes/user-dashboard/class-ffc-capability-catalog.php:411
+msgid "Resolve identity conflicts"
+msgstr "Resolver conflitos de identidade"
+
 #: includes/migrations/class-ffc-migration-registry.php:122
 msgid "Restore Access to Owned Certificates"
 msgstr "Restaurar acesso aos certificados do próprio titular"
@@ -766,6 +770,10 @@ msgstr "Varredura somente de leitura de como as pessoas estão vinculadas a usu�
 #: includes/settings/views/ffc-tab-migrations.php:921
 msgid "Stored RF whose check digit does not match"
 msgstr "RF armazenado cujo dígito verificador não confere"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:412
+msgid "Work the identity queue: correct a stored CPF/RF, split an account holding two people, merge two accounts holding one. Does not reveal a stored identifier — that stays with the PII capability."
+msgstr "Trabalhar a fila de identidade: corrigir um CPF/RF armazenado, separar uma conta que contém duas pessoas, mesclar duas contas que contêm uma. Não revela identificador armazenado — isso continua com a permissão de PII."
 
 #. 1: Environment name, 2: Date
 #: includes/audience/class-ffc-audience-notification-handler.php:434
