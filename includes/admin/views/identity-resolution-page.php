@@ -110,6 +110,33 @@ foreach ( $ffc_identity_findings as $ffc_identity_finding ) {
 				)
 			);
 			?>
+		<?php elseif ( 0 === $ffc_identity_examined ) : ?>
+			<?php
+			// FOUR STATES, NOT THREE. The first pass at this fixed the two
+			// obvious unread cases and left THIS one falling into the
+			// reassuring branch, which then claimed zero values checked and
+			// all of them sound -- vacuous, and it reads as reassurance.
+			// (Phrased without quoting that sentence: a test below anchors on
+			// it, and prose that repeats a literal is the same trap this
+			// repository records for suppression scanners.) Zero examined is
+			// not a clean result: it
+			// says no row in any scanned store carries both a hash and a
+			// ciphertext. On a fresh or test install that is ordinary; on an
+			// install with submissions it is a signal.
+			wp_admin_notice(
+				esc_html(
+					sprintf(
+						/* translators: %s: how many stores were scanned. */
+						__( 'No stored RF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured an RF yet — worth looking into on one that has.', 'ffcertificate' ),
+						number_format_i18n( $ffc_identity_stores )
+					)
+				),
+				array(
+					'type'               => 'info',
+					'additional_classes' => array( 'inline' ),
+				)
+			);
+			?>
 		<?php else : ?>
 			<p class="description">
 				<?php

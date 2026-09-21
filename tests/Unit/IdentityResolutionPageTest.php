@@ -304,22 +304,31 @@ class IdentityResolutionPageTest extends TestCase {
 	 * makes — so what can be pinned is that the three states exist and that
 	 * the reassuring sentence is reachable only from the third.
 	 */
-	public function test_the_view_separates_the_three_empty_states(): void {
+	public function test_the_view_separates_the_four_empty_states(): void {
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
 
 		$this->assertStringContainsString( '0 === $ffc_identity_stores', $view, 'No store scanned is its own state.' );
 		$this->assertStringContainsString( '$ffc_identity_examined === $ffc_identity_unreadable', $view, 'Nothing readable is its own state.' );
+		$this->assertStringContainsString( '0 === $ffc_identity_examined', $view, 'Nothing FOUND is its own state, distinct from nothing readable.' );
 		$this->assertStringContainsString( 'this is not a clean result', $view, 'Both unread states must say so.' );
 
-		$reassuring = strpos( $view, 'every one satisfies its check digit' );
-		$unreadable = strpos( $view, 'could not read any of them' );
+		// Anchored on the opening of each LITERAL, never on a fragment: a
+		// comment in the view that discusses one of these sentences would
+		// otherwise match earlier than the message and invert the ordering.
+		// That is exactly what the first version of this test did.
+
+		// Ordering is the assertion, not presence: every branch above the last
+		// one is a case the reassuring sentence must never speak for. The
+		// first pass had three branches and let "0 examined" fall through to
+		// it, rendering "0 stored values checked and every one satisfies".
+		$reassuring = strpos( $view, "'Nothing to resolve: %1\$s stored values checked" );
+		$unreadable = strpos( $view, "'Found %s stored values and could not read" );
+		$none_found = strpos( $view, "'No stored RF was found at all" );
 
 		$this->assertIsInt( $reassuring );
 		$this->assertIsInt( $unreadable );
-		$this->assertGreaterThan(
-			$unreadable,
-			$reassuring,
-			'The reassuring sentence must sit in the LAST branch, reachable only once the other two are ruled out.'
-		);
+		$this->assertIsInt( $none_found );
+		$this->assertGreaterThan( $unreadable, $reassuring, 'The reassuring sentence must come after the unreadable state.' );
+		$this->assertGreaterThan( $none_found, $reassuring, 'The reassuring sentence must come after the nothing-found state.' );
 	}
 }
