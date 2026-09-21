@@ -23,6 +23,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **The audit card stops claiming it never decrypts** (#1345): it has since `identifier_shape` shipped, and the check-digit scan does too. Both read in memory and report a category, never a value, and neither writes — which is what the description now says.
 - **⚠ Adopting a certificate now grants the capability that reads it** (#1345): claiming somebody's old submissions moved ownership without moving permission, so an account created by a candidacy, a reregistration import or an appointment held certificates the dashboard refused to show — client-side and with a 403. The appointment half of the same method had always granted on what it claimed; this half never did.
+- **The schema helper stops guarding a property that is always set** (#1370): `add_column_if_missing()` read `wpdb::$last_error` behind an `isset()` that can never be false, and the guard narrowed `$wpdb` to a bare object — which left the `print_error()` beside it unresolvable under PHPStan 2.2.14.
 
 ## [6.28.1] (2026-09-20) — `58e498a`
 
