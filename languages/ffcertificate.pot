@@ -749,6 +749,10 @@ msgstr ""
 msgid "Reject an RF whose check digit does not match"
 msgstr ""
 
+#: includes/user-dashboard/class-ffc-capability-catalog.php:411
+msgid "Resolve identity conflicts"
+msgstr ""
+
 #: includes/migrations/class-ffc-migration-registry.php:122
 msgid "Restore Access to Owned Certificates"
 msgstr ""
@@ -767,6 +771,10 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:921
 msgid "Stored RF whose check digit does not match"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:412
+msgid "Work the identity queue: correct a stored CPF/RF, split an account holding two people, merge two accounts holding one. Does not reveal a stored identifier — that stays with the PII capability."
 msgstr ""
 
 #. 1: Environment name, 2: Date
