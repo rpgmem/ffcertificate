@@ -117,7 +117,11 @@ trait DatabaseHelperTrait {
 		$prev_suppress = $wpdb->suppress_errors( true );
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $type is a SQL type definition from trusted internal config.
 		$result = $wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD COLUMN %i {$type} {$after_sql}", $table_name, $column_name ) );
-		$error  = isset( $wpdb->last_error ) ? (string) $wpdb->last_error : '';
+		// Read unguarded: `wpdb::$last_error` is a declared string initialised to
+		// '', so an isset() here is dead — and it narrowed `$wpdb` from mixed to a
+		// bare object for the rest of the method, which left the print_error() call
+		// below unresolvable to PHPStan.
+		$error = (string) $wpdb->last_error;
 		$wpdb->suppress_errors( $prev_suppress );
 
 		if ( false === $result && '' !== $error ) {

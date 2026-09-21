@@ -116,6 +116,12 @@ class ActivatorSchemaGuardTest extends TestCase {
 			// phpcs:ignore Squiz.Commenting.VariableComment.Missing
 			public string $usermeta = 'wp_usermeta';
 
+			// `add_column_if_missing()` reads this after its ALTER, and real wpdb
+			// declares it as a string initialised to ''. A double that omits it
+			// makes the trait's unguarded read an undefined-property notice.
+			// phpcs:ignore Squiz.Commenting.VariableComment.Missing
+			public string $last_error = '';
+
 			/** @var callable */
 			private $counter;
 
