@@ -274,6 +274,28 @@ class CapabilityManager {
 		// `email_templates_cap_grant_map()`.
 		'ffc_manage_email_templates',
 
+		// Identity resolution (#1368). Gates the screen that repairs a stored
+		// CPF/RF, splits an account holding two people's identifiers and
+		// merges two accounts holding one person's.
+		//
+		// A CAP OF ITS OWN RATHER THAN `ffc_manage_settings_dangerzone`
+		//
+		// That one is the big hammer: it also gates delete-all, the cleanups,
+		// the public-access disabler and migration execution. The identity
+		// work is driven by round-trips with HR, so the person doing it needs
+		// the queue and nothing else -- handing them the danger zone to fix a
+		// mistyped RF is over-granting. Same reasoning that carved
+		// `ffc_manage_settings_smtp` and `ffc_manage_settings_dangerzone` out
+		// of the blanket `ffc_manage_settings` (#711).
+		//
+		// It does NOT carry PII: revealing a stored identifier stays behind
+		// `ffc_view_certificates_pii`, so an operator can correct a value
+		// they were told by HR without being able to read every other one.
+		// The one-shot `migrate_identities_cap_grant()` seeds it onto every
+		// current `ffc_manage_settings_dangerzone` holder, so nobody loses an
+		// ability they already had.
+		'ffc_manage_identities',
+
 		// Form / calendar structure management (#739). These decouple the
 		// `ffc_form` and `ffc_self_scheduling` CPTs from WordPress's native
 		// post capabilities: the CPTs register a custom `capability_type` +

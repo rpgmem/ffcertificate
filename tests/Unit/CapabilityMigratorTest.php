@@ -56,6 +56,54 @@ class CapabilityMigratorTest extends TestCase {
 		$this->assertContains( 'ffc_manage_email_templates', CapabilityManager::ADMIN_CAPABILITIES );
 	}
 
+	/**
+	 * #1368: the identity-resolution cap is seeded onto the DANGER-ZONE
+	 * holders, not onto `ffc_manage_settings`.
+	 *
+	 * The source matters and is the whole point of carving the cap out:
+	 * whoever can run the destructive maintenance today keeps the ability, and
+	 * nobody else gains it -- so the queue can then be delegated on its own,
+	 * without handing an HR-facing operator delete-all and the cleanups.
+	 */
+	public function test_identities_cap_grant_map_seeds_from_the_danger_zone(): void {
+		$map = CapabilityMigrator::identities_cap_grant_map();
+
+		$this->assertSame(
+			array( 'ffc_manage_settings_dangerzone' => array( 'ffc_manage_identities' ) ),
+			$map
+		);
+		$this->assertContains( 'ffc_manage_identities', CapabilityManager::ADMIN_CAPABILITIES );
+	}
+
+	/**
+	 * The three grant migrations share one body since #1368, so a fix applied
+	 * to one cannot miss the others. Asserted through the maps they expose
+	 * rather than by reading the private helper: what has to stay true is that
+	 * each still seeds its own pair.
+	 */
+	public function test_every_grant_map_names_a_registered_capability(): void {
+		$maps = array(
+			CapabilityMigrator::identities_cap_grant_map(),
+			CapabilityMigrator::email_templates_cap_grant_map(),
+			CapabilityMigrator::settings_split_cap_grant_map(),
+		);
+
+		$seen = 0;
+
+		foreach ( $maps as $map ) {
+			$this->assertNotEmpty( $map, 'An empty map would pass every assertion below.' );
+
+			foreach ( $map as $targets ) {
+				foreach ( $targets as $target ) {
+					$this->assertContains( $target, CapabilityManager::ADMIN_CAPABILITIES, "{$target} is seeded but never registered." );
+					++$seen;
+				}
+			}
+		}
+
+		$this->assertGreaterThanOrEqual( 4, $seen, 'The scan reached fewer targets than the three maps declare.' );
+	}
+
 	public function test_admin_role_assignment_backfills_role_and_strips_caps(): void {
 		$strip_cap = CapabilityManager::ADMIN_CAPABILITIES[0];
 
