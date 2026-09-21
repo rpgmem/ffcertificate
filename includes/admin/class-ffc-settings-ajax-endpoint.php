@@ -131,6 +131,11 @@ class SettingsAjaxEndpoint {
 			// General tab — submission auto-delete opt-in (#936). Default OFF;
 			// gates the day-window field so no site purges data unintentionally.
 			'cleanup_enabled',
+			// General tab — enforce the RF check digit at the form (#1345).
+			// Default OFF: the rule is inferred from stored data rather than
+			// read from an HR specification, and a blocked registration is
+			// worse than a stored typo the audit finds later.
+			'validate_rf_check_digit',
 		);
 
 		$allowlist = array(

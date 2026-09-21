@@ -27,6 +27,14 @@ class DocumentFormatterTest extends TestCase {
 		Functions\when('is_email')->alias(function ($email) {
 			return strpos($email, '@') !== false;
 		});
+
+		// `validate_rf()` reads `ffc_settings` for the check-digit switch, and
+		// `SettingsReader::all()` calls `get_option()` with no defensive
+		// guard. Stubbed HERE, explicitly, rather than left to whichever
+		// earlier test happened to teach Patchwork the function: that is what
+		// makes the branch CHOSEN instead of inherited, and an empty array is
+		// the honest default -- a fresh install with the toggle off.
+		Functions\when('get_option')->justReturn(array());
 	}
 
 	protected function tearDown(): void {
@@ -250,6 +258,43 @@ class DocumentFormatterTest extends TestCase {
 
 		$this->assertFalse(DocumentFormatter::validate_rf('1234567'), 'Check digit 7, expected 1.');
 		$this->assertTrue(DocumentFormatter::validate_rf('1000021'), 'A consistent RF still passes.');
+	}
+
+	/**
+	 * The setting is the FILTER'S DEFAULT, not a second switch.
+	 *
+	 * The same shape as `ffc_ip_resolver_mode`, which its own documentation
+	 * describes as "normally set from the IP Diagnostics tab". Two
+	 * independent switches would let an administrator turn this on from the
+	 * screen while a filter silently kept it off, with nothing on the page
+	 * saying so -- so what is asserted here is that the screen alone is
+	 * enough, with no filter in play.
+	 */
+	public function test_the_setting_alone_enforces_the_check_digit(): void {
+		Functions\when('get_option')->justReturn(
+			array(DocumentFormatter::SETTING_CHECK_DIGIT => true)
+		);
+
+		$this->assertFalse(DocumentFormatter::validate_rf('1234567'), 'Check digit 7, expected 1.');
+		$this->assertTrue(DocumentFormatter::validate_rf('1000021'), 'A consistent RF still passes.');
+	}
+
+	/**
+	 * …and a filter still overrides it, in the direction that matters most:
+	 * an administrator who turned it on can be overruled by code, which is
+	 * the rollback that needs no database write.
+	 */
+	public function test_a_filter_can_overrule_the_setting(): void {
+		Functions\when('get_option')->justReturn(
+			array(DocumentFormatter::SETTING_CHECK_DIGIT => true)
+		);
+		Functions\when('apply_filters')->alias(
+			static function ($hook, $value) {
+				return 'ffc_validate_rf_check_digit' === $hook ? false : $value;
+			}
+		);
+
+		$this->assertTrue(DocumentFormatter::validate_rf('1234567'), 'The filter is consulted last.');
 	}
 
 	/**
