@@ -15,6 +15,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Core;
 
+use FreeFormCertificate\Settings\SettingsReader;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -117,6 +119,8 @@ class DocumentFormatter {
 	 * stronger signal is made available first and made binding separately.
 	 *
 	 * @since 6.29.0 The `ffc_validate_rf_check_digit` opt-in.
+	 * @since 6.29.0 The `validate_rf_check_digit` setting, which is what the
+	 *               filter now defaults to.
 	 * @param string $rf RF to validate.
 	 * @return bool True if valid
 	 */
@@ -127,13 +131,23 @@ class DocumentFormatter {
 			return false;
 		}
 
+		// THE SETTING IS THE FILTER'S DEFAULT, NOT A SECOND SWITCH
+		//
+		// The same shape as `ffc_ip_resolver_mode`, whose documentation says
+		// it is "normally set from the IP Diagnostics tab": an administrator
+		// decides from the screen, and code can still override. Two
+		// independent switches would mean an operator turning it on in the
+		// admin while a filter silently keeps it off, with nothing on the
+		// page saying so.
+		$enforce = SettingsReader::get_bool( self::SETTING_CHECK_DIGIT, false );
+
 		/**
 		 * Whether `validate_rf()` also requires the check digit to agree.
 		 *
 		 * @since 6.29.0
-		 * @param bool $enforce False by default -- structure only.
+		 * @param bool $enforce The `validate_rf_check_digit` setting; false unless an administrator turned it on.
 		 */
-		if ( ! apply_filters( 'ffc_validate_rf_check_digit', false ) ) {
+		if ( ! apply_filters( 'ffc_validate_rf_check_digit', $enforce ) ) {
 			return true;
 		}
 
@@ -147,6 +161,18 @@ class DocumentFormatter {
 	 * @var array<int, int>
 	 */
 	public const RF_CHECK_WEIGHTS = array( 7, 6, 5, 4, 3, 2 );
+
+	/**
+	 * The `ffc_settings` key an administrator flips to enforce the check digit.
+	 *
+	 * Named identically to the filter it defaults, so the pair is obvious from
+	 * either end -- the two are one switch seen from the screen and from code,
+	 * never two.
+	 *
+	 * @since 6.29.0
+	 * @var string
+	 */
+	public const SETTING_CHECK_DIGIT = 'validate_rf_check_digit';
 
 	/**
 	 * The check digit the first six digits of an RF imply.

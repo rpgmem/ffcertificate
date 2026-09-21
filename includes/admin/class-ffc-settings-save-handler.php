@@ -155,6 +155,12 @@ class SettingsSaveHandler {
 		// save (no-clobber) from presence. The day window is clamped to >= 1;
 		// the toggle, not a 0-day value, is what disables the cleanup.
 		$clean['cleanup_enabled'] = ! empty( $new['cleanup_enabled'] );
+
+		// RF check digit (#1345). A checkbox, so rebuild it from presence on
+		// every general save -- the no-clobber invariant: a key the rebuild
+		// omits is silently reset on the next Save, however recently the
+		// autosave wrote it.
+		$clean['validate_rf_check_digit'] = ! empty( $new['validate_rf_check_digit'] );
 		if ( isset( $new['cleanup_days'] ) ) {
 			$clean['cleanup_days'] = max( 1, absint( $new['cleanup_days'] ) );
 		}

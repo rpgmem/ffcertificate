@@ -274,6 +274,7 @@ class Settings {
 	public function get_default_settings(): array {
 		return array(
 			'cleanup_enabled'            => false,
+			'validate_rf_check_digit'    => false,
 			'cleanup_days'               => 365,
 			'smtp_mode'                  => 'wp',
 			'smtp_host'                  => '',

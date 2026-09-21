@@ -727,6 +727,10 @@ msgstr "6"
 msgid "Accounts that can now read the certificates they own: %d"
 msgstr "Contas que agora conseguem ler os certificados que possuem: %d"
 
+#: includes/settings/views/ffc-tab-general.php:262
+msgid "An RF carries a check digit, and the form has never verified it — which is why a mistyped RF reaches storage where a mistyped CPF does not. Off by default, because the rule was derived from the identifiers this install already holds rather than read from an official specification: turning it on could refuse a number that is genuinely unusual, and a person blocked from registering costs more than a typo the audit finds later. Before turning it on, run the identity audit (Settings → Migrations) and read how many stored RFs it reports as failing — that count is what enforcement would have rejected."
+msgstr "O RF tem um dígito verificador, e o formulário nunca o conferiu — por isso um RF digitado errado chega ao banco enquanto um CPF errado não chega. Desligado por padrão, porque a regra foi derivada dos identificadores que esta instalação já possui e não lida de uma especificação oficial: ligá-la pode recusar um número genuinamente incomum, e uma pessoa impedida de se cadastrar custa mais do que um erro de digitação que a auditoria encontra depois. Antes de ligar, rode a auditoria de identidade (Configurações → Migrações) e veja quantos RFs armazenados ela reporta como inconsistentes — essa contagem é o que a exigência teria recusado."
+
 #: includes/migrations/class-ffc-migration-registry.php:123
 msgid "Grant the certificate capabilities to every account that owns a certificate and cannot open it. The permission used to come from whichever path created the account, while ownership comes from the record itself — so a person whose old submissions were claimed after their account was created by a candidacy, a reregistration import or an appointment ended up holding certificates the dashboard refused to show them. Measures the remaining accounts on every read, so running it again once it reports zero does nothing."
 msgstr "Concede as permissões de certificado a toda conta que possui um certificado e não consegue abri-lo. A permissão vinha do caminho que criou a conta, enquanto a posse vem do próprio registro — então quem teve submissões antigas reivindicadas depois de a conta ter sido criada por uma candidatura, uma importação de recadastramento ou um agendamento ficou com certificados que o painel se recusava a mostrar. Mede as contas restantes a cada leitura, então rodar de novo depois que reportar zero não faz nada."
@@ -734,6 +738,14 @@ msgstr "Concede as permissões de certificado a toda conta que possui um certifi
 #: includes/settings/views/documentation/developer-hooks-api.php:66
 msgid "Per account repaired by the \"Restore Access to Owned Certificates\" migration — args ( user_id ). An action rather than a direct call because the migration and the capability owner are in modules that would otherwise depend on each other."
 msgstr "Por conta reparada pela migração \"Restaurar acesso aos certificados do próprio titular\" — args ( user_id ). Uma ação em vez de chamada direta porque a migração e o dono da permissão estão em módulos que senão dependeriam um do outro."
+
+#: includes/settings/views/ffc-tab-general.php:248
+msgid "RF check digit"
+msgstr "Dígito verificador do RF"
+
+#: includes/settings/views/ffc-tab-general.php:257
+msgid "Reject an RF whose check digit does not match"
+msgstr "Recusar RF cujo dígito verificador não confere"
 
 #: includes/migrations/class-ffc-migration-registry.php:122
 msgid "Restore Access to Owned Certificates"
