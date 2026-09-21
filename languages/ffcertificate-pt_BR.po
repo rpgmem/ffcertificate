@@ -723,6 +723,22 @@ msgstr "50 px – 1000 px (recomendado: 100–500)"
 msgid "6"
 msgstr "6"
 
+#: includes/migrations/strategies/class-ffc-certificate-capability-backfill-migration-strategy.php:136
+msgid "Accounts that can now read the certificates they own: %d"
+msgstr "Contas que agora conseguem ler os certificados que possuem: %d"
+
+#: includes/migrations/class-ffc-migration-registry.php:123
+msgid "Grant the certificate capabilities to every account that owns a certificate and cannot open it. The permission used to come from whichever path created the account, while ownership comes from the record itself — so a person whose old submissions were claimed after their account was created by a candidacy, a reregistration import or an appointment ended up holding certificates the dashboard refused to show them. Measures the remaining accounts on every read, so running it again once it reports zero does nothing."
+msgstr "Concede as permissões de certificado a toda conta que possui um certificado e não consegue abri-lo. A permissão vinha do caminho que criou a conta, enquanto a posse vem do próprio registro — então quem teve submissões antigas reivindicadas depois de a conta ter sido criada por uma candidatura, uma importação de recadastramento ou um agendamento ficou com certificados que o painel se recusava a mostrar. Mede as contas restantes a cada leitura, então rodar de novo depois que reportar zero não faz nada."
+
+#: includes/settings/views/documentation/developer-hooks-api.php:66
+msgid "Per account repaired by the \"Restore Access to Owned Certificates\" migration — args ( user_id ). An action rather than a direct call because the migration and the capability owner are in modules that would otherwise depend on each other."
+msgstr "Por conta reparada pela migração \"Restaurar acesso aos certificados do próprio titular\" — args ( user_id ). Uma ação em vez de chamada direta porque a migração e o dono da permissão estão em módulos que senão dependeriam um do outro."
+
+#: includes/migrations/class-ffc-migration-registry.php:122
+msgid "Restore Access to Owned Certificates"
+msgstr "Restaurar acesso aos certificados do próprio titular"
+
 #: includes/maintenance/class-ffc-identity-audit-export-source.php:416
 msgid "INCOMPLETE: the database truncated this row's id list, so it names fewer rows than the count beside it."
 msgstr "INCOMPLETO: o banco truncou a lista de ids desta linha, então ela nomeia menos linhas do que a contagem ao lado."
