@@ -63,6 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><code>ffcertificate_before_short_redirect</code></td><td><?php esc_html_e( 'Before a short-URL redirect is sent.', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffc_export_completed</code></td><td><?php esc_html_e( 'After a CSV export finishes ( renamed from ffcertificate_csv_export_completed in 6.17.0 ).', 'ffcertificate' ); ?></td></tr>
 				<tr><td><code>ffc_adopt_orphaned_identity_records</code></td><td><?php esc_html_e( 'After a person is resolved to a WordPress user, so a module can claim its own records that carry the same CPF/RF hash and no user yet — args ( cpf_hash, rf_hash, user_id ). Submissions and appointments are adopted directly; recruitment candidacies subscribe to this.', 'ffcertificate' ); ?></td></tr>
+				<tr><td><code>ffc_grant_certificate_capabilities</code></td><td><?php esc_html_e( 'Per account repaired by the "Restore Access to Owned Certificates" migration — args ( user_id ). An action rather than a direct call because the migration and the capability owner are in modules that would otherwise depend on each other.', 'ffcertificate' ); ?></td></tr>
 			</tbody>
 		</table>
 		<p class="description"><?php esc_html_e( 'Signatures vary — check the source for the exact argument list before hooking.', 'ffcertificate' ); ?></p>

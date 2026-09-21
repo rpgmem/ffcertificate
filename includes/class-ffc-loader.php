@@ -222,6 +222,24 @@ class Loader {
 			);
 		}
 
+		// Certificate-capability repair -- orchestrator-level for the SAME
+		// reason, one module further round. The backfill migration announces
+		// `ffc_grant_certificate_capabilities` per account it repairs, and
+		// `CapabilityManager` subscribes: naming it from `Migrations` would
+		// add `Migrations > UserDashboard` while `UserDashboard > Migrations`
+		// already exists, which is a cycle. Registered here rather than in a
+		// module loader because the card is on the Migrations tab, which no
+		// Modules-tab toggle gates -- a listener a toggle could skip would
+		// leave the card counting accounts nothing ever repairs (#1345).
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			add_action(
+				'ffc_grant_certificate_capabilities',
+				array( '\FreeFormCertificate\UserDashboard\CapabilityManager', 'grant_certificate_capabilities' ),
+				10,
+				1
+			);
+		}
+
 		// Shared classes (needed in both admin and frontend contexts).
 		$this->submission_handler = new SubmissionHandler();
 		$this->email_handler      = new EmailHandler();

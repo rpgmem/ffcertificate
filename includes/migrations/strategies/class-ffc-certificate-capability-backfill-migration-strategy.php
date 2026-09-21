@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Migrations\Strategies;
 
-use FreeFormCertificate\UserDashboard\CapabilityManager;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -56,6 +54,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * row the count would have to explain away. It is the mirror of the reason
  * `CapabilityManager::CONTEXT_REREGISTRATION` grants nothing -- a cap is
  * given for something the person actually holds, never on spec.
+ *
+ * IT ANNOUNCES THE GRANT RATHER THAN PERFORMING IT
+ *
+ * `CapabilityManager` owns every capability grant in the plugin, and naming
+ * it from here would add `Migrations > UserDashboard` to a graph that already
+ * carries `UserDashboard > Migrations` -- a cycle. The batch fires
+ * `ffc_grant_certificate_capabilities` instead. The card cannot lie about the
+ * result of that inversion either: `pending` is measured from the data, so a
+ * listener that never ran shows as a number that does not move.
  *
  * @since 6.29.0
  */
@@ -123,7 +130,27 @@ class CertificateCapabilityBackfillMigrationStrategy implements MigrationStrateg
 		$processed = 0;
 
 		foreach ( $user_ids as $user_id ) {
-			CapabilityManager::grant_certificate_capabilities( $user_id );
+			/**
+			 * Grant the certificate capabilities to one repaired account.
+			 *
+			 * AN ACTION, BECAUSE A DIRECT CALL WOULD CLOSE A CYCLE
+			 *
+			 * `CapabilityManager` is the one place that grants a capability,
+			 * and naming it from here would add `Migrations > UserDashboard`
+			 * while `UserDashboard > Migrations` already exists -- making the
+			 * two mutually dependent. That is the same wall #1349 hit between
+			 * recruitment and the resolver, and it takes the same answer: the
+			 * producer announces and the owner subscribes, registered by
+			 * `Loader::init_plugin()`.
+			 *
+			 * It opens no surface that was not already open: the method it
+			 * reaches is a public static one, so anything able to fire this
+			 * action could have called it directly.
+			 *
+			 * @since 6.29.0
+			 * @param int $user_id Account that owns a certificate it cannot read.
+			 */
+			do_action( 'ffc_grant_certificate_capabilities', (int) $user_id );
 			++$processed;
 		}
 

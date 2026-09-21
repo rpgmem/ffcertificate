@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Tests\Support\HookWiring;
 
 /**
  * The adoption hook is announced AND listened to, and from the right place.
@@ -56,50 +57,21 @@ final class IdentityAdoptionWiringTest extends TestCase {
 	 * @return array<string, string>
 	 */
 	private static function sources(): array {
-		$root  = dirname( __DIR__, 2 ) . '/includes';
-		$out   = array();
-		$files = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $root, \FilesystemIterator::SKIP_DOTS ) );
-
-		foreach ( $files as $file ) {
-			$path = $file->getPathname();
-			if ( ! is_string( $path ) || 'php' !== strtolower( (string) pathinfo( $path, PATHINFO_EXTENSION ) ) ) {
-				continue;
-			}
-
-			$source = file_get_contents( $path );
-			if ( is_string( $source ) ) {
-				$out[ $path ] = $source;
-			}
-		}
-
-		return $out;
+		return HookWiring::sources();
 	}
 
 	/**
 	 * Files containing a call of the given kind on this hook.
 	 *
-	 * The whitespace between the call and its first argument is a REGEX, not a
-	 * literal: a registration long enough to wrap -- callback array, priority,
-	 * argument count -- puts the hook name on its own line, and the first
-	 * version of this matched `add_action( '` as text and reported the
-	 * listener in `Loader` as missing. That is the same "a checker that knows
-	 * only one idiom reports the other as unregistered" that `AjaxWiringTest`
-	 * records about the two registration shapes.
+	 * The scan itself lives in {@see HookWiring}, shared with the guard over
+	 * `ffc_grant_certificate_capabilities`: two guards asking the same
+	 * question must not disagree about what a registration looks like.
 	 *
 	 * @param string $call `do_action` or `add_action`.
 	 * @return array<int, string> Paths, relative to the repository root.
 	 */
 	private static function files_calling( string $call ): array {
-		$out     = array();
-		$pattern = '/\\b' . preg_quote( $call, '/' ) . "\\s*\\(\\s*'" . preg_quote( self::HOOK, '/' ) . "'/";
-
-		foreach ( self::sources() as $path => $source ) {
-			if ( 1 === preg_match( $pattern, $source ) ) {
-				$out[] = str_replace( dirname( __DIR__, 2 ) . '/', '', $path );
-			}
-		}
-
-		return $out;
+		return HookWiring::files_calling( self::HOOK, $call );
 	}
 
 	/**

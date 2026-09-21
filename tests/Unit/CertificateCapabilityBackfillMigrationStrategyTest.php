@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use Brain\Monkey\Actions;
 use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -34,8 +35,8 @@ class CertificateCapabilityBackfillMigrationStrategyTest extends TestCase {
 	/** @var array<int, array<int, mixed>> Values it bound to them. */
 	private array $bound = array();
 
-	/** @var array<int, int> Accounts whose caps were written. */
-	private array $granted = array();
+	/** @var array<int, int> Accounts the batch announced a grant for. */
+	private array $announced = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -73,33 +74,6 @@ class CertificateCapabilityBackfillMigrationStrategyTest extends TestCase {
 		Functions\when( 'FreeFormCertificate\Migrations\Strategies\__' )->returnArg();
 		Functions\when( 'FreeFormCertificate\Migrations\Strategies\_n' )->alias(
 			static fn( $single, $plural, $number ) => ( 1 === (int) $number ) ? $single : $plural
-		);
-
-		// The grant writes an activity-log line, which reaches WordPress in the
-		// Core namespace. Stubbed HERE rather than in the bootstrap because a
-		// namespaced stub is created process-wide and stops an unqualified
-		// call inside that namespace falling back to the global one -- this
-		// class runs in its own process, which is what contains that.
-		Functions\when( 'FreeFormCertificate\Core\get_current_user_id' )->justReturn( 0 );
-		Functions\when( 'get_current_user_id' )->justReturn( 0 );
-		Functions\when( 'FreeFormCertificate\Core\get_option' )->justReturn( array() );
-		Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( array() );
-		Functions\when( 'get_option' )->justReturn( array() );
-		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
-
-		// The grant's only observable without a WordPress user table.
-		Functions\when( 'get_userdata' )->alias(
-			function ( $user_id ) {
-				$user     = Mockery::mock( 'WP_User' );
-				$user->ID = (int) $user_id;
-				$user->shouldReceive( 'has_cap' )->andReturn( false );
-				$user->shouldReceive( 'add_cap' )->andReturnUsing(
-					function () use ( $user_id ) {
-						$this->granted[] = (int) $user_id;
-					}
-				);
-				return $user;
-			}
 		);
 
 		$this->strategy = new CertificateCapabilityBackfillMigrationStrategy();
@@ -153,22 +127,37 @@ class CertificateCapabilityBackfillMigrationStrategyTest extends TestCase {
 		$this->assertTrue( $status['is_complete'] );
 	}
 
-	public function test_a_batch_grants_to_every_account_it_read(): void {
+	/**
+	 * The batch ANNOUNCES rather than granting: naming `CapabilityManager`
+	 * from `Migrations` would close a cycle against the
+	 * `UserDashboard > Migrations` edge that already exists. The listener is
+	 * registered by the orchestrator and pinned by `LoaderTest`.
+	 */
+	public function test_a_batch_announces_a_grant_for_every_account_it_read(): void {
 		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array( '7', '9' ) );
+
+		Actions\expectDone( 'ffc_grant_certificate_capabilities' )
+			->twice()
+			->whenHappen(
+				function ( $user_id ) {
+					$this->announced[] = (int) $user_id;
+				}
+			);
 
 		$result = $this->strategy->execute( 'certificate_capability_backfill', array( 'batch_size' => 100 ) );
 
 		$this->assertTrue( $result['success'] );
 		$this->assertSame( 2, $result['processed'] );
-		$this->assertSame( array( 7, 9 ), array_values( array_unique( $this->granted ) ) );
+		$this->assertSame( array( 7, 9 ), $this->announced, 'The ids announced are the ids read, in order.' );
 	}
 
-	public function test_a_batch_with_nothing_left_grants_nothing(): void {
+	public function test_a_batch_with_nothing_left_announces_nothing(): void {
+		Actions\expectDone( 'ffc_grant_certificate_capabilities' )->never();
+
 		$result = $this->strategy->execute( 'certificate_capability_backfill', array( 'batch_size' => 100 ) );
 
 		$this->assertTrue( $result['success'] );
 		$this->assertSame( 0, $result['processed'] );
-		$this->assertSame( array(), $this->granted );
 	}
 
 	/**
