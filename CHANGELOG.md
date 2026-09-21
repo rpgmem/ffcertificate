@@ -10,6 +10,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **The RF has a check digit and the plugin can read it** (#1345): `validate_rf()` took any seven digits, so a mistyped RF reached storage where a mistyped CPF does not. `rf_check_digit_matches()` classifies; rejecting at the form is opt-in via `ffc_validate_rf_check_digit`.
+- **The audit lists the stored RFs whose check digit does not match** (#1345): the other checks see an account holding two identifiers, so somebody who mistyped once on their only row was invisible. It names the rows rather than the value, because a candidacy carries no account before promotion.
+
+### Fixed
+
+- **The audit card stops claiming it never decrypts** (#1345): it has since `identifier_shape` shipped, and the check-digit scan does too. Both read in memory and report a category, never a value, and neither writes — which is what the description now says.
 
 ## [6.28.1] (2026-09-20) — `58e498a`
 

@@ -918,6 +918,7 @@ try {
 		'cross_store_shared_identities'   => __( 'Same identifier on two accounts (all modules)', 'ffcertificate' ),
 		'cross_store_multiple_identities' => __( 'One account, two identifiers (all modules)', 'ffcertificate' ),
 		'unindexed_links'                 => __( 'Linked identifier missing from the identity index', 'ffcertificate' ),
+		'rf_check_digit'                  => __( 'Stored RF whose check digit does not match', 'ffcertificate' ),
 	);
 	?>
 	<div class="postbox ffc-migration-card ffc-submission-audit-card">
@@ -928,7 +929,7 @@ try {
 		</div>
 		<div class="inside">
 			<p class="description">
-				<?php esc_html_e( 'Report-only scan of how people are linked to WordPress users — across certificate submissions, appointments, recruitment candidacies and the identity index. Nothing is changed: review each finding and fix it manually. Detection uses the stored CPF/RF hashes, so no decryption is involved.', 'ffcertificate' ); ?>
+				<?php esc_html_e( 'Report-only scan of how people are linked to WordPress users — across certificate submissions, appointments, recruitment candidacies and the identity index. Nothing is changed: review each finding and fix it manually. Detection groups by the stored CPF/RF hashes; the columns that classify a difference decrypt in memory and report a category only — never a value, and nothing is written.', 'ffcertificate' ); ?>
 			</p>
 
 			<?php if ( $ffcertificate_sa_msg ) : ?>
