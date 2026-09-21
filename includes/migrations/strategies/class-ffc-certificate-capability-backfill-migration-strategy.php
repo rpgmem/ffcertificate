@@ -130,6 +130,18 @@ class CertificateCapabilityBackfillMigrationStrategy implements MigrationStrateg
 		$processed = 0;
 
 		foreach ( $user_ids as $user_id ) {
+			// TERMINATION MUST NOT DEPEND ON THE MEASURE BEING RIGHT.
+			//
+			// It did, and that is what looped: this counted accounts SELECTED
+			// rather than accounts CHANGED, so a grant that was a no-op still
+			// reported progress and the driver never stopped. An account that
+			// already holds the capability is skipped here, which makes a
+			// batch that changes nothing return 0 -- the condition the
+			// docblock above always claimed and the code never produced.
+			if ( user_can( (int) $user_id, self::GATE_CAPABILITY ) ) {
+				continue;
+			}
+
 			/**
 			 * Grant the certificate capabilities to one repaired account.
 			 *
@@ -207,6 +219,42 @@ class CertificateCapabilityBackfillMigrationStrategy implements MigrationStrateg
 	}
 
 	/**
+	 * Every role whose definition grants the gate capability.
+	 *
+	 * Read from `wp_roles()`, which is the `wp_user_roles` option -- the only
+	 * place a role's capabilities exist. A user holding one of these roles has
+	 * the capability without a single character of it appearing in their own
+	 * `wp_capabilities` meta.
+	 *
+	 * @since 6.29.0
+	 * @return array<int, string>
+	 */
+	private static function roles_granting_gate(): array {
+		// The ternary is what keeps the guard meaningful to PHPStan -- the
+		// stubs type `wp_roles()` as always returning `WP_Roles`, while the
+		// test harness stubs it as NULL on purpose, which is how an unguarded
+		// read of `->roles` fatals in a suite and nowhere else. `is_object`
+		// rather than `instanceof WP_Roles` because the doubles in this
+		// repository are plain objects, and refusing one would make the guard
+		// untestable by the project's own idiom.
+		$roles = function_exists( 'wp_roles' ) ? wp_roles() : null;
+		$all   = is_object( $roles ) ? (array) $roles->roles : array();
+		$out   = array();
+
+		foreach ( $all as $slug => $definition ) {
+			$caps = ( isset( $definition['capabilities'] ) && is_array( $definition['capabilities'] ) )
+				? $definition['capabilities']
+				: array();
+
+			if ( ! empty( $caps[ self::GATE_CAPABILITY ] ) ) {
+				$out[] = (string) $slug;
+			}
+		}
+
+		return $out;
+	}
+
+	/**
 	 * How many of those cannot read what they own.
 	 *
 	 * @return int
@@ -243,15 +291,39 @@ class CertificateCapabilityBackfillMigrationStrategy implements MigrationStrateg
 		$meta_key = $wpdb->get_blog_prefix() . 'capabilities';
 		$term     = '%' . $wpdb->esc_like( self::GATE_CAPABILITY ) . '%';
 
+		// A CAPABILITY HELD THROUGH A ROLE IS NOT IN THE USER'S META.
+		//
+		// `wp_capabilities` carries the role NAME plus per-user grants; the
+		// role's own capabilities live in the `wp_user_roles` option. So a
+		// LIKE for the capability cannot see it, and the account is counted
+		// pending forever while `has_cap()` -- which does resolve the role --
+		// makes every grant a no-op. That is what made this card loop.
+		//
+		// It never showed on the 1,478 ordinary accounts because `ffc_end_user`
+		// carries no FFC capability at all: there the grant really is per user.
+		// It shows the moment one owner holds the capability through
+		// `ffc_administrator` or any module role.
+		//
+		// Resolved from the roles rather than per user: one option read here
+		// against one `get_userdata()` per candidate, on a card that renders
+		// its count on every page load.
 		$sql = "SELECT s.user_id
                   FROM %i s
                   JOIN {$wpdb->usermeta} um ON um.user_id = s.user_id AND um.meta_key = %s
                  WHERE s.user_id IS NOT NULL AND s.user_id <> 0 AND s.status <> 'trash'
-                   AND um.meta_value NOT LIKE %s
-              GROUP BY s.user_id
-              ORDER BY s.user_id ASC";
+                   AND um.meta_value NOT LIKE %s";
 
 		$values = array( $table, $meta_key, $term );
+
+		foreach ( self::roles_granting_gate() as $role ) {
+			// The SERIALIZED form, never the bare slug: `%administrator%`
+			// also matches `ffc_administrator`, and over-excluding here
+			// reports work as finished that never happened.
+			$sql     .= ' AND um.meta_value NOT LIKE %s';
+			$values[] = '%' . $wpdb->esc_like( '"' . $role . '";b:1' ) . '%';
+		}
+
+		$sql .= ' GROUP BY s.user_id ORDER BY s.user_id ASC';
 
 		if ( $limit > 0 ) {
 			$sql     .= ' LIMIT %d';

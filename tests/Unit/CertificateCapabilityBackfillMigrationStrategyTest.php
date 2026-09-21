@@ -76,6 +76,11 @@ class CertificateCapabilityBackfillMigrationStrategyTest extends TestCase {
 			static fn( $single, $plural, $number ) => ( 1 === (int) $number ) ? $single : $plural
 		);
 
+		// Nobody holds it unless a test says so. `user_can()` is what the
+		// batch now asks before counting an account as repaired.
+		Functions\when( 'user_can' )->justReturn( false );
+		Functions\when( 'wp_roles' )->justReturn( null );
+
 		$this->strategy = new CertificateCapabilityBackfillMigrationStrategy();
 	}
 
@@ -247,5 +252,94 @@ class CertificateCapabilityBackfillMigrationStrategyTest extends TestCase {
 
 	public function test_the_name_matches_its_registry_key(): void {
 		$this->assertSame( 'certificate_capability_backfill', $this->strategy->get_name() );
+	}
+
+	/**
+	 * A batch that changes nothing reports zero, so the driver stops.
+	 *
+	 * THE LOOP THIS CLOSES, MEASURED IN PRODUCTION.
+	 *
+	 * The card ran ~185 times over the same ten accounts — "1.848 registros"
+	 * processed against a TOTAL of 10 — because `execute()` counted accounts
+	 * SELECTED rather than accounts CHANGED. One owner held the capability
+	 * through a role, so `has_cap()` was already true, the grant was a no-op,
+	 * and the batch still reported progress the driver believed.
+	 */
+	public function test_a_batch_that_changes_nothing_reports_zero(): void {
+		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array( '7' ) );
+		Functions\when( 'user_can' )->justReturn( true );
+
+		$result = $this->strategy->execute( 'certificate_capability_backfill', array(), 0 );
+
+		$this->assertSame( 0, $result['processed'], 'An account that already holds the capability is not progress.' );
+		$this->assertSame( array(), $this->announced, 'Nothing should be announced for an account that needs nothing.' );
+	}
+
+	/**
+	 * An account that genuinely lacks it is still repaired.
+	 *
+	 * The other half of the guard above: a termination fix that stops early
+	 * would leave the 1,478 accounts unrepaired and look just as finished.
+	 */
+	public function test_an_account_that_lacks_it_is_still_repaired(): void {
+		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array( '7', '9' ) );
+
+		Actions\expectDone( 'ffc_grant_certificate_capabilities' )
+			->twice()
+			->whenHappen(
+				function ( $user_id ) {
+					$this->announced[] = (int) $user_id;
+				}
+			);
+
+		$result = $this->strategy->execute( 'certificate_capability_backfill', array(), 0 );
+
+		$this->assertSame( 2, $result['processed'] );
+		$this->assertSame( array( 7, 9 ), $this->announced );
+	}
+
+	/**
+	 * The pending query excludes every role that grants the capability.
+	 *
+	 * A role's capabilities live in the `wp_user_roles` option, never in the
+	 * user's `wp_capabilities` meta — which carries the role NAME. So a LIKE
+	 * for the capability cannot see it, and without this the holder is counted
+	 * pending for ever.
+	 */
+	public function test_the_query_excludes_roles_that_grant_the_capability(): void {
+		$roles        = new \stdClass();
+		$roles->roles = array(
+			'ffc_administrator' => array( 'capabilities' => array( 'ffc_view_own_certificates' => true ) ),
+			'subscriber'        => array( 'capabilities' => array( 'read' => true ) ),
+		);
+
+		Functions\when( 'wp_roles' )->justReturn( $roles );
+
+		$this->strategy->calculate_status( 'certificate_capability_backfill', array() );
+
+		$sql = implode( "\n", $this->statements );
+		$this->assertNotSame( '', $sql, 'No statement ran at all, so this proves nothing.' );
+
+		$bound = array();
+		foreach ( $this->bound as $values ) {
+			foreach ( $values as $value ) {
+				$bound[] = (string) $value;
+			}
+		}
+
+		// Matched as a substring because the value travels through
+		// `esc_like()`, which escapes the underscores in a role slug.
+		$haystack = implode( '|', $bound );
+
+		$this->assertStringContainsString(
+			'administrator";b:1',
+			$haystack,
+			'A role granting the capability must be excluded, in its SERIALIZED form.'
+		);
+		$this->assertStringNotContainsString(
+			'subscriber";b:1',
+			$haystack,
+			'A role that does not grant it must not narrow the pending set.'
+		);
 	}
 }
