@@ -734,6 +734,7 @@ msgstr "Concede as permissões de certificado a toda conta que possui um certifi
 #: includes/migrations/class-ffc-migration-registry.php:122
 msgid "Restore Access to Owned Certificates"
 msgstr "Restaurar acesso aos certificados do próprio titular"
+
 #: includes/maintenance/class-ffc-identity-audit-export-source.php:416
 msgid "INCOMPLETE: the database truncated this row's id list, so it names fewer rows than the count beside it."
 msgstr "INCOMPLETO: o banco truncou a lista de ids desta linha, então ela nomeia menos linhas do que a contagem ao lado."

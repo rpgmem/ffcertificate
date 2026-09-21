@@ -735,6 +735,8 @@ msgstr ""
 
 #: includes/migrations/class-ffc-migration-registry.php:122
 msgid "Restore Access to Owned Certificates"
+msgstr ""
+
 #: includes/maintenance/class-ffc-identity-audit-export-source.php:416
 msgid "INCOMPLETE: the database truncated this row's id list, so it names fewer rows than the count beside it."
 msgstr ""
