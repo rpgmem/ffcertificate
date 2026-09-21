@@ -9,13 +9,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **The RF check digit can be enforced from the admin** (#1345): `validate_rf()` gained the rule in 6.29.0 behind a filter, which meant only code could turn it on. A General-tab toggle now sets the filter's default, the shape `ffc_ip_resolver_mode` already uses. Still off by default — the rule is inferred from stored data, not read from an official specification.
-
-### Added
-
 - **The RF has a check digit and the plugin can read it** (#1345): `validate_rf()` took any seven digits, so a mistyped RF reached storage where a mistyped CPF does not. `rf_check_digit_matches()` classifies; rejecting at the form is opt-in via `ffc_validate_rf_check_digit`.
 - **The audit lists the stored RFs whose check digit does not match** (#1345): the other checks see an account holding two identifiers, so somebody who mistyped once on their only row was invisible. It names the rows rather than the value, because a candidacy carries no account before promotion.
 - **A migration card restores access for accounts that own a certificate and cannot open it** (#1345): 1,478 of them on production. It measures what is left on every read, so running it again once it reports zero does nothing.
+- **The RF check digit can be enforced from the admin** (#1345): `validate_rf()` gained the rule in 6.29.0 behind a filter, which meant only code could turn it on. A General-tab toggle now sets the filter's default, the shape `ffc_ip_resolver_mode` already uses. Still off by default — the rule is inferred from stored data, not read from an official specification.
 
 ### Fixed
 
