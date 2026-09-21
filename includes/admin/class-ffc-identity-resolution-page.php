@@ -15,7 +15,11 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\Capabilities;
+use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
+use FreeFormCertificate\Maintenance\IdentityRepair;
+use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -68,6 +72,32 @@ class IdentityResolutionPage {
 	public const CAPABILITY = 'ffc_manage_identities';
 
 	/**
+	 * The `admin_post` action that writes a correction.
+	 */
+	public const REPAIR_ACTION = 'ffc_repair_identity';
+
+	/**
+	 * Nonce action. Keyed per finding, so a nonce lifted from one row cannot
+	 * confirm a correction on another.
+	 */
+	public const REPAIR_NONCE = 'ffc_repair_identity_';
+
+	/**
+	 * Transient prefix carrying one outcome from the write back to the screen.
+	 *
+	 * A transient and NOT a query argument, although the audit card next door
+	 * passes its message as one: prose in a URL is a message anybody can
+	 * choose to show an administrator. Scoped per user and short-lived, so two
+	 * operators never read each other's result.
+	 */
+	public const OUTCOME_TRANSIENT = 'ffc_identity_outcome_';
+
+	/**
+	 * How long that outcome survives — one redirect, with slack.
+	 */
+	public const OUTCOME_TTL = 60;
+
+	/**
 	 * How many findings to read.
 	 *
 	 * Above the audit card's 50 because this is a worklist rather than a
@@ -84,6 +114,7 @@ class IdentityResolutionPage {
 	 */
 	public function init(): void {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
+		add_action( 'admin_post_' . self::REPAIR_ACTION, array( $this, 'handle_repair' ) );
 	}
 
 	/**
@@ -136,6 +167,66 @@ class IdentityResolutionPage {
 	}
 
 	/**
+	 * The repair, as a seam a test can replace.
+	 *
+	 * @return IdentityRepair
+	 */
+	protected function repairs(): IdentityRepair {
+		return new IdentityRepair();
+	}
+
+	/**
+	 * Write one confirmed correction.
+	 *
+	 * What this posts is the SUBJECT HASH and the value, never the row ids the
+	 * screen rendered. Between listing a finding and confirming it the
+	 * operator went and asked a person, so the rows are resolved again at
+	 * write time -- see `IdentityRepair::repair()`.
+	 *
+	 * @return void
+	 */
+	public function handle_repair(): void {
+		if ( ! Capabilities::current_user_can_admin_or( self::CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+
+		$subject = RequestInput::get_post_string( 'ffc_subject', '' );
+
+		check_admin_referer( self::REPAIR_NONCE . $subject );
+
+		$result = $this->repairs()->repair(
+			$subject,
+			RequestInput::get_post_string( 'ffc_rf', '' ),
+			get_current_user_id()
+		);
+
+		// The SERVICE owns the wording. A second copy on this side is the
+		// shape that drifts: the two would disagree the first time one is
+		// edited, and nothing would report it.
+		set_transient(
+			self::OUTCOME_TRANSIENT . get_current_user_id(),
+			$result instanceof WP_Error
+				? array(
+					'type' => 'error',
+					'text' => $result->get_error_message(),
+				)
+				: array(
+					'type' => 'success',
+					'text' => __( 'Corrected. The rows, the identity index and the account\'s certificate access were updated together.', 'ffcertificate' ),
+				),
+			self::OUTCOME_TTL
+		);
+
+		wp_safe_redirect(
+			add_query_arg(
+				array( 'page' => self::MENU_SLUG ),
+				admin_url( 'edit.php?post_type=ffc_form' )
+			)
+		);
+		exit;
+	}
+
+	/**
 	 * Render the page.
 	 *
 	 * @return void
@@ -144,6 +235,10 @@ class IdentityResolutionPage {
 		if ( ! current_user_can( self::CAPABILITY ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ) );
 		}
+
+		$ffc_identity_key     = self::OUTCOME_TRANSIENT . get_current_user_id();
+		$ffc_identity_outcome = get_transient( $ffc_identity_key );
+		delete_transient( $ffc_identity_key );
 
 		$ffc_identity_findings = $this->queue();
 

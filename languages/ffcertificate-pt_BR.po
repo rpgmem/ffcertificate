@@ -22154,5 +22154,54 @@ msgstr "Sem conta"
 msgid "Too many rows to list."
 msgstr "Linhas demais para listar."
 
-msgid "A row naming no account is ordinary rather than an error: a recruitment candidacy carries no WordPress user until it is promoted, so its row ids are the only handle on it. Correcting a value is not offered here yet — confirm the right number with HR first."
-msgstr "Uma linha que não nomeia conta é comum, não um erro: uma candidatura de recrutamento não tem usuário do WordPress até ser promovida, então os ids das linhas são o único acesso a ela. Corrigir um valor ainda não é oferecido aqui — confirme o número certo com o RH primeiro."
+
+msgid "Corrected. The rows, the identity index and the account's certificate access were updated together."
+msgstr "Corrigido. As linhas, o índice de identidade e o acesso aos certificados da conta foram atualizados juntos."
+
+msgid "Correct it"
+msgstr "Corrigir"
+
+msgid "Names more than one account — the same wrong number was typed by more than one person, so one corrected value cannot serve it."
+msgstr "Nomeia mais de uma conta — o mesmo número errado foi digitado por mais de uma pessoa, então um único valor corrigido não serve."
+
+msgid "Corrected RF"
+msgstr "RF corrigido"
+
+msgid "7 digits"
+msgstr "7 dígitos"
+
+msgid "Correct"
+msgstr "Corrigir"
+
+msgid "A row naming no account is ordinary rather than an error: a recruitment candidacy carries no WordPress user until it is promoted, so its row ids are the only handle on it. Confirm the corrected number with HR before entering it: the check digit says a number is wrong, never what the right one is."
+msgstr "Uma linha que não nomeia conta é comum, não um erro: uma candidatura de recrutamento não tem usuário do WordPress até ser promovida, então os ids das linhas são o único acesso a ela. Confirme o número corrigido com o RH antes de digitá-lo: o dígito verificador diz que um número está errado, nunca qual é o certo."
+
+msgid "No finding was named."
+msgstr "Nenhum achado foi indicado."
+
+msgid "That number does not satisfy the RF check digit, so it cannot be the corrected value either. Confirm it with HR."
+msgstr "Esse número não satisfaz o dígito verificador do RF, então também não pode ser o valor corrigido. Confirme com o RH."
+
+msgid "Encryption is not configured, so an identifier cannot be rewritten."
+msgstr "A criptografia não está configurada, então um identificador não pode ser reescrito."
+
+msgid "The value stored is already the one you confirmed."
+msgstr "O valor armazenado já é o que você confirmou."
+
+msgid "Nothing carries that value any more — it was repaired already. Reload the queue."
+msgstr "Nada mais carrega esse valor — ele já foi reparado. Recarregue a fila."
+
+msgid "This finding names %d accounts, so one corrected value cannot serve it: the same wrong number was typed by more than one person. Resolve them separately."
+msgstr "Este achado nomeia %d contas, então um único valor corrigido não serve: o mesmo número errado foi digitado por mais de uma pessoa. Resolva uma de cada vez."
+
+msgid "That value is already stored against other records, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision."
+msgstr "Esse valor já está armazenado em outros registros, então corrigir este mesclaria duas identidades em vez de consertar um erro de digitação. Mesclar é uma decisão separada."
+
+msgid "The store %s refused the write, so nothing was changed."
+msgstr "O store %s recusou a escrita, então nada foi alterado."
+
+msgid "The rows were rewritten but the identity index refused the same value, so nothing was changed. The two must never disagree."
+msgstr "As linhas foram reescritas mas o índice de identidade recusou o mesmo valor, então nada foi alterado. Os dois nunca podem divergir."
+
+msgid "Stored RF Corrected"
+msgstr "RF armazenado corrigido"
