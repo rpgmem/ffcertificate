@@ -14,6 +14,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A migration card restores access for accounts that own a certificate and cannot open it** (#1345): 1,478 of them on production. It measures what is left on every read, so running it again once it reports zero does nothing.
 - **The RF check digit can be enforced from the admin** (#1345): `validate_rf()` gained the rule in 6.29.0 behind a filter, which meant only code could turn it on. A General-tab toggle now sets the filter's default, the shape `ffc_ip_resolver_mode` already uses. Still off by default — the rule is inferred from stored data, not read from an official specification.
 - **A capability of its own for identity resolution** (#1368): `ffc_manage_identities`. The queue is worked through round-trips with HR, so handing that operator `ffc_manage_settings_dangerzone` — which also gates delete-all and the cleanups — was over-granting. Seeded onto current danger-zone holders, so nobody loses an ability.
+- **A screen for the identity queue, under the Certificate menu** (#1368): the audit card lists only *the findings that name an account*, so a mistyped RF on a recruitment candidacy — which carries no WordPress user until promotion — was counted there and shown nowhere. The new screen reads those rows and the row ids that are the only handle on them. Read-only; correcting a value comes next.
 
 ### Changed
 
