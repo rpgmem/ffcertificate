@@ -22212,3 +22212,6 @@ msgstr "Foram encontrados %s valores armazenados e nenhum deles pôde ser lido, 
 
 msgid "Nothing to resolve: %1$s stored values checked and every one satisfies its check digit. %2$s could not be read and were not checked."
 msgstr "Nada a resolver: %1$s valores armazenados checados e todos satisfazem seu dígito verificador. %2$s não puderam ser lidos e não foram checados."
+
+msgid "No stored RF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured an RF yet — worth looking into on one that has."
+msgstr "Nenhum RF armazenado foi encontrado: nenhum dos %s stores varridos tem uma linha com hash e ciphertext ao mesmo tempo, então não havia o que checar. Comum numa instalação que ainda não capturou nenhum RF — merece investigação numa que já capturou."
