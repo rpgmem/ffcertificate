@@ -22101,7 +22101,10 @@ msgstr ""
 msgid "This finding names %d accounts, so one corrected value cannot serve it: the same wrong number was typed by more than one person. Resolve them separately."
 msgstr ""
 
-msgid "That value is already stored against other records, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision."
+msgid "That value is already stored against another account, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision."
+msgstr ""
+
+msgid "Both identifiers are recorded in %s, which holds each identifier once, so consolidating them there would leave two records claiming one. Decide what becomes of the second record first."
 msgstr ""
 
 msgid "The store %s refused the write, so nothing was changed."

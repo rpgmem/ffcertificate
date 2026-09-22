@@ -347,6 +347,131 @@ class IdentityRepairTest extends TestCase {
 		}
 	}
 
+	// ==================================================================
+	// The collision is scoped by ACCOUNT -- #1386
+	// ==================================================================
+
+	/**
+	 * The shape every one of production's 32 typo findings has: one account,
+	 * two RFs, one of them mistyped. The corrected value is the account's
+	 * OTHER RF, so it always has rows -- which the unscoped refusal read as a
+	 * merge, and refused every case the tool exists for.
+	 */
+	public function test_it_consolidates_when_the_value_is_the_same_account_s_other_rf(): void {
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given(
+			'ffc_submissions',
+			$this->hash_of( self::GOOD_RF ),
+			array( array( 'id' => 5, 'user_id' => 398 ) )
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
+
+		$this->assertIsArray( $result, 'A typo on one account is a repair, not a merge.' );
+		$this->assertContains( 'COMMIT', $this->control );
+		$this->assertCount( 1, $this->updates );
+		$this->assertSame( array( 'rf_hash' => 'subject' ), $this->updates[0]['where'] );
+	}
+
+	/**
+	 * The refusal the scoping must NOT weaken: the value belongs to somebody
+	 * else, so writing it would put one person's identifier on another's
+	 * record -- undetectably, because the result is well-formed.
+	 */
+	public function test_it_still_refuses_when_the_value_belongs_to_another_account(): void {
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given(
+			'ffc_submissions',
+			$this->hash_of( self::GOOD_RF ),
+			array( array( 'id' => 5, 'user_id' => 513 ) )
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_collision', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates );
+	}
+
+	/**
+	 * A colliding row owned by NOBODY names no account, so it cannot be shown
+	 * to be the same person -- an unpromoted candidacy is exactly that shape.
+	 * Absence of evidence is not evidence here, so it refuses.
+	 */
+	public function test_it_refuses_when_the_colliding_rows_name_nobody(): void {
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given(
+			'ffc_recruitment_candidate',
+			$this->hash_of( self::GOOD_RF ),
+			array( array( 'id' => 5, 'user_id' => 0 ) )
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_collision', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates );
+	}
+
+	/**
+	 * A subject with no account at all cannot be shown to own the value
+	 * either, whoever the colliding rows belong to.
+	 */
+	public function test_it_refuses_to_consolidate_for_a_subject_with_no_account(): void {
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 0 ) ) );
+		$this->given(
+			'ffc_submissions',
+			$this->hash_of( self::GOOD_RF ),
+			array( array( 'id' => 5, 'user_id' => 0 ) )
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_collision', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates );
+	}
+
+	/**
+	 * `ffc_recruitment_candidate` holds each RF once (`UNIQUE KEY uq_rf_hash`),
+	 * so a consolidation with both identifiers recorded there would leave two
+	 * rows claiming one. The database would refuse it as a duplicate key,
+	 * which says nothing an operator can act on -- so this refuses first, and
+	 * says what is in the way.
+	 */
+	public function test_it_refuses_a_consolidation_the_unique_store_cannot_hold(): void {
+		$this->given( 'ffc_recruitment_candidate', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given(
+			'ffc_recruitment_candidate',
+			$this->hash_of( self::GOOD_RF ),
+			array( array( 'id' => 5, 'user_id' => 398 ) )
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_unique_store', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates, 'Nothing may be written before the store refuses.' );
+	}
+
+	/**
+	 * The same account holding the value in a store WITHOUT the unique key is
+	 * the ordinary consolidation, so the refusal above must not reach it.
+	 */
+	public function test_the_unique_store_refusal_does_not_reach_the_other_stores(): void {
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given(
+			'ffc_recruitment_candidate',
+			$this->hash_of( self::GOOD_RF ),
+			array( array( 'id' => 5, 'user_id' => 398 ) )
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
+
+		$this->assertIsArray( $result, 'Only a subject row IN the unique store can collide there.' );
+		$this->assertContains( 'COMMIT', $this->control );
+	}
+
 	/**
 	 * The hash the encryption seam would produce for a value.
 	 *

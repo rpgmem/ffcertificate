@@ -59,6 +59,18 @@ class IdentityRepair {
 	);
 
 	/**
+	 * The store that holds each RF exactly once.
+	 *
+	 * `ffc_recruitment_candidate` declares `UNIQUE KEY uq_rf_hash`, which the
+	 * other two stores do not, so it is the one place a consolidation can be
+	 * refused by the schema rather than by a decision.
+	 *
+	 * @since 6.28.3
+	 * @var string
+	 */
+	private const UNIQUE_RF_STORE = 'ffc_recruitment_candidate';
+
+	/**
 	 * How many characters of a hash reach the log.
 	 *
 	 * A prefix identifies the finding across two log lines without being the
@@ -150,20 +162,55 @@ class IdentityRepair {
 			);
 		}
 
-		$collides = $this->rows_for( $new_hash );
+		$account      = $found['accounts'][0] ?? 0;
+		$collides     = $this->rows_for( $new_hash );
+		$consolidates = false;
 
-		// A CORRECTED VALUE THAT ALREADY EXISTS IS A MERGE, NOT A REPAIR.
-		//
-		// `ffc_recruitment_candidate` declares `UNIQUE KEY uq_rf_hash`, so
-		// there the database would refuse the write anyway -- as a duplicate
-		// key error, which says nothing an operator can act on. The other two
-		// stores carry a plain index and would accept it in silence. Refusing
-		// here makes both cases the same, legible answer.
 		if ( array() !== $collides['rows'] ) {
-			return new WP_Error(
-				'ffc_identity_repair_collision',
-				__( 'That value is already stored against other records, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision.', 'ffcertificate' )
-			);
+			// A COLLISION ON THE SAME ACCOUNT IS THE TYPO ITSELF.
+			//
+			// This refusal used to read "the value already exists", and that
+			// is the wrong predicate: in the typo the correct value IS the
+			// account's other RF, so it always has rows and the refusal fired
+			// on every case production has -- all 32 of them (#1386). What
+			// makes a correction a merge is the value belonging to ANOTHER
+			// account; the same account holding it twice is one person's own
+			// duplicate, which is what a repair consolidates.
+			//
+			// Strict equality against a single-element list is the whole rule:
+			// an unowned colliding row (an unpromoted candidacy) contributes
+			// no account, so a collision that names nobody, or names anybody
+			// else, still refuses.
+			$consolidates = $account > 0 && array( $account ) === $collides['accounts'];
+
+			if ( ! $consolidates ) {
+				return new WP_Error(
+					'ffc_identity_repair_collision',
+					__( 'That value is already stored against another account, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision.', 'ffcertificate' )
+				);
+			}
+
+			$unique = $wpdb->prefix . self::UNIQUE_RF_STORE;
+
+			// ONE STORE CANNOT HOLD THE CONSOLIDATION.
+			//
+			// `ffc_recruitment_candidate` declares `UNIQUE KEY uq_rf_hash`, so
+			// where a person's two RFs are BOTH candidacies the rewrite would
+			// leave two rows sharing one hash and the database would refuse it
+			// -- as a duplicate-key error, which says nothing an operator can
+			// act on. Refusing here says what is in the way instead. Resolving
+			// it means deciding what becomes of the second candidacy, which is
+			// not a repair.
+			if ( isset( $found['rows'][ $unique ], $collides['rows'][ $unique ] ) ) {
+				return new WP_Error(
+					'ffc_identity_repair_unique_store',
+					sprintf(
+						/* translators: %s: the store that cannot hold two rows with one identifier. */
+						__( 'Both identifiers are recorded in %s, which holds each identifier once, so consolidating them there would leave two records claiming one. Decide what becomes of the second record first.', 'ffcertificate' ),
+						$unique
+					)
+				);
+			}
 		}
 
 		$pair = SensitiveFieldRegistry::encrypt_fields(
@@ -178,7 +225,6 @@ class IdentityRepair {
 			);
 		}
 
-		$account = $found['accounts'][0] ?? 0;
 		$written = array();
 
 		// The index and the rows must not be able to disagree, and this writes
@@ -243,6 +289,10 @@ class IdentityRepair {
 				'to'      => substr( (string) $pair['rf_hash'], 0, self::LOG_PREFIX ),
 				'stores'  => $written,
 				'account' => $account,
+				// A consolidation merged two of one person's own records; a
+				// plain repair renamed one. Same action, different blast
+				// radius, and the log is where that is legible afterwards.
+				'merged'  => $consolidates,
 			),
 			$actor
 		);

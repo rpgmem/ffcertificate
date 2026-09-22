@@ -9,6 +9,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **A repair no longer refuses the typo it exists for** (#1386): the collision refusal read "the value already exists", but in a typo the correct value *is* the account's other RF, so it always has rows — the refusal fired on every one of the 32 findings production holds. What makes a correction a merge is the value belonging to **another** account; the same account holding it twice is one person's own duplicate. A consolidation both of whose records sit in `ffc_recruitment_candidate` is still refused, and now says why: that store holds each identifier once.
 - **The check-digit scan could never run** (#1384): its values were listed in composition order while `prepare()` substitutes in the order the placeholders appear in the SQL, so `MIN(%i)` received a store's label as an identifier and the server rejected the statement. A rejected query and a clean install both answer with no rows, so the audit reported zero failures on an install holding thousands of RFs.
 
 ## [6.28.2] (2026-09-22) — `115c4caf`
