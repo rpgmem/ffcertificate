@@ -22174,9 +22174,6 @@ msgstr "Uma linha que não nomeia conta é comum, não um erro: uma candidatura 
 msgid "No finding was named."
 msgstr "Nenhum achado foi indicado."
 
-msgid "That number does not satisfy the RF check digit, so it cannot be the corrected value either. Confirm it with HR."
-msgstr "Esse número não satisfaz o dígito verificador do RF, então também não pode ser o valor corrigido. Confirme com o RH."
-
 msgid "Encryption is not configured, so an identifier cannot be rewritten."
 msgstr "A criptografia não está configurada, então um identificador não pode ser reescrito."
 
@@ -22246,9 +22243,6 @@ msgstr "Os dígitos verificadores não apontam um só — nenhum falha, ou mais 
 msgid "The check digits identify which of the two is wrong, and the other one is this account's. No value has to be asked for."
 msgstr "Os dígitos verificadores identificam qual dos dois está errado, e o outro é o desta conta. Nenhum valor precisa ser pedido."
 
-msgid "These are listed, not yet actionable from here: correcting them writes across every store and the identity index at once, and each verb is delivered on its own. Open the account to see what it holds meanwhile."
-msgstr "Estes estão listados, ainda não acionáveis por aqui: corrigi-los escreve em todos os stores e no índice de identidade de uma vez, e cada verbo é entregue por si. Abra a conta para ver o que ela carrega enquanto isso."
-
 msgid "Two accounts, one number"
 msgstr "Duas contas, um número"
 
@@ -22266,3 +22260,30 @@ msgstr "— não está armazenado em lugar nenhum que esta checagem consiga ler"
 
 msgid "— well formed"
 msgstr "— bem formado"
+
+msgid "Consolidate"
+msgstr "Consolidar"
+
+msgid "Consolidated into the identifier this account already held. The rows, the identity index and the account's certificate access were updated together."
+msgstr "Consolidado no identificador que esta conta já carregava. As linhas, o índice de identidade e o acesso da conta aos certificados foram atualizados juntos."
+
+msgid "Consolidating writes the account's sound identifier over the mistyped one across every store that holds it, repoints the identity index and restores the account's certificate access — as one transaction, rolled back whole if any part refuses. The number itself is read in memory and never reaches this screen. The other rows need a decision that is not offered here yet."
+msgstr "Consolidar grava o identificador íntegro da conta por cima do digitado errado em todos os stores que o carregam, reaponta o índice de identidade e restaura o acesso da conta aos certificados — numa única transação, revertida por inteiro se alguma parte recusar. O número em si é lido em memória e nunca chega a esta tela. As demais linhas precisam de uma decisão que ainda não é oferecida aqui."
+
+msgid "No sound identifier was named to consolidate into."
+msgstr "Nenhum identificador íntegro foi indicado para consolidar."
+
+msgid "Open the account — this one is not decided here."
+msgstr "Abra a conta — esta não se decide aqui."
+
+msgid "Resolve it"
+msgstr "Resolver"
+
+msgid "That is not an identifier this can rewrite."
+msgstr "Esse não é um identificador que isto consiga reescrever."
+
+msgid "That number does not satisfy its own check digits, so it cannot be the corrected value either. Confirm it with HR."
+msgstr "Esse número não satisfaz os próprios dígitos verificadores, então também não pode ser o valor corrigido. Confirme com o RH."
+
+msgid "The identifier this would consolidate into could not be read, so there is nothing to write. Confirm the correct number with HR and enter it instead."
+msgstr "O identificador em que isto consolidaria não pôde ser lido, então não há o que gravar. Confirme o número correto com o RH e digite-o no lugar."

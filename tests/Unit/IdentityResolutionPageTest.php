@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\IdentityResolutionPage;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityQueue;
+use FreeFormCertificate\Maintenance\IdentityRepair;
 
 /**
  * The identity-resolution worklist screen (#1368).
@@ -241,6 +242,59 @@ class IdentityResolutionPageTest extends TestCase {
 
 		$this->assertStringContainsString( 'Capabilities::current_user_can_admin_or( self::CAPABILITY )', $page );
 		$this->assertStringContainsString( 'check_admin_referer( self::REPAIR_NONCE . $subject )', $page );
+	}
+
+	/**
+	 * The consolidation is gated exactly as the repair is, on its OWN nonce.
+	 *
+	 * Its own action rather than a mode on the repair: the two take different
+	 * input and make different promises, and one handler branching on which
+	 * field arrived is one mistake away from writing the wrong number.
+	 */
+	public function test_the_consolidation_is_gated_on_the_capability_and_its_own_nonce(): void {
+		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
+
+		$this->assertStringContainsString( 'check_admin_referer( self::CONSOLIDATE_NONCE . $wrong )', $page );
+		$this->assertNotSame(
+			IdentityResolutionPage::REPAIR_NONCE,
+			IdentityResolutionPage::CONSOLIDATE_NONCE,
+			'A nonce shared between the two would let one confirm the other.'
+		);
+	}
+
+	/**
+	 * THE CONSOLIDATION CARRIES TWO HASHES AND NO VALUE.
+	 *
+	 * The number written is the account's sound identifier, which the service
+	 * reads in memory. If the screen posted it instead, a stored RF or CPF
+	 * would travel through the browser and sit in an operator's view for no
+	 * reason at all — and the one-click tier would become a question.
+	 */
+	public function test_the_consolidation_posts_no_value(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$form = strstr( $view, 'CONSOLIDATE_ACTION' );
+		$this->assertIsString( $form, 'The consolidation form must be in the view.' );
+
+		$form = (string) strstr( $form, '</form>', true );
+
+		$this->assertStringContainsString( 'name="ffc_target"', $form );
+		$this->assertStringNotContainsString( 'name="ffc_rf"', $form );
+		$this->assertStringNotContainsString( 'type="text"', $form, 'Nothing is typed into a consolidation.' );
+	}
+
+	/**
+	 * The field travels with the write, so the same verbs serve CPF.
+	 */
+	public function test_the_handlers_pass_the_identifier_through(): void {
+		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
+
+		$this->assertSame(
+			2,
+			substr_count( $page, 'self::posted_field()' ),
+			'Both the repair and the consolidation must name the identifier.'
+		);
+		$this->assertStringContainsString( 'in_array( $field, IdentityRepair::FIELDS, true )', $page );
 	}
 
 	/**

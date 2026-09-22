@@ -124,6 +124,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 					<th scope="col"><?php esc_html_e( 'Accounts', 'ffcertificate' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Identifiers', 'ffcertificate' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Stores', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Resolve it', 'ffcertificate' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -177,12 +178,45 @@ $ffc_identity_tier_note = static function ( $tier ) {
 						<?php endforeach; ?>
 					</td>
 					<td><?php echo esc_html( (string) ( $ffc_identity_item[ IdentityConflictQuery::COLUMN_STORES ] ?? '' ) ); ?></td>
+					<td>
+						<?php if ( IdentityQueue::TIER_MECHANICAL === $ffc_identity_tier ) : ?>
+							<?php
+							$ffc_identity_wrong = (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_WRONG ] ?? '' );
+							$ffc_identity_right = (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_RIGHT ] ?? '' );
+							?>
+							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+								<?php wp_nonce_field( IdentityResolutionPage::CONSOLIDATE_NONCE . $ffc_identity_wrong ); ?>
+								<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::CONSOLIDATE_ACTION ); ?>">
+								<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( $ffc_identity_wrong ); ?>">
+								<?php
+								// TWO HASHES AND NO VALUE.
+								//
+								// The number to write is the account's sound
+								// identifier, which the service reads in
+								// memory. Posting the value instead would put
+								// a stored RF or CPF through the browser for
+								// no reason -- and there is nothing here an
+								// operator needs to read, which is what makes
+								// this one click rather than a question.
+								?>
+								<input type="hidden" name="ffc_target" value="<?php echo esc_attr( $ffc_identity_right ); ?>">
+								<input type="hidden" name="ffc_field" value="<?php echo esc_attr( str_replace( '_hash', '', (string) ( $ffc_identity_item['identifier_column'] ?? '' ) ) ); ?>">
+								<button type="submit" class="button button-secondary">
+									<?php esc_html_e( 'Consolidate', 'ffcertificate' ); ?>
+								</button>
+							</form>
+						<?php else : ?>
+							<span class="description">
+								<?php esc_html_e( 'Open the account — this one is not decided here.', 'ffcertificate' ); ?>
+							</span>
+						<?php endif; ?>
+					</td>
 				</tr>
 			<?php endforeach; ?>
 			</tbody>
 		</table>
 		<p class="description">
-			<?php esc_html_e( 'These are listed, not yet actionable from here: correcting them writes across every store and the identity index at once, and each verb is delivered on its own. Open the account to see what it holds meanwhile.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Consolidating writes the account\'s sound identifier over the mistyped one across every store that holds it, repoints the identity index and restores the account\'s certificate access — as one transaction, rolled back whole if any part refuses. The number itself is read in memory and never reaches this screen. The other rows need a decision that is not offered here yet.', 'ffcertificate' ); ?>
 		</p>
 	<?php endif; ?>
 

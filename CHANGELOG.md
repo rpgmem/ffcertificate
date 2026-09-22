@@ -9,6 +9,12 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **A mistyped number can be consolidated into the one the account already holds, in one click** (#1386): where the check digits identify which of two is wrong, the correct value is the account's other identifier — so nothing is typed and nothing is shown. The two hashes are posted and the value is read in memory, so a stored RF or CPF never reaches a form field, a URL or an operator's screen. Every refusal the correction makes still applies.
+- **The identity verbs work over CPF as well as RF** (#1386): the same three stores, the same index and the same transaction; what differs is only the rule that says a value is well formed — two check digits for CPF, one for RF. The RF rule is read directly rather than through the form's validator, because whether a *correction* is well formed must not depend on a setting that decides what the form accepts.
+
+
+### Added
+
 - **The identity queue is sorted by how much of the answer is already known** (#1386): one account holding two numbers, exactly one of which fails its check digits, needs no value from anybody — the other one is the account's. Everything else is named for what it is: a decision the digits cannot make, a number on two accounts (a merge), or a lone failure no account-side finding explains. Each finding appears once, so the list can be worked to zero.
 
 
