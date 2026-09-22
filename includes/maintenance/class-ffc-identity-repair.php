@@ -17,6 +17,7 @@ namespace FreeFormCertificate\Maintenance;
 
 use FreeFormCertificate\Core\ActivityLog;
 use FreeFormCertificate\Core\DocumentFormatter;
+use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Core\SensitiveFieldRegistry;
 use FreeFormCertificate\Repositories\UserProfileRepository;
 use WP_Error;
@@ -32,12 +33,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 class IdentityRepair {
 
 	/**
-	 * The identifier this class repairs.
+	 * The identifier repaired when a caller names none.
 	 *
-	 * RF and not CPF on purpose: the queue is the check-digit scan's, and the
-	 * CPF path already refuses a mistyped value at the form.
+	 * RF because that is the queue this class was written for. It is no longer
+	 * the only one it handles: #1386 needs the same verbs over CPF, whose
+	 * conflicts the production audit carries too -- the earlier note here,
+	 * that the CPF path already refuses a mistyped value at the form, was
+	 * true of the FORM and never of the rows already stored.
 	 */
 	public const FIELD = 'rf';
+
+	/**
+	 * The identifiers this class can rewrite.
+	 *
+	 * Both stored as an encrypted value beside a searchable hash, in the same
+	 * three stores and in the same index, so one set of verbs serves both --
+	 * what differs is only the rule that says a value is well formed.
+	 *
+	 * @since 6.28.3
+	 * @var array<int, string>
+	 */
+	public const FIELDS = array( 'rf', 'cpf' );
 
 	/**
 	 * Store table (unprefixed) => the encryption context that owns its shape.
@@ -57,6 +73,19 @@ class IdentityRepair {
 		'ffc_self_scheduling_appointments' => SensitiveFieldRegistry::CONTEXT_APPOINTMENT,
 		'ffc_recruitment_candidate'        => SensitiveFieldRegistry::CONTEXT_RECRUITMENT_CANDIDATE,
 	);
+
+	/**
+	 * The store that holds each identifier exactly once.
+	 *
+	 * `ffc_recruitment_candidate` declares `UNIQUE KEY uq_rf_hash` AND
+	 * `UNIQUE KEY uq_cpf_hash`, which the other two stores do not, so it is
+	 * the one place a consolidation can be refused by the schema rather than
+	 * by a decision -- and it is that for either identifier.
+	 *
+	 * @since 6.28.3
+	 * @var string
+	 */
+	private const UNIQUE_RF_STORE = 'ffc_recruitment_candidate';
 
 	/**
 	 * How many characters of a hash reach the log.
@@ -79,15 +108,25 @@ class IdentityRepair {
 	 * person, and rows may have arrived or left in the meantime. So the rows
 	 * are resolved here, at write time, from the hash.
 	 *
-	 * @param string $subject_hash The stored `rf_hash` to replace.
+	 * @param string $subject_hash The stored hash to replace.
 	 * @param string $new_rf       The value HR confirmed.
 	 * @param int    $actor        Who confirmed it, for the log.
+	 * @param string $field        `rf` or `cpf`; defaults to {@see self::FIELD}.
 	 * @return array{hash: string, rows: array<string, int>, account: int}|WP_Error
 	 */
-	public function repair( string $subject_hash, string $new_rf, int $actor = 0 ): array|WP_Error {
+	public function repair( string $subject_hash, string $new_rf, int $actor = 0, string $field = self::FIELD ): array|WP_Error {
 		global $wpdb;
 
-		$subject_hash = trim( $subject_hash );
+		if ( ! in_array( $field, self::FIELDS, true ) ) {
+			return new WP_Error(
+				'ffc_identity_repair_unknown_field',
+				__( 'That is not an identifier this can rewrite.', 'ffcertificate' )
+			);
+		}
+
+		$hash_column   = $field . '_hash';
+		$cipher_column = $field . '_encrypted';
+		$subject_hash  = trim( $subject_hash );
 
 		if ( '' === $subject_hash ) {
 			return new WP_Error(
@@ -96,16 +135,16 @@ class IdentityRepair {
 			);
 		}
 
-		$normalized = SensitiveFieldRegistry::normalize( self::FIELD, $new_rf );
+		$normalized = SensitiveFieldRegistry::normalize( $field, $new_rf );
 
-		if ( ! DocumentFormatter::validate_rf( $normalized ) || ! DocumentFormatter::rf_check_digit_matches( $normalized ) ) {
+		if ( ! self::well_formed( $field, $normalized ) ) {
 			return new WP_Error(
 				'ffc_identity_repair_invalid',
-				__( 'That number does not satisfy the RF check digit, so it cannot be the corrected value either. Confirm it with HR.', 'ffcertificate' )
+				__( 'That number does not satisfy its own check digits, so it cannot be the corrected value either. Confirm it with HR.', 'ffcertificate' )
 			);
 		}
 
-		$new_hash = SensitiveFieldRegistry::hash_identifier( self::FIELD, $normalized );
+		$new_hash = SensitiveFieldRegistry::hash_identifier( $field, $normalized );
 
 		if ( ! is_string( $new_hash ) || '' === $new_hash ) {
 			return new WP_Error(
@@ -121,7 +160,7 @@ class IdentityRepair {
 			);
 		}
 
-		$found = $this->rows_for( $subject_hash );
+		$found = $this->rows_for( $subject_hash, $hash_column );
 
 		// Idempotent by construction: a finding repaired by somebody else
 		// between the list and the confirmation resolves to nothing, and that
@@ -150,35 +189,69 @@ class IdentityRepair {
 			);
 		}
 
-		$collides = $this->rows_for( $new_hash );
+		$account      = $found['accounts'][0] ?? 0;
+		$collides     = $this->rows_for( $new_hash, $hash_column );
+		$consolidates = false;
 
-		// A CORRECTED VALUE THAT ALREADY EXISTS IS A MERGE, NOT A REPAIR.
-		//
-		// `ffc_recruitment_candidate` declares `UNIQUE KEY uq_rf_hash`, so
-		// there the database would refuse the write anyway -- as a duplicate
-		// key error, which says nothing an operator can act on. The other two
-		// stores carry a plain index and would accept it in silence. Refusing
-		// here makes both cases the same, legible answer.
 		if ( array() !== $collides['rows'] ) {
-			return new WP_Error(
-				'ffc_identity_repair_collision',
-				__( 'That value is already stored against other records, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision.', 'ffcertificate' )
-			);
+			// A COLLISION ON THE SAME ACCOUNT IS THE TYPO ITSELF.
+			//
+			// This refusal used to read "the value already exists", and that
+			// is the wrong predicate: in the typo the correct value IS the
+			// account's other RF, so it always has rows and the refusal fired
+			// on every case production has -- all 32 of them (#1386). What
+			// makes a correction a merge is the value belonging to ANOTHER
+			// account; the same account holding it twice is one person's own
+			// duplicate, which is what a repair consolidates.
+			//
+			// Strict equality against a single-element list is the whole rule:
+			// an unowned colliding row (an unpromoted candidacy) contributes
+			// no account, so a collision that names nobody, or names anybody
+			// else, still refuses.
+			$consolidates = $account > 0 && array( $account ) === $collides['accounts'];
+
+			if ( ! $consolidates ) {
+				return new WP_Error(
+					'ffc_identity_repair_collision',
+					__( 'That value is already stored against another account, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision.', 'ffcertificate' )
+				);
+			}
+
+			$unique = $wpdb->prefix . self::UNIQUE_RF_STORE;
+
+			// ONE STORE CANNOT HOLD THE CONSOLIDATION.
+			//
+			// `ffc_recruitment_candidate` declares `UNIQUE KEY uq_rf_hash`, so
+			// where a person's two RFs are BOTH candidacies the rewrite would
+			// leave two rows sharing one hash and the database would refuse it
+			// -- as a duplicate-key error, which says nothing an operator can
+			// act on. Refusing here says what is in the way instead. Resolving
+			// it means deciding what becomes of the second candidacy, which is
+			// not a repair.
+			if ( isset( $found['rows'][ $unique ], $collides['rows'][ $unique ] ) ) {
+				return new WP_Error(
+					'ffc_identity_repair_unique_store',
+					sprintf(
+						/* translators: %s: the store that cannot hold two rows with one identifier. */
+						__( 'Both identifiers are recorded in %s, which holds each identifier once, so consolidating them there would leave two records claiming one. Decide what becomes of the second record first.', 'ffcertificate' ),
+						$unique
+					)
+				);
+			}
 		}
 
 		$pair = SensitiveFieldRegistry::encrypt_fields(
 			SensitiveFieldRegistry::CONTEXT_SUBMISSION,
-			array( self::FIELD => $normalized )
+			array( $field => $normalized )
 		);
 
-		if ( empty( $pair['rf_encrypted'] ) || empty( $pair['rf_hash'] ) ) {
+		if ( empty( $pair[ $cipher_column ] ) || empty( $pair[ $hash_column ] ) ) {
 			return new WP_Error(
 				'ffc_identity_repair_not_configured',
 				__( 'Encryption is not configured, so an identifier cannot be rewritten.', 'ffcertificate' )
 			);
 		}
 
-		$account = $found['accounts'][0] ?? 0;
 		$written = array();
 
 		// The index and the rows must not be able to disagree, and this writes
@@ -190,10 +263,10 @@ class IdentityRepair {
 			$done = $wpdb->update(
 				$table,
 				array(
-					'rf_encrypted' => (string) $pair['rf_encrypted'],
-					'rf_hash'      => (string) $pair['rf_hash'],
+					$cipher_column => (string) $pair[ $cipher_column ],
+					$hash_column   => (string) $pair[ $hash_column ],
 				),
-				array( 'rf_hash' => $subject_hash ),
+				array( $hash_column => $subject_hash ),
 				array( '%s', '%s' ),
 				array( '%s' )
 			);
@@ -214,7 +287,7 @@ class IdentityRepair {
 			$written[ $table ] = count( $ids );
 		}
 
-		if ( $account > 0 && ! $this->reindex( $account, (string) $pair['rf_hash'] ) ) {
+		if ( $account > 0 && ! $this->reindex( $account, (string) $pair[ $hash_column ], $hash_column ) ) {
 			$wpdb->query( 'ROLLBACK' );
 
 			return new WP_Error(
@@ -240,27 +313,155 @@ class IdentityRepair {
 				// Prefixes, never the hashes and never the value: the log is
 				// read by more people than the screen is.
 				'from'    => substr( $subject_hash, 0, self::LOG_PREFIX ),
-				'to'      => substr( (string) $pair['rf_hash'], 0, self::LOG_PREFIX ),
+				'to'      => substr( (string) $pair[ $hash_column ], 0, self::LOG_PREFIX ),
+				'field'   => $field,
 				'stores'  => $written,
 				'account' => $account,
+				// A consolidation merged two of one person's own records; a
+				// plain repair renamed one. Same action, different blast
+				// radius, and the log is where that is legible afterwards.
+				'merged'  => $consolidates,
 			),
 			$actor
 		);
 
 		return array(
-			'hash'    => (string) $pair['rf_hash'],
+			'hash'    => (string) $pair[ $hash_column ],
 			'rows'    => $written,
 			'account' => $account,
 		);
 	}
 
 	/**
+	 * Consolidate one account's mistyped identifier into its sound one.
+	 *
+	 * THE VALUE IS RESOLVED HERE, SO NO SCREEN EVER HOLDS IT.
+	 *
+	 * On a mechanical finding the correct value is not something HR has to
+	 * supply: it is the account's OTHER identifier, which the check digits
+	 * already vouched for. Passing it through the browser to come back in a
+	 * form field would put a stored RF or CPF in a URL, a POST body and an
+	 * operator's screen for no reason at all -- so the caller names the two
+	 * HASHES and this reads the value, in memory, and hands it straight to
+	 * {@see self::repair()}.
+	 *
+	 * Every refusal that method makes therefore still applies, and one of them
+	 * carries this: the consolidation is only allowed because both hashes sit
+	 * on ONE account, which is exactly the collision rule scoped in #1386.
+	 *
+	 * @since 6.28.3
+	 * @param string $wrong_hash The stored hash that fails its check digits.
+	 * @param string $right_hash The stored hash to consolidate into.
+	 * @param int    $actor      Who confirmed it, for the log.
+	 * @param string $field      `rf` or `cpf`; defaults to {@see self::FIELD}.
+	 * @return array{hash: string, rows: array<string, int>, account: int}|WP_Error
+	 */
+	public function consolidate( string $wrong_hash, string $right_hash, int $actor = 0, string $field = self::FIELD ): array|WP_Error {
+		if ( ! in_array( $field, self::FIELDS, true ) ) {
+			return new WP_Error(
+				'ffc_identity_repair_unknown_field',
+				__( 'That is not an identifier this can rewrite.', 'ffcertificate' )
+			);
+		}
+
+		$right_hash = trim( $right_hash );
+
+		if ( '' === $right_hash || trim( $wrong_hash ) === $right_hash ) {
+			return new WP_Error(
+				'ffc_identity_consolidate_no_target',
+				__( 'No sound identifier was named to consolidate into.', 'ffcertificate' )
+			);
+		}
+
+		$plain = $this->value_of( $right_hash, $field );
+
+		// A TARGET THAT CANNOT BE READ IS NOT A TARGET.
+		//
+		// The queue only offers this where the value decrypted and satisfied
+		// its check digits, but the queue was built from a scan taken earlier
+		// -- the same reason `repair()` resolves its rows at write time rather
+		// than trusting the ones the screen displayed. Between the two the key
+		// can change, and a consolidation into a value nobody can read would
+		// write a guess over the evidence.
+		if ( null === $plain ) {
+			return new WP_Error(
+				'ffc_identity_consolidate_unreadable',
+				__( 'The identifier this would consolidate into could not be read, so there is nothing to write. Confirm the correct number with HR and enter it instead.', 'ffcertificate' )
+			);
+		}
+
+		return $this->repair( $wrong_hash, $plain, $actor, $field );
+	}
+
+	/**
+	 * Read one stored identifier back, in memory.
+	 *
+	 * Returns null rather than a partial answer: a value that does not decrypt
+	 * is not a value, and every caller here treats it as a refusal.
+	 *
+	 * @since 6.28.3
+	 * @param string $hash  The stored hash.
+	 * @param string $field `rf` or `cpf`.
+	 * @return string|null The normalized value, or null.
+	 */
+	protected function value_of( string $hash, string $field ): ?string {
+		global $wpdb;
+
+		$hash_column   = $field . '_hash';
+		$cipher_column = $field . '_encrypted';
+
+		foreach ( array_keys( self::STORES ) as $suffix ) {
+			$table = $wpdb->prefix . $suffix;
+
+			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) {
+				continue;
+			}
+
+			$cipher = $wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT %i FROM %i WHERE %i = %s AND %i IS NOT NULL AND %i <> \'\' LIMIT 1',
+					$cipher_column,
+					$table,
+					$hash_column,
+					$hash,
+					$cipher_column,
+					$cipher_column
+				)
+			);
+
+			if ( ! is_string( $cipher ) || '' === $cipher ) {
+				continue;
+			}
+
+			$plain = $this->decrypt( $cipher );
+
+			if ( is_string( $plain ) && '' !== $plain ) {
+				return $plain;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Read one ciphertext, as a seam a test can replace without a key.
+	 *
+	 * @since 6.28.3
+	 * @param string $cipher The stored ciphertext.
+	 * @return string|null
+	 */
+	protected function decrypt( string $cipher ): ?string {
+		return class_exists( Encryption::class ) ? Encryption::decrypt( $cipher ) : null;
+	}
+
+	/**
 	 * Which rows carry a hash, and which accounts they name.
 	 *
-	 * @param string $hash The `rf_hash` to look for.
+	 * @param string $hash   The hash to look for.
+	 * @param string $column The column holding it.
 	 * @return array{rows: array<string, list<int>>, accounts: list<int>}
 	 */
-	private function rows_for( string $hash ): array {
+	private function rows_for( string $hash, string $column = 'rf_hash' ): array {
 		global $wpdb;
 
 		$rows     = array();
@@ -274,7 +475,7 @@ class IdentityRepair {
 			}
 
 			$found = $wpdb->get_results(
-				$wpdb->prepare( 'SELECT id, user_id FROM %i WHERE rf_hash = %s', $table, $hash ),
+				$wpdb->prepare( 'SELECT id, user_id FROM %i WHERE %i = %s', $table, $column, $hash ),
 				ARRAY_A
 			);
 
@@ -313,13 +514,37 @@ class IdentityRepair {
 	 *
 	 * @param int    $user_id  The account that owns the rows.
 	 * @param string $new_hash The corrected hash.
+	 * @param string $column   The index column to point at it.
 	 * @return bool
 	 */
-	protected function reindex( int $user_id, string $new_hash ): bool {
+	protected function reindex( int $user_id, string $new_hash, string $column = 'rf_hash' ): bool {
 		return ( new UserProfileRepository() )->upsertForUserId(
 			$user_id,
-			array( 'rf_hash' => $new_hash )
+			array( $column => $new_hash )
 		);
+	}
+
+	/**
+	 * Whether a normalized identifier satisfies its own check digits.
+	 *
+	 * The RF rule is read directly rather than through `validate_rf()`, which
+	 * consults the check digit only when the administrator enabled enforcement
+	 * (#1345): whether a CORRECTION is well formed cannot depend on a setting
+	 * that decides what the form accepts. `validate_cpf()` has no such switch,
+	 * and verifies two digits where the RF rule verifies one.
+	 *
+	 * @since 6.28.3
+	 * @param string $field      `rf` or `cpf`.
+	 * @param string $normalized The value, canonicalised.
+	 * @return bool
+	 */
+	private static function well_formed( string $field, string $normalized ): bool {
+		if ( 'cpf' === $field ) {
+			return DocumentFormatter::validate_cpf( $normalized );
+		}
+
+		return DocumentFormatter::validate_rf( $normalized )
+			&& DocumentFormatter::rf_check_digit_matches( $normalized );
 	}
 }
 // phpcs:enable WordPress.DB.DirectDatabaseQuery

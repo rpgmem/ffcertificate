@@ -10,6 +10,8 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\IdentityResolutionPage;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
+use FreeFormCertificate\Maintenance\IdentityQueue;
+use FreeFormCertificate\Maintenance\IdentityRepair;
 
 /**
  * The identity-resolution worklist screen (#1368).
@@ -57,6 +59,8 @@ class IdentityResolutionPageTest extends TestCase {
 	 */
 	private function page_reading( array $findings ): IdentityResolutionPage {
 		$query = Mockery::mock( IdentityConflictQuery::class );
+		$query->shouldReceive( 'multiple_identities' )->andReturn( array() );
+		$query->shouldReceive( 'shared_identities' )->andReturn( array() );
 		$query->shouldReceive( 'rf_check_digit_failures' )
 			->once()
 			->with( IdentityResolutionPage::LIMIT )
@@ -165,7 +169,16 @@ class IdentityResolutionPageTest extends TestCase {
 			),
 		);
 
-		$this->assertSame( $findings, $this->page_reading( $findings )->queue() );
+		$queue = $this->page_reading( $findings )->queue();
+
+		$this->assertCount( 1, $queue );
+		$this->assertSame(
+			IdentityQueue::TIER_ISOLATED,
+			$queue[0][ IdentityQueue::COLUMN_TIER ],
+			'A check-digit failure no account-side finding explains is its own tier.'
+		);
+		$this->assertSame( 'submissions:4,9', $queue[0][ IdentityConflictQuery::COLUMN_ROW_IDS ] );
+
 		$this->assertGreaterThan(
 			50,
 			IdentityResolutionPage::LIMIT,
@@ -232,6 +245,74 @@ class IdentityResolutionPageTest extends TestCase {
 	}
 
 	/**
+	 * The consolidation is gated exactly as the repair is, on its OWN nonce.
+	 *
+	 * Its own action rather than a mode on the repair: the two take different
+	 * input and make different promises, and one handler branching on which
+	 * field arrived is one mistake away from writing the wrong number.
+	 */
+	public function test_the_consolidation_is_gated_on_the_capability_and_its_own_nonce(): void {
+		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
+
+		$this->assertStringContainsString( 'check_admin_referer( self::CONSOLIDATE_NONCE . $wrong )', $page );
+		$this->assertNotSame(
+			IdentityResolutionPage::REPAIR_NONCE,
+			IdentityResolutionPage::CONSOLIDATE_NONCE,
+			'A nonce shared between the two would let one confirm the other.'
+		);
+	}
+
+	/**
+	 * THE CONSOLIDATION CARRIES TWO HASHES AND NO VALUE.
+	 *
+	 * The number written is the account's sound identifier, which the service
+	 * reads in memory. If the screen posted it instead, a stored RF or CPF
+	 * would travel through the browser and sit in an operator's view for no
+	 * reason at all — and the one-click tier would become a question.
+	 */
+	public function test_the_consolidation_posts_no_value(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$form = strstr( $view, 'CONSOLIDATE_ACTION' );
+		$this->assertIsString( $form, 'The consolidation form must be in the view.' );
+
+		$form = (string) strstr( $form, '</form>', true );
+
+		$this->assertStringContainsString( 'name="ffc_target"', $form );
+		$this->assertStringNotContainsString( 'name="ffc_rf"', $form );
+		$this->assertStringNotContainsString( 'type="text"', $form, 'Nothing is typed into a consolidation.' );
+	}
+
+	/**
+	 * A HANDLER THAT ACTS ON AN IDENTIFIER MUST SAY WHICH IDENTIFIER.
+	 *
+	 * Third time this assertion has been rewritten, and the first two were
+	 * wrong in the same way: `2`, then a list of verb names, both of which are
+	 * a census of today's shape. The merge is what finally showed the claim
+	 * itself was false — it writes without naming an identifier at all,
+	 * because it is between two ACCOUNTS and moves everything they hold.
+	 *
+	 * What actually holds is a mechanism: a handler that reads `ffc_subject`
+	 * is acting on one stored hash, and a hash means nothing without the
+	 * column it sits in — `rf_hash` and `cpf_hash` are different questions.
+	 * So the two move together whatever verbs exist, and a handler that reads
+	 * neither is outside the rule rather than an exception to it.
+	 */
+	public function test_a_handler_acting_on_an_identifier_names_which_one(): void {
+		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
+
+		$subjects = substr_count( $page, "'ffc_subject'" );
+
+		$this->assertGreaterThan( 0, $subjects, 'The scan found no handler acting on an identifier.' );
+		$this->assertSame(
+			$subjects,
+			substr_count( $page, 'self::posted_field()' ),
+			'A stored hash means nothing without the column it sits in.'
+		);
+		$this->assertStringContainsString( 'in_array( $field, IdentityRepair::FIELDS, true )', $page );
+	}
+
+	/**
 	 * The handler hands the repair the HASH and the value, never the row ids.
 	 *
 	 * Re-evaluation at confirmation time is the whole point: between listing a
@@ -255,6 +336,8 @@ class IdentityResolutionPageTest extends TestCase {
 	 */
 	public function test_the_queue_carries_what_the_scan_read(): void {
 		$query = Mockery::mock( IdentityConflictQuery::class );
+		$query->shouldReceive( 'multiple_identities' )->andReturn( array() );
+		$query->shouldReceive( 'shared_identities' )->andReturn( array() );
 		$query->shouldReceive( 'rf_check_digit_failures' )->once()->andReturn( array() );
 		$query->shouldReceive( 'rf_scan_coverage' )->once()->andReturn(
 			array(

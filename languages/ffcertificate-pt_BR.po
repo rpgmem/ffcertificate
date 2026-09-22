@@ -22133,9 +22133,6 @@ msgstr "Resolução de identidade"
 msgid "Identities"
 msgstr "Identidades"
 
-msgid "Stored RF numbers whose own check digit does not match, so the value cannot be anybody's: it was mistyped on the way in. The digit says a number is wrong, never what the right one is — each row is a question for HR, answered one at a time. Grouping is by the stored hash; the digit is checked in memory and only a verdict leaves the scan, never a value."
-msgstr "RFs armazenados cujo próprio dígito verificador não confere, então o valor não pode ser de ninguém: foi digitado errado na entrada. O dígito diz que um número está errado, nunca qual é o certo — cada linha é uma pergunta para o RH, respondida uma de cada vez. O agrupamento é pelo hash armazenado; o dígito é conferido em memória e só um veredito sai da varredura, nunca um valor."
-
 msgid "The scan reached its cap before reading every stored value, so this list is partial. Work it down and run the screen again."
 msgstr "A varredura atingiu seu limite antes de ler todos os valores armazenados, então esta lista está parcial. Reduza a fila e abra a tela de novo."
 
@@ -22177,9 +22174,6 @@ msgstr "Uma linha que não nomeia conta é comum, não um erro: uma candidatura 
 msgid "No finding was named."
 msgstr "Nenhum achado foi indicado."
 
-msgid "That number does not satisfy the RF check digit, so it cannot be the corrected value either. Confirm it with HR."
-msgstr "Esse número não satisfaz o dígito verificador do RF, então também não pode ser o valor corrigido. Confirme com o RH."
-
 msgid "Encryption is not configured, so an identifier cannot be rewritten."
 msgstr "A criptografia não está configurada, então um identificador não pode ser reescrito."
 
@@ -22192,8 +22186,11 @@ msgstr "Nada mais carrega esse valor — ele já foi reparado. Recarregue a fila
 msgid "This finding names %d accounts, so one corrected value cannot serve it: the same wrong number was typed by more than one person. Resolve them separately."
 msgstr "Este achado nomeia %d contas, então um único valor corrigido não serve: o mesmo número errado foi digitado por mais de uma pessoa. Resolva uma de cada vez."
 
-msgid "That value is already stored against other records, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision."
-msgstr "Esse valor já está armazenado em outros registros, então corrigir este mesclaria duas identidades em vez de consertar um erro de digitação. Mesclar é uma decisão separada."
+msgid "That value is already stored against another account, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision."
+msgstr "Esse valor já está armazenado em outra conta, então corrigir este mesclaria duas identidades em vez de consertar um erro de digitação. Mesclar é uma decisão separada."
+
+msgid "Both identifiers are recorded in %s, which holds each identifier once, so consolidating them there would leave two records claiming one. Decide what becomes of the second record first."
+msgstr "Os dois identificadores estão registrados em %s, que guarda cada identificador uma única vez, então consolidá-los ali deixaria dois registros reivindicando um só. Decida antes o que será do segundo registro."
 
 msgid "The store %s refused the write, so nothing was changed."
 msgstr "O store %s recusou a escrita, então nada foi alterado."
@@ -22215,3 +22212,224 @@ msgstr "Nada a resolver: %1$s valores armazenados checados e todos satisfazem se
 
 msgid "No stored RF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured an RF yet — worth looking into on one that has."
 msgstr "Nenhum RF armazenado foi encontrado: nenhum dos %s stores varridos tem uma linha com hash e ciphertext ao mesmo tempo, então não havia o que checar. Comum numa instalação que ainda não capturou nenhum RF — merece investigação numa que já capturou."
+
+msgid "A stored RF whose own check digit does not match, and which no account-side finding above explains: somebody mistyped once on their only row, or the row belongs to a candidacy that carries no account until promotion. The correct value comes from HR."
+msgstr "Um RF armazenado cujo dígito verificador não confere e que nenhum achado por conta acima explica: alguém digitou errado uma única vez na sua única linha, ou a linha pertence a uma candidatura que não carrega conta até a promoção. O valor correto vem do RH."
+
+msgid "Accounts and stored numbers that do not agree with each other, sorted by how much of the answer is already known. The check digits are what sort them: they can say a number is wrong, and never what the right one is. Identifiers are shown as a hash prefix — the values are decrypted in memory to be checked and none of them leaves the scan."
+msgstr "Contas e números armazenados que não concordam entre si, ordenados por quanto da resposta já se conhece. Quem os ordena são os dígitos verificadores: eles dizem que um número está errado, nunca qual é o certo. Os identificadores aparecem como prefixo de hash — os valores são decifrados em memória para a checagem e nenhum deles sai da varredura."
+
+msgid "Accounts to resolve"
+msgstr "Contas a resolver"
+
+msgid "Identifiers"
+msgstr "Identificadores"
+
+msgid "Needs a decision"
+msgstr "Precisa de decisão"
+
+msgid "Numbers to correct"
+msgstr "Números a corrigir"
+
+msgid "One is mistyped"
+msgstr "Um está digitado errado"
+
+msgid "One number is stored against more than one account. That is a merge, not a correction: the decision is which account survives."
+msgstr "Um número está armazenado em mais de uma conta. Isso é uma mesclagem, não uma correção: a decisão é qual conta sobrevive."
+
+msgid "The check digits do not single one out — none fails, or more than one does. Confirm with HR which number is this person's."
+msgstr "Os dígitos verificadores não apontam um só — nenhum falha, ou mais de um falha. Confirme com o RH qual número é o desta pessoa."
+
+msgid "The check digits identify which of the two is wrong, and the other one is this account's. No value has to be asked for."
+msgstr "Os dígitos verificadores identificam qual dos dois está errado, e o outro é o desta conta. Nenhum valor precisa ser pedido."
+
+msgid "Two accounts, one number"
+msgstr "Duas contas, um número"
+
+msgid "What is known"
+msgstr "O que se sabe"
+
+msgid "— could not be read, so nothing is known about it"
+msgstr "— não pôde ser lido, então nada se sabe sobre ele"
+
+msgid "— fails its check digits"
+msgstr "— não confere com seus dígitos verificadores"
+
+msgid "— not stored anywhere this check can read"
+msgstr "— não está armazenado em lugar nenhum que esta checagem consiga ler"
+
+msgid "— well formed"
+msgstr "— bem formado"
+
+msgid "Consolidate"
+msgstr "Consolidar"
+
+msgid "Consolidated into the identifier this account already held. The rows, the identity index and the account's certificate access were updated together."
+msgstr "Consolidado no identificador que esta conta já carregava. As linhas, o índice de identidade e o acesso da conta aos certificados foram atualizados juntos."
+
+msgid "No sound identifier was named to consolidate into."
+msgstr "Nenhum identificador íntegro foi indicado para consolidar."
+
+msgid "Open the account — this one is not decided here."
+msgstr "Abra a conta — esta não se decide aqui."
+
+msgid "Resolve it"
+msgstr "Resolver"
+
+msgid "That is not an identifier this can rewrite."
+msgstr "Esse não é um identificador que isto consiga reescrever."
+
+msgid "That number does not satisfy its own check digits, so it cannot be the corrected value either. Confirm it with HR."
+msgstr "Esse número não satisfaz os próprios dígitos verificadores, então também não pode ser o valor corrigido. Confirme com o RH."
+
+msgid "The identifier this would consolidate into could not be read, so there is nothing to write. Confirm the correct number with HR and enter it instead."
+msgstr "O identificador em que isto consolidaria não pôde ser lido, então não há o que gravar. Confirme o número correto com o RH e digite-o no lugar."
+
+msgid "A relink needs both the records to move and the account to move them to."
+msgstr "Uma remoção de vínculo precisa dos registros a mover e da conta para onde movê-los."
+
+msgid "Account #"
+msgstr "Conta nº"
+
+msgid "Account to move the records carrying %s to"
+msgstr "Conta para onde mover os registros que carregam %s"
+
+msgid "Move %s"
+msgstr "Mover %s"
+
+msgid "Moved. The records, the identity index and the receiving account's certificate access were updated together."
+msgstr "Movido. Os registros, o índice de identidade e o acesso da conta que recebeu aos certificados foram atualizados juntos."
+
+msgid "Nothing carries that identifier any more. Reload the queue."
+msgstr "Nada mais carrega esse identificador. Recarregue a fila."
+
+msgid "Nothing ties those records to that account: they share no identifier with it, and an absent value is not agreement. Correct an identifier first so the two agree."
+msgstr "Nada liga esses registros àquela conta: eles não compartilham identificador algum com ela, e um valor ausente não é concordância. Corrija um identificador antes, para que os dois concordem."
+
+msgid "That is not an identifier this can move."
+msgstr "Esse não é um identificador que isto consiga mover."
+
+msgid "The records and that account hold different values for: %s. Correct the identifier first — moving records across a disagreement is how one person's record ends up under another person's account."
+msgstr "Os registros e aquela conta carregam valores diferentes para: %s. Corrija o identificador antes — mover registros por cima de uma divergência é como o registro de uma pessoa vai parar na conta de outra."
+
+msgid "The records were moved but the identity index refused the same change, so nothing was changed. The two must never disagree."
+msgstr "Os registros foram movidos mas o índice de identidade recusou a mesma alteração, então nada foi alterado. Os dois nunca podem divergir."
+
+msgid "The store %s refused the move, so nothing was changed."
+msgstr "O store %s recusou a movimentação, então nada foi alterado."
+
+msgid "Those records already belong to that account."
+msgstr "Esses registros já pertencem àquela conta."
+
+msgid "Those records are split across more than one account, so one move cannot serve them. Resolve them separately."
+msgstr "Esses registros estão divididos entre mais de uma conta, então uma única movimentação não serve para eles. Resolva um de cada vez."
+
+msgid "Records Moved to Another Account"
+msgstr "Registros Movidos para Outra Conta"
+
+msgid "A split needs a valid e-mail address for the new account."
+msgstr "Uma separação precisa de um e-mail válido para a nova conta."
+
+msgid "Consolidating writes the account's sound identifier over the mistyped one across every store that holds it. Moving sends the records carrying one identifier to another account — allowed only where the two already agree on the other identifier, and where the receiving account holds none of that kind it gains this one. Splitting creates an account for one identifier and moves its records there — it asks for an address because there is none to inherit, and it removes the account again if the move refuses. All of them run as a single transaction, rolled back whole if any part refuses, and none shows a stored number."
+msgstr "Consolidar grava o identificador íntegro da conta por cima do digitado errado em todos os stores que o carregam. Mover envia os registros que carregam um identificador para outra conta — permitido apenas quando as duas já concordam no outro identificador, e quando a conta que recebe não tem nenhum daquele tipo ela ganha este. Separar cria uma conta para um identificador e move os registros dele para lá — pede um endereço porque não há nenhum a herdar, e remove a conta de novo se a movimentação recusar. Todos rodam como uma única transação, revertida por inteiro se alguma parte recusar, e nenhum exibe um número armazenado."
+
+msgid "Creates the account an identity split moves records onto — args ( null, email ), returns a user id or WP_Error. A filter rather than a direct call because the split and the single account-creation path are in modules that would otherwise depend on each other. It deliberately does NOT resolve the identifier first: the identifier resolves to the account the records are being taken off."
+msgstr "Cria a conta para onde uma separação de identidade move os registros — args ( null, email ), retorna um id de usuário ou WP_Error. Um filtro em vez de chamada direta porque a separação e o caminho único de criação de contas estão em módulos que de outro modo dependeriam um do outro. Ele deliberadamente NÃO resolve o identificador antes: o identificador resolve para a conta de onde os registros estão sendo tirados."
+
+msgid "E-mail address for the new account holding %s"
+msgstr "E-mail da nova conta que ficará com %s"
+
+msgid "New account e-mail"
+msgstr "E-mail da nova conta"
+
+msgid "No account could be created: the identity split has nothing wired to create one on this install."
+msgstr "Nenhuma conta pôde ser criada: a separação de identidade não tem nada ligado para criar uma nesta instalação."
+
+msgid "No records were named to split."
+msgstr "Nenhum registro foi indicado para separar."
+
+msgid "Records Given Their Own Account"
+msgstr "Registros com Conta Própria"
+
+msgid "Split off"
+msgstr "Separar"
+
+msgid "Split. A new account was created and those records, the identity index and the account's certificate access were updated together."
+msgstr "Separado. Uma nova conta foi criada e aqueles registros, o índice de identidade e o acesso da conta aos certificados foram atualizados juntos."
+
+msgid "That address already belongs to an account, so it cannot open a new one. Use a different address — or, if that account is the right one, move the records to it instead of splitting."
+msgstr "Esse endereço já pertence a uma conta, então não pode abrir uma nova. Use outro endereço — ou, se aquela conta for a certa, mova os registros para ela em vez de separar."
+
+msgid "That is not an identifier this can split."
+msgstr "Esse não é um identificador que isto consiga separar."
+
+msgid "The account was created but the identity index refused to record what it holds, so it was removed again and nothing was changed."
+msgstr "A conta foi criada mas o índice de identidade recusou registrar o que ela carrega, então ela foi removida de novo e nada foi alterado."
+
+msgid "%1$s (#%2$d)"
+msgstr "%1$s (nº %2$d)"
+
+msgid "%s accounts share this identifier, so it is not one pair. Resolve them two at a time."
+msgstr "%s contas compartilham este identificador, então não é um par. Resolva duas de cada vez."
+
+msgid "A merge needs both accounts: the one to keep and the one whose records move."
+msgstr "Uma mesclagem precisa das duas contas: a que fica e aquela cujos registros se movem."
+
+msgid "A pair named an account that was not one of its two."
+msgstr "Um par indicou uma conta que não era uma das suas duas."
+
+msgid "Account #%d"
+msgstr "Conta nº %d"
+
+msgid "Merge"
+msgstr "Mesclar"
+
+msgid "Merge the confirmed pairs"
+msgstr "Mesclar os pares confirmados"
+
+msgid "Merge this pair"
+msgstr "Mesclar este par"
+
+msgid "No pair was confirmed, so nothing was merged."
+msgstr "Nenhum par foi confirmado, então nada foi mesclado."
+
+msgid "One identifier is stored against two logins, so one of them is not that person's. Confirm only the pairs you know are one person, and choose which login keeps the records. A merge is the one action no other can undo: afterwards nothing can tell which records came from where."
+msgstr "Um identificador está armazenado em dois logins, então um deles não é daquela pessoa. Confirme apenas os pares que você sabe serem uma pessoa só, e escolha qual login fica com os registros. A mesclagem é a única ação que nenhuma outra desfaz: depois dela nada consegue dizer de onde veio cada registro."
+
+msgid "That account holds no identifier this can read, so there is nothing to merge from it."
+msgstr "Aquela conta não carrega identificador algum que isto consiga ler, então não há o que mesclar a partir dela."
+
+msgid "The emptied logins were left in place — removing them is yours to do in Users."
+msgstr "Os logins esvaziados foram mantidos — removê-los é tarefa sua, em Usuários."
+
+msgid "The identifier"
+msgstr "O identificador"
+
+msgid "The people"
+msgstr "As pessoas"
+
+msgid "The records, the identity index and the surviving login's certificate access move together, as one transaction per pair. The emptied login is left in place — removing it is yours to do in Users, because deleting an account runs cleanup this tool does not own and cannot undo."
+msgstr "Os registros, o índice de identidade e o acesso do login sobrevivente aos certificados se movem juntos, numa transação por par. O login esvaziado é mantido — removê-lo é tarefa sua, em Usuários, porque apagar uma conta dispara uma limpeza que esta ferramenta não controla e não desfaz."
+
+msgid "The store %s refused the merge, so nothing was changed."
+msgstr "O store %s recusou a mesclagem, então nada foi alterado."
+
+msgid "Those accounts hold different values for: %s. Correct the identifier first — merging across a disagreement makes one person out of two, and nothing afterwards can tell them apart again."
+msgstr "Aquelas contas carregam valores diferentes para: %s. Corrija o identificador antes — mesclar por cima de uma divergência faz uma pessoa de duas, e nada depois consegue separá-las de novo."
+
+msgid "Those accounts share no identifier, and an absent value is not agreement. Correct an identifier first so the two agree."
+msgstr "Aquelas contas não compartilham identificador algum, e um valor ausente não é concordância. Corrija um identificador antes, para que as duas concordem."
+
+msgid "Those are the same account, so there is nothing to merge."
+msgstr "Essa é a mesma conta, então não há o que mesclar."
+
+msgid "Two Accounts Merged Into One"
+msgstr "Duas Contas Mescladas em Uma"
+
+msgid "Which login keeps the records"
+msgstr "Qual login fica com os registros"
+
+msgid "%s pair merged."
+msgid_plural "%s pairs merged."
+msgstr[0] "%s par mesclado."
+msgstr[1] "%s pares mesclados."

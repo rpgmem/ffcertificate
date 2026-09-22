@@ -18,6 +18,10 @@ namespace FreeFormCertificate\Admin;
 use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
+use FreeFormCertificate\Maintenance\IdentityMerge;
+use FreeFormCertificate\Maintenance\IdentityQueue;
+use FreeFormCertificate\Maintenance\IdentityRelink;
+use FreeFormCertificate\Maintenance\IdentitySplit;
 use FreeFormCertificate\Maintenance\IdentityRepair;
 use WP_Error;
 
@@ -83,6 +87,76 @@ class IdentityResolutionPage {
 	public const REPAIR_NONCE = 'ffc_repair_identity_';
 
 	/**
+	 * The `admin_post` action that consolidates a mechanical finding.
+	 *
+	 * Its own action rather than a mode on the repair, because the two take
+	 * different input and make different promises: a repair carries a value
+	 * somebody typed, a consolidation carries two hashes and NO value at all.
+	 * One handler taking either would have to branch on which field arrived,
+	 * and the branch that mistakes one for the other writes the wrong number.
+	 *
+	 * @since 6.28.3
+	 */
+	public const CONSOLIDATE_ACTION = 'ffc_consolidate_identity';
+
+	/**
+	 * Nonce action for a consolidation, keyed per finding.
+	 *
+	 * @since 6.28.3
+	 */
+	public const CONSOLIDATE_NONCE = 'ffc_consolidate_identity_';
+
+	/**
+	 * The `admin_post` action that moves records to another account.
+	 *
+	 * @since 6.28.3
+	 */
+	public const RELINK_ACTION = 'ffc_relink_identity';
+
+	/**
+	 * Nonce action for a relink, keyed per identifier.
+	 *
+	 * @since 6.28.3
+	 */
+	public const RELINK_NONCE = 'ffc_relink_identity_';
+
+	/**
+	 * The `admin_post` action that gives records an account of their own.
+	 *
+	 * @since 6.28.3
+	 */
+	public const SPLIT_ACTION = 'ffc_split_identity';
+
+	/**
+	 * Nonce action for a split, keyed per identifier.
+	 *
+	 * @since 6.28.3
+	 */
+	public const SPLIT_NONCE = 'ffc_split_identity_';
+
+	/**
+	 * The `admin_post` action that consolidates confirmed account pairs.
+	 *
+	 * @since 6.28.3
+	 */
+	public const MERGE_ACTION = 'ffc_merge_identities';
+
+	/**
+	 * Nonce action for the merge form.
+	 *
+	 * ONE NONCE FOR THE FORM, NOT ONE PER PAIR, BECAUSE THE FORM IS THE UNIT.
+	 *
+	 * The other verbs key their nonce per finding, so a nonce lifted from one
+	 * row cannot confirm another. A merge is confirmed pair by pair with a
+	 * checkbox, in a single submission, so the thing being authorised is the
+	 * whole ticked set — and every pair in it is re-read and re-judged on the
+	 * server anyway.
+	 *
+	 * @since 6.28.3
+	 */
+	public const MERGE_NONCE = 'ffc_merge_identities';
+
+	/**
 	 * Transient prefix carrying one outcome from the write back to the screen.
 	 *
 	 * A transient and NOT a query argument, although the audit card next door
@@ -115,6 +189,10 @@ class IdentityResolutionPage {
 	public function init(): void {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_post_' . self::REPAIR_ACTION, array( $this, 'handle_repair' ) );
+		add_action( 'admin_post_' . self::CONSOLIDATE_ACTION, array( $this, 'handle_consolidate' ) );
+		add_action( 'admin_post_' . self::RELINK_ACTION, array( $this, 'handle_relink' ) );
+		add_action( 'admin_post_' . self::SPLIT_ACTION, array( $this, 'handle_split' ) );
+		add_action( 'admin_post_' . self::MERGE_ACTION, array( $this, 'handle_merge' ) );
 	}
 
 	/**
@@ -174,14 +252,57 @@ class IdentityResolutionPage {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function queue(): array {
-		$query = $this->conflicts();
-		$out   = $query->rf_check_digit_failures( self::LIMIT );
+		$queue = $this->queues();
+		$out   = $queue->items( self::LIMIT );
 
 		// Read AFTER the scan, from the same instance: what the list does not
 		// carry is whether it is empty because the data is fine.
-		$this->coverage = $query->rf_scan_coverage();
+		$this->coverage = $queue->coverage();
 
 		return $out;
+	}
+
+	/**
+	 * The tiering, as a seam a test can replace.
+	 *
+	 * It is built around THIS screen's `conflicts()` rather than around its
+	 * own, so the one seam a test already drives still drives everything --
+	 * two seams answering the same question is how a test starts proving
+	 * something about a double nothing under test uses.
+	 *
+	 * @since 6.28.3
+	 * @return IdentityQueue
+	 */
+	protected function queues(): IdentityQueue {
+		$query = $this->conflicts();
+
+		return new class( $query ) extends IdentityQueue {
+
+			/**
+			 * The screen's query.
+			 *
+			 * @var IdentityConflictQuery
+			 */
+			private IdentityConflictQuery $query;
+
+			/**
+			 * Take the screen's query rather than build one.
+			 *
+			 * @param IdentityConflictQuery $query The screen's own query.
+			 */
+			public function __construct( IdentityConflictQuery $query ) {
+				$this->query = $query;
+			}
+
+			/**
+			 * The query this tiering reads through.
+			 *
+			 * @return IdentityConflictQuery
+			 */
+			protected function conflicts(): IdentityConflictQuery {
+				return $this->query;
+			}
+		};
 	}
 
 	/**
@@ -224,7 +345,8 @@ class IdentityResolutionPage {
 		$result = $this->repairs()->repair(
 			$subject,
 			RequestInput::get_post_string( 'ffc_rf', '' ),
-			get_current_user_id()
+			get_current_user_id(),
+			self::posted_field()
 		);
 
 		// The SERVICE owns the wording. A second copy on this side is the
@@ -240,6 +362,288 @@ class IdentityResolutionPage {
 				: array(
 					'type' => 'success',
 					'text' => __( 'Corrected. The rows, the identity index and the account\'s certificate access were updated together.', 'ffcertificate' ),
+				),
+			self::OUTCOME_TTL
+		);
+
+		wp_safe_redirect(
+			add_query_arg(
+				array( 'page' => self::MENU_SLUG ),
+				admin_url( 'edit.php?post_type=ffc_form' )
+			)
+		);
+		exit;
+	}
+
+	/**
+	 * Consolidate a mechanical finding into the account's sound identifier.
+	 *
+	 * WHAT THIS POSTS IS TWO HASHES AND NO VALUE.
+	 *
+	 * The correct number is the account's other identifier, which the service
+	 * reads in memory -- so it never reaches a form field, a POST body, a URL
+	 * or the operator's screen. That is the whole reason the mechanical tier
+	 * can be one click: there is nothing to type, because there is nothing an
+	 * operator needs to know.
+	 *
+	 * @since 6.28.3
+	 * @return void
+	 */
+	public function handle_consolidate(): void {
+		if ( ! Capabilities::current_user_can_admin_or( self::CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+
+		$wrong = RequestInput::get_post_string( 'ffc_subject', '' );
+
+		check_admin_referer( self::CONSOLIDATE_NONCE . $wrong );
+
+		$result = $this->repairs()->consolidate(
+			$wrong,
+			RequestInput::get_post_string( 'ffc_target', '' ),
+			get_current_user_id(),
+			self::posted_field()
+		);
+
+		$this->report(
+			$result,
+			__( 'Consolidated into the identifier this account already held. The rows, the identity index and the account\'s certificate access were updated together.', 'ffcertificate' )
+		);
+	}
+
+	/**
+	 * Move the records carrying one identifier to another account.
+	 *
+	 * The account is typed as a numeric id rather than picked from a list, and
+	 * that is deliberate: the operator arrives here from the audit export,
+	 * which names accounts by id and links straight to `user-edit.php`. A
+	 * picker would be a second way to say the same thing, and a wrong pick is
+	 * exactly as damaging as a wrong id.
+	 *
+	 * @since 6.28.3
+	 * @return void
+	 */
+	public function handle_relink(): void {
+		if ( ! Capabilities::current_user_can_admin_or( self::CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+
+		$subject = RequestInput::get_post_string( 'ffc_subject', '' );
+
+		check_admin_referer( self::RELINK_NONCE . $subject );
+
+		$result = $this->movements()->relink(
+			$subject,
+			(int) RequestInput::get_post_string( 'ffc_account', '0' ),
+			get_current_user_id(),
+			self::posted_field()
+		);
+
+		$this->report(
+			$result,
+			__( 'Moved. The records, the identity index and the receiving account\'s certificate access were updated together.', 'ffcertificate' )
+		);
+	}
+
+	/**
+	 * Give one identifier's records an account of their own.
+	 *
+	 * The address is asked for rather than derived, and that is decision 1 of
+	 * #1386: WordPress requires it to be unique and every production finding
+	 * reports the two identifiers sharing the address the existing account
+	 * already uses, so there is no address to inherit.
+	 *
+	 * @since 6.28.3
+	 * @return void
+	 */
+	public function handle_split(): void {
+		if ( ! Capabilities::current_user_can_admin_or( self::CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+
+		$subject = RequestInput::get_post_string( 'ffc_subject', '' );
+
+		check_admin_referer( self::SPLIT_NONCE . $subject );
+
+		$result = $this->separations()->split(
+			$subject,
+			RequestInput::get_post_string( 'ffc_email', '' ),
+			get_current_user_id(),
+			self::posted_field()
+		);
+
+		$this->report(
+			$result,
+			__( 'Split. A new account was created and those records, the identity index and the account\'s certificate access were updated together.', 'ffcertificate' )
+		);
+	}
+
+	/**
+	 * Consolidate every account pair the operator ticked.
+	 *
+	 * PAIR BY PAIR, AND THE UNTICKED ONES ARE NOT TOUCHED.
+	 *
+	 * The screen names each pair -- the people and the document -- and the
+	 * operator confirms which ones are one person (#1386, decision 3). A merge
+	 * is the one verb no other verb can undo, so it is never applied to a list
+	 * wholesale: what is written is exactly what was ticked.
+	 *
+	 * Each outcome is reported, including the refusals, because a partial
+	 * result silently presented as a whole one is how an operator comes to
+	 * believe a queue is empty.
+	 *
+	 * @since 6.28.3
+	 * @return void
+	 */
+	public function handle_merge(): void {
+		if ( ! Capabilities::current_user_can_admin_or( self::CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+
+		check_admin_referer( self::MERGE_NONCE );
+
+		$merges   = $this->mergers();
+		$actor    = get_current_user_id();
+		$done     = 0;
+		$refusals = array();
+
+		foreach ( RequestInput::get_post_array( 'ffc_pair', array() ) as $pair ) {
+			if ( ! is_array( $pair ) || empty( $pair['confirm'] ) ) {
+				continue;
+			}
+
+			$keep = isset( $pair['keep'] ) ? absint( $pair['keep'] ) : 0;
+			$a    = isset( $pair['a'] ) ? absint( $pair['a'] ) : 0;
+			$b    = isset( $pair['b'] ) ? absint( $pair['b'] ) : 0;
+
+			// The survivor must be one of the two the screen offered. A value
+			// from anywhere else would merge an account the operator never saw.
+			if ( $keep !== $a && $keep !== $b ) {
+				$refusals[] = __( 'A pair named an account that was not one of its two.', 'ffcertificate' );
+				continue;
+			}
+
+			$result = $merges->merge( $keep, $keep === $a ? $b : $a, $actor );
+
+			if ( $result instanceof WP_Error ) {
+				$refusals[] = $result->get_error_message();
+				continue;
+			}
+
+			++$done;
+		}
+
+		$this->report_merges( $done, $refusals );
+	}
+
+	/**
+	 * Say what happened to every pair, refusals included.
+	 *
+	 * @since 6.28.3
+	 * @param int                $done     How many merged.
+	 * @param array<int, string> $refusals Why the others did not.
+	 * @return void
+	 */
+	private function report_merges( int $done, array $refusals ): void {
+		if ( 0 === $done && array() === $refusals ) {
+			$this->report(
+				new WP_Error( 'ffc_identity_merge_none', __( 'No pair was confirmed, so nothing was merged.', 'ffcertificate' ) ),
+				''
+			);
+
+			return;
+		}
+
+		$merged = sprintf(
+			/* translators: %s: how many account pairs were merged. */
+			_n( '%s pair merged.', '%s pairs merged.', $done, 'ffcertificate' ),
+			number_format_i18n( $done )
+		);
+
+		if ( array() === $refusals ) {
+			$this->report(
+				array(),
+				$merged . ' ' . __( 'The emptied logins were left in place — removing them is yours to do in Users.', 'ffcertificate' )
+			);
+
+			return;
+		}
+
+		$this->report(
+			new WP_Error( 'ffc_identity_merge_partial', $merged . ' ' . implode( ' ', $refusals ) ),
+			''
+		);
+	}
+
+	/**
+	 * The merge, as a seam a test can replace.
+	 *
+	 * @since 6.28.3
+	 * @return IdentityMerge
+	 */
+	protected function mergers(): IdentityMerge {
+		return new IdentityMerge();
+	}
+
+	/**
+	 * The split, as a seam a test can replace.
+	 *
+	 * @since 6.28.3
+	 * @return IdentitySplit
+	 */
+	protected function separations(): IdentitySplit {
+		return new IdentitySplit();
+	}
+
+	/**
+	 * The relink, as a seam a test can replace.
+	 *
+	 * @since 6.28.3
+	 * @return IdentityRelink
+	 */
+	protected function movements(): IdentityRelink {
+		return new IdentityRelink();
+	}
+
+	/**
+	 * Which identifier the form named, refusing anything else.
+	 *
+	 * An unknown value falls back to the default rather than reaching the
+	 * service, which refuses it anyway -- two refusals for one mistake, and
+	 * the inner one is the load-bearing half.
+	 *
+	 * @since 6.28.3
+	 * @return string
+	 */
+	private static function posted_field(): string {
+		$field = RequestInput::get_post_string( 'ffc_field', IdentityRepair::FIELD );
+
+		return in_array( $field, IdentityRepair::FIELDS, true ) ? $field : IdentityRepair::FIELD;
+	}
+
+	/**
+	 * Carry one outcome back to the screen and return to it.
+	 *
+	 * The SERVICE owns the failure wording, for the reason `handle_repair()`
+	 * records: a second copy on this side drifts the first time one is edited
+	 * and nothing reports it.
+	 *
+	 * @since 6.28.3
+	 * @param array<string, mixed>|WP_Error $result  What the write returned.
+	 * @param string                        $success What to say when it worked.
+	 * @return void
+	 */
+	private function report( $result, string $success ): void {
+		set_transient(
+			self::OUTCOME_TRANSIENT . get_current_user_id(),
+			$result instanceof WP_Error
+				? array(
+					'type' => 'error',
+					'text' => $result->get_error_message(),
+				)
+				: array(
+					'type' => 'success',
+					'text' => $success,
 				),
 			self::OUTCOME_TTL
 		);

@@ -79,6 +79,8 @@ class IdentityRepairTest extends TestCase {
 		$this->control  = array();
 		$this->index_ok = true;
 		$this->refusing = array();
+		$this->plain    = array();
+		$this->ciphers  = array();
 
 		Functions\when( '__' )->returnArg( 1 );
 		Functions\when( 'esc_html__' )->returnArg( 1 );
@@ -100,17 +102,31 @@ class IdentityRepairTest extends TestCase {
 			}
 		);
 
-		// Every `ffc_*` table this class knows exists.
+		// Two statements reach `get_var`: the `SHOW TABLES LIKE <table>` probe,
+		// which answers with the table so every store exists, and the
+		// consolidation's ciphertext read, whose statement starts `SELECT`.
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
-			static function ( $prepared ) {
+			function ( $prepared ) {
+				$sql = (string) ( $prepared['sql'] ?? '' );
+
+				if ( 0 === strpos( $sql, 'SELECT' ) ) {
+					$hash = (string) ( $prepared['args'][3] ?? '' );
+
+					return $this->ciphers[ $hash ] ?? null;
+				}
+
 				return $prepared['args'][0] ?? null;
 			}
 		);
 
+		// `SELECT id, user_id FROM %i WHERE %i = %s` -- table, COLUMN, hash.
+		// The column is what makes the repair work over CPF as well as RF, and
+		// reading the hash from the old position silently answered every
+		// lookup with nothing, which every refusal reads as "already repaired".
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $prepared ) {
 				$table = (string) ( $prepared['args'][0] ?? '' );
-				$hash  = (string) ( $prepared['args'][1] ?? '' );
+				$hash  = (string) ( $prepared['args'][2] ?? '' );
 
 				return $this->rows[ $table ][ $hash ] ?? array();
 			}
@@ -169,10 +185,21 @@ class IdentityRepairTest extends TestCase {
 			/**
 			 * @param int    $user_id  Account.
 			 * @param string $new_hash Corrected hash.
+			 * @param string $column   Index column.
 			 * @return bool
 			 */
-			protected function reindex( int $user_id, string $new_hash ): bool {
+			protected function reindex( int $user_id, string $new_hash, string $column = 'rf_hash' ): bool {
 				return $this->test->index_accepts();
+			}
+
+			/**
+			 * Decryption without a key, so a consolidation can be driven.
+			 *
+			 * @param string $cipher Stored ciphertext.
+			 * @return string|null
+			 */
+			protected function decrypt( string $cipher ): ?string {
+				return $this->test->plaintext_of( $cipher );
 			}
 		};
 	}
@@ -184,6 +211,46 @@ class IdentityRepairTest extends TestCase {
 	 */
 	public function index_accepts(): bool {
 		return $this->index_ok;
+	}
+
+	/**
+	 * What a ciphertext decrypts to, for the consolidation seam.
+	 *
+	 * @param string $cipher Stored ciphertext.
+	 * @return string|null
+	 */
+	public function plaintext_of( string $cipher ): ?string {
+		return $this->plain[ $cipher ] ?? null;
+	}
+
+	/**
+	 * Ciphertext => plaintext, for the consolidation seam.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $plain = array();
+
+	/**
+	 * Hash => the ciphertext a store answers with.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $ciphers = array();
+
+	/**
+	 * Teach a hash which ciphertext it carries, and what that reads as.
+	 *
+	 * @param string      $hash   The stored hash.
+	 * @param string      $cipher Its ciphertext.
+	 * @param string|null $plain  What that decrypts to, or null for unreadable.
+	 * @return void
+	 */
+	private function stores_value( string $hash, string $cipher, ?string $plain ): void {
+		$this->ciphers[ $hash ] = $cipher;
+
+		if ( null !== $plain ) {
+			$this->plain[ $cipher ] = $plain;
+		}
 	}
 
 	/**
@@ -345,6 +412,264 @@ class IdentityRepairTest extends TestCase {
 		foreach ( $this->updates as $update ) {
 			$this->assertNotContains( self::GOOD_RF, array_map( 'strval', $update['data'] ), 'The plaintext RF must never reach a column.' );
 		}
+	}
+
+	// ==================================================================
+	// The collision is scoped by ACCOUNT -- #1386
+	// ==================================================================
+
+	/**
+	 * The shape every one of production's 32 typo findings has: one account,
+	 * two RFs, one of them mistyped. The corrected value is the account's
+	 * OTHER RF, so it always has rows -- which the unscoped refusal read as a
+	 * merge, and refused every case the tool exists for.
+	 */
+	public function test_it_consolidates_when_the_value_is_the_same_account_s_other_rf(): void {
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given(
+			'ffc_submissions',
+			$this->hash_of( self::GOOD_RF ),
+			array( array( 'id' => 5, 'user_id' => 398 ) )
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
+
+		$this->assertIsArray( $result, 'A typo on one account is a repair, not a merge.' );
+		$this->assertContains( 'COMMIT', $this->control );
+		$this->assertCount( 1, $this->updates );
+		$this->assertSame( array( 'rf_hash' => 'subject' ), $this->updates[0]['where'] );
+	}
+
+	/**
+	 * The refusal the scoping must NOT weaken: the value belongs to somebody
+	 * else, so writing it would put one person's identifier on another's
+	 * record -- undetectably, because the result is well-formed.
+	 */
+	public function test_it_still_refuses_when_the_value_belongs_to_another_account(): void {
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given(
+			'ffc_submissions',
+			$this->hash_of( self::GOOD_RF ),
+			array( array( 'id' => 5, 'user_id' => 513 ) )
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_collision', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates );
+	}
+
+	/**
+	 * A colliding row owned by NOBODY names no account, so it cannot be shown
+	 * to be the same person -- an unpromoted candidacy is exactly that shape.
+	 * Absence of evidence is not evidence here, so it refuses.
+	 */
+	public function test_it_refuses_when_the_colliding_rows_name_nobody(): void {
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given(
+			'ffc_recruitment_candidate',
+			$this->hash_of( self::GOOD_RF ),
+			array( array( 'id' => 5, 'user_id' => 0 ) )
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_collision', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates );
+	}
+
+	/**
+	 * A subject with no account at all cannot be shown to own the value
+	 * either, whoever the colliding rows belong to.
+	 */
+	public function test_it_refuses_to_consolidate_for_a_subject_with_no_account(): void {
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 0 ) ) );
+		$this->given(
+			'ffc_submissions',
+			$this->hash_of( self::GOOD_RF ),
+			array( array( 'id' => 5, 'user_id' => 0 ) )
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_collision', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates );
+	}
+
+	/**
+	 * `ffc_recruitment_candidate` holds each RF once (`UNIQUE KEY uq_rf_hash`),
+	 * so a consolidation with both identifiers recorded there would leave two
+	 * rows claiming one. The database would refuse it as a duplicate key,
+	 * which says nothing an operator can act on -- so this refuses first, and
+	 * says what is in the way.
+	 */
+	public function test_it_refuses_a_consolidation_the_unique_store_cannot_hold(): void {
+		$this->given( 'ffc_recruitment_candidate', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given(
+			'ffc_recruitment_candidate',
+			$this->hash_of( self::GOOD_RF ),
+			array( array( 'id' => 5, 'user_id' => 398 ) )
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_unique_store', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates, 'Nothing may be written before the store refuses.' );
+	}
+
+	/**
+	 * The same account holding the value in a store WITHOUT the unique key is
+	 * the ordinary consolidation, so the refusal above must not reach it.
+	 */
+	public function test_the_unique_store_refusal_does_not_reach_the_other_stores(): void {
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given(
+			'ffc_recruitment_candidate',
+			$this->hash_of( self::GOOD_RF ),
+			array( array( 'id' => 5, 'user_id' => 398 ) )
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
+
+		$this->assertIsArray( $result, 'Only a subject row IN the unique store can collide there.' );
+		$this->assertContains( 'COMMIT', $this->control );
+	}
+
+	// ==================================================================
+	// consolidate(), and the verbs over CPF -- #1386
+	// ==================================================================
+
+	/**
+	 * A valid CPF, by the two-check-digit rule `validate_cpf()` applies.
+	 */
+	private const GOOD_CPF = '52998224725';
+
+	/**
+	 * The mechanical case end to end: two hashes in, no value anywhere.
+	 *
+	 * The correct number is the account's other identifier, so the operator
+	 * types nothing and the screen never holds it. What proves the value did
+	 * not travel is that the test supplies it ONLY through the decryption
+	 * seam -- no argument carries it.
+	 */
+	public function test_it_consolidates_from_the_account_s_sound_identifier(): void {
+		$right = $this->hash_of( self::GOOD_RF );
+
+		$this->given( 'ffc_submissions', 'wrong', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given( 'ffc_submissions', $right, array( array( 'id' => 5, 'user_id' => 398 ) ) );
+		$this->stores_value( $right, 'cipherRight', self::GOOD_RF );
+
+		$result = $this->repair()->consolidate( 'wrong', $right );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( $right, $result['hash'], 'The rows must end on the sound identifier.' );
+		$this->assertContains( 'COMMIT', $this->control );
+		$this->assertSame( array( 'rf_hash' => 'wrong' ), $this->updates[0]['where'] );
+	}
+
+	/**
+	 * A TARGET THAT CANNOT BE READ IS NOT A TARGET.
+	 *
+	 * The queue only offers this where the value decrypted, but the queue was
+	 * built from an earlier scan and the key can change in between — the same
+	 * reason `repair()` resolves its rows at write time. Writing a guess over
+	 * the evidence is the one outcome that cannot be undone.
+	 */
+	public function test_it_refuses_to_consolidate_into_a_value_it_cannot_read(): void {
+		$right = $this->hash_of( self::GOOD_RF );
+
+		$this->given( 'ffc_submissions', 'wrong', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given( 'ffc_submissions', $right, array( array( 'id' => 5, 'user_id' => 398 ) ) );
+		$this->stores_value( $right, 'cipherRight', null );
+
+		$result = $this->repair()->consolidate( 'wrong', $right );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_consolidate_unreadable', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates );
+	}
+
+	/**
+	 * Consolidating into nothing, or into itself, writes nothing.
+	 */
+	public function test_it_refuses_a_consolidation_with_no_target(): void {
+		foreach ( array( '', 'wrong' ) as $target ) {
+			$result = $this->repair()->consolidate( 'wrong', $target );
+
+			$this->assertInstanceOf( \WP_Error::class, $result );
+			$this->assertSame( 'ffc_identity_consolidate_no_target', $result->get_error_code() );
+		}
+
+		$this->assertSame( array(), $this->updates );
+	}
+
+	/**
+	 * EVERY REFUSAL OF THE REPAIR STILL APPLIES.
+	 *
+	 * A consolidation is a repair whose value came from the account rather
+	 * than from HR, so it must not become a way around the rule that a value
+	 * belonging to somebody else is a merge.
+	 */
+	public function test_a_consolidation_does_not_bypass_the_other_account_refusal(): void {
+		$right = $this->hash_of( self::GOOD_RF );
+
+		$this->given( 'ffc_submissions', 'wrong', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given( 'ffc_submissions', $right, array( array( 'id' => 5, 'user_id' => 513 ) ) );
+		$this->stores_value( $right, 'cipherRight', self::GOOD_RF );
+
+		$result = $this->repair()->consolidate( 'wrong', $right );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_collision', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates );
+	}
+
+	/**
+	 * The same verb over CPF: the columns follow the identifier, and the rule
+	 * that says a value is well formed is `validate_cpf()`'s two check digits.
+	 */
+	public function test_it_repairs_a_cpf_through_the_cpf_columns(): void {
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_CPF, 0, 'cpf' );
+
+		$this->assertIsArray( $result );
+		$this->assertArrayHasKey( 'cpf_encrypted', $this->updates[0]['data'] );
+		$this->assertSame( array( 'cpf_hash' => 'subject' ), $this->updates[0]['where'] );
+		$this->assertNotContains(
+			self::GOOD_CPF,
+			array_map( 'strval', $this->updates[0]['data'] ),
+			'The plaintext CPF must never reach a column.'
+		);
+	}
+
+	/**
+	 * A CPF failing its check digits is refused exactly as an RF is.
+	 */
+	public function test_it_refuses_a_cpf_failing_its_check_digits(): void {
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+
+		$result = $this->repair()->repair( 'subject', '52998224724', 0, 'cpf' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_invalid', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates );
+	}
+
+	/**
+	 * An identifier this class does not handle is refused before anything is
+	 * read, rather than composing a statement against a column that may exist.
+	 */
+	public function test_it_refuses_an_identifier_it_does_not_handle(): void {
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF, 0, 'email' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_unknown_field', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates );
 	}
 
 	/**

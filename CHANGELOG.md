@@ -7,7 +7,21 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.28.2] (2026-09-22)
+## [6.28.3] (2026-09-22)
+
+### Added
+
+- **A worklist for identity conflicts, sorted by how much of the answer is already known** (#1386): one account holding two numbers where exactly one fails its check digits needs no value from anybody — the other one is the account's. Everything else is named for what it is: a decision the digits cannot make, a number on two accounts, or a lone failure no account-side finding explains. Each finding appears once, so the list can be worked to zero.
+- **Four ways to resolve one** (#1386): *consolidate* a mistyped number into the sound one the account already holds, in one click and with no value typed or shown; *move* the records carrying one identifier to the account they belong to; *split* them onto a new account, for which the operator supplies an address because there is none to inherit; and *merge* two logins that are one person, confirmed pair by pair with the people named. The emptied login is never deleted — removing it stays yours to do in Users.
+- **A rule the moving verbs share, and an absent value is not part of it** (#1386): records and account must already agree on an identifier, and where one side holds none of a kind the other has, it gains it — so an account with only a CPF ends up holding both. A second value that disagrees refuses the whole move: correcting it first is what keeps one person's record from landing under another person's login.
+- **The identity verbs cover CPF as well as RF** (#1386): the same three stores, the same index and the same transaction; only the rule that says a value is well formed differs — two check digits for CPF, one for RF.
+
+### Fixed
+
+- **The check-digit scan could never run** (#1384): its values were listed in composition order while `prepare()` substitutes in the order the placeholders appear in the SQL, so `MIN(%i)` received a store's label as an identifier and the server rejected the statement. A rejected query and a clean install both answer with no rows, so the audit reported zero failures on an install holding thousands of RFs.
+- **A repair no longer refuses the typo it exists for** (#1386): the collision refusal read "the value already exists", but in a typo the correct value *is* the account's other RF, so it always has rows — the refusal fired on every one of the 32 findings production holds. What makes a correction a merge is the value belonging to **another** account.
+
+## [6.28.2] (2026-09-22) — `115c4caf`
 
 ### Added
 

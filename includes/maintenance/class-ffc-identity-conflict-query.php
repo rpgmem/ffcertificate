@@ -829,7 +829,17 @@ class IdentityConflictQuery {
                GROUP BY p.h
                ORDER BY p.h ASC
                   LIMIT %d",
-				...array_merge( $values, array( $column, self::RF_SCAN_LIMIT ) )
+				// IN PLACEHOLDER ORDER, NEVER IN COMPOSITION ORDER
+				//
+				// `prepare()` substitutes in the order the placeholders appear
+				// in the STRING, so `$column` comes first: its `%s` is written
+				// above `FROM ({$union})` even though the union was composed
+				// first. Appending it after the union's values instead shifted
+				// every placeholder by one, `MIN(%i)` took the store's label as
+				// an identifier, and the server rejected the whole statement --
+				// which an audit read cannot see, because a rejected query and
+				// a clean install both answer with no rows (#1384).
+				...array_merge( array( $column ), $values, array( self::RF_SCAN_LIMIT ) )
 			),
 			ARRAY_A
 		);
@@ -930,6 +940,170 @@ class IdentityConflictQuery {
 	 */
 	public function rf_scan_coverage(): array {
 		return $this->rf_scan_coverage;
+	}
+
+	/**
+	 * The identifier decrypted and satisfied its own check digits.
+	 *
+	 * @since 6.28.3
+	 * @var string
+	 */
+	public const VERDICT_VALID = 'valid';
+
+	/**
+	 * The identifier decrypted and did NOT satisfy them.
+	 *
+	 * @since 6.28.3
+	 * @var string
+	 */
+	public const VERDICT_INVALID = 'invalid';
+
+	/**
+	 * The identifier was found and could not be decrypted.
+	 *
+	 * Distinct from invalid on purpose, and for the reason
+	 * `SHAPE_NOT_DECRYPTABLE` is distinct: not having read a value is not
+	 * evidence that it is wrong.
+	 *
+	 * @since 6.28.3
+	 * @var string
+	 */
+	public const VERDICT_UNREADABLE = 'unreadable';
+
+	/**
+	 * No store carries that hash with a ciphertext beside it.
+	 *
+	 * @since 6.28.3
+	 * @var string
+	 */
+	public const VERDICT_ABSENT = 'absent';
+
+	/**
+	 * Judge each of these identifiers, one verdict per hash.
+	 *
+	 * WHY THE FAILURE LIST CANNOT TIER A FINDING
+	 *
+	 * {@see self::rf_check_digit_failures()} returns FAILURES. Asking it
+	 * whether an account's other identifier is fine means reading absence from
+	 * its list as a pass -- and absence there also means the value was never
+	 * examined, because the scan is capped, because no store carries it with a
+	 * ciphertext, or because nothing decrypted. That is the #1071 / #1094 rule
+	 * exactly: an empty result must never read as clean.
+	 *
+	 * So this answers per hash, and EVERY hash asked about gets an entry.
+	 * `absent` and `unreadable` are verdicts with names rather than gaps in a
+	 * map, which is what lets a caller tier a finding honestly: one identifier
+	 * valid and one invalid is mechanical; anything else is a decision.
+	 *
+	 * Generic over the identifier from the start, because the CPF check is the
+	 * same question under a different rule -- `validate_cpf()` verifies two
+	 * check digits where `rf_check_digit_matches()` verifies one.
+	 *
+	 * @since 6.28.3
+	 * @param string             $column `cpf_hash` or `rf_hash`.
+	 * @param array<int, string> $hashes The hashes to judge.
+	 * @return array<string, string> Hash => one of the `VERDICT_*` constants.
+	 */
+	public function check_digit_verdicts( string $column, array $hashes ): array {
+		global $wpdb;
+
+		$wanted = array();
+
+		foreach ( $hashes as $hash ) {
+			$hash = trim( (string) $hash );
+
+			if ( '' !== $hash && ! in_array( $hash, $wanted, true ) ) {
+				$wanted[] = $hash;
+			}
+		}
+
+		if ( array() === $wanted || ! in_array( $column, self::COLUMNS, true ) ) {
+			return array();
+		}
+
+		// Absent until a store answers otherwise -- never a missing key.
+		$out = array_fill_keys( $wanted, self::VERDICT_ABSENT );
+
+		$cipher = self::ciphertext_column_of( $column );
+		$stores = $this->stores_for_rf_scan( $cipher );
+
+		if ( array() === $stores || '' === $cipher ) {
+			return $out;
+		}
+
+		$field  = self::field_key_of( $column );
+		$blanks = implode( ',', array_fill( 0, count( $wanted ), '%s' ) );
+
+		foreach ( $stores as $table ) {
+			// IN PLACEHOLDER ORDER, NEVER IN COMPOSITION ORDER (#1384).
+			$values = array_merge(
+				array( $column, $cipher, $table, $column ),
+				$wanted,
+				array( $column )
+			);
+
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The only interpolation is this method's own run of `%s` placeholders, one per hash; every identifier and every value travels as a placeholder. An audit read must reflect the live rows.
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT %i AS h, MIN(%i) AS c
+                       FROM %i
+                      WHERE %i IN ({$blanks})
+                   GROUP BY %i",
+					...$values
+				),
+				ARRAY_A
+			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+			foreach ( (array) $rows as $row ) {
+				$row  = (array) $row;
+				$hash = isset( $row['h'] ) && is_string( $row['h'] ) ? $row['h'] : '';
+
+				if ( '' === $hash || ! isset( $out[ $hash ] ) ) {
+					continue;
+				}
+
+				// A store that already answered VALID is not re-judged: the
+				// value is one value, and a second store holds the same hash
+				// with its own ciphertext of it.
+				if ( self::VERDICT_VALID === $out[ $hash ] || self::VERDICT_INVALID === $out[ $hash ] ) {
+					continue;
+				}
+
+				$stored = isset( $row['c'] ) && is_string( $row['c'] ) ? $row['c'] : '';
+				$plain  = '' === $stored ? null : $this->decrypt( $stored );
+
+				if ( ! is_string( $plain ) ) {
+					$out[ $hash ] = self::VERDICT_UNREADABLE;
+					continue;
+				}
+
+				$out[ $hash ] = self::satisfies_check_digits( $field, $plain )
+					? self::VERDICT_VALID
+					: self::VERDICT_INVALID;
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Whether a plaintext identifier satisfies its own check digits.
+	 *
+	 * The RF rule is read directly rather than through `validate_rf()`,
+	 * which checks the check digit only when the administrator has enabled
+	 * enforcement (#1345) -- an audit verdict must not depend on a setting
+	 * that decides what the FORM accepts.
+	 *
+	 * @since 6.28.3
+	 * @param string $field `cpf` or `rf`.
+	 * @param string $plain The identifier as stored.
+	 * @return bool
+	 */
+	private static function satisfies_check_digits( string $field, string $plain ): bool {
+		return 'cpf' === $field
+			? DocumentFormatter::validate_cpf( $plain )
+			: DocumentFormatter::rf_check_digit_matches( $plain );
 	}
 
 	/**

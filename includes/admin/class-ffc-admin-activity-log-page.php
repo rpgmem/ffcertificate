@@ -298,6 +298,9 @@ class AdminActivityLogPage {
 
 			// Identity resolution (#1368).
 			'identity_rf_repaired'                         => __( 'Stored RF Corrected', 'ffcertificate' ),
+			'identity_records_relinked'                    => __( 'Records Moved to Another Account', 'ffcertificate' ),
+			'identity_records_split'                       => __( 'Records Given Their Own Account', 'ffcertificate' ),
+			'identity_accounts_merged'                     => __( 'Two Accounts Merged Into One', 'ffcertificate' ),
 			'recruitment_classification_override_to_empty' => __( 'Classification Cleared', 'ffcertificate' ),
 			'recruitment_classification_deleted'           => __( 'Classification Deleted', 'ffcertificate' ),
 			'recruitment_adjutancy_deleted'                => __( 'Adjutancy Deleted', 'ffcertificate' ),
