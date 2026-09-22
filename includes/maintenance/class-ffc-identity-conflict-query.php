@@ -829,7 +829,17 @@ class IdentityConflictQuery {
                GROUP BY p.h
                ORDER BY p.h ASC
                   LIMIT %d",
-				...array_merge( $values, array( $column, self::RF_SCAN_LIMIT ) )
+				// IN PLACEHOLDER ORDER, NEVER IN COMPOSITION ORDER
+				//
+				// `prepare()` substitutes in the order the placeholders appear
+				// in the STRING, so `$column` comes first: its `%s` is written
+				// above `FROM ({$union})` even though the union was composed
+				// first. Appending it after the union's values instead shifted
+				// every placeholder by one, `MIN(%i)` took the store's label as
+				// an identifier, and the server rejected the whole statement --
+				// which an audit read cannot see, because a rejected query and
+				// a clean install both answer with no rows (#1384).
+				...array_merge( array( $column ), $values, array( self::RF_SCAN_LIMIT ) )
 			),
 			ARRAY_A
 		);
