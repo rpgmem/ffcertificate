@@ -61,7 +61,7 @@ class MigrationRegistryTest extends TestCase {
 		$all = $registry->get_all_migrations();
 
 		$this->assertIsArray( $all );
-		// Ten since 6.29.0: the certificate-capability backfill joined the card
+		// Ten since 6.28.2: the certificate-capability backfill joined the card
 		// list (#1345). The count is asserted as HISTORY in the comment and as
 		// a live number here on purpose -- every key below is named too, so a
 		// card arriving without a test failing is what this guards against;

@@ -88,7 +88,7 @@ class IdentityConflictQuery {
 	 * checks that walk BOTH columns: `self::COLUMNS[1]` would be a claim
 	 * about an order nothing asserts.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @var string
 	 */
 	private const COLUMN_RF_HASH = 'rf_hash';
@@ -97,7 +97,7 @@ class IdentityConflictQuery {
 	 * The count column `rf_check_digit_failures()` returns: how many stored
 	 * rows carry the value, across every store.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @var string
 	 */
 	public const ALIAS_ROW_COUNT = 'row_count';
@@ -117,7 +117,7 @@ class IdentityConflictQuery {
 	 * account at all -- an unpromoted candidacy has `user_id` NULL -- and
 	 * "which row" is then the only handle an operator has.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @var string
 	 */
 	public const COLUMN_ROW_IDS = 'row_ids';
@@ -125,7 +125,7 @@ class IdentityConflictQuery {
 	/**
 	 * Whether the row-id list above is shorter than the row count beside it.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @var string
 	 */
 	public const COLUMN_ROW_IDS_TRUNCATED = 'row_ids_truncated';
@@ -143,7 +143,7 @@ class IdentityConflictQuery {
 	 * {@see self::rf_check_digit_failures()} records why: a capped scan that
 	 * found nothing has no finding to carry a flag, and would report clean.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @var string
 	 */
 	public const COLUMN_SCAN_TRUNCATED = 'scan_truncated';
@@ -156,7 +156,7 @@ class IdentityConflictQuery {
 	 * rows, because `Encryption::encrypt()` uses a random IV and one hash
 	 * answers for every row sharing it.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @var int
 	 */
 	private const RF_SCAN_LIMIT = 20000;
@@ -168,7 +168,7 @@ class IdentityConflictQuery {
 	 * per-store chunks, and reusing it would make `submissions:1,2` and two
 	 * stores indistinguishable once joined.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @var string
 	 */
 	private const ROW_ID_SEPARATOR = ',';
@@ -176,7 +176,7 @@ class IdentityConflictQuery {
 	/**
 	 * Separator between a store's name and its row ids.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @var string
 	 */
 	private const STORE_ID_SEPARATOR = ':';
@@ -768,7 +768,7 @@ class IdentityConflictQuery {
 	 * hundred times has four hundred ciphertexts and one hash, and one
 	 * decryption answers for all of them.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @param int $limit Sample size.
 	 * @return array<int, array<string, mixed>>
 	 */
@@ -908,7 +908,7 @@ class IdentityConflictQuery {
 	 * signal IS a row for the opposite reason -- there is something to do
 	 * about it.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @var array{stores: int, examined: int, unreadable: int}
 	 */
 	private array $rf_scan_coverage = array(
@@ -925,7 +925,7 @@ class IdentityConflictQuery {
 	 * those could not be decrypted; equal to `examined` means the key does not
 	 * open this data, and an empty failure list says nothing at all.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @return array{stores: int, examined: int, unreadable: int}
 	 */
 	public function rf_scan_coverage(): array {
@@ -944,7 +944,7 @@ class IdentityConflictQuery {
 	 * Probed, never listed, for the reason {@see self::stores()} probes: a
 	 * list would be a claim about a schema this class does not own.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @param string $cipher_column Ciphertext column to require.
 	 * @return list<string>
 	 */
@@ -970,7 +970,7 @@ class IdentityConflictQuery {
 	 * account carries the RF in two stores is named twice. `DISTINCT` cannot
 	 * do it there -- it would deduplicate the LISTS, not the ids inside them.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @param mixed $related Joined account ids, as the statement returned them.
 	 * @return string
 	 */
@@ -998,7 +998,7 @@ class IdentityConflictQuery {
 	 * a different pair of columns. A partial list of rows to go and fix reads
 	 * exactly like a complete one otherwise.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @param array<string, mixed> $row One finding.
 	 * @return array<string, mixed>
 	 */
@@ -1333,7 +1333,7 @@ class IdentityConflictQuery {
 	 * one: these ids are what an operator opens, so half a list is worse
 	 * than none.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @param mixed $raw Packed value as a finding carries it.
 	 * @return array<string, list<int>>
 	 */
@@ -1379,7 +1379,7 @@ class IdentityConflictQuery {
 	 * than a defect -- a recruitment candidacy carries no `user_id` until
 	 * promotion -- so an empty list here is an answer, never a failure.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @param mixed $raw Packed value as a finding carries it.
 	 * @return list<int>
 	 */

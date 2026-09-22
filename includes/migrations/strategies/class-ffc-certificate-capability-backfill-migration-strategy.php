@@ -6,7 +6,7 @@
  * certificate submission and cannot read it.
  *
  * @package FreeFormCertificate\Migrations\Strategies
- * @since 6.29.0
+ * @since 6.28.2
  */
 
 declare(strict_types=1);
@@ -64,7 +64,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * result of that inversion either: `pending` is measured from the data, so a
  * listener that never ran shows as a number that does not move.
  *
- * @since 6.29.0
+ * @since 6.28.2
  */
 class CertificateCapabilityBackfillMigrationStrategy implements MigrationStrategyInterface {
 
@@ -159,7 +159,7 @@ class CertificateCapabilityBackfillMigrationStrategy implements MigrationStrateg
 			 * reaches is a public static one, so anything able to fire this
 			 * action could have called it directly.
 			 *
-			 * @since 6.29.0
+			 * @since 6.28.2
 			 * @param int $user_id Account that owns a certificate it cannot read.
 			 */
 			do_action( 'ffc_grant_certificate_capabilities', (int) $user_id );
@@ -226,7 +226,7 @@ class CertificateCapabilityBackfillMigrationStrategy implements MigrationStrateg
 	 * the capability without a single character of it appearing in their own
 	 * `wp_capabilities` meta.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @return array<int, string>
 	 */
 	private static function roles_granting_gate(): array {

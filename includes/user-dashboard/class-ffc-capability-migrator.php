@@ -887,7 +887,7 @@ class CapabilityMigrator {
 	 * granting `ffc_manage_identities` alone, without handing them delete-all
 	 * and the cleanups.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @return array<string, array<int, string>>
 	 */
 	public static function identities_cap_grant_map(): array {
@@ -905,7 +905,7 @@ class CapabilityMigrator {
 	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
 	 * `plugins_loaded`, flagged by the `ffc_identities_cap_v1` option.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @return array<string, int> Per-target-cap count of users seeded.
 	 */
 	public static function migrate_identities_cap_grant(): array {
@@ -933,7 +933,7 @@ class CapabilityMigrator {
 	 * only an EXPLICIT `true` grant of the source seeds it -- a `false` entry
 	 * is a deliberate denial and must not be read as a holder.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @param array<string, array<int, string>> $map Source cap => target caps.
 	 * @return array<string, int> Per-target count of users seeded.
 	 */
