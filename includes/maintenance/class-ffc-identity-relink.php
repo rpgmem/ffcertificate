@@ -421,8 +421,17 @@ class IdentityRelink {
 	/**
 	 * Add one row's identifier hashes to a per-field register, without repeats.
 	 *
+	 * IT TAKES ANY ROW, AND THAT IS THE HONEST SIGNATURE.
+	 *
+	 * A row arrives from `$wpdb` as `mixed` and reaches this as a plain array,
+	 * so requiring `array<string, mixed>` claimed a key type nothing proves --
+	 * which level 9 reports, correctly, at the one call site that passes a
+	 * `get_row()` result straight through. The method already reads
+	 * defensively: it asks for the two keys it knows and ignores everything
+	 * else, so what it needs is a row, not a shape.
+	 *
 	 * @param array<string, array<int, string>> $into The register.
-	 * @param array<string, mixed>              $row  The row.
+	 * @param array<mixed, mixed>               $row  The row, however it arrived.
 	 * @return void
 	 */
 	private static function collect( array &$into, array $row ): void {
