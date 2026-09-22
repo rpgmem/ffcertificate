@@ -1188,6 +1188,65 @@ class IdentityConflictQueryTest extends TestCase {
 		$this->assertSame( 'rf_hash', $rows[0]['identifier_column'] );
 	}
 
+	/**
+	 * `prepare()` substitutes in the order the placeholders appear IN THE SQL,
+	 * so the values must be listed in that order and not in the order the
+	 * statement was composed. The outer `%s AS identifier_column` is written
+	 * before `FROM ({$union})` while its value was appended after the union's,
+	 * which shifted every placeholder by one: `MIN(%i)` received the store's
+	 * LABEL as an identifier, the server rejected the statement, and
+	 * `get_results()` answered empty -- so the scan reported no RF to look at
+	 * on an install holding thousands (#1384).
+	 *
+	 * It asserts on the STATEMENT because nothing downstream can see this: the
+	 * `get_results` double dispatches on a substring that the misaligned SQL
+	 * still contains, so every behavioural test above stayed green while the
+	 * query could not run at all.
+	 */
+	public function test_every_identifier_placeholder_receives_the_name_it_names(): void {
+		$sql = '';
+
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $query ) use ( &$sql ) {
+				$statement = (string) $query;
+
+				if ( false !== strpos( $statement, 'identifier_column' ) ) {
+					$sql = $statement;
+				}
+
+				return array();
+			}
+		);
+
+		$this->query_reading( array() )->rf_check_digit_failures( 50 );
+
+		$this->assertNotSame( '', $sql, 'The scan composed no statement to inspect.' );
+
+		$this->assertStringContainsString(
+			'rf_hash AS h',
+			$sql,
+			'The union must group by the hash column: ' . $sql
+		);
+
+		$this->assertStringContainsString(
+			'MIN(rf_encrypted) AS c',
+			$sql,
+			'The union must read the ciphertext column, not the store label: ' . $sql
+		);
+
+		$this->assertStringContainsString(
+			'FROM wp_ffc_submissions',
+			$sql,
+			'The union must read FROM the table, not from a column: ' . $sql
+		);
+
+		$this->assertStringContainsString(
+			'rf_hash AS identifier_column',
+			$sql,
+			'The outer select must still name the column it scanned: ' . $sql
+		);
+	}
+
 	public function test_a_consistent_rf_is_not_reported(): void {
 		$this->assertSame(
 			array(),

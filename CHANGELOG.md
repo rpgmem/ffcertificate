@@ -7,7 +7,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.28.2] (2026-09-22)
+### Fixed
+
+- **The check-digit scan could never run** (#1384): its values were listed in composition order while `prepare()` substitutes in the order the placeholders appear in the SQL, so `MIN(%i)` received a store's label as an identifier and the server rejected the statement. A rejected query and a clean install both answer with no rows, so the audit reported zero failures on an install holding thousands of RFs.
+
+## [6.28.2] (2026-09-22) — `115c4caf`
 
 ### Added
 
