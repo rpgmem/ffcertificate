@@ -274,50 +274,7 @@ class CapabilityMigrator {
 	 * @return array<string, int> Per-sub-cap count of users seeded.
 	 */
 	public static function migrate_settings_split_caps_grant(): array {
-		$map    = self::settings_split_cap_grant_map();
-		$counts = array();
-
-		// 1. User-meta grants.
-		$users = self::users_with_ffc_grants();
-		foreach ( $map as $source => $targets ) {
-			foreach ( $targets as $target ) {
-				if ( ! isset( $counts[ $target ] ) ) {
-					$counts[ $target ] = 0;
-				}
-				foreach ( $users as $user_id ) {
-					$user = get_userdata( (int) $user_id );
-					if ( ! $user ) {
-						continue;
-					}
-					// Seed only where the source cap is an explicit grant and the
-					// sub-cap isn't already present (idempotent).
-					if ( isset( $user->caps[ $source ] ) && true === $user->caps[ $source ]
-						&& ! isset( $user->caps[ $target ] ) ) {
-						$user->add_cap( $target, true );
-						++$counts[ $target ];
-					}
-				}
-			}
-		}
-
-		// 2. Role definitions — administrator + every FFC/custom role.
-		$wp_roles = wp_roles();
-		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
-			$role = get_role( $role_slug );
-			if ( ! $role ) {
-				continue;
-			}
-			foreach ( $map as $source => $targets ) {
-				foreach ( $targets as $target ) {
-					if ( isset( $role->capabilities[ $source ] ) && true === $role->capabilities[ $source ]
-						&& ! isset( $role->capabilities[ $target ] ) ) {
-						$role->add_cap( $target, true );
-					}
-				}
-			}
-		}
-
-		return $counts;
+		return self::seed_caps( self::settings_split_cap_grant_map() );
 	}
 
 	/**
@@ -354,48 +311,7 @@ class CapabilityMigrator {
 	 * @return array<string, int> Per-target-cap count of users seeded.
 	 */
 	public static function migrate_email_templates_cap_grant(): array {
-		$map    = self::email_templates_cap_grant_map();
-		$counts = array();
-
-		// 1. User-meta grants.
-		$users = self::users_with_ffc_grants();
-		foreach ( $map as $source => $targets ) {
-			foreach ( $targets as $target ) {
-				if ( ! isset( $counts[ $target ] ) ) {
-					$counts[ $target ] = 0;
-				}
-				foreach ( $users as $user_id ) {
-					$user = get_userdata( (int) $user_id );
-					if ( ! $user ) {
-						continue;
-					}
-					if ( isset( $user->caps[ $source ] ) && true === $user->caps[ $source ]
-						&& ! isset( $user->caps[ $target ] ) ) {
-						$user->add_cap( $target, true );
-						++$counts[ $target ];
-					}
-				}
-			}
-		}
-
-		// 2. Role definitions — administrator + every FFC/custom role.
-		$wp_roles = wp_roles();
-		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
-			$role = get_role( $role_slug );
-			if ( ! $role ) {
-				continue;
-			}
-			foreach ( $map as $source => $targets ) {
-				foreach ( $targets as $target ) {
-					if ( isset( $role->capabilities[ $source ] ) && true === $role->capabilities[ $source ]
-						&& ! isset( $role->capabilities[ $target ] ) ) {
-						$role->add_cap( $target, true );
-					}
-				}
-			}
-		}
-
-		return $counts;
+		return self::seed_caps( self::email_templates_cap_grant_map() );
 	}
 
 	/**
@@ -953,6 +869,113 @@ class CapabilityMigrator {
 				}
 			}
 			remove_role( $old );
+		}
+
+		return $counts;
+	}
+
+	/**
+	 * Map of the source cap => the identity-resolution cap it seeds (#1368).
+	 *
+	 * Seeded from `ffc_manage_settings_dangerzone` rather than from the
+	 * blanket `ffc_manage_settings`, because that is who can run the
+	 * destructive maintenance today -- so nobody loses an ability they
+	 * already had, and nobody gains one they did not.
+	 *
+	 * The point of the new cap is what happens AFTER this runs: the identity
+	 * queue can then be delegated to whoever does the HR round-trips by
+	 * granting `ffc_manage_identities` alone, without handing them delete-all
+	 * and the cleanups.
+	 *
+	 * @since 6.28.2
+	 * @return array<string, array<int, string>>
+	 */
+	public static function identities_cap_grant_map(): array {
+		return array(
+			'ffc_manage_settings_dangerzone' => array(
+				'ffc_manage_identities',
+			),
+		);
+	}
+
+	/**
+	 * Idempotent migration seeding `ffc_manage_identities` onto every user and
+	 * role already holding `ffc_manage_settings_dangerzone`.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_identities_cap_v1` option.
+	 *
+	 * @since 6.28.2
+	 * @return array<string, int> Per-target-cap count of users seeded.
+	 */
+	public static function migrate_identities_cap_grant(): array {
+		return self::seed_caps( self::identities_cap_grant_map() );
+	}
+
+	/**
+	 * Seed every target capability onto whoever already holds its source.
+	 *
+	 * ONE BODY, BECAUSE THERE WERE ALREADY TWO IDENTICAL ONES
+	 *
+	 * The settings-split and email-template grants were byte-identical apart
+	 * from the map they read, and #1368 would have added a third copy. Three
+	 * identical bodies is the recurring, reader-facing kind of duplication
+	 * `CLAUDE.md` says consistency should win over leaving alone -- and a
+	 * later fix applied to one copy and not the others is the defect this
+	 * removes by construction.
+	 *
+	 * The `export_cap_grant_map()` family is deliberately NOT routed through
+	 * here: it is shaped `source => target` rather than `source => targets[]`,
+	 * so folding it in would mean a shape check inside the loop to serve one
+	 * caller.
+	 *
+	 * Idempotent on both halves: a target already present is skipped, and
+	 * only an EXPLICIT `true` grant of the source seeds it -- a `false` entry
+	 * is a deliberate denial and must not be read as a holder.
+	 *
+	 * @since 6.28.2
+	 * @param array<string, array<int, string>> $map Source cap => target caps.
+	 * @return array<string, int> Per-target count of users seeded.
+	 */
+	private static function seed_caps( array $map ): array {
+		$counts = array();
+
+		// 1. User-meta grants.
+		$users = self::users_with_ffc_grants();
+		foreach ( $map as $source => $targets ) {
+			foreach ( $targets as $target ) {
+				if ( ! isset( $counts[ $target ] ) ) {
+					$counts[ $target ] = 0;
+				}
+				foreach ( $users as $user_id ) {
+					$user = get_userdata( (int) $user_id );
+					if ( ! $user ) {
+						continue;
+					}
+					if ( isset( $user->caps[ $source ] ) && true === $user->caps[ $source ]
+						&& ! isset( $user->caps[ $target ] ) ) {
+						$user->add_cap( $target, true );
+						++$counts[ $target ];
+					}
+				}
+			}
+		}
+
+		// 2. Role definitions — administrator + every FFC/custom role.
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $map as $source => $targets ) {
+				foreach ( $targets as $target ) {
+					if ( isset( $role->capabilities[ $source ] ) && true === $role->capabilities[ $source ]
+						&& ! isset( $role->capabilities[ $target ] ) ) {
+						$role->add_cap( $target, true );
+					}
+				}
+			}
 		}
 
 		return $counts;

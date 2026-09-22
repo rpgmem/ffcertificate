@@ -293,7 +293,7 @@ class UserCreator {
 		$submissions_table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where built from hard-coded fragments above with matching placeholder count.
-		$wpdb->query(
+		$linked_submissions = $wpdb->query(
 			$wpdb->prepare(
 				"UPDATE %i SET user_id = %d WHERE ({$where}) AND user_id IS NULL",
 				$submissions_table,
@@ -301,6 +301,31 @@ class UserCreator {
 			)
 		);
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		// ADOPTING A RECORD HAS TO GRANT THE CAP THAT READS IT
+		//
+		// The appointment half below has always done this and this half never
+		// did, in the same method -- so a person whose account was created by
+		// a non-certificate path (a promoted candidacy and a reregistration
+		// import both grant NOTHING by deliberate decision, and an
+		// appointment grants only its own caps) had their old submissions
+		// claimed here and no capability to see them.
+		//
+		// The dashboard then closes twice over: `canViewCertificates` hides
+		// the tab client-side and `UserCertificatesRestController` answers
+		// 403, so the certificates exist, are linked, and are unreachable.
+		// Measured on production: an affected account held
+		// `a:1:{s:12:"ffc_end_user";b:1;}` -- the role and not one FFC cap --
+		// beside two linked submissions.
+		//
+		// The defect is a coupling error, not a missing call: the capability
+		// came from the path that created the ACCOUNT while ownership comes
+		// from the ROW's `user_id`, and adoption moves the second without
+		// touching the first. Granting on what was actually claimed is what
+		// ties them back together (#1345).
+		if ( is_numeric( $linked_submissions ) && (int) $linked_submissions > 0 ) {
+			CapabilityManager::grant_certificate_capabilities( $user_id );
+		}
 
 		// Appointments link via the existing per-column repository call
 		// so the surrounding capability-grant logic stays in one place.

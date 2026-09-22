@@ -723,6 +723,58 @@ msgstr "50 px – 1000 px (recomendado: 100–500)"
 msgid "6"
 msgstr "6"
 
+#: includes/migrations/strategies/class-ffc-certificate-capability-backfill-migration-strategy.php:136
+msgid "Accounts that can now read the certificates they own: %d"
+msgstr "Contas que agora conseguem ler os certificados que possuem: %d"
+
+#: includes/settings/views/ffc-tab-general.php:262
+msgid "An RF carries a check digit, and the form has never verified it — which is why a mistyped RF reaches storage where a mistyped CPF does not. Off by default, because the rule was derived from the identifiers this install already holds rather than read from an official specification: turning it on could refuse a number that is genuinely unusual, and a person blocked from registering costs more than a typo the audit finds later. Before turning it on, run the identity audit (Settings → Migrations) and read how many stored RFs it reports as failing — that count is what enforcement would have rejected."
+msgstr "O RF tem um dígito verificador, e o formulário nunca o conferiu — por isso um RF digitado errado chega ao banco enquanto um CPF errado não chega. Desligado por padrão, porque a regra foi derivada dos identificadores que esta instalação já possui e não lida de uma especificação oficial: ligá-la pode recusar um número genuinamente incomum, e uma pessoa impedida de se cadastrar custa mais do que um erro de digitação que a auditoria encontra depois. Antes de ligar, rode a auditoria de identidade (Configurações → Migrações) e veja quantos RFs armazenados ela reporta como inconsistentes — essa contagem é o que a exigência teria recusado."
+
+#: includes/migrations/class-ffc-migration-registry.php:123
+msgid "Grant the certificate capabilities to every account that owns a certificate and cannot open it. The permission used to come from whichever path created the account, while ownership comes from the record itself — so a person whose old submissions were claimed after their account was created by a candidacy, a reregistration import or an appointment ended up holding certificates the dashboard refused to show them. Measures the remaining accounts on every read, so running it again once it reports zero does nothing."
+msgstr "Concede as permissões de certificado a toda conta que possui um certificado e não consegue abri-lo. A permissão vinha do caminho que criou a conta, enquanto a posse vem do próprio registro — então quem teve submissões antigas reivindicadas depois de a conta ter sido criada por uma candidatura, uma importação de recadastramento ou um agendamento ficou com certificados que o painel se recusava a mostrar. Mede as contas restantes a cada leitura, então rodar de novo depois que reportar zero não faz nada."
+
+#: includes/settings/views/documentation/developer-hooks-api.php:66
+msgid "Per account repaired by the \"Restore Access to Owned Certificates\" migration — args ( user_id ). An action rather than a direct call because the migration and the capability owner are in modules that would otherwise depend on each other."
+msgstr "Por conta reparada pela migração \"Restaurar acesso aos certificados do próprio titular\" — args ( user_id ). Uma ação em vez de chamada direta porque a migração e o dono da permissão estão em módulos que senão dependeriam um do outro."
+
+#: includes/settings/views/ffc-tab-general.php:248
+msgid "RF check digit"
+msgstr "Dígito verificador do RF"
+
+#: includes/settings/views/ffc-tab-general.php:257
+msgid "Reject an RF whose check digit does not match"
+msgstr "Recusar RF cujo dígito verificador não confere"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:411
+msgid "Resolve identity conflicts"
+msgstr "Resolver conflitos de identidade"
+
+#: includes/migrations/class-ffc-migration-registry.php:122
+msgid "Restore Access to Owned Certificates"
+msgstr "Restaurar acesso aos certificados do próprio titular"
+
+#: includes/maintenance/class-ffc-identity-audit-export-source.php:416
+msgid "INCOMPLETE: the database truncated this row's id list, so it names fewer rows than the count beside it."
+msgstr "INCOMPLETO: o banco truncou a lista de ids desta linha, então ela nomeia menos linhas do que a contagem ao lado."
+
+#: includes/maintenance/class-ffc-identity-audit-export-source.php:420
+msgid "INCOMPLETE: the scan reached its cap, so identifiers exist that were never examined."
+msgstr "INCOMPLETO: a varredura atingiu seu limite, então existem identificadores que nunca foram examinados."
+
+#: includes/settings/views/ffc-tab-migrations.php:931
+msgid "Report-only scan of how people are linked to WordPress users — across certificate submissions, appointments, recruitment candidacies and the identity index. Nothing is changed: review each finding and fix it manually. Detection groups by the stored CPF/RF hashes; the columns that classify a difference decrypt in memory and report a category only — never a value, and nothing is written."
+msgstr "Varredura somente de leitura de como as pessoas estão vinculadas a usuários do WordPress — entre submissões de certificado, agendamentos, candidaturas e o índice de identidade. Nada é alterado: revise cada achado e corrija manualmente. A detecção agrupa pelos hashes de CPF/RF armazenados; as colunas que classificam uma diferença decifram em memória e reportam apenas uma categoria — nunca um valor, e nada é gravado."
+
+#: includes/settings/views/ffc-tab-migrations.php:921
+msgid "Stored RF whose check digit does not match"
+msgstr "RF armazenado cujo dígito verificador não confere"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:412
+msgid "Work the identity queue: correct a stored CPF/RF, split an account holding two people, merge two accounts holding one. Does not reveal a stored identifier — that stays with the PII capability."
+msgstr "Trabalhar a fila de identidade: corrigir um CPF/RF armazenado, separar uma conta que contém duas pessoas, mesclar duas contas que contêm uma. Não revela identificador armazenado — isso continua com a permissão de PII."
+
 #. 1: Environment name, 2: Date
 #: includes/audience/class-ffc-audience-notification-handler.php:434
 #, php-format
@@ -12855,6 +12907,10 @@ msgstr "Operador — Senha de Aplicativo + ffc_manage_certificates (o caminho do
 msgid "Opt in (off by default) to log where the legacy and secure IP strategies diverge, to validate a switch before flipping."
 msgstr "Opte por ativar (desativado por padrão) o registro de onde as estratégias de IP legadas e seguras divergem, para validar uma mudança antes de efetivá-la."
 
+#: includes/settings/views/documentation/developer-hooks-api.php:42
+msgid "Opt in (off by default) to make validate_rf() also require the RF check digit, rejecting a mistyped number at the form instead of storing it."
+msgstr "Opte por ativar (desativado por padrão) para que validate_rf() também exija o dígito verificador do RF, rejeitando um número digitado errado no formulário em vez de armazená-lo."
+
 #: includes/settings/views/documentation/reference-shortcodes.php:46 includes/settings/views/documentation/reference-shortcodes.php:79
 msgid "Optional attribute:"
 msgstr "Atributo opcional:"
@@ -21991,10 +22047,6 @@ msgstr "Identificador vinculado ausente do índice de identidade"
 msgid "No link problems found: no identifier is held by two accounts, no account holds two identifiers, and the identity index carries every identifier already linked to a user."
 msgstr "Nenhum problema de vínculo encontrado: nenhum identificador está em duas contas, nenhuma conta tem dois identificadores, e o índice de identidade carrega todo identificador já vinculado a um usuário."
 
-#: includes/settings/views/ffc-tab-migrations.php
-msgid "Report-only scan of how people are linked to WordPress users — across certificate submissions, appointments, recruitment candidacies and the identity index. Nothing is changed: review each finding and fix it manually. Detection uses the stored CPF/RF hashes, so no decryption is involved."
-msgstr "Varredura somente de leitura de como as pessoas estão vinculadas a usuários do WordPress — em submissões de certificado, agendamentos, candidaturas de recrutamento e no índice de identidade. Nada é alterado: revise cada achado e corrija manualmente. A detecção usa os hashes de CPF/RF armazenados, então não há descriptografia envolvida."
-
 #: includes/maintenance/class-ffc-submission-link-auditor.php
 msgid "Report-only scan of how people are linked to WordPress users. Four checks over certificate submissions: links to deleted users, one user bound to multiple CPF/RF identities, unlinked submissions whose CPF matches a linked one, and a single CPF shared across multiple users. Three more across every store — submissions, appointments, recruitment candidacies and the identity index — reporting one identifier held by two accounts, one account holding two identifiers, and identifiers the index does not yet carry. Nothing is changed: review and fix each case manually."
 msgstr "Varredura somente de leitura de como as pessoas estão vinculadas a usuários do WordPress. Quatro verificações sobre submissões de certificado: vínculos com usuários excluídos, um usuário ligado a múltiplas identidades de CPF/RF, submissões sem vínculo cujo CPF corresponde a uma vinculada, e um mesmo CPF compartilhado entre vários usuários. Mais três sobre todos os armazenamentos — submissões, agendamentos, candidaturas de recrutamento e o índice de identidade — reportando um identificador em duas contas, uma conta com dois identificadores, e identificadores que o índice ainda não carrega. Nada é alterado: revise e corrija cada caso manualmente."
@@ -22074,3 +22126,92 @@ msgstr "CHAVES ESTRANGEIRAS: todas as %d restrições de user_id estão instalad
 #: includes/maintenance/class-ffc-identity-audit-export-source.php:468
 msgid "FOREIGN KEYS: only %1$d of %2$d user_id constraints are installed (%3$s), so a missing account above is NOT necessarily a recruitment candidacy — the database is not enforcing the link on every table it should. Run the foreign-key migration before reading these statuses."
 msgstr "CHAVES ESTRANGEIRAS: apenas %1$d de %2$d restrições de user_id estão instaladas (%3$s), então uma conta ausente acima NÃO é necessariamente uma candidatura de recrutamento — o banco não está garantindo o vínculo em toda tabela em que deveria. Rode a migração de chaves estrangeiras antes de ler esses status."
+
+msgid "Identity Resolution"
+msgstr "Resolução de identidade"
+
+msgid "Identities"
+msgstr "Identidades"
+
+msgid "Stored RF numbers whose own check digit does not match, so the value cannot be anybody's: it was mistyped on the way in. The digit says a number is wrong, never what the right one is — each row is a question for HR, answered one at a time. Grouping is by the stored hash; the digit is checked in memory and only a verdict leaves the scan, never a value."
+msgstr "RFs armazenados cujo próprio dígito verificador não confere, então o valor não pode ser de ninguém: foi digitado errado na entrada. O dígito diz que um número está errado, nunca qual é o certo — cada linha é uma pergunta para o RH, respondida uma de cada vez. O agrupamento é pelo hash armazenado; o dígito é conferido em memória e só um veredito sai da varredura, nunca um valor."
+
+msgid "The scan reached its cap before reading every stored value, so this list is partial. Work it down and run the screen again."
+msgstr "A varredura atingiu seu limite antes de ler todos os valores armazenados, então esta lista está parcial. Reduza a fila e abra a tela de novo."
+
+
+msgid "Rows"
+msgstr "Linhas"
+
+msgid "Which rows"
+msgstr "Quais linhas"
+
+msgid "No account"
+msgstr "Sem conta"
+
+msgid "Too many rows to list."
+msgstr "Linhas demais para listar."
+
+
+msgid "Corrected. The rows, the identity index and the account's certificate access were updated together."
+msgstr "Corrigido. As linhas, o índice de identidade e o acesso aos certificados da conta foram atualizados juntos."
+
+msgid "Correct it"
+msgstr "Corrigir"
+
+msgid "Names more than one account — the same wrong number was typed by more than one person, so one corrected value cannot serve it."
+msgstr "Nomeia mais de uma conta — o mesmo número errado foi digitado por mais de uma pessoa, então um único valor corrigido não serve."
+
+msgid "Corrected RF"
+msgstr "RF corrigido"
+
+msgid "7 digits"
+msgstr "7 dígitos"
+
+msgid "Correct"
+msgstr "Corrigir"
+
+msgid "A row naming no account is ordinary rather than an error: a recruitment candidacy carries no WordPress user until it is promoted, so its row ids are the only handle on it. Confirm the corrected number with HR before entering it: the check digit says a number is wrong, never what the right one is."
+msgstr "Uma linha que não nomeia conta é comum, não um erro: uma candidatura de recrutamento não tem usuário do WordPress até ser promovida, então os ids das linhas são o único acesso a ela. Confirme o número corrigido com o RH antes de digitá-lo: o dígito verificador diz que um número está errado, nunca qual é o certo."
+
+msgid "No finding was named."
+msgstr "Nenhum achado foi indicado."
+
+msgid "That number does not satisfy the RF check digit, so it cannot be the corrected value either. Confirm it with HR."
+msgstr "Esse número não satisfaz o dígito verificador do RF, então também não pode ser o valor corrigido. Confirme com o RH."
+
+msgid "Encryption is not configured, so an identifier cannot be rewritten."
+msgstr "A criptografia não está configurada, então um identificador não pode ser reescrito."
+
+msgid "The value stored is already the one you confirmed."
+msgstr "O valor armazenado já é o que você confirmou."
+
+msgid "Nothing carries that value any more — it was repaired already. Reload the queue."
+msgstr "Nada mais carrega esse valor — ele já foi reparado. Recarregue a fila."
+
+msgid "This finding names %d accounts, so one corrected value cannot serve it: the same wrong number was typed by more than one person. Resolve them separately."
+msgstr "Este achado nomeia %d contas, então um único valor corrigido não serve: o mesmo número errado foi digitado por mais de uma pessoa. Resolva uma de cada vez."
+
+msgid "That value is already stored against other records, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision."
+msgstr "Esse valor já está armazenado em outros registros, então corrigir este mesclaria duas identidades em vez de consertar um erro de digitação. Mesclar é uma decisão separada."
+
+msgid "The store %s refused the write, so nothing was changed."
+msgstr "O store %s recusou a escrita, então nada foi alterado."
+
+msgid "The rows were rewritten but the identity index refused the same value, so nothing was changed. The two must never disagree."
+msgstr "As linhas foram reescritas mas o índice de identidade recusou o mesmo valor, então nada foi alterado. Os dois nunca podem divergir."
+
+msgid "Stored RF Corrected"
+msgstr "RF armazenado corrigido"
+
+msgid "Nothing was scanned: no store on this install carries an RF in a form this check can read, which needs the hash, the ciphertext and a row id on the same table. This is not a clean result."
+msgstr "Nada foi varrido: nenhum store desta instalação guarda um RF numa forma que esta checagem consiga ler, o que exige o hash, o ciphertext e um id de linha na mesma tabela. Isto não é um resultado limpo."
+
+msgid "Found %s stored values and could not read any of them, so nothing was checked. That is what an encryption key which does not match this data looks like — this is not a clean result."
+msgstr "Foram encontrados %s valores armazenados e nenhum deles pôde ser lido, então nada foi checado. É assim que se parece uma chave de criptografia que não corresponde a estes dados — isto não é um resultado limpo."
+
+msgid "Nothing to resolve: %1$s stored values checked and every one satisfies its check digit. %2$s could not be read and were not checked."
+msgstr "Nada a resolver: %1$s valores armazenados checados e todos satisfazem seu dígito verificador. %2$s não puderam ser lidos e não foram checados."
+
+msgid "No stored RF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured an RF yet — worth looking into on one that has."
+msgstr "Nenhum RF armazenado foi encontrado: nenhum dos %s stores varridos tem uma linha com hash e ciphertext ao mesmo tempo, então não havia o que checar. Comum numa instalação que ainda não capturou nenhum RF — merece investigação numa que já capturou."

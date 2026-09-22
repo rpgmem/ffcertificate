@@ -101,6 +101,7 @@ class AdminPageScopeTest extends TestCase {
 		'ffc-page-custom-fields'          => 'ffc-custom-fields',
 		'ffc-page-appointments'           => 'ffc-appointments',
 		'ffc-page-short-urls'             => 'ffc-short-urls',
+		'ffc-page-identities'             => 'ffc-identities',
 	);
 
 	/**

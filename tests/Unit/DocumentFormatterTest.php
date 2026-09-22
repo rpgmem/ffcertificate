@@ -27,6 +27,14 @@ class DocumentFormatterTest extends TestCase {
 		Functions\when('is_email')->alias(function ($email) {
 			return strpos($email, '@') !== false;
 		});
+
+		// `validate_rf()` reads `ffc_settings` for the check-digit switch, and
+		// `SettingsReader::all()` calls `get_option()` with no defensive
+		// guard. Stubbed HERE, explicitly, rather than left to whichever
+		// earlier test happened to teach Patchwork the function: that is what
+		// makes the branch CHOSEN instead of inherited, and an empty array is
+		// the honest default -- a fresh install with the toggle off.
+		Functions\when('get_option')->justReturn(array());
 	}
 
 	protected function tearDown(): void {
@@ -122,6 +130,183 @@ class DocumentFormatterTest extends TestCase {
 			'letters only'           => ['ABCDEFG'],
 			'mixed letters digits'   => ['12345AB'],
 		];
+	}
+
+	// ==================================================================
+	// rf_check_digit
+	// ==================================================================
+
+	/**
+	 * Pins the whole residue -> digit table, one case per residue.
+	 *
+	 * The rule is `dv = (11 - r) mod 10`, and the second modulus is the part
+	 * that cannot be inferred from a handful of examples: it sends `r = 1` to
+	 * 0 rather than to the impossible 10, and it makes `r = 0` and `r = 10`
+	 * BOTH produce 1. Eleven cases rather than a spot check, because a wrong
+	 * formula agrees with the right one on most residues -- the production
+	 * base and the independent list behind #1345 both exercise all eleven for
+	 * the same reason.
+	 *
+	 * The bodies are synthetic. No RF from any install appears here.
+	 *
+	 * @dataProvider rf_residue_provider
+	 */
+	public function test_rf_check_digit_pins_the_eleven_residue_table(string $body, int $expected): void {
+		$this->assertSame(
+			$expected,
+			DocumentFormatter::rf_check_digit($body . '0'),
+			'The check digit for a body whose weighted sum has this residue.'
+		);
+	}
+
+	public static function rf_residue_provider(): array {
+		return [
+			'r=0  -> 1 (collides with r=10)' => ['100002', 1],
+			'r=1  -> 0 (never the 10 that 11-r would give)' => ['100008', 0],
+			'r=2  -> 9'                      => ['100003', 9],
+			'r=3  -> 8'                      => ['100009', 8],
+			'r=4  -> 7'                      => ['100004', 7],
+			'r=5  -> 6'                      => ['100013', 6],
+			'r=6  -> 5'                      => ['100005', 5],
+			'r=7  -> 4'                      => ['100000', 4],
+			'r=8  -> 3'                      => ['100006', 3],
+			'r=9  -> 2'                      => ['100001', 2],
+			'r=10 -> 1 (collides with r=0)'  => ['100007', 1],
+		];
+	}
+
+	/**
+	 * The two residues that collapse onto the same digit are the rule's one
+	 * blind spot, and it is asserted rather than described: a body error that
+	 * moves the residue between 0 and 10 is undetectable by this check.
+	 */
+	public function test_the_check_digit_cannot_separate_residue_zero_from_residue_ten(): void {
+		$this->assertSame(1, DocumentFormatter::rf_check_digit('1000020'));
+		$this->assertSame(1, DocumentFormatter::rf_check_digit('1000070'));
+	}
+
+	public function test_rf_check_digit_ignores_formatting(): void {
+		$this->assertSame(
+			DocumentFormatter::rf_check_digit('1000021'),
+			DocumentFormatter::rf_check_digit('100.002-1')
+		);
+	}
+
+	/**
+	 * @dataProvider not_an_rf_provider
+	 */
+	public function test_rf_check_digit_is_null_when_there_is_no_rf_to_read(string $value): void {
+		$this->assertNull(DocumentFormatter::rf_check_digit($value));
+	}
+
+	public static function not_an_rf_provider(): array {
+		return [
+			'six digits'   => ['123456'],
+			'eight digits' => ['12345678'],
+			'empty string' => [''],
+			'letters only' => ['ABCDEFG'],
+		];
+	}
+
+	// ==================================================================
+	// rf_check_digit_matches
+	// ==================================================================
+
+	public function test_rf_check_digit_matches_accepts_a_consistent_rf(): void {
+		$this->assertTrue(DocumentFormatter::rf_check_digit_matches('1000021'));
+	}
+
+	public function test_rf_check_digit_matches_rejects_an_inconsistent_rf(): void {
+		// Same body, every other seventh digit.
+		foreach (['0', '2', '3', '4', '5', '6', '7', '8', '9'] as $wrong) {
+			$this->assertFalse(
+				DocumentFormatter::rf_check_digit_matches('100002' . $wrong),
+				"100002{$wrong} should fail the check digit."
+			);
+		}
+	}
+
+	/**
+	 * Structure first, so a caller asking whether an RF is consistent never
+	 * has to ask separately whether it is an RF.
+	 */
+	public function test_rf_check_digit_matches_rejects_what_is_not_an_rf(): void {
+		$this->assertFalse(DocumentFormatter::rf_check_digit_matches('123456'));
+		$this->assertFalse(DocumentFormatter::rf_check_digit_matches(''));
+	}
+
+	// ==================================================================
+	// validate_rf + the ffc_validate_rf_check_digit opt-in
+	// ==================================================================
+
+	/**
+	 * The default is unchanged behaviour, and this is the assertion that says
+	 * so: '1234567' has a weighted sum of 77, residue 0, so its check digit
+	 * should be 1 and is 7. It has always been accepted and still is.
+	 */
+	public function test_validate_rf_ignores_the_check_digit_by_default(): void {
+		$this->assertFalse(DocumentFormatter::rf_check_digit_matches('1234567'));
+		$this->assertTrue(DocumentFormatter::validate_rf('1234567'));
+	}
+
+	public function test_validate_rf_enforces_the_check_digit_when_the_filter_opts_in(): void {
+		Functions\when('apply_filters')->alias(
+			static function ($hook, $value) {
+				return 'ffc_validate_rf_check_digit' === $hook ? true : $value;
+			}
+		);
+
+		$this->assertFalse(DocumentFormatter::validate_rf('1234567'), 'Check digit 7, expected 1.');
+		$this->assertTrue(DocumentFormatter::validate_rf('1000021'), 'A consistent RF still passes.');
+	}
+
+	/**
+	 * The setting is the FILTER'S DEFAULT, not a second switch.
+	 *
+	 * The same shape as `ffc_ip_resolver_mode`, which its own documentation
+	 * describes as "normally set from the IP Diagnostics tab". Two
+	 * independent switches would let an administrator turn this on from the
+	 * screen while a filter silently kept it off, with nothing on the page
+	 * saying so -- so what is asserted here is that the screen alone is
+	 * enough, with no filter in play.
+	 */
+	public function test_the_setting_alone_enforces_the_check_digit(): void {
+		Functions\when('get_option')->justReturn(
+			array(DocumentFormatter::SETTING_CHECK_DIGIT => true)
+		);
+
+		$this->assertFalse(DocumentFormatter::validate_rf('1234567'), 'Check digit 7, expected 1.');
+		$this->assertTrue(DocumentFormatter::validate_rf('1000021'), 'A consistent RF still passes.');
+	}
+
+	/**
+	 * …and a filter still overrides it, in the direction that matters most:
+	 * an administrator who turned it on can be overruled by code, which is
+	 * the rollback that needs no database write.
+	 */
+	public function test_a_filter_can_overrule_the_setting(): void {
+		Functions\when('get_option')->justReturn(
+			array(DocumentFormatter::SETTING_CHECK_DIGIT => true)
+		);
+		Functions\when('apply_filters')->alias(
+			static function ($hook, $value) {
+				return 'ffc_validate_rf_check_digit' === $hook ? false : $value;
+			}
+		);
+
+		$this->assertTrue(DocumentFormatter::validate_rf('1234567'), 'The filter is consulted last.');
+	}
+
+	/**
+	 * Opting in narrows what is accepted and never widens it -- a value that
+	 * is not seven digits is refused before the filter is consulted.
+	 */
+	public function test_the_opt_in_cannot_rescue_a_malformed_rf(): void {
+		Functions\when('apply_filters')->alias(static fn($hook, $value) => true);
+
+		$this->assertFalse(DocumentFormatter::validate_rf('123456'));
+		$this->assertFalse(DocumentFormatter::validate_rf('12345678'));
+		$this->assertFalse(DocumentFormatter::validate_rf(''));
 	}
 
 	// ==================================================================

@@ -246,6 +246,28 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 
 				<tr>
 					<th scope="row">
+						<label><?php esc_html_e( 'RF check digit', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'    => 'ffc_settings[validate_rf_check_digit]',
+								'id'      => 'validate_rf_check_digit',
+								'checked' => (bool) $ffcertificate_get_option( 'validate_rf_check_digit', false ),
+								'label'   => __( 'Reject an RF whose check digit does not match', 'ffcertificate' ),
+								'data'    => array( 'ffc-autosave-key' => 'validate_rf_check_digit' ),
+							)
+						);
+						?>
+						<p class="description">
+							<?php esc_html_e( 'An RF carries a check digit, and the form has never verified it — which is why a mistyped RF reaches storage where a mistyped CPF does not. Off by default, because the rule was derived from the identifiers this install already holds rather than read from an official specification: turning it on could refuse a number that is genuinely unusual, and a person blocked from registering costs more than a typo the audit finds later. Before turning it on, run the identity audit (Settings → Migrations) and read how many stored RFs it reports as failing — that count is what enforcement would have rejected.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
 						<label for="ffc_date_format"><?php esc_html_e( 'Date Format', 'ffcertificate' ); ?></label>
 					</th>
 					<td>

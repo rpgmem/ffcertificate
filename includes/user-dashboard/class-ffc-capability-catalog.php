@@ -407,6 +407,10 @@ final class CapabilityCatalog {
 						'description' => __( 'For external integrators authenticating with Application Passwords.', 'ffcertificate' ),
 						'surface'     => 'api',
 					),
+					'ffc_manage_identities'   => array(
+						'label'       => __( 'Resolve identity conflicts', 'ffcertificate' ),
+						'description' => __( 'Work the identity queue: correct a stored CPF/RF, split an account holding two people, merge two accounts holding one. Does not reveal a stored identifier — that stays with the PII capability.', 'ffcertificate' ),
+					),
 				),
 			),
 			array(

@@ -547,4 +547,92 @@ class UserCreatorTest extends TestCase {
 			'bulk import does not'    => array( false, 0 ),
 		);
 	}
+
+	// ==================================================================
+	// Adoption grants the capability that reads what it adopted -- #1345
+	// ==================================================================
+
+	/**
+	 * Drive adoption with a chosen number of submission rows claimed.
+	 *
+	 * THE CONTEXT IS `recruitment` ON PURPOSE, AND THE TEST IS VACUOUS WITHOUT IT
+	 *
+	 * `get_or_create_user_dual()` grants the CONTEXT's capabilities before
+	 * adoption runs, so under the default `certificate` context the caps
+	 * would be there whatever adoption did -- the test would pass by
+	 * observing the value its own arguments supplied. `recruitment` is a
+	 * declared no-op, so the grant can only come from the adoption itself.
+	 * It is also the real case: a promoted candidacy is how an affected
+	 * account was created.
+	 *
+	 * @param int $rows_adopted What the `UPDATE` reports it claimed.
+	 * @return array<int, string> Capabilities added to the user.
+	 */
+	private function caps_granted_by_adopting( int $rows_adopted ): array {
+		global $wpdb;
+
+		$granted = array();
+
+		$wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$wpdb->shouldReceive( 'get_var' )->andReturn( '321' );
+		$wpdb->shouldReceive( 'get_row' )->andReturn( null );
+		$wpdb->shouldReceive( 'update' )->andReturn( 1 );
+		$wpdb->shouldReceive( 'query' )->andReturn( $rows_adopted );
+
+		$user     = Mockery::mock( 'WP_User' );
+		$user->ID = 321;
+		$user->shouldReceive( 'has_cap' )->andReturn( false );
+		$user->shouldReceive( 'add_cap' )->andReturnUsing(
+			function ( $cap ) use ( &$granted ) {
+				$granted[] = (string) $cap;
+			}
+		);
+		$user->shouldReceive( 'add_role' )->andReturn( null );
+		Functions\when( 'get_userdata' )->justReturn( $user );
+
+		UserCreator::get_or_create_user_dual(
+			'CPF-HASH',
+			null,
+			'who@cares.com',
+			array(),
+			CapabilityManager::CONTEXT_RECRUITMENT
+		);
+
+		return $granted;
+	}
+
+	/**
+	 * The defect this fixes, measured on production: an account created by a
+	 * non-certificate path had its old submissions claimed here and held
+	 * `a:1:{s:12:"ffc_end_user";b:1;}` -- the role and not one FFC cap --
+	 * beside two linked certificates it could not see. 1,478 accounts were in
+	 * that state.
+	 *
+	 * The appointment half of this same method has always granted on what it
+	 * claimed; this half never did.
+	 */
+	public function test_adopting_a_submission_grants_the_capability_that_reads_it(): void {
+		$granted = $this->caps_granted_by_adopting( 2 );
+
+		$this->assertContains(
+			'ffc_view_own_certificates',
+			$granted,
+			'Claiming a submission without granting the cap to read it is what hides a certificate from its owner.'
+		);
+	}
+
+	/**
+	 * A grant nothing asked for is the mirror defect, and the reason
+	 * `CONTEXT_REREGISTRATION` exists rather than reusing the certificate one:
+	 * it would "grant the three certificate caps to somebody who may hold no
+	 * certificate", recorded in the grant log as if it had been asked for.
+	 */
+	public function test_adopting_nothing_grants_nothing(): void {
+		$this->assertSame(
+			array(),
+			$this->caps_granted_by_adopting( 0 ),
+			'No row was claimed, so there is nothing new for this person to read.'
+		);
+	}
+
 }

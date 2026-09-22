@@ -230,6 +230,21 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertFalse( $result['cleanup_enabled'] );
 	}
 
+	/**
+	 * The no-clobber invariant for the RF check-digit toggle (#1345): the
+	 * general save must rebuild it from presence, or the switch an
+	 * administrator flipped through the autosave is reset by the next Save.
+	 */
+	public function test_general_validate_rf_check_digit_true_when_checkbox_present(): void {
+		$result = $this->invoke( 'save_general_settings', array( array(), array( 'validate_rf_check_digit' => '1' ) ) );
+		$this->assertTrue( $result['validate_rf_check_digit'] );
+	}
+
+	public function test_general_validate_rf_check_digit_false_when_checkbox_absent(): void {
+		$result = $this->invoke( 'save_general_settings', array( array( 'validate_rf_check_digit' => true ), array() ) );
+		$this->assertFalse( $result['validate_rf_check_digit'] );
+	}
+
 	public function test_general_main_address_preserved(): void {
 		$result = $this->invoke( 'save_general_settings', array( array(), array( 'main_address' => '123 Main St' ) ) );
 		$this->assertSame( '123 Main St', $result['main_address'] );

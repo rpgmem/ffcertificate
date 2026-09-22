@@ -7,7 +7,29 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.28.1] (2026-09-20)
+## [6.28.2] (2026-09-22)
+
+### Added
+
+- **The RF has a check digit, and an administrator can enforce it** (#1345): `validate_rf()` took any seven digits, so a mistyped RF reached storage where a mistyped CPF does not. The rule ships behind `ffc_validate_rf_check_digit`, whose default a General-tab toggle sets. Off by default — it was inferred from the identifiers this install holds, not read from a specification, so enforcing it could refuse a number that is genuinely unusual.
+- **The audit lists the stored RFs whose check digit does not match** (#1345): the other checks see an account holding two identifiers, so somebody who mistyped once on their only row was invisible. It names the rows rather than the value, because a candidacy carries no account before promotion.
+- **A migration card restores access for accounts that own a certificate and cannot open it** (#1345): 1,478 of them on production. It measures what is left on every read, so running it again once it reports zero does nothing.
+- **A capability of its own for identity resolution** (#1368): `ffc_manage_identities`. The queue is worked through round-trips with HR, so handing that operator `ffc_manage_settings_dangerzone` — which also gates delete-all and the cleanups — was over-granting. Seeded onto current danger-zone holders, so nobody loses an ability.
+- **A screen for the identity queue, where a confirmed RF is corrected** (#1368): the audit card lists only *the findings that name an account*, so a mistyped RF on a recruitment candidacy — which carries no WordPress user until promotion — was counted there and shown nowhere. Correcting one rewrites the ciphertext and the hash across every store holding the old value, repoints the identity index and grants the owning account the capabilities that read it, as a single transaction. It refuses a value failing the check digit, a finding naming two accounts, and a correction that collides with existing records, because that is a merge.
+
+### Changed
+
+- **The three capability-grant migrations share one body** (#1368): they were byte-identical apart from the map they read, and a third was about to be added. A fix applied to one can no longer miss the others.
+
+### Fixed
+
+- **The audit card stops claiming it never decrypts** (#1345): it has since `identifier_shape` shipped, and the check-digit scan does too. Both read in memory and report a category, never a value, and neither writes — which is what the description now says.
+- **⚠ Adopting a certificate now grants the capability that reads it** (#1345): claiming somebody's old submissions moved ownership without moving permission, so an account created by a candidacy, a reregistration import or an appointment held certificates the dashboard refused to show — client-side and with a 403. The appointment half of the same method had always granted on what it claimed; this half never did.
+- **The schema helper stops guarding a property that is always set** (#1370): `add_column_if_missing()` read `wpdb::$last_error` behind an `isset()` that can never be false, and the guard narrowed `$wpdb` to a bare object — which left the `print_error()` beside it unresolvable under PHPStan 2.2.14.
+- **The certificate-access card stops looping** (#1345): it counted accounts *selected* rather than *changed*, so a grant that was a no-op still reported progress and the driver never stopped — 1,848 records processed against a total of 10. The account it could never clear held the capability through a **role**, which a `LIKE` on the user's own `wp_capabilities` cannot see: a role's capabilities live in `wp_user_roles`, while the meta carries only the role name. The query now excludes those roles, and a batch that changes nothing reports zero.
+- **The identity screen never calls an unread scan clean** (#1368): the check-digit scan returns failures, so it returns none when no store carries the columns it needs, when no row holds both a hash and a ciphertext, when nothing decrypts, and when the data is genuinely fine. All four read as "every stored RF satisfies its check digit". The screen now says which of the four it is, and only the last one is reassurance.
+
+## [6.28.1] (2026-09-20) — `58e498a`
 
 ### Security
 

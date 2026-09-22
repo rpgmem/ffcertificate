@@ -725,6 +725,58 @@ msgstr ""
 msgid "6"
 msgstr ""
 
+#: includes/migrations/strategies/class-ffc-certificate-capability-backfill-migration-strategy.php:136
+msgid "Accounts that can now read the certificates they own: %d"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-general.php:262
+msgid "An RF carries a check digit, and the form has never verified it — which is why a mistyped RF reaches storage where a mistyped CPF does not. Off by default, because the rule was derived from the identifiers this install already holds rather than read from an official specification: turning it on could refuse a number that is genuinely unusual, and a person blocked from registering costs more than a typo the audit finds later. Before turning it on, run the identity audit (Settings → Migrations) and read how many stored RFs it reports as failing — that count is what enforcement would have rejected."
+msgstr ""
+
+#: includes/migrations/class-ffc-migration-registry.php:123
+msgid "Grant the certificate capabilities to every account that owns a certificate and cannot open it. The permission used to come from whichever path created the account, while ownership comes from the record itself — so a person whose old submissions were claimed after their account was created by a candidacy, a reregistration import or an appointment ended up holding certificates the dashboard refused to show them. Measures the remaining accounts on every read, so running it again once it reports zero does nothing."
+msgstr ""
+
+#: includes/settings/views/documentation/developer-hooks-api.php:66
+msgid "Per account repaired by the \"Restore Access to Owned Certificates\" migration — args ( user_id ). An action rather than a direct call because the migration and the capability owner are in modules that would otherwise depend on each other."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-general.php:248
+msgid "RF check digit"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-general.php:257
+msgid "Reject an RF whose check digit does not match"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:411
+msgid "Resolve identity conflicts"
+msgstr ""
+
+#: includes/migrations/class-ffc-migration-registry.php:122
+msgid "Restore Access to Owned Certificates"
+msgstr ""
+
+#: includes/maintenance/class-ffc-identity-audit-export-source.php:416
+msgid "INCOMPLETE: the database truncated this row's id list, so it names fewer rows than the count beside it."
+msgstr ""
+
+#: includes/maintenance/class-ffc-identity-audit-export-source.php:420
+msgid "INCOMPLETE: the scan reached its cap, so identifiers exist that were never examined."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-migrations.php:931
+msgid "Report-only scan of how people are linked to WordPress users — across certificate submissions, appointments, recruitment candidacies and the identity index. Nothing is changed: review each finding and fix it manually. Detection groups by the stored CPF/RF hashes; the columns that classify a difference decrypt in memory and report a category only — never a value, and nothing is written."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-migrations.php:921
+msgid "Stored RF whose check digit does not match"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:412
+msgid "Work the identity queue: correct a stored CPF/RF, split an account holding two people, merge two accounts holding one. Does not reveal a stored identifier — that stays with the PII capability."
+msgstr ""
+
 #. 1: Environment name, 2: Date
 #: includes/audience/class-ffc-audience-notification-handler.php:434
 #, php-format
@@ -12828,6 +12880,10 @@ msgstr ""
 msgid "Opt in (off by default) to log where the legacy and secure IP strategies diverge, to validate a switch before flipping."
 msgstr ""
 
+#: includes/settings/views/documentation/developer-hooks-api.php:42
+msgid "Opt in (off by default) to make validate_rf() also require the RF check digit, rejecting a mistyped number at the form instead of storing it."
+msgstr ""
+
 #: includes/settings/views/documentation/reference-shortcodes.php:46 includes/settings/views/documentation/reference-shortcodes.php:79
 msgid "Optional attribute:"
 msgstr ""
@@ -21900,10 +21956,6 @@ msgstr ""
 msgid "No link problems found: no identifier is held by two accounts, no account holds two identifiers, and the identity index carries every identifier already linked to a user."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-migrations.php
-msgid "Report-only scan of how people are linked to WordPress users — across certificate submissions, appointments, recruitment candidacies and the identity index. Nothing is changed: review each finding and fix it manually. Detection uses the stored CPF/RF hashes, so no decryption is involved."
-msgstr ""
-
 #: includes/maintenance/class-ffc-submission-link-auditor.php
 msgid "Report-only scan of how people are linked to WordPress users. Four checks over certificate submissions: links to deleted users, one user bound to multiple CPF/RF identities, unlinked submissions whose CPF matches a linked one, and a single CPF shared across multiple users. Three more across every store — submissions, appointments, recruitment candidacies and the identity index — reporting one identifier held by two accounts, one account holding two identifiers, and identifiers the index does not yet carry. Nothing is changed: review and fix each case manually."
 msgstr ""
@@ -21982,4 +22034,93 @@ msgstr ""
 
 #: includes/maintenance/class-ffc-identity-audit-export-source.php:468
 msgid "FOREIGN KEYS: only %1$d of %2$d user_id constraints are installed (%3$s), so a missing account above is NOT necessarily a recruitment candidacy — the database is not enforcing the link on every table it should. Run the foreign-key migration before reading these statuses."
+msgstr ""
+
+msgid "Identity Resolution"
+msgstr ""
+
+msgid "Identities"
+msgstr ""
+
+msgid "Stored RF numbers whose own check digit does not match, so the value cannot be anybody's: it was mistyped on the way in. The digit says a number is wrong, never what the right one is — each row is a question for HR, answered one at a time. Grouping is by the stored hash; the digit is checked in memory and only a verdict leaves the scan, never a value."
+msgstr ""
+
+msgid "The scan reached its cap before reading every stored value, so this list is partial. Work it down and run the screen again."
+msgstr ""
+
+
+msgid "Rows"
+msgstr ""
+
+msgid "Which rows"
+msgstr ""
+
+msgid "No account"
+msgstr ""
+
+msgid "Too many rows to list."
+msgstr ""
+
+
+msgid "Corrected. The rows, the identity index and the account's certificate access were updated together."
+msgstr ""
+
+msgid "Correct it"
+msgstr ""
+
+msgid "Names more than one account — the same wrong number was typed by more than one person, so one corrected value cannot serve it."
+msgstr ""
+
+msgid "Corrected RF"
+msgstr ""
+
+msgid "7 digits"
+msgstr ""
+
+msgid "Correct"
+msgstr ""
+
+msgid "A row naming no account is ordinary rather than an error: a recruitment candidacy carries no WordPress user until it is promoted, so its row ids are the only handle on it. Confirm the corrected number with HR before entering it: the check digit says a number is wrong, never what the right one is."
+msgstr ""
+
+msgid "No finding was named."
+msgstr ""
+
+msgid "That number does not satisfy the RF check digit, so it cannot be the corrected value either. Confirm it with HR."
+msgstr ""
+
+msgid "Encryption is not configured, so an identifier cannot be rewritten."
+msgstr ""
+
+msgid "The value stored is already the one you confirmed."
+msgstr ""
+
+msgid "Nothing carries that value any more — it was repaired already. Reload the queue."
+msgstr ""
+
+msgid "This finding names %d accounts, so one corrected value cannot serve it: the same wrong number was typed by more than one person. Resolve them separately."
+msgstr ""
+
+msgid "That value is already stored against other records, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision."
+msgstr ""
+
+msgid "The store %s refused the write, so nothing was changed."
+msgstr ""
+
+msgid "The rows were rewritten but the identity index refused the same value, so nothing was changed. The two must never disagree."
+msgstr ""
+
+msgid "Stored RF Corrected"
+msgstr ""
+
+msgid "Nothing was scanned: no store on this install carries an RF in a form this check can read, which needs the hash, the ciphertext and a row id on the same table. This is not a clean result."
+msgstr ""
+
+msgid "Found %s stored values and could not read any of them, so nothing was checked. That is what an encryption key which does not match this data looks like — this is not a clean result."
+msgstr ""
+
+msgid "Nothing to resolve: %1$s stored values checked and every one satisfies its check digit. %2$s could not be read and were not checked."
+msgstr ""
+
+msgid "No stored RF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured an RF yet — worth looking into on one that has."
 msgstr ""

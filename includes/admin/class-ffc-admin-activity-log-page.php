@@ -295,6 +295,9 @@ class AdminActivityLogPage {
 			'recruitment_pii_revealed'                     => __( 'Candidate Personal Data Revealed', 'ffcertificate' ),
 			'recruitment_classification_status_changed'    => __( 'Classification Status Changed', 'ffcertificate' ),
 			'recruitment_classification_adjutancy_changed' => __( 'Classification Adjutancy Changed', 'ffcertificate' ),
+
+			// Identity resolution (#1368).
+			'identity_rf_repaired'                         => __( 'Stored RF Corrected', 'ffcertificate' ),
 			'recruitment_classification_override_to_empty' => __( 'Classification Cleared', 'ffcertificate' ),
 			'recruitment_classification_deleted'           => __( 'Classification Deleted', 'ffcertificate' ),
 			'recruitment_adjutancy_deleted'                => __( 'Adjutancy Deleted', 'ffcertificate' ),
