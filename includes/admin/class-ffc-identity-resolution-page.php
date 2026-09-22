@@ -18,6 +18,7 @@ namespace FreeFormCertificate\Admin;
 use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
+use FreeFormCertificate\Maintenance\IdentityQueue;
 use FreeFormCertificate\Maintenance\IdentityRepair;
 use WP_Error;
 
@@ -174,14 +175,57 @@ class IdentityResolutionPage {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function queue(): array {
-		$query = $this->conflicts();
-		$out   = $query->rf_check_digit_failures( self::LIMIT );
+		$queue = $this->queues();
+		$out   = $queue->items( self::LIMIT );
 
 		// Read AFTER the scan, from the same instance: what the list does not
 		// carry is whether it is empty because the data is fine.
-		$this->coverage = $query->rf_scan_coverage();
+		$this->coverage = $queue->coverage();
 
 		return $out;
+	}
+
+	/**
+	 * The tiering, as a seam a test can replace.
+	 *
+	 * It is built around THIS screen's `conflicts()` rather than around its
+	 * own, so the one seam a test already drives still drives everything --
+	 * two seams answering the same question is how a test starts proving
+	 * something about a double nothing under test uses.
+	 *
+	 * @since 6.28.3
+	 * @return IdentityQueue
+	 */
+	protected function queues(): IdentityQueue {
+		$query = $this->conflicts();
+
+		return new class( $query ) extends IdentityQueue {
+
+			/**
+			 * The screen's query.
+			 *
+			 * @var IdentityConflictQuery
+			 */
+			private IdentityConflictQuery $query;
+
+			/**
+			 * Take the screen's query rather than build one.
+			 *
+			 * @param IdentityConflictQuery $query The screen's own query.
+			 */
+			public function __construct( IdentityConflictQuery $query ) {
+				$this->query = $query;
+			}
+
+			/**
+			 * The query this tiering reads through.
+			 *
+			 * @return IdentityConflictQuery
+			 */
+			protected function conflicts(): IdentityConflictQuery {
+				return $this->query;
+			}
+		};
 	}
 
 	/**

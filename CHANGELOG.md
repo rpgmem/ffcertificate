@@ -7,6 +7,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **The identity queue is sorted by how much of the answer is already known** (#1386): one account holding two numbers, exactly one of which fails its check digits, needs no value from anybody — the other one is the account's. Everything else is named for what it is: a decision the digits cannot make, a number on two accounts (a merge), or a lone failure no account-side finding explains. Each finding appears once, so the list can be worked to zero.
+
+
 ### Fixed
 
 - **A repair no longer refuses the typo it exists for** (#1386): the collision refusal read "the value already exists", but in a typo the correct value *is* the account's other RF, so it always has rows — the refusal fired on every one of the 32 findings production holds. What makes a correction a merge is the value belonging to **another** account; the same account holding it twice is one person's own duplicate. A consolidation both of whose records sit in `ffc_recruitment_candidate` is still refused, and now says why: that store holds each identifier once.
