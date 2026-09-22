@@ -22192,8 +22192,11 @@ msgstr "Nada mais carrega esse valor — ele já foi reparado. Recarregue a fila
 msgid "This finding names %d accounts, so one corrected value cannot serve it: the same wrong number was typed by more than one person. Resolve them separately."
 msgstr "Este achado nomeia %d contas, então um único valor corrigido não serve: o mesmo número errado foi digitado por mais de uma pessoa. Resolva uma de cada vez."
 
-msgid "That value is already stored against other records, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision."
-msgstr "Esse valor já está armazenado em outros registros, então corrigir este mesclaria duas identidades em vez de consertar um erro de digitação. Mesclar é uma decisão separada."
+msgid "That value is already stored against another account, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision."
+msgstr "Esse valor já está armazenado em outra conta, então corrigir este mesclaria duas identidades em vez de consertar um erro de digitação. Mesclar é uma decisão separada."
+
+msgid "Both identifiers are recorded in %s, which holds each identifier once, so consolidating them there would leave two records claiming one. Decide what becomes of the second record first."
+msgstr "Os dois identificadores estão registrados em %s, que guarda cada identificador uma única vez, então consolidá-los ali deixaria dois registros reivindicando um só. Decida antes o que será do segundo registro."
 
 msgid "The store %s refused the write, so nothing was changed."
 msgstr "O store %s recusou a escrita, então nada foi alterado."
