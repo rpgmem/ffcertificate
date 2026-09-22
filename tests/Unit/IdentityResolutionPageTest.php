@@ -289,19 +289,21 @@ class IdentityResolutionPageTest extends TestCase {
 	public function test_the_handlers_pass_the_identifier_through(): void {
 		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
 
-		// AN INVARIANT, NOT A COUNT. The first version of this asserted `2`
-		// and went stale the moment the relink landed — a number here is a
-		// claim about a value another file owns, which is the class CLAUDE.md
-		// records. What must hold is that EVERY write names the identifier.
-		$writes = substr_count( $page, '->repair(' )
-			+ substr_count( $page, '->consolidate(' )
-			+ substr_count( $page, '->relink(' );
+		// AN INVARIANT, AND ONE THAT DOES NOT NAME THE VERBS EITHER.
+		//
+		// The first version asserted the literal `2` and went stale when the
+		// relink landed. The second counted the verbs by name and went stale
+		// again when the split landed — a list of verbs is a number wearing
+		// a different hat. What actually holds is per HANDLER: each one
+		// checks a keyed nonce and names the identifier it writes, so the
+		// two counts move together whatever verbs exist.
+		$writes = substr_count( $page, 'check_admin_referer(' );
 
-		$this->assertGreaterThan( 0, $writes, 'The scan found no write to check.' );
+		$this->assertGreaterThan( 0, $writes, 'The scan found no write handler to check.' );
 		$this->assertSame(
 			$writes,
 			substr_count( $page, 'self::posted_field()' ),
-			'Every write must name the identifier it is writing.'
+			'Every write handler must name the identifier it is writing.'
 		);
 		$this->assertStringContainsString( 'in_array( $field, IdentityRepair::FIELDS, true )', $page );
 	}

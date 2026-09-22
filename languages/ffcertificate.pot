@@ -22203,9 +22203,6 @@ msgstr ""
 msgid "Account to move the records carrying %s to"
 msgstr ""
 
-msgid "Consolidating writes the account's sound identifier over the mistyped one across every store that holds it. Moving sends the records carrying one identifier to another account — allowed only where the two already agree on the other identifier, and where the receiving account holds none of that kind it gains this one. Both run as a single transaction, rolled back whole if any part refuses, and neither shows a stored number."
-msgstr ""
-
 msgid "Move %s"
 msgstr ""
 
@@ -22237,4 +22234,43 @@ msgid "Those records are split across more than one account, so one move cannot 
 msgstr ""
 
 msgid "Records Moved to Another Account"
+msgstr ""
+
+msgid "A split needs a valid e-mail address for the new account."
+msgstr ""
+
+msgid "Consolidating writes the account's sound identifier over the mistyped one across every store that holds it. Moving sends the records carrying one identifier to another account — allowed only where the two already agree on the other identifier, and where the receiving account holds none of that kind it gains this one. Splitting creates an account for one identifier and moves its records there — it asks for an address because there is none to inherit, and it removes the account again if the move refuses. All of them run as a single transaction, rolled back whole if any part refuses, and none shows a stored number."
+msgstr ""
+
+msgid "Creates the account an identity split moves records onto — args ( null, email ), returns a user id or WP_Error. A filter rather than a direct call because the split and the single account-creation path are in modules that would otherwise depend on each other. It deliberately does NOT resolve the identifier first: the identifier resolves to the account the records are being taken off."
+msgstr ""
+
+msgid "E-mail address for the new account holding %s"
+msgstr ""
+
+msgid "New account e-mail"
+msgstr ""
+
+msgid "No account could be created: the identity split has nothing wired to create one on this install."
+msgstr ""
+
+msgid "No records were named to split."
+msgstr ""
+
+msgid "Records Given Their Own Account"
+msgstr ""
+
+msgid "Split off"
+msgstr ""
+
+msgid "Split. A new account was created and those records, the identity index and the account's certificate access were updated together."
+msgstr ""
+
+msgid "That address already belongs to an account, so it cannot open a new one. Use a different address — or, if that account is the right one, move the records to it instead of splitting."
+msgstr ""
+
+msgid "That is not an identifier this can split."
+msgstr ""
+
+msgid "The account was created but the identity index refused to record what it holds, so it was removed again and nothing was changed."
 msgstr ""
