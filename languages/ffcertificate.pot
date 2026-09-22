@@ -22274,3 +22274,71 @@ msgstr ""
 
 msgid "The account was created but the identity index refused to record what it holds, so it was removed again and nothing was changed."
 msgstr ""
+
+msgid "%1$s (#%2$d)"
+msgstr ""
+
+msgid "%s accounts share this identifier, so it is not one pair. Resolve them two at a time."
+msgstr ""
+
+msgid "A merge needs both accounts: the one to keep and the one whose records move."
+msgstr ""
+
+msgid "A pair named an account that was not one of its two."
+msgstr ""
+
+msgid "Account #%d"
+msgstr ""
+
+msgid "Merge"
+msgstr ""
+
+msgid "Merge the confirmed pairs"
+msgstr ""
+
+msgid "Merge this pair"
+msgstr ""
+
+msgid "No pair was confirmed, so nothing was merged."
+msgstr ""
+
+msgid "One identifier is stored against two logins, so one of them is not that person's. Confirm only the pairs you know are one person, and choose which login keeps the records. A merge is the one action no other can undo: afterwards nothing can tell which records came from where."
+msgstr ""
+
+msgid "That account holds no identifier this can read, so there is nothing to merge from it."
+msgstr ""
+
+msgid "The emptied logins were left in place — removing them is yours to do in Users."
+msgstr ""
+
+msgid "The identifier"
+msgstr ""
+
+msgid "The people"
+msgstr ""
+
+msgid "The records, the identity index and the surviving login's certificate access move together, as one transaction per pair. The emptied login is left in place — removing it is yours to do in Users, because deleting an account runs cleanup this tool does not own and cannot undo."
+msgstr ""
+
+msgid "The store %s refused the merge, so nothing was changed."
+msgstr ""
+
+msgid "Those accounts hold different values for: %s. Correct the identifier first — merging across a disagreement makes one person out of two, and nothing afterwards can tell them apart again."
+msgstr ""
+
+msgid "Those accounts share no identifier, and an absent value is not agreement. Correct an identifier first so the two agree."
+msgstr ""
+
+msgid "Those are the same account, so there is nothing to merge."
+msgstr ""
+
+msgid "Two Accounts Merged Into One"
+msgstr ""
+
+msgid "Which login keeps the records"
+msgstr ""
+
+msgid "%s pair merged."
+msgid_plural "%s pairs merged."
+msgstr[0] ""
+msgstr[1] ""

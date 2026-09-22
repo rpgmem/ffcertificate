@@ -9,6 +9,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Two logins that turned out to be one person can be consolidated** (#1386): the screen names each pair — the people and the document — and the operator ticks the ones that are one person and chooses which login keeps the records. The two must already agree on an identifier, and where the survivor holds none of a kind the other has, it gains it. The emptied login is **not** deleted: removing it runs cleanup this tool does not own and cannot undo, so it stays the operator's action in Users.
+
+
+### Added
+
 - **Records that belong to somebody with no account can be given one** (#1386): the operator supplies the address, because there is none to inherit — WordPress requires it to be unique and every finding reports both identifiers sharing the one the existing account already uses. Per identifier, applied once or twice, so two people end up with two accounts rather than one holding the same conflict. A split whose move is refused removes the account it created, leaving no empty login behind.
 
 
