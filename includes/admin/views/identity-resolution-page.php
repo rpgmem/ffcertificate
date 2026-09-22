@@ -8,7 +8,7 @@
  * directory.
  *
  * @package FreeFormCertificate\Admin
- * @since 6.29.0
+ * @since 6.28.2
  *
  * @var array<int, array<string, mixed>> $ffc_identity_findings Findings from the check-digit scan.
  * @var array{type: string, text: string}|false                 $ffc_identity_outcome  Outcome of the last write, if any.

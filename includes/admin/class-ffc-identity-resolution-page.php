@@ -8,7 +8,7 @@
  * the danger zone.
  *
  * @package FreeFormCertificate\Admin
- * @since 6.29.0
+ * @since 6.28.2
  */
 
 declare(strict_types=1);

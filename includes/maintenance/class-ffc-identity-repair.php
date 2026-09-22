@@ -8,7 +8,7 @@
  * this class is what writes it (#1368).
  *
  * @package FreeFormCertificate\Maintenance
- * @since 6.29.0
+ * @since 6.28.2
  */
 
 declare(strict_types=1);

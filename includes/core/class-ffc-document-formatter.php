@@ -118,8 +118,8 @@ class DocumentFormatter {
 	 * about refusing input. The same shape as `ffc_ip_shadow_logging`: a
 	 * stronger signal is made available first and made binding separately.
 	 *
-	 * @since 6.29.0 The `ffc_validate_rf_check_digit` opt-in.
-	 * @since 6.29.0 The `validate_rf_check_digit` setting, which is what the
+	 * @since 6.28.2 The `ffc_validate_rf_check_digit` opt-in.
+	 * @since 6.28.2 The `validate_rf_check_digit` setting, which is what the
 	 *               filter now defaults to.
 	 * @param string $rf RF to validate.
 	 * @return bool True if valid
@@ -144,7 +144,7 @@ class DocumentFormatter {
 		/**
 		 * Whether `validate_rf()` also requires the check digit to agree.
 		 *
-		 * @since 6.29.0
+		 * @since 6.28.2
 		 * @param bool $enforce The `validate_rf_check_digit` setting; false unless an administrator turned it on.
 		 */
 		if ( ! apply_filters( 'ffc_validate_rf_check_digit', $enforce ) ) {
@@ -157,7 +157,7 @@ class DocumentFormatter {
 	/**
 	 * Positional weights of the RF check digit, most significant first.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @var array<int, int>
 	 */
 	public const RF_CHECK_WEIGHTS = array( 7, 6, 5, 4, 3, 2 );
@@ -169,7 +169,7 @@ class DocumentFormatter {
 	 * either end -- the two are one switch seen from the screen and from code,
 	 * never two.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @var string
 	 */
 	public const SETTING_CHECK_DIGIT = 'validate_rf_check_digit';
@@ -201,7 +201,7 @@ class DocumentFormatter {
 	 * therefore stored values that are wrong, not a gap in the rule.
 	 * Reasoning and both measurements: issue #1345.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @param string $rf RF, with or without formatting.
 	 * @return int|null Expected check digit 0-9, or null when the input is not
 	 *                  a seven-digit RF and there is nothing to compute from.
@@ -232,7 +232,7 @@ class DocumentFormatter {
 	 * Rejecting a registration is the other half, and it is not: see
 	 * {@see self::validate_rf()}.
 	 *
-	 * @since 6.29.0
+	 * @since 6.28.2
 	 * @param string $rf RF, with or without formatting.
 	 * @return bool True when the check digit agrees with the body.
 	 */

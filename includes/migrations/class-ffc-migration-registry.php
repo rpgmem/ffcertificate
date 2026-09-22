@@ -117,7 +117,7 @@ class MigrationRegistry {
 			'order'       => 7,
 		);
 
-		// v6.29.0 (#1345): repair accounts that own a certificate and hold no
+		// v6.28.2 (#1345): repair accounts that own a certificate and hold no
 		// capability to read it. Ordered AFTER the identity cards because it
 		// is their consequence -- adoption is what linked these rows, and the
 		// grant it should have carried is what this card supplies.
