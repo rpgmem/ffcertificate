@@ -240,6 +240,27 @@ class Loader {
 			);
 		}
 
+		// Identity split -- the same shape, one module further round again.
+		// `IdentitySplit` needs an account created WITHOUT resolving the
+		// identifier first, because the identifier resolves to the account the
+		// records are being taken off. `UserCreator` owns that exception, since
+		// `IdentityConvergenceGuardTest` holds that a WordPress user is created
+		// in one place; naming the class from `Maintenance` would add a
+		// `Maintenance > UserDashboard` edge the module baseline does not carry
+		// (#1386).
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserCreator' ) ) {
+			add_filter(
+				'ffc_create_identity_account',
+				static function ( $created, $email ) {
+					return null === $created
+						? \FreeFormCertificate\UserDashboard\UserCreator::create_for_identity_split( (string) $email )
+						: $created;
+				},
+				10,
+				2
+			);
+		}
+
 		// Shared classes (needed in both admin and frontend contexts).
 		$this->submission_handler = new SubmissionHandler();
 		$this->email_handler      = new EmailHandler();

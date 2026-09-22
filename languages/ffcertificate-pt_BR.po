@@ -22294,9 +22294,6 @@ msgstr "Conta nº"
 msgid "Account to move the records carrying %s to"
 msgstr "Conta para onde mover os registros que carregam %s"
 
-msgid "Consolidating writes the account's sound identifier over the mistyped one across every store that holds it. Moving sends the records carrying one identifier to another account — allowed only where the two already agree on the other identifier, and where the receiving account holds none of that kind it gains this one. Both run as a single transaction, rolled back whole if any part refuses, and neither shows a stored number."
-msgstr "Consolidar grava o identificador íntegro da conta por cima do digitado errado em todos os stores que o carregam. Mover envia os registros que carregam um identificador para outra conta — permitido apenas quando as duas já concordam no outro identificador, e quando a conta que recebe não tem nenhum daquele tipo ela ganha este. Ambos rodam como uma única transação, revertida por inteiro se alguma parte recusar, e nenhum dos dois exibe um número armazenado."
-
 msgid "Move %s"
 msgstr "Mover %s"
 
@@ -22329,3 +22326,42 @@ msgstr "Esses registros estão divididos entre mais de uma conta, então uma ún
 
 msgid "Records Moved to Another Account"
 msgstr "Registros Movidos para Outra Conta"
+
+msgid "A split needs a valid e-mail address for the new account."
+msgstr "Uma separação precisa de um e-mail válido para a nova conta."
+
+msgid "Consolidating writes the account's sound identifier over the mistyped one across every store that holds it. Moving sends the records carrying one identifier to another account — allowed only where the two already agree on the other identifier, and where the receiving account holds none of that kind it gains this one. Splitting creates an account for one identifier and moves its records there — it asks for an address because there is none to inherit, and it removes the account again if the move refuses. All of them run as a single transaction, rolled back whole if any part refuses, and none shows a stored number."
+msgstr "Consolidar grava o identificador íntegro da conta por cima do digitado errado em todos os stores que o carregam. Mover envia os registros que carregam um identificador para outra conta — permitido apenas quando as duas já concordam no outro identificador, e quando a conta que recebe não tem nenhum daquele tipo ela ganha este. Separar cria uma conta para um identificador e move os registros dele para lá — pede um endereço porque não há nenhum a herdar, e remove a conta de novo se a movimentação recusar. Todos rodam como uma única transação, revertida por inteiro se alguma parte recusar, e nenhum exibe um número armazenado."
+
+msgid "Creates the account an identity split moves records onto — args ( null, email ), returns a user id or WP_Error. A filter rather than a direct call because the split and the single account-creation path are in modules that would otherwise depend on each other. It deliberately does NOT resolve the identifier first: the identifier resolves to the account the records are being taken off."
+msgstr "Cria a conta para onde uma separação de identidade move os registros — args ( null, email ), retorna um id de usuário ou WP_Error. Um filtro em vez de chamada direta porque a separação e o caminho único de criação de contas estão em módulos que de outro modo dependeriam um do outro. Ele deliberadamente NÃO resolve o identificador antes: o identificador resolve para a conta de onde os registros estão sendo tirados."
+
+msgid "E-mail address for the new account holding %s"
+msgstr "E-mail da nova conta que ficará com %s"
+
+msgid "New account e-mail"
+msgstr "E-mail da nova conta"
+
+msgid "No account could be created: the identity split has nothing wired to create one on this install."
+msgstr "Nenhuma conta pôde ser criada: a separação de identidade não tem nada ligado para criar uma nesta instalação."
+
+msgid "No records were named to split."
+msgstr "Nenhum registro foi indicado para separar."
+
+msgid "Records Given Their Own Account"
+msgstr "Registros com Conta Própria"
+
+msgid "Split off"
+msgstr "Separar"
+
+msgid "Split. A new account was created and those records, the identity index and the account's certificate access were updated together."
+msgstr "Separado. Uma nova conta foi criada e aqueles registros, o índice de identidade e o acesso da conta aos certificados foram atualizados juntos."
+
+msgid "That address already belongs to an account, so it cannot open a new one. Use a different address — or, if that account is the right one, move the records to it instead of splitting."
+msgstr "Esse endereço já pertence a uma conta, então não pode abrir uma nova. Use outro endereço — ou, se aquela conta for a certa, mova os registros para ela em vez de separar."
+
+msgid "That is not an identifier this can split."
+msgstr "Esse não é um identificador que isto consiga separar."
+
+msgid "The account was created but the identity index refused to record what it holds, so it was removed again and nothing was changed."
+msgstr "A conta foi criada mas o índice de identidade recusou registrar o que ela carrega, então ela foi removida de novo e nada foi alterado."

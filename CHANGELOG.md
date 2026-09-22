@@ -9,6 +9,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Records that belong to somebody with no account can be given one** (#1386): the operator supplies the address, because there is none to inherit — WordPress requires it to be unique and every finding reports both identifiers sharing the one the existing account already uses. Per identifier, applied once or twice, so two people end up with two accounts rather than one holding the same conflict. A split whose move is refused removes the account it created, leaving no empty login behind.
+
+
+### Added
+
 - **Records carrying one identifier can be moved to the account they belong to** (#1386): only where the records and the account already agree on the *other* identifier — an absent value is never agreement — and where the receiving account holds none of that kind, it gains this one, so an account with only a CPF ends up holding both. A second value that disagrees refuses the whole move: correcting it first is what keeps one person's record from landing under another person's account. Rows and identity index move as one transaction.
 
 

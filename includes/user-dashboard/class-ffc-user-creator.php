@@ -431,6 +431,35 @@ class UserCreator {
 	}
 
 	/**
+	 * Create an account for records an operator has decided are a new person.
+	 *
+	 * DELIBERATELY WITHOUT RESOLVING THE IDENTIFIER, WHICH IS WHY IT IS HERE.
+	 *
+	 * Every other path through this class resolves first, so that a person who
+	 * already has an account never gets a second one. A split is the one case
+	 * where resolving would defeat the purpose: the identifier currently
+	 * resolves to the account the records are being taken OFF, so
+	 * {@see self::get_or_create_user_dual()} would hand that same account back
+	 * and nothing would move (#1386).
+	 *
+	 * It lives here rather than in the caller because the rule
+	 * `IdentityConvergenceGuardTest` holds is that a WordPress user is created
+	 * in ONE place -- not that every creation resolves. An exception argued in
+	 * the creation path is reviewable; a second creation path is not.
+	 *
+	 * No notification is sent: this runs while an operator corrects data, and
+	 * an account mail arriving unannounced is a side effect they did not ask
+	 * for. Telling the person is theirs to do.
+	 *
+	 * @since 6.28.3
+	 * @param string $email The address the operator supplied.
+	 * @return int|\WP_Error The new account's id.
+	 */
+	public static function create_for_identity_split( string $email ) {
+		return self::create_ffc_user( $email, array(), CapabilityManager::CONTEXT_CERTIFICATE, false );
+	}
+
+	/**
 	 * Create new WordPress user for FFC
 	 *
 	 * @param string               $email           Email address.

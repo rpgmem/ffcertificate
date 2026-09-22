@@ -249,6 +249,34 @@ $ffc_identity_tier_note = static function ( $tier ) {
 										?>
 									</button>
 								</form>
+								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-xs">
+									<?php wp_nonce_field( IdentityResolutionPage::SPLIT_NONCE . (string) $ffc_identity_move ); ?>
+									<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::SPLIT_ACTION ); ?>">
+									<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
+									<input type="hidden" name="ffc_field" value="<?php echo esc_attr( $ffc_identity_field ); ?>">
+									<label class="screen-reader-text" for="ffc-split-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
+										<?php
+										printf(
+											/* translators: %s: the identifier's hash prefix. */
+											esc_html__( 'E-mail address for the new account holding %s', 'ffcertificate' ),
+											esc_html( substr( (string) $ffc_identity_move, 0, IdentityQueue::DISPLAY_PREFIX ) )
+										);
+										?>
+									</label>
+									<?php
+									// An address the OPERATOR supplies, because there
+									// is none to inherit: WordPress requires
+									// `user_email` to be unique and every production
+									// finding reports both identifiers sharing the
+									// address the existing account already uses.
+									?>
+									<input type="email" size="22" required
+										id="ffc-split-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
+										name="ffc_email" placeholder="<?php esc_attr_e( 'New account e-mail', 'ffcertificate' ); ?>">
+									<button type="submit" class="button button-secondary">
+										<?php esc_html_e( 'Split off', 'ffcertificate' ); ?>
+									</button>
+								</form>
 							<?php endforeach; ?>
 						<?php else : ?>
 							<span class="description">
@@ -261,7 +289,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 			</tbody>
 		</table>
 		<p class="description">
-			<?php esc_html_e( 'Consolidating writes the account\'s sound identifier over the mistyped one across every store that holds it. Moving sends the records carrying one identifier to another account — allowed only where the two already agree on the other identifier, and where the receiving account holds none of that kind it gains this one. Both run as a single transaction, rolled back whole if any part refuses, and neither shows a stored number.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Consolidating writes the account\'s sound identifier over the mistyped one across every store that holds it. Moving sends the records carrying one identifier to another account — allowed only where the two already agree on the other identifier, and where the receiving account holds none of that kind it gains this one. Splitting creates an account for one identifier and moves its records there — it asks for an address because there is none to inherit, and it removes the account again if the move refuses. All of them run as a single transaction, rolled back whole if any part refuses, and none shows a stored number.', 'ffcertificate' ); ?>
 		</p>
 	<?php endif; ?>
 

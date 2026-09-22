@@ -20,6 +20,7 @@ use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityQueue;
 use FreeFormCertificate\Maintenance\IdentityRelink;
+use FreeFormCertificate\Maintenance\IdentitySplit;
 use FreeFormCertificate\Maintenance\IdentityRepair;
 use WP_Error;
 
@@ -119,6 +120,20 @@ class IdentityResolutionPage {
 	public const RELINK_NONCE = 'ffc_relink_identity_';
 
 	/**
+	 * The `admin_post` action that gives records an account of their own.
+	 *
+	 * @since 6.28.3
+	 */
+	public const SPLIT_ACTION = 'ffc_split_identity';
+
+	/**
+	 * Nonce action for a split, keyed per identifier.
+	 *
+	 * @since 6.28.3
+	 */
+	public const SPLIT_NONCE = 'ffc_split_identity_';
+
+	/**
 	 * Transient prefix carrying one outcome from the write back to the screen.
 	 *
 	 * A transient and NOT a query argument, although the audit card next door
@@ -153,6 +168,7 @@ class IdentityResolutionPage {
 		add_action( 'admin_post_' . self::REPAIR_ACTION, array( $this, 'handle_repair' ) );
 		add_action( 'admin_post_' . self::CONSOLIDATE_ACTION, array( $this, 'handle_consolidate' ) );
 		add_action( 'admin_post_' . self::RELINK_ACTION, array( $this, 'handle_relink' ) );
+		add_action( 'admin_post_' . self::SPLIT_ACTION, array( $this, 'handle_split' ) );
 	}
 
 	/**
@@ -403,6 +419,49 @@ class IdentityResolutionPage {
 			$result,
 			__( 'Moved. The records, the identity index and the receiving account\'s certificate access were updated together.', 'ffcertificate' )
 		);
+	}
+
+	/**
+	 * Give one identifier's records an account of their own.
+	 *
+	 * The address is asked for rather than derived, and that is decision 1 of
+	 * #1386: WordPress requires it to be unique and every production finding
+	 * reports the two identifiers sharing the address the existing account
+	 * already uses, so there is no address to inherit.
+	 *
+	 * @since 6.28.3
+	 * @return void
+	 */
+	public function handle_split(): void {
+		if ( ! Capabilities::current_user_can_admin_or( self::CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+
+		$subject = RequestInput::get_post_string( 'ffc_subject', '' );
+
+		check_admin_referer( self::SPLIT_NONCE . $subject );
+
+		$result = $this->separations()->split(
+			$subject,
+			RequestInput::get_post_string( 'ffc_email', '' ),
+			get_current_user_id(),
+			self::posted_field()
+		);
+
+		$this->report(
+			$result,
+			__( 'Split. A new account was created and those records, the identity index and the account\'s certificate access were updated together.', 'ffcertificate' )
+		);
+	}
+
+	/**
+	 * The split, as a seam a test can replace.
+	 *
+	 * @since 6.28.3
+	 * @return IdentitySplit
+	 */
+	protected function separations(): IdentitySplit {
+		return new IdentitySplit();
 	}
 
 	/**
