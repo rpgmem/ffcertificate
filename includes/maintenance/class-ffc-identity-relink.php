@@ -133,7 +133,10 @@ class IdentityRelink {
 			);
 		}
 
-		$agreement = $this->agreement( $moving['identifiers'], $this->account_identifiers( $target ) );
+		$agreement = IdentityAgreement::between(
+			$moving['identifiers'],
+			IdentityAgreement::held_by( $target )
+		);
 
 		if ( array() !== $agreement['conflicts'] ) {
 			return new WP_Error(
@@ -252,60 +255,6 @@ class IdentityRelink {
 	}
 
 	/**
-	 * Compare what the records carry against what the account holds.
-	 *
-	 * Three outcomes per identifier, and the difference between the last two
-	 * is the whole rule: equal is a MATCH, the account holding nothing is a
-	 * GAP it will gain, and two different values are a CONFLICT. An identifier
-	 * neither side carries is none of the three -- absence on both sides says
-	 * nothing about whether these are the same person.
-	 *
-	 * @param array<string, array<int, string>> $records What the moving rows carry.
-	 * @param array<string, array<int, string>> $account What the target holds.
-	 * @return array{matches: array<int, string>, gaps: array<string, string>, conflicts: array<int, string>}
-	 */
-	private function agreement( array $records, array $account ): array {
-		$matches   = array();
-		$gaps      = array();
-		$conflicts = array();
-
-		foreach ( self::FIELDS as $field ) {
-			$mine   = $records[ $field ] ?? array();
-			$theirs = $account[ $field ] ?? array();
-
-			if ( array() === $mine ) {
-				continue;
-			}
-
-			if ( array() === $theirs ) {
-				// Only a single, unambiguous value can fill a gap: records
-				// carrying two different CPFs do not tell the account which
-				// one it gains, and picking would invent an answer.
-				if ( 1 === count( $mine ) ) {
-					$gaps[ $field ] = $mine[0];
-				} else {
-					$conflicts[] = $field;
-				}
-
-				continue;
-			}
-
-			if ( array() === array_diff( $mine, $theirs ) && 1 === count( $mine ) ) {
-				$matches[] = $field;
-				continue;
-			}
-
-			$conflicts[] = $field;
-		}
-
-		return array(
-			'matches'   => $matches,
-			'gaps'      => $gaps,
-			'conflicts' => $conflicts,
-		);
-	}
-
-	/**
 	 * Which rows carry a hash, whom they name, and what else they carry.
 	 *
 	 * The `identifiers` half is what the agreement rule reads: a row holding
@@ -351,7 +300,7 @@ class IdentityRelink {
 					$accounts[] = $owner;
 				}
 
-				self::collect( $identifiers, $row );
+				IdentityAgreement::collect( $identifiers, $row );
 			}
 
 			if ( array() !== $ids ) {
@@ -364,92 +313,6 @@ class IdentityRelink {
 			'accounts'    => $accounts,
 			'identifiers' => $identifiers,
 		);
-	}
-
-	/**
-	 * Every identifier an account holds, across its records and its index.
-	 *
-	 * BOTH, AND NOT ONLY THE INDEX.
-	 *
-	 * The index has one slot per identifier and is populated by a backfill
-	 * that deliberately leaves a slot EMPTY when the account carries more than
-	 * one distinct value for it. So an account that looks empty in the index
-	 * may be exactly the account that holds two -- reading the index alone
-	 * would call that a gap to fill, and fill it.
-	 *
-	 * @param int $user_id The account.
-	 * @return array<string, array<int, string>>
-	 */
-	private function account_identifiers( int $user_id ): array {
-		global $wpdb;
-
-		$out = array();
-
-		foreach ( self::STORES as $suffix ) {
-			$table = $wpdb->prefix . $suffix;
-
-			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) {
-				continue;
-			}
-
-			$found = $wpdb->get_results(
-				$wpdb->prepare( 'SELECT cpf_hash, rf_hash FROM %i WHERE user_id = %d', $table, $user_id ),
-				ARRAY_A
-			);
-
-			foreach ( (array) $found as $row ) {
-				self::collect( $out, (array) $row );
-			}
-		}
-
-		$profiles = $wpdb->prefix . 'ffc_user_profiles';
-
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $profiles ) ) === $profiles ) {
-			$indexed = $wpdb->get_row(
-				$wpdb->prepare( 'SELECT cpf_hash, rf_hash FROM %i WHERE user_id = %d', $profiles, $user_id ),
-				ARRAY_A
-			);
-
-			if ( is_array( $indexed ) ) {
-				self::collect( $out, $indexed );
-			}
-		}
-
-		return $out;
-	}
-
-	/**
-	 * Add one row's identifier hashes to a per-field register, without repeats.
-	 *
-	 * IT TAKES ANY ROW, AND THAT IS THE HONEST SIGNATURE.
-	 *
-	 * A row arrives from `$wpdb` as `mixed` and reaches this as a plain array,
-	 * so requiring `array<string, mixed>` claimed a key type nothing proves --
-	 * which level 9 reports, correctly, at the one call site that passes a
-	 * `get_row()` result straight through. The method already reads
-	 * defensively: it asks for the two keys it knows and ignores everything
-	 * else, so what it needs is a row, not a shape.
-	 *
-	 * @param array<string, array<int, string>> $into The register.
-	 * @param array<mixed, mixed>               $row  The row, however it arrived.
-	 * @return void
-	 */
-	private static function collect( array &$into, array $row ): void {
-		foreach ( self::FIELDS as $field ) {
-			$value = $row[ $field . '_hash' ] ?? '';
-
-			if ( ! is_string( $value ) || '' === $value ) {
-				continue;
-			}
-
-			if ( ! isset( $into[ $field ] ) ) {
-				$into[ $field ] = array();
-			}
-
-			if ( ! in_array( $value, $into[ $field ], true ) ) {
-				$into[ $field ][] = $value;
-			}
-		}
 	}
 
 	/**

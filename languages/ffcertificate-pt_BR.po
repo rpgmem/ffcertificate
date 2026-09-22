@@ -22365,3 +22365,71 @@ msgstr "Esse não é um identificador que isto consiga separar."
 
 msgid "The account was created but the identity index refused to record what it holds, so it was removed again and nothing was changed."
 msgstr "A conta foi criada mas o índice de identidade recusou registrar o que ela carrega, então ela foi removida de novo e nada foi alterado."
+
+msgid "%1$s (#%2$d)"
+msgstr "%1$s (nº %2$d)"
+
+msgid "%s accounts share this identifier, so it is not one pair. Resolve them two at a time."
+msgstr "%s contas compartilham este identificador, então não é um par. Resolva duas de cada vez."
+
+msgid "A merge needs both accounts: the one to keep and the one whose records move."
+msgstr "Uma mesclagem precisa das duas contas: a que fica e aquela cujos registros se movem."
+
+msgid "A pair named an account that was not one of its two."
+msgstr "Um par indicou uma conta que não era uma das suas duas."
+
+msgid "Account #%d"
+msgstr "Conta nº %d"
+
+msgid "Merge"
+msgstr "Mesclar"
+
+msgid "Merge the confirmed pairs"
+msgstr "Mesclar os pares confirmados"
+
+msgid "Merge this pair"
+msgstr "Mesclar este par"
+
+msgid "No pair was confirmed, so nothing was merged."
+msgstr "Nenhum par foi confirmado, então nada foi mesclado."
+
+msgid "One identifier is stored against two logins, so one of them is not that person's. Confirm only the pairs you know are one person, and choose which login keeps the records. A merge is the one action no other can undo: afterwards nothing can tell which records came from where."
+msgstr "Um identificador está armazenado em dois logins, então um deles não é daquela pessoa. Confirme apenas os pares que você sabe serem uma pessoa só, e escolha qual login fica com os registros. A mesclagem é a única ação que nenhuma outra desfaz: depois dela nada consegue dizer de onde veio cada registro."
+
+msgid "That account holds no identifier this can read, so there is nothing to merge from it."
+msgstr "Aquela conta não carrega identificador algum que isto consiga ler, então não há o que mesclar a partir dela."
+
+msgid "The emptied logins were left in place — removing them is yours to do in Users."
+msgstr "Os logins esvaziados foram mantidos — removê-los é tarefa sua, em Usuários."
+
+msgid "The identifier"
+msgstr "O identificador"
+
+msgid "The people"
+msgstr "As pessoas"
+
+msgid "The records, the identity index and the surviving login's certificate access move together, as one transaction per pair. The emptied login is left in place — removing it is yours to do in Users, because deleting an account runs cleanup this tool does not own and cannot undo."
+msgstr "Os registros, o índice de identidade e o acesso do login sobrevivente aos certificados se movem juntos, numa transação por par. O login esvaziado é mantido — removê-lo é tarefa sua, em Usuários, porque apagar uma conta dispara uma limpeza que esta ferramenta não controla e não desfaz."
+
+msgid "The store %s refused the merge, so nothing was changed."
+msgstr "O store %s recusou a mesclagem, então nada foi alterado."
+
+msgid "Those accounts hold different values for: %s. Correct the identifier first — merging across a disagreement makes one person out of two, and nothing afterwards can tell them apart again."
+msgstr "Aquelas contas carregam valores diferentes para: %s. Corrija o identificador antes — mesclar por cima de uma divergência faz uma pessoa de duas, e nada depois consegue separá-las de novo."
+
+msgid "Those accounts share no identifier, and an absent value is not agreement. Correct an identifier first so the two agree."
+msgstr "Aquelas contas não compartilham identificador algum, e um valor ausente não é concordância. Corrija um identificador antes, para que as duas concordem."
+
+msgid "Those are the same account, so there is nothing to merge."
+msgstr "Essa é a mesma conta, então não há o que mesclar."
+
+msgid "Two Accounts Merged Into One"
+msgstr "Duas Contas Mescladas em Uma"
+
+msgid "Which login keeps the records"
+msgstr "Qual login fica com os registros"
+
+msgid "%s pair merged."
+msgid_plural "%s pairs merged."
+msgstr[0] "%s par mesclado."
+msgstr[1] "%s pares mesclados."

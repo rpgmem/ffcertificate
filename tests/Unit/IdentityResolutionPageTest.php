@@ -284,26 +284,30 @@ class IdentityResolutionPageTest extends TestCase {
 	}
 
 	/**
-	 * The field travels with the write, so the same verbs serve CPF.
+	 * A HANDLER THAT ACTS ON AN IDENTIFIER MUST SAY WHICH IDENTIFIER.
+	 *
+	 * Third time this assertion has been rewritten, and the first two were
+	 * wrong in the same way: `2`, then a list of verb names, both of which are
+	 * a census of today's shape. The merge is what finally showed the claim
+	 * itself was false — it writes without naming an identifier at all,
+	 * because it is between two ACCOUNTS and moves everything they hold.
+	 *
+	 * What actually holds is a mechanism: a handler that reads `ffc_subject`
+	 * is acting on one stored hash, and a hash means nothing without the
+	 * column it sits in — `rf_hash` and `cpf_hash` are different questions.
+	 * So the two move together whatever verbs exist, and a handler that reads
+	 * neither is outside the rule rather than an exception to it.
 	 */
-	public function test_the_handlers_pass_the_identifier_through(): void {
+	public function test_a_handler_acting_on_an_identifier_names_which_one(): void {
 		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
 
-		// AN INVARIANT, AND ONE THAT DOES NOT NAME THE VERBS EITHER.
-		//
-		// The first version asserted the literal `2` and went stale when the
-		// relink landed. The second counted the verbs by name and went stale
-		// again when the split landed — a list of verbs is a number wearing
-		// a different hat. What actually holds is per HANDLER: each one
-		// checks a keyed nonce and names the identifier it writes, so the
-		// two counts move together whatever verbs exist.
-		$writes = substr_count( $page, 'check_admin_referer(' );
+		$subjects = substr_count( $page, "'ffc_subject'" );
 
-		$this->assertGreaterThan( 0, $writes, 'The scan found no write handler to check.' );
+		$this->assertGreaterThan( 0, $subjects, 'The scan found no handler acting on an identifier.' );
 		$this->assertSame(
-			$writes,
+			$subjects,
 			substr_count( $page, 'self::posted_field()' ),
-			'Every write handler must name the identifier it is writing.'
+			'A stored hash means nothing without the column it sits in.'
 		);
 		$this->assertStringContainsString( 'in_array( $field, IdentityRepair::FIELDS, true )', $page );
 	}

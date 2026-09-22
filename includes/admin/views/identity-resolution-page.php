@@ -32,6 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 $ffc_identity_truncated = false;
 $ffc_identity_rows      = array();
 $ffc_identity_accountal = array();
+$ffc_identity_pairs     = array();
 
 foreach ( $ffc_identity_findings as $ffc_identity_finding ) {
 	if ( ! empty( $ffc_identity_finding[ IdentityConflictQuery::COLUMN_SCAN_TRUNCATED ] ) ) {
@@ -39,16 +40,44 @@ foreach ( $ffc_identity_findings as $ffc_identity_finding ) {
 		continue;
 	}
 
-	// The isolated tier keeps the row-level table below, because its finding
-	// may name no account at all and `row_ids` is then the only handle on it.
-	// Everything else is account-side and shares one table.
-	if ( IdentityQueue::TIER_ISOLATED === ( $ffc_identity_finding[ IdentityQueue::COLUMN_TIER ] ?? '' ) ) {
+	// Three shapes, three sections. The isolated tier keeps the row-level
+	// table below, because its finding may name no account at all and
+	// `row_ids` is then the only handle on it. The shared tier gets a form of
+	// its own, because a merge is confirmed pair by pair rather than row by
+	// row. Everything else is account-side and shares one table.
+	$ffc_identity_of = $ffc_identity_finding[ IdentityQueue::COLUMN_TIER ] ?? '';
+
+	if ( IdentityQueue::TIER_ISOLATED === $ffc_identity_of ) {
 		$ffc_identity_rows[] = $ffc_identity_finding;
+		continue;
+	}
+
+	if ( IdentityQueue::TIER_SHARED === $ffc_identity_of ) {
+		$ffc_identity_pairs[] = $ffc_identity_finding;
 		continue;
 	}
 
 	$ffc_identity_accountal[] = $ffc_identity_finding;
 }
+
+/**
+ * An account as a person reads it: the name WordPress holds, then the id.
+ *
+ * The NAME is what makes a merge confirmable — "keep 5784 or 6092?" is not a
+ * question anybody can answer. The document stays a hash prefix, because that
+ * is the identifier and this screen never shows one.
+ *
+ * @param int $user_id The account.
+ * @return string
+ */
+$ffc_identity_named = static function ( $user_id ) {
+	$user = get_userdata( (int) $user_id );
+	$name = ( $user && '' !== (string) $user->display_name ) ? (string) $user->display_name : '';
+
+	return '' === $name
+		? sprintf( /* translators: %d: account id. */ __( 'Account #%d', 'ffcertificate' ), (int) $user_id )
+		: sprintf( /* translators: 1: person's name, 2: account id. */ __( '%1$s (#%2$d)', 'ffcertificate' ), $name, (int) $user_id );
+};
 
 /**
  * One tier's name, as an operator reads it.
@@ -113,6 +142,104 @@ $ffc_identity_tier_note = static function ( $tier ) {
 			)
 		);
 		?>
+	<?php endif; ?>
+
+	<?php if ( array() !== $ffc_identity_pairs ) : ?>
+		<h2><?php esc_html_e( 'Two accounts, one number', 'ffcertificate' ); ?></h2>
+		<p class="description">
+			<?php esc_html_e( 'One identifier is stored against two logins, so one of them is not that person\'s. Confirm only the pairs you know are one person, and choose which login keeps the records. A merge is the one action no other can undo: afterwards nothing can tell which records came from where.', 'ffcertificate' ); ?>
+		</p>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<?php wp_nonce_field( IdentityResolutionPage::MERGE_NONCE ); ?>
+			<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::MERGE_ACTION ); ?>">
+			<table class="wp-list-table widefat striped">
+				<thead>
+					<tr>
+						<th scope="col"><?php esc_html_e( 'Merge', 'ffcertificate' ); ?></th>
+						<th scope="col"><?php esc_html_e( 'The people', 'ffcertificate' ); ?></th>
+						<th scope="col"><?php esc_html_e( 'The identifier', 'ffcertificate' ); ?></th>
+						<th scope="col"><?php esc_html_e( 'Which login keeps the records', 'ffcertificate' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+				<?php foreach ( $ffc_identity_pairs as $ffc_identity_i => $ffc_identity_pair ) : ?>
+					<?php
+					$ffc_identity_who = IdentityConflictQuery::parse_accounts(
+						$ffc_identity_pair[ IdentityConflictQuery::COLUMN_RELATED ] ?? ''
+					);
+					?>
+					<?php if ( 2 !== count( $ffc_identity_who ) ) : ?>
+						<tr>
+							<td colspan="4">
+								<span class="description">
+									<?php
+									// MORE THAN TWO IS NOT A PAIR, AND IT IS NOT
+									// OFFERED. A merge takes one survivor and one
+									// absorbed account; three logins sharing a
+									// number is three decisions, made two at a
+									// time, and a control that hid that would
+									// invite one sweep over all of them.
+									printf(
+										/* translators: %s: how many accounts share the identifier. */
+										esc_html__( '%s accounts share this identifier, so it is not one pair. Resolve them two at a time.', 'ffcertificate' ),
+										esc_html( number_format_i18n( count( $ffc_identity_who ) ) )
+									);
+									?>
+								</span>
+							</td>
+						</tr>
+						<?php continue; ?>
+					<?php endif; ?>
+					<tr>
+						<td>
+							<label class="screen-reader-text" for="ffc-merge-<?php echo esc_attr( (string) $ffc_identity_i ); ?>">
+								<?php esc_html_e( 'Merge this pair', 'ffcertificate' ); ?>
+							</label>
+							<input type="checkbox" id="ffc-merge-<?php echo esc_attr( (string) $ffc_identity_i ); ?>"
+								name="ffc_pair[<?php echo esc_attr( (string) $ffc_identity_i ); ?>][confirm]" value="1">
+							<input type="hidden" name="ffc_pair[<?php echo esc_attr( (string) $ffc_identity_i ); ?>][a]" value="<?php echo esc_attr( (string) $ffc_identity_who[0] ); ?>">
+							<input type="hidden" name="ffc_pair[<?php echo esc_attr( (string) $ffc_identity_i ); ?>][b]" value="<?php echo esc_attr( (string) $ffc_identity_who[1] ); ?>">
+						</td>
+						<td>
+							<?php foreach ( $ffc_identity_who as $ffc_identity_account ) : ?>
+								<div>
+									<a href="<?php echo esc_url( admin_url( 'user-edit.php?user_id=' . rawurlencode( (string) $ffc_identity_account ) ) ); ?>">
+										<?php echo esc_html( $ffc_identity_named( $ffc_identity_account ) ); ?>
+									</a>
+								</div>
+							<?php endforeach; ?>
+						</td>
+						<td>
+							<code><?php echo esc_html( substr( (string) ( $ffc_identity_pair['subject'] ?? '' ), 0, IdentityQueue::DISPLAY_PREFIX ) ); ?></code>
+							<span class="description">
+								<?php echo esc_html( strtoupper( str_replace( '_hash', '', (string) ( $ffc_identity_pair['identifier_column'] ?? '' ) ) ) ); ?>
+							</span>
+						</td>
+						<td>
+							<?php foreach ( $ffc_identity_who as $ffc_identity_account ) : ?>
+								<div>
+									<label>
+										<input type="radio"
+											name="ffc_pair[<?php echo esc_attr( (string) $ffc_identity_i ); ?>][keep]"
+											value="<?php echo esc_attr( (string) $ffc_identity_account ); ?>">
+										<?php echo esc_html( $ffc_identity_named( $ffc_identity_account ) ); ?>
+									</label>
+								</div>
+							<?php endforeach; ?>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table>
+			<p>
+				<button type="submit" class="button button-primary">
+					<?php esc_html_e( 'Merge the confirmed pairs', 'ffcertificate' ); ?>
+				</button>
+			</p>
+			<p class="description">
+				<?php esc_html_e( 'The records, the identity index and the surviving login\'s certificate access move together, as one transaction per pair. The emptied login is left in place — removing it is yours to do in Users, because deleting an account runs cleanup this tool does not own and cannot undo.', 'ffcertificate' ); ?>
+			</p>
+		</form>
 	<?php endif; ?>
 
 	<?php if ( array() !== $ffc_identity_accountal ) : ?>
@@ -300,7 +427,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		</p>
 	<?php endif; ?>
 
-	<?php if ( array() === $ffc_identity_rows && array() === $ffc_identity_accountal ) : ?>
+	<?php if ( array() === $ffc_identity_rows && array() === $ffc_identity_accountal && array() === $ffc_identity_pairs ) : ?>
 		<?php
 		// AN EMPTY LIST MEANS THREE DIFFERENT THINGS AND ONLY ONE IS GOOD NEWS.
 		//
