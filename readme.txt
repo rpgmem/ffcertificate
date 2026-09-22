@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.4
 Tested up to: 7.1.1
-Stable tag: 6.28.2
+Stable tag: 6.28.3
 Requires PHP: 8.3
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -214,8 +214,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.28.2 =
-A stored RF whose own check digit does not match can now be listed and corrected from a screen of its own, under a new capability that does not carry the danger zone. Fixes a migration card that looped without ever finishing. No migrations to run.
+= 6.28.3 =
+Identity conflicts — one person under two logins, or one account holding two numbers — now have a worklist that sorts them by what is already known, and four ways to resolve one. Fixes a check-digit scan that could never run at all. No migrations to run.
 
 This section carries a short summary of the version being offered, and only
 that one — the updater never offers an older release, so an entry for one
