@@ -109,6 +109,7 @@ class ActivityLog {
 			// Identity resolution (#1368) -- a write over stored PII, so it sits
 			// with the other data-access lines rather than with settings.
 			'identity_rf_repaired'               => 'data_access',
+			'identity_records_relinked'          => 'data_access',
 			'migration_foreign_keys'             => 'migrations',
 			'activity_log_clear_plaintext_batch' => 'migrations',
 			'cpf_rf_split_unknown_length'        => 'migrations',

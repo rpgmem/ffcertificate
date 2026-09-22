@@ -9,6 +9,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Records carrying one identifier can be moved to the account they belong to** (#1386): only where the records and the account already agree on the *other* identifier — an absent value is never agreement — and where the receiving account holds none of that kind, it gains this one, so an account with only a CPF ends up holding both. A second value that disagrees refuses the whole move: correcting it first is what keeps one person's record from landing under another person's account. Rows and identity index move as one transaction.
+
+
+### Added
+
 - **A mistyped number can be consolidated into the one the account already holds, in one click** (#1386): where the check digits identify which of two is wrong, the correct value is the account's other identifier — so nothing is typed and nothing is shown. The two hashes are posted and the value is read in memory, so a stored RF or CPF never reaches a form field, a URL or an operator's screen. Every refusal the correction makes still applies.
 - **The identity verbs work over CPF as well as RF** (#1386): the same three stores, the same index and the same transaction; what differs is only the rule that says a value is well formed — two check digits for CPF, one for RF. The RF rule is read directly rather than through the form's validator, because whether a *correction* is well formed must not depend on a setting that decides what the form accepts.
 

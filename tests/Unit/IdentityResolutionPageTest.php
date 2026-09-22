@@ -289,10 +289,19 @@ class IdentityResolutionPageTest extends TestCase {
 	public function test_the_handlers_pass_the_identifier_through(): void {
 		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
 
+		// AN INVARIANT, NOT A COUNT. The first version of this asserted `2`
+		// and went stale the moment the relink landed — a number here is a
+		// claim about a value another file owns, which is the class CLAUDE.md
+		// records. What must hold is that EVERY write names the identifier.
+		$writes = substr_count( $page, '->repair(' )
+			+ substr_count( $page, '->consolidate(' )
+			+ substr_count( $page, '->relink(' );
+
+		$this->assertGreaterThan( 0, $writes, 'The scan found no write to check.' );
 		$this->assertSame(
-			2,
+			$writes,
 			substr_count( $page, 'self::posted_field()' ),
-			'Both the repair and the consolidation must name the identifier.'
+			'Every write must name the identifier it is writing.'
 		);
 		$this->assertStringContainsString( 'in_array( $field, IdentityRepair::FIELDS, true )', $page );
 	}

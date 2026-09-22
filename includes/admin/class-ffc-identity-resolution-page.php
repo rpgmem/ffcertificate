@@ -19,6 +19,7 @@ use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityQueue;
+use FreeFormCertificate\Maintenance\IdentityRelink;
 use FreeFormCertificate\Maintenance\IdentityRepair;
 use WP_Error;
 
@@ -104,6 +105,20 @@ class IdentityResolutionPage {
 	public const CONSOLIDATE_NONCE = 'ffc_consolidate_identity_';
 
 	/**
+	 * The `admin_post` action that moves records to another account.
+	 *
+	 * @since 6.28.3
+	 */
+	public const RELINK_ACTION = 'ffc_relink_identity';
+
+	/**
+	 * Nonce action for a relink, keyed per identifier.
+	 *
+	 * @since 6.28.3
+	 */
+	public const RELINK_NONCE = 'ffc_relink_identity_';
+
+	/**
 	 * Transient prefix carrying one outcome from the write back to the screen.
 	 *
 	 * A transient and NOT a query argument, although the audit card next door
@@ -137,6 +152,7 @@ class IdentityResolutionPage {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_post_' . self::REPAIR_ACTION, array( $this, 'handle_repair' ) );
 		add_action( 'admin_post_' . self::CONSOLIDATE_ACTION, array( $this, 'handle_consolidate' ) );
+		add_action( 'admin_post_' . self::RELINK_ACTION, array( $this, 'handle_relink' ) );
 	}
 
 	/**
@@ -353,6 +369,50 @@ class IdentityResolutionPage {
 			$result,
 			__( 'Consolidated into the identifier this account already held. The rows, the identity index and the account\'s certificate access were updated together.', 'ffcertificate' )
 		);
+	}
+
+	/**
+	 * Move the records carrying one identifier to another account.
+	 *
+	 * The account is typed as a numeric id rather than picked from a list, and
+	 * that is deliberate: the operator arrives here from the audit export,
+	 * which names accounts by id and links straight to `user-edit.php`. A
+	 * picker would be a second way to say the same thing, and a wrong pick is
+	 * exactly as damaging as a wrong id.
+	 *
+	 * @since 6.28.3
+	 * @return void
+	 */
+	public function handle_relink(): void {
+		if ( ! Capabilities::current_user_can_admin_or( self::CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+
+		$subject = RequestInput::get_post_string( 'ffc_subject', '' );
+
+		check_admin_referer( self::RELINK_NONCE . $subject );
+
+		$result = $this->movements()->relink(
+			$subject,
+			(int) RequestInput::get_post_string( 'ffc_account', '0' ),
+			get_current_user_id(),
+			self::posted_field()
+		);
+
+		$this->report(
+			$result,
+			__( 'Moved. The records, the identity index and the receiving account\'s certificate access were updated together.', 'ffcertificate' )
+		);
+	}
+
+	/**
+	 * The relink, as a seam a test can replace.
+	 *
+	 * @since 6.28.3
+	 * @return IdentityRelink
+	 */
+	protected function movements(): IdentityRelink {
+		return new IdentityRelink();
 	}
 
 	/**
