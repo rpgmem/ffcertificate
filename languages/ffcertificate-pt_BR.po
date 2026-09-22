@@ -22133,9 +22133,6 @@ msgstr "Resolução de identidade"
 msgid "Identities"
 msgstr "Identidades"
 
-msgid "Stored RF numbers whose own check digit does not match, so the value cannot be anybody's: it was mistyped on the way in. The digit says a number is wrong, never what the right one is — each row is a question for HR, answered one at a time. Grouping is by the stored hash; the digit is checked in memory and only a verdict leaves the scan, never a value."
-msgstr "RFs armazenados cujo próprio dígito verificador não confere, então o valor não pode ser de ninguém: foi digitado errado na entrada. O dígito diz que um número está errado, nunca qual é o certo — cada linha é uma pergunta para o RH, respondida uma de cada vez. O agrupamento é pelo hash armazenado; o dígito é conferido em memória e só um veredito sai da varredura, nunca um valor."
-
 msgid "The scan reached its cap before reading every stored value, so this list is partial. Work it down and run the screen again."
 msgstr "A varredura atingiu seu limite antes de ler todos os valores armazenados, então esta lista está parcial. Reduza a fila e abra a tela de novo."
 
@@ -22218,3 +22215,54 @@ msgstr "Nada a resolver: %1$s valores armazenados checados e todos satisfazem se
 
 msgid "No stored RF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured an RF yet — worth looking into on one that has."
 msgstr "Nenhum RF armazenado foi encontrado: nenhum dos %s stores varridos tem uma linha com hash e ciphertext ao mesmo tempo, então não havia o que checar. Comum numa instalação que ainda não capturou nenhum RF — merece investigação numa que já capturou."
+
+msgid "A stored RF whose own check digit does not match, and which no account-side finding above explains: somebody mistyped once on their only row, or the row belongs to a candidacy that carries no account until promotion. The correct value comes from HR."
+msgstr "Um RF armazenado cujo dígito verificador não confere e que nenhum achado por conta acima explica: alguém digitou errado uma única vez na sua única linha, ou a linha pertence a uma candidatura que não carrega conta até a promoção. O valor correto vem do RH."
+
+msgid "Accounts and stored numbers that do not agree with each other, sorted by how much of the answer is already known. The check digits are what sort them: they can say a number is wrong, and never what the right one is. Identifiers are shown as a hash prefix — the values are decrypted in memory to be checked and none of them leaves the scan."
+msgstr "Contas e números armazenados que não concordam entre si, ordenados por quanto da resposta já se conhece. Quem os ordena são os dígitos verificadores: eles dizem que um número está errado, nunca qual é o certo. Os identificadores aparecem como prefixo de hash — os valores são decifrados em memória para a checagem e nenhum deles sai da varredura."
+
+msgid "Accounts to resolve"
+msgstr "Contas a resolver"
+
+msgid "Identifiers"
+msgstr "Identificadores"
+
+msgid "Needs a decision"
+msgstr "Precisa de decisão"
+
+msgid "Numbers to correct"
+msgstr "Números a corrigir"
+
+msgid "One is mistyped"
+msgstr "Um está digitado errado"
+
+msgid "One number is stored against more than one account. That is a merge, not a correction: the decision is which account survives."
+msgstr "Um número está armazenado em mais de uma conta. Isso é uma mesclagem, não uma correção: a decisão é qual conta sobrevive."
+
+msgid "The check digits do not single one out — none fails, or more than one does. Confirm with HR which number is this person's."
+msgstr "Os dígitos verificadores não apontam um só — nenhum falha, ou mais de um falha. Confirme com o RH qual número é o desta pessoa."
+
+msgid "The check digits identify which of the two is wrong, and the other one is this account's. No value has to be asked for."
+msgstr "Os dígitos verificadores identificam qual dos dois está errado, e o outro é o desta conta. Nenhum valor precisa ser pedido."
+
+msgid "These are listed, not yet actionable from here: correcting them writes across every store and the identity index at once, and each verb is delivered on its own. Open the account to see what it holds meanwhile."
+msgstr "Estes estão listados, ainda não acionáveis por aqui: corrigi-los escreve em todos os stores e no índice de identidade de uma vez, e cada verbo é entregue por si. Abra a conta para ver o que ela carrega enquanto isso."
+
+msgid "Two accounts, one number"
+msgstr "Duas contas, um número"
+
+msgid "What is known"
+msgstr "O que se sabe"
+
+msgid "— could not be read, so nothing is known about it"
+msgstr "— não pôde ser lido, então nada se sabe sobre ele"
+
+msgid "— fails its check digits"
+msgstr "— não confere com seus dígitos verificadores"
+
+msgid "— not stored anywhere this check can read"
+msgstr "— não está armazenado em lugar nenhum que esta checagem consiga ler"
+
+msgid "— well formed"
+msgstr "— bem formado"

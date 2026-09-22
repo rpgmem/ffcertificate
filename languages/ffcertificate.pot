@@ -22042,9 +22042,6 @@ msgstr ""
 msgid "Identities"
 msgstr ""
 
-msgid "Stored RF numbers whose own check digit does not match, so the value cannot be anybody's: it was mistyped on the way in. The digit says a number is wrong, never what the right one is — each row is a question for HR, answered one at a time. Grouping is by the stored hash; the digit is checked in memory and only a verdict leaves the scan, never a value."
-msgstr ""
-
 msgid "The scan reached its cap before reading every stored value, so this list is partial. Work it down and run the screen again."
 msgstr ""
 
@@ -22126,4 +22123,55 @@ msgid "Nothing to resolve: %1$s stored values checked and every one satisfies it
 msgstr ""
 
 msgid "No stored RF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured an RF yet — worth looking into on one that has."
+msgstr ""
+
+msgid "A stored RF whose own check digit does not match, and which no account-side finding above explains: somebody mistyped once on their only row, or the row belongs to a candidacy that carries no account until promotion. The correct value comes from HR."
+msgstr ""
+
+msgid "Accounts and stored numbers that do not agree with each other, sorted by how much of the answer is already known. The check digits are what sort them: they can say a number is wrong, and never what the right one is. Identifiers are shown as a hash prefix — the values are decrypted in memory to be checked and none of them leaves the scan."
+msgstr ""
+
+msgid "Accounts to resolve"
+msgstr ""
+
+msgid "Identifiers"
+msgstr ""
+
+msgid "Needs a decision"
+msgstr ""
+
+msgid "Numbers to correct"
+msgstr ""
+
+msgid "One is mistyped"
+msgstr ""
+
+msgid "One number is stored against more than one account. That is a merge, not a correction: the decision is which account survives."
+msgstr ""
+
+msgid "The check digits do not single one out — none fails, or more than one does. Confirm with HR which number is this person's."
+msgstr ""
+
+msgid "The check digits identify which of the two is wrong, and the other one is this account's. No value has to be asked for."
+msgstr ""
+
+msgid "These are listed, not yet actionable from here: correcting them writes across every store and the identity index at once, and each verb is delivered on its own. Open the account to see what it holds meanwhile."
+msgstr ""
+
+msgid "Two accounts, one number"
+msgstr ""
+
+msgid "What is known"
+msgstr ""
+
+msgid "— could not be read, so nothing is known about it"
+msgstr ""
+
+msgid "— fails its check digits"
+msgstr ""
+
+msgid "— not stored anywhere this check can read"
+msgstr ""
+
+msgid "— well formed"
 msgstr ""

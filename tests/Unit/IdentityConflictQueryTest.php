@@ -1560,4 +1560,115 @@ class IdentityConflictQueryTest extends TestCase {
 		$this->assertSame( 0, $coverage['examined'] );
 		$this->assertSame( 0, $coverage['unreadable'] );
 	}
+	// ==================================================================
+	// check_digit_verdicts() -- #1386
+	// ==================================================================
+
+	/**
+	 * Drive the per-hash verdict with a row set and a decryption map.
+	 *
+	 * @param array<int, array<string, mixed>> $rows  Rows the statement returns.
+	 * @param array<string, string>            $plain Ciphertext => plaintext.
+	 * @param array<int, string>               $ask   Hashes to judge.
+	 * @return array<string, string>
+	 */
+	private function verdicts( array $rows, array $plain, array $ask ): array {
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $query ) use ( $rows ) {
+				return ( false !== strpos( (string) $query, 'rf_encrypted' ) ) ? $rows : array();
+			}
+		);
+
+		return $this->query_reading( $plain )->check_digit_verdicts( 'rf_hash', $ask );
+	}
+
+	/**
+	 * `1234561` satisfies the rule and `1234567` does not, so the two verdicts
+	 * are what the whole tiering rests on.
+	 */
+	public function test_it_judges_each_identifier_it_was_asked_about(): void {
+		$out = $this->verdicts(
+			array(
+				array( 'h' => 'hashA', 'c' => 'cipherA' ),
+				array( 'h' => 'hashB', 'c' => 'cipherB' ),
+			),
+			array( 'cipherA' => '1234567', 'cipherB' => '1234561' ),
+			array( 'hashA', 'hashB' )
+		);
+
+		$this->assertSame( IdentityConflictQuery::VERDICT_INVALID, $out['hashA'] );
+		$this->assertSame( IdentityConflictQuery::VERDICT_VALID, $out['hashB'] );
+	}
+
+	/**
+	 * A HASH NOBODY CARRIES IS A VERDICT, NOT A MISSING KEY.
+	 *
+	 * This is the whole reason the method exists rather than the caller
+	 * reading absence from the failure list: a gap in a map reads as "fine" to
+	 * any caller that uses `??`, and here it means the value was never seen.
+	 */
+	public function test_a_hash_no_store_carries_is_reported_absent(): void {
+		$out = $this->verdicts( array(), array(), array( 'hashZ' ) );
+
+		$this->assertArrayHasKey( 'hashZ', $out );
+		$this->assertSame( IdentityConflictQuery::VERDICT_ABSENT, $out['hashZ'] );
+	}
+
+	/**
+	 * A value that cannot be decrypted is not a failure, for the reason
+	 * `SHAPE_NOT_DECRYPTABLE` is not one.
+	 */
+	public function test_a_value_that_does_not_decrypt_is_reported_unreadable(): void {
+		$out = $this->verdicts(
+			array( array( 'h' => 'hashA', 'c' => 'cipherA' ) ),
+			array(),
+			array( 'hashA' )
+		);
+
+		$this->assertSame( IdentityConflictQuery::VERDICT_UNREADABLE, $out['hashA'] );
+	}
+
+	/**
+	 * Asking about nothing returns nothing, and asking about an identifier
+	 * this class does not index likewise -- never a partial answer.
+	 */
+	public function test_it_answers_nothing_when_there_is_nothing_to_judge(): void {
+		$this->assertSame( array(), $this->verdicts( array(), array(), array() ) );
+
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+		$this->assertSame(
+			array(),
+			$this->query_reading( array() )->check_digit_verdicts( 'phone_hash', array( 'hashA' ) )
+		);
+	}
+
+	/**
+	 * Every identifier travels as a placeholder, and the values are listed in
+	 * the order the placeholders appear -- the #1384 defect, which a mocked
+	 * `get_results` cannot see because it never parses the statement.
+	 */
+	public function test_the_statement_names_what_each_placeholder_names(): void {
+		$sql = '';
+
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $query ) use ( &$sql ) {
+				$statement = (string) $query;
+
+				if ( false !== strpos( $statement, 'rf_encrypted' ) && '' === $sql ) {
+					$sql = $statement;
+				}
+
+				return array();
+			}
+		);
+
+		$this->query_reading( array() )->check_digit_verdicts( 'rf_hash', array( 'hashA', 'hashB' ) );
+
+		$this->assertStringContainsString( 'rf_hash AS h', $sql, $sql );
+		$this->assertStringContainsString( 'MIN(rf_encrypted) AS c', $sql, $sql );
+		$this->assertStringContainsString( 'FROM wp_ffc_submissions', $sql, $sql );
+		$this->assertStringContainsString( 'WHERE rf_hash IN (hashA,hashB)', $sql, $sql );
+		$this->assertStringContainsString( 'GROUP BY rf_hash', $sql, $sql );
+	}
 }

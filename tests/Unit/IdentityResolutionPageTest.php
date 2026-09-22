@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\IdentityResolutionPage;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
+use FreeFormCertificate\Maintenance\IdentityQueue;
 
 /**
  * The identity-resolution worklist screen (#1368).
@@ -57,6 +58,8 @@ class IdentityResolutionPageTest extends TestCase {
 	 */
 	private function page_reading( array $findings ): IdentityResolutionPage {
 		$query = Mockery::mock( IdentityConflictQuery::class );
+		$query->shouldReceive( 'multiple_identities' )->andReturn( array() );
+		$query->shouldReceive( 'shared_identities' )->andReturn( array() );
 		$query->shouldReceive( 'rf_check_digit_failures' )
 			->once()
 			->with( IdentityResolutionPage::LIMIT )
@@ -165,7 +168,16 @@ class IdentityResolutionPageTest extends TestCase {
 			),
 		);
 
-		$this->assertSame( $findings, $this->page_reading( $findings )->queue() );
+		$queue = $this->page_reading( $findings )->queue();
+
+		$this->assertCount( 1, $queue );
+		$this->assertSame(
+			IdentityQueue::TIER_ISOLATED,
+			$queue[0][ IdentityQueue::COLUMN_TIER ],
+			'A check-digit failure no account-side finding explains is its own tier.'
+		);
+		$this->assertSame( 'submissions:4,9', $queue[0][ IdentityConflictQuery::COLUMN_ROW_IDS ] );
+
 		$this->assertGreaterThan(
 			50,
 			IdentityResolutionPage::LIMIT,
@@ -255,6 +267,8 @@ class IdentityResolutionPageTest extends TestCase {
 	 */
 	public function test_the_queue_carries_what_the_scan_read(): void {
 		$query = Mockery::mock( IdentityConflictQuery::class );
+		$query->shouldReceive( 'multiple_identities' )->andReturn( array() );
+		$query->shouldReceive( 'shared_identities' )->andReturn( array() );
 		$query->shouldReceive( 'rf_check_digit_failures' )->once()->andReturn( array() );
 		$query->shouldReceive( 'rf_scan_coverage' )->once()->andReturn(
 			array(

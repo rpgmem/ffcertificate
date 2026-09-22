@@ -23,6 +23,7 @@
 
 use FreeFormCertificate\Admin\IdentityResolutionPage;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
+use FreeFormCertificate\Maintenance\IdentityQueue;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -30,6 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $ffc_identity_truncated = false;
 $ffc_identity_rows      = array();
+$ffc_identity_accountal = array();
 
 foreach ( $ffc_identity_findings as $ffc_identity_finding ) {
 	if ( ! empty( $ffc_identity_finding[ IdentityConflictQuery::COLUMN_SCAN_TRUNCATED ] ) ) {
@@ -37,8 +39,50 @@ foreach ( $ffc_identity_findings as $ffc_identity_finding ) {
 		continue;
 	}
 
-	$ffc_identity_rows[] = $ffc_identity_finding;
+	// The isolated tier keeps the row-level table below, because its finding
+	// may name no account at all and `row_ids` is then the only handle on it.
+	// Everything else is account-side and shares one table.
+	if ( IdentityQueue::TIER_ISOLATED === ( $ffc_identity_finding[ IdentityQueue::COLUMN_TIER ] ?? '' ) ) {
+		$ffc_identity_rows[] = $ffc_identity_finding;
+		continue;
+	}
+
+	$ffc_identity_accountal[] = $ffc_identity_finding;
 }
+
+/**
+ * One tier's name, as an operator reads it.
+ *
+ * @param string $tier The tier.
+ * @return string
+ */
+$ffc_identity_tier_label = static function ( $tier ) {
+	switch ( $tier ) {
+		case IdentityQueue::TIER_MECHANICAL:
+			return __( 'One is mistyped', 'ffcertificate' );
+		case IdentityQueue::TIER_SHARED:
+			return __( 'Two accounts, one number', 'ffcertificate' );
+		default:
+			return __( 'Needs a decision', 'ffcertificate' );
+	}
+};
+
+/**
+ * What the operator is being told to do about one tier.
+ *
+ * @param string $tier The tier.
+ * @return string
+ */
+$ffc_identity_tier_note = static function ( $tier ) {
+	switch ( $tier ) {
+		case IdentityQueue::TIER_MECHANICAL:
+			return __( 'The check digits identify which of the two is wrong, and the other one is this account\'s. No value has to be asked for.', 'ffcertificate' );
+		case IdentityQueue::TIER_SHARED:
+			return __( 'One number is stored against more than one account. That is a merge, not a correction: the decision is which account survives.', 'ffcertificate' );
+		default:
+			return __( 'The check digits do not single one out — none fails, or more than one does. Confirm with HR which number is this person\'s.', 'ffcertificate' );
+	}
+};
 ?>
 <div class="wrap ffc-admin-page ffc-page-identities">
 	<h1><?php esc_html_e( 'Identity Resolution', 'ffcertificate' ); ?></h1>
@@ -56,7 +100,7 @@ foreach ( $ffc_identity_findings as $ffc_identity_finding ) {
 	<?php endif; ?>
 
 	<p class="description">
-		<?php esc_html_e( 'Stored RF numbers whose own check digit does not match, so the value cannot be anybody\'s: it was mistyped on the way in. The digit says a number is wrong, never what the right one is — each row is a question for HR, answered one at a time. Grouping is by the stored hash; the digit is checked in memory and only a verdict leaves the scan, never a value.', 'ffcertificate' ); ?>
+		<?php esc_html_e( 'Accounts and stored numbers that do not agree with each other, sorted by how much of the answer is already known. The check digits are what sort them: they can say a number is wrong, and never what the right one is. Identifiers are shown as a hash prefix — the values are decrypted in memory to be checked and none of them leaves the scan.', 'ffcertificate' ); ?>
 	</p>
 
 	<?php if ( $ffc_identity_truncated ) : ?>
@@ -71,7 +115,85 @@ foreach ( $ffc_identity_findings as $ffc_identity_finding ) {
 		?>
 	<?php endif; ?>
 
-	<?php if ( array() === $ffc_identity_rows ) : ?>
+	<?php if ( array() !== $ffc_identity_accountal ) : ?>
+		<h2><?php esc_html_e( 'Accounts to resolve', 'ffcertificate' ); ?></h2>
+		<table class="wp-list-table widefat striped">
+			<thead>
+				<tr>
+					<th scope="col"><?php esc_html_e( 'What is known', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Accounts', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Identifiers', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Stores', 'ffcertificate' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+			<?php foreach ( $ffc_identity_accountal as $ffc_identity_item ) : ?>
+				<?php
+				$ffc_identity_tier = (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_TIER ] ?? '' );
+
+				// The two orientations of one finding, and they are mirror
+				// images: an account holding several numbers names the account
+				// in `subject`, while a number held by several accounts names
+				// the NUMBER there and the accounts in `related`. Reading one
+				// shape for both is how an account id gets printed as a hash.
+				if ( IdentityQueue::TIER_SHARED === $ffc_identity_tier ) {
+					$ffc_identity_who   = IdentityConflictQuery::parse_accounts( $ffc_identity_item[ IdentityConflictQuery::COLUMN_RELATED ] ?? '' );
+					$ffc_identity_which = array( (string) ( $ffc_identity_item['subject'] ?? '' ) => '' );
+				} else {
+					$ffc_identity_who   = IdentityConflictQuery::parse_accounts( $ffc_identity_item['subject'] ?? '' );
+					$ffc_identity_which = (array) ( $ffc_identity_item[ IdentityQueue::COLUMN_VERDICTS ] ?? array() );
+				}
+				?>
+				<tr>
+					<td>
+						<strong><?php echo esc_html( $ffc_identity_tier_label( $ffc_identity_tier ) ); ?></strong>
+						<p class="description"><?php echo esc_html( $ffc_identity_tier_note( $ffc_identity_tier ) ); ?></p>
+					</td>
+					<td>
+						<?php if ( array() === $ffc_identity_who ) : ?>
+							<span class="description"><?php esc_html_e( 'No account', 'ffcertificate' ); ?></span>
+						<?php else : ?>
+							<?php foreach ( $ffc_identity_who as $ffc_identity_account ) : ?>
+								<div>
+									<a href="<?php echo esc_url( admin_url( 'user-edit.php?user_id=' . rawurlencode( (string) $ffc_identity_account ) ) ); ?>">#<?php echo esc_html( (string) $ffc_identity_account ); ?></a>
+								</div>
+							<?php endforeach; ?>
+						<?php endif; ?>
+					</td>
+					<td>
+						<?php foreach ( $ffc_identity_which as $ffc_identity_hash => $ffc_identity_verdict ) : ?>
+							<div>
+								<code><?php echo esc_html( substr( (string) $ffc_identity_hash, 0, IdentityQueue::DISPLAY_PREFIX ) ); ?></code>
+								<?php if ( IdentityConflictQuery::VERDICT_INVALID === $ffc_identity_verdict ) : ?>
+									<span class="description"><?php esc_html_e( '— fails its check digits', 'ffcertificate' ); ?></span>
+								<?php elseif ( IdentityConflictQuery::VERDICT_VALID === $ffc_identity_verdict ) : ?>
+									<span class="description"><?php esc_html_e( '— well formed', 'ffcertificate' ); ?></span>
+								<?php elseif ( IdentityConflictQuery::VERDICT_UNREADABLE === $ffc_identity_verdict ) : ?>
+									<span class="description"><?php esc_html_e( '— could not be read, so nothing is known about it', 'ffcertificate' ); ?></span>
+								<?php elseif ( IdentityConflictQuery::VERDICT_ABSENT === $ffc_identity_verdict ) : ?>
+									<span class="description"><?php esc_html_e( '— not stored anywhere this check can read', 'ffcertificate' ); ?></span>
+								<?php endif; ?>
+							</div>
+						<?php endforeach; ?>
+					</td>
+					<td><?php echo esc_html( (string) ( $ffc_identity_item[ IdentityConflictQuery::COLUMN_STORES ] ?? '' ) ); ?></td>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
+		</table>
+		<p class="description">
+			<?php esc_html_e( 'These are listed, not yet actionable from here: correcting them writes across every store and the identity index at once, and each verb is delivered on its own. Open the account to see what it holds meanwhile.', 'ffcertificate' ); ?>
+		</p>
+	<?php endif; ?>
+
+	<?php if ( array() !== $ffc_identity_rows ) : ?>
+		<h2><?php esc_html_e( 'Numbers to correct', 'ffcertificate' ); ?></h2>
+		<p class="description">
+			<?php esc_html_e( 'A stored RF whose own check digit does not match, and which no account-side finding above explains: somebody mistyped once on their only row, or the row belongs to a candidacy that carries no account until promotion. The correct value comes from HR.', 'ffcertificate' ); ?>
+		</p>
+	<?php endif; ?>
+
+	<?php if ( array() === $ffc_identity_rows && array() === $ffc_identity_accountal ) : ?>
 		<?php
 		// AN EMPTY LIST MEANS THREE DIFFERENT THINGS AND ONLY ONE IS GOOD NEWS.
 		//
@@ -149,7 +271,7 @@ foreach ( $ffc_identity_findings as $ffc_identity_finding ) {
 				?>
 			</p>
 		<?php endif; ?>
-	<?php else : ?>
+	<?php elseif ( array() !== $ffc_identity_rows ) : ?>
 		<table class="wp-list-table widefat striped">
 			<thead>
 				<tr>
