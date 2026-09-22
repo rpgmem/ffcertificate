@@ -7,36 +7,19 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Added
-
-- **Two logins that turned out to be one person can be consolidated** (#1386): the screen names each pair — the people and the document — and the operator ticks the ones that are one person and chooses which login keeps the records. The two must already agree on an identifier, and where the survivor holds none of a kind the other has, it gains it. The emptied login is **not** deleted: removing it runs cleanup this tool does not own and cannot undo, so it stays the operator's action in Users.
-
+## [6.28.3] (2026-09-22)
 
 ### Added
 
-- **Records that belong to somebody with no account can be given one** (#1386): the operator supplies the address, because there is none to inherit — WordPress requires it to be unique and every finding reports both identifiers sharing the one the existing account already uses. Per identifier, applied once or twice, so two people end up with two accounts rather than one holding the same conflict. A split whose move is refused removes the account it created, leaving no empty login behind.
-
-
-### Added
-
-- **Records carrying one identifier can be moved to the account they belong to** (#1386): only where the records and the account already agree on the *other* identifier — an absent value is never agreement — and where the receiving account holds none of that kind, it gains this one, so an account with only a CPF ends up holding both. A second value that disagrees refuses the whole move: correcting it first is what keeps one person's record from landing under another person's account. Rows and identity index move as one transaction.
-
-
-### Added
-
-- **A mistyped number can be consolidated into the one the account already holds, in one click** (#1386): where the check digits identify which of two is wrong, the correct value is the account's other identifier — so nothing is typed and nothing is shown. The two hashes are posted and the value is read in memory, so a stored RF or CPF never reaches a form field, a URL or an operator's screen. Every refusal the correction makes still applies.
-- **The identity verbs work over CPF as well as RF** (#1386): the same three stores, the same index and the same transaction; what differs is only the rule that says a value is well formed — two check digits for CPF, one for RF. The RF rule is read directly rather than through the form's validator, because whether a *correction* is well formed must not depend on a setting that decides what the form accepts.
-
-
-### Added
-
-- **The identity queue is sorted by how much of the answer is already known** (#1386): one account holding two numbers, exactly one of which fails its check digits, needs no value from anybody — the other one is the account's. Everything else is named for what it is: a decision the digits cannot make, a number on two accounts (a merge), or a lone failure no account-side finding explains. Each finding appears once, so the list can be worked to zero.
-
+- **A worklist for identity conflicts, sorted by how much of the answer is already known** (#1386): one account holding two numbers where exactly one fails its check digits needs no value from anybody — the other one is the account's. Everything else is named for what it is: a decision the digits cannot make, a number on two accounts, or a lone failure no account-side finding explains. Each finding appears once, so the list can be worked to zero.
+- **Four ways to resolve one** (#1386): *consolidate* a mistyped number into the sound one the account already holds, in one click and with no value typed or shown; *move* the records carrying one identifier to the account they belong to; *split* them onto a new account, for which the operator supplies an address because there is none to inherit; and *merge* two logins that are one person, confirmed pair by pair with the people named. The emptied login is never deleted — removing it stays yours to do in Users.
+- **A rule the moving verbs share, and an absent value is not part of it** (#1386): records and account must already agree on an identifier, and where one side holds none of a kind the other has, it gains it — so an account with only a CPF ends up holding both. A second value that disagrees refuses the whole move: correcting it first is what keeps one person's record from landing under another person's login.
+- **The identity verbs cover CPF as well as RF** (#1386): the same three stores, the same index and the same transaction; only the rule that says a value is well formed differs — two check digits for CPF, one for RF.
 
 ### Fixed
 
-- **A repair no longer refuses the typo it exists for** (#1386): the collision refusal read "the value already exists", but in a typo the correct value *is* the account's other RF, so it always has rows — the refusal fired on every one of the 32 findings production holds. What makes a correction a merge is the value belonging to **another** account; the same account holding it twice is one person's own duplicate. A consolidation both of whose records sit in `ffc_recruitment_candidate` is still refused, and now says why: that store holds each identifier once.
 - **The check-digit scan could never run** (#1384): its values were listed in composition order while `prepare()` substitutes in the order the placeholders appear in the SQL, so `MIN(%i)` received a store's label as an identifier and the server rejected the statement. A rejected query and a clean install both answer with no rows, so the audit reported zero failures on an install holding thousands of RFs.
+- **A repair no longer refuses the typo it exists for** (#1386): the collision refusal read "the value already exists", but in a typo the correct value *is* the account's other RF, so it always has rows — the refusal fired on every one of the 32 findings production holds. What makes a correction a merge is the value belonging to **another** account.
 
 ## [6.28.2] (2026-09-22) — `115c4caf`
 
