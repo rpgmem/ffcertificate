@@ -24,12 +24,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 class RequestInput {
 
 	/**
-	 * Read + sanitize a `$_POST` array value.
+	 * Read + sanitize a FLAT `$_POST` array value.
 	 *
 	 * Returns `$default` when the key is absent or the underlying value
 	 * is not an array. Caller is responsible for nonce verification BEFORE
 	 * calling this helper. Keys (string or int) are preserved by
 	 * `array_map`'s single-callback behavior.
+	 *
+	 * ONE LEVEL ONLY: A NESTED ELEMENT COMES BACK AS `''`.
+	 *
+	 * `sanitize_text_field()` returns an empty string for an array — core's
+	 * `_sanitize_text_fields()` opens with that check — so a payload of
+	 * GROUPS (`thing[0][id]`, `thing[1][id]`) arrives here as a list of empty
+	 * strings, with nothing anywhere reporting it. The caller's own
+	 * `is_array()` guard then discards every group, which reads exactly like
+	 * a form nobody filled in. That is not hypothetical: the identity
+	 * screen's merge lost every confirmed pair this way and told the operator
+	 * they had confirmed none (#1386).
+	 *
+	 * Use {@see self::get_post_raw_array()} for a grouped or repeatable
+	 * payload, and sanitise each field where it is read.
 	 *
 	 * @since 6.6.1
 	 * @param string                  $key     `$_POST` key.
