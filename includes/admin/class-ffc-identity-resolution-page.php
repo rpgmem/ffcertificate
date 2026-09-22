@@ -507,7 +507,20 @@ class IdentityResolutionPage {
 		$done     = 0;
 		$refusals = array();
 
-		foreach ( RequestInput::get_post_array( 'ffc_pair', array() ) as $pair ) {
+		// THE RAW CONTAINER, BECAUSE THIS PAYLOAD IS ONE GROUP PER PAIR.
+		//
+		// `get_post_array()` runs `sanitize_text_field()` over every element,
+		// which returns '' for an array -- so each pair's group arrives as an
+		// empty string, `is_array()` refuses it, and the screen reports that
+		// nothing was confirmed. Indistinguishable from an operator who ticked
+		// nothing, which is how it reached production.
+		//
+		// Sanitising is not skipped, it MOVES: `absint()` below is the right
+		// function for each of the three ids, and `confirm` is read as a
+		// presence rather than a value. That is the contract
+		// `get_post_raw_array()` states -- the container is centralised, never
+		// the sanitising.
+		foreach ( RequestInput::get_post_raw_array( 'ffc_pair' ) as $pair ) {
 			if ( ! is_array( $pair ) || empty( $pair['confirm'] ) ) {
 				continue;
 			}

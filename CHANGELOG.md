@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Confirming a merge pair no longer reports that none was confirmed** (#1386): the merge form posts one group per pair, and the handler read it through an accessor that sanitises each element of the container — which returns an empty string for an array, so every ticked pair was discarded before it was looked at. The refusal was accurate about an empty payload and indistinguishable from an operator who ticked nothing.
+
 ## [6.28.3] (2026-09-22) — `e7e33a03`
 
 ### Added
