@@ -22083,9 +22083,6 @@ msgstr ""
 msgid "No finding was named."
 msgstr ""
 
-msgid "That number does not satisfy the RF check digit, so it cannot be the corrected value either. Confirm it with HR."
-msgstr ""
-
 msgid "Encryption is not configured, so an identifier cannot be rewritten."
 msgstr ""
 
@@ -22155,9 +22152,6 @@ msgstr ""
 msgid "The check digits identify which of the two is wrong, and the other one is this account's. No value has to be asked for."
 msgstr ""
 
-msgid "These are listed, not yet actionable from here: correcting them writes across every store and the identity index at once, and each verb is delivered on its own. Open the account to see what it holds meanwhile."
-msgstr ""
-
 msgid "Two accounts, one number"
 msgstr ""
 
@@ -22174,4 +22168,31 @@ msgid "— not stored anywhere this check can read"
 msgstr ""
 
 msgid "— well formed"
+msgstr ""
+
+msgid "Consolidate"
+msgstr ""
+
+msgid "Consolidated into the identifier this account already held. The rows, the identity index and the account's certificate access were updated together."
+msgstr ""
+
+msgid "Consolidating writes the account's sound identifier over the mistyped one across every store that holds it, repoints the identity index and restores the account's certificate access — as one transaction, rolled back whole if any part refuses. The number itself is read in memory and never reaches this screen. The other rows need a decision that is not offered here yet."
+msgstr ""
+
+msgid "No sound identifier was named to consolidate into."
+msgstr ""
+
+msgid "Open the account — this one is not decided here."
+msgstr ""
+
+msgid "Resolve it"
+msgstr ""
+
+msgid "That is not an identifier this can rewrite."
+msgstr ""
+
+msgid "That number does not satisfy its own check digits, so it cannot be the corrected value either. Confirm it with HR."
+msgstr ""
+
+msgid "The identifier this would consolidate into could not be read, so there is nothing to write. Confirm the correct number with HR and enter it instead."
 msgstr ""

@@ -84,6 +84,26 @@ class IdentityResolutionPage {
 	public const REPAIR_NONCE = 'ffc_repair_identity_';
 
 	/**
+	 * The `admin_post` action that consolidates a mechanical finding.
+	 *
+	 * Its own action rather than a mode on the repair, because the two take
+	 * different input and make different promises: a repair carries a value
+	 * somebody typed, a consolidation carries two hashes and NO value at all.
+	 * One handler taking either would have to branch on which field arrived,
+	 * and the branch that mistakes one for the other writes the wrong number.
+	 *
+	 * @since 6.28.3
+	 */
+	public const CONSOLIDATE_ACTION = 'ffc_consolidate_identity';
+
+	/**
+	 * Nonce action for a consolidation, keyed per finding.
+	 *
+	 * @since 6.28.3
+	 */
+	public const CONSOLIDATE_NONCE = 'ffc_consolidate_identity_';
+
+	/**
 	 * Transient prefix carrying one outcome from the write back to the screen.
 	 *
 	 * A transient and NOT a query argument, although the audit card next door
@@ -116,6 +136,7 @@ class IdentityResolutionPage {
 	public function init(): void {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_post_' . self::REPAIR_ACTION, array( $this, 'handle_repair' ) );
+		add_action( 'admin_post_' . self::CONSOLIDATE_ACTION, array( $this, 'handle_consolidate' ) );
 	}
 
 	/**
@@ -268,7 +289,8 @@ class IdentityResolutionPage {
 		$result = $this->repairs()->repair(
 			$subject,
 			RequestInput::get_post_string( 'ffc_rf', '' ),
-			get_current_user_id()
+			get_current_user_id(),
+			self::posted_field()
 		);
 
 		// The SERVICE owns the wording. A second copy on this side is the
@@ -284,6 +306,94 @@ class IdentityResolutionPage {
 				: array(
 					'type' => 'success',
 					'text' => __( 'Corrected. The rows, the identity index and the account\'s certificate access were updated together.', 'ffcertificate' ),
+				),
+			self::OUTCOME_TTL
+		);
+
+		wp_safe_redirect(
+			add_query_arg(
+				array( 'page' => self::MENU_SLUG ),
+				admin_url( 'edit.php?post_type=ffc_form' )
+			)
+		);
+		exit;
+	}
+
+	/**
+	 * Consolidate a mechanical finding into the account's sound identifier.
+	 *
+	 * WHAT THIS POSTS IS TWO HASHES AND NO VALUE.
+	 *
+	 * The correct number is the account's other identifier, which the service
+	 * reads in memory -- so it never reaches a form field, a POST body, a URL
+	 * or the operator's screen. That is the whole reason the mechanical tier
+	 * can be one click: there is nothing to type, because there is nothing an
+	 * operator needs to know.
+	 *
+	 * @since 6.28.3
+	 * @return void
+	 */
+	public function handle_consolidate(): void {
+		if ( ! Capabilities::current_user_can_admin_or( self::CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+
+		$wrong = RequestInput::get_post_string( 'ffc_subject', '' );
+
+		check_admin_referer( self::CONSOLIDATE_NONCE . $wrong );
+
+		$result = $this->repairs()->consolidate(
+			$wrong,
+			RequestInput::get_post_string( 'ffc_target', '' ),
+			get_current_user_id(),
+			self::posted_field()
+		);
+
+		$this->report(
+			$result,
+			__( 'Consolidated into the identifier this account already held. The rows, the identity index and the account\'s certificate access were updated together.', 'ffcertificate' )
+		);
+	}
+
+	/**
+	 * Which identifier the form named, refusing anything else.
+	 *
+	 * An unknown value falls back to the default rather than reaching the
+	 * service, which refuses it anyway -- two refusals for one mistake, and
+	 * the inner one is the load-bearing half.
+	 *
+	 * @since 6.28.3
+	 * @return string
+	 */
+	private static function posted_field(): string {
+		$field = RequestInput::get_post_string( 'ffc_field', IdentityRepair::FIELD );
+
+		return in_array( $field, IdentityRepair::FIELDS, true ) ? $field : IdentityRepair::FIELD;
+	}
+
+	/**
+	 * Carry one outcome back to the screen and return to it.
+	 *
+	 * The SERVICE owns the failure wording, for the reason `handle_repair()`
+	 * records: a second copy on this side drifts the first time one is edited
+	 * and nothing reports it.
+	 *
+	 * @since 6.28.3
+	 * @param array<string, mixed>|WP_Error $result  What the write returned.
+	 * @param string                        $success What to say when it worked.
+	 * @return void
+	 */
+	private function report( $result, string $success ): void {
+		set_transient(
+			self::OUTCOME_TRANSIENT . get_current_user_id(),
+			$result instanceof WP_Error
+				? array(
+					'type' => 'error',
+					'text' => $result->get_error_message(),
+				)
+				: array(
+					'type' => 'success',
+					'text' => $success,
 				),
 			self::OUTCOME_TTL
 		);
