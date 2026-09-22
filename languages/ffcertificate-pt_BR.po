@@ -22267,9 +22267,6 @@ msgstr "Consolidar"
 msgid "Consolidated into the identifier this account already held. The rows, the identity index and the account's certificate access were updated together."
 msgstr "Consolidado no identificador que esta conta já carregava. As linhas, o índice de identidade e o acesso da conta aos certificados foram atualizados juntos."
 
-msgid "Consolidating writes the account's sound identifier over the mistyped one across every store that holds it, repoints the identity index and restores the account's certificate access — as one transaction, rolled back whole if any part refuses. The number itself is read in memory and never reaches this screen. The other rows need a decision that is not offered here yet."
-msgstr "Consolidar grava o identificador íntegro da conta por cima do digitado errado em todos os stores que o carregam, reaponta o índice de identidade e restaura o acesso da conta aos certificados — numa única transação, revertida por inteiro se alguma parte recusar. O número em si é lido em memória e nunca chega a esta tela. As demais linhas precisam de uma decisão que ainda não é oferecida aqui."
-
 msgid "No sound identifier was named to consolidate into."
 msgstr "Nenhum identificador íntegro foi indicado para consolidar."
 
@@ -22287,3 +22284,48 @@ msgstr "Esse número não satisfaz os próprios dígitos verificadores, então t
 
 msgid "The identifier this would consolidate into could not be read, so there is nothing to write. Confirm the correct number with HR and enter it instead."
 msgstr "O identificador em que isto consolidaria não pôde ser lido, então não há o que gravar. Confirme o número correto com o RH e digite-o no lugar."
+
+msgid "A relink needs both the records to move and the account to move them to."
+msgstr "Uma remoção de vínculo precisa dos registros a mover e da conta para onde movê-los."
+
+msgid "Account #"
+msgstr "Conta nº"
+
+msgid "Account to move the records carrying %s to"
+msgstr "Conta para onde mover os registros que carregam %s"
+
+msgid "Consolidating writes the account's sound identifier over the mistyped one across every store that holds it. Moving sends the records carrying one identifier to another account — allowed only where the two already agree on the other identifier, and where the receiving account holds none of that kind it gains this one. Both run as a single transaction, rolled back whole if any part refuses, and neither shows a stored number."
+msgstr "Consolidar grava o identificador íntegro da conta por cima do digitado errado em todos os stores que o carregam. Mover envia os registros que carregam um identificador para outra conta — permitido apenas quando as duas já concordam no outro identificador, e quando a conta que recebe não tem nenhum daquele tipo ela ganha este. Ambos rodam como uma única transação, revertida por inteiro se alguma parte recusar, e nenhum dos dois exibe um número armazenado."
+
+msgid "Move %s"
+msgstr "Mover %s"
+
+msgid "Moved. The records, the identity index and the receiving account's certificate access were updated together."
+msgstr "Movido. Os registros, o índice de identidade e o acesso da conta que recebeu aos certificados foram atualizados juntos."
+
+msgid "Nothing carries that identifier any more. Reload the queue."
+msgstr "Nada mais carrega esse identificador. Recarregue a fila."
+
+msgid "Nothing ties those records to that account: they share no identifier with it, and an absent value is not agreement. Correct an identifier first so the two agree."
+msgstr "Nada liga esses registros àquela conta: eles não compartilham identificador algum com ela, e um valor ausente não é concordância. Corrija um identificador antes, para que os dois concordem."
+
+msgid "That is not an identifier this can move."
+msgstr "Esse não é um identificador que isto consiga mover."
+
+msgid "The records and that account hold different values for: %s. Correct the identifier first — moving records across a disagreement is how one person's record ends up under another person's account."
+msgstr "Os registros e aquela conta carregam valores diferentes para: %s. Corrija o identificador antes — mover registros por cima de uma divergência é como o registro de uma pessoa vai parar na conta de outra."
+
+msgid "The records were moved but the identity index refused the same change, so nothing was changed. The two must never disagree."
+msgstr "Os registros foram movidos mas o índice de identidade recusou a mesma alteração, então nada foi alterado. Os dois nunca podem divergir."
+
+msgid "The store %s refused the move, so nothing was changed."
+msgstr "O store %s recusou a movimentação, então nada foi alterado."
+
+msgid "Those records already belong to that account."
+msgstr "Esses registros já pertencem àquela conta."
+
+msgid "Those records are split across more than one account, so one move cannot serve them. Resolve them separately."
+msgstr "Esses registros estão divididos entre mais de uma conta, então uma única movimentação não serve para eles. Resolva um de cada vez."
+
+msgid "Records Moved to Another Account"
+msgstr "Registros Movidos para Outra Conta"

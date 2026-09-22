@@ -205,6 +205,51 @@ $ffc_identity_tier_note = static function ( $tier ) {
 									<?php esc_html_e( 'Consolidate', 'ffcertificate' ); ?>
 								</button>
 							</form>
+						<?php elseif ( IdentityQueue::TIER_DECISION === $ffc_identity_tier ) : ?>
+							<?php
+							$ffc_identity_field = str_replace( '_hash', '', (string) ( $ffc_identity_item['identifier_column'] ?? '' ) );
+							?>
+							<?php foreach ( array_keys( $ffc_identity_which ) as $ffc_identity_move ) : ?>
+								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-2xs">
+									<?php wp_nonce_field( IdentityResolutionPage::RELINK_NONCE . (string) $ffc_identity_move ); ?>
+									<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::RELINK_ACTION ); ?>">
+									<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
+									<input type="hidden" name="ffc_field" value="<?php echo esc_attr( $ffc_identity_field ); ?>">
+									<label class="screen-reader-text" for="ffc-relink-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
+										<?php
+										printf(
+											/* translators: %s: the identifier's hash prefix. */
+											esc_html__( 'Account to move the records carrying %s to', 'ffcertificate' ),
+											esc_html( substr( (string) $ffc_identity_move, 0, IdentityQueue::DISPLAY_PREFIX ) )
+										);
+										?>
+									</label>
+									<?php
+									// A numeric account id, typed — the operator
+									// arrives from the audit export, which names
+									// accounts by id and links to `user-edit.php`.
+									//
+									// `required` because each row carries its OWN
+									// form: an empty field cannot mean "leave this
+									// alone" when submitting is already the way to
+									// act on one row, and a cleared number field
+									// posts the empty string that `absint()` reads
+									// as zero (#1114).
+									?>
+									<input type="number" inputmode="numeric" min="1" step="1" size="6" required
+										id="ffc-relink-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
+										name="ffc_account" placeholder="<?php esc_attr_e( 'Account #', 'ffcertificate' ); ?>">
+									<button type="submit" class="button button-secondary">
+										<?php
+										printf(
+											/* translators: %s: the identifier's hash prefix. */
+											esc_html__( 'Move %s', 'ffcertificate' ),
+											esc_html( substr( (string) $ffc_identity_move, 0, IdentityQueue::DISPLAY_PREFIX ) )
+										);
+										?>
+									</button>
+								</form>
+							<?php endforeach; ?>
 						<?php else : ?>
 							<span class="description">
 								<?php esc_html_e( 'Open the account — this one is not decided here.', 'ffcertificate' ); ?>
@@ -216,7 +261,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 			</tbody>
 		</table>
 		<p class="description">
-			<?php esc_html_e( 'Consolidating writes the account\'s sound identifier over the mistyped one across every store that holds it, repoints the identity index and restores the account\'s certificate access — as one transaction, rolled back whole if any part refuses. The number itself is read in memory and never reaches this screen. The other rows need a decision that is not offered here yet.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Consolidating writes the account\'s sound identifier over the mistyped one across every store that holds it. Moving sends the records carrying one identifier to another account — allowed only where the two already agree on the other identifier, and where the receiving account holds none of that kind it gains this one. Both run as a single transaction, rolled back whole if any part refuses, and neither shows a stored number.', 'ffcertificate' ); ?>
 		</p>
 	<?php endif; ?>
 

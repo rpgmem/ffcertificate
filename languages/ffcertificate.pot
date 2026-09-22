@@ -22176,9 +22176,6 @@ msgstr ""
 msgid "Consolidated into the identifier this account already held. The rows, the identity index and the account's certificate access were updated together."
 msgstr ""
 
-msgid "Consolidating writes the account's sound identifier over the mistyped one across every store that holds it, repoints the identity index and restores the account's certificate access — as one transaction, rolled back whole if any part refuses. The number itself is read in memory and never reaches this screen. The other rows need a decision that is not offered here yet."
-msgstr ""
-
 msgid "No sound identifier was named to consolidate into."
 msgstr ""
 
@@ -22195,4 +22192,49 @@ msgid "That number does not satisfy its own check digits, so it cannot be the co
 msgstr ""
 
 msgid "The identifier this would consolidate into could not be read, so there is nothing to write. Confirm the correct number with HR and enter it instead."
+msgstr ""
+
+msgid "A relink needs both the records to move and the account to move them to."
+msgstr ""
+
+msgid "Account #"
+msgstr ""
+
+msgid "Account to move the records carrying %s to"
+msgstr ""
+
+msgid "Consolidating writes the account's sound identifier over the mistyped one across every store that holds it. Moving sends the records carrying one identifier to another account — allowed only where the two already agree on the other identifier, and where the receiving account holds none of that kind it gains this one. Both run as a single transaction, rolled back whole if any part refuses, and neither shows a stored number."
+msgstr ""
+
+msgid "Move %s"
+msgstr ""
+
+msgid "Moved. The records, the identity index and the receiving account's certificate access were updated together."
+msgstr ""
+
+msgid "Nothing carries that identifier any more. Reload the queue."
+msgstr ""
+
+msgid "Nothing ties those records to that account: they share no identifier with it, and an absent value is not agreement. Correct an identifier first so the two agree."
+msgstr ""
+
+msgid "That is not an identifier this can move."
+msgstr ""
+
+msgid "The records and that account hold different values for: %s. Correct the identifier first — moving records across a disagreement is how one person's record ends up under another person's account."
+msgstr ""
+
+msgid "The records were moved but the identity index refused the same change, so nothing was changed. The two must never disagree."
+msgstr ""
+
+msgid "The store %s refused the move, so nothing was changed."
+msgstr ""
+
+msgid "Those records already belong to that account."
+msgstr ""
+
+msgid "Those records are split across more than one account, so one move cannot serve them. Resolve them separately."
+msgstr ""
+
+msgid "Records Moved to Another Account"
 msgstr ""
