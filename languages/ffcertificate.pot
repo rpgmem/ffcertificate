@@ -22352,9 +22352,6 @@ msgstr ""
 msgid "This queue lists at most %1$s findings per check, and %2$s returned a full page — so more exist than are listed. The counts below are of what was read, not of what there is."
 msgstr ""
 
-msgid "This queue was read at %s and is held still while you work it — resolving a finding removes that one and moves nothing else."
-msgstr ""
-
 msgid "%1$s of %2$s"
 msgstr ""
 
@@ -22626,3 +22623,32 @@ msgstr ""
 
 msgid "Orphaned Records Given an Account"
 msgstr ""
+
+msgid "This scan read nothing"
+msgstr ""
+
+msgid "The scan read part of the data"
+msgstr ""
+
+msgid "The scan read the data"
+msgstr ""
+
+msgid "%1$s distinct values checked · %2$s could not be read · %3$s stores scanned"
+msgstr ""
+
+msgid "the scan reached its cap"
+msgstr ""
+
+msgid "a check returned a full page"
+msgstr ""
+
+msgid "Read at %s and held still while you work it"
+msgstr ""
+
+msgid "A category holding nothing does not appear — not here, and not below."
+msgstr ""
+
+msgid "%s finding left:"
+msgid_plural "%s findings left:"
+msgstr[0] ""
+msgstr[1] ""

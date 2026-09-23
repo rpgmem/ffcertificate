@@ -196,6 +196,22 @@
     --ffc-info-border: #006ba1;
     --ffc-info-text: #004b70;
 
+    /* A FIFTH FAMILY THAT IS NOT A SEVERITY, WHICH IS WHY IT IS NOT NAMED
+       AS ONE (#1407 sprint 1).
+
+       The four above answer "how bad is this". The identity screen sorts
+       findings into FIVE categories, and the fifth -- records belonging to no
+       account -- is not more or less severe than the others, it is a
+       different kind. It was painted with the info pair, so it read as the
+       same category as the one already using it, which is the one thing a
+       category colour exists to prevent.
+
+       Measured, light: text 9,14:1 on the surface, border 5,57:1 on it and
+       6,35:1 on a card. Dark: 8,01:1 and 6,40:1 / 5,35:1. */
+    --ffc-accent-bg: #f3eefb;
+    --ffc-accent-border: #6b4fa8;
+    --ffc-accent-text: #4b2e83;
+
     /* Semantic Tokens - Interactive */
     --ffc-link: #2271b1;
     --ffc-link-hover: #135e96;
@@ -283,6 +299,9 @@
     --ffc-info-bg: #0d2b3a;
     --ffc-info-border: #4fc3f7;
     --ffc-info-text: #81d4fa;
+    --ffc-accent-bg: #2a2136;
+    --ffc-accent-border: #b39ddb;
+    --ffc-accent-text: #c5b3e6;
 
     /* Semantic Tokens - Interactive */
     --ffc-link: #5dabde;

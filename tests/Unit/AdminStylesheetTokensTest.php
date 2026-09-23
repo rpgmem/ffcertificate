@@ -106,7 +106,14 @@ final class AdminStylesheetTokensTest extends TestCase {
 
 		// The palette itself, and the two sheets whose literals ARE the point:
 		// a code-editor theme and a print stylesheet.
-		'ffc-common.css'                => 117,
+		//
+		// 117 -> 123 in #1407: the fifth status family, three values per
+		// theme. This is the one budget in the register that a PALETTE
+		// addition legitimately grows -- everywhere else a literal is a rule
+		// opting out of the theme, and here it is how a theme is declared.
+		// The ratchet still bites: six is the whole of `--ffc-accent-*`, so a
+		// seventh has to be argued.
+		'ffc-common.css'                => 123,
 		'ffc-code-editor-dark.css'      => 35,
 		'ffc-pdf-core.css'              => 12,
 	);

@@ -22443,9 +22443,6 @@ msgstr "A fila foi lida de novo."
 msgid "This queue lists at most %1$s findings per check, and %2$s returned a full page — so more exist than are listed. The counts below are of what was read, not of what there is."
 msgstr "Esta fila lista no máximo %1$s achados por verificação, e %2$s devolveu uma página cheia — então existem mais do que os listados. As contagens abaixo são do que foi lido, não do que existe."
 
-msgid "This queue was read at %s and is held still while you work it — resolving a finding removes that one and moves nothing else."
-msgstr "Esta fila foi lida às %s e fica parada enquanto você a trabalha — resolver um achado remove aquele e não move nenhum outro."
-
 msgid "%1$s of %2$s"
 msgstr "%1$s de %2$s"
 
@@ -22717,3 +22714,32 @@ msgstr "A conta de um conjunto de identificadores: a que responde por eles, ou u
 
 msgid "Orphaned Records Given an Account"
 msgstr "Registros Órfãos Receberam uma Conta"
+
+msgid "This scan read nothing"
+msgstr "Esta varredura não leu nada"
+
+msgid "The scan read part of the data"
+msgstr "A varredura leu parte dos dados"
+
+msgid "The scan read the data"
+msgstr "A varredura leu os dados"
+
+msgid "%1$s distinct values checked · %2$s could not be read · %3$s stores scanned"
+msgstr "%1$s valores distintos verificados · %2$s não puderam ser lidos · %3$s depósitos varridos"
+
+msgid "the scan reached its cap"
+msgstr "a varredura alcançou o próprio teto"
+
+msgid "a check returned a full page"
+msgstr "uma verificação devolveu uma página cheia"
+
+msgid "Read at %s and held still while you work it"
+msgstr "Lida em %s e mantida parada enquanto você a trabalha"
+
+msgid "A category holding nothing does not appear — not here, and not below."
+msgstr "Uma categoria sem nada não aparece — nem aqui, nem abaixo."
+
+msgid "%s finding left:"
+msgid_plural "%s findings left:"
+msgstr[0] "%s achado restante:"
+msgstr[1] "%s achados restantes:"

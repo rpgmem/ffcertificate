@@ -17,6 +17,7 @@
  * @var int                                                      $ffc_identity_taken_at When the list was taken (unix).
  * @var bool                                                     $ffc_identity_may_split Whether the operator may open an account.
  * @var bool                                                     $ffc_identity_may_merge Whether the operator may merge two.
+ * @var string                                                   $ffc_identity_export_url The audit CSV, or '' without the capability.
  */
 
 // No `declare(strict_types=1)` here on purpose: none of the 17 view and
@@ -299,24 +300,156 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		<?php esc_html_e( 'Accounts and stored numbers that do not agree with each other, sorted by how much of the answer is already known. The check digits are what sort them: they can say a number is wrong, and never what the right one is. Identifiers are shown as a hash prefix — the values are decrypted in memory to be checked and none of them leaves the scan.', 'ffcertificate' ); ?>
 	</p>
 
-	<?php if ( $ffc_identity_taken_at > 0 ) : ?>
-		<p class="description">
+	<?php
+	// WHAT THE SCAN READ, STATED WHERE THE QUEUE IS WORKED.
+	//
+	// These three numbers used to be read inside the empty-queue branch
+	// alone, so the only screen state that never stated its own coverage was
+	// the state an operator actually works: a queue WITH findings. A partial
+	// list whose completeness is unstated reads as a whole one -- the
+	// `#1071` / `#1094` rule ("an empty result must never read as clean") one
+	// step along, where what passes for clean is a list rather than a zero.
+	//
+	// The four empty-queue notices further down stay exactly as they are.
+	// This strip states numbers; they say what an unread scan MEANS, and the
+	// strip must never become a cheerier second answer to their question --
+	// which is why its three verdicts are derived from the same readings
+	// those branches test, and why the reassuring one is the narrowest.
+	$ffc_identity_examined   = (int) ( $ffc_identity_coverage['examined'] ?? 0 );
+	$ffc_identity_unreadable = (int) ( $ffc_identity_coverage['unreadable'] ?? 0 );
+	$ffc_identity_stores     = (int) ( $ffc_identity_coverage['stores'] ?? 0 );
+
+	// Read nothing: no store carries the columns this check needs, or every
+	// value it found was unreadable. Both are what an encryption key that
+	// does not match the data looks like, and neither is evidence about the
+	// numbers themselves.
+	$ffc_identity_read_none = 0 === $ffc_identity_stores
+		|| ( $ffc_identity_examined > 0 && $ffc_identity_examined === $ffc_identity_unreadable );
+
+	// Read part of it: something was skipped, or a cap cut the reading short.
+	// `$ffc_identity_capped` is the per-check cap and `$ffc_identity_truncated`
+	// the scan's own — two different limits, and either one makes the counters
+	// below counts of what was read rather than of what there is.
+	$ffc_identity_read_part = ! $ffc_identity_read_none
+		&& ( $ffc_identity_unreadable > 0
+			|| 0 === $ffc_identity_examined
+			|| $ffc_identity_truncated
+			|| array() !== $ffc_identity_capped );
+
+	if ( $ffc_identity_read_none ) {
+		$ffc_identity_scan_state = 'none';
+	} elseif ( $ffc_identity_read_part ) {
+		$ffc_identity_scan_state = 'partial';
+	} else {
+		$ffc_identity_scan_state = 'whole';
+	}
+	?>
+	<div class="ffc-identity-scan ffc-identity-scan-<?php echo esc_attr( $ffc_identity_scan_state ); ?>">
+		<p class="ffc-identity-scan-verdict">
+			<?php if ( $ffc_identity_read_none ) : ?>
+				<?php esc_html_e( 'This scan read nothing', 'ffcertificate' ); ?>
+			<?php elseif ( $ffc_identity_read_part ) : ?>
+				<?php esc_html_e( 'The scan read part of the data', 'ffcertificate' ); ?>
+			<?php else : ?>
+				<?php esc_html_e( 'The scan read the data', 'ffcertificate' ); ?>
+			<?php endif; ?>
+		</p>
+		<p class="ffc-identity-scan-detail">
 			<?php
 			printf(
-				/* translators: %s: when the queue was read, as a date and time. */
-				esc_html__( 'This queue was read at %s and is held still while you work it — resolving a finding removes that one and moves nothing else.', 'ffcertificate' ),
-				esc_html( DateFormatter::format_datetime( $ffc_identity_taken_at ) )
+				/* translators: 1: how many distinct stored values were checked. 2: how many could not be read. 3: how many stores were scanned. */
+				esc_html__( '%1$s distinct values checked · %2$s could not be read · %3$s stores scanned', 'ffcertificate' ),
+				esc_html( number_format_i18n( $ffc_identity_examined ) ),
+				esc_html( number_format_i18n( $ffc_identity_unreadable ) ),
+				esc_html( number_format_i18n( $ffc_identity_stores ) )
 			);
 			?>
+			<?php if ( $ffc_identity_truncated ) : ?>
+				· <?php esc_html_e( 'the scan reached its cap', 'ffcertificate' ); ?>
+			<?php endif; ?>
+			<?php if ( array() !== $ffc_identity_capped ) : ?>
+				· <?php esc_html_e( 'a check returned a full page', 'ffcertificate' ); ?>
+			<?php endif; ?>
 		</p>
-		<?php // Outside the paragraph above: a form is not phrasing content, so nesting it in a `<p>` closes the paragraph early and the markup stops meaning what it reads as. ?>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-xs">
-			<?php wp_nonce_field( IdentityResolutionPage::RESCAN_NONCE ); ?>
-			<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::RESCAN_ACTION ); ?>">
-			<button type="submit" class="button button-secondary">
-				<?php esc_html_e( 'Read the queue again', 'ffcertificate' ); ?>
-			</button>
-		</form>
+		<?php if ( $ffc_identity_taken_at > 0 ) : ?>
+			<div class="ffc-identity-scan-when">
+				<span>
+					<?php
+					printf(
+						/* translators: %s: when the queue was read, as a date and time. */
+						esc_html__( 'Read at %s and held still while you work it', 'ffcertificate' ),
+						esc_html( DateFormatter::format_datetime( $ffc_identity_taken_at ) )
+					);
+					?>
+				</span>
+				<?php // A form, because reading again is a POST — which is also why it cannot sit inside the paragraph above: a form is not phrasing content, and nesting it in a `<p>` closes the paragraph early. ?>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<?php wp_nonce_field( IdentityResolutionPage::RESCAN_NONCE ); ?>
+					<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::RESCAN_ACTION ); ?>">
+					<button type="submit" class="button button-secondary">
+						<?php esc_html_e( 'Read the queue again', 'ffcertificate' ); ?>
+					</button>
+				</form>
+			</div>
+		<?php endif; ?>
+	</div>
+
+	<?php
+	// THE COUNTERS ARE THE PANELS, COUNTED — NEVER A SECOND OPINION.
+	//
+	// Both this strip and the bodies below read `$ffc_identity_panels`, which
+	// `IdentityQueuePanels::build()` already emptied of the tiers holding
+	// nothing. So a category absent here is absent below by construction, and
+	// the two cannot drift into disagreeing about how many findings there are.
+	//
+	// The shared tier is counted even where the merge capability is absent
+	// and its panel is therefore not drawn: the finding exists and is
+	// somebody's to resolve, and a counter that hid it would report a shorter
+	// queue to the operator least able to see why.
+	$ffc_identity_remaining = count( $ffc_identity_orphans );
+
+	foreach ( $ffc_identity_panels as $ffc_identity_panel ) {
+		$ffc_identity_remaining += (int) $ffc_identity_panel['total'];
+	}
+	?>
+	<?php if ( $ffc_identity_remaining > 0 ) : ?>
+		<div class="ffc-identity-counts">
+			<span class="ffc-identity-counts-total">
+				<?php
+				printf(
+					/* translators: %s: how many findings the whole queue holds. */
+					esc_html( _n( '%s finding left:', '%s findings left:', $ffc_identity_remaining, 'ffcertificate' ) ),
+					esc_html( number_format_i18n( $ffc_identity_remaining ) )
+				);
+				?>
+			</span>
+			<?php foreach ( $ffc_identity_panels as $ffc_identity_panel ) : ?>
+				<?php
+				// The same derivation the panel heading makes, from the same
+				// value: the tier decides the class, never the markup.
+				$ffc_identity_tier = (string) $ffc_identity_panel['tier'];
+				$ffc_identity_chip = 'ffc-identity-chip-' . preg_replace( '/[^a-z]/', '', $ffc_identity_tier );
+				?>
+				<span class="ffc-identity-count <?php echo esc_attr( $ffc_identity_chip ); ?>">
+					<?php echo esc_html( $ffc_identity_tier_label( $ffc_identity_tier ) ); ?>
+					<strong><?php echo esc_html( number_format_i18n( (int) $ffc_identity_panel['total'] ) ); ?></strong>
+				</span>
+			<?php endforeach; ?>
+			<?php if ( array() !== $ffc_identity_orphans ) : ?>
+				<span class="ffc-identity-count ffc-identity-chip-orphans">
+					<?php esc_html_e( 'No account', 'ffcertificate' ); ?>
+					<strong><?php echo esc_html( number_format_i18n( count( $ffc_identity_orphans ) ) ); ?></strong>
+				</span>
+			<?php endif; ?>
+			<span class="description ffc-identity-counts-note">
+				<?php esc_html_e( 'A category holding nothing does not appear — not here, and not below.', 'ffcertificate' ); ?>
+			</span>
+			<?php if ( '' !== $ffc_identity_export_url ) : ?>
+				<a class="button button-secondary ffc-identity-counts-export" href="<?php echo esc_url( $ffc_identity_export_url ); ?>">
+					<?php esc_html_e( 'Export CSV', 'ffcertificate' ); ?>
+				</a>
+			<?php endif; ?>
+		</div>
 	<?php endif; ?>
 
 	<?php if ( array() !== $ffc_identity_capped ) : ?>
@@ -801,9 +934,8 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		// when every value is genuinely fine. Reporting the third when it was
 		// one of the first two is the `#1071` / `#1094` rule broken on a
 		// screen instead of in a guard.
-		$ffc_identity_examined   = (int) ( $ffc_identity_coverage['examined'] ?? 0 );
-		$ffc_identity_unreadable = (int) ( $ffc_identity_coverage['unreadable'] ?? 0 );
-		$ffc_identity_stores     = (int) ( $ffc_identity_coverage['stores'] ?? 0 );
+		// Read once, above, where the strip states them: three names for one
+		// set of numbers is how a screen comes to disagree with itself.
 		?>
 		<?php if ( 0 === $ffc_identity_stores ) : ?>
 			<?php
