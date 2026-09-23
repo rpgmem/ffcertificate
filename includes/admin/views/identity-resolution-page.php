@@ -25,9 +25,18 @@
 // different calling convention from every sibling is a trap for anybody
 // moving markup between them.
 
+// A VIEW DOES NOT INHERIT THE IMPORTS OF WHATEVER `require`d IT.
+//
+// `render_page()` is in `FreeFormCertificate\Admin` and this file declares no
+// namespace, so every unqualified class name here resolves against the GLOBAL
+// namespace. A name missing from this list is a fatal the moment the line
+// runs -- and PHPStan cannot see it, because `phpstan.neon.dist` excludes
+// `includes/admin/views` as markup. `ViewClassImportTest` is what watches
+// this list now.
+use FreeFormCertificate\Admin\IdentityQueuePanels;
 use FreeFormCertificate\Admin\IdentityResolutionPage;
-use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Core\DateFormatter;
+use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityQueue;
 
 if ( ! defined( 'ABSPATH' ) ) {
