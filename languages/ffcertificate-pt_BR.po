@@ -22594,3 +22594,48 @@ msgstr "Esta correção reescreve %s registros."
 
 msgid "and more"
 msgstr "e mais"
+
+msgid "%1$s holds %2$s records today."
+msgstr "%1$s tem %2$s registros hoje."
+
+msgid "%1$s in %2$s"
+msgstr "%1$s em %2$s"
+
+msgid "%1$s keeps the records. %2$s is emptied."
+msgstr "%1$s fica com os registros. %2$s é esvaziada."
+
+msgid "%s records move."
+msgstr "%s registros são movidos."
+
+msgid "Choose which login keeps the records first."
+msgstr "Escolha antes qual login fica com os registros."
+
+msgid "I confirm these are one person, and that this cannot be undone."
+msgstr "Confirmo que são uma pessoa só e que isto não pode ser desfeito."
+
+msgid "Merged. The records, the identity index and the surviving login's certificate access moved together. The emptied login was left in place — removing it is yours to do in Users."
+msgstr "Mesclado. Os registros, o índice de identidade e o acesso a certificados do login sobrevivente foram atualizados juntos. O login esvaziado foi mantido — removê-lo é você quem faz, em Usuários."
+
+msgid "Nothing was merged: the confirmation was not ticked. A merge cannot be undone, so it is never taken from the form alone."
+msgstr "Nada foi mesclado: a confirmação não foi marcada. Uma mesclagem não pode ser desfeita, então nunca é tomada só a partir do formulário."
+
+msgid "Nothing was merged: the login named to keep is not one of this pair's two."
+msgstr "Nada foi mesclado: o login indicado para ficar não é um dos dois deste par."
+
+msgid "One identifier is stored against two logins, so one of them is not that person's. Merge only when you know they are one person, and choose which login keeps the records. A merge is the one action no other can undo: afterwards nothing can tell which records came from where."
+msgstr "Um identificador está armazenado em dois logins, então um deles não é daquela pessoa. Mescle só quando souber que são uma pessoa só, e escolha qual login fica com os registros. A mesclagem é a única ação que nenhuma outra desfaz: depois dela nada consegue dizer de onde veio cada registro."
+
+msgid "Show what would move"
+msgstr "Mostrar o que seria movido"
+
+msgid "The preview could not be completed."
+msgstr "Não foi possível concluir a prévia."
+
+msgid "The records, the identity index and the surviving login's certificate access move together, as one transaction. The emptied login is left in place — removing it is yours to do in Users, because deleting an account runs cleanup this tool does not own and cannot undo."
+msgstr "Os registros, o índice de identidade e o acesso a certificados do login sobrevivente são movidos juntos, em uma única transação. O login esvaziado é mantido — removê-lo é você quem faz, em Usuários, porque excluir uma conta dispara uma limpeza que esta ferramenta não controla e não consegue desfazer."
+
+msgid "The surviving login also gains the %s it did not hold."
+msgstr "O login sobrevivente também ganha o %s que não tinha."
+
+msgid "You do not have permission to merge identities."
+msgstr "Você não tem permissão para mesclar identidades."

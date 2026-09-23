@@ -39,38 +39,31 @@ class IdentityMerge {
 	);
 
 	/**
-	 * Merge one account into another.
+	 * Everything a merge decides and how much it would move, without writing.
 	 *
-	 * WHY THIS IS NOT A RELINK, THOUGH IT SHARES THE RULE
+	 * THE COUNT IS THE POINT, AND A SECOND COUNT WOULD BE A DIFFERENT ANSWER.
 	 *
-	 * A relink moves the rows carrying ONE identifier and refuses when they
-	 * name two accounts -- which is exactly the shared tier, and refusing it
-	 * is right there: one identifier on two logins is not a question of where
-	 * records go, it is a question of which login survives. That question has
-	 * no answer the data can give, so the operator gives it, and this moves
-	 * everything the losing account holds rather than one identifier's worth.
+	 * A merge is the one verb on this screen no other undoes, so the
+	 * confirmation has to say what it does — which is a number, per store.
+	 * Counting it anywhere but here means two resolutions of "which rows move"
+	 * that agree on the day they are written, and the operator acknowledges
+	 * the one that is not the one that runs. So `merge()` is this plus the
+	 * write, and the preview calls this.
 	 *
-	 * THE SAME AGREEMENT RULE, BETWEEN TWO ACCOUNTS
+	 * It counts on the SAME predicate the write updates on — `user_id` equals
+	 * the absorbed account — over the same store list, resolved here once.
 	 *
-	 * They must carry the same value for at least one identifier, and no
-	 * second value that disagrees; where the survivor holds nothing of a kind
-	 * the other has, it gains it, so a merge of an account with only a CPF and
-	 * one with only an RF leaves the survivor holding both (#1386, decision
-	 * 2). An absent value is never agreement.
+	 * `holds` is the other half of the confirmation: how much each side has,
+	 * so the operator can see which login is the one in use before choosing
+	 * which survives (#1368). It is evidence, never a decision: the data
+	 * cannot say which login is the person's real one.
 	 *
-	 * THE LOSING ACCOUNT IS NOT DELETED
-	 *
-	 * Deleting a WordPress user fires `deleted_user`, whose cleanup has its
-	 * own SET-NULL and DELETE policy, and it cannot be undone. The records
-	 * move, the emptied login is reported, and removing it stays the
-	 * operator's own action in WordPress.
-	 *
+	 * @since 6.28.4
 	 * @param int $survivor The account the operator chose to keep.
 	 * @param int $absorbed The account whose records move.
-	 * @param int $actor    Who decided it, for the log.
-	 * @return array{moved: array<string, int>, gained: array<int, string>, emptied: int}|WP_Error
+	 * @return array{stores: array<int, string>, counts: array<string, int>, total: int, holds: array{survivor: int, absorbed: int}, matches: array<int, string>, gaps: array<string, string>}|WP_Error
 	 */
-	public function merge( int $survivor, int $absorbed, int $actor = 0 ): array|WP_Error {
+	public function plan( int $survivor, int $absorbed ): array|WP_Error {
 		global $wpdb;
 
 		if ( $survivor <= 0 || $absorbed <= 0 ) {
@@ -117,12 +110,10 @@ class IdentityMerge {
 			);
 		}
 
-		$moved = array();
-
-		// One transaction across as many as five tables -- the four record
-		// stores and both index rows. Rolled back whole on any refusal, which
-		// assumes InnoDB, as every ffc_* table is.
-		$wpdb->query( 'START TRANSACTION' );
+		$stores = array();
+		$counts = array();
+		$total  = 0;
+		$keeps  = 0;
 
 		foreach ( self::STORES as $suffix ) {
 			$table = $wpdb->prefix . $suffix;
@@ -131,6 +122,92 @@ class IdentityMerge {
 				continue;
 			}
 
+			$stores[] = $table;
+
+			$moving = (int) $wpdb->get_var(
+				$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d', $table, $absorbed )
+			);
+
+			$counts[ $table ] = $moving;
+			$total           += $moving;
+
+			$keeps += (int) $wpdb->get_var(
+				$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d', $table, $survivor )
+			);
+		}
+
+		return array(
+			'stores'  => $stores,
+			'counts'  => $counts,
+			'total'   => $total,
+			'holds'   => array(
+				'survivor' => $keeps,
+				'absorbed' => $total,
+			),
+			'matches' => $agreement['matches'],
+			'gaps'    => $agreement['gaps'],
+		);
+	}
+
+	/**
+	 * Merge one account into another.
+	 *
+	 * WHY THIS IS NOT A RELINK, THOUGH IT SHARES THE RULE
+	 *
+	 * A relink moves the rows carrying ONE identifier and refuses when they
+	 * name two accounts -- which is exactly the shared tier, and refusing it
+	 * is right there: one identifier on two logins is not a question of where
+	 * records go, it is a question of which login survives. That question has
+	 * no answer the data can give, so the operator gives it, and this moves
+	 * everything the losing account holds rather than one identifier's worth.
+	 *
+	 * THE SAME AGREEMENT RULE, BETWEEN TWO ACCOUNTS
+	 *
+	 * They must carry the same value for at least one identifier, and no
+	 * second value that disagrees; where the survivor holds nothing of a kind
+	 * the other has, it gains it, so a merge of an account with only a CPF and
+	 * one with only an RF leaves the survivor holding both (#1386, decision
+	 * 2). An absent value is never agreement.
+	 *
+	 * THE LOSING ACCOUNT IS NOT DELETED
+	 *
+	 * Deleting a WordPress user fires `deleted_user`, whose cleanup has its
+	 * own SET-NULL and DELETE policy, and it cannot be undone. The records
+	 * move, the emptied login is reported, and removing it stays the
+	 * operator's own action in WordPress.
+	 *
+	 * @param int $survivor The account the operator chose to keep.
+	 * @param int $absorbed The account whose records move.
+	 * @param int $actor    Who decided it, for the log.
+	 * @return array{moved: array<string, int>, gained: array<int, string>, emptied: int}|WP_Error
+	 */
+	public function merge( int $survivor, int $absorbed, int $actor = 0 ): array|WP_Error {
+		global $wpdb;
+
+		$plan = $this->plan( $survivor, $absorbed );
+
+		if ( is_wp_error( $plan ) ) {
+			return $plan;
+		}
+
+		$agreement = array(
+			'matches' => $plan['matches'],
+			'gaps'    => $plan['gaps'],
+		);
+
+		$moved = array();
+
+		// One transaction across as many as five tables -- the four record
+		// stores and both index rows. Rolled back whole on any refusal, which
+		// assumes InnoDB, as every ffc_* table is.
+		$wpdb->query( 'START TRANSACTION' );
+
+		// THE SAME STORES THE PREVIEW COUNTED, AND NOT A SECOND PROBE.
+		//
+		// Re-resolving here would let the confirmation name a store this loop
+		// then skips, or skip one it named — a divergence nobody would see,
+		// because both halves would look correct on their own.
+		foreach ( $plan['stores'] as $table ) {
 			$done = $wpdb->update(
 				$table,
 				array( 'user_id' => $survivor ),

@@ -317,6 +317,31 @@ class IdentityResolutionPage {
 				'nonce'   => wp_create_nonce( IdentityPreflightAjaxEndpoint::AJAX_ACTION ),
 			)
 		);
+
+		// Only for an operator who can merge. The panel it serves is already
+		// gone without the capability, so loading it would be a script with
+		// nothing to bind and a nonce for an endpoint that would refuse.
+		if ( ! Capabilities::current_user_can_admin_or( self::MERGE_CAPABILITY ) ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'ffc-identity-merge-preview',
+			FFC_PLUGIN_URL . 'assets/js/ffc-identity-merge-preview.js',
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'ffc-identity-merge-preview',
+			'ffcIdentityMergePreview',
+			array(
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'action'  => IdentityMergePreviewAjaxEndpoint::AJAX_ACTION,
+				'nonce'   => wp_create_nonce( IdentityMergePreviewAjaxEndpoint::AJAX_ACTION ),
+			)
+		);
 	}
 
 	/**
@@ -701,18 +726,25 @@ class IdentityResolutionPage {
 	}
 
 	/**
-	 * Consolidate every account pair the operator ticked.
+	 * Consolidate ONE pair, acknowledged.
 	 *
-	 * PAIR BY PAIR, AND THE UNTICKED ONES ARE NOT TOUCHED.
+	 * ONE PAIR PER REQUEST, WHICH REMOVES THE PARTIAL RESULT RATHER THAN
+	 * REPORTING IT.
 	 *
-	 * The screen names each pair -- the people and the document -- and the
-	 * operator confirms which ones are one person (#1386, decision 3). A merge
-	 * is the one verb no other verb can undo, so it is never applied to a list
-	 * wholesale: what is written is exactly what was ticked.
+	 * This took a list of ticked pairs and merged each in turn (#1386,
+	 * decision 3), which meant an outcome that was part success and part
+	 * refusal — and the honest way to present that is a paragraph nobody
+	 * reads. One pair per request makes each merge its own transaction with
+	 * its own outcome, and the next begins after this one has ended (#1397
+	 * sprint 5). It also makes the confirmation specific enough to state what
+	 * moves, which a list never could.
 	 *
-	 * Each outcome is reported, including the refusals, because a partial
-	 * result silently presented as a whole one is how an operator comes to
-	 * believe a queue is empty.
+	 * THE ACKNOWLEDGEMENT IS A FIELD, NOT A `confirm()`.
+	 *
+	 * A merge is the one verb no other undoes, so the operator says so in the
+	 * payload: a browser dialog is not evidence and does not survive a screen
+	 * without JavaScript. Its absence is a refusal rather than a silent no-op,
+	 * because a form that posts and reports nothing reads as a bug.
 	 *
 	 * @since 6.28.3
 	 * @return void
@@ -722,91 +754,45 @@ class IdentityResolutionPage {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
 		}
 
-		check_admin_referer( self::MERGE_NONCE );
+		$subject = RequestInput::get_post_string( 'ffc_subject', '' );
 
-		$merges   = $this->mergers();
-		$actor    = get_current_user_id();
-		$done     = 0;
-		$refusals = array();
+		check_admin_referer( self::MERGE_NONCE . $subject );
 
-		// THE RAW CONTAINER, BECAUSE THIS PAYLOAD IS ONE GROUP PER PAIR.
-		//
-		// `get_post_array()` runs `sanitize_text_field()` over every element,
-		// which returns '' for an array -- so each pair's group arrives as an
-		// empty string, `is_array()` refuses it, and the screen reports that
-		// nothing was confirmed. Indistinguishable from an operator who ticked
-		// nothing, which is how it reached production.
-		//
-		// Sanitising is not skipped, it MOVES: `absint()` below is the right
-		// function for each of the three ids, and `confirm` is read as a
-		// presence rather than a value. That is the contract
-		// `get_post_raw_array()` states -- the container is centralised, never
-		// the sanitising.
-		foreach ( RequestInput::get_post_raw_array( 'ffc_pair' ) as $pair ) {
-			if ( ! is_array( $pair ) || empty( $pair['confirm'] ) ) {
-				continue;
-			}
-
-			$keep = isset( $pair['keep'] ) ? absint( $pair['keep'] ) : 0;
-			$a    = isset( $pair['a'] ) ? absint( $pair['a'] ) : 0;
-			$b    = isset( $pair['b'] ) ? absint( $pair['b'] ) : 0;
-
-			// The survivor must be one of the two the screen offered. A value
-			// from anywhere else would merge an account the operator never saw.
-			if ( $keep !== $a && $keep !== $b ) {
-				$refusals[] = __( 'A pair named an account that was not one of its two.', 'ffcertificate' );
-				continue;
-			}
-
-			$result = $merges->merge( $keep, $keep === $a ? $b : $a, $actor );
-
-			if ( $result instanceof WP_Error ) {
-				$refusals[] = $result->get_error_message();
-				continue;
-			}
-
-			++$done;
-		}
-
-		$this->report_merges( $done, $refusals );
-	}
-
-	/**
-	 * Say what happened to every pair, refusals included.
-	 *
-	 * @since 6.28.3
-	 * @param int                $done     How many merged.
-	 * @param array<int, string> $refusals Why the others did not.
-	 * @return void
-	 */
-	private function report_merges( int $done, array $refusals ): void {
-		if ( 0 === $done && array() === $refusals ) {
+		if ( '' === RequestInput::get_post_string( 'ffc_ack', '' ) ) {
 			$this->report(
-				new WP_Error( 'ffc_identity_merge_none', __( 'No pair was confirmed, so nothing was merged.', 'ffcertificate' ) ),
+				new WP_Error(
+					'ffc_identity_merge_unacknowledged',
+					__( 'Nothing was merged: the confirmation was not ticked. A merge cannot be undone, so it is never taken from the form alone.', 'ffcertificate' )
+				),
 				''
 			);
 
 			return;
 		}
 
-		$merged = sprintf(
-			/* translators: %s: how many account pairs were merged. */
-			_n( '%s pair merged.', '%s pairs merged.', $done, 'ffcertificate' ),
-			number_format_i18n( $done )
-		);
+		$keep = absint( RequestInput::get_post_string( 'ffc_keep', '0' ) );
+		$a    = absint( RequestInput::get_post_string( 'ffc_a', '0' ) );
+		$b    = absint( RequestInput::get_post_string( 'ffc_b', '0' ) );
 
-		if ( array() === $refusals ) {
+		// The survivor must be one of the two the screen offered. A value from
+		// anywhere else would merge an account the operator never saw.
+		if ( $keep !== $a && $keep !== $b ) {
 			$this->report(
-				array(),
-				$merged . ' ' . __( 'The emptied logins were left in place — removing them is yours to do in Users.', 'ffcertificate' )
+				new WP_Error(
+					'ffc_identity_merge_not_in_pair',
+					__( 'Nothing was merged: the login named to keep is not one of this pair\'s two.', 'ffcertificate' )
+				),
+				''
 			);
 
 			return;
 		}
 
+		$result = $this->mergers()->merge( $keep, $keep === $a ? $b : $a, get_current_user_id() );
+
 		$this->report(
-			new WP_Error( 'ffc_identity_merge_partial', $merged . ' ' . implode( ' ', $refusals ) ),
-			''
+			$result,
+			__( 'Merged. The records, the identity index and the surviving login\'s certificate access moved together. The emptied login was left in place — removing it is yours to do in Users.', 'ffcertificate' )
 		);
 	}
 

@@ -1641,3 +1641,71 @@ p.ffc-datetime-order-error {
         border: 1px solid CanvasText;
     }
 }
+
+/* ---------------------------------------------------------------------------
+   One merge at a time, with its preview (#1397 sprint 5)
+   --------------------------------------------------------------------------- */
+
+.ffc-page-identities .ffc-identity-pair {
+    margin-bottom: var(--ffc-spacing-xl);
+    padding: var(--ffc-spacing-lg);
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+}
+
+.ffc-page-identities .ffc-identity-pair-subject {
+    margin: 0 0 var(--ffc-spacing-sm);
+}
+
+.ffc-page-identities .ffc-identity-pair-choice {
+    margin: 0 0 var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-xs);
+}
+
+.ffc-page-identities .ffc-identity-pair-choice legend {
+    padding: 0 var(--ffc-spacing-2xs);
+    font-weight: 600;
+}
+
+.ffc-page-identities .ffc-identity-pair-choice label {
+    display: block;
+    padding: var(--ffc-spacing-2xs) 0;
+}
+
+.ffc-page-identities .ffc-identity-preview-region:not(:empty) {
+    margin-bottom: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-md);
+    background: var(--ffc-bg-alt);
+    border-left: 3px solid var(--ffc-warning);
+}
+
+.ffc-page-identities .ffc-identity-preview-line {
+    margin: 0 0 var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-xs);
+}
+
+.ffc-page-identities .ffc-identity-preview-head {
+    font-size: var(--ffc-font-size-base);
+    font-weight: 600;
+}
+
+.ffc-page-identities .ffc-identity-preview-total {
+    font-weight: 600;
+}
+
+.ffc-page-identities .ffc-identity-preview-bad {
+    color: var(--ffc-danger-text);
+}
+
+.ffc-page-identities .ffc-identity-preview-stores {
+    margin: 0 0 var(--ffc-spacing-sm) var(--ffc-spacing-xl);
+    font-size: var(--ffc-font-size-xs);
+    list-style: disc;
+}
+
+.ffc-page-identities .ffc-identity-merge-one .button {
+    min-height: 44px;
+}

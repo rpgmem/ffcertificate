@@ -111,6 +111,21 @@ class TranslationSourceCoverageTest extends TestCase {
 		// of their own, so its description stopped saying it does.
 		'Work the identity queue: correct a stored CPF/RF, split an account holding two people, merge two accounts holding one. Does not reveal a stored identifier — that stays with the PII capability.' => 'Superseded by the wording that names only what `ffc_manage_identities` still covers and says the other two are separate capabilities.',
 
+		// The batch merge form went when #1397 sprint 5 made the merge one
+		// pair per request. Each of these belonged to the list shape: a
+		// checkbox column, a table of pairs, and an outcome that could be
+		// part success and part refusal.
+		'Merge'                                   => 'Checkbox column header of the batch merge table, which no longer exists: one pair per form.',
+		'Merge the confirmed pairs'               => 'Submit label of that table, now "Merge this pair".',
+		'The people'                              => 'Column header of that table; the pair is named in its own card now.',
+		'The identifier'                          => 'Column header of that table; the identifier sits above the card now.',
+		'No pair was confirmed, so nothing was merged.' => 'Outcome of a batch where nothing was ticked, replaced by the per-pair "the confirmation was not ticked" refusal.',
+		'A pair named an account that was not one of its two.' => 'Per-pair refusal collected into a batch outcome, now reported on its own.',
+		'%s pair merged.'                         => 'Count of a batch outcome; one pair per request needs no count.',
+		'The emptied logins were left in place — removing them is yours to do in Users.' => 'Plural half of that outcome, now said once in the singular.',
+		'One identifier is stored against two logins, so one of them is not that person\'s. Confirm only the pairs you know are one person, and choose which login keeps the records. A merge is the one action no other can undo: afterwards nothing can tell which records came from where.' => 'Superseded by the wording that says "merge only when you know they are one person" rather than "confirm only the pairs".',
+		'The records, the identity index and the surviving login\'s certificate access move together, as one transaction per pair. The emptied login is left in place — removing it is yours to do in Users, because deleting an account runs cleanup this tool does not own and cannot undo.' => 'Superseded by the same sentence without "per pair", which a one-pair form does not need.',
+
 		// The stepper's panel header says the tier once, so the column that
 		// repeated it per row went with it (#1397).
 		'Accounts to resolve'                     => 'Superseded by the per-tier panel headings ("One is mistyped", "Needs a decision"), which name what the old shared heading grouped.',

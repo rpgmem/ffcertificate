@@ -22503,3 +22503,48 @@ msgstr ""
 
 msgid "and more"
 msgstr ""
+
+msgid "%1$s holds %2$s records today."
+msgstr ""
+
+msgid "%1$s in %2$s"
+msgstr ""
+
+msgid "%1$s keeps the records. %2$s is emptied."
+msgstr ""
+
+msgid "%s records move."
+msgstr ""
+
+msgid "Choose which login keeps the records first."
+msgstr ""
+
+msgid "I confirm these are one person, and that this cannot be undone."
+msgstr ""
+
+msgid "Merged. The records, the identity index and the surviving login's certificate access moved together. The emptied login was left in place — removing it is yours to do in Users."
+msgstr ""
+
+msgid "Nothing was merged: the confirmation was not ticked. A merge cannot be undone, so it is never taken from the form alone."
+msgstr ""
+
+msgid "Nothing was merged: the login named to keep is not one of this pair's two."
+msgstr ""
+
+msgid "One identifier is stored against two logins, so one of them is not that person's. Merge only when you know they are one person, and choose which login keeps the records. A merge is the one action no other can undo: afterwards nothing can tell which records came from where."
+msgstr ""
+
+msgid "Show what would move"
+msgstr ""
+
+msgid "The preview could not be completed."
+msgstr ""
+
+msgid "The records, the identity index and the surviving login's certificate access move together, as one transaction. The emptied login is left in place — removing it is yours to do in Users, because deleting an account runs cleanup this tool does not own and cannot undo."
+msgstr ""
+
+msgid "The surviving login also gains the %s it did not hold."
+msgstr ""
+
+msgid "You do not have permission to merge identities."
+msgstr ""
