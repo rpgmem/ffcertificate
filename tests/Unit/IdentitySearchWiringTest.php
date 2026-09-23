@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\IdentityResolutionPage;
+use FreeFormCertificate\Admin\IdentityPreflightAjaxEndpoint;
 use FreeFormCertificate\Admin\IdentitySearchAjaxEndpoint;
 
 /**
@@ -106,12 +107,13 @@ class IdentitySearchWiringTest extends TestCase {
 	}
 
 	/**
-	 * The script's source.
+	 * A script's source.
 	 *
+	 * @param string $name The file under `assets/js/`.
 	 * @return string
 	 */
-	private static function script(): string {
-		$path = dirname( __DIR__, 2 ) . '/assets/js/ffc-identity-search.js';
+	private static function script( string $name = 'ffc-identity-search.js' ): string {
+		$path = dirname( __DIR__, 2 ) . '/assets/js/' . $name;
 
 		return (string) file_get_contents( $path );
 	}
@@ -129,6 +131,70 @@ class IdentitySearchWiringTest extends TestCase {
 
 		$this->assertArrayHasKey( 'ffc-identity-search', $this->scripts );
 		$this->assertStringEndsWith( 'assets/js/ffc-identity-search.js', $this->scripts['ffc-identity-search'] );
+		$this->assertArrayHasKey( 'ffc-identity-preflight', $this->scripts );
+		$this->assertStringEndsWith( 'assets/js/ffc-identity-preflight.js', $this->scripts['ffc-identity-preflight'] );
+	}
+
+	/**
+	 * The preflight script is told the action ITS endpoint registers, which is
+	 * a different one from the dialog's.
+	 */
+	public function test_the_preflight_is_localised_with_its_own_action(): void {
+		$page = new IdentityResolutionPage();
+		$page->enqueue( 'ffc_form_page_' . IdentityResolutionPage::MENU_SLUG );
+
+		$found = array();
+
+		foreach ( $this->localised as $entry ) {
+			$found[ $entry['name'] ] = $entry['data'];
+		}
+
+		$this->assertArrayHasKey( 'ffcIdentityPreflight', $found );
+		$this->assertSame(
+			IdentityPreflightAjaxEndpoint::AJAX_ACTION,
+			$found['ffcIdentityPreflight']['action'] ?? ''
+		);
+		$this->assertNotSame(
+			IdentitySearchAjaxEndpoint::AJAX_ACTION,
+			$found['ffcIdentityPreflight']['action'] ?? '',
+			'Two endpoints under one action is a copy-paste that would route every check to the search.'
+		);
+		$this->assertNotSame( '', (string) ( $found['ffcIdentityPreflight']['nonce'] ?? '' ) );
+	}
+
+	/**
+	 * Every id the PREFLIGHT script reads is printed by the view too.
+	 *
+	 * Same scan as its sibling below, over the other file — the ids it reads
+	 * are built by concatenation, so they are checked as prefixes on the data
+	 * attributes that name them.
+	 */
+	public function test_the_preflight_names_ids_the_view_emits(): void {
+		$view = self::view();
+
+		$pairs = array(
+			'data-ffc-value="ffc-rf-'     => 'id="ffc-rf-',
+			'data-ffc-verdict="ffc-check-' => 'id="ffc-check-',
+		);
+
+		foreach ( $pairs as $named => $emitted ) {
+			$this->assertStringContainsString( $named, $view, 'The Check button must name its target.' );
+			$this->assertStringContainsString( $emitted, $view, $named . ': what it names must be emitted as an id.' );
+		}
+
+		// Every `data-` key the script reads off the verdict region must be
+		// printed, or the region renders an empty sentence.
+		preg_match_all( "/\\\$region\\.data\\('([a-z]+)'\\)/", self::script( 'ffc-identity-preflight.js' ), $matches );
+
+		$this->assertNotEmpty( $matches[1], 'The scan found no data lookups, so it proves nothing.' );
+
+		foreach ( array_unique( $matches[1] ) as $key ) {
+			$this->assertStringContainsString(
+				'data-' . $key . '=',
+				$view,
+				$key . ': the script reads this attribute, so the view must print it.'
+			);
+		}
 	}
 
 	/**
@@ -141,13 +207,24 @@ class IdentitySearchWiringTest extends TestCase {
 		$page = new IdentityResolutionPage();
 		$page->enqueue( 'ffc_form_page_' . IdentityResolutionPage::MENU_SLUG );
 
-		$this->assertCount( 1, $this->localised );
-		$this->assertSame( 'ffcIdentitySearch', $this->localised[0]['name'] );
+		// BY NAME, NOT BY POSITION OR BY COUNT.
+		//
+		// This asserted `assertCount( 1, … )` and broke the moment the screen
+		// enqueued a second script — a claim about a number that says nothing
+		// about the thing under test, which is `CLAUDE.md`'s own rule turning
+		// up inside a test rather than in prose.
+		$found = array();
+
+		foreach ( $this->localised as $entry ) {
+			$found[ $entry['name'] ] = $entry['data'];
+		}
+
+		$this->assertArrayHasKey( 'ffcIdentitySearch', $found );
 		$this->assertSame(
 			IdentitySearchAjaxEndpoint::AJAX_ACTION,
-			$this->localised[0]['data']['action'] ?? ''
+			$found['ffcIdentitySearch']['action'] ?? ''
 		);
-		$this->assertNotSame( '', (string) ( $this->localised[0]['data']['nonce'] ?? '' ) );
+		$this->assertNotSame( '', (string) ( $found['ffcIdentitySearch']['nonce'] ?? '' ) );
 	}
 
 	/**

@@ -20,6 +20,7 @@ use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityMerge;
 use FreeFormCertificate\Maintenance\IdentityQueue;
+use FreeFormCertificate\Maintenance\IdentityRecordNames;
 use FreeFormCertificate\Maintenance\IdentityRelink;
 use FreeFormCertificate\Maintenance\IdentitySplit;
 use FreeFormCertificate\Maintenance\IdentityRepair;
@@ -291,6 +292,31 @@ class IdentityResolutionPage {
 				),
 			)
 		);
+
+		// A SECOND SCRIPT AND NOT A SECOND CONCERN IN THE FIRST.
+		//
+		// Both ask the server before the operator commits, but one chooses a
+		// destination and the other judges a typed number, and the file named
+		// `search` doing the second would be a name that stops describing its
+		// contents. All of its fixed prose is `data-` attributes in the view,
+		// so it localises no strings at all.
+		wp_enqueue_script(
+			'ffc-identity-preflight',
+			FFC_PLUGIN_URL . 'assets/js/ffc-identity-preflight.js',
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'ffc-identity-preflight',
+			'ffcIdentityPreflight',
+			array(
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'action'  => IdentityPreflightAjaxEndpoint::AJAX_ACTION,
+				'nonce'   => wp_create_nonce( IdentityPreflightAjaxEndpoint::AJAX_ACTION ),
+			)
+		);
 	}
 
 	/**
@@ -514,11 +540,21 @@ class IdentityResolutionPage {
 
 		check_admin_referer( self::REPAIR_NONCE . $subject );
 
+		// SCOPED WHEN THE SCREEN SAYS WHOSE, AND ONLY THEN.
+		//
+		// On the shared tier one identifier sits on two logins and one of them
+		// typed it wrong, so the correction has to name which. Everywhere else
+		// the finding IS the hash and an absent scope means every row carrying
+		// it -- which is why this defaults to zero rather than to the current
+		// user or to anything derived. The nonce is per finding, not per
+		// account, so the account is re-checked by the service: a scope naming
+		// an account that holds none of these rows is refused there.
 		$result = $this->repairs()->repair(
 			$subject,
 			RequestInput::get_post_string( 'ffc_rf', '' ),
 			get_current_user_id(),
-			self::posted_field()
+			self::posted_field(),
+			absint( RequestInput::get_post_string( 'ffc_account_scope', '0' ) )
 		);
 
 		// The SERVICE owns the wording. A second copy on this side is the
@@ -924,6 +960,16 @@ class IdentityResolutionPage {
 	}
 
 	/**
+	 * The record-name reader, as a seam a test can stand in for.
+	 *
+	 * @since 6.28.4
+	 * @return IdentityRecordNames
+	 */
+	protected function namer(): IdentityRecordNames {
+		return new IdentityRecordNames();
+	}
+
+	/**
 	 * Render the page.
 	 *
 	 * @return void
@@ -951,6 +997,16 @@ class IdentityResolutionPage {
 			self::cursors(),
 			self::listed()
 		);
+
+		// WHO A FINDING IS ABOUT, READ ON DEMAND AND ONLY FOR WHAT IS DRAWN.
+		//
+		// A closure rather than a precomputed map: the stepper draws ONE
+		// finding per tier unless the operator asked for a list, so resolving
+		// names for the whole queue would read for a hundred findings to show
+		// one. It costs two indexed reads per finding drawn.
+		$ffc_identity_names = function ( $hash, $field = 'rf' ) {
+			return $this->namer()->for_hash( (string) $hash, (string) $field );
+		};
 
 		require __DIR__ . '/views/identity-resolution-page.php';
 	}

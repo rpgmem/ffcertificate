@@ -1574,3 +1574,70 @@ p.ffc-datetime-order-error {
         border: 1px solid CanvasText;
     }
 }
+
+/* ---------------------------------------------------------------------------
+   Correction preflight and the per-person correction (#1397 sprint 4)
+   --------------------------------------------------------------------------- */
+
+.ffc-page-identities .ffc-identity-verdict {
+    margin-top: var(--ffc-spacing-xs);
+}
+
+.ffc-page-identities .ffc-identity-verdict-line {
+    margin: 0 0 var(--ffc-spacing-2xs);
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-sm);
+    font-size: var(--ffc-font-size-xs);
+    border-radius: var(--ffc-radius-xs);
+}
+
+.ffc-page-identities .ffc-identity-verdict-ok {
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+}
+
+.ffc-page-identities .ffc-identity-verdict-warn {
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+}
+
+.ffc-page-identities .ffc-identity-verdict-bad {
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+}
+
+.ffc-page-identities .ffc-identity-correct-instead {
+    margin-top: var(--ffc-spacing-xl);
+    padding: var(--ffc-spacing-lg);
+    background: var(--ffc-bg-alt);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+}
+
+.ffc-page-identities .ffc-identity-correct-instead h4 {
+    margin: 0 0 var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-base);
+}
+
+.ffc-page-identities .ffc-identity-correct-one {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+    margin-top: var(--ffc-spacing-sm);
+}
+
+.ffc-page-identities .ffc-identity-correct-one label {
+    min-width: 14em;
+    font-weight: 600;
+}
+
+@media (forced-colors: active) {
+    /* Each verdict line paints a background and nothing else, so forced-colors
+       discards it and "allowed" reads exactly like "refused" — which is the
+       one distinction the preflight exists to draw. */
+    .ffc-page-identities .ffc-identity-verdict-bad,
+    .ffc-page-identities .ffc-identity-verdict-ok,
+    .ffc-page-identities .ffc-identity-verdict-warn {
+        border: 1px solid CanvasText;
+    }
+}
