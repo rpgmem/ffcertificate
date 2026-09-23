@@ -644,12 +644,23 @@ class IdentityRepair {
 	 * that decides what the form accepts. `validate_cpf()` has no such switch,
 	 * and verifies two digits where the RF rule verifies one.
 	 *
+	 * PUBLIC SINCE 6.28.4, FOR THE ONE OTHER PLACE THAT NEEDS THIS RULE.
+	 *
+	 * Opening an account for an orphan (#1397 sprint 6) has to judge a typed
+	 * RF exactly as a correction does, and `DocumentFormatter::validate_rf()`
+	 * alone is not that rule: it enforces the check digit only when the
+	 * `ffc_validate_rf_check_digit` opt-in is on, because refusing a
+	 * registration on an inferred rule is worse than storing a typo the audit
+	 * finds later. Neither of those is a correction or an account being
+	 * opened from a value somebody confirmed, so both add the digit
+	 * explicitly — through this, rather than through a second copy.
+	 *
 	 * @since 6.28.3
 	 * @param string $field      `rf` or `cpf`.
 	 * @param string $normalized The value, canonicalised.
 	 * @return bool
 	 */
-	private static function well_formed( string $field, string $normalized ): bool {
+	public static function well_formed( string $field, string $normalized ): bool {
 		if ( 'cpf' === $field ) {
 			return DocumentFormatter::validate_cpf( $normalized );
 		}

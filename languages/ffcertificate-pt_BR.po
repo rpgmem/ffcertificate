@@ -22639,3 +22639,81 @@ msgstr "O login sobrevivente também ganha o %s que não tinha."
 
 msgid "You do not have permission to merge identities."
 msgstr "Você não tem permissão para mesclar identidades."
+
+msgid "%1$s — %2$s"
+msgstr "%1$s — %2$s"
+
+msgid "A destination account is chosen, so opening a new one is not available. Clear the destination to open one instead."
+msgstr "Uma conta de destino está escolhida, então abrir uma nova não está disponível. Limpe o destino para abrir uma."
+
+msgid "A record erased at the subject's request cannot appear here: the eraser clears the identifier hashes along with the ciphertexts, so nothing is left to match on. Adopting an orphan can never restore a link somebody asked to have removed."
+msgstr "Um registro apagado a pedido do titular não pode aparecer aqui: o apagador limpa os hashes dos identificadores junto com os ciphertexts, então não sobra nada para casar. Adotar um órfão nunca restaura um vínculo que alguém pediu para remover."
+
+msgid "Account to link these records to"
+msgstr "Conta à qual vincular estes registros"
+
+msgid "An account already files this identifier:"
+msgstr "Uma conta já arquiva este identificador:"
+
+msgid "E-mail address"
+msgstr "Endereço de e-mail"
+
+msgid "Give it an account"
+msgstr "Dar uma conta a ele"
+
+msgid "More orphaned records were found than are shown. Resolve these and read the queue again."
+msgstr "Foram encontrados mais registros órfãos do que os exibidos. Resolva estes e leia a fila de novo."
+
+msgid "No account files this identifier, so this one needs an account opened rather than a link made."
+msgstr "Nenhuma conta arquiva este identificador, então este precisa de uma conta aberta, e não de um vínculo."
+
+msgid "Open the account"
+msgstr "Abrir a conta"
+
+msgid "Records carrying an identifier that belongs to no login at all."
+msgstr "Registros que carregam um identificador que não pertence a login algum."
+
+msgid "These are usually candidacies that were never promoted, or records whose account was deleted. Linking one to an existing account uses the same rule as a move: the two must already agree on an identifier. Opening an account needs CPF, RF and an e-mail address together — an account opened from one identifier is one the resolver will fail to match on the next record carrying another."
+msgstr "Normalmente são candidaturas que nunca foram promovidas, ou registros cuja conta foi excluída. Vincular um a uma conta existente usa a mesma regra da movimentação: os dois precisam já concordar em um identificador. Abrir uma conta exige CPF, RF e e-mail juntos — uma conta aberta a partir de um identificador só é uma que o resolvedor não vai casar no próximo registro que carregue outro."
+
+msgid "What it carries"
+msgstr "O que ele carrega"
+
+msgid "missing"
+msgstr "ausente"
+
+msgid "recorded"
+msgstr "registrado"
+
+msgid "Adopted. The records carrying those identifiers were linked to the account, which was opened if none already answered to them, and its certificate access was granted in the same act."
+msgstr "Adotado. Os registros que carregam aqueles identificadores foram vinculados à conta, que foi aberta caso nenhuma já respondesse por eles, e o acesso a certificados foi concedido no mesmo ato."
+
+msgid "Encryption is not configured, so an identifier cannot be matched or stored."
+msgstr "A criptografia não está configurada, então um identificador não pode ser casado nem armazenado."
+
+msgid "No account was opened and none was matched, so nothing was adopted."
+msgstr "Nenhuma conta foi aberta e nenhuma foi encontrada, então nada foi adotado."
+
+msgid "Opening an account needs all three: CPF, RF and an e-mail address. An account opened from one identifier is one the resolver will fail to match on the next record carrying another."
+msgstr "Abrir uma conta exige os três: CPF, RF e um endereço de e-mail. Uma conta aberta a partir de um identificador só é uma que o resolvedor não vai casar no próximo registro que carregue outro."
+
+msgid "That CPF does not satisfy its own check digits. Confirm it before opening an account on it."
+msgstr "Aquele CPF não satisfaz os próprios dígitos verificadores. Confirme-o antes de abrir uma conta com ele."
+
+msgid "That RF does not satisfy its own check digit. Confirm it with HR before opening an account on it."
+msgstr "Aquele RF não satisfaz o próprio dígito verificador. Confirme-o com o RH antes de abrir uma conta com ele."
+
+msgid "That is not an address this can use. Unlike the two numbers, an address can only be checked for shape — confirm it is the person's."
+msgstr "Este não é um endereço que dê para usar. Diferente dos dois números, um endereço só pode ser checado na forma — confirme que é o da pessoa."
+
+msgid "No account could be opened: nothing on this install is wired to open one."
+msgstr "Nenhuma conta pôde ser aberta: nada nesta instalação está ligado para abrir uma."
+
+msgid "Which account already answers to a set of identifiers — args ( 0, cpf_hash, rf_hash, email ), returns a user id or 0. Read-only: it resolves and never creates, which is what makes it safe to ask BEFORE the filter below. Orphan adoption asks it so the screen can say whether a login was opened or merely matched."
+msgstr "Qual conta já responde por um conjunto de identificadores — args ( 0, cpf_hash, rf_hash, email ), retorna um id de usuário ou 0. Somente leitura: resolve e nunca cria, e é isso que torna seguro perguntar ANTES do filtro abaixo. A adoção de órfãos pergunta para que a tela possa dizer se um login foi aberto ou apenas encontrado."
+
+msgid "The account for a set of identifiers: the one that answers to them, or a new one, with every unlinked record carrying them adopted into it — args ( null, cpf_hash, rf_hash, email ), returns a user id or WP_Error. Unlike ffc_create_identity_account it DOES resolve first: an orphan has no account to be taken off, so resolving is the point rather than the thing to avoid."
+msgstr "A conta de um conjunto de identificadores: a que responde por eles, ou uma nova, com todo registro desvinculado que os carregue adotado nela — args ( null, cpf_hash, rf_hash, email ), retorna um id de usuário ou WP_Error. Diferente de ffc_create_identity_account, este resolve primeiro: um órfão não tem conta da qual ser retirado, então resolver é o objetivo e não o que evitar."
+
+msgid "Orphaned Records Given an Account"
+msgstr "Registros Órfãos Receberam uma Conta"
