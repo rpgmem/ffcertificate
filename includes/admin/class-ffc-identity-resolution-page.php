@@ -77,6 +77,30 @@ class IdentityResolutionPage {
 	public const CAPABILITY = 'ffc_manage_identities';
 
 	/**
+	 * Capability gating a split (#1397).
+	 *
+	 * Its own, because a split CREATES a WordPress account -- a different
+	 * power from correcting a number the check digits already judged, and a
+	 * different one again from a merge. Whoever fixes typos is not
+	 * necessarily whoever opens logins.
+	 *
+	 * @since 6.28.4
+	 * @var string
+	 */
+	public const SPLIT_CAPABILITY = 'ffc_split_identities';
+
+	/**
+	 * Capability gating a merge (#1397).
+	 *
+	 * The only action on this screen no other undoes: afterwards nothing can
+	 * say which record came from which login.
+	 *
+	 * @since 6.28.4
+	 * @var string
+	 */
+	public const MERGE_CAPABILITY = 'ffc_merge_identities';
+
+	/**
 	 * The `admin_post` action that writes a correction.
 	 */
 	public const REPAIR_ACTION = 'ffc_repair_identity';
@@ -140,7 +164,7 @@ class IdentityResolutionPage {
 	 *
 	 * @since 6.28.3
 	 */
-	public const MERGE_ACTION = 'ffc_merge_identities';
+	public const MERGE_ACTION = 'ffc_merge_identity_pair';
 
 	/**
 	 * The `admin_post` action that takes the worklist again.
@@ -176,7 +200,7 @@ class IdentityResolutionPage {
 	 *
 	 * @since 6.28.3
 	 */
-	public const MERGE_NONCE = 'ffc_merge_identities';
+	public const MERGE_NONCE = 'ffc_merge_identity_pair';
 
 	/**
 	 * Transient prefix carrying one outcome from the write back to the screen.
@@ -568,7 +592,7 @@ class IdentityResolutionPage {
 	 * @return void
 	 */
 	public function handle_split(): void {
-		if ( ! Capabilities::current_user_can_admin_or( self::CAPABILITY ) ) {
+		if ( ! Capabilities::current_user_can_admin_or( self::SPLIT_CAPABILITY ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
 		}
 
@@ -607,7 +631,7 @@ class IdentityResolutionPage {
 	 * @return void
 	 */
 	public function handle_merge(): void {
-		if ( ! Capabilities::current_user_can_admin_or( self::CAPABILITY ) ) {
+		if ( ! Capabilities::current_user_can_admin_or( self::MERGE_CAPABILITY ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
 		}
 
@@ -865,11 +889,13 @@ class IdentityResolutionPage {
 		// `queue()` FIRST: the three readings below are properties of the list
 		// it just resolved, and asking for them before it would answer about
 		// no list at all.
-		$ffc_identity_findings = $this->queue();
-		$ffc_identity_coverage = $this->coverage();
-		$ffc_identity_capped   = $this->truncated();
-		$ffc_identity_taken_at = $this->taken_at();
-		$ffc_identity_panels   = IdentityQueuePanels::build(
+		$ffc_identity_findings  = $this->queue();
+		$ffc_identity_coverage  = $this->coverage();
+		$ffc_identity_capped    = $this->truncated();
+		$ffc_identity_taken_at  = $this->taken_at();
+		$ffc_identity_may_split = Capabilities::current_user_can_admin_or( self::SPLIT_CAPABILITY );
+		$ffc_identity_may_merge = Capabilities::current_user_can_admin_or( self::MERGE_CAPABILITY );
+		$ffc_identity_panels    = IdentityQueuePanels::build(
 			$ffc_identity_findings,
 			self::cursors(),
 			self::listed()

@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security
+
+- ⚠ **Splitting and merging on the identity screen now need capabilities of their own** (#1397): `ffc_split_identities` gates opening an account for records, `ffc_merge_identities` gates consolidating two logins, and `ffc_manage_identities` keeps the queue, consolidate, correct and move. They are separated from each other as well as from the queue because they are different risks — a split creates a WordPress user, a merge destroys provenance. A one-shot migration seeds both onto everyone already holding `ffc_manage_identities`, so nobody loses a verb on upgrade; the split is for handing out the queue **without** them from here on. **Breaking for external integrations** that check `ffc_manage_identities` before calling the split or merge endpoints, and the merge `admin_post` action was renamed `ffc_merge_identity_pair` — its old name is now a capability slug.
+
 ### Changed
 
 - **The identity queue is worked one finding at a time** (#1397): four panels — decided by the check digits, no account explains it, needs a decision, two accounts — each a card with a coloured tier chip, a counter and Previous/Next over its own findings. A category with nothing in it is not rendered at all, `See the list` shows a whole category when scanning beats stepping, and a resolution lands on the next finding rather than back at the top. The counter is `aria-live`, the step controls are 44px, and the header takes a row of its own below wp-admin's 782px breakpoint.

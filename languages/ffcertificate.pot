@@ -22368,3 +22368,18 @@ msgid "%s finding"
 msgid_plural "%s findings"
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Open an account from the identity queue"
+msgstr ""
+
+msgid "Merge two identity accounts"
+msgstr ""
+
+msgid "Give records carrying one identifier an account of their own. Creates a WordPress user, so it is granted apart from the queue itself."
+msgstr ""
+
+msgid "Consolidate two logins that are one person. The only action on this screen that no other undoes: afterwards nothing can say which record came from which login."
+msgstr ""
+
+msgid "Work the identity queue: correct a stored CPF/RF, and move records to the account they belong to. Does not reveal a stored identifier — that stays with the PII capability. Opening an account and merging two are separate capabilities."
+msgstr ""

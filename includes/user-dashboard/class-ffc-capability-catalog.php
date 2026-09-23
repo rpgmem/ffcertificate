@@ -409,7 +409,15 @@ final class CapabilityCatalog {
 					),
 					'ffc_manage_identities'   => array(
 						'label'       => __( 'Resolve identity conflicts', 'ffcertificate' ),
-						'description' => __( 'Work the identity queue: correct a stored CPF/RF, split an account holding two people, merge two accounts holding one. Does not reveal a stored identifier — that stays with the PII capability.', 'ffcertificate' ),
+						'description' => __( 'Work the identity queue: correct a stored CPF/RF, and move records to the account they belong to. Does not reveal a stored identifier — that stays with the PII capability. Opening an account and merging two are separate capabilities.', 'ffcertificate' ),
+					),
+					'ffc_split_identities'    => array(
+						'label'       => __( 'Open an account from the identity queue', 'ffcertificate' ),
+						'description' => __( 'Give records carrying one identifier an account of their own. Creates a WordPress user, so it is granted apart from the queue itself.', 'ffcertificate' ),
+					),
+					'ffc_merge_identities'    => array(
+						'label'       => __( 'Merge two identity accounts', 'ffcertificate' ),
+						'description' => __( 'Consolidate two logins that are one person. The only action on this screen that no other undoes: afterwards nothing can say which record came from which login.', 'ffcertificate' ),
 					),
 				),
 			),

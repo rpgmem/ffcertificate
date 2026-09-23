@@ -107,6 +107,10 @@ class TranslationSourceCoverageTest extends TestCase {
 		'Report-only scan for submissions wrongly linked to WordPress users. Nothing is changed — review each finding and fix it manually. Detection uses the stored CPF/RF hashes, so no decryption is involved.' => 'Superseded by the Migrations-tab card wording that says the scan now covers appointments, candidacies and the identity index (#1313).',
 		'No link problems found. Submissions and users look consistent.' => 'Superseded by the clean-result wording that states what was checked, now that the audit is wider than submissions (#1313).',
 
+		// The queue capability stopped covering the two verbs #1397 gave gates
+		// of their own, so its description stopped saying it does.
+		'Work the identity queue: correct a stored CPF/RF, split an account holding two people, merge two accounts holding one. Does not reveal a stored identifier — that stays with the PII capability.' => 'Superseded by the wording that names only what `ffc_manage_identities` still covers and says the other two are separate capabilities.',
+
 		// The stepper's panel header says the tier once, so the column that
 		// repeated it per row went with it (#1397).
 		'Accounts to resolve'                     => 'Superseded by the per-tier panel headings ("One is mistyped", "Needs a decision"), which name what the old shared heading grouped.',

@@ -15,6 +15,8 @@
  * @var array{stores: int, examined: int, unreadable: int}       $ffc_identity_coverage What the scan actually read.
  * @var array<int, string>                                       $ffc_identity_capped   Checks that returned a full page.
  * @var int                                                      $ffc_identity_taken_at When the list was taken (unix).
+ * @var bool                                                     $ffc_identity_may_split Whether the operator may open an account.
+ * @var bool                                                     $ffc_identity_may_merge Whether the operator may merge two.
  */
 
 // No `declare(strict_types=1)` here on purpose: none of the 17 view and
@@ -339,7 +341,15 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		?>
 	<?php endif; ?>
 
-	<?php if ( isset( $ffc_identity_by_tier[ IdentityQueue::TIER_SHARED ] ) ) : ?>
+	<?php
+	// AN OFFERED BUTTON THAT ANSWERS 403 IS WORSE THAN AN ABSENT ONE.
+	//
+	// The shared panel IS the merge form -- there is nothing else in it -- so
+	// an operator without the capability is shown the findings and a control
+	// that refuses them. The panel goes; the findings stay countable, because
+	// `IdentityQueuePanels` built them either way and the tier still exists.
+	?>
+	<?php if ( isset( $ffc_identity_by_tier[ IdentityQueue::TIER_SHARED ] ) && $ffc_identity_may_merge ) : ?>
 		<?php
 		$ffc_identity_panel = $ffc_identity_by_tier[ IdentityQueue::TIER_SHARED ];
 		$ffc_identity_pairs = $ffc_identity_shown( $ffc_identity_panel );
@@ -599,6 +609,8 @@ $ffc_identity_tier_note = static function ( $tier ) {
 										?>
 									</button>
 								</form>
+								<?php // Only the split goes when the capability is absent: moving is the other verb on this identifier and stays available. ?>
+								<?php if ( $ffc_identity_may_split ) : ?>
 								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-xs">
 									<?php wp_nonce_field( IdentityResolutionPage::SPLIT_NONCE . (string) $ffc_identity_move ); ?>
 									<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::SPLIT_ACTION ); ?>">
@@ -628,6 +640,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 										<?php esc_html_e( 'Split off', 'ffcertificate' ); ?>
 									</button>
 								</form>
+								<?php endif; ?>
 							<?php endforeach; ?>
 						<?php else : ?>
 							<span class="description">

@@ -296,6 +296,27 @@ class CapabilityManager {
 		// ability they already had.
 		'ffc_manage_identities',
 
+		// THE TWO HEAVY VERBS, SEPARATE FROM THE QUEUE AND FROM EACH OTHER.
+		//
+		// Consolidating, correcting and moving change a VALUE or a link and
+		// are undone by doing them again. These two are not that, and they
+		// are not each other either: a split CREATES a WordPress account, and
+		// a merge destroys PROVENANCE -- afterwards nothing can say which
+		// record came from which login. Bundling them would mean anybody
+		// trusted to open an account is also trusted to make a merge nobody
+		// can undo.
+		//
+		// `split` and `merge` are flow verbs, which the capability grammar
+		// closes its action vocabulary with (`book`, `cancel`, `download`,
+		// `call`, `bypass`) -- so these are its idiomatic shape rather than
+		// an exception to it.
+		//
+		// The one-shot `migrate_identity_verbs_cap_grant()` seeds both onto
+		// every current `ffc_manage_identities` holder, so nobody working the
+		// queue today loses a verb on upgrade.
+		'ffc_split_identities',
+		'ffc_merge_identities',
+
 		// Form / calendar structure management (#739). These decouple the
 		// `ffc_form` and `ffc_self_scheduling` CPTs from WordPress's native
 		// post capabilities: the CPTs register a custom `capability_type` +
