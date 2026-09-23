@@ -1343,3 +1343,234 @@ p.ffc-datetime-order-error {
         border: 1px solid CanvasText;
     }
 }
+
+/* ---------------------------------------------------------------------------
+   Account-search dialog (#1397 sprint 3)
+   --------------------------------------------------------------------------- */
+
+/* `hidden` is what the script toggles, so the open state is the absence of an
+   attribute rather than a class — one source of truth, and the dialog is
+   genuinely inert to assistive technology while closed. */
+.ffc-page-identities .ffc-identity-dialog {
+    position: fixed;
+    inset: 0;
+    z-index: var(--ffc-z-modal);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: var(--ffc-spacing-2xl);
+    overflow-y: auto;
+}
+
+.ffc-page-identities .ffc-identity-dialog[hidden] {
+    display: none;
+}
+
+.ffc-page-identities .ffc-identity-dialog-backdrop {
+    position: absolute;
+    inset: 0;
+    background: var(--ffc-bg-overlay);
+}
+
+.ffc-page-identities .ffc-identity-dialog-panel {
+    position: relative;
+    z-index: var(--ffc-z-raised);
+    width: 100%;
+    max-width: 850px;
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+    box-shadow: var(--ffc-shadow-lg);
+}
+
+.ffc-page-identities .ffc-identity-dialog-head {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-2xl) var(--ffc-spacing-md);
+    border-bottom: 1px solid var(--ffc-border);
+}
+
+.ffc-page-identities .ffc-identity-dialog-heading {
+    flex-grow: 1;
+}
+
+.ffc-page-identities .ffc-identity-dialog-head h2 {
+    margin: 0 0 var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-xl);
+}
+
+.ffc-page-identities .ffc-identity-dialog-sub {
+    margin: 0;
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-muted);
+}
+
+/* 44px, like the stepper controls: this is a touch target on the tablets the
+   scheduling desk actually uses. */
+.ffc-page-identities .ffc-identity-dialog-close {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    font-size: var(--ffc-font-size-2xl);
+    line-height: 1;
+    color: var(--ffc-text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.ffc-page-identities .ffc-identity-dialog-close:hover,
+.ffc-page-identities .ffc-identity-dialog-close:focus {
+    color: var(--ffc-text);
+}
+
+.ffc-page-identities .ffc-identity-dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-2xl);
+}
+
+.ffc-page-identities .ffc-identity-dialog-suggestion-has {
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+    border: 1px solid var(--ffc-success);
+    border-radius: var(--ffc-radius-xs);
+}
+
+.ffc-page-identities .ffc-identity-dialog-suggestion-head {
+    display: block;
+    margin-bottom: var(--ffc-spacing-xs);
+    font-size: var(--ffc-font-size-2xs);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.ffc-page-identities .ffc-identity-dialog-search label {
+    display: block;
+    margin-bottom: var(--ffc-spacing-2xs);
+    font-weight: 600;
+}
+
+.ffc-page-identities .ffc-identity-dialog-search input {
+    width: 100%;
+    min-height: 44px;
+}
+
+.ffc-page-identities .ffc-identity-dialog-count {
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-md);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+    color: var(--ffc-text-muted);
+    background: var(--ffc-bg-alt);
+    border: 1px solid var(--ffc-border);
+    border-bottom: none;
+}
+
+.ffc-page-identities .ffc-identity-dialog-result {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-md);
+    border: 1px solid var(--ffc-border);
+    border-top: none;
+    cursor: pointer;
+}
+
+/* Inside the suggestion box the row is the only content, so it keeps its own
+   border rather than continuing a list it is not part of. */
+.ffc-page-identities .ffc-identity-dialog-suggestion .ffc-identity-dialog-result {
+    padding: 0;
+    background: none;
+    border: none;
+}
+
+.ffc-page-identities .ffc-identity-dialog-result-refused {
+    background: var(--ffc-bg-alt);
+    cursor: not-allowed;
+}
+
+.ffc-page-identities .ffc-identity-dialog-who {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    gap: var(--ffc-spacing-3xs);
+}
+
+.ffc-page-identities .ffc-identity-dialog-meta {
+    font-size: var(--ffc-font-size-xs);
+    color: var(--ffc-text-muted);
+}
+
+.ffc-page-identities .ffc-identity-dialog-verdict {
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+    white-space: nowrap;
+    border-radius: var(--ffc-radius-xs);
+}
+
+.ffc-page-identities .ffc-identity-dialog-verdict-ok {
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+}
+
+.ffc-page-identities .ffc-identity-dialog-verdict-refused {
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+}
+
+.ffc-page-identities .ffc-identity-dialog-rule,
+.ffc-page-identities .ffc-identity-dialog-column {
+    margin: 0;
+    padding-left: var(--ffc-spacing-md);
+    font-size: var(--ffc-font-size-xs);
+    color: var(--ffc-text-muted);
+    border-left: 3px solid var(--ffc-border);
+}
+
+.ffc-page-identities .ffc-identity-dialog-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-2xl);
+    background: var(--ffc-bg-alt);
+    border-top: 1px solid var(--ffc-border);
+}
+
+.ffc-page-identities .ffc-identity-dialog-foot .button {
+    min-height: 44px;
+}
+
+.ffc-page-identities .ffc-identity-chosen {
+    display: inline-block;
+    margin-left: var(--ffc-spacing-xs);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+    color: var(--ffc-success-text);
+}
+
+@media screen and (max-width: 782px) {
+    .ffc-page-identities .ffc-identity-dialog {
+        padding: var(--ffc-spacing-sm);
+    }
+
+    .ffc-page-identities .ffc-identity-dialog-result {
+        flex-wrap: wrap;
+    }
+}
+
+@media (forced-colors: active) {
+    /* The verdict badge paints a background and nothing else, so forced-colors
+       discards it and "allowed" reads exactly like "refused" — which is the
+       one distinction this dialog exists to draw. */
+    .ffc-page-identities .ffc-identity-dialog-verdict-ok,
+    .ffc-page-identities .ffc-identity-dialog-verdict-refused {
+        border: 1px solid CanvasText;
+    }
+}

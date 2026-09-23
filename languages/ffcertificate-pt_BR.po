@@ -22474,3 +22474,81 @@ msgstr "Consolida dois logins que são uma pessoa só. A única ação desta tel
 
 msgid "Work the identity queue: correct a stored CPF/RF, and move records to the account they belong to. Does not reveal a stored identifier — that stays with the PII capability. Opening an account and merging two are separate capabilities."
 msgstr "Trabalha a fila de identidades: corrige um CPF/RF armazenado e move registros para a conta a que pertencem. Não revela um identificador armazenado — isso fica com a capability de PII. Abrir uma conta e mesclar duas são capabilities separadas."
+
+msgid "%s accounts found"
+msgstr "%s contas encontradas"
+
+msgid "A destination account is chosen, so splitting onto a new one is not available. Clear the destination to split instead."
+msgstr "Uma conta de destino está escolhida, então separar em uma nova não está disponível. Limpe o destino para separar."
+
+msgid "Agrees by %1$s — gains the %2$s"
+msgstr "Concorda por %1$s — ganha o %2$s"
+
+msgid "Agrees by %s"
+msgstr "Concorda por %s"
+
+msgid "Already holds these records"
+msgstr "Já possui estes registros"
+
+msgid "Choose the destination account"
+msgstr "Escolher a conta de destino"
+
+msgid "Destination: %1$s (#%2$s)"
+msgstr "Destino: %1$s (nº %2$s)"
+
+msgid "Holds a different value — refused"
+msgstr "Possui um valor diferente — recusado"
+
+msgid "More accounts match than are shown. Narrow the search."
+msgstr "Mais contas correspondem do que as exibidas. Refine a busca."
+
+msgid "Move to #%s"
+msgstr "Mover para nº %s"
+
+msgid "Moves the %1$s records carrying %2$s · %3$s"
+msgstr "Move os %1$s registros que carregam %2$s · %3$s"
+
+msgid "No account files any identifier these records carry, so there is nothing to suggest. Search below."
+msgstr "Nenhuma conta arquiva qualquer identificador que estes registros carregam, então não há o que sugerir. Busque abaixo."
+
+msgid "No account matches that."
+msgstr "Nenhuma conta corresponde a isso."
+
+msgid "Or search by name, e-mail or account number"
+msgstr "Ou busque por nome, e-mail ou número da conta"
+
+msgid "Refused"
+msgstr "Recusado"
+
+msgid "Searching…"
+msgstr "Buscando…"
+
+msgid "Search…"
+msgstr "Buscar…"
+
+msgid "Select this account"
+msgstr "Selecionar esta conta"
+
+msgid "Selecting only chooses the destination. Writing asks for a confirmation afterwards."
+msgstr "Selecionar apenas escolhe o destino. A gravação pede uma confirmação depois."
+
+msgid "Shares no identifier — refused"
+msgstr "Não compartilha identificador algum — recusado"
+
+msgid "Suggestion — an account already files one of these identifiers"
+msgstr "Sugestão — uma conta já arquiva um destes identificadores"
+
+msgid "The badge on the right says whether the move would be accepted, before you confirm."
+msgstr "O selo à direita diz se a mudança seria aceita, antes de você confirmar."
+
+msgid "The search could not be completed."
+msgstr "Não foi possível concluir a busca."
+
+msgid "The two already agree, so the move is allowed."
+msgstr "Os dois já concordam, então a mudança é permitida."
+
+msgid "This is the rule the service applies when writing: the two sides must already agree on one identifier, and where the destination holds none of that kind, it gains this one. A second identifier that disagrees refuses the whole move. Here the rule is read before the refusal rather than after it."
+msgstr "Esta é a regra que o serviço aplica ao gravar: os dois lados precisam já concordar em um identificador, e onde o destino não tem nenhum daquele tipo, ele ganha este. Um segundo identificador que discorde recusa a mudança inteira. Aqui a regra é lida antes da recusa, e não depois dela."
+
+msgid "You do not have permission to resolve identities."
+msgstr "Você não tem permissão para resolver identidades."

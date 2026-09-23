@@ -22383,3 +22383,81 @@ msgstr ""
 
 msgid "Work the identity queue: correct a stored CPF/RF, and move records to the account they belong to. Does not reveal a stored identifier — that stays with the PII capability. Opening an account and merging two are separate capabilities."
 msgstr ""
+
+msgid "%s accounts found"
+msgstr ""
+
+msgid "A destination account is chosen, so splitting onto a new one is not available. Clear the destination to split instead."
+msgstr ""
+
+msgid "Agrees by %1$s — gains the %2$s"
+msgstr ""
+
+msgid "Agrees by %s"
+msgstr ""
+
+msgid "Already holds these records"
+msgstr ""
+
+msgid "Choose the destination account"
+msgstr ""
+
+msgid "Destination: %1$s (#%2$s)"
+msgstr ""
+
+msgid "Holds a different value — refused"
+msgstr ""
+
+msgid "More accounts match than are shown. Narrow the search."
+msgstr ""
+
+msgid "Move to #%s"
+msgstr ""
+
+msgid "Moves the %1$s records carrying %2$s · %3$s"
+msgstr ""
+
+msgid "No account files any identifier these records carry, so there is nothing to suggest. Search below."
+msgstr ""
+
+msgid "No account matches that."
+msgstr ""
+
+msgid "Or search by name, e-mail or account number"
+msgstr ""
+
+msgid "Refused"
+msgstr ""
+
+msgid "Searching…"
+msgstr ""
+
+msgid "Search…"
+msgstr ""
+
+msgid "Select this account"
+msgstr ""
+
+msgid "Selecting only chooses the destination. Writing asks for a confirmation afterwards."
+msgstr ""
+
+msgid "Shares no identifier — refused"
+msgstr ""
+
+msgid "Suggestion — an account already files one of these identifiers"
+msgstr ""
+
+msgid "The badge on the right says whether the move would be accepted, before you confirm."
+msgstr ""
+
+msgid "The search could not be completed."
+msgstr ""
+
+msgid "The two already agree, so the move is allowed."
+msgstr ""
+
+msgid "This is the rule the service applies when writing: the two sides must already agree on one identifier, and where the destination holds none of that kind, it gains this one. A second identifier that disagrees refuses the whole move. Here the rule is read before the refusal rather than after it."
+msgstr ""
+
+msgid "You do not have permission to resolve identities."
+msgstr ""
