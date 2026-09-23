@@ -92,71 +92,30 @@ class IdentityRelink {
 	public function relink( string $hash, int $target, int $actor = 0, string $field = 'rf' ): array|WP_Error {
 		global $wpdb;
 
-		if ( ! in_array( $field, self::FIELDS, true ) ) {
-			return new WP_Error(
-				'ffc_identity_relink_unknown_field',
-				__( 'That is not an identifier this can move.', 'ffcertificate' )
-			);
+		// Named here as well as inside `verdict()`, because the split moved
+		// the read in front of it and an operator who supplies neither half
+		// should still be told about the half that is theirs. One message,
+		// two call sites -- never two messages.
+		$unnamed = self::unnamed_target( $target );
+
+		if ( null !== $unnamed ) {
+			return $unnamed;
 		}
 
-		$hash = trim( $hash );
+		$moving = $this->moving( $hash, $field );
 
-		if ( '' === $hash || $target <= 0 ) {
-			return new WP_Error(
-				'ffc_identity_relink_no_target',
-				__( 'A relink needs both the records to move and the account to move them to.', 'ffcertificate' )
-			);
+		if ( is_wp_error( $moving ) ) {
+			return $moving;
 		}
 
-		$moving = $this->rows_carrying( $field . '_hash', $hash );
+		$agreement = $this->verdict( $moving, $target );
 
-		if ( array() === $moving['rows'] ) {
-			return new WP_Error(
-				'ffc_identity_relink_gone',
-				__( 'Nothing carries that identifier any more. Reload the queue.', 'ffcertificate' )
-			);
+		if ( is_wp_error( $agreement ) ) {
+			return $agreement;
 		}
 
-		if ( count( $moving['accounts'] ) > 1 ) {
-			return new WP_Error(
-				'ffc_identity_relink_ambiguous',
-				__( 'Those records are split across more than one account, so one move cannot serve them. Resolve them separately.', 'ffcertificate' )
-			);
-		}
-
-		$origin = $moving['accounts'][0] ?? 0;
-
-		if ( $origin === $target ) {
-			return new WP_Error(
-				'ffc_identity_relink_unchanged',
-				__( 'Those records already belong to that account.', 'ffcertificate' )
-			);
-		}
-
-		$agreement = IdentityAgreement::between(
-			$moving['identifiers'],
-			IdentityAgreement::held_by( $target )
-		);
-
-		if ( array() !== $agreement['conflicts'] ) {
-			return new WP_Error(
-				'ffc_identity_relink_conflict',
-				sprintf(
-					/* translators: %s: the identifiers that disagree, comma separated. */
-					__( 'The records and that account hold different values for: %s. Correct the identifier first — moving records across a disagreement is how one person\'s record ends up under another person\'s account.', 'ffcertificate' ),
-					implode( ', ', array_map( 'strtoupper', $agreement['conflicts'] ) )
-				)
-			);
-		}
-
-		if ( array() === $agreement['matches'] ) {
-			return new WP_Error(
-				'ffc_identity_relink_no_agreement',
-				__( 'Nothing ties those records to that account: they share no identifier with it, and an absent value is not agreement. Correct an identifier first so the two agree.', 'ffcertificate' )
-			);
-		}
-
-		$moved = array();
+		$origin = $moving['origin'];
+		$moved  = array();
 
 		// The rows and the index must not be able to disagree about who owns
 		// what, and this writes to as many as four tables. Rolled back as one
@@ -251,6 +210,148 @@ class IdentityRelink {
 			'moved'  => $moved,
 			'gained' => array_keys( $agreement['gaps'] ),
 			'from'   => $origin,
+		);
+	}
+
+	/**
+	 * The records one identifier would move, and what refuses before a target
+	 * is even named.
+	 *
+	 * SPLIT OUT SO THE DIALOG AND THE WRITE CANNOT DISAGREE (#1397 sprint 3).
+	 *
+	 * The account-search dialog has to show every refusal BEFORE the operator
+	 * commits, which means evaluating the same rule the write applies. A
+	 * second copy of that rule would agree on the day it is written and drift
+	 * the first time one side is corrected -- and what it decides is whether
+	 * one person's record lands under another person's login, so the drift is
+	 * invisible and permanent. There is one path instead: `relink()` is this
+	 * method plus {@see self::verdict()} plus the write, and the dialog calls
+	 * the same two.
+	 *
+	 * The split is by what each half DEPENDS ON, which is also what makes the
+	 * dialog cheap: this half reads only the identifier, so the search runs it
+	 * ONCE and then asks `verdict()` per candidate.
+	 *
+	 * @since 6.28.4
+	 * @param string $hash  The stored hash whose records would move.
+	 * @param string $field `rf` or `cpf`; which column the hash sits in.
+	 * @return array{rows: array<string, array<int, int>>, accounts: array<int, int>, identifiers: array<string, array<int, string>>, origin: int, count: int, hash: string, field: string}|WP_Error
+	 */
+	public function moving( string $hash, string $field = 'rf' ): array|WP_Error {
+		if ( ! in_array( $field, self::FIELDS, true ) ) {
+			return new WP_Error(
+				'ffc_identity_relink_unknown_field',
+				__( 'That is not an identifier this can move.', 'ffcertificate' )
+			);
+		}
+
+		$hash = trim( $hash );
+
+		if ( '' === $hash ) {
+			return new WP_Error(
+				'ffc_identity_relink_no_target',
+				__( 'A relink needs both the records to move and the account to move them to.', 'ffcertificate' )
+			);
+		}
+
+		$moving = $this->rows_carrying( $field . '_hash', $hash );
+
+		if ( array() === $moving['rows'] ) {
+			return new WP_Error(
+				'ffc_identity_relink_gone',
+				__( 'Nothing carries that identifier any more. Reload the queue.', 'ffcertificate' )
+			);
+		}
+
+		if ( count( $moving['accounts'] ) > 1 ) {
+			return new WP_Error(
+				'ffc_identity_relink_ambiguous',
+				__( 'Those records are split across more than one account, so one move cannot serve them. Resolve them separately.', 'ffcertificate' )
+			);
+		}
+
+		$count = 0;
+		foreach ( $moving['rows'] as $ids ) {
+			$count += count( $ids );
+		}
+
+		$moving['origin'] = $moving['accounts'][0] ?? 0;
+		$moving['count']  = $count;
+		$moving['hash']   = $hash;
+		$moving['field']  = $field;
+
+		return $moving;
+	}
+
+	/**
+	 * Whether one account may receive those records, and what it would gain.
+	 *
+	 * The other half of the rule {@see self::moving()} opens. It takes the
+	 * moving set rather than the identifier, so a search evaluating twenty
+	 * candidates reads the moving rows once instead of twenty times -- and,
+	 * more to the point, evaluates every candidate against exactly the set
+	 * the write would move.
+	 *
+	 * @since 6.28.4
+	 * @param array{identifiers: array<string, array<int, string>>, origin: int} $moving What {@see self::moving()} returned.
+	 * @param int                                                                $target The account under consideration.
+	 * @return array{matches: array<int, string>, gaps: array<string, string>, conflicts: array<int, string>}|WP_Error
+	 */
+	public function verdict( array $moving, int $target ): array|WP_Error {
+		$unnamed = self::unnamed_target( $target );
+
+		if ( null !== $unnamed ) {
+			return $unnamed;
+		}
+
+		if ( $moving['origin'] === $target ) {
+			return new WP_Error(
+				'ffc_identity_relink_unchanged',
+				__( 'Those records already belong to that account.', 'ffcertificate' )
+			);
+		}
+
+		$agreement = IdentityAgreement::between(
+			$moving['identifiers'],
+			IdentityAgreement::held_by( $target )
+		);
+
+		if ( array() !== $agreement['conflicts'] ) {
+			return new WP_Error(
+				'ffc_identity_relink_conflict',
+				sprintf(
+					/* translators: %s: the identifiers that disagree, comma separated. */
+					__( 'The records and that account hold different values for: %s. Correct the identifier first — moving records across a disagreement is how one person\'s record ends up under another person\'s account.', 'ffcertificate' ),
+					implode( ', ', array_map( 'strtoupper', $agreement['conflicts'] ) )
+				)
+			);
+		}
+
+		if ( array() === $agreement['matches'] ) {
+			return new WP_Error(
+				'ffc_identity_relink_no_agreement',
+				__( 'Nothing ties those records to that account: they share no identifier with it, and an absent value is not agreement. Correct an identifier first so the two agree.', 'ffcertificate' )
+			);
+		}
+
+		return $agreement;
+	}
+
+	/**
+	 * The refusal for a move with no account named, or null when one is.
+	 *
+	 * @since 6.28.4
+	 * @param int $target The account under consideration.
+	 * @return WP_Error|null
+	 */
+	private static function unnamed_target( int $target ): ?WP_Error {
+		if ( $target > 0 ) {
+			return null;
+		}
+
+		return new WP_Error(
+			'ffc_identity_relink_no_target',
+			__( 'A relink needs both the records to move and the account to move them to.', 'ffcertificate' )
 		);
 	}
 

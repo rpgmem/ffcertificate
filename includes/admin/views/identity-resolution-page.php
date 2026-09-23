@@ -599,7 +599,27 @@ $ffc_identity_tier_note = static function ( $tier ) {
 									<input type="number" inputmode="numeric" min="1" step="1" size="6" required
 										id="ffc-relink-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
 										name="ffc_account" placeholder="<?php esc_attr_e( 'Account #', 'ffcertificate' ); ?>">
-									<button type="submit" class="button button-secondary">
+									<?php
+									// THE NUMBER FIELD STAYS, AND THAT IS THE POINT.
+									//
+									// The dialog writes into it rather than
+									// replacing it, so the form posts the same
+									// thing it always did and a screen without
+									// JavaScript keeps the verb it had. What the
+									// dialog adds is knowing the answer before
+									// committing, which is not the same as being
+									// the only way to give one.
+									?>
+									<button type="button" class="button button-secondary ffc-identity-find"
+										data-ffc-subject="<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
+										data-ffc-field="<?php echo esc_attr( $ffc_identity_field ); ?>"
+										data-ffc-input="ffc-relink-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
+										data-ffc-split="ffc-split-form-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
+										data-ffc-submit="ffc-relink-go-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
+										<?php esc_html_e( 'Search…', 'ffcertificate' ); ?>
+									</button>
+									<button type="submit" class="button button-secondary"
+										id="ffc-relink-go-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
 										<?php
 										printf(
 											/* translators: %s: the identifier's hash prefix. */
@@ -608,10 +628,12 @@ $ffc_identity_tier_note = static function ( $tier ) {
 										);
 										?>
 									</button>
+									<span class="ffc-identity-chosen" id="ffc-relink-chosen-<?php echo esc_attr( (string) $ffc_identity_move ); ?>" hidden></span>
 								</form>
 								<?php // Only the split goes when the capability is absent: moving is the other verb on this identifier and stays available. ?>
 								<?php if ( $ffc_identity_may_split ) : ?>
-								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-xs">
+								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-xs"
+									id="ffc-split-form-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
 									<?php wp_nonce_field( IdentityResolutionPage::SPLIT_NONCE . (string) $ffc_identity_move ); ?>
 									<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::SPLIT_ACTION ); ?>">
 									<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
@@ -639,6 +661,16 @@ $ffc_identity_tier_note = static function ( $tier ) {
 									<button type="submit" class="button button-secondary">
 										<?php esc_html_e( 'Split off', 'ffcertificate' ); ?>
 									</button>
+									<?php
+									// Printed disabled-free and hidden; the dialog
+									// shows it and disables the fields above when a
+									// destination is chosen, because two destinations
+									// for one set of records is a mistake the form
+									// should not be able to express.
+									?>
+									<span class="ffc-identity-split-barred description" hidden>
+										<?php esc_html_e( 'A destination account is chosen, so splitting onto a new one is not available. Clear the destination to split instead.', 'ffcertificate' ); ?>
+									</span>
 								</form>
 								<?php endif; ?>
 							<?php endforeach; ?>
@@ -839,4 +871,63 @@ $ffc_identity_tier_note = static function ( $tier ) {
 	<p class="description ffc-set-mt-10">
 		<?php esc_html_e( 'A row naming no account is ordinary rather than an error: a recruitment candidacy carries no WordPress user until it is promoted, so its row ids are the only handle on it. Confirm the corrected number with HR before entering it: the check digit says a number is wrong, never what the right one is.', 'ffcertificate' ); ?>
 	</p>
+
+	<?php
+	// THE DIALOG'S FIXED PROSE LIVES HERE, NOT IN THE SCRIPT.
+	//
+	// One shell, reused by whichever move form opened it, so the sentences
+	// are escaped at the output point and reach the catalogue as ordinary
+	// source strings. The script fills the two regions that carry data and
+	// otherwise only shows and hides this.
+	//
+	// It is inside the `wrap`, which is what gives its rules the page anchor
+	// `ffc-page-identities` (`CLAUDE.md`, "Page scope on the admin wrap").
+	?>
+	<div class="ffc-identity-dialog" id="ffc-identity-dialog" role="dialog" aria-modal="true" aria-labelledby="ffc-identity-dialog-title" hidden>
+		<div class="ffc-identity-dialog-backdrop" data-ffc-dialog-dismiss></div>
+		<div class="ffc-identity-dialog-panel">
+			<div class="ffc-identity-dialog-head">
+				<div class="ffc-identity-dialog-heading">
+					<h2 id="ffc-identity-dialog-title"><?php esc_html_e( 'Choose the destination account', 'ffcertificate' ); ?></h2>
+					<p class="ffc-identity-dialog-sub" id="ffc-identity-dialog-sub"></p>
+				</div>
+				<button type="button" class="ffc-identity-dialog-close" data-ffc-dialog-dismiss aria-label="<?php esc_attr_e( 'Close', 'ffcertificate' ); ?>">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="ffc-identity-dialog-body">
+				<?php
+				// The two fixed sentences the script paints into this region
+				// travel as data attributes rather than through
+				// `wp_localize_script`, so every string in the dialog that
+				// carries no runtime value is escaped at the output point and
+				// reaches the catalogue from the same file as its neighbours.
+				?>
+				<div class="ffc-identity-dialog-suggestion" id="ffc-identity-dialog-suggestion"
+					data-head="<?php esc_attr_e( 'Suggestion — an account already files one of these identifiers', 'ffcertificate' ); ?>"
+					data-none="<?php esc_attr_e( 'No account files any identifier these records carry, so there is nothing to suggest. Search below.', 'ffcertificate' ); ?>"></div>
+				<p class="ffc-identity-dialog-search">
+					<label for="ffc-identity-dialog-q"><?php esc_html_e( 'Or search by name, e-mail or account number', 'ffcertificate' ); ?></label>
+					<input type="search" id="ffc-identity-dialog-q" autocomplete="off" spellcheck="false">
+				</p>
+				<div class="ffc-identity-dialog-results" id="ffc-identity-dialog-results" aria-live="polite"
+					data-truncated="<?php esc_attr_e( 'More accounts match than are shown. Narrow the search.', 'ffcertificate' ); ?>"></div>
+				<p class="description ffc-identity-dialog-column">
+					<?php esc_html_e( 'The badge on the right says whether the move would be accepted, before you confirm.', 'ffcertificate' ); ?>
+				</p>
+				<p class="ffc-identity-dialog-rule">
+					<?php esc_html_e( 'This is the rule the service applies when writing: the two sides must already agree on one identifier, and where the destination holds none of that kind, it gains this one. A second identifier that disagrees refuses the whole move. Here the rule is read before the refusal rather than after it.', 'ffcertificate' ); ?>
+				</p>
+			</div>
+			<div class="ffc-identity-dialog-foot">
+				<button type="button" class="button button-primary" id="ffc-identity-dialog-confirm" disabled>
+					<?php esc_html_e( 'Select this account', 'ffcertificate' ); ?>
+				</button>
+				<button type="button" class="button" data-ffc-dialog-dismiss>
+					<?php esc_html_e( 'Cancel', 'ffcertificate' ); ?>
+				</button>
+				<span class="description"><?php esc_html_e( 'Selecting only chooses the destination. Writing asks for a confirmation afterwards.', 'ffcertificate' ); ?></span>
+			</div>
+		</div>
+	</div>
 </div>

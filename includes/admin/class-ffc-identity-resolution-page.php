@@ -240,6 +240,57 @@ class IdentityResolutionPage {
 		add_action( 'admin_post_' . self::SPLIT_ACTION, array( $this, 'handle_split' ) );
 		add_action( 'admin_post_' . self::MERGE_ACTION, array( $this, 'handle_merge' ) );
 		add_action( 'admin_post_' . self::RESCAN_ACTION, array( $this, 'handle_rescan' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
+	}
+
+	/**
+	 * Load the account-search dialog, on this screen and nowhere else.
+	 *
+	 * @since 6.28.4
+	 * @param string $hook The screen's hook suffix.
+	 * @return void
+	 */
+	public function enqueue( string $hook ): void {
+		if ( false === strpos( $hook, self::MENU_SLUG ) ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'ffc-identity-search',
+			FFC_PLUGIN_URL . 'assets/js/ffc-identity-search.js',
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'ffc-identity-search',
+			'ffcIdentitySearch',
+			array(
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'action'  => IdentitySearchAjaxEndpoint::AJAX_ACTION,
+				'nonce'   => wp_create_nonce( IdentitySearchAjaxEndpoint::AJAX_ACTION ),
+				// ONLY THE STRINGS THAT CARRY A RUNTIME VALUE.
+				//
+				// Every fixed sentence in the dialog is printed by the view,
+				// escaped there and visible to the translation guards as an
+				// ordinary source string. What is left here is the handful
+				// that interpolate a count, a name or an account number.
+				'strings' => array(
+					/* translators: 1: how many records move. 2: the identifier's hash prefix. 3: RF or CPF. */
+					'subtitle'  => __( 'Moves the %1$s records carrying %2$s · %3$s', 'ffcertificate' ),
+					'searching' => __( 'Searching…', 'ffcertificate' ),
+					/* translators: %s: how many accounts matched. */
+					'found'     => __( '%s accounts found', 'ffcertificate' ),
+					'noResults' => __( 'No account matches that.', 'ffcertificate' ),
+					/* translators: 1: the account's display name. 2: the account number. */
+					'chosen'    => __( 'Destination: %1$s (#%2$s)', 'ffcertificate' ),
+					/* translators: %s: the account number. */
+					'move'      => __( 'Move to #%s', 'ffcertificate' ),
+					'failed'    => __( 'The search could not be completed.', 'ffcertificate' ),
+				),
+			)
+		);
 	}
 
 	/**
