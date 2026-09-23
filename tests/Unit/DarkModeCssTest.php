@@ -195,6 +195,10 @@ final class DarkModeCssTest extends TestCase {
 			array( '--ffc-warning-text', '--ffc-warning-bg', 4.5, 'warning text' ),
 			array( '--ffc-danger-text', '--ffc-danger-bg', 4.5, 'danger text' ),
 			array( '--ffc-info-text', '--ffc-info-bg', 4.5, 'informational text' ),
+			// The fifth family (#1407). Not a severity — it exists so the
+			// identity screen's five categories are five colours rather than
+			// four, which is what a category colour is for.
+			array( '--ffc-accent-text', '--ffc-accent-bg', 4.5, 'the fifth category' ),
 			// Pairs the seven admin sheets started painting (#1126 B). Two of
 			// them already failed before the conversion: --ffc-danger as text on
 			// a card (4.29:1 in dark) and the white label of the .ffc-btn-success

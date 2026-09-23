@@ -21,6 +21,7 @@ use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityMerge;
 use FreeFormCertificate\Maintenance\IdentityQueue;
 use FreeFormCertificate\Maintenance\IdentityAdoption;
+use FreeFormCertificate\Maintenance\IdentityAuditExportSource;
 use FreeFormCertificate\Maintenance\IdentityOrphanQuery;
 use FreeFormCertificate\Maintenance\IdentityRecordNames;
 use FreeFormCertificate\Maintenance\IdentityRelink;
@@ -1060,6 +1061,33 @@ class IdentityResolutionPage {
 			self::cursors(),
 			self::listed()
 		);
+
+		// THE CSV IS OFFERED ONLY TO SOMEBODY WHO CAN ACTUALLY HAVE IT.
+		//
+		// The audit export lives on the Migrations tab behind
+		// `ffc_manage_settings_dangerzone`, which is deliberately NOT this
+		// screen's capability -- the queue is read live here precisely so
+		// working it does not depend on holding that one. So the link is
+		// built when the operator holds it and left empty otherwise, for the
+		// reason the merge panel is absent without its capability: an offered
+		// control that answers `wp_die` is worse than no control.
+		//
+		// The handler is on `admin_init`, so the arguments reach it from any
+		// admin screen; `page` and `tab` are where its own error path
+		// redirects, not where it listens.
+		$ffc_identity_export_url = Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' )
+			? wp_nonce_url(
+				add_query_arg(
+					array(
+						'page'                 => 'ffc-settings',
+						'tab'                  => 'migrations',
+						'ffc_submission_audit' => 'export',
+					),
+					admin_url( 'admin.php' )
+				),
+				IdentityAuditExportSource::NONCE
+			)
+			: '';
 
 		// ORPHANS ARE THEIR OWN POPULATION, NOT A TIER OF THE QUEUE.
 		//

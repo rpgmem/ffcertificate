@@ -1194,6 +1194,135 @@ p.ffc-datetime-order-error {
 }
 
 /* ==========================================================================
+   IDENTITY SCREEN — THE TWO TOP STRIPS (#1407 sprint 1)
+
+   What the scan read, and what is left to do, stated once at the top of the
+   screen rather than inside a branch. The coverage numbers used to render
+   only when the queue was EMPTY, so the one state an operator actually works
+   -- a queue with findings -- was the state that never said how much of the
+   data it had seen.
+
+   Anchored on `.ffc-page-identities` for the reason the panel block below
+   gives: this sheet loads on every `?page=ffc-*` screen and on `users.php`.
+   ========================================================================== */
+
+.ffc-page-identities .ffc-identity-scan,
+.ffc-page-identities .ffc-identity-counts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-xs) var(--ffc-spacing-md);
+    margin: var(--ffc-spacing-md) 0;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+}
+
+/* THE ACCENT IS THE VERDICT, AND IT IS NOT ALWAYS GREEN.
+
+   A strip that always reads as a tick would be the reassuring sentence the
+   empty-state branch was fixed for (#1397), moved somewhere it is seen more
+   often. Three states: the scan read everything, it read part of it, or it
+   read nothing -- and the last is not a clean result however few findings
+   came back. */
+.ffc-page-identities .ffc-identity-scan-whole {
+    border-left: 4px solid var(--ffc-success-border);
+}
+
+.ffc-page-identities .ffc-identity-scan-partial {
+    border-left: 4px solid var(--ffc-warning-border);
+}
+
+.ffc-page-identities .ffc-identity-scan-none {
+    border-left: 4px solid var(--ffc-danger-border);
+}
+
+.ffc-page-identities .ffc-identity-scan-verdict {
+    margin: 0;
+    font-weight: 600;
+}
+
+.ffc-page-identities .ffc-identity-scan-detail,
+.ffc-page-identities .ffc-identity-scan-when {
+    margin: 0;
+    color: var(--ffc-text-secondary);
+    font-size: var(--ffc-font-size-sm);
+}
+
+/* Pushed to the end of the row, and the first thing to take a row of its own
+   once the strip wraps -- when it does, the numbers stay together. */
+.ffc-page-identities .ffc-identity-scan-when {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+    margin-left: auto;
+}
+
+/* `form` rather than a class: the rescan control is a POST, so it is a form,
+   and one that sits inline in a strip must not keep the block margin
+   wp-admin gives it. */
+.ffc-page-identities .ffc-identity-scan-when form {
+    margin: 0;
+}
+
+.ffc-page-identities .ffc-identity-counts-total {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* The category counters. They reuse the tier chips' COLOUR classes and
+   nothing else: a counter is read at body size with the number emphasised,
+   where the panel chip is a small uppercase label. Sharing the colour is the
+   point -- the strip and the panel heading below must not disagree about
+   which category is which. */
+.ffc-page-identities .ffc-identity-count {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
+    border: 1px solid transparent;
+    border-radius: var(--ffc-radius-sm);
+    font-size: var(--ffc-font-size-sm);
+    white-space: nowrap;
+}
+
+.ffc-page-identities .ffc-identity-counts-note {
+    margin: 0;
+}
+
+.ffc-page-identities .ffc-identity-counts-export {
+    margin-left: auto;
+}
+
+@media screen and (max-width: 782px) {
+    /* Below wp-admin's own breakpoint the strips have no room to share a
+       row, so what was pushed to the end simply follows. */
+    .ffc-page-identities .ffc-identity-counts-export,
+    .ffc-page-identities .ffc-identity-scan-when {
+        margin-left: 0;
+    }
+}
+
+@media (forced-colors: active) {
+    /* The strip's verdict is a coloured left border and the counters are
+       fills; forced-colors discards both. The border stays as a contour so
+       the strips remain three separate regions, and each counter keeps an
+       outline so the row does not collapse into one run of text. */
+    .ffc-page-identities .ffc-identity-count {
+        border: 1px solid CanvasText;
+    }
+
+    .ffc-page-identities .ffc-identity-scan-none,
+    .ffc-page-identities .ffc-identity-scan-partial,
+    .ffc-page-identities .ffc-identity-scan-whole {
+        border-left: 4px solid CanvasText;
+    }
+}
+
+/* ==========================================================================
    IDENTITY QUEUE PANELS (#1397)
 
    Drawn from the mockup: each tier is a card with a header strip, and the
@@ -1714,9 +1843,14 @@ p.ffc-datetime-order-error {
    Orphaned records (#1397 sprint 6)
    --------------------------------------------------------------------------- */
 
+/* The fifth family, not the info pair the two-accounts tier already uses --
+   see the `--ffc-accent-*` comment in `ffc-common.css`. The border is
+   declared like every sibling chip's, so the five differ by contour as well
+   as by fill. */
 .ffc-page-identities .ffc-identity-chip-orphans {
-    background: var(--ffc-info-bg);
-    color: var(--ffc-info-text);
+    background: var(--ffc-accent-bg);
+    border-color: var(--ffc-accent-border);
+    color: var(--ffc-accent-text);
 }
 
 .ffc-page-identities .ffc-identity-orphan-has {

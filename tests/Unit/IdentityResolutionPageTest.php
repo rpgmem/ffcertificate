@@ -508,4 +508,128 @@ class IdentityResolutionPageTest extends TestCase {
 		$this->assertGreaterThan( $unreadable, $reassuring, 'The reassuring sentence must come after the unreadable state.' );
 		$this->assertGreaterThan( $none_found, $reassuring, 'The reassuring sentence must come after the nothing-found state.' );
 	}
+
+	/**
+	 * The coverage is stated beside a queue that HAS findings (#1407).
+	 *
+	 * This is the case that was missing, and the shape of the miss is worth
+	 * keeping: the three coverage numbers were read inside
+	 * `if ( array() === $ffc_identity_panels )`, so the only screen state
+	 * that never said how much of the data had been read was the state an
+	 * operator actually works. The empty branch was careful and complete; the
+	 * non-empty one asked nothing.
+	 *
+	 * Asserted on ordering rather than on presence, for the reason the test
+	 * above gives: presence was already true.
+	 */
+	public function test_the_scan_coverage_is_stated_before_the_empty_branch(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$read  = strpos( $view, "\$ffc_identity_examined   = (int) ( \$ffc_identity_coverage['examined']" );
+		$strip = strpos( $view, 'class="ffc-identity-scan ' );
+		$empty = strpos( $view, 'array() === $ffc_identity_panels' );
+
+		$this->assertIsInt( $read, 'The view must read what the scan covered.' );
+		$this->assertIsInt( $strip, 'The view must draw the coverage strip.' );
+		$this->assertIsInt( $empty, 'The empty-queue branch must still exist.' );
+
+		$this->assertLessThan( $empty, $read, 'The coverage must be read outside the empty-queue branch, not inside it.' );
+		$this->assertLessThan( $empty, $strip, 'The coverage strip must render whether or not the queue is empty.' );
+	}
+
+	/**
+	 * The strip's verdict is three states, and the reassuring one is narrowest.
+	 *
+	 * The same trap the empty branch fell into once, in a place it is seen far
+	 * more often: a strip that always reads as a tick is a claim the scan did
+	 * not make. So an unread or partly-read scan must have somewhere else to
+	 * land, and the conditions are asserted rather than the wording.
+	 */
+	public function test_the_strip_refuses_to_call_a_partial_scan_whole(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertStringContainsString( '$ffc_identity_read_none = 0 === $ffc_identity_stores', $view, 'No store scanned must reach the unread verdict.' );
+		$this->assertStringContainsString( '$ffc_identity_examined === $ffc_identity_unreadable', $view, 'Nothing readable must reach the unread verdict.' );
+		$this->assertStringContainsString( '$ffc_identity_read_part = ! $ffc_identity_read_none', $view, 'The partial verdict must be reachable only when the scan read something.' );
+		$this->assertStringContainsString( '|| $ffc_identity_truncated', $view, "The scan's own cap must make the reading partial." );
+		$this->assertStringContainsString( '|| array() !== $ffc_identity_capped', $view, 'A check that returned a full page must make the reading partial.' );
+
+		// The whole-reading verdict is the `else` of both, so it cannot be
+		// reached while either flag is set. Anchored on the branch rather than
+		// on the sentence, because the sentence is translatable and the
+		// ordering is what carries the guarantee.
+		$none  = strpos( $view, 'if ( $ffc_identity_read_none ) : ?>' );
+		$part  = strpos( $view, 'elseif ( $ffc_identity_read_part ) : ?>' );
+		$whole = strpos( $view, "esc_html_e( 'The scan read the data'" );
+
+		$this->assertIsInt( $none );
+		$this->assertIsInt( $part );
+		$this->assertIsInt( $whole );
+		$this->assertGreaterThan( $part, $whole, 'The reassuring verdict must come after the partial one.' );
+		$this->assertGreaterThan( $none, $part, 'The partial verdict must come after the unread one.' );
+	}
+
+	/**
+	 * The counters are the panels, counted — never a second list.
+	 *
+	 * A strip fed by its own query would drift from the bodies the moment a
+	 * tier was dropped, filtered or capped on one side and not the other, and
+	 * the operator would have no way to tell which number was the true one.
+	 * Both read `$ffc_identity_panels`, which `IdentityQueuePanels::build()`
+	 * has already emptied of the tiers holding nothing.
+	 */
+	public function test_the_counters_are_derived_from_the_panels(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertStringContainsString(
+			'$ffc_identity_remaining += (int) $ffc_identity_panel[\'total\'];',
+			$view,
+			'The remaining count must be the panels summed.'
+		);
+		$this->assertStringContainsString(
+			'$ffc_identity_remaining = count( $ffc_identity_orphans );',
+			$view,
+			'Orphans are a population of their own and must be counted as one.'
+		);
+
+		// The strip derives its chip class from the tier exactly as the panel
+		// heading does, so a category cannot be one colour above and another
+		// below.
+		$this->assertSame(
+			2,
+			substr_count( $view, "'ffc-identity-chip-' . preg_replace( '/[^a-z]/', '', " ),
+			'The chip class must be derived from the tier in both places, and nowhere else.'
+		);
+	}
+
+	/**
+	 * The CSV is offered only to somebody who can actually have it.
+	 *
+	 * The export lives behind `ffc_manage_settings_dangerzone`, which is
+	 * deliberately not this screen's capability — the queue is read live here
+	 * precisely so working it does not depend on holding that one. So the
+	 * link is built or it is empty, and the view prints nothing for an empty
+	 * one: the same decision the merge panel already makes, because an
+	 * offered control that answers `wp_die` is worse than an absent one.
+	 */
+	public function test_the_export_link_is_gated_on_the_capability_that_serves_it(): void {
+		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertMatchesRegularExpression(
+			'/\$ffc_identity_export_url\s*=\s*Capabilities::current_user_can_admin_or\(\s*\x27ffc_manage_settings_dangerzone\x27\s*\)/',
+			$page,
+			'The link must be built only for a holder of the capability the export itself checks.'
+		);
+		$this->assertStringContainsString(
+			'IdentityAuditExportSource::NONCE',
+			$page,
+			'The link must carry the nonce the export verifies, read from the source rather than retyped.'
+		);
+		$this->assertStringContainsString(
+			"'' !== \$ffc_identity_export_url",
+			$view,
+			'The view must print nothing when there is no link to print.'
+		);
+	}
 }
