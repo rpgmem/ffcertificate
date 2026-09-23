@@ -22461,3 +22461,45 @@ msgstr ""
 
 msgid "You do not have permission to resolve identities."
 msgstr ""
+
+msgid "Correct theirs"
+msgstr ""
+
+msgid "Enter the number HR confirmed first."
+msgstr ""
+
+msgid "If the two names do not look like the same person, one of these logins has the wrong number rather than a duplicate account. Correcting it on that login alone dissolves the finding and leaves both accounts standing. Confirm the number with HR first — the check digit says a number is wrong, never what the right one is."
+msgstr ""
+
+msgid "No name recorded beside these rows."
+msgstr ""
+
+msgid "No store that records a name is installed, so this was not looked up."
+msgstr ""
+
+msgid "Open that account"
+msgstr ""
+
+msgid "Or correct the document on one of them"
+msgstr ""
+
+msgid "That account holds no record carrying this identifier, so there is nothing of theirs to correct. Reload the queue."
+msgstr ""
+
+msgid "That number belongs to %1$s (#%2$s). If that is the same person, this is a merge rather than a correction — open the account to check who they are."
+msgstr ""
+
+msgid "The check could not be completed."
+msgstr ""
+
+msgid "The confirmed number"
+msgstr ""
+
+msgid "This correction rewrites %s records and consolidates them with this account's other record."
+msgstr ""
+
+msgid "This correction rewrites %s records."
+msgstr ""
+
+msgid "and more"
+msgstr ""

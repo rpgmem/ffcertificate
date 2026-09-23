@@ -454,6 +454,56 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				<?php esc_html_e( 'The records, the identity index and the surviving login\'s certificate access move together, as one transaction per pair. The emptied login is left in place — removing it is yours to do in Users, because deleting an account runs cleanup this tool does not own and cannot undo.', 'ffcertificate' ); ?>
 			</p>
 		</form>
+
+		<?php
+		// THE OTHER ANSWER, AND OFTEN THE RIGHT ONE.
+		//
+		// Two logins sharing a number whose names do not resemble each other
+		// are almost never one person twice; they are a wrong document on one
+		// of them. A merge would consolidate two people. So the correction is
+		// offered beside the merge, per person, and it is scoped to that one
+		// login -- the same rewrite applied to the shared hash without a scope
+		// would correct BOTH, which is the defect wearing a fix's clothes.
+		//
+		// OUTSIDE the merge form, because a form cannot contain another.
+		?>
+		<?php foreach ( $ffc_identity_pairs as $ffc_identity_pair ) : ?>
+			<?php
+			$ffc_identity_who = IdentityConflictQuery::parse_accounts(
+				$ffc_identity_pair[ IdentityConflictQuery::COLUMN_RELATED ] ?? ''
+			);
+			?>
+			<?php if ( 2 !== count( $ffc_identity_who ) ) : ?>
+				<?php continue; ?>
+			<?php endif; ?>
+			<div class="ffc-identity-correct-instead">
+				<h4><?php esc_html_e( 'Or correct the document on one of them', 'ffcertificate' ); ?></h4>
+				<p class="description">
+					<?php esc_html_e( 'If the two names do not look like the same person, one of these logins has the wrong number rather than a duplicate account. Correcting it on that login alone dissolves the finding and leaves both accounts standing. Confirm the number with HR first — the check digit says a number is wrong, never what the right one is.', 'ffcertificate' ); ?>
+				</p>
+				<?php foreach ( $ffc_identity_who as $ffc_identity_account ) : ?>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-identity-correct-one">
+						<?php wp_nonce_field( IdentityResolutionPage::REPAIR_NONCE . (string) ( $ffc_identity_pair['subject'] ?? '' ) ); ?>
+						<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::REPAIR_ACTION ); ?>">
+						<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_pair[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
+						<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) ( $ffc_identity_pair['subject'] ?? '' ) ); ?>">
+						<input type="hidden" name="ffc_field" value="<?php echo esc_attr( str_replace( '_hash', '', (string) ( $ffc_identity_pair['identifier_column'] ?? 'rf' ) ) ); ?>">
+						<?php // The scope. Without it the rewrite would reach the other login's rows too, since both carry this hash. ?>
+						<input type="hidden" name="ffc_account_scope" value="<?php echo esc_attr( (string) $ffc_identity_account ); ?>">
+						<label for="ffc-correct-<?php echo esc_attr( (string) ( $ffc_identity_pair['subject'] ?? '' ) . '-' . (string) $ffc_identity_account ); ?>">
+							<?php echo esc_html( $ffc_identity_named( $ffc_identity_account ) ); ?>
+						</label>
+						<?php // `text` with `inputmode`, never `number`: a leading zero is a digit here, not formatting. ?>
+						<input type="text" inputmode="numeric" pattern="[0-9]{7,11}" maxlength="11" size="12" required
+							id="ffc-correct-<?php echo esc_attr( (string) ( $ffc_identity_pair['subject'] ?? '' ) . '-' . (string) $ffc_identity_account ); ?>"
+							name="ffc_rf" placeholder="<?php esc_attr_e( 'The confirmed number', 'ffcertificate' ); ?>">
+						<button type="submit" class="button button-secondary">
+							<?php esc_html_e( 'Correct theirs', 'ffcertificate' ); ?>
+						</button>
+					</form>
+				<?php endforeach; ?>
+			</div>
+		<?php endforeach; ?>
 		<?php $ffc_identity_foot(); ?>
 	<?php endif; ?>
 
@@ -787,6 +837,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		<table class="wp-list-table widefat striped">
 			<thead>
 				<tr>
+					<th scope="col"><?php esc_html_e( 'Who', 'ffcertificate' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Accounts', 'ffcertificate' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Stores', 'ffcertificate' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Rows', 'ffcertificate' ); ?></th>
@@ -803,8 +854,49 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				$ffc_identity_by_store = IdentityConflictQuery::parse_row_ids(
 					$ffc_identity_row[ IdentityConflictQuery::COLUMN_ROW_IDS ] ?? ''
 				);
+				// NOT `$ffc_identity_who`: the shared panel already uses that
+				// name for its pair of ACCOUNTS, and PHP does not scope a
+				// `foreach`. Two loops in one file holding different things
+				// under one name is how a blind edit lands in the wrong form.
+				$ffc_identity_person_names = $ffc_identity_names(
+					(string) ( $ffc_identity_row['subject'] ?? '' ),
+					str_replace( '_hash', '', (string) ( $ffc_identity_row['identifier_column'] ?? 'rf_hash' ) )
+				);
 				?>
 				<tr>
+					<td>
+						<?php
+						// FROM THE RECORD, NEVER FROM AN ACCOUNT.
+						//
+						// This tier's whole shape is a failure no account
+						// explains, so there is often no account to ask: a
+						// recruitment candidacy carries no WordPress user
+						// until it is promoted. The stores hold the name
+						// themselves.
+						//
+						// Three outcomes, and the last two are NOT the same.
+						// A name; no name recorded, which a submission-only
+						// finding always gives because that store keeps the
+						// name inside its `data` JSON; or no store this can
+						// read being present at all, which is not a result.
+						?>
+						<?php if ( array() !== $ffc_identity_person_names['names'] ) : ?>
+							<?php foreach ( $ffc_identity_person_names['names'] as $ffc_identity_person ) : ?>
+								<div><?php echo esc_html( (string) $ffc_identity_person ); ?></div>
+							<?php endforeach; ?>
+							<?php if ( ! empty( $ffc_identity_person_names['capped'] ) ) : ?>
+								<span class="description"><?php esc_html_e( 'and more', 'ffcertificate' ); ?></span>
+							<?php endif; ?>
+						<?php elseif ( empty( $ffc_identity_person_names['readable'] ) ) : ?>
+							<span class="description">
+								<?php esc_html_e( 'No store that records a name is installed, so this was not looked up.', 'ffcertificate' ); ?>
+							</span>
+						<?php else : ?>
+							<span class="description">
+								<?php esc_html_e( 'No name recorded beside these rows.', 'ffcertificate' ); ?>
+							</span>
+						<?php endif; ?>
+					</td>
 					<td>
 						<?php if ( array() === $ffc_identity_accounts ) : ?>
 							<span class="description">
@@ -855,9 +947,40 @@ $ffc_identity_tier_note = static function ( $tier ) {
 								<input type="text" inputmode="numeric" pattern="[0-9]{7}" maxlength="7" size="8" required
 									id="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
 									name="ffc_rf" placeholder="<?php esc_attr_e( '7 digits', 'ffcertificate' ); ?>">
+								<?php
+								// THE FIELD IS NEVER PRE-FILLED AND NOTHING
+								// STORED COMES BACK.
+								//
+								// The value travels browser -> server, which
+								// is what a correction is. `Check` asks what
+								// this number would do -- above all whether it
+								// already belongs to somebody else, which is a
+								// different finding rather than a failed
+								// correction -- and the answer carries an
+								// account, never an identifier.
+								?>
+								<button type="button" class="button button-secondary ffc-identity-check"
+									data-ffc-subject="<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
+									data-ffc-field="<?php echo esc_attr( str_replace( '_hash', '', (string) ( $ffc_identity_row['identifier_column'] ?? 'rf' ) ) ); ?>"
+									data-ffc-value="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
+									data-ffc-verdict="ffc-check-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
+									<?php esc_html_e( 'Check', 'ffcertificate' ); ?>
+								</button>
 								<button type="submit" class="button button-secondary">
 									<?php esc_html_e( 'Correct', 'ffcertificate' ); ?>
 								</button>
+								<div class="ffc-identity-verdict" id="ffc-check-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
+									aria-live="polite"
+									<?php /* translators: %s: how many records the correction would rewrite. */ ?>
+									data-allowed="<?php esc_attr_e( 'This correction rewrites %s records.', 'ffcertificate' ); ?>"
+									<?php /* translators: %s: how many records the correction would rewrite. */ ?>
+									data-consolidates="<?php esc_attr_e( 'This correction rewrites %s records and consolidates them with this account\'s other record.', 'ffcertificate' ); ?>"
+									<?php /* translators: 1: the account's display name. 2: the account number. */ ?>
+									data-holder="<?php esc_attr_e( 'That number belongs to %1$s (#%2$s). If that is the same person, this is a merge rather than a correction — open the account to check who they are.', 'ffcertificate' ); ?>"
+									data-profile="<?php echo esc_attr( admin_url( 'user-edit.php?user_id=' ) ); ?>"
+									data-open="<?php esc_attr_e( 'Open that account', 'ffcertificate' ); ?>"
+									data-empty="<?php esc_attr_e( 'Enter the number HR confirmed first.', 'ffcertificate' ); ?>"
+									data-failed="<?php esc_attr_e( 'The check could not be completed.', 'ffcertificate' ); ?>"></div>
 							</form>
 						<?php endif; ?>
 					</td>

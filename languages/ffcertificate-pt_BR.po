@@ -22552,3 +22552,45 @@ msgstr "Esta é a regra que o serviço aplica ao gravar: os dois lados precisam 
 
 msgid "You do not have permission to resolve identities."
 msgstr "Você não tem permissão para resolver identidades."
+
+msgid "Correct theirs"
+msgstr "Corrigir o deles"
+
+msgid "Enter the number HR confirmed first."
+msgstr "Digite antes o número que o RH confirmou."
+
+msgid "If the two names do not look like the same person, one of these logins has the wrong number rather than a duplicate account. Correcting it on that login alone dissolves the finding and leaves both accounts standing. Confirm the number with HR first — the check digit says a number is wrong, never what the right one is."
+msgstr "Se os dois nomes não parecem ser da mesma pessoa, um destes logins está com o número errado, e não é uma conta duplicada. Corrigir só naquele login dissolve o achado e deixa as duas contas de pé. Confirme o número com o RH antes — o dígito verificador diz que um número está errado, nunca qual é o certo."
+
+msgid "No name recorded beside these rows."
+msgstr "Nenhum nome registrado ao lado destas linhas."
+
+msgid "No store that records a name is installed, so this was not looked up."
+msgstr "Nenhum store que registre nome está instalado, então isto não foi consultado."
+
+msgid "Open that account"
+msgstr "Abrir aquela conta"
+
+msgid "Or correct the document on one of them"
+msgstr "Ou corrija o documento em uma delas"
+
+msgid "That account holds no record carrying this identifier, so there is nothing of theirs to correct. Reload the queue."
+msgstr "Aquela conta não tem nenhum registro que carregue este identificador, então não há nada dela para corrigir. Recarregue a fila."
+
+msgid "That number belongs to %1$s (#%2$s). If that is the same person, this is a merge rather than a correction — open the account to check who they are."
+msgstr "Aquele número pertence a %1$s (nº %2$s). Se for a mesma pessoa, isto é uma mesclagem e não uma correção — abra a conta para conferir de quem se trata."
+
+msgid "The check could not be completed."
+msgstr "Não foi possível concluir a verificação."
+
+msgid "The confirmed number"
+msgstr "O número confirmado"
+
+msgid "This correction rewrites %s records and consolidates them with this account's other record."
+msgstr "Esta correção reescreve %s registros e os consolida com o outro registro desta conta."
+
+msgid "This correction rewrites %s records."
+msgstr "Esta correção reescreve %s registros."
+
+msgid "and more"
+msgstr "e mais"
