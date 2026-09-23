@@ -22445,3 +22445,17 @@ msgstr "Esta fila lista no máximo %1$s achados por verificação, e %2$s devolv
 
 msgid "This queue was read at %s and is held still while you work it — resolving a finding removes that one and moves nothing else."
 msgstr "Esta fila foi lida às %s e fica parada enquanto você a trabalha — resolver um achado remove aquele e não move nenhum outro."
+
+msgid "%1$s of %2$s"
+msgstr "%1$s de %2$s"
+
+msgid "One at a time"
+msgstr "Um por vez"
+
+msgid "See the list"
+msgstr "Ver a lista"
+
+msgid "%s finding"
+msgid_plural "%s findings"
+msgstr[0] "%s achado"
+msgstr[1] "%s achados"

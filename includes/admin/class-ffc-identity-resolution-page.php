@@ -463,11 +463,25 @@ class IdentityResolutionPage {
 			self::OUTCOME_TTL
 		);
 
+		// LAND ON THE NEXT FINDING, NOT BACK AT THE TOP.
+		//
+		// The finding just resolved is the one the worklist drops, so a
+		// cursor still naming it resolves to the top of its tier -- correct,
+		// and useless: an operator working 96 failures would be sent back to
+		// the first one after each. The form knows, at render time, which
+		// finding follows, so it posts that key and the redirect carries it.
+		// Both are untrusted and neither can do harm: an unknown key lands on
+		// the top, which is where this would have landed anyway.
+		$args = array( 'page' => self::MENU_SLUG );
+		$next = RequestInput::get_post_string( 'ffc_next', '' );
+		$tier = RequestInput::get_post_string( 'ffc_tier', '' );
+
+		if ( '' !== $next && in_array( $tier, IdentityQueuePanels::ORDER, true ) ) {
+			$args[ IdentityQueuePanels::ARG_AT ] = array( $tier => $next );
+		}
+
 		wp_safe_redirect(
-			add_query_arg(
-				array( 'page' => self::MENU_SLUG ),
-				admin_url( 'edit.php?post_type=ffc_form' )
-			)
+			add_query_arg( $args, admin_url( 'edit.php?post_type=ffc_form' ) )
 		);
 		exit;
 	}
@@ -789,6 +803,52 @@ class IdentityResolutionPage {
 	}
 
 	/**
+	 * Where each panel's cursor is, as the request asks for it.
+	 *
+	 * A GET READ WITHOUT A NONCE, AND THAT IS RIGHT.
+	 *
+	 * This moves a cursor and writes nothing. A nonce here would make every
+	 * `next` link a one-shot that breaks on the back button, for an argument
+	 * whose worst case is showing the operator a finding they can already
+	 * see. `IdentityQueuePanels` resolves an unknown key to the top of its
+	 * tier, so neither a typo nor a hand-edited URL can name anything else.
+	 *
+	 * @since 6.28.4
+	 * @return array<string, string>
+	 */
+	private static function cursors(): array {
+		$out = array();
+
+		$raw = RequestInput::get_get_raw_array( IdentityQueuePanels::ARG_AT );
+
+		foreach ( IdentityQueuePanels::ORDER as $tier ) {
+			if ( isset( $raw[ $tier ] ) && is_scalar( $raw[ $tier ] ) ) {
+				$out[ $tier ] = sanitize_text_field( (string) $raw[ $tier ] );
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Which tiers were asked to show their whole list rather than one finding.
+	 *
+	 * @since 6.28.4
+	 * @return array<int, string>
+	 */
+	private static function listed(): array {
+		$raw = RequestInput::get_get_string( IdentityQueuePanels::ARG_LIST, '' );
+
+		if ( '' === $raw ) {
+			return array();
+		}
+
+		// An allowlist rather than a filter: only a tier this screen draws can
+		// be listed, so nothing the request names reaches the markup.
+		return array_values( array_intersect( IdentityQueuePanels::ORDER, explode( ',', $raw ) ) );
+	}
+
+	/**
 	 * Render the page.
 	 *
 	 * @return void
@@ -809,6 +869,11 @@ class IdentityResolutionPage {
 		$ffc_identity_coverage = $this->coverage();
 		$ffc_identity_capped   = $this->truncated();
 		$ffc_identity_taken_at = $this->taken_at();
+		$ffc_identity_panels   = IdentityQueuePanels::build(
+			$ffc_identity_findings,
+			self::cursors(),
+			self::listed()
+		);
 
 		require __DIR__ . '/views/identity-resolution-page.php';
 	}

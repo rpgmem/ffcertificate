@@ -1192,3 +1192,154 @@ p.ffc-datetime-order-error {
     min-width: 2ch;
     text-align: right;
 }
+
+/* ==========================================================================
+   IDENTITY QUEUE PANELS (#1397)
+
+   Drawn from the mockup: each tier is a card with a header strip, and the
+   strip leads with a coloured chip. The chip is what makes the categories
+   tellable apart at a glance — without it the panels are four headings that
+   read the same at arm's length.
+
+   Every selector descends from `.ffc-page-identities`, the page-scope class
+   `AdminPageScopeTest` freezes: this sheet is enqueued on every `?page=ffc-*`
+   screen AND on `users.php`, so an unanchored `.ffc-identity-*` rule would be
+   loaded far beyond the screen it was written for.
+   ========================================================================== */
+
+.ffc-page-identities .ffc-identity-panel {
+    margin: var(--ffc-spacing-lg) 0;
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+}
+
+.ffc-page-identities .ffc-identity-panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
+    background: var(--ffc-bg-alt);
+    border-bottom: 1px solid var(--ffc-border);
+}
+
+.ffc-page-identities .ffc-identity-panel-title {
+    margin: 0;
+    font-size: var(--ffc-font-size-lg);
+}
+
+/* Takes the rest of the row on a wide screen, and a row of its own once the
+   header wraps — which is what keeps the note from squeezing the nav down to
+   a column of single words. */
+.ffc-page-identities .ffc-identity-panel-note {
+    flex: 1 1 18em;
+    margin: 0;
+}
+
+.ffc-page-identities .ffc-identity-panel-body {
+    padding: var(--ffc-spacing-md);
+}
+
+/* THE CHIP: one per tier, coloured by how much of the answer is known.
+   Green where the check digits decided, red where no account explains it,
+   amber where a person has to choose, blue where two logins are involved. */
+.ffc-page-identities .ffc-identity-panel-chip {
+    flex-shrink: 0;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-2xs);
+    border: 1px solid transparent;
+    border-radius: var(--ffc-radius-sm);
+    font-size: var(--ffc-font-size-2xs);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.ffc-page-identities .ffc-identity-chip-mechanical {
+    background: var(--ffc-success-bg);
+    border-color: var(--ffc-success-border);
+    color: var(--ffc-success-text);
+}
+
+.ffc-page-identities .ffc-identity-chip-isolated {
+    background: var(--ffc-danger-bg);
+    border-color: var(--ffc-danger-border);
+    color: var(--ffc-danger-text);
+}
+
+.ffc-page-identities .ffc-identity-chip-decision {
+    background: var(--ffc-warning-bg);
+    border-color: var(--ffc-warning-border);
+    color: var(--ffc-warning-text);
+}
+
+.ffc-page-identities .ffc-identity-chip-shared {
+    background: var(--ffc-info-bg);
+    border-color: var(--ffc-info-border);
+    color: var(--ffc-info-text);
+}
+
+.ffc-page-identities .ffc-identity-panel-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+    margin-left: auto;
+}
+
+.ffc-page-identities .ffc-identity-panel-count {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* 44px, against wp-admin's own 30: the controls beside these write
+   irreversibly, and this is a screen worked by repeated clicking. */
+.ffc-page-identities .ffc-identity-panel-step {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 var(--ffc-spacing-sm);
+}
+
+/* `aria-disabled` rather than `disabled`, because these are links and a link
+   has no disabled state — the attribute is what tells a screen reader, and
+   this is what tells everybody else. The fade is on an INACTIVE control,
+   which SC 1.4.3 exempts; `OpacityContrastTest` carries the reason. */
+.ffc-page-identities .ffc-identity-panel-step[aria-disabled="true"] {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.ffc-page-identities .ffc-identity-panel-toggle {
+    white-space: nowrap;
+}
+
+/* wp-admin's own breakpoint, where it collapses the menu and stacks the
+   content column. Above it the nav sits at the end of the heading row; below
+   it the heading has no room to share, so the nav takes a row of its own. */
+@media screen and (max-width: 782px) {
+    .ffc-page-identities .ffc-identity-panel-nav {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .ffc-page-identities .ffc-identity-panel-step {
+        flex-grow: 1;
+        justify-content: center;
+    }
+}
+
+@media (forced-colors: active) {
+    /* The tier chip paints a background and nothing else, and forced-colors
+       discards it — leaving four chips that read identically and a screen
+       whose categories are no longer tellable apart, which is the one thing
+       the chip exists to do. `CanvasText` rather than `ButtonText`: a chip is
+       read, not clicked. */
+    .ffc-page-identities .ffc-identity-chip-decision,
+    .ffc-page-identities .ffc-identity-chip-isolated,
+    .ffc-page-identities .ffc-identity-chip-mechanical,
+    .ffc-page-identities .ffc-identity-chip-shared {
+        border: 1px solid CanvasText;
+    }
+}
