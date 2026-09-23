@@ -330,6 +330,7 @@ abstract class IntegrationTestCase extends TestCase {
 				'ffc_rbac_caps_renamed_v1',
 				'ffc_rbac_roles_renamed_v1',
 				'ffc_identities_cap_v1',
+				'ffc_identity_verbs_cap_v1',
 			) as $flag
 		) {
 			$this->options[ $flag ] = '1';
