@@ -1603,6 +1603,48 @@ p.ffc-datetime-order-error {
     font-size: var(--ffc-font-size-lg);
 }
 
+/* THE ROW IDS, WHICH ARE THE ONLY HANDLE ON A RECORD NO ACCOUNT NAMES
+   (#1407 sprint 3).
+
+   A paragraph of inline groups rather than one `div` per store: they read as
+   a list of short pairs, and stacking each on its own line pushed the card's
+   action column out of reach on a finding spanning three stores. */
+.ffc-page-identities .ffc-identity-card-rows {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
+    margin: 0;
+    color: var(--ffc-text-secondary);
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-page-identities .ffc-identity-card-rowset {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--ffc-spacing-3xs);
+}
+
+.ffc-page-identities .ffc-identity-card-rowset code {
+    background: none;
+    color: inherit;
+    font-size: var(--ffc-font-size-xs);
+    padding: 0;
+}
+
+/* The three identifiers a record may or may not carry. Inside a card it is a
+   row rather than a stack: what the operator is looking for is the ONE that
+   says `missing`, and three items side by side make that a glance. */
+.ffc-page-identities .ffc-identity-card-main .ffc-identity-orphan-has {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
+    /* The browser's own list indent, which a row of three has no use for and
+       which left this line hanging inside a card whose every other line
+       starts at the same edge. */
+    padding-left: 0;
+    list-style: none;
+}
+
 .ffc-page-identities .ffc-identity-card-where {
     margin: 0;
     color: var(--ffc-text-secondary);
