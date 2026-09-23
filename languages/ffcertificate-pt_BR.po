@@ -22459,3 +22459,18 @@ msgid "%s finding"
 msgid_plural "%s findings"
 msgstr[0] "%s achado"
 msgstr[1] "%s achados"
+
+msgid "Open an account from the identity queue"
+msgstr "Abrir conta a partir da fila de identidades"
+
+msgid "Merge two identity accounts"
+msgstr "Mesclar duas contas de identidade"
+
+msgid "Give records carrying one identifier an account of their own. Creates a WordPress user, so it is granted apart from the queue itself."
+msgstr "Dá aos registros que carregam um identificador uma conta própria. Cria um usuário WordPress, por isso é concedida à parte da fila."
+
+msgid "Consolidate two logins that are one person. The only action on this screen that no other undoes: afterwards nothing can say which record came from which login."
+msgstr "Consolida dois logins que são uma pessoa só. A única ação desta tela que nenhuma outra desfaz: depois dela nada consegue dizer de onde veio cada registro."
+
+msgid "Work the identity queue: correct a stored CPF/RF, and move records to the account they belong to. Does not reveal a stored identifier — that stays with the PII capability. Opening an account and merging two are separate capabilities."
+msgstr "Trabalha a fila de identidades: corrige um CPF/RF armazenado e move registros para a conta a que pertencem. Não revela um identificador armazenado — isso fica com a capability de PII. Abrir uma conta e mesclar duas são capabilities separadas."

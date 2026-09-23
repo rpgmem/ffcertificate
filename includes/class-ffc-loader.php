@@ -442,6 +442,7 @@ class Loader {
 		$this->ensure_settings_split_caps_granted();
 		$this->ensure_email_templates_cap_granted();
 		$this->ensure_identities_cap_granted();
+		$this->ensure_identity_verbs_cap_granted();
 		$this->ensure_recruitment_email_migrated();
 		$this->ensure_activity_log_export_cap_granted();
 		$this->ensure_url_shortener_export_cap_granted();
@@ -600,6 +601,26 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_identities_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration seeding `ffc_split_identities` and
+	 * `ffc_merge_identities` (#1397) onto every user and role already holding
+	 * `ffc_manage_identities`, so nobody working the queue loses a verb the
+	 * moment those two get gates of their own.
+	 *
+	 * @since 6.28.4
+	 * @return void
+	 */
+	private function ensure_identity_verbs_cap_granted(): void {
+		$flag = 'ffc_identity_verbs_cap_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_identity_verbs_cap_grant();
 		}
 		update_option( $flag, '1', true );
 	}
