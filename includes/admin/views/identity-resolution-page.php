@@ -13,6 +13,8 @@
  * @var array<int, array<string, mixed>> $ffc_identity_findings Findings from the check-digit scan.
  * @var array{type: string, text: string}|false                 $ffc_identity_outcome  Outcome of the last write, if any.
  * @var array{stores: int, examined: int, unreadable: int}       $ffc_identity_coverage What the scan actually read.
+ * @var array<int, string>                                       $ffc_identity_capped   Checks that returned a full page.
+ * @var int                                                      $ffc_identity_taken_at When the list was taken (unix).
  */
 
 // No `declare(strict_types=1)` here on purpose: none of the 17 view and
@@ -23,12 +25,21 @@
 
 use FreeFormCertificate\Admin\IdentityResolutionPage;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
+use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\Maintenance\IdentityQueue;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// TWO CAPS, AND ONLY ONE OF THEM WAS EVER REPORTED.
+//
+// This flag is the check-digit SCAN's own: `rf_check_digit_failures()` stops
+// after `RF_SCAN_LIMIT` distinct stored values and emits a row saying so.
+// `$ffc_identity_capped` is the other one -- each of the three checks behind
+// this worklist is asked for `LIMIT` findings, and a check that returns a full
+// page has more. That second cap said nothing at all until #1397, so a queue
+// holding 140 findings of one kind looked exactly like one holding 100.
 $ffc_identity_truncated = false;
 $ffc_identity_rows      = array();
 $ffc_identity_accountal = array();
@@ -131,6 +142,45 @@ $ffc_identity_tier_note = static function ( $tier ) {
 	<p class="description">
 		<?php esc_html_e( 'Accounts and stored numbers that do not agree with each other, sorted by how much of the answer is already known. The check digits are what sort them: they can say a number is wrong, and never what the right one is. Identifiers are shown as a hash prefix — the values are decrypted in memory to be checked and none of them leaves the scan.', 'ffcertificate' ); ?>
 	</p>
+
+	<?php if ( $ffc_identity_taken_at > 0 ) : ?>
+		<p class="description">
+			<?php
+			printf(
+				/* translators: %s: when the queue was read, as a date and time. */
+				esc_html__( 'This queue was read at %s and is held still while you work it — resolving a finding removes that one and moves nothing else.', 'ffcertificate' ),
+				esc_html( DateFormatter::format_datetime( $ffc_identity_taken_at ) )
+			);
+			?>
+		</p>
+		<?php // Outside the paragraph above: a form is not phrasing content, so nesting it in a `<p>` closes the paragraph early and the markup stops meaning what it reads as. ?>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-xs">
+			<?php wp_nonce_field( IdentityResolutionPage::RESCAN_NONCE ); ?>
+			<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::RESCAN_ACTION ); ?>">
+			<button type="submit" class="button button-secondary">
+				<?php esc_html_e( 'Read the queue again', 'ffcertificate' ); ?>
+			</button>
+		</form>
+	<?php endif; ?>
+
+	<?php if ( array() !== $ffc_identity_capped ) : ?>
+		<?php
+		wp_admin_notice(
+			esc_html(
+				sprintf(
+					/* translators: 1: how many findings each check returns at most, 2: comma-separated check names. */
+					__( 'This queue lists at most %1$s findings per check, and %2$s returned a full page — so more exist than are listed. The counts below are of what was read, not of what there is.', 'ffcertificate' ),
+					number_format_i18n( IdentityResolutionPage::LIMIT ),
+					implode( ', ', array_map( 'strval', $ffc_identity_capped ) )
+				)
+			),
+			array(
+				'type'               => 'warning',
+				'additional_classes' => array( 'inline' ),
+			)
+		);
+		?>
+	<?php endif; ?>
 
 	<?php if ( $ffc_identity_truncated ) : ?>
 		<?php
@@ -314,6 +364,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 								<?php wp_nonce_field( IdentityResolutionPage::CONSOLIDATE_NONCE . $ffc_identity_wrong ); ?>
 								<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::CONSOLIDATE_ACTION ); ?>">
+								<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
 								<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( $ffc_identity_wrong ); ?>">
 								<?php
 								// TWO HASHES AND NO VALUE.
@@ -340,7 +391,8 @@ $ffc_identity_tier_note = static function ( $tier ) {
 								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-2xs">
 									<?php wp_nonce_field( IdentityResolutionPage::RELINK_NONCE . (string) $ffc_identity_move ); ?>
 									<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::RELINK_ACTION ); ?>">
-									<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
+									<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
+								<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
 									<input type="hidden" name="ffc_field" value="<?php echo esc_attr( $ffc_identity_field ); ?>">
 									<label class="screen-reader-text" for="ffc-relink-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
 										<?php
@@ -379,7 +431,8 @@ $ffc_identity_tier_note = static function ( $tier ) {
 								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-xs">
 									<?php wp_nonce_field( IdentityResolutionPage::SPLIT_NONCE . (string) $ffc_identity_move ); ?>
 									<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::SPLIT_ACTION ); ?>">
-									<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
+									<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
+								<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
 									<input type="hidden" name="ffc_field" value="<?php echo esc_attr( $ffc_identity_field ); ?>">
 									<label class="screen-reader-text" for="ffc-split-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
 										<?php
@@ -562,6 +615,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 								<?php wp_nonce_field( IdentityResolutionPage::REPAIR_NONCE . (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>
 								<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::REPAIR_ACTION ); ?>">
+								<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_row[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
 								<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
 								<?php
 								// `text` with `inputmode`, never `number`: an RF is a

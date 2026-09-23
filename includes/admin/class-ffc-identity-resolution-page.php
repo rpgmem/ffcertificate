@@ -23,6 +23,7 @@ use FreeFormCertificate\Maintenance\IdentityQueue;
 use FreeFormCertificate\Maintenance\IdentityRelink;
 use FreeFormCertificate\Maintenance\IdentitySplit;
 use FreeFormCertificate\Maintenance\IdentityRepair;
+use FreeFormCertificate\Maintenance\IdentityWorklist;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -142,6 +143,27 @@ class IdentityResolutionPage {
 	public const MERGE_ACTION = 'ffc_merge_identities';
 
 	/**
+	 * The `admin_post` action that takes the worklist again.
+	 *
+	 * A WRITE-SHAPED ACTION FOR A READ, DELIBERATELY.
+	 *
+	 * Re-scanning changes nothing in the database, but it is an action with a
+	 * cost -- every distinct stored identifier is decrypted -- and it replaces
+	 * what the operator is working from. Both are reasons to make it a posted,
+	 * nonce-checked intent rather than a link anything could prefetch.
+	 *
+	 * @var string
+	 */
+	public const RESCAN_ACTION = 'ffc_rescan_identities';
+
+	/**
+	 * Nonce action for taking the worklist again.
+	 *
+	 * @var string
+	 */
+	public const RESCAN_NONCE = 'ffc_rescan_identities';
+
+	/**
 	 * Nonce action for the merge form.
 	 *
 	 * ONE NONCE FOR THE FORM, NOT ONE PER PAIR, BECAUSE THE FORM IS THE UNIT.
@@ -193,6 +215,7 @@ class IdentityResolutionPage {
 		add_action( 'admin_post_' . self::RELINK_ACTION, array( $this, 'handle_relink' ) );
 		add_action( 'admin_post_' . self::SPLIT_ACTION, array( $this, 'handle_split' ) );
 		add_action( 'admin_post_' . self::MERGE_ACTION, array( $this, 'handle_merge' ) );
+		add_action( 'admin_post_' . self::RESCAN_ACTION, array( $this, 'handle_rescan' ) );
 	}
 
 	/**
@@ -252,16 +275,90 @@ class IdentityResolutionPage {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function queue(): array {
-		$queue = $this->queues();
-		$out   = $queue->items( self::LIMIT );
+		$held = $this->worklists()->get( get_current_user_id(), self::LIMIT );
 
-		// Read AFTER the scan, from the same instance: what the list does not
-		// carry is whether it is empty because the data is fine.
-		$this->coverage = $queue->coverage();
+		// Read from the SAME structure the items came from: what the list
+		// does not carry is whether it is empty because the data is fine, and
+		// whether it is complete at all.
+		$this->coverage  = $held[ IdentityWorklist::COVERAGE ];
+		$this->truncated = $held[ IdentityWorklist::TRUNCATED ];
+		$this->taken_at  = $held[ IdentityWorklist::TAKEN_AT ];
 
-		return $out;
+		return $held[ IdentityWorklist::ITEMS ];
 	}
 
+	/**
+	 * Which checks reached their cap on the scan behind the current list.
+	 *
+	 * Empty is the only state in which a count printed beside this queue is a
+	 * count. `IdentityAuditExportSource` has said this about its own cap since
+	 * 6.27.0, one row over, by emitting a note row; this screen said nothing,
+	 * so a check holding more findings than `LIMIT` looked exactly like one
+	 * that had returned everything.
+	 *
+	 * @since 6.28.4
+	 * @return array<int, string>
+	 */
+	public function truncated(): array {
+		return $this->truncated;
+	}
+
+	/**
+	 * When the list being worked was taken, as a unix timestamp.
+	 *
+	 * @since 6.28.4
+	 * @return int
+	 */
+	public function taken_at(): int {
+		return $this->taken_at;
+	}
+
+	/**
+	 * Checks capped on the scan behind the current list.
+	 *
+	 * @since 6.28.4
+	 * @var array<int, string>
+	 */
+	private array $truncated = array();
+
+	/**
+	 * When the current list was taken.
+	 *
+	 * @since 6.28.4
+	 * @var int
+	 */
+	private int $taken_at = 0;
+
+	/**
+	 * The held worklist, as a seam a test can replace.
+	 *
+	 * @since 6.28.4
+	 * @return IdentityWorklist
+	 */
+	protected function worklists(): IdentityWorklist {
+		// Built around THIS screen's tiering, which is built around its
+		// `conflicts()` seam: one chain, so a test driving the query drives
+		// everything the screen reads.
+		return new IdentityWorklist( $this->queues() );
+	}
+
+	/**
+	 * Take the worklist again, on the operator's say-so.
+	 *
+	 * @since 6.28.4
+	 * @return void
+	 */
+	public function handle_rescan(): void {
+		if ( ! Capabilities::current_user_can_admin_or( self::CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+
+		check_admin_referer( self::RESCAN_NONCE );
+
+		$this->worklists()->take( get_current_user_id(), self::LIMIT );
+
+		$this->report( array(), __( 'The queue was read again.', 'ffcertificate' ) );
+	}
 	/**
 	 * The tiering, as a seam a test can replace.
 	 *
@@ -647,6 +744,27 @@ class IdentityResolutionPage {
 	 * @return void
 	 */
 	private function report( $result, string $success ): void {
+		// A WRITE THAT WORKED TAKES ITS FINDING OUT OF THE HELD LIST.
+		//
+		// One place rather than one per handler: every verb funnels through
+		// here, and the rule is the same for all of them -- the finding that
+		// was resolved stops being in the queue, and NOTHING ELSE MOVES. The
+		// alternative, dropping the list so the next load re-scans, is the
+		// per-resolution scan `IdentityWorklist` exists to avoid, and it
+		// renumbers every other position at the same time.
+		//
+		// The key is posted, so it is untrusted -- and it cannot be abused
+		// into anything: `resolved()` only ever removes an entry from the
+		// caller's OWN held list, and a re-scan brings back anything dropped
+		// that was not really resolved.
+		if ( ! $result instanceof WP_Error ) {
+			$key = RequestInput::get_post_string( 'ffc_key', '' );
+
+			if ( '' !== $key ) {
+				$this->worklists()->resolved( get_current_user_id(), $key );
+			}
+		}
+
 		set_transient(
 			self::OUTCOME_TRANSIENT . get_current_user_id(),
 			$result instanceof WP_Error
@@ -684,8 +802,13 @@ class IdentityResolutionPage {
 		$ffc_identity_outcome = get_transient( $ffc_identity_key );
 		delete_transient( $ffc_identity_key );
 
+		// `queue()` FIRST: the three readings below are properties of the list
+		// it just resolved, and asking for them before it would answer about
+		// no list at all.
 		$ffc_identity_findings = $this->queue();
 		$ffc_identity_coverage = $this->coverage();
+		$ffc_identity_capped   = $this->truncated();
+		$ffc_identity_taken_at = $this->taken_at();
 
 		require __DIR__ . '/views/identity-resolution-page.php';
 	}

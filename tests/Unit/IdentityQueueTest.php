@@ -317,6 +317,116 @@ class IdentityQueueTest extends TestCase {
 	}
 
 	/**
+	 * A CHECK THAT RETURNS A FULL PAGE HAS MORE, AND MUST SAY SO.
+	 *
+	 * Each of the three checks is asked for `$limit` findings. One that hands
+	 * back exactly that many is indistinguishable, from the rows alone, from
+	 * one that returned everything it had — which is the `#1384` shape: a
+	 * capped answer and a complete one look identical. `SubmissionLinkAuditor`
+	 * has decided this the same way for its seven checks since 6.27.0.
+	 */
+	public function test_a_check_that_fills_its_page_is_reported_as_capped(): void {
+		$queue = $this->queue_reading(
+			array(),
+			array(),
+			array(
+				array( 'subject' => 'hashA', 'identifier_column' => 'rf_hash' ),
+				array( 'subject' => 'hashB', 'identifier_column' => 'rf_hash' ),
+			)
+		);
+		$queue->items( 2 );
+
+		$this->assertSame( array( IdentityQueue::CHECK_SHARED ), $queue->truncated() );
+	}
+
+	/**
+	 * A check with room to spare is not capped, and the register is per scan:
+	 * a later call that fills nothing must not inherit the earlier answer.
+	 */
+	public function test_a_check_with_room_left_is_not_capped_and_the_register_resets(): void {
+		$queue = $this->queue_reading(
+			array(),
+			array(),
+			array( array( 'subject' => 'hashA', 'identifier_column' => 'rf_hash' ) )
+		);
+
+		$queue->items( 2 );
+		$this->assertSame( array(), $queue->truncated() );
+
+		$queue->items( 1 );
+		$this->assertSame( array( IdentityQueue::CHECK_SHARED ), $queue->truncated() );
+
+		$queue->items( 2 );
+		$this->assertSame( array(), $queue->truncated(), 'A scan must answer about itself, never about the last one.' );
+	}
+
+	/**
+	 * EVERY ITEM CARRIES A KEY, AND A POSITION IS NOT ONE.
+	 *
+	 * The key is what a cursor holds onto across two scans. Composed of the
+	 * tier, the column and the subject, so two findings that differ in any of
+	 * the three are two keys — a hash sitting in `rf_hash` and the same hash
+	 * sitting in `cpf_hash` are different questions.
+	 */
+	public function test_every_item_carries_a_key_and_the_check_that_found_it(): void {
+		$items = $this->queue_reading(
+			self::account_holding( 'hashA|hashB' ),
+			array(
+				'hashA' => IdentityConflictQuery::VERDICT_INVALID,
+				'hashB' => IdentityConflictQuery::VERDICT_VALID,
+			),
+			array( array( 'subject' => 'hashS', 'identifier_column' => 'cpf_hash' ) ),
+			array( array( 'subject' => 'hashZ' ) )
+		)->items();
+
+		$keys = array_column( $items, IdentityQueue::COLUMN_KEY );
+
+		$this->assertCount( 3, $keys );
+		$this->assertCount( 3, array_unique( $keys ), 'Two findings must never share a key.' );
+		$this->assertSame(
+			array(
+				IdentityQueue::TIER_MECHANICAL . '|rf_hash|398',
+				IdentityQueue::TIER_SHARED . '|cpf_hash|hashS',
+				IdentityQueue::TIER_ISOLATED . '||hashZ',
+			),
+			$keys
+		);
+		$this->assertSame(
+			array( IdentityQueue::CHECK_MULTIPLE, IdentityQueue::CHECK_SHARED, IdentityQueue::CHECK_DIGITS ),
+			array_column( $items, IdentityQueue::COLUMN_CHECK )
+		);
+	}
+
+	/**
+	 * THE KEY IS STAMPED AFTER THE TIER IS FINAL.
+	 *
+	 * The same account-side finding is mechanical or a decision depending on
+	 * what the check digits came back with, and the tier is part of the key —
+	 * so keying it while it still said `decision` would give one finding two
+	 * identities depending on when it was read.
+	 */
+	public function test_a_mechanical_item_is_keyed_as_mechanical(): void {
+		$decided = $this->queue_reading(
+			self::account_holding( 'hashA|hashB' ),
+			array(
+				'hashA' => IdentityConflictQuery::VERDICT_INVALID,
+				'hashB' => IdentityConflictQuery::VERDICT_VALID,
+			)
+		)->items();
+
+		$undecided = $this->queue_reading(
+			self::account_holding( 'hashA|hashB' ),
+			array(
+				'hashA' => IdentityConflictQuery::VERDICT_VALID,
+				'hashB' => IdentityConflictQuery::VERDICT_VALID,
+			)
+		)->items();
+
+		$this->assertStringStartsWith( IdentityQueue::TIER_MECHANICAL . '|', $decided[0][ IdentityQueue::COLUMN_KEY ] );
+		$this->assertStringStartsWith( IdentityQueue::TIER_DECISION . '|', $undecided[0][ IdentityQueue::COLUMN_KEY ] );
+	}
+
+	/**
 	 * A finding whose identifier list arrives empty must not be judged on an
 	 * empty verdict map — zero identifiers is not two.
 	 */

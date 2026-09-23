@@ -7,8 +7,13 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **The identity queue is read once and held still while it is worked** (#1397): resolving a finding removes that one and moves nothing else, so a position keeps meaning what it meant and a screen worked item by item costs one decrypting scan per visit rather than one per click. `Read the queue again` is the single control that re-reads, and the screen says when the list was taken.
+
 ### Fixed
 
+- **The identity queue no longer presents a capped list as a complete one** (#1397): each of its three checks returns at most 100 findings, and a check handing back a full page has more — which said nothing at all, so a queue holding 140 of one kind looked exactly like one holding 100. It now names the capped checks, the way the CSV export has reported its own cap since 6.27.0.
 - **Confirming a merge pair no longer reports that none was confirmed** (#1386): the merge form posts one group per pair, and the handler read it through an accessor that sanitises each element of the container — which returns an empty string for an array, so every ticked pair was discarded before it was looked at. The refusal was accurate about an empty payload and indistinguishable from an operator who ticked nothing.
 
 ## [6.28.3] (2026-09-22) — `e7e33a03`
