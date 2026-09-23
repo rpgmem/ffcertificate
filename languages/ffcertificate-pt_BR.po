@@ -22433,3 +22433,15 @@ msgid "%s pair merged."
 msgid_plural "%s pairs merged."
 msgstr[0] "%s par mesclado."
 msgstr[1] "%s pares mesclados."
+
+msgid "Read the queue again"
+msgstr "Ler a fila de novo"
+
+msgid "The queue was read again."
+msgstr "A fila foi lida de novo."
+
+msgid "This queue lists at most %1$s findings per check, and %2$s returned a full page — so more exist than are listed. The counts below are of what was read, not of what there is."
+msgstr "Esta fila lista no máximo %1$s achados por verificação, e %2$s devolveu uma página cheia — então existem mais do que os listados. As contagens abaixo são do que foi lido, não do que existe."
+
+msgid "This queue was read at %s and is held still while you work it — resolving a finding removes that one and moves nothing else."
+msgstr "Esta fila foi lida às %s e fica parada enquanto você a trabalha — resolver um achado remove aquele e não move nenhum outro."

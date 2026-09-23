@@ -41,6 +41,33 @@ class IdentityResolutionPageTest extends TestCase {
 
 		Functions\when( '__' )->returnArg( 1 );
 		Functions\when( 'esc_html__' )->returnArg( 1 );
+
+		// The queue is read through `IdentityWorklist`, which holds it in a
+		// transient so a screen worked item by item costs one scan rather than
+		// one per resolution (#1397). A store that starts empty makes every
+		// case here take a fresh list, which is what they are all about.
+		$held = array();
+
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_transient' )->alias(
+			static function ( $key ) use ( &$held ) {
+				return $held[ $key ] ?? false;
+			}
+		);
+		Functions\when( 'set_transient' )->alias(
+			static function ( $key, $value ) use ( &$held ) {
+				$held[ $key ] = $value;
+
+				return true;
+			}
+		);
+		Functions\when( 'delete_transient' )->alias(
+			static function ( $key ) use ( &$held ) {
+				unset( $held[ $key ] );
+
+				return true;
+			}
+		);
 	}
 
 	/**

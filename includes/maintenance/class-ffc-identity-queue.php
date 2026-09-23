@@ -102,6 +102,58 @@ class IdentityQueue {
 	public const DISPLAY_PREFIX = 12;
 
 	/**
+	 * Which of the auditor's checks produced an item.
+	 *
+	 * NAMED AFTER `SubmissionLinkAuditor`'S KEYS ON PURPOSE.
+	 *
+	 * The screen and the CSV are two pipelines over overlapping questions:
+	 * the export runs the `submission_link_audit` tool, whose report has seven
+	 * checks, and this worklist composes three of them. An operator holding
+	 * both needs one vocabulary, and the auditor's key is the one that already
+	 * exists in the file they take to HR -- so an item says which check it
+	 * came from, spelled exactly as the `check` column spells it.
+	 *
+	 * @var string
+	 */
+	public const CHECK_MULTIPLE = 'cross_store_multiple_identities';
+
+	/**
+	 * The shared-identifier check, as the auditor names it.
+	 *
+	 * @var string
+	 */
+	public const CHECK_SHARED = 'cross_store_shared_identities';
+
+	/**
+	 * The check-digit check, as the auditor names it.
+	 *
+	 * @var string
+	 */
+	public const CHECK_DIGITS = 'rf_check_digit';
+
+	/**
+	 * Key carrying which check produced an item.
+	 *
+	 * @var string
+	 */
+	public const COLUMN_CHECK = 'check';
+
+	/**
+	 * Key carrying an item's stable identity across two scans.
+	 *
+	 * A POSITION IS NOT AN IDENTITY.
+	 *
+	 * The list is rebuilt from a live scan, so an index means nothing the
+	 * moment anything is resolved: item 3 becomes item 2 and a cursor sitting
+	 * on 3 has silently moved to a different person. The key is composed of
+	 * what the finding IS -- its tier, the column its identifier sits in, and
+	 * the subject -- so it survives the list being taken again.
+	 *
+	 * @var string
+	 */
+	public const COLUMN_KEY = 'key';
+
+	/**
 	 * How many identifiers a mechanical item may name.
 	 *
 	 * Two, and not "two or more with exactly one failure". Three identifiers
@@ -140,7 +192,14 @@ class IdentityQueue {
 		$out    = array();
 		$spoken = array();
 
-		foreach ( $query->multiple_identities( $limit ) as $row ) {
+		// RESET FIRST, so a caller reading truncation after a scan that found
+		// nothing sees THIS scan's answer rather than the previous call's.
+		// Same reason `rf_check_digit_failures()` resets its coverage.
+		$this->truncated = array();
+
+		$multiple = $this->capped( self::CHECK_MULTIPLE, $query->multiple_identities( $limit ), $limit );
+
+		foreach ( $multiple as $row ) {
 			$row      = (array) $row;
 			$column   = (string) ( $row['identifier_column'] ?? '' );
 			$hashes   = self::listed( $row[ IdentityConflictQuery::COLUMN_RELATED ] ?? '' );
@@ -153,7 +212,7 @@ class IdentityQueue {
 			$out[] = $this->tiered( $row, $verdicts );
 		}
 
-		foreach ( $query->shared_identities( $limit ) as $row ) {
+		foreach ( $this->capped( self::CHECK_SHARED, $query->shared_identities( $limit ), $limit ) as $row ) {
 			$row     = (array) $row;
 			$subject = (string) ( $row['subject'] ?? '' );
 
@@ -163,6 +222,8 @@ class IdentityQueue {
 
 			$row[ self::COLUMN_TIER ]     = self::TIER_SHARED;
 			$row[ self::COLUMN_VERDICTS ] = array();
+			$row[ self::COLUMN_CHECK ]    = self::CHECK_SHARED;
+			$row[ self::COLUMN_KEY ]      = self::key_of( $row );
 
 			$out[] = $row;
 		}
@@ -176,7 +237,7 @@ class IdentityQueue {
 		// all: a person who mistyped once on their only row, and a candidacy
 		// carrying no account until promotion -- which is the whole reason
 		// `rf_check_digit_failures()` scans rows rather than accounts.
-		foreach ( $query->rf_check_digit_failures( $limit ) as $row ) {
+		foreach ( $this->capped( self::CHECK_DIGITS, $query->rf_check_digit_failures( $limit ), $limit ) as $row ) {
 			$row     = (array) $row;
 			$subject = (string) ( $row['subject'] ?? '' );
 
@@ -188,6 +249,8 @@ class IdentityQueue {
 			$row[ self::COLUMN_VERDICTS ] = '' === $subject
 				? array()
 				: array( $subject => IdentityConflictQuery::VERDICT_INVALID );
+			$row[ self::COLUMN_CHECK ]    = self::CHECK_DIGITS;
+			$row[ self::COLUMN_KEY ]      = self::key_of( $row );
 
 			$out[] = $row;
 		}
@@ -196,6 +259,71 @@ class IdentityQueue {
 
 		return $out;
 	}
+
+	/**
+	 * Remember whether a check reached its cap, and hand its rows back.
+	 *
+	 * `$count >= $limit` IS THE WHOLE TEST, AND IT IS THE AUDITOR'S.
+	 *
+	 * `SubmissionLinkAuditor` already decides truncation exactly this way for
+	 * its seven checks, and `IdentityAuditExportSource` already prints a row
+	 * when one is hit. This screen had neither, so a capped check looked
+	 * identical to a complete one -- the same shape as `#1384`, where a
+	 * rejected statement and a clean install both answered with no rows.
+	 *
+	 * It over-reports by one case, deliberately: a check holding EXACTLY
+	 * `$limit` findings is called truncated although nothing was dropped.
+	 * Saying "there may be more" when there are none costs a re-run; the
+	 * other error costs an operator believing a queue is empty.
+	 *
+	 * @param string                           $check The auditor's key.
+	 * @param array<int, array<string, mixed>> $rows  What the check returned.
+	 * @param int                              $limit The cap it was given.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function capped( string $check, array $rows, int $limit ): array {
+		if ( count( $rows ) >= $limit ) {
+			$this->truncated[] = $check;
+		}
+
+		return $rows;
+	}
+
+	/**
+	 * An item's stable identity, composed of what the finding is.
+	 *
+	 * @param array<string, mixed> $row The finding, with its tier already set.
+	 * @return string
+	 */
+	private static function key_of( array $row ): string {
+		return implode(
+			'|',
+			array(
+				(string) ( $row[ self::COLUMN_TIER ] ?? '' ),
+				(string) ( $row['identifier_column'] ?? '' ),
+				(string) ( $row['subject'] ?? '' ),
+			)
+		);
+	}
+
+	/**
+	 * Which checks reached their cap on the last `items()` call.
+	 *
+	 * Empty means every check returned everything it had -- which is the only
+	 * state in which a total printed beside this list is a total.
+	 *
+	 * @return array<int, string>
+	 */
+	public function truncated(): array {
+		return $this->truncated;
+	}
+
+	/**
+	 * Checks capped on the last scan.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $truncated = array();
 
 	/**
 	 * What the last `items()` call's check-digit scan actually read.
@@ -232,6 +360,7 @@ class IdentityQueue {
 	private function tiered( array $row, array $verdicts ): array {
 		$row[ self::COLUMN_VERDICTS ] = $verdicts;
 		$row[ self::COLUMN_TIER ]     = self::TIER_DECISION;
+		$row[ self::COLUMN_CHECK ]    = self::CHECK_MULTIPLE;
 
 		$invalid = array_keys( $verdicts, IdentityConflictQuery::VERDICT_INVALID, true );
 		$valid   = array_keys( $verdicts, IdentityConflictQuery::VERDICT_VALID, true );
@@ -255,6 +384,11 @@ class IdentityQueue {
 			$row[ self::COLUMN_WRONG ] = (string) $invalid[0];
 			$row[ self::COLUMN_RIGHT ] = (string) $valid[0];
 		}
+
+		// LAST, because the key carries the tier and the tier is only final
+		// here: a mechanical item keyed while it still said `decision` would
+		// change identity the moment the verdicts came back differently.
+		$row[ self::COLUMN_KEY ] = self::key_of( $row );
 
 		return $row;
 	}

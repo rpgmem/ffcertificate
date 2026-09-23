@@ -22342,3 +22342,15 @@ msgid "%s pair merged."
 msgid_plural "%s pairs merged."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Read the queue again"
+msgstr ""
+
+msgid "The queue was read again."
+msgstr ""
+
+msgid "This queue lists at most %1$s findings per check, and %2$s returned a full page — so more exist than are listed. The counts below are of what was read, not of what there is."
+msgstr ""
+
+msgid "This queue was read at %s and is held still while you work it — resolving a finding removes that one and moves nothing else."
+msgstr ""
