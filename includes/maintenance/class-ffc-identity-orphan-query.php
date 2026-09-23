@@ -205,10 +205,18 @@ class IdentityOrphanQuery {
 		$field = '';
 		$hash  = '';
 
+		// NARROWED, NEVER CAST.
+		//
+		// A row arrives from `$wpdb` as `mixed` and reaches this as a plain
+		// array, so every read is `mixed` and a cast is a claim about a shape
+		// nothing proves — which level 9 refuses, correctly. The same
+		// treatment `IdentityAgreement::collect()` gives the same problem:
+		// ask for the two keys it knows and ignore anything that is not a
+		// string.
 		foreach ( self::KEYS as $candidate ) {
-			$value = (string) ( $row[ $candidate . '_hash' ] ?? '' );
+			$value = $row[ $candidate . '_hash' ] ?? '';
 
-			if ( '' !== $value ) {
+			if ( is_string( $value ) && '' !== $value ) {
 				$field = $candidate;
 				$hash  = $value;
 				break;
@@ -238,7 +246,9 @@ class IdentityOrphanQuery {
 			);
 		}
 
-		$findings[ $key ]['stores'][ $table ][] = (int) ( $row['id'] ?? 0 );
+		$id = $row['id'] ?? 0;
+
+		$findings[ $key ]['stores'][ $table ][] = is_numeric( $id ) ? (int) $id : 0;
 		++$findings[ $key ]['rows'];
 
 		// WHAT THE PERSON HAS IS THE UNION OVER THEIR ROWS, NOT ONE ROW'S.
@@ -247,12 +257,15 @@ class IdentityOrphanQuery {
 		// account that would be opened needs all three from wherever they are.
 		// Reading one row would report a gap that is not there.
 		foreach ( array( 'cpf', 'rf', 'email' ) as $kind ) {
-			if ( '' !== (string) ( $row[ $kind . '_hash' ] ?? '' ) ) {
+			$carried = $row[ $kind . '_hash' ] ?? '';
+
+			if ( is_string( $carried ) && '' !== $carried ) {
 				$findings[ $key ]['has'][ $kind ] = true;
 			}
 		}
 
-		$name = trim( (string) ( $row['name'] ?? '' ) );
+		$recorded = $row['name'] ?? '';
+		$name     = is_string( $recorded ) ? trim( $recorded ) : '';
 
 		if ( '' !== $name && ! in_array( $name, $findings[ $key ]['names'], true ) ) {
 			$findings[ $key ]['names'][] = $name;
