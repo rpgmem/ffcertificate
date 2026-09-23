@@ -1474,6 +1474,187 @@ p.ffc-datetime-order-error {
 }
 
 /* ---------------------------------------------------------------------------
+   A CARD PER FINDING, FOR THE TWO ACCOUNT TIERS (#1407 sprint 2)
+
+   The table these replace asked the operator to read four cells and work out
+   what they meant together. What the check digits had already decided was
+   derivable from it and stated nowhere. The card says it in a sentence, shows
+   the two hashes as the before and after of the write, and puts the verb in a
+   column of its own.
+   --------------------------------------------------------------------------- */
+
+.ffc-page-identities .ffc-identity-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-md);
+}
+
+.ffc-page-identities .ffc-identity-card {
+    display: flex;
+    align-items: stretch;
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+}
+
+/* `min-width: 0` because a flex item's default `auto` refuses to shrink below
+   its content, and a hash chip row is content that does not wrap on its own --
+   without it the action column is squeezed off the card instead. */
+.ffc-page-identities .ffc-identity-card-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-xs);
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
+}
+
+.ffc-page-identities .ffc-identity-card-who {
+    margin: 0;
+    font-size: var(--ffc-font-size-lg);
+    font-weight: 600;
+}
+
+.ffc-page-identities .ffc-identity-card-says {
+    margin: 0;
+}
+
+.ffc-page-identities .ffc-identity-card-hashes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+}
+
+.ffc-page-identities .ffc-identity-card-hash {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
+    border: 1px solid transparent;
+    border-radius: var(--ffc-radius-sm);
+}
+
+/* The chip inherits its own colour so the hash and its verdict read as one
+   thing; wp-admin paints `code` on a grey ground otherwise, which would put a
+   third surface inside a chip that already has one. */
+.ffc-page-identities .ffc-identity-card-hash code {
+    background: none;
+    color: inherit;
+    font-size: var(--ffc-font-size-xs);
+    padding: 0;
+}
+
+.ffc-page-identities .ffc-identity-card-said {
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+}
+
+.ffc-page-identities .ffc-identity-card-hash-bad {
+    background: var(--ffc-danger-bg);
+    border-color: var(--ffc-danger-border);
+    color: var(--ffc-danger-text);
+}
+
+.ffc-page-identities .ffc-identity-card-hash-ok {
+    background: var(--ffc-success-bg);
+    border-color: var(--ffc-success-border);
+    color: var(--ffc-success-text);
+}
+
+/* NOT RED. A value nobody could read is a value nothing is known about, and
+   painting it as a failure would make the screen assert the opposite of what
+   the scan found -- the same distinction `IdentityQueue::tiered()` makes when
+   it refuses to call such a finding mechanical. */
+.ffc-page-identities .ffc-identity-card-hash-plain,
+.ffc-page-identities .ffc-identity-card-hash-unknown {
+    background: var(--ffc-bg-alt);
+    border-color: var(--ffc-border);
+    color: var(--ffc-text-secondary);
+}
+
+/* THE LINK COLOUR IS NOBODY'S UNTIL SOMEBODY DECLARES IT.
+
+   wp-admin paints a link `#2271b1`, which is 5,17:1 on its own white content
+   area and **2,48:1** on this plugin's dark card -- the #1126 defect 3 shape,
+   where text inherits from outside the repository and no guard can see it,
+   because `DarkModeCssTest`'s derived half only measures a rule that declares
+   a colour AND a background, and here nothing declared a colour at all. It
+   was survivable while an account was a small `#398` in a table cell; the
+   card makes the person's name its headline.
+
+   Declared on the panel BODY rather than on the card, so the one rule also
+   covers the merge panel and the tables sprint 3 has yet to replace. In the
+   light theme `--ffc-link` IS `#2271b1`, so this moves nothing there and
+   repairs only the dark theme: 5,10:1.
+   ========================================================================== */
+.ffc-page-identities .ffc-identity-panel-body a {
+    color: var(--ffc-link);
+}
+
+.ffc-page-identities .ffc-identity-panel-body a:hover,
+.ffc-page-identities .ffc-identity-panel-body a:focus {
+    color: var(--ffc-link-hover);
+}
+
+.ffc-page-identities .ffc-identity-card-arrow {
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-lg);
+}
+
+.ffc-page-identities .ffc-identity-card-where {
+    margin: 0;
+    color: var(--ffc-text-secondary);
+    font-size: var(--ffc-font-size-sm);
+}
+
+/* `em`, not a pixel width: the column holds a button and a sentence, so what
+   it needs is a measure in characters, and it should follow the typography
+   scale rather than fight it. */
+.ffc-page-identities .ffc-identity-card-act {
+    flex: 0 0 17em;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--ffc-spacing-2xs);
+    padding: var(--ffc-spacing-md);
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text);
+    border-left: 1px solid var(--ffc-border);
+}
+
+/* The forms came from table cells, where wp-admin's block margin did no harm.
+   Inside a flex column it would fight the gap. */
+.ffc-page-identities .ffc-identity-card-act form {
+    margin: 0;
+}
+
+@media screen and (max-width: 782px) {
+    /* Below wp-admin's own breakpoint there is no room for two columns, so
+       the action column becomes the foot of the card and keeps its separating
+       rule -- moved from the side it can no longer be on. */
+    .ffc-page-identities .ffc-identity-card {
+        flex-direction: column;
+    }
+
+    .ffc-page-identities .ffc-identity-card-act {
+        flex: 0 0 auto;
+        border-left: 0;
+        border-top: 1px solid var(--ffc-border);
+    }
+}
+
+@media (forced-colors: active) {
+    /* Each chip says its verdict in words as well as in colour, so what
+       forced-colors costs here is only the grouping -- the contour keeps the
+       hash and its verdict reading as one object. */
+    .ffc-page-identities .ffc-identity-card-hash {
+        border: 1px solid CanvasText;
+    }
+}
+
+/* ---------------------------------------------------------------------------
    Account-search dialog (#1397 sprint 3)
    --------------------------------------------------------------------------- */
 

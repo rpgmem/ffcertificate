@@ -632,4 +632,169 @@ class IdentityResolutionPageTest extends TestCase {
 			'The view must print nothing when there is no link to print.'
 		);
 	}
+
+	/**
+	 * Just the two account tiers' markup, from the cards to the panel the
+	 * isolated tier opens.
+	 *
+	 * Bounded on BOTH sides deliberately. The first version of these tests
+	 * ran to the orphan comment far below and so swallowed the isolated
+	 * table, which is sprint 3's and still a `wp-list-table` — the
+	 * assertions then failed for a defect that was not there.
+	 *
+	 * @param string $view The view's source.
+	 * @return string
+	 */
+	private function account_tier_block( string $view ): string {
+		$from = strpos( $view, 'class="ffc-identity-cards"' );
+		$to   = strpos( $view, '$ffc_identity_rows = array();' );
+
+		$this->assertIsInt( $from, 'The account tiers must be drawn as cards.' );
+		$this->assertIsInt( $to, 'The isolated tier must still open with its own list.' );
+		$this->assertGreaterThan( $from, $to, 'The account tiers come before the isolated one.' );
+
+		return substr( $view, $from, $to - $from );
+	}
+
+	/**
+	 * The two account tiers are drawn as cards, and every verdict survives
+	 * the change of shape (#1407 sprint 2).
+	 *
+	 * The risk in replacing a table with a card is silent loss: a column
+	 * whose contents nobody re-read simply stops being rendered, and the
+	 * screen looks better while saying less. All four verdicts are asserted
+	 * here for that reason, `unreadable` and `absent` above all -- those two
+	 * are what `IdentityQueue::tiered()` refuses to treat as a failure, so a
+	 * card that dropped them would make the screen assert the opposite of
+	 * what the scan found.
+	 */
+	public function test_the_account_tiers_render_as_cards_carrying_every_verdict(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$cards = strpos( $view, 'class="ffc-identity-cards"' );
+		$this->assertIsInt( $cards, 'The two account tiers must be drawn as cards.' );
+
+		// The table is gone from THIS block, not from the file: the isolated
+		// and orphan bodies are sprint 3's, so anchoring on the file having
+		// no `wp-list-table` at all would fail for the right reason at the
+		// wrong time.
+		$block = $this->account_tier_block( $view );
+		$this->assertStringNotContainsString( 'wp-list-table', $block, 'The account tiers must no longer render a list table.' );
+
+		foreach (
+			array(
+				'VERDICT_INVALID'    => 'fails its check digit',
+				'VERDICT_VALID'      => 'well formed',
+				'VERDICT_UNREADABLE' => 'could not be read',
+				'VERDICT_ABSENT'     => 'not stored where this can read',
+			) as $verdict => $said
+		) {
+			$this->assertStringContainsString(
+				'IdentityConflictQuery::' . $verdict,
+				$block,
+				sprintf( 'The card must still distinguish %s.', $verdict )
+			);
+			$this->assertStringContainsString( $said, $block, sprintf( 'The card must still say what %s means.', $verdict ) );
+		}
+
+		// A value nobody could read is not a failure, and the tone it takes
+		// is what says so on screen.
+		$this->assertSame(
+			2,
+			substr_count( $block, "\$ffc_identity_tone = 'unknown'" ),
+			'Unreadable and absent must both be drawn as unknown, never as a failure.'
+		);
+	}
+
+	/**
+	 * The arrow exists exactly where the write has a direction.
+	 *
+	 * `IdentityQueue::tiered()` sets `wrong` and `right` only where one
+	 * identifier failed and every other was READ — so drawing the pair as
+	 * a before and after is honest there and nowhere else. On the decision
+	 * tier the hashes are a set, and an arrow over them would assert the
+	 * choice the check digits explicitly refused to make.
+	 */
+	public function test_the_arrow_is_drawn_only_where_the_digits_decided(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertStringContainsString(
+			'$ffc_identity_directed = IdentityQueue::TIER_MECHANICAL === $ffc_identity_tier',
+			$view,
+			'Only the mechanical tier may be drawn as directed.'
+		);
+		$this->assertStringContainsString( "&& '' !== \$ffc_identity_wrong", $view, 'A direction needs the hash that goes away.' );
+		$this->assertStringContainsString( "&& '' !== \$ffc_identity_right", $view, 'A direction needs the hash that survives.' );
+		$this->assertStringContainsString(
+			'$ffc_identity_directed && ! $ffc_identity_first',
+			$view,
+			'The arrow must be drawn only between the two hashes of a directed pair.'
+		);
+		$this->assertStringContainsString(
+			'ffc-identity-card-arrow" aria-hidden="true"',
+			$view,
+			'The arrow is decoration: the sentence and the chips already say which survives.'
+		);
+	}
+
+	/**
+	 * Replacing the table changed no form.
+	 *
+	 * The cards are markup and CSS. Every nonce, action and field name the
+	 * four verbs post is asserted to still be emitted, because a card that
+	 * quietly dropped a hidden input would fail as a refused write on a live
+	 * screen and nowhere else — the forms are in a view, which PHPStan and
+	 * the coverage report both skip.
+	 */
+	public function test_the_cards_changed_no_form(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		foreach (
+			array(
+				'IdentityResolutionPage::CONSOLIDATE_NONCE',
+				'IdentityResolutionPage::CONSOLIDATE_ACTION',
+				'IdentityResolutionPage::RELINK_NONCE',
+				'IdentityResolutionPage::RELINK_ACTION',
+				'IdentityResolutionPage::SPLIT_NONCE',
+				'IdentityResolutionPage::SPLIT_ACTION',
+				'name="ffc_key"',
+				'name="ffc_subject"',
+				'name="ffc_target"',
+				'name="ffc_field"',
+				'name="ffc_account"',
+				'name="ffc_email"',
+			) as $token
+		) {
+			$this->assertStringContainsString( $token, $view, sprintf( 'The cards must still post %s.', $token ) );
+		}
+
+		// The search dialog reaches the move form by id, so the card has to
+		// keep emitting the ids it binds to.
+		foreach ( array( 'data-ffc-input=', 'data-ffc-split=', 'data-ffc-submit=' ) as $hook ) {
+			$this->assertStringContainsString( $hook, $view, sprintf( 'The search dialog binds on %s.', $hook ) );
+		}
+	}
+
+	/**
+	 * The card names the stores and invents no record count.
+	 *
+	 * `ALIAS_ROW_COUNT` is produced only by the RF check-digit scan, so the
+	 * two account tiers have no count to show — and a card that showed one
+	 * would be showing a number per hash while its sentence spoke about a
+	 * finding. Asserted rather than left to a comment, because the tier that
+	 * DOES have a count is sprint 3's and the temptation to make the two
+	 * cards match is exactly what this forbids.
+	 */
+	public function test_the_account_cards_state_the_stores_and_no_count(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$block = $this->account_tier_block( $view );
+
+		$this->assertStringContainsString( 'IdentityConflictQuery::COLUMN_STORES', $block, 'The card must name the stores.' );
+		$this->assertStringNotContainsString(
+			'IdentityConflictQuery::ALIAS_ROW_COUNT',
+			$block,
+			'These two tiers carry no row count; showing one would mean inventing it.'
+		);
+	}
 }
