@@ -328,14 +328,36 @@ class IdentityResolutionPageTest extends TestCase {
 	public function test_a_handler_acting_on_an_identifier_names_which_one(): void {
 		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
 
-		$subjects = substr_count( $page, "'ffc_subject'" );
+		// PER HANDLER, NOT A COUNT OVER THE FILE.
+		//
+		// This compared two `substr_count()`s and broke when the merge began
+		// reading `ffc_subject` to scope its NONCE without acting on the
+		// identifier -- a correct handler failing an invariant stated as an
+		// equality between two numbers. What the rule means is narrower and
+		// says itself: a handler that hands the subject to a SERVICE must
+		// also hand it the column, because a stored hash means nothing
+		// without the column it sits in.
+		$bodies = array_slice( preg_split( '/\n\tpublic function handle_/', $page ) ?: array(), 1 );
 
-		$this->assertGreaterThan( 0, $subjects, 'The scan found no handler acting on an identifier.' );
-		$this->assertSame(
-			$subjects,
-			substr_count( $page, 'self::posted_field()' ),
-			'A stored hash means nothing without the column it sits in.'
-		);
+		$this->assertNotEmpty( $bodies, 'The scan found no handler at all, so it proves nothing.' );
+
+		$acting = 0;
+
+		foreach ( $bodies as $body ) {
+			if ( ! preg_match( '/\)->\w+\(\s*\$subject,/', $body ) ) {
+				continue;
+			}
+
+			++$acting;
+
+			$this->assertStringContainsString(
+				'self::posted_field()',
+				$body,
+				'A handler passing the subject to a service must name the column it sits in.'
+			);
+		}
+
+		$this->assertGreaterThan( 0, $acting, 'The scan found no handler acting on an identifier.' );
 		$this->assertStringContainsString( 'in_array( $field, IdentityRepair::FIELDS, true )', $page );
 	}
 

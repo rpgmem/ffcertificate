@@ -13,21 +13,27 @@ use FreeFormCertificate\Maintenance\IdentityMerge;
 use RuntimeException;
 
 /**
- * What the merge form actually posts, read end to end (#1386).
+ * What the merge form actually posts, read end to end.
  *
- * THE ONLY HANDLER ON THIS SCREEN THAT READS A NESTED ARRAY.
+ * HISTORY, BECAUSE THE SHAPE THIS WAS WRITTEN FOR IS GONE.
  *
- * Every other verb posts flat strings, so every other handler is served by
- * an accessor that sanitises each element. The merge posts one group per
- * pair -- `ffc_pair[3][confirm]`, `[a]`, `[b]`, `[keep]` -- and an accessor
- * that runs `sanitize_text_field()` over the container returns `''` for each
- * group, because that is what core does with an array. Every pair then reads
- * as unconfirmed and the screen says so, which is indistinguishable from an
- * operator who ticked nothing.
+ * The merge USED to post one group per pair -- `ffc_pair[3][confirm]`, `[a]`,
+ * `[b]`, `[keep]` -- and the handler read it through an accessor that runs
+ * `sanitize_text_field()` over the container, which returns `''` for an array
+ * because that is what core does. Every pair read as unconfirmed and the
+ * screen said so, indistinguishable from an operator who ticked nothing
+ * (#1386, fixed in #1396). #1397 sprint 5 then made the merge one pair per
+ * request, so the payload is flat strings and that class cannot recur HERE.
  *
- * The rest of this screen's tests read the source as TEXT, which is why this
- * shipped: a static scan sees the accessor named and cannot see what it does
- * to a shape it was not written for.
+ * It can recur elsewhere: nine other handlers still read a nested container,
+ * and `RequestInput`'s own tests are where that accessor's contract is held.
+ * What stays here is the end-to-end reading of THIS form, now over the shape
+ * it posts today -- including the acknowledgement, which is the one field
+ * whose absence must refuse rather than quietly do nothing.
+ *
+ * The rest of this screen's tests read the source as TEXT, which is why the
+ * original defect shipped: a static scan sees the accessor named and cannot
+ * see what it does to a shape it was not written for.
  *
  * @covers \FreeFormCertificate\Admin\IdentityResolutionPage
  */
@@ -188,39 +194,23 @@ class IdentityMergeRequestTest extends TestCase {
 	}
 
 	/**
-	 * THE PRODUCTION CASE, EXACTLY AS THE FORM POSTS IT.
+	 * THE ORDINARY CASE, EXACTLY AS THE FORM POSTS IT.
 	 *
-	 * The operator ticked one pair of three and chose the survivor. The two
-	 * untouched pairs post nothing at all -- an unticked checkbox is absent
-	 * from the payload, so their groups arrive carrying only the hidden ids.
+	 * One pair, the survivor chosen, the acknowledgement ticked. Nothing else
+	 * travels: the other findings are other forms.
 	 */
-	public function test_a_ticked_pair_is_merged(): void {
+	public function test_an_acknowledged_pair_is_merged(): void {
 		$_POST = array(
-			'ffc_pair' => array(
-				'0' => array(
-					'a' => '355',
-					'b' => '5276',
-				),
-				'1' => array(
-					'a' => '3634',
-					'b' => '4963',
-				),
-				'2' => array(
-					'confirm' => '1',
-					'a'       => '5784',
-					'b'       => '6092',
-					'keep'    => '5784',
-				),
-			),
+			'ffc_subject' => 'sharedHash',
+			'ffc_ack'     => '1',
+			'ffc_a'       => '5784',
+			'ffc_b'       => '6092',
+			'ffc_keep'    => '5784',
 		);
 
 		$this->submit();
 
-		$this->assertSame(
-			array( array( 5784, 6092 ) ),
-			$this->merged,
-			'The ticked pair must reach the merge, and only that one.'
-		);
+		$this->assertSame( array( array( 5784, 6092 ) ), $this->merged );
 		$this->assertSame( 'success', $this->outcome['type'] ?? '' );
 	}
 
@@ -229,14 +219,11 @@ class IdentityMergeRequestTest extends TestCase {
 	 */
 	public function test_choosing_the_other_account_reverses_the_pair(): void {
 		$_POST = array(
-			'ffc_pair' => array(
-				'0' => array(
-					'confirm' => '1',
-					'a'       => '5784',
-					'b'       => '6092',
-					'keep'    => '6092',
-				),
-			),
+			'ffc_subject' => 'sharedHash',
+			'ffc_ack'     => '1',
+			'ffc_a'       => '5784',
+			'ffc_b'       => '6092',
+			'ffc_keep'    => '6092',
 		);
 
 		$this->submit();
@@ -245,17 +232,18 @@ class IdentityMergeRequestTest extends TestCase {
 	}
 
 	/**
-	 * Ticking nothing still reports nothing merged -- the message the defect
-	 * produced, which must stay reachable for the reason it names.
+	 * THE ACKNOWLEDGEMENT IS A REFUSAL WHEN ABSENT, NOT A NO-OP.
+	 *
+	 * An unticked checkbox is absent from the payload. A form that posts and
+	 * reports nothing reads as a bug, and on the one verb no other undoes the
+	 * operator has to be told why nothing happened.
 	 */
-	public function test_an_empty_confirmation_merges_nothing(): void {
+	public function test_an_unacknowledged_merge_is_refused_and_says_so(): void {
 		$_POST = array(
-			'ffc_pair' => array(
-				'0' => array(
-					'a' => '355',
-					'b' => '5276',
-				),
-			),
+			'ffc_subject' => 'sharedHash',
+			'ffc_a'       => '5784',
+			'ffc_b'       => '6092',
+			'ffc_keep'    => '5784',
 		);
 
 		$this->submit();
@@ -270,19 +258,45 @@ class IdentityMergeRequestTest extends TestCase {
 	 */
 	public function test_a_survivor_outside_the_pair_is_refused(): void {
 		$_POST = array(
-			'ffc_pair' => array(
-				'0' => array(
-					'confirm' => '1',
-					'a'       => '5784',
-					'b'       => '6092',
-					'keep'    => '99',
-				),
-			),
+			'ffc_subject' => 'sharedHash',
+			'ffc_ack'     => '1',
+			'ffc_a'       => '5784',
+			'ffc_b'       => '6092',
+			'ffc_keep'    => '99',
 		);
 
 		$this->submit();
 
 		$this->assertSame( array(), $this->merged );
 		$this->assertSame( 'error', $this->outcome['type'] ?? '' );
+	}
+
+	/**
+	 * ONE PAIR PER REQUEST, WHICH IS THE POINT OF THE CHANGE.
+	 *
+	 * The old payload could name several, and an outcome could then be part
+	 * merged and part refused. A leftover group from that shape must not
+	 * smuggle a second merge through: only the flat fields are read.
+	 */
+	public function test_a_leftover_batch_payload_merges_nothing_extra(): void {
+		$_POST = array(
+			'ffc_subject' => 'sharedHash',
+			'ffc_ack'     => '1',
+			'ffc_a'       => '5784',
+			'ffc_b'       => '6092',
+			'ffc_keep'    => '5784',
+			'ffc_pair'    => array(
+				'0' => array(
+					'confirm' => '1',
+					'a'       => '111',
+					'b'       => '222',
+					'keep'    => '111',
+				),
+			),
+		);
+
+		$this->submit();
+
+		$this->assertSame( array( array( 5784, 6092 ) ), $this->merged );
 	}
 }

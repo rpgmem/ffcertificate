@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\IdentityResolutionPage;
+use FreeFormCertificate\Admin\IdentityMergePreviewAjaxEndpoint;
 use FreeFormCertificate\Admin\IdentityPreflightAjaxEndpoint;
 use FreeFormCertificate\Admin\IdentitySearchAjaxEndpoint;
 
@@ -31,6 +32,13 @@ use FreeFormCertificate\Admin\IdentitySearchAjaxEndpoint;
 class IdentitySearchWiringTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * Capabilities the current user holds, for the enqueue's own gate.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $granted = array();
 
 	/**
 	 * Scripts `enqueue()` asked for, `handle => src`.
@@ -58,6 +66,7 @@ class IdentitySearchWiringTest extends TestCase {
 
 		$this->scripts   = array();
 		$this->localised = array();
+		$this->granted   = array( 'manage_options' );
 
 		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
 			define( 'FFC_PLUGIN_URL', 'https://example.org/wp-content/plugins/ffcertificate/' );
@@ -68,6 +77,14 @@ class IdentitySearchWiringTest extends TestCase {
 
 		Functions\when( '__' )->returnArg( 1 );
 		Functions\when( 'admin_url' )->returnArg( 1 );
+		// The enqueue consults the MERGE capability before loading the merge
+		// preview, and `current_user_can_admin_or()` consults nothing else --
+		// so stubbing this leaves the real gate in the path.
+		Functions\when( 'current_user_can' )->alias(
+			function ( $cap ) {
+				return in_array( (string) $cap, $this->granted, true );
+			}
+		);
 		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
 		Functions\when( 'wp_enqueue_script' )->alias(
 			function ( $handle, $src = '' ) {
@@ -133,6 +150,42 @@ class IdentitySearchWiringTest extends TestCase {
 		$this->assertStringEndsWith( 'assets/js/ffc-identity-search.js', $this->scripts['ffc-identity-search'] );
 		$this->assertArrayHasKey( 'ffc-identity-preflight', $this->scripts );
 		$this->assertStringEndsWith( 'assets/js/ffc-identity-preflight.js', $this->scripts['ffc-identity-preflight'] );
+	}
+
+	/**
+	 * The merge preview loads only for an operator who can merge.
+	 *
+	 * The panel it serves is already gone without the capability, so loading
+	 * it would be a script with nothing to bind and a nonce for an endpoint
+	 * that would refuse — and a nonce is not a thing to hand out for free.
+	 */
+	public function test_the_merge_preview_follows_the_merge_capability(): void {
+		$this->granted = array( 'ffc_manage_identities' );
+
+		$page = new IdentityResolutionPage();
+		$page->enqueue( 'ffc_form_page_' . IdentityResolutionPage::MENU_SLUG );
+
+		$this->assertArrayHasKey( 'ffc-identity-search', $this->scripts, 'The queue capability still loads the dialog.' );
+		$this->assertArrayNotHasKey( 'ffc-identity-merge-preview', $this->scripts );
+
+		$this->scripts   = array();
+		$this->localised = array();
+		$this->granted   = array( 'ffc_manage_identities', IdentityResolutionPage::MERGE_CAPABILITY );
+
+		$page->enqueue( 'ffc_form_page_' . IdentityResolutionPage::MENU_SLUG );
+
+		$this->assertArrayHasKey( 'ffc-identity-merge-preview', $this->scripts );
+
+		$found = array();
+
+		foreach ( $this->localised as $entry ) {
+			$found[ $entry['name'] ] = $entry['data'];
+		}
+
+		$this->assertSame(
+			IdentityMergePreviewAjaxEndpoint::AJAX_ACTION,
+			$found['ffcIdentityMergePreview']['action'] ?? ''
+		);
 	}
 
 	/**

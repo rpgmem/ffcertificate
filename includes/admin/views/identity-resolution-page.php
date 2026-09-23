@@ -361,99 +361,127 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		);
 		?>
 		<p class="description">
-			<?php esc_html_e( 'One identifier is stored against two logins, so one of them is not that person\'s. Confirm only the pairs you know are one person, and choose which login keeps the records. A merge is the one action no other can undo: afterwards nothing can tell which records came from where.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'One identifier is stored against two logins, so one of them is not that person\'s. Merge only when you know they are one person, and choose which login keeps the records. A merge is the one action no other can undo: afterwards nothing can tell which records came from where.', 'ffcertificate' ); ?>
 		</p>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-			<?php wp_nonce_field( IdentityResolutionPage::MERGE_NONCE ); ?>
-			<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::MERGE_ACTION ); ?>">
-			<table class="wp-list-table widefat striped">
-				<thead>
-					<tr>
-						<th scope="col"><?php esc_html_e( 'Merge', 'ffcertificate' ); ?></th>
-						<th scope="col"><?php esc_html_e( 'The people', 'ffcertificate' ); ?></th>
-						<th scope="col"><?php esc_html_e( 'The identifier', 'ffcertificate' ); ?></th>
-						<th scope="col"><?php esc_html_e( 'Which login keeps the records', 'ffcertificate' ); ?></th>
-					</tr>
-				</thead>
-				<tbody>
-				<?php foreach ( $ffc_identity_pairs as $ffc_identity_i => $ffc_identity_pair ) : ?>
+
+		<?php
+		// ONE PAIR PER FORM, WHICH IS WHAT REMOVED THE PARTIAL RESULT.
+		//
+		// This was one form over a list of checkboxes, so an outcome could be
+		// part merged and part refused. Each pair is now its own form, its own
+		// nonce and its own transaction, and the stepper above shows one at a
+		// time unless the operator asked for the list.
+		?>
+		<?php foreach ( $ffc_identity_pairs as $ffc_identity_pair ) : ?>
+			<?php
+			$ffc_identity_who = IdentityConflictQuery::parse_accounts(
+				$ffc_identity_pair[ IdentityConflictQuery::COLUMN_RELATED ] ?? ''
+			);
+			$ffc_identity_id  = (string) ( $ffc_identity_pair['subject'] ?? '' );
+			?>
+			<?php if ( 2 !== count( $ffc_identity_who ) ) : ?>
+				<p class="description">
 					<?php
-					$ffc_identity_who = IdentityConflictQuery::parse_accounts(
-						$ffc_identity_pair[ IdentityConflictQuery::COLUMN_RELATED ] ?? ''
+					// MORE THAN TWO IS NOT A PAIR, AND IT IS NOT OFFERED. A
+					// merge takes one survivor and one absorbed account; three
+					// logins sharing a number is three decisions, made two at
+					// a time, and a control that hid that would invite one
+					// sweep over all of them.
+					printf(
+						/* translators: %s: how many accounts share the identifier. */
+						esc_html__( '%s accounts share this identifier, so it is not one pair. Resolve them two at a time.', 'ffcertificate' ),
+						esc_html( number_format_i18n( count( $ffc_identity_who ) ) )
 					);
 					?>
-					<?php if ( 2 !== count( $ffc_identity_who ) ) : ?>
-						<tr>
-							<td colspan="4">
-								<span class="description">
-									<?php
-									// MORE THAN TWO IS NOT A PAIR, AND IT IS NOT
-									// OFFERED. A merge takes one survivor and one
-									// absorbed account; three logins sharing a
-									// number is three decisions, made two at a
-									// time, and a control that hid that would
-									// invite one sweep over all of them.
-									printf(
-										/* translators: %s: how many accounts share the identifier. */
-										esc_html__( '%s accounts share this identifier, so it is not one pair. Resolve them two at a time.', 'ffcertificate' ),
-										esc_html( number_format_i18n( count( $ffc_identity_who ) ) )
-									);
-									?>
-								</span>
-							</td>
-						</tr>
-						<?php continue; ?>
-					<?php endif; ?>
-					<tr>
-						<td>
-							<label class="screen-reader-text" for="ffc-merge-<?php echo esc_attr( (string) $ffc_identity_i ); ?>">
-								<?php esc_html_e( 'Merge this pair', 'ffcertificate' ); ?>
+				</p>
+				<?php continue; ?>
+			<?php endif; ?>
+			<div class="ffc-identity-pair">
+				<p class="ffc-identity-pair-subject">
+					<code><?php echo esc_html( substr( $ffc_identity_id, 0, IdentityQueue::DISPLAY_PREFIX ) ); ?></code>
+					<span class="description">
+						<?php echo esc_html( strtoupper( str_replace( '_hash', '', (string) ( $ffc_identity_pair['identifier_column'] ?? '' ) ) ) ); ?>
+					</span>
+				</p>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-identity-merge-one">
+					<?php wp_nonce_field( IdentityResolutionPage::MERGE_NONCE . $ffc_identity_id ); ?>
+					<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::MERGE_ACTION ); ?>">
+					<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_pair[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
+					<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( $ffc_identity_id ); ?>">
+					<input type="hidden" name="ffc_a" value="<?php echo esc_attr( (string) $ffc_identity_who[0] ); ?>">
+					<input type="hidden" name="ffc_b" value="<?php echo esc_attr( (string) $ffc_identity_who[1] ); ?>">
+
+					<fieldset class="ffc-identity-pair-choice">
+						<legend><?php esc_html_e( 'Which login keeps the records', 'ffcertificate' ); ?></legend>
+						<?php foreach ( $ffc_identity_who as $ffc_identity_account ) : ?>
+							<label>
+								<input type="radio" name="ffc_keep" required
+									class="ffc-identity-keep"
+									value="<?php echo esc_attr( (string) $ffc_identity_account ); ?>">
+								<a href="<?php echo esc_url( admin_url( 'user-edit.php?user_id=' . rawurlencode( (string) $ffc_identity_account ) ) ); ?>">
+									<?php echo esc_html( $ffc_identity_named( $ffc_identity_account ) ); ?>
+								</a>
 							</label>
-							<input type="checkbox" id="ffc-merge-<?php echo esc_attr( (string) $ffc_identity_i ); ?>"
-								name="ffc_pair[<?php echo esc_attr( (string) $ffc_identity_i ); ?>][confirm]" value="1">
-							<input type="hidden" name="ffc_pair[<?php echo esc_attr( (string) $ffc_identity_i ); ?>][a]" value="<?php echo esc_attr( (string) $ffc_identity_who[0] ); ?>">
-							<input type="hidden" name="ffc_pair[<?php echo esc_attr( (string) $ffc_identity_i ); ?>][b]" value="<?php echo esc_attr( (string) $ffc_identity_who[1] ); ?>">
-						</td>
-						<td>
-							<?php foreach ( $ffc_identity_who as $ffc_identity_account ) : ?>
-								<div>
-									<a href="<?php echo esc_url( admin_url( 'user-edit.php?user_id=' . rawurlencode( (string) $ffc_identity_account ) ) ); ?>">
-										<?php echo esc_html( $ffc_identity_named( $ffc_identity_account ) ); ?>
-									</a>
-								</div>
-							<?php endforeach; ?>
-						</td>
-						<td>
-							<code><?php echo esc_html( substr( (string) ( $ffc_identity_pair['subject'] ?? '' ), 0, IdentityQueue::DISPLAY_PREFIX ) ); ?></code>
-							<span class="description">
-								<?php echo esc_html( strtoupper( str_replace( '_hash', '', (string) ( $ffc_identity_pair['identifier_column'] ?? '' ) ) ) ); ?>
-							</span>
-						</td>
-						<td>
-							<?php foreach ( $ffc_identity_who as $ffc_identity_account ) : ?>
-								<div>
-									<label>
-										<input type="radio"
-											name="ffc_pair[<?php echo esc_attr( (string) $ffc_identity_i ); ?>][keep]"
-											value="<?php echo esc_attr( (string) $ffc_identity_account ); ?>">
-										<?php echo esc_html( $ffc_identity_named( $ffc_identity_account ) ); ?>
-									</label>
-								</div>
-							<?php endforeach; ?>
-						</td>
-					</tr>
-				<?php endforeach; ?>
-				</tbody>
-			</table>
-			<p>
-				<button type="submit" class="button button-primary">
-					<?php esc_html_e( 'Merge the confirmed pairs', 'ffcertificate' ); ?>
-				</button>
-			</p>
-			<p class="description">
-				<?php esc_html_e( 'The records, the identity index and the surviving login\'s certificate access move together, as one transaction per pair. The emptied login is left in place — removing it is yours to do in Users, because deleting an account runs cleanup this tool does not own and cannot undo.', 'ffcertificate' ); ?>
-			</p>
-		</form>
+						<?php endforeach; ?>
+					</fieldset>
+
+					<?php
+					// THE PREVIEW IS THE WRITE'S OWN COUNT, ASKED FOR BEFORE
+					// THE WRITE. Its region carries the fixed sentences as
+					// data attributes, the way the correction preflight does,
+					// so every string is escaped at the output point.
+					?>
+					<p>
+						<button type="button" class="button button-secondary ffc-identity-preview"
+							data-ffc-a="<?php echo esc_attr( (string) $ffc_identity_who[0] ); ?>"
+							data-ffc-b="<?php echo esc_attr( (string) $ffc_identity_who[1] ); ?>"
+							data-ffc-region="ffc-merge-preview-<?php echo esc_attr( $ffc_identity_id ); ?>"
+							data-ffc-ack="ffc-merge-ack-<?php echo esc_attr( $ffc_identity_id ); ?>"
+							data-ffc-go="ffc-merge-go-<?php echo esc_attr( $ffc_identity_id ); ?>">
+							<?php esc_html_e( 'Show what would move', 'ffcertificate' ); ?>
+						</button>
+					</p>
+
+					<div class="ffc-identity-preview-region" id="ffc-merge-preview-<?php echo esc_attr( $ffc_identity_id ); ?>"
+						aria-live="polite"
+						<?php /* translators: 1: the surviving login's name. 2: the emptied login's name. */ ?>
+						data-heading="<?php esc_attr_e( '%1$s keeps the records. %2$s is emptied.', 'ffcertificate' ); ?>"
+						<?php /* translators: %s: how many records would move. */ ?>
+						data-total="<?php esc_attr_e( '%s records move.', 'ffcertificate' ); ?>"
+						<?php /* translators: 1: how many records. 2: the store they sit in. */ ?>
+						data-store="<?php esc_attr_e( '%1$s in %2$s', 'ffcertificate' ); ?>"
+						<?php /* translators: %s: the identifiers the surviving login would gain, comma separated. */ ?>
+						data-gains="<?php esc_attr_e( 'The surviving login also gains the %s it did not hold.', 'ffcertificate' ); ?>"
+						<?php /* translators: 1: a login's name. 2: how many records it holds. */ ?>
+						data-holds="<?php esc_attr_e( '%1$s holds %2$s records today.', 'ffcertificate' ); ?>"
+						data-choose="<?php esc_attr_e( 'Choose which login keeps the records first.', 'ffcertificate' ); ?>"
+						data-failed="<?php esc_attr_e( 'The preview could not be completed.', 'ffcertificate' ); ?>"></div>
+
+					<?php
+					// A FIELD, NOT A BROWSER DIALOG. A `confirm()` is not
+					// evidence and does not survive a screen without
+					// JavaScript; this posts, and the handler refuses without
+					// it rather than doing nothing.
+					?>
+					<p>
+						<label>
+							<input type="checkbox" name="ffc_ack" value="1" required
+								id="ffc-merge-ack-<?php echo esc_attr( $ffc_identity_id ); ?>">
+							<?php esc_html_e( 'I confirm these are one person, and that this cannot be undone.', 'ffcertificate' ); ?>
+						</label>
+					</p>
+					<p>
+						<button type="submit" class="button button-primary"
+							id="ffc-merge-go-<?php echo esc_attr( $ffc_identity_id ); ?>">
+							<?php esc_html_e( 'Merge this pair', 'ffcertificate' ); ?>
+						</button>
+					</p>
+				</form>
+			</div>
+		<?php endforeach; ?>
+		<p class="description">
+			<?php esc_html_e( 'The records, the identity index and the surviving login\'s certificate access move together, as one transaction. The emptied login is left in place — removing it is yours to do in Users, because deleting an account runs cleanup this tool does not own and cannot undo.', 'ffcertificate' ); ?>
+		</p>
 
 		<?php
 		// THE OTHER ANSWER, AND OFTEN THE RIGHT ONE.
