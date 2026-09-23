@@ -22548,3 +22548,81 @@ msgstr ""
 
 msgid "You do not have permission to merge identities."
 msgstr ""
+
+msgid "%1$s — %2$s"
+msgstr ""
+
+msgid "A destination account is chosen, so opening a new one is not available. Clear the destination to open one instead."
+msgstr ""
+
+msgid "A record erased at the subject's request cannot appear here: the eraser clears the identifier hashes along with the ciphertexts, so nothing is left to match on. Adopting an orphan can never restore a link somebody asked to have removed."
+msgstr ""
+
+msgid "Account to link these records to"
+msgstr ""
+
+msgid "An account already files this identifier:"
+msgstr ""
+
+msgid "E-mail address"
+msgstr ""
+
+msgid "Give it an account"
+msgstr ""
+
+msgid "More orphaned records were found than are shown. Resolve these and read the queue again."
+msgstr ""
+
+msgid "No account files this identifier, so this one needs an account opened rather than a link made."
+msgstr ""
+
+msgid "Open the account"
+msgstr ""
+
+msgid "Records carrying an identifier that belongs to no login at all."
+msgstr ""
+
+msgid "These are usually candidacies that were never promoted, or records whose account was deleted. Linking one to an existing account uses the same rule as a move: the two must already agree on an identifier. Opening an account needs CPF, RF and an e-mail address together — an account opened from one identifier is one the resolver will fail to match on the next record carrying another."
+msgstr ""
+
+msgid "What it carries"
+msgstr ""
+
+msgid "missing"
+msgstr ""
+
+msgid "recorded"
+msgstr ""
+
+msgid "Adopted. The records carrying those identifiers were linked to the account, which was opened if none already answered to them, and its certificate access was granted in the same act."
+msgstr ""
+
+msgid "Encryption is not configured, so an identifier cannot be matched or stored."
+msgstr ""
+
+msgid "No account was opened and none was matched, so nothing was adopted."
+msgstr ""
+
+msgid "Opening an account needs all three: CPF, RF and an e-mail address. An account opened from one identifier is one the resolver will fail to match on the next record carrying another."
+msgstr ""
+
+msgid "That CPF does not satisfy its own check digits. Confirm it before opening an account on it."
+msgstr ""
+
+msgid "That RF does not satisfy its own check digit. Confirm it with HR before opening an account on it."
+msgstr ""
+
+msgid "That is not an address this can use. Unlike the two numbers, an address can only be checked for shape — confirm it is the person's."
+msgstr ""
+
+msgid "No account could be opened: nothing on this install is wired to open one."
+msgstr ""
+
+msgid "Which account already answers to a set of identifiers — args ( 0, cpf_hash, rf_hash, email ), returns a user id or 0. Read-only: it resolves and never creates, which is what makes it safe to ask BEFORE the filter below. Orphan adoption asks it so the screen can say whether a login was opened or merely matched."
+msgstr ""
+
+msgid "The account for a set of identifiers: the one that answers to them, or a new one, with every unlinked record carrying them adopted into it — args ( null, cpf_hash, rf_hash, email ), returns a user id or WP_Error. Unlike ffc_create_identity_account it DOES resolve first: an orphan has no account to be taken off, so resolving is the point rather than the thing to avoid."
+msgstr ""
+
+msgid "Orphaned Records Given an Account"
+msgstr ""

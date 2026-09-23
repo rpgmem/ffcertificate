@@ -261,6 +261,43 @@ class Loader {
 			);
 		}
 
+		// Orphan adoption -- the same inversion once more, and this time two
+		// filters rather than one, because the screen has to say whether a
+		// login was OPENED or merely matched. `get_or_create_user_dual()`
+		// returns an id whichever of its three branches ran, so the question
+		// is asked separately, before the call that would create (#1397).
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserCreator' ) ) {
+			add_filter(
+				'ffc_resolve_identity_account',
+				static function ( $found, $cpf_hash, $rf_hash, $email ) {
+					return $found > 0
+						? $found
+						: \FreeFormCertificate\UserDashboard\UserCreator::resolve_existing_user(
+							(string) $cpf_hash,
+							(string) $rf_hash,
+							(string) $email
+						);
+				},
+				10,
+				4
+			);
+
+			add_filter(
+				'ffc_adopt_identity_account',
+				static function ( $account, $cpf_hash, $rf_hash, $email ) {
+					return null === $account
+						? \FreeFormCertificate\UserDashboard\UserCreator::get_or_create_user_dual(
+							(string) $cpf_hash,
+							(string) $rf_hash,
+							(string) $email
+						)
+						: $account;
+				},
+				10,
+				4
+			);
+		}
+
 		// Shared classes (needed in both admin and frontend contexts).
 		$this->submission_handler = new SubmissionHandler();
 		$this->email_handler      = new EmailHandler();

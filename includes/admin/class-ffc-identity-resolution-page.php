@@ -20,6 +20,8 @@ use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityMerge;
 use FreeFormCertificate\Maintenance\IdentityQueue;
+use FreeFormCertificate\Maintenance\IdentityAdoption;
+use FreeFormCertificate\Maintenance\IdentityOrphanQuery;
 use FreeFormCertificate\Maintenance\IdentityRecordNames;
 use FreeFormCertificate\Maintenance\IdentityRelink;
 use FreeFormCertificate\Maintenance\IdentitySplit;
@@ -179,6 +181,20 @@ class IdentityResolutionPage {
 	 *
 	 * @var string
 	 */
+	/**
+	 * Opening (or finding) the account an orphaned record belongs to.
+	 *
+	 * @since 6.28.4
+	 */
+	public const ADOPT_ACTION = 'ffc_adopt_identity_orphans';
+
+	/**
+	 * Nonce for {@see self::ADOPT_ACTION}, scoped per finding.
+	 *
+	 * @since 6.28.4
+	 */
+	public const ADOPT_NONCE = 'ffc_adopt_identity_orphans_';
+
 	public const RESCAN_ACTION = 'ffc_rescan_identities';
 
 	/**
@@ -241,6 +257,7 @@ class IdentityResolutionPage {
 		add_action( 'admin_post_' . self::SPLIT_ACTION, array( $this, 'handle_split' ) );
 		add_action( 'admin_post_' . self::MERGE_ACTION, array( $this, 'handle_merge' ) );
 		add_action( 'admin_post_' . self::RESCAN_ACTION, array( $this, 'handle_rescan' ) );
+		add_action( 'admin_post_' . self::ADOPT_ACTION, array( $this, 'handle_adopt' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
 	}
 
@@ -797,6 +814,46 @@ class IdentityResolutionPage {
 	}
 
 	/**
+	 * Give an orphaned record the account it belongs to.
+	 *
+	 * THE OPERATOR SUPPLIES WHAT THE RECORD DOES NOT CARRY, AND ONLY THAT.
+	 *
+	 * An orphan reaches this screen because it holds one identifier and no
+	 * account. Opening an account needs all three, so the two it is missing
+	 * are typed here — the same shape as the correction, and for the same
+	 * reason: what is stored is never shown, and what is typed comes from a
+	 * person who checked.
+	 *
+	 * The verb is deliberately "adopt" rather than "create": if an account
+	 * already answers to those identifiers it is used, which is the right
+	 * outcome rather than a failed creation.
+	 *
+	 * @since 6.28.4
+	 * @return void
+	 */
+	public function handle_adopt(): void {
+		if ( ! Capabilities::current_user_can_admin_or( self::SPLIT_CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+
+		$subject = RequestInput::get_post_string( 'ffc_subject', '' );
+
+		check_admin_referer( self::ADOPT_NONCE . $subject );
+
+		$result = $this->adoptions()->adopt(
+			RequestInput::get_post_string( 'ffc_cpf', '' ),
+			RequestInput::get_post_string( 'ffc_rf', '' ),
+			RequestInput::get_post_string( 'ffc_email', '' ),
+			get_current_user_id()
+		);
+
+		$this->report(
+			$result,
+			__( 'Adopted. The records carrying those identifiers were linked to the account, which was opened if none already answered to them, and its certificate access was granted in the same act.', 'ffcertificate' )
+		);
+	}
+
+	/**
 	 * The merge, as a seam a test can replace.
 	 *
 	 * @since 6.28.3
@@ -946,6 +1003,26 @@ class IdentityResolutionPage {
 	}
 
 	/**
+	 * The orphan query, as a seam a test can stand in for.
+	 *
+	 * @since 6.28.4
+	 * @return IdentityOrphanQuery
+	 */
+	protected function orphans(): IdentityOrphanQuery {
+		return new IdentityOrphanQuery();
+	}
+
+	/**
+	 * The adoption, as a seam a test can stand in for.
+	 *
+	 * @since 6.28.4
+	 * @return IdentityAdoption
+	 */
+	protected function adoptions(): IdentityAdoption {
+		return new IdentityAdoption();
+	}
+
+	/**
 	 * The record-name reader, as a seam a test can stand in for.
 	 *
 	 * @since 6.28.4
@@ -983,6 +1060,19 @@ class IdentityResolutionPage {
 			self::cursors(),
 			self::listed()
 		);
+
+		// ORPHANS ARE THEIR OWN POPULATION, NOT A TIER OF THE QUEUE.
+		//
+		// The three checks the queue composes all start from an account
+		// holding something wrong; an orphan holds nothing wrong and no
+		// account. It is read here rather than folded into `IdentityQueue`
+		// because the worklist's stable key is tier-plus-subject and an
+		// orphan has no tier — and because a resolution here ADOPTS rows
+		// rather than removing a finding, so the held list has nothing to
+		// drop.
+		$ffc_identity_orphan_query  = $this->orphans();
+		$ffc_identity_orphans       = $ffc_identity_may_split ? $ffc_identity_orphan_query->orphans() : array();
+		$ffc_identity_orphan_capped = $ffc_identity_may_split && $ffc_identity_orphan_query->capped();
 
 		// WHO A FINDING IS ABOUT, READ ON DEMAND AND ONLY FOR WHAT IS DRAWN.
 		//

@@ -1024,6 +1024,214 @@ $ffc_identity_tier_note = static function ( $tier ) {
 	</p>
 
 	<?php
+	// ORPHANS — records with an identifier and no account (#1397 sprint 6).
+	//
+	// A LIST RATHER THAN A STEPPER, AND THE REASON IS NOT LAZINESS.
+	//
+	// The four panels above step through a HELD worklist: resolving one
+	// removes that finding and the cursor keeps its meaning. An adoption
+	// does not remove a finding from a held list -- it links rows, and the
+	// next read simply finds fewer. So there is nothing for a cursor to hold
+	// onto, and a stepper over a list that reshapes under it would be a
+	// control that lies. The card chrome is the same, which is what keeps
+	// the screen one screen.
+	//
+	// It is gated on the SPLIT capability: the action can open a WordPress
+	// user, which is exactly what that capability was carved out for (#1397).
+	?>
+	<?php if ( $ffc_identity_may_split && array() !== $ffc_identity_orphans ) : ?>
+		<?php
+		// THE SAME CARD, WRITTEN OUT RATHER THAN THROUGH `$ffc_identity_head`.
+		//
+		// That closure's header carries a cursor and a `See the list` toggle,
+		// and both are controls this panel cannot honour: it has no held
+		// list to step through and is always the list. Calling it would print
+		// a link that does nothing, which is worse than the four lines below.
+		?>
+		<div class="ffc-identity-panel">
+		<div class="ffc-identity-panel-head">
+			<span class="ffc-identity-panel-chip ffc-identity-chip-orphans"><?php esc_html_e( 'No account', 'ffcertificate' ); ?></span>
+			<h2 class="ffc-identity-panel-title screen-reader-text"><?php esc_html_e( 'No account', 'ffcertificate' ); ?></h2>
+			<p class="ffc-identity-panel-note description"><?php esc_html_e( 'Records carrying an identifier that belongs to no login at all.', 'ffcertificate' ); ?></p>
+			<div class="ffc-identity-panel-nav">
+				<span class="ffc-identity-panel-count">
+					<?php
+					printf(
+						/* translators: %s: how many findings this category holds. */
+						esc_html( _n( '%s finding', '%s findings', count( $ffc_identity_orphans ), 'ffcertificate' ) ),
+						esc_html( number_format_i18n( count( $ffc_identity_orphans ) ) )
+					);
+					?>
+				</span>
+			</div>
+		</div>
+		<div class="ffc-identity-panel-body">
+		<p class="description">
+			<?php esc_html_e( 'These are usually candidacies that were never promoted, or records whose account was deleted. Linking one to an existing account uses the same rule as a move: the two must already agree on an identifier. Opening an account needs CPF, RF and an e-mail address together — an account opened from one identifier is one the resolver will fail to match on the next record carrying another.', 'ffcertificate' ); ?>
+		</p>
+		<?php if ( $ffc_identity_orphan_capped ) : ?>
+			<div class="notice notice-warning inline">
+				<p><?php esc_html_e( 'More orphaned records were found than are shown. Resolve these and read the queue again.', 'ffcertificate' ); ?></p>
+			</div>
+		<?php endif; ?>
+		<table class="wp-list-table widefat striped">
+			<thead>
+				<tr>
+					<th scope="col"><?php esc_html_e( 'Who', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'What it carries', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Which rows', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Give it an account', 'ffcertificate' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+			<?php foreach ( $ffc_identity_orphans as $ffc_identity_orphan ) : ?>
+				<tr>
+					<td>
+						<?php if ( array() !== $ffc_identity_orphan['names'] ) : ?>
+							<?php foreach ( $ffc_identity_orphan['names'] as $ffc_identity_orphan_name ) : ?>
+								<div><?php echo esc_html( (string) $ffc_identity_orphan_name ); ?></div>
+							<?php endforeach; ?>
+						<?php else : ?>
+							<span class="description"><?php esc_html_e( 'No name recorded beside these rows.', 'ffcertificate' ); ?></span>
+						<?php endif; ?>
+						<div>
+							<code><?php echo esc_html( substr( (string) $ffc_identity_orphan['hash'], 0, IdentityQueue::DISPLAY_PREFIX ) ); ?></code>
+							<span class="description"><?php echo esc_html( strtoupper( (string) $ffc_identity_orphan['field'] ) ); ?></span>
+						</div>
+					</td>
+					<td>
+						<?php
+						// WHAT IT HAS AND WHAT IT LACKS, BOTH STATED.
+						//
+						// Showing only what is present leaves the operator to
+						// work out the gap, and the gap is the whole reason
+						// the create action may be unavailable.
+						?>
+						<ul class="ffc-identity-orphan-has">
+							<?php foreach ( array( 'cpf', 'rf', 'email' ) as $ffc_identity_kind ) : ?>
+								<li class="<?php echo empty( $ffc_identity_orphan['has'][ $ffc_identity_kind ] ) ? 'ffc-identity-orphan-missing' : 'ffc-identity-orphan-present'; ?>">
+									<?php
+									printf(
+										/* translators: 1: CPF, RF or e-mail. 2: whether the record carries it. */
+										esc_html__( '%1$s — %2$s', 'ffcertificate' ),
+										esc_html( 'email' === $ffc_identity_kind ? __( 'E-mail', 'ffcertificate' ) : strtoupper( $ffc_identity_kind ) ),
+										empty( $ffc_identity_orphan['has'][ $ffc_identity_kind ] )
+											? esc_html__( 'missing', 'ffcertificate' )
+											: esc_html__( 'recorded', 'ffcertificate' )
+									);
+									?>
+								</li>
+							<?php endforeach; ?>
+						</ul>
+						<?php if ( array() !== $ffc_identity_orphan['accounts'] ) : ?>
+							<p class="description">
+								<?php esc_html_e( 'An account already files this identifier:', 'ffcertificate' ); ?>
+								<?php foreach ( $ffc_identity_orphan['accounts'] as $ffc_identity_orphan_account ) : ?>
+									<a href="<?php echo esc_url( admin_url( 'user-edit.php?user_id=' . rawurlencode( (string) $ffc_identity_orphan_account ) ) ); ?>">
+										<?php echo esc_html( $ffc_identity_named( $ffc_identity_orphan_account ) ); ?>
+									</a>
+								<?php endforeach; ?>
+							</p>
+						<?php else : ?>
+							<p class="description">
+								<?php esc_html_e( 'No account files this identifier, so this one needs an account opened rather than a link made.', 'ffcertificate' ); ?>
+							</p>
+						<?php endif; ?>
+					</td>
+					<td>
+						<?php foreach ( $ffc_identity_orphan['stores'] as $ffc_identity_orphan_store => $ffc_identity_orphan_ids ) : ?>
+							<div>
+								<strong><?php echo esc_html( (string) $ffc_identity_orphan_store ); ?></strong>
+								<code><?php echo esc_html( implode( ', ', array_map( 'strval', $ffc_identity_orphan_ids ) ) ); ?></code>
+							</div>
+						<?php endforeach; ?>
+					</td>
+					<td>
+						<?php
+						// The MOVE form, unchanged from the decision tier: an
+						// orphan's rows name no account, so the agreement rule
+						// reads them against the target exactly as it does
+						// there, and the Sprint 3 dialog serves it unaltered.
+						?>
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-2xs">
+							<?php wp_nonce_field( IdentityResolutionPage::RELINK_NONCE . (string) $ffc_identity_orphan['hash'] ); ?>
+							<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::RELINK_ACTION ); ?>">
+							<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+							<input type="hidden" name="ffc_field" value="<?php echo esc_attr( (string) $ffc_identity_orphan['field'] ); ?>">
+							<label class="screen-reader-text" for="ffc-orphan-account-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+								<?php esc_html_e( 'Account to link these records to', 'ffcertificate' ); ?>
+							</label>
+							<input type="number" inputmode="numeric" min="1" step="1" size="6" required
+								id="ffc-orphan-account-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
+								name="ffc_account" placeholder="<?php esc_attr_e( 'Account #', 'ffcertificate' ); ?>">
+							<button type="button" class="button button-secondary ffc-identity-find"
+								data-ffc-subject="<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
+								data-ffc-field="<?php echo esc_attr( (string) $ffc_identity_orphan['field'] ); ?>"
+								data-ffc-input="ffc-orphan-account-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
+								data-ffc-split="ffc-orphan-open-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
+								data-ffc-submit="ffc-orphan-link-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+								<?php esc_html_e( 'Search…', 'ffcertificate' ); ?>
+							</button>
+							<button type="submit" class="button button-secondary"
+								id="ffc-orphan-link-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+								<?php esc_html_e( 'Link', 'ffcertificate' ); ?>
+							</button>
+							<span class="ffc-identity-chosen" id="ffc-orphan-chosen-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>" hidden></span>
+						</form>
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
+							id="ffc-orphan-open-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+							<?php wp_nonce_field( IdentityResolutionPage::ADOPT_NONCE . (string) $ffc_identity_orphan['hash'] ); ?>
+							<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::ADOPT_ACTION ); ?>">
+							<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+							<?php
+							// ALL THREE ARE TYPED, INCLUDING THE ONE ON RECORD.
+							//
+							// The record's own value is stored and this screen
+							// never shows a stored identifier -- so a field
+							// pre-filled from it is not available, and one left
+							// empty would be a field whose meaning depends on
+							// something invisible. The operator types what they
+							// confirmed; the service checks the two numbers
+							// against their check digits before opening
+							// anything.
+							?>
+							<label class="screen-reader-text" for="ffc-orphan-cpf-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+								<?php esc_html_e( 'CPF', 'ffcertificate' ); ?>
+							</label>
+							<input type="text" inputmode="numeric" maxlength="14" size="14" required
+								id="ffc-orphan-cpf-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
+								name="ffc_cpf" placeholder="<?php esc_attr_e( 'CPF', 'ffcertificate' ); ?>">
+							<label class="screen-reader-text" for="ffc-orphan-rf-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+								<?php esc_html_e( 'RF', 'ffcertificate' ); ?>
+							</label>
+							<input type="text" inputmode="numeric" pattern="[0-9]{7}" maxlength="7" size="8" required
+								id="ffc-orphan-rf-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
+								name="ffc_rf" placeholder="<?php esc_attr_e( 'RF', 'ffcertificate' ); ?>">
+							<label class="screen-reader-text" for="ffc-orphan-email-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+								<?php esc_html_e( 'E-mail address', 'ffcertificate' ); ?>
+							</label>
+							<input type="email" size="22" required
+								id="ffc-orphan-email-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
+								name="ffc_email" placeholder="<?php esc_attr_e( 'E-mail', 'ffcertificate' ); ?>">
+							<button type="submit" class="button button-secondary">
+								<?php esc_html_e( 'Open the account', 'ffcertificate' ); ?>
+							</button>
+							<span class="ffc-identity-split-barred description" hidden>
+								<?php esc_html_e( 'A destination account is chosen, so opening a new one is not available. Clear the destination to open one instead.', 'ffcertificate' ); ?>
+							</span>
+						</form>
+					</td>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
+		</table>
+		<p class="description">
+			<?php esc_html_e( 'A record erased at the subject\'s request cannot appear here: the eraser clears the identifier hashes along with the ciphertexts, so nothing is left to match on. Adopting an orphan can never restore a link somebody asked to have removed.', 'ffcertificate' ); ?>
+		</p>
+		<?php $ffc_identity_foot(); ?>
+	<?php endif; ?>
+
+	<?php
 	// THE DIALOG'S FIXED PROSE LIVES HERE, NOT IN THE SCRIPT.
 	//
 	// One shell, reused by whichever move form opened it, so the sentences

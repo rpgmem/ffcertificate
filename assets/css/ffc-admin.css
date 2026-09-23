@@ -1709,3 +1709,35 @@ p.ffc-datetime-order-error {
 .ffc-page-identities .ffc-identity-merge-one .button {
     min-height: 44px;
 }
+
+/* ---------------------------------------------------------------------------
+   Orphaned records (#1397 sprint 6)
+   --------------------------------------------------------------------------- */
+
+.ffc-page-identities .ffc-identity-chip-orphans {
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
+}
+
+.ffc-page-identities .ffc-identity-orphan-has {
+    margin: 0;
+    font-size: var(--ffc-font-size-xs);
+}
+
+.ffc-page-identities .ffc-identity-orphan-present {
+    color: var(--ffc-success-text);
+}
+
+.ffc-page-identities .ffc-identity-orphan-missing {
+    color: var(--ffc-danger-text);
+    font-weight: 600;
+}
+
+@media (forced-colors: active) {
+    /* The chip paints a background and nothing else, so forced-colors
+       discards it and this category stops being tellable from the four above
+       — the one thing a chip exists to do. */
+    .ffc-page-identities .ffc-identity-chip-orphans {
+        border: 1px solid CanvasText;
+    }
+}
