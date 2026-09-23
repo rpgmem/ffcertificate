@@ -407,6 +407,51 @@ class IdentityResolutionPageTest extends TestCase {
 	}
 
 	/**
+	 * EVERY VARIABLE THE VIEW DECLARES IS ONE `render_page()` ASSIGNS.
+	 *
+	 * The view is `require`d into the caller's scope and is excluded from
+	 * PHPStan by the `views/` carve-out, so a variable it reads and nobody
+	 * sets is invisible to every gate -- it surfaces as an undefined-variable
+	 * warning on the live screen, or as a section that silently renders
+	 * nothing. That is not hypothetical: building this sprint, two separate
+	 * edits meant to add an assignment here did not apply, and the second was
+	 * found only because PHPStan noticed the METHODS it would have called had
+	 * become unused. The first had no such tell.
+	 *
+	 * Reads the docblock rather than the body because the docblock is the
+	 * contract the view states -- a `@var` line with no assignment is the
+	 * defect, whichever side was written first.
+	 */
+	public function test_the_view_is_handed_every_variable_it_declares(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
+
+		// Everything the view names, minus everything it makes itself: what is
+		// left it can only have been handed. Reading the DECLARED list instead
+		// was the first version of this test, and it passed against the very
+		// defect it was written for -- the missing variable had no `@var` line
+		// either, so the contract and the code were wrong together.
+		preg_match_all( '/\$(ffc_identity_\w+)/', $view, $named );
+		preg_match_all( '/\$(ffc_identity_\w+)\s*=[^=]/', $view, $made );
+		preg_match_all( '/function\s*\([^)]*\$(ffc_identity_\w+)/', $view, $taken );
+		preg_match_all( '/use\s*\([^)]*\$(ffc_identity_\w+)/', $view, $closed );
+		preg_match_all( '/as\s+\$(ffc_identity_\w+)\s*(?:=>\s*\$(ffc_identity_\w+))?/', $view, $looped );
+
+		$local = array_merge( $made[1], $taken[1], $closed[1], $looped[1], array_filter( $looped[2] ) );
+		$given = array_values( array_diff( array_unique( $named[1] ), $local ) );
+
+		$this->assertNotEmpty( $given, 'The scan found nothing handed in, so it proves nothing.' );
+
+		foreach ( $given as $name ) {
+			$this->assertMatchesRegularExpression(
+				'/\$' . preg_quote( $name, '/' ) . '\s*=/',
+				$page,
+				sprintf( 'The view reads `$%s` without making it, and `render_page()` never assigns it.', $name )
+			);
+		}
+	}
+
+	/**
 	 * The view refuses to call an unread scan clean.
 	 *
 	 * Asserted against the markup because the branch is in the view, which is

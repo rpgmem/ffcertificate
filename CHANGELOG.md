@@ -9,6 +9,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **The identity queue is worked one finding at a time** (#1397): four panels — decided by the check digits, no account explains it, needs a decision, two accounts — each a card with a coloured tier chip, a counter and Previous/Next over its own findings. A category with nothing in it is not rendered at all, `See the list` shows a whole category when scanning beats stepping, and a resolution lands on the next finding rather than back at the top. The counter is `aria-live`, the step controls are 44px, and the header takes a row of its own below wp-admin's 782px breakpoint.
 - **The identity queue is read once and held still while it is worked** (#1397): resolving a finding removes that one and moves nothing else, so a position keeps meaning what it meant and a screen worked item by item costs one decrypting scan per visit rather than one per click. `Read the queue again` is the single control that re-reads, and the screen says when the list was taken.
 
 ### Fixed

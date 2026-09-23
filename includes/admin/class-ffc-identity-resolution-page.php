@@ -869,6 +869,11 @@ class IdentityResolutionPage {
 		$ffc_identity_coverage = $this->coverage();
 		$ffc_identity_capped   = $this->truncated();
 		$ffc_identity_taken_at = $this->taken_at();
+		$ffc_identity_panels   = IdentityQueuePanels::build(
+			$ffc_identity_findings,
+			self::cursors(),
+			self::listed()
+		);
 
 		require __DIR__ . '/views/identity-resolution-page.php';
 	}

@@ -107,6 +107,11 @@ class TranslationSourceCoverageTest extends TestCase {
 		'Report-only scan for submissions wrongly linked to WordPress users. Nothing is changed — review each finding and fix it manually. Detection uses the stored CPF/RF hashes, so no decryption is involved.' => 'Superseded by the Migrations-tab card wording that says the scan now covers appointments, candidacies and the identity index (#1313).',
 		'No link problems found. Submissions and users look consistent.' => 'Superseded by the clean-result wording that states what was checked, now that the audit is wider than submissions (#1313).',
 
+		// The stepper's panel header says the tier once, so the column that
+		// repeated it per row went with it (#1397).
+		'Accounts to resolve'                     => 'Superseded by the per-tier panel headings ("One is mistyped", "Needs a decision"), which name what the old shared heading grouped.',
+		'What is known'                           => 'Column header dropped: the panel header carries the tier label and its note once, where that column repeated both on every row.',
+
 		// Seeded field labels whose text moved.
 		'Emergency Contact'                       => 'Seeded label, now "Emergency Contact Name".',
 		'Emergency Phone'                         => 'Seeded label, now "Emergency Contact Phone".',

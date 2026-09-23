@@ -41,35 +41,79 @@ if ( ! defined( 'ABSPATH' ) ) {
 // page has more. That second cap said nothing at all until #1397, so a queue
 // holding 140 findings of one kind looked exactly like one holding 100.
 $ffc_identity_truncated = false;
-$ffc_identity_rows      = array();
-$ffc_identity_accountal = array();
-$ffc_identity_pairs     = array();
 
 foreach ( $ffc_identity_findings as $ffc_identity_finding ) {
 	if ( ! empty( $ffc_identity_finding[ IdentityConflictQuery::COLUMN_SCAN_TRUNCATED ] ) ) {
 		$ffc_identity_truncated = true;
-		continue;
+		break;
 	}
-
-	// Three shapes, three sections. The isolated tier keeps the row-level
-	// table below, because its finding may name no account at all and
-	// `row_ids` is then the only handle on it. The shared tier gets a form of
-	// its own, because a merge is confirmed pair by pair rather than row by
-	// row. Everything else is account-side and shares one table.
-	$ffc_identity_of = $ffc_identity_finding[ IdentityQueue::COLUMN_TIER ] ?? '';
-
-	if ( IdentityQueue::TIER_ISOLATED === $ffc_identity_of ) {
-		$ffc_identity_rows[] = $ffc_identity_finding;
-		continue;
-	}
-
-	if ( IdentityQueue::TIER_SHARED === $ffc_identity_of ) {
-		$ffc_identity_pairs[] = $ffc_identity_finding;
-		continue;
-	}
-
-	$ffc_identity_accountal[] = $ffc_identity_finding;
 }
+
+// ONE PANEL PER TIER, AND THE TIERS WITH NOTHING IN THEM ARE ABSENT.
+//
+// `IdentityQueuePanels` already dropped those and put the rest in the order
+// of effort, so this is a lookup rather than a second opinion: the counters
+// and the panels below are the same list.
+$ffc_identity_by_tier = array();
+
+foreach ( $ffc_identity_panels as $ffc_identity_panel ) {
+	$ffc_identity_by_tier[ (string) $ffc_identity_panel['tier'] ] = $ffc_identity_panel;
+}
+
+// Every panel's own cursor, so a link that moves ONE panel carries the
+// others where they already are. Derived from the panels rather than passed
+// in, which is what stops the links from disagreeing with what is rendered.
+$ffc_identity_cursors = array();
+$ffc_identity_listed  = array();
+
+foreach ( $ffc_identity_panels as $ffc_identity_panel ) {
+	$ffc_identity_tier_key = (string) $ffc_identity_panel['tier'];
+
+	$ffc_identity_cursors[ $ffc_identity_tier_key ] = (string) ( $ffc_identity_panel['current'][ IdentityQueue::COLUMN_KEY ] ?? '' );
+
+	if ( ! empty( $ffc_identity_panel['list'] ) ) {
+		$ffc_identity_listed[] = $ffc_identity_tier_key;
+	}
+}
+
+/**
+ * A screen URL with one panel moved and every other panel left alone.
+ *
+ * @param string             $tier   The panel to move.
+ * @param string             $key    The finding to show, or '' to leave it.
+ * @param array<int, string> $listed Tiers showing their whole list.
+ * @return string
+ */
+$ffc_identity_url = static function ( $tier, $key, $listed ) use ( $ffc_identity_cursors ) {
+	$at = $ffc_identity_cursors;
+
+	if ( '' !== (string) $tier ) {
+		$at[ (string) $tier ] = (string) $key;
+	}
+
+	$args = array(
+		'page'                      => IdentityResolutionPage::MENU_SLUG,
+		IdentityQueuePanels::ARG_AT => array_filter( $at ),
+	);
+
+	if ( array() !== $listed ) {
+		$args[ IdentityQueuePanels::ARG_LIST ] = implode( ',', $listed );
+	}
+
+	return add_query_arg( $args, admin_url( 'edit.php?post_type=ffc_form' ) );
+};
+
+/**
+ * What a panel renders: the one finding it is on, or all of them.
+ *
+ * @param array<string, mixed> $panel The panel.
+ * @return array<int, array<string, mixed>>
+ */
+$ffc_identity_shown = static function ( $panel ) {
+	return empty( $panel['list'] )
+		? array( $panel['current'] )
+		: (array) $panel['items'];
+};
 
 /**
  * An account as a person reads it: the name WordPress holds, then the id.
@@ -81,6 +125,105 @@ foreach ( $ffc_identity_findings as $ffc_identity_finding ) {
  * @param int $user_id The account.
  * @return string
  */
+/**
+ * A panel's header: what it is, where the operator is in it, and the way out.
+ *
+ * THE COUNTER IS `aria-live`, BECAUSE THE NAVIGATION IS OTHERWISE MUTE.
+ *
+ * Moving between findings replaces the panel's body and changes nothing a
+ * screen reader announces on its own -- so somebody navigating by keyboard
+ * would hear the link they activated and nothing about where they landed.
+ *
+ * @param array<string, mixed> $panel  The panel.
+ * @param string               $label  Its name.
+ * @param string               $note   One line on what the tier is.
+ * @return void
+ */
+$ffc_identity_head = static function ( $panel, $label, $note ) use ( $ffc_identity_url, $ffc_identity_listed ) {
+	$tier  = (string) $panel['tier'];
+	$total = (int) $panel['total'];
+	$list  = ! empty( $panel['list'] );
+
+	// The toggle carries every OTHER listed tier plus or minus this one, so
+	// one category can be scanned whole while the rest stay one at a time.
+	$others = array_values( array_diff( $ffc_identity_listed, array( $tier ) ) );
+	$toggle = $list ? $others : array_merge( $others, array( $tier ) );
+	// The tier is part of the class, so the chip is coloured by what the
+	// finding IS rather than by a decision taken in the markup. The four
+	// values come from `IdentityQueuePanels::ORDER`, never from the request.
+	$chip = 'ffc-identity-chip-' . preg_replace( '/[^a-z]/', '', $tier );
+	?>
+	<div class="ffc-identity-panel">
+	<div class="ffc-identity-panel-head">
+		<span class="ffc-identity-panel-chip <?php echo esc_attr( $chip ); ?>"><?php echo esc_html( $label ); ?></span>
+		<h2 class="ffc-identity-panel-title screen-reader-text"><?php echo esc_html( $label ); ?></h2>
+		<p class="ffc-identity-panel-note description"><?php echo esc_html( $note ); ?></p>
+		<div class="ffc-identity-panel-nav">
+			<?php if ( $list ) : ?>
+				<span class="ffc-identity-panel-count" aria-live="polite">
+					<?php
+					printf(
+						/* translators: %s: how many findings this category holds. */
+						esc_html( _n( '%s finding', '%s findings', $total, 'ffcertificate' ) ),
+						esc_html( number_format_i18n( $total ) )
+					);
+					?>
+				</span>
+			<?php else : ?>
+				<span class="ffc-identity-panel-count" aria-live="polite">
+					<?php
+					printf(
+						/* translators: 1: the finding being shown, 2: how many there are. */
+						esc_html__( '%1$s of %2$s', 'ffcertificate' ),
+						esc_html( number_format_i18n( (int) $panel['index'] + 1 ) ),
+						esc_html( number_format_i18n( $total ) )
+					);
+					?>
+				</span>
+				<?php if ( '' !== (string) $panel['previous'] ) : ?>
+					<a class="button button-secondary ffc-identity-panel-step" href="<?php echo esc_url( $ffc_identity_url( $tier, (string) $panel['previous'], $ffc_identity_listed ) ); ?>">
+						<?php esc_html_e( 'Previous', 'ffcertificate' ); ?>
+					</a>
+				<?php else : ?>
+					<?php // Rendered and disabled rather than absent, so the controls do not move under the pointer as the operator walks the list. ?>
+					<span class="button button-secondary ffc-identity-panel-step disabled" aria-disabled="true"><?php esc_html_e( 'Previous', 'ffcertificate' ); ?></span>
+				<?php endif; ?>
+				<?php if ( '' !== (string) $panel['next'] ) : ?>
+					<a class="button button-secondary ffc-identity-panel-step" href="<?php echo esc_url( $ffc_identity_url( $tier, (string) $panel['next'], $ffc_identity_listed ) ); ?>">
+						<?php esc_html_e( 'Next', 'ffcertificate' ); ?>
+					</a>
+				<?php else : ?>
+					<span class="button button-secondary ffc-identity-panel-step disabled" aria-disabled="true"><?php esc_html_e( 'Next', 'ffcertificate' ); ?></span>
+				<?php endif; ?>
+			<?php endif; ?>
+			<a class="ffc-identity-panel-toggle" href="<?php echo esc_url( $ffc_identity_url( '', '', $toggle ) ); ?>">
+				<?php
+				echo $list
+					? esc_html__( 'One at a time', 'ffcertificate' )
+					: esc_html__( 'See the list', 'ffcertificate' );
+				?>
+			</a>
+		</div>
+	</div>
+	<div class="ffc-identity-panel-body">
+	<?php
+};
+
+/**
+ * Close the card a panel header opened.
+ *
+ * Paired with `$ffc_identity_head` rather than wrapping the body in it,
+ * because each tier's body is markup that already exists and moving it into
+ * a closure would put three tables through one more indirection for nothing.
+ *
+ * @return void
+ */
+$ffc_identity_foot = static function () {
+	?>
+	</div></div>
+	<?php
+};
+
 $ffc_identity_named = static function ( $user_id ) {
 	$user = get_userdata( (int) $user_id );
 	$name = ( $user && '' !== (string) $user->display_name ) ? (string) $user->display_name : '';
@@ -102,6 +245,8 @@ $ffc_identity_tier_label = static function ( $tier ) {
 			return __( 'One is mistyped', 'ffcertificate' );
 		case IdentityQueue::TIER_SHARED:
 			return __( 'Two accounts, one number', 'ffcertificate' );
+		case IdentityQueue::TIER_ISOLATED:
+			return __( 'Numbers to correct', 'ffcertificate' );
 		default:
 			return __( 'Needs a decision', 'ffcertificate' );
 	}
@@ -194,8 +339,17 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		?>
 	<?php endif; ?>
 
-	<?php if ( array() !== $ffc_identity_pairs ) : ?>
-		<h2><?php esc_html_e( 'Two accounts, one number', 'ffcertificate' ); ?></h2>
+	<?php if ( isset( $ffc_identity_by_tier[ IdentityQueue::TIER_SHARED ] ) ) : ?>
+		<?php
+		$ffc_identity_panel = $ffc_identity_by_tier[ IdentityQueue::TIER_SHARED ];
+		$ffc_identity_pairs = $ffc_identity_shown( $ffc_identity_panel );
+
+		$ffc_identity_head(
+			$ffc_identity_panel,
+			$ffc_identity_tier_label( IdentityQueue::TIER_SHARED ),
+			$ffc_identity_tier_note( IdentityQueue::TIER_SHARED )
+		);
+		?>
 		<p class="description">
 			<?php esc_html_e( 'One identifier is stored against two logins, so one of them is not that person\'s. Confirm only the pairs you know are one person, and choose which login keeps the records. A merge is the one action no other can undo: afterwards nothing can tell which records came from where.', 'ffcertificate' ); ?>
 		</p>
@@ -290,14 +444,34 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				<?php esc_html_e( 'The records, the identity index and the surviving login\'s certificate access move together, as one transaction per pair. The emptied login is left in place — removing it is yours to do in Users, because deleting an account runs cleanup this tool does not own and cannot undo.', 'ffcertificate' ); ?>
 			</p>
 		</form>
+		<?php $ffc_identity_foot(); ?>
 	<?php endif; ?>
 
-	<?php if ( array() !== $ffc_identity_accountal ) : ?>
-		<h2><?php esc_html_e( 'Accounts to resolve', 'ffcertificate' ); ?></h2>
+	<?php
+	// TWO PANELS OVER ONE TABLE, because what differs between them is the
+	// verb offered, not the shape of the finding: both are an account holding
+	// more than one identifier. The tier label moved into the panel header,
+	// so the `What is known` column below now says it once per panel rather
+	// than once per row.
+	$ffc_identity_account_tiers = array( IdentityQueue::TIER_MECHANICAL, IdentityQueue::TIER_DECISION );
+	?>
+	<?php foreach ( $ffc_identity_account_tiers as $ffc_identity_this_tier ) : ?>
+		<?php if ( ! isset( $ffc_identity_by_tier[ $ffc_identity_this_tier ] ) ) : ?>
+			<?php continue; ?>
+		<?php endif; ?>
+		<?php
+		$ffc_identity_panel     = $ffc_identity_by_tier[ $ffc_identity_this_tier ];
+		$ffc_identity_accountal = $ffc_identity_shown( $ffc_identity_panel );
+
+		$ffc_identity_head(
+			$ffc_identity_panel,
+			$ffc_identity_tier_label( (string) $ffc_identity_this_tier ),
+			$ffc_identity_tier_note( (string) $ffc_identity_this_tier )
+		);
+		?>
 		<table class="wp-list-table widefat striped">
 			<thead>
 				<tr>
-					<th scope="col"><?php esc_html_e( 'What is known', 'ffcertificate' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Accounts', 'ffcertificate' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Identifiers', 'ffcertificate' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Stores', 'ffcertificate' ); ?></th>
@@ -324,10 +498,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				?>
 				<tr>
 					<td>
-						<strong><?php echo esc_html( $ffc_identity_tier_label( $ffc_identity_tier ) ); ?></strong>
-						<p class="description"><?php echo esc_html( $ffc_identity_tier_note( $ffc_identity_tier ) ); ?></p>
-					</td>
-					<td>
+
 						<?php if ( array() === $ffc_identity_who ) : ?>
 							<span class="description"><?php esc_html_e( 'No account', 'ffcertificate' ); ?></span>
 						<?php else : ?>
@@ -471,16 +642,25 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		<p class="description">
 			<?php esc_html_e( 'Consolidating writes the account\'s sound identifier over the mistyped one across every store that holds it. Moving sends the records carrying one identifier to another account — allowed only where the two already agree on the other identifier, and where the receiving account holds none of that kind it gains this one. Splitting creates an account for one identifier and moves its records there — it asks for an address because there is none to inherit, and it removes the account again if the move refuses. All of them run as a single transaction, rolled back whole if any part refuses, and none shows a stored number.', 'ffcertificate' ); ?>
 		</p>
-	<?php endif; ?>
+		<?php $ffc_identity_foot(); ?>
+	<?php endforeach; ?>
 
-	<?php if ( array() !== $ffc_identity_rows ) : ?>
-		<h2><?php esc_html_e( 'Numbers to correct', 'ffcertificate' ); ?></h2>
-		<p class="description">
-			<?php esc_html_e( 'A stored RF whose own check digit does not match, and which no account-side finding above explains: somebody mistyped once on their only row, or the row belongs to a candidacy that carries no account until promotion. The correct value comes from HR.', 'ffcertificate' ); ?>
-		</p>
-	<?php endif; ?>
+	<?php
+	$ffc_identity_rows = array();
 
-	<?php if ( array() === $ffc_identity_rows && array() === $ffc_identity_accountal && array() === $ffc_identity_pairs ) : ?>
+	if ( isset( $ffc_identity_by_tier[ IdentityQueue::TIER_ISOLATED ] ) ) {
+		$ffc_identity_panel = $ffc_identity_by_tier[ IdentityQueue::TIER_ISOLATED ];
+		$ffc_identity_rows  = $ffc_identity_shown( $ffc_identity_panel );
+
+		$ffc_identity_head(
+			$ffc_identity_panel,
+			$ffc_identity_tier_label( IdentityQueue::TIER_ISOLATED ),
+			__( 'A stored RF whose own check digit does not match, and which no account-side finding above explains: somebody mistyped once on their only row, or the row belongs to a candidacy that carries no account until promotion. The correct value comes from HR.', 'ffcertificate' )
+		);
+	}
+	?>
+
+	<?php if ( array() === $ffc_identity_panels ) : ?>
 		<?php
 		// AN EMPTY LIST MEANS THREE DIFFERENT THINGS AND ONLY ONE IS GOOD NEWS.
 		//
@@ -640,6 +820,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 			<?php endforeach; ?>
 			</tbody>
 		</table>
+		<?php $ffc_identity_foot(); ?>
 	<?php endif; ?>
 
 	<p class="description ffc-set-mt-10">

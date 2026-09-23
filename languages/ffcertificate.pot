@@ -22354,3 +22354,17 @@ msgstr ""
 
 msgid "This queue was read at %s and is held still while you work it — resolving a finding removes that one and moves nothing else."
 msgstr ""
+
+msgid "%1$s of %2$s"
+msgstr ""
+
+msgid "One at a time"
+msgstr ""
+
+msgid "See the list"
+msgstr ""
+
+msgid "%s finding"
+msgid_plural "%s findings"
+msgstr[0] ""
+msgstr[1] ""
