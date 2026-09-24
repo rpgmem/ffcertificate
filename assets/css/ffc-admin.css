@@ -2080,6 +2080,21 @@ p.ffc-datetime-order-error {
     padding: var(--ffc-spacing-2xs) 0;
 }
 
+/* The evidence under each radio (#1368). Indented to the label's text
+   rather than to the fieldset, so it reads as belonging to that login and not
+   to the group; the counts and the date are separate spans so they wrap as
+   units on a narrow screen instead of breaking mid-phrase. */
+.ffc-page-identities .ffc-identity-pair-basis {
+    margin: 0 0 var(--ffc-spacing-2xs);
+}
+
+.ffc-page-identities .ffc-identity-pair-evidence {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
+    margin: 0 0 var(--ffc-spacing-2xs) var(--ffc-spacing-md);
+}
+
 .ffc-page-identities .ffc-identity-preview-region:not(:empty) {
     margin-bottom: var(--ffc-spacing-md);
     padding: var(--ffc-spacing-md);

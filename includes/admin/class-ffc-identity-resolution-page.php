@@ -1198,6 +1198,18 @@ class IdentityResolutionPage {
 			return $this->namer()->for_hash( (string) $hash, (string) $field );
 		};
 
+		// WHAT EACH LOGIN OF A PAIR HOLDS, AND WHEN IT WAS LAST USED.
+		//
+		// The evidence behind choosing a survivor, and it is read through the
+		// same `account_facts()` the audit CSV reads -- so the screen and the
+		// export cannot disagree about an account. A closure for the reason
+		// the namer above is one: the stepper draws ONE pair unless the
+		// operator asked for the list, and reading for eleven to show one is
+		// eleven times the statements for nothing.
+		$ffc_identity_facts = function ( array $ids ) {
+			return $this->conflicts()->account_facts( $ids );
+		};
+
 		require __DIR__ . '/views/identity-resolution-page.php';
 	}
 }

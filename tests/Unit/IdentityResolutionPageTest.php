@@ -93,6 +93,10 @@ class IdentityResolutionPageTest extends TestCase {
 			->once()
 			->with( IdentityResolutionPage::LIMIT )
 			->andReturn( $findings );
+		// The merge form reads this for the pair it draws. Stubbed on the
+		// harness rather than per test, because a full Mockery double throws
+		// on an unstubbed call and the cases here drive the view end to end.
+		$query->shouldReceive( 'account_facts' )->andReturn( array() )->byDefault();
 		$query->shouldReceive( 'rf_scan_coverage' )->andReturn(
 			array(
 				'stores'     => 3,
@@ -814,6 +818,89 @@ class IdentityResolutionPageTest extends TestCase {
 			IdentityQueuePanels::ORDER[ count( IdentityQueuePanels::ORDER ) - 1 ],
 			'The order is by effort, and the tier offering no verb costs the most.'
 		);
+	}
+
+	/**
+	 * THE EVIDENCE SITS WHERE THE CHOICE IS MADE (#1368).
+	 *
+	 * The issue asks for `account_activity` beside the per-store record
+	 * counts on the merge form. Both already existed — the audit measures
+	 * them and the CSV exports them — and neither reached this form: #1403
+	 * put the counts in the PREVIEW, which is one click after the operator
+	 * has already picked a survivor at the radio.
+	 */
+	public function test_the_merge_choice_states_what_each_login_holds_and_when_it_was_used(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertStringContainsString(
+			'$ffc_identity_pair_facts = $ffc_identity_facts( $ffc_identity_who );',
+			$view,
+			'The form must read the facts for the pair it draws.'
+		);
+		$this->assertStringContainsString( 'ffc-identity-pair-evidence', $view, 'The evidence must be drawn per login.' );
+		$this->assertStringContainsString( "\$ffc_identity_fact['rows']", $view, 'The per-store counts must be read.' );
+		$this->assertStringContainsString( "\$ffc_identity_fact['activity']", $view, 'The last-activity date must be read.' );
+
+		// The counts must be inside the fieldset the radios live in, not
+		// after it: an operator who has to scroll past the choice to find the
+		// evidence is being shown it too late, which is the defect.
+		$choice = strpos( $view, 'class="ffc-identity-pair-choice"' );
+		$closed = strpos( $view, '</fieldset>', (int) $choice );
+		$shown  = strpos( $view, 'ffc-identity-pair-evidence' );
+
+		$this->assertIsInt( $choice, 'The merge form must keep its choice fieldset.' );
+		$this->assertIsInt( $closed, 'The choice fieldset must close.' );
+		$this->assertGreaterThan( (int) $choice, (int) $shown, 'The evidence belongs inside the choice, not before it.' );
+		$this->assertLessThan( (int) $closed, (int) $shown, 'The evidence belongs inside the choice, not after it.' );
+	}
+
+	/**
+	 * A WALL-CLOCK DATE IS NOT AN INSTANT, AND THE WRONG HELPER PRINTS
+	 * YESTERDAY.
+	 *
+	 * `activity_per_account()` returns a site-local `Y-m-d` — it has to,
+	 * since the four stores disagree about how a moment is stored. Passing
+	 * that to `format_date()` parses it at UTC midnight and re-applies the
+	 * site zone, so every date west of UTC renders one day early. The
+	 * repository already has the Category B helper for exactly this.
+	 */
+	public function test_the_activity_date_is_rendered_as_wall_clock(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertStringContainsString(
+			'DateFormatter::format_wallclock_date(',
+			$view,
+			'The stored activity date carries no timezone semantics.'
+		);
+		$this->assertStringNotContainsString(
+			'DateFormatter::format_date(',
+			$view,
+			'format_date() would re-apply the site timezone to a value already rendered in it.'
+		);
+	}
+
+	/**
+	 * The screen reports evidence and proposes no survivor.
+	 *
+	 * A deliberate decision carried in #1368 rather than an omission: the
+	 * data can say which login holds more records and when each was last
+	 * used, and cannot say which is the person's real one. A screen that
+	 * pre-selected one would be asserting what it does not know — so the
+	 * radio ships with nothing checked and the sentence says whose choice it
+	 * is.
+	 */
+	public function test_the_merge_form_proposes_no_survivor(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$from = strpos( $view, 'class="ffc-identity-pair-choice"' );
+		$to   = strpos( $view, '</fieldset>', (int) $from );
+
+		$this->assertIsInt( $from, 'The merge form must keep its choice fieldset.' );
+
+		$choice = substr( $view, (int) $from, (int) $to - (int) $from );
+
+		$this->assertStringNotContainsString( 'checked', $choice, 'No login may be pre-selected.' );
+		$this->assertStringContainsString( 'the choice is yours', $choice, 'The form must say whose the decision is.' );
 	}
 
 	/**

@@ -22778,3 +22778,18 @@ msgstr "Esta conta tem %1$s %2$s sob um único endereço, e eles não são varia
 
 msgid "Nothing is offered here on purpose: correcting would rewrite a number that may be somebody else's, and splitting would detach records from an account that may legitimately hold them. Open the account, read what it submitted, and decide with HR."
 msgstr "Nada é oferecido aqui de propósito: corrigir reescreveria um número que pode ser de outra pessoa, e separar desvincularia registros de uma conta que pode legitimamente tê-los. Abra a conta, leia o que ela enviou e decida com o RH."
+
+msgid "The newer login is usually the accidental one — it exists because the resolver failed to match. What each holds and when it was last used is below; the choice is yours."
+msgstr "O login mais novo costuma ser o acidental — ele existe justamente porque o resolvedor não conseguiu casar os dados. O que cada um tem e quando foi usado pela última vez está abaixo; a escolha é sua."
+
+msgid "Holds %s"
+msgstr "Tem %s"
+
+msgid "No records in any store this install can read"
+msgstr "Nenhum registro em nenhum depósito que esta instalação consiga ler"
+
+msgid "Last used %s"
+msgstr "Usado pela última vez em %s"
+
+msgid "No activity date recorded"
+msgstr "Nenhuma data de atividade registrada"
