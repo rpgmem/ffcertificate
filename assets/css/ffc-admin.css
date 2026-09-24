@@ -1421,6 +1421,16 @@ p.ffc-datetime-order-error {
     color: var(--ffc-info-text);
 }
 
+/* The sixth family, and deliberately the neutral one rather than a sixth
+   hue: this tier is the one the screen offers no verb for, so a chip that
+   signals nothing is what it means. Text and ground are the base pair, which
+   the palette already guarantees in both themes. */
+.ffc-page-identities .ffc-identity-chip-mailbox {
+    background: var(--ffc-bg-alt);
+    border-color: var(--ffc-border);
+    color: var(--ffc-text);
+}
+
 .ffc-page-identities .ffc-identity-panel-nav {
     display: flex;
     flex-wrap: wrap;
@@ -1479,6 +1489,7 @@ p.ffc-datetime-order-error {
        read, not clicked. */
     .ffc-page-identities .ffc-identity-chip-decision,
     .ffc-page-identities .ffc-identity-chip-isolated,
+    .ffc-page-identities .ffc-identity-chip-mailbox,
     .ffc-page-identities .ffc-identity-chip-mechanical,
     .ffc-page-identities .ffc-identity-chip-shared {
         border: 1px solid CanvasText;

@@ -50,6 +50,35 @@ class IdentityQueue {
 	public const TIER_SHARED = 'shared';
 
 	/**
+	 * One account whose identifiers share an address and are not variants of
+	 * each other -- the shared-institutional-mailbox reading (#1368).
+	 *
+	 * The other account-side tiers rest on one premise: an address identifies
+	 * a person, so an address appearing under two of the account's
+	 * identifiers means one person typed a number twice. That premise is
+	 * sound at two identifiers and degrades as the count grows -- nine CPFs
+	 * across ten submissions under one address is an account submitting on
+	 * behalf of other people, or a department's shared mailbox, and neither
+	 * repair nor split is a thing to do to it.
+	 *
+	 * SO THE SCREEN OFFERS NO VERB HERE, AND THAT IS THE POINT OF THE TIER.
+	 * Measured on production, 38 of the account-side findings carry this
+	 * shape, and every one of them was being offered consolidate, move and
+	 * split -- verbs that would write one person's number onto another
+	 * person's records.
+	 *
+	 * It is decided BEFORE the mechanical test and therefore outranks it,
+	 * which refuses a two-identifier case the check digits could have
+	 * resolved. That is deliberate and the costs are not symmetric: refusing
+	 * a genuine typo costs an operator a manual correction, while accepting a
+	 * shared mailbox costs somebody else's records. The screen says which
+	 * account to read; it does not guess which reading is true.
+	 *
+	 * @var string
+	 */
+	public const TIER_MAILBOX = 'mailbox';
+
+	/**
 	 * One identifier that fails its check digits, which no account-side
 	 * finding explains: the account holds only that one, or the row holds no
 	 * account at all (an unpromoted candidacy). There is nothing to
@@ -362,6 +391,19 @@ class IdentityQueue {
 		$row[ self::COLUMN_TIER ]     = self::TIER_DECISION;
 		$row[ self::COLUMN_CHECK ]    = self::CHECK_MULTIPLE;
 
+		// THE SHARED MAILBOX IS DECIDED FIRST, SO NO VERB CAN BE OFFERED.
+		//
+		// Both halves are read rather than derived: `multiple_identities()`
+		// already annotates each row with the email verdict and the shape
+		// verdict, so this tier costs no query. See `TIER_MAILBOX` for why it
+		// outranks the mechanical test instead of falling through to it.
+		if ( self::is_mailbox( $row ) ) {
+			$row[ self::COLUMN_TIER ] = self::TIER_MAILBOX;
+			$row[ self::COLUMN_KEY ]  = self::key_of( $row );
+
+			return $row;
+		}
+
 		$invalid = array_keys( $verdicts, IdentityConflictQuery::VERDICT_INVALID, true );
 		$valid   = array_keys( $verdicts, IdentityConflictQuery::VERDICT_VALID, true );
 
@@ -391,6 +433,26 @@ class IdentityQueue {
 		$row[ self::COLUMN_KEY ] = self::key_of( $row );
 
 		return $row;
+	}
+
+	/**
+	 * Whether one account-side finding is the shared-mailbox reading.
+	 *
+	 * Both verdicts must be present AND say so. An absent column answers no,
+	 * which is the safe direction here only because the tier it would
+	 * otherwise reach still refuses to write without a decided pair -- a
+	 * report cached before the two columns existed therefore reads as it
+	 * always did rather than as a mailbox.
+	 *
+	 * @param array<string, mixed> $row The finding.
+	 * @return bool
+	 */
+	private static function is_mailbox( array $row ): bool {
+		$email = (string) ( $row[ IdentityConflictQuery::COLUMN_EMAIL_VERDICT ] ?? '' );
+		$shape = (string) ( $row[ IdentityConflictQuery::COLUMN_SHAPE_VERDICT ] ?? '' );
+
+		return IdentityConflictQuery::VERDICT_SHARED_EMAIL === $email
+			&& IdentityConflictQuery::SHAPE_UNRELATED === $shape;
 	}
 
 	/**

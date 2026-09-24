@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Admin\IdentityQueuePanels;
 use FreeFormCertificate\Admin\IdentityResolutionPage;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityQueue;
@@ -703,6 +704,115 @@ class IdentityResolutionPageTest extends TestCase {
 			2,
 			substr_count( $block, "\$ffc_identity_tone = 'unknown'" ),
 			'Unreadable and absent must both be drawn as unknown, never as a failure.'
+		);
+	}
+
+	/**
+	 * Just the mailbox tier's branch of the verb column.
+	 *
+	 * Bounded like `account_tier_block()` and for the same reason: the branch
+	 * that follows it is the generic one, and a substring running past it
+	 * would let the assertions below pass on somebody else's markup.
+	 *
+	 * SEARCHED FROM THE VERB COLUMN, NOT FROM THE FILE. The card's sentence
+	 * answers the same tier a hundred lines above, so an unanchored search
+	 * finds that one -- and it contains no control either, which is how the
+	 * first version of this helper passed while asserting nothing about the
+	 * column it is named after.
+	 *
+	 * @param string $view The view's source.
+	 * @return string
+	 */
+	private function mailbox_verb_branch( string $view ): string {
+		$column = strpos( $view, 'class="ffc-identity-card-act"' );
+
+		$this->assertIsInt( $column, 'The card must keep its verb column.' );
+
+		$from = strpos( $view, 'elseif ( IdentityQueue::TIER_MAILBOX === $ffc_identity_tier ) : ?>', $column );
+
+		$this->assertIsInt( $from, 'The verb column must answer the mailbox tier explicitly.' );
+
+		$to = strpos( $view, '<?php else : ?>', $from );
+
+		$this->assertIsInt( $to, 'The mailbox branch must be followed by the generic one.' );
+
+		return substr( $view, $from, $to - $from );
+	}
+
+	/**
+	 * THE 38 FINDINGS THAT ARE OFFERED NOTHING, AND THE REASON (#1368).
+	 *
+	 * An account whose numbers share one address and are not variants of each
+	 * other is a shared mailbox or an account submitting for other people.
+	 * Both verbs the account tiers offer are wrong there: consolidating
+	 * rewrites a number that may be another person's, splitting detaches
+	 * records from an account that may legitimately hold them. So the tier is
+	 * rendered, and its verb column carries no control at all.
+	 *
+	 * Asserted over the bounded branch rather than the file, because the
+	 * neighbouring branches are full of exactly the markup this one must not
+	 * have.
+	 */
+	public function test_the_shared_mailbox_tier_is_offered_no_verb(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		// THE LOOP'S OWN LIST, not merely the tier appearing somewhere in the
+		// block: the card's sentence names it too, so an assertion over the
+		// block passes with the tier dropped from the list and never drawn.
+		$this->assertStringContainsString(
+			'$ffc_identity_account_tiers = array( IdentityQueue::TIER_MECHANICAL, IdentityQueue::TIER_DECISION, IdentityQueue::TIER_MAILBOX );',
+			$view,
+			'The mailbox tier must be drawn as a card beside the other two account tiers.'
+		);
+
+		$branch = $this->mailbox_verb_branch( $view );
+
+		foreach ( array( '<form', 'wp_nonce_field', '<button', '<input' ) as $control ) {
+			$this->assertStringNotContainsString(
+				$control,
+				$branch,
+				sprintf( 'The mailbox tier must offer no %s: no write on this screen is correct for it.', $control )
+			);
+		}
+
+		// An empty column is indistinguishable from a capability the operator
+		// lacks. The branch says which question the screen cannot answer.
+		$this->assertStringContainsString(
+			'decide with HR',
+			$branch,
+			'The column must say why it is empty, not merely be empty.'
+		);
+	}
+
+	/**
+	 * The paragraph explaining the three verbs does not sit under the panel
+	 * that offers none.
+	 */
+	public function test_the_verb_footer_skips_the_panel_without_verbs(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertStringContainsString(
+			'IdentityQueue::TIER_MAILBOX !== $ffc_identity_this_tier',
+			$view,
+			'Explaining consolidate, move and split under a panel that offers none describes buttons that are not there.'
+		);
+	}
+
+	/**
+	 * The tier reaches the screen at all: absent from the panel order it
+	 * would be classified and then never rendered, which is a queue an
+	 * operator cannot work to zero.
+	 */
+	public function test_the_mailbox_tier_is_in_the_panel_order(): void {
+		$this->assertContains(
+			IdentityQueue::TIER_MAILBOX,
+			IdentityQueuePanels::ORDER,
+			'A tier absent from the order is not shown at all.'
+		);
+		$this->assertSame(
+			IdentityQueue::TIER_MAILBOX,
+			IdentityQueuePanels::ORDER[ count( IdentityQueuePanels::ORDER ) - 1 ],
+			'The order is by effort, and the tier offering no verb costs the most.'
 		);
 	}
 

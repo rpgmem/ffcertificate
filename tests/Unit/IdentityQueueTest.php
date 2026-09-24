@@ -103,16 +103,122 @@ class IdentityQueueTest extends TestCase {
 	/**
 	 * One account holding two identifiers, as the finding arrives.
 	 *
-	 * @param string $related The joined hashes.
+	 * @param string $related  The joined hashes.
+	 * @param array<string, mixed> $verdicts Extra columns the query annotates.
 	 * @return array<int, array<string, mixed>>
 	 */
-	private static function account_holding( string $related ): array {
+	private static function account_holding( string $related, array $verdicts = array() ): array {
 		return array(
+			array_merge(
+				array(
+					'subject'                               => '398',
+					'identifier_column'                     => 'rf_hash',
+					IdentityConflictQuery::COLUMN_RELATED   => $related,
+					IdentityConflictQuery::ALIAS_IDENTITY_COUNT => 2,
+				),
+				$verdicts
+			),
+		);
+	}
+
+	/**
+	 * The two columns that make a finding the shared-mailbox reading.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function mailbox_columns(): array {
+		return array(
+			IdentityConflictQuery::COLUMN_EMAIL_VERDICT => IdentityConflictQuery::VERDICT_SHARED_EMAIL,
+			IdentityConflictQuery::COLUMN_SHAPE_VERDICT => IdentityConflictQuery::SHAPE_UNRELATED,
+		);
+	}
+
+	/**
+	 * ONE ADDRESS ON NUMBERS THAT ARE NOT VARIANTS OF EACH OTHER (#1368).
+	 *
+	 * 38 production findings carry this shape and every one of them was being
+	 * offered consolidate, move and split. The tier exists so no verb reaches
+	 * them.
+	 */
+	public function test_shared_address_on_unrelated_numbers_is_a_mailbox(): void {
+		$items = $this->queue_reading(
+			self::account_holding( 'hashA|hashB', self::mailbox_columns() ),
 			array(
-				'subject'                               => '398',
-				'identifier_column'                     => 'rf_hash',
-				IdentityConflictQuery::COLUMN_RELATED   => $related,
-				IdentityConflictQuery::ALIAS_IDENTITY_COUNT => 2,
+				'hashA' => IdentityConflictQuery::VERDICT_VALID,
+				'hashB' => IdentityConflictQuery::VERDICT_VALID,
+			)
+		)->items();
+
+		$this->assertSame( IdentityQueue::TIER_MAILBOX, $items[0][ IdentityQueue::COLUMN_TIER ] );
+	}
+
+	/**
+	 * THE ASYMMETRIC REFUSAL, ASSERTED RATHER THAN DESCRIBED.
+	 *
+	 * The check digits single one out, so without the two verdicts this is
+	 * the mechanical tier and one click resolves it. With them it is refused,
+	 * because a number that may be another person's is not a typo to
+	 * overwrite. Refusing a real typo costs a manual correction; accepting a
+	 * shared mailbox costs somebody else's records.
+	 */
+	public function test_the_mailbox_reading_outranks_a_mechanical_one(): void {
+		$items = $this->queue_reading(
+			self::account_holding( 'hashA|hashB', self::mailbox_columns() ),
+			array(
+				'hashA' => IdentityConflictQuery::VERDICT_INVALID,
+				'hashB' => IdentityConflictQuery::VERDICT_VALID,
+			)
+		)->items();
+
+		$this->assertSame( IdentityQueue::TIER_MAILBOX, $items[0][ IdentityQueue::COLUMN_TIER ] );
+		$this->assertArrayNotHasKey( IdentityQueue::COLUMN_WRONG, $items[0] );
+		$this->assertArrayNotHasKey( IdentityQueue::COLUMN_RIGHT, $items[0] );
+	}
+
+	/**
+	 * Each verdict alone is not the reading, and a report cached before the
+	 * two columns existed carries neither -- so an absent column must answer
+	 * no rather than default into a tier that withholds every verb.
+	 *
+	 * @dataProvider not_mailbox_columns
+	 *
+	 * @param array<string, string> $columns What the finding carries.
+	 */
+	public function test_one_verdict_alone_is_not_the_mailbox_reading( array $columns ): void {
+		$items = $this->queue_reading(
+			self::account_holding( 'hashA|hashB', $columns ),
+			array(
+				'hashA' => IdentityConflictQuery::VERDICT_INVALID,
+				'hashB' => IdentityConflictQuery::VERDICT_VALID,
+			)
+		)->items();
+
+		$this->assertSame( IdentityQueue::TIER_MECHANICAL, $items[0][ IdentityQueue::COLUMN_TIER ] );
+	}
+
+	/**
+	 * @return array<string, array<int, array<string, string>>>
+	 */
+	public static function not_mailbox_columns(): array {
+		return array(
+			'neither column'      => array( array() ),
+			'shared address only' => array(
+				array( IdentityConflictQuery::COLUMN_EMAIL_VERDICT => IdentityConflictQuery::VERDICT_SHARED_EMAIL ),
+			),
+			'unrelated only'      => array(
+				array( IdentityConflictQuery::COLUMN_SHAPE_VERDICT => IdentityConflictQuery::SHAPE_UNRELATED ),
+			),
+			'distinct addresses'  => array(
+				array(
+					IdentityConflictQuery::COLUMN_EMAIL_VERDICT => IdentityConflictQuery::VERDICT_DISTINCT_EMAILS,
+					IdentityConflictQuery::COLUMN_SHAPE_VERDICT => IdentityConflictQuery::SHAPE_UNRELATED,
+				),
+			),
+			'a near miss'         => array(
+				array(
+					IdentityConflictQuery::COLUMN_EMAIL_VERDICT => IdentityConflictQuery::VERDICT_SHARED_EMAIL,
+					IdentityConflictQuery::COLUMN_SHAPE_VERDICT => IdentityConflictQuery::SHAPE_SINGLE_DIGIT_EDIT,
+				),
 			),
 		);
 	}

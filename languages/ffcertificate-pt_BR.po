@@ -22766,3 +22766,15 @@ msgid "%s store scanned"
 msgid_plural "%s stores scanned"
 msgstr[0] "%s depósito varrido"
 msgstr[1] "%s depósitos varridos"
+
+msgid "One address, several people"
+msgstr "Um endereço, várias pessoas"
+
+msgid "The numbers on this account share one address and are not variants of each other, so the address does not identify one person — a shared mailbox, or an account submitting on behalf of others. No verb is offered here: read the account and decide with HR."
+msgstr "Os números desta conta compartilham um endereço e não são variantes uns dos outros, então o endereço não identifica uma pessoa — é uma caixa postal compartilhada ou uma conta que envia em nome de outras pessoas. Nenhuma ação é oferecida aqui: leia a conta e decida com o RH."
+
+msgid "This account holds %1$s %2$s under one address, and they are not variants of each other. One address on that many numbers does not identify one person, so this is a shared mailbox or an account submitting for other people — which of the two, only the account itself says."
+msgstr "Esta conta tem %1$s %2$s sob um único endereço, e eles não são variantes uns dos outros. Um endereço com essa quantidade de números não identifica uma pessoa: é uma caixa postal compartilhada ou uma conta que envia por outras pessoas — qual das duas, só a própria conta diz."
+
+msgid "Nothing is offered here on purpose: correcting would rewrite a number that may be somebody else's, and splitting would detach records from an account that may legitimately hold them. Open the account, read what it submitted, and decide with HR."
+msgstr "Nada é oferecido aqui de propósito: corrigir reescreveria um número que pode ser de outra pessoa, e separar desvincularia registros de uma conta que pode legitimamente tê-los. Abra a conta, leia o que ela enviou e decida com o RH."
