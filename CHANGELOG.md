@@ -7,7 +7,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.28.4] (2026-09-24)
+## [6.28.4] (2026-09-24) — `20284a9`
 
 ### Security
 
