@@ -1701,6 +1701,49 @@ p.ffc-datetime-order-error {
     border-top: 1px solid var(--ffc-border);
 }
 
+/* TWO GROUPS SIT SIDE BY SIDE, AND THAT IS WHAT CLOSES THE VOID.
+
+   A 17em column stacks every control onto its own line, so one identifier's
+   group is about 235px tall and the decision tier's two came to 470 -- while
+   the main column beside them held four short lines. Measured in Chromium at
+   1600px: the card was 473px tall over 68px of content, leaving 357px of
+   white between the record and its options. It read as two panels that had
+   lost each other rather than as one card.
+
+   In a row the controls fit inline and the groups share the width: the same
+   card measures 164px with 7px of slack.
+
+   SCOPED WITH `:has()` TO THE TIER THAT HAS TWO, and the scope is the point.
+   Applied to every act column it widens the two tiers that hold ONE child --
+   the consolidate button and the mailbox sentence -- taking room from the
+   record for nothing, and the mailbox card grew 11px in the measurement that
+   caught it. With the scope both are byte-for-byte what they were: 108px and
+   127px, act column 242px, unchanged.
+
+   A browser without `:has()` falls back to the stacked column, which is the
+   layout that shipped -- degradation to the status quo, never to a broken
+   one. `ffc-frontend.css` already uses the selector. */
+.ffc-page-identities .ffc-identity-card-act:has( .ffc-identity-card-verb + .ffc-identity-card-verb ) {
+    flex: 0 1 auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
+.ffc-page-identities .ffc-identity-card-act:has( .ffc-identity-card-verb + .ffc-identity-card-verb ) .ffc-identity-card-verb {
+    flex: 1 1 16em;
+}
+
+.ffc-page-identities .ffc-identity-card-act:has( .ffc-identity-card-verb + .ffc-identity-card-verb ) .ffc-identity-card-verb + .ffc-identity-card-verb {
+    margin-top: 0;
+    margin-left: var(--ffc-spacing-sm);
+    padding-top: 0;
+    padding-left: var(--ffc-spacing-sm);
+    border-top: 0;
+    border-left: 1px solid var(--ffc-border);
+}
+
 .ffc-page-identities .ffc-identity-card-verb-head {
     display: flex;
     align-items: baseline;
@@ -1737,6 +1780,22 @@ p.ffc-datetime-order-error {
         flex: 0 0 auto;
         border-left: 0;
         border-top: 1px solid var(--ffc-border);
+    }
+
+    /* The groups keep the row, which still wraps two onto one line while
+       there is room -- what goes is the separator between them. A rule on
+       the left of a group that has wrapped onto its own line points at
+       nothing, and the indent that came with it forced the text to wrap
+       again: measured at 480px the card was 428px with it and 402 without,
+       against 415 before any of this. Above 360px every width is now shorter
+       than it was, and at 360 it is identical. */
+    .ffc-page-identities .ffc-identity-card-act:has( .ffc-identity-card-verb + .ffc-identity-card-verb ) .ffc-identity-card-verb + .ffc-identity-card-verb {
+        margin-top: var(--ffc-spacing-sm);
+        margin-left: 0;
+        padding-top: var(--ffc-spacing-sm);
+        padding-left: 0;
+        border-top: 1px solid var(--ffc-border);
+        border-left: 0;
     }
 }
 
