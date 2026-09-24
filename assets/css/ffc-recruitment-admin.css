@@ -26,14 +26,15 @@
     line-height: 1.5;
     white-space: nowrap;
 }
-/* As quatro regras de cor de status saíram no #1193. Elas liam a paleta
-   (`--ffc-warning-bg` e irmãs), mas a cor destes selos é um hex que o operador
-   escolhe nas Settings do módulo -- e vinha inline, então a regra nunca era
-   vista. Agora vem de `RecruitmentBadgePalette`, que gera uma regra por
-   variante e a anexa a ESTA folha; o valor é dado, então ele não pode morar
-   aqui, e manter a regra da paleta ao lado só deixaria dois donos para a mesma
-   declaração. O mesmo vale para as variantes de classificação, que nunca
-   tiveram regra nenhuma e por isso saíam sem cor quando o inline não vinha. */
+/* The four status-colour rules left in #1193. They read the palette
+   (`--ffc-warning-bg` and siblings), but these badges' colour is a hex the
+   operator picks in the module's Settings -- and it arrived inline, so the
+   rule was never seen. It now comes from `RecruitmentBadgePalette`, which
+   generates one rule per variant and attaches it to THIS sheet; the value is
+   data, so it cannot live here, and keeping the palette rule beside it would
+   only leave two owners for one declaration. The same holds for the ranking
+   variants, which never had a rule at all and so rendered colourless whenever
+   the inline did not arrive. */
 
 /* Attached-adjutancy pill (Notices tab inline cell). */
 .ffc-attached-list { line-height: 1.8; }

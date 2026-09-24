@@ -241,7 +241,7 @@ class CommentLanguageTest extends TestCase {
 	}
 
 	/**
-	 * Every PHP and JS file in the tree, repo-relative.
+	 * Every PHP, JS and CSS file in the tree, repo-relative.
 	 *
 	 * Walks the filesystem rather than shelling out to git, so the scan works in
 	 * a checkout without a `.git` at all.
@@ -261,8 +261,20 @@ class CommentLanguageTest extends TestCase {
 
 				$name = $file->getFilename();
 
-				return ( str_ends_with( $name, '.php' ) || str_ends_with( $name, '.js' ) )
-					&& ! str_ends_with( $name, '.min.js' );
+				// CSS JOINED IN #1419, AND IT COST NOTHING TO READ.
+				//
+				// `is_comment_line()` already recognises `/*` and `*`, which
+				// is the whole of CSS comment syntax, so the sheets were
+				// always scannable and simply were not scanned -- 258 lines
+				// of Portuguese prose sat in 19 of them while the guard
+				// reported the tree clean. A guard's reach is a claim about
+				// what it looked at, and this one's was narrower than anyone
+				// reading it would assume.
+				return ( str_ends_with( $name, '.php' )
+						|| str_ends_with( $name, '.js' )
+						|| str_ends_with( $name, '.css' ) )
+					&& ! str_ends_with( $name, '.min.js' )
+					&& ! str_ends_with( $name, '.min.css' );
 			}
 		);
 
@@ -453,6 +465,8 @@ class CommentLanguageTest extends TestCase {
 		$this->assertContains( 'assets/js/ffc-core.js', $files, 'The walk misses `assets/js/`.' );
 		$this->assertContains( 'templates/emails/reregistration-invitation.php', $files, 'The walk misses `templates/`.' );
 		$this->assertContains( 'uninstall.php', $files, 'The walk misses the repository root.' );
+		$this->assertContains( 'assets/css/ffc-common.css', $files, 'The walk misses `assets/css/` -- 258 comment lines hid there until #1419.' );
+		$this->assertNotContains( 'assets/css/ffc-common.min.css', $files, 'A minified sheet is generated, never written.' );
 	}
 
 	/**

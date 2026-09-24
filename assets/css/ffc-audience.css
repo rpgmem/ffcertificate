@@ -56,9 +56,9 @@
 }
 
 .ffc-shortcode .ffc-nav-btn {
-    /* Um controle de formulário NÃO herda `color` — o agente de usuário dá
-       `buttontext`, quase preto, então a regra de base do tema escuro não o
-       alcança. Quem pinta o fundo tem de pintar o texto (#1126). */
+    /* A form control does NOT inherit `color` — the user agent gives it
+       `buttontext`, near-black, so the dark theme's base rule cannot reach
+       it. Whatever paints the ground must paint the text (#1126). */
     color: var(--ffc-text);
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-gray-300);
@@ -551,9 +551,9 @@
     padding: 3px var(--ffc-spacing-sm);
     border-radius: var(--ffc-radius-xs);
     font-size: var(--ffc-font-size-xs);
-    /* O fundo desta etiqueta vem da cor da audiência, escrita no style= do
-       elemento: branco é a única escolha segura contra um matiz arbitrário,
-       então não é papel da paleta (#1126). */
+    /* This label's ground comes from the audience's colour, written into the
+       element's style=: white is the only safe choice against an arbitrary
+       hue, so it is not a palette role (#1126). */
     color: #fff;
 }
 
@@ -798,7 +798,7 @@
     padding: 1px var(--ffc-spacing-xs);
     border-radius: var(--ffc-radius-xs);
     font-size: var(--ffc-font-size-2xs);
-    /* Idem à etiqueta grande acima: fundo data-driven (#1126). */
+    /* As for the large label above: a data-driven ground (#1126). */
     color: #fff;
 }
 

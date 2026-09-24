@@ -141,8 +141,8 @@
 }
 
 .ffc-stats-box tr.alternate {
-    /* Véu claro sobre a linha alternada do quadro de estatísticas: camada
-       sobre o que estiver embaixo, não papel da paleta (#1126). */
+    /* Light veil over the stats box's alternating row: a layer over whatever
+       is underneath, not a palette role (#1126). */
     background: rgba(255, 255, 255, 0.6);
 }
 
@@ -186,12 +186,12 @@
 }
 
 .ffc-provider-card.ffc-provider-outlook {
-    /* Cor de marca do provedor, não papel da paleta (#1126). */
+    /* The provider's brand colour, not a palette role (#1126). */
     border-left-color: #00a0d2;
 }
 
 .ffc-provider-card.ffc-provider-sendgrid {
-    /* Cor de marca do provedor, não papel da paleta (#1126). */
+    /* The provider's brand colour, not a palette role (#1126). */
     border-left-color: #9b51e0;
 }
 

@@ -191,8 +191,8 @@
 }
 
 .ffc-text-warning {
-    /* --ffc-warning é cor de sinal (piso 3:1), não de texto: sobre branco dá
-       3,04:1. Como texto o papel certo é --ffc-warning-text (#1126). */
+    /* --ffc-warning is a signal colour (3:1 floor), not a text one: over white
+       it measures 3.04:1. As text the right role is --ffc-warning-text (#1126). */
     color: var(--ffc-warning-text);
     font-weight: 600;
 }

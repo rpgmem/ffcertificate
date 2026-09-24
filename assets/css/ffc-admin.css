@@ -411,9 +411,9 @@
 }
 
 .ffc-action-group .button .dashicons,
-/* 17px literal: caixa de glifo, não texto — um ícone ou um `&times;`
-   dimensionado por font-size é uma caixa, e a escala tipográfica não o
-   governa. Mesma razão do .ffc-stat-icon (#1148 etapa 1). */
+/* 17px literal: a glyph box, not text — an icon or a `&times;` sized by
+   font-size is a box, and the typography scale does not govern it. Same
+   reason as .ffc-stat-icon (#1148 step 1). */
 .ffc-template-loader .button .dashicons {
     margin-right: var(--ffc-spacing-2xs);
     font-size: 17px;
@@ -797,9 +797,9 @@ td .ffc-restriction-label {
     color: var(--ffc-inverse-on-surface);
 }
 
-/* 28px literal: caixa de glifo, não texto — um ícone ou um `&times;`
-   dimensionado por font-size é uma caixa, e a escala tipográfica não o
-   governa. Mesma razão do .ffc-stat-icon (#1148 etapa 1). */
+/* 28px literal: a glyph box, not text — an icon or a `&times;` sized by
+   font-size is a box, and the typography scale does not govern it. Same
+   reason as .ffc-stat-icon (#1148 step 1). */
 .ffc-preview-close {
     background: none;
     border: none;
@@ -1037,9 +1037,9 @@ p.ffc-datetime-order-error {
 	border-bottom: 2px solid var(--ffc-primary);
 }
 
-/* 20px literal: caixa de glifo, não texto — um ícone ou um `&times;`
-   dimensionado por font-size é uma caixa, e a escala tipográfica não o
-   governa. Mesma razão do .ffc-stat-icon (#1148 etapa 1). */
+/* 20px literal: a glyph box, not text — an icon or a `&times;` sized by
+   font-size is a box, and the typography scale does not govern it. Same
+   reason as .ffc-stat-icon (#1148 step 1). */
 .ffc-form-tabs__panel-title .dashicons {
 	flex: 0 0 auto;
 	color: var(--ffc-primary);
