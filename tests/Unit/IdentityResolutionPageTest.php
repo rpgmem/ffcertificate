@@ -872,9 +872,24 @@ class IdentityResolutionPageTest extends TestCase {
 			$view,
 			'The stored activity date carries no timezone semantics.'
 		);
+
+		// SCOPED TO THIS READ, NOT TO THE FILE.
+		//
+		// `format_date()` is not wrong here in general -- it is the right
+		// call for an instant, and this view already renders one three
+		// hundred lines above (`format_datetime( $ffc_identity_taken_at )`).
+		// Both are `DateFormatter`; the convention has two categories and a
+		// method for each. What must not happen is THIS value taking the
+		// Category A path, so the refusal is bounded to the statement rather
+		// than banning an API from the file and refusing a correct call
+		// somebody makes later.
+		$from = strpos( $view, "\$ffc_identity_seen = " );
+
+		$this->assertIsInt( $from, 'The activity date must still be resolved into its own variable.' );
+
 		$this->assertStringNotContainsString(
 			'DateFormatter::format_date(',
-			$view,
+			substr( $view, (int) $from, 400 ),
 			'format_date() would re-apply the site timezone to a value already rendered in it.'
 		);
 	}
