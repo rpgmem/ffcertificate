@@ -22176,7 +22176,7 @@ msgstr ""
 msgid "Account to move the records carrying %s to"
 msgstr ""
 
-msgid "Move %s"
+msgid "Move"
 msgstr ""
 
 msgid "Moved. The records, the identity index and the receiving account's certificate access were updated together."

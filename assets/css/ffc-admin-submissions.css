@@ -361,7 +361,12 @@
     position: relative;
 }
 
-.ffc-admin-page .button[title]:hover::after {
+/* Hover AND focus: a tooltip only a pointer can reach is a label a
+   keyboard user does not have (WCAG 1.4.13). The focus half was missing
+   until #1421, which is when the identity steppers started depending on
+   it -- their word is now the tooltip and the `aria-label`. */
+.ffc-admin-page .button[title]:hover::after,
+.ffc-admin-page .button[title]:focus-visible::after {
     content: attr(title);
     position: absolute;
     bottom: 100%;
@@ -380,7 +385,8 @@
 }
 
 /* Tooltip arrow - only for buttons without emoji icons */
-.button[title]:not([title*="PDF"]):not([href*="action=edit"]):not([href*="action=trash"]):not([href*="action=restore"]):not(.ffc-delete-btn):hover::before {
+.button[title]:not([title*="PDF"]):not([href*="action=edit"]):not([href*="action=trash"]):not([href*="action=restore"]):not(.ffc-delete-btn):hover::before,
+.button[title]:not([title*="PDF"]):not([href*="action=edit"]):not([href*="action=trash"]):not([href*="action=restore"]):not(.ffc-delete-btn):focus-visible::before {
     content: '';
     position: absolute;
     bottom: 100%;
@@ -394,7 +400,9 @@
 /* Hide tooltip on mobile */
 @media screen and (max-width: 782px) {
     .ffc-admin-page .button[title]:hover::after,
-    .ffc-admin-page .button[title]:hover::before {
+    .ffc-admin-page .button[title]:focus-visible::after,
+    .ffc-admin-page .button[title]:hover::before,
+    .ffc-admin-page .button[title]:focus-visible::before {
         display: none;
     }
 }

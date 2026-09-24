@@ -1453,6 +1453,29 @@ p.ffc-datetime-order-error {
     padding: 0 var(--ffc-spacing-sm);
 }
 
+/* A SQUARE, BECAUSE THE LABEL IS NOW THE GLYPH (#1421).
+
+   The word left the two steppers -- it survives as `aria-label` and as the
+   tooltip -- so what is left to size is a chevron, and a button padded for a
+   word around a 20px glyph reads as an empty box. 40px square is the
+   mockup's, and it is above the 24px WCAG 2.5.8 asks of a target while
+   staying under the 44px the writing column takes: these two navigate and
+   undo nothing. */
+.ffc-page-identities .ffc-identity-panel-step-previous,
+.ffc-page-identities .ffc-identity-panel-step-next {
+    justify-content: center;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0;
+}
+
+.ffc-page-identities .ffc-identity-panel-step .dashicons {
+    width: auto;
+    height: auto;
+    font-size: var(--ffc-font-size-xl);
+    line-height: 1;
+}
+
 /* `aria-disabled` rather than `disabled`, because these are links and a link
    has no disabled state — the attribute is what tells a screen reader, and
    this is what tells everybody else. The fade is on an INACTIVE control,
@@ -1766,6 +1789,54 @@ p.ffc-datetime-order-error {
    Inside a flex column it would fight the gap. */
 .ffc-page-identities .ffc-identity-card-act form {
     margin: 0;
+}
+
+/* A TARGET THE SIZE OF A FINGER, ON THE COLUMN THAT WRITES (#1421).
+
+   wp-admin's `.button` is about 30px tall, which is a pointer's target and
+   not a touch one. Every control in this column commits or refuses an
+   irreversible write to somebody's records, and the operator reaching it on
+   a tablet is the same operator working a 96-finding list -- so the column
+   takes the 44px of WCAG 2.5.5, which is what the mockup draws. Scoped to
+   this column on purpose: it is not an opinion about every button in
+   wp-admin, only about the ones that move records. */
+.ffc-page-identities .ffc-identity-card-act .button {
+    min-height: 44px;
+    padding-top: var(--ffc-spacing-2xs);
+    padding-bottom: var(--ffc-spacing-2xs);
+}
+
+/* WEIGHT IS THE ONE THING THE PROMOTION CANNOT BORROW.
+
+   Everything else about these buttons is already wp-admin's: the mockup's
+   `#2271b1` / `#f6f7f7` / `#1d2327` ARE `--ffc-primary` / `--ffc-bg-alt` /
+   `--ffc-text`, i.e. what core paints on `.button-primary` and `.button`
+   unaided. Re-declaring them here would be a colour literal, and tokenizing
+   them would be worse -- the dark theme redefines those tokens while
+   wp-admin's own chrome follows the user's colour scheme instead, so our
+   primary would stop matching every other primary on the screen. Core's
+   `.button-primary` is normal weight; the mockup's is 600, and that is the
+   difference this rule is for. */
+.ffc-page-identities .ffc-identity-card-act .button-primary {
+    font-weight: 600;
+}
+
+/* The search button carries a glyph before its word, so it stops being a
+   text box: `inline-flex` is what puts the two on one baseline, since a
+   dashicon is a 20px square that a button's own line-height cannot centre.
+   Sized to the label rather than to its own default, or the glyph reads as
+   the control and the word as its caption. */
+.ffc-page-identities .ffc-identity-find {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ffc-spacing-3xs);
+}
+
+.ffc-page-identities .ffc-identity-find .dashicons {
+    width: auto;
+    height: auto;
+    font-size: var(--ffc-font-size-lg);
+    line-height: 1;
 }
 
 @media screen and (max-width: 782px) {
