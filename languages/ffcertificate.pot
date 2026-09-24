@@ -22131,9 +22131,6 @@ msgstr ""
 msgid "Accounts to resolve"
 msgstr ""
 
-msgid "Identifiers"
-msgstr ""
-
 msgid "Needs a decision"
 msgstr ""
 
@@ -22158,18 +22155,6 @@ msgstr ""
 msgid "What is known"
 msgstr ""
 
-msgid "— could not be read, so nothing is known about it"
-msgstr ""
-
-msgid "— fails its check digits"
-msgstr ""
-
-msgid "— not stored anywhere this check can read"
-msgstr ""
-
-msgid "— well formed"
-msgstr ""
-
 msgid "Consolidate"
 msgstr ""
 
@@ -22180,9 +22165,6 @@ msgid "No sound identifier was named to consolidate into."
 msgstr ""
 
 msgid "Open the account — this one is not decided here."
-msgstr ""
-
-msgid "Resolve it"
 msgstr ""
 
 msgid "That is not an identifier this can rewrite."
@@ -22652,3 +22634,24 @@ msgid "%s finding left:"
 msgid_plural "%s findings left:"
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "%s · fails its check digit"
+msgstr ""
+
+msgid "%s · well formed"
+msgstr ""
+
+msgid "%s · could not be read"
+msgstr ""
+
+msgid "%s · not stored where this can read"
+msgstr ""
+
+msgid "Appears in %s"
+msgstr ""
+
+msgid "This account holds two %s. One fails its own check digit and the other is sound, so the right one is the one the account already has."
+msgstr ""
+
+msgid "This account holds %1$s %2$s, and the check digits do not single one out — none fails, or more than one does. The right value comes from HR."
+msgstr ""

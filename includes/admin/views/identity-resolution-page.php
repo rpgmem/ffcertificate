@@ -699,211 +699,323 @@ $ffc_identity_tier_note = static function ( $tier ) {
 			$ffc_identity_tier_note( (string) $ffc_identity_this_tier )
 		);
 		?>
-		<table class="wp-list-table widefat striped">
-			<thead>
-				<tr>
-					<th scope="col"><?php esc_html_e( 'Accounts', 'ffcertificate' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Identifiers', 'ffcertificate' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Stores', 'ffcertificate' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Resolve it', 'ffcertificate' ); ?></th>
-				</tr>
-			</thead>
-			<tbody>
-			<?php foreach ( $ffc_identity_accountal as $ffc_identity_item ) : ?>
-				<?php
-				$ffc_identity_tier = (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_TIER ] ?? '' );
+		<?php
+		// A CARD PER FINDING, NOT A ROW PER FINDING (#1407 sprint 2).
+		//
+		// The table asked the operator to read four cells and work out what
+		// they meant together: two hashes in one column, a verdict beside
+		// each, an account in another, and the verb in a fourth. What the
+		// check digits had already decided was derivable from it and stated
+		// nowhere. The card states it in a sentence and shows the two hashes
+		// as the before and after of the write the button performs.
+		//
+		// The FORMS ARE UNTOUCHED -- same fields, same nonces, same actions,
+		// moved into a column of their own. This sprint is markup and CSS.
+		?>
+		<div class="ffc-identity-cards">
+		<?php foreach ( $ffc_identity_accountal as $ffc_identity_item ) : ?>
+			<?php
+			$ffc_identity_tier = (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_TIER ] ?? '' );
 
-				// The two orientations of one finding, and they are mirror
-				// images: an account holding several numbers names the account
-				// in `subject`, while a number held by several accounts names
-				// the NUMBER there and the accounts in `related`. Reading one
-				// shape for both is how an account id gets printed as a hash.
-				if ( IdentityQueue::TIER_SHARED === $ffc_identity_tier ) {
-					$ffc_identity_who   = IdentityConflictQuery::parse_accounts( $ffc_identity_item[ IdentityConflictQuery::COLUMN_RELATED ] ?? '' );
-					$ffc_identity_which = array( (string) ( $ffc_identity_item['subject'] ?? '' ) => '' );
-				} else {
-					$ffc_identity_who   = IdentityConflictQuery::parse_accounts( $ffc_identity_item['subject'] ?? '' );
-					$ffc_identity_which = (array) ( $ffc_identity_item[ IdentityQueue::COLUMN_VERDICTS ] ?? array() );
-				}
-				?>
-				<tr>
-					<td>
+			// The two orientations of one finding, and they are mirror
+			// images: an account holding several numbers names the account
+			// in `subject`, while a number held by several accounts names
+			// the NUMBER there and the accounts in `related`. Reading one
+			// shape for both is how an account id gets printed as a hash.
+			if ( IdentityQueue::TIER_SHARED === $ffc_identity_tier ) {
+				$ffc_identity_who   = IdentityConflictQuery::parse_accounts( $ffc_identity_item[ IdentityConflictQuery::COLUMN_RELATED ] ?? '' );
+				$ffc_identity_which = array( (string) ( $ffc_identity_item['subject'] ?? '' ) => '' );
+			} else {
+				$ffc_identity_who   = IdentityConflictQuery::parse_accounts( $ffc_identity_item['subject'] ?? '' );
+				$ffc_identity_which = (array) ( $ffc_identity_item[ IdentityQueue::COLUMN_VERDICTS ] ?? array() );
+			}
 
+			// The kind, as the operator says it. `RF` and `CPF` are proper
+			// nouns here, so they are uppercased rather than translated --
+			// the criterion `CLAUDE.md` states for a domain acronym inside an
+			// English sentence.
+			$ffc_identity_kind  = strtoupper( str_replace( '_hash', '', (string) ( $ffc_identity_item['identifier_column'] ?? '' ) ) );
+			$ffc_identity_wrong = (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_WRONG ] ?? '' );
+			$ffc_identity_right = (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_RIGHT ] ?? '' );
+
+			// MECHANICAL IS THE ONLY TIER WITH AN ORDER TO SHOW.
+			//
+			// `IdentityQueue::tiered()` sets `wrong` and `right` only where
+			// exactly one identifier failed and every other one was READ --
+			// so the pair, and the arrow between them, exist precisely when
+			// the write has a direction. Everywhere else the hashes are a
+			// set, and drawing an arrow over them would assert a decision
+			// the check digits refused to make.
+			$ffc_identity_directed = IdentityQueue::TIER_MECHANICAL === $ffc_identity_tier
+				&& '' !== $ffc_identity_wrong
+				&& '' !== $ffc_identity_right;
+			?>
+			<div class="ffc-identity-card">
+				<div class="ffc-identity-card-main">
+					<p class="ffc-identity-card-who">
 						<?php if ( array() === $ffc_identity_who ) : ?>
 							<span class="description"><?php esc_html_e( 'No account', 'ffcertificate' ); ?></span>
 						<?php else : ?>
 							<?php foreach ( $ffc_identity_who as $ffc_identity_account ) : ?>
-								<div>
-									<a href="<?php echo esc_url( admin_url( 'user-edit.php?user_id=' . rawurlencode( (string) $ffc_identity_account ) ) ); ?>">#<?php echo esc_html( (string) $ffc_identity_account ); ?></a>
-								</div>
+								<?php // The NAME, then the number. A finding an operator has to act on is about a person, and `#4821` is not a person. ?>
+								<a href="<?php echo esc_url( admin_url( 'user-edit.php?user_id=' . rawurlencode( (string) $ffc_identity_account ) ) ); ?>">
+									<?php echo esc_html( $ffc_identity_named( $ffc_identity_account ) ); ?>
+								</a>
 							<?php endforeach; ?>
 						<?php endif; ?>
-					</td>
-					<td>
-						<?php foreach ( $ffc_identity_which as $ffc_identity_hash => $ffc_identity_verdict ) : ?>
-							<div>
-								<code><?php echo esc_html( substr( (string) $ffc_identity_hash, 0, IdentityQueue::DISPLAY_PREFIX ) ); ?></code>
-								<?php if ( IdentityConflictQuery::VERDICT_INVALID === $ffc_identity_verdict ) : ?>
-									<span class="description"><?php esc_html_e( '— fails its check digits', 'ffcertificate' ); ?></span>
-								<?php elseif ( IdentityConflictQuery::VERDICT_VALID === $ffc_identity_verdict ) : ?>
-									<span class="description"><?php esc_html_e( '— well formed', 'ffcertificate' ); ?></span>
-								<?php elseif ( IdentityConflictQuery::VERDICT_UNREADABLE === $ffc_identity_verdict ) : ?>
-									<span class="description"><?php esc_html_e( '— could not be read, so nothing is known about it', 'ffcertificate' ); ?></span>
-								<?php elseif ( IdentityConflictQuery::VERDICT_ABSENT === $ffc_identity_verdict ) : ?>
-									<span class="description"><?php esc_html_e( '— not stored anywhere this check can read', 'ffcertificate' ); ?></span>
-								<?php endif; ?>
-							</div>
-						<?php endforeach; ?>
-					</td>
-					<td><?php echo esc_html( (string) ( $ffc_identity_item[ IdentityConflictQuery::COLUMN_STORES ] ?? '' ) ); ?></td>
-					<td>
-						<?php if ( IdentityQueue::TIER_MECHANICAL === $ffc_identity_tier ) : ?>
+					</p>
+
+					<p class="ffc-identity-card-says">
+						<?php if ( $ffc_identity_directed ) : ?>
 							<?php
-							$ffc_identity_wrong = (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_WRONG ] ?? '' );
-							$ffc_identity_right = (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_RIGHT ] ?? '' );
+							printf(
+								/* translators: %s: RF or CPF. */
+								esc_html__( 'This account holds two %s. One fails its own check digit and the other is sound, so the right one is the one the account already has.', 'ffcertificate' ),
+								esc_html( $ffc_identity_kind )
+							);
 							?>
-							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-								<?php wp_nonce_field( IdentityResolutionPage::CONSOLIDATE_NONCE . $ffc_identity_wrong ); ?>
-								<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::CONSOLIDATE_ACTION ); ?>">
-								<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
-								<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( $ffc_identity_wrong ); ?>">
-								<?php
-								// TWO HASHES AND NO VALUE.
-								//
-								// The number to write is the account's sound
-								// identifier, which the service reads in
-								// memory. Posting the value instead would put
-								// a stored RF or CPF through the browser for
-								// no reason -- and there is nothing here an
-								// operator needs to read, which is what makes
-								// this one click rather than a question.
-								?>
-								<input type="hidden" name="ffc_target" value="<?php echo esc_attr( $ffc_identity_right ); ?>">
-								<input type="hidden" name="ffc_field" value="<?php echo esc_attr( str_replace( '_hash', '', (string) ( $ffc_identity_item['identifier_column'] ?? '' ) ) ); ?>">
-								<button type="submit" class="button button-secondary">
-									<?php esc_html_e( 'Consolidate', 'ffcertificate' ); ?>
-								</button>
-							</form>
-						<?php elseif ( IdentityQueue::TIER_DECISION === $ffc_identity_tier ) : ?>
-							<?php
-							$ffc_identity_field = str_replace( '_hash', '', (string) ( $ffc_identity_item['identifier_column'] ?? '' ) );
-							?>
-							<?php foreach ( array_keys( $ffc_identity_which ) as $ffc_identity_move ) : ?>
-								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-2xs">
-									<?php wp_nonce_field( IdentityResolutionPage::RELINK_NONCE . (string) $ffc_identity_move ); ?>
-									<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::RELINK_ACTION ); ?>">
-									<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
-								<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
-									<input type="hidden" name="ffc_field" value="<?php echo esc_attr( $ffc_identity_field ); ?>">
-									<label class="screen-reader-text" for="ffc-relink-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
-										<?php
-										printf(
-											/* translators: %s: the identifier's hash prefix. */
-											esc_html__( 'Account to move the records carrying %s to', 'ffcertificate' ),
-											esc_html( substr( (string) $ffc_identity_move, 0, IdentityQueue::DISPLAY_PREFIX ) )
-										);
-										?>
-									</label>
-									<?php
-									// A numeric account id, typed — the operator
-									// arrives from the audit export, which names
-									// accounts by id and links to `user-edit.php`.
-									//
-									// `required` because each row carries its OWN
-									// form: an empty field cannot mean "leave this
-									// alone" when submitting is already the way to
-									// act on one row, and a cleared number field
-									// posts the empty string that `absint()` reads
-									// as zero (#1114).
-									?>
-									<input type="number" inputmode="numeric" min="1" step="1" size="6" required
-										id="ffc-relink-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
-										name="ffc_account" placeholder="<?php esc_attr_e( 'Account #', 'ffcertificate' ); ?>">
-									<?php
-									// THE NUMBER FIELD STAYS, AND THAT IS THE POINT.
-									//
-									// The dialog writes into it rather than
-									// replacing it, so the form posts the same
-									// thing it always did and a screen without
-									// JavaScript keeps the verb it had. What the
-									// dialog adds is knowing the answer before
-									// committing, which is not the same as being
-									// the only way to give one.
-									?>
-									<button type="button" class="button button-secondary ffc-identity-find"
-										data-ffc-subject="<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
-										data-ffc-field="<?php echo esc_attr( $ffc_identity_field ); ?>"
-										data-ffc-input="ffc-relink-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
-										data-ffc-split="ffc-split-form-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
-										data-ffc-submit="ffc-relink-go-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
-										<?php esc_html_e( 'Search…', 'ffcertificate' ); ?>
-									</button>
-									<button type="submit" class="button button-secondary"
-										id="ffc-relink-go-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
-										<?php
-										printf(
-											/* translators: %s: the identifier's hash prefix. */
-											esc_html__( 'Move %s', 'ffcertificate' ),
-											esc_html( substr( (string) $ffc_identity_move, 0, IdentityQueue::DISPLAY_PREFIX ) )
-										);
-										?>
-									</button>
-									<span class="ffc-identity-chosen" id="ffc-relink-chosen-<?php echo esc_attr( (string) $ffc_identity_move ); ?>" hidden></span>
-								</form>
-								<?php // Only the split goes when the capability is absent: moving is the other verb on this identifier and stays available. ?>
-								<?php if ( $ffc_identity_may_split ) : ?>
-								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-xs"
-									id="ffc-split-form-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
-									<?php wp_nonce_field( IdentityResolutionPage::SPLIT_NONCE . (string) $ffc_identity_move ); ?>
-									<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::SPLIT_ACTION ); ?>">
-									<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
-								<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
-									<input type="hidden" name="ffc_field" value="<?php echo esc_attr( $ffc_identity_field ); ?>">
-									<label class="screen-reader-text" for="ffc-split-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
-										<?php
-										printf(
-											/* translators: %s: the identifier's hash prefix. */
-											esc_html__( 'E-mail address for the new account holding %s', 'ffcertificate' ),
-											esc_html( substr( (string) $ffc_identity_move, 0, IdentityQueue::DISPLAY_PREFIX ) )
-										);
-										?>
-									</label>
-									<?php
-									// An address the OPERATOR supplies, because there
-									// is none to inherit: WordPress requires
-									// `user_email` to be unique and every production
-									// finding reports both identifiers sharing the
-									// address the existing account already uses.
-									?>
-									<input type="email" size="22" required
-										id="ffc-split-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
-										name="ffc_email" placeholder="<?php esc_attr_e( 'New account e-mail', 'ffcertificate' ); ?>">
-									<button type="submit" class="button button-secondary">
-										<?php esc_html_e( 'Split off', 'ffcertificate' ); ?>
-									</button>
-									<?php
-									// Printed disabled-free and hidden; the dialog
-									// shows it and disables the fields above when a
-									// destination is chosen, because two destinations
-									// for one set of records is a mistake the form
-									// should not be able to express.
-									?>
-									<span class="ffc-identity-split-barred description" hidden>
-										<?php esc_html_e( 'A destination account is chosen, so splitting onto a new one is not available. Clear the destination to split instead.', 'ffcertificate' ); ?>
-									</span>
-								</form>
-								<?php endif; ?>
-							<?php endforeach; ?>
 						<?php else : ?>
-							<span class="description">
-								<?php esc_html_e( 'Open the account — this one is not decided here.', 'ffcertificate' ); ?>
-							</span>
+							<?php
+							printf(
+								/* translators: 1: how many identifiers the account holds. 2: RF or CPF. */
+								esc_html__( 'This account holds %1$s %2$s, and the check digits do not single one out — none fails, or more than one does. The right value comes from HR.', 'ffcertificate' ),
+								esc_html( number_format_i18n( count( $ffc_identity_which ) ) ),
+								esc_html( $ffc_identity_kind )
+							);
+							?>
 						<?php endif; ?>
-					</td>
-				</tr>
-			<?php endforeach; ?>
-			</tbody>
-		</table>
+					</p>
+
+					<?php
+					// THE HASHES, IN THE ORDER THE WRITE READS THEM.
+					//
+					// Ordered rather than iterated where there is a
+					// direction, so the chip that goes away is first and the
+					// chip that survives is second -- which is what makes the
+					// arrow mean the same thing as the button.
+					$ffc_identity_chips = $ffc_identity_directed
+						? array(
+							$ffc_identity_wrong => IdentityConflictQuery::VERDICT_INVALID,
+							$ffc_identity_right => IdentityConflictQuery::VERDICT_VALID,
+						)
+						: $ffc_identity_which;
+					$ffc_identity_first = true;
+					?>
+					<div class="ffc-identity-card-hashes">
+						<?php foreach ( $ffc_identity_chips as $ffc_identity_hash => $ffc_identity_verdict ) : ?>
+							<?php if ( $ffc_identity_directed && ! $ffc_identity_first ) : ?>
+								<?php // `aria-hidden`, because the sentence above already says which of the two survives and each chip carries its own verdict in words. ?>
+								<span class="ffc-identity-card-arrow" aria-hidden="true">&rarr;</span>
+							<?php endif; ?>
+							<?php
+							$ffc_identity_first = false;
+
+							if ( IdentityConflictQuery::VERDICT_INVALID === $ffc_identity_verdict ) {
+								$ffc_identity_tone = 'bad';
+								/* translators: %s: RF or CPF. */
+								$ffc_identity_said = sprintf( __( '%s · fails its check digit', 'ffcertificate' ), $ffc_identity_kind );
+							} elseif ( IdentityConflictQuery::VERDICT_VALID === $ffc_identity_verdict ) {
+								$ffc_identity_tone = 'ok';
+								/* translators: %s: RF or CPF. */
+								$ffc_identity_said = sprintf( __( '%s · well formed', 'ffcertificate' ), $ffc_identity_kind );
+							} elseif ( IdentityConflictQuery::VERDICT_UNREADABLE === $ffc_identity_verdict ) {
+								// NOT A FAILURE, AND IT MUST NOT LOOK LIKE ONE.
+								// A value nobody could read is a value nothing
+								// is known about -- painting it red would make
+								// the screen assert the opposite.
+								$ffc_identity_tone = 'unknown';
+								/* translators: %s: RF or CPF. */
+								$ffc_identity_said = sprintf( __( '%s · could not be read', 'ffcertificate' ), $ffc_identity_kind );
+							} elseif ( IdentityConflictQuery::VERDICT_ABSENT === $ffc_identity_verdict ) {
+								$ffc_identity_tone = 'unknown';
+								/* translators: %s: RF or CPF. */
+								$ffc_identity_said = sprintf( __( '%s · not stored where this can read', 'ffcertificate' ), $ffc_identity_kind );
+							} else {
+								$ffc_identity_tone = 'plain';
+								$ffc_identity_said = $ffc_identity_kind;
+							}
+							?>
+							<span class="ffc-identity-card-hash ffc-identity-card-hash-<?php echo esc_attr( $ffc_identity_tone ); ?>">
+								<code><?php echo esc_html( substr( (string) $ffc_identity_hash, 0, IdentityQueue::DISPLAY_PREFIX ) ); ?></code>
+								<span class="ffc-identity-card-said"><?php echo esc_html( $ffc_identity_said ); ?></span>
+							</span>
+						<?php endforeach; ?>
+					</div>
+
+					<?php
+					// THE STORES, AND DELIBERATELY NO RECORD COUNT.
+					//
+					// The mockup's card ends with a count of records. There
+					// is none to show here: `ALIAS_ROW_COUNT` is produced only
+					// by the RF check-digit scan, and neither
+					// `multiple_identities()` nor `shared_identities()`
+					// selects it. Widening those queries to invent one was
+					// weighed and refused -- the count would be per hash
+					// rather than per finding, which is not the number the
+					// sentence above would imply. The stores are what say how
+					// far the write reaches, and they are read rather than
+					// derived.
+					$ffc_identity_where = (string) ( $ffc_identity_item[ IdentityConflictQuery::COLUMN_STORES ] ?? '' );
+					?>
+					<?php if ( '' !== $ffc_identity_where ) : ?>
+						<p class="ffc-identity-card-where">
+							<?php
+							printf(
+								/* translators: %s: the stores holding the records, comma separated. */
+								esc_html__( 'Appears in %s', 'ffcertificate' ),
+								esc_html( $ffc_identity_where )
+							);
+							?>
+						</p>
+					<?php endif; ?>
+				</div>
+				<div class="ffc-identity-card-act">
+					<?php if ( IdentityQueue::TIER_MECHANICAL === $ffc_identity_tier ) : ?>
+						<?php
+						$ffc_identity_wrong = (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_WRONG ] ?? '' );
+						$ffc_identity_right = (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_RIGHT ] ?? '' );
+						?>
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+							<?php wp_nonce_field( IdentityResolutionPage::CONSOLIDATE_NONCE . $ffc_identity_wrong ); ?>
+							<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::CONSOLIDATE_ACTION ); ?>">
+							<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
+							<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( $ffc_identity_wrong ); ?>">
+							<?php
+							// TWO HASHES AND NO VALUE.
+							//
+							// The number to write is the account's sound
+							// identifier, which the service reads in
+							// memory. Posting the value instead would put
+							// a stored RF or CPF through the browser for
+							// no reason -- and there is nothing here an
+							// operator needs to read, which is what makes
+							// this one click rather than a question.
+							?>
+							<input type="hidden" name="ffc_target" value="<?php echo esc_attr( $ffc_identity_right ); ?>">
+							<input type="hidden" name="ffc_field" value="<?php echo esc_attr( str_replace( '_hash', '', (string) ( $ffc_identity_item['identifier_column'] ?? '' ) ) ); ?>">
+							<button type="submit" class="button button-secondary">
+								<?php esc_html_e( 'Consolidate', 'ffcertificate' ); ?>
+							</button>
+						</form>
+					<?php elseif ( IdentityQueue::TIER_DECISION === $ffc_identity_tier ) : ?>
+						<?php
+						$ffc_identity_field = str_replace( '_hash', '', (string) ( $ffc_identity_item['identifier_column'] ?? '' ) );
+						?>
+						<?php foreach ( array_keys( $ffc_identity_which ) as $ffc_identity_move ) : ?>
+							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-2xs">
+								<?php wp_nonce_field( IdentityResolutionPage::RELINK_NONCE . (string) $ffc_identity_move ); ?>
+								<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::RELINK_ACTION ); ?>">
+								<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
+							<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
+								<input type="hidden" name="ffc_field" value="<?php echo esc_attr( $ffc_identity_field ); ?>">
+								<label class="screen-reader-text" for="ffc-relink-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
+									<?php
+									printf(
+										/* translators: %s: the identifier's hash prefix. */
+										esc_html__( 'Account to move the records carrying %s to', 'ffcertificate' ),
+										esc_html( substr( (string) $ffc_identity_move, 0, IdentityQueue::DISPLAY_PREFIX ) )
+									);
+									?>
+								</label>
+								<?php
+								// A numeric account id, typed — the operator
+								// arrives from the audit export, which names
+								// accounts by id and links to `user-edit.php`.
+								//
+								// `required` because each row carries its OWN
+								// form: an empty field cannot mean "leave this
+								// alone" when submitting is already the way to
+								// act on one row, and a cleared number field
+								// posts the empty string that `absint()` reads
+								// as zero (#1114).
+								?>
+								<input type="number" inputmode="numeric" min="1" step="1" size="6" required
+									id="ffc-relink-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
+									name="ffc_account" placeholder="<?php esc_attr_e( 'Account #', 'ffcertificate' ); ?>">
+								<?php
+								// THE NUMBER FIELD STAYS, AND THAT IS THE POINT.
+								//
+								// The dialog writes into it rather than
+								// replacing it, so the form posts the same
+								// thing it always did and a screen without
+								// JavaScript keeps the verb it had. What the
+								// dialog adds is knowing the answer before
+								// committing, which is not the same as being
+								// the only way to give one.
+								?>
+								<button type="button" class="button button-secondary ffc-identity-find"
+									data-ffc-subject="<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
+									data-ffc-field="<?php echo esc_attr( $ffc_identity_field ); ?>"
+									data-ffc-input="ffc-relink-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
+									data-ffc-split="ffc-split-form-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
+									data-ffc-submit="ffc-relink-go-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
+									<?php esc_html_e( 'Search…', 'ffcertificate' ); ?>
+								</button>
+								<button type="submit" class="button button-secondary"
+									id="ffc-relink-go-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
+									<?php
+									printf(
+										/* translators: %s: the identifier's hash prefix. */
+										esc_html__( 'Move %s', 'ffcertificate' ),
+										esc_html( substr( (string) $ffc_identity_move, 0, IdentityQueue::DISPLAY_PREFIX ) )
+									);
+									?>
+								</button>
+								<span class="ffc-identity-chosen" id="ffc-relink-chosen-<?php echo esc_attr( (string) $ffc_identity_move ); ?>" hidden></span>
+							</form>
+							<?php // Only the split goes when the capability is absent: moving is the other verb on this identifier and stays available. ?>
+							<?php if ( $ffc_identity_may_split ) : ?>
+							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-xs"
+								id="ffc-split-form-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
+								<?php wp_nonce_field( IdentityResolutionPage::SPLIT_NONCE . (string) $ffc_identity_move ); ?>
+								<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::SPLIT_ACTION ); ?>">
+								<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
+							<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
+								<input type="hidden" name="ffc_field" value="<?php echo esc_attr( $ffc_identity_field ); ?>">
+								<label class="screen-reader-text" for="ffc-split-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
+									<?php
+									printf(
+										/* translators: %s: the identifier's hash prefix. */
+										esc_html__( 'E-mail address for the new account holding %s', 'ffcertificate' ),
+										esc_html( substr( (string) $ffc_identity_move, 0, IdentityQueue::DISPLAY_PREFIX ) )
+									);
+									?>
+								</label>
+								<?php
+								// An address the OPERATOR supplies, because there
+								// is none to inherit: WordPress requires
+								// `user_email` to be unique and every production
+								// finding reports both identifiers sharing the
+								// address the existing account already uses.
+								?>
+								<input type="email" size="22" required
+									id="ffc-split-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
+									name="ffc_email" placeholder="<?php esc_attr_e( 'New account e-mail', 'ffcertificate' ); ?>">
+								<button type="submit" class="button button-secondary">
+									<?php esc_html_e( 'Split off', 'ffcertificate' ); ?>
+								</button>
+								<?php
+								// Printed disabled-free and hidden; the dialog
+								// shows it and disables the fields above when a
+								// destination is chosen, because two destinations
+								// for one set of records is a mistake the form
+								// should not be able to express.
+								?>
+								<span class="ffc-identity-split-barred description" hidden>
+									<?php esc_html_e( 'A destination account is chosen, so splitting onto a new one is not available. Clear the destination to split instead.', 'ffcertificate' ); ?>
+								</span>
+							</form>
+							<?php endif; ?>
+						<?php endforeach; ?>
+					<?php else : ?>
+						<span class="description">
+							<?php esc_html_e( 'Open the account — this one is not decided here.', 'ffcertificate' ); ?>
+						</span>
+					<?php endif; ?>
+				</div>
+			</div>
+		<?php endforeach; ?>
+		</div>
 		<p class="description">
 			<?php esc_html_e( 'Consolidating writes the account\'s sound identifier over the mistyped one across every store that holds it. Moving sends the records carrying one identifier to another account — allowed only where the two already agree on the other identifier, and where the receiving account holds none of that kind it gains this one. Splitting creates an account for one identifier and moves its records there — it asks for an address because there is none to inherit, and it removes the account again if the move refuses. All of them run as a single transaction, rolled back whole if any part refuses, and none shows a stored number.', 'ffcertificate' ); ?>
 		</p>

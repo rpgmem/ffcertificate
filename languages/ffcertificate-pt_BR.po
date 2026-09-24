@@ -22222,9 +22222,6 @@ msgstr "Contas e números armazenados que não concordam entre si, ordenados por
 msgid "Accounts to resolve"
 msgstr "Contas a resolver"
 
-msgid "Identifiers"
-msgstr "Identificadores"
-
 msgid "Needs a decision"
 msgstr "Precisa de decisão"
 
@@ -22249,18 +22246,6 @@ msgstr "Duas contas, um número"
 msgid "What is known"
 msgstr "O que se sabe"
 
-msgid "— could not be read, so nothing is known about it"
-msgstr "— não pôde ser lido, então nada se sabe sobre ele"
-
-msgid "— fails its check digits"
-msgstr "— não confere com seus dígitos verificadores"
-
-msgid "— not stored anywhere this check can read"
-msgstr "— não está armazenado em lugar nenhum que esta checagem consiga ler"
-
-msgid "— well formed"
-msgstr "— bem formado"
-
 msgid "Consolidate"
 msgstr "Consolidar"
 
@@ -22272,9 +22257,6 @@ msgstr "Nenhum identificador íntegro foi indicado para consolidar."
 
 msgid "Open the account — this one is not decided here."
 msgstr "Abra a conta — esta não se decide aqui."
-
-msgid "Resolve it"
-msgstr "Resolver"
 
 msgid "That is not an identifier this can rewrite."
 msgstr "Esse não é um identificador que isto consiga reescrever."
@@ -22743,3 +22725,24 @@ msgid "%s finding left:"
 msgid_plural "%s findings left:"
 msgstr[0] "%s achado restante:"
 msgstr[1] "%s achados restantes:"
+
+msgid "%s · fails its check digit"
+msgstr "%s · falha o dígito verificador"
+
+msgid "%s · well formed"
+msgstr "%s · bem formado"
+
+msgid "%s · could not be read"
+msgstr "%s · não pôde ser lido"
+
+msgid "%s · not stored where this can read"
+msgstr "%s · não armazenado onde isto consegue ler"
+
+msgid "Appears in %s"
+msgstr "Aparece em %s"
+
+msgid "This account holds two %s. One fails its own check digit and the other is sound, so the right one is the one the account already has."
+msgstr "Esta conta guarda dois %s. Um falha o próprio dígito verificador e o outro está íntegro, então o certo é o que a conta já tem."
+
+msgid "This account holds %1$s %2$s, and the check digits do not single one out — none fails, or more than one does. The right value comes from HR."
+msgstr "Esta conta guarda %1$s %2$s, e os dígitos verificadores não apontam um só — nenhum falha, ou mais de um falha. O valor certo vem do RH."
