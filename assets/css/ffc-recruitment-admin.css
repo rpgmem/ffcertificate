@@ -1,25 +1,26 @@
 /* Recruitment admin styles — scoped via the asset manager. */
 
 /* Status badges (notice + classification states). */
-/* Nome próprio desde o #1183: o `.ffc-status-badge` genérico era declarado
-   cru por esta folha, pela de submissões e pela `ffc-common`, e a de
-   submissões carrega em TODA tela `?page=ffc-*` (o portão dela é
-   `is_ffc_page()`), então este selo era pintado por uma mescla de três
-   folhas em vez de pela sua própria.
+/* A name of its own since #1183: the generic `.ffc-status-badge` was declared
+   bare by this sheet, by the submissions one and by `ffc-common`, and the
+   submissions sheet loads on EVERY `?page=ffc-*` screen (its gate is
+   `is_ffc_page()`), so this badge was painted by a merge of three sheets
+   rather than by its own.
 
-   A forma abaixo é a MEDIDA, não a que esta folha declarava: o
-   `white-space: nowrap` vinha da `ffc-common` e agora é declarado aqui,
-   porque o nome novo não casa mais com o componente compartilhado.
+   The shape below is the one that was MEASURED, not the one this sheet
+   declared: `white-space: nowrap` came from `ffc-common` and is declared here
+   now, because the new name no longer matches the shared component.
 
-   ⚠ Cinco propriedades saíram daqui no #1193 -- `display`, `padding`,
-   `border-radius`, `font-size` e `font-weight`. Elas NUNCA venceram: o único
-   emissor deste selo é o `Core\BadgeHtml`, que escrevia a forma inline, e
-   inline vence classe. Eram letra morta que descrevia um retângulo, enquanto
-   a tela mostrava uma pílula -- e a diferença só aparecia no outro emissor
-   destas classes, o `<td>` da seção de classificações, que não passava pelo
-   helper e por isso saía com OUTRA forma, sem cor e com o enum cru. Aquele
-   `<td>` passou a usar o helper no mesmo PR, então a forma vem toda da
-   `.ffc-pill` e o que fica aqui são as quatro que a base não declara. */
+   ⚠ Five properties left here in #1193 -- `display`, `padding`,
+   `border-radius`, `font-size` and `font-weight`. They NEVER won: the only
+   emitter of this badge is `Core\BadgeHtml`, which wrote the shape inline, and
+   inline beats a class. They were dead letter describing a rectangle while the
+   screen showed a pill -- and the difference only surfaced on these classes'
+   other emitter, the classifications section's `<td>`, which did not go through
+   the helper and so came out with ANOTHER shape, no colour and the raw enum.
+   That `<td>` started using the helper in the same PR, so the shape now comes
+   entirely from `.ffc-pill` and what stays here are the four the base does not
+   declare. */
 .ffc-recruitment-status-badge {
     text-transform: uppercase;
     letter-spacing: .03em;
@@ -345,19 +346,19 @@
 }
 
 /* ==========================================================================
-   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
-   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
-   O mecanismo está explicado em ffc-common.css (#1165).
+   ACCESSIBILITY — HIGH CONTRAST (forced-colors)
+   Gives a border back to whatever had only a background. No effect outside
+   forced-colors mode. The mechanism is explained in ffc-common.css (#1165).
    ========================================================================== */
 
 @media (forced-colors: active) {
-    /* Selos de estado: o texto continua dizendo o estado; a borda
-       devolve a eles a forma de selo.
+    /* Status badges: the text still says the state; the border
+       gives them their badge shape back.
 
-       Era uma lista de quatro nomes de status, e por isso as seis variantes de
-       CLASSIFICAÇÃO ficavam de fora -- a lacuna que o #1183 registrou e que o
-       #1191 achou na versão `definitive`. Agora casa a FAMÍLIA, então uma
-       variante nova nasce coberta em vez de nascer esquecida (#1193). */
+       This was a list of four status names, which is why the six
+       CLASSIFICATION variants were left out -- the gap #1183 recorded and
+       #1191 found in the `definitive` variant. It now matches the FAMILY, so a
+       new variant is born covered rather than born forgotten (#1193). */
     .ffc-rec-pill,
     .ffc-recruitment-status-badge {
         border: 1px solid CanvasText;

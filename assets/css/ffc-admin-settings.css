@@ -1044,9 +1044,9 @@
      (module links also carry an external marker → external \f504)
    ========================================================================== */
 
-/* 20px literal: glifos de ícone (dashicons), não texto — um ícone
-   dimensionado por font-size é uma caixa de glifo, e a escala tipográfica
-   não o governa. Mesma razão do .ffc-stat-icon. */
+/* 20px literal: icon glyphs (dashicons), not text — an icon sized by
+   font-size is a glyph box, and the typographic scale does not govern it.
+   Same reason as .ffc-stat-icon. */
 .ffc-settings-tabs__nav .ffc-settings-tabs__icon,
 .ffc-settings-tabs__nav .ffc-settings-tabs__external {
     font-family: dashicons;
@@ -1315,10 +1315,10 @@ html:has(.ffc-settings-back-to-top) {
 }
 
 /* ==========================================================================
-   COMPONENTES DE ABA (movidos da gaveta de utilitários em #1171)
+   TAB COMPONENTS (moved out of the utilities drawer in #1171)
 
-   Os dois blocos abaixo são emitidos por `includes/settings/views/`, e esta
-   folha é enfileirada exatamente em `?page=ffc-settings` e
+   The two blocks below are emitted by `includes/settings/views/`, and this
+   sheet is enqueued on exactly `?page=ffc-settings` and
    `?page=ffc-scheduling-settings` (AdminAssetsManager::is_settings_page).
    ========================================================================== */
 

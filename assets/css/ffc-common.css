@@ -19,10 +19,10 @@
     --ffc-primary-light: #e7f3ff;
 
     /* Status Colors */
-    --ffc-success: #00801e;         /* 5,11:1 com branco — era #00a32a, 3,35:1 no botão (#1126 B). */
+    --ffc-success: #00801e;         /* 5,11:1 with white — was #00a32a, 3,35:1 on the button (#1126 B). */
     --ffc-success-hover: #006618;
     --ffc-success-light: #e7f5ec;
-    --ffc-warning: #ba8d14;         /* 3,04:1 sobre branco — era #dba617, 2,22:1 (#1132). */
+    --ffc-warning: #ba8d14;         /* 3,04:1 on white — was #dba617, 2,22:1 (#1132). */
     --ffc-warning-light: #fff8e5;
     --ffc-danger: #d63638;
     --ffc-danger-hover: #b32d2e;
@@ -163,24 +163,24 @@
     --ffc-text: #1d2327;
     --ffc-text-secondary: #50575e;
     --ffc-text-muted: #646970;
-    --ffc-text-light: #737579;      /* 4,62:1 sobre branco — era #8c8f94, 3,24:1 (#1132). */
+    --ffc-text-light: #737579;      /* 4,62:1 on white — was #8c8f94, 3,24:1 (#1132). */
     --ffc-text-on-primary: #ffffff;
-    --ffc-text-on-danger: #ffffff;  /* 4,73:1 sobre --ffc-danger (#1126 B). */
-    --ffc-text-on-success: #ffffff; /* 5,11:1 sobre --ffc-success (#1126 B). */
-    --ffc-text-on-warning: #2e2200; /* 5,14:1 sobre --ffc-warning; branco dava 3,04:1 (#1126).
-                                       NÃO é redeclarado no bloco escuro de propósito: o aviso é
-                                       tom médio-claro nos dois temas, então o mesmo texto escuro
-                                       serve — 8,67:1 sobre o #f0b849 do escuro. */
+    --ffc-text-on-danger: #ffffff;  /* 4,73:1 on --ffc-danger (#1126 B). */
+    --ffc-text-on-success: #ffffff; /* 5,11:1 on --ffc-success (#1126 B). */
+    --ffc-text-on-warning: #2e2200; /* 5,14:1 on --ffc-warning; white gave 3,04:1 (#1126).
+                                       Deliberately NOT redeclared in the dark block: the warning
+                                       is a mid-light tone in both themes, so the same dark text
+                                       serves — 8,67:1 on dark's #f0b849. */
 
-    /* Semantic Tokens - Inverse surface (o inverseSurface/inverseOnSurface do M3)
-       O balão de toast é chrome invertido de propósito: escuro sobre a página
-       clara. Sem este par ele era #1d2327/#fff fixo e seguia escuro no tema
-       escuro, onde a inversão tem de virar ao contrário (#1126 defeito B). */
+    /* Semantic Tokens - Inverse surface (M3's inverseSurface/inverseOnSurface)
+       The toast bubble is inverted chrome on purpose: dark on a light page.
+       Without this pair it was a fixed #1d2327/#fff and stayed dark in the
+       dark theme, where the inversion has to run the other way (#1126 defect B). */
     --ffc-inverse-surface: #1d2327;
     --ffc-inverse-on-surface: #ffffff;
 
     /* Semantic Tokens - Borders */
-    --ffc-border: #8e8f91;          /* 3,24:1 sobre branco, 3,02:1 sobre #f6f7f7 — era #c3c4c7, 1,74:1 (#1132). */
+    --ffc-border: #8e8f91;          /* 3,24:1 on white, 3,02:1 on #f6f7f7 — was #c3c4c7, 1,74:1 (#1132). */
     --ffc-border-light: #dcdcde;
     --ffc-border-focus: #2271b1;
 
@@ -238,7 +238,7 @@
     --ffc-success-light: #1a2e1a;
     --ffc-warning: #f0b849;
     --ffc-warning-light: #332b10;
-    --ffc-danger: #e88080;          /* 4,78:1 sobre o card — era #e57373, 4,29:1 (#1126 B). */
+    --ffc-danger: #e88080;          /* 4,78:1 on the card — was #e57373, 4,29:1 (#1126 B). */
     --ffc-danger-hover: #ee9595;
     --ffc-danger-light: #2e1515;
     --ffc-info: #4fc3f7;
@@ -273,18 +273,18 @@
     --ffc-text: #e7e8ea;
     --ffc-text-secondary: #c3c4c7;
     --ffc-text-muted: #a7aaad;
-    --ffc-text-light: #9a9ea3;      /* 4,76:1 sobre o card — era #8c8f94, 3,95:1 (#1126 B). */
-    --ffc-text-on-primary: #213c4e;  /* tom ~20. O M3 INVERTE este par no tema escuro: a
-                                        primária clareia e o texto sobre ela escurece. O plugin
-                                        clareou a primária e manteve o branco, deixando 2,52:1 no
-                                        botão de ação primária; agora 4,58:1 (#1132). */
-    --ffc-text-on-danger: #452020;   /* tom ~20 — a mesma inversão do par acima, aplicada ao
-                                        botão destrutivo: 5,29:1 sobre --ffc-danger (#1126 B). */
-    --ffc-text-on-success: #10361a;  /* idem no botão de sucesso: 4,83:1 (#1126 B). */
+    --ffc-text-light: #9a9ea3;      /* 4,76:1 on the card — was #8c8f94, 3,95:1 (#1126 B). */
+    --ffc-text-on-primary: #213c4e;  /* tone ~20. M3 INVERTS this pair in the dark theme: the
+                                        primary lightens and the text on it darkens. The plugin
+                                        lightened the primary and kept the white, leaving 2,52:1
+                                        on the primary action button; now 4,58:1 (#1132). */
+    --ffc-text-on-danger: #452020;   /* tone ~20 — the same inversion as the pair above, applied
+                                        to the destructive button: 5,29:1 on --ffc-danger (#1126 B). */
+    --ffc-text-on-success: #10361a;  /* likewise on the success button: 4,83:1 (#1126 B). */
 
     /* Semantic Tokens - Borders */
-    --ffc-border: #6f7c89;           /* 3,72:1 sobre o fundo, 3,00:1 sobre o card, 3,48:1 sobre o
-                                        campo — era #3c434a, 1,28:1 sobre card (#1132). */
+    --ffc-border: #6f7c89;           /* 3,72:1 on the background, 3,00:1 on the card, 3,48:1 on
+                                        the field — was #3c434a, 1,28:1 on the card (#1132). */
     --ffc-border-light: #2c3338;
     --ffc-border-focus: #5dabde;
 
@@ -573,35 +573,36 @@
 }
 
 /* ==========================================================================
-   MODAL — componente compartilhado (#1140)
+   MODAL — shared component (#1140)
    ==========================================================================
 
-   Vinha de `ffc-audience.css`, e havia uma segunda cópia sem escopo em
-   `ffc-reregistration-admin.css`. Duas cópias e um terceiro consumidor a
-   caminho (o cancelamento no dashboard, que carrega só `ffc-common` +
-   `ffc-user-dashboard`) é o momento de consolidar, não de escrever a terceira.
-   Aqui porque `ffc-common` é dependência declarada de toda folha que já usava
-   o modal — ninguém perde regra — e é a única que o dashboard tem.
+   It came from `ffc-audience.css`, and there was a second, unscoped copy in
+   `ffc-reregistration-admin.css`. Two copies and a third consumer on the way
+   (the dashboard's cancellation, which loads only `ffc-common` +
+   `ffc-user-dashboard`) is the moment to consolidate, not to write the third.
+   Here because `ffc-common` is a declared dependency of every sheet that
+   already used the modal — nobody loses a rule — and it is the only one the
+   dashboard has.
 
-   O seletor composto `.ffc-shortcode.ffc-modal` não é engano: o modal é
-   anexado ao `<body>`, fora do contêiner do shortcode, então ele carrega a
-   classe de escopo em si mesmo.
+   The compound selector `.ffc-shortcode.ffc-modal` is not a mistake: the modal
+   is appended to `<body>`, outside the shortcode's container, so it carries
+   the scope class on itself.
 
-   O modal do admin de recadastramento, que dividia este nome, agora se chama
-   `ffc-rereg-modal*` (#1154). Duas redações anteriores aqui erraram sobre ele,
-   e as duas ficam registradas porque a correção de cada uma custou medição.
-   A primeira o chamou de "segunda cópia": medindo (#1148), são componentes
-   diferentes — um centraliza por flex e tem 500px; o outro posiciona por
-   `margin-top` e tem 820px, rola pelo body em vez do content, e titula com
-   `h2`. Unificar seria redesenhar uma tela, não refatorar. A segunda disse que
-   o prefixo `.ffc-shortcode` era o que mantinha os dois separados, e era
-   verdade — `ffc-common` é dependência DECLARADA de `ffc-reregistration-admin`,
-   então as duas folhas carregam na mesma tela. O que faltava é que seguir
-   separados não obrigava a continuar com o mesmo nome.
+   The reregistration admin's modal, which shared this name, is now called
+   `ffc-rereg-modal*` (#1154). Two earlier drafts here got it wrong, and both
+   are recorded because correcting each one cost a measurement. The first
+   called it a "second copy": measured (#1148), they are different components —
+   one centres by flex and is 500px; the other positions by `margin-top`, is
+   820px, scrolls the body rather than the content, and titles with `h2`.
+   Unifying them would be redesigning a screen, not refactoring. The second
+   said the `.ffc-shortcode` prefix was what kept the two apart, and that was
+   true — `ffc-common` is a DECLARED dependency of `ffc-reregistration-admin`,
+   so both sheets load on the same screen. What it missed is that staying apart
+   did not oblige them to keep the same name.
 
-   O prefixo fica, pelo motivo comum a toda regra de frontend: sem ele, estas
-   regras alcançam o que o tema do site chamar de modal.
-   `AdminStylesheetTokensTest` falha se ele sair. */
+   The prefix stays, for the reason common to every frontend rule: without it,
+   these rules reach whatever the site's theme calls a modal.
+   `AdminStylesheetTokensTest` fails if it leaves. */
 
 .ffc-shortcode .ffc-modal,
 .ffc-shortcode.ffc-modal {
@@ -690,8 +691,8 @@
     border-top: 1px solid var(--ffc-gray-200);
 }
 
-/* O `<textarea>` do diálogo. Um controle não herda `color` (#1126), e a folha
-   que estilizava `.ffc-form-group` não é carregada no dashboard. */
+/* The dialog's `<textarea>`. A form control does not inherit `color` (#1126),
+   and the sheet that styled `.ffc-form-group` is not loaded on the dashboard. */
 .ffc-shortcode .ffc-modal-body .ffc-form-group label {
     display: block;
     font-weight: 600;
@@ -980,16 +981,17 @@
     letter-spacing: 0.3px;
 }
 
-/* Pílula — a segunda forma de selo da base (#1193).
-   Vinha de um literal PHP (`Core\BadgeHtml::BADGE_STYLE`), aplicado inline em
-   cada `<span>`, o que tornava letra morta qualquer classe de forma: inline
-   vence classe, sempre. As sete chamadas do helper compõem esta classe com a
-   família e a variante do módulo.
+/* Pill — the base's second badge shape (#1193).
+   It came from a PHP literal (`Core\BadgeHtml::BADGE_STYLE`) applied inline on
+   every `<span>`, which made any shape class dead letter: inline beats a class,
+   always. The helper's seven call sites compose this class with the module's
+   family and variant.
 
-   O par vertical `3px` é o mesmo do `.ffc-badge` acima: as duas formas de selo
-   da base têm a mesma altura de propósito, e é por isso que este literal fica
-   em vez de encostar num degrau da escada -- o orçamento que ele ocupa aqui é
-   o que a regra fóssil de `ffc-admin-submissions.css` devolveu no mesmo PR. */
+   The vertical `3px` pair is the same as `.ffc-badge`'s above: the base's two
+   badge shapes are the same height on purpose, and that is why this literal
+   stays rather than snapping to a rung of the scale -- the budget it takes up
+   here is the one the fossil rule in `ffc-admin-submissions.css` gave back in
+   the same PR. */
 .ffc-pill {
     display: inline-block;
     padding: 3px var(--ffc-spacing-md);
@@ -1168,9 +1170,9 @@
     width: 18px;
     height: 18px;
     border-radius: var(--ffc-radius-full);
-    /* O botão do interruptor fica branco nos dois temas de propósito: no tema
-       escuro a pista é escura, e um botão em var(--ffc-bg-card) sumiria dentro
-       dela. É literal por decisão, não por esquecimento (#1126 B). */
+    /* The toggle's knob stays white in both themes on purpose: in the dark
+       theme the track is dark, and a knob in var(--ffc-bg-card) would vanish
+       into it. Literal by decision, not by oversight (#1126 B). */
     background: #fff;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     transition: transform 0.15s ease;
@@ -1315,14 +1317,13 @@
 }
 
 /* ==========================================================================
-   AVISO DE E-MAILS DESLIGADOS (Core\EmailDisabledNotice)
+   EMAILS-DISABLED NOTICE (Core\EmailDisabledNotice)
 
-   Estas regras estavam num `style=""` dentro do PHP, o que fazia o aviso
-   ignorar o modo escuro em toda tela que edita e-mail (#1126). Ficam aqui, e
-   não em ffc-admin.css, porque o aviso aparece em cinco superfícies
-   diferentes — metabox do editor de formulário, editor de calendário e três
-   abas de configuração — e ffc-common é a única folha que todas as cinco
-   declaram como dependência.
+   These rules lived in a `style=""` inside the PHP, which made the notice
+   ignore dark mode on every screen that edits an email (#1126). They sit here,
+   and not in ffc-admin.css, because the notice appears on five different
+   surfaces — the form editor's metabox, the calendar editor and three settings
+   tabs — and ffc-common is the only sheet all five declare as a dependency.
    ========================================================================== */
 
 .ffc-email-disabled-notice {
@@ -1339,20 +1340,21 @@
 }
 
 /* ==========================================================================
-   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
+   ACCESSIBILITY — HIGH CONTRAST (forced-colors)
 
-   No modo de alto contraste o agente de usuário FORÇA `color`,
-   `background-color` e `border-color`, e descarta `box-shadow`. Um componente
-   cujo limite era só o fundo deixa de ter limite: medido em Chromium (#1165),
-   os cinco selos de estado do agendamento viravam um só, e o botão de envio
-   do formulário público virava uma palavra sem contorno.
+   In high-contrast mode the user agent FORCES `color`, `background-color` and
+   `border-color`, and discards `box-shadow`. A component whose boundary was
+   only its background stops having one: measured in Chromium (#1165), the
+   appointment's five status badges became a single run, and the public form's
+   submit button became a word with no outline.
 
-   A borda aqui não tem efeito nenhum fora do modo forçado -- foi por isso que
-   ela mora numa media query em vez de um `border: 1px solid transparent`, que
-   funciona igual mas muda as métricas da caixa no modo normal.
+   The border here has no effect at all outside forced-colors mode -- which is
+   why it lives in a media query rather than as a `border: 1px solid
+   transparent`, which works the same but changes the box metrics in normal
+   mode.
 
-   `ButtonText` para o que se clica, `CanvasText` para o que se lê: são as
-   cores que o próprio sistema usa para cada papel.
+   `ButtonText` for what is clicked, `CanvasText` for what is read: those are
+   the colours the system itself uses for each role.
    ========================================================================== */
 
 @media (forced-colors: active) {
@@ -1367,8 +1369,8 @@
         border: 1px solid ButtonText;
     }
 
-    /* Selos de estado: o texto continua dizendo o estado; a borda
-       devolve a eles a forma de selo. */
+    /* Status badges: the text still says the state; the border
+       gives them their badge shape back. */
     .ffc-autosave-badge--error,
     .ffc-autosave-badge--saved,
     .ffc-autosave-badge--saving,

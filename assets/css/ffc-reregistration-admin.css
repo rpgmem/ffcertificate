@@ -6,15 +6,15 @@
  */
 
 /* ── Status badges ───────────────────────────── */
-/* Nome próprio desde o #1183 -- ver a mesma nota em
+/* A name of its own since #1183 -- see the same note in
    `ffc-recruitment-admin.css`.
 
-   ⚠ A forma abaixo é a MEDIDA, e ela não é a que esta folha declarava:
-   `text-transform` e `letter-spacing` NUNCA foram declarados aqui e mesmo
-   assim o selo os renderizava, porque `ffc-admin-submissions.css` os
-   declara e carrega nesta tela por acidente de portão. Passam a ser
-   declarados, para o render continuar igual e passar a ser intencional --
-   é a mesma decisão do #1162. */
+   ⚠ The shape below is the one that was MEASURED, and it is not the one this
+   sheet declared: `text-transform` and `letter-spacing` were NEVER declared
+   here and the badge rendered them anyway, because `ffc-admin-submissions.css`
+   declares them and loads on this screen by an accident of its gate. They are
+   declared now, so the render stays identical and becomes intentional -- the
+   same decision as #1162. */
 .ffc-reregistration-status-badge {
     display: inline-block;
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
@@ -311,8 +311,8 @@ body.ffc-rereg-modal-open {
     font-weight: 600;
 }
 
-/* 28px literal: o glifo `&times;` do botão de fechar, dimensionado pelo
-   alvo de clique e não pela escala de texto. */
+/* 28px literal: the close button's `&times;` glyph, sized by the click target
+   rather than by the text scale. */
 .ffc-rereg-modal-close {
     background: none;
     border: none;
@@ -418,14 +418,14 @@ body.ffc-rereg-modal-open {
 }
 
 /* ==========================================================================
-   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
-   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
-   O mecanismo está explicado em ffc-common.css (#1165).
+   ACCESSIBILITY — HIGH CONTRAST (forced-colors)
+   Gives a border back to whatever had only a background. No effect outside
+   forced-colors mode. The mechanism is explained in ffc-common.css (#1165).
    ========================================================================== */
 
 @media (forced-colors: active) {
-    /* Selos de estado: o texto continua dizendo o estado; a borda
-       devolve a eles a forma de selo. */
+    /* Status badges: the text still says the state; the border
+       gives them their badge shape back. */
     .ffc-audience-badge,
     .ffc-reregistration-status-active,
     .ffc-reregistration-status-approved,

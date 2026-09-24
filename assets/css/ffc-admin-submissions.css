@@ -151,10 +151,11 @@
    ========================================================================== */
 
 /* .ffc-badge base is in ffc-common.css — only admin-specific overrides here.
-   O `.ffc-status-badge` que esta folha declarava saiu no #1193: a lista de
-   submissões já emitia `.ffc-badge`, e `.publish`/`.trash` não tinham emissor
-   em lugar nenhum -- era o fóssil da migração, com a forma byte a byte igual
-   à do `.ffc-badge` da base. O nome é do cartão de verificação público. */
+   The `.ffc-status-badge` this sheet declared left in #1193: the submissions
+   list already emitted `.ffc-badge`, and `.publish`/`.trash` had no emitter
+   anywhere -- it was the migration's fossil, its shape byte for byte the same
+   as the base's `.ffc-badge`. The name belongs to the public verification
+   card. */
 .ffc-badge-success {
     background: var(--ffc-success-bg);
     color: var(--ffc-success-text);
@@ -460,9 +461,9 @@
 }
 
 /* ==========================================================================
-   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
-   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
-   O mecanismo está explicado em ffc-common.css (#1165).
+   ACCESSIBILITY — HIGH CONTRAST (forced-colors)
+   Gives a border back to whatever had only a background. No effect outside
+   forced-colors mode. The mechanism is explained in ffc-common.css (#1165).
    ========================================================================== */
 
 @media (forced-colors: active) {
@@ -471,8 +472,8 @@
         border: 1px solid ButtonText;
     }
 
-    /* Selos de estado: o texto continua dizendo o estado; a borda
-       devolve a eles a forma de selo. */
+    /* Status badges: the text still says the state; the border
+       gives them their badge shape back. */
     .ffc-badge-muted,
     .ffc-badge-success {
         border: 1px solid CanvasText;

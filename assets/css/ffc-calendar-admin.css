@@ -11,10 +11,10 @@
 }
 
 /* Appointment Status Badges
-   Tokenizado no #1126 (defeito B): os pares vinham de uma paleta própria e
-   ficavam claros dentro do card escuro. Cada estado passa a usar o par
-   surface/text da paleta de estado, que o medidor de contraste do
-   DarkModeCssTest verifica nos dois temas. */
+   Tokenized in #1126 (defect B): the pairs came from a palette of their own
+   and rendered light inside the dark card. Each state now uses the status
+   palette's surface/text pair, which DarkModeCssTest's contrast meter checks
+   in both themes. */
 .ffc-appointment-status {
     display: inline-block;
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
@@ -50,14 +50,14 @@
 }
 
 /* ==========================================================================
-   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
-   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
-   O mecanismo está explicado em ffc-common.css (#1165).
+   ACCESSIBILITY — HIGH CONTRAST (forced-colors)
+   Gives a border back to whatever had only a background. No effect outside
+   forced-colors mode. The mechanism is explained in ffc-common.css (#1165).
    ========================================================================== */
 
 @media (forced-colors: active) {
-    /* Selos de estado: o texto continua dizendo o estado; a borda
-       devolve a eles a forma de selo. */
+    /* Status badges: the text still says the state; the border
+       gives them their badge shape back. */
     .ffc-appointment-status-cancelled,
     .ffc-appointment-status-completed,
     .ffc-appointment-status-confirmed,
