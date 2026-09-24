@@ -1271,4 +1271,197 @@ class IdentityResolutionPageTest extends TestCase {
 			'An operator who has resolved nothing yet does not need to be told so.'
 		);
 	}
+
+	/**
+	 * Just one tier's branch of the action column.
+	 *
+	 * Bounded on both sides, because the three branches sit in one `if` and
+	 * every one of them prints buttons: a search over the whole view is
+	 * satisfied by a neighbour's markup and stops proving anything about the
+	 * branch it was written for. That is not hypothetical on this file — four
+	 * assertions in this suite have already been caught passing on somebody
+	 * else's occurrence.
+	 *
+	 * @param string $view The view's source.
+	 * @param string $tier The tier constant's name, unqualified.
+	 * @return string
+	 */
+	private function tier_branch( string $view, string $tier ): string {
+		$marks = array(
+			'TIER_MECHANICAL' => 'IdentityQueue::TIER_MECHANICAL === $ffc_identity_tier ) : ?>',
+			'TIER_DECISION'   => 'elseif ( IdentityQueue::TIER_DECISION === $ffc_identity_tier ) : ?>',
+			'TIER_MAILBOX'    => 'elseif ( IdentityQueue::TIER_MAILBOX === $ffc_identity_tier ) : ?>',
+		);
+
+		$from = strpos( $view, $marks[ $tier ] );
+		$this->assertIsInt( $from, 'The action column must still branch on ' . $tier . '.' );
+
+		$next = 'TIER_MECHANICAL' === $tier ? $marks['TIER_DECISION'] : $marks['TIER_MAILBOX'];
+		$to   = strpos( $view, $next, (int) $from + 1 );
+		$this->assertIsInt( $to, 'That branch must end where the next one opens.' );
+
+		return substr( $view, (int) $from, (int) $to - (int) $from );
+	}
+
+	/**
+	 * ONE PRIMARY WHERE THERE IS ONE VERB, AND NONE WHERE THERE ARE TWO (#1421).
+	 *
+	 * Every button on this screen was secondary, so nothing said which
+	 * control commits — on a card whose verbs rewrite somebody's records and
+	 * cannot be undone, the one that writes and the one that only asks read
+	 * alike. The mechanical tier has a single verb and takes the promotion.
+	 *
+	 * The decision tier deliberately does NOT: its two paths are a
+	 * destination that exists and a destination that does not, and the card's
+	 * own sentence asks the operator to choose between them. Promoting either
+	 * would be the screen answering the question it is asking, which is why
+	 * the mockup leaves both alike.
+	 */
+	public function test_the_card_with_one_verb_promotes_it_and_the_card_with_two_does_not(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertStringContainsString(
+			'class="button button-primary"',
+			$this->tier_branch( $view, 'TIER_MECHANICAL' ),
+			'The tier with one verb must say which control commits.'
+		);
+		$this->assertStringNotContainsString(
+			'button-primary',
+			$this->tier_branch( $view, 'TIER_DECISION' ),
+			'Two destinations, neither promoted: the operator chooses, not the screen.'
+		);
+	}
+
+	/**
+	 * THE HASH IS IN THE NAME, NOT IN THE LABEL (#1421).
+	 *
+	 * It was in the label because nothing else said which identifier a verb
+	 * acted on. #1407 then gave each identifier its own group with the hash
+	 * in the heading above the buttons, which made the label a second place
+	 * the same twelve characters were written.
+	 *
+	 * The layout gain is real and smaller than it looks, and it was measured
+	 * rather than assumed: every hash is truncated to the same length, so the
+	 * two groups' buttons were never different widths. What the shorter label
+	 * removes is one wrap row, between roughly 1100 and 1280 CSS pixels — the
+	 * card is identical above that band and identical below it.
+	 *
+	 * What it must not lose is the distinction: two bare "Move" buttons are
+	 * one announcement to a screen reader, and a heading two elements away is
+	 * part of neither name. So the assertion is two-sided — out of the label,
+	 * and still inside the button.
+	 */
+	public function test_the_move_button_states_its_identifier_without_printing_it(): void {
+		$view   = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$branch = $this->tier_branch( $view, 'TIER_DECISION' );
+
+		$from   = strpos( $branch, 'id="ffc-relink-go-' );
+		$this->assertIsInt( $from, 'The move verb must still have its own submit.' );
+		$to     = strpos( $branch, '</button>', (int) $from );
+		$this->assertIsInt( $to, 'That submit must close.' );
+		$button = substr( $branch, (int) $from, (int) $to - (int) $from );
+
+		$this->assertStringNotContainsString(
+			"'Move %s'",
+			$branch,
+			'The visible label states the verb; the heading above it states the identifier.'
+		);
+		$this->assertStringContainsString(
+			'screen-reader-text',
+			$button,
+			'And the hash stays in the accessible name, or the two buttons are announced alike.'
+		);
+		$this->assertStringContainsString(
+			'IdentityQueue::DISPLAY_PREFIX',
+			$button,
+			'Truncated the way every other hash on this screen is — a stored identifier is never rendered whole.'
+		);
+	}
+
+	/**
+	 * The search affordance is a glyph the screen reader does not read.
+	 *
+	 * A control that opens a dialog and one that submits a form are the same
+	 * grey rectangle otherwise. The glyph is decoration on top of a label
+	 * that already says the word, so announcing it would add a second name
+	 * for one control.
+	 */
+	public function test_the_search_buttons_carry_a_glyph_that_is_not_announced(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertSame(
+			2,
+			substr_count( $view, 'dashicons dashicons-search" aria-hidden="true"' ),
+			'Both search buttons — the decision tier\'s and the orphan tier\'s — carry the glyph, and neither announces it.'
+		);
+		$this->assertSame(
+			substr_count( $view, "esc_html_e( 'Search…', 'ffcertificate' )" ),
+			substr_count( $view, 'dashicons dashicons-search' ),
+			'A glyph without its word is an icon-only control, which this screen does not use.'
+		);
+	}
+
+	/**
+	 * THE WORD LEAVES THE STEPPER AND SURVIVES IN THREE PLACES (#1421).
+	 *
+	 * The two steppers sit between the position ("3 of 14") and the link to
+	 * the list, where the direction is the whole message — so a glyph says it
+	 * and two words said it twice. Dropping to an icon is only safe while
+	 * every non-visual route to the word still has it, and each of the three
+	 * covers a case the others do not: `aria-label` is the accessible NAME,
+	 * so a screen reader is unaffected; `title` draws the tooltip the admin
+	 * sheets style, which is what a mouse gets; and that family's
+	 * `:focus-visible` half — added in the same PR, because it did not exist —
+	 * is what a keyboard gets.
+	 *
+	 * Asserted together for that reason: any one of them alone leaves a real
+	 * operator with an unlabelled arrow, and the one most easily lost is the
+	 * CSS half, which lives in another file and no PHP test would miss.
+	 */
+	public function test_the_steppers_are_icons_whose_label_survives_where_the_icon_cannot_be_read(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$from = strpos( $view, "foreach ( array( 'previous', 'next' ) as \$ffc_identity_step )" );
+		$this->assertIsInt( $from, 'The two steppers must still be drawn from one branch.' );
+		$to = strpos( $view, 'ffc-identity-panel-toggle', (int) $from );
+		$this->assertIsInt( $to, 'And end before the link to the list.' );
+		$steppers = substr( $view, (int) $from, (int) $to - (int) $from );
+
+		$this->assertSame(
+			2,
+			substr_count( $steppers, 'aria-label="<?php echo esc_attr( $ffc_identity_step_label ); ?>"' ),
+			'Both the live stepper and the disabled one carry the accessible name.'
+		);
+		$this->assertSame(
+			2,
+			substr_count( $steppers, 'title="<?php echo esc_attr( $ffc_identity_step_label ); ?>"' ),
+			'And both carry the tooltip, which is the only route a pointer has.'
+		);
+		$this->assertSame(
+			2,
+			substr_count( $steppers, 'aria-hidden="true"' ),
+			'The glyph itself is never announced — the label is the name.'
+		);
+		$this->assertStringNotContainsString(
+			"esc_html_e( 'Previous'",
+			$steppers,
+			'The word is the label and the tooltip, not the visible text.'
+		);
+
+		// THE CSS HALF, ASSERTED HERE BECAUSE NOTHING ELSE DOES. The tooltip
+		// this markup now relies on was hover-only, so a keyboard reached an
+		// arrow with no visible label at all.
+		$sheet = (string) file_get_contents( __DIR__ . '/../../assets/css/ffc-admin-submissions.css' );
+
+		// THE RULE, NOT THE SELECTOR ANYWHERE IN THE SHEET. The phone
+		// `@media` block below carries the same selector in order to HIDE the
+		// tooltip, so an unanchored search is satisfied by the rule that
+		// switches the thing off -- which is how the first version of this
+		// assertion survived the mutation it exists for.
+		$this->assertStringContainsString(
+			".ffc-admin-page .button[title]:hover::after,\n.ffc-admin-page .button[title]:focus-visible::after {",
+			$sheet,
+			'A tooltip only a pointer can reach is a label a keyboard user does not have.'
+		);
+	}
 }

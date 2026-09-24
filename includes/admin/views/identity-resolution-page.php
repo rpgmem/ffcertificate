@@ -194,21 +194,56 @@ $ffc_identity_head = static function ( $panel, $label, $note ) use ( $ffc_identi
 					);
 					?>
 				</span>
-				<?php if ( '' !== (string) $panel['previous'] ) : ?>
-					<a class="button button-secondary ffc-identity-panel-step" href="<?php echo esc_url( $ffc_identity_url( $tier, (string) $panel['previous'], $ffc_identity_listed ) ); ?>">
-						<?php esc_html_e( 'Previous', 'ffcertificate' ); ?>
-					</a>
-				<?php else : ?>
-					<?php // Rendered and disabled rather than absent, so the controls do not move under the pointer as the operator walks the list. ?>
-					<span class="button button-secondary ffc-identity-panel-step disabled" aria-disabled="true"><?php esc_html_e( 'Previous', 'ffcertificate' ); ?></span>
-				<?php endif; ?>
-				<?php if ( '' !== (string) $panel['next'] ) : ?>
-					<a class="button button-secondary ffc-identity-panel-step" href="<?php echo esc_url( $ffc_identity_url( $tier, (string) $panel['next'], $ffc_identity_listed ) ); ?>">
-						<?php esc_html_e( 'Next', 'ffcertificate' ); ?>
-					</a>
-				<?php else : ?>
-					<span class="button button-secondary ffc-identity-panel-step disabled" aria-disabled="true"><?php esc_html_e( 'Next', 'ffcertificate' ); ?></span>
-				<?php endif; ?>
+				<?php
+				// AN ARROW, AND THE WORD IN THREE PLACES THE ARROW IS NOT.
+				//
+				// These two sit between the position ("3 of 14") and the link
+				// to the list, so the direction is the whole message and the
+				// words spend a third of the strip's width saying it twice.
+				// Dropping to a glyph is only safe because the word survives
+				// everywhere it was doing work: `aria-label` IS the accessible
+				// name, so nothing changes for a screen reader; `title` draws
+				// the tooltip the admin sheets already style on hover -- and
+				// this sheet adds the `:focus-visible` half of that family,
+				// which did not exist, so a keyboard reaches the same label
+				// the mouse does (WCAG 1.4.13).
+				//
+				// What no tooltip reaches is touch, where neither hover nor
+				// focus fires. That is carried by the glyph being a chevron
+				// and by the 40px target, and it is the reason the label is
+				// an `aria-label` rather than a `title` alone.
+				?>
+				<?php foreach ( array( 'previous', 'next' ) as $ffc_identity_step ) : ?>
+					<?php
+					$ffc_identity_step_label = 'previous' === $ffc_identity_step
+						? __( 'Previous', 'ffcertificate' )
+						: __( 'Next', 'ffcertificate' );
+					// The chevron is a dashicon, the way every other glyph in
+					// this plugin is -- and not a `content: '\f341'` rule,
+					// which would need the font named in our own sheet and is
+					// the shape `CssNamespaceAnchorTest` exists to bound.
+					$ffc_identity_step_class = 'button button-secondary ffc-identity-panel-step ffc-identity-panel-step-' . $ffc_identity_step;
+					$ffc_identity_step_icon  = 'previous' === $ffc_identity_step
+						? 'dashicons-arrow-left-alt2'
+						: 'dashicons-arrow-right-alt2';
+					?>
+					<?php if ( '' !== (string) $panel[ $ffc_identity_step ] ) : ?>
+						<a class="<?php echo esc_attr( $ffc_identity_step_class ); ?>"
+							aria-label="<?php echo esc_attr( $ffc_identity_step_label ); ?>"
+							title="<?php echo esc_attr( $ffc_identity_step_label ); ?>"
+							href="<?php echo esc_url( $ffc_identity_url( $tier, (string) $panel[ $ffc_identity_step ], $ffc_identity_listed ) ); ?>">
+							<span class="dashicons <?php echo esc_attr( $ffc_identity_step_icon ); ?>" aria-hidden="true"></span>
+						</a>
+					<?php else : ?>
+						<?php // Rendered and disabled rather than absent, so the controls do not move under the pointer as the operator walks the list. ?>
+						<span class="<?php echo esc_attr( $ffc_identity_step_class ); ?> disabled"
+							aria-disabled="true"
+							aria-label="<?php echo esc_attr( $ffc_identity_step_label ); ?>"
+							title="<?php echo esc_attr( $ffc_identity_step_label ); ?>">
+							<span class="dashicons <?php echo esc_attr( $ffc_identity_step_icon ); ?>" aria-hidden="true"></span>
+						</span>
+					<?php endif; ?>
+				<?php endforeach; ?>
 			<?php endif; ?>
 			<a class="ffc-identity-panel-toggle" href="<?php echo esc_url( $ffc_identity_url( '', '', $toggle ) ); ?>">
 				<?php
@@ -1118,7 +1153,18 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							?>
 							<input type="hidden" name="ffc_target" value="<?php echo esc_attr( $ffc_identity_right ); ?>">
 							<input type="hidden" name="ffc_field" value="<?php echo esc_attr( str_replace( '_hash', '', (string) ( $ffc_identity_item['identifier_column'] ?? '' ) ) ); ?>">
-							<button type="submit" class="button button-secondary">
+							<?php
+							// PRIMARY, BECAUSE THIS CARD HAS ONE VERB.
+							//
+							// The whole tier is "the account already holds the
+							// right number" -- there is nothing to type and no
+							// second path, so the only question is whether to
+							// act. The decision tier below is deliberately the
+							// opposite: two peers, neither promoted, because
+							// promoting one of two destinations is the screen
+							// answering a question it is asking.
+							?>
+							<button type="submit" class="button button-primary">
 								<?php esc_html_e( 'Consolidate', 'ffcertificate' ); ?>
 							</button>
 						</form>
@@ -1195,17 +1241,46 @@ $ffc_identity_tier_note = static function ( $tier ) {
 									data-ffc-input="ffc-relink-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
 									data-ffc-split="ffc-split-form-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
 									data-ffc-submit="ffc-relink-go-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
+									<span class="dashicons dashicons-search" aria-hidden="true"></span>
 									<?php esc_html_e( 'Search…', 'ffcertificate' ); ?>
 								</button>
+								<?php
+								// THE HASH LEAVES THE LABEL AND STAYS IN THE NAME.
+								//
+								// It was in the label because nothing else on
+								// the card said WHICH number a verb acted on --
+								// and then #1407 gave each identifier its own
+								// group with the hash in the heading directly
+								// above, which made the label the second place
+								// it was written.
+								//
+								// MEASURED, BECAUSE THE OBVIOUS REASON IS NOT
+								// THE REAL ONE. This looked like it would fix
+								// two groups wrapping to different heights; it
+								// does not, and could not -- every hash is
+								// truncated to the same length, so the two
+								// labels were always the same width and the
+								// groups always matched. What the shorter label
+								// actually buys is a WRAP ROW, and only in a
+								// band: rendered in Chromium at 1920 / 1600 /
+								// 1440 the card is 153px either way, at 1100 it
+								// is 211px with the hash and 171 without, and at
+								// 960 and below it is 211 either way. One row
+								// of twelve screens' worth of width.
+								//
+								// What it cannot simply lose is the DISTINCTION:
+								// a screen reader announcing two bare "Move"
+								// buttons gives an operator no way to tell them
+								// apart, and a heading two elements away is not
+								// part of either name. So the hash moves into
+								// the name rather than out of it.
+								?>
 								<button type="submit" class="button button-secondary"
 									id="ffc-relink-go-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
-									<?php
-									printf(
-										/* translators: %s: the identifier's hash prefix. */
-										esc_html__( 'Move %s', 'ffcertificate' ),
-										esc_html( substr( (string) $ffc_identity_move, 0, IdentityQueue::DISPLAY_PREFIX ) )
-									);
-									?>
+									<?php esc_html_e( 'Move', 'ffcertificate' ); ?>
+									<span class="screen-reader-text">
+										<?php echo esc_html( substr( (string) $ffc_identity_move, 0, IdentityQueue::DISPLAY_PREFIX ) ); ?>
+									</span>
 								</button>
 								<span class="ffc-identity-chosen" id="ffc-relink-chosen-<?php echo esc_attr( (string) $ffc_identity_move ); ?>" hidden></span>
 							</form>
@@ -1567,7 +1642,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 								data-ffc-verdict="ffc-check-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
 								<?php esc_html_e( 'Check', 'ffcertificate' ); ?>
 							</button>
-							<button type="submit" class="button button-secondary">
+							<button type="submit" class="button button-primary">
 								<?php esc_html_e( 'Correct', 'ffcertificate' ); ?>
 							</button>
 							<div class="ffc-identity-verdict" id="ffc-check-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
@@ -1748,9 +1823,10 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							data-ffc-input="ffc-orphan-account-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
 							data-ffc-split="ffc-orphan-open-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
 							data-ffc-submit="ffc-orphan-link-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+							<span class="dashicons dashicons-search" aria-hidden="true"></span>
 							<?php esc_html_e( 'Search…', 'ffcertificate' ); ?>
 						</button>
-						<button type="submit" class="button button-secondary"
+						<button type="submit" class="button button-primary"
 							id="ffc-orphan-link-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
 							<?php esc_html_e( 'Link', 'ffcertificate' ); ?>
 						</button>
