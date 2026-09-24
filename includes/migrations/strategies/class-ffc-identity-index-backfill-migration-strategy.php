@@ -61,6 +61,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Migrations\Strategies;
 
 use WP_Error;
+use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Repositories\UserProfileRepository;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -137,13 +138,40 @@ class IdentityIndexBackfillMigrationStrategy implements MigrationStrategyInterfa
 		$pending  = $counts['beyond'];
 		$migrated = max( 0, $total - $pending );
 
+		// THE CONFLICTS ARE REPORTED BESIDE THE BAR, NEVER INSIDE IT (#1368).
+		//
+		// An account holding two different hashes for one field is left empty
+		// on purpose, so it is outstanding work that this button can never
+		// do. Folding it into `pending` would make the percentage mean two
+		// things at once -- walk progress and a decision nobody has taken --
+		// and leave the card permanently short of 100% with a button that
+		// moves nothing, which is precisely how an operator learns to ignore
+		// a card. So it travels as its own number, and the view offers it a
+		// link rather than a re-run.
+		//
+		// `null` when nothing could be read, and it stays null all the way to
+		// the markup: an unread scan must never render as "no conflicts".
 		return array(
 			'total'       => $total,
 			'migrated'    => $migrated,
 			'pending'     => $pending,
 			'percent'     => ( $total > 0 ) ? round( ( $migrated / $total ) * 100, 2 ) : 100.0,
 			'is_complete' => ( 0 === $pending ),
+			'conflicts'   => $this->conflicts()->multiple_identities_count(),
 		);
+	}
+
+	/**
+	 * The cross-store identity questions.
+	 *
+	 * A seam for the reason `IdentityResolutionPage::conflicts()` has one: the
+	 * query reaches four tables through the global `$wpdb`, and a test of this
+	 * card should not have to stand all four up.
+	 *
+	 * @return IdentityConflictQuery
+	 */
+	protected function conflicts(): IdentityConflictQuery {
+		return new IdentityConflictQuery();
 	}
 
 	/**
