@@ -335,6 +335,8 @@ $ffc_identity_tier_label = static function ( $tier ) {
 			return __( 'Two accounts, one number', 'ffcertificate' );
 		case IdentityQueue::TIER_ISOLATED:
 			return __( 'Numbers to correct', 'ffcertificate' );
+		case IdentityQueue::TIER_MAILBOX:
+			return __( 'One address, several people', 'ffcertificate' );
 		default:
 			return __( 'Needs a decision', 'ffcertificate' );
 	}
@@ -352,6 +354,8 @@ $ffc_identity_tier_note = static function ( $tier ) {
 			return __( 'The check digits identify which of the two is wrong, and the other one is this account\'s. No value has to be asked for.', 'ffcertificate' );
 		case IdentityQueue::TIER_SHARED:
 			return __( 'One number is stored against more than one account. That is a merge, not a correction: the decision is which account survives.', 'ffcertificate' );
+		case IdentityQueue::TIER_MAILBOX:
+			return __( 'The numbers on this account share one address and are not variants of each other, so the address does not identify one person — a shared mailbox, or an account submitting on behalf of others. No verb is offered here: read the account and decide with HR.', 'ffcertificate' );
 		default:
 			return __( 'The check digits do not single one out — none fails, or more than one does. Confirm with HR which number is this person\'s.', 'ffcertificate' );
 	}
@@ -800,12 +804,18 @@ $ffc_identity_tier_note = static function ( $tier ) {
 	<?php endif; ?>
 
 	<?php
-	// TWO PANELS OVER ONE TABLE, because what differs between them is the
-	// verb offered, not the shape of the finding: both are an account holding
-	// more than one identifier. The tier label moved into the panel header,
-	// so the `What is known` column below now says it once per panel rather
-	// than once per row.
-	$ffc_identity_account_tiers = array( IdentityQueue::TIER_MECHANICAL, IdentityQueue::TIER_DECISION );
+	// THREE PANELS OVER ONE CARD, because what differs between them is the
+	// verb offered, not the shape of the finding: all three are an account
+	// holding more than one identifier. The tier label moved into the panel
+	// header, so the `What is known` column below now says it once per panel
+	// rather than once per row.
+	//
+	// The third is the shared mailbox (#1368), and it is here rather than in
+	// a panel of its own precisely because the finding is the same shape --
+	// what makes it a tier is that the verb column is empty by decision. A
+	// separate layout would have made that look like a different kind of
+	// finding, when it is the same finding the screen refuses to act on.
+	$ffc_identity_account_tiers = array( IdentityQueue::TIER_MECHANICAL, IdentityQueue::TIER_DECISION, IdentityQueue::TIER_MAILBOX );
 	?>
 	<?php foreach ( $ffc_identity_account_tiers as $ffc_identity_this_tier ) : ?>
 		<?php if ( ! isset( $ffc_identity_by_tier[ $ffc_identity_this_tier ] ) ) : ?>
@@ -893,6 +903,23 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							printf(
 								/* translators: %s: RF or CPF. */
 								esc_html__( 'This account holds two %s. One fails its own check digit and the other is sound, so the right one is the one the account already has.', 'ffcertificate' ),
+								esc_html( $ffc_identity_kind )
+							);
+							?>
+						<?php elseif ( IdentityQueue::TIER_MAILBOX === $ffc_identity_tier ) : ?>
+							<?php
+							// THE COUNT IS THE EVIDENCE HERE, NOT A DETAIL.
+							//
+							// The reading turns on how many numbers one
+							// address carries: at two it is a person who
+							// typed twice, and at nine it is not. So the
+							// sentence leads with the number rather than
+							// mentioning it, and says what the screen cannot
+							// decide instead of what an operator should do.
+							printf(
+								/* translators: 1: how many identifiers the account holds. 2: RF or CPF. */
+								esc_html__( 'This account holds %1$s %2$s under one address, and they are not variants of each other. One address on that many numbers does not identify one person, so this is a shared mailbox or an account submitting for other people — which of the two, only the account itself says.', 'ffcertificate' ),
+								esc_html( number_format_i18n( count( $ffc_identity_which ) ) ),
 								esc_html( $ffc_identity_kind )
 							);
 							?>
@@ -1151,6 +1178,20 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							<?php endif; ?>
 							</div>
 						<?php endforeach; ?>
+					<?php elseif ( IdentityQueue::TIER_MAILBOX === $ffc_identity_tier ) : ?>
+						<?php
+						// A COLUMN THAT SAYS WHY IT IS EMPTY, NOT AN EMPTY COLUMN.
+						//
+						// The verbs are withheld by decision rather than by a
+						// missing capability, so the operator is told which
+						// question the screen cannot answer and where the
+						// answer lives. The account link sits in the card's
+						// own header, which is why there is no second one
+						// here.
+						?>
+						<span class="description">
+							<?php esc_html_e( 'Nothing is offered here on purpose: correcting would rewrite a number that may be somebody else\'s, and splitting would detach records from an account that may legitimately hold them. Open the account, read what it submitted, and decide with HR.', 'ffcertificate' ); ?>
+						</span>
 					<?php else : ?>
 						<span class="description">
 							<?php esc_html_e( 'Open the account — this one is not decided here.', 'ffcertificate' ); ?>
@@ -1160,9 +1201,12 @@ $ffc_identity_tier_note = static function ( $tier ) {
 			</div>
 		<?php endforeach; ?>
 		</div>
-		<p class="description">
-			<?php esc_html_e( 'Consolidating writes the account\'s sound identifier over the mistyped one across every store that holds it. Moving sends the records carrying one identifier to another account — allowed only where the two already agree on the other identifier, and where the receiving account holds none of that kind it gains this one. Splitting creates an account for one identifier and moves its records there — it asks for an address because there is none to inherit, and it removes the account again if the move refuses. All of them run as a single transaction, rolled back whole if any part refuses, and none shows a stored number.', 'ffcertificate' ); ?>
-		</p>
+		<?php if ( IdentityQueue::TIER_MAILBOX !== $ffc_identity_this_tier ) : ?>
+			<?php // The three verbs, under the two panels that offer them. The mailbox panel offers none, so explaining them there would describe buttons that are not on the screen. ?>
+			<p class="description">
+				<?php esc_html_e( 'Consolidating writes the account\'s sound identifier over the mistyped one across every store that holds it. Moving sends the records carrying one identifier to another account — allowed only where the two already agree on the other identifier, and where the receiving account holds none of that kind it gains this one. Splitting creates an account for one identifier and moves its records there — it asks for an address because there is none to inherit, and it removes the account again if the move refuses. All of them run as a single transaction, rolled back whole if any part refuses, and none shows a stored number.', 'ffcertificate' ); ?>
+			</p>
+		<?php endif; ?>
 		<?php $ffc_identity_foot(); ?>
 	<?php endforeach; ?>
 
