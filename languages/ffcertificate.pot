@@ -22702,3 +22702,20 @@ msgstr ""
 
 msgid "No activity date recorded"
 msgstr ""
+
+msgid "%s account holds two different numbers for one field"
+msgid_plural "%s accounts hold two different numbers for one field"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "This migration leaves those empty on purpose: choosing one of the two would destroy the evidence that they disagree. Running it again moves this number by zero — the decision is a person's."
+msgstr ""
+
+msgid "Resolve on Identity Resolution"
+msgstr ""
+
+msgid "Resolving them needs the identity capability, which this account does not hold."
+msgstr ""
+
+msgid "Everything this migration may decide on its own is done. What is listed above is not."
+msgstr ""

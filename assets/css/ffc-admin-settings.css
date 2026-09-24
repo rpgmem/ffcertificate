@@ -397,6 +397,28 @@
     color: var(--ffc-text-on-primary);
 }
 
+/* Work the card reports and its own button cannot do (#1368). The warning
+   ground and rule set it apart from the progress bar above without becoming a
+   second alarm: it is outstanding, not failing. Paints its own text, because
+   a rule that gives a surface a ground must give it a colour -- inheriting
+   here lands near-black on the dark theme. */
+.ffc-migration-conflicts {
+    margin-top: var(--ffc-spacing-lg);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
+    background: var(--ffc-warning-bg);
+    border-left: 3px solid var(--ffc-warning-border);
+    border-radius: var(--ffc-radius-xs);
+    color: var(--ffc-warning-text);
+}
+
+.ffc-migration-conflicts p {
+    margin: 0 0 var(--ffc-spacing-2xs);
+}
+
+.ffc-migration-conflicts p:last-child {
+    margin-bottom: 0;
+}
+
 .ffc-migration-actions {
     margin-top: var(--ffc-spacing-2xl);
 }

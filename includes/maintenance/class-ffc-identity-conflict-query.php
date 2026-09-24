@@ -637,6 +637,65 @@ class IdentityConflictQuery {
 	}
 
 	/**
+	 * How many accounts hold more than one identifier of the same kind.
+	 *
+	 * The same population `multiple_identities()` lists, counted rather than
+	 * sampled -- and it is deliberately THIS class that counts it. A second
+	 * definition of "conflict" living in the backfill strategy is the parallel
+	 * counter `CLAUDE.md` records as redundant indirection: the card and the
+	 * identity screen would then be free to disagree about what they are each
+	 * naming, with nothing to reconcile them.
+	 *
+	 * COUNTED ACROSS THE TWO COLUMNS, NOT SUMMED PER COLUMN.
+	 *
+	 * An account can be in conflict on its CPF *and* on its RF -- #1368 names
+	 * one, `438`, and calls it the only account whose two verdicts disagree.
+	 * Summing a per-column count reports it twice, which is a number an
+	 * operator cannot reconcile against a queue that lists it once. The
+	 * `UNION` of the two subject lists dedupes, and the count is over that.
+	 *
+	 * UNCOUNTABLE IS NULL, NEVER ZERO. When no store carries either column
+	 * there is nothing to count and also nothing known -- the same distinction
+	 * `rf_scan_coverage()` exists to keep, and the reason a caller must not
+	 * render this as "no conflicts".
+	 *
+	 * @return int|null Accounts in conflict, or null when nothing could be read.
+	 */
+	public function multiple_identities_count(): ?int {
+		global $wpdb;
+
+		$parts  = array();
+		$values = array();
+
+		foreach ( self::COLUMNS as $column ) {
+			$pairs = $this->pairs( $column );
+			if ( null === $pairs ) {
+				continue;
+			}
+
+			$parts[] = "SELECT user_id AS subject FROM ({$pairs['sql']}) AS p GROUP BY user_id HAVING COUNT(DISTINCT h) > 1";
+			$values  = array_merge( $values, $pairs['values'] );
+		}
+
+		if ( array() === $parts ) {
+			return null;
+		}
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- As in `grouped()`: the fragments are this class's own literals over the union `pairs()` built, and nothing here is request data. A card reporting outstanding work must reflect the live tables.
+		$found = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(DISTINCT subject) FROM (' . implode( ' UNION ', $parts ) . ') AS c',
+				...$values
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		// A statement the server refused answers null, which is not a count
+		// either -- the caller must be able to tell it from a real zero.
+		return is_numeric( $found ) ? (int) $found : null;
+	}
+
+	/**
 	 * One identifier held by more than one user, anywhere.
 	 *
 	 * The sharpest reading of "two accounts, one person". It is what #1313's

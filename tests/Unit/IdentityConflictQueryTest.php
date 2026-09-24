@@ -66,6 +66,30 @@ class IdentityConflictQueryTest extends TestCase {
 	 */
 	private array $without_row_id = array();
 
+	/**
+	 * Stores the `SHOW TABLES` probe must not resolve at all.
+	 *
+	 * The others suppress a COLUMN; this suppresses the table, which is how
+	 * the "nothing could be read" direction is driven without a schema.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $without_table = array();
+
+	/**
+	 * What the conflict count statement answers, when a test drives it.
+	 *
+	 * @var mixed
+	 */
+	private $conflict_answer = null;
+
+	/**
+	 * The conflict-count statements the harness answered, in order.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $conflict_sql = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -101,6 +125,22 @@ class IdentityConflictQueryTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			function ( $query ) {
 				$sql = (string) $query;
+
+				// `multiple_identities_count()` is the one `get_var` caller
+				// that is not a schema probe, so it is answered before them.
+				if ( false !== strpos( $sql, 'COUNT(DISTINCT subject)' ) ) {
+					$this->conflict_sql[] = $sql;
+
+					return $this->conflict_answer;
+				}
+
+				if ( false !== strpos( $sql, 'SHOW TABLES' ) ) {
+					foreach ( $this->without_table as $table ) {
+						if ( false !== strpos( $sql, $table ) ) {
+							return null;
+						}
+					}
+				}
 
 				if ( false !== strpos( $sql, 'SHOW COLUMNS' ) ) {
 					if ( false !== strpos( $sql, '_encrypted' ) ) {
@@ -591,6 +631,63 @@ class IdentityConflictQueryTest extends TestCase {
 	 * nothing must read as "no account found", never as a blank that a later
 	 * reader takes for "fine". An empty result must never read as clean.
 	 */
+	/**
+	 * THE ACCOUNT IN CONFLICT ON BOTH COLUMNS IS COUNTED ONCE (#1368).
+	 *
+	 * The issue names one — `438`, the only account whose two verdicts
+	 * disagree — and it is the whole reason this is not a sum of two
+	 * per-column counts: that shape reports it twice, against a queue that
+	 * lists it once, and an operator has no way to reconcile the two numbers.
+	 *
+	 * Asserted on the SHAPE of the statement, which is this class's own
+	 * documented limit: `UNION` (never `UNION ALL`) dedupes the subjects and
+	 * `COUNT(DISTINCT subject)` counts what survives. That the server then
+	 * does it is MySQL's contract.
+	 */
+	public function test_the_conflict_count_dedupes_an_account_named_by_both_columns(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+		$this->conflict_answer = '7';
+
+		$this->assertSame( 7, ( new IdentityConflictQuery() )->multiple_identities_count() );
+		$this->assertCount( 1, $this->conflict_sql, 'The count must be one statement, not one per column.' );
+
+		$sql = $this->conflict_sql[0];
+
+		$this->assertStringContainsString( 'COUNT(DISTINCT subject)', $sql, 'An account may appear under both columns.' );
+		$this->assertStringNotContainsString( 'UNION ALL', $sql, 'UNION ALL would keep the duplicate the DISTINCT is there to drop.' );
+		$this->assertSame(
+			2,
+			substr_count( $sql, 'HAVING COUNT(DISTINCT h) > 1' ),
+			'Both identifier columns must be asked about.'
+		);
+	}
+
+	/**
+	 * A reading that could not be taken is null, never zero.
+	 *
+	 * With no store carrying either column there is nothing to count AND
+	 * nothing known. Reporting `0` would let the card print "no conflicts"
+	 * off a scan that never ran — the #1071 / #1094 rule at the point where
+	 * a number reaches a screen.
+	 */
+	public function test_the_conflict_count_is_null_when_no_store_resolves(): void {
+		$this->without_table = array( 'wp_ffc_submissions', 'wp_ffc_self_scheduling_appointments', 'wp_ffc_recruitment_candidate', 'wp_ffc_user_profiles' );
+
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+		$this->assertNull( ( new IdentityConflictQuery() )->multiple_identities_count() );
+	}
+
+	/**
+	 * A statement the server refused is not a count either.
+	 */
+	public function test_the_conflict_count_is_null_when_the_statement_answers_nothing(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+		$this->conflict_answer = null;
+
+		$this->assertNull( ( new IdentityConflictQuery() )->multiple_identities_count() );
+	}
+
 	public function test_account_facts_seed_missing_and_only_wp_users_lifts_it(): void {
 		Functions\when( 'get_users' )->justReturn( array( '355' ) );
 		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );

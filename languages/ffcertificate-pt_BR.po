@@ -22793,3 +22793,20 @@ msgstr "Usado pela última vez em %s"
 
 msgid "No activity date recorded"
 msgstr "Nenhuma data de atividade registrada"
+
+msgid "%s account holds two different numbers for one field"
+msgid_plural "%s accounts hold two different numbers for one field"
+msgstr[0] "%s conta tem dois números diferentes para um mesmo campo"
+msgstr[1] "%s contas têm dois números diferentes para um mesmo campo"
+
+msgid "This migration leaves those empty on purpose: choosing one of the two would destroy the evidence that they disagree. Running it again moves this number by zero — the decision is a person's."
+msgstr "Esta migração deixa esses casos vazios de propósito: escolher um dos dois destruiria a evidência de que eles discordam. Rodá-la de novo move esse número em zero — a decisão é de uma pessoa."
+
+msgid "Resolve on Identity Resolution"
+msgstr "Resolver em Resolução de Identidades"
+
+msgid "Resolving them needs the identity capability, which this account does not hold."
+msgstr "Resolvê-los exige a permissão de identidades, que esta conta não tem."
+
+msgid "Everything this migration may decide on its own is done. What is listed above is not."
+msgstr "Tudo o que esta migração pode decidir sozinha está feito. O que está listado acima, não."
