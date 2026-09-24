@@ -83,8 +83,14 @@ class TabMigrationsTest extends TestCase {
 	 * @return string
 	 */
 	private function conflicts_block( string $view ): string {
-		$from = strpos( $view, 'class="ffc-migration-conflicts"' );
-		$to   = strpos( $view, '<!-- Actions -->', (int) $from );
+		// STARTS AT ITS OWN GATE, not at the div. The URL is built between
+		// the two, and the audit card further down now reads the same
+		// capability -- so an assertion over the whole view is satisfied by
+		// THAT occurrence and stops protecting this one. That is not
+		// hypothetical: adding the audit card's link silently disarmed this
+		// gate's test, and the mutation caught it before the push.
+		$from = strpos( $view, '<?php if ( null !== $ffcertificate_conflicts' );
+		$to   = ( false === $from ) ? false : strpos( $view, '<!-- Actions -->', (int) $from );
 
 		$this->assertIsInt( $from, 'The card must report the work its button cannot do.' );
 		$this->assertIsInt( $to, 'The conflicts block must sit above the actions.' );
@@ -140,14 +146,16 @@ class TabMigrationsTest extends TestCase {
 	public function test_the_identity_link_is_gated_on_the_capability(): void {
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
 
+		$block = $this->conflicts_block( $view );
+
 		$this->assertStringContainsString(
 			'current_user_can( \FreeFormCertificate\Admin\IdentityResolutionPage::CAPABILITY )',
-			$view,
+			$block,
 			'The link must be built only for a holder of the capability the screen checks.'
 		);
 		$this->assertStringContainsString(
 			"'' !== \$ffcertificate_identities_url",
-			$this->conflicts_block( $view ),
+			$block,
 			'And the block must print nothing where there is no link to print.'
 		);
 	}
@@ -187,6 +195,51 @@ class TabMigrationsTest extends TestCase {
 		$this->assertIsInt( $all, 'The complete message must still exist for the cards with nothing outstanding.' );
 		$this->assertIsInt( $if, 'It must be the branch that runs when nothing is outstanding.' );
 		$this->assertLessThan( (int) $all, (int) $if, 'The qualified sentence comes first; "All records" is the else.' );
+	}
+
+	/**
+	 * Just the audit card's row of buttons.
+	 *
+	 * @param string $view The view's source.
+	 * @return string
+	 */
+	private function audit_actions( string $view ): string {
+		$from = strpos( $view, '$ffcertificate_sa_scan_url' );
+		$from = ( false === $from ) ? false : strpos( $view, 'ffc-migration-actions', (int) $from );
+		$to   = ( false === $from ) ? false : strpos( $view, '</div>', (int) $from );
+
+		$this->assertIsInt( $from, 'The audit card must keep its row of buttons.' );
+		$this->assertIsInt( $to, 'That row must close.' );
+
+		return substr( $view, (int) $from, (int) $to - (int) $from );
+	}
+
+	/**
+	 * THE LOOP CLOSES BOTH WAYS (#1368).
+	 *
+	 * This card reads and never writes: every verb that resolves what it
+	 * finds lives on the identity screen, which already offers this card's
+	 * CSV. Until now nothing pointed the other way, so an operator holding
+	 * both capabilities read a list of findings with no route to the screen
+	 * that acts on them.
+	 *
+	 * A link, and deliberately not the screen moved here — the two surfaces
+	 * answer different question sets and sit behind different capabilities.
+	 */
+	public function test_the_audit_card_links_to_the_screen_that_resolves_its_findings(): void {
+		$view    = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
+		$actions = $this->audit_actions( $view );
+
+		$this->assertStringContainsString(
+			'IdentityResolutionPage::MENU_SLUG',
+			$actions,
+			'The audit card must name the screen that can act on its findings.'
+		);
+		$this->assertStringContainsString(
+			'current_user_can( \FreeFormCertificate\Admin\IdentityResolutionPage::CAPABILITY )',
+			$actions,
+			'And offer it only to somebody who can open it.'
+		);
 	}
 
 	public function test_render_error_when_view_missing(): void {

@@ -1035,6 +1035,33 @@ try {
 					<span class="dashicons dashicons-download"></span>
 					<?php esc_html_e( 'Export findings (CSV)', 'ffcertificate' ); ?>
 				</a>
+				<?php
+				// THE OTHER HALF OF THE LOOP, AND ONLY THAT (#1368).
+				//
+				// This card reads and never writes: every verb that resolves
+				// what it finds lives on the identity screen. Until now the
+				// link ran one way — that screen offers this card's CSV, and
+				// this card named nothing.
+				//
+				// It is a link and NOT the screen moved here. The two are
+				// deliberately different surfaces: this audit runs a wider set
+				// of checks, several of which (`unindexed_links`, the
+				// submission-scoped pair) have no verb over there, and the
+				// queue is reachable on `ffc_manage_identities` alone while
+				// everything on this card needs `ffc_manage_settings_dangerzone`.
+				// Folding one into the other would either break that split or
+				// draw findings nobody on the receiving screen can act on.
+				//
+				// Gated on the destination's own capability, for the reason
+				// the backfill card's link is: an offered control that answers
+				// `wp_die` is worse than an absent one.
+				?>
+				<?php if ( current_user_can( \FreeFormCertificate\Admin\IdentityResolutionPage::CAPABILITY ) ) : ?>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . \FreeFormCertificate\Admin\IdentityResolutionPage::MENU_SLUG ) ); ?>" class="button button-secondary">
+						<span class="dashicons dashicons-admin-users"></span>
+						<?php esc_html_e( 'Resolve on Identity Resolution', 'ffcertificate' ); ?>
+					</a>
+				<?php endif; ?>
 			</div>
 
 			<?php
