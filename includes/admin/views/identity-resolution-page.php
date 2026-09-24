@@ -237,6 +237,81 @@ $ffc_identity_foot = static function () {
 	<?php
 };
 
+/**
+ * A store, as an operator reads it.
+ *
+ * THE QUERIES DO NOT AGREE ON THE SHAPE, AND THE SCREEN SHOWED BOTH.
+ *
+ * `IdentityConflictQuery::label()` strips the site prefix and the `ffc_`
+ * before handing a store name out, so its findings say `submissions`.
+ * `IdentityOrphanQuery` keys its rows by the FULL prefixed table, so its
+ * findings say `wp_ffc_submissions`. Both reach this screen, and until this
+ * was written both reached it raw -- which is how a card came to read
+ * `self_scheduling_appointments|user_profiles`, a machine name joined by the
+ * query's own internal separator.
+ *
+ * So this normalises first and then translates. A store nobody has mapped
+ * still renders as its normalised self rather than as nothing: an unknown
+ * name is worth less than a known one and worth far more than a blank.
+ *
+ * `user_profiles` is named for what it IS. It is the identity index, not a
+ * record store, and listing it beside submissions without saying so invites
+ * the reading that the person has a record there.
+ *
+ * @param string $store The store, in either shape.
+ * @return string
+ */
+$ffc_identity_store_name = static function ( $store ) {
+	$key = (string) $store;
+
+	if ( isset( $GLOBALS['wpdb'] ) && is_object( $GLOBALS['wpdb'] ) && isset( $GLOBALS['wpdb']->prefix ) ) {
+		$prefix = (string) $GLOBALS['wpdb']->prefix;
+
+		if ( '' !== $prefix && 0 === strpos( $key, $prefix ) ) {
+			$key = substr( $key, strlen( $prefix ) );
+		}
+	}
+
+	if ( 0 === strpos( $key, 'ffc_' ) ) {
+		$key = substr( $key, 4 );
+	}
+
+	switch ( $key ) {
+		case 'submissions':
+			return __( 'submissions', 'ffcertificate' );
+		case 'self_scheduling_appointments':
+			return __( 'appointments', 'ffcertificate' );
+		case 'recruitment_candidate':
+			return __( 'candidacies', 'ffcertificate' );
+		case 'user_profiles':
+			return __( 'the identity index', 'ffcertificate' );
+		default:
+			return $key;
+	}
+};
+
+/**
+ * A list of stores, in the reader's own language.
+ *
+ * `wp_sprintf_l()` is WordPress's own list joiner, so the comma and the
+ * "and" come from core's translations rather than from a separator invented
+ * here -- which is the whole defect this replaces: the screen was printing
+ * `IdentityConflictQuery::RELATED_SEPARATOR`, a `|` that exists to survive a
+ * `GROUP_CONCAT` and was never meant to be read.
+ *
+ * @param string $joined The stores as the query joined them.
+ * @return string
+ */
+$ffc_identity_store_list = static function ( $joined ) use ( $ffc_identity_store_name ) {
+	$parts = array_filter( array_map( 'trim', explode( IdentityConflictQuery::RELATED_SEPARATOR, (string) $joined ) ) );
+
+	if ( array() === $parts ) {
+		return '';
+	}
+
+	return wp_sprintf_l( '%l', array_map( $ffc_identity_store_name, $parts ) );
+};
+
 $ffc_identity_named = static function ( $user_id ) {
 	$user = get_userdata( (int) $user_id );
 	$name = ( $user && '' !== (string) $user->display_name ) ? (string) $user->display_name : '';
@@ -357,11 +432,35 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		</p>
 		<p class="ffc-identity-scan-detail">
 			<?php
+			// THREE COUNTS, THREE PLURALS, AND ONE SENTENCE WOULD HAVE NEEDED
+			// THE SAME FORM FOR ALL THREE.
+			//
+			// The first version of this was a single string carrying all
+			// three numbers, which renders `1 valores distintos verificados`
+			// in Portuguese and is wrong in every language that inflects.
+			// `_n()` picks a form per NUMBER, so the three have to be three
+			// calls -- and they are joined by the same separator rather than
+			// by a fourth string, because what sits between them is
+			// punctuation, not prose.
 			printf(
-				/* translators: 1: how many distinct stored values were checked. 2: how many could not be read. 3: how many stores were scanned. */
-				esc_html__( '%1$s distinct values checked · %2$s could not be read · %3$s stores scanned', 'ffcertificate' ),
-				esc_html( number_format_i18n( $ffc_identity_examined ) ),
-				esc_html( number_format_i18n( $ffc_identity_unreadable ) ),
+				/* translators: %s: how many distinct stored values were checked. */
+				esc_html( _n( '%s distinct value checked', '%s distinct values checked', $ffc_identity_examined, 'ffcertificate' ) ),
+				esc_html( number_format_i18n( $ffc_identity_examined ) )
+			);
+			?>
+			·
+			<?php
+			printf(
+				/* translators: %s: how many stored values could not be read. */
+				esc_html( _n( '%s could not be read', '%s could not be read', $ffc_identity_unreadable, 'ffcertificate' ) ),
+				esc_html( number_format_i18n( $ffc_identity_unreadable ) )
+			);
+			?>
+			·
+			<?php
+			printf(
+				/* translators: %s: how many stores the scan read. */
+				esc_html( _n( '%s store scanned', '%s stores scanned', $ffc_identity_stores, 'ffcertificate' ) ),
 				esc_html( number_format_i18n( $ffc_identity_stores ) )
 			);
 			?>
@@ -878,7 +977,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 					// sentence above would imply. The stores are what say how
 					// far the write reaches, and they are read rather than
 					// derived.
-					$ffc_identity_where = (string) ( $ffc_identity_item[ IdentityConflictQuery::COLUMN_STORES ] ?? '' );
+					$ffc_identity_where = $ffc_identity_store_list( $ffc_identity_item[ IdentityConflictQuery::COLUMN_STORES ] ?? '' );
 					?>
 					<?php if ( '' !== $ffc_identity_where ) : ?>
 						<p class="ffc-identity-card-where">
@@ -924,7 +1023,28 @@ $ffc_identity_tier_note = static function ( $tier ) {
 						<?php
 						$ffc_identity_field = str_replace( '_hash', '', (string) ( $ffc_identity_item['identifier_column'] ?? '' ) );
 						?>
+						<?php
+						// ONE GROUP PER IDENTIFIER, BECAUSE THE COLUMN HOLDS
+						// TWO VERBS PER IDENTIFIER AND SHOWED NEITHER WHOSE.
+						//
+						// This tier is an account holding several numbers, so
+						// the column renders MOVE and SPLIT once each per
+						// number -- eight controls for two numbers, with the
+						// only clue to which belonged to which being the hash
+						// inside one button's label. The heading says it
+						// instead, and the sentence that explains the two
+						// verbs sits with them rather than in a paragraph at
+						// the foot of the panel.
+						?>
 						<?php foreach ( array_keys( $ffc_identity_which ) as $ffc_identity_move ) : ?>
+							<div class="ffc-identity-card-verb">
+								<p class="ffc-identity-card-verb-head">
+									<code><?php echo esc_html( substr( (string) $ffc_identity_move, 0, IdentityQueue::DISPLAY_PREFIX ) ); ?></code>
+									<span class="ffc-identity-card-said"><?php echo esc_html( $ffc_identity_kind ); ?></span>
+								</p>
+								<p class="description ffc-identity-card-verb-note">
+									<?php esc_html_e( 'Move it to the account it belongs to, or split it onto an account of its own.', 'ffcertificate' ); ?>
+								</p>
 							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-2xs">
 								<?php wp_nonce_field( IdentityResolutionPage::RELINK_NONCE . (string) $ffc_identity_move ); ?>
 								<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::RELINK_ACTION ); ?>">
@@ -1029,6 +1149,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 								</span>
 							</form>
 							<?php endif; ?>
+							</div>
 						<?php endforeach; ?>
 					<?php else : ?>
 						<span class="description">
@@ -1259,7 +1380,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 						printf(
 							/* translators: 1: the stores holding the records, comma separated. 2: how many records carry the value. */
 							esc_html__( 'Appears in %1$s · %2$s records', 'ffcertificate' ),
-							esc_html( (string) ( $ffc_identity_row[ IdentityConflictQuery::COLUMN_STORES ] ?? '' ) ),
+							esc_html( $ffc_identity_store_list( $ffc_identity_row[ IdentityConflictQuery::COLUMN_STORES ] ?? '' ) ),
 							esc_html( number_format_i18n( (int) ( $ffc_identity_row[ IdentityConflictQuery::ALIAS_ROW_COUNT ] ?? 0 ) ) )
 						);
 						?>
@@ -1274,7 +1395,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 					<p class="ffc-identity-card-rows">
 						<?php foreach ( $ffc_identity_by_store as $ffc_identity_store => $ffc_identity_ids ) : ?>
 							<span class="ffc-identity-card-rowset">
-								<strong><?php echo esc_html( (string) $ffc_identity_store ); ?></strong>
+								<strong><?php echo esc_html( $ffc_identity_store_name( $ffc_identity_store ) ); ?></strong>
 								<code><?php echo esc_html( implode( ', ', array_map( 'strval', $ffc_identity_ids ) ) ); ?></code>
 							</span>
 						<?php endforeach; ?>
@@ -1477,7 +1598,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 					<p class="ffc-identity-card-rows">
 						<?php foreach ( $ffc_identity_orphan['stores'] as $ffc_identity_orphan_store => $ffc_identity_orphan_ids ) : ?>
 							<span class="ffc-identity-card-rowset">
-								<strong><?php echo esc_html( (string) $ffc_identity_orphan_store ); ?></strong>
+								<strong><?php echo esc_html( $ffc_identity_store_name( $ffc_identity_orphan_store ) ); ?></strong>
 								<code><?php echo esc_html( implode( ', ', array_map( 'strval', $ffc_identity_orphan_ids ) ) ); ?></code>
 							</span>
 						<?php endforeach; ?>
