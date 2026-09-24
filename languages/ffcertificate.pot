@@ -22046,12 +22046,6 @@ msgid "The scan reached its cap before reading every stored value, so this list 
 msgstr ""
 
 
-msgid "Rows"
-msgstr ""
-
-msgid "Which rows"
-msgstr ""
-
 msgid "No account"
 msgstr ""
 
@@ -22060,9 +22054,6 @@ msgstr ""
 
 
 msgid "Corrected. The rows, the identity index and the account's certificate access were updated together."
-msgstr ""
-
-msgid "Correct it"
 msgstr ""
 
 msgid "Names more than one account — the same wrong number was typed by more than one person, so one corrected value cannot serve it."
@@ -22540,19 +22531,10 @@ msgstr ""
 msgid "Account to link these records to"
 msgstr ""
 
-msgid "An account already files this identifier:"
-msgstr ""
-
 msgid "E-mail address"
 msgstr ""
 
-msgid "Give it an account"
-msgstr ""
-
 msgid "More orphaned records were found than are shown. Resolve these and read the queue again."
-msgstr ""
-
-msgid "No account files this identifier, so this one needs an account opened rather than a link made."
 msgstr ""
 
 msgid "Open the account"
@@ -22562,9 +22544,6 @@ msgid "Records carrying an identifier that belongs to no login at all."
 msgstr ""
 
 msgid "These are usually candidacies that were never promoted, or records whose account was deleted. Linking one to an existing account uses the same rule as a move: the two must already agree on an identifier. Opening an account needs CPF, RF and an e-mail address together — an account opened from one identifier is one the resolver will fail to match on the next record carrying another."
-msgstr ""
-
-msgid "What it carries"
 msgstr ""
 
 msgid "missing"
@@ -22654,4 +22633,13 @@ msgid "This account holds two %s. One fails its own check digit and the other is
 msgstr ""
 
 msgid "This account holds %1$s %2$s, and the check digits do not single one out — none fails, or more than one does. The right value comes from HR."
+msgstr ""
+
+msgid "Appears in %1$s · %2$s records"
+msgstr ""
+
+msgid "These records carry an identifier that belongs to no login — but an account already files it, so this one is a link to make rather than an account to open."
+msgstr ""
+
+msgid "These records carry an identifier that belongs to no login, and no account files it either — so this one needs an account opened rather than a link made."
 msgstr ""

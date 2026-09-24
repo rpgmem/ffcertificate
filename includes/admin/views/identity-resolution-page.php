@@ -1115,37 +1115,42 @@ $ffc_identity_tier_note = static function ( $tier ) {
 			</p>
 		<?php endif; ?>
 	<?php elseif ( array() !== $ffc_identity_rows ) : ?>
-		<table class="wp-list-table widefat striped">
-			<thead>
-				<tr>
-					<th scope="col"><?php esc_html_e( 'Who', 'ffcertificate' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Accounts', 'ffcertificate' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Stores', 'ffcertificate' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Rows', 'ffcertificate' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Which rows', 'ffcertificate' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Correct it', 'ffcertificate' ); ?></th>
-				</tr>
-			</thead>
-			<tbody>
-			<?php foreach ( $ffc_identity_rows as $ffc_identity_row ) : ?>
-				<?php
-				$ffc_identity_accounts = IdentityConflictQuery::parse_accounts(
-					$ffc_identity_row[ IdentityConflictQuery::COLUMN_RELATED ] ?? ''
-				);
-				$ffc_identity_by_store = IdentityConflictQuery::parse_row_ids(
-					$ffc_identity_row[ IdentityConflictQuery::COLUMN_ROW_IDS ] ?? ''
-				);
-				// NOT `$ffc_identity_who`: the shared panel already uses that
-				// name for its pair of ACCOUNTS, and PHP does not scope a
-				// `foreach`. Two loops in one file holding different things
-				// under one name is how a blind edit lands in the wrong form.
-				$ffc_identity_person_names = $ffc_identity_names(
-					(string) ( $ffc_identity_row['subject'] ?? '' ),
-					str_replace( '_hash', '', (string) ( $ffc_identity_row['identifier_column'] ?? 'rf_hash' ) )
-				);
-				?>
-				<tr>
-					<td>
+		<?php
+		// THE SAME CARD AS THE ACCOUNT TIERS, OVER A FINDING OF A DIFFERENT
+		// SHAPE (#1407 sprint 3).
+		//
+		// What this tier has and they do not is a COUNT: the check-digit scan
+		// selects `ALIAS_ROW_COUNT` and the row ids per store, so the card can
+		// say how far a correction reaches. The account tiers carry no such
+		// number and a test forbids inventing one there -- the two cards are
+		// deliberately not identical, and making them match is the temptation
+		// that rule exists against.
+		//
+		// The FORM IS UNTOUCHED: same fields, same nonce, same action, same
+		// `data-ffc-*` hooks the preflight binds to.
+		?>
+		<div class="ffc-identity-cards">
+		<?php foreach ( $ffc_identity_rows as $ffc_identity_row ) : ?>
+			<?php
+			$ffc_identity_accounts = IdentityConflictQuery::parse_accounts(
+				$ffc_identity_row[ IdentityConflictQuery::COLUMN_RELATED ] ?? ''
+			);
+			$ffc_identity_by_store = IdentityConflictQuery::parse_row_ids(
+				$ffc_identity_row[ IdentityConflictQuery::COLUMN_ROW_IDS ] ?? ''
+			);
+			// NOT `$ffc_identity_who`: the shared panel already uses that
+			// name for its pair of ACCOUNTS, and PHP does not scope a
+			// `foreach`. Two loops in one file holding different things
+			// under one name is how a blind edit lands in the wrong form.
+			$ffc_identity_person_names = $ffc_identity_names(
+				(string) ( $ffc_identity_row['subject'] ?? '' ),
+				str_replace( '_hash', '', (string) ( $ffc_identity_row['identifier_column'] ?? 'rf_hash' ) )
+			);
+			$ffc_identity_kind         = strtoupper( str_replace( '_hash', '', (string) ( $ffc_identity_row['identifier_column'] ?? 'rf_hash' ) ) );
+			?>
+			<div class="ffc-identity-card">
+				<div class="ffc-identity-card-main">
+					<p class="ffc-identity-card-who">
 						<?php
 						// FROM THE RECORD, NEVER FROM AN ACCOUNT.
 						//
@@ -1162,9 +1167,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 						// read being present at all, which is not a result.
 						?>
 						<?php if ( array() !== $ffc_identity_person_names['names'] ) : ?>
-							<?php foreach ( $ffc_identity_person_names['names'] as $ffc_identity_person ) : ?>
-								<div><?php echo esc_html( (string) $ffc_identity_person ); ?></div>
-							<?php endforeach; ?>
+							<?php echo esc_html( implode( ', ', array_map( 'strval', $ffc_identity_person_names['names'] ) ) ); ?>
 							<?php if ( ! empty( $ffc_identity_person_names['capped'] ) ) : ?>
 								<span class="description"><?php esc_html_e( 'and more', 'ffcertificate' ); ?></span>
 							<?php endif; ?>
@@ -1177,98 +1180,150 @@ $ffc_identity_tier_note = static function ( $tier ) {
 								<?php esc_html_e( 'No name recorded beside these rows.', 'ffcertificate' ); ?>
 							</span>
 						<?php endif; ?>
-					</td>
-					<td>
-						<?php if ( array() === $ffc_identity_accounts ) : ?>
-							<span class="description">
-								<?php esc_html_e( 'No account', 'ffcertificate' ); ?>
+					</p>
+
+					<?php
+					// NO SENTENCE ON THIS CARD, DELIBERATELY.
+					//
+					// The panel note above already says what this tier is, in
+					// almost the same words -- and unlike the account tiers
+					// there is nothing per-finding for a sentence to add: what
+					// varies here is which accounts carry the value and how
+					// many rows do, and both are shown as themselves below.
+					// A card that repeats its own heading once per finding is
+					// prose an operator learns to skip.
+					?>
+					<div class="ffc-identity-card-hashes">
+						<span class="ffc-identity-card-hash ffc-identity-card-hash-bad">
+							<code><?php echo esc_html( substr( (string) ( $ffc_identity_row['subject'] ?? '' ), 0, IdentityQueue::DISPLAY_PREFIX ) ); ?></code>
+							<span class="ffc-identity-card-said">
+								<?php
+								printf(
+									/* translators: %s: RF or CPF. */
+									esc_html__( '%s · fails its check digit', 'ffcertificate' ),
+									esc_html( $ffc_identity_kind )
+								);
+								?>
 							</span>
+						</span>
+						<?php
+						// THE ACCOUNTS ARE EVIDENCE HERE, NOT THE SUBJECT.
+						//
+						// A finding of this tier is about a stored VALUE. How
+						// many logins happen to carry it is what decides
+						// whether one corrected number can serve them all,
+						// which is why it sits beside the hash rather than in
+						// a column of its own.
+						?>
+						<?php if ( array() === $ffc_identity_accounts ) : ?>
+							<span class="ffc-identity-card-said description"><?php esc_html_e( 'No account', 'ffcertificate' ); ?></span>
 						<?php else : ?>
 							<?php foreach ( $ffc_identity_accounts as $ffc_identity_account ) : ?>
-								<a href="<?php echo esc_url( admin_url( 'user-edit.php?user_id=' . rawurlencode( (string) $ffc_identity_account ) ) ); ?>">#<?php echo esc_html( (string) $ffc_identity_account ); ?></a>
+								<a href="<?php echo esc_url( admin_url( 'user-edit.php?user_id=' . rawurlencode( (string) $ffc_identity_account ) ) ); ?>">
+									<?php echo esc_html( $ffc_identity_named( $ffc_identity_account ) ); ?>
+								</a>
 							<?php endforeach; ?>
 						<?php endif; ?>
-					</td>
-					<td><?php echo esc_html( (string) ( $ffc_identity_row[ IdentityConflictQuery::COLUMN_STORES ] ?? '' ) ); ?></td>
-					<td><?php echo esc_html( number_format_i18n( (int) ( $ffc_identity_row[ IdentityConflictQuery::ALIAS_ROW_COUNT ] ?? 0 ) ) ); ?></td>
-					<td>
-						<?php if ( ! empty( $ffc_identity_row[ IdentityConflictQuery::COLUMN_ROW_IDS_TRUNCATED ] ) ) : ?>
-							<span class="description">
-								<?php esc_html_e( 'Too many rows to list.', 'ffcertificate' ); ?>
-							</span>
-						<?php endif; ?>
+					</div>
+
+					<p class="ffc-identity-card-where">
+						<?php
+						// THE COUNT THIS TIER ACTUALLY HAS. `ALIAS_ROW_COUNT`
+						// is selected by the check-digit scan, so it is read
+						// rather than derived -- and it is per FINDING, which
+						// is what makes it sayable in the same breath as the
+						// stores.
+						printf(
+							/* translators: 1: the stores holding the records, comma separated. 2: how many records carry the value. */
+							esc_html__( 'Appears in %1$s · %2$s records', 'ffcertificate' ),
+							esc_html( (string) ( $ffc_identity_row[ IdentityConflictQuery::COLUMN_STORES ] ?? '' ) ),
+							esc_html( number_format_i18n( (int) ( $ffc_identity_row[ IdentityConflictQuery::ALIAS_ROW_COUNT ] ?? 0 ) ) )
+						);
+						?>
+					</p>
+
+					<?php
+					// THE ROW IDS ARE THE ONLY HANDLE ON A RECORD WITH NO
+					// ACCOUNT, so they stay -- and the truncation notice stays
+					// with them, because a partial list of handles that does
+					// not say it is partial is the `#1071` rule again.
+					?>
+					<p class="ffc-identity-card-rows">
 						<?php foreach ( $ffc_identity_by_store as $ffc_identity_store => $ffc_identity_ids ) : ?>
-							<div>
+							<span class="ffc-identity-card-rowset">
 								<strong><?php echo esc_html( (string) $ffc_identity_store ); ?></strong>
 								<code><?php echo esc_html( implode( ', ', array_map( 'strval', $ffc_identity_ids ) ) ); ?></code>
-							</div>
-						<?php endforeach; ?>
-					</td>
-					<td>
-						<?php if ( count( $ffc_identity_accounts ) > 1 ) : ?>
-							<span class="description">
-								<?php esc_html_e( 'Names more than one account — the same wrong number was typed by more than one person, so one corrected value cannot serve it.', 'ffcertificate' ); ?>
 							</span>
-						<?php else : ?>
-							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-								<?php wp_nonce_field( IdentityResolutionPage::REPAIR_NONCE . (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>
-								<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::REPAIR_ACTION ); ?>">
-								<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_row[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
-								<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
-								<?php
-								// `text` with `inputmode`, never `number`: an RF is a
-								// fixed-width identifier, and a number input drops a
-								// leading zero -- which `rf_normalized varchar(7)` says
-								// is a digit, not formatting. That is also why the
-								// screen is outside `RequiredNumericInputTest`'s scope.
-								?>
-								<label class="screen-reader-text" for="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
-									<?php esc_html_e( 'Corrected RF', 'ffcertificate' ); ?>
-								</label>
-								<input type="text" inputmode="numeric" pattern="[0-9]{7}" maxlength="7" size="8" required
-									id="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
-									name="ffc_rf" placeholder="<?php esc_attr_e( '7 digits', 'ffcertificate' ); ?>">
-								<?php
-								// THE FIELD IS NEVER PRE-FILLED AND NOTHING
-								// STORED COMES BACK.
-								//
-								// The value travels browser -> server, which
-								// is what a correction is. `Check` asks what
-								// this number would do -- above all whether it
-								// already belongs to somebody else, which is a
-								// different finding rather than a failed
-								// correction -- and the answer carries an
-								// account, never an identifier.
-								?>
-								<button type="button" class="button button-secondary ffc-identity-check"
-									data-ffc-subject="<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
-									data-ffc-field="<?php echo esc_attr( str_replace( '_hash', '', (string) ( $ffc_identity_row['identifier_column'] ?? 'rf' ) ) ); ?>"
-									data-ffc-value="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
-									data-ffc-verdict="ffc-check-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
-									<?php esc_html_e( 'Check', 'ffcertificate' ); ?>
-								</button>
-								<button type="submit" class="button button-secondary">
-									<?php esc_html_e( 'Correct', 'ffcertificate' ); ?>
-								</button>
-								<div class="ffc-identity-verdict" id="ffc-check-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
-									aria-live="polite"
-									<?php /* translators: %s: how many records the correction would rewrite. */ ?>
-									data-allowed="<?php esc_attr_e( 'This correction rewrites %s records.', 'ffcertificate' ); ?>"
-									<?php /* translators: %s: how many records the correction would rewrite. */ ?>
-									data-consolidates="<?php esc_attr_e( 'This correction rewrites %s records and consolidates them with this account\'s other record.', 'ffcertificate' ); ?>"
-									<?php /* translators: 1: the account's display name. 2: the account number. */ ?>
-									data-holder="<?php esc_attr_e( 'That number belongs to %1$s (#%2$s). If that is the same person, this is a merge rather than a correction — open the account to check who they are.', 'ffcertificate' ); ?>"
-									data-profile="<?php echo esc_attr( admin_url( 'user-edit.php?user_id=' ) ); ?>"
-									data-open="<?php esc_attr_e( 'Open that account', 'ffcertificate' ); ?>"
-									data-empty="<?php esc_attr_e( 'Enter the number HR confirmed first.', 'ffcertificate' ); ?>"
-									data-failed="<?php esc_attr_e( 'The check could not be completed.', 'ffcertificate' ); ?>"></div>
-							</form>
+						<?php endforeach; ?>
+						<?php if ( ! empty( $ffc_identity_row[ IdentityConflictQuery::COLUMN_ROW_IDS_TRUNCATED ] ) ) : ?>
+							<span class="description"><?php esc_html_e( 'Too many rows to list.', 'ffcertificate' ); ?></span>
 						<?php endif; ?>
-					</td>
-				</tr>
-			<?php endforeach; ?>
-			</tbody>
-		</table>
+					</p>
+				</div>
+				<div class="ffc-identity-card-act">
+					<?php if ( count( $ffc_identity_accounts ) > 1 ) : ?>
+						<span class="description">
+							<?php esc_html_e( 'Names more than one account — the same wrong number was typed by more than one person, so one corrected value cannot serve it.', 'ffcertificate' ); ?>
+						</span>
+					<?php else : ?>
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+							<?php wp_nonce_field( IdentityResolutionPage::REPAIR_NONCE . (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>
+							<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::REPAIR_ACTION ); ?>">
+							<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_row[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
+							<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
+							<?php
+							// `text` with `inputmode`, never `number`: an RF is a
+							// fixed-width identifier, and a number input drops a
+							// leading zero -- which `rf_normalized varchar(7)` says
+							// is a digit, not formatting. That is also why the
+							// screen is outside `RequiredNumericInputTest`'s scope.
+							?>
+							<label class="screen-reader-text" for="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
+								<?php esc_html_e( 'Corrected RF', 'ffcertificate' ); ?>
+							</label>
+							<input type="text" inputmode="numeric" pattern="[0-9]{7}" maxlength="7" size="8" required
+								id="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
+								name="ffc_rf" placeholder="<?php esc_attr_e( '7 digits', 'ffcertificate' ); ?>">
+							<?php
+							// THE FIELD IS NEVER PRE-FILLED AND NOTHING
+							// STORED COMES BACK.
+							//
+							// The value travels browser -> server, which
+							// is what a correction is. `Check` asks what
+							// this number would do -- above all whether it
+							// already belongs to somebody else, which is a
+							// different finding rather than a failed
+							// correction -- and the answer carries an
+							// account, never an identifier.
+							?>
+							<button type="button" class="button button-secondary ffc-identity-check"
+								data-ffc-subject="<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
+								data-ffc-field="<?php echo esc_attr( str_replace( '_hash', '', (string) ( $ffc_identity_row['identifier_column'] ?? 'rf' ) ) ); ?>"
+								data-ffc-value="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
+								data-ffc-verdict="ffc-check-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
+								<?php esc_html_e( 'Check', 'ffcertificate' ); ?>
+							</button>
+							<button type="submit" class="button button-secondary">
+								<?php esc_html_e( 'Correct', 'ffcertificate' ); ?>
+							</button>
+							<div class="ffc-identity-verdict" id="ffc-check-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
+								aria-live="polite"
+								<?php /* translators: %s: how many records the correction would rewrite. */ ?>
+								data-allowed="<?php esc_attr_e( 'This correction rewrites %s records.', 'ffcertificate' ); ?>"
+								<?php /* translators: %s: how many records the correction would rewrite. */ ?>
+								data-consolidates="<?php esc_attr_e( 'This correction rewrites %s records and consolidates them with this account\'s other record.', 'ffcertificate' ); ?>"
+								<?php /* translators: 1: the account's display name. 2: the account number. */ ?>
+								data-holder="<?php esc_attr_e( 'That number belongs to %1$s (#%2$s). If that is the same person, this is a merge rather than a correction — open the account to check who they are.', 'ffcertificate' ); ?>"
+								data-profile="<?php echo esc_attr( admin_url( 'user-edit.php?user_id=' ) ); ?>"
+								data-open="<?php esc_attr_e( 'Open that account', 'ffcertificate' ); ?>"
+								data-empty="<?php esc_attr_e( 'Enter the number HR confirmed first.', 'ffcertificate' ); ?>"
+								data-failed="<?php esc_attr_e( 'The check could not be completed.', 'ffcertificate' ); ?>"></div>
+						</form>
+					<?php endif; ?>
+				</div>
+			</div>
+		<?php endforeach; ?>
+		</div>
 		<?php $ffc_identity_foot(); ?>
 	<?php endif; ?>
 
@@ -1327,157 +1382,162 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				<p><?php esc_html_e( 'More orphaned records were found than are shown. Resolve these and read the queue again.', 'ffcertificate' ); ?></p>
 			</div>
 		<?php endif; ?>
-		<table class="wp-list-table widefat striped">
-			<thead>
-				<tr>
-					<th scope="col"><?php esc_html_e( 'Who', 'ffcertificate' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'What it carries', 'ffcertificate' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Which rows', 'ffcertificate' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Give it an account', 'ffcertificate' ); ?></th>
-				</tr>
-			</thead>
-			<tbody>
-			<?php foreach ( $ffc_identity_orphans as $ffc_identity_orphan ) : ?>
-				<tr>
-					<td>
+		<?php
+		// THE SAME CARD AGAIN, OVER THE ONE FINDING THAT IS ABOUT AN ABSENCE
+		// (#1407 sprint 3).
+		//
+		// What this tier states that no other does is WHAT THE RECORD LACKS.
+		// Showing only what is present leaves the operator to work out the
+		// gap, and the gap is the whole reason `Open the account` may refuse:
+		// it needs CPF, RF and an address together.
+		//
+		// BOTH FORMS ARE UNTOUCHED -- link and open, same fields, same
+		// nonces, same actions, same `data-ffc-*` hooks the search dialog
+		// binds to.
+		?>
+		<div class="ffc-identity-cards">
+		<?php foreach ( $ffc_identity_orphans as $ffc_identity_orphan ) : ?>
+			<div class="ffc-identity-card">
+				<div class="ffc-identity-card-main">
+					<p class="ffc-identity-card-who">
 						<?php if ( array() !== $ffc_identity_orphan['names'] ) : ?>
-							<?php foreach ( $ffc_identity_orphan['names'] as $ffc_identity_orphan_name ) : ?>
-								<div><?php echo esc_html( (string) $ffc_identity_orphan_name ); ?></div>
-							<?php endforeach; ?>
+							<?php echo esc_html( implode( ', ', array_map( 'strval', $ffc_identity_orphan['names'] ) ) ); ?>
 						<?php else : ?>
 							<span class="description"><?php esc_html_e( 'No name recorded beside these rows.', 'ffcertificate' ); ?></span>
 						<?php endif; ?>
-						<div>
-							<code><?php echo esc_html( substr( (string) $ffc_identity_orphan['hash'], 0, IdentityQueue::DISPLAY_PREFIX ) ); ?></code>
-							<span class="description"><?php echo esc_html( strtoupper( (string) $ffc_identity_orphan['field'] ) ); ?></span>
-						</div>
-					</td>
-					<td>
-						<?php
-						// WHAT IT HAS AND WHAT IT LACKS, BOTH STATED.
-						//
-						// Showing only what is present leaves the operator to
-						// work out the gap, and the gap is the whole reason
-						// the create action may be unavailable.
-						?>
-						<ul class="ffc-identity-orphan-has">
-							<?php foreach ( array( 'cpf', 'rf', 'email' ) as $ffc_identity_kind ) : ?>
-								<li class="<?php echo empty( $ffc_identity_orphan['has'][ $ffc_identity_kind ] ) ? 'ffc-identity-orphan-missing' : 'ffc-identity-orphan-present'; ?>">
-									<?php
-									printf(
-										/* translators: 1: CPF, RF or e-mail. 2: whether the record carries it. */
-										esc_html__( '%1$s — %2$s', 'ffcertificate' ),
-										esc_html( 'email' === $ffc_identity_kind ? __( 'E-mail', 'ffcertificate' ) : strtoupper( $ffc_identity_kind ) ),
-										empty( $ffc_identity_orphan['has'][ $ffc_identity_kind ] )
-											? esc_html__( 'missing', 'ffcertificate' )
-											: esc_html__( 'recorded', 'ffcertificate' )
-									);
-									?>
-								</li>
-							<?php endforeach; ?>
-						</ul>
+					</p>
+
+					<p class="ffc-identity-card-says">
 						<?php if ( array() !== $ffc_identity_orphan['accounts'] ) : ?>
-							<p class="description">
-								<?php esc_html_e( 'An account already files this identifier:', 'ffcertificate' ); ?>
-								<?php foreach ( $ffc_identity_orphan['accounts'] as $ffc_identity_orphan_account ) : ?>
-									<a href="<?php echo esc_url( admin_url( 'user-edit.php?user_id=' . rawurlencode( (string) $ffc_identity_orphan_account ) ) ); ?>">
-										<?php echo esc_html( $ffc_identity_named( $ffc_identity_orphan_account ) ); ?>
-									</a>
-								<?php endforeach; ?>
-							</p>
+							<?php esc_html_e( 'These records carry an identifier that belongs to no login — but an account already files it, so this one is a link to make rather than an account to open.', 'ffcertificate' ); ?>
 						<?php else : ?>
-							<p class="description">
-								<?php esc_html_e( 'No account files this identifier, so this one needs an account opened rather than a link made.', 'ffcertificate' ); ?>
-							</p>
+							<?php esc_html_e( 'These records carry an identifier that belongs to no login, and no account files it either — so this one needs an account opened rather than a link made.', 'ffcertificate' ); ?>
 						<?php endif; ?>
-					</td>
-					<td>
+					</p>
+
+					<div class="ffc-identity-card-hashes">
+						<span class="ffc-identity-card-hash ffc-identity-card-hash-plain">
+							<code><?php echo esc_html( substr( (string) $ffc_identity_orphan['hash'], 0, IdentityQueue::DISPLAY_PREFIX ) ); ?></code>
+							<span class="ffc-identity-card-said"><?php echo esc_html( strtoupper( (string) $ffc_identity_orphan['field'] ) ); ?></span>
+						</span>
+						<?php foreach ( $ffc_identity_orphan['accounts'] as $ffc_identity_orphan_account ) : ?>
+							<a href="<?php echo esc_url( admin_url( 'user-edit.php?user_id=' . rawurlencode( (string) $ffc_identity_orphan_account ) ) ); ?>">
+								<?php echo esc_html( $ffc_identity_named( $ffc_identity_orphan_account ) ); ?>
+							</a>
+						<?php endforeach; ?>
+					</div>
+
+					<?php
+					// WHAT IT HAS AND WHAT IT LACKS, BOTH STATED, AND STILL A
+					// LIST: three identifiers with a state each is a list, and
+					// flattening it into a sentence would lose the per-item
+					// colour that makes the gap findable at a glance.
+					?>
+					<ul class="ffc-identity-orphan-has">
+						<?php foreach ( array( 'cpf', 'rf', 'email' ) as $ffc_identity_kind ) : ?>
+							<li class="<?php echo empty( $ffc_identity_orphan['has'][ $ffc_identity_kind ] ) ? 'ffc-identity-orphan-missing' : 'ffc-identity-orphan-present'; ?>">
+								<?php
+								printf(
+									/* translators: 1: CPF, RF or e-mail. 2: whether the record carries it. */
+									esc_html__( '%1$s — %2$s', 'ffcertificate' ),
+									esc_html( 'email' === $ffc_identity_kind ? __( 'E-mail', 'ffcertificate' ) : strtoupper( $ffc_identity_kind ) ),
+									empty( $ffc_identity_orphan['has'][ $ffc_identity_kind ] )
+										? esc_html__( 'missing', 'ffcertificate' )
+										: esc_html__( 'recorded', 'ffcertificate' )
+								);
+								?>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+
+					<?php // The row ids are the only handle on a record no account names, so they stay exactly as the table showed them. ?>
+					<p class="ffc-identity-card-rows">
 						<?php foreach ( $ffc_identity_orphan['stores'] as $ffc_identity_orphan_store => $ffc_identity_orphan_ids ) : ?>
-							<div>
+							<span class="ffc-identity-card-rowset">
 								<strong><?php echo esc_html( (string) $ffc_identity_orphan_store ); ?></strong>
 								<code><?php echo esc_html( implode( ', ', array_map( 'strval', $ffc_identity_orphan_ids ) ) ); ?></code>
-							</div>
-						<?php endforeach; ?>
-					</td>
-					<td>
-						<?php
-						// The MOVE form, unchanged from the decision tier: an
-						// orphan's rows name no account, so the agreement rule
-						// reads them against the target exactly as it does
-						// there, and the Sprint 3 dialog serves it unaltered.
-						?>
-						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-2xs">
-							<?php wp_nonce_field( IdentityResolutionPage::RELINK_NONCE . (string) $ffc_identity_orphan['hash'] ); ?>
-							<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::RELINK_ACTION ); ?>">
-							<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
-							<input type="hidden" name="ffc_field" value="<?php echo esc_attr( (string) $ffc_identity_orphan['field'] ); ?>">
-							<label class="screen-reader-text" for="ffc-orphan-account-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
-								<?php esc_html_e( 'Account to link these records to', 'ffcertificate' ); ?>
-							</label>
-							<input type="number" inputmode="numeric" min="1" step="1" size="6" required
-								id="ffc-orphan-account-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
-								name="ffc_account" placeholder="<?php esc_attr_e( 'Account #', 'ffcertificate' ); ?>">
-							<button type="button" class="button button-secondary ffc-identity-find"
-								data-ffc-subject="<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
-								data-ffc-field="<?php echo esc_attr( (string) $ffc_identity_orphan['field'] ); ?>"
-								data-ffc-input="ffc-orphan-account-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
-								data-ffc-split="ffc-orphan-open-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
-								data-ffc-submit="ffc-orphan-link-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
-								<?php esc_html_e( 'Search…', 'ffcertificate' ); ?>
-							</button>
-							<button type="submit" class="button button-secondary"
-								id="ffc-orphan-link-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
-								<?php esc_html_e( 'Link', 'ffcertificate' ); ?>
-							</button>
-							<span class="ffc-identity-chosen" id="ffc-orphan-chosen-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>" hidden></span>
-						</form>
-						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
-							id="ffc-orphan-open-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
-							<?php wp_nonce_field( IdentityResolutionPage::ADOPT_NONCE . (string) $ffc_identity_orphan['hash'] ); ?>
-							<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::ADOPT_ACTION ); ?>">
-							<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
-							<?php
-							// ALL THREE ARE TYPED, INCLUDING THE ONE ON RECORD.
-							//
-							// The record's own value is stored and this screen
-							// never shows a stored identifier -- so a field
-							// pre-filled from it is not available, and one left
-							// empty would be a field whose meaning depends on
-							// something invisible. The operator types what they
-							// confirmed; the service checks the two numbers
-							// against their check digits before opening
-							// anything.
-							?>
-							<label class="screen-reader-text" for="ffc-orphan-cpf-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
-								<?php esc_html_e( 'CPF', 'ffcertificate' ); ?>
-							</label>
-							<input type="text" inputmode="numeric" maxlength="14" size="14" required
-								id="ffc-orphan-cpf-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
-								name="ffc_cpf" placeholder="<?php esc_attr_e( 'CPF', 'ffcertificate' ); ?>">
-							<label class="screen-reader-text" for="ffc-orphan-rf-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
-								<?php esc_html_e( 'RF', 'ffcertificate' ); ?>
-							</label>
-							<input type="text" inputmode="numeric" pattern="[0-9]{7}" maxlength="7" size="8" required
-								id="ffc-orphan-rf-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
-								name="ffc_rf" placeholder="<?php esc_attr_e( 'RF', 'ffcertificate' ); ?>">
-							<label class="screen-reader-text" for="ffc-orphan-email-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
-								<?php esc_html_e( 'E-mail address', 'ffcertificate' ); ?>
-							</label>
-							<input type="email" size="22" required
-								id="ffc-orphan-email-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
-								name="ffc_email" placeholder="<?php esc_attr_e( 'E-mail', 'ffcertificate' ); ?>">
-							<button type="submit" class="button button-secondary">
-								<?php esc_html_e( 'Open the account', 'ffcertificate' ); ?>
-							</button>
-							<span class="ffc-identity-split-barred description" hidden>
-								<?php esc_html_e( 'A destination account is chosen, so opening a new one is not available. Clear the destination to open one instead.', 'ffcertificate' ); ?>
 							</span>
-						</form>
-					</td>
-				</tr>
-			<?php endforeach; ?>
-			</tbody>
-		</table>
+						<?php endforeach; ?>
+					</p>
+				</div>
+				<div class="ffc-identity-card-act">
+					<?php
+					// The MOVE form, unchanged from the decision tier: an
+					// orphan's rows name no account, so the agreement rule
+					// reads them against the target exactly as it does
+					// there, and the Sprint 3 dialog serves it unaltered.
+					?>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-2xs">
+						<?php wp_nonce_field( IdentityResolutionPage::RELINK_NONCE . (string) $ffc_identity_orphan['hash'] ); ?>
+						<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::RELINK_ACTION ); ?>">
+						<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+						<input type="hidden" name="ffc_field" value="<?php echo esc_attr( (string) $ffc_identity_orphan['field'] ); ?>">
+						<label class="screen-reader-text" for="ffc-orphan-account-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+							<?php esc_html_e( 'Account to link these records to', 'ffcertificate' ); ?>
+						</label>
+						<input type="number" inputmode="numeric" min="1" step="1" size="6" required
+							id="ffc-orphan-account-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
+							name="ffc_account" placeholder="<?php esc_attr_e( 'Account #', 'ffcertificate' ); ?>">
+						<button type="button" class="button button-secondary ffc-identity-find"
+							data-ffc-subject="<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
+							data-ffc-field="<?php echo esc_attr( (string) $ffc_identity_orphan['field'] ); ?>"
+							data-ffc-input="ffc-orphan-account-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
+							data-ffc-split="ffc-orphan-open-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
+							data-ffc-submit="ffc-orphan-link-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+							<?php esc_html_e( 'Search…', 'ffcertificate' ); ?>
+						</button>
+						<button type="submit" class="button button-secondary"
+							id="ffc-orphan-link-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+							<?php esc_html_e( 'Link', 'ffcertificate' ); ?>
+						</button>
+						<span class="ffc-identity-chosen" id="ffc-orphan-chosen-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>" hidden></span>
+					</form>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
+						id="ffc-orphan-open-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+						<?php wp_nonce_field( IdentityResolutionPage::ADOPT_NONCE . (string) $ffc_identity_orphan['hash'] ); ?>
+						<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::ADOPT_ACTION ); ?>">
+						<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+						<?php
+						// ALL THREE ARE TYPED, INCLUDING THE ONE ON RECORD.
+						//
+						// The record's own value is stored and this screen
+						// never shows a stored identifier -- so a field
+						// pre-filled from it is not available, and one left
+						// empty would be a field whose meaning depends on
+						// something invisible. The operator types what they
+						// confirmed; the service checks the two numbers
+						// against their check digits before opening
+						// anything.
+						?>
+						<label class="screen-reader-text" for="ffc-orphan-cpf-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+							<?php esc_html_e( 'CPF', 'ffcertificate' ); ?>
+						</label>
+						<input type="text" inputmode="numeric" maxlength="14" size="14" required
+							id="ffc-orphan-cpf-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
+							name="ffc_cpf" placeholder="<?php esc_attr_e( 'CPF', 'ffcertificate' ); ?>">
+						<label class="screen-reader-text" for="ffc-orphan-rf-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+							<?php esc_html_e( 'RF', 'ffcertificate' ); ?>
+						</label>
+						<input type="text" inputmode="numeric" pattern="[0-9]{7}" maxlength="7" size="8" required
+							id="ffc-orphan-rf-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
+							name="ffc_rf" placeholder="<?php esc_attr_e( 'RF', 'ffcertificate' ); ?>">
+						<label class="screen-reader-text" for="ffc-orphan-email-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>">
+							<?php esc_html_e( 'E-mail address', 'ffcertificate' ); ?>
+						</label>
+						<input type="email" size="22" required
+							id="ffc-orphan-email-<?php echo esc_attr( (string) $ffc_identity_orphan['hash'] ); ?>"
+							name="ffc_email" placeholder="<?php esc_attr_e( 'E-mail', 'ffcertificate' ); ?>">
+						<button type="submit" class="button button-secondary">
+							<?php esc_html_e( 'Open the account', 'ffcertificate' ); ?>
+						</button>
+						<span class="ffc-identity-split-barred description" hidden>
+							<?php esc_html_e( 'A destination account is chosen, so opening a new one is not available. Clear the destination to open one instead.', 'ffcertificate' ); ?>
+						</span>
+					</form>
+				</div>
+			</div>
+		<?php endforeach; ?>
+		</div>
 		<p class="description">
 			<?php esc_html_e( 'A record erased at the subject\'s request cannot appear here: the eraser clears the identifier hashes along with the ciphertexts, so nothing is left to match on. Adopting an orphan can never restore a link somebody asked to have removed.', 'ffcertificate' ); ?>
 		</p>

@@ -22137,12 +22137,6 @@ msgid "The scan reached its cap before reading every stored value, so this list 
 msgstr "A varredura atingiu seu limite antes de ler todos os valores armazenados, então esta lista está parcial. Reduza a fila e abra a tela de novo."
 
 
-msgid "Rows"
-msgstr "Linhas"
-
-msgid "Which rows"
-msgstr "Quais linhas"
-
 msgid "No account"
 msgstr "Sem conta"
 
@@ -22152,9 +22146,6 @@ msgstr "Linhas demais para listar."
 
 msgid "Corrected. The rows, the identity index and the account's certificate access were updated together."
 msgstr "Corrigido. As linhas, o índice de identidade e o acesso aos certificados da conta foram atualizados juntos."
-
-msgid "Correct it"
-msgstr "Corrigir"
 
 msgid "Names more than one account — the same wrong number was typed by more than one person, so one corrected value cannot serve it."
 msgstr "Nomeia mais de uma conta — o mesmo número errado foi digitado por mais de uma pessoa, então um único valor corrigido não serve."
@@ -22631,20 +22622,11 @@ msgstr "Um registro apagado a pedido do titular não pode aparecer aqui: o apaga
 msgid "Account to link these records to"
 msgstr "Conta à qual vincular estes registros"
 
-msgid "An account already files this identifier:"
-msgstr "Uma conta já arquiva este identificador:"
-
 msgid "E-mail address"
 msgstr "Endereço de e-mail"
 
-msgid "Give it an account"
-msgstr "Dar uma conta a ele"
-
 msgid "More orphaned records were found than are shown. Resolve these and read the queue again."
 msgstr "Foram encontrados mais registros órfãos do que os exibidos. Resolva estes e leia a fila de novo."
-
-msgid "No account files this identifier, so this one needs an account opened rather than a link made."
-msgstr "Nenhuma conta arquiva este identificador, então este precisa de uma conta aberta, e não de um vínculo."
 
 msgid "Open the account"
 msgstr "Abrir a conta"
@@ -22654,9 +22636,6 @@ msgstr "Registros que carregam um identificador que não pertence a login algum.
 
 msgid "These are usually candidacies that were never promoted, or records whose account was deleted. Linking one to an existing account uses the same rule as a move: the two must already agree on an identifier. Opening an account needs CPF, RF and an e-mail address together — an account opened from one identifier is one the resolver will fail to match on the next record carrying another."
 msgstr "Normalmente são candidaturas que nunca foram promovidas, ou registros cuja conta foi excluída. Vincular um a uma conta existente usa a mesma regra da movimentação: os dois precisam já concordar em um identificador. Abrir uma conta exige CPF, RF e e-mail juntos — uma conta aberta a partir de um identificador só é uma que o resolvedor não vai casar no próximo registro que carregue outro."
-
-msgid "What it carries"
-msgstr "O que ele carrega"
 
 msgid "missing"
 msgstr "ausente"
@@ -22746,3 +22725,12 @@ msgstr "Esta conta guarda dois %s. Um falha o próprio dígito verificador e o o
 
 msgid "This account holds %1$s %2$s, and the check digits do not single one out — none fails, or more than one does. The right value comes from HR."
 msgstr "Esta conta guarda %1$s %2$s, e os dígitos verificadores não apontam um só — nenhum falha, ou mais de um falha. O valor certo vem do RH."
+
+msgid "Appears in %1$s · %2$s records"
+msgstr "Aparece em %1$s · %2$s registros"
+
+msgid "These records carry an identifier that belongs to no login — but an account already files it, so this one is a link to make rather than an account to open."
+msgstr "Estes registros carregam um identificador que não pertence a login nenhum — mas uma conta já arquiva esse identificador, então este é um vínculo a fazer e não uma conta a abrir."
+
+msgid "These records carry an identifier that belongs to no login, and no account files it either — so this one needs an account opened rather than a link made."
+msgstr "Estes registros carregam um identificador que não pertence a login nenhum, e nenhuma conta arquiva esse identificador — então este precisa de uma conta aberta e não de um vínculo."

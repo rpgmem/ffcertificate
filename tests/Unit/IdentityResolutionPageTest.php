@@ -763,6 +763,12 @@ class IdentityResolutionPageTest extends TestCase {
 				'name="ffc_field"',
 				'name="ffc_account"',
 				'name="ffc_email"',
+				'IdentityResolutionPage::REPAIR_NONCE',
+				'IdentityResolutionPage::REPAIR_ACTION',
+				'IdentityResolutionPage::ADOPT_NONCE',
+				'IdentityResolutionPage::ADOPT_ACTION',
+				'name="ffc_rf"',
+				'name="ffc_cpf"',
 			) as $token
 		) {
 			$this->assertStringContainsString( $token, $view, sprintf( 'The cards must still post %s.', $token ) );
@@ -795,6 +801,88 @@ class IdentityResolutionPageTest extends TestCase {
 			'IdentityConflictQuery::ALIAS_ROW_COUNT',
 			$block,
 			'These two tiers carry no row count; showing one would mean inventing it.'
+		);
+	}
+
+	/**
+	 * No list table is left on the screen (#1407 sprint 3).
+	 *
+	 * The three bodies went one sprint at a time, so this is the assertion
+	 * that could only be written once the last one did — and it is worth
+	 * having as a whole-file check rather than a third per-block one,
+	 * because what it forbids is a table coming BACK.
+	 */
+	public function test_no_panel_body_is_a_list_table_any_more(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertStringNotContainsString( 'wp-list-table', $view, 'Every panel body is a card now.' );
+		$this->assertSame(
+			3,
+			substr_count( $view, 'class="ffc-identity-cards"' ),
+			'Three bodies: the two account tiers together, the isolated tier, and the orphans.'
+		);
+	}
+
+	/**
+	 * The isolated tier states the count it HAS, and the account tiers still
+	 * state none.
+	 *
+	 * The two cards are deliberately not identical. `ALIAS_ROW_COUNT` is
+	 * selected by the check-digit scan and by neither account-side query, so
+	 * the number is real here and would be invented there — and the pull to
+	 * make two cards of the same shape agree is exactly what would invent it.
+	 * Both halves are asserted together so neither can be "fixed" alone.
+	 */
+	public function test_only_the_tier_that_has_a_row_count_states_one(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertStringNotContainsString(
+			'IdentityConflictQuery::ALIAS_ROW_COUNT',
+			$this->account_tier_block( $view ),
+			'The account tiers carry no row count.'
+		);
+		$this->assertStringContainsString(
+			'IdentityConflictQuery::ALIAS_ROW_COUNT',
+			$view,
+			'The isolated tier does carry one, and dropping it would lose how far a correction reaches.'
+		);
+	}
+
+	/**
+	 * What the isolated and orphan cards say that no other card does.
+	 *
+	 * Each of these is a state the table had a column for, and a column is
+	 * the easiest thing to lose when markup is rewritten: the three name
+	 * outcomes (a name, none recorded, no store that records one installed),
+	 * the truncation notice over the row ids, the refusal where a value names
+	 * more than one account, and — on the orphan card — what the record
+	 * LACKS, which is the whole reason `Open the account` may refuse.
+	 */
+	public function test_the_two_remaining_cards_keep_every_state_the_table_had(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		foreach (
+			array(
+				'No store that records a name is installed',
+				'No name recorded beside these rows.',
+				'and more',
+				'Too many rows to list.',
+				'Names more than one account',
+				'IdentityConflictQuery::COLUMN_ROW_IDS_TRUNCATED',
+				'IdentityConflictQuery::parse_row_ids',
+				'ffc-identity-orphan-missing',
+				'ffc-identity-orphan-present',
+			) as $state
+		) {
+			$this->assertStringContainsString( $state, $view, sprintf( 'The cards must still express %s.', $state ) );
+		}
+
+		// The orphan card says which of the two situations it is in, because
+		// that is what decides whether the operator links or opens.
+		$this->assertStringContainsString(
+			'$ffc_identity_orphan[\'accounts\'] )',
+			$view,
+			'The orphan card must still distinguish an identifier some account files from one none does.'
 		);
 	}
 }
