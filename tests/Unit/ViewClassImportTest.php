@@ -197,6 +197,58 @@ class ViewClassImportTest extends TestCase {
 			}
 		}
 
+		// A FLOOR OF 50 OVER A POPULATION OF 128 IS NOT A DETECTOR (#1428).
+		//
+		// Half of this population still clears it, so a walk that silently
+		// covered half the tree would leave this green -- measured, and it is
+		// the #1423 shape. Two weaker forms were tried first and both failed
+		// the same mutation, which is worth recording: naming a member cannot
+		// work on a list this walk does not sort, and asserting that BOTH roots
+		// were reached does not either -- `includes/` holds 56 of the 128, so
+		// the first half is all of it plus 8 of `templates/`, and "more than
+		// zero from each" stays true.
+		//
+		// What a partial walk cannot survive is an independent RECOUNT. The
+		// count below is taken with `scandir` rather than the iterator the scan
+		// uses, so the two agree only when both see the whole tree, and neither
+		// side goes stale when a view is added.
+		$recount = static function ( string $dir ) use ( &$recount ): int {
+			$total = 0;
+
+			foreach ( (array) scandir( $dir ) as $entry ) {
+				if ( '.' === $entry || '..' === $entry ) {
+					continue;
+				}
+
+				$path = $dir . '/' . $entry;
+
+				if ( is_dir( $path ) ) {
+					$total += $recount( $path );
+					continue;
+				}
+
+				if ( 'php' !== pathinfo( $path, PATHINFO_EXTENSION ) ) {
+					continue;
+				}
+
+				if ( false !== strpos( $path, '/views/' ) || false !== strpos( $path, '/templates/' ) ) {
+					++$total;
+				}
+			}
+
+			return $total;
+		};
+
+		$root        = dirname( __DIR__, 2 );
+		$independent = $recount( $root . '/includes' ) + $recount( $root . '/templates' );
+
+		$this->assertSame(
+			$independent,
+			count( self::files() ),
+			'The walk and an independent recount disagree about how many views and templates exist.'
+			. ' The scan is covering part of the tree and reporting on that part as if it were all of'
+			. ' it -- every unvisited view is a fatal nobody would see.'
+		);
 		$this->assertGreaterThan( 50, $scanned, 'The scan found almost no views, so it proves nothing.' );
 		$this->assertGreaterThan( 0, $named, 'The scan found no class reference at all, so it proves nothing.' );
 		$this->assertSame(

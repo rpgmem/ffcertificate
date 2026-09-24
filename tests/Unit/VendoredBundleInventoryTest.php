@@ -315,11 +315,37 @@ final class VendoredBundleInventoryTest extends TestCase {
 
 		$statements = self::libs_js_statements();
 
-		$this->assertGreaterThanOrEqual(
-			4,
-			count( $statements ),
-			'Fewer than four `libs/js/` references found in PHP. Every vendored bundle is enqueued '
-			. 'from somewhere, so a collapsed scan here would silently approve direction D.'
+		// THE MESSAGE BELOW STATED THE RIGHT INVARIANT AND THE ASSERTION DID
+		// NOT CHECK IT (#1428).
+		//
+		// "Every vendored bundle is enqueued from somewhere" is exactly the
+		// property worth holding -- but the assertion counted references
+		// against a floor of four while the real population is ten, leaving six
+		// of slack. Measured: a collector silently returning half the
+		// statements clears the floor with five and leaves this green, which is
+		// the #1423 shape.
+		//
+		// So the check is now the sentence: each bundle must appear. It is
+		// relational rather than a floor, so it neither goes stale when a
+		// bundle is added nor tolerates a partial scan -- the first half of the
+		// walk covers html2canvas and jspdf only, and altcha and thumbmark sit
+		// beyond it.
+		$enqueued = array();
+
+		foreach ( $statements as $reference ) {
+			foreach ( self::present() as $bundle ) {
+				if ( str_contains( $reference['statement'], "libs/js/" . explode( '-', $bundle )[0] ) ) {
+					$enqueued[ $bundle ] = true;
+				}
+			}
+		}
+
+		$this->assertSame(
+			array(),
+			array_values( array_diff( self::present(), array_keys( $enqueued ) ) ),
+			'A bundle sits in `libs/js/` and no PHP enqueue references it. Either it is dead weight in'
+			. ' the distributable, or the scan stopped before reaching its enqueue -- and a scan that'
+			. ' stops early silently approves direction D for everything past that point.'
 		);
 
 		$multiline = 0;

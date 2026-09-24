@@ -378,5 +378,30 @@ final class PhpcsSuppressionTest extends TestCase {
 			'Annotations exist in the sources but the parser produced none — it stopped understanding the'
 			. ' shape it is meant to police.'
 		);
+
+		// THE FLOOR IS ZERO, AND ZERO IS NOT A DETECTOR (#1428).
+		//
+		// Both assertions above are satisfied by ONE surviving annotation out
+		// of the hundreds this scan covers -- the message on the first even
+		// says so, naming a population the assertion never uses. Measured: a
+		// collector silently returning half the annotations leaves this test
+		// green, which is the #1423 shape exactly.
+		//
+		// What cannot be satisfied by a partial list is a named MEMBER, and
+		// `sources()` sorts, so the last element is the one a truncation drops
+		// first. `uninstall.php` is that element -- it sits at the repository
+		// root, after every `includes/` and `templates/` path -- and it is the
+		// file this repository can least afford to leave unscanned: the
+		// fresh-install gate reads it as the enforced footprint manifest.
+		//
+		// If it ever stops being scanned ON PURPOSE, this fails and asks to be
+		// re-pointed. That is maintenance the guard owes, not a defect: a
+		// self-check cannot avoid naming something real.
+		$this->assertContains(
+			self::root() . '/uninstall.php',
+			$sources,
+			'The walk no longer reaches the repository root -- it stops somewhere inside the tree, and'
+			. ' every assertion in this file then polices only the part it still sees.'
+		);
 	}
 }
