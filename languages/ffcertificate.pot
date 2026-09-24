@@ -22594,9 +22594,6 @@ msgstr ""
 msgid "The scan read the data"
 msgstr ""
 
-msgid "%1$s distinct values checked · %2$s could not be read · %3$s stores scanned"
-msgstr ""
-
 msgid "the scan reached its cap"
 msgstr ""
 
@@ -22646,5 +22643,35 @@ msgstr ""
 
 msgid "%s resolved since this queue was read"
 msgid_plural "%s resolved since this queue was read"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Move it to the account it belongs to, or split it onto an account of its own."
+msgstr ""
+
+msgid "submissions"
+msgstr ""
+
+msgid "appointments"
+msgstr ""
+
+msgid "candidacies"
+msgstr ""
+
+msgid "the identity index"
+msgstr ""
+
+msgid "%s distinct value checked"
+msgid_plural "%s distinct values checked"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s could not be read"
+msgid_plural "%s could not be read"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s store scanned"
+msgid_plural "%s stores scanned"
 msgstr[0] ""
 msgstr[1] ""

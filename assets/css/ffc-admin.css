@@ -1678,6 +1678,36 @@ p.ffc-datetime-order-error {
     border-left: 1px solid var(--ffc-border);
 }
 
+/* ONE GROUP PER IDENTIFIER IN THE ACTION COLUMN (#1407 follow-up).
+
+   The decision tier renders two verbs per identifier, so an account holding
+   two numbers put eight controls in this column with nothing saying which
+   belonged to which. The group gives each identifier a heading and a rule
+   above it, and the sentence explaining the two verbs travels with them. */
+.ffc-page-identities .ffc-identity-card-verb + .ffc-identity-card-verb {
+    margin-top: var(--ffc-spacing-sm);
+    padding-top: var(--ffc-spacing-sm);
+    border-top: 1px solid var(--ffc-border);
+}
+
+.ffc-page-identities .ffc-identity-card-verb-head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--ffc-spacing-3xs);
+    margin: 0 0 var(--ffc-spacing-3xs);
+}
+
+.ffc-page-identities .ffc-identity-card-verb-head code {
+    background: none;
+    color: inherit;
+    font-size: var(--ffc-font-size-xs);
+    padding: 0;
+}
+
+.ffc-page-identities .ffc-identity-card-verb-note {
+    margin: 0 0 var(--ffc-spacing-2xs);
+}
+
 /* The forms came from table cells, where wp-admin's block margin did no harm.
    Inside a flex column it would fight the gap. */
 .ffc-page-identities .ffc-identity-card-act form {

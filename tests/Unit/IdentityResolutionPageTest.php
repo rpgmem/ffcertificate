@@ -887,6 +887,103 @@ class IdentityResolutionPageTest extends TestCase {
 	}
 
 	/**
+	 * No store name reaches the screen as the query wrote it.
+	 *
+	 * THIS SHIPPED, AND THE TESTES HOST IS WHERE IT WAS SEEN.
+	 *
+	 * A card read `self_scheduling_appointments|user_profiles`: a machine name
+	 * joined by `IdentityConflictQuery::RELATED_SEPARATOR`, a `|` that exists
+	 * to survive a `GROUP_CONCAT` and was never meant to be read. Nothing
+	 * caught it because every guard on this screen measures markup, colour or
+	 * escaping, and this was none of those — it was correct, escaped,
+	 * anchored markup carrying an internal value.
+	 *
+	 * The two queries do not even agree on the shape: the conflict query
+	 * strips the prefix before handing a store out, the orphan query keys by
+	 * the full table. So the assertion is that every render goes through the
+	 * one closure that normalises both, and that none reads the raw column.
+	 */
+	public function test_every_store_name_is_rendered_through_the_map(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertStringContainsString( '$ffc_identity_store_name = static function', $view, 'The screen needs one place that names a store.' );
+		$this->assertStringContainsString( '$ffc_identity_store_list = static function', $view, 'And one place that joins a list of them.' );
+
+		// The list joiner is WordPress's own, so the comma and the "and" come
+		// from core's translations rather than from a separator invented here.
+		$this->assertStringContainsString( 'wp_sprintf_l(', $view, "The list must be joined the way WordPress joins lists." );
+
+		// Four render sites: the account cards, the isolated card's sentence,
+		// and the per-store row ids on the isolated and orphan cards.
+		$this->assertSame(
+			2,
+			substr_count( $view, '$ffc_identity_store_list(' ),
+			'Both sentences that name several stores must go through the joiner.'
+		);
+		$this->assertSame(
+			2,
+			substr_count( $view, 'esc_html( $ffc_identity_store_name(' ),
+			'Both row-id lists must name their store through the map.'
+		);
+
+		// And the defect itself: the raw column, printed.
+		$this->assertStringNotContainsString(
+			'esc_html( (string) ( $ffc_identity_item[ IdentityConflictQuery::COLUMN_STORES ]',
+			$view,
+			'A store list printed as the query joined it carries the separator into the sentence.'
+		);
+	}
+
+	/**
+	 * Every count on the scan strip picks its own plural form.
+	 *
+	 * ALSO SHIPPED, AND VISIBLE ON THE TESTES HOST AS `1 valores`.
+	 *
+	 * The strip's three numbers were one string with three placeholders,
+	 * which can only ever carry one plural form — so an install with a single
+	 * stored value read `1 valores distintos verificados` in Portuguese, and
+	 * would be wrong in every language that inflects. `_n()` chooses per
+	 * NUMBER, so three numbers need three calls; what sits between them is
+	 * punctuation rather than prose, so it is not a fourth string.
+	 */
+	public function test_the_scan_counts_are_each_plural_aware(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		foreach (
+			array(
+				"_n( '%s distinct value checked', '%s distinct values checked'",
+				"_n( '%s could not be read', '%s could not be read'",
+				"_n( '%s store scanned', '%s stores scanned'",
+			) as $call
+		) {
+			$this->assertStringContainsString( $call, $view, sprintf( 'The strip must inflect: %s', $call ) );
+		}
+
+		$this->assertStringNotContainsString(
+			'%1$s distinct values checked',
+			$view,
+			'One string carrying all three counts can only ever have one plural form.'
+		);
+	}
+
+	/**
+	 * The decision tier's action column says which identifier each verb is for.
+	 *
+	 * An account holding two numbers renders MOVE and SPLIT once per number —
+	 * eight controls, whose only clue to ownership was the hash inside one
+	 * button's label. Each identifier now opens a group that names it, and
+	 * the sentence explaining the two verbs travels with them instead of
+	 * sitting in a paragraph at the foot of the panel.
+	 */
+	public function test_each_identifier_owns_its_own_verbs(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertStringContainsString( 'class="ffc-identity-card-verb"', $view, 'Each identifier opens its own group.' );
+		$this->assertStringContainsString( 'ffc-identity-card-verb-head', $view, 'And the group names the identifier it acts on.' );
+		$this->assertStringContainsString( 'ffc-identity-card-verb-note', $view, 'And says what the two verbs do, beside them.' );
+	}
+
+	/**
 	 * The resolved counter knows every verb the screen has (#1407 sprint 4).
 	 *
 	 * `RESOLVED_ACTIONS` is a list of names written in five OTHER files, one

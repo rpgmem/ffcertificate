@@ -22685,9 +22685,6 @@ msgstr "A varredura leu parte dos dados"
 msgid "The scan read the data"
 msgstr "A varredura leu os dados"
 
-msgid "%1$s distinct values checked · %2$s could not be read · %3$s stores scanned"
-msgstr "%1$s valores distintos verificados · %2$s não puderam ser lidos · %3$s depósitos varridos"
-
 msgid "the scan reached its cap"
 msgstr "a varredura alcançou o próprio teto"
 
@@ -22739,3 +22736,33 @@ msgid "%s resolved since this queue was read"
 msgid_plural "%s resolved since this queue was read"
 msgstr[0] "%s resolvido desde que esta fila foi lida"
 msgstr[1] "%s resolvidos desde que esta fila foi lida"
+
+msgid "Move it to the account it belongs to, or split it onto an account of its own."
+msgstr "Mova-o para a conta à qual ele pertence, ou separe-o em uma conta própria."
+
+msgid "submissions"
+msgstr "submissões"
+
+msgid "appointments"
+msgstr "agendamentos"
+
+msgid "candidacies"
+msgstr "candidaturas"
+
+msgid "the identity index"
+msgstr "o índice de identidade"
+
+msgid "%s distinct value checked"
+msgid_plural "%s distinct values checked"
+msgstr[0] "%s valor distinto verificado"
+msgstr[1] "%s valores distintos verificados"
+
+msgid "%s could not be read"
+msgid_plural "%s could not be read"
+msgstr[0] "%s não pôde ser lido"
+msgstr[1] "%s não puderam ser lidos"
+
+msgid "%s store scanned"
+msgid_plural "%s stores scanned"
+msgstr[0] "%s depósito varrido"
+msgstr[1] "%s depósitos varridos"
