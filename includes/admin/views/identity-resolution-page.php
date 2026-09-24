@@ -19,6 +19,7 @@
  * @var bool                                                     $ffc_identity_may_merge Whether the operator may merge two.
  * @var string                                                   $ffc_identity_export_url The audit CSV, or '' without the capability.
  * @var int                                                      $ffc_identity_resolved   Findings resolved since the queue was read.
+ * @var callable                                                 $ffc_identity_facts      Account ids -> status, per-store counts and last activity.
  */
 
 // No `declare(strict_types=1)` here on purpose: none of the 17 view and
@@ -664,6 +665,19 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				</p>
 				<?php continue; ?>
 			<?php endif; ?>
+			<?php
+			// THE EVIDENCE BEHIND THE CHOICE, WHERE THE CHOICE IS MADE (#1368).
+			//
+			// The preview below already states the per-store counts, and it
+			// states them AFTER a click -- which is one click too late: the
+			// operator picks a survivor at the radio, so the evidence belongs
+			// at the radio. `account_activity` reached the audit CSV and the
+			// Migrations table and never this form at all.
+			//
+			// Read for this pair only, through the same `account_facts()` the
+			// export reads, so the screen and the CSV cannot disagree.
+			$ffc_identity_pair_facts = $ffc_identity_facts( $ffc_identity_who );
+			?>
 			<div class="ffc-identity-pair">
 				<p class="ffc-identity-pair-subject">
 					<code><?php echo esc_html( substr( $ffc_identity_id, 0, IdentityQueue::DISPLAY_PREFIX ) ); ?></code>
@@ -681,7 +695,39 @@ $ffc_identity_tier_note = static function ( $tier ) {
 
 					<fieldset class="ffc-identity-pair-choice">
 						<legend><?php esc_html_e( 'Which login keeps the records', 'ffcertificate' ); ?></legend>
+						<?php // NOTHING IS PROPOSED. The evidence says which login holds the records and when it was last used; which one is the person's real login is not a thing the data settles, and a screen that picked one would be asserting it. ?>
+						<p class="description ffc-identity-pair-basis">
+							<?php esc_html_e( 'The newer login is usually the accidental one — it exists because the resolver failed to match. What each holds and when it was last used is below; the choice is yours.', 'ffcertificate' ); ?>
+						</p>
 						<?php foreach ( $ffc_identity_who as $ffc_identity_account ) : ?>
+							<?php
+							$ffc_identity_fact = $ffc_identity_pair_facts[ (int) $ffc_identity_account ] ?? array();
+							$ffc_identity_held = array();
+
+							foreach ( (array) ( $ffc_identity_fact['rows'] ?? array() ) as $ffc_identity_store => $ffc_identity_n ) {
+								$ffc_identity_held[] = sprintf(
+									/* translators: 1: how many records. 2: the store holding them. */
+									__( '%1$s in %2$s', 'ffcertificate' ),
+									number_format_i18n( (int) $ffc_identity_n ),
+									$ffc_identity_store_name( $ffc_identity_store )
+								);
+							}
+
+							// `format_wallclock_date()`, NEVER `format_date()`.
+							//
+							// `activity_per_account()` already resolved the
+							// moment to a site-local `Y-m-d` -- it has to,
+							// because the four stores disagree about how a
+							// moment is stored and only the rendered date
+							// compares like for like across them. So what
+							// arrives here is Category B and carries no
+							// timezone semantics; `format_date()` would parse
+							// it at UTC midnight and re-apply the site zone,
+							// printing the PREVIOUS day anywhere west of UTC.
+							$ffc_identity_seen = DateFormatter::format_wallclock_date(
+								(string) ( $ffc_identity_fact['activity'] ?? '' )
+							);
+							?>
 							<label>
 								<input type="radio" name="ffc_keep" required
 									class="ffc-identity-keep"
@@ -690,6 +736,36 @@ $ffc_identity_tier_note = static function ( $tier ) {
 									<?php echo esc_html( $ffc_identity_named( $ffc_identity_account ) ); ?>
 								</a>
 							</label>
+							<p class="description ffc-identity-pair-evidence">
+								<?php if ( array() !== $ffc_identity_held ) : ?>
+									<span class="ffc-identity-pair-holds">
+										<?php
+										printf(
+											/* translators: %s: the per-store record counts, comma separated. */
+											esc_html__( 'Holds %s', 'ffcertificate' ),
+											esc_html( wp_sprintf_l( '%l', $ffc_identity_held ) )
+										);
+										?>
+									</span>
+								<?php else : ?>
+									<?php // An account this audit named is named BECAUSE rows point at it, so no count means the rows sit in a store this install does not resolve -- never that the login is empty. ?>
+									<span class="ffc-identity-pair-holds"><?php esc_html_e( 'No records in any store this install can read', 'ffcertificate' ); ?></span>
+								<?php endif; ?>
+								<?php if ( '' !== $ffc_identity_seen ) : ?>
+									<span class="ffc-identity-pair-seen">
+										<?php
+										printf(
+											/* translators: %s: the date the login was last active. */
+											esc_html__( 'Last used %s', 'ffcertificate' ),
+											esc_html( $ffc_identity_seen )
+										);
+										?>
+									</span>
+								<?php else : ?>
+									<?php // Not "never used": only the stores carrying a date column are read, so an absent value is an absent reading. ?>
+									<span class="ffc-identity-pair-seen"><?php esc_html_e( 'No activity date recorded', 'ffcertificate' ); ?></span>
+								<?php endif; ?>
+							</p>
 						<?php endforeach; ?>
 					</fieldset>
 
