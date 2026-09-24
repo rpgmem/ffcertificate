@@ -52,6 +52,39 @@ class CssTokenReferenceTest extends TestCase {
 		$shared = $this->declared_in( $common );
 		$this->assertNotEmpty( $shared, 'ffc-common.css declares no tokens — the scan is looking at the wrong file.' );
 
+		// THAT ASSERTION IS ABOUT ONE FILE, AND THE SCAN IS ABOUT ALL OF THEM
+		// (#1428).
+		//
+		// It reads `ffc-common.css` separately, so it stays true however few
+		// sheets the loop below actually visits -- measured: halving the glob
+		// leaves this test green with 14 of the 28 sheets unread, and an
+		// undeclared custom property invalidates the WHOLE declaration it sits
+		// in, so a sheet nobody checked is a component rendering with no
+		// colour at all.
+		//
+		// The recount uses `scandir` rather than `glob`, so the two agree only
+		// when both see the directory whole, and adding a sheet moves both.
+		$sheets = array_values(
+			array_filter(
+				glob( $root . '/*.css' ) ?: array(),
+				static fn( string $file ): bool => ! str_ends_with( $file, '.min.css' )
+			)
+		);
+
+		$recount = array_filter(
+			(array) scandir( $root ),
+			static fn( $entry ): bool => is_string( $entry )
+				&& str_ends_with( $entry, '.css' )
+				&& ! str_ends_with( $entry, '.min.css' )
+		);
+
+		$this->assertSame(
+			count( $recount ),
+			count( $sheets ),
+			'The glob and an independent recount disagree about how many stylesheets there are. The'
+			. ' scan is reading some of them and reporting as if it had read all of them.'
+		);
+
 		$unresolved = array();
 
 		foreach ( glob( $root . '/*.css' ) as $file ) {

@@ -354,8 +354,30 @@ class CertTemplateSeederTest extends TestCase {
 		// html/ can eventually be retired; guard against a seed reference
 		// regressing back to the update-fragile plugin html/ folder.
 		$dir   = dirname( __DIR__, 2 ) . '/templates/certificate-defaults/';
-		$files = glob( $dir . '*.html' );
-		$this->assertNotEmpty( $files );
+		$files = glob( $dir . '*.html' ) ?: array();
+
+		// `assertNotEmpty` OVER THREE FILES IS NOT A DETECTOR (#1428).
+		//
+		// This test's claim is about EVERY shipped default, and one surviving
+		// file satisfies the floor -- measured: halving the glob leaves it green
+		// with a third of the defaults unread. That matters here more than the
+		// small numbers suggest, because a default still pointing at `html/` is
+		// precisely what the retirement of that directory in 6.23.0 depended on
+		// not existing, and this is one of the guards standing over it.
+		//
+		// The recount uses `scandir` rather than `glob`, so the two agree only
+		// when both see the directory whole.
+		$recount = array_filter(
+			(array) scandir( $dir ),
+			static fn( $entry ): bool => is_string( $entry ) && str_ends_with( $entry, '.html' )
+		);
+
+		$this->assertSame(
+			count( $recount ),
+			count( $files ),
+			'The glob and an independent recount disagree about how many shipped defaults there are,'
+			. ' so this test is checking some of them and reporting as if it had checked all.'
+		);
 
 		foreach ( (array) $files as $file ) {
 			$html = (string) file_get_contents( $file );
