@@ -6,8 +6,7 @@ namespace FreeFormCertificate\Tests\Unit;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
-use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
-use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Tests\Support\BatchedExportSourceContractTestCase;
 use FreeFormCertificate\Audience\AudienceBookingExportSource;
 
 /**
@@ -24,9 +23,8 @@ use FreeFormCertificate\Audience\AudienceBookingExportSource;
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
-class AudienceBookingExportSourceTest extends TestCase {
+class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCase {
 
-	use MockeryPHPUnitIntegration;
 
 	/** @var AudienceBookingExportSource */
 	private $source;
@@ -44,6 +42,16 @@ class AudienceBookingExportSourceTest extends TestCase {
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
 
 		$this->source = new AudienceBookingExportSource();
+	}
+
+
+	/**
+	 * The source this file builds, for the contract the base asserts.
+	 *
+	 * @return object
+	 */
+	protected function export_source() {
+		return $this->source;
 	}
 
 	protected function tearDown(): void {
@@ -215,11 +223,6 @@ class AudienceBookingExportSourceTest extends TestCase {
 		$this->assertSame( array( array( 'id' => 5 ), array( 'id' => 4 ) ), $page );
 	}
 
-	public function test_cursor_of_reads_id(): void {
-		$this->assertSame( 4, $this->source->cursor_of( array( 'id' => 4 ) ) );
-		$this->assertSame( 0, $this->source->cursor_of( array() ) );
-	}
-
 	public function test_build_context_is_empty(): void {
 		$this->assertSame( array(), $this->source->build_context( array( 'status' => 'x' ) ) );
 	}
@@ -237,62 +240,4 @@ class AudienceBookingExportSourceTest extends TestCase {
 	// authorize_start() / authorize_batch() / authorize_download()
 	// ==================================================================
 
-	private function stub_terminators(): void {
-		Functions\when( 'wp_send_json_error' )->alias(
-			static function () {
-				throw new \RuntimeException( 'json_error' );
-			}
-		);
-		Functions\when( 'wp_die' )->alias(
-			static function () {
-				throw new \RuntimeException( 'wp_die' );
-			}
-		);
-	}
-
-	public function test_authorize_start_rejects_without_capability(): void {
-		$this->stub_terminators();
-		Functions\when( 'check_ajax_referer' )->justReturn( true );
-		Functions\when( 'current_user_can' )->justReturn( false );
-
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'json_error' );
-		$this->source->authorize_start();
-	}
-
-	public function test_authorize_batch_rejects_on_user_mismatch(): void {
-		$this->stub_terminators();
-		Functions\when( 'check_ajax_referer' )->justReturn( true );
-		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'json_error' );
-		$this->source->authorize_batch( array( 'user_id' => 99 ) );
-	}
-
-	public function test_authorize_download_rejects_on_bad_nonce(): void {
-		$this->stub_terminators();
-		Functions\when( 'wp_verify_nonce' )->justReturn( false );
-
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'wp_die' );
-		$this->source->authorize_download( array( 'user_id' => 1 ) );
-	}
-
-	public function test_authorize_download_rejects_on_user_mismatch(): void {
-		$this->stub_terminators();
-		Functions\when( 'wp_verify_nonce' )->justReturn( true );
-		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'wp_die' );
-		$this->source->authorize_download( array( 'user_id' => 99 ) );
-	}
-
-	public function test_job_owner_fields_returns_user_id(): void {
-		Functions\when( 'get_current_user_id' )->justReturn( 42 );
-		$this->assertSame( array( 'user_id' => 42 ), $this->source->job_owner_fields() );
-	}
 }

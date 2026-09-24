@@ -5,8 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
-use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Tests\Support\BatchedExportSourceContractTestCase;
 use FreeFormCertificate\Admin\SubmissionsExportSource;
 
 /**
@@ -18,9 +17,8 @@ use FreeFormCertificate\Admin\SubmissionsExportSource;
  *
  * @covers \FreeFormCertificate\Admin\SubmissionsExportSource
  */
-class SubmissionsExportSourceTest extends TestCase {
+class SubmissionsExportSourceTest extends BatchedExportSourceContractTestCase {
 
-	use MockeryPHPUnitIntegration;
 
 	/** @var SubmissionsExportSource */
 	private $source;
@@ -45,6 +43,16 @@ class SubmissionsExportSourceTest extends TestCase {
 
 		$ref          = new \ReflectionClass( SubmissionsExportSource::class );
 		$this->source = $ref->newInstanceWithoutConstructor();
+	}
+
+
+	/**
+	 * The source this file builds, for the contract the base asserts.
+	 *
+	 * @return object
+	 */
+	protected function export_source() {
+		return $this->source;
 	}
 
 	protected function tearDown(): void {
@@ -274,59 +282,19 @@ class SubmissionsExportSourceTest extends TestCase {
 	// authorize_start() / authorize_batch() / authorize_download()
 	// ==================================================================
 
-	private function stub_terminators(): void {
+	/**
+	 * Two more stubs than the contract's, and only here.
+	 *
+	 * This source's refusals build their message through `esc_html__()` and
+	 * `esc_html()`, which the others do not touch. Teaching Patchwork those
+	 * two in every export-source process would be the "one too many" trap
+	 * `CLAUDE.md` records -- a function taught once stays taught, and breaks
+	 * a later test that never asked for it.
+	 */
+	protected function stub_terminators(): void {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
-		Functions\when( 'wp_send_json_error' )->alias(
-			static function () {
-				throw new \RuntimeException( 'json_error' );
-			}
-		);
-		Functions\when( 'wp_die' )->alias(
-			static function () {
-				throw new \RuntimeException( 'wp_die' );
-			}
-		);
+		parent::stub_terminators();
 	}
 
-	public function test_authorize_start_rejects_without_capability(): void {
-		$this->stub_terminators();
-		Functions\when( 'check_ajax_referer' )->justReturn( true );
-		Functions\when( 'current_user_can' )->justReturn( false );
-
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'json_error' );
-		$this->source->authorize_start();
-	}
-
-	public function test_authorize_batch_rejects_on_user_mismatch(): void {
-		$this->stub_terminators();
-		Functions\when( 'check_ajax_referer' )->justReturn( true );
-		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'json_error' );
-		$this->source->authorize_batch( array( 'user_id' => 99 ) );
-	}
-
-	public function test_authorize_download_rejects_on_bad_nonce(): void {
-		$this->stub_terminators();
-		Functions\when( 'wp_verify_nonce' )->justReturn( false );
-
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'wp_die' );
-		$this->source->authorize_download( array( 'user_id' => 1 ) );
-	}
-
-	public function test_authorize_download_rejects_on_user_mismatch(): void {
-		$this->stub_terminators();
-		Functions\when( 'wp_verify_nonce' )->justReturn( true );
-		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'wp_die' );
-		$this->source->authorize_download( array( 'user_id' => 99 ) );
-	}
 }
