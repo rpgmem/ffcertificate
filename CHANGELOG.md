@@ -7,6 +7,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Four guards standing over defects that already shipped can now fail when their scan covers half the tree** (#1428): each one's self-check was a loose floor — `assertGreaterThan( 0, … )` over hundreds of annotations, `50` over 128 views, `4` over ten enqueues, `assertNotEmpty` over two keys — and a floor is not a detector: measured, a collector silently returning half its population left all four green, which is the #1423 shape. They now hold an invariant a partial scan cannot satisfy: a named member the sort drops first, an independent recount by a different traversal, a walk spanning more than one module, and — for the vendored bundles — the sentence its own failure message already claimed, that every bundle in `libs/js/` is enqueued from somewhere. No product code changed.
+
+
 ## [6.28.4] (2026-09-24) — `20284a9`
 
 ### Security

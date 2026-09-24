@@ -231,6 +231,28 @@ class UninstallUserMetaSweepTest extends TestCase {
 			'No literal user-meta key was found under includes/ — the extractor stopped matching, it is not that the plugin stopped writing meta.'
 		);
 
+		// `assertNotEmpty` OVER A POPULATION OF TWO IS NOT A DETECTOR (#1428).
+		//
+		// There are exactly two literal user-meta keys in the tree, one in
+		// `frontend` and one in `privacy`, so a collector that silently
+		// returned half of them would return one -- and one is not empty.
+		// Measured: the halving leaves this test green, which is the #1423
+		// shape.
+		//
+		// The invariant a partial list cannot satisfy is that the walk reaches
+		// more than one module. It is also the thing that matters: the sweep
+		// deletes by prefix, so a key one module declares outside the prefix is
+		// PII left behind at uninstall, and a scan seeing a single module would
+		// approve the other's key without looking at it.
+		$this->assertGreaterThan(
+			1,
+			count( array_unique( array_values( $this->literal_keys() ) ) ),
+			'Every literal user-meta key the scan found sits in ONE file. The walk covers `includes/`'
+			. ' whole, and more than one module declares such a key -- so this is a collapsed scan,'
+			. ' not a codebase with a single call site. If a refactor genuinely left only one, this'
+			. ' fails and asks to be re-read.'
+		);
+
 		foreach ( self::PREFIX_CONSTANTS as $path => $name ) {
 			$this->assertFileExists( $this->root() . '/' . $path );
 			$this->assertNotSame(
