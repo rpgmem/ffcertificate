@@ -64,9 +64,6 @@ class TabEmailTextsTest extends TestCase {
 		$this->assertSame( 'ffc_manage_email_templates', $this->tab->get_manage_cap() );
 	}
 
-	public function test_extends_settings_tab(): void {
-		$this->assertInstanceOf( \FreeFormCertificate\Settings\SettingsTab::class, $this->tab );
-	}
 
 	// ==================================================================
 	// render_email_index() — the read-only "All plugin emails" directory

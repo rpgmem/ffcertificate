@@ -37,7 +37,12 @@ use PHPUnit\Framework\TestCase;
  *    moved the wrapper's own baseline. Removing it alone already raised the
  *    wrapper from 103.55 to 100.00.
  *
- * @covers \FreeFormCertificate\Tests\Support\CssSelectors
+ * @coversNothing Its subject is a STYLESHEET, not a class. The `@covers` here
+ * used to name `Tests\Support\CssSelectors`, the helper it reads the sheet
+ * with — but coverage is scoped to `./includes`, so that target attributed to
+ * nothing while reading as though the test covered something. The honest
+ * annotation is the one `SensitiveFieldPolicyTest` already uses for the same
+ * reason.
  */
 class DashboardActionAlignmentTest extends TestCase {
 

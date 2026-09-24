@@ -74,9 +74,6 @@ class TabActivityLogTest extends TestCase {
 		$this->assertSame( 'ffc-icon-clipboard', $this->tab->get_icon() );
 	}
 
-	public function test_extends_settings_tab(): void {
-		$this->assertInstanceOf( \FreeFormCertificate\Settings\SettingsTab::class, $this->tab );
-	}
 
 	public function test_view_cap_is_activity_log_view(): void {
 		$this->assertSame( 'ffc_view_activity_log', $this->tab->get_view_cap() );

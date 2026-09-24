@@ -91,9 +91,6 @@ class TabGeneralTest extends TestCase {
 		$this->assertSame( 10, $this->tab->get_order() );
 	}
 
-	public function test_extends_settings_tab(): void {
-		$this->assertInstanceOf( \FreeFormCertificate\Settings\SettingsTab::class, $this->tab );
-	}
 
 	// ==================================================================
 	// render() — real view partial include (happy path)

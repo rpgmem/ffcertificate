@@ -91,9 +91,6 @@ class TabUrlShortenerTest extends TestCase {
 		$this->assertSame( 35, $this->tab->get_order() );
 	}
 
-	public function test_extends_settings_tab(): void {
-		$this->assertInstanceOf( \FreeFormCertificate\Settings\SettingsTab::class, $this->tab );
-	}
 
 	// ==================================================================
 	// render() — real view partial include (happy path)

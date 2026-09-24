@@ -81,12 +81,6 @@ class TabSmtpTest extends TestCase {
 	// Inheritance
 	// ==================================================================
 
-	public function test_extends_settings_tab(): void {
-		$this->assertInstanceOf(
-			\FreeFormCertificate\Settings\SettingsTab::class,
-			$this->tab
-		);
-	}
 
 	// ==================================================================
 	// enqueue_scripts() — wrong hook

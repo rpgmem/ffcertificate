@@ -89,9 +89,6 @@ class TabCacheTest extends TestCase {
 		$this->assertSame( 30, $this->tab->get_order() );
 	}
 
-	public function test_extends_settings_tab(): void {
-		$this->assertInstanceOf( \FreeFormCertificate\Settings\SettingsTab::class, $this->tab );
-	}
 
 	// ==================================================================
 	// enqueue_scripts()

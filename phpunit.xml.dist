@@ -19,9 +19,21 @@
         <include>
             <directory suffix=".php">./includes</directory>
         </include>
+        <!--
+            Markup-only partials included from a renderer's scope. The same
+            carve-out `phpstan.neon.dist` makes, and its comment says to keep
+            the two lists in step — which they had stopped being: this list
+            also named `./includes/libraries` and `./includes/views`, two
+            directories that have never existed at any point in the
+            repository's history — a `git log` over them, across every ref,
+            returns nothing.
+            PHPStan dropped them once; this is the other half.
+
+            `includes/self-scheduling/views` is deliberately NOT here: it
+            holds real logic, so "a directory named views is markup" is not a
+            repo-wide truth.
+        -->
         <exclude>
-            <directory suffix=".php">./includes/libraries</directory>
-            <directory suffix=".php">./includes/views</directory>
             <directory suffix=".php">./includes/admin/views</directory>
             <directory suffix=".php">./includes/settings/views</directory>
         </exclude>
