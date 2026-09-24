@@ -9,6 +9,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Three more guards can fail when their scan covers part of its population** (#1428): the same defect as the four in the previous pass — a floor of 100 over several hundred PHP files, `assertNotEmpty` over 28 stylesheets, `assertNotEmpty` over three shipped certificate defaults. Each now takes an independent recount with `scandir` rather than the walk it is checking, so the two agree only when both see the directory whole and neither goes stale when a file is added. The census that produced the list also **cleared three guards and corrected two verdicts of its own**: three were never claiming anything about the population that was reduced, and two "survivals" were mutations that reduced nothing — a one-element glob and a one-entry ratchet, where halving is the identity. No product code changed.
+
+
+### Changed
+
 - **Four guards standing over defects that already shipped can now fail when their scan covers half the tree** (#1428): each one's self-check was a loose floor — `assertGreaterThan( 0, … )` over hundreds of annotations, `50` over 128 views, `4` over ten enqueues, `assertNotEmpty` over two keys — and a floor is not a detector: measured, a collector silently returning half its population left all four green, which is the #1423 shape. They now hold an invariant a partial scan cannot satisfy: a named member the sort drops first, an independent recount by a different traversal, a walk spanning more than one module, and — for the vendored bundles — the sentence its own failure message already claimed, that every bundle in `libs/js/` is enqueued from somewhere. No product code changed.
 
 
