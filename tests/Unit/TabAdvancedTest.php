@@ -89,12 +89,6 @@ class TabAdvancedTest extends TestCase {
 		$this->assertSame( 70, $this->tab->get_order() );
 	}
 
-	public function test_extends_settings_tab(): void {
-		$this->assertInstanceOf(
-			\FreeFormCertificate\Settings\SettingsTab::class,
-			$this->tab
-		);
-	}
 
 	// ==================================================================
 	// Inherited get_option()

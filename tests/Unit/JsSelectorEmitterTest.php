@@ -29,7 +29,11 @@ use PHPUnit\Framework\TestCase;
  * shapes it had to learn are in `JsIdSelectors`'s docblock -- each arrived
  * because of a false positive it produced.
  *
- * @covers \FreeFormCertificate\Tests\Support\JsIdSelectors
+ * @coversNothing Its subject is the AGREEMENT between what PHP emits and what
+ * the JS looks for — two file sets, no single class. The `@covers` here used
+ * to name `Tests\Support\JsIdSelectors`, the helper that does the scanning;
+ * coverage is scoped to `./includes`, so that target attributed to nothing
+ * while reading as though the test covered something.
  */
 class JsSelectorEmitterTest extends TestCase {
 

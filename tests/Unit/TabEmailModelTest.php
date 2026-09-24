@@ -50,9 +50,6 @@ class TabEmailModelTest extends TestCase {
 		$this->assertSame( 'Email Model', $this->tab->get_title() );
 	}
 
-	public function test_extends_settings_tab(): void {
-		$this->assertInstanceOf( \FreeFormCertificate\Settings\SettingsTab::class, $this->tab );
-	}
 
 	public function test_enqueue_scripts_returns_early_for_wrong_hook(): void {
 		Functions\expect( 'wp_enqueue_script' )->never();

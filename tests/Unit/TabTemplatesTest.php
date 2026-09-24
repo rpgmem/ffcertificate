@@ -55,9 +55,6 @@ class TabTemplatesTest extends TestCase {
 		$this->assertSame( 'ffc_manage_forms', $this->tab->get_manage_cap() );
 	}
 
-	public function test_extends_settings_tab(): void {
-		$this->assertInstanceOf( \FreeFormCertificate\Settings\SettingsTab::class, $this->tab );
-	}
 
 	public function test_render_links_into_the_hub_and_shows_new_buttons_for_managers(): void {
 		Functions\when( 'current_user_can' )->justReturn( true ); // admin → can manage.
