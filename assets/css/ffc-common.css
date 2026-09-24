@@ -41,38 +41,38 @@
     --ffc-gray-700: #3c434a;
     --ffc-gray-800: #1d2327;
 
-    /* Typography — cada degrau é `max(<piso px>, <rem>)`, e a forma é o ponto.
+    /* Typography — each step is `max(<px floor>, <rem>)`, and the form is the point.
 
-       O `rem` respeita a preferência de tamanho de fonte do navegador, que é
-       o ganho de acessibilidade que queremos. Mas `rem` resolve contra a raiz
-       do DOCUMENTO, e no frontend a raiz é do tema do site: sob o idioma
-       comum `html { font-size: 62.5% }` a escala inteira encolhe junto.
-       O piso em px anula isso sem abrir mão do ganho.
+       `rem` honours the browser's font-size preference, which is the
+       accessibility gain we want. But `rem` resolves against the DOCUMENT
+       root, and on the frontend that root belongs to the site's theme: under
+       the common `html { font-size: 62.5% }` idiom the whole scale shrinks
+       with it. The px floor removes that without giving up the gain.
 
-       Medido em Chromium (#1157), tamanho computado do degrau `sm`:
+       Measured in Chromium (#1157), computed size of the `sm` step:
 
-                                    só rem   só px   max()
-         tema neutro (16px)           13px    13px    13px
-         tema 62.5%                  8,1px    13px    13px
-         usuário aumenta p/ 20px    16,3px    13px   16,3px
+                                    rem only  px only  max()
+         neutral theme (16px)          13px     13px    13px
+         62.5% theme                  8.1px     13px    13px
+         user asks for 20px          16.3px     13px   16.3px
 
-       `max()` não é meio-termo: é melhor que `rem` no caso que quebra e
-       melhor que `px` no caso que importa. A única perda honesta é combinada
-       — sob um tema que encolhe a raiz, a preferência do usuário fica
-       absorvida pelo piso até ultrapassá-lo (com raiz a 62,5%, mesmo pedindo
-       24px ele recebe os 13px do piso). Ainda assim é melhor que os 12,2px
-       que o `rem` puro entregaria ali.
+       `max()` is not a compromise: it beats `rem` in the case that breaks and
+       `px` in the case that matters. The one honest loss is the combined case
+       — under a root-shrinking theme the user's preference is absorbed by the
+       floor until it exceeds it (at a 62.5% root, asking for 24px still
+       yields the floor's 13px). Still better than the 12.2px plain `rem`
+       would give there.
 
-       As duas metades têm de concordar a 16px — `max(13px, 0.8125rem)` é uma
-       identidade, não um intervalo. `TypographyTokensTest` falha se
-       divergirem, se o `max()` sumir, ou se um degrau sumir: uma custom
-       property não declarada invalida a declaração inteira.
+       The two halves must agree at a 16px root — `max(13px, 0.8125rem)` is an
+       identity, not a range. `TypographyTokensTest` fails when they diverge,
+       when the `max()` disappears, or when a step disappears: an undeclared
+       custom property invalidates the whole declaration.
 
-       O degrau `xs` era 11px e passou a ser 12px (#1148 item 4). O 12px tinha
-       69 usos e nenhum token — era o terceiro valor mais usado da base e a
-       escala pulava justamente ele, que é também o passo responsivo do `sm`
-       em quatro folhas. Renomear custou zero porque a escala tinha ZERO
-       consumidores: 415 declarações `font-size` e nenhuma lia um token. */
+       The `xs` step was 11px and became 12px (#1148 item 4). 12px had 69 uses
+       and no token — the third most frequent value in the codebase, and the
+       scale skipped precisely it, which is also `sm`'s responsive step in
+       four sheets. The rename cost nothing because the scale had ZERO
+       consumers: 415 `font-size` declarations and not one read a token. */
     --ffc-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
     --ffc-font-size-2xs: max(11px, 0.6875rem);
     --ffc-font-size-xs: max(12px, 0.75rem);
@@ -83,11 +83,11 @@
     --ffc-font-size-2xl: max(24px, 1.5rem);
 
     /* Spacing */
-    /* Escala de espaçamento (#1169). Uma progressão só; toda declaração de
-       margin/padding/gap lê um destes. A escala EXISTIA com estes nomes e
-       tinha 3 consumidores de 1.238 declarações — os degraus abaixo são os
-       valores que o código realmente usa, não os que a escala antiga
-       declarava. */
+    /* Spacing scale (#1169). One progression; every margin/padding/gap
+       declaration reads one of these. The scale EXISTED under these names
+       with 3 consumers out of 1,238 declarations — the steps below are the
+       values the code actually uses, not the ones the old scale
+       declared. */
     --ffc-spacing-3xs: 2px;
     --ffc-spacing-2xs: 4px;
     --ffc-spacing-xs: 6px;
@@ -105,24 +105,25 @@
     --ffc-radius-md: 6px;
     --ffc-radius-lg: 8px;
     --ffc-radius-full: 50%;
-    /* `pill` é papel, não degrau — o par de `full`, que é o papel
-       "círculo". O valor é 12px e não `999px` de propósito: é o raio
-       que o selo já tinha quando morava num literal PHP (#1193), e
-       preservá-lo é o que torna a mudança auditável. Ele arredonda por
-       completo qualquer selo de até 24px de altura; um selo mais alto
-       que isso é que pede a troca por `999px`, com prova própria. */
+    /* `pill` is a role, not a step — the counterpart of `full`, which is
+       the "circle" role. The value is 12px rather than `999px` on
+       purpose: it is the radius the badge already had while it lived in
+       a PHP literal (#1193), and preserving it is what makes the change
+       auditable. It rounds any badge up to 24px tall completely; a badge
+       taller than that is what calls for `999px`, with its own proof. */
     --ffc-radius-pill: 12px;
 
-    /* Camadas de empilhamento (#1171). Nomeadas pelo PAPEL, não pelo número.
-       `modal` é 100000 porque a barra do wp-admin é 99999 — esse é o único
-       número aqui que tem uma razão externa, e é a razão de ele existir.
+    /* Stacking layers (#1171). Named by ROLE, never by number. `modal` is
+       100000 because the wp-admin bar is 99999 — that is the one number here
+       with an external reason, and it is the reason it exists.
 
-       QUATRO valores ficaram de fora, de propósito: 9999, 100001, 999999 e
-       2147483647 são quatro respostas diferentes para "fique acima da barra",
-       e são a assinatura de uma guerra de empilhamento. Colapsá-las MUDA a
-       ordem relativa nas telas onde convivem, o que não é conversão e sim
-       mudança de comportamento — precisa de verificação tela a tela. Ficam
-       literais e registradas no orçamento da guarda até alguém fazer isso. */
+       FOUR values were deliberately left out: 9999, 100001, 999999 and
+       2147483647 are four different answers to "be above the bar", and they
+       are the signature of a stacking war. Collapsing them CHANGES the
+       relative order on the screens where they coexist, which is a behaviour
+       change rather than a conversion — it needs screen-by-screen
+       verification. They stay literal and visible in the guard's budget
+       until somebody does that. */
     --ffc-z-raised: 1;
     --ffc-z-sticky: 10;
     --ffc-z-dropdown: 100;
@@ -143,14 +144,15 @@
     --ffc-bg: #ffffff;
     --ffc-bg-alt: #f6f7f7;
 
-    /* Par do selo cuja cor vem de uma LINHA do banco (#1193). Declarado aqui
-       porque uma propriedade personalizada que nada declara invalida a
-       declaração inteira (#1126 defeito 2) -- o valor real chega no `style=`
-       do elemento e sobrescreve este, que é o neutro de quando não chega.
+    /* The pair for a badge whose colour comes from a database ROW (#1193).
+       Declared here because a custom property nothing declares invalidates
+       the whole declaration (#1126 defect 2) -- the real value arrives in the
+       element's `style=` and overrides this one, which is the neutral for
+       when it does not arrive.
 
-       Aponta para os tokens neutros em vez de repetir o hex deles: uma
-       propriedade personalizada resolve no PONTO DE USO, então o par acompanha
-       o tema escuro sem precisar de uma segunda declaração lá. */
+       It points at the neutral tokens rather than repeating their hex: a
+       custom property resolves AT THE POINT OF USE, so the pair follows the
+       dark theme without needing a second declaration there. */
     --ffc-badge-row-bg: var(--ffc-bg-alt);
     --ffc-badge-row-text: var(--ffc-text);
     --ffc-bg-card: #ffffff;
@@ -638,10 +640,10 @@
     max-width: min(700px, 95vw);
 }
 
-/* O ajuste de telefone mora junto da base. Ele ficou para trás em
-   `ffc-audience.css` quando o componente veio para cá (#1140), o que partia o
-   modal em dois arquivos: a base aqui, a media query lá. Funcionava pela ordem
-   de carga e era exatamente o tipo de coisa que o próximo leitor não encontra. */
+/* The phone adjustment lives beside the base. It was left behind in
+   `ffc-audience.css` when the component moved here (#1140), which split the
+   modal across two files: the base here, the media query there. It worked by
+   load order, and was exactly the kind of thing the next reader never finds. */
 @media screen and (max-width: 768px) {
     .ffc-shortcode .ffc-modal-content {
         width: 95%;
@@ -706,8 +708,8 @@
     border-radius: var(--ffc-radius-sm);
 }
 
-/* Resumo serviço/quando — o mesmo par que a página pública de cancelamento
-   mostra, agora compartilhado com o diálogo do dashboard (#1140). */
+/* Service/when summary — the same pair the public cancellation page shows,
+   now shared with the dashboard dialog (#1140). */
 .ffc-cancel-summary {
     margin: 1.5rem 0;
     padding: 1rem;
@@ -922,9 +924,9 @@
     text-align: center;
 }
 
-/* 1.2em literal: relativo ao PAI de propósito — este componente é solto em
-   contextos de tamanhos diferentes e acompanha cada um. Um token absoluto
-   destruiria justamente essa relação. */
+/* 1.2em literal: relative to its PARENT on purpose — this component is
+   dropped into contexts of different sizes and follows each one. An absolute
+   token would destroy precisely that relationship. */
 .ffc-visibility-restricted .ffc-calendar-title {
     margin: 0 0 var(--ffc-spacing-md);
     font-size: 1.2em;
@@ -956,7 +958,7 @@
 }
 
 /* Admin bypass notice */
-/* 0.9em literal: relativo ao pai, mesma razão do .ffc-calendar-title acima. */
+/* 0.9em literal: relative to its parent, same reason as .ffc-calendar-title above. */
 .ffc-admin-bypass-notice {
     padding: var(--ffc-spacing-md) var(--ffc-spacing-xl);
     margin-bottom: var(--ffc-spacing-xl);
@@ -994,30 +996,32 @@
     border-radius: var(--ffc-radius-pill);
     font-size: var(--ffc-font-size-xs);
     font-weight: 500;
-    /* O literal inline escrevia `cursor:default` em TODO selo, com dica ou sem.
-       Sem esta linha o cursor volta ao `auto` do agente de usuário, que sobre
-       texto é o I-beam -- movimento visível em 50 medições. Fica preservado
-       porque o #1193 muda o ENDEREÇO da declaração, não a decisão; se um selo
-       deve ou não parecer texto selecionável é pergunta com argumento próprio,
-       e não se responde de carona numa mudança que promete zero movimento. */
+    /* The inline literal wrote `cursor:default` on EVERY badge, with a tooltip
+       or without. Without this line the cursor falls back to the user agent's
+       `auto`, which over text is the I-beam -- visible movement across 50
+       measurements. It is preserved because #1193 changes the declaration's
+       ADDRESS, not the decision; whether a badge should look like selectable
+       text is a question with its own argument, and it is not answered as a
+       passenger on a change that promises zero movement. */
     cursor: default;
 }
 
-/* Selo com dica: era `cursor:help` inline. Ter ou não `title` é propriedade do
-   markup, então é classe -- e a folha decide o que isso parece. */
+/* Badge with a tooltip: this was `cursor:help` inline. Whether it carries a
+   `title` is a property of the markup, so it is a class -- and the sheet
+   decides what that looks like. */
 .ffc-pill-has-tip {
     cursor: help;
 }
 
-/* Selo cuja cor vem de uma LINHA do banco, não de um status: o número de
-   valores numa página é o número de linhas nela, então a regra fica aqui e só
-   o valor viaja no atributo, como propriedade personalizada que o
-   `Core\BadgeHtml::render_with_row_color()` escreve (#1193).
+/* A badge whose colour comes from a database ROW rather than from a status:
+   the number of values on a page is the number of rows in it, so the rule
+   stays here and only the value travels in the attribute, as a custom
+   property `Core\BadgeHtml::render_with_row_color()` writes (#1193).
 
-   As duas propriedades são declaradas no `:root` com um par neutro, e não como
-   reserva dentro do `var()`: uma propriedade que nada declara invalida a
-   declaração INTEIRA (#1126 defeito 2), e um par declarado é o que permite às
-   guardas medirem o contraste dele como medem o de qualquer outro. */
+   Both properties are declared on `:root` with a neutral pair, and not as a
+   fallback inside the `var()`: a property nothing declares invalidates the
+   WHOLE declaration (#1126 defect 2), and a declared pair is what lets the
+   guards measure its contrast the way they measure any other. */
 .ffc-pill-row-color {
     background: var(--ffc-badge-row-bg);
     color: var(--ffc-badge-row-text);
@@ -1371,8 +1375,8 @@
     .ffc-features-badge--error,
     .ffc-features-badge--saved,
     .ffc-features-badge--saving,
-    /* O selo de cor por linha pinta fundo e nada mais; no modo forçado o
-       sistema descarta esse fundo e sobra texto solto (#1193). */
+    /* The per-row colour badge paints a ground and nothing else; under forced
+       colors the system discards that ground and bare text is left (#1193). */
     .ffc-pill-row-color,
     .ffc-status-pending {
         border: 1px solid CanvasText;

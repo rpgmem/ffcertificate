@@ -301,10 +301,10 @@
     font-size: var(--ffc-font-size-2xs);
     font-weight: 600;
     line-height: 1.5;
-    /* Pílula cheia neutra: o par inverso é o que a mantém legível nos dois
-       temas — escura sobre a célula clara, clara sobre a célula escura. Cada
-       fundo abaixo traz o seu próprio texto, porque o verde e o neutro não
-       aceitam o mesmo (#1126). */
+    /* A neutral filled pill: the inverse pair is what keeps it legible in both
+       themes — dark over the light cell, light over the dark one. Each ground
+       below brings its own text, because green and neutral do not take the
+       same one (#1126). */
     color: var(--ffc-inverse-on-surface);
     background: var(--ffc-inverse-surface);
     text-align: center;

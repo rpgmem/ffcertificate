@@ -27,9 +27,9 @@
 	font-size: var(--ffc-font-size-2xl);
 }
 
-/* `.ffc-cancel-summary` mora em ffc-common.css (#1140): o mesmo par
-   serviço/quando aparece no diálogo do dashboard, e esta página passou a
-   carregar a paleta no #1139. */
+/* `.ffc-cancel-summary` lives in ffc-common.css (#1140): the same
+   service/when pair appears in the dashboard dialog, and this page started
+   loading the palette in #1139. */
 
 .ffc-cancel-form label {
 	font-weight: 600;

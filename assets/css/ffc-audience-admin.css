@@ -28,8 +28,8 @@
     gap: var(--ffc-spacing-lg);
 }
 
-/* 32px literal: é o glifo do ícone, não texto — um ícone dimensionado por
-   font-size é uma caixa de glifo, e a escala tipográfica não o governa. */
+/* 32px literal: this is the icon's glyph, not text — an icon sized by
+   font-size is a glyph box, and the typography scale does not govern it. */
 .ffc-stat-icon {
     font-size: 32px;
     color: var(--ffc-primary);
@@ -631,8 +631,8 @@
     height: 20px;
     border-radius: var(--ffc-radius-full);
     background-color: var(--ffc-color);
-    /* Contorno neutro sobre a cor arbitrária do ambiente: precisa funcionar
-       contra qualquer matiz, então não é papel da paleta (#1126). */
+    /* A neutral outline over the environment's arbitrary colour: it has to
+       work against any hue, so it is not a palette role (#1126). */
     border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
@@ -670,8 +670,8 @@
     }
 }
 
-/* Valor hexadecimal ao lado do seletor de cor, na aba de público-alvo. Estava
-   num `style="color:#666"` inline no PHP (#1126). */
+/* The hex value beside the colour picker, on the audience tab. This was an
+   inline `style="color:#666"` in the PHP (#1126). */
 .ffc-color-value {
     margin-left: var(--ffc-spacing-sm);
     color: var(--ffc-text-muted);
