@@ -7,7 +7,38 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.28.3] (2026-09-22)
+## [6.28.4] (2026-09-24)
+
+### Security
+
+- ⚠ **Splitting and merging on the identity screen need capabilities of their own** (#1397): `ffc_split_identities` and `ffc_merge_identities` split off from `ffc_manage_identities`, which keeps the queue, consolidate, correct and move — a split creates a WordPress user, a merge destroys provenance. A one-shot migration seeds both onto current holders. **Breaking for integrations** checking `ffc_manage_identities` before those endpoints; the merge `admin_post` action is now `ffc_merge_identity_pair`.
+
+### Changed
+
+- **The identity queue is worked one finding at a time** (#1397, #1407): every tier is a card with a chip, a counter and Previous/Next over its own findings, and no list table is left on the screen. The queue is read once and held still, so resolving a finding removes that one and moves nothing else; `Read the queue again` is the only control that re-reads.
+- **A destination is chosen from a search that says in advance whether the move would be accepted** (#1397): each result carries the verdict the write would reach, from the service's own rule rather than a copy, and a refused account cannot be selected. The number field stays, so the screen works without JavaScript.
+- **A correction can be checked before it is committed, and a shared number corrected on one login only** (#1397): `Check` says how many records the number rewrites, or the refusal in the service's words — naming the account holding the value, because that case is a merge decision. Unscoped, the same rewrite would reach the other person's rows.
+- ⚠ **A merge is one pair at a time, previewed and acknowledged** (#1397): the preview names who keeps the records and who is emptied and counts them per store, read from the merge's own resolution; the confirmation is a posted field, not a browser dialog. **This replaces the batch of checkboxes**, so an outcome can no longer be part merged and part refused.
+- **Records carrying an identifier and no account get a panel and two verbs** (#1397): link it to an existing account, or open one — which needs all three identifiers, or the resolver fails to match the next record carrying another.
+- **The 38 findings the queue should never have offered a verb for now get none** (#1368): numbers sharing one address and not variants of each other are a shared mailbox, so the premise every account-side tier rests on is what fails there. Its own tier, with a verb column that says why it is empty, outranking the mechanical tier on purpose.
+- **The merge form says what each login holds and when it was last used** (#1368): both readings were already measured and exported, and neither reached the form. **Nothing is proposed** — the data can say which login holds more, never which is the person's real one.
+- **The backfill card reports the accounts it may not decide, and links to the screen that can** (#1368): an account holding two different numbers for one field is left empty on purpose, so it is outstanding work the bar never mentioned. No re-run is offered, because pressing the button would move it by zero.
+- **The identity screen's buttons say which one commits** (#1421): the writing verb is the card's primary where the card has one, and deliberately not where it offers two destinations. `Move` drops the hash it repeated from the heading above it and keeps it in its accessible name; search gains a magnifier, the writing column a 44px target.
+- **Four things the screen showed wrong, found on the testes host** (#1407): a table name printed with the query's internal `|`; three counts sharing one string, so a single value read as a plural; two verbs per number with nothing saying which was which; and a 357px void beside the record, now 7px. A link colour nothing had declared went from 2.48:1 to 5.10:1 on the dark card.
+- **The batched CSV export's contract is asserted once instead of thirty-one times** (#772): six source tests rewrote the same interface behaviours and now inherit one contract case. Not a tidy-up — five of those assertions had never been written, including `job_owner_fields` on the source that decrypts PII onto a temp file.
+- **The last untested product class gets a test, and a rule that produced 101 inert lines was re-measured** (#1053): `CaptchaModeNotice` shipped in 6.23.0 with none; its three gates are pinned, composite included. The `class_exists()` pcov preload no longer reproduces the gap it was written for, so new tests stop adding it.
+- **Three small corrections in the test suite, found by auditing it rather than by a failure**: the coverage config excluded two directories that have never existed; two guards annotated `@covers` on a helper outside the coverage scope; and sixteen per-file assertions became one guard over the directory, which had missed two tab classes.
+
+### Fixed
+
+- **The identity queue no longer presents a capped list as a complete one** (#1397): each check returns at most 100 findings, so a queue holding 140 of one kind looked exactly like one holding 100. It now names the capped checks.
+- **The identity screen no longer fatals on a class its view never imported** (#1397): a view does not inherit the caller's imports, so the name resolved against the global namespace and the screen was a fatal from the moment the stepper landed. PHPStan and coverage both exclude `views/` as markup — a carve-out that says nothing about whether a name resolves. A guard now checks every view and template.
+- **Confirming a merge pair no longer reports that none was confirmed** (#1386): the posted group was read through an accessor that sanitises each element of the container, which returns an empty string for an array, so every ticked pair was discarded before it was looked at.
+- **The identity screen opens with what the scan read and what is left** (#1407): how many values were checked, how many could not be read, how many stores were scanned, and whether a cap cut it short. Those numbers used to render only on an empty queue, so the state an operator actually works never said how much it had seen.
+- **A tooltip no keyboard could reach** (#1421): the admin sheets style `.button[title]` on hover only, so its label was available to a pointer and to nothing else. It now shows on `:focus-visible` too, on every FFC admin screen (WCAG 1.4.13).
+- **The comment-language guard read 46% of a stylesheet, and the Portuguese was in the other 54%** (#1260, #1423): its filter asked whether a line *started* with `*`, `/*` or `//` — right for PHP and JS, wrong for CSS, whose continuation lines are indented with no marker. #1260 added the sheets and translated the 44 blocks the filter could see; #1423 replaced it with one tracking the delimiters across lines, surfacing 135 further lines, 4 of them in PHP. No minified bundle changed.
+
+## [6.28.3] (2026-09-22) — `e7e33a03`
 
 ### Added
 

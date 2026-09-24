@@ -15,14 +15,20 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\ActivityLogQuery;
 use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityMerge;
 use FreeFormCertificate\Maintenance\IdentityQueue;
+use FreeFormCertificate\Maintenance\IdentityAdoption;
+use FreeFormCertificate\Maintenance\IdentityAuditExportSource;
+use FreeFormCertificate\Maintenance\IdentityOrphanQuery;
+use FreeFormCertificate\Maintenance\IdentityRecordNames;
 use FreeFormCertificate\Maintenance\IdentityRelink;
 use FreeFormCertificate\Maintenance\IdentitySplit;
 use FreeFormCertificate\Maintenance\IdentityRepair;
+use FreeFormCertificate\Maintenance\IdentityWorklist;
 use WP_Error;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -74,6 +80,30 @@ class IdentityResolutionPage {
 	 * Capability gating the screen (#1368).
 	 */
 	public const CAPABILITY = 'ffc_manage_identities';
+
+	/**
+	 * Capability gating a split (#1397).
+	 *
+	 * Its own, because a split CREATES a WordPress account -- a different
+	 * power from correcting a number the check digits already judged, and a
+	 * different one again from a merge. Whoever fixes typos is not
+	 * necessarily whoever opens logins.
+	 *
+	 * @since 6.28.4
+	 * @var string
+	 */
+	public const SPLIT_CAPABILITY = 'ffc_split_identities';
+
+	/**
+	 * Capability gating a merge (#1397).
+	 *
+	 * The only action on this screen no other undoes: afterwards nothing can
+	 * say which record came from which login.
+	 *
+	 * @since 6.28.4
+	 * @var string
+	 */
+	public const MERGE_CAPABILITY = 'ffc_merge_identities';
 
 	/**
 	 * The `admin_post` action that writes a correction.
@@ -139,7 +169,42 @@ class IdentityResolutionPage {
 	 *
 	 * @since 6.28.3
 	 */
-	public const MERGE_ACTION = 'ffc_merge_identities';
+	public const MERGE_ACTION = 'ffc_merge_identity_pair';
+
+	/**
+	 * The `admin_post` action that takes the worklist again.
+	 *
+	 * A WRITE-SHAPED ACTION FOR A READ, DELIBERATELY.
+	 *
+	 * Re-scanning changes nothing in the database, but it is an action with a
+	 * cost -- every distinct stored identifier is decrypted -- and it replaces
+	 * what the operator is working from. Both are reasons to make it a posted,
+	 * nonce-checked intent rather than a link anything could prefetch.
+	 *
+	 * @var string
+	 */
+	/**
+	 * Opening (or finding) the account an orphaned record belongs to.
+	 *
+	 * @since 6.28.4
+	 */
+	public const ADOPT_ACTION = 'ffc_adopt_identity_orphans';
+
+	/**
+	 * Nonce for {@see self::ADOPT_ACTION}, scoped per finding.
+	 *
+	 * @since 6.28.4
+	 */
+	public const ADOPT_NONCE = 'ffc_adopt_identity_orphans_';
+
+	public const RESCAN_ACTION = 'ffc_rescan_identities';
+
+	/**
+	 * Nonce action for taking the worklist again.
+	 *
+	 * @var string
+	 */
+	public const RESCAN_NONCE = 'ffc_rescan_identities';
 
 	/**
 	 * Nonce action for the merge form.
@@ -154,7 +219,7 @@ class IdentityResolutionPage {
 	 *
 	 * @since 6.28.3
 	 */
-	public const MERGE_NONCE = 'ffc_merge_identities';
+	public const MERGE_NONCE = 'ffc_merge_identity_pair';
 
 	/**
 	 * Transient prefix carrying one outcome from the write back to the screen.
@@ -193,6 +258,109 @@ class IdentityResolutionPage {
 		add_action( 'admin_post_' . self::RELINK_ACTION, array( $this, 'handle_relink' ) );
 		add_action( 'admin_post_' . self::SPLIT_ACTION, array( $this, 'handle_split' ) );
 		add_action( 'admin_post_' . self::MERGE_ACTION, array( $this, 'handle_merge' ) );
+		add_action( 'admin_post_' . self::RESCAN_ACTION, array( $this, 'handle_rescan' ) );
+		add_action( 'admin_post_' . self::ADOPT_ACTION, array( $this, 'handle_adopt' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
+	}
+
+	/**
+	 * Load the account-search dialog, on this screen and nowhere else.
+	 *
+	 * @since 6.28.4
+	 * @param string $hook The screen's hook suffix.
+	 * @return void
+	 */
+	public function enqueue( string $hook ): void {
+		if ( false === strpos( $hook, self::MENU_SLUG ) ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'ffc-identity-search',
+			FFC_PLUGIN_URL . 'assets/js/ffc-identity-search.js',
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'ffc-identity-search',
+			'ffcIdentitySearch',
+			array(
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'action'  => IdentitySearchAjaxEndpoint::AJAX_ACTION,
+				'nonce'   => wp_create_nonce( IdentitySearchAjaxEndpoint::AJAX_ACTION ),
+				// ONLY THE STRINGS THAT CARRY A RUNTIME VALUE.
+				//
+				// Every fixed sentence in the dialog is printed by the view,
+				// escaped there and visible to the translation guards as an
+				// ordinary source string. What is left here is the handful
+				// that interpolate a count, a name or an account number.
+				'strings' => array(
+					/* translators: 1: how many records move. 2: the identifier's hash prefix. 3: RF or CPF. */
+					'subtitle'  => __( 'Moves the %1$s records carrying %2$s · %3$s', 'ffcertificate' ),
+					'searching' => __( 'Searching…', 'ffcertificate' ),
+					/* translators: %s: how many accounts matched. */
+					'found'     => __( '%s accounts found', 'ffcertificate' ),
+					'noResults' => __( 'No account matches that.', 'ffcertificate' ),
+					/* translators: 1: the account's display name. 2: the account number. */
+					'chosen'    => __( 'Destination: %1$s (#%2$s)', 'ffcertificate' ),
+					/* translators: %s: the account number. */
+					'move'      => __( 'Move to #%s', 'ffcertificate' ),
+					'failed'    => __( 'The search could not be completed.', 'ffcertificate' ),
+				),
+			)
+		);
+
+		// A SECOND SCRIPT AND NOT A SECOND CONCERN IN THE FIRST.
+		//
+		// Both ask the server before the operator commits, but one chooses a
+		// destination and the other judges a typed number, and the file named
+		// `search` doing the second would be a name that stops describing its
+		// contents. All of its fixed prose is `data-` attributes in the view,
+		// so it localises no strings at all.
+		wp_enqueue_script(
+			'ffc-identity-preflight',
+			FFC_PLUGIN_URL . 'assets/js/ffc-identity-preflight.js',
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'ffc-identity-preflight',
+			'ffcIdentityPreflight',
+			array(
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'action'  => IdentityPreflightAjaxEndpoint::AJAX_ACTION,
+				'nonce'   => wp_create_nonce( IdentityPreflightAjaxEndpoint::AJAX_ACTION ),
+			)
+		);
+
+		// Only for an operator who can merge. The panel it serves is already
+		// gone without the capability, so loading it would be a script with
+		// nothing to bind and a nonce for an endpoint that would refuse.
+		if ( ! Capabilities::current_user_can_admin_or( self::MERGE_CAPABILITY ) ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'ffc-identity-merge-preview',
+			FFC_PLUGIN_URL . 'assets/js/ffc-identity-merge-preview.js',
+			array( 'jquery' ),
+			FFC_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'ffc-identity-merge-preview',
+			'ffcIdentityMergePreview',
+			array(
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'action'  => IdentityMergePreviewAjaxEndpoint::AJAX_ACTION,
+				'nonce'   => wp_create_nonce( IdentityMergePreviewAjaxEndpoint::AJAX_ACTION ),
+			)
+		);
 	}
 
 	/**
@@ -252,16 +420,174 @@ class IdentityResolutionPage {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function queue(): array {
-		$queue = $this->queues();
-		$out   = $queue->items( self::LIMIT );
+		$held = $this->worklists()->get( get_current_user_id(), self::LIMIT );
 
-		// Read AFTER the scan, from the same instance: what the list does not
-		// carry is whether it is empty because the data is fine.
-		$this->coverage = $queue->coverage();
+		// Read from the SAME structure the items came from: what the list
+		// does not carry is whether it is empty because the data is fine, and
+		// whether it is complete at all.
+		$this->coverage  = $held[ IdentityWorklist::COVERAGE ];
+		$this->truncated = $held[ IdentityWorklist::TRUNCATED ];
+		$this->taken_at  = $held[ IdentityWorklist::TAKEN_AT ];
 
-		return $out;
+		return $held[ IdentityWorklist::ITEMS ];
 	}
 
+	/**
+	 * Which checks reached their cap on the scan behind the current list.
+	 *
+	 * Empty is the only state in which a count printed beside this queue is a
+	 * count. `IdentityAuditExportSource` has said this about its own cap since
+	 * 6.27.0, one row over, by emitting a note row; this screen said nothing,
+	 * so a check holding more findings than `LIMIT` looked exactly like one
+	 * that had returned everything.
+	 *
+	 * @since 6.28.4
+	 * @return array<int, string>
+	 */
+	public function truncated(): array {
+		return $this->truncated;
+	}
+
+	/**
+	 * The five actions that resolve a finding on this screen.
+	 *
+	 * DECLARED HERE, MEASURED ELSEWHERE.
+	 *
+	 * Each name is written in the service that logs it -- five classes under
+	 * `Maintenance`, one verb each -- so a list of them here is a claim about
+	 * a value five other files own, which is the shape `CLAUDE.md` records as
+	 * going stale in silence. `IdentityResolutionPageTest` reads the services
+	 * and fails when this list and what they log disagree in either
+	 * direction, so a sixth verb cannot be added without the counter learning
+	 * about it.
+	 *
+	 * @since 6.28.4
+	 * @var array<int, string>
+	 */
+	public const RESOLVED_ACTIONS = array(
+		'identity_rf_repaired',
+		'identity_records_relinked',
+		'identity_records_split',
+		'identity_accounts_merged',
+		'identity_orphans_adopted',
+	);
+
+	/**
+	 * How many findings this operator has resolved since the held queue was
+	 * taken.
+	 *
+	 * THE WINDOW IS THE QUEUE'S OWN, NOT A CLOCK'S.
+	 *
+	 * `N remaining` is a count of the list that was taken at
+	 * `$taken_at` and is held still while it is worked, so the only number
+	 * that can sit beside it honestly is one measured from the same instant.
+	 * A rolling window -- the last day, since login -- would drift out of
+	 * step with the list on screen and start counting a different sitting's
+	 * work; reading the queue again resets both together, which is exactly
+	 * the gesture that begins a new round.
+	 *
+	 * SCOPED TO THE OPERATOR, because the held list is theirs: another
+	 * operator resolving findings does not shrink this one, so counting their
+	 * work here would explain nothing about the list in front of this one.
+	 *
+	 * @since 6.28.4
+	 * @param int $taken_at When the queue was read, as a unix timestamp.
+	 * @return int
+	 */
+	public function resolved_since( int $taken_at ): int {
+		if ( $taken_at <= 0 ) {
+			return 0;
+		}
+
+		// `ffc_activity_log.created_at` is a WALL-CLOCK `DATETIME` written by
+		// `current_time( 'mysql' )`, so the bound has to be in the same frame
+		// or the comparison is off by the site's offset. This is the
+		// documented reason `CLAUDE.md` allows for reaching for `wp_date()`
+		// outside `DateFormatter`: it is not display, it is a query bound
+		// that must match how the column was written.
+		$since = wp_date( 'Y-m-d H:i:s', $taken_at );
+
+		if ( ! is_string( $since ) || '' === $since ) {
+			return 0;
+		}
+
+		$operator = get_current_user_id();
+		$done     = 0;
+
+		// One counted query per verb rather than a new Core method taking a
+		// list: `count_activities()` already answers this question, and a
+		// second consumer is what would earn widening it (the #788 / #993
+		// criterion). Five indexed counts are nothing beside the decrypting
+		// scan this screen already ran to build the queue.
+		foreach ( self::RESOLVED_ACTIONS as $action ) {
+			$done += ActivityLogQuery::count_activities(
+				array(
+					'action'    => $action,
+					'user_id'   => $operator,
+					'date_from' => $since,
+				)
+			);
+		}
+
+		return $done;
+	}
+
+	/**
+	 * When the list being worked was taken, as a unix timestamp.
+	 *
+	 * @since 6.28.4
+	 * @return int
+	 */
+	public function taken_at(): int {
+		return $this->taken_at;
+	}
+
+	/**
+	 * Checks capped on the scan behind the current list.
+	 *
+	 * @since 6.28.4
+	 * @var array<int, string>
+	 */
+	private array $truncated = array();
+
+	/**
+	 * When the current list was taken.
+	 *
+	 * @since 6.28.4
+	 * @var int
+	 */
+	private int $taken_at = 0;
+
+	/**
+	 * The held worklist, as a seam a test can replace.
+	 *
+	 * @since 6.28.4
+	 * @return IdentityWorklist
+	 */
+	protected function worklists(): IdentityWorklist {
+		// Built around THIS screen's tiering, which is built around its
+		// `conflicts()` seam: one chain, so a test driving the query drives
+		// everything the screen reads.
+		return new IdentityWorklist( $this->queues() );
+	}
+
+	/**
+	 * Take the worklist again, on the operator's say-so.
+	 *
+	 * @since 6.28.4
+	 * @return void
+	 */
+	public function handle_rescan(): void {
+		if ( ! Capabilities::current_user_can_admin_or( self::CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+
+		check_admin_referer( self::RESCAN_NONCE );
+
+		$this->worklists()->take( get_current_user_id(), self::LIMIT );
+
+		$this->report( array(), __( 'The queue was read again.', 'ffcertificate' ) );
+	}
 	/**
 	 * The tiering, as a seam a test can replace.
 	 *
@@ -342,11 +668,21 @@ class IdentityResolutionPage {
 
 		check_admin_referer( self::REPAIR_NONCE . $subject );
 
+		// SCOPED WHEN THE SCREEN SAYS WHOSE, AND ONLY THEN.
+		//
+		// On the shared tier one identifier sits on two logins and one of them
+		// typed it wrong, so the correction has to name which. Everywhere else
+		// the finding IS the hash and an absent scope means every row carrying
+		// it -- which is why this defaults to zero rather than to the current
+		// user or to anything derived. The nonce is per finding, not per
+		// account, so the account is re-checked by the service: a scope naming
+		// an account that holds none of these rows is refused there.
 		$result = $this->repairs()->repair(
 			$subject,
 			RequestInput::get_post_string( 'ffc_rf', '' ),
 			get_current_user_id(),
-			self::posted_field()
+			self::posted_field(),
+			absint( RequestInput::get_post_string( 'ffc_account_scope', '0' ) )
 		);
 
 		// The SERVICE owns the wording. A second copy on this side is the
@@ -366,11 +702,25 @@ class IdentityResolutionPage {
 			self::OUTCOME_TTL
 		);
 
+		// LAND ON THE NEXT FINDING, NOT BACK AT THE TOP.
+		//
+		// The finding just resolved is the one the worklist drops, so a
+		// cursor still naming it resolves to the top of its tier -- correct,
+		// and useless: an operator working 96 failures would be sent back to
+		// the first one after each. The form knows, at render time, which
+		// finding follows, so it posts that key and the redirect carries it.
+		// Both are untrusted and neither can do harm: an unknown key lands on
+		// the top, which is where this would have landed anyway.
+		$args = array( 'page' => self::MENU_SLUG );
+		$next = RequestInput::get_post_string( 'ffc_next', '' );
+		$tier = RequestInput::get_post_string( 'ffc_tier', '' );
+
+		if ( '' !== $next && in_array( $tier, IdentityQueuePanels::ORDER, true ) ) {
+			$args[ IdentityQueuePanels::ARG_AT ] = array( $tier => $next );
+		}
+
 		wp_safe_redirect(
-			add_query_arg(
-				array( 'page' => self::MENU_SLUG ),
-				admin_url( 'edit.php?post_type=ffc_form' )
-			)
+			add_query_arg( $args, admin_url( 'edit.php?post_type=ffc_form' ) )
 		);
 		exit;
 	}
@@ -457,7 +807,7 @@ class IdentityResolutionPage {
 	 * @return void
 	 */
 	public function handle_split(): void {
-		if ( ! Capabilities::current_user_can_admin_or( self::CAPABILITY ) ) {
+		if ( ! Capabilities::current_user_can_admin_or( self::SPLIT_CAPABILITY ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
 		}
 
@@ -479,99 +829,113 @@ class IdentityResolutionPage {
 	}
 
 	/**
-	 * Consolidate every account pair the operator ticked.
+	 * Consolidate ONE pair, acknowledged.
 	 *
-	 * PAIR BY PAIR, AND THE UNTICKED ONES ARE NOT TOUCHED.
+	 * ONE PAIR PER REQUEST, WHICH REMOVES THE PARTIAL RESULT RATHER THAN
+	 * REPORTING IT.
 	 *
-	 * The screen names each pair -- the people and the document -- and the
-	 * operator confirms which ones are one person (#1386, decision 3). A merge
-	 * is the one verb no other verb can undo, so it is never applied to a list
-	 * wholesale: what is written is exactly what was ticked.
+	 * This took a list of ticked pairs and merged each in turn (#1386,
+	 * decision 3), which meant an outcome that was part success and part
+	 * refusal — and the honest way to present that is a paragraph nobody
+	 * reads. One pair per request makes each merge its own transaction with
+	 * its own outcome, and the next begins after this one has ended (#1397
+	 * sprint 5). It also makes the confirmation specific enough to state what
+	 * moves, which a list never could.
 	 *
-	 * Each outcome is reported, including the refusals, because a partial
-	 * result silently presented as a whole one is how an operator comes to
-	 * believe a queue is empty.
+	 * THE ACKNOWLEDGEMENT IS A FIELD, NOT A `confirm()`.
+	 *
+	 * A merge is the one verb no other undoes, so the operator says so in the
+	 * payload: a browser dialog is not evidence and does not survive a screen
+	 * without JavaScript. Its absence is a refusal rather than a silent no-op,
+	 * because a form that posts and reports nothing reads as a bug.
 	 *
 	 * @since 6.28.3
 	 * @return void
 	 */
 	public function handle_merge(): void {
-		if ( ! Capabilities::current_user_can_admin_or( self::CAPABILITY ) ) {
+		if ( ! Capabilities::current_user_can_admin_or( self::MERGE_CAPABILITY ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
 		}
 
-		check_admin_referer( self::MERGE_NONCE );
+		$subject = RequestInput::get_post_string( 'ffc_subject', '' );
 
-		$merges   = $this->mergers();
-		$actor    = get_current_user_id();
-		$done     = 0;
-		$refusals = array();
+		check_admin_referer( self::MERGE_NONCE . $subject );
 
-		foreach ( RequestInput::get_post_array( 'ffc_pair', array() ) as $pair ) {
-			if ( ! is_array( $pair ) || empty( $pair['confirm'] ) ) {
-				continue;
-			}
-
-			$keep = isset( $pair['keep'] ) ? absint( $pair['keep'] ) : 0;
-			$a    = isset( $pair['a'] ) ? absint( $pair['a'] ) : 0;
-			$b    = isset( $pair['b'] ) ? absint( $pair['b'] ) : 0;
-
-			// The survivor must be one of the two the screen offered. A value
-			// from anywhere else would merge an account the operator never saw.
-			if ( $keep !== $a && $keep !== $b ) {
-				$refusals[] = __( 'A pair named an account that was not one of its two.', 'ffcertificate' );
-				continue;
-			}
-
-			$result = $merges->merge( $keep, $keep === $a ? $b : $a, $actor );
-
-			if ( $result instanceof WP_Error ) {
-				$refusals[] = $result->get_error_message();
-				continue;
-			}
-
-			++$done;
-		}
-
-		$this->report_merges( $done, $refusals );
-	}
-
-	/**
-	 * Say what happened to every pair, refusals included.
-	 *
-	 * @since 6.28.3
-	 * @param int                $done     How many merged.
-	 * @param array<int, string> $refusals Why the others did not.
-	 * @return void
-	 */
-	private function report_merges( int $done, array $refusals ): void {
-		if ( 0 === $done && array() === $refusals ) {
+		if ( '' === RequestInput::get_post_string( 'ffc_ack', '' ) ) {
 			$this->report(
-				new WP_Error( 'ffc_identity_merge_none', __( 'No pair was confirmed, so nothing was merged.', 'ffcertificate' ) ),
+				new WP_Error(
+					'ffc_identity_merge_unacknowledged',
+					__( 'Nothing was merged: the confirmation was not ticked. A merge cannot be undone, so it is never taken from the form alone.', 'ffcertificate' )
+				),
 				''
 			);
 
 			return;
 		}
 
-		$merged = sprintf(
-			/* translators: %s: how many account pairs were merged. */
-			_n( '%s pair merged.', '%s pairs merged.', $done, 'ffcertificate' ),
-			number_format_i18n( $done )
-		);
+		$keep = absint( RequestInput::get_post_string( 'ffc_keep', '0' ) );
+		$a    = absint( RequestInput::get_post_string( 'ffc_a', '0' ) );
+		$b    = absint( RequestInput::get_post_string( 'ffc_b', '0' ) );
 
-		if ( array() === $refusals ) {
+		// The survivor must be one of the two the screen offered. A value from
+		// anywhere else would merge an account the operator never saw.
+		if ( $keep !== $a && $keep !== $b ) {
 			$this->report(
-				array(),
-				$merged . ' ' . __( 'The emptied logins were left in place — removing them is yours to do in Users.', 'ffcertificate' )
+				new WP_Error(
+					'ffc_identity_merge_not_in_pair',
+					__( 'Nothing was merged: the login named to keep is not one of this pair\'s two.', 'ffcertificate' )
+				),
+				''
 			);
 
 			return;
 		}
 
+		$result = $this->mergers()->merge( $keep, $keep === $a ? $b : $a, get_current_user_id() );
+
 		$this->report(
-			new WP_Error( 'ffc_identity_merge_partial', $merged . ' ' . implode( ' ', $refusals ) ),
-			''
+			$result,
+			__( 'Merged. The records, the identity index and the surviving login\'s certificate access moved together. The emptied login was left in place — removing it is yours to do in Users.', 'ffcertificate' )
+		);
+	}
+
+	/**
+	 * Give an orphaned record the account it belongs to.
+	 *
+	 * THE OPERATOR SUPPLIES WHAT THE RECORD DOES NOT CARRY, AND ONLY THAT.
+	 *
+	 * An orphan reaches this screen because it holds one identifier and no
+	 * account. Opening an account needs all three, so the two it is missing
+	 * are typed here — the same shape as the correction, and for the same
+	 * reason: what is stored is never shown, and what is typed comes from a
+	 * person who checked.
+	 *
+	 * The verb is deliberately "adopt" rather than "create": if an account
+	 * already answers to those identifiers it is used, which is the right
+	 * outcome rather than a failed creation.
+	 *
+	 * @since 6.28.4
+	 * @return void
+	 */
+	public function handle_adopt(): void {
+		if ( ! Capabilities::current_user_can_admin_or( self::SPLIT_CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+
+		$subject = RequestInput::get_post_string( 'ffc_subject', '' );
+
+		check_admin_referer( self::ADOPT_NONCE . $subject );
+
+		$result = $this->adoptions()->adopt(
+			RequestInput::get_post_string( 'ffc_cpf', '' ),
+			RequestInput::get_post_string( 'ffc_rf', '' ),
+			RequestInput::get_post_string( 'ffc_email', '' ),
+			get_current_user_id()
+		);
+
+		$this->report(
+			$result,
+			__( 'Adopted. The records carrying those identifiers were linked to the account, which was opened if none already answered to them, and its certificate access was granted in the same act.', 'ffcertificate' )
 		);
 	}
 
@@ -634,6 +998,27 @@ class IdentityResolutionPage {
 	 * @return void
 	 */
 	private function report( $result, string $success ): void {
+		// A WRITE THAT WORKED TAKES ITS FINDING OUT OF THE HELD LIST.
+		//
+		// One place rather than one per handler: every verb funnels through
+		// here, and the rule is the same for all of them -- the finding that
+		// was resolved stops being in the queue, and NOTHING ELSE MOVES. The
+		// alternative, dropping the list so the next load re-scans, is the
+		// per-resolution scan `IdentityWorklist` exists to avoid, and it
+		// renumbers every other position at the same time.
+		//
+		// The key is posted, so it is untrusted -- and it cannot be abused
+		// into anything: `resolved()` only ever removes an entry from the
+		// caller's OWN held list, and a re-scan brings back anything dropped
+		// that was not really resolved.
+		if ( ! $result instanceof WP_Error ) {
+			$key = RequestInput::get_post_string( 'ffc_key', '' );
+
+			if ( '' !== $key ) {
+				$this->worklists()->resolved( get_current_user_id(), $key );
+			}
+		}
+
 		set_transient(
 			self::OUTCOME_TRANSIENT . get_current_user_id(),
 			$result instanceof WP_Error
@@ -658,6 +1043,82 @@ class IdentityResolutionPage {
 	}
 
 	/**
+	 * Where each panel's cursor is, as the request asks for it.
+	 *
+	 * A GET READ WITHOUT A NONCE, AND THAT IS RIGHT.
+	 *
+	 * This moves a cursor and writes nothing. A nonce here would make every
+	 * `next` link a one-shot that breaks on the back button, for an argument
+	 * whose worst case is showing the operator a finding they can already
+	 * see. `IdentityQueuePanels` resolves an unknown key to the top of its
+	 * tier, so neither a typo nor a hand-edited URL can name anything else.
+	 *
+	 * @since 6.28.4
+	 * @return array<string, string>
+	 */
+	private static function cursors(): array {
+		$out = array();
+
+		$raw = RequestInput::get_get_raw_array( IdentityQueuePanels::ARG_AT );
+
+		foreach ( IdentityQueuePanels::ORDER as $tier ) {
+			if ( isset( $raw[ $tier ] ) && is_scalar( $raw[ $tier ] ) ) {
+				$out[ $tier ] = sanitize_text_field( (string) $raw[ $tier ] );
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Which tiers were asked to show their whole list rather than one finding.
+	 *
+	 * @since 6.28.4
+	 * @return array<int, string>
+	 */
+	private static function listed(): array {
+		$raw = RequestInput::get_get_string( IdentityQueuePanels::ARG_LIST, '' );
+
+		if ( '' === $raw ) {
+			return array();
+		}
+
+		// An allowlist rather than a filter: only a tier this screen draws can
+		// be listed, so nothing the request names reaches the markup.
+		return array_values( array_intersect( IdentityQueuePanels::ORDER, explode( ',', $raw ) ) );
+	}
+
+	/**
+	 * The orphan query, as a seam a test can stand in for.
+	 *
+	 * @since 6.28.4
+	 * @return IdentityOrphanQuery
+	 */
+	protected function orphans(): IdentityOrphanQuery {
+		return new IdentityOrphanQuery();
+	}
+
+	/**
+	 * The adoption, as a seam a test can stand in for.
+	 *
+	 * @since 6.28.4
+	 * @return IdentityAdoption
+	 */
+	protected function adoptions(): IdentityAdoption {
+		return new IdentityAdoption();
+	}
+
+	/**
+	 * The record-name reader, as a seam a test can stand in for.
+	 *
+	 * @since 6.28.4
+	 * @return IdentityRecordNames
+	 */
+	protected function namer(): IdentityRecordNames {
+		return new IdentityRecordNames();
+	}
+
+	/**
 	 * Render the page.
 	 *
 	 * @return void
@@ -671,8 +1132,83 @@ class IdentityResolutionPage {
 		$ffc_identity_outcome = get_transient( $ffc_identity_key );
 		delete_transient( $ffc_identity_key );
 
-		$ffc_identity_findings = $this->queue();
-		$ffc_identity_coverage = $this->coverage();
+		// `queue()` FIRST: the three readings below are properties of the list
+		// it just resolved, and asking for them before it would answer about
+		// no list at all.
+		$ffc_identity_findings  = $this->queue();
+		$ffc_identity_coverage  = $this->coverage();
+		$ffc_identity_capped    = $this->truncated();
+		$ffc_identity_taken_at  = $this->taken_at();
+		$ffc_identity_resolved  = $this->resolved_since( $ffc_identity_taken_at );
+		$ffc_identity_may_split = Capabilities::current_user_can_admin_or( self::SPLIT_CAPABILITY );
+		$ffc_identity_may_merge = Capabilities::current_user_can_admin_or( self::MERGE_CAPABILITY );
+		$ffc_identity_panels    = IdentityQueuePanels::build(
+			$ffc_identity_findings,
+			self::cursors(),
+			self::listed()
+		);
+
+		// THE CSV IS OFFERED ONLY TO SOMEBODY WHO CAN ACTUALLY HAVE IT.
+		//
+		// The audit export lives on the Migrations tab behind
+		// `ffc_manage_settings_dangerzone`, which is deliberately NOT this
+		// screen's capability -- the queue is read live here precisely so
+		// working it does not depend on holding that one. So the link is
+		// built when the operator holds it and left empty otherwise, for the
+		// reason the merge panel is absent without its capability: an offered
+		// control that answers `wp_die` is worse than no control.
+		//
+		// The handler is on `admin_init`, so the arguments reach it from any
+		// admin screen; `page` and `tab` are where its own error path
+		// redirects, not where it listens.
+		$ffc_identity_export_url = Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' )
+			? wp_nonce_url(
+				add_query_arg(
+					array(
+						'page'                 => 'ffc-settings',
+						'tab'                  => 'migrations',
+						'ffc_submission_audit' => 'export',
+					),
+					admin_url( 'admin.php' )
+				),
+				IdentityAuditExportSource::NONCE
+			)
+			: '';
+
+		// ORPHANS ARE THEIR OWN POPULATION, NOT A TIER OF THE QUEUE.
+		//
+		// The three checks the queue composes all start from an account
+		// holding something wrong; an orphan holds nothing wrong and no
+		// account. It is read here rather than folded into `IdentityQueue`
+		// because the worklist's stable key is tier-plus-subject and an
+		// orphan has no tier — and because a resolution here ADOPTS rows
+		// rather than removing a finding, so the held list has nothing to
+		// drop.
+		$ffc_identity_orphan_query  = $this->orphans();
+		$ffc_identity_orphans       = $ffc_identity_may_split ? $ffc_identity_orphan_query->orphans() : array();
+		$ffc_identity_orphan_capped = $ffc_identity_may_split && $ffc_identity_orphan_query->capped();
+
+		// WHO A FINDING IS ABOUT, READ ON DEMAND AND ONLY FOR WHAT IS DRAWN.
+		//
+		// A closure rather than a precomputed map: the stepper draws ONE
+		// finding per tier unless the operator asked for a list, so resolving
+		// names for the whole queue would read for a hundred findings to show
+		// one. It costs two indexed reads per finding drawn.
+		$ffc_identity_names = function ( $hash, $field = 'rf' ) {
+			return $this->namer()->for_hash( (string) $hash, (string) $field );
+		};
+
+		// WHAT EACH LOGIN OF A PAIR HOLDS, AND WHEN IT WAS LAST USED.
+		//
+		// The evidence behind choosing a survivor, and it is read through the
+		// same `account_facts()` the audit CSV reads -- so the screen and the
+		// export cannot disagree about an account. A closure for the reason
+		// the namer above is one: the stepper draws ONE pair unless the
+		// operator asked for the list, and reading for eleven to show one is
+		// eleven times the statements for nothing.
+		$ffc_identity_facts = function ( array $ids ) {
+			return $this->conflicts()->account_facts( $ids );
+		};
 
 		require __DIR__ . '/views/identity-resolution-page.php';
 	}

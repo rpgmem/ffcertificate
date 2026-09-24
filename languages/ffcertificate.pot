@@ -22046,12 +22046,6 @@ msgid "The scan reached its cap before reading every stored value, so this list 
 msgstr ""
 
 
-msgid "Rows"
-msgstr ""
-
-msgid "Which rows"
-msgstr ""
-
 msgid "No account"
 msgstr ""
 
@@ -22060,9 +22054,6 @@ msgstr ""
 
 
 msgid "Corrected. The rows, the identity index and the account's certificate access were updated together."
-msgstr ""
-
-msgid "Correct it"
 msgstr ""
 
 msgid "Names more than one account — the same wrong number was typed by more than one person, so one corrected value cannot serve it."
@@ -22131,9 +22122,6 @@ msgstr ""
 msgid "Accounts to resolve"
 msgstr ""
 
-msgid "Identifiers"
-msgstr ""
-
 msgid "Needs a decision"
 msgstr ""
 
@@ -22158,18 +22146,6 @@ msgstr ""
 msgid "What is known"
 msgstr ""
 
-msgid "— could not be read, so nothing is known about it"
-msgstr ""
-
-msgid "— fails its check digits"
-msgstr ""
-
-msgid "— not stored anywhere this check can read"
-msgstr ""
-
-msgid "— well formed"
-msgstr ""
-
 msgid "Consolidate"
 msgstr ""
 
@@ -22180,9 +22156,6 @@ msgid "No sound identifier was named to consolidate into."
 msgstr ""
 
 msgid "Open the account — this one is not decided here."
-msgstr ""
-
-msgid "Resolve it"
 msgstr ""
 
 msgid "That is not an identifier this can rewrite."
@@ -22203,7 +22176,7 @@ msgstr ""
 msgid "Account to move the records carrying %s to"
 msgstr ""
 
-msgid "Move %s"
+msgid "Move"
 msgstr ""
 
 msgid "Moved. The records, the identity index and the receiving account's certificate access were updated together."
@@ -22342,3 +22315,407 @@ msgid "%s pair merged."
 msgid_plural "%s pairs merged."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Read the queue again"
+msgstr ""
+
+msgid "The queue was read again."
+msgstr ""
+
+msgid "This queue lists at most %1$s findings per check, and %2$s returned a full page — so more exist than are listed. The counts below are of what was read, not of what there is."
+msgstr ""
+
+msgid "%1$s of %2$s"
+msgstr ""
+
+msgid "One at a time"
+msgstr ""
+
+msgid "See the list"
+msgstr ""
+
+msgid "%s finding"
+msgid_plural "%s findings"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Open an account from the identity queue"
+msgstr ""
+
+msgid "Merge two identity accounts"
+msgstr ""
+
+msgid "Give records carrying one identifier an account of their own. Creates a WordPress user, so it is granted apart from the queue itself."
+msgstr ""
+
+msgid "Consolidate two logins that are one person. The only action on this screen that no other undoes: afterwards nothing can say which record came from which login."
+msgstr ""
+
+msgid "Work the identity queue: correct a stored CPF/RF, and move records to the account they belong to. Does not reveal a stored identifier — that stays with the PII capability. Opening an account and merging two are separate capabilities."
+msgstr ""
+
+msgid "%s accounts found"
+msgstr ""
+
+msgid "A destination account is chosen, so splitting onto a new one is not available. Clear the destination to split instead."
+msgstr ""
+
+msgid "Agrees by %1$s — gains the %2$s"
+msgstr ""
+
+msgid "Agrees by %s"
+msgstr ""
+
+msgid "Already holds these records"
+msgstr ""
+
+msgid "Choose the destination account"
+msgstr ""
+
+msgid "Destination: %1$s (#%2$s)"
+msgstr ""
+
+msgid "Holds a different value — refused"
+msgstr ""
+
+msgid "More accounts match than are shown. Narrow the search."
+msgstr ""
+
+msgid "Move to #%s"
+msgstr ""
+
+msgid "Moves the %1$s records carrying %2$s · %3$s"
+msgstr ""
+
+msgid "No account files any identifier these records carry, so there is nothing to suggest. Search below."
+msgstr ""
+
+msgid "No account matches that."
+msgstr ""
+
+msgid "Or search by name, e-mail or account number"
+msgstr ""
+
+msgid "Refused"
+msgstr ""
+
+msgid "Searching…"
+msgstr ""
+
+msgid "Search…"
+msgstr ""
+
+msgid "Select this account"
+msgstr ""
+
+msgid "Selecting only chooses the destination. Writing asks for a confirmation afterwards."
+msgstr ""
+
+msgid "Shares no identifier — refused"
+msgstr ""
+
+msgid "Suggestion — an account already files one of these identifiers"
+msgstr ""
+
+msgid "The badge on the right says whether the move would be accepted, before you confirm."
+msgstr ""
+
+msgid "The search could not be completed."
+msgstr ""
+
+msgid "The two already agree, so the move is allowed."
+msgstr ""
+
+msgid "This is the rule the service applies when writing: the two sides must already agree on one identifier, and where the destination holds none of that kind, it gains this one. A second identifier that disagrees refuses the whole move. Here the rule is read before the refusal rather than after it."
+msgstr ""
+
+msgid "You do not have permission to resolve identities."
+msgstr ""
+
+msgid "Correct theirs"
+msgstr ""
+
+msgid "Enter the number HR confirmed first."
+msgstr ""
+
+msgid "If the two names do not look like the same person, one of these logins has the wrong number rather than a duplicate account. Correcting it on that login alone dissolves the finding and leaves both accounts standing. Confirm the number with HR first — the check digit says a number is wrong, never what the right one is."
+msgstr ""
+
+msgid "No name recorded beside these rows."
+msgstr ""
+
+msgid "No store that records a name is installed, so this was not looked up."
+msgstr ""
+
+msgid "Open that account"
+msgstr ""
+
+msgid "Or correct the document on one of them"
+msgstr ""
+
+msgid "That account holds no record carrying this identifier, so there is nothing of theirs to correct. Reload the queue."
+msgstr ""
+
+msgid "That number belongs to %1$s (#%2$s). If that is the same person, this is a merge rather than a correction — open the account to check who they are."
+msgstr ""
+
+msgid "The check could not be completed."
+msgstr ""
+
+msgid "The confirmed number"
+msgstr ""
+
+msgid "This correction rewrites %s records and consolidates them with this account's other record."
+msgstr ""
+
+msgid "This correction rewrites %s records."
+msgstr ""
+
+msgid "and more"
+msgstr ""
+
+msgid "%1$s holds %2$s records today."
+msgstr ""
+
+msgid "%1$s in %2$s"
+msgstr ""
+
+msgid "%1$s keeps the records. %2$s is emptied."
+msgstr ""
+
+msgid "%s records move."
+msgstr ""
+
+msgid "Choose which login keeps the records first."
+msgstr ""
+
+msgid "I confirm these are one person, and that this cannot be undone."
+msgstr ""
+
+msgid "Merged. The records, the identity index and the surviving login's certificate access moved together. The emptied login was left in place — removing it is yours to do in Users."
+msgstr ""
+
+msgid "Nothing was merged: the confirmation was not ticked. A merge cannot be undone, so it is never taken from the form alone."
+msgstr ""
+
+msgid "Nothing was merged: the login named to keep is not one of this pair's two."
+msgstr ""
+
+msgid "One identifier is stored against two logins, so one of them is not that person's. Merge only when you know they are one person, and choose which login keeps the records. A merge is the one action no other can undo: afterwards nothing can tell which records came from where."
+msgstr ""
+
+msgid "Show what would move"
+msgstr ""
+
+msgid "The preview could not be completed."
+msgstr ""
+
+msgid "The records, the identity index and the surviving login's certificate access move together, as one transaction. The emptied login is left in place — removing it is yours to do in Users, because deleting an account runs cleanup this tool does not own and cannot undo."
+msgstr ""
+
+msgid "The surviving login also gains the %s it did not hold."
+msgstr ""
+
+msgid "You do not have permission to merge identities."
+msgstr ""
+
+msgid "%1$s — %2$s"
+msgstr ""
+
+msgid "A destination account is chosen, so opening a new one is not available. Clear the destination to open one instead."
+msgstr ""
+
+msgid "A record erased at the subject's request cannot appear here: the eraser clears the identifier hashes along with the ciphertexts, so nothing is left to match on. Adopting an orphan can never restore a link somebody asked to have removed."
+msgstr ""
+
+msgid "Account to link these records to"
+msgstr ""
+
+msgid "E-mail address"
+msgstr ""
+
+msgid "More orphaned records were found than are shown. Resolve these and read the queue again."
+msgstr ""
+
+msgid "Open the account"
+msgstr ""
+
+msgid "Records carrying an identifier that belongs to no login at all."
+msgstr ""
+
+msgid "These are usually candidacies that were never promoted, or records whose account was deleted. Linking one to an existing account uses the same rule as a move: the two must already agree on an identifier. Opening an account needs CPF, RF and an e-mail address together — an account opened from one identifier is one the resolver will fail to match on the next record carrying another."
+msgstr ""
+
+msgid "missing"
+msgstr ""
+
+msgid "recorded"
+msgstr ""
+
+msgid "Adopted. The records carrying those identifiers were linked to the account, which was opened if none already answered to them, and its certificate access was granted in the same act."
+msgstr ""
+
+msgid "Encryption is not configured, so an identifier cannot be matched or stored."
+msgstr ""
+
+msgid "No account was opened and none was matched, so nothing was adopted."
+msgstr ""
+
+msgid "Opening an account needs all three: CPF, RF and an e-mail address. An account opened from one identifier is one the resolver will fail to match on the next record carrying another."
+msgstr ""
+
+msgid "That CPF does not satisfy its own check digits. Confirm it before opening an account on it."
+msgstr ""
+
+msgid "That RF does not satisfy its own check digit. Confirm it with HR before opening an account on it."
+msgstr ""
+
+msgid "That is not an address this can use. Unlike the two numbers, an address can only be checked for shape — confirm it is the person's."
+msgstr ""
+
+msgid "No account could be opened: nothing on this install is wired to open one."
+msgstr ""
+
+msgid "Which account already answers to a set of identifiers — args ( 0, cpf_hash, rf_hash, email ), returns a user id or 0. Read-only: it resolves and never creates, which is what makes it safe to ask BEFORE the filter below. Orphan adoption asks it so the screen can say whether a login was opened or merely matched."
+msgstr ""
+
+msgid "The account for a set of identifiers: the one that answers to them, or a new one, with every unlinked record carrying them adopted into it — args ( null, cpf_hash, rf_hash, email ), returns a user id or WP_Error. Unlike ffc_create_identity_account it DOES resolve first: an orphan has no account to be taken off, so resolving is the point rather than the thing to avoid."
+msgstr ""
+
+msgid "Orphaned Records Given an Account"
+msgstr ""
+
+msgid "This scan read nothing"
+msgstr ""
+
+msgid "The scan read part of the data"
+msgstr ""
+
+msgid "The scan read the data"
+msgstr ""
+
+msgid "the scan reached its cap"
+msgstr ""
+
+msgid "a check returned a full page"
+msgstr ""
+
+msgid "Read at %s and held still while you work it"
+msgstr ""
+
+msgid "A category holding nothing does not appear — not here, and not below."
+msgstr ""
+
+msgid "%s finding left:"
+msgid_plural "%s findings left:"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s · fails its check digit"
+msgstr ""
+
+msgid "%s · well formed"
+msgstr ""
+
+msgid "%s · could not be read"
+msgstr ""
+
+msgid "%s · not stored where this can read"
+msgstr ""
+
+msgid "Appears in %s"
+msgstr ""
+
+msgid "This account holds two %s. One fails its own check digit and the other is sound, so the right one is the one the account already has."
+msgstr ""
+
+msgid "This account holds %1$s %2$s, and the check digits do not single one out — none fails, or more than one does. The right value comes from HR."
+msgstr ""
+
+msgid "Appears in %1$s · %2$s records"
+msgstr ""
+
+msgid "These records carry an identifier that belongs to no login — but an account already files it, so this one is a link to make rather than an account to open."
+msgstr ""
+
+msgid "These records carry an identifier that belongs to no login, and no account files it either — so this one needs an account opened rather than a link made."
+msgstr ""
+
+msgid "%s resolved since this queue was read"
+msgid_plural "%s resolved since this queue was read"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Move it to the account it belongs to, or split it onto an account of its own."
+msgstr ""
+
+msgid "submissions"
+msgstr ""
+
+msgid "appointments"
+msgstr ""
+
+msgid "candidacies"
+msgstr ""
+
+msgid "the identity index"
+msgstr ""
+
+msgid "%s distinct value checked"
+msgid_plural "%s distinct values checked"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s could not be read"
+msgid_plural "%s could not be read"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s store scanned"
+msgid_plural "%s stores scanned"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "One address, several people"
+msgstr ""
+
+msgid "The numbers on this account share one address and are not variants of each other, so the address does not identify one person — a shared mailbox, or an account submitting on behalf of others. No verb is offered here: read the account and decide with HR."
+msgstr ""
+
+msgid "This account holds %1$s %2$s under one address, and they are not variants of each other. One address on that many numbers does not identify one person, so this is a shared mailbox or an account submitting for other people — which of the two, only the account itself says."
+msgstr ""
+
+msgid "Nothing is offered here on purpose: correcting would rewrite a number that may be somebody else's, and splitting would detach records from an account that may legitimately hold them. Open the account, read what it submitted, and decide with HR."
+msgstr ""
+
+msgid "The newer login is usually the accidental one — it exists because the resolver failed to match. What each holds and when it was last used is below; the choice is yours."
+msgstr ""
+
+msgid "Holds %s"
+msgstr ""
+
+msgid "No records in any store this install can read"
+msgstr ""
+
+msgid "Last used %s"
+msgstr ""
+
+msgid "No activity date recorded"
+msgstr ""
+
+msgid "%s account holds two different numbers for one field"
+msgid_plural "%s accounts hold two different numbers for one field"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "This migration leaves those empty on purpose: choosing one of the two would destroy the evidence that they disagree. Running it again moves this number by zero — the decision is a person's."
+msgstr ""
+
+msgid "Resolve on Identity Resolution"
+msgstr ""
+
+msgid "Resolving them needs the identity capability, which this account does not hold."
+msgstr ""
+
+msgid "Everything this migration may decide on its own is done. What is listed above is not."
+msgstr ""

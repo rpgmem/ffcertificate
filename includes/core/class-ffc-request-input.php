@@ -24,12 +24,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 class RequestInput {
 
 	/**
-	 * Read + sanitize a `$_POST` array value.
+	 * Read + sanitize a FLAT `$_POST` array value.
 	 *
 	 * Returns `$default` when the key is absent or the underlying value
 	 * is not an array. Caller is responsible for nonce verification BEFORE
 	 * calling this helper. Keys (string or int) are preserved by
 	 * `array_map`'s single-callback behavior.
+	 *
+	 * ONE LEVEL ONLY: A NESTED ELEMENT COMES BACK AS `''`.
+	 *
+	 * `sanitize_text_field()` returns an empty string for an array — core's
+	 * `_sanitize_text_fields()` opens with that check — so a payload of
+	 * GROUPS (`thing[0][id]`, `thing[1][id]`) arrives here as a list of empty
+	 * strings, with nothing anywhere reporting it. The caller's own
+	 * `is_array()` guard then discards every group, which reads exactly like
+	 * a form nobody filled in. That is not hypothetical: the identity
+	 * screen's merge lost every confirmed pair this way and told the operator
+	 * they had confirmed none (#1386).
+	 *
+	 * Use {@see self::get_post_raw_array()} for a grouped or repeatable
+	 * payload, and sanitise each field where it is read.
 	 *
 	 * @since 6.6.1
 	 * @param string                  $key     `$_POST` key.
@@ -104,6 +118,38 @@ class RequestInput {
 			return $default;
 		}
 		return sanitize_text_field( $raw );
+	}
+
+	/**
+	 * Read a `$_GET` array container WITHOUT sanitising its elements.
+	 *
+	 * The `$_GET` sibling of {@see self::get_post_raw_array()}, and for its
+	 * reason: a grouped argument (`thing[a]=1&thing[b]=2`) put through a
+	 * whole-container sanitiser comes back as a list of empty strings, because
+	 * `sanitize_text_field()` returns `''` for an array. There was no GET-side
+	 * accessor at all, so a caller reading that shape had to write the unslash
+	 * and the phpcs annotations itself -- which is how it gets read wrong
+	 * (#1386 did, on the POST side).
+	 *
+	 * **The caller MUST sanitise every value it reads out**, with the function
+	 * that fits that field, and must verify a nonce first when the read
+	 * decides a write. A read that only chooses what to display does not need
+	 * one; that judgement stays with the caller.
+	 *
+	 * @since 6.28.4
+	 * @param string $key `$_GET` key.
+	 * @return array<array-key, mixed> Unslashed, UNSANITISED values; empty
+	 *                                 when the key is absent or not an array.
+	 */
+	public static function get_get_raw_array( string $key ): array {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Caller responsibility.
+		if ( ! isset( $_GET[ $key ] ) ) {
+			return array();
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller responsibility, and deliberately unsanitised: see the docblock. Every consumer sanitises per field.
+		$raw = wp_unslash( $_GET[ $key ] );
+
+		return is_array( $raw ) ? $raw : array();
 	}
 
 	/**

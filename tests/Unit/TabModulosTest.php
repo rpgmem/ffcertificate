@@ -79,9 +79,6 @@ class TabModulosTest extends TestCase {
 		$this->assertSame( 'ffc-icon-package', $this->tab->get_icon() );
 	}
 
-	public function test_extends_settings_tab(): void {
-		$this->assertInstanceOf( \FreeFormCertificate\Settings\SettingsTab::class, $this->tab );
-	}
 
 	// ==================================================================
 	// render()

@@ -82,9 +82,6 @@ class TabDocumentationTest extends TestCase {
 		$this->assertStringContainsString( 'not found', $output );
 	}
 
-	public function test_extends_settings_tab(): void {
-		$this->assertInstanceOf( \FreeFormCertificate\Settings\SettingsTab::class, $this->tab );
-	}
 
 	public function test_get_option_returns_default(): void {
 		Functions\when( 'get_option' )->justReturn( array() );

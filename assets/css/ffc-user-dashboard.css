@@ -188,9 +188,9 @@
     box-shadow: var(--ffc-shadow-sm);
 }
 
-/* 28px literal: número-herói do card de resumo, deliberadamente acima da
-   escala de texto. Um degrau usado uma vez não é escala. A variante
-   .ffc-summary-date, que é texto, lê o token `lg`. */
+/* 28px literal: the summary card's hero number, deliberately above the text
+   scale. A rung used once is not a scale. The .ffc-summary-date variant, which
+   is text, reads the `lg` token. */
 .ffc-summary-number {
     font-size: 28px;
     font-weight: 700;
@@ -427,18 +427,17 @@
 }
 
 /* ==========================================================================
-   ACTION BUTTONS (Ver PDF, Ver Comprovante)
+   ACTION BUTTONS (View PDF, View Receipt)
    ========================================================================== */
 
-/* `vertical-align: middle` nos três controles da célula de ações e no
-   invólucro do exportador (#1215). Sem ele cada caixa entra na linha pela sua
-   PRÓPRIA linha de base, e as três derivam a linha de base de formas
-   diferentes: um `inline-flex` a herda do primeiro item flex -- que aqui é o
-   `::before` do ícone, uma caixa de 14px sem texto --, enquanto um
-   `inline-block` a tira da última linha de texto que contém. Medido: na aba de
-   agendamentos os três tinham a MESMA altura (26,8px) e topos em 100,00 /
-   103,39 / 103,55, o que engordava a linha da tabela em 3,54px. A altura nunca
-   foi o problema; a linha de base era. */
+/* `vertical-align: middle` on the action cell's three controls and on the
+   exporter's wrapper (#1215). Without it each box sits on the line by its OWN
+   baseline, and the three derive that baseline differently: an `inline-flex`
+   inherits it from its first flex item -- which here is the icon's `::before`,
+   a 14px box with no text -- while an `inline-block` takes it from the last
+   line of text it contains. Measured: on the appointments tab all three had the
+   SAME height (26,8px) and tops at 100,00 / 103,39 / 103,55, which fattened the
+   table row by 3,54px. The height was never the problem; the baseline was. */
 .ffc-btn-pdf,
 .ffc-btn-receipt,
 .ffc-btn-edit {
@@ -598,13 +597,13 @@
     color: var(--ffc-text-on-danger);
 }
 
-/* Sem `opacity` nestas quatro regras, de propósito (#1126).
-   Opacidade sobre uma linha desbota o TEXTO junto com o fundo, então ela
-   multiplica para baixo qualquer contraste que os tokens tenham garantido — e
-   o medidor de pares não enxerga isso, porque os tokens continuam certos.
-   Medido: a 0,75 a linha passada dava 3,11:1 no tema claro e a palavra
-   "Cancelado" dava 3,99:1, ambos abaixo do mínimo. O estado passa a ser dito
-   pela cor do texto, que é medível, em vez de por desbotamento. */
+/* No `opacity` in these four rules, on purpose (#1126).
+   Opacity on a row fades the TEXT along with the background, so it multiplies
+   down whatever contrast the tokens guaranteed — and the pair meter cannot see
+   it, because the tokens stay correct. Measured: at 0,75 a past row gave 3,11:1
+   in the light theme and the word "Cancelled" gave 3,99:1, both below the
+   floor. The state is now said by the text colour, which is measurable, rather
+   than by fading. */
 .ffc-appointments-table.ffc-table-past td { color: var(--ffc-text-muted); }
 .ffc-appointments-table .ffc-row-past { background: var(--ffc-bg-alt); }
 .ffc-appointments-table .ffc-row-cancelled { background: var(--ffc-danger-bg); }
@@ -639,13 +638,13 @@
 .ffc-audience-bookings-table th:nth-child(6),
 .ffc-audience-bookings-table td:nth-child(6) { width: 20%; }
 
-/* Sem `opacity` nestas quatro regras, de propósito (#1126).
-   Opacidade sobre uma linha desbota o TEXTO junto com o fundo, então ela
-   multiplica para baixo qualquer contraste que os tokens tenham garantido — e
-   o medidor de pares não enxerga isso, porque os tokens continuam certos.
-   Medido: a 0,75 a linha passada dava 3,11:1 no tema claro e a palavra
-   "Cancelado" dava 3,99:1, ambos abaixo do mínimo. O estado passa a ser dito
-   pela cor do texto, que é medível, em vez de por desbotamento. */
+/* No `opacity` in these four rules, on purpose (#1126).
+   Opacity on a row fades the TEXT along with the background, so it multiplies
+   down whatever contrast the tokens guaranteed — and the pair meter cannot see
+   it, because the tokens stay correct. Measured: at 0,75 a past row gave 3,11:1
+   in the light theme and the word "Cancelled" gave 3,99:1, both below the
+   floor. The state is now said by the text colour, which is measurable, rather
+   than by fading. */
 .ffc-audience-bookings-table.ffc-table-past td { color: var(--ffc-text-muted); }
 .ffc-audience-bookings-table .ffc-row-past { background: var(--ffc-bg-alt); }
 .ffc-audience-bookings-table .ffc-row-cancelled { background: var(--ffc-danger-bg); }
@@ -664,13 +663,13 @@
    REREGISTRATIONS TABLE
    ========================================================================== */
 
-/* A linha passada NÃO usa `opacity` -- ver #1126 e as duas tabelas irmãs acima.
-   Opacidade sobre uma linha desbota o TEXTO junto com o fundo, então ela
-   multiplica para baixo qualquer contraste que os tokens tenham garantido — e
-   o medidor de pares não enxerga isso, porque os tokens continuam certos.
-   Medido: a 0,75 a linha passada dava 3,11:1 no tema claro e 4,23:1 no escuro,
-   ambos abaixo do mínimo de 4,5:1; sem ela, 5,15:1 e 6,37:1. O estado passa a
-   ser dito pela cor do texto, que é medível, em vez de por desbotamento. */
+/* The past row does NOT use `opacity` -- see #1126 and the two sibling
+   tables above. Opacity over a row fades the TEXT along with the ground, so
+   it multiplies down whatever contrast the tokens guaranteed — and the pair
+   meter cannot see it, because the tokens stay correct. Measured: at 0.75 the
+   past row gave 3.11:1 in the light theme and 4.23:1 in the dark, both below
+   the 4.5:1 floor; without it, 5.15:1 and 6.37:1. The state is now said with
+   the text colour, which is measurable, rather than with fading. */
 .ffc-reregistrations-table.ffc-table-past td { color: var(--ffc-text-muted); }
 .ffc-reregistrations-table .ffc-row-past { background: var(--ffc-bg-alt); }
 
@@ -1122,8 +1121,8 @@
     border-radius: var(--ffc-radius-full);
     display: inline-block;
     flex-shrink: 0;
-    /* Contorno sobre a cor arbitrária da audiência: precisa ser neutro
-       contra qualquer matiz, então não é papel da paleta (#1126). */
+    /* An outline over the audience's arbitrary colour: it has to stay neutral
+       against any hue, so it is not a palette role (#1126). */
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
@@ -1402,12 +1401,12 @@
     overflow: visible;
 }
 
-/* O alinhamento pertence ao INVÓLUCRO, não ao botão de dentro. É o invólucro
-   que participa da linha da célula; o botão só participa da linha interna. E o
-   `vertical-align: middle` que estava no botão não era inerte -- era a causa:
-   deslocava o botão dentro do invólucro, o que movia a linha de base do
-   próprio invólucro. Medido: removê-lo sozinho já subia o invólucro de 103,55
-   para 100,00 (#1215). */
+/* The alignment belongs to the WRAPPER, not to the button inside it. The
+   wrapper is what takes part in the cell's line; the button only takes part
+   in the inner line. And the `vertical-align: middle` that sat on the button
+   was not inert -- it was the cause: it displaced the button inside the
+   wrapper, which moved the wrapper's own baseline. Measured: removing it
+   alone already lifted the wrapper from 103.55 to 100.00 (#1215). */
 .ffc-cal-export-wrap {
     position: relative;
     display: inline-block;
@@ -1603,10 +1602,10 @@
         font-size: var(--ffc-font-size-xs);
     }
 
-    /* 10px literal: já dentro do @media de celular, esta é a quinta coluna
-       apertada da tabela — um degrau ABAIXO do `xs` que as outras células
-       acabaram de receber duas regras acima. Mapear para `2xs` (11px) não é
-       "o mais próximo": apagaria a distinção que a regra existe para fazer. */
+    /* 10px literal: already inside the phone @media, this is the table's
+       cramped fifth column — one step BELOW the `xs` the other cells were
+       just given two rules above. Mapping it to `2xs` (11px) is not "the
+       nearest": it would erase the distinction the rule exists to make. */
     .ffc-certificates-table td:nth-child(5) {
         font-size: 10px;
     }
@@ -1689,14 +1688,14 @@
 }
 
 /* ==========================================================================
-   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
-   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
-   O mecanismo está explicado em ffc-common.css (#1165).
+   ACCESSIBILITY — HIGH CONTRAST (forced-colors)
+   Gives a border back to whatever had only a background. No effect outside
+   forced-colors mode. The mechanism is explained in ffc-common.css (#1165).
    ========================================================================== */
 
 @media (forced-colors: active) {
-    /* Selos de estado: o texto continua dizendo o estado; a borda
-       devolve a eles a forma de selo. */
+    /* Status badges: the text still says the state; the border
+       gives them their badge shape back. */
     .ffc-dashboard-status.ffc-dashboard-status-approved,
     .ffc-dashboard-status.ffc-dashboard-status-cancelled,
     .ffc-dashboard-status.ffc-dashboard-status-completed,
@@ -1712,10 +1711,11 @@
 }
 
 /* ==========================================================================
-   SET PASSWORD (convite, #1212)
-   Tela que o painel mostra no lugar do "faça login" quando a requisição
-   carrega o link do convite. Mora nesta folha porque mora nesta página: o
-   shortcode do painel é quem a renderiza, então não há enfileiramento novo.
+   SET PASSWORD (invitation, #1212)
+   The screen the dashboard shows in place of "please log in" when the request
+   carries the invitation link. It lives in this sheet because it lives on this
+   page: the dashboard's shortcode is what renders it, so there is no new
+   enqueue.
    ========================================================================== */
 
 .ffc-set-password-card {
@@ -1751,9 +1751,9 @@
     color: var(--ffc-text);
 }
 
-/* Um controle que ganha fundo tem de ganhar texto: `input` não herda `color`,
-   ele pega `fieldtext` do agente de usuário, e no tema escuro isso rende
-   preto sobre escuro (#1126, defeito 4). */
+/* A control given a ground must be given text: `input` does not inherit
+   `color`, it takes `fieldtext` from the user agent, and in the dark theme
+   that renders black on dark (#1126, defect 4). */
 .ffc-set-password-field input[type="password"] {
     width: 100%;
     box-sizing: border-box;

@@ -112,6 +112,7 @@ class ActivityLog {
 			'identity_records_relinked'          => 'data_access',
 			'identity_records_split'             => 'data_access',
 			'identity_accounts_merged'           => 'data_access',
+			'identity_orphans_adopted'           => 'data_access',
 			'migration_foreign_keys'             => 'migrations',
 			'activity_log_clear_plaintext_batch' => 'migrations',
 			'cpf_rf_split_unknown_length'        => 'migrations',

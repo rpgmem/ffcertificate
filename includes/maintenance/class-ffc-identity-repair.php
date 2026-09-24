@@ -98,23 +98,30 @@ class IdentityRepair {
 	public const LOG_PREFIX = 12;
 
 	/**
-	 * Repair one stored RF.
+	 * Everything a repair decides, without writing anything (#1397 sprint 4).
 	 *
-	 * RE-EVALUATED, NEVER TRUSTED FROM THE LIST
+	 * SPLIT OUT FOR THE REASON `IdentityRelink::moving()` WAS.
 	 *
-	 * The only thing this takes from the caller is the subject hash and the
-	 * value HR confirmed -- never the row ids the screen displayed. Between
-	 * listing a finding and confirming it the operator went and asked a
-	 * person, and rows may have arrived or left in the meantime. So the rows
-	 * are resolved here, at write time, from the hash.
+	 * The screen has to tell an operator what the correction would do BEFORE
+	 * they commit it -- above all that the value they confirmed already
+	 * belongs to somebody else, which is a different finding rather than a
+	 * failed correction. Answering that from a second copy of these checks is
+	 * how a preflight and a write come to disagree about who owns a number, so
+	 * there is one path: `repair()` is this plus the write, and the preflight
+	 * calls this.
 	 *
+	 * It reads and hashes; it writes nothing. The hash of the confirmed value
+	 * is what the caller does not have and must not be told, so `collision`
+	 * carries the ACCOUNT that holds it and never the hash itself.
+	 *
+	 * @since 6.28.4
 	 * @param string $subject_hash The stored hash to replace.
-	 * @param string $new_rf       The value HR confirmed.
-	 * @param int    $actor        Who confirmed it, for the log.
+	 * @param string $confirmed    The value HR confirmed.
 	 * @param string $field        `rf` or `cpf`; defaults to {@see self::FIELD}.
-	 * @return array{hash: string, rows: array<string, int>, account: int}|WP_Error
+	 * @param int    $only_account Restrict to one account's rows; 0 means every row carrying the hash.
+	 * @return array{subject: string, found: array{rows: array<string, array<int, int>>, accounts: array<int, int>}, account: int, consolidates: bool, pair: array<string, string|null>, collision: int}|WP_Error
 	 */
-	public function repair( string $subject_hash, string $new_rf, int $actor = 0, string $field = self::FIELD ): array|WP_Error {
+	public function plan( string $subject_hash, string $confirmed, string $field = self::FIELD, int $only_account = 0 ): array|WP_Error {
 		global $wpdb;
 
 		if ( ! in_array( $field, self::FIELDS, true ) ) {
@@ -135,7 +142,7 @@ class IdentityRepair {
 			);
 		}
 
-		$normalized = SensitiveFieldRegistry::normalize( $field, $new_rf );
+		$normalized = SensitiveFieldRegistry::normalize( $field, $confirmed );
 
 		if ( ! self::well_formed( $field, $normalized ) ) {
 			return new WP_Error(
@@ -160,12 +167,25 @@ class IdentityRepair {
 			);
 		}
 
-		$found = $this->rows_for( $subject_hash, $hash_column );
+		$found = $this->rows_for( $subject_hash, $hash_column, $only_account );
 
 		// Idempotent by construction: a finding repaired by somebody else
 		// between the list and the confirmation resolves to nothing, and that
 		// is a result rather than a failure.
 		if ( array() === $found['rows'] ) {
+			// A SCOPED REPAIR THAT MATCHES NOTHING IS NOT "ALREADY REPAIRED".
+			//
+			// Correcting the document on ONE of two logins sharing a number
+			// finds nothing when that login's rows have moved or were never
+			// its own, and telling the operator it was already fixed would
+			// send them away from a finding that is still there.
+			if ( $only_account > 0 ) {
+				return new WP_Error(
+					'ffc_identity_repair_not_theirs',
+					__( 'That account holds no record carrying this identifier, so there is nothing of theirs to correct. Reload the queue.', 'ffcertificate' )
+				);
+			}
+
 			return new WP_Error(
 				'ffc_identity_repair_gone',
 				__( 'Nothing carries that value any more — it was repaired already. Reload the queue.', 'ffcertificate' )
@@ -211,9 +231,18 @@ class IdentityRepair {
 			$consolidates = $account > 0 && array( $account ) === $collides['accounts'];
 
 			if ( ! $consolidates ) {
+				// THE ACCOUNT TRAVELS WITH THE REFUSAL, AND THE HASH DOES NOT.
+				//
+				// A screen that only receives the sentence can say the value
+				// belongs to somebody, never to WHOM -- so the operator's next
+				// step is a search they should not have to run, for an answer
+				// this method already holds. `data` carries the account id, an
+				// ordinary admin-visible number; the hash of the confirmed
+				// value stays here (#1397 sprint 4).
 				return new WP_Error(
 					'ffc_identity_repair_collision',
-					__( 'That value is already stored against another account, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision.', 'ffcertificate' )
+					__( 'That value is already stored against another account, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision.', 'ffcertificate' ),
+					array( 'account' => $collides['accounts'][0] ?? 0 )
 				);
 			}
 
@@ -252,12 +281,76 @@ class IdentityRepair {
 			);
 		}
 
+		return array(
+			'subject'      => $subject_hash,
+			'found'        => $found,
+			'account'      => $account,
+			'consolidates' => $consolidates,
+			'pair'         => $pair,
+			// Who holds the confirmed value, when anybody does. Zero when the
+			// colliding rows name no account at all -- an unpromoted
+			// candidacy -- which is why the refusal above cannot be rebuilt
+			// from this number and is returned by this method instead.
+			'collision'    => $collides['accounts'][0] ?? 0,
+		);
+	}
+
+	/**
+	 * Repair one stored RF.
+	 *
+	 * RE-EVALUATED, NEVER TRUSTED FROM THE LIST
+	 *
+	 * The only thing this takes from the caller is the subject hash and the
+	 * value HR confirmed -- never the row ids the screen displayed. Between
+	 * listing a finding and confirming it the operator went and asked a
+	 * person, and rows may have arrived or left in the meantime. So the rows
+	 * are resolved here, at write time, from the hash.
+	 *
+	 * @param string $subject_hash The stored hash to replace.
+	 * @param string $new_rf       The value HR confirmed.
+	 * @param int    $actor        Who confirmed it, for the log.
+	 * @param string $field        `rf` or `cpf`; defaults to {@see self::FIELD}.
+	 * @param int    $only_account Restrict to one account's rows; 0 means every row carrying the hash.
+	 * @return array{hash: string, rows: array<string, int>, account: int}|WP_Error
+	 */
+	public function repair( string $subject_hash, string $new_rf, int $actor = 0, string $field = self::FIELD, int $only_account = 0 ): array|WP_Error {
+		global $wpdb;
+
+		$plan = $this->plan( $subject_hash, $new_rf, $field, $only_account );
+
+		if ( is_wp_error( $plan ) ) {
+			return $plan;
+		}
+
+		$hash_column   = $field . '_hash';
+		$cipher_column = $field . '_encrypted';
+		$subject_hash  = $plan['subject'];
+		$found         = $plan['found'];
+		$account       = $plan['account'];
+		$consolidates  = $plan['consolidates'];
+		$pair          = $plan['pair'];
+
 		$written = array();
 
 		// The index and the rows must not be able to disagree, and this writes
 		// to as many as four tables. Rolled back as one on any failure --
 		// which assumes InnoDB, as every ffc_* table is.
 		$wpdb->query( 'START TRANSACTION' );
+
+		// THE SCOPE HAS TO BE IN THE `WHERE`, NOT ONLY IN THE PLAN.
+		//
+		// A scoped repair corrects the document on ONE of two logins sharing
+		// a number. `plan()` lists that login's rows, but the update matches
+		// on the hash -- so without the account here it would rewrite the
+		// other login's rows too, which is the defect this scope exists to
+		// prevent, applied with the operator's blessing.
+		$where        = array( $hash_column => $subject_hash );
+		$where_format = array( '%s' );
+
+		if ( $only_account > 0 ) {
+			$where['user_id'] = $only_account;
+			$where_format[]   = '%d';
+		}
 
 		foreach ( $found['rows'] as $table => $ids ) {
 			$done = $wpdb->update(
@@ -266,9 +359,9 @@ class IdentityRepair {
 					$cipher_column => (string) $pair[ $cipher_column ],
 					$hash_column   => (string) $pair[ $hash_column ],
 				),
-				array( $hash_column => $subject_hash ),
+				$where,
 				array( '%s', '%s' ),
-				array( '%s' )
+				$where_format
 			);
 
 			if ( false === $done ) {
@@ -457,11 +550,12 @@ class IdentityRepair {
 	/**
 	 * Which rows carry a hash, and which accounts they name.
 	 *
-	 * @param string $hash   The hash to look for.
-	 * @param string $column The column holding it.
+	 * @param string $hash         The hash to look for.
+	 * @param string $column       The column holding it.
+	 * @param int    $only_account Restrict to one account's rows; 0 means all of them.
 	 * @return array{rows: array<string, list<int>>, accounts: list<int>}
 	 */
-	private function rows_for( string $hash, string $column = 'rf_hash' ): array {
+	private function rows_for( string $hash, string $column = 'rf_hash', int $only_account = 0 ): array {
 		global $wpdb;
 
 		$rows     = array();
@@ -474,10 +568,27 @@ class IdentityRepair {
 				continue;
 			}
 
-			$found = $wpdb->get_results(
-				$wpdb->prepare( 'SELECT id, user_id FROM %i WHERE %i = %s', $table, $column, $hash ),
-				ARRAY_A
-			);
+			// The scope is in the STATEMENT and not in a filter afterwards,
+			// because what this returns decides what the write's `WHERE`
+			// matches: a scope applied only in PHP would list one account's
+			// rows and rewrite both.
+			if ( $only_account > 0 ) {
+				$found = $wpdb->get_results(
+					$wpdb->prepare(
+						'SELECT id, user_id FROM %i WHERE %i = %s AND user_id = %d',
+						$table,
+						$column,
+						$hash,
+						$only_account
+					),
+					ARRAY_A
+				);
+			} else {
+				$found = $wpdb->get_results(
+					$wpdb->prepare( 'SELECT id, user_id FROM %i WHERE %i = %s', $table, $column, $hash ),
+					ARRAY_A
+				);
+			}
 
 			$ids = array();
 
@@ -533,12 +644,23 @@ class IdentityRepair {
 	 * that decides what the form accepts. `validate_cpf()` has no such switch,
 	 * and verifies two digits where the RF rule verifies one.
 	 *
+	 * PUBLIC SINCE 6.28.4, FOR THE ONE OTHER PLACE THAT NEEDS THIS RULE.
+	 *
+	 * Opening an account for an orphan (#1397 sprint 6) has to judge a typed
+	 * RF exactly as a correction does, and `DocumentFormatter::validate_rf()`
+	 * alone is not that rule: it enforces the check digit only when the
+	 * `ffc_validate_rf_check_digit` opt-in is on, because refusing a
+	 * registration on an inferred rule is worse than storing a typo the audit
+	 * finds later. Neither of those is a correction or an account being
+	 * opened from a value somebody confirmed, so both add the digit
+	 * explicitly — through this, rather than through a second copy.
+	 *
 	 * @since 6.28.3
 	 * @param string $field      `rf` or `cpf`.
 	 * @param string $normalized The value, canonicalised.
 	 * @return bool
 	 */
-	private static function well_formed( string $field, string $normalized ): bool {
+	public static function well_formed( string $field, string $normalized ): bool {
 		if ( 'cpf' === $field ) {
 			return DocumentFormatter::validate_cpf( $normalized );
 		}

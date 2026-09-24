@@ -125,6 +125,18 @@ try {
 				$ffcertificate_migrated     = number_format( $ffcertificate_status['migrated'] );
 			}
 
+			// OUTSTANDING WORK THIS BUTTON CANNOT DO (#1368).
+			//
+			// Optional by design: only the identity-index backfill reports it,
+			// and a strategy that does not set the key renders no line. Read
+			// with `array_key_exists()` rather than `isset()`, because `null`
+			// is a value here and means "nothing could be read" -- which must
+			// not collapse into the same branch as "no conflicts".
+			$ffcertificate_conflicts = ( is_array( $ffcertificate_status ) && array_key_exists( 'conflicts', $ffcertificate_status ) )
+				? $ffcertificate_status['conflicts']
+				: null;
+			$ffcertificate_conflicts = is_int( $ffcertificate_conflicts ) ? $ffcertificate_conflicts : null;
+
 			// Generate migration URL.
 			$ffcertificate_migrate_url = wp_nonce_url(
 				add_query_arg(
@@ -222,6 +234,53 @@ try {
 				</div>
 			</div>
 			
+			<?php if ( null !== $ffcertificate_conflicts && $ffcertificate_conflicts > 0 ) : ?>
+				<?php
+				// A NUMBER AND A LINK, AND DELIBERATELY NO BUTTON.
+				//
+				// The backfill leaves an account holding two different numbers
+				// for one field empty on purpose -- picking would destroy the
+				// evidence that the conflict exists. So this is work the card
+				// reports and cannot do, and pressing anything here would move
+				// it by zero. The screen that CAN do it is linked instead, and
+				// only for an operator who may open it: an offered control
+				// that answers `wp_die` is worse than an absent one, which is
+				// the same decision the identity screen makes about its own
+				// export link.
+				$ffcertificate_identities_url = current_user_can( \FreeFormCertificate\Admin\IdentityResolutionPage::CAPABILITY )
+					? admin_url( 'admin.php?page=' . \FreeFormCertificate\Admin\IdentityResolutionPage::MENU_SLUG )
+					: '';
+				?>
+				<div class="ffc-migration-conflicts">
+					<p>
+						<strong>
+							<?php
+							printf(
+								/* translators: %s: how many accounts hold two different numbers for one field. */
+								esc_html( _n( '%s account holds two different numbers for one field', '%s accounts hold two different numbers for one field', $ffcertificate_conflicts, 'ffcertificate' ) ),
+								esc_html( number_format_i18n( $ffcertificate_conflicts ) )
+							);
+							?>
+						</strong>
+					</p>
+					<p class="description">
+						<?php esc_html_e( 'This migration leaves those empty on purpose: choosing one of the two would destroy the evidence that they disagree. Running it again moves this number by zero — the decision is a person\'s.', 'ffcertificate' ); ?>
+					</p>
+					<?php if ( '' !== $ffcertificate_identities_url ) : ?>
+						<p>
+							<a href="<?php echo esc_url( $ffcertificate_identities_url ); ?>" class="button button-secondary">
+								<span class="dashicons dashicons-admin-users"></span>
+								<?php esc_html_e( 'Resolve on Identity Resolution', 'ffcertificate' ); ?>
+							</a>
+						</p>
+					<?php else : ?>
+						<p class="description">
+							<?php esc_html_e( 'Resolving them needs the identity capability, which this account does not hold.', 'ffcertificate' ); ?>
+						</p>
+					<?php endif; ?>
+				</div>
+			<?php endif; ?>
+
 			<!-- Actions -->
 			<div class="ffc-migration-actions">
 				<?php if ( $ffcertificate_is_complete ) : ?>
@@ -231,7 +290,19 @@ try {
 					</span>
 					
 					<p class="description">
-						<span class="ffc-icon-checkmark"></span><?php esc_html_e( 'All records have been successfully migrated.', 'ffcertificate' ); ?>
+						<span class="ffc-icon-checkmark"></span>
+						<?php
+						// THE CARD MUST NOT SAY "ALL" OVER A NUMBER IT JUST
+						// REPORTED AS OUTSTANDING. With conflicts above, the
+						// walk being finished is a narrower claim than every
+						// record being migrated, and the two sentences would
+						// contradict each other on one card.
+						if ( null !== $ffcertificate_conflicts && $ffcertificate_conflicts > 0 ) {
+							esc_html_e( 'Everything this migration may decide on its own is done. What is listed above is not.', 'ffcertificate' );
+						} else {
+							esc_html_e( 'All records have been successfully migrated.', 'ffcertificate' );
+						}
+						?>
 					</p>
 				<?php else : ?>
 					<a href="<?php echo esc_url( $ffcertificate_migrate_url ); ?>"
@@ -964,6 +1035,33 @@ try {
 					<span class="dashicons dashicons-download"></span>
 					<?php esc_html_e( 'Export findings (CSV)', 'ffcertificate' ); ?>
 				</a>
+				<?php
+				// THE OTHER HALF OF THE LOOP, AND ONLY THAT (#1368).
+				//
+				// This card reads and never writes: every verb that resolves
+				// what it finds lives on the identity screen. Until now the
+				// link ran one way — that screen offers this card's CSV, and
+				// this card named nothing.
+				//
+				// It is a link and NOT the screen moved here. The two are
+				// deliberately different surfaces: this audit runs a wider set
+				// of checks, several of which (`unindexed_links`, the
+				// submission-scoped pair) have no verb over there, and the
+				// queue is reachable on `ffc_manage_identities` alone while
+				// everything on this card needs `ffc_manage_settings_dangerzone`.
+				// Folding one into the other would either break that split or
+				// draw findings nobody on the receiving screen can act on.
+				//
+				// Gated on the destination's own capability, for the reason
+				// the backfill card's link is: an offered control that answers
+				// `wp_die` is worse than an absent one.
+				?>
+				<?php if ( current_user_can( \FreeFormCertificate\Admin\IdentityResolutionPage::CAPABILITY ) ) : ?>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . \FreeFormCertificate\Admin\IdentityResolutionPage::MENU_SLUG ) ); ?>" class="button button-secondary">
+						<span class="dashicons dashicons-admin-users"></span>
+						<?php esc_html_e( 'Resolve on Identity Resolution', 'ffcertificate' ); ?>
+					</a>
+				<?php endif; ?>
 			</div>
 
 			<?php

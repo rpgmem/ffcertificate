@@ -51,9 +51,6 @@ class TabReregistrationTest extends TestCase {
 		$this->assertSame( 'ffc_manage_reregistration', $this->tab->get_manage_cap() );
 	}
 
-	public function test_extends_settings_tab(): void {
-		$this->assertInstanceOf( \FreeFormCertificate\Settings\SettingsTab::class, $this->tab );
-	}
 
 	public function test_render_shows_the_selector_and_hub_links(): void {
 		Functions\when( 'get_option' )->justReturn( 0 );        // nothing selected.

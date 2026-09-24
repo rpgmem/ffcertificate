@@ -70,7 +70,7 @@ class CapabilityMigrator {
 		$ids = get_users(
 			array(
 				'fields'       => 'ID',
-				'meta_key'     => $wpdb->get_blog_prefix() . 'capabilities', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- A meta de capabilities e indexada por `meta_key`; esta consulta existe justamente para NAO varrer todos os usuarios (#1254).
+				'meta_key'     => $wpdb->get_blog_prefix() . 'capabilities', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- The capabilities meta is indexed by `meta_key`; this query exists precisely so that every user does NOT have to be scanned (#1254).
 				'meta_value'   => 'ffc_', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Prefiltro deliberado; ver o docblock.
 				'meta_compare' => 'LIKE',
 				'orderby'      => 'ID',
@@ -910,6 +910,45 @@ class CapabilityMigrator {
 	 */
 	public static function migrate_identities_cap_grant(): array {
 		return self::seed_caps( self::identities_cap_grant_map() );
+	}
+
+	/**
+	 * Source-to-target map for the identity-verb split (#1397).
+	 *
+	 * @since 6.28.4
+	 * @return array<string, array<int, string>>
+	 */
+	public static function identity_verbs_cap_grant_map(): array {
+		return array(
+			'ffc_manage_identities' => array(
+				'ffc_split_identities',
+				'ffc_merge_identities',
+			),
+		);
+	}
+
+	/**
+	 * Idempotent migration seeding the two identity verbs onto every user and
+	 * role already holding `ffc_manage_identities`.
+	 *
+	 * WITHOUT IT THE SPLIT IS A SILENT REVOCATION.
+	 *
+	 * Splitting and merging were reachable with `ffc_manage_identities` alone
+	 * until #1397 gave them capabilities of their own. Adding a gate without
+	 * seeding it takes both verbs away from everybody who could use them
+	 * yesterday -- and takes them away QUIETLY, since the screen simply stops
+	 * offering the buttons. Seeding restores the status quo and leaves the
+	 * split to do what it is for: letting an administrator hand out the queue
+	 * WITHOUT them, from here on.
+	 *
+	 * Runs once per install via {@see \FreeFormCertificate\Loader} on
+	 * `plugins_loaded`, flagged by the `ffc_identity_verbs_cap_v1` option.
+	 *
+	 * @since 6.28.4
+	 * @return array<string, int> Per-target-cap count of users seeded.
+	 */
+	public static function migrate_identity_verbs_cap_grant(): array {
+		return self::seed_caps( self::identity_verbs_cap_grant_map() );
 	}
 
 	/**

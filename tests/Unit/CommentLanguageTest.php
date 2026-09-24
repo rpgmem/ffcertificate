@@ -223,25 +223,84 @@ class CommentLanguageTest extends TestCase {
 	}
 
 	/**
-	 * Is this line a comment?
+	 * The comment text on this line, and whether a block is still open after it.
 	 *
 	 * Deliberately textual rather than a PHP tokenizer pass: the same scan has
-	 * to read `.js` too, and a Portuguese sentence inside a string literal is
-	 * the source-string direction's job, not this one's.
+	 * to read `.js` and `.css` too, and a Portuguese sentence inside a string
+	 * literal is the source-string direction's job, not this one's.
 	 *
-	 * @param string $line Raw line.
-	 * @return bool
+	 * IT TRACKS THE BLOCK DELIMITERS ACROSS LINES, AND THAT IS THE WHOLE FIX (#1423).
+	 *
+	 * This used to ask whether the line STARTED with a marker. That is right
+	 * for PHP and JS, where a multi-line comment is a docblock and every
+	 * continuation line opens with `*`: measured, 99% of their comment lines
+	 * begin with one. It is wrong for these stylesheets, whose house style
+	 * indents the continuation with spaces and no marker at all -- so the
+	 * opener was read and the three lines carrying the sentence were not.
+	 * Over `assets/css/` the rule saw **46%** of the comment lines, and the
+	 * 118 Portuguese ones all lived in the other 54%: the guard was green
+	 * because it could not see the prose, not because there was none.
+	 *
+	 * Two consequences of doing it properly, both wanted. A TRAILING comment
+	 * is now read (`$x = 1; // porque …`), which is how the three Portuguese
+	 * lines in PHP surfaced -- one of them a `phpcs:ignore` justification. And
+	 * only the comment SPAN is returned, never the whole line, so the code
+	 * beside it can never be matched as prose.
+	 *
+	 * Quoted spans are stripped BEFORE the delimiters are looked for, which
+	 * does two jobs at once: it is the "quoted is mentioned, not used" rule
+	 * this class already applies, and it stops a `'/*'` inside a string
+	 * literal from opening a block that would swallow the rest of the file.
+	 *
+	 * @param string $line     Raw line.
+	 * @param bool   $in_block Whether a block comment was open before it; set
+	 *                         to the state after it.
+	 * @return string The comment text on this line, empty when there is none.
 	 */
-	private function is_comment_line( string $line ): bool {
-		$trimmed = ltrim( $line );
+	private function comment_text( string $line, bool &$in_block ): string {
+		$code   = (string) preg_replace( self::QUOTED, ' ', $line );
+		$text   = '';
+		$offset = 0;
+		$length = strlen( $code );
 
-		return str_starts_with( $trimmed, '*' )
-			|| str_starts_with( $trimmed, '/*' )
-			|| str_starts_with( $trimmed, '//' );
+		while ( $offset < $length ) {
+			if ( $in_block ) {
+				$close = strpos( $code, '*/', $offset );
+
+				if ( false === $close ) {
+					$text .= substr( $code, $offset );
+					break;
+				}
+
+				$text  .= substr( $code, $offset, $close - $offset );
+				$in_block = false;
+				$offset   = $close + 2;
+				continue;
+			}
+
+			$open = strpos( $code, '/*', $offset );
+			$line_comment = strpos( $code, '//', $offset );
+
+			// Whichever opens first wins: `// … /*` is all one line comment,
+			// and `/* … //` is a block whose body happens to contain slashes.
+			if ( false !== $line_comment && ( false === $open || $line_comment < $open ) ) {
+				$text .= substr( $code, $line_comment + 2 );
+				break;
+			}
+
+			if ( false === $open ) {
+				break;
+			}
+
+			$in_block = true;
+			$offset   = $open + 2;
+		}
+
+		return $text;
 	}
 
 	/**
-	 * Every PHP and JS file in the tree, repo-relative.
+	 * Every PHP, JS and CSS file in the tree, repo-relative.
 	 *
 	 * Walks the filesystem rather than shelling out to git, so the scan works in
 	 * a checkout without a `.git` at all.
@@ -261,8 +320,20 @@ class CommentLanguageTest extends TestCase {
 
 				$name = $file->getFilename();
 
-				return ( str_ends_with( $name, '.php' ) || str_ends_with( $name, '.js' ) )
-					&& ! str_ends_with( $name, '.min.js' );
+				// CSS JOINED IN #1419, AND IT COST NOTHING TO READ.
+				//
+				// `is_comment_line()` already recognises `/*` and `*`, which
+				// is the whole of CSS comment syntax, so the sheets were
+				// always scannable and simply were not scanned -- 258 lines
+				// of Portuguese prose sat in 19 of them while the guard
+				// reported the tree clean. A guard's reach is a claim about
+				// what it looked at, and this one's was narrower than anyone
+				// reading it would assume.
+				return ( str_ends_with( $name, '.php' )
+						|| str_ends_with( $name, '.js' )
+						|| str_ends_with( $name, '.css' ) )
+					&& ! str_ends_with( $name, '.min.js' )
+					&& ! str_ends_with( $name, '.min.css' );
 			}
 		);
 
@@ -290,13 +361,17 @@ class CommentLanguageTest extends TestCase {
 		foreach ( $this->files() as $relative ) {
 			++$files;
 
+			$in_block = false;
+
 			foreach ( explode( "\n", (string) file_get_contents( $root . '/' . $relative ) ) as $index => $line ) {
-				if ( ! $this->is_comment_line( $line ) ) {
+				$comment = $this->comment_text( $line, $in_block );
+
+				if ( '' === trim( $comment ) ) {
 					continue;
 				}
 				++$lines;
 
-				$words = $this->portuguese_words( $line );
+				$words = $this->portuguese_words( $comment );
 				if ( count( $words ) < self::MIN_DISTINCT ) {
 					continue;
 				}
@@ -453,6 +528,8 @@ class CommentLanguageTest extends TestCase {
 		$this->assertContains( 'assets/js/ffc-core.js', $files, 'The walk misses `assets/js/`.' );
 		$this->assertContains( 'templates/emails/reregistration-invitation.php', $files, 'The walk misses `templates/`.' );
 		$this->assertContains( 'uninstall.php', $files, 'The walk misses the repository root.' );
+		$this->assertContains( 'assets/css/ffc-common.css', $files, 'The walk misses `assets/css/` -- 258 comment lines hid there until #1419.' );
+		$this->assertNotContains( 'assets/css/ffc-common.min.css', $files, 'A minified sheet is generated, never written.' );
 	}
 
 	/**
@@ -499,5 +576,116 @@ class CommentLanguageTest extends TestCase {
 				"Portuguese line not reported: {$line}"
 			);
 		}
+	}
+
+	/**
+	 * THE SCANNER READS A BLOCK'S CONTINUATION LINES (#1423).
+	 *
+	 * Synthetic rather than over the tree, because this pins the PROPERTY and
+	 * a property stated over real files goes stale the moment somebody edits
+	 * one. Every case here is one the old prefix rule got wrong or one the new
+	 * scanner could plausibly get wrong.
+	 *
+	 * @return void
+	 */
+	public function test_the_scanner_reads_a_block_past_its_opener(): void {
+		$css = array(
+			'/* A heading (#1).',
+			'',
+			'   An unmarked continuation, which is the house style in `assets/css/`.',
+			'   A second one, ending the block. */',
+			'.ffc-x { color: red; }',
+		);
+
+		$in_block = false;
+		$read     = array();
+
+		foreach ( $css as $line ) {
+			$text = $this->comment_text( $line, $in_block );
+			if ( '' !== trim( $text ) ) {
+				$read[] = trim( $text );
+			}
+		}
+
+		$this->assertCount( 3, $read, 'The opener and both continuation lines are comment; the rule is not.' );
+		$this->assertStringContainsString( 'unmarked continuation', $read[1], 'The line the old rule could not see.' );
+		$this->assertStringNotContainsString( 'color: red', implode( ' ', $read ), 'Code after the block is not comment.' );
+	}
+
+	/**
+	 * The scanner returns the comment SPAN, never the whole line.
+	 *
+	 * Reading trailing comments is what surfaced the four Portuguese lines in
+	 * PHP that #1423 found, and it is only safe while the code beside them
+	 * cannot be matched as prose.
+	 *
+	 * @return void
+	 */
+	public function test_the_scanner_returns_only_the_comment_span(): void {
+		$in_block = false;
+
+		$this->assertSame(
+			' porque sim.',
+			$this->comment_text( '$total = 1; // porque sim.', $in_block ),
+			'A trailing comment is read, and the statement before it is not.'
+		);
+		$this->assertFalse( $in_block, 'A line comment opens no block.' );
+	}
+
+	/**
+	 * A delimiter inside a string literal opens nothing.
+	 *
+	 * Without this the scanner would swallow the rest of the file from the
+	 * first `'/*'` in a regex or a fixture, and everything after it would be
+	 * read as prose — the same collapse this class exists to prevent, wearing
+	 * the opposite costume.
+	 *
+	 * @return void
+	 */
+	public function test_a_delimiter_inside_a_string_opens_no_block(): void {
+		$in_block = false;
+
+		$this->assertSame( '', $this->comment_text( "\$open = '/*';", $in_block ) );
+		$this->assertFalse( $in_block, 'Quoted is data, never a delimiter.' );
+	}
+
+	/**
+	 * THE SHEETS ARE READ PAST THEIR OPENERS, MEASURED ON THE TREE (#1423).
+	 *
+	 * Relational on purpose: it asserts that the scan reads strictly MORE of
+	 * `ffc-common.css` than the lines opening with a marker, which is a
+	 * property that survives every edit to that sheet. A count would not — and
+	 * the self-check this replaces was file-level (`the walk contains the
+	 * sheet`), which stayed true throughout the two releases in which the
+	 * line-level extraction read 46% of it and saw none of the 118 Portuguese
+	 * lines.
+	 *
+	 * @return void
+	 */
+	public function test_the_stylesheets_are_read_past_their_comment_openers(): void {
+		$sheet = dirname( __DIR__, 2 ) . '/assets/css/ffc-common.css';
+		$lines = explode( "\n", (string) file_get_contents( $sheet ) );
+
+		$in_block = false;
+		$read     = 0;
+		$marked   = 0;
+
+		foreach ( $lines as $line ) {
+			if ( '' !== trim( $this->comment_text( $line, $in_block ) ) ) {
+				++$read;
+			}
+
+			$trimmed = ltrim( $line );
+			if ( str_starts_with( $trimmed, '*' ) || str_starts_with( $trimmed, '/*' ) || str_starts_with( $trimmed, '//' ) ) {
+				++$marked;
+			}
+		}
+
+		$this->assertGreaterThan( 0, $marked, 'The sheet must still carry comments at all.' );
+		$this->assertGreaterThan(
+			$marked,
+			$read,
+			'The scan reads no more than the lines that open with a marker -- it is back to missing every unmarked continuation line, which is where the Portuguese lived (#1423).'
+		);
 	}
 }

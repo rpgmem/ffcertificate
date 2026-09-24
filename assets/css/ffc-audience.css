@@ -56,9 +56,9 @@
 }
 
 .ffc-shortcode .ffc-nav-btn {
-    /* Um controle de formulário NÃO herda `color` — o agente de usuário dá
-       `buttontext`, quase preto, então a regra de base do tema escuro não o
-       alcança. Quem pinta o fundo tem de pintar o texto (#1126). */
+    /* A form control does NOT inherit `color` — the user agent gives it
+       `buttontext`, near-black, so the dark theme's base rule cannot reach
+       it. Whatever paints the ground must paint the text (#1126). */
     color: var(--ffc-text);
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-gray-300);
@@ -234,10 +234,10 @@
     overflow: hidden;
 }
 
-/* 10px literal, e 9px no @media adiante: o selo cabe DENTRO da célula de um
-   dia do calendário — é dimensionado pelo espaço, não para ser lido como
-   texto, e tem o próprio passo responsivo. Mapear os dois para `2xs` (11px)
-   tornaria aquele @media um no-op, pior que a deriva que ele corrige. */
+/* 10px literal, and 9px in the @media below: the badge fits INSIDE a calendar
+   day's cell — it is sized by the space, not to be read as text, and it has a
+   responsive step of its own. Mapping both to `2xs` (11px) would make that
+   @media a no-op, which is worse than the drift it corrects. */
 .ffc-shortcode .ffc-day-badge {
     display: inline-block;
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
@@ -336,9 +336,9 @@
 
 /* Buttons — base classes consolidated in ffc-common.css */
 
-/* Modal — movido para ffc-common.css (#1140): componente compartilhado,
-   e o dashboard é o terceiro consumidor. `ffc-common` é dependência desta
-   folha, então quem já usava o modal continua recebendo as mesmas regras. */
+/* Modal — moved to ffc-common.css (#1140): a shared component, and the
+   dashboard is its third consumer. `ffc-common` is a dependency of this sheet,
+   so whoever already used the modal still receives the same rules. */
 
 /* Form Styles */
 .ffc-shortcode .ffc-form-group {
@@ -551,9 +551,9 @@
     padding: 3px var(--ffc-spacing-sm);
     border-radius: var(--ffc-radius-xs);
     font-size: var(--ffc-font-size-xs);
-    /* O fundo desta etiqueta vem da cor da audiência, escrita no style= do
-       elemento: branco é a única escolha segura contra um matiz arbitrário,
-       então não é papel da paleta (#1126). */
+    /* This label's ground comes from the audience's colour, written into the
+       element's style=: white is the only safe choice against an arbitrary
+       hue, so it is not a palette role (#1126). */
     color: #fff;
 }
 
@@ -798,7 +798,7 @@
     padding: 1px var(--ffc-spacing-xs);
     border-radius: var(--ffc-radius-xs);
     font-size: var(--ffc-font-size-2xs);
-    /* Idem à etiqueta grande acima: fundo data-driven (#1126). */
+    /* As for the large label above: a data-driven ground (#1126). */
     color: #fff;
 }
 
@@ -828,14 +828,14 @@
 }
 
 /* ==========================================================================
-   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
-   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
-   O mecanismo está explicado em ffc-common.css (#1165).
+   ACCESSIBILITY — HIGH CONTRAST (forced-colors)
+   Gives a border back to whatever had only a background. No effect outside
+   forced-colors mode. The mechanism is explained in ffc-common.css (#1165).
    ========================================================================== */
 
 @media (forced-colors: active) {
-    /* Selos de estado: o texto continua dizendo o estado; a borda
-       devolve a eles a forma de selo. */
+    /* Status badges: the text still says the state; the border
+       gives them their badge shape back. */
     .ffc-shortcode .ffc-badge-bookings,
     .ffc-shortcode .ffc-badge-closed,
     .ffc-shortcode .ffc-badge-holiday {

@@ -44,7 +44,7 @@ $ffc_messages = array(
 			<input type="hidden" name="action" value="<?php echo esc_attr( \FreeFormCertificate\Core\PasswordInvite::ACTION ); ?>">
 			<input type="hidden" name="<?php echo esc_attr( \FreeFormCertificate\Core\PasswordInvite::ARG_KEY ); ?>" value="<?php echo esc_attr( $ffc_key ); ?>">
 			<input type="hidden" name="<?php echo esc_attr( \FreeFormCertificate\Core\PasswordInvite::ARG_LOGIN ); ?>" value="<?php echo esc_attr( $ffc_login ); ?>">
-			<?php echo \FreeFormCertificate\Core\PasswordInvite::nonce_field(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- `wp_nonce_field()` devolve marcação já escapada pelo core. ?>
+			<?php echo \FreeFormCertificate\Core\PasswordInvite::nonce_field(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- `wp_nonce_field()` returns markup core has already escaped. ?>
 
 			<p class="ffc-set-password-field">
 				<label for="ffc_pass1"><?php esc_html_e( 'New password', 'ffcertificate' ); ?></label>

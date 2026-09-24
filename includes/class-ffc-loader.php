@@ -261,6 +261,43 @@ class Loader {
 			);
 		}
 
+		// Orphan adoption -- the same inversion once more, and this time two
+		// filters rather than one, because the screen has to say whether a
+		// login was OPENED or merely matched. `get_or_create_user_dual()`
+		// returns an id whichever of its three branches ran, so the question
+		// is asked separately, before the call that would create (#1397).
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserCreator' ) ) {
+			add_filter(
+				'ffc_resolve_identity_account',
+				static function ( $found, $cpf_hash, $rf_hash, $email ) {
+					return $found > 0
+						? $found
+						: \FreeFormCertificate\UserDashboard\UserCreator::resolve_existing_user(
+							(string) $cpf_hash,
+							(string) $rf_hash,
+							(string) $email
+						);
+				},
+				10,
+				4
+			);
+
+			add_filter(
+				'ffc_adopt_identity_account',
+				static function ( $account, $cpf_hash, $rf_hash, $email ) {
+					return null === $account
+						? \FreeFormCertificate\UserDashboard\UserCreator::get_or_create_user_dual(
+							(string) $cpf_hash,
+							(string) $rf_hash,
+							(string) $email
+						)
+						: $account;
+				},
+				10,
+				4
+			);
+		}
+
 		// Shared classes (needed in both admin and frontend contexts).
 		$this->submission_handler = new SubmissionHandler();
 		$this->email_handler      = new EmailHandler();
@@ -442,6 +479,7 @@ class Loader {
 		$this->ensure_settings_split_caps_granted();
 		$this->ensure_email_templates_cap_granted();
 		$this->ensure_identities_cap_granted();
+		$this->ensure_identity_verbs_cap_granted();
 		$this->ensure_recruitment_email_migrated();
 		$this->ensure_activity_log_export_cap_granted();
 		$this->ensure_url_shortener_export_cap_granted();
@@ -600,6 +638,26 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_identities_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration seeding `ffc_split_identities` and
+	 * `ffc_merge_identities` (#1397) onto every user and role already holding
+	 * `ffc_manage_identities`, so nobody working the queue loses a verb the
+	 * moment those two get gates of their own.
+	 *
+	 * @since 6.28.4
+	 * @return void
+	 */
+	private function ensure_identity_verbs_cap_granted(): void {
+		$flag = 'ffc_identity_verbs_cap_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_identity_verbs_cap_grant();
 		}
 		update_option( $flag, '1', true );
 	}

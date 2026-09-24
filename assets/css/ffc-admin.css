@@ -411,9 +411,9 @@
 }
 
 .ffc-action-group .button .dashicons,
-/* 17px literal: caixa de glifo, não texto — um ícone ou um `&times;`
-   dimensionado por font-size é uma caixa, e a escala tipográfica não o
-   governa. Mesma razão do .ffc-stat-icon (#1148 etapa 1). */
+/* 17px literal: a glyph box, not text — an icon or a `&times;` sized by
+   font-size is a box, and the typography scale does not govern it. Same
+   reason as .ffc-stat-icon (#1148 step 1). */
 .ffc-template-loader .button .dashicons {
     margin-right: var(--ffc-spacing-2xs);
     font-size: 17px;
@@ -797,9 +797,9 @@ td .ffc-restriction-label {
     color: var(--ffc-inverse-on-surface);
 }
 
-/* 28px literal: caixa de glifo, não texto — um ícone ou um `&times;`
-   dimensionado por font-size é uma caixa, e a escala tipográfica não o
-   governa. Mesma razão do .ffc-stat-icon (#1148 etapa 1). */
+/* 28px literal: a glyph box, not text — an icon or a `&times;` sized by
+   font-size is a box, and the typography scale does not govern it. Same
+   reason as .ffc-stat-icon (#1148 step 1). */
 .ffc-preview-close {
     background: none;
     border: none;
@@ -1037,9 +1037,9 @@ p.ffc-datetime-order-error {
 	border-bottom: 2px solid var(--ffc-primary);
 }
 
-/* 20px literal: caixa de glifo, não texto — um ícone ou um `&times;`
-   dimensionado por font-size é uma caixa, e a escala tipográfica não o
-   governa. Mesma razão do .ffc-stat-icon (#1148 etapa 1). */
+/* 20px literal: a glyph box, not text — an icon or a `&times;` sized by
+   font-size is a box, and the typography scale does not govern it. Same
+   reason as .ffc-stat-icon (#1148 step 1). */
 .ffc-form-tabs__panel-title .dashicons {
 	flex: 0 0 auto;
 	color: var(--ffc-primary);
@@ -1125,14 +1125,14 @@ p.ffc-datetime-order-error {
 }
 
 /* ==========================================================================
-   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
-   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
-   O mecanismo está explicado em ffc-common.css (#1165).
+   ACCESSIBILITY — HIGH CONTRAST (forced-colors)
+   Gives a border back to whatever had only a background. No effect outside
+   forced-colors mode. The mechanism is explained in ffc-common.css (#1165).
    ========================================================================== */
 
 @media (forced-colors: active) {
-    /* Selos de estado: o texto continua dizendo o estado; a borda
-       devolve a eles a forma de selo. */
+    /* Status badges: the text still says the state; the border
+       gives them their badge shape back. */
     .ffc-badge-debug,
     .ffc-badge-error,
     .ffc-badge-info,
@@ -1191,4 +1191,1108 @@ p.ffc-datetime-order-error {
     color: var(--ffc-primary);
     min-width: 2ch;
     text-align: right;
+}
+
+/* ==========================================================================
+   IDENTITY SCREEN — THE TWO TOP STRIPS (#1407 sprint 1)
+
+   What the scan read, and what is left to do, stated once at the top of the
+   screen rather than inside a branch. The coverage numbers used to render
+   only when the queue was EMPTY, so the one state an operator actually works
+   -- a queue with findings -- was the state that never said how much of the
+   data it had seen.
+
+   Anchored on `.ffc-page-identities` for the reason the panel block below
+   gives: this sheet loads on every `?page=ffc-*` screen and on `users.php`.
+   ========================================================================== */
+
+.ffc-page-identities .ffc-identity-scan,
+.ffc-page-identities .ffc-identity-counts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-xs) var(--ffc-spacing-md);
+    margin: var(--ffc-spacing-md) 0;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+}
+
+/* THE ACCENT IS THE VERDICT, AND IT IS NOT ALWAYS GREEN.
+
+   A strip that always reads as a tick would be the reassuring sentence the
+   empty-state branch was fixed for (#1397), moved somewhere it is seen more
+   often. Three states: the scan read everything, it read part of it, or it
+   read nothing -- and the last is not a clean result however few findings
+   came back. */
+.ffc-page-identities .ffc-identity-scan-whole {
+    border-left: 4px solid var(--ffc-success-border);
+}
+
+.ffc-page-identities .ffc-identity-scan-partial {
+    border-left: 4px solid var(--ffc-warning-border);
+}
+
+.ffc-page-identities .ffc-identity-scan-none {
+    border-left: 4px solid var(--ffc-danger-border);
+}
+
+.ffc-page-identities .ffc-identity-scan-verdict {
+    margin: 0;
+    font-weight: 600;
+}
+
+.ffc-page-identities .ffc-identity-scan-detail,
+.ffc-page-identities .ffc-identity-scan-when {
+    margin: 0;
+    color: var(--ffc-text-secondary);
+    font-size: var(--ffc-font-size-sm);
+}
+
+/* Pushed to the end of the row, and the first thing to take a row of its own
+   once the strip wraps -- when it does, the numbers stay together. */
+.ffc-page-identities .ffc-identity-scan-when {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+    margin-left: auto;
+}
+
+/* `form` rather than a class: the rescan control is a POST, so it is a form,
+   and one that sits inline in a strip must not keep the block margin
+   wp-admin gives it. */
+.ffc-page-identities .ffc-identity-scan-when form {
+    margin: 0;
+}
+
+.ffc-page-identities .ffc-identity-counts-total {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* The category counters. They reuse the tier chips' COLOUR classes and
+   nothing else: a counter is read at body size with the number emphasised,
+   where the panel chip is a small uppercase label. Sharing the colour is the
+   point -- the strip and the panel heading below must not disagree about
+   which category is which. */
+.ffc-page-identities .ffc-identity-count {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
+    border: 1px solid transparent;
+    border-radius: var(--ffc-radius-sm);
+    font-size: var(--ffc-font-size-sm);
+    white-space: nowrap;
+}
+
+/* WHAT HAS BEEN DONE, BESIDE WHAT IS LEFT (#1407 sprint 4).
+
+   Not a counter chip: those five are categories of work remaining, and
+   giving this one the same shape would make it read as a sixth category. It
+   is the same weight as the total it sits beside, in the success colour,
+   because it is the only number on this strip that goes UP. */
+.ffc-page-identities .ffc-identity-counts-done {
+    color: var(--ffc-success-text);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ffc-page-identities .ffc-identity-counts-note {
+    margin: 0;
+}
+
+.ffc-page-identities .ffc-identity-counts-export {
+    margin-left: auto;
+}
+
+@media screen and (max-width: 782px) {
+    /* Below wp-admin's own breakpoint the strips have no room to share a
+       row, so what was pushed to the end simply follows. */
+    .ffc-page-identities .ffc-identity-counts-export,
+    .ffc-page-identities .ffc-identity-scan-when {
+        margin-left: 0;
+    }
+}
+
+@media (forced-colors: active) {
+    /* The strip's verdict is a coloured left border and the counters are
+       fills; forced-colors discards both. The border stays as a contour so
+       the strips remain three separate regions, and each counter keeps an
+       outline so the row does not collapse into one run of text. */
+    .ffc-page-identities .ffc-identity-count {
+        border: 1px solid CanvasText;
+    }
+
+    .ffc-page-identities .ffc-identity-scan-none,
+    .ffc-page-identities .ffc-identity-scan-partial,
+    .ffc-page-identities .ffc-identity-scan-whole {
+        border-left: 4px solid CanvasText;
+    }
+}
+
+/* ==========================================================================
+   IDENTITY QUEUE PANELS (#1397)
+
+   Drawn from the mockup: each tier is a card with a header strip, and the
+   strip leads with a coloured chip. The chip is what makes the categories
+   tellable apart at a glance — without it the panels are four headings that
+   read the same at arm's length.
+
+   Every selector descends from `.ffc-page-identities`, the page-scope class
+   `AdminPageScopeTest` freezes: this sheet is enqueued on every `?page=ffc-*`
+   screen AND on `users.php`, so an unanchored `.ffc-identity-*` rule would be
+   loaded far beyond the screen it was written for.
+   ========================================================================== */
+
+.ffc-page-identities .ffc-identity-panel {
+    margin: var(--ffc-spacing-lg) 0;
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+}
+
+.ffc-page-identities .ffc-identity-panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
+    background: var(--ffc-bg-alt);
+    border-bottom: 1px solid var(--ffc-border);
+}
+
+.ffc-page-identities .ffc-identity-panel-title {
+    margin: 0;
+    font-size: var(--ffc-font-size-lg);
+}
+
+/* Takes the rest of the row on a wide screen, and a row of its own once the
+   header wraps — which is what keeps the note from squeezing the nav down to
+   a column of single words. */
+.ffc-page-identities .ffc-identity-panel-note {
+    flex: 1 1 18em;
+    margin: 0;
+}
+
+.ffc-page-identities .ffc-identity-panel-body {
+    padding: var(--ffc-spacing-md);
+}
+
+/* THE CHIP: one per tier, coloured by how much of the answer is known.
+   Green where the check digits decided, red where no account explains it,
+   amber where a person has to choose, blue where two logins are involved. */
+.ffc-page-identities .ffc-identity-panel-chip {
+    flex-shrink: 0;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-2xs);
+    border: 1px solid transparent;
+    border-radius: var(--ffc-radius-sm);
+    font-size: var(--ffc-font-size-2xs);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.ffc-page-identities .ffc-identity-chip-mechanical {
+    background: var(--ffc-success-bg);
+    border-color: var(--ffc-success-border);
+    color: var(--ffc-success-text);
+}
+
+.ffc-page-identities .ffc-identity-chip-isolated {
+    background: var(--ffc-danger-bg);
+    border-color: var(--ffc-danger-border);
+    color: var(--ffc-danger-text);
+}
+
+.ffc-page-identities .ffc-identity-chip-decision {
+    background: var(--ffc-warning-bg);
+    border-color: var(--ffc-warning-border);
+    color: var(--ffc-warning-text);
+}
+
+.ffc-page-identities .ffc-identity-chip-shared {
+    background: var(--ffc-info-bg);
+    border-color: var(--ffc-info-border);
+    color: var(--ffc-info-text);
+}
+
+/* The sixth family, and deliberately the neutral one rather than a sixth
+   hue: this tier is the one the screen offers no verb for, so a chip that
+   signals nothing is what it means. Text and ground are the base pair, which
+   the palette already guarantees in both themes. */
+.ffc-page-identities .ffc-identity-chip-mailbox {
+    background: var(--ffc-bg-alt);
+    border-color: var(--ffc-border);
+    color: var(--ffc-text);
+}
+
+.ffc-page-identities .ffc-identity-panel-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+    margin-left: auto;
+}
+
+.ffc-page-identities .ffc-identity-panel-count {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* 44px, against wp-admin's own 30: the controls beside these write
+   irreversibly, and this is a screen worked by repeated clicking. */
+.ffc-page-identities .ffc-identity-panel-step {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 var(--ffc-spacing-sm);
+}
+
+/* A SQUARE, BECAUSE THE LABEL IS NOW THE GLYPH (#1421).
+
+   The word left the two steppers -- it survives as `aria-label` and as the
+   tooltip -- so what is left to size is a chevron, and a button padded for a
+   word around a 20px glyph reads as an empty box. 40px square is the
+   mockup's, and it is above the 24px WCAG 2.5.8 asks of a target while
+   staying under the 44px the writing column takes: these two navigate and
+   undo nothing. */
+.ffc-page-identities .ffc-identity-panel-step-previous,
+.ffc-page-identities .ffc-identity-panel-step-next {
+    justify-content: center;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0;
+}
+
+.ffc-page-identities .ffc-identity-panel-step .dashicons {
+    width: auto;
+    height: auto;
+    font-size: var(--ffc-font-size-xl);
+    line-height: 1;
+}
+
+/* `aria-disabled` rather than `disabled`, because these are links and a link
+   has no disabled state — the attribute is what tells a screen reader, and
+   this is what tells everybody else. The fade is on an INACTIVE control,
+   which SC 1.4.3 exempts; `OpacityContrastTest` carries the reason. */
+.ffc-page-identities .ffc-identity-panel-step[aria-disabled="true"] {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.ffc-page-identities .ffc-identity-panel-toggle {
+    white-space: nowrap;
+}
+
+/* wp-admin's own breakpoint, where it collapses the menu and stacks the
+   content column. Above it the nav sits at the end of the heading row; below
+   it the heading has no room to share, so the nav takes a row of its own. */
+@media screen and (max-width: 782px) {
+    .ffc-page-identities .ffc-identity-panel-nav {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .ffc-page-identities .ffc-identity-panel-step {
+        flex-grow: 1;
+        justify-content: center;
+    }
+}
+
+@media (forced-colors: active) {
+    /* The tier chip paints a background and nothing else, and forced-colors
+       discards it — leaving four chips that read identically and a screen
+       whose categories are no longer tellable apart, which is the one thing
+       the chip exists to do. `CanvasText` rather than `ButtonText`: a chip is
+       read, not clicked. */
+    .ffc-page-identities .ffc-identity-chip-decision,
+    .ffc-page-identities .ffc-identity-chip-isolated,
+    .ffc-page-identities .ffc-identity-chip-mailbox,
+    .ffc-page-identities .ffc-identity-chip-mechanical,
+    .ffc-page-identities .ffc-identity-chip-shared {
+        border: 1px solid CanvasText;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   A CARD PER FINDING, FOR THE TWO ACCOUNT TIERS (#1407 sprint 2)
+
+   The table these replace asked the operator to read four cells and work out
+   what they meant together. What the check digits had already decided was
+   derivable from it and stated nowhere. The card says it in a sentence, shows
+   the two hashes as the before and after of the write, and puts the verb in a
+   column of its own.
+   --------------------------------------------------------------------------- */
+
+.ffc-page-identities .ffc-identity-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-md);
+}
+
+.ffc-page-identities .ffc-identity-card {
+    display: flex;
+    align-items: stretch;
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+}
+
+/* `min-width: 0` because a flex item's default `auto` refuses to shrink below
+   its content, and a hash chip row is content that does not wrap on its own --
+   without it the action column is squeezed off the card instead. */
+.ffc-page-identities .ffc-identity-card-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-xs);
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
+}
+
+.ffc-page-identities .ffc-identity-card-who {
+    margin: 0;
+    font-size: var(--ffc-font-size-lg);
+    font-weight: 600;
+}
+
+.ffc-page-identities .ffc-identity-card-says {
+    margin: 0;
+}
+
+.ffc-page-identities .ffc-identity-card-hashes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+}
+
+.ffc-page-identities .ffc-identity-card-hash {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ffc-spacing-2xs);
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
+    border: 1px solid transparent;
+    border-radius: var(--ffc-radius-sm);
+}
+
+/* The chip inherits its own colour so the hash and its verdict read as one
+   thing; wp-admin paints `code` on a grey ground otherwise, which would put a
+   third surface inside a chip that already has one. */
+.ffc-page-identities .ffc-identity-card-hash code {
+    background: none;
+    color: inherit;
+    font-size: var(--ffc-font-size-xs);
+    padding: 0;
+}
+
+.ffc-page-identities .ffc-identity-card-said {
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+}
+
+.ffc-page-identities .ffc-identity-card-hash-bad {
+    background: var(--ffc-danger-bg);
+    border-color: var(--ffc-danger-border);
+    color: var(--ffc-danger-text);
+}
+
+.ffc-page-identities .ffc-identity-card-hash-ok {
+    background: var(--ffc-success-bg);
+    border-color: var(--ffc-success-border);
+    color: var(--ffc-success-text);
+}
+
+/* NOT RED. A value nobody could read is a value nothing is known about, and
+   painting it as a failure would make the screen assert the opposite of what
+   the scan found -- the same distinction `IdentityQueue::tiered()` makes when
+   it refuses to call such a finding mechanical. */
+.ffc-page-identities .ffc-identity-card-hash-plain,
+.ffc-page-identities .ffc-identity-card-hash-unknown {
+    background: var(--ffc-bg-alt);
+    border-color: var(--ffc-border);
+    color: var(--ffc-text-secondary);
+}
+
+/* THE LINK COLOUR IS NOBODY'S UNTIL SOMEBODY DECLARES IT.
+
+   wp-admin paints a link `#2271b1`, which is 5,17:1 on its own white content
+   area and **2,48:1** on this plugin's dark card -- the #1126 defect 3 shape,
+   where text inherits from outside the repository and no guard can see it,
+   because `DarkModeCssTest`'s derived half only measures a rule that declares
+   a colour AND a background, and here nothing declared a colour at all. It
+   was survivable while an account was a small `#398` in a table cell; the
+   card makes the person's name its headline.
+
+   Declared on the panel BODY rather than on the card, so the one rule also
+   covers the merge panel and the tables sprint 3 has yet to replace. In the
+   light theme `--ffc-link` IS `#2271b1`, so this moves nothing there and
+   repairs only the dark theme: 5,10:1.
+   ========================================================================== */
+.ffc-page-identities .ffc-identity-panel-body a {
+    color: var(--ffc-link);
+}
+
+.ffc-page-identities .ffc-identity-panel-body a:hover,
+.ffc-page-identities .ffc-identity-panel-body a:focus {
+    color: var(--ffc-link-hover);
+}
+
+.ffc-page-identities .ffc-identity-card-arrow {
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-lg);
+}
+
+/* THE ROW IDS, WHICH ARE THE ONLY HANDLE ON A RECORD NO ACCOUNT NAMES
+   (#1407 sprint 3).
+
+   A paragraph of inline groups rather than one `div` per store: they read as
+   a list of short pairs, and stacking each on its own line pushed the card's
+   action column out of reach on a finding spanning three stores. */
+.ffc-page-identities .ffc-identity-card-rows {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
+    margin: 0;
+    color: var(--ffc-text-secondary);
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-page-identities .ffc-identity-card-rowset {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--ffc-spacing-3xs);
+}
+
+.ffc-page-identities .ffc-identity-card-rowset code {
+    background: none;
+    color: inherit;
+    font-size: var(--ffc-font-size-xs);
+    padding: 0;
+}
+
+/* The three identifiers a record may or may not carry. Inside a card it is a
+   row rather than a stack: what the operator is looking for is the ONE that
+   says `missing`, and three items side by side make that a glance. */
+.ffc-page-identities .ffc-identity-card-main .ffc-identity-orphan-has {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-2xs) var(--ffc-spacing-md);
+    /* The browser's own list indent, which a row of three has no use for and
+       which left this line hanging inside a card whose every other line
+       starts at the same edge. */
+    padding-left: 0;
+    list-style: none;
+}
+
+.ffc-page-identities .ffc-identity-card-where {
+    margin: 0;
+    color: var(--ffc-text-secondary);
+    font-size: var(--ffc-font-size-sm);
+}
+
+/* `em`, not a pixel width: the column holds a button and a sentence, so what
+   it needs is a measure in characters, and it should follow the typography
+   scale rather than fight it. */
+.ffc-page-identities .ffc-identity-card-act {
+    flex: 0 0 17em;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--ffc-spacing-2xs);
+    padding: var(--ffc-spacing-md);
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text);
+    border-left: 1px solid var(--ffc-border);
+}
+
+/* ONE GROUP PER IDENTIFIER IN THE ACTION COLUMN (#1407 follow-up).
+
+   The decision tier renders two verbs per identifier, so an account holding
+   two numbers put eight controls in this column with nothing saying which
+   belonged to which. The group gives each identifier a heading and a rule
+   above it, and the sentence explaining the two verbs travels with them. */
+.ffc-page-identities .ffc-identity-card-verb + .ffc-identity-card-verb {
+    margin-top: var(--ffc-spacing-sm);
+    padding-top: var(--ffc-spacing-sm);
+    border-top: 1px solid var(--ffc-border);
+}
+
+/* TWO GROUPS SIT SIDE BY SIDE, AND THAT IS WHAT CLOSES THE VOID.
+
+   A 17em column stacks every control onto its own line, so one identifier's
+   group is about 235px tall and the decision tier's two came to 470 -- while
+   the main column beside them held four short lines. Measured in Chromium at
+   1600px: the card was 473px tall over 68px of content, leaving 357px of
+   white between the record and its options. It read as two panels that had
+   lost each other rather than as one card.
+
+   In a row the controls fit inline and the groups share the width: the same
+   card measures 164px with 7px of slack.
+
+   SCOPED WITH `:has()` TO THE TIER THAT HAS TWO, and the scope is the point.
+   Applied to every act column it widens the two tiers that hold ONE child --
+   the consolidate button and the mailbox sentence -- taking room from the
+   record for nothing, and the mailbox card grew 11px in the measurement that
+   caught it. With the scope both are byte-for-byte what they were: 108px and
+   127px, act column 242px, unchanged.
+
+   A browser without `:has()` falls back to the stacked column, which is the
+   layout that shipped -- degradation to the status quo, never to a broken
+   one. `ffc-frontend.css` already uses the selector. */
+.ffc-page-identities .ffc-identity-card-act:has( .ffc-identity-card-verb + .ffc-identity-card-verb ) {
+    flex: 0 1 auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
+.ffc-page-identities .ffc-identity-card-act:has( .ffc-identity-card-verb + .ffc-identity-card-verb ) .ffc-identity-card-verb {
+    flex: 1 1 16em;
+}
+
+.ffc-page-identities .ffc-identity-card-act:has( .ffc-identity-card-verb + .ffc-identity-card-verb ) .ffc-identity-card-verb + .ffc-identity-card-verb {
+    margin-top: 0;
+    margin-left: var(--ffc-spacing-sm);
+    padding-top: 0;
+    padding-left: var(--ffc-spacing-sm);
+    border-top: 0;
+    border-left: 1px solid var(--ffc-border);
+}
+
+.ffc-page-identities .ffc-identity-card-verb-head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--ffc-spacing-3xs);
+    margin: 0 0 var(--ffc-spacing-3xs);
+}
+
+.ffc-page-identities .ffc-identity-card-verb-head code {
+    background: none;
+    color: inherit;
+    font-size: var(--ffc-font-size-xs);
+    padding: 0;
+}
+
+.ffc-page-identities .ffc-identity-card-verb-note {
+    margin: 0 0 var(--ffc-spacing-2xs);
+}
+
+/* The forms came from table cells, where wp-admin's block margin did no harm.
+   Inside a flex column it would fight the gap. */
+.ffc-page-identities .ffc-identity-card-act form {
+    margin: 0;
+}
+
+/* A TARGET THE SIZE OF A FINGER, ON THE COLUMN THAT WRITES (#1421).
+
+   wp-admin's `.button` is about 30px tall, which is a pointer's target and
+   not a touch one. Every control in this column commits or refuses an
+   irreversible write to somebody's records, and the operator reaching it on
+   a tablet is the same operator working a 96-finding list -- so the column
+   takes the 44px of WCAG 2.5.5, which is what the mockup draws. Scoped to
+   this column on purpose: it is not an opinion about every button in
+   wp-admin, only about the ones that move records. */
+.ffc-page-identities .ffc-identity-card-act .button {
+    min-height: 44px;
+    padding-top: var(--ffc-spacing-2xs);
+    padding-bottom: var(--ffc-spacing-2xs);
+}
+
+/* WEIGHT IS THE ONE THING THE PROMOTION CANNOT BORROW.
+
+   Everything else about these buttons is already wp-admin's: the mockup's
+   `#2271b1` / `#f6f7f7` / `#1d2327` ARE `--ffc-primary` / `--ffc-bg-alt` /
+   `--ffc-text`, i.e. what core paints on `.button-primary` and `.button`
+   unaided. Re-declaring them here would be a colour literal, and tokenizing
+   them would be worse -- the dark theme redefines those tokens while
+   wp-admin's own chrome follows the user's colour scheme instead, so our
+   primary would stop matching every other primary on the screen. Core's
+   `.button-primary` is normal weight; the mockup's is 600, and that is the
+   difference this rule is for. */
+.ffc-page-identities .ffc-identity-card-act .button-primary {
+    font-weight: 600;
+}
+
+/* The search button carries a glyph before its word, so it stops being a
+   text box: `inline-flex` is what puts the two on one baseline, since a
+   dashicon is a 20px square that a button's own line-height cannot centre.
+   Sized to the label rather than to its own default, or the glyph reads as
+   the control and the word as its caption. */
+.ffc-page-identities .ffc-identity-find {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ffc-spacing-3xs);
+}
+
+.ffc-page-identities .ffc-identity-find .dashicons {
+    width: auto;
+    height: auto;
+    font-size: var(--ffc-font-size-lg);
+    line-height: 1;
+}
+
+@media screen and (max-width: 782px) {
+    /* Below wp-admin's own breakpoint there is no room for two columns, so
+       the action column becomes the foot of the card and keeps its separating
+       rule -- moved from the side it can no longer be on. */
+    .ffc-page-identities .ffc-identity-card {
+        flex-direction: column;
+    }
+
+    .ffc-page-identities .ffc-identity-card-act {
+        flex: 0 0 auto;
+        border-left: 0;
+        border-top: 1px solid var(--ffc-border);
+    }
+
+    /* The groups keep the row, which still wraps two onto one line while
+       there is room -- what goes is the separator between them. A rule on
+       the left of a group that has wrapped onto its own line points at
+       nothing, and the indent that came with it forced the text to wrap
+       again: measured at 480px the card was 428px with it and 402 without,
+       against 415 before any of this. Above 360px every width is now shorter
+       than it was, and at 360 it is identical. */
+    .ffc-page-identities .ffc-identity-card-act:has( .ffc-identity-card-verb + .ffc-identity-card-verb ) .ffc-identity-card-verb + .ffc-identity-card-verb {
+        margin-top: var(--ffc-spacing-sm);
+        margin-left: 0;
+        padding-top: var(--ffc-spacing-sm);
+        padding-left: 0;
+        border-top: 1px solid var(--ffc-border);
+        border-left: 0;
+    }
+}
+
+@media (forced-colors: active) {
+    /* Each chip says its verdict in words as well as in colour, so what
+       forced-colors costs here is only the grouping -- the contour keeps the
+       hash and its verdict reading as one object. */
+    .ffc-page-identities .ffc-identity-card-hash {
+        border: 1px solid CanvasText;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   Account-search dialog (#1397 sprint 3)
+   --------------------------------------------------------------------------- */
+
+/* `hidden` is what the script toggles, so the open state is the absence of an
+   attribute rather than a class — one source of truth, and the dialog is
+   genuinely inert to assistive technology while closed. */
+.ffc-page-identities .ffc-identity-dialog {
+    position: fixed;
+    inset: 0;
+    z-index: var(--ffc-z-modal);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: var(--ffc-spacing-2xl);
+    overflow-y: auto;
+}
+
+.ffc-page-identities .ffc-identity-dialog[hidden] {
+    display: none;
+}
+
+.ffc-page-identities .ffc-identity-dialog-backdrop {
+    position: absolute;
+    inset: 0;
+    background: var(--ffc-bg-overlay);
+}
+
+.ffc-page-identities .ffc-identity-dialog-panel {
+    position: relative;
+    z-index: var(--ffc-z-raised);
+    width: 100%;
+    max-width: 850px;
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+    box-shadow: var(--ffc-shadow-lg);
+}
+
+.ffc-page-identities .ffc-identity-dialog-head {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-2xl) var(--ffc-spacing-md);
+    border-bottom: 1px solid var(--ffc-border);
+}
+
+.ffc-page-identities .ffc-identity-dialog-heading {
+    flex-grow: 1;
+}
+
+.ffc-page-identities .ffc-identity-dialog-head h2 {
+    margin: 0 0 var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-xl);
+}
+
+.ffc-page-identities .ffc-identity-dialog-sub {
+    margin: 0;
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-muted);
+}
+
+/* 44px, like the stepper controls: this is a touch target on the tablets the
+   scheduling desk actually uses. */
+.ffc-page-identities .ffc-identity-dialog-close {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    font-size: var(--ffc-font-size-2xl);
+    line-height: 1;
+    color: var(--ffc-text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.ffc-page-identities .ffc-identity-dialog-close:hover,
+.ffc-page-identities .ffc-identity-dialog-close:focus {
+    color: var(--ffc-text);
+}
+
+.ffc-page-identities .ffc-identity-dialog-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-lg) var(--ffc-spacing-2xl);
+}
+
+.ffc-page-identities .ffc-identity-dialog-suggestion-has {
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+    border: 1px solid var(--ffc-success);
+    border-radius: var(--ffc-radius-xs);
+}
+
+.ffc-page-identities .ffc-identity-dialog-suggestion-head {
+    display: block;
+    margin-bottom: var(--ffc-spacing-xs);
+    font-size: var(--ffc-font-size-2xs);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.ffc-page-identities .ffc-identity-dialog-search label {
+    display: block;
+    margin-bottom: var(--ffc-spacing-2xs);
+    font-weight: 600;
+}
+
+.ffc-page-identities .ffc-identity-dialog-search input {
+    width: 100%;
+    min-height: 44px;
+}
+
+.ffc-page-identities .ffc-identity-dialog-count {
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-md);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+    color: var(--ffc-text-muted);
+    background: var(--ffc-bg-alt);
+    border: 1px solid var(--ffc-border);
+    border-bottom: none;
+}
+
+.ffc-page-identities .ffc-identity-dialog-result {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-md);
+    border: 1px solid var(--ffc-border);
+    border-top: none;
+    cursor: pointer;
+}
+
+/* Inside the suggestion box the row is the only content, so it keeps its own
+   border rather than continuing a list it is not part of. */
+.ffc-page-identities .ffc-identity-dialog-suggestion .ffc-identity-dialog-result {
+    padding: 0;
+    background: none;
+    border: none;
+}
+
+.ffc-page-identities .ffc-identity-dialog-result-refused {
+    background: var(--ffc-bg-alt);
+    cursor: not-allowed;
+}
+
+.ffc-page-identities .ffc-identity-dialog-who {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    gap: var(--ffc-spacing-3xs);
+}
+
+.ffc-page-identities .ffc-identity-dialog-meta {
+    font-size: var(--ffc-font-size-xs);
+    color: var(--ffc-text-muted);
+}
+
+.ffc-page-identities .ffc-identity-dialog-verdict {
+    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+    white-space: nowrap;
+    border-radius: var(--ffc-radius-xs);
+}
+
+.ffc-page-identities .ffc-identity-dialog-verdict-ok {
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+}
+
+.ffc-page-identities .ffc-identity-dialog-verdict-refused {
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+}
+
+.ffc-page-identities .ffc-identity-dialog-rule,
+.ffc-page-identities .ffc-identity-dialog-column {
+    margin: 0;
+    padding-left: var(--ffc-spacing-md);
+    font-size: var(--ffc-font-size-xs);
+    color: var(--ffc-text-muted);
+    border-left: 3px solid var(--ffc-border);
+}
+
+.ffc-page-identities .ffc-identity-dialog-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-2xl);
+    background: var(--ffc-bg-alt);
+    border-top: 1px solid var(--ffc-border);
+}
+
+.ffc-page-identities .ffc-identity-dialog-foot .button {
+    min-height: 44px;
+}
+
+.ffc-page-identities .ffc-identity-chosen {
+    display: inline-block;
+    margin-left: var(--ffc-spacing-xs);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+    color: var(--ffc-success-text);
+}
+
+@media screen and (max-width: 782px) {
+    .ffc-page-identities .ffc-identity-dialog {
+        padding: var(--ffc-spacing-sm);
+    }
+
+    .ffc-page-identities .ffc-identity-dialog-result {
+        flex-wrap: wrap;
+    }
+}
+
+@media (forced-colors: active) {
+    /* The verdict badge paints a background and nothing else, so forced-colors
+       discards it and "allowed" reads exactly like "refused" — which is the
+       one distinction this dialog exists to draw. */
+    .ffc-page-identities .ffc-identity-dialog-verdict-ok,
+    .ffc-page-identities .ffc-identity-dialog-verdict-refused {
+        border: 1px solid CanvasText;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   Correction preflight and the per-person correction (#1397 sprint 4)
+   --------------------------------------------------------------------------- */
+
+.ffc-page-identities .ffc-identity-verdict {
+    margin-top: var(--ffc-spacing-xs);
+}
+
+.ffc-page-identities .ffc-identity-verdict-line {
+    margin: 0 0 var(--ffc-spacing-2xs);
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-sm);
+    font-size: var(--ffc-font-size-xs);
+    border-radius: var(--ffc-radius-xs);
+}
+
+.ffc-page-identities .ffc-identity-verdict-ok {
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+}
+
+.ffc-page-identities .ffc-identity-verdict-warn {
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+}
+
+.ffc-page-identities .ffc-identity-verdict-bad {
+    background: var(--ffc-danger-bg);
+    color: var(--ffc-danger-text);
+}
+
+.ffc-page-identities .ffc-identity-correct-instead {
+    margin-top: var(--ffc-spacing-xl);
+    padding: var(--ffc-spacing-lg);
+    background: var(--ffc-bg-alt);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+}
+
+.ffc-page-identities .ffc-identity-correct-instead h4 {
+    margin: 0 0 var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-base);
+}
+
+.ffc-page-identities .ffc-identity-correct-one {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+    margin-top: var(--ffc-spacing-sm);
+}
+
+.ffc-page-identities .ffc-identity-correct-one label {
+    min-width: 14em;
+    font-weight: 600;
+}
+
+@media (forced-colors: active) {
+    /* Each verdict line paints a background and nothing else, so forced-colors
+       discards it and "allowed" reads exactly like "refused" — which is the
+       one distinction the preflight exists to draw. */
+    .ffc-page-identities .ffc-identity-verdict-bad,
+    .ffc-page-identities .ffc-identity-verdict-ok,
+    .ffc-page-identities .ffc-identity-verdict-warn {
+        border: 1px solid CanvasText;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   One merge at a time, with its preview (#1397 sprint 5)
+   --------------------------------------------------------------------------- */
+
+.ffc-page-identities .ffc-identity-pair {
+    margin-bottom: var(--ffc-spacing-xl);
+    padding: var(--ffc-spacing-lg);
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+}
+
+.ffc-page-identities .ffc-identity-pair-subject {
+    margin: 0 0 var(--ffc-spacing-sm);
+}
+
+.ffc-page-identities .ffc-identity-pair-choice {
+    margin: 0 0 var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-xs);
+}
+
+.ffc-page-identities .ffc-identity-pair-choice legend {
+    padding: 0 var(--ffc-spacing-2xs);
+    font-weight: 600;
+}
+
+.ffc-page-identities .ffc-identity-pair-choice label {
+    display: block;
+    padding: var(--ffc-spacing-2xs) 0;
+}
+
+/* The evidence under each radio (#1368). Indented to the label's text
+   rather than to the fieldset, so it reads as belonging to that login and not
+   to the group; the counts and the date are separate spans so they wrap as
+   units on a narrow screen instead of breaking mid-phrase. */
+.ffc-page-identities .ffc-identity-pair-basis {
+    margin: 0 0 var(--ffc-spacing-2xs);
+}
+
+.ffc-page-identities .ffc-identity-pair-evidence {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
+    margin: 0 0 var(--ffc-spacing-2xs) var(--ffc-spacing-md);
+}
+
+.ffc-page-identities .ffc-identity-preview-region:not(:empty) {
+    margin-bottom: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-md);
+    background: var(--ffc-bg-alt);
+    border-left: 3px solid var(--ffc-warning);
+}
+
+.ffc-page-identities .ffc-identity-preview-line {
+    margin: 0 0 var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-xs);
+}
+
+.ffc-page-identities .ffc-identity-preview-head {
+    font-size: var(--ffc-font-size-base);
+    font-weight: 600;
+}
+
+.ffc-page-identities .ffc-identity-preview-total {
+    font-weight: 600;
+}
+
+.ffc-page-identities .ffc-identity-preview-bad {
+    color: var(--ffc-danger-text);
+}
+
+.ffc-page-identities .ffc-identity-preview-stores {
+    margin: 0 0 var(--ffc-spacing-sm) var(--ffc-spacing-xl);
+    font-size: var(--ffc-font-size-xs);
+    list-style: disc;
+}
+
+.ffc-page-identities .ffc-identity-merge-one .button {
+    min-height: 44px;
+}
+
+/* ---------------------------------------------------------------------------
+   Orphaned records (#1397 sprint 6)
+   --------------------------------------------------------------------------- */
+
+/* The fifth family, not the info pair the two-accounts tier already uses --
+   see the `--ffc-accent-*` comment in `ffc-common.css`. The border is
+   declared like every sibling chip's, so the five differ by contour as well
+   as by fill. */
+.ffc-page-identities .ffc-identity-chip-orphans {
+    background: var(--ffc-accent-bg);
+    border-color: var(--ffc-accent-border);
+    color: var(--ffc-accent-text);
+}
+
+.ffc-page-identities .ffc-identity-orphan-has {
+    margin: 0;
+    font-size: var(--ffc-font-size-xs);
+}
+
+.ffc-page-identities .ffc-identity-orphan-present {
+    color: var(--ffc-success-text);
+}
+
+.ffc-page-identities .ffc-identity-orphan-missing {
+    color: var(--ffc-danger-text);
+    font-weight: 600;
+}
+
+@media (forced-colors: active) {
+    /* The chip paints a background and nothing else, so forced-colors
+       discards it and this category stops being tellable from the four above
+       — the one thing a chip exists to do. */
+    .ffc-page-identities .ffc-identity-chip-orphans {
+        border: 1px solid CanvasText;
+    }
 }

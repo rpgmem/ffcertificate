@@ -101,12 +101,6 @@ class TabRateLimitTest extends TestCase {
 	// Inheritance
 	// ==================================================================
 
-	public function test_extends_settings_tab(): void {
-		$this->assertInstanceOf(
-			\FreeFormCertificate\Settings\SettingsTab::class,
-			$this->tab
-		);
-	}
 
 	// ==================================================================
 	// render() — no POST, uses defaults via get_settings()

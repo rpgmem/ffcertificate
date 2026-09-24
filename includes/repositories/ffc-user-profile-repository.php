@@ -82,6 +82,43 @@ class UserProfileRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Which accounts the identity index files under one identifier hash.
+	 *
+	 * THE INDEX, WHICH IS THE ONLY PLACE THIS QUESTION IS CHEAP.
+	 *
+	 * The record stores answer "whose rows carry this" and the identity
+	 * screen already reads them that way. This answers the other half --
+	 * which account the index CLAIMS holds it -- which is what lets the
+	 * account-search dialog lead with the account that is probably the
+	 * answer instead of asking the operator to remember a number (#1397).
+	 *
+	 * The column is chosen from a closed list rather than interpolated,
+	 * because `%i` on a caller-supplied name would still let a typo compose
+	 * a statement against a column that does not exist.
+	 *
+	 * @since 6.28.4
+	 * @param string $column `cpf_hash` or `rf_hash`.
+	 * @param string $hash   The stored hash.
+	 * @return array<int, int> Account ids, in no particular order.
+	 */
+	public function findUserIdsByHash( string $column, string $hash ): array {
+		if ( ! in_array( $column, array( 'cpf_hash', 'rf_hash' ), true ) || '' === $hash ) {
+			return array();
+		}
+
+		$found = $this->wpdb->get_col(
+			$this->wpdb->prepare(
+				'SELECT user_id FROM %i WHERE %i = %s AND user_id > 0',
+				$this->table,
+				$column,
+				$hash
+			)
+		);
+
+		return array_values( array_unique( array_map( 'intval', (array) $found ) ) );
+	}
+
+	/**
 	 * Whether a profile row exists for the supplied user_id.
 	 * Cheaper than `findByUserId()` when the caller only needs the
 	 * boolean (no SELECT *).

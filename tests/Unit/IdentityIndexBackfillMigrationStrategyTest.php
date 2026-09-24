@@ -57,6 +57,13 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 	/** What the canonicalisation card reports as pending. */
 	private int $canonicalisation_pending = 0;
 
+	/**
+	 * The identity query the card asks for its conflict count.
+	 *
+	 * @var \Mockery\MockInterface
+	 */
+	private $conflicts;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -68,6 +75,12 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 		$this->source                   = array();
 		$this->options                  = array();
 		$this->canonicalisation_pending = 0;
+
+		// Answers null by default, which is what an install whose stores
+		// carry neither column reads -- and what the card must render as
+		// nothing rather than as "no conflicts".
+		$this->conflicts = Mockery::mock( 'FreeFormCertificate\\Maintenance\\IdentityConflictQuery' );
+		$this->conflicts->shouldReceive( 'multiple_identities_count' )->andReturn( null )->byDefault();
 
 		global $wpdb;
 		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();
@@ -189,17 +202,23 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 	 * The strategy, with only the cross-card question stubbed.
 	 */
 	private function strategy(): IdentityIndexBackfillMigrationStrategy {
-		$pending = &$this->canonicalisation_pending;
+		$pending   = &$this->canonicalisation_pending;
+		$conflicts = $this->conflicts;
 
-		return new class( $pending ) extends IdentityIndexBackfillMigrationStrategy {
+		return new class( $pending, $conflicts ) extends IdentityIndexBackfillMigrationStrategy {
 			/** @var int */
 			private int $pending;
 
+			/** @var \Mockery\MockInterface */
+			private $query;
+
 			/**
-			 * @param int $pending What the canonicalisation card reports.
+			 * @param int                     $pending   What the canonicalisation card reports.
+			 * @param \Mockery\MockInterface $conflicts Stand-in for the identity query.
 			 */
-			public function __construct( int $pending ) {
+			public function __construct( int $pending, $conflicts ) {
 				$this->pending = $pending;
+				$this->query   = $conflicts;
 			}
 
 			/**
@@ -207,6 +226,13 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 			 */
 			protected function canonicalisation_pending(): int {
 				return $this->pending;
+			}
+
+			/**
+			 * @return \FreeFormCertificate\Maintenance\IdentityConflictQuery
+			 */
+			protected function conflicts(): \FreeFormCertificate\Maintenance\IdentityConflictQuery {
+				return $this->query;
 			}
 		};
 	}
@@ -445,6 +471,62 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 		$state = $this->options['ffc_identity_index_backfill_state'] ?? array();
 
 		$this->assertArrayNotHasKey( 'completed', (array) $state, 'A stored completion flag is what made this card unable to re-arm.' );
+	}
+
+	/**
+	 * THE CARD CARRIES THE CONFLICTS WITHOUT SWALLOWING THEM (#1368).
+	 *
+	 * They travel as their own number, so the bar keeps meaning the walk's
+	 * progress. Folding them into `pending` would make one percentage mean
+	 * two things — walk position and a decision nobody has taken — and leave
+	 * the card permanently short of 100% behind a button that moves it by
+	 * zero, which is how an operator learns to ignore a card.
+	 */
+	public function test_the_conflicts_are_reported_beside_the_bar_not_inside_it(): void {
+		$this->source = array(
+			10 => array( 'rf_hash' => 'a' ),
+			20 => array( 'rf_hash' => 'b' ),
+		);
+		$this->conflicts->shouldReceive( 'multiple_identities_count' )->andReturn( 4 );
+
+		$status = $this->strategy()->calculate_status( 'identity_index_backfill', array() );
+
+		$this->assertSame( 4, $status['conflicts'], 'The count must reach the card.' );
+		$this->assertSame( 2, $status['pending'], 'The conflicts must not be added to the walk.' );
+		$this->assertSame( 2, $status['total'], 'Nor to the total.' );
+	}
+
+	/**
+	 * A walk that finished still completes, with conflicts outstanding.
+	 *
+	 * The two are different questions: this card fills what a backfill may
+	 * decide, and an account holding two different numbers is not that. A
+	 * bar that refused to close would be reporting somebody else's work as
+	 * its own unfinished business.
+	 */
+	public function test_conflicts_do_not_stop_the_walk_completing(): void {
+		$this->source = array();
+		$this->conflicts->shouldReceive( 'multiple_identities_count' )->andReturn( 9 );
+
+		$status = $this->strategy()->calculate_status( 'identity_index_backfill', array() );
+
+		$this->assertTrue( $status['is_complete'], 'The walk is what this bar measures.' );
+		$this->assertSame( 9, $status['conflicts'], 'And the conflicts are still reported.' );
+	}
+
+	/**
+	 * An unread count stays null all the way to the markup.
+	 *
+	 * Zero and "nothing could be read" are different answers, and only one
+	 * of them lets a screen say there are no conflicts.
+	 */
+	public function test_an_unreadable_conflict_count_is_null_and_not_zero(): void {
+		$this->source = array();
+
+		$status = $this->strategy()->calculate_status( 'identity_index_backfill', array() );
+
+		$this->assertArrayHasKey( 'conflicts', $status );
+		$this->assertNull( $status['conflicts'] );
 	}
 
 	public function test_status_reports_the_walk_rather_than_the_content(): void {

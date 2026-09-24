@@ -9,8 +9,8 @@
    1. CORE INPUT STYLE
    ========================================================================== */
 .ffc-shortcode .ffc-input {
-    width: 100% !important; /* ← 100% do field (que já está em 450px) */
-    max-width: none !important; /* ← Remove limitação antiga */
+    width: 100% !important; /* ← 100% of the field (already 450px) */
+    max-width: none !important; /* ← Drops the old cap */
     height: 45px !important;
     padding: var(--ffc-spacing-md) var(--ffc-spacing-lg) !important;
     border: 1px solid var(--ffc-border) !important;
@@ -533,9 +533,9 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-captcha-row .ffc-input {
-    /* O par repete o da regra base de `.ffc-input` de propósito: uma regra que
-       repinta o fundo de um controle carrega as duas metades, para que elas não
-       possam divergir depois. Um controle não herda `color` (#1126). */
+    /* The pair repeats `.ffc-input`'s base rule on purpose: a rule that
+       repaints a control's ground carries both halves, so they cannot diverge
+       later. A control does not inherit `color` (#1126). */
     color: var(--ffc-text);
     border: 2px solid var(--ffc-primary) !important; /* ← DESTAQUE: borda azul mais grossa */
     background: var(--ffc-bg-input) !important;
@@ -779,8 +779,8 @@ details.ffc-consent-description > p {
     font-size: var(--ffc-font-size-2xl);
     font-weight: 600;
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xl);
-    /* Véu branco translúcido sobre o gradiente colorido do cartão: é uma
-       camada sobre a cor que estiver embaixo, não um papel da paleta (#1126). */
+    /* Translucent white veil over the card's coloured gradient: a layer over
+       whatever colour is underneath, not a palette role (#1126). */
     background: rgba(255, 255, 255, 0.2);
     border-radius: 20px;
     -webkit-backdrop-filter: blur(10px);
@@ -788,7 +788,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-status-badge.ffc-status-badge-success {
-    /* Véu translúcido sobre o gradiente do cartão, como o irmão acima (#1126). */
+    /* Translucent veil over the card's gradient, like the sibling above (#1126). */
     background: rgba(212, 237, 218, 0.3);
 }
 
@@ -808,7 +808,7 @@ details.ffc-consent-description > p {
 }
 
 .ffc-shortcode .ffc-status-badge.ffc-status-badge-error {
-    /* Véu translúcido sobre o gradiente do cartão, como os irmãos acima (#1126). */
+    /* Translucent veil over the card's gradient, like the siblings above (#1126). */
     background: rgba(252, 240, 241, 0.25);
 }
 
@@ -1803,9 +1803,9 @@ details.ffc-consent-description > p {
     gap: var(--ffc-spacing-sm);
 }
 
-/* 26px literal: caixa de glifo, não texto — um ícone ou um `&times;`
-   dimensionado por font-size é uma caixa, e a escala tipográfica não o
-   governa. Mesma razão do .ffc-stat-icon (#1148 etapa 1). */
+/* 26px literal: a glyph box, not text — an icon or a `&times;` sized by
+   font-size is a box, and the typography scale does not govern it. Same
+   reason as .ffc-stat-icon (#1148 step 1). */
 .ffc-open-early-close {
     background: none;
     border: none;
@@ -2042,11 +2042,11 @@ details.ffc-consent-description > p {
     background: #fff;
 }
 
-/* As quatro regras de modo escuro que viviam aqui foram removidas no #1126:
-   elas casavam `[data-ffc-theme="dark"]`, atributo que NADA no plugin define —
-   nem PHP, nem template, nem JS. Eram tratamento de tema inerte, com aparência
-   de tratamento existente. Os alertas acima passam a seguir a paleta, e com ela
-   o `.ffc-dark-mode` de verdade. */
+/* The four dark-mode rules that lived here were removed in #1126: they
+   matched `[data-ffc-theme="dark"]`, an attribute NOTHING in the plugin sets
+   — not PHP, not a template, not JS. They were inert theme handling wearing
+   the look of handling that existed. The alerts above now follow the palette,
+   and with it the real `.ffc-dark-mode`. */
 
 /* ============================================
    REDUCED MOTION
@@ -2091,8 +2091,8 @@ details.ffc-consent-description > p {
     box-shadow: var(--ffc-shadow-sm);
 }
 
-/* 26px literal: o glifo do ícone de aviso — caixa de glifo, não texto.
-   Mesma razão do .ffc-open-early-close acima. */
+/* 26px literal: the warning icon's glyph — a glyph box, not text. Same
+   reason as .ffc-open-early-close above. */
 .ffc-webview-warning-icon {
     font-size: 26px;
     line-height: 1;
@@ -2260,9 +2260,9 @@ details.ffc-consent-description > p {
 }
 
 /* ==========================================================================
-   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
-   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
-   O mecanismo está explicado em ffc-common.css (#1165).
+   ACCESSIBILITY — HIGH CONTRAST (forced-colors)
+   Gives a border back to whatever had only a background. No effect outside
+   forced-colors mode. The mechanism is explained in ffc-common.css (#1165).
    ========================================================================== */
 
 @media (forced-colors: active) {
@@ -2275,8 +2275,8 @@ details.ffc-consent-description > p {
         border: 1px solid ButtonText;
     }
 
-    /* Selos de estado: o texto continua dizendo o estado; a borda
-       devolve a eles a forma de selo. */
+    /* Status badges: the text still says the state; the border
+       gives them their badge shape back. */
     .ffc-shortcode .ffc-status-badge,
     .ffc-shortcode .ffc-status-badge.ffc-status-badge-error,
     .ffc-shortcode .ffc-status-badge.ffc-status-badge-success,
