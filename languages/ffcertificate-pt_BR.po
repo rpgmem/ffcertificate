@@ -22734,3 +22734,8 @@ msgstr "Estes registros carregam um identificador que não pertence a login nenh
 
 msgid "These records carry an identifier that belongs to no login, and no account files it either — so this one needs an account opened rather than a link made."
 msgstr "Estes registros carregam um identificador que não pertence a login nenhum, e nenhuma conta arquiva esse identificador — então este precisa de uma conta aberta e não de um vínculo."
+
+msgid "%s resolved since this queue was read"
+msgid_plural "%s resolved since this queue was read"
+msgstr[0] "%s resolvido desde que esta fila foi lida"
+msgstr[1] "%s resolvidos desde que esta fila foi lida"
