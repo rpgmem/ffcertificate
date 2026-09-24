@@ -35,9 +35,8 @@
     color: var(--ffc-primary);
 }
 
-/* 36px literal: número-herói do card, deliberadamente acima da escala de
-   texto, pareado com o ícone de 32px ao lado. Um degrau usado uma vez não
-   é escala. */
+/* 36px literal: the card's hero number, deliberately above the text scale,
+   paired with the 32px icon beside it. A rung used once is not a scale. */
 .ffc-stat-value {
     font-size: 36px;
     font-weight: 600;
@@ -77,17 +76,18 @@
     flex-wrap: wrap;
 }
 
-/* Status Badges — nome próprio desde o #1162.
-   Antes chamavam-se `.ffc-status-badge` + `.ffc-status-<estado>`, e o
-   `.ffc-status-cancelled` daqui colidia com o do `ffc-calendar-admin.css` na
-   tela de Agendamentos: Appointments é submenu de `ffc-scheduling`, então o
-   gate desta folha (`strpos($hook, 'ffc-scheduling')`) casa lá também, as duas
-   carregam sem aresta de dependência entre si e a ordem decidia a cor.
-   A forma abaixo é declarada por inteiro de propósito: as quatro propriedades
-   que faltavam (`display`, `text-transform`, `letter-spacing`, `white-space`)
-   vinham por herança acidental de `ffc-common.css` e `ffc-admin-submissions.css`
-   -- esta última carrega em TODA página `?page=ffc-*`, não só em submissões.
-   Declarar o conjunto mantém o render idêntico e o torna intencional. */
+/* Status Badges — a name of their own since #1162.
+   They used to be `.ffc-status-badge` + `.ffc-status-<state>`, and this
+   sheet's `.ffc-status-cancelled` collided with `ffc-calendar-admin.css`'s on
+   the Appointments screen: Appointments is a submenu of `ffc-scheduling`, so
+   this sheet's gate (`strpos($hook, 'ffc-scheduling')`) matches there too, both
+   load with no dependency edge between them, and order decided the colour.
+   The shape below is declared in full on purpose: the four properties that
+   were missing (`display`, `text-transform`, `letter-spacing`, `white-space`)
+   arrived by accidental inheritance from `ffc-common.css` and
+   `ffc-admin-submissions.css` -- the latter loads on EVERY `?page=ffc-*`
+   screen, not only on submissions. Declaring the whole set keeps the render
+   identical and makes it intentional. */
 .ffc-audience-status {
     display: inline-block;
     padding: 3px var(--ffc-spacing-sm);
@@ -481,11 +481,11 @@
    ADMIN MENU — Submenu separators & dashicon labels
    Migrated from class-ffc-audience-admin-page.php (Sprint 2)
 
-   AS CORES AQUI FICAM LITERAIS, de propósito (#1126). O `#adminmenu` é do
-   WordPress e segue o *esquema de cores* que cada usuário escolhe no perfil
-   dele — nada a ver com o modo escuro do plugin. Pintar estes separadores com
-   a paleta faria eles brigarem com o esquema escolhido, e num esquema claro o
-   `rgba(255,255,255,.1)` continua sendo o que o próprio core usa ali.
+   THE COLOURS HERE STAY LITERAL, on purpose (#1126). `#adminmenu` belongs to
+   WordPress and follows the *colour scheme* each user picks in their own
+   profile — nothing to do with the plugin's dark mode. Painting these
+   separators from the palette would make them fight the chosen scheme, and in
+   a light scheme `rgba(255,255,255,.1)` is still what core itself uses there.
    ========================================================================== */
 #adminmenu .wp-submenu a[href^="#ffc-separator-"] {
     pointer-events: none;
@@ -655,14 +655,14 @@
 }
 
 /* ==========================================================================
-   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
-   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
-   O mecanismo está explicado em ffc-common.css (#1165).
+   ACCESSIBILITY — HIGH CONTRAST (forced-colors)
+   Gives a border back to whatever had only a background. No effect outside
+   forced-colors mode. The mechanism is explained in ffc-common.css (#1165).
    ========================================================================== */
 
 @media (forced-colors: active) {
-    /* Selos de estado: o texto continua dizendo o estado; a borda
-       devolve a eles a forma de selo. */
+    /* Status badges: the text still says the state; the border
+       gives them their badge shape back. */
     .ffc-audience-status-active,
     .ffc-audience-status-cancelled,
     .ffc-audience-status-inactive {

@@ -70,7 +70,7 @@ class CapabilityMigrator {
 		$ids = get_users(
 			array(
 				'fields'       => 'ID',
-				'meta_key'     => $wpdb->get_blog_prefix() . 'capabilities', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- A meta de capabilities e indexada por `meta_key`; esta consulta existe justamente para NAO varrer todos os usuarios (#1254).
+				'meta_key'     => $wpdb->get_blog_prefix() . 'capabilities', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- The capabilities meta is indexed by `meta_key`; this query exists precisely so that every user does NOT have to be scanned (#1254).
 				'meta_value'   => 'ffc_', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Prefiltro deliberado; ver o docblock.
 				'meta_compare' => 'LIKE',
 				'orderby'      => 'ID',

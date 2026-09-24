@@ -234,10 +234,10 @@
     overflow: hidden;
 }
 
-/* 10px literal, e 9px no @media adiante: o selo cabe DENTRO da célula de um
-   dia do calendário — é dimensionado pelo espaço, não para ser lido como
-   texto, e tem o próprio passo responsivo. Mapear os dois para `2xs` (11px)
-   tornaria aquele @media um no-op, pior que a deriva que ele corrige. */
+/* 10px literal, and 9px in the @media below: the badge fits INSIDE a calendar
+   day's cell — it is sized by the space, not to be read as text, and it has a
+   responsive step of its own. Mapping both to `2xs` (11px) would make that
+   @media a no-op, which is worse than the drift it corrects. */
 .ffc-shortcode .ffc-day-badge {
     display: inline-block;
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
@@ -336,9 +336,9 @@
 
 /* Buttons — base classes consolidated in ffc-common.css */
 
-/* Modal — movido para ffc-common.css (#1140): componente compartilhado,
-   e o dashboard é o terceiro consumidor. `ffc-common` é dependência desta
-   folha, então quem já usava o modal continua recebendo as mesmas regras. */
+/* Modal — moved to ffc-common.css (#1140): a shared component, and the
+   dashboard is its third consumer. `ffc-common` is a dependency of this sheet,
+   so whoever already used the modal still receives the same rules. */
 
 /* Form Styles */
 .ffc-shortcode .ffc-form-group {
@@ -828,14 +828,14 @@
 }
 
 /* ==========================================================================
-   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
-   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
-   O mecanismo está explicado em ffc-common.css (#1165).
+   ACCESSIBILITY — HIGH CONTRAST (forced-colors)
+   Gives a border back to whatever had only a background. No effect outside
+   forced-colors mode. The mechanism is explained in ffc-common.css (#1165).
    ========================================================================== */
 
 @media (forced-colors: active) {
-    /* Selos de estado: o texto continua dizendo o estado; a borda
-       devolve a eles a forma de selo. */
+    /* Status badges: the text still says the state; the border
+       gives them their badge shape back. */
     .ffc-shortcode .ffc-badge-bookings,
     .ffc-shortcode .ffc-badge-closed,
     .ffc-shortcode .ffc-badge-holiday {

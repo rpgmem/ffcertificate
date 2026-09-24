@@ -9,8 +9,8 @@
    1. CORE INPUT STYLE
    ========================================================================== */
 .ffc-shortcode .ffc-input {
-    width: 100% !important; /* ← 100% do field (que já está em 450px) */
-    max-width: none !important; /* ← Remove limitação antiga */
+    width: 100% !important; /* ← 100% of the field (already 450px) */
+    max-width: none !important; /* ← Drops the old cap */
     height: 45px !important;
     padding: var(--ffc-spacing-md) var(--ffc-spacing-lg) !important;
     border: 1px solid var(--ffc-border) !important;
@@ -2260,9 +2260,9 @@ details.ffc-consent-description > p {
 }
 
 /* ==========================================================================
-   ACESSIBILIDADE — ALTO CONTRASTE (forced-colors)
-   Devolve o limite a quem só tinha fundo. Sem efeito fora do modo forçado.
-   O mecanismo está explicado em ffc-common.css (#1165).
+   ACCESSIBILITY — HIGH CONTRAST (forced-colors)
+   Gives a border back to whatever had only a background. No effect outside
+   forced-colors mode. The mechanism is explained in ffc-common.css (#1165).
    ========================================================================== */
 
 @media (forced-colors: active) {
@@ -2275,8 +2275,8 @@ details.ffc-consent-description > p {
         border: 1px solid ButtonText;
     }
 
-    /* Selos de estado: o texto continua dizendo o estado; a borda
-       devolve a eles a forma de selo. */
+    /* Status badges: the text still says the state; the border
+       gives them their badge shape back. */
     .ffc-shortcode .ffc-status-badge,
     .ffc-shortcode .ffc-status-badge.ffc-status-badge-error,
     .ffc-shortcode .ffc-status-badge.ffc-status-badge-success,

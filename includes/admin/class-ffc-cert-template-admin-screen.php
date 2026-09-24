@@ -779,7 +779,7 @@ class CertTemplateAdminScreen {
 		<div class="ffc-input-group ffc-mt-xl">
 			<label class="ffc-block-label" for="ffc_template_bg_image"><strong><?php esc_html_e( 'Background Image URL:', 'ffcertificate' ); ?></strong></label>
 			<input type="text" name="ffc_template_bg_image" id="ffc_template_bg_image" value="<?php echo esc_url( $bg_image ); ?>" class="ffc-w100" <?php wp_readonly( $is_default, true ); ?>>
-			<?php // Preenchido por `ffc-admin-pdf.js` quando o botao "Background Image" escolhe uma imagem; vazio ate la. ?>
+			<?php // Filled in by `ffc-admin-pdf.js` when the "Background Image" button picks an image; empty until then. ?>
 			<div id="ffc_bg_image_preview"></div>
 		</div>
 		<?php
