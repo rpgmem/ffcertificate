@@ -1289,6 +1289,18 @@ p.ffc-datetime-order-error {
     white-space: nowrap;
 }
 
+/* WHAT HAS BEEN DONE, BESIDE WHAT IS LEFT (#1407 sprint 4).
+
+   Not a counter chip: those five are categories of work remaining, and
+   giving this one the same shape would make it read as a sixth category. It
+   is the same weight as the total it sits beside, in the success colour,
+   because it is the only number on this strip that goes UP. */
+.ffc-page-identities .ffc-identity-counts-done {
+    color: var(--ffc-success-text);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
 .ffc-page-identities .ffc-identity-counts-note {
     margin: 0;
 }

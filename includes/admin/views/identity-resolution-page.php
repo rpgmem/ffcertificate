@@ -18,6 +18,7 @@
  * @var bool                                                     $ffc_identity_may_split Whether the operator may open an account.
  * @var bool                                                     $ffc_identity_may_merge Whether the operator may merge two.
  * @var string                                                   $ffc_identity_export_url The audit CSV, or '' without the capability.
+ * @var int                                                      $ffc_identity_resolved   Findings resolved since the queue was read.
  */
 
 // No `declare(strict_types=1)` here on purpose: none of the 17 view and
@@ -439,6 +440,28 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				<span class="ffc-identity-count ffc-identity-chip-orphans">
 					<?php esc_html_e( 'No account', 'ffcertificate' ); ?>
 					<strong><?php echo esc_html( number_format_i18n( count( $ffc_identity_orphans ) ) ); ?></strong>
+				</span>
+			<?php endif; ?>
+			<?php
+			// WHAT HAS BEEN DONE, BESIDE WHAT IS LEFT, AND BOTH FROM THE SAME
+			// INSTANT.
+			//
+			// The window is the held queue's own: `N left` counts the list
+			// taken at `$ffc_identity_taken_at`, so the only number that can
+			// sit beside it honestly is one measured from there. Reading the
+			// queue again resets the two together, which is the gesture that
+			// begins a new round. Zero is not rendered -- an operator who has
+			// resolved nothing yet does not need to be told so.
+			?>
+			<?php if ( $ffc_identity_resolved > 0 ) : ?>
+				<span class="ffc-identity-counts-done">
+					<?php
+					printf(
+						/* translators: %s: how many findings this operator has resolved since the queue was read. */
+						esc_html( _n( '%s resolved since this queue was read', '%s resolved since this queue was read', $ffc_identity_resolved, 'ffcertificate' ) ),
+						esc_html( number_format_i18n( $ffc_identity_resolved ) )
+					);
+					?>
 				</span>
 			<?php endif; ?>
 			<span class="description ffc-identity-counts-note">

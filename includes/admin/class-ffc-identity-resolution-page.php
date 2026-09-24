@@ -15,6 +15,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\ActivityLogQuery;
 use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
@@ -445,6 +446,90 @@ class IdentityResolutionPage {
 	 */
 	public function truncated(): array {
 		return $this->truncated;
+	}
+
+	/**
+	 * The five actions that resolve a finding on this screen.
+	 *
+	 * DECLARED HERE, MEASURED ELSEWHERE.
+	 *
+	 * Each name is written in the service that logs it -- five classes under
+	 * `Maintenance`, one verb each -- so a list of them here is a claim about
+	 * a value five other files own, which is the shape `CLAUDE.md` records as
+	 * going stale in silence. `IdentityResolutionPageTest` reads the services
+	 * and fails when this list and what they log disagree in either
+	 * direction, so a sixth verb cannot be added without the counter learning
+	 * about it.
+	 *
+	 * @since 6.28.4
+	 * @var array<int, string>
+	 */
+	public const RESOLVED_ACTIONS = array(
+		'identity_rf_repaired',
+		'identity_records_relinked',
+		'identity_records_split',
+		'identity_accounts_merged',
+		'identity_orphans_adopted',
+	);
+
+	/**
+	 * How many findings this operator has resolved since the held queue was
+	 * taken.
+	 *
+	 * THE WINDOW IS THE QUEUE'S OWN, NOT A CLOCK'S.
+	 *
+	 * `N remaining` is a count of the list that was taken at
+	 * `$taken_at` and is held still while it is worked, so the only number
+	 * that can sit beside it honestly is one measured from the same instant.
+	 * A rolling window -- the last day, since login -- would drift out of
+	 * step with the list on screen and start counting a different sitting's
+	 * work; reading the queue again resets both together, which is exactly
+	 * the gesture that begins a new round.
+	 *
+	 * SCOPED TO THE OPERATOR, because the held list is theirs: another
+	 * operator resolving findings does not shrink this one, so counting their
+	 * work here would explain nothing about the list in front of this one.
+	 *
+	 * @since 6.28.4
+	 * @param int $taken_at When the queue was read, as a unix timestamp.
+	 * @return int
+	 */
+	public function resolved_since( int $taken_at ): int {
+		if ( $taken_at <= 0 ) {
+			return 0;
+		}
+
+		// `ffc_activity_log.created_at` is a WALL-CLOCK `DATETIME` written by
+		// `current_time( 'mysql' )`, so the bound has to be in the same frame
+		// or the comparison is off by the site's offset. This is the
+		// documented reason `CLAUDE.md` allows for reaching for `wp_date()`
+		// outside `DateFormatter`: it is not display, it is a query bound
+		// that must match how the column was written.
+		$since = wp_date( 'Y-m-d H:i:s', $taken_at );
+
+		if ( ! is_string( $since ) || '' === $since ) {
+			return 0;
+		}
+
+		$operator = get_current_user_id();
+		$done     = 0;
+
+		// One counted query per verb rather than a new Core method taking a
+		// list: `count_activities()` already answers this question, and a
+		// second consumer is what would earn widening it (the #788 / #993
+		// criterion). Five indexed counts are nothing beside the decrypting
+		// scan this screen already ran to build the queue.
+		foreach ( self::RESOLVED_ACTIONS as $action ) {
+			$done += ActivityLogQuery::count_activities(
+				array(
+					'action'    => $action,
+					'user_id'   => $operator,
+					'date_from' => $since,
+				)
+			);
+		}
+
+		return $done;
 	}
 
 	/**
@@ -1054,6 +1139,7 @@ class IdentityResolutionPage {
 		$ffc_identity_coverage  = $this->coverage();
 		$ffc_identity_capped    = $this->truncated();
 		$ffc_identity_taken_at  = $this->taken_at();
+		$ffc_identity_resolved  = $this->resolved_since( $ffc_identity_taken_at );
 		$ffc_identity_may_split = Capabilities::current_user_can_admin_or( self::SPLIT_CAPABILITY );
 		$ffc_identity_may_merge = Capabilities::current_user_can_admin_or( self::MERGE_CAPABILITY );
 		$ffc_identity_panels    = IdentityQueuePanels::build(

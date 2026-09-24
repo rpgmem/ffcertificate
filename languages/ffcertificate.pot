@@ -22643,3 +22643,8 @@ msgstr ""
 
 msgid "These records carry an identifier that belongs to no login, and no account files it either — so this one needs an account opened rather than a link made."
 msgstr ""
+
+msgid "%s resolved since this queue was read"
+msgid_plural "%s resolved since this queue was read"
+msgstr[0] ""
+msgstr[1] ""

@@ -885,4 +885,81 @@ class IdentityResolutionPageTest extends TestCase {
 			'The orphan card must still distinguish an identifier some account files from one none does.'
 		);
 	}
+
+	/**
+	 * The resolved counter knows every verb the screen has (#1407 sprint 4).
+	 *
+	 * `RESOLVED_ACTIONS` is a list of names written in five OTHER files, one
+	 * per service — the shape `CLAUDE.md` records as going stale in silence,
+	 * because nothing makes a constant and the code it describes disagree
+	 * loudly. So the services are the measurement and the constant is checked
+	 * against them, in BOTH directions: a sixth verb that logs an
+	 * `identity_*` action fails here rather than being quietly uncounted, and
+	 * a name left in the list after its service stopped logging it fails too.
+	 */
+	public function test_the_resolved_counter_names_every_identity_verb(): void {
+		$dir = __DIR__ . '/../../includes/maintenance/';
+
+		$logged = array();
+
+		foreach ( (array) glob( $dir . '*.php' ) as $file ) {
+			$source = (string) file_get_contents( (string) $file );
+
+			// The call is `ActivityLog::log(` and the action is its first
+			// argument, on the next line in every one of these services —
+			// matched across the newline rather than line by line, because a
+			// one-line scan sees the call and not the name.
+			if ( preg_match_all( "/ActivityLog::log\(\s*'(identity_\w+)'/", $source, $found ) ) {
+				$logged = array_merge( $logged, $found[1] );
+			}
+		}
+
+		sort( $logged );
+		$logged = array_values( array_unique( $logged ) );
+
+		$this->assertNotEmpty( $logged, 'The scan found no identity verb at all, so it proves nothing.' );
+
+		$declared = IdentityResolutionPage::RESOLVED_ACTIONS;
+		sort( $declared );
+
+		$this->assertSame(
+			$logged,
+			$declared,
+			'The resolved counter and the services that log a resolution must name the same verbs.'
+		);
+	}
+
+	/**
+	 * The window is the held queue's, and an unread queue counts nothing.
+	 *
+	 * A rolling window would drift out of step with `N left` — which counts
+	 * the list taken at that instant and held still — and start reporting a
+	 * different sitting's work beside it. The two must reset together, which
+	 * is what `Read the queue again` does.
+	 */
+	public function test_the_resolved_count_is_measured_from_the_queue_it_sits_beside(): void {
+		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertStringContainsString(
+			'$ffc_identity_resolved  = $this->resolved_since( $ffc_identity_taken_at );',
+			$page,
+			'The count must be measured from when the queue was taken, never from a clock.'
+		);
+		$this->assertStringContainsString(
+			'if ( $taken_at <= 0 ) {',
+			$page,
+			'A queue that was never read has no window, so it counts nothing.'
+		);
+		$this->assertStringContainsString(
+			"'user_id'   => \$operator,",
+			$page,
+			"The held list is this operator's, so another operator's work explains nothing about it."
+		);
+		$this->assertStringContainsString(
+			'$ffc_identity_resolved > 0',
+			$view,
+			'An operator who has resolved nothing yet does not need to be told so.'
+		);
+	}
 }
