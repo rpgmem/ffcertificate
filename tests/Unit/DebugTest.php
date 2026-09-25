@@ -228,6 +228,83 @@ class DebugTest extends TestCase {
 		$this->assertStringContainsString( 'foo=bar', $this->logged[0] );
 	}
 
+	/**
+	 * A secret in the FRAGMENT is the shape this plugin actually emits.
+	 *
+	 * `url_carries_secret()` accepts a token anywhere in the string, but
+	 * `strip_secret_query()` required `?` or `&` before the parameter and
+	 * stopped its value at `#` -- so a magic link, whose token rides the
+	 * fragment by design (`/valid/#token=...`), was recognised as carrying a
+	 * secret and then redacted by nothing. Observed on the testes host with
+	 * every area enabled: a full 64-character bearer token in `debug.log`,
+	 * beside a `token_preview` key the same payload had masked correctly.
+	 *
+	 * The query case above passed throughout, which is why this went unseen.
+	 *
+	 * @dataProvider provide_fragment_urls
+	 *
+	 * @param string $url    A URL carrying a secret in its fragment.
+	 * @param string $secret The value that must not reach the log.
+	 */
+	public function test_a_secret_in_the_url_fragment_is_redacted( string $url, string $secret ): void {
+		$this->enable_area( Debug::AREA_PDF_GENERATOR );
+		Debug::log( Debug::AREA_PDF_GENERATOR, 'Built URL', array(
+			'target_url' => $url,
+		) );
+		$this->assertStringNotContainsString( $secret, $this->logged[0] );
+		$this->assertStringContainsString( '[redacted]', $this->logged[0] );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public static function provide_fragment_urls(): array {
+		return array(
+			'magic link, the observed shape' => array(
+				'https://example.com/valid/#token=413ce1e0fc2cbd942409e40b660502aa',
+				'413ce1e0fc2cbd942409e40b660502aa',
+			),
+			'64-character token'             => array(
+				'https://example.com/valid/#token=7f60e3424089defd92eba830281a5eb7bb52c6edb4a502bfcb4ecea5c23d4e49',
+				'7f60e3424089defd92eba830281a5eb7bb52c6edb4a502bfcb4ecea5c23d4e49',
+			),
+			'magic_token in the fragment'    => array(
+				'https://example.com/valid/#magic_token=tok_fragment_secret',
+				'tok_fragment_secret',
+			),
+			'auth_code in the fragment'      => array(
+				'https://example.com/valid/#auth_code=C-7TG0MDMX63NT',
+				'C-7TG0MDMX63NT',
+			),
+		);
+	}
+
+	/**
+	 * A fragment carrying more than one parameter keeps the ones that are not
+	 * secret, so the redaction narrows the log rather than emptying it.
+	 */
+	public function test_redacting_a_fragment_secret_keeps_its_neighbours(): void {
+		$this->enable_area( Debug::AREA_PDF_GENERATOR );
+		Debug::log( Debug::AREA_PDF_GENERATOR, 'Built URL', array(
+			'target_url' => 'https://example.com/valid/#token=abc123xyz&view=print',
+		) );
+		$this->assertStringNotContainsString( 'abc123xyz', $this->logged[0] );
+		$this->assertStringContainsString( 'view=print', $this->logged[0] );
+	}
+
+	/**
+	 * A query secret must not eat the fragment that follows it -- the reason
+	 * the value pattern stops at `#` in the first place.
+	 */
+	public function test_a_query_secret_does_not_consume_the_fragment(): void {
+		$this->enable_area( Debug::AREA_PDF_GENERATOR );
+		Debug::log( Debug::AREA_PDF_GENERATOR, 'Built URL', array(
+			'target_url' => 'https://example.com/valid?token=abc123xyz#section-2',
+		) );
+		$this->assertStringNotContainsString( 'abc123xyz', $this->logged[0] );
+		$this->assertStringContainsString( '#section-2', $this->logged[0] );
+	}
+
 	public function test_log_preserves_non_sensitive_fields(): void {
 		$this->enable_area( Debug::AREA_ADMIN );
 		Debug::log( Debug::AREA_ADMIN, 'Op', array(
@@ -422,13 +499,105 @@ class DebugTest extends TestCase {
 	}
 
 	/**
+	 * A logged FILENAME may not carry the auth code the same payload masks.
+	 *
+	 * `PdfGenerator` logged `auth_code` (masked by the sink) beside
+	 * `filename`, which is `certificado_{form_id}_{auth_code}.pdf` -- so the
+	 * code the redactor had just hidden was printed in full one line below it,
+	 * observed on the testes host. The sink cannot fix this: `filename` is not
+	 * sensitive in general, a CSV export's is not, so the redaction belongs at
+	 * the call site that holds the code.
+	 *
+	 * Two directions, because a scan that finds nothing must not read as clean:
+	 * the register below names every Debug payload carrying a `filename` key,
+	 * and none of them may pass it unredacted.
+	 */
+	public function test_no_debug_payload_logs_a_filename_carrying_its_auth_code(): void {
+		$root  = dirname( __DIR__, 2 ) . '/includes';
+		$found = array();
+		$raw   = array();
+
+		$it = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $root, \FilesystemIterator::SKIP_DOTS ) );
+		foreach ( $it as $file ) {
+			if ( ! $file instanceof \SplFileInfo || 'php' !== $file->getExtension() ) {
+				continue;
+			}
+
+			$relative = str_replace( dirname( __DIR__, 2 ) . '/', '', $file->getPathname() );
+			$src      = (string) file_get_contents( $file->getPathname() );
+
+			foreach ( $this->debug_log_payloads( $src ) as $args ) {
+				if ( ! preg_match_all( '/[\'"]filename[\'"]\s*=>\s*([^,\n]*)/', $args, $m ) ) {
+					continue;
+				}
+
+				foreach ( $m[1] as $expression ) {
+					$found[] = $relative;
+
+					if ( ! str_contains( $expression, 'str_replace' ) && ! str_contains( $expression, 'redact' ) ) {
+						$raw[] = $relative . ': ' . trim( $expression );
+					}
+				}
+			}
+		}
+
+		$this->assertSame(
+			array( 'includes/generators/class-ffc-pdf-generator.php' ),
+			array_values( array_unique( $found ) ),
+			'The register of Debug payloads carrying a `filename` key no longer matches the tree.'
+				. ' A new one means it needs the same redaction; one fewer means the scan stopped reaching it.'
+		);
+
+		$this->assertSame(
+			array(),
+			array_values( array_unique( $raw ) ),
+			'A Debug payload logs a filename built from an auth code, so the code reaches `debug.log` in full'
+				. " beside the masked copy the sink produced:\n  " . implode( "\n  ", array_unique( $raw ) )
+		);
+	}
+
+	/**
 	 * Every `Debug::log_*( … )` argument list in one file, paren-matched.
+	 *
+	 * Comments are stripped first, and that is load-bearing rather than tidy:
+	 * the matcher tracks quotes so a paren inside a string cannot move its
+	 * depth, and an apostrophe in a comment is therefore read as opening a
+	 * string. One such comment made the scan run past its own payload into the
+	 * next array and report a finding from a statement that is not logged at
+	 * all -- the quote-parity trap `CLAUDE.md` records for the CSS scanners,
+	 * reached here from the other side. A comment can never contain a payload,
+	 * so removing them loses nothing.
 	 *
 	 * @param string $src PHP source.
 	 * @return array<int, string>
 	 */
+	/**
+	 * `$src` with every comment replaced by a newline.
+	 *
+	 * Tokenised rather than matched, because deciding where a comment ends is
+	 * the same problem as deciding where a string ends.
+	 *
+	 * @param string $src PHP source.
+	 * @return string Source with comments removed.
+	 */
+	private function without_comments( string $src ): string {
+		$out = '';
+
+		foreach ( token_get_all( $src ) as $token ) {
+			if ( is_array( $token ) && in_array( $token[0], array( T_COMMENT, T_DOC_COMMENT ), true ) ) {
+				$out .= "\n";
+				continue;
+			}
+
+			$out .= is_array( $token ) ? $token[1] : $token;
+		}
+
+		return $out;
+	}
+
 	private function debug_log_payloads( string $src ): array {
 		$out = array();
+		$src = $this->without_comments( $src );
 
 		if ( ! preg_match_all( '/Debug::log_[a-z_]+\s*\(/', $src, $m, PREG_OFFSET_CAPTURE ) ) {
 			return $out;

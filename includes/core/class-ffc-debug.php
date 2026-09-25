@@ -275,14 +275,26 @@ class Debug {
 	}
 
 	/**
-	 * Replace the value of any sensitive query parameter in `$url`
-	 * with `[redacted]`. Works on full URLs and bare query strings.
+	 * Replace the value of any sensitive parameter in `$url` with
+	 * `[redacted]`. Works on full URLs, bare query strings and fragments.
+	 *
+	 * `#` is a leading delimiter and not only a terminator, because a magic
+	 * link carries its token in the FRAGMENT by design (`/valid/#token=...`):
+	 * a pattern anchored on `?` or `&` alone matched nothing there, while
+	 * {@see url_carries_secret} accepted the URL, so the value was recognised
+	 * as a secret and then redacted by nobody. Observed on the testes host --
+	 * a full 64-character bearer token in `debug.log`, beside a masked
+	 * `token_preview` in the same payload.
+	 *
+	 * `[^&#]*` still stops the VALUE at `#`, so a secret in the query does not
+	 * swallow the fragment that follows it. Both directions are pinned in
+	 * `DebugTest`.
 	 *
 	 * @param string $url URL or query string.
 	 * @return string URL with sensitive parameter values replaced.
 	 */
 	private static function strip_secret_query( string $url ): string {
-		$pattern = '/([?&])(' . implode( '|', array_map( 'preg_quote', self::SENSITIVE_URL_PARAMS ) ) . ')=[^&#]*/i';
+		$pattern = '/([?&#])(' . implode( '|', array_map( 'preg_quote', self::SENSITIVE_URL_PARAMS ) ) . ')=[^&#]*/i';
 		$result  = preg_replace( $pattern, '$1$2=[redacted]', $url );
 		return is_string( $result ) ? $result : $url;
 	}
