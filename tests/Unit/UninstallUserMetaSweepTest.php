@@ -231,26 +231,33 @@ class UninstallUserMetaSweepTest extends TestCase {
 			'No literal user-meta key was found under includes/ — the extractor stopped matching, it is not that the plugin stopped writing meta.'
 		);
 
-		// `assertNotEmpty` OVER A POPULATION OF TWO IS NOT A DETECTOR (#1428).
+		// AN EXACT COMPARISON, BECAUSE THE POPULATION IS NOW ONE (#1443).
 		//
-		// There are exactly two literal user-meta keys in the tree, one in
-		// `frontend` and one in `privacy`, so a collector that silently
-		// returned half of them would return one -- and one is not empty.
-		// Measured: the halving leaves this test green, which is the #1423
-		// shape.
+		// This used to require the walk to reach more than one module, over a
+		// population of two: `ffc_user_cpf` in `frontend` and
+		// `ffc_registration_date` in `privacy`. #1443 removed the first --
+		// the public CSV gate stopped reading that meta at all, because the
+		// value there is a `v2:` envelope and the comparison could never match
+		// -- so the floor asked for two modules from a tree that honestly has
+		// one, and fired. Which is what its own message said it would do.
 		//
-		// The invariant a partial list cannot satisfy is that the walk reaches
-		// more than one module. It is also the thing that matters: the sweep
-		// deletes by prefix, so a key one module declares outside the prefix is
-		// PII left behind at uninstall, and a scan seeing a single module would
-		// approve the other's key without looking at it.
-		$this->assertGreaterThan(
-			1,
-			count( array_unique( array_values( $this->literal_keys() ) ) ),
-			'Every literal user-meta key the scan found sits in ONE file. The walk covers `includes/`'
-			. ' whole, and more than one module declares such a key -- so this is a collapsed scan,'
-			. ' not a codebase with a single call site. If a refactor genuinely left only one, this'
-			. ' fails and asks to be re-read.'
+		// A floor of `> 0` cannot replace it: over a population of one, empty
+		// is the only failure it detects, and that is `assertNotEmpty` above.
+		// So this takes the strongest shape the convention ranks first
+		// (CLAUDE.md, "A self-check is worth what it is tight to") -- an exact
+		// comparison against a frozen non-empty register. A collapsed walk
+		// loses the entry and fails; a NEW literal key appears in the diff and
+		// fails, which is the direction that matters, since a literal key
+		// outside the swept prefix is PII left in `wp_usermeta` at uninstall.
+		//
+		// Only the key is frozen, not the file it sits in: the path churns
+		// with any refactor and carries nothing this needs.
+		$this->assertSame(
+			array( 'ffc_registration_date' ),
+			array_keys( $this->literal_keys() ),
+			'The literal user-meta keys under `includes/` are not the frozen set. Either the walk'
+			. ' collapsed and lost one, or a new literal key was written -- in which case confirm it'
+			. ' starts with the swept prefix and add it here.'
 		);
 
 		foreach ( self::PREFIX_CONSTANTS as $path => $name ) {

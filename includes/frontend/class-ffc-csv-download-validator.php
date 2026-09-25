@@ -237,9 +237,38 @@ final class CsvDownloadValidator {
 				}
 				return __( 'Form has no author to validate against.', 'ffcertificate' );
 			}
-			$author_cpf = (string) get_user_meta( $author_id, 'ffc_user_cpf', true );
-			$author_dig = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $author_cpf );
-			if ( $author_dig !== $digits ) {
+			// COMPARE HASHES, NEVER THE STORED VALUE (#1443).
+			//
+			// This read `ffc_user_cpf` and normalised it to digits, which could
+			// never match: that meta is ALWAYS a `v2:` envelope --
+			// `UserProfileFieldMap` flags `cpf` sensitive and
+			// `UserProfileService::write_usermeta()` encrypts before writing, and
+			// no other path under `includes/` writes an `ffc_user_*` key at all.
+			// So `normalize_cpf_rf()` was stripping digits out of base64 and
+			// comparing them against an 11-digit CPF, and every visitor was told
+			// their CPF did not match the author's.
+			//
+			// The identifier's own hash is the comparison the rest of the plugin
+			// uses, and it needs no plaintext: `cpf_hash` on `ffc_user_profiles`
+			// is maintained by the same write path and backfilled from the
+			// pre-#1313 usermeta location (`ffc_user_cpf_hash`) once per release
+			// by `UserDashboardActivator::maybe_migrate()`, so the column is the
+			// canonical place to read it. Both sides go through
+			// `SensitiveFieldRegistry::hash_identifier()`, which is what makes
+			// the two agree by construction instead of by remembering to
+			// normalise first.
+			// BOTH SIDES ARE REFUSED WHEN EMPTY, because `hash_equals( '', '' )`
+			// is TRUE: two absences would match and the gate would OPEN. A mixed
+			// pair needs no guard -- `hash_equals` refuses an empty string
+			// against a real one on length -- so the pair is the only live case
+			// and either condition alone covers it. Both stay, each stating the
+			// invariant on its own side, which is why removing ONE is an
+			// equivalent mutant no test can kill; removing both is killed by
+			// `test_cpf_owner_blocks_when_neither_side_has_a_hash`.
+			$author_hash = $this->author_cpf_hash( $author_id );
+			$typed_hash  = self::typed_cpf_hash( $digits );
+
+			if ( '' === $author_hash || '' === $typed_hash || ! hash_equals( $author_hash, $typed_hash ) ) {
 				if ( ! $silent_audit ) {
 					$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
 				}
@@ -252,11 +281,7 @@ final class CsvDownloadValidator {
 		}
 
 		if ( 'participants' === $mode ) {
-			$encryption_class = '\FreeFormCertificate\Core\Encryption';
-			$cpf_hash         = ( class_exists( $encryption_class ) && $encryption_class::is_configured() )
-				? \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $digits )
-				: hash( 'sha256', $digits );
-			$count            = ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->countByFormAndCpfHash( $form_id, (string) $cpf_hash );
+			$count = ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->countByFormAndCpfHash( $form_id, self::typed_cpf_hash( $digits ) );
 			if ( $count <= 0 ) {
 				if ( ! $silent_audit ) {
 					$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
@@ -274,6 +299,58 @@ final class CsvDownloadValidator {
 			$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_unknown_mode' );
 		}
 		return __( 'CPF gate misconfigured. Contact the administrator.', 'ffcertificate' );
+	}
+
+	/**
+	 * The lookup hash of a CPF the visitor typed.
+	 *
+	 * Shared by both gate modes: `participants` counts submissions carrying
+	 * this hash, `owner` compares it against the form author's. One definition,
+	 * because two spellings of a lookup hash is how a comparison starts matching
+	 * nothing -- the shape `IdentifierIdiomTest` exists to prevent.
+	 *
+	 * The un-configured fallback predates this and is deliberately kept, but it
+	 * is not a second comparable hash: `Encryption::is_configured()` is false
+	 * only when `SECURE_AUTH_KEY` or `LOGGED_IN_KEY` is missing, which no working
+	 * install has, and on such an install nothing ever wrote a hash either. Its
+	 * job is to return a value of the right shape rather than '' -- in `owner`
+	 * mode the author's side is then empty and the gate fails closed, which is
+	 * the correct answer for an install that cannot hash at all.
+	 *
+	 * @param string $digits Normalised CPF digits.
+	 * @return string Hash, never null.
+	 */
+	private static function typed_cpf_hash( string $digits ): string {
+		$encryption_class = '\FreeFormCertificate\Core\Encryption';
+
+		if ( class_exists( $encryption_class ) && $encryption_class::is_configured() ) {
+			return (string) \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $digits );
+		}
+
+		return hash( 'sha256', $digits );
+	}
+
+	/**
+	 * The form author's stored CPF hash, or '' when there is none.
+	 *
+	 * Read through `UserProfileRepository` rather than
+	 * `UserDashboard\UserProfileService`, which owns the field map: that call
+	 * would add a `Frontend > UserDashboard` edge the module-boundary baseline
+	 * does not carry, and the column name is the one thing this needs. An empty
+	 * answer FAILS the gate closed in the caller -- an author with no hash is
+	 * not an author who matches everyone.
+	 *
+	 * @param int $author_id Form author.
+	 * @return string Stored hash, or '' when absent.
+	 */
+	private function author_cpf_hash( int $author_id ): string {
+		$row = ( new \FreeFormCertificate\Repositories\UserProfileRepository() )->findByUserId( $author_id );
+
+		if ( ! is_array( $row ) ) {
+			return '';
+		}
+
+		return (string) ( $row['cpf_hash'] ?? '' );
 	}
 
 	/**
