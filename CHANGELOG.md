@@ -19,6 +19,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Four exception lists can now fail when an entry stops describing anything** (#1435): a list that excuses something is read to *skip* an entry, so a stale entry makes the guard narrower and says nothing. `CORE_TABLE_EXCEPTIONS`, `RUNTIME_TOKENS` and `VARIANTS_WITHOUT_LABEL_MAP` had no second direction at all; `TOGGLE_NOT_NEEDED` checked that its method still exists and not the half its own comment asked for — that the method still needs excusing. Each now fails on both, modelled on `RequiredNumericInputTest`. The census behind it corrected itself twice: of ten lists first reported as unguarded, seven were guarded through a helper, including every identity-boundary list. No product code changed.
 
+- **Eight self-checks in the largest guard file stopped being bare floors** (#1435): `AdminStylesheetTokensTest` scans the 28 stylesheets, every `wp_enqueue_style` under `includes/` and every PHP source in the tree, and guarded all of it with floors written tight and long since slack — `> 50` over a 91-token palette, `> 20` over 28 sheets, `> 500000` bytes of markup. Each is now an exact comparison against an independent traversal, and the literal floor was **deleted** rather than converted, because the budget is already asserted in both directions. The call recount found a real defect on its first run: reading raw source, it matched the function name inside two docblocks. It reads tokens now. No product code changed.
+
 
 ## [6.28.4] (2026-09-24) — `20284a9`
 
