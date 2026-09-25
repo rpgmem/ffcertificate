@@ -54,8 +54,6 @@ class ExportSourceWithStubbedSchemaProbe extends IdentityAuditExportSource {
  * sets onto one header — and never the queries, which have their own tests.
  *
  * @covers \FreeFormCertificate\Maintenance\IdentityAuditExportSource
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class IdentityAuditExportSourceTest extends TestCase {
 
@@ -607,6 +605,9 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 * the registry to hand back something that is not a tool, which is why
 	 * this alias-mocks the registry rather than injecting — the constructor is
 	 * typed, so a non-tool cannot be passed in.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_the_tool_unavailable_row_is_as_wide_as_the_header(): void {
 		$registry = Mockery::mock( 'alias:\\FreeFormCertificate\\Maintenance\\MaintenanceToolRegistry' );
@@ -797,6 +798,9 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 * every `ALTER` inside it succeeded — and the difference is precisely the
 	 * case this row exists to report. This test drives the real seam, so the
 	 * 21 tests above that stub it hide nothing.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_the_foreign_key_note_reads_the_live_constraints(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Migrations\MigrationForeignKeys' )
@@ -828,6 +832,9 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 * `MigrationForeignKeys` and is not public, so restating it here would be
 	 * a claim about a value another file owns — the kind that goes stale in
 	 * silence while still reading as authoritative.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_an_incomplete_constraint_set_names_what_is_installed(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Migrations\MigrationForeignKeys' )
@@ -854,6 +861,9 @@ class IdentityAuditExportSourceTest extends TestCase {
 	/**
 	 * No capability, no file — and the source runs its own gate rather than
 	 * trusting whoever constructed it.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_authorize_refuses_without_the_danger_zone_capability(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
@@ -872,6 +882,9 @@ class IdentityAuditExportSourceTest extends TestCase {
 	/**
 	 * The capability is not the whole gate: every operator who can run the
 	 * audit holds it, so the nonce is what ties the download to this request.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_authorize_refuses_without_the_nonce(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )

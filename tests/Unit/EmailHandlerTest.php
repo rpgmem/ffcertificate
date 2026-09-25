@@ -16,8 +16,6 @@ use FreeFormCertificate\Integrations\EmailHandler;
  * Note: send_wp_user_notification() context logic is covered by EmailHandlerContextTest.
  *
  * @covers \FreeFormCertificate\Integrations\EmailHandler
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class EmailHandlerTest extends TestCase {
 
@@ -167,6 +165,10 @@ class EmailHandlerTest extends TestCase {
 	// async_process_submission() — sends user email when enabled
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_async_sends_user_email_when_enabled(): void {
 		Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
 			if ( $key === 'admin_email' ) {
@@ -282,6 +284,10 @@ class EmailHandlerTest extends TestCase {
 	// async_process_submission() — skips user email when disabled
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_async_skips_user_email_when_disabled(): void {
 		Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
 			if ( $key === 'admin_email' ) {
