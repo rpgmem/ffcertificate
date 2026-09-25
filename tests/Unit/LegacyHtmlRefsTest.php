@@ -69,4 +69,49 @@ class LegacyHtmlRefsTest extends TestCase {
 		);
 		$this->assertSame( array(), LegacyHtmlRefs::find_urls( '' ) );
 	}
+
+	// ==================================================================
+	// The drop folder itself (#1438)
+	// ==================================================================
+
+	/**
+	 * A probe, not a constant: the two surfaces that read the folder decide
+	 * whether to exist from this, so it has to answer about the disk.
+	 */
+	public function test_the_drop_folder_is_absent_on_this_tree(): void {
+		$this->assertFalse(
+			LegacyHtmlRefs::drop_folder_exists(),
+			'The plugin stopped shipping html/ in 6.23.0, so the default answer is the state every install is in.'
+		);
+	}
+
+	public function test_the_drop_folder_is_reported_when_it_exists(): void {
+		$root = sys_get_temp_dir() . '/ffc-drop-' . bin2hex( random_bytes( 6 ) );
+		mkdir( $root . '/html', 0777, true );
+
+		try {
+			$this->assertTrue(
+				LegacyHtmlRefs::drop_folder_exists( $root ),
+				'Recreating the folder must bring the surfaces that read it back on its own.'
+			);
+			$this->assertTrue(
+				LegacyHtmlRefs::drop_folder_exists( $root . '/' ),
+				'A trailing slash is the shape FFC_PLUGIN_DIR actually has.'
+			);
+		} finally {
+			rmdir( $root . '/html' );
+			rmdir( $root );
+		}
+	}
+
+	public function test_a_plugin_root_without_the_folder_reports_absent(): void {
+		$root = sys_get_temp_dir() . '/ffc-drop-' . bin2hex( random_bytes( 6 ) );
+		mkdir( $root, 0777, true );
+
+		try {
+			$this->assertFalse( LegacyHtmlRefs::drop_folder_exists( $root ) );
+		} finally {
+			rmdir( $root );
+		}
+	}
 }

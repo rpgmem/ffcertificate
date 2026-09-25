@@ -183,4 +183,65 @@ class HtmlRefsNoticeTest extends TestCase {
 		$this->assertContains( 'admin_notices', $hooks );
 		$this->assertContains( 'wp_ajax_' . HtmlRefsNotice::AJAX_ACTION, $hooks );
 	}
+
+	// ==================================================================
+	// The text follows whether the repair exists (#1438)
+	// ==================================================================
+
+	/**
+	 * With the drop-folder gone, the notice must not send anybody to the card.
+	 *
+	 * The card is hidden on every install since 6.23.0 -- the migration reads the
+	 * folder it side-loads from -- so the old wording pointed at a control that
+	 * is not on the screen. It is also the wrong tense: the files are not "going
+	 * to be deleted", they are gone, and the only repair is a person re-uploading
+	 * them.
+	 */
+	public function test_the_message_states_the_loss_and_offers_no_card_when_the_folder_is_gone(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_transient' )->justReturn( '1' );
+		Functions\when( 'get_option' )->justReturn( '' );
+
+		$output = $this->rendered_output();
+
+		$this->assertStringContainsString( 'no longer exists', $output );
+		$this->assertStringContainsString( 'Media Library', $output );
+		$this->assertStringNotContainsString(
+			'tab=migrations',
+			$output,
+			'The Migrations card is hidden while the folder is absent, so linking to it sends the reader nowhere.'
+		);
+		$this->assertStringNotContainsString(
+			'will delete',
+			$output,
+			'The prospective wording belongs to the branch where the files are still on disk.'
+		);
+	}
+
+	/**
+	 * And with the folder present it still points at the card, because then the
+	 * card is there and the images are still recoverable automatically.
+	 *
+	 * Driven through the probe's own injectable argument rather than by creating
+	 * a directory in the plugin root: `FFC_PLUGIN_DIR` is a constant, so the
+	 * branch is reachable in a test only by asking the probe what it would say.
+	 */
+	public function test_the_probe_is_what_selects_the_branch(): void {
+		$root = sys_get_temp_dir() . '/ffc-notice-' . bin2hex( random_bytes( 6 ) );
+		mkdir( $root . '/html', 0777, true );
+
+		try {
+			$this->assertTrue(
+				\FreeFormCertificate\Core\LegacyHtmlRefs::drop_folder_exists( $root ),
+				'The present branch is selected by this answer, so the notice and the card cannot disagree.'
+			);
+			$this->assertFalse(
+				\FreeFormCertificate\Core\LegacyHtmlRefs::drop_folder_exists(),
+				'And on this tree the answer is the one the rendered message above is asserted against.'
+			);
+		} finally {
+			rmdir( $root . '/html' );
+			rmdir( $root );
+		}
+	}
 }

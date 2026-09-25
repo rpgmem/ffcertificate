@@ -27,6 +27,20 @@
  * and a post that only carries missing-file references still leaves the pending
  * set — the batch runner always terminates.
  *
+ * THAT TERMINATION RULE IS ONLY HONEST WHILE THE FOLDER EXISTS (#1438), and the
+ * plugin stopped shipping `html/` in 6.23.0. With no source files EVERY target
+ * takes the missing-file branch, so a run would walk every affected post, repair
+ * none, and still drop `pending` to zero — the card then reads 100% complete
+ * over content that is still broken. `calculate_status()` is not the half that
+ * breaks: it scans the DATABASE, so it keeps naming those posts correctly.
+ *
+ * The fix is upstream of this class rather than in it: `MigrationRegistry::is_applicable()`
+ * gates both `html/` migrations on the folder, which hides the card and closes
+ * the AJAX endpoint together, so this strategy is only ever reached in the state
+ * it was written for. Nothing here changed — recreate the folder and it works as
+ * described. What reports the broken references meanwhile is `HtmlRefsNotice`,
+ * which is the right division: a notice states a problem, a card offers a repair.
+ *
  * @package FreeFormCertificate\Migrations\Strategies
  * @since   6.18.0
  */

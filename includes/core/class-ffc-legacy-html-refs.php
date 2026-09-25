@@ -74,4 +74,41 @@ class LegacyHtmlRefs {
 
 		return array_values( array_unique( $matches[0] ) );
 	}
+
+	/**
+	 * Whether the legacy drop-folder still exists on disk.
+	 *
+	 * The plugin stopped shipping `html/` in 6.23.0 (#1087), so on every install
+	 * this is false — but it is a probe rather than a constant on purpose. The
+	 * folder was always the ADMIN's: nothing stops one from recreating it and
+	 * dropping files back in, and when they do, the surfaces that operate on it
+	 * become useful again on their own.
+	 *
+	 * Two of those surfaces read this to decide whether to exist at all (#1438).
+	 * The rewrite migration side-loads the files from here, so with no folder its
+	 * repair is impossible while its pending count is not: it reads the DATABASE,
+	 * which still names posts pointing at `html/`. That combination is the trap
+	 * the probe closes — `execute()` records every target it visits whether or
+	 * not the rewrite happened (which is what makes the batch terminate), so a
+	 * run with no source files walks every affected post, repairs none and drops
+	 * pending to zero. The import migration is the benign inverse: it measures
+	 * files on disk, so with none it reports 100% complete, truthfully and for
+	 * ever.
+	 *
+	 * @param string|null $plugin_dir Plugin root to probe. Defaults to
+	 *                                `FFC_PLUGIN_DIR`; injectable for tests,
+	 *                                the same way both strategies take the
+	 *                                folder they read.
+	 * @return bool
+	 */
+	public static function drop_folder_exists( ?string $plugin_dir = null ): bool {
+		if ( null === $plugin_dir ) {
+			if ( ! defined( 'FFC_PLUGIN_DIR' ) ) {
+				return false;
+			}
+			$plugin_dir = (string) FFC_PLUGIN_DIR;
+		}
+
+		return is_dir( rtrim( $plugin_dir, '/' ) . '/html' );
+	}
 }
