@@ -67,6 +67,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Tests\Support\SchemaColumns;
 
 /**
  * @coversNothing
@@ -187,30 +188,7 @@ final class SchemaAgreementTest extends TestCase {
 	 * @return list<string>
 	 */
 	private function incremental_columns( string $source ): array {
-		$names = array();
-
-		// Singular: `add_column_if_missing( $table, 'column', 'type' ...`.
-		preg_match_all(
-			'/add_column_if_missing\s*\(\s*[^,]{1,120}?,\s*[\'"]([a-z_][a-z0-9_]*)[\'"]\s*,/s',
-			$source,
-			$singular
-		);
-
-		// Plural: `'column' => array( 'type' => ...`, which is what tells a column
-		// key apart from any other quoted string nearby.
-		preg_match_all(
-			'/[\'"]([a-z_][a-z0-9_]*)[\'"]\s*=>\s*array\(\s*\n\s*[\'"]type[\'"]\s*=>/m',
-			$source,
-			$plural
-		);
-
-		foreach ( array_merge( $singular[1], $plural[1] ) as $name ) {
-			$names[] = $name;
-		}
-
-		$names = array_values( array_unique( $names ) );
-
-		return array_values( array_diff( $names, $this->staging_columns( $source ) ) );
+		return SchemaColumns::incremental( $source );
 	}
 
 	/**
@@ -241,13 +219,7 @@ final class SchemaAgreementTest extends TestCase {
 	 * @return list<string>
 	 */
 	private function staging_columns( string $source ): array {
-		preg_match_all(
-			'/CHANGE\s+%i\s+%i[^;]*?,\s*[\'"]([a-z_][a-z0-9_]*)[\'"]\s*,\s*[\'"][a-z_][a-z0-9_]*[\'"]/s',
-			$source,
-			$renamed
-		);
-
-		return array_values( array_unique( $renamed[1] ) );
+		return SchemaColumns::staging( $source );
 	}
 
 	/**
@@ -276,25 +248,7 @@ final class SchemaAgreementTest extends TestCase {
 	 * @return list<string>
 	 */
 	private function columns_of( string $sql ): array {
-		if ( ! preg_match( '/CREATE TABLE [^(]*\((.*)\)\s*(?:ENGINE=\w+\s*)?\{?\$charset_collate/s', $sql, $body ) ) {
-			return array();
-		}
-
-		$columns = array();
-
-		foreach ( explode( "\n", $body[1] ) as $line ) {
-			$line = rtrim( trim( $line ), ',' );
-
-			if ( '' === $line || preg_match( '/^(?:PRIMARY KEY|UNIQUE KEY|KEY)\b/i', $line ) ) {
-				continue;
-			}
-
-			if ( preg_match( '/^`?([a-z_][a-z0-9_]*)`?\s/i', $line, $column ) ) {
-				$columns[] = $column[1];
-			}
-		}
-
-		return $columns;
+		return SchemaColumns::of_create( $sql );
 	}
 
 	/**
@@ -428,16 +382,18 @@ final class SchemaAgreementTest extends TestCase {
 				continue;
 			}
 
-			// The optional `ENGINE=` is what was missing (#1241): without it the
-			// nine `RecruitmentActivator` statements dropped out of this one too.
-			if ( ! preg_match( '/CREATE TABLE [^(]*\((.*)\)\s*(?:ENGINE=\w+\s*)?\{?\$charset_collate/s', $statement['sql'], $body ) ) {
+			// One body reader, shared: this was a third copy of that regex, and
+			// #1241's missing `ENGINE=` broke all three at once.
+			$body = SchemaColumns::body_of( $statement['sql'] );
+
+			if ( null === $body ) {
 				continue;
 			}
 
 			$columns = array();
 			$keys    = array();
 
-			foreach ( explode( "\n", $body[1] ) as $line ) {
+			foreach ( explode( "\n", $body ) as $line ) {
 				$line = rtrim( trim( $line ), ',' );
 
 				if ( '' === $line ) {
