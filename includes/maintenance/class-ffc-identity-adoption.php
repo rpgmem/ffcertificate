@@ -155,13 +155,24 @@ class IdentityAdoption {
 				// Prefixes, never the hashes and never the values. The address
 				// is not logged at all: it is the one identifier here that is
 				// readable as it stands.
-				'cpf'     => substr( $cpf_hash, 0, self::LOG_PREFIX ),
-				'rf'      => substr( $rf_hash, 0, self::LOG_PREFIX ),
-				'account' => $account,
+				//
+				// THE KEY SAYS WHAT IT HOLDS, AND THAT IS NOT COSMETIC (#1448).
+				// `SensitiveFieldRegistry::contains_sensitive()` matches on the
+				// KEY NAME alone -- `walk_for_sensitive()` tests
+				// `isset( $sensitive[ $key ] )` and never looks at the value --
+				// so a 12-character hash prefix filed under `cpf` classified this
+				// whole context as sensitive. That cost nothing until #1444
+				// declared `context_encrypted`, and then every adoption started
+				// encrypting two prefixes and a boolean, while the log screen
+				// printed the raw JSON with a key naming an identifier that is
+				// not in it.
+				'cpf_prefix' => substr( $cpf_hash, 0, self::LOG_PREFIX ),
+				'rf_prefix'  => substr( $rf_hash, 0, self::LOG_PREFIX ),
+				'account'    => $account,
 				// Whether a login was opened or an existing one answered. Same
 				// action, different blast radius, and the log is where that is
 				// legible afterwards.
-				'created' => $before <= 0,
+				'created'    => $before <= 0,
 			),
 			$actor
 		);
