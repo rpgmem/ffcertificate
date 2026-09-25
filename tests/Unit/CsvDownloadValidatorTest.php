@@ -285,18 +285,107 @@ class CsvDownloadValidatorTest extends TestCase {
 		$this->assertStringContainsString( 'no author', $msg );
 	}
 
-	public function test_cpf_owner_matches_author_cpf(): void {
+	/**
+	 * Owner mode passes when the author's STORED HASH matches the typed CPF.
+	 *
+	 * THE PREVIOUS VERSION OF THIS TEST IS WHY #1443 SHIPPED. It put
+	 * `'111.444.777-35'` -- a plaintext, formatted CPF -- into the meta store
+	 * for `ffc_user_cpf` and asserted the gate opened. Production never holds
+	 * that: `UserProfileFieldMap` flags `cpf` sensitive and
+	 * `UserProfileService::write_usermeta()` encrypts before writing, so the
+	 * meta is always a `v2:` envelope. The gate compared digits stripped out of
+	 * base64 against an 11-digit CPF and could never match, while the test was
+	 * green because the fixture supplied the very value under test -- the shape
+	 * `CLAUDE.md` names as "asserting against a mock that supplies the value".
+	 *
+	 * So the fixture is now what the write path actually produces: the hash on
+	 * `ffc_user_profiles.cpf_hash`, computed through
+	 * `SensitiveFieldRegistry::hash_identifier()` -- the same boundary the gate
+	 * uses, so the test asserts agreement with the registry rather than with a
+	 * hash spelled out here. (Encryption IS configured in the unit bootstrap, so
+	 * the `sha256` fallback is not the branch under test.)
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_cpf_owner_matches_the_authors_stored_hash(): void {
+		$repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\UserProfileRepository' );
+		$repo->shouldReceive( 'findByUserId' )->with( 88 )
+			->andReturn( array( 'cpf_hash' => (string) \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', '11144477735' ) ) );
+
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'owner';
 		$this->meta_store[ '10:__field_post_author' ]                = 88;
-		$this->meta_store[ 'user_88:ffc_user_cpf' ]                  = '111.444.777-35';
+
 		$this->assertNull( $this->validator->validate_cpf_requirement( 10, '11144477735' ) );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_cpf_owner_blocks_on_mismatch(): void {
+		$repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\UserProfileRepository' );
+		$repo->shouldReceive( 'findByUserId' )->with( 88 )
+			->andReturn( array( 'cpf_hash' => (string) \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', '52998224725' ) ) );
+
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'owner';
 		$this->meta_store[ '10:__field_post_author' ]                = 88;
-		$this->meta_store[ 'user_88:ffc_user_cpf' ]                  = '529.982.247-25';
+
 		$msg = $this->validator->validate_cpf_requirement( 10, '11144477735' );
+		$this->assertStringContainsString( 'does not match', $msg );
+	}
+
+	/**
+	 * An author with no stored hash FAILS the gate, it does not open it.
+	 *
+	 * The empty string is the answer for a user who has no profile row, and an
+	 * equality comparison against '' would otherwise match every other author
+	 * who also has none -- the reason `read_identity_index()` refuses '' as hard
+	 * as null.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_cpf_owner_blocks_when_the_author_has_no_stored_hash(): void {
+		$repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\UserProfileRepository' );
+		$repo->shouldReceive( 'findByUserId' )->with( 88 )->andReturn( null );
+
+		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'owner';
+		$this->meta_store[ '10:__field_post_author' ]                = 88;
+
+		$msg = $this->validator->validate_cpf_requirement( 10, '11144477735' );
+		$this->assertStringContainsString( 'does not match', $msg );
+	}
+
+	/**
+	 * Two absences must not match each other.
+	 *
+	 * `hash_equals( '', '' )` is TRUE, so an author with no stored hash and a
+	 * typed CPF whose hash cannot be computed would open the gate. Only the PAIR
+	 * is dangerous -- `hash_equals` refuses an empty string against a real one
+	 * on length -- and only this test reaches it.
+	 *
+	 * What it kills is the emptiness guard as a WHOLE. Removing either condition
+	 * on its own leaves this test green, and that is not a gap in it: with the
+	 * other half still standing the behaviour is identical, so each is an
+	 * equivalent mutant. Measured both ways -- one condition removed: green;
+	 * both removed: this test fails, naming the gate it opened.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_cpf_owner_blocks_when_neither_side_has_a_hash(): void {
+		$repo = Mockery::mock( 'overload:FreeFormCertificate\\Repositories\\UserProfileRepository' );
+		$repo->shouldReceive( 'findByUserId' )->with( 88 )->andReturn( array( 'cpf_hash' => '' ) );
+
+		$registry = Mockery::mock( 'alias:FreeFormCertificate\\Core\\SensitiveFieldRegistry' );
+		$registry->shouldReceive( 'hash_identifier' )->andReturn( null );
+
+		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'owner';
+		$this->meta_store[ '10:__field_post_author' ]                = 88;
+
+		$msg = $this->validator->validate_cpf_requirement( 10, '11144477735' );
+		$this->assertNotNull( $msg, 'Two absent hashes opened the owner gate: hash_equals( \'\', \'\' ) is TRUE.' );
 		$this->assertStringContainsString( 'does not match', $msg );
 	}
 
