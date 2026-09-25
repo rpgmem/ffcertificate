@@ -829,6 +829,10 @@ $ffc_identity_tier_note = static function ( $tier ) {
 						data-total="<?php esc_attr_e( '%s records move.', 'ffcertificate' ); ?>"
 						<?php /* translators: 1: how many records. 2: the store they sit in. */ ?>
 						data-store="<?php esc_attr_e( '%1$s in %2$s', 'ffcertificate' ); ?>"
+						<?php /* translators: 1: how many memberships, places or permissions. 2: the relationship table they sit in. */ ?>
+						data-grant="<?php esc_attr_e( '%1$s in %2$s move with them.', 'ffcertificate' ); ?>"
+						<?php /* translators: %s: how many rows are dropped because the surviving login already had that pairing. */ ?>
+						data-grant-duplicate="<?php esc_attr_e( '%s dropped, because the surviving login already had it.', 'ffcertificate' ); ?>"
 						<?php /* translators: %s: the identifiers the surviving login would gain, comma separated. */ ?>
 						data-gains="<?php esc_attr_e( 'The surviving login also gains the %s it did not hold.', 'ffcertificate' ); ?>"
 						<?php /* translators: 1: a login's name. 2: how many records it holds. */ ?>
