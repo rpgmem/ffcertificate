@@ -278,6 +278,7 @@ final class PhpcsSuppressionTest extends TestCase {
 
 	public function test_file_level_direct_query_disables_only_cover_plugin_tables(): void {
 		$offenders = array();
+		$excused   = array();
 		$core      = '/\\$wpdb->(' . self::CORE_TABLE_PROPERTIES . ')\\b'
 			. '|\\$wpdb->prefix\\s*\\.\\s*\'(?!ffc_)/';
 
@@ -301,14 +302,38 @@ final class PhpcsSuppressionTest extends TestCase {
 			}
 
 			$relative = self::relative( $file );
-			if ( isset( self::CORE_TABLE_EXCEPTIONS[ $relative ] ) ) {
+
+			if ( 1 !== preg_match( $core, $source, $matches ) ) {
 				continue;
 			}
 
-			if ( 1 === preg_match( $core, $source, $matches ) ) {
-				$offenders[] = $relative . ' — ' . trim( $matches[0] );
+			if ( isset( self::CORE_TABLE_EXCEPTIONS[ $relative ] ) ) {
+				$excused[] = $relative;
+				continue;
 			}
+
+			$offenders[] = $relative . ' — ' . trim( $matches[0] );
 		}
+
+		// THE EXCEPTION MAY NOT OUTLIVE WHAT IT EXCUSES (#1435).
+		//
+		// The loop above reaches the exception only for a file that BOTH carries
+		// the file-level disable and names a core table -- which is the whole
+		// condition the entry exists to excuse. So an entry missing from
+		// `$excused` no longer excuses anything: the file was deleted, or it
+		// dropped the disable, or it stopped naming a core table. In every case
+		// the entry is now a statement about this repository that is false, and
+		// the next reader inherits it.
+		$stale = array_values( array_diff( array_keys( self::CORE_TABLE_EXCEPTIONS ), $excused ) );
+
+		$this->assertSame(
+			array(),
+			$stale,
+			"These are registered as naming a WordPress core table under a file-level\n"
+			. "DirectDatabaseQuery disable, and no longer do — the file is gone, the disable was\n"
+			. "dropped, or the core-table query left. Drop the entry to lock the win in:\n\n  "
+			. implode( "\n  ", $stale )
+		);
 
 		$this->assertSame(
 			array(),

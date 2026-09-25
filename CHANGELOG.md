@@ -17,6 +17,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Nine test classes moved the fork from the class to the methods that need it** (#1432): 239 fewer forked test methods, and the nine run in 11.9s against 54.5s measured back to back on the same 291 tests. Safe for the reason that is easy to get backwards — an alias mock created in a child process never reaches the parent, so a class's cold methods are protected by annotating only its hot ones. Two of the nine already annotated every hot method individually **and** the class, so the class-level annotation was redundant on the file's own terms: 133 of the 239 came off in four deleted lines. Six further candidates were left alone because every test in them is hot, and one because it documents the defensive posture — its cold methods rely on the fork for a clean function table. No product code changed.
 
+- **Four exception lists can now fail when an entry stops describing anything** (#1435): a list that excuses something is read to *skip* an entry, so a stale entry makes the guard narrower and says nothing. `CORE_TABLE_EXCEPTIONS`, `RUNTIME_TOKENS` and `VARIANTS_WITHOUT_LABEL_MAP` had no second direction at all; `TOGGLE_NOT_NEEDED` checked that its method still exists and not the half its own comment asked for — that the method still needs excusing. Each now fails on both, modelled on `RequiredNumericInputTest`. The census behind it corrected itself twice: of ten lists first reported as unguarded, seven were guarded through a helper, including every identity-boundary list. No product code changed.
+
 
 ## [6.28.4] (2026-09-24) — `20284a9`
 

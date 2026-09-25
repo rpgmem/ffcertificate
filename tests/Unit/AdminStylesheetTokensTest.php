@@ -355,6 +355,18 @@ final class AdminStylesheetTokensTest extends TestCase {
 	 *
 	 * @var array<string, string>
 	 */
+	/**
+	 * A method that puts the palette itself on the page.
+	 *
+	 * Named once because the scan matches it twice, over two different units --
+	 * the whole file, for the recount, and one method body, for the rule -- and a
+	 * recount built from a second copy of the pattern can drift from the rule it
+	 * is checking.
+	 *
+	 * @var string
+	 */
+	private const PALETTE_ENQUEUE = "/wp_enqueue_style\(\s*'ffc-common'|enqueue_common_style\(/";
+
 	private const TOGGLE_NOT_NEEDED = array(
 		// `AdminAssetsManager::enqueue_admin_assets()` enqueues the toggle on
 		// every `is_ffc_page()` screen, and these all run on one.
@@ -399,10 +411,68 @@ final class AdminStylesheetTokensTest extends TestCase {
 	 *
 	 * @return void
 	 */
+	/**
+	 * Files under `includes/` whose source enqueues the palette.
+	 *
+	 * A hand-rolled recursive `scandir`, deliberately NOT the
+	 * `RecursiveIteratorIterator` the scan it checks uses: two readings of the
+	 * same directory tree agree only when both see it whole.
+	 *
+	 * @return array<string, true>
+	 */
+	private static function files_matching_palette_enqueue(): array {
+		$root  = dirname( __DIR__, 2 );
+		$found = array();
+		$stack = array( $root . '/includes' );
+
+		while ( array() !== $stack ) {
+			$dir     = (string) array_pop( $stack );
+			$entries = scandir( $dir );
+
+			foreach ( is_array( $entries ) ? $entries : array() as $entry ) {
+				if ( '.' === $entry || '..' === $entry ) {
+					continue;
+				}
+
+				$path = $dir . '/' . $entry;
+
+				if ( is_dir( $path ) ) {
+					$stack[] = $path;
+					continue;
+				}
+
+				if ( ! str_ends_with( $path, '.php' ) ) {
+					continue;
+				}
+
+				if ( preg_match( self::PALETTE_ENQUEUE, (string) file_get_contents( $path ) ) ) {
+					$found[ str_replace( $root . '/', '', $path ) ] = true;
+				}
+			}
+		}
+
+		return $found;
+	}
+
 	public function test_a_method_that_enqueues_the_palette_also_enqueues_the_toggle(): void {
 		$offenders = array();
 		$seen      = 0;
 		$allowed   = self::TOGGLE_NOT_NEEDED;
+
+		$enqueues_palette = array();
+		$files_seen       = array();
+
+		// The recount is taken BEFORE the walk and by a different traversal, on
+		// purpose: computing it inside the loop makes it circular -- skipping a
+		// file skips both sides and the difference holds at zero, the shape
+		// `CLAUDE.md` calls worse than useless. The first version of this recount
+		// did live in the loop, and the mutation that isolates what the fix buys
+		// is a narrow one: skip a single palette-enqueuing file that no
+		// TOGGLE_NOT_NEEDED entry names. The staleness check below cannot see
+		// that (no listed entry moved) and neither can a circular recount, so
+		// both stay green while the rule silently covers one file fewer. The
+		// independent recount is the only assertion here that fails.
+		$files_with_enqueue = self::files_matching_palette_enqueue();
 
 		$it = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( dirname( __DIR__, 2 ) . '/includes' ) );
 		foreach ( $it as $file ) {
@@ -418,6 +488,7 @@ final class AdminStylesheetTokensTest extends TestCase {
 				continue;
 			}
 
+
 			for ( $i = 1; $i < count( $body ); $i += 2 ) {
 				$method = (string) $body[ $i ];
 				$code   = (string) ( $body[ $i + 1 ] ?? '' );
@@ -425,37 +496,73 @@ final class AdminStylesheetTokensTest extends TestCase {
 				// Only methods that put ffc-common itself on the page: that is
 				// the one sheet whose presence means "this screen is painted by
 				// the plugin's palette".
-				if ( ! preg_match( "/wp_enqueue_style\(\s*'ffc-common'|enqueue_common_style\(/", $code ) ) {
+				if ( ! preg_match( self::PALETTE_ENQUEUE, $code ) ) {
 					continue;
 				}
 
 				++$seen;
 
-				$id = "{$rel}::{$method}()";
+				$id                      = "{$rel}::{$method}()";
+				$enqueues_palette[ $id ] = ( false !== strpos( $code, 'enqueue_dark_mode(' ) );
+
+				$files_seen[ $rel ] = true;
 
 				if ( isset( $allowed[ $id ] ) ) {
 					continue;
 				}
 
-				if ( strpos( $code, 'enqueue_dark_mode(' ) === false ) {
+				if ( ! $enqueues_palette[ $id ] ) {
 					$offenders[] = $id;
 				}
 			}
 		}
 
-		$this->assertGreaterThan( 4, $seen, 'The enqueue-method scan collapsed — no method enqueues the palette?' );
+		// THE WALK MAY NOT COVER PART OF ITS POPULATION (#1435, the #1428 rule).
+		//
+		// `assertGreaterThan( 4, $seen )` stood here and was a bare floor: it was
+		// tight against the handful of enqueue methods that existed when it was
+		// written and is slack against the dozen there are now, so a walk that
+		// lost most of the tree would still pass. The recount below is exact and
+		// independent in BOTH senses -- a different traversal (the file's own
+		// source, read whole) and a different unit (files rather than methods):
+		// every file whose source carries the enqueue must have contributed at
+		// least one method to the scan. That fails when the walk misses a file
+		// and when `preg_split` stops finding methods inside one, and it needs no
+		// maintenance, because adding an enqueue moves both sides.
+		$this->assertSame(
+			array(),
+			array_values( array_diff( array_keys( $files_with_enqueue ), array_keys( $files_seen ) ) ),
+			'A file enqueues the palette and the method-level scan reported nothing from it: the walk'
+			. ' is reading part of the tree, or the method split stopped matching.'
+		);
 
-		// An allowlist entry that stopped existing becomes an inherited lie: the
-		// next reader trusts it without checking.
+		// THE EXCEPTION MAY NOT OUTLIVE WHAT IT EXCUSES (#1435).
+		//
+		// The old check here asked only whether the listed METHOD still exists,
+		// which is the weaker half -- and the comment it carried ("an allowlist
+		// that outlives its usage is a lie the next reader inherits") asked for
+		// the stronger one. An entry earns its place only while its method still
+		// puts the palette on the page AND still omits the toggle: a method that
+		// stopped enqueuing the palette is outside this rule altogether, and one
+		// that gained `enqueue_dark_mode()` satisfies the rule and needs no
+		// excuse. Both retire the entry, and only the first was caught before.
 		$stale = array();
 		foreach ( array_keys( $allowed ) as $entry ) {
-			list( $rel_path, $fn ) = explode( '::', $entry, 2 );
-			$abs = dirname( __DIR__, 2 ) . '/' . $rel_path;
-			if ( ! file_exists( $abs ) || strpos( (string) file_get_contents( $abs ), 'function ' . rtrim( $fn, '()' ) ) === false ) {
-				$stale[] = $entry;
+			if ( ! isset( $enqueues_palette[ $entry ] ) ) {
+				$stale[] = $entry . ' (no longer enqueues the palette)';
+				continue;
+			}
+			if ( $enqueues_palette[ $entry ] ) {
+				$stale[] = $entry . ' (now enqueues the toggle too)';
 			}
 		}
-		$this->assertSame( array(), $stale, "TOGGLE_NOT_NEEDED lists methods that no longer exist:\n  " . implode( "\n  ", $stale ) );
+
+		$this->assertSame(
+			array(),
+			$stale,
+			"TOGGLE_NOT_NEEDED entries that no longer excuse anything — drop them to lock the win"
+			. " in:\n  " . implode( "\n  ", $stale )
+		);
 
 		$this->assertSame(
 			array(),

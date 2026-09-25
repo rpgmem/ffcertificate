@@ -138,13 +138,41 @@ class RecruitmentBadgePaletteTest extends TestCase {
 	 * had rewritten every row to `definitive`.
 	 */
 	public function test_every_generated_rule_names_a_real_status(): void {
-		$known = array_merge( self::variants_from_label_maps(), self::VARIANTS_WITHOUT_LABEL_MAP );
-		$stale = array_diff( self::emitted_variants(), $known );
+		$emitted = self::emitted_variants();
+		$mapped  = self::variants_from_label_maps();
+		$known   = array_merge( $mapped, self::VARIANTS_WITHOUT_LABEL_MAP );
+		$stale   = array_diff( $emitted, $known );
 
 		$this->assertSame(
 			array(),
 			array_values( $stale ),
 			"Rules generated for statuses that do not exist:\n  " . implode( "\n  ", $stale )
+		);
+
+		// THE EXCEPTION MAY NOT OUTLIVE WHAT IT EXCUSES (#1435).
+		//
+		// An entry earns its place only while the palette emits a rule for it
+		// AND no label map declares it. A variant that stopped being emitted
+		// leaves the exception excusing a rule that is not there; one that
+		// gained a label map is now covered by the derivation above, so the
+		// entry is redundant rather than merely idle. Both retire it, and the
+		// second is the half "still exists" would miss.
+		$idle = array();
+		foreach ( self::VARIANTS_WITHOUT_LABEL_MAP as $variant ) {
+			if ( ! in_array( $variant, $emitted, true ) ) {
+				$idle[] = $variant . ' (no rule is generated for it)';
+				continue;
+			}
+			if ( in_array( $variant, $mapped, true ) ) {
+				$idle[] = $variant . ' (a label map now declares it)';
+			}
+		}
+
+		$this->assertSame(
+			array(),
+			$idle,
+			"These are registered as variants with no label map, and no longer need the exception."
+			. " Drop them to lock the win in:\n  " . implode( "\n  ", $idle )
 		);
 	}
 
