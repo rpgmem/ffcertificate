@@ -25,6 +25,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **The two `html/` migration cards need the folder they read** (#1438): the plugin stopped shipping `html/` in 6.23.0, and the rewrite migration side-loads images *from* there — so its repair became impossible while its pending count did not, because that count reads the database. Pressing the button walked every affected post, repaired none and dropped pending to zero, leaving the card reading 100% complete over broken content. Both cards are now gated on the folder existing, which hides them and closes the AJAX endpoint together; the strategy itself is unchanged and returns if the folder does. The admin notice no longer links to a card that is not there, and says the images are gone rather than that an update will delete them.
 
+### Security
+
+- ⚠ **Client IP addresses were written to `debug.log` in full** (#1441): `Debug::redact_sensitive_data()` already masked 17 sensitive keys — email, CPF, RF, phone, tokens, passwords — and recursed into nested payloads, and `ip` was the one PII key missing from the list. Seven `Debug::log_*` call sites passed a raw address under it, so the fix is at the sink rather than at the seven: the IP keys now take a **salted** hash and are relabelled `ip_hash`, matching the name the activity-log context already uses. Masking would not do — it keeps two characters at each end — and an unsalted hash of an IPv4 is reversible by exhaustion. The address only ever reached `debug.log`, never a page or an email, and only while the area toggle was on; the `ffc_activity_log.user_ip` column is unchanged, being the capability-gated audit trail.
+
+### Changed
+
+- **A `decrypt_failure` warning now says which call site produced it** (#1441): the context was a length and a v2 flag, so three of them observed in production named a failure and no path. It carries the calling class and method (arguments deliberately dropped — on those frames they are the ciphertext) and the real `get_current_user_id()` instead of a hard-coded `0`, which had made every entry read as an anonymous request.
+
 
 ## [6.28.4] (2026-09-24) — `20284a9`
 
