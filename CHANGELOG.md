@@ -21,6 +21,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Eight self-checks in the largest guard file stopped being bare floors** (#1435): `AdminStylesheetTokensTest` scans the 28 stylesheets, every `wp_enqueue_style` under `includes/` and every PHP source in the tree, and guarded all of it with floors written tight and long since slack — `> 50` over a 91-token palette, `> 20` over 28 sheets, `> 500000` bytes of markup. Each is now an exact comparison against an independent traversal, and the literal floor was **deleted** rather than converted, because the budget is already asserted in both directions. The call recount found a real defect on its first run: reading raw source, it matched the function name inside two docblocks. It reads tokens now. No product code changed.
 
+- **Two unreproducible figures and twelve self-references corrected in `CLAUDE.md`** (#1435): the pcov paragraph claimed "101 of the 388 `@covers` files" carry a preload; measured, it is **242 preloads in 193 of 428 files**, and stating the method is what makes that checkable — grepping the call gives 277, because 31 of those are `if ( ! class_exists() )` guards that declare a stub rather than preload one. 101 is no reading at all, which is the file's own opening rule failing inside the file. And the rule that a cross-reference names a section rather than numbering it was applied to the nine references in the codebase and to none of the twelve in `CLAUDE.md` itself. The same pass confirmed at population scale what the paragraph asserted from six sampled files: with all 242 preloads stripped and each of the 193 classes run alone twice, every one attributes the same covered-statement count either way. Docs only.
+
 
 ## [6.28.4] (2026-09-24) — `20284a9`
 
