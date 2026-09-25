@@ -22523,6 +22523,15 @@ msgstr ""
 msgid "The records, the identity index and the surviving login's certificate access move together, as one transaction. The emptied login is left in place — removing it is yours to do in Users, because deleting an account runs cleanup this tool does not own and cannot undo."
 msgstr ""
 
+msgid "%1$s in %2$s move with them."
+msgstr ""
+
+msgid "%s dropped, because the surviving login already had it."
+msgstr ""
+
+msgid "The relationship table %s refused the merge, so nothing was changed."
+msgstr ""
+
 msgid "The surviving login also gains the %s it did not hold."
 msgstr ""
 

@@ -84,6 +84,33 @@
 
         $region.append($stores);
 
+        // WHAT THE PERSON WILL STILL BE ALLOWED TO DO (#1368).
+        //
+        // Audience membership, a place on a booking and a schedule permission
+        // move with the records. A dropped duplicate gets its own sentence
+        // rather than being folded into the move count: the survivor already
+        // holding that membership is why a row vanishes, and a total alone
+        // cannot be told apart from a row that went missing.
+        //
+        // Unlike the stores above, a relationship table the install does not
+        // have is ABSENT from the payload and prints nothing — reporting it as
+        // zero would claim the merge checked something it could not.
+        if ((data.grants || []).length) {
+            var $grants = $('<ul/>', { 'class': 'ffc-identity-preview-grants' });
+
+            data.grants.forEach(function (grant) {
+                var text = format($region.data('grant') || '', [grant.moves, grant.store]);
+
+                if (grant.duplicates) {
+                    text += ' ' + format($region.data('grantDuplicate') || '', [grant.duplicates]);
+                }
+
+                $('<li/>').text(text).appendTo($grants);
+            });
+
+            $region.append($grants);
+        }
+
         if ((data.gains || []).length) {
             line($region, format($region.data('gains') || '', [data.gains.join(', ')]), null);
         }
