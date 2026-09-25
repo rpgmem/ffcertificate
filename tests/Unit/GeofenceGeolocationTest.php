@@ -12,9 +12,6 @@ use FreeFormCertificate\Security\Geofence;
 
 /**
  * Tests for Geofence::parse_areas(), validate_geolocation(), and has_form_expired_by_days().
- *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class GeofenceGeolocationTest extends TestCase {
 
@@ -147,6 +144,9 @@ class GeofenceGeolocationTest extends TestCase {
 
 	/**
 	 * User location within an allowed area returns valid.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_geolocation_valid_when_within_allowed_areas(): void {
 		Functions\when( '__' )->returnArg();
@@ -170,6 +170,9 @@ class GeofenceGeolocationTest extends TestCase {
 
 	/**
 	 * User location outside all allowed areas returns invalid.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_geolocation_invalid_when_outside_allowed_areas(): void {
 		Functions\when( '__' )->returnArg();
@@ -195,6 +198,9 @@ class GeofenceGeolocationTest extends TestCase {
 	/**
 	 * When geo_ip_areas_permissive is enabled, the permissive IP areas are used
 	 * instead of the default geo_areas for the within-areas check.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_geolocation_uses_permissive_ip_areas_when_configured(): void {
 		Functions\when( '__' )->returnArg();
@@ -225,6 +231,9 @@ class GeofenceGeolocationTest extends TestCase {
 	/**
 	 * When IP geolocation returns a WP_Error and the fallback is 'allow',
 	 * the result should be valid with reason 'ip_fallback_allow'.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_geolocation_falls_back_on_ip_error_allow(): void {
 		Functions\when( '__' )->returnArg();
@@ -261,6 +270,9 @@ class GeofenceGeolocationTest extends TestCase {
 	/**
 	 * When IP geolocation returns a WP_Error and the fallback is 'block',
 	 * the result should be invalid with reason 'ip_fallback_block'.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_geolocation_falls_back_on_ip_error_block(): void {
 		Functions\when( '__' )->returnArg();

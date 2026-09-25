@@ -15,6 +15,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **22 test classes stopped forking a process to isolate nothing** (#1432): measured at ~0.19s of bootstrap per forked test method, which 3,034 of the suite's 8,652 tests were paying. Ten of the 32 candidates keep the fork and the full suite, not a scan, is what said which — two pollute the classes that follow them alphabetically and had said so in their own docblocks, one relies on the fork to restore `$_GET`, two document the same order-dependence defensively, and four are victims of a single fixture that declares eleven real classes, whose blast radius is now written where the fixture is. No product code changed.
 
+- **Nine test classes moved the fork from the class to the methods that need it** (#1432): 239 fewer forked test methods, and the nine run in 11.9s against 54.5s measured back to back on the same 291 tests. Safe for the reason that is easy to get backwards — an alias mock created in a child process never reaches the parent, so a class's cold methods are protected by annotating only its hot ones. Two of the nine already annotated every hot method individually **and** the class, so the class-level annotation was redundant on the file's own terms: 133 of the 239 came off in four deleted lines. Six further candidates were left alone because every test in them is hot, and one because it documents the defensive posture — its cold methods rely on the fork for a clean function table. No product code changed.
+
 
 ## [6.28.4] (2026-09-24) — `20284a9`
 

@@ -18,8 +18,6 @@ use FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter;
  *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader
  * @covers \FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class ReregistrationSubmissionRepositoryTest extends TestCase {
 

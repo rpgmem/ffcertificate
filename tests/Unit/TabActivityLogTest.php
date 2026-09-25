@@ -18,8 +18,6 @@ use FreeFormCertificate\Settings\Tabs\TabActivityLog;
  * AdminActivityLogPage surface.
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabActivityLog
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class TabActivityLogTest extends TestCase {
 
@@ -85,6 +83,10 @@ class TabActivityLogTest extends TestCase {
 		$this->assertSame( 'ffc_export_activity_log', $this->tab->get_manage_cap() );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_render_delegates_to_activity_log_page(): void {
 		// With the log disabled, render_page() emits the disabled notice — a
 		// cheap way to prove the tab delegates to AdminActivityLogPage.

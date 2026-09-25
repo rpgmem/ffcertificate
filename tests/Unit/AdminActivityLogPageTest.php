@@ -20,14 +20,14 @@ use FreeFormCertificate\Admin\AdminActivityLogPage;
  * engine (issue #772); its per-source behavior lives in
  * ActivityLogExportSourceTest.
  *
- * Process isolation is required because several tests use Mockery `alias:`
+ * Process isolation is required by the seven tests that use Mockery `alias:`
  * mocks for the static core helpers (ActivityLogQuery, Capabilities,
  * RequestInput, DateFormatter, SettingsReader) — alias mocks would otherwise
- * leak across the suite.
+ * leak across the suite. It is declared on those seven and not on the class,
+ * because an alias created in the child process never reaches the parent, so
+ * the other 32 are protected either way and were forking for nothing (#1432).
  *
  * @covers \FreeFormCertificate\Admin\AdminActivityLogPage
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AdminActivityLogPageTest extends TestCase {
 
@@ -116,6 +116,10 @@ class AdminActivityLogPageTest extends TestCase {
 		$this->assertFalse($called);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_enqueue_scripts_enqueues_and_localizes_on_correct_hook(): void {
 		if (!defined('FFC_PLUGIN_URL')) {
 			define('FFC_PLUGIN_URL', 'http://example.test/wp-content/plugins/ffcertificate/');
@@ -164,6 +168,10 @@ class AdminActivityLogPageTest extends TestCase {
 	// render_page() - disabled state
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_render_page_shows_disabled_notice_when_activity_log_disabled(): void {
 		Mockery::mock('alias:\FreeFormCertificate\Settings\SettingsReader')
 			->shouldReceive('activity_log_enabled')->andReturn(false);
@@ -185,6 +193,10 @@ class AdminActivityLogPageTest extends TestCase {
 	// render_page() - enabled state (includes the view file)
 	// ==================================================================
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_render_page_includes_view_when_enabled(): void {
 		if (!defined('FFC_PLUGIN_DIR')) {
 			define('FFC_PLUGIN_DIR', dirname(__DIR__, 2) . '/');
@@ -282,6 +294,10 @@ class AdminActivityLogPageTest extends TestCase {
 		$this->assertSame('', AdminActivityLogPage::render_rows_html([]));
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_render_rows_html_renders_row_with_known_user(): void {
 		Mockery::mock('alias:\FreeFormCertificate\Core\DateFormatter')
 			->shouldReceive('format_date')->andReturn('01/01/2026')
@@ -312,6 +328,10 @@ class AdminActivityLogPageTest extends TestCase {
 		$this->assertStringContainsString('<details>', $html);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_render_rows_html_renders_deleted_user_and_anonymous(): void {
 		Mockery::mock('alias:\FreeFormCertificate\Core\DateFormatter')
 			->shouldReceive('format_date')->andReturn('01/01/2026')
@@ -346,6 +366,10 @@ class AdminActivityLogPageTest extends TestCase {
 		$this->assertStringContainsString('—', $html);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_render_rows_html_renders_schedule_summary_above_dump(): void {
 		Mockery::mock('alias:\FreeFormCertificate\Core\DateFormatter')
 			->shouldReceive('format_date')->andReturn('01/01/2026')
@@ -507,6 +531,10 @@ class AdminActivityLogPageTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_render_schedule_exception_summary_for_override_action_lists_facts(): void {
 		Mockery::mock('alias:\FreeFormCertificate\Core\DateFormatter')
 			->shouldReceive('format_schedule')
