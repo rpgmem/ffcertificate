@@ -123,6 +123,135 @@ final class AdminStylesheetTokensTest extends TestCase {
 	 *
 	 * @return array<string, string> Basename => absolute path.
 	 */
+	/**
+	 * How many PHP sources `php_and_template_sources()` should return.
+	 *
+	 * A hand-rolled recursive `scandir` over the same two directories.
+	 */
+	private static function source_count_by_scandir(): int {
+		$root  = dirname( __DIR__, 2 );
+		$count = 0;
+		$stack = array( $root . '/includes', $root . '/templates' );
+
+		while ( array() !== $stack ) {
+			$dir     = (string) array_pop( $stack );
+			$entries = scandir( $dir );
+
+			foreach ( is_array( $entries ) ? $entries : array() as $entry ) {
+				if ( '.' === $entry || '..' === $entry ) {
+					continue;
+				}
+
+				$path = $dir . '/' . $entry;
+
+				if ( is_dir( $path ) ) {
+					$stack[] = $path;
+					continue;
+				}
+
+				if ( str_ends_with( $path, '.php' ) ) {
+					++$count;
+				}
+			}
+		}
+
+		return $count;
+	}
+
+	/**
+	 * Whether a file CALLS `wp_enqueue_style()` or `wp_register_style()`.
+	 *
+	 * @param string $path Absolute path to a PHP file.
+	 */
+	private static function calls_a_style_function( string $path ): bool {
+		$tokens = @token_get_all( (string) file_get_contents( $path ) );
+
+		foreach ( $tokens as $token ) {
+			if ( ! is_array( $token ) || T_STRING !== $token[0] ) {
+				continue;
+			}
+			if ( 'wp_enqueue_style' === $token[1] || 'wp_register_style' === $token[1] ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * The sheet names, read by `scandir` rather than the `glob` under test.
+	 *
+	 * @return list<string>
+	 */
+	private static function sheet_names_by_scandir(): array {
+		$out = array();
+
+		foreach ( (array) scandir( dirname( __DIR__, 2 ) . '/assets/css' ) as $entry ) {
+			if ( ! is_string( $entry ) || ! str_ends_with( $entry, '.css' ) || str_ends_with( $entry, '.min.css' ) ) {
+				continue;
+			}
+			$out[] = $entry;
+		}
+
+		sort( $out );
+
+		return $out;
+	}
+
+	/**
+	 * Files under `includes/` that call `wp_enqueue_style()` / `wp_register_style()`.
+	 *
+	 * A hand-rolled recursive `scandir`, deliberately not the
+	 * `RecursiveIteratorIterator` `style_calls()` uses.
+	 *
+	 * @return list<string>
+	 */
+	private static function files_with_style_call(): array {
+		$root  = dirname( __DIR__, 2 );
+		$out   = array();
+		$stack = array( $root . '/includes' );
+
+		while ( array() !== $stack ) {
+			$dir     = (string) array_pop( $stack );
+			$entries = scandir( $dir );
+
+			foreach ( is_array( $entries ) ? $entries : array() as $entry ) {
+				if ( '.' === $entry || '..' === $entry ) {
+					continue;
+				}
+
+				$path = $dir . '/' . $entry;
+
+				if ( is_dir( $path ) ) {
+					$stack[] = $path;
+					continue;
+				}
+
+				if ( ! str_ends_with( $path, '.php' ) ) {
+					continue;
+				}
+
+				// READ TOKENS, NEVER RAW LINES.
+				//
+				// A regex over the source matches the function name inside a
+				// docblock, and this repository has two: the badge palette's
+				// `@param` says "a handle already passed to wp_enqueue_style()",
+				// and the cancellation handler's says the page "never went
+				// through wp_enqueue_style()". The first version of this recount
+				// reported both as calls the scan had missed -- the mistake
+				// `IdentityConvergenceGuardTest` keeps a canary against, found
+				// here by the recount failing on its first run.
+				if ( self::calls_a_style_function( $path ) ) {
+					$out[] = str_replace( $root . '/', '', $path );
+				}
+			}
+		}
+
+		sort( $out );
+
+		return $out;
+	}
+
 	private static function stylesheets(): array {
 		$out = array();
 
@@ -316,7 +445,26 @@ final class AdminStylesheetTokensTest extends TestCase {
 			}
 		}
 
-		$this->assertNotEmpty( $reads_tokens, 'No stylesheet reads a token — the scan collapsed.' );
+		// EXACT, NOT `assertNotEmpty` (#1435): one sheet satisfies a non-empty
+		// check as well as twenty-six do. The expected set is read through
+		// `scandir` rather than the `glob` this scan uses, so a sheet the glob
+		// stops seeing fails here instead of quietly leaving the rule.
+		$expected = array();
+		foreach ( self::sheet_names_by_scandir() as $name ) {
+			if ( 'ffc-common.css' === $name ) {
+				continue;
+			}
+			$path = dirname( __DIR__, 2 ) . '/assets/css/' . $name;
+			if ( false !== strpos( (string) file_get_contents( $path ), 'var(--ffc-' ) ) {
+				$expected[] = $name;
+			}
+		}
+
+		$this->assertSame(
+			$expected,
+			$reads_tokens,
+			'The sheets this scan says read a token disagree with an independent reading of the directory.'
+		);
 
 		$offenders = array();
 		foreach ( self::style_calls() as $call ) {
@@ -625,8 +773,51 @@ final class AdminStylesheetTokensTest extends TestCase {
 			}
 		}
 
-		$this->assertGreaterThan( 50, count( $declared ), 'The declaration scan collapsed.' );
-		$this->assertGreaterThan( 50, count( $used ), 'The usage scan collapsed.' );
+		// THE SELF-CHECK IS EXACT, NOT A FLOOR (#1435).
+		//
+		// `assertGreaterThan( 50, … )` stood here for both scans, and a floor is
+		// not a detector: the palette declares 91 tokens, so a scan that lost a
+		// third of them stayed green. Both sides below are derived from a second
+		// reading and both move on their own when the CSS changes.
+		//
+		// Declarations: all but two sheets declare nothing, so "every sheet
+		// contributed" would be false. What IS exact is that every token
+		// `ffc-common.css` declares must be in `$declared` -- the palette is
+		// where they live, read here on its own.
+		$palette = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-common.css' );
+		preg_match_all( '/(--ffc-[a-z0-9-]+)\s*:/i', $palette, $palette_tokens );
+
+		$this->assertSame(
+			array(),
+			array_values( array_diff( array_map( 'strtolower', array_unique( $palette_tokens[1] ) ), array_keys( $declared ) ) ),
+			'A token ffc-common.css declares is missing from the declaration scan: it is reading part of'
+			. ' the palette and reporting as if it had read all of it.'
+		);
+
+		// Usage: every sheet whose source carries `var(--ffc-` must appear among
+		// the files the usage scan recorded. The two that carry none are
+		// `ffc-pdf-core.css` and `ffc-code-editor-dark.css`, deliberately
+		// palette-less, and this shape needs no exception for them -- it asks
+		// only about the sheets that do.
+		$expected_users = array();
+		foreach ( self::stylesheets() as $name => $path ) {
+			if ( false !== strpos( (string) file_get_contents( $path ), 'var(--ffc-' ) ) {
+				$expected_users[ $name ] = true;
+			}
+		}
+
+		$seen_users = array();
+		foreach ( $used as $files ) {
+			foreach ( $files as $name ) {
+				$seen_users[ $name ] = true;
+			}
+		}
+
+		$this->assertSame(
+			array(),
+			array_values( array_diff( array_keys( $expected_users ), array_keys( $seen_users ) ) ),
+			'A sheet reads a token and the usage scan recorded nothing from it.'
+		);
 
 		$orphans = array();
 		foreach ( $used as $token => $files ) {
@@ -659,19 +850,44 @@ final class AdminStylesheetTokensTest extends TestCase {
 	 * scans are pinned here: the stylesheet list, and the enqueue-call list.
 	 */
 	public function test_neither_scan_can_collapse_in_silence(): void {
+		// THE TWO FLOORS HERE WERE BOTH `> 20` AND BOTH WERE SLACK (#1435).
+		//
+		// Tight against the sheets and enqueue calls that existed when they were
+		// written, slack against the 28 and the 23 there are now -- a scan that
+		// lost a quarter of either stayed green. Both are exact recounts by an
+		// independent traversal now, so adding a sheet or a call moves both sides
+		// and neither needs maintenance.
 		$sheets = self::stylesheets();
-		$this->assertGreaterThan( 20, count( $sheets ), 'The stylesheet scan collapsed.' );
+
+		$this->assertSame(
+			self::sheet_names_by_scandir(),
+			array_keys( $sheets ),
+			'The stylesheet glob and an independent `scandir` disagree about which sheets exist: the scan'
+			. ' is reading some of them and reporting as if it had read all of them.'
+		);
 
 		$calls = self::style_calls();
-		$this->assertGreaterThan( 20, count( $calls ), 'The wp_enqueue_style scan collapsed.' );
+
+		$this->assertSame(
+			array(),
+			array_values( array_diff( self::files_with_style_call(), array_unique( array_column( $calls, 'file' ) ) ) ),
+			'A file calls wp_enqueue_style()/wp_register_style() and the call scan recorded nothing from'
+			. ' it: the walk missed the file, or the argument match stopped matching.'
+		);
+
 		$this->assertContains( 'ffc-common', array_column( $calls, 'handle' ), 'The enqueue scan does not see ffc-common.' );
 
-		// The literal scanner must actually find literals where they live.
-		$this->assertGreaterThan(
-			100,
-			count( self::literals( $sheets['ffc-common.css'] ) ),
-			'The literal scanner does not see the palette — check the declaration regex.'
-		);
+		// THE LITERAL SCANNER NEEDS NO FLOOR OF ITS OWN (#1435).
+		//
+		// `assertGreaterThan( 100, count( self::literals( … ) ) )` stood here, and
+		// `CLAUDE.md` says a share or a second copy of a scan's own filter is the
+		// wrong answer for a scan that filters by property. The right answer was
+		// that the check is redundant: BUDGET is asserted in BOTH directions --
+		// `test_no_stylesheet_exceeds_its_literal_budget` and
+		// `test_the_literal_budget_is_not_slack` -- so found must EQUAL the
+		// budget for every sheet. A literal scanner that collapsed would report
+		// zero for all 28 and the slack direction fires on all 28. Deleted rather
+		// than converted.
 
 		// Every INLINE_PROPERTIES entry must still be read by some stylesheet —
 		// an allowlist that outlives its usage is a lie the next reader inherits.
@@ -752,13 +968,42 @@ final class AdminStylesheetTokensTest extends TestCase {
 			}
 		}
 
-		$this->assertGreaterThanOrEqual( 3, count( $roots ), 'The base-selector scan collapsed.' );
+		// THE ROOTS ARE A FROZEN REGISTER, NOT A FLOOR (#1435).
+		//
+		// `assertGreaterThanOrEqual( 3, … )` is satisfied by a selector parse that
+		// lost one of four; an exact comparison tolerates nothing. `body.wp-admin`
+		// is absent on purpose -- the loop above captures `.ffc-*` roots only, and
+		// the admin half of the base pair carries no `ffc-` class. Adding a fourth
+		// frontend root means adding it here, which is maintenance this guard owes
+		// rather than a defect to design away.
+		sort( $roots );
+
+		$this->assertSame(
+			array( 'ffc-cancel-page', 'ffc-rereg-form-container', 'ffc-shortcode' ),
+			$roots,
+			'The base-pair selector no longer names the roots this guard checks — either a root left the'
+			. ' rule (update the register) or the selector parse stopped matching.'
+		);
+
+		// THE MARKUP FLOOR WAS A BYTE COUNT AND IS NOW A FILE COUNT (#1435).
+		//
+		// `strlen( $markup ) > 500000` drifted upward with every commit and said
+		// nothing about coverage: a walk that lost a third of the tree still
+		// cleared it. What matters is that the walk saw every file, so the recount
+		// is exact and by a different traversal.
+		$sources = self::php_and_template_sources();
+
+		$this->assertSame(
+			self::source_count_by_scandir(),
+			count( $sources ),
+			'The markup walk and an independent `scandir` disagree about how many PHP sources there are:'
+			. ' a root the base pair names could read as unrendered because the file was never opened.'
+		);
 
 		$markup = '';
-		foreach ( self::php_and_template_sources() as $path ) {
+		foreach ( $sources as $path ) {
 			$markup .= (string) file_get_contents( $path );
 		}
-		$this->assertGreaterThan( 500000, strlen( $markup ), 'The markup scan collapsed.' );
 
 		foreach ( $roots as $root ) {
 			$this->assertStringContainsString(
