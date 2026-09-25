@@ -61,6 +61,28 @@ class Debug {
 	);
 
 	/**
+	 * Keys whose value is a client IP address.
+	 *
+	 * Separate from `SENSITIVE_KEYS` because the treatment differs: everything
+	 * there is MASKED, keeping two leading and two trailing characters, and for
+	 * an IPv4 that is a meaningful narrowing -- `152.249.52.217` would log as
+	 * `15**********17 (len:14)`, which leaves a few thousand candidates.
+	 * `CLAUDE.md` is explicit that a debug log HASHES an IP rather than showing
+	 * any of it, so these take {@see hash_ip} instead.
+	 *
+	 * The list is the sink's, not the call site's: seven `Debug::log_*` payloads
+	 * passed a raw address under the key `ip` (#1441), and fixing them one by one
+	 * would leave the eighth to be written. `ip` was simply missing from the
+	 * redaction list while every other PII key was on it.
+	 */
+	private const IP_KEYS = array(
+		'ip',
+		'user_ip',
+		'client_ip',
+		'remote_addr',
+	);
+
+	/**
 	 * Query parameters whose values are stripped from logged URLs.
 	 */
 	private const SENSITIVE_URL_PARAMS = array(
@@ -168,7 +190,9 @@ class Debug {
 		$out = array();
 		foreach ( $data as $key => $value ) {
 			$key_str = strtolower( (string) $key );
-			if ( is_string( $value ) && in_array( $key_str, self::SENSITIVE_KEYS, true ) ) {
+			if ( is_string( $value ) && in_array( $key_str, self::IP_KEYS, true ) ) {
+				$out[ $key . '_hash' ] = self::hash_ip( $value );
+			} elseif ( is_string( $value ) && in_array( $key_str, self::SENSITIVE_KEYS, true ) ) {
 				$out[ $key ] = self::mask_value( $value );
 			} elseif ( is_string( $value ) && self::url_carries_secret( $value ) ) {
 				$out[ $key ] = self::strip_secret_query( $value );
@@ -179,6 +203,35 @@ class Debug {
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * A client IP, reduced to something that cannot be read back.
+	 *
+	 * SALTED, and that is the part that matters: an IPv4 has 2^32 possibilities,
+	 * so a bare `sha256` truncation is reversible by exhaustion in seconds and is
+	 * not anonymisation. `wp_salt( 'auth' )` is stable across requests, so two
+	 * entries from one visitor still correlate, which is what a debug log needs.
+	 *
+	 * Three private copies of an IP hash already exist -- `ClientIpResolver` and
+	 * `IpGeolocation` truncate an UNSALTED `sha256` to 16, and
+	 * `PublicFormsExportSource` fences a job with an unsalted `sha1`. They are not
+	 * unified here on purpose: the first two share this weakness and are their own
+	 * decision, and the third compares against a value already stored in
+	 * in-flight jobs, so changing it would break them on deploy. Recorded rather
+	 * than silently made a fourth (#1441).
+	 *
+	 * @param string $ip Client address.
+	 * @return string Salted, truncated hash, or '' for an empty address.
+	 */
+	private static function hash_ip( string $ip ): string {
+		if ( '' === $ip ) {
+			return '';
+		}
+
+		$salt = function_exists( 'wp_salt' ) ? wp_salt( 'auth' ) : '';
+
+		return substr( hash( 'sha256', $ip . $salt ), 0, 16 );
 	}
 
 	/**

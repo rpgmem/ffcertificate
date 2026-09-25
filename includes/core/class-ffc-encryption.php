@@ -346,14 +346,47 @@ class Encryption {
 					: array(
 						'ciphertext_length' => strlen( $ciphertext ),
 						'v2_prefix'         => 0 === strpos( $ciphertext, self::V2_PREFIX ),
+						'caller'            => self::failing_caller(),
 					),
-				0,
+				function_exists( 'get_current_user_id' ) ? (int) get_current_user_id() : 0,
 				0
 			);
 		} catch ( \Throwable $e ) {
 			// Never let logging failure propagate up into decryption callers.
 			unset( $e );
 		}
+	}
+
+	/**
+	 * Which call site handed `decrypt()` a value it could not read.
+	 *
+	 * The context was length + v2 flag and nothing else, and its docblock explains
+	 * why -- metadata only, so the logging can never leak plaintext. That is right
+	 * and it is not the same as actionable: without the caller the warning names a
+	 * failure and no path, and three of them were observed in production with no
+	 * way to tell which of the sites that decrypt had produced them (#1441). A
+	 * class and method name leak nothing.
+	 *
+	 * The frame wanted is the one that called `decrypt()`, so the walk skips this
+	 * class: `log_decrypt_failure` and `decrypt` are frames 1 and 2 on every path.
+	 * `DEBUG_BACKTRACE_IGNORE_ARGS` is not optional -- the arguments on those
+	 * frames ARE the ciphertext and would put in the log exactly what the context
+	 * is written to keep out.
+	 *
+	 * @return string `Class::method`, or '' when no frame outside this class is visible.
+	 */
+	private static function failing_caller(): string {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_debug_backtrace -- Naming the caller is the whole point of this helper, and the sniff's concern (leaking state) is what DEBUG_BACKTRACE_IGNORE_ARGS removes: without it the arguments on these frames are the ciphertext itself.
+		foreach ( debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 8 ) as $frame ) {
+			$class = $frame['class'] ?? '';
+			if ( '' === $class || self::class === $class ) {
+				continue;
+			}
+
+			return $class . '::' . $frame['function'];
+		}
+
+		return '';
 	}
 
 	/**
