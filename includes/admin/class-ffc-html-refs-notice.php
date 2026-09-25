@@ -93,6 +93,34 @@ class HtmlRefsNotice extends AbstractDismissibleNotice {
 	 * The inner notice HTML (two paragraphs, already escaped).
 	 */
 	protected static function notice_message(): string {
+		// THE TEXT FOLLOWS WHETHER THE REPAIR EXISTS (#1438).
+		//
+		// This notice used to point at the Migrations card unconditionally, and
+		// that card is now hidden on every install: the plugin stopped shipping
+		// `html/` in 6.23.0, and the migration side-loads the images FROM there.
+		// A notice sending an administrator to a card that is not on the screen
+		// is worse than no notice, so the two surfaces are kept in step through
+		// the one probe both read.
+		//
+		// Which branch is live is also the difference between a warning and a
+		// report: with the folder present the images are still on disk and the
+		// card can move them, so the loss is prospective. With it gone they are
+		// already gone, and the only repair is a person re-uploading each image.
+		if ( ! LegacyHtmlRefs::drop_folder_exists() ) {
+			return '<p><strong>'
+				. esc_html__( 'Free Form Certificate — certificate images are missing', 'ffcertificate' )
+				. '</strong></p>'
+				. '<p>' . wp_kses(
+					sprintf(
+						/* translators: 1: opening <code> tag, 2: closing </code> tag. */
+						__( 'Some certificate templates reference images inside the plugin\'s %1$shtml/%2$s folder, which no longer exists — a plugin update or deploy removed it, so those images do not render. There is no automatic repair, because the files are gone: re-upload each image to the Media Library and point the template at the new URL.', 'ffcertificate' ),
+						'<code>',
+						'</code>'
+					),
+					array( 'code' => array() )
+				) . '</p>';
+		}
+
 		$migrations_url = admin_url( 'admin.php?page=ffc-settings&tab=migrations' );
 
 		$title = '<p><strong>'
