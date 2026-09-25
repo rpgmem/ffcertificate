@@ -503,8 +503,6 @@ class CalendarRepositoryTest extends TestCase {
 	// ==================================================================
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_userHasSchedulingBypass_returns_true_for_admin_current_user(): void {
 		Functions\when( 'current_user_can' )->alias( function ( $cap ) {
@@ -517,8 +515,6 @@ class CalendarRepositoryTest extends TestCase {
 	}
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_userHasSchedulingBypass_returns_true_for_bypass_cap_current_user(): void {
 		Functions\when( 'current_user_can' )->alias( function ( $cap ) {
@@ -531,8 +527,6 @@ class CalendarRepositoryTest extends TestCase {
 	}
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_userHasSchedulingBypass_returns_false_for_unprivileged_current_user(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
@@ -543,8 +537,6 @@ class CalendarRepositoryTest extends TestCase {
 	}
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_userHasSchedulingBypass_with_specific_user_id_admin(): void {
 		Functions\when( 'user_can' )->alias( function ( $user_id, $cap ) {
@@ -557,8 +549,6 @@ class CalendarRepositoryTest extends TestCase {
 	}
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_userHasSchedulingBypass_with_specific_user_id_bypass_cap(): void {
 		Functions\when( 'user_can' )->alias( function ( $user_id, $cap ) {
@@ -571,8 +561,6 @@ class CalendarRepositoryTest extends TestCase {
 	}
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_userHasSchedulingBypass_with_specific_user_id_no_caps(): void {
 		Functions\when( 'user_can' )->justReturn( false );
@@ -583,8 +571,6 @@ class CalendarRepositoryTest extends TestCase {
 	}
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_userHasSchedulingBypass_per_calendar_toggle_off_blocks_admin(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -598,8 +584,6 @@ class CalendarRepositoryTest extends TestCase {
 	}
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_userHasSchedulingBypass_per_calendar_toggle_on_allows_admin(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -613,8 +597,6 @@ class CalendarRepositoryTest extends TestCase {
 	}
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_userHasSchedulingBypass_legacy_calendar_without_key_defaults_on(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -629,8 +611,6 @@ class CalendarRepositoryTest extends TestCase {
 	}
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_userHasSchedulingBypass_per_calendar_skipped_without_capability(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );

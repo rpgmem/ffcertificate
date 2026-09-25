@@ -19,8 +19,6 @@ use FreeFormCertificate\Maintenance\IdentityMerge;
  * every refusal is driven rather than read.
  *
  * @covers \FreeFormCertificate\Maintenance\IdentityMerge
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class IdentityMergeTest extends TestCase {
 

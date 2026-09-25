@@ -20,8 +20,6 @@ use FreeFormCertificate\Maintenance\IdentityRelink;
  * condition, never by reading the code.
  *
  * @covers \FreeFormCertificate\Maintenance\IdentityRelink
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class IdentityRelinkTest extends TestCase {
 

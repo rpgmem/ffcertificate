@@ -29,8 +29,6 @@ use WP_User;
  *
  * @covers \FreeFormCertificate\Admin\IdentityMergePreviewAjaxEndpoint
  * @covers \FreeFormCertificate\Maintenance\IdentityMerge
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class IdentityMergePreviewTest extends TestCase {
 

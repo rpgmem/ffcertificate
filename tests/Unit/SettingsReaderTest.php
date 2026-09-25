@@ -12,8 +12,6 @@ use FreeFormCertificate\Settings\SettingsReader;
  * Tests for SettingsReader: generic + typed accessors over `ffc_settings`.
  *
  * @covers \FreeFormCertificate\Settings\SettingsReader
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class SettingsReaderTest extends TestCase {
 

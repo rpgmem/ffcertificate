@@ -22,8 +22,6 @@ use FreeFormCertificate\Maintenance\IdentityOrphanQuery;
  * population needing an account opened rather than a link made.
  *
  * @covers \FreeFormCertificate\Maintenance\IdentityOrphanQuery
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class IdentityOrphanQueryTest extends TestCase {
 

@@ -20,8 +20,6 @@ use FreeFormCertificate\Maintenance\IdentityRepair;
  * the code.
  *
  * @covers \FreeFormCertificate\Maintenance\IdentityRepair
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class IdentityRepairTest extends TestCase {
 
