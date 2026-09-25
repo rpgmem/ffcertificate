@@ -15,6 +15,16 @@
  * recruitment test (see #563). Per-test behavior is driven through the public
  * static $flags, reset in setUp().
  *
+ * So the fork is not this file's convenience, it is its containment, and the
+ * blast radius was measured (#1432): dropping
+ * `@runTestsInSeparateProcesses` from RecruitmentAdminPageRendererTest lets
+ * these eleven names win for the rest of the process, and three further test
+ * classes fail on the two that are not recruitment's own —
+ * RoleCapabilityEditorTest, TabIpDiagnosticsTest and TabModulosTest all
+ * resolve `Admin\AdminUI`, which the stub below shadows. A `require` of a
+ * class declaration occupies the class table exactly as a Mockery `alias:`
+ * mock does; nothing undeclares either.
+ *
  * @package FreeFormCertificate\Tests
  */
 

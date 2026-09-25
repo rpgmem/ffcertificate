@@ -42,8 +42,6 @@ use FreeFormCertificate\Core\SensitiveFieldRegistry;
  *
  * @covers \FreeFormCertificate\Core\SensitiveFieldRegistry
  * @covers \FreeFormCertificate\Core\DataSanitizer
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class IdentityHashBoundaryTest extends TestCase {
 

@@ -24,8 +24,6 @@ use FreeFormCertificate\Maintenance\IdentityRecordNames;
  * two makes an absence render as an answer — the #1071 rule.
  *
  * @covers \FreeFormCertificate\Maintenance\IdentityRecordNames
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class IdentityRecordNamesTest extends TestCase {
 

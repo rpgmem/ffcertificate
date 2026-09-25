@@ -26,8 +26,6 @@ use FreeFormCertificate\Maintenance\IdentityRepair;
  * account's.
  *
  * @covers \FreeFormCertificate\Maintenance\IdentityRepair
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class IdentityScopedRepairTest extends TestCase {
 

@@ -15,6 +15,10 @@ use FreeFormCertificate\Settings\Tabs\TabModulos;
  * Covers init() tab metadata and both branches of render() (the real view
  * include on success, the error notice when the view file is missing).
  *
+ * Runs in separate processes as defence: it preloads `Admin\AdminUI`, which
+ * tests/fixtures/recruitment-admin-page-renderer-stubs.php shadows with a stub
+ * for the rest of any process that has required it (#1432).
+ *
  * @covers \FreeFormCertificate\Settings\Tabs\TabModulos
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled

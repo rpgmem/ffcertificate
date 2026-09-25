@@ -13,8 +13,6 @@ use FreeFormCertificate\Settings\GeolocationSettingsReader;
  * `ffc_geolocation_settings`.
  *
  * @covers \FreeFormCertificate\Settings\GeolocationSettingsReader
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class GeolocationSettingsReaderTest extends TestCase {
 

@@ -23,8 +23,6 @@ use WP_Error;
  * it again.
  *
  * @covers \FreeFormCertificate\Maintenance\IdentityAdoption
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class IdentityAdoptionTest extends TestCase {
 

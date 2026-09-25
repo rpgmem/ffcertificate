@@ -18,8 +18,6 @@ use FreeFormCertificate\Security\DeviceLimiter;
  * effective-settings resolver, and the record_signals no-op — exercised in
  * isolation with a fixture-settings RateLimitSupport injected.
  *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class DeviceLimiterTest extends TestCase {
 

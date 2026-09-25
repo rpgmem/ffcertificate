@@ -25,8 +25,6 @@ use FreeFormCertificate\Core\SensitiveFieldRegistry;
 
 /**
  * @covers \FreeFormCertificate\Core\SensitiveFieldRegistry
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class SensitiveFieldRegistryTest extends TestCase {
 

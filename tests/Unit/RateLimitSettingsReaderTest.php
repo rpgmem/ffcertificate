@@ -13,8 +13,6 @@ use FreeFormCertificate\Settings\RateLimitSettingsReader;
  * over `ffc_rate_limit_settings`.
  *
  * @covers \FreeFormCertificate\Settings\RateLimitSettingsReader
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RateLimitSettingsReaderTest extends TestCase {
 
