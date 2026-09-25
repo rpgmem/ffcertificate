@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.4
 Tested up to: 7.1.1
-Stable tag: 6.28.4
+Stable tag: 6.29.0
 Requires PHP: 8.3
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -214,8 +214,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.28.4 =
-⚠ Splitting and merging identity conflicts now need capabilities of their own; a one-shot grant seeds them onto current holders, but an integration checking ffc_manage_identities before those endpoints must be updated. The queue becomes a worklist worked one finding at a time.
+= 6.29.0 =
+⚠ Two secrets reached debug.log in full: a magic token in a URL fragment, which opens a certificate without authentication, and client IP addresses. Both are redacted at the sink now. Two activity-log columns nobody declared were dropped since 6.6.4, so the per-submission trail returned nothing.
 
 This section carries a short summary of the version being offered, and only
 that one — the updater never offers an older release, so an entry for one
