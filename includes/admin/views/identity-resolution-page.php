@@ -1038,6 +1038,17 @@ $ffc_identity_tier_note = static function ( $tier ) {
 								esc_html( $ffc_identity_kind )
 							);
 							?>
+							<?php
+							// THE CAUTION CAME UP FROM THE IDENTIFIERS, WHERE IT REPEATED (#1464).
+							//
+							// It is about the CARD -- this account may legitimately hold
+							// what it holds -- so it belongs beside the sentence that
+							// describes the account, not above each route. Its own
+							// sentence rather than folded into the one above, which is a
+							// translated string saying something else and would have to
+							// be retranslated to carry this.
+							?>
+							<?php esc_html_e( 'Read what it submitted before either route: the records may legitimately be its own.', 'ffcertificate' ); ?>
 						<?php else : ?>
 							<?php
 							printf(
@@ -1220,13 +1231,27 @@ $ffc_identity_tier_note = static function ( $tier ) {
 									<code><?php echo esc_html( substr( (string) $ffc_identity_move, 0, IdentityQueue::DISPLAY_PREFIX ) ); ?></code>
 									<span class="ffc-identity-card-said"><?php echo esc_html( $ffc_identity_kind ); ?></span>
 								</p>
-								<p class="description ffc-identity-card-verb-note">
-									<?php if ( IdentityQueue::TIER_MAILBOX === $ffc_identity_tier ) : ?>
-										<?php esc_html_e( 'One decision per identifier, and the two are exclusive: move these records to the account that already belongs to this person, or split them onto a new account. Read what the shared account submitted before either — the records may legitimately be its own.', 'ffcertificate' ); ?>
-									<?php else : ?>
-										<?php esc_html_e( 'Move it to the account it belongs to, or split it onto an account of its own.', 'ffcertificate' ); ?>
-									<?php endif; ?>
-								</p>
+							<?php
+							// TWO ROUTES TO ONE DESTINATION, EACH NAMED -- NOT A SENTENCE ABOUT BOTH (#1464).
+							//
+							// What stood here was `Move it to the account it belongs to,
+							// or split it onto an account of its own`, printed above every
+							// identifier of the account -- so a card with four numbers said
+							// it four times, as if it were instructions for operating two
+							// forms.
+							//
+							// The origin is one and the destination is one; where the origin
+							// carries several records the destination is decided one
+							// identifier at a time. So these are not two destinations
+							// competing -- they are the two ways of reaching the single one,
+							// and naming each route on the control that takes it is what the
+							// repeated sentence was failing to do.
+							//
+							// The shared-mailbox caution left with it and did not disappear:
+							// it is about the CARD, not about either route, so it sits once,
+							// beside the sentence that describes the account.
+							?>
+							<p class="ffc-identity-card-route"><?php esc_html_e( 'To an account that already exists', 'ffcertificate' ); ?></p>
 							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-2xs"
 								id="ffc-relink-form-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
 								<?php wp_nonce_field( IdentityResolutionPage::RELINK_NONCE . (string) $ffc_identity_move ); ?>
@@ -1369,6 +1394,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							</form>
 							<?php // Only the split goes when the capability is absent: moving is the other verb on this identifier and stays available. ?>
 							<?php if ( $ffc_identity_may_split ) : ?>
+							<p class="ffc-identity-card-route"><?php esc_html_e( 'Or to a new account', 'ffcertificate' ); ?></p>
 							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-xs"
 								id="ffc-split-form-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
 								<?php wp_nonce_field( IdentityResolutionPage::SPLIT_NONCE . (string) $ffc_identity_move ); ?>
@@ -1445,13 +1471,32 @@ $ffc_identity_tier_note = static function ( $tier ) {
 			</div>
 		<?php endforeach; ?>
 		</div>
-		<?php // The verbs, under every panel that offers any. The mailbox panel offers two of the three, so its own sentence follows this one. ?>
-			<p class="description">
-				<?php esc_html_e( 'Consolidating writes the account\'s sound identifier over the mistyped one across every store that holds it. Moving sends the records carrying one identifier to another account — allowed only where the two already agree on the other identifier, and where the receiving account holds none of that kind it gains this one. Splitting creates an account for one identifier and moves its records there — it asks for an address because there is none to inherit, and it removes the account again if the move refuses. All of them run as a single transaction, rolled back whole if any part refuses, and none shows a stored number.', 'ffcertificate' ); ?>
-			</p>
+		<?php
+		// WHAT SURVIVED OF THE FOUR-SENTENCE PARAGRAPH, AND WHY ONLY THIS (#1464).
+		//
+		// It explained all three verbs in the abstract, under every panel that
+		// offers any -- three tiers, so up to three copies of the same four
+		// sentences on one page. Three of those sentences described what a verb
+		// does, which each control now says about the case in front of the
+		// operator, in a line attached to itself.
+		//
+		// This one is the exception because it is a property of the SCREEN and
+		// not of a verb: every write here is one transaction and none of them
+		// prints a stored number. A card cannot claim that about the others,
+		// so it stays, once.
+		?>
+		<p class="description">
+			<?php esc_html_e( 'Every action on this screen runs as a single transaction, rolled back whole if any part of it refuses, and none of them shows a stored number.', 'ffcertificate' ); ?>
+		</p>
 		<?php if ( IdentityQueue::TIER_MAILBOX === $ffc_identity_this_tier ) : ?>
+			<?php
+			// The absence of a verb cannot be explained by a control that is
+			// not there, so this half stays at the panel. The precedence left:
+			// the card shows it, by promoting the verb that wins and barring
+			// the other, which is more legible than a sentence about it.
+			?>
 			<p class="description">
-				<?php esc_html_e( 'Consolidating is not offered on this panel: it rewrites one identifier into another, and where the identifiers belong to different people that writes one person’s number onto another person’s records. Moving and splitting both leave every number as it is. Where an address for a new account is typed, splitting takes precedence over moving — a split leaves the records alone on a fresh account and stays correctable, while a move mixes them into another person’s and the data can no longer separate them.', 'ffcertificate' ); ?>
+				<?php esc_html_e( 'Consolidating is not offered on this panel: it rewrites one identifier into another, and where the identifiers belong to different people that writes one person’s number onto another person’s records. Moving and splitting both leave every number as it is.', 'ffcertificate' ); ?>
 			</p>
 		<?php endif; ?>
 		<?php $ffc_identity_foot(); ?>

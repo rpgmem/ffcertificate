@@ -49,12 +49,40 @@ const FORM = `
 		data-ffc-input="ffc-relink-abc"
 		data-ffc-split="ffc-split-form-abc"
 		data-ffc-submit="ffc-relink-go-abc">Search…</button>
-	<button type="submit" id="ffc-relink-go-abc">Move abc</button>
+	<button type="submit" class="button button-secondary" id="ffc-relink-go-abc">Move abc</button>
 	<span class="ffc-identity-chosen" id="ffc-relink-chosen-abc" hidden></span>
 </form>
 <form id="ffc-split-form-abc">
 	<input type="email" name="ffc_email" required>
-	<button type="submit">Split off</button>
+	<button type="submit" class="button button-secondary">Split off</button>
+	<span class="ffc-identity-split-barred" hidden>A destination is chosen.</span>
+</form>`;
+
+// THE SHARED-MAILBOX SHAPE, WHERE THE PRECEDENCE IS INVERTED (#1461, #1464).
+//
+// Kept apart from `FORM` rather than folded into it, because
+// `data-ffc-prefer-split` is emitted on the mailbox tier ALONE: a fixture
+// carrying it everywhere would make every test in this file exercise the
+// inverted branch and none the ordinary one.
+const MAILBOX_FORM = `
+<form id="move-form">
+	<input type="number" id="ffc-relink-abc" name="ffc_account">
+	<button type="button" class="ffc-identity-find"
+		data-ffc-subject="abc" data-ffc-field="rf"
+		data-ffc-input="ffc-relink-abc"
+		data-ffc-split="ffc-split-form-abc"
+		data-ffc-submit="ffc-relink-go-abc">Search…</button>
+	<input type="checkbox" name="ffc_acknowledged" value="1">
+	<button type="submit" class="button button-secondary" id="ffc-relink-go-abc">Move abc</button>
+	<span class="ffc-identity-chosen" id="ffc-relink-chosen-abc" hidden></span>
+	<span class="ffc-identity-move-barred" hidden>An address is typed.</span>
+</form>
+<form id="ffc-split-form-abc">
+	<input type="email" name="ffc_email" required
+		data-ffc-prefer-split="1"
+		data-ffc-move="move-form"
+		data-ffc-move-submit="ffc-relink-go-abc">
+	<button type="submit" class="button button-secondary">Split off</button>
 	<span class="ffc-identity-split-barred" hidden>A destination is chosen.</span>
 </form>`;
 
@@ -280,5 +308,72 @@ describe('the identity account-search dialog', () => {
 	it('binds nothing when the screen prints no dialog', () => {
 		document.body.innerHTML = FORM;
 		expect(window.FFC.IdentitySearch.boot()).toBe(false);
+	});
+});
+
+// THE PRIMARY IS A PROPERTY OF THE STATE, NOT OF THE CARD (#1464).
+//
+// #1421 withheld the primary because a card `offers two destinations` and
+// promoting one of them would recommend it; the mockup draws a primary. They
+// were never in disagreement -- the origin is one and the destination is one,
+// so what the card offers is two ROUTES to a single destination, and until the
+// operator picks one nothing is decided. At rest, no primary. Once an account
+// is chosen or an address typed, that route IS the decision and takes it.
+//
+// Covered here rather than in a PHP view test because the promotion is
+// entirely a transition: the rendered markup is the resting state, which no
+// amount of reading the view can tell apart from a card that never promotes.
+describe('the primary follows the route that holds the destination', () => {
+	function chosenRoute() {
+		return {
+			move: window.$('#ffc-relink-go-abc').hasClass('button-primary'),
+			split: window.$('#ffc-split-form-abc button[type="submit"]').hasClass('button-primary'),
+		};
+	}
+
+	it('promotes neither route while the card is at rest', () => {
+		expect(chosenRoute()).toEqual({ move: false, split: false });
+	});
+
+	it('promotes the move once a destination account is chosen', () => {
+		vi.spyOn(window.$, 'post').mockImplementation(chainFrom([
+			ok({ records: 2, prefix: 'abc', field: 'rf', suggestion: null }),
+			ok({
+				accounts: [
+					{ id: 2208, name: 'Clarice', email: 'c@example.org', allowed: true, label: 'Agrees by CPF', reason: '' },
+				],
+			}),
+		]));
+
+		window.$('.ffc-identity-find').trigger('click');
+		window.$('#ffc-identity-dialog-q').val('cla').trigger('input');
+		vi.advanceTimersByTime(400);
+		window.$('#ffc-identity-dialog-results input[type="radio"]').trigger('change');
+		window.$('#ffc-identity-dialog-confirm').trigger('click');
+
+		expect(chosenRoute()).toEqual({ move: true, split: false });
+
+		// The demotion is half the statement: a route that gains the primary
+		// while the other keeps `button-secondary` reads as two primaries at
+		// two weights rather than as one decision.
+		expect(window.$('#ffc-relink-go-abc').hasClass('button-secondary')).toBe(false);
+	});
+
+	it('hands the primary to the split when an address is typed, and takes it back when the field is emptied', () => {
+		document.body.innerHTML = DIALOG + MAILBOX_FORM;
+		window.FFC.IdentitySearch.boot();
+
+		window.$('#ffc-split-form-abc input[name="ffc_email"]').val('nova@example.org').trigger('input');
+
+		expect(chosenRoute()).toEqual({ move: false, split: true });
+		expect(window.$('#ffc-relink-go-abc').prop('disabled')).toBe(true);
+
+		// Reversible for the reason the barring is: an address is typed, so it
+		// can be emptied, and the card has to return to having no decision in
+		// it rather than to a promoted route nobody chose.
+		window.$('#ffc-split-form-abc input[name="ffc_email"]').val('').trigger('input');
+
+		expect(chosenRoute()).toEqual({ move: false, split: false });
+		expect(window.$('#ffc-relink-go-abc').prop('disabled')).toBe(false);
 	});
 });

@@ -23,6 +23,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **An administrator without `ffc_administrator` was locked out of the identity screen** (#1459): `render_page()` was the one gate of twelve in that file using bare `current_user_can()` instead of `current_user_can_admin_or()`. FFC admin caps are no longer granted to the native `administrator` role, so an administrator without that role hit a refusal with no fallback, on the one screen whose every other gate would have admitted them.
 
+- **The shared-mailbox barring threw on its first statement under jQuery 4** (#1464): the inverted precedence delivered in #1461 read the typed address through `$.trim`, removed in jQuery 4 — which the test suite binds and WordPress will ship. Under the bundled 3.7.1 it works, so nothing was red and no test reached that branch until this change needed it. Two other files in `assets/js` already carried a comment saying not to use it, which is why the rule is now a guard: every `$.<name>()` the sources call is looked up on the real bundled jQuery, so the register is the runtime rather than somebody's memory of a changelog.
+
+### Changed
+
+- **The identity screen explained its verbs in the abstract, under every panel, instead of at the control** (#1464): a paragraph describing all three sat at the foot of each tier — up to three copies of the same four sentences — and a fourth sentence repeated above every identifier of an account, so a card holding four numbers said it four times. Three of those sentences described what a verb does, which each control now says about the case in front of the operator. What stays at the panel is the one claim a control cannot make: every write here is a single transaction and none shows a stored number, said once.
+
+- **The two controls on a card are two routes to one destination, and each now says which** (#1464): the origin is one and the destination is one — where the origin carries several records the destination is decided one identifier at a time — so `To an account that already exists` and `Or to a new account` label the forms that take them, in place of one sentence about both. The primary follows the route that holds the decision: none at rest (#1421's reading), the move once an account is chosen, the split once an address is typed, and back to none when the field is emptied. Both routes are always demoted together before one is promoted, so a card can never show two weights of primary.
+
 ## [6.29.0] (2026-09-25) — `8740373d`
 
 ### Security

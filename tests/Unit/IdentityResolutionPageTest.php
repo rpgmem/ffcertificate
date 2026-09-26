@@ -792,6 +792,12 @@ class IdentityResolutionPageTest extends TestCase {
 	 * explanation of the buttons it does have -- and the two things a reader
 	 * needs are exactly what the shared paragraph cannot say: which verb is
 	 * missing and why, and which of the two wins when both are supplied.
+	 *
+	 * #1464 split those two apart. The absence stayed here, because a control
+	 * that is not on the screen cannot explain why: only a paragraph can. The
+	 * precedence moved to the move's own barring notice, which says it at the
+	 * moment an address is typed -- so this test now pins the fact AND the
+	 * site, rather than the paragraph that used to hold both.
 	 */
 	public function test_the_verb_footer_reaches_the_mailbox_panel_with_its_own_sentence(): void {
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
@@ -815,9 +821,23 @@ class IdentityResolutionPageTest extends TestCase {
 		);
 
 		$this->assertStringContainsString(
-			'splitting takes precedence over moving',
+			'so splitting takes precedence',
 			$view,
-			'The sentence must state the precedence, which is the one rule an operator cannot infer from the two buttons.'
+			'Nothing states the precedence, which is the one rule an operator cannot infer from the two buttons.'
+		);
+
+		// AND IT IS STATED WHERE IT APPLIES, WHICH IS NOT THIS PARAGRAPH (#1464).
+		//
+		// The panel's sentence carried the precedence until the barring did:
+		// the move's own notice says it at the moment the address is typed,
+		// beside the control it disables, so the paragraph was saying in the
+		// abstract what the card now demonstrates. The FACT is still asserted
+		// above -- only its site moved, and this pins the site so the two
+		// cannot both drop it.
+		$this->assertMatchesRegularExpression(
+			'/ffc-identity-move-barred.*?so splitting takes precedence/s',
+			$view,
+			'The precedence left the barring notice, which is the only place an operator meets it at the moment it decides anything.'
 		);
 	}
 
@@ -1202,16 +1222,21 @@ class IdentityResolutionPageTest extends TestCase {
 	 *
 	 * An account holding two numbers renders MOVE and SPLIT once per number —
 	 * eight controls, whose only clue to ownership was the hash inside one
-	 * button's label. Each identifier now opens a group that names it, and
-	 * the sentence explaining the two verbs travels with them instead of
-	 * sitting in a paragraph at the foot of the panel.
+	 * button's label. Each identifier now opens a group that names it.
+	 *
+	 * What travels with the group changed in #1464: it was one sentence
+	 * describing both verbs, repeated per identifier, and it is now a label
+	 * per route, on the control that takes it. The origin is one and the
+	 * destination is one -- so the card offers two ROUTES to a single
+	 * destination, which is what naming each of them says and a sentence
+	 * about both did not.
 	 */
 	public function test_each_identifier_owns_its_own_verbs(): void {
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
 
 		$this->assertStringContainsString( 'class="ffc-identity-card-verb"', $view, 'Each identifier opens its own group.' );
 		$this->assertStringContainsString( 'ffc-identity-card-verb-head', $view, 'And the group names the identifier it acts on.' );
-		$this->assertStringContainsString( 'ffc-identity-card-verb-note', $view, 'And says what the two verbs do, beside them.' );
+		$this->assertStringContainsString( 'ffc-identity-card-route', $view, 'And each route to the destination is named on the control that takes it.' );
 	}
 
 	/**

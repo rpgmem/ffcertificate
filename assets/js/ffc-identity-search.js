@@ -293,18 +293,55 @@
             // the split is left exactly as the operator filled it.
             var $address = $split.find('[data-ffc-prefer-split]');
 
-            if ($address.length && '' !== $.trim(String($address.val() || ''))) {
+            // `$.trim` was removed in jQuery 4, which the suite binds and WP
+            // will ship: native String.prototype.trim covers the same case on
+            // every version. Two other files in `assets/js` already carry this
+            // note -- it reached here anyway, so a guard now enforces it.
+            if ($address.length && '' !== String($address.val() || '').trim()) {
                 barMove($address);
             } else {
+                promote(opener.closest('form'), true);
+
                 // `disabled` and not merely hidden: a hidden `required` control
                 // blocks the submit against something nobody can see, and only
                 // `disabled` bars a control from constraint validation (#1114).
                 $split.find('input, button').prop('disabled', true);
                 $split.find('.ffc-identity-split-barred').prop('hidden', false);
             }
+        } else {
+            // No split form beside it: the move is the only route, so choosing
+            // a destination decides the card outright.
+            promote(opener.closest('form'), true);
         }
 
         close();
+    }
+
+    /**
+     * Move the primary onto the route that now holds the destination.
+     *
+     * THE PRIMARY IS A PROPERTY OF THE STATE, NOT OF THE CARD.
+     *
+     * #1421 withheld it where a card `offers two destinations`, and the
+     * mockup draws one -- which read as a contradiction and is not. The
+     * origin is one and the destination is one; where the origin carries
+     * several records the destination is decided one identifier at a time.
+     * So a card offers two ROUTES to a single destination, and until the
+     * operator picks one nothing is decided: no primary, which is #1421's
+     * card at rest. Once an address is typed or an account chosen, that route
+     * IS the decision, and it takes the primary -- which is the mockup's card
+     * after the choice. The two describe different moments.
+     *
+     * Reversible for the reason `barMove()` is: an address can be emptied
+     * again, and the promotion has to come back with the verb.
+     *
+     * @param {object} $form   The form that now carries the decision.
+     * @param {boolean} chosen Whether that route holds one.
+     */
+    function promote($form, chosen) {
+        $form.find('button[type="submit"]')
+            .toggleClass('button-primary', chosen)
+            .toggleClass('button-secondary', !chosen);
     }
 
     /**
@@ -320,7 +357,7 @@
     function barMove($address) {
         var $form = $('#' + $address.data('ffcMove'));
         var $submit = $('#' + $address.data('ffcMoveSubmit'));
-        var typed = '' !== $.trim(String($address.val() || ''));
+        var typed = '' !== String($address.val() || '').trim();
 
         if (!$form.length) {
             return;
@@ -332,6 +369,12 @@
         $submit.prop('disabled', typed);
         $form.find('.ffc-identity-find, [name="ffc_acknowledged"]').prop('disabled', typed);
         $form.find('.ffc-identity-move-barred').prop('hidden', !typed);
+
+        // The split holds the decision while an address is typed, and gives it
+        // back when the field is emptied -- so both routes are demoted and the
+        // one that still qualifies is promoted, never one without the other.
+        promote($address.closest('form'), typed);
+        promote($form, false);
     }
 
     /**
