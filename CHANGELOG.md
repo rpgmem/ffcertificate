@@ -7,6 +7,14 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Identity resolution: a merge or relink refused because one side carries **two** values for an identifier no longer reports it as the two sides holding *different* values. They often hold the same one — it is what paired them in the queue — and the old sentence sent operators to compare two identical numbers. The refusal now names the account and how many values it holds, and the search column gets its own badge for it (#1477)
+
+### Changed
+
+- The identity audit CSV now prints 12 characters of an identifier hash instead of 16, matching every screen and log. An operator holding the file beside the queue can now match a row to a panel by eye, and the exported file no longer carries more of a hash than the screens do (#1477)
+
 ## [6.29.1] (2026-09-26) — `20eaaa8d`
 
 ### Added

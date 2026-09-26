@@ -40,6 +40,29 @@ class IdentityAgreement {
 	public const FIELDS = array( 'rf', 'cpf' );
 
 	/**
+	 * The two sides carry values for the identifier and share none of them.
+	 *
+	 * @var string
+	 */
+	public const REASON_DISAGREEMENT = 'disagreement';
+
+	/**
+	 * The moving side carries MORE THAN ONE value for the identifier.
+	 *
+	 * A refusal, but not a disagreement -- and telling an operator otherwise
+	 * sends them looking for something that is not there (#1477). The two
+	 * sides may well share a value: what blocks the move is the extra one,
+	 * which nothing has explained and which the target would inherit.
+	 *
+	 * The fix is on the multi-valued side and on another panel: resolve that
+	 * account's own duplicate numbers first, then the move needs no
+	 * exception. Correcting a value on the target cannot help.
+	 *
+	 * @var string
+	 */
+	public const REASON_AMBIGUOUS = 'ambiguous';
+
+	/**
 	 * Stores carrying an identifier beside a `user_id`.
 	 *
 	 * `ffc_user_profiles` is absent because it is the identity index rather
@@ -62,14 +85,27 @@ class IdentityAgreement {
 	 * neither side carries is none of the three -- absence on both sides says
 	 * nothing about whether these are the same person.
 	 *
+	 * A CONFLICT CARRIES ITS REASON, BECAUSE THERE ARE TWO AND THEY ARE FIXED
+	 * ON DIFFERENT SCREENS (#1477).
+	 *
+	 * `conflicts` remains the one authoritative list of what blocks: a caller
+	 * that reads only it refuses exactly what it refused before, which matters
+	 * because what this decides is whether one person's records land under
+	 * another person's login. `reasons` adds nothing to the decision and only
+	 * says WHICH branch refused -- the two sides sharing no value at all
+	 * (`REASON_DISAGREEMENT`, where correcting a value is the fix), or the
+	 * moving side carrying more than one (`REASON_AMBIGUOUS`, where there may
+	 * be no disagreement whatsoever and the fix is elsewhere).
+	 *
 	 * @param array<string, array<int, string>> $records What the moving rows carry.
 	 * @param array<string, array<int, string>> $account What the target holds.
-	 * @return array{matches: array<int, string>, gaps: array<string, string>, conflicts: array<int, string>}
+	 * @return array{matches: array<int, string>, gaps: array<string, string>, conflicts: array<int, string>, reasons: array<string, string>}
 	 */
 	public static function between( array $records, array $account ): array {
 		$matches   = array();
 		$gaps      = array();
 		$conflicts = array();
+		$reasons   = array();
 
 		foreach ( self::FIELDS as $field ) {
 			$mine   = $records[ $field ] ?? array();
@@ -86,7 +122,8 @@ class IdentityAgreement {
 				if ( 1 === count( $mine ) ) {
 					$gaps[ $field ] = $mine[0];
 				} else {
-					$conflicts[] = $field;
+					$conflicts[]       = $field;
+					$reasons[ $field ] = self::REASON_AMBIGUOUS;
 				}
 
 				continue;
@@ -98,12 +135,24 @@ class IdentityAgreement {
 			}
 
 			$conflicts[] = $field;
+
+			// SHARING A VALUE AND STILL BEING REFUSED IS THE COMMON CASE, AND
+			// IT IS NOT A DISAGREEMENT.
+			//
+			// An intersection means the two sides agree about a number and the
+			// moving side carries another one besides. Read as a disagreement
+			// -- which is how this was reported until #1477 -- it sends the
+			// operator to compare two values that are identical.
+			$reasons[ $field ] = array() === array_intersect( $mine, $theirs )
+				? self::REASON_DISAGREEMENT
+				: self::REASON_AMBIGUOUS;
 		}
 
 		return array(
 			'matches'   => $matches,
 			'gaps'      => $gaps,
 			'conflicts' => $conflicts,
+			'reasons'   => $reasons,
 		);
 	}
 

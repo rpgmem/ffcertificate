@@ -79,9 +79,29 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 	 * Characters of the identifier hash kept, enough to group rows belonging
 	 * to one identity without carrying the whole value.
 	 *
+	 * IT FOLLOWS THE SCREEN'S FIGURE RATHER THAN HOLDING ITS OWN (#1477).
+	 *
+	 * This was 16 while every screen and every log printed 12, and the
+	 * divergence was never decided -- it cost an operator holding the CSV
+	 * beside the queue the ability to match a row to a panel by eye, which is
+	 * the one thing both artifacts exist to let them do.
+	 *
+	 * The direction it diverged in is the wrong one too: this file LEAVES the
+	 * server. {@see IdentityQueue::DISPLAY_PREFIX} carries the reason for 12 --
+	 * the full hash of a seven-digit number is not far from the number, the
+	 * space being small enough to enumerate against a known salt -- and that
+	 * argument binds an exported file at least as hard as a screen.
+	 *
+	 * Nothing is lost to grouping: 12 hex characters are 48 bits, so two
+	 * distinct identities colliding across an export bounded at
+	 * {@see self::EXPORT_LIMIT} rows is a ten-figure improbability.
+	 *
+	 * An alias and not a copy, because two numbers meaning one thing is how
+	 * this drifted the first time.
+	 *
 	 * @var int
 	 */
-	public const HASH_PREFIX_CHARS = 16;
+	public const HASH_PREFIX_CHARS = IdentityQueue::DISPLAY_PREFIX;
 
 	/**
 	 * The nonce action for the export link.
