@@ -1781,8 +1781,26 @@ p.ffc-datetime-order-error {
     padding: 0;
 }
 
-.ffc-page-identities .ffc-identity-card-verb-note {
-    margin: 0 0 var(--ffc-spacing-2xs);
+/* A LABEL PER ROUTE, WHERE A SENTENCE ABOUT BOTH USED TO SIT (#1464).
+
+   `.ffc-identity-card-verb-note` was the sentence explaining move AND split,
+   printed once per identifier -- so a card holding four numbers said it four
+   times. What replaced it names each route on the control that takes it, and
+   the styling follows from that: it is a label for the form beneath it, so it
+   hugs that form (`3xs` below, `2xs` above) and takes the weight of a heading
+   at the size of a caption. Muted rather than `--ffc-text`, because the
+   sentence describing the ACCOUNT is the one to read first.
+
+   No `:first-of-type` exemption for the margin above, and the reason is worth
+   knowing: the group's heading is a `<p>` too, so `:first-of-type` matches IT
+   and never a route -- a rule that would have looked deliberate and done
+   nothing. The heading's own `3xs` collapses against this `2xs` in normal
+   flow, so the first route already sits 4px below it either way. */
+.ffc-page-identities .ffc-identity-card-route {
+    margin: var(--ffc-spacing-2xs) 0 var(--ffc-spacing-3xs);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+    color: var(--ffc-text-muted);
 }
 
 /* The forms came from table cells, where wp-admin's block margin did no harm.

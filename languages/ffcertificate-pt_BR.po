@@ -22313,9 +22313,6 @@ msgstr "Registros Movidos para Outra Conta"
 msgid "A split needs a valid e-mail address for the new account."
 msgstr "Uma separação precisa de um e-mail válido para a nova conta."
 
-msgid "Consolidating writes the account's sound identifier over the mistyped one across every store that holds it. Moving sends the records carrying one identifier to another account — allowed only where the two already agree on the other identifier, and where the receiving account holds none of that kind it gains this one. Splitting creates an account for one identifier and moves its records there — it asks for an address because there is none to inherit, and it removes the account again if the move refuses. All of them run as a single transaction, rolled back whole if any part refuses, and none shows a stored number."
-msgstr "Consolidar grava o identificador íntegro da conta por cima do digitado errado em todos os stores que o carregam. Mover envia os registros que carregam um identificador para outra conta — permitido apenas quando as duas já concordam no outro identificador, e quando a conta que recebe não tem nenhum daquele tipo ela ganha este. Separar cria uma conta para um identificador e move os registros dele para lá — pede um endereço porque não há nenhum a herdar, e remove a conta de novo se a movimentação recusar. Todos rodam como uma única transação, revertida por inteiro se alguma parte recusar, e nenhum exibe um número armazenado."
-
 msgid "Creates the account an identity split moves records onto — args ( null, email ), returns a user id or WP_Error. A filter rather than a direct call because the split and the single account-creation path are in modules that would otherwise depend on each other. It deliberately does NOT resolve the identifier first: the identifier resolves to the account the records are being taken off."
 msgstr "Cria a conta para onde uma separação de identidade move os registros — args ( null, email ), retorna um id de usuário ou WP_Error. Um filtro em vez de chamada direta porque a separação e o caminho único de criação de contas estão em módulos que de outro modo dependeriam um do outro. Ele deliberadamente NÃO resolve o identificador antes: o identificador resolve para a conta de onde os registros estão sendo tirados."
 
@@ -22756,9 +22753,6 @@ msgid_plural "%s resolved since this queue was read"
 msgstr[0] "%s resolvido desde que esta fila foi lida"
 msgstr[1] "%s resolvidos desde que esta fila foi lida"
 
-msgid "Move it to the account it belongs to, or split it onto an account of its own."
-msgstr "Mova-o para a conta à qual ele pertence, ou separe-o em uma conta própria."
-
 msgid "submissions"
 msgstr "submissões"
 
@@ -22827,18 +22821,26 @@ msgstr "Resolvê-los exige a permissão de identidades, que esta conta não tem.
 msgid "Everything this migration may decide on its own is done. What is listed above is not."
 msgstr "Tudo o que esta migração pode decidir sozinha está feito. O que está listado acima, não."
 
-msgid "One decision per identifier, and the two are exclusive: move these records to the account that already belongs to this person, or split them onto a new account. Read what the shared account submitted before either — the records may legitimately be its own."
-msgstr "Uma decisão por identificador, e as duas se excluem: mova estes registros para a conta que já pertence a esta pessoa, ou separe-os em uma conta nova. Leia o que a conta compartilhada enviou antes de qualquer uma das duas — os registros podem legitimamente ser dela."
-
 msgid "HR confirmed these records are this person’s, not the shared account’s."
 msgstr "O RH confirmou que estes registros são desta pessoa, não da conta compartilhada."
 
 msgid "An address for a new account is typed, so splitting takes precedence: a split can still be corrected afterwards and a move cannot. Clear the address to move instead."
 msgstr "Um endereço para uma conta nova foi digitado, então separar tem precedência: uma separação ainda pode ser corrigida depois e uma mudança não. Limpe o endereço para mover em vez disso."
 
-msgid "Consolidating is not offered on this panel: it rewrites one identifier into another, and where the identifiers belong to different people that writes one person’s number onto another person’s records. Moving and splitting both leave every number as it is. Where an address for a new account is typed, splitting takes precedence over moving — a split leaves the records alone on a fresh account and stays correctable, while a move mixes them into another person’s and the data can no longer separate them."
-msgstr "Consolidar não é oferecido neste painel: ele reescreve um identificador em outro, e quando os identificadores pertencem a pessoas diferentes isso grava o número de uma pessoa sobre os registros de outra. Mover e separar deixam todos os números como estão. Quando um endereço para uma conta nova é digitado, separar tem precedência sobre mover — uma separação deixa os registros sozinhos em uma conta nova e permanece corrigível, enquanto uma mudança os mistura com os de outra pessoa e os dados não conseguem mais separá-los."
-
 msgid "That move was not confirmed. A shared account's records are moved only once HR has said whose they are, because afterwards they cannot be told apart from the receiving account's."
 msgstr "Aquela mudança não foi confirmada. Os registros de uma conta compartilhada só são movidos depois que o RH disser de quem são, porque depois eles não podem mais ser distinguidos dos da conta que os recebeu."
 
+msgid "Read what it submitted before either route: the records may legitimately be its own."
+msgstr "Leia o que ela enviou antes de qualquer uma das duas rotas: os registros podem legitimamente ser dela."
+
+msgid "To an account that already exists"
+msgstr "Para uma conta que já existe"
+
+msgid "Or to a new account"
+msgstr "Ou para uma conta nova"
+
+msgid "Every action on this screen runs as a single transaction, rolled back whole if any part of it refuses, and none of them shows a stored number."
+msgstr "Toda ação desta tela roda como uma única transação, revertida por inteiro se alguma parte dela recusar, e nenhuma delas exibe um número armazenado."
+
+msgid "Consolidating is not offered on this panel: it rewrites one identifier into another, and where the identifiers belong to different people that writes one person’s number onto another person’s records. Moving and splitting both leave every number as it is."
+msgstr "Consolidar não é oferecido neste painel: ele reescreve um identificador em outro, e quando os identificadores pertencem a pessoas diferentes isso grava o número de uma pessoa sobre os registros de outra. Mover e separar deixam todos os números como estão."
