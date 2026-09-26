@@ -58,14 +58,32 @@ class IdentityQueue {
 	 * identifiers means one person typed a number twice. That premise is
 	 * sound at two identifiers and degrades as the count grows -- nine CPFs
 	 * across ten submissions under one address is an account submitting on
-	 * behalf of other people, or a department's shared mailbox, and neither
-	 * repair nor split is a thing to do to it.
+	 * behalf of other people, or a department's shared mailbox, and a REPAIR
+	 * is not a thing to do to it.
 	 *
-	 * SO THE SCREEN OFFERS NO VERB HERE, AND THAT IS THE POINT OF THE TIER.
-	 * Measured on production, 38 of the account-side findings carry this
+	 * SO THE SCREEN WITHHOLDS CONSOLIDATE HERE, AND THAT IS THE POINT OF THE
+	 * TIER. Measured on production, 38 of the account-side findings carry this
 	 * shape, and every one of them was being offered consolidate, move and
-	 * split -- verbs that would write one person's number onto another
-	 * person's records.
+	 * split -- and consolidate is the one that writes one person's number onto
+	 * another person's records.
+	 *
+	 * MOVE AND SPLIT ARE OFFERED, WHICH THIS SENTENCE ONCE DENIED (#1461).
+	 * The sweep that created this tier removed all three verbs for a harm that
+	 * described one: consolidate rewrites an identifier, while a move relocates
+	 * records without touching any number and a split creates an account
+	 * nobody else uses. Withholding them left the screen telling an operator
+	 * to decide with HR and then offering nowhere to put the answer -- and the
+	 * verbs were never unreachable in the first place, since both handlers are
+	 * tier-agnostic; what #1368 removed was the buttons.
+	 *
+	 * The two are exclusive per identifier, and where both are supplied SPLIT
+	 * WINS: a wrong split leaves the records alone on a fresh account, so it is
+	 * still correctable, while a move mixes them into another person's records
+	 * and the data can no longer separate them. That is the merge's reasoning
+	 * -- one person out of two, and nothing afterwards can tell them apart --
+	 * applied here. The move therefore carries an acknowledgement and the split
+	 * does not: the address a split makes the operator type is already its
+	 * deliberateness gate.
 	 *
 	 * It is decided BEFORE the mechanical test and therefore outranks it,
 	 * which refuses a two-identifier case the check digits could have
@@ -77,6 +95,22 @@ class IdentityQueue {
 	 * @var string
 	 */
 	public const TIER_MAILBOX = 'mailbox';
+
+	/**
+	 * What joins a cursor key's parts.
+	 *
+	 * A constant because a second reader now exists: the resolution page reads
+	 * the tier off a posted key to decide whether a shared-mailbox move needs
+	 * its acknowledgement. Two literals would be two places to edit the next
+	 * time this has to change -- and it has changed once already, when a raw
+	 * `|` turned out to be refused by the production WAF (#1459).
+	 *
+	 * `IdentityQueueKeyTest` holds what a separator may be, which is the rule
+	 * this value has to satisfy rather than a restatement of the value.
+	 *
+	 * @var string
+	 */
+	public const KEY_SEPARATOR = '-';
 
 	/**
 	 * One identifier that fails its check digits, which no account-side
@@ -359,7 +393,7 @@ class IdentityQueue {
 		// so a future edit reaching for another separator still fails if it
 		// picks one a URL cannot carry.
 		return implode(
-			'-',
+			self::KEY_SEPARATOR,
 			array(
 				(string) ( $row[ self::COLUMN_TIER ] ?? '' ),
 				(string) ( $row['identifier_column'] ?? '' ),

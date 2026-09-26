@@ -279,14 +279,59 @@
             .prop('hidden', false);
 
         if ($split.length) {
-            // `disabled` and not merely hidden: a hidden `required` control
-            // blocks the submit against something nobody can see, and only
-            // `disabled` bars a control from constraint validation (#1114).
-            $split.find('input, button').prop('disabled', true);
-            $split.find('.ffc-identity-split-barred').prop('hidden', false);
+            // WHICH HALF YIELDS IS NOT ALWAYS THE SAME HALF.
+            //
+            // Everywhere else, choosing a destination bars the split, because
+            // two destinations for one set of records is a mistake the form
+            // should not express and neither half is safer than the other.
+            //
+            // On the shared-mailbox panel the split declares
+            // `data-ffc-prefer-split`, and then an address already typed wins:
+            // a split leaves the records alone on a fresh account and stays
+            // correctable, while a move mixes them into another person's and
+            // the data can no longer separate them. So the move yields, and
+            // the split is left exactly as the operator filled it.
+            var $address = $split.find('[data-ffc-prefer-split]');
+
+            if ($address.length && '' !== $.trim(String($address.val() || ''))) {
+                barMove($address);
+            } else {
+                // `disabled` and not merely hidden: a hidden `required` control
+                // blocks the submit against something nobody can see, and only
+                // `disabled` bars a control from constraint validation (#1114).
+                $split.find('input, button').prop('disabled', true);
+                $split.find('.ffc-identity-split-barred').prop('hidden', false);
+            }
         }
 
         close();
+    }
+
+    /**
+     * Bar the move that belongs to this address field, or release it.
+     *
+     * The mirror of the barring in `apply()`, and it has to be reversible for
+     * a reason that one does not: an address is TYPED, so the operator can
+     * empty it again and must get the move back. A destination, once picked,
+     * is only cleared by reloading.
+     *
+     * @param {object} $address The split form's address input.
+     */
+    function barMove($address) {
+        var $form = $('#' + $address.data('ffcMove'));
+        var $submit = $('#' + $address.data('ffcMoveSubmit'));
+        var typed = '' !== $.trim(String($address.val() || ''));
+
+        if (!$form.length) {
+            return;
+        }
+
+        // The submit and the acknowledgement go, and the search button with
+        // them -- leaving it live would let the dialog write a destination
+        // into a form that cannot be submitted, which reads as a bug.
+        $submit.prop('disabled', typed);
+        $form.find('.ffc-identity-find, [name="ffc_acknowledged"]').prop('disabled', typed);
+        $form.find('.ffc-identity-move-barred').prop('hidden', !typed);
     }
 
     /**
@@ -332,6 +377,12 @@
         $confirm.off('.ffcIdentitySearch').on('click.ffcIdentitySearch', function (event) {
             event.preventDefault();
             apply();
+        });
+
+        // Delegated, so a panel rendered after boot is covered without a
+        // second call -- the reason `boot()` is idempotent at all.
+        $(document).on('input.ffcIdentitySearch', '[data-ffc-prefer-split]', function () {
+            barMove($(this));
         });
 
         $query.off('.ffcIdentitySearch').on('input.ffcIdentitySearch', function () {

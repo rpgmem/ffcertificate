@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **The shared-mailbox tier can be worked, instead of being told to decide with HR and given nowhere to put the answer** (#1461): an account holding several unrelated identifiers under one address was classified into its own tier and offered no verb at all. #1368 withheld all three for a harm it named precisely — *verbs that would write one person's number onto another person's records* — which describes **consolidate**, and neither of the others: a move touches no number and a split creates an account nobody else uses. So consolidate stays absent and the other two return. They were never unreachable, either: both handlers are tier-agnostic, so what was removed was the buttons. The two are exclusive per identifier, and where both are supplied **splitting wins** — a wrong split leaves the records alone on a fresh account and stays correctable, while a move mixes them into another person's and the data can no longer separate them, which is the merge's own reasoning applied here. The move therefore carries an acknowledgement, enforced server-side and not only by `required`; the split does not, because the address it makes the operator type is already its deliberateness gate.
+
 ### Fixed
 
 - **Every navigation link on the identity screen was refused before reaching PHP** (#1459): the cursor was assembled as `tier|column|subject` and travels in the query string, and `add_query_arg()` does not encode values — so a raw `|` reached the URL, where RFC 3986 does not allow it and a WAF reads it as a command-injection signature. The production host refused every arrow with a 403, so the queue could only ever be worked from its first finding. **This is also why `Reload the list` was the only way to advance after a correction**: the redirect that lands on the next finding has existed since 6.28.4 and carried a pipe too. The separator is now a hyphen — not the dot the probe used, because the `isolated` tier names no column and a dot would assemble the `..` traversal signature. Percent-encoding was never an option: a WAF decodes before matching.

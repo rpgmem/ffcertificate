@@ -782,6 +782,36 @@ class IdentityResolutionPage {
 
 		check_admin_referer( self::RELINK_NONCE . $subject );
 
+		// THE ACKNOWLEDGEMENT IS CHECKED HERE, NOT ONLY IN THE BROWSER.
+		//
+		// A shared-mailbox move is the one movement on this screen that cannot
+		// be undone by another movement: afterwards the records are mixed with
+		// the receiving account's and the data no longer separates them. So the
+		// operator ticks a box saying HR confirmed whose they are, and a box
+		// enforced only by the `required` attribute is a box a form that skips
+		// the browser never sends.
+		//
+		// The tier is read off the posted key, which is UNTRUSTED -- and that is
+		// proportionate rather than sloppy, said plainly so nobody has to guess
+		// whether it was considered. Forging the key skips a deliberateness
+		// gate and nothing else: the capability check above already decides who
+		// may move records at all, and a holder of it can move the same records
+		// from any other panel with no box to tick. What the gate buys is that
+		// the honest operator cannot do this one by reflex. Deriving the tier
+		// from the data instead would cost a query on every move to guard
+		// against somebody the capability already admits.
+		if ( $this->mailbox_move_needs_acknowledgement() ) {
+			$this->report(
+				new WP_Error(
+					'ffc_identity_relink_unacknowledged',
+					__( 'That move was not confirmed. A shared account\'s records are moved only once HR has said whose they are, because afterwards they cannot be told apart from the receiving account\'s.', 'ffcertificate' )
+				),
+				''
+			);
+
+			return;
+		}
+
 		$result = $this->movements()->relink(
 			$subject,
 			(int) RequestInput::get_post_string( 'ffc_account', '0' ),
@@ -793,6 +823,26 @@ class IdentityResolutionPage {
 			$result,
 			__( 'Moved. The records, the identity index and the receiving account\'s certificate access were updated together.', 'ffcertificate' )
 		);
+	}
+
+	/**
+	 * Whether this move is a shared-mailbox one that arrived unconfirmed.
+	 *
+	 * Only that panel renders the box, so only a key naming that tier is
+	 * required to carry it -- a move from any other panel is unaffected and
+	 * posts nothing.
+	 *
+	 * @since 6.30.0
+	 * @return bool True when the acknowledgement is required and absent.
+	 */
+	private function mailbox_move_needs_acknowledgement(): bool {
+		$key = RequestInput::get_post_string( 'ffc_key', '' );
+
+		if ( 0 !== strpos( $key, IdentityQueue::TIER_MAILBOX . IdentityQueue::KEY_SEPARATOR ) ) {
+			return false;
+		}
+
+		return '' === RequestInput::get_post_string( 'ffc_acknowledged', '' );
 	}
 
 	/**
