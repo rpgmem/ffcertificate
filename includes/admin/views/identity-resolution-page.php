@@ -157,6 +157,18 @@ $ffc_identity_head = static function ( $panel, $label, $note ) use ( $ffc_identi
 	$tier  = (string) $panel['tier'];
 	$total = (int) $panel['total'];
 	$list  = ! empty( $panel['list'] );
+	// A FLOOR IS NOT A TOTAL, AND THIS IS WHERE THE NUMBER IS READ (#1466).
+	//
+	// The checks behind this panel reached their cap, so `$total` is `at
+	// least` this many and not this many. The scan already reported the cap
+	// in the banner at the top of the page -- but that banner speaks about
+	// the SCAN, once, while the number is per category and further down, and
+	// an operator who scrolled past it reads `32` as thirty-two.
+	//
+	// `IdentityQueuePanels` derives this per panel from the items' own
+	// `COLUMN_CHECK`, so one capped check qualifies every tier it feeds
+	// (`CHECK_MULTIPLE` feeds three) without anything here knowing which.
+	$capped = ! empty( $panel['capped'] );
 
 	// The toggle carries every OTHER listed tier plus or minus this one, so
 	// one category can be scanned whole while the rest stay one at a time.
@@ -177,8 +189,11 @@ $ffc_identity_head = static function ( $panel, $label, $note ) use ( $ffc_identi
 				<span class="ffc-identity-panel-count" aria-live="polite">
 					<?php
 					printf(
-						/* translators: %s: how many findings this category holds. */
-						esc_html( _n( '%s finding', '%s findings', $total, 'ffcertificate' ) ),
+						$capped
+							/* translators: %s: how many findings this category holds, as a lower bound. */
+							? esc_html( _n( 'at least %s finding', 'at least %s findings', $total, 'ffcertificate' ) )
+							/* translators: %s: how many findings this category holds. */
+							: esc_html( _n( '%s finding', '%s findings', $total, 'ffcertificate' ) ),
 						esc_html( number_format_i18n( $total ) )
 					);
 					?>
@@ -187,8 +202,11 @@ $ffc_identity_head = static function ( $panel, $label, $note ) use ( $ffc_identi
 				<span class="ffc-identity-panel-count" aria-live="polite">
 					<?php
 					printf(
-						/* translators: 1: the finding being shown, 2: how many there are. */
-						esc_html__( '%1$s of %2$s', 'ffcertificate' ),
+						$capped
+							/* translators: 1: the finding being shown, 2: how many there are, as a lower bound. */
+							? esc_html__( '%1$s of at least %2$s', 'ffcertificate' )
+							/* translators: 1: the finding being shown, 2: how many there are. */
+							: esc_html__( '%1$s of %2$s', 'ffcertificate' ),
 						esc_html( number_format_i18n( (int) $panel['index'] + 1 ) ),
 						esc_html( number_format_i18n( $total ) )
 					);
