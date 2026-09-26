@@ -1764,9 +1764,30 @@ p.ffc-datetime-order-error {
 
    A browser without `:has()` falls back to the stacked column, which is the
    layout that shipped -- degradation to the status quo, never to a broken
-   one. `ffc-frontend.css` already uses the selector. */
+   one. `ffc-frontend.css` already uses the selector.
+
+   THE BASIS IS DECLARED, BECAUSE `auto` MADE ONE COMPONENT TWO WIDTHS (#1468).
+
+   `auto` resolves to the column's own max-content, and the two tiers that
+   reach this rule do not have the same content: the shared-mailbox move form
+   carries an acknowledgement, which pushes its button onto a second line, so
+   its widest line is the field plus Search while the decision tier's is the
+   field plus Search plus Move. Measured at 1600px and again at 1920: 719px
+   against 614px, **105px apart and stable** -- the same grey column, two
+   widths, decided by whether a checkbox happens to be in the form.
+
+   With a declared basis both negotiate from the same number and come out
+   equal at every width, shrinking together: 338/338 at 800px, 538/538 at
+   1000, 723/723 from 1200 up.
+
+   54em is where the widest tier stops wrapping (its max-content is 719px and
+   54em is 756px at this column's 14px). That number WILL go stale if a label
+   grows, and the failure is the graceful one: the button moves onto its own
+   line, which is what the mailbox tier already does and is not a defect. The
+   guarantee this rule buys is the EQUALITY, which survives; the number only
+   decides where the wrap falls. */
 .ffc-page-identities .ffc-identity-card-act:has( .ffc-identity-card-verb + .ffc-identity-card-verb ) {
-    flex: 0 1 auto;
+    flex: 0 1 54em;
     flex-direction: row;
     flex-wrap: wrap;
     align-items: flex-start;
