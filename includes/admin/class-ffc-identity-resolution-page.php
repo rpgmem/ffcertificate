@@ -832,7 +832,7 @@ class IdentityResolutionPage {
 	 * required to carry it -- a move from any other panel is unaffected and
 	 * posts nothing.
 	 *
-	 * @since 6.30.0
+	 * @since 6.29.1
 	 * @return bool True when the acknowledgement is required and absent.
 	 */
 	private function mailbox_move_needs_acknowledgement(): bool {
