@@ -20,6 +20,7 @@
  * @var string                                                   $ffc_identity_export_url The audit CSV, or '' without the capability.
  * @var int                                                      $ffc_identity_resolved   Findings resolved since the queue was read.
  * @var callable                                                 $ffc_identity_facts      Account ids -> status, per-store counts and last activity.
+ * @var callable                                                 $ffc_identity_proposal   Hash + field -> the address a split could inherit and the names on those records.
  */
 
 // No `declare(strict_types=1)` here on purpose: none of the 17 view and
@@ -1487,11 +1488,38 @@ $ffc_identity_tier_note = static function ( $tier ) {
 									?>
 								</label>
 								<?php
-								// An address the OPERATOR supplies, because there
-								// is none to inherit: WordPress requires
-								// `user_email` to be unique and every production
-								// finding reports both identifiers sharing the
-								// address the existing account already uses.
+								// THE ADDRESS IS DERIVED WHERE THERE IS ONE TO INHERIT (#1480).
+								//
+								// This used to be typed always, and the reason was
+								// measured: every production finding reported both
+								// identifiers sharing the address the existing account
+								// already uses, so there was nothing to inherit. Still
+								// nearly true -- 37 of 38 on the 2026-09-26 audit -- and
+								// it does not describe the 38th.
+								//
+								// Where the finding's own verdict says the addresses are
+								// DISTINCT, each identifier has its own, and asking
+								// somebody to type an address they can already see is
+								// where a typo enters. So it is proposed, pre-filled and
+								// still editable, and the operator confirms a derived
+								// value rather than filling a blank.
+								//
+								// Asked only on that verdict, which is the criterion and
+								// not an optimisation: identifier plus address is the pair
+								// of discordant elements that makes these records somebody
+								// else's. The name is shown as EVIDENCE beside it and is
+								// never part of the test -- two people share a name often,
+								// and one person's name is spelled two ways across two
+								// submissions, so a differing name proves nothing either
+								// way. It is here for the operator's judgement.
+								$ffc_identity_derived = IdentityConflictQuery::VERDICT_DISTINCT_EMAILS
+									=== (string) ( $ffc_identity_item[ IdentityConflictQuery::COLUMN_EMAIL_VERDICT ] ?? '' )
+										? $ffc_identity_proposal( (string) $ffc_identity_move, $ffc_identity_field )
+										: array(
+											'email'  => '',
+											'reason' => '',
+											'names'  => array(),
+										);
 								?>
 								<?php
 								// ON THE SHARED MAILBOX THE PRECEDENCE IS INVERTED, DELIBERATELY.
@@ -1514,6 +1542,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 								?>
 								<input type="email" size="22" required
 									id="ffc-split-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
+									value="<?php echo esc_attr( (string) $ffc_identity_derived['email'] ); ?>"
 									<?php if ( IdentityQueue::TIER_MAILBOX === $ffc_identity_tier ) : ?>
 									data-ffc-prefer-split="1"
 									data-ffc-move="ffc-relink-form-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
@@ -1533,6 +1562,34 @@ $ffc_identity_tier_note = static function ( $tier ) {
 								<span class="ffc-identity-split-barred description" hidden>
 									<?php esc_html_e( 'A destination account is chosen, so splitting onto a new one is not available. Clear the destination to split instead.', 'ffcertificate' ); ?>
 								</span>
+								<?php if ( '' !== (string) $ffc_identity_derived['email'] ) : ?>
+									<p class="description">
+										<?php
+										esc_html_e( 'That address is the one these records carry, filled in for you — check it and change it if HR says otherwise.', 'ffcertificate' );
+
+										if ( array() !== $ffc_identity_derived['names'] ) {
+											echo ' ';
+											printf(
+												/* translators: %s: the names on the records, comma separated. */
+												esc_html__( 'They are recorded under: %s.', 'ffcertificate' ),
+												esc_html( implode( ', ', $ffc_identity_derived['names'] ) )
+											);
+										}
+										?>
+									</p>
+								<?php elseif ( 'several' === (string) $ffc_identity_derived['reason'] ) : ?>
+									<p class="description">
+										<?php esc_html_e( 'These records carry more than one address, so none of them can be the new account\'s — two values do not say which. Confirm with HR which person these records belong to.', 'ffcertificate' ); ?>
+									</p>
+								<?php elseif ( 'taken' === (string) $ffc_identity_derived['reason'] ) : ?>
+									<p class="description">
+										<?php esc_html_e( 'The address these records carry already belongs to an account, so it cannot open a new one — move the records to that account instead of splitting.', 'ffcertificate' ); ?>
+									</p>
+								<?php elseif ( 'unreadable' === (string) $ffc_identity_derived['reason'] ) : ?>
+									<p class="description">
+										<?php esc_html_e( 'These records carry an address this could not read, so nothing was filled in. That is not the same as carrying none — confirm it with HR rather than assuming there is no address.', 'ffcertificate' ); ?>
+									</p>
+								<?php endif; ?>
 							</form>
 							<?php endif; ?>
 							</div>

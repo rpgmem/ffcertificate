@@ -1305,6 +1305,19 @@ class IdentityResolutionPage {
 			return $this->conflicts()->account_facts( $ids );
 		};
 
+		// WHAT A SPLIT COULD INHERIT, AND THE NAMES TO SHOW BESIDE IT (#1480).
+		//
+		// A closure for the reason the two above are, and more so: this one
+		// reads three stores and decrypts, so computing it for every identifier
+		// on the screen would be a decrypt per row to fill a field almost none
+		// of them can offer. The view asks only where the finding's own
+		// `email_verdict` says the addresses are distinct -- which is the
+		// criterion, not an optimisation: identifier plus address is the pair of
+		// discordant elements that makes these records somebody else's.
+		$ffc_identity_proposal = function ( string $hash, string $field ) {
+			return $this->separations()->proposal( $hash, $field );
+		};
+
 		require __DIR__ . '/views/identity-resolution-page.php';
 	}
 }
