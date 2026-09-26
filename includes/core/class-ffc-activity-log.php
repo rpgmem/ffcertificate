@@ -370,8 +370,15 @@ class ActivityLog {
 	 * -- no CREATE, no ALTER, anywhere in the tree -- since the gates that
 	 * read them arrived in 6.6.4. Bumping this is what reaches an install
 	 * that will never be activated again; see maybe_create_table().
+	 *
+	 * 2.2.0 (#1458): a column on an upgraded install may be `NOT NULL` where
+	 * this statement says nothing or says otherwise, and `dbDelta` did not
+	 * reconcile it -- measured on production, where `action_type` is `NOT
+	 * NULL` with no default and is declared by no statement at all, and
+	 * `submission_id` is `NOT NULL` against a `DEFAULT NULL` here. See
+	 * {@see self::relax_legacy_not_null()}.
 	 */
-	private const DB_VERSION = '2.1.0';
+	private const DB_VERSION = '2.2.0';
 
 	/**
 	 * Create activity log table
@@ -414,7 +421,102 @@ class ActivityLog {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
 
+		// AFTER `dbDelta`, because it is the half `dbDelta` demonstrably does
+		// not do. See the method's own docblock.
+		self::relax_legacy_not_null();
+
 		return true;
+	}
+
+	/**
+	 * Columns that must accept NULL, and did not on an upgraded install.
+	 *
+	 * `submission_id` is declared `DEFAULT NULL` by the statement above and
+	 * `action_type` is declared by no statement in this plugin at all -- it is
+	 * a leftover from a pre-6.6.4 schema, which `dbDelta` can never drop and
+	 * never touches.
+	 *
+	 * @var array<int, string>
+	 */
+	private const LEGACY_NULLABLE = array( 'action_type', 'submission_id' );
+
+	/**
+	 * Let the legacy columns accept NULL, where the server says they do not.
+	 *
+	 * WHY THIS IS NOT SOMETHING `dbDelta` DOES.
+	 *
+	 * Measured on the production install (#1458): `action_type varchar(50)
+	 * NOT NULL` with **no default**, declared by no statement in this plugin,
+	 * and `submission_id bigint NOT NULL` against the `DEFAULT NULL` the
+	 * statement above declares -- with `ffc_activity_log_db_version` reading
+	 * current, so the healing had run and left both as they were.
+	 *
+	 * Nothing is broken there TODAY, and only because that host's `sql_mode`
+	 * carries no `STRICT_TRANS_TABLES`: `action_type` silently takes `''` on
+	 * every insert. Under a strict mode -- which the CI runner's MariaDB
+	 * already uses, so CI is stricter than production -- every activity-log
+	 * write would fail with `Field 'action_type' doesn't have a default
+	 * value`, and the audit trail would stop recording. A fresh install can
+	 * never reproduce it, because the column is not in any `CREATE`.
+	 *
+	 * IT RELAXES, IT NEVER DROPS. Dropping `action_type`, `action_details` and
+	 * `user_agent` is what #1458 proposes and is NOT done here: no consumer
+	 * reads them (measured -- zero occurrences of the first two anywhere under
+	 * `includes/`, and every `user_agent` hit belongs to another table), but
+	 * "nobody reads it" is not "it is empty", and on a pre-6.6.4 install
+	 * `action_details` may hold audit history. Destroying an LGPD trail needs
+	 * a count from a real install first -- the `cpf_rf_encrypted` shape.
+	 *
+	 * IDEMPOTENT BY READING THE SERVER, not by a flag. A column already
+	 * nullable, or absent, is skipped, so this costs one `SHOW COLUMNS` per
+	 * column on an install that has nothing to fix and can be re-run for free.
+	 * That is also what makes it honest on a fresh install, where neither
+	 * column has the legacy shape.
+	 *
+	 * @return void
+	 */
+	private static function relax_legacy_not_null(): void {
+		global $wpdb;
+
+		$table = $wpdb->prefix . 'ffc_activity_log';
+
+		foreach ( self::LEGACY_NULLABLE as $column ) {
+			// `SHOW COLUMNS` RATHER THAN `get_table_columns_cached()`, which
+			// answers NAMES only (`get_col( 'DESCRIBE …', 0 )`). What decides
+			// this is nullability and the stored type, and neither is in that
+			// answer -- so reusing it would mean reading the wrong thing for
+			// the convenience of a cache this path does not need: it runs on
+			// a version bump, not per request.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- One read of the plugin's own log table on a version bump; `prepare()` with `%i` is exactly what is being used, and a schema reading must not be served from a cache written before the schema changed.
+			$found = $wpdb->get_row( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, $column ), ARRAY_A );
+
+			// `ArrayValue::string()` RATHER THAN A CAST, because a row value is
+			// `mixed` and level 9 refuses to cast it -- which is what the row
+			// shapes gate reported on the first push of this method. It is the
+			// idiom `ActivityLogQuery` already uses one file over, so the
+			// narrowing is in one place rather than re-derived per call site.
+			if ( ! is_array( $found ) || 'NO' !== ArrayValue::string( $found, 'Null' ) ) {
+				continue;
+			}
+
+			$type = ArrayValue::string( $found, 'Type' );
+
+			// THE TYPE IS THE SERVER'S ANSWER AND IT IS STILL VALIDATED.
+			//
+			// It cannot be a placeholder -- a column type is not a value, and
+			// `%i` quotes identifiers, not type expressions -- so it is
+			// interpolated, and the only safe way to interpolate is to refuse
+			// anything that is not the shape a type has. A column whose type
+			// this cannot recognise is left exactly as it is: the strict-mode
+			// hazard is worth fixing, and not at the price of composing SQL
+			// out of a string this code did not check.
+			if ( 1 !== preg_match( '/^[a-z]+(\(\d+(,\d+)?\))?( unsigned)?( zerofill)?$/', $type ) ) {
+				continue;
+			}
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- A schema change on the plugin's own log table is the whole point of this method; there is no cache to read a write from; `$type` is matched against the pattern above and the identifiers go through `%i`.
+			$wpdb->query( $wpdb->prepare( "ALTER TABLE %i MODIFY COLUMN %i {$type} NULL DEFAULT NULL", $table, $column ) );
+		}
 	}
 
 	/**
