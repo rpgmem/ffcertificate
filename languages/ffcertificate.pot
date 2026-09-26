@@ -22753,3 +22753,11 @@ msgstr ""
 
 msgid "Consolidating is not offered on this panel: it rewrites one identifier into another, and where the identifiers belong to different people that writes one person’s number onto another person’s records. Moving and splitting both leave every number as it is."
 msgstr ""
+
+msgid "%1$s of at least %2$s"
+msgstr ""
+
+msgid "at least %s finding"
+msgid_plural "at least %s findings"
+msgstr[0] ""
+msgstr[1] ""

@@ -1202,7 +1202,11 @@ class IdentityResolutionPage {
 		$ffc_identity_panels    = IdentityQueuePanels::build(
 			$ffc_identity_findings,
 			self::cursors(),
-			self::listed()
+			self::listed(),
+			// The capped checks reach the panels, so each one can say whether
+			// ITS count is a total: the page-level banner speaks about the
+			// scan, and a count is per category (#1466).
+			$ffc_identity_capped
 		);
 
 		// THE CSV IS OFFERED ONLY TO SOMEBODY WHO CAN ACTUALLY HAVE IT.

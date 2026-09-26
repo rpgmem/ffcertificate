@@ -584,6 +584,52 @@ class IdentityResolutionPageTest extends TestCase {
 	}
 
 	/**
+	 * THE COUNTER BESIDE A CAPPED CATEGORY SAYS THE NUMBER IS A FLOOR (#1466).
+	 *
+	 * The cap was already detected, held and reported -- but only in the
+	 * page-level banner, which speaks about the SCAN, once, while the number
+	 * is per category and further down. An operator who scrolled past the
+	 * banner read `1 of 100` as one of a hundred.
+	 *
+	 * Asserted on the WIRING rather than on the wording, because the wording
+	 * is a translated string and the defect was never in it: the panels derive
+	 * `capped` from their items' own check, and what has to keep being true is
+	 * that the page hands them the capped list and the counter reads the
+	 * result. Whether the derivation is right is `IdentityQueuePanelsTest`'s,
+	 * which proves it over the three tiers one check feeds.
+	 */
+	public function test_the_counter_says_when_its_total_is_only_a_floor(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
+
+		$this->assertStringContainsString(
+			'$ffc_identity_capped',
+			substr( $page, (int) strpos( $page, 'IdentityQueuePanels::build(' ) ),
+			'The capped checks must reach the panels, or no panel can know whether its own count is a total.'
+		);
+
+		$this->assertStringContainsString(
+			"\$capped = ! empty( \$panel['capped'] );",
+			$view,
+			'The header must read the flag the panel carries rather than decide for itself.'
+		);
+
+		// BOTH BRANCHES, in both counters: a screen that only ever hedges
+		// tells the operator as little as one that never does, so the
+		// unqualified form has to survive the change that added the other.
+		foreach (
+			array(
+				'%1$s of at least %2$s',
+				'%1$s of %2$s',
+				'at least %s findings',
+				'%s findings',
+			) as $form
+		) {
+			$this->assertStringContainsString( $form, $view, sprintf( 'The counter must still be able to say: %s', $form ) );
+		}
+	}
+
+	/**
 	 * The strip's verdict is three states, and the reassuring one is narrowest.
 	 *
 	 * The same trap the empty branch fell into once, in a place it is seen far
