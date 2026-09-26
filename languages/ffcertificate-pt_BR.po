@@ -22852,3 +22852,12 @@ msgstr[1] "pelo menos %s achados"
 
 msgid "The numbers on this account share one address and are not variants of each other, so the address does not identify one person — a shared mailbox, or an account submitting on behalf of others. The decision is per number and it is made with HR: each one moves to the account it belongs to, or splits onto a new one."
 msgstr "Os números desta conta compartilham um endereço e não são variantes uns dos outros, então o endereço não identifica uma pessoa — é uma caixa postal compartilhada ou uma conta que envia em nome de outras pessoas. A decisão é por número e é tomada com o RH: cada um vai para a conta à qual pertence, ou é separado em uma conta nova."
+
+msgid "Account %1$s holds %2$s separate values for %3$s, not one, so it cannot be absorbed: the survivor would inherit a number nobody has explained, even though the two accounts do agree about the one that brought them here. This screen lists %1$s on its own for that — resolve it there first. Correcting the shared value cannot help, and merging the other way round is allowed but leaves %1$s holding both, with more records behind it."
+msgstr "A conta %1$s tem %2$s valores distintos de %3$s, e não um só, então ela não pode ser absorvida: a conta que sobrevive herdaria um número que ninguém explicou, mesmo que as duas concordem sobre o número que as trouxe até aqui. Esta tela lista a %1$s à parte por causa disso — resolva por lá primeiro. Corrigir o valor compartilhado não ajuda, e mesclar no sentido contrário é permitido mas deixa a %1$s com os dois, agora com mais registros atrás."
+
+msgid "Records carry two values — refused"
+msgstr "Registros com dois valores — recusado"
+
+msgid "The records you selected carry %1$s separate values for %2$s, so they are not all one person's — and the account they would land under cannot make them so, even where it agrees with one of those values. Narrow the selection to the records carrying a single %2$s and move them on their own."
+msgstr "Os registros que você selecionou têm %1$s valores distintos de %2$s, então não são todos da mesma pessoa — e a conta para a qual eles iriam não muda isso, mesmo quando concorda com um desses valores. Reduza a seleção aos registros que têm um único %2$s e mova só eles."

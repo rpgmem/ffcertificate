@@ -295,7 +295,7 @@ class IdentityRelink {
 	 * @since 6.28.4
 	 * @param array{identifiers: array<string, array<int, string>>, origin: int} $moving What {@see self::moving()} returned.
 	 * @param int                                                                $target The account under consideration.
-	 * @return array{matches: array<int, string>, gaps: array<string, string>, conflicts: array<int, string>}|WP_Error
+	 * @return array{matches: array<int, string>, gaps: array<string, string>, conflicts: array<int, string>, reasons: array<string, string>}|WP_Error
 	 */
 	public function verdict( array $moving, int $target ): array|WP_Error {
 		$unnamed = self::unnamed_target( $target );
@@ -317,14 +317,7 @@ class IdentityRelink {
 		);
 
 		if ( array() !== $agreement['conflicts'] ) {
-			return new WP_Error(
-				'ffc_identity_relink_conflict',
-				sprintf(
-					/* translators: %s: the identifiers that disagree, comma separated. */
-					__( 'The records and that account hold different values for: %s. Correct the identifier first — moving records across a disagreement is how one person\'s record ends up under another person\'s account.', 'ffcertificate' ),
-					implode( ', ', array_map( 'strtoupper', $agreement['conflicts'] ) )
-				)
-			);
+			return self::refusal( $agreement, $moving['identifiers'] );
 		}
 
 		if ( array() === $agreement['matches'] ) {
@@ -335,6 +328,77 @@ class IdentityRelink {
 		}
 
 		return $agreement;
+	}
+
+	/**
+	 * The refusal for a blocked move, saying which of the two reasons blocked.
+	 *
+	 * ONE SENTENCE FOR TWO CAUSES SENT OPERATORS LOOKING FOR NOTHING (#1477).
+	 *
+	 * It read "the records and that account hold different values" whatever
+	 * had blocked -- including when they hold the SAME value and what blocks
+	 * is a second one on the moving side. There is no disagreement to find
+	 * there, so the search ends in the operator distrusting the screen.
+	 *
+	 * The two need different fixes. A disagreement is corrected on whichever
+	 * side is wrong. A moving set carrying two values is not one person's
+	 * records at all, and the fix is to narrow the selection or split it --
+	 * correcting the target cannot make a mixed set coherent.
+	 *
+	 * @since 6.30.0
+	 * @param array{matches: array<int, string>, gaps: array<string, string>, conflicts: array<int, string>, reasons: array<string, string>} $agreement What the rule decided.
+	 * @param array<string, array<int, string>>                                                                                              $carried   What the moving rows carry, per identifier.
+	 * @return WP_Error
+	 */
+	private static function refusal( array $agreement, array $carried ): WP_Error {
+		$disagree  = array();
+		$ambiguous = array();
+
+		foreach ( $agreement['conflicts'] as $field ) {
+			$reason = $agreement['reasons'][ $field ] ?? IdentityAgreement::REASON_DISAGREEMENT;
+
+			if ( IdentityAgreement::REASON_AMBIGUOUS === $reason ) {
+				$ambiguous[] = $field;
+				continue;
+			}
+
+			$disagree[] = $field;
+		}
+
+		$said = array();
+
+		if ( array() !== $disagree ) {
+			$said[] = sprintf(
+				/* translators: %s: the identifiers that disagree, comma separated. */
+				__( 'The records and that account hold different values for: %s. Correct the identifier first — moving records across a disagreement is how one person\'s record ends up under another person\'s account.', 'ffcertificate' ),
+				implode( ', ', array_map( 'strtoupper', $disagree ) )
+			);
+		}
+
+		foreach ( $ambiguous as $field ) {
+			$said[] = sprintf(
+				/* translators: 1: how many different values the selected records carry. 2: the identifier, e.g. RF. */
+				__( 'The records you selected carry %1$s separate values for %2$s, so they are not all one person\'s — and the account they would land under cannot make them so, even where it agrees with one of those values. Narrow the selection to the records carrying a single %2$s and move them on their own.', 'ffcertificate' ),
+				// PLAIN, NOT `number_format_i18n()`. The count is how many distinct
+				// values one side carries for one identifier -- a handful at the
+				// very worst, so a thousands separator can never apply. Reaching
+				// for it would make these two classes the first in their module to
+				// need that function defined, and a stub taught for one test stays
+				// taught for every test after it.
+				(string) count( $carried[ $field ] ?? array() ),
+				strtoupper( $field )
+			);
+		}
+
+		return new WP_Error(
+			// NOT `_ambiguous`: that code already means the moving rows span
+			// more than one ACCOUNT. Two different refusals under one code is
+			// the defect this method exists to fix, one level down. The name
+			// is the queue's own `multiple_identities`, which is exactly the
+			// finding the operator has to go and resolve.
+			array() === $disagree ? 'ffc_identity_relink_multiple_identities' : 'ffc_identity_relink_conflict',
+			implode( ' ', $said )
+		);
 	}
 
 	/**
