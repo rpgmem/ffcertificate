@@ -401,8 +401,7 @@ class UserManager {
 			return $user ? array( $user->display_name ) : array();
 		}
 
-		$names                = array();
-		$possible_name_fields = array( 'nome_completo', 'nome', 'name', 'full_name', 'ffc_nome', 'participante' );
+		$names = array();
 
 		foreach ( $submissions as $data_json ) {
 			$data = json_decode( $data_json, true );
@@ -411,14 +410,17 @@ class UserManager {
 				continue;
 			}
 
-			foreach ( $possible_name_fields as $field ) {
-				if ( ! empty( $data[ $field ] ) && is_string( $data[ $field ] ) ) {
-					$name = trim( $data[ $field ] );
-					if ( ! empty( $name ) && ! in_array( $name, $names, true ) ) {
-						$names[] = $name;
-					}
-					break;
-				}
+			// ONE PLACE DECIDES WHICH KEY HOLDS A NAME (#1480).
+			//
+			// The inner loop this replaces was `SubmitterName::from()` written
+			// out, with one difference worth stating because it is a change:
+			// it stopped at the first key holding a non-empty STRING, so a
+			// whitespace-only value there ended the search and masked a real
+			// name under a later key. `from()` trims first and carries on.
+			$name = \FreeFormCertificate\Core\SubmitterName::from( $data );
+
+			if ( '' !== $name && ! in_array( $name, $names, true ) ) {
+				$names[] = $name;
 			}
 		}
 

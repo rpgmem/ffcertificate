@@ -560,15 +560,13 @@ class UserCreator {
 
 		// 2. Fallback to a name-based slug from submission data — covers
 		// the (rare) case of an empty / unusable email.
-		$possible_names = array( 'nome_completo', 'nome', 'name', 'full_name', 'ffc_nome' );
-		$name           = '';
-
-		foreach ( $possible_names as $field ) {
-			if ( ! empty( $submission_data[ $field ] ) && is_string( $submission_data[ $field ] ) ) {
-				$name = trim( $submission_data[ $field ] );
-				break;
-			}
-		}
+		// THIS LIST WAS ONE KEY SHORT, AND SO WAS THE ONE BELOW (#1480).
+		//
+		// Five keys here against the six the admin edit page, the field
+		// sanitizer and `UserManager` carried: `participante` was missing. So a
+		// form keyed that way had its name read everywhere except in the class
+		// that creates the account from it.
+		$name = \FreeFormCertificate\Core\SubmitterName::from( $submission_data );
 
 		if ( ! empty( $name ) ) {
 			$slug = \FreeFormCertificate\Core\Utils::sanitize_username_slug( strtolower( $name ) );
@@ -607,15 +605,14 @@ class UserCreator {
 			return;
 		}
 
-		$nome_completo  = '';
-		$possible_names = array( 'nome_completo', 'nome', 'name', 'full_name', 'ffc_nome' );
-
-		foreach ( $possible_names as $field ) {
-			if ( ! empty( $submission_data[ $field ] ) ) {
-				$nome_completo = $submission_data[ $field ];
-				break;
-			}
-		}
+		// THE DEFECT'S SHARP END: this sets `display_name` and `first_name`, so
+		// the missing `participante` meant an account created from such a form
+		// carried no name at all while every admin screen showed one (#1480).
+		//
+		// It also took the value without checking it was a string, so an answer
+		// arriving as an array -- a checkbox group under a key named `nome` --
+		// reached `wp_update_user()` and became the display name `Array`.
+		$nome_completo = \FreeFormCertificate\Core\SubmitterName::from( $submission_data );
 
 		if ( ! empty( $nome_completo ) ) {
 			wp_update_user(

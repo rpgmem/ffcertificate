@@ -37,8 +37,9 @@ class FieldSanitizer {
 		$submission_data = array();
 		$user_email      = '';
 
-		// Name fields that should be normalized (capitalized with lowercase connectives).
-		$name_fields = array( 'nome_completo', 'nome', 'name', 'full_name', 'ffc_nome', 'participante' );
+		// Name fields that should be normalized (capitalized with lowercase
+		// connectives) -- the key list is `SubmitterName`'s (#1480).
+		$name_fields = \FreeFormCertificate\Core\SubmitterName::CANDIDATE_KEYS;
 
 		foreach ( $ctx->fields_config as $field ) {
 			// Skip display-only field types (no user input).
