@@ -88,6 +88,51 @@ class IdentityMailboxVerbsTest extends TestCase {
 	}
 
 	/**
+	 * THE PANEL'S OWN SENTENCE MUST NOT DENY THE BUTTONS UNDER IT (#1461).
+	 *
+	 * The note above these cards ended `No verb is offered here: read the
+	 * account and decide with HR`. That was true while the tier was classified
+	 * and then refused every verb; #1461 gave it two, and the sentence stayed
+	 * for four releases — so the panel told the operator there was nothing to
+	 * do while the cards beside it offered move and split. It was found in a
+	 * screenshot of the shipped screen, with the denial and the two buttons in
+	 * one frame, which is the only way it could be found: every test here
+	 * asserted the CONTROLS, and the prose describing them was nobody's.
+	 *
+	 * Asserted in both directions, because either alone is satisfiable by
+	 * accident: the denial must be gone, AND the tier's note must name what it
+	 * does offer. A note trimmed to the diagnosis alone would pass the first.
+	 */
+	public function test_the_tier_note_does_not_deny_the_verbs_the_tier_offers(): void {
+		$view = $this->view();
+
+		$this->assertStringNotContainsString(
+			'No verb is offered here',
+			$view,
+			'The panel denies the two verbs it renders, which is what shipped from 6.29.0 onwards.'
+		);
+
+		// ANCHORED ON THE NOTE CLOSURE, BECAUSE THE TIER IS A `case` IN SEVERAL
+		// SWITCHES. The first one in the file is the tier's LABEL (`One
+		// address, several people`), so anchoring on the `case` alone reads
+		// the wrong string and reports a note that says nothing -- which is
+		// how the first version of this test failed.
+		$note = (string) strstr( $view, '$ffc_identity_tier_note = static function' );
+		$note = (string) strstr( $note, 'case IdentityQueue::TIER_MAILBOX:' );
+		$note = (string) strstr( $note, "', 'ffcertificate' );", true );
+
+		$this->assertNotSame( '', $note, 'The mailbox tier has no note at all, so nothing above the cards says what they are.' );
+
+		foreach ( array( 'moves to the account', 'splits onto a new one' ) as $verb ) {
+			$this->assertStringContainsString(
+				$verb,
+				$note,
+				sprintf( 'The tier note must name the verb it offers: %s', $verb )
+			);
+		}
+	}
+
+	/**
 	 * Consolidate stays absent, which is what the tier is for.
 	 *
 	 * The consolidate form is rendered under the mechanical tier's branch, so

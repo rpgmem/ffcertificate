@@ -22692,9 +22692,6 @@ msgstr[1] ""
 msgid "One address, several people"
 msgstr ""
 
-msgid "The numbers on this account share one address and are not variants of each other, so the address does not identify one person — a shared mailbox, or an account submitting on behalf of others. No verb is offered here: read the account and decide with HR."
-msgstr ""
-
 msgid "This account holds %1$s %2$s under one address, and they are not variants of each other. One address on that many numbers does not identify one person, so this is a shared mailbox or an account submitting for other people — which of the two, only the account itself says."
 msgstr ""
 
@@ -22761,3 +22758,6 @@ msgid "at least %s finding"
 msgid_plural "at least %s findings"
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "The numbers on this account share one address and are not variants of each other, so the address does not identify one person — a shared mailbox, or an account submitting on behalf of others. The decision is per number and it is made with HR: each one moves to the account it belongs to, or splits onto a new one."
+msgstr ""
