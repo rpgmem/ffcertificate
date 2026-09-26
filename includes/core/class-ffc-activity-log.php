@@ -490,11 +490,16 @@ class ActivityLog {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- One read of the plugin's own log table on a version bump; `prepare()` with `%i` is exactly what is being used, and a schema reading must not be served from a cache written before the schema changed.
 			$found = $wpdb->get_row( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, $column ), ARRAY_A );
 
-			if ( ! is_array( $found ) || 'NO' !== ( $found['Null'] ?? '' ) ) {
+			// `ArrayValue::string()` RATHER THAN A CAST, because a row value is
+			// `mixed` and level 9 refuses to cast it -- which is what the row
+			// shapes gate reported on the first push of this method. It is the
+			// idiom `ActivityLogQuery` already uses one file over, so the
+			// narrowing is in one place rather than re-derived per call site.
+			if ( ! is_array( $found ) || 'NO' !== ArrayValue::string( $found, 'Null' ) ) {
 				continue;
 			}
 
-			$type = (string) ( $found['Type'] ?? '' );
+			$type = ArrayValue::string( $found, 'Type' );
 
 			// THE TYPE IS THE SERVER'S ANSWER AND IT IS STILL VALIDATED.
 			//
