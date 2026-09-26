@@ -52,7 +52,41 @@ class CssTokenReferenceTest extends TestCase {
 		$shared = $this->declared_in( $common );
 		$this->assertNotEmpty( $shared, 'ffc-common.css declares no tokens — the scan is looking at the wrong file.' );
 
+		// THAT ASSERTION IS ABOUT ONE FILE, AND THE SCAN IS ABOUT ALL OF THEM
+		// (#1428).
+		//
+		// It reads `ffc-common.css` separately, so it stays true however few
+		// sheets the loop below actually visits -- measured: halving the glob
+		// leaves this test green with 14 of the 28 sheets unread, and an
+		// undeclared custom property invalidates the WHOLE declaration it sits
+		// in, so a sheet nobody checked is a component rendering with no
+		// colour at all.
+		//
+		// The recount uses `scandir` rather than `glob`, so the two agree only
+		// when both see the directory whole, and adding a sheet moves both.
+		$sheets = array_values(
+			array_filter(
+				glob( $root . '/*.css' ) ?: array(),
+				static fn( string $file ): bool => ! str_ends_with( $file, '.min.css' )
+			)
+		);
+
+		$recount = array_filter(
+			(array) scandir( $root ),
+			static fn( $entry ): bool => is_string( $entry )
+				&& str_ends_with( $entry, '.css' )
+				&& ! str_ends_with( $entry, '.min.css' )
+		);
+
+		$this->assertSame(
+			count( $recount ),
+			count( $sheets ),
+			'The glob and an independent recount disagree about how many stylesheets there are. The'
+			. ' scan is reading some of them and reporting as if it had read all of them.'
+		);
+
 		$unresolved = array();
+		$excused    = array();
 
 		foreach ( glob( $root . '/*.css' ) as $file ) {
 			if ( str_ends_with( $file, '.min.css' ) ) {
@@ -70,11 +104,21 @@ class CssTokenReferenceTest extends TestCase {
 			foreach ( $matches[1] as $match ) {
 				$token = $match[0];
 
-				if ( isset( self::RUNTIME_TOKENS[ $token ] ) ) {
+				// DECLARED IS CHECKED FIRST, AND THE ORDER IS THE POINT (#1435).
+				//
+				// A token that some sheet has since started declaring resolves
+				// on its own and no longer needs excusing. Reading the register
+				// first would keep such an entry "used" for ever; reading it
+				// second drops the entry out of `$excused` below, so the list
+				// shrinks when the CSS makes it unnecessary -- the half
+				// `RequiredNumericInputTest` gets right and "still exists" does
+				// not.
+				if ( in_array( $token, $local, true ) || in_array( $token, $shared, true ) ) {
 					continue;
 				}
 
-				if ( in_array( $token, $local, true ) || in_array( $token, $shared, true ) ) {
+				if ( isset( self::RUNTIME_TOKENS[ $token ] ) ) {
+					$excused[ $token ] = true;
 					continue;
 				}
 
@@ -82,6 +126,27 @@ class CssTokenReferenceTest extends TestCase {
 				$unresolved[] = "{$name}:{$line} references {$token}, which neither that file nor ffc-common.css declares";
 			}
 		}
+
+		// THE REGISTER MAY NOT OUTLIVE WHAT IT EXCUSES (#1435).
+		//
+		// An entry earns its place only while some sheet references the token
+		// WITHOUT any sheet declaring it -- exactly the condition that would
+		// otherwise be an offender. So a missing entry means one of two things,
+		// and both retire it: no sheet references the token any more, or one of
+		// them now declares it.
+		//
+		// What this deliberately does not assert is that a renderer still writes
+		// the value inline. That is a PHP-side question, and the honest scan for
+		// it is `CssClassEmitters`' territory, not this file's.
+		$stale = array_values( array_diff( array_keys( self::RUNTIME_TOKENS ), array_keys( $excused ) ) );
+
+		$this->assertSame(
+			array(),
+			$stale,
+			"These are registered as supplied at runtime, and no sheet now references them"
+			. " undeclared — either the reference left, or a sheet declares the token and the entry"
+			. " is excusing nothing. Drop it to lock the win in:\n  " . implode( "\n  ", $stale )
+		);
 
 		$this->assertSame(
 			array(),

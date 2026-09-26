@@ -29,8 +29,6 @@ use FreeFormCertificate\Loader;
 
 /**
  * @coversNothing
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class ModuleWiringSmokeTest extends IntegrationTestCase {
 

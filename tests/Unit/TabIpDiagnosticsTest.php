@@ -13,6 +13,10 @@ use FreeFormCertificate\Settings\Tabs\TabIpDiagnostics;
  * "render condicional do guia": the Cloudflare setup guide appears only when
  * the environment verdict is a direct connection.
  *
+ * Runs in separate processes as defence: it preloads `Admin\AdminUI`, which
+ * tests/fixtures/recruitment-admin-page-renderer-stubs.php shadows with a stub
+ * for the rest of any process that has required it (#1432).
+ *
  * @covers \FreeFormCertificate\Settings\Tabs\TabIpDiagnostics
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled

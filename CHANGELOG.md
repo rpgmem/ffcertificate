@@ -7,7 +7,45 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.28.4] (2026-09-24)
+## [6.29.0] (2026-09-25)
+
+### Security
+
+- ⚠ **Client IP addresses were written to `debug.log` in full** (#1441): `Debug::redact_sensitive_data()` masked 17 sensitive keys and `ip` was the one PII key missing, so seven call sites logged a raw address. The fix is at the sink rather than at the seven: the IP keys now take a **salted** hash and are relabelled `ip_hash`. Masking keeps two characters at each end, and an unsalted hash of an IPv4 is reversible by exhaustion. The address only ever reached `debug.log`, never a page or an email, and only while the area toggle was on; the capability-gated `ffc_activity_log.user_ip` column is unchanged.
+
+- ⚠ **A magic token in a URL fragment reached `debug.log` in full** (#1453): `url_carries_secret()` matches `token=` anywhere in a string, so the URL was recognised as carrying a secret and handed to a stripper whose pattern required `?` or `&` before the parameter — and a magic link carries its token in the **fragment** by design (`/valid/#token=...`), so the detector accepted it and nothing redacted it. A 64-character bearer token that opens a certificate with no authentication, in a file under `wp-content`. `#` is now a leading delimiter as well as a terminator; the value still stops at `#`, so a query secret does not swallow the fragment after it. Found on the testes host with every area enabled, immediately after #1441 — the existing test used the query shape, which worked throughout, and the shape the plugin actually emits had none.
+
+### Fixed
+
+- **The public CSV gate in `owner` mode could never match, and a CPF that could not be hashed opened it** (#1443): it stripped the author's `ffc_user_cpf` to digits, but that meta is always a `v2:` envelope — so it compared digits scraped out of base64 against an 11-digit CPF, and every visitor was told their CPF did not match the author's. It now compares the author's stored `cpf_hash` against the typed CPF's hash, both through `SensitiveFieldRegistry`. An author with no stored hash fails the gate rather than opening it: `hash_equals( '', '' )` is TRUE.
+
+- **Two activity-log columns were written by the code and declared by nobody** (#1444): `flush_buffer()` wrote `context_encrypted` and `submission_id` and no `CREATE TABLE` or `ALTER` declared either, so since 6.6.4 both writes were silently dropped on every install. An entry with sensitive context was stored with neither plaintext nor ciphertext; the `activity_log_clear_plaintext` card read 100% complete over a condition it could not evaluate; and the public verification page omitted the recorded-schedule block of any certificate whose window an operator had overridden. Both are now declared and `DB_VERSION` moved, which is what reaches an install that will never be activated again. No row was damaged.
+
+- **Two activity-log context keys named identifiers they do not carry** (#1448): `IdentityAdoption` logged 12-character hash prefixes under `cpf` and `rf`, and `contains_sensitive()` matches on the key name alone — so every adoption encrypted two prefixes and a boolean, and the log screen, which prints raw JSON with no label map, named a document the row never held. Renamed to `cpf_prefix` / `rf_prefix`, with a guard over the rule rather than the rename: a sensitive-named context key is registered with its reason or it is a defect.
+
+- **An identity merge left the person's audience access on the emptied login** (#1368): it moved submissions, appointments and candidacies and never touched `audience_members`, `audience_booking_users` or `audience_schedule_permissions` — so somebody merged onto a surviving account kept logging in with their bookable groups and their schedule permissions attached to the login they no longer use. The same shape as #1367, which cost 1,478 accounts certificates they owned and could not open. All three now move inside the merge's transaction, and because each carries `UNIQUE KEY (<parent>, user_id)` a pairing the survivor already holds is dropped rather than updated — reported beside the moves, since a total alone cannot be told apart from a row that went missing.
+
+- **The two `html/` migration cards need the folder they read** (#1438): the plugin stopped shipping `html/` in 6.23.0 and the rewrite migration side-loads images *from* there, so its repair became impossible while its pending count — which reads the database — did not. Pressing the button walked every affected post, repaired none and dropped pending to zero, leaving the card reading 100% complete over broken content. Both cards are now gated on the folder existing, which hides them and closes the AJAX endpoint together.
+
+- **A logged filename carried the auth code the same payload masked** (#1453): `PdfGenerator` logged `auth_code`, masked by the sink, beside `filename` — which is `certificado_{form_id}_{auth_code}.pdf` — one line below it. The sink cannot fix this and must not: a CSV export's filename carries no code, so the redaction belongs at the call site that holds it. The guard over the rule freezes the register of payloads carrying a `filename` key, so a scan finding nothing cannot read as clean. Writing it surfaced a latent defect in the scanner both this guard and #1441's read through: tracking quote parity means an apostrophe in a comment opens a string, so the paren match ran past its own payload into the next array. It tokenises comments away first.
+
+### Changed
+
+- **A `decrypt_failure` warning now says which call site produced it** (#1441): the context was a length and a v2 flag, so the three observed in production named a failure and no path. It carries the calling class and method — arguments deliberately dropped, since on those frames they are the ciphertext — and the real `get_current_user_id()` instead of a hard-coded `0`, which had made every entry read as an anonymous request.
+
+- **A column an insert names and no declarer names now fails CI** (#1447): the defect #1444 fixed was invisible to every existing guard, because they compare two declarations against each other and both columns were named only by their readers. This compares the other way — per table where the table resolves statically, tree-wide for the ten write sites whose table is a runtime value, each registered with its reason rather than skipped. No product code changed.
+
+- **Ciphertext read and used as plaintext now fails CI** (#1446): the shape #1443 shipped — a `v2:` envelope handed to `normalize_cpf_rf()` — matched none of the three identity guards, which watch who hashes or digit-strips an identifier, not who reads one. Two rules per statement, both at zero. The general dataflow version was built five times, is not shipped, and the verdict is on the issue: each attempt reported a clean tree for a different wrong reason. No product code changed.
+
+- **Seven guards' self-checks were bare floors, and a bare floor is not a detector** (#1428): measured, a collector silently returning half its population left every one of them green — the #1423 shape. Each now holds an invariant a partial scan cannot satisfy: a named member the sort drops first, an independent recount by a different traversal, or a share of an independently counted population. `CLAUDE.md` ranks those shapes and names the condition for each, because a loose floor is what a tight floor becomes as the population grows underneath it. No product code changed.
+
+- **22 test classes stopped forking a process to isolate nothing, and nine moved the fork to the methods that need it** (#1432): ~0.19s of bootstrap per forked method, which 3,034 of the suite's 8,652 tests were paying; the nine run in 11.9s against 54.5s on the same 291 tests. The full suite, not a scan, said which ten of the 32 candidates keep the fork — and the move is safe for the reason that is easy to get backwards: an alias mock created in a child process never reaches the parent, so annotating only a class's hot methods is what protects its cold ones. No product code changed.
+
+- **Twelve self-checks and four exception lists in the test suite stopped being bare floors** (#1435): a list that excuses something is read to *skip* an entry, so a stale entry makes the guard narrower and says nothing; three had no second direction at all. Each is now an exact comparison against an independent traversal, and that recount found a real defect on its first run — reading raw source, it matched the function name inside two docblocks. No product code changed.
+
+- **Two unreproducible figures and twelve numbered self-references corrected in `CLAUDE.md`** (#1435): the pcov paragraph claimed "101 of the 388 `@covers` files" carry a preload; measured, it is 242 in 193 of 428, and 101 is no reading at all — the file's own opening rule failing inside the file. With all 242 stripped and each class run alone twice, every one attributes the same covered-statement count either way, so new tests stop adding one. Docs only.
+
+## [6.28.4] (2026-09-24) — `20284a9`
 
 ### Security
 

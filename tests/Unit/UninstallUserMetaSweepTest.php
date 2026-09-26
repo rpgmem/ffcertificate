@@ -231,6 +231,35 @@ class UninstallUserMetaSweepTest extends TestCase {
 			'No literal user-meta key was found under includes/ — the extractor stopped matching, it is not that the plugin stopped writing meta.'
 		);
 
+		// AN EXACT COMPARISON, BECAUSE THE POPULATION IS NOW ONE (#1443).
+		//
+		// This used to require the walk to reach more than one module, over a
+		// population of two: `ffc_user_cpf` in `frontend` and
+		// `ffc_registration_date` in `privacy`. #1443 removed the first --
+		// the public CSV gate stopped reading that meta at all, because the
+		// value there is a `v2:` envelope and the comparison could never match
+		// -- so the floor asked for two modules from a tree that honestly has
+		// one, and fired. Which is what its own message said it would do.
+		//
+		// A floor of `> 0` cannot replace it: over a population of one, empty
+		// is the only failure it detects, and that is `assertNotEmpty` above.
+		// So this takes the strongest shape the convention ranks first
+		// (CLAUDE.md, "A self-check is worth what it is tight to") -- an exact
+		// comparison against a frozen non-empty register. A collapsed walk
+		// loses the entry and fails; a NEW literal key appears in the diff and
+		// fails, which is the direction that matters, since a literal key
+		// outside the swept prefix is PII left in `wp_usermeta` at uninstall.
+		//
+		// Only the key is frozen, not the file it sits in: the path churns
+		// with any refactor and carries nothing this needs.
+		$this->assertSame(
+			array( 'ffc_registration_date' ),
+			array_keys( $this->literal_keys() ),
+			'The literal user-meta keys under `includes/` are not the frozen set. Either the walk'
+			. ' collapsed and lost one, or a new literal key was written -- in which case confirm it'
+			. ' starts with the swept prefix and add it here.'
+		);
+
 		foreach ( self::PREFIX_CONSTANTS as $path => $name ) {
 			$this->assertFileExists( $this->root() . '/' . $path );
 			$this->assertNotSame(

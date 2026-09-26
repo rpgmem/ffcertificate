@@ -105,6 +105,15 @@ class IdentityMergePreviewAjaxEndpoint {
 				'absorbed' => self::named( $absorbed, $plan['holds']['absorbed'] ),
 				'total'    => $plan['total'],
 				'stores'   => self::per_store( $plan['counts'] ),
+				// WHAT THE PERSON WILL STILL BE ALLOWED TO DO (#1368).
+				//
+				// Audience membership, a place on a booking and a schedule
+				// permission move with the records, and a dropped duplicate is
+				// reported beside a move rather than folded into it: the
+				// survivor already holding that membership is why a row
+				// vanishes, and an operator who is told only the total cannot
+				// tell that from a row that went missing.
+				'grants'   => self::per_relationship( $plan['relationships'] ),
 				// What the survivor gains that it did not hold, which is the
 				// half of the rule an operator cannot see from the screen.
 				'gains'    => array_map( 'strtoupper', array_keys( $plan['gaps'] ) ),
@@ -128,6 +137,34 @@ class IdentityMergePreviewAjaxEndpoint {
 			'name'    => $user instanceof WP_User ? (string) $user->display_name : '',
 			'records' => $records,
 		);
+	}
+
+	/**
+	 * Per-relationship counts, with the same prefix rule as the stores.
+	 *
+	 * A table the install does not have is ABSENT from the plan and stays
+	 * absent here, which is the one place this differs from `per_store()`: a
+	 * store reading zero was looked at and found empty, while a relationship
+	 * table that is not installed was never a question. Reporting it as zero
+	 * would say the merge checked something it could not.
+	 *
+	 * @param array<string, array{moves: int, duplicates: int}> $relationships Per-table plan.
+	 * @return array<int, array{store: string, moves: int, duplicates: int}>
+	 */
+	private static function per_relationship( array $relationships ): array {
+		global $wpdb;
+
+		$out = array();
+
+		foreach ( $relationships as $table => $numbers ) {
+			$out[] = array(
+				'store'      => (string) preg_replace( '/^' . preg_quote( (string) $wpdb->prefix, '/' ) . '/', '', (string) $table ),
+				'moves'      => (int) $numbers['moves'],
+				'duplicates' => (int) $numbers['duplicates'],
+			);
+		}
+
+		return $out;
 	}
 
 	/**

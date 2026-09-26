@@ -341,7 +341,47 @@ class DeprecationDueTest extends TestCase {
 		$files = $this->php_files();
 
 		$this->assertNotEmpty( $files, 'The file walk found no PHP under includes/ -- both directions below would be vacuously green.' );
-		$this->assertGreaterThan( 100, count( $files ), 'The file walk reached only part of the tree.' );
+		// A FLOOR OF 100 OVER A POPULATION OF SEVERAL HUNDRED IS NOT A
+		// DETECTOR (#1428).
+		//
+		// Half of `includes/` still clears it, so a walk that silently covered
+		// half the tree would leave this green -- measured. The marker this
+		// guard acts on is a comment anywhere in any file, so a half-covered
+		// walk is a cycle that outlives its release without anybody being told.
+		//
+		// The recount below uses `scandir` rather than the iterator the walk
+		// uses, so the two agree only when both see the whole tree, and neither
+		// side goes stale when a class is added. It is the shape
+		// `ActivatorSqlTest` has held all along and the one #1429 adopted.
+		$recount = static function ( string $dir ) use ( &$recount ): int {
+			$total = 0;
+
+			foreach ( (array) scandir( $dir ) as $entry ) {
+				if ( '.' === $entry || '..' === $entry ) {
+					continue;
+				}
+
+				$path = $dir . '/' . $entry;
+
+				if ( is_dir( $path ) ) {
+					$total += $recount( $path );
+					continue;
+				}
+
+				if ( '.php' === substr( $path, -4 ) ) {
+					++$total;
+				}
+			}
+
+			return $total;
+		};
+
+		$this->assertSame(
+			$recount( $this->root() . '/includes' ),
+			count( $files ),
+			'The walk and an independent recount disagree about how many PHP files `includes/` holds.'
+			. ' The scan covers part of the tree and both directions below then police only that part.'
+		);
 	}
 
 	/**

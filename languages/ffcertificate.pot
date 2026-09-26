@@ -16961,6 +16961,16 @@ msgid "Solves a proof of work, or answers the arithmetic question when JavaScrip
 msgstr ""
 
 #. 1: opening <code> tag, 2: closing </code> tag, 3: link to the Migrations settings tab.
+#: includes/admin/class-ffc-html-refs-notice.php:111
+msgid "Free Form Certificate — certificate images are missing"
+msgstr ""
+
+#. 1: opening <code> tag, 2: closing </code> tag.
+#: includes/admin/class-ffc-html-refs-notice.php:116
+#, php-format
+msgid "Some certificate templates reference images inside the plugin's %1$shtml/%2$s folder, which no longer exists — a plugin update or deploy removed it, so those images do not render. There is no automatic repair, because the files are gone: re-upload each image to the Media Library and point the template at the new URL."
+msgstr ""
+
 #: includes/admin/class-ffc-html-refs-notice.php:105
 #, php-format
 msgid "Some certificate templates reference images inside the plugin's %1$shtml/%2$s folder, which a plugin update or deploy will delete. Run %3$s to move them into the Media Library."
@@ -22511,6 +22521,15 @@ msgid "The preview could not be completed."
 msgstr ""
 
 msgid "The records, the identity index and the surviving login's certificate access move together, as one transaction. The emptied login is left in place — removing it is yours to do in Users, because deleting an account runs cleanup this tool does not own and cannot undo."
+msgstr ""
+
+msgid "%1$s in %2$s move with them."
+msgstr ""
+
+msgid "%s dropped, because the surviving login already had it."
+msgstr ""
+
+msgid "The relationship table %s refused the merge, so nothing was changed."
 msgstr ""
 
 msgid "The surviving login also gains the %s it did not hold."

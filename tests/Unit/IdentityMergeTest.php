@@ -19,8 +19,6 @@ use FreeFormCertificate\Maintenance\IdentityMerge;
  * every refusal is driven rather than read.
  *
  * @covers \FreeFormCertificate\Maintenance\IdentityMerge
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class IdentityMergeTest extends TestCase {
 
@@ -46,6 +44,32 @@ class IdentityMergeTest extends TestCase {
 	 * @var array<int, array{table: string, data: array<string, mixed>, where: array<string, mixed>}>
 	 */
 	private array $updates = array();
+
+	/**
+	 * Relationship tables a prepared `query()` deleted from, in order.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $deletes = array();
+
+	/**
+	 * Duplicate rows a relationship table reports, by table.
+	 *
+	 * @var array<string, int>
+	 */
+	private array $duplicates = array();
+
+	/**
+	 * Tables whose prepared DELETE answers false while their update succeeds.
+	 *
+	 * SEPARATE FROM `$refusing` ON PURPOSE. With one list the double refuses
+	 * both statements, so the update's own guard catches every case and the
+	 * delete's guard is never the thing that fires — a mutation removing it
+	 * survived, and the fixture was why. In production they fail apart.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $refusing_delete = array();
 
 	/**
 	 * Transaction control statements, in order.
@@ -80,7 +104,10 @@ class IdentityMergeTest extends TestCase {
 		$this->rows     = array();
 		$this->index    = array();
 		$this->updates  = array();
-		$this->control  = array();
+		$this->control    = array();
+		$this->deletes    = array();
+		$this->duplicates = array();
+		$this->refusing_delete = array();
 		$this->index_ok = true;
 		$this->refusing = array();
 
@@ -144,9 +171,30 @@ class IdentityMergeTest extends TestCase {
 			}
 		);
 
+		// TWO SHAPES REACH `query()`, AND ONLY ONE IS TRANSACTION CONTROL.
+		//
+		// `START TRANSACTION` / `COMMIT` / `ROLLBACK` arrive as strings. The
+		// relationship merge (#1368) sends a PREPARED statement, which this
+		// double hands back as an array, so casting everything to string put
+		// "Array" in the control log and raised a conversion notice. The
+		// prepared ones are recorded apart and answer with the configured
+		// duplicate count, which is what the delete-before-update returns.
 		$wpdb->shouldReceive( 'query' )->andReturnUsing(
 			function ( $sql ) {
+				if ( is_array( $sql ) ) {
+					$table = (string) ( $sql['args'][0] ?? '' );
+
+					$this->deletes[] = $table;
+
+					if ( in_array( $table, $this->refusing, true ) || in_array( $table, $this->refusing_delete, true ) ) {
+						return false;
+					}
+
+					return $this->duplicates[ $table ] ?? 0;
+				}
+
 				$this->control[] = (string) $sql;
+
 				return 1;
 			}
 		);
@@ -256,6 +304,113 @@ class IdentityMergeTest extends TestCase {
 		$this->assertContains( 'COMMIT', $this->control );
 		$this->assertSame( array( 'user_id' => 5784 ), $this->updates[0]['data'] );
 		$this->assertSame( array( 'user_id' => 6092 ), $this->updates[0]['where'], 'Records move BY ACCOUNT, not by identifier.' );
+	}
+
+	/**
+	 * WHAT THE PERSON IS ALLOWED TO DO MOVES WITH WHAT THEY OWN (#1368).
+	 *
+	 * Audience membership, a place on a booking and a permission on one
+	 * schedule are not records — they are the access. Leaving them on the
+	 * emptied login is #1367's defect one level over: the row moves and the
+	 * thing granting it does not, so somebody logs in as the survivor with
+	 * their bookable groups attached to a login they no longer use.
+	 */
+	public function test_the_relationships_move_with_the_records(): void {
+		$this->given(
+			array(
+				self::row( 5784, 'cpfA', 'rfShared' ),
+				self::row( 6092, 'cpfA', 'rfShared' ),
+			)
+		);
+
+		$result = $this->merge()->merge( 5784, 6092 );
+
+		$this->assertIsArray( $result );
+
+		$moved = array_column( $this->updates, 'table' );
+
+		foreach ( array( 'wp_ffc_audience_members', 'wp_ffc_audience_booking_users', 'wp_ffc_audience_schedule_permissions' ) as $table ) {
+			$this->assertContains( $table, $moved, $table . ' was left on the emptied login, so the person lost what it granted.' );
+			$this->assertContains( $table, $this->deletes, $table . ' was updated without first clearing the pairings the survivor already holds.' );
+		}
+	}
+
+	/**
+	 * THE UNIQUE KEY IS WHY THE DELETE COMES FIRST.
+	 *
+	 * Each relationship carries `UNIQUE KEY (<parent>, user_id)`, so a donor
+	 * row whose pairing the survivor already holds cannot become theirs. It is
+	 * dropped rather than updated, and the drop is REPORTED: a survivor who
+	 * already had that membership is why a row disappears, and a total alone
+	 * cannot be told apart from a row that went missing.
+	 */
+	public function test_a_pairing_the_survivor_already_holds_is_dropped_and_counted(): void {
+		$this->given(
+			array(
+				self::row( 5784, 'cpfA', 'rfShared' ),
+				self::row( 6092, 'cpfA', 'rfShared' ),
+			)
+		);
+
+		$this->duplicates['wp_ffc_audience_members'] = 3;
+
+		$result = $this->merge()->merge( 5784, 6092 );
+
+		$this->assertIsArray( $result );
+		$this->assertArrayHasKey( 'relationships', $result );
+		$this->assertSame(
+			3,
+			$result['relationships']['wp_ffc_audience_members']['duplicates'],
+			'A dropped duplicate must be reported, never folded into the move count.'
+		);
+	}
+
+	/**
+	 * A relationship that refuses rolls the whole merge back.
+	 *
+	 * The records and the access are one decision: committing the first
+	 * without the second is the state this exists to prevent.
+	 */
+	public function test_a_refusing_relationship_rolls_the_merge_back(): void {
+		$this->given(
+			array(
+				self::row( 5784, 'cpfA', 'rfShared' ),
+				self::row( 6092, 'cpfA', 'rfShared' ),
+			)
+		);
+
+		$this->refusing[] = 'wp_ffc_audience_members';
+
+		$result = $this->merge()->merge( 5784, 6092 );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertContains( 'ROLLBACK', $this->control );
+		$this->assertNotContains( 'COMMIT', $this->control );
+	}
+
+	/**
+	 * A DELETE that fails is a merge that fails, even when the update would not.
+	 *
+	 * The two statements fail apart: the delete clears the pairings the
+	 * survivor already holds, and if it does not, the update that follows hits
+	 * the unique key. Guarding only the update means committing a merge whose
+	 * duplicate clearing silently did nothing.
+	 */
+	public function test_a_refusing_delete_rolls_the_merge_back(): void {
+		$this->given(
+			array(
+				self::row( 5784, 'cpfA', 'rfShared' ),
+				self::row( 6092, 'cpfA', 'rfShared' ),
+			)
+		);
+
+		$this->refusing_delete[] = 'wp_ffc_audience_members';
+
+		$result = $this->merge()->merge( 5784, 6092 );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertContains( 'ROLLBACK', $this->control );
+		$this->assertNotContains( 'COMMIT', $this->control );
 	}
 
 	/**

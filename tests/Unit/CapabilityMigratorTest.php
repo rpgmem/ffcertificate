@@ -15,8 +15,6 @@ use FreeFormCertificate\UserDashboard\CapabilityMigrator;
  * Tests for the #739 admin role-assignment migration.
  *
  * @covers \FreeFormCertificate\UserDashboard\CapabilityMigrator
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class CapabilityMigratorTest extends TestCase {
 
@@ -172,6 +170,10 @@ class CapabilityMigratorTest extends TestCase {
 		$this->assertGreaterThanOrEqual( 1, $counts['caps_stripped'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_admin_role_assignment_self_heals_missing_role(): void {
 		// ffc_administrator missing → the role registry is re-run once.
 		Mockery::mock( 'alias:\\FreeFormCertificate\\UserDashboard\\RoleRegistrar' )
@@ -237,6 +239,10 @@ class CapabilityMigratorTest extends TestCase {
 		$this->assertSame( 1, $counts['ffc_scheduling_bypass'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_role_renames_reassigns_users_and_drops_old_roles(): void {
 		$registrar = Mockery::mock( 'alias:\\FreeFormCertificate\\UserDashboard\\RoleRegistrar' );
 		// `register_role()` creates `ffc_end_user`; `register_module_roles()`

@@ -200,6 +200,32 @@ class MigrationRegistry {
 	 * @return bool
 	 */
 	public function is_available( string $migration_key ): bool {
-		return $this->exists( $migration_key );
+		return $this->exists( $migration_key ) && self::is_applicable( $migration_key );
+	}
+
+	/**
+	 * Whether the install still has the thing a migration operates on.
+	 *
+	 * Separate from {@see exists} because a migration can be correctly registered
+	 * and have nothing to act on. `is_available()` is the gate the Migrations tab
+	 * consults BEFORE asking for a status, and the one
+	 * {@see \FreeFormCertificate\Admin\MigrationActionsAjaxEndpoint} consults
+	 * before running anything — so answering false here hides the card and closes
+	 * the endpoint in one place, rather than hiding a control whose handler stays
+	 * reachable.
+	 *
+	 * The two `html/` migrations are gated on the drop-folder because the folder
+	 * is what they read. `LegacyHtmlRefs::drop_folder_exists()` carries why, and
+	 * it is a live probe: recreate the folder and both cards return.
+	 *
+	 * @param string $migration_key Migration identifier.
+	 * @return bool
+	 */
+	public static function is_applicable( string $migration_key ): bool {
+		if ( 'rewrite_html_image_refs' === $migration_key || 'import_legacy_templates' === $migration_key ) {
+			return \FreeFormCertificate\Core\LegacyHtmlRefs::drop_folder_exists();
+		}
+
+		return true;
 	}
 }

@@ -28,8 +28,6 @@ use FreeFormCertificate\UserDashboard\ViewPolicy;
 
 /**
  * @covers \FreeFormCertificate\UserDashboard\UserProfileService
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class UserProfileServiceTest extends TestCase {
 
@@ -178,6 +176,10 @@ class UserProfileServiceTest extends TestCase {
 		$this->assertSame( 'alice@example.com', $result['user_email'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_read_usermeta_masks_sensitive_field_by_default(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
 		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( '12345678901' );
@@ -192,6 +194,10 @@ class UserProfileServiceTest extends TestCase {
 		$this->assertSame( '123.***.***-01', $result['cpf'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_read_usermeta_returns_full_plaintext_when_policy_is_full(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
 		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( '12345678901' );
@@ -256,6 +262,10 @@ class UserProfileServiceTest extends TestCase {
 		$this->assertNull( $result['cpf'] );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_read_does_not_audit_masked_reads_even_for_sensitive_fields(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
 		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->andReturn( '12345678901' );
@@ -349,6 +359,10 @@ class UserProfileServiceTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_write_encrypts_sensitive_usermeta_and_stores_hash(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
 		$enc->shouldReceive( 'encrypt' )->with( '12345678901' )->once()->andReturn( 'ENC' );
@@ -381,6 +395,9 @@ class UserProfileServiceTest extends TestCase {
 	 * throughout and could never have caught this. That is why the mask is the
 	 * whole point of this one: `with( '12345678909' )` fails if the raw string
 	 * reaches `Encryption` again.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_write_normalizes_a_masked_cpf_before_encrypting_and_hashing(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
@@ -404,6 +421,9 @@ class UserProfileServiceTest extends TestCase {
 	 * `...---` normalises to the empty string. Encrypting and hashing that
 	 * would make every such row share one searchable value, which is the
 	 * opposite of an identifier.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_write_skips_a_sensitive_value_that_normalizes_to_nothing(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
@@ -433,6 +453,10 @@ class UserProfileServiceTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_write_non_sensitive_usermeta_does_not_call_encryption(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
 		$enc->shouldReceive( 'encrypt' )->never();

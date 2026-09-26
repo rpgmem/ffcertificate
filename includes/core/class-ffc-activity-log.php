@@ -364,8 +364,14 @@ class ActivityLog {
 	 * statement changes shape (new columns, new indexes, etc.).
 	 * Read by maybe_create_table() to decide if dbDelta needs to run on an
 	 * existing install.
+	 *
+	 * 2.1.0 (#1444): `context_encrypted` and `submission_id` join the
+	 * statement. Both were written by flush_buffer() and declared by NOTHING
+	 * -- no CREATE, no ALTER, anywhere in the tree -- since the gates that
+	 * read them arrived in 6.6.4. Bumping this is what reaches an install
+	 * that will never be activated again; see maybe_create_table().
 	 */
-	private const DB_VERSION = '2.0.0';
+	private const DB_VERSION = '2.1.0';
 
 	/**
 	 * Create activity log table
@@ -391,13 +397,16 @@ class ActivityLog {
             action varchar(100) NOT NULL,
             level varchar(20) NOT NULL DEFAULT 'info',
             context longtext,
+            context_encrypted longtext,
             user_id bigint(20) unsigned DEFAULT NULL,
+            submission_id bigint(20) unsigned DEFAULT NULL,
             user_ip varchar(100),
             created_at datetime NOT NULL,
             PRIMARY KEY (id),
             KEY action (action),
             KEY level (level),
             KEY user_id (user_id),
+            KEY submission_id (submission_id),
             KEY created_at (created_at),
             KEY user_ip (user_ip)
         ) {$charset_collate};";

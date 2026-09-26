@@ -19,8 +19,6 @@ use FreeFormCertificate\Maintenance\IdentityConflictQuery;
  * static guard. What a real database proves lives in the `fresh-install` job.
  *
  * @covers \FreeFormCertificate\Maintenance\IdentityConflictQuery
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class IdentityConflictQueryTest extends TestCase {
 

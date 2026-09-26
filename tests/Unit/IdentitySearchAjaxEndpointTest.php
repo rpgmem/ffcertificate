@@ -28,8 +28,6 @@ use WP_User;
  * anything of its own, and these fail -- which is how they were checked.
  *
  * @covers \FreeFormCertificate\Admin\IdentitySearchAjaxEndpoint
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class IdentitySearchAjaxEndpointTest extends TestCase {
 

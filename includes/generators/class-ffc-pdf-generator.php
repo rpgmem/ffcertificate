@@ -165,7 +165,12 @@ class PdfGenerator {
 				'form_id'       => $form_id,
 				'form_title'    => \FreeFormCertificate\Core\Utils::truncate( $form_title, 50 ),
 				'auth_code'     => $auth_code,
-				'filename'      => $filename,
+				// The sink masks `auth_code` and cannot know that a FILENAME
+				// embeds one: `filename` is not sensitive in general, since a
+				// CSV export does not carry a code, so the redaction belongs
+				// here, where the code is in hand. Observed beside a correctly
+				// masked `auth_code` in the same payload on the testes host.
+				'filename'      => str_replace( $auth_code, '[redacted]', $filename ),
 				'html_length'   => strlen( $html ),
 				'has_bg_image'  => ! empty( $bg_image_url ),
 			)

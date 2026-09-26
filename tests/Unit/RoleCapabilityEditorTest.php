@@ -17,6 +17,12 @@ use FreeFormCertificate\Admin\RoleCapabilityEditor;
  * a render smoke test, and the AJAX persistence handler with its guards
  * (cap- + role-whitelist, manage_options).
  *
+ * Runs in separate processes as DEFENCE, not containment: this class declares
+ * nothing of its own. The render test resolves the real `Admin\AdminUI`, and
+ * tests/fixtures/recruitment-admin-page-renderer-stubs.php declares a stub of
+ * that name — without the fork, `AdminUI::get_toggle()` resolves to the stub
+ * and does not exist. That fixture's header carries the mechanics (#1432).
+ *
  * @covers \FreeFormCertificate\Admin\RoleCapabilityEditor
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled

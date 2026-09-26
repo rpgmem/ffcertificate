@@ -310,4 +310,59 @@ class MigrationRegistryTest extends TestCase {
 		$this->assertArrayHasKey( 'custom_migration', $all );
 		$this->assertSame( 'Custom Migration', $all['custom_migration']['name'] );
 	}
+
+	// ==================================================================
+	// Registered is not the same as applicable (#1438)
+	// ==================================================================
+
+	/**
+	 * The two `html/` migrations stay REGISTERED and stop being AVAILABLE.
+	 *
+	 * The distinction is the whole change. `exists()` is about the registry and
+	 * must not move: the definitions, their order and their copy are still
+	 * correct, and recreating the drop-folder brings both cards back. What moves
+	 * is `is_available()`, which the Migrations tab consults before asking for a
+	 * status and the AJAX endpoint consults before running anything -- so one
+	 * answer hides the card AND closes the endpoint, rather than hiding a
+	 * control whose handler stays reachable.
+	 */
+	public function test_the_html_migrations_are_registered_but_not_available_without_the_folder(): void {
+		$registry = new MigrationRegistry();
+
+		foreach ( array( 'rewrite_html_image_refs', 'import_legacy_templates' ) as $key ) {
+			$this->assertTrue( $registry->exists( $key ), "{$key} must stay registered." );
+			$this->assertFalse(
+				$registry->is_available( $key ),
+				"{$key} reads the html/ drop-folder, which no install has since 6.23.0, so its card must not render."
+			);
+		}
+	}
+
+	/**
+	 * The gate is specific, not a blanket.
+	 *
+	 * Without this, an `is_applicable()` that returned false for everything
+	 * would satisfy the test above and hide every card on the screen.
+	 */
+	public function test_every_other_migration_stays_available(): void {
+		$registry = new MigrationRegistry();
+		$gated    = array( 'rewrite_html_image_refs', 'import_legacy_templates' );
+		$hidden   = array();
+
+		foreach ( array_keys( $registry->get_all_migrations() ) as $key ) {
+			if ( in_array( $key, $gated, true ) ) {
+				continue;
+			}
+			if ( ! $registry->is_available( $key ) ) {
+				$hidden[] = $key;
+			}
+		}
+
+		$this->assertSame( array(), $hidden, 'These lost their card and nothing asked for that: ' . implode( ', ', $hidden ) );
+		$this->assertGreaterThan(
+			count( $gated ),
+			count( $registry->get_all_migrations() ),
+			'The registry scan collapsed -- with no migrations beyond the gated two the test above proves nothing.'
+		);
+	}
 }

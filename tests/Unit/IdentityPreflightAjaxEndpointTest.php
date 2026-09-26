@@ -25,8 +25,6 @@ use WP_User;
  * word.
  *
  * @covers \FreeFormCertificate\Admin\IdentityPreflightAjaxEndpoint
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class IdentityPreflightAjaxEndpointTest extends TestCase {
 

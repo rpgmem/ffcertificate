@@ -19,8 +19,6 @@ use FreeFormCertificate\Admin\CsvExporter;
  * {@see \FreeFormCertificate\Core\BatchedCsvExport} (see BatchedCsvExportTest).
  *
  * @covers \FreeFormCertificate\Admin\CsvExporter
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class CsvExporterTest extends TestCase {
 
