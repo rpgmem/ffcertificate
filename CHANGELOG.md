@@ -7,6 +7,12 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Every navigation link on the identity screen was refused before reaching PHP** (#1459): the cursor was assembled as `tier|column|subject` and travels in the query string, and `add_query_arg()` does not encode values — so a raw `|` reached the URL, where RFC 3986 does not allow it and a WAF reads it as a command-injection signature. The production host refused every arrow with a 403, so the queue could only ever be worked from its first finding. **This is also why `Reload the list` was the only way to advance after a correction**: the redirect that lands on the next finding has existed since 6.28.4 and carried a pipe too. The separator is now a hyphen — not the dot the probe used, because the `isolated` tier names no column and a dot would assemble the `..` traversal signature. Percent-encoding was never an option: a WAF decodes before matching.
+
+- **An administrator without `ffc_administrator` was locked out of the identity screen** (#1459): `render_page()` was the one gate of twelve in that file using bare `current_user_can()` instead of `current_user_can_admin_or()`. FFC admin caps are no longer granted to the native `administrator` role, so an administrator without that role hit a refusal with no fallback, on the one screen whose every other gate would have admitted them.
+
 ## [6.29.0] (2026-09-25) — `8740373d`
 
 ### Security
