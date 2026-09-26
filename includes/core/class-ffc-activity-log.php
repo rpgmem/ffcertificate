@@ -377,8 +377,11 @@ class ActivityLog {
 	 * NULL` with no default and is declared by no statement at all, and
 	 * `submission_id` is `NOT NULL` against a `DEFAULT NULL` here. See
 	 * {@see self::relax_legacy_not_null()}.
+	 *
+	 * 2.3.0 (#1458): the three columns nothing writes are dropped where they
+	 * are provably empty. See {@see self::drop_dead_legacy_columns()}.
 	 */
-	private const DB_VERSION = '2.2.0';
+	private const DB_VERSION = '2.3.0';
 
 	/**
 	 * Create activity log table
@@ -421,11 +424,87 @@ class ActivityLog {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
 
-		// AFTER `dbDelta`, because it is the half `dbDelta` demonstrably does
-		// not do. See the method's own docblock.
+		// BOTH AFTER `dbDelta`, because they are the half `dbDelta` demonstrably
+		// does not do -- it never drops a column, and it did not reconcile the
+		// nullability. Dropping FIRST so the relax skips a column that has just
+		// left: an absent column is already its no-op.
+		self::drop_dead_legacy_columns();
 		self::relax_legacy_not_null();
 
 		return true;
+	}
+
+	/**
+	 * Columns no code writes, dropped only where they are provably empty.
+	 *
+	 * @var array<int, string>
+	 */
+	private const LEGACY_DEAD = array( 'action_type', 'action_details', 'user_agent' );
+
+	/**
+	 * Drop the dead legacy columns, and refuse on any install that uses them.
+	 *
+	 * MEASURED BEFORE IT WAS WRITTEN, ON BOTH HALVES (#1458).
+	 *
+	 * *Nobody reads them*: `action_type` and `action_details` have zero
+	 * occurrences anywhere under `includes/`, and every `user_agent` hit in the
+	 * tree belongs to another table -- the appointments and rate-limit ones.
+	 *
+	 * *They hold nothing*: on the production install, 14,062 rows and not one
+	 * carrying a value in any of the three. The row total is what makes that a
+	 * measurement rather than an absence -- zero non-empty values over zero
+	 * rows would say nothing.
+	 *
+	 * THE COUNT IS IN THE CODE BECAUSE ONE INSTALL IS NOT EVERY INSTALL.
+	 *
+	 * That reading is one database, and this plugin runs on others. So the
+	 * evidence does not become a memory of the pull request that carried it:
+	 * every column is counted here, immediately before it would be dropped,
+	 * and a single row carrying a value calls the whole thing off for that
+	 * column. On an install where `action_details` holds audit history this
+	 * drops nothing and leaves the columns as they are -- relaxed and inert
+	 * after {@see self::relax_legacy_not_null()} -- which is the only
+	 * acceptable outcome for an LGPD trail that cannot be restored.
+	 *
+	 * `submission_id` is deliberately NOT here. It is a live column the
+	 * statement declares and the queries read; its `NOT NULL` is the relax's
+	 * to fix, not this method's.
+	 *
+	 * @return void
+	 */
+	private static function drop_dead_legacy_columns(): void {
+		global $wpdb;
+
+		$table = $wpdb->prefix . 'ffc_activity_log';
+
+		foreach ( self::LEGACY_DEAD as $column ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- One read of the plugin's own log table on a version bump; `prepare()` with `%i` is exactly what is being used, and a schema reading must not be served from a cache written before the schema changed.
+			$found = $wpdb->get_row( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, $column ), ARRAY_A );
+
+			// Absent is the ordinary case: no `CREATE` in this plugin declares
+			// any of the three, so a fresh install has never had them.
+			if ( ! is_array( $found ) ) {
+				continue;
+			}
+
+			// `<> ''` BESIDE `IS NOT NULL`, because a legacy column is `NOT
+			// NULL` without a default and its rows therefore hold the empty
+			// string rather than NULL -- counting nulls alone would report
+			// every one of those 14,062 rows as carrying a value.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- As above; the count is the evidence gate and must read the table, never a cache.
+			$in_use = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE %i IS NOT NULL AND %i <> %s', $table, $column, $column, '' ) );
+
+			if ( $in_use > 0 ) {
+				continue;
+			}
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- A schema change on the plugin's own log table is the whole point of this method; there is no cache to read a write from, and the identifiers go through `%i`.
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table, $column ) );
+
+			// The names cache is keyed on nothing and memoised for the request,
+			// so a column that just left would still be reported as present.
+			self::clear_column_cache();
+		}
 	}
 
 	/**
