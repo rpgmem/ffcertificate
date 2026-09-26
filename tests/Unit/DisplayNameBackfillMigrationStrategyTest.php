@@ -143,8 +143,19 @@ class DisplayNameBackfillMigrationStrategyTest extends TestCase {
 			}
 		);
 
+		// THE GLOBAL ONE ONLY, never `FreeFormCertificate\Migrations\Strategies\__`.
+		//
+		// Stubbing the namespaced name CREATES it, and from then on every
+		// unqualified `__()` inside that namespace stops falling back to the
+		// global -- so four sibling strategy tests that stub only the global
+		// started failing with `"__" is not defined nor mocked`, pointing at
+		// files this change never touched. The blast radius `CLAUDE.md` records,
+		// walked into by copying a sibling's `setUp()`: that one can afford the
+		// namespaced stub because it runs in a separate process.
+		//
+		// PHP's own fallback resolves the unqualified call to the global, so the
+		// namespaced stub was never needed here.
 		Functions\when( '__' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\__' )->returnArg();
 
 		Functions\when( 'get_option' )->alias(
 			function ( $name, $default_value = false ) {

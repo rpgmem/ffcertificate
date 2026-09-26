@@ -20,7 +20,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.DirectDatabaseQuery -- The submission read targets the plugin's own ffc_submissions table, for which WordPress exposes no API, and a migration must see the live rows: a cached read would name a person the records no longer name.
 /**
  * Repair for accounts created without a name (#1480).
  *
@@ -243,6 +242,7 @@ class DisplayNameBackfillMigrationStrategy implements MigrationStrategyInterface
 	private function candidate_name( int $user_id ): string {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own tables, for which WordPress exposes no API; a migration must see the live rows, so a cached read would name a person the records no longer name.
 		$found = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT name FROM %i WHERE user_id = %d ORDER BY id DESC LIMIT 1',
@@ -269,6 +269,7 @@ class DisplayNameBackfillMigrationStrategy implements MigrationStrategyInterface
 
 		$table = $wpdb->prefix . 'ffc_submissions';
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own tables, for which WordPress exposes no API; a migration must see the live rows, so a cached read would name a person the records no longer name.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT data, data_encrypted FROM %i WHERE user_id = %d ORDER BY id DESC LIMIT 20',
@@ -350,6 +351,7 @@ class DisplayNameBackfillMigrationStrategy implements MigrationStrategyInterface
 	private function count_nameless( int $after ): int {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- `wp_users` and `wp_usermeta` are named per line rather than under a file-level disable, which this file deliberately does not carry: the only interpolation is `$wpdb->users` / `$wpdb->usermeta`, core properties, and every value travels as a placeholder. A migration card must reflect the live rows, never a cache.
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(*) FROM ' . $wpdb->users . ' u'
@@ -376,6 +378,7 @@ class DisplayNameBackfillMigrationStrategy implements MigrationStrategyInterface
 	private function next_nameless( int $after, int $limit ): array {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- `wp_users` and `wp_usermeta` are named per line rather than under a file-level disable, which this file deliberately does not carry: the only interpolation is `$wpdb->users` / `$wpdb->usermeta`, core properties, and every value travels as a placeholder. A migration card must reflect the live rows, never a cache.
 		$found = $wpdb->get_col(
 			$wpdb->prepare(
 				'SELECT u.ID FROM ' . $wpdb->users . ' u'
@@ -427,4 +430,3 @@ class DisplayNameBackfillMigrationStrategy implements MigrationStrategyInterface
 		update_option( self::STATE_OPTION, array( 'cursor' => $user_id ), false );
 	}
 }
-// phpcs:enable WordPress.DB.DirectDatabaseQuery
