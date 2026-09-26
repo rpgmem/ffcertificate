@@ -325,8 +325,41 @@ class IdentityQueue {
 	 * @return string
 	 */
 	private static function key_of( array $row ): string {
+		// THE SEPARATOR IS URL-SAFE, AND THAT IS NOT COSMETIC.
+		//
+		// This key travels in the query string as `ffc_at[<tier>]`, and
+		// `add_query_arg()` does NOT encode values -- `build_query()` calls
+		// `_http_build_query( …, false )`, so whatever is here reaches the URL
+		// literally. A raw `|` is invalid there per RFC 3986 (neither
+		// unreserved nor a sub-delim), and it is a command-injection
+		// signature to a WAF.
+		//
+		// Measured on the production host, which runs mod_security: every
+		// navigation link 403'd before reaching PHP, and so did the
+		// redirect after a correction -- which is why `Reload the list` was
+		// the only way to advance, although the stepper had been carrying
+		// the next key all along. Two controlled requests settled it: this
+		// key with dots loads, while `?ffc_teste=a|b` -- a parameter the
+		// plugin does not read -- 403s on its own.
+		//
+		// Percent-encoding is NOT the fix: mod_security applies
+		// `urlDecodeUni` before matching, so `%7C` and `|` are the same
+		// input to it. The character has to be absent, not escaped.
+		//
+		// `-` rather than `.`, although a dot was what the production probe
+		// used: the `isolated` tier carries an EMPTY identifier column, so a
+		// dot would assemble `isolated..hashZ`, and `..` is the path-traversal
+		// signature (CRS 930100) -- trading one refused character for another.
+		// A hyphen is equally unreserved, carries no meaning to any layer, and
+		// `--` is a signature of nothing. No component ever contains one, so
+		// the key also stays readable.
+		//
+		// `IdentityQueueKeyTest` asserts the INVARIANT -- unreserved
+		// characters only, and no `..` anywhere -- rather than this literal,
+		// so a future edit reaching for another separator still fails if it
+		// picks one a URL cannot carry.
 		return implode(
-			'|',
+			'-',
 			array(
 				(string) ( $row[ self::COLUMN_TIER ] ?? '' ),
 				(string) ( $row['identifier_column'] ?? '' ),

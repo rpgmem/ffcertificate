@@ -1124,7 +1124,14 @@ class IdentityResolutionPage {
 	 * @return void
 	 */
 	public function render_page(): void {
-		if ( ! current_user_can( self::CAPABILITY ) ) {
+		// `current_user_can_admin_or`, like the other eleven gates in this
+		// file -- this one was the exception, and the exception locked people
+		// out. FFC admin caps are no longer granted to the native
+		// `administrator` role (see `Loader::ensure_admin_capabilities()`);
+		// they arrive through `ffc_administrator`. So an administrator who
+		// does not carry that role failed this check with no fallback, on the
+		// one screen whose every other gate would have let them in.
+		if ( ! Capabilities::current_user_can_admin_or( self::CAPABILITY ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ) );
 		}
 

@@ -235,6 +235,47 @@ class IdentityResolutionPageTest extends TestCase {
 	}
 
 	/**
+	 * An administrator reaches the screen without holding the granular cap.
+	 *
+	 * This is the half the refusal test above cannot see: it asserts that a
+	 * visitor with neither the cap nor `manage_options` is turned away, which
+	 * was true before this gate was fixed and is true after, so it passes
+	 * either way and proves nothing about the change.
+	 *
+	 * What changed is that `render_page()` was the ONE gate of twelve in that
+	 * file using bare `current_user_can()`. FFC admin caps are no longer
+	 * granted to the native `administrator` role -- they arrive through
+	 * `ffc_administrator` (see `Loader::ensure_admin_capabilities()`) -- so an
+	 * administrator without that role hit a `wp_die` here with no fallback,
+	 * on the one screen whose every other gate would have admitted them.
+	 *
+	 * The assertion is that the gate is PASSED, not that the page renders:
+	 * `get_transient` is the first thing after it, so a sentinel thrown there
+	 * says the gate let the request through. Reverting the fix makes this
+	 * `wp_die` instead, which is how it was verified.
+	 */
+	public function test_an_administrator_without_the_granular_capability_reaches_the_screen(): void {
+		Functions\when( 'current_user_can' )->alias(
+			static function ( $cap ) {
+				return 'manage_options' === $cap;
+			}
+		);
+
+		Functions\expect( 'wp_die' )->never();
+
+		Functions\when( 'get_transient' )->alias(
+			static function () {
+				throw new \RuntimeException( 'past the gate' );
+			}
+		);
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'past the gate' );
+
+		( new IdentityResolutionPage() )->render_page();
+	}
+
+	/**
 	 * The screen never touches the database itself.
 	 *
 	 * It DOES write now — that is what the repair is — but every write goes
