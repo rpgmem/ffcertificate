@@ -11,7 +11,7 @@
  * @since 6.28.2
  *
  * @var array<int, array<string, mixed>> $ffc_identity_findings Findings from the check-digit scan.
- * @var array{type: string, text: string}|false                 $ffc_identity_outcome  Outcome of the last write, if any.
+ * @var array{type: string, text: string, code?: string, subject?: string}|false $ffc_identity_outcome Outcome of the last write, if any; a refusal carries its code and the finding it named.
  * @var array{stores: int, examined: int, unreadable: int}       $ffc_identity_coverage What the scan actually read.
  * @var array<int, string>                                       $ffc_identity_capped   Checks that returned a full page.
  * @var int                                                      $ffc_identity_taken_at When the list was taken (unix).
@@ -381,6 +381,46 @@ $ffc_identity_named = static function ( $user_id ) {
  * @param string $tier The tier.
  * @return string
  */
+/**
+ * The acknowledgement a correction needs once its value is another account's.
+ *
+ * RENDERED ONLY AFTER THE SERVER HAS EXPLAINED WHY (#1478).
+ *
+ * A correction whose confirmed value already belongs to another account is not
+ * a merge -- no record moves and no account is absorbed -- so it is allowed,
+ * once the operator states they mean it. What it cannot be is reflexive: the
+ * write is not undoable by another use of the verb, because putting the old
+ * value back means confirming a number that fails its own check digit, which
+ * the service refuses first. So the box appears on the one form the refusal
+ * came from, beneath the sentence that said what will happen, and nowhere else.
+ *
+ * That also keeps the three forms honest with one another: two of them have no
+ * preflight, so a box revealed by a typed value could only ever have appeared
+ * on the third.
+ *
+ * @param string $subject The finding this form acts on.
+ * @return void
+ */
+$ffc_identity_ack = static function ( $subject ) use ( $ffc_identity_outcome ) {
+	if ( ! is_array( $ffc_identity_outcome ) ) {
+		return;
+	}
+
+	if ( 'ffc_identity_repair_unacknowledged' !== (string) ( $ffc_identity_outcome['code'] ?? '' ) ) {
+		return;
+	}
+
+	if ( (string) ( $ffc_identity_outcome['subject'] ?? '' ) !== (string) $subject ) {
+		return;
+	}
+	?>
+	<label class="ffc-identity-ack">
+		<input type="checkbox" name="ffc_acknowledged" value="1" required>
+		<?php esc_html_e( 'I have confirmed this number with HR and mean to write it even though another account already carries it. Both accounts will then hold it, and the merge is decided separately.', 'ffcertificate' ); ?>
+	</label>
+	<?php
+};
+
 $ffc_identity_tier_label = static function ( $tier ) {
 	switch ( $tier ) {
 		case IdentityQueue::TIER_MECHANICAL:
@@ -944,6 +984,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 						<button type="submit" class="button button-secondary">
 							<?php esc_html_e( 'Correct theirs', 'ffcertificate' ); ?>
 						</button>
+						<?php $ffc_identity_ack( (string) ( $ffc_identity_pair['subject'] ?? '' ) ); ?>
 					</form>
 				<?php endforeach; ?>
 			</div>
@@ -1215,6 +1256,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							<button type="submit" class="button button-primary">
 								<?php esc_html_e( 'Consolidate', 'ffcertificate' ); ?>
 							</button>
+							<?php $ffc_identity_ack( $ffc_identity_wrong ); ?>
 						</form>
 						<?php
 						// THE SHARED MAILBOX GETS THE SAME TWO VERBS, AND NOT THE THIRD.
@@ -1819,14 +1861,30 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							<button type="submit" class="button button-primary">
 								<?php esc_html_e( 'Correct', 'ffcertificate' ); ?>
 							</button>
+							<?php $ffc_identity_ack( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>
 							<div class="ffc-identity-verdict" id="ffc-check-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
 								aria-live="polite"
 								<?php /* translators: %s: how many records the correction would rewrite. */ ?>
 								data-allowed="<?php esc_attr_e( 'This correction rewrites %s records.', 'ffcertificate' ); ?>"
 								<?php /* translators: %s: how many records the correction would rewrite. */ ?>
 								data-consolidates="<?php esc_attr_e( 'This correction rewrites %s records and consolidates them with this account\'s other record.', 'ffcertificate' ); ?>"
+								<?php
+								// TWO SENTENCES FOR WHAT WAS ONE (#1478), because
+								// the two answers stopped being the same one.
+								//
+								// `data-shared` is the ALLOWED verdict that
+								// produces a shared number: it says what will
+								// happen and where the merge is then decided.
+								// `data-holder` is the refusal that is left --
+								// rows nobody owns, or more than one other
+								// account -- and it no longer claims a
+								// correction into another account's value is a
+								// merge, because it is not one.
+								?>
+								<?php /* translators: 1: how many records the correction would rewrite. 2: the account's display name. 3: the account number. */ ?>
+								data-shared="<?php esc_attr_e( 'This correction rewrites %1$s records, and the number you typed already belongs to %2$s (#%3$s). It is not a merge — no record moves — but afterwards both accounts hold the number, and it cannot be undone here. Confirm below, then decide the merge under "Two accounts, one number".', 'ffcertificate' ); ?>"
 								<?php /* translators: 1: the account's display name. 2: the account number. */ ?>
-								data-holder="<?php esc_attr_e( 'That number belongs to %1$s (#%2$s). If that is the same person, this is a merge rather than a correction — open the account to check who they are.', 'ffcertificate' ); ?>"
+								data-holder="<?php esc_attr_e( 'That number is already on records this cannot attribute to one other account — open %1$s (#%2$s) to see who is involved. Correcting into it would leave a claim on the number that no finding here would report.', 'ffcertificate' ); ?>"
 								data-profile="<?php echo esc_attr( admin_url( 'user-edit.php?user_id=' ) ); ?>"
 								data-open="<?php esc_attr_e( 'Open that account', 'ffcertificate' ); ?>"
 								data-empty="<?php esc_attr_e( 'Enter the number HR confirmed first.', 'ffcertificate' ); ?>"

@@ -314,17 +314,88 @@ class IdentityRepairTest extends TestCase {
 	}
 
 	/**
-	 * A corrected value that already exists is a merge, and is refused.
+	 * A CORRECTED VALUE ANOTHER ACCOUNT HOLDS IS NOT REFUSED OUTRIGHT ANY MORE
+	 * -- IT IS UNACKNOWLEDGED (#1478).
+	 *
+	 * It used to refuse as `ffc_identity_repair_collision`, saying the write
+	 * "would merge two identities rather than fix a typo". It would not: no
+	 * record moves and no account is absorbed. What it produces is two accounts
+	 * carrying one number, which is the shared-identifier finding where the
+	 * merge is then a separate decision -- so the refusal blocked the typo fix
+	 * because of its own correct consequence.
+	 *
+	 * The default is still a refusal, which is the half worth asserting here:
+	 * lifting the block must not have made the write reachable by accident.
 	 */
-	public function test_it_refuses_a_collision(): void {
+	public function test_a_value_another_account_holds_needs_an_acknowledgement(): void {
 		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 7 ) ) );
 		$this->given( 'ffc_submissions', $this->hash_of( self::GOOD_RF ), array( array( 'id' => 5, 'user_id' => 8 ) ) );
 
 		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'ffc_identity_repair_collision', $result->get_error_code() );
+		$this->assertSame( 'ffc_identity_repair_unacknowledged', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates, 'Nothing may be written before it is acknowledged.' );
+		$this->assertStringContainsString( '8', $result->get_error_message(), 'The refusal names who holds it.' );
+		$this->assertSame( 8, ( (array) $result->get_error_data() )['account'] ?? 0 );
+	}
+
+	/**
+	 * THE WRITE ONCE IT IS ACKNOWLEDGED, and it is the point of the change.
+	 *
+	 * The rows are rewritten, nothing else moves, and the result says which
+	 * account now shares the number -- which is the operator's next step and
+	 * the sentence the screen needs.
+	 */
+	public function test_it_corrects_into_another_account_s_value_once_acknowledged(): void {
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 7 ) ) );
+		$this->given( 'ffc_submissions', $this->hash_of( self::GOOD_RF ), array( array( 'id' => 5, 'user_id' => 8 ) ) );
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF, 0, 'rf', 0, true );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 8, $result['shared_with'] );
+		$this->assertSame( 7, $result['account'], 'The corrected rows stay with their own account.' );
+		$this->assertContains( 'COMMIT', $this->control );
+		$this->assertNotSame( array(), $this->updates, 'The correction has to actually write.' );
+	}
+
+	/**
+	 * AN ACKNOWLEDGEMENT IS NOT A WAY PAST THE OTHER REFUSALS.
+	 *
+	 * The flag only ever answers "the value is somebody else's". A finding that
+	 * names two accounts is a different refusal -- one corrected value cannot
+	 * serve two people -- and must stay refused however emphatically the
+	 * operator confirms.
+	 */
+	public function test_the_acknowledgement_does_not_reach_the_other_refusals(): void {
+		$this->given(
+			'ffc_submissions',
+			'subject',
+			array(
+				array( 'id' => 1, 'user_id' => 7 ),
+				array( 'id' => 2, 'user_id' => 9 ),
+			)
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF, 0, 'rf', 0, true );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_ambiguous', $result->get_error_code() );
 		$this->assertSame( array(), $this->updates );
+	}
+
+	/**
+	 * AN ORDINARY CORRECTION NEEDS NO ACKNOWLEDGEMENT, and this is the test
+	 * that stops the gate from spreading to every repair.
+	 */
+	public function test_a_correction_into_an_unused_value_needs_no_acknowledgement(): void {
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 7 ) ) );
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 0, $result['shared_with'] );
 	}
 
 	/**
@@ -439,11 +510,23 @@ class IdentityRepairTest extends TestCase {
 	}
 
 	/**
-	 * The refusal the scoping must NOT weaken: the value belongs to somebody
-	 * else, so writing it would put one person's identifier on another's
-	 * record -- undetectably, because the result is well-formed.
+	 * THE SCOPING MUST NOT WEAKEN THE GATE EITHER, and #1478 changed which
+	 * gate that is.
+	 *
+	 * This docblock used to argue the refusal was necessary because writing the
+	 * value "would put one person's identifier on another's record --
+	 * undetectably, because the result is well-formed". The first half is the
+	 * legitimate case, not the harm: the typo row usually belongs to the same
+	 * person as the other account, which is why the queue paired them. The
+	 * second half is wrong -- the result IS detectable, as the two accounts then
+	 * appear under the shared-identifier finding.
+	 *
+	 * What the refusal never caught is the actual harm: confirming a valid
+	 * number belonging to somebody with no account here passed then and passes
+	 * now, so it was never the guard against mistyping it read as. The
+	 * acknowledgement is, and a scoped repair must still reach it.
 	 */
-	public function test_it_still_refuses_when_the_value_belongs_to_another_account(): void {
+	public function test_a_scoped_repair_still_needs_the_acknowledgement(): void {
 		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
 		$this->given(
 			'ffc_submissions',
@@ -454,7 +537,7 @@ class IdentityRepairTest extends TestCase {
 		$result = $this->repair()->repair( 'subject', self::GOOD_RF );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'ffc_identity_repair_collision', $result->get_error_code() );
+		$this->assertSame( 'ffc_identity_repair_unacknowledged', $result->get_error_code() );
 		$this->assertSame( array(), $this->updates );
 	}
 
@@ -517,6 +600,89 @@ class IdentityRepairTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'ffc_identity_repair_unique_store', $result->get_error_code() );
 		$this->assertSame( array(), $this->updates, 'Nothing may be written before the store refuses.' );
+	}
+
+	/**
+	 * THE UNIQUE STORE GUARDS THE CROSS-ACCOUNT CASE TOO (#1478).
+	 *
+	 * `ffc_recruitment_candidate` holds each RF once, and that is a property of
+	 * the TABLE rather than of whose rows they are -- so two candidacies on two
+	 * accounts collide exactly as two on one do. Before #1478 this path could
+	 * not be reached, because the cross-account collision returned first; the
+	 * guard was already in the right place and only the early return made it
+	 * look consolidation-only.
+	 *
+	 * Without it the write reaches the database and dies as a duplicate-key
+	 * error, which says nothing an operator can act on. Acknowledged, because
+	 * the acknowledgement must not be what stands between them and that.
+	 */
+	public function test_the_unique_store_refuses_across_accounts_as_well(): void {
+		$this->given( 'ffc_recruitment_candidate', 'subject', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given(
+			'ffc_recruitment_candidate',
+			$this->hash_of( self::GOOD_RF ),
+			array( array( 'id' => 5, 'user_id' => 513 ) )
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF, 0, 'rf', 0, true );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_unique_store', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates, 'The database must never be handed a duplicate key.' );
+	}
+
+	/**
+	 * THE PRODUCTION SHAPE, which is not the two-account one it looks like.
+	 *
+	 * On the reported pair the correct value sits on the subject's OWN other
+	 * row AND on a second login, so the colliding rows name two accounts, one
+	 * of them the subject's. That is neither the same-account consolidation nor
+	 * a plain other-account collision, and a rule counting colliding accounts
+	 * rather than subtracting the subject's own would refuse it -- which is the
+	 * mistake the first draft of this change made.
+	 */
+	public function test_the_subject_s_own_account_among_the_holders_is_subtracted(): void {
+		$right = $this->hash_of( self::GOOD_RF );
+
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 6499 ) ) );
+		$this->given(
+			'ffc_submissions',
+			$right,
+			array(
+				array( 'id' => 2, 'user_id' => 6499 ),
+				array( 'id' => 3, 'user_id' => 5666 ),
+			)
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF, 0, 'rf', 0, true );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 5666, $result['shared_with'], 'The other account, never the subject\'s own.' );
+	}
+
+	/**
+	 * MORE THAN ONE OTHER ACCOUNT STAYS REFUSED.
+	 *
+	 * Writing into a number two other logins already claim makes a third
+	 * claimant, which is not a consequence anybody asked for and which no
+	 * single merge decision resolves.
+	 */
+	public function test_two_other_accounts_holding_the_value_stay_refused(): void {
+		$this->given( 'ffc_submissions', 'subject', array( array( 'id' => 1, 'user_id' => 7 ) ) );
+		$this->given(
+			'ffc_submissions',
+			$this->hash_of( self::GOOD_RF ),
+			array(
+				array( 'id' => 5, 'user_id' => 8 ),
+				array( 'id' => 6, 'user_id' => 9 ),
+			)
+		);
+
+		$result = $this->repair()->repair( 'subject', self::GOOD_RF, 0, 'rf', 0, true );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_repair_collision', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates );
 	}
 
 	/**
@@ -606,13 +772,12 @@ class IdentityRepairTest extends TestCase {
 	}
 
 	/**
-	 * EVERY REFUSAL OF THE REPAIR STILL APPLIES.
+	 * EVERY GATE OF THE REPAIR STILL APPLIES TO THE CONSOLIDATION.
 	 *
-	 * A consolidation is a repair whose value came from the account rather
-	 * than from HR, so it must not become a way around the rule that a value
-	 * belonging to somebody else is a merge.
+	 * A consolidation is a repair whose value came from the account rather than
+	 * from HR, so it must not become a way around the acknowledgement.
 	 */
-	public function test_a_consolidation_does_not_bypass_the_other_account_refusal(): void {
+	public function test_a_consolidation_does_not_bypass_the_acknowledgement(): void {
 		$right = $this->hash_of( self::GOOD_RF );
 
 		$this->given( 'ffc_submissions', 'wrong', array( array( 'id' => 1, 'user_id' => 398 ) ) );
@@ -622,8 +787,30 @@ class IdentityRepairTest extends TestCase {
 		$result = $this->repair()->consolidate( 'wrong', $right );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'ffc_identity_repair_collision', $result->get_error_code() );
+		$this->assertSame( 'ffc_identity_repair_unacknowledged', $result->get_error_code() );
 		$this->assertSame( array(), $this->updates );
+	}
+
+	/**
+	 * AND IT MUST BE ABLE TO CARRY ONE, which is the production case (#1478).
+	 *
+	 * The account's own sound RF is also a second login's, so consolidating its
+	 * typo into it shares the number. Swallowing the flag in `consolidate()`
+	 * would have left exactly that account unresolvable while the manual repair
+	 * beside it went through -- the shape the reported deadlock already had.
+	 */
+	public function test_a_consolidation_carries_the_acknowledgement_through(): void {
+		$right = $this->hash_of( self::GOOD_RF );
+
+		$this->given( 'ffc_submissions', 'wrong', array( array( 'id' => 1, 'user_id' => 398 ) ) );
+		$this->given( 'ffc_submissions', $right, array( array( 'id' => 5, 'user_id' => 513 ) ) );
+		$this->stores_value( $right, 'cipherRight', self::GOOD_RF );
+
+		$result = $this->repair()->consolidate( 'wrong', $right, 0, 'rf', true );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 513, $result['shared_with'] );
+		$this->assertContains( 'COMMIT', $this->control );
 	}
 
 	/**

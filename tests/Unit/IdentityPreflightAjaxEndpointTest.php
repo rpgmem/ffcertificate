@@ -335,13 +335,16 @@ class IdentityPreflightAjaxEndpointTest extends TestCase {
 	}
 
 	/**
-	 * THE REFUSAL THAT IS NOT A FAILURE.
+	 * AN ALLOWED VERDICT THAT STILL HAS TO NAME SOMEBODY (#1478).
 	 *
-	 * The confirmed value belongs to another account. The preflight names
-	 * them, which the refusal's sentence cannot — an operator reading only
-	 * that sentence has to go and find out whom, and the method already knows.
+	 * The confirmed value belongs to another account. That was the refusal and
+	 * is now a consequence the correction may produce, so `allowed` is true --
+	 * and the holder must reach the screen anyway. A verdict that answered
+	 * `allowed` and said nothing about the second account would be true,
+	 * reassuring, and silent about the only thing an operator needs before
+	 * confirming a write no use of this verb can undo.
 	 */
-	public function test_a_collision_names_the_account_that_holds_the_value(): void {
+	public function test_an_allowed_correction_still_names_the_account_that_holds_the_value(): void {
 		$this->given(
 			'ffc_submissions',
 			'wrong',
@@ -355,10 +358,30 @@ class IdentityPreflightAjaxEndpointTest extends TestCase {
 
 		$shown = $this->preflight( 'wrong', self::GOOD_RF );
 
-		$this->assertFalse( (bool) $shown['allowed'] );
-		$this->assertSame( 'ffc_identity_repair_collision', $shown['code'] );
+		$this->assertTrue( (bool) $shown['allowed'] );
+		$this->assertSame( '', $shown['code'] );
 		$this->assertSame( 513, $shown['holder']['id'] );
 		$this->assertSame( 'Account 513', $shown['holder']['name'] );
+	}
+
+	/**
+	 * AN ORDINARY CORRECTION CARRIES NO HOLDER AT ALL.
+	 *
+	 * The counterpart the test above needs: without it, a payload that named
+	 * somebody on every verdict would pass both, and the screen would grow a
+	 * warning on the common case.
+	 */
+	public function test_a_correction_into_an_unused_value_names_nobody(): void {
+		$this->given(
+			'ffc_submissions',
+			'wrong',
+			array( self::row( 1, 398, 'cpfA', 'wrong' ) )
+		);
+
+		$shown = $this->preflight( 'wrong', self::GOOD_RF );
+
+		$this->assertTrue( (bool) $shown['allowed'] );
+		$this->assertNull( $shown['holder'] );
 	}
 
 	/**
