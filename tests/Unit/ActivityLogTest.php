@@ -742,8 +742,86 @@ class ActivityLogTest extends TestCase {
 	}
 
 	// ==================================================================
-	// relax_legacy_not_null(), through create_table() (#1458)
+	// The schema housekeeping create_table() runs (#1458)
 	// ==================================================================
+
+	/**
+	 * A `$wpdb` that answers per COLUMN rather than per call.
+	 *
+	 * Both housekeeping methods call `get_row( 'SHOW COLUMNS …' )`, so a double
+	 * returning one canned row for every call cannot express "this column is
+	 * absent and that one is NOT NULL" -- and a test built on it asserts
+	 * whatever the last `andReturn()` happened to be. `prepare()` encodes the
+	 * column into the string it hands back, and `get_row()` dispatches on it.
+	 *
+	 * @param array<string, array<string, string>|null> $columns Column => its SHOW COLUMNS row, or null for absent.
+	 * @param array<string, int>                        $in_use  Column => how many rows carry a value.
+	 * @param array<int, string>                        $ran     Filled with every statement `query()` received.
+	 * @return void
+	 */
+	private function schemaAnswering( array $columns, array $in_use, array &$ran ): void {
+		$this->wpdb->shouldReceive('get_charset_collate')->andReturn('');
+		$this->wpdb->shouldReceive('prepare')
+			->with('SHOW TABLES LIKE %s', 'wp_ffc_activity_log')
+			->andReturn('SHOW TABLES');
+		$this->wpdb->shouldReceive('get_var')
+			->with('SHOW TABLES')
+			->andReturn('wp_ffc_activity_log');
+		Functions\when('dbDelta')->justReturn([]);
+
+		$this->wpdb->shouldReceive('prepare')
+			->with('SHOW COLUMNS FROM %i LIKE %s', 'wp_ffc_activity_log', \Mockery::any())
+			->andReturnUsing( static fn( $sql, $table, $column ): string => 'SHOW COLUMNS:' . $column );
+		// BY REFERENCE, SO A DROPPED COLUMN STOPS BEING REPORTED.
+		//
+		// That is what the server does, and it is what makes the ordering
+		// claim testable rather than assumed: `create_table()` drops before it
+		// relaxes precisely so the relax finds nothing left to relax. A double
+		// that kept answering for a column it had just dropped would hide
+		// exactly that.
+		$this->wpdb->shouldReceive('get_row')
+			->andReturnUsing(
+				static function ( $sql ) use ( &$columns ) {
+					$column = (string) substr( (string) $sql, strlen( 'SHOW COLUMNS:' ) );
+
+					return $columns[ $column ] ?? null;
+				}
+			);
+
+		$this->wpdb->shouldReceive('prepare')
+			->with(\Mockery::pattern('/^SELECT COUNT/'), 'wp_ffc_activity_log', \Mockery::any(), \Mockery::any(), '')
+			->andReturnUsing( static fn( $sql, $table, $column ): string => 'COUNT:' . $column );
+		$this->wpdb->shouldReceive('get_var')
+			->andReturnUsing(
+				static function ( $sql ) use ( $in_use ) {
+					return $in_use[ (string) substr( (string) $sql, strlen( 'COUNT:' ) ) ] ?? 0;
+				}
+			);
+
+		// The table placeholder is filled first, so only the column's `%i` is
+		// left for the column to take -- `str_replace` over both would put the
+		// column name where the table belongs and the statement would read as
+		// nonsense that still passed.
+		$this->wpdb->shouldReceive('prepare')
+			->with(\Mockery::pattern('/^ALTER TABLE/'), 'wp_ffc_activity_log', \Mockery::any())
+			->andReturnUsing(
+				static function ( $sql, $table, $column ): string {
+					return str_replace( '%i', (string) $column, (string) preg_replace( '/%i/', (string) $table, (string) $sql, 1 ) );
+				}
+			);
+		$this->wpdb->shouldReceive('query')
+			->andReturnUsing(
+				static function ( $sql ) use ( &$ran, &$columns ): int {
+					$ran[] = (string) $sql;
+
+					if ( 1 === preg_match( '/DROP COLUMN (\\w+)$/', (string) $sql, $m ) ) {
+						unset( $columns[ $m[1] ] );
+					}
+
+					return 1;
+				}
+			);
+	}
 
 	/**
 	 * A column the server reports as NOT NULL is relaxed, keeping its type.
@@ -752,104 +830,140 @@ class ActivityLogTest extends TestCase {
 	 * NULL` with no default, declared by no statement in this plugin, so
 	 * `dbDelta` can neither drop it nor reach it. Under a strict `sql_mode`
 	 * every activity-log insert fails on it.
+	 *
+	 * `action_type` is absent here so the DROP leaves it alone and this test
+	 * stays about the relax; `submission_id` is never a drop candidate.
 	 */
 	public function test_a_not_null_legacy_column_is_relaxed_keeping_its_stored_type(): void {
-		$this->wpdb->shouldReceive('get_charset_collate')->andReturn('');
-		$this->wpdb->shouldReceive('prepare')
-			->with('SHOW TABLES LIKE %s', 'wp_ffc_activity_log')
-			->andReturn('SHOW TABLES');
-		$this->wpdb->shouldReceive('get_var')->andReturn('wp_ffc_activity_log');
-		Functions\when('dbDelta')->justReturn([]);
-
-		$this->wpdb->shouldReceive('prepare')
-			->with('SHOW COLUMNS FROM %i LIKE %s', 'wp_ffc_activity_log', \Mockery::any())
-			->andReturn('SHOW COLUMNS');
-		$this->wpdb->shouldReceive('get_row')
-			->andReturn(
-				array( 'Field' => 'action_type', 'Type' => 'varchar(50)', 'Null' => 'NO' ),
-				array( 'Field' => 'submission_id', 'Type' => 'bigint(20) unsigned', 'Null' => 'NO' )
-			);
-
-		$altered = array();
-
-		$this->wpdb->shouldReceive('prepare')
-			->with(\Mockery::pattern('/^ALTER TABLE/'), 'wp_ffc_activity_log', \Mockery::any())
-			->andReturnUsing(
-				static function ( $sql, $table, $column ) use ( &$altered ) {
-					$altered[ (string) $column ] = (string) $sql;
-
-					return 'ALTER';
-				}
-			);
-		$this->wpdb->shouldReceive('query')->andReturn(1);
+		$ran = array();
+		$this->schemaAnswering(
+			array( 'submission_id' => array( 'Field' => 'submission_id', 'Type' => 'bigint(20) unsigned', 'Null' => 'NO' ) ),
+			array(),
+			$ran
+		);
 
 		ActivityLog::create_table();
-
-		$this->assertSame(
-			array( 'action_type', 'submission_id' ),
-			array_keys( $altered ),
-			'Both legacy columns the server reports as NOT NULL must be relaxed.'
-		);
 
 		// THE STORED TYPE IS CARRIED THROUGH, not re-declared from this file.
 		// A `MODIFY` rewrites the whole definition, so composing it from a
 		// type this code guessed would silently change the column's width.
-		$this->assertStringContainsString( 'varchar(50) NULL DEFAULT NULL', $altered['action_type'] );
-		$this->assertStringContainsString( 'bigint(20) unsigned NULL DEFAULT NULL', $altered['submission_id'] );
+		$this->assertSame(
+			array( 'ALTER TABLE wp_ffc_activity_log MODIFY COLUMN submission_id bigint(20) unsigned NULL DEFAULT NULL' ),
+			$ran
+		);
 	}
 
 	/**
 	 * A column that already accepts NULL is left alone.
-	 *
-	 * The method runs on every version bump and must cost nothing on an
-	 * install with nothing to fix -- which is every fresh one, where neither
-	 * column has the legacy shape at all.
 	 */
 	public function test_a_column_that_already_accepts_null_is_not_altered(): void {
-		$this->wpdb->shouldReceive('get_charset_collate')->andReturn('');
-		$this->wpdb->shouldReceive('prepare')
-			->with('SHOW TABLES LIKE %s', 'wp_ffc_activity_log')
-			->andReturn('SHOW TABLES');
-		$this->wpdb->shouldReceive('get_var')->andReturn('wp_ffc_activity_log');
-		Functions\when('dbDelta')->justReturn([]);
-
-		$this->wpdb->shouldReceive('prepare')
-			->with('SHOW COLUMNS FROM %i LIKE %s', 'wp_ffc_activity_log', \Mockery::any())
-			->andReturn('SHOW COLUMNS');
-		$this->wpdb->shouldReceive('get_row')
-			->andReturn( array( 'Field' => 'submission_id', 'Type' => 'bigint(20) unsigned', 'Null' => 'YES' ) );
-
-		$this->wpdb->shouldNotReceive('query');
+		$ran = array();
+		$this->schemaAnswering(
+			array( 'submission_id' => array( 'Field' => 'submission_id', 'Type' => 'bigint(20) unsigned', 'Null' => 'YES' ) ),
+			array(),
+			$ran
+		);
 
 		ActivityLog::create_table();
+
+		$this->assertSame( array(), $ran );
 	}
 
 	/**
-	 * A type the pattern does not recognise is left exactly as it is.
+	 * A type the pattern does not recognise is never interpolated.
 	 *
 	 * The type cannot be a placeholder -- it is not a value, and `%i` quotes
 	 * identifiers rather than type expressions -- so it is interpolated, and
 	 * the only safe way to interpolate is to refuse anything that is not the
-	 * shape a type has. The strict-mode hazard is worth fixing, and not at the
-	 * price of composing SQL out of a string this code did not check.
+	 * shape a type has.
 	 */
 	public function test_an_unrecognised_column_type_is_never_interpolated(): void {
-		$this->wpdb->shouldReceive('get_charset_collate')->andReturn('');
-		$this->wpdb->shouldReceive('prepare')
-			->with('SHOW TABLES LIKE %s', 'wp_ffc_activity_log')
-			->andReturn('SHOW TABLES');
-		$this->wpdb->shouldReceive('get_var')->andReturn('wp_ffc_activity_log');
-		Functions\when('dbDelta')->justReturn([]);
-
-		$this->wpdb->shouldReceive('prepare')
-			->with('SHOW COLUMNS FROM %i LIKE %s', 'wp_ffc_activity_log', \Mockery::any())
-			->andReturn('SHOW COLUMNS');
-		$this->wpdb->shouldReceive('get_row')
-			->andReturn( array( 'Field' => 'action_type', 'Type' => "varchar(50) DEFAULT 'x'; DROP TABLE wp_users", 'Null' => 'NO' ) );
-
-		$this->wpdb->shouldNotReceive('query');
+		$ran = array();
+		$this->schemaAnswering(
+			array( 'submission_id' => array( 'Field' => 'submission_id', 'Type' => "bigint(20); DROP TABLE wp_users", 'Null' => 'NO' ) ),
+			array(),
+			$ran
+		);
 
 		ActivityLog::create_table();
+
+		$this->assertSame( array(), $ran );
+	}
+
+	/**
+	 * A dead column that is provably empty is dropped.
+	 *
+	 * Measured before it was written: no consumer reads the three anywhere in
+	 * the tree, and production holds 14,062 rows with not one carrying a value
+	 * in any of them.
+	 */
+	public function test_a_dead_column_that_is_empty_is_dropped(): void {
+		$ran = array();
+		$this->schemaAnswering(
+			array(
+				'action_type'    => array( 'Field' => 'action_type', 'Type' => 'varchar(50)', 'Null' => 'NO' ),
+				'action_details' => array( 'Field' => 'action_details', 'Type' => 'longtext', 'Null' => 'YES' ),
+				'user_agent'     => array( 'Field' => 'user_agent', 'Type' => 'varchar(255)', 'Null' => 'YES' ),
+			),
+			array( 'action_type' => 0, 'action_details' => 0, 'user_agent' => 0 ),
+			$ran
+		);
+
+		ActivityLog::create_table();
+
+		$this->assertSame(
+			array(
+				'ALTER TABLE wp_ffc_activity_log DROP COLUMN action_type',
+				'ALTER TABLE wp_ffc_activity_log DROP COLUMN action_details',
+				'ALTER TABLE wp_ffc_activity_log DROP COLUMN user_agent',
+			),
+			$ran,
+			'All three dead columns are empty here, so all three go -- and the relax must not also fire on a column that just left.'
+		);
+	}
+
+	/**
+	 * ONE ROW CARRYING A VALUE CALLS THE DROP OFF FOR THAT COLUMN.
+	 *
+	 * The measurement authorising this is ONE install and the plugin runs on
+	 * others, so the evidence lives in the code rather than in the pull
+	 * request that carried it. An install whose `action_details` holds audit
+	 * history keeps it -- relaxed and inert, never destroyed, because an LGPD
+	 * trail cannot be restored.
+	 */
+	public function test_a_dead_column_that_holds_anything_is_kept(): void {
+		$ran = array();
+		$this->schemaAnswering(
+			array(
+				'action_type'    => array( 'Field' => 'action_type', 'Type' => 'varchar(50)', 'Null' => 'NO' ),
+				'action_details' => array( 'Field' => 'action_details', 'Type' => 'longtext', 'Null' => 'YES' ),
+			),
+			array( 'action_type' => 0, 'action_details' => 7 ),
+			$ran
+		);
+
+		ActivityLog::create_table();
+
+		$this->assertSame(
+			array( 'ALTER TABLE wp_ffc_activity_log DROP COLUMN action_type' ),
+			$ran,
+			'The column holding seven rows must survive, and the empty one beside it must still go.'
+		);
+	}
+
+	/**
+	 * A column that is not there is the ordinary case, not an error.
+	 *
+	 * No `CREATE` in this plugin declares any of the three, so a fresh install
+	 * has never had them -- and this housekeeping runs on every version bump.
+	 */
+	public function test_columns_that_are_absent_cost_nothing(): void {
+		$ran = array();
+		$this->schemaAnswering( array(), array(), $ran );
+
+		ActivityLog::create_table();
+
+		$this->assertSame( array(), $ran );
 	}
 
 	// ==================================================================
