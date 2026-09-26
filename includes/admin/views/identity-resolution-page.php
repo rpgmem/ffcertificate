@@ -1331,16 +1331,23 @@ $ffc_identity_tier_note = static function ( $tier ) {
 									// #1114 rule, relied on here rather than re-derived.
 									?>
 									<?php
-									// NO CLASS, DELIBERATELY. Not one `.ffc-identity-`
-									// rule exists in any stylesheet -- this screen is
-									// wp-admin's own styling plus the shared spacing
-									// utilities -- so naming a class here would mean the
-									// first such rule, a sheet to put it in and an enqueue
-									// to reach it, for a checkbox's margin. If it renders
-									// cramped, that is a measurement away from being a
-									// real change rather than a guess.
+									// A CLASS, BECAUSE THE SHEET IT BELONGS IN ALREADY EXISTS.
+									//
+									// #1461 shipped this label bare, on a comment claiming
+									// that not one `.ffc-identity-` rule existed anywhere.
+									// There are 152 of them, in `ffc-admin.css`, and they
+									// were there the whole time -- the search that said
+									// otherwise had failed rather than found nothing, and
+									// an error read as a clean result is the one mistake
+									// this screen's guards exist to make impossible.
+									//
+									// Bare, the label had no alignment and no measure: the
+									// checkbox sat on the first line and the sentence ran
+									// the full width of the verb column, crossing the
+									// button beneath it. Two lines of CSS fix it, next to
+									// the rules that already size this column.
 									?>
-									<label>
+									<label class="ffc-identity-ack">
 										<input type="checkbox" required name="ffc_acknowledged" value="1">
 										<?php esc_html_e( 'HR confirmed these records are this person’s, not the shared account’s.', 'ffcertificate' ); ?>
 									</label>
