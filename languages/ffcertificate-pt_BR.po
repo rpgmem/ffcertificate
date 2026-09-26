@@ -22187,12 +22187,6 @@ msgstr "Nada mais carrega esse valor — ele já foi reparado. Recarregue a fila
 msgid "This finding names %d accounts, so one corrected value cannot serve it: the same wrong number was typed by more than one person. Resolve them separately."
 msgstr "Este achado nomeia %d contas, então um único valor corrigido não serve: o mesmo número errado foi digitado por mais de uma pessoa. Resolva uma de cada vez."
 
-msgid "That value is already stored against another account, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision."
-msgstr "Esse valor já está armazenado em outra conta, então corrigir este mesclaria duas identidades em vez de consertar um erro de digitação. Mesclar é uma decisão separada."
-
-msgid "Both identifiers are recorded in %s, which holds each identifier once, so consolidating them there would leave two records claiming one. Decide what becomes of the second record first."
-msgstr "Os dois identificadores estão registrados em %s, que guarda cada identificador uma única vez, então consolidá-los ali deixaria dois registros reivindicando um só. Decida antes o que será do segundo registro."
-
 msgid "The store %s refused the write, so nothing was changed."
 msgstr "O store %s recusou a escrita, então nada foi alterado."
 
@@ -22554,9 +22548,6 @@ msgstr "Ou corrija o documento em uma delas"
 msgid "That account holds no record carrying this identifier, so there is nothing of theirs to correct. Reload the queue."
 msgstr "Aquela conta não tem nenhum registro que carregue este identificador, então não há nada dela para corrigir. Recarregue a fila."
 
-msgid "That number belongs to %1$s (#%2$s). If that is the same person, this is a merge rather than a correction — open the account to check who they are."
-msgstr "Aquele número pertence a %1$s (nº %2$s). Se for a mesma pessoa, isto é uma mesclagem e não uma correção — abra a conta para conferir de quem se trata."
-
 msgid "The check could not be completed."
 msgstr "Não foi possível concluir a verificação."
 
@@ -22852,3 +22843,21 @@ msgstr[1] "pelo menos %s achados"
 
 msgid "The numbers on this account share one address and are not variants of each other, so the address does not identify one person — a shared mailbox, or an account submitting on behalf of others. The decision is per number and it is made with HR: each one moves to the account it belongs to, or splits onto a new one."
 msgstr "Os números desta conta compartilham um endereço e não são variantes uns dos outros, então o endereço não identifica uma pessoa — é uma caixa postal compartilhada ou uma conta que envia em nome de outras pessoas. A decisão é por número e é tomada com o RH: cada um vai para a conta à qual pertence, ou é separado em uma conta nova."
+
+msgid "That value is already stored against records this cannot attribute to one other account — either they belong to nobody, or to more than one. Correcting into it would leave a claim on the number that no finding on this screen would ever report."
+msgstr "Esse valor já está armazenado em registros que isto não consegue atribuir a uma única outra conta — ou não pertencem a ninguém, ou pertencem a mais de uma. Corrigir para ele deixaria uma reivindicação sobre o número que nenhum achado desta tela reportaria."
+
+msgid "Both identifiers are recorded in %s, which holds each identifier once, so writing the corrected value there would leave two records claiming one. Decide what becomes of the second record first."
+msgstr "Os dois identificadores estão registrados em %s, que guarda cada identificador uma única vez, então gravar o valor corrigido lá deixaria dois registros reivindicando um. Decida antes o que acontece com o segundo registro."
+
+msgid "The value you confirmed already belongs to account %s. Correcting this one is not a merge and moves no records — but afterwards both accounts carry the number, and this correction cannot be undone here, because putting the old value back means confirming a number that fails its own check digit. Confirm that you mean to, and then decide the merge under \"Two accounts, one number\"."
+msgstr "O valor que você confirmou já pertence à conta %s. Corrigir esta não é uma mesclagem e não move registro nenhum — mas depois as duas contas passam a ter o número, e esta correção não pode ser desfeita aqui, porque gravar o valor antigo de volta significa confirmar um número que falha no próprio dígito verificador. Confirme que é essa a sua intenção e depois decida a mesclagem em \"Duas contas, um número\"."
+
+msgid "I have confirmed this number with HR and mean to write it even though another account already carries it. Both accounts will then hold it, and the merge is decided separately."
+msgstr "Confirmei este número com o RH e quero gravá-lo mesmo que outra conta já o tenha. As duas contas passarão a tê-lo, e a mesclagem é decidida separadamente."
+
+msgid "This correction rewrites %1$s records, and the number you typed already belongs to %2$s (#%3$s). It is not a merge — no record moves — but afterwards both accounts hold the number, and it cannot be undone here. Confirm below, then decide the merge under \"Two accounts, one number\"."
+msgstr "Esta correção reescreve %1$s registros, e o número que você digitou já pertence a %2$s (#%3$s). Não é uma mesclagem — nenhum registro se move — mas depois as duas contas passam a ter o número, e isto não pode ser desfeito aqui. Confirme abaixo e depois decida a mesclagem em \"Duas contas, um número\"."
+
+msgid "That number is already on records this cannot attribute to one other account — open %1$s (#%2$s) to see who is involved. Correcting into it would leave a claim on the number that no finding here would report."
+msgstr "Esse número já está em registros que isto não consegue atribuir a uma única outra conta — abra %1$s (#%2$s) para ver quem está envolvido. Corrigir para ele deixaria uma reivindicação sobre o número que nenhum achado daqui reportaria."

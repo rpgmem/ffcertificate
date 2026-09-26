@@ -122,6 +122,16 @@ class IdentityPreflightAjaxEndpoint {
 				// rather than renaming a number. Different blast radius, so
 				// the screen says which it is.
 				'consolidates' => $plan['consolidates'],
+				// WHO ELSE HOLDS IT, ON AN ALLOWED VERDICT TOO (#1478).
+				//
+				// This used to reach the screen only on a refusal, because a
+				// value belonging to another account WAS the refusal. It is now
+				// a consequence the correction is allowed to produce, so the
+				// preflight has to name it here or the verdict would read
+				// `allowed` and say nothing about the second account -- the one
+				// thing an operator must know before confirming a write that no
+				// use of this verb can undo.
+				'holder'       => self::holder( $plan['shared_with'] ),
 				'code'         => '',
 				'message'      => '',
 			)
@@ -156,25 +166,46 @@ class IdentityPreflightAjaxEndpoint {
 			return $out;
 		}
 
-		$data  = (array) $plan->get_error_data();
-		$owner = (int) ( $data['account'] ?? 0 );
+		$data   = (array) $plan->get_error_data();
+		$holder = self::holder( (int) ( $data['account'] ?? 0 ) );
 
 		// A colliding row that names nobody — an unpromoted candidacy — is
 		// still a refusal, and there is no account to offer. Saying "somebody
 		// holds it" and offering no next step is the honest answer there.
-		if ( $owner <= 0 ) {
+		if ( null === $holder ) {
 			return $out;
+		}
+
+		$out['holder'] = $holder;
+
+		return $out;
+	}
+
+	/**
+	 * Who an account id names, or null when it names nobody.
+	 *
+	 * ONE LOOKUP FOR BOTH VERDICTS, because there are now two (#1478): a
+	 * correction into another account's value is allowed and a correction into
+	 * rows nobody owns is refused, and both have to say who holds it in the
+	 * same shape. Two copies would be two answers to one question the first
+	 * time either was edited.
+	 *
+	 * @since 6.30.0
+	 * @param int $owner The account, or 0 for nobody.
+	 * @return array{id: int, name: string, email: string}|null
+	 */
+	private static function holder( int $owner ): ?array {
+		if ( $owner <= 0 ) {
+			return null;
 		}
 
 		$user = get_userdata( $owner );
 
-		$out['holder'] = array(
+		return array(
 			'id'    => $owner,
 			'name'  => $user instanceof WP_User ? (string) $user->display_name : '',
 			'email' => $user instanceof WP_User ? (string) $user->user_email : '',
 		);
-
-		return $out;
 	}
 
 	/**

@@ -111,7 +111,7 @@ class IdentityRepair {
 	 * calls this.
 	 *
 	 * It reads and hashes; it writes nothing. The hash of the confirmed value
-	 * is what the caller does not have and must not be told, so `collision`
+	 * is what the caller does not have and must not be told, so `shared_with`
 	 * carries the ACCOUNT that holds it and never the hash itself.
 	 *
 	 * @since 6.28.4
@@ -119,7 +119,7 @@ class IdentityRepair {
 	 * @param string $confirmed    The value HR confirmed.
 	 * @param string $field        `rf` or `cpf`; defaults to {@see self::FIELD}.
 	 * @param int    $only_account Restrict to one account's rows; 0 means every row carrying the hash.
-	 * @return array{subject: string, found: array{rows: array<string, array<int, int>>, accounts: array<int, int>}, account: int, consolidates: bool, pair: array<string, string|null>, collision: int}|WP_Error
+	 * @return array{subject: string, found: array{rows: array<string, array<int, int>>, accounts: array<int, int>}, account: int, consolidates: bool, pair: array<string, string|null>, shared_with: int}|WP_Error
 	 */
 	public function plan( string $subject_hash, string $confirmed, string $field = self::FIELD, int $only_account = 0 ): array|WP_Error {
 		global $wpdb;
@@ -212,6 +212,7 @@ class IdentityRepair {
 		$account      = $found['accounts'][0] ?? 0;
 		$collides     = $this->rows_for( $new_hash, $hash_column );
 		$consolidates = false;
+		$shared_with  = 0;
 
 		if ( array() !== $collides['rows'] ) {
 			// A COLLISION ON THE SAME ACCOUNT IS THE TYPO ITSELF.
@@ -230,39 +231,84 @@ class IdentityRepair {
 			// else, still refuses.
 			$consolidates = $account > 0 && array( $account ) === $collides['accounts'];
 
+			// Whoever holds the confirmed value that is not this account.
+			$others = array_values( array_diff( $collides['accounts'], array( $account ) ) );
+
 			if ( ! $consolidates ) {
-				// THE ACCOUNT TRAVELS WITH THE REFUSAL, AND THE HASH DOES NOT.
+				// ONE OTHER ACCOUNT IS NOT A MERGE -- IT IS THE CORRECTION'S
+				// CONSEQUENCE (#1478).
 				//
-				// A screen that only receives the sentence can say the value
-				// belongs to somebody, never to WHOM -- so the operator's next
-				// step is a search they should not have to run, for an answer
-				// this method already holds. `data` carries the account id, an
-				// ordinary admin-visible number; the hash of the confirmed
-				// value stays here (#1397 sprint 4).
-				return new WP_Error(
-					'ffc_identity_repair_collision',
-					__( 'That value is already stored against another account, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision.', 'ffcertificate' ),
-					array( 'account' => $collides['accounts'][0] ?? 0 )
-				);
+				// This refused, and the refusal said the write "would merge two
+				// identities rather than fix a typo". It would not: no record
+				// moves and no account is absorbed, the right number simply
+				// lands on the row it belongs to. What the write PRODUCES is
+				// two accounts carrying one number -- which is the
+				// `cross_store_shared_identities` finding, where the merge is
+				// the right verb and is decided separately with the evidence in
+				// front of the operator.
+				//
+				// So the refusal blocked the typo fix because of its own correct
+				// consequence, and blocked it in both directions: the merge
+				// needs one value per account and the correction needed the
+				// value to be unused, so on a pair like #1477's the two verbs
+				// deadlocked, each waiting on the other's precondition.
+				//
+				// It never was the guard against mistyping it reads as, either:
+				// confirming a valid number belonging to somebody with no
+				// account here passes today and still will. It only ever caught
+				// the subset where the wrong target happened to be in this
+				// database.
+				//
+				// Two collisions stay refused, and for reasons the above does
+				// not cover. Rows naming NOBODY -- an unpromoted candidacy --
+				// leave a state with no finding at all, since every
+				// shared-identifier check is per account: nothing would ever
+				// report it. And more than one other account would make a third
+				// claimant of one number, which is not a consequence anybody
+				// asked for.
+				if ( $account > 0 && array() !== $collides['accounts'] && 1 === count( $others ) ) {
+					$shared_with = (int) $others[0];
+				} else {
+					// THE ACCOUNT TRAVELS WITH THE REFUSAL, AND THE HASH DOES NOT.
+					//
+					// A screen that only receives the sentence can say the value
+					// belongs to somebody, never to WHOM -- so the operator's next
+					// step is a search they should not have to run, for an answer
+					// this method already holds. `data` carries the account id, an
+					// ordinary admin-visible number; the hash of the confirmed
+					// value stays here (#1397 sprint 4).
+					return new WP_Error(
+						'ffc_identity_repair_collision',
+						__( 'That value is already stored against records this cannot attribute to one other account — either they belong to nobody, or to more than one. Correcting into it would leave a claim on the number that no finding on this screen would ever report.', 'ffcertificate' ),
+						array( 'account' => $collides['accounts'][0] ?? 0 )
+					);
+				}
 			}
 
 			$unique = $wpdb->prefix . self::UNIQUE_RF_STORE;
 
-			// ONE STORE CANNOT HOLD THE CONSOLIDATION.
+			// ONE STORE CANNOT HOLD TWO ROWS WITH ONE IDENTIFIER.
 			//
 			// `ffc_recruitment_candidate` declares `UNIQUE KEY uq_rf_hash`, so
-			// where a person's two RFs are BOTH candidacies the rewrite would
-			// leave two rows sharing one hash and the database would refuse it
-			// -- as a duplicate-key error, which says nothing an operator can
-			// act on. Refusing here says what is in the way instead. Resolving
-			// it means deciding what becomes of the second candidacy, which is
-			// not a repair.
+			// where both sides are candidacies the rewrite would leave two rows
+			// sharing one hash and the database would refuse it -- as a
+			// duplicate-key error, which says nothing an operator can act on.
+			// Refusing here says what is in the way instead.
+			//
+			// IT NOW GUARDS THE CROSS-ACCOUNT CASE TOO, AND THAT NEEDED NO
+			// MOVE (#1478). It has always sat outside the consolidation test;
+			// what made it consolidation-only was the early return above, so
+			// letting that branch fall through brings the new case under it for
+			// free. Worth writing down because the opposite is what it looks
+			// like: a guard whose comment says "consolidation" reads as one the
+			// new path bypasses, and a reviewer checking for that would have
+			// moved code that was already correct.
 			if ( isset( $found['rows'][ $unique ], $collides['rows'][ $unique ] ) ) {
 				return new WP_Error(
 					'ffc_identity_repair_unique_store',
 					sprintf(
 						/* translators: %s: the store that cannot hold two rows with one identifier. */
-						__( 'Both identifiers are recorded in %s, which holds each identifier once, so consolidating them there would leave two records claiming one. Decide what becomes of the second record first.', 'ffcertificate' ),
+						__( 'Both identifiers are recorded in %s, which holds each identifier once, so writing the corrected value there would leave two records claiming one. Decide what becomes of the second record first.', 'ffcertificate' ),
 						$unique
 					)
 				);
@@ -291,7 +337,15 @@ class IdentityRepair {
 			// colliding rows name no account at all -- an unpromoted
 			// candidacy -- which is why the refusal above cannot be rebuilt
 			// from this number and is returned by this method instead.
-			'collision'    => $collides['accounts'][0] ?? 0,
+			// WHO ELSE HOLDS THE CONFIRMED VALUE, AND ZERO WHEN NOBODY DOES.
+			//
+			// Not `accounts[0]`, which this used to be: on the production case
+			// the colliding rows include the subject's OWN other row, so the
+			// first account is often this one and naming it would tell the
+			// operator their correction collides with themselves. This is the
+			// other account specifically, which is the one the acknowledgement
+			// is about.
+			'shared_with'  => $shared_with,
 		);
 	}
 
@@ -311,15 +365,43 @@ class IdentityRepair {
 	 * @param int    $actor        Who confirmed it, for the log.
 	 * @param string $field        `rf` or `cpf`; defaults to {@see self::FIELD}.
 	 * @param int    $only_account Restrict to one account's rows; 0 means every row carrying the hash.
-	 * @return array{hash: string, rows: array<string, int>, account: int}|WP_Error
+	 * @param bool   $acknowledged The operator stated they understand the value already belongs to another account. Required only then.
+	 * @return array{hash: string, rows: array<string, int>, account: int, shared_with: int}|WP_Error
 	 */
-	public function repair( string $subject_hash, string $new_rf, int $actor = 0, string $field = self::FIELD, int $only_account = 0 ): array|WP_Error {
+	public function repair( string $subject_hash, string $new_rf, int $actor = 0, string $field = self::FIELD, int $only_account = 0, bool $acknowledged = false ): array|WP_Error {
 		global $wpdb;
 
 		$plan = $this->plan( $subject_hash, $new_rf, $field, $only_account );
 
 		if ( is_wp_error( $plan ) ) {
 			return $plan;
+		}
+
+		// THE CORRECTION THAT SHARES A NUMBER IS ACKNOWLEDGED, NOT REFUSED
+		// (#1478), AND THE GATE IS HERE RATHER THAN ON THE SCREEN.
+		//
+		// The `IdentityRelink` precedent reads the tier off an UNTRUSTED posted
+		// key in the page handler, and says plainly why that is proportionate
+		// there. Here it does not have to be: whether the confirmed value
+		// already belongs to somebody is a fact `plan()` has just MEASURED, so
+		// the gate sits with the fact and holds for every caller rather than
+		// for the one form that remembers to post a box.
+		//
+		// What earns a gate at all is that this write cannot be undone by
+		// another use of this verb. Putting the row back means confirming the
+		// value it used to hold, and that value fails its own check digit --
+		// which `plan()` refuses, correctly, before anything else. So the
+		// screen offers no way back, and the operator has to have meant it.
+		if ( $plan['shared_with'] > 0 && ! $acknowledged ) {
+			return new WP_Error(
+				'ffc_identity_repair_unacknowledged',
+				sprintf(
+					/* translators: %s: the account that already holds the confirmed value. */
+					__( 'The value you confirmed already belongs to account %s. Correcting this one is not a merge and moves no records — but afterwards both accounts carry the number, and this correction cannot be undone here, because putting the old value back means confirming a number that fails its own check digit. Confirm that you mean to, and then decide the merge under "Two accounts, one number".', 'ffcertificate' ),
+					(string) $plan['shared_with']
+				),
+				array( 'account' => $plan['shared_with'] )
+			);
 		}
 
 		$hash_column   = $field . '_hash';
@@ -419,9 +501,13 @@ class IdentityRepair {
 		);
 
 		return array(
-			'hash'    => (string) $pair[ $hash_column ],
-			'rows'    => $written,
-			'account' => $account,
+			'hash'        => (string) $pair[ $hash_column ],
+			'rows'        => $written,
+			'account'     => $account,
+			// So the caller can say what the correction produced: the screen's
+			// success line names the account now sharing the number and where
+			// the merge is decided, which is the operator's next step.
+			'shared_with' => $plan['shared_with'],
 		);
 	}
 
@@ -447,9 +533,10 @@ class IdentityRepair {
 	 * @param string $right_hash The stored hash to consolidate into.
 	 * @param int    $actor      Who confirmed it, for the log.
 	 * @param string $field      `rf` or `cpf`; defaults to {@see self::FIELD}.
-	 * @return array{hash: string, rows: array<string, int>, account: int}|WP_Error
+	 * @param bool   $acknowledged The operator stated they understand the sound value already belongs to another account. Required only then.
+	 * @return array{hash: string, rows: array<string, int>, account: int, shared_with: int}|WP_Error
 	 */
-	public function consolidate( string $wrong_hash, string $right_hash, int $actor = 0, string $field = self::FIELD ): array|WP_Error {
+	public function consolidate( string $wrong_hash, string $right_hash, int $actor = 0, string $field = self::FIELD, bool $acknowledged = false ): array|WP_Error {
 		if ( ! in_array( $field, self::FIELDS, true ) ) {
 			return new WP_Error(
 				'ffc_identity_repair_unknown_field',
@@ -483,7 +570,18 @@ class IdentityRepair {
 			);
 		}
 
-		return $this->repair( $wrong_hash, $plain, $actor, $field );
+		// THE ACKNOWLEDGEMENT PASSES THROUGH, AND IT HAS TO (#1478).
+		//
+		// This is the mechanical panel's verb, and the production case that
+		// prompted the change is exactly one of these: the account's sound RF
+		// is ALSO on a second login, so consolidating its own typo into it
+		// shares the number. Swallowing the flag here would leave that account
+		// unresolvable while the manual repair beside it went through.
+		//
+		// It is not scoped to one account either, deliberately: `repair()`
+		// resolves the rows from the hash, and the screen offering this has
+		// already established the two values are one person's.
+		return $this->repair( $wrong_hash, $plain, $actor, $field, 0, $acknowledged );
 	}
 
 	/**

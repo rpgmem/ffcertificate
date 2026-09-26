@@ -55,19 +55,60 @@
     }
 
     /**
+     * Append the "open that account" link for whoever holds the value.
+     *
+     * @param {jQuery} $region
+     * @param {Object} holder
+     */
+    function linkTo($region, holder) {
+        $region.append(
+            $('<p/>', { 'class': 'ffc-identity-verdict-line' }).append(
+                $('<a/>', {
+                    href: String($region.data('profile') || '') + encodeURIComponent(holder.id),
+                    text: $region.data('open') || ''
+                })
+            )
+        );
+    }
+
+    /**
      * Paint one answer.
      *
-     * A collision is the one refusal that is not a failure: the number belongs
-     * to somebody, and knowing to whom is the answer. It is NOT offered a move
-     * — on a collision the holder carries the confirmed value in the very
-     * field these records carry wrongly, which the agreement rule calls a
-     * conflict, so a move would be refused every time. It is a merge decision,
-     * which is what the server's own sentence says.
+     * AN ALLOWED VERDICT CAN CARRY A HOLDER, AND THEN IT IS NOT PLAIN `ok`
+     * (#1478).
+     *
+     * A value that already belongs to another account used to be the refusal
+     * here, and this said so: `this is a merge rather than a correction`. It is
+     * not a merge — no record moves and no account is absorbed — so the server
+     * allows it once the operator says they mean it. What it produces is two
+     * accounts holding one number, which is the shared-identifier finding where
+     * the merge is then decided.
+     *
+     * So the allowed branch has to check for a holder BEFORE reporting `ok`.
+     * Reporting the row count alone would be the worst of the three answers
+     * available: true, reassuring, and silent about the only thing the operator
+     * needs before confirming a write no use of this verb can undo.
+     *
+     * A refusal still carries a holder in one case — rows nobody owns, or more
+     * than one other account — and that one keeps the server's own sentence.
      *
      * @param {jQuery} $region
      * @param {Object} data
      */
     function paint($region, data) {
+        if (data.allowed && data.holder) {
+            say(
+                $region,
+                format(
+                    $region.data('shared') || '',
+                    [data.rows, data.holder.name || ('#' + data.holder.id), data.holder.id]
+                ),
+                'warn'
+            );
+            linkTo($region, data.holder);
+            return;
+        }
+
         if (data.allowed) {
             say(
                 $region,
@@ -91,14 +132,7 @@
             'warn'
         );
 
-        $region.append(
-            $('<p/>', { 'class': 'ffc-identity-verdict-line' }).append(
-                $('<a/>', {
-                    href: String($region.data('profile') || '') + encodeURIComponent(data.holder.id),
-                    text: $region.data('open') || ''
-                })
-            )
-        );
+        linkTo($region, data.holder);
     }
 
     /**

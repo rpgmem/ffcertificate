@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Identity resolution: correcting a mistyped RF or CPF is no longer refused as a "merge" when the right value already belongs to another account. It is not a merge — no record moves and no account is absorbed — so it is allowed once the operator acknowledges it, and the two accounts then appear under "Two accounts, one number" where the merge is decided. The refusal had deadlocked pairs where the merge in turn needed one value per account (#1478)
+
 ## [6.29.1] (2026-09-26) — `20eaaa8d`
 
 ### Added
