@@ -22885,3 +22885,15 @@ msgstr "O endereço que estes registros carregam já pertence a uma conta, entã
 
 msgid "These records carry an address this could not read, so nothing was filled in. That is not the same as carrying none — confirm it with HR rather than assuming there is no address."
 msgstr "Estes registros carregam um endereço que isto não conseguiu ler, então nada foi preenchido. Isso não é o mesmo que não carregar nenhum — confirme com o RH em vez de supor que não há endereço."
+
+msgid "Every account this card can name has been examined."
+msgstr "Toda conta que este card pode nomear já foi examinada."
+
+msgid "Examined %1$d accounts and named %2$d of them; the rest carry no name under any key this reads."
+msgstr "Examinou %1$d contas e nomeou %2$d delas; as demais não carregam nome em nenhuma chave que isto lê."
+
+msgid "Name the Accounts Created Without One"
+msgstr "Nomear as Contas Criadas Sem Nome"
+
+msgid "Write the display name and first name of every account that has neither, from the name its own candidacy or submission already carries. A promotion used to create the account without passing the person's name, so WordPress fell back to storing the login — which is what the user list, the dashboard greeting and every e-mail then showed them. Only an account whose display name is still its login and whose first name is empty is touched, because those two are written together and an account with one but not the other was changed by something else. Completion here means every such account was EXAMINED: one whose records name nobody is read, left alone, and counted as done."
+msgstr "Grava o nome de exibição e o primeiro nome de toda conta que não tem nenhum dos dois, a partir do nome que a própria candidatura ou submission dela já carrega. A promoção criava a conta sem passar o nome da pessoa, então o WordPress gravava o login no lugar — e era isso que a lista de usuários, a saudação do painel e todo e-mail mostravam a ela. Só é tocada a conta cujo nome de exibição ainda é o login e cujo primeiro nome está vazio, porque esses dois são gravados juntos e uma conta com um e sem o outro foi alterada por outra coisa. Aqui, concluído significa que toda conta dessas foi EXAMINADA: uma cujos registros não nomeiam ninguém é lida, deixada como está, e contada como feita."

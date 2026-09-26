@@ -22794,3 +22794,15 @@ msgstr ""
 
 msgid "These records carry an address this could not read, so nothing was filled in. That is not the same as carrying none — confirm it with HR rather than assuming there is no address."
 msgstr ""
+
+msgid "Every account this card can name has been examined."
+msgstr ""
+
+msgid "Examined %1$d accounts and named %2$d of them; the rest carry no name under any key this reads."
+msgstr ""
+
+msgid "Name the Accounts Created Without One"
+msgstr ""
+
+msgid "Write the display name and first name of every account that has neither, from the name its own candidacy or submission already carries. A promotion used to create the account without passing the person's name, so WordPress fell back to storing the login — which is what the user list, the dashboard greeting and every e-mail then showed them. Only an account whose display name is still its login and whose first name is empty is touched, because those two are written together and an account with one but not the other was changed by something else. Completion here means every such account was EXAMINED: one whose records name nobody is read, left alone, and counted as done."
+msgstr ""
