@@ -229,6 +229,21 @@ class MigrationStatusCalculator {
 					unset( $this->strategy_errors['certificate_capability_backfill'] );
 					break;
 
+				case 'display_name_backfill':
+					$strategy_dir = __DIR__ . '/strategies/';
+
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\DisplayNameBackfillMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-display-name-backfill-migration-strategy.php';
+					}
+
+					$this->strategies['display_name_backfill'] = new \FreeFormCertificate\Migrations\Strategies\DisplayNameBackfillMigrationStrategy();
+					unset( $this->strategy_errors['display_name_backfill'] );
+					break;
+
 				case 'import_legacy_templates':
 					$strategy_dir = __DIR__ . '/strategies/';
 

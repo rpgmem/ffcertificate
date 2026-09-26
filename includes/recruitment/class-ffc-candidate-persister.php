@@ -94,7 +94,7 @@ final class CandidatePersister {
 			);
 
 			self::refresh_pcd_hash( $candidate_id, $pcd );
-			self::maybe_promote_candidate( $candidate_id, $cpf_hash, $rf_hash, $email );
+			self::maybe_promote_candidate( $candidate_id, $cpf_hash, $rf_hash, $email, $name );
 
 			return $candidate_id;
 		}
@@ -126,7 +126,7 @@ final class CandidatePersister {
 		}
 
 		self::refresh_pcd_hash( (int) $candidate_id, $pcd );
-		self::maybe_promote_candidate( (int) $candidate_id, $cpf_hash, $rf_hash, $email );
+		self::maybe_promote_candidate( (int) $candidate_id, $cpf_hash, $rf_hash, $email, $name );
 
 		return (int) $candidate_id;
 	}
@@ -192,9 +192,10 @@ final class CandidatePersister {
 	 * @param string|null $cpf_hash     SHA-256 hash of CPF (or null).
 	 * @param string|null $rf_hash      SHA-256 hash of RF (or null).
 	 * @param string      $email        Lowercased email (may be empty).
+	 * @param string      $name         The candidate's name, for the account's own (#1480).
 	 * @return void
 	 */
-	private static function maybe_promote_candidate( int $candidate_id, ?string $cpf_hash, ?string $rf_hash, string $email ): void {
+	private static function maybe_promote_candidate( int $candidate_id, ?string $cpf_hash, ?string $rf_hash, string $email, string $name = '' ): void {
 		if ( null === $cpf_hash && null === $rf_hash && '' === $email ) {
 			return;
 		}
@@ -208,11 +209,25 @@ final class CandidatePersister {
 		// a previously-registered submission keyed on whichever hash we
 		// didn't pass — `get_or_create_user_dual` checks both columns in
 		// a single SQL pass and falls back to email matching identically.
+		// THE NAME TRAVELS WITH THE PROMOTION (#1480).
+		//
+		// This argument is the submission's answers, and it was `array()` --
+		// while the candidate's name sat in the very row being persisted. So
+		// `UserCreator::sync_user_metadata()` had nothing to read, and WordPress
+		// fell back to writing the LOGIN into `display_name`. Measured on
+		// production: 6,976 accounts, every one of them promoted from a
+		// candidacy, every one of them carrying its login as a name while
+		// `ffc_recruitment_candidate.name` held the person's.
+		//
+		// No plumbing is added for it. `name` is already one of
+		// `SubmitterName::CANDIDATE_KEYS`, which is what `sync_user_metadata()`
+		// reads, so the answers-shaped array this path never had is one key
+		// wide.
 		$user_id = UserCreator::get_or_create_user_dual(
 			$cpf_hash,
 			$rf_hash,
 			$email,
-			array(),
+			'' !== $name ? array( 'name' => $name ) : array(),
 			CapabilityManager::CONTEXT_RECRUITMENT
 		);
 
