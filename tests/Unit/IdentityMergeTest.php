@@ -465,6 +465,69 @@ class IdentityMergeTest extends TestCase {
 	}
 
 	/**
+	 * THE REFUSAL SAYS WHICH OF ITS TWO REASONS REFUSED (#1477).
+	 *
+	 * Taken from the pair that reported this, off the production audit: two
+	 * logins carrying the SAME RF, which is why the queue paired them, and one
+	 * of them carrying a second RF besides. The merge is correctly refused --
+	 * the survivor would inherit a number nobody has explained -- but it was
+	 * refused as "those accounts hold different values for RF", so the operator
+	 * went looking for a disagreement between two identical numbers.
+	 *
+	 * The assertion is on the sentence and not only on the code, because the
+	 * sentence is the whole defect: a code nobody reads was never wrong.
+	 */
+	public function test_a_second_value_on_the_absorbed_account_is_not_reported_as_a_disagreement(): void {
+		$this->given(
+			array(
+				self::row( 5666, '', '414ea6753d972d46' ),
+				self::row( 6499, '', '414ea6753d972d46' ),
+				self::row( 6499, '', '16dd8f605603f2c0' ),
+			)
+		);
+
+		$result = $this->merge()->merge( 5666, 6499 );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_merge_multiple_identities', $result->get_error_code() );
+		$this->assertSame( array(), $this->updates, 'A refused merge writes nothing.' );
+
+		$said = $result->get_error_message();
+
+		$this->assertStringNotContainsString(
+			'different values for',
+			$said,
+			'They hold the same RF. Calling it a disagreement sends the operator to compare two identical numbers.'
+		);
+		$this->assertStringContainsString( '6499', $said, 'The refusal has to name the account to go and fix.' );
+		$this->assertStringContainsString( 'RF', $said );
+	}
+
+	/**
+	 * The same pair merges the other way round, and that asymmetry is the rule
+	 * working rather than a hole in it: the survivor keeps what it has, so
+	 * absorbing the single-valued side hands nobody an unexplained number.
+	 *
+	 * It is deliberately NOT recommended by the refusal above -- reversing it
+	 * resolves nothing, since the survivor still carries both values and now
+	 * has more records sitting behind an unresolved identity.
+	 */
+	public function test_it_allows_the_direction_that_gives_the_survivor_nothing_new(): void {
+		$this->given(
+			array(
+				self::row( 5666, '', '414ea6753d972d46' ),
+				self::row( 6499, '', '414ea6753d972d46' ),
+				self::row( 6499, '', '16dd8f605603f2c0' ),
+			)
+		);
+
+		$result = $this->merge()->plan( 6499, 5666 );
+
+		$this->assertIsArray( $result, 'The single-valued side is absorbable.' );
+		$this->assertContains( 'rf', $result['matches'] );
+	}
+
+	/**
 	 * Two accounts that share nothing are two people, whatever an operator
 	 * believes. An absent value is not agreement.
 	 */

@@ -9,7 +9,12 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Identity resolution: a merge or relink refused because one side carries **two** values for an identifier no longer reports it as the two sides holding *different* values. They often hold the same one — it is what paired them in the queue — and the old sentence sent operators to compare two identical numbers. The refusal now names the account and how many values it holds, and the search column gets its own badge for it (#1477)
 - Identity resolution: correcting a mistyped RF or CPF is no longer refused as a "merge" when the right value already belongs to another account. It is not a merge — no record moves and no account is absorbed — so it is allowed once the operator acknowledges it, and the two accounts then appear under "Two accounts, one number" where the merge is decided. The refusal had deadlocked pairs where the merge in turn needed one value per account (#1478)
+
+### Changed
+
+- The identity audit CSV now prints 12 characters of an identifier hash instead of 16, matching every screen and log. An operator holding the file beside the queue can now match a row to a panel by eye, and the exported file no longer carries more of a hash than the screens do (#1477)
 
 ## [6.29.1] (2026-09-26) — `20eaaa8d`
 

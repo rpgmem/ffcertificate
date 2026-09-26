@@ -430,7 +430,53 @@ class IdentityRelinkTest extends TestCase {
 		$result = $this->relink()->relink( 'rfMoving', 513 );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'ffc_identity_relink_conflict', $result->get_error_code() );
+
+		// NOT `_conflict`, AND THIS TEST'S OWN NAME SAYS WHY (#1477).
+		//
+		// The rows disagree with THEMSELVES: they carry two CPFs, and the
+		// target carries none, so there is no disagreement with the target to
+		// report. It was reported as one until the rule started saying which of
+		// its two branches refused.
+		$this->assertSame( 'ffc_identity_relink_multiple_identities', $result->get_error_code() );
+		$this->assertStringNotContainsString(
+			'that account hold different values',
+			$result->get_error_message(),
+			'The target holds no CPF at all, so it cannot be holding a different one.'
+		);
+	}
+
+	/**
+	 * A TARGET THAT SHARES A VALUE IS STILL REFUSED WHEN THE ROWS CARRY TWO,
+	 * and that refusal is not a disagreement either (#1477).
+	 *
+	 * The rows agree with the target about the RF -- it is what pairs them --
+	 * and carry a second RF besides. Reported as "different values for RF", it
+	 * sends the operator to compare the value both sides share.
+	 */
+	public function test_a_shared_value_beside_a_second_one_is_not_reported_as_a_disagreement(): void {
+		$this->given(
+			'ffc_submissions',
+			array(
+				self::row( 1, 398, 'cpfShared', 'rfMoving' ),
+				self::row( 2, 398, 'cpfExtra', 'rfMoving' ),
+			)
+		);
+		$this->index[513] = array(
+			'cpf_hash' => 'cpfShared',
+			'rf_hash'  => '',
+		);
+
+		$result = $this->relink()->relink( 'rfMoving', 513 );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_identity_relink_multiple_identities', $result->get_error_code() );
+
+		$said = $result->get_error_message();
+
+		$this->assertStringNotContainsString( 'different values for', $said );
+		$this->assertStringContainsString( '2', $said, 'How many values the rows carry is what the operator has to see.' );
+		$this->assertStringContainsString( 'CPF', $said );
+		$this->assertSame( array(), $this->updates );
 	}
 
 	/**

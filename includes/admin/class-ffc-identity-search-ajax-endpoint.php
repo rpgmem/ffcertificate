@@ -303,6 +303,13 @@ class IdentitySearchAjaxEndpoint {
 				return __( 'Holds a different value — refused', 'ffcertificate' );
 			case 'ffc_identity_relink_no_agreement':
 				return __( 'Shares no identifier — refused', 'ffcertificate' );
+			case 'ffc_identity_relink_multiple_identities':
+				// DISTINCT FROM "holds a different value" ON PURPOSE (#1477):
+				// here the two may well agree, and what refuses is a second
+				// value on the moving side. The generic fallback would read as
+				// the disagreement badge's quieter cousin and send the operator
+				// to compare two identical numbers.
+				return __( 'Records carry two values — refused', 'ffcertificate' );
 			default:
 				return __( 'Refused', 'ffcertificate' );
 		}

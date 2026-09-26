@@ -22770,3 +22770,12 @@ msgstr ""
 
 msgid "That number is already on records this cannot attribute to one other account — open %1$s (#%2$s) to see who is involved. Correcting into it would leave a claim on the number that no finding here would report."
 msgstr ""
+
+msgid "Account %1$s holds %2$s separate values for %3$s, not one, so it cannot be absorbed: the survivor would inherit a number nobody has explained, even though the two accounts do agree about the one that brought them here. This screen lists %1$s on its own for that — resolve it there first. Correcting the shared value cannot help, and merging the other way round is allowed but leaves %1$s holding both, with more records behind it."
+msgstr ""
+
+msgid "Records carry two values — refused"
+msgstr ""
+
+msgid "The records you selected carry %1$s separate values for %2$s, so they are not all one person's — and the account they would land under cannot make them so, even where it agrees with one of those values. Narrow the selection to the records carrying a single %2$s and move them on their own."
+msgstr ""
