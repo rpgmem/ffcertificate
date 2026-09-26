@@ -533,8 +533,12 @@ class CapabilityMigrator {
 	 * value cap to every user/role that already holds the key cap, so existing
 	 * managers keep their bulk-import ability after the import tier is enforced
 	 * strictly. Covers the newly-split `ffc_import_audiences` and the
-	 * `ffc_import_recruitment` cap whose umbrella fallback is removed in 6.9.0
+	 * `ffc_import_recruitment` cap whose umbrella fallback WAS removed in 6.9.0
 	 * (custom roles relying on `ffc_manage_recruitment` to import keep working).
+	 * Past tense on purpose: `is removed in 6.9.0` reads as a promise for a
+	 * release that shipped long ago, and telling a live cycle from finished
+	 * history by the tense of a verb is what `DeprecationDueTest` refuses to
+	 * do -- a removal date is a marker, never prose.
 	 * To take import away from a manager, remove the import cap afterward.
 	 *
 	 * `ffc_import_reregistration` joined the map in 6.26.0 (#1214). **A new pair

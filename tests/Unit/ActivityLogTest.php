@@ -707,6 +707,14 @@ class ActivityLogTest extends TestCase {
 			->andReturn('SHOW TABLES LIKE wp_ffc_activity_log');
 		$this->wpdb->shouldReceive('get_var')
 			->andReturn('wp_ffc_activity_log');
+		// `create_table()` now also reads the two legacy columns' nullability
+		// (#1458). Answering `null` is an install that has neither, which is
+		// every fresh one -- and it is what keeps this test about the thing
+		// its name says.
+		$this->wpdb->shouldReceive('prepare')
+			->with('SHOW COLUMNS FROM %i LIKE %s', 'wp_ffc_activity_log', \Mockery::any())
+			->andReturn('SHOW COLUMNS');
+		$this->wpdb->shouldReceive('get_row')->andReturn(null);
 
 		$result = ActivityLog::create_table();
 		$this->assertTrue($result);
@@ -724,8 +732,124 @@ class ActivityLogTest extends TestCase {
 		// dbDelta requires wp-admin/includes/upgrade.php. Mock it.
 		Functions\when('dbDelta')->justReturn([]);
 
+		$this->wpdb->shouldReceive('prepare')
+			->with('SHOW COLUMNS FROM %i LIKE %s', 'wp_ffc_activity_log', \Mockery::any())
+			->andReturn('SHOW COLUMNS');
+		$this->wpdb->shouldReceive('get_row')->andReturn(null);
+
 		$result = ActivityLog::create_table();
 		$this->assertTrue($result);
+	}
+
+	// ==================================================================
+	// relax_legacy_not_null(), through create_table() (#1458)
+	// ==================================================================
+
+	/**
+	 * A column the server reports as NOT NULL is relaxed, keeping its type.
+	 *
+	 * The production reading this came from: `action_type varchar(50) NOT
+	 * NULL` with no default, declared by no statement in this plugin, so
+	 * `dbDelta` can neither drop it nor reach it. Under a strict `sql_mode`
+	 * every activity-log insert fails on it.
+	 */
+	public function test_a_not_null_legacy_column_is_relaxed_keeping_its_stored_type(): void {
+		$this->wpdb->shouldReceive('get_charset_collate')->andReturn('');
+		$this->wpdb->shouldReceive('prepare')
+			->with('SHOW TABLES LIKE %s', 'wp_ffc_activity_log')
+			->andReturn('SHOW TABLES');
+		$this->wpdb->shouldReceive('get_var')->andReturn('wp_ffc_activity_log');
+		Functions\when('dbDelta')->justReturn([]);
+
+		$this->wpdb->shouldReceive('prepare')
+			->with('SHOW COLUMNS FROM %i LIKE %s', 'wp_ffc_activity_log', \Mockery::any())
+			->andReturn('SHOW COLUMNS');
+		$this->wpdb->shouldReceive('get_row')
+			->andReturn(
+				array( 'Field' => 'action_type', 'Type' => 'varchar(50)', 'Null' => 'NO' ),
+				array( 'Field' => 'submission_id', 'Type' => 'bigint(20) unsigned', 'Null' => 'NO' )
+			);
+
+		$altered = array();
+
+		$this->wpdb->shouldReceive('prepare')
+			->with(\Mockery::pattern('/^ALTER TABLE/'), 'wp_ffc_activity_log', \Mockery::any())
+			->andReturnUsing(
+				static function ( $sql, $table, $column ) use ( &$altered ) {
+					$altered[ (string) $column ] = (string) $sql;
+
+					return 'ALTER';
+				}
+			);
+		$this->wpdb->shouldReceive('query')->andReturn(1);
+
+		ActivityLog::create_table();
+
+		$this->assertSame(
+			array( 'action_type', 'submission_id' ),
+			array_keys( $altered ),
+			'Both legacy columns the server reports as NOT NULL must be relaxed.'
+		);
+
+		// THE STORED TYPE IS CARRIED THROUGH, not re-declared from this file.
+		// A `MODIFY` rewrites the whole definition, so composing it from a
+		// type this code guessed would silently change the column's width.
+		$this->assertStringContainsString( 'varchar(50) NULL DEFAULT NULL', $altered['action_type'] );
+		$this->assertStringContainsString( 'bigint(20) unsigned NULL DEFAULT NULL', $altered['submission_id'] );
+	}
+
+	/**
+	 * A column that already accepts NULL is left alone.
+	 *
+	 * The method runs on every version bump and must cost nothing on an
+	 * install with nothing to fix -- which is every fresh one, where neither
+	 * column has the legacy shape at all.
+	 */
+	public function test_a_column_that_already_accepts_null_is_not_altered(): void {
+		$this->wpdb->shouldReceive('get_charset_collate')->andReturn('');
+		$this->wpdb->shouldReceive('prepare')
+			->with('SHOW TABLES LIKE %s', 'wp_ffc_activity_log')
+			->andReturn('SHOW TABLES');
+		$this->wpdb->shouldReceive('get_var')->andReturn('wp_ffc_activity_log');
+		Functions\when('dbDelta')->justReturn([]);
+
+		$this->wpdb->shouldReceive('prepare')
+			->with('SHOW COLUMNS FROM %i LIKE %s', 'wp_ffc_activity_log', \Mockery::any())
+			->andReturn('SHOW COLUMNS');
+		$this->wpdb->shouldReceive('get_row')
+			->andReturn( array( 'Field' => 'submission_id', 'Type' => 'bigint(20) unsigned', 'Null' => 'YES' ) );
+
+		$this->wpdb->shouldNotReceive('query');
+
+		ActivityLog::create_table();
+	}
+
+	/**
+	 * A type the pattern does not recognise is left exactly as it is.
+	 *
+	 * The type cannot be a placeholder -- it is not a value, and `%i` quotes
+	 * identifiers rather than type expressions -- so it is interpolated, and
+	 * the only safe way to interpolate is to refuse anything that is not the
+	 * shape a type has. The strict-mode hazard is worth fixing, and not at the
+	 * price of composing SQL out of a string this code did not check.
+	 */
+	public function test_an_unrecognised_column_type_is_never_interpolated(): void {
+		$this->wpdb->shouldReceive('get_charset_collate')->andReturn('');
+		$this->wpdb->shouldReceive('prepare')
+			->with('SHOW TABLES LIKE %s', 'wp_ffc_activity_log')
+			->andReturn('SHOW TABLES');
+		$this->wpdb->shouldReceive('get_var')->andReturn('wp_ffc_activity_log');
+		Functions\when('dbDelta')->justReturn([]);
+
+		$this->wpdb->shouldReceive('prepare')
+			->with('SHOW COLUMNS FROM %i LIKE %s', 'wp_ffc_activity_log', \Mockery::any())
+			->andReturn('SHOW COLUMNS');
+		$this->wpdb->shouldReceive('get_row')
+			->andReturn( array( 'Field' => 'action_type', 'Type' => "varchar(50) DEFAULT 'x'; DROP TABLE wp_users", 'Null' => 'NO' ) );
+
+		$this->wpdb->shouldNotReceive('query');
+
+		ActivityLog::create_table();
 	}
 
 	// ==================================================================
