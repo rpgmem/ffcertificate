@@ -752,53 +752,25 @@ class IdentityResolutionPageTest extends TestCase {
 		);
 	}
 
-	/**
-	 * Just the mailbox tier's branch of the verb column.
-	 *
-	 * Bounded like `account_tier_block()` and for the same reason: the branch
-	 * that follows it is the generic one, and a substring running past it
-	 * would let the assertions below pass on somebody else's markup.
-	 *
-	 * SEARCHED FROM THE VERB COLUMN, NOT FROM THE FILE. The card's sentence
-	 * answers the same tier a hundred lines above, so an unanchored search
-	 * finds that one -- and it contains no control either, which is how the
-	 * first version of this helper passed while asserting nothing about the
-	 * column it is named after.
-	 *
-	 * @param string $view The view's source.
-	 * @return string
-	 */
-	private function mailbox_verb_branch( string $view ): string {
-		$column = strpos( $view, 'class="ffc-identity-card-act"' );
-
-		$this->assertIsInt( $column, 'The card must keep its verb column.' );
-
-		$from = strpos( $view, 'elseif ( IdentityQueue::TIER_MAILBOX === $ffc_identity_tier ) : ?>', $column );
-
-		$this->assertIsInt( $from, 'The verb column must answer the mailbox tier explicitly.' );
-
-		$to = strpos( $view, '<?php else : ?>', $from );
-
-		$this->assertIsInt( $to, 'The mailbox branch must be followed by the generic one.' );
-
-		return substr( $view, $from, $to - $from );
-	}
 
 	/**
-	 * THE 38 FINDINGS THAT ARE OFFERED NOTHING, AND THE REASON (#1368).
+	 * THE TIER IS DRAWN, AND WHAT IT OFFERS MOVED (#1368 → #1461).
 	 *
-	 * An account whose numbers share one address and are not variants of each
-	 * other is a shared mailbox or an account submitting for other people.
-	 * Both verbs the account tiers offer are wrong there: consolidating
-	 * rewrites a number that may be another person's, splitting detaches
-	 * records from an account that may legitimately hold them. So the tier is
-	 * rendered, and its verb column carries no control at all.
+	 * It once offered nothing, and this case froze that. #1368 had withheld
+	 * all three verbs for a harm it named precisely -- verbs that would write
+	 * one person's number onto another person's records -- which describes
+	 * CONSOLIDATE and neither of the other two: a move relocates records
+	 * without touching a number, and a split creates an account nobody else
+	 * uses. So the sweep removed three verbs for a reason that justified one,
+	 * and the screen was left telling an operator to decide with HR with
+	 * nowhere to put the answer.
 	 *
-	 * Asserted over the bounded branch rather than the file, because the
-	 * neighbouring branches are full of exactly the markup this one must not
-	 * have.
+	 * What survives here is the half that is still true and is this file's to
+	 * hold: the tier reaches the screen as a card beside the other two. Which
+	 * verbs it may offer is `IdentityMailboxVerbsTest`, so the rule and the
+	 * rendering are not asserted twice and cannot drift apart.
 	 */
-	public function test_the_shared_mailbox_tier_is_offered_no_verb(): void {
+	public function test_the_shared_mailbox_tier_is_drawn_beside_the_other_account_tiers(): void {
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
 
 		// THE LOOP'S OWN LIST, not merely the tier appearing somewhere in the
@@ -809,37 +781,43 @@ class IdentityResolutionPageTest extends TestCase {
 			$view,
 			'The mailbox tier must be drawn as a card beside the other two account tiers.'
 		);
-
-		$branch = $this->mailbox_verb_branch( $view );
-
-		foreach ( array( '<form', 'wp_nonce_field', '<button', '<input' ) as $control ) {
-			$this->assertStringNotContainsString(
-				$control,
-				$branch,
-				sprintf( 'The mailbox tier must offer no %s: no write on this screen is correct for it.', $control )
-			);
-		}
-
-		// An empty column is indistinguishable from a capability the operator
-		// lacks. The branch says which question the screen cannot answer.
-		$this->assertStringContainsString(
-			'decide with HR',
-			$branch,
-			'The column must say why it is empty, not merely be empty.'
-		);
 	}
 
 	/**
-	 * The paragraph explaining the three verbs does not sit under the panel
-	 * that offers none.
+	 * The verb footer reaches the shared-mailbox panel, and says what differs.
+	 *
+	 * It used to be suppressed there, because explaining three verbs under a
+	 * panel offering none describes buttons that are not on the screen. That
+	 * panel now offers two of the three, so suppressing it would hide the
+	 * explanation of the buttons it does have -- and the two things a reader
+	 * needs are exactly what the shared paragraph cannot say: which verb is
+	 * missing and why, and which of the two wins when both are supplied.
 	 */
-	public function test_the_verb_footer_skips_the_panel_without_verbs(): void {
+	public function test_the_verb_footer_reaches_the_mailbox_panel_with_its_own_sentence(): void {
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
 
-		$this->assertStringContainsString(
+		$this->assertStringNotContainsString(
 			'IdentityQueue::TIER_MAILBOX !== $ffc_identity_this_tier',
 			$view,
-			'Explaining consolidate, move and split under a panel that offers none describes buttons that are not there.'
+			'The verb footer is suppressed on the panel again, which now hides the explanation of the two verbs it offers.'
+		);
+
+		$this->assertStringContainsString(
+			'IdentityQueue::TIER_MAILBOX === $ffc_identity_this_tier',
+			$view,
+			'The panel has no sentence of its own, so nothing says which verb is withheld there or which one takes precedence.'
+		);
+
+		$this->assertStringContainsString(
+			'Consolidating is not offered on this panel',
+			$view,
+			'The sentence must name the verb that is absent: an operator comparing panels otherwise reads it as an oversight.'
+		);
+
+		$this->assertStringContainsString(
+			'splitting takes precedence over moving',
+			$view,
+			'The sentence must state the precedence, which is the one rule an operator cannot infer from the two buttons.'
 		);
 	}
 
@@ -1328,17 +1306,32 @@ class IdentityResolutionPageTest extends TestCase {
 	 * @return string
 	 */
 	private function tier_branch( string $view, string $tier ): string {
+		// TWO BRANCHES, NOT THREE, SINCE #1461.
+		//
+		// The decision tier and the shared-mailbox tier render the same two
+		// verbs, so they share one branch and `SHARED` names it. The mailbox
+		// tier no longer has one of its own -- which is the change, so a helper
+		// still looking for it would fail here rather than in the rule, and
+		// that is where a reader would stop looking.
 		$marks = array(
 			'TIER_MECHANICAL' => 'IdentityQueue::TIER_MECHANICAL === $ffc_identity_tier ) : ?>',
-			'TIER_DECISION'   => 'elseif ( IdentityQueue::TIER_DECISION === $ffc_identity_tier ) : ?>',
-			'TIER_MAILBOX'    => 'elseif ( IdentityQueue::TIER_MAILBOX === $ffc_identity_tier ) : ?>',
+			'SHARED'          => 'elseif ( IdentityQueue::TIER_DECISION === $ffc_identity_tier || IdentityQueue::TIER_MAILBOX === $ffc_identity_tier ) : ?>',
 		);
 
 		$from = strpos( $view, $marks[ $tier ] );
 		$this->assertIsInt( $from, 'The action column must still branch on ' . $tier . '.' );
 
-		$next = 'TIER_MECHANICAL' === $tier ? $marks['TIER_DECISION'] : $marks['TIER_MAILBOX'];
-		$to   = strpos( $view, $next, (int) $from + 1 );
+		// The shared branch ends at the generic one, named by its own sentence
+		// rather than by the bare `else` tag -- which occurs earlier in the
+		// file and would cut the branch to nothing. (Naming that tag in a `//`
+		// comment is also how this helper stopped parsing once: a `//` comment
+		// ENDS at a close-tag, which `CLAUDE.md` records and this line now
+		// demonstrates.)
+		$next = 'TIER_MECHANICAL' === $tier
+			? $marks['SHARED']
+			: 'Open the account — this one is not decided here.';
+
+		$to = strpos( $view, $next, (int) $from + 1 );
 		$this->assertIsInt( $to, 'That branch must end where the next one opens.' );
 
 		return substr( $view, (int) $from, (int) $to - (int) $from );
@@ -1368,7 +1361,7 @@ class IdentityResolutionPageTest extends TestCase {
 		);
 		$this->assertStringNotContainsString(
 			'button-primary',
-			$this->tier_branch( $view, 'TIER_DECISION' ),
+			$this->tier_branch( $view, 'SHARED' ),
 			'Two destinations, neither promoted: the operator chooses, not the screen.'
 		);
 	}
@@ -1394,7 +1387,7 @@ class IdentityResolutionPageTest extends TestCase {
 	 */
 	public function test_the_move_button_states_its_identifier_without_printing_it(): void {
 		$view   = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
-		$branch = $this->tier_branch( $view, 'TIER_DECISION' );
+		$branch = $this->tier_branch( $view, 'SHARED' );
 
 		$from   = strpos( $branch, 'id="ffc-relink-go-' );
 		$this->assertIsInt( $from, 'The move verb must still have its own submit.' );

@@ -22704,9 +22704,6 @@ msgstr ""
 msgid "This account holds %1$s %2$s under one address, and they are not variants of each other. One address on that many numbers does not identify one person, so this is a shared mailbox or an account submitting for other people — which of the two, only the account itself says."
 msgstr ""
 
-msgid "Nothing is offered here on purpose: correcting would rewrite a number that may be somebody else's, and splitting would detach records from an account that may legitimately hold them. Open the account, read what it submitted, and decide with HR."
-msgstr ""
-
 msgid "The newer login is usually the accidental one — it exists because the resolver failed to match. What each holds and when it was last used is below; the choice is yours."
 msgstr ""
 
@@ -22738,3 +22735,19 @@ msgstr ""
 
 msgid "Everything this migration may decide on its own is done. What is listed above is not."
 msgstr ""
+
+msgid "One decision per identifier, and the two are exclusive: move these records to the account that already belongs to this person, or split them onto a new account. Read what the shared account submitted before either — the records may legitimately be its own."
+msgstr ""
+
+msgid "HR confirmed these records are this person’s, not the shared account’s."
+msgstr ""
+
+msgid "An address for a new account is typed, so splitting takes precedence: a split can still be corrected afterwards and a move cannot. Clear the address to move instead."
+msgstr ""
+
+msgid "Consolidating is not offered on this panel: it rewrites one identifier into another, and where the identifiers belong to different people that writes one person’s number onto another person’s records. Moving and splitting both leave every number as it is. Where an address for a new account is typed, splitting takes precedence over moving — a split leaves the records alone on a fresh account and stays correctable, while a move mixes them into another person’s and the data can no longer separate them."
+msgstr ""
+
+msgid "That move was not confirmed. A shared account's records are moved only once HR has said whose they are, because afterwards they cannot be told apart from the receiving account's."
+msgstr ""
+

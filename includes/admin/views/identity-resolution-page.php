@@ -1172,7 +1172,32 @@ $ffc_identity_tier_note = static function ( $tier ) {
 								<?php esc_html_e( 'Consolidate', 'ffcertificate' ); ?>
 							</button>
 						</form>
-					<?php elseif ( IdentityQueue::TIER_DECISION === $ffc_identity_tier ) : ?>
+						<?php
+						// THE SHARED MAILBOX GETS THE SAME TWO VERBS, AND NOT THE THIRD.
+						//
+						// #1368 withheld all three here, for a harm it named
+						// precisely: verbs `that would write one person's number
+						// onto another person's records`. That describes CONSOLIDATE,
+						// which rewrites one identifier into another, and it is why
+						// consolidate stays absent. It does not describe these two:
+						// a move relocates records without touching the identifier,
+						// and a split creates an account nobody else uses. The sweep
+						// removed three verbs for a reason that justified one.
+						//
+						// The view's own refusal argued something different again --
+						// that splitting `would detach records from an account that
+						// may legitimately hold them`. That is a sound CAUTION and
+						// was doing duty as a prohibition: the same sentence told
+						// the operator to `decide with HR`, and then the screen had
+						// nowhere to put the answer. What makes the decision
+						// deliberate is the address the split makes them type and
+						// the acknowledgement the move makes them tick, not the
+						// absence of a button.
+						//
+						// `IdentityMailboxVerbsTest` holds the shape: these two and
+						// never consolidate.
+						?>
+					<?php elseif ( IdentityQueue::TIER_DECISION === $ffc_identity_tier || IdentityQueue::TIER_MAILBOX === $ffc_identity_tier ) : ?>
 						<?php
 						$ffc_identity_field = str_replace( '_hash', '', (string) ( $ffc_identity_item['identifier_column'] ?? '' ) );
 						?>
@@ -1196,9 +1221,14 @@ $ffc_identity_tier_note = static function ( $tier ) {
 									<span class="ffc-identity-card-said"><?php echo esc_html( $ffc_identity_kind ); ?></span>
 								</p>
 								<p class="description ffc-identity-card-verb-note">
-									<?php esc_html_e( 'Move it to the account it belongs to, or split it onto an account of its own.', 'ffcertificate' ); ?>
+									<?php if ( IdentityQueue::TIER_MAILBOX === $ffc_identity_tier ) : ?>
+										<?php esc_html_e( 'One decision per identifier, and the two are exclusive: move these records to the account that already belongs to this person, or split them onto a new account. Read what the shared account submitted before either — the records may legitimately be its own.', 'ffcertificate' ); ?>
+									<?php else : ?>
+										<?php esc_html_e( 'Move it to the account it belongs to, or split it onto an account of its own.', 'ffcertificate' ); ?>
+									<?php endif; ?>
 								</p>
-							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-2xs">
+							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-set-mb-2xs"
+								id="ffc-relink-form-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
 								<?php wp_nonce_field( IdentityResolutionPage::RELINK_NONCE . (string) $ffc_identity_move ); ?>
 								<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::RELINK_ACTION ); ?>">
 								<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
@@ -1279,6 +1309,42 @@ $ffc_identity_tier_note = static function ( $tier ) {
 								// part of either name. So the hash moves into
 								// the name rather than out of it.
 								?>
+								<?php if ( IdentityQueue::TIER_MAILBOX === $ffc_identity_tier ) : ?>
+									<?php
+									// THE ACKNOWLEDGEMENT IS ON THE MOVE, NOT ON THE SPLIT.
+									//
+									// It sits on the verb that cannot be undone. After a
+									// split the records are alone on an account nobody else
+									// uses, so a wrong split is still a group somebody can
+									// move onward; after a move they are mixed with another
+									// person's and telling the two apart stops being
+									// possible from the data -- the same reason the merge
+									// refuses a disagreement rather than warning about one.
+									//
+									// The split needs none: the address it makes the
+									// operator type is already its deliberateness gate,
+									// which is what `IdentitySplit`'s own docblock argues.
+									//
+									// `required` is safe although the form can be barred,
+									// because it is barred by `disabled` and a disabled
+									// control is exempt from constraint validation -- the
+									// #1114 rule, relied on here rather than re-derived.
+									?>
+									<?php
+									// NO CLASS, DELIBERATELY. Not one `.ffc-identity-`
+									// rule exists in any stylesheet -- this screen is
+									// wp-admin's own styling plus the shared spacing
+									// utilities -- so naming a class here would mean the
+									// first such rule, a sheet to put it in and an enqueue
+									// to reach it, for a checkbox's margin. If it renders
+									// cramped, that is a measurement away from being a
+									// real change rather than a guess.
+									?>
+									<label>
+										<input type="checkbox" required name="ffc_acknowledged" value="1">
+										<?php esc_html_e( 'HR confirmed these records are this person’s, not the shared account’s.', 'ffcertificate' ); ?>
+									</label>
+								<?php endif; ?>
 								<button type="submit" class="button button-secondary"
 									id="ffc-relink-go-<?php echo esc_attr( (string) $ffc_identity_move ); ?>">
 									<?php esc_html_e( 'Move', 'ffcertificate' ); ?>
@@ -1287,6 +1353,12 @@ $ffc_identity_tier_note = static function ( $tier ) {
 									</span>
 								</button>
 								<span class="ffc-identity-chosen" id="ffc-relink-chosen-<?php echo esc_attr( (string) $ffc_identity_move ); ?>" hidden></span>
+								<?php if ( IdentityQueue::TIER_MAILBOX === $ffc_identity_tier ) : ?>
+									<?php // Shown by the address field, which bars this verb rather than the other way round -- see the split form below for why the precedence is inverted here. ?>
+									<span class="ffc-identity-move-barred description" hidden>
+										<?php esc_html_e( 'An address for a new account is typed, so splitting takes precedence: a split can still be corrected afterwards and a move cannot. Clear the address to move instead.', 'ffcertificate' ); ?>
+									</span>
+								<?php endif; ?>
 							</form>
 							<?php // Only the split goes when the capability is absent: moving is the other verb on this identifier and stays available. ?>
 							<?php if ( $ffc_identity_may_split ) : ?>
@@ -1313,8 +1385,32 @@ $ffc_identity_tier_note = static function ( $tier ) {
 								// finding reports both identifiers sharing the
 								// address the existing account already uses.
 								?>
+								<?php
+								// ON THE SHARED MAILBOX THE PRECEDENCE IS INVERTED, DELIBERATELY.
+								//
+								// Everywhere else, choosing a destination bars the split:
+								// two destinations for one set of records is a mistake the
+								// form should not express, and which half yields is
+								// arbitrary there. Here it is not arbitrary. A split leaves
+								// the records alone on a fresh account, so a wrong one is
+								// still correctable; a move mixes them into somebody else's
+								// and the data can no longer separate them. So the address
+								// bars the move, and `data-ffc-prefer-split` is what tells
+								// the search dialog to leave this split alone when a
+								// destination is picked.
+								//
+								// The capability edge closes itself: this whole form is
+								// inside `if ( $ffc_identity_may_split )`, so an operator
+								// who cannot split has no address field, nothing bars the
+								// move, and the precedence cannot strand them.
+								?>
 								<input type="email" size="22" required
 									id="ffc-split-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
+									<?php if ( IdentityQueue::TIER_MAILBOX === $ffc_identity_tier ) : ?>
+									data-ffc-prefer-split="1"
+									data-ffc-move="ffc-relink-form-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
+									data-ffc-move-submit="ffc-relink-go-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
+									<?php endif; ?>
 									name="ffc_email" placeholder="<?php esc_attr_e( 'New account e-mail', 'ffcertificate' ); ?>">
 								<button type="submit" class="button button-secondary">
 									<?php esc_html_e( 'Split off', 'ffcertificate' ); ?>
@@ -1333,20 +1429,6 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							<?php endif; ?>
 							</div>
 						<?php endforeach; ?>
-					<?php elseif ( IdentityQueue::TIER_MAILBOX === $ffc_identity_tier ) : ?>
-						<?php
-						// A COLUMN THAT SAYS WHY IT IS EMPTY, NOT AN EMPTY COLUMN.
-						//
-						// The verbs are withheld by decision rather than by a
-						// missing capability, so the operator is told which
-						// question the screen cannot answer and where the
-						// answer lives. The account link sits in the card's
-						// own header, which is why there is no second one
-						// here.
-						?>
-						<span class="description">
-							<?php esc_html_e( 'Nothing is offered here on purpose: correcting would rewrite a number that may be somebody else\'s, and splitting would detach records from an account that may legitimately hold them. Open the account, read what it submitted, and decide with HR.', 'ffcertificate' ); ?>
-						</span>
 					<?php else : ?>
 						<span class="description">
 							<?php esc_html_e( 'Open the account — this one is not decided here.', 'ffcertificate' ); ?>
@@ -1356,10 +1438,13 @@ $ffc_identity_tier_note = static function ( $tier ) {
 			</div>
 		<?php endforeach; ?>
 		</div>
-		<?php if ( IdentityQueue::TIER_MAILBOX !== $ffc_identity_this_tier ) : ?>
-			<?php // The three verbs, under the two panels that offer them. The mailbox panel offers none, so explaining them there would describe buttons that are not on the screen. ?>
+		<?php // The verbs, under every panel that offers any. The mailbox panel offers two of the three, so its own sentence follows this one. ?>
 			<p class="description">
 				<?php esc_html_e( 'Consolidating writes the account\'s sound identifier over the mistyped one across every store that holds it. Moving sends the records carrying one identifier to another account — allowed only where the two already agree on the other identifier, and where the receiving account holds none of that kind it gains this one. Splitting creates an account for one identifier and moves its records there — it asks for an address because there is none to inherit, and it removes the account again if the move refuses. All of them run as a single transaction, rolled back whole if any part refuses, and none shows a stored number.', 'ffcertificate' ); ?>
+			</p>
+		<?php if ( IdentityQueue::TIER_MAILBOX === $ffc_identity_this_tier ) : ?>
+			<p class="description">
+				<?php esc_html_e( 'Consolidating is not offered on this panel: it rewrites one identifier into another, and where the identifiers belong to different people that writes one person’s number onto another person’s records. Moving and splitting both leave every number as it is. Where an address for a new account is typed, splitting takes precedence over moving — a split leaves the records alone on a fresh account and stays correctable, while a move mixes them into another person’s and the data can no longer separate them.', 'ffcertificate' ); ?>
 			</p>
 		<?php endif; ?>
 		<?php $ffc_identity_foot(); ?>

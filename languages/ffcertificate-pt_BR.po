@@ -22795,9 +22795,6 @@ msgstr "Os números desta conta compartilham um endereço e não são variantes 
 msgid "This account holds %1$s %2$s under one address, and they are not variants of each other. One address on that many numbers does not identify one person, so this is a shared mailbox or an account submitting for other people — which of the two, only the account itself says."
 msgstr "Esta conta tem %1$s %2$s sob um único endereço, e eles não são variantes uns dos outros. Um endereço com essa quantidade de números não identifica uma pessoa: é uma caixa postal compartilhada ou uma conta que envia por outras pessoas — qual das duas, só a própria conta diz."
 
-msgid "Nothing is offered here on purpose: correcting would rewrite a number that may be somebody else's, and splitting would detach records from an account that may legitimately hold them. Open the account, read what it submitted, and decide with HR."
-msgstr "Nada é oferecido aqui de propósito: corrigir reescreveria um número que pode ser de outra pessoa, e separar desvincularia registros de uma conta que pode legitimamente tê-los. Abra a conta, leia o que ela enviou e decida com o RH."
-
 msgid "The newer login is usually the accidental one — it exists because the resolver failed to match. What each holds and when it was last used is below; the choice is yours."
 msgstr "O login mais novo costuma ser o acidental — ele existe justamente porque o resolvedor não conseguiu casar os dados. O que cada um tem e quando foi usado pela última vez está abaixo; a escolha é sua."
 
@@ -22829,3 +22826,19 @@ msgstr "Resolvê-los exige a permissão de identidades, que esta conta não tem.
 
 msgid "Everything this migration may decide on its own is done. What is listed above is not."
 msgstr "Tudo o que esta migração pode decidir sozinha está feito. O que está listado acima, não."
+
+msgid "One decision per identifier, and the two are exclusive: move these records to the account that already belongs to this person, or split them onto a new account. Read what the shared account submitted before either — the records may legitimately be its own."
+msgstr "Uma decisão por identificador, e as duas se excluem: mova estes registros para a conta que já pertence a esta pessoa, ou separe-os em uma conta nova. Leia o que a conta compartilhada enviou antes de qualquer uma das duas — os registros podem legitimamente ser dela."
+
+msgid "HR confirmed these records are this person’s, not the shared account’s."
+msgstr "O RH confirmou que estes registros são desta pessoa, não da conta compartilhada."
+
+msgid "An address for a new account is typed, so splitting takes precedence: a split can still be corrected afterwards and a move cannot. Clear the address to move instead."
+msgstr "Um endereço para uma conta nova foi digitado, então separar tem precedência: uma separação ainda pode ser corrigida depois e uma mudança não. Limpe o endereço para mover em vez disso."
+
+msgid "Consolidating is not offered on this panel: it rewrites one identifier into another, and where the identifiers belong to different people that writes one person’s number onto another person’s records. Moving and splitting both leave every number as it is. Where an address for a new account is typed, splitting takes precedence over moving — a split leaves the records alone on a fresh account and stays correctable, while a move mixes them into another person’s and the data can no longer separate them."
+msgstr "Consolidar não é oferecido neste painel: ele reescreve um identificador em outro, e quando os identificadores pertencem a pessoas diferentes isso grava o número de uma pessoa sobre os registros de outra. Mover e separar deixam todos os números como estão. Quando um endereço para uma conta nova é digitado, separar tem precedência sobre mover — uma separação deixa os registros sozinhos em uma conta nova e permanece corrigível, enquanto uma mudança os mistura com os de outra pessoa e os dados não conseguem mais separá-los."
+
+msgid "That move was not confirmed. A shared account's records are moved only once HR has said whose they are, because afterwards they cannot be told apart from the receiving account's."
+msgstr "Aquela mudança não foi confirmada. Os registros de uma conta compartilhada só são movidos depois que o RH disser de quem são, porque depois eles não podem mais ser distinguidos dos da conta que os recebeu."
+
