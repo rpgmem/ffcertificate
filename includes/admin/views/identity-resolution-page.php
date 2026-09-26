@@ -409,7 +409,22 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		case IdentityQueue::TIER_SHARED:
 			return __( 'One number is stored against more than one account. That is a merge, not a correction: the decision is which account survives.', 'ffcertificate' );
 		case IdentityQueue::TIER_MAILBOX:
-			return __( 'The numbers on this account share one address and are not variants of each other, so the address does not identify one person — a shared mailbox, or an account submitting on behalf of others. No verb is offered here: read the account and decide with HR.', 'ffcertificate' );
+			// THIS SENTENCE DENIED THE BUTTONS SITTING NEXT TO IT (#1461).
+			//
+			// It ended by stating that no verb was offered here and that the
+			// operator should read the account and decide with HR -- true
+			// while the tier was classified and then refused every verb.
+			// #1461 gave it two, and four releases went by
+			// with the panel telling the operator not to act while the cards
+			// beside it offered move and split -- found in a screenshot of the
+			// shipped screen, where the denial and the two buttons are visible
+			// in one frame.
+			//
+			// `with HR` survives because it is still true and is the load
+			// bearing half: the move makes the operator tick an
+			// acknowledgement that HR confirmed whose the records are. What
+			// goes is the claim that there is nowhere to put that answer.
+			return __( 'The numbers on this account share one address and are not variants of each other, so the address does not identify one person — a shared mailbox, or an account submitting on behalf of others. The decision is per number and it is made with HR: each one moves to the account it belongs to, or splits onto a new one.', 'ffcertificate' );
 		default:
 			return __( 'The check digits do not single one out — none fails, or more than one does. Confirm with HR which number is this person\'s.', 'ffcertificate' );
 	}
