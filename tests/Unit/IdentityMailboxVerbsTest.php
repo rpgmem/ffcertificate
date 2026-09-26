@@ -137,6 +137,28 @@ class IdentityMailboxVerbsTest extends TestCase {
 				. ' cannot be undone is a single click.'
 		);
 
+		// THE CLASS, BECAUSE IT SHIPPED WITHOUT ONE AND THAT WAS VISIBLE.
+		//
+		// #1461 left the label bare on a comment asserting that no
+		// `.ffc-identity-` rule existed to put beside it; there are 152, and
+		// the search that said otherwise had failed rather than found
+		// nothing. Rendered, the checkbox sat on the first line and the
+		// sentence ran the width of the verb column, across the button below.
+		// Asserted here rather than left to the eye, since the defect was
+		// invisible to every gate and visible in the first screenshot.
+		$this->assertStringContainsString(
+			'class="ffc-identity-ack"',
+			$view,
+			'The acknowledgement label lost its class, so nothing gives it an alignment or a measure and its sentence'
+				. ' runs over the control beneath it.'
+		);
+
+		$this->assertStringContainsString(
+			'.ffc-identity-ack',
+			(string) file_get_contents( __DIR__ . '/../../assets/css/ffc-admin.css' ),
+			'The class is emitted with no rule to receive it, which is the state that shipped and rendered broken.'
+		);
+
 		$split = strpos( $view, 'IdentityResolutionPage::SPLIT_NONCE' );
 		$this->assertNotFalse( $split, 'The split form is gone.' );
 

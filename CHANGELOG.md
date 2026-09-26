@@ -7,6 +7,12 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The shared-mailbox acknowledgement ran over the button beneath it** (#1461): the label shipped with no class, on a comment asserting that not one `.ffc-identity-` rule existed anywhere to put beside it. There are **152**, in `ffc-admin.css`, and they were there the whole time — the search that said otherwise had **failed** rather than found nothing, and an error read as a clean result is the one mistake this screen's own guards exist to make impossible. Bare, the checkbox sat on the first line while the sentence ran the full width of the verb column. It now has an alignment and a measure, asserted rather than left to the eye.
+
+- **The fields in the verb column were short beside the buttons they sit next to** (#1421): the 44px touch target went on `.button` alone, so a 44px button stood beside a ~30px wp-admin input and the row read as misaligned — the buttons looked oversized when it was the fields that were short. The mockup draws both at 44, and a control that commits a write should not be more reachable than the field that tells it what to write.
+
 ### Added
 
 - **The shared-mailbox tier can be worked, instead of being told to decide with HR and given nowhere to put the answer** (#1461): an account holding several unrelated identifiers under one address was classified into its own tier and offered no verb at all. #1368 withheld all three for a harm it named precisely — *verbs that would write one person's number onto another person's records* — which describes **consolidate**, and neither of the others: a move touches no number and a split creates an account nobody else uses. So consolidate stays absent and the other two return. They were never unreachable, either: both handlers are tier-agnostic, so what was removed was the buttons. The two are exclusive per identifier, and where both are supplied **splitting wins** — a wrong split leaves the records alone on a fresh account and stays correctable, while a move mixes them into another person's and the data can no longer separate them, which is the merge's own reasoning applied here. The move therefore carries an acknowledgement, enforced server-side and not only by `required`; the split does not, because the address it makes the operator type is already its deliberateness gate.

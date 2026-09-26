@@ -1806,6 +1806,46 @@ p.ffc-datetime-order-error {
     padding-bottom: var(--ffc-spacing-2xs);
 }
 
+/* THE ACKNOWLEDGEMENT NEEDS A MEASURE, OR IT CROSSES THE BUTTON BELOW IT.
+
+   The shared-mailbox move asks the operator to tick a box before it writes
+   (#1461), and the label shipped with no class at all -- on a comment
+   claiming no `.ffc-identity-` rule existed to put beside it. There are 152,
+   in this file. Bare, the checkbox sat on the first line while the sentence
+   ran the full width of the verb column and over the control beneath.
+
+   `flex-start` rather than `center` because the text wraps to two lines and
+   a centred box would float against the middle of them; `max-width` in `em`
+   because what a sentence needs is a measure in characters, which is the
+   same reason the column itself is sized in `em` above. */
+.ffc-page-identities .ffc-identity-ack {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ffc-spacing-2xs);
+    max-width: 22em;
+    line-height: 1.5;
+}
+
+/* The box keeps its own size and stops stretching to the text's line box,
+   which is what `align-items: flex-start` alone leaves it doing. */
+.ffc-page-identities .ffc-identity-ack input[type="checkbox"] {
+    flex-shrink: 0;
+    margin-top: 0.2em;
+}
+
+/* THE FIELDS MATCH THE BUTTONS THEY SIT BESIDE (#1421 completed).
+
+   The 44px above went on `.button` alone, so a 44px button stood next to a
+   ~30px wp-admin input and the row read as misaligned -- the buttons looked
+   oversized when it was the fields that were short. The mockup draws both at
+   44, and a target that commits a write is not more reachable than the field
+   that tells it what to write. */
+.ffc-page-identities .ffc-identity-card-act input[type="text"],
+.ffc-page-identities .ffc-identity-card-act input[type="email"],
+.ffc-page-identities .ffc-identity-card-act input[type="number"] {
+    min-height: 44px;
+}
+
 /* WEIGHT IS THE ONE THING THE PROMOTION CANNOT BORROW.
 
    Everything else about these buttons is already wp-admin's: the mockup's
