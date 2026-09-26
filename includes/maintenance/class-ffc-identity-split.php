@@ -15,7 +15,10 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Maintenance;
 
 use FreeFormCertificate\Core\ActivityLog;
+use FreeFormCertificate\Core\ArrayValue;
 use FreeFormCertificate\Core\DataSanitizer;
+use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\SubmitterName;
 use FreeFormCertificate\Repositories\UserProfileRepository;
 use WP_Error;
 
@@ -23,6 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement here targets the plugin's own ffc_* tables, for which WordPress exposes no API, and the answer must reflect the live rows: a proposal built from a cached read would name an address the records no longer carry.
 /**
  * Give records of their own to somebody who has no account.
  */
@@ -175,6 +179,251 @@ class IdentitySplit {
 	}
 
 	/**
+	 * Where a name lives in each store, because it is not the same place.
+	 *
+	 * `ffc_self_scheduling_appointments` and `ffc_recruitment_candidate` each
+	 * declare a plain `name varchar(255)`. `ffc_submissions` does not declare a
+	 * name column at all -- the name sits inside the answers under a per-form
+	 * key, which is what {@see SubmitterName} exists to resolve.
+	 *
+	 * So the select list differs per store, and a single query shape over all
+	 * three would name a column two of them do not have. The register is here
+	 * to be read rather than composed -- the two statements are written out in
+	 * `proposal()`, so nothing interpolates a column name into SQL.
+	 *
+	 * @var array<string, array<int, string>>
+	 */
+	private const NAME_COLUMNS = array(
+		'ffc_submissions'                  => array( 'data', 'data_encrypted' ),
+		'ffc_self_scheduling_appointments' => array( 'name' ),
+		'ffc_recruitment_candidate'        => array( 'name' ),
+	);
+
+	/**
+	 * Every store a split's records can sit in.
+	 *
+	 * The same three {@see IdentityRelink} moves, and deliberately its own
+	 * constant rather than a read of that one: what this reads is columns the
+	 * move never touches, so a store could legitimately be here and not there.
+	 *
+	 * @var array<int, string>
+	 */
+	private const STORES = array(
+		'ffc_submissions',
+		'ffc_self_scheduling_appointments',
+		'ffc_recruitment_candidate',
+	);
+
+	/**
+	 * The address a split could derive, and the names to show beside it (#1480).
+	 *
+	 * WHY THIS EXISTS AT ALL, GIVEN `split()` ARGUES THE OPPOSITE.
+	 *
+	 * That method's docblock says the operator must supply the address because
+	 * "every typo finding the production audit carries reports `shared_email`"
+	 * -- both identifiers under the address the existing account already uses,
+	 * so there is nothing to inherit. That was measured and is still nearly
+	 * true: 37 of 38 findings on the 2026-09-26 audit. It simply does not
+	 * describe the 38th.
+	 *
+	 * Where the verdict is `distinct_emails`, each identifier HAS its own
+	 * address, and asking the operator to type one they can already see is
+	 * where a typo enters. `ffc_submissions` stores `email_encrypted` beside
+	 * `email_hash`, so the address is recoverable -- there is something to
+	 * inherit after all.
+	 *
+	 * THE MACHINE'S TEST IS THE IDENTIFIER AND THE ADDRESS. NOT THE NAME.
+	 *
+	 * Two discordant elements, both with a hash, neither needing a decrypt to
+	 * compare. The name is returned as EVIDENCE for the operator's
+	 * confirmation, never as a condition, and that is not a shortcut: two
+	 * people in a school system share a name often, and one person's name is
+	 * spelled two ways across two submissions -- accent, abbreviation, married
+	 * name. So a differing name is not proof of two people and a matching one
+	 * is not proof of one, while the address is the discriminator the queue
+	 * already reasons with (#1345).
+	 *
+	 * It reads and decrypts; it writes nothing, and it proposes rather than
+	 * decides -- the caller still passes an address to {@see self::split()},
+	 * which re-checks validity and `email_exists()` at write time.
+	 *
+	 * @since 6.30.0
+	 * @param string $hash  The stored hash whose records would get their own account.
+	 * @param string $field `rf` or `cpf`; which column the hash sits in.
+	 * @return array{email: string, reason: string, names: array<int, string>}
+	 */
+	public function proposal( string $hash, string $field = 'rf' ): array {
+		global $wpdb;
+
+		$out = array(
+			'email'  => '',
+			'reason' => 'none',
+			'names'  => array(),
+		);
+
+		$hash = trim( $hash );
+
+		if ( '' === $hash || ! in_array( $field, self::FIELDS, true ) ) {
+			return $out;
+		}
+
+		$column  = $field . '_hash';
+		$ciphers = array();
+		$names   = array();
+
+		foreach ( self::STORES as $suffix ) {
+			$table = $wpdb->prefix . $suffix;
+
+			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) {
+				continue;
+			}
+
+			// TWO LITERAL STATEMENTS, NOT ONE BUILT FROM A COLUMN LIST.
+			//
+			// The select list is per store, and composing it would mean
+			// interpolating into SQL -- safe here, since the list is this
+			// class's own constant and never request data, but it would need a
+			// suppression to say so. There are exactly two shapes, so writing
+			// both out costs three lines and needs no annotation at all.
+			$found = 'ffc_submissions' === $suffix
+				? $wpdb->get_results(
+					$wpdb->prepare(
+						'SELECT email_hash, email_encrypted, data, data_encrypted FROM %i WHERE %i = %s',
+						$table,
+						$column,
+						$hash
+					),
+					ARRAY_A
+				)
+				: $wpdb->get_results(
+					$wpdb->prepare(
+						'SELECT email_hash, email_encrypted, name FROM %i WHERE %i = %s',
+						$table,
+						$column,
+						$hash
+					),
+					ARRAY_A
+				);
+
+			foreach ( (array) $found as $row ) {
+				$row = (array) $row;
+
+				// KEYED BY THE HASH, so "how many addresses" is answered without
+				// decrypting anything: the count that decides is a count of
+				// hashes, and only the survivor is ever deciphered.
+				$email_hash = ArrayValue::string( $row, 'email_hash' );
+				$cipher     = ArrayValue::string( $row, 'email_encrypted' );
+
+				if ( '' !== $email_hash && '' !== $cipher ) {
+					$ciphers[ $email_hash ] = $cipher;
+				}
+
+				$name = self::name_in( $row, $suffix );
+
+				if ( '' !== $name && ! in_array( $name, $names, true ) ) {
+					$names[] = $name;
+				}
+			}
+		}
+
+		$out['names'] = $names;
+
+		if ( array() === $ciphers ) {
+			return $out;
+		}
+
+		// MORE THAN ONE ADDRESS IS NOT A PROPOSAL.
+		//
+		// The same rule the agreement uses for an identifier: two values do not
+		// say which one the new account gets, and picking would invent an
+		// answer. It is also the shape that says these rows are not one
+		// person's, which is a different finding rather than a split.
+		if ( count( $ciphers ) > 1 ) {
+			$out['reason'] = 'several';
+
+			return $out;
+		}
+
+		$email = $this->decrypt( (string) reset( $ciphers ) );
+
+		if ( null === $email || '' === trim( (string) $email ) ) {
+			// An address nobody can read is not an address. Saying so beats
+			// proposing an empty field that looks like "there is none".
+			$out['reason'] = 'unreadable';
+
+			return $out;
+		}
+
+		$email = DataSanitizer::normalize_email( (string) $email );
+
+		if ( '' === $email || ! is_email( $email ) ) {
+			$out['reason'] = 'unreadable';
+
+			return $out;
+		}
+
+		// ALREADY AN ACCOUNT'S ADDRESS MEANS THE VERB IS A MOVE.
+		//
+		// `split()` refuses this at write time anyway, and would be right to.
+		// Reported here it is actionable instead: the destination exists, so the
+		// records go to it rather than to a new login.
+		if ( email_exists( $email ) ) {
+			$out['reason'] = 'taken';
+
+			return $out;
+		}
+
+		$out['email']  = $email;
+		$out['reason'] = '';
+
+		return $out;
+	}
+
+	/**
+	 * The name on one row, from wherever that store keeps it.
+	 *
+	 * @param array<mixed, mixed> $row   The row.
+	 * @param string              $store Unprefixed table name.
+	 * @return string
+	 */
+	private function name_in( array $row, string $store ): string {
+		if ( 'ffc_submissions' !== $store ) {
+			return trim( ArrayValue::string( $row, 'name' ) );
+		}
+
+		// THE ENCRYPTED COPY FIRST, because it is the one kept current: the
+		// plaintext `data` column is what installs held before the answers were
+		// encrypted, and a row carrying both has the ciphertext as the answer.
+		$cipher = ArrayValue::string( $row, 'data_encrypted' );
+
+		if ( '' !== $cipher ) {
+			$plain = $this->decrypt( $cipher );
+
+			if ( null !== $plain ) {
+				$answers = json_decode( (string) $plain, true );
+
+				if ( is_array( $answers ) ) {
+					return SubmitterName::from( $answers );
+				}
+			}
+		}
+
+		$answers = json_decode( ArrayValue::string( $row, 'data' ), true );
+
+		return is_array( $answers ) ? SubmitterName::from( $answers ) : '';
+	}
+
+	/**
+	 * Decryption as a seam, so a proposal can be driven without a key.
+	 *
+	 * @param string $cipher Stored ciphertext.
+	 * @return string|null
+	 */
+	protected function decrypt( string $cipher ): ?string {
+		return class_exists( Encryption::class ) ? Encryption::decrypt( $cipher ) : null;
+	}
+
+	/**
 	 * Create the account, with the role every FFC account gets.
 	 *
 	 * No welcome mail is sent, deliberately: this runs from a maintenance
@@ -255,3 +504,4 @@ class IdentitySplit {
 		return new IdentityRelink();
 	}
 }
+// phpcs:enable WordPress.DB.DirectDatabaseQuery

@@ -22870,3 +22870,18 @@ msgstr "Registros com dois valores — recusado"
 
 msgid "The records you selected carry %1$s separate values for %2$s, so they are not all one person's — and the account they would land under cannot make them so, even where it agrees with one of those values. Narrow the selection to the records carrying a single %2$s and move them on their own."
 msgstr "Os registros que você selecionou têm %1$s valores distintos de %2$s, então não são todos da mesma pessoa — e a conta para a qual eles iriam não muda isso, mesmo quando concorda com um desses valores. Reduza a seleção aos registros que têm um único %2$s e mova só eles."
+
+msgid "That address is the one these records carry, filled in for you — check it and change it if HR says otherwise."
+msgstr "Esse endereço é o que estes registros carregam, preenchido para você — confira e altere se o RH disser outra coisa."
+
+msgid "They are recorded under: %s."
+msgstr "Eles estão registrados sob: %s."
+
+msgid "These records carry more than one address, so none of them can be the new account's — two values do not say which. Confirm with HR which person these records belong to."
+msgstr "Estes registros carregam mais de um endereço, então nenhum deles pode ser o da conta nova — dois valores não dizem qual. Confirme com o RH a qual pessoa estes registros pertencem."
+
+msgid "The address these records carry already belongs to an account, so it cannot open a new one — move the records to that account instead of splitting."
+msgstr "O endereço que estes registros carregam já pertence a uma conta, então ele não pode abrir outra — mova os registros para essa conta em vez de separar."
+
+msgid "These records carry an address this could not read, so nothing was filled in. That is not the same as carrying none — confirm it with HR rather than assuming there is no address."
+msgstr "Estes registros carregam um endereço que isto não conseguiu ler, então nada foi preenchido. Isso não é o mesmo que não carregar nenhum — confirme com o RH em vez de supor que não há endereço."

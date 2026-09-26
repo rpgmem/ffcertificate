@@ -22779,3 +22779,18 @@ msgstr ""
 
 msgid "The records you selected carry %1$s separate values for %2$s, so they are not all one person's — and the account they would land under cannot make them so, even where it agrees with one of those values. Narrow the selection to the records carrying a single %2$s and move them on their own."
 msgstr ""
+
+msgid "That address is the one these records carry, filled in for you — check it and change it if HR says otherwise."
+msgstr ""
+
+msgid "They are recorded under: %s."
+msgstr ""
+
+msgid "These records carry more than one address, so none of them can be the new account's — two values do not say which. Confirm with HR which person these records belong to."
+msgstr ""
+
+msgid "The address these records carry already belongs to an account, so it cannot open a new one — move the records to that account instead of splitting."
+msgstr ""
+
+msgid "These records carry an address this could not read, so nothing was filled in. That is not the same as carrying none — confirm it with HR rather than assuming there is no address."
+msgstr ""

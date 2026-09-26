@@ -11,6 +11,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - Identity resolution: a merge or relink refused because one side carries **two** values for an identifier no longer reports it as the two sides holding *different* values. They often hold the same one — it is what paired them in the queue — and the old sentence sent operators to compare two identical numbers. The refusal now names the account and how many values it holds, and the search column gets its own badge for it (#1477)
 - Identity resolution: correcting a mistyped RF or CPF is no longer refused as a "merge" when the right value already belongs to another account. It is not a merge — no record moves and no account is absorbed — so it is allowed once the operator acknowledges it, and the two accounts then appear under "Two accounts, one number" where the merge is decided. The refusal had deadlocked pairs where the merge in turn needed one value per account (#1478)
+- Identity resolution: where a finding's records carry an address of their own, the split now fills it in and shows the names on those records, instead of asking an operator to type an address they can already see. The test is identifier **plus** address — two discordant elements, both hashed; the name is evidence for the confirmation, never a condition, since two people share a name and one person's is spelled two ways (#1480)
+- One list decides which answer key holds a person's name. It had been written at five sites and two of them were missing `participante`, including the one that sets `display_name` — so a form keyed that way had its name shown on every admin screen while the account created from it got none (#1480)
 
 ### Changed
 
