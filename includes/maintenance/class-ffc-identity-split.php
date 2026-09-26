@@ -179,27 +179,6 @@ class IdentitySplit {
 	}
 
 	/**
-	 * Where a name lives in each store, because it is not the same place.
-	 *
-	 * `ffc_self_scheduling_appointments` and `ffc_recruitment_candidate` each
-	 * declare a plain `name varchar(255)`. `ffc_submissions` does not declare a
-	 * name column at all -- the name sits inside the answers under a per-form
-	 * key, which is what {@see SubmitterName} exists to resolve.
-	 *
-	 * So the select list differs per store, and a single query shape over all
-	 * three would name a column two of them do not have. The register is here
-	 * to be read rather than composed -- the two statements are written out in
-	 * `proposal()`, so nothing interpolates a column name into SQL.
-	 *
-	 * @var array<string, array<int, string>>
-	 */
-	private const NAME_COLUMNS = array(
-		'ffc_submissions'                  => array( 'data', 'data_encrypted' ),
-		'ffc_self_scheduling_appointments' => array( 'name' ),
-		'ffc_recruitment_candidate'        => array( 'name' ),
-	);
-
-	/**
 	 * Every store a split's records can sit in.
 	 *
 	 * The same three {@see IdentityRelink} moves, and deliberately its own
@@ -278,13 +257,21 @@ class IdentitySplit {
 				continue;
 			}
 
-			// TWO LITERAL STATEMENTS, NOT ONE BUILT FROM A COLUMN LIST.
+			// TWO LITERAL STATEMENTS, BECAUSE A NAME IS NOT IN THE SAME PLACE
+			// IN ALL THREE STORES.
 			//
-			// The select list is per store, and composing it would mean
-			// interpolating into SQL -- safe here, since the list is this
-			// class's own constant and never request data, but it would need a
-			// suppression to say so. There are exactly two shapes, so writing
-			// both out costs three lines and needs no annotation at all.
+			// `ffc_self_scheduling_appointments` and `ffc_recruitment_candidate`
+			// each declare a plain `name varchar(255)`. `ffc_submissions`
+			// declares no name column at all -- the name sits inside the answers
+			// under a per-form key, which is what {@see SubmitterName} resolves.
+			// So one statement over all three would name a column two of them do
+			// not have.
+			//
+			// Written out rather than composed from a column list: the list would
+			// be this class's own constant and safe to interpolate, but it would
+			// need a suppression to say so, and a constant that only DOCUMENTS
+			// the shapes is one nothing reads -- which is what level 9 reported
+			// when the first draft kept it. The two statements are the register.
 			$found = 'ffc_submissions' === $suffix
 				? $wpdb->get_results(
 					$wpdb->prepare(
