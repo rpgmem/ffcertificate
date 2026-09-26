@@ -782,6 +782,36 @@ class IdentityResolutionPage {
 
 		check_admin_referer( self::RELINK_NONCE . $subject );
 
+		// THE ACKNOWLEDGEMENT IS CHECKED HERE, NOT ONLY IN THE BROWSER.
+		//
+		// A shared-mailbox move is the one movement on this screen that cannot
+		// be undone by another movement: afterwards the records are mixed with
+		// the receiving account's and the data no longer separates them. So the
+		// operator ticks a box saying HR confirmed whose they are, and a box
+		// enforced only by the `required` attribute is a box a form that skips
+		// the browser never sends.
+		//
+		// The tier is read off the posted key, which is UNTRUSTED -- and that is
+		// proportionate rather than sloppy, said plainly so nobody has to guess
+		// whether it was considered. Forging the key skips a deliberateness
+		// gate and nothing else: the capability check above already decides who
+		// may move records at all, and a holder of it can move the same records
+		// from any other panel with no box to tick. What the gate buys is that
+		// the honest operator cannot do this one by reflex. Deriving the tier
+		// from the data instead would cost a query on every move to guard
+		// against somebody the capability already admits.
+		if ( $this->mailbox_move_needs_acknowledgement() ) {
+			$this->report(
+				new WP_Error(
+					'ffc_identity_relink_unacknowledged',
+					__( 'That move was not confirmed. A shared account\'s records are moved only once HR has said whose they are, because afterwards they cannot be told apart from the receiving account\'s.', 'ffcertificate' )
+				),
+				''
+			);
+
+			return;
+		}
+
 		$result = $this->movements()->relink(
 			$subject,
 			(int) RequestInput::get_post_string( 'ffc_account', '0' ),
@@ -793,6 +823,26 @@ class IdentityResolutionPage {
 			$result,
 			__( 'Moved. The records, the identity index and the receiving account\'s certificate access were updated together.', 'ffcertificate' )
 		);
+	}
+
+	/**
+	 * Whether this move is a shared-mailbox one that arrived unconfirmed.
+	 *
+	 * Only that panel renders the box, so only a key naming that tier is
+	 * required to carry it -- a move from any other panel is unaffected and
+	 * posts nothing.
+	 *
+	 * @since 6.29.1
+	 * @return bool True when the acknowledgement is required and absent.
+	 */
+	private function mailbox_move_needs_acknowledgement(): bool {
+		$key = RequestInput::get_post_string( 'ffc_key', '' );
+
+		if ( 0 !== strpos( $key, IdentityQueue::TIER_MAILBOX . IdentityQueue::KEY_SEPARATOR ) ) {
+			return false;
+		}
+
+		return '' === RequestInput::get_post_string( 'ffc_acknowledged', '' );
 	}
 
 	/**
@@ -1124,7 +1174,14 @@ class IdentityResolutionPage {
 	 * @return void
 	 */
 	public function render_page(): void {
-		if ( ! current_user_can( self::CAPABILITY ) ) {
+		// `current_user_can_admin_or`, like the other eleven gates in this
+		// file -- this one was the exception, and the exception locked people
+		// out. FFC admin caps are no longer granted to the native
+		// `administrator` role (see `Loader::ensure_admin_capabilities()`);
+		// they arrive through `ffc_administrator`. So an administrator who
+		// does not carry that role failed this check with no fallback, on the
+		// one screen whose every other gate would have let them in.
+		if ( ! Capabilities::current_user_can_admin_or( self::CAPABILITY ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ) );
 		}
 
@@ -1145,7 +1202,11 @@ class IdentityResolutionPage {
 		$ffc_identity_panels    = IdentityQueuePanels::build(
 			$ffc_identity_findings,
 			self::cursors(),
-			self::listed()
+			self::listed(),
+			// The capped checks reach the panels, so each one can say whether
+			// ITS count is a total: the page-level banner speaks about the
+			// scan, and a count is per category (#1466).
+			$ffc_identity_capped
 		);
 
 		// THE CSV IS OFFERED ONLY TO SOMEBODY WHO CAN ACTUALLY HAVE IT.

@@ -22222,9 +22222,6 @@ msgstr ""
 msgid "A split needs a valid e-mail address for the new account."
 msgstr ""
 
-msgid "Consolidating writes the account's sound identifier over the mistyped one across every store that holds it. Moving sends the records carrying one identifier to another account — allowed only where the two already agree on the other identifier, and where the receiving account holds none of that kind it gains this one. Splitting creates an account for one identifier and moves its records there — it asks for an address because there is none to inherit, and it removes the account again if the move refuses. All of them run as a single transaction, rolled back whole if any part refuses, and none shows a stored number."
-msgstr ""
-
 msgid "Creates the account an identity split moves records onto — args ( null, email ), returns a user id or WP_Error. A filter rather than a direct call because the split and the single account-creation path are in modules that would otherwise depend on each other. It deliberately does NOT resolve the identifier first: the identifier resolves to the account the records are being taken off."
 msgstr ""
 
@@ -22665,9 +22662,6 @@ msgid_plural "%s resolved since this queue was read"
 msgstr[0] ""
 msgstr[1] ""
 
-msgid "Move it to the account it belongs to, or split it onto an account of its own."
-msgstr ""
-
 msgid "submissions"
 msgstr ""
 
@@ -22698,13 +22692,7 @@ msgstr[1] ""
 msgid "One address, several people"
 msgstr ""
 
-msgid "The numbers on this account share one address and are not variants of each other, so the address does not identify one person — a shared mailbox, or an account submitting on behalf of others. No verb is offered here: read the account and decide with HR."
-msgstr ""
-
 msgid "This account holds %1$s %2$s under one address, and they are not variants of each other. One address on that many numbers does not identify one person, so this is a shared mailbox or an account submitting for other people — which of the two, only the account itself says."
-msgstr ""
-
-msgid "Nothing is offered here on purpose: correcting would rewrite a number that may be somebody else's, and splitting would detach records from an account that may legitimately hold them. Open the account, read what it submitted, and decide with HR."
 msgstr ""
 
 msgid "The newer login is usually the accidental one — it exists because the resolver failed to match. What each holds and when it was last used is below; the choice is yours."
@@ -22737,4 +22725,39 @@ msgid "Resolving them needs the identity capability, which this account does not
 msgstr ""
 
 msgid "Everything this migration may decide on its own is done. What is listed above is not."
+msgstr ""
+
+msgid "HR confirmed these records are this person’s, not the shared account’s."
+msgstr ""
+
+msgid "An address for a new account is typed, so splitting takes precedence: a split can still be corrected afterwards and a move cannot. Clear the address to move instead."
+msgstr ""
+
+msgid "That move was not confirmed. A shared account's records are moved only once HR has said whose they are, because afterwards they cannot be told apart from the receiving account's."
+msgstr ""
+
+msgid "Read what it submitted before either route: the records may legitimately be its own."
+msgstr ""
+
+msgid "To an account that already exists"
+msgstr ""
+
+msgid "Or to a new account"
+msgstr ""
+
+msgid "Every action on this screen runs as a single transaction, rolled back whole if any part of it refuses, and none of them shows a stored number."
+msgstr ""
+
+msgid "Consolidating is not offered on this panel: it rewrites one identifier into another, and where the identifiers belong to different people that writes one person’s number onto another person’s records. Moving and splitting both leave every number as it is."
+msgstr ""
+
+msgid "%1$s of at least %2$s"
+msgstr ""
+
+msgid "at least %s finding"
+msgid_plural "at least %s findings"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "The numbers on this account share one address and are not variants of each other, so the address does not identify one person — a shared mailbox, or an account submitting on behalf of others. The decision is per number and it is made with HR: each one moves to the account it belongs to, or splits onto a new one."
 msgstr ""

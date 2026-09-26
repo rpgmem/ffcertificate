@@ -491,9 +491,16 @@ class IdentityQueueTest extends TestCase {
 		$this->assertCount( 3, array_unique( $keys ), 'Two findings must never share a key.' );
 		$this->assertSame(
 			array(
-				IdentityQueue::TIER_MECHANICAL . '|rf_hash|398',
-				IdentityQueue::TIER_SHARED . '|cpf_hash|hashS',
-				IdentityQueue::TIER_ISOLATED . '||hashZ',
+				// The separator is a hyphen because a raw `|` was refused by
+				// the production WAF before the request reached PHP, and a
+				// dot would assemble the `..` traversal signature on the
+				// isolated tier, which names no column. `IdentityQueueKeyTest`
+				// owns that rule; this register is the second detector, and a
+				// separator change fails here too, loudly and in the right
+				// place.
+				IdentityQueue::TIER_MECHANICAL . '-rf_hash-398',
+				IdentityQueue::TIER_SHARED . '-cpf_hash-hashS',
+				IdentityQueue::TIER_ISOLATED . '--hashZ',
 			),
 			$keys
 		);
@@ -528,8 +535,13 @@ class IdentityQueueTest extends TestCase {
 			)
 		)->items();
 
-		$this->assertStringStartsWith( IdentityQueue::TIER_MECHANICAL . '|', $decided[0][ IdentityQueue::COLUMN_KEY ] );
-		$this->assertStringStartsWith( IdentityQueue::TIER_DECISION . '|', $undecided[0][ IdentityQueue::COLUMN_KEY ] );
+		// On the TIER, not on the key's prefix. What this case is about is
+		// which tier each finding landed in; reading that off the cursor key
+		// made the assertion depend on the key's separator, which is a URL
+		// concern and changed when a raw `|` turned out to be refused by the
+		// production WAF. `IdentityQueueKeyTest` owns the key's shape.
+		$this->assertSame( IdentityQueue::TIER_MECHANICAL, $decided[0][ IdentityQueue::COLUMN_TIER ] );
+		$this->assertSame( IdentityQueue::TIER_DECISION, $undecided[0][ IdentityQueue::COLUMN_TIER ] );
 	}
 
 	/**

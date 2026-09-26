@@ -7,7 +7,29 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.29.0] (2026-09-25)
+## [6.29.1] (2026-09-26)
+
+### Added
+
+- **The shared-mailbox tier can be worked** (#1461): an account holding several unrelated identifiers under one address was classified and then offered no verb at all. #1368 withheld all three for a harm that describes **consolidate** alone, so move and split return and consolidate stays absent. They are exclusive per identifier and **splitting wins** where both are supplied — a wrong split stays correctable, a move does not. The move carries an acknowledgement, enforced server-side.
+
+### Fixed
+
+- **Every navigation link on the identity screen was refused before reaching PHP** (#1459): the cursor travelled as `tier|column|subject` and `add_query_arg()` does not encode values, so a raw `|` reached the URL and the production host's WAF answered 403 to every arrow. Percent-encoding was never an option — a WAF decodes before matching — so the separator is a hyphen. Separately, `render_page()` was the one gate of twelve using bare `current_user_can()`, locking out any administrator without `ffc_administrator`.
+
+- **The shared-mailbox path was contradicted by its own screen** (#1368, #1464): the panel's note said no verb was offered there, above the two it offers, for four releases. Underneath, the barring read the typed address through `$.trim`, removed in jQuery 4 — latent under WordPress's bundled 3.7.1, so nothing was red. Every `$.<name>()` the sources call is now looked up on the real bundled jQuery.
+
+- **A capped category counted as though the cap were the total** (#1466): `LIMIT` is 100 per check, so a larger category read `1 of 100` — a floor in the grammar of a total, with the cap reported only in a page-level banner. Each counter now says `of at least`, derived from each finding's own check rather than a tier→check table, which is what makes one capped check qualify all three tiers it feeds.
+
+- **The identity card's action column was sized by everything except its controls** (#1421, #1468): first by the card's prose — **1093px to a paragraph against 303px of controls** — and then by whichever tier it rendered, **719px against 614px**, decided by whether an acknowledgement checkbox was in the form. Both are now declared. Also: controls on one line aligned on the text baseline rather than their boxes, and two fields of one group rendered 199px and 215px because `size` is ignored on `type="number"`.
+
+- **Legacy columns on `ffc_activity_log` could stop the audit trail under a strict `sql_mode`** (#1458): `action_type` is `NOT NULL` with no default and no statement declares it, so `dbDelta` can neither reach nor drop it; under a strict mode — which CI already uses, so CI is stricter than production — every write would fail. It and `submission_id` are relaxed by an explicit `ALTER`. The three columns nothing writes are also dropped, measured both ways: nobody reads them, and production holds **14,062 rows with not one carrying a value**. Each column is counted immediately before it would be dropped, and one row carrying anything calls it off.
+
+### Changed
+
+- **The identity screen says it at the control, not in a paragraph** (#1464): four sentences explaining all three verbs sat under every panel, and a fourth repeated above every identifier — a card with four numbers said it four times. What stays at the panel is the one claim no control can make about the others: every write here is one transaction and none shows a stored number. The two controls are named as what they are, two routes to one destination, and the primary follows whichever holds the decision.
+
+## [6.29.0] (2026-09-25) — `8740373d`
 
 ### Security
 

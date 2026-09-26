@@ -38,6 +38,27 @@ class IdentityQueuePanelsTest extends TestCase {
 	}
 
 	/**
+	 * One finding, carrying the check that produced it.
+	 *
+	 * Separate from `of()` so the tests that predate #1466 keep exercising a
+	 * row with NO check -- which is the shape the conservative branch of
+	 * `capped_panel()` is written for, and it would stop being covered if
+	 * every fixture in this file gained a check.
+	 *
+	 * @param string $tier  The tier.
+	 * @param string $key   The stable key.
+	 * @param string $check The check that produced it.
+	 * @return array<string, mixed>
+	 */
+	private static function from( string $tier, string $key, string $check ): array {
+		return array(
+			IdentityQueue::COLUMN_TIER  => $tier,
+			IdentityQueue::COLUMN_KEY   => $key,
+			IdentityQueue::COLUMN_CHECK => $check,
+		);
+	}
+
+	/**
 	 * A tier with nothing in it is absent, not empty.
 	 *
 	 * The counters above the panels and the panels themselves are the same
@@ -223,5 +244,117 @@ class IdentityQueuePanelsTest extends TestCase {
 
 		$this->assertCount( 1, $panels );
 		$this->assertSame( 1, $panels[0]['total'] );
+	}
+
+	/**
+	 * A count is a floor when the check behind it reached its cap (#1466).
+	 *
+	 * `IdentityQueue::LIMIT` caps each check at 100, so a category holding
+	 * more shows 100 and the counter read `1 of 100` -- a floor printed in the
+	 * grammar of a total. The scan already reported the cap in a banner at the
+	 * top of the page; what did not was the number the operator reads.
+	 */
+	public function test_a_panel_whose_check_was_capped_says_its_count_is_a_floor(): void {
+		$panels = IdentityQueuePanels::build(
+			array( self::from( IdentityQueue::TIER_SHARED, 's1', IdentityQueue::CHECK_SHARED ) ),
+			array(),
+			array(),
+			array( IdentityQueue::CHECK_SHARED )
+		);
+
+		$this->assertTrue( $panels[0]['capped'] );
+	}
+
+	/**
+	 * And is a count when it did not.
+	 *
+	 * The other direction matters as much: a screen that always hedges tells
+	 * an operator nothing, and `worked to zero` stops meaning anything.
+	 */
+	public function test_a_panel_whose_check_returned_everything_says_its_count_is_a_count(): void {
+		$panels = IdentityQueuePanels::build(
+			array( self::from( IdentityQueue::TIER_SHARED, 's1', IdentityQueue::CHECK_SHARED ) ),
+			array(),
+			array(),
+			array( IdentityQueue::CHECK_DIGITS )
+		);
+
+		$this->assertFalse( $panels[0]['capped'] );
+	}
+
+	/**
+	 * ONE CAPPED CHECK QUALIFIES EVERY TIER IT FEEDS, AND IT FEEDS THREE.
+	 *
+	 * This is the case a hand-written tier-to-check table gets wrong, and the
+	 * reason `capped_panel()` reads `COLUMN_CHECK` off the items instead.
+	 * `IdentityQueue::items()` runs `CHECK_MULTIPLE` once and `tiered()` then
+	 * splits its rows into `mechanical`, `decision` and `mailbox` -- so the
+	 * cap is one check's and the dishonesty is three counters'.
+	 */
+	public function test_one_capped_check_qualifies_every_tier_it_feeds(): void {
+		$panels = IdentityQueuePanels::build(
+			array(
+				self::from( IdentityQueue::TIER_MECHANICAL, 'm1', IdentityQueue::CHECK_MULTIPLE ),
+				self::from( IdentityQueue::TIER_DECISION, 'd1', IdentityQueue::CHECK_MULTIPLE ),
+				self::from( IdentityQueue::TIER_MAILBOX, 'x1', IdentityQueue::CHECK_MULTIPLE ),
+				self::from( IdentityQueue::TIER_ISOLATED, 'i1', IdentityQueue::CHECK_DIGITS ),
+			),
+			array(),
+			array(),
+			array( IdentityQueue::CHECK_MULTIPLE )
+		);
+
+		$capped = array();
+
+		foreach ( $panels as $panel ) {
+			$capped[ (string) $panel['tier'] ] = (bool) $panel['capped'];
+		}
+
+		$this->assertSame(
+			array(
+				IdentityQueue::TIER_MECHANICAL => true,
+				IdentityQueue::TIER_ISOLATED   => false,
+				IdentityQueue::TIER_DECISION   => true,
+				IdentityQueue::TIER_MAILBOX    => true,
+			),
+			$capped,
+			'The three tiers `CHECK_MULTIPLE` feeds must all be floors, and the one it does not feed must not be.'
+		);
+	}
+
+	/**
+	 * Nothing capped is nothing qualified, which is the ordinary case.
+	 */
+	public function test_no_capped_check_qualifies_nothing(): void {
+		$panels = IdentityQueuePanels::build(
+			array(
+				self::from( IdentityQueue::TIER_MECHANICAL, 'm1', IdentityQueue::CHECK_MULTIPLE ),
+				self::from( IdentityQueue::TIER_SHARED, 's1', IdentityQueue::CHECK_SHARED ),
+			)
+		);
+
+		foreach ( $panels as $panel ) {
+			$this->assertFalse( $panel['capped'], (string) $panel['tier'] );
+		}
+	}
+
+	/**
+	 * A row carrying no check cannot mark the panel, and that is deliberate.
+	 *
+	 * The alternative -- calling a count a floor because one row lost its
+	 * provenance -- makes every count a floor on the first such row, which
+	 * tells the operator less than the unqualified number did. The cap for the
+	 * scan as a whole is still reported by the page's own banner, which reads
+	 * `truncated()` directly rather than through the panels.
+	 */
+	public function test_a_finding_with_no_check_does_not_mark_the_panel(): void {
+		$panels = IdentityQueuePanels::build(
+			array( self::of( IdentityQueue::TIER_SHARED, 's1' ) ),
+			array(),
+			array(),
+			array( IdentityQueue::CHECK_SHARED )
+		);
+
+		$this->assertFalse( $panels[0]['capped'] );
 	}
 }

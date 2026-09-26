@@ -279,14 +279,102 @@
             .prop('hidden', false);
 
         if ($split.length) {
-            // `disabled` and not merely hidden: a hidden `required` control
-            // blocks the submit against something nobody can see, and only
-            // `disabled` bars a control from constraint validation (#1114).
-            $split.find('input, button').prop('disabled', true);
-            $split.find('.ffc-identity-split-barred').prop('hidden', false);
+            // WHICH HALF YIELDS IS NOT ALWAYS THE SAME HALF.
+            //
+            // Everywhere else, choosing a destination bars the split, because
+            // two destinations for one set of records is a mistake the form
+            // should not express and neither half is safer than the other.
+            //
+            // On the shared-mailbox panel the split declares
+            // `data-ffc-prefer-split`, and then an address already typed wins:
+            // a split leaves the records alone on a fresh account and stays
+            // correctable, while a move mixes them into another person's and
+            // the data can no longer separate them. So the move yields, and
+            // the split is left exactly as the operator filled it.
+            var $address = $split.find('[data-ffc-prefer-split]');
+
+            // `$.trim` was removed in jQuery 4, which the suite binds and WP
+            // will ship: native String.prototype.trim covers the same case on
+            // every version. Two other files in `assets/js` already carry this
+            // note -- it reached here anyway, so a guard now enforces it.
+            if ($address.length && '' !== String($address.val() || '').trim()) {
+                barMove($address);
+            } else {
+                promote(opener.closest('form'), true);
+
+                // `disabled` and not merely hidden: a hidden `required` control
+                // blocks the submit against something nobody can see, and only
+                // `disabled` bars a control from constraint validation (#1114).
+                $split.find('input, button').prop('disabled', true);
+                $split.find('.ffc-identity-split-barred').prop('hidden', false);
+            }
+        } else {
+            // No split form beside it: the move is the only route, so choosing
+            // a destination decides the card outright.
+            promote(opener.closest('form'), true);
         }
 
         close();
+    }
+
+    /**
+     * Move the primary onto the route that now holds the destination.
+     *
+     * THE PRIMARY IS A PROPERTY OF THE STATE, NOT OF THE CARD.
+     *
+     * #1421 withheld it where a card `offers two destinations`, and the
+     * mockup draws one -- which read as a contradiction and is not. The
+     * origin is one and the destination is one; where the origin carries
+     * several records the destination is decided one identifier at a time.
+     * So a card offers two ROUTES to a single destination, and until the
+     * operator picks one nothing is decided: no primary, which is #1421's
+     * card at rest. Once an address is typed or an account chosen, that route
+     * IS the decision, and it takes the primary -- which is the mockup's card
+     * after the choice. The two describe different moments.
+     *
+     * Reversible for the reason `barMove()` is: an address can be emptied
+     * again, and the promotion has to come back with the verb.
+     *
+     * @param {object} $form   The form that now carries the decision.
+     * @param {boolean} chosen Whether that route holds one.
+     */
+    function promote($form, chosen) {
+        $form.find('button[type="submit"]')
+            .toggleClass('button-primary', chosen)
+            .toggleClass('button-secondary', !chosen);
+    }
+
+    /**
+     * Bar the move that belongs to this address field, or release it.
+     *
+     * The mirror of the barring in `apply()`, and it has to be reversible for
+     * a reason that one does not: an address is TYPED, so the operator can
+     * empty it again and must get the move back. A destination, once picked,
+     * is only cleared by reloading.
+     *
+     * @param {object} $address The split form's address input.
+     */
+    function barMove($address) {
+        var $form = $('#' + $address.data('ffcMove'));
+        var $submit = $('#' + $address.data('ffcMoveSubmit'));
+        var typed = '' !== String($address.val() || '').trim();
+
+        if (!$form.length) {
+            return;
+        }
+
+        // The submit and the acknowledgement go, and the search button with
+        // them -- leaving it live would let the dialog write a destination
+        // into a form that cannot be submitted, which reads as a bug.
+        $submit.prop('disabled', typed);
+        $form.find('.ffc-identity-find, [name="ffc_acknowledged"]').prop('disabled', typed);
+        $form.find('.ffc-identity-move-barred').prop('hidden', !typed);
+
+        // The split holds the decision while an address is typed, and gives it
+        // back when the field is emptied -- so both routes are demoted and the
+        // one that still qualifies is promoted, never one without the other.
+        promote($address.closest('form'), typed);
+        promote($form, false);
     }
 
     /**
@@ -332,6 +420,12 @@
         $confirm.off('.ffcIdentitySearch').on('click.ffcIdentitySearch', function (event) {
             event.preventDefault();
             apply();
+        });
+
+        // Delegated, so a panel rendered after boot is covered without a
+        // second call -- the reason `boot()` is idempotent at all.
+        $(document).on('input.ffcIdentitySearch', '[data-ffc-prefer-split]', function () {
+            barMove($(this));
         });
 
         $query.off('.ffcIdentitySearch').on('input.ffcIdentitySearch', function () {

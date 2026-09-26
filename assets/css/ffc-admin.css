@@ -1544,12 +1544,31 @@ p.ffc-datetime-order-error {
     border-radius: var(--ffc-radius-sm);
 }
 
-/* `min-width: 0` because a flex item's default `auto` refuses to shrink below
-   its content, and a hash chip row is content that does not wrap on its own --
-   without it the action column is squeezed off the card instead. */
+/* THE PROSE TAKES WHAT IS LEFT; THE CONTROLS TAKE WHAT THEY NEED.
+
+   `flex: 1 1 auto` gave this column a flex basis of its own MAX-CONTENT -- the
+   sentence on one line -- so the negotiation with the action column was decided
+   by how long a tier's sentence happens to be. Measured in Chromium at 1600px:
+   the shared-mailbox card, whose sentence is the longest on the screen, gave
+   **1093px to the paragraph and 303px to the controls**, which wrapped its two
+   verb groups into a column 657px tall. The decision card, with a short
+   sentence, got 661px of controls in a 226px card. Same markup, same rules,
+   opposite layouts -- and the operator reads the wide one as broken.
+
+   Basis `0` says the paragraph claims no width of its own and takes the
+   remainder, which is what a paragraph should do. The floor replaces the old
+   `min-width: 0`: with basis `0` and nothing to stop it, the column collapses
+   to a letter-per-line ditch at narrower widths (measured: 24px at 900px).
+   18em is wide enough to read and low enough that the groups stack before the
+   card overflows -- no horizontal overflow at 800, 1000, 1200 or 1600px.
+
+   The comment this replaced argued `min-width: 0` was needed because a hash
+   chip row does not wrap; `.ffc-identity-card-hashes` is `flex-wrap: wrap`,
+   so it wraps between chips, and the measurements above are with those chips
+   present. */
 .ffc-page-identities .ffc-identity-card-main {
-    flex: 1 1 auto;
-    min-width: 0;
+    flex: 1 1 0;
+    min-width: 18em;
     display: flex;
     flex-direction: column;
     gap: var(--ffc-spacing-xs);
@@ -1745,9 +1764,30 @@ p.ffc-datetime-order-error {
 
    A browser without `:has()` falls back to the stacked column, which is the
    layout that shipped -- degradation to the status quo, never to a broken
-   one. `ffc-frontend.css` already uses the selector. */
+   one. `ffc-frontend.css` already uses the selector.
+
+   THE BASIS IS DECLARED, BECAUSE `auto` MADE ONE COMPONENT TWO WIDTHS (#1468).
+
+   `auto` resolves to the column's own max-content, and the two tiers that
+   reach this rule do not have the same content: the shared-mailbox move form
+   carries an acknowledgement, which pushes its button onto a second line, so
+   its widest line is the field plus Search while the decision tier's is the
+   field plus Search plus Move. Measured at 1600px and again at 1920: 719px
+   against 614px, **105px apart and stable** -- the same grey column, two
+   widths, decided by whether a checkbox happens to be in the form.
+
+   With a declared basis both negotiate from the same number and come out
+   equal at every width, shrinking together: 338/338 at 800px, 538/538 at
+   1000, 723/723 from 1200 up.
+
+   54em is where the widest tier stops wrapping (its max-content is 719px and
+   54em is 756px at this column's 14px). That number WILL go stale if a label
+   grows, and the failure is the graceful one: the button moves onto its own
+   line, which is what the mailbox tier already does and is not a defect. The
+   guarantee this rule buys is the EQUALITY, which survives; the number only
+   decides where the wrap falls. */
 .ffc-page-identities .ffc-identity-card-act:has( .ffc-identity-card-verb + .ffc-identity-card-verb ) {
-    flex: 0 1 auto;
+    flex: 0 1 54em;
     flex-direction: row;
     flex-wrap: wrap;
     align-items: flex-start;
@@ -1781,8 +1821,26 @@ p.ffc-datetime-order-error {
     padding: 0;
 }
 
-.ffc-page-identities .ffc-identity-card-verb-note {
-    margin: 0 0 var(--ffc-spacing-2xs);
+/* A LABEL PER ROUTE, WHERE A SENTENCE ABOUT BOTH USED TO SIT (#1464).
+
+   `.ffc-identity-card-verb-note` was the sentence explaining move AND split,
+   printed once per identifier -- so a card holding four numbers said it four
+   times. What replaced it names each route on the control that takes it, and
+   the styling follows from that: it is a label for the form beneath it, so it
+   hugs that form (`3xs` below, `2xs` above) and takes the weight of a heading
+   at the size of a caption. Muted rather than `--ffc-text`, because the
+   sentence describing the ACCOUNT is the one to read first.
+
+   No `:first-of-type` exemption for the margin above, and the reason is worth
+   knowing: the group's heading is a `<p>` too, so `:first-of-type` matches IT
+   and never a route -- a rule that would have looked deliberate and done
+   nothing. The heading's own `3xs` collapses against this `2xs` in normal
+   flow, so the first route already sits 4px below it either way. */
+.ffc-page-identities .ffc-identity-card-route {
+    margin: var(--ffc-spacing-2xs) 0 var(--ffc-spacing-3xs);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+    color: var(--ffc-text-muted);
 }
 
 /* The forms came from table cells, where wp-admin's block margin did no harm.
@@ -1804,6 +1862,71 @@ p.ffc-datetime-order-error {
     min-height: 44px;
     padding-top: var(--ffc-spacing-2xs);
     padding-bottom: var(--ffc-spacing-2xs);
+}
+
+/* THE ACKNOWLEDGEMENT NEEDS A MEASURE, OR IT CROSSES THE BUTTON BELOW IT.
+
+   The shared-mailbox move asks the operator to tick a box before it writes
+   (#1461), and the label shipped with no class at all -- on a comment
+   claiming no `.ffc-identity-` rule existed to put beside it. There are 152,
+   in this file. Bare, the checkbox sat on the first line while the sentence
+   ran the full width of the verb column and over the control beneath.
+
+   `flex-start` rather than `center` because the text wraps to two lines and
+   a centred box would float against the middle of them; `max-width` in `em`
+   because what a sentence needs is a measure in characters, which is the
+   same reason the column itself is sized in `em` above. */
+.ffc-page-identities .ffc-identity-ack {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ffc-spacing-2xs);
+    max-width: 22em;
+    line-height: 1.5;
+}
+
+/* The box keeps its own size and stops stretching to the text's line box,
+   which is what `align-items: flex-start` alone leaves it doing. */
+.ffc-page-identities .ffc-identity-ack input[type="checkbox"] {
+    flex-shrink: 0;
+    margin-top: 0.2em;
+}
+
+/* THE FIELDS MATCH THE BUTTONS THEY SIT BESIDE (#1421 completed).
+
+   The 44px above went on `.button` alone, so a 44px button stood next to a
+   ~30px wp-admin input and the row read as misaligned -- the buttons looked
+   oversized when it was the fields that were short. The mockup draws both at
+   44, and a target that commits a write is not more reachable than the field
+   that tells it what to write. */
+/* A BUTTON AND A FIELD ON ONE LINE ALIGN ON THEIR TEXT, NOT ON THEIR BOXES.
+
+   Both are 44px tall and they still did not line up: inline-level controls sit
+   on the text baseline, and a `<button>`'s internal metrics are not an
+   `<input>`'s, so `Buscar…` rendered **5px below** the field beside it. The
+   heights were already equal, which is why this reads as `the boxes and the
+   buttons are different sizes` when nothing is. */
+.ffc-page-identities .ffc-identity-card-act input[type="text"],
+.ffc-page-identities .ffc-identity-card-act input[type="email"],
+.ffc-page-identities .ffc-identity-card-act input[type="number"],
+.ffc-page-identities .ffc-identity-card-act .button {
+    vertical-align: middle;
+}
+
+/* ONE WIDTH FOR BOTH FIELDS, BECAUSE `size` DOES NOT GIVE THEM ONE.
+
+   The move form's field carries `size="6"` and the split form's `size="22"`,
+   and they rendered 199px and 215px: `size` is a character count that the UA
+   ignores entirely on `type="number"`, so the two stacked fields of one group
+   ended 16px apart and nothing below them lined up either.
+
+   14em at this column's 14px is 196px, against the 150px the longest
+   placeholder needs -- measured with the field's own computed font rather than
+   counted in characters, which is the mistake `size` already made here. */
+.ffc-page-identities .ffc-identity-card-act input[type="text"],
+.ffc-page-identities .ffc-identity-card-act input[type="email"],
+.ffc-page-identities .ffc-identity-card-act input[type="number"] {
+    min-height: 44px;
+    width: 14em;
 }
 
 /* WEIGHT IS THE ONE THING THE PROMOTION CANNOT BORROW.

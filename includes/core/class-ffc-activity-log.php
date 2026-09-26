@@ -370,8 +370,18 @@ class ActivityLog {
 	 * -- no CREATE, no ALTER, anywhere in the tree -- since the gates that
 	 * read them arrived in 6.6.4. Bumping this is what reaches an install
 	 * that will never be activated again; see maybe_create_table().
+	 *
+	 * 2.2.0 (#1458): a column on an upgraded install may be `NOT NULL` where
+	 * this statement says nothing or says otherwise, and `dbDelta` did not
+	 * reconcile it -- measured on production, where `action_type` is `NOT
+	 * NULL` with no default and is declared by no statement at all, and
+	 * `submission_id` is `NOT NULL` against a `DEFAULT NULL` here. See
+	 * {@see self::relax_legacy_not_null()}.
+	 *
+	 * 2.3.0 (#1458): the three columns nothing writes are dropped where they
+	 * are provably empty. See {@see self::drop_dead_legacy_columns()}.
 	 */
-	private const DB_VERSION = '2.1.0';
+	private const DB_VERSION = '2.3.0';
 
 	/**
 	 * Create activity log table
@@ -414,7 +424,178 @@ class ActivityLog {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
 
+		// BOTH AFTER `dbDelta`, because they are the half `dbDelta` demonstrably
+		// does not do -- it never drops a column, and it did not reconcile the
+		// nullability. Dropping FIRST so the relax skips a column that has just
+		// left: an absent column is already its no-op.
+		self::drop_dead_legacy_columns();
+		self::relax_legacy_not_null();
+
 		return true;
+	}
+
+	/**
+	 * Columns no code writes, dropped only where they are provably empty.
+	 *
+	 * @var array<int, string>
+	 */
+	private const LEGACY_DEAD = array( 'action_type', 'action_details', 'user_agent' );
+
+	/**
+	 * Drop the dead legacy columns, and refuse on any install that uses them.
+	 *
+	 * MEASURED BEFORE IT WAS WRITTEN, ON BOTH HALVES (#1458).
+	 *
+	 * *Nobody reads them*: `action_type` and `action_details` have zero
+	 * occurrences anywhere under `includes/`, and every `user_agent` hit in the
+	 * tree belongs to another table -- the appointments and rate-limit ones.
+	 *
+	 * *They hold nothing*: on the production install, 14,062 rows and not one
+	 * carrying a value in any of the three. The row total is what makes that a
+	 * measurement rather than an absence -- zero non-empty values over zero
+	 * rows would say nothing.
+	 *
+	 * THE COUNT IS IN THE CODE BECAUSE ONE INSTALL IS NOT EVERY INSTALL.
+	 *
+	 * That reading is one database, and this plugin runs on others. So the
+	 * evidence does not become a memory of the pull request that carried it:
+	 * every column is counted here, immediately before it would be dropped,
+	 * and a single row carrying a value calls the whole thing off for that
+	 * column. On an install where `action_details` holds audit history this
+	 * drops nothing and leaves the columns as they are -- relaxed and inert
+	 * after {@see self::relax_legacy_not_null()} -- which is the only
+	 * acceptable outcome for an LGPD trail that cannot be restored.
+	 *
+	 * `submission_id` is deliberately NOT here. It is a live column the
+	 * statement declares and the queries read; its `NOT NULL` is the relax's
+	 * to fix, not this method's.
+	 *
+	 * @return void
+	 */
+	private static function drop_dead_legacy_columns(): void {
+		global $wpdb;
+
+		$table = $wpdb->prefix . 'ffc_activity_log';
+
+		foreach ( self::LEGACY_DEAD as $column ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- One read of the plugin's own log table on a version bump; `prepare()` with `%i` is exactly what is being used, and a schema reading must not be served from a cache written before the schema changed.
+			$found = $wpdb->get_row( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, $column ), ARRAY_A );
+
+			// Absent is the ordinary case: no `CREATE` in this plugin declares
+			// any of the three, so a fresh install has never had them.
+			if ( ! is_array( $found ) ) {
+				continue;
+			}
+
+			// `<> ''` BESIDE `IS NOT NULL`, because a legacy column is `NOT
+			// NULL` without a default and its rows therefore hold the empty
+			// string rather than NULL -- counting nulls alone would report
+			// every one of those 14,062 rows as carrying a value.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- As above; the count is the evidence gate and must read the table, never a cache.
+			$in_use = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE %i IS NOT NULL AND %i <> %s', $table, $column, $column, '' ) );
+
+			if ( $in_use > 0 ) {
+				continue;
+			}
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- A schema change on the plugin's own log table is the whole point of this method; there is no cache to read a write from, and the identifiers go through `%i`.
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table, $column ) );
+
+			// The names cache is keyed on nothing and memoised for the request,
+			// so a column that just left would still be reported as present.
+			self::clear_column_cache();
+		}
+	}
+
+	/**
+	 * Columns that must accept NULL, and did not on an upgraded install.
+	 *
+	 * `submission_id` is declared `DEFAULT NULL` by the statement above and
+	 * `action_type` is declared by no statement in this plugin at all -- it is
+	 * a leftover from a pre-6.6.4 schema, which `dbDelta` can never drop and
+	 * never touches.
+	 *
+	 * @var array<int, string>
+	 */
+	private const LEGACY_NULLABLE = array( 'action_type', 'submission_id' );
+
+	/**
+	 * Let the legacy columns accept NULL, where the server says they do not.
+	 *
+	 * WHY THIS IS NOT SOMETHING `dbDelta` DOES.
+	 *
+	 * Measured on the production install (#1458): `action_type varchar(50)
+	 * NOT NULL` with **no default**, declared by no statement in this plugin,
+	 * and `submission_id bigint NOT NULL` against the `DEFAULT NULL` the
+	 * statement above declares -- with `ffc_activity_log_db_version` reading
+	 * current, so the healing had run and left both as they were.
+	 *
+	 * Nothing is broken there TODAY, and only because that host's `sql_mode`
+	 * carries no `STRICT_TRANS_TABLES`: `action_type` silently takes `''` on
+	 * every insert. Under a strict mode -- which the CI runner's MariaDB
+	 * already uses, so CI is stricter than production -- every activity-log
+	 * write would fail with `Field 'action_type' doesn't have a default
+	 * value`, and the audit trail would stop recording. A fresh install can
+	 * never reproduce it, because the column is not in any `CREATE`.
+	 *
+	 * IT RELAXES, IT NEVER DROPS. Dropping `action_type`, `action_details` and
+	 * `user_agent` is what #1458 proposes and is NOT done here: no consumer
+	 * reads them (measured -- zero occurrences of the first two anywhere under
+	 * `includes/`, and every `user_agent` hit belongs to another table), but
+	 * "nobody reads it" is not "it is empty", and on a pre-6.6.4 install
+	 * `action_details` may hold audit history. Destroying an LGPD trail needs
+	 * a count from a real install first -- the `cpf_rf_encrypted` shape.
+	 *
+	 * IDEMPOTENT BY READING THE SERVER, not by a flag. A column already
+	 * nullable, or absent, is skipped, so this costs one `SHOW COLUMNS` per
+	 * column on an install that has nothing to fix and can be re-run for free.
+	 * That is also what makes it honest on a fresh install, where neither
+	 * column has the legacy shape.
+	 *
+	 * @return void
+	 */
+	private static function relax_legacy_not_null(): void {
+		global $wpdb;
+
+		$table = $wpdb->prefix . 'ffc_activity_log';
+
+		foreach ( self::LEGACY_NULLABLE as $column ) {
+			// `SHOW COLUMNS` RATHER THAN `get_table_columns_cached()`, which
+			// answers NAMES only (`get_col( 'DESCRIBE …', 0 )`). What decides
+			// this is nullability and the stored type, and neither is in that
+			// answer -- so reusing it would mean reading the wrong thing for
+			// the convenience of a cache this path does not need: it runs on
+			// a version bump, not per request.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- One read of the plugin's own log table on a version bump; `prepare()` with `%i` is exactly what is being used, and a schema reading must not be served from a cache written before the schema changed.
+			$found = $wpdb->get_row( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $table, $column ), ARRAY_A );
+
+			// `ArrayValue::string()` RATHER THAN A CAST, because a row value is
+			// `mixed` and level 9 refuses to cast it -- which is what the row
+			// shapes gate reported on the first push of this method. It is the
+			// idiom `ActivityLogQuery` already uses one file over, so the
+			// narrowing is in one place rather than re-derived per call site.
+			if ( ! is_array( $found ) || 'NO' !== ArrayValue::string( $found, 'Null' ) ) {
+				continue;
+			}
+
+			$type = ArrayValue::string( $found, 'Type' );
+
+			// THE TYPE IS THE SERVER'S ANSWER AND IT IS STILL VALIDATED.
+			//
+			// It cannot be a placeholder -- a column type is not a value, and
+			// `%i` quotes identifiers, not type expressions -- so it is
+			// interpolated, and the only safe way to interpolate is to refuse
+			// anything that is not the shape a type has. A column whose type
+			// this cannot recognise is left exactly as it is: the strict-mode
+			// hazard is worth fixing, and not at the price of composing SQL
+			// out of a string this code did not check.
+			if ( 1 !== preg_match( '/^[a-z]+(\(\d+(,\d+)?\))?( unsigned)?( zerofill)?$/', $type ) ) {
+				continue;
+			}
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- A schema change on the plugin's own log table is the whole point of this method; there is no cache to read a write from; `$type` is matched against the pattern above and the identifiers go through `%i`.
+			$wpdb->query( $wpdb->prepare( "ALTER TABLE %i MODIFY COLUMN %i {$type} NULL DEFAULT NULL", $table, $column ) );
+		}
 	}
 
 	/**
