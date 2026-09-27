@@ -753,6 +753,28 @@ class IdentityRepair {
 	 * opened from a value somebody confirmed, so both add the digit
 	 * explicitly — through this, rather than through a second copy.
 	 *
+	 * IT DELIBERATELY DISAGREES WITH `validate_rf()`, AND THAT IS NOT A BUG TO
+	 * RECONCILE (#1500).
+	 *
+	 * `DocumentFormatter::validate_rf()` requires the check digit only when
+	 * `ffc_validate_rf_check_digit` is on -- off by default -- so the submission
+	 * form admits any seven digits while this always refuses a digit that does
+	 * not agree. Measured on production: 48 stored RFs fail here that the form
+	 * would accept again.
+	 *
+	 * The two answer different questions. This one judges a value ALREADY
+	 * STORED, where a number that cannot be anyone's is worth reporting whatever
+	 * the intake policy was when it arrived. `validate_rf()` applies an
+	 * administrator's policy about what to admit, and the setting exists so an
+	 * institution whose RF scheme carries no check digit can still use the
+	 * plugin.
+	 *
+	 * SO NEVER "FIX" THE DISAGREEMENT BY LOOSENING THIS. That would stop the
+	 * identity queue reporting values it is the only thing that can see. The
+	 * screen says when the two differ instead; the sentence is in
+	 * `includes/admin/views/identity-resolution-page.php`, on the panel that
+	 * lists these findings.
+	 *
 	 * @since 6.28.3
 	 * @param string $field      `rf` or `cpf`.
 	 * @param string $normalized The value, canonicalised.

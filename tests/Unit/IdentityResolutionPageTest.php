@@ -537,8 +537,13 @@ class IdentityResolutionPageTest extends TestCase {
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
 
 		$this->assertStringContainsString( '0 === $ffc_identity_stores', $view, 'No store scanned is its own state.' );
-		$this->assertStringContainsString( '$ffc_identity_examined === $ffc_identity_unreadable', $view, 'Nothing readable is its own state.' );
-		$this->assertStringContainsString( '0 === $ffc_identity_examined', $view, 'Nothing FOUND is its own state, distinct from nothing readable.' );
+		// THESE MOVED TO THE CROSS-COLUMN TOTAL (#1500). The per-column names
+		// still exist inside the coverage strip's loop, so probing them here
+		// would pass on the strip while the empty-queue branches read a
+		// leftover -- which is the defect `test_the_empty_queue_notices_read_every_column`
+		// exists for.
+		$this->assertStringContainsString( "\$ffc_identity_all['examined'] === \$ffc_identity_all['unreadable']", $view, 'Nothing readable is its own state.' );
+		$this->assertStringContainsString( "0 === \$ffc_identity_all['examined']", $view, 'Nothing FOUND is its own state, distinct from nothing readable.' );
 		$this->assertStringContainsString( 'this is not a clean result', $view, 'Both unread states must say so.' );
 
 		// Anchored on the opening of each LITERAL, never on a fragment: a
@@ -552,7 +557,7 @@ class IdentityResolutionPageTest extends TestCase {
 		// it, rendering "0 stored values checked and every one satisfies".
 		$reassuring = strpos( $view, "'Nothing to resolve: %1\$s stored values checked" );
 		$unreadable = strpos( $view, "'Found %s stored values and could not read" );
-		$none_found = strpos( $view, "'No stored RF was found at all" );
+		$none_found = strpos( $view, "'No stored RF or CPF was found at all" );
 
 		$this->assertIsInt( $reassuring );
 		$this->assertIsInt( $unreadable );
@@ -1358,8 +1363,13 @@ class IdentityResolutionPageTest extends TestCase {
 		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
 
-		$this->assertStringContainsString(
-			'$ffc_identity_resolved  = $this->resolved_since( $ffc_identity_taken_at );',
+		// WHITESPACE-INSENSITIVE ON PURPOSE (#1500). This pinned the exact run
+		// of spaces around the `=`, and adding a longer variable name to that
+		// block made `phpcbf` realign it -- so an unrelated change turned this
+		// red for a reason that has nothing to do with what it asserts. A
+		// formatter is allowed to move whitespace; a test must not read it.
+		$this->assertMatchesRegularExpression(
+			'/\$ffc_identity_resolved\s*=\s*\$this->resolved_since\( \$ffc_identity_taken_at \);/',
 			$page,
 			'The count must be measured from when the queue was taken, never from a clock.'
 		);
@@ -1696,5 +1706,128 @@ class IdentityResolutionPageTest extends TestCase {
 			$view,
 			'The unnamed strip needs the verdict that does not name an identifier.'
 		);
+	}
+
+	/**
+	 * THE PANEL SAYS WHEN THE FORM STILL ADMITS A WRONG RF (#1500).
+	 *
+	 * The queue and the submission form disagree about a valid RF:
+	 * `IdentityRepair::well_formed()` is `validate_rf() &&
+	 * rf_check_digit_matches()`, so the `&&` always requires the digit, while
+	 * the form judges by `validate_rf()` alone -- which requires it only when
+	 * `ffc_validate_rf_check_digit` is on. Off by default. So an operator can
+	 * work the panel to zero and watch it refill.
+	 *
+	 * ASSERTED ON BOTH STATES, because a notice that renders unconditionally is
+	 * the same defect as a coverage strip that always reads clean: it stops
+	 * being a measurement and becomes decoration. The wording is not asserted --
+	 * it is translated, and what has to keep being true is that it is *gated*.
+	 */
+	public function test_the_panel_says_when_the_form_still_admits_a_wrong_rf(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$gate   = strpos( $view, 'if ( ! $ffc_identity_rf_gate ) {' );
+		$notice = strpos( $view, 'New wrong RFs can still arrive' );
+
+		$this->assertIsInt( $gate, 'The notice must be gated on the measured setting, never printed unconditionally.' );
+		$this->assertIsInt( $notice, 'The panel must carry the sentence.' );
+		$this->assertGreaterThan( $gate, $notice, 'The sentence must sit inside the gate, not beside it.' );
+
+		// AND THE FLAG IS RESOLVED BY THE PAGE, NOT BY THE VIEW. `views/` is
+		// markup by convention -- the reason it is carved out of PHPStan and of
+		// the coverage scope -- so a settings read there would put logic in the
+		// one directory that is excused from being checked.
+		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
+
+		// NOT ASSERTED WITH THE ALIGNMENT SPACES. The first version pinned the
+		// exact run of spaces around the `=`, and `phpcbf` realigned the block
+		// on the next run and turned the test red -- a formatter is allowed to
+		// move whitespace, so an assertion that reads it is asserting the wrong
+		// thing. Two fragments instead, neither of which a reformat can touch.
+		$this->assertMatchesRegularExpression(
+			'/\$ffc_identity_rf_gate\s*=\s*SettingsReader::get_bool\(/',
+			$page,
+			'The page must resolve the flag and hand it to the view.'
+		);
+
+		$this->assertStringContainsString(
+			"SettingsReader::get_bool( 'validate_rf_check_digit', false )",
+			$page,
+			'It must read that setting, defaulting to off as the plugin does.'
+		);
+
+		$this->assertStringNotContainsString(
+			'SettingsReader',
+			$view,
+			'The view must not read a setting itself; it is markup, and that is why it is carved out of the gates.'
+		);
+	}
+
+	/**
+	 * THE EMPTY-QUEUE NOTICES READ BOTH COLUMNS, NOT A LOOP LEFTOVER (#1500).
+	 *
+	 * Those three branches were written when coverage was one flat record, and
+	 * #1499 moved the counters inside a per-column loop without moving them.
+	 * After the loop they hold whichever column ran LAST, so on production --
+	 * RF 3,014 values, CPF 12,705 -- an empty queue reported 12,705 as the whole
+	 * reading and called it "RF".
+	 *
+	 * No test caught it because the fixtures supply ONE column, and with one
+	 * column the leftover happens to be the right answer. That is the trap this
+	 * file already records for the missing `ffc_field`: the test exercised the
+	 * path that was already right.
+	 */
+	public function test_the_empty_queue_notices_read_every_column(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$aggregate = strpos( $view, '$ffc_identity_all = array(' );
+		$loop      = strpos( $view, 'foreach ( $ffc_identity_coverage as $ffc_identity_column => $ffc_identity_read ) :' );
+
+		$this->assertIsInt( $aggregate, 'The view must total the coverage across columns.' );
+		$this->assertLessThan( $loop, $aggregate, 'The total must be taken before the per-column loop, not from its leftovers.' );
+
+		// `stores` is a MAX and the other two are SUMS: the same tables are
+		// probed per column, so adding them would claim six where there are
+		// three, while "something was scanned" is true if ANY column found one.
+		$this->assertStringContainsString(
+			"\$ffc_identity_all['stores']      = max( \$ffc_identity_all['stores'],",
+			$view,
+			'Stores must not be summed across columns -- the same tables are probed for each.'
+		);
+
+		foreach ( array(
+			"0 === \$ffc_identity_all['stores']",
+			"\$ffc_identity_all['examined'] > 0 && \$ffc_identity_all['examined'] === \$ffc_identity_all['unreadable']",
+			"0 === \$ffc_identity_all['examined']",
+		) as $branch ) {
+			$this->assertStringContainsString(
+				$branch,
+				$view,
+				sprintf( 'An empty-queue branch must read the total, not one column: %s', $branch )
+			);
+		}
+
+		// The per-column counters must no longer be read after the strip's loop.
+		//
+		// ANCHORED ON THAT LOOP'S OWN `endforeach`, never on the first one in
+		// the file: without the offset this landed on an unrelated loop some
+		// 1,500 lines earlier, so the "tail" it searched included the strip
+		// itself and the test failed on a legitimate use. A probe has to be
+		// anchored to the construct it is about.
+		//
+		// The closing tag is NOT written in this comment, and that is not
+		// fussiness: a `//` comment ends at a PHP close tag, so quoting the
+		// searched-for literal here terminated PHP mode mid-sentence and made
+		// the `endforeach` below a parse error. `CLAUDE.md` records the same
+		// fact for suppression scanners; it bites prose just as hard.
+		$tail = substr( $view, (int) strpos( $view, '<?php endforeach; ?>', $loop ) );
+
+		foreach ( array( '$ffc_identity_examined', '$ffc_identity_unreadable', '$ffc_identity_stores' ) as $leftover ) {
+			$this->assertStringNotContainsString(
+				$leftover,
+				$tail,
+				sprintf( 'A per-column counter is still read after the loop, which is the #1499 defect: %s', $leftover )
+			);
+		}
 	}
 }

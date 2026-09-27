@@ -22164,20 +22164,11 @@ msgstr "As linhas foram reescritas mas o índice de identidade recusou o mesmo v
 msgid "Stored RF Corrected"
 msgstr "RF armazenado corrigido"
 
-msgid "Nothing was scanned: no store on this install carries an RF in a form this check can read, which needs the hash, the ciphertext and a row id on the same table. This is not a clean result."
-msgstr "Nada foi varrido: nenhum store desta instalação guarda um RF numa forma que esta checagem consiga ler, o que exige o hash, o ciphertext e um id de linha na mesma tabela. Isto não é um resultado limpo."
-
 msgid "Found %s stored values and could not read any of them, so nothing was checked. That is what an encryption key which does not match this data looks like — this is not a clean result."
 msgstr "Foram encontrados %s valores armazenados e nenhum deles pôde ser lido, então nada foi checado. É assim que se parece uma chave de criptografia que não corresponde a estes dados — isto não é um resultado limpo."
 
 msgid "Nothing to resolve: %1$s stored values checked and every one satisfies its check digit. %2$s could not be read and were not checked."
 msgstr "Nada a resolver: %1$s valores armazenados checados e todos satisfazem seu dígito verificador. %2$s não puderam ser lidos e não foram checados."
-
-msgid "No stored RF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured an RF yet — worth looking into on one that has."
-msgstr "Nenhum RF armazenado foi encontrado: nenhum dos %s stores varridos tem uma linha com hash e ciphertext ao mesmo tempo, então não havia o que checar. Comum numa instalação que ainda não capturou nenhum RF — merece investigação numa que já capturou."
-
-msgid "A stored RF whose own check digit does not match, and which no account-side finding above explains: somebody mistyped once on their only row, or the row belongs to a candidacy that carries no account until promotion. The correct value comes from HR."
-msgstr "Um RF armazenado cujo dígito verificador não confere e que nenhum achado por conta acima explica: alguém digitou errado uma única vez na sua única linha, ou a linha pertence a uma candidatura que não carrega conta até a promoção. O valor correto vem do RH."
 
 msgid "Accounts and stored numbers that do not agree with each other, sorted by how much of the answer is already known. The check digits are what sort them: they can say a number is wrong, and never what the right one is. Identifiers are shown as a hash prefix — the values are decrypted in memory to be checked and none of them leaves the scan."
 msgstr "Contas e números armazenados que não concordam entre si, ordenados por quanto da resposta já se conhece. Quem os ordena são os dígitos verificadores: eles dizem que um número está errado, nunca qual é o certo. Os identificadores aparecem como prefixo de hash — os valores são decifrados em memória para a checagem e nenhum deles sai da varredura."
@@ -22915,3 +22906,20 @@ msgstr "A varredura de %s leu os dados"
 #: includes/settings/views/ffc-tab-migrations.php:992
 msgid "Stored RF or CPF whose check digit does not match"
 msgstr "RF ou CPF armazenado cujo dígito verificador não confere"
+
+#: includes/admin/views/identity-resolution-page.php:1810
+msgid "A stored RF or CPF whose own check digit does not match, and which no account-side finding above explains: somebody mistyped once on their only row, or the row belongs to a candidacy that carries no account until promotion. The correct value comes from HR."
+msgstr "Um RF ou CPF armazenado cujo dígito verificador não confere e que nenhum achado por conta acima explica: alguém digitou errado uma única vez na sua única linha, ou a linha pertence a uma candidatura que não carrega conta até a promoção. O valor correto vem do RH."
+
+#: includes/admin/views/identity-resolution-page.php:1839
+msgid "New wrong RFs can still arrive: the submission form currently accepts any seven digits, because the RF check-digit requirement is off. Correcting the values below does not close that door — Settings → General turns it on. It does not affect CPF, which is always checked on submission."
+msgstr "Novos RFs errados ainda podem chegar: o formulário de envio aceita hoje quaisquer sete dígitos, porque a exigência do dígito verificador de RF está desligada. Corrigir os valores abaixo não fecha essa porta — Configurações → Geral liga a exigência. Não afeta o CPF, que é sempre checado no envio."
+
+#: includes/admin/views/identity-resolution-page.php:1864
+msgid "Nothing was scanned: no store on this install carries an RF or a CPF in a form this check can read, which needs the hash, the ciphertext and a row id on the same table. This is not a clean result."
+msgstr "Nada foi varrido: nenhum store desta instalação guarda um RF ou um CPF numa forma que esta checagem consiga ler, o que exige o hash, o ciphertext e um id de linha na mesma tabela. Isto não é um resultado limpo."
+
+#. translators: %s: how many stores were scanned.
+#: includes/admin/views/identity-resolution-page.php:1904
+msgid "No stored RF or CPF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured one yet — worth looking into on one that has."
+msgstr "Nenhum RF ou CPF armazenado foi encontrado: nenhum dos %s stores varridos tem uma linha com hash e ciphertext ao mesmo tempo, então não havia o que checar. Comum numa instalação que ainda não capturou nenhum — merece investigação numa que já capturou."

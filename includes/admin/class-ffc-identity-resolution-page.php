@@ -27,6 +27,7 @@ use FreeFormCertificate\Maintenance\IdentityOrphanQuery;
 use FreeFormCertificate\Maintenance\IdentityRecordNames;
 use FreeFormCertificate\Maintenance\IdentityRelink;
 use FreeFormCertificate\Maintenance\IdentitySplit;
+use FreeFormCertificate\Settings\SettingsReader;
 use FreeFormCertificate\Maintenance\IdentityRepair;
 use FreeFormCertificate\Maintenance\IdentityWorklist;
 use WP_Error;
@@ -1263,11 +1264,23 @@ class IdentityResolutionPage {
 		// `queue()` FIRST: the three readings below are properties of the list
 		// it just resolved, and asking for them before it would answer about
 		// no list at all.
-		$ffc_identity_findings  = $this->queue();
-		$ffc_identity_coverage  = $this->coverage();
-		$ffc_identity_capped    = $this->truncated();
-		$ffc_identity_taken_at  = $this->taken_at();
-		$ffc_identity_resolved  = $this->resolved_since( $ffc_identity_taken_at );
+		$ffc_identity_findings = $this->queue();
+		$ffc_identity_coverage = $this->coverage();
+		$ffc_identity_capped   = $this->truncated();
+		$ffc_identity_taken_at = $this->taken_at();
+		$ffc_identity_resolved = $this->resolved_since( $ffc_identity_taken_at );
+		// WHETHER THE SUBMISSION FORM STILL ADMITS A WRONG RF (#1500).
+		//
+		// Resolved HERE rather than in the view, which is markup by convention --
+		// the reason `includes/admin/views` is carved out of PHPStan and of the
+		// coverage scope. It is also what makes the flag testable without
+		// reading the view's source.
+		//
+		// `well_formed()` is `validate_rf() && rf_check_digit_matches()`, so the
+		// queue always requires the digit; the form requires it only when this
+		// setting is on. The two are not meant to agree -- see the view, where
+		// the sentence is -- but the screen has to say when they do not.
+		$ffc_identity_rf_gate   = SettingsReader::get_bool( 'validate_rf_check_digit', false );
 		$ffc_identity_may_split = Capabilities::current_user_can_admin_or( self::SPLIT_CAPABILITY );
 		$ffc_identity_may_merge = Capabilities::current_user_can_admin_or( self::MERGE_CAPABILITY );
 		$ffc_identity_panels    = IdentityQueuePanels::build(
