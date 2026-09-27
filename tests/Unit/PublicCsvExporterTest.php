@@ -404,6 +404,17 @@ class PublicCsvExporterTest extends TestCase {
 		Functions\when( 'FreeFormCertificate\Frontend\header' )->justReturn( null );
 		Functions\when( 'FreeFormCertificate\Frontend\status_header' )->justReturn( null );
 		Functions\when( 'FreeFormCertificate\Frontend\nocache_headers' )->justReturn( null );
+		// THIS IS NOT THE SUITE'S BUDGET GUARD, AND #1493 FIRST READ IT AS ONE.
+		//
+		// It looked like somebody had recognised the execution-time problem for
+		// the frontend exporter and missed it for `Core\BatchedCsvExport`.
+		// Measured, the two calls are not the same thing: this one is
+		// `set_time_limit( 0 )`, which REMOVES a limit and is harmless in a test
+		// process, and it is stubbed only because this block stubs everything the
+		// success body touches. The `Core` one is `set_time_limit( 60 )`, which
+		// capped the rest of the suite -- handled by
+		// `Support\SuiteCpuBudget`, a hook, because one test remembering is what
+		// failed here.
 		Functions\when( 'FreeFormCertificate\Frontend\set_time_limit' )->justReturn( true );
 		Functions\when( 'FreeFormCertificate\Frontend\wp_raise_memory_limit' )->justReturn( true );
 		Functions\when( 'FreeFormCertificate\Frontend\get_the_title' )->justReturn( 'Stream Form' );

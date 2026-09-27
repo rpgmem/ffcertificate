@@ -7,6 +7,22 @@
     convertNoticesToExceptions="true"
     convertWarningsToExceptions="true"
     >
+    <!--
+        THE SUITE'S EXECUTION-TIME BUDGET IS NOT PRODUCT CODE'S TO SET (#1493).
+
+        `Core\BatchedCsvExport::handle_batch()` calls the real
+        `set_time_limit( 60 )`, correctly for one HTTP request and disastrously
+        for a single process running 8,800 tests: from `BatchedCsvExportTest`
+        onwards the rest of the suite shared a budget a test had set on the way
+        past. The hook resets it before every test.
+
+        Registered HERE and not called from `tests/bootstrap.php`, which would
+        not work: `set_time_limit()` restarts the counter, so the last caller
+        wins and bootstrap runs first.
+    -->
+    <extensions>
+        <extension class="FreeFormCertificate\Tests\Support\SuiteCpuBudget"/>
+    </extensions>
     <testsuites>
         <testsuite name="unit">
             <directory suffix="Test.php">./tests/Unit</directory>

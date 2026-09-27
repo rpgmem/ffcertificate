@@ -25,6 +25,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Identity resolution: the "Numbers to correct" panel says when the submission form still accepts a wrong RF, so correcting the list no longer looks like it closes the door. The two rules differ on purpose — the queue always requires the check digit, the form requires it only when the setting is on — and the screen now states which, instead of leaving the panel to refill unexplained (#1500)
 - Identity resolution: the empty-queue notices count both identifiers. They read a leftover from the per-column loop, so an install reading 3,014 RFs and 12,705 CPFs reported the second as the whole scan and called it "RF". One column in the fixtures is why no test saw it (#1500)
 - Identity resolution: the queue says to work the corrections first, and why — a number that fails its own check digit is not evidence that two accounts are one person, so correcting it can make a finding further down disappear rather than be resolved. The sentence existed only as a merge refusal, reached after an operator had already picked a pair (#1498)
+- The test suite no longer inherits an execution-time limit from product code. `BatchedCsvExport::handle_batch()` sets 60 seconds — right for one HTTP request, and a cap on the remaining seven thousand tests in a single process. A PHPUnit hook resets it before every test, and two guards' file reads moved to the shared token reader that does not open a file per call (#1493)
 
 ## [6.30.0] (2026-09-27) — `1cb1a009`
 
