@@ -5,6 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use FreeFormCertificate\Tests\Support\PhpSource;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Recruitment\RecruitmentErrorMessages;
 
@@ -106,6 +107,9 @@ class RecruitmentErrorCodeCoverageTest extends TestCase {
 	/**
 	 * Every module file that can emit a rendered error code.
 	 *
+	 * REPOSITORY-RELATIVE, which is what `PhpSource` speaks and what the filter
+	 * below already had to compute anyway.
+	 *
 	 * @return array<int, string>
 	 */
 	private function sources(): array {
@@ -114,14 +118,17 @@ class RecruitmentErrorCodeCoverageTest extends TestCase {
 
 		$this->assertNotEmpty( $all, 'The module scan found no file at all, so it proves nothing.' );
 
-		return array_values(
-			array_filter(
-				(array) $all,
-				static function ( $path ) use ( $root ) {
-					return self::MAP_FILE !== substr( (string) $path, strlen( $root ) );
-				}
-			)
-		);
+		$out = array();
+
+		foreach ( (array) $all as $path ) {
+			$relative = substr( (string) $path, strlen( $root ) );
+
+			if ( self::MAP_FILE !== $relative ) {
+				$out[] = $relative;
+			}
+		}
+
+		return $out;
 	}
 
 	/**
@@ -141,10 +148,16 @@ class RecruitmentErrorCodeCoverageTest extends TestCase {
 			//
 			// Several files NAME codes in a docblock, and a scan that reads prose
 			// as a directive is the trap `CLAUDE.md` records for the suppression
-			// scanners. `php_strip_whitespace()` removes comments with the same
-			// lexer that runs the file -- the `TranslationCatalogueAgreement` rule
+			// scanners. `PhpSource::code()` removes comments with the same lexer
+			// that runs the file -- the `TranslationCatalogueAgreement` rule
 			// applied here: parse the file with its own language where you can.
-			$code = (string) php_strip_whitespace( $path );
+			//
+			// THROUGH THE SHARED READER, NOT `php_strip_whitespace()` (#1493).
+			// That call opens the file, and Brain\Monkey's Patchwork registers a
+			// stream wrapper over every open -- so twenty files here are twenty
+			// passes through it, charged against a budget a different test set.
+			// `PhpSource::code()` reads the bytes once and tokenises a string.
+			$code = PhpSource::code( $path );
 
 			foreach ( self::RENDERED_SHAPES as $pattern ) {
 				preg_match_all( $pattern, $code, $matches );
@@ -176,13 +189,11 @@ class RecruitmentErrorCodeCoverageTest extends TestCase {
 	 * @return array<int, string>
 	 */
 	private function labelled(): array {
-		$path = dirname( __DIR__, 2 ) . '/' . self::MAP_FILE;
-
-		$this->assertFileExists( $path );
+		$this->assertFileExists( dirname( __DIR__, 2 ) . '/' . self::MAP_FILE );
 
 		preg_match_all(
 			'/\x27(recruitment_csv_[a-z0-9_]+)\x27\s*=>/',
-			(string) php_strip_whitespace( $path ),
+			PhpSource::code( self::MAP_FILE ),
 			$matches
 		);
 
@@ -210,7 +221,7 @@ class RecruitmentErrorCodeCoverageTest extends TestCase {
 
 		$blob = '';
 		foreach ( $this->sources() as $path ) {
-			$blob .= (string) php_strip_whitespace( $path );
+			$blob .= PhpSource::code( $path );
 		}
 
 		$recount = array();
