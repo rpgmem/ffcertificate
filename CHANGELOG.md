@@ -10,6 +10,9 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - Test fixtures now draw their CPF and RF from one standard set, named by person in `tests/Support/Identifiers.php`, with a guard that fails on a stray value. The suite had no standard, which is why a check-digit rule turned 19 tests red over `12345678901` — a CPF nobody had written meaning it to be invalid, and nobody could see was (#1492)
+- Identity resolution: a merge or a move is refused when the identifier the two sides share fails its own check digit. A number that cannot be anyone's is not evidence that two accounts are one person, and the refusal says the correction may dissolve the pair rather than resolve it. A value nobody could decrypt does not refuse — not having read it is not evidence it is wrong (#1491)
+- Identity resolution: the queue's panel order is stated as a dependency — every correction tier above every tier that reads an identifier as evidence — with effort as the tie-break within each half, and a test pinning the partition. The order itself does not change; the rule it was justified by produced it only by coincidence (#1491)
+- The decision of which check-digit rule applies to which identifier exists once. Three sites made it, two with bodies that differed while their docblocks agreed, and one dragged the settings layer into judging a value an operator had confirmed (#1491)
 
 ### Fixed
 

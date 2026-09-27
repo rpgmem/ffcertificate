@@ -81,14 +81,22 @@ class IdentityQueuePanelsTest extends TestCase {
 	}
 
 	/**
-	 * THE ORDER IS THE EFFORT, AND IT IS NOT THE ORDER THE FINDINGS ARRIVE IN.
+	 * THE SCREEN'S ORDER IS NOT THE ORDER THE FINDINGS ARRIVE IN.
 	 *
 	 * `IdentityQueue::items()` composes account-side findings first, then the
-	 * shared ones, then the check-digit failures. The screen offers what the
-	 * digits already decided, then what needs only the right number, then the
-	 * two that need a judgement.
+	 * shared ones, then the check-digit failures. `build()` reorders them into
+	 * `ORDER`, and that is what this pins.
+	 *
+	 * IT NO LONGER CLAIMS TO PIN THE REASON (#1491). It was named
+	 * `…_in_the_order_of_effort`, which was the rule as stated then -- and effort
+	 * turned out to be the tie-break rather than the rule: every CORRECTION tier
+	 * must precede every JUDGEMENT tier, because a merge decided while one side
+	 * carries a wrong number is decided on false evidence. That invariant is
+	 * pinned by `test_every_correction_tier_precedes_every_judgement_tier()`, and
+	 * this case keeps the stricter reading of today's exact list, so a reorder
+	 * within a half is deliberate rather than accidental.
 	 */
-	public function test_panels_come_in_the_order_of_effort(): void {
+	public function test_panels_come_in_the_screens_order_not_the_arrival_order(): void {
 		$panels = IdentityQueuePanels::build(
 			array(
 				self::of( IdentityQueue::TIER_DECISION, 'd1' ),
@@ -356,5 +364,77 @@ class IdentityQueuePanelsTest extends TestCase {
 		);
 
 		$this->assertFalse( $panels[0]['capped'] );
+	}
+
+	// ──────────────────────────────────────────────────────────────────.
+	// The order is a dependency, not a preference (#1491).
+	// ──────────────────────────────────────────────────────────────────.
+
+	/**
+	 * EVERY CORRECTION TIER SITS ABOVE EVERY JUDGEMENT TIER.
+	 *
+	 * A merge decided while one side carries a wrong number is decided on false
+	 * evidence, and correcting can DISSOLVE the finding rather than resolve it.
+	 * The screen's order is how that is communicated, so it is an invariant
+	 * rather than a layout choice.
+	 *
+	 * The rule was stated as EFFORT alone until #1491, and effort produced this
+	 * same order by coincidence. That is what this pins: a cheap-but-judgemental
+	 * tier would rise by the effort rule and break the dependency, and nothing
+	 * would have objected.
+	 *
+	 * Asserted as a partition rather than as a fixed list, so effort stays free
+	 * to reorder WITHIN a half -- which is the half of the rule that still
+	 * governs.
+	 */
+	public function test_every_correction_tier_precedes_every_judgement_tier(): void {
+		$order = array_flip( IdentityQueuePanels::ORDER );
+
+		foreach ( IdentityQueuePanels::CORRECTIONS as $correction ) {
+			$this->assertArrayHasKey( $correction, $order, 'A correction tier must be in the order at all.' );
+
+			foreach ( IdentityQueuePanels::JUDGEMENTS as $judgement ) {
+				$this->assertArrayHasKey( $judgement, $order, 'A judgement tier must be in the order at all.' );
+
+				$this->assertLessThan(
+					$order[ $judgement ],
+					$order[ $correction ],
+					sprintf(
+						'"%s" corrects a number and must be offered before "%s", which reads a number as evidence about people.',
+						$correction,
+						$judgement
+					)
+				);
+			}
+		}
+	}
+
+	/**
+	 * The two halves account for the whole order, with nothing in both.
+	 *
+	 * Without this the case above passes on two empty lists, and it would also
+	 * pass while a new tier sat in neither half -- unclassified, and therefore
+	 * free to be placed anywhere. That is the #1071 / #1094 rule: an empty or
+	 * partial reading must not read as agreement.
+	 */
+	public function test_the_two_halves_partition_the_order(): void {
+		$corrections = IdentityQueuePanels::CORRECTIONS;
+		$judgements  = IdentityQueuePanels::JUDGEMENTS;
+
+		$this->assertNotEmpty( $corrections );
+		$this->assertNotEmpty( $judgements );
+		$this->assertSame( array(), array_intersect( $corrections, $judgements ), 'A tier cannot be both.' );
+
+		$classified = array_merge( $corrections, $judgements );
+		sort( $classified );
+
+		$offered = IdentityQueuePanels::ORDER;
+		sort( $offered );
+
+		$this->assertSame(
+			$offered,
+			$classified,
+			'Every offered tier must be classified as a correction or a judgement, and nothing else may be.'
+		);
 	}
 }

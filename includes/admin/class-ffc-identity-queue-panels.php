@@ -27,15 +27,38 @@ class IdentityQueuePanels {
 	/**
 	 * The tiers, in the order the screen offers them.
 	 *
-	 * ORDERED BY EFFORT, NOT BY TAXONOMY.
+	 * ORDERED BY DEPENDENCY FIRST, AND BY EFFORT WITHIN THAT.
 	 *
-	 * What the check digits already decided comes first, because it costs a
-	 * click and no knowledge. Then the failures that need nothing but the
-	 * right number from HR -- the largest population and the most mechanical
-	 * once the first one is in hand. The two that need a judgement come last,
-	 * and after them the one that cannot be judged from this screen at all:
-	 * the shared mailbox is the only tier offering no verb, so it costs the
-	 * most and belongs at the end of a list ordered by effort.
+	 * Every CORRECTION tier comes before every JUDGEMENT tier, and that is not a
+	 * preference. A merge decided while one side carries a wrong number is
+	 * decided on false evidence, and correcting the number can DISSOLVE the
+	 * finding rather than resolve it -- the two accounts may never have shared
+	 * anything, and the pairing was the typo. So the order is the screen's
+	 * recommendation: work downwards.
+	 *
+	 * Within each half, effort orders them. Among the corrections: what the check
+	 * digits already decided is first, because it costs a click and no knowledge;
+	 * then the failures needing nothing but the right number from HR -- the
+	 * largest population and the most mechanical once the first is in hand; then
+	 * the ones the digits do not single out, which need that number AND a
+	 * judgement. Among the judgements, the shared mailbox is last: it is the only
+	 * tier offering no verb resolvable from this screen alone.
+	 *
+	 * THE RULE USED TO BE STATED AS EFFORT ALONE, AND IT PRODUCED THIS SAME
+	 * ORDER BY COINCIDENCE (#1491). That is the part worth fixing: effort and
+	 * dependency happen to agree today, so a future tier that is cheap and
+	 * judgemental -- a shared mailbox gaining a one-click verb, say -- would rise
+	 * by the stated rule and break the dependency, with the docblock sanctioning
+	 * it. `IdentityQueuePanelsTest` pins the partition, so effort stays free to
+	 * reorder within a half and cannot reorder across it.
+	 *
+	 * The order is a recommendation and NOT a gate: the verbs enforce the
+	 * dependency per finding, which is why a merge whose two sides are clean
+	 * stays available while the correction queue is still full. A global gate was
+	 * considered and refused -- the correction tiers wait on HR answering, so one
+	 * unanswered person would hide every other verb indefinitely, and "the queue
+	 * is empty" never verified that THIS pair was clean, only that everything
+	 * else was.
 	 *
 	 * A tier absent from this list is not shown at all, which is how the
 	 * orphan tier stays out until the query that finds it exists.
@@ -46,6 +69,35 @@ class IdentityQueuePanels {
 		IdentityQueue::TIER_MECHANICAL,
 		IdentityQueue::TIER_ISOLATED,
 		IdentityQueue::TIER_DECISION,
+		IdentityQueue::TIER_SHARED,
+		IdentityQueue::TIER_MAILBOX,
+	);
+
+	/**
+	 * The tiers whose verb corrects a number.
+	 *
+	 * Named so the dependency can be asserted without a test repeating a
+	 * literal list, which would then agree with a reordering that broke it.
+	 *
+	 * @since 6.30.1
+	 * @var array<int, string>
+	 */
+	public const CORRECTIONS = array(
+		IdentityQueue::TIER_MECHANICAL,
+		IdentityQueue::TIER_ISOLATED,
+		IdentityQueue::TIER_DECISION,
+	);
+
+	/**
+	 * The tiers whose verb consumes an identifier as evidence about people.
+	 *
+	 * A merge or a move reads a shared number as *these are one person*, which
+	 * is why every correction belongs above them.
+	 *
+	 * @since 6.30.1
+	 * @var array<int, string>
+	 */
+	public const JUDGEMENTS = array(
 		IdentityQueue::TIER_SHARED,
 		IdentityQueue::TIER_MAILBOX,
 	);
