@@ -24,6 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement here targets the plugin's own ffc_* tables, for which WordPress exposes no API, and a merge must read and write the live rows: a cached answer would be precisely wrong.
 /**
  * Move one account's records onto another the operator chose to keep.
+ *
+ * @phpstan-import-type Agreement from IdentityAgreement
  */
 class IdentityMerge {
 
@@ -203,21 +205,20 @@ class IdentityMerge {
 	 *
 	 * @since 6.30.1
 	 * @param array<string, mixed>              $agreement What `between()` returned.
+	 * @phpstan-param Agreement $agreement
 	 * @param array<string, array<int, string>> $records   Field => the moving side's hashes.
 	 * @return array<string, array<string, string>> Field => hash => a `VERDICT_*`.
 	 */
 	protected function verdicts( array $agreement, array $records ): array {
-		$matches = is_array( $agreement['matches'] ?? null ) ? $agreement['matches'] : array();
-
-		if ( array() === $matches ) {
+		if ( array() === $agreement['matches'] ) {
 			return array();
 		}
 
 		$query = new IdentityConflictQuery();
 		$out   = array();
 
-		foreach ( $matches as $field ) {
-			$held = is_array( $records[ $field ] ?? null ) ? $records[ $field ] : array();
+		foreach ( $agreement['matches'] as $field ) {
+			$held = $records[ $field ] ?? array();
 
 			if ( array() === $held ) {
 				continue;
@@ -260,9 +261,10 @@ class IdentityMerge {
 	 * gains records that now sit behind an unresolved identity.
 	 *
 	 * @since 6.30.0
-	 * @param array{matches: array<int, string>, gaps: array<string, string>, conflicts: array<int, string>, reasons: array<string, string>} $agreement What the rule decided.
-	 * @param int                                                                                                                            $absorbed  The account whose records would move.
-	 * @param array<string, array<int, string>>                                                                                              $theirs    What that account holds, per identifier.
+	 * @param array<string, mixed>              $agreement What the rule decided.
+	 * @phpstan-param Agreement $agreement
+	 * @param int                               $absorbed The account whose records would move.
+	 * @param array<string, array<int, string>> $theirs What that account holds, per identifier.
 	 * @return WP_Error
 	 */
 	private static function refusal( array $agreement, int $absorbed, array $theirs ): WP_Error {

@@ -25,6 +25,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement here targets the plugin's own ffc_* tables, for which WordPress exposes no API, and a relink must read and write the live rows: a cached answer would be precisely wrong.
 /**
  * Move the records carrying one identifier to another account.
+ *
+ * @phpstan-import-type Agreement from IdentityAgreement
  */
 class IdentityRelink {
 
@@ -295,7 +297,7 @@ class IdentityRelink {
 	 * @since 6.28.4
 	 * @param array{identifiers: array<string, array<int, string>>, origin: int} $moving What {@see self::moving()} returned.
 	 * @param int                                                                $target The account under consideration.
-	 * @return array{matches: array<int, string>, gaps: array<string, string>, conflicts: array<int, string>, reasons: array<string, string>}|WP_Error
+	 * @return Agreement|WP_Error
 	 */
 	public function verdict( array $moving, int $target ): array|WP_Error {
 		$unnamed = self::unnamed_target( $target );
@@ -357,21 +359,20 @@ class IdentityRelink {
 	 *
 	 * @since 6.30.1
 	 * @param array<string, mixed>              $agreement What `between()` returned.
+	 * @phpstan-param Agreement $agreement
 	 * @param array<string, array<int, string>> $records   Field => the moving records' hashes.
 	 * @return array<string, array<string, string>> Field => hash => a `VERDICT_*`.
 	 */
 	protected function verdicts( array $agreement, array $records ): array {
-		$matches = is_array( $agreement['matches'] ?? null ) ? $agreement['matches'] : array();
-
-		if ( array() === $matches ) {
+		if ( array() === $agreement['matches'] ) {
 			return array();
 		}
 
 		$query = new IdentityConflictQuery();
 		$out   = array();
 
-		foreach ( $matches as $field ) {
-			$held = is_array( $records[ $field ] ?? null ) ? $records[ $field ] : array();
+		foreach ( $agreement['matches'] as $field ) {
+			$held = $records[ $field ] ?? array();
 
 			if ( array() === $held ) {
 				continue;
@@ -399,8 +400,9 @@ class IdentityRelink {
 	 * correcting the target cannot make a mixed set coherent.
 	 *
 	 * @since 6.30.0
-	 * @param array{matches: array<int, string>, gaps: array<string, string>, conflicts: array<int, string>, reasons: array<string, string>} $agreement What the rule decided.
-	 * @param array<string, array<int, string>>                                                                                              $carried   What the moving rows carry, per identifier.
+	 * @param array<string, mixed>              $agreement What the rule decided.
+	 * @phpstan-param Agreement $agreement
+	 * @param array<string, array<int, string>> $carried What the moving rows carry, per identifier.
 	 * @return WP_Error
 	 */
 	private static function refusal( array $agreement, array $carried ): WP_Error {

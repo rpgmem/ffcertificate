@@ -29,6 +29,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement here targets the plugin's own ffc_* tables, for which WordPress exposes no API, and the answer must reflect the live rows: a cached one would be precisely wrong.
 /**
  * Decide whether two sets of identifiers describe the same person.
+ *
+ * THE VERDICT'S SHAPE IS DECLARED ONCE HERE (#1491).
+ *
+ * It was spelled out inline in five places -- the same long literal in
+ * `between()`, twice in `IdentityRelink` and twice in `IdentityMerge` -- and
+ * `with_unusable()` would have made six. Five copies of a shape is five chances
+ * for one to drift from the others, and PHPStan can only check a consumer
+ * against the shape that consumer declares.
+ *
+ * @phpstan-type Agreement array{matches: array<int, string>, gaps: array<string, string>, conflicts: array<int, string>, reasons: array<string, string>}
  */
 class IdentityAgreement {
 
@@ -119,7 +129,7 @@ class IdentityAgreement {
 	 *
 	 * @param array<string, array<int, string>> $records What the moving rows carry.
 	 * @param array<string, array<int, string>> $account What the target holds.
-	 * @return array{matches: array<int, string>, gaps: array<string, string>, conflicts: array<int, string>, reasons: array<string, string>}
+	 * @return Agreement
 	 */
 	public static function between( array $records, array $account ): array {
 		$matches   = array();
@@ -293,19 +303,25 @@ class IdentityAgreement {
 	 *
 	 * @since 6.30.1
 	 * @param array<string, mixed>                 $agreement What {@see self::between()} returned.
+	 * @phpstan-param Agreement $agreement
 	 * @param array<string, array<int, string>>    $records   Field => the moving side's hashes.
 	 * @param array<string, array<string, string>> $verdicts  Field => hash => a `VERDICT_*`.
-	 * @return array<string, mixed> The agreement, with unusable fields moved.
+	 * @return Agreement The agreement, with unusable fields moved.
 	 */
 	public static function with_unusable( array $agreement, array $records, array $verdicts ): array {
-		$matches   = is_array( $agreement['matches'] ?? null ) ? $agreement['matches'] : array();
-		$conflicts = is_array( $agreement['conflicts'] ?? null ) ? $agreement['conflicts'] : array();
-		$reasons   = is_array( $agreement['reasons'] ?? null ) ? $agreement['reasons'] : array();
+		// NO DEFENSIVE `is_array()` HERE, BECAUSE THE TYPE IS THE GUARANTEE.
+		//
+		// This opened with three of them and PHPStan at level 9 reported each as
+		// `will always evaluate to true` once `Agreement` was declared. A guard
+		// against a state the type forbids is noise that reads as caution, and it
+		// hides the one place a real check belongs: `$records` is a separate
+		// argument the caller assembles, so its lookup keeps its fallback.
+		$conflicts = $agreement['conflicts'];
+		$reasons   = $agreement['reasons'];
+		$kept      = array();
 
-		$kept = array();
-
-		foreach ( $matches as $field ) {
-			$held = is_array( $records[ $field ] ?? null ) ? $records[ $field ] : array();
+		foreach ( $agreement['matches'] as $field ) {
+			$held = $records[ $field ] ?? array();
 			$hash = (string) ( $held[0] ?? '' );
 			$said = (string) ( $verdicts[ $field ][ $hash ] ?? '' );
 
