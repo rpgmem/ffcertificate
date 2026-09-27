@@ -1451,8 +1451,19 @@ class IdentityConflictQueryTest extends TestCase {
 	 * `#1295` argues against, so the signal is a row of its own.
 	 */
 	public function test_a_capped_scan_reports_itself_even_with_no_failures(): void {
+		// THE CAP IS READ, NEVER RESTATED. A literal here is a second copy of
+		// `CHECK_DIGIT_SCAN_LIMIT`, and the two would part company silently:
+		// raising the cap leaves this loop one short of it, the scan finishes,
+		// and the test that exists to prove truncation reports itself passes
+		// having exercised no truncation at all.
+		$cap = ( new \ReflectionClass( IdentityConflictQuery::class ) )
+			->getConstant( 'CHECK_DIGIT_SCAN_LIMIT' );
+
+		$this->assertIsInt( $cap, 'The cap could not be read, so nothing below measures anything.' );
+		$this->assertGreaterThan( 0, $cap );
+
 		$rows = array();
-		for ( $i = 0; $i < 20000; $i++ ) {
+		for ( $i = 0; $i < $cap; $i++ ) {
 			$rows[] = self::scan_row( array( 'subject' => 'hash' . $i ) );
 		}
 
