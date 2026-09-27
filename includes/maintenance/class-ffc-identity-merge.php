@@ -123,6 +123,19 @@ class IdentityMerge {
 
 		$agreement = IdentityAgreement::between( $theirs, $ours );
 
+		// A SHARED NUMBER IS NOT EVIDENCE UNTIL IT IS A NUMBER (#1491).
+		//
+		// `between()` refuses a DISAGREEMENT and an AMBIGUITY and never asked
+		// whether a value is a value, so two accounts holding the SAME invalid
+		// identifier passed -- and that is not weak evidence of one person, it is
+		// evidence that one of them is wrong. Correcting it can dissolve the
+		// finding outright, because the pairing may have been the typo.
+		//
+		// Asked here rather than inside `between()` because that compares hashes
+		// and never decrypts. This is the verb's own I/O, one or two values,
+		// negligible beside the transaction below.
+		$agreement = IdentityAgreement::with_unusable( $agreement, $theirs, $this->verdicts( $agreement, $theirs ) );
+
 		if ( array() !== $agreement['conflicts'] ) {
 			return self::refusal( $agreement, $absorbed, $theirs );
 		}
@@ -175,6 +188,48 @@ class IdentityMerge {
 	}
 
 	/**
+	 * Judge each agreed-on identifier, by hash.
+	 *
+	 * THE SEAM IS HERE SO A TEST CAN ANSWER WITHOUT A DATABASE.
+	 *
+	 * `check_digit_verdicts()` decrypts, which is exactly what this class must
+	 * not start doing inline: it is the one call in the chain that needs the
+	 * encryption key, and a test of the merge should not need one to prove the
+	 * merge asks. Overridable, like `reindex()` and `clear_index()` beside it.
+	 *
+	 * Only the MATCHED fields are asked about. A conflicting field already
+	 * blocks, and a gap has no shared value to judge -- so this is at most two
+	 * hashes, and usually one.
+	 *
+	 * @since 6.30.1
+	 * @param array<string, mixed>              $agreement What `between()` returned.
+	 * @param array<string, array<int, string>> $records   Field => the moving side's hashes.
+	 * @return array<string, array<string, string>> Field => hash => a `VERDICT_*`.
+	 */
+	protected function verdicts( array $agreement, array $records ): array {
+		$matches = is_array( $agreement['matches'] ?? null ) ? $agreement['matches'] : array();
+
+		if ( array() === $matches ) {
+			return array();
+		}
+
+		$query = new IdentityConflictQuery();
+		$out   = array();
+
+		foreach ( $matches as $field ) {
+			$held = is_array( $records[ $field ] ?? null ) ? $records[ $field ] : array();
+
+			if ( array() === $held ) {
+				continue;
+			}
+
+			$out[ $field ] = $query->check_digit_verdicts( $field . '_hash', $held );
+		}
+
+		return $out;
+	}
+
+	/**
 	 * The refusal for a blocked merge, saying which of the two reasons blocked.
 	 *
 	 * THE OLD SENTENCE WAS WRONG ON THE COMMON CASE, AND WRONG IN THE
@@ -213,7 +268,15 @@ class IdentityMerge {
 	private static function refusal( array $agreement, int $absorbed, array $theirs ): WP_Error {
 		$disagree  = array();
 		$ambiguous = array();
+		$unusable  = array();
 
+		// ONE PASS, THREE BUCKETS, AND `disagreement` IS STILL THE DEFAULT.
+		//
+		// A reason this class does not know must read as a disagreement, which is
+		// the oldest and most general of the three -- a refusal that says the
+		// wrong thing beats one that says nothing. #1491 added the third bucket
+		// as a branch here rather than a second loop plus an `array_diff`, which
+		// is what it looked like first: two passes undoing each other's work.
 		foreach ( $agreement['conflicts'] as $field ) {
 			$reason = $agreement['reasons'][ $field ] ?? IdentityAgreement::REASON_DISAGREEMENT;
 
@@ -222,10 +285,23 @@ class IdentityMerge {
 				continue;
 			}
 
+			if ( IdentityAgreement::REASON_UNUSABLE === $reason ) {
+				$unusable[] = $field;
+				continue;
+			}
+
 			$disagree[] = $field;
 		}
 
 		$said = array();
+
+		foreach ( $unusable as $field ) {
+			$said[] = sprintf(
+				/* translators: %s: the identifier both accounts hold, e.g. RF. */
+				__( 'Both accounts hold the same %s, and that number fails its own check digit — so it cannot be either person\'s, and it is not evidence that they are one person. Correct it first, under "Numbers to correct": doing so may dissolve this pair rather than resolve it, because the shared number may be the typo that paired them.', 'ffcertificate' ),
+				strtoupper( $field )
+			);
+		}
 
 		if ( array() !== $disagree ) {
 			$said[] = sprintf(

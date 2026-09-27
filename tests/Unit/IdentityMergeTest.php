@@ -9,6 +9,8 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Maintenance\IdentityMerge;
+use FreeFormCertificate\Maintenance\IdentityConflictQuery;
+use WP_Error;
 
 /**
  * Consolidating two logins that turned out to be one person (#1386).
@@ -239,8 +241,31 @@ class IdentityMergeTest extends TestCase {
 			protected function reindex( int $user_id, array $data ): bool {
 				return $this->test->record_index( $user_id, $data );
 			}
+
+			/**
+			 * OVERRIDDEN SO THE CASES SAY WHAT THE SCAN FOUND (#1491).
+			 *
+			 * The real one constructs `IdentityConflictQuery` and decrypts. Left
+			 * alone it would put a query nobody wrote for it to the `$wpdb`
+			 * double, which answers with nothing and therefore never refuses --
+			 * green for a reason unrelated to the check.
+			 *
+			 * @param array<string, mixed>              $agreement Unused; the case states the answer.
+			 * @param array<string, array<int, string>> $records   Unused, same reason.
+			 * @return array<string, array<string, string>>
+			 */
+			protected function verdicts( array $agreement, array $records ): array {
+				return $this->test->verdicts;
+			}
 		};
 	}
+
+	/**
+	 * What the check-digit scan says, as a case chooses to state it.
+	 *
+	 * @var array<string, array<string, string>>
+	 */
+	public array $verdicts = array();
 
 	/**
 	 * Record an index write and report whether it was accepted.
@@ -652,5 +677,113 @@ class IdentityMergeTest extends TestCase {
 		}
 
 		$this->assertSame( array(), $this->updates );
+	}
+
+	// ──────────────────────────────────────────────────────────────────.
+	// A shared number that is not a number (#1491).
+	// ──────────────────────────────────────────────────────────────────.
+
+	/**
+	 * THE MERGE IS REFUSED WHEN THE VALUE THAT PAIRED THE TWO IS INVALID.
+	 *
+	 * `between()` refuses a disagreement and an ambiguity and never asked whether
+	 * a value IS a value, so two accounts holding the same wrong number passed.
+	 * That is not weak evidence of one person: it is evidence that one of them
+	 * holds a number nobody can hold, and a merge does not come back.
+	 */
+	public function test_it_refuses_when_the_shared_identifier_fails_its_check_digit(): void {
+		$this->given(
+			array(
+				self::row( 5784, 'cpfA', 'rfShared' ),
+				self::row( 6092, 'cpfA', 'rfShared' ),
+			)
+		);
+
+		$this->verdicts = array(
+			'rf' => array( 'rfShared' => IdentityConflictQuery::VERDICT_INVALID ),
+		);
+
+		$result = $this->merge()->merge( 5784, 6092 );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertStringContainsString( 'fails its own check digit', $result->get_error_message() );
+		$this->assertStringContainsString( 'Numbers to correct', $result->get_error_message(), 'The refusal names the step that comes first.' );
+		$this->assertNotContains( 'COMMIT', $this->control, 'Nothing may be written.' );
+	}
+
+	/**
+	 * AND IT SAYS THE CORRECTION MAY DISSOLVE THE PAIR, NOT RESOLVE IT.
+	 *
+	 * The operator's next move depends on this: if the shared number was the
+	 * typo, the two accounts were never the same person and there is no merge to
+	 * come back for. A refusal that only said "correct it first" would send them
+	 * back here expecting to finish.
+	 */
+	public function test_the_refusal_says_the_pair_may_dissolve(): void {
+		$this->given(
+			array(
+				self::row( 5784, 'cpfA', 'rfShared' ),
+				self::row( 6092, 'cpfA', 'rfShared' ),
+			)
+		);
+
+		$this->verdicts = array(
+			'rf' => array( 'rfShared' => IdentityConflictQuery::VERDICT_INVALID ),
+		);
+
+		$result = $this->merge()->merge( 5784, 6092 );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertStringContainsString( 'dissolve', $result->get_error_message() );
+	}
+
+	/**
+	 * A VALUE NOBODY COULD READ DOES NOT BLOCK THE MERGE.
+	 *
+	 * The #1071 / #1094 rule at the verb: not having read a value is not
+	 * evidence that it is wrong. Refusing here would block every merge on an
+	 * install whose encryption key does not match its rows — the ordinary state
+	 * of a staging copy, where an operator most needs to rehearse a merge.
+	 */
+	public function test_an_unreadable_shared_identifier_still_merges(): void {
+		$this->given(
+			array(
+				self::row( 5784, 'cpfA', 'rfShared' ),
+				self::row( 6092, 'cpfA', 'rfShared' ),
+			)
+		);
+
+		$this->verdicts = array(
+			'rf' => array( 'rfShared' => IdentityConflictQuery::VERDICT_UNREADABLE ),
+		);
+
+		$result = $this->merge()->merge( 5784, 6092 );
+
+		$this->assertIsArray( $result, 'An unreadable verdict is not a refusal.' );
+		$this->assertContains( 'COMMIT', $this->control );
+	}
+
+	/**
+	 * A valid shared identifier merges exactly as before.
+	 *
+	 * The control for the three above: without it, a refusal caused by the new
+	 * question would be indistinguishable from one caused by the harness.
+	 */
+	public function test_a_valid_shared_identifier_merges(): void {
+		$this->given(
+			array(
+				self::row( 5784, 'cpfA', 'rfShared' ),
+				self::row( 6092, 'cpfA', 'rfShared' ),
+			)
+		);
+
+		$this->verdicts = array(
+			'rf' => array( 'rfShared' => IdentityConflictQuery::VERDICT_VALID ),
+		);
+
+		$result = $this->merge()->merge( 5784, 6092 );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 6092, $result['emptied'] );
 	}
 }

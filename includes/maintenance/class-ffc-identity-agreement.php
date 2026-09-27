@@ -63,6 +63,26 @@ class IdentityAgreement {
 	public const REASON_AMBIGUOUS = 'ambiguous';
 
 	/**
+	 * The two sides share a value, and that value is not a value.
+	 *
+	 * A NUMBER THAT CANNOT BE ANYONE'S IS NOT EVIDENCE OF ONE PERSON (#1491).
+	 *
+	 * The other two reasons are about how the sides DISAGREE. This one is about
+	 * them agreeing on something that fails its own check digit -- which is not
+	 * weak evidence that the accounts are one person, it is evidence that at
+	 * least one of them holds a wrong number. Merging on it makes one person out
+	 * of two, and a merge does not come back.
+	 *
+	 * Correcting the number can DISSOLVE the finding rather than resolve it: the
+	 * two accounts may never have shared anything, and the pairing was the typo.
+	 * So the refusal points at the correction rather than at a judgement, and
+	 * needs no acknowledgement -- unlike #1478's, there is a way through.
+	 *
+	 * @var string
+	 */
+	public const REASON_UNUSABLE = 'unusable';
+
+	/**
 	 * Stores carrying an identifier beside a `user_id`.
 	 *
 	 * `ffc_user_profiles` is absent because it is the identity index rather
@@ -240,6 +260,70 @@ class IdentityAgreement {
 				$into[ $field ][] = $value;
 			}
 		}
+	}
+
+	/**
+	 * Move any agreed-on identifier whose value fails its own check digit.
+	 *
+	 * PURE ON PURPOSE, WHICH IS WHY IT TAKES VERDICTS RATHER THAN FETCHING THEM.
+	 *
+	 * {@see self::between()} compares HASHES: `held_by()` selects `cpf_hash` and
+	 * `rf_hash`, and nothing decrypts -- which is what makes it cheap. A hash has
+	 * no check digit, so the judgement cannot be made here; and it must not be
+	 * made by reading values into this class either, because then every
+	 * comparison would decrypt.
+	 *
+	 * `IdentityConflictQuery::check_digit_verdicts()` already answers per HASH,
+	 * decrypting internally. So the verb fetches and this decides, which leaves
+	 * this method testable with no database and keeps the I/O where the verb is
+	 * already doing I/O.
+	 *
+	 * A FIELD THAT MOVES LEAVES `matches`, AND THAT IS NOT BOOKKEEPING. Callers
+	 * read `matches` as *these accounts agree about something*, and an unusable
+	 * value is the opposite: it is why they must not be merged yet. Left in both
+	 * lists, a verb that consults `matches` first would proceed on the very value
+	 * that blocks it.
+	 *
+	 * `VERDICT_UNREADABLE` DELIBERATELY DOES NOT REFUSE. Not having read a value
+	 * is not evidence that it is wrong -- the rule
+	 * `IdentityConflictQuery::rf_check_digit_failures()` already states for its
+	 * own scan, and the #1071 / #1094 rule generally. Refusing there would make a
+	 * mismatched encryption key look like a data defect and block every merge on
+	 * an install whose key does not match its rows.
+	 *
+	 * @since 6.30.1
+	 * @param array<string, mixed>                 $agreement What {@see self::between()} returned.
+	 * @param array<string, array<int, string>>    $records   Field => the moving side's hashes.
+	 * @param array<string, array<string, string>> $verdicts  Field => hash => a `VERDICT_*`.
+	 * @return array<string, mixed> The agreement, with unusable fields moved.
+	 */
+	public static function with_unusable( array $agreement, array $records, array $verdicts ): array {
+		$matches   = is_array( $agreement['matches'] ?? null ) ? $agreement['matches'] : array();
+		$conflicts = is_array( $agreement['conflicts'] ?? null ) ? $agreement['conflicts'] : array();
+		$reasons   = is_array( $agreement['reasons'] ?? null ) ? $agreement['reasons'] : array();
+
+		$kept = array();
+
+		foreach ( $matches as $field ) {
+			$held = is_array( $records[ $field ] ?? null ) ? $records[ $field ] : array();
+			$hash = (string) ( $held[0] ?? '' );
+			$said = (string) ( $verdicts[ $field ][ $hash ] ?? '' );
+
+			if ( '' !== $hash && IdentityConflictQuery::VERDICT_INVALID === $said ) {
+				$conflicts[]       = $field;
+				$reasons[ $field ] = self::REASON_UNUSABLE;
+
+				continue;
+			}
+
+			$kept[] = $field;
+		}
+
+		$agreement['matches']   = $kept;
+		$agreement['conflicts'] = $conflicts;
+		$agreement['reasons']   = $reasons;
+
+		return $agreement;
 	}
 }
 // phpcs:enable WordPress.DB.DirectDatabaseQuery

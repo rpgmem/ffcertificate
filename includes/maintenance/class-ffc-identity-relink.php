@@ -316,6 +316,19 @@ class IdentityRelink {
 			IdentityAgreement::held_by( $target )
 		);
 
+		// THE TIE IS NOT EVIDENCE UNTIL IT IS A NUMBER (#1491).
+		//
+		// The same question the merge asks, for the same reason: what authorises
+		// a move is that the records and the target AGREE about an identifier,
+		// and a value failing its own check digit cannot be either person's. It
+		// is not a weak tie, it is a wrong number -- and correcting it may leave
+		// the records with nothing tying them to that account at all.
+		$agreement = IdentityAgreement::with_unusable(
+			$agreement,
+			$moving['identifiers'],
+			$this->verdicts( $agreement, $moving['identifiers'] )
+		);
+
 		if ( array() !== $agreement['conflicts'] ) {
 			return self::refusal( $agreement, $moving['identifiers'] );
 		}
@@ -328,6 +341,46 @@ class IdentityRelink {
 		}
 
 		return $agreement;
+	}
+
+	/**
+	 * Judge each agreed-on identifier, by hash.
+	 *
+	 * The merge's twin, and deliberately a copy rather than a shared parent:
+	 * these two classes share no ancestor and inventing one to hold nine lines
+	 * would be the facade trap `CLAUDE.md` names. What they must not do is
+	 * disagree about the QUESTION, and they cannot -- both hand the answer to
+	 * `IdentityAgreement::with_unusable()`, which is where the rule lives.
+	 *
+	 * `protected` so a test can state what the scan found without an encryption
+	 * key, like `reindex()` and `unindex()` beside it.
+	 *
+	 * @since 6.30.1
+	 * @param array<string, mixed>              $agreement What `between()` returned.
+	 * @param array<string, array<int, string>> $records   Field => the moving records' hashes.
+	 * @return array<string, array<string, string>> Field => hash => a `VERDICT_*`.
+	 */
+	protected function verdicts( array $agreement, array $records ): array {
+		$matches = is_array( $agreement['matches'] ?? null ) ? $agreement['matches'] : array();
+
+		if ( array() === $matches ) {
+			return array();
+		}
+
+		$query = new IdentityConflictQuery();
+		$out   = array();
+
+		foreach ( $matches as $field ) {
+			$held = is_array( $records[ $field ] ?? null ) ? $records[ $field ] : array();
+
+			if ( array() === $held ) {
+				continue;
+			}
+
+			$out[ $field ] = $query->check_digit_verdicts( $field . '_hash', $held );
+		}
+
+		return $out;
 	}
 
 	/**
@@ -353,7 +406,11 @@ class IdentityRelink {
 	private static function refusal( array $agreement, array $carried ): WP_Error {
 		$disagree  = array();
 		$ambiguous = array();
+		$unusable  = array();
 
+		// `disagreement` STAYS THE DEFAULT for a reason this class does not know:
+		// the oldest and most general of the three, and a refusal that says the
+		// wrong thing beats one that says nothing.
 		foreach ( $agreement['conflicts'] as $field ) {
 			$reason = $agreement['reasons'][ $field ] ?? IdentityAgreement::REASON_DISAGREEMENT;
 
@@ -362,10 +419,23 @@ class IdentityRelink {
 				continue;
 			}
 
+			if ( IdentityAgreement::REASON_UNUSABLE === $reason ) {
+				$unusable[] = $field;
+				continue;
+			}
+
 			$disagree[] = $field;
 		}
 
 		$said = array();
+
+		foreach ( $unusable as $field ) {
+			$said[] = sprintf(
+				/* translators: %s: the identifier the records and the account share, e.g. RF. */
+				__( 'The records and that account share the same %s, and that number fails its own check digit — so it cannot be either person\'s, and it is not what ties them together. Correct it first, under "Numbers to correct": afterwards the records may have nothing tying them to that account at all, which is the answer rather than an obstacle.', 'ffcertificate' ),
+				strtoupper( $field )
+			);
+		}
 
 		if ( array() !== $disagree ) {
 			$said[] = sprintf(
