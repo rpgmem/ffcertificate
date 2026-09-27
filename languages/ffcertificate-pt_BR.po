@@ -4975,10 +4975,6 @@ msgstr "Não foi possível ler o arquivo CSV."
 msgid "Could not read legacy template file: %s"
 msgstr "Não foi possível ler o arquivo de modelo legado: %s"
 
-#: includes/recruitment/class-ffc-recruitment-error-messages.php:183
-msgid "Could not read the uploaded CSV file."
-msgstr "Não foi possível ler o arquivo CSV enviado."
-
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:154
 msgid "Could not register the call. Please try again."
 msgstr "Não foi possível registrar a chamada. Tente novamente."
@@ -5118,10 +5114,6 @@ msgstr "Bloqueio por CPF no CSV"
 #: includes/frontend/class-ffc-csv-download-validator.php:194
 msgid "CPF is required to download this CSV."
 msgstr "É necessário um CPF para baixar este arquivo CSV."
-
-#: includes/recruitment/class-ffc-recruitment-error-messages.php:190
-msgid "CPF must contain digits only."
-msgstr "O CPF deve conter apenas dígitos."
 
 #: includes/settings/views/documentation/feature-record.php:68
 msgid "CPF number"
@@ -12152,10 +12144,6 @@ msgstr "Nenhum consentimento registrado:"
 msgid "no CPF check."
 msgstr "sem verificação de CPF."
 
-#: includes/recruitment/class-ffc-recruitment-error-messages.php:182
-msgid "No CSV file was uploaded."
-msgstr "Nenhum arquivo CSV foi carregado."
-
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:265
 msgid "No data is lost — you can publish again later."
 msgstr "Nenhum dado será perdido — você poderá publicar novamente mais tarde."
@@ -15447,10 +15435,6 @@ msgstr "RF (mascarado)"
 msgid "RF identifier"
 msgstr "Identificador RF"
 
-#: includes/recruitment/class-ffc-recruitment-error-messages.php:191
-msgid "RF must contain digits only."
-msgstr "O código RF deve conter apenas dígitos."
-
 #: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:198 includes/frontend/class-ffc-verification-response-renderer.php:466
 msgid "RG"
 msgstr "RG"
@@ -17990,10 +17974,6 @@ msgstr "O CSV também pode exigir que o operador comprove o CPF antes de liberar
 #: includes/frontend/class-ffc-frontend.php:502
 msgid "The CSV download is not available for this form."
 msgstr "O download do arquivo CSV não está disponível para este formulário."
-
-#: includes/recruitment/class-ffc-recruitment-error-messages.php:185
-msgid "The CSV file could not be parsed. Make sure it is UTF-8 with comma or semicolon delimiters."
-msgstr "Não foi possível analisar o arquivo CSV. Certifique-se de que ele esteja em formato UTF-8 e que os delimitadores sejam vírgula ou ponto e vírgula."
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:184
 msgid "The CSV file is empty."
@@ -22897,3 +22877,15 @@ msgstr "Nomear as Contas Criadas Sem Nome"
 
 msgid "Write the display name and first name of every account that has neither, from the name its own candidacy or submission already carries. A promotion used to create the account without passing the person's name, so WordPress fell back to storing the login — which is what the user list, the dashboard greeting and every e-mail then showed them. Only an account whose display name is still its login and whose first name is empty is touched, because those two are written together and an account with one but not the other was changed by something else. Completion here means every such account was EXAMINED: one whose records name nobody is read, left alone, and counted as done."
 msgstr "Grava o nome de exibição e o primeiro nome de toda conta que não tem nenhum dos dois, a partir do nome que a própria candidatura ou submission dela já carrega. A promoção criava a conta sem passar o nome da pessoa, então o WordPress gravava o login no lugar — e era isso que a lista de usuários, a saudação do painel e todo e-mail mostravam a ela. Só é tocada a conta cujo nome de exibição ainda é o login e cujo primeiro nome está vazio, porque esses dois são gravados juntos e uma conta com um e sem o outro foi alterada por outra coisa. Aqui, concluído significa que toda conta dessas foi EXAMINADA: uma cujos registros não nomeiam ninguém é lida, deixada como está, e contada como feita."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:193
+msgid "CPF has more digits than a CPF can have — check the column for a stray value."
+msgstr "O CPF tem mais dígitos do que um CPF pode ter — verifique se há um valor perdido na coluna."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:194
+msgid "RF has more digits than an RF can have — check the column for a stray value."
+msgstr "O RF tem mais dígitos do que um RF pode ter — verifique se há um valor perdido na coluna."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:199
+msgid "CPF is not valid — its check digits do not match. Confirm the number in the source spreadsheet."
+msgstr "O CPF não é válido — os dígitos verificadores não conferem. Confirme o número na planilha de origem."
