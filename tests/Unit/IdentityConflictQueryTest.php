@@ -1229,25 +1229,33 @@ class IdentityConflictQueryTest extends TestCase {
 
 
 	// ==================================================================
-	// rf_check_digit_failures() -- #1345
+	// check_digit_failures() -- #1345
 	// ==================================================================
 
 	/**
 	 * Drive the check-digit scan with a row set and a decryption map.
 	 *
-	 * @param array<int, array<string, mixed>> $rows  Rows the grouped statement returns.
-	 * @param array<string, string>            $plain Ciphertext → plaintext.
-	 * @param int                              $limit Sample size.
+	 * The column is a PARAMETER because the scan takes one now (#1486), and the
+	 * double is keyed on the ciphertext column so a scan asked for one column
+	 * cannot be answered with the other's rows -- which is what would let a
+	 * CPF test pass on RF plumbing.
+	 *
+	 * @param array<int, array<string, mixed>> $rows   Rows the grouped statement returns.
+	 * @param array<string, string>            $plain  Ciphertext → plaintext.
+	 * @param int                              $limit  Sample size.
+	 * @param string                           $column Identifier column to scan.
 	 * @return array<int, array<string, mixed>>
 	 */
-	private function scan( array $rows, array $plain, int $limit = 50 ): array {
+	private function scan( array $rows, array $plain, int $limit = 50, string $column = 'rf_hash' ): array {
+		$cipher = str_replace( '_hash', '_encrypted', $column );
+
 		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
-			function ( $query ) use ( $rows ) {
-				return ( false !== strpos( (string) $query, 'rf_encrypted' ) ) ? $rows : array();
+			function ( $query ) use ( $rows, $cipher ) {
+				return ( false !== strpos( (string) $query, $cipher ) ) ? $rows : array();
 			}
 		);
 
-		return $this->query_reading( $plain )->rf_check_digit_failures( $limit );
+		return $this->query_reading( $plain )->check_digit_failures( $column, $limit );
 	}
 
 	/**
@@ -1313,7 +1321,7 @@ class IdentityConflictQueryTest extends TestCase {
 			}
 		);
 
-		$this->query_reading( array() )->rf_check_digit_failures( 50 );
+		$this->query_reading( array() )->check_digit_failures( 'rf_hash', 50 );
 
 		$this->assertNotSame( '', $sql, 'The scan composed no statement to inspect.' );
 
@@ -1464,7 +1472,7 @@ class IdentityConflictQueryTest extends TestCase {
 
 		$seen = $this->statements(
 			static function ( IdentityConflictQuery $query ): void {
-				$query->rf_check_digit_failures( 10 );
+				$query->check_digit_failures( 'rf_hash', 10 );
 			}
 		);
 
@@ -1482,7 +1490,7 @@ class IdentityConflictQueryTest extends TestCase {
 
 		$seen = $this->statements(
 			static function ( IdentityConflictQuery $query ): void {
-				$query->rf_check_digit_failures( 10 );
+				$query->check_digit_failures( 'rf_hash', 10 );
 			}
 		);
 
@@ -1499,7 +1507,7 @@ class IdentityConflictQueryTest extends TestCase {
 	public function test_the_scan_does_not_filter_on_an_account(): void {
 		$seen = $this->statements(
 			static function ( IdentityConflictQuery $query ): void {
-				$query->rf_check_digit_failures( 10 );
+				$query->check_digit_failures( 'rf_hash', 10 );
 			}
 		);
 
@@ -1614,13 +1622,13 @@ class IdentityConflictQueryTest extends TestCase {
 
 		// Neither ciphertext is in the map, so neither decrypts.
 		$query    = $this->query_reading( array() );
-		$findings = $query->rf_check_digit_failures( 50 );
-		$coverage = $query->rf_scan_coverage();
+		$findings = $query->check_digit_failures( 'rf_hash', 50 );
+		$coverage = $query->scan_coverage();
 
 		$this->assertSame( array(), $findings, 'An unreadable value is not a failure.' );
-		$this->assertSame( 2, $coverage['examined'], 'Both distinct hashes were read.' );
-		$this->assertSame( 2, $coverage['unreadable'], 'Neither could be decrypted, and that must be visible.' );
-		$this->assertGreaterThan( 0, $coverage['stores'] );
+		$this->assertSame( 2, $coverage['rf_hash']['examined'], 'Both distinct hashes were read.' );
+		$this->assertSame( 2, $coverage['rf_hash']['unreadable'], 'Neither could be decrypted, and that must be visible.' );
+		$this->assertGreaterThan( 0, $coverage['rf_hash']['stores'] );
 	}
 
 	/**
@@ -1638,22 +1646,56 @@ class IdentityConflictQueryTest extends TestCase {
 
 		// 1234561 satisfies the digit: 7·1+6·2+5·3+4·4+3·5+2·6 = 77, 77 mod 11 = 0, dv = 1.
 		$query = $this->query_reading( array( 'cipherA' => '1234561' ) );
-		$query->rf_check_digit_failures( 50 );
-		$coverage = $query->rf_scan_coverage();
+		$query->check_digit_failures( 'rf_hash', 50 );
+		$coverage = $query->scan_coverage();
 
-		$this->assertSame( 1, $coverage['examined'] );
-		$this->assertSame( 0, $coverage['unreadable'] );
+		$this->assertSame( 1, $coverage['rf_hash']['examined'] );
+		$this->assertSame( 0, $coverage['rf_hash']['unreadable'] );
 	}
 
 	/**
-	 * Coverage from a scan that bailed is this call's zero, never the last
-	 * call's numbers.
+	 * A column nobody scanned is ABSENT, not zero (#1486).
+	 *
+	 * The distinction is the screen's: an absent record draws no strip, while a
+	 * zeroed one says "no store carries this" -- a measurement. Reporting the
+	 * second where the first is true would have the screen state a verdict
+	 * about a column it never looked at.
 	 */
-	public function test_coverage_starts_at_zero_before_a_scan(): void {
-		$coverage = ( new IdentityConflictQuery() )->rf_scan_coverage();
+	public function test_a_column_nobody_scanned_has_no_record(): void {
+		$this->assertSame( array(), ( new IdentityConflictQuery() )->scan_coverage() );
+	}
 
-		$this->assertSame( 0, $coverage['examined'] );
-		$this->assertSame( 0, $coverage['unreadable'] );
+	/**
+	 * A clean scan of one column says NOTHING about the other (#1486).
+	 *
+	 * The reason the record is keyed rather than summed, and the failure it
+	 * prevents is specific: RF reading 5,000 values cleanly added to a CPF scan
+	 * that read nothing gives `stores > 0`, `examined = 5000`, `unreadable = 0`,
+	 * which the screen renders as "The scan read the data". The healthy half
+	 * would vouch for the half that never ran -- in the one place built to stop
+	 * exactly that (`#1071` / `#1094`).
+	 */
+	public function test_one_column_scanned_clean_does_not_vouch_for_the_other(): void {
+		// Only the RF statement is answered; the CPF one finds no store.
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $query ) {
+				return ( false !== strpos( (string) $query, 'rf_encrypted' ) ) ? array( self::scan_row() ) : array();
+			}
+		);
+
+		$query = $this->query_reading( array( 'cipherA' => '1234561' ) );
+
+		$query->check_digit_failures( 'rf_hash', 50 );
+		$query->check_digit_failures( 'cpf_hash', 50 );
+
+		$coverage = $query->scan_coverage();
+
+		$this->assertSame( 1, $coverage['rf_hash']['examined'], 'The RF scan read its one value.' );
+		$this->assertSame(
+			0,
+			$coverage['cpf_hash']['examined'],
+			'The CPF scan read nothing, and the RF scan\'s reading must not be credited to it.'
+		);
 	}
 	// ==================================================================
 	// check_digit_verdicts() -- #1386

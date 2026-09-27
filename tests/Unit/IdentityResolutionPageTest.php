@@ -89,7 +89,7 @@ class IdentityResolutionPageTest extends TestCase {
 		$query = Mockery::mock( IdentityConflictQuery::class );
 		$query->shouldReceive( 'multiple_identities' )->andReturn( array() );
 		$query->shouldReceive( 'shared_identities' )->andReturn( array() );
-		$query->shouldReceive( 'rf_check_digit_failures' )
+		$query->shouldReceive( 'check_digit_failures_of_both' )
 			->once()
 			->with( IdentityResolutionPage::LIMIT )
 			->andReturn( $findings );
@@ -97,11 +97,13 @@ class IdentityResolutionPageTest extends TestCase {
 		// harness rather than per test, because a full Mockery double throws
 		// on an unstubbed call and the cases here drive the view end to end.
 		$query->shouldReceive( 'account_facts' )->andReturn( array() )->byDefault();
-		$query->shouldReceive( 'rf_scan_coverage' )->andReturn(
+		$query->shouldReceive( 'scan_coverage' )->andReturn(
 			array(
-				'stores'     => 3,
-				'examined'   => count( $findings ),
-				'unreadable' => 0,
+				'rf_hash' => array(
+					'stores'     => 3,
+					'examined'   => count( $findings ),
+					'unreadable' => 0,
+				),
 			)
 		);
 
@@ -433,12 +435,14 @@ class IdentityResolutionPageTest extends TestCase {
 		$query = Mockery::mock( IdentityConflictQuery::class );
 		$query->shouldReceive( 'multiple_identities' )->andReturn( array() );
 		$query->shouldReceive( 'shared_identities' )->andReturn( array() );
-		$query->shouldReceive( 'rf_check_digit_failures' )->once()->andReturn( array() );
-		$query->shouldReceive( 'rf_scan_coverage' )->once()->andReturn(
+		$query->shouldReceive( 'check_digit_failures_of_both' )->once()->andReturn( array() );
+		$query->shouldReceive( 'scan_coverage' )->once()->andReturn(
 			array(
-				'stores'     => 3,
-				'examined'   => 40,
-				'unreadable' => 40,
+				'rf_hash' => array(
+					'stores'     => 3,
+					'examined'   => 40,
+					'unreadable' => 40,
+				),
 			)
 		);
 
@@ -465,9 +469,11 @@ class IdentityResolutionPageTest extends TestCase {
 		$this->assertSame( array(), $page->queue() );
 		$this->assertSame(
 			array(
-				'stores'     => 3,
-				'examined'   => 40,
-				'unreadable' => 40,
+				'rf_hash' => array(
+					'stores'     => 3,
+					'examined'   => 40,
+					'unreadable' => 40,
+				),
 			),
 			$page->coverage(),
 			'An empty list with nothing readable must not be presentable as a clean result.'
@@ -571,7 +577,10 @@ class IdentityResolutionPageTest extends TestCase {
 	public function test_the_scan_coverage_is_stated_before_the_empty_branch(): void {
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
 
-		$read  = strpos( $view, "\$ffc_identity_examined   = (int) ( \$ffc_identity_coverage['examined']" );
+		// The read moved inside a per-column loop (#1486), so what is probed is
+		// the loop that opens it -- the ordering this test exists for is
+		// unchanged, and the assertion has to name what the view now says.
+		$read  = strpos( $view, 'foreach ( $ffc_identity_coverage as $ffc_identity_column => $ffc_identity_read ) :' );
 		$strip = strpos( $view, 'class="ffc-identity-scan ' );
 		$empty = strpos( $view, 'array() === $ffc_identity_panels' );
 
@@ -643,15 +652,24 @@ class IdentityResolutionPageTest extends TestCase {
 		$this->assertStringContainsString( '$ffc_identity_read_none = 0 === $ffc_identity_stores', $view, 'No store scanned must reach the unread verdict.' );
 		$this->assertStringContainsString( '$ffc_identity_examined === $ffc_identity_unreadable', $view, 'Nothing readable must reach the unread verdict.' );
 		$this->assertStringContainsString( '$ffc_identity_read_part = ! $ffc_identity_read_none', $view, 'The partial verdict must be reachable only when the scan read something.' );
-		$this->assertStringContainsString( '|| $ffc_identity_truncated', $view, "The scan's own cap must make the reading partial." );
+		$this->assertStringContainsString( '|| $ffc_identity_scan_cap', $view, "The scan's own cap must make the reading partial." );
 		$this->assertStringContainsString( '|| array() !== $ffc_identity_capped', $view, 'A check that returned a full page must make the reading partial.' );
+
+		// THE CAP IS READ PER COLUMN (#1486), which is what this probe pins: two
+		// scans run and each stops at its own, so one flag for both would report
+		// a truncated RF scan on the CPF strip and the other way round.
+		$this->assertStringContainsString(
+			'$ffc_identity_scan_cap   = ! empty( $ffc_identity_truncated_columns[ (string) $ffc_identity_column ] );',
+			$view,
+			"Each strip must read its own column's cap, not any column's."
+		);
 
 		// The whole-reading verdict is the `else` of both, so it cannot be
 		// reached while either flag is set. Anchored on the branch rather than
 		// on the sentence, because the sentence is translatable and the
 		// ordering is what carries the guarantee.
-		$none  = strpos( $view, 'if ( $ffc_identity_read_none ) : ?>' );
-		$part  = strpos( $view, 'elseif ( $ffc_identity_read_part ) : ?>' );
+		$none  = strpos( $view, 'if ( $ffc_identity_read_none ) {' );
+		$part  = strpos( $view, '} elseif ( $ffc_identity_read_part ) {' );
 		$whole = strpos( $view, "esc_html_e( 'The scan read the data'" );
 
 		$this->assertIsInt( $none );
@@ -1567,6 +1585,116 @@ class IdentityResolutionPageTest extends TestCase {
 			".ffc-admin-page .button[title]:hover::after,\n.ffc-admin-page .button[title]:focus-visible::after {",
 			$sheet,
 			'A tooltip only a pointer can reach is a label a keyboard user does not have.'
+		);
+	}
+
+	/**
+	 * EVERY FORM POSTING A REPAIR NAMES WHICH IDENTIFIER (#1486).
+	 *
+	 * Asserted PER FORM, which is the gap this closes.
+	 * `test_a_handler_acting_on_an_identifier_names_which_one()` asserts that
+	 * the handler passes `self::posted_field()` -- and it did, faithfully,
+	 * while one of the two forms supplied nothing for it to read. So the
+	 * handler-side test passed throughout and nothing ever looked at the markup.
+	 *
+	 * Without the field `posted_field()` falls back to `IdentityRepair::FIELD`,
+	 * which is `rf`. Traced through: a CPF finding reaches
+	 * `rows_for( $subject, 'rf_hash', ... )`, matches nothing, and answers
+	 * `ffc_identity_repair_gone` -- "Nothing carries that value any more. It was
+	 * repaired already." Not a wrong write. A FALSE SENTENCE about a finding
+	 * still sitting on the screen, which is the harder kind to debug because
+	 * nothing is broken anywhere the operator can see.
+	 *
+	 * It was unreachable only because the scan was RF-only, which is what
+	 * #1486 undoes -- so the two halves had to ship together.
+	 */
+	public function test_every_repair_form_names_the_identifier_it_corrects(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		// PER FORM, BY SPLITTING ON THE FORMS. Counting `name="ffc_field"` over
+		// the whole view and comparing totals is the wrong measurement and was
+		// the first version of this: SIX forms carry that field, because merge,
+		// relink, split and adoption all name an identifier too, while only two
+		// post a repair. Equal totals would have been a coincidence and unequal
+		// ones prove nothing.
+		$forms = array_filter(
+			explode( '<form ', $view ),
+			static function ( $chunk ) {
+				return false !== strpos( $chunk, 'IdentityResolutionPage::REPAIR_ACTION' );
+			}
+		);
+
+		$this->assertCount( 2, $forms, 'Two forms post a repair: the shared pair\'s and the check-digit tier\'s.' );
+
+		foreach ( $forms as $form ) {
+			$this->assertStringContainsString(
+				'name="ffc_field"',
+				$form,
+				'A form posting a repair without naming the identifier silently corrects the RF.'
+			);
+
+			// AND READ OFF THE FINDING, never written in: a literal would be
+			// right on whichever tier it was copied from and wrong on the other.
+			$this->assertStringContainsString(
+				"name=\"ffc_field\" value=\"<?php echo esc_attr( str_replace( '_hash', ''",
+				$form,
+				'The posted field must be derived from the finding\'s identifier column.'
+			);
+		}
+	}
+
+	/**
+	 * The corrected-number box accepts a CPF, which is eleven digits (#1486).
+	 *
+	 * `pattern="[0-9]{7}" maxlength="7"` made an 11-digit CPF impossible to
+	 * TYPE -- the browser refuses the submit, about a number the operator read
+	 * correctly off the finding. The shared-pair form was already `{7,11}`, so
+	 * this is the two forms agreeing rather than a new rule.
+	 */
+	public function test_no_repair_form_refuses_an_eleven_digit_identifier(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertSame(
+			2,
+			preg_match_all( '/pattern="\[0-9\]\{7,11\}" maxlength="11"/', $view ),
+			'Both forms that post a corrected number must accept 7 to 11 digits.'
+		);
+
+		// The orphan-adoption form keeps its own RF-only box on purpose: it asks
+		// for a CPF and an RF in two separate inputs, so each states its own
+		// width. Anchored on the id so the two cases cannot be confused.
+		$this->assertStringNotContainsString(
+			'maxlength="7" size="8" required
+								id="ffc-rf-',
+			$view,
+			'The isolated tier must not carry an RF-shaped box while the scan behind it reads CPF too.'
+		);
+	}
+
+	/**
+	 * A HELD LIST WITH NO READINGS STILL STATES THAT IT READ NOTHING (#1486).
+	 *
+	 * The other half of `IdentityWorklistTest`'s decision to report an empty
+	 * record rather than an invented zero. An absent column draws no strip,
+	 * correctly -- but a coverage record that is empty ALTOGETHER is a lost
+	 * reading, not a column nobody asked about, and left to the same rule it
+	 * would render silence. Silence reads as "nothing to report", which is
+	 * strictly worse than the zeroes this used to show.
+	 */
+	public function test_a_lost_reading_renders_as_having_read_nothing(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$empty = strpos( $view, 'if ( array() === $ffc_identity_coverage ) {' );
+		$loop  = strpos( $view, 'foreach ( $ffc_identity_coverage as $ffc_identity_column => $ffc_identity_read ) :' );
+
+		$this->assertIsInt( $empty, 'An empty coverage record must be given a strip of its own.' );
+		$this->assertIsInt( $loop );
+		$this->assertLessThan( $loop, $empty, 'The substitution must happen before the loop, or the loop draws nothing.' );
+
+		$this->assertStringContainsString(
+			"esc_html_e( 'This scan read nothing', 'ffcertificate' );",
+			$view,
+			'The unnamed strip needs the verdict that does not name an identifier.'
 		);
 	}
 }

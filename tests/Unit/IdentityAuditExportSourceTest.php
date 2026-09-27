@@ -998,7 +998,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 		$source = new ExportSourceWithStubbedSchemaProbe(
 			$this->auditor(
 				array(
-					'rf_check_digit' => array(
+					'check_digit' => array(
 						'count'     => 1,
 						'truncated' => false,
 						'rows'      => array( $row ),

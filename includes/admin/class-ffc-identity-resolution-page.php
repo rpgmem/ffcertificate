@@ -53,7 +53,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * account -- is read by no view at all. This screen reads it.
  *
  * It writes nothing. The repair is the next PR; what this delivers is the
- * queue that repair works through.
+ * queue that repair works through. *
+ *
+ * @phpstan-import-type ScanCoverage from IdentityConflictQuery
  */
 class IdentityResolutionPage {
 
@@ -382,13 +384,13 @@ class IdentityResolutionPage {
 	/**
 	 * What the last scan read, for the empty state.
 	 *
-	 * @var array{stores: int, examined: int, unreadable: int}
+	 * KEYED BY IDENTIFIER COLUMN (#1486), and empty rather than zeroed: two
+	 * scans run now, and a column with no record was never looked at, which the
+	 * view distinguishes from one that found no store.
+	 *
+	 * @var ScanCoverage
 	 */
-	private array $coverage = array(
-		'stores'     => 0,
-		'examined'   => 0,
-		'unreadable' => 0,
-	);
+	private array $coverage = array();
 
 	/**
 	 * The cross-store identity questions.
@@ -634,7 +636,7 @@ class IdentityResolutionPage {
 	/**
 	 * What the last `queue()` call actually read.
 	 *
-	 * @return array{stores: int, examined: int, unreadable: int}
+	 * @return ScanCoverage
 	 */
 	public function coverage(): array {
 		return $this->coverage;

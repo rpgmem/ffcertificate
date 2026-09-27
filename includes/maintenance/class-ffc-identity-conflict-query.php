@@ -43,7 +43,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Read-only cross-store identity questions.
+ * Read-only cross-store identity questions. *
+ * THE COVERAGE SHAPE IS DECLARED ONCE HERE (#1486).
+ *
+ * It was spelled out inline at eleven sites across five files the moment the
+ * record became keyed, which is the same duplication `IdentityAgreement` had to
+ * undo in #1491 -- and PHPStan can only check a consumer against the shape that
+ * consumer declares, so eleven copies are eleven chances for one to drift.
+ *
+ * @phpstan-type ScanCoverage array<string, array{stores: int, examined: int, unreadable: int}>
  */
 class IdentityConflictQuery {
 
@@ -93,7 +101,7 @@ class IdentityConflictQuery {
 	private const COLUMN_RF_HASH = 'rf_hash';
 
 	/**
-	 * The count column `rf_check_digit_failures()` returns: how many stored
+	 * The count column `check_digit_failures()` returns: how many stored
 	 * rows carry the value, across every store.
 	 *
 	 * @since 6.28.2
@@ -139,7 +147,7 @@ class IdentityConflictQuery {
 	 * failure may exist that nothing here has looked at.
 	 *
 	 * It rides a row of ITS OWN rather than a column on the findings, and
-	 * {@see self::rf_check_digit_failures()} records why: a capped scan that
+	 * {@see self::check_digit_failures()} records why: a capped scan that
 	 * found nothing has no finding to carry a flag, and would report clean.
 	 *
 	 * @since 6.28.2
@@ -148,17 +156,23 @@ class IdentityConflictQuery {
 	public const COLUMN_SCAN_TRUNCATED = 'scan_truncated';
 
 	/**
-	 * How many distinct RFs one scan will decrypt.
+	 * How many distinct identifiers ONE scan will decrypt.
 	 *
 	 * Bounded by DISTINCT values rather than by rows, which is what makes the
-	 * number generous: production carries 3,036 of them across roughly 23,000
+	 * number generous: production carries 3,036 RFs across roughly 23,000
 	 * rows, because `Encryption::encrypt()` uses a random IV and one hash
 	 * answers for every row sharing it.
+	 *
+	 * It is ONE cap applied PER COLUMN, not a budget split between them, since
+	 * the cost it bounds is a decryption and the two columns are scanned in
+	 * separate statements. The CPF population is unmeasured (#1486) -- the cap
+	 * is what keeps that from mattering before somebody counts it, and the
+	 * truncation row is what says so when it bites.
 	 *
 	 * @since 6.28.2
 	 * @var int
 	 */
-	private const RF_SCAN_LIMIT = 20000;
+	private const CHECK_DIGIT_SCAN_LIMIT = 20000;
 
 	/**
 	 * Separator between row ids of one store.
@@ -655,7 +669,7 @@ class IdentityConflictQuery {
 	 *
 	 * UNCOUNTABLE IS NULL, NEVER ZERO. When no store carries either column
 	 * there is nothing to count and also nothing known -- the same distinction
-	 * `rf_scan_coverage()` exists to keep, and the reason a caller must not
+	 * `scan_coverage()` exists to keep, and the reason a caller must not
 	 * render this as "no conflicts".
 	 *
 	 * @return int|null Accounts in conflict, or null when nothing could be read.
@@ -793,18 +807,77 @@ class IdentityConflictQuery {
 	}
 
 	/**
-	 * Stored RFs whose seventh digit disagrees with their own first six.
+	 * The columns a check-digit scan walks, in the order it walks them.
+	 *
+	 * RF FIRST, WHICH IS NOT COSMETIC. Where the joined list is trimmed to the
+	 * caller's limit the survivors are its head, and RF is the population that
+	 * has been measured and worked; putting it behind a CPF population of
+	 * unknown size could push known work off a screen an operator is mid-way
+	 * through.
+	 *
+	 * STATED HERE rather than read off `self::COLUMNS`, whose own comment says
+	 * in as many words that indexing it is "a claim about an order nothing
+	 * asserts": it is ordered `cpf_hash, rf_hash` for the checks that walk
+	 * both, a different purpose that would silently invert this decision.
+	 *
+	 * @since 6.30.1
+	 * @var list<string>
+	 */
+	private const CHECK_DIGIT_COLUMNS = array( 'rf_hash', 'cpf_hash' );
+
+	/**
+	 * Every check-digit failure, from both identifier columns (#1486).
+	 *
+	 * THE COLUMNS ARE SCANNED SEPARATELY AND THE FINDINGS ARE ONE LIST.
+	 *
+	 * Separately because each needs its own decryption pass, its own store
+	 * probe and its own coverage record; one list because they are one panel
+	 * and one operator task, under a heading -- "Numbers to correct" -- that was
+	 * already field-neutral.
+	 *
+	 * ASKING EACH COLUMN FOR THE FULL `$limit` IS DELIBERATE, AND SO IS THE
+	 * TRIM. Halving it per column would silently shrink what an operator sees
+	 * of RF to make room for a population nobody has counted yet, and a
+	 * caller's limit is a statement about the LIST, not about a column. So each
+	 * column is asked for the whole of it and the joined list is cut back --
+	 * which makes the list reach a caller's cap sooner, and a caller that
+	 * reports its caps then says so, rather than the shortfall going unsaid.
+	 *
+	 * IT LIVES HERE BECAUSE TWO CALLERS NEEDED IT. `IdentityQueue` and
+	 * `SubmissionLinkAuditor` both scan for these findings, so the order and
+	 * the trim would otherwise be decided twice and could disagree -- and the
+	 * per-column coverage this leaves behind is read from this same object.
+	 *
+	 * @since 6.30.1
+	 * @param int $limit How many findings the caller wants.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function check_digit_failures_of_both( int $limit = 50 ): array {
+		$out = array();
+
+		foreach ( self::CHECK_DIGIT_COLUMNS as $column ) {
+			foreach ( $this->check_digit_failures( $column, $limit ) as $row ) {
+				$out[] = $row;
+			}
+		}
+
+		return array_slice( $out, 0, max( 1, $limit ) );
+	}
+
+	/**
+	 * Stored identifiers whose check digit disagrees with the rest of them.
 	 *
 	 * THE ONLY CHECK HERE THAT IS NOT ABOUT AN ACCOUNT
 	 *
 	 * Every other check groups rows by a person and reports an account that
 	 * has accumulated two identifiers. This one asks something narrower and
-	 * wider at once: is each stored RF internally consistent? Narrower,
+	 * wider at once: is each stored value internally consistent? Narrower,
 	 * because it judges one value on its own; wider, because a person who
-	 * mistyped their RF **once, on their only submission** is invisible to
-	 * every other check by construction and visible to this one. Measured on
-	 * production the difference is 16 ambiguous RF findings against roughly
-	 * 79 wrong values (#1345).
+	 * mistyped **once, on their only submission** is invisible to every other
+	 * check by construction and visible to this one. Measured on production the
+	 * difference is 16 ambiguous RF findings against roughly 79 wrong values
+	 * (#1345); the CPF side of that comparison has never been measured, which
+	 * is the first thing #1486 asks for.
 	 *
 	 * IT DELIBERATELY DOES NOT FILTER ON `user_id`, AND THAT IS THE POINT
 	 *
@@ -818,36 +891,53 @@ class IdentityConflictQuery {
 	 *
 	 * WHY THIS CANNOT BE SQL
 	 *
-	 * The RF is encrypted at rest, so the check digit is unreadable to the
-	 * database. Each distinct value is decrypted through {@see self::decrypt()},
+	 * Both identifiers are encrypted at rest, so the check digit is unreadable
+	 * to the database. Each distinct value is decrypted through {@see self::decrypt()},
 	 * the same seam the shape verdict uses, and nothing but a verdict leaves
 	 * this method. Cost is bounded by DISTINCT hashes rather than by rows:
 	 * `Encryption::encrypt()` uses a random IV, so a value submitted four
 	 * hundred times has four hundred ciphertexts and one hash, and one
 	 * decryption answers for all of them.
 	 *
+	 * IT SCANS THE COLUMN IT IS ASKED FOR, AND CPF IS NOT A SPECIAL CASE (#1486)
+	 *
+	 * This opened with `$column` fixed to `rf_hash`, which made a stored CPF
+	 * that fails its own check digit INVISIBLE -- while every other tier of
+	 * the screen already branched on the field, and `well_formed()` had always
+	 * taken one. The generalisation is a parameter rather than a second method
+	 * because nothing else here was RF-specific: `ciphertext_column_of()` and
+	 * `field_key_of()` were already generic, and `self::COLUMNS` is the
+	 * authority on which columns exist.
+	 *
+	 * The COLUMN is the parameter, not the field, because `identifier_column`
+	 * is the vocabulary these findings already speak -- every row carries one,
+	 * and the screen labels itself from it.
+	 *
 	 * @since 6.28.2
-	 * @param int $limit Sample size.
+	 * @param string $column Identifier column to scan; one of `self::COLUMNS`.
+	 * @param int    $limit  Sample size.
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function rf_check_digit_failures( int $limit = 50 ): array {
+	public function check_digit_failures( string $column = self::COLUMN_RF_HASH, int $limit = 50 ): array {
 		global $wpdb;
 
 		$limit  = max( 1, $limit );
-		$column = self::COLUMN_RF_HASH;
-		$cipher = self::ciphertext_column_of( $column );
-		$stores = $this->stores_for_rf_scan( $cipher );
+		$cipher = in_array( $column, self::COLUMNS, true ) ? self::ciphertext_column_of( $column ) : '';
+		$stores = '' === $cipher ? array() : $this->stores_for_check_digit_scan( $cipher );
 		$out    = array();
 
-		// Reset first: a caller reading coverage after a scan that bailed
-		// must see this call's zero, never the previous call's numbers.
-		$this->rf_scan_coverage = array(
+		// Reset first, and PER COLUMN: a caller reading coverage after a scan
+		// that bailed must see this call's zero, never the previous call's
+		// numbers -- and never the OTHER column's, which is why this is keyed
+		// rather than replaced. A healthy RF scan summed with a CPF scan that
+		// read nothing reports that everything was read.
+		$this->scan_coverage[ $column ] = array(
 			'stores'     => count( $stores ),
 			'examined'   => 0,
 			'unreadable' => 0,
 		);
 
-		if ( array() === $stores || '' === $cipher ) {
+		if ( array() === $stores ) {
 			return $out;
 		}
 
@@ -897,16 +987,15 @@ class IdentityConflictQuery {
 				// an identifier, and the server rejected the whole statement --
 				// which an audit read cannot see, because a rejected query and
 				// a clean install both answer with no rows (#1384).
-				...array_merge( array( $column ), $values, array( self::RF_SCAN_LIMIT ) )
+				...array_merge( array( $column ), $values, array( self::CHECK_DIGIT_SCAN_LIMIT ) )
 			),
 			ARRAY_A
 		);
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
-		$rows    = (array) $rows;
-		$scanned = count( $rows );
-
-		$this->rf_scan_coverage['examined'] = $scanned;
+		$rows       = (array) $rows;
+		$scanned    = count( $rows );
+		$unreadable = 0;
 
 		foreach ( $rows as $row ) {
 			$row    = (array) $row;
@@ -918,7 +1007,7 @@ class IdentityConflictQuery {
 			// value is not evidence that it is wrong, and this finding's
 			// action is to contact a person about their own number.
 			if ( ! is_string( $plain ) ) {
-				++$this->rf_scan_coverage['unreadable'];
+				++$unreadable;
 				continue;
 			}
 
@@ -926,11 +1015,11 @@ class IdentityConflictQuery {
 			//
 			// This called `DocumentFormatter::rf_check_digit_matches()` directly,
 			// which made it a THIRD site expressing the rule -- found while
-			// unifying the other two. It does not branch on the field, because
-			// this scan fixes its column to `rf_hash`, so `'rf'` is a statement
-			// of fact rather than a choice; when the scan becomes field-aware
-			// (#1486) this takes the field it already resolved.
-			if ( IdentityRepair::well_formed( 'rf', $plain ) ) {
+			// unifying the other two. It now takes the field the scan resolved,
+			// which is what #1486 said it would: `well_formed()` had always
+			// branched on it, so making the scan field-aware needed nothing
+			// here but passing the answer through.
+			if ( IdentityRepair::well_formed( self::field_key_of( $column ), $plain ) ) {
 				continue;
 			}
 
@@ -945,6 +1034,19 @@ class IdentityConflictQuery {
 			}
 		}
 
+		// ONE WRITE, NOT AN INCREMENT PER ROW.
+		//
+		// Counted into locals and assigned once, which reads better and is also
+		// the only form that keeps the declared shape: `++$this->x[ $c ]['k']`
+		// widens the inner array to `non-empty-array<'examined'|'stores'|
+		// 'unreadable', int>` as far as PHPStan is concerned, so level 8 refuses
+		// the assignment against the exact shape the property declares.
+		$this->scan_coverage[ $column ] = array(
+			'stores'     => count( $stores ),
+			'examined'   => $scanned,
+			'unreadable' => $unreadable,
+		);
+
 		// A ROW OF ITS OWN, NEVER A COLUMN ON THE FINDINGS
 		//
 		// The obvious shape is a flag beside each failure, and it has a hole
@@ -955,7 +1057,7 @@ class IdentityConflictQuery {
 		// own row the signal does not depend on a failure existing, and it is
 		// counted as a finding because it is one -- there is something for an
 		// operator to do about it.
-		if ( $scanned >= self::RF_SCAN_LIMIT ) {
+		if ( $scanned >= self::CHECK_DIGIT_SCAN_LIMIT ) {
 			$out[] = array(
 				'identifier_column'         => $column,
 				self::COLUMN_STORES         => implode( self::RELATED_SEPARATOR, array_map( array( $this, 'label' ), $stores ) ),
@@ -967,7 +1069,7 @@ class IdentityConflictQuery {
 	}
 
 	/**
-	 * What the last {@see self::rf_check_digit_failures()} call actually read.
+	 * What the last {@see self::check_digit_failures()} call actually read.
 	 *
 	 * A SCAN THAT READ NOTHING MUST NOT RENDER AS CLEAN.
 	 *
@@ -984,28 +1086,38 @@ class IdentityConflictQuery {
 	 * signal IS a row for the opposite reason -- there is something to do
 	 * about it.
 	 *
+	 * KEYED BY COLUMN, AND SUMMING THESE WOULD DEFEAT THE RULE ABOVE (#1486).
+	 *
+	 * Two columns are scanned now, and one number per counter cannot describe
+	 * both. Worked through: an RF scan reading 5,000 values cleanly summed with
+	 * a CPF scan that read NOTHING gives `stores > 0`, `examined = 5000`,
+	 * `unreadable = 0` -- which the screen renders as "The scan read the data".
+	 * The healthy half would vouch for the half that never ran, in the one
+	 * place built to stop exactly that.
+	 *
 	 * @since 6.28.2
-	 * @var array{stores: int, examined: int, unreadable: int}
+	 * @var ScanCoverage
 	 */
-	private array $rf_scan_coverage = array(
-		'stores'     => 0,
-		'examined'   => 0,
-		'unreadable' => 0,
-	);
+	private array $scan_coverage = array();
 
 	/**
-	 * What the last check-digit scan read.
+	 * What each check-digit scan read, keyed by the column it scanned.
 	 *
 	 * `examined` counts DISTINCT hashes, not rows -- the scan groups before
 	 * decrypting, which is what bounds its cost. `unreadable` is how many of
 	 * those could not be decrypted; equal to `examined` means the key does not
 	 * open this data, and an empty failure list says nothing at all.
 	 *
+	 * A column that was never scanned is ABSENT rather than zeroed, because a
+	 * zeroed record is indistinguishable from a scan that found no store --
+	 * and the two mean different things to a reader deciding whether the
+	 * screen has an opinion about CPF at all.
+	 *
 	 * @since 6.28.2
-	 * @return array{stores: int, examined: int, unreadable: int}
+	 * @return ScanCoverage
 	 */
-	public function rf_scan_coverage(): array {
-		return $this->rf_scan_coverage;
+	public function scan_coverage(): array {
+		return $this->scan_coverage;
 	}
 
 	/**
@@ -1049,7 +1161,7 @@ class IdentityConflictQuery {
 	 *
 	 * WHY THE FAILURE LIST CANNOT TIER A FINDING
 	 *
-	 * {@see self::rf_check_digit_failures()} returns FAILURES. Asking it
+	 * {@see self::check_digit_failures()} returns FAILURES. Asking it
 	 * whether an account's other identifier is fine means reading absence from
 	 * its list as a pass -- and absence there also means the value was never
 	 * examined, because the scan is capped, because no store carries it with a
@@ -1091,7 +1203,7 @@ class IdentityConflictQuery {
 		$out = array_fill_keys( $wanted, self::VERDICT_ABSENT );
 
 		$cipher = self::ciphertext_column_of( $column );
-		$stores = $this->stores_for_rf_scan( $cipher );
+		$stores = $this->stores_for_check_digit_scan( $cipher );
 
 		if ( array() === $stores || '' === $cipher ) {
 			return $out;
@@ -1185,11 +1297,12 @@ class IdentityConflictQuery {
 	}
 
 	/**
-	 * The stores this scan can read an RF out of.
+	 * The stores this scan can read the asked-for identifier out of.
 	 *
 	 * Three columns are required and each exclusion is structural rather than
-	 * incidental. `rf_hash` is what groups the value; `rf_encrypted` is the
-	 * only way to see the digits at all, which is why `ffc_user_profiles` --
+	 * incidental. The hash column is what groups the value; the ciphertext
+	 * column is the only way to see the digits at all, which is why
+	 * `ffc_user_profiles` --
 	 * the identity index, hashes and nothing else -- can never be scanned;
 	 * and `id` is what a finding without an account has instead of one.
 	 *
@@ -1200,7 +1313,7 @@ class IdentityConflictQuery {
 	 * @param string $cipher_column Ciphertext column to require.
 	 * @return list<string>
 	 */
-	private function stores_for_rf_scan( string $cipher_column ): array {
+	private function stores_for_check_digit_scan( string $cipher_column ): array {
 		global $wpdb;
 
 		$out = array();
@@ -1219,7 +1332,7 @@ class IdentityConflictQuery {
 	 * Collapse the per-store account lists into one, without repeats.
 	 *
 	 * The outer `GROUP_CONCAT` joins each store's own list, so a person whose
-	 * account carries the RF in two stores is named twice. `DISTINCT` cannot
+	 * account carries the value in two stores is named twice. `DISTINCT` cannot
 	 * do it there -- it would deduplicate the LISTS, not the ids inside them.
 	 *
 	 * @since 6.28.2
@@ -1571,7 +1684,7 @@ class IdentityConflictQuery {
 	/**
 	 * Unpack {@see self::COLUMN_ROW_IDS} into store label => list of row ids.
 	 *
-	 * The inverse of what `rf_check_digit_failures()` packs, and it lives
+	 * The inverse of what `check_digit_failures()` packs, and it lives
 	 * beside {@see self::format_account_rows()} for that method's reason: the
 	 * class that writes a wire format is the one that can still read it after
 	 * a separator changes. Both separators it needs are private, which is the

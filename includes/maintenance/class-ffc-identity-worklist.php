@@ -19,6 +19,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * A list of findings that does not move under the person working it.
+ *
+ * @phpstan-import-type ScanCoverage from IdentityConflictQuery
+ *
+ * @phpstan-type HeldList array{items: array<int, array<string, mixed>>, coverage: ScanCoverage, truncated: array<int, string>, taken_at: int}
  */
 class IdentityWorklist {
 
@@ -124,7 +128,7 @@ class IdentityWorklist {
 	 *
 	 * @param int $user_id The operator.
 	 * @param int $limit   Sample size per check, when a list has to be taken.
-	 * @return array{items: array<int, array<string, mixed>>, coverage: array{stores: int, examined: int, unreadable: int}, truncated: array<int, string>, taken_at: int}
+	 * @return HeldList
 	 */
 	public function get( int $user_id, int $limit = 100 ): array {
 		$held = get_transient( self::TRANSIENT . $user_id );
@@ -141,7 +145,7 @@ class IdentityWorklist {
 	 *
 	 * @param int $user_id The operator.
 	 * @param int $limit   Sample size per check.
-	 * @return array{items: array<int, array<string, mixed>>, coverage: array{stores: int, examined: int, unreadable: int}, truncated: array<int, string>, taken_at: int}
+	 * @return HeldList
 	 */
 	public function take( int $user_id, int $limit = 100 ): array {
 		$queue = $this->queues();
@@ -226,27 +230,60 @@ class IdentityWorklist {
 	 * the scan.
 	 *
 	 * @param array<string, mixed> $held What was held.
-	 * @return array{items: array<int, array<string, mixed>>, coverage: array{stores: int, examined: int, unreadable: int}, truncated: array<int, string>, taken_at: int}
+	 * @return HeldList
 	 */
 	private static function shaped( array $held ): array {
-		$coverage = isset( $held[ self::COVERAGE ] ) && is_array( $held[ self::COVERAGE ] )
-			? $held[ self::COVERAGE ]
-			: array();
-
 		return array(
 			self::ITEMS     => isset( $held[ self::ITEMS ] ) && is_array( $held[ self::ITEMS ] )
 				? array_values( $held[ self::ITEMS ] )
 				: array(),
-			self::COVERAGE  => array(
-				'stores'     => (int) ( $coverage['stores'] ?? 0 ),
-				'examined'   => (int) ( $coverage['examined'] ?? 0 ),
-				'unreadable' => (int) ( $coverage['unreadable'] ?? 0 ),
+			self::COVERAGE  => self::shaped_coverage(
+				isset( $held[ self::COVERAGE ] ) && is_array( $held[ self::COVERAGE ] )
+					? $held[ self::COVERAGE ]
+					: array()
 			),
 			self::TRUNCATED => isset( $held[ self::TRUNCATED ] ) && is_array( $held[ self::TRUNCATED ] )
 				? array_values( array_map( 'strval', $held[ self::TRUNCATED ] ) )
 				: array(),
 			self::TAKEN_AT  => (int) ( $held[ self::TAKEN_AT ] ?? 0 ),
 		);
+	}
+
+	/**
+	 * Coverage, keyed by the identifier column each scan read (#1486).
+	 *
+	 * A TRANSIENT WRITTEN BY THE PREVIOUS RELEASE CARRIES THE FLAT SHAPE, and
+	 * it outlives the deploy -- so the first render after an upgrade would read
+	 * `stores` / `examined` / `unreadable` at the top level and, normalised
+	 * naively, come out as one zeroed record. That is the #1071 failure wearing
+	 * a cache: a screen reporting "no store carries this" about a scan that had
+	 * in fact read thousands.
+	 *
+	 * A flat record is therefore read as the RF scan's, which is what it was:
+	 * the scan was RF-only until this change, so the migration is a statement of
+	 * fact rather than a guess.
+	 *
+	 * @param array<string, mixed> $coverage What was held.
+	 * @return ScanCoverage
+	 */
+	private static function shaped_coverage( array $coverage ): array {
+		if ( isset( $coverage['examined'] ) || isset( $coverage['stores'] ) || isset( $coverage['unreadable'] ) ) {
+			$coverage = array( 'rf_hash' => $coverage );
+		}
+
+		$out = array();
+
+		foreach ( $coverage as $column => $read ) {
+			$read = is_array( $read ) ? $read : array();
+
+			$out[ (string) $column ] = array(
+				'stores'     => (int) ( $read['stores'] ?? 0 ),
+				'examined'   => (int) ( $read['examined'] ?? 0 ),
+				'unreadable' => (int) ( $read['unreadable'] ?? 0 ),
+			);
+		}
+
+		return $out;
 	}
 
 	/**

@@ -767,10 +767,6 @@ msgstr "INCOMPLETO: a varredura atingiu seu limite, então existem identificador
 msgid "Report-only scan of how people are linked to WordPress users — across certificate submissions, appointments, recruitment candidacies and the identity index. Nothing is changed: review each finding and fix it manually. Detection groups by the stored CPF/RF hashes; the columns that classify a difference decrypt in memory and report a category only — never a value, and nothing is written."
 msgstr "Varredura somente de leitura de como as pessoas estão vinculadas a usuários do WordPress — entre submissões de certificado, agendamentos, candidaturas e o índice de identidade. Nada é alterado: revise cada achado e corrija manualmente. A detecção agrupa pelos hashes de CPF/RF armazenados; as colunas que classificam uma diferença decifram em memória e reportam apenas uma categoria — nunca um valor, e nada é gravado."
 
-#: includes/settings/views/ffc-tab-migrations.php:921
-msgid "Stored RF whose check digit does not match"
-msgstr "RF armazenado cujo dígito verificador não confere"
-
 #: includes/user-dashboard/class-ffc-capability-catalog.php:412
 msgid "Work the identity queue: correct a stored CPF/RF, split an account holding two people, merge two accounts holding one. Does not reveal a stored identifier — that stays with the PII capability."
 msgstr "Trabalhar a fila de identidade: corrigir um CPF/RF armazenado, separar uma conta que contém duas pessoas, mesclar duas contas que contêm uma. Não revela identificador armazenado — isso continua com a permissão de PII."
@@ -22126,25 +22122,17 @@ msgstr "Identidades"
 msgid "The scan reached its cap before reading every stored value, so this list is partial. Work it down and run the screen again."
 msgstr "A varredura atingiu seu limite antes de ler todos os valores armazenados, então esta lista está parcial. Reduza a fila e abra a tela de novo."
 
-
 msgid "No account"
 msgstr "Sem conta"
 
 msgid "Too many rows to list."
 msgstr "Linhas demais para listar."
 
-
 msgid "Corrected. The rows, the identity index and the account's certificate access were updated together."
 msgstr "Corrigido. As linhas, o índice de identidade e o acesso aos certificados da conta foram atualizados juntos."
 
 msgid "Names more than one account — the same wrong number was typed by more than one person, so one corrected value cannot serve it."
 msgstr "Nomeia mais de uma conta — o mesmo número errado foi digitado por mais de uma pessoa, então um único valor corrigido não serve."
-
-msgid "Corrected RF"
-msgstr "RF corrigido"
-
-msgid "7 digits"
-msgstr "7 dígitos"
 
 msgid "Correct"
 msgstr "Corrigir"
@@ -22899,3 +22887,31 @@ msgstr "As duas contas têm o mesmo %s, e esse número não passa no próprio d�
 #: includes/maintenance/class-ffc-identity-relink.php:437
 msgid "The records and that account share the same %s, and that number fails its own check digit — so it cannot be either person's, and it is not what ties them together. Correct it first, under \"Numbers to correct\": afterwards the records may have nothing tying them to that account at all, which is the answer rather than an obstacle."
 msgstr "Os registros e essa conta têm o mesmo %s, e esse número não passa no próprio dígito verificador — então ele não pode ser de nenhuma das duas pessoas, e não é o que os liga. Corrija-o primeiro, em \"Números a corrigir\": depois disso os registros podem não ter nada que os ligue àquela conta, e essa é a resposta, não um obstáculo."
+
+#. translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated.
+#: includes/admin/views/identity-resolution-page.php:494
+msgid "Corrected %s"
+msgstr "%s corrigido"
+
+#: includes/admin/views/identity-resolution-page.php:490
+msgid "The corrected number"
+msgstr "O número corrigido"
+
+#. translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated.
+#: includes/admin/views/identity-resolution-page.php:670
+msgid "The %s scan read nothing"
+msgstr "A varredura de %s não leu nada"
+
+#. translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated.
+#: includes/admin/views/identity-resolution-page.php:673
+msgid "The %s scan read part of the data"
+msgstr "A varredura de %s leu parte dos dados"
+
+#. translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated.
+#: includes/admin/views/identity-resolution-page.php:676
+msgid "The %s scan read the data"
+msgstr "A varredura de %s leu os dados"
+
+#: includes/settings/views/ffc-tab-migrations.php:992
+msgid "Stored RF or CPF whose check digit does not match"
+msgstr "RF ou CPF armazenado cujo dígito verificador não confere"

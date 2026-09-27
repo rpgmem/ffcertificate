@@ -769,10 +769,6 @@ msgstr ""
 msgid "Report-only scan of how people are linked to WordPress users — across certificate submissions, appointments, recruitment candidacies and the identity index. Nothing is changed: review each finding and fix it manually. Detection groups by the stored CPF/RF hashes; the columns that classify a difference decrypt in memory and report a category only — never a value, and nothing is written."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-migrations.php:921
-msgid "Stored RF whose check digit does not match"
-msgstr ""
-
 #: includes/user-dashboard/class-ffc-capability-catalog.php:412
 msgid "Work the identity queue: correct a stored CPF/RF, split an account holding two people, merge two accounts holding one. Does not reveal a stored identifier — that stays with the PII capability."
 msgstr ""
@@ -22035,24 +22031,16 @@ msgstr ""
 msgid "The scan reached its cap before reading every stored value, so this list is partial. Work it down and run the screen again."
 msgstr ""
 
-
 msgid "No account"
 msgstr ""
 
 msgid "Too many rows to list."
 msgstr ""
 
-
 msgid "Corrected. The rows, the identity index and the account's certificate access were updated together."
 msgstr ""
 
 msgid "Names more than one account — the same wrong number was typed by more than one person, so one corrected value cannot serve it."
-msgstr ""
-
-msgid "Corrected RF"
-msgstr ""
-
-msgid "7 digits"
 msgstr ""
 
 msgid "Correct"
@@ -22807,4 +22795,32 @@ msgstr ""
 #. translators: %s: the identifier the records and the account share, e.g. RF.
 #: includes/maintenance/class-ffc-identity-relink.php:437
 msgid "The records and that account share the same %s, and that number fails its own check digit — so it cannot be either person's, and it is not what ties them together. Correct it first, under \"Numbers to correct\": afterwards the records may have nothing tying them to that account at all, which is the answer rather than an obstacle."
+msgstr ""
+
+#. translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated.
+#: includes/admin/views/identity-resolution-page.php:494
+msgid "Corrected %s"
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:490
+msgid "The corrected number"
+msgstr ""
+
+#. translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated.
+#: includes/admin/views/identity-resolution-page.php:670
+msgid "The %s scan read nothing"
+msgstr ""
+
+#. translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated.
+#: includes/admin/views/identity-resolution-page.php:673
+msgid "The %s scan read part of the data"
+msgstr ""
+
+#. translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated.
+#: includes/admin/views/identity-resolution-page.php:676
+msgid "The %s scan read the data"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-migrations.php:992
+msgid "Stored RF or CPF whose check digit does not match"
 msgstr ""

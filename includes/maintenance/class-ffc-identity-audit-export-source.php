@@ -132,7 +132,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 		'cross_store_multiple_identities' => 'user_id',
 		'shared_identities'               => 'hash',
 		'multiple_identities'             => 'user_id',
-		'rf_check_digit'                  => 'hash',
+		'check_digit'                     => 'hash',
 	);
 
 	/**

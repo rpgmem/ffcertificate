@@ -71,7 +71,7 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 		// missing one: it reads rows a candidacy owns before promotion, which
 		// carry no `user_id` at all. `with_account_facts()` annotating nothing
 		// there is the right answer, not a gap.
-		'rf_check_digit'                  => 'related',
+		'check_digit'                     => 'related',
 	);
 
 	/**
@@ -192,7 +192,7 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 			// The one check that judges a single stored value rather than an
 			// account, and the only one that can see a person who mistyped
 			// once on their only row (#1345).
-			'rf_check_digit'                  => $conflicts->rf_check_digit_failures( $limit ),
+			'check_digit'                     => $conflicts->check_digit_failures_of_both( $limit ),
 		);
 
 		$checks = $this->with_account_facts( $checks );
