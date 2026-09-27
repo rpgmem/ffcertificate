@@ -22889,3 +22889,13 @@ msgstr "O RF tem mais dígitos do que um RF pode ter — verifique se há um val
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:199
 msgid "CPF is not valid — its check digits do not match. Confirm the number in the source spreadsheet."
 msgstr "O CPF não é válido — os dígitos verificadores não conferem. Confirme o número na planilha de origem."
+
+#. translators: %s: the identifier both accounts hold, e.g. RF.
+#: includes/maintenance/class-ffc-identity-merge.php:303
+msgid "Both accounts hold the same %s, and that number fails its own check digit — so it cannot be either person's, and it is not evidence that they are one person. Correct it first, under \"Numbers to correct\": doing so may dissolve this pair rather than resolve it, because the shared number may be the typo that paired them."
+msgstr "As duas contas têm o mesmo %s, e esse número não passa no próprio dígito verificador — então ele não pode ser de nenhuma das duas pessoas, e não é evidência de que sejam a mesma pessoa. Corrija-o primeiro, em \"Números a corrigir\": fazer isso pode dissolver este par em vez de resolvê-lo, porque o número compartilhado pode ser justamente o erro de digitação que os emparelhou."
+
+#. translators: %s: the identifier the records and the account share, e.g. RF.
+#: includes/maintenance/class-ffc-identity-relink.php:437
+msgid "The records and that account share the same %s, and that number fails its own check digit — so it cannot be either person's, and it is not what ties them together. Correct it first, under \"Numbers to correct\": afterwards the records may have nothing tying them to that account at all, which is the answer rather than an obstacle."
+msgstr "Os registros e essa conta têm o mesmo %s, e esse número não passa no próprio dígito verificador — então ele não pode ser de nenhuma das duas pessoas, e não é o que os liga. Corrija-o primeiro, em \"Números a corrigir\": depois disso os registros podem não ter nada que os ligue àquela conta, e essa é a resposta, não um obstáculo."

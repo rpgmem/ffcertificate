@@ -22798,3 +22798,13 @@ msgstr ""
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:199
 msgid "CPF is not valid — its check digits do not match. Confirm the number in the source spreadsheet."
 msgstr ""
+
+#. translators: %s: the identifier both accounts hold, e.g. RF.
+#: includes/maintenance/class-ffc-identity-merge.php:303
+msgid "Both accounts hold the same %s, and that number fails its own check digit — so it cannot be either person's, and it is not evidence that they are one person. Correct it first, under \"Numbers to correct\": doing so may dissolve this pair rather than resolve it, because the shared number may be the typo that paired them."
+msgstr ""
+
+#. translators: %s: the identifier the records and the account share, e.g. RF.
+#: includes/maintenance/class-ffc-identity-relink.php:437
+msgid "The records and that account share the same %s, and that number fails its own check digit — so it cannot be either person's, and it is not what ties them together. Correct it first, under \"Numbers to correct\": afterwards the records may have nothing tying them to that account at all, which is the answer rather than an obstacle."
+msgstr ""
