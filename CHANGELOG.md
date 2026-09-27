@@ -7,6 +7,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.30.0] (2026-09-27)
+
 ### Added
 
 - A **Name the Accounts Created Without One** migration card, for the accounts already created that way. It reads the name from the candidacy's own plain column, or from a submission's answers, and touches only an account whose display name is still its login *and* whose first name is empty — those two are written together, so one without the other means something else changed it. It keeps a cursor rather than re-measuring, because an account whose records name nobody stays in the pending set forever and would otherwise be re-read on every batch (#1480)
