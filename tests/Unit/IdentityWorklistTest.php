@@ -271,9 +271,11 @@ class IdentityWorklistTest extends TestCase {
 
 		$this->assertSame(
 			array(
-				'stores'     => 3,
-				'examined'   => 3036,
-				'unreadable' => 0,
+				'rf_hash' => array(
+					'stores'     => 3,
+					'examined'   => 3036,
+					'unreadable' => 0,
+				),
 			),
 			$held[ IdentityWorklist::COVERAGE ]
 		);
@@ -290,7 +292,7 @@ class IdentityWorklistTest extends TestCase {
 	 * examined, which is true, rather than printing a reassuring sentence
 	 * about a scan that left no record of itself.
 	 */
-	public function test_a_held_list_missing_its_readings_reports_zero_rather_than_clean(): void {
+	public function test_a_held_list_missing_its_readings_reports_no_reading_at_all(): void {
 		$this->store[ IdentityWorklist::TRANSIENT . '7' ] = array(
 			IdentityWorklist::ITEMS => array( self::finding( 'a' ) ),
 		);
@@ -298,15 +300,55 @@ class IdentityWorklistTest extends TestCase {
 		$held = $this->worklist( array() )->get( 7 );
 
 		$this->assertCount( 1, $held[ IdentityWorklist::ITEMS ] );
+
+		// WHERE THE HONESTY LIVES MOVED WITH THE SHAPE (#1486). This asserted
+		// zeroes while one flat record was the only shape there was. The record
+		// is keyed by identifier column now, and an ABSENT key means "nobody
+		// scanned that column" -- so inventing `rf_hash => 0` would have this
+		// layer claim a scan ran and found no store, a measurement it never
+		// took. The empty record is the truthful answer, and the VIEW is what
+		// must not go quiet on it: it renders one unnamed strip reading "This
+		// scan read nothing", asserted in `IdentityResolutionPageTest`.
 		$this->assertSame(
-			array(
-				'stores'     => 0,
-				'examined'   => 0,
-				'unreadable' => 0,
-			),
-			$held[ IdentityWorklist::COVERAGE ]
+			array(),
+			$held[ IdentityWorklist::COVERAGE ],
+			'A held list with no readings must report no reading, never a zero it did not measure.'
 		);
 		$this->assertSame( array(), $held[ IdentityWorklist::TRUNCATED ] );
 		$this->assertSame( 0, $this->scans, 'A clipped list is still a held list.' );
+	}
+
+	/**
+	 * A flat record from the PREVIOUS RELEASE is read as the RF scan's (#1486).
+	 *
+	 * The transient outlives the deploy, so the first render after an upgrade
+	 * gets the old shape. Normalised naively it would collapse to one zeroed
+	 * record -- a screen reporting "no store carries this" about a scan that had
+	 * read thousands. It was an RF-only scan, so reading it as RF's is a
+	 * statement of fact rather than a guess.
+	 */
+	public function test_a_flat_record_from_the_previous_release_is_read_as_the_rf_scan(): void {
+		$this->store[ IdentityWorklist::TRANSIENT . '7' ] = array(
+			IdentityWorklist::ITEMS    => array( self::finding( 'a' ) ),
+			IdentityWorklist::COVERAGE => array(
+				'stores'     => 3,
+				'examined'   => 3036,
+				'unreadable' => 0,
+			),
+		);
+
+		$held = $this->worklist( array() )->get( 7 );
+
+		$this->assertSame(
+			array(
+				'rf_hash' => array(
+					'stores'     => 3,
+					'examined'   => 3036,
+					'unreadable' => 0,
+				),
+			),
+			$held[ IdentityWorklist::COVERAGE ],
+			'A pre-upgrade reading must survive the shape change rather than read as zero.'
+		);
 	}
 }

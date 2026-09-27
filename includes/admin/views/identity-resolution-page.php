@@ -12,7 +12,7 @@
  *
  * @var array<int, array<string, mixed>> $ffc_identity_findings Findings from the check-digit scan.
  * @var array{type: string, text: string, code?: string, subject?: string}|false $ffc_identity_outcome Outcome of the last write, if any; a refusal carries its code and the finding it named.
- * @var array{stores: int, examined: int, unreadable: int}       $ffc_identity_coverage What the scan actually read.
+ * @var array<string, array{stores: int, examined: int, unreadable: int}> $ffc_identity_coverage What each scan read, per identifier column.
  * @var array<int, string>                                       $ffc_identity_capped   Checks that returned a full page.
  * @var int                                                      $ffc_identity_taken_at When the list was taken (unix).
  * @var bool                                                     $ffc_identity_may_split Whether the operator may open an account.
@@ -55,12 +55,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 // this worklist is asked for `LIMIT` findings, and a check that returns a full
 // page has more. That second cap said nothing at all until #1397, so a queue
 // holding 140 findings of one kind looked exactly like one holding 100.
-$ffc_identity_truncated = false;
+//
+// THE SCAN'S CAP IS PER COLUMN NOW (#1486), so this records WHICH. Two columns
+// are scanned and each stops at its own cap, so one flag for both would report
+// a truncated RF scan on the CPF strip and the other way round.
+$ffc_identity_truncated         = false;
+$ffc_identity_truncated_columns = array();
 
 foreach ( $ffc_identity_findings as $ffc_identity_finding ) {
 	if ( ! empty( $ffc_identity_finding[ IdentityConflictQuery::COLUMN_SCAN_TRUNCATED ] ) ) {
 		$ffc_identity_truncated = true;
-		break;
+
+		$ffc_identity_truncated_columns[ (string) ( $ffc_identity_finding['identifier_column'] ?? '' ) ] = true;
 	}
 }
 
@@ -449,6 +455,46 @@ $ffc_identity_ack = static function ( $subject, $preflight = false ) use ( $ffc_
 };
 
 /**
+ * The label above the "corrected number" box, naming which identifier (#1486).
+ *
+ * It said "Corrected RF" while the scan behind it was RF-only. The scan reads
+ * CPF too now, so a fixed label would name the wrong identifier on half the
+ * findings -- to a screen reader, which is the only place this label is read.
+ *
+ * The two names stay UNTRANSLATED because they are not English words: `RF` is
+ * *Registro Funcional* and `CPF` *Cadastro de Pessoa Física*, proper nouns an
+ * operator reads the same way in either language, the way `CLAUDE.md` records
+ * for the domain terms the database stores.
+ *
+ * An unknown column falls back to the neutral sentence rather than guessing a
+ * name, because a wrong name is worse than no name here.
+ *
+ * @param string $column The finding's `identifier_column`.
+ * @return string
+ */
+$ffc_identity_identifier_name = static function ( $column ) {
+	switch ( (string) $column ) {
+		case 'rf_hash':
+			return 'RF';
+		case 'cpf_hash':
+			return 'CPF';
+		default:
+			return '';
+	}
+};
+
+$ffc_identity_corrected_label = static function ( $column ) use ( $ffc_identity_identifier_name ) {
+	$name = $ffc_identity_identifier_name( $column );
+
+	if ( '' === $name ) {
+		return __( 'The corrected number', 'ffcertificate' );
+	}
+
+	/* translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated. */
+	return sprintf( __( 'Corrected %s', 'ffcertificate' ), $name );
+};
+
+/**
  * One tier's name, as an operator reads it.
  *
  * @param string $tier The tier.
@@ -537,44 +583,99 @@ $ffc_identity_tier_note = static function ( $tier ) {
 	// strip must never become a cheerier second answer to their question --
 	// which is why its three verdicts are derived from the same readings
 	// those branches test, and why the reassuring one is the narrowest.
-	$ffc_identity_examined   = (int) ( $ffc_identity_coverage['examined'] ?? 0 );
-	$ffc_identity_unreadable = (int) ( $ffc_identity_coverage['unreadable'] ?? 0 );
-	$ffc_identity_stores     = (int) ( $ffc_identity_coverage['stores'] ?? 0 );
-
-	// Read nothing: no store carries the columns this check needs, or every
-	// value it found was unreadable. Both are what an encryption key that
-	// does not match the data looks like, and neither is evidence about the
-	// numbers themselves.
-	$ffc_identity_read_none = 0 === $ffc_identity_stores
-		|| ( $ffc_identity_examined > 0 && $ffc_identity_examined === $ffc_identity_unreadable );
-
-	// Read part of it: something was skipped, or a cap cut the reading short.
-	// `$ffc_identity_capped` is the per-check cap and `$ffc_identity_truncated`
-	// the scan's own — two different limits, and either one makes the counters
-	// below counts of what was read rather than of what there is.
-	$ffc_identity_read_part = ! $ffc_identity_read_none
-		&& ( $ffc_identity_unreadable > 0
-			|| 0 === $ffc_identity_examined
-			|| $ffc_identity_truncated
-			|| array() !== $ffc_identity_capped );
-
-	if ( $ffc_identity_read_none ) {
-		$ffc_identity_scan_state = 'none';
-	} elseif ( $ffc_identity_read_part ) {
-		$ffc_identity_scan_state = 'partial';
-	} else {
-		$ffc_identity_scan_state = 'whole';
+	// ONE STRIP PER COLUMN, AND SUMMING THEM WOULD UNDO THIS WHOLE SECTION (#1486).
+	//
+	// Two identifiers are scanned now. Worked through: RF reading 5,000 values
+	// cleanly plus a CPF scan that read NOTHING sums to `stores > 0`,
+	// `examined = 5000`, `unreadable = 0` -- which the three verdicts below
+	// render as "The scan read the data". The healthy half would vouch for the
+	// half that never ran, in the one place built to stop exactly that. So the
+	// coverage arrives keyed by column and each key gets its own verdict.
+	//
+	// A column ABSENT from the coverage was never scanned, which is different
+	// again from one that found no store, and it simply draws no strip -- the
+	// screen states what it measured and stays silent about the rest.
+	// A HELD LIST THAT LOST ITS READINGS MUST SAY SO, NOT GO QUIET.
+	//
+	// An absent record means "nobody scanned this column", and drawing no strip
+	// is right for that. But the worklist transient can come back with no
+	// coverage at all -- written by an older release, or truncated -- and there
+	// the absence is a LOST READING, not a column nobody asked about. Left to
+	// the rule above it would render silence, which an operator reads as
+	// "nothing to report": the #1071 failure wearing a cache, and strictly
+	// worse than the zeroes it used to show. So an empty record becomes one
+	// UNNAMED strip, which the verdict below states as having read nothing.
+	if ( array() === $ffc_identity_coverage ) {
+		$ffc_identity_coverage = array(
+			'' => array(
+				'stores'     => 0,
+				'examined'   => 0,
+				'unreadable' => 0,
+			),
+		);
 	}
-	?>
+
+	foreach ( $ffc_identity_coverage as $ffc_identity_column => $ffc_identity_read ) :
+		$ffc_identity_examined   = (int) ( $ffc_identity_read['examined'] ?? 0 );
+		$ffc_identity_unreadable = (int) ( $ffc_identity_read['unreadable'] ?? 0 );
+		$ffc_identity_stores     = (int) ( $ffc_identity_read['stores'] ?? 0 );
+		$ffc_identity_scan_name  = $ffc_identity_identifier_name( (string) $ffc_identity_column );
+		$ffc_identity_scan_cap   = ! empty( $ffc_identity_truncated_columns[ (string) $ffc_identity_column ] );
+
+		// Read nothing: no store carries the columns this check needs, or every
+		// value it found was unreadable. Both are what an encryption key that
+		// does not match the data looks like, and neither is evidence about the
+		// numbers themselves.
+		$ffc_identity_read_none = 0 === $ffc_identity_stores
+			|| ( $ffc_identity_examined > 0 && $ffc_identity_examined === $ffc_identity_unreadable );
+
+		// Read part of it: something was skipped, or a cap cut the reading
+		// short. `$ffc_identity_capped` is the per-check cap and
+		// `$ffc_identity_scan_cap` this column's own scan cap — two different
+		// limits, and either one makes the counters below counts of what was
+		// read rather than of what there is.
+		$ffc_identity_read_part = ! $ffc_identity_read_none
+			&& ( $ffc_identity_unreadable > 0
+				|| 0 === $ffc_identity_examined
+				|| $ffc_identity_scan_cap
+				|| array() !== $ffc_identity_capped );
+
+		if ( $ffc_identity_read_none ) {
+			$ffc_identity_scan_state = 'none';
+		} elseif ( $ffc_identity_read_part ) {
+			$ffc_identity_scan_state = 'partial';
+		} else {
+			$ffc_identity_scan_state = 'whole';
+		}
+		?>
 	<div class="ffc-identity-scan ffc-identity-scan-<?php echo esc_attr( $ffc_identity_scan_state ); ?>">
 		<p class="ffc-identity-scan-verdict">
-			<?php if ( $ffc_identity_read_none ) : ?>
-				<?php esc_html_e( 'This scan read nothing', 'ffcertificate' ); ?>
-			<?php elseif ( $ffc_identity_read_part ) : ?>
-				<?php esc_html_e( 'The scan read part of the data', 'ffcertificate' ); ?>
-			<?php else : ?>
-				<?php esc_html_e( 'The scan read the data', 'ffcertificate' ); ?>
-			<?php endif; ?>
+			<?php
+			// THE VERDICT NAMES THE IDENTIFIER, BECAUSE THERE ARE TWO OF THEM.
+			//
+			// "This scan read nothing" was unambiguous while one scan ran. With
+			// two it has to say WHICH, or an operator reading it beside a queue
+			// full of RF findings cannot tell whether the sentence is about the
+			// work in front of them or about the half that is missing.
+			if ( '' === $ffc_identity_scan_name ) {
+				if ( $ffc_identity_read_none ) {
+					esc_html_e( 'This scan read nothing', 'ffcertificate' );
+				} elseif ( $ffc_identity_read_part ) {
+					esc_html_e( 'The scan read part of the data', 'ffcertificate' );
+				} else {
+					esc_html_e( 'The scan read the data', 'ffcertificate' );
+				}
+			} elseif ( $ffc_identity_read_none ) {
+				/* translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated. */
+				printf( esc_html__( 'The %s scan read nothing', 'ffcertificate' ), esc_html( $ffc_identity_scan_name ) );
+			} elseif ( $ffc_identity_read_part ) {
+				/* translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated. */
+				printf( esc_html__( 'The %s scan read part of the data', 'ffcertificate' ), esc_html( $ffc_identity_scan_name ) );
+			} else {
+				/* translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated. */
+				printf( esc_html__( 'The %s scan read the data', 'ffcertificate' ), esc_html( $ffc_identity_scan_name ) );
+			}
+			?>
 		</p>
 		<p class="ffc-identity-scan-detail">
 			<?php
@@ -610,7 +711,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				esc_html( number_format_i18n( $ffc_identity_stores ) )
 			);
 			?>
-			<?php if ( $ffc_identity_truncated ) : ?>
+			<?php if ( $ffc_identity_scan_cap ) : ?>
 				· <?php esc_html_e( 'the scan reached its cap', 'ffcertificate' ); ?>
 			<?php endif; ?>
 			<?php if ( array() !== $ffc_identity_capped ) : ?>
@@ -639,6 +740,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 			</div>
 		<?php endif; ?>
 	</div>
+	<?php endforeach; ?>
 
 	<?php
 	// THE COUNTERS ARE THE PANELS, COUNTED — NEVER A SECOND OPINION.
@@ -1916,18 +2018,38 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_row[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
 							<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
 							<?php
-							// `text` with `inputmode`, never `number`: an RF is a
-							// fixed-width identifier, and a number input drops a
+							// THE FORM HAS TO SAY WHICH IDENTIFIER, AND IT DID NOT (#1486).
+							//
+							// Without this `posted_field()` falls back to
+							// `IdentityRepair::FIELD`, which is `rf`. Traced
+							// through: a CPF finding would reach
+							// `rows_for( $subject, 'rf_hash', … )`, match nothing
+							// and answer `ffc_identity_repair_gone` -- "Nothing
+							// carries that value any more". Not a wrong write, a
+							// FALSE SENTENCE about a finding still sitting there.
+							// It was unreachable only because the scan was
+							// RF-only, which is what this change undoes.
+							?>
+							<input type="hidden" name="ffc_field" value="<?php echo esc_attr( str_replace( '_hash', '', (string) ( $ffc_identity_row['identifier_column'] ?? 'rf' ) ) ); ?>">
+							<?php
+							// `text` with `inputmode`, never `number`: these are
+							// fixed-width identifiers, and a number input drops a
 							// leading zero -- which `rf_normalized varchar(7)` says
 							// is a digit, not formatting. That is also why the
 							// screen is outside `RequiredNumericInputTest`'s scope.
+							//
+							// 7 TO 11 DIGITS, AS THE SHARED-PAIR FORM ALREADY HAS:
+							// `[0-9]{7}` made an 11-digit CPF impossible to type,
+							// and the browser would have refused the submit with a
+							// message about a number the operator had read
+							// correctly off the finding.
 							?>
 							<label class="screen-reader-text" for="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
-								<?php esc_html_e( 'Corrected RF', 'ffcertificate' ); ?>
+								<?php echo esc_html( $ffc_identity_corrected_label( (string) ( $ffc_identity_row['identifier_column'] ?? '' ) ) ); ?>
 							</label>
-							<input type="text" inputmode="numeric" pattern="[0-9]{7}" maxlength="7" size="8" required
+							<input type="text" inputmode="numeric" pattern="[0-9]{7,11}" maxlength="11" size="12" required
 								id="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
-								name="ffc_rf" placeholder="<?php esc_attr_e( '7 digits', 'ffcertificate' ); ?>">
+								name="ffc_rf" placeholder="<?php esc_attr_e( 'The confirmed number', 'ffcertificate' ); ?>">
 							<?php
 							// THE FIELD IS NEVER PRE-FILLED AND NOTHING
 							// STORED COMES BACK.

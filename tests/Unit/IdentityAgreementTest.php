@@ -269,7 +269,7 @@ class IdentityAgreementTest extends TestCase {
 	 * A VALUE NOBODY COULD READ IS NOT A VALUE THAT IS WRONG.
 	 *
 	 * The #1071 / #1094 rule, and the one
-	 * `IdentityConflictQuery::rf_check_digit_failures()` already states for its
+	 * `IdentityConflictQuery::check_digit_failures()` already states for its
 	 * own scan. Refusing on `unreadable` would make a mismatched encryption key
 	 * look like a data defect and block every merge on an install whose key does
 	 * not match its rows -- which is the ordinary state of a staging copy.

@@ -61,13 +61,18 @@ class IdentityQueueTest extends TestCase {
 		$query = Mockery::mock( IdentityConflictQuery::class );
 		$query->shouldReceive( 'multiple_identities' )->andReturn( $multiple );
 		$query->shouldReceive( 'shared_identities' )->andReturn( $shared );
-		$query->shouldReceive( 'rf_check_digit_failures' )->andReturn( $failures );
+		$query->shouldReceive( 'check_digit_failures_of_both' )->andReturn( $failures );
 		$query->shouldReceive( 'check_digit_verdicts' )->andReturn( $verdicts );
-		$query->shouldReceive( 'rf_scan_coverage' )->andReturn(
+		// KEYED BY COLUMN (#1486): the scan reads two identifiers and one flat
+		// record cannot describe both, which is what lets a clean half vouch
+		// for a half that never ran.
+		$query->shouldReceive( 'scan_coverage' )->andReturn(
 			array(
-				'stores'     => 3,
-				'examined'   => 2,
-				'unreadable' => 0,
+				'rf_hash' => array(
+					'stores'     => 3,
+					'examined'   => 2,
+					'unreadable' => 0,
+				),
 			)
 		);
 
@@ -414,9 +419,11 @@ class IdentityQueueTest extends TestCase {
 
 		$this->assertSame(
 			array(
-				'stores'     => 3,
-				'examined'   => 2,
-				'unreadable' => 0,
+				'rf_hash' => array(
+					'stores'     => 3,
+					'examined'   => 2,
+					'unreadable' => 0,
+				),
 			),
 			$queue->coverage()
 		);
