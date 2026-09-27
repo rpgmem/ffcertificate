@@ -35,7 +35,6 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Maintenance;
 
-use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Core\SensitiveFieldRegistry;
 
@@ -923,7 +922,15 @@ class IdentityConflictQuery {
 				continue;
 			}
 
-			if ( DocumentFormatter::rf_check_digit_matches( $plain ) ) {
+			// THE SAME RULE, ASKED IN THE SAME PLACE AS EVERYWHERE ELSE (#1491).
+			//
+			// This called `DocumentFormatter::rf_check_digit_matches()` directly,
+			// which made it a THIRD site expressing the rule -- found while
+			// unifying the other two. It does not branch on the field, because
+			// this scan fixes its column to `rf_hash`, so `'rf'` is a statement
+			// of fact rather than a choice; when the scan becomes field-aware
+			// (#1486) this takes the field it already resolved.
+			if ( IdentityRepair::well_formed( 'rf', $plain ) ) {
 				continue;
 			}
 
@@ -1149,20 +1156,32 @@ class IdentityConflictQuery {
 	/**
 	 * Whether a plaintext identifier satisfies its own check digits.
 	 *
-	 * The RF rule is read directly rather than through `validate_rf()`,
-	 * which checks the check digit only when the administrator has enabled
-	 * enforcement (#1345) -- an audit verdict must not depend on a setting
-	 * that decides what the FORM accepts.
+	 * ONE IMPLEMENTATION, BECAUSE TWO HAD ALREADY DRIFTED (#1491).
+	 *
+	 * This branched on the field itself, with a docblock giving the same reason
+	 * `IdentityRepair::well_formed()` gives in nearly the same words -- and the
+	 * two bodies did not match: that one also called `validate_rf()`, which
+	 * reads the `ffc_validate_rf_check_digit` setting. Two implementations of
+	 * one rule, agreeing in prose and differing in their DEPENDENCIES, which is
+	 * the sharper half of the cost.
+	 *
+	 * So the decision lives in one place and this asks it. `well_formed()` is
+	 * already that place -- it is `public` and its own docblock declares itself
+	 * the shared home, with `IdentityAdoption` as the second consumer.
+	 *
+	 * DEPENDING ON THE WRITE-SIDE CLASS IS NOT A LAYERING SLIP. `well_formed()`
+	 * is a pure static predicate with no I/O and no state, so this is a reader
+	 * borrowing an expression rather than reaching into a writer. Both classes
+	 * sit in `Maintenance`, so the module-boundary baseline does not move.
 	 *
 	 * @since 6.28.3
+	 * @since 6.30.1 Delegates rather than branching a second time.
 	 * @param string $field `cpf` or `rf`.
 	 * @param string $plain The identifier as stored.
 	 * @return bool
 	 */
 	private static function satisfies_check_digits( string $field, string $plain ): bool {
-		return 'cpf' === $field
-			? DocumentFormatter::validate_cpf( $plain )
-			: DocumentFormatter::rf_check_digit_matches( $plain );
+		return IdentityRepair::well_formed( $field, $plain );
 	}
 
 	/**

@@ -763,8 +763,29 @@ class IdentityRepair {
 			return DocumentFormatter::validate_cpf( $normalized );
 		}
 
-		return DocumentFormatter::validate_rf( $normalized )
-			&& DocumentFormatter::rf_check_digit_matches( $normalized );
+		// THE `validate_rf()` CALL THAT WAS HERE CONTRADICTED THE DOCBLOCK ABOVE
+		// AND BOUGHT NOTHING (#1491).
+		//
+		// This read `validate_rf( $x ) && rf_check_digit_matches( $x )`, three
+		// lines below a docblock saying the RF rule is read *directly rather
+		// than through `validate_rf()`* -- prose denying the code beneath it.
+		//
+		// Redundant either way, which is why removing it changes no answer:
+		// `rf_check_digit_matches()` refuses anything that is not a seven-digit
+		// RF before it computes a digit, so it already subsumes the structural
+		// half. With the opt-in ON, `validate_rf()` merely re-checks the digit
+		// the second call checks; with it OFF, the `&&` still required the
+		// second call to pass.
+		//
+		// And it was not inert. `validate_rf()` reads
+		// `ffc_validate_rf_check_digit` through `Settings\SettingsReader`, so it
+		// cannot be called without that class being loadable -- measured: a
+		// standalone script calling it dies with `Class
+		// "FreeFormCertificate\Settings\SettingsReader" not found`. That made
+		// this predicate depend on the settings layer in order to judge a
+		// CONFIRMED value, which is exactly what the docblock forbids it to
+		// consult.
+		return DocumentFormatter::rf_check_digit_matches( $normalized );
 	}
 }
 // phpcs:enable WordPress.DB.DirectDatabaseQuery
