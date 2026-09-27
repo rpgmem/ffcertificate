@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Identity resolution: the acknowledgement a correction needs when its value already belongs to another account can now be given. The refusal asked for it and the checkbox was never rendered, on both forms that post a repair, so the gate had no way through. The "Check" button now reveals it as soon as the preflight names the other account (#1487)
+
 ## [6.30.0] (2026-09-27) — `1cb1a009`
 
 ### Added
