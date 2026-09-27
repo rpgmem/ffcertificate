@@ -298,7 +298,10 @@ class OperatorCertificatesRestControllerTest extends TestCase {
 		Functions\when( 'get_post' )->justReturn( $this->publishedForm() );
 		// 11 digits that fail the CPF checksum.
 		$resp = $this->controller()->issue_certificate(
-			$this->request( array( 'form_id' => 10, 'cpf_rf' => '11111111111' ) )
+			// INVALID ON PURPOSE, which is the case's whole point: one digit off
+			// person A's CPF, so it reaches the check-digit arithmetic and fails
+			// there rather than being refused on width or repetition.
+			$this->request( array( 'form_id' => 10, 'cpf_rf' => '51817842081' ) )
 		);
 		$this->assertInstanceOf( \WP_Error::class, $resp );
 		$this->assertSame( 'invalid_cpf', $resp->get_error_code() );

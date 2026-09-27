@@ -292,8 +292,8 @@ class IdentityNormalizationMigrationStrategyTest extends TestCase {
 	 */
 	public static function document_fields(): array {
 		return array(
-			'cpf' => array( 'cpf', '123.456.789-09', '12345678909' ),
-			'rf'  => array( 'rf', '765.432-1', '7654321' ),
+			'cpf' => array( 'cpf', '518.178.420-80', '51817842080' ),
+			'rf'  => array( 'rf', '518.178-0', '5181780' ),
 		);
 	}
 
@@ -306,7 +306,7 @@ class IdentityNormalizationMigrationStrategyTest extends TestCase {
 	 * and on the hash, both deterministic.
 	 */
 	public function test_an_already_canonical_row_is_not_rewritten(): void {
-		$this->seed_row( 10, array( 'email' => 'joao@escola.gov.br', 'cpf' => '12345678909', 'rf' => '7654321' ) );
+		$this->seed_row( 10, array( 'email' => 'joao@escola.gov.br', 'cpf' => '51817842080', 'rf' => '5181780' ) );
 
 		$this->strategy->execute( '', array() );
 
@@ -368,7 +368,7 @@ class IdentityNormalizationMigrationStrategyTest extends TestCase {
 	 * policy, so the card reports and continues rather than aborting.
 	 */
 	public function test_a_refused_write_is_reported_and_the_batch_continues(): void {
-		$this->seed_row( 10, array( 'cpf' => '123.456.789-09' ) );
+		$this->seed_row( 10, array( 'cpf' => '518.178.420-80' ) );
 		$this->seed_row( 20, array( 'cpf' => '987.654.321-00' ) );
 		$this->refuse_write = true;
 

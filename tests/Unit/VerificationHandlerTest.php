@@ -149,7 +149,7 @@ class VerificationHandlerTest extends TestCase {
 			'id'              => '1',
 			'form_id'         => '10',
 			'email'           => 'test@example.com',
-			'cpf_rf'          => '12345678901',
+			'cpf_rf'          => '51817842080',
 			'auth_code'       => 'ABCD1234EFGH',
 			'data'            => '{"name":"João","city":"SP"}',
 			'magic_token'     => 'abc123',
@@ -173,7 +173,7 @@ class VerificationHandlerTest extends TestCase {
 		$this->assertTrue( $result['found'] );
 		$this->assertIsObject( $result['submission'] );
 		$this->assertSame( 'test@example.com', $result['data']['email'] );
-		$this->assertSame( '12345678901', $result['data']['cpf_rf'] );
+		$this->assertSame( '51817842080', $result['data']['cpf_rf'] );
 		$this->assertSame( 'ABCD1234EFGH', $result['data']['auth_code'] );
 		// JSON extra data merged
 		$this->assertSame( 'João', $result['data']['name'] );
@@ -187,7 +187,7 @@ class VerificationHandlerTest extends TestCase {
 			'id'              => '1',
 			'form_id'         => '10',
 			'email'           => 'column@example.com',
-			'cpf_rf'          => '99999999999',
+			'cpf_rf'          => '20456942084',
 			'auth_code'       => 'CODE12345678',
 			'data'            => '{"email":"json@old.com","name":"Test"}',
 			'magic_token'     => 'tok',
@@ -269,7 +269,7 @@ class VerificationHandlerTest extends TestCase {
 			'calendar_id'       => '0',
 			'name'              => 'Maria',
 			'email'             => 'maria@test.com',
-			'cpf_rf'            => '11122233344',
+			'cpf_rf'            => '73102442064',
 			'validation_code'   => 'APPT1234CODE',
 			'appointment_date'  => '2026-03-01',
 			'start_time'        => '09:00',
@@ -415,8 +415,8 @@ class VerificationHandlerTest extends TestCase {
 			'id'              => '74',
 			'form_id'         => '1',
 			'email'           => 'split@test.com',
-			'cpf'             => '12345678901',
-			'rf'              => '7654321',
+			'cpf'             => '51817842080',
+			'rf'              => '5181780',
 			'auth_code'       => 'SPLITCPFRF01',
 			'data'            => '{}',
 			'magic_token'     => '',
@@ -430,8 +430,8 @@ class VerificationHandlerTest extends TestCase {
 
 		$result = $this->invokePrivate( 'search_certificate', [ 'SPLITCPFRF01' ] );
 
-		$this->assertSame( '12345678901', $result['data']['cpf'] );
-		$this->assertSame( '7654321', $result['data']['rf'] );
+		$this->assertSame( '51817842080', $result['data']['cpf'] );
+		$this->assertSame( '5181780', $result['data']['rf'] );
 	}
 
 	// ==================================================================
@@ -480,7 +480,7 @@ class VerificationHandlerTest extends TestCase {
 			'calendar_id'       => '0',
 			'name'              => 'Carlos',
 			'email'             => 'carlos@test.com',
-			'cpf'               => '55566677788',
+			'cpf'               => '51817842080',
 			'validation_code'   => 'VAL123456789',
 			'appointment_date'  => '2026-04-10',
 			'start_time'        => '14:00',
@@ -496,7 +496,7 @@ class VerificationHandlerTest extends TestCase {
 		$this->assertSame( 'appointment', $result['type'] );
 		$this->assertSame( 'Carlos', $result['data']['name'] );
 		$this->assertSame( 'carlos@test.com', $result['data']['email'] );
-		$this->assertSame( '55566677788', $result['data']['cpf_rf'] );
+		$this->assertSame( '51817842080', $result['data']['cpf_rf'] );
 		$this->assertSame( 'VAL123456789', $result['data']['auth_code'] );
 		$this->assertSame( '2026-04-10', $result['data']['appointment_date'] );
 		$this->assertSame( '14:00', $result['data']['start_time'] );
@@ -611,7 +611,7 @@ class VerificationHandlerTest extends TestCase {
 			'id'              => '42',
 			'form_id'         => '5',
 			'email'           => 'magic@example.com',
-			'cpf_rf'          => '11122233344',
+			'cpf_rf'          => '73102442064',
 			'auth_code'       => 'AUTH12345678',
 			'data'            => '{"name":"Token User","city":"RJ"}',
 			'magic_token'     => $valid_token,
@@ -629,7 +629,7 @@ class VerificationHandlerTest extends TestCase {
 		$this->assertTrue( $result['found'] );
 		$this->assertSame( $valid_token, $result['magic_token'] );
 		$this->assertSame( 'magic@example.com', $result['data']['email'] );
-		$this->assertSame( '11122233344', $result['data']['cpf_rf'] );
+		$this->assertSame( '73102442064', $result['data']['cpf_rf'] );
 		$this->assertSame( 'AUTH12345678', $result['data']['auth_code'] );
 		// JSON data merged
 		$this->assertSame( 'Token User', $result['data']['name'] );
@@ -755,7 +755,7 @@ class VerificationHandlerTest extends TestCase {
 			'calendar_id'       => '0',
 			'name'              => 'Fallback User',
 			'email'             => 'fallback@test.com',
-			'cpf_rf'            => '99988877766',
+			'cpf_rf'            => '51817842080',
 			'validation_code'   => 'FALLBACK1234',
 			'appointment_date'  => '2026-06-01',
 			'start_time'        => '15:00',
@@ -797,7 +797,7 @@ class VerificationHandlerTest extends TestCase {
 			'id'              => '100',
 			'form_id'         => '10',
 			'email'           => 'cert@test.com',
-			'cpf_rf'          => '12345678901',
+			'cpf_rf'          => '51817842080',
 			'auth_code'       => 'CERT12345678',
 			'data'            => '{}',
 			'magic_token'     => 'tok',

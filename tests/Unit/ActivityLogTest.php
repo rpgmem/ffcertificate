@@ -364,7 +364,7 @@ class ActivityLogTest extends TestCase {
 		// through.
 		ActivityLog::log('reregistration_submitted', ActivityLog::LEVEL_INFO, [
 			'audience_id' => 3,
-			'fields'      => ['cpf' => '12345678901'],
+			'fields'      => ['cpf' => '51817842080'],
 		]);
 
 		$buffer = $this->getWriteBuffer();

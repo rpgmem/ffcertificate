@@ -176,19 +176,19 @@ class EncryptionTest extends TestCase {
 			'id'              => 1,
 			'email'           => '',
 			'email_encrypted' => $encrypted_email,
-			'cpf_rf'          => '12345678901',
+			'cpf_rf'          => '51817842080',
 		);
 
 		$result = Encryption::decrypt_submission( $submission );
 
 		$this->assertSame( $original_email, $result['email'] );
-		$this->assertSame( '12345678901', $result['cpf_rf'] ); // plain kept
+		$this->assertSame( '51817842080', $result['cpf_rf'] ); // plain kept
 	}
 
 	public function test_decrypt_submission_keeps_plain_when_no_encrypted(): void {
 		$submission = array(
 			'email'  => 'plain@example.com',
-			'cpf_rf' => '12345678901',
+			'cpf_rf' => '51817842080',
 		);
 
 		$result = Encryption::decrypt_submission( $submission );
@@ -197,7 +197,7 @@ class EncryptionTest extends TestCase {
 	}
 
 	public function test_decrypt_submission_decrypts_split_cpf_column(): void {
-		$enc_cpf = Encryption::encrypt( '12345678901' );
+		$enc_cpf = Encryption::encrypt( '51817842080' );
 
 		$submission = array(
 			'cpf_encrypted' => $enc_cpf,
@@ -205,8 +205,8 @@ class EncryptionTest extends TestCase {
 
 		$result = Encryption::decrypt_submission( $submission );
 
-		$this->assertSame( '12345678901', $result['cpf'] );
-		$this->assertSame( '12345678901', $result['cpf_rf'] );
+		$this->assertSame( '51817842080', $result['cpf'] );
+		$this->assertSame( '51817842080', $result['cpf_rf'] );
 	}
 
 	public function test_decrypt_submission_decrypts_split_rf_column(): void {
@@ -278,7 +278,7 @@ class EncryptionTest extends TestCase {
 		$appt = array(
 			'id'                    => 1,
 			'email_encrypted'       => Encryption::encrypt( 'a@b.com' ),
-			'cpf_encrypted'        => Encryption::encrypt( '12345678901' ),
+			'cpf_encrypted'        => Encryption::encrypt( '51817842080' ),
 			'phone'                => '',
 			'phone_encrypted'      => Encryption::encrypt( '11999999999' ),
 			'user_ip_encrypted'    => Encryption::encrypt( '10.0.0.1' ),
@@ -289,7 +289,7 @@ class EncryptionTest extends TestCase {
 		$result = Encryption::decrypt_appointment( $appt );
 
 		$this->assertSame( 'a@b.com', $result['email'] );
-		$this->assertSame( '12345678901', $result['cpf_rf'] );
+		$this->assertSame( '51817842080', $result['cpf_rf'] );
 		$this->assertSame( '11999999999', $result['phone'] );
 		$this->assertSame( '10.0.0.1', $result['user_ip'] );
 		$this->assertSame( '{"key":"val"}', $result['custom_data'] );

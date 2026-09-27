@@ -474,12 +474,12 @@ class UserManagerTest extends TestCase {
 		$encMock->shouldReceive( 'decrypt' )
 			->with( 'enc_cpf_123' )
 			->once()
-			->andReturn( '12345678901' );
+			->andReturn( '51817842080' );
 
 		// Alias mock for DocumentFormatter::mask_cpf
 		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
 		$fmtMock->shouldReceive( 'mask_cpf' )
-			->with( '12345678901' )
+			->with( '51817842080' )
 			->once()
 			->andReturn( '123.***.***-01' );
 
@@ -529,7 +529,7 @@ class UserManagerTest extends TestCase {
 	public function test_get_user_cpfs_masked_deduplicates_results(): void {
 		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
 		$encMock->shouldReceive( 'decrypt' )
-			->andReturn( '12345678901' );
+			->andReturn( '51817842080' );
 
 		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
 		$fmtMock->shouldReceive( 'mask_cpf' )
@@ -653,7 +653,7 @@ class UserManagerTest extends TestCase {
 		$encMock->shouldReceive( 'decrypt' )
 			->andReturnUsing( function ( $val ) {
 				$map = array(
-					'enc_cpf' => '12345678901',
+					'enc_cpf' => '51817842080',
 					'enc_rf'  => 'RF999',
 				);
 				return $map[ $val ] ?? '';
@@ -663,7 +663,7 @@ class UserManagerTest extends TestCase {
 		$fmtMock->shouldReceive( 'mask_cpf' )
 			->andReturnUsing( function ( $val ) {
 				$map = array(
-					'12345678901' => '123.***.***-01',
+					'51817842080' => '123.***.***-01',
 					'RF999'       => 'RF***9',
 				);
 				return $map[ $val ] ?? '';
@@ -716,7 +716,7 @@ class UserManagerTest extends TestCase {
 	public function test_get_user_identifiers_masked_deduplicates(): void {
 		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
 		$encMock->shouldReceive( 'decrypt' )
-			->andReturn( '12345678901' );
+			->andReturn( '51817842080' );
 
 		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
 		$fmtMock->shouldReceive( 'mask_cpf' )
@@ -1281,8 +1281,8 @@ class UserManagerTest extends TestCase {
 	 */
 	public function test_update_extended_profile_encrypts_sensitive_key_and_stores_hash(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'encrypt' )->with( '12345678901' )->once()->andReturn( 'ENC' );
-		$enc->shouldReceive( 'hash' )->with( '12345678901' )->once()->andReturn( 'HASH' );
+		$enc->shouldReceive( 'encrypt' )->with( '51817842080' )->once()->andReturn( 'ENC' );
+		$enc->shouldReceive( 'hash' )->with( '51817842080' )->once()->andReturn( 'HASH' );
 
 		$this->mock_table_exists( 'wp_ffc_user_profiles', false );
 		Functions\when( 'sanitize_key' )->returnArg();
@@ -1306,7 +1306,7 @@ class UserManagerTest extends TestCase {
 
 		$result = UserManager::update_extended_profile(
 			42,
-			array( 'cpf' => '12345678901' ),
+			array( 'cpf' => '51817842080' ),
 			array( 'cpf' )
 		);
 
@@ -1396,7 +1396,7 @@ class UserManagerTest extends TestCase {
 	 */
 	public function test_get_extended_profile_decrypts_sensitive_extra_meta(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( '12345678901' );
+		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( '51817842080' );
 
 		$this->mock_table_exists( 'wp_ffc_user_profiles', true );
 		// get_row returning a non-empty row keeps get_profile on the fast
@@ -1416,7 +1416,7 @@ class UserManagerTest extends TestCase {
 			array( 'cpf' )
 		);
 
-		$this->assertSame( '12345678901', $profile['cpf'] );
+		$this->assertSame( '51817842080', $profile['cpf'] );
 	}
 
 	public function test_get_extended_profile_ignores_profile_table_keys_listed_in_extras(): void {

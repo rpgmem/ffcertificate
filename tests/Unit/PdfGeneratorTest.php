@@ -641,7 +641,7 @@ class PdfGeneratorTest extends TestCase {
 			'id'                    => '55',
 			'email'                 => 'user@example.com',
 			'auth_code'             => 'AUTH-77',
-			'cpf_rf'                => '12345678900',
+			'cpf_rf'                => '51817842080',
 			'data'                  => json_encode( array( 'name' => 'Marina', 'extra' => 'v1' ) ),
 			'form_id'               => '10',
 			'submission_date'       => (string) 1_700_000_000,

@@ -149,10 +149,10 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 			'submission_date' => '2030-05-05',
 			'status'          => 'publish',
 			'user_id'         => 99,
-			'data'            => '{"cpf":"11144477735","course":"Math"}',
+			'data'            => '{"cpf":"51817842080","course":"Math"}',
 			'email'           => 'ana@x.com',
-			'cpf'             => '11144477735',
-			'rf'              => '7654321',
+			'cpf'             => '51817842080',
+			'rf'              => '5181780',
 		);
 	}
 
@@ -177,11 +177,11 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 		$this->assertStringContainsString( '*', $result['cpf'] );
 		$this->assertStringContainsString( '*', $result['rf'] );
 		$this->assertStringContainsString( '*', $result['email'] );
-		$this->assertNotSame( '11144477735', $result['cpf'] );
+		$this->assertNotSame( '51817842080', $result['cpf'] );
 		$this->assertNotSame( 'ana@x.com', $result['email'] );
 		// PII inside the data blob masked; the non-PII field survives verbatim.
 		$this->assertStringContainsString( '*', $result['data']['cpf'] );
-		$this->assertNotSame( '11144477735', $result['data']['cpf'] );
+		$this->assertNotSame( '51817842080', $result['data']['cpf'] );
 		$this->assertSame( 'Math', $result['data']['course'] );
 	}
 
@@ -206,9 +206,17 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 		// Reveal tier: plaintext, not masked.
 		$this->assertSame( 'ana@x.com', $result['email'] );
 		$this->assertStringNotContainsString( '*', $result['cpf'] );
-		$this->assertStringContainsString( '111', $result['cpf'] );
+		// THE WHOLE FORMATTED VALUE, NOT A FRAGMENT OF IT (#1492).
+		//
+		// This read `assertStringContainsString( '111', … )` -- three digits of
+		// the fixture, which the standard set then changed out from under it. The
+		// fragment was a weak proxy anyway: it would have passed had the endpoint
+		// returned a DIFFERENT person's CPF that happened to contain `111`.
+		// Asserting the formatted value states what the reveal tier promises and
+		// cannot rot into a coincidence.
+		$this->assertSame( '518.178.420-80', $result['cpf'] );
 		// The data blob is returned raw for the reveal tier.
-		$this->assertSame( '11144477735', $result['data']['cpf'] );
+		$this->assertSame( '51817842080', $result['data']['cpf'] );
 		$this->assertSame( 'Math', $result['data']['course'] );
 	}
 
@@ -226,7 +234,7 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 				'form_id'         => 4,
 				'status'          => 'publish',
 				'submission_date' => '2030-06-06',
-				'data'            => '{"cpf":"11144477735","email":"bob@y.com","course":"Chemistry"}',
+				'data'            => '{"cpf":"51817842080","email":"bob@y.com","course":"Chemistry"}',
 			)
 		);
 
@@ -239,7 +247,7 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 		$data = $result['certificate']['data'];
 		// PII keys inside the public /verify blob are masked; non-PII survives.
 		$this->assertStringContainsString( '*', $data['cpf'] );
-		$this->assertNotSame( '11144477735', $data['cpf'] );
+		$this->assertNotSame( '51817842080', $data['cpf'] );
 		$this->assertStringContainsString( '*', $data['email'] );
 		$this->assertNotSame( 'bob@y.com', $data['email'] );
 		$this->assertSame( 'Chemistry', $data['course'] );
@@ -298,9 +306,9 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 				'submission_date' => '2030-03-03',
 				'data'            => '{"name":"Bia"}',
 				'email'           => 'bia@x.com',
-				'cpf_rf'          => '11144477735',
+				'cpf_rf'          => '51817842080',
 				// Legacy plaintext RF column (pre-encryption installs).
-				'rf'              => '1234567',
+				'rf'              => '2045699',
 			)
 		);
 
@@ -319,7 +327,7 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 		$this->assertStringContainsString( '*', $result['certificate']['email'] );
 		$this->assertNotSame( 'bia@x.com', $result['certificate']['email'] );
 		$this->assertStringContainsString( '*', $result['certificate']['rf'] );
-		$this->assertStringNotContainsString( '1234567', $result['certificate']['rf'] );
+		$this->assertStringNotContainsString( '2045699', $result['certificate']['rf'] );
 	}
 
 	public function test_verify_certificate_rate_limited(): void {

@@ -94,7 +94,7 @@ class SensitiveFieldRegistryTest extends TestCase {
 	public function test_contains_sensitive_detects_nested_static_key(): void {
 		$payload = array(
 			'audience_id' => 3,
-			'fields'      => array( 'cpf' => '12345678901' ),
+			'fields'      => array( 'cpf' => '51817842080' ),
 		);
 		$this->assertTrue( SensitiveFieldRegistry::contains_sensitive( $payload ) );
 	}
@@ -103,7 +103,7 @@ class SensitiveFieldRegistryTest extends TestCase {
 		$payload = array(
 			'wrapper' => array(
 				'outer' => array(
-					'inner' => array( 'rf' => '1234567' ),
+					'inner' => array( 'rf' => '5181780' ),
 				),
 			),
 		);
@@ -147,7 +147,7 @@ class SensitiveFieldRegistryTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_col' )
 			->andReturn( array( 'rg' ) );
 
-		$payload = array( 'rg' => 'AB1234567' );
+		$payload = array( 'rg' => 'AB5181780' );
 		$this->assertTrue( SensitiveFieldRegistry::contains_sensitive( $payload ) );
 	}
 

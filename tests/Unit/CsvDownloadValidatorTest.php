@@ -262,26 +262,30 @@ class CsvDownloadValidatorTest extends TestCase {
 
 	public function test_cpf_audit_mode_passes_valid_cpf(): void {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'audit';
-		$this->assertNull( $this->validator->validate_cpf_requirement( 10, '11144477735' ) );
+		$this->assertNull( $this->validator->validate_cpf_requirement( 10, '51817842080' ) );
 	}
 
 	public function test_cpf_whitelist_allows_listed_cpf(): void {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ]      = 'whitelist';
-		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_WHITELIST ] = "529.982.247-25\n111.444.777-35";
-		$this->assertNull( $this->validator->validate_cpf_requirement( 10, '11144477735' ) );
+		// Person A is on the list, punctuated as an operator would paste it.
+		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_WHITELIST ] = "518.178.420-80\n204.569.420-84";
+		$this->assertNull( $this->validator->validate_cpf_requirement( 10, '51817842080' ) );
 	}
 
 	public function test_cpf_whitelist_blocks_unlisted_cpf(): void {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ]      = 'whitelist';
-		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_WHITELIST ] = '529.982.247-25';
-		$msg = $this->validator->validate_cpf_requirement( 10, '11144477735' );
+		// Person B is listed; person A is the one asking. They must differ, which
+		// is the whole case -- a sweep that collapsed them into one value made
+		// this pass for the wrong reason while its sibling failed.
+		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_WHITELIST ] = '204.569.420-84';
+		$msg = $this->validator->validate_cpf_requirement( 10, '51817842080' );
 		$this->assertStringContainsString( 'not authorized', $msg );
 	}
 
 	public function test_cpf_owner_blocks_when_no_author(): void {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'owner';
 		$this->meta_store[ '10:__field_post_author' ]                = 0;
-		$msg = $this->validator->validate_cpf_requirement( 10, '11144477735' );
+		$msg = $this->validator->validate_cpf_requirement( 10, '51817842080' );
 		$this->assertStringContainsString( 'no author', $msg );
 	}
 
@@ -311,12 +315,12 @@ class CsvDownloadValidatorTest extends TestCase {
 	public function test_cpf_owner_matches_the_authors_stored_hash(): void {
 		$repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\UserProfileRepository' );
 		$repo->shouldReceive( 'findByUserId' )->with( 88 )
-			->andReturn( array( 'cpf_hash' => (string) \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', '11144477735' ) ) );
+			->andReturn( array( 'cpf_hash' => (string) \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', '51817842080' ) ) );
 
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'owner';
 		$this->meta_store[ '10:__field_post_author' ]                = 88;
 
-		$this->assertNull( $this->validator->validate_cpf_requirement( 10, '11144477735' ) );
+		$this->assertNull( $this->validator->validate_cpf_requirement( 10, '51817842080' ) );
 	}
 
 	/**
@@ -326,12 +330,12 @@ class CsvDownloadValidatorTest extends TestCase {
 	public function test_cpf_owner_blocks_on_mismatch(): void {
 		$repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\UserProfileRepository' );
 		$repo->shouldReceive( 'findByUserId' )->with( 88 )
-			->andReturn( array( 'cpf_hash' => (string) \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', '52998224725' ) ) );
+			->andReturn( array( 'cpf_hash' => (string) \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', '20456942084' ) ) );
 
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'owner';
 		$this->meta_store[ '10:__field_post_author' ]                = 88;
 
-		$msg = $this->validator->validate_cpf_requirement( 10, '11144477735' );
+		$msg = $this->validator->validate_cpf_requirement( 10, '51817842080' );
 		$this->assertStringContainsString( 'does not match', $msg );
 	}
 
@@ -353,7 +357,7 @@ class CsvDownloadValidatorTest extends TestCase {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'owner';
 		$this->meta_store[ '10:__field_post_author' ]                = 88;
 
-		$msg = $this->validator->validate_cpf_requirement( 10, '11144477735' );
+		$msg = $this->validator->validate_cpf_requirement( 10, '51817842080' );
 		$this->assertStringContainsString( 'does not match', $msg );
 	}
 
@@ -384,14 +388,14 @@ class CsvDownloadValidatorTest extends TestCase {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'owner';
 		$this->meta_store[ '10:__field_post_author' ]                = 88;
 
-		$msg = $this->validator->validate_cpf_requirement( 10, '11144477735' );
+		$msg = $this->validator->validate_cpf_requirement( 10, '51817842080' );
 		$this->assertNotNull( $msg, 'Two absent hashes opened the owner gate: hash_equals( \'\', \'\' ) is TRUE.' );
 		$this->assertStringContainsString( 'does not match', $msg );
 	}
 
 	public function test_cpf_unknown_mode_fails_closed(): void {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'bogus';
-		$msg = $this->validator->validate_cpf_requirement( 10, '11144477735' );
+		$msg = $this->validator->validate_cpf_requirement( 10, '51817842080' );
 		$this->assertStringContainsString( 'misconfigured', $msg );
 	}
 
@@ -404,7 +408,7 @@ class CsvDownloadValidatorTest extends TestCase {
 		$repo->shouldReceive( 'countByFormAndCpfHash' )->once()->andReturn( 1 );
 
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'participants';
-		$this->assertNull( $this->validator->validate_cpf_requirement( 10, '11144477735' ) );
+		$this->assertNull( $this->validator->validate_cpf_requirement( 10, '51817842080' ) );
 	}
 
 	/**
@@ -416,13 +420,13 @@ class CsvDownloadValidatorTest extends TestCase {
 		$repo->shouldReceive( 'countByFormAndCpfHash' )->once()->andReturn( 0 );
 
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'participants';
-		$msg = $this->validator->validate_cpf_requirement( 10, '11144477735' );
+		$msg = $this->validator->validate_cpf_requirement( 10, '51817842080' );
 		$this->assertStringContainsString( 'No submission with this CPF', $msg );
 	}
 
 	public function test_cpf_silent_audit_suppresses_log_row(): void {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'audit';
-		$this->validator->validate_cpf_requirement( 10, '11144477735', true );
+		$this->validator->validate_cpf_requirement( 10, '51817842080', true );
 		$this->assertArrayNotHasKey( '10:' . PublicCsvDownload::META_DOWNLOAD_LOG, $this->meta_updates );
 	}
 
@@ -441,7 +445,7 @@ class CsvDownloadValidatorTest extends TestCase {
 	public function test_record_download_log_entry_encrypts_cpf_when_digits_present(): void {
 		// Encryption is configured in the unit bootstrap, so cpf_encrypted
 		// should be a non-empty ciphertext.
-		$this->validator->record_download_log_entry( 10, 'audit', '11144477735', 'audit_pass' );
+		$this->validator->record_download_log_entry( 10, 'audit', '51817842080', 'audit_pass' );
 		$log = $this->meta_store[ '10:' . PublicCsvDownload::META_DOWNLOAD_LOG ];
 		$this->assertNotSame( '', $log[0]['cpf_encrypted'] );
 	}
