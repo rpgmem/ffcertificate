@@ -206,7 +206,15 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 		// Reveal tier: plaintext, not masked.
 		$this->assertSame( 'ana@x.com', $result['email'] );
 		$this->assertStringNotContainsString( '*', $result['cpf'] );
-		$this->assertStringContainsString( '111', $result['cpf'] );
+		// THE WHOLE FORMATTED VALUE, NOT A FRAGMENT OF IT (#1492).
+		//
+		// This read `assertStringContainsString( '111', … )` -- three digits of
+		// the fixture, which the standard set then changed out from under it. The
+		// fragment was a weak proxy anyway: it would have passed had the endpoint
+		// returned a DIFFERENT person's CPF that happened to contain `111`.
+		// Asserting the formatted value states what the reveal tier promises and
+		// cannot rot into a coincidence.
+		$this->assertSame( '518.178.420-80', $result['cpf'] );
 		// The data blob is returned raw for the reveal tier.
 		$this->assertSame( '51817842080', $result['data']['cpf'] );
 		$this->assertSame( 'Math', $result['data']['course'] );
