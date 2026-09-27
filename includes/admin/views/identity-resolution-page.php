@@ -377,51 +377,83 @@ $ffc_identity_named = static function ( $user_id ) {
 };
 
 /**
- * One tier's name, as an operator reads it.
- *
- * @param string $tier The tier.
- * @return string
- */
-/**
  * The acknowledgement a correction needs once its value is another account's.
  *
- * RENDERED ONLY AFTER THE SERVER HAS EXPLAINED WHY (#1478).
+ * RENDERED ONLY AFTER THE OPERATOR HAS BEEN TOLD WHY (#1478).
  *
  * A correction whose confirmed value already belongs to another account is not
  * a merge -- no record moves and no account is absorbed -- so it is allowed,
  * once the operator states they mean it. What it cannot be is reflexive: the
  * write is not undoable by another use of the verb, because putting the old
  * value back means confirming a number that fails its own check digit, which
- * the service refuses first. So the box appears on the one form the refusal
- * came from, beneath the sentence that said what will happen, and nowhere else.
+ * the service refuses first.
  *
- * That also keeps the three forms honest with one another: two of them have no
- * preflight, so a box revealed by a typed value could only ever have appeared
- * on the third.
+ * WHICH IS NOT THE SAME AS `ONLY AFTER A REFUSAL`, AND THAT COST A RELEASE
+ * (#1487).
  *
- * @param string $subject The finding this form acts on.
+ * This used to render for a refusal and nothing else, and said so: `the box
+ * appears on the one form the refusal came from`. On the repair form the
+ * refusal carried no code, so the box was never drawn there -- and that is the
+ * only form the refusal can arrive from. The gate held and the way through it
+ * did not exist. The payload is fixed in `IdentityResolutionPage::outcome()`,
+ * and this no longer depends on that being the only route.
+ *
+ * The argument that followed was that two of the three forms have no
+ * preflight, so a box revealed by a typed value could only appear on the
+ * third. Both halves are true and the conclusion was backwards: the third form
+ * is exactly the one that needs it, because the preflight already ASKS whether
+ * the value belongs to somebody and paints the answer. Revealing the box
+ * beneath that sentence satisfies `told why` in one request instead of two.
+ * So a form with a preflight ships the box hidden and the preflight reveals
+ * it; a form without one still grows it from the refusal.
+ *
+ * @param string $subject   The finding this form acts on.
+ * @param bool   $preflight Whether this form can reveal the box itself.
  * @return void
  */
-$ffc_identity_ack = static function ( $subject ) use ( $ffc_identity_outcome ) {
-	if ( ! is_array( $ffc_identity_outcome ) ) {
-		return;
-	}
+$ffc_identity_ack = static function ( $subject, $preflight = false ) use ( $ffc_identity_outcome ) {
+	$refused = is_array( $ffc_identity_outcome )
+		&& 'ffc_identity_repair_unacknowledged' === (string) ( $ffc_identity_outcome['code'] ?? '' )
+		&& (string) ( $ffc_identity_outcome['subject'] ?? '' ) === (string) $subject;
 
-	if ( 'ffc_identity_repair_unacknowledged' !== (string) ( $ffc_identity_outcome['code'] ?? '' ) ) {
-		return;
-	}
-
-	if ( (string) ( $ffc_identity_outcome['subject'] ?? '' ) !== (string) $subject ) {
+	// A form with no preflight has nothing that could reveal a hidden box, so
+	// there it is rendered only by the refusal that asks for it.
+	if ( ! $refused && ! $preflight ) {
 		return;
 	}
 	?>
-	<label class="ffc-identity-ack">
-		<input type="checkbox" name="ffc_acknowledged" value="1" required>
+	<label class="ffc-identity-ack" id="ffc-ack-<?php echo esc_attr( (string) $subject ); ?>"
+		<?php echo $refused ? '' : 'hidden'; ?>>
+		<?php
+		// `required` TRAVELS WITH VISIBILITY, AND NOT AS A CONVENIENCE.
+		//
+		// Constraint validation ignores whether a control is on screen, so a
+		// `required` checkbox inside a hidden block blocks the submit against
+		// something nobody can see -- Chrome reports `An invalid form control
+		// with name='ffc_acknowledged' is not focusable` and the operator has
+		// nothing to act on. That is the #1117 class, and here it would have
+		// jammed the ordinary correction: every repair form carries this box
+		// now, and most corrections never need it.
+		//
+		// So the hidden state ships the marker `FFC.setRequiredWithin()`
+		// reads and NOT the attribute. Declaring it required-but-off in the
+		// markup rather than stripping it in JS at load is what removes the
+		// window between the two: there is no moment where a real `required`
+		// sits inside a hidden block.
+		?>
+		<input type="checkbox" name="ffc_acknowledged" value="1"
+			<?php echo $refused ? 'required' : 'data-ffc-required-off=""'; ?>>
 		<?php esc_html_e( 'I have confirmed this number with HR and mean to write it even though another account already carries it. Both accounts will then hold it, and the merge is decided separately.', 'ffcertificate' ); ?>
 	</label>
 	<?php
 };
 
+/**
+ * One tier's name, as an operator reads it.
+ *
+ * @param string $tier The tier.
+ * @return string
+ */
 $ffc_identity_tier_label = static function ( $tier ) {
 	switch ( $tier ) {
 		case IdentityQueue::TIER_MECHANICAL:
@@ -1912,13 +1944,14 @@ $ffc_identity_tier_note = static function ( $tier ) {
 								data-ffc-subject="<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
 								data-ffc-field="<?php echo esc_attr( str_replace( '_hash', '', (string) ( $ffc_identity_row['identifier_column'] ?? 'rf' ) ) ); ?>"
 								data-ffc-value="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
-								data-ffc-verdict="ffc-check-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
+								data-ffc-verdict="ffc-check-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
+								data-ffc-ack="ffc-ack-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
 								<?php esc_html_e( 'Check', 'ffcertificate' ); ?>
 							</button>
 							<button type="submit" class="button button-primary">
 								<?php esc_html_e( 'Correct', 'ffcertificate' ); ?>
 							</button>
-							<?php $ffc_identity_ack( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>
+							<?php $ffc_identity_ack( (string) ( $ffc_identity_row['subject'] ?? '' ), true ); ?>
 							<div class="ffc-identity-verdict" id="ffc-check-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
 								aria-live="polite"
 								<?php /* translators: %s: how many records the correction would rewrite. */ ?>

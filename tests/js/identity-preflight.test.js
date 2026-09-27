@@ -14,6 +14,13 @@ beforeAll(() => {
 		action: 'ffc_identity_preflight_correction',
 		nonce: 'preflight-nonce',
 	};
+	// THE REAL `setRequiredWithin`, NOT THE GUARD AROUND IT.
+	//
+	// The reveal calls `FFC.setRequiredWithin()` behind a `typeof` guard, so
+	// without `ffc-core` loaded these cases would exercise the guard and prove
+	// nothing about the attribute -- which is the half that decides whether the
+	// form can be submitted at all (#1117).
+	loadScript('assets/js/ffc-core.js');
 	loadScript('assets/js/ffc-identity-preflight.js');
 });
 
@@ -23,8 +30,13 @@ const MARKUP = `
 	<button type="button" class="ffc-identity-check"
 		data-ffc-subject="abc" data-ffc-field="rf"
 		data-ffc-value="ffc-rf-abc"
-		data-ffc-verdict="ffc-check-abc">Check</button>
+		data-ffc-verdict="ffc-check-abc"
+		data-ffc-ack="ffc-ack-abc">Check</button>
 	<button type="submit">Correct</button>
+	<label class="ffc-identity-ack" id="ffc-ack-abc" hidden>
+		<input type="checkbox" name="ffc_acknowledged" value="1" data-ffc-required-off="">
+		I have confirmed this number with HR.
+	</label>
 	<div class="ffc-identity-verdict" id="ffc-check-abc"
 		data-allowed="This correction rewrites %s records."
 		data-consolidates="This correction rewrites %s records and consolidates them."
@@ -278,5 +290,107 @@ describe('the correction preflight', () => {
 	it('binds nothing when the screen prints no correction field', () => {
 		document.body.innerHTML = '<div></div>';
 		expect(window.FFC.IdentityPreflight.boot()).toBe(false);
+	});
+});
+
+// The acknowledgement the operator ticks before a correction that shares a
+// number with another account (#1487).
+//
+// The box used to be rendered only by the server, for a named error code on a
+// named finding -- and the repair handler's outcome carried neither, so it was
+// never drawn on the form that refusal arrives from. It is now shipped hidden
+// and revealed here, which also answers in one request what took a refusal and
+// a re-render.
+describe('the acknowledgement the preflight reveals', () => {
+	const $box = () => window.$('#ffc-ack-abc');
+	const $tick = () => window.$('#ffc-ack-abc input[type="checkbox"]');
+
+	function answer(data) {
+		vi.spyOn(window.$, 'post').mockImplementation(chainFrom({ success: true, data }));
+		window.$('#ffc-rf-abc').val('1234561');
+		check();
+	}
+
+	it('ships hidden, and not required, before anything is checked', () => {
+		expect($box().prop('hidden')).toBe(true);
+
+		// The point of the marker: a `required` control inside a hidden block
+		// blocks the submit against something nobody can see, so the ordinary
+		// correction -- which needs no acknowledgement -- must stay submittable.
+		expect($tick().prop('required')).toBe(false);
+		expect(document.getElementById('repair-form').checkValidity()).toBe(true);
+	});
+
+	it('appears when the confirmed value already belongs to another account', () => {
+		answer({ allowed: true, rows: 2, account: 398, holder: { id: 6247, name: 'A. Person' } });
+
+		expect($box().prop('hidden')).toBe(false);
+		expect($tick().prop('required')).toBe(true);
+	});
+
+	it('is what the form then waits for, rather than submitting silently', () => {
+		answer({ allowed: true, rows: 2, account: 398, holder: { id: 6247, name: 'A. Person' } });
+
+		const form = document.getElementById('repair-form');
+		expect(form.checkValidity()).toBe(false);
+
+		$tick().prop('checked', true);
+		expect(form.checkValidity()).toBe(true);
+	});
+
+	it('stays away on a plain allowed correction', () => {
+		answer({ allowed: true, rows: 4, account: 398, consolidates: false });
+
+		expect($box().prop('hidden')).toBe(true);
+		expect($tick().prop('required')).toBe(false);
+	});
+
+	it('stays away on a refusal, which is not something to acknowledge', () => {
+		answer({ allowed: false, message: 'That number does not satisfy its own check digits.' });
+
+		expect($box().prop('hidden')).toBe(true);
+		expect($tick().prop('required')).toBe(false);
+	});
+
+	// A HOLDER IS NOT THE TRIGGER; AN ALLOWED VERDICT CARRYING ONE IS.
+	//
+	// A refusal can name a holder too -- rows nobody owns, or more than one
+	// other account -- and that one is not acknowledgeable: there is no write
+	// the operator could authorise from here. Reading `data.holder` alone would
+	// offer a box that cannot resolve anything, which is the shape this whole
+	// issue was about in the other direction.
+	it('stays away when a refusal names a holder', () => {
+		answer({ allowed: false, message: 'Records naming no single other account.', holder: { id: 6247, name: 'A. Person' } });
+
+		expect($box().prop('hidden')).toBe(true);
+		expect($tick().prop('required')).toBe(false);
+	});
+
+	// THE HALF THAT MATTERS MORE THAN THE REVEAL.
+	//
+	// An operator who checks a shared number, ticks the box, then edits the
+	// value and checks again must not be left carrying an acknowledgement read
+	// for a different number. Hiding alone would leave it ticked and posted.
+	it('unticks itself when a re-check no longer needs it', () => {
+		answer({ allowed: true, rows: 2, account: 398, holder: { id: 6247, name: 'A. Person' } });
+		$tick().prop('checked', true);
+		expect($tick().prop('checked')).toBe(true);
+
+		vi.restoreAllMocks();
+		answer({ allowed: true, rows: 2, account: 398, consolidates: false });
+
+		expect($box().prop('hidden')).toBe(true);
+		expect($tick().prop('checked')).toBe(false);
+	});
+
+	it('does not throw on a form that ships no box', () => {
+		window.$('#ffc-ack-abc').remove();
+
+		expect(() => answer({
+			allowed: true,
+			rows: 2,
+			account: 398,
+			holder: { id: 6247, name: 'A. Person' },
+		})).not.toThrow();
 	});
 });
