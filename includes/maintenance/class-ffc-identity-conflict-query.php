@@ -158,16 +158,37 @@ class IdentityConflictQuery {
 	/**
 	 * How many distinct identifiers ONE scan will decrypt.
 	 *
-	 * Bounded by DISTINCT values rather than by rows, which is what makes the
-	 * number generous: production carries 3,036 RFs across roughly 23,000
-	 * rows, because `Encryption::encrypt()` uses a random IV and one hash
-	 * answers for every row sharing it.
+	 * Bounded by DISTINCT values rather than by rows, because
+	 * `Encryption::encrypt()` uses a random IV and one hash answers for every
+	 * row sharing it -- so a store of tens of thousands of rows presents a few
+	 * thousand values, and the cost this bounds is a decryption per value.
 	 *
 	 * It is ONE cap applied PER COLUMN, not a budget split between them, since
-	 * the cost it bounds is a decryption and the two columns are scanned in
-	 * separate statements. The CPF population is unmeasured (#1486) -- the cap
-	 * is what keeps that from mattering before somebody counts it, and the
-	 * truncation row is what says so when it bites.
+	 * the two columns are scanned in separate statements.
+	 *
+	 * IT IS A REAL CEILING, NOT A FORMALITY, and the earlier wording here
+	 * called the number `generous` on the strength of the RF population alone.
+	 * #1486 measured both columns: the larger sits at roughly two thirds of
+	 * this cap, so it is CPF that decides when truncation begins and it does
+	 * not need the install to double. The figures live in that issue rather
+	 * than here, because a count of enrolments moves with every intake and
+	 * nothing in this file would notice -- what is worth stating is that the
+	 * headroom is one column's growth, not an order of magnitude.
+	 *
+	 * RAISING IT WAITS FOR THE TRUNCATION ROW, not for this arithmetic. That
+	 * signal fires on a real install, and that is the trigger the
+	 * project's own parked-decision criterion asks for; a number chosen against
+	 * a forecast is a guess whatever it costs. The cost is known to be small --
+	 * the #1486 census read every distinct value of both columns in about half
+	 * a second -- so when the trigger comes the decision is cheap. It is simply
+	 * not due yet.
+	 *
+	 * WHAT A TRUNCATED SCAN READ IS AN ARBITRARY SLICE. The `LIMIT` rides an
+	 * `ORDER BY` on the HASH, so the values it keeps are neither the oldest nor
+	 * the newest -- there is no reading of the report under which the unread
+	 * remainder is `the recent ones`. {@see self::COLUMN_SCAN_TRUNCATED} is
+	 * what says the reading was partial; raising this number is what makes it
+	 * whole again.
 	 *
 	 * @since 6.28.2
 	 * @var int
