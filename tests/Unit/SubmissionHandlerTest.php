@@ -238,7 +238,7 @@ class SubmissionHandlerTest extends TestCase {
 			} )
 			->andReturn( 10 );
 
-		$data = array( 'name' => 'Alice', 'email' => 'alice@test.com', 'cpf_rf' => '12345678901' );
+		$data = array( 'name' => 'Alice', 'email' => 'alice@test.com', 'cpf_rf' => '51817842080' );
 		$this->handler->process_submission( 5, 'My Form', $data, 'alice@test.com', array(), array() );
 
 		$this->assertSame( 5, $captured['form_id'] );
@@ -356,7 +356,7 @@ class SubmissionHandlerTest extends TestCase {
 				'id'               => 5,
 				'email'            => 'plain@test.com',
 				'email_encrypted'  => null,
-				'cpf_rf'           => '12345678901',
+				'cpf_rf'           => '51817842080',
 				'cpf_rf_encrypted' => null,
 				'user_ip'          => '127.0.0.1',
 				'user_ip_encrypted'=> null,

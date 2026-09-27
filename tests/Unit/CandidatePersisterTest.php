@@ -100,8 +100,8 @@ class CandidatePersisterTest extends TestCase {
 	private function row( array $overrides = array() ): array {
 		return array_merge(
 			array(
-				'cpf'   => '12345678909',
-				'rf'    => '1234567',
+				'cpf'   => '51817842080',
+				'rf'    => '5181780',
 				'email' => 'Person@Example.COM',
 				'name'  => '  Maria  ',
 				'phone' => '11999998888',
@@ -145,9 +145,9 @@ class CandidatePersisterTest extends TestCase {
 		$this->assertSame( 42, $id );
 		$this->assertSame( 'Maria', $captured['name'] );
 		$this->assertSame( 'pending', $captured['pcd_hash'] );
-		$this->assertSame( 'enc:12345678909', $captured['cpf_encrypted'] );
-		$this->assertSame( 'hash:12345678909', $captured['cpf_hash'] );
-		$this->assertSame( 'enc:1234567', $captured['rf_encrypted'] );
+		$this->assertSame( 'enc:51817842080', $captured['cpf_encrypted'] );
+		$this->assertSame( 'hash:51817842080', $captured['cpf_hash'] );
+		$this->assertSame( 'enc:5181780', $captured['rf_encrypted'] );
 		// Email is lowercased before encryption/hash.
 		$this->assertSame( 'enc:person@example.com', $captured['email_encrypted'] );
 		$this->assertSame( '11999998888', $captured['phone'] );

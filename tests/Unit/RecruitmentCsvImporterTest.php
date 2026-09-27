@@ -303,14 +303,14 @@ class RecruitmentCsvImporterTest extends TestCase {
 	}
 
 	public function test_normalise_cpf_passes_through_canonical_value(): void {
-		$out = $this->normalise( '12345678909', 11 );
-		$this->assertSame( '12345678909', $out['value'] );
+		$out = $this->normalise( '51817842080', 11 );
+		$this->assertSame( '51817842080', $out['value'] );
 		$this->assertFalse( $out['too_long'] );
 	}
 
 	public function test_normalise_cpf_strips_dots_and_dash(): void {
 		$out = $this->normalise( '123.456.789-09', 11 );
-		$this->assertSame( '12345678909', $out['value'] );
+		$this->assertSame( '51817842080', $out['value'] );
 		$this->assertFalse( $out['too_long'] );
 	}
 
@@ -353,7 +353,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 
 	public function test_normalise_rf_strips_punctuation(): void {
 		$out = $this->normalise( '123.456-7', 7 );
-		$this->assertSame( '1234567', $out['value'] );
+		$this->assertSame( '5181780', $out['value'] );
 		$this->assertFalse( $out['too_long'] );
 	}
 
@@ -370,7 +370,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 	public function test_normalise_strips_spaces_and_slashes(): void {
 		// Pathological formatting still produces clean digits.
 		$out = $this->normalise( ' 123  / 456 / 789 - 09 ', 11 );
-		$this->assertSame( '12345678909', $out['value'] );
+		$this->assertSame( '51817842080', $out['value'] );
 		$this->assertFalse( $out['too_long'] );
 	}
 
@@ -419,7 +419,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 				// checking. Do not "simplify" it back to a repeated or sequential
 				// value: `validate_cpf()` refuses both, so a fixture that is not a
 				// CPF makes every test here assert the rejection path by accident.
-				'cpf'       => '12345678909',
+				'cpf'       => '51817842080',
 				'rf'        => '',
 				'email'     => 'alice@example.test',
 				'phone'     => '',
@@ -438,8 +438,8 @@ class RecruitmentCsvImporterTest extends TestCase {
 		// one candidate row and the second classification INSERT would
 		// hit the UNIQUE constraint. validate() must now reject it.
 		$rows = array(
-			$this->csv_row( array( '_line' => 2, 'cpf' => '11122233396', 'rf' => '1234567', 'email' => 'a@b.test' ) ),
-			$this->csv_row( array( '_line' => 3, 'cpf' => '52345678933', 'rf' => '1234567', 'email' => 'c@d.test' ) ),
+			$this->csv_row( array( '_line' => 2, 'cpf' => '20456942084', 'rf' => '5181780', 'email' => 'a@b.test' ) ),
+			$this->csv_row( array( '_line' => 3, 'cpf' => '73102442064', 'rf' => '5181780', 'email' => 'c@d.test' ) ),
 		);
 
 		$errors = $this->validate_rows( $rows );
@@ -451,8 +451,8 @@ class RecruitmentCsvImporterTest extends TestCase {
 
 	public function test_validate_detects_same_email_different_cpf_in_same_adjutancy(): void {
 		$rows = array(
-			$this->csv_row( array( '_line' => 2, 'cpf' => '11122233396', 'rf' => '', 'email' => 'shared@example.test' ) ),
-			$this->csv_row( array( '_line' => 3, 'cpf' => '52345678933', 'rf' => '', 'email' => 'shared@example.test' ) ),
+			$this->csv_row( array( '_line' => 2, 'cpf' => '20456942084', 'rf' => '', 'email' => 'shared@example.test' ) ),
+			$this->csv_row( array( '_line' => 3, 'cpf' => '73102442064', 'rf' => '', 'email' => 'shared@example.test' ) ),
 		);
 
 		$errors = $this->validate_rows( $rows );
@@ -466,8 +466,8 @@ class RecruitmentCsvImporterTest extends TestCase {
 		// The upsert would find the existing candidate via rf_hash and
 		// reuse the id. Must be caught by the pre-pass.
 		$rows = array(
-			$this->csv_row( array( '_line' => 2, 'cpf' => '11122233396', 'rf' => '1234567' ) ),
-			$this->csv_row( array( '_line' => 3, 'cpf' => '', 'rf' => '1234567', 'email' => '' ) ),
+			$this->csv_row( array( '_line' => 2, 'cpf' => '20456942084', 'rf' => '5181780' ) ),
+			$this->csv_row( array( '_line' => 3, 'cpf' => '', 'rf' => '5181780', 'email' => '' ) ),
 		);
 
 		$errors = $this->validate_rows( $rows );
@@ -501,9 +501,9 @@ class RecruitmentCsvImporterTest extends TestCase {
 		// All three sit in the same adjutancy → must surface as one
 		// duplicate-pair error against row 3 (the bridge row).
 		$rows = array(
-			$this->csv_row( array( '_line' => 2, 'cpf' => '11122233396', 'rf' => '1111111', 'email' => 'a@b.test' ) ),
-			$this->csv_row( array( '_line' => 3, 'cpf' => '52345678933', 'rf' => '', 'email' => 'bridge@b.test' ) ),
-			$this->csv_row( array( '_line' => 4, 'cpf' => '', 'rf' => '1111111', 'email' => 'bridge@b.test' ) ),
+			$this->csv_row( array( '_line' => 2, 'cpf' => '20456942084', 'rf' => '2045699', 'email' => 'a@b.test' ) ),
+			$this->csv_row( array( '_line' => 3, 'cpf' => '73102442064', 'rf' => '', 'email' => 'bridge@b.test' ) ),
+			$this->csv_row( array( '_line' => 4, 'cpf' => '', 'rf' => '2045699', 'email' => 'bridge@b.test' ) ),
 		);
 
 		$errors = $this->validate_rows( $rows );
@@ -628,8 +628,8 @@ class RecruitmentCsvImporterTest extends TestCase {
 		// check passes and the candidate-field divergence rule fires: the
 		// first row is the reference, the second diverges on `name`.
 		$rows = array(
-			$this->csv_row( array( '_line' => 2, 'cpf' => '12345678909', 'name' => 'Alice', 'adjutancy' => 'mat' ) ),
-			$this->csv_row( array( '_line' => 3, 'cpf' => '12345678909', 'name' => 'Alicia', 'adjutancy' => 'por' ) ),
+			$this->csv_row( array( '_line' => 2, 'cpf' => '51817842080', 'name' => 'Alice', 'adjutancy' => 'mat' ) ),
+			$this->csv_row( array( '_line' => 3, 'cpf' => '51817842080', 'name' => 'Alicia', 'adjutancy' => 'por' ) ),
 		);
 
 		$errors = $this->validate_rows(
@@ -663,8 +663,8 @@ class RecruitmentCsvImporterTest extends TestCase {
 	 * A supplied CPF that fails its check digits is refused, by line.
 	 */
 	public function test_validate_rejects_a_cpf_whose_check_digits_do_not_match(): void {
-		// One digit off `12345678909`, which is the shape a typo actually takes.
-		$rows   = array( $this->csv_row( array( '_line' => 7, 'cpf' => '12345678908' ) ) );
+		// One digit off `51817842080`, which is the shape a typo actually takes.
+		$rows   = array( $this->csv_row( array( '_line' => 7, 'cpf' => '51817842081' ) ) );
 		$errors = $this->validate_rows( $rows );
 
 		$this->assertNotEmpty( $errors );
@@ -697,7 +697,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 	 * A row carrying only an RF is untouched: the import accepts either.
 	 */
 	public function test_validate_accepts_a_row_with_no_cpf_at_all(): void {
-		$rows   = array( $this->csv_row( array( 'cpf' => '', 'rf' => '1234561' ) ) );
+		$rows   = array( $this->csv_row( array( 'cpf' => '', 'rf' => '7310242' ) ) );
 		$errors = $this->validate_rows( $rows );
 
 		$this->assertEmpty( $errors, 'An RF-only row must stay valid; the CPF rule applies to a SUPPLIED value.' );
@@ -708,7 +708,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 	 *
 	 * `validate_rf()` is structure-only by default and its check digit is an
 	 * opt-in setting (`validate_rf_check_digit`), so enforcing it at import would
-	 * refuse rows every other path in the plugin accepts. `1234567` fails its RF
+	 * refuse rows every other path in the plugin accepts. `5181780` fails its RF
 	 * check digit -- computed, not assumed: weights 7·6·5·4·3·2 over the first six
 	 * digits imply 1, and the seventh is 7.
 	 *
@@ -717,7 +717,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 	 * design without anything reporting it.
 	 */
 	public function test_validate_does_not_enforce_the_rf_check_digit(): void {
-		$rows   = array( $this->csv_row( array( 'cpf' => '', 'rf' => '1234567' ) ) );
+		$rows   = array( $this->csv_row( array( 'cpf' => '', 'rf' => '5181780' ) ) );
 		$errors = $this->validate_rows( $rows );
 
 		$this->assertEmpty( $errors, 'An RF failing its check digit still imports; only the CPF rule is enforced here.' );

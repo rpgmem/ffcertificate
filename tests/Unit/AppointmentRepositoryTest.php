@@ -602,7 +602,7 @@ class AppointmentRepositoryTest extends TestCase {
 	public function test_find_by_cpf_rf_strips_non_numeric_characters(): void {
 		// Both should produce the same result since non-numeric chars are stripped
 		$clean = preg_replace('/[^0-9]/', '', '123.456.789-01');
-		$this->assertSame('12345678901', $clean);
+		$this->assertSame('51817842080', $clean);
 		$this->assertSame(11, strlen($clean));
 	}
 
@@ -614,7 +614,7 @@ class AppointmentRepositoryTest extends TestCase {
 		});
 		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-		$this->repo->findByCpfRf('12345678901', 10, 0);
+		$this->repo->findByCpfRf('51817842080', 10, 0);
 
 		$this->assertStringContainsString('LIMIT', $captured_sql);
 	}
@@ -627,7 +627,7 @@ class AppointmentRepositoryTest extends TestCase {
 		});
 		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
-		$this->repo->findByCpfRf('12345678901');
+		$this->repo->findByCpfRf('51817842080');
 
 		$this->assertStringNotContainsString('LIMIT', $captured_sql);
 	}
@@ -1194,7 +1194,7 @@ class AppointmentRepositoryTest extends TestCase {
 		$data = [
 			'calendar_id' => 5,
 			'email' => 'test@example.com',
-			'cpf_rf' => '12345678901',
+			'cpf_rf' => '51817842080',
 			'phone' => '555-1234',
 			'custom_data' => ['field1' => 'value1'],
 			'user_ip' => '192.168.1.1',

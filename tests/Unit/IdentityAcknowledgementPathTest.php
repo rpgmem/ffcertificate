@@ -195,7 +195,7 @@ class IdentityAcknowledgementPathTest extends TestCase {
 	public function test_the_repair_refusal_carries_the_code_and_the_finding(): void {
 		$_POST = array(
 			'ffc_subject' => 'abc123def456',
-			'ffc_rf'      => '1234567',
+			'ffc_rf'      => '5181780',
 		);
 
 		$this->drive( $this->page(), 'handle_repair' );
@@ -245,7 +245,7 @@ class IdentityAcknowledgementPathTest extends TestCase {
 
 			$_POST = array(
 				'ffc_subject' => 'abc123def456',
-				'ffc_rf'      => '1234567',
+				'ffc_rf'      => '5181780',
 				'ffc_target'  => 'fed654cba321',
 			);
 
@@ -264,7 +264,7 @@ class IdentityAcknowledgementPathTest extends TestCase {
 
 			$_POST = array(
 				'ffc_subject'      => 'abc123def456',
-				'ffc_rf'           => '1234567',
+				'ffc_rf'           => '5181780',
 				'ffc_target'       => 'fed654cba321',
 				'ffc_acknowledged' => '1',
 			);

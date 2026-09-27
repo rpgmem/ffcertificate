@@ -672,7 +672,7 @@ class AppointmentHandlerTest extends TestCase {
 			'appointment_date' => '2026-03-01',
 			'start_time'       => '09:00',
 			'consent_given'    => '1',
-			'cpf_rf'           => '12345678901',
+			'cpf_rf'           => '51817842080',
 			'user_id'          => 0,
 		) );
 

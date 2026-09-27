@@ -193,7 +193,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 			'consent_date'      => 1700000000,
 			'email'             => 'foo@bar.com',
 			'email_encrypted'   => 1,
-			'cpf_rf'            => '12345678900',
+			'cpf_rf'            => '51817842080',
 			'rf'                => '',
 			'cpf_encrypted'     => 1,
 			'auth_code'         => 'AUTH123',

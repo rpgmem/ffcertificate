@@ -182,10 +182,10 @@ class UserProfileServiceTest extends TestCase {
 	 */
 	public function test_read_usermeta_masks_sensitive_field_by_default(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( '12345678901' );
+		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( '51817842080' );
 
 		$fmt = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmt->shouldReceive( 'mask_cpf' )->with( '12345678901' )->once()->andReturn( '123.***.***-01' );
+		$fmt->shouldReceive( 'mask_cpf' )->with( '51817842080' )->once()->andReturn( '123.***.***-01' );
 
 		$this->usermeta_store[42] = array( 'ffc_user_cpf' => 'ENC_CPF' );
 
@@ -200,7 +200,7 @@ class UserProfileServiceTest extends TestCase {
 	 */
 	public function test_read_usermeta_returns_full_plaintext_when_policy_is_full(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( '12345678901' );
+		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( '51817842080' );
 
 		// FULL policy triggers an audit entry via ActivityLog::log; stub it.
 		$log = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
@@ -222,7 +222,7 @@ class UserProfileServiceTest extends TestCase {
 
 		$result = UserProfileService::read( 42, array( 'cpf' ), ViewPolicy::FULL );
 
-		$this->assertSame( '12345678901', $result['cpf'] );
+		$this->assertSame( '51817842080', $result['cpf'] );
 	}
 
 	/**
@@ -268,7 +268,7 @@ class UserProfileServiceTest extends TestCase {
 	 */
 	public function test_read_does_not_audit_masked_reads_even_for_sensitive_fields(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->andReturn( '12345678901' );
+		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->andReturn( '51817842080' );
 
 		$fmt = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
 		$fmt->shouldReceive( 'mask_cpf' )->andReturn( '123.***.***-01' );
@@ -365,10 +365,10 @@ class UserProfileServiceTest extends TestCase {
 	 */
 	public function test_write_encrypts_sensitive_usermeta_and_stores_hash(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'encrypt' )->with( '12345678901' )->once()->andReturn( 'ENC' );
-		$enc->shouldReceive( 'hash' )->with( '12345678901' )->once()->andReturn( 'HASH' );
+		$enc->shouldReceive( 'encrypt' )->with( '51817842080' )->once()->andReturn( 'ENC' );
+		$enc->shouldReceive( 'hash' )->with( '51817842080' )->once()->andReturn( 'HASH' );
 
-		$result = UserProfileService::write( 42, array( 'cpf' => '12345678901' ) );
+		$result = UserProfileService::write( 42, array( 'cpf' => '51817842080' ) );
 
 		$this->assertTrue( $result );
 		$this->assertSame( 'ENC', $this->usermeta_store[42]['ffc_user_cpf'] );

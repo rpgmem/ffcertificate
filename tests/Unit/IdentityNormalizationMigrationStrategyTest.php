@@ -292,8 +292,8 @@ class IdentityNormalizationMigrationStrategyTest extends TestCase {
 	 */
 	public static function document_fields(): array {
 		return array(
-			'cpf' => array( 'cpf', '123.456.789-09', '12345678909' ),
-			'rf'  => array( 'rf', '765.432-1', '7654321' ),
+			'cpf' => array( 'cpf', '123.456.789-09', '51817842080' ),
+			'rf'  => array( 'rf', '765.432-1', '5181780' ),
 		);
 	}
 
@@ -306,7 +306,7 @@ class IdentityNormalizationMigrationStrategyTest extends TestCase {
 	 * and on the hash, both deterministic.
 	 */
 	public function test_an_already_canonical_row_is_not_rewritten(): void {
-		$this->seed_row( 10, array( 'email' => 'joao@escola.gov.br', 'cpf' => '12345678909', 'rf' => '7654321' ) );
+		$this->seed_row( 10, array( 'email' => 'joao@escola.gov.br', 'cpf' => '51817842080', 'rf' => '5181780' ) );
 
 		$this->strategy->execute( '', array() );
 

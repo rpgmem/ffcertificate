@@ -442,9 +442,9 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 
 	public function test_a_clean_job_validates_and_is_ready_to_promote(): void {
 		$this->with_campaign( array( $this->field( 'cpf', 'CPF' ) ) );
-		$this->with_validation( array( 'h:11111111111' => 42 ), array( 42 => $this->submission( 900, 'pending' ) ) );
+		$this->with_validation( array( 'h:51817842080' => 42 ), array( 42 => $this->submission( 900, 'pending' ) ) );
 
-		$result = $this->run_validate( array( array( 'cpf' => '11111111111', 'payload' => '{"cpf":"111"}' ) ) );
+		$result = $this->run_validate( array( array( 'cpf' => '51817842080', 'payload' => '{"cpf":"111"}' ) ) );
 
 		$this->assertTrue( $result['ok'] );
 		$this->assertSame( 'validated', $result['status'] );

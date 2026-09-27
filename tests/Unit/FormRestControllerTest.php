@@ -969,7 +969,7 @@ class FormRestControllerTest extends TestCase {
 		$ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
 		$result = $ctrl->submit_form( $this->make_request(
 			array( 'id' => 1 ),
-			array( 'cpf_rf' => '52998224725' ) // known-valid CPF
+			array( 'cpf_rf' => '51817842080' ) // known-valid CPF
 		) );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );

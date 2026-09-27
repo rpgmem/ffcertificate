@@ -254,7 +254,7 @@ class AdminAjaxTest extends TestCase {
 
 	public function test_search_user_falls_back_to_cpf_search(): void {
 		// CPF with enough digits for the fallback search
-		$this->setup_valid_search_user( '12345678901' );
+		$this->setup_valid_search_user( '51817842080' );
 
 		// get_userdata returns false (numeric but no WP user with that ID)
 		Functions\when( 'get_userdata' )->justReturn( false );
@@ -344,7 +344,7 @@ class AdminAjaxTest extends TestCase {
 
 		$this->mock_submission(
 			array(
-				'cpf'     => '12345678901',
+				'cpf'     => '51817842080',
 				'user_id' => 9,
 			)
 		);
@@ -364,7 +364,7 @@ class AdminAjaxTest extends TestCase {
 
 		$this->mock_submission(
 			array(
-				'cpf'     => '12345678901',
+				'cpf'     => '51817842080',
 				'user_id' => 9,
 			)
 		);
@@ -373,7 +373,7 @@ class AdminAjaxTest extends TestCase {
 		$policy->shouldReceive( 'resolve' )->andReturn( 'reveal' );
 
 		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$df->shouldReceive( 'format_cpf' )->with( '12345678901' )->andReturn( '123.456.789-01' );
+		$df->shouldReceive( 'format_cpf' )->with( '51817842080' )->andReturn( '123.456.789-01' );
 
 		// The reveal tier calls the real ActivityLog::log; keep the audit log
 		// disabled so it early-returns without a DB write (its LEVEL_INFO
@@ -405,7 +405,7 @@ class AdminAjaxTest extends TestCase {
 
 		$this->mock_submission(
 			array(
-				'cpf'     => '12345678901',
+				'cpf'     => '51817842080',
 				'user_id' => 9,
 			)
 		);
@@ -442,7 +442,7 @@ class AdminAjaxTest extends TestCase {
 
 		$this->mock_appointment(
 			array(
-				'cpf'     => '12345678901',
+				'cpf'     => '51817842080',
 				'user_id' => 3,
 			)
 		);
@@ -451,7 +451,7 @@ class AdminAjaxTest extends TestCase {
 		$policy->shouldReceive( 'resolve' )->andReturn( 'reveal' );
 
 		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$df->shouldReceive( 'format_cpf' )->with( '12345678901' )->andReturn( '123.456.789-01' );
+		$df->shouldReceive( 'format_cpf' )->with( '51817842080' )->andReturn( '123.456.789-01' );
 
 		// Reveal tier audits via the real ActivityLog; keep the log disabled so
 		// it early-returns without a DB write.

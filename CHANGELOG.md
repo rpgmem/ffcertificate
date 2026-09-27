@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Test fixtures now draw their CPF and RF from one standard set, named by person in `tests/Support/Identifiers.php`, with a guard that fails on a stray value. The suite had no standard, which is why a check-digit rule turned 19 tests red over `12345678901` — a CPF nobody had written meaning it to be invalid, and nobody could see was (#1492)
+
 ### Fixed
 
 - Identity resolution: the acknowledgement a correction needs when its value already belongs to another account can now be given. The refusal asked for it and the checkbox was never rendered, on both forms that post a repair, so the gate had no way through. The "Check" button now reveals it as soon as the preflight names the other account (#1487)

@@ -238,8 +238,8 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$enc->shouldReceive( 'decrypt' )->andReturnUsing(
 			function ( $v ) {
 				$map = array(
-					'ENC_CPF'   => '12345678901',
-					'ENC_RF'    => '7654321',
+					'ENC_CPF'   => '51817842080',
+					'ENC_RF'    => '5181780',
 					'ENC_EMAIL' => 'jane@example.com',
 				);
 				return $map[ $v ] ?? null;
@@ -275,8 +275,8 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$this->assertSame( 5, $data['id'] );
 		$this->assertSame( 12, $data['user_id'] );
 		$this->assertSame( 'Jane Doe', $data['name'] );
-		$this->assertSame( '12345678901', $data['cpf'] );
-		$this->assertSame( '7654321', $data['rf'] );
+		$this->assertSame( '51817842080', $data['cpf'] );
+		$this->assertSame( '5181780', $data['rf'] );
 		$this->assertSame( 'jane@example.com', $data['email'] );
 		$this->assertSame( 'masked:jane@example.com', $data['email_masked'] );
 		$this->assertSame( '11999998888', $data['phone'] );
@@ -335,7 +335,7 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$this->repoMock->shouldReceive( 'get_by_cpf_hash' )->andReturn( null );
 
 		$response = $this->controller->list_candidates(
-			$this->make_request( array( 'cpf' => '12345678901' ) )
+			$this->make_request( array( 'cpf' => '51817842080' ) )
 		);
 
 		$this->assertSame( 200, $response->get_status() );
@@ -351,7 +351,7 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$this->repoMock->shouldReceive( 'get_by_rf_hash' )->andReturn( $row );
 
 		$response = $this->controller->list_candidates(
-			$this->make_request( array( 'rf' => '7654321' ) )
+			$this->make_request( array( 'rf' => '5181780' ) )
 		);
 
 		$this->assertSame( 200, $response->get_status() );
@@ -458,8 +458,8 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		);
 
 		$this->assertSame( 200, $response->get_status() );
-		$this->assertSame( '12345678901', $captured['cpf'] );
-		$this->assertSame( '7654321', $captured['rf'] );
+		$this->assertSame( '51817842080', $captured['cpf'] );
+		$this->assertSame( '5181780', $captured['rf'] );
 		$this->assertSame( 'jane@example.com', $captured['email'] );
 	}
 
@@ -596,10 +596,10 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$policy->shouldReceive( 'should_audit' )->andReturn( true );
 
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->andReturn( '12345678901' );
+		$enc->shouldReceive( 'decrypt' )->andReturn( '51817842080' );
 
 		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$df->shouldReceive( 'format_cpf' )->with( '12345678901' )->andReturn( '123.456.789-01' );
+		$df->shouldReceive( 'format_cpf' )->with( '51817842080' )->andReturn( '123.456.789-01' );
 
 		$logger = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentActivityLogger' );
 		$logger->shouldReceive( 'pii_revealed' )->once()->with( 5, 'cpf' );
@@ -622,10 +622,10 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$policy->shouldReceive( 'should_audit' )->andReturn( false );
 
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->andReturn( '7654321' );
+		$enc->shouldReceive( 'decrypt' )->andReturn( '5181780' );
 
 		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$df->shouldReceive( 'format_rf' )->with( '7654321' )->andReturn( '76.543-21' );
+		$df->shouldReceive( 'format_rf' )->with( '5181780' )->andReturn( '76.543-21' );
 
 		// No logger expectation — should_audit is false.
 		$response = $this->controller->reveal_pii(

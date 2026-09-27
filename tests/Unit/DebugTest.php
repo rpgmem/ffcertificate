@@ -201,11 +201,11 @@ class DebugTest extends TestCase {
 	public function test_log_masks_cpf_and_cpf_rf(): void {
 		$this->enable_area( Debug::AREA_FORM_PROCESSOR );
 		Debug::log( Debug::AREA_FORM_PROCESSOR, 'Doc', array(
-			'cpf'    => '12345678901',
-			'cpf_rf' => '7654321',
+			'cpf'    => '51817842080',
+			'cpf_rf' => '5181780',
 		) );
-		$this->assertStringNotContainsString( '12345678901', $this->logged[0] );
-		$this->assertStringNotContainsString( '7654321', $this->logged[0] );
+		$this->assertStringNotContainsString( '51817842080', $this->logged[0] );
+		$this->assertStringNotContainsString( '5181780', $this->logged[0] );
 	}
 
 	public function test_log_masks_auth_code_and_magic_token(): void {
