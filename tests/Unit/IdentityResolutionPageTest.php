@@ -1830,4 +1830,67 @@ class IdentityResolutionPageTest extends TestCase {
 			);
 		}
 	}
+
+	/**
+	 * THE ORDER-OF-WORK ADVICE IS GATED ON BOTH HALVES EXISTING (#1498).
+	 *
+	 * Advice that correcting a number can dissolve a finding further down is
+	 * about nothing when there is nothing further down, and nothing to correct
+	 * is not a plan. So it renders only when a correction tier AND a judgement
+	 * tier both hold findings.
+	 *
+	 * The condition reuses `IdentityQueuePanels::CORRECTIONS` / `::JUDGEMENTS`,
+	 * which is what decided the panel order in #1491. A second list of tiers
+	 * here would agree with a reordering that broke the dependency -- the same
+	 * reason that partition was named rather than spelled out.
+	 */
+	public function test_the_order_of_work_advice_needs_both_halves_of_the_queue(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertStringContainsString(
+			'if ( $ffc_identity_to_correct > 0 && $ffc_identity_to_judge > 0 ) :',
+			$view,
+			'The advice must need a correction and a judgement, not either alone.'
+		);
+
+		foreach ( array( 'IdentityQueuePanels::CORRECTIONS', 'IdentityQueuePanels::JUDGEMENTS' ) as $partition ) {
+			$this->assertStringContainsString(
+				$partition,
+				$view,
+				sprintf( 'The tiers must be read from the partition that ordered them, never listed again: %s', $partition )
+			);
+		}
+
+		// COUNTED FROM THE PANELS, never from a query of its own -- this view's
+		// own rule, stated where it sums them: the counters are the panels
+		// counted and never a second opinion.
+		$this->assertMatchesRegularExpression(
+			'/\$ffc_identity_to_correct \+= \(int\) \$ffc_identity_panel\[\x27total\x27\];/',
+			$view,
+			'The correction total must come from the panels the screen already draws.'
+		);
+	}
+
+	/**
+	 * The advice states the rule and carries no count of its own (#1498).
+	 *
+	 * The chips one line above already give every number. A sentence repeating
+	 * them could disagree with them; one stating the rule cannot. It also
+	 * sidesteps the plural trap the coverage strip records -- a number inside a
+	 * sentence needs `_n()` per number, so three numbers need three calls.
+	 */
+	public function test_the_order_of_work_advice_carries_no_number(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$start = strpos( $view, 'Work the corrections first.' );
+
+		$this->assertIsInt( $start, 'The advice must be on the screen.' );
+
+		// The literal ends at the closing quote of the `esc_html__()` argument.
+		$sentence = substr( $view, $start, (int) strpos( $view, "', 'ffcertificate' )", $start ) - $start );
+
+		$this->assertStringNotContainsString( '%s', $sentence, 'The advice must not carry a count; the chips above state them.' );
+		$this->assertStringNotContainsString( '%1$s', $sentence, 'The advice must not carry a count; the chips above state them.' );
+		$this->assertStringNotContainsString( '%d', $sentence, 'The advice must not carry a count; the chips above state them.' );
+	}
 }

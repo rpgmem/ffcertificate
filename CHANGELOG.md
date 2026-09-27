@@ -24,6 +24,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Identity resolution: the "Numbers to correct" form accepts 7 to 11 digits and says which identifier it corrects. An 11-digit CPF could not be typed into it, and without the field the correction defaulted to RF — which answered "Nothing carries that value any more" about a finding still on the screen. Both were unreachable only while the scan was RF-only (#1486)
 - Identity resolution: the "Numbers to correct" panel says when the submission form still accepts a wrong RF, so correcting the list no longer looks like it closes the door. The two rules differ on purpose — the queue always requires the check digit, the form requires it only when the setting is on — and the screen now states which, instead of leaving the panel to refill unexplained (#1500)
 - Identity resolution: the empty-queue notices count both identifiers. They read a leftover from the per-column loop, so an install reading 3,014 RFs and 12,705 CPFs reported the second as the whole scan and called it "RF". One column in the fixtures is why no test saw it (#1500)
+- Identity resolution: the queue says to work the corrections first, and why — a number that fails its own check digit is not evidence that two accounts are one person, so correcting it can make a finding further down disappear rather than be resolved. The sentence existed only as a merge refusal, reached after an operator had already picked a pair (#1498)
 
 ## [6.30.0] (2026-09-27) — `1cb1a009`
 

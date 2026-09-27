@@ -851,6 +851,59 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		</div>
 	<?php endif; ?>
 
+	<?php
+	// THE ADVICE THE COUNTS CANNOT GIVE (#1498).
+	//
+	// The chips above say how many findings each tier holds; the panel order
+	// puts every correction above every tier that reads a number as evidence
+	// about people (#1491). What neither says is WHY that order matters, and it
+	// is not obvious: correcting a wrong number can make a finding below
+	// DISAPPEAR rather than be resolved, because a shared number that fails its
+	// own check digit was never evidence the two accounts were one person.
+	//
+	// That sentence exists in the code already -- but only as the merge's
+	// REFUSAL, reached after an operator has picked a pair and been turned away.
+	// This is the same fact said before the work starts, which is when it
+	// changes what somebody does.
+	//
+	// NO NUMBERS IN IT, DELIBERATELY. The chips one line up already state them,
+	// and this view's own rule is that the counters are the panels counted and
+	// never a second opinion. A sentence repeating them could disagree with
+	// them; one stating the rule cannot. It also sidesteps the plural trap the
+	// coverage strip records -- a number in a sentence needs `_n()` per number,
+	// and three numbers need three calls.
+	//
+	// GATED ON BOTH HALVES EXISTING, because advice about dissolving findings
+	// below is about nothing when there is nothing below, and nothing to correct
+	// is not a plan. The two lists come from `IdentityQueuePanels`, so the
+	// condition reuses the partition that decided the order rather than
+	// restating which tiers are which -- a second list would agree with a
+	// reordering that broke it.
+	$ffc_identity_to_correct = 0;
+	$ffc_identity_to_judge   = 0;
+
+	foreach ( $ffc_identity_panels as $ffc_identity_panel ) {
+		$ffc_identity_tier = (string) $ffc_identity_panel['tier'];
+
+		if ( in_array( $ffc_identity_tier, IdentityQueuePanels::CORRECTIONS, true ) ) {
+			$ffc_identity_to_correct += (int) $ffc_identity_panel['total'];
+		} elseif ( in_array( $ffc_identity_tier, IdentityQueuePanels::JUDGEMENTS, true ) ) {
+			$ffc_identity_to_judge += (int) $ffc_identity_panel['total'];
+		}
+	}
+	?>
+	<?php if ( $ffc_identity_to_correct > 0 && $ffc_identity_to_judge > 0 ) : ?>
+		<?php
+		wp_admin_notice(
+			esc_html__( 'Work the corrections first. A number that fails its own check digit cannot be anyone\'s, so it is not evidence that two accounts belong to one person — correcting it can make a finding further down disappear rather than be resolved.', 'ffcertificate' ),
+			array(
+				'type'               => 'info',
+				'additional_classes' => array( 'inline' ),
+			)
+		);
+		?>
+	<?php endif; ?>
+
 	<?php if ( array() !== $ffc_identity_capped ) : ?>
 		<?php
 		wp_admin_notice(
