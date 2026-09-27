@@ -22187,12 +22187,6 @@ msgstr "Nada mais carrega esse valor — ele já foi reparado. Recarregue a fila
 msgid "This finding names %d accounts, so one corrected value cannot serve it: the same wrong number was typed by more than one person. Resolve them separately."
 msgstr "Este achado nomeia %d contas, então um único valor corrigido não serve: o mesmo número errado foi digitado por mais de uma pessoa. Resolva uma de cada vez."
 
-msgid "That value is already stored against another account, so correcting this one would merge two identities rather than fix a typo. Merging is a separate decision."
-msgstr "Esse valor já está armazenado em outra conta, então corrigir este mesclaria duas identidades em vez de consertar um erro de digitação. Mesclar é uma decisão separada."
-
-msgid "Both identifiers are recorded in %s, which holds each identifier once, so consolidating them there would leave two records claiming one. Decide what becomes of the second record first."
-msgstr "Os dois identificadores estão registrados em %s, que guarda cada identificador uma única vez, então consolidá-los ali deixaria dois registros reivindicando um só. Decida antes o que será do segundo registro."
-
 msgid "The store %s refused the write, so nothing was changed."
 msgstr "O store %s recusou a escrita, então nada foi alterado."
 
@@ -22554,9 +22548,6 @@ msgstr "Ou corrija o documento em uma delas"
 msgid "That account holds no record carrying this identifier, so there is nothing of theirs to correct. Reload the queue."
 msgstr "Aquela conta não tem nenhum registro que carregue este identificador, então não há nada dela para corrigir. Recarregue a fila."
 
-msgid "That number belongs to %1$s (#%2$s). If that is the same person, this is a merge rather than a correction — open the account to check who they are."
-msgstr "Aquele número pertence a %1$s (nº %2$s). Se for a mesma pessoa, isto é uma mesclagem e não uma correção — abra a conta para conferir de quem se trata."
-
 msgid "The check could not be completed."
 msgstr "Não foi possível concluir a verificação."
 
@@ -22852,3 +22843,57 @@ msgstr[1] "pelo menos %s achados"
 
 msgid "The numbers on this account share one address and are not variants of each other, so the address does not identify one person — a shared mailbox, or an account submitting on behalf of others. The decision is per number and it is made with HR: each one moves to the account it belongs to, or splits onto a new one."
 msgstr "Os números desta conta compartilham um endereço e não são variantes uns dos outros, então o endereço não identifica uma pessoa — é uma caixa postal compartilhada ou uma conta que envia em nome de outras pessoas. A decisão é por número e é tomada com o RH: cada um vai para a conta à qual pertence, ou é separado em uma conta nova."
+
+msgid "That value is already stored against records this cannot attribute to one other account — either they belong to nobody, or to more than one. Correcting into it would leave a claim on the number that no finding on this screen would ever report."
+msgstr "Esse valor já está armazenado em registros que isto não consegue atribuir a uma única outra conta — ou não pertencem a ninguém, ou pertencem a mais de uma. Corrigir para ele deixaria uma reivindicação sobre o número que nenhum achado desta tela reportaria."
+
+msgid "Both identifiers are recorded in %s, which holds each identifier once, so writing the corrected value there would leave two records claiming one. Decide what becomes of the second record first."
+msgstr "Os dois identificadores estão registrados em %s, que guarda cada identificador uma única vez, então gravar o valor corrigido lá deixaria dois registros reivindicando um. Decida antes o que acontece com o segundo registro."
+
+msgid "The value you confirmed already belongs to account %s. Correcting this one is not a merge and moves no records — but afterwards both accounts carry the number, and this correction cannot be undone here, because putting the old value back means confirming a number that fails its own check digit. Confirm that you mean to, and then decide the merge under \"Two accounts, one number\"."
+msgstr "O valor que você confirmou já pertence à conta %s. Corrigir esta não é uma mesclagem e não move registro nenhum — mas depois as duas contas passam a ter o número, e esta correção não pode ser desfeita aqui, porque gravar o valor antigo de volta significa confirmar um número que falha no próprio dígito verificador. Confirme que é essa a sua intenção e depois decida a mesclagem em \"Duas contas, um número\"."
+
+msgid "I have confirmed this number with HR and mean to write it even though another account already carries it. Both accounts will then hold it, and the merge is decided separately."
+msgstr "Confirmei este número com o RH e quero gravá-lo mesmo que outra conta já o tenha. As duas contas passarão a tê-lo, e a mesclagem é decidida separadamente."
+
+msgid "This correction rewrites %1$s records, and the number you typed already belongs to %2$s (#%3$s). It is not a merge — no record moves — but afterwards both accounts hold the number, and it cannot be undone here. Confirm below, then decide the merge under \"Two accounts, one number\"."
+msgstr "Esta correção reescreve %1$s registros, e o número que você digitou já pertence a %2$s (#%3$s). Não é uma mesclagem — nenhum registro se move — mas depois as duas contas passam a ter o número, e isto não pode ser desfeito aqui. Confirme abaixo e depois decida a mesclagem em \"Duas contas, um número\"."
+
+msgid "That number is already on records this cannot attribute to one other account — open %1$s (#%2$s) to see who is involved. Correcting into it would leave a claim on the number that no finding here would report."
+msgstr "Esse número já está em registros que isto não consegue atribuir a uma única outra conta — abra %1$s (#%2$s) para ver quem está envolvido. Corrigir para ele deixaria uma reivindicação sobre o número que nenhum achado daqui reportaria."
+
+msgid "Account %1$s holds %2$s separate values for %3$s, not one, so it cannot be absorbed: the survivor would inherit a number nobody has explained, even though the two accounts do agree about the one that brought them here. This screen lists %1$s on its own for that — resolve it there first. Correcting the shared value cannot help, and merging the other way round is allowed but leaves %1$s holding both, with more records behind it."
+msgstr "A conta %1$s tem %2$s valores distintos de %3$s, e não um só, então ela não pode ser absorvida: a conta que sobrevive herdaria um número que ninguém explicou, mesmo que as duas concordem sobre o número que as trouxe até aqui. Esta tela lista a %1$s à parte por causa disso — resolva por lá primeiro. Corrigir o valor compartilhado não ajuda, e mesclar no sentido contrário é permitido mas deixa a %1$s com os dois, agora com mais registros atrás."
+
+msgid "Records carry two values — refused"
+msgstr "Registros com dois valores — recusado"
+
+msgid "The records you selected carry %1$s separate values for %2$s, so they are not all one person's — and the account they would land under cannot make them so, even where it agrees with one of those values. Narrow the selection to the records carrying a single %2$s and move them on their own."
+msgstr "Os registros que você selecionou têm %1$s valores distintos de %2$s, então não são todos da mesma pessoa — e a conta para a qual eles iriam não muda isso, mesmo quando concorda com um desses valores. Reduza a seleção aos registros que têm um único %2$s e mova só eles."
+
+msgid "That address is the one these records carry, filled in for you — check it and change it if HR says otherwise."
+msgstr "Esse endereço é o que estes registros carregam, preenchido para você — confira e altere se o RH disser outra coisa."
+
+msgid "They are recorded under: %s."
+msgstr "Eles estão registrados sob: %s."
+
+msgid "These records carry more than one address, so none of them can be the new account's — two values do not say which. Confirm with HR which person these records belong to."
+msgstr "Estes registros carregam mais de um endereço, então nenhum deles pode ser o da conta nova — dois valores não dizem qual. Confirme com o RH a qual pessoa estes registros pertencem."
+
+msgid "The address these records carry already belongs to an account, so it cannot open a new one — move the records to that account instead of splitting."
+msgstr "O endereço que estes registros carregam já pertence a uma conta, então ele não pode abrir outra — mova os registros para essa conta em vez de separar."
+
+msgid "These records carry an address this could not read, so nothing was filled in. That is not the same as carrying none — confirm it with HR rather than assuming there is no address."
+msgstr "Estes registros carregam um endereço que isto não conseguiu ler, então nada foi preenchido. Isso não é o mesmo que não carregar nenhum — confirme com o RH em vez de supor que não há endereço."
+
+msgid "Every account this card can name has been examined."
+msgstr "Toda conta que este card pode nomear já foi examinada."
+
+msgid "Examined %1$d accounts and named %2$d of them; the rest carry no name under any key this reads."
+msgstr "Examinou %1$d contas e nomeou %2$d delas; as demais não carregam nome em nenhuma chave que isto lê."
+
+msgid "Name the Accounts Created Without One"
+msgstr "Nomear as Contas Criadas Sem Nome"
+
+msgid "Write the display name and first name of every account that has neither, from the name its own candidacy or submission already carries. A promotion used to create the account without passing the person's name, so WordPress fell back to storing the login — which is what the user list, the dashboard greeting and every e-mail then showed them. Only an account whose display name is still its login and whose first name is empty is touched, because those two are written together and an account with one but not the other was changed by something else. Completion here means every such account was EXAMINED: one whose records name nobody is read, left alone, and counted as done."
+msgstr "Grava o nome de exibição e o primeiro nome de toda conta que não tem nenhum dos dois, a partir do nome que a própria candidatura ou submission dela já carrega. A promoção criava a conta sem passar o nome da pessoa, então o WordPress gravava o login no lugar — e era isso que a lista de usuários, a saudação do painel e todo e-mail mostravam a ela. Só é tocada a conta cujo nome de exibição ainda é o login e cujo primeiro nome está vazio, porque esses dois são gravados juntos e uma conta com um e sem o outro foi alterada por outra coisa. Aqui, concluído significa que toda conta dessas foi EXAMINADA: uma cujos registros não nomeiam ninguém é lida, deixada como está, e contada como feita."

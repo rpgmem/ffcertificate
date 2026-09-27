@@ -129,6 +129,19 @@ class MigrationRegistry {
 			'order'       => 8,
 		);
 
+		// v6.30.0 (#1480): give a name to accounts promoted from a candidacy,
+		// which were created with none. Ordered AFTER the capability card
+		// because it is the same population seen from the other side -- that
+		// one gave them access to their certificates, this one gives them their
+		// own name on the screen that lists them.
+		$this->migrations['display_name_backfill'] = array(
+			'name'        => __( 'Name the Accounts Created Without One', 'ffcertificate' ),
+			'description' => __( 'Write the display name and first name of every account that has neither, from the name its own candidacy or submission already carries. A promotion used to create the account without passing the person\'s name, so WordPress fell back to storing the login — which is what the user list, the dashboard greeting and every e-mail then showed them. Only an account whose display name is still its login and whose first name is empty is touched, because those two are written together and an account with one but not the other was changed by something else. Completion here means every such account was EXAMINED: one whose records name nobody is read, left alone, and counted as done.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-id',
+			'batch_size'  => 100,
+			'order'       => 9,
+		);
+
 		// v5.4.1: Clear plaintext context on activity log rows that already
 		// hold a ciphertext, eliminating the dual-storage leak.
 		$this->migrations['activity_log_clear_plaintext'] = array(

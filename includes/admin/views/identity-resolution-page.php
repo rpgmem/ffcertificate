@@ -11,7 +11,7 @@
  * @since 6.28.2
  *
  * @var array<int, array<string, mixed>> $ffc_identity_findings Findings from the check-digit scan.
- * @var array{type: string, text: string}|false                 $ffc_identity_outcome  Outcome of the last write, if any.
+ * @var array{type: string, text: string, code?: string, subject?: string}|false $ffc_identity_outcome Outcome of the last write, if any; a refusal carries its code and the finding it named.
  * @var array{stores: int, examined: int, unreadable: int}       $ffc_identity_coverage What the scan actually read.
  * @var array<int, string>                                       $ffc_identity_capped   Checks that returned a full page.
  * @var int                                                      $ffc_identity_taken_at When the list was taken (unix).
@@ -20,6 +20,7 @@
  * @var string                                                   $ffc_identity_export_url The audit CSV, or '' without the capability.
  * @var int                                                      $ffc_identity_resolved   Findings resolved since the queue was read.
  * @var callable                                                 $ffc_identity_facts      Account ids -> status, per-store counts and last activity.
+ * @var callable                                                 $ffc_identity_proposal   Hash + field -> the address a split could inherit and the names on those records.
  */
 
 // No `declare(strict_types=1)` here on purpose: none of the 17 view and
@@ -381,6 +382,46 @@ $ffc_identity_named = static function ( $user_id ) {
  * @param string $tier The tier.
  * @return string
  */
+/**
+ * The acknowledgement a correction needs once its value is another account's.
+ *
+ * RENDERED ONLY AFTER THE SERVER HAS EXPLAINED WHY (#1478).
+ *
+ * A correction whose confirmed value already belongs to another account is not
+ * a merge -- no record moves and no account is absorbed -- so it is allowed,
+ * once the operator states they mean it. What it cannot be is reflexive: the
+ * write is not undoable by another use of the verb, because putting the old
+ * value back means confirming a number that fails its own check digit, which
+ * the service refuses first. So the box appears on the one form the refusal
+ * came from, beneath the sentence that said what will happen, and nowhere else.
+ *
+ * That also keeps the three forms honest with one another: two of them have no
+ * preflight, so a box revealed by a typed value could only ever have appeared
+ * on the third.
+ *
+ * @param string $subject The finding this form acts on.
+ * @return void
+ */
+$ffc_identity_ack = static function ( $subject ) use ( $ffc_identity_outcome ) {
+	if ( ! is_array( $ffc_identity_outcome ) ) {
+		return;
+	}
+
+	if ( 'ffc_identity_repair_unacknowledged' !== (string) ( $ffc_identity_outcome['code'] ?? '' ) ) {
+		return;
+	}
+
+	if ( (string) ( $ffc_identity_outcome['subject'] ?? '' ) !== (string) $subject ) {
+		return;
+	}
+	?>
+	<label class="ffc-identity-ack">
+		<input type="checkbox" name="ffc_acknowledged" value="1" required>
+		<?php esc_html_e( 'I have confirmed this number with HR and mean to write it even though another account already carries it. Both accounts will then hold it, and the merge is decided separately.', 'ffcertificate' ); ?>
+	</label>
+	<?php
+};
+
 $ffc_identity_tier_label = static function ( $tier ) {
 	switch ( $tier ) {
 		case IdentityQueue::TIER_MECHANICAL:
@@ -944,6 +985,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 						<button type="submit" class="button button-secondary">
 							<?php esc_html_e( 'Correct theirs', 'ffcertificate' ); ?>
 						</button>
+						<?php $ffc_identity_ack( (string) ( $ffc_identity_pair['subject'] ?? '' ) ); ?>
 					</form>
 				<?php endforeach; ?>
 			</div>
@@ -1215,6 +1257,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							<button type="submit" class="button button-primary">
 								<?php esc_html_e( 'Consolidate', 'ffcertificate' ); ?>
 							</button>
+							<?php $ffc_identity_ack( $ffc_identity_wrong ); ?>
 						</form>
 						<?php
 						// THE SHARED MAILBOX GETS THE SAME TWO VERBS, AND NOT THE THIRD.
@@ -1445,11 +1488,38 @@ $ffc_identity_tier_note = static function ( $tier ) {
 									?>
 								</label>
 								<?php
-								// An address the OPERATOR supplies, because there
-								// is none to inherit: WordPress requires
-								// `user_email` to be unique and every production
-								// finding reports both identifiers sharing the
-								// address the existing account already uses.
+								// THE ADDRESS IS DERIVED WHERE THERE IS ONE TO INHERIT (#1480).
+								//
+								// This used to be typed always, and the reason was
+								// measured: every production finding reported both
+								// identifiers sharing the address the existing account
+								// already uses, so there was nothing to inherit. Still
+								// nearly true -- 37 of 38 on the 2026-09-26 audit -- and
+								// it does not describe the 38th.
+								//
+								// Where the finding's own verdict says the addresses are
+								// DISTINCT, each identifier has its own, and asking
+								// somebody to type an address they can already see is
+								// where a typo enters. So it is proposed, pre-filled and
+								// still editable, and the operator confirms a derived
+								// value rather than filling a blank.
+								//
+								// Asked only on that verdict, which is the criterion and
+								// not an optimisation: identifier plus address is the pair
+								// of discordant elements that makes these records somebody
+								// else's. The name is shown as EVIDENCE beside it and is
+								// never part of the test -- two people share a name often,
+								// and one person's name is spelled two ways across two
+								// submissions, so a differing name proves nothing either
+								// way. It is here for the operator's judgement.
+								$ffc_identity_derived = IdentityConflictQuery::VERDICT_DISTINCT_EMAILS
+									=== (string) ( $ffc_identity_item[ IdentityConflictQuery::COLUMN_EMAIL_VERDICT ] ?? '' )
+										? $ffc_identity_proposal( (string) $ffc_identity_move, $ffc_identity_field )
+										: array(
+											'email'  => '',
+											'reason' => '',
+											'names'  => array(),
+										);
 								?>
 								<?php
 								// ON THE SHARED MAILBOX THE PRECEDENCE IS INVERTED, DELIBERATELY.
@@ -1472,6 +1542,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 								?>
 								<input type="email" size="22" required
 									id="ffc-split-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
+									value="<?php echo esc_attr( (string) $ffc_identity_derived['email'] ); ?>"
 									<?php if ( IdentityQueue::TIER_MAILBOX === $ffc_identity_tier ) : ?>
 									data-ffc-prefer-split="1"
 									data-ffc-move="ffc-relink-form-<?php echo esc_attr( (string) $ffc_identity_move ); ?>"
@@ -1491,6 +1562,34 @@ $ffc_identity_tier_note = static function ( $tier ) {
 								<span class="ffc-identity-split-barred description" hidden>
 									<?php esc_html_e( 'A destination account is chosen, so splitting onto a new one is not available. Clear the destination to split instead.', 'ffcertificate' ); ?>
 								</span>
+								<?php if ( '' !== (string) $ffc_identity_derived['email'] ) : ?>
+									<p class="description">
+										<?php
+										esc_html_e( 'That address is the one these records carry, filled in for you — check it and change it if HR says otherwise.', 'ffcertificate' );
+
+										if ( array() !== $ffc_identity_derived['names'] ) {
+											echo ' ';
+											printf(
+												/* translators: %s: the names on the records, comma separated. */
+												esc_html__( 'They are recorded under: %s.', 'ffcertificate' ),
+												esc_html( implode( ', ', $ffc_identity_derived['names'] ) )
+											);
+										}
+										?>
+									</p>
+								<?php elseif ( 'several' === (string) $ffc_identity_derived['reason'] ) : ?>
+									<p class="description">
+										<?php esc_html_e( 'These records carry more than one address, so none of them can be the new account\'s — two values do not say which. Confirm with HR which person these records belong to.', 'ffcertificate' ); ?>
+									</p>
+								<?php elseif ( 'taken' === (string) $ffc_identity_derived['reason'] ) : ?>
+									<p class="description">
+										<?php esc_html_e( 'The address these records carry already belongs to an account, so it cannot open a new one — move the records to that account instead of splitting.', 'ffcertificate' ); ?>
+									</p>
+								<?php elseif ( 'unreadable' === (string) $ffc_identity_derived['reason'] ) : ?>
+									<p class="description">
+										<?php esc_html_e( 'These records carry an address this could not read, so nothing was filled in. That is not the same as carrying none — confirm it with HR rather than assuming there is no address.', 'ffcertificate' ); ?>
+									</p>
+								<?php endif; ?>
 							</form>
 							<?php endif; ?>
 							</div>
@@ -1819,14 +1918,30 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							<button type="submit" class="button button-primary">
 								<?php esc_html_e( 'Correct', 'ffcertificate' ); ?>
 							</button>
+							<?php $ffc_identity_ack( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>
 							<div class="ffc-identity-verdict" id="ffc-check-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
 								aria-live="polite"
 								<?php /* translators: %s: how many records the correction would rewrite. */ ?>
 								data-allowed="<?php esc_attr_e( 'This correction rewrites %s records.', 'ffcertificate' ); ?>"
 								<?php /* translators: %s: how many records the correction would rewrite. */ ?>
 								data-consolidates="<?php esc_attr_e( 'This correction rewrites %s records and consolidates them with this account\'s other record.', 'ffcertificate' ); ?>"
+								<?php
+								// TWO SENTENCES FOR WHAT WAS ONE (#1478), because
+								// the two answers stopped being the same one.
+								//
+								// `data-shared` is the ALLOWED verdict that
+								// produces a shared number: it says what will
+								// happen and where the merge is then decided.
+								// `data-holder` is the refusal that is left --
+								// rows nobody owns, or more than one other
+								// account -- and it no longer claims a
+								// correction into another account's value is a
+								// merge, because it is not one.
+								?>
+								<?php /* translators: 1: how many records the correction would rewrite. 2: the account's display name. 3: the account number. */ ?>
+								data-shared="<?php esc_attr_e( 'This correction rewrites %1$s records, and the number you typed already belongs to %2$s (#%3$s). It is not a merge — no record moves — but afterwards both accounts hold the number, and it cannot be undone here. Confirm below, then decide the merge under "Two accounts, one number".', 'ffcertificate' ); ?>"
 								<?php /* translators: 1: the account's display name. 2: the account number. */ ?>
-								data-holder="<?php esc_attr_e( 'That number belongs to %1$s (#%2$s). If that is the same person, this is a merge rather than a correction — open the account to check who they are.', 'ffcertificate' ); ?>"
+								data-holder="<?php esc_attr_e( 'That number is already on records this cannot attribute to one other account — open %1$s (#%2$s) to see who is involved. Correcting into it would leave a claim on the number that no finding here would report.', 'ffcertificate' ); ?>"
 								data-profile="<?php echo esc_attr( admin_url( 'user-edit.php?user_id=' ) ); ?>"
 								data-open="<?php esc_attr_e( 'Open that account', 'ffcertificate' ); ?>"
 								data-empty="<?php esc_attr_e( 'Enter the number HR confirmed first.', 'ffcertificate' ); ?>"

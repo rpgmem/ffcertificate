@@ -565,8 +565,11 @@ class AdminSubmissionEditPage {
 		$raw_data   = isset( $_POST['data'] ) ? wp_unslash( $_POST['data'] ) : array();
 		$clean_data = array();
 
-		// Name fields that should be normalized (capitalized with lowercase connectives).
-		$name_fields = array( 'nome_completo', 'nome', 'name', 'full_name', 'ffc_nome', 'participante' );
+		// Name fields that should be normalized (capitalized with lowercase
+		// connectives). The key list is `SubmitterName`'s, not this file's: it
+		// had been written at five sites and two of them had already dropped a
+		// key (#1480).
+		$name_fields = \FreeFormCertificate\Core\SubmitterName::CANDIDATE_KEYS;
 
 		foreach ( $raw_data as $k => $v ) {
 			$sanitized_key   = sanitize_key( $k );

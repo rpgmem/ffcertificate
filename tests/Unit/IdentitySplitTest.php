@@ -105,12 +105,84 @@ class IdentitySplitTest extends TestCase {
 		Functions\when( 'email_exists' )->justReturn( false );
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
+
+		// THE DOUBLE IS FOR `proposal()` ALONE, and `split()` still reaches no
+		// database: every seam of the write is overridden below, so a query
+		// arriving from it would be a change nobody asked for.
+		$this->store_rows = array();
+		$this->plain      = array();
+
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				return array( 'sql' => $sql, 'args' => $args );
+			}
+		);
+
+		// Only the `SHOW TABLES LIKE <table>` probe reaches `get_var`, and it
+		// answers with the table so every store exists.
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( $prepared ) {
+				return $prepared['args'][0] ?? null;
+			}
+		);
+
+		// `SELECT … FROM %i WHERE %i = %s` -- table, column, hash.
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $prepared ) {
+				$table = (string) ( $prepared['args'][0] ?? '' );
+				$hash  = (string) ( $prepared['args'][2] ?? '' );
+
+				return $this->store_rows[ $table ][ $hash ] ?? array();
+			}
+		);
+
+		$GLOBALS['wpdb'] = $wpdb;
+	}
+
+	/**
+	 * Rows a store answers with, keyed `table => hash => rows`.
+	 *
+	 * @var array<string, array<string, array<int, array<string, mixed>>>>
+	 */
+	private array $store_rows = array();
+
+	/**
+	 * Ciphertext => plaintext, for the proposal's decrypt seam.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $plain = array();
+
+	/**
+	 * What a ciphertext decrypts to, or null for unreadable.
+	 *
+	 * @param string $cipher Stored ciphertext.
+	 * @return string|null
+	 */
+	public function plaintext_of( string $cipher ): ?string {
+		return $this->plain[ $cipher ] ?? null;
+	}
+
+	/**
+	 * Teach a store which rows carry a hash.
+	 *
+	 * @param string                           $table Unprefixed table.
+	 * @param string                           $hash  The identifier hash.
+	 * @param array<int, array<string, mixed>> $rows  Rows to answer with.
+	 * @return void
+	 */
+	private function carrying( string $table, string $hash, array $rows ): void {
+		$this->store_rows[ 'wp_' . $table ][ $hash ] = $rows;
 	}
 
 	/**
 	 * Tear down Brain\Monkey.
 	 */
 	protected function tearDown(): void {
+		unset( $GLOBALS['wpdb'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -151,6 +223,16 @@ class IdentitySplitTest extends TestCase {
 			public function __construct( $test, $relink ) {
 				$this->test   = $test;
 				$this->relink = $relink;
+			}
+
+			/**
+			 * Decryption without a key, so a proposal can be driven.
+			 *
+			 * @param string $cipher Stored ciphertext.
+			 * @return string|null
+			 */
+			protected function decrypt( string $cipher ): ?string {
+				return $this->test->plaintext_of( $cipher );
 			}
 
 			/**
@@ -394,4 +476,250 @@ class IdentitySplitTest extends TestCase {
 		$this->assertSame( 'ffc_identity_split_no_subject', $result->get_error_code() );
 		$this->assertSame( array(), $this->created );
 	}
+	// ==================================================================
+	// proposal() -- deriving the address, showing the names (#1480)
+	// ==================================================================
+
+	/**
+	 * THE CASE THE OLD DESIGN DECISION DID NOT COVER.
+	 *
+	 * `split()`'s docblock argues the operator must supply the address because
+	 * every production finding reports `shared_email`. That was measured and is
+	 * still nearly true -- 37 of 38 -- but where each identifier has its own
+	 * address there IS something to inherit, and asking somebody to type an
+	 * address they can already see is where a typo enters.
+	 */
+	public function test_it_derives_the_address_the_records_carry(): void {
+		$this->plain['cipherA'] = 'Clarice@Example.ORG';
+		$this->carrying(
+			'ffc_submissions',
+			'rfTheirs',
+			array(
+				array(
+					'email_hash'      => 'hashA',
+					'email_encrypted' => 'cipherA',
+					'data'            => '{"nome_completo":"Clarice Fontes Miranda"}',
+					'data_encrypted'  => '',
+				),
+			)
+		);
+
+		$out = $this->split()->proposal( 'rfTheirs' );
+
+		// NORMALISED, not taken as stored: `normalize_email()` is the one
+		// function that decides what an address is, and the operator typing it
+		// by hand would have gone through it too.
+		$this->assertSame( 'clarice@example.org', $out['email'] );
+		$this->assertSame( '', $out['reason'] );
+		$this->assertSame( array( 'Clarice Fontes Miranda' ), $out['names'] );
+	}
+
+	/**
+	 * THE NAME IS EVIDENCE, NOT A CONDITION, and it comes from three different
+	 * places (#1480).
+	 *
+	 * `ffc_self_scheduling_appointments` and `ffc_recruitment_candidate` each
+	 * declare a plain `name` column; `ffc_submissions` declares none, so the
+	 * name sits inside the answers under a per-form key. A proposal that read
+	 * only one of the two shapes would show a name for some rows and nothing
+	 * for others, which reads as "this row has no name".
+	 */
+	public function test_it_collects_names_from_every_store_s_own_shape(): void {
+		$this->plain['cipherA'] = 'shared@example.org';
+		$this->carrying(
+			'ffc_submissions',
+			'rfTheirs',
+			array(
+				array(
+					'email_hash'      => 'hashA',
+					'email_encrypted' => 'cipherA',
+					'data'            => '{"participante":"From The Answers"}',
+					'data_encrypted'  => '',
+				),
+			)
+		);
+		$this->carrying(
+			'ffc_self_scheduling_appointments',
+			'rfTheirs',
+			array(
+				array( 'email_hash' => 'hashA', 'email_encrypted' => 'cipherA', 'name' => 'From The Column' ),
+			)
+		);
+
+		$out = $this->split()->proposal( 'rfTheirs' );
+
+		$this->assertSame( 'shared@example.org', $out['email'] );
+		$this->assertContains( 'From The Answers', $out['names'] );
+		$this->assertContains( 'From The Column', $out['names'] );
+	}
+
+	/**
+	 * The encrypted answers win over the plaintext column, because that is the
+	 * copy kept current: `data` is what installs held before the answers were
+	 * encrypted, and a row carrying both has the ciphertext as the answer.
+	 */
+	public function test_the_encrypted_answers_are_preferred_over_the_plaintext_column(): void {
+		$this->plain['cipherA'] = 'a@example.org';
+		$this->plain['cipherD'] = '{"nome_completo":"The Current Name"}';
+		$this->carrying(
+			'ffc_submissions',
+			'rfTheirs',
+			array(
+				array(
+					'email_hash'      => 'hashA',
+					'email_encrypted' => 'cipherA',
+					'data'            => '{"nome_completo":"The Stale Name"}',
+					'data_encrypted'  => 'cipherD',
+				),
+			)
+		);
+
+		$this->assertSame( array( 'The Current Name' ), $this->split()->proposal( 'rfTheirs' )['names'] );
+	}
+
+	/**
+	 * TWO ADDRESSES IS NOT A PROPOSAL, the same rule the agreement applies to
+	 * an identifier: two values do not say which the new account gets, and
+	 * picking would invent an answer.
+	 */
+	public function test_two_addresses_propose_nothing(): void {
+		$this->plain['cipherA'] = 'a@example.org';
+		$this->plain['cipherB'] = 'b@example.org';
+		$this->carrying(
+			'ffc_submissions',
+			'rfTheirs',
+			array(
+				array( 'email_hash' => 'hashA', 'email_encrypted' => 'cipherA', 'data' => '', 'data_encrypted' => '' ),
+				array( 'email_hash' => 'hashB', 'email_encrypted' => 'cipherB', 'data' => '', 'data_encrypted' => '' ),
+			)
+		);
+
+		$out = $this->split()->proposal( 'rfTheirs' );
+
+		$this->assertSame( '', $out['email'] );
+		$this->assertSame( 'several', $out['reason'] );
+	}
+
+	/**
+	 * THE COUNT THAT DECIDES IS A COUNT OF HASHES, so two rows carrying the
+	 * SAME address are one address however many rows there are -- and only the
+	 * survivor is ever deciphered.
+	 */
+	public function test_many_rows_with_one_address_are_one_address(): void {
+		$this->plain['cipherA'] = 'one@example.org';
+		$this->carrying(
+			'ffc_submissions',
+			'rfTheirs',
+			array(
+				array( 'email_hash' => 'hashA', 'email_encrypted' => 'cipherA', 'data' => '', 'data_encrypted' => '' ),
+				array( 'email_hash' => 'hashA', 'email_encrypted' => 'cipherA', 'data' => '', 'data_encrypted' => '' ),
+			)
+		);
+
+		$this->assertSame( 'one@example.org', $this->split()->proposal( 'rfTheirs' )['email'] );
+	}
+
+	/**
+	 * AN ADDRESS THAT IS ALREADY AN ACCOUNT'S MEANS THE VERB IS A MOVE.
+	 *
+	 * `split()` refuses it at write time and is right to. Reported here it is
+	 * actionable instead: the destination exists, so the records go to it.
+	 */
+	public function test_an_address_that_already_has_an_account_is_reported_as_taken(): void {
+		Functions\when( 'email_exists' )->justReturn( 77 );
+
+		$this->plain['cipherA'] = 'taken@example.org';
+		$this->carrying(
+			'ffc_submissions',
+			'rfTheirs',
+			array(
+				array( 'email_hash' => 'hashA', 'email_encrypted' => 'cipherA', 'data' => '', 'data_encrypted' => '' ),
+			)
+		);
+
+		$out = $this->split()->proposal( 'rfTheirs' );
+
+		$this->assertSame( '', $out['email'] );
+		$this->assertSame( 'taken', $out['reason'] );
+	}
+
+	/**
+	 * AN ADDRESS NOBODY CAN READ IS NOT AN ADDRESS, and saying so beats
+	 * proposing an empty field that looks like "there is none" -- the #1071
+	 * rule on a screen rather than in a guard.
+	 */
+	public function test_an_unreadable_address_says_so_rather_than_proposing_nothing(): void {
+		$this->carrying(
+			'ffc_submissions',
+			'rfTheirs',
+			array(
+				array( 'email_hash' => 'hashA', 'email_encrypted' => 'cipherNoKey', 'data' => '', 'data_encrypted' => '' ),
+			)
+		);
+
+		$out = $this->split()->proposal( 'rfTheirs' );
+
+		$this->assertSame( '', $out['email'] );
+		$this->assertSame( 'unreadable', $out['reason'] );
+	}
+
+	/**
+	 * A stored value that decrypts to something that is not an address is
+	 * unreadable too, not a proposal: `is_email()` is the separate question
+	 * `split()` already asks, and asking it here keeps the field from being
+	 * pre-filled with a value the write would refuse.
+	 */
+	public function test_a_decrypted_value_that_is_not_an_address_is_unreadable(): void {
+		$this->plain['cipherA'] = 'not an address';
+		$this->carrying(
+			'ffc_submissions',
+			'rfTheirs',
+			array(
+				array( 'email_hash' => 'hashA', 'email_encrypted' => 'cipherA', 'data' => '', 'data_encrypted' => '' ),
+			)
+		);
+
+		$this->assertSame( 'unreadable', $this->split()->proposal( 'rfTheirs' )['reason'] );
+	}
+
+	/**
+	 * No row at all proposes nothing, and says `none` rather than `several`:
+	 * the two send an operator to different places.
+	 */
+	public function test_no_record_carrying_the_identifier_proposes_nothing(): void {
+		$out = $this->split()->proposal( 'rfGone' );
+
+		$this->assertSame( '', $out['email'] );
+		$this->assertSame( 'none', $out['reason'] );
+		$this->assertSame( array(), $out['names'] );
+	}
+
+	/**
+	 * It proposes and never writes. Asserted rather than assumed, because the
+	 * method exists to be called while the operator is still deciding.
+	 */
+	public function test_a_proposal_creates_nothing_and_moves_nothing(): void {
+		$this->plain['cipherA'] = 'a@example.org';
+		$this->carrying(
+			'ffc_submissions',
+			'rfTheirs',
+			array(
+				array( 'email_hash' => 'hashA', 'email_encrypted' => 'cipherA', 'data' => '', 'data_encrypted' => '' ),
+			)
+		);
+
+		$this->split()->proposal( 'rfTheirs' );
+
+		$this->assertSame( array(), $this->created );
+		$this->assertSame( array(), $this->sequence );
+	}
+
+	/**
+	 * An unknown identifier proposes nothing rather than querying a column that
+	 * does not exist.
+	 */
+	public function test_an_unknown_identifier_proposes_nothing(): void {
+		$this->assertSame( 'none', $this->split()->proposal( 'rfTheirs', 'ticket' )['reason'] );
+	}
+
 }

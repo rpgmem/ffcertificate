@@ -124,14 +124,7 @@ class IdentityMerge {
 		$agreement = IdentityAgreement::between( $theirs, $ours );
 
 		if ( array() !== $agreement['conflicts'] ) {
-			return new WP_Error(
-				'ffc_identity_merge_conflict',
-				sprintf(
-					/* translators: %s: the identifiers that disagree, comma separated. */
-					__( 'Those accounts hold different values for: %s. Correct the identifier first — merging across a disagreement makes one person out of two, and nothing afterwards can tell them apart again.', 'ffcertificate' ),
-					implode( ', ', array_map( 'strtoupper', $agreement['conflicts'] ) )
-				)
-			);
+			return self::refusal( $agreement, $absorbed, $theirs );
 		}
 
 		if ( array() === $agreement['matches'] ) {
@@ -178,6 +171,93 @@ class IdentityMerge {
 			'relationships' => $this->relationship_plan( $survivor, $absorbed ),
 			'matches'       => $agreement['matches'],
 			'gaps'          => $agreement['gaps'],
+		);
+	}
+
+	/**
+	 * The refusal for a blocked merge, saying which of the two reasons blocked.
+	 *
+	 * THE OLD SENTENCE WAS WRONG ON THE COMMON CASE, AND WRONG IN THE
+	 * EXPENSIVE DIRECTION (#1477).
+	 *
+	 * It read "those accounts hold different values for: RF" whatever had
+	 * blocked, so an operator whose two accounts carry the SAME RF -- the
+	 * pair the queue put in front of them, sharing that very number -- was
+	 * told to correct a disagreement that does not exist. There is nothing
+	 * to find, so the search ends in the operator distrusting the screen.
+	 *
+	 * What blocks there is the absorbed account carrying a SECOND number
+	 * besides the shared one. That is a real refusal: absorbing it would hand
+	 * the survivor an identity nobody has explained, turning a clean account
+	 * into another queue item. But it is fixed on the ABSORBED account's own
+	 * listing, and not by touching either shared value.
+	 *
+	 * WHICH LISTING IS NOT NAMED, ON PURPOSE. A multi-valued account sits in
+	 * whichever tier its verdicts put it in -- mechanical when exactly one of
+	 * its values fails the check digit, the shared mailbox when the address
+	 * says so, a plain decision otherwise -- and this class cannot know which
+	 * without re-deriving the queue. Naming one would send the operator to the
+	 * wrong panel two times in three.
+	 *
+	 * It is also why the same pair may merge one way and not the other, and
+	 * why the refusal does not RECOMMEND the other way: reversing it is
+	 * allowed and resolves nothing, since the survivor keeps both values and
+	 * gains records that now sit behind an unresolved identity.
+	 *
+	 * @since 6.30.0
+	 * @param array{matches: array<int, string>, gaps: array<string, string>, conflicts: array<int, string>, reasons: array<string, string>} $agreement What the rule decided.
+	 * @param int                                                                                                                            $absorbed  The account whose records would move.
+	 * @param array<string, array<int, string>>                                                                                              $theirs    What that account holds, per identifier.
+	 * @return WP_Error
+	 */
+	private static function refusal( array $agreement, int $absorbed, array $theirs ): WP_Error {
+		$disagree  = array();
+		$ambiguous = array();
+
+		foreach ( $agreement['conflicts'] as $field ) {
+			$reason = $agreement['reasons'][ $field ] ?? IdentityAgreement::REASON_DISAGREEMENT;
+
+			if ( IdentityAgreement::REASON_AMBIGUOUS === $reason ) {
+				$ambiguous[] = $field;
+				continue;
+			}
+
+			$disagree[] = $field;
+		}
+
+		$said = array();
+
+		if ( array() !== $disagree ) {
+			$said[] = sprintf(
+				/* translators: %s: the identifiers that disagree, comma separated. */
+				__( 'Those accounts hold different values for: %s. Correct the identifier first — merging across a disagreement makes one person out of two, and nothing afterwards can tell them apart again.', 'ffcertificate' ),
+				implode( ', ', array_map( 'strtoupper', $disagree ) )
+			);
+		}
+
+		foreach ( $ambiguous as $field ) {
+			$said[] = sprintf(
+				/* translators: 1: the account whose records would move. 2: how many different values it carries. 3: the identifier, e.g. RF. */
+				__( 'Account %1$s holds %2$s separate values for %3$s, not one, so it cannot be absorbed: the survivor would inherit a number nobody has explained, even though the two accounts do agree about the one that brought them here. This screen lists %1$s on its own for that — resolve it there first. Correcting the shared value cannot help, and merging the other way round is allowed but leaves %1$s holding both, with more records behind it.', 'ffcertificate' ),
+				// AN ID IS NOT A QUANTITY: `number_format_i18n()` would print
+				// account 6499 as "6.499" under pt_BR.
+				(string) $absorbed,
+				// PLAIN, NOT `number_format_i18n()`. The count is how many distinct
+				// values one side carries for one identifier -- a handful at the
+				// very worst, so a thousands separator can never apply. Reaching
+				// for it would make these two classes the first in their module to
+				// need that function defined, and a stub taught for one test stays
+				// taught for every test after it.
+				(string) count( $theirs[ $field ] ?? array() ),
+				strtoupper( $field )
+			);
+		}
+
+		return new WP_Error(
+			// The queue's own vocabulary: `multiple_identities` is precisely
+			// the finding on the absorbed account that has to be resolved.
+			array() === $disagree ? 'ffc_identity_merge_multiple_identities' : 'ffc_identity_merge_conflict',
+			implode( ' ', $said )
 		);
 	}
 

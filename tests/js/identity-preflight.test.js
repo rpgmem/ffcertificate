@@ -28,7 +28,8 @@ const MARKUP = `
 	<div class="ffc-identity-verdict" id="ffc-check-abc"
 		data-allowed="This correction rewrites %s records."
 		data-consolidates="This correction rewrites %s records and consolidates them."
-		data-holder="That number belongs to %1$s (#%2$s). If that is the same person, this is a merge."
+		data-shared="Rewrites %1$s records; the number already belongs to %2$s (#%3$s). Not a merge — confirm below."
+		data-holder="That number is on records naming no single other account — open %1$s (#%2$s)."
 		data-profile="/wp-admin/user-edit.php?user_id="
 		data-open="Open that account"
 		data-empty="Enter the number HR confirmed first."
@@ -142,6 +143,57 @@ describe('the correction preflight', () => {
 		const $link = $region.find('a');
 		expect($link.attr('href')).toBe('/wp-admin/user-edit.php?user_id=513');
 		expect($link.text()).toBe('Open that account');
+	});
+
+	// #1478: the value belonging to another account stopped being the refusal
+	// and became a consequence the correction may produce. So `allowed` can
+	// arrive WITH a holder, and reporting the row count alone there would be the
+	// worst answer available: true, reassuring, and silent about the only thing
+	// the operator needs before a write no use of this verb can undo.
+	it('warns and names the holder when an ALLOWED correction shares a number', () => {
+		vi.spyOn(window.$, 'post').mockImplementation(chainFrom({
+			success: true,
+			data: {
+				allowed: true,
+				rows: 3,
+				account: 398,
+				consolidates: false,
+				code: '',
+				message: '',
+				holder: { id: 513, name: 'Clarice Fontes Miranda', email: 'c@example.org' },
+			},
+		}));
+
+		window.$('#ffc-rf-abc').val('1234561');
+		check();
+
+		const $region = window.$('#ffc-check-abc');
+		expect($region.text()).toContain('Clarice Fontes Miranda');
+		expect($region.text()).toContain('#513');
+		expect($region.text()).toContain('3');
+
+		// WARN AND NOT OK. The tone is the whole point: an `ok` line here is
+		// what would let the operator confirm without reading.
+		expect($region.find('.ffc-identity-verdict-warn').length).toBe(1);
+		expect($region.find('.ffc-identity-verdict-ok').length).toBe(0);
+		expect($region.find('a').attr('href')).toBe('/wp-admin/user-edit.php?user_id=513');
+	});
+
+	// The counterpart, without which a payload carrying a holder on every
+	// verdict would pass the test above and warn on the common case.
+	it('stays plain when an allowed correction shares nothing', () => {
+		vi.spyOn(window.$, 'post').mockImplementation(chainFrom({
+			success: true,
+			data: { allowed: true, rows: 3, account: 398, consolidates: false, holder: null },
+		}));
+
+		window.$('#ffc-rf-abc').val('1234561');
+		check();
+
+		const $region = window.$('#ffc-check-abc');
+		expect($region.find('.ffc-identity-verdict-ok').length).toBe(1);
+		expect($region.find('.ffc-identity-verdict-warn').length).toBe(0);
+		expect($region.find('a').length).toBe(0);
 	});
 
 	it('falls back to the account number when the holder has no display name', () => {

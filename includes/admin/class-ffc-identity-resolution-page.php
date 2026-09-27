@@ -682,7 +682,16 @@ class IdentityResolutionPage {
 			RequestInput::get_post_string( 'ffc_rf', '' ),
 			get_current_user_id(),
 			self::posted_field(),
-			absint( RequestInput::get_post_string( 'ffc_account_scope', '0' ) )
+			absint( RequestInput::get_post_string( 'ffc_account_scope', '0' ) ),
+			// UNTRUSTED, AND THAT IS THE WHOLE POINT OF WHERE THE GATE LIVES.
+			//
+			// The `IdentityRelink` precedent has to argue that reading a tier
+			// off a posted key is proportionate. This does not: the service
+			// MEASURES whether the acknowledgement was required, so a forged
+			// box authorises only what the operator could authorise by ticking
+			// a real one, and the capability above already decides who may
+			// correct a number at all.
+			'' !== RequestInput::get_post_string( 'ffc_acknowledged', '' )
 		);
 
 		// The SERVICE owns the wording. A second copy on this side is the
@@ -752,7 +761,13 @@ class IdentityResolutionPage {
 			$wrong,
 			RequestInput::get_post_string( 'ffc_target', '' ),
 			get_current_user_id(),
-			self::posted_field()
+			self::posted_field(),
+			// The same acknowledgement, because this verb reaches the same
+			// state: the account's own sound number can already be a second
+			// login's, which is exactly the production case #1478 was reported
+			// from. Omitting it here would have left that account the one kind
+			// the screen still cannot resolve.
+			'' !== RequestInput::get_post_string( 'ffc_acknowledged', '' )
 		);
 
 		$this->report(
@@ -1073,8 +1088,27 @@ class IdentityResolutionPage {
 			self::OUTCOME_TRANSIENT . get_current_user_id(),
 			$result instanceof WP_Error
 				? array(
-					'type' => 'error',
-					'text' => $result->get_error_message(),
+					'type'    => 'error',
+					'text'    => $result->get_error_message(),
+					// THE CODE AND THE FINDING TRAVEL WITH THE SENTENCE (#1478).
+					//
+					// One refusal is not a dead end but a step: a correction
+					// whose value already belongs to another account is allowed
+					// once the operator says they mean it, and the box that says
+					// so appears only after the screen has explained why. Which
+					// form to grow it on is the finding, so the finding travels
+					// too -- posted and therefore untrusted, which costs
+					// nothing: it can only decide which of the operator's own
+					// forms renders a box, and the service re-decides whether
+					// the acknowledgement was needed at all.
+					//
+					// Explaining before confirming is the design here and not a
+					// consolation for having no preflight on two of the three
+					// forms. This write cannot be undone by another use of the
+					// verb, so a box that appeared before the reason would be a
+					// box ticked before it was read.
+					'code'    => (string) $result->get_error_code(),
+					'subject' => RequestInput::get_post_string( 'ffc_subject', '' ),
 				)
 				: array(
 					'type' => 'success',
@@ -1269,6 +1303,19 @@ class IdentityResolutionPage {
 		// eleven times the statements for nothing.
 		$ffc_identity_facts = function ( array $ids ) {
 			return $this->conflicts()->account_facts( $ids );
+		};
+
+		// WHAT A SPLIT COULD INHERIT, AND THE NAMES TO SHOW BESIDE IT (#1480).
+		//
+		// A closure for the reason the two above are, and more so: this one
+		// reads three stores and decrypts, so computing it for every identifier
+		// on the screen would be a decrypt per row to fill a field almost none
+		// of them can offer. The view asks only where the finding's own
+		// `email_verdict` says the addresses are distinct -- which is the
+		// criterion, not an optimisation: identifier plus address is the pair of
+		// discordant elements that makes these records somebody else's.
+		$ffc_identity_proposal = function ( string $hash, string $field ) {
+			return $this->separations()->proposal( $hash, $field );
 		};
 
 		require __DIR__ . '/views/identity-resolution-page.php';

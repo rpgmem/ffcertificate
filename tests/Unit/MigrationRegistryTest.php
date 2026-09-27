@@ -61,12 +61,13 @@ class MigrationRegistryTest extends TestCase {
 		$all = $registry->get_all_migrations();
 
 		$this->assertIsArray( $all );
-		// Ten since 6.28.2: the certificate-capability backfill joined the card
-		// list (#1345). The count is asserted as HISTORY in the comment and as
-		// a live number here on purpose -- every key below is named too, so a
-		// card arriving without a test failing is what this guards against;
+		// Eleven since 6.30.0: the display-name backfill joined the card list
+		// (#1480); it was ten from 6.28.2, when the certificate-capability
+		// backfill did (#1345). The count is asserted as HISTORY in the comment
+		// and as a live number here on purpose -- every key below is named too,
+		// so a card arriving without a test failing is what this guards against;
 		// bump the number and name the new key together.
-		$this->assertCount( 10, $all );
+		$this->assertCount( 11, $all );
 		$this->assertArrayHasKey( 'split_cpf_rf', $all );
 		$this->assertArrayHasKey( 'email_hash_rehash', $all );
 		$this->assertArrayHasKey( 'key_rotation', $all );
@@ -85,6 +86,10 @@ class MigrationRegistryTest extends TestCase {
 		// to read it -- the consequence of adoption linking a row without
 		// granting what reads it (#1345).
 		$this->assertArrayHasKey( 'certificate_capability_backfill', $all );
+		// The repair for accounts a candidacy promotion created with no name at
+		// all: it passed an empty answers array, so WordPress stored the login
+		// as the display name (#1480).
+		$this->assertArrayHasKey( 'display_name_backfill', $all );
 		$this->assertArrayHasKey( 'activity_log_clear_plaintext', $all );
 		$this->assertArrayHasKey( 'identity_index_backfill', $all );
 		$this->assertArrayHasKey( 'import_legacy_templates', $all );
