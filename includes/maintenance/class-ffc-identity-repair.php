@@ -778,21 +778,21 @@ class IdentityRepair {
 		// second call to pass.
 		//
 		// And it was not inert. `validate_rf()` reads
-		// `ffc_validate_rf_check_digit` through the settings reader, so it
+		// `ffc_validate_rf_check_digit` through `Settings\SettingsReader`, so it
 		// cannot be called without that class being loadable -- measured: a
 		// standalone script calling it dies with `Class
-		// "...\Settings\SettingsReader" not found`. That made this predicate
-		// depend on the settings layer in order to judge a CONFIRMED value,
-		// which is exactly what the docblock forbids it to consult.
+		// "FreeFormCertificate\Settings\SettingsReader" not found`. That made
+		// this predicate depend on the settings layer in order to judge a
+		// CONFIRMED value, which is exactly what the docblock forbids it to
+		// consult.
 		//
-		// THE ROOT NAMESPACE IS ELIDED IN THAT QUOTE ON PURPOSE, AND PUTTING IT
-		// BACK TURNS CI RED. `ModuleBoundaryTest` reads each file with
-		// `file_get_contents()` and counts every `FreeFormCertificate\<Module>\`
-		// it matches as a cross-module edge, so PROSE CREATES ONE: spelling the
-		// class out here invented a `Maintenance>Settings` edge that no
-		// statement in this module makes, and the ratchet failed on it. The
-		// elision keeps the evidence reproducible while the scan reads what the
-		// code does. The guard's own blindness is tracked apart.
+		// THAT QUOTE NAMES THE CLASS IN FULL, AND IT IS THE PROOF #1496 SHIPPED.
+		// The class is not referenced by any statement here, so under the old
+		// guard this comment invented a `Maintenance>Settings` edge and turned CI
+		// red; #1495 had to elide the root namespace to get through. The guard
+		// now reads types rather than prose, so the evidence can be written the
+		// way it was measured. Should this line ever go red again, the guard
+		// regressed -- do not elide it a second time.
 		return DocumentFormatter::rf_check_digit_matches( $normalized );
 	}
 }

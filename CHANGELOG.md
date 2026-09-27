@@ -19,6 +19,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - Identity resolution: the acknowledgement a correction needs when its value already belongs to another account can now be given. The refusal asked for it and the checkbox was never rendered, on both forms that post a repair, so the gate had no way through. The "Check" button now reveals it as soon as the preflight names the other account (#1487)
 - The recruitment CSV import refuses a CPF whose check digits do not match, instead of staging, promoting and encrypting it. It checked length only and zero-pads a short value — a repair for spreadsheets that drop leading zeros — so the check digit is what tells a repaired value from a manufactured one. The RF's is deliberately still not enforced (#1489)
 - Four CSV import error codes reached the operator as their own identifier for want of a label, and five labels described codes nothing emits. A guard now fails when the emitted and labelled sets disagree either way (#1489)
+- The module-boundary guard now reads coupling from the code and from the docblock tags that state a type, instead of from the file as text. Prose was creating edges: a comment quoting a class name invented one, and three `{@see}` pointers had been holding dead edges in the baseline, so decouplings that already happened were never locked in. A docblock type still counts, because where the native signature is `object` it is the only statement of the dependency (#1496)
 
 ## [6.30.0] (2026-09-27) — `1cb1a009`
 
