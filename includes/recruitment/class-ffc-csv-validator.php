@@ -155,6 +155,37 @@ final class CsvValidator {
 				continue;
 			}
 
+			// THE CHECK DIGIT IS THE TEST OF WHETHER THE PAD GUESSED RIGHT (#1489).
+			//
+			// The zero-padding above is a repair, not a bug: a spreadsheet turns
+			// `01234567890` into `1234567890` in a numeric column, and the pad
+			// restores it. When it guesses right the check digits PASS; when the
+			// source value was genuinely truncated or malformed they fail. So
+			// this is not a second opinion about the pad -- it is the only way to
+			// tell a repaired value from a manufactured one, and the line number
+			// is here, where an operator can fix the source.
+			//
+			// Without it an invalid CPF was staged, promoted, encrypted and
+			// indexed with nothing objecting -- while the other seven write paths
+			// (frontend submission, reregistration, appointments, both REST
+			// controllers, the public CSV download) all call `validate_cpf()` and
+			// refuse it. This path was the exception, and on an install fed by
+			// imports it is the one that matters.
+			//
+			// ONLY WHEN A CPF WAS SUPPLIED. The import accepts either identifier,
+			// so a row carrying just an RF must stay valid; `''` here means not
+			// supplied, and the missing-both case was already refused above.
+			//
+			// AND THE RF's CHECK DIGIT IS DELIBERATELY NOT CHECKED. `validate_rf()`
+			// is structure-only by default and its check digit is an opt-in
+			// setting (`validate_rf_check_digit`), so enforcing it here would
+			// refuse rows every other path in the plugin accepts.
+			if ( '' !== $cpf_norm['value']
+				&& ! \FreeFormCertificate\Core\DocumentFormatter::validate_cpf( $cpf_norm['value'] ) ) {
+				$errors[] = self::line_error( $line, 'recruitment_csv_cpf_invalid' );
+				continue;
+			}
+
 			$cpf = $cpf_norm['value'];
 			$rf  = $rf_norm['value'];
 

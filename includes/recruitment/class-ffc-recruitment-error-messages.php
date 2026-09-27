@@ -179,16 +179,24 @@ final class RecruitmentErrorMessages {
 			'recruitment_promotion_copy_failed'            => __( 'Could not copy preliminary rows into the definitive list. Please try again.', 'ffcertificate' ),
 
 			// CSV import — file-level.
-			'recruitment_csv_file_missing'                 => __( 'No CSV file was uploaded.', 'ffcertificate' ),
-			'recruitment_csv_file_unreadable'              => __( 'Could not read the uploaded CSV file.', 'ffcertificate' ),
 			'recruitment_csv_empty'                        => __( 'The CSV file is empty.', 'ffcertificate' ),
-			'recruitment_csv_unparseable'                  => __( 'The CSV file could not be parsed. Make sure it is UTF-8 with comma or semicolon delimiters.', 'ffcertificate' ),
 			'recruitment_csv_missing_headers'              => __( 'The CSV is missing required header columns.', 'ffcertificate' ),
 
 			// CSV import — per-row validation.
 			'recruitment_csv_missing_cpf_or_rf'            => __( 'At least one of CPF or RF is required.', 'ffcertificate' ),
-			'recruitment_csv_cpf_must_be_digits_only'      => __( 'CPF must contain digits only.', 'ffcertificate' ),
-			'recruitment_csv_rf_must_be_digits_only'       => __( 'RF must contain digits only.', 'ffcertificate' ),
+			// The two `*_must_be_digits_only` entries that sat here were dead:
+			// nothing in the tree emitted either, while the two codes the
+			// validator DOES emit for an over-length identifier had no label at
+			// all, so an operator read `recruitment_csv_cpf_too_long` verbatim.
+			// The lists had drifted in both directions at once (#1489), which is
+			// what `RecruitmentErrorCodeCoverageTest` now refuses.
+			'recruitment_csv_cpf_too_long'                 => __( 'CPF has more digits than a CPF can have — check the column for a stray value.', 'ffcertificate' ),
+			'recruitment_csv_rf_too_long'                  => __( 'RF has more digits than an RF can have — check the column for a stray value.', 'ffcertificate' ),
+			// A CPF is padded with leading zeros when a spreadsheet dropped them,
+			// so this failing means the padded value is not a real CPF: the source
+			// was truncated or mistyped, and no correction here can recover the
+			// digits the file never carried.
+			'recruitment_csv_cpf_invalid'                  => __( 'CPF is not valid — its check digits do not match. Confirm the number in the source spreadsheet.', 'ffcertificate' ),
 			'recruitment_csv_missing_score'                => __( 'Score is required.', 'ffcertificate' ),
 			'recruitment_csv_score_uses_comma_decimal'     => __( 'Score uses a comma decimal — replace with a dot (e.g. 12.5).', 'ffcertificate' ),
 			'recruitment_csv_score_invalid_format'         => __( 'Score format is invalid (numeric value expected).', 'ffcertificate' ),
