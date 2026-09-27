@@ -120,13 +120,50 @@ class IdentifierFixtureStandardTest extends TestCase {
 		$out = array();
 
 		foreach ( $this->files() as $path ) {
-			// Comments stripped by PHP's own lexer: this file's docblock names
-			// several fixture values in prose, and so do others.
-			preg_match_all( $pattern, (string) php_strip_whitespace( $path ), $m );
+			preg_match_all( $pattern, self::without_comments( $path ), $m );
 
 			if ( array() !== $m[1] ) {
 				$out[ $path ] = array_values( array_unique( $m[1] ) );
 			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * One file's code with its comments removed, read WITHOUT a stream wrapper.
+	 *
+	 * `php_strip_whitespace()` was the obvious call and it broke the SUITE while
+	 * passing under `--filter`: Brain\Monkey's Patchwork registers a stream
+	 * wrapper to instrument every file it opens, so stripping ~250 files here
+	 * drove it through that wrapper 250 times and the run died with
+	 * `Maximum execution time of 60 seconds exceeded` inside Patchwork's own
+	 * `Stream.php` -- at a test file this change never touched, hundreds of
+	 * tests later. `develop` completed clean; both runs carrying this guard died.
+	 *
+	 * `token_get_all()` over a string never opens a file, so Patchwork is not
+	 * involved, and the property that mattered is kept: comments are removed by
+	 * PHP's own lexer rather than by a regex that cannot tell a docblock from
+	 * code. This file's own prose names fixture values, which is why stripping
+	 * is not optional.
+	 *
+	 * @param string $path The file to read.
+	 * @return string The file's code, comments removed.
+	 */
+	private static function without_comments( string $path ): string {
+		$out = '';
+
+		foreach ( token_get_all( (string) file_get_contents( $path ) ) as $token ) {
+			if ( is_array( $token ) ) {
+				if ( T_COMMENT === $token[0] || T_DOC_COMMENT === $token[0] ) {
+					continue;
+				}
+
+				$out .= $token[1];
+				continue;
+			}
+
+			$out .= $token;
 		}
 
 		return $out;
