@@ -578,7 +578,7 @@ class AppointmentRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
 		// 11-digit CPF
-		$this->repo->findByCpfRf('123.456.789-01');
+		$this->repo->findByCpfRf('518.178.420-80');
 
 		$this->assertStringContainsString('cpf_hash', $captured_sql);
 		$this->assertStringNotContainsString('rf_hash', $captured_sql);
@@ -601,7 +601,7 @@ class AppointmentRepositoryTest extends TestCase {
 
 	public function test_find_by_cpf_rf_strips_non_numeric_characters(): void {
 		// Both should produce the same result since non-numeric chars are stripped
-		$clean = preg_replace('/[^0-9]/', '', '123.456.789-01');
+		$clean = preg_replace('/[^0-9]/', '', '518.178.420-80');
 		$this->assertSame('51817842080', $clean);
 		$this->assertSame(11, strlen($clean));
 	}

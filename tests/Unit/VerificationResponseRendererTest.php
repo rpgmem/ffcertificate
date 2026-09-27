@@ -118,7 +118,7 @@ class VerificationResponseRendererTest extends TestCase {
 	public function test_format_field_value_masks_cpf(): void {
 		// /valid is public — full CPF surfaced is a privacy leak.
 		$result = $this->renderer->format_field_value( 'cpf_rf', '20456942084' );
-		$this->assertSame( '123.***.***-09', $result );
+		$this->assertSame( '204.***.***-84', $result );
 	}
 
 	public function test_format_field_value_masks_email(): void {

@@ -309,7 +309,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 	}
 
 	public function test_normalise_cpf_strips_dots_and_dash(): void {
-		$out = $this->normalise( '123.456.789-09', 11 );
+		$out = $this->normalise( '518.178.420-80', 11 );
 		$this->assertSame( '51817842080', $out['value'] );
 		$this->assertFalse( $out['too_long'] );
 	}
@@ -352,7 +352,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 	}
 
 	public function test_normalise_rf_strips_punctuation(): void {
-		$out = $this->normalise( '123.456-7', 7 );
+		$out = $this->normalise( '518.178-0', 7 );
 		$this->assertSame( '5181780', $out['value'] );
 		$this->assertFalse( $out['too_long'] );
 	}
@@ -369,7 +369,7 @@ class RecruitmentCsvImporterTest extends TestCase {
 
 	public function test_normalise_strips_spaces_and_slashes(): void {
 		// Pathological formatting still produces clean digits.
-		$out = $this->normalise( ' 123  / 456 / 789 - 09 ', 11 );
+		$out = $this->normalise( ' 518  / 178 / 420 - 80 ', 11 );
 		$this->assertSame( '51817842080', $out['value'] );
 		$this->assertFalse( $out['too_long'] );
 	}

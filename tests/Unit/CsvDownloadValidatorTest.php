@@ -267,13 +267,17 @@ class CsvDownloadValidatorTest extends TestCase {
 
 	public function test_cpf_whitelist_allows_listed_cpf(): void {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ]      = 'whitelist';
-		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_WHITELIST ] = "529.982.247-25\n111.444.777-35";
+		// Person A is on the list, punctuated as an operator would paste it.
+		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_WHITELIST ] = "518.178.420-80\n204.569.420-84";
 		$this->assertNull( $this->validator->validate_cpf_requirement( 10, '51817842080' ) );
 	}
 
 	public function test_cpf_whitelist_blocks_unlisted_cpf(): void {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ]      = 'whitelist';
-		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_WHITELIST ] = '529.982.247-25';
+		// Person B is listed; person A is the one asking. They must differ, which
+		// is the whole case -- a sweep that collapsed them into one value made
+		// this pass for the wrong reason while its sibling failed.
+		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_WHITELIST ] = '204.569.420-84';
 		$msg = $this->validator->validate_cpf_requirement( 10, '51817842080' );
 		$this->assertStringContainsString( 'not authorized', $msg );
 	}

@@ -269,7 +269,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertStringContainsString( 'Participant Data', $html );
 		$this->assertStringContainsString( 'name="user_email"', $html );
 		// Real DocumentFormatter: 11-digit CPF formatted, auth code prefixed.
-		$this->assertStringContainsString( '123.456.789-00', $html );
+		$this->assertStringContainsString( '518.178.420-80', $html );
 		$this->assertStringContainsString( 'C-AUTH123', $html );
 		// Dynamic fields (label fallback to key; protected auth_code field).
 		$this->assertStringContainsString( 'name="data[nome_completo]"', $html );

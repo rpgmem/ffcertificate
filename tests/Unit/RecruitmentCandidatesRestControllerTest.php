@@ -317,7 +317,7 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$this->repoMock->shouldReceive( 'get_by_cpf_hash' )->andReturn( $row );
 
 		$response = $this->controller->list_candidates(
-			$this->make_request( array( 'cpf' => '123.456.789-01' ) )
+			$this->make_request( array( 'cpf' => '518.178.420-80' ) )
 		);
 
 		$this->assertSame( 200, $response->get_status() );
@@ -450,8 +450,8 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 			$this->make_request(
 				array(
 					'id'    => 5,
-					'cpf'   => '123.456.789-01',
-					'rf'    => '76.543-21',
+					'cpf'   => '518.178.420-80',
+					'rf'    => '51.817-80',
 					'email' => '  Jane@Example.COM ',
 				)
 			)
@@ -599,7 +599,7 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$enc->shouldReceive( 'decrypt' )->andReturn( '51817842080' );
 
 		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$df->shouldReceive( 'format_cpf' )->with( '51817842080' )->andReturn( '123.456.789-01' );
+		$df->shouldReceive( 'format_cpf' )->with( '51817842080' )->andReturn( '518.178.420-80' );
 
 		$logger = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentActivityLogger' );
 		$logger->shouldReceive( 'pii_revealed' )->once()->with( 5, 'cpf' );
@@ -610,7 +610,7 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 
 		$this->assertNotInstanceOf( \WP_Error::class, $response );
 		$this->assertSame( 200, $response->get_status() );
-		$this->assertSame( array( 'field' => 'cpf', 'value' => '123.456.789-01' ), $response->get_data() );
+		$this->assertSame( array( 'field' => 'cpf', 'value' => '518.178.420-80' ), $response->get_data() );
 	}
 
 	public function test_reveal_pii_rf_success_without_audit(): void {
@@ -625,7 +625,7 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$enc->shouldReceive( 'decrypt' )->andReturn( '5181780' );
 
 		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$df->shouldReceive( 'format_rf' )->with( '5181780' )->andReturn( '76.543-21' );
+		$df->shouldReceive( 'format_rf' )->with( '5181780' )->andReturn( '51.817-80' );
 
 		// No logger expectation — should_audit is false.
 		$response = $this->controller->reveal_pii(
@@ -633,7 +633,7 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		);
 
 		$this->assertSame( 200, $response->get_status() );
-		$this->assertSame( array( 'field' => 'rf', 'value' => '76.543-21' ), $response->get_data() );
+		$this->assertSame( array( 'field' => 'rf', 'value' => '51.817-80' ), $response->get_data() );
 	}
 
 	public function test_reveal_pii_email_returns_plain_value(): void {
