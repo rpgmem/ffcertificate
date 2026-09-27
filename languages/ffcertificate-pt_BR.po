@@ -22923,3 +22923,7 @@ msgstr "Nada foi varrido: nenhum store desta instalação guarda um RF ou um CPF
 #: includes/admin/views/identity-resolution-page.php:1904
 msgid "No stored RF or CPF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured one yet — worth looking into on one that has."
 msgstr "Nenhum RF ou CPF armazenado foi encontrado: nenhum dos %s stores varridos tem uma linha com hash e ciphertext ao mesmo tempo, então não havia o que checar. Comum numa instalação que ainda não capturou nenhum — merece investigação numa que já capturou."
+
+#: includes/admin/views/identity-resolution-page.php:898
+msgid "Work the corrections first. A number that fails its own check digit cannot be anyone's, so it is not evidence that two accounts belong to one person — correcting it can make a finding further down disappear rather than be resolved."
+msgstr "Trabalhe as correções primeiro. Um número que não passa no próprio dígito verificador não pode ser de ninguém, então não é evidência de que duas contas pertencem à mesma pessoa — corrigi-lo pode fazer um achado mais abaixo desaparecer em vez de ser resolvido."
