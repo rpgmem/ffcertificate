@@ -13,6 +13,7 @@
  * @var array<int, array<string, mixed>> $ffc_identity_findings Findings from the check-digit scan.
  * @var array{type: string, text: string, code?: string, subject?: string}|false $ffc_identity_outcome Outcome of the last write, if any; a refusal carries its code and the finding it named.
  * @var array<string, array{stores: int, examined: int, unreadable: int}> $ffc_identity_coverage What each scan read, per identifier column.
+ * @var bool                                                              $ffc_identity_rf_gate  Whether the submission form requires the RF check digit.
  * @var array<int, string>                                       $ffc_identity_capped   Checks that returned a full page.
  * @var int                                                      $ffc_identity_taken_at When the list was taken (unix).
  * @var bool                                                     $ffc_identity_may_split Whether the operator may open an account.
@@ -613,6 +614,34 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				'unreadable' => 0,
 			),
 		);
+	}
+
+	// THE EMPTY-QUEUE BRANCHES NEED ONE READING ACROSS BOTH COLUMNS, AND THEY
+	// WERE SILENTLY READING A LOOP LEFTOVER (#1500, fixing #1499).
+	//
+	// Those branches were written when coverage was one flat record, and #1499
+	// moved the three counters inside the per-column loop below without moving
+	// them. After the loop they hold whichever column ran LAST -- CPF -- so an
+	// install where RF read 3,014 values and CPF read 12,705 reported 12,705 as
+	// the whole reading and said "RF" about it. No test caught it because the
+	// fixtures supply one column, and with one column the leftover happens to be
+	// the right answer: the same trap as a test exercising the path that already
+	// works.
+	//
+	// `stores` is a MAX and the other two are SUMS, which is not an oversight.
+	// The same three tables are probed per column, so adding them would claim
+	// six; but "something was scanned" is true if ANY column found a store.
+	// Values examined and values unread are per value, so they add.
+	$ffc_identity_all = array(
+		'stores'     => 0,
+		'examined'   => 0,
+		'unreadable' => 0,
+	);
+
+	foreach ( $ffc_identity_coverage as $ffc_identity_read ) {
+		$ffc_identity_all['stores']      = max( $ffc_identity_all['stores'], (int) ( $ffc_identity_read['stores'] ?? 0 ) );
+		$ffc_identity_all['examined']   += (int) ( $ffc_identity_read['examined'] ?? 0 );
+		$ffc_identity_all['unreadable'] += (int) ( $ffc_identity_read['unreadable'] ?? 0 );
 	}
 
 	foreach ( $ffc_identity_coverage as $ffc_identity_column => $ffc_identity_read ) :
@@ -1778,8 +1807,42 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		$ffc_identity_head(
 			$ffc_identity_panel,
 			$ffc_identity_tier_label( IdentityQueue::TIER_ISOLATED ),
-			__( 'A stored RF whose own check digit does not match, and which no account-side finding above explains: somebody mistyped once on their only row, or the row belongs to a candidacy that carries no account until promotion. The correct value comes from HR.', 'ffcertificate' )
+			__( 'A stored RF or CPF whose own check digit does not match, and which no account-side finding above explains: somebody mistyped once on their only row, or the row belongs to a candidacy that carries no account until promotion. The correct value comes from HR.', 'ffcertificate' )
 		);
+
+		// THE TAP IS STILL RUNNING, AND THIS PANEL NEVER SAID SO (#1500).
+		//
+		// The queue and the submission form disagree about what a valid RF is.
+		// `IdentityRepair::well_formed()` is `validate_rf() &&
+		// rf_check_digit_matches()`, so the `&&` makes this panel ALWAYS require
+		// the digit. The form judges by `validate_rf()` alone, which requires it
+		// only when `ffc_validate_rf_check_digit` is on -- off by default, and
+		// the form's own refusal then reads "Invalid RF. Must contain only
+		// numbers."
+		//
+		// So an operator can work this panel to zero and watch it refill, with
+		// nothing on the screen explaining why. The sentence is the cheapest
+		// thing that stops work undoing itself.
+		//
+		// THE TWO ARE NOT MEANT TO AGREE, and the fix is never to loosen this
+		// panel. It judges values ALREADY STORED and a number that cannot be
+		// anyone's is worth reporting whatever the intake policy is; the form
+		// applies an administrator's policy about what to admit. The setting
+		// exists so an institution whose RF scheme carries no check digit can
+		// still use the plugin.
+		//
+		// MEASURED, NOT WARNED GENERICALLY: silent when the setting is on,
+		// because then the sentence would be false -- a notice that renders
+		// unconditionally is the same defect as a strip that always reads clean.
+		if ( ! $ffc_identity_rf_gate ) {
+			wp_admin_notice(
+				esc_html__( 'New wrong RFs can still arrive: the submission form currently accepts any seven digits, because the RF check-digit requirement is off. Correcting the values below does not close that door — Settings → General turns it on. It does not affect CPF, which is always checked on submission.', 'ffcertificate' ),
+				array(
+					'type'               => 'warning',
+					'additional_classes' => array( 'inline' ),
+				)
+			);
+		}
 	}
 	?>
 
@@ -1795,24 +1858,24 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		// Read once, above, where the strip states them: three names for one
 		// set of numbers is how a screen comes to disagree with itself.
 		?>
-		<?php if ( 0 === $ffc_identity_stores ) : ?>
+		<?php if ( 0 === $ffc_identity_all['stores'] ) : ?>
 			<?php
 			wp_admin_notice(
-				esc_html__( 'Nothing was scanned: no store on this install carries an RF in a form this check can read, which needs the hash, the ciphertext and a row id on the same table. This is not a clean result.', 'ffcertificate' ),
+				esc_html__( 'Nothing was scanned: no store on this install carries an RF or a CPF in a form this check can read, which needs the hash, the ciphertext and a row id on the same table. This is not a clean result.', 'ffcertificate' ),
 				array(
 					'type'               => 'warning',
 					'additional_classes' => array( 'inline' ),
 				)
 			);
 			?>
-		<?php elseif ( $ffc_identity_examined > 0 && $ffc_identity_examined === $ffc_identity_unreadable ) : ?>
+		<?php elseif ( $ffc_identity_all['examined'] > 0 && $ffc_identity_all['examined'] === $ffc_identity_all['unreadable'] ) : ?>
 			<?php
 			wp_admin_notice(
 				esc_html(
 					sprintf(
 						/* translators: %s: how many distinct stored values were found. */
 						__( 'Found %s stored values and could not read any of them, so nothing was checked. That is what an encryption key which does not match this data looks like — this is not a clean result.', 'ffcertificate' ),
-						number_format_i18n( $ffc_identity_examined )
+						number_format_i18n( $ffc_identity_all['examined'] )
 					)
 				),
 				array(
@@ -1821,7 +1884,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				)
 			);
 			?>
-		<?php elseif ( 0 === $ffc_identity_examined ) : ?>
+		<?php elseif ( 0 === $ffc_identity_all['examined'] ) : ?>
 			<?php
 			// FOUR STATES, NOT THREE. The first pass at this fixed the two
 			// obvious unread cases and left THIS one falling into the
@@ -1838,8 +1901,8 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				esc_html(
 					sprintf(
 						/* translators: %s: how many stores were scanned. */
-						__( 'No stored RF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured an RF yet — worth looking into on one that has.', 'ffcertificate' ),
-						number_format_i18n( $ffc_identity_stores )
+						__( 'No stored RF or CPF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured one yet — worth looking into on one that has.', 'ffcertificate' ),
+						number_format_i18n( $ffc_identity_all['stores'] )
 					)
 				),
 				array(
@@ -1854,8 +1917,8 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				printf(
 					/* translators: 1: values checked, 2: values that could not be read. */
 					esc_html__( 'Nothing to resolve: %1$s stored values checked and every one satisfies its check digit. %2$s could not be read and were not checked.', 'ffcertificate' ),
-					esc_html( number_format_i18n( $ffc_identity_examined ) ),
-					esc_html( number_format_i18n( $ffc_identity_unreadable ) )
+					esc_html( number_format_i18n( $ffc_identity_all['examined'] ) ),
+					esc_html( number_format_i18n( $ffc_identity_all['unreadable'] ) )
 				);
 				?>
 			</p>

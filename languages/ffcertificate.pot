@@ -22073,19 +22073,10 @@ msgstr ""
 msgid "Stored RF Corrected"
 msgstr ""
 
-msgid "Nothing was scanned: no store on this install carries an RF in a form this check can read, which needs the hash, the ciphertext and a row id on the same table. This is not a clean result."
-msgstr ""
-
 msgid "Found %s stored values and could not read any of them, so nothing was checked. That is what an encryption key which does not match this data looks like — this is not a clean result."
 msgstr ""
 
 msgid "Nothing to resolve: %1$s stored values checked and every one satisfies its check digit. %2$s could not be read and were not checked."
-msgstr ""
-
-msgid "No stored RF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured an RF yet — worth looking into on one that has."
-msgstr ""
-
-msgid "A stored RF whose own check digit does not match, and which no account-side finding above explains: somebody mistyped once on their only row, or the row belongs to a candidacy that carries no account until promotion. The correct value comes from HR."
 msgstr ""
 
 msgid "Accounts and stored numbers that do not agree with each other, sorted by how much of the answer is already known. The check digits are what sort them: they can say a number is wrong, and never what the right one is. Identifiers are shown as a hash prefix — the values are decrypted in memory to be checked and none of them leaves the scan."
@@ -22823,4 +22814,21 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:992
 msgid "Stored RF or CPF whose check digit does not match"
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:1810
+msgid "A stored RF or CPF whose own check digit does not match, and which no account-side finding above explains: somebody mistyped once on their only row, or the row belongs to a candidacy that carries no account until promotion. The correct value comes from HR."
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:1839
+msgid "New wrong RFs can still arrive: the submission form currently accepts any seven digits, because the RF check-digit requirement is off. Correcting the values below does not close that door — Settings → General turns it on. It does not affect CPF, which is always checked on submission."
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:1864
+msgid "Nothing was scanned: no store on this install carries an RF or a CPF in a form this check can read, which needs the hash, the ciphertext and a row id on the same table. This is not a clean result."
+msgstr ""
+
+#. translators: %s: how many stores were scanned.
+#: includes/admin/views/identity-resolution-page.php:1904
+msgid "No stored RF or CPF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured one yet — worth looking into on one that has."
 msgstr ""
