@@ -111,15 +111,20 @@ class AdminUserColumns {
 	/**
 	 * Render the login-as control on another user's profile screen.
 	 *
+	 * The parameter is typed, with no defensive check behind it. Core fires
+	 * `do_action( 'edit_user_profile', $profile_user )` with a `WP_User` and
+	 * nothing sits between, so a guard here defends against an input that
+	 * cannot arrive -- PHPStan said so in three ways at once, and it was right:
+	 * `is_object()` on a declared `WP_User` is always true, `isset()` on its
+	 * non-nullable `int $ID` says nothing, and the `||` of the two can never be
+	 * false. A test asserting how it survives a `null` was rigour in
+	 * appearance only.
+	 *
 	 * @since 6.32.0
 	 * @param \WP_User $profile_user The user being edited.
 	 * @return void
 	 */
-	public static function render_profile_login_as( $profile_user ): void {
-		if ( ! is_object( $profile_user ) || ! isset( $profile_user->ID ) ) {
-			return;
-		}
-
+	public static function render_profile_login_as( \WP_User $profile_user ): void {
 		$button = self::login_as_button( (int) $profile_user->ID );
 
 		if ( '' === $button ) {

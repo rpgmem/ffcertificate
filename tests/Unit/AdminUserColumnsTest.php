@@ -301,7 +301,7 @@ class AdminUserColumnsTest extends TestCase {
 
 	public function test_profile_login_as_renders_the_same_control(): void {
 		ob_start();
-		AdminUserColumns::render_profile_login_as( (object) array( 'ID' => 42 ) );
+		AdminUserColumns::render_profile_login_as( new \WP_User( 42 ) );
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'ffc-view-as-user', $html );
@@ -314,25 +314,8 @@ class AdminUserColumnsTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( false );
 
 		ob_start();
-		AdminUserColumns::render_profile_login_as( (object) array( 'ID' => 42 ) );
+		AdminUserColumns::render_profile_login_as( new \WP_User( 42 ) );
 
-		$this->assertSame( '', (string) ob_get_clean() );
-	}
-
-	/**
-	 * A malformed argument renders nothing rather than warning.
-	 *
-	 * `edit_user_profile` passes a `WP_User`, but a filter in between can pass
-	 * anything, and a notice printed into the profile screen is worse than an
-	 * absent button.
-	 */
-	public function test_profile_login_as_ignores_a_non_user_argument(): void {
-		ob_start();
-		AdminUserColumns::render_profile_login_as( (object) array( 'not_an_id' => 1 ) );
-		$this->assertSame( '', (string) ob_get_clean() );
-
-		ob_start();
-		AdminUserColumns::render_profile_login_as( null );
 		$this->assertSame( '', (string) ob_get_clean() );
 	}
 
