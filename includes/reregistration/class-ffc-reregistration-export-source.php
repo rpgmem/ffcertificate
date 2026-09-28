@@ -349,33 +349,26 @@ class ReregistrationExportSource implements BatchedExportSourceInterface {
 	}
 
 	/**
-	 * Decrypt sensitive values in place.
+	 * Decrypt the sensitive values of a row, through the shared reader.
 	 *
+	 * THIS WAS A PRIVATE COPY of `RecordGenerator::decrypt_field_values()`,
+	 * identical line for line, and #1509's fix had to land in both or in
+	 * neither. It delegates now, for the reason every shared reader in this
+	 * project is shared: two implementations of one question drift, and the one
+	 * that drifts silently is the one nobody is looking at.
+	 *
+	 * The method stays rather than being inlined at its call site because its
+	 * name is what the CSV code reads, and `decrypt_sensitive` says what the
+	 * export wants; `decrypt_field_values` says what the reader does.
+	 *
+	 * @since 6.30.1 Delegates instead of duplicating.
 	 * @param array<int, object>   $fields Field definitions.
-	 * @param array<string, mixed> $values field_key => value map.
-	 * @phpstan-param list<CustomFieldRow> $fields
-	 * @return array<string, mixed> Decrypted map.
+	 * @param array<string, mixed> $values field_key => persisted value.
+	 * @phpstan-param list<\FreeFormCertificate\Reregistration\CustomFieldRow> $fields
+	 * @return array<string, mixed>
 	 */
 	private function decrypt_sensitive( array $fields, array $values ): array {
-		if ( ! class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
-			return $values;
-		}
-
-		foreach ( $fields as $field ) {
-			if ( empty( $field->is_sensitive ) ) {
-				continue;
-			}
-			$key = (string) $field->field_key;
-			if ( ! isset( $values[ $key ] ) || '' === $values[ $key ] || ! is_string( $values[ $key ] ) ) {
-				continue;
-			}
-			$plain = \FreeFormCertificate\Core\Encryption::decrypt( $values[ $key ] );
-			if ( null !== $plain ) {
-				$values[ $key ] = $plain;
-			}
-		}
-
-		return $values;
+		return RecordGenerator::decrypt_field_values( $fields, $values );
 	}
 
 	/**

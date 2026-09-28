@@ -129,8 +129,79 @@ class CustomFieldWriter {
 	}
 
 	/**
+	 * Drop an `is_sensitive` demotion from an update payload (#1509).
+	 *
+	 * Reads the STORED value rather than trusting the caller: a payload that
+	 * sets the flag to what it already is asks for nothing and must not be
+	 * reported as a refusal.
+	 *
+	 * @param int                  $field_id Field ID.
+	 * @param array<string, mixed> $data     Update payload.
+	 * @return array<string, mixed> The payload, without a demotion.
+	 */
+	private static function keep_sensitive_once_set( int $field_id, array $data ): array {
+		if ( ! array_key_exists( 'is_sensitive', $data ) ) {
+			return $data;
+		}
+
+		// Only a demotion is refused; setting it, or re-setting it, is fine.
+		if ( ! empty( $data['is_sensitive'] ) ) {
+			return $data;
+		}
+
+		$current = CustomFieldReader::get_by_id( $field_id );
+
+		if ( ! $current || empty( $current->is_sensitive ) ) {
+			// It was already off. Nothing is being demoted.
+			return $data;
+		}
+
+		unset( $data['is_sensitive'] );
+
+		if ( class_exists( '\\FreeFormCertificate\\Core\\ActivityLog' ) ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'custom_field_sensitive_demotion_refused',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
+				array(
+					'field_id'  => $field_id,
+					'field_key' => (string) ( $current->field_key ?? '' ),
+					'reason'    => 'Clearing is_sensitive would abandon ciphertext already stored under this field.',
+				)
+			);
+		}
+
+		return $data;
+	}
+
+	/**
 	 * Update a custom field.
 	 *
+	 * `is_sensitive` IS A ONE-WAY DOOR, and the demotion is dropped here (#1509).
+	 *
+	 * Turning the flag ON is legitimate and must stay possible: it is how an
+	 * administrator starts protecting a field, and the values already stored in
+	 * plaintext are the reader's problem, not a reason to refuse.
+	 *
+	 * Turning it OFF is not the inverse of that. It does not un-encrypt anything
+	 * — it abandons the ciphertext already written, which then reaches a CSV
+	 * export, a generated record and the public verification page as if it were
+	 * the person's CPF. The setting would be promising an operation the system
+	 * cannot perform, so it is not offered.
+	 *
+	 * THE DEMOTION IS DROPPED, NOT THE WHOLE SAVE, and that is a deliberate
+	 * choice between two imperfect options. Refusing the update would discard
+	 * the label or ordering the operator edited in the same request, with no
+	 * message to say why. Dropping just this key applies everything else and the
+	 * screen re-renders with the box still ticked, which is the feedback. It is
+	 * recorded in the activity log so the refusal is auditable rather than
+	 * merely invisible.
+	 *
+	 * THE READER STILL DOES NOT TRUST THE FLAG, and that is not redundancy: this
+	 * prevents new occurrences, while {@see RecordGenerator::decrypt_field_values()}
+	 * heals the installs that already demoted a field before this existed. A
+	 * write-time guard cannot reach state that is already wrong.
+	 *
+	 * @since 6.30.1 Refuses to clear `is_sensitive`.
 	 * @param int                  $field_id Field ID.
 	 * @param array<string, mixed> $data     Update data.
 	 * @return bool
@@ -144,6 +215,15 @@ class CustomFieldWriter {
 
 		if ( empty( $data ) ) {
 			return false;
+		}
+
+		$data = self::keep_sensitive_once_set( $field_id, $data );
+
+		if ( empty( $data ) ) {
+			// The demotion was the only thing asked for, so there is nothing
+			// left to write. Reported as a success: the field is in the state
+			// the caller wanted for every key it is allowed to change.
+			return true;
 		}
 
 		$update_data = array();

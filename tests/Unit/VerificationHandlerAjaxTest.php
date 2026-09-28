@@ -354,8 +354,13 @@ class VerificationHandlerAjaxTest extends TestCase {
 		$this->rate_limiter_allowed();
 
 		Mockery::mock( 'overload:\FreeFormCertificate\Generators\PdfGenerator' );
-		Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\RecordGenerator' )
-			->shouldReceive( 'generate_record_data' )->andReturn( array( 'filename' => 'record.pdf' ) );
+		$record_generator = Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\RecordGenerator' );
+		$record_generator->shouldReceive( 'generate_record_data' )->andReturn( array( 'filename' => 'record.pdf' ) );
+		// #1509: the handler hands its field map to the shared reader rather than
+		// running its own decryption loop. Pass-through here -- this test is about
+		// the AJAX response, not about decryption.
+		$record_generator->shouldReceive( 'decrypt_field_values' )
+			->andReturnUsing( static fn( array $fields, array $values ): array => $values );
 		$this->renderer->shouldReceive( 'format_reregistration_verification_response' )
 			->andReturn( '<div>rr-ajax</div>' );
 

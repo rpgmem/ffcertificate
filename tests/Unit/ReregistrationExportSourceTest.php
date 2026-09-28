@@ -138,8 +138,11 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 	}
 
 	public function test_format_row_decrypts_sensitive(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' )
-			->shouldReceive( 'decrypt' )->with( 'CIPHER' )->andReturn( '123.456.789-00' );
+		// The reader asks the VALUE whether it is an envelope before attempting
+		// (#1509), so the double answers that too.
+		$enc = Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' );
+		$enc->shouldReceive( 'looks_like_envelope' )->with( 'CIPHER' )->andReturn( true );
+		$enc->shouldReceive( 'decrypt' )->with( 'CIPHER' )->andReturn( '123.456.789-00' );
 
 		$context = array( 'fields' => array( $this->field( 'cpf', 'CPF', 'text', 1 ) ) );
 		$row         = $this->sample_row();
@@ -147,6 +150,32 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 
 		$result = $this->source->format_row( $row, $context );
 		$this->assertSame( '123.456.789-00', $result[6] );
+	}
+
+	/**
+	 * #1509 through the export: the flag is off and the stored value is an
+	 * envelope, which is what an administrator unticking the box leaves behind.
+	 *
+	 * Before the reader decided from the value, this row exported the CIPHERTEXT
+	 * into the CSV column where the CPF belongs -- no failure, no log line.
+	 */
+	public function test_format_row_decrypts_even_when_the_field_is_no_longer_sensitive(): void {
+		$enc = Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' );
+		$enc->shouldReceive( 'looks_like_envelope' )->with( 'v2:ENVELOPE' )->andReturn( true );
+		$enc->shouldReceive( 'decrypt' )->with( 'v2:ENVELOPE' )->andReturn( '123.456.789-00' );
+
+		// The field definition says NOT sensitive (last argument 0).
+		$context     = array( 'fields' => array( $this->field( 'cpf', 'CPF', 'text', 0 ) ) );
+		$row         = $this->sample_row();
+		$row['data'] = '{"fields":{"cpf":"v2:ENVELOPE"}}';
+
+		$result = $this->source->format_row( $row, $context );
+
+		$this->assertSame(
+			'123.456.789-00',
+			$result[6],
+			'A CSV must never carry the ciphertext in the CPF column because a checkbox was unticked.'
+		);
 	}
 
 	public function test_format_row_formats_instant_when_present(): void {
