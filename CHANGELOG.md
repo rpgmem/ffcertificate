@@ -10,7 +10,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - The submission edit screen can link an already-linked submission to a different user, without unlinking first. The search block used to render only when nothing was linked, so moving a submission to the right account meant four steps — and the first of them was the one that did not work (#1519)
-- `user-edit.php` carries the **Login as User** control, next to the profile an operator has just read. One builder makes it for both surfaces, and **both are now gated on `ffc_view_as_user`**: the users-list column rendered the button for anybody who could reach that screen, while the link itself refused on click, so an operator without the capability was shown a control that could not work (#1519)
+- `user-edit.php` carries the **Login as User** control, next to the profile an operator has just read. One builder makes it for both surfaces, and **both are now gated on `ffc_view_as_user`**: the users-list column rendered the button for anybody who could reach that screen, while the link itself refused on click, so an operator without the capability was shown a control that could not work (#1520)
 
 ### Fixed
 
