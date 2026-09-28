@@ -7,8 +7,15 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- The submission edit screen can link an already-linked submission to a different user, without unlinking first. The search block used to render only when nothing was linked, so moving a submission to the right account meant four steps — and the first of them was the one that did not work (#1519)
+- `user-edit.php` carries the **Login as User** control, next to the profile an operator has just read. One builder makes it for both surfaces, and **both are now gated on `ffc_view_as_user`**: the users-list column rendered the button for anybody who could reach that screen, while the link itself refused on click, so an operator without the capability was shown a control that could not work (#1520)
+
 ### Fixed
 
+- **Unlinking a user from a submission did nothing, silently** (#1519). The marker `handle_save()` gates on was the submit button's `name`, and a button contributes its name only when the browser activates it — the unlink control submits the form from JavaScript, so the POST never carried it and the handler returned on its first line. The marker is now a field of the form, which any submit path carries. Every test of that handler set the key by hand, which is why none could see it
+- Saving a submission that had no user linked wrote a `user_unlinked` activity entry and bumped `edited_at`/`edited_by` on every save. The link field defaulted to "unlink" rather than "change nothing" when nothing was linked, so an ordinary save always asked for a link that was never there to remove (#1519)
 - Two claims in `CLAUDE.md` restated a value another file owns and had gone stale: the backfill step said the release heading takes a 7-character short SHA (it takes whatever `git rev-parse --short` returns, eight at this repository's size), and the schema-agreement guard was described as covering three multiply-declared tables when the measurement is two. Both now state the invariant, and the table count moved to the guard's docblock with the reading written down (#1261)
 
 ## [6.31.0] (2026-09-28) — `bb433ce3`

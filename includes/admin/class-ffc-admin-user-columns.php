@@ -19,6 +19,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Admin;
 
 use FreeFormCertificate\Core\ArrayValue;
+use FreeFormCertificate\Core\Capabilities;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -94,6 +95,56 @@ class AdminUserColumns {
 
 		// Enqueue styles for the column.
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_styles' ) );
+
+		/*
+		 * The same control on `user-edit.php`, where an operator who has just
+		 * read somebody's profile is most likely to want it -- and where the
+		 * identity queue sends them.
+		 *
+		 * `edit_user_profile` only, never `show_user_profile`: that one is your
+		 * OWN profile, and viewing the dashboard as yourself is what visiting
+		 * the dashboard already does.
+		 */
+		add_action( 'edit_user_profile', array( __CLASS__, 'render_profile_login_as' ) );
+	}
+
+	/**
+	 * Render the login-as control on another user's profile screen.
+	 *
+	 * The parameter is typed, with no defensive check behind it. Core fires
+	 * `do_action( 'edit_user_profile', $profile_user )` with a `WP_User` and
+	 * nothing sits between, so a guard here defends against an input that
+	 * cannot arrive -- PHPStan said so in three ways at once, and it was right:
+	 * `is_object()` on a declared `WP_User` is always true, `isset()` on its
+	 * non-nullable `int $ID` says nothing, and the `||` of the two can never be
+	 * false. A test asserting how it survives a `null` was rigour in
+	 * appearance only.
+	 *
+	 * @since 6.32.0
+	 * @param \WP_User $profile_user The user being edited.
+	 * @return void
+	 */
+	public static function render_profile_login_as( \WP_User $profile_user ): void {
+		$button = self::login_as_button( (int) $profile_user->ID );
+
+		if ( '' === $button ) {
+			return;
+		}
+
+		?>
+		<h2><?php esc_html_e( 'Free Form Certificate', 'ffcertificate' ); ?></h2>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th><?php esc_html_e( 'View as this user', 'ffcertificate' ); ?></th>
+				<td>
+					<?php echo $button; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built by login_as_button(), which escapes the url, the title and the label at the point each is written. ?>
+					<p class="description">
+						<?php esc_html_e( 'Opens the dashboard as this user, in a new tab. Read-only impersonation; nothing is submitted on their behalf.', 'ffcertificate' ); ?>
+					</p>
+				</td>
+			</tr>
+		</table>
+		<?php
 	}
 
 	/**
@@ -158,7 +209,7 @@ class AdminUserColumns {
 				return self::render_notices_count( $user_id );
 
 			case 'ffc_user_actions':
-				return self::render_user_actions( $user_id );
+				return self::login_as_button( $user_id );
 
 			default:
 				return $output;
@@ -230,12 +281,30 @@ class AdminUserColumns {
 	}
 
 	/**
-	 * Render user actions (login as user link)
+	 * Build the login-as control for one user, or '' when it must not be shown.
 	 *
+	 * ONE builder, two surfaces: the users-list column and the profile screen.
+	 * A second copy would be a second place to get the nonce name or the
+	 * capability wrong.
+	 *
+	 * **It returns '' when the viewer cannot use it.** The column used to render
+	 * the button for anybody who can reach `users.php`, so an operator without
+	 * `ffc_view_as_user` was shown a control that `DashboardViewMode` then
+	 * refused on click. A button that cannot work is a defect, not a hint.
+	 *
+	 * @since 4.9.0
+	 * @since 6.32.0 Gated on the capability; renamed and made public so the
+	 *               profile screen renders the same control.
 	 * @param int $user_id User ID.
-	 * @return string Column HTML
+	 * @return string Button HTML, or '' when the current user may not view as
+	 *                another user.
 	 */
-	private static function render_user_actions( int $user_id ): string {
+	public static function login_as_button( int $user_id ): string {
+		// The same gate `DashboardViewMode` applies when the link is followed.
+		if ( ! Capabilities::current_user_can_admin_or( 'ffc_view_as_user' ) ) {
+			return '';
+		}
+
 		// Get dashboard URL from User Access Settings (cached per request).
 		if ( null === self::$dashboard_url_cache ) {
 			$user_access_settings      = get_option( 'ffc_user_access_settings', array() );

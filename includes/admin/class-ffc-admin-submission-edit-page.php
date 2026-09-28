@@ -121,6 +121,22 @@ class AdminSubmissionEditPage {
 			<form method="POST" class="ffc-edit-submission-form">
 				<?php wp_nonce_field( 'ffc_edit_submission_nonce', 'ffc_edit_submission_action' ); ?>
 				<input type="hidden" name="submission_id" value="<?php echo esc_attr( $this->sub_array['id'] ); ?>">
+				<?php
+				/*
+				 * The marker `handle_save()` gates on is a FIELD, not the submit
+				 * button's name.
+				 *
+				 * It was the button's `name`, and a submit button contributes its
+				 * name/value only when the browser ACTIVATES it. The unlink
+				 * control calls `form.submit()` instead, which submits with no
+				 * activated button -- so the POST arrived without the marker,
+				 * `handle_save()` returned on its first line, and unlinking a
+				 * user did nothing at all, silently, for as long as the button
+				 * existed. Every test of this handler set the key by hand, which
+				 * is why none of them could see it.
+				 */
+				?>
+				<input type="hidden" name="ffc_save_edit" value="1">
 
 				<table class="form-table ffc-edit-table">
 					<?php
@@ -132,7 +148,7 @@ class AdminSubmissionEditPage {
 				</table>
 
 				<p class="submit">
-					<button type="submit" name="ffc_save_edit" class="button button-primary"><?php esc_html_e( 'Save Changes', 'ffcertificate' ); ?></button>
+					<button type="submit" class="button button-primary"><?php esc_html_e( 'Save Changes', 'ffcertificate' ); ?></button>
 					<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions' ) ); ?>" class="button"><?php esc_html_e( 'Cancel', 'ffcertificate' ); ?></a>
 				</p>
 			</form>
@@ -286,8 +302,27 @@ class AdminSubmissionEditPage {
 			<th><label><?php esc_html_e( 'Linked User', 'ffcertificate' ); ?></label></th>
 			<td>
 				<div class="ffc-user-link-container" data-submission-id="<?php echo esc_attr( $this->sub_array['id'] ); ?>">
+					<?php
+					/*
+					 * ONE field carries the decision, and it has three states:
+					 * `__keep__` (leave the link alone), `''` (unlink) and a
+					 * user id (link or relink). The controls below all mutate
+					 * this one input, which is why it is rendered once here and
+					 * not inside either branch -- two inputs of the same name
+					 * would let the later one silently win in the POST.
+					 *
+					 * It defaults to `__keep__` in BOTH states. When no user was
+					 * linked it used to default to `''`, so every ordinary save
+					 * of an unlinked submission called `update_user_link( id,
+					 * null )`: a pointless write that bumped `edited_at` and
+					 * logged a `user_unlinked` entry against a submission that
+					 * never had a user.
+					 */
+					?>
+					<input type="hidden" name="linked_user_id" id="ffc-selected-user-id" value="__keep__">
+
 					<?php if ( $current_user ) : ?>
-						<!-- User is linked: show info + unlink button -->
+						<!-- User is linked: show info, unlink, and a way to relink. -->
 						<div class="ffc-linked-user-display">
 							<div class="ffc-current-user">
 								<span class="ffc-user-info">
@@ -301,40 +336,54 @@ class AdminSubmissionEditPage {
 								</a>
 							</div>
 							<div class="ffc-unlink-action">
-								<input type="hidden" name="linked_user_id" value="__keep__">
 								<button type="button" class="button button-secondary ffc-unlink-user-btn" data-confirm="<?php esc_attr_e( 'Are you sure you want to unlink this user from the submission?', 'ffcertificate' ); ?>">
 									<?php esc_html_e( 'Unlink User', 'ffcertificate' ); ?>
 								</button>
+								<button type="button" class="button button-secondary ffc-relink-user-btn">
+									<?php esc_html_e( 'Link to Another User', 'ffcertificate' ); ?>
+								</button>
 								<p class="description">
 									<?php esc_html_e( 'Removes the link between this submission and the WordPress user.', 'ffcertificate' ); ?>
+									<?php esc_html_e( 'An unlinked submission has no account, which is the state the identity queue adopts.', 'ffcertificate' ); ?>
+								</p>
+								<p class="description">
+									<?php esc_html_e( 'Choose another user to own this submission. The change is applied when you save.', 'ffcertificate' ); ?>
 								</p>
 							</div>
 						</div>
-					<?php else : ?>
-						<!-- No user linked: show search field -->
-						<div class="ffc-user-search-container">
+					<?php endif; ?>
+
+					<?php
+					/*
+					 * The search block is rendered in BOTH states. With a user
+					 * linked it starts hidden and the relink button reveals it,
+					 * so changing the account no longer means unlinking, saving,
+					 * searching and saving again.
+					 */
+					?>
+					<div class="ffc-user-search-container"<?php echo $current_user ? ' style="display: none;"' : ''; ?>>
+						<?php if ( ! $current_user ) : ?>
 							<p class="ffc-no-user">
 								<em><?php esc_html_e( 'No user linked to this submission.', 'ffcertificate' ); ?></em>
 							</p>
-							<div class="ffc-user-search-form">
-								<input type="hidden" name="linked_user_id" id="ffc-selected-user-id" value="">
-								<input type="text" id="ffc-user-search-input" class="regular-text" placeholder="<?php esc_attr_e( 'Search by name, email, ID or CPF/RF...', 'ffcertificate' ); ?>">
-								<button type="button" class="button ffc-search-user-btn" data-nonce="<?php echo esc_attr( $nonce ); ?>">
-									<?php esc_html_e( 'Search', 'ffcertificate' ); ?>
-								</button>
-								<span class="spinner" id="ffc-search-spinner"></span>
-							</div>
-							<div id="ffc-user-search-results" class="ffc-user-search-results" style="display: none;">
-								<!-- Results will be populated via AJAX -->
-							</div>
-							<div id="ffc-selected-user-preview" class="ffc-selected-user-preview" style="display: none;">
-								<!-- Selected user preview will be shown here -->
-							</div>
-							<p class="description">
-								<?php esc_html_e( 'Search for a WordPress user to link to this submission. The user will see this certificate in their dashboard.', 'ffcertificate' ); ?>
-							</p>
+						<?php endif; ?>
+						<div class="ffc-user-search-form">
+							<input type="text" id="ffc-user-search-input" class="regular-text" placeholder="<?php esc_attr_e( 'Search by name, email, ID or CPF/RF...', 'ffcertificate' ); ?>">
+							<button type="button" class="button ffc-search-user-btn" data-nonce="<?php echo esc_attr( $nonce ); ?>">
+								<?php esc_html_e( 'Search', 'ffcertificate' ); ?>
+							</button>
+							<span class="spinner" id="ffc-search-spinner"></span>
 						</div>
-					<?php endif; ?>
+						<div id="ffc-user-search-results" class="ffc-user-search-results" style="display: none;">
+							<!-- Results will be populated via AJAX -->
+						</div>
+						<div id="ffc-selected-user-preview" class="ffc-selected-user-preview" style="display: none;">
+							<!-- Selected user preview will be shown here -->
+						</div>
+						<p class="description">
+							<?php esc_html_e( 'Search for a WordPress user to link to this submission. The user will see this certificate in their dashboard.', 'ffcertificate' ); ?>
+						</p>
+					</div>
 				</div>
 			</td>
 		</tr>

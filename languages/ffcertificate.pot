@@ -24,6 +24,26 @@ msgstr ""
 msgid " by <strong>%s</strong>"
 msgstr ""
 
+#: includes/admin/class-ffc-admin-submission-edit-page.php:347
+msgid "An unlinked submission has no account, which is the state the identity queue adopts."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:350
+msgid "Choose another user to own this submission. The change is applied when you save."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:343
+msgid "Link to Another User"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-user-columns.php:137
+msgid "Opens the dashboard as this user, in a new tab. Read-only impersonation; nothing is submitted on their behalf."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-user-columns.php:133
+msgid "View as this user"
+msgstr ""
+
 #: includes/settings/views/documentation/email-texts-hub.php:54
 msgid "\"All plugin emails\" directory"
 msgstr ""
