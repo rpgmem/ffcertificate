@@ -15185,6 +15185,10 @@ msgstr "Lembrete de recadastramento"
 msgid "Reregistration reminder: {{reregistration_title}}"
 msgstr "Lembrete de recadastramento: {{reregistration_title}}"
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:285
+msgid "Sensitive Field Demotion Refused"
+msgstr "Rebaixamento de Campo Sensível Recusado"
+
 #: includes/admin/class-ffc-admin-activity-log-page.php:282
 msgid "Reregistration Reminders Sent"
 msgstr "Lembretes de Recadastramento Enviados"
