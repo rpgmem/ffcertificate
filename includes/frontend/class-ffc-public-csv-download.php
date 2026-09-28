@@ -140,7 +140,11 @@ class PublicCsvDownload {
 		);
 
 		// 6.3.3: admin-only audit log export. Logged-in only, no nopriv.
-		add_action( 'admin_post_' . self::EXPORT_LOG_ACTION, array( $this, 'handle_export_log_request' ) );
+		// `accepted_args` 0: this handler's parameter is a typed injection seam,
+		// and `admin_post_*` fires with no arguments -- which core turns into a
+		// literal `''` that `WP_Hook` would pass in, a TypeError under
+		// `strict_types`. Same defect as the recruitment example CSV (#1521).
+		add_action( 'admin_post_' . self::EXPORT_LOG_ACTION, array( $this, 'handle_export_log_request' ), 10, 0 );
 	}
 
 	// ──────────────────────────────────────────────────────────────.

@@ -499,6 +499,22 @@ class PublicCsvDownloadTest extends TestCase {
 		Actions\expectAdded( 'admin_post_ffc_public_csv_download' )->once();
 		Actions\expectAdded( 'admin_post_nopriv_ffc_public_csv_download' )->once();
 
+		/*
+		 * The audit-log export asserts its ARITY, not just that it was hooked.
+		 *
+		 * `admin_post_*` fires with no arguments, so core's `do_action()` appends
+		 * a literal `''` and `WP_Hook` hands it to the callback under the default
+		 * `accepted_args` of 1. This handler's parameter is a typed injection
+		 * seam, so that `''` was a TypeError under `strict_types` and the export
+		 * did nothing at all -- the same defect as the recruitment example CSV
+		 * (#1521). The `0` is the fix; the two assertions above are the weaker
+		 * shape that let it live, and they are honest there because neither of
+		 * those handlers takes a parameter.
+		 */
+		Actions\expectAdded( 'admin_post_' . PublicCsvDownload::EXPORT_LOG_ACTION )
+			->once()
+			->with( array( $this->handler, 'handle_export_log_request' ), 10, 0 );
+
 		$this->handler->register_hooks();
 
 		$this->assertCount( 1, $captured );

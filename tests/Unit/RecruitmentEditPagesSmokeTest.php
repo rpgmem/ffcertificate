@@ -87,7 +87,25 @@ class RecruitmentEditPagesSmokeTest extends TestCase {
 	public function test_notice_edit_page_register_hooks_save_transition_and_csv_handlers(): void {
 		Actions\expectAdded( 'admin_post_ffc_recruitment_save_notice' )->once();
 		Actions\expectAdded( 'admin_post_ffc_recruitment_transition_notice' )->once();
-		Actions\expectAdded( 'admin_post_ffc_recruitment_download_csv_example' )->once();
+
+		/*
+		 * The CSV example asserts its ARITY, not just that it was hooked.
+		 *
+		 * `admin_post_*` fires with no arguments, so core's `do_action()` appends
+		 * a literal `''` and `WP_Hook` hands it to the callback under the default
+		 * `accepted_args` of 1. This handler's parameter is a typed injection
+		 * seam, so that `''` was a TypeError under `strict_types` and the
+		 * download did nothing at all — for as long as the link existed (#1521).
+		 *
+		 * The `0` is the fix. Asserting only that the hook was added is what let
+		 * the defect live: the sibling assertions above are that weaker shape,
+		 * and they are honest there because neither of those handlers takes a
+		 * parameter. `ZeroArgHookArityTest` enforces the rule across the tree;
+		 * this pins it where somebody editing this file will see it.
+		 */
+		Actions\expectAdded( 'admin_post_ffc_recruitment_download_csv_example' )
+			->once()
+			->with( array( RecruitmentNoticeEditPage::class, 'handle_download_csv_example' ), 10, 0 );
 
 		RecruitmentNoticeEditPage::register();
 	}

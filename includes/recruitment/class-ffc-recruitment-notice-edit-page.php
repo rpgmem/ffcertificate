@@ -64,7 +64,22 @@ final class RecruitmentNoticeEditPage {
 	public static function register(): void {
 		add_action( 'admin_post_ffc_recruitment_save_notice', array( self::class, 'handle_save' ), 10 );
 		add_action( 'admin_post_ffc_recruitment_transition_notice', array( self::class, 'handle_transition' ), 10 );
-		add_action( 'admin_post_ffc_recruitment_download_csv_example', array( self::class, 'handle_download_csv_example' ), 10 );
+
+		/*
+		 * `accepted_args` is 0, and that zero is load-bearing.
+		 *
+		 * `admin-post.php` fires `do_action( "admin_post_{$action}" )` with no
+		 * arguments, and core's `do_action()` then appends an empty string --
+		 * `if ( empty( $arg ) ) { $arg[] = ''; }`. With `add_action`'s default of
+		 * 1 accepted argument, `WP_Hook` hands that `''` to the callback. This
+		 * handler's parameter is a typed injection seam, so under
+		 * `strict_types=1` the `''` is a TypeError and the download died before
+		 * emitting a byte: the browser saw nothing happen.
+		 *
+		 * `0` makes `WP_Hook` take its `call_user_func( $callback )` branch, with
+		 * no arguments at all -- which is also the truth about this hook.
+		 */
+		add_action( 'admin_post_ffc_recruitment_download_csv_example', array( self::class, 'handle_download_csv_example' ), 10, 0 );
 	}
 
 	/**
