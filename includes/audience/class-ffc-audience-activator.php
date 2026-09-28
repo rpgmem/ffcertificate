@@ -185,6 +185,7 @@ class AudienceActivator {
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             schedule_id bigint(20) unsigned NOT NULL,
             name varchar(255) NOT NULL,
+            color varchar(7) DEFAULT '#3788d8' COMMENT 'Hex color for visual identification',
             description text DEFAULT NULL,
             working_hours longtext DEFAULT NULL COMMENT 'JSON: {mon: {start, end, closed}, ...}',
             status enum('active','inactive') DEFAULT 'active',

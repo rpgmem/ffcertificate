@@ -230,13 +230,25 @@ class SchemaWrittenColumnTest extends TestCase {
 		foreach ( $scan['strong'] as $site ) {
 			foreach ( $site['columns'] as $column ) {
 				// The incremental declarers are read per FILE rather than per
-				// table -- `add_column_if_missing( $table, … )` carries the same
-				// variable this scan already resolves for the write, and
-				// attributing it would need that resolution a second time. So a
-				// column declared incrementally anywhere counts, which is the one
-				// place direction A borrows B's reading. Stated rather than
-				// hidden: it is why a column moved between two tables' helpers
-				// would not be caught here.
+				// table, so a column declared incrementally ANYWHERE counts --
+				// the one place direction A borrows B's reading, and why a column
+				// moved between two tables' helpers is not caught here.
+				//
+				// THE REASON THIS USED TO GIVE IS NO LONGER TRUE, and saying so is
+				// cheaper than letting a reader trust it (#1506). It read *"it
+				// would need that resolution a second time"*; the resolution now
+				// exists and is shared -- `SchemaColumns::incremental_by_table()`,
+				// built on the same `ffc_resolve_table_variable()` this scan uses.
+				//
+				// SO WHY THE HATCH STAYS, MEASURED: swapping it for the per-table
+				// lookup fails on exactly three columns, and all three are the
+				// #249 staging columns (`submission_date_ts`, `submitted_at_ts`,
+				// `called_at_ts`). They are WRITTEN by the migration that fills
+				// them and must never appear in a `CREATE`, so the per-table
+				// reader excludes them by design while the flat one absorbs them.
+				// Closing the hatch therefore means deciding how staging is
+				// attributed, which is a change to what that reader means -- not a
+				// two-line swap. Tracked in #1506.
 				if ( isset( $by_table[ $site['table'] ][ $column ] ) || isset( $increments[ $column ] ) ) {
 					continue;
 				}

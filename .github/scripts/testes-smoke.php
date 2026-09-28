@@ -251,10 +251,19 @@ $failed = ! ffc_smoke_check(
 //    Present but UNDECLARED splits, because #1458 measured both halves on one
 //    table. A column that is `NOT NULL` with no default breaks every insert
 //    that omits it the day a host enables `STRICT_TRANS_TABLES` -- that is a
-//    hazard and fails. A nullable or defaulted one is dead weight: real debt,
-//    worth seeing, and not worth reddening a deploy for. Failing on it is how
-//    an alarm becomes noise people learn to skip, which this file already
-//    argues about its own timeout and #1311 measured over twelve unread deploys.
+//    hazard and fails. A nullable or defaulted one warns: worth seeing, and not
+//    worth reddening a deploy for. Failing on it is how an alarm becomes noise
+//    people learn to skip, which this file already argues about its own timeout
+//    and #1311 measured over twelve unread deploys.
+//
+//    `UNDECLARED` HERE MEANS `IN NO CREATE TABLE`, WHICH IS NARROWER THAN THE
+//    PROJECT'S SENSE OF THE WORD, and the first real run is what made that
+//    worth stating (#1506). A column delivered by `add_column_if_missing()` in
+//    a healing chain is declared as far as every other schema guard is
+//    concerned, and is reported here -- correctly, because a statement that
+//    does not account for its own table's columns is the fragile shape #1091
+//    and #1444 both came out of. The narrowness is the point: it is the one
+//    question no other guard asks, and the reason it saw what they did not.
 $declared = ffc_schema_declared_columns( $plugin_dir . '/includes' );
 
 // A SCAN THAT READ NOTHING MUST NOT RENDER AS CLEAN. Each of these faults makes
@@ -346,12 +355,20 @@ $failed = ! ffc_smoke_check(
 		: count( $drift_hazard ) . ' would break an omitting insert under STRICT_TRANS_TABLES: ' . implode( ', ', $drift_hazard )
 ) || $failed;
 
+// THE WORDING IS LOAD-BEARING, and the first real run is why (#1506). This
+// line originally read `legacy, nullable or defaulted`, and the one finding it
+// produced was not legacy at all: `ffc_audience_environments.color` is
+// delivered by `add_column_if_missing()` in the healing chain, so it IS
+// declared by the project's own definition -- just not by the statement that
+// builds the table. A message that says `legacy` sends the reader looking for
+// something to delete when the fix is to declare it. Both readings are named
+// now, because this check cannot tell them apart: it reads `CREATE TABLE` only.
 ffc_smoke_check(
 	array() === $drift_inert,
-	'no undeclared inert column',
+	'inert column in no CREATE TABLE',
 	array() === $drift_inert
 		? 'none'
-		: count( $drift_inert ) . ' legacy, nullable or defaulted: ' . implode( ', ', $drift_inert ),
+		: count( $drift_inert ) . ' nullable or defaulted, declared by a migration only or by nothing: ' . implode( ', ', $drift_inert ),
 	false
 );
 
