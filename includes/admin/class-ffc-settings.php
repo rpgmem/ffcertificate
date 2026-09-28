@@ -622,7 +622,7 @@ class Settings {
             // phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			?>
 			
-			<div class="ffc-settings-tabs" data-ffc-settings-tabs>
+			<div class="ffc-settings-tabs">
 				<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">
 					<?php
 					// Grouped nav (#951): tabs render under domain subheadings,

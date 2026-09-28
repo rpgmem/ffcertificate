@@ -108,7 +108,7 @@ class AudienceAdminSettings {
 		<div class="wrap ffc-admin-page ffc-page-scheduling-settings ffc-settings-wrap">
 			<h1><?php esc_html_e( 'Scheduling Settings', 'ffcertificate' ); ?></h1>
 
-			<div class="ffc-settings-tabs" data-ffc-settings-tabs>
+			<div class="ffc-settings-tabs">
 				<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">
 					<?php foreach ( $tabs as $tab_id => $tab ) : ?>
 						<?php $is_active = ( $active_tab === $tab_id ); ?>

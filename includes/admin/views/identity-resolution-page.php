@@ -1105,8 +1105,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							data-ffc-a="<?php echo esc_attr( (string) $ffc_identity_who[0] ); ?>"
 							data-ffc-b="<?php echo esc_attr( (string) $ffc_identity_who[1] ); ?>"
 							data-ffc-region="ffc-merge-preview-<?php echo esc_attr( $ffc_identity_id ); ?>"
-							data-ffc-ack="ffc-merge-ack-<?php echo esc_attr( $ffc_identity_id ); ?>"
-							data-ffc-go="ffc-merge-go-<?php echo esc_attr( $ffc_identity_id ); ?>">
+							data-ffc-ack="ffc-merge-ack-<?php echo esc_attr( $ffc_identity_id ); ?>">
 							<?php esc_html_e( 'Show what would move', 'ffcertificate' ); ?>
 						</button>
 					</p>

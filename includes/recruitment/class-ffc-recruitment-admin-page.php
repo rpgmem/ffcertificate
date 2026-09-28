@@ -320,7 +320,7 @@ final class RecruitmentAdminPage {
 		echo '<div class="wrap ffc-admin-page ffc-page-recruitment ffc-recruitment-admin">';
 		echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
 
-		echo '<div class="ffc-settings-tabs" data-ffc-settings-tabs>';
+		echo '<div class="ffc-settings-tabs">';
 		RecruitmentAdminPageRenderer::render_tabs( $tab );
 
 		printf(
