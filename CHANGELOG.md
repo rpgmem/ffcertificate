@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Two claims in `CLAUDE.md` restated a value another file owns and had gone stale: the backfill step said the release heading takes a 7-character short SHA (it takes whatever `git rev-parse --short` returns, eight at this repository's size), and the schema-agreement guard was described as covering three multiply-declared tables when the measurement is two. Both now state the invariant, and the table count moved to the guard's docblock with the reading written down (#1261)
+
 ## [6.31.0] (2026-09-28) — `bb433ce3`
 
 ### Changed
