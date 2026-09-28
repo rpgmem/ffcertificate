@@ -104,7 +104,31 @@ function ffc_resolve_table_name( array $lines, int $line, string $text, string $
 		return null;
 	}
 
-	$variable = preg_quote( $held[1], '/' );
+	return ffc_resolve_table_variable( $lines, $line, $held[1], $text, $includes_dir );
+}
+
+/**
+ * The `ffc_*` suffix a local variable holds, resolved by walking up from a line.
+ *
+ * EXTRACTED SO A SECOND CALLER CANNOT COPY IT (#1506). This was the body of
+ * {@see ffc_resolve_table_name()}, which asks the question for a `CREATE TABLE`.
+ * `SchemaColumns::incremental_by_table()` asks it for an
+ * `add_column_if_missing( $table, ... )` call, and the walk is identical -- so it
+ * is one function rather than two that drift. A private copy is what #1241 cost
+ * in the column reader, and what a fixed-window copy cost while this function's
+ * own warning about fixed windows sat a few lines below it.
+ *
+ * @param array<int, string> $lines        Source split by newline.
+ * @param int                $line         1-based line to search back from.
+ * @param string             $variable     The variable as written, e.g. `$table_name`.
+ * @param string             $text         Whole file, for following an accessor.
+ * @param string             $includes_dir Absolute path to `includes/`, for an
+ *                                         accessor whose body lives elsewhere.
+ * @return string|null The `ffc_*` suffix, or null when no idiom matches.
+ */
+function ffc_resolve_table_variable( array $lines, int $line, string $variable, string $text, string $includes_dir ): ?string {
+	$index    = $line - 1;
+	$variable = preg_quote( $variable, '/' );
 
 	// The search stops at the enclosing function, not at a fixed line count.
 	// A window is the wrong tool here: the self-scheduling calendars table puts

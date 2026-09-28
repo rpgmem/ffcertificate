@@ -272,6 +272,14 @@ class ReregistrationFormRendererTest extends TestCase {
 	 */
 	public function test_render_decrypts_a_sensitive_draft_value(): void {
 		$encryptionMock = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
+		// The shared reader asks the VALUE whether it is an envelope before
+		// attempting (#1509). `byDefault()` on the negative keeps every other
+		// value in this render from being handed to `decrypt()` at all, which is
+		// the behaviour that change buys.
+		$encryptionMock->shouldReceive( 'looks_like_envelope' )
+			->with( 'CIPHERTEXT-DO-CPF' )
+			->andReturn( true );
+		$encryptionMock->shouldReceive( 'looks_like_envelope' )->andReturn( false )->byDefault();
 		$encryptionMock->shouldReceive( 'decrypt' )
 			->with( 'CIPHERTEXT-DO-CPF' )
 			->andReturn( '529.982.247-25' );

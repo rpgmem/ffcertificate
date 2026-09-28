@@ -27,6 +27,7 @@ use FreeFormCertificate\Maintenance\IdentityOrphanQuery;
 use FreeFormCertificate\Maintenance\IdentityRecordNames;
 use FreeFormCertificate\Maintenance\IdentityRelink;
 use FreeFormCertificate\Maintenance\IdentitySplit;
+use FreeFormCertificate\Settings\SettingsReader;
 use FreeFormCertificate\Maintenance\IdentityRepair;
 use FreeFormCertificate\Maintenance\IdentityWorklist;
 use WP_Error;
@@ -53,7 +54,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * account -- is read by no view at all. This screen reads it.
  *
  * It writes nothing. The repair is the next PR; what this delivers is the
- * queue that repair works through.
+ * queue that repair works through. *
+ *
+ * @phpstan-import-type ScanCoverage from IdentityConflictQuery
  */
 class IdentityResolutionPage {
 
@@ -382,13 +385,13 @@ class IdentityResolutionPage {
 	/**
 	 * What the last scan read, for the empty state.
 	 *
-	 * @var array{stores: int, examined: int, unreadable: int}
+	 * KEYED BY IDENTIFIER COLUMN (#1486), and empty rather than zeroed: two
+	 * scans run now, and a column with no record was never looked at, which the
+	 * view distinguishes from one that found no store.
+	 *
+	 * @var ScanCoverage
 	 */
-	private array $coverage = array(
-		'stores'     => 0,
-		'examined'   => 0,
-		'unreadable' => 0,
-	);
+	private array $coverage = array();
 
 	/**
 	 * The cross-store identity questions.
@@ -634,7 +637,7 @@ class IdentityResolutionPage {
 	/**
 	 * What the last `queue()` call actually read.
 	 *
-	 * @return array{stores: int, examined: int, unreadable: int}
+	 * @return ScanCoverage
 	 */
 	public function coverage(): array {
 		return $this->coverage;
@@ -697,17 +700,27 @@ class IdentityResolutionPage {
 		// The SERVICE owns the wording. A second copy on this side is the
 		// shape that drifts: the two would disagree the first time one is
 		// edited, and nothing would report it.
+		//
+		// AND THE PAYLOAD IS BUILT IN ONE PLACE, WHICH IS THE OTHER HALF OF
+		// THAT SAME RULE (#1487).
+		//
+		// This built its own array inline, because it redirects to the NEXT
+		// finding rather than to the top and so cannot call `report()`. The
+		// two writers then disagreed about what an outcome IS: `report()`
+		// carried the error code and the finding, this carried neither. The
+		// acknowledgement box renders only for a named code on a named
+		// finding, so the one refusal that is a step rather than a dead end
+		// had no way through on EITHER form that posts here -- the shared
+		// pair's and the check-digit tier's, two of the screen's three. Only
+		// the consolidation worked, because it reports through `report()`.
+		// What the two writers differ in is the REDIRECT; the payload is the
+		// same question and now has one answer.
 		set_transient(
 			self::OUTCOME_TRANSIENT . get_current_user_id(),
-			$result instanceof WP_Error
-				? array(
-					'type' => 'error',
-					'text' => $result->get_error_message(),
-				)
-				: array(
-					'type' => 'success',
-					'text' => __( 'Corrected. The rows, the identity index and the account\'s certificate access were updated together.', 'ffcertificate' ),
-				),
+			self::outcome(
+				$result,
+				__( 'Corrected. The rows, the identity index and the account\'s certificate access were updated together.', 'ffcertificate' )
+			),
 			self::OUTCOME_TTL
 		);
 
@@ -1051,6 +1064,58 @@ class IdentityResolutionPage {
 	}
 
 	/**
+	 * What one write leaves for the next render, as both writers see it.
+	 *
+	 * THE CODE AND THE FINDING TRAVEL WITH THE SENTENCE (#1478).
+	 *
+	 * One refusal is not a dead end but a step: a correction whose value
+	 * already belongs to another account is allowed once the operator says
+	 * they mean it. The box that says so is rendered for a named code on a
+	 * named finding, so both travel -- the finding posted and therefore
+	 * untrusted, which costs nothing: it can only decide which of the
+	 * operator's own forms grows a box, and the service re-decides whether the
+	 * acknowledgement was required at all.
+	 *
+	 * ONE BUILDER BECAUSE TWO DISAGREED, IN PRODUCTION (#1487).
+	 *
+	 * `handle_repair()` cannot call `report()` -- it redirects to the next
+	 * finding rather than to the top -- so it built its own payload, and that
+	 * payload carried neither key. The box therefore never rendered on either
+	 * form posting that action: the shared pair's and the check-digit tier's,
+	 * two of this screen's three. The gate refused and the way through it was
+	 * never drawn. Only the consolidation was unaffected, because it reports
+	 * through `report()` -- which is precisely why a count of affected forms is
+	 * the wrong thing to hold: a shared builder makes the two writers differ
+	 * only in where they send the operator, whatever forms exist later.
+	 *
+	 * Explaining before confirming stays the design. The preflight satisfies
+	 * it in one request rather than two -- it paints what the write will do
+	 * and reveals the box beneath that sentence -- and this payload is what
+	 * still satisfies it when there was no preflight, or when JavaScript never
+	 * ran.
+	 *
+	 * @since 6.31.0
+	 * @param array<string, mixed>|WP_Error $result  What the write returned.
+	 * @param string                        $success What to say when it worked.
+	 * @return array<string, mixed>
+	 */
+	private static function outcome( $result, string $success ): array {
+		if ( ! $result instanceof WP_Error ) {
+			return array(
+				'type' => 'success',
+				'text' => $success,
+			);
+		}
+
+		return array(
+			'type'    => 'error',
+			'text'    => $result->get_error_message(),
+			'code'    => (string) $result->get_error_code(),
+			'subject' => RequestInput::get_post_string( 'ffc_subject', '' ),
+		);
+	}
+
+	/**
 	 * Carry one outcome back to the screen and return to it.
 	 *
 	 * The SERVICE owns the failure wording, for the reason `handle_repair()`
@@ -1086,34 +1151,7 @@ class IdentityResolutionPage {
 
 		set_transient(
 			self::OUTCOME_TRANSIENT . get_current_user_id(),
-			$result instanceof WP_Error
-				? array(
-					'type'    => 'error',
-					'text'    => $result->get_error_message(),
-					// THE CODE AND THE FINDING TRAVEL WITH THE SENTENCE (#1478).
-					//
-					// One refusal is not a dead end but a step: a correction
-					// whose value already belongs to another account is allowed
-					// once the operator says they mean it, and the box that says
-					// so appears only after the screen has explained why. Which
-					// form to grow it on is the finding, so the finding travels
-					// too -- posted and therefore untrusted, which costs
-					// nothing: it can only decide which of the operator's own
-					// forms renders a box, and the service re-decides whether
-					// the acknowledgement was needed at all.
-					//
-					// Explaining before confirming is the design here and not a
-					// consolation for having no preflight on two of the three
-					// forms. This write cannot be undone by another use of the
-					// verb, so a box that appeared before the reason would be a
-					// box ticked before it was read.
-					'code'    => (string) $result->get_error_code(),
-					'subject' => RequestInput::get_post_string( 'ffc_subject', '' ),
-				)
-				: array(
-					'type' => 'success',
-					'text' => $success,
-				),
+			self::outcome( $result, $success ),
 			self::OUTCOME_TTL
 		);
 
@@ -1226,11 +1264,23 @@ class IdentityResolutionPage {
 		// `queue()` FIRST: the three readings below are properties of the list
 		// it just resolved, and asking for them before it would answer about
 		// no list at all.
-		$ffc_identity_findings  = $this->queue();
-		$ffc_identity_coverage  = $this->coverage();
-		$ffc_identity_capped    = $this->truncated();
-		$ffc_identity_taken_at  = $this->taken_at();
-		$ffc_identity_resolved  = $this->resolved_since( $ffc_identity_taken_at );
+		$ffc_identity_findings = $this->queue();
+		$ffc_identity_coverage = $this->coverage();
+		$ffc_identity_capped   = $this->truncated();
+		$ffc_identity_taken_at = $this->taken_at();
+		$ffc_identity_resolved = $this->resolved_since( $ffc_identity_taken_at );
+		// WHETHER THE SUBMISSION FORM STILL ADMITS A WRONG RF (#1500).
+		//
+		// Resolved HERE rather than in the view, which is markup by convention --
+		// the reason `includes/admin/views` is carved out of PHPStan and of the
+		// coverage scope. It is also what makes the flag testable without
+		// reading the view's source.
+		//
+		// `well_formed()` is `validate_rf() && rf_check_digit_matches()`, so the
+		// queue always requires the digit; the form requires it only when this
+		// setting is on. The two are not meant to agree -- see the view, where
+		// the sentence is -- but the screen has to say when they do not.
+		$ffc_identity_rf_gate   = SettingsReader::get_bool( 'validate_rf_check_digit', false );
 		$ffc_identity_may_split = Capabilities::current_user_can_admin_or( self::SPLIT_CAPABILITY );
 		$ffc_identity_may_merge = Capabilities::current_user_can_admin_or( self::MERGE_CAPABILITY );
 		$ffc_identity_panels    = IdentityQueuePanels::build(

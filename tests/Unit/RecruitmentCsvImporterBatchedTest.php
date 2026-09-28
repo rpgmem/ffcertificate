@@ -107,7 +107,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	public function test_ingest_job_rejects_unknown_notice(): void {
 		$this->wire_repos( null );
 
-		$out = RecruitmentCsvImporter::ingest_job( 999, self::HEADER . 'A,12345678901,,a@b.test,mat,1,90,Sim', 'preview' );
+		$out = RecruitmentCsvImporter::ingest_job( 999, self::HEADER . 'A,51817842080,,a@b.test,mat,1,90,Sim', 'preview' );
 
 		$this->assertFalse( $out['ok'] );
 		$this->assertContains( 'recruitment_notice_not_found', $out['errors'] );
@@ -116,7 +116,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	public function test_ingest_job_rejects_preview_when_notice_not_eligible(): void {
 		$this->wire_repos( $this->notice_stub( 'active' ) );
 
-		$out = RecruitmentCsvImporter::ingest_job( 5, self::HEADER . 'A,12345678901,,a@b.test,mat,1,90,Sim', 'preview' );
+		$out = RecruitmentCsvImporter::ingest_job( 5, self::HEADER . 'A,51817842080,,a@b.test,mat,1,90,Sim', 'preview' );
 
 		$this->assertFalse( $out['ok'] );
 		$this->assertContains( 'recruitment_invalid_state_for_preview_import', $out['errors'] );
@@ -144,7 +144,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	public function test_ingest_job_rejects_when_notice_has_no_adjutancies(): void {
 		$this->wire_repos( $this->notice_stub( 'draft' ), array() );
 
-		$out = RecruitmentCsvImporter::ingest_job( 5, self::HEADER . 'A,12345678901,,a@b.test,mat,1,90,Sim', 'preview' );
+		$out = RecruitmentCsvImporter::ingest_job( 5, self::HEADER . 'A,51817842080,,a@b.test,mat,1,90,Sim', 'preview' );
 
 		$this->assertFalse( $out['ok'] );
 		$this->assertContains( 'recruitment_notice_has_no_adjutancies', $out['errors'] );
@@ -160,7 +160,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 
 		$out = RecruitmentCsvImporter::ingest_job(
 			5,
-			self::HEADER . "Alice,12345678901,,a@b.test,mat,1,90,Sim\nBob,98765432100,,b@b.test,mat,2,80,Não",
+			self::HEADER . "Alice,51817842080,,a@b.test,mat,1,90,Sim\nBob,98765432100,,b@b.test,mat,2,80,Não",
 			'preview'
 		);
 
@@ -175,7 +175,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->wpdb->shouldReceive( 'query' )->andReturn( 0 )->byDefault();
 		$this->wpdb->shouldReceive( 'insert' )->once()->andReturn( false );
 
-		$out = RecruitmentCsvImporter::ingest_job( 5, self::HEADER . 'A,12345678901,,a@b.test,mat,1,90,Sim', 'preview' );
+		$out = RecruitmentCsvImporter::ingest_job( 5, self::HEADER . 'A,51817842080,,a@b.test,mat,1,90,Sim', 'preview' );
 
 		$this->assertFalse( $out['ok'] );
 		$this->assertContains( 'recruitment_import_job_insert_failed', $out['errors'] );
@@ -189,7 +189,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$this->wpdb->shouldReceive( 'query' )->andReturn( 0, 0, false );
 		$this->wpdb->shouldReceive( 'delete' )->twice()->andReturn( 1 );
 
-		$out = RecruitmentCsvImporter::ingest_job( 5, self::HEADER . 'A,12345678901,,a@b.test,mat,1,90,Sim', 'preview' );
+		$out = RecruitmentCsvImporter::ingest_job( 5, self::HEADER . 'A,51817842080,,a@b.test,mat,1,90,Sim', 'preview' );
 
 		$this->assertFalse( $out['ok'] );
 		$this->assertContains( 'recruitment_import_staging_insert_failed', $out['errors'] );
@@ -380,7 +380,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 				(object) array(
 					'id'             => '11',
 					'name'           => 'Alice',
-					'cpf_normalized' => '12345678901',
+					'cpf_normalized' => '51817842080',
 					'rf_normalized'  => '',
 					'email'          => 'a@b.test',
 					'phone'          => '',
@@ -503,7 +503,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	public function test_import_definitive_rejects_unknown_notice(): void {
 		$this->wire_repos( null );
 
-		$out = RecruitmentCsvImporter::import_definitive( 999, self::HEADER . 'A,12345678901,,a@b.test,mat,1,90,Sim' );
+		$out = RecruitmentCsvImporter::import_definitive( 999, self::HEADER . 'A,51817842080,,a@b.test,mat,1,90,Sim' );
 
 		$this->assertFalse( $out['success'] );
 		$this->assertContains( 'recruitment_notice_not_found', $out['errors'] );
@@ -558,7 +558,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 
 		$out = RecruitmentCsvImporter::import_definitive(
 			5,
-			self::HEADER . "Alice,12345678901,,a@b.test,mat,1,90,Sim\nBob,98765432100,,b@b.test,mat,2,80,Não"
+			self::HEADER . "Alice,51817842080,,a@b.test,mat,1,90,Sim\nBob,98765432100,,b@b.test,mat,2,80,Não"
 		);
 
 		$this->assertTrue( $out['success'] );
@@ -576,7 +576,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 
 		$out = RecruitmentCsvImporter::import_definitive(
 			5,
-			self::HEADER . 'Alice,12345678901,,a@b.test,mat,1,90,Sim'
+			self::HEADER . 'Alice,51817842080,,a@b.test,mat,1,90,Sim'
 		);
 
 		$this->assertFalse( $out['success'] );
@@ -589,7 +589,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		// Row references an adjutancy slug not attached to the notice.
 		$out = RecruitmentCsvImporter::import_definitive(
 			5,
-			self::HEADER . 'Alice,12345678901,,a@b.test,nope,1,90,Sim'
+			self::HEADER . 'Alice,51817842080,,a@b.test,nope,1,90,Sim'
 		);
 
 		$this->assertFalse( $out['success'] );

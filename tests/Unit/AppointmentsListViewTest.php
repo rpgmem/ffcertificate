@@ -287,7 +287,7 @@ class AppointmentsListViewTest extends TestCase {
 			'name'             => 'Alice',
 			'created_at'       => '2026-05-01',
 			'email'            => 'alice@x.com',
-			'cpf'              => '12345678901',
+			'cpf'              => '51817842080',
 		);
 		$appt_repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\AppointmentRepository' );
 		$appt_repo->shouldReceive( 'findById' )->with( 5 )->andReturn( $appt );

@@ -110,15 +110,15 @@ class VerificationResponseRendererTest extends TestCase {
 		// 6.7.2 — cpf_rf is now MASKED for the public /valid page
 		// (not formatted in full). Asserts the result is non-empty
 		// and carries the masked-CPF marker (asterisks).
-		$result = $this->renderer->format_field_value( 'cpf_rf', '12345678901' );
+		$result = $this->renderer->format_field_value( 'cpf_rf', '51817842080' );
 		$this->assertNotEmpty( $result );
 		$this->assertStringContainsString( '*', $result );
 	}
 
 	public function test_format_field_value_masks_cpf(): void {
 		// /valid is public — full CPF surfaced is a privacy leak.
-		$result = $this->renderer->format_field_value( 'cpf_rf', '12345678909' );
-		$this->assertSame( '123.***.***-09', $result );
+		$result = $this->renderer->format_field_value( 'cpf_rf', '20456942084' );
+		$this->assertSame( '204.***.***-84', $result );
 	}
 
 	public function test_format_field_value_masks_email(): void {
@@ -133,9 +133,9 @@ class VerificationResponseRendererTest extends TestCase {
 		// The bare `rf` key is populated alongside cpf_rf for RF-only
 		// submissions; /valid is public so it must be masked, not leaked
 		// in full next to the already-masked cpf_rf row.
-		$result = $this->renderer->format_field_value( 'rf', '1234567' );
+		$result = $this->renderer->format_field_value( 'rf', '5181780' );
 		$this->assertStringContainsString( '*', $result );
-		$this->assertStringNotContainsString( '1234567', $result );
+		$this->assertStringNotContainsString( '5181780', $result );
 	}
 
 	public function test_format_field_value_does_not_mask_other_fields(): void {
@@ -152,7 +152,7 @@ class VerificationResponseRendererTest extends TestCase {
 		$result = array(
 			'data' => array(
 				'name'           => 'Maria Silva',
-				'cpf_rf'         => '12345678901',
+				'cpf_rf'         => '51817842080',
 				'calendar_title' => 'Workshop PHP',
 			),
 			'appointment' => array(
@@ -226,7 +226,7 @@ class VerificationResponseRendererTest extends TestCase {
 			'reregistration' => array(
 				'auth_code'    => 'RR123456',
 				'display_name' => 'Carlos Santos',
-				'cpf'          => '98765432100',
+				'cpf'          => '73102442064',
 				'email'        => 'carlos@example.com',
 				'submitted_at' => '2025-05-10 08:30:00',
 				'status'       => 'approved',

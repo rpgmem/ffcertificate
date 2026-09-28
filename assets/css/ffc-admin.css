@@ -1884,6 +1884,17 @@ p.ffc-datetime-order-error {
     line-height: 1.5;
 }
 
+/* `display: flex` ABOVE BEATS THE `hidden` ATTRIBUTE, SO THIS IS NOT OPTIONAL.
+
+   `hidden` hides an element through a user-agent `display: none`, which ANY
+   author declaration outranks -- so the rule above would have left the box on
+   screen with the attribute set, and the operator would see an acknowledgement
+   for a correction that needs none. The repair form now ships the box hidden
+   for the preflight to reveal, so this is what makes hidden mean hidden. */
+.ffc-page-identities .ffc-identity-ack[hidden] {
+    display: none;
+}
+
 /* The box keeps its own size and stops stretching to the text's line box,
    which is what `align-items: flex-start` alone leaves it doing. */
 .ffc-page-identities .ffc-identity-ack input[type="checkbox"] {

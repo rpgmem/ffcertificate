@@ -989,7 +989,7 @@ try {
 		'cross_store_shared_identities'   => __( 'Same identifier on two accounts (all modules)', 'ffcertificate' ),
 		'cross_store_multiple_identities' => __( 'One account, two identifiers (all modules)', 'ffcertificate' ),
 		'unindexed_links'                 => __( 'Linked identifier missing from the identity index', 'ffcertificate' ),
-		'rf_check_digit'                  => __( 'Stored RF whose check digit does not match', 'ffcertificate' ),
+		'check_digit'                     => __( 'Stored RF or CPF whose check digit does not match', 'ffcertificate' ),
 	);
 	?>
 	<div class="postbox ffc-migration-card ffc-submission-audit-card">

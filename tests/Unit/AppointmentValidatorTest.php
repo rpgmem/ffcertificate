@@ -101,7 +101,7 @@ class AppointmentValidatorTest extends TestCase {
 			'start_time'       => '10:00',
 			'calendar_id'      => 1,
 			'email'            => 'test@example.com',
-			'cpf_rf'           => '1234567',
+			'cpf_rf'           => '5181780',
 			'user_id'          => 1,
 		);
 	}
@@ -256,7 +256,7 @@ class AppointmentValidatorTest extends TestCase {
 
 	public function test_validate_rf_7_digits_accepted(): void {
 		$data = $this->valid_data();
-		$data['cpf_rf'] = '1234567';
+		$data['cpf_rf'] = '5181780';
 		$result = $this->validator->validate( $data, $this->permissive_calendar() );
 		$this->assertTrue( $result );
 	}

@@ -67,7 +67,7 @@ class AppointmentValidatorBusinessHoursTest extends TestCase {
 			'start_time'       => '10:00',
 			'calendar_id'      => 1,
 			'email'            => 'test@example.com',
-			'cpf_rf'           => '1234567',
+			'cpf_rf'           => '5181780',
 			'user_id'          => 1,
 		);
 	}

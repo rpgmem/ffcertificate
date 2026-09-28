@@ -5,6 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Maintenance\IdentityAgreement;
+use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 
 /**
  * The rule that decides whether two sets of identifiers describe one person.
@@ -201,5 +202,141 @@ class IdentityAgreementTest extends TestCase {
 			IdentityAgreement::REASON_DISAGREEMENT,
 			IdentityAgreement::REASON_AMBIGUOUS
 		);
+	}
+
+	// ──────────────────────────────────────────────────────────────────.
+	// with_unusable() — an agreed value that is not a value (#1491).
+	//
+	// No database: the method takes verdicts rather than fetching them, which
+	// is the whole reason it is pure. What it decides is tested here; that the
+	// verbs ASK is pinned in their own tests.
+	// ──────────────────────────────────────────────────────────────────.
+
+	/**
+	 * A shared value that fails its check digit stops being a match.
+	 *
+	 * It becomes a conflict, because it is not weak evidence that the accounts
+	 * are one person -- it is evidence that one of them holds a wrong number.
+	 */
+	public function test_an_invalid_shared_value_moves_from_matches_to_conflicts(): void {
+		$out = IdentityAgreement::with_unusable(
+			array(
+				'matches'   => array( 'rf' ),
+				'gaps'      => array(),
+				'conflicts' => array(),
+				'reasons'   => array(),
+			),
+			array( 'rf' => array( 'hash-rf' ) ),
+			array( 'rf' => array( 'hash-rf' => IdentityConflictQuery::VERDICT_INVALID ) )
+		);
+
+		$this->assertSame( array(), $out['matches'], 'An unusable value is not agreement.' );
+		$this->assertSame( array( 'rf' ), $out['conflicts'] );
+		$this->assertSame( IdentityAgreement::REASON_UNUSABLE, $out['reasons']['rf'] );
+	}
+
+	/**
+	 * LEAVING `matches` IS THE HALF THAT MATTERS, not adding to `conflicts`.
+	 *
+	 * `IdentityMerge` reads `matches` as *these accounts agree about something*
+	 * and refuses when it is empty. A field left in both lists would let a
+	 * caller that consults `matches` first proceed on the very value that
+	 * blocks it, so this asserts the removal on its own.
+	 */
+	public function test_a_valid_shared_value_stays_a_match(): void {
+		$out = IdentityAgreement::with_unusable(
+			array(
+				'matches'   => array( 'rf', 'cpf' ),
+				'gaps'      => array(),
+				'conflicts' => array(),
+				'reasons'   => array(),
+			),
+			array(
+				'rf'  => array( 'hash-rf' ),
+				'cpf' => array( 'hash-cpf' ),
+			),
+			array(
+				'rf'  => array( 'hash-rf' => IdentityConflictQuery::VERDICT_VALID ),
+				'cpf' => array( 'hash-cpf' => IdentityConflictQuery::VERDICT_INVALID ),
+			)
+		);
+
+		$this->assertSame( array( 'rf' ), $out['matches'], 'The valid field survives; only the invalid one leaves.' );
+		$this->assertSame( array( 'cpf' ), $out['conflicts'] );
+	}
+
+	/**
+	 * A VALUE NOBODY COULD READ IS NOT A VALUE THAT IS WRONG.
+	 *
+	 * The #1071 / #1094 rule, and the one
+	 * `IdentityConflictQuery::check_digit_failures()` already states for its
+	 * own scan. Refusing on `unreadable` would make a mismatched encryption key
+	 * look like a data defect and block every merge on an install whose key does
+	 * not match its rows -- which is the ordinary state of a staging copy.
+	 */
+	public function test_an_unreadable_value_does_not_refuse(): void {
+		foreach ( array( IdentityConflictQuery::VERDICT_UNREADABLE, IdentityConflictQuery::VERDICT_ABSENT, '' ) as $verdict ) {
+			$out = IdentityAgreement::with_unusable(
+				array(
+					'matches'   => array( 'rf' ),
+					'gaps'      => array(),
+					'conflicts' => array(),
+					'reasons'   => array(),
+				),
+				array( 'rf' => array( 'hash-rf' ) ),
+				array( 'rf' => array( 'hash-rf' => $verdict ) )
+			);
+
+			$this->assertSame( array( 'rf' ), $out['matches'], sprintf( 'Verdict "%s" must not refuse.', $verdict ) );
+			$this->assertSame( array(), $out['conflicts'] );
+		}
+	}
+
+	/**
+	 * An existing conflict is preserved rather than replaced.
+	 *
+	 * The two kinds coexist: one side may disagree about the CPF while the RF
+	 * they do share is unusable, and an operator needs to be told both.
+	 */
+	public function test_it_adds_to_conflicts_rather_than_replacing_them(): void {
+		$out = IdentityAgreement::with_unusable(
+			array(
+				'matches'   => array( 'rf' ),
+				'gaps'      => array(),
+				'conflicts' => array( 'cpf' ),
+				'reasons'   => array( 'cpf' => IdentityAgreement::REASON_DISAGREEMENT ),
+			),
+			array( 'rf' => array( 'hash-rf' ) ),
+			array( 'rf' => array( 'hash-rf' => IdentityConflictQuery::VERDICT_INVALID ) )
+		);
+
+		$this->assertSame( array( 'cpf', 'rf' ), $out['conflicts'] );
+		$this->assertSame( IdentityAgreement::REASON_DISAGREEMENT, $out['reasons']['cpf'] );
+		$this->assertSame( IdentityAgreement::REASON_UNUSABLE, $out['reasons']['rf'] );
+	}
+
+	/**
+	 * No verdict for a hash leaves the match alone, and `gaps` never moves.
+	 *
+	 * A verdict map that lost an entry is a scan that did not answer, not a
+	 * value that failed -- the same reading as `unreadable`. And a GAP is a
+	 * field the target does not hold at all, so there is no shared value to
+	 * judge.
+	 */
+	public function test_a_missing_verdict_and_a_gap_are_left_alone(): void {
+		$out = IdentityAgreement::with_unusable(
+			array(
+				'matches'   => array( 'rf' ),
+				'gaps'      => array( 'cpf' => 'hash-cpf' ),
+				'conflicts' => array(),
+				'reasons'   => array(),
+			),
+			array( 'rf' => array( 'hash-rf' ) ),
+			array()
+		);
+
+		$this->assertSame( array( 'rf' ), $out['matches'] );
+		$this->assertSame( array( 'cpf' => 'hash-cpf' ), $out['gaps'] );
+		$this->assertSame( array(), $out['conflicts'] );
 	}
 }

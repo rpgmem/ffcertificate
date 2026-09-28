@@ -753,6 +753,28 @@ class IdentityRepair {
 	 * opened from a value somebody confirmed, so both add the digit
 	 * explicitly — through this, rather than through a second copy.
 	 *
+	 * IT DELIBERATELY DISAGREES WITH `validate_rf()`, AND THAT IS NOT A BUG TO
+	 * RECONCILE (#1500).
+	 *
+	 * `DocumentFormatter::validate_rf()` requires the check digit only when
+	 * `ffc_validate_rf_check_digit` is on -- off by default -- so the submission
+	 * form admits any seven digits while this always refuses a digit that does
+	 * not agree. Measured on production: 48 stored RFs fail here that the form
+	 * would accept again.
+	 *
+	 * The two answer different questions. This one judges a value ALREADY
+	 * STORED, where a number that cannot be anyone's is worth reporting whatever
+	 * the intake policy was when it arrived. `validate_rf()` applies an
+	 * administrator's policy about what to admit, and the setting exists so an
+	 * institution whose RF scheme carries no check digit can still use the
+	 * plugin.
+	 *
+	 * SO NEVER "FIX" THE DISAGREEMENT BY LOOSENING THIS. That would stop the
+	 * identity queue reporting values it is the only thing that can see. The
+	 * screen says when the two differ instead; the sentence is in
+	 * `includes/admin/views/identity-resolution-page.php`, on the panel that
+	 * lists these findings.
+	 *
 	 * @since 6.28.3
 	 * @param string $field      `rf` or `cpf`.
 	 * @param string $normalized The value, canonicalised.
@@ -763,8 +785,37 @@ class IdentityRepair {
 			return DocumentFormatter::validate_cpf( $normalized );
 		}
 
-		return DocumentFormatter::validate_rf( $normalized )
-			&& DocumentFormatter::rf_check_digit_matches( $normalized );
+		// THE `validate_rf()` CALL THAT WAS HERE CONTRADICTED THE DOCBLOCK ABOVE
+		// AND BOUGHT NOTHING (#1491).
+		//
+		// This read `validate_rf( $x ) && rf_check_digit_matches( $x )`, three
+		// lines below a docblock saying the RF rule is read *directly rather
+		// than through `validate_rf()`* -- prose denying the code beneath it.
+		//
+		// Redundant either way, which is why removing it changes no answer:
+		// `rf_check_digit_matches()` refuses anything that is not a seven-digit
+		// RF before it computes a digit, so it already subsumes the structural
+		// half. With the opt-in ON, `validate_rf()` merely re-checks the digit
+		// the second call checks; with it OFF, the `&&` still required the
+		// second call to pass.
+		//
+		// And it was not inert. `validate_rf()` reads
+		// `ffc_validate_rf_check_digit` through `Settings\SettingsReader`, so it
+		// cannot be called without that class being loadable -- measured: a
+		// standalone script calling it dies with `Class
+		// "FreeFormCertificate\Settings\SettingsReader" not found`. That made
+		// this predicate depend on the settings layer in order to judge a
+		// CONFIRMED value, which is exactly what the docblock forbids it to
+		// consult.
+		//
+		// THAT QUOTE NAMES THE CLASS IN FULL, AND IT IS THE PROOF #1496 SHIPPED.
+		// The class is not referenced by any statement here, so under the old
+		// guard this comment invented a `Maintenance>Settings` edge and turned CI
+		// red; #1495 had to elide the root namespace to get through. The guard
+		// now reads types rather than prose, so the evidence can be written the
+		// way it was measured. Should this line ever go red again, the guard
+		// regressed -- do not elide it a second time.
+		return DocumentFormatter::rf_check_digit_matches( $normalized );
 	}
 }
 // phpcs:enable WordPress.DB.DirectDatabaseQuery

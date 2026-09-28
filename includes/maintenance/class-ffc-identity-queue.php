@@ -19,7 +19,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Compose the identity findings into a tiered worklist.
+ * Compose the identity findings into a tiered worklist. *
+ *
+ * @phpstan-import-type ScanCoverage from IdentityConflictQuery
  */
 class IdentityQueue {
 
@@ -190,9 +192,22 @@ class IdentityQueue {
 	/**
 	 * The check-digit check, as the auditor names it.
 	 *
+	 * ONE KEY FOR BOTH IDENTIFIERS, AND IT STOPPED SAYING `rf_` (#1486).
+	 *
+	 * The scan reads CPF as well as RF now, so a key spelling one of them
+	 * would contradict the row carrying it: the exported `check` column would
+	 * read `rf_check_digit` beside an `identifier_column` of `cpf_hash`, which
+	 * is a self-denying line an operator re-reads every time.
+	 *
+	 * One key rather than two is safe because it is not what distinguishes the
+	 * findings: {@see self::key_of()} composes an item's identity from its
+	 * tier, its identifier column and its subject, so an RF finding and a CPF
+	 * finding never collide. And it is right because they are one operator
+	 * task under one panel -- "Numbers to correct" was already field-neutral.
+	 *
 	 * @var string
 	 */
-	public const CHECK_DIGITS = 'rf_check_digit';
+	public const CHECK_DIGITS = 'check_digit';
 
 	/**
 	 * Key carrying which check produced an item.
@@ -300,7 +315,7 @@ class IdentityQueue {
 		// all: a person who mistyped once on their only row, and a candidacy
 		// carrying no account until promotion -- which is the whole reason
 		// `rf_check_digit_failures()` scans rows rather than accounts.
-		foreach ( $this->capped( self::CHECK_DIGITS, $query->rf_check_digit_failures( $limit ), $limit ) as $row ) {
+		foreach ( $this->capped( self::CHECK_DIGITS, $query->check_digit_failures_of_both( $limit ), $limit ) as $row ) {
 			$row     = (array) $row;
 			$subject = (string) ( $row['subject'] ?? '' );
 
@@ -318,7 +333,7 @@ class IdentityQueue {
 			$out[] = $row;
 		}
 
-		$this->coverage = $query->rf_scan_coverage();
+		$this->coverage = $query->scan_coverage();
 
 		return $out;
 	}
@@ -429,22 +444,24 @@ class IdentityQueue {
 	 * was load-bearing, when a rejected statement made the scan report zero on
 	 * an install holding thousands.
 	 *
-	 * @return array{stores: int, examined: int, unreadable: int}
+	 * @return ScanCoverage
 	 */
 	public function coverage(): array {
 		return $this->coverage;
 	}
 
 	/**
-	 * What the last scan read.
+	 * What each check-digit scan read, keyed by the column it scanned.
 	 *
-	 * @var array{stores: int, examined: int, unreadable: int}
+	 * NOT SUMMED, FOR THE REASON `IdentityConflictQuery::scan_coverage()` GIVES:
+	 * a clean RF scan added to a CPF scan that read nothing renders as "the
+	 * scan read the data", so the healthy half would vouch for the half that
+	 * never ran. Empty until a scan runs, because a zeroed record cannot be
+	 * told apart from a column nobody looked at.
+	 *
+	 * @var ScanCoverage
 	 */
-	private array $coverage = array(
-		'stores'     => 0,
-		'examined'   => 0,
-		'unreadable' => 0,
-	);
+	private array $coverage = array();
 
 	/**
 	 * Decide one account-side item's tier from its verdicts.

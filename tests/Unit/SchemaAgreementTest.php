@@ -364,6 +364,202 @@ final class SchemaAgreementTest extends TestCase {
 	}
 
 	/**
+	 * The same question, asked PER TABLE — which is the one that catches it.
+	 *
+	 * THE FILE-LEVEL DIRECTION ABOVE CAN BE UNIONED AWAY, AND WAS (#1506).
+	 * `AudienceActivator` builds nine tables in one file, so comparing that
+	 * file's incremental columns against that file's WHOLE set of `CREATE`
+	 * columns let `ffc_audience_environments.color` pass: no statement of its own
+	 * declares it, but `ffc_audiences` happens to declare a `color`. The guard
+	 * was green while the condition it exists to catch was live, and what found
+	 * it was the post-deploy smoke reading a real server (#1505) — nine tables in
+	 * one file is all it takes.
+	 *
+	 * `CLAUDE.md` records the identical degradation one reader over, about
+	 * `SchemaColumns::declared_incrementally()`: *the per-table comparison
+	 * silently degraded to the union it exists to beat, on the very defect it was
+	 * written for.* This is that sentence applied to this guard.
+	 *
+	 * THE FILE-LEVEL TEST STAYS. It is not redundant: it charges vacuity per file
+	 * (an extractor that found nothing in a file that has calls), which a
+	 * per-table view cannot express, and it is the direction that catches a
+	 * column added to a file whose table this scan cannot resolve.
+	 *
+	 * IT BLOCKS AT ZERO. Measured over the tree: 37 incremental columns across 11
+	 * tables, every call's table resolved, and after `color` was declared the
+	 * register is empty. So there is no baseline to keep — a finding here is a
+	 * column to declare, never a line to add somewhere.
+	 */
+	public function test_every_incremental_column_is_in_ITS_OWN_tables_create(): void {
+		$includes    = dirname( __DIR__, 2 ) . '/includes';
+		$incremental = SchemaColumns::incremental_by_table( $includes );
+		$declared    = SchemaColumns::declared_by_table( $includes );
+
+		// A CALL WHOSE TABLE COULD NOT BE RESOLVED IS A FAULT, NEVER A SKIP.
+		// It arrives under the `''` key precisely so it cannot be dropped in
+		// silence: an unattributed call is one this comparison did not make, and
+		// a scan that covers less than it claims is what #1087 spent three steps
+		// chasing.
+		$this->assertArrayNotHasKey(
+			'',
+			$incremental,
+			'An add_column(s)_if_missing() call names a table this scan cannot resolve, so its columns were never compared: '
+			. implode( ', ', $incremental[''] ?? array() )
+		);
+
+		// AN INDEPENDENT RECOUNT OF THE CALLS, not a floor over the columns. Both
+		// sides move when a call is added, which an absolute number cannot do --
+		// `> 25` is tight at 28 and slack at 40 with nobody touching it. The nets
+		// differ where it matters: one is a bare tree-wide regex, the other is the
+		// reader that also has to resolve a table and balance parentheses.
+		$this->assertSame(
+			$this->naive_incremental_call_count(),
+			$this->scanned_incremental_call_count(),
+			'The scan reads a different number of add_column(s)_if_missing() calls than a naive'
+			. ' tree-wide regex finds, so one of the two has been narrowed.'
+		);
+
+		// Nothing the bounded reader reports may be absent from the unbounded one:
+		// a name only the per-table scan sees would mean its parenthesis balancing
+		// invented something. (The reverse is expected and is NOT asserted --
+		// `incremental()` is unbounded and also picks up REST argument schemas,
+		// which is tracked separately in #1506.)
+		$flat = array();
+		foreach ( $incremental as $columns ) {
+			foreach ( $columns as $column ) {
+				$flat[ $column ] = true;
+			}
+		}
+
+		$this->assertNotEmpty( $flat, 'The per-table scan read no column at all.' );
+		$this->assertSame(
+			array(),
+			array_values( array_diff( array_keys( $flat ), $this->unbounded_incremental_columns() ) ),
+			'The bounded per-table reader reports a column the unbounded reader does not see.'
+		);
+
+		$failures = array();
+
+		foreach ( $incremental as $table => $columns ) {
+			foreach ( $columns as $column ) {
+				if ( ! isset( $declared[ $table ][ $column ] ) ) {
+					$failures[] = $table . '.' . $column;
+				}
+			}
+		}
+
+		$this->assertSame(
+			array(),
+			$failures,
+			"A column add_column(s)_if_missing() adds to a table is absent from THAT TABLE's own"
+			. " CREATE TABLE, so a fresh install gets it only from the healing chain:\n  "
+			. implode( "\n  ", $failures )
+		);
+	}
+
+	/**
+	 * How many incremental calls a simple tree-wide net finds.
+	 *
+	 * TWO EXCLUSIONS, BOTH MEASURED RATHER THAN ASSUMED. A first version read raw
+	 * text and counted 45 against the reader's 37; every one of the eight was
+	 * explained and not one was a missed call:
+	 *
+	 *  - FOUR were a docblock sentence -- `every add_column_if_missing()` -- in the
+	 *    four activators. Prose that MENTIONS an idiom is not an occurrence of it,
+	 *    which is the whole reason `PhpSource::code()` exists, so the count reads
+	 *    comment-blanked code through that shared reader.
+	 *  - FOUR were in `DatabaseHelperTrait`: the two `function` declarations, and
+	 *    the two internal calls it makes to itself, where the column name is a
+	 *    PARAMETER by construction and no reader could extract a literal. That
+	 *    file is the definition site, so it is excluded by name with this reason.
+	 *
+	 * @return int
+	 */
+	private function naive_incremental_call_count(): int {
+		$count = 0;
+
+		foreach ( \FreeFormCertificate\Tests\Support\PhpSource::files_under( 'includes' ) as $relative ) {
+			if ( 'class-ffc-database-helper-trait.php' === basename( $relative ) ) {
+				continue;
+			}
+
+			foreach ( \FreeFormCertificate\Tests\Support\PhpSource::code_lines( $relative ) as $line ) {
+				// `function add_column_if_missing(` is a declaration, not a call.
+				if ( preg_match( '/\bfunction\s+add_columns?_if_missing\s*\(/', $line ) ) {
+					continue;
+				}
+
+				$count += preg_match_all( '/add_columns?_if_missing\s*\(/', $line );
+			}
+		}
+
+		return $count;
+	}
+
+	/**
+	 * How many incremental calls the reader under test actually attributed.
+	 *
+	 * @return int
+	 */
+	private function scanned_incremental_call_count(): int {
+		$count = 0;
+
+		foreach ( $this->includes_files() as $path ) {
+			if ( 'class-ffc-database-helper-trait.php' === basename( $path ) ) {
+				continue;
+			}
+
+			$count += count( SchemaColumns::incremental_calls( (string) file_get_contents( $path ) ) );
+		}
+
+		return $count;
+	}
+
+	/**
+	 * Every column the UNBOUNDED file-wide reader names, tree-wide.
+	 *
+	 * @return list<string>
+	 */
+	private function unbounded_incremental_columns(): array {
+		$out = array();
+
+		foreach ( $this->includes_files() as $path ) {
+			foreach ( SchemaColumns::incremental( (string) file_get_contents( $path ) ) as $column ) {
+				$out[ $column ] = true;
+			}
+			foreach ( SchemaColumns::staging( (string) file_get_contents( $path ) ) as $column ) {
+				$out[ $column ] = true;
+			}
+		}
+
+		return array_keys( $out );
+	}
+
+	/**
+	 * Every PHP file under `includes/`.
+	 *
+	 * @return list<string>
+	 */
+	private function includes_files(): array {
+		$out      = array();
+		$iterator = new \RecursiveIteratorIterator(
+			new \RecursiveDirectoryIterator( dirname( __DIR__, 2 ) . '/includes', \FilesystemIterator::SKIP_DOTS )
+		);
+
+		foreach ( $iterator as $file ) {
+			$path = $file->getPathname();
+
+			if ( substr( $path, -4 ) === '.php' ) {
+				$out[] = $path;
+			}
+		}
+
+		sort( $out );
+
+		return $out;
+	}
+
+	/**
 	 * Every `CREATE TABLE` in `includes/`, grouped by the table it writes to.
 	 *
 	 * Uses the same extraction as `ActivatorSqlTest` and the dbDelta idempotence

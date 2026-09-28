@@ -148,7 +148,7 @@ class SensitiveFieldPolicyTest extends TestCase {
 		$data = array(
 			'name'     => 'Carol',
 			'email'    => 'carol@test.com',
-			'cpf_rf'   => '12345678901',
+			'cpf_rf'   => '51817842080',
 			'ticket'   => 'ABC-123',
 			'extra1'   => 'payload',
 		);
@@ -193,7 +193,7 @@ class SensitiveFieldPolicyTest extends TestCase {
 			} )
 			->andReturn( 43 );
 
-		$submission = array( 'email' => 'x@y.z', 'cpf_rf' => '1234567' );
+		$submission = array( 'email' => 'x@y.z', 'cpf_rf' => '5181780' );
 		$handler->process_submission(
 			1,
 			'Form',
@@ -233,7 +233,7 @@ class SensitiveFieldPolicyTest extends TestCase {
 			->andReturn( 44 );
 
 		$email = 'John@Example.com';
-		$cpf   = '12345678901';
+		$cpf   = '51817842080';
 		$submission = array( 'email' => $email, 'cpf_rf' => $cpf );
 		$handler->process_submission( 1, 'F', $submission, $email, array(), array() );
 
@@ -273,9 +273,9 @@ class SensitiveFieldPolicyTest extends TestCase {
 			'start_time'         => '09:00:00',
 			'status'             => 'pending',
 			'confirmation_token' => 'tok-123',
-			'validation_code'    => 'VAL1234567AB',
+			'validation_code'    => 'VAL5181780AB',
 			'email'              => 'alice@example.com',
-			'cpf_rf'             => '12345678901',
+			'cpf_rf'             => '51817842080',
 			'phone'              => '5511999990000',
 			'custom_data'        => array( 'notes' => 'vip' ),
 			'user_ip'            => '192.0.2.1',
@@ -329,7 +329,7 @@ class SensitiveFieldPolicyTest extends TestCase {
 		$repo->createAppointment( array(
 			'calendar_id'        => 5,
 			'confirmation_token' => 't',
-			'validation_code'    => 'VAL1234567AB',
+			'validation_code'    => 'VAL5181780AB',
 			'email'              => $email,
 			'cpf_rf'             => $cpf,
 		) );

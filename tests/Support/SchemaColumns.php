@@ -137,13 +137,25 @@ final class SchemaColumns {
 	 * declarations — `AudienceActivator`'s 13 — and the number falls in a way
 	 * that looks like good news.
 	 *
-	 * THE TYPE IS THE DISCRIMINATOR, NOT THE NAME
+	 * THE CALL IS THE DISCRIMINATOR, AND THE `'type'` KEY WAS NEVER ENOUGH
+	 * (#1506). This docblock used to say the `'type'` key is what separates a
+	 * column from a REST argument schema. It does not: the plural pattern it
+	 * described matched ANY `'name' => array( 'type' => … )` in the file, with no
+	 * requirement that it sit inside an `add_columns_if_missing()` call at all.
+	 * Measured, it read **85** names where the bounded reader reads 35, and the
+	 * 50 extras were argument schemas — `search`, `size`, `mode`, `format`,
+	 * `input`, `user_ids` — alongside commonplace column names like `status` and
+	 * `user_id`.
 	 *
-	 * Anchoring on the column name alone would make a REST argument schema
-	 * (`'code' => array( 'type' => 'string' )`) count as a column. What
-	 * separates the two is the call: the singular idiom requires a literal
-	 * `add_column_if_missing(`, and the plural requires the `'type'` key on the
-	 * line after `array(`.
+	 * That mattered beyond tidiness. This feeds
+	 * {@see self::declared_incrementally()} and {@see self::declared_anywhere()},
+	 * which `SchemaWrittenColumnTest` reads as its fallback, so the inflation made
+	 * that guard quietly MORE permissive: a written column with no declarer passed
+	 * whenever some unrelated schema happened to name it.
+	 *
+	 * So it reads {@see self::incremental_calls()} now, where a call's columns are
+	 * bounded by its own balanced parentheses. One reader, and the claim in this
+	 * docblock is true of the code under it.
 	 *
 	 * Staging columns are EXCLUDED, for the reason {@see self::staging()} gives.
 	 *
@@ -153,25 +165,200 @@ final class SchemaColumns {
 	public static function incremental( string $source ): array {
 		$names = array();
 
-		preg_match_all(
-			'/add_column_if_missing\s*\(\s*[^,]{1,120}?,\s*[\'"]([a-z_][a-z0-9_]*)[\'"]\s*,/s',
-			$source,
-			$singular
-		);
-
-		preg_match_all(
-			'/[\'"]([a-z_][a-z0-9_]*)[\'"]\s*=>\s*array\(\s*\n\s*[\'"]type[\'"]\s*=>/m',
-			$source,
-			$plural
-		);
-
-		foreach ( array_merge( $singular[1], $plural[1] ) as $name ) {
-			$names[] = strtolower( $name );
+		foreach ( self::incremental_calls( $source ) as $call ) {
+			foreach ( $call['columns'] as $column ) {
+				$names[] = $column;
+			}
 		}
 
 		$names = array_values( array_unique( $names ) );
 
 		return array_values( array_diff( $names, self::staging( $source ) ) );
+	}
+
+	/**
+	 * Incrementally-declared columns, keyed by the table they are added to.
+	 *
+	 * WHY PER TABLE, WHEN {@see self::incremental()} ALREADY READS THEM (#1506)
+	 *
+	 * Because a file-level answer can be unioned away, and was. `AudienceActivator`
+	 * builds nine tables in one file, so `SchemaAgreementTest`'s incremental
+	 * direction compared the file's incremental columns against the file's WHOLE
+	 * set of `CREATE` columns -- and `ffc_audience_environments.color`, declared
+	 * by no statement of its own, passed because `ffc_audiences` happens to
+	 * declare a `color`. The guard was green while the condition it exists to
+	 * catch was live, and the post-deploy smoke found it against a real server
+	 * instead. `CLAUDE.md` records the identical degradation one reader over,
+	 * about {@see self::declared_incrementally()}: *the per-table comparison
+	 * silently degraded to the union it exists to beat.*
+	 *
+	 * THE TABLE IS RESOLVED, NOT GUESSED, and by the resolver
+	 * `ffc_create_statements()` already uses -- `ffc_resolve_table_variable()`,
+	 * which walks up to the variable's assignment and stops at the enclosing
+	 * function rather than at a line count.
+	 *
+	 * A CALL'S COLUMNS ARE BOUNDED BY ITS OWN CLOSING PAREN. A fixed character
+	 * window is the wrong tool and cost a false finding while this was being
+	 * written: 4,000 characters forward from the reregistration-submissions call
+	 * ran past its end into the NEXT method's call and attributed the campaign
+	 * table's `deadline_extended_at` to submissions. That is exactly what
+	 * `ffc_resolve_table_variable()`'s own comment warns about, one idiom over.
+	 *
+	 * An UNRESOLVED call is returned rather than dropped, under the `''` key, so
+	 * a caller can fail on it. Silently skipping one is how a scan covers less
+	 * than it claims.
+	 *
+	 * @param string $includes_dir Absolute path to `includes/`.
+	 * @return array<string, list<string>> table => columns; `''` holds the unresolved.
+	 */
+	public static function incremental_by_table( string $includes_dir ): array {
+		require_once dirname( __DIR__, 2 ) . '/.github/scripts/ffc-create-statements.php';
+
+		$out = array();
+
+		foreach ( self::files_under_dir( $includes_dir ) as $path ) {
+			$source = (string) file_get_contents( $path );
+
+			if ( ! preg_match( '/add_columns?_if_missing\s*\(/', $source ) ) {
+				continue;
+			}
+
+			$lines   = explode( "\n", $source );
+			$staging = self::staging( $source );
+
+			foreach ( self::incremental_calls( $source ) as $call ) {
+				$line  = substr_count( substr( $source, 0, $call['offset'] ), "\n" ) + 1;
+				$table = ffc_resolve_table_variable( $lines, $line, $call['variable'], $source, $includes_dir );
+				$key   = null === $table ? '' : $table;
+
+				foreach ( $call['columns'] as $column ) {
+					if ( in_array( $column, $staging, true ) ) {
+						continue;
+					}
+
+					$out[ $key ][ $column ] = true;
+				}
+			}
+		}
+
+		$result = array();
+
+		foreach ( $out as $table => $columns ) {
+			$names = array_keys( $columns );
+			sort( $names );
+			$result[ (string) $table ] = $names;
+		}
+
+		ksort( $result );
+
+		return $result;
+	}
+
+	/**
+	 * Each incremental call in one file: where it is, its table variable, its columns.
+	 *
+	 * PUBLIC so a guard can recount the CALLS rather than trust a floor over the
+	 * columns. Both sides of that comparison move when a call is added, which is
+	 * what an absolute number cannot do.
+	 *
+	 * Unlike {@see self::incremental()}, the plural idiom's columns here are
+	 * bounded by the call's own parentheses, so a `'name' => array( 'type' => … )`
+	 * elsewhere in the file -- a REST argument schema, say -- cannot be read as a
+	 * column.
+	 *
+	 * @param string $source File contents.
+	 * @return list<array{offset: int, variable: string, columns: list<string>}>
+	 */
+	public static function incremental_calls( string $source ): array {
+		$calls = array();
+
+		if ( preg_match_all( '/add_column_if_missing\s*\(\s*(\$[a-z_]+)\s*,\s*[\'"]([a-z_][a-z0-9_]*)[\'"]/i', $source, $singular, PREG_OFFSET_CAPTURE ) ) {
+			foreach ( $singular[0] as $index => $hit ) {
+				$calls[] = array(
+					'offset'   => (int) $hit[1],
+					'variable' => (string) $singular[1][ $index ][0],
+					'columns'  => array( strtolower( (string) $singular[2][ $index ][0] ) ),
+				);
+			}
+		}
+
+		if ( preg_match_all( '/add_columns_if_missing\s*\(\s*(\$[a-z_]+)\s*,/i', $source, $plural, PREG_OFFSET_CAPTURE ) ) {
+			foreach ( $plural[0] as $index => $hit ) {
+				$body = self::balanced_call( $source, (int) $hit[1] );
+
+				preg_match_all( '/[\'"]([a-z_][a-z0-9_]*)[\'"]\s*=>\s*array\(\s*\n\s*[\'"]type[\'"]\s*=>/m', $body, $named );
+
+				$columns = array();
+				foreach ( $named[1] as $name ) {
+					$columns[] = strtolower( (string) $name );
+				}
+
+				$calls[] = array(
+					'offset'   => (int) $hit[1],
+					'variable' => (string) $plural[1][ $index ][0],
+					'columns'  => $columns,
+				);
+			}
+		}
+
+		return $calls;
+	}
+
+	/**
+	 * One call's text, from its name to its BALANCED closing paren.
+	 *
+	 * @param string $source File contents.
+	 * @param int    $offset Byte offset of the call's name.
+	 * @return string
+	 */
+	private static function balanced_call( string $source, int $offset ): string {
+		$open = strpos( $source, '(', $offset );
+
+		if ( false === $open ) {
+			return '';
+		}
+
+		$depth  = 0;
+		$length = strlen( $source );
+
+		for ( $i = $open; $i < $length; $i++ ) {
+			if ( '(' === $source[ $i ] ) {
+				++$depth;
+			} elseif ( ')' === $source[ $i ] ) {
+				--$depth;
+
+				if ( 0 === $depth ) {
+					return substr( $source, $offset, $i - $offset + 1 );
+				}
+			}
+		}
+
+		return substr( $source, $offset );
+	}
+
+	/**
+	 * Every PHP file under a directory, absolute.
+	 *
+	 * @param string $dir Absolute directory.
+	 * @return list<string>
+	 */
+	private static function files_under_dir( string $dir ): array {
+		$out      = array();
+		$iterator = new \RecursiveIteratorIterator(
+			new \RecursiveDirectoryIterator( $dir, \FilesystemIterator::SKIP_DOTS )
+		);
+
+		foreach ( $iterator as $file ) {
+			$path = $file->getPathname();
+
+			if ( substr( $path, -4 ) === '.php' ) {
+				$out[] = $path;
+			}
+		}
+
+		sort( $out );
+
+		return $out;
 	}
 
 	/**
@@ -235,6 +422,79 @@ final class SchemaColumns {
 	}
 
 	/**
+	 * STAGING columns, keyed by the table they are renamed away from (#1506).
+	 *
+	 * WHY THIS EXISTS SEPARATELY FROM {@see self::incremental_by_table()}
+	 *
+	 * Two consumers want opposite answers about staging, and one reader cannot
+	 * give both:
+	 *
+	 *  - `SchemaAgreementTest`'s per-table direction compares against the
+	 *    `CREATE`, and a staging column must NEVER be in one -- declaring it on a
+	 *    fresh install creates a permanent column the `CHANGE` then tries to
+	 *    rename another onto. So that reader EXCLUDES staging, correctly.
+	 *  - `SchemaWrittenColumnTest` asks whether a written column is declared, and
+	 *    a staging column IS declared -- by the migration that adds, fills and
+	 *    renames it. Excluding it there reports three false defects.
+	 *
+	 * Keeping them apart is what let that guard's table-agnostic escape hatch
+	 * close: measured, swapping the hatch for a per-table lookup failed on
+	 * exactly `submission_date_ts`, `submitted_at_ts` and `called_at_ts`, all
+	 * three of them #249's staging columns, and on nothing else.
+	 *
+	 * THE TABLE COMES FROM THE `CHANGE` ITSELF. Each of the three statements is
+	 * `ALTER TABLE %i CHANGE %i %i ...` with the table as the first placeholder
+	 * value on that same line, so the shared resolver reaches it -- the same
+	 * `ffc_resolve_table_variable()` the `CREATE` idiom and the incremental
+	 * idiom use. An unresolved one arrives under the `''` key so a caller can
+	 * fail on it rather than skip it.
+	 *
+	 * @param string $includes_dir Absolute path to `includes/`.
+	 * @return array<string, list<string>> table => staging columns; `''` holds the unresolved.
+	 */
+	public static function staging_by_table( string $includes_dir ): array {
+		require_once dirname( __DIR__, 2 ) . '/.github/scripts/ffc-create-statements.php';
+
+		$out = array();
+
+		foreach ( self::files_under_dir( $includes_dir ) as $path ) {
+			$source = (string) file_get_contents( $path );
+
+			if ( array() === self::staging( $source ) ) {
+				continue;
+			}
+
+			$lines = explode( "\n", $source );
+
+			preg_match_all(
+				'/CHANGE\s+%i\s+%i[^;]*?,\s*(\$[a-z_]+)\s*,\s*[\'"]([a-z_][a-z0-9_]*)[\'"]/s',
+				$source,
+				$matches,
+				PREG_OFFSET_CAPTURE
+			);
+
+			foreach ( $matches[0] as $index => $hit ) {
+				$line  = substr_count( substr( $source, 0, (int) $hit[1] ), "\n" ) + 1;
+				$table = ffc_resolve_table_variable( $lines, $line, (string) $matches[1][ $index ][0], $source, $includes_dir );
+
+				$out[ null === $table ? '' : $table ][ strtolower( (string) $matches[2][ $index ][0] ) ] = true;
+			}
+		}
+
+		$result = array();
+
+		foreach ( $out as $table => $columns ) {
+			$names = array_keys( $columns );
+			sort( $names );
+			$result[ (string) $table ] = $names;
+		}
+
+		ksort( $result );
+
+		return $result;
+	}
+
+	/**
 	 * Columns the INCREMENTAL declarers name, tree-wide and table-agnostic.
 	 *
 	 * The fallback direction A needs, and deliberately narrower than
@@ -255,17 +515,7 @@ final class SchemaColumns {
 	public static function declared_incrementally( string $includes_dir ): array {
 		$out = array();
 
-		$iterator = new \RecursiveIteratorIterator(
-			new \RecursiveDirectoryIterator( $includes_dir, \FilesystemIterator::SKIP_DOTS )
-		);
-
-		foreach ( $iterator as $file ) {
-			$path = $file->getPathname();
-
-			if ( substr( $path, -4 ) !== '.php' ) {
-				continue;
-			}
-
+		foreach ( self::files_under_dir( $includes_dir ) as $path ) {
 			$source = (string) file_get_contents( $path );
 
 			foreach ( array_merge( self::incremental( $source ), self::added_by_literal_alter( $source ), self::staging( $source ) ) as $name ) {

@@ -106,10 +106,10 @@ class RateLimitGuardTest extends TestCase {
 		$rl->shouldReceive( 'check_all' )->once()->andReturn( array( 'allowed' => true ) );
 		$rl->shouldReceive( 'record_attempt' )->with( 'ip', Mockery::any(), 0 )->once();
 		$rl->shouldReceive( 'record_attempt' )->with( 'email', 'c@d.co', 0 )->once();
-		$rl->shouldReceive( 'record_attempt' )->with( 'cpf', '12345678901', 0 )->once();
+		$rl->shouldReceive( 'record_attempt' )->with( 'cpf', '51817842080', 0 )->once();
 
 		Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'normalize_cpf_rf' )->once()->with( '123.456.789-01' )->andReturn( '12345678901' );
+			->shouldReceive( 'normalize_cpf_rf' )->once()->with( '123.456.789-01' )->andReturn( '51817842080' );
 
 		// ReprintDetector is consulted because val_cpf is set and skip_device false.
 		Mockery::mock( 'alias:\FreeFormCertificate\Frontend\ReprintDetector' )

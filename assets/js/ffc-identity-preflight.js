@@ -72,6 +72,48 @@
     }
 
     /**
+     * Show or hide the acknowledgement this form ships hidden.
+     *
+     * THE BOX IS REVEALED BY THE ANSWER, NOT BY THE TYPING.
+     *
+     * The preflight already asks whether the typed value belongs to another
+     * account, so the operator has read what the write will do by the time the
+     * box appears -- which is the condition the acknowledgement exists to
+     * satisfy, met in one request instead of a refusal and a re-render.
+     *
+     * Hiding on every other verdict is the half that matters more. An operator
+     * who checks a shared number, ticks the box and then edits the value would
+     * otherwise carry a ticked acknowledgement into a correction it was never
+     * read for. So the box is emptied as well as hidden, and the server
+     * re-decides whether it was needed at all.
+     *
+     * `required` travels with visibility through `FFC.setRequiredWithin()`: a
+     * required control inside a hidden block blocks the submit against
+     * something nobody can see (#1117). The markup ships the marker rather
+     * than the attribute, so there is no window at load where it does.
+     *
+     * @param {jQuery}  $button The Check button, which names its box.
+     * @param {boolean} on      Whether the acknowledgement is being asked for.
+     */
+    function acknowledgement($button, on) {
+        var $box = $('#' + $button.data('ffcAck'));
+
+        if (!$box.length) {
+            return;
+        }
+
+        if (!on) {
+            $box.find('input[type="checkbox"]').prop('checked', false);
+        }
+
+        $box.prop('hidden', !on);
+
+        if (window.FFC && typeof window.FFC.setRequiredWithin === 'function') {
+            window.FFC.setRequiredWithin($box, on);
+        }
+    }
+
+    /**
      * Paint one answer.
      *
      * AN ALLOWED VERDICT CAN CARRY A HOLDER, AND THEN IT IS NOT PLAIN `ok`
@@ -94,8 +136,11 @@
      *
      * @param {jQuery} $region
      * @param {Object} data
+     * @param {jQuery} $button The Check button, which names the box to reveal.
      */
-    function paint($region, data) {
+    function paint($region, data, $button) {
+        acknowledgement($button, !!(data.allowed && data.holder));
+
         if (data.allowed && data.holder) {
             say(
                 $region,
@@ -169,7 +214,7 @@
                 return;
             }
 
-            paint($region, response.data);
+            paint($region, response.data, $button);
         }).fail(function () {
             say($region, $region.data('failed') || '', 'bad');
         }).always(function () {

@@ -25,6 +25,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement here targets the plugin's own ffc_* tables, for which WordPress exposes no API, and a relink must read and write the live rows: a cached answer would be precisely wrong.
 /**
  * Move the records carrying one identifier to another account.
+ *
+ * @phpstan-import-type Agreement from IdentityAgreement
  */
 class IdentityRelink {
 
@@ -295,7 +297,7 @@ class IdentityRelink {
 	 * @since 6.28.4
 	 * @param array{identifiers: array<string, array<int, string>>, origin: int} $moving What {@see self::moving()} returned.
 	 * @param int                                                                $target The account under consideration.
-	 * @return array{matches: array<int, string>, gaps: array<string, string>, conflicts: array<int, string>, reasons: array<string, string>}|WP_Error
+	 * @return Agreement|WP_Error
 	 */
 	public function verdict( array $moving, int $target ): array|WP_Error {
 		$unnamed = self::unnamed_target( $target );
@@ -316,6 +318,19 @@ class IdentityRelink {
 			IdentityAgreement::held_by( $target )
 		);
 
+		// THE TIE IS NOT EVIDENCE UNTIL IT IS A NUMBER (#1491).
+		//
+		// The same question the merge asks, for the same reason: what authorises
+		// a move is that the records and the target AGREE about an identifier,
+		// and a value failing its own check digit cannot be either person's. It
+		// is not a weak tie, it is a wrong number -- and correcting it may leave
+		// the records with nothing tying them to that account at all.
+		$agreement = IdentityAgreement::with_unusable(
+			$agreement,
+			$moving['identifiers'],
+			$this->verdicts( $agreement, $moving['identifiers'] )
+		);
+
 		if ( array() !== $agreement['conflicts'] ) {
 			return self::refusal( $agreement, $moving['identifiers'] );
 		}
@@ -328,6 +343,45 @@ class IdentityRelink {
 		}
 
 		return $agreement;
+	}
+
+	/**
+	 * Judge each agreed-on identifier, by hash.
+	 *
+	 * The merge's twin, and deliberately a copy rather than a shared parent:
+	 * these two classes share no ancestor and inventing one to hold nine lines
+	 * would be the facade trap `CLAUDE.md` names. What they must not do is
+	 * disagree about the QUESTION, and they cannot -- both hand the answer to
+	 * `IdentityAgreement::with_unusable()`, which is where the rule lives.
+	 *
+	 * `protected` so a test can state what the scan found without an encryption
+	 * key, like `reindex()` and `unindex()` beside it.
+	 *
+	 * @since 6.31.0
+	 * @param array<string, mixed>              $agreement What `between()` returned.
+	 * @phpstan-param Agreement $agreement
+	 * @param array<string, array<int, string>> $records   Field => the moving records' hashes.
+	 * @return array<string, array<string, string>> Field => hash => a `VERDICT_*`.
+	 */
+	protected function verdicts( array $agreement, array $records ): array {
+		if ( array() === $agreement['matches'] ) {
+			return array();
+		}
+
+		$query = new IdentityConflictQuery();
+		$out   = array();
+
+		foreach ( $agreement['matches'] as $field ) {
+			$held = $records[ $field ] ?? array();
+
+			if ( array() === $held ) {
+				continue;
+			}
+
+			$out[ $field ] = $query->check_digit_verdicts( $field . '_hash', $held );
+		}
+
+		return $out;
 	}
 
 	/**
@@ -346,14 +400,19 @@ class IdentityRelink {
 	 * correcting the target cannot make a mixed set coherent.
 	 *
 	 * @since 6.30.0
-	 * @param array{matches: array<int, string>, gaps: array<string, string>, conflicts: array<int, string>, reasons: array<string, string>} $agreement What the rule decided.
-	 * @param array<string, array<int, string>>                                                                                              $carried   What the moving rows carry, per identifier.
+	 * @param array<string, mixed>              $agreement What the rule decided.
+	 * @phpstan-param Agreement $agreement
+	 * @param array<string, array<int, string>> $carried What the moving rows carry, per identifier.
 	 * @return WP_Error
 	 */
 	private static function refusal( array $agreement, array $carried ): WP_Error {
 		$disagree  = array();
 		$ambiguous = array();
+		$unusable  = array();
 
+		// `disagreement` STAYS THE DEFAULT for a reason this class does not know:
+		// the oldest and most general of the three, and a refusal that says the
+		// wrong thing beats one that says nothing.
 		foreach ( $agreement['conflicts'] as $field ) {
 			$reason = $agreement['reasons'][ $field ] ?? IdentityAgreement::REASON_DISAGREEMENT;
 
@@ -362,10 +421,23 @@ class IdentityRelink {
 				continue;
 			}
 
+			if ( IdentityAgreement::REASON_UNUSABLE === $reason ) {
+				$unusable[] = $field;
+				continue;
+			}
+
 			$disagree[] = $field;
 		}
 
 		$said = array();
+
+		foreach ( $unusable as $field ) {
+			$said[] = sprintf(
+				/* translators: %s: the identifier the records and the account share, e.g. RF. */
+				__( 'The records and that account share the same %s, and that number fails its own check digit — so it cannot be either person\'s, and it is not what ties them together. Correct it first, under "Numbers to correct": afterwards the records may have nothing tying them to that account at all, which is the answer rather than an obstacle.', 'ffcertificate' ),
+				strtoupper( $field )
+			);
+		}
 
 		if ( array() !== $disagree ) {
 			$said[] = sprintf(

@@ -12,7 +12,8 @@
  *
  * @var array<int, array<string, mixed>> $ffc_identity_findings Findings from the check-digit scan.
  * @var array{type: string, text: string, code?: string, subject?: string}|false $ffc_identity_outcome Outcome of the last write, if any; a refusal carries its code and the finding it named.
- * @var array{stores: int, examined: int, unreadable: int}       $ffc_identity_coverage What the scan actually read.
+ * @var array<string, array{stores: int, examined: int, unreadable: int}> $ffc_identity_coverage What each scan read, per identifier column.
+ * @var bool                                                              $ffc_identity_rf_gate  Whether the submission form requires the RF check digit.
  * @var array<int, string>                                       $ffc_identity_capped   Checks that returned a full page.
  * @var int                                                      $ffc_identity_taken_at When the list was taken (unix).
  * @var bool                                                     $ffc_identity_may_split Whether the operator may open an account.
@@ -55,12 +56,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 // this worklist is asked for `LIMIT` findings, and a check that returns a full
 // page has more. That second cap said nothing at all until #1397, so a queue
 // holding 140 findings of one kind looked exactly like one holding 100.
-$ffc_identity_truncated = false;
+//
+// THE SCAN'S CAP IS PER COLUMN NOW (#1486), so this records WHICH. Two columns
+// are scanned and each stops at its own cap, so one flag for both would report
+// a truncated RF scan on the CPF strip and the other way round.
+$ffc_identity_truncated         = false;
+$ffc_identity_truncated_columns = array();
 
 foreach ( $ffc_identity_findings as $ffc_identity_finding ) {
 	if ( ! empty( $ffc_identity_finding[ IdentityConflictQuery::COLUMN_SCAN_TRUNCATED ] ) ) {
 		$ffc_identity_truncated = true;
-		break;
+
+		$ffc_identity_truncated_columns[ (string) ( $ffc_identity_finding['identifier_column'] ?? '' ) ] = true;
 	}
 }
 
@@ -377,51 +384,123 @@ $ffc_identity_named = static function ( $user_id ) {
 };
 
 /**
- * One tier's name, as an operator reads it.
- *
- * @param string $tier The tier.
- * @return string
- */
-/**
  * The acknowledgement a correction needs once its value is another account's.
  *
- * RENDERED ONLY AFTER THE SERVER HAS EXPLAINED WHY (#1478).
+ * RENDERED ONLY AFTER THE OPERATOR HAS BEEN TOLD WHY (#1478).
  *
  * A correction whose confirmed value already belongs to another account is not
  * a merge -- no record moves and no account is absorbed -- so it is allowed,
  * once the operator states they mean it. What it cannot be is reflexive: the
  * write is not undoable by another use of the verb, because putting the old
  * value back means confirming a number that fails its own check digit, which
- * the service refuses first. So the box appears on the one form the refusal
- * came from, beneath the sentence that said what will happen, and nowhere else.
+ * the service refuses first.
  *
- * That also keeps the three forms honest with one another: two of them have no
- * preflight, so a box revealed by a typed value could only ever have appeared
- * on the third.
+ * WHICH IS NOT THE SAME AS `ONLY AFTER A REFUSAL`, AND THAT COST A RELEASE
+ * (#1487).
  *
- * @param string $subject The finding this form acts on.
+ * This used to render for a refusal and nothing else, and said so: `the box
+ * appears on the one form the refusal came from`. On the repair form the
+ * refusal carried no code, so the box was never drawn there -- and that is the
+ * only form the refusal can arrive from. The gate held and the way through it
+ * did not exist. The payload is fixed in `IdentityResolutionPage::outcome()`,
+ * and this no longer depends on that being the only route.
+ *
+ * The argument that followed was that two of the three forms have no
+ * preflight, so a box revealed by a typed value could only appear on the
+ * third. Both halves are true and the conclusion was backwards: the third form
+ * is exactly the one that needs it, because the preflight already ASKS whether
+ * the value belongs to somebody and paints the answer. Revealing the box
+ * beneath that sentence satisfies `told why` in one request instead of two.
+ * So a form with a preflight ships the box hidden and the preflight reveals
+ * it; a form without one still grows it from the refusal.
+ *
+ * @param string $subject   The finding this form acts on.
+ * @param bool   $preflight Whether this form can reveal the box itself.
  * @return void
  */
-$ffc_identity_ack = static function ( $subject ) use ( $ffc_identity_outcome ) {
-	if ( ! is_array( $ffc_identity_outcome ) ) {
-		return;
-	}
+$ffc_identity_ack = static function ( $subject, $preflight = false ) use ( $ffc_identity_outcome ) {
+	$refused = is_array( $ffc_identity_outcome )
+		&& 'ffc_identity_repair_unacknowledged' === (string) ( $ffc_identity_outcome['code'] ?? '' )
+		&& (string) ( $ffc_identity_outcome['subject'] ?? '' ) === (string) $subject;
 
-	if ( 'ffc_identity_repair_unacknowledged' !== (string) ( $ffc_identity_outcome['code'] ?? '' ) ) {
-		return;
-	}
-
-	if ( (string) ( $ffc_identity_outcome['subject'] ?? '' ) !== (string) $subject ) {
+	// A form with no preflight has nothing that could reveal a hidden box, so
+	// there it is rendered only by the refusal that asks for it.
+	if ( ! $refused && ! $preflight ) {
 		return;
 	}
 	?>
-	<label class="ffc-identity-ack">
-		<input type="checkbox" name="ffc_acknowledged" value="1" required>
+	<label class="ffc-identity-ack" id="ffc-ack-<?php echo esc_attr( (string) $subject ); ?>"
+		<?php echo $refused ? '' : 'hidden'; ?>>
+		<?php
+		// `required` TRAVELS WITH VISIBILITY, AND NOT AS A CONVENIENCE.
+		//
+		// Constraint validation ignores whether a control is on screen, so a
+		// `required` checkbox inside a hidden block blocks the submit against
+		// something nobody can see -- Chrome reports `An invalid form control
+		// with name='ffc_acknowledged' is not focusable` and the operator has
+		// nothing to act on. That is the #1117 class, and here it would have
+		// jammed the ordinary correction: every repair form carries this box
+		// now, and most corrections never need it.
+		//
+		// So the hidden state ships the marker `FFC.setRequiredWithin()`
+		// reads and NOT the attribute. Declaring it required-but-off in the
+		// markup rather than stripping it in JS at load is what removes the
+		// window between the two: there is no moment where a real `required`
+		// sits inside a hidden block.
+		?>
+		<input type="checkbox" name="ffc_acknowledged" value="1"
+			<?php echo $refused ? 'required' : 'data-ffc-required-off=""'; ?>>
 		<?php esc_html_e( 'I have confirmed this number with HR and mean to write it even though another account already carries it. Both accounts will then hold it, and the merge is decided separately.', 'ffcertificate' ); ?>
 	</label>
 	<?php
 };
 
+/**
+ * The label above the "corrected number" box, naming which identifier (#1486).
+ *
+ * It said "Corrected RF" while the scan behind it was RF-only. The scan reads
+ * CPF too now, so a fixed label would name the wrong identifier on half the
+ * findings -- to a screen reader, which is the only place this label is read.
+ *
+ * The two names stay UNTRANSLATED because they are not English words: `RF` is
+ * *Registro Funcional* and `CPF` *Cadastro de Pessoa Física*, proper nouns an
+ * operator reads the same way in either language, the way `CLAUDE.md` records
+ * for the domain terms the database stores.
+ *
+ * An unknown column falls back to the neutral sentence rather than guessing a
+ * name, because a wrong name is worse than no name here.
+ *
+ * @param string $column The finding's `identifier_column`.
+ * @return string
+ */
+$ffc_identity_identifier_name = static function ( $column ) {
+	switch ( (string) $column ) {
+		case 'rf_hash':
+			return 'RF';
+		case 'cpf_hash':
+			return 'CPF';
+		default:
+			return '';
+	}
+};
+
+$ffc_identity_corrected_label = static function ( $column ) use ( $ffc_identity_identifier_name ) {
+	$name = $ffc_identity_identifier_name( $column );
+
+	if ( '' === $name ) {
+		return __( 'The corrected number', 'ffcertificate' );
+	}
+
+	/* translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated. */
+	return sprintf( __( 'Corrected %s', 'ffcertificate' ), $name );
+};
+
+/**
+ * One tier's name, as an operator reads it.
+ *
+ * @param string $tier The tier.
+ * @return string
+ */
 $ffc_identity_tier_label = static function ( $tier ) {
 	switch ( $tier ) {
 		case IdentityQueue::TIER_MECHANICAL:
@@ -505,44 +584,127 @@ $ffc_identity_tier_note = static function ( $tier ) {
 	// strip must never become a cheerier second answer to their question --
 	// which is why its three verdicts are derived from the same readings
 	// those branches test, and why the reassuring one is the narrowest.
-	$ffc_identity_examined   = (int) ( $ffc_identity_coverage['examined'] ?? 0 );
-	$ffc_identity_unreadable = (int) ( $ffc_identity_coverage['unreadable'] ?? 0 );
-	$ffc_identity_stores     = (int) ( $ffc_identity_coverage['stores'] ?? 0 );
-
-	// Read nothing: no store carries the columns this check needs, or every
-	// value it found was unreadable. Both are what an encryption key that
-	// does not match the data looks like, and neither is evidence about the
-	// numbers themselves.
-	$ffc_identity_read_none = 0 === $ffc_identity_stores
-		|| ( $ffc_identity_examined > 0 && $ffc_identity_examined === $ffc_identity_unreadable );
-
-	// Read part of it: something was skipped, or a cap cut the reading short.
-	// `$ffc_identity_capped` is the per-check cap and `$ffc_identity_truncated`
-	// the scan's own — two different limits, and either one makes the counters
-	// below counts of what was read rather than of what there is.
-	$ffc_identity_read_part = ! $ffc_identity_read_none
-		&& ( $ffc_identity_unreadable > 0
-			|| 0 === $ffc_identity_examined
-			|| $ffc_identity_truncated
-			|| array() !== $ffc_identity_capped );
-
-	if ( $ffc_identity_read_none ) {
-		$ffc_identity_scan_state = 'none';
-	} elseif ( $ffc_identity_read_part ) {
-		$ffc_identity_scan_state = 'partial';
-	} else {
-		$ffc_identity_scan_state = 'whole';
+	// ONE STRIP PER COLUMN, AND SUMMING THEM WOULD UNDO THIS WHOLE SECTION (#1486).
+	//
+	// Two identifiers are scanned now. Worked through: RF reading 5,000 values
+	// cleanly plus a CPF scan that read NOTHING sums to `stores > 0`,
+	// `examined = 5000`, `unreadable = 0` -- which the three verdicts below
+	// render as "The scan read the data". The healthy half would vouch for the
+	// half that never ran, in the one place built to stop exactly that. So the
+	// coverage arrives keyed by column and each key gets its own verdict.
+	//
+	// A column ABSENT from the coverage was never scanned, which is different
+	// again from one that found no store, and it simply draws no strip -- the
+	// screen states what it measured and stays silent about the rest.
+	// A HELD LIST THAT LOST ITS READINGS MUST SAY SO, NOT GO QUIET.
+	//
+	// An absent record means "nobody scanned this column", and drawing no strip
+	// is right for that. But the worklist transient can come back with no
+	// coverage at all -- written by an older release, or truncated -- and there
+	// the absence is a LOST READING, not a column nobody asked about. Left to
+	// the rule above it would render silence, which an operator reads as
+	// "nothing to report": the #1071 failure wearing a cache, and strictly
+	// worse than the zeroes it used to show. So an empty record becomes one
+	// UNNAMED strip, which the verdict below states as having read nothing.
+	if ( array() === $ffc_identity_coverage ) {
+		$ffc_identity_coverage = array(
+			'' => array(
+				'stores'     => 0,
+				'examined'   => 0,
+				'unreadable' => 0,
+			),
+		);
 	}
-	?>
+
+	// THE EMPTY-QUEUE BRANCHES NEED ONE READING ACROSS BOTH COLUMNS, AND THEY
+	// WERE SILENTLY READING A LOOP LEFTOVER (#1500, fixing #1499).
+	//
+	// Those branches were written when coverage was one flat record, and #1499
+	// moved the three counters inside the per-column loop below without moving
+	// them. After the loop they hold whichever column ran LAST -- CPF -- so an
+	// install where RF read 3,014 values and CPF read 12,705 reported 12,705 as
+	// the whole reading and said "RF" about it. No test caught it because the
+	// fixtures supply one column, and with one column the leftover happens to be
+	// the right answer: the same trap as a test exercising the path that already
+	// works.
+	//
+	// `stores` is a MAX and the other two are SUMS, which is not an oversight.
+	// The same three tables are probed per column, so adding them would claim
+	// six; but "something was scanned" is true if ANY column found a store.
+	// Values examined and values unread are per value, so they add.
+	$ffc_identity_all = array(
+		'stores'     => 0,
+		'examined'   => 0,
+		'unreadable' => 0,
+	);
+
+	foreach ( $ffc_identity_coverage as $ffc_identity_read ) {
+		$ffc_identity_all['stores']      = max( $ffc_identity_all['stores'], (int) ( $ffc_identity_read['stores'] ?? 0 ) );
+		$ffc_identity_all['examined']   += (int) ( $ffc_identity_read['examined'] ?? 0 );
+		$ffc_identity_all['unreadable'] += (int) ( $ffc_identity_read['unreadable'] ?? 0 );
+	}
+
+	foreach ( $ffc_identity_coverage as $ffc_identity_column => $ffc_identity_read ) :
+		$ffc_identity_examined   = (int) ( $ffc_identity_read['examined'] ?? 0 );
+		$ffc_identity_unreadable = (int) ( $ffc_identity_read['unreadable'] ?? 0 );
+		$ffc_identity_stores     = (int) ( $ffc_identity_read['stores'] ?? 0 );
+		$ffc_identity_scan_name  = $ffc_identity_identifier_name( (string) $ffc_identity_column );
+		$ffc_identity_scan_cap   = ! empty( $ffc_identity_truncated_columns[ (string) $ffc_identity_column ] );
+
+		// Read nothing: no store carries the columns this check needs, or every
+		// value it found was unreadable. Both are what an encryption key that
+		// does not match the data looks like, and neither is evidence about the
+		// numbers themselves.
+		$ffc_identity_read_none = 0 === $ffc_identity_stores
+			|| ( $ffc_identity_examined > 0 && $ffc_identity_examined === $ffc_identity_unreadable );
+
+		// Read part of it: something was skipped, or a cap cut the reading
+		// short. `$ffc_identity_capped` is the per-check cap and
+		// `$ffc_identity_scan_cap` this column's own scan cap — two different
+		// limits, and either one makes the counters below counts of what was
+		// read rather than of what there is.
+		$ffc_identity_read_part = ! $ffc_identity_read_none
+			&& ( $ffc_identity_unreadable > 0
+				|| 0 === $ffc_identity_examined
+				|| $ffc_identity_scan_cap
+				|| array() !== $ffc_identity_capped );
+
+		if ( $ffc_identity_read_none ) {
+			$ffc_identity_scan_state = 'none';
+		} elseif ( $ffc_identity_read_part ) {
+			$ffc_identity_scan_state = 'partial';
+		} else {
+			$ffc_identity_scan_state = 'whole';
+		}
+		?>
 	<div class="ffc-identity-scan ffc-identity-scan-<?php echo esc_attr( $ffc_identity_scan_state ); ?>">
 		<p class="ffc-identity-scan-verdict">
-			<?php if ( $ffc_identity_read_none ) : ?>
-				<?php esc_html_e( 'This scan read nothing', 'ffcertificate' ); ?>
-			<?php elseif ( $ffc_identity_read_part ) : ?>
-				<?php esc_html_e( 'The scan read part of the data', 'ffcertificate' ); ?>
-			<?php else : ?>
-				<?php esc_html_e( 'The scan read the data', 'ffcertificate' ); ?>
-			<?php endif; ?>
+			<?php
+			// THE VERDICT NAMES THE IDENTIFIER, BECAUSE THERE ARE TWO OF THEM.
+			//
+			// "This scan read nothing" was unambiguous while one scan ran. With
+			// two it has to say WHICH, or an operator reading it beside a queue
+			// full of RF findings cannot tell whether the sentence is about the
+			// work in front of them or about the half that is missing.
+			if ( '' === $ffc_identity_scan_name ) {
+				if ( $ffc_identity_read_none ) {
+					esc_html_e( 'This scan read nothing', 'ffcertificate' );
+				} elseif ( $ffc_identity_read_part ) {
+					esc_html_e( 'The scan read part of the data', 'ffcertificate' );
+				} else {
+					esc_html_e( 'The scan read the data', 'ffcertificate' );
+				}
+			} elseif ( $ffc_identity_read_none ) {
+				/* translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated. */
+				printf( esc_html__( 'The %s scan read nothing', 'ffcertificate' ), esc_html( $ffc_identity_scan_name ) );
+			} elseif ( $ffc_identity_read_part ) {
+				/* translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated. */
+				printf( esc_html__( 'The %s scan read part of the data', 'ffcertificate' ), esc_html( $ffc_identity_scan_name ) );
+			} else {
+				/* translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated. */
+				printf( esc_html__( 'The %s scan read the data', 'ffcertificate' ), esc_html( $ffc_identity_scan_name ) );
+			}
+			?>
 		</p>
 		<p class="ffc-identity-scan-detail">
 			<?php
@@ -578,7 +740,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				esc_html( number_format_i18n( $ffc_identity_stores ) )
 			);
 			?>
-			<?php if ( $ffc_identity_truncated ) : ?>
+			<?php if ( $ffc_identity_scan_cap ) : ?>
 				· <?php esc_html_e( 'the scan reached its cap', 'ffcertificate' ); ?>
 			<?php endif; ?>
 			<?php if ( array() !== $ffc_identity_capped ) : ?>
@@ -607,6 +769,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 			</div>
 		<?php endif; ?>
 	</div>
+	<?php endforeach; ?>
 
 	<?php
 	// THE COUNTERS ARE THE PANELS, COUNTED — NEVER A SECOND OPINION.
@@ -686,6 +849,59 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				</a>
 			<?php endif; ?>
 		</div>
+	<?php endif; ?>
+
+	<?php
+	// THE ADVICE THE COUNTS CANNOT GIVE (#1498).
+	//
+	// The chips above say how many findings each tier holds; the panel order
+	// puts every correction above every tier that reads a number as evidence
+	// about people (#1491). What neither says is WHY that order matters, and it
+	// is not obvious: correcting a wrong number can make a finding below
+	// DISAPPEAR rather than be resolved, because a shared number that fails its
+	// own check digit was never evidence the two accounts were one person.
+	//
+	// That sentence exists in the code already -- but only as the merge's
+	// REFUSAL, reached after an operator has picked a pair and been turned away.
+	// This is the same fact said before the work starts, which is when it
+	// changes what somebody does.
+	//
+	// NO NUMBERS IN IT, DELIBERATELY. The chips one line up already state them,
+	// and this view's own rule is that the counters are the panels counted and
+	// never a second opinion. A sentence repeating them could disagree with
+	// them; one stating the rule cannot. It also sidesteps the plural trap the
+	// coverage strip records -- a number in a sentence needs `_n()` per number,
+	// and three numbers need three calls.
+	//
+	// GATED ON BOTH HALVES EXISTING, because advice about dissolving findings
+	// below is about nothing when there is nothing below, and nothing to correct
+	// is not a plan. The two lists come from `IdentityQueuePanels`, so the
+	// condition reuses the partition that decided the order rather than
+	// restating which tiers are which -- a second list would agree with a
+	// reordering that broke it.
+	$ffc_identity_to_correct = 0;
+	$ffc_identity_to_judge   = 0;
+
+	foreach ( $ffc_identity_panels as $ffc_identity_panel ) {
+		$ffc_identity_tier = (string) $ffc_identity_panel['tier'];
+
+		if ( in_array( $ffc_identity_tier, IdentityQueuePanels::CORRECTIONS, true ) ) {
+			$ffc_identity_to_correct += (int) $ffc_identity_panel['total'];
+		} elseif ( in_array( $ffc_identity_tier, IdentityQueuePanels::JUDGEMENTS, true ) ) {
+			$ffc_identity_to_judge += (int) $ffc_identity_panel['total'];
+		}
+	}
+	?>
+	<?php if ( $ffc_identity_to_correct > 0 && $ffc_identity_to_judge > 0 ) : ?>
+		<?php
+		wp_admin_notice(
+			esc_html__( 'Work the corrections first. A number that fails its own check digit cannot be anyone\'s, so it is not evidence that two accounts belong to one person — correcting it can make a finding further down disappear rather than be resolved.', 'ffcertificate' ),
+			array(
+				'type'               => 'info',
+				'additional_classes' => array( 'inline' ),
+			)
+		);
+		?>
 	<?php endif; ?>
 
 	<?php if ( array() !== $ffc_identity_capped ) : ?>
@@ -1644,8 +1860,42 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		$ffc_identity_head(
 			$ffc_identity_panel,
 			$ffc_identity_tier_label( IdentityQueue::TIER_ISOLATED ),
-			__( 'A stored RF whose own check digit does not match, and which no account-side finding above explains: somebody mistyped once on their only row, or the row belongs to a candidacy that carries no account until promotion. The correct value comes from HR.', 'ffcertificate' )
+			__( 'A stored RF or CPF whose own check digit does not match, and which no account-side finding above explains: somebody mistyped once on their only row, or the row belongs to a candidacy that carries no account until promotion. The correct value comes from HR.', 'ffcertificate' )
 		);
+
+		// THE TAP IS STILL RUNNING, AND THIS PANEL NEVER SAID SO (#1500).
+		//
+		// The queue and the submission form disagree about what a valid RF is.
+		// `IdentityRepair::well_formed()` is `validate_rf() &&
+		// rf_check_digit_matches()`, so the `&&` makes this panel ALWAYS require
+		// the digit. The form judges by `validate_rf()` alone, which requires it
+		// only when `ffc_validate_rf_check_digit` is on -- off by default, and
+		// the form's own refusal then reads "Invalid RF. Must contain only
+		// numbers."
+		//
+		// So an operator can work this panel to zero and watch it refill, with
+		// nothing on the screen explaining why. The sentence is the cheapest
+		// thing that stops work undoing itself.
+		//
+		// THE TWO ARE NOT MEANT TO AGREE, and the fix is never to loosen this
+		// panel. It judges values ALREADY STORED and a number that cannot be
+		// anyone's is worth reporting whatever the intake policy is; the form
+		// applies an administrator's policy about what to admit. The setting
+		// exists so an institution whose RF scheme carries no check digit can
+		// still use the plugin.
+		//
+		// MEASURED, NOT WARNED GENERICALLY: silent when the setting is on,
+		// because then the sentence would be false -- a notice that renders
+		// unconditionally is the same defect as a strip that always reads clean.
+		if ( ! $ffc_identity_rf_gate ) {
+			wp_admin_notice(
+				esc_html__( 'New wrong RFs can still arrive: the submission form currently accepts any seven digits, because the RF check-digit requirement is off. Correcting the values below does not close that door — Settings → General turns it on. It does not affect CPF, which is always checked on submission.', 'ffcertificate' ),
+				array(
+					'type'               => 'warning',
+					'additional_classes' => array( 'inline' ),
+				)
+			);
+		}
 	}
 	?>
 
@@ -1661,24 +1911,24 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		// Read once, above, where the strip states them: three names for one
 		// set of numbers is how a screen comes to disagree with itself.
 		?>
-		<?php if ( 0 === $ffc_identity_stores ) : ?>
+		<?php if ( 0 === $ffc_identity_all['stores'] ) : ?>
 			<?php
 			wp_admin_notice(
-				esc_html__( 'Nothing was scanned: no store on this install carries an RF in a form this check can read, which needs the hash, the ciphertext and a row id on the same table. This is not a clean result.', 'ffcertificate' ),
+				esc_html__( 'Nothing was scanned: no store on this install carries an RF or a CPF in a form this check can read, which needs the hash, the ciphertext and a row id on the same table. This is not a clean result.', 'ffcertificate' ),
 				array(
 					'type'               => 'warning',
 					'additional_classes' => array( 'inline' ),
 				)
 			);
 			?>
-		<?php elseif ( $ffc_identity_examined > 0 && $ffc_identity_examined === $ffc_identity_unreadable ) : ?>
+		<?php elseif ( $ffc_identity_all['examined'] > 0 && $ffc_identity_all['examined'] === $ffc_identity_all['unreadable'] ) : ?>
 			<?php
 			wp_admin_notice(
 				esc_html(
 					sprintf(
 						/* translators: %s: how many distinct stored values were found. */
 						__( 'Found %s stored values and could not read any of them, so nothing was checked. That is what an encryption key which does not match this data looks like — this is not a clean result.', 'ffcertificate' ),
-						number_format_i18n( $ffc_identity_examined )
+						number_format_i18n( $ffc_identity_all['examined'] )
 					)
 				),
 				array(
@@ -1687,7 +1937,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				)
 			);
 			?>
-		<?php elseif ( 0 === $ffc_identity_examined ) : ?>
+		<?php elseif ( 0 === $ffc_identity_all['examined'] ) : ?>
 			<?php
 			// FOUR STATES, NOT THREE. The first pass at this fixed the two
 			// obvious unread cases and left THIS one falling into the
@@ -1704,8 +1954,8 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				esc_html(
 					sprintf(
 						/* translators: %s: how many stores were scanned. */
-						__( 'No stored RF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured an RF yet — worth looking into on one that has.', 'ffcertificate' ),
-						number_format_i18n( $ffc_identity_stores )
+						__( 'No stored RF or CPF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured one yet — worth looking into on one that has.', 'ffcertificate' ),
+						number_format_i18n( $ffc_identity_all['stores'] )
 					)
 				),
 				array(
@@ -1720,8 +1970,8 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				printf(
 					/* translators: 1: values checked, 2: values that could not be read. */
 					esc_html__( 'Nothing to resolve: %1$s stored values checked and every one satisfies its check digit. %2$s could not be read and were not checked.', 'ffcertificate' ),
-					esc_html( number_format_i18n( $ffc_identity_examined ) ),
-					esc_html( number_format_i18n( $ffc_identity_unreadable ) )
+					esc_html( number_format_i18n( $ffc_identity_all['examined'] ) ),
+					esc_html( number_format_i18n( $ffc_identity_all['unreadable'] ) )
 				);
 				?>
 			</p>
@@ -1884,18 +2134,38 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_row[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
 							<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
 							<?php
-							// `text` with `inputmode`, never `number`: an RF is a
-							// fixed-width identifier, and a number input drops a
+							// THE FORM HAS TO SAY WHICH IDENTIFIER, AND IT DID NOT (#1486).
+							//
+							// Without this `posted_field()` falls back to
+							// `IdentityRepair::FIELD`, which is `rf`. Traced
+							// through: a CPF finding would reach
+							// `rows_for( $subject, 'rf_hash', … )`, match nothing
+							// and answer `ffc_identity_repair_gone` -- "Nothing
+							// carries that value any more". Not a wrong write, a
+							// FALSE SENTENCE about a finding still sitting there.
+							// It was unreachable only because the scan was
+							// RF-only, which is what this change undoes.
+							?>
+							<input type="hidden" name="ffc_field" value="<?php echo esc_attr( str_replace( '_hash', '', (string) ( $ffc_identity_row['identifier_column'] ?? 'rf' ) ) ); ?>">
+							<?php
+							// `text` with `inputmode`, never `number`: these are
+							// fixed-width identifiers, and a number input drops a
 							// leading zero -- which `rf_normalized varchar(7)` says
 							// is a digit, not formatting. That is also why the
 							// screen is outside `RequiredNumericInputTest`'s scope.
+							//
+							// 7 TO 11 DIGITS, AS THE SHARED-PAIR FORM ALREADY HAS:
+							// `[0-9]{7}` made an 11-digit CPF impossible to type,
+							// and the browser would have refused the submit with a
+							// message about a number the operator had read
+							// correctly off the finding.
 							?>
 							<label class="screen-reader-text" for="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
-								<?php esc_html_e( 'Corrected RF', 'ffcertificate' ); ?>
+								<?php echo esc_html( $ffc_identity_corrected_label( (string) ( $ffc_identity_row['identifier_column'] ?? '' ) ) ); ?>
 							</label>
-							<input type="text" inputmode="numeric" pattern="[0-9]{7}" maxlength="7" size="8" required
+							<input type="text" inputmode="numeric" pattern="[0-9]{7,11}" maxlength="11" size="12" required
 								id="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
-								name="ffc_rf" placeholder="<?php esc_attr_e( '7 digits', 'ffcertificate' ); ?>">
+								name="ffc_rf" placeholder="<?php esc_attr_e( 'The confirmed number', 'ffcertificate' ); ?>">
 							<?php
 							// THE FIELD IS NEVER PRE-FILLED AND NOTHING
 							// STORED COMES BACK.
@@ -1912,13 +2182,14 @@ $ffc_identity_tier_note = static function ( $tier ) {
 								data-ffc-subject="<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
 								data-ffc-field="<?php echo esc_attr( str_replace( '_hash', '', (string) ( $ffc_identity_row['identifier_column'] ?? 'rf' ) ) ); ?>"
 								data-ffc-value="ffc-rf-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
-								data-ffc-verdict="ffc-check-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
+								data-ffc-verdict="ffc-check-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
+								data-ffc-ack="ffc-ack-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>">
 								<?php esc_html_e( 'Check', 'ffcertificate' ); ?>
 							</button>
 							<button type="submit" class="button button-primary">
 								<?php esc_html_e( 'Correct', 'ffcertificate' ); ?>
 							</button>
-							<?php $ffc_identity_ack( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>
+							<?php $ffc_identity_ack( (string) ( $ffc_identity_row['subject'] ?? '' ), true ); ?>
 							<div class="ffc-identity-verdict" id="ffc-check-<?php echo esc_attr( (string) ( $ffc_identity_row['subject'] ?? '' ) ); ?>"
 								aria-live="polite"
 								<?php /* translators: %s: how many records the correction would rewrite. */ ?>

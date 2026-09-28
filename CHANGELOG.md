@@ -7,7 +7,28 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.30.0] (2026-09-27)
+## [6.31.0] (2026-09-28)
+
+### Changed
+
+- Identity resolution: a merge or a move is refused when the identifier the two sides share fails its own check digit, and the queue says to work the corrections first, in a panel order that states the dependency — a number that cannot be anyone's is not evidence that two accounts are one person (#1491, #1498)
+- The rule deciding which check digit applies to which identifier exists once. Three sites made it, two with bodies that differed while their docblocks agreed, and one dragged the settings layer into judging a value an operator had confirmed (#1491)
+- Test fixtures draw their CPF and RF from one set named by person in `tests/Support/Identifiers.php`, with a guard that fails on a stray value. The suite had no standard, which is why a check-digit rule turned 19 tests red over a CPF nobody had written meaning it to be invalid (#1492)
+
+### Fixed
+
+- **A reregistration field's `is_sensitive` flag no longer decides whether a stored value is decrypted** (#1509): the flag is read live but governed the write, so unticking it made the CSV export, the generated record and the public verification page present the stored **ciphertext** as the person's CPF — nothing failed and nothing was logged. The reader decides from the envelope, which is self-describing, and clearing the flag is now refused, since it cannot un-encrypt what is already written. This also ends the `decrypt_failure` noise in the other direction (#1441)
+- Identity resolution: the check-digit scan reads CPF as well as RF. It was fixed to `rf_hash`, so a stored CPF failing its own check digit was invisible while every other tier already branched on the field. The correction form inherited that — an 11-digit CPF could not be typed into it — and coverage is now per identifier (#1486)
+- Identity resolution: the acknowledgement a correction needs when its value already belongs to another account is now rendered. The refusal asked for it and the checkbox existed on neither form that posts a repair, so the gate had no way through (#1487)
+- Identity resolution: the empty-queue notices count both identifiers instead of the last column read, and the panel says when the submission form still accepts a wrong RF — so correcting the list no longer looks like it closes the door (#1500)
+- The post-deploy smoke compares the live schema's columns against what the tree declares, both ways. No gate could see a column that exists on a server and is declared nowhere: CI builds each table from the current `CREATE`, while `dbDelta` appends and never drops. Declared-but-absent and an undeclared `NOT NULL` fail; a nullable one warns (#1458, #1506)
+- The schema guards read a declaration per table, and no longer accept a REST argument schema as one. Anchored to no call, that fallback stood 85 names where 35 do; eight written columns were covered by another table's, four the encrypted CPF/RF pair on `ffc_recruitment_candidate`. Measured: 62 could have lost their only declaration undetected (#1506)
+- `ffc_audience_environments.color` is declared by its own `CREATE`, so a fresh install gets it from the statement instead of one request later from the healing chain. The per-file question hid it: `AudienceActivator` builds nine tables in one, and `ffc_audiences` declares a `color` (#1506)
+- The recruitment CSV import refuses a CPF whose check digits do not match, instead of staging, promoting and encrypting it. It checked length only and zero-pads a short value, so the check digit is what tells a repaired value from a manufactured one. Four import error codes also reached the operator as their own identifier for want of a label (#1489)
+- The module-boundary guard reads coupling from the code and from the docblock tags that state a type, not from the file as text. Prose was creating edges, and three `{@see}` pointers had been holding dead edges in the baseline, so decouplings that already happened were never locked in (#1496)
+- The test suite no longer inherits an execution-time limit from product code. `BatchedCsvExport::handle_batch()` sets 60 seconds — right for one HTTP request, and a cap on the remaining seven thousand tests in a single process (#1493)
+
+## [6.30.0] (2026-09-27) — `1cb1a009`
 
 ### Added
 

@@ -167,7 +167,7 @@ class RateLimitLoggerTest extends TestCase {
 			}
 		);
 
-		RateLimitLogger::log_attempt( 'cpf', '12345678900', 'blocked', 'cpf_threshold', 9 );
+		RateLimitLogger::log_attempt( 'cpf', '51817842080', 'blocked', 'cpf_threshold', 9 );
 
 		$this->assertSame( 'wp_ffc_rate_limit_logs', $captured_table );
 		$this->assertSame( 'cpf', $captured['type'] );

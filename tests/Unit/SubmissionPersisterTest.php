@@ -75,9 +75,9 @@ class SubmissionPersisterTest extends TestCase {
 		$ctx->form_id            = 10;
 		$ctx->form_config        = array();
 		$ctx->fields_config      = array();
-		$ctx->submission_data    = array( 'email' => 'a@b.com', 'cpf_rf' => '12345678909' );
+		$ctx->submission_data    = array( 'email' => 'a@b.com', 'cpf_rf' => '51817842080' );
 		$ctx->user_email         = 'a@b.com';
-		$ctx->val_cpf            = '12345678909';
+		$ctx->val_cpf            = '51817842080';
 		$ctx->val_ticket         = '';
 		$ctx->has_exception      = false;
 		$ctx->restriction_result = array( 'is_ticket' => false );
@@ -361,7 +361,7 @@ class SubmissionPersisterTest extends TestCase {
 		$srepo->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' );
 
 		$ds = Mockery::mock( 'alias:FreeFormCertificate\\Core\\DataSanitizer' );
-		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678909' );
+		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '51817842080' );
 		$ds->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
 
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
@@ -413,7 +413,7 @@ class SubmissionPersisterTest extends TestCase {
 		$srepo->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' );
 
 		$ds = Mockery::mock( 'alias:FreeFormCertificate\\Core\\DataSanitizer' );
-		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678909' );
+		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '51817842080' );
 		$ds->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
 
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
@@ -478,7 +478,7 @@ class SubmissionPersisterTest extends TestCase {
 		$srepo->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' );
 
 		$ds = Mockery::mock( 'alias:FreeFormCertificate\\Core\\DataSanitizer' );
-		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678909' );
+		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '51817842080' );
 		$ds->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
 
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
@@ -616,11 +616,11 @@ class SubmissionPersisterTest extends TestCase {
 		$srepo->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' );
 
 		$ds = Mockery::mock( 'alias:FreeFormCertificate\\Core\\DataSanitizer' );
-		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678909' );
+		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '51817842080' );
 		$ds->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
 
 		$persister = new SubmissionPersister( $this->bareHandler() );
-		$this->assertNull( $persister->find_quiz_submission( 5, '12345678909' ) );
+		$this->assertNull( $persister->find_quiz_submission( 5, '51817842080' ) );
 	}
 
 	// =====================================================================
@@ -636,7 +636,7 @@ class SubmissionPersisterTest extends TestCase {
 			1,
 			10,
 			array( 'jti' => 'x', 'exp' => 1 ),
-			'12345678909'
+			'51817842080'
 		);
 
 		$this->assertFalse( $result );
@@ -655,7 +655,7 @@ class SubmissionPersisterTest extends TestCase {
 			1,
 			10,
 			array( 'jti' => 'x', 'exp' => 1, 'start' => '08:00:00' ),
-			'12345678909'
+			'51817842080'
 		);
 
 		$this->assertTrue( $result );
@@ -689,7 +689,7 @@ class SubmissionPersisterTest extends TestCase {
 				'operator_cpf_hash'   => 'ohash',
 				'operator_cpf_masked' => '***',
 			),
-			'12345678909'
+			'51817842080'
 		);
 
 		$this->assertTrue( true );

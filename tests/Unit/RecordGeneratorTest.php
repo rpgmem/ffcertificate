@@ -504,6 +504,9 @@ class RecordGeneratorTest extends TestCase {
 	 */
 	public function test_decrypt_field_values_decrypts_sensitive(): void {
 		$enc = Mockery::mock('overload:FreeFormCertificate\Core\Encryption');
+		// The reader asks the VALUE whether it is an envelope before attempting
+		// (#1509), so the double has to answer that too.
+		$enc->shouldReceive('looks_like_envelope')->with('CIPHER')->andReturn(true);
 		$enc->shouldReceive('decrypt')->with('CIPHER')->andReturn('plain-cpf');
 
 		$field  = (object) ['field_key' => 'cpf', 'is_sensitive' => 1];
@@ -519,6 +522,7 @@ class RecordGeneratorTest extends TestCase {
 	 */
 	public function test_decrypt_field_values_keeps_original_when_decrypt_returns_null(): void {
 		$enc = Mockery::mock('overload:FreeFormCertificate\Core\Encryption');
+		$enc->shouldReceive('looks_like_envelope')->andReturn(true);
 		$enc->shouldReceive('decrypt')->andReturn(null);
 
 		$field  = (object) ['field_key' => 'cpf', 'is_sensitive' => 1];
@@ -526,6 +530,74 @@ class RecordGeneratorTest extends TestCase {
 		$result = RecordGenerator::decrypt_field_values([$field], $values);
 
 		$this->assertSame('CIPHER', $result['cpf']);
+	}
+
+	// ------------------------------------------------------------------
+	// #1509: the flag changed AFTER the write, in both directions.
+	//
+	// `is_sensitive` is admin-editable and read live, while the value in the row
+	// was written under whatever it said then — and nothing records which. The
+	// reader must therefore decide from the VALUE. These two tests are the whole
+	// point of that change, so they drive the flag and the value INDEPENDENTLY:
+	// each passes a flag that contradicts the data.
+	// ------------------------------------------------------------------
+
+	/**
+	 * ON then OFF — the damaging direction.
+	 *
+	 * The row holds ciphertext because the field was sensitive when it was
+	 * written; the flag has since been turned off. The old reader skipped it on
+	 * the flag and returned the CIPHERTEXT, which the CSV export, the generated
+	 * record and the public verification page then presented as the person's
+	 * CPF. Nothing failed and nothing was logged.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_decrypt_field_values_decrypts_a_row_whose_field_is_no_longer_sensitive(): void {
+		$enc = Mockery::mock('overload:FreeFormCertificate\Core\Encryption');
+		$enc->shouldReceive('looks_like_envelope')->with('v2:ENVELOPE')->andReturn( true );
+		$enc->shouldReceive('decrypt')->with('v2:ENVELOPE')->andReturn('12345678901');
+
+		// The flag says NOT sensitive. The value says otherwise, and the value wins.
+		$field  = (object) ['field_key' => 'cpf', 'is_sensitive' => 0];
+		$values = ['cpf' => 'v2:ENVELOPE'];
+
+		$result = RecordGenerator::decrypt_field_values([$field], $values);
+
+		$this->assertSame(
+			'12345678901',
+			$result['cpf'],
+			'A stored envelope must be decrypted whatever the flag currently says — otherwise the ciphertext is exported as the CPF.'
+		);
+	}
+
+	/**
+	 * OFF then ON — the noisy direction, and the assertion is about what is NOT called.
+	 *
+	 * The row holds plaintext because the field was plain when it was written;
+	 * the flag has since been turned on. The output was always right here (the
+	 * `null !==` guard kept the plaintext), but every read handed plaintext to
+	 * `decrypt()` and logged a `decrypt_failure` per field per request — #1441's
+	 * noise. `shouldNotReceive` is the real assertion: the attempt must not
+	 * happen at all.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_decrypt_field_values_never_attempts_a_plaintext_row_whose_field_became_sensitive(): void {
+		$enc = Mockery::mock('overload:FreeFormCertificate\Core\Encryption');
+		$enc->shouldReceive('looks_like_envelope')->with('123.456.789-01')->andReturn( false );
+		$enc->shouldNotReceive('decrypt');
+
+		// The flag says sensitive. The value is a formatted CPF, which no
+		// `encrypt()` ever produced.
+		$field  = (object) ['field_key' => 'cpf', 'is_sensitive' => 1];
+		$values = ['cpf' => '123.456.789-01'];
+
+		$result = RecordGenerator::decrypt_field_values([$field], $values);
+
+		$this->assertSame('123.456.789-01', $result['cpf'], 'A plaintext value must survive untouched.');
 	}
 
 	// ==================================================================

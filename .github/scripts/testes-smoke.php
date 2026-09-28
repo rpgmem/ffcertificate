@@ -29,6 +29,15 @@
  * is meant to catch. `uninstall.php` is read as text and never included:
  * including it would run the uninstaller.
  *
+ * BEING AN ESTABLISHED INSTALL IS ALSO THE ONE THING THIS CAN DO THAT NOTHING
+ * ELSE CAN, and check 4 is built on it (#1458). `dbDelta` appends and never
+ * drops, so every schema a release ever shipped is still physically present
+ * here — which is how `ffc_activity_log` came to carry three columns no
+ * statement declares, one of them `NOT NULL` with no default and therefore a
+ * strict-mode failure waiting for a host that enables it. CI cannot see that
+ * class at all: `fresh-install-check.php` builds each table FROM the current
+ * `CREATE`, so a column the `CREATE` does not declare cannot exist there.
+ *
  * KNOWN LIMIT — this runs against an ESTABLISHED install, so the table check
  * proves the tables are there, not that a fresh activation would create them.
  * It catches a table added in this release that failed to appear (activation
@@ -97,6 +106,16 @@ function ffc_smoke_find_wp_load( string $plugin_dir ): ?string {
 // manifest reader, which `fresh-install-check.php` also uses — one parser, so
 // the two checks cannot disagree about what the plugin's footprint is.
 require_once __DIR__ . '/ffc-uninstall-manifest.php';
+
+// Check 4's readers, and they are SHARED rather than reimplemented: the
+// statement finder every schema guard uses, and the column reader
+// `SchemaAgreementTest` / `SchemaWrittenColumnTest` read through. That is why a
+// `tests/Support/` file is scp'd beside this one even though the rsync excludes
+// `tests/` from the host — the alternative is a second copy of the one reader
+// that must not have two, and #1241 measured what a second copy costs.
+require_once __DIR__ . '/ffc-create-statements.php';
+require_once __DIR__ . '/SchemaColumns.php';
+require_once __DIR__ . '/ffc-schema-drift.php';
 
 // ---------------------------------------------------------------- arguments
 
@@ -216,7 +235,144 @@ $failed = ! ffc_smoke_check(
 		: count( $missing ) . ' missing: ' . implode( ', ', $missing )
 ) || $failed;
 
-// 4. Which database server actually answered, reported only. CI's fresh-install
+// 4. Every column the tree declares exists on the server, and every column the
+//    server holds is declared by something. This is the #1458 class, and this
+//    script is the ONLY place in the project that can see it: `dbDelta` appends
+//    and never drops, so an upgraded install physically carries every schema the
+//    plugin ever shipped, while CI's fresh install builds each table from the
+//    current `CREATE` and therefore cannot hold an undeclared column at all.
+//
+//    THE TWO DIRECTIONS ARE NOT THE SAME FINDING.
+//
+//    Declared but ABSENT is always fatal: `dbDelta` was supposed to add it and
+//    did not, which is the class that left `ffc_submissions` with 7 of its 25
+//    columns (#1091) and dropped `context_encrypted` on every write (#1444).
+//
+//    Present but UNDECLARED splits, because #1458 measured both halves on one
+//    table. A column that is `NOT NULL` with no default breaks every insert
+//    that omits it the day a host enables `STRICT_TRANS_TABLES` -- that is a
+//    hazard and fails. A nullable or defaulted one warns: worth seeing, and not
+//    worth reddening a deploy for. Failing on it is how an alarm becomes noise
+//    people learn to skip, which this file already argues about its own timeout
+//    and #1311 measured over twelve unread deploys.
+//
+//    `UNDECLARED` HERE MEANS `IN NO CREATE TABLE`, WHICH IS NARROWER THAN THE
+//    PROJECT'S SENSE OF THE WORD, and the first real run is what made that
+//    worth stating (#1506). A column delivered by `add_column_if_missing()` in
+//    a healing chain is declared as far as every other schema guard is
+//    concerned, and is reported here -- correctly, because a statement that
+//    does not account for its own table's columns is the fragile shape #1091
+//    and #1444 both came out of. The narrowness is the point: it is the one
+//    question no other guard asks, and the reason it saw what they did not.
+$declared = ffc_schema_declared_columns( $plugin_dir . '/includes' );
+
+// A SCAN THAT READ NOTHING MUST NOT RENDER AS CLEAN. Each of these faults makes
+// the comparison meaningless in a specific direction -- an unparsed statement
+// body worst of all, since every live column of that table would then read as
+// undeclared and the flood would look like a schema problem rather than a
+// parser one.
+$failed = ! ffc_smoke_check(
+	array() === $declared['errors'],
+	'column declarations readable',
+	array() === $declared['errors']
+		? count( $declared['tables'] ) . ' tables declared'
+		: implode( '; ', $declared['errors'] )
+) || $failed;
+
+$drift_missing = array();
+$drift_hazard  = array();
+$drift_inert   = array();
+$unreadable    = array();
+$compared      = 0;
+
+foreach ( $declared['tables'] as $table => $columns ) {
+	// A table that is not there is check 3's finding, not this one's. Reporting
+	// all of its columns as missing would bury that one line under thirty.
+	if ( in_array( $table, $missing, true ) ) {
+		continue;
+	}
+
+	$full = $wpdb->prefix . $table;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reading the live schema is the whole purpose; a cached answer would defeat it.
+	$live_rows = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $full ), ARRAY_A );
+
+	if ( ! is_array( $live_rows ) || array() === $live_rows ) {
+		$unreadable[] = $table;
+		continue;
+	}
+
+	$live = array();
+	foreach ( $live_rows as $row ) {
+		$live[ strtolower( (string) ( $row['Field'] ?? '' ) ) ] = array(
+			'null'    => (string) ( $row['Null'] ?? '' ),
+			'default' => isset( $row['Default'] ) ? (string) $row['Default'] : null,
+			'extra'   => (string) ( $row['Extra'] ?? '' ),
+		);
+	}
+
+	++$compared;
+
+	$drift = ffc_schema_drift( $columns, $live );
+
+	foreach ( $drift['missing'] as $column ) {
+		$drift_missing[] = $table . '.' . $column;
+	}
+	foreach ( $drift['hazard'] as $column ) {
+		$drift_hazard[] = $table . '.' . $column;
+	}
+	foreach ( $drift['inert'] as $column ) {
+		$drift_inert[] = $table . '.' . $column;
+	}
+}
+
+// The self-check that stops every line below from passing on an empty read.
+$failed = ! ffc_smoke_check(
+	$compared > 0,
+	'tables compared against the server',
+	$compared > 0 ? $compared . ' compared' : 'NONE — the three verdicts below mean nothing'
+) || $failed;
+
+$failed = ! ffc_smoke_check(
+	array() === $unreadable,
+	'live columns readable',
+	array() === $unreadable ? 'every compared table answered' : 'no columns read for: ' . implode( ', ', $unreadable )
+) || $failed;
+
+$failed = ! ffc_smoke_check(
+	array() === $drift_missing,
+	'declared columns present',
+	array() === $drift_missing
+		? 'every declared column exists'
+		: count( $drift_missing ) . ' declared but absent: ' . implode( ', ', $drift_missing )
+) || $failed;
+
+$failed = ! ffc_smoke_check(
+	array() === $drift_hazard,
+	'no undeclared NOT NULL column',
+	array() === $drift_hazard
+		? 'none'
+		: count( $drift_hazard ) . ' would break an omitting insert under STRICT_TRANS_TABLES: ' . implode( ', ', $drift_hazard )
+) || $failed;
+
+// THE WORDING IS LOAD-BEARING, and the first real run is why (#1506). This
+// line originally read `legacy, nullable or defaulted`, and the one finding it
+// produced was not legacy at all: `ffc_audience_environments.color` is
+// delivered by `add_column_if_missing()` in the healing chain, so it IS
+// declared by the project's own definition -- just not by the statement that
+// builds the table. A message that says `legacy` sends the reader looking for
+// something to delete when the fix is to declare it. Both readings are named
+// now, because this check cannot tell them apart: it reads `CREATE TABLE` only.
+ffc_smoke_check(
+	array() === $drift_inert,
+	'inert column in no CREATE TABLE',
+	array() === $drift_inert
+		? 'none'
+		: count( $drift_inert ) . ' nullable or defaulted, declared by a migration only or by nothing: ' . implode( ', ', $drift_inert ),
+	false
+);
+
+// 5. Which database server actually answered, reported only. CI's fresh-install
 //    check runs against a MySQL/MariaDB service image; these two values are how
 //    that image gets pinned to what the host really runs, so the dbDelta
 //    behaviour CI observes is the behaviour production will get.
@@ -227,7 +383,7 @@ ffc_smoke_check(
 	false
 );
 
-// 5. Scheduled events, reported only. Which crons should exist depends on the
+// 6. Scheduled events, reported only. Which crons should exist depends on the
 //    per-module toggles (#800), so a strict expectation here would fail for a
 //    deliberate configuration rather than a defect.
 $scheduled = array();

@@ -99,7 +99,7 @@ class FormProcessorPreflightOrderTest extends TestCase {
 			'nonce'     => 'ok',
 			'form_id'   => 1,
 			'email'     => 'user@example.org',
-			'cpf_rf'    => '52998224725', // valid CPF — would pass field loop.
+			'cpf_rf'    => '51817842080', // valid CPF — would pass field loop.
 			// ffc_lgpd_consent intentionally missing.
 		);
 
@@ -120,7 +120,7 @@ class FormProcessorPreflightOrderTest extends TestCase {
 			'nonce'            => 'ok',
 			'form_id'          => 1,
 			'ffc_lgpd_consent' => '1',
-			'cpf_rf'           => '52998224725',
+			'cpf_rf'           => '51817842080',
 			// email field intentionally missing.
 		);
 
@@ -140,7 +140,7 @@ class FormProcessorPreflightOrderTest extends TestCase {
 			'action'  => 'ffc_submit_form',
 			'nonce'   => 'ok',
 			'form_id' => 1,
-			'cpf_rf'  => '52998224725',
+			'cpf_rf'  => '51817842080',
 			// email + LGPD both missing.
 		);
 
@@ -174,7 +174,7 @@ class FormProcessorPreflightOrderTest extends TestCase {
 			'form_id'          => 1,
 			'ffc_lgpd_consent' => '1',
 			'email'            => 'user@example.org',
-			'cpf_rf'           => '52998224725',
+			'cpf_rf'           => '51817842080',
 		);
 
 		try {

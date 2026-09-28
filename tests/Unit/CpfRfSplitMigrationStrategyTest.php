@@ -210,14 +210,14 @@ class CpfRfSplitMigrationStrategyTest extends TestCase {
 	public function test_resolve_plain_value_returns_plain_cpf_rf(): void {
 		$record = array(
 			'id'               => 1,
-			'cpf_rf'           => '12345678901',
+			'cpf_rf'           => '51817842080',
 			'cpf_rf_encrypted' => 'enc_value',
 			'cpf_rf_hash'      => 'hash_value',
 		);
 
 		$result = $this->invokePrivate( 'resolve_plain_value', array( $record ) );
 
-		$this->assertSame( '12345678901', $result );
+		$this->assertSame( '51817842080', $result );
 	}
 
 	// ==================================================================
@@ -338,7 +338,7 @@ class CpfRfSplitMigrationStrategyTest extends TestCase {
 			// 7 digits → RF branch.
 			array(
 				'id'               => 2,
-				'cpf_rf'           => '1234567',
+				'cpf_rf'           => '5181780',
 				'cpf_rf_encrypted' => 'enc_rf',
 				'cpf_rf_hash'      => 'hash_rf',
 			),
@@ -374,7 +374,7 @@ class CpfRfSplitMigrationStrategyTest extends TestCase {
 		$records = array(
 			array(
 				'id'               => 1,
-				'cpf_rf'           => '12345678901',
+				'cpf_rf'           => '51817842080',
 				'cpf_rf_encrypted' => 'enc_cpf',
 				'cpf_rf_hash'      => 'hash_cpf',
 			),

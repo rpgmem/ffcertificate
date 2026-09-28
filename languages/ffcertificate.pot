@@ -769,10 +769,6 @@ msgstr ""
 msgid "Report-only scan of how people are linked to WordPress users — across certificate submissions, appointments, recruitment candidacies and the identity index. Nothing is changed: review each finding and fix it manually. Detection groups by the stored CPF/RF hashes; the columns that classify a difference decrypt in memory and report a category only — never a value, and nothing is written."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-migrations.php:921
-msgid "Stored RF whose check digit does not match"
-msgstr ""
-
 #: includes/user-dashboard/class-ffc-capability-catalog.php:412
 msgid "Work the identity queue: correct a stored CPF/RF, split an account holding two people, merge two accounts holding one. Does not reveal a stored identifier — that stays with the PII capability."
 msgstr ""
@@ -4969,10 +4965,6 @@ msgstr ""
 msgid "Could not read legacy template file: %s"
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-error-messages.php:183
-msgid "Could not read the uploaded CSV file."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:154
 msgid "Could not register the call. Please try again."
 msgstr ""
@@ -5111,10 +5103,6 @@ msgstr ""
 
 #: includes/frontend/class-ffc-csv-download-validator.php:194
 msgid "CPF is required to download this CSV."
-msgstr ""
-
-#: includes/recruitment/class-ffc-recruitment-error-messages.php:190
-msgid "CPF must contain digits only."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-record.php:68
@@ -12127,10 +12115,6 @@ msgstr ""
 msgid "no CPF check."
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-error-messages.php:182
-msgid "No CSV file was uploaded."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:265
 msgid "No data is lost — you can publish again later."
 msgstr ""
@@ -15158,6 +15142,10 @@ msgstr ""
 msgid "Reregistration reminder: {{reregistration_title}}"
 msgstr ""
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:285
+msgid "Sensitive Field Demotion Refused"
+msgstr ""
+
 #: includes/admin/class-ffc-admin-activity-log-page.php:282
 msgid "Reregistration Reminders Sent"
 msgstr ""
@@ -15399,10 +15387,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-record.php:66
 msgid "RF identifier"
-msgstr ""
-
-#: includes/recruitment/class-ffc-recruitment-error-messages.php:191
-msgid "RF must contain digits only."
 msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:198 includes/frontend/class-ffc-verification-response-renderer.php:466
@@ -17928,10 +17912,6 @@ msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:502
 msgid "The CSV download is not available for this form."
-msgstr ""
-
-#: includes/recruitment/class-ffc-recruitment-error-messages.php:185
-msgid "The CSV file could not be parsed. Make sure it is UTF-8 with comma or semicolon delimiters."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:184
@@ -22055,24 +22035,16 @@ msgstr ""
 msgid "The scan reached its cap before reading every stored value, so this list is partial. Work it down and run the screen again."
 msgstr ""
 
-
 msgid "No account"
 msgstr ""
 
 msgid "Too many rows to list."
 msgstr ""
 
-
 msgid "Corrected. The rows, the identity index and the account's certificate access were updated together."
 msgstr ""
 
 msgid "Names more than one account — the same wrong number was typed by more than one person, so one corrected value cannot serve it."
-msgstr ""
-
-msgid "Corrected RF"
-msgstr ""
-
-msgid "7 digits"
 msgstr ""
 
 msgid "Correct"
@@ -22105,19 +22077,10 @@ msgstr ""
 msgid "Stored RF Corrected"
 msgstr ""
 
-msgid "Nothing was scanned: no store on this install carries an RF in a form this check can read, which needs the hash, the ciphertext and a row id on the same table. This is not a clean result."
-msgstr ""
-
 msgid "Found %s stored values and could not read any of them, so nothing was checked. That is what an encryption key which does not match this data looks like — this is not a clean result."
 msgstr ""
 
 msgid "Nothing to resolve: %1$s stored values checked and every one satisfies its check digit. %2$s could not be read and were not checked."
-msgstr ""
-
-msgid "No stored RF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured an RF yet — worth looking into on one that has."
-msgstr ""
-
-msgid "A stored RF whose own check digit does not match, and which no account-side finding above explains: somebody mistyped once on their only row, or the row belongs to a candidacy that carries no account until promotion. The correct value comes from HR."
 msgstr ""
 
 msgid "Accounts and stored numbers that do not agree with each other, sorted by how much of the answer is already known. The check digits are what sort them: they can say a number is wrong, and never what the right one is. Identifiers are shown as a hash prefix — the values are decrypted in memory to be checked and none of them leaves the scan."
@@ -22805,4 +22768,75 @@ msgid "Name the Accounts Created Without One"
 msgstr ""
 
 msgid "Write the display name and first name of every account that has neither, from the name its own candidacy or submission already carries. A promotion used to create the account without passing the person's name, so WordPress fell back to storing the login — which is what the user list, the dashboard greeting and every e-mail then showed them. Only an account whose display name is still its login and whose first name is empty is touched, because those two are written together and an account with one but not the other was changed by something else. Completion here means every such account was EXAMINED: one whose records name nobody is read, left alone, and counted as done."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:193
+msgid "CPF has more digits than a CPF can have — check the column for a stray value."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:194
+msgid "RF has more digits than an RF can have — check the column for a stray value."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:199
+msgid "CPF is not valid — its check digits do not match. Confirm the number in the source spreadsheet."
+msgstr ""
+
+#. translators: %s: the identifier both accounts hold, e.g. RF.
+#: includes/maintenance/class-ffc-identity-merge.php:303
+msgid "Both accounts hold the same %s, and that number fails its own check digit — so it cannot be either person's, and it is not evidence that they are one person. Correct it first, under \"Numbers to correct\": doing so may dissolve this pair rather than resolve it, because the shared number may be the typo that paired them."
+msgstr ""
+
+#. translators: %s: the identifier the records and the account share, e.g. RF.
+#: includes/maintenance/class-ffc-identity-relink.php:437
+msgid "The records and that account share the same %s, and that number fails its own check digit — so it cannot be either person's, and it is not what ties them together. Correct it first, under \"Numbers to correct\": afterwards the records may have nothing tying them to that account at all, which is the answer rather than an obstacle."
+msgstr ""
+
+#. translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated.
+#: includes/admin/views/identity-resolution-page.php:494
+msgid "Corrected %s"
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:490
+msgid "The corrected number"
+msgstr ""
+
+#. translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated.
+#: includes/admin/views/identity-resolution-page.php:670
+msgid "The %s scan read nothing"
+msgstr ""
+
+#. translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated.
+#: includes/admin/views/identity-resolution-page.php:673
+msgid "The %s scan read part of the data"
+msgstr ""
+
+#. translators: %s: an identifier's name, e.g. RF -- a proper noun, untranslated.
+#: includes/admin/views/identity-resolution-page.php:676
+msgid "The %s scan read the data"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-migrations.php:992
+msgid "Stored RF or CPF whose check digit does not match"
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:1810
+msgid "A stored RF or CPF whose own check digit does not match, and which no account-side finding above explains: somebody mistyped once on their only row, or the row belongs to a candidacy that carries no account until promotion. The correct value comes from HR."
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:1839
+msgid "New wrong RFs can still arrive: the submission form currently accepts any seven digits, because the RF check-digit requirement is off. Correcting the values below does not close that door — Settings → General turns it on. It does not affect CPF, which is always checked on submission."
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:1864
+msgid "Nothing was scanned: no store on this install carries an RF or a CPF in a form this check can read, which needs the hash, the ciphertext and a row id on the same table. This is not a clean result."
+msgstr ""
+
+#. translators: %s: how many stores were scanned.
+#: includes/admin/views/identity-resolution-page.php:1904
+msgid "No stored RF or CPF was found at all: none of the %s stores scanned holds a row with both a hash and a ciphertext, so there was nothing to check. Ordinary on an install that has not captured one yet — worth looking into on one that has."
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:898
+msgid "Work the corrections first. A number that fails its own check digit cannot be anyone's, so it is not evidence that two accounts belong to one person — correcting it can make a finding further down disappear rather than be resolved."
 msgstr ""

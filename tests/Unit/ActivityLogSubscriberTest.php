@@ -175,7 +175,7 @@ class ActivityLogSubscriberTest extends TestCase {
 		$wpdb->shouldNotReceive( 'insert' );
 
 		$subscriber = new ActivityLogSubscriber();
-		$subscriber->on_submission_created( 1, 10, array( 'cpf_rf' => '12345678901' ), 'test@example.com' );
+		$subscriber->on_submission_created( 1, 10, array( 'cpf_rf' => '51817842080' ), 'test@example.com' );
 	}
 
 	public function test_on_submission_updated_runs_without_error(): void {

@@ -840,7 +840,7 @@ class ReregistrationDataProcessorTest extends TestCase {
 
 		$submission = (object) array( 'id' => 99 );
 		$rereg      = (object) array( 'id' => 1, 'auto_approve' => 0 );
-		$data       = array( 'fields' => array( 'cpf' => '52998224725', 'nickname' => 'Jo' ) );
+		$data       = array( 'fields' => array( 'cpf' => '51817842080', 'nickname' => 'Jo' ) );
 
 		ReregistrationDataProcessor::process_submission( $submission, $rereg, $data, 7 );
 
@@ -853,7 +853,7 @@ class ReregistrationDataProcessorTest extends TestCase {
 		$this->assertArrayNotHasKey( 'reviewed_at', $captured['data'] );
 
 		// Profile sync carried the plain CPF, flagged sensitive.
-		$this->assertSame( '52998224725', $um_payload['payload']['cpf'] );
+		$this->assertSame( '51817842080', $um_payload['payload']['cpf'] );
 		$this->assertContains( 'cpf', $um_payload['sensitive'] );
 
 		// Snapshot only carries the non-profile 'nickname' (keyed field_<id>).

@@ -338,11 +338,36 @@ class RecordGenerator {
 	}
 
 	/**
-	 * Decrypt sensitive fields in a value map.
+	 * Decrypt the values of a field map, deciding from the VALUE not from a flag.
 	 *
-	 * Fields with is_sensitive=1 are persisted as AES-256-CBC ciphertext in
-	 * the submission JSON. Record rendering needs the plaintext value.
+	 * THE ONE IMPLEMENTATION, and it no longer reads `is_sensitive` (#1509).
 	 *
+	 * It used to skip any field whose `is_sensitive` was falsy. That flag is an
+	 * admin-editable `tinyint(1)` read LIVE, while the value in the row was
+	 * written under whatever it said at the time — and nothing records which.
+	 * #1210 established the invariant (*the flag that governed the WRITE is the
+	 * one that governs the read*) and implemented it across campaigns; across
+	 * TIME within one campaign it was never implemented, so the two directions
+	 * both misread:
+	 *
+	 *  - OFF then ON: rows holding plaintext were handed to `decrypt()`, which
+	 *    returned null. The `null !==` guard kept the plaintext, so the output
+	 *    was right and the only cost was a `decrypt_failure` per field per
+	 *    request in `debug.log` (#1441's noise).
+	 *  - ON then OFF: rows holding ciphertext were SKIPPED, so the ciphertext
+	 *    itself became the value — reaching the CSV export, the generated record
+	 *    and the public verification page as if it were the person's CPF.
+	 *    Nothing failed and nothing was logged.
+	 *
+	 * The envelope is self-describing, so the flag is not needed to decide:
+	 * {@see Encryption::looks_like_envelope()} answers from the value. That
+	 * fixes the second direction and ends the first one's log noise, because a
+	 * plaintext value is no longer handed to `decrypt()` at all.
+	 *
+	 * `$fields` still drives the iteration — it is the set of keys this campaign
+	 * knows — but only the KEY is read from it now, never the flag.
+	 *
+	 * @since 6.31.0 Decides from the envelope; `is_sensitive` is no longer read.
 	 * @param array<int, object>   $fields Field definitions.
 	 * @param array<string, mixed> $values field_key => persisted value (may be encrypted).
 	 * @phpstan-param list<CustomFieldRow> $fields
@@ -356,14 +381,22 @@ class RecordGenerator {
 		}
 
 		foreach ( $fields as $field ) {
-			if ( empty( $field->is_sensitive ) ) {
-				continue;
-			}
 			$key = (string) $field->field_key;
-			if ( ! isset( $decrypted[ $key ] ) || '' === $decrypted[ $key ] || ! is_string( $decrypted[ $key ] ) ) {
+
+			if ( ! isset( $decrypted[ $key ] ) || ! is_string( $decrypted[ $key ] ) || '' === $decrypted[ $key ] ) {
 				continue;
 			}
+
+			// A SHAPE test, never a validity one: it says the attempt is worth
+			// making. A tampered or key-rotated envelope still answers null
+			// below, and the original is kept — which is why this is safe to run
+			// over every key rather than only the ones a flag nominates.
+			if ( ! \FreeFormCertificate\Core\Encryption::looks_like_envelope( $decrypted[ $key ] ) ) {
+				continue;
+			}
+
 			$plain = \FreeFormCertificate\Core\Encryption::decrypt( $decrypted[ $key ] );
+
 			if ( null !== $plain ) {
 				$decrypted[ $key ] = $plain;
 			}

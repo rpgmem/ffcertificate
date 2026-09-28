@@ -190,13 +190,23 @@ jobs:
 
           # The scripts are scp'd to a scratch directory and removed afterwards:
           # they are CI tooling, and the plugin directory on a runtime host
-          # stays clean (the rsync excludes .github/ for the same reason). Both
-          # files go together and keep their names — the smoke `require`s the
-          # shared manifest reader from its own directory.
+          # stays clean (the rsync excludes .github/ for the same reason). They
+          # all go together and keep their names — the smoke `require`s each one
+          # from its own directory.
+          #
+          # SchemaColumns.php comes from tests/Support/ on purpose, and the
+          # rsync above excludes tests/ from the host. It travels here because
+          # it is the column reader every schema guard reads through, and check
+          # 4 must not disagree with them about what a column is; a copy in
+          # .github/scripts/ would be a second copy of exactly that (#1241
+          # measured what one costs). It lands in a scratch dir, never in the
+          # plugin directory, like the other three.
           REMOTE_DIR="/tmp/ffc-smoke-${GITHUB_RUN_ID}"
           $SSH_CMD "${SSH_USER}@${SSH_HOST}" "mkdir -p ${REMOTE_DIR}"
           scp -i ~/.ssh/deploy_key -P "$PORT" -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
             .github/scripts/testes-smoke.php .github/scripts/ffc-uninstall-manifest.php \
+            .github/scripts/ffc-create-statements.php .github/scripts/ffc-schema-drift.php \
+            tests/Support/SchemaColumns.php \
             "${SSH_USER}@${SSH_HOST}:${REMOTE_DIR}/"
 
           set +e

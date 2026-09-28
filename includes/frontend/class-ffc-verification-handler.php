@@ -443,33 +443,32 @@ class VerificationHandler {
 			return $values;
 		}
 
-		// Gather all active fields for the reregistration's audiences and.
-		// decrypt sensitive values in place.
+		// Gather every active field for the reregistration's audiences, then hand
+		// the map to the shared reader.
+		//
+		// THE DECRYPTION LOOP THAT USED TO BE HERE WAS A THIRD COPY (#1509), and
+		// it read `is_sensitive` to decide — a flag an administrator edits, while
+		// the value in the row was written under whatever it said then. Turning it
+		// off made this method return CIPHERTEXT, which the public verification
+		// page then printed as the person's CPF. The reader decides from the
+		// envelope now, so the flag is not consulted and neither direction of a
+		// flag change can misread. Only the field KEYS are gathered here.
 		$audience_ids = \FreeFormCertificate\Reregistration\ReregistrationRepository::get_audience_ids( (int) $rereg->id );
 		$seen         = array();
+		$fields       = array();
+
 		foreach ( $audience_ids as $aud_id ) {
-			$fields = \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_audience_with_parents( (int) $aud_id, true );
-			foreach ( $fields as $field ) {
+			foreach ( \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_audience_with_parents( (int) $aud_id, true ) as $field ) {
 				if ( isset( $seen[ (int) $field->id ] ) ) {
 					continue;
 				}
-				$seen[ (int) $field->id ] = true;
 
-				if ( empty( $field->is_sensitive ) ) {
-					continue;
-				}
-				$key = (string) $field->field_key;
-				if ( ! isset( $values[ $key ] ) || '' === $values[ $key ] || ! is_string( $values[ $key ] ) ) {
-					continue;
-				}
-				$plain = \FreeFormCertificate\Core\Encryption::decrypt( $values[ $key ] );
-				if ( null !== $plain ) {
-					$values[ $key ] = $plain;
-				}
+				$seen[ (int) $field->id ] = true;
+				$fields[]                 = $field;
 			}
 		}
 
-		return $values;
+		return \FreeFormCertificate\Reregistration\RecordGenerator::decrypt_field_values( $fields, $values );
 	}
 
 	/**
