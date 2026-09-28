@@ -361,7 +361,7 @@ class ReregistrationExportSource implements BatchedExportSourceInterface {
 	 * name is what the CSV code reads, and `decrypt_sensitive` says what the
 	 * export wants; `decrypt_field_values` says what the reader does.
 	 *
-	 * @since 6.30.1 Delegates instead of duplicating.
+	 * @since 6.31.0 Delegates instead of duplicating.
 	 * @param array<int, object>   $fields Field definitions.
 	 * @param array<string, mixed> $values field_key => persisted value.
 	 * @phpstan-param list<CustomFieldRow> $fields

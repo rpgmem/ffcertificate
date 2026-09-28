@@ -1094,7 +1094,7 @@ class IdentityResolutionPage {
 	 * still satisfies it when there was no preflight, or when JavaScript never
 	 * ran.
 	 *
-	 * @since 6.30.1
+	 * @since 6.31.0
 	 * @param array<string, mixed>|WP_Error $result  What the write returned.
 	 * @param string                        $success What to say when it worked.
 	 * @return array<string, mixed>

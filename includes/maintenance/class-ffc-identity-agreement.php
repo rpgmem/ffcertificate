@@ -301,7 +301,7 @@ class IdentityAgreement {
 	 * mismatched encryption key look like a data defect and block every merge on
 	 * an install whose key does not match its rows.
 	 *
-	 * @since 6.30.1
+	 * @since 6.31.0
 	 * @param array<string, mixed>                 $agreement What {@see self::between()} returned.
 	 * @phpstan-param Agreement $agreement
 	 * @param array<string, array<int, string>>    $records   Field => the moving side's hashes.

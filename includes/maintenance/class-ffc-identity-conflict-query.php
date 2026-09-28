@@ -841,7 +841,7 @@ class IdentityConflictQuery {
 	 * asserts": it is ordered `cpf_hash, rf_hash` for the checks that walk
 	 * both, a different purpose that would silently invert this decision.
 	 *
-	 * @since 6.30.1
+	 * @since 6.31.0
 	 * @var list<string>
 	 */
 	private const CHECK_DIGIT_COLUMNS = array( 'rf_hash', 'cpf_hash' );
@@ -869,7 +869,7 @@ class IdentityConflictQuery {
 	 * the trim would otherwise be decided twice and could disagree -- and the
 	 * per-column coverage this leaves behind is read from this same object.
 	 *
-	 * @since 6.30.1
+	 * @since 6.31.0
 	 * @param int $limit How many findings the caller wants.
 	 * @return array<int, array<string, mixed>>
 	 */
@@ -1308,7 +1308,7 @@ class IdentityConflictQuery {
 	 * sit in `Maintenance`, so the module-boundary baseline does not move.
 	 *
 	 * @since 6.28.3
-	 * @since 6.30.1 Delegates rather than branching a second time.
+	 * @since 6.31.0 Delegates rather than branching a second time.
 	 * @param string $field `cpf` or `rf`.
 	 * @param string $plain The identifier as stored.
 	 * @return bool

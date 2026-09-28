@@ -201,7 +201,7 @@ class CustomFieldWriter {
 	 * heals the installs that already demoted a field before this existed. A
 	 * write-time guard cannot reach state that is already wrong.
 	 *
-	 * @since 6.30.1 Refuses to clear `is_sensitive`.
+	 * @since 6.31.0 Refuses to clear `is_sensitive`.
 	 * @param int                  $field_id Field ID.
 	 * @param array<string, mixed> $data     Update data.
 	 * @return bool
