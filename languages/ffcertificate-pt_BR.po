@@ -22932,8 +22932,8 @@ msgid "Stored RF or CPF whose check digit does not match"
 msgstr "RF ou CPF armazenado cujo dígito verificador não confere"
 
 #: includes/admin/views/identity-resolution-page.php:1810
-msgid "A stored RF or CPF whose own check digit does not match, and which no account-side finding above explains: somebody mistyped once on their only row, or the row belongs to a candidacy that carries no account until promotion. The correct value comes from HR."
-msgstr "Um RF ou CPF armazenado cujo dígito verificador não confere e que nenhum achado por conta acima explica: alguém digitou errado uma única vez na sua única linha, ou a linha pertence a uma candidatura que não carrega conta até a promoção. O valor correto vem do RH."
+msgid "A stored RF or CPF whose own check digit does not match, and which no action above corrects: the account holds only this one, the row belongs to a candidacy that carries no account until promotion, or the card naming it can only move, split or merge — none of which touches a number. The correct value comes from HR."
+msgstr "Um RF ou CPF armazenado cujo dígito verificador não confere e que nenhuma ação acima corrige: a conta guarda só este, a linha pertence a uma candidatura que não carrega conta até a promoção, ou o card que o nomeia só sabe mover, separar ou mesclar — e nenhuma dessas toca em número. O valor correto vem do RH."
 
 #: includes/admin/views/identity-resolution-page.php:1839
 msgid "New wrong RFs can still arrive: the submission form currently accepts any seven digits, because the RF check-digit requirement is off. Correcting the values below does not close that door — Settings → General turns it on. It does not affect CPF, which is always checked on submission."
