@@ -224,32 +224,56 @@ class SchemaWrittenColumnTest extends TestCase {
 	public function test_every_written_column_is_declared_by_its_own_table(): void {
 		$scan      = $this->scan();
 		$by_table   = SchemaColumns::declared_by_table( $this->root() . '/includes' );
-		$increments = SchemaColumns::declared_incrementally( $this->root() . '/includes' );
+		$increments = SchemaColumns::incremental_by_table( $this->root() . '/includes' );
+		$staging    = SchemaColumns::staging_by_table( $this->root() . '/includes' );
 		$undeclared = array();
+
+		// A CALL WHOSE TABLE COULD NOT BE RESOLVED ARRIVES UNDER `''`, AND IT
+		// MUST FAIL HERE RATHER THAN QUIETLY SHRINK THE DECLARED SET. With the
+		// hatch closed, an unattributed declaration no longer covers anything,
+		// so its columns would be reported as `declared by nothing` -- a loud
+		// failure, but with a message that sends the reader to the wrong file.
+		// These two say which it is.
+		$this->assertArrayNotHasKey(
+			'',
+			$increments,
+			'An add_column(s)_if_missing() call names a table this scan cannot resolve: '
+			. implode( ', ', $increments[''] ?? array() )
+		);
+		$this->assertArrayNotHasKey(
+			'',
+			$staging,
+			'A staging CHANGE names a table this scan cannot resolve: '
+			. implode( ', ', $staging[''] ?? array() )
+		);
 
 		foreach ( $scan['strong'] as $site ) {
 			foreach ( $site['columns'] as $column ) {
-				// The incremental declarers are read per FILE rather than per
-				// table, so a column declared incrementally ANYWHERE counts --
-				// the one place direction A borrows B's reading, and why a column
-				// moved between two tables' helpers is not caught here.
+				// EVERY LOOKUP HERE IS PER TABLE (#1506). This used to end in a
+				// table-agnostic escape hatch -- `isset( $increments[ $column ] )` --
+				// because attributing an `add_column_if_missing( $table, … )` call to
+				// a table needed a resolution that did not exist yet. It does now,
+				// shared with the `CREATE` idiom, so the hatch is gone.
 				//
-				// THE REASON THIS USED TO GIVE IS NO LONGER TRUE, and saying so is
-				// cheaper than letting a reader trust it (#1506). It read *"it
-				// would need that resolution a second time"*; the resolution now
-				// exists and is shared -- `SchemaColumns::incremental_by_table()`,
-				// built on the same `ffc_resolve_table_variable()` this scan uses.
+				// WHAT IT WAS COSTING, MEASURED: eight written columns were covered
+				// by a declaration belonging to ANOTHER table, four of them the
+				// encrypted-PII pair on `ffc_recruitment_candidate` -- `cpf_hash`,
+				// `cpf_encrypted`, `rf_hash`, `rf_encrypted` -- which
+				// `ffc_self_scheduling_appointments` happens to declare under the
+				// same names. Deleting `cpf_hash` from the candidate table's own
+				// `CREATE` passed the guard with the hatch open and fails with it
+				// closed, which is the whole difference: on that install the identity
+				// search would silently stop matching candidates.
 				//
-				// SO WHY THE HATCH STAYS, MEASURED: swapping it for the per-table
-				// lookup fails on exactly three columns, and all three are the
-				// #249 staging columns (`submission_date_ts`, `submitted_at_ts`,
-				// `called_at_ts`). They are WRITTEN by the migration that fills
-				// them and must never appear in a `CREATE`, so the per-table
-				// reader excludes them by design while the flat one absorbs them.
-				// Closing the hatch therefore means deciding how staging is
-				// attributed, which is a change to what that reader means -- not a
-				// two-line swap. Tracked in #1506.
-				if ( isset( $by_table[ $site['table'] ][ $column ] ) || isset( $increments[ $column ] ) ) {
+				// STAGING IS A SEPARATE READER, and that is why it took two steps.
+				// `incremental_by_table()` excludes #249's staging columns because a
+				// staging column must never reach a `CREATE`; here they ARE declared,
+				// by the migration that adds, fills and renames them. One reader
+				// cannot answer both, so `staging_by_table()` answers this one -- and
+				// those three columns were exactly what blocked closing the hatch.
+				if ( isset( $by_table[ $site['table'] ][ $column ] )
+					|| in_array( $column, $increments[ $site['table'] ] ?? array(), true )
+					|| in_array( $column, $staging[ $site['table'] ] ?? array(), true ) ) {
 					continue;
 				}
 
