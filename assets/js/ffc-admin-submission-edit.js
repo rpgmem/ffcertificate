@@ -40,11 +40,23 @@ jQuery(document).ready(function($) {
         var confirmMsg = $(this).data('confirm');
 
         if (confirm(confirmMsg)) {
-            // Set the hidden input to empty (unlink)
+            // Empty means unlink; `__keep__` means leave the link alone.
             $('input[name="linked_user_id"]').val('');
-            // Submit the form
+            // A programmatic submit activates no button, so the marker the
+            // handler gates on must be a FIELD of the form -- it is, since the
+            // fix that made this control work at all.
             $(this).closest('form').submit();
         }
+    });
+
+    // ========================================
+    // Link to Another User - reveal the search
+    // ========================================
+    $('.ffc-relink-user-btn').on('click', function(e) {
+        e.preventDefault();
+        $('.ffc-user-search-container').show();
+        $(this).prop('disabled', true);
+        $('#ffc-user-search-input').trigger('focus');
     });
 
     // ========================================
@@ -148,7 +160,10 @@ jQuery(document).ready(function($) {
 
     // Clear selection
     $(document).on('click', '.ffc-clear-selection', function() {
-        $selectedUserId.val('');
+        // `__keep__`, never '': clearing a selection means "change nothing",
+        // while '' is the unlink instruction. One field carries both, so the
+        // wrong one here would unlink on the next save.
+        $selectedUserId.val('__keep__');
         $selectedPreview.hide();
     });
 

@@ -22,6 +22,26 @@ msgstr ""
 msgid " by <strong>%s</strong>"
 msgstr " por <strong>%s</strong>"
 
+#: includes/admin/class-ffc-admin-submission-edit-page.php:347
+msgid "An unlinked submission has no account, which is the state the identity queue adopts."
+msgstr "Uma submissão desvinculada não tem conta, que é o estado adotado pela fila de identidade."
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:350
+msgid "Choose another user to own this submission. The change is applied when you save."
+msgstr "Escolha outro usuário para ser o dono desta submissão. A alteração é aplicada ao salvar."
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:343
+msgid "Link to Another User"
+msgstr "Vincular a Outro Usuário"
+
+#: includes/admin/class-ffc-admin-user-columns.php:137
+msgid "Opens the dashboard as this user, in a new tab. Read-only impersonation; nothing is submitted on their behalf."
+msgstr "Abre o painel como este usuário, em uma nova aba. Impersonação somente leitura; nada é enviado em nome dele."
+
+#: includes/admin/class-ffc-admin-user-columns.php:133
+msgid "View as this user"
+msgstr "Ver como este usuário"
+
 #: includes/settings/views/documentation/email-texts-hub.php:54
 msgid "\"All plugin emails\" directory"
 msgstr "Diretório \"Todos os e-mails do plugin\""
