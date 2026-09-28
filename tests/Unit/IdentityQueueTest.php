@@ -376,10 +376,11 @@ class IdentityQueueTest extends TestCase {
 	/**
 	 * A worklist that lists one finding twice cannot be worked to zero.
 	 *
-	 * The failure the account-side finding already names must not come back as
-	 * its own item -- it is the same finding seen from the other side.
+	 * THE MECHANICAL TIER IS THE ONLY ONE THAT MAY SAY THIS (#1523), because
+	 * consolidate rewrites this exact identifier to its valid sibling. The
+	 * three tests below are the same shape under the tiers that cannot.
 	 */
-	public function test_a_failure_an_account_item_already_names_is_not_repeated(): void {
+	public function test_a_failure_the_mechanical_item_will_rewrite_is_not_repeated(): void {
 		$items = $this->queue_reading(
 			self::account_holding( 'hashA|hashB' ),
 			array(
@@ -395,9 +396,16 @@ class IdentityQueueTest extends TestCase {
 	}
 
 	/**
-	 * A failure the SHARED list already names is likewise not repeated.
+	 * A FAILURE THE SHARED LIST NAMES IS STILL ITS OWN WORK (#1523).
+	 *
+	 * This asserted the opposite until #1523, and the inversion is the fix
+	 * rather than a relaxation: a merge does not rewrite the shared number,
+	 * and `IdentityMerge` REFUSES outright while it fails its check digit --
+	 * in a sentence that tells the operator to correct it under "Numbers to
+	 * correct" first. Suppressing it there left the operator with a refusal
+	 * pointing at an empty panel.
 	 */
-	public function test_a_failure_a_shared_item_already_names_is_not_repeated(): void {
+	public function test_a_failure_a_shared_item_names_is_still_listed_to_correct(): void {
 		$items = $this->queue_reading(
 			array(),
 			array(),
@@ -405,8 +413,83 @@ class IdentityQueueTest extends TestCase {
 			array( array( 'subject' => 'hashA' ) )
 		)->items();
 
-		$this->assertCount( 1, $items );
-		$this->assertSame( IdentityQueue::TIER_SHARED, $items[0][ IdentityQueue::COLUMN_TIER ] );
+		$tiers = array_column( $items, IdentityQueue::COLUMN_TIER );
+		sort( $tiers );
+
+		$this->assertSame(
+			array( IdentityQueue::TIER_ISOLATED, IdentityQueue::TIER_SHARED ),
+			$tiers,
+			'The merge names the number; only the isolated panel corrects it.'
+		);
+	}
+
+	/**
+	 * THE REPORTED DEFECT (#1523): a mailbox card names a failing number and
+	 * offers only move and split, neither of which touches a number.
+	 *
+	 * Measured on production, this was 24 of the 38 mailbox findings, and the
+	 * number was reachable from nowhere on the screen: labelled wrong on a
+	 * card with no correction control, and filtered out of the panel that has
+	 * one.
+	 */
+	public function test_a_failure_a_mailbox_item_names_is_still_listed_to_correct(): void {
+		$items = $this->queue_reading(
+			self::account_holding(
+				'hashA|hashB',
+				array(
+					IdentityConflictQuery::COLUMN_EMAIL_VERDICT => IdentityConflictQuery::VERDICT_SHARED_EMAIL,
+					IdentityConflictQuery::COLUMN_SHAPE_VERDICT => IdentityConflictQuery::SHAPE_UNRELATED,
+				)
+			),
+			array(
+				'hashA' => IdentityConflictQuery::VERDICT_INVALID,
+				'hashB' => IdentityConflictQuery::VERDICT_VALID,
+			),
+			array(),
+			array( array( 'subject' => 'hashA' ) )
+		)->items();
+
+		$tiers = array_column( $items, IdentityQueue::COLUMN_TIER );
+		sort( $tiers );
+
+		$this->assertSame(
+			array( IdentityQueue::TIER_ISOLATED, IdentityQueue::TIER_MAILBOX ),
+			$tiers,
+			'The mailbox tier outranks the mechanical test, so consolidate is withheld — and then nothing corrects the number.'
+		);
+	}
+
+	/**
+	 * A DECISION item names failures it cannot correct either.
+	 *
+	 * More than one failing identifier is what makes the tier a decision: the
+	 * digits single nobody out, so no verb on that card is a correction.
+	 */
+	public function test_failures_a_decision_item_names_are_still_listed_to_correct(): void {
+		$items = $this->queue_reading(
+			self::account_holding( 'hashA|hashB' ),
+			array(
+				'hashA' => IdentityConflictQuery::VERDICT_INVALID,
+				'hashB' => IdentityConflictQuery::VERDICT_INVALID,
+			),
+			array(),
+			array(
+				array( 'subject' => 'hashA' ),
+				array( 'subject' => 'hashB' ),
+			)
+		)->items();
+
+		$tiers = array_column( $items, IdentityQueue::COLUMN_TIER );
+		sort( $tiers );
+
+		$this->assertSame(
+			array(
+				IdentityQueue::TIER_DECISION,
+				IdentityQueue::TIER_ISOLATED,
+				IdentityQueue::TIER_ISOLATED,
+			),
+			$tiers
+		);
 	}
 
 	/**
