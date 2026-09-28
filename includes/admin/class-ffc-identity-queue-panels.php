@@ -79,7 +79,7 @@ class IdentityQueuePanels {
 	 * Named so the dependency can be asserted without a test repeating a
 	 * literal list, which would then agree with a reordering that broke it.
 	 *
-	 * @since 6.30.1
+	 * @since 6.31.0
 	 * @var array<int, string>
 	 */
 	public const CORRECTIONS = array(
@@ -94,7 +94,7 @@ class IdentityQueuePanels {
 	 * A merge or a move reads a shared number as *these are one person*, which
 	 * is why every correction belongs above them.
 	 *
-	 * @since 6.30.1
+	 * @since 6.31.0
 	 * @var array<int, string>
 	 */
 	public const JUDGEMENTS = array(

@@ -367,7 +367,7 @@ class RecordGenerator {
 	 * `$fields` still drives the iteration — it is the set of keys this campaign
 	 * knows — but only the KEY is read from it now, never the flag.
 	 *
-	 * @since 6.30.1 Decides from the envelope; `is_sensitive` is no longer read.
+	 * @since 6.31.0 Decides from the envelope; `is_sensitive` is no longer read.
 	 * @param array<int, object>   $fields Field definitions.
 	 * @param array<string, mixed> $values field_key => persisted value (may be encrypted).
 	 * @phpstan-param list<CustomFieldRow> $fields

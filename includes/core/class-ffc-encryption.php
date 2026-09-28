@@ -197,7 +197,7 @@ class Encryption {
 	 * log line, and changes nothing: `decrypt()` returns null and the caller
 	 * keeps the original.
 	 *
-	 * @since 6.30.1
+	 * @since 6.31.0
 	 * @param string $value Stored value.
 	 * @return bool
 	 */

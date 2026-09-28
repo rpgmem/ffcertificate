@@ -203,7 +203,7 @@ class IdentityMerge {
 	 * blocks, and a gap has no shared value to judge -- so this is at most two
 	 * hashes, and usually one.
 	 *
-	 * @since 6.30.1
+	 * @since 6.31.0
 	 * @param array<string, mixed>              $agreement What `between()` returned.
 	 * @phpstan-param Agreement $agreement
 	 * @param array<string, array<int, string>> $records   Field => the moving side's hashes.

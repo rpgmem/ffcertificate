@@ -58,7 +58,7 @@ use PHPUnit\Runner\BeforeTestHook;
  * It does not stub, mock or otherwise lie to product code: the call happens,
  * for real, and is then undone for the next test.
  *
- * @since 6.30.1
+ * @since 6.31.0
  */
 final class SuiteCpuBudget implements BeforeTestHook {
 

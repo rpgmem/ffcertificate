@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.4
 Tested up to: 7.1.1
-Stable tag: 6.30.0
+Stable tag: 6.31.0
 Requires PHP: 8.3
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -214,8 +214,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.30.0 =
-Accounts promoted from a candidacy were created with no name, so WordPress stored their login — 6,976 on a measured install. Fixed, plus a card that names the existing ones. Identity refusals now say which of two causes blocked, and a split fills in the address its records carry.
+= 6.31.0 =
+Unticking a reregistration field's sensitive flag made the CSV export, the generated record and the public verification page show stored ciphertext as the person's CPF. Fixed, and the flag can no longer be cleared. The identity check-digit scan now reads CPF as well as RF.
 
 This section carries a short summary of the version being offered, and only
 that one — the updater never offers an older release, so an entry for one

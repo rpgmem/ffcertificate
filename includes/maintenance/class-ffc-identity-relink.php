@@ -357,7 +357,7 @@ class IdentityRelink {
 	 * `protected` so a test can state what the scan found without an encryption
 	 * key, like `reindex()` and `unindex()` beside it.
 	 *
-	 * @since 6.30.1
+	 * @since 6.31.0
 	 * @param array<string, mixed>              $agreement What `between()` returned.
 	 * @phpstan-param Agreement $agreement
 	 * @param array<string, array<int, string>> $records   Field => the moving records' hashes.
