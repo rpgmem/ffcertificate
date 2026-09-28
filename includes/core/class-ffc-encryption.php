@@ -162,6 +162,63 @@ class Encryption {
 	}
 
 	/**
+	 * Whether a stored value has the SHAPE of one of this class's envelopes.
+	 *
+	 * WHY A READER NEEDS THIS, AND WHY IT BELONGS HERE (#1509)
+	 *
+	 * The reregistration reads decided whether to decrypt from
+	 * `ffc_custom_fields.is_sensitive` -- an admin-editable flag read LIVE,
+	 * while the value in the row was written under whatever the flag said at
+	 * the time. #1210 already established the invariant (*"the fields used for
+	 * DECRYPTION are the SOURCE campaign's -- that is where the `is_sensitive`
+	 * flag which governed the write lives"*) and implemented it across
+	 * campaigns; nothing implemented it across TIME within one campaign, and
+	 * turning the flag OFF therefore sent stored ciphertext to a CSV, a PDF and
+	 * the public verification page as if it were the person's CPF.
+	 *
+	 * THE ENVELOPE IS SELF-DESCRIBING, so a reader does not need the flag: this
+	 * answers the question from the value. That is what makes the flag stop
+	 * being a claim about the past.
+	 *
+	 * WHAT IT IS NOT. It is a SHAPE test, never a validity test -- it says
+	 * `decrypt()` is worth attempting, not that it will succeed. A `true` here
+	 * followed by a `null` from `decrypt()` is the ordinary outcome for a
+	 * tampered or key-rotated value, and callers must still handle it.
+	 *
+	 * IT IS DELIBERATELY STRICT, because a false positive costs a
+	 * `decrypt_failure` log line: base64 is decoded in STRICT mode, so ordinary
+	 * text is rejected on its alphabet alone -- a formatted CPF carries `.` and
+	 * `-`, neither of which is base64 -- and the decoded length must leave room
+	 * for the envelope's fixed parts plus one AES block. A short answer like a
+	 * seven-digit RF is valid base64 by alphabet and fails on length.
+	 *
+	 * The residual false positive is a long value that is pure base64 by
+	 * accident -- a token pasted into a text field. It costs one attempt and one
+	 * log line, and changes nothing: `decrypt()` returns null and the caller
+	 * keeps the original.
+	 *
+	 * @since 6.30.1
+	 * @param string $value Stored value.
+	 * @return bool
+	 */
+	public static function looks_like_envelope( string $value ): bool {
+		// One AES-CBC block is the smallest ciphertext either form can carry.
+		$block = 16;
+
+		if ( 0 === strpos( $value, self::V2_PREFIX ) ) {
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- benign: measuring the shape of our own ciphertext envelope. Strict mode is what makes ordinary text fail here.
+			$decoded = base64_decode( substr( $value, strlen( self::V2_PREFIX ) ), true );
+
+			return is_string( $decoded ) && strlen( $decoded ) >= self::HMAC_LENGTH + self::IV_LENGTH + $block;
+		}
+
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- benign: measuring the shape of our own legacy ciphertext envelope.
+		$decoded = base64_decode( $value, true );
+
+		return is_string( $decoded ) && strlen( $decoded ) >= self::IV_LENGTH + $block;
+	}
+
+	/**
 	 * Decrypt a value
 	 *
 	 * Accepts both v2 authenticated ciphertexts ("v2:base64(HMAC||IV||CT)")

@@ -35,6 +35,13 @@ class CustomFieldRepositoryTest extends TestCase {
 		$wpdb->last_error = '';
 		$this->wpdb = $wpdb;
 
+		// #1509: refusing an `is_sensitive` demotion writes an activity-log entry,
+		// and `ActivityLog::log()` reads the settings before doing anything. The
+		// log is switched OFF here on purpose -- `log()` then returns at its first
+		// line, so these tests measure the DROPPED KEY, which is the contract,
+		// rather than the logging infrastructure, which is not under test.
+		Functions\when('get_option')->justReturn(array( 'activity_log_enabled' => false ));
+
 		Functions\when('wp_cache_get')->justReturn(false);
 		Functions\when('wp_cache_set')->justReturn(true);
 		Functions\when('wp_cache_delete')->justReturn(true);
@@ -530,6 +537,108 @@ class CustomFieldRepositoryTest extends TestCase {
 		$result = CustomFieldWriter::update(5, []);
 
 		$this->assertFalse($result);
+	}
+
+	// ------------------------------------------------------------------
+	// #1509: is_sensitive is a one-way door.
+	//
+	// Turning it ON is how an administrator starts protecting a field and must
+	// stay possible. Turning it OFF does not un-encrypt anything -- it abandons
+	// the ciphertext already stored, which then reaches a CSV, a record and the
+	// public verification page as the person's CPF. So the demotion is dropped.
+	// ------------------------------------------------------------------
+
+	public function test_update_refuses_to_clear_is_sensitive_but_applies_the_rest(): void {
+		// The stored row HAS the flag set, which is what makes this a demotion.
+		$this->wpdb->shouldReceive('get_row')->andReturn(
+			(object) array( 'id' => 5, 'field_key' => 'cpf', 'is_sensitive' => 1 )
+		);
+
+		// The write must happen -- and without `is_sensitive` in it.
+		$this->wpdb->shouldReceive('update')
+			->once()
+			->with(
+				Mockery::any(),
+				Mockery::on(
+					static function ( $data ) {
+						return is_array( $data )
+							&& ! array_key_exists( 'is_sensitive', $data )
+							&& 'Renamed' === ( $data['field_label'] ?? null );
+					}
+				),
+				Mockery::any(),
+				Mockery::any(),
+				Mockery::any()
+			)
+			->andReturn( 1 );
+
+		$result = CustomFieldWriter::update(
+			5,
+			array(
+				'is_sensitive' => 0,
+				'field_label'  => 'Renamed',
+			)
+		);
+
+		$this->assertTrue( $result, "The operator's other edits must still land; only the demotion is dropped." );
+	}
+
+	public function test_update_still_allows_setting_is_sensitive(): void {
+		// Promotion, not demotion: nothing is read and nothing is dropped.
+		$this->wpdb->shouldNotReceive('get_row');
+		$this->wpdb->shouldReceive('update')
+			->once()
+			->with(
+				Mockery::any(),
+				Mockery::on(
+					static function ( $data ) {
+						return is_array( $data ) && 1 === ( $data['is_sensitive'] ?? null );
+					}
+				),
+				Mockery::any(),
+				Mockery::any(),
+				Mockery::any()
+			)
+			->andReturn( 1 );
+
+		$this->assertTrue( CustomFieldWriter::update( 5, array( 'is_sensitive' => 1 ) ) );
+	}
+
+	public function test_update_does_not_treat_an_already_unset_flag_as_a_demotion(): void {
+		// The stored row does NOT have it set, so writing 0 asks for nothing new
+		// and must not be reported as a refusal.
+		$this->wpdb->shouldReceive('get_row')->andReturn(
+			(object) array( 'id' => 5, 'field_key' => 'hobby', 'is_sensitive' => 0 )
+		);
+
+		$this->wpdb->shouldReceive('update')
+			->once()
+			->with(
+				Mockery::any(),
+				Mockery::on(
+					static function ( $data ) {
+						return is_array( $data ) && array_key_exists( 'is_sensitive', $data );
+					}
+				),
+				Mockery::any(),
+				Mockery::any(),
+				Mockery::any()
+			)
+			->andReturn( 1 );
+
+		$this->assertTrue( CustomFieldWriter::update( 5, array( 'is_sensitive' => 0 ) ) );
+	}
+
+	public function test_update_reports_success_when_the_demotion_was_the_only_change(): void {
+		$this->wpdb->shouldReceive('get_row')->andReturn(
+			(object) array( 'id' => 5, 'field_key' => 'cpf', 'is_sensitive' => 1 )
+		);
+
+		// Nothing left to write, so no query -- and not a failure either: every
+		// key the caller is allowed to change is already in the state it asked for.
+		$this->wpdb->shouldNotReceive('update');
+
+		$this->assertTrue( CustomFieldWriter::update( 5, array( 'is_sensitive' => 0 ) ) );
 	}
 
 	public function test_update_strips_id_and_created_at(): void {

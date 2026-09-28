@@ -282,6 +282,7 @@ class AdminActivityLogPage {
 			'reregistration_submitted'                     => __( 'Reregistration Submitted', 'ffcertificate' ),
 			'reregistration_invitations_sent'              => __( 'Reregistration Invitations Sent', 'ffcertificate' ),
 			'reregistration_reminders_sent'                => __( 'Reregistration Reminders Sent', 'ffcertificate' ),
+			'custom_field_sensitive_demotion_refused'      => __( 'Sensitive Field Demotion Refused', 'ffcertificate' ),
 
 			// Recruitment.
 			'recruitment_notice_status_changed'            => __( 'Recruitment Notice Status Changed', 'ffcertificate' ),

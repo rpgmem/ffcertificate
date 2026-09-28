@@ -15142,6 +15142,10 @@ msgstr ""
 msgid "Reregistration reminder: {{reregistration_title}}"
 msgstr ""
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:285
+msgid "Sensitive Field Demotion Refused"
+msgstr ""
+
 #: includes/admin/class-ffc-admin-activity-log-page.php:282
 msgid "Reregistration Reminders Sent"
 msgstr ""
