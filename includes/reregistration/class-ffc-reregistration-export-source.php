@@ -364,7 +364,7 @@ class ReregistrationExportSource implements BatchedExportSourceInterface {
 	 * @since 6.30.1 Delegates instead of duplicating.
 	 * @param array<int, object>   $fields Field definitions.
 	 * @param array<string, mixed> $values field_key => persisted value.
-	 * @phpstan-param list<\FreeFormCertificate\Reregistration\CustomFieldRow> $fields
+	 * @phpstan-param list<CustomFieldRow> $fields
 	 * @return array<string, mixed>
 	 */
 	private function decrypt_sensitive( array $fields, array $values ): array {
