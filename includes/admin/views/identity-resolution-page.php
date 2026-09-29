@@ -1105,8 +1105,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							data-ffc-a="<?php echo esc_attr( (string) $ffc_identity_who[0] ); ?>"
 							data-ffc-b="<?php echo esc_attr( (string) $ffc_identity_who[1] ); ?>"
 							data-ffc-region="ffc-merge-preview-<?php echo esc_attr( $ffc_identity_id ); ?>"
-							data-ffc-ack="ffc-merge-ack-<?php echo esc_attr( $ffc_identity_id ); ?>"
-							data-ffc-go="ffc-merge-go-<?php echo esc_attr( $ffc_identity_id ); ?>">
+							data-ffc-ack="ffc-merge-ack-<?php echo esc_attr( $ffc_identity_id ); ?>">
 							<?php esc_html_e( 'Show what would move', 'ffcertificate' ); ?>
 						</button>
 					</p>
@@ -1860,7 +1859,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 		$ffc_identity_head(
 			$ffc_identity_panel,
 			$ffc_identity_tier_label( IdentityQueue::TIER_ISOLATED ),
-			__( 'A stored RF or CPF whose own check digit does not match, and which no account-side finding above explains: somebody mistyped once on their only row, or the row belongs to a candidacy that carries no account until promotion. The correct value comes from HR.', 'ffcertificate' )
+			__( 'A stored RF or CPF whose own check digit does not match, and which no action above corrects: the account holds only this one, the row belongs to a candidacy that carries no account until promotion, or the card naming it can only move, split or merge — none of which touches a number. The correct value comes from HR.', 'ffcertificate' )
 		);
 
 		// THE TAP IS STILL RUNNING, AND THIS PANEL NEVER SAID SO (#1500).

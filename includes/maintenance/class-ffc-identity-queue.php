@@ -115,10 +115,18 @@ class IdentityQueue {
 	public const KEY_SEPARATOR = '-';
 
 	/**
-	 * One identifier that fails its check digits, which no account-side
-	 * finding explains: the account holds only that one, or the row holds no
-	 * account at all (an unpromoted candidacy). There is nothing to
-	 * consolidate into, so the correct value comes from HR.
+	 * One identifier that fails its check digits, which no account-side ACTION
+	 * dissolves: the account holds only that one, the row holds no account at
+	 * all (an unpromoted candidacy), or the card that names it can only move,
+	 * split or merge -- none of which touches a number.
+	 *
+	 * The word is `action`, not `finding`, and #1523 is why. While it read
+	 * `finding`, a failing number named by any account-side card was dropped
+	 * from this tier, so the only panel that corrects a number never listed
+	 * it -- including for the two refusals that tell the operator, by name, to
+	 * correct it here first.
+	 *
+	 * There is nothing to consolidate into, so the correct value comes from HR.
 	 *
 	 * @var string
 	 */
@@ -282,22 +290,28 @@ class IdentityQueue {
 			$column   = (string) ( $row['identifier_column'] ?? '' );
 			$hashes   = self::listed( $row[ IdentityConflictQuery::COLUMN_RELATED ] ?? '' );
 			$verdicts = array() === $hashes ? array() : $query->check_digit_verdicts( $column, $hashes );
+			$item     = $this->tiered( $row, $verdicts );
 
-			foreach ( $hashes as $hash ) {
-				$spoken[ $hash ] = true;
+			// ONLY THE MECHANICAL TIER SPEAKS FOR A FAILING NUMBER.
+			//
+			// Consolidate rewrites this exact identifier to its valid sibling,
+			// so the check-digit failure is genuinely the same finding seen
+			// from the other side and listing it twice would be noise. No
+			// other tier can say that -- see the filter below.
+			if ( self::TIER_MECHANICAL === $item[ self::COLUMN_TIER ] ) {
+				$spoken[ (string) $item[ self::COLUMN_WRONG ] ] = true;
 			}
 
-			$out[] = $this->tiered( $row, $verdicts );
+			$out[] = $item;
 		}
 
 		foreach ( $this->capped( self::CHECK_SHARED, $query->shared_identities( $limit ), $limit ) as $row ) {
-			$row     = (array) $row;
-			$subject = (string) ( $row['subject'] ?? '' );
+			$row = (array) $row;
 
-			if ( '' !== $subject ) {
-				$spoken[ $subject ] = true;
-			}
-
+			// NOT MARKED SPOKEN: a merge does not rewrite the shared number,
+			// and `IdentityMerge` REFUSES outright while it fails its check
+			// digit, telling the operator to correct it under "Numbers to
+			// correct" first. Suppressing it there was the deadlock (#1523).
 			$row[ self::COLUMN_TIER ]     = self::TIER_SHARED;
 			$row[ self::COLUMN_VERDICTS ] = array();
 			$row[ self::COLUMN_CHECK ]    = self::CHECK_SHARED;
@@ -306,15 +320,36 @@ class IdentityQueue {
 			$out[] = $row;
 		}
 
-		// EVERY FINDING APPEARS ONCE, AND THE LEFTOVERS ARE NOT NOTHING.
-		//
-		// A check-digit failure on an account that already appears above is
-		// the SAME finding seen from the other side, and listing it twice
-		// makes a worklist an operator cannot work to zero. What is left after
-		// that filter is the population the account-side checks cannot see at
-		// all: a person who mistyped once on their only row, and a candidacy
-		// carrying no account until promotion -- which is the whole reason
-		// `rf_check_digit_failures()` scans rows rather than accounts.
+		/*
+		 * A FINDING IS SUPPRESSED BY AN ACTION THAT DISSOLVES IT, NEVER BY ONE
+		 * THAT MERELY NAMES IT (#1523).
+		 *
+		 * This filter used to drop a check-digit failure whenever ANY
+		 * account-side finding named the hash, on the reading that it was the
+		 * same finding seen from the other side. That reading holds for exactly
+		 * one tier. Consolidate rewrites the failing identifier to its valid
+		 * sibling, so a mechanical item really does carry the correction -- and
+		 * nothing else does:
+		 *
+		 *   - MAILBOX offers move and split. Both relocate records and leave
+		 *     every number exactly as it is, by design.
+		 *   - SHARED is a merge, and `IdentityMerge` REFUSES while the shared
+		 *     number fails, telling the operator to correct it first.
+		 *   - DECISION is the tier for when the digits single nobody out; where
+		 *     more than one fails, no verb on that card corrects either.
+		 *
+		 * So the three tiers that cannot fix the number were hiding it from the
+		 * one panel that can, while the page's own banner said to work the
+		 * corrections first and two refusals named "Numbers to correct" by name.
+		 * Measured on production: of 30 check-digit failures, 27 were suppressed,
+		 * and 24 of the 38 mailbox items carried one.
+		 *
+		 * What is left is still what the account-side checks cannot see at all --
+		 * a person who mistyped once on their only row, and a candidacy carrying
+		 * no account until promotion, which is the whole reason
+		 * `rf_check_digit_failures()` scans rows rather than accounts -- plus,
+		 * now, every failing number whose account-side card can only point at it.
+		 */
 		foreach ( $this->capped( self::CHECK_DIGITS, $query->check_digit_failures_of_both( $limit ), $limit ) as $row ) {
 			$row     = (array) $row;
 			$subject = (string) ( $row['subject'] ?? '' );

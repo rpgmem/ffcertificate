@@ -23,8 +23,7 @@ const MARKUP = `
 	<button type="button" class="ffc-identity-preview"
 		data-ffc-a="398" data-ffc-b="513"
 		data-ffc-region="ffc-merge-preview-abc"
-		data-ffc-ack="ffc-merge-ack-abc"
-		data-ffc-go="ffc-merge-go-abc">Show what would move</button>
+		data-ffc-ack="ffc-merge-ack-abc">Show what would move</button>
 	<div class="ffc-identity-preview-region" id="ffc-merge-preview-abc"
 		data-heading="%1$s keeps the records. %2$s is emptied."
 		data-total="%s records move."

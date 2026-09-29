@@ -323,6 +323,109 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertStringContainsString( 'created before magic links', $html );
 	}
 
+	// ==================================================================
+	// render() — the save marker and the user-link field
+	// ==================================================================
+
+	/**
+	 * The regression test for the unlink that never worked.
+	 *
+	 * The marker `handle_save()` gates on used to be the submit button's `name`,
+	 * and a submit button contributes its name/value only when the browser
+	 * ACTIVATES it. The unlink control calls `form.submit()`, which activates
+	 * nothing -- so the POST arrived without the marker and the handler returned
+	 * on its first line.
+	 *
+	 * This asserts at the level the defect lived at: the MARKUP. Every existing
+	 * `handle_save()` test sets `$_POST['ffc_save_edit']` by hand, so all of them
+	 * passed throughout -- they supplied the one precondition the real unlink
+	 * path could not meet.
+	 */
+	public function test_render_carries_the_save_marker_as_a_field_not_a_button_name(): void {
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row() );
+		Functions\when( 'get_post_meta' )->justReturn( array() );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		// It is a field of the form, so ANY submit path carries it.
+		$this->assertMatchesRegularExpression(
+			'/<input[^>]+type="hidden"[^>]+name="ffc_save_edit"/',
+			$html,
+			'The save marker must be a hidden field. As the submit button\'s name it is absent from any programmatic submit, which is how unlinking silently did nothing.'
+		);
+
+		// And it is not ALSO the button's name, which would be two sources for
+		// one fact and would let the field be dropped without anything failing.
+		$this->assertDoesNotMatchRegularExpression(
+			'/<button[^>]+name="ffc_save_edit"/',
+			$html,
+			'The submit button must not carry the marker as well: one fact, one place.'
+		);
+	}
+
+	/**
+	 * The link field defaults to `__keep__` whether or not a user is linked.
+	 *
+	 * When nothing was linked it used to default to `''`, which the handler reads
+	 * as "unlink" -- so every ordinary save of an unlinked submission called
+	 * `update_user_link( id, null )`, bumping `edited_at`/`edited_by` and writing
+	 * a `user_unlinked` activity entry against a submission that never had a
+	 * user. Nothing failed, so nothing reported it.
+	 */
+	public function test_render_defaults_the_user_link_field_to_keep_when_unlinked(): void {
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'user_id' => 0 ) ) );
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'get_post_meta' )->justReturn( array() );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertMatchesRegularExpression(
+			'/<input[^>]+name="linked_user_id"[^>]+value="__keep__"/',
+			$html,
+			'An unlinked submission must still default to "change nothing", or saving it unlinks a user it never had.'
+		);
+
+		// Exactly one input carries the name: two would let the later one win in
+		// the POST, silently, depending on markup order.
+		$this->assertSame(
+			1,
+			preg_match_all( '/name="linked_user_id"/', $html ),
+			'The decision is one field with three states; a second input of the same name makes the POST order-dependent.'
+		);
+	}
+
+	/**
+	 * A linked submission offers relinking without unlinking first.
+	 *
+	 * The search block used to render only in the unlinked state, so moving a
+	 * submission to the right account meant unlink, save, search, save -- and the
+	 * first of those four steps was the one that did not work.
+	 */
+	public function test_render_offers_relink_when_a_user_is_linked(): void {
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'user_id' => 9 ) ) );
+		Functions\when( 'get_userdata' )->justReturn(
+			(object) array(
+				'display_name' => 'Jane Doe',
+				'user_email'   => 'jane@x.com',
+			)
+		);
+		Functions\when( 'get_post_meta' )->justReturn( array() );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Unlink User', $html );
+		$this->assertStringContainsString( 'ffc-relink-user-btn', $html );
+		// The search form is present, so the reveal has something to reveal.
+		$this->assertStringContainsString( 'ffc-search-user-btn', $html );
+		$this->assertStringContainsString( 'ffc-user-search-input', $html );
+	}
+
 	public function test_render_no_consent_and_rf_label(): void {
 		$row = $this->submission_row(
 			array(

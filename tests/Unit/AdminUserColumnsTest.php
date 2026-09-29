@@ -82,6 +82,18 @@ class AdminUserColumnsTest extends TestCase {
 			return 'https://example.com' . $path;
 		} );
 		Functions\when( 'get_option' )->justReturn( array() );
+		/*
+		 * The login-as control is gated on `ffc_view_as_user` (or admin) since
+		 * 6.32.0. Default to allowed here so the column tests keep measuring the
+		 * markup they were written for; the refusal has its own test below.
+		 */
+		Functions\when( 'current_user_can' )->justReturn( true );
+		// The profile section prints its own labels; `esc_html_e` echoes.
+		Functions\when( 'esc_html_e' )->alias(
+			static function ( $text ) {
+				echo $text;
+			}
+		);
 	}
 
 	protected function tearDown(): void {
@@ -264,6 +276,47 @@ class AdminUserColumnsTest extends TestCase {
 		$this->assertStringContainsString( 'Login as User', $output );
 		$this->assertStringContainsString( 'ffc_view_as_user=42', $output );
 		$this->assertStringContainsString( 'test_nonce_123', $output );
+	}
+
+	/**
+	 * Nothing is rendered for a viewer who cannot use it.
+	 *
+	 * The column used to print the button for anybody who can reach
+	 * `users.php`, while `DashboardViewMode` refuses the link on click unless
+	 * the viewer holds `ffc_view_as_user` or `manage_options`. A control that
+	 * cannot work is a defect, not a hint, so the gate is now the same on both
+	 * ends of the link.
+	 */
+	public function test_login_as_is_absent_without_the_capability(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		$output = AdminUserColumns::render_custom_column( '', 'ffc_user_actions', 42 );
+
+		$this->assertSame( '', $output );
+	}
+
+	// ==================================================================
+	// render_profile_login_as() — the same control on user-edit.php
+	// ==================================================================
+
+	public function test_profile_login_as_renders_the_same_control(): void {
+		ob_start();
+		AdminUserColumns::render_profile_login_as( new \WP_User( 42 ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'ffc-view-as-user', $html );
+		$this->assertStringContainsString( 'ffc_view_as_user=42', $html );
+		// Same nonce name as the column's, because one builder makes both.
+		$this->assertStringContainsString( 'test_nonce_123', $html );
+	}
+
+	public function test_profile_login_as_renders_nothing_without_the_capability(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		ob_start();
+		AdminUserColumns::render_profile_login_as( new \WP_User( 42 ) );
+
+		$this->assertSame( '', (string) ob_get_clean() );
 	}
 
 	// ==================================================================

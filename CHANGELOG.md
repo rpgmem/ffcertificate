@@ -7,7 +7,24 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.31.0] (2026-09-28)
+## [6.32.0] (2026-09-29)
+
+### Added
+
+- **Login as User** on `user-edit.php`, beside the profile an operator has just read. One builder serves it and the users-list column, and **both are now gated on `ffc_view_as_user`** — the column used to draw the button for anyone who could reach that screen, while the link itself refused on click (#1520)
+- A submission already linked to someone can be moved to a different account without unlinking first. The search block only rendered when nothing was linked, so correcting a link meant four steps (#1519)
+
+### Fixed
+
+- **Unlinking a user from a submission did nothing, silently** (#1519). The marker the handler gates on was the submit button's `name`, and a button contributes its name only when the browser activates it — the unlink control submits from JavaScript. It is now a field of the form. Saving an unlinked submission also stopped writing a spurious `user_unlinked` entry on every save
+- **Two admin downloads did nothing at all** — the recruitment example CSV and the public CSV audit-log export (#1521). `admin_post_*` fires with no arguments and core substitutes an empty string, which `WP_Hook` handed to handlers whose parameter is typed: a fatal before any output. Registering with `accepted_args = 0` is the fix, and a guard now blocks the class across the tree
+- **Identity resolution hid a wrong number from the only panel that corrects it** (#1523). A check-digit failure was dropped from "Numbers to correct" whenever any account-side card named it — but only the mechanical tier can actually dissolve one; move, split and merge leave the number as it is, and the merge refuses while it fails. Suppression now needs an action that dissolves the finding, not one that merely names it
+
+### Changed
+
+- Internal conventions: the rule for when a seam is worth a guard, the predictive naming rule, and six re-measured figures in `CLAUDE.md`; two `data-ffc-*` attributes that nothing read were removed (#1261, #1525)
+
+## [6.31.0] (2026-09-28) — `bb433ce3`
 
 ### Changed
 

@@ -17,10 +17,21 @@
  * `ffc_reregistration_submissions` without `auth_code` / `magic_token` until
  * #1093.
  *
- * **Across files — the same table declared by more than one class.** Three
- * tables are: `ffc_custom_fields` (3 declarations), `ffc_reregistration_submissions`
- * (3) and `ffc_reregistrations` (2), because the activators were written after
- * the migrations that first created those tables and neither side was retired.
+ * **Across files — the same table declared by more than one class.** Because the
+ * activators were written after the migrations that first created those tables,
+ * and neither side was retired.
+ *
+ * The reading, so it can be re-run rather than believed: group the statements
+ * `ffc_create_statements()` returns for `includes/` by their table, and keep the
+ * tables with more than one. It answered three tables — `ffc_custom_fields` (3),
+ * `ffc_reregistration_submissions` (3), `ffc_reregistrations` (2) — when this was
+ * written, and **two** on a later re-measure: `ffc_custom_fields` and
+ * `ffc_reregistration_submissions`, each declared twice, each by
+ * `MigrationDynamicReregFields` and by its module's activator, with
+ * `ffc_reregistrations` down to one. Expect it to keep shrinking, and re-run it
+ * rather than quote this sentence — a count of duplications is exactly the
+ * number a later PR edits without reading the comment above it.
+ *
  * Nothing compared them, and the third occurrence of the #1091 class was hiding
  * exactly there: `UserDashboardActivator` declared **12 of the 17 columns** of
  * `ffc_custom_fields`, missing the five that `CustomFieldWriter::create()`

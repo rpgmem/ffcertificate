@@ -88,6 +88,19 @@ describe('Copy magic link button', () => {
 
 // ----------------------------------------------------------------------
 // Unlink user button (with confirm prompt)
+//
+// WHAT THESE TESTS CANNOT SEE, AND WHY IT MATTERS.
+//
+// They mock `form.submit`, so they observe that it was CALLED and never what a
+// real submit sends. Unlinking was broken for as long as the button existed
+// because a native `form.submit()` activates no button, and the marker the PHP
+// handler gates on was the submit button's `name` -- absent from the payload.
+//
+// The PHP tests set that marker by hand; these mock the submit away. Both ends
+// of the wire were covered, each with the other end stubbed, and the defect
+// lived exactly in between. What pins it now is on the PHP side and at the level
+// the defect lived at: the marker must be a FIELD of the form
+// (`AdminSubmissionEditPageTest::test_render_carries_the_save_marker_as_a_field_not_a_button_name`).
 // ----------------------------------------------------------------------
 
 describe('Unlink user button', () => {
@@ -118,6 +131,47 @@ describe('Unlink user button', () => {
 		document.querySelector('.ffc-unlink-user-btn').click();
 		expect(submitSpy).toHaveBeenCalledOnce();
 		expect(document.querySelector('input[name="linked_user_id"]').value).toBe('');
+	});
+});
+
+// ----------------------------------------------------------------------
+// Link to another user — revealing the search on an already-linked submission
+// ----------------------------------------------------------------------
+
+describe('Link to another user button', () => {
+	beforeEach(async () => {
+		document.body.innerHTML = `
+			<form>
+				<input name="linked_user_id" id="ffc-selected-user-id" value="__keep__" />
+				<button type="button" class="ffc-relink-user-btn">Link to Another User</button>
+				<div class="ffc-user-search-container" style="display: none;">
+					<input type="text" id="ffc-user-search-input" />
+				</div>
+			</form>
+		`;
+		await loadOnReady();
+	});
+
+	it('reveals the search container and disables itself', () => {
+		const container = document.querySelector('.ffc-user-search-container');
+		const button = document.querySelector('.ffc-relink-user-btn');
+
+		expect(container.style.display).toBe('none');
+
+		button.click();
+
+		// jsdom has no layout, so :visible always reads false -- assert the
+		// computed display instead.
+		expect(container.style.display).not.toBe('none');
+		expect(button.disabled).toBe(true);
+	});
+
+	it('leaves the decision field alone: revealing is not choosing', () => {
+		document.querySelector('.ffc-relink-user-btn').click();
+
+		// Showing the search must not itself change who owns the submission;
+		// only picking a result does, and only the save applies it.
+		expect(document.getElementById('ffc-selected-user-id').value).toBe('__keep__');
 	});
 });
 
@@ -297,10 +351,16 @@ describe('User selection from results', () => {
 		expect(document.getElementById('ffc-user-search-input').value).toBe('');
 	});
 
-	it('clear-selection empties the hidden id and hides the preview', () => {
+	it('clear-selection restores "keep" rather than the unlink value, and hides the preview', () => {
 		document.querySelector('.ffc-search-result-item').click();
 		document.querySelector('.ffc-clear-selection').click();
-		expect(document.getElementById('ffc-selected-user-id').value).toBe('');
+
+		// One field carries three states: `__keep__` (change nothing), '' (unlink)
+		// and a user id. Clearing a selection means the FIRST. It used to write ''
+		// here, which the handler reads as an instruction to unlink -- harmless
+		// while the field was only rendered with no user attached, and an unlink
+		// on the next save now that the search also appears for a linked one.
+		expect(document.getElementById('ffc-selected-user-id').value).toBe('__keep__');
 		expect(document.getElementById('ffc-selected-user-preview').style.display).toBe('none');
 	});
 });
