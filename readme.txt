@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.4
 Tested up to: 7.1.1
-Stable tag: 6.31.0
+Stable tag: 6.32.0
 Requires PHP: 8.3
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -214,8 +214,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.31.0 =
-Unticking a reregistration field's sensitive flag made the CSV export, the generated record and the public verification page show stored ciphertext as the person's CPF. Fixed, and the flag can no longer be cleared. The identity check-digit scan now reads CPF as well as RF.
+= 6.32.0 =
+Operators can now open Login as User from a profile screen, and move a submission to a different account without unlinking first. Two admin downloads that silently did nothing now work, and identity resolution no longer hides a wrong number from the panel that corrects it.
 
 This section carries a short summary of the version being offered, and only
 that one — the updater never offers an older release, so an entry for one
