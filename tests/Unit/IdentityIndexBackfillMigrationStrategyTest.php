@@ -542,4 +542,132 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 		$this->assertSame( 3, $status['pending'] );
 		$this->assertFalse( $status['is_complete'] );
 	}
+
+	// =====================================================================
+	// Re-arm (#1530)
+	// =====================================================================
+
+	/**
+	 * THE GAP THE BUTTON EXISTS FOR, AND ITS CLOSURE, IN ONE TEST.
+	 *
+	 * Progress here is the CURSOR, never the content -- the status method says
+	 * so itself. That is honest while the walk runs and goes wrong exactly
+	 * once: an account skipped for holding two hashes is left empty ON
+	 * PURPOSE, and an operator resolving that conflict makes it fillable with
+	 * nothing left to fill it. It then falls out of every number at once --
+	 * not `pending`, because the cursor is past it; not `conflicts`, because
+	 * it no longer holds two.
+	 *
+	 * The first half of this test asserts the gap rather than working around
+	 * it, because a later edit that made the count content-aware would make
+	 * the button unnecessary and should fail here and be argued.
+	 */
+	public function test_an_account_resolved_after_the_walk_needs_the_rearm(): void {
+		$this->source = array( 8 => array( 'cpf_hash' => array( 'one-hash', 'another-hash' ) ) );
+
+		// Walk to the end: the conflict is skipped, the cursor passes it.
+		$this->strategy()->execute( '', array(), 0 );
+		$this->strategy()->execute( '', array(), 0 );
+
+		$this->assertSame( array(), $this->writes, 'A conflict should write nothing.' );
+		$this->assertTrue( $this->strategy()->calculate_status( '', array() )['is_complete'] );
+
+		// The operator resolves it: one identifier now, and fillable.
+		$this->source[8] = array( 'cpf_hash' => array( 'one-hash' ) );
+
+		$this->assertTrue(
+			$this->strategy()->calculate_status( '', array() )['is_complete'],
+			'The gap: a cursor-measured card still reads complete, and the only verb on the card is disabled.'
+		);
+		$this->strategy()->execute( '', array(), 0 );
+		$this->assertSame( array(), $this->writes, 'The walk has nothing left to visit, so the resolution cannot land.' );
+
+		// The verb.
+		$this->strategy()->rearm();
+
+		$this->assertFalse(
+			$this->strategy()->calculate_status( '', array() )['is_complete'],
+			'Re-arming should put the account back in front of the walk.'
+		);
+
+		$this->strategy()->execute( '', array(), 0 );
+
+		$this->assertCount( 1, $this->writes, 'The resolution should land on the re-walk.' );
+		$this->assertSame( 8, $this->writes[0]['user_id'] );
+		$this->assertSame( array( 'cpf_hash' => 'one-hash' ), $this->writes[0]['index'] );
+	}
+
+	/**
+	 * A re-walk writes only where the column is empty.
+	 *
+	 * This is what makes the button safe to press at any time, and the claim
+	 * the control's own wording makes to the operator. It is `backfill_user()`'s
+	 * property, already pinned above on a first walk; pinned here THROUGH the
+	 * re-arm, because that is the path the button creates.
+	 */
+	public function test_a_rewalk_after_rearming_overwrites_nothing(): void {
+		$this->source   = array( 9 => array( 'cpf_hash' => array( 'from-the-module-table' ) ) );
+		$this->profiles = array(
+			9 => array(
+				'user_id'  => 9,
+				'cpf_hash' => 'already-in-the-index',
+				'rf_hash'  => null,
+			),
+		);
+
+		$this->strategy()->execute( '', array(), 0 );
+		$this->strategy()->rearm();
+		$this->strategy()->execute( '', array(), 0 );
+
+		$this->assertSame( array(), $this->writes, 'A re-armed walk overwrote a column that already answered.' );
+	}
+
+	/**
+	 * Re-arming clears the cursor and touches nothing else in the state.
+	 *
+	 * The option is this class's own, and a future key in it has no business
+	 * being lost to a verb about the walk's position.
+	 */
+	public function test_rearming_clears_the_cursor_and_keeps_the_rest_of_the_state(): void {
+		$this->source = array( 4 => array( 'cpf_hash' => array( 'a' ) ) );
+
+		$this->strategy()->execute( '', array(), 0 );
+		$this->assertSame( 4, $this->options['ffc_identity_index_backfill_state']['cursor'] );
+
+		$this->options['ffc_identity_index_backfill_state']['unrelated'] = 'kept';
+
+		$this->strategy()->rearm();
+
+		$state = $this->options['ffc_identity_index_backfill_state'];
+
+		$this->assertArrayNotHasKey( 'cursor', $state );
+		$this->assertSame( 'kept', $state['unrelated'] );
+	}
+
+	public function test_rearming_reports_how_many_the_walk_will_examine(): void {
+		$this->source = array(
+			1 => array( 'cpf_hash' => array( 'a' ) ),
+			2 => array( 'cpf_hash' => array( 'b' ) ),
+			3 => array( 'cpf_hash' => array( 'c' ) ),
+		);
+
+		$this->strategy()->execute( '', array(), 0 );
+
+		// The whole population, not what is left beyond the cursor: the walk
+		// starts over, so that is the number the operator is told.
+		$this->assertSame( 3, $this->strategy()->rearm() );
+	}
+
+	/**
+	 * The card declares the verb in its own status.
+	 *
+	 * That is how the view decides whether to offer the control, so it never
+	 * learns this class's private option name -- and a card without the method
+	 * simply omits the flag.
+	 */
+	public function test_status_declares_the_card_rearmable(): void {
+		$this->source = array();
+
+		$this->assertTrue( $this->strategy()->calculate_status( '', array() )['rearmable'] );
+	}
 }

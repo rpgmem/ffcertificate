@@ -83,6 +83,7 @@ class Settings {
 		add_action( 'admin_init', array( $this, 'handle_clear_qr_cache' ) );
 		add_action( 'admin_init', array( $this, 'handle_send_test_email' ) );
 		add_action( 'admin_init', array( $this, 'handle_migration_execution' ) );
+		add_action( 'admin_init', array( $this, 'handle_migration_rearm' ) );
 		add_action( 'admin_init', array( $this, 'handle_obsolete_shortcode_cleanup' ) );
 		add_action( 'admin_init', array( $this, 'handle_url_shortener_cleanup' ) );
 		add_action( 'admin_init', array( $this, 'handle_public_access_disabler' ) );
@@ -830,6 +831,19 @@ class Settings {
 	 */
 	public function handle_migration_execution(): void {
 		$this->action_handler->handle_migration_execution();
+	}
+
+	/**
+	 * Send a migration's walk back to the start, on request.
+	 *
+	 * Wired on `admin_init` beside its sibling and delegating the same way;
+	 * the gate and the nonce live in the handler.
+	 *
+	 * @since 6.33.0
+	 * @return void
+	 */
+	public function handle_migration_rearm(): void {
+		$this->action_handler->handle_migration_rearm();
 	}
 
 	/**

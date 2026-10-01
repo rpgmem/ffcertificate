@@ -123,4 +123,19 @@ class MigrationManager {
 	public function run_migration( string $migration_key, int $batch_number = 0 ) {
 		return $this->status_calculator->execute( $migration_key, $batch_number );
 	}
+
+	/**
+	 * Send a migration's walk back to the start.
+	 *
+	 * Delegates like every other verb here. It re-arms and does not run: the
+	 * card's ordinary button already loops its batches to completion, so this
+	 * adds no second execution path.
+	 *
+	 * @since 6.33.0
+	 * @param string $migration_key Migration identifier.
+	 * @return int|WP_Error Rows the re-armed walk will examine, or the refusal.
+	 */
+	public function rearm_migration( string $migration_key ) {
+		return $this->status_calculator->rearm( $migration_key );
+	}
 }

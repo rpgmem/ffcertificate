@@ -242,6 +242,108 @@ class TabMigrationsTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Just the complete branch of the actions column.
+	 *
+	 * Bounded on both sides for the reason `conflicts_block()` already gives:
+	 * the run button sits in the `else`, and an unbounded search would let
+	 * every assertion below pass on it instead.
+	 *
+	 * @param string $view The view's source.
+	 * @return string
+	 */
+	private function complete_branch( string $view ): string {
+		$from = strpos( $view, '<!-- Actions -->' );
+		$from = ( false === $from ) ? false : strpos( $view, '<?php if ( $ffcertificate_is_complete ) : ?>', (int) $from );
+		$to   = ( false === $from ) ? false : strpos( $view, '<?php else : ?>', (int) $from );
+
+		$this->assertIsInt( $from, 'The actions column must branch on completion.' );
+		$this->assertIsInt( $to, 'That branch must have an else -- the run button.' );
+
+		return substr( $view, (int) $from, (int) $to - (int) $from );
+	}
+
+	/**
+	 * THE RE-CHECK CONTROL LIVES IN THE COMPLETE BRANCH, AND ONLY THERE (#1530).
+	 *
+	 * Below a hundred per cent the ordinary button is the verb, and re-arming
+	 * there would discard the progress already made. At a hundred the branch
+	 * held only a disabled seal, which is the gap: an account that becomes
+	 * workable after the walk passed it has nothing to revisit it.
+	 */
+	public function test_the_recheck_control_is_offered_only_on_the_complete_branch(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
+
+		$this->assertStringContainsString(
+			'ffc_rearm_migration',
+			$this->complete_branch( $view ),
+			'The re-check control belongs to the branch that had no verb.'
+		);
+		$this->assertSame(
+			1,
+			substr_count( $view, "'ffc_rearm_migration' =>" ),
+			'One control: a second site would mean the pending branch can discard its own progress.'
+		);
+	}
+
+	/**
+	 * It carries its own nonce action, never the run button's.
+	 *
+	 * A shared key would let a link minted for one press the other, and the
+	 * handler verifies exactly this string.
+	 */
+	public function test_the_recheck_control_carries_its_own_nonce_action(): void {
+		$block = $this->complete_branch(
+			(string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' )
+		);
+
+		$this->assertStringContainsString( "'ffc_rearm_' . \$ffcertificate_key", $block );
+		$this->assertStringNotContainsString( "'ffc_migration_' . \$ffcertificate_key", $block );
+	}
+
+	/**
+	 * The offer is the strategy's to make, not the view's to infer.
+	 *
+	 * The flag travels in the status array the card already reads, so this
+	 * view never learns which option holds whose cursor -- and a card without
+	 * the method simply omits it rather than being listed here by key.
+	 */
+	public function test_the_recheck_control_is_gated_on_the_status_flag(): void {
+		$block = $this->complete_branch(
+			(string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' )
+		);
+
+		$this->assertStringContainsString( "! empty( \$ffcertificate_status['rearmable'] )", $block );
+		$this->assertStringNotContainsString( 'identity_index_backfill', $block, 'The view must not name the card it is offered on.' );
+	}
+
+	/**
+	 * It stays out of the auto-run driver's reach.
+	 *
+	 * `ffc-admin-migrations.js` binds `.ffc-migration-actions a.button-primary`
+	 * and pulls `ffc_run_migration` out of the href. A primary class here
+	 * would hand this link to a loop that cannot find a key in it.
+	 */
+	public function test_the_recheck_control_is_not_the_driver_s_button(): void {
+		$view  = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
+		$block = $this->complete_branch( $view );
+
+		$start = strpos( $block, '$ffcertificate_rearm_url' );
+		$this->assertIsInt( $start, 'The control must build its own URL.' );
+
+		$anchor = substr( $block, (int) $start );
+
+		$this->assertStringContainsString( 'class="button button-secondary"', $anchor );
+		$this->assertStringNotContainsString( 'button-primary', $anchor );
+
+		// The driver's own selector, asserted here so a rename on either side
+		// fails rather than silently re-coupling the two.
+		$this->assertStringContainsString(
+			'.ffc-migration-actions a.button-primary',
+			(string) file_get_contents( __DIR__ . '/../../assets/js/ffc-admin-migrations.js' )
+		);
+	}
+
 	public function test_render_error_when_view_missing(): void {
 		$tab = new class() extends TabMigrations {
 			public function render(): void {

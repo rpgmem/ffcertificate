@@ -178,6 +178,15 @@ class SettingsTest extends TestCase {
 				return is_array( $cb ) && $cb[1] === 'handle_migration_execution';
 			} ) );
 
+		// The re-check verb beside the run it precedes (#1530). Pinned here
+		// because the gate and the nonce live in the handler, so an
+		// unregistered method is a control that renders and never fires.
+		Functions\expect( 'add_action' )
+			->once()
+			->with( 'admin_init', Mockery::on( function ( $cb ) {
+				return is_array( $cb ) && $cb[1] === 'handle_migration_rearm';
+			} ) );
+
 		Functions\expect( 'add_action' )
 			->once()
 			->with( 'admin_init', Mockery::on( function ( $cb ) {

@@ -22,6 +22,24 @@ msgstr ""
 msgid " by <strong>%s</strong>"
 msgstr " por <strong>%s</strong>"
 
+#: includes/settings/views/ffc-tab-migrations.php:358
+msgid "An account skipped because it held two identifiers becomes fillable once you resolve it, and this walk already passed it. Re-checking sends the walk back to the start; a value already filled is never overwritten, and an account still holding two is skipped again."
+msgstr "Uma conta ignorada por guardar dois identificadores passa a ser preenchível quando você a resolve, e esta varredura já passou por ela. Reverificar manda a varredura de volta ao início; um valor já preenchido nunca é sobrescrito, e uma conta que ainda guarda dois é ignorada de novo."
+
+#: includes/settings/views/ffc-tab-migrations.php:355
+msgid "Re-check accounts resolved since the last pass"
+msgstr "Reverificar contas resolvidas desde a última passagem"
+
+#: includes/migrations/class-ffc-migration-status-calculator.php:394
+msgid "This migration cannot be re-armed."
+msgstr "Esta migração não pode ser rearmada."
+
+#. %d: number of accounts the re-armed walk will examine
+#: includes/admin/class-ffc-settings-action-handler.php:143
+#, php-format
+msgid "Walk re-armed: %d accounts will be examined again. Press \"Run Migration\" to start. Nothing already filled is overwritten."
+msgstr "Varredura rearmada: %d contas serão examinadas novamente. Clique em \"Executar Migração\" para começar. Nada que já esteja preenchido é sobrescrito."
+
 #: includes/admin/class-ffc-admin-submission-edit-page.php:347
 msgid "An unlinked submission has no account, which is the state the identity queue adopts."
 msgstr "Uma submissão desvinculada não tem conta, que é o estado adotado pela fila de identidade."

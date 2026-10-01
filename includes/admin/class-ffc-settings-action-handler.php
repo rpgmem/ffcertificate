@@ -93,6 +93,66 @@ class SettingsActionHandler {
 	}
 
 	/**
+	 * Send a migration's walk back to the start, on request.
+	 *
+	 * The verb a cursor-measured card never had (#1530). It clears the walk's
+	 * cursor and nothing else: running is the card's ordinary button, which
+	 * already loops its batches with a progress bar, so an operator gets the
+	 * path they already know rather than a second one to trust.
+	 *
+	 * Gated exactly like the run it precedes -- `ffc_manage_settings_dangerzone`
+	 * plus a nonce keyed to the migration -- because a control that is cheaper
+	 * to reach than the thing it enables is a hole, not a convenience.
+	 *
+	 * @since 6.33.0
+	 * @return void
+	 */
+	public function handle_migration_rearm(): void {
+		if ( ! isset( $_GET['ffc_rearm_migration'] ) ) {
+			return;
+		}
+
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ) ) {
+			wp_die( esc_html__( 'You do not have permission to run migrations.', 'ffcertificate' ) );
+		}
+
+		$migration_key = sanitize_key( wp_unslash( $_GET['ffc_rearm_migration'] ) );
+
+		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'ffc_rearm_' . $migration_key ) ) {
+			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
+		}
+
+		$result = ( new \FreeFormCertificate\Migrations\MigrationManager() )->rearm_migration( $migration_key );
+
+		$redirect_url = add_query_arg(
+			array(
+				'page' => 'ffc-settings',
+				'tab'  => 'migrations',
+			),
+			admin_url( 'admin.php' )
+		);
+
+		if ( is_wp_error( $result ) ) {
+			$redirect_url = add_query_arg( 'migration_error', rawurlencode( $result->get_error_message() ), $redirect_url );
+		} else {
+			$redirect_url = add_query_arg(
+				'migration_success',
+				rawurlencode(
+					sprintf(
+						/* translators: %d: number of accounts the re-armed walk will examine */
+						__( 'Walk re-armed: %d accounts will be examined again. Press "Run Migration" to start. Nothing already filled is overwritten.', 'ffcertificate' ),
+						(int) $result
+					)
+				),
+				$redirect_url
+			);
+		}
+
+		wp_safe_redirect( $redirect_url );
+		exit;
+	}
+
+	/**
 	 * Handle migration execution from settings page
 	 */
 	public function handle_migration_execution(): void {

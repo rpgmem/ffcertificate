@@ -364,6 +364,41 @@ class MigrationStatusCalculator {
 	}
 
 	/**
+	 * Send a card's walk back to the start, when the card has one to send.
+	 *
+	 * Resolved through `get_strategy_for_migration()` like every other verb,
+	 * so the caller never reaches a strategy's private state. A strategy that
+	 * does not offer the method is refused rather than silently ignored: an
+	 * operator who pressed a button is owed an answer, and a no-op that
+	 * reports success is how a control teaches people it does nothing.
+	 *
+	 * `can_run()` is deliberately NOT consulted. Re-arming writes no row -- it
+	 * clears a cursor -- and the gate it would apply (canonicalisation still
+	 * pending) belongs to the walk that follows, which checks it for itself on
+	 * both its paths.
+	 *
+	 * @since 6.33.0
+	 * @param string $migration_key Migration identifier.
+	 * @return int|WP_Error Rows the re-armed walk will examine, or the refusal.
+	 */
+	public function rearm( string $migration_key ) {
+		$strategy = $this->get_strategy_for_migration( $migration_key );
+
+		if ( is_wp_error( $strategy ) ) {
+			return $strategy;
+		}
+
+		if ( ! method_exists( $strategy, 'rearm' ) ) {
+			return new \WP_Error(
+				'migration_not_rearmable',
+				__( 'This migration cannot be re-armed.', 'ffcertificate' )
+			);
+		}
+
+		return (int) $strategy->rearm();
+	}
+
+	/**
 	 * Execute a migration
 	 *
 	 * Delegates to strategy's execute() method.
