@@ -1431,6 +1431,33 @@ p.ffc-datetime-order-error {
     color: var(--ffc-text);
 }
 
+/* The seventh family, and it differs by CONTOUR rather than by hue (#1532).
+   An accepted finding is parked, not good news and not a warning, so a hue
+   would be a signal it does not carry -- the same argument the mailbox chip
+   above makes for the neutral pair. Taking that pair twice would make the two
+   chips indistinguishable, so this one dashes its border, which is also what
+   keeps it tellable under forced-colors: a border survives there, and a
+   background does not, which is why the block below exists for the chip that
+   paints only a ground. */
+.ffc-page-identities .ffc-identity-chip-accepted {
+    background: var(--ffc-bg-alt);
+    border-color: var(--ffc-border);
+    border-style: dashed;
+    color: var(--ffc-text);
+}
+
+/* The accept control is a `details` inside a card's action column, so it must
+   not read as a verb competing with the real ones above it. */
+.ffc-page-identities .ffc-identity-accept {
+    margin-top: var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-xs);
+}
+
+.ffc-page-identities .ffc-identity-accept > summary {
+    cursor: pointer;
+    color: var(--ffc-gray-600);
+}
+
 .ffc-page-identities .ffc-identity-panel-nav {
     display: flex;
     flex-wrap: wrap;

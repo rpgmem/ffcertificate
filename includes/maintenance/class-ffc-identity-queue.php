@@ -147,6 +147,20 @@ class IdentityQueue {
 	public const COLUMN_VERDICTS = 'verdicts';
 
 	/**
+	 * The tier a finding was accepted under, when it is no longer that tier.
+	 *
+	 * Present ONLY on a finding whose acceptance stopped applying because its
+	 * shape changed -- see {@see IdentityAcceptance::FIELD_TIER}. It is set so
+	 * the screen can say why a finding somebody already judged is being asked
+	 * about again; absent means the finding was never accepted, because an
+	 * acceptance that still applies is not in this list at all.
+	 *
+	 * @since 6.33.0
+	 * @var string
+	 */
+	public const COLUMN_WAS_ACCEPTED = 'was_accepted';
+
+	/**
 	 * On a mechanical item, the identifier that fails its check digits.
 	 *
 	 * @var string
@@ -261,6 +275,16 @@ class IdentityQueue {
 	}
 
 	/**
+	 * The acceptance record, as a seam a test can replace.
+	 *
+	 * @since 6.33.0
+	 * @return IdentityAcceptance
+	 */
+	protected function acceptances(): IdentityAcceptance {
+		return new IdentityAcceptance();
+	}
+
+	/**
 	 * The worklist, tiered.
 	 *
 	 * Composed of two findings rather than one, because neither alone says
@@ -370,7 +394,79 @@ class IdentityQueue {
 
 		$this->coverage = $query->scan_coverage();
 
-		return $out;
+		return $this->without_accepted( $out );
+	}
+
+	/**
+	 * Drop the findings an operator has judged impossible to resolve.
+	 *
+	 * APPLIED HERE, AND NOWHERE ELSE (#1532).
+	 *
+	 * `IdentityQueuePanels::build()` drops empty tiers so that "the counters
+	 * above cannot disagree with the panels below: both are this list". A
+	 * suppression applied anywhere but to the list itself breaks exactly that,
+	 * so this is the single place -- one filter, after the scan, over every
+	 * finding of every check.
+	 *
+	 * AFTER `capped()`, deliberately. Truncation is a property of what the
+	 * SCAN read, not of what survives this filter, so a check that reached its
+	 * cap still says so even if acceptance empties its panel. The consequence
+	 * is worth knowing: an install with many acceptances can have unaccepted
+	 * findings beyond the cap that this scan never saw, which is why the
+	 * truncation notice is the thing to read before believing a panel is
+	 * complete -- not the panel's own count.
+	 *
+	 * A FINDING WHOSE SHAPE CHANGED IS NOT SUPPRESSED. The acceptance is a
+	 * judgement about the finding as it was; a tier change means the question
+	 * is a different one, so it returns to the list carrying
+	 * {@see self::COLUMN_WAS_ACCEPTED}. Without that, the record would be a
+	 * way to bury a finding that later became one click from correct.
+	 *
+	 * @since 6.33.0
+	 * @param array<int, array<string, mixed>> $items The scan's findings.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function without_accepted( array $items ): array {
+		// ONE READ, not one per finding: `all()` validates and sorts the whole
+		// record, and doing that a hundred times to answer a hundred lookups
+		// is the shape this file already avoids in `counts()`.
+		$accepted = $this->acceptances()->all();
+
+		if ( array() === $accepted ) {
+			return $items;
+		}
+
+		$kept = array();
+
+		foreach ( $items as $item ) {
+			// The record is keyed by the FIELD, which is the public vocabulary
+			// the refusals and the page already speak; `_hash` comes off the
+			// column the same way `IdentityConflictQuery` takes it off.
+			$key = IdentityAcceptance::key(
+				(string) ( $item[ self::COLUMN_CHECK ] ?? '' ),
+				str_replace( '_hash', '', (string) ( $item['identifier_column'] ?? '' ) ),
+				(string) ( $item['subject'] ?? '' )
+			);
+
+			$record = $accepted[ $key ] ?? null;
+
+			if ( null === $record ) {
+				$kept[] = $item;
+				continue;
+			}
+
+			$was = (string) ( $record[ IdentityAcceptance::FIELD_TIER ] ?? '' );
+
+			if ( (string) ( $item[ self::COLUMN_TIER ] ?? '' ) === $was ) {
+				continue;
+			}
+
+			$item[ self::COLUMN_WAS_ACCEPTED ] = $was;
+
+			$kept[] = $item;
+		}
+
+		return $kept;
 	}
 
 	/**

@@ -41,6 +41,7 @@
 use FreeFormCertificate\Admin\IdentityQueuePanels;
 use FreeFormCertificate\Admin\IdentityResolutionPage;
 use FreeFormCertificate\Core\DateFormatter;
+use FreeFormCertificate\Maintenance\IdentityAcceptance;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityQueue;
 
@@ -1814,6 +1815,62 @@ $ffc_identity_tier_note = static function ( $tier ) {
 							<?php esc_html_e( 'Open the account — this one is not decided here.', 'ffcertificate' ); ?>
 						</span>
 					<?php endif; ?>
+			<?php
+					// ACCEPTING A FINDING NOBODY CAN RESOLVE (#1532).
+					//
+					// The queue is a live scan with no memory, which is what keeps it honest --
+					// and wrong for one population: a stored number the person never supplied,
+					// which HR cannot trace to anybody. The correction panel asks for a value
+					// nobody has, so the finding returns forever and the bottom of the list
+					// stops being read.
+					//
+					// IT IS NOT A RESOLUTION. The number still fails its check digit, the
+					// records are still behind it, and a merge or a move over it still refuses
+					// -- those refusals name this panel instead of the corrections one, which
+					// is what stops #1523 from returning. Nothing here is counted as resolved.
+					//
+					// Which tiers may be accepted is `IdentityQueuePanels::ACCEPTABLE`, with the
+					// reason the other two are not; a literal list here would drift from it.
+					//
+					// `ffc_identity_accept_*` AND NOT `ffc_identity_this_*`: the outer panel
+					// loop already owns that name for the PANEL's tier, and PHP does not scope a
+					// `foreach`. The first version of this block reused it and clobbered the
+					// panel's value for the mailbox branch further down -- which is the trap the
+					// `ffc_identity_person_names` comment in the other card already records.
+					$ffc_identity_accept_tier = (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_TIER ] ?? '' );
+					$ffc_identity_accept_subj = (string) ( $ffc_identity_item['subject'] ?? '' );
+					$ffc_identity_accept_fld  = str_replace( '_hash', '', (string) ( $ffc_identity_item['identifier_column'] ?? '' ) );
+
+			if ( '' !== $ffc_identity_accept_subj && in_array( $ffc_identity_accept_tier, IdentityQueuePanels::ACCEPTABLE, true ) ) :
+				?>
+					<details class="ffc-identity-accept">
+					<summary><?php esc_html_e( 'Nobody can resolve this', 'ffcertificate' ); ?></summary>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<?php wp_nonce_field( IdentityResolutionPage::ACCEPT_NONCE . $ffc_identity_accept_subj ); ?>
+					<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::ACCEPT_ACTION ); ?>">
+					<input type="hidden" name="ffc_check" value="<?php echo esc_attr( (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_CHECK ] ?? '' ) ); ?>">
+					<input type="hidden" name="ffc_field" value="<?php echo esc_attr( $ffc_identity_accept_fld ); ?>">
+					<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( $ffc_identity_accept_subj ); ?>">
+					<input type="hidden" name="ffc_tier" value="<?php echo esc_attr( $ffc_identity_accept_tier ); ?>">
+					<?php // The held list drops the finding through `report()`, the same way every verb here does. ?>
+					<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_item[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
+					<p class="description">
+					<?php esc_html_e( 'This takes the finding out of the queue and lists it under "Accepted — no resolution possible", where it can be put back. It does not change any stored value, and a merge or a move blocked by this number stays blocked.', 'ffcertificate' ); ?>
+					</p>
+					<label>
+					<?php esc_html_e( 'Why it cannot be resolved', 'ffcertificate' ); ?>
+					<select name="ffc_reason" required>
+					<option value=""><?php esc_html_e( 'Choose a reason', 'ffcertificate' ); ?></option>
+					<option value="<?php echo esc_attr( IdentityAcceptance::REASON_NEVER_SUPPLIED ); ?>"><?php esc_html_e( 'The person never supplied this number', 'ffcertificate' ); ?></option>
+					<option value="<?php echo esc_attr( IdentityAcceptance::REASON_UNIDENTIFIABLE ); ?>"><?php esc_html_e( 'HR cannot say whose number this is', 'ffcertificate' ); ?></option>
+					</select>
+					</label>
+					<p>
+					<button type="submit" class="button button-secondary"><?php esc_html_e( 'Accept as unresolvable', 'ffcertificate' ); ?></button>
+					</p>
+					</form>
+					</details>
+					<?php endif; ?>
 				</div>
 			</div>
 		<?php endforeach; ?>
@@ -1963,6 +2020,29 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				)
 			);
 			?>
+		<?php elseif ( array() !== $ffc_identity_accepted ) : ?>
+			<?php
+			// A FIFTH STATE, AND ACCEPTANCE IS WHAT ADDED IT (#1532).
+			//
+			// The four above split an empty list by what the SCAN managed to
+			// read. This one is different in kind: the scan read fine and found
+			// failures, and they are absent from the list because somebody
+			// judged them unresolvable. Falling into the branch below would
+			// claim every stored value satisfies its check digit, which is
+			// false while a single acceptance stands -- the same shape as the
+			// three readings above, one layer further out.
+			?>
+			<p class="description">
+				<?php
+				printf(
+					/* translators: 1: values checked, 2: how many findings are accepted, 3: values that could not be read. */
+					esc_html__( 'Nothing left to work: %1$s stored values checked, and the %2$s finding(s) that remain are recorded below as impossible to resolve. This is not the same as every value being sound. %3$s could not be read and were not checked.', 'ffcertificate' ),
+					esc_html( number_format_i18n( $ffc_identity_all['examined'] ) ),
+					esc_html( number_format_i18n( count( $ffc_identity_accepted ) ) ),
+					esc_html( number_format_i18n( $ffc_identity_all['unreadable'] ) )
+				);
+				?>
+			</p>
 		<?php else : ?>
 			<p class="description">
 				<?php
@@ -2218,6 +2298,62 @@ $ffc_identity_tier_note = static function ( $tier ) {
 								data-failed="<?php esc_attr_e( 'The check could not be completed.', 'ffcertificate' ); ?>"></div>
 						</form>
 					<?php endif; ?>
+			<?php
+					// ACCEPTING A FINDING NOBODY CAN RESOLVE (#1532).
+					//
+					// The queue is a live scan with no memory, which is what keeps it honest --
+					// and wrong for one population: a stored number the person never supplied,
+					// which HR cannot trace to anybody. The correction panel asks for a value
+					// nobody has, so the finding returns forever and the bottom of the list
+					// stops being read.
+					//
+					// IT IS NOT A RESOLUTION. The number still fails its check digit, the
+					// records are still behind it, and a merge or a move over it still refuses
+					// -- those refusals name this panel instead of the corrections one, which
+					// is what stops #1523 from returning. Nothing here is counted as resolved.
+					//
+					// Which tiers may be accepted is `IdentityQueuePanels::ACCEPTABLE`, with the
+					// reason the other two are not; a literal list here would drift from it.
+					//
+					// `ffc_identity_accept_*` AND NOT `ffc_identity_this_*`: the outer panel
+					// loop already owns that name for the PANEL's tier, and PHP does not scope a
+					// `foreach`. The first version of this block reused it and clobbered the
+					// panel's value for the mailbox branch further down -- which is the trap the
+					// `ffc_identity_person_names` comment in the other card already records.
+					$ffc_identity_accept_tier = (string) ( $ffc_identity_row[ IdentityQueue::COLUMN_TIER ] ?? '' );
+					$ffc_identity_accept_subj = (string) ( $ffc_identity_row['subject'] ?? '' );
+					$ffc_identity_accept_fld  = str_replace( '_hash', '', (string) ( $ffc_identity_row['identifier_column'] ?? '' ) );
+
+			if ( '' !== $ffc_identity_accept_subj && in_array( $ffc_identity_accept_tier, IdentityQueuePanels::ACCEPTABLE, true ) ) :
+				?>
+					<details class="ffc-identity-accept">
+					<summary><?php esc_html_e( 'Nobody can resolve this', 'ffcertificate' ); ?></summary>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<?php wp_nonce_field( IdentityResolutionPage::ACCEPT_NONCE . $ffc_identity_accept_subj ); ?>
+					<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::ACCEPT_ACTION ); ?>">
+					<input type="hidden" name="ffc_check" value="<?php echo esc_attr( (string) ( $ffc_identity_row[ IdentityQueue::COLUMN_CHECK ] ?? '' ) ); ?>">
+					<input type="hidden" name="ffc_field" value="<?php echo esc_attr( $ffc_identity_accept_fld ); ?>">
+					<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( $ffc_identity_accept_subj ); ?>">
+					<input type="hidden" name="ffc_tier" value="<?php echo esc_attr( $ffc_identity_accept_tier ); ?>">
+					<?php // The held list drops the finding through `report()`, the same way every verb here does. ?>
+					<input type="hidden" name="ffc_key" value="<?php echo esc_attr( (string) ( $ffc_identity_row[ IdentityQueue::COLUMN_KEY ] ?? '' ) ); ?>">
+					<p class="description">
+					<?php esc_html_e( 'This takes the finding out of the queue and lists it under "Accepted — no resolution possible", where it can be put back. It does not change any stored value, and a merge or a move blocked by this number stays blocked.', 'ffcertificate' ); ?>
+					</p>
+					<label>
+					<?php esc_html_e( 'Why it cannot be resolved', 'ffcertificate' ); ?>
+					<select name="ffc_reason" required>
+					<option value=""><?php esc_html_e( 'Choose a reason', 'ffcertificate' ); ?></option>
+					<option value="<?php echo esc_attr( IdentityAcceptance::REASON_NEVER_SUPPLIED ); ?>"><?php esc_html_e( 'The person never supplied this number', 'ffcertificate' ); ?></option>
+					<option value="<?php echo esc_attr( IdentityAcceptance::REASON_UNIDENTIFIABLE ); ?>"><?php esc_html_e( 'HR cannot say whose number this is', 'ffcertificate' ); ?></option>
+					</select>
+					</label>
+					<p>
+					<button type="submit" class="button button-secondary"><?php esc_html_e( 'Accept as unresolvable', 'ffcertificate' ); ?></button>
+					</p>
+					</form>
+					</details>
+					<?php endif; ?>
 				</div>
 			</div>
 		<?php endforeach; ?>
@@ -2245,6 +2381,124 @@ $ffc_identity_tier_note = static function ( $tier ) {
 	// It is gated on the SPLIT capability: the action can open a WordPress
 	// user, which is exactly what that capability was carved out for (#1397).
 	?>
+	<?php if ( array() !== $ffc_identity_accepted ) : ?>
+		<?php
+		// THE DECISIONS, NOT A SCAN (#1532).
+		//
+		// Every other panel on this screen is a view of what the scan found.
+		// This one is a view of what people DECIDED, which is why it renders
+		// when the scan found nothing and even when the scan could read
+		// nothing: a judgement does not stop existing because the encryption
+		// key moved.
+		//
+		// IT IS LISTED, COUNTED AND SEPARATE. Counted because a suppression
+		// nobody can see is how a queue comes to lie about being finished;
+		// separate because these are not resolutions and must never be read as
+		// the "resolved this sitting" number, which is why
+		// `IdentityAcceptance::NOT_RESOLUTIONS` keeps them out of
+		// `IdentityResolutionPage::RESOLVED_ACTIONS`.
+		//
+		// The subject is printed as a PREFIX, the same length the cards use,
+		// for the reason `IdentityQueue::DISPLAY_PREFIX` gives: the hash of a
+		// seven-digit number is not far from the number.
+		?>
+		<?php
+		// THE ORPHAN PANEL'S MARKUP, NOT A NEW HEADING OF ITS OWN.
+		//
+		// `$ffc_identity_head` carries a cursor and a `See the list` toggle,
+		// and this panel can honour neither -- it is always the whole list, and
+		// a record is not a held scan. That is the same reason the orphan panel
+		// writes its header out, so this follows it class for class: inventing
+		// `ffc-identity-head` here would have been a name with no rule behind
+		// it, which is what `CLAUDE.md` means by looking for the convention
+		// before making one up.
+		?>
+		<div class="ffc-identity-panel">
+		<div class="ffc-identity-panel-head">
+			<span class="ffc-identity-panel-chip ffc-identity-chip-accepted"><?php esc_html_e( 'Accepted', 'ffcertificate' ); ?></span>
+			<h2 class="ffc-identity-panel-title screen-reader-text"><?php esc_html_e( 'Accepted — no resolution possible', 'ffcertificate' ); ?></h2>
+			<p class="ffc-identity-panel-note description"><?php esc_html_e( 'Findings somebody judged impossible to resolve: the number was never supplied, or HR cannot say whose it is. Nothing about them was changed — the stored values still fail their check digits, and a merge or a move blocked by one of them stays blocked. Put one back as soon as the correct value is known.', 'ffcertificate' ); ?></p>
+			<div class="ffc-identity-panel-nav">
+				<span class="ffc-identity-panel-count">
+					<?php
+					printf(
+						/* translators: %s: how many findings are accepted. */
+						esc_html( _n( '%s accepted', '%s accepted', count( $ffc_identity_accepted ), 'ffcertificate' ) ),
+						esc_html( number_format_i18n( count( $ffc_identity_accepted ) ) )
+					);
+					?>
+				</span>
+			</div>
+		</div>
+		<table class="widefat striped">
+			<thead>
+				<tr>
+					<th scope="col"><?php esc_html_e( 'Identifier', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Finding', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Reason', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Accepted', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Put back', 'ffcertificate' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+			<?php
+			// `ffc_identity_accepted_row` AND NOT `ffc_identity_ack`: that name is
+			// already a CLOSURE above, called from three cards, and a `foreach` would
+			// overwrite it with an array -- a fatal on the next call, which only moves
+			// into range when somebody adds a card below this panel. PHP does not scope
+			// a `foreach`, which is the whole reason this file keeps saying so.
+			?>
+			<?php foreach ( $ffc_identity_accepted as $ffc_identity_accepted_row ) : ?>
+				<?php
+				$ffc_identity_ar_subject = (string) ( $ffc_identity_accepted_row[ IdentityAcceptance::FIELD_SUBJECT ] ?? '' );
+				$ffc_identity_ar_field   = (string) ( $ffc_identity_accepted_row[ IdentityAcceptance::FIELD_IDENTIFIER ] ?? '' );
+				$ffc_identity_ar_reason  = (string) ( $ffc_identity_accepted_row[ IdentityAcceptance::FIELD_REASON ] ?? '' );
+				$ffc_identity_ar_at      = (int) ( $ffc_identity_accepted_row[ IdentityAcceptance::FIELD_AT ] ?? 0 );
+				?>
+				<tr>
+					<td><code><?php echo esc_html( strtoupper( $ffc_identity_ar_field ) ); ?></code></td>
+					<td>
+						<?php echo esc_html( $ffc_identity_tier_label( (string) ( $ffc_identity_accepted_row[ IdentityAcceptance::FIELD_TIER ] ?? '' ) ) ); ?>
+						<br>
+						<code><?php echo esc_html( substr( $ffc_identity_ar_subject, 0, IdentityQueue::DISPLAY_PREFIX ) ); ?></code>
+					</td>
+					<td>
+						<?php
+						if ( IdentityAcceptance::REASON_NEVER_SUPPLIED === $ffc_identity_ar_reason ) {
+							esc_html_e( 'The person never supplied this number', 'ffcertificate' );
+						} elseif ( IdentityAcceptance::REASON_UNIDENTIFIABLE === $ffc_identity_ar_reason ) {
+							esc_html_e( 'HR cannot say whose number this is', 'ffcertificate' );
+						} else {
+							// A RECORD WHOSE REASON THIS RELEASE DOES NOT KNOW
+							// still has to render: an option holds whatever is
+							// in it, and a row that vanishes is a suppression
+							// nobody can withdraw.
+							esc_html_e( 'Reason not recorded', 'ffcertificate' );
+						}
+						?>
+					</td>
+					<td>
+						<?php echo $ffc_identity_ar_at > 0 ? esc_html( DateFormatter::format_datetime( $ffc_identity_ar_at ) ) : '&mdash;'; ?>
+					</td>
+					<td>
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+							<?php wp_nonce_field( IdentityResolutionPage::WITHDRAW_NONCE . $ffc_identity_ar_subject ); ?>
+							<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::WITHDRAW_ACTION ); ?>">
+							<input type="hidden" name="ffc_check" value="<?php echo esc_attr( (string) ( $ffc_identity_accepted_row[ IdentityAcceptance::FIELD_CHECK ] ?? '' ) ); ?>">
+							<input type="hidden" name="ffc_field" value="<?php echo esc_attr( $ffc_identity_ar_field ); ?>">
+							<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( $ffc_identity_ar_subject ); ?>">
+							<button type="submit" class="button button-secondary">
+								<?php esc_html_e( 'Put back in the queue', 'ffcertificate' ); ?>
+							</button>
+						</form>
+					</td>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
+		</table>
+		</div>
+	<?php endif; ?>
+
 	<?php if ( $ffc_identity_may_split && array() !== $ffc_identity_orphans ) : ?>
 		<?php
 		// THE SAME CARD, WRITTEN OUT RATHER THAN THROUGH `$ffc_identity_head`.

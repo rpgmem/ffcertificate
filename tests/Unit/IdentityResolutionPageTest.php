@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\IdentityQueuePanels;
 use FreeFormCertificate\Admin\IdentityResolutionPage;
+use FreeFormCertificate\Maintenance\IdentityAcceptance;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityQueue;
 use FreeFormCertificate\Maintenance\IdentityRepair;
@@ -107,16 +108,27 @@ class IdentityResolutionPageTest extends TestCase {
 			)
 		);
 
-		return new class( $query ) extends IdentityResolutionPage {
+		// The record is a double rather than a `get_option` stub, for the reason
+		// `IdentityQueueTest` states: the function stays taught for the rest of
+		// the process, and these tests are about the screen, not an option.
+		$accepted = Mockery::mock( IdentityAcceptance::class );
+		$accepted->shouldReceive( 'all' )->andReturn( array() )->byDefault();
+
+		return new class( $query, $accepted ) extends IdentityResolutionPage {
 
 			/** @var IdentityConflictQuery */
 			private $double;
 
+			/** @var IdentityAcceptance */
+			private $accepted_double;
+
 			/**
-			 * @param IdentityConflictQuery $double Stand-in for the real query.
+			 * @param IdentityConflictQuery $double   Stand-in for the real query.
+			 * @param IdentityAcceptance    $accepted Stand-in for the record.
 			 */
-			public function __construct( $double ) {
-				$this->double = $double;
+			public function __construct( $double, $accepted ) {
+				$this->double          = $double;
+				$this->accepted_double = $accepted;
 			}
 
 			/**
@@ -124,6 +136,13 @@ class IdentityResolutionPageTest extends TestCase {
 			 */
 			protected function conflicts(): IdentityConflictQuery {
 				return $this->double;
+			}
+
+			/**
+			 * @return IdentityAcceptance
+			 */
+			protected function acceptances(): IdentityAcceptance {
+				return $this->accepted_double;
 			}
 		};
 	}
@@ -463,6 +482,23 @@ class IdentityResolutionPageTest extends TestCase {
 			 */
 			protected function conflicts(): IdentityConflictQuery {
 				return $this->double;
+			}
+
+			/**
+			 * An empty record, so this case stays about what the SCAN read.
+			 *
+			 * @return IdentityAcceptance
+			 */
+			protected function acceptances(): IdentityAcceptance {
+				return new class() extends IdentityAcceptance {
+
+					/**
+					 * @return array<string, array<string, mixed>>
+					 */
+					public function all(): array {
+						return array();
+					}
+				};
 			}
 		};
 
@@ -1334,6 +1370,38 @@ class IdentityResolutionPageTest extends TestCase {
 			if ( preg_match_all( "/ActivityLog::log\(\s*'(identity_\w+)'/", $source, $found ) ) {
 				$logged = array_merge( $logged, $found[1] );
 			}
+
+			// AN ACTION NAMED BY A CONSTANT IS STILL AN ACTION, AND THE SCAN
+			// COULD NOT SEE ONE (#1532).
+			//
+			// The rule above assumes the name is a literal AT the call site.
+			// `IdentityAcceptance` logs two actions through one private helper
+			// and passes the name in, so both were invisible here — and so
+			// would a RESOLVING verb written the same way be, which is a hole
+			// in the guard rather than a quirk of that class.
+			//
+			// `LOG_*` AND NOT ANY `identity_*` CONSTANT, because the first
+			// attempt at this read `ALIAS_IDENTITY_COUNT = 'identity_count'` --
+			// a SQL column alias -- as a sixth verb. So the convention is the
+			// narrow one: an action named by a constant declares it under a
+			// `LOG_` prefix, and the assertion below is what stops a file from
+			// dispatching a logged action through a constant that hides from
+			// this net.
+			if ( preg_match_all( "/const\s+LOG_\w+\s*=\s*'(identity_\w+)'/", $source, $declared_names ) ) {
+				$logged = array_merge( $logged, $declared_names[1] );
+			}
+
+			// A FILE THAT PASSES ITS ACTION IN MUST DECLARE IT WHERE THE SCAN
+			// LOOKS. That is the residual half of the same hole: centralising
+			// the call is fine, naming the action somewhere this cannot read is
+			// not.
+			if ( preg_match( '/ActivityLog::log\(\s*\$/', $source ) ) {
+				$this->assertMatchesRegularExpression(
+					"/const\s+LOG_\w+\s*=\s*'identity_\w+'/",
+					$source,
+					basename( (string) $file ) . ' dispatches a logged action through a variable, so it must declare the name as a LOG_* constant or this scan cannot see it.'
+				);
+			}
 		}
 
 		sort( $logged );
@@ -1341,11 +1409,37 @@ class IdentityResolutionPageTest extends TestCase {
 
 		$this->assertNotEmpty( $logged, 'The scan found no identity verb at all, so it proves nothing.' );
 
+		// ONE SET IS SUBTRACTED, AND THAT IS THE DECISION RATHER THAN A HOLE
+		// (#1532).
+		//
+		// This test's whole value is that a sixth verb cannot be added without
+		// the counter learning about it. Accepting a finding as unresolvable is
+		// the first logged `identity_*` action whose answer is "counted by
+		// nothing, on purpose": it is not a resolution, the stored value is
+		// unchanged, and the refusals over it still refuse. Growing
+		// `RESOLVED_ACTIONS` would have made the screen report it as work done.
+		//
+		// So the exemption is DECLARED beside the code that logs it, and it is
+		// checked rather than trusted: every name in it must still be found by
+		// the scan, so an entry left behind after its service stopped logging
+		// fails here instead of silently excusing nothing.
+		$exempt = IdentityAcceptance::NOT_RESOLUTIONS;
+		sort( $exempt );
+
+		$this->assertNotEmpty( $exempt, 'An empty exemption list means the subtraction below proves nothing.' );
+		$this->assertSame(
+			$exempt,
+			array_values( array_intersect( $logged, $exempt ) ),
+			'Every exempted action must still be logged by a service; one that is gone has to leave this list.'
+		);
+
+		$counted = array_values( array_diff( $logged, $exempt ) );
+
 		$declared = IdentityResolutionPage::RESOLVED_ACTIONS;
 		sort( $declared );
 
 		$this->assertSame(
-			$logged,
+			$counted,
 			$declared,
 			'The resolved counter and the services that log a resolution must name the same verbs.'
 		);
@@ -1892,5 +1986,179 @@ class IdentityResolutionPageTest extends TestCase {
 		$this->assertStringNotContainsString( '%s', $sentence, 'The advice must not carry a count; the chips above state them.' );
 		$this->assertStringNotContainsString( '%1$s', $sentence, 'The advice must not carry a count; the chips above state them.' );
 		$this->assertStringNotContainsString( '%d', $sentence, 'The advice must not carry a count; the chips above state them.' );
+	}
+
+	// =====================================================================
+	// Acceptance (#1532)
+	// =====================================================================
+
+	/**
+	 * Both new verbs are wired, gated and keyed to their own finding.
+	 *
+	 * Their own nonce actions rather than a mode on an existing verb: a nonce
+	 * shared with the repair would let a correction's confirmation suppress a
+	 * finding instead, which is a different promise entirely.
+	 */
+	public function test_the_acceptance_verbs_are_registered_gated_and_separately_keyed(): void {
+		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
+
+		$this->assertStringContainsString( "admin_post_' . self::ACCEPT_ACTION, array( \$this, 'handle_accept' )", $page );
+		$this->assertStringContainsString( "admin_post_' . self::WITHDRAW_ACTION, array( \$this, 'handle_withdraw' )", $page );
+		$this->assertStringContainsString( 'check_admin_referer( self::ACCEPT_NONCE . $subject )', $page );
+		$this->assertStringContainsString( 'check_admin_referer( self::WITHDRAW_NONCE . $subject )', $page );
+
+		foreach ( array( IdentityResolutionPage::REPAIR_NONCE, IdentityResolutionPage::CONSOLIDATE_NONCE, IdentityResolutionPage::RELINK_NONCE ) as $other ) {
+			$this->assertNotSame( $other, IdentityResolutionPage::ACCEPT_NONCE );
+			$this->assertNotSame( $other, IdentityResolutionPage::WITHDRAW_NONCE );
+		}
+
+		$this->assertNotSame( IdentityResolutionPage::ACCEPT_NONCE, IdentityResolutionPage::WITHDRAW_NONCE );
+	}
+
+	/**
+	 * ACCEPTING TAKES THE SCREEN'S CAPABILITY AND NOT A NARROWER ONE.
+	 *
+	 * The split has its own because it CREATES a login. Accepting writes
+	 * nobody's data, so it sits with the rest — and the reason is worth pinning
+	 * because the opposite choice looks equally plausible from the outside.
+	 */
+	public function test_accepting_takes_the_screens_capability(): void {
+		$page  = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
+		$start = (int) strpos( $page, 'public function handle_accept(): void {' );
+
+		$this->assertGreaterThan( 0, $start );
+
+		$body = substr( $page, $start, 400 );
+
+		$this->assertStringContainsString( 'Capabilities::current_user_can_admin_or( self::CAPABILITY )', $body );
+		$this->assertStringNotContainsString( 'SPLIT_CAPABILITY', $body );
+		$this->assertStringNotContainsString( 'MERGE_CAPABILITY', $body );
+	}
+
+	/**
+	 * WITHDRAWING READS THE QUEUE AGAIN; NO OTHER VERB HERE DOES.
+	 *
+	 * Every other write REMOVES a finding, so `report()` drops it from the held
+	 * list and nothing else moves. This one puts one back, and a held list
+	 * cannot gain a finding it was taken without — so the list has to be taken
+	 * again, and only when the withdrawal actually succeeded.
+	 */
+	public function test_withdrawing_reads_the_queue_again_and_only_on_success(): void {
+		$page  = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
+		$start = (int) strpos( $page, 'public function handle_withdraw(): void {' );
+
+		$this->assertGreaterThan( 0, $start );
+
+		$body = substr( $page, $start, 900 );
+
+		$this->assertStringContainsString( '$result instanceof WP_Error', $body, 'A failed withdrawal must not reshuffle the list.' );
+		$this->assertStringContainsString( '$this->worklists()->take( get_current_user_id(), self::LIMIT );', $body );
+
+		// The accept side must NOT retake: it removes a finding, which
+		// `report()` already handles, and retaking would renumber every other
+		// position for nothing.
+		$accept = substr( $page, (int) strpos( $page, 'public function handle_accept(): void {' ), 900 );
+
+		$this->assertStringNotContainsString( '$this->worklists()->take(', $accept );
+	}
+
+	/**
+	 * Every posted part is validated before it can be stored.
+	 *
+	 * An unrecognised check or tier would key a record against no finding — a
+	 * suppression that silently does nothing, which is worse than a refusal.
+	 */
+	public function test_the_posted_check_and_tier_are_validated(): void {
+		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
+
+		$this->assertStringContainsString( 'private static function posted_check(): string {', $page );
+		$this->assertStringContainsString( 'private static function posted_tier(): string {', $page );
+		$this->assertStringContainsString( 'in_array( $tier, IdentityQueuePanels::ORDER, true )', $page );
+		$this->assertStringContainsString( 'self::posted_check()', $page );
+		$this->assertStringContainsString( 'self::posted_tier()', $page );
+	}
+
+	/**
+	 * THE CONTROL IS OFFERED ON THREE TIERS, AND THE VIEW NAMES NONE OF THEM.
+	 *
+	 * The list lives on `IdentityQueuePanels::ACCEPTABLE` with the reason the
+	 * other two are absent; a literal list in the view would drift from it.
+	 */
+	public function test_the_accept_control_is_offered_by_the_declared_tiers_only(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertSame(
+			2,
+			substr_count( $view, 'IdentityQueuePanels::ACCEPTABLE, true )' ),
+			'Both card shapes must gate on the declared list, and neither may spell the tiers out.'
+		);
+		$this->assertStringContainsString( 'IdentityResolutionPage::ACCEPT_ACTION', $view );
+
+		$this->assertSame(
+			array( IdentityQueue::TIER_ISOLATED, IdentityQueue::TIER_DECISION, IdentityQueue::TIER_MAILBOX ),
+			IdentityQueuePanels::ACCEPTABLE
+		);
+		$this->assertNotContains(
+			IdentityQueue::TIER_MECHANICAL,
+			IdentityQueuePanels::ACCEPTABLE,
+			'A tier one click from correct has nothing for HR to supply.'
+		);
+		$this->assertNotContains(
+			IdentityQueue::TIER_SHARED,
+			IdentityQueuePanels::ACCEPTABLE,
+			'A merge is blocked by a number, and the number is accepted on its own panel.'
+		);
+	}
+
+	/**
+	 * The accepted panel is a list of DECISIONS, with a count and a way back.
+	 *
+	 * Counted because a suppression nobody can see is how a queue comes to lie
+	 * about being finished, and reversible because a judgement made from
+	 * incomplete information is the normal case here.
+	 */
+	public function test_the_accepted_panel_is_counted_and_reversible(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$this->assertStringContainsString( 'array() !== $ffc_identity_accepted', $view );
+		$this->assertStringContainsString( 'count( $ffc_identity_accepted )', $view );
+		$this->assertStringContainsString( 'IdentityResolutionPage::WITHDRAW_ACTION', $view );
+		$this->assertStringContainsString( 'IdentityResolutionPage::WITHDRAW_NONCE . $ffc_identity_ar_subject', $view );
+		$this->assertStringContainsString( 'IdentityQueue::DISPLAY_PREFIX', $view );
+	}
+
+	/**
+	 * A FIFTH EMPTY STATE, BECAUSE ACCEPTANCE ADDED ONE.
+	 *
+	 * The four that existed split an empty list by what the scan managed to
+	 * read. This one is different in kind: the scan read fine and found
+	 * failures, and they are absent because somebody judged them unresolvable.
+	 * Falling into the reassuring branch would claim every stored value
+	 * satisfies its check digit, which is false while one acceptance stands.
+	 */
+	public function test_an_empty_list_with_acceptances_does_not_read_as_a_clean_result(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$branch = (int) strpos( $view, 'elseif ( array() !== $ffc_identity_accepted ) : ?>' );
+		$clean  = (int) strpos( $view, 'Nothing to resolve: %1$s stored values checked and every one satisfies its check digit.' );
+
+		$this->assertGreaterThan( 0, $branch, 'The accepted case needs a branch of its own.' );
+		$this->assertGreaterThan( 0, $clean );
+		$this->assertLessThan( $clean, $branch, 'It must be tested BEFORE the branch that claims every value is sound.' );
+	}
+
+	/**
+	 * The record reaches the view through the screen's own seam.
+	 *
+	 * One seam means the queue's filter and the panel below read the SAME
+	 * record — two instances are harmless today and one refactor away from the
+	 * panel disagreeing with the filter about what is accepted.
+	 */
+	public function test_the_queue_and_the_panel_read_one_record(): void {
+		$page = (string) file_get_contents( __DIR__ . '/../../includes/admin/class-ffc-identity-resolution-page.php' );
+
+		$this->assertStringContainsString( '$ffc_identity_accepted = $this->acceptances()->all();', $page );
+		$this->assertStringContainsString( '$accepted = $this->acceptances();', $page );
+		$this->assertStringContainsString( 'protected function acceptances(): IdentityAcceptance {', $page );
 	}
 }

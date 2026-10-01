@@ -656,4 +656,34 @@ class IdentityRelinkTest extends TestCase {
 			'Clearing must be conditional on the VALUE, or an unrelated entry is lost.'
 		);
 	}
+
+	/**
+	 * THE MOVE'S REFUSAL READS THE ACCEPTANCE RECORD TOO (#1532).
+	 *
+	 * ANCHORED ON THE SOURCE, and that is a deliberate step down from
+	 * `IdentityMergeTest`, which drives the equivalent branch end to end over a
+	 * real refusal. The two branches are the same two lines over different
+	 * prose, so the behaviour is measured once; what this pins is the half a
+	 * copy gets wrong — reading the wrong array, or dropping the field, either
+	 * of which would excuse a refusal over a number nobody accepted.
+	 */
+	public function test_the_refusal_reads_the_record_for_the_identifier_it_is_about(): void {
+		$source = (string) file_get_contents( __DIR__ . '/../../includes/maintenance/class-ffc-identity-relink.php' );
+
+		$this->assertStringContainsString(
+			'$accepted->any_accepted( $field, $carried[ $field ] ?? array() )',
+			$source,
+			'The lookup must be per identifier and over the hashes the moving rows carry.'
+		);
+		$this->assertStringContainsString( 'accepted as impossible to resolve', $source );
+		$this->assertStringContainsString(
+			'does not unblock this move',
+			$source,
+			'An accepted number still blocks; saying otherwise turns the record into a bypass.'
+		);
+
+		// Both sentences survive: the finding may or may not be accepted, and
+		// the panel named has to match.
+		$this->assertStringContainsString( 'Correct it first, under "Numbers to correct"', $source );
+	}
 }

@@ -228,6 +228,11 @@ $ffcertificate_options = array(
 	'ffc_key_rotation_remaining_state',
 	'ffc_identity_normalization_state',
 	'ffc_identity_index_backfill_state',
+	// The findings an operator judged impossible to resolve (#1532). Written
+	// only when somebody accepts one, so the fresh-install gate never sees it
+	// -- that gate compares what ACTIVATION writes -- but it is declared here
+	// because this list is the enforced manifest of the whole footprint.
+	'ffc_identity_accepted',
 	// Cursor of the card that names accounts promoted from a candidacy without
 	// one (#1480). Written only when that card is run, so the fresh-install gate
 	// never sees it -- that gate compares what ACTIVATION writes.

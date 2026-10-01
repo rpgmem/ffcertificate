@@ -303,6 +303,10 @@ class AdminActivityLogPage {
 			'identity_records_split'                       => __( 'Records Given Their Own Account', 'ffcertificate' ),
 			'identity_accounts_merged'                     => __( 'Two Accounts Merged Into One', 'ffcertificate' ),
 			'identity_orphans_adopted'                     => __( 'Orphaned Records Given an Account', 'ffcertificate' ),
+			// Not resolutions, and the labels say so rather than implying the
+			// number was fixed (#1532).
+			'identity_accepted_unresolvable'               => __( 'Finding Accepted as Unresolvable', 'ffcertificate' ),
+			'identity_acceptance_withdrawn'                => __( 'Acceptance Withdrawn', 'ffcertificate' ),
 			'recruitment_classification_override_to_empty' => __( 'Classification Cleared', 'ffcertificate' ),
 			'recruitment_classification_deleted'           => __( 'Classification Deleted', 'ffcertificate' ),
 			'recruitment_adjutancy_deleted'                => __( 'Adjutancy Deleted', 'ffcertificate' ),

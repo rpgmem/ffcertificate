@@ -103,6 +103,35 @@ class IdentityQueuePanels {
 	);
 
 	/**
+	 * The tiers whose findings may be accepted as impossible to resolve.
+	 *
+	 * Named here beside its two siblings, and for the same reason they are
+	 * named: so the rule can be asserted without a test repeating a literal
+	 * list that would then agree with a reordering which broke it.
+	 *
+	 * TWO TIERS ARE DELIBERATELY ABSENT, and neither is an oversight.
+	 *
+	 * `mechanical` is one click from correct -- the check digits already said
+	 * which value is wrong and which is right -- so there is nothing for HR to
+	 * supply and nothing to accept. Offering "nobody can fix this" beside a
+	 * button that fixes it is how a control teaches people to ignore it.
+	 *
+	 * `shared` is a merge, and what blocks a merge is a NUMBER: `IdentityMerge`
+	 * refuses while the shared value fails its check digit. That number is
+	 * accepted on the panel where numbers live, and the refusal then says so
+	 * (#1532). Accepting the pair itself would be a claim about two accounts
+	 * that no acceptance is evidence for.
+	 *
+	 * @since 6.33.0
+	 * @var array<int, string>
+	 */
+	public const ACCEPTABLE = array(
+		IdentityQueue::TIER_ISOLATED,
+		IdentityQueue::TIER_DECISION,
+		IdentityQueue::TIER_MAILBOX,
+	);
+
+	/**
 	 * Request argument carrying each panel's cursor, keyed by tier.
 	 *
 	 * @var string
