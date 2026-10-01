@@ -113,6 +113,11 @@ class ActivityLog {
 			'identity_records_split'             => 'data_access',
 			'identity_accounts_merged'           => 'data_access',
 			'identity_orphans_adopted'           => 'data_access',
+			// Accepting a finding as unresolvable writes nobody's data, but it
+			// is a decision ABOUT stored PII and belongs where its siblings are
+			// read; the fallback would file it under `submissions` (#1532).
+			'identity_accepted_unresolvable'     => 'data_access',
+			'identity_acceptance_withdrawn'      => 'data_access',
 			'migration_foreign_keys'             => 'migrations',
 			'activity_log_clear_plaintext_batch' => 'migrations',
 			'cpf_rf_split_unknown_length'        => 'migrations',

@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Identity resolution: a finding nobody can resolve can be accepted as such** (#1532). A stored number the person never supplied, and HR cannot trace, had no correct value to give and returned on every visit. Accepting it moves it to a counted, reversible list of decisions — it is **not** a resolution: nothing stored changes, and a merge or move blocked by that number stays blocked, with the refusal now naming the right panel
+
 ### Fixed
 
 - **The identity-index backfill card could not be asked to look again** (#1530). Its progress is the cursor, so an account skipped for holding two identifiers sits behind it by the time an operator resolves it: the card read 100% while the audit still listed the links. A re-check control re-walks it, overwriting nothing already filled

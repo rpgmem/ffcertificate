@@ -7,6 +7,7 @@ use Brain\Monkey;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Maintenance\IdentityAcceptance;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityQueue;
 
@@ -46,17 +47,29 @@ class IdentityQueueTest extends TestCase {
 	/**
 	 * A queue reading from a double.
 	 *
-	 * @param array<int, array<string, mixed>> $multiple  Accounts holding several identifiers.
-	 * @param array<string, string>            $verdicts  Hash => verdict.
-	 * @param array<int, array<string, mixed>> $shared    Identifiers held by several accounts.
-	 * @param array<int, array<string, mixed>> $failures  Check-digit failures.
+	 * THE ACCEPTANCE RECORD IS A DOUBLE TOO, AND NOT A `get_option` STUB.
+	 *
+	 * `items()` consults the record to drop findings somebody judged
+	 * unresolvable (#1532), so without a seam here every test in this file
+	 * errored on an unstubbed `get_option`. Teaching Patchwork that function
+	 * would have been the wrong fix twice over: it stays defined for every
+	 * later test in the process -- the blast radius `CLAUDE.md` describes --
+	 * and it would make these tests about an option when what they measure is
+	 * the tiering. `$accepted` is passed where a test wants the filter to act.
+	 *
+	 * @param array<int, array<string, mixed>>    $multiple  Accounts holding several identifiers.
+	 * @param array<string, string>               $verdicts  Hash => verdict.
+	 * @param array<int, array<string, mixed>>    $shared    Identifiers held by several accounts.
+	 * @param array<int, array<string, mixed>>    $failures  Check-digit failures.
+	 * @param array<string, array<string, mixed>> $accepted  The acceptance record.
 	 * @return IdentityQueue
 	 */
 	private function queue_reading(
 		array $multiple,
 		array $verdicts = array(),
 		array $shared = array(),
-		array $failures = array()
+		array $failures = array(),
+		array $accepted = array()
 	): IdentityQueue {
 		$query = Mockery::mock( IdentityConflictQuery::class );
 		$query->shouldReceive( 'multiple_identities' )->andReturn( $multiple );
@@ -76,7 +89,10 @@ class IdentityQueueTest extends TestCase {
 			)
 		);
 
-		return new class( $query ) extends IdentityQueue {
+		$acceptance = Mockery::mock( IdentityAcceptance::class );
+		$acceptance->shouldReceive( 'all' )->andReturn( $accepted );
+
+		return new class( $query, $acceptance ) extends IdentityQueue {
 
 			/**
 			 * The double.
@@ -86,12 +102,21 @@ class IdentityQueueTest extends TestCase {
 			private $double;
 
 			/**
-			 * Take the double.
+			 * The acceptance double.
 			 *
-			 * @param IdentityConflictQuery $double Stand-in for the real query.
+			 * @var IdentityAcceptance
 			 */
-			public function __construct( $double ) {
-				$this->double = $double;
+			private $accepted_double;
+
+			/**
+			 * Take the doubles.
+			 *
+			 * @param IdentityConflictQuery $double   Stand-in for the real query.
+			 * @param IdentityAcceptance    $accepted Stand-in for the record.
+			 */
+			public function __construct( $double, $accepted ) {
+				$this->double          = $double;
+				$this->accepted_double = $accepted;
 			}
 
 			/**
@@ -101,6 +126,15 @@ class IdentityQueueTest extends TestCase {
 			 */
 			protected function conflicts(): IdentityConflictQuery {
 				return $this->double;
+			}
+
+			/**
+			 * The acceptance double.
+			 *
+			 * @return IdentityAcceptance
+			 */
+			protected function acceptances(): IdentityAcceptance {
+				return $this->accepted_double;
 			}
 		};
 	}
@@ -643,5 +677,140 @@ class IdentityQueueTest extends TestCase {
 
 		$this->assertSame( IdentityQueue::TIER_DECISION, $items[0][ IdentityQueue::COLUMN_TIER ] );
 		$this->assertSame( array(), $items[0][ IdentityQueue::COLUMN_VERDICTS ] );
+	}
+
+	// =====================================================================
+	// Acceptance (#1532)
+	// =====================================================================
+
+	/**
+	 * An accepted finding leaves the list.
+	 *
+	 * Applied to the LIST and nowhere else, because `IdentityQueuePanels` drops
+	 * empty tiers so that the counters and the panels are the same list. A
+	 * suppression applied anywhere else breaks exactly that.
+	 */
+	public function test_an_accepted_finding_is_not_in_the_list(): void {
+		$queue = $this->queue_reading(
+			array(),
+			array(),
+			array(),
+			array( array( 'subject' => 'the-hash', 'identifier_column' => 'rf_hash' ) ),
+			array(
+				IdentityAcceptance::key( IdentityQueue::CHECK_DIGITS, 'rf', 'the-hash' ) => array(
+					IdentityAcceptance::FIELD_SUBJECT => 'the-hash',
+					IdentityAcceptance::FIELD_CHECK   => IdentityQueue::CHECK_DIGITS,
+					IdentityAcceptance::FIELD_TIER    => IdentityQueue::TIER_ISOLATED,
+				),
+			)
+		);
+
+		$this->assertSame( array(), $queue->items() );
+	}
+
+	/**
+	 * THE ACCEPTANCE IS KEYED ON THE FIELD, NOT THE COLUMN.
+	 *
+	 * `rf_hash` is the column the scan reports; `rf` is the vocabulary the
+	 * refusals and the page already speak. A record written under the column
+	 * would match nothing and suppress nothing, silently.
+	 */
+	public function test_a_record_keyed_on_the_column_suppresses_nothing(): void {
+		$queue = $this->queue_reading(
+			array(),
+			array(),
+			array(),
+			array( array( 'subject' => 'the-hash', 'identifier_column' => 'rf_hash' ) ),
+			array(
+				IdentityAcceptance::key( IdentityQueue::CHECK_DIGITS, 'rf_hash', 'the-hash' ) => array(
+					IdentityAcceptance::FIELD_SUBJECT => 'the-hash',
+					IdentityAcceptance::FIELD_CHECK   => IdentityQueue::CHECK_DIGITS,
+					IdentityAcceptance::FIELD_TIER    => IdentityQueue::TIER_ISOLATED,
+				),
+			)
+		);
+
+		$this->assertCount( 1, $queue->items() );
+	}
+
+	/**
+	 * A FINDING WHOSE SHAPE CHANGED COMES BACK, CARRYING WHAT IT WAS.
+	 *
+	 * This is the half that keeps the record from being a way to bury a finding
+	 * that later became one click from correct. The acceptance was a judgement
+	 * about the finding as it stood; a different tier is a different question,
+	 * so it returns to the list and says it was previously accepted.
+	 */
+	public function test_a_finding_whose_tier_changed_returns_and_says_so(): void {
+		$queue = $this->queue_reading(
+			array(),
+			array(),
+			array(),
+			array( array( 'subject' => 'the-hash', 'identifier_column' => 'rf_hash' ) ),
+			array(
+				IdentityAcceptance::key( IdentityQueue::CHECK_DIGITS, 'rf', 'the-hash' ) => array(
+					IdentityAcceptance::FIELD_SUBJECT => 'the-hash',
+					IdentityAcceptance::FIELD_CHECK   => IdentityQueue::CHECK_DIGITS,
+					// Accepted when it looked like a decision; the scan now puts
+					// it in the isolated tier.
+					IdentityAcceptance::FIELD_TIER    => IdentityQueue::TIER_DECISION,
+				),
+			)
+		);
+
+		$items = $queue->items();
+
+		$this->assertCount( 1, $items );
+		$this->assertSame(
+			IdentityQueue::TIER_DECISION,
+			$items[0][ IdentityQueue::COLUMN_WAS_ACCEPTED ],
+			'The finding must carry the tier it was accepted under, so the screen can say why it is back.'
+		);
+	}
+
+	/**
+	 * A finding that was never accepted carries no marker at all.
+	 *
+	 * Absence is the signal: an acceptance that still applies is not in the
+	 * list, so the column exists only on one that came back.
+	 */
+	public function test_an_ordinary_finding_carries_no_acceptance_marker(): void {
+		$items = $this->queue_reading(
+			array(),
+			array(),
+			array(),
+			array( array( 'subject' => 'the-hash', 'identifier_column' => 'rf_hash' ) )
+		)->items();
+
+		$this->assertArrayNotHasKey( IdentityQueue::COLUMN_WAS_ACCEPTED, $items[0] );
+	}
+
+	/**
+	 * TRUNCATION IS THE SCAN'S PROPERTY, NOT THE FILTER'S.
+	 *
+	 * The filter runs after `capped()` on purpose: a check that reached its cap
+	 * still says so even when acceptance empties its panel, because there may
+	 * be unaccepted findings beyond the cap this scan never saw. Reporting a
+	 * complete panel there is the `#1071` failure one layer out.
+	 */
+	public function test_a_capped_check_still_reports_truncation_when_acceptance_empties_it(): void {
+		$queue = $this->queue_reading(
+			array(),
+			array(),
+			array(),
+			array( array( 'subject' => 'the-hash', 'identifier_column' => 'rf_hash' ) ),
+			array(
+				IdentityAcceptance::key( IdentityQueue::CHECK_DIGITS, 'rf', 'the-hash' ) => array(
+					IdentityAcceptance::FIELD_SUBJECT => 'the-hash',
+					IdentityAcceptance::FIELD_CHECK   => IdentityQueue::CHECK_DIGITS,
+					IdentityAcceptance::FIELD_TIER    => IdentityQueue::TIER_ISOLATED,
+				),
+			)
+		);
+
+		// One finding against a cap of one: capped by the scan's own test, and
+		// then filtered to nothing.
+		$this->assertSame( array(), $queue->items( 1 ) );
+		$this->assertContains( IdentityQueue::CHECK_DIGITS, $queue->truncated() );
 	}
 }

@@ -6,6 +6,7 @@ namespace FreeFormCertificate\Tests\Unit;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Maintenance\IdentityAuditExportSource;
 use FreeFormCertificate\Maintenance\IdentityQueue;
+use FreeFormCertificate\Maintenance\IdentityAcceptance;
 use FreeFormCertificate\Maintenance\IdentityAdoption;
 use FreeFormCertificate\Maintenance\IdentityRelink;
 use FreeFormCertificate\Maintenance\IdentityRepair;
@@ -45,6 +46,7 @@ class IdentityHashPrefixTest extends TestCase {
 	private const DECLARED = array(
 		'IdentityQueue::DISPLAY_PREFIX'                  => IdentityQueue::class,
 		'IdentityAuditExportSource::HASH_PREFIX_CHARS'   => IdentityAuditExportSource::class,
+		'IdentityAcceptance::LOG_PREFIX'                 => IdentityAcceptance::class,
 		'IdentityAdoption::LOG_PREFIX'                   => IdentityAdoption::class,
 		'IdentityRelink::LOG_PREFIX'                     => IdentityRelink::class,
 		'IdentityRepair::LOG_PREFIX'                     => IdentityRepair::class,

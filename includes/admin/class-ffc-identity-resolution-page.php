@@ -18,6 +18,7 @@ namespace FreeFormCertificate\Admin;
 use FreeFormCertificate\Core\ActivityLogQuery;
 use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\RequestInput;
+use FreeFormCertificate\Maintenance\IdentityAcceptance;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Maintenance\IdentityMerge;
 use FreeFormCertificate\Maintenance\IdentityQueue;
@@ -200,6 +201,34 @@ class IdentityResolutionPage {
 	 */
 	public const ADOPT_NONCE = 'ffc_adopt_identity_orphans_';
 
+	/**
+	 * The `admin_post` action that accepts a finding as unresolvable (#1532).
+	 *
+	 * @since 6.33.0
+	 */
+	public const ACCEPT_ACTION = 'ffc_accept_identity_finding';
+
+	/**
+	 * Nonce for {@see self::ACCEPT_ACTION}, scoped per finding.
+	 *
+	 * @since 6.33.0
+	 */
+	public const ACCEPT_NONCE = 'ffc_accept_identity_finding_';
+
+	/**
+	 * The `admin_post` action that withdraws an acceptance (#1532).
+	 *
+	 * @since 6.33.0
+	 */
+	public const WITHDRAW_ACTION = 'ffc_withdraw_identity_acceptance';
+
+	/**
+	 * Nonce for {@see self::WITHDRAW_ACTION}, scoped per finding.
+	 *
+	 * @since 6.33.0
+	 */
+	public const WITHDRAW_NONCE = 'ffc_withdraw_identity_acceptance_';
+
 	public const RESCAN_ACTION = 'ffc_rescan_identities';
 
 	/**
@@ -263,6 +292,8 @@ class IdentityResolutionPage {
 		add_action( 'admin_post_' . self::MERGE_ACTION, array( $this, 'handle_merge' ) );
 		add_action( 'admin_post_' . self::RESCAN_ACTION, array( $this, 'handle_rescan' ) );
 		add_action( 'admin_post_' . self::ADOPT_ACTION, array( $this, 'handle_adopt' ) );
+		add_action( 'admin_post_' . self::ACCEPT_ACTION, array( $this, 'handle_accept' ) );
+		add_action( 'admin_post_' . self::WITHDRAW_ACTION, array( $this, 'handle_withdraw' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
 	}
 
@@ -575,6 +606,139 @@ class IdentityResolutionPage {
 	}
 
 	/**
+	 * The acceptance record, as a seam a test can replace.
+	 *
+	 * @since 6.33.0
+	 * @return IdentityAcceptance
+	 */
+	protected function acceptances(): IdentityAcceptance {
+		return new IdentityAcceptance();
+	}
+
+	/**
+	 * Accept a finding as impossible to resolve.
+	 *
+	 * NOT A RESOLUTION, AND GATED LIKE ONE ANYWAY.
+	 *
+	 * `self::CAPABILITY` and not one of its own: accepting writes nobody's
+	 * data, which is why the split has a narrower capability and this does not
+	 * -- a split CREATES a login. What it does do is suppress work other people
+	 * may be counting on, so it is logged at WARNING and it is as easy to
+	 * withdraw as to make.
+	 *
+	 * EVERY POSTED PART IS VALIDATED, because an unrecognised one would store a
+	 * record that matches no finding -- a suppression that silently does
+	 * nothing, which is worse than a refusal. The tier is checked against the
+	 * panels and the check against the queue's own three.
+	 *
+	 * @since 6.33.0
+	 * @return void
+	 */
+	public function handle_accept(): void {
+		if ( ! Capabilities::current_user_can_admin_or( self::CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+
+		$subject = RequestInput::get_post_string( 'ffc_subject', '' );
+
+		check_admin_referer( self::ACCEPT_NONCE . $subject );
+
+		$result = $this->acceptances()->accept(
+			self::posted_check(),
+			self::posted_field(),
+			$subject,
+			self::posted_tier(),
+			RequestInput::get_post_string( 'ffc_reason', '' ),
+			get_current_user_id()
+		);
+
+		$this->report(
+			$result,
+			__( 'Accepted as impossible to resolve. It leaves the queue and is listed under "Accepted — no resolution possible", where it can be put back.', 'ffcertificate' )
+		);
+	}
+
+	/**
+	 * Withdraw an acceptance, putting the finding back in the queue.
+	 *
+	 * THE LIST IS TAKEN AGAIN, which the other verbs never do.
+	 *
+	 * Every other write here REMOVES a finding, so `report()` drops it from the
+	 * held list and nothing else moves. This one puts one back, and a held list
+	 * cannot gain a finding it was taken without -- so the only honest answer is
+	 * to read the queue again, which is also exactly what the operator asked
+	 * for by withdrawing.
+	 *
+	 * @since 6.33.0
+	 * @return void
+	 */
+	public function handle_withdraw(): void {
+		if ( ! Capabilities::current_user_can_admin_or( self::CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+
+		$subject = RequestInput::get_post_string( 'ffc_subject', '' );
+
+		check_admin_referer( self::WITHDRAW_NONCE . $subject );
+
+		$result = $this->acceptances()->withdraw(
+			self::posted_check(),
+			self::posted_field(),
+			$subject,
+			get_current_user_id()
+		);
+
+		if ( ! $result instanceof WP_Error ) {
+			$this->worklists()->take( get_current_user_id(), self::LIMIT );
+		}
+
+		$this->report(
+			$result,
+			__( 'Back in the queue, and the list was read again so it appears in its panel.', 'ffcertificate' )
+		);
+	}
+
+	/**
+	 * Which check the form named, refusing anything else.
+	 *
+	 * The same shape as `posted_field()`, and for the same reason: a value the
+	 * record cannot key on must be refused before it is stored, never after.
+	 * There is no sensible default, so an unknown one becomes the empty string
+	 * and the store refuses it with a message the operator sees.
+	 *
+	 * @since 6.33.0
+	 * @return string
+	 */
+	private static function posted_check(): string {
+		$check = RequestInput::get_post_string( 'ffc_check', '' );
+		$known = array(
+			IdentityQueue::CHECK_MULTIPLE,
+			IdentityQueue::CHECK_SHARED,
+			IdentityQueue::CHECK_DIGITS,
+		);
+
+		return in_array( $check, $known, true ) ? $check : '';
+	}
+
+	/**
+	 * Which tier the form named, refusing anything else.
+	 *
+	 * Reads the SAME `ffc_tier` the redirect already reads to land the operator
+	 * back in the right panel, because a finding's tier and its panel are one
+	 * value -- see `IdentityQueuePanels::ORDER`. Validated here all the same:
+	 * the redirect can afford an unknown tier (it lands at the top), and the
+	 * record cannot (it would never match a finding again).
+	 *
+	 * @since 6.33.0
+	 * @return string
+	 */
+	private static function posted_tier(): string {
+		$tier = RequestInput::get_post_string( 'ffc_tier', '' );
+
+		return in_array( $tier, IdentityQueuePanels::ORDER, true ) ? $tier : '';
+	}
+
+	/**
 	 * Take the worklist again, on the operator's say-so.
 	 *
 	 * @since 6.28.4
@@ -605,7 +769,18 @@ class IdentityResolutionPage {
 	protected function queues(): IdentityQueue {
 		$query = $this->conflicts();
 
-		return new class( $query ) extends IdentityQueue {
+		// THE ACCEPTANCE RECORD IS INJECTED FOR THE SAME REASON THE QUERY IS,
+		// AND IT BUYS A PROPERTY BESIDES (#1532).
+		//
+		// This screen reads the record twice -- the queue consults it to drop
+		// accepted findings, and the view lists them -- so passing the screen's
+		// own seam down means both readers are the SAME object. Two instances
+		// would be harmless today and are one refactor away from the panel and
+		// the filter disagreeing about what is accepted, which is the class of
+		// defect this file keeps running into from the other direction.
+		$accepted = $this->acceptances();
+
+		return new class( $query, $accepted ) extends IdentityQueue {
 
 			/**
 			 * The screen's query.
@@ -615,12 +790,21 @@ class IdentityResolutionPage {
 			private IdentityConflictQuery $query;
 
 			/**
-			 * Take the screen's query rather than build one.
+			 * The screen's acceptance record.
 			 *
-			 * @param IdentityConflictQuery $query The screen's own query.
+			 * @var IdentityAcceptance
 			 */
-			public function __construct( IdentityConflictQuery $query ) {
-				$this->query = $query;
+			private IdentityAcceptance $accepted;
+
+			/**
+			 * Take the screen's collaborators rather than build them.
+			 *
+			 * @param IdentityConflictQuery $query    The screen's own query.
+			 * @param IdentityAcceptance    $accepted The screen's own record.
+			 */
+			public function __construct( IdentityConflictQuery $query, IdentityAcceptance $accepted ) {
+				$this->query    = $query;
+				$this->accepted = $accepted;
 			}
 
 			/**
@@ -630,6 +814,15 @@ class IdentityResolutionPage {
 			 */
 			protected function conflicts(): IdentityConflictQuery {
 				return $this->query;
+			}
+
+			/**
+			 * The record this tiering filters by.
+			 *
+			 * @return IdentityAcceptance
+			 */
+			protected function acceptances(): IdentityAcceptance {
+				return $this->accepted;
 			}
 		};
 	}
@@ -1292,6 +1485,16 @@ class IdentityResolutionPage {
 			// scan, and a count is per category (#1466).
 			$ffc_identity_capped
 		);
+
+		// THE FINDINGS SOMEBODY JUDGED IMPOSSIBLE TO RESOLVE (#1532).
+		//
+		// Read from the RECORD and not from the scan, which is the whole point:
+		// an accepted finding is not in `$ffc_identity_findings` -- the queue
+		// filtered it out -- so the panel listing them is a list of DECISIONS,
+		// and it renders without a scan of its own. That is also why it survives
+		// the scan reading nothing: a decision does not stop existing because
+		// the encryption key moved.
+		$ffc_identity_accepted = $this->acceptances()->all();
 
 		// THE CSV IS OFFERED ONLY TO SOMEBODY WHO CAN ACTUALLY HAVE IT.
 		//
