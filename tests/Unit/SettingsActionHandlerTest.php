@@ -99,6 +99,7 @@ class SettingsActionHandlerTest extends TestCase {
 		unset(
 			$_GET['ffc_clear_qr_cache'],
 			$_GET['ffc_run_migration'],
+			$_GET['ffc_rearm_migration'],
 			$_GET['_wpnonce'],
 			$_GET['action'],
 			$_REQUEST['ffc_obsolete_cleanup'],
@@ -271,6 +272,102 @@ class SettingsActionHandlerTest extends TestCase {
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'redirect' );
 		$this->handler->handle_migration_execution();
+	}
+
+	// ==================================================================
+	// handle_migration_rearm()
+	// ==================================================================
+
+	public function test_rearm_returns_early_without_param(): void {
+		// Same proof as its sibling above: the statement right after the param
+		// guard is the destructive-capability check, so a capability that is
+		// never consulted is what shows the guard returned.
+		Mockery::mock( 'alias:FreeFormCertificate\\Core\\Capabilities' )
+			->shouldNotReceive( 'current_user_can_admin_or' );
+
+		$this->handler->handle_migration_rearm();
+	}
+
+	public function test_rearm_denies_without_capability(): void {
+		$_GET['ffc_rearm_migration'] = 'foo';
+		$this->mock_capabilities( false );
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'die' );
+		$this->handler->handle_migration_rearm();
+	}
+
+	public function test_rearm_bad_nonce_dies(): void {
+		$_GET['ffc_rearm_migration'] = 'foo';
+		$_GET['_wpnonce']            = 'bad';
+		$this->mock_capabilities( true );
+		$this->mock_request_input( array( '_wpnonce' => 'bad' ) );
+		Functions\when( 'wp_verify_nonce' )->justReturn( false );
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'die' );
+		$this->handler->handle_migration_rearm();
+	}
+
+	public function test_rearm_verifies_its_own_nonce_action(): void {
+		// The action string is the whole separation between this control and
+		// the run beside it: a shared key would let a link minted for one
+		// press the other. Asserted on the ARGUMENTS, since a `justReturn`
+		// stub cannot tell which key it was asked about.
+		$_GET['ffc_rearm_migration'] = 'foo';
+		$_GET['_wpnonce']            = 'ok';
+		$this->mock_capabilities( true );
+		$this->mock_request_input( array( '_wpnonce' => 'ok' ) );
+
+		Functions\expect( 'wp_verify_nonce' )
+			->once()
+			->with( 'ok', 'ffc_rearm_foo' )
+			->andReturn( true );
+
+		Functions\when( 'is_wp_error' )->justReturn( false );
+
+		$mgr = Mockery::mock( 'overload:FreeFormCertificate\\Migrations\\MigrationManager' );
+		$mgr->shouldReceive( 'rearm_migration' )->andReturn( 12 );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'redirect' );
+		$this->handler->handle_migration_rearm();
+	}
+
+	public function test_rearm_passes_the_sanitized_key_and_redirects(): void {
+		$_GET['ffc_rearm_migration'] = 'identity_index_backfill';
+		$_GET['_wpnonce']            = 'ok';
+		$this->mock_capabilities( true );
+		$this->mock_request_input( array( '_wpnonce' => 'ok' ) );
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+
+		$mgr = Mockery::mock( 'overload:FreeFormCertificate\\Migrations\\MigrationManager' );
+		$mgr->shouldReceive( 'rearm_migration' )
+			->once()
+			->with( 'identity_index_backfill' )
+			->andReturn( 12 );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'redirect' );
+		$this->handler->handle_migration_rearm();
+	}
+
+	public function test_rearm_wp_error_redirects(): void {
+		$_GET['ffc_rearm_migration'] = 'foo';
+		$_GET['_wpnonce']            = 'ok';
+		$this->mock_capabilities( true );
+		$this->mock_request_input( array( '_wpnonce' => 'ok' ) );
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'is_wp_error' )->justReturn( true );
+
+		$err = Mockery::mock();
+		$err->shouldReceive( 'get_error_message' )->andReturn( 'boom' );
+
+		$mgr = Mockery::mock( 'overload:FreeFormCertificate\\Migrations\\MigrationManager' );
+		$mgr->shouldReceive( 'rearm_migration' )->andReturn( $err );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'redirect' );
+		$this->handler->handle_migration_rearm();
 	}
 
 	// ==================================================================

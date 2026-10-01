@@ -561,4 +561,95 @@ class MigrationStatusCalculatorTest extends TestCase {
 			$strategies['key_rotation']
 		);
 	}
+
+	// ==================================================================
+	// rearm() (#1530)
+	// ==================================================================
+
+	public function test_rearm_returns_wp_error_when_strategy_is_missing(): void {
+		// `split_cpf_rf` for the same reason the sibling `execute` test uses it:
+		// resolution is LAZY, so a key the calculator can build reaches the real
+		// strategy instead. This one cannot be built in this environment, which
+		// is what makes it the missing-strategy case.
+		$result = $this->calculator->rearm( 'split_cpf_rf' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'strategy_not_found', $result->get_error_code() );
+	}
+
+	public function test_rearm_refuses_a_strategy_that_does_not_offer_the_verb(): void {
+		// The interface mock declares the four contract methods and no more, so
+		// `method_exists` answers false -- which is the production condition for
+		// every card but the one that implements it.
+		$this->injectStrategy( 'split_cpf_rf' );
+
+		$result = $this->calculator->rearm( 'split_cpf_rf' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'migration_not_rearmable', $result->get_error_code() );
+	}
+
+	public function test_rearm_delegates_and_casts_the_count(): void {
+		$strategy = Mockery::mock( RearmableStrategyDouble::class );
+		$strategy->shouldReceive( 'rearm' )->once()->andReturn( '12' );
+
+		$this->injectStrategy( 'identity_index_backfill', $strategy );
+
+		$result = $this->calculator->rearm( 'identity_index_backfill' );
+
+		// `assertSame` on purpose: the strategy's own signature returns int, but
+		// the cast is what keeps this method's contract true for any other.
+		$this->assertSame( 12, $result );
+	}
+
+	public function test_rearm_does_not_consult_can_run(): void {
+		// Documented in the method: re-arming writes no row, and the
+		// prerequisite it would check belongs to the walk that follows. The
+		// registry is never asked for the config either, which is the first
+		// thing `can_run()` does.
+		$strategy = Mockery::mock( RearmableStrategyDouble::class );
+		$strategy->shouldReceive( 'rearm' )->once()->andReturn( 3 );
+		$strategy->shouldNotReceive( 'can_run' );
+
+		$this->registry->shouldNotReceive( 'get_migration' );
+
+		$this->injectStrategy( 'identity_index_backfill', $strategy );
+
+		$this->assertSame( 3, $this->calculator->rearm( 'identity_index_backfill' ) );
+	}
+}
+
+/**
+ * A strategy that offers the re-arm verb.
+ *
+ * Declared rather than mocked from the interface because `rearm()` is
+ * deliberately NOT on the contract -- the calculator finds it with
+ * `method_exists`, which a Mockery `__call` handler cannot satisfy. Mocking
+ * this concrete double gives a class where the method genuinely exists and
+ * `can_run()` can still be asserted as never called.
+ */
+class RearmableStrategyDouble implements \FreeFormCertificate\Migrations\Strategies\MigrationStrategyInterface {
+
+	public function calculate_status( string $migration_key, array $migration_config ): array {
+		return array();
+	}
+
+	public function execute( string $migration_key, array $migration_config, int $batch_number = 0 ): array {
+		return array();
+	}
+
+	public function can_run( string $migration_key, array $migration_config ) {
+		return true;
+	}
+
+	public function get_name(): string {
+		return 'rearmable double';
+	}
+
+	/**
+	 * @return int
+	 */
+	public function rearm() {
+		return 0;
+	}
 }

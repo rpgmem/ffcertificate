@@ -158,7 +158,68 @@ class IdentityIndexBackfillMigrationStrategy implements MigrationStrategyInterfa
 			'percent'     => ( $total > 0 ) ? round( ( $migrated / $total ) * 100, 2 ) : 100.0,
 			'is_complete' => ( 0 === $pending ),
 			'conflicts'   => $this->conflicts()->multiple_identities_count(),
+
+			// DECLARED IN THE STATUS, so the view never learns this class's
+			// private option name to decide whether to offer the verb. The
+			// array is already what the card reads; a flag in it costs no new
+			// plumbing, and a strategy without the method simply omits it.
+			'rearmable'   => true,
 		);
+	}
+
+	/**
+	 * Send the walk back to the start, and say how many it will re-examine.
+	 *
+	 * WHY A CURSOR-COMPLETE CARD STILL HAS WORK (#1530).
+	 *
+	 * `calculate_status()` measures progress by the CURSOR -- `pending` is the
+	 * users beyond it, never the users who still need a column filled, and its
+	 * own note says so. That is honest while the walk is in progress and goes
+	 * wrong exactly once: an account the walk passed while it carried two
+	 * hashes was left empty ON PURPOSE, and when an operator later resolves
+	 * that conflict the account becomes fillable with nothing left to fill it.
+	 * It then falls out of all three numbers at once -- not `pending`, because
+	 * the cursor is past it; not `conflicts`, because it no longer holds two;
+	 * only the audit's `unindexed_links` still sees it.
+	 *
+	 * This class's own history records the ancestor of that gap: the card used
+	 * to latch on a stored `completed` boolean, so "the walk finished once"
+	 * meant complete forever and "a user linked afterwards was invisible". The
+	 * boolean went. The cursor is the same latch at a finer grain, and this is
+	 * the verb that releases it.
+	 *
+	 * RE-ARMING IS NOT DESTRUCTIVE, and the reason is in `backfill_user()`: a
+	 * column already answered is never overwritten, zero candidates are
+	 * skipped, and two or more are left for the auditor. A full re-walk
+	 * therefore writes ONLY where the column is empty and exactly one
+	 * candidate now exists -- which is precisely the set an operator's
+	 * resolutions created. `get_cursor()` already states the same property
+	 * from the other side: a non-numeric cursor restarts the walk, and that is
+	 * safe "because every step is idempotent".
+	 *
+	 * WHY A BUTTON AND NOT AN AUTOMATIC RE-ARM. Two cards here already re-arm
+	 * themselves -- both key rotations, on the active key's fingerprint, and
+	 * `Activator`'s chains on a version bump. Each has a signal that is FREE
+	 * and EXACT: a value already stored, compared to one already in hand. The
+	 * equivalent here is the index-against-sources join `calculate_status()`
+	 * rules out, and anything cheaper is an approximation -- which would make
+	 * termination depend on the measure being right, the one thing #1378 says
+	 * must never be true of a batch. So where the signal exists the card
+	 * re-arms itself, and where it does not the operator says when.
+	 *
+	 * It re-arms and nothing more. Running belongs to the card's ordinary
+	 * button, which already loops its batches to completion with a progress
+	 * bar -- one new verb, and no second execution path to keep honest.
+	 *
+	 * @since 6.33.0
+	 * @return int Users the re-armed walk will examine.
+	 */
+	public function rearm(): int {
+		$state = $this->get_state();
+		unset( $state['cursor'] );
+		$this->put_state( $state );
+
+		return $this->counts( 0 )['total'];
 	}
 
 	/**

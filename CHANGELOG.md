@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The identity-index backfill card could not be asked to look again** (#1530). Its progress is the cursor, so an account skipped for holding two identifiers sits behind it by the time an operator resolves it: the card read 100% while the audit still listed the links. A re-check control re-walks it, overwriting nothing already filled
+
 ## [6.32.0] (2026-09-29) — `4ca1cd5d`
 
 ### Added

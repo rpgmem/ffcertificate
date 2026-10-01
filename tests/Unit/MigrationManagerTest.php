@@ -165,4 +165,19 @@ class MigrationManagerTest extends TestCase {
 
 		$this->assertSame( $result, $this->manager->run_migration( 'split_cpf_rf' ) );
 	}
+
+	public function test_rearm_migration_delegates(): void {
+		$this->statusCalculator->shouldReceive( 'rearm' )->with( 'identity_index_backfill' )->andReturn( 12 );
+
+		$this->assertSame( 12, $this->manager->rearm_migration( 'identity_index_backfill' ) );
+	}
+
+	public function test_rearm_migration_passes_the_refusal_through(): void {
+		// The refusal is the calculator's, and this façade must not translate
+		// it: the handler shows the message to whoever pressed the button.
+		$error = new \WP_Error( 'migration_not_rearmable', 'nope' );
+		$this->statusCalculator->shouldReceive( 'rearm' )->with( 'split_cpf_rf' )->andReturn( $error );
+
+		$this->assertSame( $error, $this->manager->rearm_migration( 'split_cpf_rf' ) );
+	}
 }

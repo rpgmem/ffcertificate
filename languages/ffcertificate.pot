@@ -24,6 +24,24 @@ msgstr ""
 msgid " by <strong>%s</strong>"
 msgstr ""
 
+#: includes/settings/views/ffc-tab-migrations.php:358
+msgid "An account skipped because it held two identifiers becomes fillable once you resolve it, and this walk already passed it. Re-checking sends the walk back to the start; a value already filled is never overwritten, and an account still holding two is skipped again."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-migrations.php:355
+msgid "Re-check accounts resolved since the last pass"
+msgstr ""
+
+#: includes/migrations/class-ffc-migration-status-calculator.php:394
+msgid "This migration cannot be re-armed."
+msgstr ""
+
+#. %d: number of accounts the re-armed walk will examine
+#: includes/admin/class-ffc-settings-action-handler.php:143
+#, php-format
+msgid "Walk re-armed: %d accounts will be examined again. Press \"Run Migration\" to start. Nothing already filled is overwritten."
+msgstr ""
+
 #: includes/admin/class-ffc-admin-submission-edit-page.php:347
 msgid "An unlinked submission has no account, which is the state the identity queue adopts."
 msgstr ""

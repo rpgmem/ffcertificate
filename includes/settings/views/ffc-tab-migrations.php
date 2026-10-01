@@ -304,6 +304,62 @@ try {
 						}
 						?>
 					</p>
+
+					<?php
+					// THE VERB A CURSOR-MEASURED CARD NEVER HAD (#1530).
+					//
+					// A card whose progress is its cursor reads complete once
+					// the walk ends, and an account that BECOMES workable
+					// afterwards is behind the cursor with nothing to revisit
+					// it. On this card that happens by design: an account
+					// holding two hashes is skipped on purpose, and resolving
+					// that conflict is exactly what makes it fillable.
+					//
+					// OFFERED ONLY AT A HUNDRED PER CENT, and hidden below it
+					// for a reason that is not tidiness: re-arming mid-walk
+					// would discard the progress already made and force the
+					// whole thing again. Below, the ordinary button is the
+					// verb; here there was none -- only the seal above, which
+					// reports a state and does nothing. So the card now
+					// carries a verb in either branch.
+					//
+					// `button-secondary` ON PURPOSE. The auto-run driver
+					// binds `.ffc-migration-actions a.button-primary` and
+					// reads `ffc_run_migration` out of the href, so this link
+					// is outside its reach twice over and navigates normally
+					// -- which is what the handler on the other end expects.
+					//
+					// The strategy declares `rearmable` in its own status, so
+					// this view never learns which option holds whose cursor.
+					//
+					// It appears WITH conflicts listed as well as without --
+					// that is when it pays most, since a resolution is what
+					// creates the work -- so the sentence says what the walk
+					// does and never implies it settles them.
+					if ( ! empty( $ffcertificate_status['rearmable'] ) ) :
+						$ffcertificate_rearm_url = wp_nonce_url(
+							add_query_arg(
+								array(
+									'post_type'           => 'ffc_form',
+									'page'                => 'ffc-settings',
+									'tab'                 => 'migrations',
+									'ffc_rearm_migration' => $ffcertificate_key,
+								),
+								admin_url( 'edit.php' )
+							),
+							'ffc_rearm_' . $ffcertificate_key
+						);
+						?>
+						<a href="<?php echo esc_url( $ffcertificate_rearm_url ); ?>" class="button button-secondary">
+							<span class="dashicons dashicons-update"></span>
+							<?php esc_html_e( 'Re-check accounts resolved since the last pass', 'ffcertificate' ); ?>
+						</a>
+						<p class="description">
+							<?php esc_html_e( 'An account skipped because it held two identifiers becomes fillable once you resolve it, and this walk already passed it. Re-checking sends the walk back to the start; a value already filled is never overwritten, and an account still holding two is skipped again.', 'ffcertificate' ); ?>
+						</p>
+						<?php
+					endif;
+					?>
 				<?php else : ?>
 					<a href="<?php echo esc_url( $ffcertificate_migrate_url ); ?>"
 						class="button button-primary"
