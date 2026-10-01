@@ -652,8 +652,13 @@ class IdentityResolutionPage {
 			get_current_user_id()
 		);
 
+		// `array()` AND NOT THE STORE'S `true`, which is what `handle_rescan()`
+		// already passes for a verb with nothing to report: `report()`'s
+		// contract is `array<string, mixed>|WP_Error`, and a third success shape
+		// would be this screen's funnel learning one more thing for nothing. The
+		// store keeps `true|WP_Error`, which is the honest answer for a store.
 		$this->report(
-			$result,
+			$result instanceof WP_Error ? $result : array(),
 			__( 'Accepted as impossible to resolve. It leaves the queue and is listed under "Accepted — no resolution possible", where it can be put back.', 'ffcertificate' )
 		);
 	}
@@ -693,7 +698,7 @@ class IdentityResolutionPage {
 		}
 
 		$this->report(
-			$result,
+			$result instanceof WP_Error ? $result : array(),
 			__( 'Back in the queue, and the list was read again so it appears in its panel.', 'ffcertificate' )
 		);
 	}
