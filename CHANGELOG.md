@@ -9,6 +9,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **The identity audit CSV says which findings were accepted as unresolvable** (#1534). The export is a separate pipeline from the queue — seven checks against the queue's three — so it still listed findings the screen had set aside. An `accepted` column carries the reason; the row is never dropped, because a row that vanishes from the file is one nobody can question
 - **Identity resolution: a finding nobody can resolve can be accepted as such** (#1532). A stored number the person never supplied, and HR cannot trace, had no correct value to give and returned on every visit. Accepting it moves it to a counted, reversible list of decisions — it is **not** a resolution: nothing stored changes, and a merge or move blocked by that number stays blocked, with the refusal now naming the right panel
 
 ### Fixed

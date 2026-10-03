@@ -232,6 +232,24 @@ class IdentityQueue {
 	public const CHECK_DIGITS = 'check_digit';
 
 	/**
+	 * The checks this worklist composes.
+	 *
+	 * Named once because there are two consumers now: the resolution page
+	 * validates a posted check against it, and `IdentityAuditExportSource`
+	 * needs to know which of the auditor's SEVEN checks can carry an
+	 * acceptance at all -- the other four have no concept of one, and reading
+	 * their absence as "not accepted" would be a different claim (#1534).
+	 *
+	 * @since 6.33.0
+	 * @var array<int, string>
+	 */
+	public const CHECKS = array(
+		self::CHECK_MULTIPLE,
+		self::CHECK_SHARED,
+		self::CHECK_DIGITS,
+	);
+
+	/**
 	 * Key carrying which check produced an item.
 	 *
 	 * @var string

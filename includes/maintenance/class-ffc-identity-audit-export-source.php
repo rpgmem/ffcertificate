@@ -111,6 +111,30 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 	public const NONCE = 'ffc_submission_audit_export';
 
 	/**
+	 * What the `accepted` column says for a finding still in the queue.
+	 *
+	 * THREE STATES, AND BLANK CANNOT CARRY TWO OF THEM (#1534).
+	 *
+	 * A finding somebody judged impossible to resolve prints its REASON; one
+	 * still outstanding prints this; and one belonging to a check that has no
+	 * concept of acceptance prints nothing, which is this file's existing
+	 * convention for a column that does not apply (`email_verdict` and
+	 * `identifier_shape` are blank the same way).
+	 *
+	 * Blank for both of the first two would conflate "could be accepted and
+	 * was not" with "cannot be accepted at all", and those are materially
+	 * different to somebody reading the file to see what is left -- which is
+	 * the whole reason the column exists rather than the rows being dropped.
+	 *
+	 * A machine value and not a sentence, like the two verdicts beside it, so
+	 * the file can be filtered by it.
+	 *
+	 * @since 6.33.0
+	 * @var string
+	 */
+	public const ACCEPTANCE_OPEN = 'open';
+
+	/**
 	 * What each grouped check GROUPED BY, and therefore what it counted.
 	 *
 	 * `IdentityConflictQuery::grouped()` aliases whatever it grouped BY as
@@ -174,6 +198,16 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 	}
 
 	/**
+	 * The acceptance record, as a seam a test can replace.
+	 *
+	 * @since 6.33.0
+	 * @return IdentityAcceptance
+	 */
+	protected function acceptances(): IdentityAcceptance {
+		return new IdentityAcceptance();
+	}
+
+	/**
 	 * {@inheritDoc}
 	 *
 	 * @return string
@@ -204,6 +238,10 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 			'account_rows',
 			'account_activity',
 			'account_urls',
+			// BEFORE `note`, and that is structural rather than taste:
+			// `note_row()` writes its sentence into the LAST column, so a
+			// column added after this one would silently take it.
+			'accepted',
 			'note',
 		);
 	}
@@ -227,6 +265,12 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 		$report = $tool->run( array( 'limit' => self::EXPORT_LIMIT ) );
 		$checks = isset( $report['checks'] ) && is_array( $report['checks'] ) ? $report['checks'] : array();
 
+		// ONE READ FOR THE WHOLE FILE, not one per row: `all()` validates and
+		// sorts the entire record, and this loop runs up to `EXPORT_LIMIT`
+		// times per check. Same reason `IdentityQueue::without_accepted()`
+		// reads it once.
+		$accepted = $this->acceptances()->all();
+
 		$out = array();
 
 		foreach ( $checks as $check => $data ) {
@@ -234,7 +278,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 
 			foreach ( $rows as $row ) {
 				if ( is_array( $row ) ) {
-					$out[] = $this->line( (string) $check, $row );
+					$out[] = $this->line( (string) $check, $row, $accepted );
 				}
 			}
 
@@ -320,11 +364,16 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 	 * beside a distance would narrow the unseen half of a pair to a handful
 	 * of candidates (#1345).
 	 *
-	 * @param string               $check Check key.
-	 * @param array<string, mixed> $row   One finding.
+	 * `accepted` says whether somebody judged this finding impossible to
+	 * resolve, and it is looked up rather than carried on the row: the record
+	 * is the screen's, not the scan's -- see {@see self::acceptance_of()}.
+	 *
+	 * @param string                              $check    Check key.
+	 * @param array<string, mixed>                $row      One finding.
+	 * @param array<string, array<string, mixed>> $accepted The acceptance record.
 	 * @return array<int, mixed>
 	 */
-	private function line( string $check, array $row ): array {
+	private function line( string $check, array $row, array $accepted ): array {
 		$column  = isset( $row['identifier_column'] ) ? (string) $row['identifier_column'] : '';
 		$sub_id  = isset( $row['id'] ) ? (string) $row['id'] : '';
 		$form_id = isset( $row['form_id'] ) ? (string) $row['form_id'] : '';
@@ -418,8 +467,69 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 			$account_rows,
 			$account_seen,
 			implode( IdentityConflictQuery::RELATED_SEPARATOR, $urls ),
+			// NOT `$column`, which the legacy `multiple_identities` check
+			// rewrites to whichever of its two counts is larger. That check is
+			// not one the queue composes, so it never reaches the lookup -- but
+			// passing a value this method may have overwritten would be true by
+			// luck rather than by construction.
+			self::acceptance_of( $check, $row, $accepted ),
 			self::incompleteness_note( $row, $short ),
 		);
+	}
+
+	/**
+	 * What the acceptance record says about one finding.
+	 *
+	 * THE CHECK DECIDES WHETHER THE QUESTION EVEN APPLIES.
+	 *
+	 * The auditor runs seven checks; the identity queue composes three, and
+	 * only those three can carry an acceptance. For the other four the answer
+	 * is not "no" -- there is nothing to answer, so the column is blank, which
+	 * is what this file already does for a column that does not apply.
+	 *
+	 * THE SUBJECT IS A HASH IN TWO CHECKS AND AN ACCOUNT ID IN THE THIRD, and
+	 * that is why `IdentityAcceptance::key()` carries the check: a lookup that
+	 * dropped it would be asking about a value whose meaning nothing states.
+	 * `SUBJECT_IS` above exists because this file hit that once already.
+	 *
+	 * The column is read from `identifier_column` AS THE QUERY EMITTED IT,
+	 * before `line()` has a chance to rewrite it -- the three checks here come
+	 * from the very same query calls `IdentityQueue::items()` makes, so the
+	 * field is the one the acceptance was keyed under by construction rather
+	 * than by coincidence.
+	 *
+	 * @since 6.33.0
+	 * @param string                              $check    Check key.
+	 * @param array<string, mixed>                $row      One finding.
+	 * @param array<string, array<string, mixed>> $accepted The acceptance record.
+	 * @return string
+	 */
+	private static function acceptance_of( string $check, array $row, array $accepted ): string {
+		if ( ! in_array( $check, IdentityQueue::CHECKS, true ) ) {
+			return '';
+		}
+
+		$subject = isset( $row['subject'] ) ? (string) $row['subject'] : '';
+
+		if ( '' === $subject ) {
+			return '';
+		}
+
+		$field  = str_replace( '_hash', '', isset( $row['identifier_column'] ) ? (string) $row['identifier_column'] : '' );
+		$record = $accepted[ IdentityAcceptance::key( $check, $field, $subject ) ] ?? null;
+
+		if ( ! is_array( $record ) ) {
+			return self::ACCEPTANCE_OPEN;
+		}
+
+		// The REASON rather than a bare yes: it is a closed set, so it is safe
+		// to print, and "the person never supplied this number" is what the
+		// operator takes to HR. A record whose reason this release does not
+		// recognise still reads as accepted -- the option holds whatever is in
+		// it, and a row that claimed to be open would be the wrong answer.
+		$reason = (string) ( $record[ IdentityAcceptance::FIELD_REASON ] ?? '' );
+
+		return '' !== $reason ? $reason : 'accepted';
 	}
 
 	/**
