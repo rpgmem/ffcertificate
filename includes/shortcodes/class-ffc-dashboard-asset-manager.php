@@ -262,6 +262,7 @@ class DashboardAssetManager {
 					'audienceGroups'           => __( 'Groups:', 'ffcertificate' ),
 					'notesLabel'               => __( 'Notes:', 'ffcertificate' ),
 					'notesPlaceholder'         => __( 'Personal notes...', 'ffcertificate' ),
+					'birthDate'                => __( 'Birth date:', 'ffcertificate' ),
 					'phone'                    => __( 'Phone:', 'ffcertificate' ),
 					'department'               => __( 'Department:', 'ffcertificate' ),
 					'organization'             => __( 'Organization:', 'ffcertificate' ),

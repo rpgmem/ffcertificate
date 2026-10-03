@@ -109,6 +109,20 @@ class PrivacyExporters {
 			);
 		}
 
+		// The canonical birth date (#1538) is stored encrypted, so the raw
+		// usermeta export would hand the subject ciphertext. Decrypted here,
+		// where the rest of the profile is presented.
+		if ( class_exists( \FreeFormCertificate\UserDashboard\UserManager::class ) ) {
+			$extended   = \FreeFormCertificate\UserDashboard\UserManager::get_extended_profile( (int) $user->ID, array( 'birth_date' ) );
+			$birth_date = \FreeFormCertificate\Core\BirthDate::normalize( (string) ( $extended['birth_date'] ?? '' ) );
+			if ( null !== $birth_date ) {
+				$data[] = array(
+					'name'  => __( 'Birth date', 'ffcertificate' ),
+					'value' => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $birth_date ),
+				);
+			}
+		}
+
 		// `ffc_registration_date` post-meta is the canonical "first
 		// touch" timestamp written by `UserCreator`. Preferred over
 		// `wp_users.user_registered` because the latter is the WP

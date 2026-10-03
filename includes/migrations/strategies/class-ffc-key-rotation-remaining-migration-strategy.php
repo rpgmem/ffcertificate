@@ -133,9 +133,11 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 	 */
 	private function profile_meta_map(): array {
 		return array(
-			'ffc_user_cpf' => 'cpf_hash',
-			'ffc_user_rf'  => 'rf_hash',
-			'ffc_user_rg'  => null,
+			'ffc_user_cpf'        => 'cpf_hash',
+			'ffc_user_rf'         => 'rf_hash',
+			'ffc_user_rg'         => null,
+			// #1538. Its `MM-DD` mirror is plaintext and needs no rotation.
+			'ffc_user_birth_date' => null,
 		);
 	}
 

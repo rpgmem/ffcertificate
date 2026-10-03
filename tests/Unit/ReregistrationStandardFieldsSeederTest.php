@@ -433,4 +433,79 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		$this->assertArrayHasKey( 'groups', $decoded );
 		$this->assertSame( array( 'D' => array( 'S' ) ), $decoded['groups'] );
 	}
+
+	// ==================================================================
+	// Canonical birth date (#1538)
+	// ==================================================================
+
+	/**
+	 * `data_nascimento` feeds the canonical profile field, and the key it names
+	 * is one the profile map actually declares -- a profile key the map does
+	 * not know would be written to an ad-hoc meta nobody reads.
+	 */
+	public function test_the_birth_date_field_feeds_the_canonical_profile_field(): void {
+		$by_key = $this->definitionByKey();
+
+		$this->assertSame( 'birth_date', $by_key['data_nascimento']['profile_key'] );
+		$this->assertTrue( \FreeFormCertificate\UserDashboard\UserProfileFieldMap::has( 'birth_date' ) );
+	}
+
+	/**
+	 * Already-seeded rows get the profile key their definition now declares,
+	 * and only where they carry none.
+	 */
+	public function test_sync_fills_the_profile_key_of_rows_seeded_before_it_existed(): void {
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+
+		$asked = array();
+		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function ( $sql ) use ( &$asked ) {
+				$asked[] = $sql;
+				// Only the birth-date rows lack their key in this fixture.
+				return count( $asked ) === $this->position_of( 'data_nascimento' ) ? array( '7', '9' ) : array();
+			}
+		);
+
+		$updated = array();
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing(
+			static function ( $table, $data, $where ) use ( &$updated ) {
+				$updated[ (int) $where['id'] ] = $data;
+				return 1;
+			}
+		);
+
+		$changed = ReregistrationStandardFieldsSeeder::sync_standard_profile_keys();
+
+		$this->assertSame( 2, $changed );
+		$this->assertSame(
+			array(
+				7 => array( 'field_profile_key' => 'birth_date' ),
+				9 => array( 'field_profile_key' => 'birth_date' ),
+			),
+			$updated
+		);
+		$this->assertStringContainsString( "field_profile_key IS NULL OR field_profile_key = ''", $asked[0], 'A key an operator chose must never be overwritten.' );
+	}
+
+	/**
+	 * 1-based position of a field among the definitions that declare a key --
+	 * the order in which the sync issues one SELECT each.
+	 *
+	 * @param string $field_key Field key.
+	 * @return int
+	 */
+	private function position_of( string $field_key ): int {
+		$n = 0;
+		foreach ( ReregistrationStandardFieldsSeeder::get_standard_fields_definition() as $def ) {
+			if ( empty( $def['profile_key'] ) ) {
+				continue;
+			}
+			++$n;
+			if ( $field_key === $def['field_key'] ) {
+				return $n;
+			}
+		}
+		$this->fail( "{$field_key} declares no profile key." );
+	}
 }

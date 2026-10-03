@@ -142,6 +142,17 @@ class MigrationRegistry {
 			'order'       => 9,
 		);
 
+		// v6.33.0 (#1538): copy the birth date people already gave through a
+		// reregistration onto the canonical profile field, which is the only
+		// place a scheduled job can query.
+		$this->migrations['birth_date_backfill'] = array(
+			'name'        => __( 'Copy Stored Birth Dates to the Profile', 'ffcertificate' ),
+			'description' => __( 'Fill the profile birth date of every account that answered a reregistration before the field existed, from the newest submission (or, failing that, the stored field values). The full date is stored encrypted, with its day and month beside it for scheduled messages. Completion here means every such account was EXAMINED: one whose stored answers hold no valid date is read, left alone, and counted as done.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-calendar',
+			'batch_size'  => 100,
+			'order'       => 10,
+		);
+
 		// v5.4.1: Clear plaintext context on activity log rows that already
 		// hold a ciphertext, eliminating the dual-storage leak.
 		$this->migrations['activity_log_clear_plaintext'] = array(

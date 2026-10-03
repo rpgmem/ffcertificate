@@ -91,8 +91,30 @@ class ReregistrationActivator {
 		}
 
 		self::create_tables();
+		self::sync_standard_profile_keys();
 
 		update_option( $ffc_schema_option, FFC_VERSION );
+	}
+
+	/**
+	 * Fill the profile keys standard field definitions gained after their rows
+	 * were seeded (#1538).
+	 *
+	 * Rides the version gate above rather than a one-shot flag, for the same
+	 * reason the schema does: a definition that gains a key in a later release
+	 * must reach installs that already ran this once. The table belongs to the
+	 * user-dashboard activator and may not exist yet on the very first run,
+	 * in which case there is nothing seeded to fix.
+	 *
+	 * @return void
+	 */
+	private static function sync_standard_profile_keys(): void {
+		global $wpdb;
+		if ( ! self::table_exists( $wpdb->prefix . 'ffc_custom_fields' ) ) {
+			return;
+		}
+
+		ReregistrationStandardFieldsSeeder::sync_standard_profile_keys();
 	}
 
 	/**

@@ -174,7 +174,7 @@ class ReregistrationStandardFieldsSeeder {
 				'field_label'  => __( 'Date of Birth', 'ffcertificate' ),
 				'field_type'   => 'date',
 				'field_group'  => self::GROUP_PERSONAL,
-				'profile_key'  => null,
+				'profile_key'  => 'birth_date',
 				'is_sensitive' => 0,
 				'mask'         => null,
 				'required'     => 1,
@@ -566,6 +566,31 @@ class ReregistrationStandardFieldsSeeder {
 		}
 
 		return $inserted;
+	}
+
+	/**
+	 * Bring already-seeded rows in line with the profile keys the definitions
+	 * now declare.
+	 *
+	 * `seed_for_audience()` only inserts missing fields, so a definition that
+	 * gains a profile key reaches new audiences and no existing one. This is
+	 * the other half: `data_nascimento` gained `birth_date` in 6.33.0 (#1538),
+	 * and without this every audience seeded before it would keep writing the
+	 * birth date where no scheduled job can read it. Idempotent — a row that
+	 * already carries a key is left alone.
+	 *
+	 * @since 6.33.0
+	 * @return int Rows changed.
+	 */
+	public static function sync_standard_profile_keys(): int {
+		$changed = 0;
+		foreach ( self::get_standard_fields_definition() as $def ) {
+			if ( empty( $def['profile_key'] ) ) {
+				continue;
+			}
+			$changed += CustomFieldWriter::assign_standard_profile_key( (string) $def['field_key'], (string) $def['profile_key'] );
+		}
+		return $changed;
 	}
 
 	/**

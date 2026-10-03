@@ -178,6 +178,33 @@ describe('profile.saveProfile', () => {
 		expect(payload.organization).toBe('ACME');
 	});
 
+	it('pre-fills the birth date input and sends it back (#1538)', () => {
+		panel().render({ ...PROFILE_FIXTURE, birth_date: '1990-05-20', birth_date_display: '20/05/1990' });
+		window.$('.ffc-profile-edit-btn').trigger('click');
+
+		const input = document.getElementById('ffc-edit-birth-date');
+		expect(input.type).toBe('date');
+		expect(input.value).toBe('1990-05-20');
+
+		input.value = '1991-06-21';
+		const spy = mockAjaxSuccess(PROFILE_FIXTURE);
+		window.$('.ffc-profile-save-btn').trigger('click');
+
+		const payload = JSON.parse(spy.mock.calls[0][0].data);
+		expect(payload.birth_date).toBe('1991-06-21');
+	});
+
+	it('sends an empty birth date when the field is cleared, so the server clears it', () => {
+		panel().render({ ...PROFILE_FIXTURE, birth_date: '1990-05-20' });
+		window.$('.ffc-profile-edit-btn').trigger('click');
+		document.getElementById('ffc-edit-birth-date').value = '';
+
+		const spy = mockAjaxSuccess(PROFILE_FIXTURE);
+		window.$('.ffc-profile-save-btn').trigger('click');
+
+		expect(JSON.parse(spy.mock.calls[0][0].data).birth_date).toBe('');
+	});
+
 	it('on success: replaces state and re-renders the read view', async () => {
 		panel().render(PROFILE_FIXTURE);
 		window.$('.ffc-profile-edit-btn').trigger('click');
