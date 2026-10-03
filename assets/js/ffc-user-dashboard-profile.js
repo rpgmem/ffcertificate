@@ -59,7 +59,9 @@
         html += '<input type="text" id="ffc-edit-display-name" value="' + escAttr(profile.display_name) + '" maxlength="250" /></div>';
 
         html += '<div class="ffc-profile-field"><label for="ffc-edit-phone">' + (s.phone || 'Phone:') + '</label>';
-        html += '<input type="tel" id="ffc-edit-phone" value="' + escAttr(profile.phone) + '" maxlength="50" /></div>';
+        // (DD) 98765-4321: area code plus up to nine digits, masked by the
+        // same formatter the reregistration form uses.
+        html += '<input type="tel" id="ffc-edit-phone" value="' + escAttr(maskedPhone(profile.phone)) + '" maxlength="15" data-mask="phone" inputmode="numeric" /></div>';
 
         html += '<div class="ffc-profile-field"><label for="ffc-edit-department">' + (s.department || 'Department:') + '</label>';
         html += '<input type="text" id="ffc-edit-department" value="' + escAttr(profile.department) + '" maxlength="250" /></div>';
@@ -80,6 +82,23 @@
         html += '</div></div>';
 
         $container.html(html);
+
+        if (window.FFC && window.FFC.Fields) {
+            window.FFC.Fields.initMasks($container.find('.ffc-profile-edit-form'));
+        }
+    }
+
+    /**
+     * A stored phone shown in the mask's shape, when it fits the mask. A
+     * value with more than eleven digits (an international number saved
+     * before the mask existed) is shown as stored rather than truncated.
+     */
+    function maskedPhone(value) {
+        var v = value ? String(value) : '';
+        if (!v || !window.FFC || !window.FFC.Fields || v.replace(/\D/g, '').length > 11) {
+            return v;
+        }
+        return window.FFC.Fields.masks.phone(v);
     }
 
     function saveProfile() {

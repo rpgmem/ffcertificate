@@ -656,4 +656,42 @@ class CustomFieldReader {
 		}
 		return $keys;
 	}
+
+	/**
+	 * Ids of the standard fields with a given key that still carry one of the
+	 * given labels -- what a one-shot relabel needs to find, and nothing an
+	 * operator renamed since.
+	 *
+	 * @param string   $field_key Standard field key.
+	 * @param string[] $labels    Exact labels to match.
+	 * @return list<int>
+	 */
+	public static function standard_field_ids_with_label( string $field_key, array $labels ): array {
+		if ( '' === $field_key || empty( $labels ) ) {
+			return array();
+		}
+		global $wpdb;
+
+		$placeholders = implode( ', ', array_fill( 0, count( $labels ), '%s' ) );
+		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The sniff counts the literal's placeholders and does not know `prepare()` accepts a single array of arguments, which is how the table, the key and the labels arrive.
+		$rows = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT id FROM %i WHERE field_source = 'standard' AND field_key = %s AND field_label IN ( {$placeholders} )",
+				array_merge( array( self::get_table_name(), $field_key ), array_values( $labels ) )
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+		if ( ! is_array( $rows ) ) {
+			return array();
+		}
+
+		$ids = array();
+		foreach ( $rows as $raw ) {
+			$id = is_numeric( $raw ) ? (int) $raw : 0;
+			if ( $id > 0 ) {
+				$ids[] = $id;
+			}
+		}
+		return $ids;
+	}
 }

@@ -506,37 +506,37 @@ class AdminUserCustomFieldsTest extends TestCase {
 		$audience = (object) ['id' => 1, 'name' => 'Doctors', 'color' => '#abcdef'];
 
 		$text_field = (object) [
-			'id' => 11, 'field_label' => 'Department', 'field_type' => 'text',
+			'id' => 11, 'field_key' => 'key_11', 'field_label' => 'Department', 'field_type' => 'text',
 			'is_required' => 1, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
 			'field_options' => ['help_text' => 'Pick one'],
 		];
 		$textarea_field = (object) [
-			'id' => 12, 'field_label' => 'Bio', 'field_type' => 'textarea',
+			'id' => 12, 'field_key' => 'key_12', 'field_label' => 'Bio', 'field_type' => 'textarea',
 			'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
 			'field_options' => '',
 		];
 		$select_field = (object) [
-			'id' => 13, 'field_label' => 'Shift', 'field_type' => 'select',
+			'id' => 13, 'field_key' => 'key_13', 'field_label' => 'Shift', 'field_type' => 'select',
 			'is_required' => 0, 'source_audience_id' => 2, 'source_audience_name' => 'Parent Aud',
 			'field_options' => '',
 		];
 		$checkbox_field = (object) [
-			'id' => 14, 'field_label' => 'Active', 'field_type' => 'checkbox',
+			'id' => 14, 'field_key' => 'key_14', 'field_label' => 'Active', 'field_type' => 'checkbox',
 			'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
 			'field_options' => '',
 		];
 		$number_field = (object) [
-			'id' => 15, 'field_label' => 'Age', 'field_type' => 'number',
+			'id' => 15, 'field_key' => 'key_15', 'field_label' => 'Age', 'field_type' => 'number',
 			'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
 			'field_options' => '',
 		];
 		$date_field = (object) [
-			'id' => 16, 'field_label' => 'Start', 'field_type' => 'date',
+			'id' => 16, 'field_key' => 'key_16', 'field_label' => 'Start', 'field_type' => 'date',
 			'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
 			'field_options' => '',
 		];
 		$wh_field = (object) [
-			'id' => 17, 'field_label' => 'Hours', 'field_type' => 'working_hours',
+			'id' => 17, 'field_key' => 'key_17', 'field_label' => 'Hours', 'field_type' => 'working_hours',
 			'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
 			'field_options' => '',
 		];
@@ -604,7 +604,7 @@ class AdminUserCustomFieldsTest extends TestCase {
 		$audience = (object) ['id' => 1, 'name' => 'Doctors', 'color' => '#fff'];
 
 		$field = (object) [
-			'id' => 50, 'field_label' => 'Code', 'field_type' => 'text',
+			'id' => 50, 'field_key' => 'key_50', 'field_label' => 'Code', 'field_type' => 'text',
 			'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
 			'field_options' => '',
 		];
@@ -920,5 +920,215 @@ class AdminUserCustomFieldsTest extends TestCase {
 
 		$this->assertStringContainsString('type="hidden"', $html);
 		$this->assertDoesNotMatchRegularExpression('/<input type="hidden"[^>]*required/', $html);
+	}
+
+	// ==================================================================
+	// Masks, formats and dependent selects (the reregistration behaviours)
+	// ==================================================================
+
+	/**
+	 * The mask comes from the field's own `field_mask`, and falls back to
+	 * the validation format -- the reregistration form's rule, so a field
+	 * masks alike on both screens.
+	 */
+	public function test_mask_for_prefers_the_field_mask_then_the_format(): void {
+		$masked  = (object) [ 'field_mask' => 'cpf', 'validation_rules' => '{"format":"phone"}' ];
+		$format  = (object) [ 'field_mask' => null, 'validation_rules' => '{"format":"phone"}' ];
+		$neither = (object) [ 'field_mask' => '', 'validation_rules' => null ];
+
+		$this->assertSame( 'cpf', AdminUserCustomFields::mask_for( $masked ) );
+		$this->assertSame( 'phone', AdminUserCustomFields::mask_for( $format ) );
+		$this->assertSame( '', AdminUserCustomFields::mask_for( $neither ) );
+	}
+
+	/**
+	 * CPF, RF, RG and the phones carry a `data-mask` the shared script reads,
+	 * and every row names its field key and format, which is what the
+	 * dual-post toggle and the format check select by.
+	 */
+	public function test_render_section_emits_the_mask_the_key_and_the_format(): void {
+		$user     = new \WP_User(10);
+		$user->ID = 10;
+		$audience = (object) [ 'id' => 1, 'name' => 'Staff', 'color' => '#fff' ];
+
+		$cpf = (object) [
+			'id' => 21, 'field_key' => 'cpf', 'field_label' => 'CPF', 'field_type' => 'text',
+			'field_mask' => 'cpf', 'validation_rules' => '{"format":"cpf"}',
+			'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Staff', 'field_options' => '',
+		];
+		$phone = (object) [
+			'id' => 22, 'field_key' => 'celular', 'field_label' => 'Mobile', 'field_type' => 'text',
+			'field_mask' => null, 'validation_rules' => '{"format":"phone"}',
+			'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Staff', 'field_options' => '',
+		];
+
+		$this->audience_repo_mock->shouldReceive('get_user_audiences')->with(10)->andReturn([$audience]);
+		$this->custom_field_repo_mock->shouldReceive('get_by_audience_with_parents')->with(1, true)->andReturn([$cpf, $phone]);
+		Functions\when('esc_html_e')->alias(static function ($t) { echo $t; });
+		Functions\when('wp_nonce_field')->justReturn('');
+
+		ob_start();
+		AdminUserCustomFields::render_section($user);
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString('id="ffc-user-custom-fields"', $output);
+		$this->assertMatchesRegularExpression('/<tr data-field-key="cpf"\s+data-format="cpf"/', $output);
+		$this->assertMatchesRegularExpression('/name="ffc_cf_21"[^>]*data-mask="cpf"/', $output);
+		$this->assertMatchesRegularExpression('/<tr data-field-key="celular"\s+data-format="phone"/', $output);
+		$this->assertMatchesRegularExpression('/name="ffc_cf_22"[^>]*data-mask="phone"/', $output);
+	}
+
+	/**
+	 * "Division / Department" was drawn as a raw text box holding the
+	 * stored JSON; it now draws the reregistration form's own cascade.
+	 */
+	public function test_render_field_input_draws_a_dependent_select_as_the_cascade(): void {
+		$field = (object) [
+			'id' => 30, 'field_key' => 'divisao_setor', 'field_label' => 'Division / Department',
+			'field_type' => 'dependent_select', 'is_required' => 1,
+			'field_options' => '{"parent_label":"Division","child_label":"Department"}',
+		];
+		$this->custom_field_repo_mock->shouldReceive('get_dependent_choices')->andReturn([
+			'DIPED' => ['Sector A', 'Sector B'],
+			'DRE'   => ['Sector C'],
+		]);
+		Functions\when('esc_html_e')->alias(static function ($t) { echo $t; });
+		Functions\when('selected')->alias(static fn($a, $b, $echo = true) => (string) $a === (string) $b ? ' selected' : '');
+		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
+
+		$ref = new \ReflectionMethod(AdminUserCustomFields::class, 'render_field_input');
+		$ref->setAccessible(true);
+		ob_start();
+		$ref->invokeArgs(null, [$field, 'ffc_cf_30', '{"parent":"DIPED","child":"Sector B"}']);
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString('class="ffc-dependent-select" data-target="ffc_cf_30"', $html);
+		$this->assertStringContainsString('name="ffc_cf_30"', $html);
+		$this->assertStringContainsString('Division', $html);
+		$this->assertStringContainsString('<option value="Sector B"  selected>', $html);
+		$this->assertStringContainsString('ffc-dep-groups', $html);
+		$this->assertStringNotContainsString('type="text"', $html);
+	}
+
+	/**
+	 * The posted pair is decoded, checked against the field's choices and
+	 * re-encoded from the two validated strings.
+	 */
+	public function test_clean_dependent_select_accepts_only_a_listed_pair(): void {
+		$field = (object) [
+			'id' => 30, 'field_label' => 'Division / Department', 'field_type' => 'dependent_select',
+			'is_required' => 0, 'field_options' => '',
+		];
+		$this->custom_field_repo_mock->shouldReceive('get_dependent_choices')->andReturn([ 'DIPED' => ['Sector A'] ]);
+		$this->custom_field_repo_mock->shouldReceive('get_validation_rules')->andReturn([]);
+		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
+
+		$this->assertSame(
+			'{"parent":"DIPED","child":"Sector A"}',
+			AdminUserCustomFields::clean_dependent_select( $field, ' {"child":"Sector A","parent":"DIPED","extra":"x"} ' )
+		);
+		$this->assertSame( '', AdminUserCustomFields::clean_dependent_select( $field, '{"parent":"","child":""}' ) );
+		$this->assertSame( '', AdminUserCustomFields::clean_dependent_select( $field, 'not json' ) );
+		$this->assertNull( AdminUserCustomFields::clean_dependent_select( $field, '{"parent":"DIPED","child":"Elsewhere"}' ) );
+		$this->assertNull( AdminUserCustomFields::clean_dependent_select( $field, '{"parent":"Nowhere","child":"Sector A"}' ) );
+		$this->assertNull( AdminUserCustomFields::clean_dependent_select( $field, '{"parent":"DIPED","child":""}' ) );
+	}
+
+	/**
+	 * `divisao_setor` is profile-mapped, so a valid pair goes to the profile
+	 * as canonical JSON and never into the snapshot.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_save_section_writes_a_dependent_select_to_the_profile(): void {
+		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
+		$_POST['ffc_cf_30']                    = '{"parent":"DIPED","child":"Sector A"}';
+
+		$field = (object) [
+			'id' => 30, 'field_type' => 'dependent_select', 'field_label' => 'Division / Department',
+			'field_profile_key' => 'divisao_setor', 'is_sensitive' => 0, 'is_required' => 1, 'field_options' => '',
+		];
+
+		Functions\when('wp_verify_nonce')->justReturn(true);
+		Functions\when('current_user_can')->justReturn(true);
+		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
+
+		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(5, true)->andReturn([$field]);
+		$this->custom_field_repo_mock->shouldReceive('get_dependent_choices')->andReturn([ 'DIPED' => ['Sector A'] ]);
+		$this->custom_field_repo_mock->shouldReceive('get_validation_rules')->andReturn([]);
+		$this->custom_field_writer_mock->shouldReceive('save_user_data')->once()->with(5, array());
+
+		$manager = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
+		$manager->shouldReceive('get_extended_profile')->andReturn(array());
+		$manager->shouldReceive('update_extended_profile')
+			->once()
+			->with(5, array( 'divisao_setor' => '{"parent":"DIPED","child":"Sector A"}' ), array())
+			->andReturn(true);
+
+		AdminUserCustomFields::save_section(5);
+	}
+
+	/**
+	 * A pair outside the choices keeps the stored value and is announced,
+	 * instead of being written as posted.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_save_section_keeps_the_stored_pair_when_the_posted_one_is_invalid(): void {
+		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
+		$_POST['ffc_cf_30']                    = '{"parent":"DIPED","child":"<script>"}';
+
+		$field = (object) [
+			'id' => 30, 'field_type' => 'dependent_select', 'field_label' => 'Division / Department',
+			'is_required' => 0, 'field_options' => '',
+		];
+
+		Functions\when('wp_verify_nonce')->justReturn(true);
+		Functions\when('current_user_can')->justReturn(true);
+		Functions\when('get_current_user_id')->justReturn(1);
+		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
+
+		$transients = array();
+		Functions\when('set_transient')->alias(function ($key, $value) use (&$transients) {
+			$transients[ $key ] = $value;
+			return true;
+		});
+
+		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(5, true)->andReturn([$field]);
+		$this->custom_field_repo_mock->shouldReceive('get_user_data')->andReturn([ 'field_30' => '{"parent":"DIPED","child":"Sector A"}' ]);
+		$this->custom_field_repo_mock->shouldReceive('get_dependent_choices')->andReturn([ 'DIPED' => ['Sector A'] ]);
+		$this->custom_field_repo_mock->shouldReceive('get_validation_rules')->andReturn([]);
+		$this->custom_field_writer_mock->shouldReceive('save_user_data')
+			->once()
+			->with(5, array( 'field_30' => '{"parent":"DIPED","child":"Sector A"}' ));
+
+		AdminUserCustomFields::save_section(5);
+
+		$this->assertSame( array( 'Division / Department' ), $transients['ffc_cf_required_kept_1'] ?? null );
+	}
+
+	/**
+	 * The shared behaviours are enqueued with their strings, and the value
+	 * that reveals the accumulation fields is the translated "I hold" the
+	 * field stores.
+	 */
+	public function test_enqueue_assets_loads_the_shared_field_behaviours(): void {
+		$scripts  = array();
+		$localize = array();
+		Functions\when('wp_enqueue_style')->justReturn(true);
+		Functions\when('wp_enqueue_script')->alias(function ($handle, $src = '', $deps = array()) use (&$scripts) {
+			$scripts[ $handle ] = $deps;
+		});
+		Functions\when('wp_localize_script')->alias(function ($handle, $name, $data) use (&$localize) {
+			$localize[ $name ] = $data;
+		});
+
+		AdminUserCustomFields::enqueue_assets('user-edit.php');
+
+		$this->assertSame( array( 'jquery', 'ffc-core' ), $scripts['ffc-field-behaviours'] ?? null );
+		$this->assertSame( array( 'jquery', 'ffc-field-behaviours' ), $scripts['ffc-admin-user-fields'] ?? null );
+		$this->assertSame( 'I hold', $localize['ffcAdminUserFields']['strings']['dualPostShowValue'] ?? null );
 	}
 }

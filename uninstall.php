@@ -259,6 +259,9 @@ $ffcertificate_options = array(
 	// The chosen time of day of each daily task, written by Settings →
 	// Scheduled Tasks (#1538).
 	'ffc_cron_times',
+	// Flag of the one-shot "Estado" → "Union" relabel of the seeded `sindicato`
+	// fields, written on the first admin request after the update.
+	'ffc_union_label_relabelled',
 	'ffc_recruitment_public_cache_version',
 	// The admin's chosen record (ficha) template, written only when the
 	// Reregistration tab is saved -- which is why the fresh-install gate never

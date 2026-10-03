@@ -67,6 +67,26 @@ class AdminUserCustomFields {
 		// profile save against a control nobody can see.
 		wp_enqueue_script( 'ffc-core', FFC_PLUGIN_URL . "assets/js/ffc-core{$s}.js", array( 'jquery' ), FFC_VERSION, true );
 		wp_enqueue_script( 'ffc-custom-fields-collapse', FFC_PLUGIN_URL . "assets/js/ffc-custom-fields-collapse{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		// The same masks, dependent selects and dual-post toggle the
+		// reregistration form uses, so a field behaves alike on both screens.
+		wp_enqueue_script( 'ffc-field-behaviours', FFC_PLUGIN_URL . "assets/js/ffc-field-behaviours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		wp_enqueue_script( 'ffc-admin-user-fields', FFC_PLUGIN_URL . "assets/js/ffc-admin-user-fields{$s}.js", array( 'jquery', 'ffc-field-behaviours' ), FFC_VERSION, true );
+		wp_localize_script(
+			'ffc-admin-user-fields',
+			'ffcAdminUserFields',
+			array(
+				'strings' => array(
+					// Must equal the option the dual-post field stores, which is
+					// translated at seed time from the same source string.
+					'dualPostShowValue' => __( 'I hold', 'ffcertificate' ),
+					'select'            => __( 'Select', 'ffcertificate' ),
+					'invalidCpf'        => __( 'Invalid CPF.', 'ffcertificate' ),
+					'invalidEmail'      => __( 'Invalid email.', 'ffcertificate' ),
+					'invalidPhone'      => __( 'Invalid phone number.', 'ffcertificate' ),
+					'invalidFormat'     => __( 'Invalid format.', 'ffcertificate' ),
+				),
+			)
+		);
 		wp_localize_script(
 			'ffc-working-hours',
 			'ffcWorkingHours',
@@ -135,6 +155,7 @@ class AdminUserCustomFields {
 
 		<?php wp_nonce_field( 'ffc_save_user_custom_fields', 'ffc_user_custom_fields_nonce' ); ?>
 
+		<div id="ffc-user-custom-fields">
 		<?php foreach ( $audiences as $audience ) : ?>
 			<?php
 			$fields = CustomFieldReader::get_by_audience_with_parents( (int) $audience->id, true );
@@ -168,8 +189,12 @@ class AdminUserCustomFields {
 									? ( $user_data[ $field_key ] ?? '' )
 									: ( $profile[ (string) $field->field_profile_key ] ?? '' );
 								$input_name = 'ffc_cf_' . $field->id;
+								$rules      = self::decode_json( $field->validation_rules ?? null );
 								?>
-								<tr>
+								<tr data-field-key="<?php echo esc_attr( (string) $field->field_key ); ?>"
+									data-format="<?php echo esc_attr( is_string( $rules['format'] ?? null ) ? $rules['format'] : '' ); ?>"
+									data-regex="<?php echo esc_attr( is_string( $rules['custom_regex'] ?? null ) ? $rules['custom_regex'] : '' ); ?>"
+									data-regex-msg="<?php echo esc_attr( is_string( $rules['custom_regex_message'] ?? null ) ? $rules['custom_regex_message'] : '' ); ?>">
 									<th scope="row">
 										<label for="<?php echo esc_attr( $input_name ); ?>">
 											<?php echo esc_html( $field->field_label ); ?>
@@ -205,6 +230,7 @@ class AdminUserCustomFields {
 				</div>
 			</div>
 		<?php endforeach; ?>
+		</div>
 		<?php
 		// Collapsible-section wiring lives in assets/js/ffc-custom-fields-collapse.js
 		// (enqueued in enqueue_assets()); the markup above carries the data-target ids.
@@ -236,6 +262,7 @@ class AdminUserCustomFields {
 		 * `required` time inputs are what enforce it there.
 		 */
 		$ffc_required = empty( $field->is_required ) ? '' : ' required';
+		$ffc_mask     = self::mask_for( $field );
 
 		switch ( $field->field_type ) {
 			case 'textarea':
@@ -258,6 +285,10 @@ class AdminUserCustomFields {
 				<?php
 				break;
 
+			case 'dependent_select':
+				self::render_dependent_select( $field, $input_name, $value );
+				break;
+
 			case 'checkbox':
 				?>
 				<label>
@@ -269,7 +300,7 @@ class AdminUserCustomFields {
 
 			case 'number':
 				?>
-				<input type="number" name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( (string) $value ); ?>" class="regular-text"<?php echo esc_attr( $ffc_required ); ?>>
+				<input type="number" name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( (string) $value ); ?>" class="regular-text"<?php echo esc_attr( $ffc_required ); ?> data-mask="<?php echo esc_attr( $ffc_mask ); ?>">
 				<?php
 				break;
 
@@ -335,10 +366,98 @@ class AdminUserCustomFields {
 			case 'text':
 			default:
 				?>
-				<input type="text" name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( (string) $value ); ?>" class="regular-text"<?php echo esc_attr( $ffc_required ); ?>>
+				<input type="text" name="<?php echo esc_attr( $input_name ); ?>" id="<?php echo esc_attr( $input_name ); ?>" value="<?php echo esc_attr( (string) $value ); ?>" class="regular-text"<?php echo esc_attr( $ffc_required ); ?> data-mask="<?php echo esc_attr( $ffc_mask ); ?>">
 				<?php
 				break;
 		}
+	}
+
+	/**
+	 * The input mask a field asks for: its own `field_mask`, else the format
+	 * of its validation rules -- the same fallback the reregistration form
+	 * uses, so a field masks alike on both screens.
+	 *
+	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
+	 * @return string Mask name, or '' for none.
+	 */
+	public static function mask_for( object $field ): string {
+		$mask = isset( $field->field_mask ) ? (string) $field->field_mask : '';
+		if ( '' === $mask ) {
+			$rules = self::decode_json( $field->validation_rules ?? null );
+			$mask  = is_string( $rules['format'] ?? null ) ? $rules['format'] : '';
+		}
+		return $mask;
+	}
+
+	/**
+	 * Render a dependent select through the reregistration form's own
+	 * template, so the two screens draw the same cascade.
+	 *
+	 * @param object $field      Field definition.
+	 * @phpstan-param CustomFieldRow $field
+	 * @param string $input_name Hidden input name and id.
+	 * @param mixed  $value      Stored `{"parent":…,"child":…}` JSON.
+	 * @return void
+	 */
+	private static function render_dependent_select( object $field, string $input_name, $value ): void {
+		$groups       = CustomFieldReader::get_dependent_choices( $field );
+		$opts         = self::decode_json( $field->field_options );
+		$parent_label = is_string( $opts['parent_label'] ?? null ) ? $opts['parent_label'] : __( 'Category', 'ffcertificate' );
+		$child_label  = is_string( $opts['child_label'] ?? null ) ? $opts['child_label'] : __( 'Subcategory', 'ffcertificate' );
+		$decoded      = is_string( $value ) ? self::decode_json( $value ) : array();
+		$parent       = is_string( $decoded['parent'] ?? null ) ? $decoded['parent'] : '';
+		$child        = is_string( $decoded['child'] ?? null ) ? $decoded['child'] : '';
+		$field_id     = $input_name;
+		$field_name   = $input_name;
+
+		include FFC_PLUGIN_DIR . 'templates/reregistration/field-dependent-select.php';
+	}
+
+	/**
+	 * Decode a JSON column into an array; anything else is an empty one.
+	 *
+	 * @param mixed $json JSON string, array or null.
+	 * @return array<string, mixed>
+	 */
+	private static function decode_json( $json ): array {
+		if ( is_string( $json ) && '' !== $json ) {
+			$json = json_decode( $json, true );
+		}
+		return is_array( $json ) ? $json : array();
+	}
+
+	/**
+	 * A posted dependent select, checked against the field's own choices.
+	 *
+	 * The hidden input carries JSON the browser assembled, so it is decoded,
+	 * checked by the validator the reregistration form uses, and re-encoded
+	 * from the two validated strings -- never stored as posted.
+	 *
+	 * @param object $field Field definition.
+	 * @phpstan-param CustomFieldRow $field
+	 * @param string $raw   Posted value.
+	 * @return string|null Canonical JSON, '' when both halves are empty, null when invalid.
+	 */
+	public static function clean_dependent_select( object $field, string $raw ): ?string {
+		$decoded = self::decode_json( trim( $raw ) );
+		$parent  = is_string( $decoded['parent'] ?? null ) ? sanitize_text_field( $decoded['parent'] ) : '';
+		$child   = is_string( $decoded['child'] ?? null ) ? sanitize_text_field( $decoded['child'] ) : '';
+
+		if ( '' === $parent && '' === $child ) {
+			return '';
+		}
+
+		$pair = array(
+			'parent' => $parent,
+			'child'  => $child,
+		);
+		if ( true !== \FreeFormCertificate\Reregistration\CustomFieldValidator::validate( $field, $pair ) ) {
+			return null;
+		}
+
+		$json = wp_json_encode( $pair );
+		return false === $json ? null : $json;
 	}
 
 	/**
@@ -406,6 +525,36 @@ class AdminUserCustomFields {
 						'missing' => $ffc_row['missing'],
 					);
 				}
+			} elseif ( 'dependent_select' === $field->field_type ) {
+				// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Decoded, validated and re-encoded in clean_dependent_select().
+				$raw_value = isset( $_POST[ $input_name ] ) ? wp_unslash( $_POST[ $input_name ] ) : '';
+				$clean     = self::clean_dependent_select( $field, is_string( $raw_value ) ? $raw_value : '' );
+
+				$pkey   = empty( $field->field_profile_key ) ? '' : (string) $field->field_profile_key;
+				$stored = '' === $pkey ? ( $existing[ $field_key ] ?? '' ) : ( $profile[ $pkey ] ?? '' );
+				$stored = is_scalar( $stored ) ? (string) $stored : '';
+
+				// A pair outside the field's choices, or a required field
+				// arriving empty, keeps what was stored rather than erasing it.
+				if ( null === $clean || ( '' === $clean && ! empty( $field->is_required ) && '' !== $stored ) ) {
+					if ( '' === $pkey && '' !== $stored ) {
+						$data[ $field_key ] = $stored;
+					}
+					$kept[] = (string) $field->field_label;
+					continue;
+				}
+
+				// `divisao_setor` lives on the profile, like any other
+				// profile-mapped field (#1538).
+				if ( '' !== $pkey ) {
+					$profile_patch[ $pkey ] = $clean;
+					if ( ! empty( $field->is_sensitive ) ) {
+						$sensitive_keys[] = $pkey;
+					}
+					continue;
+				}
+
+				$data[ $field_key ] = $clean;
 			} else {
                 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Checked via isset; sanitized via sanitize_text_field/sanitize_textarea_field below.
 				$raw_value = isset( $_POST[ $input_name ] ) ? wp_unslash( $_POST[ $input_name ] ) : '';
@@ -519,7 +668,7 @@ class AdminUserCustomFields {
 	}
 
 	/**
-	 * "This required field arrived empty and kept its previous value."
+	 * "These fields arrived empty, or with a choice outside the list, and kept their previous value."
 	 *
 	 * @return void
 	 */
@@ -535,8 +684,8 @@ class AdminUserCustomFields {
 			'<div class="notice notice-warning is-dismissible"><p>%s</p></div>',
 			esc_html(
 				sprintf(
-					/* translators: %s: comma-separated list of required custom field labels. */
-					__( 'These required fields arrived empty and kept their previous value: %s', 'ffcertificate' ),
+					/* translators: %s: comma-separated list of custom field labels. */
+					__( 'These fields arrived empty or with an invalid choice and kept their previous value: %s', 'ffcertificate' ),
 					implode( ', ', array_map( 'strval', $kept ) )
 				)
 			)

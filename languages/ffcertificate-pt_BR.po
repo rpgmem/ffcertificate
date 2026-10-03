@@ -18717,12 +18717,6 @@ msgstr "Não existe um shortcode separado para o recadastramento. Campanhas ativ
 msgid "These options only appear when a mode that shows the widget is selected. The widget follows the site's colours and its light/dark mode on its own."
 msgstr "Estas opções só aparecem quando um modo que exibe o widget está selecionado. O widget segue automaticamente as cores do site e o seu modo claro/escuro."
 
-#. %s: comma-separated list of required custom field labels.
-#: includes/admin/class-ffc-admin-user-custom-fields.php:479
-#, php-format
-msgid "These required fields arrived empty and kept their previous value: %s"
-msgstr "Estes campos obrigatórios chegaram vazios e mantiveram o valor anterior: %s"
-
 #: includes/settings/views/ffc-tab-user-access.php:189
 msgid "These roles operate through wp-admin. Block one only if its users should be redirected away from the dashboard — blocking an administrative role locks it out of the screens it is meant to use."
 msgstr "Essas funções operam por meio do wp-admin. Bloqueie uma delas apenas se os usuários associados precisarem ser redirecionados para fora do painel — bloquear uma função administrativa impede o acesso às telas que ela deveria utilizar."
@@ -23632,3 +23626,6 @@ msgstr "Horários salvos. As tarefas alteradas foram movidas para o novo horári
 
 msgid "Form cache warming (when \"Pre-load cache daily\" is on)"
 msgstr "Pré-carregamento do cache de formulários (quando \"Pré-carregar cache diariamente\" está ligado)"
+
+msgid "These fields arrived empty or with an invalid choice and kept their previous value: %s"
+msgstr "Estes campos chegaram vazios ou com uma opção inválida e mantiveram o valor anterior: %s"
