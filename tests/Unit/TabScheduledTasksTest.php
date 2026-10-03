@@ -27,11 +27,20 @@ class TabScheduledTasksTest extends TestCase {
 	 */
 	private array $beats = array();
 
+	/**
+	 * Chosen times the option holds.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $times = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
 		$this->beats = array();
+		$this->times = array();
+		$_POST       = array();
 
 		foreach ( array( '__', 'esc_html__', 'esc_html', 'esc_attr', 'wp_kses_post' ) as $fn ) {
 			Functions\when( $fn )->returnArg();
@@ -58,12 +67,22 @@ class TabScheduledTasksTest extends TestCase {
 		);
 		Functions\when( 'get_option' )->alias(
 			function ( $name, $default = false ) {
+				if ( ScheduledTasks::TIMES_OPTION === $name ) {
+					return $this->times;
+				}
 				return ScheduledTasks::HEARTBEAT_OPTION === $name ? $this->beats : $default;
 			}
 		);
+		Functions\when( 'wp_nonce_field' )->alias(
+			static function () {
+				echo '<input type="hidden" name="_wpnonce" value="n">';
+			}
+		);
+		Functions\when( 'wp_timezone_string' )->justReturn( 'America/Sao_Paulo' );
 	}
 
 	protected function tearDown(): void {
+		$_POST = array();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -158,5 +177,66 @@ class TabScheduledTasksTest extends TestCase {
 			'never_run'     => array( 'never_run' ),
 			'not_scheduled' => array( 'not_scheduled' ),
 		);
+	}
+	public function test_each_daily_task_has_a_time_field_and_the_hourly_one_has_none(): void {
+		$this->times = array( 'ffcertificate_daily_cleanup_hook' => '03:30' );
+
+		$html = $this->render();
+
+		foreach ( ScheduledTasks::all() as $hook => $task ) {
+			$field = 'name="ffc_cron_times[' . $hook . ']"';
+			if ( 'daily' === $task['recurrence'] ) {
+				$this->assertStringContainsString( $field, $html, "{$hook} has no time field." );
+			} else {
+				$this->assertStringNotContainsString( $field, $html, "{$hook} is not daily and takes no time." );
+			}
+		}
+		$this->assertMatchesRegularExpression( '#name="ffc_cron_times\[ffcertificate_daily_cleanup_hook\]" value="03:30"#', $html );
+		$this->assertStringContainsString( 'name="ffc_save_cron_times"', $html );
+	}
+
+	public function test_saving_times_needs_the_manage_capability(): void {
+		$_POST = array(
+			'ffc_save_cron_times' => '1',
+			'ffc_cron_times'      => array( 'ffcertificate_daily_cleanup_hook' => '03:30' ),
+		);
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\expect( 'update_option' )->never();
+
+		$this->render();
+	}
+
+	public function test_saving_times_stores_them_and_reports_an_invalid_one(): void {
+		$_POST = array(
+			'ffc_save_cron_times' => '1',
+			'ffc_cron_times'      => array(
+				'ffcertificate_daily_cleanup_hook' => '03:30',
+				'ffc_cloudflare_cidr_refresh'      => '25:00',
+			),
+		);
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'wp_clear_scheduled_hook' )->justReturn( 1 );
+		Functions\when( 'wp_schedule_event' )->justReturn( true );
+		$stored = null;
+		Functions\when( 'update_option' )->alias(
+			static function ( $name, $value ) use ( &$stored ) {
+				$stored = $value;
+				return true;
+			}
+		);
+		$notice = '';
+		Functions\when( 'wp_admin_notice' )->alias(
+			static function ( $message, $args ) use ( &$notice ) {
+				$notice = $args['type'];
+			}
+		);
+
+		$this->render();
+
+		$this->assertSame( array( 'ffcertificate_daily_cleanup_hook' => '03:30' ), $stored );
+		$this->assertSame( 'warning', $notice );
 	}
 }

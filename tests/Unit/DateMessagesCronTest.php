@@ -26,13 +26,26 @@ class DateMessagesCronTest extends TestCase {
 	 */
 	private $settings = array();
 
+	/**
+	 * The central chosen-times option (Settings → Scheduled Tasks).
+	 *
+	 * @var array<string, string>
+	 */
+	private array $times = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 		$this->settings = array();
+		$this->times    = array();
 		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'America/Sao_Paulo' ) );
 		Functions\when( 'get_option' )->alias(
-			fn( $name, $default = false ) => DateMessagesCron::SETTINGS_OPTION === $name ? $this->settings : $default
+			function ( $name, $default = false ) {
+				if ( \FreeFormCertificate\Core\ScheduledTasks::TIMES_OPTION === $name ) {
+					return $this->times;
+				}
+				return DateMessagesCron::SETTINGS_OPTION === $name ? $this->settings : $default;
+			}
 		);
 	}
 
@@ -63,6 +76,13 @@ class DateMessagesCronTest extends TestCase {
 			'not a time'     => array( array( 'send_time' => 'morning' ), '08:00' ),
 			'not an array'   => array( 'x', '08:00' ),
 		);
+	}
+
+	public function test_the_time_chosen_on_scheduled_tasks_wins_over_the_module_option(): void {
+		$this->settings = array( 'send_time' => '06:30' );
+		$this->times    = array( DateMessagesCron::CRON_HOOK => '21:15' );
+
+		$this->assertSame( '21:15', DateMessagesCron::send_time() );
 	}
 
 	public function test_next_run_is_today_when_the_local_time_is_still_ahead(): void {

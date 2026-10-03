@@ -92,6 +92,14 @@ final class DateMessagesCron {
 	 * @return string
 	 */
 	public static function send_time(): string {
+		// Chosen on Settings → Scheduled Tasks, like every daily task. The
+		// module's own option is where the time lived before that screen
+		// could set it; it is still read, so an existing choice carries over.
+		$central = \FreeFormCertificate\Core\ScheduledTasks::time_for( self::CRON_HOOK );
+		if ( null !== $central ) {
+			return $central;
+		}
+
 		$settings = get_option( self::SETTINGS_OPTION, array() );
 		$time     = is_array( $settings ) && is_string( $settings['send_time'] ?? null ) ? $settings['send_time'] : '';
 		return 1 === preg_match( '/^([01]\d|2[0-3]):[0-5]\d$/', $time ) ? $time : self::DEFAULT_SEND_TIME;
@@ -104,12 +112,6 @@ final class DateMessagesCron {
 	 * @return int Unix time.
 	 */
 	public static function next_run( int $now ): int {
-		[ $hour, $minute ] = array_map( 'intval', explode( ':', self::send_time() ) );
-
-		$at = ( new \DateTimeImmutable( '@' . $now ) )->setTimezone( wp_timezone() )->setTime( $hour, $minute );
-		if ( $at->getTimestamp() <= $now ) {
-			$at = $at->modify( '+1 day' );
-		}
-		return $at->getTimestamp();
+		return \FreeFormCertificate\Core\ScheduledTasks::next_at( self::send_time(), $now );
 	}
 }

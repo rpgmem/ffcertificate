@@ -68,7 +68,7 @@ final class CloudflareCidrRefresh {
 	 */
 	public static function schedule(): void {
 		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
-			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::CRON_HOOK );
+			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( self::CRON_HOOK, time() + HOUR_IN_SECONDS ), 'daily', self::CRON_HOOK );
 		}
 	}
 

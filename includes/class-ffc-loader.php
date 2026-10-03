@@ -466,12 +466,12 @@ class Loader {
 
 		// Ensure daily cleanup cron is scheduled.
 		if ( ! wp_next_scheduled( 'ffcertificate_daily_cleanup_hook' ) ) {
-			wp_schedule_event( time(), 'daily', 'ffcertificate_daily_cleanup_hook' );
+			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffcertificate_daily_cleanup_hook', time() ), 'daily', 'ffcertificate_daily_cleanup_hook' );
 		}
 
 		// Ensure reregistration expiry cron is scheduled.
 		if ( ! wp_next_scheduled( 'ffcertificate_reregistration_expire_hook' ) ) {
-			wp_schedule_event( time(), 'daily', 'ffcertificate_reregistration_expire_hook' );
+			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffcertificate_reregistration_expire_hook', time() ), 'daily', 'ffcertificate_reregistration_expire_hook' );
 		}
 
 		// Ensure the self-scheduling appointment-reminder scan cron is scheduled

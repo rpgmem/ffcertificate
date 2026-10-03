@@ -35,16 +35,27 @@ class ScheduledTasksTest extends TestCase {
 	 */
 	private array $writes = array();
 
+	/**
+	 * The chosen-times option as stored.
+	 *
+	 * @var mixed
+	 */
+	private $times = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
 		$this->stored = array();
 		$this->writes = array();
+		$this->times  = array();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'get_option' )->alias(
 			function ( $name, $default = false ) {
+				if ( ScheduledTasks::TIMES_OPTION === $name ) {
+					return $this->times;
+				}
 				return ScheduledTasks::HEARTBEAT_OPTION === $name ? $this->stored : $default;
 			}
 		);
@@ -53,6 +64,9 @@ class ScheduledTasksTest extends TestCase {
 				$this->writes[ $name ] = array( $value, $autoload );
 				if ( ScheduledTasks::HEARTBEAT_OPTION === $name ) {
 					$this->stored = $value;
+				}
+				if ( ScheduledTasks::TIMES_OPTION === $name ) {
+					$this->times = $value;
 				}
 				return true;
 			}
@@ -324,5 +338,89 @@ class ScheduledTasksTest extends TestCase {
 				$this->assertNotSame( '', $line );
 			}
 		}
+	}
+	// ------------------------------------------------------------------
+	// Chosen times of day
+	// ------------------------------------------------------------------
+
+	public function test_times_keep_only_valid_times_of_daily_tasks(): void {
+		$this->times = array(
+			'ffcertificate_daily_cleanup_hook'            => '03:30',
+			'ffcertificate_self_scheduling_reminder_scan' => '04:00',
+			'ffc_cloudflare_cidr_refresh'                 => '24:00',
+			'not_ours'                                    => '05:00',
+		);
+
+		$this->assertSame( array( 'ffcertificate_daily_cleanup_hook' => '03:30' ), ScheduledTasks::times() );
+		$this->assertSame( '03:30', ScheduledTasks::time_for( 'ffcertificate_daily_cleanup_hook' ) );
+		$this->assertNull( ScheduledTasks::time_for( 'ffc_cloudflare_cidr_refresh' ) );
+	}
+
+	public function test_next_at_is_the_next_occurrence_in_the_site_timezone(): void {
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'America/Sao_Paulo' ) );
+		// 2026-10-03 12:00 in São Paulo (UTC-3) is 15:00 UTC.
+		$noon = ( new \DateTimeImmutable( '2026-10-03 12:00', new \DateTimeZone( 'America/Sao_Paulo' ) ) )->getTimestamp();
+
+		$this->assertSame( $noon + 2 * HOUR_IN_SECONDS, ScheduledTasks::next_at( '14:00', $noon ) );
+		$this->assertSame( $noon + 21 * HOUR_IN_SECONDS, ScheduledTasks::next_at( '09:00', $noon ), 'A time already past today is tomorrow.' );
+		$this->assertSame( $noon + DAY_IN_SECONDS, ScheduledTasks::next_at( '12:00', $noon ), 'Exactly now is tomorrow, never now.' );
+	}
+
+	public function test_first_run_uses_the_chosen_time_or_the_callers_default(): void {
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		$this->times = array( 'ffcertificate_daily_cleanup_hook' => '03:30' );
+
+		$this->assertSame( 12345, ScheduledTasks::first_run( 'ffc_cloudflare_cidr_refresh', 12345 ) );
+		$first = ScheduledTasks::first_run( 'ffcertificate_daily_cleanup_hook', 12345 );
+		$this->assertSame( '03:30', gmdate( 'H:i', $first ) );
+		$this->assertGreaterThan( time(), $first );
+	}
+
+	public function test_save_times_moves_only_changed_scheduled_tasks(): void {
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		$this->times = array(
+			'ffcertificate_daily_cleanup_hook' => '03:30',
+			'ffc_cloudflare_cidr_refresh'      => '04:00',
+		);
+		$scheduled   = array( 'ffcertificate_daily_cleanup_hook', 'ffc_cloudflare_cidr_refresh', 'ffc_daily_expired_tickets_cleanup' );
+		Functions\when( 'wp_next_scheduled' )->alias( static fn( $hook ) => in_array( $hook, $scheduled, true ) ? time() + 60 : false );
+		$cleared = array();
+		$events  = array();
+		Functions\when( 'wp_clear_scheduled_hook' )->alias(
+			static function ( $hook ) use ( &$cleared ) {
+				$cleared[] = $hook;
+				return 1;
+			}
+		);
+		Functions\when( 'wp_schedule_event' )->alias(
+			static function ( $ts, $recurrence, $hook ) use ( &$events ) {
+				$events[ $hook ] = array( gmdate( 'H:i', $ts ), $recurrence );
+				return true;
+			}
+		);
+
+		$invalid = ScheduledTasks::save_times(
+			array(
+				'ffcertificate_daily_cleanup_hook'         => '03:30', // unchanged
+				'ffc_cloudflare_cidr_refresh'              => '',      // cleared
+				'ffc_daily_expired_tickets_cleanup'        => '02:15', // new, scheduled
+				'ffcertificate_reregistration_expire_hook' => '05:45', // new, not scheduled
+				'ffc_date_messages_daily'                  => '7:00',  // invalid
+				'ffcertificate_self_scheduling_reminder_scan' => '01:00', // hourly: ignored
+			)
+		);
+
+		$this->assertSame( array( 'ffc_date_messages_daily' ), $invalid );
+		$this->assertSame(
+			array(
+				'ffcertificate_daily_cleanup_hook'         => '03:30',
+				'ffc_daily_expired_tickets_cleanup'        => '02:15',
+				'ffcertificate_reregistration_expire_hook' => '05:45',
+			),
+			$this->times
+		);
+		$this->assertFalse( $this->writes[ ScheduledTasks::TIMES_OPTION ][1], 'Not autoloaded.' );
+		$this->assertSame( array( 'ffc_daily_expired_tickets_cleanup' ), $cleared, 'Only a changed, scheduled task moves; a cleared one stays where it is.' );
+		$this->assertSame( array( 'ffc_daily_expired_tickets_cleanup' => array( '02:15', 'daily' ) ), $events );
 	}
 }

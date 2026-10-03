@@ -91,7 +91,7 @@ class Activator {
 
 		// Schedule daily cleanup cron.
 		if ( ! wp_next_scheduled( 'ffcertificate_daily_cleanup_hook' ) ) {
-			wp_schedule_event( time(), 'daily', 'ffcertificate_daily_cleanup_hook' );
+			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffcertificate_daily_cleanup_hook', time() ), 'daily', 'ffcertificate_daily_cleanup_hook' );
 		}
 
 		// Schedule the per-form ticket-pool sweep for ended forms.

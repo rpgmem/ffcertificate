@@ -256,6 +256,9 @@ $ffcertificate_options = array(
 	// When each recurring task last ran (#1538), written only when one runs --
 	// never by activation, so the fresh-install gate does not see it.
 	'ffc_cron_heartbeats',
+	// The chosen time of day of each daily task, written by Settings →
+	// Scheduled Tasks (#1538).
+	'ffc_cron_times',
 	'ffc_recruitment_public_cache_version',
 	// The admin's chosen record (ficha) template, written only when the
 	// Reregistration tab is saved -- which is why the fresh-install gate never

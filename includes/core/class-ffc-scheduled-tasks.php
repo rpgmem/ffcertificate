@@ -56,6 +56,13 @@ final class ScheduledTasks {
 	public const HEARTBEAT_OPTION = 'ffc_cron_heartbeats';
 
 	/**
+	 * Option holding the chosen time of day of each daily task, `HH:MM` in the
+	 * site timezone, keyed by hook. A task with no entry keeps whatever time
+	 * it was first scheduled at. Listed in `uninstall.php`.
+	 */
+	public const TIMES_OPTION = 'ffc_cron_times';
+
+	/**
 	 * Recurrence of a hook that is scheduled once per piece of work.
 	 */
 	public const SINGLE = 'single';
@@ -369,5 +376,120 @@ final class ScheduledTasks {
 	 */
 	private static function shell_quote( string $value ): string {
 		return "'" . str_replace( "'", "'\\''", $value ) . "'";
+	}
+	/**
+	 * Whether a value is a time of day, `HH:MM` on a 24-hour clock.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return bool
+	 */
+	public static function is_time( $value ): bool {
+		return is_string( $value ) && 1 === preg_match( '/^([01]\d|2[0-3]):[0-5]\d$/', $value );
+	}
+
+	/**
+	 * The chosen times, daily tasks only.
+	 *
+	 * @return array<string, string> Hook => `HH:MM`.
+	 */
+	public static function times(): array {
+		$stored = get_option( self::TIMES_OPTION, array() );
+		$out    = array();
+		if ( is_array( $stored ) ) {
+			foreach ( $stored as $hook => $time ) {
+				if ( is_string( $hook ) && 'daily' === ( self::TASKS[ $hook ]['recurrence'] ?? '' ) && self::is_time( $time ) ) {
+					$out[ $hook ] = $time;
+				}
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * The chosen time of one daily task, or null when none was chosen.
+	 *
+	 * @param string $hook Hook name.
+	 * @return string|null
+	 */
+	public static function time_for( string $hook ): ?string {
+		return self::times()[ $hook ] ?? null;
+	}
+
+	/**
+	 * The first moment after `$now` at a time of day in the site timezone.
+	 *
+	 * @param string $time `HH:MM`.
+	 * @param int    $now  Unix time.
+	 * @return int Unix time.
+	 */
+	public static function next_at( string $time, int $now ): int {
+		[ $hour, $minute ] = array_map( 'intval', explode( ':', $time ) );
+
+		$at = ( new \DateTimeImmutable( '@' . $now ) )->setTimezone( wp_timezone() )->setTime( $hour, $minute );
+		if ( $at->getTimestamp() <= $now ) {
+			$at = $at->modify( '+1 day' );
+		}
+		return $at->getTimestamp();
+	}
+
+	/**
+	 * When a daily task should first run: at its chosen time, or at the
+	 * caller's own default when none was chosen. Every site that schedules a
+	 * daily task asks this, so re-activating the plugin keeps the choice.
+	 *
+	 * @param string $hook     Hook name.
+	 * @param int    $fallback The caller's default first run.
+	 * @return int Unix time.
+	 */
+	public static function first_run( string $hook, int $fallback ): int {
+		$time = self::time_for( $hook );
+		return null === $time ? $fallback : self::next_at( $time, time() );
+	}
+
+	/**
+	 * Store the chosen times and move every changed, scheduled task to its
+	 * new time.
+	 *
+	 * An empty value clears the choice and leaves the task where it is: it
+	 * does not move a working schedule anywhere nobody chose. A task that is
+	 * not scheduled right now (its module is off) is only stored; whatever
+	 * schedules it later asks first_run() and lands on the chosen time.
+	 *
+	 * @param array<mixed> $posted Hook => `HH:MM` or ''.
+	 * @return array<int, string> Hooks whose value was not a time and was ignored.
+	 */
+	public static function save_times( array $posted ): array {
+		$before  = self::times();
+		$after   = $before;
+		$invalid = array();
+
+		foreach ( self::TASKS as $hook => $task ) {
+			if ( 'daily' !== $task['recurrence'] || ! array_key_exists( $hook, $posted ) ) {
+				continue;
+			}
+			$value = is_string( $posted[ $hook ] ) ? trim( $posted[ $hook ] ) : '';
+			if ( '' === $value ) {
+				unset( $after[ $hook ] );
+				continue;
+			}
+			if ( ! self::is_time( $value ) ) {
+				$invalid[] = $hook;
+				continue;
+			}
+			$after[ $hook ] = $value;
+		}
+
+		update_option( self::TIMES_OPTION, $after, false );
+
+		$now = time();
+		foreach ( $after as $hook => $time ) {
+			if ( ( $before[ $hook ] ?? null ) === $time || false === wp_next_scheduled( $hook ) ) {
+				continue;
+			}
+			wp_clear_scheduled_hook( $hook );
+			wp_schedule_event( self::next_at( $time, $now ), 'daily', $hook );
+		}
+
+		return $invalid;
 	}
 }

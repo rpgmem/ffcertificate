@@ -2,8 +2,9 @@
 /**
  * Settings Tab: Scheduled Tasks
  *
- * Read-only view of the plugin's WP-Cron tasks: when each is due, when it last
- * actually ran, and the server crontab line that keeps WP-Cron running (#1538).
+ * The plugin's WP-Cron tasks: when each is due, when it last actually ran, the
+ * time of day each daily task runs at, and the server crontab line that keeps
+ * WP-Cron running (#1538). The times are saved by TabScheduledTasks::render().
  *
  * @package FreeFormCertificate\Settings\Views
  * @since 6.33.0
@@ -20,6 +21,7 @@ $ffcertificate_cron_off    = defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON;
 $ffcertificate_lines       = \FreeFormCertificate\Settings\Tabs\TabScheduledTasks::crontab_lines();
 $ffcertificate_default_min = 15;
 $ffcertificate_any_late    = false;
+$ffcertificate_times       = \FreeFormCertificate\Core\ScheduledTasks::times();
 foreach ( $ffcertificate_rows as $ffcertificate_row ) {
 	if ( 'late' === $ffcertificate_row['state'] ) {
 		$ffcertificate_any_late = true;
@@ -45,11 +47,14 @@ $ffcertificate_method_labels = array(
 			</div>
 		<?php endif; ?>
 
+		<form method="post">
+		<?php wp_nonce_field( 'ffc_cron_times_nonce' ); ?>
 		<table class="widefat striped">
 			<thead>
 				<tr>
 					<th scope="col"><?php esc_html_e( 'Task', 'ffcertificate' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Frequency', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Time of day', 'ffcertificate' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Next run', 'ffcertificate' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Last run', 'ffcertificate' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'State', 'ffcertificate' ); ?></th>
@@ -66,6 +71,14 @@ $ffcertificate_method_labels = array(
 							<?php endif; ?>
 						</td>
 						<td><?php echo esc_html( 'hourly' === $ffcertificate_row['recurrence'] ? __( 'Hourly', 'ffcertificate' ) : __( 'Daily', 'ffcertificate' ) ); ?></td>
+						<td>
+							<?php if ( 'daily' === $ffcertificate_row['recurrence'] ) : ?>
+								<label class="screen-reader-text" for="<?php echo esc_attr( 'ffc-cron-time-' . $ffcertificate_row['hook'] ); ?>"><?php echo esc_html( $ffcertificate_row['label'] ); ?></label>
+								<input type="time" id="<?php echo esc_attr( 'ffc-cron-time-' . $ffcertificate_row['hook'] ); ?>" name="<?php echo esc_attr( 'ffc_cron_times[' . $ffcertificate_row['hook'] . ']' ); ?>" value="<?php echo esc_attr( $ffcertificate_times[ $ffcertificate_row['hook'] ] ?? '' ); ?>">
+							<?php else : ?>
+								—
+							<?php endif; ?>
+						</td>
 						<td><?php echo esc_html( null !== $ffcertificate_row['next_run'] ? \FreeFormCertificate\Core\DateFormatter::format_datetime( $ffcertificate_row['next_run'] ) : '—' ); ?></td>
 						<td><?php echo esc_html( null !== $ffcertificate_row['last_run'] ? \FreeFormCertificate\Core\DateFormatter::format_datetime( $ffcertificate_row['last_run'] ) : '—' ); ?></td>
 						<td>
@@ -76,6 +89,19 @@ $ffcertificate_method_labels = array(
 				<?php endforeach; ?>
 			</tbody>
 		</table>
+		<p class="description">
+			<?php
+			echo esc_html(
+				sprintf(
+					/* translators: %s: timezone name */
+					__( 'Times are in the site timezone (%s). Leave a time empty to keep the task where it is. A task becomes due at its time and runs when WP-Cron next fires, so with the server line below it runs within that line\'s interval.', 'ffcertificate' ),
+					wp_timezone_string()
+				)
+			);
+			?>
+		</p>
+		<p><button type="submit" name="ffc_save_cron_times" value="1" class="button button-primary"><?php esc_html_e( 'Save times', 'ffcertificate' ); ?></button></p>
+		</form>
 
 		<h3><?php esc_html_e( 'Queued one-off tasks', 'ffcertificate' ); ?></h3>
 		<p class="description"><?php esc_html_e( 'Created per piece of work and removed once they run. A number that keeps growing means WP-Cron is not running.', 'ffcertificate' ); ?></p>
