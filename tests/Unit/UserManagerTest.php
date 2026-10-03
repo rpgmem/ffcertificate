@@ -344,14 +344,13 @@ class UserManagerTest extends TestCase {
 	}
 
 	public function test_update_profile_merges_preferences_into_the_stored_ones(): void {
-		$this->mock_profile_row( '{"notify_date_messages":false,"notify_new_certificate":true,"theme":"dark"}' );
+		$this->mock_profile_row( '{"notify_date_messages":false,"notify_appointment_reminder":true,"theme":"dark"}' );
 		$this->wpdb->shouldReceive( 'update' )
 			->once()
 			->withArgs( function ( $table, $data ) {
 				$expected = array(
-					'notify_appointment_reminder' => true,
+					'notify_appointment_reminder' => false,
 					'notify_date_messages'        => false,
-					'notify_new_certificate'      => false,
 				);
 				$actual   = json_decode( $data['preferences'], true );
 				ksort( $actual );
@@ -361,10 +360,11 @@ class UserManagerTest extends TestCase {
 
 		// The screen posts only the toggles it shows: with the date-messages
 		// module off, `notify_date_messages` is absent and must survive (#1545).
+		// The two toggles removed in #1545 are dropped like any unknown key.
 		$result = UserManager::update_profile( 10, array(
 			'preferences' => array(
+				'notify_appointment_reminder' => 'false',
 				'notify_new_certificate'      => false,
-				'notify_appointment_reminder' => 'true',
 				'lang'                        => 'pt-BR',
 			),
 		) );
@@ -1540,16 +1540,33 @@ class UserManagerTest extends TestCase {
 	 */
 	public function merges(): array {
 		return array(
-			'an absent key keeps its stored value'     => array( '{"notify_date_messages":false}', array( 'notify_new_certificate' => true ), array( 'notify_date_messages' => false, 'notify_new_certificate' => true ) ),
+			'an absent key keeps its stored value'     => array( '{"notify_date_messages":false}', array( 'notify_appointment_reminder' => true ), array( 'notify_date_messages' => false, 'notify_appointment_reminder' => true ) ),
 			'a posted key wins'                        => array( '{"notify_date_messages":false}', array( 'notify_date_messages' => true ), array( 'notify_date_messages' => true ) ),
 			'unknown keys are dropped, stored or posted' => array( '{"theme":"dark"}', array( 'lang' => 'pt' ), array() ),
-			'strings read as booleans'                 => array( null, array( 'notify_new_certificate' => 'false', 'notify_date_messages' => '1' ), array( 'notify_new_certificate' => false, 'notify_date_messages' => true ) ),
+			'strings read as booleans'                 => array( null, array( 'notify_appointment_reminder' => 'false', 'notify_date_messages' => '1' ), array( 'notify_appointment_reminder' => false, 'notify_date_messages' => true ) ),
+			'the removed toggles are not preferences'  => array( '{"notify_new_certificate":false,"notify_appointment_confirm":false}', array(), array() ),
 			'garbage leaves the stored choice'         => array( '{"notify_date_messages":false}', array( 'notify_date_messages' => array( 'x' ) ), array( 'notify_date_messages' => false ) ),
-			'a corrupt stored blob reads as empty'     => array( '{not json', array( 'notify_new_certificate' => true ), array( 'notify_new_certificate' => true ) ),
+			'a corrupt stored blob reads as empty'     => array( '{not json', array( 'notify_appointment_reminder' => true ), array( 'notify_appointment_reminder' => true ) ),
 		);
 	}
 
 	public function test_the_date_messages_key_is_the_one_opt_out_reads(): void {
 		$this->assertContains( \FreeFormCertificate\DateMessages\OptOut::PREFERENCE_KEY, UserManager::NOTIFICATION_PREFERENCES );
+	}
+	// ==================================================================
+	// wants_notification() (#1545)
+	// ==================================================================
+
+	public function test_a_notification_is_on_until_explicitly_turned_off(): void {
+		$this->mock_profile_row( '{"notify_appointment_reminder":false}' );
+
+		$this->assertFalse( UserManager::wants_notification( 10, UserManager::NOTIFY_APPOINTMENT_REMINDER ) );
+		$this->assertTrue( UserManager::wants_notification( 10, 'notify_date_messages' ), 'An unset key is on.' );
+	}
+
+	public function test_a_guest_always_receives(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->never();
+
+		$this->assertTrue( UserManager::wants_notification( 0, UserManager::NOTIFY_APPOINTMENT_REMINDER ) );
 	}
 }
