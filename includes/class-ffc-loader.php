@@ -469,6 +469,11 @@ class Loader {
 		// Ensure the daily Cloudflare CIDR refresh cron is scheduled (#901).
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::schedule();
 
+		// Record when each recurring task last actually ran, for the Scheduled
+		// tasks screen (#1538). On every request, like the schedules above:
+		// WP-Cron never runs with is_admin() true.
+		\FreeFormCertificate\Core\ScheduledTasks::init();
+
 		$this->ensure_admin_capabilities();
 		$this->ensure_admin_role_assigned();
 		$this->ensure_taxonomy_renamed();

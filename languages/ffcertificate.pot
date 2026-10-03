@@ -23016,3 +23016,114 @@ msgstr ""
 
 msgid "Fill the profile birth date of every account that answered a reregistration before the field existed, from the newest submission (or, failing that, the stored field values). The full date is stored encrypted, with its day and month beside it for scheduled messages. Completion here means every such account was EXAMINED: one whose stored answers hold no valid date is read, left alone, and counted as done."
 msgstr ""
+
+msgid "Daily cleanup (submissions, export jobs, expired sessions, activity log)"
+msgstr ""
+
+msgid "Expired ticket cleanup"
+msgstr ""
+
+msgid "Reregistration expiry and automated reminders"
+msgstr ""
+
+msgid "Appointment reminder scan"
+msgstr ""
+
+msgid "Cloudflare IP range refresh"
+msgstr ""
+
+msgid "Submission processing (one per submission)"
+msgstr ""
+
+msgid "Reregistration reminder batch (one per batch)"
+msgstr ""
+
+msgid "Scheduled Tasks"
+msgstr ""
+
+msgid "Running"
+msgstr ""
+
+msgid "Late — has not run when expected"
+msgstr ""
+
+msgid "Scheduled — no run recorded yet"
+msgstr ""
+
+msgid "Not scheduled"
+msgstr ""
+
+msgid "Scheduled tasks view file not found."
+msgstr ""
+
+msgid "WP-CLI (recommended)"
+msgstr ""
+
+msgid "HTTP with wget"
+msgstr ""
+
+msgid "HTTP with curl"
+msgstr ""
+
+msgid "The background tasks this plugin runs through WP-Cron: when each one is due and when it last actually ran. WordPress only records when a task is due, so \"last run\" is recorded by the plugin itself and appears after a task first runs."
+msgstr ""
+
+msgid "At least one task has not run when expected. WP-Cron only runs when the site receives visits; configure the server line below so tasks run on time."
+msgstr ""
+
+msgid "Task"
+msgstr ""
+
+msgid "Frequency"
+msgstr ""
+
+msgid "Next run"
+msgstr ""
+
+msgid "Last run"
+msgstr ""
+
+msgid "Module turned off: the task fires but does nothing."
+msgstr ""
+
+msgid "Hourly"
+msgstr ""
+
+msgid "Daily"
+msgstr ""
+
+msgid "Queued one-off tasks"
+msgstr ""
+
+msgid "Created per piece of work and removed once they run. A number that keeps growing means WP-Cron is not running."
+msgstr ""
+
+msgid "Server cron"
+msgstr ""
+
+msgid "By default WP-Cron runs only when someone visits the site, so on a quiet site a daily task can run hours late. A server cron line calls WP-Cron on a fixed rhythm. The line does not decide when each task runs — WordPress keeps that schedule — it only makes sure due tasks are run promptly, so a short interval is right."
+msgstr ""
+
+msgid "DISABLE_WP_CRON is set: WP-Cron no longer depends on visits. Make sure the server line below is installed, or no task will run."
+msgstr ""
+
+msgid "Recommended: install the server line below, then add <code>define( 'DISABLE_WP_CRON', true );</code> to <code>wp-config.php</code> so page visits stop triggering WP-Cron."
+msgstr ""
+
+msgid "Method"
+msgstr ""
+
+msgid "WP-CLI runs on the server itself and needs WP-CLI installed. The HTTP methods call the site over the network and work on any host."
+msgstr ""
+
+msgid "Every"
+msgstr ""
+
+msgid "%d minutes"
+msgstr ""
+
+msgid "Line to install"
+msgstr ""
+
+msgid "Add it with \"crontab -e\" as the user that owns the WordPress files, or paste it into your hosting panel's cron section."
+msgstr ""
