@@ -317,9 +317,7 @@ class DashboardAssetManager {
 					'filterClear'              => __( 'Clear', 'ffcertificate' ),
 					// Notification preferences.
 					'notificationSection'      => __( 'Notification Preferences', 'ffcertificate' ),
-					'notifAppointmentConfirm'  => __( 'Appointment confirmation', 'ffcertificate' ),
 					'notifAppointmentReminder' => __( 'Appointment reminder', 'ffcertificate' ),
-					'notifNewCertificate'      => __( 'New certificate issued', 'ffcertificate' ),
 					'notifDateMessages'        => __( 'Date messages (such as birthday greetings)', 'ffcertificate' ),
 					'notifSaved'               => __( 'Preferences saved', 'ffcertificate' ),
 					// Pagination.

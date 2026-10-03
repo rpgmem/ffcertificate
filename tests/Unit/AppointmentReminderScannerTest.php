@@ -124,4 +124,39 @@ class AppointmentReminderScannerTest extends TestCase {
 
 		$this->assertTrue( true );
 	}
+	public function test_a_person_who_turned_reminders_off_is_skipped_but_marked(): void {
+		$this->stub_emails_disabled( false );
+		$this->stub_calendars(
+			array( array( 'id' => 5, 'email_config' => self::cfg( 1, 24 ) ) )
+		);
+		Mockery::getConfiguration()->setConstantsMap(
+			array( 'FreeFormCertificate\UserDashboard\UserManager' => array( 'NOTIFY_APPOINTMENT_REMINDER' => 'notify_appointment_reminder' ) )
+		);
+		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' )
+			->shouldReceive( 'wants_notification' )->once()->with( 7, 'notify_appointment_reminder' )->andReturn( false );
+
+		$marked = null;
+		$repo   = Mockery::mock( 'overload:\FreeFormCertificate\Repositories\AppointmentRepository' );
+		$repo->shouldReceive( 'getUpcomingForReminders' )->with( 24 )->andReturn(
+			array(
+				array(
+					'id'          => 99,
+					'calendar_id' => 5,
+					'user_id'     => '7',
+				),
+			)
+		);
+		$repo->shouldReceive( 'markReminderSent' )->andReturnUsing(
+			function ( $id ) use ( &$marked ) {
+				$marked = $id;
+				return true;
+			}
+		);
+
+		Actions\expectDone( 'ffcertificate_self_scheduling_appointment_reminder_email' )->never();
+
+		AppointmentReminderScanner::run();
+
+		$this->assertSame( 99, $marked, 'Handled once, so the next hourly scan does not reconsider it.' );
+	}
 }

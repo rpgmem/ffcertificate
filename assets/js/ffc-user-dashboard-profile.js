@@ -324,9 +324,9 @@
             html += '<div class="ffc-profile-section">';
             html += '<h3>' + (s.notificationSection || 'Notification Preferences') + '</h3>';
             html += '<div class="ffc-notif-list">';
-            html += buildToggle('notify_appointment_confirm', s.notifAppointmentConfirm || 'Appointment confirmation', prefs);
-            html += buildToggle('notify_appointment_reminder', s.notifAppointmentReminder || 'Appointment reminder', prefs);
-            html += buildToggle('notify_new_certificate', s.notifNewCertificate || 'New certificate issued', prefs);
+            // Only toggles the server reads (#1545). Both are on until turned
+            // off, which is what the send sites do with a missing key.
+            html += buildToggle('notify_appointment_reminder', s.notifAppointmentReminder || 'Appointment reminder', prefs, true);
             if (ffcDashboard.dateMessagesEnabled) {
                 html += buildToggle('notify_date_messages', s.notifDateMessages || 'Date messages (such as birthday greetings)', prefs, true);
             }

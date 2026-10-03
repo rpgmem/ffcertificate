@@ -209,8 +209,15 @@ class UserManager {
 	}
 
 	/**
+	 * Preference key: appointment reminder e-mails (#1545).
+	 */
+	public const NOTIFY_APPOINTMENT_REMINDER = 'notify_appointment_reminder';
+
+	/**
 	 * The notification preferences a profile stores, all booleans (#1545).
 	 *
+	 * Every key here is read at its send site; a toggle nothing reads is not
+	 * a preference, and two were removed for exactly that reason (#1545).
 	 * `notify_date_messages` is `DateMessages\OptOut::PREFERENCE_KEY`, spelled
 	 * as a literal so this module takes no edge to that one; a test keeps the
 	 * two equal.
@@ -218,11 +225,29 @@ class UserManager {
 	 * @var array<int, string>
 	 */
 	public const NOTIFICATION_PREFERENCES = array(
-		'notify_appointment_confirm',
-		'notify_appointment_reminder',
-		'notify_new_certificate',
+		self::NOTIFY_APPOINTMENT_REMINDER,
 		'notify_date_messages',
 	);
+
+	/**
+	 * Whether a person wants one kind of notification (#1545).
+	 *
+	 * Every notification is on until the person turns it off: only a stored
+	 * `false` silences it, so an account that never opened the preferences --
+	 * or has no profile row -- keeps receiving what it always did.
+	 *
+	 * @param int    $user_id Account; 0 (a guest) always receives.
+	 * @param string $key     One of NOTIFICATION_PREFERENCES.
+	 * @return bool
+	 */
+	public static function wants_notification( int $user_id, string $key ): bool {
+		if ( $user_id <= 0 ) {
+			return true;
+		}
+		$stored = self::get_profile( $user_id )['preferences'] ?? null;
+		$prefs  = self::merge_preferences( is_string( $stored ) ? $stored : null, array() );
+		return false !== ( $prefs[ $key ] ?? true );
+	}
 
 	/**
 	 * Merge posted preferences into the stored ones (#1545).
