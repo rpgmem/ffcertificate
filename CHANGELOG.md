@@ -12,6 +12,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The identity audit CSV says which findings were accepted as unresolvable** (#1534). The export scans wider than the queue, so it still listed findings the screen had set aside. An `accepted` column carries the reason; the row is never dropped, because one that vanishes from the file is a finding nobody can question
 - **Identity resolution: a finding nobody can resolve can be accepted as such** (#1532). A stored number the person never supplied, and HR cannot trace, had no correct value to give and returned on every visit. Accepting it moves it to a counted, reversible list of decisions — it is **not** a resolution: nothing stored changes, and a merge or move blocked by that number stays blocked, with the refusal now naming the right panel
 - **A canonical birth date on the user profile** (#1538). Reregistration's `data_nascimento` now writes to and pre-fills from one `birth_date` field — encrypted, with its day and month beside it so a scheduled job can query it — editable on the dashboard (validated) and the user-edit screen. A migration card copies the dates people already gave.
+- **Settings → Scheduled Tasks** (#1538). Lists every WP-Cron task the plugin runs with its next run, its last real run (recorded by a new heartbeat — WordPress keeps none) and whether it is late, counts queued one-off events, and generates the exact server crontab line (WP-CLI, wget or curl) with `DISABLE_WP_CRON` guidance.
 
 ### Changed
 
@@ -22,6 +23,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The identity-index backfill card could not be asked to look again** (#1530). Its progress is the cursor, so an account skipped for holding two identifiers sits behind it by the time an operator resolves it: the card read 100% while the audit still listed the links. A re-check control re-walks it, overwriting nothing already filled
 - **The link audit card could not say which of its findings were accepted** (#1536). Its total ignored the new state, so a scan whose remainder cannot be resolved could never reach zero, while the CSV explained itself. It now reports the split per check and in total, subtracting nothing
 - **The user-edit screen showed and saved profile-mapped fields in the wrong place** (#1538). CPF, RF, RG and the other fields reregistration syncs to the profile were read from, and written in plaintext to, a snapshot nothing reads; they now go through the profile, encrypted where the map says so.
+- **Two cron hooks outlived the plugin** (#1538). Uninstall never cleared the expired-ticket sweep, and the reregistration reminder batch was cleared nowhere; a guard now compares every scheduled hook against deactivation and both uninstall paths.
 
 ## [6.32.0] (2026-09-29) — `4ca1cd5d`
 

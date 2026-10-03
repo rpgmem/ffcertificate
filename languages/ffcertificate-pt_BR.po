@@ -23107,3 +23107,114 @@ msgstr "Copiar as Datas de Nascimento Armazenadas para o Perfil"
 
 msgid "Fill the profile birth date of every account that answered a reregistration before the field existed, from the newest submission (or, failing that, the stored field values). The full date is stored encrypted, with its day and month beside it for scheduled messages. Completion here means every such account was EXAMINED: one whose stored answers hold no valid date is read, left alone, and counted as done."
 msgstr "Preenche a data de nascimento do perfil de toda conta que respondeu a um recadastramento antes de o campo existir, a partir da submissão mais recente (ou, na falta dela, dos valores de campo armazenados). A data completa é armazenada criptografada, com o dia e o mês ao lado para as mensagens agendadas. Aqui, concluído significa que toda conta dessas foi EXAMINADA: uma cujas respostas armazenadas não têm data válida é lida, deixada como está, e contada como feita."
+
+msgid "Daily cleanup (submissions, export jobs, expired sessions, activity log)"
+msgstr "Limpeza diária (submissões, exportações, sessões expiradas, log de atividades)"
+
+msgid "Expired ticket cleanup"
+msgstr "Limpeza de tickets expirados"
+
+msgid "Reregistration expiry and automated reminders"
+msgstr "Expiração do recadastramento e lembretes automáticos"
+
+msgid "Appointment reminder scan"
+msgstr "Varredura de lembretes de agendamento"
+
+msgid "Cloudflare IP range refresh"
+msgstr "Atualização das faixas de IP da Cloudflare"
+
+msgid "Submission processing (one per submission)"
+msgstr "Processamento de submissões (uma por submissão)"
+
+msgid "Reregistration reminder batch (one per batch)"
+msgstr "Lote de lembretes do recadastramento (um por lote)"
+
+msgid "Scheduled Tasks"
+msgstr "Tarefas Agendadas"
+
+msgid "Running"
+msgstr "Em execução"
+
+msgid "Late — has not run when expected"
+msgstr "Atrasada — não rodou quando esperado"
+
+msgid "Scheduled — no run recorded yet"
+msgstr "Agendada — nenhuma execução registrada ainda"
+
+msgid "Not scheduled"
+msgstr "Não agendada"
+
+msgid "Scheduled tasks view file not found."
+msgstr "Arquivo de visualização de tarefas agendadas não encontrado."
+
+msgid "WP-CLI (recommended)"
+msgstr "WP-CLI (recomendado)"
+
+msgid "HTTP with wget"
+msgstr "HTTP com wget"
+
+msgid "HTTP with curl"
+msgstr "HTTP com curl"
+
+msgid "The background tasks this plugin runs through WP-Cron: when each one is due and when it last actually ran. WordPress only records when a task is due, so \"last run\" is recorded by the plugin itself and appears after a task first runs."
+msgstr "As tarefas em segundo plano que este plugin executa pelo WP-Cron: quando cada uma está prevista e quando rodou de fato pela última vez. O WordPress só registra quando uma tarefa está prevista, então a \"última execução\" é registrada pelo próprio plugin e aparece depois que a tarefa roda pela primeira vez."
+
+msgid "At least one task has not run when expected. WP-Cron only runs when the site receives visits; configure the server line below so tasks run on time."
+msgstr "Pelo menos uma tarefa não rodou quando esperado. O WP-Cron só roda quando o site recebe visitas; configure a linha do servidor abaixo para que as tarefas rodem no horário."
+
+msgid "Task"
+msgstr "Tarefa"
+
+msgid "Frequency"
+msgstr "Frequência"
+
+msgid "Next run"
+msgstr "Próxima execução"
+
+msgid "Last run"
+msgstr "Última execução"
+
+msgid "Module turned off: the task fires but does nothing."
+msgstr "Módulo desligado: a tarefa dispara, mas não faz nada."
+
+msgid "Hourly"
+msgstr "De hora em hora"
+
+msgid "Daily"
+msgstr "Diária"
+
+msgid "Queued one-off tasks"
+msgstr "Tarefas avulsas na fila"
+
+msgid "Created per piece of work and removed once they run. A number that keeps growing means WP-Cron is not running."
+msgstr "Criadas a cada trabalho e removidas quando rodam. Um número que só cresce significa que o WP-Cron não está rodando."
+
+msgid "Server cron"
+msgstr "Cron do servidor"
+
+msgid "By default WP-Cron runs only when someone visits the site, so on a quiet site a daily task can run hours late. A server cron line calls WP-Cron on a fixed rhythm. The line does not decide when each task runs — WordPress keeps that schedule — it only makes sure due tasks are run promptly, so a short interval is right."
+msgstr "Por padrão o WP-Cron só roda quando alguém visita o site, então num site com pouco acesso uma tarefa diária pode rodar horas atrasada. Uma linha de cron no servidor chama o WP-Cron num ritmo fixo. A linha não decide quando cada tarefa roda — o WordPress mantém esse agendamento —, ela só garante que as tarefas previstas rodem sem demora, por isso um intervalo curto é o certo."
+
+msgid "DISABLE_WP_CRON is set: WP-Cron no longer depends on visits. Make sure the server line below is installed, or no task will run."
+msgstr "DISABLE_WP_CRON está definido: o WP-Cron não depende mais de visitas. Garanta que a linha do servidor abaixo esteja instalada, ou nenhuma tarefa vai rodar."
+
+msgid "Recommended: install the server line below, then add <code>define( 'DISABLE_WP_CRON', true );</code> to <code>wp-config.php</code> so page visits stop triggering WP-Cron."
+msgstr "Recomendado: instale a linha do servidor abaixo e depois adicione <code>define( 'DISABLE_WP_CRON', true );</code> ao <code>wp-config.php</code>, para que as visitas deixem de disparar o WP-Cron."
+
+msgid "Method"
+msgstr "Método"
+
+msgid "WP-CLI runs on the server itself and needs WP-CLI installed. The HTTP methods call the site over the network and work on any host."
+msgstr "O WP-CLI roda no próprio servidor e precisa do WP-CLI instalado. Os métodos HTTP chamam o site pela rede e funcionam em qualquer hospedagem."
+
+msgid "Every"
+msgstr "A cada"
+
+msgid "%d minutes"
+msgstr "%d minutos"
+
+msgid "Line to install"
+msgstr "Linha a instalar"
+
+msgid "Add it with \"crontab -e\" as the user that owns the WordPress files, or paste it into your hosting panel's cron section."
+msgstr "Adicione com \"crontab -e\" como o usuário dono dos arquivos do WordPress, ou cole na seção de cron do painel da sua hospedagem."

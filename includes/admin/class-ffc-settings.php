@@ -173,24 +173,25 @@ class Settings {
 		// Tab classes with proper namespaces.
 		// v4.6.16: Reorganized tabs for better UX.
 		$tab_classes = array(
-			'general'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeneral',
-			'templates'      => '\\FreeFormCertificate\\Settings\\Tabs\\TabTemplates',
-			'reregistration' => '\\FreeFormCertificate\\Settings\\Tabs\\TabReregistration',
-			'modulos'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabModulos',
-			'smtp'           => '\\FreeFormCertificate\\Settings\\Tabs\\TabSMTP',
-			'email_model'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabEmailModel',
-			'email_texts'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabEmailTexts',
-			'cache'          => '\\FreeFormCertificate\\Settings\\Tabs\\TabCache',
-			'url_shortener'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabUrlShortener',
-			'captcha'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabCaptcha',
-			'rate_limit'     => '\\FreeFormCertificate\\Settings\\Tabs\\TabRateLimit',
-			'geolocation'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeolocation',
-			'ip_diagnostics' => '\\FreeFormCertificate\\Settings\\Tabs\\TabIpDiagnostics',
-			'user_access'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabUserAccess',
-			'activity_log'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabActivityLog',
-			'advanced'       => '\\FreeFormCertificate\\Settings\\Tabs\\TabAdvanced',
-			'migrations'     => '\\FreeFormCertificate\\Settings\\Tabs\\TabMigrations',
-			'documentation'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabDocumentation',
+			'general'         => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeneral',
+			'templates'       => '\\FreeFormCertificate\\Settings\\Tabs\\TabTemplates',
+			'reregistration'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabReregistration',
+			'modulos'         => '\\FreeFormCertificate\\Settings\\Tabs\\TabModulos',
+			'smtp'            => '\\FreeFormCertificate\\Settings\\Tabs\\TabSMTP',
+			'email_model'     => '\\FreeFormCertificate\\Settings\\Tabs\\TabEmailModel',
+			'email_texts'     => '\\FreeFormCertificate\\Settings\\Tabs\\TabEmailTexts',
+			'cache'           => '\\FreeFormCertificate\\Settings\\Tabs\\TabCache',
+			'url_shortener'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabUrlShortener',
+			'captcha'         => '\\FreeFormCertificate\\Settings\\Tabs\\TabCaptcha',
+			'rate_limit'      => '\\FreeFormCertificate\\Settings\\Tabs\\TabRateLimit',
+			'geolocation'     => '\\FreeFormCertificate\\Settings\\Tabs\\TabGeolocation',
+			'ip_diagnostics'  => '\\FreeFormCertificate\\Settings\\Tabs\\TabIpDiagnostics',
+			'user_access'     => '\\FreeFormCertificate\\Settings\\Tabs\\TabUserAccess',
+			'activity_log'    => '\\FreeFormCertificate\\Settings\\Tabs\\TabActivityLog',
+			'advanced'        => '\\FreeFormCertificate\\Settings\\Tabs\\TabAdvanced',
+			'migrations'      => '\\FreeFormCertificate\\Settings\\Tabs\\TabMigrations',
+			'scheduled_tasks' => '\\FreeFormCertificate\\Settings\\Tabs\\TabScheduledTasks',
+			'documentation'   => '\\FreeFormCertificate\\Settings\\Tabs\\TabDocumentation',
 		);
 
 		// Instantiate each tab.
@@ -212,7 +213,7 @@ class Settings {
 				return (string) $tab->get_title();
 			},
 			array( 'general' ),
-			array( 'advanced', 'migrations', 'documentation' )
+			array( 'advanced', 'migrations', 'scheduled_tasks', 'documentation' )
 		);
 
 		// Allow plugins to add custom tabs.

@@ -51,6 +51,10 @@ if ( ! $ffcertificate_purge ) {
 	wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
 	wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
 	wp_clear_scheduled_hook( 'ffc_cloudflare_cidr_refresh' );
+	// Both were missing from this file until the Scheduled tasks register
+	// compared it against the hooks the plugin schedules (#1538).
+	wp_clear_scheduled_hook( 'ffc_daily_expired_tickets_cleanup' );
+	wp_clear_scheduled_hook( 'ffc_reregistration_reminder_batch' );
 	return;
 }
 
@@ -239,6 +243,9 @@ $ffcertificate_options = array(
 	'ffc_display_name_backfill_state',
 	// The birth-date backfill cursor (#1538), written only when that card runs.
 	'ffc_birth_date_backfill_state',
+	// When each recurring task last ran (#1538), written only when one runs --
+	// never by activation, so the fresh-install gate does not see it.
+	'ffc_cron_heartbeats',
 	'ffc_recruitment_public_cache_version',
 	// The admin's chosen record (ficha) template, written only when the
 	// Reregistration tab is saved -- which is why the fresh-install gate never
@@ -313,6 +320,9 @@ wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
 wp_clear_scheduled_hook( 'ffc_cloudflare_cidr_refresh' );
+// See the cron-only block above (#1538).
+wp_clear_scheduled_hook( 'ffc_daily_expired_tickets_cleanup' );
+wp_clear_scheduled_hook( 'ffc_reregistration_reminder_batch' );
 
 // Clear legacy cron hooks from pre-4.6.15 versions.
 wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );

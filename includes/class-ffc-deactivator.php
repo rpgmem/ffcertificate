@@ -30,6 +30,9 @@ class Deactivator {
 		wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 		wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
 		wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
+		// A pending reminder batch would otherwise fire into code that is no
+		// longer loaded (#1538 -- it was cleared nowhere).
+		wp_clear_scheduled_hook( 'ffc_reregistration_reminder_batch' );
 		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::unschedule();
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::unschedule();
 

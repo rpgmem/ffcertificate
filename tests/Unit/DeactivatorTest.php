@@ -92,7 +92,9 @@ class DeactivatorTest extends TestCase {
 		$this->assertContains( 'ffcertificate_self_scheduling_reminder_scan', $cleared );
 		$this->assertContains( 'ffcertificate_reregistration_expire_hook', $cleared );
 		$this->assertContains( 'ffc_cloudflare_cidr_refresh', $cleared );
-		$this->assertCount( 4, $cleared );
+		// A pending reminder batch was cleared nowhere until #1538.
+		$this->assertContains( 'ffc_reregistration_reminder_batch', $cleared );
+		$this->assertCount( 5, $cleared );
 	}
 
 	public function test_deactivate_flushes_rewrite_rules(): void {
