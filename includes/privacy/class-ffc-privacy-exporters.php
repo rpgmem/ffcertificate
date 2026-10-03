@@ -114,7 +114,8 @@ class PrivacyExporters {
 		// where the rest of the profile is presented.
 		if ( class_exists( \FreeFormCertificate\UserDashboard\UserManager::class ) ) {
 			$extended   = \FreeFormCertificate\UserDashboard\UserManager::get_extended_profile( (int) $user->ID, array( 'birth_date' ) );
-			$birth_date = \FreeFormCertificate\Core\BirthDate::normalize( (string) ( $extended['birth_date'] ?? '' ) );
+			$stored     = $extended['birth_date'] ?? '';
+			$birth_date = is_string( $stored ) ? \FreeFormCertificate\Core\BirthDate::normalize( $stored ) : null;
 			if ( null !== $birth_date ) {
 				$data[] = array(
 					'name'  => __( 'Birth date', 'ffcertificate' ),

@@ -258,9 +258,9 @@ class CustomFieldWriter {
 
 			// Sanitize text fields.
 			if ( in_array( $key, array( 'field_key', 'field_profile_key' ), true ) ) {
-				$value = null !== $value ? sanitize_key( (string) $value ) : null;
+				$value = is_scalar( $value ) ? sanitize_key( (string) $value ) : null;
 			} elseif ( in_array( $key, array( 'field_label', 'field_type', 'field_group', 'field_mask', 'field_source' ), true ) ) {
-				$value = null !== $value ? sanitize_text_field( (string) $value ) : null;
+				$value = is_scalar( $value ) ? sanitize_text_field( (string) $value ) : null;
 			}
 
 			// Validate field type.
