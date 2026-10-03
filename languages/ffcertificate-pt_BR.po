@@ -23317,3 +23317,241 @@ msgstr "Cancelar inscrição"
 
 msgid "View date messages"
 msgstr "Ver mensagens por data"
+
+msgid "\"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue."
+msgstr "\"Enviados\" conta as mensagens entregues ao wp_mail(); com uma fila de e-mail ativa, a entrega acontece depois, a partir da fila."
+
+msgid "(deleted rule)"
+msgstr "(regra excluída)"
+
+msgid "0 sends on the date itself; -7 sends seven days before it."
+msgstr "0 envia na própria data; -7 envia sete dias antes dela."
+
+msgid "Activate"
+msgstr "Ativar"
+
+msgid "Active (the daily run sends it)"
+msgstr "Ativa (o envio diário a envia)"
+
+msgid "Active, not sending to people"
+msgstr "Ativa, sem envio às pessoas"
+
+msgid "Add rule"
+msgstr "Adicionar regra"
+
+msgid "Already sent"
+msgstr "Já enviado"
+
+msgid "Check before saving"
+msgstr "Confira antes de salvar"
+
+msgid "Choose a rule."
+msgstr "Escolha uma regra."
+
+msgid "Daily send time"
+msgstr "Horário do envio diário"
+
+msgid "Dates"
+msgstr "Datas"
+
+msgid "Dates in the profile"
+msgstr "Datas no perfil"
+
+msgid "Days from the date"
+msgstr "Dias em relação à data"
+
+msgid "Delete this rule? What it already sent stays in the history."
+msgstr "Excluir esta regra? O que ela já enviou continua no histórico."
+
+msgid "E-mail each person on their date"
+msgstr "Enviar e-mail a cada pessoa na sua data"
+
+msgid "Each rule sends its own message on a date in each person's profile, or a number of days before it. The daily run sends every active rule; the Send now tab sends one rule over dates you choose."
+msgstr "Cada regra envia sua própria mensagem em uma data do perfil de cada pessoa, ou alguns dias antes dela. O envio diário envia todas as regras ativas; a aba Enviar agora envia uma regra para as datas que você escolher."
+
+msgid "Edit rule"
+msgstr "Editar regra"
+
+msgid "Enter both dates."
+msgstr "Informe as duas datas."
+
+msgid "Enter the time as hours and minutes, such as 08:00."
+msgstr "Informe o horário em horas e minutos, como 08:00."
+
+msgid "Everyone"
+msgstr "Todos"
+
+msgid "Failed"
+msgstr "Falharam"
+
+msgid "Finished"
+msgstr "Concluído"
+
+msgid "In the site timezone (%s), set in Settings → General."
+msgstr "No fuso horário do site (%s), definido em Configurações → Geral."
+
+msgid "Manual"
+msgstr "Manual"
+
+msgid "Members of sub-audiences are included."
+msgstr "Membros dos subpúblicos são incluídos."
+
+msgid "New rule"
+msgstr "Nova regra"
+
+msgid "Next daily run: %s."
+msgstr "Próximo envio diário: %s."
+
+msgid "No mail queue is active, so a large range is handed to wp_mail() as fast as PHP runs. Installing a mail queue plugin paces the sending."
+msgstr "Nenhuma fila de e-mail está ativa, então um intervalo grande é entregue ao wp_mail() tão rápido quanto o PHP executa. Instalar um plugin de fila de e-mail dosa o envio."
+
+msgid "No rules yet."
+msgstr "Nenhuma regra ainda."
+
+msgid "No valid e-mail"
+msgstr "Sem e-mail válido"
+
+msgid "Nobody falls on these dates."
+msgstr "Ninguém tem data neste intervalo."
+
+msgid "Nothing has been sent yet."
+msgstr "Nada foi enviado ainda."
+
+msgid "On the day"
+msgstr "No dia"
+
+msgid "Only the first rows are listed; the totals count everyone."
+msgstr "Apenas as primeiras linhas são listadas; os totais contam todos."
+
+msgid "Opted out"
+msgstr "Descadastrado"
+
+msgid "Outside the audience"
+msgstr "Fora do público"
+
+msgid "Placeholders:"
+msgstr "Marcadores:"
+
+msgid "Preview recipients"
+msgstr "Prévia dos destinatários"
+
+msgid "Replace the current message with the default text? Your changes will be lost."
+msgstr "Substituir a mensagem atual pelo texto padrão? Suas alterações serão perdidas."
+
+msgid "Restore default text"
+msgstr "Restaurar texto padrão"
+
+msgid "Rule"
+msgstr "Regra"
+
+msgid "Rule activated."
+msgstr "Regra ativada."
+
+msgid "Rule copied. The copy starts inactive."
+msgstr "Regra copiada. A cópia começa inativa."
+
+msgid "Rule deactivated."
+msgstr "Regra desativada."
+
+msgid "Rule deleted. Its history stays."
+msgstr "Regra excluída. O histórico dela permanece."
+
+msgid "Rule saved."
+msgstr "Regra salva."
+
+msgid "Rules"
+msgstr "Regras"
+
+msgid "Save rule"
+msgstr "Salvar regra"
+
+msgid "Send now"
+msgstr "Enviar agora"
+
+msgid "Send test to me"
+msgstr "Enviar teste para mim"
+
+msgid "Send these messages now?"
+msgstr "Enviar estas mensagens agora?"
+
+msgid "Send time saved and the daily event moved to it."
+msgstr "Horário salvo e envio diário reagendado para ele."
+
+msgid "Sending"
+msgstr "Envio"
+
+msgid "Sending started. The first batch went out now; the rest continues in the background. Follow it in History."
+msgstr "Envio iniciado. O primeiro lote saiu agora; o restante continua em segundo plano. Acompanhe em Histórico."
+
+msgid "Sends one rule to everyone whose date falls in a range of up to %d days. People already sent this rule for that date are skipped, so running a range twice sends nothing new."
+msgstr "Envia uma regra a todos cuja data cai em um intervalo de até %d dias. Quem já recebeu esta regra para aquela data é pulado, então repetir um intervalo não envia nada novo."
+
+msgid "Sent"
+msgstr "Enviados"
+
+msgid "Started"
+msgstr "Início"
+
+msgid "Test message sent to %s."
+msgstr "Mensagem de teste enviada para %s."
+
+msgid "That rule no longer exists."
+msgstr "Essa regra não existe mais."
+
+msgid "The daily run is not scheduled. Saving this form schedules it."
+msgstr "O envio diário não está agendado. Salvar este formulário o agenda."
+
+msgid "The dates are the dates in the profile (such as birthdays), not the day the message goes out."
+msgstr "As datas são as do perfil (como aniversários), não o dia em que a mensagem sai."
+
+msgid "The header and footer come from the Email Model in Settings → SMTP. A message that does not place {{unsubscribe_url}} gets an unsubscribe line added at the end."
+msgstr "O cabeçalho e o rodapé vêm do Modelo de E-mail em Configurações → SMTP. Uma mensagem sem {{unsubscribe_url}} recebe uma linha de descadastro no final."
+
+msgid "The request failed. Reload the page and try again."
+msgstr "A requisição falhou. Recarregue a página e tente novamente."
+
+msgid "The rule could not be copied."
+msgstr "Não foi possível copiar a regra."
+
+msgid "The rule could not be deleted."
+msgstr "Não foi possível excluir a regra."
+
+msgid "The rule could not be saved."
+msgstr "Não foi possível salvar a regra."
+
+msgid "The test message was not sent. Check whether e-mails are disabled in the settings."
+msgstr "A mensagem de teste não foi enviada. Verifique se os e-mails estão desativados nas configurações."
+
+msgid "Trigger"
+msgstr "Origem"
+
+msgid "Uses the values on this form, saved or not. Nothing is sent and nothing is recorded."
+msgstr "Usa os valores deste formulário, salvos ou não. Nada é enviado e nada é registrado."
+
+msgid "Will receive"
+msgstr "Vai receber"
+
+msgid "WordPress only runs scheduled tasks when the site is visited, unless the server runs them; %s shows the line to add to the server."
+msgstr "O WordPress só executa tarefas agendadas quando o site é visitado, a menos que o servidor as execute; %s mostra a linha a adicionar no servidor."
+
+msgid "You do not have permission to do this."
+msgstr "Você não tem permissão para fazer isto."
+
+msgid "You do not have permission to view this page."
+msgstr "Você não tem permissão para ver esta página."
+
+msgid "Your account has no valid e-mail address."
+msgstr "Sua conta não tem um endereço de e-mail válido."
+
+msgid "[TEST] %s"
+msgstr "[TESTE] %s"
+
+msgid "%d day after"
+msgid_plural "%d days after"
+msgstr[0] "%d dia depois"
+msgstr[1] "%d dias depois"
+
+msgid "%d day before"
+msgid_plural "%d days before"
+msgstr[0] "%d dia antes"
+msgstr[1] "%d dias antes"

@@ -117,6 +117,46 @@ class DeliveryLog {
 	}
 
 	/**
+	 * The most recent runs, newest first, for the history screen.
+	 *
+	 * @param int $limit  Page size.
+	 * @param int $offset Rows to skip.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public static function recent_runs( int $limit, int $offset = 0 ): array {
+		$wpdb = self::db();
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT * FROM %i ORDER BY id DESC LIMIT %d OFFSET %d',
+				DateMessagesActivator::runs_table(),
+				max( 1, $limit ),
+				max( 0, $offset )
+			),
+			ARRAY_A
+		);
+
+		$out = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$run = array();
+			foreach ( $row as $column => $value ) {
+				$run[ (string) $column ] = $value;
+			}
+			$out[] = $run;
+		}
+		return $out;
+	}
+
+	/**
+	 * How many runs are stored.
+	 *
+	 * @return int
+	 */
+	public static function count_runs(): int {
+		$wpdb = self::db();
+		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', DateMessagesActivator::runs_table() ) );
+	}
+
+	/**
 	 * Claim one delivery. True when this call inserted the row -- and is
 	 * therefore the one allowed to send -- false when it already existed.
 	 *

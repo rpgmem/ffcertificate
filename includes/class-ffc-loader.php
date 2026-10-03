@@ -455,6 +455,13 @@ class Loader {
 			$recruitment_loader->init();
 		}
 
+		// Date Messages module (#1538) — toggleable via the Modules tab
+		// (default off). The loader wires the screens only; the daily cron and
+		// the unsubscribe link are wired in define_admin_hooks().
+		if ( SettingsReader::module_enabled( 'date_messages' ) ) {
+			( new \FreeFormCertificate\DateMessages\DateMessagesLoader() )->init();
+		}
+
 		new ActivityLogSubscriber();
 
 		// Ensure daily cleanup cron is scheduled.

@@ -23226,3 +23226,241 @@ msgstr ""
 
 msgid "View date messages"
 msgstr ""
+
+msgid "\"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue."
+msgstr ""
+
+msgid "(deleted rule)"
+msgstr ""
+
+msgid "0 sends on the date itself; -7 sends seven days before it."
+msgstr ""
+
+msgid "Activate"
+msgstr ""
+
+msgid "Active (the daily run sends it)"
+msgstr ""
+
+msgid "Active, not sending to people"
+msgstr ""
+
+msgid "Add rule"
+msgstr ""
+
+msgid "Already sent"
+msgstr ""
+
+msgid "Check before saving"
+msgstr ""
+
+msgid "Choose a rule."
+msgstr ""
+
+msgid "Daily send time"
+msgstr ""
+
+msgid "Dates"
+msgstr ""
+
+msgid "Dates in the profile"
+msgstr ""
+
+msgid "Days from the date"
+msgstr ""
+
+msgid "Delete this rule? What it already sent stays in the history."
+msgstr ""
+
+msgid "E-mail each person on their date"
+msgstr ""
+
+msgid "Each rule sends its own message on a date in each person's profile, or a number of days before it. The daily run sends every active rule; the Send now tab sends one rule over dates you choose."
+msgstr ""
+
+msgid "Edit rule"
+msgstr ""
+
+msgid "Enter both dates."
+msgstr ""
+
+msgid "Enter the time as hours and minutes, such as 08:00."
+msgstr ""
+
+msgid "Everyone"
+msgstr ""
+
+msgid "Failed"
+msgstr ""
+
+msgid "Finished"
+msgstr ""
+
+msgid "In the site timezone (%s), set in Settings → General."
+msgstr ""
+
+msgid "Manual"
+msgstr ""
+
+msgid "Members of sub-audiences are included."
+msgstr ""
+
+msgid "New rule"
+msgstr ""
+
+msgid "Next daily run: %s."
+msgstr ""
+
+msgid "No mail queue is active, so a large range is handed to wp_mail() as fast as PHP runs. Installing a mail queue plugin paces the sending."
+msgstr ""
+
+msgid "No rules yet."
+msgstr ""
+
+msgid "No valid e-mail"
+msgstr ""
+
+msgid "Nobody falls on these dates."
+msgstr ""
+
+msgid "Nothing has been sent yet."
+msgstr ""
+
+msgid "On the day"
+msgstr ""
+
+msgid "Only the first rows are listed; the totals count everyone."
+msgstr ""
+
+msgid "Opted out"
+msgstr ""
+
+msgid "Outside the audience"
+msgstr ""
+
+msgid "Placeholders:"
+msgstr ""
+
+msgid "Preview recipients"
+msgstr ""
+
+msgid "Replace the current message with the default text? Your changes will be lost."
+msgstr ""
+
+msgid "Restore default text"
+msgstr ""
+
+msgid "Rule"
+msgstr ""
+
+msgid "Rule activated."
+msgstr ""
+
+msgid "Rule copied. The copy starts inactive."
+msgstr ""
+
+msgid "Rule deactivated."
+msgstr ""
+
+msgid "Rule deleted. Its history stays."
+msgstr ""
+
+msgid "Rule saved."
+msgstr ""
+
+msgid "Rules"
+msgstr ""
+
+msgid "Save rule"
+msgstr ""
+
+msgid "Send now"
+msgstr ""
+
+msgid "Send test to me"
+msgstr ""
+
+msgid "Send these messages now?"
+msgstr ""
+
+msgid "Send time saved and the daily event moved to it."
+msgstr ""
+
+msgid "Sending"
+msgstr ""
+
+msgid "Sending started. The first batch went out now; the rest continues in the background. Follow it in History."
+msgstr ""
+
+msgid "Sends one rule to everyone whose date falls in a range of up to %d days. People already sent this rule for that date are skipped, so running a range twice sends nothing new."
+msgstr ""
+
+msgid "Sent"
+msgstr ""
+
+msgid "Started"
+msgstr ""
+
+msgid "Test message sent to %s."
+msgstr ""
+
+msgid "That rule no longer exists."
+msgstr ""
+
+msgid "The daily run is not scheduled. Saving this form schedules it."
+msgstr ""
+
+msgid "The dates are the dates in the profile (such as birthdays), not the day the message goes out."
+msgstr ""
+
+msgid "The header and footer come from the Email Model in Settings → SMTP. A message that does not place {{unsubscribe_url}} gets an unsubscribe line added at the end."
+msgstr ""
+
+msgid "The request failed. Reload the page and try again."
+msgstr ""
+
+msgid "The rule could not be copied."
+msgstr ""
+
+msgid "The rule could not be deleted."
+msgstr ""
+
+msgid "The rule could not be saved."
+msgstr ""
+
+msgid "The test message was not sent. Check whether e-mails are disabled in the settings."
+msgstr ""
+
+msgid "Trigger"
+msgstr ""
+
+msgid "Uses the values on this form, saved or not. Nothing is sent and nothing is recorded."
+msgstr ""
+
+msgid "Will receive"
+msgstr ""
+
+msgid "WordPress only runs scheduled tasks when the site is visited, unless the server runs them; %s shows the line to add to the server."
+msgstr ""
+
+msgid "You do not have permission to do this."
+msgstr ""
+
+msgid "You do not have permission to view this page."
+msgstr ""
+
+msgid "Your account has no valid e-mail address."
+msgstr ""
+
+msgid "[TEST] %s"
+msgstr ""
+
+msgid "%d day after"
+msgid_plural "%d days after"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%d day before"
+msgid_plural "%d days before"
+msgstr[0] ""
+msgstr[1] ""
