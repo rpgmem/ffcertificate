@@ -433,4 +433,36 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		$this->assertArrayHasKey( 'groups', $decoded );
 		$this->assertSame( array( 'D' => array( 'S' ) ), $decoded['groups'] );
 	}
+
+	// ==================================================================
+	// Canonical birth date (#1538)
+	// ==================================================================
+
+	/**
+	 * `data_nascimento` feeds the canonical profile field, and the key it names
+	 * is one the profile map actually declares -- a profile key the map does
+	 * not know would be written to an ad-hoc meta nobody reads.
+	 */
+	public function test_the_birth_date_field_feeds_the_canonical_profile_field(): void {
+		$by_key = $this->definitionByKey();
+
+		$this->assertSame( 'birth_date', $by_key['data_nascimento']['profile_key'] );
+		$this->assertTrue( \FreeFormCertificate\UserDashboard\UserProfileFieldMap::has( 'birth_date' ) );
+	}
+
+	/**
+	 * The label-free map the schema heal reads agrees with the definitions,
+	 * in both directions -- it exists only so the heal never calls `__()`.
+	 */
+	public function test_profile_keys_agree_with_the_definitions(): void {
+		$declared = array();
+		foreach ( ReregistrationStandardFieldsSeeder::get_standard_fields_definition() as $def ) {
+			if ( ! empty( $def['profile_key'] ) ) {
+				$declared[ (string) $def['field_key'] ] = (string) $def['profile_key'];
+			}
+		}
+
+		$this->assertNotSame( array(), $declared, 'Read no profile key from the definitions -- the check did not run.' );
+		$this->assertSame( $declared, ReregistrationStandardFieldsSeeder::PROFILE_KEYS );
+	}
 }

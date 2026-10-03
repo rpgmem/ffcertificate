@@ -80,6 +80,10 @@ class AdminUserCustomFieldsTest extends TestCase {
 		// required field arrives empty (#1120). Most tests do not care what
 		// is stored; the ones that do override this.
 		$this->custom_field_repo_mock->shouldReceive('get_user_data')->andReturn([])->byDefault();
+		// render_section() reads the profile values of every profile-mapped
+		// field the user has (#1538); with none mapped it never reaches
+		// UserManager.
+		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->andReturn([])->byDefault();
 	}
 
 	protected function tearDown(): void {
@@ -270,6 +274,71 @@ class AdminUserCustomFieldsTest extends TestCase {
 			->with(5, Mockery::on(function ($data) {
 				return isset($data['field_10']) && $data['field_10'] === 'Engineering';
 			}));
+
+		AdminUserCustomFields::save_section(5);
+	}
+
+	/**
+	 * A profile-mapped field is written to the profile, not the snapshot
+	 * (#1538): the reregistration form reads it from there, and the snapshot
+	 * copy was one nothing read -- in plaintext for the sensitive fields.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_save_section_writes_profile_mapped_fields_to_the_profile(): void {
+		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
+		$_POST['ffc_cf_10']                    = 'Engineering';
+		$_POST['ffc_cf_11']                    = '1990-05-20';
+		$_POST['ffc_cf_12']                    = '51817842080';
+
+		$plain     = (object) array( 'id' => 10, 'field_type' => 'text', 'field_label' => 'Department' );
+		$birth     = (object) array( 'id' => 11, 'field_type' => 'date', 'field_label' => 'Date of Birth', 'field_profile_key' => 'birth_date', 'is_sensitive' => 0 );
+		$sensitive = (object) array( 'id' => 12, 'field_type' => 'text', 'field_label' => 'CPF', 'field_profile_key' => 'cpf', 'is_sensitive' => 1 );
+
+		Functions\when('wp_verify_nonce')->justReturn(true);
+		Functions\when('current_user_can')->justReturn(true);
+
+		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(5, true)->andReturn([$plain, $birth, $sensitive]);
+
+		$this->custom_field_writer_mock->shouldReceive('save_user_data')
+			->once()
+			->with(5, array( 'field_10' => 'Engineering' ));
+
+		$manager = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
+		$manager->shouldReceive('get_extended_profile')->andReturn(array());
+		$manager->shouldReceive('update_extended_profile')
+			->once()
+			->with(5, array( 'birth_date' => '1990-05-20', 'cpf' => '51817842080' ), array( 'cpf' ))
+			->andReturn(true);
+
+		AdminUserCustomFields::save_section(5);
+	}
+
+	/**
+	 * A required profile-mapped field submitted empty keeps its value: the
+	 * empty string never reaches the profile, so nothing is erased (#1120).
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_save_section_keeps_a_required_profile_field_submitted_empty(): void {
+		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
+		$_POST['ffc_cf_11']                    = '';
+
+		$birth = (object) array( 'id' => 11, 'field_type' => 'date', 'field_label' => 'Date of Birth', 'field_profile_key' => 'birth_date', 'is_sensitive' => 0, 'is_required' => 1 );
+
+		Functions\when('wp_verify_nonce')->justReturn(true);
+		Functions\when('current_user_can')->justReturn(true);
+		Functions\when('get_current_user_id')->justReturn(1);
+		Functions\when('set_transient')->justReturn(true);
+
+		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(5, true)->andReturn([$birth]);
+		$this->custom_field_writer_mock->shouldReceive('save_user_data')->once()->with(5, array());
+
+		$manager = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
+		$manager->shouldReceive('get_extended_profile')->andReturn(array( 'birth_date' => '1990-05-20' ));
+		$manager->shouldReceive('update_extended_profile')->never();
 
 		AdminUserCustomFields::save_section(5);
 	}

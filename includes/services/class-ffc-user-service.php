@@ -75,6 +75,13 @@ class UserService {
 			if ( array_key_exists( 'preferences', $ffc_profile ) ) {
 				$profile['preferences'] = $ffc_profile['preferences'];
 			}
+
+			// The canonical birth date (#1538), decrypted, in ISO `Y-m-d`,
+			// or '' when none is stored. Read here so the dashboard and the
+			// LGPD export share one read instead of each decrypting it.
+			$extended              = \FreeFormCertificate\UserDashboard\UserManager::get_extended_profile( $user_id, array( 'birth_date' ) );
+			$stored                = $extended['birth_date'] ?? '';
+			$profile['birth_date'] = is_string( $stored ) ? (string) \FreeFormCertificate\Core\BirthDate::normalize( $stored ) : '';
 		}
 
 		// Capabilities.

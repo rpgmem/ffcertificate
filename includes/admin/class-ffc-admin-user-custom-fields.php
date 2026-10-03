@@ -16,6 +16,7 @@ namespace FreeFormCertificate\Admin;
 use FreeFormCertificate\Reregistration\CustomFieldReader;
 use FreeFormCertificate\Reregistration\CustomFieldWriter;
 use FreeFormCertificate\Audience\AudienceReader;
+use FreeFormCertificate\UserDashboard\UserManager;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -125,6 +126,7 @@ class AdminUserCustomFields {
 		}
 
 		$user_data          = CustomFieldReader::get_user_data( $user->ID );
+		$profile            = self::profile_values( $user->ID, CustomFieldReader::get_all_for_user( $user->ID, true ) );
 		$rendered_field_ids = array();
 
 		?>
@@ -162,7 +164,9 @@ class AdminUserCustomFields {
 								$rendered_field_ids[ (int) $field->id ] = true;
 
 								$field_key  = 'field_' . $field->id;
-								$value      = $user_data[ $field_key ] ?? '';
+								$value      = empty( $field->field_profile_key )
+									? ( $user_data[ $field_key ] ?? '' )
+									: ( $profile[ (string) $field->field_profile_key ] ?? '' );
 								$input_name = 'ffc_cf_' . $field->id;
 								?>
 								<tr>
@@ -360,11 +364,14 @@ class AdminUserCustomFields {
 			return;
 		}
 
-		$data       = array();
-		$seen_ids   = array();
-		$existing   = CustomFieldReader::get_user_data( $user_id );
-		$kept       = array();
-		$incomplete = array();
+		$data           = array();
+		$seen_ids       = array();
+		$existing       = CustomFieldReader::get_user_data( $user_id );
+		$profile        = self::profile_values( $user_id, $fields );
+		$profile_patch  = array();
+		$sensitive_keys = array();
+		$kept           = array();
+		$incomplete     = array();
 
 		foreach ( $fields as $field ) {
 			// Avoid processing same field twice.
@@ -416,6 +423,24 @@ class AdminUserCustomFields {
 				 * an edit that did not take, announced below — not a value
 				 * silently erased.
 				 */
+				// A profile-mapped field lives on the profile, not in the
+				// snapshot (#1538): the reregistration form reads it from
+				// there and `store_user_snapshot()` never writes it, so
+				// saving it into the snapshot stored a copy nothing read --
+				// in plaintext, for the sensitive ones.
+				if ( ! empty( $field->field_profile_key ) ) {
+					$pkey = (string) $field->field_profile_key;
+					if ( '' === $clean && ! empty( $field->is_required ) && '' !== (string) ( $profile[ $pkey ] ?? '' ) ) {
+						$kept[] = (string) $field->field_label;
+						continue;
+					}
+					$profile_patch[ $pkey ] = $clean;
+					if ( ! empty( $field->is_sensitive ) ) {
+						$sensitive_keys[] = $pkey;
+					}
+					continue;
+				}
+
 				if ( '' === $clean && ! empty( $field->is_required ) && '' !== (string) ( $existing[ $field_key ] ?? '' ) ) {
 					$data[ $field_key ] = (string) $existing[ $field_key ];
 					$kept[]             = (string) $field->field_label;
@@ -428,6 +453,10 @@ class AdminUserCustomFields {
 
 		CustomFieldWriter::save_user_data( $user_id, $data );
 
+		if ( ! empty( $profile_patch ) ) {
+			UserManager::update_extended_profile( $user_id, $profile_patch, $sensitive_keys );
+		}
+
 		if ( ! empty( $kept ) ) {
 			set_transient( 'ffc_cf_required_kept_' . get_current_user_id(), $kept, MINUTE_IN_SECONDS );
 		}
@@ -435,6 +464,37 @@ class AdminUserCustomFields {
 		if ( ! empty( $incomplete ) ) {
 			set_transient( 'ffc_cf_wh_incomplete_' . get_current_user_id(), $incomplete, MINUTE_IN_SECONDS );
 		}
+	}
+
+	/**
+	 * Current profile values of every profile-mapped field, decrypted.
+	 *
+	 * The same read the reregistration form pre-fills from, so the two
+	 * screens cannot show different values for one field.
+	 *
+	 * @param int           $user_id User ID.
+	 * @param array<object> $fields  Field definitions.
+	 * @phpstan-param list<CustomFieldRow> $fields
+	 * @return array<string, mixed> profile_key => value.
+	 */
+	private static function profile_values( int $user_id, array $fields ): array {
+		$keys      = array();
+		$sensitive = array();
+		foreach ( $fields as $field ) {
+			if ( empty( $field->field_profile_key ) ) {
+				continue;
+			}
+			$keys[] = (string) $field->field_profile_key;
+			if ( ! empty( $field->is_sensitive ) ) {
+				$sensitive[] = (string) $field->field_profile_key;
+			}
+		}
+
+		if ( empty( $keys ) ) {
+			return array();
+		}
+
+		return UserManager::get_extended_profile( $user_id, array_values( array_unique( $keys ) ), $sensitive );
 	}
 
 	/**

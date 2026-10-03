@@ -70,6 +70,30 @@ class ReregistrationStandardFieldsSeeder {
 	public const GROUP_ACKNOWLEDGMENT = 'acknowledgment';
 
 	/**
+	 * Profile key of every standard field that declares one.
+	 *
+	 * The same pairs `get_standard_fields_definition()` carries, without its
+	 * translated labels: `ReregistrationActivator::maybe_migrate()` fills the
+	 * key on rows seeded before a definition gained it, and that runs on
+	 * `plugins_loaded`, before translations may load, so it must not call
+	 * `__()` (#1538). `ReregistrationStandardFieldsSeederTest` fails when the
+	 * two disagree.
+	 *
+	 * @var array<string, string>
+	 */
+	public const PROFILE_KEYS = array(
+		'display_name'    => 'display_name',
+		'rf'              => 'rf',
+		'data_nascimento' => 'birth_date',
+		'cpf'             => 'cpf',
+		'rg'              => 'rg',
+		'divisao_setor'   => 'divisao_setor',
+		'phone'           => 'phone',
+		'celular'         => 'celular',
+		'jornada'         => 'jornada',
+	);
+
+	/**
 	 * Get the ordered list of groups with translated labels.
 	 *
 	 * @return array<string, string>
@@ -174,7 +198,7 @@ class ReregistrationStandardFieldsSeeder {
 				'field_label'  => __( 'Date of Birth', 'ffcertificate' ),
 				'field_type'   => 'date',
 				'field_group'  => self::GROUP_PERSONAL,
-				'profile_key'  => null,
+				'profile_key'  => 'birth_date',
 				'is_sensitive' => 0,
 				'mask'         => null,
 				'required'     => 1,

@@ -237,6 +237,8 @@ $ffcertificate_options = array(
 	// one (#1480). Written only when that card is run, so the fresh-install gate
 	// never sees it -- that gate compares what ACTIVATION writes.
 	'ffc_display_name_backfill_state',
+	// The birth-date backfill cursor (#1538), written only when that card runs.
+	'ffc_birth_date_backfill_state',
 	'ffc_recruitment_public_cache_version',
 	// The admin's chosen record (ficha) template, written only when the
 	// Reregistration tab is saved -- which is why the fresh-install gate never

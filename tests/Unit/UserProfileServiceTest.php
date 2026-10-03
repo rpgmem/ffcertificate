@@ -469,6 +469,70 @@ class UserProfileServiceTest extends TestCase {
 	}
 
 	// ==================================================================
+	// birth_date (#1538)
+	// ==================================================================
+
+	/**
+	 * The full date is encrypted in its canonical form, and its month and day
+	 * are mirrored in plaintext -- the one slice a scheduled job can query.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_write_birth_date_encrypts_the_canonical_form_and_mirrors_the_month_day(): void {
+		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$enc->shouldReceive( 'encrypt' )->with( '1990-05-20' )->once()->andReturn( 'ENC' );
+		$enc->shouldReceive( 'hash' )->never();
+
+		$result = UserProfileService::write( 42, array( 'birth_date' => '20/05/1990' ) );
+
+		$this->assertTrue( $result );
+		$this->assertSame( 'ENC', $this->usermeta_store[42]['ffc_user_birth_date'] );
+		$this->assertSame( '05-20', $this->usermeta_store[42][ UserProfileFieldMap::BIRTH_MONTH_DAY_META_KEY ] );
+		$this->assertNull( $this->profile_row, 'A birth date is not an identifier: it must write no index.' );
+	}
+
+	/**
+	 * A value that is not a date is refused rather than stored: a mirror
+	 * computed from it would be empty while the ciphertext held garbage.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_write_birth_date_refuses_a_value_that_is_not_a_date(): void {
+		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$enc->shouldReceive( 'encrypt' )->never();
+
+		$this->usermeta_store[42] = array(
+			'ffc_user_birth_date'                          => 'PREVIOUS_ENC',
+			UserProfileFieldMap::BIRTH_MONTH_DAY_META_KEY => '01-02',
+		);
+
+		$result = UserProfileService::write( 42, array( 'birth_date' => '1990-02-30' ) );
+
+		$this->assertFalse( $result );
+		$this->assertSame( 'PREVIOUS_ENC', $this->usermeta_store[42]['ffc_user_birth_date'], 'A refused value must leave the stored one alone.' );
+		$this->assertSame( '01-02', $this->usermeta_store[42][ UserProfileFieldMap::BIRTH_MONTH_DAY_META_KEY ] );
+	}
+
+	public function test_write_birth_date_clears_both_the_value_and_its_mirror(): void {
+		$this->usermeta_store[42] = array(
+			'ffc_user_birth_date'                          => 'PREVIOUS_ENC',
+			UserProfileFieldMap::BIRTH_MONTH_DAY_META_KEY => '05-20',
+		);
+
+		$result = UserProfileService::write( 42, array( 'birth_date' => '' ) );
+
+		$this->assertTrue( $result );
+		$this->assertArrayNotHasKey( 'ffc_user_birth_date', $this->usermeta_store[42] );
+		$this->assertArrayNotHasKey(
+			UserProfileFieldMap::BIRTH_MONTH_DAY_META_KEY,
+			$this->usermeta_store[42],
+			'A cleared date must leave no row a month-day query could still match.'
+		);
+	}
+
+	// ==================================================================
 	// write() with $extra_descriptors (Phase 3)
 	// ==================================================================
 

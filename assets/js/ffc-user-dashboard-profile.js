@@ -63,6 +63,9 @@
         html += '<div class="ffc-profile-field"><label for="ffc-edit-organization">' + (s.organization || 'Organization:') + '</label>';
         html += '<input type="text" id="ffc-edit-organization" value="' + escAttr(profile.organization) + '" maxlength="250" /></div>';
 
+        html += '<div class="ffc-profile-field"><label for="ffc-edit-birth-date">' + (s.birthDate || 'Birth date:') + '</label>';
+        html += '<input type="date" id="ffc-edit-birth-date" value="' + escAttr(profile.birth_date) + '" /></div>';
+
         html += '<div class="ffc-profile-field"><label for="ffc-edit-notes">' + (s.notesLabel || 'Notes:') + '</label>';
         html += '<textarea id="ffc-edit-notes" rows="3" maxlength="1000" placeholder="' + (s.notesPlaceholder || 'Personal notes...') + '">' + esc(profile.notes) + '</textarea></div>';
 
@@ -81,7 +84,8 @@
             phone: $('#ffc-edit-phone').val(),
             department: $('#ffc-edit-department').val(),
             organization: $('#ffc-edit-organization').val(),
-            notes: $('#ffc-edit-notes').val()
+            notes: $('#ffc-edit-notes').val(),
+            birth_date: $('#ffc-edit-birth-date').val()
         };
 
         var $saveBtn = $('.ffc-profile-save-btn');
@@ -263,6 +267,9 @@
 
             html += '<div class="ffc-profile-field"><label>' + (s.organization || 'Organization:') + '</label>';
             html += '<div class="ffc-field-value">' + esc(profile.organization || '-') + '</div></div>';
+
+            html += '<div class="ffc-profile-field"><label>' + (s.birthDate || 'Birth date:') + '</label>';
+            html += '<div class="ffc-field-value">' + esc(profile.birth_date_display || '-') + '</div></div>';
 
             if (profile.notes) {
                 html += '<div class="ffc-profile-field"><label>' + (s.notesLabel || 'Notes:') + '</label>';

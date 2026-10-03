@@ -82,6 +82,10 @@ class UserProfileRestControllerTest extends TestCase {
 		$user_manager_mock->shouldReceive( 'get_user_emails' )->andReturn( array( 'john@example.com' ) )->byDefault();
 		$user_manager_mock->shouldReceive( 'get_user_names' )->andReturn( array( 'John Doe' ) )->byDefault();
 		$user_manager_mock->shouldReceive( 'update_profile' )->andReturn( true )->byDefault();
+		// The canonical birth date (#1538) is read and written through the
+		// extended profile; no stored date unless a test says otherwise.
+		$user_manager_mock->shouldReceive( 'get_extended_profile' )->andReturn( array() )->byDefault();
+		$user_manager_mock->shouldReceive( 'update_extended_profile' )->andReturn( true )->byDefault();
 		$cap_manager_mock = Mockery::mock( 'alias:\FreeFormCertificate\UserDashboard\CapabilityManager' );
 		$cap_manager_mock->shouldReceive( 'grant_audience_capabilities' )->byDefault();
 		// UserService::get_user_capabilities() (triggered indirectly via
@@ -344,6 +348,108 @@ class UserProfileRestControllerTest extends TestCase {
 		// On success, it calls get_user_profile which returns the profile array
 		$this->assertIsArray( $result );
 		$this->assertSame( 5, $result['user_id'] );
+	}
+
+	// ------------------------------------------------------------------
+	// birth_date (#1538)
+	// ------------------------------------------------------------------
+
+	/**
+	 * Stub what the success path of update_user_profile() re-reads.
+	 */
+	private function stub_profile_reload(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$user = $this->make_user( 5 );
+		Functions\when( 'get_user_by' )->justReturn( $user );
+		Functions\when( 'get_userdata' )->justReturn( $user );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+	}
+
+	public function test_get_user_profile_returns_the_stored_birth_date_and_its_display_form(): void {
+		$this->stub_profile_reload();
+		$this->user_manager_mock->shouldReceive( 'get_extended_profile' )
+			->with( 5, array( 'birth_date' ) )
+			->andReturn( array( 'birth_date' => '1990-05-20' ) );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->get_user_profile( $this->make_request() );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( '1990-05-20', $result['birth_date'] );
+		$this->assertNotSame( '', $result['birth_date_display'], 'A stored date must reach the read-only view formatted.' );
+	}
+
+	public function test_get_user_profile_returns_an_empty_birth_date_when_none_is_stored(): void {
+		$this->stub_profile_reload();
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->get_user_profile( $this->make_request() );
+
+		$this->assertSame( '', $result['birth_date'] );
+		$this->assertSame( '', $result['birth_date_display'] );
+	}
+
+	public function test_update_user_profile_stores_a_valid_birth_date_alone(): void {
+		$this->stub_profile_reload();
+		$this->user_manager_mock->shouldReceive( 'update_profile' )->never();
+		$this->user_manager_mock->shouldReceive( 'update_extended_profile' )
+			->once()
+			->with( 5, array( 'birth_date' => '1990-05-20' ) )
+			->andReturn( true );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->update_user_profile(
+			$this->make_request( array( 'birth_date' => '1990-05-20' ) )
+		);
+
+		$this->assertIsArray( $result, 'A birth date on its own is a profile update, not "no data".' );
+	}
+
+	public function test_update_user_profile_clears_the_birth_date_on_an_empty_string(): void {
+		$this->stub_profile_reload();
+		$this->user_manager_mock->shouldReceive( 'update_extended_profile' )
+			->once()
+			->with( 5, array( 'birth_date' => '' ) )
+			->andReturn( true );
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->update_user_profile(
+			$this->make_request( array( 'birth_date' => '' ) )
+		);
+
+		$this->assertIsArray( $result );
+	}
+
+	/**
+	 * @dataProvider implausible_birth_dates
+	 */
+	public function test_update_user_profile_refuses_an_implausible_birth_date( string $value ): void {
+		$this->stub_profile_reload();
+		$this->user_manager_mock->shouldReceive( 'update_extended_profile' )->never();
+		$this->user_manager_mock->shouldReceive( 'update_profile' )->never();
+
+		$result = ( new UserProfileRestController( 'ffc/v1' ) )->update_user_profile(
+			$this->make_request(
+				array(
+					'birth_date' => $value,
+					'phone'      => '123',
+				)
+			)
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'invalid_birth_date', $result->get_error_code() );
+		$this->assertSame( 400, $result->get_error_data()['status'] );
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public function implausible_birth_dates(): array {
+		return array(
+			'not a date'      => array( 'yesterday' ),
+			'impossible day'  => array( '1990-02-30' ),
+			'in the future'   => array( '2999-01-01' ),
+			'too young'       => array( gmdate( 'Y-m-d', strtotime( '-5 years' ) ) ),
+			'implausibly old' => array( '1800-01-01' ),
+		);
 	}
 
 	// ------------------------------------------------------------------

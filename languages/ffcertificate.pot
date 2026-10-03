@@ -22998,3 +22998,21 @@ msgstr ""
 #: includes/settings/views/ffc-tab-migrations.php
 msgid "Of the %1$s findings, %2$s are accepted on the Identity Resolution screen as impossible to resolve, leaving %3$s open. An acceptance records that nobody can fix the value — it does not change anything stored, so this scan still reports it, and a merge or move blocked by that number stays blocked."
 msgstr ""
+
+msgid "Birth date:"
+msgstr ""
+
+msgid "Enter a valid birth date: a past date for an age between %1$d and %2$d years."
+msgstr ""
+
+msgid "Every account with a stored birth date has been examined."
+msgstr ""
+
+msgid "Examined %1$d accounts and filled the birth date of %2$d; the rest hold no usable date."
+msgstr ""
+
+msgid "Copy Stored Birth Dates to the Profile"
+msgstr ""
+
+msgid "Fill the profile birth date of every account that answered a reregistration before the field existed, from the newest submission (or, failing that, the stored field values). The full date is stored encrypted, with its day and month beside it for scheduled messages. Completion here means every such account was EXAMINED: one whose stored answers hold no valid date is read, left alone, and counted as done."
+msgstr ""

@@ -1419,6 +1419,34 @@ class UserManagerTest extends TestCase {
 		$this->assertSame( '51817842080', $profile['cpf'] );
 	}
 
+	/**
+	 * A key the profile map declares sensitive is decrypted even when the
+	 * caller's custom-field row says it is not (#1538): `birth_date` is fed by
+	 * a reregistration field seeded non-sensitive, and trusting that flag
+	 * would pre-fill the form with ciphertext.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_get_extended_profile_decrypts_a_map_sensitive_key_the_caller_did_not_flag(): void {
+		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$enc->shouldReceive( 'decrypt' )->with( 'ENC_BIRTH' )->once()->andReturn( '1990-05-20' );
+
+		$this->mock_table_exists( 'wp_ffc_user_profiles', true );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
+			$this->profile_row_fixture( array( 'phone' => '' ) )
+		);
+
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'get_user_meta' )->alias( function ( $uid, $key ) {
+			return 'ffc_user_birth_date' === $key ? 'ENC_BIRTH' : '';
+		} );
+
+		$profile = UserManager::get_extended_profile( 42, array( 'birth_date' ), array() );
+
+		$this->assertSame( '1990-05-20', $profile['birth_date'] );
+	}
+
 	public function test_get_extended_profile_ignores_profile_table_keys_listed_in_extras(): void {
 		// display_name is already in the table-backed profile; passing it as
 		// an extra key must be a no-op, not a duplicate meta read.

@@ -109,6 +109,17 @@ class PrivacyExporters {
 			);
 		}
 
+		// The canonical birth date (#1538) is stored encrypted, so the raw
+		// usermeta export would hand the subject ciphertext; the profile
+		// bundle carries it decrypted.
+		$birth_date = ArrayValue::string( $profile, 'birth_date' );
+		if ( '' !== $birth_date ) {
+			$data[] = array(
+				'name'  => __( 'Birth date', 'ffcertificate' ),
+				'value' => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $birth_date ),
+			);
+		}
+
 		// `ffc_registration_date` post-meta is the canonical "first
 		// touch" timestamp written by `UserCreator`. Preferred over
 		// `wp_users.user_registered` because the latter is the WP

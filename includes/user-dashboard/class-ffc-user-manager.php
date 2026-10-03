@@ -316,7 +316,14 @@ class UserManager {
 				continue;
 			}
 
-			if ( isset( $sensitive_map[ $key ] ) && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
+			// A key the profile map declares sensitive is encrypted at rest
+			// whatever the caller's custom-field row says: `birth_date` is
+			// fed by a reregistration field flagged non-sensitive, and
+			// trusting that flag would pre-fill the form with ciphertext
+			// (#1538).
+			$is_sensitive = isset( $sensitive_map[ $key ] ) || UserProfileFieldMap::is_sensitive( $key );
+
+			if ( $is_sensitive && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
 				// `get_user_meta()` is mixed; only a scalar can be a
 				// ciphertext, and a non-scalar cast would hand the
 				// decrypter the literal `Array` (#1060).

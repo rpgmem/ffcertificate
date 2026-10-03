@@ -23089,3 +23089,21 @@ msgstr "%1$s aceitos · %2$s em aberto"
 #: includes/settings/views/ffc-tab-migrations.php
 msgid "Of the %1$s findings, %2$s are accepted on the Identity Resolution screen as impossible to resolve, leaving %3$s open. An acceptance records that nobody can fix the value — it does not change anything stored, so this scan still reports it, and a merge or move blocked by that number stays blocked."
 msgstr "Dos %1$s achados, %2$s estão aceitos na tela de Resolução de Identidades como impossíveis de resolver, restando %3$s em aberto. Uma aceitação registra que ninguém consegue corrigir o valor — ela não altera nada armazenado, então esta varredura continua reportando o caso, e uma mesclagem ou movimentação bloqueada por aquele número segue bloqueada."
+
+msgid "Birth date:"
+msgstr "Data de nascimento:"
+
+msgid "Enter a valid birth date: a past date for an age between %1$d and %2$d years."
+msgstr "Informe uma data de nascimento válida: uma data passada, para uma idade entre %1$d e %2$d anos."
+
+msgid "Every account with a stored birth date has been examined."
+msgstr "Toda conta com uma data de nascimento armazenada já foi examinada."
+
+msgid "Examined %1$d accounts and filled the birth date of %2$d; the rest hold no usable date."
+msgstr "Examinou %1$d contas e preencheu a data de nascimento de %2$d; as demais não têm data utilizável."
+
+msgid "Copy Stored Birth Dates to the Profile"
+msgstr "Copiar as Datas de Nascimento Armazenadas para o Perfil"
+
+msgid "Fill the profile birth date of every account that answered a reregistration before the field existed, from the newest submission (or, failing that, the stored field values). The full date is stored encrypted, with its day and month beside it for scheduled messages. Completion here means every such account was EXAMINED: one whose stored answers hold no valid date is read, left alone, and counted as done."
+msgstr "Preenche a data de nascimento do perfil de toda conta que respondeu a um recadastramento antes de o campo existir, a partir da submissão mais recente (ou, na falta dela, dos valores de campo armazenados). A data completa é armazenada criptografada, com o dia e o mês ao lado para as mensagens agendadas. Aqui, concluído significa que toda conta dessas foi EXAMINADA: uma cujas respostas armazenadas não têm data válida é lida, deixada como está, e contada como feita."

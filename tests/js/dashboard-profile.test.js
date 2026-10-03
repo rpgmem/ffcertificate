@@ -96,6 +96,17 @@ describe('FFCDashboard.panels.profile.render', () => {
 		expect(text).toContain('ACME');
 	});
 
+	it('renders the birth date in its display form, or a dash when none is stored (#1538)', () => {
+		panel().render(makeProfile({ birth_date: '1990-05-20', birth_date_display: '20/05/1990' }));
+		expect(document.getElementById('ffc-tabpanel-profile').textContent).toContain('20/05/1990');
+
+		panel().render(makeProfile({ birth_date: '', birth_date_display: '' }));
+		const labels = Array.from(document.querySelectorAll('#ffc-tabpanel-profile .ffc-profile-field'));
+		const field = labels.find((el) => el.textContent.includes('Birth date:'));
+		expect(field).toBeDefined();
+		expect(field.querySelector('.ffc-field-value').textContent).toBe('-');
+	});
+
 	it('renders the Notes block only when notes is non-empty', () => {
 		panel().render(makeProfile({ notes: '' }));
 		expect(document.querySelector('#ffc-tabpanel-profile').textContent).not.toContain('Notes:');
