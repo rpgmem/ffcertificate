@@ -9,6 +9,7 @@
  * @var bool                                                  $can_manage  Whether the user may change anything.
  * @var array<int, \FreeFormCertificate\DateMessages\Rule>    $rules       Every rule.
  * @var array<int, string>                                    $audiences   Audience id => indented name.
+ * @var array<int, string>                                    $managers    User id => "Name <email>", on the editor only.
  * @var \FreeFormCertificate\DateMessages\Rule|null           $editing     Rule being edited, null for a new one.
  * @var array<string, mixed>                                  $draft       Values to put back after a failed save.
  * @var array<int, array<string, mixed>>                      $history     A page of runs.
@@ -18,6 +19,9 @@
  * @var string                                                $send_time   Daily send time, HH:MM.
  * @var int|false                                             $next_run    Next daily run.
  * @var bool                                                  $queue_ready Whether a mail queue is active.
+ * @var array<string, mixed>|null                             $upcoming    The upcoming-dates panel's data, on that tab only.
+ * @var string                                                $period      Upcoming-dates period key.
+ * @var int                                                   $audience_id Upcoming-dates audience filter.
  * @var \DateTimeImmutable                                    $today       Today, site timezone.
  *
  * @package FreeFormCertificate\DateMessages
@@ -30,12 +34,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$ffc_dm_tabs   = array(
+$ffc_dm_tabs = array(
 	'rules'    => __( 'Rules', 'ffcertificate' ),
 	'send'     => __( 'Send now', 'ffcertificate' ),
 	'history'  => __( 'History', 'ffcertificate' ),
+	'upcoming' => __( 'Upcoming dates', 'ffcertificate' ),
 	'settings' => __( 'Schedule', 'ffcertificate' ),
 );
+if ( ! DateMessagesAdminPage::can_view_pii() ) {
+	unset( $ffc_dm_tabs['upcoming'] );
+}
 $ffc_dm_active = 'edit' === $tab ? 'rules' : $tab;
 ?>
 <div class="wrap ffc-admin-page ffc-page-date-messages">
@@ -96,6 +104,7 @@ $ffc_dm_active = 'edit' === $tab ? 'rules' : $tab;
 		'edit'     => 'rule-form.php',
 		'send'     => 'send.php',
 		'history'  => 'history.php',
+		'upcoming' => 'upcoming.php',
 		'settings' => 'settings.php',
 	);
 	require __DIR__ . '/' . $ffc_dm_partial[ $tab ];

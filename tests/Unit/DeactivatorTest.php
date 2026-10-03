@@ -97,7 +97,8 @@ class DeactivatorTest extends TestCase {
 		// The date-messages daily send and its pending batches (#1538).
 		$this->assertContains( 'ffc_date_messages_daily', $cleared );
 		$this->assertContains( 'ffc_date_messages_batch', $cleared );
-		$this->assertCount( 7, $cleared );
+		$this->assertContains( 'ffc_date_messages_digest', $cleared );
+		$this->assertCount( 8, $cleared );
 	}
 
 	public function test_deactivate_flushes_rewrite_rules(): void {

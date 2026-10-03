@@ -23555,3 +23555,69 @@ msgid "%d day before"
 msgid_plural "%d days before"
 msgstr[0] "%d dia antes"
 msgstr[1] "%d dias antes"
+
+msgid "Birthdays in the period, by day and month; the year of birth is never shown."
+msgstr "Aniversários no período, por dia e mês; o ano de nascimento nunca é exibido."
+
+msgid "Counts and the names of who received it"
+msgstr "Totais e os nomes de quem recebeu"
+
+msgid "Counts only"
+msgstr "Apenas totais"
+
+msgid "Date messages manager summary (one per run)"
+msgstr "Resumo de mensagens por data para gestores (um por execução)"
+
+msgid "E-mail a summary of each run, 24 hours after it starts"
+msgstr "Enviar por e-mail um resumo de cada execução, 24 horas após o início"
+
+msgid "In"
+msgstr "Em"
+
+msgid "Manager summary"
+msgstr "Resumo para gestores"
+
+msgid "Names go only to recipients allowed to see who receives date messages; the others get the counts. A run that reached nobody sends no summary."
+msgstr "Os nomes vão apenas para quem pode ver quem recebe mensagens por data; os demais recebem os totais. Uma execução que não alcançou ninguém não envia resumo."
+
+msgid "Next 30 days"
+msgstr "Próximos 30 dias"
+
+msgid "Next 7 days"
+msgstr "Próximos 7 dias"
+
+msgid "No account can receive the summary: it goes to administrators and to accounts holding a date-messages permission."
+msgstr "Nenhuma conta pode receber o resumo: ele vai para administradores e contas com permissão de mensagens por data."
+
+msgid "Only the first names are listed; the counts above include everyone."
+msgstr "Apenas os primeiros nomes são listados; os totais acima incluem todos."
+
+msgid "Received the message"
+msgstr "Receberam a mensagem"
+
+msgid "Send the summary to"
+msgstr "Enviar o resumo para"
+
+msgid "Summary of the %1$s for the dates %2$s."
+msgstr "Resumo do %1$s para as datas %2$s."
+
+msgid "Upcoming dates"
+msgstr "Próximas datas"
+
+msgid "[%1$s] Date messages summary: %2$s"
+msgstr "[%1$s] Resumo de mensagens por data: %2$s"
+
+msgid "daily run"
+msgstr "envio diário"
+
+msgid "manual send"
+msgstr "envio manual"
+
+msgid "%d day"
+msgid_plural "%d days"
+msgstr[0] "%d dia"
+msgstr[1] "%d dias"
+
+msgctxt "day and month, without the year"
+msgid "F j"
+msgstr "j \\d\\e F"

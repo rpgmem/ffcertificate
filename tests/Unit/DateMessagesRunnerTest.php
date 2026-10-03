@@ -320,4 +320,25 @@ class DateMessagesRunnerTest extends TestCase {
 
 		Runner::run_daily();
 	}
+	public function test_start_schedules_the_digest_before_the_first_batch(): void {
+		$order = array();
+		$rule  = $this->rule();
+		$this->log->shouldReceive( 'start_run' )->once()->with( 3, 'manual', '2026-10-01', '2026-10-02', 5 )->andReturn( 7 );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\Digest' )->shouldReceive( 'schedule' )->once()->with( 7, $rule )->andReturnUsing(
+			static function () use ( &$order ) {
+				$order[] = 'digest';
+			}
+		);
+		$this->log->shouldReceive( 'get_run' )->andReturnUsing(
+			static function () use ( &$order ) {
+				$order[] = 'batch';
+				return null;
+			}
+		);
+
+		$result = Runner::start( $rule, new \DateTimeImmutable( '2026-10-01' ), new \DateTimeImmutable( '2026-10-02' ), 'manual', 5 );
+
+		$this->assertSame( 7, $result );
+		$this->assertSame( array( 'digest', 'batch' ), $order );
+	}
 }

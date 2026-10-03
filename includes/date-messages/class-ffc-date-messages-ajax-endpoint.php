@@ -10,7 +10,6 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\DateMessages;
 
-use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\EmailSource;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Scheduling\SchedulingMailer;
@@ -42,11 +41,6 @@ final class DateMessagesAjaxEndpoint {
 	 * Test-send action, also its nonce action.
 	 */
 	public const TEST_ACTION = 'ffc_date_messages_test_send';
-
-	/**
-	 * Most people listed by name; the totals count everyone.
-	 */
-	public const PREVIEW_ROW_LIMIT = 500;
 
 	/**
 	 * Register the handlers. Admin-only: both need a logged-in operator.
@@ -93,54 +87,7 @@ final class DateMessagesAjaxEndpoint {
 			);
 		}
 
-		wp_send_json_success( self::collect( $rule, $from, $to, DateMessagesAdminPage::can_view_pii() ) );
-	}
-
-	/**
-	 * Walk the range through the resolver.
-	 *
-	 * @param Rule               $rule      The rule (saved or not).
-	 * @param \DateTimeImmutable $from      First target day.
-	 * @param \DateTimeImmutable $to        Last target day.
-	 * @param bool               $with_rows Whether to list people.
-	 * @return array{totals: array<string, int>, rows: array<int, array{name: string, email: string, date: string, decision: string}>, truncated: bool, pii: bool}
-	 */
-	public static function collect( Rule $rule, \DateTimeImmutable $from, \DateTimeImmutable $to, bool $with_rows ): array {
-		$totals    = array_fill_keys( array_keys( DateMessagesAdminPage::decision_labels() ), 0 );
-		$rows      = array();
-		$truncated = false;
-		$resolver  = new RecipientResolver();
-
-		for ( $day = $from; $day <= $to; $day = $day->modify( '+1 day' ) ) {
-			$after = 0;
-			do {
-				$page = $resolver->resolve( $rule, $day, $after, Runner::BATCH_SIZE );
-				foreach ( $page['rows'] as $row ) {
-					$totals[ $row['decision'] ] = ( $totals[ $row['decision'] ] ?? 0 ) + 1;
-					if ( ! $with_rows ) {
-						continue;
-					}
-					if ( count( $rows ) >= self::PREVIEW_ROW_LIMIT ) {
-						$truncated = true;
-						continue;
-					}
-					$rows[] = array(
-						'name'     => $row['name'],
-						'email'    => DocumentFormatter::mask_email( $row['email'] ),
-						'date'     => $day->format( 'Y-m-d' ),
-						'decision' => $row['decision'],
-					);
-				}
-				$after = $page['cursor'];
-			} while ( ! $page['complete'] );
-		}
-
-		return array(
-			'totals'    => $totals,
-			'rows'      => $rows,
-			'truncated' => $truncated,
-			'pii'       => $with_rows,
-		);
+		wp_send_json_success( RecipientPreview::collect( $rule, $from, $to, DateMessagesAdminPage::can_view_pii() ) );
 	}
 
 	/**

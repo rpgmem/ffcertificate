@@ -15,6 +15,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Settings → Scheduled Tasks** (#1538). Lists every WP-Cron task the plugin runs with its next run, its last real run (recorded by a new heartbeat — WordPress keeps none) and whether it is late, counts queued one-off events, and generates the exact server crontab line (WP-CLI, wget or curl) with `DISABLE_WP_CRON` guidance.
 - **Date messages: e-mails sent on a date in each person's profile, starting with birthdays** (#1538). A new module (off by default) sends each active rule's message on the date or N days before it, once per person and occurrence, via the e-mail pipeline; recipients can unsubscribe in one click. Rule screens follow.
 - **Date messages: the admin screen** (#1538). A Date Messages submenu, shown only while the module is on, with rules (create, edit, duplicate, activate, delete), a recipient preview that runs the send's own selection without sending, a test send to yourself, a manual send over up to 31 days, the run history and the daily send time.
+- **Date messages: manager summary, upcoming dates, and a top-level menu** (#1538). Each rule can e-mail chosen managers a summary of every run 24 hours after it starts — counts, plus names only to managers allowed to see them; an Upcoming dates tab lists birthdays by day and month; Date Messages moves to its own top-level menu.
 
 ### Changed
 

@@ -57,6 +57,7 @@ if ( ! $ffcertificate_purge ) {
 	wp_clear_scheduled_hook( 'ffc_reregistration_reminder_batch' );
 	wp_clear_scheduled_hook( 'ffc_date_messages_daily' );
 	wp_clear_scheduled_hook( 'ffc_date_messages_batch' );
+	wp_clear_scheduled_hook( 'ffc_date_messages_digest' );
 	return;
 }
 
@@ -334,6 +335,7 @@ wp_clear_scheduled_hook( 'ffc_daily_expired_tickets_cleanup' );
 wp_clear_scheduled_hook( 'ffc_reregistration_reminder_batch' );
 wp_clear_scheduled_hook( 'ffc_date_messages_daily' );
 wp_clear_scheduled_hook( 'ffc_date_messages_batch' );
+wp_clear_scheduled_hook( 'ffc_date_messages_digest' );
 
 // Clear legacy cron hooks from pre-4.6.15 versions.
 wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );

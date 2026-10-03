@@ -8,6 +8,7 @@
  * @var \FreeFormCertificate\DateMessages\Rule|null   $editing    Rule being edited, null for a new one.
  * @var array<string, mixed>                          $draft      Values submitted by a save that failed.
  * @var array<int, string>                            $audiences  Audience id => name.
+ * @var array<int, string>                            $managers   Accounts that may receive the summary.
  * @var \DateTimeImmutable                            $today      Today, site timezone.
  *
  * @package FreeFormCertificate\DateMessages
@@ -25,15 +26,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $ffc_dm_defaults = MessageBuilder::defaults();
 $ffc_dm_values   = null !== $editing ? array_merge( $editing->to_columns(), array( 'id' => $editing->id ) ) : array(
-	'id'           => 0,
-	'name'         => '',
-	'source'       => 'birthday',
-	'offset_days'  => 0,
-	'audience_id'  => null,
-	'subject'      => $ffc_dm_defaults['subject'],
-	'body'         => $ffc_dm_defaults['body'],
-	'send_to_user' => 1,
-	'is_active'    => 1,
+	'id'              => 0,
+	'name'            => '',
+	'source'          => 'birthday',
+	'offset_days'     => 0,
+	'audience_id'     => null,
+	'subject'         => $ffc_dm_defaults['subject'],
+	'body'            => $ffc_dm_defaults['body'],
+	'send_to_user'    => 1,
+	'is_active'       => 1,
+	'digest_enabled'  => 0,
+	'digest_mode'     => 'summary',
+	'digest_user_ids' => '[]',
 );
 if ( array() !== $draft ) {
 	$ffc_dm_values = array_merge( $ffc_dm_values, $draft );
@@ -42,6 +46,9 @@ if ( array() !== $draft ) {
 $ffc_dm_offset = is_numeric( $ffc_dm_values['offset_days'] ) ? (int) $ffc_dm_values['offset_days'] : 0;
 $ffc_dm_target = $today->modify( sprintf( '%+d days', -$ffc_dm_offset ) )->format( 'Y-m-d' );
 $ffc_dm_flag   = static fn( $v ): bool => in_array( (string) $v, array( '1', 'true', 'on' ), true );
+$ffc_dm_chosen = $ffc_dm_values['digest_user_ids'];
+$ffc_dm_chosen = is_string( $ffc_dm_chosen ) ? json_decode( $ffc_dm_chosen, true ) : $ffc_dm_chosen;
+$ffc_dm_chosen = array_map( 'intval', is_array( $ffc_dm_chosen ) ? $ffc_dm_chosen : array() );
 ?>
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="ffc-dm-rule-form">
 	<?php wp_nonce_field( DateMessagesAdminPage::SAVE_ACTION ); ?>
@@ -122,6 +129,30 @@ $ffc_dm_flag   = static fn( $v ): bool => in_array( (string) $v, array( '1', 'tr
 			<td>
 				<label><input type="checkbox" name="rule[send_to_user]" value="1" <?php checked( $ffc_dm_flag( $ffc_dm_values['send_to_user'] ) ); ?>> <?php esc_html_e( 'E-mail each person on their date', 'ffcertificate' ); ?></label><br>
 				<label><input type="checkbox" name="rule[is_active]" value="1" <?php checked( $ffc_dm_flag( $ffc_dm_values['is_active'] ) ); ?>> <?php esc_html_e( 'Active (the daily run sends it)', 'ffcertificate' ); ?></label>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><?php esc_html_e( 'Manager summary', 'ffcertificate' ); ?></th>
+			<td>
+				<label><input type="checkbox" name="rule[digest_enabled]" value="1" <?php checked( $ffc_dm_flag( $ffc_dm_values['digest_enabled'] ) ); ?>> <?php esc_html_e( 'E-mail a summary of each run, 24 hours after it starts', 'ffcertificate' ); ?></label>
+				<p>
+					<label for="ffc-dm-digest-mode"><?php esc_html_e( 'Content', 'ffcertificate' ); ?></label>
+					<select id="ffc-dm-digest-mode" name="rule[digest_mode]">
+						<option value="summary" <?php selected( (string) $ffc_dm_values['digest_mode'], 'summary' ); ?>><?php esc_html_e( 'Counts only', 'ffcertificate' ); ?></option>
+						<option value="detailed" <?php selected( (string) $ffc_dm_values['digest_mode'], 'detailed' ); ?>><?php esc_html_e( 'Counts and the names of who received it', 'ffcertificate' ); ?></option>
+					</select>
+				</p>
+				<p class="description"><?php esc_html_e( 'Names go only to recipients allowed to see who receives date messages; the others get the counts. A run that reached nobody sends no summary.', 'ffcertificate' ); ?></p>
+				<?php if ( array() === $managers ) : ?>
+					<p class="description"><?php esc_html_e( 'No account can receive the summary: it goes to administrators and to accounts holding a date-messages permission.', 'ffcertificate' ); ?></p>
+				<?php else : ?>
+					<fieldset>
+						<legend class="screen-reader-text"><?php esc_html_e( 'Send the summary to', 'ffcertificate' ); ?></legend>
+						<?php foreach ( $managers as $ffc_dm_manager_id => $ffc_dm_manager_label ) : ?>
+							<label><input type="checkbox" name="rule[digest_user_ids][]" value="<?php echo esc_attr( (string) $ffc_dm_manager_id ); ?>" <?php checked( in_array( (int) $ffc_dm_manager_id, $ffc_dm_chosen, true ) ); ?>> <?php echo esc_html( $ffc_dm_manager_label ); ?></label><br>
+						<?php endforeach; ?>
+					</fieldset>
+				<?php endif; ?>
 			</td>
 		</tr>
 	</table>
