@@ -157,6 +157,16 @@ class DeliveryLog {
 	}
 
 	/**
+	 * Record that a run's digest went out, so a second firing sends nothing.
+	 *
+	 * @param int $run_id Run.
+	 * @return void
+	 */
+	public static function mark_digest_sent( int $run_id ): void {
+		self::db()->update( DateMessagesActivator::runs_table(), array( 'digest_sent_at' => time() ), array( 'id' => $run_id ) );
+	}
+
+	/**
 	 * Claim one delivery. True when this call inserted the row -- and is
 	 * therefore the one allowed to send -- false when it already existed.
 	 *

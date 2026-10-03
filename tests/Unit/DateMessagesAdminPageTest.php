@@ -181,9 +181,9 @@ class DateMessagesAdminPageTest extends TestCase {
 
 	public function test_the_menu_names_the_capability_the_user_holds(): void {
 		$registered = array();
-		Functions\when( 'add_submenu_page' )->alias(
+		Functions\when( 'add_menu_page' )->alias(
 			static function ( ...$args ) use ( &$registered ) {
-				$registered[] = $args[3];
+				$registered[] = array( $args[2], $args[3], $args[6] );
 				return 'hook';
 			}
 		);
@@ -193,7 +193,14 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->caps = array( 'ffc_view_date_messages' );
 		( new DateMessagesAdminPage() )->register_menu();
 
-		$this->assertSame( array( 'ffc_manage_date_messages', 'ffc_view_date_messages' ), $registered );
+		$this->assertSame(
+			array(
+				array( 'ffc_manage_date_messages', 'ffc-date-messages', 26.5 ),
+				array( 'ffc_view_date_messages', 'ffc-date-messages', 26.5 ),
+			),
+			$registered,
+			'A top-level menu in the FFC block.'
+		);
 	}
 
 	public function test_a_new_rule_is_saved_with_its_body_filtered(): void {
@@ -222,25 +229,118 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->assertStringContainsString( 'rule=0', $this->redirect );
 	}
 
-	public function test_an_edit_keeps_the_stored_digest_settings_the_form_does_not_carry(): void {
-		$_POST['rule']       = $this->posted();
-		$_POST['rule']['id'] = '3';
-		$this->reader->shouldReceive( 'get_by_id' )->with( 3 )->andReturn(
-			$this->rule(
-				array(
-					'digest_enabled'  => '1',
-					'digest_mode'     => 'detailed',
-					'digest_user_ids' => array( 9 ),
-				)
-			)
-		);
+	public function test_the_digest_settings_are_saved_from_the_form(): void {
+		$_POST['rule']                    = $this->posted();
+		$_POST['rule']['id']              = '3';
+		$_POST['rule']['digest_enabled']  = '1';
+		$_POST['rule']['digest_mode']     = 'detailed';
+		$_POST['rule']['digest_user_ids'] = array( '9', '9', 'x', '4' );
+		$this->reader->shouldReceive( 'get_by_id' )->with( 3 )->andReturn( $this->rule() );
 		$this->writer->shouldReceive( 'save' )->once()->with(
-			Mockery::on( static fn( Rule $r ): bool => 3 === $r->id && $r->digest_enabled && 'detailed' === $r->digest_mode && array( 9 ) === $r->digest_user_ids )
+			Mockery::on( static fn( Rule $r ): bool => 3 === $r->id && $r->digest_enabled && 'detailed' === $r->digest_mode && array( 9, 4 ) === $r->digest_user_ids )
 		)->andReturn( 3 );
 
 		$this->call( 'handle_save' );
 
 		$this->assertSame( 'success', $this->outcome['type'] );
+	}
+
+	public function test_an_unchecked_digest_box_turns_the_digest_off(): void {
+		$_POST['rule']       = $this->posted();
+		$_POST['rule']['id'] = '3';
+		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule( array( 'digest_enabled' => '1' ) ) );
+		$this->writer->shouldReceive( 'save' )->once()->with(
+			Mockery::on( static fn( Rule $r ): bool => ! $r->digest_enabled && array() === $r->digest_user_ids )
+		)->andReturn( 3 );
+
+		$this->call( 'handle_save' );
+	}
+
+	public function test_manager_options_offer_only_accounts_that_may_open_the_screen(): void {
+		$queried = null;
+		$admin   = new \WP_User();
+		$admin->ID           = 1;
+		$admin->display_name = 'Admin';
+		$admin->user_email   = 'admin@example.org';
+		Functions\when( 'get_users' )->alias(
+			static function ( $args ) use ( &$queried, $admin ) {
+				$queried = $args;
+				return array( $admin, 'not a user' );
+			}
+		);
+
+		$this->assertSame( array( 1 => 'Admin <admin@example.org>' ), DateMessagesAdminPage::manager_options() );
+		$this->assertSame(
+			array( 'manage_options', 'ffc_view_date_messages', 'ffc_manage_date_messages', 'ffc_view_date_messages_pii' ),
+			$queried['capability__in']
+		);
+	}
+
+	/**
+	 * @dataProvider periods
+	 */
+	public function test_upcoming_resolves_each_period_to_its_dates( string $period, string $from, string $to ): void {
+		$preview = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RecipientPreview' );
+		$preview->shouldReceive( 'collect' )->once()->with(
+			Mockery::type( Rule::class ),
+			Mockery::on( static fn( $d ): bool => $from === $d->format( 'Y-m-d' ) ),
+			Mockery::on( static fn( $d ): bool => $to === $d->format( 'Y-m-d' ) ),
+			true
+		)->andReturn(
+			array(
+				'totals'    => array(),
+				'rows'      => array(),
+				'truncated' => false,
+				'pii'       => true,
+			)
+		);
+
+		$out = DateMessagesAdminPage::upcoming( $period, 0, new \DateTimeImmutable( '2026-10-03', new \DateTimeZone( 'America/Sao_Paulo' ) ) );
+
+		$this->assertSame( $from, $out['from']->format( 'Y-m-d' ) );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string, 2: string}>
+	 */
+	public function periods(): array {
+		return array(
+			'next 7'          => array( 'next7', '2026-10-03', '2026-10-09' ),
+			'next 30'         => array( 'next30', '2026-10-03', '2026-11-01' ),
+			'unknown → 30'    => array( 'whatever', '2026-10-03', '2026-11-01' ),
+			'this month'      => array( 'm10', '2026-10-01', '2026-10-31' ),
+			'a later month'   => array( 'm12', '2026-12-01', '2026-12-31' ),
+			'a past month'    => array( 'm2', '2027-02-01', '2027-02-28' ),
+		);
+	}
+
+	public function test_upcoming_drops_people_outside_the_audience_and_keeps_opt_outs_flagged(): void {
+		$row     = static fn( int $id, string $d ): array => array(
+			'user_id'  => $id,
+			'name'     => "P{$id}",
+			'email'    => 'x',
+			'date'     => '2026-10-05',
+			'decision' => $d,
+		);
+		$preview = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RecipientPreview' );
+		$preview->shouldReceive( 'collect' )->once()->with(
+			Mockery::on( static fn( Rule $r ): bool => 9 === $r->audience_id ),
+			Mockery::any(),
+			Mockery::any(),
+			true
+		)->andReturn(
+			array(
+				'totals'    => array(),
+				'rows'      => array( $row( 1, 'will_send' ), $row( 2, 'out_of_audience' ), $row( 3, 'opted_out' ) ),
+				'truncated' => true,
+				'pii'       => true,
+			)
+		);
+
+		$out = DateMessagesAdminPage::upcoming( 'next7', 9, new \DateTimeImmutable( '2026-10-03' ) );
+
+		$this->assertSame( array( 1, 3 ), array_column( $out['rows'], 'user_id' ) );
+		$this->assertTrue( $out['truncated'] );
 	}
 
 	public function test_saving_a_rule_that_was_deleted_meanwhile_fails(): void {

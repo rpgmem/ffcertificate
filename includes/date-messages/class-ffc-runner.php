@@ -125,6 +125,10 @@ final class Runner {
 			return new \WP_Error( 'ffc_date_messages_run', __( 'Could not record the run.', 'ffcertificate' ) );
 		}
 
+		// Scheduled before the first batch, so a run that finishes in one
+		// request still gets its digest.
+		Digest::schedule( $run_id, $rule );
+
 		self::process( $run_id, $from->format( 'Y-m-d' ), 0 );
 		return $run_id;
 	}

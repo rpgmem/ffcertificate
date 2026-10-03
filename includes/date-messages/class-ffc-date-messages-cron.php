@@ -49,6 +49,8 @@ final class DateMessagesCron {
 	 */
 	public static function init(): void {
 		add_action( self::CRON_HOOK, array( Runner::class, 'run_daily' ) );
+		// One accepted argument: the event carries the run id.
+		add_action( Digest::HOOK, array( Digest::class, 'send' ), 10, 1 );
 		Runner::init();
 	}
 
@@ -74,13 +76,14 @@ final class DateMessagesCron {
 	}
 
 	/**
-	 * Remove the daily event and every pending batch.
+	 * Remove the daily event, every pending batch and every pending digest.
 	 *
 	 * @return void
 	 */
 	public static function unschedule(): void {
 		wp_clear_scheduled_hook( self::CRON_HOOK );
 		wp_clear_scheduled_hook( Runner::BATCH_HOOK );
+		wp_clear_scheduled_hook( Digest::HOOK );
 	}
 
 	/**

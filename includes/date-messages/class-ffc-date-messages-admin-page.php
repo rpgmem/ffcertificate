@@ -38,11 +38,6 @@ final class DateMessagesAdminPage {
 	public const MENU_SLUG = 'ffc-date-messages';
 
 	/**
-	 * Parent menu: the plugin's own.
-	 */
-	public const PARENT = 'edit.php?post_type=ffc_form';
-
-	/**
 	 * Read-only access: rules, history and recipient totals.
 	 */
 	public const VIEW_CAP = 'ffc_view_date_messages';
@@ -71,7 +66,7 @@ final class DateMessagesAdminPage {
 	/**
 	 * Tabs, in display order.
 	 */
-	public const TABS = array( 'rules', 'send', 'history', 'settings' );
+	public const TABS = array( 'rules', 'send', 'history', 'upcoming', 'settings' );
 
 	/**
 	 * Runs per history page.
@@ -134,7 +129,7 @@ final class DateMessagesAdminPage {
 	}
 
 	/**
-	 * Register the submenu.
+	 * Register the top-level menu.
 	 *
 	 * WordPress gates a menu on ONE capability, while the screen opens for
 	 * view OR manage (the 3-state model: a manage grant does not also need
@@ -146,13 +141,16 @@ final class DateMessagesAdminPage {
 	public function register_menu(): void {
 		$cap = ! current_user_can( self::VIEW_CAP ) && current_user_can( self::MANAGE_CAP ) ? self::MANAGE_CAP : self::VIEW_CAP;
 
-		add_submenu_page(
-			self::PARENT,
+		add_menu_page(
 			__( 'Date Messages', 'ffcertificate' ),
 			__( 'Date Messages', 'ffcertificate' ),
 			$cap,
 			self::MENU_SLUG,
-			array( $this, 'render_page' )
+			array( $this, 'render_page' ),
+			'dashicons-email-alt',
+			// A top-level menu like the other modules', placed after URL
+			// Shortener (26.4) to keep the FFC block contiguous.
+			26.5
 		);
 	}
 
@@ -243,11 +241,15 @@ final class DateMessagesAdminPage {
 
 		$tab = RequestInput::get_get_key( 'tab', 'rules' );
 		$tab = in_array( $tab, self::TABS, true ) ? $tab : 'rules';
+		if ( 'upcoming' === $tab && ! self::can_view_pii() ) {
+			$tab = 'rules';
+		}
 
 		$outcome    = $this->take_outcome();
 		$can_manage = self::can_manage();
 		$rules      = RuleReader::all();
 		$audiences  = self::audience_options();
+		$managers   = array();
 		$editing    = null;
 		$draft      = array();
 
@@ -263,6 +265,9 @@ final class DateMessagesAdminPage {
 				$rule_id = -1;
 			}
 			$tab = $rule_id < 0 ? 'rules' : 'edit';
+			if ( 'edit' === $tab ) {
+				$managers = self::manager_options();
+			}
 		}
 
 		$history = array();
@@ -272,6 +277,10 @@ final class DateMessagesAdminPage {
 			$history = DeliveryLog::recent_runs( self::HISTORY_PER_PAGE, ( $paged - 1 ) * self::HISTORY_PER_PAGE );
 			$total   = DeliveryLog::count_runs();
 		}
+
+		$period      = RequestInput::get_get_key( 'period', 'next30' );
+		$audience_id = RequestInput::get_get_int( 'audience' );
+		$upcoming    = 'upcoming' === $tab ? self::upcoming( $period, $audience_id, Runner::today() ) : null;
 
 		$rule_names = array();
 		foreach ( $rules as $rule ) {
@@ -298,16 +307,8 @@ final class DateMessagesAdminPage {
 		$id     = is_numeric( $posted['id'] ?? null ) ? max( 0, (int) $posted['id'] ) : 0;
 		$data   = self::form_data( $posted );
 
-		// The digest settings are not on this form yet, so an edit keeps the
-		// stored ones instead of resetting them.
-		$stored = $id > 0 ? RuleReader::get_by_id( $id ) : null;
-		if ( $id > 0 && null === $stored ) {
+		if ( $id > 0 && null === RuleReader::get_by_id( $id ) ) {
 			$this->finish( 'error', __( 'That rule no longer exists.', 'ffcertificate' ) );
-		}
-		if ( null !== $stored ) {
-			$data['digest_enabled']  = $stored->digest_enabled ? '1' : '0';
-			$data['digest_mode']     = $stored->digest_mode;
-			$data['digest_user_ids'] = $stored->digest_user_ids;
 		}
 		$data['id'] = $id;
 
@@ -464,15 +465,43 @@ final class DateMessagesAdminPage {
 		$body = $posted['body'] ?? '';
 
 		return array(
-			'name'         => $posted['name'] ?? '',
-			'source'       => $posted['source'] ?? BirthdaySource::ID,
-			'offset_days'  => $posted['offset_days'] ?? '',
-			'audience_id'  => $posted['audience_id'] ?? '',
-			'subject'      => $posted['subject'] ?? '',
-			'body'         => is_string( $body ) ? wp_kses_post( $body ) : '',
-			'send_to_user' => isset( $posted['send_to_user'] ) ? '1' : '0',
-			'is_active'    => isset( $posted['is_active'] ) ? '1' : '0',
+			'name'            => $posted['name'] ?? '',
+			'source'          => $posted['source'] ?? BirthdaySource::ID,
+			'offset_days'     => $posted['offset_days'] ?? '',
+			'audience_id'     => $posted['audience_id'] ?? '',
+			'subject'         => $posted['subject'] ?? '',
+			'body'            => is_string( $body ) ? wp_kses_post( $body ) : '',
+			'send_to_user'    => isset( $posted['send_to_user'] ) ? '1' : '0',
+			'is_active'       => isset( $posted['is_active'] ) ? '1' : '0',
+			'digest_enabled'  => isset( $posted['digest_enabled'] ) ? '1' : '0',
+			'digest_mode'     => $posted['digest_mode'] ?? 'summary',
+			'digest_user_ids' => is_array( $posted['digest_user_ids'] ?? null ) ? $posted['digest_user_ids'] : array(),
 		);
+	}
+
+	/**
+	 * Accounts that may receive a digest: administrators and holders of a
+	 * date-messages capability. A summary about who received a message is
+	 * not for an account that could not open this screen.
+	 *
+	 * @return array<int, string> User id => "Name <email>".
+	 */
+	public static function manager_options(): array {
+		$users = get_users(
+			array(
+				'capability__in' => array( 'manage_options', self::VIEW_CAP, self::MANAGE_CAP, self::PII_CAP ),
+				'orderby'        => 'display_name',
+				'number'         => 500,
+			)
+		);
+
+		$options = array();
+		foreach ( $users as $user ) {
+			if ( $user instanceof \WP_User ) {
+				$options[ $user->ID ] = $user->display_name . ' <' . $user->user_email . '>';
+			}
+		}
+		return $options;
 	}
 
 	/**
@@ -501,6 +530,78 @@ final class DateMessagesAdminPage {
 		$walk( \FreeFormCertificate\Audience\AudienceReader::get_hierarchical( 'active' ), 0 );
 
 		return $options;
+	}
+
+	/**
+	 * Periods the upcoming-dates panel offers: the next 7 or 30 days, or a
+	 * whole month (`m1` … `m12`). Keys are never numeric strings, which PHP
+	 * would turn into integers.
+	 *
+	 * @return array<string, string> Key => label.
+	 */
+	public static function upcoming_periods(): array {
+		global $wp_locale;
+
+		$periods = array(
+			'next7'  => __( 'Next 7 days', 'ffcertificate' ),
+			'next30' => __( 'Next 30 days', 'ffcertificate' ),
+		);
+		for ( $month = 1; $month <= 12; $month++ ) {
+			$periods[ 'm' . $month ] = is_object( $wp_locale ) && method_exists( $wp_locale, 'get_month' ) ? (string) $wp_locale->get_month( $month ) : (string) $month;
+		}
+		return $periods;
+	}
+
+	/**
+	 * The people whose date falls in a period, through the same resolver the
+	 * send uses: a synthetic rule carries only the audience, so the panel
+	 * filters, and flags opt-outs, exactly as a send would.
+	 *
+	 * A month already past this year means its next occurrence, next year,
+	 * which only matters for 29 February.
+	 *
+	 * @param string             $period      A key of upcoming_periods().
+	 * @param int                $audience_id Audience, 0 for everyone.
+	 * @param \DateTimeImmutable $today       Today, site timezone.
+	 * @return array{from: \DateTimeImmutable, to: \DateTimeImmutable, rows: array<int, array{user_id: int, name: string, email: string, date: string, decision: string}>, truncated: bool}
+	 */
+	public static function upcoming( string $period, int $audience_id, \DateTimeImmutable $today ): array {
+		if ( 1 === preg_match( '/^m(1[0-2]|[1-9])$/', $period, $m ) ) {
+			$month = (int) $m[1];
+			$year  = (int) $today->format( 'Y' ) + ( $month < (int) $today->format( 'n' ) ? 1 : 0 );
+			$from  = $today->setDate( $year, $month, 1 );
+			$to    = $from->modify( 'last day of this month' );
+		} else {
+			$from = $today;
+			$to   = $today->modify( 'next7' === $period ? '+6 days' : '+29 days' );
+		}
+
+		$rule      = Rule::from_array(
+			array(
+				'name'        => 'upcoming',
+				'subject'     => '-',
+				'body'        => '-',
+				'audience_id' => $audience_id > 0 ? $audience_id : null,
+			)
+		);
+		$rows      = array();
+		$truncated = false;
+		if ( $rule instanceof Rule ) {
+			$found     = RecipientPreview::collect( $rule, $from, $to, true );
+			$truncated = $found['truncated'];
+			foreach ( $found['rows'] as $row ) {
+				if ( RecipientResolver::OUT_OF_AUDIENCE !== $row['decision'] ) {
+					$rows[] = $row;
+				}
+			}
+		}
+
+		return array(
+			'from'      => $from,
+			'to'        => $to,
+			'rows'      => $rows,
+			'truncated' => $truncated,
+		);
 	}
 
 	/**

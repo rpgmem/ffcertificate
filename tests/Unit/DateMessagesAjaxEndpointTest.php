@@ -15,6 +15,7 @@ use PHPUnit\Framework\TestCase;
  * Recipient preview and test send (#1538).
  *
  * @covers \FreeFormCertificate\DateMessages\DateMessagesAjaxEndpoint
+ * @covers \FreeFormCertificate\DateMessages\RecipientPreview
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
@@ -260,7 +261,7 @@ class DateMessagesAjaxEndpointTest extends TestCase {
 
 	public function test_collect_caps_the_listed_rows_but_counts_everyone(): void {
 		$rows = array();
-		for ( $i = 1; $i <= DateMessagesAjaxEndpoint::PREVIEW_ROW_LIMIT + 5; $i++ ) {
+		for ( $i = 1; $i <= \FreeFormCertificate\DateMessages\RecipientPreview::ROW_LIMIT + 5; $i++ ) {
 			$rows[] = $this->row( $i, 'will_send' );
 		}
 		$this->resolver->shouldReceive( 'resolve' )->andReturn(
@@ -272,11 +273,11 @@ class DateMessagesAjaxEndpointTest extends TestCase {
 		);
 		$day = new \DateTimeImmutable( '2026-10-01' );
 
-		$out = DateMessagesAjaxEndpoint::collect( $this->rule(), $day, $day, true );
+		$out = \FreeFormCertificate\DateMessages\RecipientPreview::collect( $this->rule(), $day, $day, true );
 
-		$this->assertCount( DateMessagesAjaxEndpoint::PREVIEW_ROW_LIMIT, $out['rows'] );
+		$this->assertCount( \FreeFormCertificate\DateMessages\RecipientPreview::ROW_LIMIT, $out['rows'] );
 		$this->assertTrue( $out['truncated'] );
-		$this->assertSame( DateMessagesAjaxEndpoint::PREVIEW_ROW_LIMIT + 5, $out['totals']['will_send'] );
+		$this->assertSame( \FreeFormCertificate\DateMessages\RecipientPreview::ROW_LIMIT + 5, $out['totals']['will_send'] );
 	}
 
 	public function test_test_send_needs_the_manage_capability(): void {

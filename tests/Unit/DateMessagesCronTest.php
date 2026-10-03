@@ -104,7 +104,7 @@ class DateMessagesCronTest extends TestCase {
 
 		DateMessagesCron::unschedule();
 
-		$this->assertSame( array( DateMessagesCron::CRON_HOOK, Runner::BATCH_HOOK ), $cleared );
+		$this->assertSame( array( DateMessagesCron::CRON_HOOK, Runner::BATCH_HOOK, \FreeFormCertificate\DateMessages\Digest::HOOK ), $cleared );
 	}
 
 	public function test_init_attaches_the_daily_job_and_the_batch_continuation(): void {
@@ -120,8 +120,9 @@ class DateMessagesCronTest extends TestCase {
 
 		$this->assertSame(
 			array(
-				DateMessagesCron::CRON_HOOK => 1,
-				Runner::BATCH_HOOK          => 3,
+				DateMessagesCron::CRON_HOOK                         => 1,
+				\FreeFormCertificate\DateMessages\Digest::HOOK => 1,
+				Runner::BATCH_HOOK                                  => 3,
 			),
 			$added
 		);

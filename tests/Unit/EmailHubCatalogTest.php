@@ -62,6 +62,7 @@ final class EmailHubCatalogTest extends TestCase {
 	private const NOT_HUB_EDITABLE = array(
 		'appointment-admin-notification' => 'partial de sistema, enviada por AppointmentEmailHandler via ffc_render_email_partial()',
 		'submission-admin-notification'  => 'likewise, through EmailHandler — an admin notification, not user-facing text',
+		'date-message-digest'            => 'a system summary to managers, rendered by Digest::send(); what it reports is fixed',
 		'layout'                         => 'the configurable chrome, not an email',
 	);
 
