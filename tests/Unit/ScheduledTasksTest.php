@@ -124,6 +124,7 @@ class ScheduledTasksTest extends TestCase {
 			'ffc_date_messages_daily'           => 'DateMessagesCron::unschedule()',
 			'ffc_date_messages_batch'           => 'DateMessagesCron::unschedule()',
 			'ffc_date_messages_digest'          => 'DateMessagesCron::unschedule()',
+			'ffcertificate_warm_cache_hook'     => 'FormCache::unschedule_cache_warming()',
 		);
 
 		foreach ( array_keys( ScheduledTasks::all() ) as $hook ) {
@@ -153,6 +154,7 @@ class ScheduledTasksTest extends TestCase {
 			\FreeFormCertificate\DateMessages\DateMessagesCron::CRON_HOOK,
 			\FreeFormCertificate\DateMessages\Runner::BATCH_HOOK,
 			\FreeFormCertificate\DateMessages\Digest::HOOK,
+			\FreeFormCertificate\Submissions\FormCache::WARM_HOOK,
 		) as $constant ) {
 			$this->assertArrayHasKey( $constant, $all );
 		}

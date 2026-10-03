@@ -418,6 +418,16 @@ class Loader {
 		// Registered unconditionally — IP resolution and WP-Cron both run
 		// outside is_admin(), so this must not sit behind an admin-only gate.
 		\FreeFormCertificate\Settings\IpResolverSettingsBridge::init();
+
+		// Form cache invalidation and the daily warming (#1541). Wired here,
+		// explicitly, rather than by an `add_action( 'init', … )` at the
+		// bottom of the class file: that ran only when something happened to
+		// load the class before `init` priority 5, so whether saving a form
+		// invalidated its cache depended on load order. The warming event is
+		// reconciled with its toggle on every request, which is what finally
+		// makes "Pre-load cache daily" do something.
+		\FreeFormCertificate\Submissions\FormCache::register_hooks();
+		\FreeFormCertificate\Submissions\FormCache::sync_warming_schedule();
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::init();
 
 		// #739 §3.2 read-only viewer gate: forms/calendars list-read primitives

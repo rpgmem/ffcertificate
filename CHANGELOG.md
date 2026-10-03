@@ -30,6 +30,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The user-edit screen showed and saved profile-mapped fields in the wrong place** (#1538). CPF, RF, RG and the other fields reregistration syncs to the profile were read from, and written in plaintext to, a snapshot nothing reads; they now go through the profile, encrypted where the map says so.
 - **Two cron hooks outlived the plugin** (#1538). Uninstall never cleared the expired-ticket sweep, and the reregistration reminder batch was cleared nowhere; a guard now compares every scheduled hook against deactivation and both uninstall paths.
 - **Saving notification preferences erased the date-messages opt-out** (#1545). The dashboard posts only the toggles it shows, and the date-messages one shows only while that module is on, so a save made with it off dropped a stored opt-out and re-subscribed the person. Preferences now merge into the stored ones, keep known keys only and store booleans.
+- **"Pre-load cache daily" did nothing, and saving a form did not always clear its cache** (#1541). Nothing scheduled the warming event and nothing read the toggle; the cache hooks were attached only if the class happened to load before `init`. Both are now wired from the loader, and the warming follows the toggle and Scheduled Tasks.
 
 ### Removed
 

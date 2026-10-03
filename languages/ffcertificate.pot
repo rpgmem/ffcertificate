@@ -23538,3 +23538,6 @@ msgstr ""
 
 msgid "Times saved. Changed tasks were moved to their new time."
 msgstr ""
+
+msgid "Form cache warming (when \"Pre-load cache daily\" is on)"
+msgstr ""

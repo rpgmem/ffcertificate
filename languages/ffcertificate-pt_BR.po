@@ -23629,3 +23629,6 @@ msgstr "Horários salvos, exceto os que não eram um horário válido."
 
 msgid "Times saved. Changed tasks were moved to their new time."
 msgstr "Horários salvos. As tarefas alteradas foram movidas para o novo horário."
+
+msgid "Form cache warming (when \"Pre-load cache daily\" is on)"
+msgstr "Pré-carregamento do cache de formulários (quando \"Pré-carregar cache diariamente\" está ligado)"
