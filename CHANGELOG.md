@@ -9,12 +9,17 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **The identity audit CSV says which findings were accepted as unresolvable** (#1534). The export is a separate pipeline from the queue — seven checks against the queue's three — so it still listed findings the screen had set aside. An `accepted` column carries the reason; the row is never dropped, because a row that vanishes from the file is one nobody can question
+- **The identity audit CSV says which findings were accepted as unresolvable** (#1534). The export scans wider than the queue, so it still listed findings the screen had set aside. An `accepted` column carries the reason; the row is never dropped, because one that vanishes from the file is a finding nobody can question
 - **Identity resolution: a finding nobody can resolve can be accepted as such** (#1532). A stored number the person never supplied, and HR cannot trace, had no correct value to give and returned on every visit. Accepting it moves it to a counted, reversible list of decisions — it is **not** a resolution: nothing stored changes, and a merge or move blocked by that number stays blocked, with the refusal now naming the right panel
+
+### Changed
+
+- Internal conventions: the acceptance join has one owner instead of three copies, and three stale claims are corrected — the auditor's check count, which every prose summary still gave as seven two releases after it became eight; the `views/` coverage carve-out, justified by a token grep that no longer passes; and the acceptance record's standing when an account is deleted (#1536)
 
 ### Fixed
 
 - **The identity-index backfill card could not be asked to look again** (#1530). Its progress is the cursor, so an account skipped for holding two identifiers sits behind it by the time an operator resolves it: the card read 100% while the audit still listed the links. A re-check control re-walks it, overwriting nothing already filled
+- **The link audit card could not say which of its findings were accepted** (#1536). Its total ignored the new state, so a scan whose remainder cannot be resolved could never reach zero, while the CSV explained itself. It now reports the split per check and in total, subtracting nothing
 
 ## [6.32.0] (2026-09-29) — `4ca1cd5d`
 

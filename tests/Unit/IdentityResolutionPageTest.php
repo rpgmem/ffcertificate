@@ -2148,6 +2148,50 @@ class IdentityResolutionPageTest extends TestCase {
 	}
 
 	/**
+	 * THE PANEL SAYS WHICH KIND OF SUBJECT A ROW HOLDS (#1536).
+	 *
+	 * The key's subject is a hash for two of the three checks and an ACCOUNT
+	 * ID for the third, and both printed through the same `substr()` -- so
+	 * `438` and a hash prefix rendered identically, with nothing saying which
+	 * was which. Shape cannot decide it either, which is the trap
+	 * `IdentityConflictQuery` already records: a hex prefix can be all digits.
+	 *
+	 * It resolves the account through `$ffc_identity_named`, the resolver the
+	 * cards above already use, which answers `Account #438` when the account
+	 * is gone -- and it can be gone, because an acceptance deliberately
+	 * outlives the account it was taken about.
+	 */
+	public function test_the_accepted_panel_distinguishes_an_account_from_a_hash(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/admin/views/identity-resolution-page.php' );
+
+		$from = strpos( $view, 'foreach ( $ffc_identity_accepted as $ffc_identity_accepted_row )' );
+		$to   = ( false === $from ) ? false : strpos( $view, 'Put back in the queue', (int) $from );
+
+		$this->assertIsInt( $from, 'The accepted panel must keep its row loop.' );
+		$this->assertIsInt( $to, 'That loop must reach the withdraw button; one of the two moved.' );
+
+		$row = substr( $view, (int) $from, (int) $to - (int) $from );
+
+		$this->assertStringContainsString(
+			'IdentityAcceptance::HASH_SUBJECT_CHECKS',
+			$row,
+			'Only that constant knows which checks key on a hash; deciding it by the subject\'s shape is the trap this guards.'
+		);
+
+		$this->assertStringContainsString(
+			'$ffc_identity_named( $ffc_identity_ar_subject )',
+			$row,
+			'An account subject is resolved, not truncated as though it were a hash.'
+		);
+
+		$this->assertStringContainsString(
+			'substr( $ffc_identity_ar_subject, 0, IdentityQueue::DISPLAY_PREFIX )',
+			$row,
+			'And a hash subject is still truncated: the full hash of a short number is not far from the number.'
+		);
+	}
+
+	/**
 	 * The record reaches the view through the screen's own seam.
 	 *
 	 * One seam means the queue's filter and the panel below read the SAME

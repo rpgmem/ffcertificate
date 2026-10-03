@@ -12,6 +12,8 @@ use FreeFormCertificate\Maintenance\IdentityAcceptance;
 use FreeFormCertificate\Maintenance\IdentityQueue;
 use FreeFormCertificate\Maintenance\IdentityAuditExportSource;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
+use FreeFormCertificate\Maintenance\SubmissionLinkAuditor;
+use FreeFormCertificate\Repositories\SubmissionRepository;
 
 /**
  * The export with the schema probe stubbed out.
@@ -93,7 +95,7 @@ class ExportSourceWithStubbedSchemaProbe extends IdentityAuditExportSource {
  *
  * Every assertion here is on the ROWS the source hands the streamer, because
  * that is the artefact an operator opens. The auditor is injected, so what is
- * under test is the normalisation — seven checks return seven different column
+ * under test is the normalisation — every check returns its own column
  * sets onto one header — and never the queries, which have their own tests.
  *
  * @covers \FreeFormCertificate\Maintenance\IdentityAuditExportSource
@@ -133,6 +135,157 @@ class IdentityAuditExportSourceTest extends TestCase {
 			}
 		);
 		return $tool;
+	}
+
+	/**
+	 * The CSV and the audit card must agree about which findings are accepted.
+	 *
+	 * TWO SURFACES OVER ONE SCAN, AND ONLY ONE OF THEM USED TO EXPLAIN ITSELF
+	 *
+	 * The card reports `N findings, M accepted, N-M open` and this file writes
+	 * a reason per row; both answers come from the same option joined against
+	 * the same report, and before #1536 each built the join's key itself. A
+	 * structural guard in `SubmissionLinkAuditorTest` pins that neither
+	 * rebuilds it; this one measures the consequence, with the REAL auditor on
+	 * both sides -- a canned report would prove the two agree about a number
+	 * the test supplied.
+	 *
+	 * The case is deliberately mixed: two checks, one acceptance each, one
+	 * finding left open, and one record whose finding the scan does not hold.
+	 */
+	public function test_the_card_count_and_the_csv_column_agree(): void {
+		$repo = Mockery::mock( SubmissionRepository::class );
+		$repo->shouldReceive( 'find_orphan_user_links' )->andReturn( array() );
+		$repo->shouldReceive( 'find_users_with_multiple_identities' )->andReturn( array() );
+		$repo->shouldReceive( 'find_unlinked_with_matching_identity' )->andReturn( array() );
+		$repo->shouldReceive( 'find_shared_identities' )->andReturn( array() );
+
+		$conflicts = Mockery::mock( IdentityConflictQuery::class );
+		$conflicts->shouldReceive( 'shared_identities' )->andReturn( array() );
+		$conflicts->shouldReceive( 'unindexed_links' )->andReturn( array() );
+		$conflicts->shouldReceive( 'account_facts' )->andReturn( array() );
+		$conflicts->shouldReceive( 'multiple_identities' )->andReturn(
+			array(
+				array(
+					'subject'           => '438',
+					'identity_count'    => 2,
+					'identifier_column' => 'rf_hash',
+				),
+			)
+		);
+		$conflicts->shouldReceive( 'check_digit_failures_of_both' )->andReturn(
+			array(
+				array(
+					'subject'           => 'hash-of-the-accepted-rf',
+					'identifier_column' => 'rf_hash',
+				),
+				array(
+					'subject'           => 'hash-of-an-rf-still-open',
+					'identifier_column' => 'rf_hash',
+				),
+			)
+		);
+
+		$record = array(
+			IdentityAcceptance::key( IdentityQueue::CHECK_MULTIPLE, 'rf', '438' ) => array(
+				IdentityAcceptance::FIELD_CHECK      => IdentityQueue::CHECK_MULTIPLE,
+				IdentityAcceptance::FIELD_IDENTIFIER => 'rf',
+				IdentityAcceptance::FIELD_SUBJECT    => '438',
+				IdentityAcceptance::FIELD_REASON     => IdentityAcceptance::REASON_NEVER_SUPPLIED,
+			),
+			IdentityAcceptance::key( IdentityQueue::CHECK_DIGITS, 'rf', 'hash-of-the-accepted-rf' ) => array(
+				IdentityAcceptance::FIELD_CHECK      => IdentityQueue::CHECK_DIGITS,
+				IdentityAcceptance::FIELD_IDENTIFIER => 'rf',
+				IdentityAcceptance::FIELD_SUBJECT    => 'hash-of-the-accepted-rf',
+				IdentityAcceptance::FIELD_REASON     => IdentityAcceptance::REASON_UNIDENTIFIABLE,
+			),
+			// On file, and its finding is not in this report -- the account was
+			// deleted, or the value was repaired. Neither surface may count it.
+			IdentityAcceptance::key( IdentityQueue::CHECK_SHARED, 'cpf', 'hash-of-a-vanished-finding' ) => array(
+				IdentityAcceptance::FIELD_CHECK      => IdentityQueue::CHECK_SHARED,
+				IdentityAcceptance::FIELD_IDENTIFIER => 'cpf',
+				IdentityAcceptance::FIELD_SUBJECT    => 'hash-of-a-vanished-finding',
+				IdentityAcceptance::FIELD_REASON     => IdentityAcceptance::REASON_NEVER_SUPPLIED,
+			),
+		);
+
+		$auditor = new class( $repo, $conflicts, $record ) extends SubmissionLinkAuditor {
+			/** @var IdentityConflictQuery */
+			private $double;
+
+			/** @var array<string, array<string, mixed>> */
+			private $record;
+
+			/**
+			 * @param SubmissionRepository                $repository Repository double.
+			 * @param IdentityConflictQuery               $double     Cross-store double.
+			 * @param array<string, array<string, mixed>> $record     Acceptance records.
+			 */
+			public function __construct( $repository, $double, array $record ) {
+				parent::__construct( $repository );
+				$this->double = $double;
+				$this->record = $record;
+			}
+
+			/**
+			 * @return IdentityConflictQuery
+			 */
+			protected function conflicts(): IdentityConflictQuery {
+				return $this->double;
+			}
+
+			/**
+			 * @return IdentityAcceptance
+			 */
+			protected function acceptances(): IdentityAcceptance {
+				$held = $this->record;
+
+				return new class( $held ) extends IdentityAcceptance {
+
+					/** @var array<string, array<string, mixed>> */
+					private $held;
+
+					/**
+					 * @param array<string, array<string, mixed>> $held Records.
+					 */
+					public function __construct( array $held ) {
+						$this->held = $held;
+					}
+
+					/**
+					 * @return array<string, array<string, mixed>>
+					 */
+					public function all(): array {
+						return $this->held;
+					}
+				};
+			}
+		};
+
+		$report = $auditor->run( array() );
+
+		$source            = new ExportSourceWithStubbedSchemaProbe( $auditor );
+		$source->accepted  = $record;
+		$rows              = $this->rows( $source );
+
+		$from_csv = 0;
+
+		foreach ( $rows as $row ) {
+			// A reason, never `open` and never blank: the column carries which
+			// of the closed set of reasons was given, so anything else is a
+			// finding nobody judged or one that cannot be judged at all.
+			if ( in_array( $row['accepted'], IdentityAcceptance::REASONS, true ) ) {
+				++$from_csv;
+			}
+		}
+
+		$this->assertSame( 3, $report['total'], 'Three findings, so the agreement below is measured over a non-empty report.' );
+		$this->assertSame( 2, $report['accepted'], 'The card counts the findings a record covers, never the records.' );
+		$this->assertSame(
+			$report['accepted'],
+			$from_csv,
+			'The card and the file disagree about which findings are accepted, which is what one option read through two copies of a join produces.'
+		);
 	}
 
 	/**
@@ -1270,7 +1423,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 	/**
 	 * A CHECK WITH NO CONCEPT OF ACCEPTANCE PRINTS NOTHING.
 	 *
-	 * The auditor runs seven checks; the queue composes three. For the other
+	 * The auditor runs more checks than the queue composes. For the rest
 	 * four the answer is not "no" -- there is nothing to answer, and blank is
 	 * what this file already does for a column that does not apply. Reading
 	 * their absence as `open` would invite an operator to go looking for a
