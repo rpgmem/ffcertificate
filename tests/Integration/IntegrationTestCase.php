@@ -145,6 +145,9 @@ abstract class IntegrationTestCase extends TestCase {
 			}
 		);
 		Functions\when( 'wp_get_schedules' )->justReturn( array() );
+		// A task whose toggle is off is cleared when found scheduled — the
+		// form-cache warming does this on every request (#1541).
+		Functions\when( 'wp_clear_scheduled_hook' )->justReturn( 0 );
 
 		// --- REST route registration: recorded. -------------------------------
 		Functions\when( 'register_rest_route' )->alias(

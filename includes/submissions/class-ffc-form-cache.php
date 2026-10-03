@@ -24,6 +24,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class FormCache {
 
+	/**
+	 * Daily warming event. Listed in `ScheduledTasks`, cleared on
+	 * deactivation and in both uninstall paths.
+	 */
+	public const WARM_HOOK = 'ffcertificate_warm_cache_hook';
+
 	const CACHE_GROUP = 'ffc_forms';
 
 	/**
@@ -543,12 +549,51 @@ class FormCache {
 	public static function register_hooks(): void {
 		add_action( 'save_post_ffc_form', array( __CLASS__, 'on_form_saved' ), 10, 3 );
 		add_action( 'before_delete_post', array( __CLASS__, 'on_form_deleted' ), 10, 2 );
-		add_action(
-			'ffcertificate_warm_cache_hook',
-			static function (): void {
-				self::warm_all_forms();
-			}
-		);
+		add_action( self::WARM_HOOK, array( __CLASS__, 'run_scheduled_warming' ) );
+	}
+
+	/**
+	 * Whether the daily warming is wanted: the cache on, and "Pre-load cache
+	 * daily" on (#1541). Warming a cache that is off would only spend queries.
+	 *
+	 * @return bool
+	 */
+	public static function auto_warm_enabled(): bool {
+		return ! empty( \FreeFormCertificate\Settings\SettingsReader::get( 'cache_enabled', 1 ) )
+			&& ! empty( \FreeFormCertificate\Settings\SettingsReader::get( 'cache_auto_warm', 0 ) );
+	}
+
+	/**
+	 * Keep the daily event in step with the toggle (#1541).
+	 *
+	 * Called on every request from `Loader::init_plugin()`. The toggle is an
+	 * autosave field, so there is no save handler to hang this on, and a
+	 * reconciliation that runs every request also heals an event a migration
+	 * or a host lost. It costs one `wp_next_scheduled()` lookup in the
+	 * already-loaded cron array.
+	 *
+	 * @return void
+	 */
+	public static function sync_warming_schedule(): void {
+		if ( self::auto_warm_enabled() ) {
+			self::schedule_cache_warming();
+			return;
+		}
+		if ( false !== wp_next_scheduled( self::WARM_HOOK ) ) {
+			self::unschedule_cache_warming();
+		}
+	}
+
+	/**
+	 * Cron callback. Re-checks the toggle, so an event left over from before
+	 * it was turned off warms nothing.
+	 *
+	 * @return void
+	 */
+	public static function run_scheduled_warming(): void {
+		if ( self::auto_warm_enabled() ) {
+			self::warm_all_forms();
+		}
 	}
 
 	/**
@@ -588,8 +633,8 @@ class FormCache {
 	 * Schedule cache warming cron job
 	 */
 	public static function schedule_cache_warming(): void {
-		if ( ! wp_next_scheduled( 'ffcertificate_warm_cache_hook' ) ) {
-			wp_schedule_event( time(), 'daily', 'ffcertificate_warm_cache_hook' );
+		if ( ! wp_next_scheduled( self::WARM_HOOK ) ) {
+			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( self::WARM_HOOK, time() + HOUR_IN_SECONDS ), 'daily', self::WARM_HOOK );
 		}
 	}
 
@@ -597,10 +642,7 @@ class FormCache {
 	 * Unschedule cache warming cron job
 	 */
 	public static function unschedule_cache_warming(): void {
-		$timestamp = wp_next_scheduled( 'ffcertificate_warm_cache_hook' );
-		if ( $timestamp ) {
-			wp_unschedule_event( $timestamp, 'ffcertificate_warm_cache_hook' );
-		}
+		wp_clear_scheduled_hook( self::WARM_HOOK );
 	}
 
 	/**
@@ -655,6 +697,3 @@ class FormCache {
 		}
 	}
 }
-
-// Register hooks on load.
-add_action( 'init', array( __NAMESPACE__ . '\\FormCache', 'register_hooks' ), 5 );
