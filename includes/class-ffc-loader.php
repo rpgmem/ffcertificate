@@ -203,6 +203,13 @@ class Loader {
 			\FreeFormCertificate\Recruitment\RecruitmentActivator::maybe_migrate();
 		}
 
+		// Date-messages schema (#1538) -- orchestrator lifecycle like the one
+		// above: it runs whether or not the module is toggled on, so turning
+		// it off never strands its tables.
+		if ( class_exists( '\FreeFormCertificate\DateMessages\DateMessagesActivator' ) ) {
+			\FreeFormCertificate\DateMessages\DateMessagesActivator::maybe_migrate();
+		}
+
 		// Recruitment adoption — orchestrator-level for the SAME reason as the
 		// schema above. `UserCreator::link_orphaned_records_dual()` fires this
 		// action whenever a person is resolved; the recruitment writer claims
@@ -468,6 +475,11 @@ class Loader {
 
 		// Ensure the daily Cloudflare CIDR refresh cron is scheduled (#901).
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::schedule();
+
+		// Ensure the daily date-messages send is scheduled (#1538). Like the
+		// others it stays scheduled with the module off; the callback is what
+		// the toggle gates.
+		\FreeFormCertificate\DateMessages\DateMessagesCron::schedule();
 
 		// Record when each recurring task last actually ran, for the Scheduled
 		// tasks screen (#1538). On every request, like the schedules above:
@@ -1019,6 +1031,12 @@ class Loader {
 		if ( SettingsReader::module_enabled( 'self_scheduling' ) ) {
 			add_action( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, array( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::class, 'run' ) );
 		}
+		if ( SettingsReader::module_enabled( 'date_messages' ) ) {
+			\FreeFormCertificate\DateMessages\DateMessagesCron::init();
+		}
+		// The unsubscribe link is honoured whatever the toggle says: a person
+		// holding a message must always be able to say "no more" (#1538).
+		\FreeFormCertificate\DateMessages\Unsubscribe::init();
 
 		// The expired-ticket sweep comes from `AdminLoader` (#1234), and the
 		// move IS the fix: there it never ran.

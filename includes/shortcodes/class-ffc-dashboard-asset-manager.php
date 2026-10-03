@@ -197,6 +197,9 @@ class DashboardAssetManager {
 				'viewAsUserId'            => $view_as_user_id ? $view_as_user_id : false,
 				'isAdminViewing'          => $view_as_user_id && get_current_user_id() !== $view_as_user_id,
 				'logoutUrl'               => wp_logout_url( home_url() ),
+				// The date-messages opt-out toggle (#1538) is shown only while
+				// the module sends anything.
+				'dateMessagesEnabled'     => \FreeFormCertificate\Settings\SettingsReader::module_enabled( 'date_messages' ),
 				'canViewCertificates'     => $can_view_certificates,
 				'canViewAppointments'     => $can_view_appointments,
 				'canViewAudienceBookings' => $can_view_audience_bookings,
@@ -317,6 +320,7 @@ class DashboardAssetManager {
 					'notifAppointmentConfirm'  => __( 'Appointment confirmation', 'ffcertificate' ),
 					'notifAppointmentReminder' => __( 'Appointment reminder', 'ffcertificate' ),
 					'notifNewCertificate'      => __( 'New certificate issued', 'ffcertificate' ),
+					'notifDateMessages'        => __( 'Date messages (such as birthday greetings)', 'ffcertificate' ),
 					'notifSaved'               => __( 'Preferences saved', 'ffcertificate' ),
 					// Pagination.
 					'previous'                 => __( 'Previous', 'ffcertificate' ),

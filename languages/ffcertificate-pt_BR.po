@@ -23218,3 +23218,102 @@ msgstr "Linha a instalar"
 
 msgid "Add it with \"crontab -e\" as the user that owns the WordPress files, or paste it into your hosting panel's cron section."
 msgstr "Adicione com \"crontab -e\" como o usuário dono dos arquivos do WordPress, ou cole na seção de cron do painel da sua hospedagem."
+
+msgid "Birthday"
+msgstr "Aniversário"
+
+msgid "Birthday message (default for new rules)"
+msgstr "Mensagem de aniversário (padrão para novas regras)"
+
+msgid "Choose a range of 1 to %d days, starting on or before its end."
+msgstr "Escolha um intervalo de 1 a %d dias, com início igual ou anterior ao fim."
+
+msgid "Could not record the run."
+msgstr "Não foi possível registrar a execução."
+
+msgid "Create and edit rules, send manually and set the daily send time."
+msgstr "Criar e editar regras, enviar manualmente e definir o horário do envio diário."
+
+msgid "Date Messages"
+msgstr "Mensagens por Data"
+
+msgid "Date messages"
+msgstr "Mensagens por data"
+
+msgid "Date messages (birthdays and other dates)"
+msgstr "Mensagens por data (aniversários e outras datas)"
+
+msgid "Date messages (such as birthday greetings)"
+msgstr "Mensagens por data (como felicitações de aniversário)"
+
+msgid "Date messages batch (one per batch)"
+msgstr "Lote de mensagens por data (um por lote)"
+
+msgid "Done. You will no longer receive date messages. You can turn them back on in your dashboard profile."
+msgstr "Pronto. Você não receberá mais mensagens por data. É possível reativá-las no perfil do seu painel."
+
+msgid "E-mails sent on a date in each person's profile, such as a birthday."
+msgstr "E-mails enviados em uma data do perfil de cada pessoa, como o aniversário."
+
+msgid "Everyone at %s wishes you a very happy birthday and a wonderful year ahead."
+msgstr "Todos em %s desejam a você um feliz aniversário e um ano maravilhoso pela frente."
+
+msgid "FFCertificate — Date messages"
+msgstr "FFCertificate — Mensagens por data"
+
+msgid "Give the rule a name."
+msgstr "Dê um nome à regra."
+
+msgid "Happy birthday!"
+msgstr "Feliz aniversário!"
+
+msgid "Happy birthday, {{first_name}}!"
+msgstr "Feliz aniversário, {{first_name}}!"
+
+msgid "Lists people by name with their birthday (day and month) in the recipient preview and the upcoming-dates panel."
+msgstr "Lista as pessoas por nome com o aniversário (dia e mês) na prévia de destinatários e no painel de próximas datas."
+
+msgid "Manage date messages"
+msgstr "Gerenciar mensagens por data"
+
+msgid "Maria"
+msgstr "Maria"
+
+msgid "Maria da Silva"
+msgstr "Maria da Silva"
+
+msgid "Prefer not to receive these messages? <a href=\"%s\">Unsubscribe</a>."
+msgstr "Prefere não receber estas mensagens? <a href=\"%s\">Cancelar inscrição</a>."
+
+msgid "Read-only access to the date-message rules, their send history and recipient totals."
+msgstr "Acesso somente leitura às regras de mensagens por data, ao histórico de envios e aos totais de destinatários."
+
+msgid "See who receives date messages"
+msgstr "Ver quem recebe mensagens por data"
+
+msgid "Stop receiving date messages, such as birthday greetings, at this account?"
+msgstr "Deixar de receber mensagens por data, como felicitações de aniversário, nesta conta?"
+
+msgid "The e-mail needs a subject and a body."
+msgstr "O e-mail precisa de assunto e corpo."
+
+msgid "The number of days must be a whole number between -%1$d and %1$d."
+msgstr "O número de dias deve ser um inteiro entre -%1$d e %1$d."
+
+msgid "This page expired. Open the link in the message again."
+msgstr "Esta página expirou. Abra o link da mensagem novamente."
+
+msgid "This unsubscribe link is not valid."
+msgstr "Este link de cancelamento de inscrição não é válido."
+
+msgid "Unknown date source."
+msgstr "Fonte de data desconhecida."
+
+msgid "Unknown digest mode."
+msgstr "Modo de resumo desconhecido."
+
+msgid "Unsubscribe"
+msgstr "Cancelar inscrição"
+
+msgid "View date messages"
+msgstr "Ver mensagens por data"

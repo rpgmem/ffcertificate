@@ -91,6 +91,9 @@ final class CapabilityCatalog {
 	/** Group key: admin-level recruitment management. */
 	public const GROUP_ADMIN_RECRUITMENT = 'admin_recruitment';
 
+	/** Group key: date-based messages (#1538). */
+	public const GROUP_ADMIN_DATE_MESSAGES = 'admin_date_messages';
+
 	/**
 	 * Ordered list of capability groups with full metadata.
 	 *
@@ -355,6 +358,25 @@ final class CapabilityCatalog {
 					'ffc_export_url_shortener' => array(
 						'label'       => __( 'Export short URLs', 'ffcertificate' ),
 						'description' => __( 'Download the short-URL list (codes, targets, click counts) as CSV.', 'ffcertificate' ),
+					),
+				),
+			),
+			array(
+				'key'   => self::GROUP_ADMIN_DATE_MESSAGES,
+				'label' => __( 'Date messages', 'ffcertificate' ),
+				'level' => 'admin',
+				'caps'  => array(
+					'ffc_view_date_messages'     => array(
+						'label'       => __( 'View date messages', 'ffcertificate' ),
+						'description' => __( 'Read-only access to the date-message rules, their send history and recipient totals.', 'ffcertificate' ),
+					),
+					'ffc_manage_date_messages'   => array(
+						'label'       => __( 'Manage date messages', 'ffcertificate' ),
+						'description' => __( 'Create and edit rules, send manually and set the daily send time.', 'ffcertificate' ),
+					),
+					'ffc_view_date_messages_pii' => array(
+						'label'       => __( 'See who receives date messages', 'ffcertificate' ),
+						'description' => __( 'Lists people by name with their birthday (day and month) in the recipient preview and the upcoming-dates panel.', 'ffcertificate' ),
 					),
 				),
 			),

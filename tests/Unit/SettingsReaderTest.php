@@ -433,11 +433,12 @@ class SettingsReaderTest extends TestCase {
 		$this->assertTrue( SettingsReader::module_enabled( 'certificates' ) );
 	}
 
-	public function test_module_slugs_are_unique_and_cover_the_six_modules(): void {
+	public function test_module_slugs_are_unique_and_cover_the_seven_modules(): void {
 		$slugs = SettingsReader::MODULE_SLUGS;
 		$this->assertSame( $slugs, array_values( array_unique( $slugs ) ), 'MODULE_SLUGS must not contain duplicates' );
 		$this->assertContains( 'certificates', $slugs );
 		$this->assertContains( 'url_shortener', $slugs );
-		$this->assertCount( 6, $slugs );
+		$this->assertContains( 'date_messages', $slugs );
+		$this->assertCount( 7, $slugs );
 	}
 }

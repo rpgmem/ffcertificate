@@ -75,6 +75,11 @@ class Activator {
 			\FreeFormCertificate\Recruitment\RecruitmentActivator::create_tables();
 		}
 
+		if ( class_exists( '\FreeFormCertificate\DateMessages\DateMessagesActivator' ) ) {
+			\FreeFormCertificate\DateMessages\DateMessagesActivator::create_tables();
+			\FreeFormCertificate\DateMessages\DateMessagesCron::schedule();
+		}
+
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\RoleRegistrar::register_recruitment_manager_role();
 			\FreeFormCertificate\UserDashboard\RoleRegistrar::register_module_roles();

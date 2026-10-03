@@ -46,6 +46,10 @@ $ffc_module_meta = array(
 		'label' => __( 'Recruitment', 'ffcertificate' ),
 		'desc'  => __( 'Recruitment calls, candidates and the public queue.', 'ffcertificate' ),
 	),
+	'date_messages'   => array(
+		'label' => __( 'Date Messages', 'ffcertificate' ),
+		'desc'  => __( 'E-mails sent on a date in each person\'s profile, such as a birthday.', 'ffcertificate' ),
+	),
 );
 ?>
 

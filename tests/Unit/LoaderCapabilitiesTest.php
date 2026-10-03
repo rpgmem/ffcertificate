@@ -494,6 +494,13 @@ class LoaderCapabilitiesTest extends TestCase {
 			->shouldReceive( 'maybe_migrate' )->once();
 		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserDashboardActivator' )
 			->shouldReceive( 'maybe_migrate' )->once();
+		// Date messages (#1538): schema heal and daily schedule run whatever
+		// the module toggle says; only its callbacks are gated.
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DateMessagesActivator' )
+			->shouldReceive( 'maybe_migrate' )->once();
+		$date_messages_cron = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DateMessagesCron' );
+		$date_messages_cron->shouldReceive( 'schedule' )->once();
+		$date_messages_cron->shouldReceive( 'init' )->zeroOrMoreTimes();
 
 		// Shared runtime classes.
 		Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' )
@@ -588,6 +595,13 @@ class LoaderCapabilitiesTest extends TestCase {
 		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentActivator' )
 			->shouldReceive( 'create_tables' )->atLeast()->once()
 			->shouldReceive( 'maybe_migrate' )->atLeast()->once();
+		// Date-messages schema heal and daily schedule run with the module
+		// off; its callbacks are what the toggle skips (#1538).
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DateMessagesActivator' )
+			->shouldReceive( 'maybe_migrate' )->atLeast()->once();
+		$date_messages_cron = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DateMessagesCron' );
+		$date_messages_cron->shouldReceive( 'schedule' )->atLeast()->once();
+		$date_messages_cron->shouldReceive( 'init' )->never();
 
 		Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' )
 			->shouldReceive( 'register_async_pipeline' )->zeroOrMoreTimes();
@@ -651,6 +665,7 @@ class LoaderCapabilitiesTest extends TestCase {
 						'module_self_scheduling_enabled' => 0,
 						'module_reregistration_enabled'  => 0,
 						'module_recruitment_enabled'     => 0,
+						'module_date_messages_enabled'   => 0,
 						'url_shortener_enabled'          => 0,
 					);
 				}

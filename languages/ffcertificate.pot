@@ -23127,3 +23127,102 @@ msgstr ""
 
 msgid "Add it with \"crontab -e\" as the user that owns the WordPress files, or paste it into your hosting panel's cron section."
 msgstr ""
+
+msgid "Birthday"
+msgstr ""
+
+msgid "Birthday message (default for new rules)"
+msgstr ""
+
+msgid "Choose a range of 1 to %d days, starting on or before its end."
+msgstr ""
+
+msgid "Could not record the run."
+msgstr ""
+
+msgid "Create and edit rules, send manually and set the daily send time."
+msgstr ""
+
+msgid "Date Messages"
+msgstr ""
+
+msgid "Date messages"
+msgstr ""
+
+msgid "Date messages (birthdays and other dates)"
+msgstr ""
+
+msgid "Date messages (such as birthday greetings)"
+msgstr ""
+
+msgid "Date messages batch (one per batch)"
+msgstr ""
+
+msgid "Done. You will no longer receive date messages. You can turn them back on in your dashboard profile."
+msgstr ""
+
+msgid "E-mails sent on a date in each person's profile, such as a birthday."
+msgstr ""
+
+msgid "Everyone at %s wishes you a very happy birthday and a wonderful year ahead."
+msgstr ""
+
+msgid "FFCertificate — Date messages"
+msgstr ""
+
+msgid "Give the rule a name."
+msgstr ""
+
+msgid "Happy birthday!"
+msgstr ""
+
+msgid "Happy birthday, {{first_name}}!"
+msgstr ""
+
+msgid "Lists people by name with their birthday (day and month) in the recipient preview and the upcoming-dates panel."
+msgstr ""
+
+msgid "Manage date messages"
+msgstr ""
+
+msgid "Maria"
+msgstr ""
+
+msgid "Maria da Silva"
+msgstr ""
+
+msgid "Prefer not to receive these messages? <a href=\"%s\">Unsubscribe</a>."
+msgstr ""
+
+msgid "Read-only access to the date-message rules, their send history and recipient totals."
+msgstr ""
+
+msgid "See who receives date messages"
+msgstr ""
+
+msgid "Stop receiving date messages, such as birthday greetings, at this account?"
+msgstr ""
+
+msgid "The e-mail needs a subject and a body."
+msgstr ""
+
+msgid "The number of days must be a whole number between -%1$d and %1$d."
+msgstr ""
+
+msgid "This page expired. Open the link in the message again."
+msgstr ""
+
+msgid "This unsubscribe link is not valid."
+msgstr ""
+
+msgid "Unknown date source."
+msgstr ""
+
+msgid "Unknown digest mode."
+msgstr ""
+
+msgid "Unsubscribe"
+msgstr ""
+
+msgid "View date messages"
+msgstr ""

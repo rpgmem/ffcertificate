@@ -69,6 +69,7 @@ class ActivatorSchemaGuardTest extends TestCase {
 		// install and no upgraded one. Same guard, same both-directions charge.
 		'reregistration'  => array( '\FreeFormCertificate\Reregistration\ReregistrationActivator', 'maybe_migrate', 'ffc_reregistration_schema_version' ),
 		'user-dashboard'  => array( '\FreeFormCertificate\UserDashboard\UserDashboardActivator', 'maybe_migrate', 'ffc_user_dashboard_schema_version' ),
+		'date-messages'   => array( '\FreeFormCertificate\DateMessages\DateMessagesActivator', 'maybe_migrate', 'ffc_date_messages_schema_version' ),
 	);
 
 	/**

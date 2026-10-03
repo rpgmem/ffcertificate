@@ -58,6 +58,11 @@ final class EmailSource {
 	public const RECRUITMENT = 'plugin:ffcertificate_recruitment';
 
 	/**
+	 * Date-based messages, such as birthdays (#1538).
+	 */
+	public const DATE_MESSAGES = 'plugin:ffcertificate_date_messages';
+
+	/**
 	 * Account / capability notifications (access granted, etc.).
 	 */
 	public const ACCOUNT = 'plugin:ffcertificate_account';
@@ -88,6 +93,8 @@ final class EmailSource {
 				return __( 'FFCertificate — Re-registration', 'ffcertificate' );
 			case self::RECRUITMENT:
 				return __( 'FFCertificate — Recruitment', 'ffcertificate' );
+			case self::DATE_MESSAGES:
+				return __( 'FFCertificate — Date messages', 'ffcertificate' );
 			case self::ACCOUNT:
 				return __( 'FFCertificate — Account', 'ffcertificate' );
 			case self::ADMIN:

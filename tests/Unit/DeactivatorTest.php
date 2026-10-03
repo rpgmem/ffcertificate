@@ -94,7 +94,10 @@ class DeactivatorTest extends TestCase {
 		$this->assertContains( 'ffc_cloudflare_cidr_refresh', $cleared );
 		// A pending reminder batch was cleared nowhere until #1538.
 		$this->assertContains( 'ffc_reregistration_reminder_batch', $cleared );
-		$this->assertCount( 5, $cleared );
+		// The date-messages daily send and its pending batches (#1538).
+		$this->assertContains( 'ffc_date_messages_daily', $cleared );
+		$this->assertContains( 'ffc_date_messages_batch', $cleared );
+		$this->assertCount( 7, $cleared );
 	}
 
 	public function test_deactivate_flushes_rewrite_rules(): void {
