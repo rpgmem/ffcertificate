@@ -104,17 +104,49 @@ class ReregistrationActivator {
 	 * reason the schema does: a definition that gains a key in a later release
 	 * must reach installs that already ran this once. The table belongs to the
 	 * user-dashboard activator and may not exist yet on the very first run,
-	 * in which case there is nothing seeded to fix.
+	 * in which case there is nothing seeded to fix. Written against `$wpdb`
+	 * directly, like every other step of this chain: the repositories type
+	 * their connection, and the chain must run on whatever `$wpdb` is.
 	 *
 	 * @return void
 	 */
 	private static function sync_standard_profile_keys(): void {
 		global $wpdb;
-		if ( ! self::table_exists( $wpdb->prefix . 'ffc_custom_fields' ) ) {
+
+		$table = $wpdb->prefix . 'ffc_custom_fields';
+		if ( ! self::table_exists( $table ) ) {
 			return;
 		}
 
-		ReregistrationStandardFieldsSeeder::sync_standard_profile_keys();
+		foreach ( ReregistrationStandardFieldsSeeder::PROFILE_KEYS as $field_key => $profile_key ) {
+			// Only rows that carry no key: one an operator pointed elsewhere
+			// is a deliberate choice and stays.
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT id FROM %i WHERE field_source = 'standard' AND field_key = %s AND ( field_profile_key IS NULL OR field_profile_key = '' )",
+					$table,
+					$field_key
+				),
+				ARRAY_A
+			);
+
+			foreach ( (array) $rows as $row ) {
+				$raw = is_array( $row ) ? ( $row['id'] ?? null ) : null;
+				$id  = is_numeric( $raw ) ? (int) $raw : 0;
+				if ( $id <= 0 ) {
+					continue;
+				}
+
+				$wpdb->query(
+					$wpdb->prepare( 'UPDATE %i SET field_profile_key = %s WHERE id = %d', $table, $profile_key, $id )
+				);
+
+				// The key CustomFieldReader::get_by_id() caches the row under,
+				// so a persistent object cache does not keep serving the row
+				// without its new profile key.
+				wp_cache_delete( 'id_' . $id, 'ffc_custom_fields' );
+			}
+		}
 	}
 
 	/**

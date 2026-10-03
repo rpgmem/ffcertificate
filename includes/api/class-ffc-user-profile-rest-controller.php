@@ -172,14 +172,9 @@ class UserProfileRestController {
 				}
 			}
 
-			// The canonical birth date (#1538), decrypted for its owner. Read
-			// through the extended profile rather than a FULL service read,
-			// which would write an audit line on every dashboard load.
-			$birth_date = '';
-			if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
-				$extended   = \FreeFormCertificate\UserDashboard\UserManager::get_extended_profile( $user_id, array( 'birth_date' ) );
-				$birth_date = (string) ( \FreeFormCertificate\Core\BirthDate::normalize( (string) ( $extended['birth_date'] ?? '' ) ) ?? '' );
-			}
+			// The canonical birth date (#1538), decrypted for its owner by
+			// UserService, which already merged the rest of the profile.
+			$birth_date = (string) ( $full_profile['birth_date'] ?? '' );
 
 			return rest_ensure_response(
 				array(

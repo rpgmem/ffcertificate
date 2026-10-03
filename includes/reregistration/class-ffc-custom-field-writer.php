@@ -385,40 +385,6 @@ class CustomFieldWriter {
 	}
 
 	/**
-	 * Give every standard row of one field the profile key its definition now
-	 * declares, where the row carries none.
-	 *
-	 * Only empty keys are filled: a row an operator pointed at another profile
-	 * key is a deliberate choice and stays. Each row goes through `update()`,
-	 * so its cache entry is dropped exactly as for any other edit.
-	 *
-	 * @since 6.33.0
-	 * @param string $field_key   Standard field key (a stored value).
-	 * @param string $profile_key Profile key the definition declares.
-	 * @return int Rows changed.
-	 */
-	public static function assign_standard_profile_key( string $field_key, string $profile_key ): int {
-		$wpdb = self::db();
-
-		$ids = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT id FROM %i WHERE field_source = 'standard' AND field_key = %s AND ( field_profile_key IS NULL OR field_profile_key = '' )",
-				self::get_table_name(),
-				$field_key
-			)
-		);
-
-		$changed = 0;
-		foreach ( $ids as $id ) {
-			if ( self::update( (int) $id, array( 'field_profile_key' => $profile_key ) ) ) {
-				++$changed;
-			}
-		}
-
-		return $changed;
-	}
-
-	/**
 	 * Update only the field_group of a field.
 	 *
 	 * @param int    $field_id Field ID.

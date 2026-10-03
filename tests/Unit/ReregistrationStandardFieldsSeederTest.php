@@ -451,61 +451,18 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 	}
 
 	/**
-	 * Already-seeded rows get the profile key their definition now declares,
-	 * and only where they carry none.
+	 * The label-free map the schema heal reads agrees with the definitions,
+	 * in both directions -- it exists only so the heal never calls `__()`.
 	 */
-	public function test_sync_fills_the_profile_key_of_rows_seeded_before_it_existed(): void {
-		Functions\when( 'sanitize_key' )->returnArg();
-		Functions\when( 'wp_cache_delete' )->justReturn( true );
-
-		$asked = array();
-		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing(
-			function ( $sql ) use ( &$asked ) {
-				$asked[] = $sql;
-				// Only the birth-date rows lack their key in this fixture.
-				return count( $asked ) === $this->position_of( 'data_nascimento' ) ? array( '7', '9' ) : array();
-			}
-		);
-
-		$updated = array();
-		$this->wpdb->shouldReceive( 'update' )->andReturnUsing(
-			static function ( $table, $data, $where ) use ( &$updated ) {
-				$updated[ (int) $where['id'] ] = $data;
-				return 1;
-			}
-		);
-
-		$changed = ReregistrationStandardFieldsSeeder::sync_standard_profile_keys();
-
-		$this->assertSame( 2, $changed );
-		$this->assertSame(
-			array(
-				7 => array( 'field_profile_key' => 'birth_date' ),
-				9 => array( 'field_profile_key' => 'birth_date' ),
-			),
-			$updated
-		);
-		$this->assertStringContainsString( "field_profile_key IS NULL OR field_profile_key = ''", $asked[0], 'A key an operator chose must never be overwritten.' );
-	}
-
-	/**
-	 * 1-based position of a field among the definitions that declare a key --
-	 * the order in which the sync issues one SELECT each.
-	 *
-	 * @param string $field_key Field key.
-	 * @return int
-	 */
-	private function position_of( string $field_key ): int {
-		$n = 0;
+	public function test_profile_keys_agree_with_the_definitions(): void {
+		$declared = array();
 		foreach ( ReregistrationStandardFieldsSeeder::get_standard_fields_definition() as $def ) {
-			if ( empty( $def['profile_key'] ) ) {
-				continue;
-			}
-			++$n;
-			if ( $field_key === $def['field_key'] ) {
-				return $n;
+			if ( ! empty( $def['profile_key'] ) ) {
+				$declared[ (string) $def['field_key'] ] = (string) $def['profile_key'];
 			}
 		}
-		$this->fail( "{$field_key} declares no profile key." );
+
+		$this->assertNotSame( array(), $declared, 'Read no profile key from the definitions -- the check did not run.' );
+		$this->assertSame( $declared, ReregistrationStandardFieldsSeeder::PROFILE_KEYS );
 	}
 }

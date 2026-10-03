@@ -68,6 +68,7 @@ return array(
 	'Migrations>Repositories',
 	'Migrations>Reregistration',
 	'Migrations>Security',
+	'Migrations>UserDashboard',
 	'Privacy>Core',
 	'Privacy>Services',
 	'Privacy>Settings',

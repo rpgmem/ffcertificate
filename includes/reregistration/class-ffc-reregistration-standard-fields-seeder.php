@@ -70,6 +70,30 @@ class ReregistrationStandardFieldsSeeder {
 	public const GROUP_ACKNOWLEDGMENT = 'acknowledgment';
 
 	/**
+	 * Profile key of every standard field that declares one.
+	 *
+	 * The same pairs `get_standard_fields_definition()` carries, without its
+	 * translated labels: `ReregistrationActivator::maybe_migrate()` fills the
+	 * key on rows seeded before a definition gained it, and that runs on
+	 * `plugins_loaded`, before translations may load, so it must not call
+	 * `__()` (#1538). `ReregistrationStandardFieldsSeederTest` fails when the
+	 * two disagree.
+	 *
+	 * @var array<string, string>
+	 */
+	public const PROFILE_KEYS = array(
+		'display_name'    => 'display_name',
+		'rf'              => 'rf',
+		'data_nascimento' => 'birth_date',
+		'cpf'             => 'cpf',
+		'rg'              => 'rg',
+		'divisao_setor'   => 'divisao_setor',
+		'phone'           => 'phone',
+		'celular'         => 'celular',
+		'jornada'         => 'jornada',
+	);
+
+	/**
 	 * Get the ordered list of groups with translated labels.
 	 *
 	 * @return array<string, string>
@@ -566,31 +590,6 @@ class ReregistrationStandardFieldsSeeder {
 		}
 
 		return $inserted;
-	}
-
-	/**
-	 * Bring already-seeded rows in line with the profile keys the definitions
-	 * now declare.
-	 *
-	 * `seed_for_audience()` only inserts missing fields, so a definition that
-	 * gains a profile key reaches new audiences and no existing one. This is
-	 * the other half: `data_nascimento` gained `birth_date` in 6.33.0 (#1538),
-	 * and without this every audience seeded before it would keep writing the
-	 * birth date where no scheduled job can read it. Idempotent — a row that
-	 * already carries a key is left alone.
-	 *
-	 * @since 6.33.0
-	 * @return int Rows changed.
-	 */
-	public static function sync_standard_profile_keys(): int {
-		$changed = 0;
-		foreach ( self::get_standard_fields_definition() as $def ) {
-			if ( empty( $def['profile_key'] ) ) {
-				continue;
-			}
-			$changed += CustomFieldWriter::assign_standard_profile_key( (string) $def['field_key'], (string) $def['profile_key'] );
-		}
-		return $changed;
 	}
 
 	/**
