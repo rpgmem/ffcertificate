@@ -12071,10 +12071,6 @@ msgstr ""
 msgid "New Booking"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:301
-msgid "New certificate issued"
-msgstr ""
-
 #: includes/frontend/class-ffc-frontend.php:541
 msgid "New close time:"
 msgstr ""

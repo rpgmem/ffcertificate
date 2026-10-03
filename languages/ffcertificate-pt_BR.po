@@ -12096,10 +12096,6 @@ msgstr "Novo Calendário de Público-alvo"
 msgid "New Booking"
 msgstr "Nova Reserva"
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:301
-msgid "New certificate issued"
-msgstr "Novo certificado emitido"
-
 #: includes/frontend/class-ffc-frontend.php:541
 msgid "New close time:"
 msgstr "Novo horário de encerramento:"

@@ -21,6 +21,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - Internal conventions: the acceptance join has one owner instead of three copies, and three stale claims are corrected — the auditor's check count, which every prose summary still gave as seven two releases after it became eight; the `views/` coverage carve-out, justified by a token grep that no longer passes; and the acceptance record's standing when an account is deleted (#1536)
+- **The appointment reminder honours the dashboard toggle** (#1545). A person who turns "Appointment reminder" off no longer receives it; the toggle now shows on by default, matching what is sent.
 
 ### Fixed
 
@@ -29,6 +30,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The user-edit screen showed and saved profile-mapped fields in the wrong place** (#1538). CPF, RF, RG and the other fields reregistration syncs to the profile were read from, and written in plaintext to, a snapshot nothing reads; they now go through the profile, encrypted where the map says so.
 - **Two cron hooks outlived the plugin** (#1538). Uninstall never cleared the expired-ticket sweep, and the reregistration reminder batch was cleared nowhere; a guard now compares every scheduled hook against deactivation and both uninstall paths.
 - **Saving notification preferences erased the date-messages opt-out** (#1545). The dashboard posts only the toggles it shows, and the date-messages one shows only while that module is on, so a save made with it off dropped a stored opt-out and re-subscribed the person. Preferences now merge into the stored ones, keep known keys only and store booleans.
+
+### Removed
+
+- **Two dashboard notification toggles that did nothing** (#1545). "Appointment confirmation" and "New certificate issued" were saved but never read; both e-mails are transactional replies to something the person just did, so the toggles are gone rather than wired.
 
 ## [6.32.0] (2026-09-29) — `4ca1cd5d`
 
