@@ -89,12 +89,9 @@ final class OptOut {
 	 * @return bool
 	 */
 	public static function set( int $user_id, bool $receive ): bool {
-		$profile = UserManager::get_profile( $user_id );
-		$prefs   = self::decode( $profile['preferences'] ?? null );
-
-		$prefs[ self::PREFERENCE_KEY ] = $receive;
-
-		return UserManager::update_profile( $user_id, array( 'preferences' => $prefs ) );
+		// `update_profile()` merges into the stored preferences (#1545), so
+		// only this key is sent and every other choice stays as it was.
+		return UserManager::update_profile( $user_id, array( 'preferences' => array( self::PREFERENCE_KEY => $receive ) ) );
 	}
 
 	/**
