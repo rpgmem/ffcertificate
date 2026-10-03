@@ -61,7 +61,6 @@ final class DateMessagesAdminPage {
 	public const DUPLICATE_ACTION = 'ffc_date_messages_duplicate_rule';
 	public const TOGGLE_ACTION    = 'ffc_date_messages_toggle_rule';
 	public const SEND_ACTION      = 'ffc_date_messages_send_now';
-	public const SETTINGS_ACTION  = 'ffc_date_messages_settings';
 
 	/**
 	 * Tabs, in display order.
@@ -98,7 +97,6 @@ final class DateMessagesAdminPage {
 		add_action( 'admin_post_' . self::DUPLICATE_ACTION, array( $this, 'handle_duplicate' ) );
 		add_action( 'admin_post_' . self::TOGGLE_ACTION, array( $this, 'handle_toggle' ) );
 		add_action( 'admin_post_' . self::SEND_ACTION, array( $this, 'handle_send_now' ) );
-		add_action( 'admin_post_' . self::SETTINGS_ACTION, array( $this, 'handle_settings' ) );
 	}
 
 	/**
@@ -427,30 +425,6 @@ final class DateMessagesAdminPage {
 			__( 'Sending started. The first batch went out now; the rest continues in the background. Follow it in History.', 'ffcertificate' ),
 			array( 'tab' => 'history' )
 		);
-	}
-
-	/**
-	 * Save the daily send time and move the event to it.
-	 *
-	 * @return void
-	 */
-	public function handle_settings(): void {
-		$this->guard( self::SETTINGS_ACTION );
-
-		$back = array( 'tab' => 'settings' );
-		$time = RequestInput::get_post_string( 'send_time' );
-		if ( 1 !== preg_match( '/^([01]\d|2[0-3]):[0-5]\d$/', $time ) ) {
-			$this->finish( 'error', __( 'Enter the time as hours and minutes, such as 08:00.', 'ffcertificate' ), $back );
-		}
-
-		$settings              = get_option( DateMessagesCron::SETTINGS_OPTION, array() );
-		$settings              = is_array( $settings ) ? $settings : array();
-		$settings['send_time'] = $time;
-		update_option( DateMessagesCron::SETTINGS_OPTION, $settings, false );
-
-		DateMessagesCron::reschedule();
-
-		$this->finish( 'success', __( 'Send time saved and the daily event moved to it.', 'ffcertificate' ), $back );
 	}
 
 	/**

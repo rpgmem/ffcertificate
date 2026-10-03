@@ -156,7 +156,7 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->caps = array( 'ffc_view_date_messages' );
 		$this->writer->shouldReceive( 'save' )->never();
 
-		foreach ( array( 'handle_save', 'handle_delete', 'handle_duplicate', 'handle_toggle', 'handle_send_now', 'handle_settings' ) as $handler ) {
+		foreach ( array( 'handle_save', 'handle_delete', 'handle_duplicate', 'handle_toggle', 'handle_send_now' ) as $handler ) {
 			try {
 				( new DateMessagesAdminPage() )->$handler();
 				$this->fail( "{$handler} did not refuse." );
@@ -446,54 +446,6 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->call( 'handle_send_now' );
 
 		$this->assertSame( 'Too wide', $this->outcome['message'] );
-	}
-
-	/**
-	 * @dataProvider bad_times
-	 */
-	public function test_a_malformed_send_time_is_refused( string $time ): void {
-		$cron = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DateMessagesCron' );
-		$cron->shouldReceive( 'reschedule' )->never();
-		Functions\expect( 'update_option' )->never();
-		$_POST['send_time'] = $time;
-
-		$this->call( 'handle_settings' );
-
-		$this->assertSame( 'error', $this->outcome['type'] );
-	}
-
-	/**
-	 * @return array<string, array{0: string}>
-	 */
-	public function bad_times(): array {
-		return array(
-			'empty'     => array( '' ),
-			'24h'       => array( '24:00' ),
-			'no colon'  => array( '0800' ),
-			'seconds'   => array( '08:00:00' ),
-		);
-	}
-
-	public function test_a_send_time_is_stored_and_the_event_moved(): void {
-		Mockery::getConfiguration()->setConstantsMap(
-			array( 'FreeFormCertificate\DateMessages\DateMessagesCron' => array( 'SETTINGS_OPTION' => 'ffc_date_messages_settings' ) )
-		);
-		$cron = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DateMessagesCron' );
-		$cron->shouldReceive( 'reschedule' )->once();
-		Functions\when( 'get_option' )->justReturn( array( 'other' => 'kept' ) );
-		Functions\expect( 'update_option' )->once()->with(
-			'ffc_date_messages_settings',
-			array(
-				'other'     => 'kept',
-				'send_time' => '06:30',
-			),
-			false
-		);
-		$_POST['send_time'] = '06:30';
-
-		$this->call( 'handle_settings' );
-
-		$this->assertSame( 'success', $this->outcome['type'] );
 	}
 
 	public function test_date_accepts_only_a_real_calendar_day(): void {

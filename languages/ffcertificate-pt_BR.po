@@ -23375,9 +23375,6 @@ msgstr "Editar regra"
 msgid "Enter both dates."
 msgstr "Informe as duas datas."
 
-msgid "Enter the time as hours and minutes, such as 08:00."
-msgstr "Informe o horário em horas e minutos, como 08:00."
-
 msgid "Everyone"
 msgstr "Todos"
 
@@ -23474,9 +23471,6 @@ msgstr "Enviar teste para mim"
 msgid "Send these messages now?"
 msgstr "Enviar estas mensagens agora?"
 
-msgid "Send time saved and the daily event moved to it."
-msgstr "Horário salvo e envio diário reagendado para ele."
-
 msgid "Sending"
 msgstr "Envio"
 
@@ -23497,9 +23491,6 @@ msgstr "Mensagem de teste enviada para %s."
 
 msgid "That rule no longer exists."
 msgstr "Essa regra não existe mais."
-
-msgid "The daily run is not scheduled. Saving this form schedules it."
-msgstr "O envio diário não está agendado. Salvar este formulário o agenda."
 
 msgid "The dates are the dates in the profile (such as birthdays), not the day the message goes out."
 msgstr "As datas são as do perfil (como aniversários), não o dia em que a mensagem sai."
@@ -23530,9 +23521,6 @@ msgstr "Usa os valores deste formulário, salvos ou não. Nada é enviado e nada
 
 msgid "Will receive"
 msgstr "Vai receber"
-
-msgid "WordPress only runs scheduled tasks when the site is visited, unless the server runs them; %s shows the line to add to the server."
-msgstr "O WordPress só executa tarefas agendadas quando o site é visitado, a menos que o servidor as execute; %s mostra a linha a adicionar no servidor."
 
 msgid "You do not have permission to do this."
 msgstr "Você não tem permissão para fazer isto."
@@ -23621,3 +23609,27 @@ msgstr[1] "%d dias"
 msgctxt "day and month, without the year"
 msgid "F j"
 msgstr "j \\d\\e F"
+
+msgid "Change it in Scheduled Tasks"
+msgstr "Alterar em Tarefas Agendadas"
+
+msgid "Every daily task of the plugin has its time chosen on that one screen, which also shows the server line that keeps scheduled tasks running."
+msgstr "Todas as tarefas diárias do plugin têm o horário escolhido nessa única tela, que também mostra a linha do servidor que mantém as tarefas agendadas rodando."
+
+msgid "Save times"
+msgstr "Salvar horários"
+
+msgid "The daily run is not scheduled."
+msgstr "O envio diário não está agendado."
+
+msgid "Time of day"
+msgstr "Horário"
+
+msgid "Times are in the site timezone (%s). Leave a time empty to keep the task where it is. A task becomes due at its time and runs when WP-Cron next fires, so with the server line below it runs within that line's interval."
+msgstr "Os horários estão no fuso do site (%s). Deixe um horário vazio para manter a tarefa onde está. Uma tarefa fica devida no seu horário e roda quando o WP-Cron disparar em seguida; com a linha do servidor abaixo, ela roda dentro do intervalo dessa linha."
+
+msgid "Times saved, except the ones that were not a valid time of day."
+msgstr "Horários salvos, exceto os que não eram um horário válido."
+
+msgid "Times saved. Changed tasks were moved to their new time."
+msgstr "Horários salvos. As tarefas alteradas foram movidas para o novo horário."

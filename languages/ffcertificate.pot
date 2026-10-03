@@ -23284,9 +23284,6 @@ msgstr ""
 msgid "Enter both dates."
 msgstr ""
 
-msgid "Enter the time as hours and minutes, such as 08:00."
-msgstr ""
-
 msgid "Everyone"
 msgstr ""
 
@@ -23383,9 +23380,6 @@ msgstr ""
 msgid "Send these messages now?"
 msgstr ""
 
-msgid "Send time saved and the daily event moved to it."
-msgstr ""
-
 msgid "Sending"
 msgstr ""
 
@@ -23405,9 +23399,6 @@ msgid "Test message sent to %s."
 msgstr ""
 
 msgid "That rule no longer exists."
-msgstr ""
-
-msgid "The daily run is not scheduled. Saving this form schedules it."
 msgstr ""
 
 msgid "The dates are the dates in the profile (such as birthdays), not the day the message goes out."
@@ -23438,9 +23429,6 @@ msgid "Uses the values on this form, saved or not. Nothing is sent and nothing i
 msgstr ""
 
 msgid "Will receive"
-msgstr ""
-
-msgid "WordPress only runs scheduled tasks when the site is visited, unless the server runs them; %s shows the line to add to the server."
 msgstr ""
 
 msgid "You do not have permission to do this."
@@ -23529,4 +23517,28 @@ msgstr[1] ""
 
 msgctxt "day and month, without the year"
 msgid "F j"
+msgstr ""
+
+msgid "Change it in Scheduled Tasks"
+msgstr ""
+
+msgid "Every daily task of the plugin has its time chosen on that one screen, which also shows the server line that keeps scheduled tasks running."
+msgstr ""
+
+msgid "Save times"
+msgstr ""
+
+msgid "The daily run is not scheduled."
+msgstr ""
+
+msgid "Time of day"
+msgstr ""
+
+msgid "Times are in the site timezone (%s). Leave a time empty to keep the task where it is. A task becomes due at its time and runs when WP-Cron next fires, so with the server line below it runs within that line's interval."
+msgstr ""
+
+msgid "Times saved, except the ones that were not a valid time of day."
+msgstr ""
+
+msgid "Times saved. Changed tasks were moved to their new time."
 msgstr ""
