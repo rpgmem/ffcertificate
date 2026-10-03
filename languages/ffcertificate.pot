@@ -18656,12 +18656,6 @@ msgstr ""
 msgid "These options only appear when a mode that shows the widget is selected. The widget follows the site's colours and its light/dark mode on its own."
 msgstr ""
 
-#. %s: comma-separated list of required custom field labels.
-#: includes/admin/class-ffc-admin-user-custom-fields.php:479
-#, php-format
-msgid "These required fields arrived empty and kept their previous value: %s"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-user-access.php:189
 msgid "These roles operate through wp-admin. Block one only if its users should be redirected away from the dashboard — blocking an administrative role locks it out of the screens it is meant to use."
 msgstr ""
@@ -23537,4 +23531,7 @@ msgid "Times saved, except the ones that were not a valid time of day."
 msgstr ""
 
 msgid "Times saved. Changed tasks were moved to their new time."
+msgstr ""
+
+msgid "These fields arrived empty or with an invalid choice and kept their previous value: %s"
 msgstr ""

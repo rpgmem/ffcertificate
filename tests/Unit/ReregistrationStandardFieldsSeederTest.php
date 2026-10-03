@@ -465,4 +465,75 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		$this->assertNotSame( array(), $declared, 'Read no profile key from the definitions -- the check did not run.' );
 		$this->assertSame( $declared, ReregistrationStandardFieldsSeeder::PROFILE_KEYS );
 	}
+
+	// ==================================================================
+	// maybe_relabel_union() -- the "Estado" left behind by #1209
+	// ==================================================================
+
+	public function test_register_hooks_the_union_relabel_on_admin_init(): void {
+		$hooked = array();
+		Functions\when( 'add_action' )->alias( function ( $hook, $callback ) use ( &$hooked ) {
+			$hooked[ $hook ] = $callback;
+			return true;
+		});
+
+		ReregistrationStandardFieldsSeeder::register();
+
+		$this->assertSame( array( ReregistrationStandardFieldsSeeder::class, 'maybe_relabel_union' ), $hooked['admin_init'] ?? null );
+	}
+
+	/**
+	 * Only standard `sindicato` rows still labelled "Estado" are relabelled
+	 * to the translated "Union", and the flag is written.
+	 */
+	public function test_relabel_union_renames_the_rows_still_labelled_estado(): void {
+		$options = array();
+		Functions\when( 'get_option' )->justReturn( false );
+		Functions\when( 'update_option' )->alias( function ( $key, $value, $autoload = null ) use ( &$options ) {
+			$options[ $key ] = array( $value, $autoload );
+			return true;
+		});
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+
+		$queries = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function ( ...$args ) use ( &$queries ) {
+			$queries[] = $args;
+			return $args[0];
+		});
+		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array( '7', '9', 'junk' ) );
+		$this->wpdb->shouldReceive( 'update' )
+			->twice()
+			->with( 'wp_ffc_custom_fields', array( 'field_label' => 'Union' ), Mockery::on( fn( $where ) => in_array( $where['id'], array( 7, 9 ), true ) ), array( '%s' ), array( '%d' ) )
+			->andReturn( 1 );
+
+		ReregistrationStandardFieldsSeeder::maybe_relabel_union();
+
+		$select = array_values( array_filter( $queries, fn( $q ) => str_contains( (string) $q[0], 'field_label IN' ) ) );
+		$this->assertCount( 1, $select );
+		$this->assertStringContainsString( "field_source = 'standard'", $select[0][0] );
+		$this->assertSame( array( 'wp_ffc_custom_fields', 'sindicato', 'Estado' ), $select[0][1] );
+		$this->assertSame( array( '1', false ), $options[ ReregistrationStandardFieldsSeeder::UNION_RELABEL_OPTION ] ?? null );
+	}
+
+	public function test_relabel_union_runs_once(): void {
+		Functions\when( 'get_option' )->justReturn( '1' );
+		Functions\expect( 'update_option' )->never();
+		$this->wpdb->shouldReceive( 'get_col' )->never();
+		$this->wpdb->shouldReceive( 'update' )->never();
+
+		ReregistrationStandardFieldsSeeder::maybe_relabel_union();
+	}
+
+	/**
+	 * Nothing to relabel still writes the flag, so the query never repeats.
+	 */
+	public function test_relabel_union_flags_even_when_nothing_matched(): void {
+		Functions\when( 'get_option' )->justReturn( false );
+		Functions\expect( 'update_option' )->once()->with( ReregistrationStandardFieldsSeeder::UNION_RELABEL_OPTION, '1', false );
+		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array() );
+		$this->wpdb->shouldReceive( 'update' )->never();
+
+		ReregistrationStandardFieldsSeeder::maybe_relabel_union();
+	}
 }

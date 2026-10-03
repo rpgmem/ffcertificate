@@ -41,6 +41,39 @@ class ReregistrationStandardFieldsSeeder {
 	 */
 	public static function register(): void {
 		add_action( 'ffc_audience_created', array( __CLASS__, 'on_audience_created' ), 10, 2 );
+		// `admin_init` rather than the activator's `plugins_loaded` chain: the
+		// new label is a translated string, and translations are loaded by
+		// then. Default priority -- nothing else depends on the order.
+		add_action( 'admin_init', array( __CLASS__, 'maybe_relabel_union' ) );
+	}
+
+	/**
+	 * Option flagging that the union relabel has run.
+	 */
+	public const UNION_RELABEL_OPTION = 'ffc_union_label_relabelled';
+
+	/**
+	 * Relabel the `sindicato` fields seeded while "Union" translated as
+	 * "Estado" (#1209 fixed the translation, not the rows).
+	 *
+	 * A field label is stored, so the fix to the catalogue reached only the
+	 * audiences created after it. Only rows still carrying that exact label
+	 * change: one an operator renamed is a deliberate choice and stays. Runs
+	 * once; the flag is written even when nothing matched.
+	 *
+	 * @return void
+	 */
+	public static function maybe_relabel_union(): void {
+		if ( get_option( self::UNION_RELABEL_OPTION ) ) {
+			return;
+		}
+
+		$label = __( 'Union', 'ffcertificate' );
+		foreach ( CustomFieldReader::standard_field_ids_with_label( 'sindicato', array( 'Estado' ) ) as $id ) {
+			CustomFieldWriter::update( $id, array( 'field_label' => $label ) );
+		}
+
+		update_option( self::UNION_RELABEL_OPTION, '1', false );
 	}
 
 	/**

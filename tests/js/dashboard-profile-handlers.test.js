@@ -130,9 +130,24 @@ describe('profile.showEditForm', () => {
 		const form = document.querySelector('#ffc-tabpanel-profile .ffc-profile-edit-form');
 		expect(form).not.toBeNull();
 		expect(document.getElementById('ffc-edit-display-name').value).toBe('Maria Silva');
-		expect(document.getElementById('ffc-edit-phone').value).toBe('11 99999-0000');
+		expect(document.getElementById('ffc-edit-phone').value).toBe('(11) 99999-0000');
 		expect(document.getElementById('ffc-edit-department').value).toBe('TI');
 		expect(document.getElementById('ffc-edit-organization').value).toBe('ACME');
+	});
+
+	it('masks the phone as (DD) 98765-4321, eleven digits at most', () => {
+		panel().render(PROFILE_FIXTURE);
+		window.$('.ffc-profile-edit-btn').trigger('click');
+		const $phone = window.$('#ffc-edit-phone');
+		expect($phone.attr('maxlength')).toBe('15');
+		$phone.val('1198765432199').trigger('input');
+		expect($phone.val()).toBe('(11) 98765-4321');
+	});
+
+	it('shows a stored number longer than the mask as stored, not truncated', () => {
+		panel().render({ ...PROFILE_FIXTURE, phone: '+55 11 98765-4321' });
+		window.$('.ffc-profile-edit-btn').trigger('click');
+		expect(document.getElementById('ffc-edit-phone').value).toBe('+55 11 98765-4321');
 	});
 
 	it("does nothing when state is null (defensive — shouldn't happen at runtime)", () => {
@@ -173,7 +188,7 @@ describe('profile.saveProfile', () => {
 		expect(call.url).toContain('user/profile');
 		const payload = JSON.parse(call.data);
 		expect(payload.display_name).toBe('Maria S. Silva');
-		expect(payload.phone).toBe('11 99999-0000');
+		expect(payload.phone).toBe('(11) 99999-0000');
 		expect(payload.department).toBe('TI');
 		expect(payload.organization).toBe('ACME');
 	});
