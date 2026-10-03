@@ -107,6 +107,8 @@ class ScheduledTasksTest extends TestCase {
 		$via_class = array(
 			'ffc_daily_expired_tickets_cleanup' => 'ExpiredTicketsCleanup::unschedule()',
 			'ffc_cloudflare_cidr_refresh'       => 'CloudflareCidrRefresh::unschedule()',
+			'ffc_date_messages_daily'           => 'DateMessagesCron::unschedule()',
+			'ffc_date_messages_batch'           => 'DateMessagesCron::unschedule()',
 		);
 
 		foreach ( array_keys( ScheduledTasks::all() ) as $hook ) {
@@ -133,6 +135,8 @@ class ScheduledTasksTest extends TestCase {
 			\FreeFormCertificate\Admin\ExpiredTicketsCleanup::CRON_HOOK,
 			\FreeFormCertificate\Submissions\SubmissionHandler::ASYNC_PIPELINE_HOOK,
 			\FreeFormCertificate\Reregistration\ReregistrationEmailHandler::REMINDER_BATCH_HOOK,
+			\FreeFormCertificate\DateMessages\DateMessagesCron::CRON_HOOK,
+			\FreeFormCertificate\DateMessages\Runner::BATCH_HOOK,
 		) as $constant ) {
 			$this->assertArrayHasKey( $constant, $all );
 		}
@@ -266,6 +270,7 @@ class ScheduledTasksTest extends TestCase {
 			array(
 				'ffc_process_submission_async'      => 3,
 				'ffc_reregistration_reminder_batch' => 0,
+				'ffc_date_messages_batch'           => 0,
 			),
 			ScheduledTasks::pending_singles( $crons )
 		);

@@ -88,6 +88,7 @@ class SettingsAjaxEndpoint {
 			'module_self_scheduling_enabled',
 			'module_reregistration_enabled',
 			'module_recruitment_enabled',
+			'module_date_messages_enabled',
 			// Data Migrations tab — URL cleanup criteria (persisted so the
 			// last-used selection survives the preview/delete round-trip).
 			'url_cleanup_orphaned',

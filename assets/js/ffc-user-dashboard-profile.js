@@ -34,8 +34,12 @@
         return html;
     }
 
-    function buildToggle(key, label, prefs) {
-        var checked = prefs[key] ? ' checked' : '';
+    // defaultOn: a key that means RECEIVE when absent (date messages are sent
+    // unless the person opted out), unlike the opt-in toggles above it.
+    function buildToggle(key, label, prefs, defaultOn) {
+        var has = Object.prototype.hasOwnProperty.call(prefs, key);
+        var on = defaultOn ? (!has || prefs[key] !== false) : !!prefs[key];
+        var checked = on ? ' checked' : '';
         return '<label class="ffc-toggle-label">' +
             '<input type="checkbox" class="ffc-notif-toggle" data-key="' + key + '"' + checked + ' />' +
             '<span class="ffc-toggle-switch"></span>' +
@@ -323,6 +327,9 @@
             html += buildToggle('notify_appointment_confirm', s.notifAppointmentConfirm || 'Appointment confirmation', prefs);
             html += buildToggle('notify_appointment_reminder', s.notifAppointmentReminder || 'Appointment reminder', prefs);
             html += buildToggle('notify_new_certificate', s.notifNewCertificate || 'New certificate issued', prefs);
+            if (ffcDashboard.dateMessagesEnabled) {
+                html += buildToggle('notify_date_messages', s.notifDateMessages || 'Date messages (such as birthday greetings)', prefs, true);
+            }
             html += '</div>';
             html += '<span class="ffc-notif-status" style="margin-left: 10px; color: #28a745; display: none;"></span>';
             html += '</div>';

@@ -187,6 +187,10 @@ class TabEmailTexts extends SettingsTab {
 				'label'  => __( 'Added to waitlist', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'appointment_date', 'appointment_time', 'waitlist_button' ),
 			),
+			'date-message-birthday'         => array(
+				'label'  => __( 'Birthday message (default for new rules)', 'ffcertificate' ),
+				'tokens' => array( 'name', 'first_name', 'email', 'date', 'age', 'days_until', 'site_name', 'dashboard_url', 'unsubscribe_url' ),
+			),
 			'recruitment-convocation'       => array(
 				'label'  => __( 'Recruitment convocation', 'ffcertificate' ),
 				'tokens' => array( 'name', 'cpf_masked', 'rf_masked', 'email_masked', 'adjutancy', 'notice_code', 'notice_name', 'rank', 'score', 'is_pcd', 'date_to_assume', 'time_to_assume', 'called_at', 'site_name', 'site_url', 'notes' ),
@@ -319,6 +323,7 @@ class TabEmailTexts extends SettingsTab {
 			),
 			__( 'Audiences', 'ffcertificate' )            => array( 'audience-booking', 'audience-cancellation' ),
 			__( 'Account access', 'ffcertificate' )       => array( 'access-granted' ),
+			__( 'Date messages', 'ffcertificate' )        => array( 'date-message-birthday' ),
 		);
 	}
 

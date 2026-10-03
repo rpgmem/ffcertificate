@@ -52,6 +52,7 @@ final class EmailTemplates {
 		'appointment-waitlisted',
 		'access-granted',
 		'calendar-deleted-cancellation',
+		'date-message-birthday',
 	);
 
 	/**

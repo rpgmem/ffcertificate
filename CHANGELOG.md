@@ -13,6 +13,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Identity resolution: a finding nobody can resolve can be accepted as such** (#1532). A stored number the person never supplied, and HR cannot trace, had no correct value to give and returned on every visit. Accepting it moves it to a counted, reversible list of decisions — it is **not** a resolution: nothing stored changes, and a merge or move blocked by that number stays blocked, with the refusal now naming the right panel
 - **A canonical birth date on the user profile** (#1538). Reregistration's `data_nascimento` now writes to and pre-fills from one `birth_date` field — encrypted, with its day and month beside it so a scheduled job can query it — editable on the dashboard (validated) and the user-edit screen. A migration card copies the dates people already gave.
 - **Settings → Scheduled Tasks** (#1538). Lists every WP-Cron task the plugin runs with its next run, its last real run (recorded by a new heartbeat — WordPress keeps none) and whether it is late, counts queued one-off events, and generates the exact server crontab line (WP-CLI, wget or curl) with `DISABLE_WP_CRON` guidance.
+- **Date messages: e-mails sent on a date in each person's profile, starting with birthdays** (#1538). A new module (off by default) sends each active rule's message on the date or N days before it, once per person and occurrence, via the e-mail pipeline; recipients can unsubscribe in one click. Rule screens follow.
 
 ### Changed
 

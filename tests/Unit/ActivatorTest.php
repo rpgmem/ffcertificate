@@ -106,6 +106,8 @@ class ActivatorTest extends TestCase {
 		Functions\when( 'absint' )->alias( function( $v ) { return abs( (int) $v ); } );
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'wp_die' )->justReturn( null );
+		// The date-messages cron is scheduled at the site's local send time.
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
 	}
 
 	protected function tearDown(): void {
