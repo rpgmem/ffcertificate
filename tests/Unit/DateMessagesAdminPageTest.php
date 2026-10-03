@@ -1,0 +1,484 @@
+<?php
+declare(strict_types=1);
+
+namespace FreeFormCertificate\Tests\Unit;
+
+use Brain\Monkey;
+use Brain\Monkey\Functions;
+use FreeFormCertificate\DateMessages\DateMessagesAdminPage;
+use FreeFormCertificate\DateMessages\Rule;
+use Mockery;
+use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * The Date Messages screen's writes (#1538).
+ *
+ * Every handler ends in a redirect, which the stub turns into an exception so
+ * the test can read the outcome the handler left behind.
+ *
+ * @covers \FreeFormCertificate\DateMessages\DateMessagesAdminPage
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
+ */
+class DateMessagesAdminPageTest extends TestCase {
+
+	use MockeryPHPUnitIntegration;
+
+	/** @var Mockery\MockInterface */
+	private $reader;
+
+	/** @var Mockery\MockInterface */
+	private $writer;
+
+	/**
+	 * Capabilities the current user holds.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $caps = array();
+
+	/**
+	 * Last outcome written.
+	 *
+	 * @var array<string, mixed>|null
+	 */
+	private ?array $outcome = null;
+
+	/**
+	 * Last redirect target.
+	 */
+	private string $redirect = '';
+
+	protected function setUp(): void {
+		parent::setUp();
+		Monkey\setUp();
+
+		$_POST         = array();
+		$_GET          = array();
+		$this->caps    = array( 'ffc_manage_date_messages' );
+		$this->outcome = null;
+
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => trim( strip_tags( (string) $v ) ) );
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'wp_kses_post' )->alias( static fn( $v ) => str_replace( '<script>', '', (string) $v ) );
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'is_wp_error' )->alias( static fn( $v ) => $v instanceof \WP_Error );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'America/Sao_Paulo' ) );
+		Functions\when( 'current_user_can' )->alias( fn( $cap ) => in_array( $cap, $this->caps, true ) );
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.org/wp-admin/' . $p );
+		Functions\when( 'add_query_arg' )->alias( static fn( array $a, string $u ) => $u . '?' . http_build_query( $a ) );
+		Functions\when( 'set_transient' )->alias(
+			function ( $key, $value ) {
+				$this->outcome = $value;
+				return true;
+			}
+		);
+		Functions\when( 'wp_safe_redirect' )->alias(
+			function ( $url ) {
+				$this->redirect = (string) $url;
+				throw new \RuntimeException( 'redirect' );
+			}
+		);
+		Functions\when( 'wp_die' )->alias(
+			static function ( $message ) {
+				throw new \DomainException( (string) $message );
+			}
+		);
+
+		$this->reader = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleReader' );
+		$this->writer = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\RuleWriter' );
+	}
+
+	protected function tearDown(): void {
+		$_POST = array();
+		$_GET  = array();
+		Monkey\tearDown();
+		parent::tearDown();
+	}
+
+	/**
+	 * Run a handler to its redirect.
+	 *
+	 * @param string $method Handler.
+	 */
+	private function call( string $method ): void {
+		try {
+			( new DateMessagesAdminPage() )->$method();
+			$this->fail( 'The handler did not redirect.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect', $e->getMessage() );
+		}
+	}
+
+	/**
+	 * @param array<string, mixed> $over Overrides.
+	 */
+	private function rule( array $over = array() ): Rule {
+		$rule = Rule::from_array(
+			array_merge(
+				array(
+					'id'      => 3,
+					'name'    => 'Birthday',
+					'subject' => 'Hi',
+					'body'    => '<p>Hi</p>',
+				),
+				$over
+			)
+		);
+		$this->assertInstanceOf( Rule::class, $rule );
+		return $rule;
+	}
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	private function posted(): array {
+		return array(
+			'id'           => '0',
+			'name'         => 'Week before',
+			'source'       => 'birthday',
+			'offset_days'  => '-7',
+			'audience_id'  => '',
+			'subject'      => 'Soon',
+			'body'         => '<p>Body</p><script>',
+			'send_to_user' => '1',
+			'is_active'    => '1',
+		);
+	}
+
+	public function test_every_write_refuses_an_operator_without_the_manage_capability(): void {
+		$this->caps = array( 'ffc_view_date_messages' );
+		$this->writer->shouldReceive( 'save' )->never();
+
+		foreach ( array( 'handle_save', 'handle_delete', 'handle_duplicate', 'handle_toggle', 'handle_send_now', 'handle_settings' ) as $handler ) {
+			try {
+				( new DateMessagesAdminPage() )->$handler();
+				$this->fail( "{$handler} did not refuse." );
+			} catch ( \DomainException $e ) {
+				$this->assertSame( 'You do not have permission to do this.', $e->getMessage(), $handler );
+			}
+		}
+	}
+
+	public function test_view_and_manage_each_open_the_screen_and_only_manage_writes(): void {
+		$this->caps = array( 'ffc_view_date_messages' );
+		$this->assertTrue( DateMessagesAdminPage::can_view() );
+		$this->assertFalse( DateMessagesAdminPage::can_manage() );
+
+		$this->caps = array( 'ffc_manage_date_messages' );
+		$this->assertTrue( DateMessagesAdminPage::can_view(), 'A manage grant needs no view grant beside it.' );
+		$this->assertFalse( DateMessagesAdminPage::can_view_pii() );
+
+		$this->caps = array();
+		$this->assertFalse( DateMessagesAdminPage::can_view() );
+	}
+
+	public function test_the_menu_names_the_capability_the_user_holds(): void {
+		$registered = array();
+		Functions\when( 'add_submenu_page' )->alias(
+			static function ( ...$args ) use ( &$registered ) {
+				$registered[] = $args[3];
+				return 'hook';
+			}
+		);
+
+		$this->caps = array( 'ffc_manage_date_messages' );
+		( new DateMessagesAdminPage() )->register_menu();
+		$this->caps = array( 'ffc_view_date_messages' );
+		( new DateMessagesAdminPage() )->register_menu();
+
+		$this->assertSame( array( 'ffc_manage_date_messages', 'ffc_view_date_messages' ), $registered );
+	}
+
+	public function test_a_new_rule_is_saved_with_its_body_filtered(): void {
+		$_POST['rule'] = $this->posted();
+		$this->writer->shouldReceive( 'save' )->once()->with(
+			Mockery::on(
+				static fn( Rule $r ): bool => 0 === $r->id && -7 === $r->offset_days && '<p>Body</p>' === $r->body && $r->is_active
+			)
+		)->andReturn( 12 );
+
+		$this->call( 'handle_save' );
+
+		$this->assertSame( 'success', $this->outcome['type'] );
+		$this->assertStringContainsString( 'rule=12', $this->redirect );
+	}
+
+	public function test_an_invalid_rule_goes_back_to_the_editor_with_what_was_typed(): void {
+		$_POST['rule']                = $this->posted();
+		$_POST['rule']['offset_days'] = '400';
+		$this->writer->shouldReceive( 'save' )->never();
+
+		$this->call( 'handle_save' );
+
+		$this->assertSame( 'error', $this->outcome['type'] );
+		$this->assertSame( 'Week before', $this->outcome['draft']['name'] );
+		$this->assertStringContainsString( 'rule=0', $this->redirect );
+	}
+
+	public function test_an_edit_keeps_the_stored_digest_settings_the_form_does_not_carry(): void {
+		$_POST['rule']       = $this->posted();
+		$_POST['rule']['id'] = '3';
+		$this->reader->shouldReceive( 'get_by_id' )->with( 3 )->andReturn(
+			$this->rule(
+				array(
+					'digest_enabled'  => '1',
+					'digest_mode'     => 'detailed',
+					'digest_user_ids' => array( 9 ),
+				)
+			)
+		);
+		$this->writer->shouldReceive( 'save' )->once()->with(
+			Mockery::on( static fn( Rule $r ): bool => 3 === $r->id && $r->digest_enabled && 'detailed' === $r->digest_mode && array( 9 ) === $r->digest_user_ids )
+		)->andReturn( 3 );
+
+		$this->call( 'handle_save' );
+
+		$this->assertSame( 'success', $this->outcome['type'] );
+	}
+
+	public function test_saving_a_rule_that_was_deleted_meanwhile_fails(): void {
+		$_POST['rule']       = $this->posted();
+		$_POST['rule']['id'] = '3';
+		$this->reader->shouldReceive( 'get_by_id' )->andReturn( null );
+		$this->writer->shouldReceive( 'save' )->never();
+
+		$this->call( 'handle_save' );
+
+		$this->assertSame( 'error', $this->outcome['type'] );
+	}
+
+	public function test_delete_checks_a_nonce_keyed_to_the_rule(): void {
+		$_POST['rule_id'] = '3';
+		$checked = array();
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( $action ) use ( &$checked ) {
+				$checked[] = $action;
+				return 1;
+			}
+		);
+		$this->writer->shouldReceive( 'delete' )->once()->with( 3 )->andReturn( true );
+
+		$this->call( 'handle_delete' );
+
+		$this->assertSame( array( DateMessagesAdminPage::DELETE_ACTION . '_3' ), $checked );
+		$this->assertSame( 'success', $this->outcome['type'] );
+	}
+
+	public function test_a_duplicate_is_an_inactive_copy_named_as_such(): void {
+		$_POST['rule_id'] = '3';
+		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
+		$this->writer->shouldReceive( 'save' )->once()->with(
+			Mockery::on( static fn( Rule $r ): bool => 0 === $r->id && ! $r->is_active && 'Birthday (copy)' === $r->name )
+		)->andReturn( 13 );
+
+		$this->call( 'handle_duplicate' );
+
+		$this->assertStringContainsString( 'rule=13', $this->redirect );
+	}
+
+	public function test_toggle_flips_the_active_flag(): void {
+		$_POST['rule_id'] = '3';
+		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
+		$this->writer->shouldReceive( 'save' )->once()->with(
+			Mockery::on( static fn( Rule $r ): bool => 3 === $r->id && ! $r->is_active )
+		)->andReturn( 3 );
+
+		$this->call( 'handle_toggle' );
+
+		$this->assertSame( 'Rule deactivated.', $this->outcome['message'] );
+	}
+
+	public function test_send_now_needs_a_rule_and_two_real_dates(): void {
+		$runner = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\Runner' );
+		$runner->shouldReceive( 'start' )->never();
+		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
+		$_POST = array(
+			'rule_id' => '3',
+			'from'    => '2026-02-30',
+			'to'      => '2026-03-01',
+		);
+
+		$this->call( 'handle_send_now' );
+
+		$this->assertSame( 'error', $this->outcome['type'] );
+		$this->assertStringContainsString( 'tab=send', $this->redirect );
+	}
+
+	public function test_send_now_starts_a_manual_run_by_the_operator(): void {
+		$runner = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\Runner' );
+		$runner->shouldReceive( 'start' )->once()->with(
+			Mockery::type( Rule::class ),
+			Mockery::on( static fn( $d ): bool => '2026-10-01' === $d->format( 'Y-m-d' ) ),
+			Mockery::on( static fn( $d ): bool => '2026-10-07' === $d->format( 'Y-m-d' ) ),
+			'manual',
+			5
+		)->andReturn( 44 );
+		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
+		$_POST = array(
+			'rule_id' => '3',
+			'from'    => '2026-10-01',
+			'to'      => '2026-10-07',
+		);
+
+		$this->call( 'handle_send_now' );
+
+		$this->assertSame( 'success', $this->outcome['type'] );
+		$this->assertStringContainsString( 'tab=history', $this->redirect );
+	}
+
+	public function test_send_now_reports_a_range_the_runner_refuses(): void {
+		$runner = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\Runner' );
+		$runner->shouldReceive( 'start' )->andReturn( new \WP_Error( 'ffc_date_messages_range', 'Too wide' ) );
+		$this->reader->shouldReceive( 'get_by_id' )->andReturn( $this->rule() );
+		$_POST = array(
+			'rule_id' => '3',
+			'from'    => '2026-10-01',
+			'to'      => '2026-12-01',
+		);
+
+		$this->call( 'handle_send_now' );
+
+		$this->assertSame( 'Too wide', $this->outcome['message'] );
+	}
+
+	/**
+	 * @dataProvider bad_times
+	 */
+	public function test_a_malformed_send_time_is_refused( string $time ): void {
+		$cron = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DateMessagesCron' );
+		$cron->shouldReceive( 'reschedule' )->never();
+		Functions\expect( 'update_option' )->never();
+		$_POST['send_time'] = $time;
+
+		$this->call( 'handle_settings' );
+
+		$this->assertSame( 'error', $this->outcome['type'] );
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public function bad_times(): array {
+		return array(
+			'empty'     => array( '' ),
+			'24h'       => array( '24:00' ),
+			'no colon'  => array( '0800' ),
+			'seconds'   => array( '08:00:00' ),
+		);
+	}
+
+	public function test_a_send_time_is_stored_and_the_event_moved(): void {
+		Mockery::getConfiguration()->setConstantsMap(
+			array( 'FreeFormCertificate\DateMessages\DateMessagesCron' => array( 'SETTINGS_OPTION' => 'ffc_date_messages_settings' ) )
+		);
+		$cron = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DateMessagesCron' );
+		$cron->shouldReceive( 'reschedule' )->once();
+		Functions\when( 'get_option' )->justReturn( array( 'other' => 'kept' ) );
+		Functions\expect( 'update_option' )->once()->with(
+			'ffc_date_messages_settings',
+			array(
+				'other'     => 'kept',
+				'send_time' => '06:30',
+			),
+			false
+		);
+		$_POST['send_time'] = '06:30';
+
+		$this->call( 'handle_settings' );
+
+		$this->assertSame( 'success', $this->outcome['type'] );
+	}
+
+	public function test_date_accepts_only_a_real_calendar_day(): void {
+		$this->assertSame( '2028-02-29', DateMessagesAdminPage::date( '2028-02-29' )->format( 'Y-m-d' ) );
+		$this->assertNull( DateMessagesAdminPage::date( '2027-02-29' ) );
+		$this->assertNull( DateMessagesAdminPage::date( '29/02/2028' ) );
+		$this->assertNull( DateMessagesAdminPage::date( '' ) );
+	}
+
+	public function test_form_data_reads_unchecked_boxes_as_off(): void {
+		$data = DateMessagesAdminPage::form_data(
+			array(
+				'name'    => 'x',
+				'subject' => 's',
+				'body'    => array( 'not a string' ),
+			)
+		);
+
+		$this->assertSame( '0', $data['send_to_user'] );
+		$this->assertSame( '0', $data['is_active'] );
+		$this->assertSame( '', $data['body'] );
+		$this->assertSame( 'birthday', $data['source'] );
+	}
+	public function test_the_screen_refuses_an_operator_with_neither_capability(): void {
+		$this->caps = array();
+
+		$this->expectException( \DomainException::class );
+		( new DateMessagesAdminPage() )->render_page();
+	}
+
+	public function test_assets_load_on_this_screen_only_and_carry_both_nonces(): void {
+		if ( ! defined( 'FFC_PLUGIN_URL' ) ) {
+			define( 'FFC_PLUGIN_URL', 'https://example.org/p/' );
+		}
+		Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' )->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
+		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\MessageBuilder' )->shouldReceive( 'defaults' )->andReturn(
+			array(
+				'subject' => 'S',
+				'body'    => 'DEFAULT',
+			)
+		);
+		Functions\when( 'wp_create_nonce' )->alias( static fn( $a ) => 'nonce-' . $a );
+		$scripts   = array();
+		$localized = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( $handle ) use ( &$scripts ) {
+				$scripts[] = $handle;
+			}
+		);
+		Functions\when( 'wp_localize_script' )->alias(
+			static function ( $handle, $name, $data ) use ( &$localized ) {
+				$localized[ $name ] = $data;
+				return true;
+			}
+		);
+
+		( new DateMessagesAdminPage() )->enqueue( 'toplevel_page_ffc-settings' );
+		$this->assertSame( array(), $scripts );
+
+		( new DateMessagesAdminPage() )->enqueue( 'ffc_form_page_ffc-date-messages' );
+		$this->assertSame( array( 'ffc-date-messages-admin', 'ffc-email-restore-default' ), $scripts );
+		$this->assertSame( 'nonce-ffc_date_messages_preview', $localized['ffcDateMessages']['previewNonce'] );
+		$this->assertSame( 'nonce-ffc_date_messages_test_send', $localized['ffcDateMessages']['testNonce'] );
+		$this->assertSame( 'DEFAULT', $localized['ffcEmailRestoreDefaults']['date_message_body']['body'] );
+	}
+
+	public function test_audience_options_indent_the_hierarchy(): void {
+		$child  = (object) array(
+			'id'       => '2',
+			'name'     => 'Teachers',
+			'children' => array(),
+		);
+		$parent = (object) array(
+			'id'       => '1',
+			'name'     => 'Schools',
+			'children' => array( $child, 'not a node' ),
+		);
+		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )->shouldReceive( 'get_hierarchical' )->with( 'active' )->andReturn( array( $parent ) );
+
+		$this->assertSame(
+			array(
+				1 => 'Schools',
+				2 => '— Teachers',
+			),
+			DateMessagesAdminPage::audience_options()
+		);
+	}
+}

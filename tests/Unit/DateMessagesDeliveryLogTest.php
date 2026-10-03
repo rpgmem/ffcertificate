@@ -77,4 +77,40 @@ class DateMessagesDeliveryLogTest extends TestCase {
 
 		$this->assertSame( array( 4 => true, 9 => true ), DeliveryLog::delivered_among( 3, '2026-10-10', array( 4, 5, 9 ) ) );
 	}
+	public function test_recent_runs_pages_newest_first_and_counts(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->with(
+			'SELECT * FROM %i ORDER BY id DESC LIMIT %d OFFSET %d',
+			'wp_ffc_date_message_runs',
+			20,
+			40
+		)->andReturn( 'PAGE' );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->with( 'PAGE', ARRAY_A )->andReturn(
+			array(
+				array(
+					'id'   => '9',
+					'sent' => '4',
+				),
+			)
+		);
+		$this->wpdb->shouldReceive( 'prepare' )->once()->with( 'SELECT COUNT(*) FROM %i', 'wp_ffc_date_message_runs' )->andReturn( 'COUNT' );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->with( 'COUNT' )->andReturn( '41' );
+
+		$this->assertSame(
+			array(
+				array(
+					'id'   => '9',
+					'sent' => '4',
+				),
+			),
+			DeliveryLog::recent_runs( 20, 40 )
+		);
+		$this->assertSame( 41, DeliveryLog::count_runs() );
+	}
+
+	public function test_recent_runs_reads_a_failed_query_as_none(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'PAGE' );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( null );
+
+		$this->assertSame( array(), DeliveryLog::recent_runs( 0, -5 ) );
+	}
 }

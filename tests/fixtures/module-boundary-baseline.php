@@ -45,6 +45,7 @@ return array(
 	'Core>Settings',
 	'DateMessages>Audience',
 	'DateMessages>Core',
+	'DateMessages>Integrations',
 	'DateMessages>Scheduling',
 	'DateMessages>Settings',
 	'DateMessages>UserDashboard',
