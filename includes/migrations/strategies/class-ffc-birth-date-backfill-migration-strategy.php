@@ -97,6 +97,15 @@ class BirthDateBackfillMigrationStrategy implements MigrationStrategyInterface {
 	private const CANONICAL_META_KEY = 'ffc_user_birth_date';
 
 	/**
+	 * Transient caching the pending count other screens read. Cleared by every
+	 * batch, so it is only ever stale by accounts created since -- removed by
+	 * uninstall's `_transient_ffc_` sweep.
+	 *
+	 * @var string
+	 */
+	public const PENDING_TRANSIENT = 'ffc_birth_date_backfill_pending';
+
+	/**
 	 * Field ids of every `data_nascimento` row, memoised for one request.
 	 *
 	 * @var array<int, int>|null
@@ -127,6 +136,29 @@ class BirthDateBackfillMigrationStrategy implements MigrationStrategyInterface {
 	}
 
 	/**
+	 * Accounts this card has yet to examine -- the card's own `pending`, for
+	 * a screen that has to say why it cannot see someone (#1538).
+	 *
+	 * Cached for an hour because the count walks `wp_users` with two
+	 * correlated subqueries, and the Date Messages screen asks on every
+	 * load. Every batch clears it.
+	 *
+	 * @return int
+	 */
+	public static function pending_accounts(): int {
+		$cached = get_transient( self::PENDING_TRANSIENT );
+		if ( is_numeric( $cached ) ) {
+			return (int) $cached;
+		}
+
+		$strategy = new self();
+		$pending  = $strategy->count_candidates( $strategy->get_cursor() );
+		set_transient( self::PENDING_TRANSIENT, $pending, HOUR_IN_SECONDS );
+
+		return $pending;
+	}
+
+	/**
 	 * Fill one batch of accounts.
 	 *
 	 * @param string               $migration_key    Migration identifier.
@@ -140,6 +172,9 @@ class BirthDateBackfillMigrationStrategy implements MigrationStrategyInterface {
 			: self::BATCH_SIZE;
 
 		$users = $this->next_candidates( $this->get_cursor(), $batch_size );
+
+		// Whatever this batch does, the cached count no longer describes it.
+		delete_transient( self::PENDING_TRANSIENT );
 
 		if ( array() === $users ) {
 			return array(

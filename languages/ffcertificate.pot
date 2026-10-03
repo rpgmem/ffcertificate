@@ -23538,3 +23538,11 @@ msgstr ""
 
 msgid "These fields arrived empty or with an invalid choice and kept their previous value: %s"
 msgstr ""
+
+msgid "The birth-date migration has %d account left to examine. Until it runs, a birth date given before the profile field existed is not on the profile, so that person does not appear in previews or upcoming dates and receives no messages."
+msgid_plural "The birth-date migration has %d accounts left to examine. Until it runs, a birth date given before the profile field existed is not on the profile, so those people do not appear in previews or upcoming dates and receive no messages."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Run it in Settings → Migrations."
+msgstr ""

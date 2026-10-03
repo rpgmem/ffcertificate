@@ -533,4 +533,61 @@ class DateMessagesAdminPageTest extends TestCase {
 			DateMessagesAdminPage::audience_options()
 		);
 	}
+
+	/**
+	 * Render the backfill notice with a given pending count.
+	 *
+	 * @param int $pending Accounts the migration card still has to examine.
+	 * @return array{0: string, 1: array<string, mixed>}|null The notice, or null when none was printed.
+	 */
+	private function backfill_notice( int $pending ): ?array {
+		Mockery::mock( 'alias:FreeFormCertificate\Migrations\Strategies\BirthDateBackfillMigrationStrategy' )
+			->shouldReceive( 'pending_accounts' )->andReturn( $pending );
+		Functions\when( '_n' )->alias( static fn( $one, $many, $n ) => 1 === $n ? $one : $many );
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+
+		$printed = null;
+		Functions\when( 'wp_admin_notice' )->alias(
+			function ( $message, $args ) use ( &$printed ) {
+				$printed = array( $message, $args );
+			}
+		);
+
+		DateMessagesAdminPage::render_backfill_notice();
+
+		return $printed;
+	}
+
+	/**
+	 * An empty preview must never read as "nobody has a birthday" while the
+	 * migration has dates it has not copied yet (#1538).
+	 */
+	public function test_the_backfill_notice_names_the_pending_accounts(): void {
+		$notice = $this->backfill_notice( 3 );
+
+		$this->assertNotNull( $notice );
+		$this->assertStringContainsString( 'has 3 accounts left to examine', $notice[0] );
+		$this->assertSame( 'warning', $notice[1]['type'] );
+		$this->assertFalse( $notice[1]['dismissible'] );
+	}
+
+	public function test_no_backfill_notice_once_the_migration_is_done(): void {
+		$this->assertNull( $this->backfill_notice( 0 ) );
+	}
+
+	public function test_the_migrations_link_is_offered_only_to_who_can_run_them(): void {
+		$this->caps = array( 'ffc_view_date_messages' );
+		$without    = $this->backfill_notice( 1 );
+
+		$this->assertStringContainsString( 'has 1 account left', $without[0] );
+		$this->assertStringNotContainsString( 'tab=migrations', $without[0] );
+	}
+
+	public function test_the_migrations_link_is_offered_to_a_danger_zone_operator(): void {
+		$this->caps = array( 'ffc_view_date_messages', 'ffc_manage_settings_dangerzone' );
+		$with       = $this->backfill_notice( 1 );
+
+		$this->assertStringContainsString( 'admin.php?page=ffc-settings&tab=migrations', $with[0] );
+	}
 }
