@@ -81,7 +81,7 @@ class DateMessagesMessageBuilderTest extends TestCase {
 	}
 
 	public function test_values_are_escaped_for_the_html_they_land_in(): void {
-		Functions\when( 'get_user_meta' )->justReturn( '' );
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'first_name' => '' ) );
 
 		$message = MessageBuilder::build(
 			$this->rule( '<p>{{name}} turns {{age}} on {{date}}, in {{days_until}} days. <a href="{{dashboard_url}}">x</a> <a href="{{unsubscribe_url}}">u</a></p>' ),
@@ -102,7 +102,7 @@ class DateMessagesMessageBuilderTest extends TestCase {
 	}
 
 	public function test_a_body_without_the_link_gets_it_appended(): void {
-		Functions\when( 'get_user_meta' )->justReturn( 'Ana' );
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'first_name' => 'Ana' ) );
 
 		$message = MessageBuilder::build(
 			$this->rule( '<p>Happy birthday</p>' ),

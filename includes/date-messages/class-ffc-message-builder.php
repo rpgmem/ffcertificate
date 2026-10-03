@@ -61,12 +61,15 @@ final class MessageBuilder {
 	 * @return array{subject: string, body: string}
 	 */
 	public static function build( Rule $rule, DateSourceInterface $source, array $recipient, \DateTimeImmutable $target, \DateTimeImmutable $today ): array {
-		$first = get_user_meta( $recipient['user_id'], 'first_name', true );
+		// Core's own field, read through the account rather than as a meta
+		// key: the plugin neither writes nor owns it.
+		$user  = get_userdata( $recipient['user_id'] );
+		$first = false !== $user ? $user->first_name : '';
 
 		$tokens = array_merge(
 			array(
 				'name'            => $recipient['name'],
-				'first_name'      => is_string( $first ) && '' !== trim( $first ) ? trim( $first ) : self::first_word( $recipient['name'] ),
+				'first_name'      => '' !== trim( $first ) ? trim( $first ) : self::first_word( $recipient['name'] ),
 				'email'           => $recipient['email'],
 				'days_until'      => (string) self::days_between( $today, $target ),
 				'site_name'       => (string) get_bloginfo( 'name' ),
