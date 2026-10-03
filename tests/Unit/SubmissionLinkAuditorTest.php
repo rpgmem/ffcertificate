@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Maintenance\MaintenanceToolInterface;
 use FreeFormCertificate\Maintenance\SubmissionLinkAuditor;
+use FreeFormCertificate\Maintenance\IdentityAcceptance;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use FreeFormCertificate\Repositories\SubmissionRepository;
 
@@ -58,22 +59,34 @@ class SubmissionLinkAuditorTest extends TestCase {
 	}
 
 	/**
-	 * The auditor with the cross-store seam filled by the double.
+	 * The auditor with both seams filled by doubles.
+	 *
+	 * The acceptance record is a DOUBLE RATHER THAN A `get_option` STUB, for
+	 * the reason `CLAUDE.md` records and `IdentityQueueTest` repeats: teaching
+	 * Patchwork that function leaves it defined for every later test in the
+	 * process, and what this file measures is how the auditor aggregates.
+	 *
+	 * @param array<string, array<string, mixed>> $accepted Records, keyed as `IdentityAcceptance` keys them.
 	 */
-	private function auditor(): SubmissionLinkAuditor {
+	private function auditor( array $accepted = array() ): SubmissionLinkAuditor {
 		$conflicts = $this->conflicts;
 
-		return new class( $this->repo, $conflicts ) extends SubmissionLinkAuditor {
+		return new class( $this->repo, $conflicts, $accepted ) extends SubmissionLinkAuditor {
 			/** @var IdentityConflictQuery */
 			private $double;
 
+			/** @var array<string, array<string, mixed>> */
+			private $accepted;
+
 			/**
-			 * @param SubmissionRepository  $repository Repository double.
-			 * @param IdentityConflictQuery $double     Cross-store double.
+			 * @param SubmissionRepository                $repository Repository double.
+			 * @param IdentityConflictQuery               $double     Cross-store double.
+			 * @param array<string, array<string, mixed>> $accepted   Acceptance records.
 			 */
-			public function __construct( $repository, $double ) {
+			public function __construct( $repository, $double, array $accepted ) {
 				parent::__construct( $repository );
-				$this->double = $double;
+				$this->double   = $double;
+				$this->accepted = $accepted;
 			}
 
 			/**
@@ -81,6 +94,33 @@ class SubmissionLinkAuditorTest extends TestCase {
 			 */
 			protected function conflicts(): IdentityConflictQuery {
 				return $this->double;
+			}
+
+			/**
+			 * @return IdentityAcceptance
+			 */
+			protected function acceptances(): IdentityAcceptance {
+				$record = $this->accepted;
+
+				return new class( $record ) extends IdentityAcceptance {
+
+					/** @var array<string, array<string, mixed>> */
+					private $record;
+
+					/**
+					 * @param array<string, array<string, mixed>> $record Records.
+					 */
+					public function __construct( array $record ) {
+						$this->record = $record;
+					}
+
+					/**
+					 * @return array<string, array<string, mixed>>
+					 */
+					public function all(): array {
+						return $this->record;
+					}
+				};
 			}
 		};
 	}
@@ -428,6 +468,224 @@ class SubmissionLinkAuditorTest extends TestCase {
 				"`{$check}` groups by account, so `related` there holds hashes, never accounts."
 			);
 		}
+	}
+
+	/**
+	 * The scan reports an acceptance, it never drops one (#1536).
+	 *
+	 * The identity screen drops accepted findings because there the list IS
+	 * the work. This card is a scan, and an accepted finding is still true of
+	 * the data -- the stored number goes on failing its check digit -- so it
+	 * stays in `rows` and is counted beside the total. That is what lets the
+	 * card say `N findings, M accepted, N-M open` instead of showing a
+	 * smaller number than the database holds.
+	 */
+	public function test_an_accepted_finding_is_counted_and_never_dropped(): void {
+		$this->quiet_repo();
+
+		$this->conflicts->shouldReceive( 'check_digit_failures_of_both' )->andReturn(
+			array(
+				array(
+					'subject'           => 'hash-of-the-bad-rf',
+					'identifier_column' => 'rf_hash',
+				),
+				array(
+					'subject'           => 'hash-of-another-bad-rf',
+					'identifier_column' => 'rf_hash',
+				),
+			)
+		);
+
+		$report = $this->auditor(
+			array(
+				IdentityAcceptance::key( 'check_digit', 'rf', 'hash-of-the-bad-rf' ) => array(
+					IdentityAcceptance::FIELD_CHECK   => 'check_digit',
+					IdentityAcceptance::FIELD_SUBJECT => 'hash-of-the-bad-rf',
+					IdentityAcceptance::FIELD_REASON  => IdentityAcceptance::REASON_NEVER_SUPPLIED,
+				),
+			)
+		)->run( array() );
+
+		$this->assertSame( 2, $report['checks']['check_digit']['count'], 'The scan found two, and accepting one does not unfind it.' );
+		$this->assertSame( 1, $report['checks']['check_digit']['accepted'] );
+		$this->assertCount( 2, $report['checks']['check_digit']['rows'], 'A row dropped here is a finding the CSV could not carry an `accepted` column for.' );
+		$this->assertSame( 2, $report['total'] );
+		$this->assertSame( 1, $report['accepted'] );
+	}
+
+	/**
+	 * Counted in the scan's direction, never the record's (#1536).
+	 *
+	 * An acceptance outlives its finding: the value may be repaired upstream,
+	 * or -- for the one check keyed on an account -- the account may be
+	 * deleted, after which the cross-store query no longer sees it. Walking
+	 * the records instead of the findings would report accepted findings this
+	 * report does not hold, and on a clean database could report some against
+	 * a total of zero.
+	 */
+	public function test_an_acceptance_whose_finding_is_gone_is_not_counted(): void {
+		$this->quiet_repo();
+
+		$report = $this->auditor(
+			array(
+				IdentityAcceptance::key( 'check_digit', 'rf', 'hash-of-a-value-since-repaired' ) => array(
+					IdentityAcceptance::FIELD_CHECK   => 'check_digit',
+					IdentityAcceptance::FIELD_SUBJECT => 'hash-of-a-value-since-repaired',
+					IdentityAcceptance::FIELD_REASON  => IdentityAcceptance::REASON_UNIDENTIFIABLE,
+				),
+				IdentityAcceptance::key( 'cross_store_multiple_identities', 'rf', '438' ) => array(
+					IdentityAcceptance::FIELD_CHECK   => 'cross_store_multiple_identities',
+					IdentityAcceptance::FIELD_SUBJECT => '438',
+					IdentityAcceptance::FIELD_REASON  => IdentityAcceptance::REASON_NEVER_SUPPLIED,
+				),
+			)
+		)->run( array() );
+
+		$this->assertSame( 0, $report['total'] );
+		$this->assertSame( 0, $report['accepted'], 'Two records on file and nothing found: the count follows the findings.' );
+		$this->assertSame( 0, $report['checks']['check_digit']['accepted'] );
+	}
+
+	/**
+	 * A check the screen cannot accept from counts none, record or no record.
+	 *
+	 * Only the three checks `IdentityQueue::CHECKS` composes have a card to
+	 * accept from. `unindexed_links` carries a subject and so is keyable by
+	 * shape, which is exactly why the scope test lives in
+	 * `IdentityAcceptance::key_for_row()` rather than in whichever consumer
+	 * happened to think of it.
+	 */
+	public function test_a_check_outside_the_queue_counts_none_even_carrying_a_subject(): void {
+		$this->quiet_repo();
+
+		$this->conflicts->shouldReceive( 'unindexed_links' )->andReturn(
+			array(
+				array(
+					'subject'           => 'hash-of-an-unindexed-rf',
+					'identifier_column' => 'rf_hash',
+				),
+			)
+		);
+
+		$report = $this->auditor(
+			array(
+				IdentityAcceptance::key( 'unindexed_links', 'rf', 'hash-of-an-unindexed-rf' ) => array(
+					IdentityAcceptance::FIELD_CHECK   => 'unindexed_links',
+					IdentityAcceptance::FIELD_SUBJECT => 'hash-of-an-unindexed-rf',
+					IdentityAcceptance::FIELD_REASON  => IdentityAcceptance::REASON_NEVER_SUPPLIED,
+				),
+			)
+		)->run( array() );
+
+		$this->assertSame( 1, $report['checks']['unindexed_links']['count'] );
+		$this->assertSame( 0, $report['checks']['unindexed_links']['accepted'] );
+		$this->assertSame( 0, $report['accepted'] );
+	}
+
+	/**
+	 * The field discriminates: a CPF acceptance does not cover an RF finding.
+	 *
+	 * Account `438` holds both an 11-digit CPF and a 7-digit RF, and each is
+	 * its own finding and its own decision -- the production case #1511
+	 * records. A key without the field would let one acceptance silence two.
+	 */
+	public function test_an_acceptance_on_one_identifier_leaves_the_other_open(): void {
+		$this->quiet_repo();
+
+		$this->conflicts->shouldReceive( 'multiple_identities' )->andReturn(
+			array(
+				array(
+					'subject'           => '438',
+					'identity_count'    => 2,
+					'identifier_column' => 'cpf_hash',
+				),
+				array(
+					'subject'           => '438',
+					'identity_count'    => 2,
+					'identifier_column' => 'rf_hash',
+				),
+			)
+		);
+
+		$report = $this->auditor(
+			array(
+				IdentityAcceptance::key( 'cross_store_multiple_identities', 'cpf', '438' ) => array(
+					IdentityAcceptance::FIELD_CHECK   => 'cross_store_multiple_identities',
+					IdentityAcceptance::FIELD_SUBJECT => '438',
+					IdentityAcceptance::FIELD_REASON  => IdentityAcceptance::REASON_NEVER_SUPPLIED,
+				),
+			)
+		)->run( array() );
+
+		$this->assertSame( 2, $report['checks']['cross_store_multiple_identities']['count'] );
+		$this->assertSame( 1, $report['checks']['cross_store_multiple_identities']['accepted'], 'The CPF decision must not silence the RF finding.' );
+	}
+
+	/**
+	 * No consumer rebuilds the acceptance key (#1536).
+	 *
+	 * Three surfaces join one option against a scan row -- the queue's filter,
+	 * the CSV's column and this report's count -- and each built the
+	 * `check|field|subject` key itself until `key_for_row()` took the rule
+	 * over. Two copies of a join is how two surfaces come to disagree about
+	 * it, which is why the dbDelta gate and `ActivatorSqlTest` read their
+	 * statements through one shared parser.
+	 *
+	 * It reads the CONSUMERS and not `IdentityAcceptance`, which legitimately
+	 * composes the key from its own arguments when the screen writes a record.
+	 */
+	public function test_no_consumer_builds_the_acceptance_key_from_a_row(): void {
+		$consumers = array(
+			'includes/maintenance/class-ffc-submission-link-auditor.php',
+			'includes/maintenance/class-ffc-identity-audit-export-source.php',
+			'includes/maintenance/class-ffc-identity-queue.php',
+		);
+
+		$read = 0;
+
+		foreach ( $consumers as $relative ) {
+			$path = \dirname( __DIR__, 2 ) . '/' . $relative;
+
+			$this->assertFileExists( $path, "The join's consumers moved; re-point this guard at them." );
+
+			$source = (string) file_get_contents( $path );
+
+			++$read;
+
+			// A CALL AND NOT THE PROSE. These files legitimately NAME
+			// `IdentityAcceptance::key()` in a docblock when explaining why
+			// the key carries the check, and the first version of this guard
+			// read that sentence as a call -- the same trap `CLAUDE.md`
+			// records for the `phpcs:` token, where prose mentioning a
+			// directive is not one. A call passes an argument, so the paren is
+			// followed by something other than its own close.
+			$this->assertDoesNotMatchRegularExpression(
+				'/IdentityAcceptance::key\(\s*[^)\s]/',
+				$source,
+				"{$relative} builds the acceptance key itself. Go through `IdentityAcceptance::key_for_row()`, so the three surfaces cannot disagree about the same join."
+			);
+
+			$this->assertMatchesRegularExpression(
+				'/IdentityAcceptance::key_for_row\(\s*[^)\s]/',
+				$source,
+				"{$relative} is listed as a consumer of the acceptance join but does not perform it -- drop it from this list or restore the lookup."
+			);
+		}
+
+		// An empty read must never pass as clean (the #1071 / #1094 rule).
+		// Exact, against a non-empty frozen list, which is the shape
+		// `CLAUDE.md` prefers over any floor.
+		$this->assertSame( \count( $consumers ), $read );
+	}
+
+	/**
+	 * Keep the repository quiet for a case about the cross-store checks.
+	 */
+	private function quiet_repo(): void {
+		$this->repo->shouldReceive( 'find_orphan_user_links' )->andReturn( array() );
+		$this->repo->shouldReceive( 'find_users_with_multiple_identities' )->andReturn( array() );
+		$this->repo->shouldReceive( 'find_unlinked_with_matching_identity' )->andReturn( array() );
+		$this->repo->shouldReceive( 'find_shared_identities' )->andReturn( array() );
 	}
 
 	public function test_clean_database_reports_zero(): void {

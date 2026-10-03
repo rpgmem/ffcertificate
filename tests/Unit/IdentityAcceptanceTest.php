@@ -450,6 +450,111 @@ class IdentityAcceptanceTest extends TestCase {
 	}
 
 	/**
+	 * The key from a scan row: the rule three surfaces used to make each.
+	 */
+	public function test_a_row_is_keyed_by_its_check_field_and_subject(): void {
+		$this->assertSame(
+			IdentityAcceptance::key( IdentityQueue::CHECK_DIGITS, 'rf', 'hash-of-a-bad-rf' ),
+			IdentityAcceptance::key_for_row(
+				IdentityQueue::CHECK_DIGITS,
+				array(
+					'subject'           => 'hash-of-a-bad-rf',
+					'identifier_column' => 'rf_hash',
+				)
+			),
+			'A row must key exactly as the screen keyed the record it wrote, or an acceptance is unfindable.'
+		);
+	}
+
+	/**
+	 * `_hash` comes off the column, because the record is keyed by the FIELD.
+	 *
+	 * The query emits `cpf_hash` / `rf_hash`; the screen writes `cpf` / `rf`,
+	 * which is the vocabulary `IdentityRepair::FIELDS` and every refusal
+	 * speak. Keying on the column would make the two halves never meet.
+	 */
+	public function test_the_column_is_read_as_the_field_it_names(): void {
+		$key = IdentityAcceptance::key_for_row(
+			IdentityQueue::CHECK_SHARED,
+			array(
+				'subject'           => 'hash-of-a-shared-cpf',
+				'identifier_column' => 'cpf_hash',
+			)
+		);
+
+		$this->assertStringContainsString( IdentityQueue::KEY_SEPARATOR . 'cpf' . IdentityQueue::KEY_SEPARATOR, $key );
+		$this->assertStringNotContainsString( 'cpf_hash', $key );
+		$this->assertContains( 'cpf', IdentityRepair::FIELDS, 'The key speaks the repair vocabulary; this pins that they are the same word.' );
+	}
+
+	/**
+	 * An account id is a subject too, and is not a hash.
+	 */
+	public function test_an_account_subject_keys_whole(): void {
+		$this->assertSame(
+			IdentityAcceptance::key( IdentityQueue::CHECK_MULTIPLE, 'rf', '438' ),
+			IdentityAcceptance::key_for_row(
+				IdentityQueue::CHECK_MULTIPLE,
+				array(
+					'subject'           => '438',
+					'identifier_column' => 'rf_hash',
+				)
+			)
+		);
+
+		$this->assertNotContains(
+			IdentityQueue::CHECK_MULTIPLE,
+			IdentityAcceptance::HASH_SUBJECT_CHECKS,
+			'This is the one check whose subject is an account, which is why the panel labels it rather than truncating it as a hash prefix.'
+		);
+	}
+
+	/**
+	 * A check with no card to accept from cannot be keyed at all.
+	 *
+	 * NOT THE SAME ANSWER AS "NOT ACCEPTED", which is why this returns an
+	 * empty string rather than a key that could never be found: the CSV
+	 * leaves the column blank here and prints `open` for a finding that is
+	 * merely unjudged, and the audit card counts neither.
+	 */
+	public function test_a_check_outside_the_queue_cannot_be_keyed(): void {
+		foreach ( array( 'unindexed_links', 'orphan_links', 'should_be_linked', 'multiple_identities' ) as $outside ) {
+			$this->assertNotContains( $outside, IdentityQueue::CHECKS, "`{$outside}` is in the queue now -- this case is measuring nothing." );
+
+			$this->assertSame(
+				'',
+				IdentityAcceptance::key_for_row(
+					$outside,
+					array(
+						'subject'           => 'a-subject-it-really-carries',
+						'identifier_column' => 'rf_hash',
+					)
+				),
+				"`{$outside}` has no card to accept from, so a key for it could never be written and must not read as open."
+			);
+		}
+	}
+
+	/**
+	 * A row with no subject cannot be keyed either.
+	 *
+	 * `should_be_linked` returns submissions with NO account, which is the
+	 * whole finding; a key built from an empty subject would collide with
+	 * every other subject-less row of the same check.
+	 */
+	public function test_a_row_without_a_subject_cannot_be_keyed(): void {
+		$this->assertSame(
+			'',
+			IdentityAcceptance::key_for_row( IdentityQueue::CHECK_DIGITS, array( 'identifier_column' => 'rf_hash' ) )
+		);
+
+		$this->assertSame(
+			'',
+			IdentityAcceptance::key_for_row( IdentityQueue::CHECK_DIGITS, array( 'subject' => '' ) )
+		);
+	}
+
+	/**
 	 * The option is declared in the manifest the fresh-install gate enforces.
 	 */
 	public function test_the_option_is_in_the_uninstall_manifest(): void {

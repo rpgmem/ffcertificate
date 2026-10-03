@@ -1024,7 +1024,7 @@ try {
 		'ffc_submission_audit_scan'
 	);
 
-	// The export re-runs the same seven checks at a far higher cap rather than
+	// The export re-runs the same checks at a far higher cap rather than
 	// dumping the transient the scan stored: that one is a 50-row sample, and
 	// the whole point of the download is the rows the sample leaves out.
 	$ffcertificate_sa_export_url = wp_nonce_url(
@@ -1128,9 +1128,41 @@ try {
 				<?php if ( 0 === $ffcertificate_sa_total ) : ?>
 					<p class="description"><?php esc_html_e( 'No link problems found: no identifier is held by two accounts, no account holds two identifiers, and the identity index carries every identifier already linked to a user.', 'ffcertificate' ); ?></p>
 				<?php else : ?>
+					<?php
+					// THE COUNTS STAY WHAT THE SCAN FOUND (#1536).
+					//
+					// An accepted finding is one somebody judged impossible to
+					// resolve -- the number was never supplied, and HR cannot
+					// trace it -- and that is a decision about what to DO, not
+					// a change to the data: the stored value still fails its
+					// check digit. So this card reports the split rather than
+					// subtracting, and the identity screen stays the one
+					// surface that drops them, because there the list IS the
+					// work.
+					//
+					// Without this, the two surfaces built from this one scan
+					// disagree in a way neither explains: the CSV carries an
+					// `accepted` column while the card showed a total that can
+					// never reach zero, which is how a number stops being read.
+					//
+					// A report cached before this release carries no
+					// `accepted` key, so every read below falls back to zero
+					// rather than assuming it is there -- the same care the
+					// `account_status` reads below take.
+					//
+					// The split is AS OF THE SCAN, like every other number on
+					// this card: accepting something on the identity screen
+					// afterwards does not move it until `Run audit` is pressed
+					// again. That is the card's nature rather than a gap -- the
+					// counts beside it are the same snapshot.
+					$ffcertificate_sa_acc = isset( $ffcertificate_sa_report['accepted'] ) ? (int) $ffcertificate_sa_report['accepted'] : 0;
+					?>
 					<div class="ffc-migration-stats">
 						<?php foreach ( $ffcertificate_sa_labels as $ffcertificate_sa_key => $ffcertificate_sa_label ) : ?>
-							<?php $ffcertificate_sa_c = isset( $ffcertificate_sa_checks[ $ffcertificate_sa_key ]['count'] ) ? (int) $ffcertificate_sa_checks[ $ffcertificate_sa_key ]['count'] : 0; ?>
+							<?php
+							$ffcertificate_sa_c = isset( $ffcertificate_sa_checks[ $ffcertificate_sa_key ]['count'] ) ? (int) $ffcertificate_sa_checks[ $ffcertificate_sa_key ]['count'] : 0;
+							$ffcertificate_sa_a = isset( $ffcertificate_sa_checks[ $ffcertificate_sa_key ]['accepted'] ) ? (int) $ffcertificate_sa_checks[ $ffcertificate_sa_key ]['accepted'] : 0;
+							?>
 							<div>
 								<div class="ffc-migration-stat-label"><?php echo esc_html( $ffcertificate_sa_label ); ?></div>
 								<div class="ffc-migration-stat-value <?php echo $ffcertificate_sa_c > 0 ? 'ffc-migration-stat-info' : ''; ?>">
@@ -1139,9 +1171,35 @@ try {
 									echo ( ! empty( $ffcertificate_sa_checks[ $ffcertificate_sa_key ]['truncated'] ) ) ? '+' : '';
 									?>
 								</div>
+								<?php if ( $ffcertificate_sa_a > 0 ) : ?>
+									<div class="ffc-migration-stat-note">
+										<?php
+										printf(
+											/* translators: %1$s: findings accepted as unresolvable. %2$s: findings still open. */
+											esc_html__( '%1$s accepted · %2$s open', 'ffcertificate' ),
+											esc_html( number_format_i18n( $ffcertificate_sa_a ) ),
+											esc_html( number_format_i18n( max( 0, $ffcertificate_sa_c - $ffcertificate_sa_a ) ) )
+										);
+										?>
+									</div>
+								<?php endif; ?>
 							</div>
 						<?php endforeach; ?>
 					</div>
+
+					<?php if ( $ffcertificate_sa_acc > 0 ) : ?>
+						<p class="description">
+							<?php
+							printf(
+								/* translators: %1$s: total findings. %2$s: how many are accepted as unresolvable. %3$s: how many remain open. */
+								esc_html__( 'Of the %1$s findings, %2$s are accepted on the Identity Resolution screen as impossible to resolve, leaving %3$s open. An acceptance records that nobody can fix the value — it does not change anything stored, so this scan still reports it, and a merge or move blocked by that number stays blocked.', 'ffcertificate' ),
+								esc_html( number_format_i18n( $ffcertificate_sa_total ) ),
+								esc_html( number_format_i18n( $ffcertificate_sa_acc ) ),
+								esc_html( number_format_i18n( max( 0, $ffcertificate_sa_total - $ffcertificate_sa_acc ) ) )
+							);
+							?>
+						</p>
+					<?php endif; ?>
 					<?php
 					// The accounts behind the counts, clickable. Until #1354
 					// this card showed numbers and nothing else, so reaching

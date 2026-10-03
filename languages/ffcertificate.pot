@@ -22095,7 +22095,7 @@ msgid "No link problems found: no identifier is held by two accounts, no account
 msgstr ""
 
 #: includes/maintenance/class-ffc-submission-link-auditor.php
-msgid "Report-only scan of how people are linked to WordPress users. Four checks over certificate submissions: links to deleted users, one user bound to multiple CPF/RF identities, unlinked submissions whose CPF matches a linked one, and a single CPF shared across multiple users. Three more across every store — submissions, appointments, recruitment candidacies and the identity index — reporting one identifier held by two accounts, one account holding two identifiers, and identifiers the index does not yet carry. Nothing is changed: review and fix each case manually."
+msgid "Report-only scan of how people are linked to WordPress users. Over certificate submissions: links to deleted users, one user bound to multiple CPF/RF identities, unlinked submissions whose CPF matches a linked one, and a single CPF shared across multiple users. Across every store — submissions, appointments, recruitment candidacies and the identity index — one identifier held by two accounts, one account holding two identifiers, and identifiers the index does not yet carry. And one check on the stored value itself: a CPF or RF whose own check digit does not match. Nothing is changed: review and fix each case manually."
 msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-email-handler.php
@@ -22987,4 +22987,14 @@ msgstr ""
 
 #: includes/admin/views/identity-resolution-page.php:898
 msgid "Work the corrections first. A number that fails its own check digit cannot be anyone's, so it is not evidence that two accounts belong to one person — correcting it can make a finding further down disappear rather than be resolved."
+msgstr ""
+
+#. translators: %1$s: findings accepted as unresolvable. %2$s: findings still open.
+#: includes/settings/views/ffc-tab-migrations.php
+msgid "%1$s accepted · %2$s open"
+msgstr ""
+
+#. translators: %1$s: total findings. %2$s: how many are accepted as unresolvable. %3$s: how many remain open.
+#: includes/settings/views/ffc-tab-migrations.php
+msgid "Of the %1$s findings, %2$s are accepted on the Identity Resolution screen as impossible to resolve, leaving %3$s open. An acceptance records that nobody can fix the value — it does not change anything stored, so this scan still reports it, and a merge or move blocked by that number stays blocked."
 msgstr ""

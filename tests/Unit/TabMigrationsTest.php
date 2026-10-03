@@ -243,6 +243,97 @@ class TabMigrationsTest extends TestCase {
 	}
 
 	/**
+	 * Just the audit card's statistics region.
+	 *
+	 * Bounded for the reason `audit_actions()` and `complete_branch()` already
+	 * give: the card holds several numeric blocks, and an unbounded search
+	 * lets an assertion about this one pass on another.
+	 *
+	 * @param string $view The view's source.
+	 * @return string
+	 */
+	private function audit_stats( string $view ): string {
+		$from = strpos( $view, '<div class="ffc-migration-stats">' );
+		$to   = ( false === $from ) ? false : strpos( $view, '$ffcertificate_sa_findings = array();', (int) $from );
+
+		$this->assertIsInt( $from, 'The audit card must keep its statistics grid.' );
+		$this->assertIsInt( $to, 'That grid is followed by the clickable findings; one of the two moved.' );
+
+		return substr( $view, (int) $from, (int) $to - (int) $from );
+	}
+
+	/**
+	 * THE CARD REPORTS THE ACCEPTED SPLIT AND SUBTRACTS NOTHING (#1536).
+	 *
+	 * An accepted finding is one nobody can resolve -- the number was never
+	 * supplied, and HR cannot trace it. That is a decision about what to do,
+	 * not a change to the data, so this card goes on counting it and says how
+	 * many of its findings are in that state. Showing the smaller number
+	 * instead would make the scan disagree with the database it scanned, and
+	 * showing only the bare total is what left the two surfaces over this one
+	 * scan explaining themselves differently: the CSV carries a reason per row
+	 * while the card's number could never reach zero.
+	 */
+	public function test_the_audit_card_reports_the_accepted_split(): void {
+		$stats = $this->audit_stats( (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' ) );
+
+		$this->assertStringContainsString(
+			"number_format_i18n( \$ffcertificate_sa_c )",
+			$stats,
+			"The headline per check must stay the scan's own count, with no arithmetic applied to it."
+		);
+
+		$this->assertStringContainsString(
+			'ffc-migration-stat-note',
+			$stats,
+			'The split belongs under the count it qualifies.'
+		);
+
+		$this->assertStringContainsString(
+			'%1$s accepted · %2$s open',
+			$stats,
+			'Per check, both halves are named: a lone "3 accepted" leaves the reader subtracting.'
+		);
+
+		$this->assertStringContainsString(
+			'$ffcertificate_sa_total - $ffcertificate_sa_acc',
+			$stats,
+			'And the summary states how many remain open across the whole report.'
+		);
+
+		$this->assertStringContainsString(
+			'does not change anything stored',
+			$stats,
+			'The summary must say acceptance is not resolution, which is the sentence this whole state turns on.'
+		);
+	}
+
+	/**
+	 * A REPORT CACHED BEFORE THIS RELEASE CARRIES NO `accepted` KEY.
+	 *
+	 * The scan stores its report in a transient, so the first render after an
+	 * upgrade reads one written by the previous build. Every read of the new
+	 * key falls back rather than assuming it is there -- the same care the
+	 * `account_status` reads in this card already take, and the reason that
+	 * one carries its own comment.
+	 */
+	public function test_the_accepted_reads_survive_a_report_from_an_older_build(): void {
+		$stats = $this->audit_stats( (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' ) );
+
+		$reads = preg_match_all( '/\$ffcertificate_sa_(?:report|checks\[[^\]]+\])\[.accepted.\]/', $stats, $found );
+
+		$this->assertGreaterThan( 0, $reads, 'The card reads the accepted count somewhere, or this case is measuring nothing.' );
+
+		foreach ( $found[0] as $read ) {
+			$this->assertStringContainsString(
+				'isset( ' . $read . ' )',
+				$stats,
+				"`{$read}` is read without an `isset` guard, so a transient from an older build renders a notice."
+			);
+		}
+	}
+
+	/**
 	 * Just the complete branch of the actions column.
 	 *
 	 * Bounded on both sides for the reason `conflicts_block()` already gives:

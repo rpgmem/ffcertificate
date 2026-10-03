@@ -2454,13 +2454,37 @@ $ffc_identity_tier_note = static function ( $tier ) {
 				$ffc_identity_ar_field   = (string) ( $ffc_identity_accepted_row[ IdentityAcceptance::FIELD_IDENTIFIER ] ?? '' );
 				$ffc_identity_ar_reason  = (string) ( $ffc_identity_accepted_row[ IdentityAcceptance::FIELD_REASON ] ?? '' );
 				$ffc_identity_ar_at      = (int) ( $ffc_identity_accepted_row[ IdentityAcceptance::FIELD_AT ] ?? 0 );
+				$ffc_identity_ar_check   = (string) ( $ffc_identity_accepted_row[ IdentityAcceptance::FIELD_CHECK ] ?? '' );
+
+				// WHICH KIND OF SUBJECT THIS ROW HOLDS (#1536).
+				//
+				// The key's subject is a hash for two of the three checks and
+				// an ACCOUNT ID for the third, and both used to print through
+				// the same `substr()` -- so `438` and a hash prefix rendered
+				// identically, with nothing saying which was which. Shape
+				// cannot decide it either: a hex prefix can be all digits.
+				// `HASH_SUBJECT_CHECKS` is the one place that knows.
+				$ffc_identity_ar_is_hash = in_array( $ffc_identity_ar_check, IdentityAcceptance::HASH_SUBJECT_CHECKS, true );
 				?>
 				<tr>
 					<td><code><?php echo esc_html( strtoupper( $ffc_identity_ar_field ) ); ?></code></td>
 					<td>
 						<?php echo esc_html( $ffc_identity_tier_label( (string) ( $ffc_identity_accepted_row[ IdentityAcceptance::FIELD_TIER ] ?? '' ) ) ); ?>
 						<br>
-						<code><?php echo esc_html( substr( $ffc_identity_ar_subject, 0, IdentityQueue::DISPLAY_PREFIX ) ); ?></code>
+						<?php if ( $ffc_identity_ar_is_hash ) : ?>
+							<code><?php echo esc_html( substr( $ffc_identity_ar_subject, 0, IdentityQueue::DISPLAY_PREFIX ) ); ?></code>
+						<?php else : ?>
+							<?php
+							// `$ffc_identity_named`, the resolver the cards
+							// above already use, rather than a label of this
+							// panel's own: it answers with the person's name
+							// when the account is live and with `Account #438`
+							// when it is not -- which is exactly what this row
+							// needs, because an acceptance OUTLIVES the account
+							// it was taken about (see `IdentityAcceptance`).
+							echo esc_html( $ffc_identity_named( $ffc_identity_ar_subject ) );
+							?>
+						<?php endif; ?>
 					</td>
 					<td>
 						<?php
@@ -2484,7 +2508,7 @@ $ffc_identity_tier_note = static function ( $tier ) {
 						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 							<?php wp_nonce_field( IdentityResolutionPage::WITHDRAW_NONCE . $ffc_identity_ar_subject ); ?>
 							<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::WITHDRAW_ACTION ); ?>">
-							<input type="hidden" name="ffc_check" value="<?php echo esc_attr( (string) ( $ffc_identity_accepted_row[ IdentityAcceptance::FIELD_CHECK ] ?? '' ) ); ?>">
+							<input type="hidden" name="ffc_check" value="<?php echo esc_attr( $ffc_identity_ar_check ); ?>">
 							<input type="hidden" name="ffc_field" value="<?php echo esc_attr( $ffc_identity_ar_field ); ?>">
 							<input type="hidden" name="ffc_subject" value="<?php echo esc_attr( $ffc_identity_ar_subject ); ?>">
 							<button type="submit" class="button button-secondary">

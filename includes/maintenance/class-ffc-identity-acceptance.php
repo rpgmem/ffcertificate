@@ -44,6 +44,26 @@ if ( ! defined( 'ABSPATH' ) ) {
  * declared OUTSIDE `IdentityResolutionPage::RESOLVED_ACTIONS`, so the
  * "resolved this sitting" counter never counts an acceptance.
  *
+ * A DELETED ACCOUNT LEAVES ITS ACCEPTANCE BEHIND, AND THAT IS THE DECISION.
+ *
+ * For `cross_store_multiple_identities` the subject of the key is a `user_id`
+ * (see {@see self::HASH_SUBJECT_CHECKS} for which checks are which), so an
+ * acceptance survives the account it was taken about. Nothing in `UserCleanup`
+ * touches this option, and nothing should: by this project's governing rule --
+ * *retain records, drop relationships* -- an acceptance is a decision record,
+ * like an activity-log line, and the id is the identity of its key rather than
+ * a nullable column, so there is no link to drop without destroying the
+ * record. It is an accepted orphan, the shape `CLAUDE.md` already records for
+ * `ffc_reregistration_submissions.user_id`, and it is logged in that file's
+ * gap inventory rather than only here.
+ *
+ * What the deletion does do is make the record INERT: the checks read the live
+ * stores, so the finding it suppresses is gone from the next scan, and the
+ * audit card's count -- which joins in the scan's direction, never the
+ * record's -- stops counting it. It stays listed and withdrawable on the
+ * screen on purpose, because a row that vanishes is a suppression nobody can
+ * withdraw (#1536).
+ *
  * @since 6.33.0
  */
 class IdentityAcceptance {
@@ -258,6 +278,57 @@ class IdentityAcceptance {
 	 */
 	public static function key( string $check, string $field, string $subject ): string {
 		return implode( IdentityQueue::KEY_SEPARATOR, array( $check, $field, $subject ) );
+	}
+
+	/**
+	 * The key covering one audit finding, or an empty string when none can.
+	 *
+	 * ONE OWNER FOR A RULE THREE SURFACES APPLY
+	 *
+	 * Building `check|field|subject` out of a scan row is four decisions --
+	 * which checks are in scope, where the subject lives, that the stored
+	 * field is the column without its `_hash` suffix, and that a row carrying
+	 * no subject cannot be keyed at all -- and until #1536 each of the three
+	 * consumers made them itself: the queue's filter, the CSV's column, and
+	 * the audit card's count. Two surfaces reading one option through two
+	 * copies of a rule is how they come to disagree about the same join, which
+	 * is why `.github/scripts/ffc-create-statements.php` is shared between the
+	 * two guards that read it rather than written twice.
+	 *
+	 * IT RETURNS THE KEY AND NOT THE RECORD, on purpose. What a miss MEANS is
+	 * the caller's: the CSV prints `open` for a finding nobody has judged and
+	 * leaves the column blank for one that cannot be judged at all, while the
+	 * card counts neither. A method answering `?array` would collapse those
+	 * two into one `null` and hand each caller back the branch it just
+	 * delegated.
+	 *
+	 * @param string               $check The auditor's key for the check.
+	 * @param array<string, mixed> $row   One finding, as the auditor returns it.
+	 * @return string The key, or `''` when this row cannot carry an acceptance.
+	 */
+	public static function key_for_row( string $check, array $row ): string {
+		// The checks the identity screen composes, and only those: nothing
+		// else has a card to accept from, so a key built for one could never
+		// be written and would read as open rather than as out of scope.
+		if ( ! in_array( $check, IdentityQueue::CHECKS, true ) ) {
+			return '';
+		}
+
+		$subject = isset( $row['subject'] ) ? (string) $row['subject'] : '';
+
+		if ( '' === $subject ) {
+			return '';
+		}
+
+		// THE FIELD, NEVER THE COLUMN. `IdentityRepair::FIELDS` is the public
+		// vocabulary the refusals and the accept forms speak, and the column
+		// is that name plus `_hash`; keying on the column would make a record
+		// written from the screen unfindable from a scan row.
+		return self::key(
+			$check,
+			str_replace( '_hash', '', isset( $row['identifier_column'] ) ? (string) $row['identifier_column'] : '' ),
+			$subject
+		);
 	}
 
 	/**

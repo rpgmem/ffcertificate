@@ -8,13 +8,17 @@
  * records automatically is too risky; the admin reviews the report and acts
  * case by case.
  *
- * Four checks, all driven by the deterministic `cpf_hash` / `rf_hash` columns
- * (so no decryption is needed) plus a `wp_users` existence join:
+ * The checks are enumerated in `run()`, which groups them by what they read
+ * — the submission-scoped set, the cross-store set, and the one that judges a
+ * single stored value — and that grouping is the reading to trust. A count of
+ * them is deliberately NOT stated here: this docblock said "Four checks" and
+ * listed four for the two releases after the eighth arrived, which is the
+ * drift `CLAUDE.md` opens by describing. Nothing needs the figure, and
+ * `SubmissionLinkAuditorTest` already fails when a check is added without a
+ * label on the screen.
  *
- *   - `orphan_links`        — `user_id` points to a deleted WP user.
- *   - `multiple_identities` — one user linked to more than one distinct CPF/RF.
- *   - `should_be_linked`    — no `user_id`, but the CPF matches a linked row.
- *   - `shared_identities`   — one CPF shared across more than one user.
+ * All of them are driven by the deterministic `cpf_hash` / `rf_hash` columns
+ * (so no decryption is needed) plus a `wp_users` existence join.
  *
  * @package FreeFormCertificate\Maintenance
  * @since 6.8.0
@@ -120,7 +124,7 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 	 * {@inheritDoc}
 	 */
 	public function get_description(): string {
-		return __( 'Report-only scan of how people are linked to WordPress users. Four checks over certificate submissions: links to deleted users, one user bound to multiple CPF/RF identities, unlinked submissions whose CPF matches a linked one, and a single CPF shared across multiple users. Three more across every store — submissions, appointments, recruitment candidacies and the identity index — reporting one identifier held by two accounts, one account holding two identifiers, and identifiers the index does not yet carry. Nothing is changed: review and fix each case manually.', 'ffcertificate' );
+		return __( 'Report-only scan of how people are linked to WordPress users. Over certificate submissions: links to deleted users, one user bound to multiple CPF/RF identities, unlinked submissions whose CPF matches a linked one, and a single CPF shared across multiple users. Across every store — submissions, appointments, recruitment candidacies and the identity index — one identifier held by two accounts, one account holding two identifiers, and identifiers the index does not yet carry. And one check on the stored value itself: a CPF or RF whose own check digit does not match. Nothing is changed: review and fix each case manually.', 'ffcertificate' );
 	}
 
 	/**
@@ -142,24 +146,31 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 	}
 
 	/**
-	 * Run the seven read-only checks and return a structured report.
+	 * Run every read-only check and return a structured report.
 	 *
 	 * THE LIMIT IS AN ARGUMENT BECAUSE THE EXPORT NEEDS A DIFFERENT ONE
 	 *
 	 * The screen wants a cheap sample -- 50 per check, enough to say whether a
 	 * problem exists. The CSV export (#1295) wants the list itself, because a
 	 * lead nobody can take out of the page is not a lead. Rather than a second
-	 * class issuing the same seven queries with its own number, the caller
+	 * class issuing the same queries with its own number, the caller
 	 * passes `limit` and this stays the one place that knows what the checks
 	 * ARE -- the `cpf_rf_encrypted` rule against a parallel reader of one fact.
 	 *
 	 * `truncated` is per check and says the cap was reached, so a consumer can
 	 * state that its list is partial instead of implying it is complete.
 	 *
+	 * `accepted` is the same shape of answer about a different question: how
+	 * many of the findings somebody has judged impossible to resolve. Both are
+	 * reported rather than applied -- nothing is dropped from `rows` for
+	 * either reason -- so a consumer can say what its number leaves out. See
+	 * {@see self::accepted_among()}.
+	 *
 	 * @param array<string, mixed> $options Optional `limit` (defaults to {@see self::SAMPLE_LIMIT}).
 	 * @return array{
-	 *     checks: array<string, array{count:int, truncated:bool, rows:array<int, array<string, mixed>>}>,
-	 *     total: int
+	 *     checks: array<string, array{count:int, accepted:int, truncated:bool, rows:array<int, array<string, mixed>>}>,
+	 *     total: int,
+	 *     accepted: int
 	 * }
 	 */
 	public function run( array $options ): array {
@@ -197,28 +208,88 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 
 		$checks = $this->with_account_facts( $checks );
 
+		// ONE READ FOR THE WHOLE REPORT, not one per check: `all()` validates
+		// and sorts the entire record, and the loop below walks up to
+		// `$limit` rows per check. Same reason `rows()` on the CSV source and
+		// `IdentityQueue::without_accepted()` each read it once.
+		$accepted = $this->acceptances()->all();
+
 		$report = array(
-			'checks' => array(),
-			'total'  => 0,
+			'checks'   => array(),
+			'total'    => 0,
+			'accepted' => 0,
 		);
 
 		foreach ( $checks as $key => $rows ) {
 			$count                    = count( $rows );
+			$judged                   = self::accepted_among( (string) $key, $rows, $accepted );
 			$report['checks'][ $key ] = array(
 				'count'     => $count,
+				'accepted'  => $judged,
 				'truncated' => $count >= $limit,
 				'rows'      => $rows,
 			);
 			$report['total']         += $count;
+			$report['accepted']      += $judged;
 		}
 
 		return $report;
 	}
 
 	/**
+	 * How many of one check's findings somebody has judged unresolvable.
+	 *
+	 * THE SCAN REPORTS, IT NEVER FILTERS (#1536)
+	 *
+	 * This class is a scan: a finding is listed because it is true right now,
+	 * and acceptance is a decision about what to DO, not a change to the data
+	 * -- the stored number still fails its check digit. So an accepted finding
+	 * stays in `rows` and is counted here beside the total, which is what lets
+	 * the card say `N findings, M accepted, N-M open` rather than quietly
+	 * showing a smaller number than the data holds. The identity screen is the
+	 * one surface that drops them, because there the list IS the work.
+	 *
+	 * COUNTED IN THE SCAN'S DIRECTION, NEVER THE RECORD'S
+	 *
+	 * It walks the findings and asks whether a record covers each, rather than
+	 * walking the records. The difference shows the moment an acceptance
+	 * outlives its finding -- the value was repaired upstream, or the account
+	 * was deleted and the cross-store check no longer sees it -- where
+	 * counting records would report more accepted findings than the report
+	 * holds, and on a clean database could report some against a total of
+	 * zero.
+	 *
+	 * @param string                              $check    Check key.
+	 * @param array<int, array<string, mixed>>    $rows     That check's findings.
+	 * @param array<string, array<string, mixed>> $accepted The whole record, from `all()`.
+	 * @return int
+	 */
+	private static function accepted_among( string $check, array $rows, array $accepted ): int {
+		if ( array() === $accepted ) {
+			return 0;
+		}
+
+		$found = 0;
+
+		foreach ( $rows as $row ) {
+			// Through the one owner of the rule, never rebuilt here: a third
+			// copy of the key is how two surfaces reading one option come to
+			// disagree about the same join. An out-of-scope check and a row
+			// with no subject both answer `''`, and neither can be accepted.
+			$key = IdentityAcceptance::key_for_row( $check, $row );
+
+			if ( '' !== $key && isset( $accepted[ $key ] ) ) {
+				++$found;
+			}
+		}
+
+		return $found;
+	}
+
+	/**
 	 * Annotate every finding with what is true of the accounts it names.
 	 *
-	 * ONE PASS OVER ALL SEVEN CHECKS, NOT ONE PER CHECK
+	 * ONE PASS OVER EVERY CHECK, NOT ONE PER CHECK
 	 *
 	 * The same account is named by several checks -- production's export had
 	 * 66 of the 73 multi-identifier findings duplicated between the
@@ -353,5 +424,19 @@ class SubmissionLinkAuditor implements MaintenanceToolInterface {
 	 */
 	protected function conflicts(): IdentityConflictQuery {
 		return new IdentityConflictQuery();
+	}
+
+	/**
+	 * What an operator has judged impossible to resolve.
+	 *
+	 * A seam for the reason the two above have one: this reads an option, and
+	 * every test of this class would otherwise have to teach Patchwork
+	 * `get_option` -- which stays taught for the rest of the process, the
+	 * blast radius `CLAUDE.md` records three shapes of.
+	 *
+	 * @return IdentityAcceptance
+	 */
+	protected function acceptances(): IdentityAcceptance {
+		return new IdentityAcceptance();
 	}
 }

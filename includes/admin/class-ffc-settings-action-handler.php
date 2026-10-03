@@ -594,7 +594,7 @@ class SettingsActionHandler {
 	 * Report-only, two modes. `scan` (nonce `ffc_submission_audit_scan`) runs
 	 * the read-only {@see SubmissionLinkAuditor} and stores the report in a
 	 * transient; `export` (nonce {@see IdentityAuditExportSource::NONCE})
-	 * streams the same seven checks as a CSV at a much higher per-check cap,
+	 * streams the same checks as a CSV at a much higher per-check cap,
 	 * because the screen's 50 is a sample and the list is what an operator
 	 * needs to act (#1295). Nothing is mutated by either.
 	 *

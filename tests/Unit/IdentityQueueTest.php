@@ -553,7 +553,7 @@ class IdentityQueueTest extends TestCase {
 	 * back exactly that many is indistinguishable, from the rows alone, from
 	 * one that returned everything it had — which is the `#1384` shape: a
 	 * capped answer and a complete one look identical. `SubmissionLinkAuditor`
-	 * has decided this the same way for its seven checks since 6.27.0.
+	 * has decided this the same way for every check it runs since 6.27.0.
 	 */
 	public function test_a_check_that_fills_its_page_is_reported_as_capped(): void {
 		$queue = $this->queue_reading(

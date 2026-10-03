@@ -330,10 +330,10 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 	/**
 	 * Normalise one finding onto the shared header.
 	 *
-	 * The seven checks return seven different column sets, so a row is mapped
-	 * rather than splatted: `id` is a submission id in the two submission-scoped
-	 * checks that return one, and `subject` is a hash or a user id depending on
-	 * which way its check grouped (see {@see self::SUBJECT_IS}).
+	 * Every check returns its own column set, so a row is mapped rather than
+	 * splatted: `id` is a submission id in the two submission-scoped checks
+	 * that return one, and `subject` is a hash or a user id depending on which
+	 * way its check grouped (see {@see self::SUBJECT_IS}).
 	 *
 	 * `multiple_identities` is the one check whose row carries TWO counts
 	 * (`cpf_count`, `rf_count`). It reports the larger one and names the column
@@ -482,10 +482,12 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 	 *
 	 * THE CHECK DECIDES WHETHER THE QUESTION EVEN APPLIES.
 	 *
-	 * The auditor runs seven checks; the identity queue composes three, and
-	 * only those three can carry an acceptance. For the other four the answer
-	 * is not "no" -- there is nothing to answer, so the column is blank, which
-	 * is what this file already does for a column that does not apply.
+	 * The auditor runs a wider set of checks than the identity queue composes,
+	 * and only the queue's three can carry an acceptance -- the rest have no
+	 * card to accept from. For those the answer is not "no": there is nothing
+	 * to answer, so the column is blank, which is what this file already does
+	 * for a column that does not apply. `IdentityAcceptance::key_for_row()` is
+	 * where that scope lives, so this method no longer repeats the test.
 	 *
 	 * THE SUBJECT IS A HASH IN TWO CHECKS AND AN ACCOUNT ID IN THE THIRD, and
 	 * that is why `IdentityAcceptance::key()` carries the check: a lookup that
@@ -505,18 +507,19 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 	 * @return string
 	 */
 	private static function acceptance_of( string $check, array $row, array $accepted ): string {
-		if ( ! in_array( $check, IdentityQueue::CHECKS, true ) ) {
+		// THE KEY COMES FROM ITS ONE OWNER (#1536). This built it here, the
+		// queue's filter built it there and the audit card's count would have
+		// been a third copy -- and two surfaces reading one option through two
+		// copies of a rule is how they come to disagree about the same join.
+		// An empty key means the row cannot carry an acceptance at all, which
+		// is a different answer from carrying none.
+		$key = IdentityAcceptance::key_for_row( $check, $row );
+
+		if ( '' === $key ) {
 			return '';
 		}
 
-		$subject = isset( $row['subject'] ) ? (string) $row['subject'] : '';
-
-		if ( '' === $subject ) {
-			return '';
-		}
-
-		$field  = str_replace( '_hash', '', isset( $row['identifier_column'] ) ? (string) $row['identifier_column'] : '' );
-		$record = $accepted[ IdentityAcceptance::key( $check, $field, $subject ) ] ?? null;
+		$record = $accepted[ $key ] ?? null;
 
 		if ( ! is_array( $record ) ) {
 			return self::ACCEPTANCE_OPEN;

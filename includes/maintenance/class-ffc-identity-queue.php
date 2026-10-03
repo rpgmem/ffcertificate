@@ -194,8 +194,8 @@ class IdentityQueue {
 	 * NAMED AFTER `SubmissionLinkAuditor`'S KEYS ON PURPOSE.
 	 *
 	 * The screen and the CSV are two pipelines over overlapping questions:
-	 * the export runs the `submission_link_audit` tool, whose report has seven
-	 * checks, and this worklist composes three of them. An operator holding
+	 * the export runs the `submission_link_audit` tool, whose report is the
+	 * wider set, and this worklist composes three of them. An operator holding
 	 * both needs one vocabulary, and the auditor's key is the one that already
 	 * exists in the file they take to HR -- so an item says which check it
 	 * came from, spelled exactly as the `check` column spells it.
@@ -236,9 +236,12 @@ class IdentityQueue {
 	 *
 	 * Named once because there are two consumers now: the resolution page
 	 * validates a posted check against it, and `IdentityAuditExportSource`
-	 * needs to know which of the auditor's SEVEN checks can carry an
-	 * acceptance at all -- the other four have no concept of one, and reading
-	 * their absence as "not accepted" would be a different claim (#1534).
+	 * needs to know which of the auditor's checks can carry an acceptance at
+	 * all -- the rest have no concept of one, and reading their absence as
+	 * "not accepted" would be a different claim (#1534). A count of the
+	 * auditor's checks is deliberately not stated here: it moved from seven to
+	 * eight in 6.31.0 and every prose summary in the tree went on saying seven
+	 * until #1536 removed the figure from all of them.
 	 *
 	 * @since 6.33.0
 	 * @var array<int, string>
@@ -457,16 +460,18 @@ class IdentityQueue {
 		$kept = array();
 
 		foreach ( $items as $item ) {
-			// The record is keyed by the FIELD, which is the public vocabulary
-			// the refusals and the page already speak; `_hash` comes off the
-			// column the same way `IdentityConflictQuery` takes it off.
-			$key = IdentityAcceptance::key(
+			// Through the one owner of the rule (#1536): this built the key
+			// here, the CSV built it there, and the audit card's count would
+			// have been a third copy. It is keyed by the FIELD, which is the
+			// public vocabulary the refusals and the page already speak, with
+			// `_hash` coming off the column the way `IdentityConflictQuery`
+			// takes it off -- all of that now stated once.
+			$key = IdentityAcceptance::key_for_row(
 				(string) ( $item[ self::COLUMN_CHECK ] ?? '' ),
-				str_replace( '_hash', '', (string) ( $item['identifier_column'] ?? '' ) ),
-				(string) ( $item['subject'] ?? '' )
+				$item
 			);
 
-			$record = $accepted[ $key ] ?? null;
+			$record = '' !== $key ? ( $accepted[ $key ] ?? null ) : null;
 
 			if ( null === $record ) {
 				$kept[] = $item;
@@ -493,7 +498,7 @@ class IdentityQueue {
 	 * `$count >= $limit` IS THE WHOLE TEST, AND IT IS THE AUDITOR'S.
 	 *
 	 * `SubmissionLinkAuditor` already decides truncation exactly this way for
-	 * its seven checks, and `IdentityAuditExportSource` already prints a row
+	 * every check it runs, and `IdentityAuditExportSource` already prints a row
 	 * when one is hit. This screen had neither, so a capped check looked
 	 * identical to a complete one -- the same shape as `#1384`, where a
 	 * rejected statement and a clean install both answered with no rows.
