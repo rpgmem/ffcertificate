@@ -716,13 +716,11 @@ class IdentityResolutionPage {
 	 */
 	private static function posted_check(): string {
 		$check = RequestInput::get_post_string( 'ffc_check', '' );
-		$known = array(
-			IdentityQueue::CHECK_MULTIPLE,
-			IdentityQueue::CHECK_SHARED,
-			IdentityQueue::CHECK_DIGITS,
-		);
 
-		return in_array( $check, $known, true ) ? $check : '';
+		// `IdentityQueue::CHECKS` rather than a list spelled out here: the
+		// audit export needs the same three (#1534), and two copies of one
+		// fact is how they come to disagree.
+		return in_array( $check, IdentityQueue::CHECKS, true ) ? $check : '';
 	}
 
 	/**
