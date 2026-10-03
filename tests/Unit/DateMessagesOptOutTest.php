@@ -57,17 +57,12 @@ class DateMessagesOptOutTest extends TestCase {
 		$this->assertSame( array(), OptOut::among( array( 0, -3 ) ) );
 	}
 
-	public function test_set_keeps_every_other_preference(): void {
+	public function test_set_sends_only_its_own_key_and_leaves_the_merge_to_update_profile(): void {
 		$manager = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' );
-		$manager->shouldReceive( 'get_profile' )->with( 9 )->andReturn( array( 'preferences' => '{"notify_new_certificate":true}' ) );
+		$manager->shouldReceive( 'get_profile' )->never();
 		$manager->shouldReceive( 'update_profile' )->once()->with(
 			9,
-			array(
-				'preferences' => array(
-					'notify_new_certificate' => true,
-					'notify_date_messages'   => false,
-				),
-			)
+			array( 'preferences' => array( 'notify_date_messages' => false ) )
 		)->andReturn( true );
 
 		$this->assertTrue( OptOut::set( 9, false ) );

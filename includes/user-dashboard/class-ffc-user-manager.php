@@ -196,7 +196,8 @@ class UserManager {
 		}
 
 		if ( isset( $data['preferences'] ) && is_array( $data['preferences'] ) ) {
-			$encoded              = wp_json_encode( $data['preferences'] );
+			$stored               = self::get_profile( $user_id )['preferences'] ?? null;
+			$encoded              = wp_json_encode( self::merge_preferences( is_string( $stored ) ? $stored : null, $data['preferences'] ) );
 			$patch['preferences'] = false === $encoded ? '{}' : $encoded;
 		}
 
@@ -205,6 +206,59 @@ class UserManager {
 		}
 
 		return UserProfileService::write( $user_id, $patch );
+	}
+
+	/**
+	 * The notification preferences a profile stores, all booleans (#1545).
+	 *
+	 * `notify_date_messages` is `DateMessages\OptOut::PREFERENCE_KEY`, spelled
+	 * as a literal so this module takes no edge to that one; a test keeps the
+	 * two equal.
+	 *
+	 * @var array<int, string>
+	 */
+	public const NOTIFICATION_PREFERENCES = array(
+		'notify_appointment_confirm',
+		'notify_appointment_reminder',
+		'notify_new_certificate',
+		'notify_date_messages',
+	);
+
+	/**
+	 * Merge posted preferences into the stored ones (#1545).
+	 *
+	 * A MERGE, NOT A REPLACE. The dashboard posts only the toggles it shows,
+	 * and some are shown only while their module is on, so replacing the
+	 * object erased the choices on the toggles it did not show -- the
+	 * date-messages opt-out among them, which is default-on and would have
+	 * re-subscribed whoever saved while that module was off.
+	 *
+	 * Only known keys survive, stored or posted, and every value is a real
+	 * boolean. A posted value that does not read as one is ignored, so the
+	 * stored choice stands: `(bool) 'false'` is true, which is exactly the
+	 * mistake a cast would make.
+	 *
+	 * @param string|null  $stored Stored JSON, or null.
+	 * @param array<mixed> $posted Posted preferences.
+	 * @return array<string, bool>
+	 */
+	public static function merge_preferences( ?string $stored, array $posted ): array {
+		$decoded = null === $stored || '' === $stored ? array() : json_decode( $stored, true );
+		$merged  = array();
+
+		foreach ( array( is_array( $decoded ) ? $decoded : array(), $posted ) as $source ) {
+			foreach ( self::NOTIFICATION_PREFERENCES as $key ) {
+				if ( ! array_key_exists( $key, $source ) ) {
+					continue;
+				}
+				$value = filter_var( $source[ $key ], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE );
+				if ( null !== $value ) {
+					$merged[ $key ] = $value;
+				}
+			}
+		}
+
+		return $merged;
 	}
 
 	/**

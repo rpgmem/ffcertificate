@@ -27,6 +27,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The link audit card could not say which of its findings were accepted** (#1536). Its total ignored the new state, so a scan whose remainder cannot be resolved could never reach zero, while the CSV explained itself. It now reports the split per check and in total, subtracting nothing
 - **The user-edit screen showed and saved profile-mapped fields in the wrong place** (#1538). CPF, RF, RG and the other fields reregistration syncs to the profile were read from, and written in plaintext to, a snapshot nothing reads; they now go through the profile, encrypted where the map says so.
 - **Two cron hooks outlived the plugin** (#1538). Uninstall never cleared the expired-ticket sweep, and the reregistration reminder batch was cleared nowhere; a guard now compares every scheduled hook against deactivation and both uninstall paths.
+- **Saving notification preferences erased the date-messages opt-out** (#1545). The dashboard posts only the toggles it shows, and the date-messages one shows only while that module is on, so a save made with it off dropped a stored opt-out and re-subscribed the person. Preferences now merge into the stored ones, keep known keys only and store booleans.
 
 ## [6.32.0] (2026-09-29) — `4ca1cd5d`
 

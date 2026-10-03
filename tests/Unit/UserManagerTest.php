@@ -343,19 +343,30 @@ class UserManagerTest extends TestCase {
 		$this->assertTrue( $result );
 	}
 
-	public function test_update_profile_handles_preferences_json(): void {
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '3' );
+	public function test_update_profile_merges_preferences_into_the_stored_ones(): void {
+		$this->mock_profile_row( '{"notify_date_messages":false,"notify_new_certificate":true,"theme":"dark"}' );
 		$this->wpdb->shouldReceive( 'update' )
 			->once()
 			->withArgs( function ( $table, $data ) {
-				return isset( $data['preferences'] )
-					&& is_string( $data['preferences'] )
-					&& json_decode( $data['preferences'], true ) === array( 'theme' => 'dark', 'lang' => 'pt-BR' );
+				$expected = array(
+					'notify_appointment_reminder' => true,
+					'notify_date_messages'        => false,
+					'notify_new_certificate'      => false,
+				);
+				$actual   = json_decode( $data['preferences'], true );
+				ksort( $actual );
+				return $expected === $actual;
 			} )
 			->andReturn( 1 );
 
+		// The screen posts only the toggles it shows: with the date-messages
+		// module off, `notify_date_messages` is absent and must survive (#1545).
 		$result = UserManager::update_profile( 10, array(
-			'preferences' => array( 'theme' => 'dark', 'lang' => 'pt-BR' ),
+			'preferences' => array(
+				'notify_new_certificate'      => false,
+				'notify_appointment_reminder' => 'true',
+				'lang'                        => 'pt-BR',
+			),
 		) );
 
 		$this->assertTrue( $result );
@@ -1478,5 +1489,67 @@ class UserManagerTest extends TestCase {
 		$this->assertTrue( $ref->isPublic() );
 		$this->assertCount( 3, $ref->getParameters() );
 		$this->assertSame( 'array', $ref->getReturnType()->getName() );
+	}
+	/**
+	 * Make get_profile() find a row carrying the given preferences.
+	 *
+	 * @param string|null $preferences Stored JSON.
+	 */
+	private function mock_profile_row( ?string $preferences ): void {
+		// `SHOW TABLES` answers with the table; the repository's existence
+		// check answers with the row id. One expectation, because a second
+		// one on get_var would supersede a byDefault() one.
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static fn( $query ) => 'SHOW TABLES LIKE %s' === $query ? 'wp_ffc_user_profiles' : '3'
+		);
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
+			array(
+				'id'           => '3',
+				'user_id'      => '10',
+				'display_name' => 'X',
+				'phone'        => null,
+				'department'   => null,
+				'organization' => null,
+				'notes'        => null,
+				'preferences'  => $preferences,
+				'cpf_hash'     => null,
+				'rf_hash'      => null,
+				'created_at'   => null,
+				'updated_at'   => null,
+			)
+		);
+	}
+
+	// ==================================================================
+	// merge_preferences() (#1545)
+	// ==================================================================
+
+	/**
+	 * @dataProvider merges
+	 *
+	 * @param string|null          $stored   Stored JSON.
+	 * @param array<mixed>         $posted   Posted preferences.
+	 * @param array<string, bool>  $expected Result.
+	 */
+	public function test_merge_preferences( ?string $stored, array $posted, array $expected ): void {
+		$this->assertSame( $expected, UserManager::merge_preferences( $stored, $posted ) );
+	}
+
+	/**
+	 * @return array<string, array{0: string|null, 1: array<mixed>, 2: array<string, bool>}>
+	 */
+	public function merges(): array {
+		return array(
+			'an absent key keeps its stored value'     => array( '{"notify_date_messages":false}', array( 'notify_new_certificate' => true ), array( 'notify_date_messages' => false, 'notify_new_certificate' => true ) ),
+			'a posted key wins'                        => array( '{"notify_date_messages":false}', array( 'notify_date_messages' => true ), array( 'notify_date_messages' => true ) ),
+			'unknown keys are dropped, stored or posted' => array( '{"theme":"dark"}', array( 'lang' => 'pt' ), array() ),
+			'strings read as booleans'                 => array( null, array( 'notify_new_certificate' => 'false', 'notify_date_messages' => '1' ), array( 'notify_new_certificate' => false, 'notify_date_messages' => true ) ),
+			'garbage leaves the stored choice'         => array( '{"notify_date_messages":false}', array( 'notify_date_messages' => array( 'x' ) ), array( 'notify_date_messages' => false ) ),
+			'a corrupt stored blob reads as empty'     => array( '{not json', array( 'notify_new_certificate' => true ), array( 'notify_new_certificate' => true ) ),
+		);
+	}
+
+	public function test_the_date_messages_key_is_the_one_opt_out_reads(): void {
+		$this->assertContains( \FreeFormCertificate\DateMessages\OptOut::PREFERENCE_KEY, UserManager::NOTIFICATION_PREFERENCES );
 	}
 }
