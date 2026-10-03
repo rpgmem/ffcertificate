@@ -98,7 +98,9 @@ class DeactivatorTest extends TestCase {
 		$this->assertContains( 'ffc_date_messages_daily', $cleared );
 		$this->assertContains( 'ffc_date_messages_batch', $cleared );
 		$this->assertContains( 'ffc_date_messages_digest', $cleared );
-		$this->assertCount( 8, $cleared );
+		// The form-cache warming (#1541).
+		$this->assertContains( 'ffcertificate_warm_cache_hook', $cleared );
+		$this->assertCount( 9, $cleared );
 	}
 
 	public function test_deactivate_flushes_rewrite_rules(): void {

@@ -639,6 +639,9 @@ class LoaderCapabilitiesTest extends TestCase {
 
 		Functions\when( 'wp_next_scheduled' )->justReturn( true );
 		Functions\when( 'wp_schedule_event' )->justReturn( true );
+		// The form-cache warming is reconciled with its toggle on every
+		// request (#1541); the toggle is off here, so the event is cleared.
+		Functions\when( 'wp_clear_scheduled_hook' )->justReturn( 0 );
 		Functions\when( 'update_option' )->justReturn( true );
 		Functions\when( 'add_action' )->justReturn( true );
 		Mockery::mock( 'overload:FreeFormCertificate\API\RestController' );

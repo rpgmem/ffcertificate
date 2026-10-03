@@ -36,6 +36,7 @@ class Deactivator {
 		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::unschedule();
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::unschedule();
 		\FreeFormCertificate\DateMessages\DateMessagesCron::unschedule();
+		\FreeFormCertificate\Submissions\FormCache::unschedule_cache_warming();
 
 		flush_rewrite_rules();
 	}
