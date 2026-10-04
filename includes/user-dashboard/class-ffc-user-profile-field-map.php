@@ -58,6 +58,14 @@ final class UserProfileFieldMap {
 	private const EXTENDED_META_PREFIX = 'ffc_user_';
 
 	/**
+	 * Usermeta key of the plaintext `MM-DD` mirror of `birth_date`.
+	 *
+	 * Public because the scheduled query that reads it lives in another
+	 * module and must not carry its own copy of the literal.
+	 */
+	public const BIRTH_MONTH_DAY_META_KEY = 'ffc_user_birth_md';
+
+	/**
 	 * Field descriptors keyed by logical field key.
 	 *
 	 * Shape per entry:
@@ -71,10 +79,16 @@ final class UserProfileFieldMap {
 	 *                    Required whenever hashable is true.
 	 *   - mirrors:       list of secondary write targets. The primary location is
 	 *                    canonical for reads; mirrors exist to keep legacy code
-	 *                    paths (e.g. wp_users.display_name) in sync.
+	 *                    paths (e.g. wp_users.display_name) in sync. A usermeta
+	 *                    mirror may declare a `transform` ('month_day',
+	 *                    'first_name', 'last_name') to store a derived slice
+	 *                    instead of the value itself.
 	 *   - masker:        optional symbolic name of the MASKED transform; 'cpf'
 	 *                    delegates to DocumentFormatter::mask_cpf. Omit for fields
 	 *                    whose MASKED view is the FULL view (non-sensitive).
+	 *   - value_type:    optional; 'birth_date' makes the service store the
+	 *                    canonical form from Core\BirthDate::normalize() and
+	 *                    refuse a value that is not a date (#1538).
 	 *
 	 * @var array<string, array<string, mixed>>
 	 */
@@ -96,6 +110,18 @@ final class UserProfileFieldMap {
 				array(
 					'storage' => self::STORAGE_WP_USER,
 					'column'  => 'display_name',
+				),
+				// WordPress's own first / last name, derived from the one
+				// full name the plugin stores (Core\PersonName).
+				array(
+					'storage'   => self::STORAGE_USERMETA,
+					'meta_key'  => 'first_name',
+					'transform' => 'first_name',
+				),
+				array(
+					'storage'   => self::STORAGE_USERMETA,
+					'meta_key'  => 'last_name',
+					'transform' => 'last_name',
 				),
 			),
 		),
@@ -156,6 +182,26 @@ final class UserProfileFieldMap {
 			'storage'   => self::STORAGE_USERMETA,
 			'meta_key'  => self::EXTENDED_META_PREFIX . 'jornada',
 			'sensitive' => false,
+		),
+
+		// The full date is encrypted; its month and day are mirrored in
+		// plaintext because that slice is what a scheduled job has to query,
+		// and an encrypted value cannot be matched by SQL (#1538). The mirror
+		// carries no year, so what sits in plaintext is the least identifying
+		// part of the value.
+		'birth_date'   => array(
+			'storage'    => self::STORAGE_USERMETA,
+			'meta_key'   => self::EXTENDED_META_PREFIX . 'birth_date',
+			'sensitive'  => true,
+			'hashable'   => false,
+			'value_type' => 'birth_date',
+			'mirrors'    => array(
+				array(
+					'storage'   => self::STORAGE_USERMETA,
+					'meta_key'  => self::BIRTH_MONTH_DAY_META_KEY,
+					'transform' => 'month_day',
+				),
+			),
 		),
 	);
 

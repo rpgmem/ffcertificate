@@ -34,8 +34,12 @@
         return html;
     }
 
-    function buildToggle(key, label, prefs) {
-        var checked = prefs[key] ? ' checked' : '';
+    // defaultOn: a key that means RECEIVE when absent (date messages are sent
+    // unless the person opted out), unlike the opt-in toggles above it.
+    function buildToggle(key, label, prefs, defaultOn) {
+        var has = Object.prototype.hasOwnProperty.call(prefs, key);
+        var on = defaultOn ? (!has || prefs[key] !== false) : !!prefs[key];
+        var checked = on ? ' checked' : '';
         return '<label class="ffc-toggle-label">' +
             '<input type="checkbox" class="ffc-notif-toggle" data-key="' + key + '"' + checked + ' />' +
             '<span class="ffc-toggle-switch"></span>' +
@@ -55,13 +59,18 @@
         html += '<input type="text" id="ffc-edit-display-name" value="' + escAttr(profile.display_name) + '" maxlength="250" /></div>';
 
         html += '<div class="ffc-profile-field"><label for="ffc-edit-phone">' + (s.phone || 'Phone:') + '</label>';
-        html += '<input type="tel" id="ffc-edit-phone" value="' + escAttr(profile.phone) + '" maxlength="50" /></div>';
+        // (DD) 98765-4321: area code plus up to nine digits, masked by the
+        // same formatter the reregistration form uses.
+        html += '<input type="tel" id="ffc-edit-phone" value="' + escAttr(maskedPhone(profile.phone)) + '" maxlength="15" data-mask="phone" inputmode="numeric" /></div>';
 
         html += '<div class="ffc-profile-field"><label for="ffc-edit-department">' + (s.department || 'Department:') + '</label>';
         html += '<input type="text" id="ffc-edit-department" value="' + escAttr(profile.department) + '" maxlength="250" /></div>';
 
         html += '<div class="ffc-profile-field"><label for="ffc-edit-organization">' + (s.organization || 'Organization:') + '</label>';
         html += '<input type="text" id="ffc-edit-organization" value="' + escAttr(profile.organization) + '" maxlength="250" /></div>';
+
+        html += '<div class="ffc-profile-field"><label for="ffc-edit-birth-date">' + (s.birthDate || 'Birth date:') + '</label>';
+        html += '<input type="date" id="ffc-edit-birth-date" value="' + escAttr(profile.birth_date) + '" /></div>';
 
         html += '<div class="ffc-profile-field"><label for="ffc-edit-notes">' + (s.notesLabel || 'Notes:') + '</label>';
         html += '<textarea id="ffc-edit-notes" rows="3" maxlength="1000" placeholder="' + (s.notesPlaceholder || 'Personal notes...') + '">' + esc(profile.notes) + '</textarea></div>';
@@ -73,6 +82,23 @@
         html += '</div></div>';
 
         $container.html(html);
+
+        if (window.FFC && window.FFC.Fields) {
+            window.FFC.Fields.initMasks($container.find('.ffc-profile-edit-form'));
+        }
+    }
+
+    /**
+     * A stored phone shown in the mask's shape, when it fits the mask. A
+     * value with more than eleven digits (an international number saved
+     * before the mask existed) is shown as stored rather than truncated.
+     */
+    function maskedPhone(value) {
+        var v = value ? String(value) : '';
+        if (!v || !window.FFC || !window.FFC.Fields || v.replace(/\D/g, '').length > 11) {
+            return v;
+        }
+        return window.FFC.Fields.masks.phone(v);
     }
 
     function saveProfile() {
@@ -81,7 +107,8 @@
             phone: $('#ffc-edit-phone').val(),
             department: $('#ffc-edit-department').val(),
             organization: $('#ffc-edit-organization').val(),
-            notes: $('#ffc-edit-notes').val()
+            notes: $('#ffc-edit-notes').val(),
+            birth_date: $('#ffc-edit-birth-date').val()
         };
 
         var $saveBtn = $('.ffc-profile-save-btn');
@@ -264,6 +291,9 @@
             html += '<div class="ffc-profile-field"><label>' + (s.organization || 'Organization:') + '</label>';
             html += '<div class="ffc-field-value">' + esc(profile.organization || '-') + '</div></div>';
 
+            html += '<div class="ffc-profile-field"><label>' + (s.birthDate || 'Birth date:') + '</label>';
+            html += '<div class="ffc-field-value">' + esc(profile.birth_date_display || '-') + '</div></div>';
+
             if (profile.notes) {
                 html += '<div class="ffc-profile-field"><label>' + (s.notesLabel || 'Notes:') + '</label>';
                 html += '<div class="ffc-field-value">' + esc(profile.notes) + '</div></div>';
@@ -313,9 +343,12 @@
             html += '<div class="ffc-profile-section">';
             html += '<h3>' + (s.notificationSection || 'Notification Preferences') + '</h3>';
             html += '<div class="ffc-notif-list">';
-            html += buildToggle('notify_appointment_confirm', s.notifAppointmentConfirm || 'Appointment confirmation', prefs);
-            html += buildToggle('notify_appointment_reminder', s.notifAppointmentReminder || 'Appointment reminder', prefs);
-            html += buildToggle('notify_new_certificate', s.notifNewCertificate || 'New certificate issued', prefs);
+            // Only toggles the server reads (#1545). Both are on until turned
+            // off, which is what the send sites do with a missing key.
+            html += buildToggle('notify_appointment_reminder', s.notifAppointmentReminder || 'Appointment reminder', prefs, true);
+            if (ffcDashboard.dateMessagesEnabled) {
+                html += buildToggle('notify_date_messages', s.notifDateMessages || 'Date messages (such as birthday greetings)', prefs, true);
+            }
             html += '</div>';
             html += '<span class="ffc-notif-status" style="margin-left: 10px; color: #28a745; display: none;"></span>';
             html += '</div>';

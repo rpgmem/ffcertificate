@@ -9,6 +9,8 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Maintenance\IdentityMerge;
+use FreeFormCertificate\Maintenance\IdentityAcceptance;
+use FreeFormCertificate\Maintenance\IdentityQueue;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
 use WP_Error;
 
@@ -97,6 +99,9 @@ class IdentityMergeTest extends TestCase {
 	/**
 	 * Set up Brain\Monkey and the $wpdb double.
 	 */
+	/** @var array<string, array<string, mixed>> The acceptance record, as the stub serves it. */
+	private array $accepted = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -115,7 +120,21 @@ class IdentityMergeTest extends TestCase {
 
 		Functions\when( '__' )->returnArg( 1 );
 		Functions\when( 'do_action' )->justReturn( null );
-		Functions\when( 'get_option' )->justReturn( array() );
+		$this->accepted = array();
+
+		// THE ACCEPTANCE RECORD IS AN OPTION, SO IT IS SERVED FROM HERE (#1532).
+		//
+		// `refusal()` is static and reads the record directly, which is the only
+		// shape available to it; `$this->accepted` is what a case puts in it.
+		Functions\when( 'get_option' )->alias(
+			function ( $key, $default_value = false ) {
+				if ( IdentityAcceptance::OPTION === $key ) {
+					return $this->accepted;
+				}
+
+				return array();
+			}
+		);
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		$wpdb         = Mockery::mock( 'wpdb' );
@@ -785,5 +804,86 @@ class IdentityMergeTest extends TestCase {
 
 		$this->assertIsArray( $result );
 		$this->assertSame( 6092, $result['emptied'] );
+	}
+
+	/**
+	 * AN ACCEPTED NUMBER STILL BLOCKS, AND THE REFUSAL STOPS LYING (#1532).
+	 *
+	 * Accepting a finding as impossible to resolve takes it out of "Numbers to
+	 * correct", so a refusal naming that panel would be #1523 returning — a
+	 * sentence pointing at a list the finding is not in. What must NOT change is
+	 * the verdict: a number nobody can fix is still not evidence that two
+	 * accounts are one person, and "unfixable" is not a licence to merge on
+	 * evidence known to be bad.
+	 */
+	public function test_an_accepted_shared_number_refuses_and_names_the_right_panel(): void {
+		$this->given(
+			array(
+				self::row( 5784, 'cpfA', 'rfShared' ),
+				self::row( 6092, 'cpfA', 'rfShared' ),
+			)
+		);
+
+		$this->verdicts = array(
+			'rf' => array( 'rfShared' => IdentityConflictQuery::VERDICT_INVALID ),
+		);
+
+		$this->accepted = array(
+			IdentityAcceptance::key( IdentityQueue::CHECK_DIGITS, 'rf', 'rfShared' ) => array(
+				IdentityAcceptance::FIELD_CHECK      => IdentityQueue::CHECK_DIGITS,
+				IdentityAcceptance::FIELD_IDENTIFIER => 'rf',
+				IdentityAcceptance::FIELD_SUBJECT    => 'rfShared',
+				IdentityAcceptance::FIELD_TIER       => IdentityQueue::TIER_ISOLATED,
+				IdentityAcceptance::FIELD_REASON     => IdentityAcceptance::REASON_UNIDENTIFIABLE,
+			),
+		);
+
+		$result = $this->merge()->merge( 5784, 6092 );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertStringContainsString( 'accepted as impossible to resolve', $result->get_error_message() );
+		$this->assertStringContainsString(
+			'does not unblock this merge',
+			$result->get_error_message(),
+			'The refusal must say the verdict is unchanged, or "accepted" reads as "allowed".'
+		);
+		$this->assertStringNotContainsString(
+			'Correct it first, under "Numbers to correct"',
+			$result->get_error_message(),
+			'The finding has left that panel, so naming it is the #1523 defect again.'
+		);
+		$this->assertNotContains( 'COMMIT', $this->control, 'Nothing may be written.' );
+	}
+
+	/**
+	 * An acceptance for the OTHER identifier changes nothing.
+	 *
+	 * The record is keyed per identifier, so an accepted CPF must not excuse a
+	 * refusal about an RF — which is what a lookup ignoring the field would do.
+	 */
+	public function test_an_acceptance_for_another_identifier_does_not_reword_the_refusal(): void {
+		$this->given(
+			array(
+				self::row( 5784, 'cpfA', 'rfShared' ),
+				self::row( 6092, 'cpfA', 'rfShared' ),
+			)
+		);
+
+		$this->verdicts = array(
+			'rf' => array( 'rfShared' => IdentityConflictQuery::VERDICT_INVALID ),
+		);
+
+		$this->accepted = array(
+			IdentityAcceptance::key( IdentityQueue::CHECK_DIGITS, 'cpf', 'rfShared' ) => array(
+				IdentityAcceptance::FIELD_CHECK      => IdentityQueue::CHECK_DIGITS,
+				IdentityAcceptance::FIELD_IDENTIFIER => 'cpf',
+				IdentityAcceptance::FIELD_SUBJECT    => 'rfShared',
+				IdentityAcceptance::FIELD_TIER       => IdentityQueue::TIER_ISOLATED,
+			),
+		);
+
+		$result = $this->merge()->merge( 5784, 6092 );
+
+		$this->assertStringContainsString( 'Correct it first, under "Numbers to correct"', $result->get_error_message() );
 	}
 }

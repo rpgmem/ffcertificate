@@ -190,6 +190,11 @@ class UserCleanup {
 			// Cluster 2: drop the promoted-candidate → WP-user link, retain the
 			// candidacy record (its PII stays; PrivacyErasers scrubs the body).
 			'ffc_recruitment_candidate'         => array( 'user_id' ),
+			// Date messages (#1538): the delivery log is a record of what was
+			// sent, so it is retained and loses the person; a run loses the
+			// operator who started it.
+			'ffc_date_message_log'              => array( 'user_id' ),
+			'ffc_date_message_runs'             => array( 'created_by' ),
 		);
 
 		foreach ( $map as $basename => $columns ) {

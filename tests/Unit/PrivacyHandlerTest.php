@@ -95,6 +95,10 @@ class PrivacyHandlerTest extends TestCase {
 		// returning false keeps the resulting map structurally valid
 		// without exercising the capability iteration.
 		Functions\when('user_can')->justReturn(false);
+		// The profile export reads the canonical birth date through the
+		// extended profile (#1538), which builds its meta key with
+		// sanitize_key().
+		Functions\when('sanitize_key')->returnArg();
 	}
 
 	/**
@@ -337,6 +341,40 @@ class PrivacyHandlerTest extends TestCase {
 		$this->assertContains('Member Since', $names);
 		$idx = array_search('Member Since', $names);
 		$this->assertSame('2024-01-15', $values[$idx]);
+	}
+
+	/**
+	 * The birth date is stored encrypted, so the export decrypts it rather
+	 * than handing the subject ciphertext (#1538).
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_export_profile_includes_the_decrypted_birth_date(): void {
+		$enc = Mockery::mock('alias:FreeFormCertificate\Core\Encryption');
+		$enc->shouldReceive('decrypt')->with('ENC_BIRTH')->andReturn('1990-05-20');
+
+		$user = $this->make_user(42, 'user@example.com', 'Jane Doe');
+		Functions\when('get_user_by')->justReturn($user);
+		Functions\when('get_user_meta')->alias(function ($uid, $key) {
+			return 'ffc_user_birth_date' === $key ? 'ENC_BIRTH' : '';
+		});
+		Functions\when('wp_date')->alias(function ($format, $ts) {
+			return gmdate('Y-m-d', $ts);
+		});
+		// DateFormatter reads the configured date format.
+		Functions\when('get_option')->justReturn(array());
+		$this->mock_profile_dependencies($user);
+
+		$result = PrivacyExporters::export_profile('user@example.com');
+
+		$item   = $result['data'][0];
+		$names  = array_column($item['data'], 'name');
+		$values = array_column($item['data'], 'value');
+
+		$this->assertContains('Birth date', $names);
+		$this->assertSame('1990-05-20', $values[array_search('Birth date', $names, true)]);
+		$this->assertNotContains('ENC_BIRTH', $values, 'Ciphertext must never reach an LGPD export.');
 	}
 
 	// ==================================================================

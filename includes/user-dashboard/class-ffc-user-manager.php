@@ -196,7 +196,8 @@ class UserManager {
 		}
 
 		if ( isset( $data['preferences'] ) && is_array( $data['preferences'] ) ) {
-			$encoded              = wp_json_encode( $data['preferences'] );
+			$stored               = self::get_profile( $user_id )['preferences'] ?? null;
+			$encoded              = wp_json_encode( self::merge_preferences( is_string( $stored ) ? $stored : null, $data['preferences'] ) );
 			$patch['preferences'] = false === $encoded ? '{}' : $encoded;
 		}
 
@@ -205,6 +206,84 @@ class UserManager {
 		}
 
 		return UserProfileService::write( $user_id, $patch );
+	}
+
+	/**
+	 * Preference key: appointment reminder e-mails (#1545).
+	 */
+	public const NOTIFY_APPOINTMENT_REMINDER = 'notify_appointment_reminder';
+
+	/**
+	 * The notification preferences a profile stores, all booleans (#1545).
+	 *
+	 * Every key here is read at its send site; a toggle nothing reads is not
+	 * a preference, and two were removed for exactly that reason (#1545).
+	 * `notify_date_messages` is `DateMessages\OptOut::PREFERENCE_KEY`, spelled
+	 * as a literal so this module takes no edge to that one; a test keeps the
+	 * two equal.
+	 *
+	 * @var array<int, string>
+	 */
+	public const NOTIFICATION_PREFERENCES = array(
+		self::NOTIFY_APPOINTMENT_REMINDER,
+		'notify_date_messages',
+	);
+
+	/**
+	 * Whether a person wants one kind of notification (#1545).
+	 *
+	 * Every notification is on until the person turns it off: only a stored
+	 * `false` silences it, so an account that never opened the preferences --
+	 * or has no profile row -- keeps receiving what it always did.
+	 *
+	 * @param int    $user_id Account; 0 (a guest) always receives.
+	 * @param string $key     One of NOTIFICATION_PREFERENCES.
+	 * @return bool
+	 */
+	public static function wants_notification( int $user_id, string $key ): bool {
+		if ( $user_id <= 0 ) {
+			return true;
+		}
+		$stored = self::get_profile( $user_id )['preferences'] ?? null;
+		$prefs  = self::merge_preferences( is_string( $stored ) ? $stored : null, array() );
+		return false !== ( $prefs[ $key ] ?? true );
+	}
+
+	/**
+	 * Merge posted preferences into the stored ones (#1545).
+	 *
+	 * A MERGE, NOT A REPLACE. The dashboard posts only the toggles it shows,
+	 * and some are shown only while their module is on, so replacing the
+	 * object erased the choices on the toggles it did not show -- the
+	 * date-messages opt-out among them, which is default-on and would have
+	 * re-subscribed whoever saved while that module was off.
+	 *
+	 * Only known keys survive, stored or posted, and every value is a real
+	 * boolean. A posted value that does not read as one is ignored, so the
+	 * stored choice stands: `(bool) 'false'` is true, which is exactly the
+	 * mistake a cast would make.
+	 *
+	 * @param string|null  $stored Stored JSON, or null.
+	 * @param array<mixed> $posted Posted preferences.
+	 * @return array<string, bool>
+	 */
+	public static function merge_preferences( ?string $stored, array $posted ): array {
+		$decoded = null === $stored || '' === $stored ? array() : json_decode( $stored, true );
+		$merged  = array();
+
+		foreach ( array( is_array( $decoded ) ? $decoded : array(), $posted ) as $source ) {
+			foreach ( self::NOTIFICATION_PREFERENCES as $key ) {
+				if ( ! array_key_exists( $key, $source ) ) {
+					continue;
+				}
+				$value = filter_var( $source[ $key ], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE );
+				if ( null !== $value ) {
+					$merged[ $key ] = $value;
+				}
+			}
+		}
+
+		return $merged;
 	}
 
 	/**
@@ -316,7 +395,14 @@ class UserManager {
 				continue;
 			}
 
-			if ( isset( $sensitive_map[ $key ] ) && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
+			// A key the profile map declares sensitive is encrypted at rest
+			// whatever the caller's custom-field row says: `birth_date` is
+			// fed by a reregistration field flagged non-sensitive, and
+			// trusting that flag would pre-fill the form with ciphertext
+			// (#1538).
+			$is_sensitive = isset( $sensitive_map[ $key ] ) || UserProfileFieldMap::is_sensitive( $key );
+
+			if ( $is_sensitive && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
 				// `get_user_meta()` is mixed; only a scalar can be a
 				// ciphertext, and a non-scalar cast would hand the
 				// decrypter the literal `Array` (#1060).

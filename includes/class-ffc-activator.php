@@ -75,6 +75,11 @@ class Activator {
 			\FreeFormCertificate\Recruitment\RecruitmentActivator::create_tables();
 		}
 
+		if ( class_exists( '\FreeFormCertificate\DateMessages\DateMessagesActivator' ) ) {
+			\FreeFormCertificate\DateMessages\DateMessagesActivator::create_tables();
+			\FreeFormCertificate\DateMessages\DateMessagesCron::schedule();
+		}
+
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\RoleRegistrar::register_recruitment_manager_role();
 			\FreeFormCertificate\UserDashboard\RoleRegistrar::register_module_roles();
@@ -86,7 +91,7 @@ class Activator {
 
 		// Schedule daily cleanup cron.
 		if ( ! wp_next_scheduled( 'ffcertificate_daily_cleanup_hook' ) ) {
-			wp_schedule_event( time(), 'daily', 'ffcertificate_daily_cleanup_hook' );
+			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffcertificate_daily_cleanup_hook', time() ), 'daily', 'ffcertificate_daily_cleanup_hook' );
 		}
 
 		// Schedule the per-form ticket-pool sweep for ended forms.

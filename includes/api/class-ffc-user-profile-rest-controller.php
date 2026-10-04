@@ -172,24 +172,30 @@ class UserProfileRestController {
 				}
 			}
 
+			// The canonical birth date (#1538), decrypted for its owner by
+			// UserService, which already merged the rest of the profile.
+			$birth_date = (string) ( $full_profile['birth_date'] ?? '' );
+
 			return rest_ensure_response(
 				array(
-					'user_id'         => $user_id,
-					'display_name'    => (string) ( $full_profile['display_name'] ?? '' ),
-					'names'           => $names,
-					'email'           => (string) ( $full_profile['email'] ?? '' ),
-					'emails'          => $emails,
-					'cpf_masked'      => ! empty( $cpfs_masked ) ? $cpfs_masked[0] : __( 'Not found', 'ffcertificate' ),
-					'cpfs_masked'     => $cpfs_masked,
-					'identifiers'     => $identifiers,
-					'phone'           => (string) ( $full_profile['phone'] ?? '' ),
-					'department'      => (string) ( $full_profile['department'] ?? '' ),
-					'organization'    => (string) ( $full_profile['organization'] ?? '' ),
-					'notes'           => (string) ( $full_profile['notes'] ?? '' ),
-					'preferences'     => $preferences,
-					'member_since'    => $member_since,
-					'roles'           => $full_profile['roles'] ?? array(),
-					'audience_groups' => $audience_groups,
+					'user_id'            => $user_id,
+					'display_name'       => (string) ( $full_profile['display_name'] ?? '' ),
+					'names'              => $names,
+					'email'              => (string) ( $full_profile['email'] ?? '' ),
+					'emails'             => $emails,
+					'cpf_masked'         => ! empty( $cpfs_masked ) ? $cpfs_masked[0] : __( 'Not found', 'ffcertificate' ),
+					'cpfs_masked'        => $cpfs_masked,
+					'identifiers'        => $identifiers,
+					'phone'              => (string) ( $full_profile['phone'] ?? '' ),
+					'department'         => (string) ( $full_profile['department'] ?? '' ),
+					'organization'       => (string) ( $full_profile['organization'] ?? '' ),
+					'notes'              => (string) ( $full_profile['notes'] ?? '' ),
+					'birth_date'         => $birth_date,
+					'birth_date_display' => '' !== $birth_date ? \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $birth_date ) : '',
+					'preferences'        => $preferences,
+					'member_since'       => $member_since,
+					'roles'              => $full_profile['roles'] ?? array(),
+					'audience_groups'    => $audience_groups,
 				)
 			);
 
@@ -216,7 +222,7 @@ class UserProfileRestController {
 	 * PUT /user/profile
 	 *
 	 * Allows the logged-in user to update their own profile fields:
-	 * display_name, phone, department, organization, notes.
+	 * display_name, phone, department, organization, notes, birth_date.
 	 *
 	 * @since 4.9.6
 	 * @param \WP_REST_Request $request REST request.
@@ -259,7 +265,15 @@ class UserProfileRestController {
 				$data['preferences'] = $preferences;
 			}
 
-			if ( empty( $data ) ) {
+			// Birth date (#1538): validated here, at the boundary, so a value
+			// that is not a believable birth date is refused with a reason
+			// instead of being stored and mailed. An empty string clears it.
+			$birth_date = self::parse_birth_date( $request->get_param( 'birth_date' ) );
+			if ( is_wp_error( $birth_date ) ) {
+				return $birth_date;
+			}
+
+			if ( empty( $data ) && null === $birth_date ) {
 				return new \WP_Error(
 					'no_data',
 					__( 'No profile data provided', 'ffcertificate' ),
@@ -267,7 +281,15 @@ class UserProfileRestController {
 				);
 			}
 
-			$result = \FreeFormCertificate\UserDashboard\UserManager::update_profile( $user_id, $data );
+			$result = true;
+			if ( ! empty( $data ) ) {
+				$result = \FreeFormCertificate\UserDashboard\UserManager::update_profile( $user_id, $data );
+			}
+
+			if ( null !== $birth_date ) {
+				$result             = \FreeFormCertificate\UserDashboard\UserManager::update_extended_profile( $user_id, array( 'birth_date' => $birth_date ) ) && $result;
+				$data['birth_date'] = true;
+			}
 
 			if ( ! $result ) {
 				return new \WP_Error(
@@ -302,6 +324,45 @@ class UserProfileRestController {
 				array( 'status' => 500 )
 			);
 		}
+	}
+
+	/**
+	 * Validate the `birth_date` parameter of a profile update.
+	 *
+	 * Null means the parameter was not sent, so the stored value is left
+	 * alone; an empty string means "clear it"; anything else must be a real,
+	 * past date implying an age between `BirthDate::MIN_AGE` and `MAX_AGE`,
+	 * measured on today's date in the site timezone.
+	 *
+	 * @since 6.33.0
+	 * @param mixed $raw Raw parameter value.
+	 * @return string|null|\WP_Error Canonical `Y-m-d`, '' to clear, null when absent.
+	 */
+	private static function parse_birth_date( $raw ) {
+		if ( null === $raw ) {
+			return null;
+		}
+
+		$value = is_scalar( $raw ) ? trim( \sanitize_text_field( \wp_unslash( (string) $raw ) ) ) : '';
+		if ( '' === $value ) {
+			return '';
+		}
+
+		$today = new \DateTimeImmutable( 'now', wp_timezone() );
+		if ( ! \FreeFormCertificate\Core\BirthDate::is_plausible( $value, $today ) ) {
+			return new \WP_Error(
+				'invalid_birth_date',
+				sprintf(
+					/* translators: 1: youngest accepted age, 2: oldest accepted age. */
+					__( 'Enter a valid birth date: a past date for an age between %1$d and %2$d years.', 'ffcertificate' ),
+					\FreeFormCertificate\Core\BirthDate::MIN_AGE,
+					\FreeFormCertificate\Core\BirthDate::MAX_AGE
+				),
+				array( 'status' => 400 )
+			);
+		}
+
+		return (string) \FreeFormCertificate\Core\BirthDate::normalize( $value );
 	}
 
 	/**

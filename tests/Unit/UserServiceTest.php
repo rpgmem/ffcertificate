@@ -52,6 +52,8 @@ class UserServiceTest extends TestCase {
 		// hit the original (byDefault) expectations registered here.
 		$this->userManagerMock = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
 		$this->userManagerMock->shouldReceive('get_profile')->andReturn([])->byDefault();
+		// get_full_profile() also reads the canonical birth date (#1538).
+		$this->userManagerMock->shouldReceive('get_extended_profile')->andReturn([])->byDefault();
 		$this->capManagerMock = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\CapabilityManager');
 		$this->capManagerMock->shouldReceive('get_all_capabilities')->andReturn([])->byDefault();
 
@@ -141,6 +143,22 @@ class UserServiceTest extends TestCase {
 		$this->assertSame('Engineering', $result['department']);
 		$this->assertSame('Acme Corp', $result['organization']);
 		$this->assertSame('VIP user', $result['notes']);
+	}
+
+	/**
+	 * The canonical birth date (#1538) reaches the profile in ISO form, and a
+	 * stored value that is not a date reaches it as '' rather than as garbage.
+	 */
+	public function test_get_full_profile_carries_the_canonical_birth_date(): void {
+		Functions\when('get_userdata')->justReturn($this->makeWpUser());
+		$this->capManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
+
+		$this->userManagerMock->shouldReceive('get_extended_profile')
+			->with(42, ['birth_date'])
+			->andReturn(['birth_date' => '20/05/1990'], ['birth_date' => 'not a date']);
+
+		$this->assertSame('1990-05-20', UserService::get_full_profile(42)['birth_date']);
+		$this->assertSame('', UserService::get_full_profile(42)['birth_date']);
 	}
 
 	public function test_get_full_profile_defaults_missing_ffc_fields_to_empty_string(): void {

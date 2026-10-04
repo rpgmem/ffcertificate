@@ -24,6 +24,134 @@ msgstr ""
 msgid " by <strong>%s</strong>"
 msgstr ""
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:309
+msgid "Acceptance Withdrawn"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:308
+msgid "Finding Accepted as Unresolvable"
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:2414
+#, php-format
+msgid "%s accepted"
+msgid_plural "%s accepted"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/views/identity-resolution-page.php:1863
+msgid "Accept as unresolvable"
+msgstr ""
+
+#: includes/admin/class-ffc-identity-resolution-page.php:657
+msgid "Accepted as impossible to resolve. It leaves the queue and is listed under \"Accepted — no resolution possible\", where it can be put back."
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:2407
+msgid "Accepted — no resolution possible"
+msgstr ""
+
+#: includes/admin/class-ffc-identity-resolution-page.php:697
+msgid "Back in the queue, and the list was read again so it appears in its panel."
+msgstr ""
+
+#: includes/maintenance/class-ffc-identity-merge.php:315
+#, php-format
+msgid "Both accounts hold the same %s, and that number fails its own check digit — so it cannot be either person's, and it is not evidence that they are one person. It has been accepted as impossible to resolve, so it sits under \"Accepted — no resolution possible\" rather than among the numbers to correct. That does not unblock this merge: if the correct value has since been found, withdraw the acceptance there and correct the number first."
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:1857
+msgid "Choose a reason"
+msgstr ""
+
+#: includes/maintenance/class-ffc-identity-acceptance.php:449
+msgid "Choose why this finding cannot be resolved."
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:2425
+msgid "Finding"
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:2408
+msgid "Findings somebody judged impossible to resolve: the number was never supplied, or HR cannot say whose it is. Nothing about them was changed — the stored values still fail their check digits, and a merge or a move blocked by one of them stays blocked. Put one back as soon as the correct value is known."
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:1859
+msgid "HR cannot say whose number this is"
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:2424
+msgid "Identifier"
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:1841
+msgid "Nobody can resolve this"
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:2033
+#, php-format
+msgid "Nothing left to work: %1$s stored values checked, and the %2$s finding(s) that remain are recorded below as impossible to resolve. This is not the same as every value being sound. %3$s could not be read and were not checked."
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:2428
+msgid "Put back"
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:2472
+msgid "Put back in the queue"
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:2457
+msgid "Reason not recorded"
+msgstr ""
+
+#: includes/maintenance/class-ffc-identity-acceptance.php:492
+msgid "That acceptance is no longer on record, so there was nothing to withdraw."
+msgstr ""
+
+#: includes/maintenance/class-ffc-identity-acceptance.php:432
+msgid "That finding could not be identified, so nothing was accepted."
+msgstr ""
+
+#: includes/maintenance/class-ffc-identity-acceptance.php:442
+msgid "That identifier is not one this screen manages, so nothing was accepted."
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:1858
+msgid "The person never supplied this number"
+msgstr ""
+
+#: includes/maintenance/class-ffc-identity-relink.php:443
+#, php-format
+msgid "The records and that account share the same %s, and that number fails its own check digit — so it cannot be either person's, and it is not what ties them together. It has been accepted as impossible to resolve, so it sits under \"Accepted — no resolution possible\" rather than among the numbers to correct. That does not unblock this move: if the correct value has since been found, withdraw the acceptance there and correct the number first."
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:1852
+msgid "This takes the finding out of the queue and lists it under \"Accepted — no resolution possible\", where it can be put back. It does not change any stored value, and a merge or a move blocked by this number stays blocked."
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php:1855
+msgid "Why it cannot be resolved"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-migrations.php:358
+msgid "An account skipped because it held two identifiers becomes fillable once you resolve it, and this walk already passed it. Re-checking sends the walk back to the start; a value already filled is never overwritten, and an account still holding two is skipped again."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-migrations.php:355
+msgid "Re-check accounts resolved since the last pass"
+msgstr ""
+
+#: includes/migrations/class-ffc-migration-status-calculator.php:394
+msgid "This migration cannot be re-armed."
+msgstr ""
+
+#. %d: number of accounts the re-armed walk will examine
+#: includes/admin/class-ffc-settings-action-handler.php:143
+#, php-format
+msgid "Walk re-armed: %d accounts will be examined again. Press \"Run Migration\" to start. Nothing already filled is overwritten."
+msgstr ""
+
 #: includes/admin/class-ffc-admin-submission-edit-page.php:347
 msgid "An unlinked submission has no account, which is the state the identity queue adopts."
 msgstr ""
@@ -11943,10 +12071,6 @@ msgstr ""
 msgid "New Booking"
 msgstr ""
 
-#: includes/shortcodes/class-ffc-dashboard-asset-manager.php:301
-msgid "New certificate issued"
-msgstr ""
-
 #: includes/frontend/class-ffc-frontend.php:541
 msgid "New close time:"
 msgstr ""
@@ -18532,12 +18656,6 @@ msgstr ""
 msgid "These options only appear when a mode that shows the widget is selected. The widget follows the site's colours and its light/dark mode on its own."
 msgstr ""
 
-#. %s: comma-separated list of required custom field labels.
-#: includes/admin/class-ffc-admin-user-custom-fields.php:479
-#, php-format
-msgid "These required fields arrived empty and kept their previous value: %s"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-user-access.php:189
 msgid "These roles operate through wp-admin. Block one only if its users should be redirected away from the dashboard — blocking an administrative role locks it out of the screens it is meant to use."
 msgstr ""
@@ -21967,7 +22085,7 @@ msgid "No link problems found: no identifier is held by two accounts, no account
 msgstr ""
 
 #: includes/maintenance/class-ffc-submission-link-auditor.php
-msgid "Report-only scan of how people are linked to WordPress users. Four checks over certificate submissions: links to deleted users, one user bound to multiple CPF/RF identities, unlinked submissions whose CPF matches a linked one, and a single CPF shared across multiple users. Three more across every store — submissions, appointments, recruitment candidacies and the identity index — reporting one identifier held by two accounts, one account holding two identifiers, and identifiers the index does not yet carry. Nothing is changed: review and fix each case manually."
+msgid "Report-only scan of how people are linked to WordPress users. Over certificate submissions: links to deleted users, one user bound to multiple CPF/RF identities, unlinked submissions whose CPF matches a linked one, and a single CPF shared across multiple users. Across every store — submissions, appointments, recruitment candidacies and the identity index — one identifier held by two accounts, one account holding two identifiers, and identifiers the index does not yet carry. And one check on the stored value itself: a CPF or RF whose own check digit does not match. Nothing is changed: review and fix each case manually."
 msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-email-handler.php
@@ -22787,9 +22905,6 @@ msgstr ""
 msgid "Name the Accounts Created Without One"
 msgstr ""
 
-msgid "Write the display name and first name of every account that has neither, from the name its own candidacy or submission already carries. A promotion used to create the account without passing the person's name, so WordPress fell back to storing the login — which is what the user list, the dashboard greeting and every e-mail then showed them. Only an account whose display name is still its login and whose first name is empty is touched, because those two are written together and an account with one but not the other was changed by something else. Completion here means every such account was EXAMINED: one whose records name nobody is read, left alone, and counted as done."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:193
 msgid "CPF has more digits than a CPF can have — check the column for a stray value."
 msgstr ""
@@ -22859,4 +22974,590 @@ msgstr ""
 
 #: includes/admin/views/identity-resolution-page.php:898
 msgid "Work the corrections first. A number that fails its own check digit cannot be anyone's, so it is not evidence that two accounts belong to one person — correcting it can make a finding further down disappear rather than be resolved."
+msgstr ""
+
+#. translators: %1$s: findings accepted as unresolvable. %2$s: findings still open.
+#: includes/settings/views/ffc-tab-migrations.php
+msgid "%1$s accepted · %2$s open"
+msgstr ""
+
+#. translators: %1$s: total findings. %2$s: how many are accepted as unresolvable. %3$s: how many remain open.
+#: includes/settings/views/ffc-tab-migrations.php
+msgid "Of the %1$s findings, %2$s are accepted on the Identity Resolution screen as impossible to resolve, leaving %3$s open. An acceptance records that nobody can fix the value — it does not change anything stored, so this scan still reports it, and a merge or move blocked by that number stays blocked."
+msgstr ""
+
+msgid "Birth date:"
+msgstr ""
+
+msgid "Enter a valid birth date: a past date for an age between %1$d and %2$d years."
+msgstr ""
+
+msgid "Every account with a stored birth date has been examined."
+msgstr ""
+
+msgid "Examined %1$d accounts and filled the birth date of %2$d; the rest hold no usable date."
+msgstr ""
+
+msgid "Copy Stored Birth Dates to the Profile"
+msgstr ""
+
+msgid "Fill the profile birth date of every account that answered a reregistration before the field existed, from the newest submission (or, failing that, the stored field values). The full date is stored encrypted, with its day and month beside it for scheduled messages. Completion here means every such account was EXAMINED: one whose stored answers hold no valid date is read, left alone, and counted as done."
+msgstr ""
+
+msgid "Daily cleanup (submissions, export jobs, expired sessions, activity log)"
+msgstr ""
+
+msgid "Expired ticket cleanup"
+msgstr ""
+
+msgid "Reregistration expiry and automated reminders"
+msgstr ""
+
+msgid "Appointment reminder scan"
+msgstr ""
+
+msgid "Cloudflare IP range refresh"
+msgstr ""
+
+msgid "Submission processing (one per submission)"
+msgstr ""
+
+msgid "Reregistration reminder batch (one per batch)"
+msgstr ""
+
+msgid "Scheduled Tasks"
+msgstr ""
+
+msgid "Running"
+msgstr ""
+
+msgid "Late — has not run when expected"
+msgstr ""
+
+msgid "Scheduled — no run recorded yet"
+msgstr ""
+
+msgid "Not scheduled"
+msgstr ""
+
+msgid "Scheduled tasks view file not found."
+msgstr ""
+
+msgid "WP-CLI (recommended)"
+msgstr ""
+
+msgid "HTTP with wget"
+msgstr ""
+
+msgid "HTTP with curl"
+msgstr ""
+
+msgid "The background tasks this plugin runs through WP-Cron: when each one is due and when it last actually ran. WordPress only records when a task is due, so \"last run\" is recorded by the plugin itself and appears after a task first runs."
+msgstr ""
+
+msgid "At least one task has not run when expected. WP-Cron only runs when the site receives visits; configure the server line below so tasks run on time."
+msgstr ""
+
+msgid "Task"
+msgstr ""
+
+msgid "Frequency"
+msgstr ""
+
+msgid "Next run"
+msgstr ""
+
+msgid "Last run"
+msgstr ""
+
+msgid "Module turned off: the task fires but does nothing."
+msgstr ""
+
+msgid "Hourly"
+msgstr ""
+
+msgid "Daily"
+msgstr ""
+
+msgid "Queued one-off tasks"
+msgstr ""
+
+msgid "Created per piece of work and removed once they run. A number that keeps growing means WP-Cron is not running."
+msgstr ""
+
+msgid "Server cron"
+msgstr ""
+
+msgid "By default WP-Cron runs only when someone visits the site, so on a quiet site a daily task can run hours late. A server cron line calls WP-Cron on a fixed rhythm. The line does not decide when each task runs — WordPress keeps that schedule — it only makes sure due tasks are run promptly, so a short interval is right."
+msgstr ""
+
+msgid "DISABLE_WP_CRON is set: WP-Cron no longer depends on visits. Make sure the server line below is installed, or no task will run."
+msgstr ""
+
+msgid "Recommended: install the server line below, then add <code>define( 'DISABLE_WP_CRON', true );</code> to <code>wp-config.php</code> so page visits stop triggering WP-Cron."
+msgstr ""
+
+msgid "Method"
+msgstr ""
+
+msgid "WP-CLI runs on the server itself and needs WP-CLI installed. The HTTP methods call the site over the network and work on any host."
+msgstr ""
+
+msgid "Every"
+msgstr ""
+
+msgid "%d minutes"
+msgstr ""
+
+msgid "Line to install"
+msgstr ""
+
+msgid "Add it with \"crontab -e\" as the user that owns the WordPress files, or paste it into your hosting panel's cron section."
+msgstr ""
+
+msgid "Birthday"
+msgstr ""
+
+msgid "Birthday message (default for new rules)"
+msgstr ""
+
+msgid "Choose a range of 1 to %d days, starting on or before its end."
+msgstr ""
+
+msgid "Could not record the run."
+msgstr ""
+
+msgid "Create and edit rules, send manually and set the daily send time."
+msgstr ""
+
+msgid "Date Messages"
+msgstr ""
+
+msgid "Date messages"
+msgstr ""
+
+msgid "Date messages (birthdays and other dates)"
+msgstr ""
+
+msgid "Date messages (such as birthday greetings)"
+msgstr ""
+
+msgid "Date messages batch (one per batch)"
+msgstr ""
+
+msgid "Done. You will no longer receive date messages. You can turn them back on in your dashboard profile."
+msgstr ""
+
+msgid "E-mails sent on a date in each person's profile, such as a birthday."
+msgstr ""
+
+msgid "Everyone at %s wishes you a very happy birthday and a wonderful year ahead."
+msgstr ""
+
+msgid "FFCertificate — Date messages"
+msgstr ""
+
+msgid "Give the rule a name."
+msgstr ""
+
+msgid "Happy birthday!"
+msgstr ""
+
+msgid "Happy birthday, {{first_name}}!"
+msgstr ""
+
+msgid "Lists people by name with their birthday (day and month) in the recipient preview and the upcoming-dates panel."
+msgstr ""
+
+msgid "Manage date messages"
+msgstr ""
+
+msgid "Maria"
+msgstr ""
+
+msgid "Maria da Silva"
+msgstr ""
+
+msgid "Prefer not to receive these messages? <a href=\"%s\">Unsubscribe</a>."
+msgstr ""
+
+msgid "Read-only access to the date-message rules, their send history and recipient totals."
+msgstr ""
+
+msgid "See who receives date messages"
+msgstr ""
+
+msgid "Stop receiving date messages, such as birthday greetings, at this account?"
+msgstr ""
+
+msgid "The e-mail needs a subject and a body."
+msgstr ""
+
+msgid "The number of days must be a whole number between -%1$d and %1$d."
+msgstr ""
+
+msgid "This page expired. Open the link in the message again."
+msgstr ""
+
+msgid "This unsubscribe link is not valid."
+msgstr ""
+
+msgid "Unknown date source."
+msgstr ""
+
+msgid "Unknown digest mode."
+msgstr ""
+
+msgid "Unsubscribe"
+msgstr ""
+
+msgid "View date messages"
+msgstr ""
+
+msgid "\"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue."
+msgstr ""
+
+msgid "(deleted rule)"
+msgstr ""
+
+msgid "0 sends on the date itself; -7 sends seven days before it."
+msgstr ""
+
+msgid "Activate"
+msgstr ""
+
+msgid "Active (the daily run sends it)"
+msgstr ""
+
+msgid "Active, not sending to people"
+msgstr ""
+
+msgid "Add rule"
+msgstr ""
+
+msgid "Already sent"
+msgstr ""
+
+msgid "Check before saving"
+msgstr ""
+
+msgid "Choose a rule."
+msgstr ""
+
+msgid "Daily send time"
+msgstr ""
+
+msgid "Dates"
+msgstr ""
+
+msgid "Dates in the profile"
+msgstr ""
+
+msgid "Days from the date"
+msgstr ""
+
+msgid "Delete this rule? What it already sent stays in the history."
+msgstr ""
+
+msgid "E-mail each person on their date"
+msgstr ""
+
+msgid "Each rule sends its own message on a date in each person's profile, or a number of days before it. The daily run sends every active rule; the Send now tab sends one rule over dates you choose."
+msgstr ""
+
+msgid "Edit rule"
+msgstr ""
+
+msgid "Enter both dates."
+msgstr ""
+
+msgid "Everyone"
+msgstr ""
+
+msgid "Failed"
+msgstr ""
+
+msgid "Finished"
+msgstr ""
+
+msgid "In the site timezone (%s), set in Settings → General."
+msgstr ""
+
+msgid "Manual"
+msgstr ""
+
+msgid "Members of sub-audiences are included."
+msgstr ""
+
+msgid "New rule"
+msgstr ""
+
+msgid "Next daily run: %s."
+msgstr ""
+
+msgid "No mail queue is active, so a large range is handed to wp_mail() as fast as PHP runs. Installing a mail queue plugin paces the sending."
+msgstr ""
+
+msgid "No rules yet."
+msgstr ""
+
+msgid "No valid e-mail"
+msgstr ""
+
+msgid "Nobody falls on these dates."
+msgstr ""
+
+msgid "Nothing has been sent yet."
+msgstr ""
+
+msgid "On the day"
+msgstr ""
+
+msgid "Only the first rows are listed; the totals count everyone."
+msgstr ""
+
+msgid "Opted out"
+msgstr ""
+
+msgid "Outside the audience"
+msgstr ""
+
+msgid "Placeholders:"
+msgstr ""
+
+msgid "Preview recipients"
+msgstr ""
+
+msgid "Replace the current message with the default text? Your changes will be lost."
+msgstr ""
+
+msgid "Restore default text"
+msgstr ""
+
+msgid "Rule"
+msgstr ""
+
+msgid "Rule activated."
+msgstr ""
+
+msgid "Rule copied. The copy starts inactive."
+msgstr ""
+
+msgid "Rule deactivated."
+msgstr ""
+
+msgid "Rule deleted. Its history stays."
+msgstr ""
+
+msgid "Rule saved."
+msgstr ""
+
+msgid "Rules"
+msgstr ""
+
+msgid "Save rule"
+msgstr ""
+
+msgid "Send now"
+msgstr ""
+
+msgid "Send test to me"
+msgstr ""
+
+msgid "Send these messages now?"
+msgstr ""
+
+msgid "Sending"
+msgstr ""
+
+msgid "Sending started. The first batch went out now; the rest continues in the background. Follow it in History."
+msgstr ""
+
+msgid "Sends one rule to everyone whose date falls in a range of up to %d days. People already sent this rule for that date are skipped, so running a range twice sends nothing new."
+msgstr ""
+
+msgid "Sent"
+msgstr ""
+
+msgid "Started"
+msgstr ""
+
+msgid "Test message sent to %s."
+msgstr ""
+
+msgid "That rule no longer exists."
+msgstr ""
+
+msgid "The dates are the dates in the profile (such as birthdays), not the day the message goes out."
+msgstr ""
+
+msgid "The header and footer come from the Email Model in Settings → SMTP. A message that does not place {{unsubscribe_url}} gets an unsubscribe line added at the end."
+msgstr ""
+
+msgid "The request failed. Reload the page and try again."
+msgstr ""
+
+msgid "The rule could not be copied."
+msgstr ""
+
+msgid "The rule could not be deleted."
+msgstr ""
+
+msgid "The rule could not be saved."
+msgstr ""
+
+msgid "The test message was not sent. Check whether e-mails are disabled in the settings."
+msgstr ""
+
+msgid "Trigger"
+msgstr ""
+
+msgid "Uses the values on this form, saved or not. Nothing is sent and nothing is recorded."
+msgstr ""
+
+msgid "Will receive"
+msgstr ""
+
+msgid "You do not have permission to do this."
+msgstr ""
+
+msgid "You do not have permission to view this page."
+msgstr ""
+
+msgid "Your account has no valid e-mail address."
+msgstr ""
+
+msgid "[TEST] %s"
+msgstr ""
+
+msgid "%d day after"
+msgid_plural "%d days after"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%d day before"
+msgid_plural "%d days before"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Birthdays in the period, by day and month; the year of birth is never shown."
+msgstr ""
+
+msgid "Counts and the names of who received it"
+msgstr ""
+
+msgid "Counts only"
+msgstr ""
+
+msgid "Date messages manager summary (one per run)"
+msgstr ""
+
+msgid "E-mail a summary of each run, 24 hours after it starts"
+msgstr ""
+
+msgid "In"
+msgstr ""
+
+msgid "Manager summary"
+msgstr ""
+
+msgid "Names go only to recipients allowed to see who receives date messages; the others get the counts. A run that reached nobody sends no summary."
+msgstr ""
+
+msgid "Next 30 days"
+msgstr ""
+
+msgid "Next 7 days"
+msgstr ""
+
+msgid "No account can receive the summary: it goes to administrators and to accounts holding a date-messages permission."
+msgstr ""
+
+msgid "Only the first names are listed; the counts above include everyone."
+msgstr ""
+
+msgid "Received the message"
+msgstr ""
+
+msgid "Send the summary to"
+msgstr ""
+
+msgid "Summary of the %1$s for the dates %2$s."
+msgstr ""
+
+msgid "Upcoming dates"
+msgstr ""
+
+msgid "[%1$s] Date messages summary: %2$s"
+msgstr ""
+
+msgid "daily run"
+msgstr ""
+
+msgid "manual send"
+msgstr ""
+
+msgid "%d day"
+msgid_plural "%d days"
+msgstr[0] ""
+msgstr[1] ""
+
+msgctxt "day and month, without the year"
+msgid "F j"
+msgstr ""
+
+msgid "Change it in Scheduled Tasks"
+msgstr ""
+
+msgid "Every daily task of the plugin has its time chosen on that one screen, which also shows the server line that keeps scheduled tasks running."
+msgstr ""
+
+msgid "Save times"
+msgstr ""
+
+msgid "The daily run is not scheduled."
+msgstr ""
+
+msgid "Time of day"
+msgstr ""
+
+msgid "Times are in the site timezone (%s). Leave a time empty to keep the task where it is. A task becomes due at its time and runs when WP-Cron next fires, so with the server line below it runs within that line's interval."
+msgstr ""
+
+msgid "Times saved, except the ones that were not a valid time of day."
+msgstr ""
+
+msgid "Times saved. Changed tasks were moved to their new time."
+msgstr ""
+
+msgid "Form cache warming (when \"Pre-load cache daily\" is on)"
+msgstr ""
+
+msgid "These fields arrived empty or with an invalid choice and kept their previous value: %s"
+msgstr ""
+
+msgid "The birth-date migration has %d account left to examine. Until it runs, a birth date given before the profile field existed is not on the profile, so that person does not appear in previews or upcoming dates and receives no messages."
+msgid_plural "The birth-date migration has %d accounts left to examine. Until it runs, a birth date given before the profile field existed is not on the profile, so those people do not appear in previews or upcoming dates and receive no messages."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Run it in Settings → Migrations."
+msgstr ""
+
+msgid "Write the display name, first name and last name of every account that has none of them, from the name its own candidacy or submission already carries. A promotion used to create the account without passing the person's name, so WordPress fell back to storing the login — which is what the user list, the dashboard greeting and every e-mail then showed them. Only an account whose display name is still its login and whose first name is empty is touched, because those two are written together and an account with one but not the other was changed by something else. Completion here means every such account was EXAMINED: one whose records name nobody is read, left alone, and counted as done."
+msgstr ""
+
+msgid "Fill WordPress's first and last name from the full name the plugin stores — first word, then the rest — on accounts where the whole name sits in the first name, or neither is filled. Account creation used to store the whole name as the first name. Parts somebody filled in by hand are not touched. Completion here means every such account was EXAMINED: a one-word name is read, left as it is, and counted as done."
+msgstr ""
+
+msgid "Split Full Names into First and Last Name"
+msgstr ""
+
+msgid "Every account whose name was stored whole has been examined."
+msgstr ""
+
+msgid "Examined %1$d accounts and split the name of %2$d; the rest have a one-word name or none."
+msgstr ""
+
+msgid "da Silva"
 msgstr ""

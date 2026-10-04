@@ -203,6 +203,13 @@ class Loader {
 			\FreeFormCertificate\Recruitment\RecruitmentActivator::maybe_migrate();
 		}
 
+		// Date-messages schema (#1538) -- orchestrator lifecycle like the one
+		// above: it runs whether or not the module is toggled on, so turning
+		// it off never strands its tables.
+		if ( class_exists( '\FreeFormCertificate\DateMessages\DateMessagesActivator' ) ) {
+			\FreeFormCertificate\DateMessages\DateMessagesActivator::maybe_migrate();
+		}
+
 		// Recruitment adoption — orchestrator-level for the SAME reason as the
 		// schema above. `UserCreator::link_orphaned_records_dual()` fires this
 		// action whenever a person is resolved; the recruitment writer claims
@@ -404,6 +411,10 @@ class Loader {
 		// nothing. See CLAUDE.md "Module bootstrap (per-module loaders)".
 		AccessControl::init();
 		UserCleanup::init();
+		// WordPress's first / last name back into the plugin's full name.
+		// Not behind is_admin(): wp_update_user() also runs from REST and
+		// WP-CLI.
+		\FreeFormCertificate\UserDashboard\NameSync::init();
 		PrivacyHandler::init();
 
 		// Client-IP resolution (#899 phase 2): feed ClientIpResolver's filters
@@ -411,6 +422,16 @@ class Loader {
 		// Registered unconditionally — IP resolution and WP-Cron both run
 		// outside is_admin(), so this must not sit behind an admin-only gate.
 		\FreeFormCertificate\Settings\IpResolverSettingsBridge::init();
+
+		// Form cache invalidation and the daily warming (#1541). Wired here,
+		// explicitly, rather than by an `add_action( 'init', … )` at the
+		// bottom of the class file: that ran only when something happened to
+		// load the class before `init` priority 5, so whether saving a form
+		// invalidated its cache depended on load order. The warming event is
+		// reconciled with its toggle on every request, which is what finally
+		// makes "Pre-load cache daily" do something.
+		\FreeFormCertificate\Submissions\FormCache::register_hooks();
+		\FreeFormCertificate\Submissions\FormCache::sync_warming_schedule();
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::init();
 
 		// #739 §3.2 read-only viewer gate: forms/calendars list-read primitives
@@ -448,16 +469,23 @@ class Loader {
 			$recruitment_loader->init();
 		}
 
+		// Date Messages module (#1538) — toggleable via the Modules tab
+		// (default off). The loader wires the screens only; the daily cron and
+		// the unsubscribe link are wired in define_admin_hooks().
+		if ( SettingsReader::module_enabled( 'date_messages' ) ) {
+			( new \FreeFormCertificate\DateMessages\DateMessagesLoader() )->init();
+		}
+
 		new ActivityLogSubscriber();
 
 		// Ensure daily cleanup cron is scheduled.
 		if ( ! wp_next_scheduled( 'ffcertificate_daily_cleanup_hook' ) ) {
-			wp_schedule_event( time(), 'daily', 'ffcertificate_daily_cleanup_hook' );
+			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffcertificate_daily_cleanup_hook', time() ), 'daily', 'ffcertificate_daily_cleanup_hook' );
 		}
 
 		// Ensure reregistration expiry cron is scheduled.
 		if ( ! wp_next_scheduled( 'ffcertificate_reregistration_expire_hook' ) ) {
-			wp_schedule_event( time(), 'daily', 'ffcertificate_reregistration_expire_hook' );
+			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffcertificate_reregistration_expire_hook', time() ), 'daily', 'ffcertificate_reregistration_expire_hook' );
 		}
 
 		// Ensure the self-scheduling appointment-reminder scan cron is scheduled
@@ -468,6 +496,16 @@ class Loader {
 
 		// Ensure the daily Cloudflare CIDR refresh cron is scheduled (#901).
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::schedule();
+
+		// Ensure the daily date-messages send is scheduled (#1538). Like the
+		// others it stays scheduled with the module off; the callback is what
+		// the toggle gates.
+		\FreeFormCertificate\DateMessages\DateMessagesCron::schedule();
+
+		// Record when each recurring task last actually ran, for the Scheduled
+		// tasks screen (#1538). On every request, like the schedules above:
+		// WP-Cron never runs with is_admin() true.
+		\FreeFormCertificate\Core\ScheduledTasks::init();
 
 		$this->ensure_admin_capabilities();
 		$this->ensure_admin_role_assigned();
@@ -1014,6 +1052,12 @@ class Loader {
 		if ( SettingsReader::module_enabled( 'self_scheduling' ) ) {
 			add_action( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, array( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::class, 'run' ) );
 		}
+		if ( SettingsReader::module_enabled( 'date_messages' ) ) {
+			\FreeFormCertificate\DateMessages\DateMessagesCron::init();
+		}
+		// The unsubscribe link is honoured whatever the toggle says: a person
+		// holding a message must always be able to say "no more" (#1538).
+		\FreeFormCertificate\DateMessages\Unsubscribe::init();
 
 		// The expired-ticket sweep comes from `AdminLoader` (#1234), and the
 		// move IS the fix: there it never ran.

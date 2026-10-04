@@ -614,12 +614,16 @@ class UserCreator {
 		// reached `wp_update_user()` and became the display name `Array`.
 		$nome_completo = \FreeFormCertificate\Core\SubmitterName::from( $submission_data );
 
+		// The full name used to land whole in `first_name`; WordPress's two
+		// fields now carry its first word and the rest (Core\PersonName).
 		if ( ! empty( $nome_completo ) ) {
+			$parts = \FreeFormCertificate\Core\PersonName::split( $nome_completo );
 			wp_update_user(
 				array(
 					'ID'           => $user_id,
 					'display_name' => $nome_completo,
-					'first_name'   => $nome_completo,
+					'first_name'   => $parts['first'],
+					'last_name'    => $parts['last'],
 				)
 			);
 		}

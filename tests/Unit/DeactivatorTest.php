@@ -92,7 +92,15 @@ class DeactivatorTest extends TestCase {
 		$this->assertContains( 'ffcertificate_self_scheduling_reminder_scan', $cleared );
 		$this->assertContains( 'ffcertificate_reregistration_expire_hook', $cleared );
 		$this->assertContains( 'ffc_cloudflare_cidr_refresh', $cleared );
-		$this->assertCount( 4, $cleared );
+		// A pending reminder batch was cleared nowhere until #1538.
+		$this->assertContains( 'ffc_reregistration_reminder_batch', $cleared );
+		// The date-messages daily send and its pending batches (#1538).
+		$this->assertContains( 'ffc_date_messages_daily', $cleared );
+		$this->assertContains( 'ffc_date_messages_batch', $cleared );
+		$this->assertContains( 'ffc_date_messages_digest', $cleared );
+		// The form-cache warming (#1541).
+		$this->assertContains( 'ffcertificate_warm_cache_hook', $cleared );
+		$this->assertCount( 9, $cleared );
 	}
 
 	public function test_deactivate_flushes_rewrite_rules(): void {

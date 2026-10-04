@@ -242,6 +242,199 @@ class TabMigrationsTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Just the audit card's statistics region.
+	 *
+	 * Bounded for the reason `audit_actions()` and `complete_branch()` already
+	 * give: the card holds several numeric blocks, and an unbounded search
+	 * lets an assertion about this one pass on another.
+	 *
+	 * @param string $view The view's source.
+	 * @return string
+	 */
+	private function audit_stats( string $view ): string {
+		$from = strpos( $view, '<div class="ffc-migration-stats">' );
+		$to   = ( false === $from ) ? false : strpos( $view, '$ffcertificate_sa_findings = array();', (int) $from );
+
+		$this->assertIsInt( $from, 'The audit card must keep its statistics grid.' );
+		$this->assertIsInt( $to, 'That grid is followed by the clickable findings; one of the two moved.' );
+
+		return substr( $view, (int) $from, (int) $to - (int) $from );
+	}
+
+	/**
+	 * THE CARD REPORTS THE ACCEPTED SPLIT AND SUBTRACTS NOTHING (#1536).
+	 *
+	 * An accepted finding is one nobody can resolve -- the number was never
+	 * supplied, and HR cannot trace it. That is a decision about what to do,
+	 * not a change to the data, so this card goes on counting it and says how
+	 * many of its findings are in that state. Showing the smaller number
+	 * instead would make the scan disagree with the database it scanned, and
+	 * showing only the bare total is what left the two surfaces over this one
+	 * scan explaining themselves differently: the CSV carries a reason per row
+	 * while the card's number could never reach zero.
+	 */
+	public function test_the_audit_card_reports_the_accepted_split(): void {
+		$stats = $this->audit_stats( (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' ) );
+
+		$this->assertStringContainsString(
+			"number_format_i18n( \$ffcertificate_sa_c )",
+			$stats,
+			"The headline per check must stay the scan's own count, with no arithmetic applied to it."
+		);
+
+		$this->assertStringContainsString(
+			'ffc-migration-stat-note',
+			$stats,
+			'The split belongs under the count it qualifies.'
+		);
+
+		$this->assertStringContainsString(
+			'%1$s accepted · %2$s open',
+			$stats,
+			'Per check, both halves are named: a lone "3 accepted" leaves the reader subtracting.'
+		);
+
+		$this->assertStringContainsString(
+			'$ffcertificate_sa_total - $ffcertificate_sa_acc',
+			$stats,
+			'And the summary states how many remain open across the whole report.'
+		);
+
+		$this->assertStringContainsString(
+			'does not change anything stored',
+			$stats,
+			'The summary must say acceptance is not resolution, which is the sentence this whole state turns on.'
+		);
+	}
+
+	/**
+	 * A REPORT CACHED BEFORE THIS RELEASE CARRIES NO `accepted` KEY.
+	 *
+	 * The scan stores its report in a transient, so the first render after an
+	 * upgrade reads one written by the previous build. Every read of the new
+	 * key falls back rather than assuming it is there -- the same care the
+	 * `account_status` reads in this card already take, and the reason that
+	 * one carries its own comment.
+	 */
+	public function test_the_accepted_reads_survive_a_report_from_an_older_build(): void {
+		$stats = $this->audit_stats( (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' ) );
+
+		$reads = preg_match_all( '/\$ffcertificate_sa_(?:report|checks\[[^\]]+\])\[.accepted.\]/', $stats, $found );
+
+		$this->assertGreaterThan( 0, $reads, 'The card reads the accepted count somewhere, or this case is measuring nothing.' );
+
+		foreach ( $found[0] as $read ) {
+			$this->assertStringContainsString(
+				'isset( ' . $read . ' )',
+				$stats,
+				"`{$read}` is read without an `isset` guard, so a transient from an older build renders a notice."
+			);
+		}
+	}
+
+	/**
+	 * Just the complete branch of the actions column.
+	 *
+	 * Bounded on both sides for the reason `conflicts_block()` already gives:
+	 * the run button sits in the `else`, and an unbounded search would let
+	 * every assertion below pass on it instead.
+	 *
+	 * @param string $view The view's source.
+	 * @return string
+	 */
+	private function complete_branch( string $view ): string {
+		$from = strpos( $view, '<!-- Actions -->' );
+		$from = ( false === $from ) ? false : strpos( $view, '<?php if ( $ffcertificate_is_complete ) : ?>', (int) $from );
+		$to   = ( false === $from ) ? false : strpos( $view, '<?php else : ?>', (int) $from );
+
+		$this->assertIsInt( $from, 'The actions column must branch on completion.' );
+		$this->assertIsInt( $to, 'That branch must have an else -- the run button.' );
+
+		return substr( $view, (int) $from, (int) $to - (int) $from );
+	}
+
+	/**
+	 * THE RE-CHECK CONTROL LIVES IN THE COMPLETE BRANCH, AND ONLY THERE (#1530).
+	 *
+	 * Below a hundred per cent the ordinary button is the verb, and re-arming
+	 * there would discard the progress already made. At a hundred the branch
+	 * held only a disabled seal, which is the gap: an account that becomes
+	 * workable after the walk passed it has nothing to revisit it.
+	 */
+	public function test_the_recheck_control_is_offered_only_on_the_complete_branch(): void {
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
+
+		$this->assertStringContainsString(
+			'ffc_rearm_migration',
+			$this->complete_branch( $view ),
+			'The re-check control belongs to the branch that had no verb.'
+		);
+		$this->assertSame(
+			1,
+			substr_count( $view, "'ffc_rearm_migration' =>" ),
+			'One control: a second site would mean the pending branch can discard its own progress.'
+		);
+	}
+
+	/**
+	 * It carries its own nonce action, never the run button's.
+	 *
+	 * A shared key would let a link minted for one press the other, and the
+	 * handler verifies exactly this string.
+	 */
+	public function test_the_recheck_control_carries_its_own_nonce_action(): void {
+		$block = $this->complete_branch(
+			(string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' )
+		);
+
+		$this->assertStringContainsString( "'ffc_rearm_' . \$ffcertificate_key", $block );
+		$this->assertStringNotContainsString( "'ffc_migration_' . \$ffcertificate_key", $block );
+	}
+
+	/**
+	 * The offer is the strategy's to make, not the view's to infer.
+	 *
+	 * The flag travels in the status array the card already reads, so this
+	 * view never learns which option holds whose cursor -- and a card without
+	 * the method simply omits it rather than being listed here by key.
+	 */
+	public function test_the_recheck_control_is_gated_on_the_status_flag(): void {
+		$block = $this->complete_branch(
+			(string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' )
+		);
+
+		$this->assertStringContainsString( "! empty( \$ffcertificate_status['rearmable'] )", $block );
+		$this->assertStringNotContainsString( 'identity_index_backfill', $block, 'The view must not name the card it is offered on.' );
+	}
+
+	/**
+	 * It stays out of the auto-run driver's reach.
+	 *
+	 * `ffc-admin-migrations.js` binds `.ffc-migration-actions a.button-primary`
+	 * and pulls `ffc_run_migration` out of the href. A primary class here
+	 * would hand this link to a loop that cannot find a key in it.
+	 */
+	public function test_the_recheck_control_is_not_the_driver_s_button(): void {
+		$view  = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
+		$block = $this->complete_branch( $view );
+
+		$start = strpos( $block, '$ffcertificate_rearm_url' );
+		$this->assertIsInt( $start, 'The control must build its own URL.' );
+
+		$anchor = substr( $block, (int) $start );
+
+		$this->assertStringContainsString( 'class="button button-secondary"', $anchor );
+		$this->assertStringNotContainsString( 'button-primary', $anchor );
+
+		// The driver's own selector, asserted here so a rename on either side
+		// fails rather than silently re-coupling the two.
+		$this->assertStringContainsString(
+			'.ffc-migration-actions a.button-primary',
+			(string) file_get_contents( __DIR__ . '/../../assets/js/ffc-admin-migrations.js' )
+		);
+	}
+
 	public function test_render_error_when_view_missing(): void {
 		$tab = new class() extends TabMigrations {
 			public function render(): void {

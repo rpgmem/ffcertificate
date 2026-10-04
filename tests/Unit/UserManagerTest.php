@@ -288,6 +288,9 @@ class UserManagerTest extends TestCase {
 	}
 
 	public function test_update_profile_updates_existing_row(): void {
+		// The full name also mirrors WordPress's first / last name (#1552).
+		Functions\when( 'update_user_meta' )->justReturn( true );
+		Functions\when( 'delete_user_meta' )->justReturn( true );
 		// Row already exists — service takes the UPDATE branch.
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '5' );
 		$this->wpdb->shouldReceive( 'update' )
@@ -343,25 +346,39 @@ class UserManagerTest extends TestCase {
 		$this->assertTrue( $result );
 	}
 
-	public function test_update_profile_handles_preferences_json(): void {
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '3' );
+	public function test_update_profile_merges_preferences_into_the_stored_ones(): void {
+		$this->mock_profile_row( '{"notify_date_messages":false,"notify_appointment_reminder":true,"theme":"dark"}' );
 		$this->wpdb->shouldReceive( 'update' )
 			->once()
 			->withArgs( function ( $table, $data ) {
-				return isset( $data['preferences'] )
-					&& is_string( $data['preferences'] )
-					&& json_decode( $data['preferences'], true ) === array( 'theme' => 'dark', 'lang' => 'pt-BR' );
+				$expected = array(
+					'notify_appointment_reminder' => false,
+					'notify_date_messages'        => false,
+				);
+				$actual   = json_decode( $data['preferences'], true );
+				ksort( $actual );
+				return $expected === $actual;
 			} )
 			->andReturn( 1 );
 
+		// The screen posts only the toggles it shows: with the date-messages
+		// module off, `notify_date_messages` is absent and must survive (#1545).
+		// The two toggles removed in #1545 are dropped like any unknown key.
 		$result = UserManager::update_profile( 10, array(
-			'preferences' => array( 'theme' => 'dark', 'lang' => 'pt-BR' ),
+			'preferences' => array(
+				'notify_appointment_reminder' => 'false',
+				'notify_new_certificate'      => false,
+				'lang'                        => 'pt-BR',
+			),
 		) );
 
 		$this->assertTrue( $result );
 	}
 
 	public function test_update_profile_also_calls_wp_update_user_for_display_name(): void {
+		// The full name also mirrors WordPress's first / last name (#1552).
+		Functions\when( 'update_user_meta' )->justReturn( true );
+		Functions\when( 'delete_user_meta' )->justReturn( true );
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '1' );
 		$this->wpdb->shouldReceive( 'update' )->andReturn( 1 );
 
@@ -1239,6 +1256,8 @@ class UserManagerTest extends TestCase {
 
 		Functions\when( 'sanitize_key' )->returnArg();
 		Functions\when( 'update_user_meta' )->justReturn( true );
+		// A one-word display name clears the mirrored last name (#1552).
+		Functions\when( 'delete_user_meta' )->justReturn( true );
 		Functions\when( 'wp_update_user' )->justReturn( 42 );
 
 		$result = UserManager::update_extended_profile( 42, array(
@@ -1419,6 +1438,34 @@ class UserManagerTest extends TestCase {
 		$this->assertSame( '51817842080', $profile['cpf'] );
 	}
 
+	/**
+	 * A key the profile map declares sensitive is decrypted even when the
+	 * caller's custom-field row says it is not (#1538): `birth_date` is fed by
+	 * a reregistration field seeded non-sensitive, and trusting that flag
+	 * would pre-fill the form with ciphertext.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_get_extended_profile_decrypts_a_map_sensitive_key_the_caller_did_not_flag(): void {
+		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$enc->shouldReceive( 'decrypt' )->with( 'ENC_BIRTH' )->once()->andReturn( '1990-05-20' );
+
+		$this->mock_table_exists( 'wp_ffc_user_profiles', true );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
+			$this->profile_row_fixture( array( 'phone' => '' ) )
+		);
+
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'get_user_meta' )->alias( function ( $uid, $key ) {
+			return 'ffc_user_birth_date' === $key ? 'ENC_BIRTH' : '';
+		} );
+
+		$profile = UserManager::get_extended_profile( 42, array( 'birth_date' ), array() );
+
+		$this->assertSame( '1990-05-20', $profile['birth_date'] );
+	}
+
 	public function test_get_extended_profile_ignores_profile_table_keys_listed_in_extras(): void {
 		// display_name is already in the table-backed profile; passing it as
 		// an extra key must be a no-op, not a duplicate meta read.
@@ -1450,5 +1497,84 @@ class UserManagerTest extends TestCase {
 		$this->assertTrue( $ref->isPublic() );
 		$this->assertCount( 3, $ref->getParameters() );
 		$this->assertSame( 'array', $ref->getReturnType()->getName() );
+	}
+	/**
+	 * Make get_profile() find a row carrying the given preferences.
+	 *
+	 * @param string|null $preferences Stored JSON.
+	 */
+	private function mock_profile_row( ?string $preferences ): void {
+		// `SHOW TABLES` answers with the table; the repository's existence
+		// check answers with the row id. One expectation, because a second
+		// one on get_var would supersede a byDefault() one.
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static fn( $query ) => 'SHOW TABLES LIKE %s' === $query ? 'wp_ffc_user_profiles' : '3'
+		);
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
+			array(
+				'id'           => '3',
+				'user_id'      => '10',
+				'display_name' => 'X',
+				'phone'        => null,
+				'department'   => null,
+				'organization' => null,
+				'notes'        => null,
+				'preferences'  => $preferences,
+				'cpf_hash'     => null,
+				'rf_hash'      => null,
+				'created_at'   => null,
+				'updated_at'   => null,
+			)
+		);
+	}
+
+	// ==================================================================
+	// merge_preferences() (#1545)
+	// ==================================================================
+
+	/**
+	 * @dataProvider merges
+	 *
+	 * @param string|null          $stored   Stored JSON.
+	 * @param array<mixed>         $posted   Posted preferences.
+	 * @param array<string, bool>  $expected Result.
+	 */
+	public function test_merge_preferences( ?string $stored, array $posted, array $expected ): void {
+		$this->assertSame( $expected, UserManager::merge_preferences( $stored, $posted ) );
+	}
+
+	/**
+	 * @return array<string, array{0: string|null, 1: array<mixed>, 2: array<string, bool>}>
+	 */
+	public function merges(): array {
+		return array(
+			'an absent key keeps its stored value'     => array( '{"notify_date_messages":false}', array( 'notify_appointment_reminder' => true ), array( 'notify_date_messages' => false, 'notify_appointment_reminder' => true ) ),
+			'a posted key wins'                        => array( '{"notify_date_messages":false}', array( 'notify_date_messages' => true ), array( 'notify_date_messages' => true ) ),
+			'unknown keys are dropped, stored or posted' => array( '{"theme":"dark"}', array( 'lang' => 'pt' ), array() ),
+			'strings read as booleans'                 => array( null, array( 'notify_appointment_reminder' => 'false', 'notify_date_messages' => '1' ), array( 'notify_appointment_reminder' => false, 'notify_date_messages' => true ) ),
+			'the removed toggles are not preferences'  => array( '{"notify_new_certificate":false,"notify_appointment_confirm":false}', array(), array() ),
+			'garbage leaves the stored choice'         => array( '{"notify_date_messages":false}', array( 'notify_date_messages' => array( 'x' ) ), array( 'notify_date_messages' => false ) ),
+			'a corrupt stored blob reads as empty'     => array( '{not json', array( 'notify_appointment_reminder' => true ), array( 'notify_appointment_reminder' => true ) ),
+		);
+	}
+
+	public function test_the_date_messages_key_is_the_one_opt_out_reads(): void {
+		$this->assertContains( \FreeFormCertificate\DateMessages\OptOut::PREFERENCE_KEY, UserManager::NOTIFICATION_PREFERENCES );
+	}
+	// ==================================================================
+	// wants_notification() (#1545)
+	// ==================================================================
+
+	public function test_a_notification_is_on_until_explicitly_turned_off(): void {
+		$this->mock_profile_row( '{"notify_appointment_reminder":false}' );
+
+		$this->assertFalse( UserManager::wants_notification( 10, UserManager::NOTIFY_APPOINTMENT_REMINDER ) );
+		$this->assertTrue( UserManager::wants_notification( 10, 'notify_date_messages' ), 'An unset key is on.' );
+	}
+
+	public function test_a_guest_always_receives(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->never();
+
+		$this->assertTrue( UserManager::wants_notification( 0, UserManager::NOTIFY_APPOINTMENT_REMINDER ) );
 	}
 }

@@ -431,7 +431,22 @@ class IdentityRelink {
 
 		$said = array();
 
+		// The same reasoning as `IdentityMerge::refusal()` and for the same
+		// reason (#1532): the move still cannot proceed, and an accepted finding
+		// has left the panel this sentence used to name.
+		$accepted = new IdentityAcceptance();
+
 		foreach ( $unusable as $field ) {
+			if ( $accepted->any_accepted( $field, $carried[ $field ] ?? array() ) ) {
+				$said[] = sprintf(
+					/* translators: %s: the identifier the records and the account share, e.g. RF. */
+					__( 'The records and that account share the same %s, and that number fails its own check digit — so it cannot be either person\'s, and it is not what ties them together. It has been accepted as impossible to resolve, so it sits under "Accepted — no resolution possible" rather than among the numbers to correct. That does not unblock this move: if the correct value has since been found, withdraw the acceptance there and correct the number first.', 'ffcertificate' ),
+					strtoupper( $field )
+				);
+
+				continue;
+			}
+
 			$said[] = sprintf(
 				/* translators: %s: the identifier the records and the account share, e.g. RF. */
 				__( 'The records and that account share the same %s, and that number fails its own check digit — so it cannot be either person\'s, and it is not what ties them together. Correct it first, under "Numbers to correct": afterwards the records may have nothing tying them to that account at all, which is the answer rather than an obstacle.', 'ffcertificate' ),

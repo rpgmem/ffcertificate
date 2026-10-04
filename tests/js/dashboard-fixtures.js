@@ -79,6 +79,9 @@ export function loadDashboardCore() {
 		};
 	}
 	loadScript('assets/js/ffc-core.js');
+	// The profile panel masks its phone with the shared field behaviours,
+	// enqueued alongside it.
+	loadScript('assets/js/ffc-field-behaviours.js');
 	loadScript('assets/js/ffc-user-dashboard-core.js');
 }
 

@@ -8,8 +8,12 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Maintenance\IdentityAcceptance;
+use FreeFormCertificate\Maintenance\IdentityQueue;
 use FreeFormCertificate\Maintenance\IdentityAuditExportSource;
 use FreeFormCertificate\Maintenance\IdentityConflictQuery;
+use FreeFormCertificate\Maintenance\SubmissionLinkAuditor;
+use FreeFormCertificate\Repositories\SubmissionRepository;
 
 /**
  * The export with the schema probe stubbed out.
@@ -36,12 +40,53 @@ class ExportSourceWithStubbedSchemaProbe extends IdentityAuditExportSource {
 	);
 
 	/**
+	 * What the stubbed acceptance record holds (#1534).
+	 *
+	 * A DOUBLE RATHER THAN A `get_option` STUB, for the reason `CLAUDE.md`
+	 * records and `IdentityQueueTest` repeats: teaching Patchwork that function
+	 * leaves it defined for every later test in the process, and these cases
+	 * are about the normalisation, not about an option.
+	 *
+	 * @var array<string, array<string, mixed>>
+	 */
+	public array $accepted = array();
+
+	/**
 	 * {@inheritDoc}
 	 *
 	 * @return array<string, mixed>
 	 */
 	protected function foreign_key_status(): array {
 		return $this->fk_status;
+	}
+
+	/**
+	 * The acceptance record, stubbed.
+	 *
+	 * @return IdentityAcceptance
+	 */
+	protected function acceptances(): IdentityAcceptance {
+		$record = $this->accepted;
+
+		return new class( $record ) extends IdentityAcceptance {
+
+			/** @var array<string, array<string, mixed>> */
+			private array $held;
+
+			/**
+			 * @param array<string, array<string, mixed>> $held The record.
+			 */
+			public function __construct( array $held ) {
+				$this->held = $held;
+			}
+
+			/**
+			 * @return array<string, array<string, mixed>>
+			 */
+			public function all(): array {
+				return $this->held;
+			}
+		};
 	}
 }
 
@@ -50,7 +95,7 @@ class ExportSourceWithStubbedSchemaProbe extends IdentityAuditExportSource {
  *
  * Every assertion here is on the ROWS the source hands the streamer, because
  * that is the artefact an operator opens. The auditor is injected, so what is
- * under test is the normalisation — seven checks return seven different column
+ * under test is the normalisation — every check returns its own column
  * sets onto one header — and never the queries, which have their own tests.
  *
  * @covers \FreeFormCertificate\Maintenance\IdentityAuditExportSource
@@ -90,6 +135,157 @@ class IdentityAuditExportSourceTest extends TestCase {
 			}
 		);
 		return $tool;
+	}
+
+	/**
+	 * The CSV and the audit card must agree about which findings are accepted.
+	 *
+	 * TWO SURFACES OVER ONE SCAN, AND ONLY ONE OF THEM USED TO EXPLAIN ITSELF
+	 *
+	 * The card reports `N findings, M accepted, N-M open` and this file writes
+	 * a reason per row; both answers come from the same option joined against
+	 * the same report, and before #1536 each built the join's key itself. A
+	 * structural guard in `SubmissionLinkAuditorTest` pins that neither
+	 * rebuilds it; this one measures the consequence, with the REAL auditor on
+	 * both sides -- a canned report would prove the two agree about a number
+	 * the test supplied.
+	 *
+	 * The case is deliberately mixed: two checks, one acceptance each, one
+	 * finding left open, and one record whose finding the scan does not hold.
+	 */
+	public function test_the_card_count_and_the_csv_column_agree(): void {
+		$repo = Mockery::mock( SubmissionRepository::class );
+		$repo->shouldReceive( 'find_orphan_user_links' )->andReturn( array() );
+		$repo->shouldReceive( 'find_users_with_multiple_identities' )->andReturn( array() );
+		$repo->shouldReceive( 'find_unlinked_with_matching_identity' )->andReturn( array() );
+		$repo->shouldReceive( 'find_shared_identities' )->andReturn( array() );
+
+		$conflicts = Mockery::mock( IdentityConflictQuery::class );
+		$conflicts->shouldReceive( 'shared_identities' )->andReturn( array() );
+		$conflicts->shouldReceive( 'unindexed_links' )->andReturn( array() );
+		$conflicts->shouldReceive( 'account_facts' )->andReturn( array() );
+		$conflicts->shouldReceive( 'multiple_identities' )->andReturn(
+			array(
+				array(
+					'subject'           => '438',
+					'identity_count'    => 2,
+					'identifier_column' => 'rf_hash',
+				),
+			)
+		);
+		$conflicts->shouldReceive( 'check_digit_failures_of_both' )->andReturn(
+			array(
+				array(
+					'subject'           => 'hash-of-the-accepted-rf',
+					'identifier_column' => 'rf_hash',
+				),
+				array(
+					'subject'           => 'hash-of-an-rf-still-open',
+					'identifier_column' => 'rf_hash',
+				),
+			)
+		);
+
+		$record = array(
+			IdentityAcceptance::key( IdentityQueue::CHECK_MULTIPLE, 'rf', '438' ) => array(
+				IdentityAcceptance::FIELD_CHECK      => IdentityQueue::CHECK_MULTIPLE,
+				IdentityAcceptance::FIELD_IDENTIFIER => 'rf',
+				IdentityAcceptance::FIELD_SUBJECT    => '438',
+				IdentityAcceptance::FIELD_REASON     => IdentityAcceptance::REASON_NEVER_SUPPLIED,
+			),
+			IdentityAcceptance::key( IdentityQueue::CHECK_DIGITS, 'rf', 'hash-of-the-accepted-rf' ) => array(
+				IdentityAcceptance::FIELD_CHECK      => IdentityQueue::CHECK_DIGITS,
+				IdentityAcceptance::FIELD_IDENTIFIER => 'rf',
+				IdentityAcceptance::FIELD_SUBJECT    => 'hash-of-the-accepted-rf',
+				IdentityAcceptance::FIELD_REASON     => IdentityAcceptance::REASON_UNIDENTIFIABLE,
+			),
+			// On file, and its finding is not in this report -- the account was
+			// deleted, or the value was repaired. Neither surface may count it.
+			IdentityAcceptance::key( IdentityQueue::CHECK_SHARED, 'cpf', 'hash-of-a-vanished-finding' ) => array(
+				IdentityAcceptance::FIELD_CHECK      => IdentityQueue::CHECK_SHARED,
+				IdentityAcceptance::FIELD_IDENTIFIER => 'cpf',
+				IdentityAcceptance::FIELD_SUBJECT    => 'hash-of-a-vanished-finding',
+				IdentityAcceptance::FIELD_REASON     => IdentityAcceptance::REASON_NEVER_SUPPLIED,
+			),
+		);
+
+		$auditor = new class( $repo, $conflicts, $record ) extends SubmissionLinkAuditor {
+			/** @var IdentityConflictQuery */
+			private $double;
+
+			/** @var array<string, array<string, mixed>> */
+			private $record;
+
+			/**
+			 * @param SubmissionRepository                $repository Repository double.
+			 * @param IdentityConflictQuery               $double     Cross-store double.
+			 * @param array<string, array<string, mixed>> $record     Acceptance records.
+			 */
+			public function __construct( $repository, $double, array $record ) {
+				parent::__construct( $repository );
+				$this->double = $double;
+				$this->record = $record;
+			}
+
+			/**
+			 * @return IdentityConflictQuery
+			 */
+			protected function conflicts(): IdentityConflictQuery {
+				return $this->double;
+			}
+
+			/**
+			 * @return IdentityAcceptance
+			 */
+			protected function acceptances(): IdentityAcceptance {
+				$held = $this->record;
+
+				return new class( $held ) extends IdentityAcceptance {
+
+					/** @var array<string, array<string, mixed>> */
+					private $held;
+
+					/**
+					 * @param array<string, array<string, mixed>> $held Records.
+					 */
+					public function __construct( array $held ) {
+						$this->held = $held;
+					}
+
+					/**
+					 * @return array<string, array<string, mixed>>
+					 */
+					public function all(): array {
+						return $this->held;
+					}
+				};
+			}
+		};
+
+		$report = $auditor->run( array() );
+
+		$source            = new ExportSourceWithStubbedSchemaProbe( $auditor );
+		$source->accepted  = $record;
+		$rows              = $this->rows( $source );
+
+		$from_csv = 0;
+
+		foreach ( $rows as $row ) {
+			// A reason, never `open` and never blank: the column carries which
+			// of the closed set of reasons was given, so anything else is a
+			// finding nobody judged or one that cannot be judged at all.
+			if ( in_array( $row['accepted'], IdentityAcceptance::REASONS, true ) ) {
+				++$from_csv;
+			}
+		}
+
+		$this->assertSame( 3, $report['total'], 'Three findings, so the agreement below is measured over a non-empty report.' );
+		$this->assertSame( 2, $report['accepted'], 'The card counts the findings a record covers, never the records.' );
+		$this->assertSame(
+			$report['accepted'],
+			$from_csv,
+			'The card and the file disagree about which findings are accepted, which is what one option read through two copies of a join produces.'
+		);
 	}
 
 	/**
@@ -815,6 +1011,14 @@ class IdentityAuditExportSourceTest extends TestCase {
 				)
 			);
 
+		// THE REAL SOURCE, so the real acceptance record is read -- these two
+		// drive `foreign_key_status()` end to end through an alias mock and
+		// cannot use the stubbed subclass. Both run in their own process, so
+		// teaching Patchwork `get_option` here cannot reach a later test; that
+		// containment is why this stub is acceptable where `setUp()` would not
+		// be (#1534).
+		Functions\when( 'get_option' )->justReturn( array() );
+
 		$seen   = array();
 		$source = new IdentityAuditExportSource( $this->auditor( array(), $seen ) );
 
@@ -847,6 +1051,14 @@ class IdentityAuditExportSourceTest extends TestCase {
 					'existing'             => array( 'fk_ffc_user_profiles_user', 'fk_ffc_submissions_user' ),
 				)
 			);
+
+		// THE REAL SOURCE, so the real acceptance record is read -- these two
+		// drive `foreign_key_status()` end to end through an alias mock and
+		// cannot use the stubbed subclass. Both run in their own process, so
+		// teaching Patchwork `get_option` here cannot reach a later test; that
+		// containment is why this stub is acceptable where `setUp()` would not
+		// be (#1534).
+		Functions\when( 'get_option' )->justReturn( array() );
 
 		$seen   = array();
 		$source = new IdentityAuditExportSource( $this->auditor( array(), $seen ) );
@@ -1093,4 +1305,421 @@ class IdentityAuditExportSourceTest extends TestCase {
 		}
 	}
 
+	// =====================================================================
+	// The `accepted` column (#1534)
+	// =====================================================================
+
+	/**
+	 * A finding somebody accepted prints its REASON, not a bare yes.
+	 *
+	 * The reasons are a closed set, so printing one is safe, and "the person
+	 * never supplied this number" is the sentence the operator takes to HR.
+	 */
+	public function test_an_accepted_finding_names_why(): void {
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'check_digit' => array(
+						'rows' => array(
+							array(
+								'subject'           => 'the-failing-hash',
+								'identifier_column' => 'rf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$source->accepted = array(
+			IdentityAcceptance::key( IdentityQueue::CHECK_DIGITS, 'rf', 'the-failing-hash' ) => array(
+				IdentityAcceptance::FIELD_CHECK      => IdentityQueue::CHECK_DIGITS,
+				IdentityAcceptance::FIELD_IDENTIFIER => 'rf',
+				IdentityAcceptance::FIELD_SUBJECT    => 'the-failing-hash',
+				IdentityAcceptance::FIELD_REASON     => IdentityAcceptance::REASON_UNIDENTIFIABLE,
+			),
+		);
+
+		$rows = $this->rows( $source );
+
+		$this->assertSame( IdentityAcceptance::REASON_UNIDENTIFIABLE, $rows[0]['accepted'] );
+	}
+
+	/**
+	 * THE ROW IS NOT DROPPED, WHICH IS THE WHOLE DECISION (#1534).
+	 *
+	 * The file is the artefact that leaves the system, and a row that silently
+	 * vanished from it is a row nobody can question. It would also collide with
+	 * this export's own truncation honesty: a short list would then have two
+	 * unrelated explanations.
+	 */
+	public function test_an_accepted_finding_is_still_a_row(): void {
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'check_digit' => array(
+						'rows' => array(
+							array(
+								'subject'           => 'the-failing-hash',
+								'identifier_column' => 'rf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$source->accepted = array(
+			IdentityAcceptance::key( IdentityQueue::CHECK_DIGITS, 'rf', 'the-failing-hash' ) => array(
+				IdentityAcceptance::FIELD_CHECK      => IdentityQueue::CHECK_DIGITS,
+				IdentityAcceptance::FIELD_IDENTIFIER => 'rf',
+				IdentityAcceptance::FIELD_SUBJECT    => 'the-failing-hash',
+				IdentityAcceptance::FIELD_REASON     => IdentityAcceptance::REASON_NEVER_SUPPLIED,
+			),
+		);
+
+		$rows = $this->rows( $source );
+
+		// The finding, then the closing foreign-key note.
+		$this->assertCount( 2, $rows );
+		$this->assertSame( 'check_digit', $rows[0]['check'] );
+		$this->assertSame(
+			substr( 'the-failing-hash', 0, IdentityAuditExportSource::HASH_PREFIX_CHARS ),
+			$rows[0]['identifier_hash_prefixes'],
+			'The row is still the row it was, prefix and all.'
+		);
+	}
+
+	/**
+	 * An outstanding finding says so, rather than leaving the column blank.
+	 */
+	public function test_an_outstanding_finding_reads_as_open(): void {
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'check_digit' => array(
+						'rows' => array(
+							array(
+								'subject'           => 'the-failing-hash',
+								'identifier_column' => 'rf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$rows = $this->rows( $source );
+
+		$this->assertSame( IdentityAuditExportSource::ACCEPTANCE_OPEN, $rows[0]['accepted'] );
+	}
+
+	/**
+	 * A CHECK WITH NO CONCEPT OF ACCEPTANCE PRINTS NOTHING.
+	 *
+	 * The auditor runs more checks than the queue composes. For the rest
+	 * four the answer is not "no" -- there is nothing to answer, and blank is
+	 * what this file already does for a column that does not apply. Reading
+	 * their absence as `open` would invite an operator to go looking for a
+	 * control that is not there.
+	 */
+	public function test_a_check_outside_the_queue_leaves_the_column_blank(): void {
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'orphan_submissions' => array(
+						'rows' => array(
+							array( 'id' => 41, 'form_id' => 7 ),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$rows = $this->rows( $source );
+
+		$this->assertSame( '', $rows[0]['accepted'] );
+	}
+
+	/**
+	 * THE LOOKUP IS PER IDENTIFIER, AND THIS IS THE TRAP THE ISSUE NAMED.
+	 *
+	 * An acceptance recorded for a CPF must not make an RF finding read as
+	 * accepted. A lookup that dropped the field would do exactly that, and the
+	 * row would tell an operator that work they still owe is settled.
+	 */
+	public function test_an_acceptance_for_another_identifier_does_not_apply(): void {
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'check_digit' => array(
+						'rows' => array(
+							array(
+								'subject'           => 'shared-value',
+								'identifier_column' => 'rf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$source->accepted = array(
+			IdentityAcceptance::key( IdentityQueue::CHECK_DIGITS, 'cpf', 'shared-value' ) => array(
+				IdentityAcceptance::FIELD_CHECK      => IdentityQueue::CHECK_DIGITS,
+				IdentityAcceptance::FIELD_IDENTIFIER => 'cpf',
+				IdentityAcceptance::FIELD_SUBJECT    => 'shared-value',
+				IdentityAcceptance::FIELD_REASON     => IdentityAcceptance::REASON_NEVER_SUPPLIED,
+			),
+		);
+
+		$rows = $this->rows( $source );
+
+		$this->assertSame( IdentityAuditExportSource::ACCEPTANCE_OPEN, $rows[0]['accepted'] );
+	}
+
+	/**
+	 * AND THE OTHER HALF OF THE SAME TRAP: the check is part of the key.
+	 *
+	 * `subject` is a hash in two checks and an ACCOUNT ID in the third, so an
+	 * acceptance recorded against account `41` must not answer for a hash that
+	 * happens to be spelled `41`. A lookup without the check would.
+	 */
+	public function test_an_acceptance_under_another_check_does_not_apply(): void {
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'check_digit' => array(
+						'rows' => array(
+							array(
+								'subject'           => '41',
+								'identifier_column' => 'rf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$source->accepted = array(
+			IdentityAcceptance::key( IdentityQueue::CHECK_MULTIPLE, 'rf', '41' ) => array(
+				IdentityAcceptance::FIELD_CHECK      => IdentityQueue::CHECK_MULTIPLE,
+				IdentityAcceptance::FIELD_IDENTIFIER => 'rf',
+				IdentityAcceptance::FIELD_SUBJECT    => '41',
+				IdentityAcceptance::FIELD_REASON     => IdentityAcceptance::REASON_NEVER_SUPPLIED,
+			),
+		);
+
+		$rows = $this->rows( $source );
+
+		$this->assertSame( IdentityAuditExportSource::ACCEPTANCE_OPEN, $rows[0]['accepted'] );
+	}
+
+	/**
+	 * An account-side acceptance is found by its own check and account id.
+	 *
+	 * The mirror of the test above: with the right check, the same `41` is the
+	 * subject the record was keyed under and the row reads as accepted.
+	 */
+	public function test_an_account_side_finding_reads_its_own_acceptance(): void {
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'cross_store_multiple_identities' => array(
+						'rows' => array(
+							array(
+								'subject'           => '41',
+								'identifier_column' => 'rf_hash',
+								'related'           => 'aaa|bbb',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$source->accepted = array(
+			IdentityAcceptance::key( IdentityQueue::CHECK_MULTIPLE, 'rf', '41' ) => array(
+				IdentityAcceptance::FIELD_CHECK      => IdentityQueue::CHECK_MULTIPLE,
+				IdentityAcceptance::FIELD_IDENTIFIER => 'rf',
+				IdentityAcceptance::FIELD_SUBJECT    => '41',
+				IdentityAcceptance::FIELD_REASON     => IdentityAcceptance::REASON_UNIDENTIFIABLE,
+			),
+		);
+
+		$rows = $this->rows( $source );
+
+		$this->assertSame( '41', $rows[0]['user_ids'], 'The subject of this check is an account, not a hash.' );
+		$this->assertSame( IdentityAcceptance::REASON_UNIDENTIFIABLE, $rows[0]['accepted'] );
+	}
+
+	/**
+	 * A record whose reason this release does not recognise still reads as
+	 * accepted.
+	 *
+	 * The option holds whatever is in it, including what a later release wrote.
+	 * Reading an unknown reason as `open` would be the wrong answer in the one
+	 * direction that matters: it would put the finding back in front of an
+	 * operator who had already settled it.
+	 */
+	public function test_an_unrecognised_reason_still_reads_as_accepted(): void {
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'check_digit' => array(
+						'rows' => array(
+							array(
+								'subject'           => 'the-failing-hash',
+								'identifier_column' => 'rf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$source->accepted = array(
+			IdentityAcceptance::key( IdentityQueue::CHECK_DIGITS, 'rf', 'the-failing-hash' ) => array(
+				IdentityAcceptance::FIELD_CHECK      => IdentityQueue::CHECK_DIGITS,
+				IdentityAcceptance::FIELD_IDENTIFIER => 'rf',
+				IdentityAcceptance::FIELD_SUBJECT    => 'the-failing-hash',
+			),
+		);
+
+		$rows = $this->rows( $source );
+
+		$this->assertNotSame( IdentityAuditExportSource::ACCEPTANCE_OPEN, $rows[0]['accepted'] );
+		$this->assertSame( 'accepted', $rows[0]['accepted'] );
+	}
+
+	/**
+	 * `note` stays the LAST column, which is structural.
+	 *
+	 * `note_row()` writes its sentence into the last column, so a column added
+	 * after `accepted` would silently take it -- and every note row in the file
+	 * would lose its text.
+	 */
+	public function test_the_note_column_stays_last(): void {
+		$header = ( new ExportSourceWithStubbedSchemaProbe( null ) )->header();
+
+		$this->assertSame( 'note', end( $header ) );
+		$this->assertSame( 'accepted', prev( $header ) );
+	}
+
+	/**
+	 * A CPF FINDING FINDS ITS OWN CPF ACCEPTANCE.
+	 *
+	 * The mirror of the test above, and the one that catches a lookup which
+	 * NAMES the field but always passes the same one. Without it, hardcoding
+	 * `rf` passes every other case here: the `rf` rows match and the `cpf`
+	 * record is meant to miss anyway.
+	 */
+	public function test_a_cpf_finding_finds_its_cpf_acceptance(): void {
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'check_digit' => array(
+						'rows' => array(
+							array(
+								'subject'           => 'the-cpf-hash',
+								'identifier_column' => 'cpf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		$source->accepted = array(
+			IdentityAcceptance::key( IdentityQueue::CHECK_DIGITS, 'cpf', 'the-cpf-hash' ) => array(
+				IdentityAcceptance::FIELD_CHECK      => IdentityQueue::CHECK_DIGITS,
+				IdentityAcceptance::FIELD_IDENTIFIER => 'cpf',
+				IdentityAcceptance::FIELD_SUBJECT    => 'the-cpf-hash',
+				IdentityAcceptance::FIELD_REASON     => IdentityAcceptance::REASON_NEVER_SUPPLIED,
+			),
+		);
+
+		$rows = $this->rows( $source );
+
+		$this->assertSame( 'cpf_hash', $rows[0]['identifier_column'] );
+		$this->assertSame( IdentityAcceptance::REASON_NEVER_SUPPLIED, $rows[0]['accepted'] );
+	}
+
+	/**
+	 * THE SCOPE GUARD IS PREVENTION, AND THE ROW HERE IS SYNTHETIC ON PURPOSE.
+	 *
+	 * Measured: no check outside `IdentityQueue::CHECKS` emits a `subject`
+	 * today -- `unindexed_links` selects `user_id`, and the four legacy repo
+	 * checks select `user_id` and `related`. So the subject guard alone
+	 * currently catches every out-of-scope row, and the scope test is
+	 * redundant AT PRESENT.
+	 *
+	 * It stays, and this pins why: the day a check groups by subject, "blank
+	 * means this check has no concept of acceptance" has to be a rule the code
+	 * states rather than a consequence of which columns the queries happen to
+	 * select. The row is shaped by hand because no query produces it -- which
+	 * is what the test is about, and is said here so nobody reads it as a
+	 * claim about a live finding.
+	 */
+	public function test_an_out_of_scope_check_is_blank_even_carrying_a_subject(): void {
+		$this->assertNotContains(
+			'unindexed_links',
+			IdentityQueue::CHECKS,
+			'This case needs a check the queue does not compose.'
+		);
+
+		$seen   = array();
+		$source = new ExportSourceWithStubbedSchemaProbe(
+			$this->auditor(
+				array(
+					'unindexed_links' => array(
+						'rows' => array(
+							array(
+								'subject'           => 'the-failing-hash',
+								'identifier_column' => 'rf_hash',
+							),
+						),
+					),
+				),
+				$seen
+			)
+		);
+
+		// Recorded for exactly that check-less shape, so a lookup ignoring the
+		// scope would find it and print a reason.
+		$source->accepted = array(
+			IdentityAcceptance::key( 'unindexed_links', 'rf', 'the-failing-hash' ) => array(
+				IdentityAcceptance::FIELD_CHECK      => 'unindexed_links',
+				IdentityAcceptance::FIELD_IDENTIFIER => 'rf',
+				IdentityAcceptance::FIELD_SUBJECT    => 'the-failing-hash',
+				IdentityAcceptance::FIELD_REASON     => IdentityAcceptance::REASON_NEVER_SUPPLIED,
+			),
+		);
+
+		$rows = $this->rows( $source );
+
+		$this->assertSame(
+			'',
+			$rows[0]['accepted'],
+			'A check with no concept of acceptance must print nothing, not a reason and not `open`.'
+		);
+	}
 }

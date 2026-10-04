@@ -7,7 +7,35 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.32.0] (2026-09-29)
+## [6.33.0] (2026-10-04)
+
+### Added
+
+- **Date messages: e-mails sent on a date in each person's profile, starting with birthdays** (#1538). A new module (off by default, own top-level menu) sends each active rule's message on the date or N days before it, once per person and occurrence, through the e-mail pipeline, with one-click unsubscribe. Tokens include `{{first_name}}`, `{{last_name}}` and `{{full_name}}` (#1552).
+- **Date messages: rules, preview, history and manager summary** (#1538). Create, edit, duplicate and toggle rules; preview recipients with the send's own selection; test-send to yourself; send manually over up to 31 days; read the run history; e-mail chosen managers a summary 24 hours after each run (names only to those allowed); list upcoming dates.
+- **A canonical birth date on the user profile** (#1538). Reregistration's `data_nascimento` writes to and pre-fills from one encrypted `birth_date`, with its day and month beside it for scheduled queries; editable on the dashboard and the user-edit screen. A migration card copies the dates already given, and Date Messages warns while it has accounts left.
+- **Settings → Scheduled Tasks** (#1538). Every WP-Cron task the plugin runs, with next run, last real run (a new heartbeat) and lateness; the exact server crontab line (WP-CLI, wget or curl); and a time of day per daily task, which every scheduling site respects.
+- **Identity resolution: a finding nobody can resolve can be accepted as such** (#1532). It moves to a counted, reversible list of decisions — **not** a resolution: nothing stored changes, and a merge or move blocked by that number stays blocked. The audit CSV marks accepted findings in an `accepted` column instead of dropping them (#1534).
+
+### Changed
+
+- **The appointment reminder honours the dashboard toggle** (#1545). Turning "Appointment reminder" off now stops it; the toggle shows on by default, matching what is sent.
+- Internal conventions: the acceptance join has one owner instead of three copies, and three stale claims are corrected — the auditor's check count, the `views/` coverage carve-out's justification, and the acceptance record's standing when an account is deleted (#1536).
+
+### Fixed
+
+- **The user-edit screen's FFC fields** (#1538, #1550). Profile-mapped fields (CPF, RF, RG…) are read from and written to the profile, encrypted, instead of a plaintext snapshot nothing read. CPF, RF, RG and phones are masked (phones `(DD) 98765-4321`, 11 digits — also on the dashboard Profile tab), Division / Department is the validated cascade, accumulation fields hide unless a second post is held, and "Union" no longer reads "Estado" on audiences seeded before #1209.
+- **WordPress's first and last name follow the plugin's full name, both ways** (#1552). Account creation stored the whole name as the first name; every write now derives first word / rest, editing First/Last Name updates it back (accounts with a plugin profile only), and a manual card splits names already stored whole.
+- **Saving notification preferences erased the date-messages opt-out** (#1545). A save made while the module was off re-subscribed the person; preferences now merge into the stored ones.
+- **"Pre-load cache daily" did nothing, and saving a form did not always clear its cache** (#1541). The cache hooks depended on load order and nothing scheduled the warming; both are wired from the loader, and the warming follows the toggle and Scheduled Tasks.
+- **The identity-index backfill card could not be asked to look again** (#1530); a re-check control re-walks it, overwriting nothing already filled. **The link audit card** reports accepted findings per check and in total instead of never reaching zero (#1536).
+- **Two cron hooks outlived the plugin** (#1538). Uninstall missed the expired-ticket sweep and nothing cleared the reregistration reminder batch; a guard now checks every scheduled hook against deactivation and uninstall.
+
+### Removed
+
+- **Two dashboard notification toggles that did nothing** (#1545). "Appointment confirmation" and "New certificate issued" were saved but never read; both e-mails are transactional replies to something the person just did, so the toggles are gone rather than wired.
+
+## [6.32.0] (2026-09-29) — `4ca1cd5d`
 
 ### Added
 

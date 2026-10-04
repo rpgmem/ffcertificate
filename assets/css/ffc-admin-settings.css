@@ -351,6 +351,16 @@
     color: var(--ffc-primary);
 }
 
+/* The split under a count, for the findings somebody judged unresolvable
+   (#1536). Its own name rather than a second `-stat-label`: that one is
+   uppercase with a bottom margin because it sits ABOVE the number, and
+   reusing it below would read as a second heading. */
+.ffc-migration-stat-note {
+    font-size: var(--ffc-font-size-xs);
+    color: var(--ffc-text-muted);
+    margin-top: var(--ffc-spacing-2xs);
+}
+
 .ffc-migration-progress-bar {
     margin: var(--ffc-spacing-2xl) 0;
 }

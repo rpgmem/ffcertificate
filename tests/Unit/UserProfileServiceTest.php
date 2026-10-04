@@ -360,6 +360,41 @@ class UserProfileServiceTest extends TestCase {
 	}
 
 	/**
+	 * WordPress's first and last name are derived from the full name on every
+	 * write (#1552), and the service reports itself as writing while it does,
+	 * so a `profile_update` listener can tell its own echo.
+	 */
+	public function test_write_display_name_derives_first_and_last_name(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 42 );
+		$this->wpdb->shouldReceive( 'update' )->andReturn( 1 );
+
+		$writing_during_mirror = null;
+		Functions\when( 'wp_update_user' )->alias( function () use ( &$writing_during_mirror ) {
+			$writing_during_mirror = UserProfileService::is_writing();
+			return 42;
+		} );
+
+		UserProfileService::write( 42, array( 'display_name' => '  Maria   da Silva ' ) );
+
+		$this->assertSame( 'Maria', $this->usermeta_store[42]['first_name'] ?? null );
+		$this->assertSame( 'da Silva', $this->usermeta_store[42]['last_name'] ?? null );
+		$this->assertTrue( $writing_during_mirror );
+		$this->assertFalse( UserProfileService::is_writing() );
+	}
+
+	public function test_a_one_word_name_leaves_no_last_name(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 42 );
+		$this->wpdb->shouldReceive( 'update' )->andReturn( 1 );
+		Functions\when( 'wp_update_user' )->justReturn( 42 );
+		$this->usermeta_store[42] = array( 'last_name' => 'Old' );
+
+		UserProfileService::write( 42, array( 'display_name' => 'Cher' ) );
+
+		$this->assertSame( 'Cher', $this->usermeta_store[42]['first_name'] ?? null );
+		$this->assertArrayNotHasKey( 'last_name', $this->usermeta_store[42] );
+	}
+
+	/**
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
@@ -466,6 +501,70 @@ class UserProfileServiceTest extends TestCase {
 
 		$this->assertTrue( $result );
 		$this->assertSame( '8h_daily', $this->usermeta_store[42]['ffc_user_jornada'] );
+	}
+
+	// ==================================================================
+	// birth_date (#1538)
+	// ==================================================================
+
+	/**
+	 * The full date is encrypted in its canonical form, and its month and day
+	 * are mirrored in plaintext -- the one slice a scheduled job can query.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_write_birth_date_encrypts_the_canonical_form_and_mirrors_the_month_day(): void {
+		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$enc->shouldReceive( 'encrypt' )->with( '1990-05-20' )->once()->andReturn( 'ENC' );
+		$enc->shouldReceive( 'hash' )->never();
+
+		$result = UserProfileService::write( 42, array( 'birth_date' => '20/05/1990' ) );
+
+		$this->assertTrue( $result );
+		$this->assertSame( 'ENC', $this->usermeta_store[42]['ffc_user_birth_date'] );
+		$this->assertSame( '05-20', $this->usermeta_store[42][ UserProfileFieldMap::BIRTH_MONTH_DAY_META_KEY ] );
+		$this->assertNull( $this->profile_row, 'A birth date is not an identifier: it must write no index.' );
+	}
+
+	/**
+	 * A value that is not a date is refused rather than stored: a mirror
+	 * computed from it would be empty while the ciphertext held garbage.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_write_birth_date_refuses_a_value_that_is_not_a_date(): void {
+		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
+		$enc->shouldReceive( 'encrypt' )->never();
+
+		$this->usermeta_store[42] = array(
+			'ffc_user_birth_date'                          => 'PREVIOUS_ENC',
+			UserProfileFieldMap::BIRTH_MONTH_DAY_META_KEY => '01-02',
+		);
+
+		$result = UserProfileService::write( 42, array( 'birth_date' => '1990-02-30' ) );
+
+		$this->assertFalse( $result );
+		$this->assertSame( 'PREVIOUS_ENC', $this->usermeta_store[42]['ffc_user_birth_date'], 'A refused value must leave the stored one alone.' );
+		$this->assertSame( '01-02', $this->usermeta_store[42][ UserProfileFieldMap::BIRTH_MONTH_DAY_META_KEY ] );
+	}
+
+	public function test_write_birth_date_clears_both_the_value_and_its_mirror(): void {
+		$this->usermeta_store[42] = array(
+			'ffc_user_birth_date'                          => 'PREVIOUS_ENC',
+			UserProfileFieldMap::BIRTH_MONTH_DAY_META_KEY => '05-20',
+		);
+
+		$result = UserProfileService::write( 42, array( 'birth_date' => '' ) );
+
+		$this->assertTrue( $result );
+		$this->assertArrayNotHasKey( 'ffc_user_birth_date', $this->usermeta_store[42] );
+		$this->assertArrayNotHasKey(
+			UserProfileFieldMap::BIRTH_MONTH_DAY_META_KEY,
+			$this->usermeta_store[42],
+			'A cleared date must leave no row a month-day query could still match.'
+		);
 	}
 
 	// ==================================================================

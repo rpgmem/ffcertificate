@@ -147,6 +147,20 @@ class IdentityQueue {
 	public const COLUMN_VERDICTS = 'verdicts';
 
 	/**
+	 * The tier a finding was accepted under, when it is no longer that tier.
+	 *
+	 * Present ONLY on a finding whose acceptance stopped applying because its
+	 * shape changed -- see {@see IdentityAcceptance::FIELD_TIER}. It is set so
+	 * the screen can say why a finding somebody already judged is being asked
+	 * about again; absent means the finding was never accepted, because an
+	 * acceptance that still applies is not in this list at all.
+	 *
+	 * @since 6.33.0
+	 * @var string
+	 */
+	public const COLUMN_WAS_ACCEPTED = 'was_accepted';
+
+	/**
 	 * On a mechanical item, the identifier that fails its check digits.
 	 *
 	 * @var string
@@ -180,8 +194,8 @@ class IdentityQueue {
 	 * NAMED AFTER `SubmissionLinkAuditor`'S KEYS ON PURPOSE.
 	 *
 	 * The screen and the CSV are two pipelines over overlapping questions:
-	 * the export runs the `submission_link_audit` tool, whose report has seven
-	 * checks, and this worklist composes three of them. An operator holding
+	 * the export runs the `submission_link_audit` tool, whose report is the
+	 * wider set, and this worklist composes three of them. An operator holding
 	 * both needs one vocabulary, and the auditor's key is the one that already
 	 * exists in the file they take to HR -- so an item says which check it
 	 * came from, spelled exactly as the `check` column spells it.
@@ -216,6 +230,27 @@ class IdentityQueue {
 	 * @var string
 	 */
 	public const CHECK_DIGITS = 'check_digit';
+
+	/**
+	 * The checks this worklist composes.
+	 *
+	 * Named once because there are two consumers now: the resolution page
+	 * validates a posted check against it, and `IdentityAuditExportSource`
+	 * needs to know which of the auditor's checks can carry an acceptance at
+	 * all -- the rest have no concept of one, and reading their absence as
+	 * "not accepted" would be a different claim (#1534). A count of the
+	 * auditor's checks is deliberately not stated here: it moved from seven to
+	 * eight in 6.31.0 and every prose summary in the tree went on saying seven
+	 * until #1536 removed the figure from all of them.
+	 *
+	 * @since 6.33.0
+	 * @var array<int, string>
+	 */
+	public const CHECKS = array(
+		self::CHECK_MULTIPLE,
+		self::CHECK_SHARED,
+		self::CHECK_DIGITS,
+	);
 
 	/**
 	 * Key carrying which check produced an item.
@@ -258,6 +293,16 @@ class IdentityQueue {
 	 */
 	protected function conflicts(): IdentityConflictQuery {
 		return new IdentityConflictQuery();
+	}
+
+	/**
+	 * The acceptance record, as a seam a test can replace.
+	 *
+	 * @since 6.33.0
+	 * @return IdentityAcceptance
+	 */
+	protected function acceptances(): IdentityAcceptance {
+		return new IdentityAcceptance();
 	}
 
 	/**
@@ -370,7 +415,81 @@ class IdentityQueue {
 
 		$this->coverage = $query->scan_coverage();
 
-		return $out;
+		return $this->without_accepted( $out );
+	}
+
+	/**
+	 * Drop the findings an operator has judged impossible to resolve.
+	 *
+	 * APPLIED HERE, AND NOWHERE ELSE (#1532).
+	 *
+	 * `IdentityQueuePanels::build()` drops empty tiers so that "the counters
+	 * above cannot disagree with the panels below: both are this list". A
+	 * suppression applied anywhere but to the list itself breaks exactly that,
+	 * so this is the single place -- one filter, after the scan, over every
+	 * finding of every check.
+	 *
+	 * AFTER `capped()`, deliberately. Truncation is a property of what the
+	 * SCAN read, not of what survives this filter, so a check that reached its
+	 * cap still says so even if acceptance empties its panel. The consequence
+	 * is worth knowing: an install with many acceptances can have unaccepted
+	 * findings beyond the cap that this scan never saw, which is why the
+	 * truncation notice is the thing to read before believing a panel is
+	 * complete -- not the panel's own count.
+	 *
+	 * A FINDING WHOSE SHAPE CHANGED IS NOT SUPPRESSED. The acceptance is a
+	 * judgement about the finding as it was; a tier change means the question
+	 * is a different one, so it returns to the list carrying
+	 * {@see self::COLUMN_WAS_ACCEPTED}. Without that, the record would be a
+	 * way to bury a finding that later became one click from correct.
+	 *
+	 * @since 6.33.0
+	 * @param array<int, array<string, mixed>> $items The scan's findings.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function without_accepted( array $items ): array {
+		// ONE READ, not one per finding: `all()` validates and sorts the whole
+		// record, and doing that a hundred times to answer a hundred lookups
+		// is the shape this file already avoids in `counts()`.
+		$accepted = $this->acceptances()->all();
+
+		if ( array() === $accepted ) {
+			return $items;
+		}
+
+		$kept = array();
+
+		foreach ( $items as $item ) {
+			// Through the one owner of the rule (#1536): this built the key
+			// here, the CSV built it there, and the audit card's count would
+			// have been a third copy. It is keyed by the FIELD, which is the
+			// public vocabulary the refusals and the page already speak, with
+			// `_hash` coming off the column the way `IdentityConflictQuery`
+			// takes it off -- all of that now stated once.
+			$key = IdentityAcceptance::key_for_row(
+				(string) ( $item[ self::COLUMN_CHECK ] ?? '' ),
+				$item
+			);
+
+			$record = '' !== $key ? ( $accepted[ $key ] ?? null ) : null;
+
+			if ( null === $record ) {
+				$kept[] = $item;
+				continue;
+			}
+
+			$was = (string) ( $record[ IdentityAcceptance::FIELD_TIER ] ?? '' );
+
+			if ( (string) ( $item[ self::COLUMN_TIER ] ?? '' ) === $was ) {
+				continue;
+			}
+
+			$item[ self::COLUMN_WAS_ACCEPTED ] = $was;
+
+			$kept[] = $item;
+		}
+
+		return $kept;
 	}
 
 	/**
@@ -379,7 +498,7 @@ class IdentityQueue {
 	 * `$count >= $limit` IS THE WHOLE TEST, AND IT IS THE AUDITOR'S.
 	 *
 	 * `SubmissionLinkAuditor` already decides truncation exactly this way for
-	 * its seven checks, and `IdentityAuditExportSource` already prints a row
+	 * every check it runs, and `IdentityAuditExportSource` already prints a row
 	 * when one is hit. This screen had neither, so a capped check looked
 	 * identical to a complete one -- the same shape as `#1384`, where a
 	 * rejected statement and a clean install both answered with no rows.

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Migrations\Strategies;
 
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\PersonName;
 use FreeFormCertificate\Core\SubmitterName;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -323,11 +324,13 @@ class DisplayNameBackfillMigrationStrategy implements MigrationStrategyInterface
 	 * @return void
 	 */
 	protected function write_name( int $user_id, string $name ): void {
+		$parts = PersonName::split( $name );
 		wp_update_user(
 			array(
 				'ID'           => $user_id,
 				'display_name' => $name,
-				'first_name'   => $name,
+				'first_name'   => $parts['first'],
+				'last_name'    => $parts['last'],
 			)
 		);
 	}

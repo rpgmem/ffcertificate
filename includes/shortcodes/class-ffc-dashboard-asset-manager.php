@@ -95,7 +95,10 @@ class DashboardAssetManager {
 		wp_enqueue_script( 'ffc-dashboard-appointments', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-appointments{$s}.js", array( 'ffc-dashboard', 'ffc-dashboard-cal-export' ), FFC_VERSION, true );
 		wp_enqueue_script( 'ffc-dashboard-audience', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-audience{$s}.js", array( 'ffc-dashboard', 'ffc-dashboard-cal-export' ), FFC_VERSION, true );
 		wp_enqueue_script( 'ffc-dashboard-reregistrations', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-reregistrations{$s}.js", array( 'ffc-dashboard' ), FFC_VERSION, true );
-		wp_enqueue_script( 'ffc-dashboard-profile', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-profile{$s}.js", array( 'ffc-dashboard' ), FFC_VERSION, true );
+		// `ffc-field-behaviours` masks the profile's phone like the
+		// reregistration form's.
+		wp_enqueue_script( 'ffc-field-behaviours', FFC_PLUGIN_URL . "assets/js/ffc-field-behaviours{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		wp_enqueue_script( 'ffc-dashboard-profile', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-profile{$s}.js", array( 'ffc-dashboard', 'ffc-field-behaviours' ), FFC_VERSION, true );
 		wp_enqueue_script( 'ffc-dashboard-audience-join', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-audience-join{$s}.js", array( 'ffc-dashboard', 'ffc-dashboard-profile' ), FFC_VERSION, true );
 
 		// Working hours field component (shared).
@@ -147,7 +150,10 @@ class DashboardAssetManager {
 		// order -- which gets it right by accident today, and would invert if
 		// these two lines swapped places.
 		wp_enqueue_style( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/css/ffc-reregistration-frontend{$s}.css", array( 'ffc-common', 'ffc-dashboard', 'ffc-working-hours' ), FFC_VERSION );
-		wp_enqueue_script( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/js/ffc-reregistration-frontend{$s}.js", array( 'jquery', 'ffc-dashboard', 'ffc-working-hours' ), FFC_VERSION, true );
+		// Masks, dependent selects and the dual-post toggle come from
+		// `ffc-field-behaviours` (enqueued above), shared with the wp-admin
+		// user screen so the two renderings of a field behave alike.
+		wp_enqueue_script( 'ffc-reregistration-frontend', FFC_PLUGIN_URL . "assets/js/ffc-reregistration-frontend{$s}.js", array( 'jquery', 'ffc-dashboard', 'ffc-working-hours', 'ffc-field-behaviours' ), FFC_VERSION, true );
 		wp_localize_script(
 			'ffc-reregistration-frontend',
 			'ffcReregistration',
@@ -197,6 +203,9 @@ class DashboardAssetManager {
 				'viewAsUserId'            => $view_as_user_id ? $view_as_user_id : false,
 				'isAdminViewing'          => $view_as_user_id && get_current_user_id() !== $view_as_user_id,
 				'logoutUrl'               => wp_logout_url( home_url() ),
+				// The date-messages opt-out toggle (#1538) is shown only while
+				// the module sends anything.
+				'dateMessagesEnabled'     => \FreeFormCertificate\Settings\SettingsReader::module_enabled( 'date_messages' ),
 				'canViewCertificates'     => $can_view_certificates,
 				'canViewAppointments'     => $can_view_appointments,
 				'canViewAudienceBookings' => $can_view_audience_bookings,
@@ -262,6 +271,7 @@ class DashboardAssetManager {
 					'audienceGroups'           => __( 'Groups:', 'ffcertificate' ),
 					'notesLabel'               => __( 'Notes:', 'ffcertificate' ),
 					'notesPlaceholder'         => __( 'Personal notes...', 'ffcertificate' ),
+					'birthDate'                => __( 'Birth date:', 'ffcertificate' ),
 					'phone'                    => __( 'Phone:', 'ffcertificate' ),
 					'department'               => __( 'Department:', 'ffcertificate' ),
 					'organization'             => __( 'Organization:', 'ffcertificate' ),
@@ -313,9 +323,8 @@ class DashboardAssetManager {
 					'filterClear'              => __( 'Clear', 'ffcertificate' ),
 					// Notification preferences.
 					'notificationSection'      => __( 'Notification Preferences', 'ffcertificate' ),
-					'notifAppointmentConfirm'  => __( 'Appointment confirmation', 'ffcertificate' ),
 					'notifAppointmentReminder' => __( 'Appointment reminder', 'ffcertificate' ),
-					'notifNewCertificate'      => __( 'New certificate issued', 'ffcertificate' ),
+					'notifDateMessages'        => __( 'Date messages (such as birthday greetings)', 'ffcertificate' ),
 					'notifSaved'               => __( 'Preferences saved', 'ffcertificate' ),
 					// Pagination.
 					'previous'                 => __( 'Previous', 'ffcertificate' ),

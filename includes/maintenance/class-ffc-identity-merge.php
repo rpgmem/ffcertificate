@@ -297,7 +297,28 @@ class IdentityMerge {
 
 		$said = array();
 
+		// A NUMBER NOBODY CAN FIX STILL BLOCKS, AND THE SENTENCE HAS TO SAY SO
+		// (#1532).
+		//
+		// Both branches refuse. What changes is where the operator is sent: an
+		// accepted finding has LEFT "Numbers to correct" by design, so naming
+		// that panel would be #1523 all over again -- a refusal pointing at a
+		// list the finding is not in. Acceptance is not a licence to merge on
+		// evidence known to be bad, so the verdict is untouched; it is read here
+		// only to tell the truth about where the thing now is.
+		$accepted = new IdentityAcceptance();
+
 		foreach ( $unusable as $field ) {
+			if ( $accepted->any_accepted( $field, $theirs[ $field ] ?? array() ) ) {
+				$said[] = sprintf(
+					/* translators: %s: the identifier both accounts hold, e.g. RF. */
+					__( 'Both accounts hold the same %s, and that number fails its own check digit — so it cannot be either person\'s, and it is not evidence that they are one person. It has been accepted as impossible to resolve, so it sits under "Accepted — no resolution possible" rather than among the numbers to correct. That does not unblock this merge: if the correct value has since been found, withdraw the acceptance there and correct the number first.', 'ffcertificate' ),
+					strtoupper( $field )
+				);
+
+				continue;
+			}
+
 			$said[] = sprintf(
 				/* translators: %s: the identifier both accounts hold, e.g. RF. */
 				__( 'Both accounts hold the same %s, and that number fails its own check digit — so it cannot be either person\'s, and it is not evidence that they are one person. Correct it first, under "Numbers to correct": doing so may dissolve this pair rather than resolve it, because the shared number may be the typo that paired them.', 'ffcertificate' ),

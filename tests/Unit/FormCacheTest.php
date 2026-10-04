@@ -724,7 +724,7 @@ class FormCacheTest extends TestCase {
 
 		Functions\expect( 'add_action' )
 			->once()
-			->with( 'ffcertificate_warm_cache_hook', Mockery::type( 'Closure' ) );
+			->with( 'ffcertificate_warm_cache_hook', array( FormCache::class, 'run_scheduled_warming' ) );
 
 		FormCache::register_hooks();
 	}
@@ -875,6 +875,8 @@ class FormCacheTest extends TestCase {
 	// ==================================================================
 
 	public function test_schedule_cache_warming_schedules_when_not_scheduled(): void {
+		// No time chosen on Scheduled Tasks: the default first run applies.
+		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\expect( 'wp_next_scheduled' )
 			->once()
 			->with( 'ffcertificate_warm_cache_hook' )
@@ -903,31 +905,84 @@ class FormCacheTest extends TestCase {
 	// unschedule_cache_warming()
 	// ==================================================================
 
-	public function test_unschedule_cache_warming_removes_scheduled_event(): void {
-		$timestamp = 1709308800;
-
-		Functions\expect( 'wp_next_scheduled' )
+	public function test_unschedule_cache_warming_clears_the_hook(): void {
+		Functions\expect( 'wp_clear_scheduled_hook' )
 			->once()
 			->with( 'ffcertificate_warm_cache_hook' )
-			->andReturn( $timestamp );
-
-		Functions\expect( 'wp_unschedule_event' )
-			->once()
-			->with( $timestamp, 'ffcertificate_warm_cache_hook' )
-			->andReturn( true );
+			->andReturn( 1 );
 
 		FormCache::unschedule_cache_warming();
 	}
 
-	public function test_unschedule_cache_warming_does_nothing_when_not_scheduled(): void {
-		Functions\expect( 'wp_next_scheduled' )
-			->once()
-			->with( 'ffcertificate_warm_cache_hook' )
-			->andReturn( false );
+	// ==================================================================
+	// sync_warming_schedule() / run_scheduled_warming() (#1541)
+	// ==================================================================
 
-		Functions\expect( 'wp_unschedule_event' )->never();
+	/**
+	 * @param array<string, mixed> $settings Stored ffc_settings.
+	 */
+	private function settings( array $settings ): void {
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_settings' === $key ? $settings : $default
+		);
+	}
 
-		FormCache::unschedule_cache_warming();
+	/**
+	 * @dataProvider toggles
+	 *
+	 * @param array<string, mixed> $settings Stored settings.
+	 * @param bool                 $enabled  Expected.
+	 */
+	public function test_auto_warm_needs_the_cache_and_the_toggle( array $settings, bool $enabled ): void {
+		$this->settings( $settings );
+
+		$this->assertSame( $enabled, FormCache::auto_warm_enabled() );
+	}
+
+	/**
+	 * @return array<string, array{0: array<string, mixed>, 1: bool}>
+	 */
+	public function toggles(): array {
+		return array(
+			'defaults (toggle off)'  => array( array(), false ),
+			'toggle on, cache on'    => array( array( 'cache_auto_warm' => 1 ), true ),
+			'toggle on, cache off'   => array( array( 'cache_auto_warm' => 1, 'cache_enabled' => 0 ), false ),
+			'toggle off explicitly'  => array( array( 'cache_auto_warm' => 0 ), false ),
+		);
+	}
+
+	public function test_sync_schedules_when_the_toggle_is_on(): void {
+		$this->settings( array( 'cache_auto_warm' => 1 ) );
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+		Functions\expect( 'wp_schedule_event' )->once()->with( Mockery::type( 'int' ), 'daily', 'ffcertificate_warm_cache_hook' )->andReturn( true );
+		Functions\expect( 'wp_clear_scheduled_hook' )->never();
+
+		FormCache::sync_warming_schedule();
+	}
+
+	public function test_sync_clears_a_left_over_event_when_the_toggle_is_off(): void {
+		$this->settings( array( 'cache_auto_warm' => 0 ) );
+		Functions\when( 'wp_next_scheduled' )->justReturn( 1709308800 );
+		Functions\expect( 'wp_schedule_event' )->never();
+		Functions\expect( 'wp_clear_scheduled_hook' )->once()->with( 'ffcertificate_warm_cache_hook' );
+
+		FormCache::sync_warming_schedule();
+	}
+
+	public function test_sync_does_nothing_when_off_and_nothing_is_scheduled(): void {
+		$this->settings( array() );
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+		Functions\expect( 'wp_schedule_event' )->never();
+		Functions\expect( 'wp_clear_scheduled_hook' )->never();
+
+		FormCache::sync_warming_schedule();
+	}
+
+	public function test_a_stale_event_warms_nothing_once_the_toggle_is_off(): void {
+		$this->settings( array( 'cache_auto_warm' => 0 ) );
+		Functions\expect( 'get_posts' )->never();
+
+		FormCache::run_scheduled_warming();
 	}
 
 	// ==================================================================

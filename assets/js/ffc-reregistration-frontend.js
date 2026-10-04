@@ -4,10 +4,8 @@
  * Handles the user-facing reregistration form:
  * - Load form via AJAX
  * - Real-time field validation on blur
- * - Input masks (CPF, phone, CEP)
- * - Divisão → Setor cascading dropdowns
- * - Acúmulo de Cargos conditional section
- * - Dependent select custom field type
+ * - Input masks, dependent selects and the dual-post toggle, through the
+ *   shared ffc-field-behaviours.js
  * - Save draft / Submit handlers
  *
  * @since 4.11.0
@@ -68,11 +66,13 @@
     /* ─── Form Initialization ──────────────────────────── */
 
     function initForm($container) {
-        initMasks($container);
+        // Masks, dependent selects and the dual-post toggle are shared with
+        // the wp-admin user screen (ffc-field-behaviours.js).
+        FFC.Fields.initMasks($container);
         initBlurValidation($container);
-        initDualPostFields($container);
+        FFC.Fields.initDualPost($container, S.dualPostShowValue);
         initWorkingHours($container);
-        initDependentSelects($container);
+        FFC.Fields.initDependentSelects($container, S);
         initDraft($container);
         initSubmit($container);
         initCancel($container);
@@ -146,120 +146,6 @@
         return filled;
     }
 
-    /* ─── Input Masks ──────────────────────────────────── */
-
-    function initMasks($container) {
-        $container.find('[data-mask="cpf"]').on('input', function () {
-            var v = this.value.replace(/\D/g, '').substring(0, 11);
-            if (v.length > 9) {
-                v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
-            } else if (v.length > 6) {
-                v = v.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
-            } else if (v.length > 3) {
-                v = v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
-            }
-            this.value = v;
-        });
-
-        $container.find('[data-mask="phone"]').on('input', function () {
-            var v = this.value.replace(/\D/g, '').substring(0, 11);
-            if (v.length > 6) {
-                v = v.replace(/(\d{2})(\d{4,5})(\d{4})/, '($1) $2-$3');
-            } else if (v.length > 2) {
-                v = v.replace(/(\d{2})(\d{1,5})/, '($1) $2');
-            }
-            this.value = v;
-        });
-
-        $container.find('[data-mask="cep"]').on('input', function () {
-            var v = this.value.replace(/\D/g, '').substring(0, 8);
-            if (v.length > 5) {
-                v = v.replace(/(\d{5})(\d{1,3})/, '$1-$2');
-            }
-            this.value = v;
-        });
-
-        // RF mask: XXX.XXX-X (7 digits)
-        $container.find('[data-mask="rf"]').on('input', function () {
-            var v = this.value.replace(/\D/g, '').substring(0, 7);
-            if (v.length > 6) {
-                v = v.replace(/(\d{3})(\d{3})(\d{1})/, '$1.$2-$3');
-            } else if (v.length > 3) {
-                v = v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
-            }
-            this.value = v;
-        });
-
-        // Number-only mask
-        $container.find('[data-mask="number"]').on('input', function () {
-            this.value = this.value.replace(/\D/g, '');
-        });
-
-        // CIN mask: XX.XXX.XXX-X
-        $container.find('[data-mask="cin"]').on('input', function () {
-            var v = this.value.replace(/\D/g, '').substring(0, 9);
-            if (v.length > 8) {
-                v = v.replace(/(\d{2})(\d{3})(\d{3})(\d{1})/, '$1.$2.$3-$4');
-            } else if (v.length > 5) {
-                v = v.replace(/(\d{2})(\d{3})(\d{1,3})/, '$1.$2.$3');
-            } else if (v.length > 2) {
-                v = v.replace(/(\d{2})(\d{1,3})/, '$1.$2');
-            }
-            this.value = v;
-        });
-    }
-
-    /* ─── Acúmulo de Cargos Toggle ────────────────────── */
-
-    function initDualPostFields($container) {
-        // The three dependent fields only count when the participant declares
-        // that they ACCUMULATE. That is already the rule on the other side: the
-        // RecordGenerator blanks `jornada_acumulo`, `cargo_funcao_acumulo` and
-        // `horario_trabalho_acumulo` unless the value is exactly "I hold" --
-        // "Pension" blanks them too. Without hiding here, the participant fills
-        // in what the record will discard.
-        //
-        // The selection is by `data-field-key`, which EVERY field emits through
-        // the wrapper. The previous version looked for `#ffc_rereg_acumulo` and
-        // `.ffc-rereg-acumulo-fields`, which no PHP emits -- both sets came back
-        // empty and the handler did nothing.
-        var $select = $container.find('[data-field-key="acumulo_cargos"] select');
-        var $fields = $container.find(
-            '[data-field-key="jornada_acumulo"],' +
-            '[data-field-key="cargo_funcao_acumulo"],' +
-            '[data-field-key="horario_trabalho_acumulo"]'
-        );
-
-        if (!$select.length || !$fields.length) {
-            return;
-        }
-
-        function apply(animate) {
-            var show = $select.val() === (S.dualPostShowValue || 'I hold');
-
-            if (animate) {
-                show ? $fields.slideDown(200) : $fields.slideUp(200);
-            } else {
-                show ? $fields.show() : $fields.hide();
-            }
-
-            // The schedule rows carry `required` on their time fields, and
-            // constraint validation IGNORES visibility -- a hidden required
-            // blocks the submit without showing what is missing.
-            $fields.each(function () {
-                FFC.setRequiredWithin($(this), show);
-            });
-        }
-
-        $select.on('change', function () {
-            apply(true);
-        });
-
-        // Without this the handler only reacted to the change, so the form
-        // opened with the fields VISIBLE whatever the stored value was.
-        apply(false);
-    }
-
     /* ─── Working Hours (standard fields) ────────────── */
 
     function initWorkingHours($container) {
@@ -316,47 +202,6 @@
         });
     }
 
-    /* ─── Dependent Select Custom Fields ──────────────── */
-
-    function initDependentSelects($container) {
-        $container.find('.ffc-dependent-select').each(function () {
-            var $wrap = $(this);
-            var targetId = $wrap.data('target');
-            var $hidden = $container.find('#' + targetId);
-            var $parent = $wrap.find('.ffc-dep-parent');
-            var $child = $wrap.find('.ffc-dep-child');
-            var $groupsEl = $wrap.find('.ffc-dep-groups');
-
-            var groups;
-            try {
-                groups = JSON.parse($groupsEl.text());
-            } catch (e) {
-                return;
-            }
-
-            function updateHidden() {
-                $hidden.val(JSON.stringify({
-                    parent: $parent.val() || '',
-                    child: $child.val() || ''
-                }));
-            }
-
-            $parent.on('change', function () {
-                var parentVal = $(this).val();
-                $child.empty().append('<option value="">' + (S.select || 'Select') + '</option>');
-
-                if (parentVal && groups[parentVal]) {
-                    $.each(groups[parentVal], function (_, item) {
-                        $child.append($('<option>').val(item).text(item));
-                    });
-                }
-                updateHidden();
-            });
-
-            $child.on('change', updateHidden);
-        });
-    }
-
     /* ─── Blur Validation ──────────────────────────────── */
 
     function initBlurValidation($container) {
@@ -380,52 +225,17 @@
 
         // Format validation
         if (!msg && val) {
-            var format = $wrap.data('format') || $field.data('format');
-            if (format === 'cpf') {
-                if (!validateCpf(val)) {
-                    msg = S.invalidCpf || 'Invalid CPF.';
-                }
-            } else if (format === 'email') {
-                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
-                    msg = S.invalidEmail || 'Invalid email.';
-                }
-            } else if (format === 'phone') {
-                if (!/^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/.test(val.replace(/\s+/g, ''))) {
-                    msg = S.invalidPhone || 'Invalid phone number.';
-                }
-            } else if (format === 'custom_regex') {
-                var regex = $wrap.data('regex');
-                if (regex) {
-                    try {
-                        if (!new RegExp(regex).test(val)) {
-                            msg = $wrap.data('regex-msg') || S.invalidFormat || 'Invalid format.';
-                        }
-                    } catch (e) { /* skip invalid regex */ }
-                }
-            }
+            msg = FFC.Fields.formatError(
+                val,
+                $wrap.data('format') || $field.data('format'),
+                S,
+                { pattern: $wrap.data('regex'), message: $wrap.data('regex-msg') }
+            );
         }
 
         $wrap.toggleClass('has-error', !!msg);
         $error.text(msg);
         return !msg;
-    }
-
-    /* ─── CPF Validation ───────────────────────────────── */
-
-    function validateCpf(cpf) {
-        cpf = cpf.replace(/\D/g, '');
-        if (cpf.length !== 11) return false;
-        if (/^(\d)\1{10}$/.test(cpf)) return false;
-
-        for (var t = 9; t < 11; t++) {
-            var d = 0;
-            for (var c = 0; c < t; c++) {
-                d += parseInt(cpf.charAt(c), 10) * ((t + 1) - c);
-            }
-            d = ((10 * d) % 11) % 10;
-            if (parseInt(cpf.charAt(t), 10) !== d) return false;
-        }
-        return true;
     }
 
     /* ─── Save Draft ───────────────────────────────────── */

@@ -268,6 +268,7 @@ final class SettingsReader {
 		'reregistration',
 		'url_shortener',
 		'recruitment',
+		'date_messages',
 	);
 
 	/**

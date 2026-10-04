@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\ReregistrationActivator;
+use FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder;
 
 /**
  * Tests for ReregistrationActivator: idempotent schema creation, the
@@ -145,6 +146,71 @@ class ReregistrationActivatorTest extends TestCase {
 			'The schema version must be stored last, after every DDL statement.'
 		);
 		$this->assertContains( 'schema', $order, 'The chain did not run at all.' );
+	}
+
+	/**
+	 * The heal fills the profile key a standard definition gained after its
+	 * rows were seeded (#1538) -- only on rows with none, and dropping each
+	 * row's cache entry so an object cache does not keep the old one.
+	 */
+	public function test_maybe_migrate_fills_profile_keys_on_rows_seeded_before_them(): void {
+		Functions\when( 'get_option' )->justReturn( '6.20.0' );
+		$this->stub_current_schema();
+
+		// Bind values into the statement, so `table_exists()` can see which
+		// table it asked about and every table reads as present.
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				foreach ( $args as $arg ) {
+					$sql = (string) preg_replace( '/%[sid]/', (string) $arg, (string) $sql, 1 );
+				}
+				return $sql;
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( $query ) {
+				return preg_match( '/SHOW TABLES LIKE (\S+)/', (string) $query, $m ) ? $m[1] : null;
+			}
+		);
+
+		$selects = array();
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) use ( &$selects ) {
+				if ( ! str_contains( (string) $sql, 'field_profile_key IS NULL' ) ) {
+					return array();
+				}
+				$selects[] = (string) $sql;
+				// Rows for one field only; which field the statement names
+				// is a bound value the prepare() double drops, so the
+				// fixture answers for the birth-date position in the map.
+				$position = array_search( 'data_nascimento', array_keys( ReregistrationStandardFieldsSeeder::PROFILE_KEYS ), true );
+				return count( $selects ) === $position + 1 ? array( array( 'id' => '7' ), array( 'id' => '9' ) ) : array();
+			}
+		);
+
+		$updates = 0;
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $sql ) use ( &$updates ) {
+				if ( str_contains( (string) $sql, 'SET field_profile_key' ) ) {
+					++$updates;
+				}
+				return 1;
+			}
+		);
+
+		$deleted = array();
+		Functions\when( 'wp_cache_delete' )->alias(
+			function ( $key, $group ) use ( &$deleted ) {
+				$deleted[] = $group . ':' . $key;
+				return true;
+			}
+		);
+
+		ReregistrationActivator::maybe_migrate();
+
+		$this->assertCount( count( ReregistrationStandardFieldsSeeder::PROFILE_KEYS ), $selects, 'One lookup per declared profile key.' );
+		$this->assertSame( 2, $updates );
+		$this->assertSame( array( 'ffc_custom_fields:id_7', 'ffc_custom_fields:id_9' ), $deleted );
 	}
 
 	// ==================================================================

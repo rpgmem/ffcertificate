@@ -27,8 +27,10 @@ declare(strict_types=1);
 namespace FreeFormCertificate\UserDashboard;
 
 use FreeFormCertificate\Core\ActivityLog;
+use FreeFormCertificate\Core\BirthDate;
 use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\PersonName;
 use FreeFormCertificate\Core\SensitiveFieldRegistry;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -50,6 +52,13 @@ final class UserProfileService {
 	 * @var array<string, array<string, mixed>>
 	 */
 	private static array $runtime_overrides = array();
+
+	/**
+	 * Nesting depth of write() calls in progress.
+	 *
+	 * @var int
+	 */
+	private static int $writing = 0;
 
 	/**
 	 * Read a subset of a user's profile applying a view policy.
@@ -139,13 +148,20 @@ final class UserProfileService {
 		}
 
 		self::$runtime_overrides = $extra_descriptors;
+		++self::$writing;
 
 		try {
 			$filtered = array();
 			foreach ( $patch as $key => $value ) {
-				if ( null !== self::resolve_spec( $key ) ) {
-					$filtered[ $key ] = $value;
+				$spec = self::resolve_spec( $key );
+				if ( null === $spec ) {
+					continue;
 				}
+				$value = self::canonical_value( $spec, $value );
+				if ( null === $value ) {
+					continue;
+				}
+				$filtered[ $key ] = $value;
 			}
 			if ( empty( $filtered ) ) {
 				return false;
@@ -188,7 +204,48 @@ final class UserProfileService {
 			return $success;
 		} finally {
 			self::$runtime_overrides = array();
+			--self::$writing;
 		}
+	}
+
+	/**
+	 * Whether a write() is in progress -- its mirrors call `wp_update_user()`,
+	 * and a `profile_update` listener must not answer the plugin's own write
+	 * by writing again (NameSync).
+	 *
+	 * @return bool
+	 */
+	public static function is_writing(): bool {
+		return self::$writing > 0;
+	}
+
+	/**
+	 * The value to store for a field, or null when the field must not be
+	 * written at all.
+	 *
+	 * Only a field declaring a `value_type` is touched. A `birth_date` is
+	 * stored in its canonical ISO form, so the encrypted copy and its
+	 * `MM-DD` mirror can never disagree about which day it is; an empty
+	 * value passes through, because empty means "clear it" on every other
+	 * field too. A non-empty value that is not a date is refused rather
+	 * than stored — a mirror computed from it would be null while the
+	 * ciphertext held garbage, and nothing would ever report the mismatch.
+	 *
+	 * @param array<string, mixed> $spec  Resolved descriptor.
+	 * @param mixed                $value Incoming value.
+	 * @return mixed|null
+	 */
+	private static function canonical_value( array $spec, $value ) {
+		if ( 'birth_date' !== ( $spec['value_type'] ?? null ) ) {
+			return $value;
+		}
+
+		$raw = is_scalar( $value ) ? trim( (string) $value ) : '';
+		if ( '' === $raw ) {
+			return '';
+		}
+
+		return BirthDate::normalize( $raw );
 	}
 
 	/**
@@ -539,9 +596,10 @@ final class UserProfileService {
 	/**
 	 * Synchronize mirror targets after the primary write completed.
 	 *
-	 * Only `display_name` has a mirror in Phase 1 (profile_table →
-	 * wp_users). Implemented generically so future fields can declare
-	 * mirrors without touching this method.
+	 * Two mirrors exist: `display_name` (profile_table → wp_users) and the
+	 * `MM-DD` slice of `birth_date` (usermeta → usermeta, #1538). Implemented
+	 * generically so future fields can declare mirrors without touching this
+	 * method.
 	 *
 	 * @param int                  $user_id  WordPress user ID.
 	 * @param array<string, mixed> $filtered Patch restricted to known fields.
@@ -567,8 +625,52 @@ final class UserProfileService {
 						)
 					);
 				}
+
+				if ( UserProfileFieldMap::STORAGE_USERMETA === ( $mirror['storage'] ?? null )
+					&& ! empty( $mirror['meta_key'] )
+				) {
+					self::write_meta_mirror( $user_id, (string) $mirror['meta_key'], $mirror['transform'] ?? null, $value );
+				}
 			}
 		}
+	}
+
+	/**
+	 * Write one usermeta mirror, deleting it when the derived value is empty.
+	 *
+	 * Deleting rather than storing '' matters for the `month_day` mirror: it
+	 * is matched by equality in SQL, and a cleared date must leave no row
+	 * that a query could still find.
+	 *
+	 * @param int         $user_id   WordPress user ID.
+	 * @param string      $meta_key  Mirror meta key.
+	 * @param string|null $transform Symbolic transform, or null to copy as is.
+	 * @param mixed       $value     The primary field's stored value.
+	 * @return void
+	 */
+	private static function write_meta_mirror( int $user_id, string $meta_key, ?string $transform, $value ): void {
+		$scalar = is_scalar( $value ) ? (string) $value : '';
+
+		switch ( $transform ) {
+			case 'month_day':
+				$derived = BirthDate::month_day( $scalar );
+				break;
+			case 'first_name':
+				$derived = PersonName::split( $scalar )['first'];
+				break;
+			case 'last_name':
+				$derived = PersonName::split( $scalar )['last'];
+				break;
+			default:
+				$derived = $scalar;
+		}
+
+		if ( null === $derived || '' === $derived ) {
+			delete_user_meta( $user_id, $meta_key );
+			return;
+		}
+
+		update_user_meta( $user_id, $meta_key, sanitize_text_field( $derived ) );
 	}
 
 	// ==================================================================

@@ -269,6 +269,9 @@ class FFC_Autoloader {
 			// Recruitment namespace (v6.0.0) - Brazilian public-tender candidate queue.
 			'Recruitment'            => 'recruitment',
 
+			// Date Messages namespace (v6.33.0) - e-mails sent on a date (#1538).
+			'DateMessages'           => 'date-messages',
+
 			// Maintenance namespace (v6.7.x) - Pluggable admin maintenance/cleanup tools.
 			'Maintenance'            => 'maintenance',
 		);

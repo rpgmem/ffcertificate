@@ -136,10 +136,32 @@ class MigrationRegistry {
 		// own name on the screen that lists them.
 		$this->migrations['display_name_backfill'] = array(
 			'name'        => __( 'Name the Accounts Created Without One', 'ffcertificate' ),
-			'description' => __( 'Write the display name and first name of every account that has neither, from the name its own candidacy or submission already carries. A promotion used to create the account without passing the person\'s name, so WordPress fell back to storing the login — which is what the user list, the dashboard greeting and every e-mail then showed them. Only an account whose display name is still its login and whose first name is empty is touched, because those two are written together and an account with one but not the other was changed by something else. Completion here means every such account was EXAMINED: one whose records name nobody is read, left alone, and counted as done.', 'ffcertificate' ),
+			'description' => __( 'Write the display name, first name and last name of every account that has none of them, from the name its own candidacy or submission already carries. A promotion used to create the account without passing the person\'s name, so WordPress fell back to storing the login — which is what the user list, the dashboard greeting and every e-mail then showed them. Only an account whose display name is still its login and whose first name is empty is touched, because those two are written together and an account with one but not the other was changed by something else. Completion here means every such account was EXAMINED: one whose records name nobody is read, left alone, and counted as done.', 'ffcertificate' ),
 			'icon'        => 'ffc-icon-id',
 			'batch_size'  => 100,
 			'order'       => 9,
+		);
+
+		// v6.33.0 (#1552): split the full name that account creation and the
+		// display-name card stored whole in `first_name`. Ordered right after
+		// that card, which now splits too.
+		$this->migrations['name_parts_backfill'] = array(
+			'name'        => __( 'Split Full Names into First and Last Name', 'ffcertificate' ),
+			'description' => __( 'Fill WordPress\'s first and last name from the full name the plugin stores — first word, then the rest — on accounts where the whole name sits in the first name, or neither is filled. Account creation used to store the whole name as the first name. Parts somebody filled in by hand are not touched. Completion here means every such account was EXAMINED: a one-word name is read, left as it is, and counted as done.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-id',
+			'batch_size'  => 100,
+			'order'       => 10,
+		);
+
+		// v6.33.0 (#1538): copy the birth date people already gave through a
+		// reregistration onto the canonical profile field, which is the only
+		// place a scheduled job can query.
+		$this->migrations['birth_date_backfill'] = array(
+			'name'        => __( 'Copy Stored Birth Dates to the Profile', 'ffcertificate' ),
+			'description' => __( 'Fill the profile birth date of every account that answered a reregistration before the field existed, from the newest submission (or, failing that, the stored field values). The full date is stored encrypted, with its day and month beside it for scheduled messages. Completion here means every such account was EXAMINED: one whose stored answers hold no valid date is read, left alone, and counted as done.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-calendar',
+			'batch_size'  => 100,
+			'order'       => 11,
 		);
 
 		// v5.4.1: Clear plaintext context on activity log rows that already

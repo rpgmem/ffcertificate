@@ -189,6 +189,12 @@ class CapabilityManager {
 		'ffc_view_url_shortener',
 		'ffc_manage_url_shortener',
 
+		// Date messages (#1538). `_pii` gates the screens that list people by
+		// name and birthday; the plain view/manage pair covers the rules.
+		'ffc_view_date_messages',
+		'ffc_manage_date_messages',
+		'ffc_view_date_messages_pii',
+
 		// Destructive "delete" tier (GAP E). Each `ffc_delete_<domain>` cap
 		// gates the irreversible removal paths of its domain *strictly* — the
 		// delete handlers no longer fall back to the broader `manage` cap, so a
@@ -797,6 +803,7 @@ class CapabilityManager {
 					'ffc_view_recruitment_settings',
 					'ffc_view_recruitment_reasons',
 					'ffc_view_url_shortener',
+					'ffc_view_date_messages',
 				),
 			),
 

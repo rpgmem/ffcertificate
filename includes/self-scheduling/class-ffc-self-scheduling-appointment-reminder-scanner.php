@@ -81,6 +81,15 @@ final class AppointmentReminderScanner {
 					continue;
 				}
 
+				// The person turned reminders off on their dashboard (#1545).
+				// Marked as handled all the same, so the next hourly scan does
+				// not reconsider it: the decision is made once per appointment.
+				$user_id = (int) ( $appointment['user_id'] ?? 0 );
+				if ( ! \FreeFormCertificate\UserDashboard\UserManager::wants_notification( $user_id, \FreeFormCertificate\UserDashboard\UserManager::NOTIFY_APPOINTMENT_REMINDER ) ) {
+					$repo->markReminderSent( (int) ( $appointment['id'] ?? 0 ) );
+					continue;
+				}
+
 				$calendar = array(
 					'id'           => $calendar_id,
 					'title'        => (string) ( $appointment['calendar_title'] ?? '' ),

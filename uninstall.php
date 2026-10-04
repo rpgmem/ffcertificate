@@ -51,6 +51,13 @@ if ( ! $ffcertificate_purge ) {
 	wp_clear_scheduled_hook( 'ffc_process_submission_hook' );
 	wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
 	wp_clear_scheduled_hook( 'ffc_cloudflare_cidr_refresh' );
+	// Both were missing from this file until the Scheduled tasks register
+	// compared it against the hooks the plugin schedules (#1538).
+	wp_clear_scheduled_hook( 'ffc_daily_expired_tickets_cleanup' );
+	wp_clear_scheduled_hook( 'ffc_reregistration_reminder_batch' );
+	wp_clear_scheduled_hook( 'ffc_date_messages_daily' );
+	wp_clear_scheduled_hook( 'ffc_date_messages_batch' );
+	wp_clear_scheduled_hook( 'ffc_date_messages_digest' );
 	return;
 }
 
@@ -135,6 +142,10 @@ $ffcertificate_tables = array(
 	$wpdb->prefix . 'ffc_device_signals',
 	// URL Shortener.
 	$wpdb->prefix . 'ffc_short_urls',
+	// Date messages (#1538).
+	$wpdb->prefix . 'ffc_date_message_rules',
+	$wpdb->prefix . 'ffc_date_message_runs',
+	$wpdb->prefix . 'ffc_date_message_log',
 	// User profiles.
 	$wpdb->prefix . 'ffc_user_profiles',
 	// Core.
@@ -203,6 +214,9 @@ $ffcertificate_options = array(
 	// The two chains #1311 added, which had no runtime caller at all until then.
 	'ffc_reregistration_schema_version',
 	'ffc_user_dashboard_schema_version',
+	// Date-messages module (#1538).
+	'ffc_date_messages_schema_version',
+	'ffc_date_messages_settings',
 	// Per-feature migration completion markers (audited gap).
 	'ffc_sibling_instants_unix_migrated',
 	'ffc_submission_date_unix_migrated',
@@ -228,10 +242,28 @@ $ffcertificate_options = array(
 	'ffc_key_rotation_remaining_state',
 	'ffc_identity_normalization_state',
 	'ffc_identity_index_backfill_state',
+	// The findings an operator judged impossible to resolve (#1532). Written
+	// only when somebody accepts one, so the fresh-install gate never sees it
+	// -- that gate compares what ACTIVATION writes -- but it is declared here
+	// because this list is the enforced manifest of the whole footprint.
+	'ffc_identity_accepted',
 	// Cursor of the card that names accounts promoted from a candidacy without
 	// one (#1480). Written only when that card is run, so the fresh-install gate
 	// never sees it -- that gate compares what ACTIVATION writes.
 	'ffc_display_name_backfill_state',
+	// The birth-date backfill cursor (#1538), written only when that card runs.
+	'ffc_birth_date_backfill_state',
+	// The name-parts backfill cursor (#1552), written only when that card runs.
+	'ffc_name_parts_backfill_state',
+	// When each recurring task last ran (#1538), written only when one runs --
+	// never by activation, so the fresh-install gate does not see it.
+	'ffc_cron_heartbeats',
+	// The chosen time of day of each daily task, written by Settings →
+	// Scheduled Tasks (#1538).
+	'ffc_cron_times',
+	// Flag of the one-shot "Estado" → "Union" relabel of the seeded `sindicato`
+	// fields, written on the first admin request after the update.
+	'ffc_union_label_relabelled',
 	'ffc_recruitment_public_cache_version',
 	// The admin's chosen record (ficha) template, written only when the
 	// Reregistration tab is saved -- which is why the fresh-install gate never
@@ -306,6 +338,12 @@ wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
 wp_clear_scheduled_hook( 'ffc_cloudflare_cidr_refresh' );
+// See the cron-only block above (#1538).
+wp_clear_scheduled_hook( 'ffc_daily_expired_tickets_cleanup' );
+wp_clear_scheduled_hook( 'ffc_reregistration_reminder_batch' );
+wp_clear_scheduled_hook( 'ffc_date_messages_daily' );
+wp_clear_scheduled_hook( 'ffc_date_messages_batch' );
+wp_clear_scheduled_hook( 'ffc_date_messages_digest' );
 
 // Clear legacy cron hooks from pre-4.6.15 versions.
 wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
