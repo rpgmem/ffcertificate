@@ -411,6 +411,10 @@ class Loader {
 		// nothing. See CLAUDE.md "Module bootstrap (per-module loaders)".
 		AccessControl::init();
 		UserCleanup::init();
+		// WordPress's first / last name back into the plugin's full name.
+		// Not behind is_admin(): wp_update_user() also runs from REST and
+		// WP-CLI.
+		\FreeFormCertificate\UserDashboard\NameSync::init();
 		PrivacyHandler::init();
 
 		// Client-IP resolution (#899 phase 2): feed ClientIpResolver's filters

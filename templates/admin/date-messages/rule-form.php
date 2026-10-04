@@ -119,7 +119,7 @@ $ffc_dm_chosen = array_map( 'intval', is_array( $ffc_dm_chosen ) ? $ffc_dm_chose
 				</p>
 				<p class="description">
 					<?php esc_html_e( 'Placeholders:', 'ffcertificate' ); ?>
-					<code>{{name}}</code> <code>{{first_name}}</code> <code>{{email}}</code> <code>{{date}}</code> <code>{{age}}</code> <code>{{days_until}}</code> <code>{{site_name}}</code> <code>{{dashboard_url}}</code> <code>{{unsubscribe_url}}</code>
+					<code>{{name}}</code> <code>{{first_name}}</code> <code>{{last_name}}</code> <code>{{full_name}}</code> <code>{{email}}</code> <code>{{date}}</code> <code>{{age}}</code> <code>{{days_until}}</code> <code>{{site_name}}</code> <code>{{dashboard_url}}</code> <code>{{unsubscribe_url}}</code>
 				</p>
 				<p class="description"><?php esc_html_e( 'The header and footer come from the Email Model in Settings → SMTP. A message that does not place {{unsubscribe_url}} gets an unsubscribe line added at the end.', 'ffcertificate' ); ?></p>
 			</td>

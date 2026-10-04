@@ -30,6 +30,7 @@ use FreeFormCertificate\Core\ActivityLog;
 use FreeFormCertificate\Core\BirthDate;
 use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\PersonName;
 use FreeFormCertificate\Core\SensitiveFieldRegistry;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -51,6 +52,13 @@ final class UserProfileService {
 	 * @var array<string, array<string, mixed>>
 	 */
 	private static array $runtime_overrides = array();
+
+	/**
+	 * Nesting depth of write() calls in progress.
+	 *
+	 * @var int
+	 */
+	private static int $writing = 0;
 
 	/**
 	 * Read a subset of a user's profile applying a view policy.
@@ -140,6 +148,7 @@ final class UserProfileService {
 		}
 
 		self::$runtime_overrides = $extra_descriptors;
+		++self::$writing;
 
 		try {
 			$filtered = array();
@@ -195,7 +204,19 @@ final class UserProfileService {
 			return $success;
 		} finally {
 			self::$runtime_overrides = array();
+			--self::$writing;
 		}
+	}
+
+	/**
+	 * Whether a write() is in progress -- its mirrors call `wp_update_user()`,
+	 * and a `profile_update` listener must not answer the plugin's own write
+	 * by writing again (NameSync).
+	 *
+	 * @return bool
+	 */
+	public static function is_writing(): bool {
+		return self::$writing > 0;
 	}
 
 	/**
@@ -630,7 +651,19 @@ final class UserProfileService {
 	private static function write_meta_mirror( int $user_id, string $meta_key, ?string $transform, $value ): void {
 		$scalar = is_scalar( $value ) ? (string) $value : '';
 
-		$derived = 'month_day' === $transform ? BirthDate::month_day( $scalar ) : $scalar;
+		switch ( $transform ) {
+			case 'month_day':
+				$derived = BirthDate::month_day( $scalar );
+				break;
+			case 'first_name':
+				$derived = PersonName::split( $scalar )['first'];
+				break;
+			case 'last_name':
+				$derived = PersonName::split( $scalar )['last'];
+				break;
+			default:
+				$derived = $scalar;
+		}
 
 		if ( null === $derived || '' === $derived ) {
 			delete_user_meta( $user_id, $meta_key );

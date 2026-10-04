@@ -5,7 +5,8 @@
  * Copied into a rule when it is created, then edited per rule; the hub edits
  * this default. Wrapped by the configurable chrome (layout.php) at send.
  *
- * Tokens: {{name}}, {{first_name}}, {{email}}, {{date}} (the birthday),
+ * Tokens: {{name}}, {{first_name}}, {{last_name}}, {{full_name}}, {{email}},
+ * {{date}} (the birthday),
  * {{age}}, {{days_until}}, {{site_name}}, {{dashboard_url}} and
  * {{unsubscribe_url}}. A body without {{unsubscribe_url}} still gets the
  * link: the runner appends it.

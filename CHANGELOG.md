@@ -17,6 +17,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Date messages: e-mails sent on a date in each person's profile, starting with birthdays** (#1538). A new module (off by default) sends each active rule's message on the date or N days before it, once per person and occurrence, via the e-mail pipeline; recipients can unsubscribe in one click. Rule screens follow.
 - **Date messages: the admin screen** (#1538). A Date Messages submenu, shown only while the module is on, with rules (create, edit, duplicate, activate, delete), a recipient preview that runs the send's own selection without sending, a test send to yourself, a manual send over up to 31 days, the run history and the daily send time.
 - **Date messages: manager summary, upcoming dates, and a top-level menu** (#1538). Each rule can e-mail chosen managers a summary of every run 24 hours after it starts — counts, plus names only to managers allowed to see them; an Upcoming dates tab lists birthdays by day and month; Date Messages moves to its own top-level menu.
+- **Date messages: `{{last_name}}` and `{{full_name}}` tokens** (#1552), from WordPress's first and last name, or the full name split when they are empty.
 
 ### Changed
 
@@ -34,6 +35,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The user-edit screen's FFC fields behave like the reregistration form's** (#1550). CPF, RF, RG and the phones are masked (phones at most 11 digits, `(DD) 98765-4321`), Division / Department is the parent → child cascade instead of raw JSON, and the accumulation fields hide unless a second post is held. Both screens now share one script, and a posted cascade is validated against its choices.
 - **"Union" still read "Estado" on audiences seeded before #1209** (#1550). The label is stored per field, so the translation fix never reached them; a one-shot relabel renames the rows that still carry it, leaving any an operator renamed.
 - **The dashboard Profile tab's phone is masked** (#1550): `(DD) 98765-4321`, at most 11 digits, by the same formatter.
+- **WordPress's first and last name now follow the plugin's full name, both ways** (#1552). Account creation stored the whole name as the first name; every write of the full name now derives first word / rest, and editing First/Last Name updates it back (accounts with a plugin profile only). A manual migration card splits the names already stored whole.
 
 ### Removed
 

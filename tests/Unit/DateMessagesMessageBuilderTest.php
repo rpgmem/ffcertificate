@@ -81,7 +81,7 @@ class DateMessagesMessageBuilderTest extends TestCase {
 	}
 
 	public function test_values_are_escaped_for_the_html_they_land_in(): void {
-		Functions\when( 'get_userdata' )->justReturn( (object) array( 'first_name' => '' ) );
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'first_name' => '', 'last_name' => '' ) );
 
 		$message = MessageBuilder::build(
 			$this->rule( '<p>{{name}} turns {{age}} on {{date}}, in {{days_until}} days. <a href="{{dashboard_url}}">x</a> <a href="{{unsubscribe_url}}">u</a></p>' ),
@@ -102,7 +102,7 @@ class DateMessagesMessageBuilderTest extends TestCase {
 	}
 
 	public function test_a_body_without_the_link_gets_it_appended(): void {
-		Functions\when( 'get_userdata' )->justReturn( (object) array( 'first_name' => 'Ana' ) );
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'first_name' => 'Ana', 'last_name' => '' ) );
 
 		$message = MessageBuilder::build(
 			$this->rule( '<p>Happy birthday</p>' ),
@@ -126,5 +126,51 @@ class DateMessagesMessageBuilderTest extends TestCase {
 		$this->assertSame( 'S Maria', $message['subject'] );
 		$this->assertStringContainsString( 'Maria da Silva 35 maria.silva@example.org', $message['body'] );
 		$this->assertStringNotContainsString( 'ffc_date_messages_unsubscribe', $message['body'] );
+	}
+
+	/**
+	 * {{last_name}} and {{full_name}} (#1552): WordPress's own two fields when
+	 * filled, else the full name split the profile's way.
+	 */
+	public function test_last_and_full_name_come_from_the_wordpress_fields(): void {
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'first_name' => 'Alex', 'last_name' => 'M. Meusburger' ) );
+
+		$message = MessageBuilder::build(
+			$this->rule( '<p>[{{first_name}}|{{last_name}}|{{full_name}}]</p>' ),
+			$this->source(),
+			array(
+				'user_id' => 9,
+				'email'   => 'a@b.c',
+				'name'    => 'Alex Meusburger',
+			),
+			new \DateTimeImmutable( '2026-10-10' ),
+			new \DateTimeImmutable( '2026-10-03' )
+		);
+
+		$this->assertStringContainsString( '[Alex|M. Meusburger|Alex M. Meusburger]', $message['body'] );
+	}
+
+	public function test_without_wordpress_fields_the_parts_are_split_from_the_name(): void {
+		Functions\when( 'get_userdata' )->justReturn( false );
+
+		$message = MessageBuilder::build(
+			$this->rule( '<p>[{{first_name}}|{{last_name}}|{{full_name}}]</p>' ),
+			$this->source(),
+			array(
+				'user_id' => 9,
+				'email'   => 'a@b.c',
+				'name'    => 'Maria  da Silva',
+			),
+			new \DateTimeImmutable( '2026-10-10' ),
+			new \DateTimeImmutable( '2026-10-03' )
+		);
+
+		$this->assertStringContainsString( '[Maria|da Silva|Maria da Silva]', $message['body'] );
+	}
+
+	public function test_the_sample_carries_the_new_tokens(): void {
+		$message = MessageBuilder::sample( 'S', '<p>{{last_name}}/{{full_name}}</p>', $this->source(), new \DateTimeImmutable( '2026-10-10' ), new \DateTimeImmutable( '2026-10-03' ) );
+
+		$this->assertStringContainsString( 'da Silva/Maria da Silva', $message['body'] );
 	}
 }

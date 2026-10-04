@@ -22996,9 +22996,6 @@ msgstr "Examinou %1$d contas e nomeou %2$d delas; as demais não carregam nome e
 msgid "Name the Accounts Created Without One"
 msgstr "Nomear as Contas Criadas Sem Nome"
 
-msgid "Write the display name and first name of every account that has neither, from the name its own candidacy or submission already carries. A promotion used to create the account without passing the person's name, so WordPress fell back to storing the login — which is what the user list, the dashboard greeting and every e-mail then showed them. Only an account whose display name is still its login and whose first name is empty is touched, because those two are written together and an account with one but not the other was changed by something else. Completion here means every such account was EXAMINED: one whose records name nobody is read, left alone, and counted as done."
-msgstr "Grava o nome de exibição e o primeiro nome de toda conta que não tem nenhum dos dois, a partir do nome que a própria candidatura ou submission dela já carrega. A promoção criava a conta sem passar o nome da pessoa, então o WordPress gravava o login no lugar — e era isso que a lista de usuários, a saudação do painel e todo e-mail mostravam a ela. Só é tocada a conta cujo nome de exibição ainda é o login e cujo primeiro nome está vazio, porque esses dois são gravados juntos e uma conta com um e sem o outro foi alterada por outra coisa. Aqui, concluído significa que toda conta dessas foi EXAMINADA: uma cujos registros não nomeiam ninguém é lida, deixada como está, e contada como feita."
-
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:193
 msgid "CPF has more digits than a CPF can have — check the column for a stray value."
 msgstr "O CPF tem mais dígitos do que um CPF pode ter — verifique se há um valor perdido na coluna."
@@ -23629,3 +23626,21 @@ msgstr "Pré-carregamento do cache de formulários (quando \"Pré-carregar cache
 
 msgid "These fields arrived empty or with an invalid choice and kept their previous value: %s"
 msgstr "Estes campos chegaram vazios ou com uma opção inválida e mantiveram o valor anterior: %s"
+
+msgid "Write the display name, first name and last name of every account that has none of them, from the name its own candidacy or submission already carries. A promotion used to create the account without passing the person's name, so WordPress fell back to storing the login — which is what the user list, the dashboard greeting and every e-mail then showed them. Only an account whose display name is still its login and whose first name is empty is touched, because those two are written together and an account with one but not the other was changed by something else. Completion here means every such account was EXAMINED: one whose records name nobody is read, left alone, and counted as done."
+msgstr "Grava o nome de exibição, o primeiro nome e o sobrenome de toda conta que não tem nenhum deles, a partir do nome que a própria candidatura ou submission dela já carrega. A promoção criava a conta sem passar o nome da pessoa, então o WordPress gravava o login no lugar — e era isso que a lista de usuários, a saudação do painel e todo e-mail mostravam a ela. Só é tocada a conta cujo nome de exibição ainda é o login e cujo primeiro nome está vazio, porque esses dois são gravados juntos e uma conta com um e sem o outro foi alterada por outra coisa. Aqui, concluído significa que toda conta dessas foi EXAMINADA: uma cujos registros não nomeiam ninguém é lida, deixada como está, e contada como feita."
+
+msgid "Fill WordPress's first and last name from the full name the plugin stores — first word, then the rest — on accounts where the whole name sits in the first name, or neither is filled. Account creation used to store the whole name as the first name. Parts somebody filled in by hand are not touched. Completion here means every such account was EXAMINED: a one-word name is read, left as it is, and counted as done."
+msgstr "Preenche o primeiro nome e o sobrenome do WordPress a partir do nome completo que o plugin guarda — a primeira palavra e depois o restante — nas contas em que o nome inteiro está no primeiro nome, ou nenhum dos dois está preenchido. A criação de contas gravava o nome inteiro como primeiro nome. Partes que alguém preencheu à mão não são tocadas. Aqui, concluído significa que toda conta dessas foi EXAMINADA: um nome de uma só palavra é lido, deixado como está, e contado como feito."
+
+msgid "Split Full Names into First and Last Name"
+msgstr "Dividir nomes completos em primeiro nome e sobrenome"
+
+msgid "Every account whose name was stored whole has been examined."
+msgstr "Toda conta cujo nome foi gravado inteiro já foi examinada."
+
+msgid "Examined %1$d accounts and split the name of %2$d; the rest have a one-word name or none."
+msgstr "%1$d contas examinadas e o nome de %2$d dividido; as demais têm um nome de uma só palavra ou nenhum."
+
+msgid "da Silva"
+msgstr "da Silva"
