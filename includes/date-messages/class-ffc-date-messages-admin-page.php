@@ -12,6 +12,7 @@ namespace FreeFormCertificate\DateMessages;
 
 use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\RequestInput;
+use FreeFormCertificate\Migrations\Strategies\BirthDateBackfillMigrationStrategy;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -291,6 +292,51 @@ final class DateMessagesAdminPage {
 		$today       = Runner::today();
 
 		include FFC_PLUGIN_DIR . 'templates/admin/date-messages/page.php';
+	}
+
+	/**
+	 * Warn while the birth-date backfill has accounts left to examine.
+	 *
+	 * A date given before the profile field existed sits in the
+	 * reregistration stores, which nothing here reads: until the migration
+	 * copies it, that person is absent from every preview, the upcoming
+	 * dates and the sends, and an empty preview reads as "nobody has a
+	 * birthday" (#1538). The count is the migration card's own, never a
+	 * second one, and the link is offered only to who can run migrations.
+	 *
+	 * @return void
+	 */
+	public static function render_backfill_notice(): void {
+		$pending = BirthDateBackfillMigrationStrategy::pending_accounts();
+		if ( $pending <= 0 ) {
+			return;
+		}
+
+		$message = esc_html(
+			sprintf(
+				/* translators: %d: number of accounts */
+				_n(
+					'The birth-date migration has %d account left to examine. Until it runs, a birth date given before the profile field existed is not on the profile, so that person does not appear in previews or upcoming dates and receives no messages.',
+					'The birth-date migration has %d accounts left to examine. Until it runs, a birth date given before the profile field existed is not on the profile, so those people do not appear in previews or upcoming dates and receive no messages.',
+					$pending,
+					'ffcertificate'
+				),
+				$pending
+			)
+		);
+
+		if ( Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ) ) {
+			$message .= ' <a href="' . esc_url( admin_url( 'admin.php?page=ffc-settings&tab=migrations' ) ) . '">'
+				. esc_html__( 'Run it in Settings → Migrations.', 'ffcertificate' ) . '</a>';
+		}
+
+		wp_admin_notice(
+			$message,
+			array(
+				'type'        => 'warning',
+				'dismissible' => false,
+			)
+		);
 	}
 
 	/**

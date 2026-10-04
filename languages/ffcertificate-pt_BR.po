@@ -23629,3 +23629,11 @@ msgstr "Pré-carregamento do cache de formulários (quando \"Pré-carregar cache
 
 msgid "These fields arrived empty or with an invalid choice and kept their previous value: %s"
 msgstr "Estes campos chegaram vazios ou com uma opção inválida e mantiveram o valor anterior: %s"
+
+msgid "The birth-date migration has %d account left to examine. Until it runs, a birth date given before the profile field existed is not on the profile, so that person does not appear in previews or upcoming dates and receives no messages."
+msgid_plural "The birth-date migration has %d accounts left to examine. Until it runs, a birth date given before the profile field existed is not on the profile, so those people do not appear in previews or upcoming dates and receive no messages."
+msgstr[0] "A migração da data de nascimento ainda tem %d conta para examinar. Até ela rodar, uma data de nascimento informada antes de o campo existir no perfil não está no perfil, então essa pessoa não aparece nas prévias nem nas próximas datas e não recebe mensagens."
+msgstr[1] "A migração da data de nascimento ainda tem %d contas para examinar. Até ela rodar, uma data de nascimento informada antes de o campo existir no perfil não está no perfil, então essas pessoas não aparecem nas prévias nem nas próximas datas e não recebem mensagens."
+
+msgid "Run it in Settings → Migrations."
+msgstr "Rode-a em Configurações → Migrações."
