@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.4
 Tested up to: 7.1.1
-Stable tag: 6.32.0
+Stable tag: 6.33.0
 Requires PHP: 8.3
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -214,8 +214,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.32.0 =
-Operators can now open Login as User from a profile screen, and move a submission to a different account without unlinking first. Two admin downloads that silently did nothing now work, and identity resolution no longer hides a wrong number from the panel that corrects it.
+= 6.33.0 =
+New Date Messages module (birthday e-mails, off by default) and a Scheduled Tasks screen. After updating, run two cards in Settings → Migrations: copy stored birth dates to the profile, and split full names into first and last name.
 
 This section carries a short summary of the version being offered, and only
 that one — the updater never offers an older release, so an entry for one
