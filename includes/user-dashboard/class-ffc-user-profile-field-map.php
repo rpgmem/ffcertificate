@@ -80,8 +80,9 @@ final class UserProfileFieldMap {
 	 *   - mirrors:       list of secondary write targets. The primary location is
 	 *                    canonical for reads; mirrors exist to keep legacy code
 	 *                    paths (e.g. wp_users.display_name) in sync. A usermeta
-	 *                    mirror may declare a `transform` ('month_day') to
-	 *                    store a derived slice instead of the value itself.
+	 *                    mirror may declare a `transform` ('month_day',
+	 *                    'first_name', 'last_name') to store a derived slice
+	 *                    instead of the value itself.
 	 *   - masker:        optional symbolic name of the MASKED transform; 'cpf'
 	 *                    delegates to DocumentFormatter::mask_cpf. Omit for fields
 	 *                    whose MASKED view is the FULL view (non-sensitive).
@@ -109,6 +110,18 @@ final class UserProfileFieldMap {
 				array(
 					'storage' => self::STORAGE_WP_USER,
 					'column'  => 'display_name',
+				),
+				// WordPress's own first / last name, derived from the one
+				// full name the plugin stores (Core\PersonName).
+				array(
+					'storage'   => self::STORAGE_USERMETA,
+					'meta_key'  => 'first_name',
+					'transform' => 'first_name',
+				),
+				array(
+					'storage'   => self::STORAGE_USERMETA,
+					'meta_key'  => 'last_name',
+					'transform' => 'last_name',
 				),
 			),
 		),

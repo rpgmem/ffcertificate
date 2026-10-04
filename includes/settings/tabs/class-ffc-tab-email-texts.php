@@ -189,7 +189,7 @@ class TabEmailTexts extends SettingsTab {
 			),
 			'date-message-birthday'         => array(
 				'label'  => __( 'Birthday message (default for new rules)', 'ffcertificate' ),
-				'tokens' => array( 'name', 'first_name', 'email', 'date', 'age', 'days_until', 'site_name', 'dashboard_url', 'unsubscribe_url' ),
+				'tokens' => array( 'name', 'first_name', 'last_name', 'full_name', 'email', 'date', 'age', 'days_until', 'site_name', 'dashboard_url', 'unsubscribe_url' ),
 			),
 			'recruitment-convocation'       => array(
 				'label'  => __( 'Recruitment convocation', 'ffcertificate' ),

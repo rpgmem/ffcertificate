@@ -12,6 +12,7 @@ namespace FreeFormCertificate\DateMessages;
 
 use FreeFormCertificate\Core\EmailTemplates;
 use FreeFormCertificate\Core\PasswordInvite;
+use FreeFormCertificate\Core\PersonName;
 use FreeFormCertificate\Core\TokenResolver;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -64,12 +65,14 @@ final class MessageBuilder {
 		// Core's own field, read through the account rather than as a meta
 		// key: the plugin neither writes nor owns it.
 		$user  = get_userdata( $recipient['user_id'] );
-		$first = false !== $user ? $user->first_name : '';
+		$parts = self::name_parts( $user, $recipient['name'] );
 
 		$tokens = array_merge(
 			array(
 				'name'            => $recipient['name'],
-				'first_name'      => '' !== trim( $first ) ? trim( $first ) : self::first_word( $recipient['name'] ),
+				'first_name'      => $parts['first'],
+				'last_name'       => $parts['last'],
+				'full_name'       => PersonName::join( $parts['first'], $parts['last'] ),
 				'email'           => $recipient['email'],
 				'days_until'      => (string) self::days_between( $today, $target ),
 				'site_name'       => (string) get_bloginfo( 'name' ),
@@ -97,6 +100,8 @@ final class MessageBuilder {
 			array(
 				'name'            => __( 'Maria da Silva', 'ffcertificate' ),
 				'first_name'      => __( 'Maria', 'ffcertificate' ),
+				'last_name'       => __( 'da Silva', 'ffcertificate' ),
+				'full_name'       => __( 'Maria da Silva', 'ffcertificate' ),
 				'email'           => 'maria.silva@example.org',
 				'days_until'      => (string) self::days_between( $today, $target ),
 				'site_name'       => (string) get_bloginfo( 'name' ),
@@ -156,13 +161,24 @@ final class MessageBuilder {
 	}
 
 	/**
-	 * First word of a name.
+	 * First and last name: WordPress's own two fields when filled, else the
+	 * full name split the way the profile splits it (Core\PersonName).
 	 *
-	 * @param string $name Full name.
-	 * @return string
+	 * @param \WP_User|false $user Account.
+	 * @param string         $name Full name, the fallback.
+	 * @return array{first: string, last: string}
 	 */
-	private static function first_word( string $name ): string {
-		$parts = preg_split( '/\s+/', trim( $name ) );
-		return is_array( $parts ) && isset( $parts[0] ) ? $parts[0] : '';
+	private static function name_parts( $user, string $name ): array {
+		$first = false !== $user ? PersonName::normalize( (string) $user->first_name ) : '';
+		$last  = false !== $user ? PersonName::normalize( (string) $user->last_name ) : '';
+
+		if ( '' === $first ) {
+			return PersonName::split( $name );
+		}
+
+		return array(
+			'first' => $first,
+			'last'  => $last,
+		);
 	}
 }

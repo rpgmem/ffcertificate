@@ -360,6 +360,41 @@ class UserProfileServiceTest extends TestCase {
 	}
 
 	/**
+	 * WordPress's first and last name are derived from the full name on every
+	 * write (#1552), and the service reports itself as writing while it does,
+	 * so a `profile_update` listener can tell its own echo.
+	 */
+	public function test_write_display_name_derives_first_and_last_name(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 42 );
+		$this->wpdb->shouldReceive( 'update' )->andReturn( 1 );
+
+		$writing_during_mirror = null;
+		Functions\when( 'wp_update_user' )->alias( function () use ( &$writing_during_mirror ) {
+			$writing_during_mirror = UserProfileService::is_writing();
+			return 42;
+		} );
+
+		UserProfileService::write( 42, array( 'display_name' => '  Maria   da Silva ' ) );
+
+		$this->assertSame( 'Maria', $this->usermeta_store[42]['first_name'] ?? null );
+		$this->assertSame( 'da Silva', $this->usermeta_store[42]['last_name'] ?? null );
+		$this->assertTrue( $writing_during_mirror );
+		$this->assertFalse( UserProfileService::is_writing() );
+	}
+
+	public function test_a_one_word_name_leaves_no_last_name(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 42 );
+		$this->wpdb->shouldReceive( 'update' )->andReturn( 1 );
+		Functions\when( 'wp_update_user' )->justReturn( 42 );
+		$this->usermeta_store[42] = array( 'last_name' => 'Old' );
+
+		UserProfileService::write( 42, array( 'display_name' => 'Cher' ) );
+
+		$this->assertSame( 'Cher', $this->usermeta_store[42]['first_name'] ?? null );
+		$this->assertArrayNotHasKey( 'last_name', $this->usermeta_store[42] );
+	}
+
+	/**
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
