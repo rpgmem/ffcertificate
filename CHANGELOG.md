@@ -35,6 +35,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The user-edit screen's FFC fields behave like the reregistration form's** (#1550). CPF, RF, RG and the phones are masked (phones at most 11 digits, `(DD) 98765-4321`), Division / Department is the parent → child cascade instead of raw JSON, and the accumulation fields hide unless a second post is held. Both screens now share one script, and a posted cascade is validated against its choices.
 - **"Union" still read "Estado" on audiences seeded before #1209** (#1550). The label is stored per field, so the translation fix never reached them; a one-shot relabel renames the rows that still carry it, leaving any an operator renamed.
 - **The dashboard Profile tab's phone is masked** (#1550): `(DD) 98765-4321`, at most 11 digits, by the same formatter.
+- **Date messages: say when the birth-date migration has not run** (#1538). Until it copies them, dates given before the profile field existed are invisible to previews, upcoming dates and sends, so an empty preview read as "no birthdays". A warning on the screen now gives the card's pending count, with a link for whoever can run migrations.
 - **WordPress's first and last name now follow the plugin's full name, both ways** (#1552). Account creation stored the whole name as the first name; every write of the full name now derives first word / rest, and editing First/Last Name updates it back (accounts with a plugin profile only). A manual migration card splits the names already stored whole.
 
 ### Removed

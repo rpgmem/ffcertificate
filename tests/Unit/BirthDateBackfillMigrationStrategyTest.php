@@ -74,6 +74,13 @@ class BirthDateBackfillMigrationStrategyTest extends TestCase {
 	 */
 	private array $state = array();
 
+	/**
+	 * Transients by name.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $transients = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -85,6 +92,7 @@ class BirthDateBackfillMigrationStrategyTest extends TestCase {
 		$this->plain       = array();
 		$this->written     = array();
 		$this->state       = array();
+		$this->transients  = array();
 
 		global $wpdb;
 		$wpdb           = Mockery::mock( 'wpdb' )->makePartial();
@@ -137,6 +145,23 @@ class BirthDateBackfillMigrationStrategyTest extends TestCase {
 				if ( 'ffc_birth_date_backfill_state' === $name ) {
 					$this->state = $value;
 				}
+				return true;
+			}
+		);
+		Functions\when( 'get_transient' )->alias(
+			function ( $name ) {
+				return $this->transients[ $name ] ?? false;
+			}
+		);
+		Functions\when( 'set_transient' )->alias(
+			function ( $name, $value ) {
+				$this->transients[ $name ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'delete_transient' )->alias(
+			function ( $name ) {
+				unset( $this->transients[ $name ] );
 				return true;
 			}
 		);
@@ -326,5 +351,38 @@ class BirthDateBackfillMigrationStrategyTest extends TestCase {
 		$this->assertSame( 'birth_date_backfill', $this->strategy()->get_name() );
 		$this->assertTrue( $this->strategy()->can_run( 'birth_date_backfill', array() ) );
 	}
-}
 
+	/**
+	 * The Date Messages screen reads the card's own pending count, cached so
+	 * a page load does not walk `wp_users` every time.
+	 */
+	public function test_pending_accounts_is_the_cards_pending_and_is_cached(): void {
+		$this->candidates = array( 3, 5, 7 );
+		$this->state      = array( 'cursor' => 3 );
+
+		$this->assertSame( 2, BirthDateBackfillMigrationStrategy::pending_accounts() );
+		$this->assertSame( 2, $this->transients[ BirthDateBackfillMigrationStrategy::PENDING_TRANSIENT ] ?? null );
+
+		// Served from the cache: a change underneath is not seen until a batch clears it.
+		$this->candidates = array();
+		$this->assertSame( 2, BirthDateBackfillMigrationStrategy::pending_accounts() );
+	}
+
+	public function test_every_batch_clears_the_cached_pending_count(): void {
+		$this->candidates = array( 3, 5 );
+		$this->transients[ BirthDateBackfillMigrationStrategy::PENDING_TRANSIENT ] = 2;
+
+		$this->strategy()->execute( 'birth_date_backfill', array( 'batch_size' => 10 ) );
+
+		$this->assertArrayNotHasKey( BirthDateBackfillMigrationStrategy::PENDING_TRANSIENT, $this->transients );
+		$this->assertSame( 0, BirthDateBackfillMigrationStrategy::pending_accounts() );
+	}
+
+	public function test_an_empty_batch_clears_the_cache_too(): void {
+		$this->transients[ BirthDateBackfillMigrationStrategy::PENDING_TRANSIENT ] = 4;
+
+		$this->strategy()->execute( 'birth_date_backfill', array() );
+
+		$this->assertArrayNotHasKey( BirthDateBackfillMigrationStrategy::PENDING_TRANSIENT, $this->transients );
+	}
+}

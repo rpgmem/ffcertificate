@@ -66,6 +66,7 @@ $ffc_dm_active = 'edit' === $tab ? 'rules' : $tab;
 	<hr class="wp-header-end">
 
 	<?php \FreeFormCertificate\Core\EmailDisabledNotice::render(); ?>
+	<?php DateMessagesAdminPage::render_backfill_notice(); ?>
 
 	<?php if ( isset( $outcome['message'] ) && is_string( $outcome['message'] ) && '' !== $outcome['message'] ) : ?>
 		<?php

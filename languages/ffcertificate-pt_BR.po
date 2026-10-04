@@ -23627,6 +23627,14 @@ msgstr "Pré-carregamento do cache de formulários (quando \"Pré-carregar cache
 msgid "These fields arrived empty or with an invalid choice and kept their previous value: %s"
 msgstr "Estes campos chegaram vazios ou com uma opção inválida e mantiveram o valor anterior: %s"
 
+msgid "The birth-date migration has %d account left to examine. Until it runs, a birth date given before the profile field existed is not on the profile, so that person does not appear in previews or upcoming dates and receives no messages."
+msgid_plural "The birth-date migration has %d accounts left to examine. Until it runs, a birth date given before the profile field existed is not on the profile, so those people do not appear in previews or upcoming dates and receive no messages."
+msgstr[0] "A migração da data de nascimento ainda tem %d conta para examinar. Até ela rodar, uma data de nascimento informada antes de o campo existir no perfil não está no perfil, então essa pessoa não aparece nas prévias nem nas próximas datas e não recebe mensagens."
+msgstr[1] "A migração da data de nascimento ainda tem %d contas para examinar. Até ela rodar, uma data de nascimento informada antes de o campo existir no perfil não está no perfil, então essas pessoas não aparecem nas prévias nem nas próximas datas e não recebem mensagens."
+
+msgid "Run it in Settings → Migrations."
+msgstr "Rode-a em Configurações → Migrações."
+
 msgid "Write the display name, first name and last name of every account that has none of them, from the name its own candidacy or submission already carries. A promotion used to create the account without passing the person's name, so WordPress fell back to storing the login — which is what the user list, the dashboard greeting and every e-mail then showed them. Only an account whose display name is still its login and whose first name is empty is touched, because those two are written together and an account with one but not the other was changed by something else. Completion here means every such account was EXAMINED: one whose records name nobody is read, left alone, and counted as done."
 msgstr "Grava o nome de exibição, o primeiro nome e o sobrenome de toda conta que não tem nenhum deles, a partir do nome que a própria candidatura ou submission dela já carrega. A promoção criava a conta sem passar o nome da pessoa, então o WordPress gravava o login no lugar — e era isso que a lista de usuários, a saudação do painel e todo e-mail mostravam a ela. Só é tocada a conta cujo nome de exibição ainda é o login e cujo primeiro nome está vazio, porque esses dois são gravados juntos e uma conta com um e sem o outro foi alterada por outra coisa. Aqui, concluído significa que toda conta dessas foi EXAMINADA: uma cujos registros não nomeiam ninguém é lida, deixada como está, e contada como feita."
 
