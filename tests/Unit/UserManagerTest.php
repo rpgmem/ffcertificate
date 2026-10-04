@@ -288,6 +288,9 @@ class UserManagerTest extends TestCase {
 	}
 
 	public function test_update_profile_updates_existing_row(): void {
+		// The full name also mirrors WordPress's first / last name (#1552).
+		Functions\when( 'update_user_meta' )->justReturn( true );
+		Functions\when( 'delete_user_meta' )->justReturn( true );
 		// Row already exists — service takes the UPDATE branch.
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '5' );
 		$this->wpdb->shouldReceive( 'update' )
@@ -373,6 +376,9 @@ class UserManagerTest extends TestCase {
 	}
 
 	public function test_update_profile_also_calls_wp_update_user_for_display_name(): void {
+		// The full name also mirrors WordPress's first / last name (#1552).
+		Functions\when( 'update_user_meta' )->justReturn( true );
+		Functions\when( 'delete_user_meta' )->justReturn( true );
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '1' );
 		$this->wpdb->shouldReceive( 'update' )->andReturn( 1 );
 
@@ -1250,6 +1256,8 @@ class UserManagerTest extends TestCase {
 
 		Functions\when( 'sanitize_key' )->returnArg();
 		Functions\when( 'update_user_meta' )->justReturn( true );
+		// A one-word display name clears the mirrored last name (#1552).
+		Functions\when( 'delete_user_meta' )->justReturn( true );
 		Functions\when( 'wp_update_user' )->justReturn( 42 );
 
 		$result = UserManager::update_extended_profile( 42, array(
