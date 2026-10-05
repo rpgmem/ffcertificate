@@ -484,6 +484,45 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertSame( 1, $result['qr_cache_enabled'] );
 	}
 
+	public function test_qr_design_saved_only_from_the_qr_code_tab(): void {
+		$new = array(
+			'qr_design_dots'           => 'dots',
+			'qr_design_on_certificate' => '1',
+		);
+
+		$_POST['_ffc_tab'] = 'general';
+		$result            = $this->invoke( 'save_qrcode_settings', array( array( 'qr_design_on_certificate' => 1 ), $new ) );
+		$this->assertArrayNotHasKey( 'qr_design_dots', $result );
+		$this->assertSame( 1, $result['qr_design_on_certificate'], 'Another tab must not switch the design off.' );
+	}
+
+	public function test_qr_design_is_normalised_on_save(): void {
+		$_POST['_ffc_tab'] = 'qr_code';
+		$new               = array(
+			'qr_design_dots'           => 'star',
+			'qr_design_eye_frame'      => 'leaf',
+			'qr_design_eye_ball'       => 'circle',
+			'qr_design_color'          => '#1D2327',
+			'qr_design_background'     => 'white',
+			'qr_design_color_end'      => '#2271B1',
+			'qr_design_on_short_urls'  => '1',
+		);
+
+		$result = $this->invoke( 'save_qrcode_settings', array( array(), $new ) );
+
+		$this->assertSame( 'square', $result['qr_design_dots'] );
+		$this->assertSame( 'leaf', $result['qr_design_eye_frame'] );
+		$this->assertSame( 'circle', $result['qr_design_eye_ball'] );
+		$this->assertSame( '#1d2327', $result['qr_design_color'] );
+		$this->assertSame( '#ffffff', $result['qr_design_background'] );
+		// The gradient is off, yet its end colour is kept for when it is
+		// switched back on.
+		$this->assertSame( 0, $result['qr_design_gradient'] );
+		$this->assertSame( '#2271b1', $result['qr_design_color_end'] );
+		$this->assertSame( 0, $result['qr_design_on_certificate'] );
+		$this->assertSame( 1, $result['qr_design_on_short_urls'] );
+	}
+
 	public function test_qrcode_cache_ignored_on_other_tab(): void {
 		$_POST['_ffc_tab'] = 'qr_code';
 		$result = $this->invoke( 'save_qrcode_settings', array( array(), array( 'qr_cache_enabled' => '1' ) ) );

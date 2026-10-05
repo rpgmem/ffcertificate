@@ -63,4 +63,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</tbody>
 	</table>
+
+	<h4><?php esc_html_e( 'QR Code defaults', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'Default size (px), margin (modules) and error-correction level (L / M / Q / H) applied to the {{qr_code}} placeholder when it does not specify its own. Per-placeholder options always win.', 'ffcertificate' ); ?></p>
+
+	<h4><?php esc_html_e( 'QR Code Design', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'Settings → QR Code also sets the shape of the modules and of the three corner markers, their colours and an optional gradient, with a live preview that warns about low contrast and inverted colours. The design is applied only where it is switched on: the {{qr_code}} placeholder of certificates, and the QR codes of short URLs. Elsewhere the plain black-and-white code is kept.', 'ffcertificate' ); ?></p>
 </div>

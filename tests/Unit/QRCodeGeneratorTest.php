@@ -595,4 +595,50 @@ class QRCodeGeneratorTest extends TestCase {
 
 		$this->assertStringContainsString( '<img', $html );
 	}
+
+	// ──────────────────────────────────────────────────────────────────.
+	// parse_and_generate() with the global QR design applied (#1563).
+	// ──────────────────────────────────────────────────────────────────.
+
+	public function test_applied_design_draws_an_svg_and_bypasses_the_png_cache(): void {
+		Functions\when( 'get_option' )->justReturn(
+			array(
+				'qr_cache_enabled'         => 1,
+				'qr_design_on_certificate' => 1,
+				'qr_design_dots'           => 'dots',
+				'qr_design_color'          => '#123456',
+			)
+		);
+		global $wpdb;
+		// A stored PNG would be served by the cache path; the design path must
+		// not reach it, or a design change would be masked by old PNGs.
+		$wpdb->shouldNotReceive( 'get_var' );
+		$wpdb->shouldNotReceive( 'update' );
+
+		$gen  = new QRCodeGenerator();
+		$html = $gen->parse_and_generate( '{{qr_code:size=150:margin=1}}', 'https://example.com', 9 );
+
+		$this->assertStringContainsString( 'src="data:image/svg+xml;base64,', $html );
+		$this->assertStringContainsString( 'width:150px', $html );
+
+		preg_match( '/base64,([^"]+)"/', $html, $m );
+		$svg = base64_decode( $m[1] );
+		$this->assertStringContainsString( '<circle', $svg );
+		$this->assertStringContainsString( 'fill="#123456"', $svg );
+		$this->assertStringContainsString( 'width="150" height="150"', $svg );
+	}
+
+	public function test_design_switched_off_keeps_the_png(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'qr_design_dots' => 'dots' ) );
+
+		$html = ( new QRCodeGenerator() )->parse_and_generate( '{{qr_code}}', 'https://example.com' );
+
+		$this->assertStringContainsString( 'src="data:image/png;base64,', $html );
+	}
+
+	public function test_applied_design_with_an_empty_url_returns_nothing(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'qr_design_on_certificate' => 1 ) );
+
+		$this->assertSame( '', ( new QRCodeGenerator() )->parse_and_generate( '{{qr_code}}', '' ) );
+	}
 }

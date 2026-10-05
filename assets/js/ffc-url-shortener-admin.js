@@ -74,6 +74,35 @@
         URL.revokeObjectURL(url);
     }
 
+    /**
+     * Draw a base64 SVG onto a canvas and resolve with base64 PNG (#1563).
+     *
+     * The server cannot draw the QR design with GD, so a designed code is
+     * shipped as SVG and rasterised here; the PNG then matches the preview.
+     * Rejects when the image does not load or the canvas cannot encode.
+     */
+    function rasterizeSvg(svgBase64, size) {
+        return new Promise(function (resolve, reject) {
+            var img = new Image();
+            img.onload = function () {
+                try {
+                    var canvas = document.createElement('canvas');
+                    canvas.width = size;
+                    canvas.height = size;
+                    canvas.getContext('2d').drawImage(img, 0, 0, size, size);
+                    resolve(canvas.toDataURL('image/png').split(',')[1]);
+                } catch (e) {
+                    reject(e);
+                }
+            };
+            img.onerror = reject;
+            img.src = 'data:image/svg+xml;base64,' + svgBase64;
+        });
+    }
+
+    window.FFC = window.FFC || {};
+    window.FFC.rasterizeSvg = rasterizeSvg;
+
     $(document).ready(function () {
 
         // --- Batched CSV export (#772) ---
@@ -145,8 +174,11 @@
 
             FFC.request(action, payload, { nonce: settings.nonce, ajaxUrl: settings.ajaxUrl })
                 .then(function (data) {
-                    $btn.prop('disabled', false);
-                    downloadBase64(data.data, data.filename, data.mime);
+                    var png = data.rasterize ? rasterizeSvg(data.data, 1000) : Promise.resolve(data.data);
+                    return png.then(function (base64) {
+                        $btn.prop('disabled', false);
+                        downloadBase64(base64, data.filename, data.mime);
+                    });
                 })
                 .catch(function (err) {
                     $btn.prop('disabled', false);
@@ -212,8 +244,9 @@
             )
                 .then(function (data) {
                     $modal.find('.ffc-qr-modal__spinner').hide();
+                    var mime = data.rasterize ? 'image/svg+xml' : 'image/png';
                     $modal.find('.ffc-qr-modal__img')
-                        .attr('src', 'data:image/png;base64,' + data.data)
+                        .attr('src', 'data:' + mime + ';base64,' + data.data)
                         .show();
                 })
                 .catch(function (err) {
