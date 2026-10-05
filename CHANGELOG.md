@@ -10,6 +10,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **QR code design** (#1563). A new Settings → QR Code tab sets the module shape (square, rounded, dots, fluid, diamond), the corner markers, colours and an optional gradient, with a live preview that warns about low contrast and inverted colours. Off by default; switched on separately for certificates and short URLs.
+- **QR code logo and frames** (#1563). The design can carry a Media Library logo in the centre (error correction forced to H) and a banner, badge or speech-bubble frame with a caption of up to 24 characters; certificates and short-URL downloads keep the framed proportions.
 
 ### Changed
 

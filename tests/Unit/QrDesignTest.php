@@ -39,6 +39,10 @@ class QrDesignTest extends TestCase {
 				'background'      => '#ffffff',
 				'eye_frame_color' => '#000000',
 				'eye_ball_color'  => '#000000',
+				'logo'            => '',
+				'frame'           => 'none',
+				'frame_text'      => '',
+				'frame_color'     => '#1d2327',
 			),
 			QrDesign::plain()->to_array()
 		);
@@ -106,6 +110,10 @@ class QrDesignTest extends TestCase {
 				'background'      => '#fafafa',
 				'eye_frame_color' => '#778899',
 				'eye_ball_color'  => '#aabbcc',
+				'logo'            => '',
+				'frame'           => 'none',
+				'frame_text'      => '',
+				'frame_color'     => '#1d2327',
 			),
 			QrDesign::from_settings()->to_array()
 		);
@@ -140,6 +148,7 @@ class QrDesignTest extends TestCase {
 				'inverted'     => false,
 				'low_contrast' => false,
 				'min_ratio'    => 21.0,
+				'caption_contrast' => true,
 			),
 			QrDesign::plain()->scan_checks()
 		);
@@ -171,5 +180,50 @@ class QrDesignTest extends TestCase {
 		$this->assertSame( '#abcdef', QrDesign::hex( '#ABCDEF', '#000000' ) );
 		$this->assertSame( '#000000', QrDesign::hex( '#abc', '#000000' ) );
 		$this->assertSame( '#000000', QrDesign::hex( 123, '#000000' ) );
+	}
+
+	public function test_only_a_raster_data_uri_is_kept_as_logo(): void {
+		$png = 'data:image/png;base64,iVBORw0KGgo=';
+
+		$this->assertSame( $png, ( new QrDesign( array( 'logo' => $png ) ) )->logo );
+		$this->assertSame( '', ( new QrDesign( array( 'logo' => 'data:image/svg+xml;base64,PHN2Zz4=' ) ) )->logo );
+		$this->assertSame( '', ( new QrDesign( array( 'logo' => 'https://evil.example/x.png' ) ) )->logo );
+		$this->assertSame( '', ( new QrDesign( array( 'logo' => 'data:image/png;base64,"/><script>' ) ) )->logo );
+	}
+
+	public function test_a_logo_forces_error_correction_to_h(): void {
+		$this->assertSame( 'M', QrDesign::plain()->error_level( 'M' ) );
+		$this->assertSame( 'H', ( new QrDesign( array( 'logo' => 'data:image/png;base64,AAAA' ) ) )->error_level( 'L' ) );
+	}
+
+	public function test_frame_and_caption_are_normalised(): void {
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => strip_tags( $s ) );
+
+		$design = new QrDesign(
+			array(
+				'frame'       => 'banner',
+				'frame_text'  => "  <b>Scan</b>\n to   verify this certificate now ",
+				'frame_color' => '#AA0000',
+			)
+		);
+
+		$this->assertSame( 'banner', $design->frame );
+		$this->assertSame( 'Scan to verify this cert', $design->frame_text );
+		$this->assertSame( QrDesign::FRAME_TEXT_MAX, mb_strlen( $design->frame_text ) );
+		$this->assertSame( '#aa0000', $design->frame_color );
+		$this->assertSame( 'none', ( new QrDesign( array( 'frame' => 'polaroid' ) ) )->frame );
+	}
+
+	public function test_a_badge_caption_that_fades_into_the_background_is_flagged(): void {
+		Functions\when( 'wp_strip_all_tags' )->returnArg();
+
+		$pale  = new QrDesign( array( 'frame' => 'badge', 'frame_text' => 'Scan', 'frame_color' => '#dddddd' ) );
+		$dark  = new QrDesign( array( 'frame' => 'badge', 'frame_text' => 'Scan', 'frame_color' => '#1d2327' ) );
+		$other = new QrDesign( array( 'frame' => 'banner', 'frame_text' => 'Scan', 'frame_color' => '#dddddd' ) );
+
+		$this->assertFalse( $pale->scan_checks()['caption_contrast'] );
+		$this->assertTrue( $dark->scan_checks()['caption_contrast'] );
+		// The banner picks a readable caption colour itself.
+		$this->assertTrue( $other->scan_checks()['caption_contrast'] );
 	}
 }

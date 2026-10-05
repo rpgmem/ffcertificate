@@ -23641,3 +23641,36 @@ msgstr ""
 
 msgid "Settings → QR Code also sets the shape of the modules and of the three corner markers, their colours and an optional gradient, with a live preview that warns about low contrast and inverted colours. The design is applied only where it is switched on: the {{qr_code}} placeholder of certificates, and the QR codes of short URLs. Elsewhere the plain black-and-white code is kept."
 msgstr ""
+
+msgid "Badge with caption above"
+msgstr ""
+
+msgid "Banner below"
+msgstr ""
+
+msgid "Frame"
+msgstr ""
+
+msgid "Frame caption"
+msgstr ""
+
+msgid "Frame colour"
+msgstr ""
+
+msgid "Logo"
+msgstr ""
+
+msgid "PNG, JPEG, WebP or GIF up to 512 KB, drawn in the centre. A logo raises error correction to H so the covered modules can be rebuilt."
+msgstr ""
+
+msgid "Speech bubble above"
+msgstr ""
+
+msgid "The badge caption is hard to read on this background; pick a darker frame colour."
+msgstr ""
+
+msgid "Up to 24 characters, e.g. \"Scan to verify\". The caption colour is picked to stay readable on the frame."
+msgstr ""
+
+msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame — a banner below, a badge or a speech bubble above — can carry a short caption such as \"Scan to verify\". A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
+msgstr ""

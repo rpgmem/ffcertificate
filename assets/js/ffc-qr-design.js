@@ -35,8 +35,12 @@
 				eye_frame_color: val('qr_design_eye_frame_color'),
 				eye_ball_color: val('qr_design_eye_ball_color'),
 				gradient: $root.find('[data-ffc-qr-design="qr_design_gradient"]').is(':checked') ? '1' : '',
-				color_end: val('qr_design_color_end')
+				color_end: val('qr_design_color_end'),
+				frame: val('qr_design_frame'),
+				frame_text: val('qr_design_frame_text'),
+				frame_color: val('qr_design_frame_color')
 			},
+			logo_id: val('qr_design_logo_id'),
 			margin: String($root.find('#qr_default_margin').val() || '2'),
 			error_level: String($root.find('#qr_default_error_level').val() || 'M')
 		};
@@ -46,12 +50,14 @@
 	 * Render the scan checks as one status line.
 	 *
 	 * @param {jQuery} $out    Status element.
-	 * @param {Object} checks  { inverted, low_contrast, min_ratio }.
+	 * @param {Object} checks  { inverted, low_contrast, min_ratio, caption_contrast }.
 	 */
 	function showChecks($out, checks) {
 		$out.removeClass('is-warning is-error');
 		if (checks.inverted) {
 			$out.addClass('is-error').text(i18n.inverted || '');
+		} else if (checks.caption_contrast === false) {
+			$out.addClass('is-warning').text(i18n.captionContrast || '');
 		} else if (checks.low_contrast) {
 			$out.addClass('is-warning').text(String(i18n.lowContrast || '').replace('%s', String(checks.min_ratio)));
 		} else {

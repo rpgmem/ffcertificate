@@ -75,10 +75,11 @@ class TabQrCode extends SettingsTab {
 				'nonce'   => wp_create_nonce( QrDesignPreviewAjaxEndpoint::AJAX_ACTION ),
 				'i18n'    => array(
 					/* translators: %s: contrast ratio, e.g. 3.2 */
-					'lowContrast' => __( 'Low contrast (%s:1). Phones may fail to read this code; aim for 4:1 or more.', 'ffcertificate' ),
-					'inverted'    => __( 'The modules are lighter than the background. Most readers cannot scan an inverted code.', 'ffcertificate' ),
-					'ok'          => __( 'Readable: contrast and colours are fine.', 'ffcertificate' ),
-					'error'       => __( 'The preview could not be drawn.', 'ffcertificate' ),
+					'lowContrast'     => __( 'Low contrast (%s:1). Phones may fail to read this code; aim for 4:1 or more.', 'ffcertificate' ),
+					'inverted'        => __( 'The modules are lighter than the background. Most readers cannot scan an inverted code.', 'ffcertificate' ),
+					'ok'              => __( 'Readable: contrast and colours are fine.', 'ffcertificate' ),
+					'captionContrast' => __( 'The badge caption is hard to read on this background; pick a darker frame colour.', 'ffcertificate' ),
+					'error'           => __( 'The preview could not be drawn.', 'ffcertificate' ),
 				),
 			)
 		);

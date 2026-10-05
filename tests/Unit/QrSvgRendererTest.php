@@ -216,4 +216,84 @@ class QrSvgRendererTest extends TestCase {
 		$this->assertDoesNotMatchRegularExpression( '/="\d+,\d+"/', $svg );
 		$this->assertStringContainsString( 'r="4.2"', $svg );
 	}
+
+	public function test_a_logo_clears_the_centre_and_raises_the_error_correction(): void {
+		$logo   = new QrDesign( array( 'logo' => 'data:image/png;base64,AAAA' ) );
+		$plain  = QrSvgRenderer::render( self::URL, QrDesign::plain(), 'L' );
+		$framed = QrSvgRenderer::render( self::URL, $logo, 'L' );
+
+		$this->assertStringContainsString( '<image href="data:image/png;base64,AAAA"', $framed );
+		// H needs a larger symbol than L for the same payload.
+		preg_match( '/viewBox="0 0 (\d+)/', $plain, $p );
+		preg_match( '/viewBox="0 0 (\d+)/', $framed, $f );
+		$this->assertGreaterThan( (int) $p[1], (int) $f[1] );
+	}
+
+	public function test_no_module_is_drawn_under_the_logo(): void {
+		$matrix = array_fill( 0, 25, array_fill( 0, 25, true ) );
+		$svg    = QrSvgRenderer::render_matrix( $matrix, new QrDesign( array( 'logo' => 'data:image/png;base64,AAAA' ) ), 0 );
+
+		// 25 * 0.22 = 5 modules (odd), starting at 10, plus a one-module ring:
+		// rows and columns 9..15 stay empty, so (12,12) and (9,9) are not drawn
+		// while (8,8) is.
+		$this->assertStringNotContainsString( '<rect x="120" y="120" width="10" height="10"/>', $svg );
+		$this->assertStringNotContainsString( '<rect x="90" y="90" width="10" height="10"/>', $svg );
+		$this->assertStringContainsString( '<rect x="80" y="80" width="10" height="10"/>', $svg );
+		$this->assertStringContainsString( '<rect x="100" y="100" width="50" height="50" rx="10"', $svg );
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public function frames(): array {
+		return array(
+			'banner' => array( 'banner' ),
+			'badge'  => array( 'badge' ),
+			'bubble' => array( 'bubble' ),
+		);
+	}
+
+	/**
+	 * @dataProvider frames
+	 */
+	public function test_a_frame_makes_the_document_taller_and_reports_its_height( string $frame ): void {
+		Functions\when( 'wp_strip_all_tags' )->returnArg();
+		$design = new QrDesign( array( 'frame' => $frame, 'frame_text' => 'Scan & <verify>' ) );
+
+		$drawn = QrSvgRenderer::render_sized( self::URL, $design, 'M', 2, 300 );
+
+		$this->assertSame( 300, $drawn['width'] );
+		$this->assertGreaterThan( 300, $drawn['height'] );
+		$this->assertStringContainsString( 'width="300" height="' . $drawn['height'] . '"', $drawn['svg'] );
+		// The caption is escaped text, never markup.
+		$this->assertStringContainsString( '>Scan &amp; &lt;verify&gt;</text>', $drawn['svg'] );
+	}
+
+	public function test_banner_and_bubble_captions_read_on_their_frame(): void {
+		Functions\when( 'wp_strip_all_tags' )->returnArg();
+
+		$dark  = QrSvgRenderer::render( self::URL, new QrDesign( array( 'frame' => 'banner', 'frame_text' => 'Scan', 'frame_color' => '#1d2327' ) ) );
+		$light = QrSvgRenderer::render( self::URL, new QrDesign( array( 'frame' => 'bubble', 'frame_text' => 'Scan', 'frame_color' => '#ffd700' ) ) );
+
+		$this->assertMatchesRegularExpression( '/fill="#ffffff" font-family/', $dark );
+		$this->assertMatchesRegularExpression( '/fill="#000000" font-family/', $light );
+	}
+
+	public function test_a_frame_without_caption_draws_no_text(): void {
+		$svg = QrSvgRenderer::render( self::URL, new QrDesign( array( 'frame' => 'badge' ) ) );
+
+		$this->assertStringNotContainsString( '<text', $svg );
+		$this->assertStringContainsString( 'stroke="#1d2327"', $svg );
+	}
+
+	public function test_a_long_caption_shrinks_to_fit(): void {
+		Functions\when( 'wp_strip_all_tags' )->returnArg();
+
+		$short = QrSvgRenderer::render( self::URL, new QrDesign( array( 'frame' => 'banner', 'frame_text' => 'Scan' ) ) );
+		$long  = QrSvgRenderer::render( self::URL, new QrDesign( array( 'frame' => 'banner', 'frame_text' => str_repeat( 'W', 24 ) ) ) );
+
+		preg_match( '/font-size="([\d.]+)"/', $short, $s );
+		preg_match( '/font-size="([\d.]+)"/', $long, $l );
+		$this->assertLessThan( (float) $s[1], (float) $l[1] );
+	}
 }

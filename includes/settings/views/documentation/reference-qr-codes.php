@@ -69,4 +69,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'QR Code Design', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Settings → QR Code also sets the shape of the modules and of the three corner markers, their colours and an optional gradient, with a live preview that warns about low contrast and inverted colours. The design is applied only where it is switched on: the {{qr_code}} placeholder of certificates, and the QR codes of short URLs. Elsewhere the plain black-and-white code is kept.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame — a banner below, a badge or a speech bubble above — can carry a short caption such as "Scan to verify". A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height.', 'ffcertificate' ); ?></p>
 </div>
