@@ -31,6 +31,25 @@ $ffc_qr_types = array(
 	'phone'    => __( 'Phone call', 'ffcertificate' ),
 	'sms'      => __( 'SMS', 'ffcertificate' ),
 	'whatsapp' => __( 'WhatsApp', 'ffcertificate' ),
+	'vcard'    => __( 'Contact card (vCard)', 'ffcertificate' ),
+	'social'   => __( 'Social profile', 'ffcertificate' ),
+	'event'    => __( 'Event', 'ffcertificate' ),
+);
+
+$ffc_qr_vcard_fields = array(
+	'first_name'   => array( __( 'First name', 'ffcertificate' ), 'text' ),
+	'last_name'    => array( __( 'Last name', 'ffcertificate' ), 'text' ),
+	'organization' => array( __( 'Organisation', 'ffcertificate' ), 'text' ),
+	'job_title'    => array( __( 'Job title', 'ffcertificate' ), 'text' ),
+	'phone'        => array( __( 'Work phone', 'ffcertificate' ), 'tel' ),
+	'mobile'       => array( __( 'Mobile', 'ffcertificate' ), 'tel' ),
+	'email'        => array( __( 'E-mail', 'ffcertificate' ), 'email' ),
+	'website'      => array( __( 'Website', 'ffcertificate' ), 'url' ),
+	'street'       => array( __( 'Street address', 'ffcertificate' ), 'text' ),
+	'city'         => array( __( 'City', 'ffcertificate' ), 'text' ),
+	'region'       => array( __( 'State', 'ffcertificate' ), 'text' ),
+	'postcode'     => array( __( 'Postal code', 'ffcertificate' ), 'text' ),
+	'country'      => array( __( 'Country', 'ffcertificate' ), 'text' ),
 );
 ?>
 <div class="wrap ffc-admin-page ffc-page-qr-generator">
@@ -141,6 +160,83 @@ $ffc_qr_types = array(
 					</tbody>
 				</table>
 				<?php endforeach; ?>
+
+				<table class="form-table" role="presentation" data-ffc-qr-type="vcard" hidden>
+					<tbody>
+						<?php foreach ( $ffc_qr_vcard_fields as $ffc_key => $ffc_field ) : ?>
+						<tr>
+							<th scope="row"><label for="ffc-qr-vcard-<?php echo esc_attr( $ffc_key ); ?>"><?php echo esc_html( $ffc_field[0] ); ?></label></th>
+							<td><input type="<?php echo esc_attr( $ffc_field[1] ); ?>" id="ffc-qr-vcard-<?php echo esc_attr( $ffc_key ); ?>" class="regular-text" data-ffc-qr-field="vcard:<?php echo esc_attr( $ffc_key ); ?>"></td>
+						</tr>
+						<?php endforeach; ?>
+						<tr>
+							<th scope="row"><label for="ffc-qr-vcard-note"><?php esc_html_e( 'Note', 'ffcertificate' ); ?></label></th>
+							<td>
+								<textarea id="ffc-qr-vcard-note" class="large-text" rows="2" data-ffc-qr-field="vcard:note"></textarea>
+								<p class="description"><?php esc_html_e( 'The whole card travels inside the code: it works offline and nothing about the person is stored. Every field you fill makes the code denser.', 'ffcertificate' ); ?></p>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<table class="form-table" role="presentation" data-ffc-qr-type="social" hidden>
+					<tbody>
+						<tr>
+							<th scope="row"><label for="ffc-qr-network"><?php esc_html_e( 'Network', 'ffcertificate' ); ?></label></th>
+							<td>
+								<select id="ffc-qr-network" data-ffc-qr-field="social:network">
+									<?php foreach ( \FreeFormCertificate\Generators\QrPayload::NETWORKS as $ffc_key => $ffc_network ) : ?>
+										<option value="<?php echo esc_attr( $ffc_key ); ?>" data-ffc-qr-prefix="<?php echo esc_attr( $ffc_network[1] ); ?>"><?php echo esc_html( $ffc_network[0] ); ?></option>
+									<?php endforeach; ?>
+								</select>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="ffc-qr-username"><?php esc_html_e( 'User name', 'ffcertificate' ); ?></label></th>
+							<td>
+								<code id="ffc-qr-social-prefix"><?php echo esc_html( (string) array_values( \FreeFormCertificate\Generators\QrPayload::NETWORKS )[0][1] ); ?></code>
+								<input type="text" id="ffc-qr-username" class="regular-text" data-ffc-qr-field="social:username">
+							</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<table class="form-table" role="presentation" data-ffc-qr-type="event" hidden>
+					<tbody>
+						<tr>
+							<th scope="row"><label for="ffc-qr-event-title"><?php esc_html_e( 'Title', 'ffcertificate' ); ?></label></th>
+							<td><input type="text" id="ffc-qr-event-title" class="large-text" data-ffc-qr-field="event:title"></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="ffc-qr-event-date"><?php esc_html_e( 'Date', 'ffcertificate' ); ?></label></th>
+							<td>
+								<input type="date" id="ffc-qr-event-date" data-ffc-qr-field="event:date">
+								<input type="time" id="ffc-qr-event-start" aria-label="<?php esc_attr_e( 'Start time', 'ffcertificate' ); ?>" data-ffc-qr-field="event:start">
+								&ndash;
+								<input type="time" id="ffc-qr-event-end" aria-label="<?php esc_attr_e( 'End time', 'ffcertificate' ); ?>" data-ffc-qr-field="event:end">
+								<p class="description"><?php esc_html_e( 'In the site\'s time zone, on one day.', 'ffcertificate' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="ffc-qr-event-location"><?php esc_html_e( 'Location', 'ffcertificate' ); ?></label></th>
+							<td><input type="text" id="ffc-qr-event-location" class="large-text" data-ffc-qr-field="event:location"></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="ffc-qr-event-description"><?php esc_html_e( 'Description', 'ffcertificate' ); ?></label></th>
+							<td><textarea id="ffc-qr-event-description" class="large-text" rows="3" data-ffc-qr-field="event:description"></textarea></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="ffc-qr-event-mode"><?php esc_html_e( 'Scanning opens', 'ffcertificate' ); ?></label></th>
+							<td>
+								<select id="ffc-qr-event-mode" data-ffc-qr-field="event:mode">
+									<option value="vevent"><?php esc_html_e( 'The event itself (the phone offers to add it to its calendar)', 'ffcertificate' ); ?></option>
+									<option value="google"><?php esc_html_e( 'Google Calendar, already filled in', 'ffcertificate' ); ?></option>
+									<option value="ics"><?php esc_html_e( 'A calendar file (.ics) for any calendar app', 'ffcertificate' ); ?></option>
+								</select>
+							</td>
+						</tr>
+					</tbody>
+				</table>
 			</div>
 
 			<div class="card">

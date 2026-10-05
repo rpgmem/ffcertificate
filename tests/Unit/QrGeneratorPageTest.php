@@ -107,7 +107,7 @@ class QrGeneratorPageTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'class="wrap ffc-admin-page ffc-page-qr-generator"', $html );
-		foreach ( array( 'url', 'text', 'wifi', 'email', 'phone', 'sms', 'whatsapp' ) as $type ) {
+		foreach ( \FreeFormCertificate\Generators\QrPayload::TYPES as $type ) {
 			$this->assertStringContainsString( 'data-ffc-qr-type="' . $type . '"', $html, $type );
 		}
 		$this->assertStringContainsString( 'value="url"  checked="checked"', $html );
@@ -115,5 +115,8 @@ class QrGeneratorPageTest extends TestCase {
 		$this->assertStringContainsString( 'name="design[qr_design_dots]"', $html );
 		$this->assertStringContainsString( 'data-ffc-qr-design="qr_design_frame"', $html );
 		$this->assertStringContainsString( 'id="ffc-qr-download-png"', $html );
+		$this->assertStringContainsString( 'data-ffc-qr-prefix="https://www.instagram.com/"', $html );
+		$this->assertStringContainsString( 'data-ffc-qr-field="event:mode"', $html );
+		$this->assertStringContainsString( 'data-ffc-qr-field="vcard:organization"', $html );
 	}
 }

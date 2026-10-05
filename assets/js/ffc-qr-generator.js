@@ -167,6 +167,10 @@
 		$form.on('change input', '[data-ffc-qr-field], [data-ffc-qr-design], #qr_default_margin, #qr_default_error_level', function () {
 			schedule($form);
 		});
+		// Social: show the chosen network's prefix before the user name.
+		$form.on('change', '#ffc-qr-network', function () {
+			$('#ffc-qr-social-prefix').text(String($(this).find('option:selected').attr('data-ffc-qr-prefix') || ''));
+		});
 
 		$('#ffc-qr-download-svg').on('click', function () {
 			if (current && current.svg) {

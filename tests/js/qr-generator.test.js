@@ -169,6 +169,23 @@ describe('ffc-qr-generator.js', () => {
 		expect(spy).toHaveBeenCalledTimes(1);
 	});
 
+	it('shows the chosen network\'s prefix before the user name', () => {
+		document.body.innerHTML = `
+			<form id="ffc-qr-generator">
+				<select id="ffc-qr-network">
+					<option value="instagram" data-ffc-qr-prefix="https://www.instagram.com/">Instagram</option>
+					<option value="github" data-ffc-qr-prefix="https://github.com/">GitHub</option>
+				</select>
+				<code id="ffc-qr-social-prefix">https://www.instagram.com/</code>
+			</form>`;
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+		window.FFC.QrGenerator.init();
+
+		window.$('#ffc-qr-network').val('github').trigger('change');
+
+		expect(window.$('#ffc-qr-social-prefix').text()).toBe('https://github.com/');
+	});
+
 	it('does nothing on another screen', () => {
 		document.body.innerHTML = '<form></form>';
 		const spy = vi.spyOn(window.$, 'post');
