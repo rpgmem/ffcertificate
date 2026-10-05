@@ -4,7 +4,9 @@
  * Shows the fields of the chosen content type, sends them with the design
  * (collected by `FFC.QrDesign.collect`) to `ffc_qr_generate` on every change,
  * and saves what comes back: the SVG as is, the PNG rasterised by
- * `FFC.QrRaster`. "Shorten" is the only write, and only on its own click.
+ * `FFC.QrRaster`. "Shorten" writes a short URL, and only on its own click;
+ * a download remembers the design for this user (never the content), and
+ * "Reset to default" forgets it and puts the global design back (#1568).
  * Selector-guarded: a no-op on any other screen.
  */
 (function ($) {
@@ -148,6 +150,45 @@
 		return 'qr-' + activeType($form) + '-' + new Date().toISOString().slice(0, 10) + '.' + ext;
 	}
 
+	/**
+	 * Remember the current design for this user; best effort, silent.
+	 *
+	 * @param {jQuery} $form Generator form.
+	 * @returns {Promise}
+	 */
+	function remember($form) {
+		return window.FFC.request(cfg.remember, window.FFC.QrDesign.collect($form), { nonce: cfg.rememberNonce, ajaxUrl: cfg.ajaxUrl })
+			.catch(function () {});
+	}
+
+	/**
+	 * Put a design state into the design fields.
+	 *
+	 * @param {jQuery} $form Generator form.
+	 * @param {Object} state Keys are the fields' `data-ffc-qr-design` names, plus margin and error_level.
+	 * @param {string} thumb Logo thumbnail URL, '' for none.
+	 */
+	function apply($form, state, thumb) {
+		Object.keys(state || {}).forEach(function (key) {
+			var value = state[key];
+			if (key === 'margin') {
+				$form.find('#qr_default_margin').val(String(value));
+				return;
+			}
+			if (key === 'error_level') {
+				$form.find('#qr_default_error_level').val(String(value));
+				return;
+			}
+			var $field = $form.find('[data-ffc-qr-design="' + key + '"]');
+			if ($field.is(':checkbox')) {
+				$field.prop('checked', !!value);
+			} else {
+				$field.val(String(value));
+			}
+		});
+		$form.find('#ffc-qr-logo-thumb').attr('src', thumb || '').prop('hidden', !thumb);
+	}
+
 	function schedule($form) {
 		clearTimeout(timer);
 		timer = setTimeout(function () { refresh($form); }, 300);
@@ -175,6 +216,7 @@
 		$('#ffc-qr-download-svg').on('click', function () {
 			if (current && current.svg) {
 				window.FFC.QrRaster.download(window.FFC.QrRaster.encode(current.svg), filename($form, 'svg'), 'image/svg+xml');
+				remember($form);
 			}
 		});
 		$('#ffc-qr-download-png').on('click', function () {
@@ -183,7 +225,10 @@
 			}
 			var width = Number($('#ffc-qr-png-width').val()) || 1000;
 			window.FFC.QrRaster.toPng(window.FFC.QrRaster.encode(current.svg), width)
-				.then(function (png) { window.FFC.QrRaster.download(png, filename($form, 'png'), 'image/png'); })
+				.then(function (png) {
+					window.FFC.QrRaster.download(png, filename($form, 'png'), 'image/png');
+					remember($form);
+				})
 				.catch(function () { $('#ffc-qr-generator-status').addClass('is-error').text(i18n.error || ''); });
 		});
 
@@ -208,11 +253,29 @@
 				});
 		});
 
+		$('#ffc-qr-design-reset').on('click', function () {
+			var $btn = $(this);
+			$btn.prop('disabled', true);
+			window.FFC.request(cfg.remember, { reset: '1' }, { nonce: cfg.rememberNonce, ajaxUrl: cfg.ajaxUrl })
+				.then(function (data) {
+					$btn.prop('disabled', false);
+					apply($form, data.state, String(data.logo_thumb || ''));
+					return refresh($form).then(function () {
+						$('#ffc-qr-generator-status').text(i18n.reset || '');
+					});
+				})
+				.catch(function (err) {
+					$btn.prop('disabled', false);
+					$('#ffc-qr-generator-status').addClass('is-error')
+						.text((err && err.fromServer && err.message) || i18n.error || '');
+				});
+		});
+
 		showType($form);
 	}
 
 	window.FFC = window.FFC || {};
-	window.FFC.QrGenerator = { init: init, collect: collect, refresh: refresh, fill: fill };
+	window.FFC.QrGenerator = { init: init, collect: collect, refresh: refresh, fill: fill, apply: apply, remember: remember };
 
 	$(init);
 })(jQuery);

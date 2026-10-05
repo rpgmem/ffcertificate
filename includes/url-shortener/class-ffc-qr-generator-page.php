@@ -10,8 +10,6 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\UrlShortener;
 
-use FreeFormCertificate\Generators\QrDesign;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -22,7 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * A stateless tool: the operator picks a content type, fills it in and
  * styles the code, starting from the global design; the image is drawn on
  * the server and saved by the browser. Nothing is stored, except a short URL
- * when the operator explicitly asks for one.
+ * when the operator explicitly asks for one and the operator's last design
+ * (#1568), which the page opens with until "Reset to default" forgets it.
  */
 class QrGeneratorPage {
 
@@ -97,6 +96,8 @@ class QrGeneratorPage {
 				'generateNonce' => wp_create_nonce( QrGeneratorAjaxEndpoint::ACTION_GENERATE ),
 				'shorten'       => QrGeneratorAjaxEndpoint::ACTION_SHORTEN,
 				'shortenNonce'  => wp_create_nonce( QrGeneratorAjaxEndpoint::ACTION_SHORTEN ),
+				'remember'      => QrGeneratorAjaxEndpoint::ACTION_REMEMBER,
+				'rememberNonce' => wp_create_nonce( QrGeneratorAjaxEndpoint::ACTION_REMEMBER ),
 				'i18n'          => array(
 					/* translators: 1: bytes used, 2: capacity in bytes, 3: percentage */
 					'usage'           => __( '%1$d of %2$d bytes (%3$d%%)', 'ffcertificate' ),
@@ -109,6 +110,7 @@ class QrGeneratorPage {
 					'ok'              => __( 'Readable: contrast and colours are fine.', 'ffcertificate' ),
 					'error'           => __( 'The QR code could not be drawn.', 'ffcertificate' ),
 					'shortened'       => __( 'Short URL created and placed in the address field.', 'ffcertificate' ),
+					'reset'           => __( 'Design reset to the global default.', 'ffcertificate' ),
 				),
 			)
 		);
@@ -122,15 +124,14 @@ class QrGeneratorPage {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ) );
 		}
 
-		// The global design is the starting point; every change here is local
-		// to this code and never saved.
-		$ffc_qr_design    = QrDesign::from_settings();
-		$ffc_qr_state     = QrDesign::form_state();
-		$ffc_qr_logo_id   = $ffc_qr_state['logo_id'];
-		$ffc_qr_gradient  = $ffc_qr_state['gradient'];
-		$ffc_qr_color_end = $ffc_qr_state['color_end'];
-		$ffc_qr_margin    = $ffc_qr_state['margin'];
-		$ffc_qr_level     = $ffc_qr_state['error_level'];
+		// The user's last design when there is one, the global design otherwise.
+		$ffc_qr_state     = QrGeneratorDesignMemory::state( get_current_user_id() );
+		$ffc_qr_design    = QrGeneratorDesignMemory::design( $ffc_qr_state );
+		$ffc_qr_logo_id   = (int) $ffc_qr_state['qr_design_logo_id'];
+		$ffc_qr_gradient  = (bool) $ffc_qr_state['qr_design_gradient'];
+		$ffc_qr_color_end = (string) $ffc_qr_state['qr_design_color_end'];
+		$ffc_qr_margin    = (int) $ffc_qr_state['margin'];
+		$ffc_qr_level     = (string) $ffc_qr_state['error_level'];
 		$ffc_qr_name      = static fn( string $key ): string => 'design[' . $key . ']';
 
 		include FFC_PLUGIN_DIR . 'templates/admin/qr/generator-page.php';

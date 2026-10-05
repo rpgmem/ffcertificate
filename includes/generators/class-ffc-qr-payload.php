@@ -351,6 +351,17 @@ final class QrPayload {
 			return self::missing( __( 'The event must end after it starts.', 'ffcertificate' ) );
 		}
 
+		$until = $get( 'until' );
+		if ( 'ics' === $mode && '' !== $until ) {
+			$last = \DateTimeImmutable::createFromFormat( '!Y-m-d', $until );
+			if ( false === $last || $last->format( 'Y-m-d' ) !== $until ) {
+				return self::missing( __( 'Enter a valid date for the link expiry.', 'ffcertificate' ) );
+			}
+			if ( strcmp( $until, $date ) < 0 ) {
+				return self::missing( __( 'The link cannot expire before the event.', 'ffcertificate' ) );
+			}
+		}
+
 		$stamp_start = str_replace( '-', '', $date ) . 'T' . str_replace( ':', '', $start ) . '00';
 		$stamp_end   = str_replace( '-', '', $date ) . 'T' . str_replace( ':', '', $end ) . '00';
 		$location    = $get( 'location' );
@@ -385,6 +396,7 @@ final class QrPayload {
 					'date'        => $date,
 					'start'       => $start,
 					'end'         => $end,
+					'until'       => $until,
 				)
 			);
 		}

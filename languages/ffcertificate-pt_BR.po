@@ -23954,3 +23954,27 @@ msgstr "Telefone comercial"
 
 msgid "Short URLs → QR Code Generator makes a QR code for a website, plain text, a Wi-Fi network, an e-mail, a phone call, an SMS, a WhatsApp chat, a contact card (vCard), a social profile or an event, styled from the global design and downloaded as PNG or SVG. It stores nothing: only the \"Shorten\" button creates a short URL, which then appears in the list. It needs ffc_manage_url_shortener."
 msgstr "URLs curtas → Gerador de QR Code cria um QR Code para um site, texto simples, uma rede Wi-Fi, um e-mail, uma ligação, um SMS, uma conversa no WhatsApp, um cartão de contato (vCard), um perfil em rede social ou um evento, estilizado a partir do design global e baixado em PNG ou SVG. Não armazena nada: apenas o botão \"Encurtar\" cria uma URL curta, que passa a aparecer na lista. Requer ffc_manage_url_shortener."
+
+msgid "Enter a valid date for the link expiry."
+msgstr "Informe uma data válida para a expiração do link."
+
+msgid "The link cannot expire before the event."
+msgstr "O link não pode expirar antes do evento."
+
+msgid "This event link has expired."
+msgstr "Este link de evento expirou."
+
+msgid "Link valid until"
+msgstr "Link válido até"
+
+msgid "Calendar file only. Leave empty for a link that never expires -- a printed code keeps working. After this date the link answers that it has expired."
+msgstr "Somente para o arquivo de calendário. Deixe vazio para um link que nunca expira — um código impresso continua funcionando. Depois desta data, o link responde que expirou."
+
+msgid "Reset to default"
+msgstr "Restaurar padrão"
+
+msgid "The generator remembers your design when you download a code; this goes back to the global design from Settings → QR Code."
+msgstr "O gerador lembra o seu design quando você baixa um código; este botão volta ao design global de Configurações → QR Code."
+
+msgid "Design reset to the global default."
+msgstr "Design restaurado para o padrão global."

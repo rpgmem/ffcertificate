@@ -237,4 +237,21 @@ class QrPayloadTest extends TestCase {
 		// An unknown mode falls back to the event itself.
 		$this->assertStringStartsWith( 'BEGIN:VEVENT', (string) QrPayload::build( 'event', $this->event( array( 'mode' => 'outlook' ) ) ) );
 	}
+
+	public function test_the_ics_link_carries_its_expiry_in_the_signed_payload(): void {
+		$link = (string) QrPayload::build( 'event', $this->event( array( 'mode' => 'ics', 'until' => '2026-11-30' ) ) );
+		parse_str( (string) parse_url( $link, PHP_URL_QUERY ), $query );
+
+		$event = \FreeFormCertificate\Generators\QrEventLink::verify( (string) $query['e'], (string) $query['s'] );
+		$this->assertSame( '2026-11-30', $event['until'] ?? null );
+	}
+
+	public function test_the_ics_expiry_is_validated_and_ignored_by_other_modes(): void {
+		$this->assertSame( 'Enter a valid date for the link expiry.', $this->error( 'event', $this->event( array( 'mode' => 'ics', 'until' => '2026-13-01' ) ) ) );
+		$this->assertSame( 'The link cannot expire before the event.', $this->error( 'event', $this->event( array( 'mode' => 'ics', 'until' => '2026-11-09' ) ) ) );
+		// The same day as the event is allowed: the link lasts through it.
+		$this->assertStringStartsWith( 'https://site.test/', (string) QrPayload::build( 'event', $this->event( array( 'mode' => 'ics', 'until' => '2026-11-10' ) ) ) );
+		// Only the .ics link can expire; a malformed date is no error for the others.
+		$this->assertStringStartsWith( 'BEGIN:VEVENT', (string) QrPayload::build( 'event', $this->event( array( 'until' => 'garbage' ) ) ) );
+	}
 }
