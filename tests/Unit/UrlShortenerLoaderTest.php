@@ -182,6 +182,7 @@ class UrlShortenerLoaderTest extends TestCase {
 		$this->assertNotFalse( has_action( 'wp_ajax_ffc_qr_generate', 'FreeFormCertificate\UrlShortener\QrGeneratorAjaxEndpoint->handle_generate()' ) );
 		$this->assertNotFalse( has_action( 'wp_ajax_ffc_qr_shorten', 'FreeFormCertificate\UrlShortener\QrGeneratorAjaxEndpoint->handle_shorten()' ) );
 		$this->assertNotFalse( has_action( 'admin_menu', 'FreeFormCertificate\UrlShortener\QrGeneratorPage->register_menu()' ) );
+		$this->assertNotFalse( has_action( 'admin_post_nopriv_ffc_qr_ics', 'FreeFormCertificate\UrlShortener\QrEventIcsHandler->handle()' ) );
 	}
 
 	public function test_init_registers_auto_create_outside_admin(): void {

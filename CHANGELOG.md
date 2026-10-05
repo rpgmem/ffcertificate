@@ -12,6 +12,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **QR code design** (#1563). A new Settings → QR Code tab sets the module shape (square, rounded, dots, fluid, diamond), the corner markers, colours and an optional gradient, with a live preview that warns about low contrast and inverted colours. Off by default; switched on separately for certificates and short URLs.
 - **QR code logo and frames** (#1563). The design can carry a Media Library logo in the centre (error correction forced to H) and a banner, badge or speech-bubble frame with a caption of up to 24 characters; certificates and short-URL downloads keep the framed proportions.
 - **QR Code Generator** (#1563). Short URLs → QR Code Generator draws a code for a website, text, Wi-Fi, e-mail, phone call, SMS or WhatsApp, styled per code from the global design, with a capacity meter and a density warning, downloaded as PNG or SVG. Stateless: only "Shorten" stores something, a short URL.
+- **QR Code Generator: contact card, social profile and event** (#1563). A vCard carried whole in the code; a profile on nine networks from the user name alone; a one-day event as the event itself, a pre-filled Google Calendar link, or a signed link to an `.ics` file built by the scheduling module's generator.
+- **QR Code Generator: optional expiry for the event link, and a remembered design** (#1568). An `.ics` link can carry a signed "valid until" date and answers 410 after it; links without one, older links included, never expire. The generator reopens with each user's last downloaded design (design only, never content), and "Reset to default" restores the global one.
 
 ### Changed
 

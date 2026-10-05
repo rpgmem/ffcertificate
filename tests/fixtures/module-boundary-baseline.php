@@ -141,6 +141,7 @@ return array(
 	'UrlShortener>Core',
 	'UrlShortener>Generators',
 	'UrlShortener>Repositories',
+	'UrlShortener>Scheduling',
 	'UserDashboard>Core',
 	'UserDashboard>Integrations',
 	'UserDashboard>Repositories',

@@ -26,7 +26,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class QrPayload {
 
 	/** Types the manual generator offers. */
-	public const TYPES = array( 'url', 'text', 'wifi', 'email', 'phone', 'sms', 'whatsapp' );
+	public const TYPES = array( 'url', 'text', 'wifi', 'email', 'phone', 'sms', 'whatsapp', 'vcard', 'social', 'event' );
+
+	/**
+	 * Social networks: label and profile prefix; the operator types only the
+	 * user name. Labels are brand names and are not translated.
+	 */
+	public const NETWORKS = array(
+		'instagram' => array( 'Instagram', 'https://www.instagram.com/' ),
+		'facebook'  => array( 'Facebook', 'https://www.facebook.com/' ),
+		'x'         => array( 'X (Twitter)', 'https://x.com/' ),
+		'linkedin'  => array( 'LinkedIn', 'https://www.linkedin.com/in/' ),
+		'youtube'   => array( 'YouTube', 'https://www.youtube.com/@' ),
+		'tiktok'    => array( 'TikTok', 'https://www.tiktok.com/@' ),
+		'threads'   => array( 'Threads', 'https://www.threads.net/@' ),
+		'telegram'  => array( 'Telegram', 'https://t.me/' ),
+		'github'    => array( 'GitHub', 'https://github.com/' ),
+	);
+
+	/** How an event is delivered by the code. */
+	public const EVENT_MODES = array( 'vevent', 'google', 'ics' );
 
 	/** Wi-Fi security types (`nopass` is an open network). */
 	public const WIFI_SECURITY = array( 'WPA', 'WEP', 'nopass' );
@@ -78,6 +97,12 @@ final class QrPayload {
 				return '' === $number ? self::missing( __( 'Enter a valid phone number.', 'ffcertificate' ) ) : 'SMSTO:' . $number . ':' . $get( 'message' );
 			case 'whatsapp':
 				return self::whatsapp( $get( 'phone' ), $get( 'message' ) );
+			case 'vcard':
+				return self::vcard( $get );
+			case 'social':
+				return self::social( $get( 'network' ), $get( 'username' ) );
+			case 'event':
+				return self::event( $get );
 			default:
 				return new WP_Error( 'ffc_qr_type', __( 'Unknown QR code type.', 'ffcertificate' ) );
 		}
@@ -210,6 +235,195 @@ final class QrPayload {
 		$digits = (string) preg_replace( '/\D+/', '', $raw );
 		$length = strlen( $digits );
 		return $length >= 3 && $length <= 15 ? ( $plus ? '+' : '' ) . $digits : '';
+	}
+
+	/**
+	 * A contact card (vCard 3.0), carried whole in the code: nothing is
+	 * hosted, so scanning works offline and nothing about the person is stored.
+	 *
+	 * @param callable(string): string $get Field reader.
+	 * @return string|WP_Error
+	 */
+	private static function vcard( callable $get ) {
+		$first = $get( 'first_name' );
+		$last  = $get( 'last_name' );
+		$org   = $get( 'organization' );
+		if ( '' === $first && '' === $last && '' === $org ) {
+			return self::missing( __( 'Enter a name or an organisation.', 'ffcertificate' ) );
+		}
+
+		$email = $get( 'email' );
+		if ( '' !== $email ) {
+			$email = \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( $email ) );
+			if ( '' === $email || ! is_email( $email ) ) {
+				return self::missing( __( 'Enter a valid e-mail address.', 'ffcertificate' ) );
+			}
+		}
+
+		$website = '' === $get( 'website' ) ? '' : self::url( $get( 'website' ) );
+		if ( is_wp_error( $website ) ) {
+			return $website;
+		}
+
+		$full  = trim( $first . ' ' . $last );
+		$lines = array(
+			'BEGIN:VCARD',
+			'VERSION:3.0',
+			'N:' . self::text_escape( $last ) . ';' . self::text_escape( $first ) . ';;;',
+			'FN:' . self::text_escape( '' !== $full ? $full : $org ),
+		);
+
+		$optional = array(
+			'ORG'                 => $org,
+			'TITLE'               => $get( 'job_title' ),
+			'TEL;TYPE=WORK,VOICE' => self::phone_number( $get( 'phone' ) ),
+			'TEL;TYPE=CELL'       => self::phone_number( $get( 'mobile' ) ),
+			'EMAIL;TYPE=INTERNET' => $email,
+			'URL'                 => $website,
+			'NOTE'                => $get( 'note' ),
+		);
+		foreach ( $optional as $property => $value ) {
+			if ( '' !== $value ) {
+				$lines[] = $property . ':' . ( 'URL' === $property ? $value : self::text_escape( $value ) );
+			}
+		}
+
+		$address = array( $get( 'street' ), $get( 'city' ), $get( 'region' ), $get( 'postcode' ), $get( 'country' ) );
+		if ( '' !== implode( '', $address ) ) {
+			$lines[] = 'ADR;TYPE=WORK:;;' . implode( ';', array_map( array( self::class, 'text_escape' ), $address ) );
+		}
+
+		$lines[] = 'END:VCARD';
+		return implode( "\r\n", $lines );
+	}
+
+	/**
+	 * A social profile: the network's prefix and the user name.
+	 *
+	 * @param string $network  Key of self::NETWORKS.
+	 * @param string $username As typed, with or without `@` or a pasted URL.
+	 * @return string|WP_Error
+	 */
+	private static function social( string $network, string $username ) {
+		if ( ! isset( self::NETWORKS[ $network ] ) ) {
+			return self::missing( __( 'Choose a social network.', 'ffcertificate' ) );
+		}
+
+		// Accept a pasted profile URL: keep only its last path segment.
+		$username = (string) preg_replace( '#^https?://[^/]+/(?:in/)?@?#i', '', $username );
+		$username = ltrim( trim( $username, " /\t\n\r" ), '@' );
+		if ( '' === $username || ! preg_match( '/^[A-Za-z0-9._-]{1,100}$/', $username ) ) {
+			return self::missing( __( 'Enter the user name (letters, digits, dots, dashes and underscores).', 'ffcertificate' ) );
+		}
+
+		return self::NETWORKS[ $network ][1] . $username;
+	}
+
+	/**
+	 * An event on one day, delivered three ways: the event itself in the
+	 * code (`vevent`, which phone cameras offer to add), a Google Calendar
+	 * link, or a signed link to an `.ics` file.
+	 *
+	 * Times are the site's wall clock (Category B): the VEVENT and the `.ics`
+	 * carry floating local times, and the Google link names the site time zone.
+	 *
+	 * @param callable(string): string $get Field reader.
+	 * @return string|WP_Error
+	 */
+	private static function event( callable $get ) {
+		$title = $get( 'title' );
+		$date  = $get( 'date' );
+		$start = $get( 'start' );
+		$end   = $get( 'end' );
+		$mode  = in_array( $get( 'mode' ), self::EVENT_MODES, true ) ? $get( 'mode' ) : 'vevent';
+
+		if ( '' === $title ) {
+			return self::missing( __( 'Enter the event title.', 'ffcertificate' ) );
+		}
+		$day = \DateTimeImmutable::createFromFormat( '!Y-m-d', $date );
+		if ( false === $day || $day->format( 'Y-m-d' ) !== $date ) {
+			return self::missing( __( 'Enter a valid date.', 'ffcertificate' ) );
+		}
+		if ( ! preg_match( '/^([01]\d|2[0-3]):[0-5]\d$/', $start ) || ! preg_match( '/^([01]\d|2[0-3]):[0-5]\d$/', $end ) ) {
+			return self::missing( __( 'Enter the start and end times.', 'ffcertificate' ) );
+		}
+		if ( strcmp( $end, $start ) <= 0 ) {
+			return self::missing( __( 'The event must end after it starts.', 'ffcertificate' ) );
+		}
+
+		$until = $get( 'until' );
+		if ( 'ics' === $mode && '' !== $until ) {
+			$last = \DateTimeImmutable::createFromFormat( '!Y-m-d', $until );
+			if ( false === $last || $last->format( 'Y-m-d' ) !== $until ) {
+				return self::missing( __( 'Enter a valid date for the link expiry.', 'ffcertificate' ) );
+			}
+			if ( strcmp( $until, $date ) < 0 ) {
+				return self::missing( __( 'The link cannot expire before the event.', 'ffcertificate' ) );
+			}
+		}
+
+		$stamp_start = str_replace( '-', '', $date ) . 'T' . str_replace( ':', '', $start ) . '00';
+		$stamp_end   = str_replace( '-', '', $date ) . 'T' . str_replace( ':', '', $end ) . '00';
+		$location    = $get( 'location' );
+		$description = $get( 'description' );
+
+		if ( 'google' === $mode ) {
+			return add_query_arg(
+				array_map(
+					'rawurlencode',
+					array_filter(
+						array(
+							'action'   => 'TEMPLATE',
+							'text'     => $title,
+							'dates'    => $stamp_start . '/' . $stamp_end,
+							'ctz'      => wp_timezone_string(),
+							'location' => $location,
+							'details'  => $description,
+						),
+						static fn( string $v ): bool => '' !== $v
+					)
+				),
+				'https://calendar.google.com/calendar/render'
+			);
+		}
+
+		if ( 'ics' === $mode ) {
+			return QrEventLink::url(
+				array(
+					'title'       => $title,
+					'location'    => $location,
+					'description' => $description,
+					'date'        => $date,
+					'start'       => $start,
+					'end'         => $end,
+					'until'       => $until,
+				)
+			);
+		}
+
+		$lines = array( 'BEGIN:VEVENT', 'SUMMARY:' . self::text_escape( $title ), 'DTSTART:' . $stamp_start, 'DTEND:' . $stamp_end );
+		if ( '' !== $location ) {
+			$lines[] = 'LOCATION:' . self::text_escape( $location );
+		}
+		if ( '' !== $description ) {
+			$lines[] = 'DESCRIPTION:' . self::text_escape( $description );
+		}
+		$lines[] = 'END:VEVENT';
+		return implode( "\r\n", $lines );
+	}
+
+	/**
+	 * Escape a vCard / iCalendar text value (RFC 6350 §3.4, RFC 5545 §3.3.11).
+	 *
+	 * @param string $value Text.
+	 * @return string
+	 */
+	private static function text_escape( string $value ): string {
+		return str_replace(
+			array( '\\', ';', ',', "\r\n", "\n", "\r" ),
+			array( '\\\\', '\\;', '\\,', '\\n', '\\n', '\\n' ),
+			$value
+		);
 	}
 
 	/**

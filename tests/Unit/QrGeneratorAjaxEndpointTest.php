@@ -85,8 +85,8 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->fail( 'The handler must answer.' );
 	}
 
-	public function test_init_registers_both_actions(): void {
-		Functions\expect( 'add_action' )->twice();
+	public function test_init_registers_every_action(): void {
+		Functions\expect( 'add_action' )->times( 3 );
 
 		$this->endpoint->init();
 	}
@@ -105,8 +105,11 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->run_handler( 'handle_generate' );
 		$_POST = array( 'url' => 'https://example.com' );
 		$this->run_handler( 'handle_shorten' );
+		$this->stub_user_meta();
+		$_POST = array( 'reset' => '1' );
+		$this->run_handler( 'handle_remember' );
 
-		$this->assertSame( array( 'ffc_qr_generate|nonce', 'ffc_qr_shorten|nonce' ), $checked );
+		$this->assertSame( array( 'ffc_qr_generate|nonce', 'ffc_qr_shorten|nonce', 'ffc_qr_remember|nonce' ), $checked );
 	}
 
 	public function test_without_the_manage_cap_nothing_is_drawn_or_shortened(): void {
@@ -115,6 +118,82 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->assertSame( 'error:403', $this->run_handler( 'handle_generate' )[0] );
 		$this->service->shouldNotReceive( 'create_short_url' );
 		$this->assertSame( 'error:403', $this->run_handler( 'handle_shorten' )[0] );
+		Functions\expect( 'update_user_meta' )->never();
+		Functions\expect( 'delete_user_meta' )->never();
+		$this->assertSame( 'error:403', $this->run_handler( 'handle_remember' )[0] );
+	}
+
+	/** @var array<string, mixed> */
+	private array $meta = array();
+
+	/**
+	 * User 5 is logged in; its meta lives in $this->meta.
+	 */
+	private function stub_user_meta(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => strip_tags( (string) $s ) );
+		Functions\when( 'get_user_meta' )->alias( fn( $id, $key ) => $this->meta[ $key ] ?? '' );
+		Functions\when( 'update_user_meta' )->alias(
+			function ( $id, $key, $value ) {
+				$this->meta[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'delete_user_meta' )->alias(
+			function ( $id, $key ) {
+				unset( $this->meta[ $key ] );
+				return true;
+			}
+		);
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( '' );
+	}
+
+	public function test_remember_stores_the_design_only(): void {
+		$this->stub_user_meta();
+		$_POST = array(
+			'design'      => array( 'dots' => 'fluid', 'color' => '#112233', 'gradient' => '1', 'color_end' => '#445566' ),
+			'logo_id'     => '0',
+			'margin'      => '3',
+			'error_level' => 'H',
+			'fields'      => array( 'password' => 'secret' ),
+		);
+
+		list( $kind, $data ) = $this->run_handler( 'handle_remember' );
+
+		$this->assertSame( 'success', $kind );
+		$stored = $this->meta['ffc_qr_generator_design'];
+		$this->assertSame( 'fluid', $stored['qr_design_dots'] );
+		$this->assertSame( '#112233', $stored['qr_design_color'] );
+		$this->assertTrue( $stored['qr_design_gradient'] );
+		$this->assertSame( 3, $stored['margin'] );
+		$this->assertSame( 'H', $stored['error_level'] );
+		$this->assertStringNotContainsString( 'secret', (string) json_encode( $stored ), 'Content never reaches the database.' );
+		$this->assertSame( $stored, $data['state'] );
+	}
+
+	public function test_remember_drops_a_logo_the_user_cannot_read(): void {
+		$this->stub_user_meta();
+		$_POST = array( 'design' => array(), 'logo_id' => '42' );
+
+		$this->run_handler( 'handle_remember' );
+		$this->assertSame( 0, $this->meta['ffc_qr_generator_design']['qr_design_logo_id'] );
+
+		$this->caps[] = 'read_post';
+		$this->run_handler( 'handle_remember' );
+		$this->assertSame( 42, $this->meta['ffc_qr_generator_design']['qr_design_logo_id'] );
+	}
+
+	public function test_reset_forgets_and_answers_with_the_global_design(): void {
+		$this->stub_user_meta();
+		$this->meta['ffc_qr_generator_design'] = array( 'qr_design_dots' => 'fluid' );
+		$_POST = array( 'reset' => '1' );
+
+		list( $kind, $data ) = $this->run_handler( 'handle_remember' );
+
+		$this->assertSame( 'success', $kind );
+		$this->assertArrayNotHasKey( 'ffc_qr_generator_design', $this->meta );
+		$this->assertSame( 'square', $data['state']['qr_design_dots'] );
+		$this->assertSame( '', $data['logo_thumb'] );
 	}
 
 	public function test_generate_draws_the_payload_with_usage_and_checks(): void {

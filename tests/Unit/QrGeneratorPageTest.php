@@ -72,6 +72,8 @@ class QrGeneratorPageTest extends TestCase {
 		$this->assertContains( 'ffc-qr-design', $scripts );
 		$this->assertSame( 'nonce-ffc_qr_generate', $localized['ffcQrGenerator']['generateNonce'] );
 		$this->assertSame( 'nonce-ffc_qr_shorten', $localized['ffcQrGenerator']['shortenNonce'] );
+		$this->assertSame( 'ffc_qr_remember', $localized['ffcQrGenerator']['remember'] );
+		$this->assertSame( 'nonce-ffc_qr_remember', $localized['ffcQrGenerator']['rememberNonce'] );
 	}
 
 	public function test_render_refuses_without_the_manage_tier(): void {
@@ -101,13 +103,15 @@ class QrGeneratorPageTest extends TestCase {
 			echo $a === $b ? ' selected="selected"' : '';
 		} );
 		Functions\when( 'wp_get_attachment_image_url' )->justReturn( '' );
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'get_user_meta' )->justReturn( '' );
 
 		ob_start();
 		( new QrGeneratorPage() )->render_page();
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'class="wrap ffc-admin-page ffc-page-qr-generator"', $html );
-		foreach ( array( 'url', 'text', 'wifi', 'email', 'phone', 'sms', 'whatsapp' ) as $type ) {
+		foreach ( \FreeFormCertificate\Generators\QrPayload::TYPES as $type ) {
 			$this->assertStringContainsString( 'data-ffc-qr-type="' . $type . '"', $html, $type );
 		}
 		$this->assertStringContainsString( 'value="url"  checked="checked"', $html );
@@ -115,5 +119,33 @@ class QrGeneratorPageTest extends TestCase {
 		$this->assertStringContainsString( 'name="design[qr_design_dots]"', $html );
 		$this->assertStringContainsString( 'data-ffc-qr-design="qr_design_frame"', $html );
 		$this->assertStringContainsString( 'id="ffc-qr-download-png"', $html );
+		$this->assertStringContainsString( 'data-ffc-qr-prefix="https://www.instagram.com/"', $html );
+		$this->assertStringContainsString( 'data-ffc-qr-field="event:mode"', $html );
+		$this->assertStringContainsString( 'data-ffc-qr-field="vcard:organization"', $html );
+		$this->assertStringContainsString( 'data-ffc-qr-field="event:until"', $html );
+		$this->assertStringContainsString( 'id="ffc-qr-design-reset"', $html );
+		$this->assertStringContainsString( '<option value="square"  selected="selected">', $html, 'Nothing remembered: the global design.' );
+	}
+
+	public function test_render_opens_with_the_users_remembered_design(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		foreach ( array( 'esc_html', 'esc_attr', 'esc_url', 'esc_html__', 'esc_attr__', 'esc_html_e', 'esc_attr_e' ) as $fn ) {
+			Functions\when( $fn )->returnArg();
+		}
+		Functions\when( 'checked' )->justReturn( '' );
+		Functions\when( 'selected' )->alias( static function ( $a, $b ) {
+			echo $a === $b ? ' selected="selected"' : '';
+		} );
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( '' );
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => strip_tags( (string) $s ) );
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'get_user_meta' )->justReturn( array( 'qr_design_dots' => 'diamond', 'error_level' => 'H' ) );
+
+		ob_start();
+		( new QrGeneratorPage() )->render_page();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<option value="diamond"  selected="selected">', $html );
+		$this->assertStringContainsString( '<option value="H"  selected="selected">', $html );
 	}
 }

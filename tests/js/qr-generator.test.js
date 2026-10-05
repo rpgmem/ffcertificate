@@ -25,9 +25,13 @@ function mount() {
 				<input data-ffc-qr-field="wifi:ssid" value="Net">
 				<input type="checkbox" data-ffc-qr-field="wifi:hidden" value="1" checked>
 			</td></tr></table>
-			<select data-ffc-qr-design="qr_design_dots"><option value="dots" selected>dots</option></select>
+			<select data-ffc-qr-design="qr_design_dots"><option value="dots" selected>dots</option><option value="square">square</option></select>
+			<input type="checkbox" data-ffc-qr-design="qr_design_gradient" value="1" checked>
+			<input type="hidden" data-ffc-qr-design="qr_design_logo_id" value="9">
+			<img id="ffc-qr-logo-thumb" src="logo.png">
+			<button type="button" id="ffc-qr-design-reset">Reset</button>
 			<input id="qr_default_margin" value="2">
-			<select id="qr_default_error_level"><option value="M" selected>M</option></select>
+			<select id="qr_default_error_level"><option value="M" selected>M</option><option value="Q">Q</option></select>
 			<div id="ffc-qr-generator-preview"></div>
 			<p id="ffc-qr-generator-usage"></p>
 			<p id="ffc-qr-generator-status"></p>
@@ -46,7 +50,9 @@ beforeAll(() => {
 		generateNonce: 'gen-nonce',
 		shorten: 'ffc_qr_shorten',
 		shortenNonce: 'short-nonce',
-		i18n: { usage: '%1$d of %2$d bytes (%3$d%%)', dense: 'Dense (version %d)', lowContrast: 'Low (%s:1)', inverted: 'Inverted', captionContrast: 'Caption', ok: 'Readable', error: 'Failed', shortened: 'Shortened' },
+		remember: 'ffc_qr_remember',
+		rememberNonce: 'remember-nonce',
+		i18n: { usage: '%1$d of %2$d bytes (%3$d%%)', dense: 'Dense (version %d)', lowContrast: 'Low (%s:1)', inverted: 'Inverted', captionContrast: 'Caption', ok: 'Readable', error: 'Failed', shortened: 'Shortened', reset: 'Reset done' },
 	};
 	window.ffcQrDesign = { i18n: {} };
 	if (!window.FFC || !window.FFC.request) { loadScript('assets/js/ffc-core.js'); }
@@ -169,6 +175,23 @@ describe('ffc-qr-generator.js', () => {
 		expect(spy).toHaveBeenCalledTimes(1);
 	});
 
+	it('shows the chosen network\'s prefix before the user name', () => {
+		document.body.innerHTML = `
+			<form id="ffc-qr-generator">
+				<select id="ffc-qr-network">
+					<option value="instagram" data-ffc-qr-prefix="https://www.instagram.com/">Instagram</option>
+					<option value="github" data-ffc-qr-prefix="https://github.com/">GitHub</option>
+				</select>
+				<code id="ffc-qr-social-prefix">https://www.instagram.com/</code>
+			</form>`;
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+		window.FFC.QrGenerator.init();
+
+		window.$('#ffc-qr-network').val('github').trigger('change');
+
+		expect(window.$('#ffc-qr-social-prefix').text()).toBe('https://github.com/');
+	});
+
 	it('does nothing on another screen', () => {
 		document.body.innerHTML = '<form></form>';
 		const spy = vi.spyOn(window.$, 'post');
@@ -176,5 +199,60 @@ describe('ffc-qr-generator.js', () => {
 		window.FFC.QrGenerator.init();
 
 		expect(spy).not.toHaveBeenCalled();
+	});
+
+	it('a download remembers the design, never the content (#1568)', async () => {
+		const spy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+		vi.spyOn(window.FFC.QrRaster, 'download').mockImplementation(() => {});
+		vi.spyOn(window.FFC.QrRaster, 'toPng').mockResolvedValue('UE5H');
+		window.FFC.QrGenerator.init();
+		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
+
+		window.$('#ffc-qr-download-svg').trigger('click');
+		window.$('#ffc-qr-download-png').trigger('click');
+		await flush();
+
+		const remembered = spy.mock.calls.filter((c) => c[1].action === 'ffc_qr_remember').map((c) => c[1]);
+		expect(remembered).toHaveLength(2);
+		expect(remembered[0]).toMatchObject({ nonce: 'remember-nonce', logo_id: '9', margin: '2', error_level: 'M' });
+		expect(remembered[0].design).toMatchObject({ dots: 'dots', gradient: '1' });
+		expect(remembered[0]).not.toHaveProperty('fields');
+		expect(remembered[0]).not.toHaveProperty('type');
+	});
+
+	it('reset puts the global design back and redraws (#1568)', async () => {
+		const state = { qr_design_dots: 'square', qr_design_gradient: false, qr_design_logo_id: 0, margin: 4, error_level: 'Q' };
+		const spy = vi.spyOn(window.$, 'post').mockImplementation((url, payload) => postChain({
+			done: payload.action === 'ffc_qr_remember'
+				? { success: true, data: { state, logo_thumb: '' } }
+				: { success: true, data: OK },
+		}));
+		window.FFC.QrGenerator.init();
+
+		window.$('#ffc-qr-design-reset').trigger('click');
+		await flush();
+		await flush();
+
+		expect(spy.mock.calls[0][1]).toMatchObject({ action: 'ffc_qr_remember', nonce: 'remember-nonce', reset: '1' });
+		expect(window.$('[data-ffc-qr-design="qr_design_dots"]').val()).toBe('square');
+		expect(window.$('[data-ffc-qr-design="qr_design_gradient"]').prop('checked')).toBe(false);
+		expect(window.$('[data-ffc-qr-design="qr_design_logo_id"]').val()).toBe('0');
+		expect(window.$('#ffc-qr-logo-thumb').prop('hidden')).toBe(true);
+		expect(window.$('#qr_default_margin').val()).toBe('4');
+		expect(window.$('#qr_default_error_level').val()).toBe('Q');
+		expect(spy.mock.calls[1][1]).toMatchObject({ action: 'ffc_qr_generate', margin: '4', error_level: 'Q' });
+		expect(window.$('#ffc-qr-generator-status').text()).toBe('Reset done');
+		expect(window.$('#ffc-qr-design-reset').prop('disabled')).toBe(false);
+	});
+
+	it('a failed reset says so and leaves the fields alone', async () => {
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Permission denied.' } } }));
+		window.FFC.QrGenerator.init();
+
+		window.$('#ffc-qr-design-reset').trigger('click');
+		await flush();
+
+		expect(window.$('#ffc-qr-generator-status').text()).toBe('Permission denied.');
+		expect(window.$('[data-ffc-qr-design="qr_design_dots"]').val()).toBe('dots');
 	});
 });

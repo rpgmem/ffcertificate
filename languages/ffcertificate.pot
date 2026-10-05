@@ -23780,5 +23780,110 @@ msgstr ""
 msgid "With the country code, so it works from anywhere."
 msgstr ""
 
-msgid "Short URLs → QR Code Generator makes a QR code for a website, plain text, a Wi-Fi network, an e-mail, a phone call, an SMS or a WhatsApp chat, styled from the global design and downloaded as PNG or SVG. It stores nothing: only the \"Shorten\" button creates a short URL, which then appears in the list. It needs ffc_manage_url_shortener."
+msgid "A calendar file (.ics) for any calendar app"
+msgstr ""
+
+msgid "Choose a social network."
+msgstr ""
+
+msgid "Contact card (vCard)"
+msgstr ""
+
+msgid "Country"
+msgstr ""
+
+msgid "Enter a name or an organisation."
+msgstr ""
+
+msgid "Enter a valid date."
+msgstr ""
+
+msgid "Enter the event title."
+msgstr ""
+
+msgid "Enter the start and end times."
+msgstr ""
+
+msgid "Enter the user name (letters, digits, dots, dashes and underscores)."
+msgstr ""
+
+msgid "First name"
+msgstr ""
+
+msgid "Google Calendar, already filled in"
+msgstr ""
+
+msgid "In the site's time zone, on one day."
+msgstr ""
+
+msgid "Job title"
+msgstr ""
+
+msgid "Last name"
+msgstr ""
+
+msgid "Location"
+msgstr ""
+
+msgid "Mobile"
+msgstr ""
+
+msgid "Network"
+msgstr ""
+
+msgid "Note"
+msgstr ""
+
+msgid "Organisation"
+msgstr ""
+
+msgid "Scanning opens"
+msgstr ""
+
+msgid "Social profile"
+msgstr ""
+
+msgid "The event itself (the phone offers to add it to its calendar)"
+msgstr ""
+
+msgid "The event must end after it starts."
+msgstr ""
+
+msgid "The whole card travels inside the code: it works offline and nothing about the person is stored. Every field you fill makes the code denser."
+msgstr ""
+
+msgid "This event link is not valid."
+msgstr ""
+
+msgid "User name"
+msgstr ""
+
+msgid "Work phone"
+msgstr ""
+
+msgid "Short URLs → QR Code Generator makes a QR code for a website, plain text, a Wi-Fi network, an e-mail, a phone call, an SMS, a WhatsApp chat, a contact card (vCard), a social profile or an event, styled from the global design and downloaded as PNG or SVG. It stores nothing: only the \"Shorten\" button creates a short URL, which then appears in the list. It needs ffc_manage_url_shortener."
+msgstr ""
+
+msgid "Enter a valid date for the link expiry."
+msgstr ""
+
+msgid "The link cannot expire before the event."
+msgstr ""
+
+msgid "This event link has expired."
+msgstr ""
+
+msgid "Link valid until"
+msgstr ""
+
+msgid "Calendar file only. Leave empty for a link that never expires -- a printed code keeps working. After this date the link answers that it has expired."
+msgstr ""
+
+msgid "Reset to default"
+msgstr ""
+
+msgid "The generator remembers your design when you download a code; this goes back to the global design from Settings → QR Code."
+msgstr ""
+
+msgid "Design reset to the global default."
 msgstr ""

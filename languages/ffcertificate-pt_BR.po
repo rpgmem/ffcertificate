@@ -23871,5 +23871,110 @@ msgstr "Wi-Fi"
 msgid "With the country code, so it works from anywhere."
 msgstr "Com o código do país, para funcionar de qualquer lugar."
 
-msgid "Short URLs → QR Code Generator makes a QR code for a website, plain text, a Wi-Fi network, an e-mail, a phone call, an SMS or a WhatsApp chat, styled from the global design and downloaded as PNG or SVG. It stores nothing: only the \"Shorten\" button creates a short URL, which then appears in the list. It needs ffc_manage_url_shortener."
-msgstr "URLs curtas → Gerador de QR Code cria um QR Code para um site, texto simples, uma rede Wi-Fi, um e-mail, uma ligação, um SMS ou uma conversa no WhatsApp, estilizado a partir do design global e baixado em PNG ou SVG. Não armazena nada: apenas o botão \"Encurtar\" cria uma URL curta, que passa a aparecer na lista. Requer ffc_manage_url_shortener."
+msgid "A calendar file (.ics) for any calendar app"
+msgstr "Um arquivo de agenda (.ics) para qualquer app de calendário"
+
+msgid "Choose a social network."
+msgstr "Escolha uma rede social."
+
+msgid "Contact card (vCard)"
+msgstr "Cartão de contato (vCard)"
+
+msgid "Country"
+msgstr "País"
+
+msgid "Enter a name or an organisation."
+msgstr "Informe um nome ou uma organização."
+
+msgid "Enter a valid date."
+msgstr "Informe uma data válida."
+
+msgid "Enter the event title."
+msgstr "Informe o título do evento."
+
+msgid "Enter the start and end times."
+msgstr "Informe os horários de início e de fim."
+
+msgid "Enter the user name (letters, digits, dots, dashes and underscores)."
+msgstr "Informe o nome de usuário (letras, números, pontos, hífens e sublinhados)."
+
+msgid "First name"
+msgstr "Nome"
+
+msgid "Google Calendar, already filled in"
+msgstr "O Google Agenda, já preenchido"
+
+msgid "In the site's time zone, on one day."
+msgstr "No fuso horário do site, em um único dia."
+
+msgid "Job title"
+msgstr "Cargo"
+
+msgid "Last name"
+msgstr "Sobrenome"
+
+msgid "Location"
+msgstr "Local"
+
+msgid "Mobile"
+msgstr "Celular"
+
+msgid "Network"
+msgstr "Rede"
+
+msgid "Note"
+msgstr "Observação"
+
+msgid "Organisation"
+msgstr "Organização"
+
+msgid "Scanning opens"
+msgstr "Ao escanear, abre"
+
+msgid "Social profile"
+msgstr "Perfil em rede social"
+
+msgid "The event itself (the phone offers to add it to its calendar)"
+msgstr "O próprio evento (o celular oferece adicioná-lo à agenda)"
+
+msgid "The event must end after it starts."
+msgstr "O evento precisa terminar depois de começar."
+
+msgid "The whole card travels inside the code: it works offline and nothing about the person is stored. Every field you fill makes the code denser."
+msgstr "O cartão inteiro vai dentro do código: funciona offline e nada sobre a pessoa é armazenado. Cada campo preenchido deixa o código mais denso."
+
+msgid "This event link is not valid."
+msgstr "Este link de evento não é válido."
+
+msgid "User name"
+msgstr "Nome de usuário"
+
+msgid "Work phone"
+msgstr "Telefone comercial"
+
+msgid "Short URLs → QR Code Generator makes a QR code for a website, plain text, a Wi-Fi network, an e-mail, a phone call, an SMS, a WhatsApp chat, a contact card (vCard), a social profile or an event, styled from the global design and downloaded as PNG or SVG. It stores nothing: only the \"Shorten\" button creates a short URL, which then appears in the list. It needs ffc_manage_url_shortener."
+msgstr "URLs curtas → Gerador de QR Code cria um QR Code para um site, texto simples, uma rede Wi-Fi, um e-mail, uma ligação, um SMS, uma conversa no WhatsApp, um cartão de contato (vCard), um perfil em rede social ou um evento, estilizado a partir do design global e baixado em PNG ou SVG. Não armazena nada: apenas o botão \"Encurtar\" cria uma URL curta, que passa a aparecer na lista. Requer ffc_manage_url_shortener."
+
+msgid "Enter a valid date for the link expiry."
+msgstr "Informe uma data válida para a expiração do link."
+
+msgid "The link cannot expire before the event."
+msgstr "O link não pode expirar antes do evento."
+
+msgid "This event link has expired."
+msgstr "Este link de evento expirou."
+
+msgid "Link valid until"
+msgstr "Link válido até"
+
+msgid "Calendar file only. Leave empty for a link that never expires -- a printed code keeps working. After this date the link answers that it has expired."
+msgstr "Somente para o arquivo de calendário. Deixe vazio para um link que nunca expira — um código impresso continua funcionando. Depois desta data, o link responde que expirou."
+
+msgid "Reset to default"
+msgstr "Restaurar padrão"
+
+msgid "The generator remembers your design when you download a code; this goes back to the global design from Settings → QR Code."
+msgstr "O gerador lembra o seu design quando você baixa um código; este botão volta ao design global de Configurações → QR Code."
+
+msgid "Design reset to the global default."
+msgstr "Design restaurado para o padrão global."
