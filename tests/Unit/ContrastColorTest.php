@@ -172,6 +172,19 @@ final class ContrastColorTest extends TestCase {
 			}
 		}
 
-		$this->assertGreaterThan( 500, $failed, 'O #333 fixo deveria reprovar em centenas de fundos.' );
+		$this->assertGreaterThan( 500, $failed, 'The fixed #333 should fail over hundreds of backgrounds.' );
+	}
+
+	public function test_ratio_is_symmetric_and_spans_the_wcag_range(): void {
+		$this->assertEqualsWithDelta( 21.0, ContrastColor::ratio( '#000000', '#ffffff' ), 0.001 );
+		$this->assertEqualsWithDelta( 21.0, ContrastColor::ratio( '#fff', '#000' ), 0.001 );
+		$this->assertEqualsWithDelta( 1.0, ContrastColor::ratio( '#2271b1', '#2271b1' ), 0.001 );
+		$this->assertNull( ContrastColor::ratio( 'red', '#ffffff' ) );
+	}
+
+	public function test_is_lighter_compares_luminance(): void {
+		$this->assertTrue( ContrastColor::is_lighter( '#ffffff', '#000000' ) );
+		$this->assertFalse( ContrastColor::is_lighter( '#000000', '#ffffff' ) );
+		$this->assertFalse( ContrastColor::is_lighter( 'nope', '#000000' ) );
 	}
 }

@@ -118,6 +118,23 @@ class QRCodeGenerator {
 			)
 		);
 
+		// The global QR design, when applied to certificates, draws an SVG
+		// instead of the PNG: it needs no GD and no temp file, so it is not
+		// cached either -- and skipping the cache is what keeps a design
+		// change from being masked by PNGs stored before it (#1563).
+		if ( QrDesign::applies_to( 'certificate' ) ) {
+			/** This filter is documented below. */
+			$url = apply_filters( 'ffcertificate_qrcode_url', $url, $submission_id, $params );
+			$svg = QrSvgRenderer::render( $url, QrDesign::from_settings(), $params['error_level'], $params['margin'], $params['size'] );
+			if ( '' === $svg ) {
+				return '';
+			}
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- benign: encoding SVG markup for a data URI.
+			$img_html = $this->format_as_img_tag( base64_encode( $svg ), $params['size'], 'image/svg+xml' );
+			/** This filter is documented below. */
+			return apply_filters( 'ffcertificate_qrcode_html', $img_html, $url, $submission_id );
+		}
+
 		// Check cache if enabled and submission_id provided.
 		if ( $submission_id > 0 && $this->is_cache_enabled() ) {
 			$cached = $this->get_from_cache( $submission_id );
@@ -373,17 +390,19 @@ class QRCodeGenerator {
 	/**
 	 * Format base64 QR Code as HTML img tag
 	 *
-	 * @param string $base64 Base64 encoded PNG.
+	 * @param string $base64 Base64 encoded image.
 	 * @param int    $size Display size in pixels.
+	 * @param string $mime   Image MIME type.
 	 * @return string HTML img tag
 	 */
-	private function format_as_img_tag( string $base64, int $size ): string {
+	private function format_as_img_tag( string $base64, int $size, string $mime = 'image/png' ): string {
 		if ( empty( $base64 ) ) {
 			return '';
 		}
 
 		return sprintf(
-			'<img src="data:image/png;base64,%s" alt="%s" class="skip-lazy no-lazyload perfmatters-lazy-skip" loading="eager" decoding="sync" data-no-lazy="1" data-skip-lazy="1" data-exclude="true" style="width:%dpx !important; height:%dpx !important; display:block !important; margin:0 auto; position:relative !important; z-index:2 !important; visibility:visible !important; opacity:1 !important;" />',
+			'<img src="data:%s;base64,%s" alt="%s" class="skip-lazy no-lazyload perfmatters-lazy-skip" loading="eager" decoding="sync" data-no-lazy="1" data-skip-lazy="1" data-exclude="true" style="width:%dpx !important; height:%dpx !important; display:block !important; margin:0 auto; position:relative !important; z-index:2 !important; visibility:visible !important; opacity:1 !important;" />',
+			$mime,
 			$base64,
 			esc_attr__( 'QR Code', 'ffcertificate' ),
 			$size,

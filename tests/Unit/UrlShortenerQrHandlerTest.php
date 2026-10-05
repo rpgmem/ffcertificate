@@ -49,6 +49,10 @@ class UrlShortenerQrHandlerTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 
+		// The QR design switch (#1563) is read from `ffc_settings`; off unless
+		// a test turns it on.
+		Functions\when( 'get_option' )->justReturn( array() );
+
 		$this->service = Mockery::mock( UrlShortenerService::class );
 		$this->handler = new UrlShortenerQrHandler( $this->service );
 	}
@@ -204,7 +208,62 @@ class UrlShortenerQrHandlerTest extends TestCase {
 
 		$this->assertStringContainsString( '<svg', $svg );
 		$this->assertStringContainsString( 'viewBox', $svg );
-		$this->assertStringContainsString( 'fill="black"', $svg );
+		$this->assertStringContainsString( 'fill="#000000"', $svg );
+		$this->assertStringContainsString( 'width="200" height="200"', $svg );
+	}
+
+	public function test_generate_svg_paints_only_the_dark_modules(): void {
+		// The previous body tested phpqrcode's raw frame bytes for truth, and
+		// a light module there is a non-zero byte -- so every module came out
+		// dark and the download was a solid square (#1563).
+		$svg    = $this->handler->generate_svg( 'https://example.com/x', 200 );
+		$matrix = \FreeFormCertificate\Generators\QrSvgRenderer::matrix( 'https://example.com/x', 'M' );
+		$n      = count( $matrix );
+
+		$this->assertLessThan( $n * $n * 0.7, substr_count( $svg, '<rect x=' ) );
+	}
+
+	public function test_generate_svg_draws_the_design_when_applied_to_short_urls(): void {
+		Functions\when( 'get_option' )->justReturn(
+			array(
+				'qr_design_on_short_urls' => 1,
+				'qr_design_dots'          => 'dots',
+			)
+		);
+
+		$this->assertTrue( $this->handler->is_designed() );
+		$this->assertStringContainsString( '<circle', $this->handler->generate_svg( 'https://example.com/x', 200 ) );
+	}
+
+	public function test_preview_src_is_the_svg_when_designed(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'qr_design_on_short_urls' => 1 ) );
+
+		$src = $this->handler->preview_src( 'https://example.com/x' );
+
+		$this->assertStringStartsWith( 'data:image/svg+xml;base64,', $src );
+		$this->assertStringContainsString( '<svg', base64_decode( substr( $src, 26 ) ) );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_preview_src_is_the_png_otherwise(): void {
+		$gen = Mockery::mock( 'overload:FreeFormCertificate\Generators\QRCodeGenerator' );
+		$gen->shouldReceive( 'generate' )->andReturn( 'PNG64' );
+
+		$this->assertSame( 'data:image/png;base64,PNG64', $this->handler->preview_src( 'https://example.com/x', 400 ) );
+	}
+
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_preview_src_is_empty_when_generation_fails(): void {
+		$gen = Mockery::mock( 'overload:FreeFormCertificate\Generators\QRCodeGenerator' );
+		$gen->shouldReceive( 'generate' )->andReturn( '' );
+
+		$this->assertSame( '', $this->handler->preview_src( 'https://example.com/x', 400 ) );
 	}
 
 	public function test_generate_svg_clamps_module_size_for_tiny_size(): void {
@@ -465,5 +524,48 @@ class UrlShortenerQrHandlerTest extends TestCase {
 		$this->assertSame( 'image/svg+xml', $sent['mime'] );
 		// Payload is base64-encoded SVG markup.
 		$this->assertStringContainsString( '<svg', base64_decode( $sent['data'] ) );
+	}
+
+	/**
+	 * With the design applied the PNG download ships the styled SVG flagged
+	 * for rasterising in the browser, never a plain server PNG (#1563).
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_handle_download_png_ships_the_svg_for_rasterising_when_designed(): void {
+		$_POST['nonce'] = 'valid';
+		$_POST['code']  = 'abc';
+
+		Functions\when( 'get_option' )->justReturn( array( 'qr_design_on_short_urls' => 1, 'qr_design_dots' => 'diamond' ) );
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+
+		$repo = Mockery::mock( 'overload:FreeFormCertificate\UrlShortener\UrlShortenerRepository' );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$repo->shouldReceive( 'findByShortCode' )->with( 'abc' )->andReturn( array( 'short_code' => 'abc' ) );
+		$this->service->shouldReceive( 'get_short_url' )->with( 'abc' )->andReturn( 'https://example.com/go/abc' );
+
+		$gen = Mockery::mock( 'overload:FreeFormCertificate\Generators\QRCodeGenerator' );
+		$gen->shouldNotReceive( 'generate' );
+
+		$sent = null;
+		Functions\when( 'wp_send_json_success' )->alias(
+			static function ( $data ) use ( &$sent ) {
+				$sent = $data;
+				throw new \RuntimeException( 'ok' );
+			}
+		);
+
+		try {
+			$this->handler->handle_download_png();
+		} catch ( \RuntimeException $e ) {
+			// Expected.
+		}
+
+		$this->assertTrue( $sent['rasterize'] );
+		$this->assertSame( 'qr-abc.png', $sent['filename'] );
+		$this->assertSame( 'image/png', $sent['mime'] );
+		$this->assertStringContainsString( '<path d="M', base64_decode( $sent['data'] ) );
 	}
 }

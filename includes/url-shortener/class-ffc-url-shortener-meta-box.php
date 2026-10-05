@@ -136,7 +136,8 @@ class UrlShortenerMetaBox {
 		// only reads and writes at `CACHE_SIZE` (#1233). With a `200` written
 		// here, changing the constant would make the metabox -- the only repeated
 		// caller, and the reason the cache exists -- stop caching in silence.
-		$qr_base64 = $qr_handler->generate_qr_base64( $short_url, UrlShortenerQrHandler::CACHE_SIZE, $record['short_code'] );
+		// With the QR design applied it renders the styled SVG instead (#1563).
+		$qr_src = $qr_handler->preview_src( $short_url, UrlShortenerQrHandler::CACHE_SIZE, $record['short_code'] );
 
 		wp_nonce_field( 'ffc_short_url_meta_box', 'ffc_short_url_meta_nonce' );
 		?>
@@ -161,9 +162,9 @@ class UrlShortenerMetaBox {
 			</p>
 
 			<!-- QR Code Preview -->
-			<?php if ( ! empty( $qr_base64 ) ) : ?>
+			<?php if ( '' !== $qr_src ) : ?>
 				<div class="ffc-shorturl-qr-preview">
-					<img src="data:image/png;base64,<?php echo esc_attr( $qr_base64 ); ?>"
+					<img src="<?php echo esc_attr( $qr_src ); ?>"
 						alt="<?php esc_attr_e( 'QR Code', 'ffcertificate' ); ?>" />
 				</div>
 

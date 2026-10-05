@@ -8953,10 +8953,6 @@ msgstr "Para obter a melhor experiência com modelos HTML, ative a opção \"Rea
 msgid "for the built-in tokens."
 msgstr "para os tokens integrados."
 
-#: includes/settings/views/documentation/config-general.php:42
-msgid "for the placeholder syntax."
-msgstr "para a sintaxe de placeholder."
-
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:132 includes/self-scheduling/class-ffc-self-scheduling-editor.php:701
 msgid "Forced to Private because Visibility is Private."
 msgstr "Forçado a manter o perfil privado porque a visibilidade é privada."
@@ -23652,3 +23648,87 @@ msgstr "%1$d contas examinadas e o nome de %2$d dividido; as demais têm um nome
 
 msgid "da Silva"
 msgstr "da Silva"
+
+msgid "A designed code is drawn as SVG. Certificates embed it directly; short URL PNG downloads are rasterised by your browser so they match the preview."
+msgstr "Um código com design é desenhado em SVG. Os certificados o incorporam diretamente; os downloads PNG das URLs curtas são rasterizados pelo seu navegador para ficarem iguais à prévia."
+
+msgid "Apply the design to"
+msgstr "Aplicar o design em"
+
+msgid "Background colour"
+msgstr "Cor de fundo"
+
+msgid "Blend the modules diagonally into a second colour"
+msgstr "Mesclar os módulos na diagonal com uma segunda cor"
+
+msgid "Circle"
+msgstr "Círculo"
+
+msgid "Corner centre"
+msgstr "Centro dos cantos"
+
+msgid "Corner centre colour"
+msgstr "Cor do centro dos cantos"
+
+msgid "Corner frame"
+msgstr "Moldura dos cantos"
+
+msgid "Corner frame colour"
+msgstr "Cor da moldura dos cantos"
+
+msgid "Diamond"
+msgstr "Losango"
+
+msgid "Dots"
+msgstr "Pontos"
+
+msgid "Draw the short URL QR codes (preview and downloads) with this design"
+msgstr "Desenhar os QR Codes das URLs curtas (prévia e downloads) com este design"
+
+msgid "Draw the {{qr_code}} placeholder with this design"
+msgstr "Desenhar o placeholder {{qr_code}} com este design"
+
+msgid "Fluid"
+msgstr "Fluido"
+
+msgid "Gradient"
+msgstr "Degradê"
+
+msgid "Gradient end colour"
+msgstr "Cor final do degradê"
+
+msgid "Leaf"
+msgstr "Folha"
+
+msgid "Low contrast (%s:1). Phones may fail to read this code; aim for 4:1 or more."
+msgstr "Contraste baixo (%s:1). Celulares podem não ler este código; busque 4:1 ou mais."
+
+msgid "Module colour"
+msgstr "Cor dos módulos"
+
+msgid "QR Code Design"
+msgstr "Design do QR Code"
+
+msgid "QR Code settings view file not found."
+msgstr "Arquivo de visualização das configurações de QR Code não encontrado."
+
+msgid "Readable: contrast and colours are fine."
+msgstr "Legível: contraste e cores adequados."
+
+msgid "Rounded"
+msgstr "Arredondado"
+
+msgid "Shapes and colours of the QR codes the plugin draws. Applies only where it is switched on below; elsewhere the plain black-and-white code is kept."
+msgstr "Formas e cores dos QR Codes que o plugin desenha. Vale apenas onde estiver ativado abaixo; nos demais lugares o código simples em preto e branco é mantido."
+
+msgid "Square"
+msgstr "Quadrado"
+
+msgid "The modules are lighter than the background. Most readers cannot scan an inverted code."
+msgstr "Os módulos estão mais claros que o fundo. A maioria dos leitores não consegue ler um código invertido."
+
+msgid "The preview could not be drawn."
+msgstr "Não foi possível desenhar a prévia."
+
+msgid "Settings → QR Code also sets the shape of the modules and of the three corner markers, their colours and an optional gradient, with a live preview that warns about low contrast and inverted colours. The design is applied only where it is switched on: the {{qr_code}} placeholder of certificates, and the QR codes of short URLs. Elsewhere the plain black-and-white code is kept."
+msgstr "Configurações → QR Code também define o formato dos módulos e dos três marcadores de canto, suas cores e um degradê opcional, com uma prévia ao vivo que avisa sobre contraste baixo e cores invertidas. O design só é aplicado onde estiver ativado: no placeholder {{qr_code}} dos certificados e nos QR Codes das URLs curtas. Nos demais lugares o código simples em preto e branco é mantido."

@@ -138,7 +138,9 @@ class TabGeneralTest extends TestCase {
 
 		$this->assertStringContainsString( 'ffc-settings-wrap', $output );
 		$this->assertStringContainsString( 'ffc_date_format', $output );
-		$this->assertStringContainsString( 'qr_default_size', $output );
+		// The QR defaults moved to their own tab (#1563): one autosave key on
+		// two tabs would drift.
+		$this->assertStringNotContainsString( 'qr_default_size', $output );
 
 		// The module-settings jump list moved from this view into the
 		// settings nav itself (Settings::render_module_settings_links()).

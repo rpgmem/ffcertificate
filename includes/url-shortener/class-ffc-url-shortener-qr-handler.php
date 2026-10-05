@@ -15,6 +15,8 @@ namespace FreeFormCertificate\UrlShortener;
 
 use FreeFormCertificate\Core\AjaxTrait;
 use FreeFormCertificate\Generators\QRCodeGenerator;
+use FreeFormCertificate\Generators\QrDesign;
+use FreeFormCertificate\Generators\QrSvgRenderer;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -224,60 +226,49 @@ class UrlShortenerQrHandler {
 	/**
 	 * Generate a QR Code as SVG string.
 	 *
-	 * Builds SVG directly from the phpqrcode raw matrix — no PNG
-	 * generation, no GD image loading, no pixel-by-pixel scanning.
-	 * This eliminates the two most CPU-intensive steps of the old
-	 * implementation.
+	 * Drawn by `QrSvgRenderer` in the global design when it is applied to
+	 * short URLs, plain otherwise -- no GD, no temp file. The renderer reads
+	 * the binarised matrix; the previous body tested phpqrcode's raw frame
+	 * bytes for truth, which painted every module dark (#1563).
 	 *
 	 * @param string $url  The URL to encode.
-	 * @param int    $size SVG viewBox size.
+	 * @param int    $size Rendered width/height in pixels.
 	 * @return string SVG markup.
 	 */
 	public function generate_svg( string $url, int $size = 200 ): string {
-		// Ensure phpqrcode is loaded.
-		if ( ! class_exists( '\\QRcode' ) ) {
-			require_once FFC_PLUGIN_DIR . 'libs/phpqrcode/qrlib.php';
+		return QrSvgRenderer::render( $url, QrDesign::for_surface( 'short_urls' ), 'M', 2, $size );
+	}
+
+	/**
+	 * Whether the global QR design is switched on for short URLs.
+	 *
+	 * When it is, the PNG is no longer drawn by the server: GD cannot draw
+	 * the design, so the browser rasterises the styled SVG instead (#1563).
+	 *
+	 * @return bool
+	 */
+	public function is_designed(): bool {
+		return QrDesign::applies_to( 'short_urls' );
+	}
+
+	/**
+	 * Image source for an inline preview: the styled SVG when the design
+	 * applies, the cached PNG otherwise.
+	 *
+	 * @param string $url        URL to encode.
+	 * @param int    $size       Size in pixels.
+	 * @param string $short_code Short code, for the PNG cache.
+	 * @return string `data:` URI, or '' when generation failed.
+	 */
+	public function preview_src( string $url, int $size = self::CACHE_SIZE, string $short_code = '' ): string {
+		if ( $this->is_designed() ) {
+			$svg = $this->generate_svg( $url, $size );
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- benign: encoding SVG markup for a data URI.
+			return '' === $svg ? '' : 'data:image/svg+xml;base64,' . base64_encode( $svg );
 		}
 
-		// Get the raw QR matrix directly (no temp files, no GD).
-		$matrix = \QRcode::raw( $url, false, QR_ECLEVEL_M );
-
-		if ( empty( $matrix ) ) {
-			return '';
-		}
-
-		$margin      = 2;
-		$matrix_size = count( $matrix );
-		$total       = $matrix_size + $margin * 2;
-		$module_size = (int) floor( $size / $total );
-
-		if ( $module_size < 1 ) {
-			$module_size = 1;
-		}
-
-		$svg_size = $module_size * $total;
-
-		$parts   = array();
-		$parts[] = '<?xml version="1.0" encoding="UTF-8"?>';
-		$parts[] = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' . $svg_size . ' ' . $svg_size . '" width="' . $svg_size . '" height="' . $svg_size . '">';
-		$parts[] = '<rect width="100%" height="100%" fill="white"/>';
-
-		for ( $y = 0; $y < $matrix_size; $y++ ) {
-			$row = $matrix[ $y ];
-			for ( $x = 0; $x < $matrix_size; $x++ ) {
-				// Each cell is 0 (white) or non-zero (dark module).
-				if ( isset( $row[ $x ] ) && $row[ $x ] ) {
-					$px      = ( $x + $margin ) * $module_size;
-					$py      = ( $y + $margin ) * $module_size;
-					$parts[] = '<rect x="' . $px . '" y="' . $py
-							. '" width="' . $module_size . '" height="' . $module_size . '" fill="black"/>';
-				}
-			}
-		}
-
-		$parts[] = '</svg>';
-
-		return implode( "\n", $parts );
+		$png = $this->generate_qr_base64( $url, $size, $short_code );
+		return '' === $png ? '' : 'data:image/png;base64,' . $png;
 	}
 
 	/**
@@ -348,6 +339,26 @@ class UrlShortenerQrHandler {
 		$this->check_qr_view_permission();
 
 		$target = $this->resolve_qr_target();
+
+		// With a design applied, ship the styled SVG flagged for rasterising:
+		// the browser draws it to a canvas and saves the PNG, so the download
+		// matches the preview instead of falling back to plain squares.
+		if ( $this->is_designed() ) {
+			$svg = $this->generate_svg( $target['url'], 400 );
+			if ( '' === $svg ) {
+				wp_send_json_error( array( 'message' => __( 'QR generation failed.', 'ffcertificate' ) ) );
+			}
+			wp_send_json_success(
+				array(
+					// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- benign: encoding SVG for client-side rasterising.
+					'data'      => base64_encode( $svg ),
+					'filename'  => $target['prefix'] . '.png',
+					'mime'      => 'image/png',
+					'rasterize' => true,
+				)
+			);
+		}
+
 		$base64 = $this->generate_qr_base64( $target['url'], 400 );
 
 		if ( empty( $base64 ) ) {

@@ -68,14 +68,14 @@ class QRcode {
 	public static function png( $text, $outfile = false, $level = QR_ECLEVEL_L, $size = 3, $margin = 4 ): void {}
 
 	/**
-	 * Return the QR code as a raw matrix.
+	 * Return the QR code as rows of '0'/'1' characters (binarised matrix).
 	 *
 	 * @param string       $text    Text to encode.
-	 * @param string|false $outfile Output file or false to return raw.
+	 * @param string|false $outfile Output file or false to return the rows.
 	 * @param int          $level   Error correction level.
-	 * @return array<int, string>
+	 * @return array<int, string>|null
 	 */
-	public static function raw( $text, $outfile = false, $level = QR_ECLEVEL_L ): array {
+	public static function text( $text, $outfile = false, $level = QR_ECLEVEL_L ): ?array {
 		return array();
 	}
 }

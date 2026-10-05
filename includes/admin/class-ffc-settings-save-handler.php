@@ -400,6 +400,40 @@ class SettingsSaveHandler {
 			$clean['qr_default_error_level'] = sanitize_text_field( $new['qr_default_error_level'] );
 		}
 
+		// The design and its two switches only exist on the QR Code tab, so
+		// they are rebuilt from that form alone: an unchecked switch is absent
+		// from the POST, and any other tab's save must not read that as "off".
+		// The values go through `QrDesign`, the same normaliser the renderer
+		// reads with, so nothing the renderer would refuse is ever stored.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
+		if ( isset( $_POST['_ffc_tab'] ) && sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) === 'qr_code' ) {
+			$design = new \FreeFormCertificate\Generators\QrDesign(
+				array(
+					'dots'            => $new['qr_design_dots'] ?? null,
+					'eye_frame'       => $new['qr_design_eye_frame'] ?? null,
+					'eye_ball'        => $new['qr_design_eye_ball'] ?? null,
+					'color'           => $new['qr_design_color'] ?? null,
+					'gradient'        => true,
+					'color_end'       => $new['qr_design_color_end'] ?? null,
+					'background'      => $new['qr_design_background'] ?? null,
+					'eye_frame_color' => $new['qr_design_eye_frame_color'] ?? null,
+					'eye_ball_color'  => $new['qr_design_eye_ball_color'] ?? null,
+				)
+			);
+
+			$clean['qr_design_dots']            = $design->dots;
+			$clean['qr_design_eye_frame']       = $design->eye_frame;
+			$clean['qr_design_eye_ball']        = $design->eye_ball;
+			$clean['qr_design_color']           = $design->color;
+			$clean['qr_design_gradient']        = isset( $new['qr_design_gradient'] ) ? 1 : 0;
+			$clean['qr_design_color_end']       = $design->color_end;
+			$clean['qr_design_background']      = $design->background;
+			$clean['qr_design_eye_frame_color'] = $design->eye_frame_color;
+			$clean['qr_design_eye_ball_color']  = $design->eye_ball_color;
+			$clean['qr_design_on_certificate']  = isset( $new['qr_design_on_certificate'] ) ? 1 : 0;
+			$clean['qr_design_on_short_urls']   = isset( $new['qr_design_on_short_urls'] ) ? 1 : 0;
+		}
+
 		return $clean;
 	}
 

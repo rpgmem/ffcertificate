@@ -3,8 +3,9 @@
  * Documentation partial — Configuration: General.
  *
  * The Settings → General tab: appearance, auto-delete, date/time formats,
- * institutional address, CSV download URL and QR-code defaults. Part of the
- * functional reorganization (rpgmem/ffcertificate#697).
+ * institutional address and CSV download URL. Part of the functional
+ * reorganization (rpgmem/ffcertificate#697). The QR-code defaults moved to
+ * their own tab with the QR design (#1563) and are documented with the token.
  *
  * @package FreeFormCertificate\Settings
  */
@@ -37,7 +38,4 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h4><?php esc_html_e( 'Date & time formats', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Pick from a catalog of presets (or a custom PHP date/time pattern) for how dates and times render across the plugin — the {{submission_date}} and {{print_date}} tokens, emails and PDFs. Defaults are d/m/Y and H:i. Separate optional overrides let the PDF use a different date/time format from the rest of the plugin (leave them on "Inherit" to reuse the general format).', 'ffcertificate' ); ?></p>
 	<p class="description"><?php esc_html_e( 'All rendering goes through the plugin\'s date helper, so changing the site timezone re-renders correctly with no data migration.', 'ffcertificate' ); ?></p>
-
-	<h4><?php esc_html_e( 'QR Code defaults', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'Default size (px), margin (modules) and error-correction level (L / M / Q / H) applied to the {{qr_code}} placeholder when it does not specify its own. Per-placeholder options always win.', 'ffcertificate' ); ?> <a href="#reference-qr-codes"><?php esc_html_e( 'See QR Codes', 'ffcertificate' ); ?></a> <?php esc_html_e( 'for the placeholder syntax.', 'ffcertificate' ); ?></p>
 </div>
