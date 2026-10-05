@@ -11,64 +11,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_option' ) );
-$ffcertificate_qr_design  = \FreeFormCertificate\Generators\QrDesign::from_settings();
 
-$ffcertificate_qr_shapes = array(
-	'qr_design_dots'      => array(
-		'label'   => __( 'Modules', 'ffcertificate' ),
-		'value'   => $ffcertificate_qr_design->dots,
-		'options' => array(
-			'square'  => __( 'Square', 'ffcertificate' ),
-			'rounded' => __( 'Rounded', 'ffcertificate' ),
-			'dots'    => __( 'Dots', 'ffcertificate' ),
-			'fluid'   => __( 'Fluid', 'ffcertificate' ),
-			'diamond' => __( 'Diamond', 'ffcertificate' ),
-		),
-	),
-	'qr_design_eye_frame' => array(
-		'label'   => __( 'Corner frame', 'ffcertificate' ),
-		'value'   => $ffcertificate_qr_design->eye_frame,
-		'options' => array(
-			'square'  => __( 'Square', 'ffcertificate' ),
-			'rounded' => __( 'Rounded', 'ffcertificate' ),
-			'circle'  => __( 'Circle', 'ffcertificate' ),
-			'leaf'    => __( 'Leaf', 'ffcertificate' ),
-		),
-	),
-	'qr_design_eye_ball'  => array(
-		'label'   => __( 'Corner centre', 'ffcertificate' ),
-		'value'   => $ffcertificate_qr_design->eye_ball,
-		'options' => array(
-			'square'  => __( 'Square', 'ffcertificate' ),
-			'rounded' => __( 'Rounded', 'ffcertificate' ),
-			'circle'  => __( 'Circle', 'ffcertificate' ),
-			'diamond' => __( 'Diamond', 'ffcertificate' ),
-		),
-	),
-);
-
-$ffcertificate_qr_colors = array(
-	'qr_design_color'           => array( __( 'Module colour', 'ffcertificate' ), $ffcertificate_qr_design->color ),
-	'qr_design_background'      => array( __( 'Background colour', 'ffcertificate' ), $ffcertificate_qr_design->background ),
-	'qr_design_eye_frame_color' => array( __( 'Corner frame colour', 'ffcertificate' ), $ffcertificate_qr_design->eye_frame_color ),
-	'qr_design_eye_ball_color'  => array( __( 'Corner centre colour', 'ffcertificate' ), $ffcertificate_qr_design->eye_ball_color ),
-);
-
-// The logo is stored as an attachment id; the thumbnail shows what is set.
-$ffcertificate_qr_logo_id    = \FreeFormCertificate\Settings\SettingsReader::get_int( 'qr_design_logo_id', 0 );
-$ffcertificate_qr_logo_thumb = $ffcertificate_qr_logo_id > 0 ? (string) wp_get_attachment_image_url( $ffcertificate_qr_logo_id, 'thumbnail' ) : '';
-
-$ffcertificate_qr_frames = array(
-	'none'   => __( 'None', 'ffcertificate' ),
-	'banner' => __( 'Banner below', 'ffcertificate' ),
-	'badge'  => __( 'Badge with caption above', 'ffcertificate' ),
-	'bubble' => __( 'Speech bubble above', 'ffcertificate' ),
-);
-
-// The gradient end is kept while the gradient is off, so switching it back
-// on restores the colour instead of resetting it.
-$ffcertificate_qr_gradient  = \FreeFormCertificate\Settings\SettingsReader::get_bool( 'qr_design_gradient' );
-$ffcertificate_qr_color_end = \FreeFormCertificate\Generators\QrDesign::hex( $ffcertificate_get_option( 'qr_design_color_end', '#2271b1' ), '#2271b1' );
+// What the shared design partial needs; the generator starts from the same.
+$ffc_qr_design    = \FreeFormCertificate\Generators\QrDesign::from_settings();
+$ffc_qr_state     = \FreeFormCertificate\Generators\QrDesign::form_state();
+$ffc_qr_logo_id   = $ffc_qr_state['logo_id'];
+$ffc_qr_gradient  = $ffc_qr_state['gradient'];
+$ffc_qr_color_end = $ffc_qr_state['color_end'];
+$ffc_qr_name      = static fn( string $key ): string => 'ffc_settings[' . $key . ']';
 ?>
 
 <div class="ffc-settings-wrap">
@@ -156,86 +106,7 @@ $ffcertificate_qr_color_end = \FreeFormCertificate\Generators\QrDesign::hex( $ff
 	<div class="ffc-qr-design-layout">
 		<table class="form-table" role="presentation">
 			<tbody>
-				<?php foreach ( $ffcertificate_qr_shapes as $ffcertificate_key => $ffcertificate_shape ) : ?>
-				<tr>
-					<th scope="row">
-						<label for="<?php echo esc_attr( $ffcertificate_key ); ?>"><?php echo esc_html( $ffcertificate_shape['label'] ); ?></label>
-					</th>
-					<td>
-						<select name="ffc_settings[<?php echo esc_attr( $ffcertificate_key ); ?>]" id="<?php echo esc_attr( $ffcertificate_key ); ?>" data-ffc-qr-design="<?php echo esc_attr( $ffcertificate_key ); ?>">
-							<?php foreach ( $ffcertificate_shape['options'] as $ffcertificate_value => $ffcertificate_label ) : ?>
-								<option value="<?php echo esc_attr( $ffcertificate_value ); ?>" <?php selected( $ffcertificate_value, $ffcertificate_shape['value'] ); ?>><?php echo esc_html( $ffcertificate_label ); ?></option>
-							<?php endforeach; ?>
-						</select>
-					</td>
-				</tr>
-				<?php endforeach; ?>
-
-				<?php foreach ( $ffcertificate_qr_colors as $ffcertificate_key => $ffcertificate_color ) : ?>
-				<tr>
-					<th scope="row">
-						<label for="<?php echo esc_attr( $ffcertificate_key ); ?>"><?php echo esc_html( $ffcertificate_color[0] ); ?></label>
-					</th>
-					<td>
-						<input type="color" name="ffc_settings[<?php echo esc_attr( $ffcertificate_key ); ?>]" id="<?php echo esc_attr( $ffcertificate_key ); ?>" value="<?php echo esc_attr( $ffcertificate_color[1] ); ?>" data-ffc-qr-design="<?php echo esc_attr( $ffcertificate_key ); ?>">
-					</td>
-				</tr>
-				<?php endforeach; ?>
-
-				<tr>
-					<th scope="row">
-						<label for="qr_design_gradient"><?php esc_html_e( 'Gradient', 'ffcertificate' ); ?></label>
-					</th>
-					<td>
-						<label>
-							<input type="checkbox" name="ffc_settings[qr_design_gradient]" id="qr_design_gradient" value="1" <?php checked( $ffcertificate_qr_gradient ); ?> data-ffc-qr-design="qr_design_gradient">
-							<?php esc_html_e( 'Blend the modules diagonally into a second colour', 'ffcertificate' ); ?>
-						</label>
-						<br>
-						<input type="color" name="ffc_settings[qr_design_color_end]" id="qr_design_color_end" value="<?php echo esc_attr( $ffcertificate_qr_color_end ); ?>" aria-label="<?php esc_attr_e( 'Gradient end colour', 'ffcertificate' ); ?>" data-ffc-qr-design="qr_design_color_end">
-					</td>
-				</tr>
-
-				<tr>
-					<th scope="row">
-						<label for="qr_design_logo_id"><?php esc_html_e( 'Logo', 'ffcertificate' ); ?></label>
-					</th>
-					<td>
-						<img id="ffc-qr-logo-thumb" class="ffc-qr-logo-thumb" src="<?php echo esc_url( $ffcertificate_qr_logo_thumb ); ?>" alt="" <?php echo '' === $ffcertificate_qr_logo_thumb ? 'hidden' : ''; ?>>
-						<input type="hidden" name="ffc_settings[qr_design_logo_id]" id="qr_design_logo_id" value="<?php echo esc_attr( (string) $ffcertificate_qr_logo_id ); ?>" data-ffc-qr-design="qr_design_logo_id">
-						<button type="button" class="button ffc-media-select" data-ffc-media-target="#qr_design_logo_id" data-ffc-media-value="id" data-ffc-media-thumb="#ffc-qr-logo-thumb"><?php esc_html_e( 'Select image', 'ffcertificate' ); ?></button>
-						<button type="button" class="button-link ffc-media-clear" data-ffc-media-target="#qr_design_logo_id" data-ffc-media-value="id" data-ffc-media-thumb="#ffc-qr-logo-thumb"><?php esc_html_e( 'Clear', 'ffcertificate' ); ?></button>
-						<p class="description">
-							<?php esc_html_e( 'PNG, JPEG, WebP or GIF up to 512 KB, drawn in the centre. A logo raises error correction to H so the covered modules can be rebuilt.', 'ffcertificate' ); ?>
-						</p>
-					</td>
-				</tr>
-
-				<tr>
-					<th scope="row">
-						<label for="qr_design_frame"><?php esc_html_e( 'Frame', 'ffcertificate' ); ?></label>
-					</th>
-					<td>
-						<select name="ffc_settings[qr_design_frame]" id="qr_design_frame" data-ffc-qr-design="qr_design_frame">
-							<?php foreach ( $ffcertificate_qr_frames as $ffcertificate_value => $ffcertificate_label ) : ?>
-								<option value="<?php echo esc_attr( $ffcertificate_value ); ?>" <?php selected( $ffcertificate_value, $ffcertificate_qr_design->frame ); ?>><?php echo esc_html( $ffcertificate_label ); ?></option>
-							<?php endforeach; ?>
-						</select>
-					</td>
-				</tr>
-
-				<tr>
-					<th scope="row">
-						<label for="qr_design_frame_text"><?php esc_html_e( 'Frame caption', 'ffcertificate' ); ?></label>
-					</th>
-					<td>
-						<input type="text" name="ffc_settings[qr_design_frame_text]" id="qr_design_frame_text" value="<?php echo esc_attr( $ffcertificate_qr_design->frame_text ); ?>" maxlength="<?php echo esc_attr( (string) \FreeFormCertificate\Generators\QrDesign::FRAME_TEXT_MAX ); ?>" class="regular-text" data-ffc-qr-design="qr_design_frame_text">
-						<input type="color" name="ffc_settings[qr_design_frame_color]" id="qr_design_frame_color" value="<?php echo esc_attr( $ffcertificate_qr_design->frame_color ); ?>" aria-label="<?php esc_attr_e( 'Frame colour', 'ffcertificate' ); ?>" data-ffc-qr-design="qr_design_frame_color">
-						<p class="description">
-							<?php esc_html_e( 'Up to 24 characters, e.g. "Scan to verify". The caption colour is picked to stay readable on the frame.', 'ffcertificate' ); ?>
-						</p>
-					</td>
-				</tr>
+				<?php require FFC_PLUGIN_DIR . 'templates/admin/qr/design-fields.php'; ?>
 			</tbody>
 		</table>
 

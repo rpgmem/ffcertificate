@@ -1,0 +1,70 @@
+/**
+ * Short URLs → QR Code Generator (#1563).
+ *
+ * Content and design on the left, the live code and its downloads on the
+ * right; one column below the breakpoint.
+ */
+
+.ffc-page-qr-generator .ffc-qr-generator {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xl);
+    align-items: flex-start;
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__main {
+    flex: 1 1 32em;
+    min-width: 0;
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__main .card,
+.ffc-page-qr-generator .ffc-qr-generator__side .card {
+    max-width: none;
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__side {
+    flex: 0 1 300px;
+    position: sticky;
+    top: 40px;
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__types {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xs) var(--ffc-spacing-lg);
+    margin-bottom: var(--ffc-spacing-sm);
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__preview {
+    min-height: 240px;
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__preview svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__usage,
+.ffc-page-qr-generator .ffc-qr-generator__status {
+    margin: var(--ffc-spacing-sm) 0 0;
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-muted);
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__status.is-warning {
+    color: var(--ffc-warning-text);
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__status.is-error {
+    color: var(--ffc-danger-text);
+}
+
+.ffc-page-qr-generator .ffc-qr-logo-thumb {
+    display: block;
+    max-width: 64px;
+    max-height: 64px;
+    margin-bottom: var(--ffc-spacing-xs);
+}

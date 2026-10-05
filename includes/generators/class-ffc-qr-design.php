@@ -198,6 +198,29 @@ final class QrDesign {
 	}
 
 	/**
+	 * What a design form starts from, beyond the design itself: the stored
+	 * logo id (the design only holds its embedded image), the gradient switch
+	 * and its end colour -- kept while the switch is off, so turning it back
+	 * on restores the colour -- and the generation defaults.
+	 *
+	 * Shared by Settings → QR Code and the manual generator, which start from
+	 * the same values.
+	 *
+	 * @return array{logo_id: int, gradient: bool, color_end: string, margin: int, error_level: string}
+	 */
+	public static function form_state(): array {
+		$level = strtoupper( SettingsReader::get_string( 'qr_default_error_level', 'M' ) );
+
+		return array(
+			'logo_id'     => SettingsReader::get_int( 'qr_design_logo_id', 0 ),
+			'gradient'    => SettingsReader::get_bool( 'qr_design_gradient' ),
+			'color_end'   => self::hex( SettingsReader::get_string( 'qr_design_color_end', '#2271b1' ), '#2271b1' ),
+			'margin'      => max( 0, min( 10, SettingsReader::get_int( 'qr_default_margin', 2 ) ) ),
+			'error_level' => in_array( $level, array( 'L', 'M', 'Q', 'H' ), true ) ? $level : 'M',
+		);
+	}
+
+	/**
 	 * Whether the global design is switched on for a surface.
 	 *
 	 * @param string $surface One of self::SURFACES.

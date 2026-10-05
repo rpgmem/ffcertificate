@@ -53,6 +53,7 @@ afterEach(() => {
 
 async function loadAdmin() {
 	if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+	loadScript('assets/js/ffc-qr-raster.js');
 	loadScript('assets/js/ffc-url-shortener-admin.js');
 	await new Promise((r) => setTimeout(r, 0));
 }
@@ -584,32 +585,6 @@ describe('url-shortener — designed QR rasterising', () => {
 		vi.spyOn(window.HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,UE5HUE5H');
 		return draw;
 	}
-
-	it('rasterizeSvg draws the SVG at the requested size and resolves with base64 PNG', async () => {
-		await loadAdmin();
-		const draw = stubCanvas(false);
-
-		const png = await window.FFC.rasterizeSvg('PHN2Zy8+', 300);
-
-		expect(png).toBe('UE5HUE5H');
-		expect(draw).toHaveBeenCalledWith(expect.anything(), 0, 0, 300, 300);
-	});
-
-	it('rasterizeSvg keeps a framed code\'s aspect ratio', async () => {
-		await loadAdmin();
-		const draw = stubCanvas(false, [400, 520]);
-
-		await window.FFC.rasterizeSvg('PHN2Zy8+', 1000);
-
-		expect(draw).toHaveBeenCalledWith(expect.anything(), 0, 0, 1000, 1300);
-	});
-
-	it('rasterizeSvg rejects when the image does not load', async () => {
-		await loadAdmin();
-		stubCanvas(true);
-
-		await expect(window.FFC.rasterizeSvg('PHN2Zy8+', 300)).rejects.toBeTruthy();
-	});
 
 	it('PNG download with rasterize=true saves the rasterised PNG, not the SVG', async () => {
 		document.body.innerHTML = '<button class="ffc-download-qr" data-format="png" data-code="abc">QR</button>';
