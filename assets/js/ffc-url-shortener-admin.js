@@ -53,58 +53,11 @@
         $temp.remove();
     }
 
-    /**
-     * Trigger a file download from base64 data.
-     */
+    // Saving and rasterising live in ffc-qr-raster.js, shared with the
+    // manual QR generator (#1563).
     function downloadBase64(base64Data, filename, mime) {
-        var byteChars = atob(base64Data);
-        var byteNumbers = new Array(byteChars.length);
-        for (var i = 0; i < byteChars.length; i++) {
-            byteNumbers[i] = byteChars.charCodeAt(i);
-        }
-        var byteArray = new Uint8Array(byteNumbers);
-        var blob = new Blob([byteArray], { type: mime });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        window.FFC.QrRaster.download(base64Data, filename, mime);
     }
-
-    /**
-     * Draw a base64 SVG onto a canvas `size` wide and resolve with base64 PNG (#1563).
-     *
-     * The server cannot draw the QR design with GD, so a designed code is
-     * shipped as SVG and rasterised here; the PNG then matches the preview.
-     * Rejects when the image does not load or the canvas cannot encode.
-     */
-    function rasterizeSvg(svgBase64, size) {
-        return new Promise(function (resolve, reject) {
-            var img = new Image();
-            img.onload = function () {
-                try {
-                    // A frame makes the code taller than wide: keep its ratio.
-                    var ratio = img.naturalWidth > 0 ? img.naturalHeight / img.naturalWidth : 1;
-                    var height = Math.round(size * (ratio > 0 ? ratio : 1));
-                    var canvas = document.createElement('canvas');
-                    canvas.width = size;
-                    canvas.height = height;
-                    canvas.getContext('2d').drawImage(img, 0, 0, size, height);
-                    resolve(canvas.toDataURL('image/png').split(',')[1]);
-                } catch (e) {
-                    reject(e);
-                }
-            };
-            img.onerror = reject;
-            img.src = 'data:image/svg+xml;base64,' + svgBase64;
-        });
-    }
-
-    window.FFC = window.FFC || {};
-    window.FFC.rasterizeSvg = rasterizeSvg;
 
     $(document).ready(function () {
 
@@ -177,7 +130,7 @@
 
             FFC.request(action, payload, { nonce: settings.nonce, ajaxUrl: settings.ajaxUrl })
                 .then(function (data) {
-                    var png = data.rasterize ? rasterizeSvg(data.data, 1000) : Promise.resolve(data.data);
+                    var png = data.rasterize ? window.FFC.QrRaster.toPng(data.data, 1000) : Promise.resolve(data.data);
                     return png.then(function (base64) {
                         $btn.prop('disabled', false);
                         downloadBase64(base64, data.filename, data.mime);

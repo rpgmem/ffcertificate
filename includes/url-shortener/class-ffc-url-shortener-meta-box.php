@@ -253,6 +253,14 @@ class UrlShortenerMetaBox {
 			array( 'ffc-common' ),
 			FFC_VERSION
 		);
+		// Saving and rasterising QR images, shared with the manual generator (#1563).
+		wp_enqueue_script(
+			'ffc-qr-raster',
+			FFC_PLUGIN_URL . 'assets/js/ffc-qr-raster.js',
+			array(),
+			FFC_VERSION,
+			true
+		);
 		wp_enqueue_script(
 			'ffc-url-shortener-admin',
 			FFC_PLUGIN_URL . 'assets/js/ffc-url-shortener-admin.js',
@@ -263,7 +271,7 @@ class UrlShortenerMetaBox {
 			// otherwise drop `ffc-core` for not being in the chain. Same
 			// fix shape as 6.6.7 (#367) applied to the 4 public-facing
 			// sites; admin sites missed that pass.
-			array( 'jquery', 'ffc-core' ),
+			array( 'jquery', 'ffc-core', 'ffc-qr-raster' ),
 			FFC_VERSION,
 			true
 		);

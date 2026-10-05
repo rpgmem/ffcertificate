@@ -95,6 +95,12 @@ class UrlShortenerLoader {
 
 			$meta_box->init();
 
+			// Manual QR code generator (#1563): a submenu and its two AJAX
+			// actions, both admin-only. admin-ajax.php runs with is_admin()
+			// true, so the endpoint is reachable from here.
+			( new QrGeneratorPage() )->init();
+			( new QrGeneratorAjaxEndpoint( $this->service ) )->init();
+
 			$backfill = new UrlShortenerBackfillHandler( $this->service );
 			$backfill->init();
 

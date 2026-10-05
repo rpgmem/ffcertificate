@@ -1,0 +1,138 @@
+<?php
+/**
+ * Manual QR code generator — admin page.
+ *
+ * @package FreeFormCertificate\UrlShortener
+ * @since   6.34.0
+ */
+
+declare(strict_types=1);
+
+namespace FreeFormCertificate\UrlShortener;
+
+use FreeFormCertificate\Generators\QrDesign;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Short URLs → QR Code Generator (#1563).
+ *
+ * A stateless tool: the operator picks a content type, fills it in and
+ * styles the code, starting from the global design; the image is drawn on
+ * the server and saved by the browser. Nothing is stored, except a short URL
+ * when the operator explicitly asks for one.
+ */
+class QrGeneratorPage {
+
+	public const SLUG = 'ffc-qr-generator';
+
+	/**
+	 * Page hook suffix, known once the menu is registered.
+	 *
+	 * @var string
+	 */
+	private string $hook = '';
+
+	/**
+	 * Register hooks.
+	 *
+	 * The menu runs after the Short URLs top-level menu (priority 25), which
+	 * this page hangs from.
+	 */
+	public function init(): void {
+		add_action( 'admin_menu', array( $this, 'register_menu' ), 26 );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+	}
+
+	/**
+	 * Add the submenu.
+	 */
+	public function register_menu(): void {
+		$hook       = add_submenu_page(
+			'ffc-short-urls',
+			__( 'QR Code Generator', 'ffcertificate' ),
+			__( 'QR Code Generator', 'ffcertificate' ),
+			QrGeneratorAjaxEndpoint::CAP,
+			self::SLUG,
+			array( $this, 'render_page' )
+		);
+		$this->hook = is_string( $hook ) ? $hook : '';
+	}
+
+	/**
+	 * Enqueue the generator's assets on its own screen only.
+	 *
+	 * @param string $hook_suffix Current admin page hook.
+	 */
+	public function enqueue_assets( string $hook_suffix ): void {
+		if ( '' === $this->hook || $hook_suffix !== $this->hook ) {
+			return;
+		}
+
+		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
+		\FreeFormCertificate\Core\AssetHelper::enqueue_dark_mode();
+		wp_enqueue_media();
+
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_style( 'ffc-qr-generator', FFC_PLUGIN_URL . "assets/css/ffc-qr-generator{$s}.css", array( 'ffc-common' ), FFC_VERSION );
+		wp_enqueue_script( 'ffc-qr-raster', FFC_PLUGIN_URL . "assets/js/ffc-qr-raster{$s}.js", array(), FFC_VERSION, true );
+		wp_enqueue_script( 'ffc-branding-media', FFC_PLUGIN_URL . "assets/js/ffc-branding-media{$s}.js", array( 'jquery' ), FFC_VERSION, true );
+		wp_localize_script( 'ffc-branding-media', 'ffcBrandingMedia', array( 'chooseImage' => __( 'Select image', 'ffcertificate' ) ) );
+		wp_enqueue_script( 'ffc-qr-design', FFC_PLUGIN_URL . "assets/js/ffc-qr-design{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		wp_enqueue_script(
+			'ffc-qr-generator',
+			FFC_PLUGIN_URL . "assets/js/ffc-qr-generator{$s}.js",
+			array( 'jquery', 'ffc-core', 'ffc-qr-design', 'ffc-qr-raster' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-qr-generator',
+			'ffcQrGenerator',
+			array(
+				'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
+				'generate'      => QrGeneratorAjaxEndpoint::ACTION_GENERATE,
+				'generateNonce' => wp_create_nonce( QrGeneratorAjaxEndpoint::ACTION_GENERATE ),
+				'shorten'       => QrGeneratorAjaxEndpoint::ACTION_SHORTEN,
+				'shortenNonce'  => wp_create_nonce( QrGeneratorAjaxEndpoint::ACTION_SHORTEN ),
+				'i18n'          => array(
+					/* translators: 1: bytes used, 2: capacity in bytes, 3: percentage */
+					'usage'           => __( '%1$d of %2$d bytes (%3$d%%)', 'ffcertificate' ),
+					/* translators: %d: QR code version (1-40) */
+					'dense'           => __( 'Dense code (version %d): print it at least 3 cm wide, or shorten the content.', 'ffcertificate' ),
+					/* translators: %s: contrast ratio, e.g. 3.2 */
+					'lowContrast'     => __( 'Low contrast (%s:1). Phones may fail to read this code; aim for 4:1 or more.', 'ffcertificate' ),
+					'inverted'        => __( 'The modules are lighter than the background. Most readers cannot scan an inverted code.', 'ffcertificate' ),
+					'captionContrast' => __( 'The badge caption is hard to read on this background; pick a darker frame colour.', 'ffcertificate' ),
+					'ok'              => __( 'Readable: contrast and colours are fine.', 'ffcertificate' ),
+					'error'           => __( 'The QR code could not be drawn.', 'ffcertificate' ),
+					'shortened'       => __( 'Short URL created and placed in the address field.', 'ffcertificate' ),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Render the page.
+	 */
+	public function render_page(): void {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( QrGeneratorAjaxEndpoint::CAP ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'ffcertificate' ) );
+		}
+
+		// The global design is the starting point; every change here is local
+		// to this code and never saved.
+		$ffc_qr_design    = QrDesign::from_settings();
+		$ffc_qr_state     = QrDesign::form_state();
+		$ffc_qr_logo_id   = $ffc_qr_state['logo_id'];
+		$ffc_qr_gradient  = $ffc_qr_state['gradient'];
+		$ffc_qr_color_end = $ffc_qr_state['color_end'];
+		$ffc_qr_margin    = $ffc_qr_state['margin'];
+		$ffc_qr_level     = $ffc_qr_state['error_level'];
+		$ffc_qr_name      = static fn( string $key ): string => 'design[' . $key . ']';
+
+		include FFC_PLUGIN_DIR . 'templates/admin/qr/generator-page.php';
+	}
+}

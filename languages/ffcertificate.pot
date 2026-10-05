@@ -23674,3 +23674,111 @@ msgstr ""
 
 msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame — a banner below, a badge or a speech bubble above — can carry a short caption such as \"Scan to verify\". A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
 msgstr ""
+
+msgid "%1$d of %2$d bytes (%3$d%%)"
+msgstr ""
+
+msgid "Could not create the short URL."
+msgstr ""
+
+msgid "Create a QR code for any content and download it. Nothing is stored: the design starts from Settings → QR Code and changes here apply to this code only. Only \"Shorten\" saves something — a short URL, listed with the others."
+msgstr ""
+
+msgid "Dense code (version %d): print it at least 3 cm wide, or shorten the content."
+msgstr ""
+
+msgid "Design"
+msgstr ""
+
+msgid "Download PNG"
+msgstr ""
+
+msgid "Download SVG"
+msgstr ""
+
+msgid "Enter a valid e-mail address."
+msgstr ""
+
+msgid "Enter a valid phone number."
+msgstr ""
+
+msgid "Enter a valid web address (http or https)."
+msgstr ""
+
+msgid "Enter the network name."
+msgstr ""
+
+msgid "Enter the network password, or choose an open network."
+msgstr ""
+
+msgid "Enter the text to encode."
+msgstr ""
+
+msgid "Error correction"
+msgstr ""
+
+msgid "Hidden network"
+msgstr ""
+
+msgid "Margin (modules)"
+msgstr ""
+
+msgid "Network name (SSID)"
+msgstr ""
+
+msgid "Open network (no password)"
+msgstr ""
+
+msgid "PNG width"
+msgstr ""
+
+msgid "Phone call"
+msgstr ""
+
+msgid "QR Code Generator"
+msgstr ""
+
+msgid "SMS"
+msgstr ""
+
+msgid "Short URL created and placed in the address field."
+msgstr ""
+
+msgid "Shortening creates a short URL that counts the scans, and puts it in the address field."
+msgstr ""
+
+msgid "The QR code could not be drawn."
+msgstr ""
+
+msgid "The network does not broadcast its name"
+msgstr ""
+
+msgid "This content is too long for a QR code at this error correction level. Shorten it, or lower the level."
+msgstr ""
+
+msgid "Title for the short URL (optional)"
+msgstr ""
+
+msgid "Type of content"
+msgstr ""
+
+msgid "Unknown QR code type."
+msgstr ""
+
+msgid "WPA / WPA2 / WPA3"
+msgstr ""
+
+msgid "Website"
+msgstr ""
+
+msgid "WhatsApp"
+msgstr ""
+
+msgid "Wi-Fi"
+msgstr ""
+
+msgid "With the country code, so it works from anywhere."
+msgstr ""
+
+msgid "Short URLs → QR Code Generator makes a QR code for a website, plain text, a Wi-Fi network, an e-mail, a phone call, an SMS or a WhatsApp chat, styled from the global design and downloaded as PNG or SVG. It stores nothing: only the \"Shorten\" button creates a short URL, which then appears in the list. It needs ffc_manage_url_shortener."
+msgstr ""
