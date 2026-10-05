@@ -8949,10 +8949,6 @@ msgstr ""
 msgid "for the built-in tokens."
 msgstr ""
 
-#: includes/settings/views/documentation/config-general.php:42
-msgid "for the placeholder syntax."
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:132 includes/self-scheduling/class-ffc-self-scheduling-editor.php:701
 msgid "Forced to Private because Visibility is Private."
 msgstr ""
@@ -23560,4 +23556,229 @@ msgid "Examined %1$d accounts and split the name of %2$d; the rest have a one-wo
 msgstr ""
 
 msgid "da Silva"
+msgstr ""
+
+msgid "A designed code is drawn as SVG. Certificates embed it directly; short URL PNG downloads are rasterised by your browser so they match the preview."
+msgstr ""
+
+msgid "Apply the design to"
+msgstr ""
+
+msgid "Background colour"
+msgstr ""
+
+msgid "Blend the modules diagonally into a second colour"
+msgstr ""
+
+msgid "Circle"
+msgstr ""
+
+msgid "Corner centre"
+msgstr ""
+
+msgid "Corner centre colour"
+msgstr ""
+
+msgid "Corner frame"
+msgstr ""
+
+msgid "Corner frame colour"
+msgstr ""
+
+msgid "Diamond"
+msgstr ""
+
+msgid "Dots"
+msgstr ""
+
+msgid "Draw the short URL QR codes (preview and downloads) with this design"
+msgstr ""
+
+msgid "Draw the {{qr_code}} placeholder with this design"
+msgstr ""
+
+msgid "Fluid"
+msgstr ""
+
+msgid "Gradient"
+msgstr ""
+
+msgid "Gradient end colour"
+msgstr ""
+
+msgid "Leaf"
+msgstr ""
+
+msgid "Low contrast (%s:1). Phones may fail to read this code; aim for 4:1 or more."
+msgstr ""
+
+msgid "Module colour"
+msgstr ""
+
+msgid "QR Code Design"
+msgstr ""
+
+msgid "QR Code settings view file not found."
+msgstr ""
+
+msgid "Readable: contrast and colours are fine."
+msgstr ""
+
+msgid "Rounded"
+msgstr ""
+
+msgid "Shapes and colours of the QR codes the plugin draws. Applies only where it is switched on below; elsewhere the plain black-and-white code is kept."
+msgstr ""
+
+msgid "Square"
+msgstr ""
+
+msgid "The modules are lighter than the background. Most readers cannot scan an inverted code."
+msgstr ""
+
+msgid "The preview could not be drawn."
+msgstr ""
+
+msgid "Settings → QR Code also sets the shape of the modules and of the three corner markers, their colours and an optional gradient, with a live preview that warns about low contrast and inverted colours. The design is applied only where it is switched on: the {{qr_code}} placeholder of certificates, and the QR codes of short URLs. Elsewhere the plain black-and-white code is kept."
+msgstr ""
+
+msgid "Badge with caption above"
+msgstr ""
+
+msgid "Banner below"
+msgstr ""
+
+msgid "Frame"
+msgstr ""
+
+msgid "Frame caption"
+msgstr ""
+
+msgid "Frame colour"
+msgstr ""
+
+msgid "Logo"
+msgstr ""
+
+msgid "PNG, JPEG, WebP or GIF up to 512 KB, drawn in the centre. A logo raises error correction to H so the covered modules can be rebuilt."
+msgstr ""
+
+msgid "Speech bubble above"
+msgstr ""
+
+msgid "The badge caption is hard to read on this background; pick a darker frame colour."
+msgstr ""
+
+msgid "Up to 24 characters, e.g. \"Scan to verify\". The caption colour is picked to stay readable on the frame."
+msgstr ""
+
+msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame — a banner below, a badge or a speech bubble above — can carry a short caption such as \"Scan to verify\". A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
+msgstr ""
+
+msgid "%1$d of %2$d bytes (%3$d%%)"
+msgstr ""
+
+msgid "Could not create the short URL."
+msgstr ""
+
+msgid "Create a QR code for any content and download it. Nothing is stored: the design starts from Settings → QR Code and changes here apply to this code only. Only \"Shorten\" saves something — a short URL, listed with the others."
+msgstr ""
+
+msgid "Dense code (version %d): print it at least 3 cm wide, or shorten the content."
+msgstr ""
+
+msgid "Design"
+msgstr ""
+
+msgid "Download PNG"
+msgstr ""
+
+msgid "Download SVG"
+msgstr ""
+
+msgid "Enter a valid e-mail address."
+msgstr ""
+
+msgid "Enter a valid phone number."
+msgstr ""
+
+msgid "Enter a valid web address (http or https)."
+msgstr ""
+
+msgid "Enter the network name."
+msgstr ""
+
+msgid "Enter the network password, or choose an open network."
+msgstr ""
+
+msgid "Enter the text to encode."
+msgstr ""
+
+msgid "Error correction"
+msgstr ""
+
+msgid "Hidden network"
+msgstr ""
+
+msgid "Margin (modules)"
+msgstr ""
+
+msgid "Network name (SSID)"
+msgstr ""
+
+msgid "Open network (no password)"
+msgstr ""
+
+msgid "PNG width"
+msgstr ""
+
+msgid "Phone call"
+msgstr ""
+
+msgid "QR Code Generator"
+msgstr ""
+
+msgid "SMS"
+msgstr ""
+
+msgid "Short URL created and placed in the address field."
+msgstr ""
+
+msgid "Shortening creates a short URL that counts the scans, and puts it in the address field."
+msgstr ""
+
+msgid "The QR code could not be drawn."
+msgstr ""
+
+msgid "The network does not broadcast its name"
+msgstr ""
+
+msgid "This content is too long for a QR code at this error correction level. Shorten it, or lower the level."
+msgstr ""
+
+msgid "Title for the short URL (optional)"
+msgstr ""
+
+msgid "Type of content"
+msgstr ""
+
+msgid "Unknown QR code type."
+msgstr ""
+
+msgid "WPA / WPA2 / WPA3"
+msgstr ""
+
+msgid "Website"
+msgstr ""
+
+msgid "WhatsApp"
+msgstr ""
+
+msgid "Wi-Fi"
+msgstr ""
+
+msgid "With the country code, so it works from anywhere."
+msgstr ""
+
+msgid "Short URLs → QR Code Generator makes a QR code for a website, plain text, a Wi-Fi network, an e-mail, a phone call, an SMS or a WhatsApp chat, styled from the global design and downloaded as PNG or SVG. It stores nothing: only the \"Shorten\" button creates a short URL, which then appears in the list. It needs ffc_manage_url_shortener."
 msgstr ""

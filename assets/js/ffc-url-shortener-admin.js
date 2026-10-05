@@ -53,25 +53,10 @@
         $temp.remove();
     }
 
-    /**
-     * Trigger a file download from base64 data.
-     */
+    // Saving and rasterising live in ffc-qr-raster.js, shared with the
+    // manual QR generator (#1563).
     function downloadBase64(base64Data, filename, mime) {
-        var byteChars = atob(base64Data);
-        var byteNumbers = new Array(byteChars.length);
-        for (var i = 0; i < byteChars.length; i++) {
-            byteNumbers[i] = byteChars.charCodeAt(i);
-        }
-        var byteArray = new Uint8Array(byteNumbers);
-        var blob = new Blob([byteArray], { type: mime });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        window.FFC.QrRaster.download(base64Data, filename, mime);
     }
 
     $(document).ready(function () {
@@ -145,8 +130,11 @@
 
             FFC.request(action, payload, { nonce: settings.nonce, ajaxUrl: settings.ajaxUrl })
                 .then(function (data) {
-                    $btn.prop('disabled', false);
-                    downloadBase64(data.data, data.filename, data.mime);
+                    var png = data.rasterize ? window.FFC.QrRaster.toPng(data.data, 1000) : Promise.resolve(data.data);
+                    return png.then(function (base64) {
+                        $btn.prop('disabled', false);
+                        downloadBase64(base64, data.filename, data.mime);
+                    });
                 })
                 .catch(function (err) {
                     $btn.prop('disabled', false);
@@ -212,8 +200,9 @@
             )
                 .then(function (data) {
                     $modal.find('.ffc-qr-modal__spinner').hide();
+                    var mime = data.rasterize ? 'image/svg+xml' : 'image/png';
                     $modal.find('.ffc-qr-modal__img')
-                        .attr('src', 'data:image/png;base64,' + data.data)
+                        .attr('src', 'data:' + mime + ';base64,' + data.data)
                         .show();
                 })
                 .catch(function (err) {

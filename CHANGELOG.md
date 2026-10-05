@@ -7,6 +7,20 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **QR code design** (#1563). A new Settings → QR Code tab sets the module shape (square, rounded, dots, fluid, diamond), the corner markers, colours and an optional gradient, with a live preview that warns about low contrast and inverted colours. Off by default; switched on separately for certificates and short URLs.
+- **QR code logo and frames** (#1563). The design can carry a Media Library logo in the centre (error correction forced to H) and a banner, badge or speech-bubble frame with a caption of up to 24 characters; certificates and short-URL downloads keep the framed proportions.
+- **QR Code Generator** (#1563). Short URLs → QR Code Generator draws a code for a website, text, Wi-Fi, e-mail, phone call, SMS or WhatsApp, styled per code from the global design, with a capacity meter and a density warning, downloaded as PNG or SVG. Stateless: only "Shorten" stores something, a short URL.
+
+### Changed
+
+- **The QR code defaults moved from General to the QR Code tab** (#1563). Same settings and values; a designed short-URL PNG is now rasterised by the browser from the SVG so it matches the preview.
+
+### Fixed
+
+- **The short URL SVG download was a solid black square** (#1563). It read the encoder's raw frame instead of its modules, painting every module dark; the SVG (download and REST `format=svg`) now draws the real code.
+
 ## [6.33.0] (2026-10-04) — `10ba316f`
 
 ### Added

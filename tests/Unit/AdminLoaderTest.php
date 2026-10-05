@@ -41,6 +41,7 @@ class AdminLoaderTest extends TestCase {
 		'AdminMenuVisibility',
 		'DeviceThresholdUpgradeNotice',
 		'SettingsAjaxEndpoint',
+		'QrDesignPreviewAjaxEndpoint',
 		'FormMetaAjaxEndpoint',
 		'LocationsAjaxEndpoint',
 		'CacheActionsAjaxEndpoint',

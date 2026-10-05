@@ -53,6 +53,7 @@ afterEach(() => {
 
 async function loadAdmin() {
 	if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+	loadScript('assets/js/ffc-qr-raster.js');
 	loadScript('assets/js/ffc-url-shortener-admin.js');
 	await new Promise((r) => setTimeout(r, 0));
 }
@@ -561,5 +562,66 @@ describe('url-shortener — edit modal', () => {
 		await flush();
 
 		expect(window.$('#ffc-edit-short-url-result').text()).toBe('Not editable');
+	});
+});
+
+// ----------------------------------------------------------------------
+// Designed QR (#1563): the PNG is rasterised from the SVG in the browser
+// ----------------------------------------------------------------------
+
+describe('url-shortener — designed QR rasterising', () => {
+	// jsdom neither loads images nor paints canvases: stand in for both.
+	function stubCanvas(fail, natural) {
+		vi.spyOn(window, 'Image').mockImplementation(function () {
+			const img = natural ? { naturalWidth: natural[0], naturalHeight: natural[1] } : {};
+			Object.defineProperty(img, 'src', {
+				set(v) { img._src = v; setTimeout(() => (fail ? img.onerror(new Error('x')) : img.onload()), 0); },
+				get() { return img._src; },
+			});
+			return img;
+		});
+		const draw = vi.fn();
+		vi.spyOn(window.HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ drawImage: draw });
+		vi.spyOn(window.HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,UE5HUE5H');
+		return draw;
+	}
+
+	it('PNG download with rasterize=true saves the rasterised PNG, not the SVG', async () => {
+		document.body.innerHTML = '<button class="ffc-download-qr" data-format="png" data-code="abc">QR</button>';
+		await loadAdmin();
+		stubCanvas(false);
+		const blobs = [];
+		const RealBlob = window.Blob;
+		vi.spyOn(window, 'Blob').mockImplementation(function (parts, opts) { blobs.push({ parts, opts }); return new RealBlob(parts, opts); });
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { data: 'PHN2Zy8+', filename: 'qr-abc.png', mime: 'image/png', rasterize: true } } }));
+
+		window.$('.ffc-download-qr').trigger('click');
+		await new Promise((r) => setTimeout(r, 5));
+
+		// Every earlier test re-loaded the script, so several delegated
+		// handlers answer one click; each must have saved the PNG.
+		expect(blobs.length).toBeGreaterThan(0);
+		blobs.forEach((b) => {
+			expect(b.opts.type).toBe('image/png');
+			expect(new TextDecoder().decode(b.parts[0])).toBe('PNGPNG');
+		});
+		expect(window.$('.ffc-download-qr').prop('disabled')).toBe(false);
+	});
+
+	it('the modal previews a designed code as SVG', async () => {
+		document.body.innerHTML = `
+			<button class="ffc-show-qr-modal" data-code="C1" data-url="https://x/C1" data-title="T">QR</button>
+			<div id="ffc-qr-modal" style="display:none">
+				<h3 class="ffc-qr-modal__title"></h3><p class="ffc-qr-modal__url"></p>
+				<button class="ffc-copy-shorturl">Copy</button><button class="ffc-download-qr" data-format="png">DL</button>
+				<img class="ffc-qr-modal__img" /><div class="ffc-qr-modal__spinner"></div><div class="ffc-qr-modal__preview"></div>
+			</div>`;
+		await loadAdmin();
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { data: 'PHN2Zy8+', mime: 'image/png', rasterize: true } } }));
+
+		window.$('.ffc-show-qr-modal').trigger('click');
+		await flush();
+
+		expect(window.$('#ffc-qr-modal .ffc-qr-modal__img').attr('src')).toBe('data:image/svg+xml;base64,PHN2Zy8+');
 	});
 });

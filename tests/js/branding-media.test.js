@@ -46,4 +46,30 @@ describe('ffc-branding-media.js', () => {
 		window.$('.ffc-media-select').trigger('click');
 		expect(document.querySelector('#logo_gov').value).toBe('old');
 	});
+
+	it('stores the attachment id and refreshes the thumbnail in id mode (QR logo, #1563)', () => {
+		document.body.innerHTML =
+			'<img id="thumb" hidden>' +
+			'<input id="logo_id" value="0">' +
+			'<button class="ffc-media-select" data-ffc-media-target="#logo_id" data-ffc-media-value="id" data-ffc-media-thumb="#thumb">Select</button>' +
+			'<button class="ffc-media-clear" data-ffc-media-target="#logo_id" data-ffc-media-value="id" data-ffc-media-thumb="#thumb">Clear</button>';
+		const att = { id: 42, url: 'https://cdn/logo.png', sizes: { thumbnail: { url: 'https://cdn/logo-150.png' } } };
+		const selection = { first: () => ({ toJSON: () => att }) };
+		const frame = {
+			cb: null,
+			on(evt, cb) { if (evt === 'select') { this.cb = cb; } },
+			state: () => ({ get: () => selection }),
+			open() { if (this.cb) { this.cb(); } },
+		};
+		window.wp = { media: vi.fn(() => frame) };
+
+		window.$('.ffc-media-select').trigger('click');
+		expect(document.querySelector('#logo_id').value).toBe('42');
+		expect(document.querySelector('#thumb').getAttribute('src')).toBe('https://cdn/logo-150.png');
+		expect(document.querySelector('#thumb').hidden).toBe(false);
+
+		window.$('.ffc-media-clear').trigger('click');
+		expect(document.querySelector('#logo_id').value).toBe('0');
+		expect(document.querySelector('#thumb').hidden).toBe(true);
+	});
 });

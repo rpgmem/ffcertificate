@@ -74,6 +74,7 @@ class IdentifierIdiomTest extends TestCase {
 		'includes/reregistration/class-ffc-reregistration-import-staging-service.php' => '`fold()` case-folds a CSV header cell or a field name, never an address.',
 		'includes/recruitment/class-ffc-csv-parser.php'                             => 'Case-folds a CSV header name for column matching.',
 		'includes/user-dashboard/class-ffc-user-creator.php'                        => 'Builds a login from the local part of an address; it is a username, never a lookup key.',
+		'includes/generators/class-ffc-qr-design.php'                               => 'Normalises a `#rrggbb` colour for the QR design (#1563); never an address.',
 	);
 
 	/**
@@ -83,6 +84,7 @@ class IdentifierIdiomTest extends TestCase {
 	 */
 	private const DIGIT_STRIP_ALLOWED = array(
 		'includes/core/class-ffc-data-sanitizer.php' => 'Declares the canonical form. Every other site asks it.',
+		'includes/generators/class-ffc-qr-payload.php' => 'Builds a dialable `tel:` / `SMSTO:` / `wa.me` number for a QR code (#1563); never stored, hashed or looked up.',
 	);
 
 	/**
