@@ -302,6 +302,10 @@ class Settings {
 			'qr_design_background'       => '#ffffff',
 			'qr_design_eye_frame_color'  => '#000000',
 			'qr_design_eye_ball_color'   => '#000000',
+			'qr_design_logo_id'          => 0,
+			'qr_design_frame'            => 'none',
+			'qr_design_frame_text'       => '',
+			'qr_design_frame_color'      => '#1d2327',
 			'qr_design_on_certificate'   => 0,
 			'qr_design_on_short_urls'    => 0,
 			// `d/m/Y` default since #244 — Brazilian-locale friendly. Pre-

@@ -523,6 +523,35 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertSame( 1, $result['qr_design_on_short_urls'] );
 	}
 
+	public function test_qr_logo_and_frame_are_validated_on_save(): void {
+		$_POST['_ffc_tab'] = 'qr_code';
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => strip_tags( $s ) );
+		Functions\when( 'get_post_mime_type' )->alias( static fn( $id ) => 5 === $id ? 'image/png' : 'image/svg+xml' );
+
+		$result = $this->invoke(
+			'save_qrcode_settings',
+			array(
+				array(),
+				array(
+					'qr_design_logo_id'     => '5',
+					'qr_design_frame'       => 'badge',
+					'qr_design_frame_text'  => '<i>Scan to verify</i>',
+					'qr_design_frame_color' => '#2271B1',
+				),
+			)
+		);
+
+		$this->assertSame( 5, $result['qr_design_logo_id'] );
+		$this->assertSame( 'badge', $result['qr_design_frame'] );
+		$this->assertSame( 'Scan to verify', $result['qr_design_frame_text'] );
+		$this->assertSame( '#2271b1', $result['qr_design_frame_color'] );
+
+		// An attachment the renderer cannot embed clears the logo.
+		$result = $this->invoke( 'save_qrcode_settings', array( array(), array( 'qr_design_logo_id' => '6' ) ) );
+		$this->assertSame( 0, $result['qr_design_logo_id'] );
+		$this->assertSame( 'none', $result['qr_design_frame'] );
+	}
+
 	public function test_qrcode_cache_ignored_on_other_tab(): void {
 		$_POST['_ffc_tab'] = 'qr_code';
 		$result = $this->invoke( 'save_qrcode_settings', array( array(), array( 'qr_cache_enabled' => '1' ) ) );

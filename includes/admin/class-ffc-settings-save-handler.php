@@ -418,8 +418,18 @@ class SettingsSaveHandler {
 					'background'      => $new['qr_design_background'] ?? null,
 					'eye_frame_color' => $new['qr_design_eye_frame_color'] ?? null,
 					'eye_ball_color'  => $new['qr_design_eye_ball_color'] ?? null,
+					'frame'           => $new['qr_design_frame'] ?? null,
+					'frame_text'      => $new['qr_design_frame_text'] ?? null,
+					'frame_color'     => $new['qr_design_frame_color'] ?? null,
 				)
 			);
+
+			// Only an image the renderer can embed is kept; anything else --
+			// another post type, an SVG, a deleted attachment -- clears the logo.
+			$logo_id = absint( $new['qr_design_logo_id'] ?? 0 );
+			if ( $logo_id > 0 && ! in_array( (string) get_post_mime_type( $logo_id ), \FreeFormCertificate\Generators\QrLogo::MIMES, true ) ) {
+				$logo_id = 0;
+			}
 
 			$clean['qr_design_dots']            = $design->dots;
 			$clean['qr_design_eye_frame']       = $design->eye_frame;
@@ -430,6 +440,10 @@ class SettingsSaveHandler {
 			$clean['qr_design_background']      = $design->background;
 			$clean['qr_design_eye_frame_color'] = $design->eye_frame_color;
 			$clean['qr_design_eye_ball_color']  = $design->eye_ball_color;
+			$clean['qr_design_logo_id']         = $logo_id;
+			$clean['qr_design_frame']           = $design->frame;
+			$clean['qr_design_frame_text']      = $design->frame_text;
+			$clean['qr_design_frame_color']     = $design->frame_color;
 			$clean['qr_design_on_certificate']  = isset( $new['qr_design_on_certificate'] ) ? 1 : 0;
 			$clean['qr_design_on_short_urls']   = isset( $new['qr_design_on_short_urls'] ) ? 1 : 0;
 		}

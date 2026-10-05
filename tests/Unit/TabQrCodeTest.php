@@ -68,10 +68,16 @@ class TabQrCodeTest extends TestCase {
 				'qr_design_dots'           => 'fluid',
 				'qr_design_color'          => '#123456',
 				'qr_design_on_certificate' => 1,
+				'qr_design_logo_id'        => 12,
+				'qr_design_frame'          => 'bubble',
 			)
 		);
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( null );
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'wp_get_attachment_image_url' )->justReturn( 'https://example.com/logo-150x150.png' );
+		Functions\when( 'get_post_mime_type' )->justReturn( '' );
+		Functions\when( 'get_attached_file' )->justReturn( '' );
 		Functions\when( 'selected' )->alias(
 			static function ( $a, $b ) {
 				echo $a === $b ? ' selected="selected"' : '';
@@ -93,6 +99,9 @@ class TabQrCodeTest extends TestCase {
 		$this->assertStringContainsString( 'value="fluid"  selected="selected"', $html );
 		$this->assertStringContainsString( 'id="qr_design_color" value="#123456"', $html );
 		$this->assertStringContainsString( 'id="ffc-qr-design-preview"', $html );
+		$this->assertStringContainsString( 'id="qr_design_logo_id" value="12"', $html );
+		$this->assertStringContainsString( 'src="https://example.com/logo-150x150.png"', $html );
+		$this->assertStringContainsString( 'value="bubble"  selected="selected"', $html );
 		// Both switches are named fields in the form AND autosave keys.
 		$this->assertStringContainsString( 'name="ffc_settings[qr_design_on_certificate]"', $html );
 		$this->assertStringContainsString( 'data-ffc-autosave-key="qr_design_on_short_urls"', $html );

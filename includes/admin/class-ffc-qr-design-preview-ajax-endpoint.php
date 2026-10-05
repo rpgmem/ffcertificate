@@ -13,6 +13,7 @@ namespace FreeFormCertificate\Admin;
 use FreeFormCertificate\Core\Capabilities;
 use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Generators\QrDesign;
+use FreeFormCertificate\Generators\QrLogo;
 use FreeFormCertificate\Generators\QrSvgRenderer;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -48,14 +49,21 @@ class QrDesignPreviewAjaxEndpoint {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ), 403 );
 		}
 
-		$design = new QrDesign( RequestInput::get_post_array( 'design' ) );
+		$input = RequestInput::get_post_array( 'design' );
+
+		// The logo travels as an attachment id and is embedded here, so a
+		// preview can only draw an image the user may already read.
+		$logo_id       = RequestInput::get_post_int( 'logo_id', 0 );
+		$input['logo'] = $logo_id > 0 && current_user_can( 'read_post', $logo_id ) ? QrLogo::data_uri( $logo_id ) : '';
+
+		$design = new QrDesign( $input );
 		$ecc    = strtoupper( RequestInput::get_post_string( 'error_level', 'M' ) );
 		$ecc    = in_array( $ecc, array( 'L', 'M', 'Q', 'H' ), true ) ? $ecc : 'M';
 		$margin = max( 0, min( 10, RequestInput::get_post_int( 'margin', 2 ) ) );
 
 		// The site's own address stands in for a real payload: it is the
 		// typical length of a certificate's verification link.
-		$matrix = QrSvgRenderer::matrix( home_url( '/' ), $ecc );
+		$matrix = QrSvgRenderer::matrix( home_url( '/' ), $design->error_level( $ecc ) );
 		if ( array() === $matrix ) {
 			wp_send_json_error( array( 'message' => __( 'QR generation failed.', 'ffcertificate' ) ) );
 		}

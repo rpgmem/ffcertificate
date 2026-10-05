@@ -23732,3 +23732,36 @@ msgstr "Não foi possível desenhar a prévia."
 
 msgid "Settings → QR Code also sets the shape of the modules and of the three corner markers, their colours and an optional gradient, with a live preview that warns about low contrast and inverted colours. The design is applied only where it is switched on: the {{qr_code}} placeholder of certificates, and the QR codes of short URLs. Elsewhere the plain black-and-white code is kept."
 msgstr "Configurações → QR Code também define o formato dos módulos e dos três marcadores de canto, suas cores e um degradê opcional, com uma prévia ao vivo que avisa sobre contraste baixo e cores invertidas. O design só é aplicado onde estiver ativado: no placeholder {{qr_code}} dos certificados e nos QR Codes das URLs curtas. Nos demais lugares o código simples em preto e branco é mantido."
+
+msgid "Badge with caption above"
+msgstr "Selo com legenda acima"
+
+msgid "Banner below"
+msgstr "Faixa abaixo"
+
+msgid "Frame"
+msgstr "Moldura"
+
+msgid "Frame caption"
+msgstr "Legenda da moldura"
+
+msgid "Frame colour"
+msgstr "Cor da moldura"
+
+msgid "Logo"
+msgstr "Logotipo"
+
+msgid "PNG, JPEG, WebP or GIF up to 512 KB, drawn in the centre. A logo raises error correction to H so the covered modules can be rebuilt."
+msgstr "PNG, JPEG, WebP ou GIF de até 512 KB, desenhado no centro. Um logotipo eleva a correção de erros para H, para que os módulos cobertos possam ser reconstruídos."
+
+msgid "Speech bubble above"
+msgstr "Balão de fala acima"
+
+msgid "The badge caption is hard to read on this background; pick a darker frame colour."
+msgstr "A legenda do selo fica difícil de ler neste fundo; escolha uma cor de moldura mais escura."
+
+msgid "Up to 24 characters, e.g. \"Scan to verify\". The caption colour is picked to stay readable on the frame."
+msgstr "Até 24 caracteres, por exemplo \"Escaneie para verificar\". A cor da legenda é escolhida para continuar legível sobre a moldura."
+
+msgid "A logo from the Media Library can be drawn in the centre (error correction is raised to H automatically), and a frame — a banner below, a badge or a speech bubble above — can carry a short caption such as \"Scan to verify\". A frame makes the image taller than wide; certificates keep the width the placeholder asks for and grow in height."
+msgstr "Um logotipo da Biblioteca de Mídia pode ser desenhado no centro (a correção de erros sobe para H automaticamente), e uma moldura — uma faixa abaixo, um selo ou um balão de fala acima — pode trazer uma legenda curta como \"Escaneie para verificar\". A moldura deixa a imagem mais alta que larga; os certificados mantêm a largura pedida pelo placeholder e crescem em altura."

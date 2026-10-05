@@ -25,6 +25,10 @@ function mount() {
 			<input data-ffc-qr-design="qr_design_eye_ball_color" value="#778899">
 			<input type="checkbox" data-ffc-qr-design="qr_design_gradient">
 			<input data-ffc-qr-design="qr_design_color_end" value="#2271b1">
+			<input type="hidden" data-ffc-qr-design="qr_design_logo_id" value="7">
+			<select data-ffc-qr-design="qr_design_frame"><option value="badge" selected>badge</option></select>
+			<input data-ffc-qr-design="qr_design_frame_text" value="Scan me">
+			<input data-ffc-qr-design="qr_design_frame_color" value="#2271b1">
 			<div id="ffc-qr-design-preview"></div>
 			<p id="ffc-qr-design-checks"></p>
 		</form>`;
@@ -64,7 +68,11 @@ describe('ffc-qr-design.js', () => {
 				eye_ball_color: '#778899',
 				gradient: '1',
 				color_end: '#2271b1',
+				frame: 'badge',
+				frame_text: 'Scan me',
+				frame_color: '#2271b1',
 			},
+			logo_id: '7',
 			margin: '3',
 			error_level: 'Q',
 		});
@@ -88,6 +96,16 @@ describe('ffc-qr-design.js', () => {
 		const $out = window.$('#ffc-qr-design-checks');
 		expect($out.text()).toBe('Low (2.3:1)');
 		expect($out.hasClass('is-warning')).toBe(true);
+	});
+
+	it('warns when a badge caption fades into the background', async () => {
+		window.ffcQrDesign.i18n.captionContrast = 'Caption hard to read';
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { svg: '<svg></svg>', checks: { inverted: false, low_contrast: false, min_ratio: 21, caption_contrast: false } } } }));
+
+		await window.FFC.QrDesign.refresh(window.$('form'));
+
+		expect(window.$('#ffc-qr-design-checks').text()).toBe('Caption hard to read');
+		expect(window.$('#ffc-qr-design-checks').hasClass('is-warning')).toBe(true);
 	});
 
 	it('flags an inverted code as an error', async () => {

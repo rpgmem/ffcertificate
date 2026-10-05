@@ -641,4 +641,20 @@ class QRCodeGeneratorTest extends TestCase {
 
 		$this->assertSame( '', ( new QRCodeGenerator() )->parse_and_generate( '{{qr_code}}', '' ) );
 	}
+
+	public function test_a_framed_design_gets_its_own_height(): void {
+		Functions\when( 'get_option' )->justReturn(
+			array(
+				'qr_design_on_certificate' => 1,
+				'qr_design_frame'          => 'banner',
+			)
+		);
+
+		$html = ( new QRCodeGenerator() )->parse_and_generate( '{{qr_code:size=200}}', 'https://example.com' );
+
+		$this->assertStringContainsString( 'width:200px', $html );
+		$this->assertMatchesRegularExpression( '/height:(\d+)px/', $html );
+		preg_match( '/height:(\d+)px/', $html, $m );
+		$this->assertGreaterThan( 200, (int) $m[1] );
+	}
 }

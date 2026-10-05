@@ -570,9 +570,9 @@ describe('url-shortener — edit modal', () => {
 
 describe('url-shortener — designed QR rasterising', () => {
 	// jsdom neither loads images nor paints canvases: stand in for both.
-	function stubCanvas(fail) {
+	function stubCanvas(fail, natural) {
 		vi.spyOn(window, 'Image').mockImplementation(function () {
-			const img = {};
+			const img = natural ? { naturalWidth: natural[0], naturalHeight: natural[1] } : {};
 			Object.defineProperty(img, 'src', {
 				set(v) { img._src = v; setTimeout(() => (fail ? img.onerror(new Error('x')) : img.onload()), 0); },
 				get() { return img._src; },
@@ -593,6 +593,15 @@ describe('url-shortener — designed QR rasterising', () => {
 
 		expect(png).toBe('UE5HUE5H');
 		expect(draw).toHaveBeenCalledWith(expect.anything(), 0, 0, 300, 300);
+	});
+
+	it('rasterizeSvg keeps a framed code\'s aspect ratio', async () => {
+		await loadAdmin();
+		const draw = stubCanvas(false, [400, 520]);
+
+		await window.FFC.rasterizeSvg('PHN2Zy8+', 1000);
+
+		expect(draw).toHaveBeenCalledWith(expect.anything(), 0, 0, 1000, 1300);
 	});
 
 	it('rasterizeSvg rejects when the image does not load', async () => {

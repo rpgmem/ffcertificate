@@ -41,6 +41,12 @@ final class QrDesign {
 	/** Finder-pattern ball shapes. */
 	public const EYE_BALLS = array( 'square', 'rounded', 'circle', 'diamond' );
 
+	/** Frames drawn around the code. */
+	public const FRAMES = array( 'none', 'banner', 'badge', 'bubble' );
+
+	/** Longest frame caption, in characters. */
+	public const FRAME_TEXT_MAX = 24;
+
 	/** Surfaces the global design can be applied to. */
 	public const SURFACES = array( 'certificate', 'short_urls' );
 
@@ -107,11 +113,40 @@ final class QrDesign {
 	public string $eye_ball_color;
 
 	/**
+	 * Logo as a `data:` URI, or '' for none.
+	 *
+	 * @var string
+	 */
+	public string $logo;
+
+	/**
+	 * Frame around the code.
+	 *
+	 * @var string
+	 */
+	public string $frame;
+
+	/**
+	 * Frame caption, plain text.
+	 *
+	 * @var string
+	 */
+	public string $frame_text;
+
+	/**
+	 * Frame colour.
+	 *
+	 * @var string
+	 */
+	public string $frame_color;
+
+	/**
 	 * Build from loose input; every unknown or malformed value takes its default.
 	 *
 	 * @param array<string, mixed> $input Keys: dots, eye_frame, eye_ball, color,
 	 *                                    gradient, color_end, background,
-	 *                                    eye_frame_color, eye_ball_color.
+	 *                                    eye_frame_color, eye_ball_color, logo,
+	 *                                    frame, frame_text, frame_color.
 	 */
 	public function __construct( array $input = array() ) {
 		$this->dots            = self::pick( $input['dots'] ?? null, self::DOTS );
@@ -122,6 +157,10 @@ final class QrDesign {
 		$this->eye_frame_color = self::hex( $input['eye_frame_color'] ?? null, $this->color );
 		$this->eye_ball_color  = self::hex( $input['eye_ball_color'] ?? null, $this->color );
 		$this->color_end       = ! empty( $input['gradient'] ) ? self::hex( $input['color_end'] ?? null, $this->color ) : '';
+		$this->logo            = self::logo( $input['logo'] ?? null );
+		$this->frame           = self::pick( $input['frame'] ?? null, self::FRAMES );
+		$this->frame_text      = self::caption( $input['frame_text'] ?? null );
+		$this->frame_color     = self::hex( $input['frame_color'] ?? null, '#1d2327' );
 	}
 
 	/**
@@ -150,6 +189,10 @@ final class QrDesign {
 				'background'      => SettingsReader::get_string( 'qr_design_background', '#ffffff' ),
 				'eye_frame_color' => SettingsReader::get_string( 'qr_design_eye_frame_color', '#000000' ),
 				'eye_ball_color'  => SettingsReader::get_string( 'qr_design_eye_ball_color', '#000000' ),
+				'logo'            => QrLogo::data_uri( SettingsReader::get_int( 'qr_design_logo_id', 0 ) ),
+				'frame'           => SettingsReader::get_string( 'qr_design_frame', 'none' ),
+				'frame_text'      => SettingsReader::get_string( 'qr_design_frame_text', '' ),
+				'frame_color'     => SettingsReader::get_string( 'qr_design_frame_color', '#1d2327' ),
 			)
 		);
 	}
@@ -197,7 +240,22 @@ final class QrDesign {
 			'background'      => $this->background,
 			'eye_frame_color' => $this->eye_frame_color,
 			'eye_ball_color'  => $this->eye_ball_color,
+			'logo'            => $this->logo,
+			'frame'           => $this->frame,
+			'frame_text'      => $this->frame_text,
+			'frame_color'     => $this->frame_color,
 		);
+	}
+
+	/**
+	 * Error correction the code needs: H under a logo, which hides modules
+	 * that only the redundancy can rebuild; the requested level otherwise.
+	 *
+	 * @param string $requested L, M, Q or H.
+	 * @return string
+	 */
+	public function error_level( string $requested ): string {
+		return '' !== $this->logo ? 'H' : $requested;
 	}
 
 	/**
@@ -208,7 +266,7 @@ final class QrDesign {
 	 * foreground colour is checked, because one faint eye is enough to lose
 	 * the finder pattern.
 	 *
-	 * @return array{inverted: bool, low_contrast: bool, min_ratio: float}
+	 * @return array{inverted: bool, low_contrast: bool, min_ratio: float, caption_contrast: bool}
 	 */
 	public function scan_checks(): array {
 		$foregrounds = array_filter( array( $this->color, $this->color_end, $this->eye_frame_color, $this->eye_ball_color ) );
@@ -221,10 +279,17 @@ final class QrDesign {
 			$inverted  = $inverted || ContrastColor::is_lighter( $fg, $this->background );
 		}
 
+		// The badge prints its caption in the frame colour on the background;
+		// the banner and the bubble pick a readable caption colour themselves.
+		$caption_ratio = 'badge' === $this->frame && '' !== $this->frame_text
+			? ( ContrastColor::ratio( $this->frame_color, $this->background ) ?? 1.0 )
+			: 21.0;
+
 		return array(
-			'inverted'     => $inverted,
-			'low_contrast' => $min_ratio < self::MIN_CONTRAST,
-			'min_ratio'    => round( $min_ratio, 2 ),
+			'inverted'         => $inverted,
+			'low_contrast'     => $min_ratio < self::MIN_CONTRAST,
+			'min_ratio'        => round( $min_ratio, 2 ),
+			'caption_contrast' => $caption_ratio >= 4.5,
 		);
 	}
 
@@ -237,6 +302,33 @@ final class QrDesign {
 	 */
 	private static function pick( $value, array $allowed ): string {
 		return is_string( $value ) && in_array( $value, $allowed, true ) ? $value : $allowed[0];
+	}
+
+	/**
+	 * A logo `data:` URI of an accepted raster type, or ''.
+	 *
+	 * @param mixed $value Candidate.
+	 * @return string
+	 */
+	private static function logo( $value ): string {
+		if ( ! is_string( $value ) ) {
+			return '';
+		}
+		return 1 === preg_match( '#^data:image/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+=*$#', $value ) ? $value : '';
+	}
+
+	/**
+	 * A plain-text caption of at most FRAME_TEXT_MAX characters.
+	 *
+	 * @param mixed $value Candidate.
+	 * @return string
+	 */
+	private static function caption( $value ): string {
+		if ( ! is_string( $value ) || '' === $value ) {
+			return '';
+		}
+		$text = trim( (string) preg_replace( '/\s+/u', ' ', wp_strip_all_tags( $value ) ) );
+		return mb_substr( $text, 0, self::FRAME_TEXT_MAX );
 	}
 
 	/**

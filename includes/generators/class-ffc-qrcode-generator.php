@@ -125,12 +125,14 @@ class QRCodeGenerator {
 		if ( QrDesign::applies_to( 'certificate' ) ) {
 			/** This filter is documented below. */
 			$url = apply_filters( 'ffcertificate_qrcode_url', $url, $submission_id, $params );
-			$svg = QrSvgRenderer::render( $url, QrDesign::from_settings(), $params['error_level'], $params['margin'], $params['size'] );
-			if ( '' === $svg ) {
+			// A frame makes the document taller than wide, so the height comes
+			// from the renderer rather than repeating the width.
+			$drawn = QrSvgRenderer::render_sized( $url, QrDesign::from_settings(), $params['error_level'], $params['margin'], $params['size'] );
+			if ( '' === $drawn['svg'] ) {
 				return '';
 			}
 			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- benign: encoding SVG markup for a data URI.
-			$img_html = $this->format_as_img_tag( base64_encode( $svg ), $params['size'], 'image/svg+xml' );
+			$img_html = $this->format_as_img_tag( base64_encode( $drawn['svg'] ), $params['size'], 'image/svg+xml', $drawn['height'] );
 			/** This filter is documented below. */
 			return apply_filters( 'ffcertificate_qrcode_html', $img_html, $url, $submission_id );
 		}
@@ -393,9 +395,10 @@ class QRCodeGenerator {
 	 * @param string $base64 Base64 encoded image.
 	 * @param int    $size Display size in pixels.
 	 * @param string $mime   Image MIME type.
+	 * @param int    $height Display height in pixels; 0 means square.
 	 * @return string HTML img tag
 	 */
-	private function format_as_img_tag( string $base64, int $size, string $mime = 'image/png' ): string {
+	private function format_as_img_tag( string $base64, int $size, string $mime = 'image/png', int $height = 0 ): string {
 		if ( empty( $base64 ) ) {
 			return '';
 		}
@@ -406,7 +409,7 @@ class QRCodeGenerator {
 			$base64,
 			esc_attr__( 'QR Code', 'ffcertificate' ),
 			$size,
-			$size
+			$height > 0 ? $height : $size
 		);
 	}
 

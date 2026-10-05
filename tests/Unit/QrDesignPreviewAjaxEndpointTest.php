@@ -128,4 +128,24 @@ class QrDesignPreviewAjaxEndpointTest extends TestCase {
 		$this->assertStringContainsString( 'fill="#000000"', $data['svg'] );
 		$this->assertFalse( $data['checks']['low_contrast'] );
 	}
+
+	public function test_a_logo_the_user_may_read_is_embedded_and_forces_h(): void {
+		Functions\when( 'check_ajax_referer' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->alias( fn( $cap, $id = null ) => 'read_post' === $cap ? 3 === $id : in_array( $cap, $this->caps, true ) );
+		Functions\when( 'get_post_mime_type' )->justReturn( 'image/png' );
+		$file = (string) tempnam( sys_get_temp_dir(), 'ffc_logo_' );
+		file_put_contents( $file, 'PNG' );
+		Functions\when( 'get_attached_file' )->justReturn( $file );
+		\FreeFormCertificate\Generators\QrLogo::reset();
+
+		$_POST = array( 'logo_id' => '3' );
+		$with  = $this->payload();
+		$_POST = array( 'logo_id' => '4' );
+		$other = $this->payload();
+
+		@unlink( $file );
+		\FreeFormCertificate\Generators\QrLogo::reset();
+		$this->assertStringContainsString( '<image href="data:image/png;base64,' . base64_encode( 'PNG' ) . '"', $with['svg'] );
+		$this->assertStringNotContainsString( '<image', $other['svg'], 'An attachment the user cannot read is not embedded.' );
+	}
 }

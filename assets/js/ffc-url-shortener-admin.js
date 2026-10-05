@@ -75,7 +75,7 @@
     }
 
     /**
-     * Draw a base64 SVG onto a canvas and resolve with base64 PNG (#1563).
+     * Draw a base64 SVG onto a canvas `size` wide and resolve with base64 PNG (#1563).
      *
      * The server cannot draw the QR design with GD, so a designed code is
      * shipped as SVG and rasterised here; the PNG then matches the preview.
@@ -86,10 +86,13 @@
             var img = new Image();
             img.onload = function () {
                 try {
+                    // A frame makes the code taller than wide: keep its ratio.
+                    var ratio = img.naturalWidth > 0 ? img.naturalHeight / img.naturalWidth : 1;
+                    var height = Math.round(size * (ratio > 0 ? ratio : 1));
                     var canvas = document.createElement('canvas');
                     canvas.width = size;
-                    canvas.height = size;
-                    canvas.getContext('2d').drawImage(img, 0, 0, size, size);
+                    canvas.height = height;
+                    canvas.getContext('2d').drawImage(img, 0, 0, size, height);
                     resolve(canvas.toDataURL('image/png').split(',')[1]);
                 } catch (e) {
                     reject(e);
