@@ -100,6 +100,9 @@ class UrlShortenerLoader {
 			// true, so the endpoint is reachable from here.
 			( new QrGeneratorPage() )->init();
 			( new QrGeneratorAjaxEndpoint( $this->service ) )->init();
+			// The generator's signed event links. admin-post.php defines
+			// WP_ADMIN, so this gate covers the anonymous scan as well.
+			( new QrEventIcsHandler() )->init();
 
 			$backfill = new UrlShortenerBackfillHandler( $this->service );
 			$backfill->init();
