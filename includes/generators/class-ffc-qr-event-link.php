@@ -22,6 +22,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * only the events its own generator signed. Without the signature, anyone
  * could make the site's domain hand out an `.ics` file of their choosing --
  * an invitation that looks like it came from the institution.
+ *
+ * An optional `until` date (#1568) is signed with the rest, so it cannot be
+ * pushed back; a link that carries none -- every link issued before it
+ * existed -- never expires, which is what a printed code needs by default.
  */
 final class QrEventLink {
 
@@ -32,7 +36,7 @@ final class QrEventLink {
 	private const SIGNATURE_LENGTH = 32;
 
 	/** Event keys carried, in order. */
-	private const KEYS = array( 'title', 'location', 'description', 'date', 'start', 'end' );
+	private const KEYS = array( 'title', 'location', 'description', 'date', 'start', 'end', 'until' );
 
 	/**
 	 * The download link for an event.
@@ -73,6 +77,24 @@ final class QrEventLink {
 		$event = json_decode( $json, true );
 
 		return is_array( $event ) ? self::pick( $event ) : null;
+	}
+
+	/**
+	 * Whether the link's `until` date has passed, in the site's time zone.
+	 *
+	 * The link stays valid through the whole of its last day, so a code that
+	 * says "until the 10th" still opens on the 10th.
+	 *
+	 * @param array<string, string> $event Event from {@see self::verify()}.
+	 * @param int|null              $now   Unix time; the current time when null.
+	 * @return bool
+	 */
+	public static function expired( array $event, ?int $now = null ): bool {
+		$until = $event['until'] ?? '';
+		if ( '' === $until ) {
+			return false;
+		}
+		return strcmp( (string) wp_date( 'Y-m-d', $now ?? time() ), $until ) > 0;
 	}
 
 	/**

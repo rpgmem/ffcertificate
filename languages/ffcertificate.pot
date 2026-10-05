@@ -23863,3 +23863,27 @@ msgstr ""
 
 msgid "Short URLs → QR Code Generator makes a QR code for a website, plain text, a Wi-Fi network, an e-mail, a phone call, an SMS, a WhatsApp chat, a contact card (vCard), a social profile or an event, styled from the global design and downloaded as PNG or SVG. It stores nothing: only the \"Shorten\" button creates a short URL, which then appears in the list. It needs ffc_manage_url_shortener."
 msgstr ""
+
+msgid "Enter a valid date for the link expiry."
+msgstr ""
+
+msgid "The link cannot expire before the event."
+msgstr ""
+
+msgid "This event link has expired."
+msgstr ""
+
+msgid "Link valid until"
+msgstr ""
+
+msgid "Calendar file only. Leave empty for a link that never expires -- a printed code keeps working. After this date the link answers that it has expired."
+msgstr ""
+
+msgid "Reset to default"
+msgstr ""
+
+msgid "The generator remembers your design when you download a code; this goes back to the global design from Settings → QR Code."
+msgstr ""
+
+msgid "Design reset to the global default."
+msgstr ""

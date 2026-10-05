@@ -27,14 +27,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  * The generator is stateless: drawing writes nothing, so it can follow every
  * keystroke. Shortening is the one write, and it is a separate action fired
  * only by an explicit click -- drawing on each change must never mint a
- * short URL per keystroke.
+ * short URL per keystroke. Remembering the design (#1568) is the other: it
+ * runs on a download or a reset, and stores the design only, never content.
  */
 class QrGeneratorAjaxEndpoint {
 
 	public const ACTION_GENERATE = 'ffc_qr_generate';
 	public const ACTION_SHORTEN  = 'ffc_qr_shorten';
+	public const ACTION_REMEMBER = 'ffc_qr_remember';
 
-	/** Capability for both actions: the generator lives in the shortener's menu. */
+	/** Capability for every action: the generator lives in the shortener's menu. */
 	public const CAP = 'ffc_manage_url_shortener';
 
 	/**
@@ -59,6 +61,7 @@ class QrGeneratorAjaxEndpoint {
 	public function init(): void {
 		add_action( 'wp_ajax_' . self::ACTION_GENERATE, array( $this, 'handle_generate' ) );
 		add_action( 'wp_ajax_' . self::ACTION_SHORTEN, array( $this, 'handle_shorten' ) );
+		add_action( 'wp_ajax_' . self::ACTION_REMEMBER, array( $this, 'handle_remember' ) );
 	}
 
 	/**
@@ -133,7 +136,56 @@ class QrGeneratorAjaxEndpoint {
 	}
 
 	/**
-	 * Nonce and capability, shared by both actions.
+	 * Remember the posted design for the current user, or forget it on a
+	 * reset; answers with the state the generator now opens with.
+	 */
+	public function handle_remember(): void {
+		$this->guard( self::ACTION_REMEMBER );
+		$user_id = get_current_user_id();
+
+		if ( '1' === RequestInput::get_post_string( 'reset' ) ) {
+			QrGeneratorDesignMemory::forget( $user_id );
+			$state   = QrGeneratorDesignMemory::global_state();
+			$logo_id = (int) $state['qr_design_logo_id'];
+			wp_send_json_success(
+				array(
+					'state'      => $state,
+					// The form shows the logo by its thumbnail, which the state does not carry.
+					'logo_thumb' => $logo_id > 0 ? (string) wp_get_attachment_image_url( $logo_id, 'thumbnail' ) : '',
+				)
+			);
+		}
+
+		$design  = RequestInput::get_post_array( 'design' );
+		$logo_id = RequestInput::get_post_int( 'logo_id', 0 );
+		QrGeneratorDesignMemory::remember(
+			$user_id,
+			array(
+				'qr_design_dots'            => $design['dots'] ?? '',
+				'qr_design_eye_frame'       => $design['eye_frame'] ?? '',
+				'qr_design_eye_ball'        => $design['eye_ball'] ?? '',
+				'qr_design_color'           => $design['color'] ?? '',
+				'qr_design_background'      => $design['background'] ?? '',
+				'qr_design_eye_frame_color' => $design['eye_frame_color'] ?? '',
+				'qr_design_eye_ball_color'  => $design['eye_ball_color'] ?? '',
+				'qr_design_gradient'        => $design['gradient'] ?? '',
+				'qr_design_color_end'       => $design['color_end'] ?? '',
+				'qr_design_frame'           => $design['frame'] ?? '',
+				'qr_design_frame_text'      => $design['frame_text'] ?? '',
+				'qr_design_frame_color'     => $design['frame_color'] ?? '',
+				// A logo the user cannot read is not remembered: the page would
+				// otherwise embed it on the next visit.
+				'qr_design_logo_id'         => $logo_id > 0 && current_user_can( 'read_post', $logo_id ) ? $logo_id : 0,
+				'margin'                    => RequestInput::get_post_int( 'margin', 2 ),
+				'error_level'               => RequestInput::get_post_string( 'error_level', 'M' ),
+			)
+		);
+
+		wp_send_json_success( array( 'state' => QrGeneratorDesignMemory::state( $user_id ) ) );
+	}
+
+	/**
+	 * Nonce and capability, shared by every action.
 	 *
 	 * @param string $action Nonce action.
 	 */

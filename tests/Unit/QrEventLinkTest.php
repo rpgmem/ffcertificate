@@ -25,6 +25,7 @@ class QrEventLinkTest extends TestCase {
 		'date'        => '2026-11-10',
 		'start'       => '09:00',
 		'end'         => '12:30',
+		'until'       => '',
 	);
 
 	protected function setUp(): void {
@@ -37,6 +38,7 @@ class QrEventLinkTest extends TestCase {
 		Functions\when( 'get_bloginfo' )->justReturn( 'Site' );
 		Functions\when( 'home_url' )->justReturn( 'https://site.test' );
 		Functions\when( 'wp_parse_url' )->alias( static fn( $u, $c = -1 ) => parse_url( $u, $c ) );
+		Functions\when( 'wp_date' )->alias( static fn( $f, $t = null ) => gmdate( $f, $t ?? time() ) );
 	}
 
 	protected function tearDown(): void {
@@ -82,7 +84,7 @@ class QrEventLinkTest extends TestCase {
 		list( $data, $sig ) = $this->params( QrEventLink::url( array( 'title' => 'T', 'evil' => '<x>' ) ) );
 
 		$event = QrEventLink::verify( $data, $sig );
-		$this->assertSame( array( 'title', 'location', 'description', 'date', 'start', 'end' ), array_keys( (array) $event ) );
+		$this->assertSame( array( 'title', 'location', 'description', 'date', 'start', 'end', 'until' ), array_keys( (array) $event ) );
 		$this->assertSame( '', $event['date'] );
 	}
 
@@ -125,6 +127,59 @@ class QrEventLinkTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\expect( 'wp_die' )->once()->with( 'This event link is not valid.', '', array( 'response' => 403 ) )->andThrow( new \RuntimeException( 'died' ) );
+
+		try {
+			( new QrEventIcsHandler() )->handle();
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'died', $e->getMessage() );
+		}
+		$_GET = array();
+	}
+
+	public function test_a_link_without_until_never_expires(): void {
+		$this->assertFalse( QrEventLink::expired( self::EVENT ) );
+		// A link issued before `until` existed decodes with the key empty.
+		$legacy = rtrim( strtr( base64_encode( (string) json_encode( array( 'title' => 'Old', 'date' => '2020-01-01', 'start' => '09:00', 'end' => '10:00' ) ) ), '+/', '-_' ), '=' );
+		$sig    = substr( hash_hmac( 'sha256', $legacy, 'test-salt|ffc_qr_ics' ), 0, 32 );
+		$event  = QrEventLink::verify( $legacy, $sig );
+		$this->assertSame( '', $event['until'] ?? null );
+		$this->assertNotSame( '', QrEventIcsHandler::build( $legacy, $sig ), 'An old link keeps serving its file.' );
+	}
+
+	public function test_a_link_lasts_through_its_until_day_and_expires_after(): void {
+		$noon = (int) strtotime( '2026-11-20 12:00:00 UTC' );
+		$this->assertFalse( QrEventLink::expired( array( 'until' => '2026-11-20' ), $noon ), 'Still valid on its last day.' );
+		$this->assertTrue( QrEventLink::expired( array( 'until' => '2026-11-19' ), $noon ) );
+		$this->assertFalse( QrEventLink::expired( array( 'until' => '2026-11-19' ), (int) strtotime( '2026-11-19 23:00:00 UTC' ) ) );
+	}
+
+	/** A day already past, by the real clock the handler reads. */
+	private static function yesterday(): string {
+		return gmdate( 'Y-m-d', time() - 86400 );
+	}
+
+	public function test_an_expired_link_serves_nothing(): void {
+		list( $data, $sig ) = $this->params( QrEventLink::url( array_merge( self::EVENT, array( 'until' => self::yesterday() ) ) ) );
+
+		$this->assertSame( '', QrEventIcsHandler::build( $data, $sig ) );
+	}
+
+	public function test_the_expiry_cannot_be_pushed_back_without_breaking_the_signature(): void {
+		list( $data, $sig ) = $this->params( QrEventLink::url( array_merge( self::EVENT, array( 'until' => '2026-11-19' ) ) ) );
+		$json    = (string) base64_decode( strtr( $data, '-_', '+/' ) );
+		$pushed  = str_replace( '2026-11-19', '2099-12-31', $json );
+		$forged  = rtrim( strtr( base64_encode( $pushed ), '+/', '-_' ), '=' );
+
+		$this->assertNull( QrEventLink::verify( $forged, $sig ) );
+	}
+
+	public function test_handle_answers_410_for_an_expired_link(): void {
+		list( $data, $sig ) = $this->params( QrEventLink::url( array_merge( self::EVENT, array( 'until' => self::yesterday() ) ) ) );
+		$_GET = array( 'e' => $data, 's' => $sig );
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\expect( 'wp_die' )->once()->with( 'This event link has expired.', '', array( 'response' => 410 ) )->andThrow( new \RuntimeException( 'died' ) );
 
 		try {
 			( new QrEventIcsHandler() )->handle();

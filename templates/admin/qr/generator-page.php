@@ -235,12 +235,23 @@ $ffc_qr_vcard_fields = array(
 								</select>
 							</td>
 						</tr>
+						<tr>
+							<th scope="row"><label for="ffc-qr-event-until"><?php esc_html_e( 'Link valid until', 'ffcertificate' ); ?></label></th>
+							<td>
+								<input type="date" id="ffc-qr-event-until" data-ffc-qr-field="event:until">
+								<p class="description"><?php esc_html_e( 'Calendar file only. Leave empty for a link that never expires -- a printed code keeps working. After this date the link answers that it has expired.', 'ffcertificate' ); ?></p>
+							</td>
+						</tr>
 					</tbody>
 				</table>
 			</div>
 
 			<div class="card">
 				<h2><?php esc_html_e( 'Design', 'ffcertificate' ); ?></h2>
+				<p>
+					<button type="button" class="button" id="ffc-qr-design-reset"><?php esc_html_e( 'Reset to default', 'ffcertificate' ); ?></button>
+					<span class="description"><?php esc_html_e( 'The generator remembers your design when you download a code; this goes back to the global design from Settings → QR Code.', 'ffcertificate' ); ?></span>
+				</p>
 				<table class="form-table" role="presentation">
 					<tbody>
 						<?php require FFC_PLUGIN_DIR . 'templates/admin/qr/design-fields.php'; ?>
