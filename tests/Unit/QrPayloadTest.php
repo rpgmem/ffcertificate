@@ -96,9 +96,9 @@ class QrPayloadTest extends TestCase {
 	}
 
 	public function test_a_number_too_short_or_too_long_is_refused(): void {
-		$this->error( 'phone', array( 'phone' => '12' ) );
-		$this->error( 'sms', array( 'phone' => str_repeat( '9', 16 ) ) );
-		$this->error( 'whatsapp', array( 'phone' => 'abc' ) );
+		$this->assertSame( 'Enter a valid phone number.', $this->error( 'phone', array( 'phone' => '12' ) ) );
+		$this->assertSame( 'Enter a valid phone number.', $this->error( 'sms', array( 'phone' => str_repeat( '9', 16 ) ) ) );
+		$this->assertSame( 'Enter a valid phone number.', $this->error( 'whatsapp', array( 'phone' => 'abc' ) ) );
 	}
 
 	public function test_an_unknown_type_and_non_scalar_fields_are_refused(): void {
